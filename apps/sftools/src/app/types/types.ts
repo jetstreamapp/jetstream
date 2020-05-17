@@ -1,4 +1,5 @@
-import { MapOf, FieldDefinition } from '@silverthorn/api-interfaces';
+import { MapOf } from '@silverthorn/api-interfaces';
+import { FieldDefinition } from '@silverthorn/shared-types';
 import { Field } from 'jsforce';
 
 export type IconType = 'action' | 'custom' | 'doctype' | 'standard' | 'utility';

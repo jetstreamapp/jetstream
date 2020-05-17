@@ -59,6 +59,7 @@
     "@nrwl/jest": "9.3.0",
     "@nrwl/node": "9.3.0",
     "@nrwl/react": "9.3.0",
+    "@nrwl/storybook": "^9.3.0",
     "@nrwl/web": "9.3.0",
     "@nrwl/workspace": "9.3.0",
     "@testing-library/react": "9.4.0",

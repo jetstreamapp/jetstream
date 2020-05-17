@@ -31,6 +31,15 @@
     },
     "api-interfaces": {
       "tags": []
+    },
+    "utils": {
+      "tags": []
+    },
+    "sftools-ui": {
+      "tags": []
+    },
+    "shared-types": {
+      "tags": []
     }
   }
 }

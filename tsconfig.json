@@ -16,7 +16,10 @@
     "skipDefaultLibCheck": true,
     "baseUrl": ".",
     "paths": {
-      "@silverthorn/api-interfaces": ["libs/api-interfaces/src/index.ts"]
+      "@silverthorn/api-interfaces": ["libs/api-interfaces/src/index.ts"],
+      "@silverthorn/utils": ["libs/utils/src/index.ts"],
+      "@silverthorn/sftools-ui": ["libs/sftools-ui/src/index.ts"],
+      "@silverthorn/shared-types": ["libs/shared-types/src/index.ts"]
     }
   },
   "exclude": ["node_modules", "tmp"]

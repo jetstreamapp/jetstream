@@ -1,5 +1,7 @@
 import { describeSObject, query } from '../../utils/data';
-import { MapOf, FieldDefinition, REGEX } from '@silverthorn/api-interfaces';
+import { MapOf } from '@silverthorn/api-interfaces';
+import { FieldDefinition } from '@silverthorn/shared-types';
+import { REGEX } from '@silverthorn/utils';
 import { getFieldDefinitionQuery, polyfillFieldDefinition } from '../../utils/sfdc-utils';
 import { getMapOf, sortQueryFields } from '../../utils/utils';
 import { FieldWrapper, QueryFields } from '../../types/types';
