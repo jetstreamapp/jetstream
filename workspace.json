@@ -15,13 +15,10 @@
             "main": "apps/sftools/src/main.tsx",
             "polyfills": "apps/sftools/src/polyfills.ts",
             "tsConfig": "apps/sftools/tsconfig.app.json",
-            "assets": [
-              "apps/sftools/src/favicon.ico",
-              "apps/sftools/src/assets"
-            ],
+            "assets": ["apps/sftools/src/favicon.ico", "apps/sftools/src/assets"],
             "styles": [],
             "scripts": [],
-            "webpackConfig": "@nrwl/react/plugins/webpack"
+            "webpackConfig": "webpack.config.js"
           },
           "configurations": {
             "production": {
@@ -65,10 +62,7 @@
           "options": {
             "linter": "eslint",
             "config": "apps/sftools/.eslintrc",
-            "tsConfig": [
-              "apps/sftools/tsconfig.app.json",
-              "apps/sftools/tsconfig.spec.json"
-            ],
+            "tsConfig": ["apps/sftools/tsconfig.app.json", "apps/sftools/tsconfig.spec.json"],
             "exclude": ["**/node_modules/**", "!apps/sftools/**"]
           }
         },
@@ -151,10 +145,7 @@
           "options": {
             "linter": "eslint",
             "config": "apps/api/.eslintrc",
-            "tsConfig": [
-              "apps/api/tsconfig.app.json",
-              "apps/api/tsconfig.spec.json"
-            ],
+            "tsConfig": ["apps/api/tsconfig.app.json", "apps/api/tsconfig.spec.json"],
             "exclude": ["**/node_modules/**", "!apps/api/**"]
           }
         },
@@ -179,10 +170,7 @@
           "options": {
             "linter": "eslint",
             "config": "libs/api-interfaces/.eslintrc",
-            "tsConfig": [
-              "libs/api-interfaces/tsconfig.lib.json",
-              "libs/api-interfaces/tsconfig.spec.json"
-            ],
+            "tsConfig": ["libs/api-interfaces/tsconfig.lib.json", "libs/api-interfaces/tsconfig.spec.json"],
             "exclude": ["**/node_modules/**", "!libs/api-interfaces/**"]
           }
         },

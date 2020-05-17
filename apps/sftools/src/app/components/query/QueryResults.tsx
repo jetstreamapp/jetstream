@@ -1,0 +1,114 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
+/* eslint-disable @typescript-eslint/no-explicit-any */
+/** @jsx jsx */
+import { jsx, css } from '@emotion/core';
+import classNames from 'classnames';
+import { FunctionComponent, useEffect, useState } from 'react';
+import { Link, useLocation } from 'react-router-dom';
+import { getFlattenedFields } from 'soql-parser-js';
+import { query } from '../../utils/data';
+import Icon from '../core/Icon';
+import TableSortableResizable from '../core/table/TableSortableResizable';
+import Toolbar from '../core/Toolbar';
+import ToolbarItemActions from '../core/ToolbarItemActions';
+import ToolbarItemGroup from '../core/ToolbarItemGroup';
+import QueryResultsSoqlPanel from './QueryResultsSoqlPanel';
+import AutoFullHeightContainer from '../core/AutoFullHeightContainer';
+import Spinner from '../core/Spinner';
+
+// eslint-disable-next-line @typescript-eslint/no-empty-interface
+export interface QueryResultsProps {}
+
+export const QueryResults: FunctionComponent<QueryResultsProps> = () => {
+  const location = useLocation<{ soql: string }>();
+  const [soqlPanelOpen, setSoqlPanelOpen] = useState<boolean>(false);
+  const [soql, setSoql] = useState<string>(null);
+  const [userSoql, setUserSoql] = useState<string>(null);
+  const [records, setRecords] = useState<any[]>(null);
+  const [fields, setFields] = useState<string[]>(null);
+  const [selectedRows, setSelectedRows] = useState<any[]>([]);
+  const [loading, setLoading] = useState<boolean>(false);
+
+  useEffect(() => {
+    console.log({ location });
+    if (location.state) {
+      setSoql(location.state.soql || '');
+      setUserSoql(location.state.soql || '');
+      executeQuery(location.state.soql);
+    }
+  }, [location]);
+
+  async function executeQuery(soql: string) {
+    try {
+      setLoading(true);
+      setSoql(soql);
+      const results = await query(soql);
+      // TODO: we need a fallback here in case there are no parsed results
+      setFields(getFlattenedFields(results.parsedQuery));
+      // TODO: do we need to flatten all of our records?
+      // TODO: we should use the columns in combination with our parsed query and ensure the order is good
+      setRecords(results.queryResults.records);
+    } catch (ex) {
+      console.warn('ERROR', ex);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  return (
+    <div className="slds-is-relative">
+      <Toolbar>
+        <ToolbarItemGroup>
+          <Link
+            className="slds-button slds-button_neutral"
+            to={{
+              pathname: `/query`,
+              state: { soql },
+            }}
+          >
+            <Icon type="utility" icon="back" className="slds-button__icon slds-button__icon_left" omitContainer={true} />
+            Go Back
+          </Link>
+          <button
+            className={classNames('slds-button', { 'slds-button_neutral': !soqlPanelOpen, 'slds-button_brand': soqlPanelOpen })}
+            onClick={() => setSoqlPanelOpen(!soqlPanelOpen)}
+          >
+            <Icon type="utility" icon="component_customization" className="slds-button__icon slds-button__icon_left" omitContainer={true} />
+            Manage SOQL Query
+          </button>
+        </ToolbarItemGroup>
+        <ToolbarItemActions>
+          <button className="slds-button slds-button_text-destructive" disabled={selectedRows.length === 0}>
+            <Icon type="utility" icon="delete" className="slds-button__icon slds-button__icon_left" omitContainer={true} />
+            Delete Selected Records
+          </button>
+          <button className="slds-button slds-button_neutral" disabled={selectedRows.length === 0}>
+            <Icon type="utility" icon="multi_select_checkbox" className="slds-button__icon slds-button__icon_left" omitContainer={true} />
+            Download Selected Records
+          </button>
+          <button className="slds-button slds-button_brand">
+            <Icon type="utility" icon="download" className="slds-button__icon slds-button__icon_left" omitContainer={true} />
+            Download Records
+          </button>
+        </ToolbarItemActions>
+      </Toolbar>
+      <div className="slds-grid">
+        <QueryResultsSoqlPanel soql={soql} isOpen={soqlPanelOpen} onClosed={() => setSoqlPanelOpen(false)} executeQuery={executeQuery} />
+        <AutoFullHeightContainer
+          className="slds-scrollable"
+          baseCss={css`
+            background-color: white;
+          `}
+          fillHeigh={true}
+        >
+          {loading && <Spinner />}
+          {records && <TableSortableResizable data={records} headers={fields} onRowSelection={setSelectedRows} />}
+          {/* TODO: where should this live? */}
+          {/* <div>Rows selected: {selectedRows.length}</div> */}
+        </AutoFullHeightContainer>
+      </div>
+    </div>
+  );
+};
+
+export default QueryResults;

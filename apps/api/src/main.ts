@@ -1,13 +1,17 @@
 import * as express from 'express';
-import { Message } from '@silverthorn/api-interfaces';
+import { logRoute } from './app/routes-middleware';
+import { routes } from './app/routes';
+import { handleError } from './app/route-handlers';
+import { json, urlencoded } from 'body-parser';
 
 const app = express();
 
-const greeting: Message = { message: 'Welcome to api!' };
+app.use(json({ limit: '20mb' }));
+app.use(urlencoded({ extended: true }));
 
-app.get('/api', (req, res) => {
-  res.send(greeting);
-});
+app.use('/api', logRoute, routes);
+
+app.use(handleError);
 
 const port = process.env.port || 3333;
 const server = app.listen(port, () => {
