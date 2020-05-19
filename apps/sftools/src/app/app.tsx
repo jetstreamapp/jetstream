@@ -1,10 +1,10 @@
 /** @jsx jsx */
 import { css, jsx } from '@emotion/core';
-import Header from './components/core/Header';
+import { Header } from '@silverthorn/ui';
 import Query from './components/query/Query';
 import { BrowserRouter as Router, Switch, Route } from 'react-router-dom';
-import Navbar from './components/core/NavBar';
-import NavBarItem from './components/core/NavBarItem';
+import { Navbar } from '@silverthorn/ui';
+import { NavbarItem } from '@silverthorn/ui';
 
 export const App = () => {
   return (
@@ -13,8 +13,8 @@ export const App = () => {
         <div>
           <Header>
             <Navbar>
-              <NavBarItem path="/" title="Home" label="Home" />
-              <NavBarItem path="/query" title="Query Records" label="Query Records" />
+              <NavbarItem path="/" title="Home" label="Home" />
+              <NavbarItem path="/query" title="Query Records" label="Query Records" />
             </Navbar>
           </Header>
         </div>

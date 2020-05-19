@@ -1,19 +1,18 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
-import { MapOf } from '@silverthorn/api-interfaces';
+import { MapOf, QueryFields } from '@silverthorn/types';
 import { DescribeGlobalSObjectResult } from 'jsforce';
 import React, { Fragment, FunctionComponent, useEffect, useState } from 'react';
 import { Link, useLocation, useRouteMatch } from 'react-router-dom';
 import { composeQuery, getField } from 'soql-parser-js';
-import { QueryFields } from '../../types/types';
-import Icon from '../core/Icon';
-import Toolbar from '../core/Toolbar';
-import ToolbarItemActions from '../core/ToolbarItemActions';
-import SobjectList from '../shared/SobjectList/SobjectList';
+import { Icon, SobjectList } from '@silverthorn/ui';
+import { Toolbar } from '@silverthorn/ui';
+import { ToolbarItemActions } from '@silverthorn/ui';
 import QueryFieldsComponent from './QueryFields';
 import SoqlTextarea from './QueryOptions/SoqlTextarea';
 import classNames from 'classnames';
-import ButtonRowContainer from '../core/ButtonRowContainer';
-import ButtonRowItem from '../core/ButtonRowItem';
+import { ButtonRowContainer } from '@silverthorn/ui';
+import { ButtonRowItem } from '@silverthorn/ui';
+import QuerySObjects from './QuerySObjects';
 
 // eslint-disable-next-line @typescript-eslint/no-empty-interface
 export interface QueryBuilderProps {}
@@ -80,7 +79,7 @@ export const QueryBuilder: FunctionComponent<QueryBuilderProps> = () => {
       <div className="slds-grid slds-gutters">
         <div className="slds-col slds-size_1-of-3 slds-is-relative">
           <h2 className="slds-text-heading_medium slds-text-align_center">Objects</h2>
-          <SobjectList onSelected={(sobject) => setActiveSObject(sobject)} />
+          <QuerySObjects onSelected={(sobject) => setActiveSObject(sobject)} />
         </div>
         <div className="slds-col slds-size_1-of-3 slds-is-relative">
           <h2 className="slds-text-heading_medium slds-text-align_center slds-truncate">{activeSObject?.name} Fields</h2>

@@ -184,9 +184,9 @@
         }
       }
     },
-    "utils": {
-      "root": "libs/utils",
-      "sourceRoot": "libs/utils/src",
+    "ui": {
+      "root": "libs/ui",
+      "sourceRoot": "libs/ui/src",
       "projectType": "library",
       "schematics": {},
       "architect": {
@@ -194,24 +194,79 @@
           "builder": "@nrwl/linter:lint",
           "options": {
             "linter": "eslint",
-            "config": "libs/utils/.eslintrc",
-            "tsConfig": ["libs/utils/tsconfig.lib.json", "libs/utils/tsconfig.spec.json"],
-            "exclude": ["**/node_modules/**", "!libs/utils/**"]
+            "config": "libs/ui/.eslintrc",
+            "tsConfig": ["libs/ui/tsconfig.lib.json", "libs/ui/tsconfig.spec.json"],
+            "exclude": ["**/node_modules/**", "!libs/ui/**"]
           }
         },
         "test": {
           "builder": "@nrwl/jest:jest",
           "options": {
-            "jestConfig": "libs/utils/jest.config.js",
-            "tsConfig": "libs/utils/tsconfig.spec.json",
+            "jestConfig": "libs/ui/jest.config.js",
+            "tsConfig": "libs/ui/tsconfig.spec.json",
+            "passWithNoTests": true
+          }
+        },
+        "storybook": {
+          "builder": "@nrwl/storybook:storybook",
+          "options": {
+            "uiFramework": "@storybook/react",
+            "port": 4400,
+            "config": {
+              "configFolder": "libs/ui/.storybook"
+            }
+          },
+          "configurations": {
+            "ci": {
+              "quiet": true
+            }
+          }
+        },
+        "build-storybook": {
+          "builder": "@nrwl/storybook:build",
+          "options": {
+            "uiFramework": "@storybook/react",
+            "outputPath": "dist/storybook/ui",
+            "config": {
+              "configFolder": "libs/ui/.storybook"
+            }
+          },
+          "configurations": {
+            "ci": {
+              "quiet": true
+            }
+          }
+        }
+      }
+    },
+    "types": {
+      "root": "libs/types",
+      "sourceRoot": "libs/types/src",
+      "projectType": "library",
+      "schematics": {},
+      "architect": {
+        "lint": {
+          "builder": "@nrwl/linter:lint",
+          "options": {
+            "linter": "eslint",
+            "config": "libs/types/.eslintrc",
+            "tsConfig": ["libs/types/tsconfig.lib.json", "libs/types/tsconfig.spec.json"],
+            "exclude": ["**/node_modules/**", "!libs/types/**"]
+          }
+        },
+        "test": {
+          "builder": "@nrwl/jest:jest",
+          "options": {
+            "jestConfig": "libs/types/jest.config.js",
+            "tsConfig": "libs/types/tsconfig.spec.json",
             "passWithNoTests": true
           }
         }
       }
     },
-    "sftools-ui": {
-      "root": "libs/sftools-ui",
-      "sourceRoot": "libs/sftools-ui/src",
+    "shared-utils": {
+      "root": "libs/shared/utils",
+      "sourceRoot": "libs/shared/utils/src",
       "projectType": "library",
       "schematics": {},
       "architect": {
@@ -219,24 +274,24 @@
           "builder": "@nrwl/linter:lint",
           "options": {
             "linter": "eslint",
-            "config": "libs/sftools-ui/.eslintrc",
-            "tsConfig": ["libs/sftools-ui/tsconfig.lib.json", "libs/sftools-ui/tsconfig.spec.json"],
-            "exclude": ["**/node_modules/**", "!libs/sftools-ui/**"]
+            "config": "libs/shared/utils/.eslintrc",
+            "tsConfig": ["libs/shared/utils/tsconfig.lib.json", "libs/shared/utils/tsconfig.spec.json"],
+            "exclude": ["**/node_modules/**", "!libs/shared/utils/**"]
           }
         },
         "test": {
           "builder": "@nrwl/jest:jest",
           "options": {
-            "jestConfig": "libs/sftools-ui/jest.config.js",
-            "tsConfig": "libs/sftools-ui/tsconfig.spec.json",
+            "jestConfig": "libs/shared/utils/jest.config.js",
+            "tsConfig": "libs/shared/utils/tsconfig.spec.json",
             "passWithNoTests": true
           }
         }
       }
     },
-    "shared-types": {
-      "root": "libs/shared-types",
-      "sourceRoot": "libs/shared-types/src",
+    "shared-data": {
+      "root": "libs/shared/data",
+      "sourceRoot": "libs/shared/data/src",
       "projectType": "library",
       "schematics": {},
       "architect": {
@@ -244,17 +299,113 @@
           "builder": "@nrwl/linter:lint",
           "options": {
             "linter": "eslint",
-            "config": "libs/shared-types/.eslintrc",
-            "tsConfig": ["libs/shared-types/tsconfig.lib.json", "libs/shared-types/tsconfig.spec.json"],
-            "exclude": ["**/node_modules/**", "!libs/shared-types/**"]
+            "config": "libs/shared/data/.eslintrc",
+            "tsConfig": ["libs/shared/data/tsconfig.lib.json", "libs/shared/data/tsconfig.spec.json"],
+            "exclude": ["**/node_modules/**", "!libs/shared/data/**"]
           }
         },
         "test": {
           "builder": "@nrwl/jest:jest",
           "options": {
-            "jestConfig": "libs/shared-types/jest.config.js",
-            "tsConfig": "libs/shared-types/tsconfig.spec.json",
+            "jestConfig": "libs/shared/data/jest.config.js",
+            "tsConfig": "libs/shared/data/tsconfig.spec.json",
             "passWithNoTests": true
+          }
+        }
+      }
+    },
+    "shared-ui-utils": {
+      "root": "libs/shared/ui-utils",
+      "sourceRoot": "libs/shared/ui-utils/src",
+      "projectType": "library",
+      "schematics": {},
+      "architect": {
+        "lint": {
+          "builder": "@nrwl/linter:lint",
+          "options": {
+            "linter": "eslint",
+            "config": "libs/shared/ui-utils/.eslintrc",
+            "tsConfig": ["libs/shared/ui-utils/tsconfig.lib.json", "libs/shared/ui-utils/tsconfig.spec.json"],
+            "exclude": ["**/node_modules/**", "!libs/shared/ui-utils/**"]
+          }
+        },
+        "test": {
+          "builder": "@nrwl/jest:jest",
+          "options": {
+            "jestConfig": "libs/shared/ui-utils/jest.config.js",
+            "tsConfig": "libs/shared/ui-utils/tsconfig.spec.json",
+            "passWithNoTests": true
+          }
+        }
+      }
+    },
+    "shared-node-utils": {
+      "root": "libs/shared/node-utils",
+      "sourceRoot": "libs/shared/node-utils/src",
+      "projectType": "library",
+      "schematics": {},
+      "architect": {
+        "lint": {
+          "builder": "@nrwl/linter:lint",
+          "options": {
+            "linter": "eslint",
+            "config": "libs/shared/node-utils/.eslintrc",
+            "tsConfig": ["libs/shared/node-utils/tsconfig.lib.json", "libs/shared/node-utils/tsconfig.spec.json"],
+            "exclude": ["**/node_modules/**", "!libs/shared/node-utils/**"]
+          }
+        },
+        "test": {
+          "builder": "@nrwl/jest:jest",
+          "options": {
+            "jestConfig": "libs/shared/node-utils/jest.config.js",
+            "tsConfig": "libs/shared/node-utils/tsconfig.spec.json",
+            "passWithNoTests": true
+          }
+        }
+      }
+    },
+    "ui-e2e": {
+      "root": "apps/ui-e2e",
+      "sourceRoot": "apps/ui-e2e/src",
+      "projectType": "application",
+      "architect": {
+        "e2e": {
+          "builder": "@nrwl/cypress:cypress",
+          "options": {
+            "cypressConfig": "apps/ui-e2e/cypress.json",
+            "tsConfig": "apps/ui-e2e/tsconfig.e2e.json",
+            "devServerTarget": "ui:storybook"
+          },
+          "configurations": {
+            "ci": {
+              "devServerTarget": "ui:storybook:ci"
+            }
+          }
+        },
+        "lint": {
+          "builder": "@nrwl/linter:lint",
+          "options": {
+            "linter": "eslint",
+            "config": "apps/ui-e2e/.eslintrc",
+            "tsConfig": ["apps/ui-e2e/tsconfig.e2e.json"],
+            "exclude": ["**/node_modules/**", "!apps/ui-e2e/**"]
+          }
+        }
+      }
+    },
+    "shared-constants": {
+      "root": "libs/shared/constants",
+      "sourceRoot": "libs/shared/constants/src",
+      "projectType": "library",
+      "schematics": {},
+      "architect": {
+        "lint": {
+          "builder": "@nrwl/linter:lint",
+          "options": {
+            "linter": "eslint",
+            "config": "libs/shared/constants/.eslintrc",
+            "tsConfig": ["libs/shared/constants/tsconfig.lib.json"],
+            "exclude": ["**/node_modules/**", "!libs/shared/constants/**"]
           }
         }
       }

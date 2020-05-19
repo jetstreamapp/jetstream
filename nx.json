@@ -14,7 +14,7 @@
     "default": {
       "runner": "@nrwl/workspace/tasks-runners/default",
       "options": {
-        "cacheableOperations": ["build", "lint", "test", "e2e"]
+        "cacheableOperations": ["build", "lint", "test", "e2e", "build-storybook"]
       }
     }
   },
@@ -32,13 +32,29 @@
     "api-interfaces": {
       "tags": []
     },
-    "utils": {
+    "ui": {
       "tags": []
     },
-    "sftools-ui": {
+    "types": {
       "tags": []
     },
-    "shared-types": {
+    "shared-utils": {
+      "tags": []
+    },
+    "shared-data": {
+      "tags": []
+    },
+    "shared-ui-utils": {
+      "tags": []
+    },
+    "shared-node-utils": {
+      "tags": []
+    },
+    "ui-e2e": {
+      "tags": [],
+      "implicitDependencies": ["ui"]
+    },
+    "shared-constants": {
       "tags": []
     }
   }

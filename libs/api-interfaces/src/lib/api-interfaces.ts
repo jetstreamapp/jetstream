@@ -1,16 +1,8 @@
 import { Query } from 'soql-parser-js';
 import * as jsforce from 'jsforce';
 
-export interface Message {
-  message: string;
-}
-
 export interface RequestResult<T> {
   data: T;
-}
-
-export interface MapOf<T> {
-  [key: string]: T;
 }
 
 export interface QueryResults<T = unknown> {

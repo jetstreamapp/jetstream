@@ -1,21 +1,29 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 /** @jsx jsx */
-import { jsx, css } from '@emotion/core';
+import { css, jsx } from '@emotion/core';
+import { MIME_TYPES } from '@silverthorn/shared/constants';
+import { query } from '@silverthorn/shared/data';
+import { saveFile } from '@silverthorn/shared/ui-utils';
+import { flattenRecords } from '@silverthorn/shared/utils';
+import {
+  AutoFullHeightContainer,
+  Icon,
+  Modal,
+  Spinner,
+  TableSortableResizable,
+  Toolbar,
+  ToolbarItemActions,
+  ToolbarItemGroup,
+} from '@silverthorn/ui';
 import classNames from 'classnames';
+import { unparse } from 'papaparse';
 import { FunctionComponent, useEffect, useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { getFlattenedFields } from 'soql-parser-js';
-import { query } from '../../utils/data';
-import Icon from '../core/Icon';
-import TableSortableResizable from '../core/table/TableSortableResizable';
-import Toolbar from '../core/Toolbar';
-import ToolbarItemActions from '../core/ToolbarItemActions';
-import ToolbarItemGroup from '../core/ToolbarItemGroup';
 import QueryResultsSoqlPanel from './QueryResultsSoqlPanel';
-import AutoFullHeightContainer from '../core/AutoFullHeightContainer';
-import Spinner from '../core/Spinner';
-
+import { Record } from '@silverthorn/types';
+import QueryDownloadModal from './QueryDownloadModal';
 // eslint-disable-next-line @typescript-eslint/no-empty-interface
 export interface QueryResultsProps {}
 
@@ -24,10 +32,11 @@ export const QueryResults: FunctionComponent<QueryResultsProps> = () => {
   const [soqlPanelOpen, setSoqlPanelOpen] = useState<boolean>(false);
   const [soql, setSoql] = useState<string>(null);
   const [userSoql, setUserSoql] = useState<string>(null);
-  const [records, setRecords] = useState<any[]>(null);
+  const [records, setRecords] = useState<Record[]>(null);
   const [fields, setFields] = useState<string[]>(null);
-  const [selectedRows, setSelectedRows] = useState<any[]>([]);
+  const [selectedRows, setSelectedRows] = useState<Record[]>([]);
   const [loading, setLoading] = useState<boolean>(false);
+  const [downloadModalOpen, setDownloadModalOpen] = useState<boolean>(false);
 
   useEffect(() => {
     console.log({ location });
@@ -55,8 +64,38 @@ export const QueryResults: FunctionComponent<QueryResultsProps> = () => {
     }
   }
 
+  function downloadRecords() {
+    // open modal
+    const csv = unparse({ data: flattenRecords(records, fields), fields }, { header: true, quotes: true });
+    console.log({ csv });
+    saveFile(csv, 'query-results.csv', MIME_TYPES.CSV);
+    setDownloadModalOpen(false);
+  }
+
   return (
     <div className="slds-is-relative">
+      <QueryDownloadModal
+        downloadModalOpen={downloadModalOpen}
+        fields={fields}
+        records={records}
+        selectedRecords={selectedRows}
+        onModalClose={() => setDownloadModalOpen(false)}
+      />
+      {/* {downloadModalOpen && (
+        <Modal
+          header="Download Records"
+          footer={
+            <button className="slds-button slds-button_brand" onClick={downloadRecords}>
+              Download
+            </button>
+          }
+          onClose={() => setDownloadModalOpen(false)}
+        >
+          <p>
+            You are about to download records! This modal is here because in the future we may allow configuration of the download process.
+          </p>
+        </Modal> */}
+      )}
       <Toolbar>
         <ToolbarItemGroup>
           <Link
@@ -82,11 +121,7 @@ export const QueryResults: FunctionComponent<QueryResultsProps> = () => {
             <Icon type="utility" icon="delete" className="slds-button__icon slds-button__icon_left" omitContainer={true} />
             Delete Selected Records
           </button>
-          <button className="slds-button slds-button_neutral" disabled={selectedRows.length === 0}>
-            <Icon type="utility" icon="multi_select_checkbox" className="slds-button__icon slds-button__icon_left" omitContainer={true} />
-            Download Selected Records
-          </button>
-          <button className="slds-button slds-button_brand">
+          <button className="slds-button slds-button_brand" onClick={() => setDownloadModalOpen(true)}>
             <Icon type="utility" icon="download" className="slds-button__icon slds-button__icon_left" omitContainer={true} />
             Download Records
           </button>

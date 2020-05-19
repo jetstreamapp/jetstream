@@ -1,10 +1,10 @@
 /** @jsx jsx */
 import { jsx } from '@emotion/core';
 import { FunctionComponent, useEffect, useState } from 'react';
-import Panel from '../core/Panel';
-import Textarea from '../core/Textarea';
+import { Panel } from '@silverthorn/ui';
+import { Textarea } from '@silverthorn/ui';
 import { useHotkeys } from 'react-hotkeys-hook';
-import Icon from '../core/Icon';
+import { Icon } from '@silverthorn/ui';
 
 // eslint-disable-next-line @typescript-eslint/no-empty-interface
 export interface QueryResultsSoqlPanelProps {

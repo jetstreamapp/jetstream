@@ -1,5 +1,5 @@
 import React, { FunctionComponent } from 'react';
-import Textarea from '../../core/Textarea';
+import { Textarea } from '@silverthorn/ui';
 
 export interface SoqlTextareaProps {
   soql: string;
