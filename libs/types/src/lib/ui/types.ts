@@ -53,6 +53,7 @@ export type MimeTypePlainText = 'text/plain;charset=utf-8';
 export type MimeTypeCsv = 'text/csv;charset=utf-8';
 
 // Generic status types
+export type Info = 'info';
 export type Success = 'success';
 export type Warning = 'warning';
 export type Error = 'error';
@@ -61,6 +62,7 @@ export type Default = 'default';
 export type Inverse = 'inverse';
 export type Light = 'light';
 
+export type InfoSuccessWarningError = Info | Success | Warning | Error;
 export type SuccessWarningError = Success | Warning | Error;
 export type DefaultInverseLight = Default | Inverse | Light;
 export type BadgeTypes = SuccessWarningError | DefaultInverseLight;
