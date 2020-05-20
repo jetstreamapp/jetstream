@@ -35,3 +35,4 @@ export * from './lib/widgets/Spinner';
 export * from './lib/widgets/Tooltip';
 export * from './lib/widgets/Badge';
 export * from './lib/toast/Toast';
+export * from './lib/layout/ColumnWithMinWidth';

@@ -123,6 +123,12 @@ export const tooltipBasic = () => (
   </Tooltip>
 );
 
+export const tooltipFromIcon = () => (
+  <Tooltip content={text('content', 'This is the tooltip content!')}>
+    <Icon type="utility" icon="settings" />
+  </Tooltip>
+);
+
 export const tooltipWithCustomContent = () => (
   <Tooltip
     content={

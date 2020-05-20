@@ -1,7 +1,8 @@
 import { Field } from 'jsforce';
 import { orderObjectsBy } from '@silverthorn/shared/utils';
-import { MimeType } from '@silverthorn/types';
+import { MimeType, PositionAll } from '@silverthorn/types';
 import { saveAs } from 'file-saver';
+import { Placement as tippyPlacement } from 'tippy.js';
 
 export function sortQueryFields(fields: Field[]): Field[] {
   // partition name and id field out, then append to front
@@ -129,4 +130,35 @@ export function polyfillFieldDefinition(field: Field) {
 export function saveFile(content: any, filename: string, type: MimeType) {
   const blob = new Blob([content], { type });
   saveAs(blob, filename);
+}
+
+export function convertTippyPlacementToSlds(placement: tippyPlacement): PositionAll | null {
+  switch (placement) {
+    case 'left':
+      return 'right';
+    case 'left-start':
+      return 'right-bottom';
+    case 'left-end':
+      return 'right-top';
+    case 'right':
+      return 'left';
+    case 'right-start':
+      return 'left-bottom';
+    case 'right-end':
+      return 'left-top';
+    case 'top':
+      return 'bottom';
+    case 'top-start':
+      return 'bottom-right';
+    case 'top-end':
+      return 'bottom-left';
+    case 'bottom':
+      return 'top';
+    case 'bottom-start':
+      return 'top-right';
+    case 'bottom-end':
+      return 'top-left';
+    default:
+      return null;
+  }
 }

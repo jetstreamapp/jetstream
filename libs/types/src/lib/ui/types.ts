@@ -45,8 +45,30 @@ export type SizeFull = 'full';
 
 // Generic position types
 export type PositionLeftRight = PositionLeft | PositionRight;
+export type PositionLeftRightTopBottom = PositionLeft | PositionRight | PositionTop | PositionBottom;
+export type PositionAll =
+  | PositionLeftRight
+  | PositionLeftRightTopBottom
+  | PositionLeftTop
+  | PositionLeftBottom
+  | PositionTopLeft
+  | PositionTopRight
+  | PositionRightTop
+  | PositionRightBottom
+  | PositionBottomLeft
+  | PositionBottomRight;
 export type PositionLeft = 'left';
+export type PositionLeftTop = 'left-top';
+export type PositionLeftBottom = 'left-bottom';
+export type PositionTop = 'top';
+export type PositionTopLeft = 'top-left';
+export type PositionTopRight = 'top-right';
 export type PositionRight = 'right';
+export type PositionRightTop = 'right-top';
+export type PositionRightBottom = 'right-bottom';
+export type PositionBottom = 'bottom';
+export type PositionBottomLeft = 'bottom-left';
+export type PositionBottomRight = 'bottom-right';
 
 export type MimeType = MimeTypePlainText | MimeTypeCsv;
 export type MimeTypePlainText = 'text/plain;charset=utf-8';

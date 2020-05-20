@@ -1,9 +1,9 @@
-/** @jsx jsx */
-import { css, jsx } from '@emotion/core';
-import { FunctionComponent } from 'react';
+import React, { FunctionComponent } from 'react';
 import { BadgeTypes } from '@silverthorn/types';
 
 export interface BadgeProps {
+  className?: string;
+  title?: string;
   type?: BadgeTypes;
 }
 
@@ -31,8 +31,12 @@ function getCssClass(type: BadgeTypes) {
   return cssClass;
 }
 
-export const Badge: FunctionComponent<BadgeProps> = ({ type = 'default', children }) => {
-  return <span className={getCssClass(type)}>{children}</span>;
+export const Badge: FunctionComponent<BadgeProps> = ({ className, title, type = 'default', children }) => {
+  return (
+    <span className={`${className || ''} ${getCssClass(type)}`} title={title}>
+      {children}
+    </span>
+  );
 };
 
 export default Badge;
