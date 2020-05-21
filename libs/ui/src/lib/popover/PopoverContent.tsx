@@ -33,7 +33,6 @@ export const PopoverContent: FunctionComponent<PopoverContentProps> = ({
       className={classNames('slds-popover', /** nubbinPosition ? `slds-nubbin_${nubbinPosition}` : '',*/ containerClassName)}
       role="dialog"
     >
-      {arrow}
       <button
         className={classNames('slds-button slds-button_icon slds-button_icon-small slds-float_right slds-popover__close', {
           'slds-button_icon-inverse': inverseIcons,

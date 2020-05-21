@@ -81,21 +81,6 @@ export const QueryResults: FunctionComponent<QueryResultsProps> = () => {
         selectedRecords={selectedRows}
         onModalClose={() => setDownloadModalOpen(false)}
       />
-      {/* {downloadModalOpen && (
-        <Modal
-          header="Download Records"
-          footer={
-            <button className="slds-button slds-button_brand" onClick={downloadRecords}>
-              Download
-            </button>
-          }
-          onClose={() => setDownloadModalOpen(false)}
-        >
-          <p>
-            You are about to download records! This modal is here because in the future we may allow configuration of the download process.
-          </p>
-        </Modal> */}
-      )}
       <Toolbar>
         <ToolbarItemGroup>
           <Link

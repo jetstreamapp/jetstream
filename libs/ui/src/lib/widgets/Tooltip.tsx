@@ -23,13 +23,13 @@ export const Tooltip: FunctionComponent<TooltipProps> = ({ id = 'tooltip', conte
         return (
           visible && (
             <div className="slds-popover slds-popover_tooltip" tabIndex={-1} role="tooltip">
-              <span
+              {/* <span
                 className={`slds-nubbin_${nubbinPosition}`}
                 css={css`
                   background-color: inherit;
                 `}
-                data-popper-arrow=""
-              />
+                data-popper-arrow
+              /> */}
               <div className="slds-popover__body">{content}</div>
             </div>
           )

@@ -33,34 +33,32 @@ export const Popover: FunctionComponent<PopoverProps> = ({
 }) => {
   const [id] = useState<string>(uniqueId('popover'));
   const [visible, setVisible] = useState(false);
-  const [nubbinPosition, setNubbinPosition] = useState<PositionAll>();
   // convertTippyPlacementToSlds
   return (
     <Tippy
       visible={visible}
       placement={placement}
       onClickOutside={() => setVisible(false)}
-      interactive
-      allowHTML
+      interactive={true}
+      allowHTML={true}
       onHide={() => onClose && onClose()}
       render={(attrs) => {
-        setNubbinPosition(convertTippyPlacementToSlds(attrs['data-placement']));
         return (
           visible && (
             <PopoverContent
               id={id}
-              nubbinPosition={nubbinPosition}
+              // nubbinPosition={nubbinPosition}
               inverseIcons={inverseIcons}
               containerClassName={containerClassName}
-              arrow={
-                <span
-                  className={`slds-nubbin_${nubbinPosition}`}
-                  css={css`
-                    background-color: inherit;
-                  `}
-                  data-popper-arrow=""
-                />
-              }
+              // arrow={
+              //   <span
+              //     className={`slds-nubbin_${nubbinPosition}`}
+              //     css={css`
+              //       background-color: inherit;
+              //     `}
+              //     data-popper-arrow=""
+              //   />
+              // }
               header={header}
               footer={footer}
               onClose={() => setVisible(false)}
