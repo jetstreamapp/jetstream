@@ -42,7 +42,6 @@ export async function fetchFields(queryFields: QueryFields): Promise<QueryFields
         filterText,
         metadata: field,
         fieldDefinition: fieldDefByApiName[field.name],
-        selected: false,
       };
     }),
     'name'
