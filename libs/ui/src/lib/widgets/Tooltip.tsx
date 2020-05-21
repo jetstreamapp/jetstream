@@ -17,7 +17,7 @@ export const Tooltip: FunctionComponent<TooltipProps> = ({ id = 'tooltip', conte
     <Tippy
       onHide={() => setVisible(false)}
       onShow={() => setVisible(true)}
-      allowHTML={true}
+      allowHTML
       render={(attrs) => {
         setNubbinPosition(convertTippyPlacementToSlds(attrs['data-placement']));
         return (

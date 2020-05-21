@@ -13,7 +13,7 @@ export const Query: FunctionComponent<QueryProps> = () => {
   return (
     <Fragment>
       <Switch>
-        <Route path={`${match.url}`} exact={true}>
+        <Route path={`${match.url}`} exact>
           <QueryBuilder />
         </Route>
         <Route path={`${match.url}/results`}>{!location.state?.soql ? <Redirect to={match.url} /> : <QueryResults />}</Route>

@@ -40,8 +40,8 @@ export const Popover: FunctionComponent<PopoverProps> = ({
       visible={visible}
       placement={placement}
       onClickOutside={() => setVisible(false)}
-      interactive={true}
-      allowHTML={true}
+      interactive
+      allowHTML
       onHide={() => onClose && onClose()}
       render={(attrs) => {
         setNubbinPosition(convertTippyPlacementToSlds(attrs['data-placement']));

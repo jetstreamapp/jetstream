@@ -17,7 +17,7 @@ export const ListItemCheckbox: FunctionComponent<ListItemCheckboxProps> = ({ id,
     <li className="slds-item">
       <div className="slds-grid slds-has-flexi-truncate">
         <div>
-          <Checkbox id={id} checked={!!isActive} label="" hideLabel={true} onChange={() => onSelected && onSelected()} />
+          <Checkbox id={id} checked={!!isActive} label="" hideLabel onChange={() => onSelected && onSelected()} />
         </div>
         <div className="slds-col slds-grow slds-has-flexi-truncate">
           {isString(heading) ? <div>{heading}</div> : heading}

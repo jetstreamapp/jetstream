@@ -57,7 +57,7 @@ export const QueryDownloadModal: FunctionComponent<QueryDownloadModalProps> = ({
         >
           <div>
             {selectedRecords?.length > 0 && true}
-            <RadioGroup label="Which Records" required={true}>
+            <RadioGroup label="Which Records" required>
               <Radio
                 name="radio-download"
                 label={`All records (${records.length})`}

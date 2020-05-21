@@ -132,13 +132,7 @@ export const SobjectFieldList: FunctionComponent<SobjectFieldListProps> = ({
               onChange={updateSelectAll}
             />
           </div>
-          <List
-            items={filteredFields}
-            useCheckbox={true}
-            isActive={isFieldActive}
-            onSelected={handleFieldSelected}
-            getContent={getFieldContent}
-          />
+          <List items={filteredFields} useCheckbox isActive={isFieldActive} onSelected={handleFieldSelected} getContent={getFieldContent} />
         </Fragment>
       )}
     </Fragment>

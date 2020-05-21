@@ -25,12 +25,7 @@ export const List: FunctionComponent<ListProps> = ({ items, useCheckbox = false,
   return (
     <Fragment>
       {Array.isArray(items) && items.length > 0 && (
-        <ul
-          className="slds-has-dividers_bottom-space"
-          css={css`
-            background-color: #fff;
-          `}
-        >
+        <ul className="slds-has-dividers_bottom-space">
           {items.map((item) => {
             const { key, id, heading, subheading } = getContent(item);
             return useCheckbox ? (
