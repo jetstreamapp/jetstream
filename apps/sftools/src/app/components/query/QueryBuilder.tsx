@@ -1,17 +1,26 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
-import { MapOf, QueryFields } from '@silverthorn/types';
+import { MapOf, QueryFields, IconType } from '@silverthorn/types';
 import { DescribeGlobalSObjectResult } from 'jsforce';
 import React, { Fragment, FunctionComponent, useEffect, useState } from 'react';
 import { Link, useLocation, useRouteMatch } from 'react-router-dom';
 import { composeQuery, getField } from 'soql-parser-js';
-import { Icon, SobjectList, ColumnWithMinWidth } from '@silverthorn/ui';
+import {
+  Icon,
+  SobjectList,
+  ColumnWithMinWidth,
+  Page,
+  PageHeader,
+  PageHeaderRow,
+  PageHeaderTitle,
+  PageHeaderActions,
+  AutoFullHeightContainer,
+} from '@silverthorn/ui';
 import { Toolbar } from '@silverthorn/ui';
 import { ToolbarItemActions } from '@silverthorn/ui';
 import QueryFieldsComponent from './QueryFields';
 import SoqlTextarea from './QueryOptions/SoqlTextarea';
 import classNames from 'classnames';
 import { ButtonRowContainer } from '@silverthorn/ui';
-import { ButtonRowItem } from '@silverthorn/ui';
 import QuerySObjects from './QuerySObjects';
 
 // eslint-disable-next-line @typescript-eslint/no-empty-interface
@@ -39,64 +48,61 @@ export const QueryBuilder: FunctionComponent<QueryBuilderProps> = () => {
   }, [activeSObject, selectedFields]);
 
   return (
-    <Fragment>
-      <Toolbar>
-        <ToolbarItemActions>
-          <ButtonRowContainer>
-            <ButtonRowItem>
-              <button className={classNames('slds-button slds-button_neutral slds-button_last')} aria-haspopup="true" title="Favorites">
-                <Icon type="utility" icon="favorite" className="slds-button__icon slds-button__icon_left" omitContainer={true} />
-                View Favorites
-              </button>
-            </ButtonRowItem>
-            <ButtonRowItem>
-              <button
-                className={classNames('slds-button slds-button_neutral slds-button_last', {
-                  'slds-is-selected': isFavorite && false,
-                })}
-                aria-haspopup="true"
-                title="Favorites"
-              >
-                <Icon type="utility" icon="date_time" className="slds-button__icon slds-button__icon_left" omitContainer={true} />
-                View History
-              </button>
-            </ButtonRowItem>
-            <ButtonRowItem>
-              <Link
-                className="slds-button slds-button_brand"
-                to={{
-                  pathname: `${match.url}/results`,
-                  state: { soql },
-                }}
-              >
-                <Icon type="utility" icon="right" className="slds-button__icon slds-button__icon_left" />
-                Execute
-              </Link>
-            </ButtonRowItem>
-          </ButtonRowContainer>
-        </ToolbarItemActions>
-      </Toolbar>
-      <div className="slds-grid slds-gutters">
-        <ColumnWithMinWidth className="slds-size_1-of-3 slds-is-relative">
-          <h2 className="slds-text-heading_medium slds-text-align_center">Objects</h2>
-          <QuerySObjects onSelected={(sobject) => setActiveSObject(sobject)} />
-        </ColumnWithMinWidth>
-        <ColumnWithMinWidth className="slds-size_1-of-3 slds-is-relative">
-          <h2 className="slds-text-heading_medium slds-text-align_center slds-truncate">{activeSObject?.name} Fields</h2>
-          {activeSObject && (
-            <QueryFieldsComponent
-              activeSObject={activeSObject}
-              onSelectionChanged={setSelectedFields}
-              onFieldsFetched={setQueryFieldsMap}
-            />
-          )}
-        </ColumnWithMinWidth>
-        <ColumnWithMinWidth className="slds-size_1-of-3 slds-is-relative">
-          <h2 className="slds-text-heading_medium slds-text-align_center">Other Configuration</h2>
-          <SoqlTextarea soql={soql} />
-        </ColumnWithMinWidth>
-      </div>
-    </Fragment>
+    <Page>
+      <PageHeader>
+        <PageHeaderRow>
+          <PageHeaderTitle icon={{ type: 'standard', icon: 'opportunity' }} label="Query" metaLabel="Do a really fancy query" />
+          <PageHeaderActions colType="actions" buttonType="separate">
+            <button className={classNames('slds-button slds-button_neutral slds-button_last')} aria-haspopup="true" title="Favorites">
+              <Icon type="utility" icon="favorite" className="slds-button__icon slds-button__icon_left" omitContainer />
+              View Favorites
+            </button>
+            <button
+              className={classNames('slds-button slds-button_neutral slds-button_last', {
+                'slds-is-selected': isFavorite && false,
+              })}
+              aria-haspopup="true"
+              title="Favorites"
+            >
+              <Icon type="utility" icon="date_time" className="slds-button__icon slds-button__icon_left" omitContainer />
+              View History
+            </button>
+            <Link
+              className="slds-button slds-button_brand"
+              to={{
+                pathname: `${match.url}/results`,
+                state: { soql },
+              }}
+            >
+              <Icon type="utility" icon="right" className="slds-button__icon slds-button__icon_left" />
+              Execute
+            </Link>
+          </PageHeaderActions>
+        </PageHeaderRow>
+      </PageHeader>
+      <AutoFullHeightContainer fillHeigh>
+        <div className="slds-grid slds-gutters">
+          <ColumnWithMinWidth className="slds-size_1-of-3 slds-is-relative">
+            <h2 className="slds-text-heading_medium slds-text-align_center">Objects</h2>
+            <QuerySObjects onSelected={(sobject) => setActiveSObject(sobject)} />
+          </ColumnWithMinWidth>
+          <ColumnWithMinWidth className="slds-size_1-of-3 slds-is-relative">
+            <h2 className="slds-text-heading_medium slds-text-align_center slds-truncate">{activeSObject?.name} Fields</h2>
+            {activeSObject && (
+              <QueryFieldsComponent
+                activeSObject={activeSObject}
+                onSelectionChanged={setSelectedFields}
+                onFieldsFetched={setQueryFieldsMap}
+              />
+            )}
+          </ColumnWithMinWidth>
+          <ColumnWithMinWidth className="slds-size_1-of-3 slds-is-relative">
+            <h2 className="slds-text-heading_medium slds-text-align_center">Other Configuration</h2>
+            <SoqlTextarea soql={soql} />
+          </ColumnWithMinWidth>
+        </div>
+      </AutoFullHeightContainer>
+    </Page>
   );
 };
 

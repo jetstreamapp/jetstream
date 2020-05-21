@@ -74,7 +74,7 @@ export const NavbarMenuItems: FunctionComponent<NavbarMenuItemsProps> = ({ label
               type="utility"
               icon="chevrondown"
               className="slds-icon slds-icon_x-small slds-icon-text-default slds-m-right_x-small"
-              omitContainer={true}
+              omitContainer
             />
             <span className="slds-assistive-text">Open menu item</span>
           </button>

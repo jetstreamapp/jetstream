@@ -45,7 +45,7 @@ export const DropDown: FunctionComponent<DropDownProps> = ({
           title={actionText}
           onClick={() => setIsOpen(!isOpen)}
         >
-          {leadingIcon && <Icon type={leadingIcon.type} icon={leadingIcon.icon} className="slds-button__icon" omitContainer={true} />}
+          {leadingIcon && <Icon type={leadingIcon.type} icon={leadingIcon.icon} className="slds-button__icon" omitContainer />}
           <Icon
             type="utility"
             icon="down"
@@ -92,7 +92,8 @@ export const DropDown: FunctionComponent<DropDownProps> = ({
                           <Icon
                             type={icon.type}
                             icon={icon.icon}
-                            omitContainer={true}
+                            description={icon.description}
+                            omitContainer
                             className="slds-icon slds-icon_x-small slds-icon-text-default slds-m-right_x-small"
                           />
                         )}

@@ -14,7 +14,7 @@ export const HelpText: FunctionComponent<HelpTextProps> = ({ id, content, childr
     <div className="slds-form-element__icon">
       <Tooltip id={id} content={content}>
         <button className="slds-button slds-button_icon" aria-describedby={id}>
-          <Icon type="utility" icon="info" className="slds-button__icon" omitContainer={true} />
+          <Icon type="utility" icon="info" className="slds-button__icon" omitContainer />
           <span className="slds-assistive-text">Help</span>
         </button>
       </Tooltip>

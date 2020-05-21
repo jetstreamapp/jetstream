@@ -167,7 +167,7 @@ export const withHeaderAndFooter = () => (
     }
   >
     <button className="slds-button slds-button_icon" title="Settings">
-      <Icon type="utility" icon="settings" className="slds-button__icon" omitContainer={true} />
+      <Icon type="utility" icon="settings" className="slds-button__icon" omitContainer />
     </button>
   </Popover>
 );

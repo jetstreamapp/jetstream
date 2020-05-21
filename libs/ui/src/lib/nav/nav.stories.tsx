@@ -48,7 +48,7 @@ export const navBarWithMenu = () => (
                   type="utility"
                   icon="add"
                   className="slds-icon slds-icon_x-small slds-icon-text-default slds-m-right_x-small"
-                  omitContainer={true}
+                  omitContainer
                 />
                 Fancy Action
               </span>

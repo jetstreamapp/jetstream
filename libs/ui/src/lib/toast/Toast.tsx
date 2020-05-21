@@ -52,7 +52,7 @@ export const Toast: FunctionComponent<ToastProps> = ({
         </div>
         <div className="slds-notify__close">
           <button className="slds-button slds-button_icon slds-button_icon-inverse" title="Close" onClick={onClose}>
-            <Icon type="utility" icon="close" className="slds-button__icon slds-button__icon_large" omitContainer={true} />
+            <Icon type="utility" icon="close" className="slds-button__icon slds-button__icon_large" omitContainer />
             <span className="slds-assistive-text">Close</span>
           </button>
         </div>

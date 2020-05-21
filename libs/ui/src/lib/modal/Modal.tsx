@@ -56,7 +56,7 @@ export const Modal: FunctionComponent<ModalProps> = ({
               title="Close"
               onClick={() => onClose()}
             >
-              <Icon type="utility" icon="close" className="slds-button__icon slds-button__icon_large" omitContainer={true} />
+              <Icon type="utility" icon="close" className="slds-button__icon slds-button__icon_large" omitContainer />
               <span className="slds-assistive-text">Close</span>
             </button>
             <h2 id="modal" className="slds-modal__title slds-hyphenate">

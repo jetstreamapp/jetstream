@@ -41,7 +41,7 @@ export const PopoverContent: FunctionComponent<PopoverContentProps> = ({
         title="Close dialog"
         onClick={() => onClose()}
       >
-        <Icon type="utility" icon="close" className="slds-button__icon" omitContainer={true} />
+        <Icon type="utility" icon="close" className="slds-button__icon" omitContainer />
         <span className="slds-assistive-text">Close dialog</span>
       </button>
       {header}

@@ -1,9 +1,14 @@
+import { IconType } from '@silverthorn/types';
 import { action } from '@storybook/addon-actions';
-import { text, number, boolean, select } from '@storybook/addon-knobs';
-import uniqueId from 'lodash/uniqueId';
+import { boolean, number, select, text } from '@storybook/addon-knobs';
 import React from 'react';
 import AutoFullHeightContainer from './AutoFullHeightContainer';
 import Header from './Header';
+import Page from './Page';
+import PageHeader from './page-header/PageHeader';
+import PageHeaderActions from './page-header/PageHeaderActions';
+import PageHeaderRow from './page-header/PageHeaderRow';
+import PageHeaderTitle from './page-header/PageHeaderTitle';
 import Panel from './Panel';
 
 export default {
@@ -58,4 +63,32 @@ export const panel = () => (
   >
     <div>This is the content within the panel</div>
   </Panel>
+);
+
+export const page = () => (
+  <Page>
+    <PageHeader>
+      <PageHeaderRow>
+        <PageHeaderTitle
+          icon={{ type: text('icon.Type', 'standard') as IconType, icon: text('icon.icon', 'opportunity') }}
+          label="Query"
+          metaLabel="Do a really fancy query"
+        />
+        <PageHeaderActions
+          colType="actions"
+          buttonType={select(
+            '1st Row buttonType',
+            {
+              separate: 'separate',
+              listGroup: 'list-group',
+            },
+            'list-group'
+          )}
+        >
+          <button className="slds-button slds-button_neutral">Button</button>
+        </PageHeaderActions>
+      </PageHeaderRow>
+    </PageHeader>
+    <div style={{ height: 500 }}>Page content goes here - be sure to set height to 100%</div>
+  </Page>
 );

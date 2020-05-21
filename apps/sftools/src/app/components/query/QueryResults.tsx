@@ -105,24 +105,24 @@ export const QueryResults: FunctionComponent<QueryResultsProps> = () => {
               state: { soql },
             }}
           >
-            <Icon type="utility" icon="back" className="slds-button__icon slds-button__icon_left" omitContainer={true} />
+            <Icon type="utility" icon="back" className="slds-button__icon slds-button__icon_left" omitContainer />
             Go Back
           </Link>
           <button
             className={classNames('slds-button', { 'slds-button_neutral': !soqlPanelOpen, 'slds-button_brand': soqlPanelOpen })}
             onClick={() => setSoqlPanelOpen(!soqlPanelOpen)}
           >
-            <Icon type="utility" icon="component_customization" className="slds-button__icon slds-button__icon_left" omitContainer={true} />
+            <Icon type="utility" icon="component_customization" className="slds-button__icon slds-button__icon_left" omitContainer />
             Manage SOQL Query
           </button>
         </ToolbarItemGroup>
         <ToolbarItemActions>
           <button className="slds-button slds-button_text-destructive" disabled={selectedRows.length === 0}>
-            <Icon type="utility" icon="delete" className="slds-button__icon slds-button__icon_left" omitContainer={true} />
+            <Icon type="utility" icon="delete" className="slds-button__icon slds-button__icon_left" omitContainer />
             Delete Selected Records
           </button>
           <button className="slds-button slds-button_brand" onClick={() => setDownloadModalOpen(true)}>
-            <Icon type="utility" icon="download" className="slds-button__icon slds-button__icon_left" omitContainer={true} />
+            <Icon type="utility" icon="download" className="slds-button__icon slds-button__icon_left" omitContainer />
             Download Records
           </button>
         </ToolbarItemActions>
@@ -134,7 +134,7 @@ export const QueryResults: FunctionComponent<QueryResultsProps> = () => {
           baseCss={css`
             background-color: white;
           `}
-          fillHeigh={true}
+          fillHeigh
         >
           {loading && <Spinner />}
           {records && <TableSortableResizable data={records} headers={fields} onRowSelection={setSelectedRows} />}

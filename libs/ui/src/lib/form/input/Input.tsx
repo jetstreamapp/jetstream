@@ -77,7 +77,7 @@ export const Input: FunctionComponent<InputProps> = ({
       >
         {!leftAddon && iconLeft && iconLeftType && (
           <Icon
-            omitContainer={true}
+            omitContainer
             type={iconLeftType}
             icon={iconLeft}
             className="slds-icon slds-input__icon slds-icon-text-default slds-input__icon_left"
@@ -85,7 +85,7 @@ export const Input: FunctionComponent<InputProps> = ({
         )}
         {!rightAddon && iconRight && iconRightType && (
           <Icon
-            omitContainer={true}
+            omitContainer
             type={iconRightType}
             icon={iconLeft}
             className="slds-icon slds-input__icon slds-icon-text-default slds-input__icon_right"
@@ -105,7 +105,7 @@ export const Input: FunctionComponent<InputProps> = ({
         )}
         {!rightAddon && clearButton && (
           <button className="slds-button slds-button_icon slds-input__icon slds-input__icon_right" title="Clear" onClick={onClear}>
-            <Icon type="utility" icon="clear" omitContainer={true} className="slds-button__icon slds-icon-text-light" />
+            <Icon type="utility" icon="clear" omitContainer className="slds-button__icon slds-icon-text-light" />
           </button>
         )}
       </div>

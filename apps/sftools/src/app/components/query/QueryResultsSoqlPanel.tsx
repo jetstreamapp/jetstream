@@ -33,7 +33,7 @@ export const QueryResultsSoqlPanel: FunctionComponent<QueryResultsSoqlPanelProps
       </Textarea>
       <div className="slds-grid slds-grid_align-end">
         <button type="submit" className="slds-button slds-button_brand" onClick={() => submitQuery()}>
-          <Icon type="utility" icon="play" className="slds-button__icon slds-button__icon_left" omitContainer={true} />
+          <Icon type="utility" icon="play" className="slds-button__icon slds-button__icon_left" omitContainer />
           Execute Query
         </button>
       </div>

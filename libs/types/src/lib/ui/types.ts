@@ -6,6 +6,7 @@ export type IconType = 'action' | 'custom' | 'doctype' | 'standard' | 'utility';
 export interface IconObj {
   type: IconType;
   icon: string;
+  description?: string;
 }
 
 export interface QueryFields {

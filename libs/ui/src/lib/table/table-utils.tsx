@@ -146,7 +146,7 @@ function getCellRenderer({ cell, value }: PropsWithChildren<CellProps<any>>) {
       {isObject && (
         <div>
           <button className="slds-button">
-            <Icon type="utility" icon="search" className="slds-button__icon slds-button__icon_left" omitContainer={true} />
+            <Icon type="utility" icon="search" className="slds-button__icon slds-button__icon_left" omitContainer />
             View Data
           </button>
         </div>
