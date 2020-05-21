@@ -7,7 +7,7 @@ export interface SoqlTextareaProps {
 
 export const SoqlTextarea: FunctionComponent<SoqlTextareaProps> = ({ soql }) => {
   return (
-    <Textarea id="soql-textarea" label="SOQL">
+    <Textarea id="soql-textarea" label="Generated SOQL">
       <textarea className="slds-textarea" value={soql} disabled id="soql-textarea" cols={30} rows={10}></textarea>
     </Textarea>
   );

@@ -129,7 +129,7 @@ export const QueryResults: FunctionComponent<QueryResultsProps> = () => {
       </Toolbar>
       <div className="slds-grid">
         <QueryResultsSoqlPanel soql={soql} isOpen={soqlPanelOpen} onClosed={() => setSoqlPanelOpen(false)} executeQuery={executeQuery} />
-        <AutoFullHeightContainer className="slds-scrollable" fillHeigh>
+        <AutoFullHeightContainer className="slds-scrollable" fillHeight>
           {loading && <Spinner />}
           {records && <TableSortableResizable data={records} headers={fields} onRowSelection={setSelectedRows} />}
           {/* TODO: where should this live? */}

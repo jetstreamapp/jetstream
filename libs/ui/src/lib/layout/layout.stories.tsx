@@ -19,7 +19,7 @@ export const autoFullHeightContainer = () => (
   <AutoFullHeightContainer
     className={text('className', undefined)}
     bottomBuffer={number('bottomBuffer', undefined)}
-    fillHeigh={boolean('fillHeigh', true)}
+    fillHeight={boolean('fillHeight', true)}
   >
     <div>
       {new Array(100).fill(null, 0, 100).map((item, i) => (

@@ -32,6 +32,7 @@ export interface FieldWrapper {
   filterText: string;
   metadata: Field;
   fieldDefinition: FieldDefinition;
+  selected: boolean;
 }
 
 // Generic size types

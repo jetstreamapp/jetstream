@@ -7,7 +7,7 @@ export interface AutoFullHeightContainerProps {
   baseCss?: SerializedStyles;
   bottomBuffer?: number;
   /** If true, then container will always be the full height no matter how much content the data has */
-  fillHeigh?: boolean;
+  fillHeight?: boolean;
 }
 
 export interface AutoFullHeightContainerState {
@@ -34,7 +34,7 @@ export class AutoFullHeightContainer extends Component<AutoFullHeightContainerPr
   };
 
   render() {
-    const { bottomBuffer, className, baseCss, fillHeigh, children } = this.props;
+    const { bottomBuffer, className, baseCss, fillHeight, children } = this.props;
     const { topPosition } = this.state;
     return (
       <div
@@ -43,7 +43,7 @@ export class AutoFullHeightContainer extends Component<AutoFullHeightContainerPr
         css={css`
           ${baseCss || ''}
           max-height: calc(100vh - ${topPosition + (bottomBuffer || 10)}px);
-          ${fillHeigh && `min-height: calc(100vh - ${topPosition + (bottomBuffer || 10)}px);`}
+          ${fillHeight && `min-height: calc(100vh - ${topPosition + (bottomBuffer || 10)}px);`}
           overflow-y: auto;
         `}
       >

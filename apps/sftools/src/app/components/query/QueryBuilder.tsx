@@ -80,7 +80,7 @@ export const QueryBuilder: FunctionComponent<QueryBuilderProps> = () => {
           </PageHeaderActions>
         </PageHeaderRow>
       </PageHeader>
-      <AutoFullHeightContainer fillHeigh>
+      <AutoFullHeightContainer fillHeight className="slds-p-horizontal_x-small slds-scrollable_none">
         <div className="slds-grid slds-gutters">
           <ColumnWithMinWidth className="slds-size_1-of-3 slds-is-relative">
             <h2 className="slds-text-heading_medium slds-text-align_center">Objects</h2>
@@ -97,7 +97,6 @@ export const QueryBuilder: FunctionComponent<QueryBuilderProps> = () => {
             )}
           </ColumnWithMinWidth>
           <ColumnWithMinWidth className="slds-size_1-of-3 slds-is-relative">
-            <h2 className="slds-text-heading_medium slds-text-align_center">Other Configuration</h2>
             <SoqlTextarea soql={soql} />
           </ColumnWithMinWidth>
         </div>

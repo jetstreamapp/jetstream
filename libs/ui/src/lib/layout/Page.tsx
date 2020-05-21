@@ -2,13 +2,14 @@
 import { jsx, css } from '@emotion/core';
 import { FunctionComponent } from 'react';
 
-// eslint-disable-next-line @typescript-eslint/no-empty-interface
-export interface PageProps {}
+export interface PageProps {
+  className?: string;
+}
 
-export const Page: FunctionComponent<PageProps> = ({ children }) => {
+export const Page: FunctionComponent<PageProps> = ({ className, children }) => {
   return (
     <div
-      className="slds-card slds-card_boundary slds-grid slds-grid--vertical"
+      className={`slds-card slds-card_boundary slds-grid slds-grid--vertical ${className || ''}`}
       css={css`
         height: 100%;
       `}

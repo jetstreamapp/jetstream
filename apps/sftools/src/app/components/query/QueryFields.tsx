@@ -86,15 +86,12 @@ export const QueryFieldsComponent: FunctionComponent<QueryFieldsProps> = ({ acti
 
   function handleFieldSelection(key: string, field: FieldWrapper) {
     if (queryFieldsMap[key]) {
-      // TODO: do we need a new instance of the set - this is really expensive in child component effects?
-      // const clonedQueryFieldsMap = { ...queryFieldsMap };
-      const clonedFieldsMapItem = { ...queryFieldsMap[key] };
+      const clonedFieldsMapItem = queryFieldsMap[key];
       if (clonedFieldsMapItem.selectedFields.has(field.name)) {
         clonedFieldsMapItem.selectedFields.delete(field.name);
       } else {
         clonedFieldsMapItem.selectedFields.add(field.name);
       }
-      queryFieldsMap[key] = { ...clonedFieldsMapItem };
       setQueryFieldsMap(queryFieldsMap);
       emitSelectedFieldsChanged(queryFieldsMap);
     }
