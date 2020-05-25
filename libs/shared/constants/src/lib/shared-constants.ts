@@ -1,4 +1,4 @@
-import { MapOf, MimeType } from '@silverthorn/types';
+import { MapOf, MimeType } from '@jetstream/types';
 
 export const MIME_TYPES: MapOf<MimeType> = {
   PLAN_TEXT: 'text/plain;charset=utf-8',

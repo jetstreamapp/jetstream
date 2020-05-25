@@ -1,8 +1,8 @@
-import { describeSObject, query } from '@silverthorn/shared/data';
-import { MapOf } from '@silverthorn/types';
-import { FieldDefinition } from '@silverthorn/types';
-import { REGEX, getMapOf } from '@silverthorn/shared/utils';
-import { FieldWrapper, QueryFields } from '@silverthorn/types';
+import { describeSObject, query } from '@jetstream/shared/data';
+import { MapOf } from '@jetstream/types';
+import { FieldDefinition } from '@jetstream/types';
+import { REGEX, getMapOf } from '@jetstream/shared/utils';
+import { FieldWrapper, QueryFields } from '@jetstream/types';
 import { Field } from 'jsforce';
 import { composeQuery, getField } from 'soql-parser-js';
 import { getFieldDefinitionQuery } from './queries';

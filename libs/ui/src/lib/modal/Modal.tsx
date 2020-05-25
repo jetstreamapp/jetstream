@@ -1,6 +1,6 @@
 import React, { Fragment, FunctionComponent } from 'react';
 import Icon from '../widgets/Icon';
-import { SizeSmMdLg } from '@silverthorn/types';
+import { SizeSmMdLg } from '@jetstream/types';
 import classNames from 'classnames';
 
 /* eslint-disable-next-line */

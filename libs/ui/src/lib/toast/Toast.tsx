@@ -1,5 +1,5 @@
 /* eslint-disable jsx-a11y/anchor-is-valid */
-import { IconObj, InfoSuccessWarningError } from '@silverthorn/types';
+import { IconObj, InfoSuccessWarningError } from '@jetstream/types';
 import classNames from 'classnames';
 import React, { FunctionComponent } from 'react';
 import Icon from '../widgets/Icon';

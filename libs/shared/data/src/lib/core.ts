@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import * as request from 'superagent'; // http://visionmedia.github.io/superagent
-import * as API from '@silverthorn/api-interfaces';
+import * as API from '@jetstream/api-interfaces';
 
 export async function handleRequest<T = any>(currRequest: request.SuperAgentRequest) {
   try {

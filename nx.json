@@ -1,5 +1,5 @@
 {
-  "npmScope": "silverthorn",
+  "npmScope": "jetstream",
   "implicitDependencies": {
     "workspace.json": "*",
     "package.json": {

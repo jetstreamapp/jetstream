@@ -1,5 +1,5 @@
 import { orderBy, isString, get as lodashGet } from 'lodash';
-import { MapOf, Record } from '@silverthorn/types';
+import { MapOf, Record } from '@jetstream/types';
 import { isObject } from 'util';
 import { REGEX } from './regex';
 

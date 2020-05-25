@@ -1,10 +1,10 @@
 /** @jsx jsx */
 import { css, jsx } from '@emotion/core';
-import { Header } from '@silverthorn/ui';
+import { Header } from '@jetstream/ui';
 import Query from './components/query/Query';
 import { BrowserRouter as Router, Switch, Route } from 'react-router-dom';
-import { Navbar } from '@silverthorn/ui';
-import { NavbarItem } from '@silverthorn/ui';
+import { Navbar } from '@jetstream/ui';
+import { NavbarItem } from '@jetstream/ui';
 
 export const App = () => {
   return (

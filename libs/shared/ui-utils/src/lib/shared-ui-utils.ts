@@ -1,6 +1,6 @@
 import { Field } from 'jsforce';
-import { orderObjectsBy } from '@silverthorn/shared/utils';
-import { MimeType, PositionAll } from '@silverthorn/types';
+import { orderObjectsBy } from '@jetstream/shared/utils';
+import { MimeType, PositionAll } from '@jetstream/types';
 import { saveAs } from 'file-saver';
 import { Placement as tippyPlacement } from 'tippy.js';
 

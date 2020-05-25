@@ -1,4 +1,4 @@
-import { ListItem, GroupingOperator } from '@silverthorn/types';
+import { ListItem, GroupingOperator } from '@jetstream/types';
 import classNames from 'classnames';
 import isNumber from 'lodash/isNumber';
 import React, { FunctionComponent } from 'react';

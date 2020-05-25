@@ -1,5 +1,5 @@
 import React, { FunctionComponent } from 'react';
-import { BadgeTypes } from '@silverthorn/types';
+import { BadgeTypes } from '@jetstream/types';
 
 export interface BadgeProps {
   className?: string;

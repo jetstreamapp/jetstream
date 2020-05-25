@@ -1,7 +1,7 @@
 import React, { FunctionComponent } from 'react';
 import Combobox from '../form/combobox/Combobox';
 import { ComboboxListItem } from '../form/combobox/ComboboxListItem';
-import { GroupingOperator, ListItem } from '@silverthorn/types';
+import { GroupingOperator, ListItem } from '@jetstream/types';
 import Picklist from '../form/picklist/Picklist';
 
 export interface ExpressionActionDropDownProps {

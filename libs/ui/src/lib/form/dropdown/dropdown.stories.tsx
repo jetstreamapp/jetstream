@@ -1,4 +1,4 @@
-import { IconObj } from '@silverthorn/types';
+import { IconObj } from '@jetstream/types';
 import { action } from '@storybook/addon-actions';
 import { array, number, object, text } from '@storybook/addon-knobs';
 import uniqueId from 'lodash/uniqueId';

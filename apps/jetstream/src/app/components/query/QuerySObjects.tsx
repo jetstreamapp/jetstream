@@ -1,8 +1,8 @@
-import { describeGlobal } from '@silverthorn/shared/data';
-import { SobjectList } from '@silverthorn/ui';
+import { describeGlobal } from '@jetstream/shared/data';
+import { SobjectList } from '@jetstream/ui';
 import { DescribeGlobalSObjectResult } from 'jsforce';
 import React, { FunctionComponent, useEffect, useState } from 'react';
-import { orderObjectsBy } from '@silverthorn/shared/utils';
+import { orderObjectsBy } from '@jetstream/shared/utils';
 
 export interface QueryFieldsProps {
   onSelected: (sobject: DescribeGlobalSObjectResult) => void;

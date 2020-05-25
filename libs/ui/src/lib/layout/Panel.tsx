@@ -3,7 +3,7 @@ import { css, jsx } from '@emotion/core';
 import { FunctionComponent, Fragment } from 'react';
 import classNames from 'classnames';
 import Icon from '../widgets/Icon';
-import { SizeSmMdLgXlFull, PositionLeftRight } from '@silverthorn/types';
+import { SizeSmMdLgXlFull, PositionLeftRight } from '@jetstream/types';
 
 export interface PanelProps {
   containerClassName?: string;

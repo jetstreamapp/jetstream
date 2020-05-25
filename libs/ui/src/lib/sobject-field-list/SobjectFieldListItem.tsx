@@ -1,8 +1,8 @@
 /** @jsx jsx */
 import { css, jsx } from '@emotion/core';
-import { MapOf } from '@silverthorn/types';
+import { MapOf } from '@jetstream/types';
 import { Fragment, FunctionComponent, useState, useEffect } from 'react';
-import { FieldWrapper, QueryFields } from '@silverthorn/types';
+import { FieldWrapper, QueryFields } from '@jetstream/types';
 import Icon from '../widgets/Icon';
 import SobjectFieldList from './SobjectFieldList';
 import SobjectFieldListType from './SobjectFieldListType';

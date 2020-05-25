@@ -1,7 +1,7 @@
 /** @jsx jsx */
 import { css, jsx } from '@emotion/core';
-import { convertTippyPlacementToSlds } from '@silverthorn/shared/ui-utils';
-import { PositionAll } from '@silverthorn/types';
+import { convertTippyPlacementToSlds } from '@jetstream/shared/ui-utils';
+import { PositionAll } from '@jetstream/types';
 import Tippy from '@tippyjs/react';
 import uniqueId from 'lodash/uniqueId';
 import { FunctionComponent, useState } from 'react';

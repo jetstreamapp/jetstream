@@ -2,7 +2,7 @@
 import { Connection } from 'jsforce';
 import { parseQuery, Query } from 'soql-parser-js';
 import { QueryColumnsSfdc, QueryColumnMetadata } from '../types/types';
-import { QueryResultsColumns, QueryResultsColumn, QueryResults } from '@silverthorn/api-interfaces';
+import { QueryResultsColumns, QueryResultsColumn, QueryResults } from '@jetstream/api-interfaces';
 
 export async function queryRecords(conn: Connection, query: string, isTooling = false): Promise<QueryResults> {
   // Fetch records from SFDC

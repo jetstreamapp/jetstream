@@ -1,4 +1,4 @@
-import { GroupingOperator } from '@silverthorn/types';
+import { GroupingOperator } from '@jetstream/types';
 import React, { FunctionComponent } from 'react';
 import ExpressionActionDropDown from './ExpressionActionDropDown';
 import Icon from '../widgets/Icon';

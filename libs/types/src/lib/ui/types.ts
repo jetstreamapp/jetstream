@@ -1,4 +1,4 @@
-import { MapOf } from '@silverthorn/types';
+import { MapOf } from '@jetstream/types';
 import { FieldDefinition } from '../salesforce/types';
 import { Field } from 'jsforce';
 

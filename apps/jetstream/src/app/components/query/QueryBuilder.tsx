@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
-import { MapOf, QueryFields, WorkerMessage } from '@silverthorn/types';
+import { MapOf, QueryFields, WorkerMessage } from '@jetstream/types';
 import {
   AutoFullHeightContainer,
   ColumnWithMinWidth,
@@ -9,7 +9,7 @@ import {
   PageHeaderActions,
   PageHeaderRow,
   PageHeaderTitle,
-} from '@silverthorn/ui';
+} from '@jetstream/ui';
 import classNames from 'classnames';
 import { DescribeGlobalSObjectResult } from 'jsforce';
 import React, { FunctionComponent, useEffect, useState } from 'react';

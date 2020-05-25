@@ -1,7 +1,7 @@
 /// <reference lib="webworker" />
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { composeQuery, Query } from 'soql-parser-js';
-import { WorkerMessage } from '@silverthorn/types';
+import { WorkerMessage } from '@jetstream/types';
 
 type MessageName = 'composeQuery';
 

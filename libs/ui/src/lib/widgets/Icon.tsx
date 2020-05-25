@@ -8,7 +8,7 @@ import standardIcons from '@salesforce-ux/design-system/assets/icons/standard-sp
 import utilityIcons from '@salesforce-ux/design-system/assets/icons/utility-sprite/svg/symbols.svg';
 import classNames from 'classnames';
 import { FunctionComponent } from 'react';
-import { IconType } from '@silverthorn/types';
+import { IconType } from '@jetstream/types';
 
 export interface IconProps {
   containerClassname?: string; // container classname, only used if not omitted

@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import * as API from '@silverthorn/api-interfaces';
+import * as API from '@jetstream/api-interfaces';
 import { DescribeGlobalResult, DescribeSObjectResult } from 'jsforce';
 import * as request from 'superagent'; // http://visionmedia.github.io/superagent
 import { handleRequest } from './core';

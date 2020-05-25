@@ -1,10 +1,10 @@
-import { MapOf } from '@silverthorn/types';
+import { MapOf } from '@jetstream/types';
 import { DescribeGlobalSObjectResult } from 'jsforce';
 import React, { Fragment, FunctionComponent, useEffect, useState } from 'react';
-import { FieldWrapper, QueryFields } from '@silverthorn/types';
-import { SobjectFieldList } from '@silverthorn/ui';
-import { sortQueryFieldsStr, fetchFields } from '@silverthorn/shared/ui-utils';
-import { AutoFullHeightContainer } from '@silverthorn/ui';
+import { FieldWrapper, QueryFields } from '@jetstream/types';
+import { SobjectFieldList } from '@jetstream/ui';
+import { sortQueryFieldsStr, fetchFields } from '@jetstream/shared/ui-utils';
+import { AutoFullHeightContainer } from '@jetstream/ui';
 
 export interface QueryFieldsProps {
   activeSObject: DescribeGlobalSObjectResult;

@@ -1,5 +1,5 @@
 import React, { FunctionComponent } from 'react';
-import { FieldWrapper } from '@silverthorn/types';
+import { FieldWrapper } from '@jetstream/types';
 import Tooltip from '../widgets/Tooltip';
 import Badge from '../widgets/Badge';
 

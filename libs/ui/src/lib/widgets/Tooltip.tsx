@@ -2,8 +2,8 @@
 import { jsx, css } from '@emotion/core';
 import Tippy from '@tippyjs/react';
 import { FunctionComponent, useState } from 'react';
-import { PositionAll } from '@silverthorn/types';
-import { convertTippyPlacementToSlds } from '@silverthorn/shared/ui-utils';
+import { PositionAll } from '@jetstream/types';
+import { convertTippyPlacementToSlds } from '@jetstream/shared/ui-utils';
 
 export interface TooltipProps {
   id?: string;

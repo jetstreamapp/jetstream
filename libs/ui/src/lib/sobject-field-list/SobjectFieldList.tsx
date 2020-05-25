@@ -1,8 +1,8 @@
 /** @jsx jsx */
 import { css, jsx } from '@emotion/core';
-import { MapOf } from '@silverthorn/types';
+import { MapOf } from '@jetstream/types';
 import { Fragment, FunctionComponent, useEffect, useState } from 'react';
-import { FieldWrapper, QueryFields } from '@silverthorn/types';
+import { FieldWrapper, QueryFields } from '@jetstream/types';
 import Checkbox from '../form/checkbox/Checkbox';
 import List from '../list/List';
 import SearchInput from '../form/search-input/SearchInput';

@@ -2,10 +2,10 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 /** @jsx jsx */
 import { css, jsx } from '@emotion/core';
-import { MIME_TYPES } from '@silverthorn/shared/constants';
-import { query } from '@silverthorn/shared/data';
-import { saveFile } from '@silverthorn/shared/ui-utils';
-import { flattenRecords } from '@silverthorn/shared/utils';
+import { MIME_TYPES } from '@jetstream/shared/constants';
+import { query } from '@jetstream/shared/data';
+import { saveFile } from '@jetstream/shared/ui-utils';
+import { flattenRecords } from '@jetstream/shared/utils';
 import {
   AutoFullHeightContainer,
   Icon,
@@ -15,14 +15,14 @@ import {
   Toolbar,
   ToolbarItemActions,
   ToolbarItemGroup,
-} from '@silverthorn/ui';
+} from '@jetstream/ui';
 import classNames from 'classnames';
 import { unparse } from 'papaparse';
 import { FunctionComponent, useEffect, useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { getFlattenedFields } from 'soql-parser-js';
 import QueryResultsSoqlPanel from './QueryResultsSoqlPanel';
-import { Record } from '@silverthorn/types';
+import { Record } from '@jetstream/types';
 import QueryDownloadModal from './QueryDownloadModal';
 // eslint-disable-next-line @typescript-eslint/no-empty-interface
 export interface QueryResultsProps {}

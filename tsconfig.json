@@ -16,14 +16,14 @@
     "skipDefaultLibCheck": true,
     "baseUrl": ".",
     "paths": {
-      "@silverthorn/api-interfaces": ["libs/api-interfaces/src/index.ts"],
-      "@silverthorn/ui": ["libs/ui/src/index.ts"],
-      "@silverthorn/types": ["libs/types/src/index.ts"],
-      "@silverthorn/shared/utils": ["libs/shared/utils/src/index.ts"],
-      "@silverthorn/shared/data": ["libs/shared/data/src/index.ts"],
-      "@silverthorn/shared/ui-utils": ["libs/shared/ui-utils/src/index.ts"],
-      "@silverthorn/shared/node-utils": ["libs/shared/node-utils/src/index.ts"],
-      "@silverthorn/shared/constants": ["libs/shared/constants/src/index.ts"]
+      "@jetstream/api-interfaces": ["libs/api-interfaces/src/index.ts"],
+      "@jetstream/ui": ["libs/ui/src/index.ts"],
+      "@jetstream/types": ["libs/types/src/index.ts"],
+      "@jetstream/shared/utils": ["libs/shared/utils/src/index.ts"],
+      "@jetstream/shared/data": ["libs/shared/data/src/index.ts"],
+      "@jetstream/shared/ui-utils": ["libs/shared/ui-utils/src/index.ts"],
+      "@jetstream/shared/node-utils": ["libs/shared/node-utils/src/index.ts"],
+      "@jetstream/shared/constants": ["libs/shared/constants/src/index.ts"]
     }
   },
   "exclude": ["node_modules", "tmp"]

@@ -1,4 +1,4 @@
-import { PositionAll } from '@silverthorn/types';
+import { PositionAll } from '@jetstream/types';
 import classNames from 'classnames';
 import uniqueId from 'lodash/uniqueId';
 import React, { FunctionComponent } from 'react';

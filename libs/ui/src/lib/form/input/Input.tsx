@@ -5,7 +5,7 @@ import classNames from 'classnames';
 import { Fragment, FunctionComponent } from 'react';
 import HelpText from '../../widgets/HelpText';
 import Icon from '../../widgets/Icon';
-import { IconType } from '@silverthorn/types';
+import { IconType } from '@jetstream/types';
 
 export interface InputProps {
   id?: string;

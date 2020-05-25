@@ -2,13 +2,13 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 /** @jsx jsx */
 import { jsx } from '@emotion/core';
-import { MIME_TYPES } from '@silverthorn/shared/constants';
-import { saveFile } from '@silverthorn/shared/ui-utils';
-import { flattenRecords } from '@silverthorn/shared/utils';
-import { Modal, RadioGroup, Radio } from '@silverthorn/ui';
+import { MIME_TYPES } from '@jetstream/shared/constants';
+import { saveFile } from '@jetstream/shared/ui-utils';
+import { flattenRecords } from '@jetstream/shared/utils';
+import { Modal, RadioGroup, Radio } from '@jetstream/ui';
 import { unparse } from 'papaparse';
 import { Fragment, FunctionComponent, useState } from 'react';
-import { Record } from '@silverthorn/types';
+import { Record } from '@jetstream/types';
 // eslint-disable-next-line @typescript-eslint/no-empty-interface
 export interface QueryDownloadModalProps {
   downloadModalOpen: boolean;

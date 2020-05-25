@@ -2,7 +2,7 @@ import React from 'react';
 import { action } from '@storybook/addon-actions';
 import { text, boolean } from '@storybook/addon-knobs';
 import Input from './Input';
-import { IconType } from '@silverthorn/types';
+import { IconType } from '@jetstream/types';
 import uniqueId from 'lodash/uniqueId';
 
 export default {

@@ -3,7 +3,7 @@ import React, { FunctionComponent, useState, useMemo, Fragment } from 'react';
 import classNames from 'classnames';
 import isString from 'lodash/isString';
 import Icon from '../../widgets/Icon';
-import { IconObj } from '@silverthorn/types';
+import { IconObj } from '@jetstream/types';
 import OutsideClickHandler from '../../utils/OutsideClickHandler';
 
 export interface DropDownProps {

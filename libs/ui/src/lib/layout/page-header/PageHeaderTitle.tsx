@@ -2,7 +2,7 @@
 import { jsx } from '@emotion/core';
 import { FunctionComponent } from 'react';
 import Icon from '../../widgets/Icon';
-import { IconObj } from '@silverthorn/types';
+import { IconObj } from '@jetstream/types';
 import classNames from 'classnames';
 
 // eslint-disable-next-line @typescript-eslint/no-empty-interface

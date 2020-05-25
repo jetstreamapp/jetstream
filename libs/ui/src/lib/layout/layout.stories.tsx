@@ -1,4 +1,4 @@
-import { IconType } from '@silverthorn/types';
+import { IconType } from '@jetstream/types';
 import { action } from '@storybook/addon-actions';
 import { boolean, number, select, text } from '@storybook/addon-knobs';
 import React from 'react';
