@@ -25,9 +25,9 @@ if (app.get('env') !== 'production') {
 }
 
 if (app.get('env') === 'production') {
-  app.use(express.static(join(__dirname, '../sftools')));
+  app.use(express.static(join(__dirname, '../jetstream')));
   app.use('/app', logRoute, (req: express.Request, res: express.Response) => {
-    res.sendFile(join(__dirname, '../sftools/index.html'));
+    res.sendFile(join(__dirname, '../jetstream/index.html'));
   });
 }
 

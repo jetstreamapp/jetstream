@@ -19,13 +19,6 @@
     }
   },
   "projects": {
-    "sftools": {
-      "tags": []
-    },
-    "sftools-e2e": {
-      "tags": [],
-      "implicitDependencies": ["sftools"]
-    },
     "api": {
       "tags": []
     },
@@ -56,6 +49,13 @@
     },
     "shared-constants": {
       "tags": []
+    },
+    "jetstream": {
+      "tags": []
+    },
+    "jetstream-e2e": {
+      "tags": [],
+      "implicitDependencies": ["jetstream"]
     }
   }
 }

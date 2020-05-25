@@ -8,7 +8,7 @@
     "start:api": "nx serve api",
     "start:ui:storybook": "nx run ui:storybook",
     "build": "npm run build:client && npm run build:api",
-    "build:client": "nx build sftools",
+    "build:client": "nx build jetstream",
     "build:api": "nx build api",
     "test": "nx test",
     "lint": "nx workspace-lint && nx lint",
@@ -106,6 +106,7 @@
     "ts-jest": "25.2.1",
     "ts-node": "~7.0.0",
     "tslint": "~6.0.0",
-    "typescript": "~3.8.3"
+    "typescript": "~3.8.3",
+    "worker-loader": "^2.0.0"
   }
 }
