@@ -9,6 +9,13 @@ export interface IconObj {
   description?: string;
 }
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export interface WorkerMessage<T, K = any, E = any> {
+  name: T;
+  data: K;
+  error?: E;
+}
+
 export interface QueryFields {
   // this is also the path that will be appended to each field
   // this should end in a "." for related objects

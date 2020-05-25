@@ -1,27 +1,24 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
-import { MapOf, QueryFields, IconType } from '@silverthorn/types';
-import { DescribeGlobalSObjectResult } from 'jsforce';
-import React, { Fragment, FunctionComponent, useEffect, useState } from 'react';
-import { Link, useLocation, useRouteMatch } from 'react-router-dom';
-import { composeQuery, getField } from 'soql-parser-js';
+import { MapOf, QueryFields, WorkerMessage } from '@silverthorn/types';
 import {
-  Icon,
-  SobjectList,
+  AutoFullHeightContainer,
   ColumnWithMinWidth,
+  Icon,
   Page,
   PageHeader,
+  PageHeaderActions,
   PageHeaderRow,
   PageHeaderTitle,
-  PageHeaderActions,
-  AutoFullHeightContainer,
 } from '@silverthorn/ui';
-import { Toolbar } from '@silverthorn/ui';
-import { ToolbarItemActions } from '@silverthorn/ui';
+import classNames from 'classnames';
+import { DescribeGlobalSObjectResult } from 'jsforce';
+import React, { FunctionComponent, useEffect, useState } from 'react';
+import { Link, useLocation, useRouteMatch } from 'react-router-dom';
+import { composeQuery, getField } from 'soql-parser-js';
 import QueryFieldsComponent from './QueryFields';
 import SoqlTextarea from './QueryOptions/SoqlTextarea';
-import classNames from 'classnames';
-import { ButtonRowContainer } from '@silverthorn/ui';
 import QuerySObjects from './QuerySObjects';
+import QueryWorker from '../../workers/query.worker';
 
 // eslint-disable-next-line @typescript-eslint/no-empty-interface
 export interface QueryBuilderProps {}
@@ -34,18 +31,36 @@ export const QueryBuilder: FunctionComponent<QueryBuilderProps> = () => {
   const [selectedFields, setSelectedFields] = useState<string[]>([]);
   const [soql, setSoql] = useState<string>('');
   const [isFavorite, setIsFavorite] = useState<boolean>(false);
+  const [queryWorker, setQueryWorker] = useState(() => new QueryWorker());
 
-  // TODO: this is slow, consider moving to webworker and have it update in the background?
   useEffect(() => {
     if (!!activeSObject && selectedFields?.length > 0) {
-      // ensure that this is processed in the next tick to keep checkbox UI fast
-      setTimeout(() => {
-        setSoql(composeQuery({ sObject: activeSObject.name, fields: selectedFields.map((field) => getField(field)) }, { format: true }));
-      });
+      if (queryWorker) {
+        queryWorker.postMessage({
+          name: 'composeQuery',
+          data: { sObject: activeSObject.name, fields: selectedFields.map((field) => getField(field)) },
+        });
+      }
     } else {
       setSoql('');
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeSObject, selectedFields]);
+
+  useEffect(() => {
+    if (queryWorker) {
+      queryWorker.onmessage = (event: MessageEvent) => {
+        const payload: WorkerMessage<'composeQuery', string> = event.data;
+        if (payload.name === 'composeQuery') {
+          if (payload.error) {
+            // TODO:
+          } else {
+            setSoql(payload.data);
+          }
+        }
+      };
+    }
+  }, [queryWorker]);
 
   return (
     <Page>
