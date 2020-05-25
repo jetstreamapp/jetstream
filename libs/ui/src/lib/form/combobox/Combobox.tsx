@@ -24,6 +24,7 @@ export const Combobox: FunctionComponent<ComboboxProps> = ({ label, disabled, lo
   // TODO: auto-complete list (could be another component and have a base component) (ex. filter when user types, could also load more)
   // TODO: possible multi-selection with checkboxes (not recommended)
   // TODO: menu in front of item (e.x. we could use this with query filters)
+  // TODO: show text of selected item!!!!!! (e.x. in expression drop-down)
 
   return (
     <div className="slds-form-element">

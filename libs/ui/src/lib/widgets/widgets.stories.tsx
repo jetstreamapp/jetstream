@@ -6,6 +6,8 @@ import Icon from './Icon';
 import Spinner from './Spinner';
 import Tooltip from './Tooltip';
 import Badge from './Badge';
+import Pill from './Pill';
+import { action } from '@storybook/addon-actions';
 
 export default {
   title: 'Widgets',
@@ -171,5 +173,12 @@ export const badges = () => (
         />
       </span>
     </Badge>
+  </Fragment>
+);
+
+export const pill = () => (
+  <Fragment>
+    <Pill label="My Pill" onRemove={action('onRemove')} />
+    <Pill label="My Pill (can't be removed)" />
   </Fragment>
 );

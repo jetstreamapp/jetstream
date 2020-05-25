@@ -96,3 +96,13 @@ export type InfoSuccessWarningError = Info | Success | Warning | Error;
 export type SuccessWarningError = Success | Warning | Error;
 export type DefaultInverseLight = Default | Inverse | Light;
 export type BadgeTypes = SuccessWarningError | DefaultInverseLight;
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export interface ListItem<T = string, V = any> {
+  id: string;
+  label: string;
+  value: T;
+  meta?: V;
+}
+
+export type GroupingOperator = 'AND' | 'OR';
