@@ -105,4 +105,27 @@ export interface ListItem<T = string, V = any> {
   meta?: V;
 }
 
-export type GroupingOperator = 'AND' | 'OR';
+export type AndOr = 'AND' | 'OR';
+
+export interface ExpressionType {
+  action: AndOr;
+  rows: ExpressionConditionType[];
+  groups: ExpressionGroupType[];
+}
+
+export interface ExpressionGroupType {
+  key: number;
+  action: AndOr;
+  rows: ExpressionConditionType[];
+}
+
+export interface ExpressionConditionType {
+  key: number;
+  selected: ExpressionConditionRowSelectedItems;
+}
+
+export interface ExpressionConditionRowSelectedItems {
+  resource: string | null;
+  operator: string | null;
+  value: string;
+}

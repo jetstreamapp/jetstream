@@ -13,7 +13,15 @@ export interface PicklistItemProps {
 
 export const PicklistItem: FunctionComponent<PicklistItemProps> = ({ id, label, value, isSelected, onClick }) => {
   return (
-    <li role="presentation" className="slds-listbox__item" onClick={() => onClick(id)}>
+    <li
+      role="presentation"
+      className="slds-listbox__item"
+      onClick={(event) => {
+        event.preventDefault();
+        event.stopPropagation();
+        onClick(id);
+      }}
+    >
       <div
         id={id}
         className={classNames('slds-media slds-listbox__option slds-listbox__option_plain slds-media_small', {

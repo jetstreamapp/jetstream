@@ -4,7 +4,7 @@ import uniqueId from 'lodash/uniqueId';
 import React, { FunctionComponent, useMemo, useState, useEffect } from 'react';
 import OutsideClickHandler from '../../utils/OutsideClickHandler';
 import Icon from '../../widgets/Icon';
-import { ListItem } from '../../../../../types/src';
+import { ListItem } from '@jetstream/types';
 import PicklistItem from './PicklistItem';
 import Pill from '../../widgets/Pill';
 
@@ -51,11 +51,16 @@ export const Picklist: FunctionComponent<PicklistProps> = ({
   }, [selectedItemsSet]);
 
   function handleSelection(item: ListItem) {
-    if (selectedItemsSet.has(item) && (selectedItemsSet.size > 1 || allowDeselection)) {
+    const hasItem = selectedItemsSet.has(item);
+    if (hasItem && (selectedItemsSet.size > 1 || allowDeselection)) {
       selectedItemsSet.delete(item);
     } else {
       if (!multiSelection) {
         selectedItemsSet.clear();
+        // if user clicked on new item in list, close
+        if (!hasItem) {
+          setIsOpen(false);
+        }
       }
       selectedItemsSet.add(item);
     }
@@ -89,7 +94,8 @@ export const Picklist: FunctionComponent<PicklistProps> = ({
                   autoComplete="off"
                   placeholder={placeholder}
                   readOnly
-                  value={selectedItemText}
+                  value={selectedItemText || ''}
+                  title={selectedItemText}
                 />
                 <span className="slds-icon_container slds-icon-utility-down slds-input__icon slds-input__icon_right">
                   <Icon
@@ -104,6 +110,7 @@ export const Picklist: FunctionComponent<PicklistProps> = ({
                 <ul className="slds-listbox slds-listbox_vertical" role="presentation">
                   {items.map((item) => (
                     <PicklistItem
+                      key={item.id}
                       id={item.id}
                       label={item.label}
                       value={item.value}

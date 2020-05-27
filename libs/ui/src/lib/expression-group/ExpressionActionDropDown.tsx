@@ -1,13 +1,11 @@
-import React, { FunctionComponent } from 'react';
-import Combobox from '../form/combobox/Combobox';
-import { ComboboxListItem } from '../form/combobox/ComboboxListItem';
-import { GroupingOperator, ListItem } from '@jetstream/types';
+import { AndOr, ListItem } from '@jetstream/types';
+import React, { FunctionComponent, useState } from 'react';
 import Picklist from '../form/picklist/Picklist';
 
 export interface ExpressionActionDropDownProps {
   label: string;
-  value: GroupingOperator;
-  onChange: (value: GroupingOperator) => void;
+  value: AndOr;
+  onChange: (value: AndOr) => void;
 }
 
 const items: ListItem[] = [
@@ -15,15 +13,26 @@ const items: ListItem[] = [
   { id: 'OR', label: 'Any conditions are met', value: 'OR' },
 ];
 
+function getInitSelected(value: AndOr) {
+  const item = value ? items.find((item) => item.id === value) : undefined;
+  if (item) {
+    return [item];
+  } else {
+    return [];
+  }
+}
+
 export const ExpressionActionDropDown: FunctionComponent<ExpressionActionDropDownProps> = ({ label, value, onChange }) => {
+  const [selectedItem] = useState<ListItem[]>(getInitSelected(value));
+
   return (
     <div className="slds-expression__options">
       <Picklist
         label={label}
         items={items}
-        selectedItems={[items[0]]}
+        selectedItems={selectedItem}
         allowDeselection={false}
-        onChange={(items) => onChange(items[0].id as GroupingOperator)}
+        onChange={(items) => onChange(items[0].id as AndOr)}
       />
     </div>
   );

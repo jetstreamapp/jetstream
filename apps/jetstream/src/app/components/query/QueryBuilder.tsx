@@ -9,16 +9,18 @@ import {
   PageHeaderActions,
   PageHeaderRow,
   PageHeaderTitle,
+  Accordion,
 } from '@jetstream/ui';
 import classNames from 'classnames';
-import { DescribeGlobalSObjectResult } from 'jsforce';
-import React, { FunctionComponent, useEffect, useState } from 'react';
+import { DescribeGlobalSObjectResult, SObject } from 'jsforce';
+import React, { FunctionComponent, useEffect, useState, Fragment } from 'react';
 import { Link, useLocation, useRouteMatch } from 'react-router-dom';
-import { composeQuery, getField } from 'soql-parser-js';
+import { getField } from 'soql-parser-js';
+import QueryWorker from '../../workers/query.worker';
 import QueryFieldsComponent from './QueryFields';
+import QueryFilter from './QueryFilter';
 import SoqlTextarea from './QueryOptions/SoqlTextarea';
 import QuerySObjects from './QuerySObjects';
-import QueryWorker from '../../workers/query.worker';
 
 // eslint-disable-next-line @typescript-eslint/no-empty-interface
 export interface QueryBuilderProps {}
@@ -105,22 +107,34 @@ export const QueryBuilder: FunctionComponent<QueryBuilderProps> = () => {
       </PageHeader>
       <AutoFullHeightContainer fillHeight className="slds-p-horizontal_x-small slds-scrollable_none">
         <div className="slds-grid slds-gutters">
-          <ColumnWithMinWidth className="slds-size_1-of-3 slds-is-relative">
+          <ColumnWithMinWidth className="slds-size_1-of-6 slds-is-relative">
             <h2 className="slds-text-heading_medium slds-text-align_center">Objects</h2>
             <QuerySObjects onSelected={(sobject) => setActiveSObject(sobject)} />
           </ColumnWithMinWidth>
-          <ColumnWithMinWidth className="slds-size_1-of-3 slds-is-relative">
-            <h2 className="slds-text-heading_medium slds-text-align_center slds-truncate">{activeSObject?.name} Fields</h2>
+          <ColumnWithMinWidth className="slds-size_2-of-6 slds-is-relative">
             {activeSObject && (
-              <QueryFieldsComponent
-                activeSObject={activeSObject}
-                onSelectionChanged={setSelectedFields}
-                onFieldsFetched={setQueryFieldsMap}
-              />
+              <Fragment>
+                <h2 className="slds-text-heading_medium slds-text-align_center slds-truncate">{activeSObject?.name} Fields</h2>
+                <QueryFieldsComponent
+                  activeSObject={activeSObject}
+                  onSelectionChanged={setSelectedFields}
+                  onFieldsFetched={setQueryFieldsMap}
+                />
+              </Fragment>
             )}
           </ColumnWithMinWidth>
-          <ColumnWithMinWidth className="slds-size_1-of-3 slds-is-relative">
-            <SoqlTextarea soql={soql} />
+          <ColumnWithMinWidth className="slds-is-relative">
+            {activeSObject && (
+              <Accordion
+                initOpenIds={['filters', 'orderBy', 'soql']}
+                sections={[
+                  { id: 'filters', title: 'Filters', content: <QueryFilter onChange={(filters) => console.log({ filters })} /> },
+                  { id: 'orderBy', title: 'Order By', content: 'TODO' },
+                  { id: 'soql', title: 'Soql Query', content: <SoqlTextarea soql={soql} /> },
+                ]}
+                allowMultiple={true}
+              ></Accordion>
+            )}
           </ColumnWithMinWidth>
         </div>
       </AutoFullHeightContainer>

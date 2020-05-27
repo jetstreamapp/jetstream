@@ -1,25 +1,35 @@
+import { AndOr } from '@jetstream/types';
 import React, { FunctionComponent } from 'react';
 import Icon from '../widgets/Icon';
 import ExpressionActionDropDown from './ExpressionActionDropDown';
 
 export interface ExpressionProps {
-  title: string;
+  title?: string;
   actionLabel: string;
-  // TODO: manage state and emit changes
+  onActionChange: (value: AndOr) => void;
+  onAddCondition: () => void;
+  onAddGroup: () => void;
 }
 
-export const Expression: FunctionComponent<ExpressionProps> = ({ title, actionLabel, children }) => {
+export const Expression: FunctionComponent<ExpressionProps> = ({
+  title,
+  actionLabel,
+  children,
+  onActionChange,
+  onAddCondition,
+  onAddGroup,
+}) => {
   return (
     <div className="slds-expression">
-      <h2 className="slds-expression__title">{title}</h2>
-      <ExpressionActionDropDown label="" value="AND" onChange={() => {}} />
+      {title && <h2 className="slds-expression__title">{title}</h2>}
+      <ExpressionActionDropDown label={actionLabel} value="AND" onChange={onActionChange} />
       <ul>{children}</ul>
       <div className="slds-expression__buttons">
-        <button className="slds-button slds-button_neutral">
+        <button className="slds-button slds-button_neutral" onClick={() => onAddCondition()}>
           <Icon type="utility" icon="add" className="slds-button__icon slds-button__icon_left" omitContainer={true} />
           Add Condition
         </button>
-        <button className="slds-button slds-button_neutral">
+        <button className="slds-button slds-button_neutral" onClick={() => onAddGroup()}>
           <Icon type="utility" icon="add" className="slds-button__icon slds-button__icon_left" omitContainer={true} />
           Add Group
         </button>
