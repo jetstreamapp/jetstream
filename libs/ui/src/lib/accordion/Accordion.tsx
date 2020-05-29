@@ -7,7 +7,7 @@ import Icon from '../widgets/Icon';
 
 export interface AccordionProps {
   initOpenIds: string[];
-  sections: { id: string; title: string; content: React.ReactNode }[];
+  sections: { id: string; title: string; content: React.ReactNode; disabled?: boolean }[];
   allowMultiple?: boolean;
 }
 
@@ -22,24 +22,29 @@ export const Accordion: FunctionComponent<AccordionProps> = ({ sections, initOpe
         openIds.add(id);
       }
     } else {
-      openIds.clear();
-      openIds.add(id);
+      if (openIds.has(id)) {
+        openIds.clear();
+      } else {
+        openIds.clear();
+        openIds.add(id);
+      }
     }
     setOpenIds(new Set(openIds));
   }
 
   return (
     <ul className="slds-accordion">
-      {sections.map((section) => (
-        <li className="slds-accordion__list-item" key={section.id}>
-          <section className={classNames('slds-accordion__section', { 'slds-is-open': openIds.has(section.id) })}>
+      {sections.map((item) => (
+        <li className="slds-accordion__list-item" key={item.id}>
+          <section className={classNames('slds-accordion__section', { 'slds-is-open': openIds.has(item.id) })}>
             <div className="slds-accordion__summary">
               <h3 className="slds-accordion__summary-heading">
                 <button
-                  aria-controls={section.id}
-                  aria-expanded={openIds.has(section.id)}
+                  aria-controls={item.id}
+                  aria-expanded={openIds.has(item.id)}
                   className="slds-button slds-button_reset slds-accordion__summary-action"
-                  onClick={() => handleClick(section.id)}
+                  onClick={() => handleClick(item.id)}
+                  disabled={item.disabled}
                 >
                   <Icon
                     type="utility"
@@ -47,14 +52,14 @@ export const Accordion: FunctionComponent<AccordionProps> = ({ sections, initOpe
                     className="slds-accordion__summary-action-icon slds-button__icon slds-button__icon_left"
                     omitContainer={true}
                   />
-                  <span className="slds-accordion__summary-content" title={section.title}>
-                    {section.title}
+                  <span className="slds-accordion__summary-content" title={item.title}>
+                    {item.title}
                   </span>
                 </button>
               </h3>
             </div>
-            <div className="slds-accordion__content" id={section.id}>
-              {section.content}
+            <div className="slds-accordion__content" id={item.id}>
+              {item.content}
             </div>
           </section>
         </li>

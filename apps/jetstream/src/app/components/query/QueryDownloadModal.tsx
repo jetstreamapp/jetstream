@@ -5,10 +5,10 @@ import { jsx } from '@emotion/core';
 import { MIME_TYPES } from '@jetstream/shared/constants';
 import { saveFile } from '@jetstream/shared/ui-utils';
 import { flattenRecords } from '@jetstream/shared/utils';
-import { Modal, RadioGroup, Radio } from '@jetstream/ui';
+import { Record } from '@jetstream/types';
+import { Modal, Radio, RadioGroup } from '@jetstream/ui';
 import { unparse } from 'papaparse';
 import { Fragment, FunctionComponent, useState } from 'react';
-import { Record } from '@jetstream/types';
 // eslint-disable-next-line @typescript-eslint/no-empty-interface
 export interface QueryDownloadModalProps {
   downloadModalOpen: boolean;

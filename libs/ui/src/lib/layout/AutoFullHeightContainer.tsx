@@ -34,7 +34,7 @@ export class AutoFullHeightContainer extends Component<AutoFullHeightContainerPr
   };
 
   render() {
-    const { bottomBuffer, className, baseCss, fillHeight, children } = this.props;
+    const { bottomBuffer, className, baseCss, fillHeight = true, children } = this.props;
     const { topPosition } = this.state;
     return (
       <div

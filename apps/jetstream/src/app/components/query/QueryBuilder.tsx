@@ -1,4 +1,6 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
+/** @jsx jsx */
+import { jsx, css } from '@emotion/core';
 import { MapOf, QueryFields, WorkerMessage } from '@jetstream/types';
 import {
   AutoFullHeightContainer,
@@ -13,7 +15,7 @@ import {
 } from '@jetstream/ui';
 import classNames from 'classnames';
 import { DescribeGlobalSObjectResult, SObject } from 'jsforce';
-import React, { FunctionComponent, useEffect, useState, Fragment } from 'react';
+import { FunctionComponent, useEffect, useState, Fragment } from 'react';
 import { Link, useLocation, useRouteMatch } from 'react-router-dom';
 import { getField } from 'soql-parser-js';
 import QueryWorker from '../../workers/query.worker';
@@ -21,6 +23,7 @@ import QueryFieldsComponent from './QueryFields';
 import QueryFilter from './QueryFilter';
 import SoqlTextarea from './QueryOptions/SoqlTextarea';
 import QuerySObjects from './QuerySObjects';
+import Split from 'react-split';
 
 // eslint-disable-next-line @typescript-eslint/no-empty-interface
 export interface QueryBuilderProps {}
@@ -105,13 +108,22 @@ export const QueryBuilder: FunctionComponent<QueryBuilderProps> = () => {
           </PageHeaderActions>
         </PageHeaderRow>
       </PageHeader>
-      <AutoFullHeightContainer fillHeight className="slds-p-horizontal_x-small slds-scrollable_none">
-        <div className="slds-grid slds-gutters">
-          <ColumnWithMinWidth className="slds-size_1-of-6 slds-is-relative">
+      <AutoFullHeightContainer className="slds-p-horizontal_x-small slds-scrollable_none">
+        <Split
+          sizes={[17, 33, 50]}
+          minSize={[200, 300, 300]}
+          gutterSize={activeSObject ? 10 : 0}
+          className="slds-gutters"
+          css={css`
+            display: flex;
+            flex-direction: row;
+          `}
+        >
+          <div className="slds-p-horizontal_x-small">
             <h2 className="slds-text-heading_medium slds-text-align_center">Objects</h2>
             <QuerySObjects onSelected={(sobject) => setActiveSObject(sobject)} />
-          </ColumnWithMinWidth>
-          <ColumnWithMinWidth className="slds-size_2-of-6 slds-is-relative">
+          </div>
+          <div className="slds-p-horizontal_x-small">
             {activeSObject && (
               <Fragment>
                 <h2 className="slds-text-heading_medium slds-text-align_center slds-truncate">{activeSObject?.name} Fields</h2>
@@ -122,21 +134,23 @@ export const QueryBuilder: FunctionComponent<QueryBuilderProps> = () => {
                 />
               </Fragment>
             )}
-          </ColumnWithMinWidth>
-          <ColumnWithMinWidth className="slds-is-relative">
+          </div>
+          <div className="slds-p-horizontal_x-small">
             {activeSObject && (
-              <Accordion
-                initOpenIds={['filters', 'orderBy', 'soql']}
-                sections={[
-                  { id: 'filters', title: 'Filters', content: <QueryFilter onChange={(filters) => console.log({ filters })} /> },
-                  { id: 'orderBy', title: 'Order By', content: 'TODO' },
-                  { id: 'soql', title: 'Soql Query', content: <SoqlTextarea soql={soql} /> },
-                ]}
-                allowMultiple={true}
-              ></Accordion>
+              <AutoFullHeightContainer>
+                <Accordion
+                  initOpenIds={['filters', 'orderBy', 'soql']}
+                  sections={[
+                    { id: 'filters', title: 'Filters', content: <QueryFilter onChange={(filters) => console.log({ filters })} /> },
+                    { id: 'orderBy', title: 'Order By', content: 'TODO' },
+                    { id: 'soql', title: 'Soql Query', content: <SoqlTextarea soql={soql} /> },
+                  ]}
+                  allowMultiple={true}
+                ></Accordion>
+              </AutoFullHeightContainer>
             )}
-          </ColumnWithMinWidth>
-        </div>
+          </div>
+        </Split>
       </AutoFullHeightContainer>
     </Page>
   );

@@ -9,6 +9,7 @@ import SearchInput from '../form/search-input/SearchInput';
 import Spinner from '../widgets/Spinner';
 import SobjectFieldListItem from './SobjectFieldListItem';
 import { isString } from 'lodash';
+import './SobjectFieldList.scss';
 
 export interface SobjectFieldListProps {
   level: number;
@@ -100,7 +101,7 @@ export const SobjectFieldList: FunctionComponent<SobjectFieldListProps> = ({
   }
 
   return (
-    <Fragment>
+    <div className={`query-level-${level}`}>
       {queryFields?.loading && (
         <div
           className="slds-is-relative"
@@ -135,7 +136,7 @@ export const SobjectFieldList: FunctionComponent<SobjectFieldListProps> = ({
           <List items={filteredFields} useCheckbox isActive={isFieldActive} onSelected={handleFieldSelected} getContent={getFieldContent} />
         </Fragment>
       )}
-    </Fragment>
+    </div>
   );
 };
 
