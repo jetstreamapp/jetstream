@@ -98,6 +98,12 @@ export type DefaultInverseLight = Default | Inverse | Light;
 export type BadgeTypes = SuccessWarningError | DefaultInverseLight;
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
+export interface ListItemGroup {
+  id: string;
+  label: string;
+  items: ListItem[];
+}
+
 export interface ListItem<T = string, V = any> {
   id: string;
   label: string;
@@ -126,6 +132,24 @@ export interface ExpressionConditionType {
 
 export interface ExpressionConditionRowSelectedItems {
   resource: string | null;
-  operator: string | null;
+  operator: QueryFilterOperator | null;
   value: string;
 }
+
+export type QueryFilterOperator =
+  | 'eq'
+  | 'ne'
+  | 'lt'
+  | 'lte'
+  | 'gt'
+  | 'gte'
+  | 'contains'
+  | 'doesNotContain'
+  | 'startsWith'
+  | 'doesNotStartWith'
+  | 'endsWith'
+  | 'doesNotEndWith'
+  | 'in'
+  | 'notIn'
+  | 'includes'
+  | 'excludes';

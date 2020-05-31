@@ -1,10 +1,9 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 /** @jsx jsx */
 import { jsx, css } from '@emotion/core';
-import { MapOf, QueryFields, WorkerMessage } from '@jetstream/types';
+import { MapOf, QueryFields, ListItemGroup, WorkerMessage, FieldWrapper, ExpressionType } from '@jetstream/types';
 import {
   AutoFullHeightContainer,
-  ColumnWithMinWidth,
   Icon,
   Page,
   PageHeader,
@@ -24,6 +23,7 @@ import QueryFilter from './QueryFilter';
 import SoqlTextarea from './QueryOptions/SoqlTextarea';
 import QuerySObjects from './QuerySObjects';
 import Split from 'react-split';
+import { convertFiltersToWhereClause } from '@jetstream/shared/ui-utils';
 
 // eslint-disable-next-line @typescript-eslint/no-empty-interface
 export interface QueryBuilderProps {}
@@ -34,6 +34,8 @@ export const QueryBuilder: FunctionComponent<QueryBuilderProps> = () => {
   const [activeSObject, setActiveSObject] = useState<DescribeGlobalSObjectResult>(null);
   const [queryFieldsMap, setQueryFieldsMap] = useState<MapOf<QueryFields>>(null);
   const [selectedFields, setSelectedFields] = useState<string[]>([]);
+  const [filterFields, setFilterFields] = useState<ListItemGroup[]>([]);
+  const [filters, setFilters] = useState<ExpressionType>(undefined);
   const [soql, setSoql] = useState<string>('');
   const [isFavorite, setIsFavorite] = useState<boolean>(false);
   const [queryWorker, setQueryWorker] = useState(() => new QueryWorker());
@@ -43,7 +45,11 @@ export const QueryBuilder: FunctionComponent<QueryBuilderProps> = () => {
       if (queryWorker) {
         queryWorker.postMessage({
           name: 'composeQuery',
-          data: { sObject: activeSObject.name, fields: selectedFields.map((field) => getField(field)) },
+          data: {
+            sObject: activeSObject.name,
+            fields: selectedFields.map((field) => getField(field)),
+            where: convertFiltersToWhereClause(filters),
+          },
         });
       }
     } else {
@@ -53,9 +59,39 @@ export const QueryBuilder: FunctionComponent<QueryBuilderProps> = () => {
   }, [activeSObject, selectedFields]);
 
   useEffect(() => {
+    if (queryFieldsMap && activeSObject) {
+      queryWorker.postMessage({
+        name: 'calculateFilter',
+        data: queryFieldsMap,
+      });
+    } else {
+      setFilterFields([]);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeSObject, queryFieldsMap, selectedFields]);
+
+  useEffect(() => {
     if (queryWorker) {
       queryWorker.onmessage = (event: MessageEvent) => {
-        const payload: WorkerMessage<'composeQuery', string> = event.data;
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const payload: WorkerMessage<'composeQuery' | 'calculateFilter', any> = event.data;
+        console.log({ payload });
+        switch (payload.name) {
+          case 'composeQuery': {
+            if (payload.error) {
+              // TODO:
+            } else {
+              setSoql(payload.data);
+            }
+            break;
+          }
+          case 'calculateFilter': {
+            setFilterFields(payload.data);
+            break;
+          }
+          default:
+            break;
+        }
         if (payload.name === 'composeQuery') {
           if (payload.error) {
             // TODO:
@@ -141,7 +177,11 @@ export const QueryBuilder: FunctionComponent<QueryBuilderProps> = () => {
                 <Accordion
                   initOpenIds={['filters', 'orderBy', 'soql']}
                   sections={[
-                    { id: 'filters', title: 'Filters', content: <QueryFilter onChange={(filters) => console.log({ filters })} /> },
+                    {
+                      id: 'filters',
+                      title: 'Filters',
+                      content: <QueryFilter fields={filterFields} onChange={setFilters} />,
+                    },
                     { id: 'orderBy', title: 'Order By', content: 'TODO' },
                     { id: 'soql', title: 'Soql Query', content: <SoqlTextarea soql={soql} /> },
                   ]}

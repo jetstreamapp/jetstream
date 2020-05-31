@@ -1,9 +1,9 @@
 /// <reference lib="webworker" />
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { composeQuery, Query } from 'soql-parser-js';
-import { WorkerMessage } from '@jetstream/types';
+import { WorkerMessage, QueryFields, MapOf, ListItemGroup } from '@jetstream/types';
 
-type MessageName = 'composeQuery';
+type MessageName = 'composeQuery' | 'calculateFilter';
 
 // eslint-disable-next-line no-restricted-globals
 const ctx: Worker = self as any;
@@ -20,6 +20,43 @@ function handleMessage(name: MessageName, payloadData: any) {
       const data: Query = payloadData;
       const soql = composeQuery(data, { format: true });
       replyToMessage(name, soql);
+      break;
+    }
+    case 'calculateFilter': {
+      const queryFieldsMap: MapOf<QueryFields> = payloadData;
+      const newFilterFields: ListItemGroup[] = [];
+      Object.values(queryFieldsMap).forEach((queryField) => {
+        const [base, path] = queryField.key.split('|');
+        const currGroup: ListItemGroup = {
+          id: queryField.key,
+          label: path ? path.substring(0, path.length - 1) : base,
+          items: [],
+        };
+        newFilterFields.push(currGroup);
+        if (!path) {
+          Object.values(queryField.fields).forEach((field) => {
+            const value = `${path || ''}${field.name}`;
+            currGroup.items.push({
+              id: value,
+              label: field.label,
+              value: value,
+              meta: field,
+            });
+          });
+        } else {
+          queryField.selectedFields.forEach((selectedFieldKey) => {
+            const field = queryField.fields[selectedFieldKey];
+            const value = `${path || ''}${field.name}`;
+            currGroup.items.push({
+              id: value,
+              label: field.label,
+              value: value,
+              meta: field,
+            });
+          });
+        }
+      });
+      replyToMessage(name, newFilterFields);
       break;
     }
     default:

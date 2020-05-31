@@ -1,10 +1,11 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
-import { ExpressionType } from '@jetstream/types';
+import { ExpressionType, ListItem, QueryFilterOperator, ListItemGroup } from '@jetstream/types';
 import { ExpressionContainer } from '@jetstream/ui';
 import React, { FunctionComponent } from 'react';
 
 export interface QueryFilterProps {
   // TODO: fields, which will be converted to resources
+  fields: ListItemGroup[];
   onChange: (expression: ExpressionType) => void;
 }
 
@@ -14,14 +15,27 @@ const resources = [
   { id: 'Type', label: 'Type', value: 'Type__c' },
 ];
 
-const operators = [
-  { id: '=', label: 'Equals', value: '=' },
-  { id: '!=', label: 'Does Not Equal', value: '!=' },
-  { id: 'like', label: 'Contains', value: 'LIKE' },
+const operators: ListItem<string, QueryFilterOperator>[] = [
+  { id: 'eq', label: 'Equals', value: 'eq' },
+  { id: 'ne', label: 'Does Not Equal', value: 'ne' },
+  { id: 'lt', label: 'Less Than', value: 'lt' },
+  { id: 'lte', label: 'Less Than Or Equal To', value: 'lte' },
+  { id: 'gt', label: 'Greater Than', value: 'gt' },
+  { id: 'gte', label: 'Greater Than Or Equal To', value: 'gte' },
+  { id: 'contains', label: 'Contains', value: 'contains' },
+  { id: 'doesNotContain', label: 'Does Not Contain', value: 'doesNotContain' },
+  { id: 'startsWith', label: 'Starts With', value: 'startsWith' },
+  { id: 'doesNotStartWith', label: 'Does Not Start With', value: 'doesNotStartWith' },
+  { id: 'endsWith', label: 'Ends With', value: 'endsWith' },
+  { id: 'doesNotEndWith', label: 'Does Not End With', value: 'doesNotEndWith' },
+  { id: 'in', label: 'In', value: 'in' },
+  { id: 'notIn', label: 'Not In', value: 'notIn' },
+  { id: 'includes', label: 'Includes', value: 'includes' },
+  { id: 'excludes', label: 'Excludes', value: 'excludes' },
 ];
 
-export const QueryFilter: FunctionComponent<QueryFilterProps> = ({ onChange }) => {
-  return <ExpressionContainer actionLabel="Filter When" resources={resources} operators={operators} onChange={onChange} />;
+export const QueryFilter: FunctionComponent<QueryFilterProps> = ({ fields, onChange }) => {
+  return <ExpressionContainer actionLabel="Filter When" resources={fields} operators={operators} onChange={onChange} />;
 };
 
 export default QueryFilter;

@@ -1,4 +1,4 @@
-import React, { FunctionComponent, useState } from 'react';
+import React, { FunctionComponent, useState, useEffect } from 'react';
 import uniqueId from 'lodash/uniqueId';
 import Icon from '../../widgets/Icon';
 import classNames from 'classnames';
@@ -9,13 +9,44 @@ export interface ComboboxProps {
   label: string;
   disabled?: boolean;
   loading?: boolean;
+  hasGroups?: boolean;
+  selectedItemLabel?: string; // used for text
+  selectedItemTitle?: string; // used for text
   onInputChange?: (value: string) => void;
 }
 
-export const Combobox: FunctionComponent<ComboboxProps> = ({ label, disabled, loading, children, onInputChange }) => {
+export const Combobox: FunctionComponent<ComboboxProps> = ({
+  label,
+  disabled,
+  loading,
+  hasGroups,
+  selectedItemLabel,
+  selectedItemTitle,
+  children,
+  onInputChange,
+}) => {
   const [isOpen, setIsOpen] = useState<boolean>(false);
   const [id] = useState<string>(uniqueId('Combobox'));
   const [listId] = useState<string>(uniqueId('Combobox-list'));
+  const [value, setValue] = useState<string>('');
+
+  // when closed, set input value in case user modified
+  useEffect(() => {
+    if (isOpen) {
+      setValue('');
+    } else {
+      setValue(selectedItemLabel || '');
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isOpen]);
+
+  // close on selection
+  useEffect(() => {
+    if (selectedItemLabel) {
+      setIsOpen(false);
+      setValue(selectedItemLabel || '');
+    }
+  }, [selectedItemLabel]);
 
   // TODO: down or enter should open after has focus
   // TODO: keyboard navigation, including enter to select
@@ -57,6 +88,9 @@ export const Combobox: FunctionComponent<ComboboxProps> = ({ label, disabled, lo
                 placeholder="Select an Option"
                 disabled={disabled}
                 onKeyUp={(event) => onInputChange && onInputChange(event.currentTarget.value)}
+                onChange={(event) => setValue(event.target.value)}
+                value={value}
+                title={selectedItemTitle || value}
               />
 
               {loading && (
@@ -80,9 +114,12 @@ export const Combobox: FunctionComponent<ComboboxProps> = ({ label, disabled, lo
               )}
             </div>
             <div id={listId} className="slds-dropdown slds-dropdown_length-5 slds-dropdown_fluid" role="listbox">
-              <ul className="slds-listbox slds-listbox_vertical" role="presentation">
-                {children}
-              </ul>
+              {hasGroups && children}
+              {!hasGroups && (
+                <ul className="slds-listbox slds-listbox_vertical" role="presentation">
+                  {children}
+                </ul>
+              )}
             </div>
           </div>
         </OutsideClickHandler>

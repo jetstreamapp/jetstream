@@ -1,8 +1,9 @@
 import { Field } from 'jsforce';
 import { orderObjectsBy } from '@jetstream/shared/utils';
-import { MimeType, PositionAll } from '@jetstream/types';
+import { MimeType, PositionAll, QueryFilterOperator, ExpressionType } from '@jetstream/types';
 import { saveAs } from 'file-saver';
 import { Placement as tippyPlacement } from 'tippy.js';
+import { Query, WhereClause, Operator } from 'soql-parser-js';
 
 export function sortQueryFields(fields: Field[]): Field[] {
   // partition name and id field out, then append to front
@@ -160,5 +161,121 @@ export function convertTippyPlacementToSlds(placement: tippyPlacement): Position
       return 'top-left';
     default:
       return null;
+  }
+}
+
+export function convertFiltersToWhereClause(filters: ExpressionType): WhereClause {
+  if (!filters) {
+    return;
+  }
+  // filter out all invalid/incomplete filters
+  const rows = filters.rows.filter((row) => row.selected.operator && row.selected.resource && row.selected.value);
+  const groups = filters.groups
+    .map((group) => {
+      return {
+        ...group,
+        rows: rows.filter((row) => row.selected.operator && row.selected.resource && row.selected.value),
+      };
+    })
+    .filter((group) => group.rows.length > 0);
+
+  // return if no items to process
+  if (rows.length === 0 && rows.length === 0) {
+    return undefined;
+  }
+
+  // init all where clauses
+  const whereClauses = rows.map((row, i) => {
+    const whereClause: WhereClause = {
+      left: {
+        operator: convertQueryFilterOperator(row.selected.operator),
+        logicalPrefix: hasLogicalPrefix(row.selected.operator) ? 'NOT' : undefined,
+        field: row.selected.resource,
+        value: row.selected.value,
+        literalType: 'STRING', // FIXME: we need to know more type info
+      },
+      operator: i !== 0 ? filters.action : undefined,
+    };
+    return whereClause;
+  });
+
+  // init all groups where clauses
+  groups.forEach((group, i) => {
+    const tempWhereClauses: WhereClause[] = [];
+    group.rows.forEach((row, i) => {
+      const whereClause: WhereClause = {
+        left: {
+          operator: convertQueryFilterOperator(row.selected.operator),
+          logicalPrefix: hasLogicalPrefix(row.selected.operator) ? 'NOT' : undefined,
+          field: row.selected.resource,
+          value: row.selected.value,
+          literalType: 'STRING', // FIXME: we need to know more type info
+        },
+        operator: i !== 0 ? group.action : undefined,
+      };
+      tempWhereClauses.push(whereClause);
+      whereClauses.push(whereClause);
+    });
+    tempWhereClauses[0].left.openParen = 1;
+    tempWhereClauses[tempWhereClauses.length - 1].left.closeParen = 1;
+  });
+
+  // combine all where clauses
+  const rootClause = whereClauses[0];
+  whereClauses.reduce((whereClause, currWhereClause) => {
+    if (whereClause) {
+      whereClause.right = currWhereClause;
+    }
+    return currWhereClause;
+  });
+
+  return rootClause;
+}
+
+function hasLogicalPrefix(operator: QueryFilterOperator): boolean {
+  switch (operator) {
+    case 'doesNotContain':
+    case 'doesNotStartWith':
+    case 'doesNotEndWith':
+      return true;
+    default:
+      return false;
+  }
+}
+
+function convertQueryFilterOperator(operator: QueryFilterOperator): Operator {
+  switch (operator) {
+    case 'eq': {
+      return '=';
+    }
+    case 'ne': {
+      return '!=';
+    }
+    case 'lt': {
+      return '<';
+    }
+    case 'lte': {
+      return '<=';
+    }
+    case 'gt': {
+      return '>';
+    }
+    case 'gte': {
+      return '>=';
+    }
+    case 'in': {
+      return 'IN';
+    }
+    case 'notIn': {
+      return 'NOT IN';
+    }
+    case 'includes': {
+      return 'INCLUDES';
+    }
+    case 'excludes': {
+      return 'EXCLUDES';
+    }
+    default:
+      return 'LIKE';
   }
 }

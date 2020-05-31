@@ -1,18 +1,19 @@
 /* eslint-disable jsx-a11y/anchor-is-valid */
+import { ListItem, ListItemGroup } from '@jetstream/types';
 import classNames from 'classnames';
 import uniqueId from 'lodash/uniqueId';
-import React, { FunctionComponent, useMemo, useState, useEffect } from 'react';
+import React, { FunctionComponent, useEffect, useMemo, useState } from 'react';
 import OutsideClickHandler from '../../utils/OutsideClickHandler';
 import Icon from '../../widgets/Icon';
-import { ListItem } from '@jetstream/types';
-import PicklistItem from './PicklistItem';
 import Pill from '../../widgets/Pill';
+import PicklistItem from './PicklistItem';
 
 export interface PicklistProps {
   containerClassName?: string; // e.x. slds-combobox_container slds-size_small
   label: string;
   placeholder?: string;
-  items: ListItem[];
+  items?: ListItem[];
+  groups?: ListItemGroup[];
   selectedItems?: ListItem[]; // This only applies on initialization, then the component will manage ongoing state
   multiSelection?: boolean;
   allowDeselection?: boolean;
@@ -24,7 +25,8 @@ export const Picklist: FunctionComponent<PicklistProps> = ({
   containerClassName,
   label,
   placeholder,
-  items = [],
+  items,
+  groups,
   selectedItems = [],
   multiSelection = false,
   allowDeselection = true,
@@ -106,19 +108,47 @@ export const Picklist: FunctionComponent<PicklistProps> = ({
                   />
                 </span>
               </div>
-              <div id={listboxId} className={classNames('slds-dropdown slds-dropdown_fluid', scrollLengthClass)} role="listbox">
-                <ul className="slds-listbox slds-listbox_vertical" role="presentation">
-                  {items.map((item) => (
-                    <PicklistItem
-                      key={item.id}
-                      id={item.id}
-                      label={item.label}
-                      value={item.value}
-                      isSelected={selectedItemsSet.has(item)}
-                      onClick={() => handleSelection(item)}
-                    />
+              <div
+                id={listboxId}
+                className={classNames('slds-dropdown slds-dropdown_fluid slds-dropdown_length-7', scrollLengthClass)}
+                role="listbox"
+              >
+                {Array.isArray(items) && (
+                  <ul className="slds-listbox slds-listbox_vertical" role="presentation">
+                    {items.map((item) => (
+                      <PicklistItem
+                        key={item.id}
+                        id={item.id}
+                        label={item.label}
+                        value={item.value}
+                        isSelected={selectedItemsSet.has(item)}
+                        onClick={() => handleSelection(item)}
+                      />
+                    ))}
+                  </ul>
+                )}
+                {Array.isArray(groups) &&
+                  groups.map((group) => (
+                    <ul key={group.id} className="slds-listbox slds-listbox_vertical" role="group" aria-label={group.label}>
+                      <li role="presentation" className="slds-listbox__item">
+                        <div className="slds-media slds-listbox__option slds-listbox__option_plain slds-media_small" role="presentation">
+                          <h3 className="slds-listbox__option-header" role="presentation">
+                            {group.label}
+                          </h3>
+                        </div>
+                      </li>
+                      {group.items.map((item) => (
+                        <PicklistItem
+                          key={item.id}
+                          id={item.id}
+                          label={item.label}
+                          value={item.value}
+                          isSelected={selectedItemsSet.has(item)}
+                          onClick={() => handleSelection(item)}
+                        />
+                      ))}
+                    </ul>
                   ))}
-                </ul>
               </div>
             </div>
           </div>

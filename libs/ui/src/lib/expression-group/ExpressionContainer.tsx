@@ -5,6 +5,7 @@ import {
   ExpressionGroupType,
   ExpressionType,
   ListItem,
+  ListItemGroup,
 } from '@jetstream/types';
 import React, { FunctionComponent, useEffect, useState } from 'react';
 import Expression from './Expression';
@@ -17,7 +18,7 @@ export interface ExpressionContainerProps {
   resourceLabel?: string;
   operatorLabel?: string;
   valueLabel?: string;
-  resources: ListItem[];
+  resources: ListItemGroup[];
   operators: ListItem[];
   expressionInitValue?: ExpressionType;
   onChange: (expression: ExpressionType) => void;

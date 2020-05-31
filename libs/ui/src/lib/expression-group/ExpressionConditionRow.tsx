@@ -1,10 +1,13 @@
-import { AndOr, ExpressionConditionRowSelectedItems, ListItem } from '@jetstream/types';
+import { AndOr, ExpressionConditionRowSelectedItems, ListItem, ListItemGroup, QueryFilterOperator } from '@jetstream/types';
 import classNames from 'classnames';
 import isNumber from 'lodash/isNumber';
-import React, { FunctionComponent } from 'react';
+import React, { FunctionComponent, useState, useEffect } from 'react';
 import Input from '../form/input/Input';
 import Picklist from '../form/picklist/Picklist';
 import Icon from '../widgets/Icon';
+import Combobox from '../form/combobox/Combobox';
+import { ComboboxListItem } from '../form/combobox/ComboboxListItem';
+import { ComboboxListItemGroup } from '../form/combobox/ComboboxListItemGroup';
 
 export interface ExpressionConditionRowProps {
   row: number;
@@ -13,8 +16,8 @@ export interface ExpressionConditionRowProps {
   resourceLabel?: string;
   operatorLabel?: string;
   valueLabel?: string;
-  resources: ListItem[];
-  operators: ListItem[];
+  resources: ListItemGroup[];
+  operators: ListItem<string, QueryFilterOperator>[];
   selected: ExpressionConditionRowSelectedItems;
   onChange: (selected: ExpressionConditionRowSelectedItems) => void;
   onDelete: () => void;
@@ -33,6 +36,27 @@ export const ExpressionConditionRow: FunctionComponent<ExpressionConditionRowPro
   onChange,
   onDelete,
 }) => {
+  const [visibleResources, setVisibleResources] = useState<ListItemGroup[]>(resources);
+  const [resourcesFilter, setResourcesFilter] = useState<string>(null);
+  const [selectedResourceLabel, setSelectedResourceLabel] = useState<string>(null);
+  const [selectedResourceTitle, setSelectedResourceTitle] = useState<string>(null);
+
+  useEffect(() => {
+    if (!resourcesFilter) {
+      setVisibleResources(resources);
+    } else {
+      const filter = resourcesFilter.toLowerCase().trim();
+      const tempResources = [];
+      resources.forEach((resource) => {
+        tempResources.push({
+          ...resource,
+          items: resource.items.filter((item) => `${item.label.toLowerCase()}${item.value.toLowerCase()}`.includes(filter)),
+        });
+      });
+      setVisibleResources(tempResources);
+    }
+  }, [resources, resourcesFilter]);
+
   return (
     <li className={classNames('slds-expression__row', { 'slds-expression__row_group': isNumber(group) })}>
       <fieldset>
@@ -43,12 +67,31 @@ export const ExpressionConditionRow: FunctionComponent<ExpressionConditionRowPro
         <div className="slds-grid slds-gutters_xx-small">
           {/* Resource */}
           <div className="slds-col">
-            <Picklist
+            <Combobox
               label={resourceLabel}
-              items={resources}
-              allowDeselection={false}
-              onChange={(items) => onChange({ ...selected, resource: items.length > 0 ? items[0].id : null })}
-            />
+              onInputChange={(filter) => setResourcesFilter(filter)}
+              selectedItemLabel={selectedResourceLabel}
+              selectedItemTitle={selectedResourceTitle}
+            >
+              {visibleResources
+                .filter((group) => group.items.length > 0)
+                .map((group) => (
+                  <ComboboxListItemGroup key={group.id} label={group.label}>
+                    {group.items.map((item) => (
+                      <ComboboxListItem
+                        key={item.id}
+                        id={item.id}
+                        label={item.label}
+                        selected={item.id === selected.resource}
+                        onSelection={(id) => {
+                          setSelectedResourceLabel(`${group.label} - ${item.label}`);
+                          onChange({ ...selected, resource: id });
+                        }}
+                      />
+                    ))}
+                  </ComboboxListItemGroup>
+                ))}
+            </Combobox>
           </div>
           {/* Operator */}
           <div className="slds-col slds-grow-none">
@@ -57,7 +100,7 @@ export const ExpressionConditionRow: FunctionComponent<ExpressionConditionRowPro
               items={operators}
               selectedItems={[operators[0]]}
               allowDeselection={false}
-              onChange={(items) => onChange({ ...selected, operator: items[0].id })}
+              onChange={(items) => onChange({ ...selected, operator: items[0].value as QueryFilterOperator })}
             />
           </div>
           {/* Value */}
