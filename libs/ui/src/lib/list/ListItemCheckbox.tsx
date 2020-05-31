@@ -1,7 +1,7 @@
 /** @jsx jsx */
 import { jsx } from '@emotion/core';
 import isString from 'lodash/isString';
-import { FunctionComponent } from 'react';
+import { memo } from 'react';
 import Checkbox from '../form/checkbox/Checkbox';
 
 export interface ListItemCheckboxProps {
@@ -12,7 +12,7 @@ export interface ListItemCheckboxProps {
   onSelected: () => void;
 }
 
-export const ListItemCheckbox: FunctionComponent<ListItemCheckboxProps> = ({ id, heading, subheading, isActive, onSelected }) => {
+export const ListItemCheckbox = memo<ListItemCheckboxProps>(({ id, heading, subheading, isActive, onSelected }) => {
   return (
     <li className="slds-item">
       <div className="slds-grid slds-has-flexi-truncate">
@@ -26,6 +26,6 @@ export const ListItemCheckbox: FunctionComponent<ListItemCheckboxProps> = ({ id,
       </div>
     </li>
   );
-};
+});
 
 export default ListItemCheckbox;

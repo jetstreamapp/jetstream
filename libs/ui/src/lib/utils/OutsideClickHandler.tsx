@@ -19,7 +19,7 @@ export class OutsideClickHandler extends Component<OutsideClickHandlerProps, nev
   removeMouseUp;
   childNode;
 
-  componentWillMount() {
+  componentDidMount() {
     const { disabled, useCapture } = this.props;
 
     if (!disabled) this.addMouseDownEventListener(useCapture);

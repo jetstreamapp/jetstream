@@ -1,5 +1,5 @@
 /** @jsx jsx */
-import React, { FunctionComponent } from 'react';
+import { memo } from 'react';
 import classNames from 'classnames';
 import isString from 'lodash/isString';
 import { css, jsx } from '@emotion/core';
@@ -11,13 +11,7 @@ export interface ListItemProps {
   onSelected: () => void;
 }
 
-export const ListItem: FunctionComponent<ListItemProps> = ({ heading, subheading, isActive, onSelected }) => {
-  function handleClick(event: React.MouseEvent<HTMLLIElement, MouseEvent>) {
-    event.preventDefault();
-    event.stopPropagation();
-    onSelected && onSelected();
-  }
-
+export const ListItem = memo<ListItemProps>(({ heading, subheading, isActive, onSelected }) => {
   return (
     <li
       className={classNames('slds-item', { 'is-active': isActive })}
@@ -31,12 +25,16 @@ export const ListItem: FunctionComponent<ListItemProps> = ({ heading, subheading
           background-color: #faffbd;
         }
       `}
-      onClick={handleClick}
+      onClick={(event) => {
+        event.preventDefault();
+        event.stopPropagation();
+        onSelected && onSelected();
+      }}
     >
       {isString(heading) ? <div>{heading}</div> : heading}
       {subheading && <div className="slds-text-body_small slds-text-color_weak">{subheading}</div>}
     </li>
   );
-};
+});
 
 export default ListItem;

@@ -1,7 +1,7 @@
 /** @jsx jsx */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { css, jsx } from '@emotion/core';
-import { Fragment, FunctionComponent } from 'react';
+import { Fragment, FunctionComponent, memo } from 'react';
 import ListItem from './ListItem';
 import ListItemCheckbox from './ListItemCheckbox';
 
@@ -21,7 +21,7 @@ export interface ListProps {
   onSelected: (item: any) => void;
 }
 
-export const List: FunctionComponent<ListProps> = ({ items, useCheckbox = false, isActive, getContent, onSelected }) => {
+export const List = memo<ListProps>(({ items, useCheckbox = false, isActive, getContent, onSelected }) => {
   return (
     <Fragment>
       {Array.isArray(items) && items.length > 0 && (
@@ -45,6 +45,6 @@ export const List: FunctionComponent<ListProps> = ({ items, useCheckbox = false,
       )}
     </Fragment>
   );
-};
+});
 
 export default List;
