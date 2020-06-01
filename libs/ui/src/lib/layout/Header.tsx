@@ -4,15 +4,17 @@ import Avatar from '@salesforce-ux/design-system/assets/images/profile_avatar_96
 import { FunctionComponent } from 'react';
 
 // eslint-disable-next-line @typescript-eslint/no-empty-interface
-export interface HeaderProps {}
+export interface HeaderProps {
+  logo: string;
+}
 
-export const Header: FunctionComponent<HeaderProps> = ({ children }) => {
+export const Header: FunctionComponent<HeaderProps> = ({ logo, children }) => {
   return (
     <header className="slds-global-header_container branding-header slds-no-print">
       <div className="slds-global-header slds-grid slds-grid_align-spread">
         {/* LOGO */}
         <div className="slds-global-header__item">
-          <div className="slds-global-header__logo"></div>
+          <div className="slds-global-header__logo" style={{ backgroundImage: `url(${logo})` }}></div>
         </div>
         {/* RIGHT HAND AREA */}
         <div className="slds-global-header__item">

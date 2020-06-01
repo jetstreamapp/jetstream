@@ -5,13 +5,14 @@ import Query from './components/query/Query';
 import { BrowserRouter as Router, Switch, Route } from 'react-router-dom';
 import { Navbar } from '@jetstream/ui';
 import { NavbarItem } from '@jetstream/ui';
+import Logo from '../assets/jetstream-logo-v1-200w.png';
 
 export const App = () => {
   return (
     <Router>
       <div>
         <div>
-          <Header>
+          <Header logo={Logo}>
             <Navbar>
               <NavbarItem path="/" title="Home" label="Home" />
               <NavbarItem path="/query" title="Query Records" label="Query Records" />
