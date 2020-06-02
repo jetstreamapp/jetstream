@@ -14,9 +14,7 @@
             "outputPath": "dist/apps/api",
             "main": "apps/api/src/main.ts",
             "tsConfig": "apps/api/tsconfig.app.json",
-            "assets": [
-              "apps/api/src/assets"
-            ]
+            "assets": ["apps/api/src/assets"]
           },
           "configurations": {
             "production": {
@@ -43,14 +41,8 @@
           "options": {
             "linter": "eslint",
             "config": "apps/api/.eslintrc",
-            "tsConfig": [
-              "apps/api/tsconfig.app.json",
-              "apps/api/tsconfig.spec.json"
-            ],
-            "exclude": [
-              "**/node_modules/**",
-              "!apps/api/**"
-            ]
+            "tsConfig": ["apps/api/tsconfig.app.json", "apps/api/tsconfig.spec.json"],
+            "exclude": ["**/node_modules/**", "!apps/api/**"]
           }
         },
         "test": {
@@ -74,14 +66,8 @@
           "options": {
             "linter": "eslint",
             "config": "libs/api-interfaces/.eslintrc",
-            "tsConfig": [
-              "libs/api-interfaces/tsconfig.lib.json",
-              "libs/api-interfaces/tsconfig.spec.json"
-            ],
-            "exclude": [
-              "**/node_modules/**",
-              "!libs/api-interfaces/**"
-            ]
+            "tsConfig": ["libs/api-interfaces/tsconfig.lib.json", "libs/api-interfaces/tsconfig.spec.json"],
+            "exclude": ["**/node_modules/**", "!libs/api-interfaces/**"]
           }
         },
         "test": {
@@ -105,14 +91,8 @@
           "options": {
             "linter": "eslint",
             "config": "libs/ui/.eslintrc",
-            "tsConfig": [
-              "libs/ui/tsconfig.lib.json",
-              "libs/ui/tsconfig.spec.json"
-            ],
-            "exclude": [
-              "**/node_modules/**",
-              "!libs/ui/**"
-            ]
+            "tsConfig": ["libs/ui/tsconfig.lib.json", "libs/ui/tsconfig.spec.json"],
+            "exclude": ["**/node_modules/**", "!libs/ui/**"]
           }
         },
         "test": {
@@ -166,14 +146,8 @@
           "options": {
             "linter": "eslint",
             "config": "libs/types/.eslintrc",
-            "tsConfig": [
-              "libs/types/tsconfig.lib.json",
-              "libs/types/tsconfig.spec.json"
-            ],
-            "exclude": [
-              "**/node_modules/**",
-              "!libs/types/**"
-            ]
+            "tsConfig": ["libs/types/tsconfig.lib.json", "libs/types/tsconfig.spec.json"],
+            "exclude": ["**/node_modules/**", "!libs/types/**"]
           }
         },
         "test": {
@@ -197,14 +171,8 @@
           "options": {
             "linter": "eslint",
             "config": "libs/shared/utils/.eslintrc",
-            "tsConfig": [
-              "libs/shared/utils/tsconfig.lib.json",
-              "libs/shared/utils/tsconfig.spec.json"
-            ],
-            "exclude": [
-              "**/node_modules/**",
-              "!libs/shared/utils/**"
-            ]
+            "tsConfig": ["libs/shared/utils/tsconfig.lib.json", "libs/shared/utils/tsconfig.spec.json"],
+            "exclude": ["**/node_modules/**", "!libs/shared/utils/**"]
           }
         },
         "test": {
@@ -228,14 +196,8 @@
           "options": {
             "linter": "eslint",
             "config": "libs/shared/data/.eslintrc",
-            "tsConfig": [
-              "libs/shared/data/tsconfig.lib.json",
-              "libs/shared/data/tsconfig.spec.json"
-            ],
-            "exclude": [
-              "**/node_modules/**",
-              "!libs/shared/data/**"
-            ]
+            "tsConfig": ["libs/shared/data/tsconfig.lib.json", "libs/shared/data/tsconfig.spec.json"],
+            "exclude": ["**/node_modules/**", "!libs/shared/data/**"]
           }
         },
         "test": {
@@ -259,14 +221,8 @@
           "options": {
             "linter": "eslint",
             "config": "libs/shared/ui-utils/.eslintrc",
-            "tsConfig": [
-              "libs/shared/ui-utils/tsconfig.lib.json",
-              "libs/shared/ui-utils/tsconfig.spec.json"
-            ],
-            "exclude": [
-              "**/node_modules/**",
-              "!libs/shared/ui-utils/**"
-            ]
+            "tsConfig": ["libs/shared/ui-utils/tsconfig.lib.json", "libs/shared/ui-utils/tsconfig.spec.json"],
+            "exclude": ["**/node_modules/**", "!libs/shared/ui-utils/**"]
           }
         },
         "test": {
@@ -290,14 +246,8 @@
           "options": {
             "linter": "eslint",
             "config": "libs/shared/node-utils/.eslintrc",
-            "tsConfig": [
-              "libs/shared/node-utils/tsconfig.lib.json",
-              "libs/shared/node-utils/tsconfig.spec.json"
-            ],
-            "exclude": [
-              "**/node_modules/**",
-              "!libs/shared/node-utils/**"
-            ]
+            "tsConfig": ["libs/shared/node-utils/tsconfig.lib.json", "libs/shared/node-utils/tsconfig.spec.json"],
+            "exclude": ["**/node_modules/**", "!libs/shared/node-utils/**"]
           }
         },
         "test": {
@@ -333,13 +283,8 @@
           "options": {
             "linter": "eslint",
             "config": "apps/ui-e2e/.eslintrc",
-            "tsConfig": [
-              "apps/ui-e2e/tsconfig.e2e.json"
-            ],
-            "exclude": [
-              "**/node_modules/**",
-              "!apps/ui-e2e/**"
-            ]
+            "tsConfig": ["apps/ui-e2e/tsconfig.e2e.json"],
+            "exclude": ["**/node_modules/**", "!apps/ui-e2e/**"]
           }
         }
       }
@@ -355,13 +300,8 @@
           "options": {
             "linter": "eslint",
             "config": "libs/shared/constants/.eslintrc",
-            "tsConfig": [
-              "libs/shared/constants/tsconfig.lib.json"
-            ],
-            "exclude": [
-              "**/node_modules/**",
-              "!libs/shared/constants/**"
-            ]
+            "tsConfig": ["libs/shared/constants/tsconfig.lib.json"],
+            "exclude": ["**/node_modules/**", "!libs/shared/constants/**"]
           }
         }
       }
@@ -380,10 +320,7 @@
             "main": "apps/jetstream/src/main.tsx",
             "polyfills": "apps/jetstream/src/polyfills.ts",
             "tsConfig": "apps/jetstream/tsconfig.app.json",
-            "assets": [
-              "apps/jetstream/src/favicon.ico",
-              "apps/jetstream/src/assets"
-            ],
+            "assets": ["apps/jetstream/src/favicon.ico", "apps/jetstream/src/assets"],
             "styles": [],
             "scripts": [],
             "webpackConfig": "webpack.config.js"
@@ -430,14 +367,8 @@
           "options": {
             "linter": "eslint",
             "config": "apps/jetstream/.eslintrc",
-            "tsConfig": [
-              "apps/jetstream/tsconfig.app.json",
-              "apps/jetstream/tsconfig.spec.json"
-            ],
-            "exclude": [
-              "**/node_modules/**",
-              "!apps/jetstream/**"
-            ]
+            "tsConfig": ["apps/jetstream/tsconfig.app.json", "apps/jetstream/tsconfig.spec.json"],
+            "exclude": ["**/node_modules/**", "!apps/jetstream/**"]
           }
         },
         "test": {
@@ -473,13 +404,92 @@
           "options": {
             "linter": "eslint",
             "config": "apps/jetstream-e2e/.eslintrc",
-            "tsConfig": [
-              "apps/jetstream-e2e/tsconfig.e2e.json"
-            ],
-            "exclude": [
-              "**/node_modules/**",
-              "!apps/jetstream-e2e/**"
-            ]
+            "tsConfig": ["apps/jetstream-e2e/tsconfig.e2e.json"],
+            "exclude": ["**/node_modules/**", "!apps/jetstream-e2e/**"]
+          }
+        }
+      }
+    },
+    "landing": {
+      "root": "apps/landing",
+      "sourceRoot": "apps/landing",
+      "projectType": "application",
+      "schematics": {},
+      "architect": {
+        "build": {
+          "builder": "@nrwl/next:build",
+          "options": {
+            "root": "apps/landing",
+            "outputPath": "dist/apps/landing"
+          },
+          "configurations": {
+            "production": {}
+          }
+        },
+        "serve": {
+          "builder": "@nrwl/next:server",
+          "options": {
+            "buildTarget": "landing:build",
+            "port": 4300,
+            "dev": true
+          },
+          "configurations": {
+            "production": {
+              "buildTarget": "landing:build:production",
+              "dev": false
+            }
+          }
+        },
+        "export": {
+          "builder": "@nrwl/next:export",
+          "options": {
+            "buildTarget": "landing:build:production"
+          }
+        },
+        "lint": {
+          "builder": "@nrwl/linter:lint",
+          "options": {
+            "linter": "eslint",
+            "config": "apps/landing/.eslintrc",
+            "tsConfig": ["apps/landing/tsconfig.json", "apps/landing/tsconfig.spec.json"],
+            "exclude": ["**/node_modules/**", "!apps/landing/**"]
+          }
+        },
+        "test": {
+          "builder": "@nrwl/jest:jest",
+          "options": {
+            "jestConfig": "apps/landing/jest.config.js",
+            "tsConfig": "apps/landing/tsconfig.spec.json",
+            "passWithNoTests": true
+          }
+        }
+      }
+    },
+    "landing-e2e": {
+      "root": "apps/landing-e2e",
+      "sourceRoot": "apps/landing-e2e/src",
+      "projectType": "application",
+      "architect": {
+        "e2e": {
+          "builder": "@nrwl/cypress:cypress",
+          "options": {
+            "cypressConfig": "apps/landing-e2e/cypress.json",
+            "tsConfig": "apps/landing-e2e/tsconfig.e2e.json",
+            "devServerTarget": "landing:serve"
+          },
+          "configurations": {
+            "production": {
+              "devServerTarget": "landing:serve:production"
+            }
+          }
+        },
+        "lint": {
+          "builder": "@nrwl/linter:lint",
+          "options": {
+            "linter": "eslint",
+            "config": "apps/landing-e2e/.eslintrc",
+            "tsConfig": ["apps/landing-e2e/tsconfig.e2e.json"],
+            "exclude": ["**/node_modules/**", "!apps/landing-e2e/**"]
           }
         }
       }
@@ -518,6 +528,7 @@
     },
     "@nrwl/next": {
       "application": {
+        "style": "scss",
         "linter": "eslint"
       }
     },

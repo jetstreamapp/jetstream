@@ -1,0 +1,43 @@
+@charset "UTF-8";
+@import './tailwind.css';
+@font-face {
+  font-family: 'Salesforce Sans';
+  src: url('/assets/fonts/SalesforceSans-Light.woff2') format('woff2'), url('/assets/fonts/SalesforceSans-Light.woff') format('woff');
+  font-weight: 300;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Salesforce Sans';
+  src: url('/assets/fonts/SalesforceSans-LightItalic.woff2') format('woff2'),
+    url('/assets/fonts/SalesforceSans-LightItalic.woff') format('woff');
+  font-style: italic;
+  font-weight: 300;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Salesforce Sans';
+  src: url('/assets/fonts/SalesforceSans-Regular.woff2') format('woff2'), url('/assets/fonts/SalesforceSans-Regular.woff') format('woff');
+  font-weight: 400;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Salesforce Sans';
+  src: url('/assets/fonts/SalesforceSans-Italic.woff2') format('woff2'), url('/assets/fonts/SalesforceSans-Italic.woff') format('woff');
+  font-style: italic;
+  font-weight: 400;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Salesforce Sans';
+  src: url('/assets/fonts/SalesforceSans-Bold.woff2') format('woff2'), url('/assets/fonts/SalesforceSans-Bold.woff') format('woff');
+  font-weight: 700;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Salesforce Sans';
+  src: url('/assets/fonts/SalesforceSans-BoldItalic.woff2') format('woff2'),
+    url('/assets/fonts/SalesforceSans-BoldItalic.woff') format('woff');
+  font-style: italic;
+  font-weight: 700;
+  font-display: swap;
+}
