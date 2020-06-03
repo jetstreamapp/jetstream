@@ -5,7 +5,7 @@ module.exports = {
     ...(process.env.NODE_ENV === 'production'
       ? {
           '@fullhuman/postcss-purgecss': {
-            content: ['./components/**/*.*', './pages/**/*.*', './contexts/**/*.*', './gql/**/*.*', './utils/**/*.*', './public/**/*.*'],
+            content: ['./apps/landing/pages/**/*.*', './apps/landing/**/*.*'],
             defaultExtractor: (content) => content.match(/[\w-/.:]+(?<!:)/g) || [],
           },
         }
@@ -13,5 +13,3 @@ module.exports = {
     'postcss-preset-env': { stage: 2 },
   },
 };
-
-console.log('process.env.NODE_ENV', process.env.NODE_ENV);

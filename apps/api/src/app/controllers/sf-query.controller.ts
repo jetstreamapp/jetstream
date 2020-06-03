@@ -1,4 +1,4 @@
-import { sendJson } from '../route-handlers';
+import { sendJson } from '../utils/response.handlers';
 import { NextFunction, Response, Request } from 'express';
 import * as jsforce from 'jsforce';
 import { parseQuery, Query } from 'soql-parser-js';

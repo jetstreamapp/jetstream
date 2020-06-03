@@ -1,9 +1,37 @@
-import React from 'react';
+import React, { useState } from 'react';
 import './index.scss';
-
 import logo from '../assets/jetstream-logo-v1-200w.png';
+import { signUpNotify } from '@jetstream/shared/data';
+import { REGEX } from '@jetstream/shared/utils';
+import classNames from 'classnames';
+
+type Submission = 'notSubmitted' | 'inProgress' | 'success' | 'error';
 
 export const Index = () => {
+  const [email, setEmail] = useState<string>('');
+  const [errorMessage, setErrorMessage] = useState<string>(null);
+  const [validEmail, setValidEmail] = useState<boolean>(false);
+  const [submission, setSubmission] = useState<Submission>('notSubmitted');
+
+  function handleChange(event: React.ChangeEvent<HTMLInputElement>) {
+    setEmail(event.target.value);
+    setValidEmail(REGEX.VALID_EMAIL.test(event.target.value));
+  }
+
+  async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
+    try {
+      setErrorMessage(null);
+      event.preventDefault();
+      setSubmission('inProgress');
+      await signUpNotify(email);
+      setSubmission('success');
+    } catch (ex) {
+      console.log(ex);
+      setSubmission('error');
+      setErrorMessage(ex.message);
+    }
+  }
+
   return (
     <div>
       <div className="relative bg-white overflow-hidden">
@@ -135,19 +163,36 @@ export const Index = () => {
                 </p>
                 <div className="mt-5 sm:max-w-lg sm:mx-auto sm:text-center lg:text-left lg:mx-0">
                   <p className="text-base font-medium text-gray-900">Sign up to get notified when it’s ready.</p>
-                  <form action="#" method="POST" className="mt-3 sm:flex">
+                  <form className="mt-3 sm:flex" onSubmit={handleSubmit}>
                     <input
                       aria-label="Email"
-                      className="appearance-none block w-full px-3 py-3 border border-gray-300 text-base leading-6 rounded-md placeholder-gray-500 shadow-sm focus:outline-none focus:placeholder-gray-400 focus:shadow-outline focus:border-blue-300 transition duration-150 ease-in-out sm:flex-1"
+                      className={classNames(
+                        'appearance-none block w-full px-3 py-3 border border-gray-300 text-base leading-6 rounded-md placeholder-gray-500 shadow-sm focus:outline-none focus:placeholder-gray-400 focus:shadow-outline focus:border-blue-300 transition duration-150 ease-in-out sm:flex-1',
+                        { 'opacity-75 cursor-not-allowed': false }
+                      )}
                       placeholder="Enter your email"
+                      value={email}
+                      onChange={handleChange}
+                      disabled={submission !== 'notSubmitted' && submission !== 'error'}
                     />
                     <button
                       type="submit"
-                      className="mt-3 w-full px-6 py-3 border border-transparent text-base leading-6 font-medium rounded-md text-white bg-gray-800 shadow-sm hover:bg-gray-700 focus:outline-none focus:shadow-outline active:bg-gray-900 transition duration-150 ease-in-out sm:mt-0 sm:ml-3 sm:flex-shrink-0 sm:inline-flex sm:items-center sm:w-auto"
+                      value="submit"
+                      className={classNames(
+                        'mt-3 w-full px-6 py-3 border border-transparent text-base leading-6 font-medium rounded-md text-white bg-gray-800 shadow-sm hover:bg-gray-700 focus:outline-none focus:shadow-outline active:bg-gray-900 transition duration-150 ease-in-out sm:mt-0 sm:ml-3 sm:flex-shrink-0 sm:inline-flex sm:items-center sm:w-auto',
+                        { 'opacity-50 cursor-not-allowed': !validEmail }
+                      )}
+                      disabled={!validEmail || (submission !== 'notSubmitted' && submission !== 'error')}
                     >
                       Notify me
                     </button>
                   </form>
+                  {errorMessage && <p className="mt-3 text-sm leading-5 text-red-500">{errorMessage}</p>}
+                  {submission === 'success' && (
+                    <p className="mt-3 text-sm leading-5 text-green-500">
+                      We have received your submission and will notify you once we are ready for beta users.
+                    </p>
+                  )}
                   <p className="mt-3 text-sm leading-5 text-gray-500">
                     We care about the protection of your data. Read our{' '}
                     <a href="#" className="font-medium text-gray-900 underline">
@@ -193,7 +238,7 @@ export const Index = () => {
               </a>
             </div>
           </nav>
-          <div className="mt-8 flex justify-center">
+          {/* <div className="mt-8 flex justify-center">
             <a href="#" className="text-gray-400 hover:text-gray-500">
               <span className="sr-only">Facebook</span>
               <svg className="h-6 w-6" fill="currentColor" viewBox="0 0 24 24">
@@ -240,7 +285,7 @@ export const Index = () => {
                 />
               </svg>
             </a>
-          </div>
+          </div> */}
           <div className="mt-8">
             <p className="text-center text-base leading-6 text-gray-400">&copy; 2020 Jetstream, Inc. All rights reserved.</p>
           </div>

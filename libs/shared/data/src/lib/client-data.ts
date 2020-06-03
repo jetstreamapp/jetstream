@@ -4,6 +4,14 @@ import { DescribeGlobalResult, DescribeSObjectResult } from 'jsforce';
 import * as request from 'superagent'; // http://visionmedia.github.io/superagent
 import { handleRequest } from './core';
 
+//// LANDING PAGE ROUTES
+
+export async function signUpNotify(email: string): Promise<DescribeGlobalResult> {
+  return handleRequest(request.post('/landing/sign-up/notify').send({ email }));
+}
+
+//// APPLICATION ROUTES
+
 export async function describeGlobal(): Promise<DescribeGlobalResult> {
   return handleRequest(request.get('/api/describe'));
 }

@@ -354,7 +354,7 @@
           "builder": "@nrwl/web:dev-server",
           "options": {
             "buildTarget": "jetstream:build",
-            "proxyConfig": "apps/jetstream/proxy.conf.json"
+            "proxyConfig": "proxy.conf.json"
           },
           "configurations": {
             "production": {
@@ -431,7 +431,8 @@
           "options": {
             "buildTarget": "landing:build",
             "port": 4300,
-            "dev": true
+            "dev": true,
+            "proxyConfig": "proxy.conf.json"
           },
           "configurations": {
             "production": {
