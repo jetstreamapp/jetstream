@@ -168,7 +168,7 @@ export const Index = () => {
                       aria-label="Email"
                       className={classNames(
                         'appearance-none block w-full px-3 py-3 border border-gray-300 text-base leading-6 rounded-md placeholder-gray-500 shadow-sm focus:outline-none focus:placeholder-gray-400 focus:shadow-outline focus:border-blue-300 transition duration-150 ease-in-out sm:flex-1',
-                        { 'opacity-75 cursor-not-allowed': false }
+                        { 'opacity-75 cursor-not-allowed': submission !== 'notSubmitted' && submission !== 'error' }
                       )}
                       placeholder="Enter your email"
                       value={email}
