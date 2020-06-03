@@ -2,6 +2,11 @@ import * as express from 'express';
 import { UserFacingError } from './error-handler';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
+export function healthCheck(req: express.Request, res: express.Response) {
+  return res.status(200).end();
+}
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function sendJson(res: express.Response, content?: any, status = 200) {
   content = content || {};
   res.status(status);

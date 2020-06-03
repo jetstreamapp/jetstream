@@ -5,7 +5,7 @@ import * as express from 'express';
 import { join } from 'path';
 import { applicationRoutes, landingRoutes } from './app/routes';
 import { logRoute, notFoundMiddleware } from './app/routes/route.middleware';
-import { uncaughtErrorHandler } from './app/utils/response.handlers';
+import { uncaughtErrorHandler, healthCheck } from './app/utils/response.handlers';
 import { environment } from './environments/environment';
 
 const app = express();
@@ -13,6 +13,7 @@ const app = express();
 app.use(json({ limit: '20mb' }));
 app.use(urlencoded({ extended: true }));
 
+app.use('/healthz', healthCheck);
 app.use('/api', logRoute, applicationRoutes);
 app.use('/landing', logRoute, landingRoutes);
 
