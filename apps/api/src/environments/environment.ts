@@ -1,3 +1,3 @@
 export const environment = {
-  production: false
+  production: process.env.NODE_ENV === 'production',
 };
