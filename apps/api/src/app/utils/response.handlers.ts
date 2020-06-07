@@ -14,21 +14,12 @@ export function sendJson(res: express.Response, content?: any, status = 200) {
   return res.json({ data: content });
 }
 
-// DEPRECATED IN FAVOR OF ONE ERROR HANDLER
-// // eslint-disable-next-line @typescript-eslint/no-explicit-any
-// export function sendError(err: any, req: express.Request, res: express.Response) {
-//   res.locals.path = req.path;
-//   console.warn('[ERROR]', req.method, req.originalUrl);
-//   console.warn('[ERROR]', err.message || 'An unknown error has occurred');
-
-//   return res.status(res.statusCode || 500).json({ data: err.message || 'An unknown error has occurred' });
-// }
-
 // TODO: implement user facing errors and system facing errors and separate them
 // TODO: this should handle ALL errors, and controllers need to throw proper errors!
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 export function uncaughtErrorHandler(err: any, req: express.Request, res: express.Response, next: express.NextFunction) {
+  console.log('[ERROR]', err.message);
   if (err instanceof UserFacingError) {
     res.status(400);
     return res.json({
@@ -49,6 +40,10 @@ export function uncaughtErrorHandler(err: any, req: express.Request, res: expres
   try {
     const acceptHeader = req.get('Accept') || '';
     if (!acceptHeader.includes('application/json')) {
+      // TODO: this does not work with localhost!
+      if (req.hostname === 'localhost') {
+        return res.send('404');
+      }
       return res.redirect('/404.html');
     }
   } catch (ex) {

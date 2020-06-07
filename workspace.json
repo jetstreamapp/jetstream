@@ -33,7 +33,9 @@
         "serve": {
           "builder": "@nrwl/node:execute",
           "options": {
-            "buildTarget": "api:build"
+            "buildTarget": "api:build",
+            "inspect": true,
+            "port": 7777
           }
         },
         "lint": {
@@ -230,31 +232,6 @@
           "options": {
             "jestConfig": "libs/shared/ui-utils/jest.config.js",
             "tsConfig": "libs/shared/ui-utils/tsconfig.spec.json",
-            "passWithNoTests": true
-          }
-        }
-      }
-    },
-    "shared-node-utils": {
-      "root": "libs/shared/node-utils",
-      "sourceRoot": "libs/shared/node-utils/src",
-      "projectType": "library",
-      "schematics": {},
-      "architect": {
-        "lint": {
-          "builder": "@nrwl/linter:lint",
-          "options": {
-            "linter": "eslint",
-            "config": "libs/shared/node-utils/.eslintrc",
-            "tsConfig": ["libs/shared/node-utils/tsconfig.lib.json", "libs/shared/node-utils/tsconfig.spec.json"],
-            "exclude": ["**/node_modules/**", "!libs/shared/node-utils/**"]
-          }
-        },
-        "test": {
-          "builder": "@nrwl/jest:jest",
-          "options": {
-            "jestConfig": "libs/shared/node-utils/jest.config.js",
-            "tsConfig": "libs/shared/node-utils/tsconfig.spec.json",
             "passWithNoTests": true
           }
         }
@@ -491,6 +468,31 @@
             "config": "apps/landing-e2e/.eslintrc",
             "tsConfig": ["apps/landing-e2e/tsconfig.e2e.json"],
             "exclude": ["**/node_modules/**", "!apps/landing-e2e/**"]
+          }
+        }
+      }
+    },
+    "shared-node-utils": {
+      "root": "libs/shared/node-utils",
+      "sourceRoot": "libs/shared/node-utils/src",
+      "projectType": "library",
+      "schematics": {},
+      "architect": {
+        "lint": {
+          "builder": "@nrwl/linter:lint",
+          "options": {
+            "linter": "eslint",
+            "config": "libs/shared/node-utils/.eslintrc",
+            "tsConfig": ["libs/shared/node-utils/tsconfig.lib.json", "libs/shared/node-utils/tsconfig.spec.json"],
+            "exclude": ["**/node_modules/**", "!libs/shared/node-utils/**"]
+          }
+        },
+        "test": {
+          "builder": "@nrwl/jest:jest",
+          "options": {
+            "jestConfig": "libs/shared/node-utils/jest.config.js",
+            "tsConfig": "libs/shared/node-utils/tsconfig.spec.json",
+            "passWithNoTests": true
           }
         }
       }

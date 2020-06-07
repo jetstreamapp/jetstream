@@ -147,7 +147,12 @@
     ],
     "no-with": "warn",
     "no-whitespace-before-property": "warn",
-    "react-hooks/exhaustive-deps": "warn",
+    "react-hooks/exhaustive-deps": [
+      "warn",
+      {
+        "additionalHooks": "useRecoilCallback"
+      }
+    ],
     "require-yield": "warn",
     "rest-spread-spacing": ["warn", "never"],
     "strict": ["warn", "never"],
@@ -189,10 +194,7 @@
     "jsx-a11y/accessible-emoji": "warn",
     "jsx-a11y/alt-text": "warn",
     "jsx-a11y/anchor-has-content": "warn",
-    "jsx-a11y/anchor-is-valid": [
-      "warn",
-      { "aspects": ["noHref", "invalidHref"] }
-    ],
+    "jsx-a11y/anchor-is-valid": ["warn", { "aspects": ["noHref", "invalidHref"] }],
     "jsx-a11y/aria-activedescendant-has-tabindex": "warn",
     "jsx-a11y/aria-props": "warn",
     "jsx-a11y/aria-proptypes": "warn",
@@ -226,10 +228,7 @@
       }
     ],
     "no-unused-vars": "off",
-    "@typescript-eslint/no-unused-vars": [
-      "warn",
-      { "args": "none", "ignoreRestSiblings": true }
-    ],
+    "@typescript-eslint/no-unused-vars": ["warn", { "args": "none", "ignoreRestSiblings": true }],
     "no-useless-constructor": "off",
     "@typescript-eslint/no-useless-constructor": "warn"
   },

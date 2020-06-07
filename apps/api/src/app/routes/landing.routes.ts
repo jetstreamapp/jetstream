@@ -6,8 +6,6 @@ import Router from 'express-promise-router';
 import { resolve } from 'path';
 import { UserFacingError } from '../utils/error-handler';
 
-console.log('resolve', resolve(process.cwd(), '.env'));
-
 const MAILCHIMP_USER = process.env.MAILCHIMP_USER;
 const MAILCHIMP_API_KEY = process.env.MAILCHIMP_API_KEY;
 const MAILCHIMP_AUDIENCE_ID = process.env.MAILCHIMP_AUDIENCE_ID;

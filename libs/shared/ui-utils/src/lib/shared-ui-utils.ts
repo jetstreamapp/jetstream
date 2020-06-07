@@ -5,6 +5,16 @@ import { saveAs } from 'file-saver';
 import { Placement as tippyPlacement } from 'tippy.js';
 import { Query, WhereClause, Operator } from 'soql-parser-js';
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export function parseQueryParams<T = any>(queryString: string): T {
+  const pairs = (queryString[0] === '?' ? queryString.substr(1) : queryString).split('&');
+  return pairs.reduce((query: Partial<T>, currPair) => {
+    const [key, value] = currPair.split('=');
+    query[decodeURIComponent(key)] = decodeURIComponent(value || '');
+    return query;
+  }, {}) as T;
+}
+
 export function sortQueryFields(fields: Field[]): Field[] {
   // partition name and id field out, then append to front
   const reducedFields = orderObjectsBy(fields, 'label').reduce(

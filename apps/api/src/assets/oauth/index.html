@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Jetstream Salesforce Authentication</title>
+
+    <!-- TODO: add favicon -->
+
+    <script>
+      function parseQuery(queryString) {
+        var query = {};
+        var pairs = (queryString[0] === '?' ? queryString.substr(1) : queryString).split('&');
+        for (var i = 0; i < pairs.length; i++) {
+          var pair = pairs[i].split('=');
+          query[decodeURIComponent(pair[0])] = decodeURIComponent(pair[1] || '');
+        }
+        return query;
+      }
+
+      window.addEventListener('load', function () {
+        var params = parseQuery(window.location.search);
+        var clientUrl = params.clientUrl;
+        console.log('params', { params });
+
+        if (params.error) {
+          document.getElementById('status').innerText = params.message + ' ' + params.error || '';
+        } else {
+          if (window.opener) {
+            params.clientUrl = undefined;
+            // send them to the opening window
+            window.opener.postMessage(JSON.stringify(params), clientUrl);
+            // window.close(); // TODO: add this back in after testing
+          } else {
+            // ERROR! TODO:
+            console.error('ERROR - window.opener is not defined');
+          }
+        }
+      });
+    </script>
+  </head>
+  <body>
+    <p id="status">Please wait...</p>
+    <!-- TODO:
+      - handle experience when there are no valid params
+      - handle when SFDC returns an error
+      - handle experience when window.opener is null
+     -->
+  </body>
+</html>

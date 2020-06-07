@@ -22,8 +22,8 @@
       "@jetstream/shared/utils": ["libs/shared/utils/src/index.ts"],
       "@jetstream/shared/data": ["libs/shared/data/src/index.ts"],
       "@jetstream/shared/ui-utils": ["libs/shared/ui-utils/src/index.ts"],
-      "@jetstream/shared/node-utils": ["libs/shared/node-utils/src/index.ts"],
-      "@jetstream/shared/constants": ["libs/shared/constants/src/index.ts"]
+      "@jetstream/shared/constants": ["libs/shared/constants/src/index.ts"],
+      "@jetstream/shared/node-utils": ["libs/shared/node-utils/src/index.ts"]
     }
   },
   "exclude": ["node_modules", "tmp"]

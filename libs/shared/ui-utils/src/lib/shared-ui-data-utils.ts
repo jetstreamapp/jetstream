@@ -1,7 +1,7 @@
 import { describeSObject, query } from '@jetstream/shared/data';
-import { MapOf } from '@jetstream/types';
+import { MapOf, SalesforceOrg } from '@jetstream/types';
 import { FieldDefinition } from '@jetstream/types';
-import { REGEX, getMapOf } from '@jetstream/shared/utils';
+import { REGEX, getMapOf, alwaysResolve } from '@jetstream/shared/utils';
 import { FieldWrapper, QueryFields } from '@jetstream/types';
 import { Field } from 'jsforce';
 import { composeQuery, getField } from 'soql-parser-js';
@@ -15,11 +15,11 @@ export function buildQuery(sObject: string, fields: string[]) {
 /**
  * Fetch fields and add to queryFields
  */
-export async function fetchFields(queryFields: QueryFields): Promise<QueryFields> {
+export async function fetchFields(org: SalesforceOrg, queryFields: QueryFields): Promise<QueryFields> {
   const { sobject } = queryFields;
   const [describeResults, queryResults] = await Promise.all([
-    describeSObject(sobject),
-    query<FieldDefinition>(getFieldDefinitionQuery(sobject), true),
+    describeSObject(org, sobject),
+    alwaysResolve(query<FieldDefinition>(org, getFieldDefinitionQuery(sobject), true), undefined),
   ]);
 
   // TODO: we can possibly remove this - roll-up fields and some others might not be optimal

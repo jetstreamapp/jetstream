@@ -1,12 +1,17 @@
-import React, { FunctionComponent, useState, useEffect } from 'react';
+import React, { FunctionComponent, useState, useEffect, Children } from 'react';
 import uniqueId from 'lodash/uniqueId';
 import Icon from '../../widgets/Icon';
 import classNames from 'classnames';
 import Spinner from '../../widgets/Spinner';
 import OutsideClickHandler from '../../utils/OutsideClickHandler';
+import { ComboboxListItem } from './ComboboxListItem';
+import { NOOP } from '@jetstream/shared/utils';
 
 export interface ComboboxProps {
   label: string;
+  hideLabel?: boolean;
+  placeholder?: string;
+  noItemsPlaceholder?: string;
   disabled?: boolean;
   loading?: boolean;
   hasGroups?: boolean;
@@ -17,6 +22,9 @@ export interface ComboboxProps {
 
 export const Combobox: FunctionComponent<ComboboxProps> = ({
   label,
+  hideLabel = false,
+  placeholder = 'Select an Option',
+  noItemsPlaceholder = 'There are no items for selection',
   disabled,
   loading,
   hasGroups,
@@ -36,6 +44,9 @@ export const Combobox: FunctionComponent<ComboboxProps> = ({
       setValue('');
     } else {
       setValue(selectedItemLabel || '');
+    }
+    if (onInputChange) {
+      onInputChange('');
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isOpen]);
@@ -59,7 +70,7 @@ export const Combobox: FunctionComponent<ComboboxProps> = ({
 
   return (
     <div className="slds-form-element">
-      <label className="slds-form-element__label" htmlFor={id}>
+      <label className={classNames('slds-form-element__label', { 'slds-assistive-text': hideLabel })} htmlFor={id}>
         {label}
       </label>
       <div className="slds-form-element__control">
@@ -85,7 +96,7 @@ export const Combobox: FunctionComponent<ComboboxProps> = ({
                 id={id}
                 aria-controls={listId}
                 autoComplete="off"
-                placeholder="Select an Option"
+                placeholder={placeholder}
                 disabled={disabled}
                 onKeyUp={(event) => onInputChange && onInputChange(event.currentTarget.value)}
                 onChange={(event) => setValue(event.target.value)}
@@ -114,6 +125,11 @@ export const Combobox: FunctionComponent<ComboboxProps> = ({
               )}
             </div>
             <div id={listId} className="slds-dropdown slds-dropdown_length-5 slds-dropdown_fluid" role="listbox">
+              {Children.count(children) === 0 && (
+                <ul className="slds-listbox slds-listbox_vertical" role="presentation">
+                  <ComboboxListItem id="placeholder" label={noItemsPlaceholder} selected={false} onSelection={NOOP} />
+                </ul>
+              )}
               {hasGroups && children}
               {!hasGroups && (
                 <ul className="slds-listbox slds-listbox_vertical" role="presentation">

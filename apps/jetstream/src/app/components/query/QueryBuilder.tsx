@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 /** @jsx jsx */
 import { jsx, css } from '@emotion/core';
-import { MapOf, QueryFields, ListItemGroup, WorkerMessage, FieldWrapper, ExpressionType } from '@jetstream/types';
+import { MapOf, QueryFields, ListItemGroup, WorkerMessage, FieldWrapper, ExpressionType, SalesforceOrg } from '@jetstream/types';
 import {
   AutoFullHeightContainer,
   Icon,
@@ -24,6 +24,8 @@ import SoqlTextarea from './QueryOptions/SoqlTextarea';
 import QuerySObjects from './QuerySObjects';
 import Split from 'react-split';
 import { convertFiltersToWhereClause } from '@jetstream/shared/ui-utils';
+import { useRecoilValue } from 'recoil';
+import { selectedOrgState } from '../../app-state';
 
 // eslint-disable-next-line @typescript-eslint/no-empty-interface
 export interface QueryBuilderProps {}
@@ -39,6 +41,7 @@ export const QueryBuilder: FunctionComponent<QueryBuilderProps> = () => {
   const [soql, setSoql] = useState<string>('');
   const [isFavorite, setIsFavorite] = useState<boolean>(false);
   const [queryWorker, setQueryWorker] = useState(() => new QueryWorker());
+  const selectedOrg = useRecoilValue<SalesforceOrg>(selectedOrgState);
 
   useEffect(() => {
     if (!!activeSObject && selectedFields?.length > 0) {

@@ -4,7 +4,7 @@ import { convertTippyPlacementToSlds } from '@jetstream/shared/ui-utils';
 import { PositionAll } from '@jetstream/types';
 import Tippy from '@tippyjs/react';
 import uniqueId from 'lodash/uniqueId';
-import { FunctionComponent, useState } from 'react';
+import { FunctionComponent, useState, useEffect } from 'react';
 import PopoverContent from './PopoverContent';
 import { Placement } from 'tippy.js';
 
@@ -14,25 +14,37 @@ import { Placement } from 'tippy.js';
 export interface PopoverProps {
   inverseIcons?: boolean;
   containerClassName?: string;
+  bodyClassName?: string;
   placement?: Placement;
   content: JSX.Element;
   header?: JSX.Element;
   footer?: JSX.Element;
   onClose?: () => void;
+  setVisibleRef?: (setVisible: (visible: boolean) => void) => void;
 }
 
 export const Popover: FunctionComponent<PopoverProps> = ({
   inverseIcons,
   containerClassName,
+  bodyClassName,
   placement = 'auto',
   content,
   header,
   footer,
   children,
   onClose,
+  setVisibleRef,
 }) => {
   const [id] = useState<string>(uniqueId('popover'));
   const [visible, setVisible] = useState(false);
+
+  // optionally pass setVisible to parent so that parent can trigger close if required
+  useEffect(() => {
+    if (setVisibleRef) {
+      setVisibleRef(setVisible);
+    }
+  }, [setVisibleRef]);
+
   // convertTippyPlacementToSlds
   return (
     <Tippy
@@ -50,6 +62,7 @@ export const Popover: FunctionComponent<PopoverProps> = ({
               // nubbinPosition={nubbinPosition}
               inverseIcons={inverseIcons}
               containerClassName={containerClassName}
+              bodyClassName={bodyClassName}
               // arrow={
               //   <span
               //     className={`slds-nubbin_${nubbinPosition}`}

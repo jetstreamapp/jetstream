@@ -1,10 +1,12 @@
-import { MapOf } from '@jetstream/types';
+import { MapOf, SalesforceOrg } from '@jetstream/types';
 import { DescribeGlobalSObjectResult } from 'jsforce';
 import React, { Fragment, FunctionComponent, useEffect, useState } from 'react';
 import { FieldWrapper, QueryFields } from '@jetstream/types';
 import { SobjectFieldList } from '@jetstream/ui';
 import { sortQueryFieldsStr, fetchFields } from '@jetstream/shared/ui-utils';
 import { AutoFullHeightContainer } from '@jetstream/ui';
+import { useRecoilValue } from 'recoil';
+import { selectedOrgState } from '../../app-state';
 
 export interface QueryFieldsProps {
   activeSObject: DescribeGlobalSObjectResult;
@@ -15,6 +17,7 @@ export interface QueryFieldsProps {
 export const QueryFieldsComponent: FunctionComponent<QueryFieldsProps> = ({ activeSObject, onSelectionChanged, onFieldsFetched }) => {
   const [queryFieldsMap, setQueryFieldsMap] = useState<MapOf<QueryFields>>({});
   const [baseKey, setBaseKey] = useState<string>(null);
+  const selectedOrg = useRecoilValue<SalesforceOrg>(selectedOrgState);
 
   // Fetch fields for base object if the selected object changes
   useEffect(() => {
@@ -36,14 +39,14 @@ export const QueryFieldsComponent: FunctionComponent<QueryFieldsProps> = ({ acti
       };
       (async () => {
         const clonedData = { ...tempQueryFieldsMap };
-        clonedData[BASE_KEY] = await fetchFields(tempQueryFieldsMap[BASE_KEY]);
+        clonedData[BASE_KEY] = await fetchFields(selectedOrg, tempQueryFieldsMap[BASE_KEY]);
         clonedData[BASE_KEY] = { ...clonedData[BASE_KEY], loading: false };
         setQueryFieldsMap(clonedData);
         onFieldsFetched(clonedData);
       })();
     }
     setQueryFieldsMap(tempQueryFieldsMap);
-  }, [activeSObject, onFieldsFetched]);
+  }, [selectedOrg, activeSObject, onFieldsFetched]);
 
   function emitSelectedFieldsChanged(fieldsMap: MapOf<QueryFields> = queryFieldsMap) {
     const fields = Object.values(fieldsMap).flatMap((queryField) => {
@@ -75,7 +78,7 @@ export const QueryFieldsComponent: FunctionComponent<QueryFieldsProps> = ({ acti
       // fetch fields and update once resolved
       (async () => {
         // TODO: what if object selection changed? may need to ensure key still exists
-        clonedQueryFieldsMap[key] = await fetchFields(clonedQueryFieldsMap[key]);
+        clonedQueryFieldsMap[key] = await fetchFields(selectedOrg, clonedQueryFieldsMap[key]);
         clonedQueryFieldsMap[key] = { ...clonedQueryFieldsMap[key], loading: false };
         setQueryFieldsMap({ ...clonedQueryFieldsMap });
         onFieldsFetched(clonedQueryFieldsMap);

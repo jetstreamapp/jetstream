@@ -1,14 +1,15 @@
 /** @jsx jsx */
 import { jsx } from '@emotion/core';
 import Avatar from '@salesforce-ux/design-system/assets/images/profile_avatar_96.png';
-import { FunctionComponent } from 'react';
+import { FunctionComponent, ReactNode, Suspense } from 'react';
 
 // eslint-disable-next-line @typescript-eslint/no-empty-interface
 export interface HeaderProps {
   logo: string;
+  orgs?: ReactNode;
 }
 
-export const Header: FunctionComponent<HeaderProps> = ({ logo, children }) => {
+export const Header: FunctionComponent<HeaderProps> = ({ logo, orgs, children }) => {
   return (
     <header className="slds-global-header_container branding-header slds-no-print">
       <div className="slds-global-header slds-grid slds-grid_align-spread">
@@ -16,6 +17,12 @@ export const Header: FunctionComponent<HeaderProps> = ({ logo, children }) => {
         <div className="slds-global-header__item">
           <div className="slds-global-header__logo" style={{ backgroundImage: `url(${logo})` }}></div>
         </div>
+        {/* ORGS */}
+        {orgs && (
+          <Suspense fallback={<div>Loading...</div>}>
+            <div className="slds-global-header__item">{orgs}</div>
+          </Suspense>
+        )}
         {/* RIGHT HAND AREA */}
         <div className="slds-global-header__item">
           <ul className="slds-global-actions">

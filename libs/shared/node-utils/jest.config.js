@@ -1,6 +1,7 @@
 module.exports = {
   name: 'shared-node-utils',
   preset: '../../../jest.config.js',
+  testEnvironment: 'node',
   transform: {
     '^.+\\.[tj]sx?$': 'ts-jest',
   },

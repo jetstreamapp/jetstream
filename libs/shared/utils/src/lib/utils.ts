@@ -3,6 +3,16 @@ import { MapOf, Record } from '@jetstream/types';
 import { isObject } from 'util';
 import { REGEX } from './regex';
 
+export function NOOP() {}
+
+export async function alwaysResolve<T = any>(promise: Promise<T>, valueIfError: T): Promise<T> {
+  try {
+    return await promise;
+  } catch (ex) {
+    return valueIfError;
+  }
+}
+
 export function orderObjectsBy<T>(items: T[], field: keyof T, order: 'asc' | 'desc' = 'asc'): T[] {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const orderByItereeFn = (item: T) => (isString(item[field]) ? (item[field] as any).toLowerCase() : item[field]);

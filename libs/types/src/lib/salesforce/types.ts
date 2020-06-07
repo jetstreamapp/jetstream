@@ -1,3 +1,44 @@
+export type SalesforceOrgEdition =
+  | 'Team Edition'
+  | 'Professional Edition'
+  | 'Enterprise Edition'
+  | 'Developer Edition'
+  | 'Personal Edition'
+  | 'Unlimited Edition'
+  | 'Contact Manager Edition'
+  | 'Base Edition';
+
+export type SalesforceOrgLocaleKey =
+  | 'en_US'
+  | 'de'
+  | 'es'
+  | 'fr'
+  | 'it'
+  | 'ja'
+  | 'sv'
+  | 'ko'
+  | 'zh_TW'
+  | 'zh_CN'
+  | 'pt_BR'
+  | 'nl_NL'
+  | 'da'
+  | 'th'
+  | 'fi'
+  | 'ru'
+  | 'es_MX'
+  | 'no';
+
+export interface SObjectOrganization {
+  Name?: string;
+  Country?: string;
+  OrganizationType?: SalesforceOrgEdition;
+  InstanceName?: string;
+  IsSandbox?: boolean;
+  LanguageLocaleKey?: SalesforceOrgLocaleKey;
+  NamespacePrefix?: string;
+  TrialExpirationDate?: string;
+}
+
 export interface FieldDefinition {
   Id: string;
   QualifiedApiName: string;

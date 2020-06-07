@@ -9,6 +9,7 @@ export interface PopoverContentProps {
   nubbinPosition?: PositionAll;
   inverseIcons?: boolean;
   containerClassName?: string;
+  bodyClassName?: string;
   arrow?: JSX.Element;
   header?: JSX.Element;
   footer?: JSX.Element;
@@ -20,6 +21,7 @@ export const PopoverContent: FunctionComponent<PopoverContentProps> = ({
   nubbinPosition,
   inverseIcons,
   containerClassName,
+  bodyClassName = 'slds-popover__body',
   arrow,
   header,
   footer,
@@ -44,7 +46,7 @@ export const PopoverContent: FunctionComponent<PopoverContentProps> = ({
         <span className="slds-assistive-text">Close dialog</span>
       </button>
       {header}
-      <div className="slds-popover__body" id={id}>
+      <div className={bodyClassName} id={id}>
         {children}
       </div>
       {footer}

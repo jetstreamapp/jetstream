@@ -22,8 +22,10 @@ import { FunctionComponent, useEffect, useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { getFlattenedFields } from 'soql-parser-js';
 import QueryResultsSoqlPanel from './QueryResultsSoqlPanel';
-import { Record } from '@jetstream/types';
+import { Record, SalesforceOrg } from '@jetstream/types';
 import QueryDownloadModal from './QueryDownloadModal';
+import { useRecoilValue } from 'recoil';
+import { selectedOrgState } from '../../app-state';
 // eslint-disable-next-line @typescript-eslint/no-empty-interface
 export interface QueryResultsProps {}
 
@@ -37,6 +39,7 @@ export const QueryResults: FunctionComponent<QueryResultsProps> = () => {
   const [selectedRows, setSelectedRows] = useState<Record[]>([]);
   const [loading, setLoading] = useState<boolean>(false);
   const [downloadModalOpen, setDownloadModalOpen] = useState<boolean>(false);
+  const selectedOrg = useRecoilValue<SalesforceOrg>(selectedOrgState);
 
   useEffect(() => {
     console.log({ location });
@@ -51,7 +54,7 @@ export const QueryResults: FunctionComponent<QueryResultsProps> = () => {
     try {
       setLoading(true);
       setSoql(soql);
-      const results = await query(soql);
+      const results = await query(selectedOrg, soql);
       // TODO: we need a fallback here in case there are no parsed results
       setFields(getFlattenedFields(results.parsedQuery));
       // TODO: do we need to flatten all of our records?
