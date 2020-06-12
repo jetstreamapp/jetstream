@@ -13,6 +13,7 @@
     "build:client": "nx build jetstream --prod",
     "build:api": "nx build api --prod",
     "build:landing": "NODE_ENV=production nx run landing:export",
+    "build:storybook": "build-storybook -c libs/ui/.storybook -o dist/storybook",
     "test": "nx test",
     "lint": "nx workspace-lint && nx lint",
     "e2e": "nx e2e",
