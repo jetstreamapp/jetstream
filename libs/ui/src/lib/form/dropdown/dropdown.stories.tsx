@@ -1,4 +1,5 @@
 import { IconObj } from '@jetstream/types';
+import Avatar from '@salesforce-ux/design-system/assets/images/profile_avatar_96.png';
 import { action } from '@storybook/addon-actions';
 import { array, number, object, text } from '@storybook/addon-knobs';
 import uniqueId from 'lodash/uniqueId';
@@ -110,6 +111,29 @@ export const withLeadingIcon = () => (
     position="left"
     actionText={text('actionText', undefined)}
     leadingIcon={object('Leading Icon', { type: 'utility', icon: 'help_center' } as IconObj)}
+    scrollLength={number('scrollLength', 5) as 5 | 7 | 10}
+    description={text('description', undefined)}
+    items={[
+      { id: uniqueId('icon'), value: 'item 1', icon: { type: 'utility', icon: 'help' } },
+      { id: uniqueId('icon'), value: 'item 2', icon: { type: 'custom', icon: 'custom34' } },
+      { id: uniqueId('icon'), value: 'item 3', icon: { type: 'action', icon: 'apex' } },
+      { id: uniqueId('icon'), value: 'item 4', icon: { type: 'standard', icon: 'delegated_account' } },
+    ]}
+    onSelected={action('on-selected')}
+  />
+);
+
+export const withCustomButtonContent = () => (
+  <DropDown
+    buttonClassName={text('buttonClassName', 'slds-button slds-global-actions__avatar slds-global-actions__item-action')}
+    dropDownClassName={text('dropDownClassName', undefined)}
+    buttonContent={
+      <span className="slds-avatar slds-avatar_circle slds-avatar_medium">
+        <img alt="Avatar" src={Avatar} />
+      </span>
+    }
+    position="left"
+    actionText={text('actionText', undefined)}
     scrollLength={number('scrollLength', 5) as 5 | 7 | 10}
     description={text('description', undefined)}
     items={[

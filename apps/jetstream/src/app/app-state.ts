@@ -1,6 +1,9 @@
 import { atom, selector } from 'recoil';
 import isString from 'lodash/isString';
-import { SalesforceOrg } from '@jetstream/types';
+import { SalesforceOrg, UserProfile, ApplicationCookie } from '@jetstream/types';
+import { getUserProfile } from '@jetstream/shared/data';
+import { parseCookie } from '@jetstream/shared/ui-utils';
+import { HTTP } from '@jetstream/shared/constants';
 
 export const STORAGE_KEYS = {
   ORG_STORAGE_KEY: `ORGS`,
@@ -30,6 +33,21 @@ async function getSelectedOrgFromStorage(): Promise<string | undefined> {
     return undefined;
   }
 }
+
+async function fetchUserProfile(): Promise<UserProfile> {
+  const userProfile = await getUserProfile();
+  return userProfile;
+}
+
+export const applicationCookieState = atom<ApplicationCookie>({
+  key: 'applicationCookieState',
+  default: parseCookie<ApplicationCookie>(HTTP.COOKIE.JETSTREAM),
+});
+
+export const userProfileState = atom<UserProfile>({
+  key: 'userState',
+  default: fetchUserProfile(),
+});
 
 export const salesforceOrgsState = atom<SalesforceOrg[]>({
   key: 'salesforceOrgsState',

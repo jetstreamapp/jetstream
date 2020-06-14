@@ -1,6 +1,7 @@
 import { MapOf } from '@jetstream/types';
 import { FieldDefinition } from '../salesforce/types';
 import { Field } from 'jsforce';
+import { ReactNode } from 'react';
 
 export type IconType = 'action' | 'custom' | 'doctype' | 'standard' | 'utility';
 export interface IconObj {
@@ -153,3 +154,12 @@ export type QueryFilterOperator =
   | 'notIn'
   | 'includes'
   | 'excludes';
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export interface DropDownItem<T = any> {
+  id: string;
+  subheader?: string;
+  value: string | ReactNode;
+  icon?: IconObj;
+  metadata?: T;
+}

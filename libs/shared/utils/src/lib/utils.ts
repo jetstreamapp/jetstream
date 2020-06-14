@@ -2,8 +2,13 @@ import { orderBy, isString, get as lodashGet } from 'lodash';
 import { MapOf, Record } from '@jetstream/types';
 import { isObject } from 'util';
 import { REGEX } from './regex';
+import { unix } from 'moment-mini';
 
 export function NOOP() {}
+
+export function dateFromTimestamp(timestamp: number): Date {
+  return unix(timestamp).toDate();
+}
 
 export async function alwaysResolve<T = any>(promise: Promise<T>, valueIfError: T): Promise<T> {
   try {
