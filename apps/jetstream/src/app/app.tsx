@@ -1,44 +1,44 @@
 /** @jsx jsx */
 import { css, jsx } from '@emotion/core';
-import { Header } from '@jetstream/ui';
-import Query from './components/query/Query';
-import { BrowserRouter as Router, Switch, Route } from 'react-router-dom';
-import { Navbar } from '@jetstream/ui';
-import { NavbarItem } from '@jetstream/ui';
-import Logo from '../assets/jetstream-logo-v1-200w.png';
-import OrgsDropdown from './components/orgs/OrgsDropdown';
+import { UserProfile } from '@jetstream/types';
+import { Suspense, useState } from 'react';
+import { BrowserRouter as Router, Route, Switch } from 'react-router-dom';
 import { RecoilRoot } from 'recoil';
-import { Suspense } from 'react';
+import FetchUserProfile from './components/core/FetchUserProfile';
+import HeaderNavbar from './components/core/HeaderNavbar';
+import Query from './components/query/Query';
 
 export const App = () => {
+  const [userProfile, setUserProfile] = useState<UserProfile>();
+
   return (
     <RecoilRoot>
-      <Router>
-        <div>
-          <div>
-            <Header logo={Logo} orgs={<OrgsDropdown />}>
-              <Navbar>
-                <NavbarItem path="/" title="Home" label="Home" />
-                <NavbarItem path="/query" title="Query Records" label="Query Records" />
-              </Navbar>
-            </Header>
-          </div>
-          <div
-            className="slds-p-horizontal_small slds-p-vertical_xx-small"
-            css={css`
-              margin-top: 90px;
-            `}
-          >
-            <Suspense fallback={<div>Loading...</div>}>
-              <Switch>
-                <Route path="/query">
-                  <Query />
-                </Route>
-              </Switch>
-            </Suspense>
-          </div>
-        </div>
-      </Router>
+      {/* TODO: make better loading indicators for suspense (both global and localized versions - maybe SVG placeholders) */}
+      <Suspense fallback={<div>Loading...</div>}>
+        <FetchUserProfile onUserProfile={setUserProfile}>
+          <Router>
+            <div>
+              <div>
+                <HeaderNavbar userProfile={userProfile} />
+              </div>
+              <div
+                className="slds-p-horizontal_small slds-p-vertical_xx-small"
+                css={css`
+                  margin-top: 90px;
+                `}
+              >
+                <Suspense fallback={<div>Loading...</div>}>
+                  <Switch>
+                    <Route path="/query">
+                      <Query />
+                    </Route>
+                  </Switch>
+                </Suspense>
+              </div>
+            </div>
+          </Router>
+        </FetchUserProfile>
+      </Suspense>
     </RecoilRoot>
   );
 };

@@ -10,6 +10,8 @@ import PageHeaderActions from './page-header/PageHeaderActions';
 import PageHeaderRow from './page-header/PageHeaderRow';
 import PageHeaderTitle from './page-header/PageHeaderTitle';
 import Panel from './Panel';
+import { uniqueId } from 'lodash';
+import Logo from '../../assets/jetstream-logo-v1-200w.png';
 
 export default {
   title: 'Layout',
@@ -30,7 +32,16 @@ export const autoFullHeightContainer = () => (
 );
 
 export const header = () => (
-  <Header>
+  <Header
+    logo={Logo}
+    userMenuItems={[
+      { id: uniqueId('icon'), value: 'item 1', icon: { type: 'utility', icon: 'help' } },
+      { id: uniqueId('icon'), value: 'item 2', icon: { type: 'custom', icon: 'custom34' } },
+      { id: uniqueId('icon'), value: 'item 3', icon: { type: 'action', icon: 'apex' } },
+      { id: uniqueId('icon'), value: 'item 4', icon: { type: 'standard', icon: 'delegated_account' } },
+    ]}
+    onUserMenuItemSelected={action('onUserMenuItemSelected')}
+  >
     <div>This is the content within the header</div>
   </Header>
 );

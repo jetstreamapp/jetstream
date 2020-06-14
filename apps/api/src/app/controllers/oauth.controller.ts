@@ -3,14 +3,32 @@ import * as jsforce from 'jsforce';
 import * as querystring from 'querystring';
 import { encryptString, hexToBase64, getJsforceOauth2 } from '@jetstream/shared/node-utils';
 import { SalesforceOrg, SObjectOrganization } from '@jetstream/types';
-
-// prod/dev: 'https://login.salesforce.com',
-// sandbox: 'https://test.salesforce.com',
-// pre-release: 'https://prerellogin.pre.salesforce.com',
+import { exchangeOAuthCodeForAccessToken, getLoginUrl, createOrUpdateSession, destroySession, getLogoutUrl } from '../services/auth';
 
 interface SfdcOauthState {
   loginUrl: string;
 }
+
+export async function jetstreamOauthInitAuth(req: express.Request, res: express.Response) {
+  res.redirect(getLoginUrl());
+}
+
+export async function jetstreamOauthLogin(req: express.Request, res: express.Response) {
+  // TODO: figure out error handling
+  const { code, state, locale, userState } = req.query;
+
+  const accessToken = await exchangeOAuthCodeForAccessToken(code as string);
+
+  createOrUpdateSession(req, accessToken);
+
+  res.redirect(process.env.JETSTREAM_CLIENT_URL);
+}
+
+export async function jetstreamLogout(req: express.Request, res: express.Response) {
+  destroySession(req);
+  res.redirect(getLogoutUrl());
+}
+
 /**
  * Prepare SFDC auth and redirect to Salesforce
  * @param req

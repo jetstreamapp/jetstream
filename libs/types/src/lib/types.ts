@@ -10,6 +10,29 @@ export interface RecordAttributes {
   url: string;
 }
 
+export interface ApplicationCookie {
+  serverUrl: string;
+}
+
+export type UserProfileUsernameStatus = 'ACTIVE' | 'PENDING' | 'REJECTED';
+
+export interface UserProfile {
+  id: string;
+  email: string;
+  firstName: string;
+  lastName: string;
+  fullName: string;
+  active: boolean;
+  data?: any; // could be used in future
+  passwordChangeRequired: boolean;
+  preferredLanguages: string[];
+  timezone: string;
+  tenantId: string;
+  usernameStatus: UserProfileUsernameStatus;
+  username: string;
+  verified: boolean;
+}
+
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export type Record<T = any> = { attributes?: RecordAttributes; Id?: SalesforceId } & T;
 

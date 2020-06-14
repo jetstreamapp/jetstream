@@ -7,12 +7,48 @@ import { applicationRoutes, landingRoutes, oauthRoutes } from './app/routes';
 import { logRoute, notFoundMiddleware } from './app/routes/route.middleware';
 import { uncaughtErrorHandler, healthCheck } from './app/utils/response.handlers';
 import { environment } from './environments/environment';
+import * as session from 'express-session';
+import * as pgSimple from 'connect-pg-simple';
+import { pgPool } from './app/services/db';
+import { SESSION_EXP_DAYS, HTTP } from '@jetstream/shared/constants';
+import { ApplicationCookie } from '@jetstream/types';
+
+const pgSession = pgSimple(session);
 
 const app = express();
 
-// app.use(sessionMiddleware);
+// Setup session
+app.use(
+  session({
+    store: new pgSession({
+      pool: pgPool,
+      tableName: 'sessions',
+    }),
+    cookie: {
+      path: '/',
+      httpOnly: false,
+      secure: environment.production,
+      maxAge: 1000 * 60 * 60 * 24 * SESSION_EXP_DAYS,
+      domain: process.env.JETSTREAM_SERVER_DOMAIN,
+    },
+    secret: process.env.JESTREAM_SESSION_SECRET,
+    rolling: true,
+    // resave: true, // pgSession appears to implement "touch" so this should not be needed
+    saveUninitialized: false,
+    name: 'sessionid',
+  })
+);
 // app.use(compression());
 // app.use(helmet({...}));
+
+// Setup application cookie
+app.use((req: express.Request, res: express.Response, next: express.NextFunction) => {
+  const appCookie: ApplicationCookie = {
+    serverUrl: process.env.JETSTREAM_SERVER_URL,
+  };
+  res.cookie(HTTP.COOKIE.JETSTREAM, appCookie, { httpOnly: false });
+  next();
+});
 
 app.use(json({ limit: '20mb' }));
 app.use(urlencoded({ extended: true }));
@@ -35,6 +71,7 @@ if (!environment.production) {
 app.use(express.static(join(__dirname, './assets')));
 
 if (environment.production) {
+  app.set('trust proxy', 1);
   app.use(express.static(join(__dirname, '../landing/exported')));
   app.use(express.static(join(__dirname, '../jetstream')));
   app.use('/app', logRoute, (req: express.Request, res: express.Response) => {

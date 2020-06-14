@@ -3,7 +3,7 @@ import { orderObjectsBy } from '@jetstream/shared/utils';
 import { MimeType, PositionAll, QueryFilterOperator, ExpressionType } from '@jetstream/types';
 import { saveAs } from 'file-saver';
 import { Placement as tippyPlacement } from 'tippy.js';
-import { Query, WhereClause, Operator } from 'soql-parser-js';
+import { WhereClause, Operator } from 'soql-parser-js';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function parseQueryParams<T = any>(queryString: string): T {
@@ -13,6 +13,20 @@ export function parseQueryParams<T = any>(queryString: string): T {
     query[decodeURIComponent(key)] = decodeURIComponent(value || '');
     return query;
   }, {}) as T;
+}
+
+export function parseCookie<T>(cookieName: string): T | null {
+  const cookieStrRegex: RegExpExecArray = RegExp(`${cookieName}[^;]+`).exec(document.cookie);
+  const cookieStr = decodeURIComponent(cookieStrRegex ? cookieStrRegex.toString().replace(/^[^=]+./, '') : '');
+  if (cookieStr.startsWith('j:')) {
+    try {
+      return JSON.parse(cookieStr.slice(2));
+    } catch (ex) {
+      this.log.warn('Could not parse cookie');
+      return null;
+    }
+  }
+  return null;
 }
 
 export function sortQueryFields(fields: Field[]): Field[] {

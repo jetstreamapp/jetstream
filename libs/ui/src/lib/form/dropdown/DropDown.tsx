@@ -1,21 +1,21 @@
 /* eslint-disable jsx-a11y/anchor-is-valid */
-import React, { FunctionComponent, useState, useMemo, Fragment } from 'react';
+import React, { FunctionComponent, useState, useMemo, Fragment, ReactNode } from 'react';
 import classNames from 'classnames';
 import isString from 'lodash/isString';
 import Icon from '../../widgets/Icon';
-import { IconObj } from '@jetstream/types';
+import { IconObj, DropDownItem } from '@jetstream/types';
 import OutsideClickHandler from '../../utils/OutsideClickHandler';
 
 export interface DropDownProps {
   position?: 'left' | 'right';
-  leadingIcon?: IconObj;
+  leadingIcon?: IconObj; // ignored if buttonContent is provided
   buttonClassName?: string;
+  buttonContent?: ReactNode; // if omitted, then a regular dropdown icon will be shown
   dropDownClassName?: string;
   actionText?: string;
   scrollLength?: 5 | 7 | 10;
-  description?: string; // assistive text
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  items: { id: string; subheader?: string; value: string | JSX.Element; icon?: IconObj; metadata?: any }[];
+  description?: string; // assistive text, ignored if buttonContent is provided
+  items: DropDownItem[];
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   onSelected: (id: string, metadata?: any) => void;
 }
@@ -24,6 +24,7 @@ export const DropDown: FunctionComponent<DropDownProps> = ({
   position = 'left',
   leadingIcon,
   buttonClassName,
+  buttonContent,
   dropDownClassName,
   actionText = 'action',
   scrollLength,
@@ -45,18 +46,24 @@ export const DropDown: FunctionComponent<DropDownProps> = ({
           title={actionText}
           onClick={() => setIsOpen(!isOpen)}
         >
-          {leadingIcon && <Icon type={leadingIcon.type} icon={leadingIcon.icon} className="slds-button__icon" omitContainer />}
-          <Icon
-            type="utility"
-            icon="down"
-            className={classNames('slds-button__icon', {
-              'slds-button__icon_hint slds-button__icon_small': !leadingIcon,
-              'slds-button__icon_x-small': !!leadingIcon,
-            })}
-            omitContainer={!!leadingIcon}
-            description={actionText}
-          />
-          {description && <span className="slds-assistive-text">{description}</span>}
+          {buttonContent ? (
+            buttonContent
+          ) : (
+            <Fragment>
+              {leadingIcon && <Icon type={leadingIcon.type} icon={leadingIcon.icon} className="slds-button__icon" omitContainer />}
+              <Icon
+                type="utility"
+                icon="down"
+                className={classNames('slds-button__icon', {
+                  'slds-button__icon_hint slds-button__icon_small': !leadingIcon,
+                  'slds-button__icon_x-small': !!leadingIcon,
+                })}
+                omitContainer={!!leadingIcon}
+                description={actionText}
+              />
+              {description && <span className="slds-assistive-text">{description}</span>}
+            </Fragment>
+          )}
         </button>
         <div
           className={classNames(
