@@ -1,12 +1,11 @@
 import * as express from 'express';
 import * as SfQueryController from '../controllers/sf-query.controller';
 import * as userController from '../controllers/user.controller';
-import { logRoute, addOrgsToLocal, ensureOrgExists, checkAuth } from './route.middleware';
+import { addOrgsToLocal, ensureOrgExists, checkAuth } from './route.middleware';
 import Router from 'express-promise-router';
 
 const routes: express.Router = Router();
 
-routes.use(logRoute);
 routes.use(addOrgsToLocal);
 routes.use(checkAuth); // NOTE: all routes here must be authenticated
 
