@@ -1,7 +1,9 @@
-FROM fusionauth/fusionauth-app:latest
+FROM fusionauth/fusionauth-app:1.17.0
 
 EXPOSE 80
 EXPOSE 443
+
+COPY ./kickstart.json /usr/local/fusionauth/kickstart.json
 
 # re-running command provided in image
 # https://github.com/FusionAuth/fusionauth-containers/blob/master/docker/fusionauth/fusionauth-app/Dockerfile

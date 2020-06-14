@@ -1,0 +1,54 @@
+{
+  "variables": {
+    "defaultTenantId": "30663132-6464-6665-3032-326466613934",
+    "secondTenantId": "d7d09513-a3f5-401c-9685-34ab6c552453",
+    "jetstreamApplicationId": "42d7d823-4c89-4ccd-8c47-1259247103a7",
+    "apiKey": "#{ENV.FUSIONAUTH_API_KEY}",
+    "adminEmail": "#{ENV.FUSIONAUTH_ADMIN_EMAIL}",
+    "adminPassword": "#{ENV.FUSIONAUTH_ADMIN_PASSWORD}"
+  },
+  "apiKeys": [
+    {
+      "key": "#{apiKey}"
+    }
+  ],
+  "requests": [
+    {
+      "method": "POST",
+      "url": "/api/tenant/#{secondTenantId}",
+      "body": {
+        "tenant": {
+          "name": "Jetstream"
+        }
+      }
+    },
+    {
+      "method": "POST",
+      "url": "/api/application/#{jetstreamApplicationId}",
+      "tenantId": "#{secondTenantId}",
+      "body": {
+        "application": {
+          "name": "Jetstream"
+        }
+      }
+    },
+    {
+      "method": "POST",
+      "url": "/api/user/registration",
+      "tenantId": "#{defaultTenantId}",
+      "body": {
+        "user": {
+          "email": "#{adminEmail}",
+          "password": "#{adminPassword}",
+          "data": {
+            "Company": "Jetstream"
+          }
+        },
+        "registration": {
+          "applicationId": "#{FUSIONAUTH_APPLICATION_ID}",
+          "roles": ["admin"]
+        }
+      }
+    }
+  ]
+}

@@ -1,9 +1,7 @@
 import * as express from 'express';
-import { logRoute } from './route.middleware';
 import { sendJson } from '../utils/response.handlers';
 import * as request from 'superagent';
 import Router from 'express-promise-router';
-import { resolve } from 'path';
 import { UserFacingError } from '../utils/error-handler';
 
 const MAILCHIMP_USER = process.env.MAILCHIMP_USER;
@@ -11,8 +9,6 @@ const MAILCHIMP_API_KEY = process.env.MAILCHIMP_API_KEY;
 const MAILCHIMP_AUDIENCE_ID = process.env.MAILCHIMP_AUDIENCE_ID;
 
 export const routes: express.Router = Router();
-
-routes.use(logRoute);
 
 routes.post('/sign-up/notify', async (req: express.Request, res: express.Response) => {
   try {

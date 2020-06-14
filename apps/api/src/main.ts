@@ -9,7 +9,7 @@ import { uncaughtErrorHandler, healthCheck } from './app/utils/response.handlers
 import { environment } from './environments/environment';
 import * as session from 'express-session';
 import * as pgSimple from 'connect-pg-simple';
-import { pgPool } from './app/services/db';
+import { pgPool } from './app/config/db.config';
 import { SESSION_EXP_DAYS, HTTP } from '@jetstream/shared/constants';
 import { ApplicationCookie } from '@jetstream/types';
 
