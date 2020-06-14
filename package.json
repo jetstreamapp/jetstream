@@ -8,6 +8,7 @@
     "start:api": "nx serve api",
     "start:landing": "nx serve landing",
     "start:ui:storybook": "nx run ui:storybook",
+    "start:auth": "cd apps/authentication && docker-compose up",
     "start:prod": "pm2-runtime start ecosystem.config.js --env production",
     "build": "cross-env NODE_ENV=production npm-run-all build:client build:api build:landing",
     "build:client": "nx build jetstream --prod",

@@ -2,6 +2,8 @@ import { SalesforceOrg } from '@jetstream/types';
 import { Icon, Input, Popover, Radio, RadioGroup } from '@jetstream/ui';
 import isString from 'lodash/isString';
 import React, { Fragment, FunctionComponent, useEffect, useState } from 'react';
+import { useRecoilState } from 'recoil';
+import { applicationCookieState } from '../../app-state';
 
 type OrgType = 'prod' | 'sandbox' | 'pre-release' | 'custom';
 
@@ -22,6 +24,7 @@ export const AddOrg: FunctionComponent<AddOrgProps> = ({ onAddOrg }) => {
   const [orgType, setOrgType] = useState<OrgType>('prod');
   const [customUrl, setCustomUrl] = useState<string>('');
   const [loginUrl, setLoginUrl] = useState<string>(null);
+  const [applicationState] = useRecoilState(applicationCookieState);
 
   useEffect(() => {
     let url: string;
@@ -37,7 +40,7 @@ export const AddOrg: FunctionComponent<AddOrgProps> = ({ onAddOrg }) => {
     // open window, listen to events
     window.removeEventListener('message', handleWindowEvent);
     const strWindowFeatures = 'toolbar=no, menubar=no, width=1025, height=700';
-    const url = `http://localhost:3333/oauth/sfdc/auth?loginUrl=${encodeURIComponent(loginUrl)}&clientUrl=${encodeURIComponent(
+    const url = `${applicationState.serverUrl}/oauth/sfdc/auth?loginUrl=${encodeURIComponent(loginUrl)}&clientUrl=${encodeURIComponent(
       document.location.origin
     )}`;
     windowRef = window.open(url, 'Add Salesforce Org', strWindowFeatures);
