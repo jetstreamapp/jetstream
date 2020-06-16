@@ -1,9 +1,10 @@
 import { Field } from 'jsforce';
 import { orderObjectsBy } from '@jetstream/shared/utils';
-import { MimeType, PositionAll, QueryFilterOperator, ExpressionType } from '@jetstream/types';
+import { MimeType, PositionAll, QueryFilterOperator, ExpressionType, SalesforceOrg } from '@jetstream/types';
 import { saveAs } from 'file-saver';
 import { Placement as tippyPlacement } from 'tippy.js';
 import { WhereClause, Operator } from 'soql-parser-js';
+import { HTTP } from '../../../constants/src';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function parseQueryParams<T = any>(queryString: string): T {
@@ -302,4 +303,22 @@ function convertQueryFilterOperator(operator: QueryFilterOperator): Operator {
     default:
       return 'LIKE';
   }
+}
+
+/**
+ * Generate authentication in the url from a salesforce
+ * @param org
+ */
+export function getOrgUrlParams(org: SalesforceOrg): string {
+  const params = {
+    [HTTP.HEADERS.X_SFDC_ID]: org.uniqueId || '',
+    [HTTP.HEADERS.X_SFDC_LOGIN_URL]: org.loginUrl || '',
+    [HTTP.HEADERS.X_SFDC_INSTANCE_URL]: org.instanceUrl || '',
+    [HTTP.HEADERS.X_SFDC_ACCESS_TOKEN]: org.accessToken || '',
+    [HTTP.HEADERS.X_SFDC_API_VER]: org.apiVersion || '',
+    [HTTP.HEADERS.X_SFDC_NAMESPACE_PREFIX]: org.orgNamespacePrefix || '',
+  };
+  return Object.keys(params)
+    .map((key) => `${key}=${encodeURIComponent(params[key])}`)
+    .join('&');
 }

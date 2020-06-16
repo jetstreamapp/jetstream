@@ -19,7 +19,9 @@ export const Tooltip: FunctionComponent<TooltipProps> = ({ id = 'tooltip', conte
       onShow={() => setVisible(true)}
       allowHTML
       render={(attrs) => {
-        setNubbinPosition(convertTippyPlacementToSlds(attrs['data-placement']));
+        // NOTE: In addition to the tooltip placement bug, this causes another error with react 16.13
+        // Cannot update a component ... while rendering a different component ...
+        // setNubbinPosition(convertTippyPlacementToSlds(attrs['data-placement']));
         return (
           visible && (
             <div className="slds-popover slds-popover_tooltip" tabIndex={-1} role="tooltip">

@@ -48,6 +48,7 @@ export const QueryResults: FunctionComponent<QueryResultsProps> = () => {
       setUserSoql(location.state.soql || '');
       executeQuery(location.state.soql);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [location]);
 
   async function executeQuery(soql: string) {

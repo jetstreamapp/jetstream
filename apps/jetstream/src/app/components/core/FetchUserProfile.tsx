@@ -8,6 +8,8 @@ export interface FetchUserProfileProps {
 }
 
 export const FetchUserProfile: FunctionComponent<FetchUserProfileProps> = ({ onUserProfile, children }) => {
+  // FIXME: Cannot update a component (`Batcher`) while rendering a different component (`FetchUserProfile`)
+  // Recoil needs to fix this
   const [userProfile] = useRecoilState<UserProfile>(userProfileState);
 
   useEffect(() => {

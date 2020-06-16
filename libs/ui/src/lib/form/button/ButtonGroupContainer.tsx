@@ -1,8 +1,13 @@
 import React, { FunctionComponent } from 'react';
+import classNames from 'classnames';
 
-export const ButtonGroupContainer: FunctionComponent = ({ children }) => {
+export interface ButtonGroupContainerProps {
+  className?: string;
+}
+
+export const ButtonGroupContainer: FunctionComponent<ButtonGroupContainerProps> = ({ className, children }) => {
   return (
-    <div className="slds-button-group" role="group">
+    <div className={classNames('slds-button-group', className)} role="group">
       {children}
     </div>
   );

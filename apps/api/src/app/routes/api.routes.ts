@@ -1,8 +1,8 @@
 import * as express from 'express';
+import Router from 'express-promise-router';
 import * as SfQueryController from '../controllers/sf-query.controller';
 import * as userController from '../controllers/user.controller';
-import { addOrgsToLocal, ensureOrgExists, checkAuth } from './route.middleware';
-import Router from 'express-promise-router';
+import { addOrgsToLocal, checkAuth, ensureOrgExists } from './route.middleware';
 
 const routes: express.Router = Router();
 

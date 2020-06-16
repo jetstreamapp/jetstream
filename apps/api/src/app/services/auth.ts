@@ -118,7 +118,7 @@ export async function refreshAuthToken(refresh_token: string) {
       refresh_token,
       process.env.JETSTREAM_AUTH_CLIENT_ID,
       process.env.JETSTREAM_AUTH_CLIENT_SECRET,
-      undefined,
+      FUSIONAUTH_SCOPE,
       undefined
     ),
     'exchangeRefreshTokenForAccessToken'

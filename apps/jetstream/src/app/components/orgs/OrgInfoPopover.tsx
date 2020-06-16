@@ -1,9 +1,13 @@
 /** @jsx jsx */
 import { jsx } from '@emotion/core';
 import { SalesforceOrg } from '@jetstream/types';
-import { Icon, Popover } from '@jetstream/ui';
+import { ButtonGroupContainer, Icon, Popover } from '@jetstream/ui';
 import startCase from 'lodash/startCase';
 import { FunctionComponent } from 'react';
+import { SalesforceLogin } from '@jetstream/ui';
+import { useRecoilState } from 'recoil';
+import { applicationCookieState } from '../../app-state';
+
 export interface OrgInfoPopoverProps {
   org: SalesforceOrg;
 }
@@ -27,6 +31,7 @@ function getOrgProp(org: SalesforceOrg, prop: keyof SalesforceOrg, label?: strin
 }
 
 export const OrgInfoPopover: FunctionComponent<OrgInfoPopoverProps> = ({ org }) => {
+  const [applicationState] = useRecoilState(applicationCookieState);
   return (
     <Popover
       placement="bottom-end"
@@ -41,10 +46,25 @@ export const OrgInfoPopover: FunctionComponent<OrgInfoPopoverProps> = ({ org }) 
       content={
         <div>
           <div className="slds-p-around_xx-small">
-            <button className="slds-button slds-button_neutral slds-button_stretch">
-              <Icon type="utility" icon="new_window" className="slds-button__icon slds-button__icon_left" omitContainer={true} />
-              Login
-            </button>
+            <ButtonGroupContainer className="slds-button_stretch">
+              <SalesforceLogin
+                serverUrl={applicationState.serverUrl}
+                className="slds-button slds-button_neutral slds-button_stretch"
+                org={org}
+                title="Login to Salesforce Home"
+                returnUrl="/lightning/page/home"
+              >
+                Home Page
+              </SalesforceLogin>
+              <SalesforceLogin
+                serverUrl={applicationState.serverUrl}
+                className="slds-button slds-button_neutral slds-button_stretch"
+                org={org}
+                title="Login to Salesforce Setup Menu"
+              >
+                Setup Menu
+              </SalesforceLogin>
+            </ButtonGroupContainer>
           </div>
           <table className="slds-table slds-table_header-hidden">
             <thead className="slds-assistive-text">

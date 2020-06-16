@@ -1,4 +1,4 @@
-import React, { Fragment, FunctionComponent, useState, useEffect } from 'react';
+import React, { Fragment, FunctionComponent } from 'react';
 import { Redirect, Route, Switch, useLocation, useRouteMatch } from 'react-router-dom';
 import QueryBuilder from './QueryBuilder';
 import QueryResults from './QueryResults';
@@ -12,6 +12,8 @@ export interface QueryProps {}
 export const Query: FunctionComponent<QueryProps> = () => {
   const match = useRouteMatch();
   const location = useLocation<{ soql: string }>();
+  // FIXME: Cannot update a component (`Batcher`) while rendering a different component (`Query`)
+  // Recoil needs to fix this
   const selectedOrg = useRecoilValue<SalesforceOrg>(selectedOrgState);
 
   return (

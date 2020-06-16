@@ -3,7 +3,7 @@ import { json, urlencoded } from 'body-parser';
 import * as cors from 'cors';
 import * as express from 'express';
 import { join } from 'path';
-import { applicationRoutes, landingRoutes, oauthRoutes } from './app/routes';
+import { apiRoutes, landingRoutes, oauthRoutes, staticAuthenticatedRoutes } from './app/routes';
 import { logRoute, notFoundMiddleware } from './app/routes/route.middleware';
 import { uncaughtErrorHandler, healthCheck } from './app/utils/response.handlers';
 import { environment } from './environments/environment';
@@ -54,7 +54,8 @@ app.use(json({ limit: '20mb' }));
 app.use(urlencoded({ extended: true }));
 
 app.use('/healthz', healthCheck);
-app.use('/api', logRoute, applicationRoutes);
+app.use('/api', logRoute, apiRoutes);
+app.use('/static', logRoute, staticAuthenticatedRoutes); // these are routes that return files or redirect (e.x. NOT JSON)
 app.use('/landing', logRoute, landingRoutes);
 app.use('/oauth', logRoute, oauthRoutes); // NOTE: there are also static files with same path
 

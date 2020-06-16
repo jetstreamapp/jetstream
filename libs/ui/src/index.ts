@@ -49,3 +49,4 @@ export * from './lib/widgets/HelpText';
 export * from './lib/widgets/Icon';
 export * from './lib/widgets/Spinner';
 export * from './lib/widgets/Tooltip';
+export * from './lib/widgets/SalesforceLogin';

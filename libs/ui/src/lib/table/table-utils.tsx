@@ -7,6 +7,8 @@ import { Fragment, PropsWithChildren } from 'react';
 import { CellProps, Column, HeaderProps } from 'react-table';
 import DropDown from '../form/dropdown/DropDown';
 import Icon from '../widgets/Icon';
+import { REGEX } from '@jetstream/shared/utils';
+import SalesforceLogin from '../widgets/SalesforceLogin';
 
 /**
  * TODO: we can probably have one method with options that handles varying configurations
@@ -135,8 +137,24 @@ function getActionColumn() {
 
 function getCellRenderer({ cell, value }: PropsWithChildren<CellProps<any>>) {
   const isObject = isObjectLike(value);
+  const isId = !!value && REGEX.SALESFORCE_ID.test(value);
   return (
     <td {...cell.getCellProps()} role="gridcell">
+      {
+        // isId && (
+        // TODO: we need to pass in serverUrl and org which starts to leak our abstraction of table
+        // so we should find alternatives to this
+        // <SalesforceLogin
+        //   serverUrl=
+        //   className="slds-button slds-button_neutral slds-button_stretch"
+        //   org={org}
+        //   title="Login to Salesforce Home"
+        //   returnUrl="/lightning/page/home"
+        // >
+        //   Home Page
+        // </SalesforceLogin>
+        // )}
+      }
       {!isObject && (
         <div className="slds-truncate" title={`${value}`}>
           {value}

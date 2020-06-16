@@ -29,6 +29,8 @@ function getSelectedItemTitle(org?: SalesforceOrg) {
 }
 
 export const OrgsDropdown: FunctionComponent<OrgsDropdownProps> = () => {
+  // FIXME: Cannot update a component (`Batcher`) while rendering a different component (`OrgsDropdown`)
+  // Recoil needs to fix this
   const [orgs, setOrgs] = useRecoilState<SalesforceOrg[]>(salesforceOrgsState);
   const [selectedOrgId, setSelectedOrgId] = useRecoilState<string>(selectedOrgIdState);
   const selectedOrg = useRecoilValue<SalesforceOrg>(selectedOrgState);
