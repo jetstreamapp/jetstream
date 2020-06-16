@@ -9,22 +9,15 @@ import List from '../list/List';
 
 export interface SobjectListProps {
   sobjects: DescribeGlobalSObjectResult[];
+  selectedSObject: DescribeGlobalSObjectResult;
   loading: boolean;
-  errorMessage?: string;
-  onSelected?: (sobject: DescribeGlobalSObjectResult) => void;
+  errorMessage?: string; // TODO:
+  onSelected: (sobject: DescribeGlobalSObjectResult) => void;
 }
 
-export const SobjectList: FunctionComponent<SobjectListProps> = ({ sobjects, loading, errorMessage, onSelected }) => {
+export const SobjectList: FunctionComponent<SobjectListProps> = ({ sobjects, selectedSObject, loading, errorMessage, onSelected }) => {
   const [filteredSobjects, setFilteredSobjects] = useState<DescribeGlobalSObjectResult[]>(null);
   const [searchTerm, setSearchTerm] = useState<string>('');
-
-  const [activeSObject, setActiveSObject] = useState<DescribeGlobalSObjectResult>(null);
-
-  useEffect(() => {
-    if (onSelected) {
-      onSelected(activeSObject);
-    }
-  }, [onSelected, activeSObject]);
 
   useEffect(() => {
     if (sobjects && sobjects.length > 0 && searchTerm) {
@@ -60,8 +53,8 @@ export const SobjectList: FunctionComponent<SobjectListProps> = ({ sobjects, loa
             <AutoFullHeightContainer>
               <List
                 items={filteredSobjects}
-                isActive={(item: DescribeGlobalSObjectResult) => item.name === activeSObject?.name}
-                onSelected={(key) => setActiveSObject(sobjects.find((item) => item.name === key))}
+                isActive={(item: DescribeGlobalSObjectResult) => item.name === selectedSObject?.name}
+                onSelected={(key) => onSelected(sobjects.find((item) => item.name === key))}
                 getContent={(item: DescribeGlobalSObjectResult) => ({
                   key: item.name,
                   heading: item.label,

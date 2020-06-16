@@ -70,5 +70,3 @@ export const selectedOrgState = selector({
     return undefined;
   },
 });
-
-atob(localStorage.getItem(STORAGE_KEYS.SELECTED_ORG_STORAGE_KEY));
