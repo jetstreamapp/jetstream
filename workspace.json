@@ -42,9 +42,8 @@
           "builder": "@nrwl/linter:lint",
           "options": {
             "linter": "eslint",
-            "config": "apps/api/.eslintrc",
             "tsConfig": ["apps/api/tsconfig.app.json", "apps/api/tsconfig.spec.json"],
-            "exclude": ["**/node_modules/**", "!apps/api/**"]
+            "exclude": ["**/node_modules/**", "!apps/api/**/*"]
           }
         },
         "test": {
@@ -67,9 +66,8 @@
           "builder": "@nrwl/linter:lint",
           "options": {
             "linter": "eslint",
-            "config": "libs/api-interfaces/.eslintrc",
             "tsConfig": ["libs/api-interfaces/tsconfig.lib.json", "libs/api-interfaces/tsconfig.spec.json"],
-            "exclude": ["**/node_modules/**", "!libs/api-interfaces/**"]
+            "exclude": ["**/node_modules/**", "!libs/api-interfaces/**/*"]
           }
         },
         "test": {
@@ -92,9 +90,8 @@
           "builder": "@nrwl/linter:lint",
           "options": {
             "linter": "eslint",
-            "config": "libs/ui/.eslintrc",
             "tsConfig": ["libs/ui/tsconfig.lib.json", "libs/ui/tsconfig.spec.json"],
-            "exclude": ["**/node_modules/**", "!libs/ui/**"]
+            "exclude": ["**/node_modules/**", "!libs/ui/**/*"]
           }
         },
         "test": {
@@ -147,9 +144,8 @@
           "builder": "@nrwl/linter:lint",
           "options": {
             "linter": "eslint",
-            "config": "libs/types/.eslintrc",
             "tsConfig": ["libs/types/tsconfig.lib.json", "libs/types/tsconfig.spec.json"],
-            "exclude": ["**/node_modules/**", "!libs/types/**"]
+            "exclude": ["**/node_modules/**", "!libs/types/**/*"]
           }
         },
         "test": {
@@ -172,9 +168,8 @@
           "builder": "@nrwl/linter:lint",
           "options": {
             "linter": "eslint",
-            "config": "libs/shared/utils/.eslintrc",
             "tsConfig": ["libs/shared/utils/tsconfig.lib.json", "libs/shared/utils/tsconfig.spec.json"],
-            "exclude": ["**/node_modules/**", "!libs/shared/utils/**"]
+            "exclude": ["**/node_modules/**", "!libs/shared/utils/**/*"]
           }
         },
         "test": {
@@ -197,9 +192,8 @@
           "builder": "@nrwl/linter:lint",
           "options": {
             "linter": "eslint",
-            "config": "libs/shared/data/.eslintrc",
             "tsConfig": ["libs/shared/data/tsconfig.lib.json", "libs/shared/data/tsconfig.spec.json"],
-            "exclude": ["**/node_modules/**", "!libs/shared/data/**"]
+            "exclude": ["**/node_modules/**", "!libs/shared/data/**/*"]
           }
         },
         "test": {
@@ -222,9 +216,8 @@
           "builder": "@nrwl/linter:lint",
           "options": {
             "linter": "eslint",
-            "config": "libs/shared/ui-utils/.eslintrc",
             "tsConfig": ["libs/shared/ui-utils/tsconfig.lib.json", "libs/shared/ui-utils/tsconfig.spec.json"],
-            "exclude": ["**/node_modules/**", "!libs/shared/ui-utils/**"]
+            "exclude": ["**/node_modules/**", "!libs/shared/ui-utils/**/*"]
           }
         },
         "test": {
@@ -259,9 +252,8 @@
           "builder": "@nrwl/linter:lint",
           "options": {
             "linter": "eslint",
-            "config": "apps/ui-e2e/.eslintrc",
             "tsConfig": ["apps/ui-e2e/tsconfig.e2e.json"],
-            "exclude": ["**/node_modules/**", "!apps/ui-e2e/**"]
+            "exclude": ["**/node_modules/**", "!apps/ui-e2e/**/*"]
           }
         }
       }
@@ -276,9 +268,8 @@
           "builder": "@nrwl/linter:lint",
           "options": {
             "linter": "eslint",
-            "config": "libs/shared/constants/.eslintrc",
             "tsConfig": ["libs/shared/constants/tsconfig.lib.json"],
-            "exclude": ["**/node_modules/**", "!libs/shared/constants/**"]
+            "exclude": ["**/node_modules/**", "!libs/shared/constants/**/*"]
           }
         }
       }
@@ -343,9 +334,8 @@
           "builder": "@nrwl/linter:lint",
           "options": {
             "linter": "eslint",
-            "config": "apps/jetstream/.eslintrc",
             "tsConfig": ["apps/jetstream/tsconfig.app.json", "apps/jetstream/tsconfig.spec.json"],
-            "exclude": ["**/node_modules/**", "!apps/jetstream/**"]
+            "exclude": ["**/node_modules/**", "!apps/jetstream/**/*"]
           }
         },
         "test": {
@@ -380,9 +370,8 @@
           "builder": "@nrwl/linter:lint",
           "options": {
             "linter": "eslint",
-            "config": "apps/jetstream-e2e/.eslintrc",
             "tsConfig": ["apps/jetstream-e2e/tsconfig.e2e.json"],
-            "exclude": ["**/node_modules/**", "!apps/jetstream-e2e/**"]
+            "exclude": ["**/node_modules/**", "!apps/jetstream-e2e/**/*"]
           }
         }
       }
@@ -428,9 +417,8 @@
           "builder": "@nrwl/linter:lint",
           "options": {
             "linter": "eslint",
-            "config": "apps/landing/.eslintrc",
             "tsConfig": ["apps/landing/tsconfig.json", "apps/landing/tsconfig.spec.json"],
-            "exclude": ["**/node_modules/**", "!apps/landing/**"]
+            "exclude": ["**/node_modules/**", "!apps/landing/**/*"]
           }
         },
         "test": {
@@ -465,9 +453,8 @@
           "builder": "@nrwl/linter:lint",
           "options": {
             "linter": "eslint",
-            "config": "apps/landing-e2e/.eslintrc",
             "tsConfig": ["apps/landing-e2e/tsconfig.e2e.json"],
-            "exclude": ["**/node_modules/**", "!apps/landing-e2e/**"]
+            "exclude": ["**/node_modules/**", "!apps/landing-e2e/**/*"]
           }
         }
       }
@@ -482,9 +469,8 @@
           "builder": "@nrwl/linter:lint",
           "options": {
             "linter": "eslint",
-            "config": "libs/shared/node-utils/.eslintrc",
             "tsConfig": ["libs/shared/node-utils/tsconfig.lib.json", "libs/shared/node-utils/tsconfig.spec.json"],
-            "exclude": ["**/node_modules/**", "!libs/shared/node-utils/**"]
+            "exclude": ["**/node_modules/**", "!libs/shared/node-utils/**/*"]
           }
         },
         "test": {
