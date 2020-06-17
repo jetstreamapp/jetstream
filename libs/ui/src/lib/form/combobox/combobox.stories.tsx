@@ -26,7 +26,7 @@ export const base = () => (
 );
 
 export const selectedItem = () => (
-  <Combobox label={text('label', 'My Combobox')} onInputChange={action('onInputChange')}>
+  <Combobox label={text('label', 'My Combobox')} selectedItemLabel="Item 2" onInputChange={action('onInputChange')}>
     <ComboboxListItem id="item1" label="Item 1" selected={false} onSelection={action('selected')} />
     <ComboboxListItem id="item2" label="Item 2" selected onSelection={action('selected')} />
     <ComboboxListItem id="item3" label="Item 3" selected={false} onSelection={action('selected')} />

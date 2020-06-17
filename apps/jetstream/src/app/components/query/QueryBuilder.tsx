@@ -37,9 +37,9 @@ export const QueryBuilder: FunctionComponent<QueryBuilderProps> = () => {
 
   const selectedSObject = useRecoilValue(fromQueryState.selectedSObjectState);
   const queryFieldsMap = useRecoilValue(fromQueryState.queryFieldsMapState);
+  const filters = useRecoilValue(fromQueryState.queryFiltersState);
   const [selectedFields, setSelectedFields] = useRecoilState(fromQueryState.selectedQueryFieldsState);
   const [filterFields, setFilterFields] = useRecoilState(fromQueryState.filterQueryFieldsState);
-  const [filters, setFilters] = useRecoilState(fromQueryState.queryFiltersState);
   const [soql, setSoql] = useRecoilState(fromQueryState.querySoqlState);
   const [isFavorite, setIsFavorite] = useRecoilState(fromQueryState.queryIsFavoriteState);
 
@@ -62,7 +62,7 @@ export const QueryBuilder: FunctionComponent<QueryBuilderProps> = () => {
       setSoql('');
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedSObject, selectedFields]);
+  }, [selectedSObject, selectedFields, filters]);
 
   useEffect(() => {
     if (queryFieldsMap && selectedSObject) {
@@ -182,7 +182,7 @@ export const QueryBuilder: FunctionComponent<QueryBuilderProps> = () => {
                     {
                       id: 'filters',
                       title: 'Filters',
-                      content: <QueryFilter fields={filterFields} onChange={setFilters} />,
+                      content: <QueryFilter fields={filterFields} />,
                     },
                     { id: 'orderBy', title: 'Order By', content: 'TODO' },
                     { id: 'soql', title: 'Soql Query', content: <SoqlTextarea soql={soql} /> },

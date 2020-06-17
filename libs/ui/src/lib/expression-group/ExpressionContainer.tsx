@@ -82,69 +82,86 @@ export const ExpressionContainer: FunctionComponent<ExpressionContainerProps> = 
   }
 
   function handleAddCondition(group?: ExpressionGroupType) {
+    const clonedExpression = { ...expression };
     if (group) {
-      const foundGroup = expression.groups.find((item) => item.key === group.key);
-      if (foundGroup) {
-        foundGroup.rows = foundGroup.rows.concat(initRow(nextConditionNumber));
+      const groupIdx = clonedExpression.groups.findIndex((item) => item.key === group.key);
+      if (groupIdx >= 0) {
+        clonedExpression.groups = [...clonedExpression.groups];
+        clonedExpression.groups[groupIdx] = { ...clonedExpression.groups[groupIdx] };
+        clonedExpression.groups[groupIdx].rows = [...clonedExpression.groups[groupIdx].rows];
+        clonedExpression.groups[groupIdx].rows = clonedExpression.groups[groupIdx].rows.concat(initRow(nextConditionNumber));
       }
     } else {
-      expression.rows = expression.rows.concat(initRow(nextConditionNumber));
+      clonedExpression.rows = [...clonedExpression.rows];
+      clonedExpression.rows = clonedExpression.rows.concat(initRow(nextConditionNumber));
     }
     setNextConditionNumber(nextConditionNumber + 1);
-    setExpression({ ...expression });
+    setExpression(clonedExpression);
   }
 
   function handleAddGroup() {
-    expression.groups = expression.groups.concat(initGroup(nextConditionNumber, nextConditionNumber + 1));
+    const clonedExpression = { ...expression };
+    clonedExpression.groups = clonedExpression.groups.concat(initGroup(nextConditionNumber, nextConditionNumber + 1));
     setNextConditionNumber(nextConditionNumber + 2);
-    setExpression({ ...expression });
+    setExpression(clonedExpression);
   }
 
   function handleGroupActionChange(action: AndOr, group: ExpressionGroupType) {
-    const foundGroup = expression.groups.find((item) => item.key === group.key);
-    if (foundGroup) {
-      foundGroup.action = action;
+    const clonedExpression = { ...expression };
+    const groupIdx = clonedExpression.groups.findIndex((item) => item.key === group.key);
+    if (groupIdx >= 0) {
+      clonedExpression.groups = [...clonedExpression.groups];
+      clonedExpression.groups[groupIdx] = { ...clonedExpression.groups[groupIdx], action };
     }
-    setExpression({ ...expression });
+    setExpression(clonedExpression);
   }
 
   function handleRowChange(selected: ExpressionConditionRowSelectedItems, row: ExpressionConditionType, group?: ExpressionGroupType) {
+    const clonedExpression = { ...expression };
     if (group) {
-      const foundGroup = expression.groups.find((item) => item.key === group.key);
-      if (foundGroup) {
-        const foundRow = foundGroup.rows.find((item) => item.key === row.key);
-        if (foundRow) {
-          foundRow.selected = selected;
+      const groupIdx = clonedExpression.groups.findIndex((item) => item.key === group.key);
+      if (groupIdx >= 0) {
+        const rowIdx = clonedExpression.groups[groupIdx].rows.findIndex((item) => item.key === row.key);
+        if (rowIdx >= 0) {
+          clonedExpression.groups = [...clonedExpression.groups];
+          clonedExpression.groups[groupIdx] = { ...clonedExpression.groups[groupIdx] };
+          clonedExpression.groups[groupIdx].rows = [...clonedExpression.groups[groupIdx].rows];
+          clonedExpression.groups[groupIdx].rows[rowIdx] = { ...clonedExpression.groups[groupIdx].rows[rowIdx], selected };
         }
       }
     } else {
-      const foundRow = expression.rows.find((item) => item.key === row.key);
-      if (foundRow) {
-        foundRow.selected = selected;
+      const rowIdx = clonedExpression.rows.findIndex((item) => item.key === row.key);
+      if (rowIdx >= 0) {
+        clonedExpression.rows = [...clonedExpression.rows];
+        clonedExpression.rows[rowIdx] = { ...clonedExpression.rows[rowIdx], selected };
       }
     }
-    setExpression({ ...expression });
+    setExpression(clonedExpression);
   }
 
   function handleDeleteRow(row: ExpressionConditionType, group?: ExpressionGroupType) {
+    const clonedExpression = { ...expression };
     if (group) {
-      const foundGroup = expression.groups.find((item) => item.key === group.key);
-      if (foundGroup) {
-        foundGroup.rows = foundGroup.rows.filter((item) => item.key !== row.key);
+      const groupIdx = clonedExpression.groups.findIndex((item) => item.key === group.key);
+      if (groupIdx >= 0) {
+        clonedExpression.groups = [...clonedExpression.groups];
+        clonedExpression.groups[groupIdx] = { ...clonedExpression.groups[groupIdx] };
+        clonedExpression.groups[groupIdx].rows = clonedExpression.groups[groupIdx].rows.filter((item) => item.key !== row.key);
         // remove group if all rows are deleted
-        if (foundGroup.rows.length === 0) {
-          expression.groups = expression.groups.filter((item) => item !== foundGroup);
+        if (clonedExpression.groups[groupIdx].rows.length === 0) {
+          clonedExpression.groups.splice(groupIdx, 1);
         }
       }
     } else {
-      expression.rows = expression.rows.filter((item) => item.key !== row.key);
-      if (expression.rows.length === 0) {
+      clonedExpression.rows = [...clonedExpression.rows];
+      clonedExpression.rows = clonedExpression.rows.filter((item) => item.key !== row.key);
+      if (clonedExpression.rows.length === 0) {
         // ensure at least one row exists
-        expression.rows = [initRow(nextConditionNumber)];
+        clonedExpression.rows = [initRow(nextConditionNumber)];
         setNextConditionNumber(nextConditionNumber + 1);
       }
     }
-    setExpression({ ...expression });
+    setExpression(clonedExpression);
   }
 
   return (

@@ -23,6 +23,10 @@ export interface ExpressionConditionRowProps {
   onDelete: () => void;
 }
 
+function getSelectionLabel(groupLabel: string, item: ListItem<string, unknown>) {
+  return `${groupLabel} - ${item.label}`;
+}
+
 export const ExpressionConditionRow: FunctionComponent<ExpressionConditionRowProps> = ({
   row,
   group,
@@ -38,7 +42,14 @@ export const ExpressionConditionRow: FunctionComponent<ExpressionConditionRowPro
 }) => {
   const [visibleResources, setVisibleResources] = useState<ListItemGroup[]>(resources);
   const [resourcesFilter, setResourcesFilter] = useState<string>(null);
-  const [selectedResourceLabel, setSelectedResourceLabel] = useState<string>(null);
+  const [selectedResourceComboboxLabel, setSelectedResourceComboboxLabel] = useState<string>(
+    selected.resource
+      ? getSelectionLabel(
+          resources[0].label,
+          resources[0].items.find((item) => item.id === selected.resource)
+        )
+      : null
+  );
   const [selectedResourceTitle, setSelectedResourceTitle] = useState<string>(null);
 
   useEffect(() => {
@@ -70,7 +81,7 @@ export const ExpressionConditionRow: FunctionComponent<ExpressionConditionRowPro
             <Combobox
               label={resourceLabel}
               onInputChange={(filter) => setResourcesFilter(filter)}
-              selectedItemLabel={selectedResourceLabel}
+              selectedItemLabel={selectedResourceComboboxLabel}
               selectedItemTitle={selectedResourceTitle}
             >
               {visibleResources
@@ -84,7 +95,7 @@ export const ExpressionConditionRow: FunctionComponent<ExpressionConditionRowPro
                         label={item.label}
                         selected={item.id === selected.resource}
                         onSelection={(id) => {
-                          setSelectedResourceLabel(`${group.label} - ${item.label}`);
+                          setSelectedResourceComboboxLabel(getSelectionLabel(group.label, item));
                           onChange({ ...selected, resource: id });
                         }}
                       />
