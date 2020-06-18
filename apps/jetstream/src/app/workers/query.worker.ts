@@ -1,7 +1,8 @@
 /// <reference lib="webworker" />
 /* eslint-disable @typescript-eslint/no-explicit-any */
+import { convertFiltersToWhereClause } from '@jetstream/shared/ui-utils';
+import { ExpressionType, ListItemGroup, MapOf, QueryFields, WorkerMessage } from '@jetstream/types';
 import { composeQuery, Query } from 'soql-parser-js';
-import { WorkerMessage, QueryFields, MapOf, ListItemGroup } from '@jetstream/types';
 
 type MessageName = 'composeQuery' | 'calculateFilter';
 
@@ -17,8 +18,10 @@ ctx.addEventListener('message', (event) => {
 function handleMessage(name: MessageName, payloadData: any) {
   switch (name) {
     case 'composeQuery': {
-      const data: Query = payloadData;
-      const soql = composeQuery(data, { format: true });
+      const { query, whereExpression }: { query: Query; whereExpression: ExpressionType } = payloadData;
+      query.where = convertFiltersToWhereClause(whereExpression);
+
+      const soql = composeQuery(query, { format: true });
       replyToMessage(name, soql);
       break;
     }

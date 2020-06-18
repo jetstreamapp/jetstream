@@ -8,6 +8,7 @@ import Icon from '../widgets/Icon';
 import Combobox from '../form/combobox/Combobox';
 import { ComboboxListItem } from '../form/combobox/ComboboxListItem';
 import { ComboboxListItemGroup } from '../form/combobox/ComboboxListItemGroup';
+import { useDebounce } from '@jetstream/shared/ui-utils';
 
 export interface ExpressionConditionRowProps {
   row: number;
@@ -21,6 +22,10 @@ export interface ExpressionConditionRowProps {
   selected: ExpressionConditionRowSelectedItems;
   onChange: (selected: ExpressionConditionRowSelectedItems) => void;
   onDelete: () => void;
+}
+
+function getSelectionLabel(groupLabel: string, item: ListItem<string, unknown>) {
+  return `${groupLabel} - ${item.label}`;
 }
 
 export const ExpressionConditionRow: FunctionComponent<ExpressionConditionRowProps> = ({
@@ -38,8 +43,21 @@ export const ExpressionConditionRow: FunctionComponent<ExpressionConditionRowPro
 }) => {
   const [visibleResources, setVisibleResources] = useState<ListItemGroup[]>(resources);
   const [resourcesFilter, setResourcesFilter] = useState<string>(null);
-  const [selectedResourceLabel, setSelectedResourceLabel] = useState<string>(null);
+  const [selectedValue, setSelectValue] = useState(selected.value);
+  const [selectedResourceComboboxLabel, setSelectedResourceComboboxLabel] = useState<string>(
+    selected.resource
+      ? getSelectionLabel(
+          resources[0].label,
+          resources[0].items.find((item) => item.id === selected.resource)
+        )
+      : null
+  );
   const [selectedResourceTitle, setSelectedResourceTitle] = useState<string>(null);
+
+  useEffect(() => {
+    onChange({ ...selected, value: selectedValue });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedValue]);
 
   useEffect(() => {
     if (!resourcesFilter) {
@@ -70,7 +88,7 @@ export const ExpressionConditionRow: FunctionComponent<ExpressionConditionRowPro
             <Combobox
               label={resourceLabel}
               onInputChange={(filter) => setResourcesFilter(filter)}
-              selectedItemLabel={selectedResourceLabel}
+              selectedItemLabel={selectedResourceComboboxLabel}
               selectedItemTitle={selectedResourceTitle}
             >
               {visibleResources
@@ -84,7 +102,7 @@ export const ExpressionConditionRow: FunctionComponent<ExpressionConditionRowPro
                         label={item.label}
                         selected={item.id === selected.resource}
                         onSelection={(id) => {
-                          setSelectedResourceLabel(`${group.label} - ${item.label}`);
+                          setSelectedResourceComboboxLabel(getSelectionLabel(group.label, item));
                           onChange({ ...selected, resource: id });
                         }}
                       />
@@ -110,8 +128,8 @@ export const ExpressionConditionRow: FunctionComponent<ExpressionConditionRowPro
               <input
                 id={`value-${row}`}
                 className="slds-input"
-                value={selected.value}
-                onChange={(event) => onChange({ ...selected, value: event.currentTarget.value })}
+                value={selectedValue}
+                onChange={(event) => setSelectValue(event.currentTarget.value)}
               />
             </Input>
           </div>

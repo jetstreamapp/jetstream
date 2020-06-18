@@ -4,7 +4,7 @@ import { MimeType, PositionAll, QueryFilterOperator, ExpressionType, SalesforceO
 import { saveAs } from 'file-saver';
 import { Placement as tippyPlacement } from 'tippy.js';
 import { WhereClause, Operator } from 'soql-parser-js';
-import { HTTP } from '../../../constants/src';
+import { HTTP } from '@jetstream/shared/constants';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function parseQueryParams<T = any>(queryString: string): T {

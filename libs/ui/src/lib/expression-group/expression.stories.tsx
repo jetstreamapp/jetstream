@@ -24,9 +24,9 @@ const resources: ListItemGroup[] = [
     id: 'contact',
     label: 'Contact',
     items: [
-      { id: 'Id', label: 'Id', value: 'Id' },
-      { id: 'FirstName', label: 'FirstName', value: 'FirstName' },
-      { id: 'LastName', label: 'LastName', value: 'LastName' },
+      { id: 'Contact.Id', label: 'Id', value: 'Id' },
+      { id: 'Contact.FirstName', label: 'FirstName', value: 'FirstName' },
+      { id: 'Contact.LastName', label: 'LastName', value: 'LastName' },
     ],
   },
 ];
@@ -60,6 +60,33 @@ export const base = () => (
     resources={resources}
     operators={operators}
     expressionInitValue={undefined}
+    onChange={action('onChange')}
+  />
+);
+
+export const preSelected = () => (
+  <ExpressionContainer
+    title={text('title', 'Some fancy title')}
+    actionLabel={text('actionLabel', 'Filter When')}
+    resourceLabel={text('resourceLabel', undefined)}
+    operatorLabel={text('operatorLabel', undefined)}
+    valueLabel={text('valueLabel', undefined)}
+    resources={resources}
+    operators={operators}
+    expressionInitValue={{
+      action: 'AND',
+      rows: [
+        {
+          key: 0,
+          selected: {
+            operator: 'contains',
+            resource: resources[0].items[0].id,
+            value: 'FOO',
+          },
+        },
+      ],
+      groups: [],
+    }}
     onChange={action('onChange')}
   />
 );

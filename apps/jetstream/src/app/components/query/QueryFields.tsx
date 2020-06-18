@@ -5,48 +5,61 @@ import { FieldWrapper, QueryFields } from '@jetstream/types';
 import { SobjectFieldList } from '@jetstream/ui';
 import { sortQueryFieldsStr, fetchFields } from '@jetstream/shared/ui-utils';
 import { AutoFullHeightContainer } from '@jetstream/ui';
-import { useRecoilValue } from 'recoil';
+import { useRecoilValue, useRecoilState } from 'recoil';
 import { selectedOrgState } from '../../app-state';
+import * as fromQueryState from './query.state';
+import { isEmpty } from 'lodash';
 
 export interface QueryFieldsProps {
-  activeSObject: DescribeGlobalSObjectResult;
+  selectedSObject: DescribeGlobalSObjectResult;
   onSelectionChanged: (fields: string[]) => void;
-  onFieldsFetched: (queryFields: MapOf<QueryFields>) => void;
+  // onFieldsFetched: (queryFields: MapOf<QueryFields>) => void;
 }
 
-export const QueryFieldsComponent: FunctionComponent<QueryFieldsProps> = ({ activeSObject, onSelectionChanged, onFieldsFetched }) => {
-  const [queryFieldsMap, setQueryFieldsMap] = useState<MapOf<QueryFields>>({});
-  const [baseKey, setBaseKey] = useState<string>(null);
-  const selectedOrg = useRecoilValue<SalesforceOrg>(selectedOrgState);
+function getQueryFieldKey(selectedOrg: SalesforceOrg, selectedSObject: DescribeGlobalSObjectResult) {
+  return `${selectedOrg?.uniqueId}-${selectedSObject?.name}`;
+}
+
+export const QueryFieldsComponent: FunctionComponent<QueryFieldsProps> = ({ selectedSObject, onSelectionChanged }) => {
+  // const [queryFieldsMap, setQueryFieldsMap] = useState<MapOf<QueryFields>>({});
+  const [queryFieldsMap, setQueryFieldsMap] = useRecoilState(fromQueryState.queryFieldsMapState);
+  const [queryFieldsKey, setQueryFieldsKey] = useRecoilState(fromQueryState.queryFieldsKey);
+  const [baseKey, setBaseKey] = useState<string>(`${selectedSObject.name}|`);
+  const selectedOrg = useRecoilValue(selectedOrgState);
 
   // Fetch fields for base object if the selected object changes
   useEffect(() => {
-    // init query fields when object changes
-    const tempQueryFieldsMap: MapOf<QueryFields> = {};
-    setQueryFieldsMap(tempQueryFieldsMap);
-    if (activeSObject) {
-      const BASE_KEY = `${activeSObject.name}|`;
-      setBaseKey(BASE_KEY);
-      tempQueryFieldsMap[BASE_KEY] = {
-        key: BASE_KEY,
-        expanded: true,
-        loading: true,
-        filterTerm: '',
-        sobject: activeSObject.name,
-        fields: {},
-        visibleFields: new Set(),
-        selectedFields: new Set(),
-      };
-      (async () => {
-        const clonedData = { ...tempQueryFieldsMap };
-        clonedData[BASE_KEY] = await fetchFields(selectedOrg, tempQueryFieldsMap[BASE_KEY]);
-        clonedData[BASE_KEY] = { ...clonedData[BASE_KEY], loading: false };
-        setQueryFieldsMap(clonedData);
-        onFieldsFetched(clonedData);
-      })();
+    const fieldKey = getQueryFieldKey(selectedOrg, selectedSObject);
+    if (isEmpty(queryFieldsMap) || fieldKey !== queryFieldsKey) {
+      // init query fields when object changes
+      let tempQueryFieldsMap: MapOf<QueryFields> = {};
+      setQueryFieldsMap(tempQueryFieldsMap);
+      if (selectedSObject) {
+        const BASE_KEY = `${selectedSObject.name}|`;
+        setBaseKey(BASE_KEY);
+        tempQueryFieldsMap = { ...tempQueryFieldsMap };
+        tempQueryFieldsMap[BASE_KEY] = {
+          key: BASE_KEY,
+          expanded: true,
+          loading: true,
+          filterTerm: '',
+          sobject: selectedSObject.name,
+          fields: {},
+          visibleFields: new Set(),
+          selectedFields: new Set(),
+        };
+        setQueryFieldsMap(tempQueryFieldsMap);
+        setQueryFieldsKey(getQueryFieldKey(selectedOrg, selectedSObject));
+        (async () => {
+          tempQueryFieldsMap = { ...tempQueryFieldsMap };
+          tempQueryFieldsMap[BASE_KEY] = await fetchFields(selectedOrg, tempQueryFieldsMap[BASE_KEY]);
+          tempQueryFieldsMap[BASE_KEY] = { ...tempQueryFieldsMap[BASE_KEY], loading: false };
+          setQueryFieldsMap(tempQueryFieldsMap);
+        })();
+      }
     }
-    setQueryFieldsMap(tempQueryFieldsMap);
-  }, [selectedOrg, activeSObject, onFieldsFetched]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedOrg, selectedSObject]);
 
   function emitSelectedFieldsChanged(fieldsMap: MapOf<QueryFields> = queryFieldsMap) {
     const fields = Object.values(fieldsMap).flatMap((queryField) => {
@@ -80,11 +93,10 @@ export const QueryFieldsComponent: FunctionComponent<QueryFieldsProps> = ({ acti
         // TODO: what if object selection changed? may need to ensure key still exists
         clonedQueryFieldsMap[key] = await fetchFields(selectedOrg, clonedQueryFieldsMap[key]);
         clonedQueryFieldsMap[key] = { ...clonedQueryFieldsMap[key], loading: false };
-        setQueryFieldsMap({ ...clonedQueryFieldsMap });
-        onFieldsFetched(clonedQueryFieldsMap);
+        setQueryFieldsMap(clonedQueryFieldsMap);
       })();
     }
-    setQueryFieldsMap(clonedQueryFieldsMap);
+    setQueryFieldsMap({ ...clonedQueryFieldsMap });
   }
 
   function handleFieldSelection(key: string, field: FieldWrapper) {
@@ -137,13 +149,13 @@ export const QueryFieldsComponent: FunctionComponent<QueryFieldsProps> = ({ acti
 
   return (
     <Fragment>
-      {activeSObject && queryFieldsMap[baseKey] && (
+      {selectedSObject && queryFieldsMap[baseKey] && (
         <AutoFullHeightContainer>
           <SobjectFieldList
             level={0}
             itemKey={baseKey}
             queryFieldsMap={queryFieldsMap}
-            sobject={activeSObject.name}
+            sobject={selectedSObject.name}
             onToggleExpand={handleToggleFieldExpand}
             onSelectField={handleFieldSelection}
             onSelectAll={handleFieldSelectAll}

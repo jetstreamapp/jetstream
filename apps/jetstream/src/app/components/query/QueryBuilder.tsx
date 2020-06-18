@@ -1,8 +1,10 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 /** @jsx jsx */
-import { jsx, css } from '@emotion/core';
-import { MapOf, QueryFields, ListItemGroup, WorkerMessage, FieldWrapper, ExpressionType, SalesforceOrg } from '@jetstream/types';
+import { css, jsx } from '@emotion/core';
+import { convertFiltersToWhereClause, useDebounce } from '@jetstream/shared/ui-utils';
+import { WorkerMessage } from '@jetstream/types';
 import {
+  Accordion,
   AutoFullHeightContainer,
   Icon,
   Page,
@@ -10,22 +12,20 @@ import {
   PageHeaderActions,
   PageHeaderRow,
   PageHeaderTitle,
-  Accordion,
 } from '@jetstream/ui';
 import classNames from 'classnames';
-import { DescribeGlobalSObjectResult, SObject } from 'jsforce';
-import { FunctionComponent, useEffect, useState, Fragment } from 'react';
+import { Fragment, FunctionComponent, useEffect, useState } from 'react';
 import { Link, useLocation, useRouteMatch } from 'react-router-dom';
+import Split from 'react-split';
+import { useRecoilState, useRecoilValue } from 'recoil';
 import { getField } from 'soql-parser-js';
+import { selectedOrgState } from '../../app-state';
 import QueryWorker from '../../workers/query.worker';
+import * as fromQueryState from './query.state';
 import QueryFieldsComponent from './QueryFields';
 import QueryFilter from './QueryFilter';
 import SoqlTextarea from './QueryOptions/SoqlTextarea';
 import QuerySObjects from './QuerySObjects';
-import Split from 'react-split';
-import { convertFiltersToWhereClause } from '@jetstream/shared/ui-utils';
-import { useRecoilValue } from 'recoil';
-import { selectedOrgState } from '../../app-state';
 
 // eslint-disable-next-line @typescript-eslint/no-empty-interface
 export interface QueryBuilderProps {}
@@ -33,25 +33,31 @@ export interface QueryBuilderProps {}
 export const QueryBuilder: FunctionComponent<QueryBuilderProps> = () => {
   const match = useRouteMatch();
   const location = useLocation<{ soql: string }>();
-  const [activeSObject, setActiveSObject] = useState<DescribeGlobalSObjectResult>(null);
-  const [queryFieldsMap, setQueryFieldsMap] = useState<MapOf<QueryFields>>(null);
-  const [selectedFields, setSelectedFields] = useState<string[]>([]);
-  const [filterFields, setFilterFields] = useState<ListItemGroup[]>([]);
-  const [filters, setFilters] = useState<ExpressionType>(undefined);
-  const [soql, setSoql] = useState<string>('');
-  const [isFavorite, setIsFavorite] = useState<boolean>(false);
+
+  const selectedSObject = useRecoilValue(fromQueryState.selectedSObjectState);
+  const queryFieldsMap = useRecoilValue(fromQueryState.queryFieldsMapState);
+  const filters = useRecoilValue(fromQueryState.queryFiltersState);
+  const [selectedFields, setSelectedFields] = useRecoilState(fromQueryState.selectedQueryFieldsState);
+  const [filterFields, setFilterFields] = useRecoilState(fromQueryState.filterQueryFieldsState);
+  const [soql, setSoql] = useRecoilState(fromQueryState.querySoqlState);
+  const [isFavorite, setIsFavorite] = useRecoilState(fromQueryState.queryIsFavoriteState);
+
+  const debouncedFilters = useDebounce(filters);
+
   const [queryWorker, setQueryWorker] = useState(() => new QueryWorker());
-  const selectedOrg = useRecoilValue<SalesforceOrg>(selectedOrgState);
+  const selectedOrg = useRecoilValue(selectedOrgState);
 
   useEffect(() => {
-    if (!!activeSObject && selectedFields?.length > 0) {
+    if (!!selectedSObject && selectedFields?.length > 0) {
       if (queryWorker) {
         queryWorker.postMessage({
           name: 'composeQuery',
           data: {
-            sObject: activeSObject.name,
-            fields: selectedFields.map((field) => getField(field)),
-            where: convertFiltersToWhereClause(filters),
+            query: {
+              sObject: selectedSObject.name,
+              fields: selectedFields.map((field) => getField(field)),
+            },
+            whereExpression: debouncedFilters,
           },
         });
       }
@@ -59,10 +65,10 @@ export const QueryBuilder: FunctionComponent<QueryBuilderProps> = () => {
       setSoql('');
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [activeSObject, selectedFields]);
+  }, [selectedSObject, selectedFields, debouncedFilters]);
 
   useEffect(() => {
-    if (queryFieldsMap && activeSObject) {
+    if (queryFieldsMap && selectedSObject) {
       queryWorker.postMessage({
         name: 'calculateFilter',
         data: queryFieldsMap,
@@ -71,7 +77,7 @@ export const QueryBuilder: FunctionComponent<QueryBuilderProps> = () => {
       setFilterFields([]);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [activeSObject, queryFieldsMap, selectedFields]);
+  }, [selectedSObject, queryFieldsMap, selectedFields]);
 
   useEffect(() => {
     if (queryWorker) {
@@ -104,7 +110,7 @@ export const QueryBuilder: FunctionComponent<QueryBuilderProps> = () => {
         }
       };
     }
-  }, [queryWorker]);
+  }, [queryWorker, setFilterFields, setSoql]);
 
   return (
     <Page>
@@ -151,7 +157,7 @@ export const QueryBuilder: FunctionComponent<QueryBuilderProps> = () => {
         <Split
           sizes={[17, 33, 50]}
           minSize={[200, 300, 300]}
-          gutterSize={activeSObject ? 10 : 0}
+          gutterSize={selectedSObject ? 10 : 0}
           className="slds-gutters"
           css={css`
             display: flex;
@@ -160,22 +166,18 @@ export const QueryBuilder: FunctionComponent<QueryBuilderProps> = () => {
         >
           <div className="slds-p-horizontal_x-small">
             <h2 className="slds-text-heading_medium slds-text-align_center">Objects</h2>
-            <QuerySObjects onSelected={(sobject) => setActiveSObject(sobject)} />
+            <QuerySObjects />
           </div>
           <div className="slds-p-horizontal_x-small">
-            {activeSObject && (
+            {selectedSObject && (
               <Fragment>
-                <h2 className="slds-text-heading_medium slds-text-align_center slds-truncate">{activeSObject?.name} Fields</h2>
-                <QueryFieldsComponent
-                  activeSObject={activeSObject}
-                  onSelectionChanged={setSelectedFields}
-                  onFieldsFetched={setQueryFieldsMap}
-                />
+                <h2 className="slds-text-heading_medium slds-text-align_center slds-truncate">{selectedSObject?.name} Fields</h2>
+                <QueryFieldsComponent selectedSObject={selectedSObject} onSelectionChanged={setSelectedFields} />
               </Fragment>
             )}
           </div>
           <div className="slds-p-horizontal_x-small">
-            {activeSObject && (
+            {selectedSObject && (
               <AutoFullHeightContainer>
                 <Accordion
                   initOpenIds={['filters', 'orderBy', 'soql']}
@@ -183,7 +185,7 @@ export const QueryBuilder: FunctionComponent<QueryBuilderProps> = () => {
                     {
                       id: 'filters',
                       title: 'Filters',
-                      content: <QueryFilter fields={filterFields} onChange={setFilters} />,
+                      content: <QueryFilter fields={filterFields} />,
                     },
                     { id: 'orderBy', title: 'Order By', content: 'TODO' },
                     { id: 'soql', title: 'Soql Query', content: <SoqlTextarea soql={soql} /> },
