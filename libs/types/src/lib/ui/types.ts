@@ -98,13 +98,13 @@ export type SuccessWarningError = Success | Warning | Error;
 export type DefaultInverseLight = Default | Inverse | Light;
 export type BadgeTypes = SuccessWarningError | DefaultInverseLight;
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export interface ListItemGroup {
   id: string;
   label: string;
   items: ListItem[];
 }
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export interface ListItem<T = string, V = any> {
   id: string;
   label: string;
@@ -113,6 +113,8 @@ export interface ListItem<T = string, V = any> {
 }
 
 export type AndOr = 'AND' | 'OR';
+export type AscDesc = 'ASC' | 'DESC';
+export type FirstLast = 'FIRST' | 'LAST';
 
 export interface ExpressionType {
   action: AndOr;
@@ -154,6 +156,14 @@ export type QueryFilterOperator =
   | 'notIn'
   | 'includes'
   | 'excludes';
+
+export interface QueryOrderByClause {
+  key: number;
+  field: string | null;
+  fieldLabel: string;
+  order: AscDesc;
+  nulls: FirstLast | null;
+}
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export interface DropDownItem<T = any> {

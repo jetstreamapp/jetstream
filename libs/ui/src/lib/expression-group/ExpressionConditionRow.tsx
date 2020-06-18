@@ -9,6 +9,7 @@ import Combobox from '../form/combobox/Combobox';
 import { ComboboxListItem } from '../form/combobox/ComboboxListItem';
 import { ComboboxListItemGroup } from '../form/combobox/ComboboxListItemGroup';
 import { useDebounce } from '@jetstream/shared/ui-utils';
+import FormRowButton from '../form/button/FormRowButton';
 
 export interface ExpressionConditionRowProps {
   row: number;
@@ -44,9 +45,11 @@ export const ExpressionConditionRow: FunctionComponent<ExpressionConditionRowPro
   const [visibleResources, setVisibleResources] = useState<ListItemGroup[]>(resources);
   const [resourcesFilter, setResourcesFilter] = useState<string>(null);
   const [selectedValue, setSelectValue] = useState(selected.value);
+  const [initialSelectedOperator] = useState(operators.find((item) => item.id === selected.operator) || operators[0]);
   const [selectedResourceComboboxLabel, setSelectedResourceComboboxLabel] = useState<string>(
     selected.resource
       ? getSelectionLabel(
+          // FIXME: resources[0] only works for base object!
           resources[0].label,
           resources[0].items.find((item) => item.id === selected.resource)
         )
@@ -116,7 +119,7 @@ export const ExpressionConditionRow: FunctionComponent<ExpressionConditionRowPro
             <Picklist
               label={operatorLabel}
               items={operators}
-              selectedItems={[operators[0]]}
+              selectedItems={[initialSelectedOperator]}
               allowDeselection={false}
               onChange={(items) => onChange({ ...selected, operator: items[0].value as QueryFilterOperator })}
             />
@@ -135,18 +138,11 @@ export const ExpressionConditionRow: FunctionComponent<ExpressionConditionRowPro
           </div>
           {/* Delete */}
           <div className="slds-col slds-grow-none">
-            <div className="slds-form-element">
-              <span className="slds-form-element__label" style={{ marginTop: `15px` }} />
-              <div className="slds-form-element__control">
-                <button
-                  className="slds-button slds-button_icon slds-button_icon-border-filled"
-                  title="Delete Condition"
-                  onClick={() => onDelete()}
-                >
-                  <Icon type="utility" icon="delete" description="Delete condition" className="slds-button__icon" omitContainer={true} />
-                </button>
-              </div>
-            </div>
+            <FormRowButton
+              title="Delete Condition"
+              icon={{ type: 'utility', icon: 'delete', description: 'Delete condition' }}
+              onClick={onDelete}
+            />
           </div>
         </div>
       </fieldset>

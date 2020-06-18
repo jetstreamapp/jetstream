@@ -1,4 +1,4 @@
-import { ExpressionType, ListItemGroup, MapOf, QueryFields } from '@jetstream/types';
+import { ExpressionType, ListItemGroup, MapOf, QueryFields, QueryOrderByClause } from '@jetstream/types';
 import { DescribeGlobalSObjectResult } from 'jsforce';
 import { atom } from 'recoil';
 
@@ -48,6 +48,11 @@ export const queryFiltersState = atom<ExpressionType>({
       },
     ],
   },
+});
+
+export const queryOrderByState = atom<QueryOrderByClause[]>({
+  key: 'query.queryOrderByState',
+  default: [{ key: 0, field: null, fieldLabel: null, order: 'ASC', nulls: null }],
 });
 
 export const querySoqlState = atom<string>({

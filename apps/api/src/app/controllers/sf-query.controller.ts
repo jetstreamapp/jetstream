@@ -2,6 +2,7 @@ import { NextFunction, Request, Response } from 'express';
 import * as jsforce from 'jsforce';
 import * as queryService from '../services/query';
 import { sendJson } from '../utils/response.handlers';
+import { UserFacingError } from '../utils/error-handler';
 
 // async function tempJsforceConn() {
 //   const conn = new jsforce.Connection({
@@ -18,7 +19,7 @@ export async function describe(req: Request, res: Response, next: NextFunction) 
     const results = await (isTooling ? conn.tooling.describeGlobal() : conn.describeGlobal());
     sendJson(res, results);
   } catch (ex) {
-    next(ex);
+    next(new UserFacingError(ex.message));
   }
 }
 
@@ -29,7 +30,7 @@ export async function describeSObject(req: Request, res: Response, next: NextFun
     const results = await (isTooling ? conn.tooling.describe(req.params.sobject) : conn.describe(req.params.sobject));
     sendJson(res, results);
   } catch (ex) {
-    next(ex);
+    next(new UserFacingError(ex.message));
   }
 }
 
@@ -43,6 +44,6 @@ export async function query(req: Request, res: Response, next: NextFunction) {
 
     sendJson(res, response);
   } catch (ex) {
-    next(ex);
+    next(new UserFacingError(ex.message));
   }
 }

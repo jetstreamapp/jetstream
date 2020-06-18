@@ -18,13 +18,13 @@ export async function handleRequest<T = any>(currRequest: request.SuperAgentRequ
         [HTTP.HEADERS.X_SFDC_NAMESPACE_PREFIX]: org.orgNamespacePrefix || '',
       });
     }
-    logger.log(`[HTTP][REQUEST][${currRequest.method}]`, currRequest.url, { request: currRequest });
+    logger.info(`[HTTP][REQUEST][${currRequest.method}]`, currRequest.url, { request: currRequest });
     const response = await currRequest;
-    logger.log(`[HTTP][RESPONSE][${currRequest.method}][${response.status}]`, currRequest.url, { response: response.body });
+    logger.info(`[HTTP][RESPONSE][${currRequest.method}][${response.status}]`, currRequest.url, { response: response.body });
     const body: API.RequestResult<T> = response.body;
     return body.data;
   } catch (ex) {
-    logger.log('[HTTP][RESPONSE][ERROR]', { exception: ex });
+    logger.info('[HTTP][RESPONSE][ERROR]', ex.status, ex.message);
     let message = 'An unknown error has occurred';
     if (ex.response) {
       const response: { error: boolean; message: string } = ex.response.body;

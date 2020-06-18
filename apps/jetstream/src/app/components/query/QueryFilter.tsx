@@ -9,12 +9,6 @@ export interface QueryFilterProps {
   fields: ListItemGroup[];
 }
 
-const resources = [
-  { id: 'Id', label: 'Id', value: 'Id' },
-  { id: 'Name', label: 'Name', value: 'Name' },
-  { id: 'Type', label: 'Type', value: 'Type__c' },
-];
-
 const operators: ListItem<string, QueryFilterOperator>[] = [
   { id: 'eq', label: 'Equals', value: 'eq' },
   { id: 'ne', label: 'Does Not Equal', value: 'ne' },

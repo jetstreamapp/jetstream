@@ -18,7 +18,7 @@ import { Fragment, FunctionComponent, useEffect, useState } from 'react';
 import { Link, useLocation, useRouteMatch } from 'react-router-dom';
 import Split from 'react-split';
 import { useRecoilState, useRecoilValue } from 'recoil';
-import { getField } from 'soql-parser-js';
+import { getField, Query } from 'soql-parser-js';
 import { selectedOrgState } from '../../app-state';
 import QueryWorker from '../../workers/query.worker';
 import * as fromQueryState from './query.state';
@@ -27,6 +27,7 @@ import QueryFilter from './QueryFilter';
 import SoqlTextarea from './QueryOptions/SoqlTextarea';
 import QuerySObjects from './QuerySObjects';
 import { logger } from '@jetstream/shared/client-logger';
+import QueryOrderBy from './QueryOrderBy';
 
 // eslint-disable-next-line @typescript-eslint/no-empty-interface
 export interface QueryBuilderProps {}
@@ -38,6 +39,7 @@ export const QueryBuilder: FunctionComponent<QueryBuilderProps> = () => {
   const selectedSObject = useRecoilValue(fromQueryState.selectedSObjectState);
   const queryFieldsMap = useRecoilValue(fromQueryState.queryFieldsMapState);
   const filters = useRecoilValue(fromQueryState.queryFiltersState);
+  const orderByClauses = useRecoilValue(fromQueryState.queryOrderByState);
   const [selectedFields, setSelectedFields] = useRecoilState(fromQueryState.selectedQueryFieldsState);
   const [filterFields, setFilterFields] = useRecoilState(fromQueryState.filterQueryFieldsState);
   const [soql, setSoql] = useRecoilState(fromQueryState.querySoqlState);
@@ -51,13 +53,21 @@ export const QueryBuilder: FunctionComponent<QueryBuilderProps> = () => {
   useEffect(() => {
     if (!!selectedSObject && selectedFields?.length > 0) {
       if (queryWorker) {
+        const query: Query = {
+          sObject: selectedSObject.name,
+          fields: selectedFields.map((field) => getField(field)),
+          orderBy: orderByClauses
+            .filter((orderBy) => !!orderBy.field)
+            .map((orderBy) => ({
+              field: orderBy.field,
+              nulls: orderBy.nulls,
+              order: orderBy.order,
+            })),
+        };
         queryWorker.postMessage({
           name: 'composeQuery',
           data: {
-            query: {
-              sObject: selectedSObject.name,
-              fields: selectedFields.map((field) => getField(field)),
-            },
+            query: query,
             whereExpression: debouncedFilters,
           },
         });
@@ -66,7 +76,7 @@ export const QueryBuilder: FunctionComponent<QueryBuilderProps> = () => {
       setSoql('');
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedSObject, selectedFields, debouncedFilters]);
+  }, [selectedSObject, selectedFields, debouncedFilters, orderByClauses]);
 
   useEffect(() => {
     if (queryFieldsMap && selectedSObject) {
@@ -188,7 +198,7 @@ export const QueryBuilder: FunctionComponent<QueryBuilderProps> = () => {
                       title: 'Filters',
                       content: <QueryFilter fields={filterFields} />,
                     },
-                    { id: 'orderBy', title: 'Order By', content: 'TODO' },
+                    { id: 'orderBy', title: 'Order By', content: <QueryOrderBy fields={filterFields} /> },
                     { id: 'soql', title: 'Soql Query', content: <SoqlTextarea soql={soql} /> },
                   ]}
                   allowMultiple={true}
