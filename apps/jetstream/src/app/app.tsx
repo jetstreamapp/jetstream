@@ -16,7 +16,7 @@ export const App = () => {
       {/* TODO: make better loading indicators for suspense (both global and localized versions - maybe SVG placeholders) */}
       <Suspense fallback={<div>Loading...</div>}>
         <FetchUserProfile onUserProfile={setUserProfile}>
-          <Router>
+          <Router basename="/app">
             <div>
               <div>
                 <HeaderNavbar userProfile={userProfile} />

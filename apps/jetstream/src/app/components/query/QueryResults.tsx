@@ -19,7 +19,7 @@ import {
 import classNames from 'classnames';
 import { unparse } from 'papaparse';
 import { FunctionComponent, useEffect, useState } from 'react';
-import { Link, useLocation } from 'react-router-dom';
+import { Link, useLocation, NavLink } from 'react-router-dom';
 import { getFlattenedFields } from 'soql-parser-js';
 import QueryResultsSoqlPanel from './QueryResultsSoqlPanel';
 import { Record, SalesforceOrg } from '@jetstream/types';
@@ -38,6 +38,7 @@ export const QueryResults: FunctionComponent<QueryResultsProps> = () => {
   const [fields, setFields] = useState<string[]>(null);
   const [selectedRows, setSelectedRows] = useState<Record[]>([]);
   const [loading, setLoading] = useState<boolean>(false);
+  const [errorMessage, setErrorMessage] = useState<string>(null);
   const [downloadModalOpen, setDownloadModalOpen] = useState<boolean>(false);
   const selectedOrg = useRecoilValue<SalesforceOrg>(selectedOrgState);
 
@@ -55,14 +56,19 @@ export const QueryResults: FunctionComponent<QueryResultsProps> = () => {
     try {
       setLoading(true);
       setSoql(soql);
+      setFields(null);
+      setRecords(null);
       const results = await query(selectedOrg, soql);
       // TODO: we need a fallback here in case there are no parsed results
       setFields(getFlattenedFields(results.parsedQuery));
       // TODO: do we need to flatten all of our records?
       // TODO: we should use the columns in combination with our parsed query and ensure the order is good
       setRecords(results.queryResults.records);
+      setErrorMessage(null);
     } catch (ex) {
       console.warn('ERROR', ex);
+      setErrorMessage(ex.message);
+      setSoqlPanelOpen(true);
     } finally {
       setLoading(false);
     }
@@ -118,9 +124,34 @@ export const QueryResults: FunctionComponent<QueryResultsProps> = () => {
       </Toolbar>
       <div className="slds-grid">
         <QueryResultsSoqlPanel soql={soql} isOpen={soqlPanelOpen} onClosed={() => setSoqlPanelOpen(false)} executeQuery={executeQuery} />
-        <AutoFullHeightContainer className="slds-scrollable bg-white" fillHeight>
+        <AutoFullHeightContainer
+          className="slds-scrollable bg-white"
+          fillHeight
+          css={css`
+            width: 100%;
+          `}
+        >
           {loading && <Spinner />}
-          {records && <TableSortableResizable data={records} headers={fields} onRowSelection={setSelectedRows} />}
+          {errorMessage && (
+            <div className="slds-m-around_medium slds-box  slds-text-color_error">
+              <div className="slds-inline_icon_text slds-grid">
+                <Icon
+                  type="utility"
+                  icon="error"
+                  className="slds-icon slds-icon_x-small slds-m-right--small slds-icon-text-error"
+                  containerClassname="slds-icon_container slds-icon-utility-error"
+                />
+                <div className="slds-col slds-align-middle">
+                  There is an error with your query. Either <NavLink to="/query">go back</NavLink> to the query builder or manually adjust
+                  your query.
+                </div>
+              </div>
+              <pre>
+                <code>{errorMessage}</code>
+              </pre>
+            </div>
+          )}
+          {records && records.length && <TableSortableResizable data={records} headers={fields} onRowSelection={setSelectedRows} />}
           {/* TODO: where should this live? */}
           {/* <div>Rows selected: {selectedRows.length}</div> */}
         </AutoFullHeightContainer>
