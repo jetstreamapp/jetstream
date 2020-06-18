@@ -69,16 +69,21 @@ export const ExpressionContainer: FunctionComponent<ExpressionContainerProps> = 
 }) => {
   const [expression, setExpression] = useState<ExpressionType>(initExpression(expressionInitValue));
   const [nextConditionNumber, setNextConditionNumber] = useState<number>(1);
+  const [isInit, setIsInit] = useState<boolean>(false);
 
   useEffect(() => {
-    if (expression) {
-      onChange(expression);
+    if (isInit) {
+      if (expression) {
+        onChange(expression);
+      }
+    } else {
+      setIsInit(true);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [onChange, expression]);
 
   function handleExpressionActionChange(action: AndOr) {
-    expression.action = action;
-    setExpression({ ...expression });
+    setExpression({ ...expression, action });
   }
 
   function handleAddCondition(group?: ExpressionGroupType) {

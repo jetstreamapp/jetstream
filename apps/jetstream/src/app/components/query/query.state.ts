@@ -34,7 +34,20 @@ export const filterQueryFieldsState = atom<ListItemGroup[]>({
 
 export const queryFiltersState = atom<ExpressionType>({
   key: 'query.queryFiltersState',
-  default: undefined,
+  default: {
+    action: 'AND',
+    groups: [],
+    rows: [
+      {
+        key: 0,
+        selected: {
+          resource: '',
+          operator: 'eq',
+          value: '',
+        },
+      },
+    ],
+  },
 });
 
 export const querySoqlState = atom<string>({

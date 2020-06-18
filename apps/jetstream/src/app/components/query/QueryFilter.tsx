@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 import { ExpressionType, ListItem, QueryFilterOperator, ListItemGroup } from '@jetstream/types';
 import { ExpressionContainer } from '@jetstream/ui';
-import React, { FunctionComponent } from 'react';
+import React, { FunctionComponent, useState } from 'react';
 import * as fromQueryState from './query.state';
 import { useRecoilState } from 'recoil';
 
@@ -36,9 +36,10 @@ const operators: ListItem<string, QueryFilterOperator>[] = [
 
 export const QueryFilter: FunctionComponent<QueryFilterProps> = ({ fields }) => {
   const [queryFilters, setQueryFilters] = useRecoilState(fromQueryState.queryFiltersState);
+  const [initialQueryFilters] = useState(queryFilters);
   return (
     <ExpressionContainer
-      expressionInitValue={queryFilters}
+      expressionInitValue={initialQueryFilters}
       actionLabel="Filter When"
       resources={fields}
       operators={operators}

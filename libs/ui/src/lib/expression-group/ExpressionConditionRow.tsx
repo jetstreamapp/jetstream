@@ -8,6 +8,7 @@ import Icon from '../widgets/Icon';
 import Combobox from '../form/combobox/Combobox';
 import { ComboboxListItem } from '../form/combobox/ComboboxListItem';
 import { ComboboxListItemGroup } from '../form/combobox/ComboboxListItemGroup';
+import { useDebounce } from '@jetstream/shared/ui-utils';
 
 export interface ExpressionConditionRowProps {
   row: number;
@@ -42,6 +43,7 @@ export const ExpressionConditionRow: FunctionComponent<ExpressionConditionRowPro
 }) => {
   const [visibleResources, setVisibleResources] = useState<ListItemGroup[]>(resources);
   const [resourcesFilter, setResourcesFilter] = useState<string>(null);
+  const [selectedValue, setSelectValue] = useState(selected.value);
   const [selectedResourceComboboxLabel, setSelectedResourceComboboxLabel] = useState<string>(
     selected.resource
       ? getSelectionLabel(
@@ -51,6 +53,11 @@ export const ExpressionConditionRow: FunctionComponent<ExpressionConditionRowPro
       : null
   );
   const [selectedResourceTitle, setSelectedResourceTitle] = useState<string>(null);
+
+  useEffect(() => {
+    onChange({ ...selected, value: selectedValue });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedValue]);
 
   useEffect(() => {
     if (!resourcesFilter) {
@@ -121,8 +128,8 @@ export const ExpressionConditionRow: FunctionComponent<ExpressionConditionRowPro
               <input
                 id={`value-${row}`}
                 className="slds-input"
-                value={selected.value}
-                onChange={(event) => onChange({ ...selected, value: event.currentTarget.value })}
+                value={selectedValue}
+                onChange={(event) => setSelectValue(event.currentTarget.value)}
               />
             </Input>
           </div>

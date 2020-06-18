@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 /** @jsx jsx */
 import { css, jsx } from '@emotion/core';
-import { convertFiltersToWhereClause } from '@jetstream/shared/ui-utils';
+import { convertFiltersToWhereClause, useDebounce } from '@jetstream/shared/ui-utils';
 import { WorkerMessage } from '@jetstream/types';
 import {
   Accordion,
@@ -26,7 +26,6 @@ import QueryFieldsComponent from './QueryFields';
 import QueryFilter from './QueryFilter';
 import SoqlTextarea from './QueryOptions/SoqlTextarea';
 import QuerySObjects from './QuerySObjects';
-import { DescribeGlobalSObjectResult } from 'jsforce';
 
 // eslint-disable-next-line @typescript-eslint/no-empty-interface
 export interface QueryBuilderProps {}
@@ -43,6 +42,8 @@ export const QueryBuilder: FunctionComponent<QueryBuilderProps> = () => {
   const [soql, setSoql] = useRecoilState(fromQueryState.querySoqlState);
   const [isFavorite, setIsFavorite] = useRecoilState(fromQueryState.queryIsFavoriteState);
 
+  const debouncedFilters = useDebounce(filters);
+
   const [queryWorker, setQueryWorker] = useState(() => new QueryWorker());
   const selectedOrg = useRecoilValue(selectedOrgState);
 
@@ -52,9 +53,11 @@ export const QueryBuilder: FunctionComponent<QueryBuilderProps> = () => {
         queryWorker.postMessage({
           name: 'composeQuery',
           data: {
-            sObject: selectedSObject.name,
-            fields: selectedFields.map((field) => getField(field)),
-            where: convertFiltersToWhereClause(filters),
+            query: {
+              sObject: selectedSObject.name,
+              fields: selectedFields.map((field) => getField(field)),
+            },
+            whereExpression: debouncedFilters,
           },
         });
       }
@@ -62,7 +65,7 @@ export const QueryBuilder: FunctionComponent<QueryBuilderProps> = () => {
       setSoql('');
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedSObject, selectedFields, filters]);
+  }, [selectedSObject, selectedFields, debouncedFilters]);
 
   useEffect(() => {
     if (queryFieldsMap && selectedSObject) {
