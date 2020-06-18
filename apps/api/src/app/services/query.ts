@@ -3,6 +3,7 @@ import { Connection } from 'jsforce';
 import { parseQuery, Query } from 'soql-parser-js';
 import { QueryColumnsSfdc, QueryColumnMetadata } from '../types/types';
 import { QueryResultsColumns, QueryResultsColumn, QueryResults } from '@jetstream/api-interfaces';
+import { logger } from '../config/logger.config';
 
 export async function queryRecords(conn: Connection, query: string, isTooling = false): Promise<QueryResults> {
   // Fetch records from SFDC
@@ -19,21 +20,21 @@ export async function queryRecords(conn: Connection, query: string, isTooling = 
     })) as QueryColumnsSfdc;
 
     columns = {
-      entityName: columns.entityName,
-      groupBy: columns.groupBy,
-      idSelected: columns.idSelected,
-      keyPrefix: columns.keyPrefix,
+      entityName: tempColumns.entityName,
+      groupBy: tempColumns.groupBy,
+      idSelected: tempColumns.idSelected,
+      keyPrefix: tempColumns.keyPrefix,
       columns: tempColumns.columnMetadata.flatMap((column) => flattenQueryColumn(column)),
     };
   } catch (ex) {
-    console.log('Error fetching columns');
+    logger.error('Error fetching columns', ex);
   }
 
   // Attempt to parse columns from query
   try {
     parsedQuery = parseQuery(query);
   } catch (ex) {
-    console.log('Error parsing query');
+    logger.info('Error parsing query');
   }
 
   return { queryResults, columns, parsedQuery };

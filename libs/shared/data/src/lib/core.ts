@@ -3,6 +3,7 @@ import * as request from 'superagent'; // http://visionmedia.github.io/superagen
 import * as API from '@jetstream/api-interfaces';
 import { SalesforceOrg } from '@jetstream/types';
 import { HTTP } from '@jetstream/shared/constants';
+import { logger } from '@jetstream/shared/client-logger';
 
 export async function handleRequest<T = any>(currRequest: request.SuperAgentRequest, org?: SalesforceOrg) {
   try {
@@ -17,13 +18,13 @@ export async function handleRequest<T = any>(currRequest: request.SuperAgentRequ
         [HTTP.HEADERS.X_SFDC_NAMESPACE_PREFIX]: org.orgNamespacePrefix || '',
       });
     }
-    console.log(`[HTTP][REQUEST][${currRequest.method}]`, currRequest.url, { request: currRequest });
+    logger.log(`[HTTP][REQUEST][${currRequest.method}]`, currRequest.url, { request: currRequest });
     const response = await currRequest;
-    console.log(`[HTTP][RESPONSE][${currRequest.method}][${response.status}]`, currRequest.url, { response: response.body });
+    logger.log(`[HTTP][RESPONSE][${currRequest.method}][${response.status}]`, currRequest.url, { response: response.body });
     const body: API.RequestResult<T> = response.body;
     return body.data;
   } catch (ex) {
-    console.log('[HTTP][RESPONSE][ERROR]', { exception: ex });
+    logger.log('[HTTP][RESPONSE][ERROR]', { exception: ex });
     let message = 'An unknown error has occurred';
     if (ex.response) {
       const response: { error: boolean; message: string } = ex.response.body;

@@ -2,6 +2,7 @@ import * as express from 'express';
 import { UserFacingError, AuthenticationError, NotFoundError } from './error-handler';
 import { getLoginUrl } from '../services/auth';
 import { HTTP } from '@jetstream/shared/constants';
+import { logger } from '../config/logger.config';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function healthCheck(req: express.Request, res: express.Response) {
@@ -21,7 +22,7 @@ export function sendJson(res: express.Response, content?: any, status = 200) {
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 export function uncaughtErrorHandler(err: any, req: express.Request, res: express.Response, next: express.NextFunction) {
-  console.log('[ERROR]', err.message);
+  logger.info('[ERROR]', err.message);
   const isJson = (req.get(HTTP.HEADERS.ACCEPT) || '').includes(HTTP.CONTENT_TYPE.JSON);
 
   if (err instanceof UserFacingError) {
@@ -63,8 +64,8 @@ export function uncaughtErrorHandler(err: any, req: express.Request, res: expres
 
   // TODO: clean up everything below this
 
-  console.log(err.message);
-  console.error(err.stack);
+  logger.info(err.message);
+  logger.error(err.stack);
 
   const errorMessage = 'There was an error processing the request';
   let status = err.status || 500;

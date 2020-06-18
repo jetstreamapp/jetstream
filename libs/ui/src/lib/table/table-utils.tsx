@@ -8,7 +8,7 @@ import { CellProps, Column, HeaderProps } from 'react-table';
 import DropDown from '../form/dropdown/DropDown';
 import Icon from '../widgets/Icon';
 import { REGEX } from '@jetstream/shared/utils';
-import SalesforceLogin from '../widgets/SalesforceLogin';
+import { logger } from '@jetstream/shared/client-logger';
 
 /**
  * TODO: we can probably have one method with options that handles varying configurations
@@ -126,7 +126,7 @@ function getActionColumn() {
             { id: '2', value: 'test item 2', metadata: table.row.original },
           ]}
           onSelected={(itemId, row) => {
-            console.log({ itemId, row });
+            logger.log({ itemId, row });
           }}
         />
       </td>

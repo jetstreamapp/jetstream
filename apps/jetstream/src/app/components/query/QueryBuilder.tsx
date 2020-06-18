@@ -26,6 +26,7 @@ import QueryFieldsComponent from './QueryFields';
 import QueryFilter from './QueryFilter';
 import SoqlTextarea from './QueryOptions/SoqlTextarea';
 import QuerySObjects from './QuerySObjects';
+import { logger } from '@jetstream/shared/client-logger';
 
 // eslint-disable-next-line @typescript-eslint/no-empty-interface
 export interface QueryBuilderProps {}
@@ -84,7 +85,7 @@ export const QueryBuilder: FunctionComponent<QueryBuilderProps> = () => {
       queryWorker.onmessage = (event: MessageEvent) => {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const payload: WorkerMessage<'composeQuery' | 'calculateFilter', any> = event.data;
-        console.log({ payload });
+        logger.log({ payload });
         switch (payload.name) {
           case 'composeQuery': {
             if (payload.error) {

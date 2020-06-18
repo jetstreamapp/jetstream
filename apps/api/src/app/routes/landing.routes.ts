@@ -3,6 +3,7 @@ import { sendJson } from '../utils/response.handlers';
 import * as request from 'superagent';
 import Router from 'express-promise-router';
 import { UserFacingError } from '../utils/error-handler';
+import { logger } from '../config/logger.config';
 
 const MAILCHIMP_USER = process.env.MAILCHIMP_USER;
 const MAILCHIMP_API_KEY = process.env.MAILCHIMP_API_KEY;
@@ -14,7 +15,7 @@ routes.post('/sign-up/notify', async (req: express.Request, res: express.Respons
   try {
     const email = req.body.email;
     if (!email) {
-      console.log('[ERROR][SIGN-UP-NOTIFY] A valid email was not included with the request');
+      logger.info('[ERROR][SIGN-UP-NOTIFY] A valid email was not included with the request');
     }
 
     const url = `https://us10.api.mailchimp.com/3.0/lists/${MAILCHIMP_AUDIENCE_ID}/members/`;
@@ -25,14 +26,14 @@ routes.post('/sign-up/notify', async (req: express.Request, res: express.Respons
     });
 
     if (response.ok) {
-      console.log('[SUCCESS][SIGN-UP-NOTIFY]', email);
+      logger.info('[SUCCESS][SIGN-UP-NOTIFY]', email);
       return sendJson(res);
     } else {
-      console.log('[ERROR][SIGN-UP-NOTIFY]', response.error, response.body);
+      logger.info('[ERROR][SIGN-UP-NOTIFY]', response.error, response.body);
       throw new Error('There was an error subscribing the request');
     }
   } catch (ex) {
-    console.log('[ERROR][SIGN-UP-NOTIFY][EX]', ex.status, ex.response?.body);
+    logger.info('[ERROR][SIGN-UP-NOTIFY][EX]', ex.status, ex.response?.body);
     const error = ex.response?.body?.detail || 'There was an error subscribing the request';
 
     throw new UserFacingError(error);

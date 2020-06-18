@@ -7,6 +7,7 @@ import { useRecoilValue, useRecoilState } from 'recoil';
 import { SalesforceOrg } from '@jetstream/types';
 import { selectedOrgState } from '../../app-state';
 import * as fromQueryState from './query.state';
+import { logger } from '@jetstream/shared/client-logger';
 
 // eslint-disable-next-line @typescript-eslint/no-empty-interface
 export interface QueryFieldsProps {}
@@ -26,7 +27,7 @@ export const QuerySObjects: FunctionComponent<QueryFieldsProps> = () => {
           const results = await describeGlobal(selectedOrg);
           setSobjects(orderObjectsBy(results.sobjects.filter(filterSobjectFn), 'label'));
         } catch (ex) {
-          console.error(ex);
+          logger.error(ex);
           setErrorMessage(ex.message);
         }
         setLoading(false);

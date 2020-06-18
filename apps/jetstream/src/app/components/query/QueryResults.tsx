@@ -26,6 +26,8 @@ import { Record, SalesforceOrg } from '@jetstream/types';
 import QueryDownloadModal from './QueryDownloadModal';
 import { useRecoilValue } from 'recoil';
 import { selectedOrgState } from '../../app-state';
+import { logger } from '@jetstream/shared/client-logger';
+
 // eslint-disable-next-line @typescript-eslint/no-empty-interface
 export interface QueryResultsProps {}
 
@@ -43,7 +45,7 @@ export const QueryResults: FunctionComponent<QueryResultsProps> = () => {
   const selectedOrg = useRecoilValue<SalesforceOrg>(selectedOrgState);
 
   useEffect(() => {
-    console.log({ location });
+    logger.log({ location });
     if (location.state) {
       setSoql(location.state.soql || '');
       setUserSoql(location.state.soql || '');
@@ -66,7 +68,7 @@ export const QueryResults: FunctionComponent<QueryResultsProps> = () => {
       setRecords(results.queryResults.records);
       setErrorMessage(null);
     } catch (ex) {
-      console.warn('ERROR', ex);
+      logger.warn('ERROR', ex);
       setErrorMessage(ex.message);
       setSoqlPanelOpen(true);
     } finally {
@@ -77,7 +79,7 @@ export const QueryResults: FunctionComponent<QueryResultsProps> = () => {
   function downloadRecords() {
     // open modal
     const csv = unparse({ data: flattenRecords(records, fields), fields }, { header: true, quotes: true });
-    console.log({ csv });
+    logger.log({ csv });
     saveFile(csv, 'query-results.csv', MIME_TYPES.CSV);
     setDownloadModalOpen(false);
   }

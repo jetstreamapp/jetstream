@@ -7,6 +7,7 @@ import * as express from 'express';
 import * as jwt from 'jsonwebtoken';
 import * as querystring from 'querystring';
 import { NOOP } from '@jetstream/shared/utils';
+import { logger } from '../config/logger.config';
 
 const FUSIONAUTH_SCOPE = 'openid offline_access';
 
@@ -28,7 +29,7 @@ function returnResponseOrThrow<T>(clientResponse: ClientResponse<T>, errorLogTex
   const success = statusCode >= 200 && statusCode < 300;
 
   if (!success) {
-    console.log('[AUTH][ERROR]', errorLogText);
+    logger.info('[AUTH][ERROR]', errorLogText);
     throw exception;
   }
 
@@ -70,7 +71,7 @@ export function destroySession(req: express.Request) {
   try {
     req.session.destroy(NOOP);
   } catch (ex) {
-    console.log('[AUTH][SESSION][DESTROY ERROR]', ex.message);
+    logger.info('[AUTH][SESSION][DESTROY ERROR]', ex.message);
   }
 }
 

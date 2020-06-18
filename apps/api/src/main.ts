@@ -12,6 +12,7 @@ import * as pgSimple from 'connect-pg-simple';
 import { pgPool } from './app/config/db.config';
 import { SESSION_EXP_DAYS, HTTP } from '@jetstream/shared/constants';
 import { ApplicationCookie } from '@jetstream/types';
+import { logger } from './app/config/logger.config';
 
 const pgSession = pgSimple(session);
 
@@ -62,7 +63,7 @@ app.use('/oauth', logRoute, oauthRoutes); // NOTE: there are also static files w
 const port = process.env.port || 3333;
 
 const server = app.listen(port, () => {
-  console.log('Listening at http://localhost:' + port);
+  logger.info('Listening at http://localhost:' + port);
 });
 
 if (!environment.production) {
@@ -83,4 +84,4 @@ if (environment.production) {
 app.use('*', notFoundMiddleware);
 app.use(uncaughtErrorHandler);
 
-server.on('error', console.error);
+server.on('error', logger.error);

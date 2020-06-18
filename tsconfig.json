@@ -10,21 +10,49 @@
     "importHelpers": true,
     "target": "es2015",
     "module": "esnext",
-    "typeRoots": ["node_modules/@types", "custom-typings"],
-    "lib": ["es2019", "dom"],
+    "typeRoots": [
+      "node_modules/@types",
+      "custom-typings"
+    ],
+    "lib": [
+      "es2019",
+      "dom"
+    ],
     "skipLibCheck": true,
     "skipDefaultLibCheck": true,
     "baseUrl": ".",
     "paths": {
-      "@jetstream/api-interfaces": ["libs/api-interfaces/src/index.ts"],
-      "@jetstream/ui": ["libs/ui/src/index.ts"],
-      "@jetstream/types": ["libs/types/src/index.ts"],
-      "@jetstream/shared/utils": ["libs/shared/utils/src/index.ts"],
-      "@jetstream/shared/data": ["libs/shared/data/src/index.ts"],
-      "@jetstream/shared/ui-utils": ["libs/shared/ui-utils/src/index.ts"],
-      "@jetstream/shared/constants": ["libs/shared/constants/src/index.ts"],
-      "@jetstream/shared/node-utils": ["libs/shared/node-utils/src/index.ts"]
+      "@jetstream/api-interfaces": [
+        "libs/api-interfaces/src/index.ts"
+      ],
+      "@jetstream/ui": [
+        "libs/ui/src/index.ts"
+      ],
+      "@jetstream/types": [
+        "libs/types/src/index.ts"
+      ],
+      "@jetstream/shared/utils": [
+        "libs/shared/utils/src/index.ts"
+      ],
+      "@jetstream/shared/data": [
+        "libs/shared/data/src/index.ts"
+      ],
+      "@jetstream/shared/ui-utils": [
+        "libs/shared/ui-utils/src/index.ts"
+      ],
+      "@jetstream/shared/constants": [
+        "libs/shared/constants/src/index.ts"
+      ],
+      "@jetstream/shared/node-utils": [
+        "libs/shared/node-utils/src/index.ts"
+      ],
+      "@jetstream/shared/client-logger": [
+        "libs/shared/client-logger/src/index.ts"
+      ]
     }
   },
-  "exclude": ["node_modules", "tmp"]
+  "exclude": [
+    "node_modules",
+    "tmp"
+  ]
 }

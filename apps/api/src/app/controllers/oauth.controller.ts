@@ -4,6 +4,7 @@ import * as querystring from 'querystring';
 import { encryptString, hexToBase64, getJsforceOauth2 } from '@jetstream/shared/node-utils';
 import { SalesforceOrg, SObjectOrganization } from '@jetstream/types';
 import { exchangeOAuthCodeForAccessToken, getLoginUrl, createOrUpdateSession, destroySession, getLogoutUrl } from '../services/auth';
+import { logger } from '../config/logger.config';
 
 interface SfdcOauthState {
   loginUrl: string;
@@ -83,7 +84,7 @@ export async function salesforceOauthCallback(req: express.Request, res: express
         companyInfoRecord = results.records[0];
       }
     } catch (ex) {
-      console.warn(ex);
+      logger.warn(ex);
       // TODO: do some basic things here to default as much of this as possible
       //   companyInfo = {
       //     name: companyInfoRecord.Name,
@@ -136,7 +137,7 @@ export async function salesforceOauthCallback(req: express.Request, res: express
 
     return res.redirect(`/oauth?${querystring.stringify(sfdcConnection)}&clientUrl=${clientUrl}`);
   } catch (ex) {
-    console.log('[OAUTH][ERROR]', ex.message);
+    logger.info('[OAUTH][ERROR]', ex.message);
     const errorMsg = req.query.error_description ? req.query.error_description : 'There was an error authenticating Salesforce.';
     const errorObj = { message: errorMsg, error: ex.message };
     return res.redirect(`/oauth?${querystring.stringify(errorObj)}`);

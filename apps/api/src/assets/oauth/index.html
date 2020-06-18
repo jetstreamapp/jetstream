@@ -21,7 +21,6 @@
       window.addEventListener('load', function () {
         var params = parseQuery(window.location.search);
         var clientUrl = params.clientUrl;
-        console.log('params', { params });
 
         if (params.error) {
           document.getElementById('status').innerText = params.message + ' ' + params.error || '';

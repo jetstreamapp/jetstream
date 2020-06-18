@@ -4,6 +4,7 @@ import isString from 'lodash/isString';
 import React, { Fragment, FunctionComponent, useEffect, useState } from 'react';
 import { useRecoilState } from 'recoil';
 import { applicationCookieState } from '../../app-state';
+import { logger } from '@jetstream/shared/client-logger';
 
 type OrgType = 'prod' | 'sandbox' | 'pre-release' | 'custom';
 
@@ -52,7 +53,7 @@ export const AddOrg: FunctionComponent<AddOrgProps> = ({ onAddOrg }) => {
       try {
         const orgInfo = JSON.parse(event.data);
         // ensure from our origin // FIXME:
-        console.log({ orgInfo });
+        logger.log({ orgInfo });
         onAddOrg(orgInfo);
         if (windowRef) {
           windowRef.close();

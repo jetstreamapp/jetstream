@@ -4,6 +4,7 @@ import logo from '../assets/jetstream-logo-v1-200w.png';
 import { signUpNotify } from '@jetstream/shared/data';
 import { REGEX } from '@jetstream/shared/utils';
 import classNames from 'classnames';
+import { logger } from '@jetstream/shared/client-logger';
 
 type Submission = 'notSubmitted' | 'inProgress' | 'success' | 'error';
 
@@ -26,7 +27,7 @@ export const Index = () => {
       await signUpNotify(email);
       setSubmission('success');
     } catch (ex) {
-      console.log(ex);
+      logger.log(ex);
       setSubmission('error');
       setErrorMessage(ex.message);
     }

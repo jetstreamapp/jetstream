@@ -1,4 +1,5 @@
 import { Pool } from 'pg';
+import { logger } from './logger.config';
 
 export const pgPool = new Pool({
   // Insert pool options here
@@ -8,10 +9,10 @@ export const pgPool = new Pool({
 });
 
 pgPool.on('connect', (client) => {
-  console.log('[DB][CONNECT] client connected');
+  logger.info('[DB][CONNECT] client connected');
 });
 
 pgPool.on('error', (err, client) => {
-  console.error('[DB][ERROR] Unexpected error on idle client', err);
+  logger.error('[DB][ERROR] Unexpected error on idle client', err);
   process.exit(-1);
 });
