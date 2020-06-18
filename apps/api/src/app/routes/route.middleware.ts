@@ -42,10 +42,9 @@ export async function checkAuth(req: express.Request, res: express.Response, nex
       createOrUpdateSession(req, accessToken);
     }
 
-    logger.info('[AUTH][VALID]');
     next();
   } catch (ex) {
-    logger.info('[AUTH][EXCEPTION]', ex);
+    logger.error('[AUTH][EXCEPTION]', ex);
     next(new AuthenticationError('Unauthorized'));
   }
 }
