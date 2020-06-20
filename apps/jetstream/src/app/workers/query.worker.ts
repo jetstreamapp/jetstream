@@ -42,6 +42,7 @@ function handleMessage(name: MessageName, payloadData: any) {
             currGroup.items.push({
               id: value,
               label: field.label,
+              secondaryLabel: `(${field.name})`,
               value: value,
               meta: field,
             });
@@ -53,6 +54,7 @@ function handleMessage(name: MessageName, payloadData: any) {
             currGroup.items.push({
               id: value,
               label: field.label,
+              secondaryLabel: `(${field.name})`,
               value: value,
               meta: field,
             });

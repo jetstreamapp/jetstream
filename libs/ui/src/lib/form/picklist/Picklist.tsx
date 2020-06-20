@@ -7,10 +7,12 @@ import OutsideClickHandler from '../../utils/OutsideClickHandler';
 import Icon from '../../widgets/Icon';
 import Pill from '../../widgets/Pill';
 import PicklistItem from './PicklistItem';
+import HelpText from '../../widgets/HelpText';
 
 export interface PicklistProps {
   containerClassName?: string; // e.x. slds-combobox_container slds-size_small
   label: string;
+  helpText?: string;
   placeholder?: string;
   items?: ListItem[];
   groups?: ListItemGroup[];
@@ -24,6 +26,7 @@ export interface PicklistProps {
 export const Picklist: FunctionComponent<PicklistProps> = ({
   containerClassName,
   label,
+  helpText,
   placeholder,
   items,
   groups,
@@ -77,6 +80,7 @@ export const Picklist: FunctionComponent<PicklistProps> = ({
         <label className="slds-form-element__label" htmlFor={comboboxId}>
           {label}
         </label>
+        {helpText && <HelpText id={`${comboboxId}-label-help-text`} content={helpText} />}
         <div className="slds-form-element__control">
           <div className={containerClassName || 'slds-combobox_container'}>
             <div
@@ -120,6 +124,7 @@ export const Picklist: FunctionComponent<PicklistProps> = ({
                         key={item.id}
                         id={item.id}
                         label={item.label}
+                        secondaryLabel={item.secondaryLabel}
                         value={item.value}
                         isSelected={selectedItemsSet.has(item)}
                         onClick={() => handleSelection(item)}

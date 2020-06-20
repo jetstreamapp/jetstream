@@ -4,6 +4,7 @@ import Picklist from '../form/picklist/Picklist';
 
 export interface ExpressionActionDropDownProps {
   label: string;
+  helpText?: string;
   value: AndOr;
   onChange: (value: AndOr) => void;
 }
@@ -22,13 +23,14 @@ function getInitSelected(value: AndOr) {
   }
 }
 
-export const ExpressionActionDropDown: FunctionComponent<ExpressionActionDropDownProps> = ({ label, value, onChange }) => {
+export const ExpressionActionDropDown: FunctionComponent<ExpressionActionDropDownProps> = ({ label, helpText, value, onChange }) => {
   const [selectedItem] = useState<ListItem[]>(getInitSelected(value));
 
   return (
     <div className="slds-expression__options">
       <Picklist
         label={label}
+        helpText={helpText}
         items={items}
         selectedItems={selectedItem}
         allowDeselection={false}

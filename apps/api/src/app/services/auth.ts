@@ -29,7 +29,7 @@ function returnResponseOrThrow<T>(clientResponse: ClientResponse<T>, errorLogTex
   const success = statusCode >= 200 && statusCode < 300;
 
   if (!success) {
-    logger.info('[AUTH][ERROR]', errorLogText);
+    logger.info('[AUTH] %s', errorLogText);
     throw exception;
   }
 

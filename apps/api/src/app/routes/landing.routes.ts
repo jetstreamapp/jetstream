@@ -26,14 +26,14 @@ routes.post('/sign-up/notify', async (req: express.Request, res: express.Respons
     });
 
     if (response.ok) {
-      logger.info('[SUCCESS][SIGN-UP-NOTIFY]', email);
+      logger.info('[SUCCESS][SIGN-UP-NOTIFY] %s', email);
       return sendJson(res);
     } else {
-      logger.info('[ERROR][SIGN-UP-NOTIFY]', response.error, response.body);
+      logger.info('[ERROR][SIGN-UP-NOTIFY] %o %o', response.error, response.body);
       throw new Error('There was an error subscribing the request');
     }
   } catch (ex) {
-    logger.info('[ERROR][SIGN-UP-NOTIFY][EX]', ex.status, ex.response?.body);
+    logger.info('[ERROR][SIGN-UP-NOTIFY][EX] %s %o', ex.status, ex.response?.body);
     const error = ex.response?.body?.detail || 'There was an error subscribing the request';
 
     throw new UserFacingError(error);

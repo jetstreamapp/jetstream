@@ -1,9 +1,7 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
-import { ExpressionType, ListItem, QueryFilterOperator, ListItemGroup, AscDesc, FirstLast, QueryOrderByClause } from '@jetstream/types';
-import { ExpressionContainer, Combobox, ComboboxListItemGroup, ComboboxListItem, Picklist, FormRowButton } from '@jetstream/ui';
-import React, { FunctionComponent, useState, useEffect } from 'react';
-import * as fromQueryState from './query.state';
-import { useRecoilState } from 'recoil';
+import { AscDesc, FirstLast, ListItem, ListItemGroup, QueryOrderByClause } from '@jetstream/types';
+import { Combobox, ComboboxListItem, ComboboxListItemGroup, FormRowButton, Picklist } from '@jetstream/ui';
+import React, { FunctionComponent, useEffect, useState } from 'react';
 
 export interface QueryOrderByProps {
   orderBy: QueryOrderByClause;
@@ -15,7 +13,7 @@ export interface QueryOrderByProps {
 }
 
 function getSelectionLabel(groupLabel: string, item: ListItem<string, unknown>) {
-  return `${groupLabel} - ${item.label}`;
+  return `${groupLabel} - ${item.label} ${item.secondaryLabel || ''}`;
 }
 
 export const QueryOrderBy: FunctionComponent<QueryOrderByProps> = ({ orderBy, fields, order, nulls, onChange, onDelete }) => {
@@ -46,6 +44,7 @@ export const QueryOrderBy: FunctionComponent<QueryOrderByProps> = ({ orderBy, fi
       <div className="slds-col">
         <Combobox
           label="Field"
+          helpText="Related fields must be selected to appear in this list"
           onInputChange={(filter) => setFieldFilter(filter)}
           // FIXME:
           selectedItemLabel={orderBy.fieldLabel}
@@ -60,6 +59,7 @@ export const QueryOrderBy: FunctionComponent<QueryOrderByProps> = ({ orderBy, fi
                     key={item.id}
                     id={item.id}
                     label={item.label}
+                    secondaryLabel={item.secondaryLabel}
                     selected={item.id === orderBy.field}
                     onSelection={(id) => {
                       onChange({ ...orderBy, field: item.value, fieldLabel: getSelectionLabel(group.label, item) });

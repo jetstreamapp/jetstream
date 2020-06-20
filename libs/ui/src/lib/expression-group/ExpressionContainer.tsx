@@ -15,9 +15,13 @@ import ExpressionGroup from './ExpressionGroup';
 export interface ExpressionContainerProps {
   title?: string;
   actionLabel: string;
+  actionHelpText?: string;
   resourceLabel?: string;
+  resourceHelpText?: string;
   operatorLabel?: string;
+  operatorHelpText?: string;
   valueLabel?: string;
+  valueLabelHelpText?: string;
   resources: ListItemGroup[];
   operators: ListItem[];
   expressionInitValue?: ExpressionType;
@@ -60,8 +64,13 @@ function initGroup(key: number, rowKey: number): ExpressionGroupType {
 export const ExpressionContainer: FunctionComponent<ExpressionContainerProps> = ({
   title,
   actionLabel,
+  actionHelpText,
   resourceLabel,
+  resourceHelpText,
   operatorLabel,
+  operatorHelpText,
+  valueLabel,
+  valueLabelHelpText,
   resources,
   operators,
   expressionInitValue,
@@ -182,8 +191,11 @@ export const ExpressionContainer: FunctionComponent<ExpressionContainerProps> = 
           key={row.key}
           row={i + 1}
           resourceLabel={resourceLabel}
+          resourceHelpText={resourceHelpText}
           operatorLabel={operatorLabel}
-          valueLabel={operatorLabel}
+          operatorHelpText={operatorHelpText}
+          valueLabel={valueLabel}
+          valueLabelHelpText={valueLabelHelpText}
           AndOr={expression.action}
           resources={resources}
           operators={operators}
@@ -207,8 +219,11 @@ export const ExpressionContainer: FunctionComponent<ExpressionContainerProps> = 
               row={k + 1}
               AndOr={group.action}
               resourceLabel={resourceLabel}
+              resourceHelpText={resourceHelpText}
               operatorLabel={operatorLabel}
-              valueLabel={operatorLabel}
+              operatorHelpText={operatorHelpText}
+              valueLabel={valueLabel}
+              valueLabelHelpText={valueLabelHelpText}
               resources={resources}
               operators={operators}
               selected={row.selected}

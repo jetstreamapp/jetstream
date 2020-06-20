@@ -6,9 +6,11 @@ import Spinner from '../../widgets/Spinner';
 import OutsideClickHandler from '../../utils/OutsideClickHandler';
 import { ComboboxListItem } from './ComboboxListItem';
 import { NOOP } from '@jetstream/shared/utils';
+import HelpText from '../../widgets/HelpText';
 
 export interface ComboboxProps {
   label: string;
+  helpText?: string;
   hideLabel?: boolean;
   placeholder?: string;
   noItemsPlaceholder?: string;
@@ -22,6 +24,7 @@ export interface ComboboxProps {
 
 export const Combobox: FunctionComponent<ComboboxProps> = ({
   label,
+  helpText,
   hideLabel = false,
   placeholder = 'Select an Option',
   noItemsPlaceholder = 'There are no items for selection',
@@ -73,6 +76,7 @@ export const Combobox: FunctionComponent<ComboboxProps> = ({
       <label className={classNames('slds-form-element__label', { 'slds-assistive-text': hideLabel })} htmlFor={id}>
         {label}
       </label>
+      {helpText && <HelpText id={`${id}-label-help-text`} content={helpText} />}
       <div className="slds-form-element__control">
         <OutsideClickHandler className="slds-combobox_container" onOutsideClick={() => setIsOpen(false)}>
           <div

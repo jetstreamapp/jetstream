@@ -9,6 +9,7 @@ import { IconType } from '@jetstream/types';
 
 export interface InputProps {
   id?: string;
+  className?: string;
   label?: string;
   labelHelp?: string;
   helpText?: JSX.Element | string;
@@ -28,6 +29,7 @@ export interface InputProps {
 
 export const Input: FunctionComponent<InputProps> = ({
   id,
+  className,
   label,
   labelHelp,
   helpText,
@@ -52,7 +54,7 @@ export const Input: FunctionComponent<InputProps> = ({
   }
 
   return (
-    <div className={classNames('slds-form-element', { 'slds-has-error': hasError })}>
+    <div className={classNames('slds-form-element', className, { 'slds-has-error': hasError })}>
       {label && (
         <Fragment>
           <label className="slds-form-element__label" htmlFor={id}>

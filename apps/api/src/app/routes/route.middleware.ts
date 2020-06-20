@@ -13,7 +13,7 @@ import { logger } from '../config/logger.config';
 export function logRoute(req: express.Request, res: express.Response, next: express.NextFunction) {
   res.locals.path = req.path;
   // logger.info(req.method, req.originalUrl);
-  logger.info('[REQ]', req.method, req.originalUrl);
+  logger.debug('[REQ] %s %s', req.method, req.originalUrl, { method: req.method, url: req.originalUrl });
   next();
 }
 
@@ -97,7 +97,7 @@ export function addOrgsToLocal(req: express.Request, res: express.Response, next
       res.locals.jsforceConn = new jsforce.Connection(connData);
     }
   } catch (ex) {
-    logger.info('[INIT-ORG][ERROR]', ex);
+    logger.info('[INIT-ORG][ERROR] %o', ex);
     return next(new UserFacingError('There was an error initializing the connection to Salesforce'));
   }
 
@@ -106,7 +106,7 @@ export function addOrgsToLocal(req: express.Request, res: express.Response, next
 
 export function ensureOrgExists(req: express.Request, res: express.Response, next: express.NextFunction) {
   if (!res.locals?.jsforceConn) {
-    logger.info('[INIT-ORG][ERROR]', 'An org did not exist on locals');
+    logger.info('[INIT-ORG][ERROR] An org did not exist on locals');
     return next(new UserFacingError('An org is required for this action'));
   }
   next();

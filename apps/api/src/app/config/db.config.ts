@@ -8,11 +8,7 @@ export const pgPool = new Pool({
   idleTimeoutMillis: 30000,
 });
 
-pgPool.on('connect', (client) => {
-  logger.info('[DB][CONNECT] client connected');
-});
-
 pgPool.on('error', (err, client) => {
-  logger.error('[DB][ERROR] Unexpected error on idle client', err);
+  logger.error('[DB][ERROR] Unexpected error on idle client. %o', err);
   process.exit(-1);
 });

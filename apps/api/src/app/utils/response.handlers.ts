@@ -22,7 +22,7 @@ export function sendJson(res: express.Response, content?: any, status = 200) {
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 export function uncaughtErrorHandler(err: any, req: express.Request, res: express.Response, next: express.NextFunction) {
-  logger.info('[ERROR]', err.message);
+  logger.info('[RESPONSE][ERROR] %s', err.message, { error: err.message });
   const isJson = (req.get(HTTP.HEADERS.ACCEPT) || '').includes(HTTP.CONTENT_TYPE.JSON);
 
   if (err instanceof UserFacingError) {

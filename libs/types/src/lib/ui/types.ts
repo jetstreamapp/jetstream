@@ -108,6 +108,7 @@ export interface ListItemGroup {
 export interface ListItem<T = string, V = any> {
   id: string;
   label: string;
+  secondaryLabel?: string;
   value: T;
   meta?: V;
 }

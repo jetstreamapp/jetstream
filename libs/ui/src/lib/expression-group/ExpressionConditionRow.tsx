@@ -16,8 +16,11 @@ export interface ExpressionConditionRowProps {
   group?: number;
   AndOr?: AndOr;
   resourceLabel?: string;
+  resourceHelpText?: string;
   operatorLabel?: string;
+  operatorHelpText?: string;
   valueLabel?: string;
+  valueLabelHelpText?: string;
   resources: ListItemGroup[];
   operators: ListItem<string, QueryFilterOperator>[];
   selected: ExpressionConditionRowSelectedItems;
@@ -26,7 +29,7 @@ export interface ExpressionConditionRowProps {
 }
 
 function getSelectionLabel(groupLabel: string, item: ListItem<string, unknown>) {
-  return `${groupLabel} - ${item.label}`;
+  return `${groupLabel} - ${item.label} ${item.secondaryLabel || ''}`;
 }
 
 export const ExpressionConditionRow: FunctionComponent<ExpressionConditionRowProps> = ({
@@ -34,8 +37,11 @@ export const ExpressionConditionRow: FunctionComponent<ExpressionConditionRowPro
   group,
   AndOr,
   resourceLabel = 'Resource',
+  resourceHelpText,
   operatorLabel = 'Operator',
+  operatorHelpText,
   valueLabel = 'Value',
+  valueLabelHelpText,
   resources,
   operators,
   selected,
@@ -90,6 +96,7 @@ export const ExpressionConditionRow: FunctionComponent<ExpressionConditionRowPro
           <div className="slds-col">
             <Combobox
               label={resourceLabel}
+              helpText={resourceHelpText}
               onInputChange={(filter) => setResourcesFilter(filter)}
               selectedItemLabel={selectedResourceComboboxLabel}
               selectedItemTitle={selectedResourceTitle}
@@ -103,6 +110,7 @@ export const ExpressionConditionRow: FunctionComponent<ExpressionConditionRowPro
                         key={item.id}
                         id={item.id}
                         label={item.label}
+                        secondaryLabel={item.secondaryLabel}
                         selected={item.id === selected.resource}
                         onSelection={(id) => {
                           setSelectedResourceComboboxLabel(getSelectionLabel(group.label, item));
@@ -118,6 +126,7 @@ export const ExpressionConditionRow: FunctionComponent<ExpressionConditionRowPro
           <div className="slds-col slds-grow-none">
             <Picklist
               label={operatorLabel}
+              helpText={operatorHelpText}
               items={operators}
               selectedItems={[initialSelectedOperator]}
               allowDeselection={false}
@@ -127,7 +136,13 @@ export const ExpressionConditionRow: FunctionComponent<ExpressionConditionRowPro
           {/* Value */}
           {/* TODO: this needs to dynamically change based on the resource that is selected (e.x. date picker, combobox, etc..) */}
           <div className="slds-col">
-            <Input id={`value-${row}`} label={valueLabel} hasError={false} onClear={() => onChange({ ...selected, value: '' })}>
+            <Input
+              id={`value-${row}`}
+              label={valueLabel}
+              helpText={valueLabelHelpText}
+              hasError={false}
+              onClear={() => onChange({ ...selected, value: '' })}
+            >
               <input
                 id={`value-${row}`}
                 className="slds-input"

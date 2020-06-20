@@ -6,12 +6,13 @@ import Icon from '../../widgets/Icon';
 export interface PicklistItemProps {
   id: string;
   label: string;
+  secondaryLabel?: string;
   value: string;
   isSelected: boolean;
   onClick: (id: string) => void;
 }
 
-export const PicklistItem: FunctionComponent<PicklistItemProps> = ({ id, label, value, isSelected, onClick }) => {
+export const PicklistItem: FunctionComponent<PicklistItemProps> = ({ id, label, secondaryLabel, value, isSelected, onClick }) => {
   return (
     <li
       role="presentation"
@@ -41,8 +42,9 @@ export const PicklistItem: FunctionComponent<PicklistItemProps> = ({ id, label, 
           )}
         </span>
         <span className="slds-media__body">
-          <span className="slds-truncate" title={label}>
-            <span className="slds-assistive-text">Current Selection:</span> {label}
+          <span className="slds-truncate" title={`${label || ''} ${secondaryLabel || ''}`}>
+            {label}
+            {secondaryLabel && <span className="slds-text-color_weak slds-m-left_xx-small">{secondaryLabel}</span>}
           </span>
         </span>
       </div>
