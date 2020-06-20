@@ -3,19 +3,28 @@
 import { jsx } from '@emotion/core';
 import classNames from 'classnames';
 import isObjectLike from 'lodash/isObjectLike';
-import { Fragment, PropsWithChildren } from 'react';
+import { Fragment, PropsWithChildren, ReactNode } from 'react';
 import { CellProps, Column, HeaderProps } from 'react-table';
 import DropDown from '../form/dropdown/DropDown';
 import Icon from '../widgets/Icon';
 import { REGEX } from '@jetstream/shared/utils';
 import { logger } from '@jetstream/shared/client-logger';
+import { QueryFieldHeader, SalesforceOrg } from '@jetstream/types';
+import { isBoolean } from 'lodash';
+import Checkbox from '../form/checkbox/Checkbox';
+import SalesforceLogin from '../widgets/SalesforceLogin';
 
 /**
  * TODO: we can probably have one method with options that handles varying configurations
  *
  * @param headers
  */
-export function getSortableResizableColumns(headers: string[]) {
+export function getSortableResizableColumns(
+  headers: QueryFieldHeader[],
+  serverUrl: string,
+  org: SalesforceOrg,
+  onRowAction: (id: string, row: any) => void
+) {
   if (!headers) {
     return [];
   }
@@ -23,7 +32,8 @@ export function getSortableResizableColumns(headers: string[]) {
   const columns = headers.map((header) => {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const tableColumn: Column<any> = {
-      accessor: header,
+      accessor: header.accessor,
+
       width: 200,
       minWidth: 50,
       maxWidth: 500,
@@ -42,7 +52,7 @@ export function getSortableResizableColumns(headers: string[]) {
            */
           <th
             {...column.getHeaderProps()}
-            aria-label={header}
+            aria-label={header.label}
             aria-sort={column.isSorted ? (column.isSortedDesc ? 'descending' : 'ascending') : 'none'}
             className={classNames('slds-is-resizable slds-is-sortable', { 'slds-is-sorted': column.isSorted })}
             scope="col"
@@ -50,8 +60,8 @@ export function getSortableResizableColumns(headers: string[]) {
             <span {...column.getSortByToggleProps()} className="slds-th__action slds-text-link_reset" role="button" tabIndex={0}>
               <span className="slds-assistive-text">Sort by: </span>
               <div className="slds-grid slds-grid_vertical-align-center slds-has-flexi-truncate">
-                <div className="slds-truncate" title={header}>
-                  {header}
+                <div className="slds-truncate" title={header.title}>
+                  {header.label}
                 </div>
                 {column.isSorted && (
                   <Fragment>
@@ -92,15 +102,15 @@ export function getSortableResizableColumns(headers: string[]) {
         );
       },
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      Cell: getCellRenderer,
+      Cell: getCellRenderer(header, serverUrl, org),
     };
     return tableColumn;
   });
 
-  return [getActionColumn(), ...columns];
+  return [getActionColumn(onRowAction), ...columns];
 }
 
-function getActionColumn() {
+function getActionColumn(onRowAction: (id: string, row: any) => void) {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const actionColumn: Column<any> = {
     id: 'action',
@@ -122,12 +132,20 @@ function getActionColumn() {
           buttonClassName="slds-button slds-button_icon slds-button_icon-border-filled slds-button_icon-x-small"
           position="left"
           items={[
-            { id: '1', value: 'test item 1', metadata: table.row.original },
-            { id: '2', value: 'test item 2', metadata: table.row.original },
+            {
+              id: 'view-record',
+              value: 'View record with all fields',
+              metadata: table.row.original,
+              icon: { type: 'utility', icon: 'record_lookup', description: 'view record' },
+            },
+            {
+              id: 'delete record',
+              value: 'Delete record',
+              metadata: table.row.original,
+              icon: { type: 'utility', icon: 'delete', description: 'delete' },
+            },
           ]}
-          onSelected={(itemId, row) => {
-            logger.log({ itemId, row });
-          }}
+          onSelected={onRowAction}
         />
       </td>
     ),
@@ -135,40 +153,56 @@ function getActionColumn() {
   return actionColumn;
 }
 
-function getCellRenderer({ cell, value }: PropsWithChildren<CellProps<any>>) {
-  const isObject = isObjectLike(value);
-  const isId = !!value && REGEX.SALESFORCE_ID.test(value);
-  return (
-    <td {...cell.getCellProps()} role="gridcell">
-      {
-        // isId && (
-        // TODO: we need to pass in serverUrl and org which starts to leak our abstraction of table
-        // so we should find alternatives to this
-        // <SalesforceLogin
-        //   serverUrl=
-        //   className="slds-button slds-button_neutral slds-button_stretch"
-        //   org={org}
-        //   title="Login to Salesforce Home"
-        //   returnUrl="/lightning/page/home"
-        // >
-        //   Home Page
-        // </SalesforceLogin>
-        // )}
-      }
-      {!isObject && (
-        <div className="slds-truncate" title={`${value}`}>
-          {value}
-        </div>
-      )}
-      {/* TODO: */}
-      {isObject && (
-        <div>
-          <button className="slds-button">
-            <Icon type="utility" icon="search" className="slds-button__icon slds-button__icon_left" omitContainer />
-            View Data
-          </button>
-        </div>
-      )}
-    </td>
-  );
+function getCellRenderer(header: QueryFieldHeader, serverUrl: string, org: SalesforceOrg) {
+  return ({ cell, column, value }: PropsWithChildren<CellProps<any, any>>) => {
+    let type: 'other' | 'object' | 'boolean' | 'id' = 'other';
+    if (isObjectLike(value)) {
+      type = 'object';
+    } else if (header.columnMetadata.apexType === 'Boolean' || isBoolean(value)) {
+      type = 'boolean';
+    } else if (header.columnMetadata.apexType === 'Id') {
+      type = 'id';
+    }
+    // const isObject = isObjectLike(value);
+    // const isId = !!value && REGEX.SALESFORCE_ID.test(value);
+    let content: ReactNode;
+    const celProps = cell.getCellProps();
+    switch (type) {
+      case 'object':
+        content = (
+          <div>
+            <button className="slds-button">
+              <Icon type="utility" icon="search" className="slds-button__icon slds-button__icon_left" omitContainer />
+              View Data
+            </button>
+          </div>
+        );
+        break;
+      case 'boolean':
+        content = <Checkbox id={celProps.key as string} checked={value} label="value" hideLabel readOnly />;
+        break;
+      case 'id':
+        content = (
+          <div className="slds-truncate" title={`${value}`}>
+            <SalesforceLogin serverUrl={serverUrl} org={org} returnUrl={`/${value}`} omitIcon>
+              {value}
+            </SalesforceLogin>
+          </div>
+        );
+        break;
+      default:
+        content = (
+          <div className="slds-truncate" title={`${value}`}>
+            {value}
+          </div>
+        );
+        break;
+    }
+
+    return (
+      <td {...celProps} role="gridcell">
+        {content}
+      </td>
+    );
+  };
 }

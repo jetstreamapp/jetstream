@@ -11,12 +11,21 @@ export interface SalesforceLoginProps {
   org: SalesforceOrg;
   title?: string;
   returnUrl?: string;
+  omitIcon?: boolean;
 }
 
-export const SalesforceLogin: FunctionComponent<SalesforceLoginProps> = ({ serverUrl, className, org, title, returnUrl, children }) => {
+export const SalesforceLogin: FunctionComponent<SalesforceLoginProps> = ({
+  serverUrl,
+  className,
+  org,
+  title,
+  returnUrl,
+  omitIcon,
+  children,
+}) => {
   const [loginUrl, setLoginUrl] = useState<string>();
   useEffect(() => {
-    if (loginUrl) {
+    if (serverUrl) {
       let url = `${serverUrl}/static/sfdc/login?${getOrgUrlParams(org)}`;
       if (returnUrl) {
         url += `&returnUrl=${encodeURIComponent(returnUrl)}`;
@@ -27,7 +36,7 @@ export const SalesforceLogin: FunctionComponent<SalesforceLoginProps> = ({ serve
 
   return (
     <a className={className} href={loginUrl} target="_blank" rel="noopener noreferrer" title={title}>
-      <Icon type="utility" icon="new_window" className="slds-button__icon slds-button__icon_left" omitContainer={true} />
+      {!omitIcon && <Icon type="utility" icon="new_window" className="slds-button__icon slds-button__icon_left" omitContainer={true} />}
       {children}
     </a>
   );

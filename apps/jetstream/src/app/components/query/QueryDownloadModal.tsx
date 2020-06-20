@@ -5,14 +5,15 @@ import { jsx } from '@emotion/core';
 import { MIME_TYPES } from '@jetstream/shared/constants';
 import { saveFile } from '@jetstream/shared/ui-utils';
 import { flattenRecords } from '@jetstream/shared/utils';
-import { Record } from '@jetstream/types';
+import { Record, QueryFieldHeader } from '@jetstream/types';
 import { Modal, Radio, RadioGroup } from '@jetstream/ui';
 import { unparse } from 'papaparse';
 import { Fragment, FunctionComponent, useState } from 'react';
+
 // eslint-disable-next-line @typescript-eslint/no-empty-interface
 export interface QueryDownloadModalProps {
   downloadModalOpen: boolean;
-  fields: string[];
+  fields: QueryFieldHeader[];
   records: Record[];
   selectedRecords: Record[];
   onModalClose: () => void;
@@ -35,7 +36,14 @@ export const QueryDownloadModal: FunctionComponent<QueryDownloadModalProps> = ({
     // open modal
     try {
       const activeRecords = radioValue === RADIO_ALL_BROWSER ? records : selectedRecords;
-      const csv = unparse({ data: flattenRecords(activeRecords, fields), fields }, { header: true, quotes: true });
+      const stringFields = fields.map((field) => field.accessor);
+      const csv = unparse(
+        {
+          data: flattenRecords(activeRecords, stringFields),
+          fields: stringFields,
+        },
+        { header: true, quotes: true }
+      );
       saveFile(csv, 'query-results.csv', MIME_TYPES.CSV);
       onModalClose();
     } catch (ex) {

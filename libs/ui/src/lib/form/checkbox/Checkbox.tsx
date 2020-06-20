@@ -7,10 +7,19 @@ export interface CheckboxProps {
   label: string;
   hideLabel?: boolean;
   disabled?: boolean;
-  onChange: (value: boolean) => void;
+  readOnly?: boolean;
+  onChange?: (value: boolean) => void;
 }
 
-export const Checkbox: FunctionComponent<CheckboxProps> = ({ id, checked, label, disabled = false, hideLabel = false, onChange }) => {
+export const Checkbox: FunctionComponent<CheckboxProps> = ({
+  id,
+  checked,
+  label,
+  disabled = false,
+  readOnly = false,
+  hideLabel = false,
+  onChange,
+}) => {
   return (
     <div className="slds-form-element">
       <div className="slds-form-element__control">
@@ -21,7 +30,8 @@ export const Checkbox: FunctionComponent<CheckboxProps> = ({ id, checked, label,
             id={id}
             checked={checked}
             disabled={disabled}
-            onChange={(event) => onChange(event.target.checked)}
+            readOnly={readOnly}
+            onChange={(event) => onChange && onChange(event.target.checked)}
           />
           <label className="slds-checkbox__label" htmlFor={id}>
             <span className="slds-checkbox_faux"></span>
