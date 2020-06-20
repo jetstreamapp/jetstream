@@ -17,16 +17,16 @@ import {
   ToolbarItemGroup,
 } from '@jetstream/ui';
 import classNames from 'classnames';
-import { unparse } from 'papaparse';
-import { FunctionComponent, useEffect, useState } from 'react';
+import { FunctionComponent, useEffect, useState, Fragment } from 'react';
 import { Link, useLocation, NavLink } from 'react-router-dom';
 import { getFlattenedFields } from 'soql-parser-js';
 import QueryResultsSoqlPanel from './QueryResultsSoqlPanel';
-import { Record, SalesforceOrg } from '@jetstream/types';
+import { Record, SalesforceOrg, MapOf, QueryFieldHeader } from '@jetstream/types';
 import QueryDownloadModal from './QueryDownloadModal';
-import { useRecoilValue } from 'recoil';
-import { selectedOrgState } from '../../app-state';
+import { useRecoilValue, useRecoilState } from 'recoil';
+import { selectedOrgState, applicationCookieState } from '../../app-state';
 import { logger } from '@jetstream/shared/client-logger';
+import { QueryResultsColumn } from '@jetstream/api-interfaces';
 
 // eslint-disable-next-line @typescript-eslint/no-empty-interface
 export interface QueryResultsProps {}
@@ -37,12 +37,14 @@ export const QueryResults: FunctionComponent<QueryResultsProps> = () => {
   const [soql, setSoql] = useState<string>(null);
   const [userSoql, setUserSoql] = useState<string>(null);
   const [records, setRecords] = useState<Record[]>(null);
-  const [fields, setFields] = useState<string[]>(null);
+  const [fields, setFields] = useState<QueryFieldHeader[]>(null);
   const [selectedRows, setSelectedRows] = useState<Record[]>([]);
   const [loading, setLoading] = useState<boolean>(false);
   const [errorMessage, setErrorMessage] = useState<string>(null);
   const [downloadModalOpen, setDownloadModalOpen] = useState<boolean>(false);
   const selectedOrg = useRecoilValue<SalesforceOrg>(selectedOrgState);
+  const [{ serverUrl }] = useRecoilState(applicationCookieState);
+  const [totalRecordCount, setTotalRecordCount] = useState<number>(null);
 
   useEffect(() => {
     logger.log({ location });
@@ -61,11 +63,57 @@ export const QueryResults: FunctionComponent<QueryResultsProps> = () => {
       setFields(null);
       setRecords(null);
       const results = await query(selectedOrg, soql);
+
+      let queryColumnsByPath: MapOf<QueryResultsColumn> = {};
+
+      if (results.columns?.columns) {
+        queryColumnsByPath = results.columns.columns.reduce((out, curr) => {
+          out[curr.columnFullPath.toLowerCase()] = curr;
+          return out;
+        }, {});
+      }
+
+      const flattenedFields: QueryFieldHeader[] = getFlattenedFields(results.parsedQuery).map((field) => {
+        const fieldLowercase = field.toLowerCase();
+        if (queryColumnsByPath[fieldLowercase]) {
+          const col = queryColumnsByPath[fieldLowercase];
+          return {
+            label: col.displayName,
+            accessor: col.columnFullPath,
+            title: `${field} (${col.apexType})`,
+            columnMetadata: col,
+          };
+        }
+        // default values since column was not available
+        return {
+          label: field,
+          accessor: field,
+          title: field,
+          columnMetadata: {
+            aggregate: false,
+            apexType: 'String',
+            booleanType: false,
+            columnFullPath: field,
+            columnName: field,
+            custom: false,
+            displayName: field,
+            foreignKeyName: null,
+            insertable: false,
+            numberType: false,
+            textType: false,
+            updatable: false,
+          },
+        };
+      });
+
+      setFields(flattenedFields);
+
       // TODO: we need a fallback here in case there are no parsed results
-      setFields(getFlattenedFields(results.parsedQuery));
+      // setFields(getFlattenedFields(results.parsedQuery));
       // TODO: do we need to flatten all of our records?
       // TODO: we should use the columns in combination with our parsed query and ensure the order is good
       setRecords(results.queryResults.records);
+      setTotalRecordCount(results.queryResults.totalSize);
       setErrorMessage(null);
     } catch (ex) {
       logger.warn('ERROR', ex);
@@ -76,12 +124,18 @@ export const QueryResults: FunctionComponent<QueryResultsProps> = () => {
     }
   }
 
-  function downloadRecords() {
-    // open modal
-    const csv = unparse({ data: flattenRecords(records, fields), fields }, { header: true, quotes: true });
-    logger.log({ csv });
-    saveFile(csv, 'query-results.csv', MIME_TYPES.CSV);
-    setDownloadModalOpen(false);
+  function handleRowAction(id: string, row: any) {
+    logger.debug({ id, row });
+    switch (id) {
+      case 'view-record':
+        // TODO: show modal with all fields
+        break;
+      case 'delete record':
+        // TODO: show modal and then delete
+        break;
+      default:
+        break;
+    }
   }
 
   return (
@@ -153,9 +207,23 @@ export const QueryResults: FunctionComponent<QueryResultsProps> = () => {
               </pre>
             </div>
           )}
-          {records && records.length && <TableSortableResizable data={records} headers={fields} onRowSelection={setSelectedRows} />}
-          {/* TODO: where should this live? */}
-          {/* <div>Rows selected: {selectedRows.length}</div> */}
+          {records && records.length && (
+            <Fragment>
+              <div className="slds-grid slds-p-around_xx-small">
+                <div className="slds-col">
+                  Showing {records.length} of {totalRecordCount} records
+                </div>
+              </div>
+              <TableSortableResizable
+                data={records}
+                headers={fields}
+                serverUrl={serverUrl}
+                org={selectedOrg}
+                onRowSelection={setSelectedRows}
+                onRowAction={handleRowAction}
+              />
+            </Fragment>
+          )}
         </AutoFullHeightContainer>
       </div>
     </div>

@@ -18,9 +18,9 @@ export async function handleRequest<T = any>(currRequest: request.SuperAgentRequ
         [HTTP.HEADERS.X_SFDC_NAMESPACE_PREFIX]: org.orgNamespacePrefix || '',
       });
     }
-    logger.info(`[HTTP][REQUEST][${currRequest.method}]`, currRequest.url, { request: currRequest });
+    logger.info(`[HTTP][REQ][${currRequest.method}]`, currRequest.url, { request: currRequest });
     const response = await currRequest;
-    logger.info(`[HTTP][RESPONSE][${currRequest.method}][${response.status}]`, currRequest.url, { response: response.body });
+    logger.info(`[HTTP][RES][${currRequest.method}][${response.status}]`, currRequest.url, { response: response.body });
     const body: API.RequestResult<T> = response.body;
     return body.data;
   } catch (ex) {

@@ -186,7 +186,7 @@ export const Table: FunctionComponent<TableProps> = ({ data, columns, onRowSelec
     <table
       {...getTableProps()}
       aria-multiselectable="true"
-      className="slds-table slds-table_bordered slds-table_fixed-layout slds-table_resizable-cols"
+      className="slds-table slds-table_bordered slds-table_fixed-layout slds-table_resizable-cols  slds-table_col-bordered"
       role="grid"
     >
       <thead>

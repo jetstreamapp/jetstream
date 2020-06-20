@@ -1,7 +1,8 @@
+import { QueryResultsColumn } from '@jetstream/api-interfaces';
 import { MapOf } from '@jetstream/types';
-import { FieldDefinition } from '../salesforce/types';
 import { Field } from 'jsforce';
 import { ReactNode } from 'react';
+import { FieldDefinition } from '../salesforce/types';
 
 export type IconType = 'action' | 'custom' | 'doctype' | 'standard' | 'utility';
 export interface IconObj {
@@ -173,4 +174,11 @@ export interface DropDownItem<T = any> {
   value: string | ReactNode;
   icon?: IconObj;
   metadata?: T;
+}
+
+export interface QueryFieldHeader {
+  label: string;
+  accessor: string;
+  title: string;
+  columnMetadata: QueryResultsColumn;
 }
