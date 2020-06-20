@@ -6,7 +6,7 @@ import { useDebounce } from '@jetstream/shared/ui-utils';
 import { WorkerMessage } from '@jetstream/types';
 import { Fragment, FunctionComponent, useEffect, useState } from 'react';
 import { useRecoilState, useRecoilValue } from 'recoil';
-import { getField, Query } from 'soql-parser-js';
+import { Query } from 'soql-parser-js';
 import QueryWorker from '../../workers/query.worker';
 import * as fromQueryState from './query.state';
 

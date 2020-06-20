@@ -42,7 +42,7 @@ export const SobjectList: FunctionComponent<SobjectListProps> = ({ sobjects, sel
         </div>
       )}
       <div>
-        {filteredSobjects && (
+        {sobjects && filteredSobjects && (
           <Fragment>
             <div className="slds-p-bottom--xx-small">
               <SearchInput id="object-filter" placeholder="Filter Objects" onChange={setSearchTerm} />

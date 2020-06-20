@@ -27,6 +27,7 @@ import QueryLimit from './QueryOptions/QueryLimit';
 import QueryOrderBy from './QueryOptions/QueryOrderBy';
 import SoqlTextarea from './QueryOptions/SoqlTextarea';
 import QuerySObjects from './QuerySObjects';
+import QueryResetButton from './QueryOptions/QueryResetButton';
 
 // eslint-disable-next-line @typescript-eslint/no-empty-interface
 export interface QueryBuilderProps {}
@@ -36,6 +37,7 @@ export const QueryBuilder: FunctionComponent<QueryBuilderProps> = () => {
 
   const selectedSObject = useRecoilValue(fromQueryState.selectedSObjectState);
   const queryFieldsMap = useRecoilValue(fromQueryState.queryFieldsMapState);
+
   const [selectedFields, setSelectedFields] = useRecoilState(fromQueryState.selectedQueryFieldsState);
   const [filterFields, setFilterFields] = useRecoilState(fromQueryState.filterQueryFieldsState);
   const [soql, setSoql] = useRecoilState(fromQueryState.querySoqlState);
@@ -80,12 +82,13 @@ export const QueryBuilder: FunctionComponent<QueryBuilderProps> = () => {
           <PageHeaderRow>
             <PageHeaderTitle icon={{ type: 'action', icon: 'record' }} label="Query Records" />
             <PageHeaderActions colType="actions" buttonType="separate">
-              <button className={classNames('slds-button slds-button_neutral slds-button_last')} aria-haspopup="true" title="Favorites">
+              <QueryResetButton />
+              <button className={classNames('slds-button slds-button_neutral')} aria-haspopup="true" title="Favorites">
                 <Icon type="utility" icon="favorite" className="slds-button__icon slds-button__icon_left" omitContainer />
                 View Favorites
               </button>
               <button
-                className={classNames('slds-button slds-button_neutral slds-button_last', {
+                className={classNames('slds-button slds-button_neutral', {
                   'slds-is-selected': isFavorite && false,
                 })}
                 aria-haspopup="true"
