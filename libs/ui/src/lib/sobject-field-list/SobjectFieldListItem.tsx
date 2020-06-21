@@ -6,6 +6,7 @@ import { FieldWrapper, QueryFields } from '@jetstream/types';
 import Icon from '../widgets/Icon';
 import SobjectFieldList from './SobjectFieldList';
 import SobjectFieldListType from './SobjectFieldListType';
+import { getFieldKey } from '@jetstream/shared/ui-utils';
 
 export interface SobjectFieldListItemProps {
   level: number;
@@ -39,7 +40,8 @@ export const SobjectFieldListItem: FunctionComponent<SobjectFieldListItemProps> 
 
   useEffect(() => {
     if (field.relatedSobject) {
-      setRelationshipKey(`${parentKey}${field.metadata.relationshipName}.`);
+      // setRelationshipKey(`${parentKey}${field.metadata.relationshipName}.`);
+      setRelationshipKey(getFieldKey(parentKey, field.metadata));
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [field, field.relatedSobject]);

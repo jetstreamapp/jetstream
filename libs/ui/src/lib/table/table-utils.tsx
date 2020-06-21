@@ -7,8 +7,6 @@ import { Fragment, PropsWithChildren, ReactNode } from 'react';
 import { CellProps, Column, HeaderProps } from 'react-table';
 import DropDown from '../form/dropdown/DropDown';
 import Icon from '../widgets/Icon';
-import { REGEX } from '@jetstream/shared/utils';
-import { logger } from '@jetstream/shared/client-logger';
 import { QueryFieldHeader, SalesforceOrg } from '@jetstream/types';
 import { isBoolean } from 'lodash';
 import Checkbox from '../form/checkbox/Checkbox';
