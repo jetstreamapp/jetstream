@@ -47,7 +47,8 @@ export const queryFiltersState = atom<ExpressionType>({
       {
         key: 0,
         selected: {
-          resource: '',
+          resource: null,
+          resourceGroup: null,
           operator: 'eq',
           value: '',
         },

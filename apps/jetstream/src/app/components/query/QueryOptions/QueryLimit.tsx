@@ -4,6 +4,7 @@ import React, { FunctionComponent, useState, useEffect } from 'react';
 import { useRecoilState } from 'recoil';
 import * as fromQueryState from '../query.state';
 import { REGEX } from '@jetstream/shared/utils';
+import { logger } from '@jetstream/shared/client-logger';
 
 // eslint-disable-next-line @typescript-eslint/no-empty-interface
 export interface QueryLimitProps {}
@@ -12,7 +13,7 @@ function sanitize(value: string) {
   return value.replace(REGEX.NOT_UNSIGNED_NUMERIC, '');
 }
 
-export const QueryLimit: FunctionComponent<QueryLimitProps> = () => {
+export const QueryLimit: FunctionComponent<QueryLimitProps> = React.memo(() => {
   const [queryLimitState, setQueryLimitState] = useRecoilState(fromQueryState.queryLimit);
   const [queryLimitSkipState, setQueryLimitSkipState] = useRecoilState(fromQueryState.queryLimitSkip);
 
@@ -50,6 +51,6 @@ export const QueryLimit: FunctionComponent<QueryLimitProps> = () => {
       </Input>
     </div>
   );
-};
+});
 
 export default QueryLimit;

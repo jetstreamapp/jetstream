@@ -21,7 +21,7 @@ const nulls: ListItem<string, FirstLast | null>[] = [
   { id: 'nullsLast', label: 'Nulls Last', value: 'LAST' },
 ];
 
-export const QueryOrderByContainer: FunctionComponent<QueryOrderByContainerProps> = ({ fields }) => {
+export const QueryOrderByContainer: FunctionComponent<QueryOrderByContainerProps> = React.memo(({ fields }) => {
   const [orderByClauses, setOrderByClauses] = useRecoilState(fromQueryState.queryOrderByState);
   const [nextKey, setNextKey] = useState(1);
 
@@ -65,6 +65,6 @@ export const QueryOrderByContainer: FunctionComponent<QueryOrderByContainerProps
       </div>
     </Fragment>
   );
-};
+});
 
 export default QueryOrderByContainer;

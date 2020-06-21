@@ -139,6 +139,7 @@ export interface ExpressionConditionType {
 
 export interface ExpressionConditionRowSelectedItems {
   resource: string | null;
+  resourceGroup: string | null;
   operator: QueryFilterOperator | null;
   value: string;
 }

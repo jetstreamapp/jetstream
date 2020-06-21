@@ -6,7 +6,7 @@ import * as fromQueryState from '../query.state';
 // eslint-disable-next-line @typescript-eslint/no-empty-interface
 export interface SoqlTextareaProps {}
 
-export const SoqlTextarea: FunctionComponent<SoqlTextareaProps> = () => {
+export const SoqlTextarea: FunctionComponent<SoqlTextareaProps> = React.memo(() => {
   const soql = useRecoilValue(fromQueryState.querySoqlState);
 
   return (
@@ -14,6 +14,6 @@ export const SoqlTextarea: FunctionComponent<SoqlTextareaProps> = () => {
       <textarea className="slds-textarea" value={soql} disabled id="soql-textarea" cols={30} rows={10}></textarea>
     </Textarea>
   );
-};
+});
 
 export default SoqlTextarea;
