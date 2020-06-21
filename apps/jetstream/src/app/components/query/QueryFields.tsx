@@ -3,7 +3,7 @@ import { DescribeGlobalSObjectResult } from 'jsforce';
 import React, { Fragment, FunctionComponent, useEffect, useState } from 'react';
 import { FieldWrapper, QueryFields } from '@jetstream/types';
 import { SobjectFieldList } from '@jetstream/ui';
-import { sortQueryFieldsStr, fetchFields } from '@jetstream/shared/ui-utils';
+import { sortQueryFieldsStr, fetchFields, getFieldKey } from '@jetstream/shared/ui-utils';
 import { AutoFullHeightContainer } from '@jetstream/ui';
 import { useRecoilValue, useRecoilState } from 'recoil';
 import { selectedOrgState } from '../../app-state';
@@ -52,7 +52,7 @@ export const QueryFieldsComponent: FunctionComponent<QueryFieldsProps> = ({ sele
         setQueryFieldsKey(getQueryFieldKey(selectedOrg, selectedSObject));
         (async () => {
           tempQueryFieldsMap = { ...tempQueryFieldsMap };
-          tempQueryFieldsMap[BASE_KEY] = await fetchFields(selectedOrg, tempQueryFieldsMap[BASE_KEY]);
+          tempQueryFieldsMap[BASE_KEY] = await fetchFields(selectedOrg, tempQueryFieldsMap[BASE_KEY], BASE_KEY);
           tempQueryFieldsMap[BASE_KEY] = { ...tempQueryFieldsMap[BASE_KEY], loading: false };
           setQueryFieldsMap(tempQueryFieldsMap);
         })();
@@ -71,7 +71,8 @@ export const QueryFieldsComponent: FunctionComponent<QueryFieldsProps> = ({ sele
 
   async function handleToggleFieldExpand(parentKey: string, field: FieldWrapper) {
     // FIXME: should be centralized:
-    const key = `${parentKey}${field.metadata.relationshipName}.`;
+    // const key = `${parentKey}${field.metadata.relationshipName}.`;
+    const key = getFieldKey(parentKey, field.metadata);
     // if field is already initialized
     const clonedQueryFieldsMap = { ...queryFieldsMap };
     if (clonedQueryFieldsMap[key]) {
@@ -91,7 +92,7 @@ export const QueryFieldsComponent: FunctionComponent<QueryFieldsProps> = ({ sele
       // fetch fields and update once resolved
       (async () => {
         // TODO: what if object selection changed? may need to ensure key still exists
-        clonedQueryFieldsMap[key] = await fetchFields(selectedOrg, clonedQueryFieldsMap[key]);
+        clonedQueryFieldsMap[key] = await fetchFields(selectedOrg, clonedQueryFieldsMap[key], key);
         clonedQueryFieldsMap[key] = { ...clonedQueryFieldsMap[key], loading: false };
         setQueryFieldsMap(clonedQueryFieldsMap);
       })();
@@ -131,14 +132,18 @@ export const QueryFieldsComponent: FunctionComponent<QueryFieldsProps> = ({ sele
   function handleFieldFilterChanged(key: string, filterTerm: string) {
     if (queryFieldsMap[key] && queryFieldsMap[key].filterTerm !== filterTerm) {
       const clonedQueryFieldsMap = { ...queryFieldsMap };
-      const tempQueryField = { ...clonedQueryFieldsMap[key], filterTerm: filterTerm || '' };
+      const tempQueryField: QueryFields = { ...clonedQueryFieldsMap[key], filterTerm: filterTerm || '' };
       filterTerm = (filterTerm || '').toLocaleLowerCase();
       if (!filterTerm) {
         tempQueryField.visibleFields = new Set(Object.keys(tempQueryField.fields));
       } else {
         tempQueryField.visibleFields = new Set(
           Object.values(tempQueryField.fields)
-            .filter((field) => field.filterText.includes(filterTerm))
+            .filter(
+              (field) =>
+                field.filterText.includes(filterTerm) ||
+                (!!field.relationshipKey && queryFieldsMap[field.relationshipKey] && queryFieldsMap[field.relationshipKey].expanded)
+            )
             .map((field) => field.name)
         );
       }

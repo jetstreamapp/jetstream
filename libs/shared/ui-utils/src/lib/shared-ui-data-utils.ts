@@ -12,10 +12,14 @@ export function buildQuery(sObject: string, fields: string[]) {
   return composeQuery({ sObject, fields: fields.map((field) => getField(field)) }, { format: true });
 }
 
+export function getFieldKey(parentKey: string, field: Field) {
+  return `${parentKey}${field.relationshipName}.`;
+}
+
 /**
  * Fetch fields and add to queryFields
  */
-export async function fetchFields(org: SalesforceOrg, queryFields: QueryFields): Promise<QueryFields> {
+export async function fetchFields(org: SalesforceOrg, queryFields: QueryFields, parentKey: string): Promise<QueryFields> {
   const { sobject } = queryFields;
   const [describeResults, queryResults] = await Promise.all([
     describeSObject(org, sobject),
@@ -42,6 +46,7 @@ export async function fetchFields(org: SalesforceOrg, queryFields: QueryFields):
         filterText,
         metadata: field,
         fieldDefinition: fieldDefByApiName[field.name],
+        relationshipKey: field.type === 'reference' && field.referenceTo?.length ? getFieldKey(parentKey, field) : undefined,
       };
     }),
     'name'
