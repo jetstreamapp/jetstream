@@ -3,6 +3,7 @@
 import { jsx } from '@emotion/core';
 import { FunctionComponent, useState, useEffect } from 'react';
 import Input from '../input/Input';
+import { useDebounce } from '@jetstream/shared/ui-utils';
 
 export interface SearchInputProps {
   id: string;
@@ -12,9 +13,12 @@ export interface SearchInputProps {
 
 export const SearchInput: FunctionComponent<SearchInputProps> = ({ id, placeholder, onChange, children }) => {
   const [value, setValue] = useState<string>('');
+  const debouncedFilters = useDebounce(value);
+
   useEffect(() => {
-    onChange(value);
-  }, [onChange, value]);
+    onChange(debouncedFilters || '');
+  }, [onChange, debouncedFilters]);
+
   return (
     <Input iconLeft="search" iconLeftType="utility" clearButton={!!value} onClear={() => setValue('')}>
       <input
