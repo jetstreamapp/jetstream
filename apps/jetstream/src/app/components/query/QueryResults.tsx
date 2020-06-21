@@ -207,7 +207,7 @@ export const QueryResults: FunctionComponent<QueryResultsProps> = () => {
               </pre>
             </div>
           )}
-          {records && records.length && (
+          {records && !!records.length && (
             <Fragment>
               <div className="slds-grid slds-p-around_xx-small">
                 <div className="slds-col">
