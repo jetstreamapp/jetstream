@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import './index.scss';
-import logo from '../assets/jetstream-logo-v1-200w.png';
+import logo from '../assets/images/jetstream-logo-v1-200w.png';
 import { signUpNotify } from '@jetstream/shared/data';
 import { REGEX } from '@jetstream/shared/utils';
 import classNames from 'classnames';

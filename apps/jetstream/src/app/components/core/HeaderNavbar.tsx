@@ -2,7 +2,7 @@
 import { css, jsx } from '@emotion/core';
 import { UserProfile } from '@jetstream/types';
 import { Header, Navbar, NavbarItem } from '@jetstream/ui';
-import Logo from '../../../assets/jetstream-logo-v1-200w.png';
+import Logo from '../../../assets/images/jetstream-logo-v1-200w.png';
 import OrgsDropdown from '../orgs/OrgsDropdown';
 import { FunctionComponent } from 'react';
 import { useRecoilState } from 'recoil';

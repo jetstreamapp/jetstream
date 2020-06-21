@@ -17,7 +17,7 @@ services:
       - db_data:/var/lib/postgresql/data
 
   fusionauth:
-    image: fusionauth/fusionauth-app:latest
+    build: .
     depends_on:
       - db
     environment:
