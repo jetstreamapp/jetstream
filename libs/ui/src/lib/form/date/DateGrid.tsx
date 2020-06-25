@@ -4,6 +4,7 @@ import { jsx } from '@emotion/core';
 import classNames from 'classnames';
 import moment from 'moment-mini';
 import { FunctionComponent, useEffect, useState } from 'react';
+import { isNumber } from 'lodash';
 
 interface DateGridDate {
   label: number;
@@ -26,7 +27,7 @@ export const DateGrid: FunctionComponent<DateGridProps> = ({ currMonth, currYear
   // Calculate date grid for a 5 week period
   useEffect(() => {
     let date: moment.Moment;
-    if (currMonth && currYear) {
+    if (isNumber(currMonth) && isNumber(currYear)) {
       date = moment().month(currMonth).year(currYear).startOf('month');
     } else {
       date = moment().startOf('month');
