@@ -1,19 +1,50 @@
-import React, { FunctionComponent } from 'react';
+import React, { FunctionComponent, Fragment } from 'react';
+import HelpText from '../../widgets/HelpText';
 
 export interface TextareaProps {
   id: string;
   label?: string;
+  labelHelp?: string;
+  helpText?: React.ReactNode | string;
+  hasError?: boolean;
+  isRequired?: boolean;
+  errorMessageId?: string;
+  errorMessage?: React.ReactNode | string;
 }
 
-export const Textarea: FunctionComponent<TextareaProps> = ({ id, label, children }) => {
+export const Textarea: FunctionComponent<TextareaProps> = ({
+  id,
+  label,
+  labelHelp,
+  helpText,
+  hasError,
+  isRequired,
+  errorMessageId,
+  errorMessage,
+  children,
+}) => {
   return (
     <div className="slds-form-element">
       {label && (
-        <label className="slds-form-element__label" htmlFor={id}>
-          {label}
-        </label>
+        <Fragment>
+          <label className="slds-form-element__label" htmlFor={id}>
+            {isRequired && (
+              <abbr className="slds-required" title="required">
+                *{' '}
+              </abbr>
+            )}
+            {label}
+          </label>
+          {labelHelp && <HelpText id={`${id}-label-help-text`} content={labelHelp} />}
+        </Fragment>
       )}
       <div className="slds-form-element__control">{children}</div>
+      {helpText && <div className="slds-form-element__help">{helpText}</div>}
+      {hasError && errorMessage && (
+        <div className="slds-form-element__help" id={errorMessageId}>
+          {errorMessage}
+        </div>
+      )}
     </div>
   );
 };

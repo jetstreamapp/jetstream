@@ -12,17 +12,17 @@ export interface InputProps {
   className?: string;
   label?: string;
   labelHelp?: string;
-  helpText?: JSX.Element | string;
+  helpText?: React.ReactNode | string;
   hasError?: boolean;
   isRequired?: boolean;
   errorMessageId?: string;
-  errorMessage?: JSX.Element | string;
+  errorMessage?: React.ReactNode | string;
   iconLeft?: string;
   iconLeftType?: IconType;
   iconRight?: string;
   iconRightType?: IconType;
-  leftAddon?: JSX.Element | string;
-  rightAddon?: JSX.Element | string;
+  leftAddon?: React.ReactNode | string;
+  rightAddon?: React.ReactNode | string;
   clearButton?: boolean;
   onClear?: () => void;
 }
@@ -93,18 +93,10 @@ export const Input: FunctionComponent<InputProps> = ({
             className="slds-icon slds-input__icon slds-icon-text-default slds-input__icon_right"
           />
         )}
-        {leftAddon && (
-          <span className="slds-form-element__addon" id="fixed-text-addon-pre">
-            {leftAddon}
-          </span>
-        )}
+        {leftAddon && <span className="slds-form-element__addon">{leftAddon}</span>}
         {/* Input field must be passed through */}
         {children}
-        {rightAddon && (
-          <span className="slds-form-element__addon" id="fixed-text-addon-post">
-            {rightAddon}
-          </span>
-        )}
+        {rightAddon && <span className="slds-form-element__addon">{rightAddon}</span>}
         {!rightAddon && clearButton && (
           <button className="slds-button slds-button_icon slds-input__icon slds-input__icon_right" title="Clear" onClick={onClear}>
             <Icon type="utility" icon="clear" omitContainer className="slds-button__icon slds-icon-text-light" />

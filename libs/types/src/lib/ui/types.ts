@@ -108,13 +108,20 @@ export interface ListItemGroup {
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-export interface ListItem<T = string, V = any> {
+export interface ListItem<V = string, M = any> {
   id: string;
   label: string;
   secondaryLabel?: string;
-  value: T;
-  meta?: V;
+  value: V;
+  meta?: M;
 }
+
+export type Select = 'SELECT';
+export type Text = 'TEXT';
+export type TextArea = 'TEXTAREA';
+export type Date = 'DATE';
+export type Datetime = 'DATETIME';
+export type SelectTextTextAreaDateDateTime = Select | Text | TextArea | Date | Datetime;
 
 export type AndOr = 'AND' | 'OR';
 export type AscDesc = 'ASC' | 'DESC';
@@ -134,14 +141,26 @@ export interface ExpressionGroupType {
 
 export interface ExpressionConditionType {
   key: number;
+  resourceTypes?: ListItem<SelectTextTextAreaDateDateTime>[];
+  resourceType?: SelectTextTextAreaDateDateTime;
+  resourceSelectItems?: ListItem[];
   selected: ExpressionConditionRowSelectedItems;
 }
 
 export interface ExpressionConditionRowSelectedItems {
   resource: string | null;
   resourceGroup: string | null;
+  resourceType?: SelectTextTextAreaDateDateTime;
   operator: QueryFilterOperator | null;
   value: string;
+}
+
+export interface ExpressionGetResourceTypeFns {
+  // used to allow user selection of multiple types - if provided, adds dropdown before value
+  getTypes?: (selected: ExpressionConditionRowSelectedItems) => ListItem<SelectTextTextAreaDateDateTime>[];
+  getType: (selected: ExpressionConditionRowSelectedItems) => SelectTextTextAreaDateDateTime;
+  // used if getType returns select, which shows the user a dropdown
+  getSelectItems: (selected: ExpressionConditionRowSelectedItems) => ListItem[] | undefined;
 }
 
 export type QueryFilterOperator =
@@ -184,4 +203,10 @@ export interface QueryFieldHeader {
   accessor: string;
   title: string;
   columnMetadata: QueryResultsColumn;
+}
+
+export interface FormGroupDropdownItem {
+  id: string;
+  label: string;
+  icon: IconObj;
 }

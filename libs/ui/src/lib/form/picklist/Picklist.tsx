@@ -14,9 +14,10 @@ export interface PicklistProps {
   label: string;
   helpText?: string;
   placeholder?: string;
-  items?: ListItem[];
+  items: ListItem[];
   groups?: ListItemGroup[];
   selectedItems?: ListItem[]; // This only applies on initialization, then the component will manage ongoing state
+  selectedItemIds?: string[]; // This only applies on initialization, will be ignored if selectedItems is provided
   multiSelection?: boolean;
   allowDeselection?: boolean;
   scrollLength?: 5 | 7 | 10;
@@ -31,6 +32,7 @@ export const Picklist: FunctionComponent<PicklistProps> = ({
   items,
   groups,
   selectedItems = [],
+  selectedItemIds = [],
   multiSelection = false,
   allowDeselection = true,
   scrollLength,
@@ -40,7 +42,18 @@ export const Picklist: FunctionComponent<PicklistProps> = ({
   const [listboxId] = useState<string>(uniqueId('listbox'));
   const [isOpen, setIsOpen] = useState<boolean>(false);
   const [selectedItemText, setSelectedItemText] = useState<string>();
-  const [selectedItemsSet, setSelectedItemsSet] = useState<Set<ListItem>>(new Set(selectedItems));
+  const [selectedItemsSet, setSelectedItemsSet] = useState<Set<ListItem>>(() => {
+    let selectedItemIdsSet = new Set();
+    if (selectedItems && selectedItems.length > 0) {
+      selectedItemIdsSet = new Set(selectedItems.map((item) => item.id));
+    } else if (selectedItemIds && selectedItemIds.length > 0) {
+      selectedItemIdsSet = new Set(selectedItemIds);
+    }
+    if (selectedItemIdsSet.size > 0) {
+      return new Set(items.filter((item) => selectedItemIdsSet.has(item.id)));
+    }
+    return new Set();
+  });
   const scrollLengthClass = useMemo<string | undefined>(() => (scrollLength ? `slds-dropdown_length-${scrollLength}` : undefined), [
     scrollLength,
   ]);

@@ -1,12 +1,14 @@
+/* eslint-disable @typescript-eslint/camelcase */
 import * as winston from 'winston';
 
+import { YYYY_MM_DD__HH_mm_ss } from '@jetstream/shared/constants';
 const { createLogger, format, transports } = winston;
 
 export const logger = createLogger({
   level: 'debug',
   format: format.combine(
     format.timestamp({
-      format: 'YYYY-MM-DD HH:mm:ss',
+      format: YYYY_MM_DD__HH_mm_ss,
     }),
     format.errors({ stack: true }),
     format.splat(),

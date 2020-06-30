@@ -26,3 +26,7 @@ export const MIME_TYPES: MapOf<MimeType> = {
   PLAN_TEXT: 'text/plain;charset=utf-8',
   CSV: 'text/csv;charset=utf-8',
 };
+
+export const YYYY_MM_DD = 'YYYY-MM-DD';
+// eslint-disable-next-line @typescript-eslint/camelcase
+export const YYYY_MM_DD__HH_mm_ss = 'YYYY-MM-DD HH:mm:ss';

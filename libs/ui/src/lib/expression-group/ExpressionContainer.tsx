@@ -6,11 +6,13 @@ import {
   ExpressionType,
   ListItem,
   ListItemGroup,
+  ExpressionGetResourceTypeFns,
 } from '@jetstream/types';
 import React, { FunctionComponent, useEffect, useState } from 'react';
 import Expression from './Expression';
 import ExpressionConditionRow from './ExpressionConditionRow';
 import ExpressionGroup from './ExpressionGroup';
+import { logger } from '@jetstream/shared/client-logger';
 
 export interface ExpressionContainerProps {
   title?: string;
@@ -25,6 +27,9 @@ export interface ExpressionContainerProps {
   resources: ListItemGroup[];
   operators: ListItem[];
   expressionInitValue?: ExpressionType;
+  // used to optionally change input type of value based on the selected resource
+  // if declared, these are called any time the resource changes
+  getResourceTypeFns?: ExpressionGetResourceTypeFns;
   onChange: (expression: ExpressionType) => void;
 }
 
@@ -45,6 +50,7 @@ function initExpression(expression?: ExpressionType): ExpressionType {
 function initRow(key: number): ExpressionConditionType {
   return {
     key,
+    resourceType: 'TEXT',
     selected: {
       resource: null,
       resourceGroup: null,
@@ -76,6 +82,7 @@ export const ExpressionContainer: FunctionComponent<ExpressionContainerProps> = 
     resources,
     operators,
     expressionInitValue,
+    getResourceTypeFns,
     onChange,
   }) => {
     const [expression, setExpression] = useState<ExpressionType>(() => initExpression(expressionInitValue));
@@ -142,17 +149,48 @@ export const ExpressionContainer: FunctionComponent<ExpressionContainerProps> = 
             clonedExpression.groups = [...clonedExpression.groups];
             clonedExpression.groups[groupIdx] = { ...clonedExpression.groups[groupIdx] };
             clonedExpression.groups[groupIdx].rows = [...clonedExpression.groups[groupIdx].rows];
+
+            const resourceChanged =
+              clonedExpression.rows[rowIdx].selected.resource !== selected.resource ||
+              clonedExpression.rows[rowIdx].selected.resourceType !== selected.resourceType;
+
             clonedExpression.groups[groupIdx].rows[rowIdx] = { ...clonedExpression.groups[groupIdx].rows[rowIdx], selected };
+
+            if (resourceChanged) {
+              if (resourceChanged) {
+                updateResourcesOnRow(clonedExpression.rows[rowIdx], selected);
+              }
+            }
           }
         }
       } else {
         const rowIdx = clonedExpression.rows.findIndex((item) => item.key === row.key);
         if (rowIdx >= 0) {
+          const resourceChanged =
+            clonedExpression.rows[rowIdx].selected.resource !== selected.resource ||
+            clonedExpression.rows[rowIdx].selected.resourceType !== selected.resourceType;
+
           clonedExpression.rows = [...clonedExpression.rows];
           clonedExpression.rows[rowIdx] = { ...clonedExpression.rows[rowIdx], selected };
+
+          if (resourceChanged) {
+            updateResourcesOnRow(clonedExpression.rows[rowIdx], selected);
+          }
         }
       }
       setExpression(clonedExpression);
+    }
+
+    function updateResourcesOnRow(mutableRow: ExpressionConditionType, selected: ExpressionConditionRowSelectedItems) {
+      if (getResourceTypeFns) {
+        try {
+          mutableRow.resourceTypes = getResourceTypeFns.getTypes ? getResourceTypeFns.getTypes(selected) : undefined;
+          mutableRow.resourceType = getResourceTypeFns.getType(selected);
+          mutableRow.resourceSelectItems = getResourceTypeFns.getSelectItems(selected);
+        } catch (ex) {
+          logger.warn('Error setting resource type or selected items', ex);
+        }
+      }
     }
 
     function handleDeleteRow(row: ExpressionConditionType, group?: ExpressionGroupType) {
@@ -192,6 +230,9 @@ export const ExpressionContainer: FunctionComponent<ExpressionContainerProps> = 
           <ExpressionConditionRow
             key={row.key}
             row={i + 1}
+            resourceTypes={row.resourceTypes}
+            resourceType={row.resourceType}
+            resourceSelectItems={row.resourceSelectItems}
             resourceLabel={resourceLabel}
             resourceHelpText={resourceHelpText}
             operatorLabel={operatorLabel}
@@ -219,6 +260,9 @@ export const ExpressionContainer: FunctionComponent<ExpressionContainerProps> = 
                 key={row.key}
                 group={i + 1}
                 row={k + 1}
+                resourceTypes={row.resourceTypes}
+                resourceType={row.resourceType}
+                resourceSelectItems={row.resourceSelectItems}
                 AndOr={group.action}
                 resourceLabel={resourceLabel}
                 resourceHelpText={resourceHelpText}

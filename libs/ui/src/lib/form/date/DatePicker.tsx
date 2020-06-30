@@ -9,6 +9,7 @@ import DatePickerPopup from './DatePickerPopup';
 import OutsideClickHandler from '../../utils/OutsideClickHandler';
 
 export interface DatePickerProps {
+  className?: string;
   label: string;
   hideLabel?: boolean;
   initialSelectedDate?: moment.Moment;
@@ -18,6 +19,7 @@ export interface DatePickerProps {
 }
 
 export const DatePicker: FunctionComponent<DatePickerProps> = ({
+  className,
   label,
   hideLabel,
   initialSelectedDate,
@@ -25,9 +27,13 @@ export const DatePicker: FunctionComponent<DatePickerProps> = ({
   availableYears,
   onChange,
 }) => {
+  initialSelectedDate = initialSelectedDate && initialSelectedDate.isValid() ? initialSelectedDate : undefined;
+  initialVisibleDate = initialVisibleDate && initialVisibleDate.isValid() ? initialVisibleDate : undefined;
   const [id] = useState<string>(`date-picker-${Date.now()}`); // used to avoid auto-complete
   const [value, setValue] = useState<string>('');
-  const [selectedDate, setSelectedDate] = useState(() => initialSelectedDate);
+  const [selectedDate, setSelectedDate] = useState(() =>
+    initialSelectedDate && initialSelectedDate.isValid() ? initialSelectedDate : undefined
+  );
   const [isOpen, setIsOpen] = useState(false);
 
   useEffect(() => {
@@ -68,7 +74,9 @@ export const DatePicker: FunctionComponent<DatePickerProps> = ({
   }
 
   return (
-    <div className={classNames('slds-form-element slds-dropdown-trigger slds-dropdown-trigger_click', { 'slds-is-open': isOpen })}>
+    <div
+      className={classNames('slds-form-element slds-dropdown-trigger slds-dropdown-trigger_click', { 'slds-is-open': isOpen }, className)}
+    >
       <label className={classNames('slds-form-element__label', { 'slds-assistive-text': hideLabel })} htmlFor={id}>
         {label}
       </label>
