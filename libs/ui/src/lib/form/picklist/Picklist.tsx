@@ -42,49 +42,51 @@ export const Picklist: FunctionComponent<PicklistProps> = ({
   const [listboxId] = useState<string>(uniqueId('listbox'));
   const [isOpen, setIsOpen] = useState<boolean>(false);
   const [selectedItemText, setSelectedItemText] = useState<string>();
-  const [selectedItemsSet, setSelectedItemsSet] = useState<Set<ListItem>>(() => {
+  const [selectedItemsIdsSet, setSelectedItemsIdsSet] = useState<Set<unknown>>(() => {
     let selectedItemIdsSet = new Set();
     if (selectedItems && selectedItems.length > 0) {
       selectedItemIdsSet = new Set(selectedItems.map((item) => item.id));
     } else if (selectedItemIds && selectedItemIds.length > 0) {
       selectedItemIdsSet = new Set(selectedItemIds);
     }
-    if (selectedItemIdsSet.size > 0) {
-      return new Set(items.filter((item) => selectedItemIdsSet.has(item.id)));
-    }
-    return new Set();
+    return selectedItemIdsSet;
   });
   const scrollLengthClass = useMemo<string | undefined>(() => (scrollLength ? `slds-dropdown_length-${scrollLength}` : undefined), [
     scrollLength,
   ]);
 
   useEffect(() => {
-    if (selectedItemsSet.size > 1) {
-      setSelectedItemText(`${selectedItemsSet.size} Options Selected`);
-    } else if (selectedItemsSet.size === 1) {
-      setSelectedItemText(Array.from(selectedItemsSet)[0].label);
+    if (selectedItemsIdsSet.size > 1) {
+      setSelectedItemText(`${selectedItemsIdsSet.size} Options Selected`);
+    } else if (selectedItemsIdsSet.size === 1) {
+      const foundItem = items.find((item) => selectedItemsIdsSet.has(item.id));
+      if (foundItem) {
+        setSelectedItemText(foundItem.label);
+      } else {
+        setSelectedItemText('');
+      }
     } else {
       setSelectedItemText('');
     }
-  }, [selectedItemsSet]);
+  }, [selectedItemsIdsSet, items]);
 
   function handleSelection(item: ListItem) {
-    const hasItem = selectedItemsSet.has(item);
-    if (hasItem && (selectedItemsSet.size > 1 || allowDeselection)) {
-      selectedItemsSet.delete(item);
+    const hasItem = selectedItemsIdsSet.has(item.id);
+    if (hasItem && (selectedItemsIdsSet.size > 1 || allowDeselection)) {
+      selectedItemsIdsSet.delete(item.id);
     } else {
       if (!multiSelection) {
-        selectedItemsSet.clear();
+        selectedItemsIdsSet.clear();
         // if user clicked on new item in list, close
         if (!hasItem) {
           setIsOpen(false);
         }
       }
-      selectedItemsSet.add(item);
+      selectedItemsIdsSet.add(item.id);
     }
 
-    setSelectedItemsSet(new Set(selectedItemsSet));
-    onChange(Array.from(selectedItemsSet));
+    setSelectedItemsIdsSet(new Set(selectedItemsIdsSet));
+    onChange(items.filter((item) => selectedItemsIdsSet.has(item.id)));
   }
 
   return (
@@ -139,7 +141,7 @@ export const Picklist: FunctionComponent<PicklistProps> = ({
                         label={item.label}
                         secondaryLabel={item.secondaryLabel}
                         value={item.value}
-                        isSelected={selectedItemsSet.has(item)}
+                        isSelected={selectedItemsIdsSet.has(item.id)}
                         onClick={() => handleSelection(item)}
                       />
                     ))}
@@ -161,7 +163,7 @@ export const Picklist: FunctionComponent<PicklistProps> = ({
                           id={item.id}
                           label={item.label}
                           value={item.value}
-                          isSelected={selectedItemsSet.has(item)}
+                          isSelected={selectedItemsIdsSet.has(item.id)}
                           onClick={() => handleSelection(item)}
                         />
                       ))}
@@ -170,7 +172,7 @@ export const Picklist: FunctionComponent<PicklistProps> = ({
               </div>
             </div>
           </div>
-          {multiSelection && selectedItemsSet.size > 0 && (
+          {multiSelection && selectedItemsIdsSet.size > 0 && (
             <div className="slds-listbox_selection-group">
               <ul
                 className="slds-listbox slds-listbox_horizontal"
@@ -179,9 +181,11 @@ export const Picklist: FunctionComponent<PicklistProps> = ({
                 aria-orientation="horizontal"
               >
                 <li className="slds-listbox-item" role="presentation">
-                  {Array.from(selectedItemsSet).map((item) => (
-                    <Pill label={item.label} onRemove={() => handleSelection(item)} />
-                  ))}
+                  {items
+                    .filter((item) => selectedItemsIdsSet.has(item.id))
+                    .map((item) => (
+                      <Pill label={item.label} onRemove={() => handleSelection(item)} />
+                    ))}
                 </li>
               </ul>
             </div>

@@ -65,10 +65,10 @@ export const ExpressionConditionRow: FunctionComponent<ExpressionConditionRowPro
     onDelete,
   }) => {
     const [visibleResources, setVisibleResources] = useState<ListItemGroup[]>(resources);
-    const [selectedResourceType, setSelectedResourceType] = useState<ListItem<SelectTextTextAreaDateDateTime>[]>([]);
+    const [selectedResourceType, setSelectedResourceType] = useState<ListItem<SelectTextTextAreaDateDateTime>[]>();
     const [resourcesFilter, setResourcesFilter] = useState<string>(null);
     const [selectedValue, setSelectValue] = useState(selected.value);
-    const [initialSelectedOperator] = useState(operators.find((item) => item.id === selected.operator) || operators[0]);
+    const [initialSelectedOperator] = useState(() => operators.find((item) => item.id === selected.operator) || operators[0]);
     const [selectedResourceComboboxLabel, setSelectedResourceComboboxLabel] = useState<string>(() => {
       if (selected.resource) {
         const group = resources.find((currResource) => currResource.id === selected.resourceGroup);
