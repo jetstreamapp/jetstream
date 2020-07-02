@@ -5,11 +5,13 @@ import moment from 'moment-mini';
 import { FunctionComponent, useState, useEffect } from 'react';
 import DateGrid from './DateGrid';
 import DateGridPrevNextSelector from './DateGridPrevNextSelector';
+import { PositionLeftRight } from '@jetstream/types';
 
 export interface DatePickerPopupProps {
   initialSelectedDate?: moment.Moment;
   initialVisibleDate?: moment.Moment;
   availableYears?: number[];
+  dropDownPosition?: PositionLeftRight;
   onSelection: (date: moment.Moment) => void;
 }
 
@@ -17,6 +19,7 @@ export const DatePickerPopup: FunctionComponent<DatePickerPopupProps> = ({
   initialSelectedDate,
   initialVisibleDate = moment().startOf('month'),
   availableYears,
+  dropDownPosition = 'left',
   onSelection,
 }) => {
   const [selectedDate, setSelectedDate] = useState(() => initialSelectedDate);
@@ -44,7 +47,7 @@ export const DatePickerPopup: FunctionComponent<DatePickerPopupProps> = ({
     <div
       aria-hidden="false"
       aria-label={`Date picker: ${visibleMonth}`}
-      className="slds-datepicker slds-dropdown slds-dropdown_left"
+      className={`slds-datepicker slds-dropdown slds-dropdown_${dropDownPosition}`}
       role="dialog"
     >
       <DateGridPrevNextSelector

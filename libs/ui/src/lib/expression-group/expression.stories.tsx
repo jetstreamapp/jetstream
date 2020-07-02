@@ -8,7 +8,7 @@ import {
   ListItemGroup,
   QueryFilterOperator,
   ExpressionConditionRowSelectedItems,
-  SelectTextTextAreaDateDateTime,
+  ExpressionRowValueType,
   ExpressionGetResourceTypeFns,
 } from '@jetstream/types';
 
@@ -143,7 +143,7 @@ export const changeValueInputBasedOnResource = () => {
   }
 
   const getResourceTypeFns: ExpressionGetResourceTypeFns = {
-    getTypes: (selected: ExpressionConditionRowSelectedItems): ListItem<SelectTextTextAreaDateDateTime>[] => {
+    getTypes: (selected: ExpressionConditionRowSelectedItems): ListItem<ExpressionRowValueType>[] => {
       const meta = findResourceMeta(selected);
       if (meta.type === 'Date') {
         return [
@@ -174,7 +174,7 @@ export const changeValueInputBasedOnResource = () => {
       }
       return undefined;
     },
-    getType: (selected: ExpressionConditionRowSelectedItems): SelectTextTextAreaDateDateTime => {
+    getType: (selected: ExpressionConditionRowSelectedItems): ExpressionRowValueType => {
       const meta = findResourceMeta(selected);
       // TODO: can also take selected.operator into account as well
       if (selected.resourceType) {

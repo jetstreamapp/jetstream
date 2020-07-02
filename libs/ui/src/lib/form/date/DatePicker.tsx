@@ -7,6 +7,7 @@ import { ChangeEvent, FunctionComponent, useEffect, useState } from 'react';
 import Icon from '../../widgets/Icon';
 import DatePickerPopup from './DatePickerPopup';
 import OutsideClickHandler from '../../utils/OutsideClickHandler';
+import { PositionLeftRight } from '@jetstream/types';
 
 export interface DatePickerProps {
   className?: string;
@@ -15,6 +16,7 @@ export interface DatePickerProps {
   initialSelectedDate?: moment.Moment;
   initialVisibleDate?: moment.Moment;
   availableYears?: number[];
+  dropDownPosition?: PositionLeftRight;
   onChange: (date: moment.Moment) => void;
 }
 
@@ -25,6 +27,7 @@ export const DatePicker: FunctionComponent<DatePickerProps> = ({
   initialSelectedDate,
   initialVisibleDate,
   availableYears,
+  dropDownPosition,
   onChange,
 }) => {
   initialSelectedDate = initialSelectedDate && initialSelectedDate.isValid() ? initialSelectedDate : undefined;
@@ -105,6 +108,7 @@ export const DatePicker: FunctionComponent<DatePickerProps> = ({
             initialSelectedDate={selectedDate}
             initialVisibleDate={initialVisibleDate || selectedDate}
             availableYears={availableYears}
+            dropDownPosition={dropDownPosition}
             onSelection={handleDateSelection}
           />
         )}

@@ -6,13 +6,14 @@ import {
   ListItemGroup,
   ExpressionGetResourceTypeFns,
   ExpressionConditionRowSelectedItems,
-  SelectTextTextAreaDateDateTime,
+  ExpressionRowValueType,
 } from '@jetstream/types';
 import { ExpressionContainer } from '@jetstream/ui';
 import React, { FunctionComponent, useState, useEffect } from 'react';
 import * as fromQueryState from '../query.state';
 import { useRecoilState } from 'recoil';
 import { Field } from 'jsforce';
+import { getDateLiteralListItems, getBooleanListItems, getPicklistListItems } from '@jetstream/shared/ui-utils';
 
 export interface QueryFilterProps {
   fields: ListItemGroup[];
@@ -31,6 +32,8 @@ const operators: ListItem<string, QueryFilterOperator>[] = [
   { id: 'doesNotStartWith', label: 'Does Not Start With', value: 'doesNotStartWith' },
   { id: 'endsWith', label: 'Ends With', value: 'endsWith' },
   { id: 'doesNotEndWith', label: 'Does Not End With', value: 'doesNotEndWith' },
+  { id: 'isNull', label: 'Is Null', value: 'isNull' },
+  { id: 'isNotNull', label: 'Is Not Null', value: 'isNotNull' },
   { id: 'in', label: 'In', value: 'in' },
   { id: 'notIn', label: 'Not In', value: 'notIn' },
   { id: 'includes', label: 'Includes', value: 'includes' },
@@ -43,7 +46,7 @@ function findResourceMeta(fields: ListItemGroup[], selected: ExpressionCondition
 
 function resourceTypeFns(fields: ListItemGroup[]) {
   const getResourceTypeFns: ExpressionGetResourceTypeFns = {
-    getTypes: (selected: ExpressionConditionRowSelectedItems): ListItem<SelectTextTextAreaDateDateTime>[] => {
+    getTypes: (selected: ExpressionConditionRowSelectedItems): ListItem<ExpressionRowValueType>[] => {
       const fieldMeta: Field = findResourceMeta(fields, selected);
       if (fieldMeta.type === 'date') {
         return [
@@ -74,7 +77,7 @@ function resourceTypeFns(fields: ListItemGroup[]) {
       }
       return undefined;
     },
-    getType: (selected: ExpressionConditionRowSelectedItems): SelectTextTextAreaDateDateTime => {
+    getType: (selected: ExpressionConditionRowSelectedItems): ExpressionRowValueType => {
       const fieldMeta: Field = findResourceMeta(fields, selected);
       // TODO: can also take selected.operator into account as well
       // e.x. IN or NOT NULL
@@ -98,6 +101,14 @@ function resourceTypeFns(fields: ListItemGroup[]) {
         case 'multipicklist':
           return 'SELECT';
         default:
+          if (
+            selected.operator === 'in' ||
+            selected.operator === 'notIn' ||
+            selected.operator === 'includes' ||
+            selected.operator === 'excludes'
+          ) {
+            return 'TEXTAREA';
+          }
           return 'TEXT';
       }
     },
@@ -106,46 +117,12 @@ function resourceTypeFns(fields: ListItemGroup[]) {
       switch (fieldMeta.type) {
         case 'date':
         case 'datetime':
-          return [
-            {
-              id: 'TODAY',
-              label: 'TODAY',
-              value: 'TODAY',
-            },
-            {
-              id: 'YESTERDAY',
-              label: 'YESTERDAY',
-              value: 'YESTERDAY',
-            },
-          ];
+          return getDateLiteralListItems();
         case 'boolean':
-          return [
-            {
-              id: 'True',
-              label: 'True',
-              value: 'True',
-            },
-            {
-              id: 'False',
-              label: 'False',
-              value: 'False',
-            },
-          ];
+          return getBooleanListItems();
         case 'picklist':
         case 'multipicklist':
-          return [
-            {
-              id: '~~empty~~',
-              label: `-- No Value --`,
-              value: '',
-            },
-          ].concat(
-            fieldMeta.picklistValues.map((item) => ({
-              id: item.value,
-              label: item.label || item.value,
-              value: item.value,
-            }))
-          );
+          return getPicklistListItems(fieldMeta);
         default:
           return [];
       }

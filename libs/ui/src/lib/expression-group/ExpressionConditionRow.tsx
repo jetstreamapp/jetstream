@@ -4,7 +4,7 @@ import {
   ListItem,
   ListItemGroup,
   QueryFilterOperator,
-  SelectTextTextAreaDateDateTime,
+  ExpressionRowValueType,
 } from '@jetstream/types';
 import classNames from 'classnames';
 import isNumber from 'lodash/isNumber';
@@ -18,7 +18,7 @@ import { ComboboxListItemGroup } from '../form/combobox/ComboboxListItemGroup';
 import FormRowButton from '../form/button/FormRowButton';
 import DatePicker from '../form/date/DatePicker';
 import moment from 'moment-mini';
-import { YYYY_MM_DD } from '@jetstream/shared/constants';
+import { YYYY_MM_DD, YYYY_MM_DD_HH_mm_ss_z } from '@jetstream/shared/constants';
 
 export interface ExpressionConditionRowProps {
   row: number;
@@ -33,8 +33,8 @@ export interface ExpressionConditionRowProps {
   resources: ListItemGroup[];
   operators: ListItem<string, QueryFilterOperator>[];
   selected: ExpressionConditionRowSelectedItems;
-  resourceTypes?: ListItem<SelectTextTextAreaDateDateTime>[];
-  resourceType?: SelectTextTextAreaDateDateTime;
+  resourceTypes?: ListItem<ExpressionRowValueType>[];
+  resourceType?: ExpressionRowValueType;
   resourceSelectItems?: ListItem[];
   onChange: (selected: ExpressionConditionRowSelectedItems) => void;
   onDelete: () => void;
@@ -65,7 +65,7 @@ export const ExpressionConditionRow: FunctionComponent<ExpressionConditionRowPro
     onDelete,
   }) => {
     const [visibleResources, setVisibleResources] = useState<ListItemGroup[]>(resources);
-    const [selectedResourceType, setSelectedResourceType] = useState<ListItem<SelectTextTextAreaDateDateTime>[]>();
+    const [selectedResourceType, setSelectedResourceType] = useState<ListItem<ExpressionRowValueType>[]>();
     const [resourcesFilter, setResourcesFilter] = useState<string>(null);
     const [selectedValue, setSelectValue] = useState(selected.value);
     const [initialSelectedOperator] = useState(() => operators.find((item) => item.id === selected.operator) || operators[0]);
@@ -87,7 +87,7 @@ export const ExpressionConditionRow: FunctionComponent<ExpressionConditionRowPro
     }, [selectedValue]);
 
     useEffect(() => {
-      let selectedType: ListItem<SelectTextTextAreaDateDateTime>;
+      let selectedType: ListItem<ExpressionRowValueType>;
       if (resourceTypes?.length) {
         selectedType = resourceTypes.find((type) => type.value === resourceType) || resourceTypes[0];
         setSelectedResourceType([selectedType]);
@@ -119,10 +119,10 @@ export const ExpressionConditionRow: FunctionComponent<ExpressionConditionRowPro
       }
     }, [resources, resourcesFilter]);
 
-    function handleSelectedResource(type: ListItem<SelectTextTextAreaDateDateTime>[]) {
+    function handleSelectedResource(type: ListItem<ExpressionRowValueType>[]) {
       setSelectedResourceType(type);
       if (type && type[0] && selected.resourceType !== type[0].value) {
-        onChange({ ...selected, resourceType: type[0].value });
+        onChange({ ...selected, resourceType: type[0].value, resourceSelectedItemType: type[0].id });
       }
     }
 
@@ -156,7 +156,7 @@ export const ExpressionConditionRow: FunctionComponent<ExpressionConditionRowPro
                           selected={item.id === selected.resource}
                           onSelection={(id) => {
                             setSelectedResourceComboboxLabel(getSelectionLabel(group.label, item));
-                            onChange({ ...selected, resource: id, resourceGroup: group.id });
+                            onChange({ ...selected, resource: id, resourceGroup: group.id, resourceMeta: item.meta });
                           }}
                         />
                       ))}
@@ -206,7 +206,7 @@ export const ExpressionConditionRow: FunctionComponent<ExpressionConditionRowPro
                 </Input>
               )}
               {resourceType === 'TEXTAREA' && (
-                <Textarea id={`value-${row}`} label={valueLabel} helpText={valueLabelHelpText} hasError={false}>
+                <Textarea id={`value-${row}`} label={valueLabel} helpText="Put each value on a new line" hasError={false}>
                   <textarea
                     id={`value-${row}`}
                     className="slds-textarea"
@@ -221,15 +221,17 @@ export const ExpressionConditionRow: FunctionComponent<ExpressionConditionRowPro
                   className="width-100"
                   initialSelectedDate={selectedValue ? moment(selectedValue, YYYY_MM_DD) : undefined}
                   label={valueLabel}
+                  dropDownPosition="right"
                   onChange={(value) => setSelectValue(value.format(YYYY_MM_DD))}
                 />
               )}
               {resourceType === 'DATETIME' && (
-                // TODO:
                 <DatePicker
-                  initialSelectedDate={selectedValue ? moment(selectedValue, YYYY_MM_DD) : undefined}
+                  className="width-100"
+                  initialSelectedDate={selectedValue ? moment(selectedValue, YYYY_MM_DD_HH_mm_ss_z) : undefined}
                   label={valueLabel}
-                  onChange={(value) => setSelectValue(value.format(YYYY_MM_DD))}
+                  dropDownPosition="right"
+                  onChange={(value) => setSelectValue(value.format(YYYY_MM_DD_HH_mm_ss_z))}
                 />
               )}
               {resourceType === 'SELECT' && (

@@ -57,7 +57,9 @@ export const DateGridPrevNextSelector: FunctionComponent<DateGridPrevNextSelecto
             }}
           >
             {availableYears.map((year) => (
-              <option value={year}>{year}</option>
+              <option key={year} value={year}>
+                {year}
+              </option>
             ))}
           </select>
         </div>

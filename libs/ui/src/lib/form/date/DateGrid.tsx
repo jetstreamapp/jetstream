@@ -89,10 +89,11 @@ export const DateGrid: FunctionComponent<DateGridProps> = ({ currMonth, currYear
         </tr>
       </thead>
       <tbody>
-        {dateGrid.map((week) => (
-          <tr>
-            {week.map((day) => (
+        {dateGrid.map((week, i) => (
+          <tr key={i}>
+            {week.map((day, k) => (
               <td
+                key={day.value.valueOf()}
                 aria-selected={day.isSelected}
                 className={classNames({
                   'slds-is-selected': day.isSelected,

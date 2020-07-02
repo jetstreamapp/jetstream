@@ -151,8 +151,9 @@ export const ExpressionContainer: FunctionComponent<ExpressionContainerProps> = 
             clonedExpression.groups[groupIdx].rows = [...clonedExpression.groups[groupIdx].rows];
 
             const resourceChanged =
-              clonedExpression.rows[rowIdx].selected.resource !== selected.resource ||
-              clonedExpression.rows[rowIdx].selected.resourceType !== selected.resourceType;
+              clonedExpression.groups[groupIdx].rows[rowIdx].selected.resource !== selected.resource ||
+              clonedExpression.groups[groupIdx].rows[rowIdx].selected.operator !== selected.operator ||
+              clonedExpression.groups[groupIdx].rows[rowIdx].selected.resourceType !== selected.resourceType;
 
             clonedExpression.groups[groupIdx].rows[rowIdx] = { ...clonedExpression.groups[groupIdx].rows[rowIdx], selected };
 
@@ -168,6 +169,7 @@ export const ExpressionContainer: FunctionComponent<ExpressionContainerProps> = 
         if (rowIdx >= 0) {
           const resourceChanged =
             clonedExpression.rows[rowIdx].selected.resource !== selected.resource ||
+            clonedExpression.rows[rowIdx].selected.operator !== selected.operator ||
             clonedExpression.rows[rowIdx].selected.resourceType !== selected.resourceType;
 
           clonedExpression.rows = [...clonedExpression.rows];
