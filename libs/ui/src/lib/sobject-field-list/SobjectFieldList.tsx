@@ -10,6 +10,7 @@ import Spinner from '../widgets/Spinner';
 import SobjectFieldListItem from './SobjectFieldListItem';
 import { isString } from 'lodash';
 import './SobjectFieldList.scss';
+import EmptyState from '../illustrations/EmptyState';
 
 export interface SobjectFieldListProps {
   level: number;
@@ -134,6 +135,12 @@ export const SobjectFieldList: FunctionComponent<SobjectFieldListProps> = ({
             />
           </div>
           <List items={filteredFields} useCheckbox isActive={isFieldActive} onSelected={handleFieldSelected} getContent={getFieldContent} />
+          {!filteredFields.length && (
+            <EmptyState imageWidth={200} showIllustration={level === 0}>
+              <p>There are no matching fields</p>
+              <p>Adjust your selection.</p>
+            </EmptyState>
+          )}
         </Fragment>
       )}
     </div>

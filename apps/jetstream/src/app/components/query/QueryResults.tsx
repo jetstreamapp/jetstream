@@ -15,6 +15,7 @@ import {
   Toolbar,
   ToolbarItemActions,
   ToolbarItemGroup,
+  EmptyState,
 } from '@jetstream/ui';
 import classNames from 'classnames';
 import { FunctionComponent, useEffect, useState, Fragment } from 'react';
@@ -206,6 +207,26 @@ export const QueryResults: FunctionComponent<QueryResultsProps> = () => {
                 <code>{errorMessage}</code>
               </pre>
             </div>
+          )}
+          {!loading && !errorMessage && !records?.length && (
+            <EmptyState
+              headline="Your query yielded no results!"
+              callToAction={
+                <Link
+                  className="slds-button slds-button_brand"
+                  to={{
+                    pathname: `/query`,
+                    state: { soql },
+                  }}
+                >
+                  <Icon type="utility" icon="back" className="slds-button__icon slds-button__icon_left" omitContainer />
+                  Go Back
+                </Link>
+              }
+            >
+              <p>There are no records matching your query.</p>
+              <p>Better luck next time!</p>
+            </EmptyState>
           )}
           {records && !!records.length && (
             <Fragment>

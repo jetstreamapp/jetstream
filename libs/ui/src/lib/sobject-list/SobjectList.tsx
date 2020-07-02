@@ -6,6 +6,8 @@ import SearchInput from '../form/search-input/SearchInput';
 import Spinner from '../widgets/Spinner';
 import AutoFullHeightContainer from '../layout/AutoFullHeightContainer';
 import List from '../list/List';
+import { filter } from 'lodash';
+import EmptyState from '../illustrations/EmptyState';
 
 export interface SobjectListProps {
   sobjects: DescribeGlobalSObjectResult[];
@@ -61,6 +63,12 @@ export const SobjectList: FunctionComponent<SobjectListProps> = ({ sobjects, sel
                   subheading: item.name,
                 })}
               />
+              {!filteredSobjects.length && (
+                <EmptyState imageWidth={200}>
+                  <p>There are no matching objects</p>
+                  <p>Adjust your selection.</p>
+                </EmptyState>
+              )}
             </AutoFullHeightContainer>
           </Fragment>
         )}

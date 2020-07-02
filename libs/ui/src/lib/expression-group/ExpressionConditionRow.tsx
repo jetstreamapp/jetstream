@@ -18,6 +18,7 @@ import { ComboboxListItemGroup } from '../form/combobox/ComboboxListItemGroup';
 import FormRowButton from '../form/button/FormRowButton';
 import DatePicker from '../form/date/DatePicker';
 import moment from 'moment-mini';
+// eslint-disable-next-line @typescript-eslint/camelcase
 import { YYYY_MM_DD, YYYY_MM_DD_HH_mm_ss_z } from '@jetstream/shared/constants';
 
 export interface ExpressionConditionRowProps {

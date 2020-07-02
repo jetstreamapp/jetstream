@@ -206,7 +206,12 @@ export function convertFiltersToWhereClause(filters: ExpressionType): WhereClaus
   }
   logger.debug({ filters });
   // filter out all invalid/incomplete filters
-  const rows = filters.rows.filter((row) => row.selected.operator && row.selected.resource && row.selected.value);
+  const rows = filters.rows.filter(
+    (row) =>
+      row.selected.operator &&
+      row.selected.resource &&
+      (row.selected.value || row.selected.operator === 'isNull' || row.selected.operator === 'isNotNull')
+  );
   const groups = filters.groups
     .map((group) => {
       return {
@@ -307,6 +312,10 @@ function getValue(operator: QueryFilterOperator, value: string): string | string
 
 function getLiteralType(selected: ExpressionConditionRowSelectedItems): LiteralType {
   const field: Field = safeGet(selected, 'resourceMeta.metadata');
+
+  if (selected.operator === 'isNull' || selected.operator === 'isNotNull') {
+    return 'NULL';
+  }
 
   if (field) {
     switch (field.type) {
