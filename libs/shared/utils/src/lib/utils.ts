@@ -24,7 +24,7 @@ export function orderObjectsBy<T>(items: T[], field: keyof T, order: 'asc' | 'de
   return orderBy(items, [orderByItereeFn], [order]);
 }
 
-export function orderStringsBy<T>(items: string[], order: 'asc' | 'desc' = 'asc'): T[] {
+export function orderStringsBy(items: string[], order: 'asc' | 'desc' = 'asc'): string[] {
   const orderByItereeFn = (value) => (isString(value) ? value.toLowerCase() : value);
   return orderBy(items, [orderByItereeFn], [order]);
 }

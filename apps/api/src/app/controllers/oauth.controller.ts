@@ -129,7 +129,7 @@ export async function salesforceOauthCallback(req: express.Request, res: express
     //   const data = await getExtendedOrgInfo(conn, returnObject);
     //   returnObject = Object.assign({}, returnObject, data);
     // } catch (ex) {
-    //   logger.debug('Error adding extended org data');
+    //   logger.log('Error adding extended org data');
     // }
 
     // TODO: we need to return a web-page that will use something to send org details back to core app

@@ -204,7 +204,7 @@ export function convertFiltersToWhereClause(filters: ExpressionType): WhereClaus
   if (!filters) {
     return;
   }
-  logger.debug({ filters });
+  logger.log({ filters });
   // filter out all invalid/incomplete filters
   const rows = filters.rows.filter(
     (row) =>

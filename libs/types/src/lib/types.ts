@@ -1,6 +1,8 @@
 import { SalesforceId } from 'jsforce';
 import { SalesforceOrgEdition, SalesforceOrgLocaleKey } from './salesforce/types';
 
+export type HttpMethod = 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE';
+
 export interface MapOf<T> {
   [key: string]: T;
 }

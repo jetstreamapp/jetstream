@@ -3,7 +3,7 @@ import * as API from '@jetstream/api-interfaces';
 import { DescribeGlobalResult, DescribeSObjectResult } from 'jsforce';
 import * as request from 'superagent'; // http://visionmedia.github.io/superagent
 import { handleRequest } from './core';
-import { SalesforceOrg, UserProfile } from '@jetstream/types';
+import { SalesforceOrg, UserProfile, HttpMethod } from '@jetstream/types';
 
 //// LANDING PAGE ROUTES
 
@@ -26,4 +26,8 @@ export async function describeSObject(org: SalesforceOrg, SObject: string): Prom
 
 export async function query<T = any>(org: SalesforceOrg, query: string, isTooling = false): Promise<API.QueryResults<T>> {
   return handleRequest(request.post(`/api/query`).query({ isTooling }).send({ query }), org);
+}
+
+export async function genericRequest<T = any>(org: SalesforceOrg, method: HttpMethod, url: string, body?: any): Promise<T> {
+  return handleRequest(request.post(`/api/request`).send({ method, url, body }), org);
 }

@@ -80,7 +80,7 @@ export const QueryBuilder: FunctionComponent<QueryBuilderProps> = () => {
       <Page>
         <PageHeader>
           <PageHeaderRow>
-            <PageHeaderTitle icon={{ type: 'action', icon: 'record' }} label="Query Records" />
+            <PageHeaderTitle icon={{ type: 'standard', icon: 'entity' }} label="Query Records" />
             <PageHeaderActions colType="actions" buttonType="separate">
               <QueryResetButton />
               <button className={classNames('slds-button slds-button_neutral')} aria-haspopup="true" title="Favorites">

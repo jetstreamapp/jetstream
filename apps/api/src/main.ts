@@ -34,7 +34,7 @@ app.use(
     },
     secret: process.env.JESTREAM_SESSION_SECRET,
     rolling: true,
-    // resave: true, // pgSession appears to implement "touch" so this should not be needed
+    resave: true,
     saveUninitialized: false,
     name: 'sessionid',
   })

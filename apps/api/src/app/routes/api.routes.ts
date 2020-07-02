@@ -1,6 +1,7 @@
 import * as express from 'express';
 import Router from 'express-promise-router';
-import * as SfQueryController from '../controllers/sf-query.controller';
+import * as sfQueryController from '../controllers/sf-query.controller';
+import * as sfMiscController from '../controllers/sf-misc.controller';
 import * as userController from '../controllers/user.controller';
 import { addOrgsToLocal, checkAuth, ensureOrgExists } from './route.middleware';
 
@@ -11,8 +12,10 @@ routes.use(checkAuth); // NOTE: all routes here must be authenticated
 
 routes.get('/me', userController.getUserProfile);
 
-routes.get('/describe', ensureOrgExists, SfQueryController.describe);
-routes.get('/describe/:sobject', ensureOrgExists, SfQueryController.describeSObject);
-routes.post('/query', ensureOrgExists, SfQueryController.query);
+routes.get('/describe', ensureOrgExists, sfQueryController.describe);
+routes.get('/describe/:sobject', ensureOrgExists, sfQueryController.describeSObject);
+routes.post('/query', ensureOrgExists, sfQueryController.query);
+
+routes.post('/request', ensureOrgExists, sfMiscController.makeJsforceRequest);
 
 export default routes;

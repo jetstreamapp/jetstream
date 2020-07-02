@@ -18,10 +18,11 @@ import {
   EmptyState,
 } from '@jetstream/ui';
 import classNames from 'classnames';
-import { FunctionComponent, useEffect, useState, Fragment } from 'react';
+import React, { FunctionComponent, useEffect, useState, Fragment } from 'react';
 import { Link, useLocation, NavLink } from 'react-router-dom';
 import { getFlattenedFields } from 'soql-parser-js';
 import QueryResultsSoqlPanel from './QueryResultsSoqlPanel';
+import QueryResultsViewRecordFields from './QueryResultsViewRecordFields';
 import { Record, SalesforceOrg, MapOf, QueryFieldHeader } from '@jetstream/types';
 import QueryDownloadModal from './QueryDownloadModal';
 import { useRecoilValue, useRecoilState } from 'recoil';
@@ -32,9 +33,11 @@ import { QueryResultsColumn } from '@jetstream/api-interfaces';
 // eslint-disable-next-line @typescript-eslint/no-empty-interface
 export interface QueryResultsProps {}
 
-export const QueryResults: FunctionComponent<QueryResultsProps> = () => {
+export const QueryResults: FunctionComponent<QueryResultsProps> = React.memo(() => {
   const location = useLocation<{ soql: string }>();
   const [soqlPanelOpen, setSoqlPanelOpen] = useState<boolean>(false);
+  const [recordDetailPanelOpen, setRecordDetailPanelOpen] = useState<boolean>(false);
+  const [recordDetailSelectedRow, setRecordDetailSelectedRow] = useState<Record>(null);
   const [soql, setSoql] = useState<string>(null);
   const [userSoql, setUserSoql] = useState<string>(null);
   const [records, setRecords] = useState<Record[]>(null);
@@ -125,11 +128,13 @@ export const QueryResults: FunctionComponent<QueryResultsProps> = () => {
     }
   }
 
-  function handleRowAction(id: string, row: any) {
-    logger.debug({ id, row });
+  function handleRowAction(id: string, row: Record) {
+    logger.log({ id, row });
     switch (id) {
       case 'view-record':
-        // TODO: show modal with all fields
+        setRecordDetailSelectedRow(row);
+        setSoqlPanelOpen(false);
+        setRecordDetailPanelOpen(true);
         break;
       case 'delete record':
         // TODO: show modal and then delete
@@ -181,6 +186,12 @@ export const QueryResults: FunctionComponent<QueryResultsProps> = () => {
       </Toolbar>
       <div className="slds-grid">
         <QueryResultsSoqlPanel soql={soql} isOpen={soqlPanelOpen} onClosed={() => setSoqlPanelOpen(false)} executeQuery={executeQuery} />
+        <QueryResultsViewRecordFields
+          org={selectedOrg}
+          row={recordDetailSelectedRow}
+          isOpen={recordDetailPanelOpen}
+          onClosed={() => setRecordDetailPanelOpen(false)}
+        />
         <AutoFullHeightContainer
           className="slds-scrollable bg-white"
           fillHeight
@@ -190,7 +201,7 @@ export const QueryResults: FunctionComponent<QueryResultsProps> = () => {
         >
           {loading && <Spinner />}
           {errorMessage && (
-            <div className="slds-m-around_medium slds-box  slds-text-color_error">
+            <div className="slds-m-around_medium slds-box slds-text-color_error">
               <div className="slds-inline_icon_text slds-grid">
                 <Icon
                   type="utility"
@@ -249,6 +260,6 @@ export const QueryResults: FunctionComponent<QueryResultsProps> = () => {
       </div>
     </div>
   );
-};
+});
 
 export default QueryResults;

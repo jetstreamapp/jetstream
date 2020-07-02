@@ -3,7 +3,6 @@ import { NOOP } from '@jetstream/shared/utils';
 
 interface Logger {
   log: (...args: any[]) => void;
-  debug: (...args: any[]) => void;
   info: (...args: any[]) => void;
   warn: (...args: any[]) => void;
   error: (...args: any[]) => void;
@@ -14,7 +13,6 @@ interface Logger {
 
 export const logger: Logger = {
   log: NOOP,
-  debug: NOOP,
   info: NOOP,
   warn: NOOP,
   error: NOOP,
@@ -26,7 +24,6 @@ export const logger: Logger = {
 export const enableLogger = (enable: boolean) => {
   if (!enable) {
     logger.log = NOOP;
-    logger.debug = NOOP;
     logger.info = NOOP;
     logger.warn = NOOP;
     logger.error = NOOP;

@@ -13,7 +13,7 @@ import { logger } from '../config/logger.config';
 export function logRoute(req: express.Request, res: express.Response, next: express.NextFunction) {
   res.locals.path = req.path;
   // logger.info(req.method, req.originalUrl);
-  logger.debug('[REQ] %s %s', req.method, req.originalUrl, { method: req.method, url: req.originalUrl });
+  logger.debug('[REQ] %s %s %s', req.method, req.originalUrl, { method: req.method, url: req.originalUrl });
   next();
 }
 
