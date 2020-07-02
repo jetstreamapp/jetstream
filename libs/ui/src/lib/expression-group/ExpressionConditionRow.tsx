@@ -122,7 +122,7 @@ export const ExpressionConditionRow: FunctionComponent<ExpressionConditionRowPro
     function handleSelectedResource(type: ListItem<ExpressionRowValueType>[]) {
       setSelectedResourceType(type);
       if (type && type[0] && selected.resourceType !== type[0].value) {
-        onChange({ ...selected, resourceType: type[0].value, resourceSelectedItemType: type[0].id });
+        onChange({ ...selected, resourceType: type[0].value });
       }
     }
 
