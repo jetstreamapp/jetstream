@@ -4,6 +4,7 @@ import React from 'react';
 import Combobox from './Combobox';
 import { ComboboxListItem } from './ComboboxListItem';
 import { ComboboxListItemLoadMore } from './ComboboxListItemLoadMore';
+import { FormGroupDropdownItem } from '@jetstream/types';
 
 export default {
   component: Combobox,
@@ -71,3 +72,26 @@ export const loadMore = () => (
     <ComboboxListItemLoadMore />
   </Combobox>
 );
+
+export const leadingDropDown = () => {
+  const items: FormGroupDropdownItem[] = [
+    { id: 'apex', label: 'Apex', icon: { type: 'utility', icon: 'apex' } },
+    { id: 'decisions', label: 'Decisions', icon: { type: 'utility', icon: 'signpost' } },
+    { id: 'rules', label: 'Rules', icon: { type: 'utility', icon: 'rules' } },
+  ];
+  return (
+    <Combobox
+      label={text('label', 'My Combobox')}
+      onInputChange={action('onInputChange')}
+      onLeadingDropdownChange={action('onLeadingDropdownChange')}
+      leadingDropdown={{
+        label: 'Additional Stuff!',
+        items: items,
+      }}
+    >
+      <ComboboxListItem id="item1" label="Item 1" selected={false} onSelection={action('selected')} />
+      <ComboboxListItem id="item2" label="Item 2" selected={false} onSelection={action('selected')} />
+      <ComboboxListItem id="item3" label="Item 3" selected={false} onSelection={action('selected')} />
+    </Combobox>
+  );
+};

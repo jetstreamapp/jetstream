@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/camelcase */
 import { MapOf, MimeType } from '@jetstream/types';
 
 export const SESSION_EXP_DAYS = 5;
@@ -26,3 +27,7 @@ export const MIME_TYPES: MapOf<MimeType> = {
   PLAN_TEXT: 'text/plain;charset=utf-8',
   CSV: 'text/csv;charset=utf-8',
 };
+
+export const YYYY_MM_DD = 'YYYY-MM-DD';
+export const YYYY_MM_DD__HH_mm_ss = 'YYYY-MM-DD HH:mm:ss';
+export const YYYY_MM_DD_HH_mm_ss_z = 'YYYY-MM-DDTHH:mm:ssZ';

@@ -108,13 +108,21 @@ export interface ListItemGroup {
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-export interface ListItem<T = string, V = any> {
+export interface ListItem<V = string, M = any> {
   id: string;
   label: string;
   secondaryLabel?: string;
-  value: T;
-  meta?: V;
+  value: V;
+  meta?: M;
 }
+
+export type Select = 'SELECT';
+export type Text = 'TEXT';
+export type TextArea = 'TEXTAREA';
+export type Date = 'DATE';
+export type Datetime = 'DATETIME';
+
+export type ExpressionRowValueType = Select | Text | TextArea | Date | Datetime | 'NUMBER' | 'BOOLEAN';
 
 export type AndOr = 'AND' | 'OR';
 export type AscDesc = 'ASC' | 'DESC';
@@ -134,14 +142,27 @@ export interface ExpressionGroupType {
 
 export interface ExpressionConditionType {
   key: number;
+  resourceTypes?: ListItem<ExpressionRowValueType>[];
+  resourceType?: ExpressionRowValueType;
+  resourceSelectItems?: ListItem[];
   selected: ExpressionConditionRowSelectedItems;
 }
 
-export interface ExpressionConditionRowSelectedItems {
+export interface ExpressionConditionRowSelectedItems<T = any> {
   resource: string | null;
+  resourceMeta?: T;
   resourceGroup: string | null;
   operator: QueryFilterOperator | null;
+  resourceType?: ExpressionRowValueType;
   value: string;
+}
+
+export interface ExpressionGetResourceTypeFns {
+  // used to allow user selection of multiple types - if provided, adds dropdown before value
+  getTypes?: (selected: ExpressionConditionRowSelectedItems) => ListItem<ExpressionRowValueType>[];
+  getType: (selected: ExpressionConditionRowSelectedItems) => ExpressionRowValueType;
+  // used if getType returns select, which shows the user a dropdown
+  getSelectItems: (selected: ExpressionConditionRowSelectedItems) => ListItem[] | undefined;
 }
 
 export type QueryFilterOperator =
@@ -157,6 +178,8 @@ export type QueryFilterOperator =
   | 'doesNotStartWith'
   | 'endsWith'
   | 'doesNotEndWith'
+  | 'isNull'
+  | 'isNotNull'
   | 'in'
   | 'notIn'
   | 'includes'
@@ -184,4 +207,10 @@ export interface QueryFieldHeader {
   accessor: string;
   title: string;
   columnMetadata: QueryResultsColumn;
+}
+
+export interface FormGroupDropdownItem {
+  id: string;
+  label: string;
+  icon: IconObj;
 }

@@ -1,10 +1,21 @@
 import { Field } from 'jsforce';
 import { orderObjectsBy } from '@jetstream/shared/utils';
-import { MimeType, PositionAll, QueryFilterOperator, ExpressionType, SalesforceOrg } from '@jetstream/types';
+import {
+  MimeType,
+  PositionAll,
+  QueryFilterOperator,
+  ExpressionType,
+  SalesforceOrg,
+  ExpressionRowValueType,
+  ExpressionConditionRowSelectedItems,
+  ListItem,
+} from '@jetstream/types';
 import { saveAs } from 'file-saver';
 import { Placement as tippyPlacement } from 'tippy.js';
-import { WhereClause, Operator } from 'soql-parser-js';
+import { WhereClause, Operator, LiteralType } from 'soql-parser-js';
 import { HTTP } from '@jetstream/shared/constants';
+import { logger } from '@jetstream/shared/client-logger';
+import { get as safeGet } from 'lodash';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function parseQueryParams<T = any>(queryString: string): T {
@@ -193,6 +204,7 @@ export function convertFiltersToWhereClause(filters: ExpressionType): WhereClaus
   if (!filters) {
     return;
   }
+  logger.debug({ filters });
   // filter out all invalid/incomplete filters
   const rows = filters.rows.filter((row) => row.selected.operator && row.selected.resource && row.selected.value);
   const groups = filters.groups
@@ -216,8 +228,8 @@ export function convertFiltersToWhereClause(filters: ExpressionType): WhereClaus
         operator: convertQueryFilterOperator(row.selected.operator),
         logicalPrefix: hasLogicalPrefix(row.selected.operator) ? 'NOT' : undefined,
         field: row.selected.resource,
-        value: row.selected.value,
-        literalType: 'STRING', // FIXME: we need to know more type info
+        value: getValue(row.selected.operator, row.selected.value),
+        literalType: getLiteralType(row.selected),
       },
       operator: i !== 0 ? filters.action : undefined,
     };
@@ -233,8 +245,8 @@ export function convertFiltersToWhereClause(filters: ExpressionType): WhereClaus
           operator: convertQueryFilterOperator(row.selected.operator),
           logicalPrefix: hasLogicalPrefix(row.selected.operator) ? 'NOT' : undefined,
           field: row.selected.resource,
-          value: row.selected.value,
-          literalType: 'STRING', // FIXME: we need to know more type info
+          value: getValue(row.selected.operator, row.selected.value),
+          literalType: getLiteralType(row.selected),
         },
         operator: i !== 0 ? group.action : undefined,
       };
@@ -268,40 +280,94 @@ function hasLogicalPrefix(operator: QueryFilterOperator): boolean {
   }
 }
 
+function getValue(operator: QueryFilterOperator, value: string): string | string[] {
+  value = value || '';
+  switch (operator) {
+    case 'contains':
+    case 'doesNotContain':
+      return `%${value}%`;
+    case 'startsWith':
+    case 'doesNotStartWith':
+      return `${value}%`;
+    case 'endsWith':
+    case 'doesNotEndWith':
+      return `%${value}`;
+    case 'isNull':
+    case 'isNotNull':
+      return `NULL`;
+    case 'in':
+    case 'notIn':
+    case 'includes':
+    case 'excludes':
+      return value.split('\n');
+    default:
+      return value;
+  }
+}
+
+function getLiteralType(selected: ExpressionConditionRowSelectedItems): LiteralType {
+  const field: Field = safeGet(selected, 'resourceMeta.metadata');
+
+  if (field) {
+    switch (field.type) {
+      case 'boolean':
+        return 'BOOLEAN';
+      case 'double':
+      case 'currency':
+      case 'percent':
+        return 'DECIMAL';
+      case 'int':
+        return 'INTEGER';
+      case 'date':
+        if (selected.resourceType === 'SELECT') {
+          return 'DATE_LITERAL';
+        }
+        return 'DATE';
+      case 'datetime':
+        if (selected.resourceType === 'SELECT') {
+          return 'DATE_LITERAL';
+        }
+        return 'DATETIME';
+      default:
+        return 'STRING';
+    }
+  }
+  return 'STRING';
+}
+
 function convertQueryFilterOperator(operator: QueryFilterOperator): Operator {
   switch (operator) {
-    case 'eq': {
+    case 'eq':
+    case 'isNull':
       return '=';
-    }
-    case 'ne': {
+    case 'ne':
+    case 'isNotNull':
       return '!=';
-    }
-    case 'lt': {
+    case 'lt':
       return '<';
-    }
-    case 'lte': {
+    case 'lte':
       return '<=';
-    }
-    case 'gt': {
+    case 'gt':
       return '>';
-    }
-    case 'gte': {
+    case 'gte':
       return '>=';
-    }
-    case 'in': {
+    case 'in':
       return 'IN';
-    }
-    case 'notIn': {
+    case 'notIn':
       return 'NOT IN';
-    }
-    case 'includes': {
+    case 'includes':
       return 'INCLUDES';
-    }
-    case 'excludes': {
+    case 'excludes':
       return 'EXCLUDES';
-    }
-    default:
+    case 'contains':
+    case 'doesNotContain':
+    case 'startsWith':
+    case 'doesNotStartWith':
+    case 'endsWith':
+    case 'doesNotEndWith':
       return 'LIKE';
+    default:
+      return '=';
   }
 }
 
@@ -321,4 +387,46 @@ export function getOrgUrlParams(org: SalesforceOrg): string {
   return Object.keys(params)
     .map((key) => `${key}=${encodeURIComponent(params[key])}`)
     .join('&');
+}
+
+export function getDateLiteralListItems(): ListItem[] {
+  return [
+    { id: 'YESTERDAY', label: 'YESTERDAY', value: 'YESTERDAY' },
+    { id: 'TODAY', label: 'TODAY', value: 'TODAY' },
+    { id: 'TOMORROW', label: 'TOMORROW', value: 'TOMORROW' },
+    { id: 'LAST_WEEK', label: 'LAST_WEEK', value: 'LAST_WEEK' },
+    { id: 'THIS_WEEK', label: 'THIS_WEEK', value: 'THIS_WEEK' },
+    { id: 'NEXT_WEEK', label: 'NEXT_WEEK', value: 'NEXT_WEEK' },
+    { id: 'LAST_MONTH', label: 'LAST_MONTH', value: 'LAST_MONTH' },
+    { id: 'THIS_MONTH', label: 'THIS_MONTH', value: 'THIS_MONTH' },
+    { id: 'NEXT_MONTH', label: 'NEXT_MONTH', value: 'NEXT_MONTH' },
+    { id: 'LAST_90_DAYS', label: 'LAST_90_DAYS', value: 'LAST_90_DAYS' },
+    { id: 'NEXT_90_DAYS', label: 'NEXT_90_DAYS', value: 'NEXT_90_DAYS' },
+    { id: 'THIS_YEAR', label: 'THIS_YEAR', value: 'THIS_YEAR' },
+    { id: 'LAST_YEAR', label: 'LAST_YEAR', value: 'LAST_YEAR' },
+    { id: 'NEXT_YEAR', label: 'NEXT_YEAR', value: 'NEXT_YEAR' },
+  ];
+}
+
+export function getBooleanListItems(): ListItem[] {
+  return [
+    { id: 'True', label: 'True', value: 'True' },
+    { id: 'False', label: 'False', value: 'False' },
+  ];
+}
+
+export function getPicklistListItems(field: Field): ListItem[] {
+  return [
+    {
+      id: '',
+      label: `-- No Value --`,
+      value: '',
+    },
+  ].concat(
+    (field.picklistValues || []).map((item) => ({
+      id: item.value,
+      label: item.label || item.value,
+      value: item.value,
+    }))
+  );
 }
