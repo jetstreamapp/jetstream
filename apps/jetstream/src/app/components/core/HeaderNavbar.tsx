@@ -7,6 +7,7 @@ import OrgsDropdown from '../orgs/OrgsDropdown';
 import { FunctionComponent } from 'react';
 import { useRecoilState } from 'recoil';
 import { applicationCookieState } from '../../app-state';
+import Jobs from './jobs/Jobs';
 
 export interface HeaderNavbarProps {
   userProfile: UserProfile;
@@ -36,6 +37,7 @@ export const HeaderNavbar: FunctionComponent<HeaderNavbarProps> = () => {
       logo={Logo}
       orgs={<OrgsDropdown />}
       userMenuItems={[{ id: 'nav-user-logout', value: 'Logout', icon: { type: 'utility', icon: 'logout' } }]}
+      notification={<Jobs />}
       onUserMenuItemSelected={handleUserMenuSelection}
     >
       <Navbar>

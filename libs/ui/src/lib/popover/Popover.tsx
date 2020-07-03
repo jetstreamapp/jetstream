@@ -1,12 +1,11 @@
 /** @jsx jsx */
 import { css, jsx } from '@emotion/core';
-import { convertTippyPlacementToSlds } from '@jetstream/shared/ui-utils';
-import { PositionAll } from '@jetstream/types';
 import Tippy from '@tippyjs/react';
 import uniqueId from 'lodash/uniqueId';
 import { FunctionComponent, useState, useEffect } from 'react';
 import PopoverContent from './PopoverContent';
 import { Placement } from 'tippy.js';
+import { isBoolean } from 'lodash';
 
 // TODO: use popper to detect nubbin position
 // TODO: add PopoverHeader and PopoverFooter components
@@ -19,8 +18,9 @@ export interface PopoverProps {
   content: JSX.Element;
   header?: JSX.Element;
   footer?: JSX.Element;
+  isOpen?: boolean; // only used if parent wants to have control over this state
+  onOpen?: () => void;
   onClose?: () => void;
-  setVisibleRef?: (setVisible: (visible: boolean) => void) => void;
 }
 
 export const Popover: FunctionComponent<PopoverProps> = ({
@@ -32,18 +32,28 @@ export const Popover: FunctionComponent<PopoverProps> = ({
   header,
   footer,
   children,
+  isOpen,
+  onOpen,
   onClose,
-  setVisibleRef,
 }) => {
   const [id] = useState<string>(uniqueId('popover'));
-  const [visible, setVisible] = useState(false);
+  const [visible, setVisible] = useState(isOpen || false);
 
-  // optionally pass setVisible to parent so that parent can trigger close if required
   useEffect(() => {
-    if (setVisibleRef) {
-      setVisibleRef(setVisible);
+    if (isBoolean(isOpen) && visible !== isOpen) {
+      setVisible(isOpen);
     }
-  }, [setVisibleRef]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isOpen]);
+
+  useEffect(() => {
+    if (visible && onOpen) {
+      onOpen();
+    } else if (!visible && onClose) {
+      onClose();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [visible]);
 
   // convertTippyPlacementToSlds
   return (
@@ -53,6 +63,7 @@ export const Popover: FunctionComponent<PopoverProps> = ({
       onClickOutside={() => setVisible(false)}
       interactive={true}
       allowHTML={true}
+      onShow={() => onOpen && onOpen()}
       onHide={() => onClose && onClose()}
       render={(attrs) => {
         return (

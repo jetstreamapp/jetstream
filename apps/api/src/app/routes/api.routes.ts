@@ -16,6 +16,8 @@ routes.get('/describe', ensureOrgExists, sfQueryController.describe);
 routes.get('/describe/:sobject', ensureOrgExists, sfQueryController.describeSObject);
 routes.post('/query', ensureOrgExists, sfQueryController.query);
 
+routes.post('/record/:operation/:sobject', ensureOrgExists, sfMiscController.recordOperation);
+
 routes.post('/request', ensureOrgExists, sfMiscController.makeJsforceRequest);
 
 export default routes;

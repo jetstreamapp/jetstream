@@ -1,4 +1,4 @@
-import { orderBy, isString, get as lodashGet } from 'lodash';
+import { orderBy, isString, get as lodashGet, isBoolean } from 'lodash';
 import { MapOf, Record } from '@jetstream/types';
 import { isObject } from 'util';
 import { REGEX } from './regex';
@@ -49,4 +49,19 @@ export function flattenRecords(records: Record[], fields: string[]) {
       return obj;
     }, {});
   });
+}
+
+export function toBoolean(value: boolean | string | null | undefined, defaultValue: boolean = false) {
+  if (isBoolean(value)) {
+    return value;
+  }
+  if (isString(value)) {
+    return value.toLowerCase().startsWith('t');
+  }
+  return defaultValue;
+}
+
+export function getIdAndObjFromRecordUrl(url: string): [string, string] {
+  const [id, sobject] = url.split('/').reverse();
+  return [id, sobject];
 }

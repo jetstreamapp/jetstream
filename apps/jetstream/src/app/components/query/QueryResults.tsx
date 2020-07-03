@@ -25,10 +25,11 @@ import QueryResultsSoqlPanel from './QueryResultsSoqlPanel';
 import QueryResultsViewRecordFields from './QueryResultsViewRecordFields';
 import { Record, SalesforceOrg, MapOf, QueryFieldHeader } from '@jetstream/types';
 import QueryDownloadModal from './QueryDownloadModal';
-import { useRecoilValue, useRecoilState } from 'recoil';
+import { useRecoilValue, useRecoilState, useSetRecoilState } from 'recoil';
 import { selectedOrgState, applicationCookieState } from '../../app-state';
 import { logger } from '@jetstream/shared/client-logger';
 import { QueryResultsColumn } from '@jetstream/api-interfaces';
+import { jobsToProcessState } from '../core/jobs/jobs.state';
 
 // eslint-disable-next-line @typescript-eslint/no-empty-interface
 export interface QueryResultsProps {}
@@ -49,6 +50,7 @@ export const QueryResults: FunctionComponent<QueryResultsProps> = React.memo(() 
   const selectedOrg = useRecoilValue<SalesforceOrg>(selectedOrgState);
   const [{ serverUrl }] = useRecoilState(applicationCookieState);
   const [totalRecordCount, setTotalRecordCount] = useState<number>(null);
+  const setJobsToProcess = useSetRecoilState(jobsToProcessState);
 
   useEffect(() => {
     logger.log({ location });
@@ -130,6 +132,7 @@ export const QueryResults: FunctionComponent<QueryResultsProps> = React.memo(() 
 
   function handleRowAction(id: string, row: Record) {
     logger.log({ id, row });
+    const recordId = row.Id || row.substring(row.lastIndexOf('/') + 1);
     switch (id) {
       case 'view-record':
         setRecordDetailSelectedRow(row);
@@ -138,6 +141,13 @@ export const QueryResults: FunctionComponent<QueryResultsProps> = React.memo(() 
         break;
       case 'delete record':
         // TODO: show modal and then delete
+        setJobsToProcess([
+          {
+            type: 'BulkDelete',
+            title: `Delete Record ${recordId}`,
+            meta: row,
+          },
+        ]);
         break;
       default:
         break;
