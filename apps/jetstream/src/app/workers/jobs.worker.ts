@@ -4,7 +4,7 @@ import { AsyncJobType, WorkerMessage, AsyncJobWorkerMessageResponse, AsyncJobWor
 import { logger } from '@jetstream/shared/client-logger';
 import { Record } from 'jsforce';
 import { sobjectOperation } from '@jetstream/shared/data';
-import { getIdAndObjFromRecordUrl } from '@jetstream/shared/utils';
+import { getSObjectFromRecordUrl, getIdFromRecordUrl } from '@jetstream/shared/utils';
 
 // eslint-disable-next-line no-restricted-globals
 const ctx: Worker = self as any;
@@ -22,9 +22,14 @@ async function handleMessage(name: AsyncJobType, payloadData: AsyncJobWorkerMess
       const { org, job } = payloadData;
       try {
         const { org, job } = payloadData;
-        const record: Record | Record[] = job.meta; // TODO: add strong type
-        const [id, sobject] = getIdAndObjFromRecordUrl(record.attributes.url);
-        const results = await sobjectOperation(org, sobject, 'delete', { ids: id });
+        // TODO: add validation to ensure that we have at least one record
+        // also, we are assuming that all records are same SObject
+        let records: Record | Record[] = job.meta; // TODO: add strong type
+        records = Array.isArray(records) ? records : [records];
+        const sobject = getSObjectFromRecordUrl(records[0].attributes.url);
+        const ids = records.map((record) => getIdFromRecordUrl(record.attributes.url));
+        let results = await sobjectOperation(org, sobject, 'delete', { ids });
+        results = Array.isArray(results) ? results : [results];
         const response: AsyncJobWorkerMessageResponse = {
           job,
           results,

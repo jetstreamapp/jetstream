@@ -2,34 +2,33 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 /** @jsx jsx */
 import { css, jsx } from '@emotion/core';
-import { MIME_TYPES } from '@jetstream/shared/constants';
+import { QueryResultsColumn } from '@jetstream/api-interfaces';
+import { logger } from '@jetstream/shared/client-logger';
 import { query } from '@jetstream/shared/data';
-import { saveFile } from '@jetstream/shared/ui-utils';
-import { flattenRecords } from '@jetstream/shared/utils';
+import { getIdFromRecordUrl, pluralizeIfMultiple } from '@jetstream/shared/utils';
+import { AsyncJob, MapOf, QueryFieldHeader, Record, SalesforceOrg, AsyncJobNew } from '@jetstream/types';
 import {
   AutoFullHeightContainer,
+  EmptyState,
   Icon,
-  Modal,
   Spinner,
   TableSortableResizable,
   Toolbar,
   ToolbarItemActions,
   ToolbarItemGroup,
-  EmptyState,
 } from '@jetstream/ui';
 import classNames from 'classnames';
-import React, { FunctionComponent, useEffect, useState, Fragment } from 'react';
-import { Link, useLocation, NavLink } from 'react-router-dom';
+import React, { Fragment, FunctionComponent, useEffect, useState } from 'react';
+import { Link, NavLink, useLocation } from 'react-router-dom';
+import { useRecoilState, useRecoilValue, useSetRecoilState } from 'recoil';
 import { getFlattenedFields } from 'soql-parser-js';
+import { applicationCookieState, selectedOrgState } from '../../app-state';
+import * as fromJetstreamEvents from '../core/jetstream-events';
+import QueryDownloadModal from './QueryDownloadModal';
 import QueryResultsSoqlPanel from './QueryResultsSoqlPanel';
 import QueryResultsViewRecordFields from './QueryResultsViewRecordFields';
-import { Record, SalesforceOrg, MapOf, QueryFieldHeader } from '@jetstream/types';
-import QueryDownloadModal from './QueryDownloadModal';
-import { useRecoilValue, useRecoilState, useSetRecoilState } from 'recoil';
-import { selectedOrgState, applicationCookieState } from '../../app-state';
-import { logger } from '@jetstream/shared/client-logger';
-import { QueryResultsColumn } from '@jetstream/api-interfaces';
-import { jobsToProcessState } from '../core/jobs/jobs.state';
+import { filter } from 'rxjs/operators';
+import { useObservable } from '@jetstream/shared/ui-utils';
 
 // eslint-disable-next-line @typescript-eslint/no-empty-interface
 export interface QueryResultsProps {}
@@ -50,7 +49,16 @@ export const QueryResults: FunctionComponent<QueryResultsProps> = React.memo(() 
   const selectedOrg = useRecoilValue<SalesforceOrg>(selectedOrgState);
   const [{ serverUrl }] = useRecoilState(applicationCookieState);
   const [totalRecordCount, setTotalRecordCount] = useState<number>(null);
-  const setJobsToProcess = useSetRecoilState(jobsToProcessState);
+  const bulkDeleteJob = useObservable(
+    fromJetstreamEvents.getObservable('jobFinished').pipe(filter((ev: AsyncJob) => ev.type === 'BulkDelete'))
+  );
+
+  useEffect(() => {
+    if (bulkDeleteJob && executeQuery) {
+      executeQuery(location.state.soql);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [bulkDeleteJob]);
 
   useEffect(() => {
     logger.log({ location });
@@ -132,23 +140,45 @@ export const QueryResults: FunctionComponent<QueryResultsProps> = React.memo(() 
 
   function handleRowAction(id: string, row: Record) {
     logger.log({ id, row });
-    const recordId = row.Id || row.substring(row.lastIndexOf('/') + 1);
+    const recordId = row.Id || getIdFromRecordUrl(row.attributes.url);
     switch (id) {
       case 'view-record':
         setRecordDetailSelectedRow(row);
         setSoqlPanelOpen(false);
         setRecordDetailPanelOpen(true);
         break;
-      case 'delete record':
-        // TODO: show modal and then delete
-        setJobsToProcess([
+      case 'delete record': {
+        const jobs: AsyncJobNew[] = [
           {
             type: 'BulkDelete',
             title: `Delete Record ${recordId}`,
             meta: row,
           },
-        ]);
+        ];
+        // TODO: show modal and then delete
+        fromJetstreamEvents.emit({ type: 'newJob', payload: jobs });
         break;
+      }
+      default:
+        break;
+    }
+  }
+
+  function handleBulkRowAction(id: string, rows: Record[]) {
+    logger.log({ id, rows });
+    switch (id) {
+      case 'delete record': {
+        // TODO: show modal and then delete
+        const jobs: AsyncJobNew[] = [
+          {
+            type: 'BulkDelete',
+            title: `Delete ${rows.length} ${pluralizeIfMultiple('Record', rows)}`,
+            meta: rows,
+          },
+        ];
+        fromJetstreamEvents.emit({ type: 'newJob', payload: jobs });
+        break;
+      }
       default:
         break;
     }
@@ -184,7 +214,12 @@ export const QueryResults: FunctionComponent<QueryResultsProps> = React.memo(() 
           </button>
         </ToolbarItemGroup>
         <ToolbarItemActions>
-          <button className="slds-button slds-button_text-destructive" disabled={selectedRows.length === 0}>
+          {/* FIXME: strongly type me! */}
+          <button
+            className="slds-button slds-button_text-destructive"
+            disabled={selectedRows.length === 0}
+            onClick={() => handleBulkRowAction('delete record', selectedRows)}
+          >
             <Icon type="utility" icon="delete" className="slds-button__icon slds-button__icon_left" omitContainer />
             Delete Selected Records
           </button>

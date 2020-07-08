@@ -79,7 +79,8 @@
     "react-router-dom": "5.2.0",
     "react-split": "^2.0.7",
     "react-table": "^7.1.0",
-    "recoil": "0.0.8",
+    "recoil": "0.0.10",
+    "rxjs": "^6.6.0",
     "soql-parser-js": "^2.5.3",
     "superagent": "^5.2.2",
     "tailwindcss": "^1.4.6",
@@ -90,6 +91,7 @@
     "@babel/core": "7.8.3",
     "@babel/plugin-proposal-class-properties": "^7.8.3",
     "@babel/preset-typescript": "7.8.3",
+    "@emotion/babel-preset-css-prop": "10.0.27",
     "@nrwl/cypress": "9.4.2",
     "@nrwl/eslint-plugin-nx": "9.4.2",
     "@nrwl/express": "9.4.2",
@@ -117,7 +119,6 @@
     "@types/react-dom": "16.9.8",
     "@types/react-router-dom": "5.1.5",
     "@types/react-table": "^7.0.17",
-    "@types/recoil": "0.0.0",
     "@types/superagent": "^4.1.7",
     "@typescript-eslint/eslint-plugin": "2.19.2",
     "@typescript-eslint/parser": "2.19.2",
@@ -127,6 +128,7 @@
     "dotenv": "^6.2.0",
     "eslint": "6.8.0",
     "eslint-config-prettier": "6.0.0",
+    "eslint-plugin-cypress": "^2.10.3",
     "eslint-plugin-import": "2.20.2",
     "eslint-plugin-jsx-a11y": "6.2.3",
     "eslint-plugin-react": "7.20.0",
@@ -140,8 +142,6 @@
     "ts-node": "~7.0.0",
     "tslint": "~6.0.0",
     "typescript": "~3.8.3",
-    "worker-loader": "^2.0.0",
-    "eslint-plugin-cypress": "^2.10.3",
-    "@emotion/babel-preset-css-prop": "10.0.27"
+    "worker-loader": "^2.0.0"
   }
 }

@@ -50,7 +50,7 @@ export const Accordion: FunctionComponent<AccordionProps> = ({ sections, initOpe
                     type="utility"
                     icon="switch"
                     className="slds-accordion__summary-action-icon slds-button__icon slds-button__icon_left"
-                    omitContainer={true}
+                    omitContainer
                   />
                   <span className="slds-accordion__summary-content" title={item.title}>
                     {item.title}

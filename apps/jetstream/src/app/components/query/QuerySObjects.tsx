@@ -33,7 +33,7 @@ export const QuerySObjects: FunctionComponent<QueryFieldsProps> = () => {
         setLoading(false);
       })();
     }
-  }, [selectedOrg, loading, errorMessage, sobjects]);
+  }, [selectedOrg, loading, errorMessage, sobjects, setSobjects]);
 
   function filterSobjectFn(sobject: DescribeGlobalSObjectResult): boolean {
     return sobject.queryable && !sobject.name.endsWith('CleanInfo');

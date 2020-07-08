@@ -222,7 +222,7 @@ export type AsyncJobStatus = 'pending' | 'in-progress' | 'success' | 'failed' | 
 
 export type AsyncJobNew<T = unknown> = Omit<AsyncJob<T>, 'id' | 'started' | 'finished' | 'lastActivity' | 'status' | 'statusMessage'>;
 
-export interface AsyncJob<T = unknown> {
+export interface AsyncJob<T = unknown, R = unknown> {
   id: string;
   type: AsyncJobType;
   title: string;
@@ -232,6 +232,7 @@ export interface AsyncJob<T = unknown> {
   status: AsyncJobStatus;
   statusMessage?: string; // will fallback to status if not provided
   meta: T;
+  results?: R;
 }
 
 export interface AsyncJobWorkerMessagePayload<T = unknown> {

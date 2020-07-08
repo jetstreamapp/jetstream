@@ -61,7 +61,24 @@ export function toBoolean(value: boolean | string | null | undefined, defaultVal
   return defaultValue;
 }
 
+export function pluralizeIfMultiple(value: string, items: any[], plural: string = 's'): string {
+  if (!items || items.length !== 1) {
+    return `${value}${plural}`;
+  }
+  return value;
+}
+
 export function getIdAndObjFromRecordUrl(url: string): [string, string] {
   const [id, sobject] = url.split('/').reverse();
   return [id, sobject];
+}
+
+export function getSObjectFromRecordUrl(url: string): string {
+  const [id, sobject] = getIdAndObjFromRecordUrl(url);
+  return sobject;
+}
+
+export function getIdFromRecordUrl(url: string): string {
+  const [id, sobject] = getIdAndObjFromRecordUrl(url);
+  return id;
 }

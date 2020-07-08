@@ -3,6 +3,7 @@ import { Icon } from '@jetstream/ui';
 import moment from 'moment-mini';
 import React, { FunctionComponent } from 'react';
 import classNames from 'classnames';
+import { downloadJob } from './job-utils';
 
 export interface JobProps {
   job: AsyncJob;
@@ -81,9 +82,19 @@ export const Job: FunctionComponent<JobProps> = ({ job }) => {
               )}
               {message}
               {/* TODO: have an optional link to SFDC or some abort action - would need to store data on the job to know what to do */}
+              {/* TODO: add way to dismiss an item */}
+              {/* TODO: do we need an entire page dedicated to event results? */}
             </p>
           </div>
         </div>
+        {job.results && (
+          <div className="slds-m-top_x-small">
+            <button className="slds-button slds-button_neutral" onClick={() => downloadJob(job)}>
+              <Icon type="utility" icon="download" className="slds-button__icon slds-button__icon_left" omitContainer />
+              Download Results
+            </button>
+          </div>
+        )}
       </div>
     </li>
   );

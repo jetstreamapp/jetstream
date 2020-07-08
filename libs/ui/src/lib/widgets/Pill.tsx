@@ -14,7 +14,7 @@ export const Pill: FunctionComponent<PillProps> = ({ label, onRemove }) => {
       </span>
       {onRemove && (
         <button className="slds-button slds-button_icon slds-button_icon slds-pill__remove" title="Remove" onClick={onRemove}>
-          <Icon type="utility" icon="close" className="slds-button__icon" description="Remove" omitContainer={true} />
+          <Icon type="utility" icon="close" className="slds-button__icon" description="Remove" omitContainer />
         </button>
       )}
     </span>

@@ -63,7 +63,6 @@ export const QueryResultsViewRecordFields: FunctionComponent<QueryResultsViewRec
           });
       }
       return () => {
-        logger.info('unmounted ;(');
         mounted = false;
       };
       // eslint-disable-next-line react-hooks/exhaustive-deps

@@ -23,7 +23,7 @@ export const ExpressionGroup: FunctionComponent<ExpressionGroupProps> = React.me
           {children}
           <div className="slds-expression__buttons">
             <button className="slds-button slds-button_neutral" onClick={() => onAddCondition()}>
-              <Icon type="utility" icon="add" className="slds-button__icon slds-button__icon_left" omitContainer={true} />
+              <Icon type="utility" icon="add" className="slds-button__icon slds-button__icon_left" omitContainer />
               Add Condition
             </button>
           </div>

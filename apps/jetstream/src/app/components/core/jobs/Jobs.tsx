@@ -3,32 +3,48 @@ import classNames from 'classnames';
 import React, { FunctionComponent, useState, useEffect } from 'react';
 import { useRecoilState, useRecoilValue } from 'recoil';
 import Job from './Job';
-import { jobsToProcessState, jobsState, jobsUnreadState, selectActiveJobCount, selectJobs } from './jobs.state';
+import { jobsState, jobsUnreadState, selectActiveJobCount, selectJobs } from './jobs.state';
 import JobPlaceholder from './JobPlaceholder';
 import JobsWorker from '../../../workers/jobs.worker';
-import { AsyncJob, SalesforceOrg, AsyncJobWorkerMessageResponse, AsyncJobType, WorkerMessage } from '@jetstream/types';
+import {
+  AsyncJob,
+  SalesforceOrg,
+  AsyncJobWorkerMessageResponse,
+  AsyncJobType,
+  WorkerMessage,
+  RecordResult,
+  ErrorResult,
+  AsyncJobNew,
+} from '@jetstream/types';
 import uniqueId from 'lodash/uniqueId';
 import { selectedOrgState } from '../../../app-state';
 import { logger } from '@jetstream/shared/client-logger';
-import { RecordResult, ErrorResult } from 'jsforce';
-
+import { pluralizeIfMultiple } from '@jetstream/shared/utils';
+import * as fromJetstreamEvents from '../jetstream-events';
+import { filter, map } from 'rxjs/operators';
+import { useObservable } from '@jetstream/shared/ui-utils';
 // eslint-disable-next-line @typescript-eslint/no-empty-interface
 export interface JobsProps {}
 
 export const Jobs: FunctionComponent<JobsProps> = () => {
-  const [jobsToProcess, setJobsToProcess] = useRecoilState(jobsToProcessState);
   const [jobsObj, setJobs] = useRecoilState(jobsState);
   const [jobsUnread, setJobsUnread] = useRecoilState(jobsUnreadState);
   const [jobs, setJobsArr] = useRecoilState(selectJobs);
   const activeJobCount = useRecoilValue(selectActiveJobCount);
   const [isPopoverOpen, setIsPopoverOpen] = useState(false);
   const selectedOrg = useRecoilValue<SalesforceOrg>(selectedOrgState);
+  const newJobsToProcess = useObservable(
+    fromJetstreamEvents.getObservable('newJob').pipe(
+      map((ev: AsyncJobNew[]) => ev.filter((currEvent) => currEvent.type === 'BulkDelete')),
+      filter((ev: AsyncJobNew[]) => ev.length > 0)
+    )
+  );
 
   const [jobsWorker] = useState(() => new JobsWorker());
 
   useEffect(() => {
-    if (jobsWorker && jobsToProcess.length > 0) {
-      const newJobs = jobsToProcess.map(
+    if (!!jobsWorker && newJobsToProcess && newJobsToProcess.length > 0) {
+      const newJobs = newJobsToProcess.map(
         (job): AsyncJob<unknown> => ({
           ...job,
           id: uniqueId(job.type),
@@ -49,10 +65,9 @@ export const Jobs: FunctionComponent<JobsProps> = () => {
       });
       setIsPopoverOpen(true);
       setJobsArr(newJobs.concat(jobs));
-      setJobsToProcess([]);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [jobsWorker, jobsToProcess]);
+  }, [newJobsToProcess]);
 
   useEffect(() => {
     if (jobsWorker) {
@@ -74,13 +89,19 @@ export const Jobs: FunctionComponent<JobsProps> = () => {
                 };
               } else {
                 const results: RecordResult[] = Array.isArray(data.results) ? data.results : [data.results];
-                const firstErrorRec = results.find((record) => !record.success) as ErrorResult | undefined;
+                const firstErrorRec = results.filter((record) => !record.success) as ErrorResult[];
+
                 newJobs[job.id] = {
                   ...job,
+                  results,
                   finished: new Date(),
                   lastActivity: new Date(),
-                  status: firstErrorRec ? 'failed' : 'success',
-                  statusMessage: firstErrorRec ? firstErrorRec.errors[0] || 'An unknown error ocurred' : 'Record was deleted successfully',
+                  status: firstErrorRec.length ? 'failed' : 'success',
+                  statusMessage: firstErrorRec.length
+                    ? `${firstErrorRec.length} ${pluralizeIfMultiple('Error', firstErrorRec)} - ${
+                        firstErrorRec[0]?.errors[0]?.message || 'An unknown error ocurred'
+                      }`
+                    : 'Record was deleted successfully',
                 };
               }
               setJobs(newJobs);
@@ -91,6 +112,9 @@ export const Jobs: FunctionComponent<JobsProps> = () => {
           }
           default:
             break;
+        }
+        if (data && data.job) {
+          fromJetstreamEvents.emit({ type: 'jobFinished', payload: data.job });
         }
       };
     }
@@ -123,7 +147,7 @@ export const Jobs: FunctionComponent<JobsProps> = () => {
       <div className="slds-dropdown-trigger slds-dropdown-trigger_click">
         <button
           className={classNames(
-            'slds-button slds-button_icon slds-button_icon slds-button_icon-container slds-button_icon-small slds-global-actions__notifications slds-global-actions__item-action',
+            'slds-button slds-button_icon slds-button_icon-container slds-button_icon-small slds-global-actions__notifications slds-global-actions__item-action',
             { 'slds-incoming-notification': activeJobCount || jobsUnread }
           )}
           title={`${activeJobCount} active job(s)`}

@@ -119,12 +119,7 @@ export const Picklist: FunctionComponent<PicklistProps> = ({
                   title={selectedItemText}
                 />
                 <span className="slds-icon_container slds-icon-utility-down slds-input__icon slds-input__icon_right">
-                  <Icon
-                    type="utility"
-                    icon="down"
-                    className="slds-icon slds-icon slds-icon_x-small slds-icon-text-default"
-                    omitContainer={true}
-                  />
+                  <Icon type="utility" icon="down" className="slds-icon slds-icon slds-icon_x-small slds-icon-text-default" omitContainer />
                 </span>
               </div>
               <div
