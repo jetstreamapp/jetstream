@@ -28,11 +28,11 @@ export const Expression: FunctionComponent<ExpressionProps> = ({
       <ul>{children}</ul>
       <div className="slds-expression__buttons">
         <button className="slds-button slds-button_neutral" onClick={() => onAddCondition()}>
-          <Icon type="utility" icon="add" className="slds-button__icon slds-button__icon_left" omitContainer={true} />
+          <Icon type="utility" icon="add" className="slds-button__icon slds-button__icon_left" omitContainer />
           Add Condition
         </button>
         <button className="slds-button slds-button_neutral" onClick={() => onAddGroup()}>
-          <Icon type="utility" icon="add" className="slds-button__icon slds-button__icon_left" omitContainer={true} />
+          <Icon type="utility" icon="add" className="slds-button__icon slds-button__icon_left" omitContainer />
           Add Group
         </button>
       </div>

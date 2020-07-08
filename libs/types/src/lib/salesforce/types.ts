@@ -67,3 +67,20 @@ export interface FieldDefinition {
   IsApiSortable: boolean;
   IsPolymorphicForeignKey: boolean;
 }
+
+export interface ErrorResult {
+  errors: {
+    fields: string[];
+    message: string;
+    statusCode: string;
+  }[];
+  success: false;
+}
+
+export interface SuccessResult {
+  id: string;
+  success: true;
+}
+// NOTE: this type is returned for composite API if an array of data is passed to SFDC
+// if one record, then the source in the jsforce type library is used
+export type RecordResult = SuccessResult | ErrorResult;

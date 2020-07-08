@@ -3,6 +3,7 @@
 import { convertFiltersToWhereClause } from '@jetstream/shared/ui-utils';
 import { ExpressionType, ListItemGroup, MapOf, QueryFields, WorkerMessage } from '@jetstream/types';
 import { composeQuery, Query } from 'soql-parser-js';
+import { logger } from '@jetstream/shared/client-logger';
 
 type MessageName = 'composeQuery' | 'calculateFilter';
 
@@ -12,6 +13,7 @@ const ctx: Worker = self as any;
 // Respond to message from parent thread
 ctx.addEventListener('message', (event) => {
   const payload: WorkerMessage<MessageName> = event.data;
+  logger.info('[WORKER]', { payload });
   handleMessage(payload.name, payload.data);
 });
 

@@ -133,7 +133,7 @@ export const AddOrg: FunctionComponent<AddOrgProps> = ({ onAddOrg }) => {
       }
     >
       <button className="slds-button">
-        <Icon type="utility" icon="add" className="slds-button__icon slds-button__icon_left" omitContainer={true} />
+        <Icon type="utility" icon="add" className="slds-button__icon slds-button__icon_left" omitContainer />
         Add Org
       </button>
     </Popover>

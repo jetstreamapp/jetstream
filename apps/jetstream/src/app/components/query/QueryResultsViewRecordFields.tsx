@@ -1,7 +1,7 @@
-import { genericRequest } from '@jetstream/shared/data';
+import { genericRequest, sobjectOperation } from '@jetstream/shared/data';
 import { SalesforceOrg } from '@jetstream/types';
 import { Icon, Panel, Spinner, AutoFullHeightContainer } from '@jetstream/ui';
-import { orderStringsBy } from '@jetstream/shared/utils';
+import { orderStringsBy, getIdAndObjFromRecordUrl } from '@jetstream/shared/utils';
 import { Record } from 'jsforce';
 import React, { Fragment, FunctionComponent, useEffect, useState } from 'react';
 import { logger } from '@jetstream/shared/client-logger';
@@ -45,7 +45,9 @@ export const QueryResultsViewRecordFields: FunctionComponent<QueryResultsViewRec
         setRecordData(null);
         setErrorMessage(null);
         // getRecordDetails();
-        genericRequest(org, 'GET', row.attributes.url)
+        const [id, sobject] = getIdAndObjFromRecordUrl(row.attributes.url);
+        sobjectOperation(org, sobject, 'retrieve', { ids: id })
+          // genericRequest(org, 'GET', row.attributes.url)
           .then((record) => {
             if (mounted) {
               setRecordData(record);
@@ -61,7 +63,6 @@ export const QueryResultsViewRecordFields: FunctionComponent<QueryResultsViewRec
           });
       }
       return () => {
-        logger.info('unmounted ;(');
         mounted = false;
       };
       // eslint-disable-next-line react-hooks/exhaustive-deps

@@ -59,7 +59,7 @@ export const QueryOrderByContainer: FunctionComponent<QueryOrderByContainerProps
       ))}
       <div className="slds-m-top_small">
         <button className="slds-button slds-button_neutral" onClick={handleAdd} disabled={orderByClauses.length >= 5}>
-          <Icon type="utility" icon="add" className="slds-button__icon slds-button__icon_left" omitContainer={true} />
+          <Icon type="utility" icon="add" className="slds-button__icon slds-button__icon_left" omitContainer />
           Add Order By
         </button>
       </div>

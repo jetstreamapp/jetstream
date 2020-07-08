@@ -4,16 +4,18 @@ import Avatar from '@salesforce-ux/design-system/assets/images/profile_avatar_96
 import { FunctionComponent, ReactNode, Suspense } from 'react';
 import { DropDownItem } from '@jetstream/types';
 import DropDown from '../form/dropdown/DropDown';
+import Jobs from './Jobs';
 
 // eslint-disable-next-line @typescript-eslint/no-empty-interface
 export interface HeaderProps {
   logo: string;
   orgs?: ReactNode;
   userMenuItems: DropDownItem[];
+  notification?: ReactNode;
   onUserMenuItemSelected: (id: string) => void;
 }
 
-export const Header: FunctionComponent<HeaderProps> = ({ logo, orgs, userMenuItems, onUserMenuItemSelected, children }) => {
+export const Header: FunctionComponent<HeaderProps> = ({ logo, orgs, notification, userMenuItems, onUserMenuItemSelected, children }) => {
   return (
     <header className="slds-global-header_container branding-header slds-no-print">
       <div className="slds-global-header slds-grid slds-grid_align-spread">
@@ -30,6 +32,7 @@ export const Header: FunctionComponent<HeaderProps> = ({ logo, orgs, userMenuIte
         {/* RIGHT HAND AREA */}
         <div className="slds-global-header__item">
           <ul className="slds-global-actions">
+            {notification && <li className="slds-global-actions__item">{notification}</li>}
             <li className="slds-global-actions__item">
               <div className="slds-dropdown-trigger slds-dropdown-trigger_click">
                 <DropDown

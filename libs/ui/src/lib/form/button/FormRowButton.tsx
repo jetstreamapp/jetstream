@@ -18,13 +18,7 @@ export const FormRowButton: FunctionComponent<FormRowButtonProps> = ({ title, ic
       <span className="slds-form-element__label" style={{ marginTop: `15px` }} />
       <div className="slds-form-element__control">
         <button className="slds-button slds-button_icon slds-button_icon-border-filled" title={title} onClick={() => onClick()}>
-          <Icon
-            type={icon.type}
-            icon={icon.icon}
-            description={icon.description || title}
-            className="slds-button__icon"
-            omitContainer={true}
-          />
+          <Icon type={icon.type} icon={icon.icon} description={icon.description || title} className="slds-button__icon" omitContainer />
         </button>
       </div>
     </div>

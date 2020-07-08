@@ -3,6 +3,8 @@ import { MapOf } from '@jetstream/types';
 import { Field } from 'jsforce';
 import { ReactNode } from 'react';
 import { FieldDefinition } from '../salesforce/types';
+import { SalesforceOrg } from '../types';
+// import { Moment } from 'moment-mini';
 
 export type IconType = 'action' | 'custom' | 'doctype' | 'standard' | 'utility';
 export interface IconObj {
@@ -119,10 +121,10 @@ export interface ListItem<V = string, M = any> {
 export type Select = 'SELECT';
 export type Text = 'TEXT';
 export type TextArea = 'TEXTAREA';
-export type Date = 'DATE';
+export type DateStr = 'DATE';
 export type Datetime = 'DATETIME';
 
-export type ExpressionRowValueType = Select | Text | TextArea | Date | Datetime | 'NUMBER' | 'BOOLEAN';
+export type ExpressionRowValueType = Select | Text | TextArea | DateStr | Datetime | 'NUMBER' | 'BOOLEAN';
 
 export type AndOr = 'AND' | 'OR';
 export type AscDesc = 'ASC' | 'DESC';
@@ -213,4 +215,32 @@ export interface FormGroupDropdownItem {
   id: string;
   label: string;
   icon: IconObj;
+}
+
+export type AsyncJobType = 'BulkDelete';
+export type AsyncJobStatus = 'pending' | 'in-progress' | 'success' | 'failed' | 'aborted';
+
+export type AsyncJobNew<T = unknown> = Omit<AsyncJob<T>, 'id' | 'started' | 'finished' | 'lastActivity' | 'status' | 'statusMessage'>;
+
+export interface AsyncJob<T = unknown, R = unknown> {
+  id: string;
+  type: AsyncJobType;
+  title: string;
+  started: Date; // could use moment instead - figure out later
+  finished: Date; // could use moment instead - figure out later
+  lastActivity: Date; // could use moment instead - figure out later
+  status: AsyncJobStatus;
+  statusMessage?: string; // will fallback to status if not provided
+  meta: T;
+  results?: R;
+}
+
+export interface AsyncJobWorkerMessagePayload<T = unknown> {
+  job: AsyncJob<T>;
+  org: SalesforceOrg;
+}
+
+export interface AsyncJobWorkerMessageResponse<T = unknown, R = unknown> {
+  job: AsyncJob<T>;
+  results?: R;
 }

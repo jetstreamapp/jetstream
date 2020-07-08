@@ -36,7 +36,7 @@ export const SalesforceLogin: FunctionComponent<SalesforceLoginProps> = ({
 
   return (
     <a className={className} href={loginUrl} target="_blank" rel="noopener noreferrer" title={title}>
-      {!omitIcon && <Icon type="utility" icon="new_window" className="slds-button__icon slds-button__icon_left" omitContainer={true} />}
+      {!omitIcon && <Icon type="utility" icon="new_window" className="slds-button__icon slds-button__icon_left" omitContainer />}
       {children}
     </a>
   );
