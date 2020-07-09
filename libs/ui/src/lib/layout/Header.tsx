@@ -4,7 +4,6 @@ import Avatar from '@salesforce-ux/design-system/assets/images/profile_avatar_96
 import { FunctionComponent, ReactNode, Suspense } from 'react';
 import { DropDownItem } from '@jetstream/types';
 import DropDown from '../form/dropdown/DropDown';
-import Jobs from './Jobs';
 
 // eslint-disable-next-line @typescript-eslint/no-empty-interface
 export interface HeaderProps {
