@@ -1,13 +1,14 @@
 /** @jsx jsx */
 import { css, jsx } from '@emotion/core';
 import { UserProfile } from '@jetstream/types';
-import { Header, Navbar, NavbarItem } from '@jetstream/ui';
+import { Header, Navbar, NavbarItem, Icon } from '@jetstream/ui';
 import Logo from '../../../assets/images/jetstream-logo-v1-200w.png';
 import OrgsDropdown from '../orgs/OrgsDropdown';
 import { FunctionComponent } from 'react';
 import { useRecoilState } from 'recoil';
 import { applicationCookieState } from '../../app-state';
 import Jobs from './jobs/Jobs';
+import { Link } from 'react-router-dom';
 
 export interface HeaderNavbarProps {
   userProfile: UserProfile;
@@ -37,7 +38,15 @@ export const HeaderNavbar: FunctionComponent<HeaderNavbarProps> = () => {
       logo={Logo}
       orgs={<OrgsDropdown />}
       userMenuItems={[{ id: 'nav-user-logout', value: 'Logout', icon: { type: 'utility', icon: 'logout' } }]}
-      notification={<Jobs />}
+      rightHandMenuItems={[
+        <Link
+          className="slds-button slds-button_icon slds-button_icon slds-button_icon-container slds-button_icon-small slds-global-actions__help slds-global-actions__item-action"
+          to="/feedback"
+        >
+          <Icon type="utility" icon="help" className="slds-button__icon slds-global-header__icon" omitContainer />
+        </Link>,
+        <Jobs />,
+      ]}
       onUserMenuItemSelected={handleUserMenuSelection}
     >
       <Navbar>

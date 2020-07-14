@@ -7,6 +7,7 @@ import { RecoilRoot } from 'recoil';
 import FetchUserProfile from './components/core/FetchUserProfile';
 import HeaderNavbar from './components/core/HeaderNavbar';
 import Query from './components/query/Query';
+import Feedback from './components/feedback/Feedback';
 
 export const App = () => {
   const [userProfile, setUserProfile] = useState<UserProfile>();
@@ -31,6 +32,9 @@ export const App = () => {
                   <Switch>
                     <Route path="/query">
                       <Query />
+                    </Route>
+                    <Route path="/feedback">
+                      <Feedback />
                     </Route>
                   </Switch>
                 </Suspense>
