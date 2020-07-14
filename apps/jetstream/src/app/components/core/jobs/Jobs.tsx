@@ -121,6 +121,10 @@ export const Jobs: FunctionComponent<JobsProps> = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [jobsWorker]);
 
+  function handleDismiss(job: AsyncJob) {
+    setJobsArr(jobs.filter(({ id }) => id !== job.id));
+  }
+
   return (
     <Popover
       isOpen={isPopoverOpen}
@@ -137,7 +141,7 @@ export const Jobs: FunctionComponent<JobsProps> = () => {
         <div className="slds-popover__body slds-p-around_none">
           <ul>
             {jobs.map((job) => (
-              <Job key={job.id} job={job} />
+              <Job key={job.id} job={job} dismiss={handleDismiss} />
             ))}
             {!jobs.length && <JobPlaceholder />}
           </ul>

@@ -1,0 +1,57 @@
+import { ConfirmationDialog, ConfirmationDialogServiceProviderOptions } from '@jetstream/ui';
+import React, { Fragment, FunctionComponent } from 'react';
+
+// https://dev.to/dmtrkovalenko/the-neatest-way-to-handle-alert-dialogs-in-react-1aoe
+export const ConfirmationServiceContext = React.createContext<(options: ConfirmationDialogServiceProviderOptions) => Promise<void>>(
+  Promise.reject
+);
+
+export const useConfirmation = () => React.useContext(ConfirmationServiceContext);
+
+export const ConfirmationServiceProvider: FunctionComponent = ({ children }) => {
+  const [confirmationState, setConfirmationState] = React.useState<ConfirmationDialogServiceProviderOptions | null>(null);
+
+  const awaitingPromiseRef = React.useRef<{
+    resolve: () => void;
+    reject: () => void;
+  }>();
+
+  const openConfirmation = (options: ConfirmationDialogServiceProviderOptions) => {
+    setConfirmationState(options);
+    return new Promise<void>((resolve, reject) => {
+      awaitingPromiseRef.current = { resolve, reject };
+    });
+  };
+
+  const handleClose = () => {
+    if (confirmationState.rejectOnCancel && awaitingPromiseRef.current) {
+      awaitingPromiseRef.current.reject();
+    }
+    setConfirmationState(null);
+  };
+
+  const handleConfirm = () => {
+    if (awaitingPromiseRef.current) {
+      awaitingPromiseRef.current.resolve();
+    }
+    setConfirmationState(null);
+  };
+
+  return (
+    <Fragment>
+      <ConfirmationServiceContext.Provider value={openConfirmation} children={children} />
+
+      <ConfirmationDialog
+        isOpen={Boolean(confirmationState)}
+        onCancel={handleClose}
+        onConfirm={handleConfirm}
+        header={confirmationState && confirmationState.header}
+        tagline={confirmationState && confirmationState.tagline}
+        cancelText={confirmationState && confirmationState.cancelText}
+        confirmText={confirmationState && confirmationState.confirmText}
+      >
+        {confirmationState && confirmationState.content}
+      </ConfirmationDialog>
+    </Fragment>
+  );
+};
