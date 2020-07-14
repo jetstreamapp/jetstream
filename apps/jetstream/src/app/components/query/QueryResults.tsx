@@ -16,6 +16,7 @@ import {
   Toolbar,
   ToolbarItemActions,
   ToolbarItemGroup,
+  useConfirmation,
 } from '@jetstream/ui';
 import classNames from 'classnames';
 import React, { Fragment, FunctionComponent, useEffect, useState } from 'react';
@@ -52,6 +53,7 @@ export const QueryResults: FunctionComponent<QueryResultsProps> = React.memo(() 
   const bulkDeleteJob = useObservable(
     fromJetstreamEvents.getObservable('jobFinished').pipe(filter((ev: AsyncJob) => ev.type === 'BulkDelete'))
   );
+  const confirm = useConfirmation();
 
   useEffect(() => {
     if (bulkDeleteJob && executeQuery) {
@@ -148,15 +150,18 @@ export const QueryResults: FunctionComponent<QueryResultsProps> = React.memo(() 
         setRecordDetailPanelOpen(true);
         break;
       case 'delete record': {
-        const jobs: AsyncJobNew[] = [
-          {
-            type: 'BulkDelete',
-            title: `Delete Record ${recordId}`,
-            meta: row,
-          },
-        ];
-        // TODO: show modal and then delete
-        fromJetstreamEvents.emit({ type: 'newJob', payload: jobs });
+        confirm({
+          content: `Are you sure you want to delete record ${recordId}`,
+        }).then(() => {
+          const jobs: AsyncJobNew[] = [
+            {
+              type: 'BulkDelete',
+              title: `Delete Record ${recordId}`,
+              meta: row,
+            },
+          ];
+          fromJetstreamEvents.emit({ type: 'newJob', payload: jobs });
+        });
         break;
       }
       default:
@@ -168,15 +173,19 @@ export const QueryResults: FunctionComponent<QueryResultsProps> = React.memo(() 
     logger.log({ id, rows });
     switch (id) {
       case 'delete record': {
-        // TODO: show modal and then delete
-        const jobs: AsyncJobNew[] = [
-          {
-            type: 'BulkDelete',
-            title: `Delete ${rows.length} ${pluralizeIfMultiple('Record', rows)}`,
-            meta: rows,
-          },
-        ];
-        fromJetstreamEvents.emit({ type: 'newJob', payload: jobs });
+        const recordCountText = `${rows.length} ${pluralizeIfMultiple('Record', rows)}`;
+        confirm({
+          content: `Are you sure you want to delete ${recordCountText}?`,
+        }).then(() => {
+          const jobs: AsyncJobNew[] = [
+            {
+              type: 'BulkDelete',
+              title: `Delete ${recordCountText}`,
+              meta: rows,
+            },
+          ];
+          fromJetstreamEvents.emit({ type: 'newJob', payload: jobs });
+        });
         break;
       }
       default:

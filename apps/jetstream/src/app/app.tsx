@@ -8,42 +8,45 @@ import FetchUserProfile from './components/core/FetchUserProfile';
 import HeaderNavbar from './components/core/HeaderNavbar';
 import Query from './components/query/Query';
 import Feedback from './components/feedback/Feedback';
+import { ConfirmationServiceProvider } from '@jetstream/ui';
 
 export const App = () => {
   const [userProfile, setUserProfile] = useState<UserProfile>();
 
   return (
-    <RecoilRoot>
-      {/* TODO: make better loading indicators for suspense (both global and localized versions - maybe SVG placeholders) */}
-      <Suspense fallback={<div>Loading...</div>}>
-        <FetchUserProfile onUserProfile={setUserProfile}>
-          <Router basename="/app">
-            <div>
+    <ConfirmationServiceProvider>
+      <RecoilRoot>
+        {/* TODO: make better loading indicators for suspense (both global and localized versions - maybe SVG placeholders) */}
+        <Suspense fallback={<div>Loading...</div>}>
+          <FetchUserProfile onUserProfile={setUserProfile}>
+            <Router basename="/app">
               <div>
-                <HeaderNavbar userProfile={userProfile} />
+                <div>
+                  <HeaderNavbar userProfile={userProfile} />
+                </div>
+                <div
+                  className="slds-p-horizontal_small slds-p-vertical_xx-small"
+                  css={css`
+                    margin-top: 90px;
+                  `}
+                >
+                  <Suspense fallback={<div>Loading...</div>}>
+                    <Switch>
+                      <Route path="/query">
+                        <Query />
+                      </Route>
+                      <Route path="/feedback">
+                        <Feedback />
+                      </Route>
+                    </Switch>
+                  </Suspense>
+                </div>
               </div>
-              <div
-                className="slds-p-horizontal_small slds-p-vertical_xx-small"
-                css={css`
-                  margin-top: 90px;
-                `}
-              >
-                <Suspense fallback={<div>Loading...</div>}>
-                  <Switch>
-                    <Route path="/query">
-                      <Query />
-                    </Route>
-                    <Route path="/feedback">
-                      <Feedback />
-                    </Route>
-                  </Switch>
-                </Suspense>
-              </div>
-            </div>
-          </Router>
-        </FetchUserProfile>
-      </Suspense>
-    </RecoilRoot>
+            </Router>
+          </FetchUserProfile>
+        </Suspense>
+      </RecoilRoot>
+    </ConfirmationServiceProvider>
   );
 };
 

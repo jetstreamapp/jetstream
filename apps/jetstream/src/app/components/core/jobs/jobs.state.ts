@@ -17,11 +17,13 @@ export const selectJobs = selector({
   key: 'jobs.selectJobs',
   get: ({ get }) => Object.values(get(jobsState)),
   set: ({ get, set }, newJobs: AsyncJob<unknown>[]) => {
-    const jobs = { ...get(jobsState) };
-    newJobs.forEach((job) => {
-      jobs[job.id] = job;
-    });
-    set(jobsState, jobs);
+    set(
+      jobsState,
+      newJobs.reduce((newJobObj, job) => {
+        newJobObj[job.id] = job;
+        return newJobObj;
+      }, {})
+    );
   },
 });
 

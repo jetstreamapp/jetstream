@@ -7,9 +7,10 @@ import { downloadJob } from './job-utils';
 
 export interface JobProps {
   job: AsyncJob;
+  dismiss: (job: AsyncJob) => void;
 }
 
-export const Job: FunctionComponent<JobProps> = ({ job }) => {
+export const Job: FunctionComponent<JobProps> = ({ job, dismiss }) => {
   const status = job.statusMessage || job.status;
   let message;
   const inProgress = job.status === 'pending' || job.status === 'in-progress';
@@ -20,7 +21,7 @@ export const Job: FunctionComponent<JobProps> = ({ job }) => {
   }
   return (
     <li className="slds-global-header__notification">
-      <div className="slds-has-flexi-truncate slds-p-around_x-small">
+      <div className="slds-has-flexi-truncate slds-p-around_xxx-small">
         <div className="slds-grid slds-grid_align-spread">
           <div className="slds-has-flexi-truncate">
             <h3 className="slds-truncate" title={job.title}>
@@ -88,11 +89,18 @@ export const Job: FunctionComponent<JobProps> = ({ job }) => {
           </div>
         </div>
         {job.results && (
-          <div className="slds-m-top_x-small">
-            <button className="slds-button slds-button_neutral" onClick={() => downloadJob(job)}>
-              <Icon type="utility" icon="download" className="slds-button__icon slds-button__icon_left" omitContainer />
-              Download Results
-            </button>
+          <div className="slds-m-top_x-small slds-grid slds-grid_align-spread">
+            <div className="slds-col">
+              <button className="slds-button slds-button_neutral" onClick={() => downloadJob(job)}>
+                <Icon type="utility" icon="download" className="slds-button__icon slds-button__icon_left" omitContainer />
+                Download Results
+              </button>
+            </div>
+            <div className=" slds-col">
+              <button className="slds-button slds-button_neutral" onClick={() => dismiss(job)}>
+                Dismiss
+              </button>
+            </div>
           </div>
         )}
       </div>

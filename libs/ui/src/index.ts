@@ -1,4 +1,5 @@
 export * from './lib/accordion/Accordion';
+export * from './lib/confirmation-dialog/ConfirmationDialog';
 export * from './lib/expression-group/ExpressionContainer';
 export * from './lib/form/button/ButtonGroupContainer';
 export * from './lib/form/button/ButtonRowContainer';
@@ -53,3 +54,4 @@ export * from './lib/widgets/Icon';
 export * from './lib/widgets/SalesforceLogin';
 export * from './lib/widgets/Spinner';
 export * from './lib/widgets/Tooltip';
+export * from './lib/providers/DialogServiceProvider';
