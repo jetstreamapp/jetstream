@@ -1,7 +1,7 @@
 /** @jsx jsx */
 import { jsx } from '@emotion/core';
 import Avatar from '@salesforce-ux/design-system/assets/images/profile_avatar_96.png';
-import { FunctionComponent, ReactNode, Suspense } from 'react';
+import { FunctionComponent, ReactNode, Suspense, ReactNodeArray } from 'react';
 import { DropDownItem } from '@jetstream/types';
 import DropDown from '../form/dropdown/DropDown';
 
@@ -10,11 +10,19 @@ export interface HeaderProps {
   logo: string;
   orgs?: ReactNode;
   userMenuItems: DropDownItem[];
-  notification?: ReactNode;
+  rightHandMenuItems?: ReactNode | ReactNodeArray;
+  // notification?: ReactNode;
   onUserMenuItemSelected: (id: string) => void;
 }
 
-export const Header: FunctionComponent<HeaderProps> = ({ logo, orgs, notification, userMenuItems, onUserMenuItemSelected, children }) => {
+export const Header: FunctionComponent<HeaderProps> = ({
+  logo,
+  orgs,
+  rightHandMenuItems,
+  userMenuItems,
+  onUserMenuItemSelected,
+  children,
+}) => {
   return (
     <header className="slds-global-header_container branding-header slds-no-print">
       <div className="slds-global-header slds-grid slds-grid_align-spread">
@@ -31,7 +39,15 @@ export const Header: FunctionComponent<HeaderProps> = ({ logo, orgs, notificatio
         {/* RIGHT HAND AREA */}
         <div className="slds-global-header__item">
           <ul className="slds-global-actions">
-            {notification && <li className="slds-global-actions__item">{notification}</li>}
+            {rightHandMenuItems && Array.isArray(rightHandMenuItems) ? (
+              rightHandMenuItems.map((item, i) => (
+                <li key={i} className="slds-global-actions__item">
+                  {item}
+                </li>
+              ))
+            ) : (
+              <li className="slds-global-actions__item">{rightHandMenuItems}</li>
+            )}
             <li className="slds-global-actions__item">
               <div className="slds-dropdown-trigger slds-dropdown-trigger_click">
                 <DropDown
