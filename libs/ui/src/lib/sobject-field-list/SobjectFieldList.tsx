@@ -125,7 +125,7 @@ export const SobjectFieldList: FunctionComponent<SobjectFieldListProps> = ({
               Showing {filteredFields.length} of {fieldLength} fields
             </div>
           </div>
-          <div className="slds-p-bottom--xx-small slds-p-left--xx-small slds-m-left--xx-small">
+          <div className="slds-p-bottom--xx-small slds-p-left--xx-small slds-m-left--xx-small border-bottom-thick">
             <Checkbox
               id={`${itemKey}select-all-fields`}
               checked={visibleFields.size > 0 && selectAll}

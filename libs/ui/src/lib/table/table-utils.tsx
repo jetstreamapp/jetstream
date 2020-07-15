@@ -105,9 +105,13 @@ export function getSortableResizableColumns(
     return tableColumn;
   });
 
-  return [getActionColumn(onRowAction), ...columns];
+  // TODO: Commenting out for now until we find specific use-cases for row dropdowns to have row actions
+  // View field details is a bit messy, and deleting one by one records is not that valuable
+  // return [getActionColumn(onRowAction), ...columns];
+  return columns;
 }
 
+// TODO: This is unused for now - but can be used for specific row actions in the future
 function getActionColumn(onRowAction: (id: string, row: any) => void) {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const actionColumn: Column<any> = {

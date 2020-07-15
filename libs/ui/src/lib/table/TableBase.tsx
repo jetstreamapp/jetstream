@@ -6,6 +6,7 @@ import { jsx } from '@emotion/core';
 import { Fragment, FunctionComponent, useEffect, useMemo, useState } from 'react';
 import { useBlockLayout, useResizeColumns, useRowSelect, useSortBy, useTable } from 'react-table';
 import { alphanumeric } from './table-sort';
+import classNames from 'classnames';
 
 // https://github.com/DefinitelyTyped/DefinitelyTyped/blob/master/types/react-table/react-table-tests.tsx
 declare module 'react-table' {
@@ -114,7 +115,6 @@ export const Table: FunctionComponent<TableProps> = ({ data, columns, onRowSelec
     useRowSelect,
     /** usePagination, FIXME: */ (hooks) => {
       hooks.visibleColumns.push((columns) => [
-        // Let's make a column for selection
         {
           id: 'selection',
           width: 32,
@@ -202,7 +202,11 @@ export const Table: FunctionComponent<TableProps> = ({ data, columns, onRowSelec
         {rows.map((row) => {
           prepareRow(row);
           return (
-            <tr {...row.getRowProps()} aria-selected="false" className="slds-hint-parent">
+            <tr
+              {...row.getRowProps()}
+              aria-selected={row.isSelected}
+              className={classNames('slds-hint-parent table-row', { 'is-selected': row.isSelected })}
+            >
               {row.cells.map((cell) => (
                 <Fragment key={cell.getCellProps().key}>{cell.render('Cell')}</Fragment>
               ))}
