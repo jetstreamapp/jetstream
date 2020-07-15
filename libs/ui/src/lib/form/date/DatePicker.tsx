@@ -17,6 +17,7 @@ export interface DatePickerProps {
   initialVisibleDate?: moment.Moment;
   availableYears?: number[];
   dropDownPosition?: PositionLeftRight;
+  disabled?: boolean;
   onChange: (date: moment.Moment) => void;
 }
 
@@ -28,6 +29,7 @@ export const DatePicker: FunctionComponent<DatePickerProps> = ({
   initialVisibleDate,
   availableYears,
   dropDownPosition,
+  disabled,
   onChange,
 }) => {
   initialSelectedDate = initialSelectedDate && initialSelectedDate.isValid() ? initialSelectedDate : undefined;
@@ -93,11 +95,13 @@ export const DatePicker: FunctionComponent<DatePickerProps> = ({
           value={value}
           onChange={onValueChange}
           onClick={() => handleToggleOpen(true)}
+          disabled={disabled}
         />
         <button
           className="slds-button slds-button_icon slds-input__icon slds-input__icon_right"
           title="Select a date"
           onClick={() => handleToggleOpen(true)}
+          disabled={disabled}
         >
           <Icon type="utility" icon="event" className="slds-button__icon" omitContainer description="Select a date" />
         </button>

@@ -216,7 +216,7 @@ export function convertFiltersToWhereClause(filters: ExpressionType): WhereClaus
     .map((group) => {
       return {
         ...group,
-        rows: rows.filter((row) => row.selected.operator && row.selected.resource && row.selected.value),
+        rows: group.rows.filter((row) => row.selected.operator && row.selected.resource && row.selected.value),
       };
     })
     .filter((group) => group.rows.length > 0);
@@ -236,7 +236,8 @@ export function convertFiltersToWhereClause(filters: ExpressionType): WhereClaus
         value: getValue(row.selected.operator, row.selected.value),
         literalType: getLiteralType(row.selected),
       },
-      operator: i !== 0 ? filters.action : undefined,
+      // operator: i !== 0 ? filters.action : undefined,
+      operator: filters.action,
     };
     return whereClause;
   });
@@ -253,7 +254,8 @@ export function convertFiltersToWhereClause(filters: ExpressionType): WhereClaus
           value: getValue(row.selected.operator, row.selected.value),
           literalType: getLiteralType(row.selected),
         },
-        operator: i !== 0 ? group.action : undefined,
+        // operator: i !== 0 ? group.action : undefined,
+        operator: group.action,
       };
       tempWhereClauses.push(whereClause);
       whereClauses.push(whereClause);
@@ -264,10 +266,15 @@ export function convertFiltersToWhereClause(filters: ExpressionType): WhereClaus
 
   // combine all where clauses
   const rootClause = whereClauses[0];
-  whereClauses.reduce((whereClause, currWhereClause) => {
+  whereClauses.reduce((whereClause, currWhereClause, i) => {
     if (whereClause) {
       whereClause.right = currWhereClause;
+      // use current operator as the prior operator (e.x. AND on this item applies to the prior item and this item)
+      // whereClauses[i - 1].operator = currWhereClause.operator;
     }
+    // if (i === whereClauses.length && currWhereClause.operator) {
+    //   currWhereClause.operator = undefined;
+    // }
     return currWhereClause;
   });
 

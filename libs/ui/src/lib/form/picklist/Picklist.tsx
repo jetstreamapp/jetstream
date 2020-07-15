@@ -21,6 +21,7 @@ export interface PicklistProps {
   multiSelection?: boolean;
   allowDeselection?: boolean;
   scrollLength?: 5 | 7 | 10;
+  disabled?: boolean;
   onChange: (selectedItems: ListItem[]) => void;
 }
 
@@ -36,6 +37,7 @@ export const Picklist: FunctionComponent<PicklistProps> = ({
   multiSelection = false,
   allowDeselection = true,
   scrollLength,
+  disabled,
   onChange,
 }) => {
   const [comboboxId] = useState<string>(uniqueId('picklist'));
@@ -54,6 +56,12 @@ export const Picklist: FunctionComponent<PicklistProps> = ({
   const scrollLengthClass = useMemo<string | undefined>(() => (scrollLength ? `slds-dropdown_length-${scrollLength}` : undefined), [
     scrollLength,
   ]);
+
+  useEffect(() => {
+    if (disabled && isOpen) {
+      setIsOpen(false);
+    }
+  }, [disabled, isOpen]);
 
   useEffect(() => {
     if (selectedItemsIdsSet.size > 1) {
@@ -104,7 +112,7 @@ export const Picklist: FunctionComponent<PicklistProps> = ({
               aria-controls={comboboxId}
               aria-haspopup="listbox"
               role="combobox"
-              onClick={() => setIsOpen(true)}
+              onClick={() => !disabled && setIsOpen(true)}
             >
               <div className="slds-combobox__form-element slds-input-has-icon slds-input-has-icon_right" role="none">
                 <input
@@ -117,6 +125,7 @@ export const Picklist: FunctionComponent<PicklistProps> = ({
                   readOnly
                   value={selectedItemText || ''}
                   title={selectedItemText}
+                  disabled={disabled}
                 />
                 <span className="slds-icon_container slds-icon-utility-down slds-input__icon slds-input__icon_right">
                   <Icon type="utility" icon="down" className="slds-icon slds-icon slds-icon_x-small slds-icon-text-default" omitContainer />

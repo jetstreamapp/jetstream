@@ -37,6 +37,7 @@ export interface ExpressionConditionRowProps {
   resourceTypes?: ListItem<ExpressionRowValueType>[];
   resourceType?: ExpressionRowValueType;
   resourceSelectItems?: ListItem[];
+  disableValueForOperators?: QueryFilterOperator[];
   onChange: (selected: ExpressionConditionRowSelectedItems) => void;
   onDelete: () => void;
 }
@@ -62,9 +63,11 @@ export const ExpressionConditionRow: FunctionComponent<ExpressionConditionRowPro
     resourceTypes,
     resourceType = 'TEXT',
     resourceSelectItems,
+    disableValueForOperators = [],
     onChange,
     onDelete,
   }) => {
+    const [disableValueInput, setDisableValueInput] = useState(false);
     const [visibleResources, setVisibleResources] = useState<ListItemGroup[]>(resources);
     const [selectedResourceType, setSelectedResourceType] = useState<ListItem<ExpressionRowValueType>[]>();
     const [resourcesFilter, setResourcesFilter] = useState<string>(null);
@@ -86,6 +89,10 @@ export const ExpressionConditionRow: FunctionComponent<ExpressionConditionRowPro
       onChange({ ...selected, value: selectedValue });
       // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [selectedValue]);
+
+    useEffect(() => {
+      setDisableValueInput(disableValueForOperators.includes(selected.operator));
+    }, [disableValueForOperators, selected.operator]);
 
     useEffect(() => {
       let selectedType: ListItem<ExpressionRowValueType>;
@@ -203,6 +210,7 @@ export const ExpressionConditionRow: FunctionComponent<ExpressionConditionRowPro
                     className="slds-input"
                     value={selectedValue}
                     onChange={(event) => setSelectValue(event.currentTarget.value)}
+                    disabled={disableValueInput}
                   />
                 </Input>
               )}
@@ -214,6 +222,7 @@ export const ExpressionConditionRow: FunctionComponent<ExpressionConditionRowPro
                     rows={5}
                     value={selectedValue}
                     onChange={(event) => setSelectValue(event.currentTarget.value)}
+                    disabled={disableValueInput}
                   />
                 </Textarea>
               )}
@@ -224,6 +233,7 @@ export const ExpressionConditionRow: FunctionComponent<ExpressionConditionRowPro
                   label={valueLabel}
                   dropDownPosition="right"
                   onChange={(value) => setSelectValue(value.format(YYYY_MM_DD))}
+                  disabled={disableValueInput}
                 />
               )}
               {resourceType === 'DATETIME' && (
@@ -233,6 +243,7 @@ export const ExpressionConditionRow: FunctionComponent<ExpressionConditionRowPro
                   label={valueLabel}
                   dropDownPosition="right"
                   onChange={(value) => setSelectValue(value.format(YYYY_MM_DD_HH_mm_ss_z))}
+                  disabled={disableValueForOperators.includes(selectedValue as QueryFilterOperator)}
                 />
               )}
               {resourceType === 'SELECT' && (
@@ -243,6 +254,7 @@ export const ExpressionConditionRow: FunctionComponent<ExpressionConditionRowPro
                   selectedItemIds={selectedValue ? [selectedValue] : []}
                   allowDeselection={false}
                   onChange={(item) => setSelectValue(item[0].id)}
+                  disabled={disableValueForOperators.includes(selectedValue as QueryFilterOperator)}
                 />
               )}
             </div>

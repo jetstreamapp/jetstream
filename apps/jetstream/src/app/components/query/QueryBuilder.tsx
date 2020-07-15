@@ -42,6 +42,7 @@ export const QueryBuilder: FunctionComponent<QueryBuilderProps> = () => {
   const [filterFields, setFilterFields] = useRecoilState(fromQueryState.filterQueryFieldsState);
   const [soql, setSoql] = useRecoilState(fromQueryState.querySoqlState);
   const [isFavorite, setIsFavorite] = useRecoilState(fromQueryState.queryIsFavoriteState);
+  const [showRightHandPane, setShowRightHandPane] = useState(!!selectedSObject);
 
   const [queryWorker] = useState(() => new QueryWorker());
 
@@ -56,6 +57,22 @@ export const QueryBuilder: FunctionComponent<QueryBuilderProps> = () => {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedSObject, queryFieldsMap, selectedFields]);
+
+  useEffect(() => {
+    let timer1;
+    if (!selectedSObject) {
+      setShowRightHandPane(false);
+      timer1 = undefined;
+    } else {
+      setShowRightHandPane(false);
+      timer1 = setTimeout(() => setShowRightHandPane(true));
+    }
+    return () => {
+      if (timer1) {
+        clearTimeout(timer1);
+      }
+    };
+  }, [selectedSObject]);
 
   useEffect(() => {
     if (queryWorker) {
@@ -142,7 +159,7 @@ export const QueryBuilder: FunctionComponent<QueryBuilderProps> = () => {
               )}
             </div>
             <div className="slds-p-horizontal_x-small">
-              {selectedSObject && (
+              {showRightHandPane && (
                 <AutoFullHeightContainer>
                   <Accordion
                     initOpenIds={['filters', 'orderBy', 'limit', 'soql']}
