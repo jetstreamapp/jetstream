@@ -7,6 +7,7 @@ import {
   ListItem,
   ListItemGroup,
   ExpressionGetResourceTypeFns,
+  QueryFilterOperator,
 } from '@jetstream/types';
 import React, { FunctionComponent, useEffect, useState } from 'react';
 import Expression from './Expression';
@@ -30,6 +31,7 @@ export interface ExpressionContainerProps {
   // used to optionally change input type of value based on the selected resource
   // if declared, these are called any time the resource changes
   getResourceTypeFns?: ExpressionGetResourceTypeFns;
+  disableValueForOperators?: QueryFilterOperator[];
   onChange: (expression: ExpressionType) => void;
 }
 
@@ -54,7 +56,7 @@ function initRow(key: number): ExpressionConditionType {
     selected: {
       resource: null,
       resourceGroup: null,
-      operator: null,
+      operator: 'eq',
       value: '',
     },
   };
@@ -83,6 +85,7 @@ export const ExpressionContainer: FunctionComponent<ExpressionContainerProps> = 
     operators,
     expressionInitValue,
     getResourceTypeFns,
+    disableValueForOperators,
     onChange,
   }) => {
     const [expression, setExpression] = useState<ExpressionType>(() => initExpression(expressionInitValue));
@@ -98,7 +101,7 @@ export const ExpressionContainer: FunctionComponent<ExpressionContainerProps> = 
         setIsInit(true);
       }
       // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [onChange, expression]);
+    }, [expression]);
 
     function handleExpressionActionChange(action: AndOr) {
       setExpression({ ...expression, action });
@@ -158,9 +161,7 @@ export const ExpressionContainer: FunctionComponent<ExpressionContainerProps> = 
             clonedExpression.groups[groupIdx].rows[rowIdx] = { ...clonedExpression.groups[groupIdx].rows[rowIdx], selected };
 
             if (resourceChanged) {
-              if (resourceChanged) {
-                updateResourcesOnRow(clonedExpression.rows[rowIdx], selected);
-              }
+              updateResourcesOnRow(clonedExpression.groups[groupIdx].rows[rowIdx], selected);
             }
           }
         }
@@ -245,6 +246,7 @@ export const ExpressionContainer: FunctionComponent<ExpressionContainerProps> = 
             resources={resources}
             operators={operators}
             selected={row.selected}
+            disableValueForOperators={disableValueForOperators}
             onChange={(selected) => handleRowChange(selected, row)}
             onDelete={() => handleDeleteRow(row)}
           ></ExpressionConditionRow>
@@ -275,6 +277,7 @@ export const ExpressionContainer: FunctionComponent<ExpressionContainerProps> = 
                 resources={resources}
                 operators={operators}
                 selected={row.selected}
+                disableValueForOperators={disableValueForOperators}
                 onChange={(selected) => handleRowChange(selected, row, group)}
                 onDelete={() => handleDeleteRow(row, group)}
               ></ExpressionConditionRow>

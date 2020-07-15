@@ -14,6 +14,7 @@ import * as fromQueryState from '../query.state';
 import { useRecoilState } from 'recoil';
 import { Field } from 'jsforce';
 import { getDateLiteralListItems, getBooleanListItems, getPicklistListItems } from '@jetstream/shared/ui-utils';
+import { logger } from '@jetstream/shared/client-logger';
 
 export interface QueryFilterProps {
   fields: ListItemGroup[];
@@ -146,10 +147,15 @@ export const QueryFilter: FunctionComponent<QueryFilterProps> = ({ fields }) => 
       expressionInitValue={initialQueryFilters}
       actionLabel="Filter When"
       resourceHelpText="Related fields must be selected to appear in this list"
+      resourceLabel="Fields"
       resources={fields}
       operators={operators}
       getResourceTypeFns={getResourceTypeFns}
-      onChange={setQueryFilters}
+      disableValueForOperators={['isNull', 'isNotNull']}
+      onChange={(filters) => {
+        logger.log({ filters });
+        setQueryFilters(filters);
+      }}
     />
   );
 };
