@@ -2,6 +2,7 @@ import React, { FunctionComponent } from 'react';
 import { FieldWrapper } from '@jetstream/types';
 import Tooltip from '../widgets/Tooltip';
 import Badge from '../widgets/Badge';
+import Icon from '../widgets/Icon';
 
 export interface SobjectFieldListTypeProps {
   field: FieldWrapper;
@@ -20,6 +21,14 @@ function getContent(field: FieldWrapper) {
       );
       return (
         <Tooltip id={`${field.name}-type-tooltip`} content={tooltipContent}>
+          <span className="slds-badge__icon slds-badge__icon_left slds-badge__icon_inverse">
+            <Icon
+              type="utility"
+              icon="search"
+              className="slds-icon slds-icon_xx-small"
+              containerClassname="slds-icon_container slds-icon-utility-moneybag slds-current-color"
+            />
+          </span>
           {field.type}
         </Tooltip>
       );

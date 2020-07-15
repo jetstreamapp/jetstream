@@ -3,6 +3,7 @@ import { jsx } from '@emotion/core';
 import isString from 'lodash/isString';
 import { memo } from 'react';
 import Checkbox from '../form/checkbox/Checkbox';
+import classNames from 'classnames';
 
 export interface ListItemCheckboxProps {
   id: string;
@@ -14,7 +15,7 @@ export interface ListItemCheckboxProps {
 
 export const ListItemCheckbox = memo<ListItemCheckboxProps>(({ id, heading, subheading, isActive, onSelected }) => {
   return (
-    <li className="slds-item">
+    <li className={classNames('slds-item', { 'is-active': isActive })}>
       <div className="slds-grid slds-has-flexi-truncate">
         <div>
           <Checkbox id={id} checked={!!isActive} label="" hideLabel onChange={() => onSelected && onSelected()} />

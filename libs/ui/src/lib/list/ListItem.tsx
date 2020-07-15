@@ -1,8 +1,8 @@
 /** @jsx jsx */
-import { memo } from 'react';
+import { jsx } from '@emotion/core';
 import classNames from 'classnames';
 import isString from 'lodash/isString';
-import { css, jsx } from '@emotion/core';
+import { memo } from 'react';
 
 export interface ListItemProps {
   heading: string | JSX.Element;
@@ -15,16 +15,6 @@ export const ListItem = memo<ListItemProps>(({ heading, subheading, isActive, on
   return (
     <li
       className={classNames('slds-item', { 'is-active': isActive })}
-      css={css`
-        cursor: pointer;
-        &:hover {
-          /* background-color: #f3f2f2; */
-          background-color: $brand-accessible;
-        }
-        &.is-active {
-          background-color: #faffbd;
-        }
-      `}
       onClick={(event) => {
         event.preventDefault();
         event.stopPropagation();

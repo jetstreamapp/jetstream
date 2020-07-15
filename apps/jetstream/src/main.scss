@@ -23,3 +23,25 @@
 .width-100 {
   width: 100%;
 }
+
+.border-bottom-thick {
+  border-bottom: 3px solid #dddbda;
+}
+
+.active-item-yellow-bg {
+  background-color: $color-background-highlight;
+}
+
+.slds-item {
+  cursor: pointer;
+  &:hover {
+    background-color: $color-background;
+  }
+  &.is-active {
+    background-color: $color-background-highlight;
+  }
+}
+
+.table-row.is-selected {
+  background-color: $color-background-highlight;
+}
