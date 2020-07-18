@@ -6,7 +6,7 @@ import { QueryResultsColumn } from '@jetstream/api-interfaces';
 import { logger } from '@jetstream/shared/client-logger';
 import { query } from '@jetstream/shared/data';
 import { getIdFromRecordUrl, pluralizeIfMultiple } from '@jetstream/shared/utils';
-import { AsyncJob, MapOf, QueryFieldHeader, Record, SalesforceOrg, AsyncJobNew } from '@jetstream/types';
+import { AsyncJob, MapOf, QueryFieldHeader, Record, SalesforceOrgUi, AsyncJobNew } from '@jetstream/types';
 import {
   AutoFullHeightContainer,
   EmptyState,
@@ -47,7 +47,7 @@ export const QueryResults: FunctionComponent<QueryResultsProps> = React.memo(() 
   const [loading, setLoading] = useState<boolean>(false);
   const [errorMessage, setErrorMessage] = useState<string>(null);
   const [downloadModalOpen, setDownloadModalOpen] = useState<boolean>(false);
-  const selectedOrg = useRecoilValue<SalesforceOrg>(selectedOrgState);
+  const selectedOrg = useRecoilValue<SalesforceOrgUi>(selectedOrgState);
   const [{ serverUrl }] = useRecoilState(applicationCookieState);
   const [totalRecordCount, setTotalRecordCount] = useState<number>(null);
   const bulkDeleteJob = useObservable(

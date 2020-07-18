@@ -7,6 +7,7 @@ import {
   salesforceOauthInitAuth,
   jetstreamLogout,
 } from '../controllers/oauth.controller';
+import { checkAuth } from './route.middleware';
 
 export const routes: express.Router = Router();
 
@@ -16,7 +17,7 @@ routes.get('/callback', jetstreamOauthLogin); // callback from oauth
 routes.get('/logout', jetstreamLogout);
 
 // salesforce org authentication
-routes.get('/sfdc/auth', salesforceOauthInitAuth);
-routes.get('/sfdc/callback', salesforceOauthCallback);
+routes.get('/sfdc/auth', checkAuth, salesforceOauthInitAuth);
+routes.get('/sfdc/callback', checkAuth, salesforceOauthCallback);
 
 export default routes;

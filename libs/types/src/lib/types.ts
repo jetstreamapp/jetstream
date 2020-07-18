@@ -39,7 +39,8 @@ export interface UserProfile {
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export type Record<T = any> = { attributes?: RecordAttributes; Id?: SalesforceId } & T;
 
-export interface SalesforceOrg {
+export interface SalesforceOrgUi {
+  id?: number;
   uniqueId: string;
   filterText: string;
   accessToken: string;
@@ -51,7 +52,7 @@ export interface SalesforceOrg {
   username: string;
   displayName: string;
   thumbnail?: string;
-  apiVersion?: number;
+  apiVersion?: string;
   orgName?: string;
   orgCountry?: string;
   orgOrganizationType?: SalesforceOrgEdition;
@@ -60,4 +61,6 @@ export interface SalesforceOrg {
   orgLanguageLocaleKey?: SalesforceOrgLocaleKey;
   orgNamespacePrefix?: string;
   orgTrialExpirationDate?: string;
+  createdAt?: string;
+  updatedAt?: string;
 }

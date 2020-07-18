@@ -3,7 +3,7 @@ import { Redirect, Route, Switch, useLocation, useRouteMatch } from 'react-route
 import QueryBuilder from './QueryBuilder';
 import QueryResults from './QueryResults';
 import { useRecoilValue } from 'recoil';
-import { SalesforceOrg } from '@jetstream/types';
+import { SalesforceOrgUi } from '@jetstream/types';
 import { selectedOrgState } from '../../app-state';
 
 // eslint-disable-next-line @typescript-eslint/no-empty-interface
@@ -14,7 +14,7 @@ export const Query: FunctionComponent<QueryProps> = () => {
   const location = useLocation<{ soql: string }>();
   // FIXME: Cannot update a component (`Batcher`) while rendering a different component (`Query`)
   // Recoil needs to fix this
-  const selectedOrg = useRecoilValue<SalesforceOrg>(selectedOrgState);
+  const selectedOrg = useRecoilValue<SalesforceOrgUi>(selectedOrgState);
 
   return (
     <Fragment>

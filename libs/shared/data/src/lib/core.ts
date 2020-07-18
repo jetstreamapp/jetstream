@@ -1,21 +1,16 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import * as request from 'superagent'; // http://visionmedia.github.io/superagent
 import * as API from '@jetstream/api-interfaces';
-import { SalesforceOrg } from '@jetstream/types';
+import { SalesforceOrgUi } from '@jetstream/types';
 import { HTTP } from '@jetstream/shared/constants';
 import { logger } from '@jetstream/shared/client-logger';
 
-export async function handleRequest<T = any>(currRequest: request.SuperAgentRequest, org?: SalesforceOrg) {
+export async function handleRequest<T = any>(currRequest: request.SuperAgentRequest, org?: SalesforceOrgUi) {
   try {
     currRequest.set(HTTP.HEADERS.ACCEPT, HTTP.CONTENT_TYPE.JSON);
     if (org) {
       currRequest.set({
         [HTTP.HEADERS.X_SFDC_ID]: org.uniqueId || '',
-        [HTTP.HEADERS.X_SFDC_LOGIN_URL]: org.loginUrl || '',
-        [HTTP.HEADERS.X_SFDC_INSTANCE_URL]: org.instanceUrl || '',
-        [HTTP.HEADERS.X_SFDC_ACCESS_TOKEN]: org.accessToken || '',
-        [HTTP.HEADERS.X_SFDC_API_VER]: org.apiVersion || '',
-        [HTTP.HEADERS.X_SFDC_NAMESPACE_PREFIX]: org.orgNamespacePrefix || '',
       });
     }
     logger.info(`[HTTP][REQ][${currRequest.method}]`, currRequest.url, { request: currRequest });

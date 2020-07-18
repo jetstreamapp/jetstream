@@ -8,7 +8,7 @@ import JobPlaceholder from './JobPlaceholder';
 import JobsWorker from '../../../workers/jobs.worker';
 import {
   AsyncJob,
-  SalesforceOrg,
+  SalesforceOrgUi,
   AsyncJobWorkerMessageResponse,
   AsyncJobType,
   WorkerMessage,
@@ -32,7 +32,7 @@ export const Jobs: FunctionComponent<JobsProps> = () => {
   const [jobs, setJobsArr] = useRecoilState(selectJobs);
   const activeJobCount = useRecoilValue(selectActiveJobCount);
   const [isPopoverOpen, setIsPopoverOpen] = useState(false);
-  const selectedOrg = useRecoilValue<SalesforceOrg>(selectedOrgState);
+  const selectedOrg = useRecoilValue<SalesforceOrgUi>(selectedOrgState);
   const newJobsToProcess = useObservable(
     fromJetstreamEvents.getObservable('newJob').pipe(
       map((ev: AsyncJobNew[]) => ev.filter((currEvent) => currEvent.type === 'BulkDelete')),

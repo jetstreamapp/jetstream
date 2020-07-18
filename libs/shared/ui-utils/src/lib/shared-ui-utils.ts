@@ -5,7 +5,7 @@ import {
   PositionAll,
   QueryFilterOperator,
   ExpressionType,
-  SalesforceOrg,
+  SalesforceOrgUi,
   ExpressionRowValueType,
   ExpressionConditionRowSelectedItems,
   ListItem,
@@ -391,7 +391,7 @@ function convertQueryFilterOperator(operator: QueryFilterOperator): Operator {
  * Generate authentication in the url from a salesforce
  * @param org
  */
-export function getOrgUrlParams(org: SalesforceOrg): string {
+export function getOrgUrlParams(org: SalesforceOrgUi): string {
   const params = {
     [HTTP.HEADERS.X_SFDC_ID]: org.uniqueId || '',
     [HTTP.HEADERS.X_SFDC_LOGIN_URL]: org.loginUrl || '',

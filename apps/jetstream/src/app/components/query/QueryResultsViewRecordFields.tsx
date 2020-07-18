@@ -1,5 +1,5 @@
 import { genericRequest, sobjectOperation } from '@jetstream/shared/data';
-import { SalesforceOrg } from '@jetstream/types';
+import { SalesforceOrgUi } from '@jetstream/types';
 import { Icon, Panel, Spinner, AutoFullHeightContainer } from '@jetstream/ui';
 import { orderStringsBy, getIdAndObjFromRecordUrl } from '@jetstream/shared/utils';
 import { Record } from 'jsforce';
@@ -10,7 +10,7 @@ import classNames from 'classnames';
 
 // eslint-disable-next-line @typescript-eslint/no-empty-interface
 export interface QueryResultsViewRecordFieldsProps {
-  org: SalesforceOrg;
+  org: SalesforceOrgUi;
   row: Record<{ attributes: { type: string; url: string } }>;
   isOpen: boolean;
   onClosed: () => void;

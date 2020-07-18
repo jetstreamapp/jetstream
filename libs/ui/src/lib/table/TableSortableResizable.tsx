@@ -4,13 +4,13 @@ import { jsx } from '@emotion/core';
 import { Fragment, FunctionComponent, memo, useMemo } from 'react';
 import TableBase from '../table/TableBase';
 import { getSortableResizableColumns } from './table-utils';
-import { QueryFieldHeader, SalesforceOrg } from '@jetstream/types';
+import { QueryFieldHeader, SalesforceOrgUi } from '@jetstream/types';
 // eslint-disable-next-line @typescript-eslint/no-empty-interface
 export interface TableSortableResizableProps {
   headers: QueryFieldHeader[];
   data: any[];
   serverUrl: string;
-  org: SalesforceOrg;
+  org: SalesforceOrgUi;
   onRowSelection?: (rows) => void;
   onRowAction: (id: string, row: any) => void;
 }

@@ -1,22 +1,18 @@
 import { atom, selector } from 'recoil';
 import isString from 'lodash/isString';
-import { SalesforceOrg, UserProfile, ApplicationCookie } from '@jetstream/types';
-import { getUserProfile } from '@jetstream/shared/data';
+import { SalesforceOrgUi, UserProfile, ApplicationCookie } from '@jetstream/types';
+import { getUserProfile, getOrgs } from '@jetstream/shared/data';
 import { parseCookie } from '@jetstream/shared/ui-utils';
 import { HTTP } from '@jetstream/shared/constants';
 
 export const STORAGE_KEYS = {
-  ORG_STORAGE_KEY: `ORGS`,
   SELECTED_ORG_STORAGE_KEY: `SELECTED_ORG`,
 };
 
-async function getOrgsFromStorage(): Promise<SalesforceOrg[]> {
+async function getOrgsFromStorage(): Promise<SalesforceOrgUi[]> {
   try {
-    const orgsJsonBase64 = localStorage.getItem(STORAGE_KEYS.ORG_STORAGE_KEY);
-    if (isString(orgsJsonBase64)) {
-      return JSON.parse(atob(orgsJsonBase64));
-    }
-    return [];
+    const orgs = await getOrgs();
+    return orgs || [];
   } catch (ex) {
     return [];
   }
@@ -24,7 +20,8 @@ async function getOrgsFromStorage(): Promise<SalesforceOrg[]> {
 
 async function getSelectedOrgFromStorage(): Promise<string | undefined> {
   try {
-    const selectedOrgIdBase64 = localStorage.getItem(STORAGE_KEYS.SELECTED_ORG_STORAGE_KEY);
+    const selectedOrgIdBase64 =
+      sessionStorage.getItem(STORAGE_KEYS.SELECTED_ORG_STORAGE_KEY) || localStorage.getItem(STORAGE_KEYS.SELECTED_ORG_STORAGE_KEY);
     if (isString(selectedOrgIdBase64)) {
       return atob(selectedOrgIdBase64);
     }
@@ -49,7 +46,7 @@ export const userProfileState = atom<UserProfile>({
   default: fetchUserProfile(),
 });
 
-export const salesforceOrgsState = atom<SalesforceOrg[]>({
+export const salesforceOrgsState = atom<SalesforceOrgUi[]>({
   key: 'salesforceOrgsState',
   default: getOrgsFromStorage(),
 });

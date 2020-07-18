@@ -7,7 +7,7 @@ import { Fragment, PropsWithChildren, ReactNode } from 'react';
 import { CellProps, Column, HeaderProps } from 'react-table';
 import DropDown from '../form/dropdown/DropDown';
 import Icon from '../widgets/Icon';
-import { QueryFieldHeader, SalesforceOrg } from '@jetstream/types';
+import { QueryFieldHeader, SalesforceOrgUi } from '@jetstream/types';
 import { isBoolean } from 'lodash';
 import Checkbox from '../form/checkbox/Checkbox';
 import SalesforceLogin from '../widgets/SalesforceLogin';
@@ -20,7 +20,7 @@ import SalesforceLogin from '../widgets/SalesforceLogin';
 export function getSortableResizableColumns(
   headers: QueryFieldHeader[],
   serverUrl: string,
-  org: SalesforceOrg,
+  org: SalesforceOrgUi,
   onRowAction: (id: string, row: any) => void
 ) {
   if (!headers) {
@@ -155,7 +155,7 @@ function getActionColumn(onRowAction: (id: string, row: any) => void) {
   return actionColumn;
 }
 
-function getCellRenderer(header: QueryFieldHeader, serverUrl: string, org: SalesforceOrg) {
+function getCellRenderer(header: QueryFieldHeader, serverUrl: string, org: SalesforceOrgUi) {
   return ({ cell, column, value }: PropsWithChildren<CellProps<any, any>>) => {
     let type: 'other' | 'object' | 'boolean' | 'id' = 'other';
     if (isObjectLike(value)) {
