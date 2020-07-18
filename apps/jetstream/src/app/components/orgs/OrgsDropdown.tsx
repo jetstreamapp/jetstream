@@ -1,6 +1,6 @@
 /** @jsx jsx */
 import { css, jsx } from '@emotion/core';
-import { MapOf, SalesforceOrg } from '@jetstream/types';
+import { MapOf, SalesforceOrgUi } from '@jetstream/types';
 import { Combobox, ComboboxListItem, ComboboxListItemGroup, Icon, Tooltip } from '@jetstream/ui';
 import groupBy from 'lodash/groupBy';
 import orderBy from 'lodash/orderBy';
@@ -14,14 +14,14 @@ import OrgInfoPopover from './OrgInfoPopover';
 // eslint-disable-next-line @typescript-eslint/no-empty-interface
 export interface OrgsDropdownProps {}
 
-function getSelectedItemLabel(org?: SalesforceOrg) {
+function getSelectedItemLabel(org?: SalesforceOrgUi) {
   if (!org) {
     return;
   }
   return `${org.username}`;
 }
 
-function getSelectedItemTitle(org?: SalesforceOrg) {
+function getSelectedItemTitle(org?: SalesforceOrgUi) {
   if (!org) {
     return;
   }
@@ -31,11 +31,11 @@ function getSelectedItemTitle(org?: SalesforceOrg) {
 export const OrgsDropdown: FunctionComponent<OrgsDropdownProps> = () => {
   // FIXME: Cannot update a component (`Batcher`) while rendering a different component (`OrgsDropdown`)
   // Recoil needs to fix this
-  const [orgs, setOrgs] = useRecoilState<SalesforceOrg[]>(salesforceOrgsState);
+  const [orgs, setOrgs] = useRecoilState<SalesforceOrgUi[]>(salesforceOrgsState);
   const [selectedOrgId, setSelectedOrgId] = useRecoilState<string>(selectedOrgIdState);
-  const selectedOrg = useRecoilValue<SalesforceOrg>(selectedOrgState);
-  const [visibleOrgs, setVisibleOrgs] = useState<SalesforceOrg[]>([]);
-  const [orgsByOrganization, setOrgsByOrganization] = useState<MapOf<SalesforceOrg[]>>({});
+  const selectedOrg = useRecoilValue<SalesforceOrgUi>(selectedOrgState);
+  const [visibleOrgs, setVisibleOrgs] = useState<SalesforceOrgUi[]>([]);
+  const [orgsByOrganization, setOrgsByOrganization] = useState<MapOf<SalesforceOrgUi[]>>({});
   const [filterText, setFilterText] = useState<string>('');
 
   useEffect(() => {
@@ -52,7 +52,7 @@ export const OrgsDropdown: FunctionComponent<OrgsDropdownProps> = () => {
     }
   }, [orgs, filterText]);
 
-  function addOrg(org: SalesforceOrg) {
+  function addOrg(org: SalesforceOrgUi) {
     const sortedOrgs = uniqBy(orderBy([...orgs, org], 'username'), 'uniqueId');
     setOrgs(sortedOrgs);
     setSelectedOrgId(org.uniqueId);

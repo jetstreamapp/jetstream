@@ -2,9 +2,10 @@ import * as express from 'express';
 import * as jsforce from 'jsforce';
 import * as querystring from 'querystring';
 import { encryptString, hexToBase64, getJsforceOauth2 } from '@jetstream/shared/node-utils';
-import { SalesforceOrg, SObjectOrganization } from '@jetstream/types';
+import { SalesforceOrgUi, SObjectOrganization, UserAuthSession } from '@jetstream/types';
 import { exchangeOAuthCodeForAccessToken, getLoginUrl, createOrUpdateSession, destroySession, getLogoutUrl } from '../services/auth';
 import { logger } from '../config/logger.config';
+import { SalesforceOrg } from '../db/entites/SalesforceOrg';
 
 interface SfdcOauthState {
   loginUrl: string;
@@ -61,6 +62,7 @@ export function salesforceOauthInitAuth(req: express.Request, res: express.Respo
  */
 export async function salesforceOauthCallback(req: express.Request, res: express.Response) {
   try {
+    const { userId } = req.session.auth as UserAuthSession;
     const state = querystring.parse(req.query.state as string);
     const loginUrl = state.loginUrl as string;
     const clientUrl = state.clientUrl as string;
@@ -100,7 +102,7 @@ export async function salesforceOauthCallback(req: express.Request, res: express
 
     const orgName = companyInfoRecord?.Name || 'Unknown Organization';
 
-    const sfdcConnection: SalesforceOrg = {
+    const salesforceOrgUi: SalesforceOrgUi = {
       uniqueId: `${userInfo.organizationId}-${userInfo.id}`,
       filterText: `${identity.username}${orgName}`.toLowerCase(),
       accessToken: encryptString(`${conn.accessToken} ${conn.refreshToken}`, hexToBase64(process.env.SFDC_CONSUMER_SECRET)),
@@ -123,6 +125,16 @@ export async function salesforceOauthCallback(req: express.Request, res: express
       orgTrialExpirationDate: companyInfoRecord?.TrialExpirationDate,
     };
 
+    let salesforceOrg = await SalesforceOrg.findByUniqueId(userId, salesforceOrgUi.uniqueId);
+
+    if (salesforceOrg) {
+      salesforceOrg.initFromUiOrg(salesforceOrgUi);
+    } else {
+      salesforceOrg = new SalesforceOrg(userId, salesforceOrgUi);
+    }
+
+    await salesforceOrg.save();
+
     // TODO: figure out what other data we need
     // try {
     // TODO: what about if a user is assigned a permission set that gives PermissionsModifyAllData?
@@ -135,7 +147,7 @@ export async function salesforceOauthCallback(req: express.Request, res: express
     // TODO: we need to return a web-page that will use something to send org details back to core app
     // https://stackoverflow.com/questions/28230845/communication-between-tabs-or-windows
 
-    return res.redirect(`/oauth?${querystring.stringify(sfdcConnection)}&clientUrl=${clientUrl}`);
+    return res.redirect(`/oauth?${querystring.stringify(salesforceOrg)}&clientUrl=${clientUrl}`);
   } catch (ex) {
     logger.info('[OAUTH][ERROR] %o', ex.message);
     const errorMsg = req.query.error_description ? req.query.error_description : 'There was an error authenticating Salesforce.';

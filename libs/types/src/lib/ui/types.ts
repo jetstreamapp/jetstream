@@ -3,7 +3,7 @@ import { MapOf } from '@jetstream/types';
 import { Field } from 'jsforce';
 import { ReactNode } from 'react';
 import { FieldDefinition } from '../salesforce/types';
-import { SalesforceOrg } from '../types';
+import { SalesforceOrgUi } from '../types';
 // import { Moment } from 'moment-mini';
 
 export type IconType = 'action' | 'custom' | 'doctype' | 'standard' | 'utility';
@@ -237,7 +237,7 @@ export interface AsyncJob<T = unknown, R = unknown> {
 
 export interface AsyncJobWorkerMessagePayload<T = unknown> {
   job: AsyncJob<T>;
-  org: SalesforceOrg;
+  org: SalesforceOrgUi;
 }
 
 export interface AsyncJobWorkerMessageResponse<T = unknown, R = unknown> {

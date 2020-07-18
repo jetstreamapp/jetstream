@@ -1,6 +1,6 @@
 /** @jsx jsx */
 import { jsx } from '@emotion/core';
-import { SalesforceOrg } from '@jetstream/types';
+import { SalesforceOrgUi } from '@jetstream/types';
 import { ButtonGroupContainer, Icon, Popover } from '@jetstream/ui';
 import startCase from 'lodash/startCase';
 import { FunctionComponent } from 'react';
@@ -9,10 +9,10 @@ import { useRecoilState } from 'recoil';
 import { applicationCookieState } from '../../app-state';
 
 export interface OrgInfoPopoverProps {
-  org: SalesforceOrg;
+  org: SalesforceOrgUi;
 }
 
-function getOrgProp(org: SalesforceOrg, prop: keyof SalesforceOrg, label?: string) {
+function getOrgProp(org: SalesforceOrgUi, prop: keyof SalesforceOrgUi, label?: string) {
   label = label || startCase(prop);
   const value = org[prop];
   if (!value) {

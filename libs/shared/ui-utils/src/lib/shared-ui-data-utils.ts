@@ -1,5 +1,5 @@
 import { describeSObject, query } from '@jetstream/shared/data';
-import { MapOf, SalesforceOrg } from '@jetstream/types';
+import { MapOf, SalesforceOrgUi } from '@jetstream/types';
 import { FieldDefinition } from '@jetstream/types';
 import { REGEX, getMapOf, alwaysResolve } from '@jetstream/shared/utils';
 import { FieldWrapper, QueryFields } from '@jetstream/types';
@@ -19,7 +19,7 @@ export function getFieldKey(parentKey: string, field: Field) {
 /**
  * Fetch fields and add to queryFields
  */
-export async function fetchFields(org: SalesforceOrg, queryFields: QueryFields, parentKey: string): Promise<QueryFields> {
+export async function fetchFields(org: SalesforceOrgUi, queryFields: QueryFields, parentKey: string): Promise<QueryFields> {
   const { sobject } = queryFields;
   const [describeResults, queryResults] = await Promise.all([
     describeSObject(org, sobject),

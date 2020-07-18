@@ -1,4 +1,4 @@
-import { SalesforceOrg } from '@jetstream/types';
+import { SalesforceOrgUi } from '@jetstream/types';
 import { Icon, Input, Popover, Radio, RadioGroup } from '@jetstream/ui';
 import isString from 'lodash/isString';
 import React, { Fragment, FunctionComponent, useEffect, useState } from 'react';
@@ -18,7 +18,7 @@ let windowRef: Window | undefined;
 
 // eslint-disable-next-line @typescript-eslint/no-empty-interface
 export interface AddOrgProps {
-  onAddOrg: (org: SalesforceOrg) => void;
+  onAddOrg: (org: SalesforceOrgUi) => void;
 }
 
 export const AddOrg: FunctionComponent<AddOrgProps> = ({ onAddOrg }) => {

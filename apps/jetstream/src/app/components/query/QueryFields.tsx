@@ -1,4 +1,4 @@
-import { MapOf, SalesforceOrg } from '@jetstream/types';
+import { MapOf, SalesforceOrgUi } from '@jetstream/types';
 import { DescribeGlobalSObjectResult } from 'jsforce';
 import React, { Fragment, FunctionComponent, useEffect, useState } from 'react';
 import { FieldWrapper, QueryFields } from '@jetstream/types';
@@ -16,7 +16,7 @@ export interface QueryFieldsProps {
   // onFieldsFetched: (queryFields: MapOf<QueryFields>) => void;
 }
 
-function getQueryFieldKey(selectedOrg: SalesforceOrg, selectedSObject: DescribeGlobalSObjectResult) {
+function getQueryFieldKey(selectedOrg: SalesforceOrgUi, selectedSObject: DescribeGlobalSObjectResult) {
   return `${selectedOrg?.uniqueId}-${selectedSObject?.name}`;
 }
 

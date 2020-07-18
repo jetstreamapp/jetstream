@@ -4,7 +4,7 @@ import { DescribeGlobalSObjectResult } from 'jsforce';
 import React, { FunctionComponent, useEffect, useState } from 'react';
 import { orderObjectsBy } from '@jetstream/shared/utils';
 import { useRecoilValue, useRecoilState } from 'recoil';
-import { SalesforceOrg } from '@jetstream/types';
+import { SalesforceOrgUi } from '@jetstream/types';
 import { selectedOrgState } from '../../app-state';
 import * as fromQueryState from './query.state';
 import { logger } from '@jetstream/shared/client-logger';
@@ -17,7 +17,7 @@ export const QuerySObjects: FunctionComponent<QueryFieldsProps> = () => {
   const [selectedSObject, setSelectedSObject] = useRecoilState(fromQueryState.selectedSObjectState);
   const [loading, setLoading] = useState<boolean>(false);
   const [errorMessage, setErrorMessage] = useState<string>(null);
-  const selectedOrg = useRecoilValue<SalesforceOrg>(selectedOrgState);
+  const selectedOrg = useRecoilValue<SalesforceOrgUi>(selectedOrgState);
 
   useEffect(() => {
     if (selectedOrg && !loading && !errorMessage && !sobjects) {

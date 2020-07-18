@@ -1,5 +1,5 @@
 import * as express from 'express';
-import { decryptString, hexToBase64, getJsforceOauth2 } from '@jetstream/shared/node-utils';
+import { decryptString, hexToBase64, getJsforceOauth2, encryptString } from '@jetstream/shared/node-utils';
 import * as jsforce from 'jsforce';
 import { UserFacingError, AuthenticationError, NotFoundError } from '../utils/error-handler';
 import { UserAuthSession } from '@jetstream/types';
@@ -9,6 +9,7 @@ import * as moment from 'moment';
 import { refreshAuthToken, createOrUpdateSession } from '../services/auth';
 import { isNumber } from 'lodash';
 import { logger } from '../config/logger.config';
+import { SalesforceOrg } from '../db/entites/SalesforceOrg';
 
 export function logRoute(req: express.Request, res: express.Response, next: express.NextFunction) {
   res.locals.path = req.path;
@@ -49,55 +50,57 @@ export async function checkAuth(req: express.Request, res: express.Response, nex
   }
 }
 
-export function addOrgsToLocal(req: express.Request, res: express.Response, next: express.NextFunction) {
+export async function addOrgsToLocal(req: express.Request, res: express.Response, next: express.NextFunction) {
   try {
-    let loginUrl: string;
-    let instanceUrl: string;
-    let encryptedAccessToken: string;
-    let apiVersion: string;
-    let orgNamespacePrefix: string;
+    const uniqueId = (req.get(HTTP.HEADERS.X_SFDC_ID) || req.query[HTTP.HEADERS.X_SFDC_ID]) as string;
+    const sessionAuth: UserAuthSession = req.session.auth;
 
-    if (req.get(HTTP.HEADERS.X_SFDC_ID)) {
-      // orgs in header (default path)
-
-      loginUrl = req.get(HTTP.HEADERS.X_SFDC_LOGIN_URL);
-      instanceUrl = req.get(HTTP.HEADERS.X_SFDC_INSTANCE_URL);
-      encryptedAccessToken = req.get(HTTP.HEADERS.X_SFDC_ACCESS_TOKEN);
-      apiVersion = req.get(HTTP.HEADERS.X_SFDC_API_VER);
-      orgNamespacePrefix = req.get(HTTP.HEADERS.X_SFDC_NAMESPACE_PREFIX);
-    } else if (req.query[HTTP.HEADERS.X_SFDC_ID]) {
-      // orgs in query string (alternative path)
-
-      loginUrl = req.query[HTTP.HEADERS.X_SFDC_LOGIN_URL] as string;
-      instanceUrl = req.query[HTTP.HEADERS.X_SFDC_INSTANCE_URL] as string;
-      encryptedAccessToken = req.query[HTTP.HEADERS.X_SFDC_ACCESS_TOKEN] as string;
-      apiVersion = req.query[HTTP.HEADERS.X_SFDC_API_VER] as string;
-      orgNamespacePrefix = req.query[HTTP.HEADERS.X_SFDC_NAMESPACE_PREFIX] as string;
-    } else {
+    if (!uniqueId) {
       return next();
     }
 
-    if (loginUrl) {
-      const [accessToken, refreshToken] = decryptString(encryptedAccessToken, hexToBase64(process.env.SFDC_CONSUMER_SECRET)).split(' ');
+    const org = await SalesforceOrg.findByUniqueId(sessionAuth.userId, uniqueId);
 
-      const connData: jsforce.ConnectionOptions = {
-        oauth2: getJsforceOauth2(loginUrl),
-        instanceUrl,
-        accessToken,
-        refreshToken,
-        maxRequest: 5,
-        version: apiVersion || undefined,
-      };
-
-      if (orgNamespacePrefix) {
-        connData.callOptions = { ...connData.callOptions, defaultNamespace: orgNamespacePrefix };
-      }
-
-      res.locals = res.locals || {};
-      res.locals.jsforceConn = new jsforce.Connection(connData);
+    if (!org) {
+      return next(new UserFacingError('An org was not found with the provided id'));
     }
+
+    const { accessToken: encryptedAccessToken, loginUrl, instanceUrl, apiVersion, orgNamespacePrefix } = org;
+
+    const [accessToken, refreshToken] = decryptString(encryptedAccessToken, hexToBase64(process.env.SFDC_CONSUMER_SECRET)).split(' ');
+
+    const connData: jsforce.ConnectionOptions = {
+      oauth2: getJsforceOauth2(loginUrl),
+      instanceUrl,
+      accessToken,
+      refreshToken,
+      maxRequest: 5,
+      version: apiVersion || undefined,
+    };
+
+    if (orgNamespacePrefix) {
+      connData.callOptions = { ...connData.callOptions, defaultNamespace: orgNamespacePrefix };
+    }
+
+    res.locals = res.locals || {};
+    res.locals.jsforceConn = new jsforce.Connection(connData);
+
+    // Handle org refresh - then remove event listener if refreshed
+    const handleRefresh = async (accessToken) => {
+      // Refresh event will be fired when renewed access token
+      // to store it in your storage for next request
+      try {
+        org.accessToken = encryptString(`${accessToken} ${refreshToken}`, hexToBase64(process.env.SFDC_CONSUMER_SECRET));
+        await org.save();
+        logger.info('[ORG][REFRESH] Org refreshed successfully');
+      } catch (ex) {
+        logger.error('[ORG][REFRESH] Error saving refresh token', ex);
+      }
+    };
+
+    (res.locals.jsforceConn as jsforce.Connection).on('refresh', handleRefresh);
   } catch (ex) {
-    logger.info('[INIT-ORG][ERROR] %o', ex);
+    logger.warn('[INIT-ORG][ERROR] %o', ex);
     return next(new UserFacingError('There was an error initializing the connection to Salesforce'));
   }
 
