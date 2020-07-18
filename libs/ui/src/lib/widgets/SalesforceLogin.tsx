@@ -1,9 +1,9 @@
 /** @jsx jsx */
 import { jsx } from '@emotion/core';
 import { SalesforceOrgUi } from '@jetstream/types';
-import { Icon } from '@jetstream/ui';
 import { FunctionComponent, useEffect, useState } from 'react';
 import { getOrgUrlParams } from '@jetstream/shared/ui-utils';
+import Icon from './Icon';
 
 export interface SalesforceLoginProps {
   serverUrl: string;

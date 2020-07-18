@@ -1,10 +1,10 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 /** @jsx jsx */
 import { jsx } from '@emotion/core';
+import { QueryFieldHeader, SalesforceOrgUi } from '@jetstream/types';
 import { Fragment, FunctionComponent, memo, useMemo } from 'react';
 import TableBase from '../table/TableBase';
 import { getSortableResizableColumns } from './table-utils';
-import { QueryFieldHeader, SalesforceOrgUi } from '@jetstream/types';
 // eslint-disable-next-line @typescript-eslint/no-empty-interface
 export interface TableSortableResizableProps {
   headers: QueryFieldHeader[];

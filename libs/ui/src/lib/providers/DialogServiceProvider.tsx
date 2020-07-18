@@ -1,5 +1,5 @@
-import { ConfirmationDialog, ConfirmationDialogServiceProviderOptions } from '@jetstream/ui';
 import React, { Fragment, FunctionComponent } from 'react';
+import ConfirmationDialog, { ConfirmationDialogServiceProviderOptions } from '../confirmation-dialog/ConfirmationDialog';
 
 // https://dev.to/dmtrkovalenko/the-neatest-way-to-handle-alert-dialogs-in-react-1aoe
 export const ConfirmationServiceContext = React.createContext<(options: ConfirmationDialogServiceProviderOptions) => Promise<void>>(

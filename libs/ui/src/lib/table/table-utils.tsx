@@ -1,15 +1,15 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 /** @jsx jsx */
 import { jsx } from '@emotion/core';
+import { QueryFieldHeader, SalesforceOrgUi } from '@jetstream/types';
 import classNames from 'classnames';
+import { isBoolean } from 'lodash';
 import isObjectLike from 'lodash/isObjectLike';
 import { Fragment, PropsWithChildren, ReactNode } from 'react';
 import { CellProps, Column, HeaderProps } from 'react-table';
+import Checkbox from '../form/checkbox/Checkbox';
 import DropDown from '../form/dropdown/DropDown';
 import Icon from '../widgets/Icon';
-import { QueryFieldHeader, SalesforceOrgUi } from '@jetstream/types';
-import { isBoolean } from 'lodash';
-import Checkbox from '../form/checkbox/Checkbox';
 import SalesforceLogin from '../widgets/SalesforceLogin';
 
 /**

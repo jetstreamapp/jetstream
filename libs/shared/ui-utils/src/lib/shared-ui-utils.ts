@@ -394,11 +394,6 @@ function convertQueryFilterOperator(operator: QueryFilterOperator): Operator {
 export function getOrgUrlParams(org: SalesforceOrgUi): string {
   const params = {
     [HTTP.HEADERS.X_SFDC_ID]: org.uniqueId || '',
-    [HTTP.HEADERS.X_SFDC_LOGIN_URL]: org.loginUrl || '',
-    [HTTP.HEADERS.X_SFDC_INSTANCE_URL]: org.instanceUrl || '',
-    [HTTP.HEADERS.X_SFDC_ACCESS_TOKEN]: org.accessToken || '',
-    [HTTP.HEADERS.X_SFDC_API_VER]: org.apiVersion || '',
-    [HTTP.HEADERS.X_SFDC_NAMESPACE_PREFIX]: org.orgNamespacePrefix || '',
   };
   return Object.keys(params)
     .map((key) => `${key}=${encodeURIComponent(params[key])}`)

@@ -1,16 +1,15 @@
 /** @jsx jsx */
 import { css, jsx } from '@emotion/core';
-import { MapOf } from '@jetstream/types';
-import { Fragment, FunctionComponent, useEffect, useState } from 'react';
-import { FieldWrapper, QueryFields } from '@jetstream/types';
-import Checkbox from '../form/checkbox/Checkbox';
-import List from '../list/List';
-import SearchInput from '../form/search-input/SearchInput';
-import Spinner from '../widgets/Spinner';
-import SobjectFieldListItem from './SobjectFieldListItem';
+import { FieldWrapper, MapOf, QueryFields } from '@jetstream/types';
 import { isString } from 'lodash';
-import './SobjectFieldList.scss';
+import { Fragment, FunctionComponent, useEffect, useState } from 'react';
+import Checkbox from '../form/checkbox/Checkbox';
+import SearchInput from '../form/search-input/SearchInput';
 import EmptyState from '../illustrations/EmptyState';
+import List from '../list/List';
+import Spinner from '../widgets/Spinner';
+import './SobjectFieldList.scss';
+import SobjectFieldListItem from './SobjectFieldListItem';
 
 export interface SobjectFieldListProps {
   level: number;

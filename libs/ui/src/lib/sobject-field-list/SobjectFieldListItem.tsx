@@ -1,12 +1,11 @@
 /** @jsx jsx */
 import { css, jsx } from '@emotion/core';
-import { MapOf } from '@jetstream/types';
-import { Fragment, FunctionComponent, useState, useEffect } from 'react';
-import { FieldWrapper, QueryFields } from '@jetstream/types';
+import { getFieldKey } from '@jetstream/shared/ui-utils';
+import { FieldWrapper, MapOf, QueryFields } from '@jetstream/types';
+import { Fragment, FunctionComponent, useEffect, useState } from 'react';
 import Icon from '../widgets/Icon';
 import SobjectFieldList from './SobjectFieldList';
 import SobjectFieldListType from './SobjectFieldListType';
-import { getFieldKey } from '@jetstream/shared/ui-utils';
 
 export interface SobjectFieldListItemProps {
   level: number;
