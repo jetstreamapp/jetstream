@@ -15,20 +15,31 @@ export interface TableSortableResizableProps {
   onRowAction: (id: string, row: any) => void;
 }
 
+function areEqual(prevProps: TableSortableResizableProps, nextProps: TableSortableResizableProps): boolean {
+  return (
+    prevProps.headers === nextProps.headers &&
+    prevProps.data === nextProps.data &&
+    prevProps.serverUrl === nextProps.serverUrl &&
+    prevProps.org === nextProps.org
+  );
+}
+
 export const TableSortableResizable: FunctionComponent<TableSortableResizableProps> = memo(
   ({ headers, data, serverUrl, org, onRowSelection, onRowAction }) => {
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     const memoizedColumns = useMemo(() => getSortableResizableColumns(headers, serverUrl, org, onRowAction), [
       headers,
       serverUrl,
       org,
-      onRowAction,
+      // onRowAction,
     ]);
     const memoizedData = useMemo(() => [...data], [data]);
 
     return (
       <Fragment>{headers && data && <TableBase data={memoizedData} columns={memoizedColumns} onRowSelection={onRowSelection} />}</Fragment>
     );
-  }
+  },
+  areEqual
 );
 
 export default TableSortableResizable;
