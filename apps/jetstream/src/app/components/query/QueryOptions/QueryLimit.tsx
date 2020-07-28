@@ -20,12 +20,27 @@ export const QueryLimit: FunctionComponent<QueryLimitProps> = React.memo(() => {
   const [queryLimit, setQueryLimit] = useState(queryLimitState);
   const [queryLimitSkip, setQueryLimitSkip] = useState(queryLimitSkipState);
 
+  // If local state changes to something different, update globally
   useEffect(() => {
-    setTimeout(() => {
+    if (queryLimit !== queryLimitState) {
       setQueryLimitState(queryLimit);
+    }
+    if (queryLimitSkip !== queryLimitSkipState) {
       setQueryLimitSkipState(queryLimitSkip);
-    });
-  }, [queryLimit, queryLimitSkip, setQueryLimitState, setQueryLimitSkipState]);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [queryLimit, queryLimitSkip]);
+
+  // If state changes to something different, update locally
+  useEffect(() => {
+    if (queryLimitState !== queryLimit) {
+      setQueryLimit(queryLimitState);
+    }
+    if (queryLimitSkipState !== queryLimitSkip) {
+      setQueryLimitSkip(queryLimitState);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [queryLimitState, queryLimitSkipState]);
 
   return (
     <div className="slds-grid slds-gutters_xx-small">

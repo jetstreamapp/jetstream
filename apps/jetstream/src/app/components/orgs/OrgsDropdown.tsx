@@ -72,6 +72,7 @@ export const OrgsDropdown: FunctionComponent<OrgsDropdownProps> = () => {
             label="Orgs"
             hideLabel={true}
             placeholder="Select an Org"
+            itemLength={7}
             onInputChange={(filter) => setFilterText(filter)}
             selectedItemLabel={getSelectedItemLabel(selectedOrg)}
             selectedItemTitle={getSelectedItemTitle(selectedOrg)}

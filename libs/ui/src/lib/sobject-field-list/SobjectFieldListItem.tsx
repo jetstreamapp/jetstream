@@ -16,6 +16,7 @@ export interface SobjectFieldListItemProps {
   onSelectField: (key: string, field: FieldWrapper) => void;
   onSelectAll: (key: string, value: boolean) => void;
   onFilterChanged: (key: string, filterTerm: string) => void;
+  errorReattempt: (key: string) => void;
 }
 
 export const SobjectFieldListItem: FunctionComponent<SobjectFieldListItemProps> = ({
@@ -27,6 +28,7 @@ export const SobjectFieldListItem: FunctionComponent<SobjectFieldListItemProps> 
   onSelectField,
   onSelectAll,
   onFilterChanged,
+  errorReattempt,
 }) => {
   const [relationshipKey, setRelationshipKey] = useState<string>(null);
   const [isExpanded, setIsExpanded] = useState<boolean>(false);
@@ -84,6 +86,7 @@ export const SobjectFieldListItem: FunctionComponent<SobjectFieldListItemProps> 
                 onSelectField={onSelectField}
                 onSelectAll={onSelectAll}
                 onFilterChanged={onFilterChanged}
+                errorReattempt={errorReattempt}
               />
             </div>
           )}

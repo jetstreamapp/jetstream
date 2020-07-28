@@ -9,6 +9,7 @@ import HeaderNavbar from './components/core/HeaderNavbar';
 import Query from './components/query/Query';
 import Feedback from './components/feedback/Feedback';
 import { ConfirmationServiceProvider } from '@jetstream/ui';
+import OrgSelectionRequired from './components/orgs/OrgSelectionRequired';
 
 export const App = () => {
   const [userProfile, setUserProfile] = useState<UserProfile>();
@@ -31,14 +32,16 @@ export const App = () => {
                   `}
                 >
                   <Suspense fallback={<div>Loading...</div>}>
-                    <Switch>
-                      <Route path="/query">
-                        <Query />
-                      </Route>
-                      <Route path="/feedback">
-                        <Feedback />
-                      </Route>
-                    </Switch>
+                    <OrgSelectionRequired>
+                      <Switch>
+                        <Route path="/query">
+                          <Query />
+                        </Route>
+                        <Route path="/feedback">
+                          <Feedback />
+                        </Route>
+                      </Switch>
+                    </OrgSelectionRequired>
                   </Suspense>
                 </div>
               </div>

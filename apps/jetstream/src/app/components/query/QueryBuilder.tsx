@@ -17,7 +17,7 @@ import classNames from 'classnames';
 import { Fragment, FunctionComponent, useEffect, useState } from 'react';
 import { Link, useRouteMatch } from 'react-router-dom';
 import Split from 'react-split';
-import { useRecoilState, useRecoilValue } from 'recoil';
+import { useRecoilState, useRecoilValue, useResetRecoilState } from 'recoil';
 import QueryWorker from '../../workers/query.worker';
 import * as fromQueryState from './query.state';
 import QueryBuilderSoqlUpdater from './QueryBuilderSoqlUpdater';
@@ -42,22 +42,17 @@ export const QueryBuilder: FunctionComponent<QueryBuilderProps> = () => {
   const [filterFields, setFilterFields] = useRecoilState(fromQueryState.filterQueryFieldsState);
   const [soql, setSoql] = useRecoilState(fromQueryState.querySoqlState);
   const [isFavorite, setIsFavorite] = useRecoilState(fromQueryState.queryIsFavoriteState);
+  const resetQueryFiltersState = useResetRecoilState(fromQueryState.queryFiltersState);
+  const resetQueryOrderByState = useResetRecoilState(fromQueryState.queryOrderByState);
+  const resetQueryLimit = useResetRecoilState(fromQueryState.queryLimit);
+  const resetQueryLimitSkip = useResetRecoilState(fromQueryState.queryLimitSkip);
+  const resetQuerySoqlState = useResetRecoilState(fromQueryState.querySoqlState);
+  // FIXME: this is a hack and should not be here
   const [showRightHandPane, setShowRightHandPane] = useState(!!selectedSObject);
 
   const [queryWorker] = useState(() => new QueryWorker());
 
-  useEffect(() => {
-    if (queryFieldsMap && selectedSObject) {
-      queryWorker.postMessage({
-        name: 'calculateFilter',
-        data: queryFieldsMap,
-      });
-    } else {
-      setFilterFields([]);
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedSObject, queryFieldsMap, selectedFields]);
-
+  // FIXME: this is a hack and should not be here
   useEffect(() => {
     let timer1;
     if (!selectedSObject) {
@@ -72,6 +67,30 @@ export const QueryBuilder: FunctionComponent<QueryBuilderProps> = () => {
         clearTimeout(timer1);
       }
     };
+  }, [selectedSObject]);
+
+  useEffect(() => {
+    if (queryFieldsMap && selectedSObject) {
+      queryWorker.postMessage({
+        name: 'calculateFilter',
+        data: queryFieldsMap,
+      });
+    } else {
+      setFilterFields([]);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedSObject, queryFieldsMap, selectedFields]);
+
+  useEffect(() => {
+    if (selectedSObject) {
+      // TODO: these resets are not working for most items (also reset in a parent component)
+      resetQueryFiltersState();
+      resetQueryLimit();
+      resetQueryLimitSkip();
+      resetQueryOrderByState();
+      resetQuerySoqlState();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedSObject]);
 
   useEffect(() => {
@@ -159,8 +178,8 @@ export const QueryBuilder: FunctionComponent<QueryBuilderProps> = () => {
               )}
             </div>
             <div className="slds-p-horizontal_x-small">
-              {showRightHandPane && (
-                <AutoFullHeightContainer>
+              <AutoFullHeightContainer>
+                {selectedSObject && showRightHandPane && (
                   <Accordion
                     initOpenIds={['filters', 'orderBy', 'limit', 'soql']}
                     sections={[
@@ -175,8 +194,8 @@ export const QueryBuilder: FunctionComponent<QueryBuilderProps> = () => {
                     ]}
                     allowMultiple={true}
                   ></Accordion>
-                </AutoFullHeightContainer>
-              )}
+                )}
+              </AutoFullHeightContainer>
             </div>
           </Split>
         </AutoFullHeightContainer>

@@ -9,6 +9,7 @@ import { useRecoilValue, useRecoilState } from 'recoil';
 import { selectedOrgState } from '../../app-state';
 import * as fromQueryState from './query.state';
 import { isEmpty } from 'lodash';
+import { logger } from '@jetstream/shared/client-logger';
 
 export interface QueryFieldsProps {
   selectedSObject: DescribeGlobalSObjectResult;
@@ -42,6 +43,7 @@ export const QueryFieldsComponent: FunctionComponent<QueryFieldsProps> = ({ sele
           key: BASE_KEY,
           expanded: true,
           loading: true,
+          hasError: false,
           filterTerm: '',
           sobject: selectedSObject.name,
           fields: {},
@@ -52,13 +54,19 @@ export const QueryFieldsComponent: FunctionComponent<QueryFieldsProps> = ({ sele
         setQueryFieldsKey(getQueryFieldKey(selectedOrg, selectedSObject));
         (async () => {
           tempQueryFieldsMap = { ...tempQueryFieldsMap };
-          tempQueryFieldsMap[BASE_KEY] = await fetchFields(selectedOrg, tempQueryFieldsMap[BASE_KEY], BASE_KEY);
-          tempQueryFieldsMap[BASE_KEY] = { ...tempQueryFieldsMap[BASE_KEY], loading: false };
-          if (tempQueryFieldsMap[BASE_KEY].fields.Id) {
-            tempQueryFieldsMap[BASE_KEY].selectedFields.add('Id');
-            emitSelectedFieldsChanged(tempQueryFieldsMap);
+          try {
+            tempQueryFieldsMap[BASE_KEY] = await fetchFields(selectedOrg, tempQueryFieldsMap[BASE_KEY], BASE_KEY);
+            tempQueryFieldsMap[BASE_KEY] = { ...tempQueryFieldsMap[BASE_KEY], loading: false };
+            if (tempQueryFieldsMap[BASE_KEY].fields.Id) {
+              tempQueryFieldsMap[BASE_KEY].selectedFields.add('Id');
+              emitSelectedFieldsChanged(tempQueryFieldsMap);
+            }
+          } catch (ex) {
+            logger.warn('Query SObject error', ex);
+            tempQueryFieldsMap[BASE_KEY] = { ...tempQueryFieldsMap[BASE_KEY], loading: false, hasError: true };
+          } finally {
+            setQueryFieldsMap(tempQueryFieldsMap);
           }
-          setQueryFieldsMap(tempQueryFieldsMap);
         })();
       }
     }
@@ -87,6 +95,7 @@ export const QueryFieldsComponent: FunctionComponent<QueryFieldsProps> = ({ sele
         key,
         expanded: true,
         loading: true,
+        hasError: false,
         filterTerm: '',
         sobject: field.relatedSobject as string,
         fields: {},
@@ -95,13 +104,43 @@ export const QueryFieldsComponent: FunctionComponent<QueryFieldsProps> = ({ sele
       };
       // fetch fields and update once resolved
       (async () => {
-        // TODO: what if object selection changed? may need to ensure key still exists
-        clonedQueryFieldsMap[key] = await fetchFields(selectedOrg, clonedQueryFieldsMap[key], key);
-        clonedQueryFieldsMap[key] = { ...clonedQueryFieldsMap[key], loading: false };
-        setQueryFieldsMap(clonedQueryFieldsMap);
+        try {
+          clonedQueryFieldsMap[key] = await fetchFields(selectedOrg, clonedQueryFieldsMap[key], key);
+          // ensure selected object did not change
+          if (clonedQueryFieldsMap[key]) {
+            clonedQueryFieldsMap[key] = { ...clonedQueryFieldsMap[key], loading: false };
+            setQueryFieldsMap(clonedQueryFieldsMap);
+          }
+        } catch (ex) {
+          logger.warn('Query SObject error', ex);
+          clonedQueryFieldsMap[key] = { ...clonedQueryFieldsMap[key], loading: false, hasError: true };
+        } finally {
+          setQueryFieldsMap(clonedQueryFieldsMap);
+        }
       })();
     }
     setQueryFieldsMap({ ...clonedQueryFieldsMap });
+  }
+
+  async function handleErrorReattempt(key: string) {
+    const clonedQueryFieldsMap = { ...queryFieldsMap };
+    clonedQueryFieldsMap[key] = { ...clonedQueryFieldsMap[key], loading: true, hasError: false };
+    setQueryFieldsMap({ ...clonedQueryFieldsMap });
+
+    // This is a candidate to pull into shared function
+    try {
+      clonedQueryFieldsMap[key] = await fetchFields(selectedOrg, clonedQueryFieldsMap[key], key);
+      // ensure selected object did not change
+      if (clonedQueryFieldsMap[key]) {
+        clonedQueryFieldsMap[key] = { ...clonedQueryFieldsMap[key], loading: false };
+        setQueryFieldsMap(clonedQueryFieldsMap);
+      }
+    } catch (ex) {
+      logger.warn('Query SObject error', ex);
+      clonedQueryFieldsMap[key] = { ...clonedQueryFieldsMap[key], loading: false, hasError: true };
+    } finally {
+      setQueryFieldsMap(clonedQueryFieldsMap);
+    }
   }
 
   function handleFieldSelection(key: string, field: FieldWrapper) {
@@ -165,6 +204,7 @@ export const QueryFieldsComponent: FunctionComponent<QueryFieldsProps> = ({ sele
             itemKey={baseKey}
             queryFieldsMap={queryFieldsMap}
             sobject={selectedSObject.name}
+            errorReattempt={handleErrorReattempt}
             onToggleExpand={handleToggleFieldExpand}
             onSelectField={handleFieldSelection}
             onSelectAll={handleFieldSelectAll}

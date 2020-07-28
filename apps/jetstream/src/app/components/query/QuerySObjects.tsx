@@ -1,13 +1,13 @@
+import { logger } from '@jetstream/shared/client-logger';
 import { describeGlobal } from '@jetstream/shared/data';
+import { orderObjectsBy } from '@jetstream/shared/utils';
+import { SalesforceOrgUi } from '@jetstream/types';
 import { SobjectList } from '@jetstream/ui';
 import { DescribeGlobalSObjectResult } from 'jsforce';
-import React, { FunctionComponent, useEffect, useState } from 'react';
-import { orderObjectsBy } from '@jetstream/shared/utils';
-import { useRecoilValue, useRecoilState } from 'recoil';
-import { SalesforceOrgUi } from '@jetstream/types';
+import React, { Fragment, FunctionComponent, useEffect, useState } from 'react';
+import { useRecoilState, useRecoilValue } from 'recoil';
 import { selectedOrgState } from '../../app-state';
 import * as fromQueryState from './query.state';
-import { logger } from '@jetstream/shared/client-logger';
 
 // eslint-disable-next-line @typescript-eslint/no-empty-interface
 export interface QueryFieldsProps {}
@@ -40,13 +40,16 @@ export const QuerySObjects: FunctionComponent<QueryFieldsProps> = () => {
   }
 
   return (
-    <SobjectList
-      sobjects={sobjects}
-      selectedSObject={selectedSObject}
-      loading={loading}
-      errorMessage={errorMessage}
-      onSelected={setSelectedSObject}
-    />
+    <Fragment>
+      <SobjectList
+        sobjects={sobjects}
+        selectedSObject={selectedSObject}
+        loading={loading}
+        errorMessage={errorMessage}
+        onSelected={setSelectedSObject}
+        errorReattempt={() => setErrorMessage(null)}
+      />
+    </Fragment>
   );
 };
 

@@ -26,6 +26,7 @@ export interface QueryFields {
   key: string;
   expanded: boolean;
   loading: boolean;
+  hasError: boolean;
   filterTerm: string;
   sobject: string;
   fields: MapOf<FieldWrapper>;
@@ -93,6 +94,7 @@ export type Info = 'info';
 export type Success = 'success';
 export type Warning = 'warning';
 export type Error = 'error';
+export type Offline = 'offline';
 
 export type Default = 'default';
 export type Inverse = 'inverse';
@@ -100,6 +102,7 @@ export type Light = 'light';
 
 export type InfoSuccessWarningError = Info | Success | Warning | Error;
 export type SuccessWarningError = Success | Warning | Error;
+export type InfoWarningErrorOffline = Info | Warning | Error | Offline;
 export type DefaultInverseLight = Default | Inverse | Light;
 export type BadgeTypes = SuccessWarningError | DefaultInverseLight;
 

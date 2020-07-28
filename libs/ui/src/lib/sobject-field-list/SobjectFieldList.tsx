@@ -20,6 +20,7 @@ export interface SobjectFieldListProps {
   onSelectField: (key: string, field: FieldWrapper) => void;
   onSelectAll: (key: string, value: boolean) => void;
   onFilterChanged: (key: string, filterTerm: string) => void;
+  errorReattempt: (key: string) => void;
 }
 
 export const SobjectFieldList: FunctionComponent<SobjectFieldListProps> = ({
@@ -31,6 +32,7 @@ export const SobjectFieldList: FunctionComponent<SobjectFieldListProps> = ({
   onSelectField,
   onSelectAll,
   onFilterChanged,
+  errorReattempt,
 }) => {
   const [queryFields, setQueryFields] = useState<QueryFields>(null);
   const [fieldLength, setFieldLength] = useState<number>(0);
@@ -95,6 +97,7 @@ export const SobjectFieldList: FunctionComponent<SobjectFieldListProps> = ({
           onSelectField={onSelectField}
           onSelectAll={onSelectAll}
           onFilterChanged={onFilterChanged}
+          errorReattempt={errorReattempt}
         />
       ),
     };
@@ -112,7 +115,7 @@ export const SobjectFieldList: FunctionComponent<SobjectFieldListProps> = ({
           <Spinner />
         </div>
       )}
-      {!queryFields?.loading && filteredFields && (
+      {queryFields && !queryFields.loading && !queryFields.hasError && filteredFields && (
         <Fragment>
           <div className="slds-p-bottom--xx-small">
             <SearchInput
@@ -141,6 +144,14 @@ export const SobjectFieldList: FunctionComponent<SobjectFieldListProps> = ({
             </EmptyState>
           )}
         </Fragment>
+      )}
+      {queryFields && queryFields.hasError && (
+        <p className="slds-p-around_medium slds-text-align_center">
+          <span className="slds-text-color_error">There was an error loading fields for {queryFields.sobject}.</span>
+          <button className="slds-button slds-m-left_xx-small" onClick={() => errorReattempt(itemKey)}>
+            Try Again?
+          </button>
+        </p>
       )}
     </div>
   );

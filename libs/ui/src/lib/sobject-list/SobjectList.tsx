@@ -1,13 +1,12 @@
 /** @jsx jsx */
 import { css, jsx } from '@emotion/core';
-import { useState, useEffect, FunctionComponent, Fragment } from 'react';
 import { DescribeGlobalSObjectResult } from 'jsforce';
+import { Fragment, FunctionComponent, useEffect, useState } from 'react';
 import SearchInput from '../form/search-input/SearchInput';
-import Spinner from '../widgets/Spinner';
+import EmptyState from '../illustrations/EmptyState';
 import AutoFullHeightContainer from '../layout/AutoFullHeightContainer';
 import List from '../list/List';
-import { filter } from 'lodash';
-import EmptyState from '../illustrations/EmptyState';
+import Spinner from '../widgets/Spinner';
 
 export interface SobjectListProps {
   sobjects: DescribeGlobalSObjectResult[];
@@ -15,9 +14,17 @@ export interface SobjectListProps {
   loading: boolean;
   errorMessage?: string; // TODO:
   onSelected: (sobject: DescribeGlobalSObjectResult) => void;
+  errorReattempt: () => void;
 }
 
-export const SobjectList: FunctionComponent<SobjectListProps> = ({ sobjects, selectedSObject, loading, errorMessage, onSelected }) => {
+export const SobjectList: FunctionComponent<SobjectListProps> = ({
+  sobjects,
+  selectedSObject,
+  loading,
+  errorMessage,
+  onSelected,
+  errorReattempt,
+}) => {
   const [filteredSobjects, setFilteredSobjects] = useState<DescribeGlobalSObjectResult[]>(null);
   const [searchTerm, setSearchTerm] = useState<string>('');
 
@@ -44,6 +51,14 @@ export const SobjectList: FunctionComponent<SobjectListProps> = ({ sobjects, sel
         </div>
       )}
       <div>
+        {errorMessage && (
+          <p className="slds-p-around_medium slds-text-align_center">
+            <span className="slds-text-color_error">There was an error loading objects for the selected org.</span>
+            <button className="slds-button slds-m-left_xx-small" onClick={() => errorReattempt()}>
+              Try Again?
+            </button>
+          </p>
+        )}
         {sobjects && filteredSobjects && (
           <Fragment>
             <div className="slds-p-bottom--xx-small">

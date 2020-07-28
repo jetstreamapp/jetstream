@@ -1,4 +1,5 @@
 export * from './lib/accordion/Accordion';
+export * from './lib/alert/Alert';
 export * from './lib/confirmation-dialog/ConfirmationDialog';
 export * from './lib/expression-group/ExpressionContainer';
 export * from './lib/form/button/ButtonGroupContainer';
@@ -38,6 +39,7 @@ export * from './lib/nav/NavbarAppLauncher';
 export * from './lib/nav/NavbarItem';
 export * from './lib/nav/NavbarMenuItems';
 export * from './lib/popover/Popover';
+export * from './lib/providers/DialogServiceProvider';
 export * from './lib/sobject-field-list/SobjectFieldList';
 export * from './lib/sobject-field-list/SobjectFieldListItem';
 export * from './lib/sobject-field-list/SobjectFieldListType';
@@ -54,4 +56,3 @@ export * from './lib/widgets/Icon';
 export * from './lib/widgets/SalesforceLogin';
 export * from './lib/widgets/Spinner';
 export * from './lib/widgets/Tooltip';
-export * from './lib/providers/DialogServiceProvider';

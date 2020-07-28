@@ -26,6 +26,7 @@ export interface ComboboxProps {
     items: FormGroupDropdownItem[];
     initialSelectedItem?: FormGroupDropdownItem;
   };
+  itemLength?: 5 | 7;
   onInputChange?: (value: string) => void;
   onLeadingDropdownChange?: (item: FormGroupDropdownItem) => void;
 }
@@ -49,6 +50,7 @@ export const Combobox: FunctionComponent<ComboboxProps> = ({
   selectedItemLabel,
   selectedItemTitle,
   leadingDropdown,
+  itemLength = 5,
   children,
   onInputChange,
   onLeadingDropdownChange,
@@ -163,7 +165,11 @@ export const Combobox: FunctionComponent<ComboboxProps> = ({
                     />
                   )}
                 </div>
-                <div id={listId} className="slds-dropdown slds-dropdown_length-5 slds-dropdown_fluid" role="listbox">
+                <div
+                  id={listId}
+                  className={classNames(`slds-dropdown slds-dropdown_length-${itemLength} slds-dropdown_fluid`)}
+                  role="listbox"
+                >
                   {Children.count(children) === 0 && (
                     <ul className="slds-listbox slds-listbox_vertical" role="presentation">
                       <ComboboxListItem id="placeholder" label={noItemsPlaceholder} selected={false} onSelection={NOOP} />

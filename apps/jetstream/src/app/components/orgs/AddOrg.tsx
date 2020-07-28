@@ -14,7 +14,14 @@ const loginUrlMap = {
   'pre-release': 'https://prerellogin.pre.salesforce.com',
 };
 
+const CUSTOM_LOGIN_PROTOCOL = 'https://';
+const CUSTOM_LOGIN_SUFFIX = '.my.salesforce.com';
+
 let windowRef: Window | undefined;
+
+function getFQDN(customUrl: string) {
+  return `${CUSTOM_LOGIN_PROTOCOL}${customUrl}${CUSTOM_LOGIN_SUFFIX}`;
+}
 
 // eslint-disable-next-line @typescript-eslint/no-empty-interface
 export interface AddOrgProps {
@@ -30,7 +37,7 @@ export const AddOrg: FunctionComponent<AddOrgProps> = ({ onAddOrg }) => {
   useEffect(() => {
     let url: string;
     if (orgType === 'custom') {
-      url = customUrl;
+      url = getFQDN(customUrl);
     } else {
       url = loginUrlMap[orgType] || 'https://login.salesforce.com';
     }
@@ -102,24 +109,26 @@ export const AddOrg: FunctionComponent<AddOrgProps> = ({ onAddOrg }) => {
             />
           </RadioGroup>
 
-          <Input
-            label="Custom Salesforce Url"
-            isRequired={false}
-            hasError={false}
-            errorMessageId="Error"
-            errorMessage="This is not valid"
-            leftAddon="https://"
-            rightAddon=".my.salesforce.com"
-          >
-            <input
-              id="org-custom-url"
-              className="slds-input"
-              placeholder="org-domain"
-              disabled={orgType !== 'custom'}
-              value={customUrl}
-              onChange={(event) => setCustomUrl(event.target.value)}
-            />
-          </Input>
+          {orgType === 'custom' && (
+            <Input
+              label="Custom Salesforce Url"
+              isRequired={false}
+              hasError={false}
+              errorMessageId="Error"
+              errorMessage="This is not valid"
+              leftAddon={CUSTOM_LOGIN_PROTOCOL}
+              rightAddon={CUSTOM_LOGIN_SUFFIX}
+              helpText={customUrl ? getFQDN(customUrl) : null}
+            >
+              <input
+                id="org-custom-url"
+                className="slds-input"
+                placeholder="org-domain"
+                value={customUrl}
+                onChange={(event) => setCustomUrl(event.target.value)}
+              />
+            </Input>
+          )}
         </Fragment>
       }
       footer={
