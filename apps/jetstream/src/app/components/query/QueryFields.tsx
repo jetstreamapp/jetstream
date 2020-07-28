@@ -54,6 +54,10 @@ export const QueryFieldsComponent: FunctionComponent<QueryFieldsProps> = ({ sele
           tempQueryFieldsMap = { ...tempQueryFieldsMap };
           tempQueryFieldsMap[BASE_KEY] = await fetchFields(selectedOrg, tempQueryFieldsMap[BASE_KEY], BASE_KEY);
           tempQueryFieldsMap[BASE_KEY] = { ...tempQueryFieldsMap[BASE_KEY], loading: false };
+          if (tempQueryFieldsMap[BASE_KEY].fields.Id) {
+            tempQueryFieldsMap[BASE_KEY].selectedFields.add('Id');
+            emitSelectedFieldsChanged(tempQueryFieldsMap);
+          }
           setQueryFieldsMap(tempQueryFieldsMap);
         })();
       }
