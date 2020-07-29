@@ -16,6 +16,7 @@ import { WhereClause, Operator, LiteralType } from 'soql-parser-js';
 import { HTTP } from '@jetstream/shared/constants';
 import { logger } from '@jetstream/shared/client-logger';
 import { get as safeGet } from 'lodash';
+import isString from 'lodash/isString';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function parseQueryParams<T = any>(queryString: string): T {
@@ -441,3 +442,43 @@ export function getPicklistListItems(field: Field): ListItem[] {
     }))
   );
 }
+/// START ADD ORG ////
+let windowRef: Window | undefined;
+let addOrgCallbackFn: (org: SalesforceOrgUi) => void;
+
+function handleWindowEvent(event: MessageEvent) {
+  if (isString(event.data)) {
+    try {
+      const org: SalesforceOrgUi = JSON.parse(event.data);
+      // ensure from our origin // FIXME:
+      logger.log({ org });
+      if (addOrgCallbackFn) {
+        addOrgCallbackFn(org);
+      }
+      if (windowRef) {
+        windowRef.close();
+      }
+    } catch (ex) {
+      // TODO: tell user there was a problem
+    }
+  }
+}
+
+export function addOrg(
+  options: { serverUrl: string; loginUrl: string; replaceOrgUniqueId?: string },
+  callback: (org: SalesforceOrgUi) => void
+) {
+  const { serverUrl, loginUrl, replaceOrgUniqueId } = options;
+  addOrgCallbackFn = callback;
+  window.removeEventListener('message', handleWindowEvent);
+  const strWindowFeatures = 'toolbar=no, menubar=no, width=1025, height=700';
+  let url = `${serverUrl}/oauth/sfdc/auth?`;
+  url += `loginUrl=${encodeURIComponent(loginUrl)}`;
+  url += `&clientUrl=${encodeURIComponent(document.location.origin)}`;
+  if (replaceOrgUniqueId) {
+    url += `&replaceOrgUniqueId=${encodeURIComponent(replaceOrgUniqueId)}`;
+  }
+  windowRef = window.open(url, 'Add Salesforce Org', strWindowFeatures);
+  window.addEventListener('message', handleWindowEvent, false);
+}
+/// END ADD ORG ////

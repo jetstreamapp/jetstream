@@ -5,6 +5,7 @@ import React, { Fragment, FunctionComponent, useEffect, useState } from 'react';
 import { useRecoilState } from 'recoil';
 import { applicationCookieState } from '../../app-state';
 import { logger } from '@jetstream/shared/client-logger';
+import { addOrg } from '@jetstream/shared/ui-utils';
 
 type OrgType = 'prod' | 'sandbox' | 'pre-release' | 'custom';
 
@@ -16,8 +17,6 @@ const loginUrlMap = {
 
 const CUSTOM_LOGIN_PROTOCOL = 'https://';
 const CUSTOM_LOGIN_SUFFIX = '.my.salesforce.com';
-
-let windowRef: Window | undefined;
 
 function getFQDN(customUrl: string) {
   return `${CUSTOM_LOGIN_PROTOCOL}${customUrl}${CUSTOM_LOGIN_SUFFIX}`;
@@ -44,31 +43,12 @@ export const AddOrg: FunctionComponent<AddOrgProps> = ({ onAddOrg }) => {
     setLoginUrl(url);
   }, [orgType, customUrl]);
 
+  // FIXME: we should have a way to know what org was being "fixed" and always replace it in the DB and here
   function handleAddOrg() {
-    // open window, listen to events
-    window.removeEventListener('message', handleWindowEvent);
-    const strWindowFeatures = 'toolbar=no, menubar=no, width=1025, height=700';
-    const url = `${applicationState.serverUrl}/oauth/sfdc/auth?loginUrl=${encodeURIComponent(loginUrl)}&clientUrl=${encodeURIComponent(
-      document.location.origin
-    )}`;
-    windowRef = window.open(url, 'Add Salesforce Org', strWindowFeatures);
-    window.addEventListener('message', handleWindowEvent, false);
-  }
-
-  function handleWindowEvent(event: MessageEvent) {
-    if (isString(event.data)) {
-      try {
-        const orgInfo = JSON.parse(event.data);
-        // ensure from our origin // FIXME:
-        logger.log({ orgInfo });
-        onAddOrg(orgInfo);
-        if (windowRef) {
-          windowRef.close();
-        }
-      } catch (ex) {
-        // TODO: tell user there was a problem
-      }
-    }
+    addOrg({ serverUrl: applicationState.serverUrl, loginUrl }, (addedOrg: SalesforceOrgUi) => {
+      // TODO: send event to parent with fixed org or something
+      onAddOrg(addedOrg);
+    });
   }
 
   return (

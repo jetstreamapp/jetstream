@@ -61,6 +61,7 @@ export interface SalesforceOrgUi {
   orgLanguageLocaleKey?: SalesforceOrgLocaleKey;
   orgNamespacePrefix?: string;
   orgTrialExpirationDate?: string;
+  connectionError?: string;
   createdAt?: string;
   updatedAt?: string;
 }

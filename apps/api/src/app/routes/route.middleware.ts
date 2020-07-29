@@ -83,6 +83,7 @@ export async function addOrgsToLocal(req: express.Request, res: express.Response
     }
 
     res.locals = res.locals || {};
+    res.locals.org = org;
     res.locals.jsforceConn = new jsforce.Connection(connData);
 
     // Handle org refresh - then remove event listener if refreshed

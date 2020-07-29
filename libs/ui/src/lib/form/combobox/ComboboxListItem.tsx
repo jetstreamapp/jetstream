@@ -10,6 +10,7 @@ export interface ComboboxListItemProps {
   title?: string; // fallback to label is label is a string
   selected: boolean;
   disabled?: boolean;
+  hasError?: boolean;
   onSelection: (id: string) => void;
 }
 
@@ -20,6 +21,7 @@ export const ComboboxListItem: FunctionComponent<ComboboxListItemProps> = ({
   title,
   selected,
   disabled,
+  hasError,
   onSelection,
   children,
 }) => {
@@ -33,6 +35,7 @@ export const ComboboxListItem: FunctionComponent<ComboboxListItemProps> = ({
         // TODO: ass slds-has-focus when item is focused
         className={classNames('slds-media slds-listbox__option slds-listbox__option_plain slds-media_small', {
           'slds-is-selected': selected,
+          'slds-text-color_error': hasError,
         })}
         role="option"
         aria-selected={selected}

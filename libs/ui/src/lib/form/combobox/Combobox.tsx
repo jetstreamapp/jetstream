@@ -27,6 +27,7 @@ export interface ComboboxProps {
     initialSelectedItem?: FormGroupDropdownItem;
   };
   itemLength?: 5 | 7;
+  hasError?: boolean;
   onInputChange?: (value: string) => void;
   onLeadingDropdownChange?: (item: FormGroupDropdownItem) => void;
 }
@@ -51,6 +52,7 @@ export const Combobox: FunctionComponent<ComboboxProps> = ({
   selectedItemTitle,
   leadingDropdown,
   itemLength = 5,
+  hasError,
   children,
   onInputChange,
   onLeadingDropdownChange,
@@ -92,17 +94,12 @@ export const Combobox: FunctionComponent<ComboboxProps> = ({
   // TODO: show text of selected item!!!!!! (e.x. in expression drop-down)
 
   return (
-    <div className="slds-form-element">
+    <div className={classNames('slds-form-element', { 'slds-has-error': hasError })}>
       <label className={classNames('slds-form-element__label', { 'slds-assistive-text': hideLabel })} htmlFor={id}>
         {label}
       </label>
       {helpText && <HelpText id={`${id}-label-help-text`} content={helpText} />}
       <div className="slds-form-element__control">
-        {/* TODO: add group here (or <Fragment> I guess) */}
-        {/* <div className="slds-combobox-group"> */}
-        {/* <div className="slds-combobox_object-switcher slds-combobox-addon_start"> */}
-        {/* <div className="slds-form-element"> */}
-
         {getContainer(
           hasDropdownGroup,
           <Fragment>
@@ -133,7 +130,7 @@ export const Combobox: FunctionComponent<ComboboxProps> = ({
                 >
                   <input
                     type="text"
-                    className="slds-input slds-combobox__input"
+                    className={classNames('slds-input slds-combobox__input', { 'slds-text-color_error': hasError })}
                     id={id}
                     aria-controls={listId}
                     autoComplete="off"

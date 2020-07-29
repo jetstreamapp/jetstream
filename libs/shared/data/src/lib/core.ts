@@ -2,8 +2,9 @@
 import * as request from 'superagent'; // http://visionmedia.github.io/superagent
 import * as API from '@jetstream/api-interfaces';
 import { SalesforceOrgUi } from '@jetstream/types';
-import { HTTP } from '@jetstream/shared/constants';
+import { HTTP, ERROR_MESSAGES } from '@jetstream/shared/constants';
 import { logger } from '@jetstream/shared/client-logger';
+import { errorMiddleware } from './middleware';
 
 export async function handleRequest<T = any>(currRequest: request.SuperAgentRequest, org?: SalesforceOrgUi) {
   try {
@@ -22,12 +23,15 @@ export async function handleRequest<T = any>(currRequest: request.SuperAgentRequ
     logger.info('[HTTP][RESPONSE][ERROR]', ex.status, ex.message);
     let message = 'An unknown error has occurred';
     if (ex.response) {
-      const response: { error: boolean; message: string } = ex.response.body;
-      message = response.message || 'An unknown error has occurred';
+      const response = ex.response as request.Response;
+      // Run middleware for error responses
+      errorMiddleware.forEach((middleware) => middleware(response, org));
+      const responseBody: { error: boolean; message: string } = response.body;
+      message = responseBody.message || 'An unknown error has occurred';
       // take user to login page
-      if (ex.response.get(HTTP.HEADERS.X_LOGOUT) === '1') {
+      if (response.get(HTTP.HEADERS.X_LOGOUT) === '1') {
         // LOG USER OUT
-        const logoutUrl = ex.response.get(HTTP.HEADERS.X_LOGOUT_URL) || '/oauth/login';
+        const logoutUrl = response.get(HTTP.HEADERS.X_LOGOUT_URL) || '/oauth/login';
         // eslint-disable-next-line no-restricted-globals
         location.href = logoutUrl;
       }

@@ -1,8 +1,9 @@
 import * as express from 'express';
 import { UserFacingError, AuthenticationError, NotFoundError } from './error-handler';
 import { getLoginUrl } from '../services/auth';
-import { HTTP } from '@jetstream/shared/constants';
+import { HTTP, ERROR_MESSAGES } from '@jetstream/shared/constants';
 import { logger } from '../config/logger.config';
+import { SalesforceOrg } from '../db/entites/SalesforceOrg';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function healthCheck(req: express.Request, res: express.Response) {
@@ -21,9 +22,21 @@ export function sendJson(res: express.Response, content?: any, status = 200) {
 // TODO: this should handle ALL errors, and controllers need to throw proper errors!
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
-export function uncaughtErrorHandler(err: any, req: express.Request, res: express.Response, next: express.NextFunction) {
+export async function uncaughtErrorHandler(err: any, req: express.Request, res: express.Response, next: express.NextFunction) {
   logger.info('[RESPONSE][ERROR] %s', err.message, { error: err.message });
   const isJson = (req.get(HTTP.HEADERS.ACCEPT) || '').includes(HTTP.CONTENT_TYPE.JSON);
+
+  // If org had a connection error, ensure that the database is updated
+  if (err.message === ERROR_MESSAGES.SFDC_EXPIRED_TOKEN && res.locals && !!res.locals.org) {
+    try {
+      res.set(HTTP.HEADERS.X_SFDC_ORG_CONNECTION_ERROR, ERROR_MESSAGES.SFDC_EXPIRED_TOKEN);
+      const org = res.locals.org as SalesforceOrg;
+      org.connectionError = ERROR_MESSAGES.SFDC_EXPIRED_TOKEN;
+      await org.save();
+    } catch (ex) {
+      logger.info('[RESPONSE][ERROR UPDATING INVALID ORG] %s', ex.message, { error: ex.message });
+    }
+  }
 
   if (err instanceof UserFacingError) {
     res.status(400);

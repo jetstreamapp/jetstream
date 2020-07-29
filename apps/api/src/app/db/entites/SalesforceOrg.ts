@@ -34,6 +34,7 @@ export class SalesforceOrg extends BaseEntity {
     this.orgLanguageLocaleKey = uiOrg.orgLanguageLocaleKey ?? this.orgLanguageLocaleKey;
     this.orgNamespacePrefix = uiOrg.orgNamespacePrefix ?? this.orgNamespacePrefix;
     this.orgTrialExpirationDate = uiOrg.orgTrialExpirationDate ?? this.orgTrialExpirationDate;
+    this.connectionError = null;
   }
 
   @PrimaryGeneratedColumn()
@@ -119,6 +120,9 @@ export class SalesforceOrg extends BaseEntity {
 
   @Column('date', { nullable: true })
   orgTrialExpirationDate?: string;
+
+  @Column({ nullable: true })
+  connectionError?: string;
 
   @CreateDateColumn()
   createdAt?: Date;

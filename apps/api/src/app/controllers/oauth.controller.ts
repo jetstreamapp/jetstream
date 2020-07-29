@@ -39,7 +39,8 @@ export async function jetstreamLogout(req: express.Request, res: express.Respons
 export function salesforceOauthInitAuth(req: express.Request, res: express.Response) {
   const loginUrl = req.query.loginUrl as string;
   const clientUrl = req.query.clientUrl as string;
-  const state = querystring.stringify({ loginUrl, clientUrl });
+  const replaceOrgUniqueId = req.query.clientUrl as string | undefined;
+  const state = querystring.stringify({ loginUrl, clientUrl, replaceOrgUniqueId });
 
   let options = {
     scope: 'full refresh_token',
@@ -66,6 +67,8 @@ export async function salesforceOauthCallback(req: express.Request, res: express
     const state = querystring.parse(req.query.state as string);
     const loginUrl = state.loginUrl as string;
     const clientUrl = state.clientUrl as string;
+    const replaceOrgUniqueId = state.replaceOrgUniqueId as string | undefined;
+
     // ERROR PATH
     if (req.query.error) {
       const errorMsg = req.query.error_description ? req.query.error_description : 'There was an error authenticating Salesforce.';
@@ -131,6 +134,19 @@ export async function salesforceOauthCallback(req: express.Request, res: express
       salesforceOrg.initFromUiOrg(salesforceOrgUi);
     } else {
       salesforceOrg = new SalesforceOrg(userId, salesforceOrgUi);
+    }
+
+    // If org was being fixed but the id is different, delete the old org
+    // This is useful for sandbox refreshes
+    try {
+      if (replaceOrgUniqueId && replaceOrgUniqueId !== salesforceOrg.uniqueId) {
+        const oldSalesforceOrg = await SalesforceOrg.findByUniqueId(userId, replaceOrgUniqueId);
+        if (oldSalesforceOrg) {
+          await oldSalesforceOrg.remove();
+        }
+      }
+    } catch (ex) {
+      logger.warn(ex);
     }
 
     await salesforceOrg.save();

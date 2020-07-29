@@ -4,13 +4,13 @@ import { SalesforceOrgUi } from '@jetstream/types';
 import { Alert } from '@jetstream/ui';
 import { Fragment, FunctionComponent } from 'react';
 import { useRecoilValue } from 'recoil';
-import { selectedOrgState } from '../../app-state';
+import * as fromAppState from '../../app-state';
 
 // eslint-disable-next-line @typescript-eslint/no-empty-interface
 export interface OrgSelectionRequiredProps {}
 
 export const OrgSelectionRequired: FunctionComponent<OrgSelectionRequiredProps> = ({ children }) => {
-  const selectedOrg = useRecoilValue<SalesforceOrgUi>(selectedOrgState);
+  const selectedOrg = useRecoilValue<SalesforceOrgUi>(fromAppState.selectedOrgState);
   return (
     <Fragment>
       {selectedOrg && children}

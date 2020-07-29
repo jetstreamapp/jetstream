@@ -12,10 +12,15 @@ export const HTTP = {
     X_LOGOUT: 'X-AUTH-LOGOUT', // 1=true
     X_LOGOUT_URL: 'X-LOGOUT-URL',
     X_SFDC_ID: 'X-SFDC-ID',
+    X_SFDC_ORG_CONNECTION_ERROR: 'X-SFDC-ORG-CONNECTION-ERROR',
   },
   CONTENT_TYPE: {
     JSON: 'application/json',
   },
+};
+
+export const ERROR_MESSAGES = {
+  SFDC_EXPIRED_TOKEN: 'expired access/refresh token',
 };
 
 export const MIME_TYPES: MapOf<MimeType> = {

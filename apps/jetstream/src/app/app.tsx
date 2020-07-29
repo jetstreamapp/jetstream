@@ -1,15 +1,15 @@
 /** @jsx jsx */
 import { css, jsx } from '@emotion/core';
 import { UserProfile } from '@jetstream/types';
+import { ConfirmationServiceProvider } from '@jetstream/ui';
 import { Suspense, useState } from 'react';
 import { BrowserRouter as Router, Route, Switch } from 'react-router-dom';
 import { RecoilRoot } from 'recoil';
-import FetchUserProfile from './components/core/FetchUserProfile';
+import AppInitializer from './components/core/AppInitializer';
 import HeaderNavbar from './components/core/HeaderNavbar';
-import Query from './components/query/Query';
 import Feedback from './components/feedback/Feedback';
-import { ConfirmationServiceProvider } from '@jetstream/ui';
 import OrgSelectionRequired from './components/orgs/OrgSelectionRequired';
+import Query from './components/query/Query';
 
 export const App = () => {
   const [userProfile, setUserProfile] = useState<UserProfile>();
@@ -19,7 +19,7 @@ export const App = () => {
       <RecoilRoot>
         {/* TODO: make better loading indicators for suspense (both global and localized versions - maybe SVG placeholders) */}
         <Suspense fallback={<div>Loading...</div>}>
-          <FetchUserProfile onUserProfile={setUserProfile}>
+          <AppInitializer onUserProfile={setUserProfile}>
             <Router basename="/app">
               <div>
                 <div>
@@ -46,7 +46,7 @@ export const App = () => {
                 </div>
               </div>
             </Router>
-          </FetchUserProfile>
+          </AppInitializer>
         </Suspense>
       </RecoilRoot>
     </ConfirmationServiceProvider>

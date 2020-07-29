@@ -1,16 +1,16 @@
 /** @jsx jsx */
 import { css, jsx } from '@emotion/core';
 import { MapOf, SalesforceOrgUi } from '@jetstream/types';
-import { Combobox, ComboboxListItem, ComboboxListItemGroup, Icon, Tooltip } from '@jetstream/ui';
+import { Combobox, ComboboxListItem, ComboboxListItemGroup } from '@jetstream/ui';
 import groupBy from 'lodash/groupBy';
 import orderBy from 'lodash/orderBy';
 import uniqBy from 'lodash/uniqBy';
-import { FunctionComponent, useEffect, useState, Fragment } from 'react';
-import AddOrg from './AddOrg';
+import { Fragment, FunctionComponent, useEffect, useState } from 'react';
 import { useRecoilState, useRecoilValue } from 'recoil';
 import { salesforceOrgsState, selectedOrgIdState, selectedOrgState } from '../../app-state';
-import OrgPersistence from './OrgPersistence';
+import AddOrg from './AddOrg';
 import OrgInfoPopover from './OrgInfoPopover';
+import OrgPersistence from './OrgPersistence';
 // eslint-disable-next-line @typescript-eslint/no-empty-interface
 export interface OrgsDropdownProps {}
 
@@ -26,6 +26,13 @@ function getSelectedItemTitle(org?: SalesforceOrgUi) {
     return;
   }
   return `${org.orgInstanceName} - ${org.username}`;
+}
+
+function orgHasError(org?: SalesforceOrgUi): boolean {
+  if (!org) {
+    return;
+  }
+  return !!org.connectionError;
 }
 
 export const OrgsDropdown: FunctionComponent<OrgsDropdownProps> = () => {
@@ -52,8 +59,16 @@ export const OrgsDropdown: FunctionComponent<OrgsDropdownProps> = () => {
     }
   }, [orgs, filterText]);
 
-  function addOrg(org: SalesforceOrgUi) {
-    const sortedOrgs = uniqBy(orderBy([...orgs, org], 'username'), 'uniqueId');
+  /**
+   *
+   * @param org Org to add
+   * @param replaceOrgUniqueId Id of org that should be removed from list. Only applicable to fixing org where Id ends up being different
+   */
+  function handleAddOrg(org: SalesforceOrgUi, replaceOrgUniqueId?: string) {
+    const sortedOrgs = uniqBy(
+      orderBy([...orgs.filter((org) => (replaceOrgUniqueId ? org.uniqueId !== replaceOrgUniqueId : true)), org], 'username'),
+      'uniqueId'
+    );
     setOrgs(sortedOrgs);
     setSelectedOrgId(org.uniqueId);
   }
@@ -73,6 +88,7 @@ export const OrgsDropdown: FunctionComponent<OrgsDropdownProps> = () => {
             hideLabel={true}
             placeholder="Select an Org"
             itemLength={7}
+            hasError={orgHasError(selectedOrg)}
             onInputChange={(filter) => setFilterText(filter)}
             selectedItemLabel={getSelectedItemLabel(selectedOrg)}
             selectedItemTitle={getSelectedItemTitle(selectedOrg)}
@@ -84,6 +100,7 @@ export const OrgsDropdown: FunctionComponent<OrgsDropdownProps> = () => {
                     key={org.uniqueId}
                     id={org.uniqueId}
                     label={org.username}
+                    hasError={orgHasError(org)}
                     selected={selectedOrg && selectedOrg.uniqueId === org.uniqueId}
                     onSelection={(id) => setSelectedOrgId(org.uniqueId)}
                   />
@@ -94,11 +111,11 @@ export const OrgsDropdown: FunctionComponent<OrgsDropdownProps> = () => {
         </div>
         {selectedOrg && (
           <div className="slds-col slds-m-left--xx-small slds-p-top--xx-small">
-            <OrgInfoPopover org={selectedOrg} />
+            <OrgInfoPopover org={selectedOrg} onAddOrg={handleAddOrg} />
           </div>
         )}
         <div className="slds-col">
-          <AddOrg onAddOrg={addOrg} />
+          <AddOrg onAddOrg={handleAddOrg} />
         </div>
       </div>
     </Fragment>

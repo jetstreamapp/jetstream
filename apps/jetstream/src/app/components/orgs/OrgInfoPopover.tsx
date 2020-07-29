@@ -7,9 +7,11 @@ import { FunctionComponent } from 'react';
 import { SalesforceLogin } from '@jetstream/ui';
 import { useRecoilState } from 'recoil';
 import { applicationCookieState } from '../../app-state';
+import { addOrg } from '@jetstream/shared/ui-utils';
 
 export interface OrgInfoPopoverProps {
   org: SalesforceOrgUi;
+  onAddOrg: (org: SalesforceOrgUi, replaceOrgUniqueId?: string) => void;
 }
 
 function getOrgProp(org: SalesforceOrgUi, prop: keyof SalesforceOrgUi, label?: string) {
@@ -30,42 +32,77 @@ function getOrgProp(org: SalesforceOrgUi, prop: keyof SalesforceOrgUi, label?: s
   );
 }
 
-export const OrgInfoPopover: FunctionComponent<OrgInfoPopoverProps> = ({ org }) => {
+export const OrgInfoPopover: FunctionComponent<OrgInfoPopoverProps> = ({ org, onAddOrg }) => {
   const [applicationState] = useRecoilState(applicationCookieState);
+  const hasError = !!org.connectionError;
+
+  // FIXME: we should have a way to know what org was being "fixed" and always replace it in the DB and here
+  function handleFixOrg() {
+    addOrg(
+      { serverUrl: applicationState.serverUrl, loginUrl: org.instanceUrl, replaceOrgUniqueId: org.uniqueId },
+      (addedOrg: SalesforceOrgUi) => {
+        let replaceOrgUniqueId = undefined;
+        if (addedOrg.uniqueId !== org.uniqueId) {
+          replaceOrgUniqueId = org.uniqueId;
+        }
+        onAddOrg(addedOrg, replaceOrgUniqueId);
+      }
+    );
+  }
+
   return (
     <Popover
       placement="bottom-end"
       bodyClassName="slds-popover__body slds-p-around_none"
+      containerClassName={hasError ? 'slds-popover_error' : undefined}
+      inverseIcons={hasError}
       header={
         <header className="slds-popover__header">
           <h2 className="slds-truncate slds-text-heading_small" title="Org Info">
             Org Info
+            {hasError && ' - Connection Error'}
           </h2>
         </header>
       }
       content={
         <div>
-          <div className="slds-p-around_xx-small">
-            <ButtonGroupContainer className="slds-button_stretch">
-              <SalesforceLogin
-                serverUrl={applicationState.serverUrl}
-                className="slds-button slds-button_neutral slds-button_stretch"
-                org={org}
-                title="Login to Salesforce Home"
-                returnUrl="/lightning/page/home"
-              >
-                Home Page
-              </SalesforceLogin>
-              <SalesforceLogin
-                serverUrl={applicationState.serverUrl}
-                className="slds-button slds-button_neutral slds-button_stretch"
-                org={org}
-                title="Login to Salesforce Setup Menu"
-              >
-                Setup Menu
-              </SalesforceLogin>
-            </ButtonGroupContainer>
-          </div>
+          {hasError && (
+            <div className="slds-p-around_xx-small">
+              <ButtonGroupContainer className="slds-button_stretch">
+                <button className="slds-button slds-button_text-destructive slds-button_stretch">
+                  <Icon type="utility" icon="delete" className="slds-button__icon slds-button__icon_left" omitContainer />
+                  Remove Org
+                </button>
+                <button className="slds-button slds-button_success slds-button_stretch" onClick={handleFixOrg}>
+                  <Icon type="utility" icon="apex_plugin" className="slds-button__icon slds-button__icon_left" omitContainer />
+                  Fix Connection
+                </button>
+              </ButtonGroupContainer>
+            </div>
+          )}
+          {!hasError && (
+            <div className="slds-p-around_xx-small">
+              <ButtonGroupContainer className="slds-button_stretch">
+                <SalesforceLogin
+                  serverUrl={applicationState.serverUrl}
+                  className="slds-button slds-button_neutral slds-button_stretch"
+                  org={org}
+                  title="Login to Salesforce Home"
+                  returnUrl="/lightning/page/home"
+                >
+                  Home Page
+                </SalesforceLogin>
+                <SalesforceLogin
+                  serverUrl={applicationState.serverUrl}
+                  className="slds-button slds-button_neutral slds-button_stretch"
+                  org={org}
+                  title="Login to Salesforce Setup Menu"
+                >
+                  Setup Menu
+                </SalesforceLogin>
+              </ButtonGroupContainer>
+            </div>
+          )}
           <table className="slds-table slds-table_header-hidden">
             <thead className="slds-assistive-text">
               <tr className="slds-line-height_reset">
