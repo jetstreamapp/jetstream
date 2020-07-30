@@ -3,7 +3,7 @@ import { css, jsx } from '@emotion/core';
 import { UserProfile } from '@jetstream/types';
 import { ConfirmationServiceProvider } from '@jetstream/ui';
 import { Suspense, useState } from 'react';
-import { BrowserRouter as Router, Route, Switch } from 'react-router-dom';
+import { BrowserRouter as Router, Route, Switch, Redirect } from 'react-router-dom';
 import { RecoilRoot } from 'recoil';
 import AppInitializer from './components/core/AppInitializer';
 import HeaderNavbar from './components/core/HeaderNavbar';
@@ -39,6 +39,9 @@ export const App = () => {
                         </Route>
                         <Route path="/feedback">
                           <Feedback />
+                        </Route>
+                        <Route path="*">
+                          <Redirect to="/query" />
                         </Route>
                       </Switch>
                     </OrgSelectionRequired>

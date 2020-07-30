@@ -50,7 +50,8 @@ export const HeaderNavbar: FunctionComponent<HeaderNavbarProps> = () => {
       onUserMenuItemSelected={handleUserMenuSelection}
     >
       <Navbar>
-        <NavbarItem path="/" title="Home" label="Home" />
+        {/* TODO: home page */}
+        {/* <NavbarItem path="/" title="Home" label="Home" /> */}
         <NavbarItem path="/query" title="Query Records" label="Query Records" />
       </Navbar>
     </Header>
