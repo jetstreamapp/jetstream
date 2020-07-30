@@ -220,7 +220,7 @@ export interface FormGroupDropdownItem {
   icon: IconObj;
 }
 
-export type AsyncJobType = 'BulkDelete';
+export type AsyncJobType = 'BulkDelete' | 'BulkDownload';
 export type AsyncJobStatus = 'pending' | 'in-progress' | 'success' | 'failed' | 'aborted';
 
 export type AsyncJobNew<T = unknown> = Omit<AsyncJob<T>, 'id' | 'started' | 'finished' | 'lastActivity' | 'status' | 'statusMessage'>;
@@ -246,4 +246,10 @@ export interface AsyncJobWorkerMessagePayload<T = unknown> {
 export interface AsyncJobWorkerMessageResponse<T = unknown, R = unknown> {
   job: AsyncJob<T>;
   results?: R;
+}
+
+export interface BulkDownloadJob {
+  nextRecordsUrl: string;
+  fields: string[];
+  records: MapOf<string>[];
 }

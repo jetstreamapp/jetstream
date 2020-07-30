@@ -10,6 +10,7 @@ import List from '../list/List';
 import Spinner from '../widgets/Spinner';
 import './SobjectFieldList.scss';
 import SobjectFieldListItem from './SobjectFieldListItem';
+import numeral from 'numeral';
 
 export interface SobjectFieldListProps {
   level: number;
@@ -124,7 +125,7 @@ export const SobjectFieldList: FunctionComponent<SobjectFieldListProps> = ({
               onChange={(value) => onFilterChanged(itemKey, value)}
             />
             <div className="slds-text-body_small slds-text-color_weak slds-p-left--xx-small">
-              Showing {filteredFields.length} of {fieldLength} fields
+              Showing {numeral(filteredFields.length).format('0,0')} of {numeral(fieldLength).format('0,0')} fields
             </div>
           </div>
           <div className="slds-p-bottom--xx-small slds-p-left--xx-small slds-m-left--xx-small border-bottom-thick">

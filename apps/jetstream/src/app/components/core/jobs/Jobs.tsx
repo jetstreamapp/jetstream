@@ -1,28 +1,30 @@
-import { Icon, Popover } from '@jetstream/ui';
-import classNames from 'classnames';
-import React, { FunctionComponent, useState, useEffect } from 'react';
-import { useRecoilState, useRecoilValue } from 'recoil';
-import Job from './Job';
-import { jobsState, jobsUnreadState, selectActiveJobCount, selectJobs } from './jobs.state';
-import JobPlaceholder from './JobPlaceholder';
-import JobsWorker from '../../../workers/jobs.worker';
+import { logger } from '@jetstream/shared/client-logger';
+import { MIME_TYPES } from '@jetstream/shared/constants';
+import { saveFile, useObservable } from '@jetstream/shared/ui-utils';
+import { pluralizeIfMultiple } from '@jetstream/shared/utils';
 import {
   AsyncJob,
-  SalesforceOrgUi,
-  AsyncJobWorkerMessageResponse,
-  AsyncJobType,
-  WorkerMessage,
-  RecordResult,
-  ErrorResult,
   AsyncJobNew,
+  AsyncJobType,
+  AsyncJobWorkerMessageResponse,
+  ErrorResult,
+  MapOf,
+  RecordResult,
+  SalesforceOrgUi,
+  WorkerMessage,
 } from '@jetstream/types';
+import { Icon, Popover } from '@jetstream/ui';
+import classNames from 'classnames';
 import uniqueId from 'lodash/uniqueId';
-import { selectedOrgState } from '../../../app-state';
-import { logger } from '@jetstream/shared/client-logger';
-import { pluralizeIfMultiple } from '@jetstream/shared/utils';
-import * as fromJetstreamEvents from '../jetstream-events';
+import React, { FunctionComponent, useEffect, useState } from 'react';
+import { useRecoilState, useRecoilValue } from 'recoil';
 import { filter, map } from 'rxjs/operators';
-import { useObservable } from '@jetstream/shared/ui-utils';
+import { selectedOrgState } from '../../../app-state';
+import JobsWorker from '../../../workers/jobs.worker';
+import * as fromJetstreamEvents from '../jetstream-events';
+import Job from './Job';
+import JobPlaceholder from './JobPlaceholder';
+import { jobsState, jobsUnreadState, selectActiveJobCount, selectJobs } from './jobs.state';
 // eslint-disable-next-line @typescript-eslint/no-empty-interface
 export interface JobsProps {}
 
@@ -33,12 +35,7 @@ export const Jobs: FunctionComponent<JobsProps> = () => {
   const activeJobCount = useRecoilValue(selectActiveJobCount);
   const [isPopoverOpen, setIsPopoverOpen] = useState(false);
   const selectedOrg = useRecoilValue<SalesforceOrgUi>(selectedOrgState);
-  const newJobsToProcess = useObservable(
-    fromJetstreamEvents.getObservable('newJob').pipe(
-      map((ev: AsyncJobNew[]) => ev.filter((currEvent) => currEvent.type === 'BulkDelete')),
-      filter((ev: AsyncJobNew[]) => ev.length > 0)
-    )
-  );
+  const newJobsToProcess = useObservable(fromJetstreamEvents.getObservable('newJob').pipe(filter((ev: AsyncJobNew[]) => ev.length > 0)));
 
   const [jobsWorker] = useState(() => new JobsWorker());
 
@@ -103,6 +100,37 @@ export const Jobs: FunctionComponent<JobsProps> = () => {
                       }`
                     : 'Record was deleted successfully',
                 };
+              }
+              setJobs(newJobs);
+            } catch (ex) {
+              // TODO:
+            }
+            break;
+          }
+          case 'BulkDownload': {
+            try {
+              const newJobs = { ...jobsObj };
+              const { job } = data;
+              if (error) {
+                newJobs[job.id] = {
+                  ...job,
+                  finished: new Date(),
+                  lastActivity: new Date(),
+                  status: 'failed',
+                  statusMessage: error || 'An unknown error ocurred',
+                };
+              } else {
+                const results = data.results as string;
+
+                newJobs[job.id] = {
+                  ...job,
+                  results,
+                  finished: new Date(),
+                  lastActivity: new Date(),
+                  status: 'success',
+                  statusMessage: 'Records downloaded successfully',
+                };
+                saveFile(results, 'query-results.csv', MIME_TYPES.CSV);
               }
               setJobs(newJobs);
             } catch (ex) {

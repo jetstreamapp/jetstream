@@ -40,6 +40,11 @@ export async function queryRecords(conn: Connection, query: string, isTooling = 
   return { queryResults, columns, parsedQuery };
 }
 
+export async function queryMoreRecords(conn: Connection, nextRecordsUrl: string, isTooling = false): Promise<QueryResults> {
+  const queryResults = await (isTooling ? conn.tooling.queryMore(nextRecordsUrl) : conn.queryMore(nextRecordsUrl));
+  return { queryResults };
+}
+
 ////////// PRIVATE ///////////////
 
 /**

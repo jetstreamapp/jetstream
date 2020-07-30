@@ -1,9 +1,11 @@
-import { AsyncJob } from '@jetstream/types';
+import { AsyncJob, AsyncJobType } from '@jetstream/types';
 import { Icon } from '@jetstream/ui';
 import moment from 'moment-mini';
 import React, { FunctionComponent } from 'react';
 import classNames from 'classnames';
 import { downloadJob } from './job-utils';
+
+const JOBS_WITH_DOWNLOAD: AsyncJobType[] = ['BulkDelete'];
 
 export interface JobProps {
   job: AsyncJob;
@@ -91,10 +93,12 @@ export const Job: FunctionComponent<JobProps> = ({ job, dismiss }) => {
         {job.results && (
           <div className="slds-m-top_x-small slds-grid slds-grid_align-spread">
             <div className="slds-col">
-              <button className="slds-button slds-button_neutral" onClick={() => downloadJob(job)}>
-                <Icon type="utility" icon="download" className="slds-button__icon slds-button__icon_left" omitContainer />
-                Download Results
-              </button>
+              {JOBS_WITH_DOWNLOAD.includes(job.type) && (
+                <button className="slds-button slds-button_neutral" onClick={() => downloadJob(job)}>
+                  <Icon type="utility" icon="download" className="slds-button__icon slds-button__icon_left" omitContainer />
+                  Download Results
+                </button>
+              )}
             </div>
             <div className=" slds-col">
               <button className="slds-button slds-button_neutral" onClick={() => dismiss(job)}>

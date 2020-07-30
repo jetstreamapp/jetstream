@@ -32,6 +32,10 @@ export async function query<T = any>(org: SalesforceOrgUi, query: string, isTool
   return handleRequest(request.post(`/api/query`).query({ isTooling }).send({ query }), org);
 }
 
+export async function queryMore<T = any>(org: SalesforceOrgUi, nextRecordsUrl: string, isTooling = false): Promise<API.QueryResults<T>> {
+  return handleRequest(request.get(`/api/query-more`).query({ nextRecordsUrl, isTooling }), org);
+}
+
 export async function sobjectOperation<T = any>(
   org: SalesforceOrgUi,
   sobject: string,

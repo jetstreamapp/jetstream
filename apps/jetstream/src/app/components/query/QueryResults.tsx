@@ -5,8 +5,9 @@ import { css, jsx } from '@emotion/core';
 import { QueryResultsColumn } from '@jetstream/api-interfaces';
 import { logger } from '@jetstream/shared/client-logger';
 import { query } from '@jetstream/shared/data';
+import { useObservable } from '@jetstream/shared/ui-utils';
 import { getIdFromRecordUrl, pluralizeIfMultiple } from '@jetstream/shared/utils';
-import { AsyncJob, MapOf, QueryFieldHeader, Record, SalesforceOrgUi, AsyncJobNew } from '@jetstream/types';
+import { AsyncJob, AsyncJobNew, MapOf, QueryFieldHeader, Record, SalesforceOrgUi, BulkDownloadJob } from '@jetstream/types';
 import {
   AutoFullHeightContainer,
   EmptyState,
@@ -21,15 +22,15 @@ import {
 import classNames from 'classnames';
 import React, { Fragment, FunctionComponent, useEffect, useState } from 'react';
 import { Link, NavLink, useLocation } from 'react-router-dom';
-import { useRecoilState, useRecoilValue, useSetRecoilState } from 'recoil';
+import { useRecoilState, useRecoilValue } from 'recoil';
+import { filter } from 'rxjs/operators';
 import { getFlattenedFields } from 'soql-parser-js';
 import { applicationCookieState, selectedOrgState } from '../../app-state';
 import * as fromJetstreamEvents from '../core/jetstream-events';
 import QueryDownloadModal from './QueryDownloadModal';
 import QueryResultsSoqlPanel from './QueryResultsSoqlPanel';
 import QueryResultsViewRecordFields from './QueryResultsViewRecordFields';
-import { filter } from 'rxjs/operators';
-import { useObservable } from '@jetstream/shared/ui-utils';
+import numeral from 'numeral';
 
 // eslint-disable-next-line @typescript-eslint/no-empty-interface
 export interface QueryResultsProps {}
@@ -42,6 +43,7 @@ export const QueryResults: FunctionComponent<QueryResultsProps> = React.memo(() 
   const [soql, setSoql] = useState<string>(null);
   const [userSoql, setUserSoql] = useState<string>(null);
   const [records, setRecords] = useState<Record[]>(null);
+  const [nextRecordsUrl, setNextRecordsUrl] = useState<string>(null);
   const [fields, setFields] = useState<QueryFieldHeader[]>(null);
   const [selectedRows, setSelectedRows] = useState<Record[]>([]);
   const [loading, setLoading] = useState<boolean>(false);
@@ -79,6 +81,7 @@ export const QueryResults: FunctionComponent<QueryResultsProps> = React.memo(() 
       setFields(null);
       setRecords(null);
       const results = await query(selectedOrg, soql);
+      setNextRecordsUrl(results.queryResults.nextRecordsUrl);
 
       let queryColumnsByPath: MapOf<QueryResultsColumn> = {};
 
@@ -193,6 +196,21 @@ export const QueryResults: FunctionComponent<QueryResultsProps> = React.memo(() 
     }
   }
 
+  function handleDownloadFromServer() {
+    const jobs: AsyncJobNew<BulkDownloadJob>[] = [
+      {
+        type: 'BulkDownload',
+        title: `Download Records`,
+        meta: {
+          fields: fields.map((field) => field.accessor),
+          records: records,
+          nextRecordsUrl,
+        },
+      },
+    ];
+    fromJetstreamEvents.emit({ type: 'newJob', payload: jobs });
+  }
+
   return (
     <div className="slds-is-relative">
       <QueryDownloadModal
@@ -200,7 +218,9 @@ export const QueryResults: FunctionComponent<QueryResultsProps> = React.memo(() 
         fields={fields}
         records={records}
         selectedRecords={selectedRows}
+        totalRecordCount={totalRecordCount}
         onModalClose={() => setDownloadModalOpen(false)}
+        onDownloadFromServer={handleDownloadFromServer}
       />
       <Toolbar>
         <ToolbarItemGroup>
@@ -297,7 +317,7 @@ export const QueryResults: FunctionComponent<QueryResultsProps> = React.memo(() 
             <Fragment>
               <div className="slds-grid slds-p-around_xx-small">
                 <div className="slds-col">
-                  Showing {records.length} of {totalRecordCount} records
+                  Showing {numeral(records.length).format('0,0')} of {numeral(totalRecordCount).format('0,0')} records
                 </div>
               </div>
               <TableSortableResizable

@@ -47,3 +47,17 @@ export async function query(req: Request, res: Response, next: NextFunction) {
     next(new UserFacingError(ex.message));
   }
 }
+
+export async function queryMore(req: Request, res: Response, next: NextFunction) {
+  try {
+    const isTooling = req.query.isTooling === 'true';
+    const nextRecordsUrl = req.query.nextRecordsUrl as string;
+    const conn: jsforce.Connection = res.locals.jsforceConn;
+
+    const response = await queryService.queryMoreRecords(conn, nextRecordsUrl, isTooling);
+
+    sendJson(res, response);
+  } catch (ex) {
+    next(new UserFacingError(ex.message));
+  }
+}

@@ -19,6 +19,7 @@ routes.delete('/orgs/:uniqueId', orgsController.deleteOrg);
 routes.get('/describe', ensureOrgExists, sfQueryController.describe);
 routes.get('/describe/:sobject', ensureOrgExists, sfQueryController.describeSObject);
 routes.post('/query', ensureOrgExists, sfQueryController.query);
+routes.get('/query-more', ensureOrgExists, sfQueryController.queryMore);
 
 routes.post('/record/:operation/:sobject', ensureOrgExists, sfMiscController.recordOperation);
 

@@ -7,6 +7,7 @@ import EmptyState from '../illustrations/EmptyState';
 import AutoFullHeightContainer from '../layout/AutoFullHeightContainer';
 import List from '../list/List';
 import Spinner from '../widgets/Spinner';
+import numeral from 'numeral';
 
 export interface SobjectListProps {
   sobjects: DescribeGlobalSObjectResult[];
@@ -64,7 +65,7 @@ export const SobjectList: FunctionComponent<SobjectListProps> = ({
             <div className="slds-p-bottom--xx-small">
               <SearchInput id="object-filter" placeholder="Filter Objects" onChange={setSearchTerm} />
               <div className="slds-text-body_small slds-text-color_weak slds-p-left--xx-small">
-                Showing {filteredSobjects.length} of {sobjects.length} objects
+                Showing {numeral(filteredSobjects.length).format('0,0')} of {numeral(sobjects.length).format('0,0')} objects
               </div>
             </div>
             <AutoFullHeightContainer>

@@ -41,7 +41,7 @@ export function populateFromMapOf<T>(mapOf: MapOf<T>, items: string[]): T[] {
   return items.map((item) => mapOf[item]).filter((item) => !!item);
 }
 
-export function flattenRecords(records: Record[], fields: string[]) {
+export function flattenRecords(records: Record[], fields: string[]): MapOf<string>[] {
   return records.map((record) => {
     return fields.reduce((obj, field) => {
       const value = lodashGet(record, field);
