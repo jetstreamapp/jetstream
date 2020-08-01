@@ -7,21 +7,22 @@ import { logger } from '@jetstream/shared/client-logger';
 import { query } from '@jetstream/shared/data';
 import { useObservable } from '@jetstream/shared/ui-utils';
 import { getIdFromRecordUrl, pluralizeIfMultiple } from '@jetstream/shared/utils';
-import { AsyncJob, AsyncJobNew, MapOf, QueryFieldHeader, Record, SalesforceOrgUi, BulkDownloadJob } from '@jetstream/types';
+import { AsyncJob, AsyncJobNew, BulkDownloadJob, MapOf, QueryFieldHeader, Record, SalesforceOrgUi } from '@jetstream/types';
 import {
   AutoFullHeightContainer,
   EmptyState,
   Icon,
   Spinner,
-  TableSortableResizable,
   Toolbar,
   ToolbarItemActions,
   ToolbarItemGroup,
   useConfirmation,
 } from '@jetstream/ui';
 import classNames from 'classnames';
-import React, { Fragment, FunctionComponent, useEffect, useState } from 'react';
+import numeral from 'numeral';
+import React, { Fragment, FunctionComponent, useEffect, useMemo, useState } from 'react';
 import { Link, NavLink, useLocation } from 'react-router-dom';
+import { Column } from 'react-table';
 import { useRecoilState, useRecoilValue } from 'recoil';
 import { filter } from 'rxjs/operators';
 import { getFlattenedFields } from 'soql-parser-js';
@@ -29,8 +30,9 @@ import { applicationCookieState, selectedOrgState } from '../../app-state';
 import * as fromJetstreamEvents from '../core/jetstream-events';
 import QueryDownloadModal from './QueryDownloadModal';
 import QueryResultsSoqlPanel from './QueryResultsSoqlPanel';
+import { getQueryResultsCellContents } from './QueryResultsTable/query-results-table-utils';
+import QueryResultsTable from './QueryResultsTable/QueryResultsTable';
 import QueryResultsViewRecordFields from './QueryResultsViewRecordFields';
-import numeral from 'numeral';
 
 // eslint-disable-next-line @typescript-eslint/no-empty-interface
 export interface QueryResultsProps {}
@@ -56,6 +58,30 @@ export const QueryResults: FunctionComponent<QueryResultsProps> = React.memo(() 
     fromJetstreamEvents.getObservable('jobFinished').pipe(filter((ev: AsyncJob) => ev.type === 'BulkDelete'))
   );
   const confirm = useConfirmation();
+
+  const memoizedFields: Column<any>[] = useMemo<any>(
+    () =>
+      fields
+        ? fields.map((field) => {
+            const column: Column = {
+              accessor: field.accessor,
+              minWidth: 25,
+              Header: () => (
+                <div className="slds-truncate" title={field.title}>
+                  <div>{field.accessor}</div>
+                  {field.label !== field.accessor && <div>{field.label}</div>}
+                </div>
+              ),
+              Cell: ({ value }) => {
+                return getQueryResultsCellContents(field, serverUrl, selectedOrg, value);
+              },
+            };
+            return column;
+          })
+        : undefined,
+    [fields, selectedOrg, serverUrl]
+  );
+  const memoizedRecords: Record[] = useMemo(() => (records ? [...records] : undefined), [records]);
 
   useEffect(() => {
     if (bulkDeleteJob && executeQuery) {
@@ -126,11 +152,6 @@ export const QueryResults: FunctionComponent<QueryResultsProps> = React.memo(() 
       });
 
       setFields(flattenedFields);
-
-      // TODO: we need a fallback here in case there are no parsed results
-      // setFields(getFlattenedFields(results.parsedQuery));
-      // TODO: do we need to flatten all of our records?
-      // TODO: we should use the columns in combination with our parsed query and ensure the order is good
       setRecords(results.queryResults.records);
       setTotalRecordCount(results.queryResults.totalSize);
       setErrorMessage(null);
@@ -320,14 +341,7 @@ export const QueryResults: FunctionComponent<QueryResultsProps> = React.memo(() 
                   Showing {numeral(records.length).format('0,0')} of {numeral(totalRecordCount).format('0,0')} records
                 </div>
               </div>
-              <TableSortableResizable
-                data={records}
-                headers={fields}
-                serverUrl={serverUrl}
-                org={selectedOrg}
-                onRowSelection={setSelectedRows}
-                onRowAction={handleRowAction}
-              />
+              <QueryResultsTable columns={memoizedFields} data={memoizedRecords} onRowSelection={setSelectedRows} />
             </Fragment>
           )}
         </AutoFullHeightContainer>

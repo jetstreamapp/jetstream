@@ -1,4 +1,13 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
+
+/**
+ *
+ *
+ * [DEPRECATED]
+ *
+ *
+ */
+
 /** @jsx jsx */
 import { jsx } from '@emotion/core';
 import { QueryFieldHeader, SalesforceOrgUi } from '@jetstream/types';

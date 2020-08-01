@@ -1,5 +1,14 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 /** @jsx jsx */
+
+/**
+ *
+ *
+ * [DEPRECATED]
+ *
+ *
+ */
+
 import { jsx } from '@emotion/core';
 import { QueryFieldHeader, SalesforceOrgUi } from '@jetstream/types';
 import { Fragment, FunctionComponent, memo, useMemo } from 'react';
