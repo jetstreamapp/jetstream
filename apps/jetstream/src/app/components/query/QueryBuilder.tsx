@@ -49,6 +49,7 @@ export const QueryBuilder: FunctionComponent<QueryBuilderProps> = () => {
   const resetQuerySoqlState = useResetRecoilState(fromQueryState.querySoqlState);
   // FIXME: this is a hack and should not be here
   const [showRightHandPane, setShowRightHandPane] = useState(!!selectedSObject);
+  const [priorSelectedSObject, setPriorSelectedSObject] = useState(selectedSObject);
 
   const [queryWorker] = useState(() => new QueryWorker());
 
@@ -82,8 +83,10 @@ export const QueryBuilder: FunctionComponent<QueryBuilderProps> = () => {
   }, [selectedSObject, queryFieldsMap, selectedFields]);
 
   useEffect(() => {
-    if (selectedSObject) {
-      // TODO: these resets are not working for most items (also reset in a parent component)
+    if (!priorSelectedSObject && selectedSObject) {
+      setPriorSelectedSObject(priorSelectedSObject);
+    } else if (selectedSObject && selectedSObject.name !== priorSelectedSObject.name) {
+      setPriorSelectedSObject(priorSelectedSObject);
       resetQueryFiltersState();
       resetQueryLimit();
       resetQueryLimitSkip();
