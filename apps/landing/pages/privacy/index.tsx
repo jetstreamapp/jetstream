@@ -1,6 +1,6 @@
 import React, { Fragment } from 'react';
-import Footer from '../components/Footer';
-import Logo from '../components/Logo';
+import Footer from '../../components/Footer';
+import Logo from '../../components/Logo';
 
 function Privacy() {
   const email = 'support@getjetstream.app';

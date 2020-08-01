@@ -5,7 +5,6 @@ import CallToAction from '../components/CallToAction';
 import Footer from '../components/Footer';
 import NavBar from '../components/NavBar';
 import favicon from '../assets/images/favicon.ico';
-import './index.scss';
 
 export const Index = () => {
   return (

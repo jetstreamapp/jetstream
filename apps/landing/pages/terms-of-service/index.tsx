@@ -1,8 +1,8 @@
 import React, { Fragment } from 'react';
-import Footer from '../components/Footer';
-import Logo from '../components/Logo';
+import Footer from '../../components/Footer';
+import Logo from '../../components/Logo';
 
-function Privacy() {
+function TermsOfService() {
   const email = 'support@getjetstream.app';
   return (
     <Fragment>
@@ -225,4 +225,4 @@ function Privacy() {
   );
 }
 
-export default Privacy;
+export default TermsOfService;
