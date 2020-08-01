@@ -3,6 +3,7 @@ import classNames from 'classnames';
 import { signUpNotify } from '@jetstream/shared/data';
 import { REGEX } from '@jetstream/shared/utils';
 import { logger } from '@jetstream/shared/client-logger';
+import '../pages/index.scss';
 
 type Submission = 'notSubmitted' | 'inProgress' | 'success' | 'error';
 
@@ -66,7 +67,7 @@ export const NotifyMe = () => {
       )}
       <p className="mt-3 text-sm leading-5 text-gray-500">
         We care about the protection of your data. Read our{' '}
-        <a href="#" className="font-medium text-gray-900 underline">
+        <a href="/privacy" className="font-medium text-gray-900 underline">
           Privacy Policy
         </a>
         .

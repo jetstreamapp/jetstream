@@ -3,9 +3,9 @@ import homeImage from '../assets/images/jetstream-homepage-image.png';
 import Head from 'next/head';
 import CallToAction from '../components/CallToAction';
 import Footer from '../components/Footer';
-import './index.scss';
 import NavBar from '../components/NavBar';
 import favicon from '../assets/images/favicon.ico';
+import './index.scss';
 
 export const Index = () => {
   return (
@@ -38,7 +38,7 @@ export const Index = () => {
         </div>
       </div>
 
-      <Footer />
+      <Footer currPage="home" />
     </div>
   );
 };

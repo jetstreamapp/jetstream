@@ -4,3 +4,16 @@
 
 @import 'tailwindcss/components';
 @import 'tailwindcss/utilities';
+
+h1 {
+  @apply text-2xl;
+  @apply my-2;
+}
+h2 {
+  @apply text-xl;
+  @apply my-2;
+}
+h3 {
+  @apply text-lg;
+  @apply my-2;
+}
