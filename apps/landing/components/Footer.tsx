@@ -1,4 +1,5 @@
 import React from 'react';
+import Link from 'next/link';
 
 interface FooterProps {
   currPage: 'home' | 'about' | 'tos' | 'privacy';
@@ -8,9 +9,10 @@ function getLink(path: string, label: string, isActive: boolean) {
   return (
     <div className="px-5 py-2">
       {!isActive && (
-        <a href={path} className="text-base leading-6 text-gray-500 hover:text-gray-900">
-          {label}
-        </a>
+        <Link href={path}>
+          {/* eslint-disable-next-line jsx-a11y/anchor-is-valid */}
+          <a className="text-base leading-6 text-gray-500 hover:text-gray-900">{label}</a>
+        </Link>
       )}
       {isActive && <span className="text-base leading-6 text-gray-900">{label}</span>}
     </div>

@@ -3,7 +3,7 @@ import classNames from 'classnames';
 import { signUpNotify } from '@jetstream/shared/data';
 import { REGEX } from '@jetstream/shared/utils';
 import { logger } from '@jetstream/shared/client-logger';
-import '../pages/index.scss';
+import Link from 'next/link';
 
 type Submission = 'notSubmitted' | 'inProgress' | 'success' | 'error';
 
@@ -67,9 +67,10 @@ export const NotifyMe = () => {
       )}
       <p className="mt-3 text-sm leading-5 text-gray-500">
         We care about the protection of your data. Read our{' '}
-        <a href="/privacy" className="font-medium text-gray-900 underline">
-          Privacy Policy
-        </a>
+        <Link href="/privacy">
+          {/* eslint-disable-next-line jsx-a11y/anchor-is-valid */}
+          <a className="font-medium text-gray-900 underline">Privacy Policy</a>
+        </Link>
         .
       </p>
     </div>
