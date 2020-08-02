@@ -6,8 +6,8 @@ import { SobjectFieldList } from '@jetstream/ui';
 import { sortQueryFieldsStr, fetchFields, getFieldKey } from '@jetstream/shared/ui-utils';
 import { AutoFullHeightContainer } from '@jetstream/ui';
 import { useRecoilValue, useRecoilState } from 'recoil';
-import { selectedOrgState } from '../../app-state';
-import * as fromQueryState from './query.state';
+import { selectedOrgState } from '../../../app-state';
+import * as fromQueryState from '../query.state';
 import { isEmpty } from 'lodash';
 import { logger } from '@jetstream/shared/client-logger';
 

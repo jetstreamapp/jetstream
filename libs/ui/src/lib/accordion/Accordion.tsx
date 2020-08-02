@@ -4,10 +4,11 @@ import { jsx } from '@emotion/core';
 import classNames from 'classnames';
 import { FunctionComponent, useState } from 'react';
 import Icon from '../widgets/Icon';
+import { UiSection } from '@jetstream/types';
 
 export interface AccordionProps {
   initOpenIds: string[];
-  sections: { id: string; title: string; content: React.ReactNode; disabled?: boolean }[];
+  sections: UiSection[];
   allowMultiple?: boolean;
 }
 

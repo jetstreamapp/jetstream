@@ -47,6 +47,7 @@ export * from './lib/sobject-field-list/SobjectFieldListType';
 export * from './lib/sobject-list/SobjectList';
 export * from './lib/table/TableBase';
 export * from './lib/table/TableSortableResizable';
+export * from './lib/tabs/Tabs';
 export * from './lib/toast/Toast';
 export * from './lib/toolbar/Toolbar';
 export * from './lib/toolbar/ToolbarItemActions';

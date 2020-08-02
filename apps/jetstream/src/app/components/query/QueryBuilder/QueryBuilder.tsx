@@ -12,22 +12,23 @@ import {
   PageHeaderActions,
   PageHeaderRow,
   PageHeaderTitle,
+  Tabs,
 } from '@jetstream/ui';
 import classNames from 'classnames';
 import { Fragment, FunctionComponent, useEffect, useState } from 'react';
 import { Link, useRouteMatch } from 'react-router-dom';
 import Split from 'react-split';
 import { useRecoilState, useRecoilValue, useResetRecoilState } from 'recoil';
-import QueryWorker from '../../workers/query.worker';
-import * as fromQueryState from './query.state';
+import QueryWorker from '../../../workers/query.worker';
+import * as fromQueryState from '../query.state';
 import QueryBuilderSoqlUpdater from './QueryBuilderSoqlUpdater';
 import QueryFieldsComponent from './QueryFields';
-import QueryFilter from './QueryOptions/QueryFilter';
-import QueryLimit from './QueryOptions/QueryLimit';
-import QueryOrderBy from './QueryOptions/QueryOrderBy';
-import SoqlTextarea from './QueryOptions/SoqlTextarea';
+import QueryFilter from '../QueryOptions/QueryFilter';
+import QueryLimit from '../QueryOptions/QueryLimit';
+import QueryOrderBy from '../QueryOptions/QueryOrderBy';
+import SoqlTextarea from '../QueryOptions/SoqlTextarea';
 import QuerySObjects from './QuerySObjects';
-import QueryResetButton from './QueryOptions/QueryResetButton';
+import QueryResetButton from '../QueryOptions/QueryResetButton';
 
 // eslint-disable-next-line @typescript-eslint/no-empty-interface
 export interface QueryBuilderProps {}
@@ -174,10 +175,47 @@ export const QueryBuilder: FunctionComponent<QueryBuilderProps> = () => {
             </div>
             <div className="slds-p-horizontal_x-small">
               {selectedSObject && (
-                <Fragment>
-                  <h2 className="slds-text-heading_medium slds-text-align_center slds-truncate">{selectedSObject?.name} Fields</h2>
-                  <QueryFieldsComponent selectedSObject={selectedSObject} onSelectionChanged={setSelectedFields} />
-                </Fragment>
+                <Tabs
+                  tabs={[
+                    {
+                      id: 'BaseFields',
+                      titleClassName: 'slds-size_1-of-2',
+                      title: (
+                        <Fragment>
+                          <span className="slds-tabs__left-icon">
+                            <Icon
+                              type="standard"
+                              icon="record"
+                              containerClassname="slds-icon_container slds-icon-standard-record"
+                              className="slds-icon slds-icon_small"
+                            />
+                          </span>
+                          {selectedSObject?.name} Fields
+                        </Fragment>
+                      ),
+                      content: <QueryFieldsComponent selectedSObject={selectedSObject} onSelectionChanged={setSelectedFields} />,
+                    }, // record
+                    {
+                      id: 'RelatedLists',
+                      titleClassName: 'slds-size_1-of-2',
+                      title: (
+                        <Fragment>
+                          <span className="slds-tabs__left-icon">
+                            <Icon
+                              type="standard"
+                              icon="related_list"
+                              containerClassname="slds-icon_container slds-icon-standard-related-list"
+                              className="slds-icon slds-icon_small"
+                            />
+                          </span>
+                          Related Objects (Subquery)
+                        </Fragment>
+                      ),
+                      titleText: 'Related Objects (Subquery)',
+                      content: 'TODO',
+                    },
+                  ]}
+                />
               )}
             </div>
             <div className="slds-p-horizontal_x-small">

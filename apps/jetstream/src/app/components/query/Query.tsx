@@ -3,8 +3,8 @@ import React, { Fragment, FunctionComponent, useState, useEffect } from 'react';
 import { Redirect, Route, Switch, useLocation, useRouteMatch } from 'react-router-dom';
 import { useRecoilValue, useResetRecoilState } from 'recoil';
 import { selectedOrgState } from '../../app-state';
-import QueryBuilder from './QueryBuilder';
-import QueryResults from './QueryResults';
+import QueryBuilder from './QueryBuilder/QueryBuilder';
+import QueryResults from './QueryResults/QueryResults';
 import * as fromQueryState from './query.state';
 
 // eslint-disable-next-line @typescript-eslint/no-empty-interface

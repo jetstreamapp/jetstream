@@ -7,8 +7,8 @@ import { WorkerMessage } from '@jetstream/types';
 import { Fragment, FunctionComponent, useEffect, useState } from 'react';
 import { useRecoilState, useRecoilValue } from 'recoil';
 import { Query } from 'soql-parser-js';
-import QueryWorker from '../../workers/query.worker';
-import * as fromQueryState from './query.state';
+import QueryWorker from '../../../workers/query.worker';
+import * as fromQueryState from '../query.state';
 
 /**
  * This component ensures that the entire state tree is not re-rendered each time some query element needs to be modified

@@ -6,8 +6,8 @@ import { SobjectList } from '@jetstream/ui';
 import { DescribeGlobalSObjectResult } from 'jsforce';
 import React, { Fragment, FunctionComponent, useEffect, useState } from 'react';
 import { useRecoilState, useRecoilValue } from 'recoil';
-import { selectedOrgState } from '../../app-state';
-import * as fromQueryState from './query.state';
+import { selectedOrgState } from '../../../app-state';
+import * as fromQueryState from '../query.state';
 
 // eslint-disable-next-line @typescript-eslint/no-empty-interface
 export interface QueryFieldsProps {}

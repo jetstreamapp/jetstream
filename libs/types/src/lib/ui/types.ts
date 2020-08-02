@@ -48,6 +48,20 @@ export interface FieldWrapper {
   relationshipKey?: string;
 }
 
+// Tabs / Accordion / etc..
+export interface UiSection {
+  id: string;
+  title: string;
+  titleClassName?: string;
+  content: React.ReactNode;
+  disabled?: boolean;
+}
+
+export interface UiTabSection extends Omit<UiSection, 'title' | 'disabled'> {
+  title: React.ReactNode;
+  titleText?: string; // use if title is not a string
+}
+
 // Generic size types
 export type SizeSmMdLg = SizeSm | SizeMd | SizeLg;
 export type SizeSmMdLgXl = SizeSmMdLg | SizeXl;
