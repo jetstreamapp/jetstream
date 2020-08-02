@@ -2,10 +2,17 @@ import isBoolean from 'lodash/isBoolean';
 import isObjectLike from 'lodash/isObjectLike';
 import uniqueId from 'lodash/uniqueId';
 import React, { ReactNode } from 'react';
-import { Icon, Checkbox, SalesforceLogin } from '@jetstream/ui';
+import { Checkbox, SalesforceLogin } from '@jetstream/ui';
 import { QueryFieldHeader, SalesforceOrgUi } from '@jetstream/types';
 
-export function getQueryResultsCellContents(field: QueryFieldHeader, serverUrl: string, org: SalesforceOrgUi, value: unknown) {
+export function getQueryResultsCellContents(
+  field: QueryFieldHeader,
+  serverUrl: string,
+  org: SalesforceOrgUi,
+  value: unknown,
+  complexDataRenderer?: (field: QueryFieldHeader, serverUrl: string, org: SalesforceOrgUi, value: unknown) => ReactNode
+  // onViewData?: (field: QueryFieldHeader, value: unknown) => void
+) {
   let type: 'other' | 'object' | 'boolean' | 'id' = 'other';
   if (isObjectLike(value)) {
     type = 'object';
@@ -18,21 +25,22 @@ export function getQueryResultsCellContents(field: QueryFieldHeader, serverUrl: 
   let content: ReactNode;
   switch (type) {
     case 'object':
-      content = (
-        <div>
-          <button className="slds-button">
-            <Icon type="utility" icon="search" className="slds-button__icon slds-button__icon_left" omitContainer />
-            View Data
-          </button>
-        </div>
-      );
+      if (complexDataRenderer) {
+        content = complexDataRenderer(field, serverUrl, org, value);
+      } else {
+        try {
+          content = JSON.stringify(value);
+        } catch (ex) {
+          content = '<unable to show contents>';
+        }
+      }
       break;
     case 'boolean':
       content = <Checkbox id={uniqueId(field.accessor)} checked={value as boolean} label="value" hideLabel readOnly />;
       break;
     case 'id':
       content = (
-        <div className="slds-truncate" title={`${value}`}>
+        <div className="slds-line-clamp_medium" title={`${value}`}>
           <SalesforceLogin serverUrl={serverUrl} org={org} returnUrl={`/${value}`} omitIcon>
             {value}
           </SalesforceLogin>
@@ -41,7 +49,7 @@ export function getQueryResultsCellContents(field: QueryFieldHeader, serverUrl: 
       break;
     default:
       content = (
-        <div className="slds-truncate" title={`${value}`}>
+        <div className="slds-line-clamp_medium" title={`${value}`}>
           {value}
         </div>
       );

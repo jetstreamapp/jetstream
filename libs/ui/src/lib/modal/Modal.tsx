@@ -2,6 +2,7 @@ import React, { Fragment, FunctionComponent } from 'react';
 import Icon from '../widgets/Icon';
 import { SizeSmMdLg } from '@jetstream/types';
 import classNames from 'classnames';
+import { useHotkeys } from 'react-hotkeys-hook';
 
 /* eslint-disable-next-line */
 export interface ModalProps {
@@ -39,6 +40,7 @@ export const Modal: FunctionComponent<ModalProps> = ({
   children,
   onClose,
 }) => {
+  useHotkeys('esc', () => onClose());
   return (
     <Fragment>
       <section

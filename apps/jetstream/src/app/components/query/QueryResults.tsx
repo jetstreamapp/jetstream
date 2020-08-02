@@ -17,6 +17,7 @@ import {
   ToolbarItemActions,
   ToolbarItemGroup,
   useConfirmation,
+  DataTable,
 } from '@jetstream/ui';
 import classNames from 'classnames';
 import numeral from 'numeral';
@@ -33,6 +34,7 @@ import QueryResultsSoqlPanel from './QueryResultsSoqlPanel';
 import { getQueryResultsCellContents } from './QueryResultsTable/query-results-table-utils';
 import QueryResultsTable from './QueryResultsTable/QueryResultsTable';
 import QueryResultsViewRecordFields from './QueryResultsViewRecordFields';
+import QueryResultsViewCellModal from './QueryResultsTable/QueryResultsViewCellModal';
 
 // eslint-disable-next-line @typescript-eslint/no-empty-interface
 export interface QueryResultsProps {}
@@ -73,7 +75,9 @@ export const QueryResults: FunctionComponent<QueryResultsProps> = React.memo(() 
                 </div>
               ),
               Cell: ({ value }) => {
-                return getQueryResultsCellContents(field, serverUrl, selectedOrg, value);
+                return getQueryResultsCellContents(field, serverUrl, selectedOrg, value, (field, serverUrl, org, value) => {
+                  return <QueryResultsViewCellModal field={field} serverUrl={serverUrl} org={org} value={value} />;
+                });
               },
             };
             return column;
@@ -99,6 +103,10 @@ export const QueryResults: FunctionComponent<QueryResultsProps> = React.memo(() 
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [location]);
+
+  function handleViewData(field: QueryFieldHeader, value: unknown) {
+    //
+  }
 
   async function executeQuery(soql: string) {
     try {
@@ -342,7 +350,7 @@ export const QueryResults: FunctionComponent<QueryResultsProps> = React.memo(() 
                   Showing {numeral(records.length).format('0,0')} of {numeral(totalRecordCount).format('0,0')} records
                 </div>
               </div>
-              <QueryResultsTable columns={memoizedFields} data={memoizedRecords} onRowSelection={setSelectedRows} />
+              <DataTable columns={memoizedFields} data={memoizedRecords} allowRowSelection={true} onRowSelection={setSelectedRows} />
             </Fragment>
           )}
         </AutoFullHeightContainer>

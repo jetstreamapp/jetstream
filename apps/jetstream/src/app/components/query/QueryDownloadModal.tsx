@@ -75,7 +75,6 @@ export const QueryDownloadModal: FunctionComponent<QueryDownloadModalProps> = ({
           onClose={() => onModalClose()}
         >
           <div>
-            {selectedRecords?.length > 0 && true}
             <RadioGroup label="Which Records" required>
               {totalRecordCount && totalRecordCount > records.length && (
                 <Fragment>
