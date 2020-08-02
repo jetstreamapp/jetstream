@@ -104,8 +104,8 @@ export const QueryResults: FunctionComponent<QueryResultsProps> = React.memo(() 
     try {
       setLoading(true);
       setSoql(soql);
-      setFields(null);
       setRecords(null);
+      setFields(null);
       const results = await query(selectedOrg, soql);
       setNextRecordsUrl(results.queryResults.nextRecordsUrl);
 
@@ -164,34 +164,35 @@ export const QueryResults: FunctionComponent<QueryResultsProps> = React.memo(() 
     }
   }
 
-  function handleRowAction(id: string, row: Record) {
-    logger.log({ id, row });
-    const recordId = row.Id || getIdFromRecordUrl(row.attributes.url);
-    switch (id) {
-      case 'view-record':
-        setRecordDetailSelectedRow(row);
-        setSoqlPanelOpen(false);
-        setRecordDetailPanelOpen(true);
-        break;
-      case 'delete record': {
-        confirm({
-          content: `Are you sure you want to delete record ${recordId}`,
-        }).then(() => {
-          const jobs: AsyncJobNew[] = [
-            {
-              type: 'BulkDelete',
-              title: `Delete Record ${recordId}`,
-              meta: row,
-            },
-          ];
-          fromJetstreamEvents.emit({ type: 'newJob', payload: jobs });
-        });
-        break;
-      }
-      default:
-        break;
-    }
-  }
+  // Deprecated for now - this is worked and can be uncommented when we decide on specific row actions
+  // function handleRowAction(id: string, row: Record) {
+  //   logger.log({ id, row });
+  //   const recordId = row.Id || getIdFromRecordUrl(row.attributes.url);
+  //   switch (id) {
+  //     case 'view-record':
+  //       setRecordDetailSelectedRow(row);
+  //       setSoqlPanelOpen(false);
+  //       setRecordDetailPanelOpen(true);
+  //       break;
+  //     case 'delete record': {
+  //       confirm({
+  //         content: `Are you sure you want to delete record ${recordId}`,
+  //       }).then(() => {
+  //         const jobs: AsyncJobNew[] = [
+  //           {
+  //             type: 'BulkDelete',
+  //             title: `Delete Record ${recordId}`,
+  //             meta: row,
+  //           },
+  //         ];
+  //         fromJetstreamEvents.emit({ type: 'newJob', payload: jobs });
+  //       });
+  //       break;
+  //     }
+  //     default:
+  //       break;
+  //   }
+  // }
 
   function handleBulkRowAction(id: string, rows: Record[]) {
     logger.log({ id, rows });
