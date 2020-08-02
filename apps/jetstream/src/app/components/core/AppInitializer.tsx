@@ -32,7 +32,7 @@ export const AppInitializer: FunctionComponent<AppInitializerProps> = ({ onUserP
   const [orgs, setOrgs] = useRecoilState(fromAppState.salesforceOrgsState);
   const invalidOrg = useObservable(orgConnectionError$);
   // this ensures rollbar is configured and has user profile information
-  const rollbar = useRollbar(environment.rollbarClientAccessToken, environment.production ? 'production' : 'development', userProfile);
+  useRollbar(environment.rollbarClientAccessToken, environment.production ? 'production' : 'development', userProfile);
 
   useEffect(() => {
     if (invalidOrg) {

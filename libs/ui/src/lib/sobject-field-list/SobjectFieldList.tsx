@@ -8,9 +8,28 @@ import SearchInput from '../form/search-input/SearchInput';
 import EmptyState from '../illustrations/EmptyState';
 import List from '../list/List';
 import Spinner from '../widgets/Spinner';
-import './SobjectFieldList.scss';
 import SobjectFieldListItem from './SobjectFieldListItem';
 import numeral from 'numeral';
+
+function getBgColor(level: number): string {
+  switch (level) {
+    case 1: {
+      return '#eef1f6';
+    }
+    case 2: {
+      return '#c5d5ea';
+    }
+    case 3: {
+      return '#a9d3ff';
+    }
+    case 4: {
+      return '#96c5f7';
+    }
+    case 5: {
+      return '#758ecd';
+    }
+  }
+}
 
 export interface SobjectFieldListProps {
   level: number;
@@ -105,7 +124,12 @@ export const SobjectFieldList: FunctionComponent<SobjectFieldListProps> = ({
   }
 
   return (
-    <div className={`query-level-${level}`}>
+    <div
+      className={`query-level-${level}`}
+      css={css({
+        backgroundColor: getBgColor(level),
+      })}
+    >
       {queryFields?.loading && (
         <div
           className="slds-is-relative"

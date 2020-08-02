@@ -1,11 +1,11 @@
 /** @jsx jsx */
 import { css, jsx } from '@emotion/core';
 import { Record } from '@jetstream/types';
-import { Icon } from '@jetstream/ui';
 import classNames from 'classnames';
 import uniqueId from 'lodash/uniqueId';
 import { forwardRef, Fragment, FunctionComponent, useEffect, useRef, useState } from 'react';
 import { Column, TableToggleAllRowsSelectedProps, useFlexLayout, useRowSelect, useSortBy, useTable } from 'react-table';
+import Icon from '../widgets/Icon';
 
 const CHECKBOX_COLUMN_ID = 'selection';
 
