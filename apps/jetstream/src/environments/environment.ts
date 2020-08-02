@@ -2,5 +2,6 @@
 // When building for production, this file is replaced with `environment.prod.ts`.
 
 export const environment = {
-  production: false
+  production: false,
+  rollbarClientAccessToken: 'd4b6a70b70444f91bdc22b2818040c7f',
 };

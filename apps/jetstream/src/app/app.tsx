@@ -10,6 +10,8 @@ import HeaderNavbar from './components/core/HeaderNavbar';
 import Feedback from './components/feedback/Feedback';
 import OrgSelectionRequired from './components/orgs/OrgSelectionRequired';
 import Query from './components/query/Query';
+import { ErrorBoundary } from 'react-error-boundary';
+import ErrorBoundaryFallback from './components/core/ErrorBoundaryFallback';
 
 export const App = () => {
   const [userProfile, setUserProfile] = useState<UserProfile>();
@@ -32,19 +34,21 @@ export const App = () => {
                   `}
                 >
                   <Suspense fallback={<div>Loading...</div>}>
-                    <OrgSelectionRequired>
-                      <Switch>
-                        <Route path="/query">
-                          <Query />
-                        </Route>
-                        <Route path="/feedback">
-                          <Feedback />
-                        </Route>
-                        <Route path="*">
-                          <Redirect to="/query" />
-                        </Route>
-                      </Switch>
-                    </OrgSelectionRequired>
+                    <ErrorBoundary FallbackComponent={ErrorBoundaryFallback}>
+                      <OrgSelectionRequired>
+                        <Switch>
+                          <Route path="/query">
+                            <Query />
+                          </Route>
+                          <Route path="/feedback">
+                            <Feedback />
+                          </Route>
+                          <Route path="*">
+                            <Redirect to="/query" />
+                          </Route>
+                        </Switch>
+                      </OrgSelectionRequired>
+                    </ErrorBoundary>
                   </Suspense>
                 </div>
               </div>

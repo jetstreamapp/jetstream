@@ -1,6 +1,10 @@
 import { SalesforceId } from 'jsforce';
 import { SalesforceOrgEdition, SalesforceOrgLocaleKey } from './salesforce/types';
 
+export type Production = 'production';
+export type Development = 'development';
+export type ProductionDevelopment = Production | Development;
+
 export type HttpMethod = 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE';
 export type SobjectOperation = 'retrieve' | 'create' | 'update' | 'upsert' | 'delete';
 

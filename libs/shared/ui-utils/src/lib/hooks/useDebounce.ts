@@ -1,5 +1,4 @@
-import React, { useEffect, useState } from 'react';
-import { Observable } from 'rxjs';
+import { useEffect, useState } from 'react';
 
 // https://usehooks.com/useDebounce/
 export function useDebounce<T>(value: T, delay = 300) {
@@ -24,15 +23,4 @@ export function useDebounce<T>(value: T, delay = 300) {
   );
 
   return debouncedValue;
-}
-
-export function useObservable<T>(observable: Observable<T>) {
-  const [state, setState] = useState<T>();
-
-  useEffect(() => {
-    const sub = observable.subscribe(setState);
-    return () => sub.unsubscribe();
-  }, [observable]);
-
-  return state;
 }

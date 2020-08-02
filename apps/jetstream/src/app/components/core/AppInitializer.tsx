@@ -1,6 +1,6 @@
 import { UserProfile } from '@jetstream/types';
 import React, { Fragment, FunctionComponent, useEffect } from 'react';
-import { useRecoilState } from 'recoil';
+import { useRecoilState, useRecoilValue } from 'recoil';
 import * as fromAppState from '../../app-state';
 import { Subject } from 'rxjs';
 import { Response } from 'superagent';
@@ -9,6 +9,8 @@ import { useObservable } from '@jetstream/shared/ui-utils';
 import { SalesforceOrgUi } from '@jetstream/types';
 import { HTTP } from '@jetstream/shared/constants';
 import { logger } from '@jetstream/shared/client-logger';
+import { useRollbar } from '@jetstream/shared/ui-utils';
+import { environment } from '../../../environments/environment';
 
 const orgConnectionError = new Subject<{ uniqueId: string; connectionError: string }>();
 const orgConnectionError$ = orgConnectionError.asObservable();
@@ -26,9 +28,11 @@ export interface AppInitializerProps {
 export const AppInitializer: FunctionComponent<AppInitializerProps> = ({ onUserProfile, children }) => {
   // FIXME: Cannot update a component (`Batcher`) while rendering a different component (`AppInitializer`)
   // Recoil needs to fix this
-  const [userProfile] = useRecoilState<UserProfile>(fromAppState.userProfileState);
+  const userProfile = useRecoilValue<UserProfile>(fromAppState.userProfileState);
   const [orgs, setOrgs] = useRecoilState(fromAppState.salesforceOrgsState);
   const invalidOrg = useObservable(orgConnectionError$);
+  // this ensures rollbar is configured and has user profile information
+  const rollbar = useRollbar(environment.rollbarClientAccessToken, environment.production ? 'production' : 'development', userProfile);
 
   useEffect(() => {
     if (invalidOrg) {
