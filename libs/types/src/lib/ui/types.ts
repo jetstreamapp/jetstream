@@ -1,6 +1,6 @@
 import { QueryResultsColumn } from '@jetstream/api-interfaces';
 import { MapOf } from '@jetstream/types';
-import { Field } from 'jsforce';
+import { Field, ChildRelationship } from 'jsforce';
 import { ReactNode } from 'react';
 import { FieldDefinition } from '../salesforce/types';
 import { SalesforceOrgUi } from '../types';
@@ -30,6 +30,7 @@ export interface QueryFields {
   filterTerm: string;
   sobject: string;
   fields: MapOf<FieldWrapper>;
+  childRelationships?: ChildRelationship[];
   visibleFields: Set<string>;
   selectedFields: Set<string>;
 }
@@ -52,14 +53,17 @@ export interface FieldWrapper {
 export interface UiSection {
   id: string;
   title: string;
-  titleClassName?: string;
-  content: React.ReactNode;
+  content: React.ReactNode | Function; // => React.ReactNode
   disabled?: boolean;
 }
 
-export interface UiTabSection extends Omit<UiSection, 'title' | 'disabled'> {
+export interface UiTabSection {
+  id: string;
   title: React.ReactNode;
   titleText?: string; // use if title is not a string
+  titleClassName?: string;
+  content: React.ReactNode;
+  disabled?: boolean;
 }
 
 // Generic size types

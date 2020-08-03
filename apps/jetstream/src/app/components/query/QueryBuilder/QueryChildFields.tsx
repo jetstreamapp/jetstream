@@ -4,81 +4,96 @@ import { FieldWrapper, MapOf, QueryFields, SalesforceOrgUi } from '@jetstream/ty
 import { AutoFullHeightContainer, SobjectFieldList } from '@jetstream/ui';
 import { isEmpty } from 'lodash';
 import React, { Fragment, FunctionComponent, useEffect, useState } from 'react';
-import { useRecoilState, useRecoilValue, useSetRecoilState } from 'recoil';
+import { useRecoilState, useRecoilValue } from 'recoil';
 import { selectedOrgState } from '../../../app-state';
 import * as fromQueryState from '../query.state';
 
-// separator used on key of suquery fields - this are omitted from field selection
+// separator used on key of suquery fields - only fields with this key are included
 const CHILD_FIELD_SEPARATOR = `~`;
 
-export interface QueryFieldsProps {
+export interface QueryChildFieldsProps {
   selectedSObject: string;
+  parentRelationshipName: string;
   onSelectionChanged: (fields: string[]) => void;
   // onFieldsFetched: (queryFields: MapOf<QueryFields>) => void;
 }
 
-function getQueryFieldKey(selectedOrg: SalesforceOrgUi, selectedSObject: string) {
-  return `${selectedOrg?.uniqueId}-${selectedSObject}`;
+// TODO: use this same pattern with QueryFields.tsx
+function getBaseKey(selectedSObject: string, parentRelationshipName: string) {
+  return `${selectedSObject}~${parentRelationshipName}|`;
 }
 
-export const QueryFieldsComponent: FunctionComponent<QueryFieldsProps> = ({ selectedSObject, onSelectionChanged }) => {
-  // const [queryFieldsMap, setQueryFieldsMap] = useState<MapOf<QueryFields>>({});
+// TODO: what does this do/mean for a subquery???? isn't this just to know if results belong to same selection?
+function getQueryFieldKey(selectedOrg: SalesforceOrgUi, selectedSObject: string, parentRelationshipName: string) {
+  return `${selectedOrg?.uniqueId}-${selectedSObject}-${parentRelationshipName}`;
+}
+
+export const QueryChildFieldsComponent: FunctionComponent<QueryChildFieldsProps> = ({
+  selectedSObject,
+  parentRelationshipName,
+  onSelectionChanged,
+}) => {
+  // TODO: this is global - the parent can clear, but we cannot!
+  // we can add to this as long as our keys are unique
   const [queryFieldsMap, setQueryFieldsMap] = useRecoilState(fromQueryState.queryFieldsMapState);
+  // TODO: WTF is this? and how will it destroy me?
   const [queryFieldsKey, setQueryFieldsKey] = useRecoilState(fromQueryState.queryFieldsKey);
-  const setChildRelationships = useSetRecoilState(fromQueryState.queryChildRelationships);
-  const [baseKey, setBaseKey] = useState<string>(`${selectedSObject}|`);
+  const [baseKey, setBaseKey] = useState<string>(getBaseKey(selectedSObject, parentRelationshipName));
   const selectedOrg = useRecoilValue(selectedOrgState);
 
   // Fetch fields for base object if the selected object changes
   useEffect(() => {
-    const fieldKey = getQueryFieldKey(selectedOrg, selectedSObject);
-    if (isEmpty(queryFieldsMap) || fieldKey !== queryFieldsKey) {
-      // init query fields when object changes
-      let tempQueryFieldsMap: MapOf<QueryFields> = {};
+    const BASE_KEY = getBaseKey(selectedSObject, parentRelationshipName);
+    // TODO: do I need this? do we use this for subquery? how do we handle results after obj changed?
+    const fieldKey = getQueryFieldKey(selectedOrg, selectedSObject, parentRelationshipName);
+
+    let baseQueryFieldsMap: QueryFields = queryFieldsMap[BASE_KEY];
+
+    if (isEmpty(baseQueryFieldsMap)) {
+      setBaseKey(BASE_KEY);
+      // clone so we can mutate
+      let tempQueryFieldsMap = { ...queryFieldsMap };
+      // clone so we can mutate
+      baseQueryFieldsMap = { ...baseQueryFieldsMap };
+      baseQueryFieldsMap = {
+        key: BASE_KEY,
+        expanded: true,
+        loading: true,
+        hasError: false,
+        filterTerm: '',
+        sobject: selectedSObject,
+        fields: {},
+        visibleFields: new Set(),
+        selectedFields: new Set(),
+      };
+      // set to loading state while base fields are fetched
+      tempQueryFieldsMap[BASE_KEY] = baseQueryFieldsMap;
       setQueryFieldsMap(tempQueryFieldsMap);
-      if (selectedSObject) {
-        const BASE_KEY = `${selectedSObject}|`;
-        setBaseKey(BASE_KEY);
-        tempQueryFieldsMap = { ...tempQueryFieldsMap };
-        tempQueryFieldsMap[BASE_KEY] = {
-          key: BASE_KEY,
-          expanded: true,
-          loading: true,
-          hasError: false,
-          filterTerm: '',
-          sobject: selectedSObject,
-          fields: {},
-          visibleFields: new Set(),
-          selectedFields: new Set(),
-        };
-        setChildRelationships([]);
-        setQueryFieldsMap(tempQueryFieldsMap);
-        setQueryFieldsKey(getQueryFieldKey(selectedOrg, selectedSObject));
-        (async () => {
-          tempQueryFieldsMap = { ...tempQueryFieldsMap };
-          try {
-            tempQueryFieldsMap[BASE_KEY] = await fetchFields(selectedOrg, tempQueryFieldsMap[BASE_KEY], BASE_KEY);
-            tempQueryFieldsMap[BASE_KEY] = { ...tempQueryFieldsMap[BASE_KEY], loading: false };
-            setChildRelationships(tempQueryFieldsMap[BASE_KEY].childRelationships || []);
-            if (tempQueryFieldsMap[BASE_KEY].fields.Id) {
-              tempQueryFieldsMap[BASE_KEY].selectedFields.add('Id');
-              emitSelectedFieldsChanged(tempQueryFieldsMap);
-            }
-          } catch (ex) {
-            logger.warn('Query SObject error', ex);
-            tempQueryFieldsMap[BASE_KEY] = { ...tempQueryFieldsMap[BASE_KEY], loading: false, hasError: true };
-          } finally {
-            setQueryFieldsMap(tempQueryFieldsMap);
-          }
-        })();
-      }
+      (async () => {
+        tempQueryFieldsMap = { ...queryFieldsMap };
+        baseQueryFieldsMap = { ...baseQueryFieldsMap };
+        try {
+          // fetch fields
+          baseQueryFieldsMap = await fetchFields(selectedOrg, baseQueryFieldsMap, BASE_KEY);
+          // clone and set to loading
+          baseQueryFieldsMap = { ...baseQueryFieldsMap, loading: false };
+          // update object on core state
+          tempQueryFieldsMap[BASE_KEY] = baseQueryFieldsMap;
+        } catch (ex) {
+          logger.warn('[SUBQUERY] Query SObject error', ex);
+          baseQueryFieldsMap = { ...baseQueryFieldsMap, loading: false, hasError: true };
+          tempQueryFieldsMap[BASE_KEY] = baseQueryFieldsMap;
+        } finally {
+          setQueryFieldsMap(tempQueryFieldsMap);
+        }
+      })();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedOrg, selectedSObject]);
 
   function emitSelectedFieldsChanged(fieldsMap: MapOf<QueryFields> = queryFieldsMap) {
     const fields = Object.values(fieldsMap)
-      .filter((queryField) => !queryField.key.includes(CHILD_FIELD_SEPARATOR))
+      .filter((queryField) => queryField.key.includes(CHILD_FIELD_SEPARATOR))
       .flatMap((queryField) => {
         const basePath = queryField.key.replace(/.+\|/, '');
         return sortQueryFieldsStr(Array.from(queryField.selectedFields)).map((fieldKey) => `${basePath}${fieldKey}`);
@@ -203,7 +218,7 @@ export const QueryFieldsComponent: FunctionComponent<QueryFieldsProps> = ({ sele
   return (
     <Fragment>
       {selectedSObject && queryFieldsMap[baseKey] && (
-        <AutoFullHeightContainer>
+        <AutoFullHeightContainer fillHeight={!parentRelationshipName}>
           <SobjectFieldList
             level={0}
             itemKey={baseKey}
@@ -221,4 +236,4 @@ export const QueryFieldsComponent: FunctionComponent<QueryFieldsProps> = ({ sele
   );
 };
 
-export default QueryFieldsComponent;
+export default QueryChildFieldsComponent;

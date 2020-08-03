@@ -6,10 +6,11 @@ import { QueryResultsColumn } from '@jetstream/api-interfaces';
 import { logger } from '@jetstream/shared/client-logger';
 import { query } from '@jetstream/shared/data';
 import { useObservable } from '@jetstream/shared/ui-utils';
-import { getIdFromRecordUrl, pluralizeIfMultiple } from '@jetstream/shared/utils';
+import { pluralizeIfMultiple } from '@jetstream/shared/utils';
 import { AsyncJob, AsyncJobNew, BulkDownloadJob, MapOf, QueryFieldHeader, Record, SalesforceOrgUi } from '@jetstream/types';
 import {
   AutoFullHeightContainer,
+  DataTable,
   EmptyState,
   Icon,
   Spinner,
@@ -17,7 +18,6 @@ import {
   ToolbarItemActions,
   ToolbarItemGroup,
   useConfirmation,
-  DataTable,
 } from '@jetstream/ui';
 import classNames from 'classnames';
 import numeral from 'numeral';
@@ -26,15 +26,37 @@ import { Link, NavLink, useLocation } from 'react-router-dom';
 import { Column } from 'react-table';
 import { useRecoilState, useRecoilValue } from 'recoil';
 import { filter } from 'rxjs/operators';
-import { getFlattenedFields } from 'soql-parser-js';
+import { getFlattenedFields, isSubquery, FieldSubquery } from 'soql-parser-js';
 import { applicationCookieState, selectedOrgState } from '../../../app-state';
 import * as fromJetstreamEvents from '../../core/jetstream-events';
 import QueryDownloadModal from './QueryDownloadModal';
 import QueryResultsSoqlPanel from './QueryResultsSoqlPanel';
 import { getQueryResultsCellContents } from './QueryResultsTable/query-results-table-utils';
-import QueryResultsTable from './QueryResultsTable/QueryResultsTable';
-import QueryResultsViewRecordFields from './QueryResultsViewRecordFields';
 import QueryResultsViewCellModal from './QueryResultsTable/QueryResultsViewCellModal';
+import QueryResultsViewRecordFields from './QueryResultsViewRecordFields';
+import { isFieldSubquery } from 'soql-parser-js/dist/src/utils';
+
+function getStubbedField(field: string) {
+  return {
+    label: field,
+    accessor: field,
+    title: field,
+    columnMetadata: {
+      aggregate: false,
+      apexType: 'String',
+      booleanType: false,
+      columnFullPath: field,
+      columnName: field,
+      custom: false,
+      displayName: field,
+      foreignKeyName: null,
+      insertable: false,
+      numberType: false,
+      textType: false,
+      updatable: false,
+    },
+  };
+}
 
 // eslint-disable-next-line @typescript-eslint/no-empty-interface
 export interface QueryResultsProps {}
@@ -56,6 +78,7 @@ export const QueryResults: FunctionComponent<QueryResultsProps> = React.memo(() 
   const selectedOrg = useRecoilValue<SalesforceOrgUi>(selectedOrgState);
   const [{ serverUrl }] = useRecoilState(applicationCookieState);
   const [totalRecordCount, setTotalRecordCount] = useState<number>(null);
+  const [subqueryFieldMap, setSubqueryFieldMap] = useState<MapOf<string[]>>({});
   const bulkDeleteJob = useObservable(
     fromJetstreamEvents.getObservable('jobFinished').pipe(filter((ev: AsyncJob) => ev.type === 'BulkDelete'))
   );
@@ -75,8 +98,16 @@ export const QueryResults: FunctionComponent<QueryResultsProps> = React.memo(() 
                 </div>
               ),
               Cell: ({ value }) => {
-                return getQueryResultsCellContents(field, serverUrl, selectedOrg, value, (field, serverUrl, org, value) => {
-                  return <QueryResultsViewCellModal field={field} serverUrl={serverUrl} org={org} value={value} />;
+                return getQueryResultsCellContents(field, serverUrl, selectedOrg, value, (field, serverUrl, org, value: any) => {
+                  // transform data if subquery
+                  let headers: string[] = null;
+                  if (subqueryFieldMap && subqueryFieldMap[field.accessor]) {
+                    headers = subqueryFieldMap[field.accessor];
+                  }
+                  if (value && Array.isArray(value.records)) {
+                    value = value.records;
+                  }
+                  return <QueryResultsViewCellModal field={field} serverUrl={serverUrl} org={org} value={value} headers={headers} />;
                 });
               },
             };
@@ -122,10 +153,16 @@ export const QueryResults: FunctionComponent<QueryResultsProps> = React.memo(() 
       if (results.columns?.columns) {
         queryColumnsByPath = results.columns.columns.reduce((out, curr) => {
           out[curr.columnFullPath.toLowerCase()] = curr;
+          if (Array.isArray(curr.childColumnPaths)) {
+            curr.childColumnPaths.forEach((subqueryField) => {
+              out[subqueryField.columnFullPath.toLowerCase()] = subqueryField;
+            });
+          }
           return out;
         }, {});
       }
 
+      // Base fields
       const flattenedFields: QueryFieldHeader[] = getFlattenedFields(results.parsedQuery).map((field) => {
         const fieldLowercase = field.toLowerCase();
         if (queryColumnsByPath[fieldLowercase]) {
@@ -138,28 +175,22 @@ export const QueryResults: FunctionComponent<QueryResultsProps> = React.memo(() 
           };
         }
         // default values since column was not available
-        return {
-          label: field,
-          accessor: field,
-          title: field,
-          columnMetadata: {
-            aggregate: false,
-            apexType: 'String',
-            booleanType: false,
-            columnFullPath: field,
-            columnName: field,
-            custom: false,
-            displayName: field,
-            foreignKeyName: null,
-            insertable: false,
-            numberType: false,
-            textType: false,
-            updatable: false,
-          },
-        };
+        return getStubbedField(field);
       });
 
+      // subquery fields - only used if user clicks "view data" on a field so that the table can be built properly
+      const tempSubqueryFieldMap: MapOf<string[]> = {};
+      results.parsedQuery.fields
+        .filter((field) => isFieldSubquery(field))
+        .forEach((field: FieldSubquery) => {
+          tempSubqueryFieldMap[field.subquery.relationshipName] = getFlattenedFields(field.subquery).map((field) => {
+            const fieldLowercase = field.toLowerCase();
+            return queryColumnsByPath[fieldLowercase] ? queryColumnsByPath[fieldLowercase].columnFullPath : field;
+          });
+        });
+
       setFields(flattenedFields);
+      setSubqueryFieldMap(tempSubqueryFieldMap);
       setRecords(results.queryResults.records);
       setTotalRecordCount(results.queryResults.totalSize);
       setErrorMessage(null);

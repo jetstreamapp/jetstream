@@ -10,9 +10,9 @@ import { selectedOrgState } from '../../../app-state';
 import * as fromQueryState from '../query.state';
 
 // eslint-disable-next-line @typescript-eslint/no-empty-interface
-export interface QueryFieldsProps {}
+export interface QuerySObjectsProps {}
 
-export const QuerySObjects: FunctionComponent<QueryFieldsProps> = () => {
+export const QuerySObjects: FunctionComponent<QuerySObjectsProps> = () => {
   const [sobjects, setSobjects] = useRecoilState(fromQueryState.sObjectsState);
   const [selectedSObject, setSelectedSObject] = useRecoilState(fromQueryState.selectedSObjectState);
   const [loading, setLoading] = useState<boolean>(false);

@@ -29,7 +29,7 @@ export function getQueryResultsCellContents(
         content = complexDataRenderer(field, serverUrl, org, value);
       } else {
         try {
-          content = JSON.stringify(value);
+          content = <div className="slds-line-clamp_medium">{JSON.stringify(value)}</div>;
         } catch (ex) {
           content = '<unable to show contents>';
         }

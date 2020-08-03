@@ -22,6 +22,7 @@ export const QueryBuilderSoqlUpdater: FunctionComponent = () => {
   const queryLimit = useRecoilValue(fromQueryState.selectQueryLimit);
   const queryLimitSkip = useRecoilValue(fromQueryState.selectQueryLimitSkip);
   const selectedFields = useRecoilValue(fromQueryState.selectQueryField);
+  const selectedSubqueryFields = useRecoilValue(fromQueryState.selectedSubqueryFieldsState);
   const [soql, setSoql] = useRecoilState(fromQueryState.querySoqlState);
 
   const debouncedFilters = useDebounce(filters);

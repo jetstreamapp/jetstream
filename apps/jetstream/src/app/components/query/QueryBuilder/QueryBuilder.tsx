@@ -29,6 +29,7 @@ import QueryOrderBy from '../QueryOptions/QueryOrderBy';
 import SoqlTextarea from '../QueryOptions/SoqlTextarea';
 import QuerySObjects from './QuerySObjects';
 import QueryResetButton from '../QueryOptions/QueryResetButton';
+import QuerySubquerySObjects from './QuerySubquerySObjects';
 
 // eslint-disable-next-line @typescript-eslint/no-empty-interface
 export interface QueryBuilderProps {}
@@ -38,16 +39,23 @@ export const QueryBuilder: FunctionComponent<QueryBuilderProps> = () => {
 
   const selectedSObject = useRecoilValue(fromQueryState.selectedSObjectState);
   const queryFieldsMap = useRecoilValue(fromQueryState.queryFieldsMapState);
+  const childRelationships = useRecoilValue(fromQueryState.queryChildRelationships);
 
   const [selectedFields, setSelectedFields] = useRecoilState(fromQueryState.selectedQueryFieldsState);
+  const [selectedSubqueryFieldsState, setSelectedSubqueryFieldsState] = useRecoilState(fromQueryState.selectedSubqueryFieldsState);
   const [filterFields, setFilterFields] = useRecoilState(fromQueryState.filterQueryFieldsState);
   const [soql, setSoql] = useRecoilState(fromQueryState.querySoqlState);
   const [isFavorite, setIsFavorite] = useRecoilState(fromQueryState.queryIsFavoriteState);
+  const resetSelectedSubqueryFieldsState = useResetRecoilState(fromQueryState.selectedSubqueryFieldsState);
   const resetQueryFiltersState = useResetRecoilState(fromQueryState.queryFiltersState);
   const resetQueryOrderByState = useResetRecoilState(fromQueryState.queryOrderByState);
   const resetQueryLimit = useResetRecoilState(fromQueryState.queryLimit);
   const resetQueryLimitSkip = useResetRecoilState(fromQueryState.queryLimitSkip);
   const resetQuerySoqlState = useResetRecoilState(fromQueryState.querySoqlState);
+  const resetQueryFieldsMapState = useResetRecoilState(fromQueryState.queryFieldsMapState);
+  const resetQueryFieldsKey = useResetRecoilState(fromQueryState.queryFieldsKey);
+  const resetQueryChildRelationships = useResetRecoilState(fromQueryState.queryChildRelationships);
+
   // FIXME: this is a hack and should not be here
   const [showRightHandPane, setShowRightHandPane] = useState(!!selectedSObject);
   const [priorSelectedSObject, setPriorSelectedSObject] = useState(selectedSObject);
@@ -85,9 +93,13 @@ export const QueryBuilder: FunctionComponent<QueryBuilderProps> = () => {
 
   useEffect(() => {
     if (!priorSelectedSObject && selectedSObject) {
-      setPriorSelectedSObject(priorSelectedSObject);
+      setPriorSelectedSObject(selectedSObject);
     } else if (selectedSObject && selectedSObject.name !== priorSelectedSObject.name) {
-      setPriorSelectedSObject(priorSelectedSObject);
+      setPriorSelectedSObject(selectedSObject);
+      resetQueryFieldsMapState();
+      resetQueryFieldsKey();
+      resetQueryChildRelationships();
+      resetSelectedSubqueryFieldsState();
       resetQueryFiltersState();
       resetQueryLimit();
       resetQueryLimitSkip();
@@ -113,6 +125,11 @@ export const QueryBuilder: FunctionComponent<QueryBuilderProps> = () => {
       };
     }
   }, [queryWorker, setFilterFields]);
+
+  function handleSubquerySelectedField(relationshipName: string, fields: string[]) {
+    const tempSelectedSubqueryFieldsState = { ...selectedSubqueryFieldsState, [relationshipName]: fields };
+    setSelectedSubqueryFieldsState(tempSelectedSubqueryFieldsState);
+  }
 
   return (
     <Fragment>
@@ -193,7 +210,12 @@ export const QueryBuilder: FunctionComponent<QueryBuilderProps> = () => {
                           {selectedSObject?.name} Fields
                         </Fragment>
                       ),
-                      content: <QueryFieldsComponent selectedSObject={selectedSObject} onSelectionChanged={setSelectedFields} />,
+                      content: (
+                        <QueryFieldsComponent
+                          selectedSObject={selectedSObject ? selectedSObject.name : undefined}
+                          onSelectionChanged={setSelectedFields}
+                        />
+                      ),
                     }, // record
                     {
                       id: 'RelatedLists',
@@ -212,7 +234,9 @@ export const QueryBuilder: FunctionComponent<QueryBuilderProps> = () => {
                         </Fragment>
                       ),
                       titleText: 'Related Objects (Subquery)',
-                      content: 'TODO',
+                      content: (
+                        <QuerySubquerySObjects childRelationships={childRelationships} onSelectionChanged={handleSubquerySelectedField} />
+                      ),
                     },
                   ]}
                 />
