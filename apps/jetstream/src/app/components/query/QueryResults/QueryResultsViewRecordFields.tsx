@@ -1,12 +1,12 @@
-import { genericRequest, sobjectOperation } from '@jetstream/shared/data';
-import { SalesforceOrgUi } from '@jetstream/types';
-import { Icon, Panel, Spinner, AutoFullHeightContainer } from '@jetstream/ui';
-import { orderStringsBy, getIdAndObjFromRecordUrl } from '@jetstream/shared/utils';
-import { Record } from 'jsforce';
-import React, { Fragment, FunctionComponent, useEffect, useState } from 'react';
 import { logger } from '@jetstream/shared/client-logger';
-import { isObject, isNil, isBoolean } from 'lodash';
+import { sobjectOperation } from '@jetstream/shared/data';
+import { getIdAndObjFromRecordUrl, orderStringsBy } from '@jetstream/shared/utils';
+import { SalesforceOrgUi } from '@jetstream/types';
+import { AutoFullHeightContainer, Icon, Panel, Spinner } from '@jetstream/ui';
 import classNames from 'classnames';
+import { Record } from 'jsforce';
+import { isBoolean, isNil, isObject } from 'lodash';
+import React, { Fragment, FunctionComponent, useEffect, useState } from 'react';
 
 // eslint-disable-next-line @typescript-eslint/no-empty-interface
 export interface QueryResultsViewRecordFieldsProps {

@@ -10,7 +10,12 @@ import {
 import { logger } from '@jetstream/shared/client-logger';
 import { Record } from 'jsforce';
 import { sobjectOperation, queryMore } from '@jetstream/shared/data';
-import { getSObjectFromRecordUrl, getIdFromRecordUrl, flattenRecords } from '@jetstream/shared/utils';
+import {
+  getSObjectFromRecordUrl,
+  getIdFromRecordUrl,
+  flattenRecords,
+  replaceSubqueryQueryResultsWithRecords,
+} from '@jetstream/shared/utils';
 import { unparse } from 'papaparse';
 
 // eslint-disable-next-line no-restricted-globals
@@ -53,7 +58,7 @@ async function handleMessage(name: AsyncJobType, payloadData: AsyncJobWorkerMess
         let done = false;
 
         while (!done) {
-          const { queryResults } = await queryMore(org, nextRecordsUrl);
+          const { queryResults } = await queryMore(org, nextRecordsUrl).then(replaceSubqueryQueryResultsWithRecords);
           done = queryResults.done;
           nextRecordsUrl = queryResults.nextRecordsUrl;
           downloadedRecords = downloadedRecords.concat(flattenRecords(queryResults.records, fields));

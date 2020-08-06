@@ -1,6 +1,6 @@
 import { QueryResultsColumn } from '@jetstream/api-interfaces';
 import { MapOf } from '@jetstream/types';
-import { Field } from 'jsforce';
+import { Field, ChildRelationship } from 'jsforce';
 import { ReactNode } from 'react';
 import { FieldDefinition } from '../salesforce/types';
 import { SalesforceOrgUi } from '../types';
@@ -30,6 +30,7 @@ export interface QueryFields {
   filterTerm: string;
   sobject: string;
   fields: MapOf<FieldWrapper>;
+  childRelationships?: ChildRelationship[];
   visibleFields: Set<string>;
   selectedFields: Set<string>;
 }
@@ -51,15 +52,19 @@ export interface FieldWrapper {
 // Tabs / Accordion / etc..
 export interface UiSection {
   id: string;
-  title: string;
-  titleClassName?: string;
-  content: React.ReactNode;
+  title: string | ReactNode;
+  titleText?: string; // use if title is not a string
+  content: React.ReactNode | Function; // => React.ReactNode
   disabled?: boolean;
 }
 
-export interface UiTabSection extends Omit<UiSection, 'title' | 'disabled'> {
+export interface UiTabSection {
+  id: string;
   title: React.ReactNode;
   titleText?: string; // use if title is not a string
+  titleClassName?: string;
+  content: React.ReactNode;
+  disabled?: boolean;
 }
 
 // Generic size types
@@ -71,6 +76,34 @@ export type SizeMd = 'md';
 export type SizeLg = 'lg';
 export type SizeXl = 'xl';
 export type SizeFull = 'full';
+
+export type sizeXXXSmall = 'xxx-small';
+export type sizeXXSmall = 'xx-small';
+export type sizeXSmall = 'x-small';
+export type sizeSmall = 'small';
+export type sizeMedium = 'medium';
+export type sizeLarge = 'large';
+export type sizeXLarge = 'x-large';
+export type sizeXXLarge = 'xx-large';
+
+export type sizeXXXSmallToXXLarge = sizeXXXSmall | sizeXXSmall | sizeXSmall | sizeSmall | sizeMedium | sizeLarge | sizeXLarge | sizeXXLarge;
+// 'center' | 'space' | 'spread' | 'end'
+
+export type Center = 'center';
+export type Space = 'space';
+export type Spread = 'spread';
+export type Start = 'start';
+export type End = 'end';
+
+export type StartCenterEnd = Start | Center | End;
+export type CenterSpaceSpreadEnd = Center | Space | Spread | End;
+
+export type Top = 'top';
+export type Right = 'right';
+export type Bottom = 'bottom';
+export type Left = 'left';
+
+export type TopRightBottomLeft = Top | Right | Bottom | Left;
 
 // Generic position types
 export type PositionLeftRight = PositionLeft | PositionRight;

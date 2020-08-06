@@ -3,6 +3,9 @@ import { MapOf, Record } from '@jetstream/types';
 import { isObject } from 'util';
 import { REGEX } from './regex';
 import { unix } from 'moment-mini';
+import { QueryResults } from '../../../../api-interfaces/src';
+import { QueryResult } from 'jsforce';
+import { FieldSubquery } from 'soql-parser-js';
 
 export function NOOP() {}
 
@@ -81,4 +84,33 @@ export function getSObjectFromRecordUrl(url: string): string {
 export function getIdFromRecordUrl(url: string): string {
   const [id, sobject] = getIdAndObjFromRecordUrl(url);
   return id;
+}
+
+/**
+ * Remove query wrapper from child records
+ * NOTE: this ignores instances where there are more records
+ * @param results
+ */
+export function replaceSubqueryQueryResultsWithRecords(results: QueryResults<any>) {
+  if (results.parsedQuery) {
+    const subqueryFields = new Set<string>(
+      results.parsedQuery.fields
+        .filter((field) => field.type === 'FieldSubquery')
+        .map((field: FieldSubquery) => field.subquery.relationshipName)
+    );
+    if (subqueryFields.size > 0) {
+      results.queryResults.records.forEach((record) => {
+        try {
+          subqueryFields.forEach((field) => {
+            if (record[field]) {
+              record[field] = (record[field] as QueryResult<unknown>).records;
+            }
+          });
+        } catch (ex) {
+          // could not process field
+        }
+      });
+    }
+  }
+  return results;
 }

@@ -8,3 +8,7 @@ addDecorator(withKnobs);
 addDecorator(withActions());
 addDecorator(StoryRouter());
 configure(require.context('../src/lib', true, /\.stories\.(j|t)sx?$/), module);
+
+let modalRoot = document.createElement('div');
+modalRoot.setAttribute('id', 'modal-root');
+document.querySelector('body').appendChild(modalRoot);

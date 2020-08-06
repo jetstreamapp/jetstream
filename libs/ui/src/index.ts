@@ -20,6 +20,8 @@ export * from './lib/form/radio/Radio';
 export * from './lib/form/radio/RadioGroup';
 export * from './lib/form/search-input/SearchInput';
 export * from './lib/form/textarea/Textarea';
+export * from './lib/grid/Grid';
+export * from './lib/grid/GridCol';
 export * from './lib/illustrations/EmptyState';
 export * from './lib/layout/AutoFullHeightContainer';
 export * from './lib/layout/ColumnWithMinWidth';

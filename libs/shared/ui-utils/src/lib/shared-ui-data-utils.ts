@@ -33,6 +33,8 @@ export async function fetchFields(org: SalesforceOrgUi, queryFields: QueryFields
     // fieldDefByApiName = getMapOf(queryResults?.queryResults?.records, 'QualifiedApiName');
   }
 
+  const childRelationships = describeResults.childRelationships.filter((relationship) => !!relationship.relationshipName);
+
   const fields: MapOf<FieldWrapper> = getMapOf(
     sortQueryFields(describeResults.fields).map((field: Field) => {
       const type = fieldDefByApiName[field.name]?.DataType || polyfillFieldDefinition(field);
@@ -52,5 +54,5 @@ export async function fetchFields(org: SalesforceOrgUi, queryFields: QueryFields
     'name'
   );
 
-  return { ...queryFields, fields, visibleFields: new Set(Object.keys(fields)) };
+  return { ...queryFields, fields, visibleFields: new Set(Object.keys(fields)), childRelationships };
 }

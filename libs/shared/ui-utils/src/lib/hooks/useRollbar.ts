@@ -13,6 +13,10 @@ function getRollbarInstance(accessToken: string, environment: ProductionDevelopm
       captureUncaught: true,
       captureUnhandledRejections: true,
       environment,
+      autoInstrument: {
+        // eslint-disable-next-line no-restricted-globals
+        log: !location.host.includes('localhost'),
+      },
     });
   if (!_rollbarIsConfigured && userProfile) {
     _rollbarIsConfigured = true;

@@ -63,7 +63,7 @@ export const DataTable: FunctionComponent<DataTableProps> = ({ columns, data, al
 
   useEffect(() => {
     if (onRowSelection && selectedFlatRows) {
-      onRowSelection(selectedFlatRows);
+      onRowSelection(selectedFlatRows.map((row) => row.original));
     }
   }, [onRowSelection, selectedFlatRows]);
 

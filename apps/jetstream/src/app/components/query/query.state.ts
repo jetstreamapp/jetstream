@@ -1,7 +1,8 @@
 import { ExpressionType, ListItemGroup, MapOf, QueryFields, QueryOrderByClause } from '@jetstream/types';
-import { DescribeGlobalSObjectResult } from 'jsforce';
+import { DescribeGlobalSObjectResult, ChildRelationship } from 'jsforce';
 import { atom, selector } from 'recoil';
-import { getField, FieldType, OrderByClause } from 'soql-parser-js';
+import { getField, FieldType, OrderByClause, Subquery } from 'soql-parser-js';
+import { orderStringsBy } from '@jetstream/shared/utils';
 
 export const sObjectsState = atom<DescribeGlobalSObjectResult[]>({
   key: 'query.sObjectsState',
@@ -18,6 +19,11 @@ export const queryFieldsKey = atom<string>({
   default: null,
 });
 
+export const queryChildRelationships = atom<ChildRelationship[]>({
+  key: 'query.queryChildRelationships',
+  default: [],
+});
+
 export const queryFieldsMapState = atom<MapOf<QueryFields>>({
   key: 'query.queryFieldsMapState',
   default: {},
@@ -28,9 +34,31 @@ export const selectedQueryFieldsState = atom<string[]>({
   default: [],
 });
 
+export const selectedSubqueryFieldsState = atom<MapOf<string[]>>({
+  key: 'query.selectedSubqueryFieldsState',
+  default: {},
+});
+
 export const selectQueryField = selector<FieldType[]>({
   key: 'query.selectQueryField',
-  get: ({ get }) => get(selectedQueryFieldsState).map((field) => getField(field)),
+  get: ({ get }) => {
+    let fields = get(selectedQueryFieldsState).map((field) => getField(field));
+    const fieldsByChildRelName = get(selectedSubqueryFieldsState);
+    // Concat subquery fields
+    fields = fields.concat(
+      orderStringsBy(Object.keys(fieldsByChildRelName))
+        // remove subquery if no fields
+        .filter((relationshipName) => fieldsByChildRelName[relationshipName].length > 0)
+        .map((relationshipName) => {
+          const subquery: Subquery = {
+            fields: fieldsByChildRelName[relationshipName].map((field) => getField(field)),
+            relationshipName,
+          };
+          return getField({ subquery });
+        })
+    );
+    return fields;
+  },
 });
 
 export const filterQueryFieldsState = atom<ListItemGroup[]>({

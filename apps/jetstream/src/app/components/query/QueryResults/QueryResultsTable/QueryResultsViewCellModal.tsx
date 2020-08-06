@@ -14,9 +14,11 @@ export interface QueryResultsViewCellModalProps {
   serverUrl: string;
   org: SalesforceOrgUi;
   value: any;
+  // dynamically calculated if not provided
+  headers?: string[];
 }
 
-export const QueryResultsViewCellModal: FunctionComponent<QueryResultsViewCellModalProps> = ({ field, serverUrl, org, value }) => {
+export const QueryResultsViewCellModal: FunctionComponent<QueryResultsViewCellModalProps> = ({ field, serverUrl, org, value, headers }) => {
   const [isOpen, setIsOpen] = useState<boolean>(false);
   const [hasNoData, setHasNoData] = useState<boolean>(false);
   const [columns, setColumns] = useState<Column<any>[]>(null);
@@ -34,7 +36,7 @@ export const QueryResultsViewCellModal: FunctionComponent<QueryResultsViewCellMo
           if (data.length === 0) {
             setHasNoData(true);
           } else {
-            tempColumns = Object.keys(data[0]);
+            tempColumns = headers || Object.keys(data[0]);
             setRows(data);
           }
         }
@@ -46,21 +48,22 @@ export const QueryResultsViewCellModal: FunctionComponent<QueryResultsViewCellMo
       if (tempColumns) {
         setRows(data);
         setColumns(
-          tempColumns.map((column) => ({
-            accessor: column,
-            Header: () => (
-              <div className="slds-line-clamp_medium" title={field.title}>
-                {column}
-              </div>
-            ),
-            Cell: ({ value }) => {
-              return getQueryResultsCellContents(field, serverUrl, org, value);
-            },
-          }))
+          tempColumns
+            .filter((column) => column !== 'attributes')
+            .map((column) => ({
+              accessor: column,
+              Header: () => (
+                <div className="slds-line-clamp_medium" title={field.title}>
+                  {column}
+                </div>
+              ),
+              Cell: ({ value }) => {
+                return getQueryResultsCellContents(field, serverUrl, org, value);
+              },
+            }))
         );
       }
     }
-
     setIsOpen(true);
   }
 
@@ -76,7 +79,7 @@ export const QueryResultsViewCellModal: FunctionComponent<QueryResultsViewCellMo
       )}
       <button className="slds-button" onClick={() => handleOpen()}>
         <Icon type="utility" icon="search" className="slds-button__icon slds-button__icon_left" omitContainer />
-        View Data
+        {Array.isArray(value) ? `${value.length} Records` : 'View Data'}
       </button>
     </Fragment>
   );
