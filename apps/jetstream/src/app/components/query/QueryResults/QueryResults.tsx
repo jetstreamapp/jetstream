@@ -6,7 +6,7 @@ import { QueryResultsColumn } from '@jetstream/api-interfaces';
 import { logger } from '@jetstream/shared/client-logger';
 import { query } from '@jetstream/shared/data';
 import { useObservable } from '@jetstream/shared/ui-utils';
-import { pluralizeIfMultiple } from '@jetstream/shared/utils';
+import { pluralizeIfMultiple, replaceSubqueryQueryResultsWithRecords } from '@jetstream/shared/utils';
 import { AsyncJob, AsyncJobNew, BulkDownloadJob, MapOf, QueryFieldHeader, Record, SalesforceOrgUi } from '@jetstream/types';
 import {
   AutoFullHeightContainer,
@@ -26,7 +26,8 @@ import { Link, NavLink, useLocation } from 'react-router-dom';
 import { Column } from 'react-table';
 import { useRecoilState, useRecoilValue } from 'recoil';
 import { filter } from 'rxjs/operators';
-import { getFlattenedFields, isSubquery, FieldSubquery } from 'soql-parser-js';
+import { FieldSubquery, getFlattenedFields } from 'soql-parser-js';
+import { isFieldSubquery } from 'soql-parser-js/dist/src/utils';
 import { applicationCookieState, selectedOrgState } from '../../../app-state';
 import * as fromJetstreamEvents from '../../core/jetstream-events';
 import QueryDownloadModal from './QueryDownloadModal';
@@ -34,7 +35,6 @@ import QueryResultsSoqlPanel from './QueryResultsSoqlPanel';
 import { getQueryResultsCellContents } from './QueryResultsTable/query-results-table-utils';
 import QueryResultsViewCellModal from './QueryResultsTable/QueryResultsViewCellModal';
 import QueryResultsViewRecordFields from './QueryResultsViewRecordFields';
-import { isFieldSubquery } from 'soql-parser-js/dist/src/utils';
 
 function getStubbedField(field: string) {
   return {
@@ -145,7 +145,7 @@ export const QueryResults: FunctionComponent<QueryResultsProps> = React.memo(() 
       setSoql(soql);
       setRecords(null);
       setFields(null);
-      const results = await query(selectedOrg, soql);
+      const results = await query(selectedOrg, soql).then(replaceSubqueryQueryResultsWithRecords);
       setNextRecordsUrl(results.queryResults.nextRecordsUrl);
 
       let queryColumnsByPath: MapOf<QueryResultsColumn> = {};
@@ -273,7 +273,7 @@ export const QueryResults: FunctionComponent<QueryResultsProps> = React.memo(() 
   }
 
   return (
-    <div className="slds-is-relative">
+    <div>
       <QueryDownloadModal
         downloadModalOpen={downloadModalOpen}
         fields={fields}

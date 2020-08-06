@@ -235,7 +235,9 @@ export const QueryBuilder: FunctionComponent<QueryBuilderProps> = () => {
                       ),
                       titleText: 'Related Objects (Subquery)',
                       content: (
-                        <QuerySubquerySObjects childRelationships={childRelationships} onSelectionChanged={handleSubquerySelectedField} />
+                        <AutoFullHeightContainer bottomBuffer={245}>
+                          <QuerySubquerySObjects childRelationships={childRelationships} onSelectionChanged={handleSubquerySelectedField} />
+                        </AutoFullHeightContainer>
                       ),
                     },
                   ]}

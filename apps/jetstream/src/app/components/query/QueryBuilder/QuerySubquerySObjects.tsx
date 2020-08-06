@@ -1,6 +1,5 @@
-import { getMapOf } from '@jetstream/shared/utils';
 import { MapOf } from '@jetstream/types';
-import { Accordion } from '@jetstream/ui';
+import { Accordion, Grid, GridCol } from '@jetstream/ui';
 import { ChildRelationship } from 'jsforce';
 import React, { FunctionComponent, useState } from 'react';
 import QueryChildFieldsComponent from './QueryChildFields';
@@ -39,7 +38,19 @@ export const QuerySubquerySObjects: FunctionComponent<QuerySubquerySObjectsProps
       allowMultiple={false}
       sections={childRelationships.map((childRelationship) => ({
         id: childRelationship.relationshipName,
-        title: `${childRelationship.relationshipName} (${childRelationship.childSObject}.${childRelationship.field})`,
+        titleText: `${childRelationship.relationshipName} (${childRelationship.childSObject}.${childRelationship.field})`,
+        title: (
+          <Grid align="spread" gutters>
+            <GridCol>
+              <Grid vertical gutters>
+                <GridCol>{childRelationship.relationshipName}</GridCol>
+                <GridCol className="slds-text-body_small slds-text-color_weak">
+                  {childRelationship.childSObject}.{childRelationship.field}
+                </GridCol>
+              </Grid>
+            </GridCol>
+          </Grid>
+        ),
         content: getContent(childRelationship),
       }))}
     />

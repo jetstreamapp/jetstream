@@ -1,11 +1,13 @@
-import React, { Fragment, FunctionComponent } from 'react';
+import React, { Fragment, FunctionComponent, useRef, useEffect } from 'react';
 import Icon from '../widgets/Icon';
 import { SizeSmMdLg } from '@jetstream/types';
 import classNames from 'classnames';
 import { useHotkeys } from 'react-hotkeys-hook';
+import { createPortal } from 'react-dom';
 
 /* eslint-disable-next-line */
 export interface ModalProps {
+  className?: string;
   header?: string | JSX.Element;
   tagline?: string | JSX.Element;
   footer?: JSX.Element;
@@ -29,7 +31,45 @@ function getSizeClass(size?: SizeSmMdLg) {
   }
 }
 
-export const Modal: FunctionComponent<ModalProps> = ({
+// https://reactjs.org/docs/portals.html
+const modalRoot = document.getElementById('modal-root');
+export class Modal extends React.Component<ModalProps> {
+  el: HTMLDivElement;
+  constructor(props) {
+    super(props);
+    this.el = document.createElement('div');
+  }
+
+  componentDidMount() {
+    // The portal element is inserted in the DOM tree after
+    // the Modal's children are mounted, meaning that children
+    // will be mounted on a detached DOM node. If a child
+    // component requires to be attached to the DOM tree
+    // immediately when mounted, for example to measure a
+    // DOM node, or uses 'autoFocus' in a descendant, add
+    // state to Modal and only render the children when Modal
+    // is inserted in the DOM tree.
+    if (modalRoot) {
+      modalRoot.appendChild(this.el);
+    }
+  }
+
+  componentWillUnmount() {
+    if (modalRoot) {
+      modalRoot.removeChild(this.el);
+    }
+  }
+
+  render() {
+    if (modalRoot) {
+      return createPortal(<ModalContent {...this.props} />, this.el);
+    } else {
+      return <ModalContent {...this.props} />;
+    }
+  }
+}
+
+export const ModalContent: FunctionComponent<ModalProps> = ({
   header,
   tagline,
   footer,
@@ -40,13 +80,18 @@ export const Modal: FunctionComponent<ModalProps> = ({
   children,
   onClose,
 }) => {
-  useHotkeys('esc', () => onClose());
+  const closeButtonRef = useRef(null);
+
+  useEffect(() => {
+    closeButtonRef.current.focus();
+  }, []);
+
   return (
     <Fragment>
       <section
         role="dialog"
         tabIndex={-1}
-        className={classNames(containerClassName || 'slds-modal slds-fade-in-open slds-slide-up-saving', getSizeClass(size))}
+        className={classNames(containerClassName || 'slds-modal slds-slide-up-open', getSizeClass(size))}
         aria-labelledby="modal"
         aria-modal="true"
         aria-describedby="modal-content"
@@ -56,6 +101,7 @@ export const Modal: FunctionComponent<ModalProps> = ({
             <button
               className="slds-button slds-button_icon slds-modal__close slds-button_icon-inverse"
               title="Close"
+              ref={closeButtonRef}
               onClick={() => onClose()}
             >
               <Icon type="utility" icon="close" className="slds-button__icon slds-button__icon_large" omitContainer />
@@ -74,7 +120,7 @@ export const Modal: FunctionComponent<ModalProps> = ({
           )}
         </div>
       </section>
-      {<div className="slds-backdrop slds-backdrop_open" onClick={() => closeOnBackdropClick && onClose()}></div>}
+      {<div className="slds-backdrop slds-backdrop_open"></div>}
     </Fragment>
   );
 };

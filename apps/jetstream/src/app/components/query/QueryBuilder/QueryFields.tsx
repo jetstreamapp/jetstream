@@ -203,7 +203,7 @@ export const QueryFieldsComponent: FunctionComponent<QueryFieldsProps> = ({ sele
   return (
     <Fragment>
       {selectedSObject && queryFieldsMap[baseKey] && (
-        <AutoFullHeightContainer>
+        <AutoFullHeightContainer bottomBuffer={25}>
           <SobjectFieldList
             level={0}
             itemKey={baseKey}

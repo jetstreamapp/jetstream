@@ -52,7 +52,8 @@ export interface FieldWrapper {
 // Tabs / Accordion / etc..
 export interface UiSection {
   id: string;
-  title: string;
+  title: string | ReactNode;
+  titleText?: string; // use if title is not a string
   content: React.ReactNode | Function; // => React.ReactNode
   disabled?: boolean;
 }
@@ -75,6 +76,34 @@ export type SizeMd = 'md';
 export type SizeLg = 'lg';
 export type SizeXl = 'xl';
 export type SizeFull = 'full';
+
+export type sizeXXXSmall = 'xxx-small';
+export type sizeXXSmall = 'xx-small';
+export type sizeXSmall = 'x-small';
+export type sizeSmall = 'small';
+export type sizeMedium = 'medium';
+export type sizeLarge = 'large';
+export type sizeXLarge = 'x-large';
+export type sizeXXLarge = 'xx-large';
+
+export type sizeXXXSmallToXXLarge = sizeXXXSmall | sizeXXSmall | sizeXSmall | sizeSmall | sizeMedium | sizeLarge | sizeXLarge | sizeXXLarge;
+// 'center' | 'space' | 'spread' | 'end'
+
+export type Center = 'center';
+export type Space = 'space';
+export type Spread = 'spread';
+export type Start = 'start';
+export type End = 'end';
+
+export type StartCenterEnd = Start | Center | End;
+export type CenterSpaceSpreadEnd = Center | Space | Spread | End;
+
+export type Top = 'top';
+export type Right = 'right';
+export type Bottom = 'bottom';
+export type Left = 'left';
+
+export type TopRightBottomLeft = Top | Right | Bottom | Left;
 
 // Generic position types
 export type PositionLeftRight = PositionLeft | PositionRight;

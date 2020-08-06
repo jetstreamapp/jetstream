@@ -91,13 +91,22 @@ export const QueryChildFieldsComponent: FunctionComponent<QueryChildFieldsProps>
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedOrg, selectedSObject]);
 
+  /**
+   * FIXME: This is rather complicated to follow the code path
+   * We have a key for all objects and this finds all the keys related to the current object
+   * and gets the selected fields
+   * There is a little too much hard-coded magic here...
+   * @param fieldsMap
+   */
   function emitSelectedFieldsChanged(fieldsMap: MapOf<QueryFields> = queryFieldsMap) {
     const fields = Object.values(fieldsMap)
-      .filter((queryField) => queryField.key.includes(CHILD_FIELD_SEPARATOR))
+      .filter((queryField) => queryField.key.startsWith(baseKey))
       .flatMap((queryField) => {
+        // remove the first part of the key (which identified this object)
         const basePath = queryField.key.replace(/.+\|/, '');
         return sortQueryFieldsStr(Array.from(queryField.selectedFields)).map((fieldKey) => `${basePath}${fieldKey}`);
       });
+
     onSelectionChanged(fields);
   }
 

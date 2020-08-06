@@ -68,7 +68,7 @@ export const Accordion: FunctionComponent<AccordionProps> = ({ sections, initOpe
                       className="slds-accordion__summary-action-icon slds-button__icon slds-button__icon_left"
                       omitContainer
                     />
-                    <span className="slds-accordion__summary-content" title={item.title}>
+                    <span className="slds-accordion__summary-content" title={item.titleText || (item.title as string)}>
                       {item.title}
                     </span>
                   </button>

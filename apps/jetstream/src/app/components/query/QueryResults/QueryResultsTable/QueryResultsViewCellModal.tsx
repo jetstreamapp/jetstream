@@ -64,7 +64,6 @@ export const QueryResultsViewCellModal: FunctionComponent<QueryResultsViewCellMo
         );
       }
     }
-
     setIsOpen(true);
   }
 
@@ -80,7 +79,7 @@ export const QueryResultsViewCellModal: FunctionComponent<QueryResultsViewCellMo
       )}
       <button className="slds-button" onClick={() => handleOpen()}>
         <Icon type="utility" icon="search" className="slds-button__icon slds-button__icon_left" omitContainer />
-        View Data
+        {Array.isArray(value) ? `${value.length} Records` : 'View Data'}
       </button>
     </Fragment>
   );
