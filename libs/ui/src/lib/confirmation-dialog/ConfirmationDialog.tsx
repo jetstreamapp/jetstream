@@ -35,6 +35,7 @@ export const ConfirmationDialog: FunctionComponent<ConfirmationDialogProps> = ({
     <Fragment>
       {isOpen && (
         <Modal
+          className="slds-modal_prompt"
           header={header || 'Confirm Action'}
           tagline={tagline}
           closeOnBackdropClick={false}

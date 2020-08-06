@@ -71,7 +71,7 @@ export const QueryResultsViewCellModal: FunctionComponent<QueryResultsViewCellMo
     <Fragment>
       {isOpen && (
         <Modal size="lg" closeOnBackdropClick onClose={() => setIsOpen(false)}>
-          <div>
+          <div className="slds-scrollable_x">
             {hasNoData && <span>There is no data to show.</span>}
             {!hasNoData && columns && <DataTable columns={columns} data={rows} />}
           </div>
