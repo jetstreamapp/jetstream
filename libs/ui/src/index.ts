@@ -1,5 +1,6 @@
 export * from './lib/accordion/Accordion';
 export * from './lib/alert/Alert';
+export * from './lib/card/Card';
 export * from './lib/confirmation-dialog/ConfirmationDialog';
 export * from './lib/data-table/DataTable';
 export * from './lib/expression-group/ExpressionContainer';

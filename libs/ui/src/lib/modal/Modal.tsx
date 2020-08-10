@@ -15,6 +15,7 @@ export interface ModalProps {
   size?: SizeSmMdLg;
   containerClassName?: string;
   closeOnBackdropClick?: boolean;
+  skipAutoFocus?: boolean;
   onClose: () => void;
 }
 
@@ -77,13 +78,16 @@ export const ModalContent: FunctionComponent<ModalProps> = ({
   size,
   containerClassName,
   closeOnBackdropClick,
+  skipAutoFocus,
   children,
   onClose,
 }) => {
   const closeButtonRef = useRef(null);
 
   useEffect(() => {
-    closeButtonRef.current.focus();
+    if (!skipAutoFocus) {
+      closeButtonRef.current.focus();
+    }
   }, []);
 
   return (

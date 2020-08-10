@@ -1,0 +1,113 @@
+import { logger } from '@jetstream/shared/client-logger';
+import { INDEXED_DB } from '@jetstream/shared/constants';
+import { REGEX } from '@jetstream/shared/utils';
+import { QueryHistoryItem, QueryHistorySelection, MapOf } from '@jetstream/types';
+import { Grid, GridCol, Icon, List, Modal, SearchInput } from '@jetstream/ui';
+import localforage from 'localforage';
+import numeral from 'numeral';
+import React, { FunctionComponent, useEffect, useState } from 'react';
+import { useRecoilState, useRecoilValue, useResetRecoilState } from 'recoil';
+import * as fromQueryHistoryState from './query-history.state';
+import QueryHistoryItemCard from './QueryHistoryItemCard';
+import { ErrorBoundary } from 'react-error-boundary';
+import ErrorBoundaryFallback from '../../core/ErrorBoundaryFallback';
+import { useLocation } from 'react-router-dom';
+
+// eslint-disable-next-line @typescript-eslint/no-empty-interface
+export interface QueryHistoryProps {}
+
+export const QueryHistory: FunctionComponent<QueryHistoryProps> = () => {
+  const location = useLocation();
+  const queryHistoryStateMap = useRecoilValue(fromQueryHistoryState.queryHistoryState);
+  const queryHistory = useRecoilValue(fromQueryHistoryState.selectQueryHistoryState);
+
+  const [selectedObject, setSelectedObject] = useRecoilState(fromQueryHistoryState.selectedObjectState);
+  const resetSelectedObject = useResetRecoilState(fromQueryHistoryState.selectedObjectState);
+  const selectObjectsList = useRecoilValue(fromQueryHistoryState.selectObjectsList);
+
+  const [isOpen, setIsOpen] = useState(false);
+  const [filterValue, setFilterValue] = useState('');
+  const [filteredSelectObjectsList, setFilteredSelectObjectsList] = useState(selectObjectsList);
+
+  // Update store if queryHistory was modified
+  useEffect(() => {
+    if (queryHistory) {
+      // load history and put into store
+      (async () => {
+        try {
+          logger.info('Updating query history store', queryHistory);
+          await localforage.setItem<MapOf<QueryHistoryItem>>(INDEXED_DB.KEYS.queryHistory, queryHistoryStateMap);
+        } catch (ex) {
+          logger.warn(ex);
+        }
+      })();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [queryHistory]);
+
+  useEffect(() => {
+    if (isOpen) {
+      setIsOpen(false);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [location]);
+
+  useEffect(() => {
+    if (!filterValue && selectObjectsList !== filteredSelectObjectsList) {
+      setFilteredSelectObjectsList(selectObjectsList);
+    } else if (filterValue) {
+      const value = new RegExp(filterValue.replace(REGEX.NOT_ALPHANUMERIC_OR_UNDERSCORE, ''), 'i');
+      setFilteredSelectObjectsList(selectObjectsList.filter((item) => item.name === 'all' || value.test(`${item.name}${item.label}`)));
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectObjectsList, filterValue]);
+
+  function onModalClose() {
+    setIsOpen(false);
+    resetSelectedObject();
+  }
+
+  return (
+    <ErrorBoundary FallbackComponent={ErrorBoundaryFallback}>
+      <button className="slds-button slds-button_neutral" aria-haspopup="true" title="Favorites" onClick={() => setIsOpen(true)}>
+        <Icon type="utility" icon="date_time" className="slds-button__icon slds-button__icon_left" omitContainer />
+        View History
+      </button>
+      {isOpen && (
+        <Modal header="Query History" size="lg" skipAutoFocus onClose={() => onModalClose()}>
+          <Grid>
+            <GridCol size={6} sizeMedium={4}>
+              <h2 className="slds-text-heading_medium slds-text-align_center">Objects</h2>
+              <div className="slds-p-bottom--xx-small">
+                <SearchInput id="query-history-object-filter" placeholder="Filter Objects" autoFocus onChange={setFilterValue} />
+                <div className="slds-text-body_small slds-text-color_weak slds-p-left--xx-small">
+                  Showing {numeral(filteredSelectObjectsList.length).format('0,0')} of {numeral(selectObjectsList.length).format('0,0')}{' '}
+                  objects
+                </div>
+              </div>
+              <List
+                items={filteredSelectObjectsList}
+                isActive={(item: QueryHistorySelection) => item.name === selectedObject}
+                onSelected={setSelectedObject}
+                getContent={(item: QueryHistorySelection) => ({
+                  key: item.key,
+                  heading: item.label,
+                  subheading: item.name !== 'all' ? item.name : '',
+                })}
+              />
+            </GridCol>
+            <GridCol className="slds-p-around_x-small">
+              {queryHistory.map((item) => (
+                <div className="slds-border_bottom" key={item.key}>
+                  <QueryHistoryItemCard key={item.key} item={item} />
+                </div>
+              ))}
+            </GridCol>
+          </Grid>
+        </Modal>
+      )}
+    </ErrorBoundary>
+  );
+};
+
+export default QueryHistory;

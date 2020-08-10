@@ -45,3 +45,11 @@
 .table-row.is-selected {
   background-color: $color-background-highlight;
 }
+
+.is-disabled {
+  background-color: $color-background-input-disabled;
+}
+
+.border-radius-25 {
+  border-radius: 0.25rem;
+}

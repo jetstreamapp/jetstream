@@ -28,6 +28,12 @@ export const MIME_TYPES: MapOf<MimeType> = {
   CSV: 'text/csv;charset=utf-8',
 };
 
+export const INDEXED_DB = {
+  KEYS: {
+    queryHistory: 'HISTORY:QUERY',
+  },
+};
+
 export const YYYY_MM_DD = 'YYYY-MM-DD';
 export const YYYY_MM_DD__HH_mm_ss = 'YYYY-MM-DD HH:mm:ss';
 export const YYYY_MM_DD_HH_mm_ss_z = 'YYYY-MM-DDTHH:mm:ssZ';

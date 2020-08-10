@@ -1,6 +1,6 @@
 import { select, text } from '@storybook/addon-knobs';
 import React from 'react';
-import { IconType } from '../../../../../types/src';
+import { IconType } from '@jetstream/types';
 import Icon from '../../widgets/Icon';
 import PageHeader from './PageHeader';
 import PageHeaderActions from './PageHeaderActions';

@@ -11,6 +11,7 @@ import { HTTP } from '@jetstream/shared/constants';
 import { logger } from '@jetstream/shared/client-logger';
 import { useRollbar } from '@jetstream/shared/ui-utils';
 import { environment } from '../../../environments/environment';
+import localforage from 'localforage';
 
 const orgConnectionError = new Subject<{ uniqueId: string; connectionError: string }>();
 const orgConnectionError$ = orgConnectionError.asObservable();
@@ -19,6 +20,11 @@ registerMiddleware('Error', (response: Response, org?: SalesforceOrgUi) => {
   if (org && response.get(HTTP.HEADERS.X_SFDC_ORG_CONNECTION_ERROR)) {
     orgConnectionError.next({ uniqueId: org.uniqueId, connectionError: response.get(HTTP.HEADERS.X_SFDC_ORG_CONNECTION_ERROR) });
   }
+});
+
+// Configure IndexedDB database
+localforage.config({
+  name: environment.name,
 });
 
 export interface AppInitializerProps {
