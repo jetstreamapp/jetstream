@@ -156,8 +156,8 @@ export const QueryResults: FunctionComponent<QueryResultsProps> = React.memo(() 
       fromQueryHistory
         .getQueryHistoryItem(selectedOrg, soql, sObject, sObjectLabel)
         .then((queryHistoryItem) => {
-          if (queryHistory[queryHistoryItem.key]) {
-            queryHistoryItem.runCount++;
+          if (queryHistory && queryHistory[queryHistoryItem.key]) {
+            queryHistoryItem.runCount = queryHistory[queryHistoryItem.key].runCount + 1;
             queryHistoryItem.created = queryHistory[queryHistoryItem.key].created;
           }
           setQueryHistory({ ...queryHistory, [queryHistoryItem.key]: queryHistoryItem });

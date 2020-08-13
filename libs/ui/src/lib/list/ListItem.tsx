@@ -1,5 +1,5 @@
 /** @jsx jsx */
-import { jsx } from '@emotion/core';
+import { jsx, css } from '@emotion/core';
 import classNames from 'classnames';
 import isString from 'lodash/isString';
 import { memo } from 'react';
@@ -8,10 +8,11 @@ export interface ListItemProps {
   heading: string | JSX.Element;
   subheading?: string;
   isActive?: boolean;
+  subheadingPlaceholder?: boolean;
   onSelected: () => void;
 }
 
-export const ListItem = memo<ListItemProps>(({ heading, subheading, isActive, onSelected }) => {
+export const ListItem = memo<ListItemProps>(({ heading, subheading, isActive, subheadingPlaceholder, onSelected }) => {
   return (
     <li
       className={classNames('slds-item', { 'is-active': isActive })}
@@ -23,6 +24,13 @@ export const ListItem = memo<ListItemProps>(({ heading, subheading, isActive, on
     >
       {isString(heading) ? <div>{heading}</div> : heading}
       {subheading && <div className="slds-text-body_small slds-text-color_weak">{subheading}</div>}
+      {!subheading && subheadingPlaceholder && (
+        <div
+          css={css`
+            min-height: 18px;
+          `}
+        ></div>
+      )}
     </li>
   );
 });

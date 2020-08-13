@@ -2,7 +2,7 @@ import { logger } from '@jetstream/shared/client-logger';
 import { INDEXED_DB } from '@jetstream/shared/constants';
 import { REGEX } from '@jetstream/shared/utils';
 import { QueryHistoryItem, QueryHistorySelection, MapOf } from '@jetstream/types';
-import { Grid, GridCol, Icon, List, Modal, SearchInput } from '@jetstream/ui';
+import { Grid, GridCol, Icon, List, Modal, SearchInput, EmptyState } from '@jetstream/ui';
 import localforage from 'localforage';
 import numeral from 'numeral';
 import React, { FunctionComponent, useEffect, useState } from 'react';
@@ -75,35 +75,44 @@ export const QueryHistory: FunctionComponent<QueryHistoryProps> = () => {
       </button>
       {isOpen && (
         <Modal header="Query History" size="lg" skipAutoFocus onClose={() => onModalClose()}>
-          <Grid>
-            <GridCol size={6} sizeMedium={4}>
-              <h2 className="slds-text-heading_medium slds-text-align_center">Objects</h2>
-              <div className="slds-p-bottom--xx-small">
-                <SearchInput id="query-history-object-filter" placeholder="Filter Objects" autoFocus onChange={setFilterValue} />
-                <div className="slds-text-body_small slds-text-color_weak slds-p-left--xx-small">
-                  Showing {numeral(filteredSelectObjectsList.length).format('0,0')} of {numeral(selectObjectsList.length).format('0,0')}{' '}
-                  objects
+          {selectObjectsList.length <= 1 && (
+            <EmptyState imageWidth={200}>
+              <p>We couldn't find any previous queries with the currently selected org.</p>
+              <p>Come back once you have performed some queries.</p>
+            </EmptyState>
+          )}
+          {selectObjectsList.length > 1 && (
+            <Grid>
+              <GridCol size={6} sizeMedium={4}>
+                <h2 className="slds-text-heading_medium slds-text-align_center">Objects</h2>
+                <div className="slds-p-bottom--xx-small">
+                  <SearchInput id="query-history-object-filter" placeholder="Filter Objects" autoFocus onChange={setFilterValue} />
+                  <div className="slds-text-body_small slds-text-color_weak slds-p-left--xx-small">
+                    Showing {numeral(filteredSelectObjectsList.length).format('0,0')} of {numeral(selectObjectsList.length).format('0,0')}{' '}
+                    objects
+                  </div>
                 </div>
-              </div>
-              <List
-                items={filteredSelectObjectsList}
-                isActive={(item: QueryHistorySelection) => item.name === selectedObject}
-                onSelected={setSelectedObject}
-                getContent={(item: QueryHistorySelection) => ({
-                  key: item.key,
-                  heading: item.label,
-                  subheading: item.name !== 'all' ? item.name : '',
-                })}
-              />
-            </GridCol>
-            <GridCol className="slds-p-around_x-small">
-              {queryHistory.map((item) => (
-                <div className="slds-border_bottom" key={item.key}>
-                  <QueryHistoryItemCard key={item.key} item={item} />
-                </div>
-              ))}
-            </GridCol>
-          </Grid>
+                <List
+                  items={filteredSelectObjectsList}
+                  isActive={(item: QueryHistorySelection) => item.name === selectedObject}
+                  subheadingPlaceholder
+                  onSelected={setSelectedObject}
+                  getContent={(item: QueryHistorySelection) => ({
+                    key: item.key,
+                    heading: item.label,
+                    subheading: item.name !== 'all' ? item.name : '',
+                  })}
+                />
+              </GridCol>
+              <GridCol className="slds-p-around_x-small">
+                {queryHistory.map((item) => (
+                  <div className="slds-border_bottom" key={item.key}>
+                    <QueryHistoryItemCard key={item.key} item={item} />
+                  </div>
+                ))}
+              </GridCol>
+            </Grid>
+          )}
         </Modal>
       )}
     </ErrorBoundary>

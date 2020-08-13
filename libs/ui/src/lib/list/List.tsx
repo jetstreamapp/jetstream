@@ -8,6 +8,7 @@ import ListItemCheckbox from './ListItemCheckbox';
 export interface ListProps {
   items: any[];
   useCheckbox?: boolean;
+  subheadingPlaceholder?: boolean;
   isActive: (item: any) => boolean;
   // function used to extract
   getContent: (
@@ -21,7 +22,7 @@ export interface ListProps {
   onSelected: (item: any) => void;
 }
 
-export const List = memo<ListProps>(({ items, useCheckbox = false, isActive, getContent, onSelected }) => {
+export const List = memo<ListProps>(({ items, useCheckbox = false, subheadingPlaceholder = false, isActive, getContent, onSelected }) => {
   return (
     <Fragment>
       {Array.isArray(items) && items.length > 0 && (
@@ -35,10 +36,18 @@ export const List = memo<ListProps>(({ items, useCheckbox = false, isActive, get
                 isActive={isActive(item)}
                 heading={heading}
                 subheading={subheading}
+                subheadingPlaceholder={subheadingPlaceholder}
                 onSelected={() => onSelected(key)}
               />
             ) : (
-              <ListItem key={key} isActive={isActive(item)} heading={heading} subheading={subheading} onSelected={() => onSelected(key)} />
+              <ListItem
+                key={key}
+                isActive={isActive(item)}
+                heading={heading}
+                subheading={subheading}
+                subheadingPlaceholder={subheadingPlaceholder}
+                onSelected={() => onSelected(key)}
+              />
             );
           })}
         </ul>

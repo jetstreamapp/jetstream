@@ -26,7 +26,7 @@ export const QueryHistoryItemCard: FunctionComponent<QueryHistoryItemCardProps> 
             </Grid>
           </Fragment>
         }
-        icon={{ type: 'standard', icon: 'account', description: 'Account' }}
+        // icon={{ type: 'standard', icon: 'account', description: 'Account' }}
         actions={
           <Link
             className="slds-button slds-button_neutral"
@@ -47,13 +47,15 @@ export const QueryHistoryItemCard: FunctionComponent<QueryHistoryItemCardProps> 
         }
       >
         <Fragment>
-          <Grid wrap>
+          <Grid wrap className="slds-m-bottom_x-small">
             <GridCol size={12} className="slds-text-body_small slds-text-color_weak slds-m-bottom_xx-small">
               Last Run: {moment(lastRun).format('LLL')} - Run: {runCount} {pluralizeFromNumber('time', runCount)}
             </GridCol>
-            <GridCol className="slds-p-around_xx-small is-disabled border-radius-25 slds-scrollable_y">
-              <div className="slds-text-font_monospace" title={soql} style={{ maxHeight: 75 }}>
-                {soql}
+            <GridCol>
+              <div style={{ maxHeight: 75 }} className="slds-scrollable_y">
+                <pre className="border-radius-25 is-disabled slds-m-around_none slds-p-horizontal_x-small" title={soql}>
+                  {soql}
+                </pre>
               </div>
             </GridCol>
           </Grid>
