@@ -63,7 +63,7 @@ export const selectQueryHistoryForOrg = selector({
   get: ({ get }) => {
     const queryHistoryItems = get(queryHistoryState);
     const selectedOrg = get(fromAppState.selectedOrgState);
-    if (!selectedOrg) {
+    if (!selectedOrg || !queryHistoryItems) {
       return [];
     }
     return Object.values(queryHistoryItems).filter((item) => item.org === selectedOrg.uniqueId);
