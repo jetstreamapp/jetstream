@@ -1,5 +1,4 @@
 import { logger } from '@jetstream/shared/client-logger';
-import { MIME_TYPES } from '@jetstream/shared/constants';
 import { saveFile, useObservable } from '@jetstream/shared/ui-utils';
 import { pluralizeIfMultiple } from '@jetstream/shared/utils';
 import {
@@ -8,7 +7,7 @@ import {
   AsyncJobType,
   AsyncJobWorkerMessageResponse,
   ErrorResult,
-  MapOf,
+  MimeType,
   RecordResult,
   SalesforceOrgUi,
   WorkerMessage,
@@ -18,7 +17,7 @@ import classNames from 'classnames';
 import uniqueId from 'lodash/uniqueId';
 import React, { FunctionComponent, useEffect, useState } from 'react';
 import { useRecoilState, useRecoilValue } from 'recoil';
-import { filter, map } from 'rxjs/operators';
+import { filter } from 'rxjs/operators';
 import { selectedOrgState } from '../../../app-state';
 import JobsWorker from '../../../workers/jobs.worker';
 import * as fromJetstreamEvents from '../jetstream-events';

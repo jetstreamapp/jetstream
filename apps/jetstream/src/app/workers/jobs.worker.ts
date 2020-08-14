@@ -1,24 +1,23 @@
 /// <reference lib="webworker" />
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import {
-  BulkDownloadJob,
-  AsyncJobType,
-  WorkerMessage,
-  AsyncJobWorkerMessageResponse,
-  AsyncJobWorkerMessagePayload,
-} from '@jetstream/types';
 import { logger } from '@jetstream/shared/client-logger';
-import { Record } from 'jsforce';
-import { sobjectOperation, queryMore } from '@jetstream/shared/data';
+import { MIME_TYPES } from '@jetstream/shared/constants';
+import { queryMore, sobjectOperation } from '@jetstream/shared/data';
+import { prepareCsvFile, prepareExcelFile } from '@jetstream/shared/ui-utils';
 import {
-  getSObjectFromRecordUrl,
-  getIdFromRecordUrl,
   flattenRecords,
+  getIdFromRecordUrl,
+  getSObjectFromRecordUrl,
   replaceSubqueryQueryResultsWithRecords,
 } from '@jetstream/shared/utils';
-import { unparse } from 'papaparse';
-import { prepareExcelFile, prepareCsvFile } from '../../../../../libs/shared/ui-utils/src';
-import { MIME_TYPES } from '../../../../../libs/shared/constants/src';
+import {
+  AsyncJobType,
+  AsyncJobWorkerMessagePayload,
+  AsyncJobWorkerMessageResponse,
+  BulkDownloadJob,
+  WorkerMessage,
+} from '@jetstream/types';
+import { Record } from 'jsforce';
 
 // eslint-disable-next-line no-restricted-globals
 const ctx: Worker = self as any;
