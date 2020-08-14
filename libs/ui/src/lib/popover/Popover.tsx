@@ -6,6 +6,7 @@ import { FunctionComponent, useState, useEffect } from 'react';
 import PopoverContent from './PopoverContent';
 import { Placement } from 'tippy.js';
 import { isBoolean } from 'lodash';
+import { SmallMediumLargeFullWidth } from '@jetstream/types';
 
 // TODO: use popper to detect nubbin position
 // TODO: add PopoverHeader and PopoverFooter components
@@ -19,6 +20,7 @@ export interface PopoverProps {
   header?: JSX.Element;
   footer?: JSX.Element;
   isOpen?: boolean; // only used if parent wants to have control over this state
+  size?: SmallMediumLargeFullWidth;
   onOpen?: () => void;
   onClose?: () => void;
 }
@@ -33,6 +35,7 @@ export const Popover: FunctionComponent<PopoverProps> = ({
   footer,
   children,
   isOpen,
+  size,
   onOpen,
   onClose,
 }) => {
@@ -72,6 +75,7 @@ export const Popover: FunctionComponent<PopoverProps> = ({
               id={id}
               // nubbinPosition={nubbinPosition}
               inverseIcons={inverseIcons}
+              size={size}
               containerClassName={containerClassName}
               bodyClassName={bodyClassName}
               // arrow={

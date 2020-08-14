@@ -246,7 +246,7 @@ export const QueryBuilder: FunctionComponent<QueryBuilderProps> = () => {
               <AutoFullHeightContainer>
                 {selectedSObject && showRightHandPane && (
                   <Accordion
-                    initOpenIds={['filters', 'orderBy', 'limit', 'soql']}
+                    initOpenIds={['filters', 'soql']}
                     sections={[
                       {
                         id: 'filters',

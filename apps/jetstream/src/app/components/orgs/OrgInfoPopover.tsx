@@ -3,7 +3,7 @@ import { jsx } from '@emotion/core';
 import { SalesforceOrgUi } from '@jetstream/types';
 import { ButtonGroupContainer, Icon, Popover } from '@jetstream/ui';
 import startCase from 'lodash/startCase';
-import { FunctionComponent } from 'react';
+import { FunctionComponent, ReactNode } from 'react';
 import { SalesforceLogin } from '@jetstream/ui';
 import { useRecoilState } from 'recoil';
 import { applicationCookieState } from '../../app-state';
@@ -14,11 +14,24 @@ export interface OrgInfoPopoverProps {
   onAddOrg: (org: SalesforceOrgUi, replaceOrgUniqueId?: string) => void;
 }
 
-function getOrgProp(org: SalesforceOrgUi, prop: keyof SalesforceOrgUi, label?: string) {
+function getOrgProp(serverUrl: string, org: SalesforceOrgUi, prop: keyof SalesforceOrgUi, label?: string) {
   label = label || startCase(prop);
-  const value = org[prop];
+  let value: string | number | boolean | ReactNode = org[prop];
   if (!value) {
     return undefined;
+  }
+  if (prop === 'organizationId') {
+    value = (
+      <SalesforceLogin serverUrl={serverUrl} org={org} returnUrl="/lightning/setup/CompanyProfileInfo/home" omitIcon>
+        {value}
+      </SalesforceLogin>
+    );
+  } else if (prop === 'userId') {
+    value = (
+      <SalesforceLogin serverUrl={serverUrl} org={org} returnUrl={`/${value}`} omitIcon>
+        {value}
+      </SalesforceLogin>
+    );
   }
   return (
     <tr className="slds-hint-parent">
@@ -26,7 +39,9 @@ function getOrgProp(org: SalesforceOrgUi, prop: keyof SalesforceOrgUi, label?: s
         <div title={label}>{label}</div>
       </td>
       <td>
-        <div title={value as string}>{value}</div>
+        <div title={value as string} className="slds-truncate">
+          {value}
+        </div>
       </td>
     </tr>
   );
@@ -53,6 +68,7 @@ export const OrgInfoPopover: FunctionComponent<OrgInfoPopoverProps> = ({ org, on
   return (
     <Popover
       placement="bottom-end"
+      size="full-width"
       bodyClassName="slds-popover__body slds-p-around_none"
       containerClassName={hasError ? 'slds-popover_error' : undefined}
       inverseIcons={hasError}
@@ -119,15 +135,15 @@ export const OrgInfoPopover: FunctionComponent<OrgInfoPopoverProps> = ({ org, on
               </tr>
             </thead>
             <tbody>
-              {getOrgProp(org, 'orgName', 'Org Name')}
-              {getOrgProp(org, 'organizationId', 'Org Id')}
-              {getOrgProp(org, 'orgInstanceName', 'Instance')}
-              {getOrgProp(org, 'instanceUrl')}
-              {getOrgProp(org, 'orgOrganizationType', 'Org Type')}
-              {getOrgProp(org, 'orgTrialExpirationDate', 'Trial Expiration')}
-              {getOrgProp(org, 'userId')}
-              {getOrgProp(org, 'username')}
-              {getOrgProp(org, 'email')}
+              {getOrgProp(applicationState.serverUrl, org, 'orgName', 'Org Name')}
+              {getOrgProp(applicationState.serverUrl, org, 'organizationId', 'Org Id')}
+              {getOrgProp(applicationState.serverUrl, org, 'orgInstanceName', 'Instance')}
+              {getOrgProp(applicationState.serverUrl, org, 'instanceUrl')}
+              {getOrgProp(applicationState.serverUrl, org, 'orgOrganizationType', 'Org Type')}
+              {getOrgProp(applicationState.serverUrl, org, 'orgTrialExpirationDate', 'Trial Expiration')}
+              {getOrgProp(applicationState.serverUrl, org, 'userId')}
+              {getOrgProp(applicationState.serverUrl, org, 'username')}
+              {getOrgProp(applicationState.serverUrl, org, 'email')}
             </tbody>
           </table>
         </div>

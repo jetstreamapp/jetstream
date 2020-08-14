@@ -1,4 +1,4 @@
-import { PositionAll } from '@jetstream/types';
+import { PositionAll, SmallMediumLargeFullWidth } from '@jetstream/types';
 import classNames from 'classnames';
 import uniqueId from 'lodash/uniqueId';
 import React, { FunctionComponent } from 'react';
@@ -8,6 +8,7 @@ export interface PopoverContentProps {
   id?: string;
   nubbinPosition?: PositionAll;
   inverseIcons?: boolean;
+  size?: SmallMediumLargeFullWidth;
   containerClassName?: string;
   bodyClassName?: string;
   arrow?: JSX.Element;
@@ -20,6 +21,7 @@ export const PopoverContent: FunctionComponent<PopoverContentProps> = ({
   id = uniqueId('popover'),
   nubbinPosition,
   inverseIcons,
+  size,
   containerClassName,
   bodyClassName = 'slds-popover__body',
   arrow,
@@ -32,7 +34,11 @@ export const PopoverContent: FunctionComponent<PopoverContentProps> = ({
     <section
       aria-describedby={id}
       aria-label="Dialog Title"
-      className={classNames('slds-popover', /** nubbinPosition ? `slds-nubbin_${nubbinPosition}` : '',*/ containerClassName)}
+      className={classNames(
+        'slds-popover',
+        /** nubbinPosition ? `slds-nubbin_${nubbinPosition}` : '',*/ containerClassName,
+        size ? `slds-popover_${size}` : undefined
+      )}
       role="dialog"
     >
       <button
