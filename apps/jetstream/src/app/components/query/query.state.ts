@@ -1,4 +1,4 @@
-import { ExpressionType, ListItemGroup, MapOf, QueryFields, QueryOrderByClause } from '@jetstream/types';
+import { ExpressionType, ListItemGroup, MapOf, QueryFields, QueryOrderByClause, QueryHistoryItem } from '@jetstream/types';
 import { DescribeGlobalSObjectResult, ChildRelationship } from 'jsforce';
 import { atom, selector } from 'recoil';
 import { getField, FieldType, OrderByClause, Subquery } from 'soql-parser-js';
@@ -147,4 +147,7 @@ export const queryIsFavoriteState = atom<boolean>({
   default: false,
 });
 
-// TODO: handle org changes (e.x. subscribe to event and then update store I guess?)
+export const queryHistoryState = atom<MapOf<QueryHistoryItem>>({
+  key: 'query.queryHistory',
+  default: {},
+});

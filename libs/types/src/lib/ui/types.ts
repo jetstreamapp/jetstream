@@ -300,3 +300,20 @@ export interface BulkDownloadJob {
   fields: string[];
   records: MapOf<string>[];
 }
+
+export interface QueryHistoryItem {
+  key: string; // org:object:(lowercase/removespaces(soql))
+  org: string;
+  sObject: string;
+  label: string;
+  soql: string;
+  created: Date;
+  lastRun: Date;
+  runCount: number;
+}
+
+export interface QueryHistorySelection {
+  key: string;
+  name: string;
+  label: string;
+}

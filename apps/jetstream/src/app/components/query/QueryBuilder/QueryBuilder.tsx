@@ -30,6 +30,7 @@ import SoqlTextarea from '../QueryOptions/SoqlTextarea';
 import QuerySObjects from './QuerySObjects';
 import QueryResetButton from '../QueryOptions/QueryResetButton';
 import QuerySubquerySObjects from './QuerySubquerySObjects';
+import QueryHistory from '../QueryHistory/QueryHistory';
 
 // eslint-disable-next-line @typescript-eslint/no-empty-interface
 export interface QueryBuilderProps {}
@@ -144,22 +145,19 @@ export const QueryBuilder: FunctionComponent<QueryBuilderProps> = () => {
                 <Icon type="utility" icon="favorite" className="slds-button__icon slds-button__icon_left" omitContainer />
                 View Favorites
               </button>
-              <button
-                className={classNames('slds-button slds-button_neutral', {
-                  'slds-is-selected': isFavorite && false,
-                })}
-                aria-haspopup="true"
-                title="Favorites"
-              >
-                <Icon type="utility" icon="date_time" className="slds-button__icon slds-button__icon_left" omitContainer />
-                View History
-              </button>
+              <QueryHistory />
               {soql && (
                 <Link
                   className="slds-button slds-button_brand"
                   to={{
                     pathname: `${match.url}/results`,
-                    state: { soql },
+                    state: {
+                      soql,
+                      sobject: {
+                        label: selectedSObject.label,
+                        name: selectedSObject.name,
+                      },
+                    },
                   }}
                 >
                   <Icon type="utility" icon="right" className="slds-button__icon slds-button__icon_left" />

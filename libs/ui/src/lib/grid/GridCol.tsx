@@ -18,6 +18,12 @@ export interface GridColProps {
   bump?: TopRightBottomLeft;
   size?: number;
   maxSize?: number; // defaults to 12
+  sizeSmall?: number;
+  maxSizeSmall?: number;
+  sizeMedium?: number;
+  maxSizeMedium?: number;
+  sizeLarge?: number;
+  maxSizeLarge?: number;
 }
 
 function getClassWithModifier(base: string, modifier?: TopRightBottomLeft) {
@@ -38,6 +44,12 @@ export const GridCol: FunctionComponent<GridColProps> = ({
   bump,
   size,
   maxSize = DEFAULT_SIZE,
+  sizeSmall,
+  maxSizeSmall = DEFAULT_SIZE,
+  sizeMedium,
+  maxSizeMedium = DEFAULT_SIZE,
+  sizeLarge,
+  maxSizeLarge = DEFAULT_SIZE,
   children,
 }) => {
   return (
@@ -54,6 +66,9 @@ export const GridCol: FunctionComponent<GridColProps> = ({
         },
         bump ? getClassWithModifier('slds-col_bump-', bump) : undefined,
         size ? `slds-size_${size}-of-${maxSize}` : undefined,
+        sizeSmall ? `slds-small-size_${sizeSmall}-of-${maxSizeSmall}` : undefined,
+        sizeMedium ? `slds-medium-size_${sizeMedium}-of-${maxSizeMedium}` : undefined,
+        sizeLarge ? `slds-large-size_${sizeLarge}-of-${maxSizeLarge}` : undefined,
         className
       )}
     >

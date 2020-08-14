@@ -71,6 +71,13 @@ export function pluralizeIfMultiple(value: string, items: any[], plural: string 
   return value;
 }
 
+export function pluralizeFromNumber(value: string, num: number, plural: string = 's'): string {
+  if (num !== 1) {
+    return `${value}${plural}`;
+  }
+  return value;
+}
+
 export function getIdAndObjFromRecordUrl(url: string): [string, string] {
   const [id, sobject] = url.split('/').reverse();
   return [id, sobject];

@@ -6,7 +6,7 @@ import { QueryResultsColumn } from '@jetstream/api-interfaces';
 import { logger } from '@jetstream/shared/client-logger';
 import { query } from '@jetstream/shared/data';
 import { useObservable } from '@jetstream/shared/ui-utils';
-import { pluralizeIfMultiple, replaceSubqueryQueryResultsWithRecords } from '@jetstream/shared/utils';
+import { pluralizeIfMultiple, replaceSubqueryQueryResultsWithRecords, NOOP } from '@jetstream/shared/utils';
 import { AsyncJob, AsyncJobNew, BulkDownloadJob, MapOf, QueryFieldHeader, Record, SalesforceOrgUi } from '@jetstream/types';
 import {
   AutoFullHeightContainer,
@@ -24,17 +24,20 @@ import numeral from 'numeral';
 import React, { Fragment, FunctionComponent, useEffect, useMemo, useState } from 'react';
 import { Link, NavLink, useLocation } from 'react-router-dom';
 import { Column } from 'react-table';
-import { useRecoilState, useRecoilValue } from 'recoil';
+import { useRecoilState, useRecoilValue, useSetRecoilState } from 'recoil';
 import { filter } from 'rxjs/operators';
-import { FieldSubquery, getFlattenedFields } from 'soql-parser-js';
+import { FieldSubquery, getFlattenedFields, Query } from 'soql-parser-js';
 import { isFieldSubquery } from 'soql-parser-js/dist/src/utils';
 import { applicationCookieState, selectedOrgState } from '../../../app-state';
 import * as fromJetstreamEvents from '../../core/jetstream-events';
+import * as fromQueryHistory from '../QueryHistory/query-history.state';
 import QueryDownloadModal from './QueryDownloadModal';
 import QueryResultsSoqlPanel from './QueryResultsSoqlPanel';
 import { getQueryResultsCellContents } from './QueryResultsTable/query-results-table-utils';
 import QueryResultsViewCellModal from './QueryResultsTable/QueryResultsViewCellModal';
 import QueryResultsViewRecordFields from './QueryResultsViewRecordFields';
+import { DescribeGlobalSObjectResult } from 'jsforce';
+import QueryHistory from '../QueryHistory/QueryHistory';
 
 function getStubbedField(field: string) {
   return {
@@ -62,7 +65,7 @@ function getStubbedField(field: string) {
 export interface QueryResultsProps {}
 
 export const QueryResults: FunctionComponent<QueryResultsProps> = React.memo(() => {
-  const location = useLocation<{ soql: string }>();
+  const location = useLocation<{ soql: string; sobject?: { name: string; label: string } }>();
   const [soqlPanelOpen, setSoqlPanelOpen] = useState<boolean>(false);
   const [recordDetailPanelOpen, setRecordDetailPanelOpen] = useState<boolean>(false);
   const [recordDetailSelectedRow, setRecordDetailSelectedRow] = useState<Record>(null);
@@ -79,6 +82,7 @@ export const QueryResults: FunctionComponent<QueryResultsProps> = React.memo(() 
   const [{ serverUrl }] = useRecoilState(applicationCookieState);
   const [totalRecordCount, setTotalRecordCount] = useState<number>(null);
   const [subqueryFieldMap, setSubqueryFieldMap] = useState<MapOf<string[]>>({});
+  const [queryHistory, setQueryHistory] = useRecoilState(fromQueryHistory.queryHistoryState);
   const bulkDeleteJob = useObservable(
     fromJetstreamEvents.getObservable('jobFinished').pipe(filter((ev: AsyncJob) => ev.type === 'BulkDelete'))
   );
@@ -139,6 +143,29 @@ export const QueryResults: FunctionComponent<QueryResultsProps> = React.memo(() 
     //
   }
 
+  function saveQueryHistory(soql: string, sObject: string) {
+    // location.state.selectedSObject
+    let sObjectLabel: string;
+    // if object name did not change since last query, use data from location
+    if (location.state && location.state.sobject) {
+      if (location.state.sobject.name === sObject) {
+        sObjectLabel = location.state.sobject.label;
+      }
+    }
+    if (soql && sObject) {
+      fromQueryHistory
+        .getQueryHistoryItem(selectedOrg, soql, sObject, sObjectLabel)
+        .then((queryHistoryItem) => {
+          if (queryHistory && queryHistory[queryHistoryItem.key]) {
+            queryHistoryItem.runCount = queryHistory[queryHistoryItem.key].runCount + 1;
+            queryHistoryItem.created = queryHistory[queryHistoryItem.key].created;
+          }
+          setQueryHistory({ ...queryHistory, [queryHistoryItem.key]: queryHistoryItem });
+        })
+        .catch((ex) => logger.warn(ex));
+    }
+  }
+
   async function executeQuery(soql: string) {
     try {
       setLoading(true);
@@ -147,6 +174,7 @@ export const QueryResults: FunctionComponent<QueryResultsProps> = React.memo(() 
       setFields(null);
       const results = await query(selectedOrg, soql).then(replaceSubqueryQueryResultsWithRecords);
       setNextRecordsUrl(results.queryResults.nextRecordsUrl);
+      saveQueryHistory(soql, results.parsedQuery?.sObject || results.columns?.entityName);
 
       let queryColumnsByPath: MapOf<QueryResultsColumn> = {};
 
@@ -302,6 +330,7 @@ export const QueryResults: FunctionComponent<QueryResultsProps> = React.memo(() 
             <Icon type="utility" icon="component_customization" className="slds-button__icon slds-button__icon_left" omitContainer />
             Manage SOQL Query
           </button>
+          <QueryHistory />
         </ToolbarItemGroup>
         <ToolbarItemActions>
           {/* FIXME: strongly type me! */}
