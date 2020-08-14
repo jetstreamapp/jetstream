@@ -120,17 +120,17 @@ export const Jobs: FunctionComponent<JobsProps> = () => {
                   statusMessage: error || 'An unknown error ocurred',
                 };
               } else {
-                const results = data.results as string;
+                const { fileData, fileName, mimeType } = data.results as { fileData: any; mimeType: MimeType; fileName: string };
 
                 newJobs[job.id] = {
                   ...job,
-                  results,
                   finished: new Date(),
                   lastActivity: new Date(),
                   status: 'success',
                   statusMessage: 'Records downloaded successfully',
                 };
-                saveFile(results, 'query-results.csv', MIME_TYPES.CSV);
+
+                saveFile(fileData, fileName, mimeType);
               }
               setJobs(newJobs);
             } catch (ex) {

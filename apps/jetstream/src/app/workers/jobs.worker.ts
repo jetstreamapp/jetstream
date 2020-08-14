@@ -17,6 +17,8 @@ import {
   replaceSubqueryQueryResultsWithRecords,
 } from '@jetstream/shared/utils';
 import { unparse } from 'papaparse';
+import { prepareExcelFile, prepareCsvFile } from '../../../../../libs/shared/ui-utils/src';
+import { MIME_TYPES } from '../../../../../libs/shared/constants/src';
 
 // eslint-disable-next-line no-restricted-globals
 const ctx: Worker = self as any;
@@ -52,7 +54,7 @@ async function handleMessage(name: AsyncJobType, payloadData: AsyncJobWorkerMess
     case 'BulkDownload': {
       try {
         const { org, job } = payloadData as AsyncJobWorkerMessagePayload<BulkDownloadJob>;
-        const { fields, records } = job.meta;
+        const { fields, records, fileFormat, fileName } = job.meta;
         let { nextRecordsUrl } = job.meta;
         let downloadedRecords = flattenRecords(records, fields);
         let done = false;
@@ -64,7 +66,25 @@ async function handleMessage(name: AsyncJobType, payloadData: AsyncJobWorkerMess
           downloadedRecords = downloadedRecords.concat(flattenRecords(queryResults.records, fields));
         }
 
-        const results = unparse({ data: flattenRecords(downloadedRecords, fields), fields }, { header: true, quotes: true });
+        const data = flattenRecords(downloadedRecords, fields);
+        let mimeType: string;
+        let fileData;
+
+        switch (fileFormat) {
+          case 'xlsx': {
+            fileData = prepareExcelFile(data, fields);
+            mimeType = MIME_TYPES.XLSX;
+            break;
+          }
+          case 'csv': {
+            fileData = prepareCsvFile(data, fields);
+            mimeType = MIME_TYPES.CSV;
+            break;
+          }
+          default:
+            throw new Error('A valid file type type has not been selected');
+        }
+        const results = { fileData, mimeType, fileName };
 
         const response: AsyncJobWorkerMessageResponse = { job, results };
         replyToMessage(name, response);

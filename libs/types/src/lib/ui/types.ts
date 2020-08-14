@@ -1,10 +1,13 @@
 import { QueryResultsColumn } from '@jetstream/api-interfaces';
 import { MapOf } from '@jetstream/types';
-import { Field, ChildRelationship } from 'jsforce';
+import { ChildRelationship, Field } from 'jsforce';
 import { ReactNode } from 'react';
 import { FieldDefinition } from '../salesforce/types';
 import { SalesforceOrgUi } from '../types';
-// import { Moment } from 'moment-mini';
+
+export type FileExtCsv = 'csv';
+export type FileExtXLSX = 'xlsx';
+export type FileExtCsvXLSX = FileExtCsv | FileExtXLSX;
 
 export type IconType = 'action' | 'custom' | 'doctype' | 'standard' | 'utility';
 export interface IconObj {
@@ -136,9 +139,10 @@ export type PositionBottom = 'bottom';
 export type PositionBottomLeft = 'bottom-left';
 export type PositionBottomRight = 'bottom-right';
 
-export type MimeType = MimeTypePlainText | MimeTypeCsv;
+export type MimeType = MimeTypePlainText | MimeTypeCsv | MimeTypeOctetStream;
 export type MimeTypePlainText = 'text/plain;charset=utf-8';
 export type MimeTypeCsv = 'text/csv;charset=utf-8';
+export type MimeTypeOctetStream = 'application/octet-stream;charset=utf-8';
 
 // Generic status types
 export type Info = 'info';
@@ -303,6 +307,8 @@ export interface BulkDownloadJob {
   nextRecordsUrl: string;
   fields: string[];
   records: MapOf<string>[];
+  fileFormat: FileExtCsvXLSX;
+  fileName: string;
 }
 
 export interface QueryHistoryItem {

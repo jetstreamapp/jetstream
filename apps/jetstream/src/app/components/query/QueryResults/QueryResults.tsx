@@ -7,7 +7,7 @@ import { logger } from '@jetstream/shared/client-logger';
 import { query } from '@jetstream/shared/data';
 import { useObservable } from '@jetstream/shared/ui-utils';
 import { pluralizeIfMultiple, replaceSubqueryQueryResultsWithRecords, NOOP } from '@jetstream/shared/utils';
-import { AsyncJob, AsyncJobNew, BulkDownloadJob, MapOf, QueryFieldHeader, Record, SalesforceOrgUi } from '@jetstream/types';
+import { AsyncJob, AsyncJobNew, BulkDownloadJob, MapOf, QueryFieldHeader, Record, SalesforceOrgUi, FileExtCsvXLSX } from '@jetstream/types';
 import {
   AutoFullHeightContainer,
   DataTable,
@@ -285,7 +285,7 @@ export const QueryResults: FunctionComponent<QueryResultsProps> = React.memo(() 
     }
   }
 
-  function handleDownloadFromServer() {
+  function handleDownloadFromServer(fileFormat: FileExtCsvXLSX, fileName: string) {
     const jobs: AsyncJobNew<BulkDownloadJob>[] = [
       {
         type: 'BulkDownload',
@@ -294,6 +294,8 @@ export const QueryResults: FunctionComponent<QueryResultsProps> = React.memo(() 
           fields: fields.map((field) => field.accessor),
           records: records,
           nextRecordsUrl,
+          fileFormat,
+          fileName,
         },
       },
     ];
@@ -303,6 +305,7 @@ export const QueryResults: FunctionComponent<QueryResultsProps> = React.memo(() 
   return (
     <div>
       <QueryDownloadModal
+        org={selectedOrg}
         downloadModalOpen={downloadModalOpen}
         fields={fields}
         records={records}

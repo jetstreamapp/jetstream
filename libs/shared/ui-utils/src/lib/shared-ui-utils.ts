@@ -1,22 +1,24 @@
-import { Field } from 'jsforce';
-import { orderObjectsBy } from '@jetstream/shared/utils';
+import { logger } from '@jetstream/shared/client-logger';
+import { HTTP } from '@jetstream/shared/constants';
+import { orderObjectsBy, REGEX } from '@jetstream/shared/utils';
 import {
+  ExpressionConditionRowSelectedItems,
+  ExpressionType,
+  ListItem,
+  MapOf,
   MimeType,
   PositionAll,
   QueryFilterOperator,
-  ExpressionType,
   SalesforceOrgUi,
-  ExpressionRowValueType,
-  ExpressionConditionRowSelectedItems,
-  ListItem,
 } from '@jetstream/types';
 import { saveAs } from 'file-saver';
-import { Placement as tippyPlacement } from 'tippy.js';
-import { WhereClause, Operator, LiteralType } from 'soql-parser-js';
-import { HTTP } from '@jetstream/shared/constants';
-import { logger } from '@jetstream/shared/client-logger';
+import { Field } from 'jsforce';
 import { get as safeGet } from 'lodash';
 import isString from 'lodash/isString';
+import { unparse } from 'papaparse';
+import { LiteralType, Operator, WhereClause } from 'soql-parser-js';
+import { Placement as tippyPlacement } from 'tippy.js';
+import * as XLSX from 'xlsx';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function parseQueryParams<T = any>(queryString: string): T {
@@ -164,8 +166,39 @@ export function polyfillFieldDefinition(field: Field) {
   return `${prefix}${value}${suffix}`;
 }
 
+export function prepareExcelFile(data: MapOf<string>[], header: string[]): ArrayBuffer {
+  const workbook = XLSX.utils.book_new();
+  const worksheet = XLSX.utils.json_to_sheet<MapOf<string>>(data, {
+    header,
+  });
+  XLSX.utils.book_append_sheet(workbook, worksheet, 'Records');
+
+  // https://github.com/sheetjs/sheetjs#writing-options
+  const workbookArrayBuffer: ArrayBuffer = XLSX.write(workbook, {
+    bookType: 'xlsx',
+    bookSST: false,
+    type: 'array', // ArrayBuffer
+  });
+  return workbookArrayBuffer;
+}
+
+export function prepareCsvFile(data: MapOf<string>[], header: string[]): string {
+  return unparse(
+    {
+      data,
+      fields: header,
+    },
+    { header: true, quotes: true }
+  );
+}
+
+export function getFilename(org: SalesforceOrgUi, parts: string[]) {
+  return `${parts.join('-')}-${org.orgName}-${org.username}`.replace(REGEX.SAFE_FILENAME, '_');
+}
+
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function saveFile(content: any, filename: string, type: MimeType) {
+  // saveAs(new Blob([wbout],{type:"application/octet-stream"}), "test.xlsx");
   const blob = new Blob([content], { type });
   saveAs(blob, filename);
 }

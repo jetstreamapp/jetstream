@@ -3,29 +3,33 @@
 /** @jsx jsx */
 import { jsx } from '@emotion/core';
 import { MIME_TYPES } from '@jetstream/shared/constants';
-import { saveFile } from '@jetstream/shared/ui-utils';
+import { getFilename, prepareCsvFile, prepareExcelFile, saveFile } from '@jetstream/shared/ui-utils';
 import { flattenRecords } from '@jetstream/shared/utils';
-import { Record, QueryFieldHeader } from '@jetstream/types';
-import { Modal, Radio, RadioGroup } from '@jetstream/ui';
-import { unparse } from 'papaparse';
-import { Fragment, FunctionComponent, useState } from 'react';
+import { FileExtCsv, FileExtCsvXLSX, FileExtXLSX, QueryFieldHeader, Record, SalesforceOrgUi, MimeType } from '@jetstream/types';
+import { Input, Modal, Radio, RadioGroup } from '@jetstream/ui';
 import numeral from 'numeral';
-// eslint-disable-next-line @typescript-eslint/no-empty-interface
+import { Fragment, FunctionComponent, useState, useEffect } from 'react';
+
 export interface QueryDownloadModalProps {
+  org: SalesforceOrgUi;
   downloadModalOpen: boolean;
   fields: QueryFieldHeader[];
   records: Record[];
   selectedRecords: Record[];
   totalRecordCount?: number;
   onModalClose: () => void;
-  onDownloadFromServer: () => void;
+  onDownloadFromServer: (fileFormat: FileExtCsvXLSX, fileName: string) => void;
 }
 
 export const RADIO_ALL_BROWSER = 'all-browser';
 export const RADIO_ALL_SERVER = 'all-server';
 export const RADIO_SELECTED = 'selected';
 
+export const RADIO_FORMAT_XLSX: FileExtXLSX = 'xlsx';
+export const RADIO_FORMAT_CSV: FileExtCsv = 'csv';
+
 export const QueryDownloadModal: FunctionComponent<QueryDownloadModalProps> = ({
+  org,
   downloadModalOpen,
   fields,
   records,
@@ -35,26 +39,48 @@ export const QueryDownloadModal: FunctionComponent<QueryDownloadModalProps> = ({
   onDownloadFromServer,
   children,
 }) => {
-  const [radioValue, setRadioValue] = useState<string>(RADIO_ALL_BROWSER);
+  const [hasMoreRecords, setHasMoreRecords] = useState<boolean>(false);
+  const [downloadRecordsValue, setDownloadRecordsValue] = useState<string>(hasMoreRecords ? RADIO_ALL_SERVER : RADIO_ALL_BROWSER);
+  const [fileFormat, setFileFormat] = useState<FileExtCsvXLSX>(RADIO_FORMAT_XLSX);
+  const [fileName, setFileName] = useState<string>(getFilename(org, ['records']));
+
+  useEffect(() => {
+    const hasMoreRecordsTemp = totalRecordCount && records && totalRecordCount > records.length;
+    setHasMoreRecords(hasMoreRecordsTemp);
+    setDownloadRecordsValue(hasMoreRecordsTemp ? RADIO_ALL_SERVER : RADIO_ALL_BROWSER);
+  }, [totalRecordCount, records]);
 
   function downloadRecords() {
     // open modal
     try {
-      if (radioValue === RADIO_ALL_SERVER) {
+      const fileNameWithExt = `${fileName}.${fileFormat}`;
+      if (downloadRecordsValue === RADIO_ALL_SERVER) {
         // emit event, which starts job, which downloads in the background
-        onDownloadFromServer();
+        onDownloadFromServer(fileFormat, fileNameWithExt);
         onModalClose();
       } else {
         const stringFields = fields.map((field) => field.accessor);
-        const activeRecords = radioValue === RADIO_ALL_BROWSER ? records : selectedRecords;
-        const csv = unparse(
-          {
-            data: flattenRecords(activeRecords, stringFields),
-            fields: stringFields,
-          },
-          { header: true, quotes: true }
-        );
-        saveFile(csv, 'query-results.csv', MIME_TYPES.CSV);
+        const activeRecords = downloadRecordsValue === RADIO_ALL_BROWSER ? records : selectedRecords;
+        const data = flattenRecords(activeRecords, stringFields);
+        let mimeType: MimeType;
+        let fileData;
+        switch (fileFormat) {
+          case 'xlsx': {
+            fileData = prepareExcelFile(data, stringFields);
+            mimeType = MIME_TYPES.XLSX;
+            break;
+          }
+          case 'csv': {
+            fileData = prepareCsvFile(data, stringFields);
+            mimeType = MIME_TYPES.CSV;
+            break;
+          }
+          default:
+            throw new Error('A valid file type type has not been selected');
+        }
+
+        saveFile(fileData, fileNameWithExt, mimeType);
+
         onModalClose();
       }
     } catch (ex) {
@@ -75,32 +101,32 @@ export const QueryDownloadModal: FunctionComponent<QueryDownloadModalProps> = ({
           onClose={() => onModalClose()}
         >
           <div>
-            <RadioGroup label="Which Records" required>
-              {totalRecordCount && totalRecordCount > records.length && (
+            <RadioGroup label="Which Records" required className="slds-m-bottom_small">
+              {hasMoreRecords && (
                 <Fragment>
                   <Radio
                     name="radio-download"
                     label={`All records (${numeral(totalRecordCount).format('0,0')})`}
                     value={RADIO_ALL_SERVER}
-                    checked={radioValue === RADIO_ALL_SERVER}
-                    onChange={setRadioValue}
+                    checked={downloadRecordsValue === RADIO_ALL_SERVER}
+                    onChange={setDownloadRecordsValue}
                   />
                   <Radio
                     name="radio-download"
                     label={`First set of records (${numeral(records.length).format('0,0')})`}
                     value={RADIO_ALL_BROWSER}
-                    checked={radioValue === RADIO_ALL_BROWSER}
-                    onChange={setRadioValue}
+                    checked={downloadRecordsValue === RADIO_ALL_BROWSER}
+                    onChange={setDownloadRecordsValue}
                   />
                 </Fragment>
               )}
-              {(!totalRecordCount || totalRecordCount <= records.length) && (
+              {!hasMoreRecords && (
                 <Radio
                   name="radio-download"
                   label={`All records (${numeral(totalRecordCount).format('0,0')})`}
                   value={RADIO_ALL_BROWSER}
-                  checked={radioValue === RADIO_ALL_BROWSER}
-                  onChange={setRadioValue}
+                  checked={downloadRecordsValue === RADIO_ALL_BROWSER}
+                  onChange={setDownloadRecordsValue}
                 />
               )}
               <Radio
@@ -108,10 +134,29 @@ export const QueryDownloadModal: FunctionComponent<QueryDownloadModalProps> = ({
                 label={`Selected records (${selectedRecords?.length || 0})`}
                 value={RADIO_SELECTED}
                 disabled={!selectedRecords?.length}
-                checked={radioValue === RADIO_SELECTED}
-                onChange={setRadioValue}
+                checked={downloadRecordsValue === RADIO_SELECTED}
+                onChange={setDownloadRecordsValue}
               />
             </RadioGroup>
+            <RadioGroup label="File Format" required className="slds-m-bottom_small">
+              <Radio
+                name="radio-download-file-format"
+                label="Excel"
+                value={RADIO_FORMAT_XLSX}
+                checked={fileFormat === RADIO_FORMAT_XLSX}
+                onChange={(value: FileExtXLSX) => setFileFormat(value)}
+              />
+              <Radio
+                name="radio-download-file-format"
+                label="CSV"
+                value={RADIO_FORMAT_CSV}
+                checked={fileFormat === RADIO_FORMAT_CSV}
+                onChange={(value: FileExtCsv) => setFileFormat(value)}
+              />
+            </RadioGroup>
+            <Input label="Filename" isRequired={true} rightAddon={`.${fileFormat}`}>
+              <input id="download-filename" className="slds-input" value={fileName} onChange={(event) => setFileName(event.target.value)} />
+            </Input>
           </div>
         </Modal>
       )}

@@ -10,5 +10,8 @@ module.exports = (config) => {
   // https://webpack.js.org/loaders/worker-loader/
   config.module.rules.unshift({ test: /\.worker\.ts$/, loader: 'worker-loader' });
 
+  config.node = config.node || {};
+  config.node = { ...config.node, process: false, Buffer: false };
+
   return config;
 };
