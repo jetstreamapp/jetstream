@@ -1,7 +1,7 @@
 /** @jsx jsx */
 import { jsx } from '@emotion/core';
 import { FunctionComponent, useEffect, useState } from 'react';
-import { Panel } from '@jetstream/ui';
+import { Panel, CodeEditor } from '@jetstream/ui';
 import { Textarea } from '@jetstream/ui';
 import { useHotkeys } from 'react-hotkeys-hook';
 import { Icon } from '@jetstream/ui';
@@ -29,7 +29,7 @@ export const QueryResultsSoqlPanel: FunctionComponent<QueryResultsSoqlPanelProps
   return (
     <Panel heading="SOQL Query" isOpen={isOpen} size="lg" fullHeight={false} position="left" onClosed={onClosed}>
       <Textarea id="soql" label="SOQL Query">
-        <textarea className="slds-textarea" rows={15} value={userSoql} onChange={(event) => setUserSoql(event.target.value)} />
+        <CodeEditor value={userSoql} lineNumbers onChange={setUserSoql} />
       </Textarea>
       <div className="slds-grid slds-grid_align-end">
         <button type="submit" className="slds-button slds-button_brand" onClick={() => submitQuery()}>

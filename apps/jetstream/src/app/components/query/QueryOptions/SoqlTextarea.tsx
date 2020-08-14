@@ -1,5 +1,5 @@
 import React, { FunctionComponent } from 'react';
-import { Textarea } from '@jetstream/ui';
+import { Textarea, CodeEditor } from '@jetstream/ui';
 import { useRecoilValue } from 'recoil';
 import * as fromQueryState from '../query.state';
 
@@ -11,7 +11,8 @@ export const SoqlTextarea: FunctionComponent<SoqlTextareaProps> = React.memo(() 
 
   return (
     <Textarea id="soql-textarea" label="Generated SOQL">
-      <textarea className="slds-textarea" value={soql} disabled id="soql-textarea" cols={30} rows={10}></textarea>
+      {/* <textarea className="slds-textarea" value={soql} disabled id="soql-textarea" cols={30} rows={10}></textarea> */}
+      <CodeEditor value={soql} readOnly lineNumbers />
     </Textarea>
   );
 });

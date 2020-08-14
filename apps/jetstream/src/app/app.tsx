@@ -2,16 +2,17 @@
 import { css, jsx } from '@emotion/core';
 import { UserProfile } from '@jetstream/types';
 import { ConfirmationServiceProvider } from '@jetstream/ui';
-import { Suspense, useState } from 'react';
+import { Suspense, useState, lazy } from 'react';
 import { BrowserRouter as Router, Route, Switch, Redirect } from 'react-router-dom';
 import { RecoilRoot } from 'recoil';
 import AppInitializer from './components/core/AppInitializer';
 import HeaderNavbar from './components/core/HeaderNavbar';
-import Feedback from './components/feedback/Feedback';
 import OrgSelectionRequired from './components/orgs/OrgSelectionRequired';
-import Query from './components/query/Query';
 import { ErrorBoundary } from 'react-error-boundary';
 import ErrorBoundaryFallback from './components/core/ErrorBoundaryFallback';
+
+const Query = lazy(() => import('./components/query/Query'));
+const Feedback = lazy(() => import('./components/feedback/Feedback'));
 
 export const App = () => {
   const [userProfile, setUserProfile] = useState<UserProfile>();

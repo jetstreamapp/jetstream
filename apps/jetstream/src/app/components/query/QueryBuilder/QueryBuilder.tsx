@@ -98,7 +98,6 @@ export const QueryBuilder: FunctionComponent<QueryBuilderProps> = () => {
     } else if (selectedSObject && selectedSObject.name !== priorSelectedSObject.name) {
       setPriorSelectedSObject(selectedSObject);
       resetQueryFieldsMapState();
-      resetQueryFieldsKey();
       resetQueryChildRelationships();
       resetSelectedSubqueryFieldsState();
       resetQueryFiltersState();

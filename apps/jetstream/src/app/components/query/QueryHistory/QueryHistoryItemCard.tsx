@@ -1,7 +1,7 @@
 import { pluralizeFromNumber } from '@jetstream/shared/utils';
 import { QueryHistoryItem } from '@jetstream/types';
-import { Card, Grid, GridCol, Icon } from '@jetstream/ui';
-import React, { Fragment, FunctionComponent } from 'react';
+import { Card, Grid, GridCol, Icon, CodeEditor, Textarea } from '@jetstream/ui';
+import React, { Fragment, FunctionComponent, useState, useEffect } from 'react';
 import moment from 'moment-mini';
 import { useRouteMatch, Link } from 'react-router-dom';
 
@@ -12,6 +12,13 @@ export interface QueryHistoryItemCardProps {
 
 export const QueryHistoryItemCard: FunctionComponent<QueryHistoryItemCardProps> = ({ item }) => {
   const match = useRouteMatch();
+  const [readyToRenderCode, setReadyToRenderCode] = useState(false);
+
+  useEffect(() => {
+    setTimeout(() => {
+      setReadyToRenderCode(true);
+    });
+  }, []);
 
   const { sObject, label, soql, runCount, lastRun } = item;
 
@@ -52,11 +59,13 @@ export const QueryHistoryItemCard: FunctionComponent<QueryHistoryItemCardProps> 
               Last Run: {moment(lastRun).format('LLL')} - Run: {runCount} {pluralizeFromNumber('time', runCount)}
             </GridCol>
             <GridCol>
-              <div style={{ maxHeight: 75 }} className="slds-scrollable_y">
-                <pre className="border-radius-25 is-disabled slds-m-around_none slds-p-horizontal_x-small" title={soql}>
-                  {soql}
-                </pre>
-              </div>
+              {soql && (
+                <div>
+                  <Textarea id="soql" label="SOQL Query">
+                    <CodeEditor value={soql} lineNumbers readOnly="nocursor" size={{ height: 100 }} shouldRefresh={readyToRenderCode} />
+                  </Textarea>
+                </div>
+              )}
             </GridCol>
           </Grid>
         </Fragment>
