@@ -227,19 +227,17 @@ export const QueryChildFieldsComponent: FunctionComponent<QueryChildFieldsProps>
   return (
     <Fragment>
       {selectedSObject && queryFieldsMap[baseKey] && (
-        <AutoFullHeightContainer fillHeight={!parentRelationshipName}>
-          <SobjectFieldList
-            level={0}
-            itemKey={baseKey}
-            queryFieldsMap={queryFieldsMap}
-            sobject={selectedSObject}
-            errorReattempt={handleErrorReattempt}
-            onToggleExpand={handleToggleFieldExpand}
-            onSelectField={handleFieldSelection}
-            onSelectAll={handleFieldSelectAll}
-            onFilterChanged={handleFieldFilterChanged}
-          />
-        </AutoFullHeightContainer>
+        <SobjectFieldList
+          level={0}
+          itemKey={baseKey}
+          queryFieldsMap={queryFieldsMap}
+          sobject={selectedSObject}
+          errorReattempt={handleErrorReattempt}
+          onToggleExpand={handleToggleFieldExpand}
+          onSelectField={handleFieldSelection}
+          onSelectAll={handleFieldSelectAll}
+          onFilterChanged={handleFieldFilterChanged}
+        />
       )}
     </Fragment>
   );

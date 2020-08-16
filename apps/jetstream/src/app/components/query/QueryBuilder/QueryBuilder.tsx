@@ -32,6 +32,7 @@ import QueryResetButton from '../QueryOptions/QueryResetButton';
 import QuerySubquerySObjects from './QuerySubquerySObjects';
 import QueryHistory from '../QueryHistory/QueryHistory';
 
+const HEIGHT_BUFFER = 170;
 // eslint-disable-next-line @typescript-eslint/no-empty-interface
 export interface QueryBuilderProps {}
 
@@ -172,7 +173,7 @@ export const QueryBuilder: FunctionComponent<QueryBuilderProps> = () => {
             </PageHeaderActions>
           </PageHeaderRow>
         </PageHeader>
-        <AutoFullHeightContainer className="slds-p-horizontal_x-small slds-scrollable_none">
+        <AutoFullHeightContainer className="slds-p-horizontal_x-small slds-scrollable_none" bottomBuffer={HEIGHT_BUFFER}>
           <Split
             sizes={[17, 33, 50]}
             minSize={[200, 300, 300]}
@@ -242,7 +243,7 @@ export const QueryBuilder: FunctionComponent<QueryBuilderProps> = () => {
               )}
             </div>
             <div className="slds-p-horizontal_x-small">
-              <AutoFullHeightContainer>
+              <AutoFullHeightContainer fillHeight bottomBuffer={HEIGHT_BUFFER}>
                 {selectedSObject && showRightHandPane && (
                   <Accordion
                     initOpenIds={['filters', 'soql']}

@@ -44,14 +44,12 @@ export const DataTable: FunctionComponent<DataTableProps> = ({ columns, data, al
     (hooks) => {
       if (allowRowSelection) {
         hooks.visibleColumns.push((columns) => [
-          // Let's make a column for selection
           {
             id: 'selection',
-            width: 32,
-            minWidth: 32,
-            maxWidth: 32,
-            // The header can use the table's getToggleAllRowsSelectedProps method
-            // to render a checkbox
+            disableResizing: true,
+            minWidth: 35,
+            width: 35,
+            maxWidth: 35,
             Header: ({ getToggleAllRowsSelectedProps }) => <RowCheckbox {...getToggleAllRowsSelectedProps()} />,
             Cell: ({ row }) => <RowCheckbox {...row.getToggleRowSelectedProps()} />,
           },
@@ -75,12 +73,7 @@ export const DataTable: FunctionComponent<DataTableProps> = ({ columns, data, al
         className="slds-table slds-table_bordered slds-table_fixed-layout slds-table_resizable-cols  slds-table_col-bordered"
         role="grid"
       >
-        <thead
-          css={css({
-            overflowY: 'auto',
-            overflowX: 'hidden',
-          })}
-        >
+        <thead>
           {headerGroups.map((headerGroup) => (
             <tr {...headerGroup.getHeaderGroupProps()} className="slds-line-height_reset">
               {headerGroup.headers.map((column) => {
@@ -88,7 +81,15 @@ export const DataTable: FunctionComponent<DataTableProps> = ({ columns, data, al
                 switch (column.id) {
                   case CHECKBOX_COLUMN_ID:
                     return (
-                      <th {...column.getHeaderProps()} aria-label={CHECKBOX_COLUMN_ID} scope="col" className="slds-text-align_right">
+                      <th
+                        {...column.getHeaderProps()}
+                        aria-label={CHECKBOX_COLUMN_ID}
+                        scope="col"
+                        className="slds-text-align_right"
+                        css={css`
+                          max-width: 35px;
+                        `}
+                      >
                         <span id="selection-header" className="slds-assistive-text">
                           Choose a row
                         </span>
@@ -144,14 +145,7 @@ export const DataTable: FunctionComponent<DataTableProps> = ({ columns, data, al
             </tr>
           ))}
         </thead>
-        <tbody
-          {...getTableBodyProps()}
-          css={css({
-            overflowY: 'scroll',
-            overflowX: 'hidden',
-            height: '250px',
-          })}
-        >
+        <tbody {...getTableBodyProps()}>
           {rows.map((row, i) => {
             prepareRow(row);
             return (
@@ -169,34 +163,22 @@ export const DataTable: FunctionComponent<DataTableProps> = ({ columns, data, al
                         {...cellProps}
                         className="slds-text-align_right"
                         role="gridcell"
-                        css={css({
-                          flexGrow: 0,
-                        })}
+                        css={css`
+                          max-width: 35px;
+                        `}
                       >
                         {cell.render('Cell')}
                       </td>
                     );
                   } else if (i === (allowRowSelection ? 1 : 0)) {
                     return (
-                      <th
-                        {...cellProps}
-                        scope="row"
-                        css={css({
-                          flexGrow: 0,
-                        })}
-                      >
+                      <th {...cellProps} scope="row">
                         {cell.render('Cell')}
                       </th>
                     );
                   } else {
                     return (
-                      <td
-                        {...cellProps}
-                        role="gridcell"
-                        css={css({
-                          flexGrow: 0,
-                        })}
-                      >
+                      <td {...cellProps} role="gridcell">
                         {cell.render('Cell')}
                       </td>
                     );
