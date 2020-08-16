@@ -62,7 +62,7 @@ export const QueryHistoryItemCard: FunctionComponent<QueryHistoryItemCardProps> 
               {soql && (
                 <div>
                   <Textarea id="soql" label="SOQL Query">
-                    <CodeEditor value={soql} lineNumbers readOnly="nocursor" size={{ height: 100 }} shouldRefresh={readyToRenderCode} />
+                    <CodeEditor value={soql} lineNumbers readOnly="nocursor" size={{ height: 150 }} shouldRefresh={readyToRenderCode} />
                   </Textarea>
                 </div>
               )}
