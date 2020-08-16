@@ -77,7 +77,7 @@ export const QueryResultsViewCellModal: FunctionComponent<QueryResultsViewCellMo
           </div>
         </Modal>
       )}
-      <button className="slds-button" onClick={() => handleOpen()}>
+      <button className="link-button" onClick={() => handleOpen()}>
         <Icon type="utility" icon="search" className="slds-button__icon slds-button__icon_left" omitContainer />
         {Array.isArray(value) ? `${value.length} Records` : 'View Data'}
       </button>
