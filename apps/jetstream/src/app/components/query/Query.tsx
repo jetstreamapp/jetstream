@@ -18,6 +18,7 @@ export const Query: FunctionComponent<QueryProps> = () => {
   const resetQueryFieldsKey = useResetRecoilState(fromQueryState.queryFieldsKey);
   const resetQueryFieldsMapState = useResetRecoilState(fromQueryState.queryFieldsMapState);
   const resetSelectedQueryFieldsState = useResetRecoilState(fromQueryState.selectedQueryFieldsState);
+  const resetSelectedSubqueryFieldsState = useResetRecoilState(fromQueryState.selectedSubqueryFieldsState);
   const resetQueryFiltersState = useResetRecoilState(fromQueryState.queryFiltersState);
   const resetQueryLimitSkip = useResetRecoilState(fromQueryState.queryLimitSkip);
   const resetQueryOrderByState = useResetRecoilState(fromQueryState.queryOrderByState);
@@ -41,6 +42,7 @@ export const Query: FunctionComponent<QueryProps> = () => {
         resetQueryFieldsKey();
         resetQueryFieldsMapState();
         resetSelectedQueryFieldsState();
+        resetSelectedSubqueryFieldsState();
         resetQueryFiltersState();
         resetQueryLimitSkip();
         resetQueryOrderByState();

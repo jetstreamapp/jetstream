@@ -1,3 +1,6 @@
+/** @jsx jsx */
+/* eslint-disable @typescript-eslint/no-explicit-any */
+import { jsx, css } from '@emotion/core';
 import { logger } from '@jetstream/shared/client-logger';
 import { INDEXED_DB } from '@jetstream/shared/constants';
 import { REGEX } from '@jetstream/shared/utils';
@@ -5,7 +8,7 @@ import { QueryHistoryItem, QueryHistorySelection, MapOf } from '@jetstream/types
 import { Grid, GridCol, Icon, List, Modal, SearchInput, EmptyState } from '@jetstream/ui';
 import localforage from 'localforage';
 import numeral from 'numeral';
-import React, { FunctionComponent, useEffect, useState } from 'react';
+import { FunctionComponent, useEffect, useState } from 'react';
 import { useRecoilState, useRecoilValue, useResetRecoilState } from 'recoil';
 import * as fromQueryHistoryState from './query-history.state';
 import QueryHistoryItemCard from './QueryHistoryItemCard';
@@ -82,8 +85,8 @@ export const QueryHistory: FunctionComponent<QueryHistoryProps> = () => {
             </EmptyState>
           )}
           {selectObjectsList.length > 1 && (
-            <Grid>
-              <GridCol size={6} sizeMedium={4}>
+            <Grid className="slds-scrollable_y">
+              <GridCol size={6} sizeMedium={4} className="slds-scrollable_y">
                 <h2 className="slds-text-heading_medium slds-text-align_center">Objects</h2>
                 <div className="slds-p-bottom--xx-small">
                   <SearchInput id="query-history-object-filter" placeholder="Filter Objects" autoFocus onChange={setFilterValue} />
@@ -104,7 +107,13 @@ export const QueryHistory: FunctionComponent<QueryHistoryProps> = () => {
                   })}
                 />
               </GridCol>
-              <GridCol className="slds-p-around_x-small">
+              <GridCol
+                className="slds-p-around_x-small slds-scrollable_y"
+                css={css`
+                  max-height: 75vh;
+                  min-height: 75vh;
+                `}
+              >
                 {queryHistory.map((item) => (
                   <div className="slds-border_bottom" key={item.key}>
                     <QueryHistoryItemCard key={item.key} item={item} />

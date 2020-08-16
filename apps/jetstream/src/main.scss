@@ -24,6 +24,9 @@
   width: 100%;
 }
 
+.modal-full-height {
+}
+
 .border-bottom-thick {
   border-bottom: 3px solid #dddbda;
 }
@@ -52,4 +55,27 @@
 
 .border-radius-25 {
   border-radius: 0.25rem;
+}
+
+/**
+ * Apply to a button to make it look like a link
+ */
+.link-button {
+  background-color: transparent;
+  border: none;
+  cursor: pointer;
+  display: inline;
+  margin: 0;
+  padding: 0;
+
+  color: $brand-text-link;
+  text-decoration: none;
+  transition: color 0.1s linear;
+
+  &:hover,
+  &:active,
+  &:focus {
+    text-decoration: underline;
+    color: $brand-text-link-active;
+  }
 }
