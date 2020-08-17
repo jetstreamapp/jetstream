@@ -18,7 +18,8 @@ export async function handleRequest<T = any>(currRequest: request.SuperAgentRequ
     const response = await currRequest;
     logger.info(`[HTTP][RES][${currRequest.method}][${response.status}]`, currRequest.url, { response: response.body });
     const body: API.RequestResult<T> = response.body;
-    return body.data;
+
+    return body ? body.data : undefined;
   } catch (ex) {
     logger.info('[HTTP][RESPONSE][ERROR]', ex.status, ex.message);
     let message = 'An unknown error has occurred';

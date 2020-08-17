@@ -173,7 +173,7 @@ export const QueryBuilder: FunctionComponent<QueryBuilderProps> = () => {
             </PageHeaderActions>
           </PageHeaderRow>
         </PageHeader>
-        <AutoFullHeightContainer className="slds-p-horizontal_x-small slds-scrollable_none" bottomBuffer={HEIGHT_BUFFER}>
+        <AutoFullHeightContainer className="slds-p-horizontal_x-small slds-scrollable_none" bufferIfNotRendered={HEIGHT_BUFFER}>
           <Split
             sizes={[17, 33, 50]}
             minSize={[200, 300, 300]}
@@ -243,7 +243,7 @@ export const QueryBuilder: FunctionComponent<QueryBuilderProps> = () => {
               )}
             </div>
             <div className="slds-p-horizontal_x-small">
-              <AutoFullHeightContainer fillHeight bottomBuffer={HEIGHT_BUFFER}>
+              <AutoFullHeightContainer fillHeight bufferIfNotRendered={HEIGHT_BUFFER}>
                 {selectedSObject && showRightHandPane && (
                   <Accordion
                     initOpenIds={['filters', 'soql']}

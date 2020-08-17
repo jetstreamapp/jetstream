@@ -32,22 +32,17 @@ export const Query: FunctionComponent<QueryProps> = () => {
   // reset everything if the selected org changes
   useEffect(() => {
     if (selectedOrg && priorSelectedOrg !== selectedOrg.uniqueId) {
-      if (!priorSelectedOrg) {
-        setPriorSelectedOrg(selectedOrg.uniqueId);
-      } else {
-        // resetting these does not work ;(
-        setPriorSelectedOrg(selectedOrg.uniqueId);
-        resetSobjects();
-        resetSelectedSObject();
-        resetQueryFieldsKey();
-        resetQueryFieldsMapState();
-        resetSelectedQueryFieldsState();
-        resetSelectedSubqueryFieldsState();
-        resetQueryFiltersState();
-        resetQueryLimitSkip();
-        resetQueryOrderByState();
-        resetQuerySoqlState();
-      }
+      setPriorSelectedOrg(selectedOrg.uniqueId);
+      resetSobjects();
+      resetSelectedSObject();
+      resetQueryFieldsKey();
+      resetQueryFieldsMapState();
+      resetSelectedQueryFieldsState();
+      resetSelectedSubqueryFieldsState();
+      resetQueryFiltersState();
+      resetQueryLimitSkip();
+      resetQueryOrderByState();
+      resetQuerySoqlState();
     } else if (!selectedOrg) {
       resetSobjects();
       resetSelectedSObject();

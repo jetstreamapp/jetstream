@@ -1,9 +1,9 @@
 /** @jsx jsx */
 import { jsx } from '@emotion/core';
 import { SalesforceOrgUi } from '@jetstream/types';
-import { ButtonGroupContainer, Icon, Popover } from '@jetstream/ui';
+import { ButtonGroupContainer, Icon, Popover, GridCol, Grid } from '@jetstream/ui';
 import startCase from 'lodash/startCase';
-import { FunctionComponent, ReactNode } from 'react';
+import { FunctionComponent, ReactNode, useState, Fragment } from 'react';
 import { SalesforceLogin } from '@jetstream/ui';
 import { useRecoilState } from 'recoil';
 import { applicationCookieState } from '../../app-state';
@@ -12,6 +12,7 @@ import { addOrg } from '@jetstream/shared/ui-utils';
 export interface OrgInfoPopoverProps {
   org: SalesforceOrgUi;
   onAddOrg: (org: SalesforceOrgUi, replaceOrgUniqueId?: string) => void;
+  onRemoveOrg: (org: SalesforceOrgUi) => void;
 }
 
 function getOrgProp(serverUrl: string, org: SalesforceOrgUi, prop: keyof SalesforceOrgUi, label?: string) {
@@ -47,11 +48,11 @@ function getOrgProp(serverUrl: string, org: SalesforceOrgUi, prop: keyof Salesfo
   );
 }
 
-export const OrgInfoPopover: FunctionComponent<OrgInfoPopoverProps> = ({ org, onAddOrg }) => {
+export const OrgInfoPopover: FunctionComponent<OrgInfoPopoverProps> = ({ org, onAddOrg, onRemoveOrg }) => {
   const [applicationState] = useRecoilState(applicationCookieState);
+  const [removeOrgActive, setRemoveOrgActive] = useState(false);
   const hasError = !!org.connectionError;
 
-  // FIXME: we should have a way to know what org was being "fixed" and always replace it in the DB and here
   function handleFixOrg() {
     addOrg(
       { serverUrl: applicationState.serverUrl, loginUrl: org.instanceUrl, replaceOrgUniqueId: org.uniqueId },
@@ -146,6 +147,34 @@ export const OrgInfoPopover: FunctionComponent<OrgInfoPopoverProps> = ({ org, on
               {getOrgProp(applicationState.serverUrl, org, 'email')}
             </tbody>
           </table>
+          <div className="slds-p-around_xx-small">
+            {!removeOrgActive && (
+              <ButtonGroupContainer className="slds-button_stretch">
+                <button className="slds-button slds-button_text-destructive slds-button_stretch" onClick={() => setRemoveOrgActive(true)}>
+                  <Icon type="utility" icon="delete" className="slds-button__icon slds-button__icon_left" omitContainer />
+                  Remove Org
+                </button>
+              </ButtonGroupContainer>
+            )}
+            {removeOrgActive && (
+              <Fragment>
+                <div className="slds-text-color_destructive slds-m-vertical_x-small">
+                  <p className="slds-align_absolute-center">This action will remove this org from jetstream,</p>
+                  <p className="slds-align_absolute-center">are you sure you want to continue?</p>
+                </div>
+                <Grid align="center">
+                  <GridCol>
+                    <button className="slds-button slds-button_neutral" onClick={() => setRemoveOrgActive(false)}>
+                      Keep Org
+                    </button>
+                    <button className="slds-button slds-button_brand" onClick={() => onRemoveOrg(org)}>
+                      Remove Org
+                    </button>
+                  </GridCol>
+                </Grid>
+              </Fragment>
+            )}
+          </div>
         </div>
       }
     >

@@ -20,6 +20,10 @@ export async function getOrgs(): Promise<SalesforceOrgUi[]> {
   return handleRequest(request.get('/api/orgs'));
 }
 
+export async function deleteOrg(org: SalesforceOrgUi): Promise<void> {
+  return handleRequest(request.delete(`/api/orgs/${org.uniqueId}`));
+}
+
 export async function describeGlobal(org: SalesforceOrgUi): Promise<DescribeGlobalResult> {
   return handleRequest(request.get('/api/describe'), org);
 }

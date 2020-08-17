@@ -6,6 +6,7 @@ export interface AutoFullHeightContainerProps {
   className?: string;
   baseCss?: SerializedStyles;
   bottomBuffer?: number;
+  bufferIfNotRendered?: number;
   /** If true, then container will always be the full height no matter how much content the data has */
   fillHeight?: boolean;
 }
@@ -30,12 +31,12 @@ export class AutoFullHeightContainer extends Component<AutoFullHeightContainerPr
   }
 
   getElementTopPosition = () => {
-    return this.ref?.current?.getBoundingClientRect().top || 0;
+    return this.ref?.current?.getBoundingClientRect().top || this.props.bufferIfNotRendered || 0;
   };
 
   render() {
-    const { bottomBuffer, className, baseCss, fillHeight = true, children } = this.props;
-    const { topPosition } = this.state;
+    const { bottomBuffer, bufferIfNotRendered, className, baseCss, fillHeight = true, children } = this.props;
+    const topPosition = this.state.topPosition || bufferIfNotRendered || 0;
     return (
       <div
         className={className}

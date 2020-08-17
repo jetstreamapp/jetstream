@@ -1,11 +1,9 @@
+import { addOrg } from '@jetstream/shared/ui-utils';
 import { SalesforceOrgUi } from '@jetstream/types';
 import { Icon, Input, Popover, Radio, RadioGroup } from '@jetstream/ui';
-import isString from 'lodash/isString';
 import React, { Fragment, FunctionComponent, useEffect, useState } from 'react';
 import { useRecoilState } from 'recoil';
 import { applicationCookieState } from '../../app-state';
-import { logger } from '@jetstream/shared/client-logger';
-import { addOrg } from '@jetstream/shared/ui-utils';
 
 type OrgType = 'prod' | 'sandbox' | 'pre-release' | 'custom';
 

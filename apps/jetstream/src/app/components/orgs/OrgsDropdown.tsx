@@ -6,11 +6,12 @@ import groupBy from 'lodash/groupBy';
 import orderBy from 'lodash/orderBy';
 import uniqBy from 'lodash/uniqBy';
 import { Fragment, FunctionComponent, useEffect, useState } from 'react';
-import { useRecoilState, useRecoilValue } from 'recoil';
-import { salesforceOrgsState, selectedOrgIdState, selectedOrgState } from '../../app-state';
+import { useRecoilState, useRecoilValue, useResetRecoilState } from 'recoil';
+import * as fromAppState from '../../app-state';
 import AddOrg from './AddOrg';
 import OrgInfoPopover from './OrgInfoPopover';
 import OrgPersistence from './OrgPersistence';
+import { deleteOrg, getOrgs } from '@jetstream/shared/data';
 // eslint-disable-next-line @typescript-eslint/no-empty-interface
 export interface OrgsDropdownProps {}
 
@@ -38,9 +39,9 @@ function orgHasError(org?: SalesforceOrgUi): boolean {
 export const OrgsDropdown: FunctionComponent<OrgsDropdownProps> = () => {
   // FIXME: Cannot update a component (`Batcher`) while rendering a different component (`OrgsDropdown`)
   // Recoil needs to fix this
-  const [orgs, setOrgs] = useRecoilState<SalesforceOrgUi[]>(salesforceOrgsState);
-  const [selectedOrgId, setSelectedOrgId] = useRecoilState<string>(selectedOrgIdState);
-  const selectedOrg = useRecoilValue<SalesforceOrgUi>(selectedOrgState);
+  const [orgs, setOrgs] = useRecoilState<SalesforceOrgUi[]>(fromAppState.salesforceOrgsState);
+  const [selectedOrgId, setSelectedOrgId] = useRecoilState<string>(fromAppState.selectedOrgIdState);
+  const selectedOrg = useRecoilValue<SalesforceOrgUi>(fromAppState.selectedOrgState);
   const [visibleOrgs, setVisibleOrgs] = useState<SalesforceOrgUi[]>([]);
   const [orgsByOrganization, setOrgsByOrganization] = useState<MapOf<SalesforceOrgUi[]>>({});
   const [filterText, setFilterText] = useState<string>('');
@@ -71,6 +72,19 @@ export const OrgsDropdown: FunctionComponent<OrgsDropdownProps> = () => {
     );
     setOrgs(sortedOrgs);
     setSelectedOrgId(org.uniqueId);
+  }
+
+  async function handleRemoveOrg(org: SalesforceOrgUi) {
+    // call server to delete
+    // remove from state
+    // unselect org
+    try {
+      await deleteOrg(org);
+      setOrgs(await getOrgs());
+      setSelectedOrgId(undefined);
+    } catch (ex) {
+      // TODO:
+    }
   }
 
   return (
@@ -111,7 +125,7 @@ export const OrgsDropdown: FunctionComponent<OrgsDropdownProps> = () => {
         </div>
         {selectedOrg && (
           <div className="slds-col slds-m-left--xx-small slds-p-top--xx-small">
-            <OrgInfoPopover org={selectedOrg} onAddOrg={handleAddOrg} />
+            <OrgInfoPopover org={selectedOrg} onAddOrg={handleAddOrg} onRemoveOrg={handleRemoveOrg} />
           </div>
         )}
         <div className="slds-col">

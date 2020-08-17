@@ -78,8 +78,10 @@ export const Combobox: FunctionComponent<ComboboxProps> = ({
 
   // close on selection
   useEffect(() => {
-    if (selectedItemLabel) {
+    if (isOpen) {
       setIsOpen(false);
+    }
+    if (value !== selectedItemLabel) {
       setValue(selectedItemLabel || '');
     }
   }, [selectedItemLabel]);
