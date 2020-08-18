@@ -4,6 +4,18 @@ This folder contains the application for the jetstream authentication service.
 
 This is deployed as a docker image to Render with a slightly different process from running the service remotely.
 
+## Upgrading
+
+- Update the version in the dockerfile
+  - https://hub.docker.com/r/fusionauth/fusionauth-app/tags
+- Download the zip from the same version
+  - https://fusionauth.io/direct-download
+- In the zip download, run all the migrations required in order, starting from the version one higher than the current version
+  - Example:
+  - `{psql command from render.com} -f 1.17.3.sql`
+  - `{psql command from render.com} -f 1.18.0.sql`
+  - `{psql command from render.com} -f 1.18.2.sql`
+
 ## Running Locally
 
 https://fusionauth.io/docs/v1/tech/installation-guide/docker
