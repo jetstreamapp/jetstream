@@ -1,4 +1,4 @@
-FROM fusionauth/fusionauth-app:1.17.0 AS builder
+FROM fusionauth/fusionauth-app:1.18.7 AS builder
 
 USER root
 
