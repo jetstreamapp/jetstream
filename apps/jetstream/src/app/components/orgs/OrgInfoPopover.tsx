@@ -92,7 +92,7 @@ export const OrgInfoPopover: FunctionComponent<OrgInfoPopoverProps> = ({ org, on
                 </button>
                 <button className="slds-button slds-button_success slds-button_stretch" onClick={handleFixOrg}>
                   <Icon type="utility" icon="apex_plugin" className="slds-button__icon slds-button__icon_left" omitContainer />
-                  Fix Connection
+                  Fix Org
                 </button>
               </ButtonGroupContainer>
             </div>

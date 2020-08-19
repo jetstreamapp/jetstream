@@ -1,9 +1,9 @@
-import React, { FunctionComponent, Fragment } from 'react';
+import React, { FunctionComponent, Fragment, ReactNode } from 'react';
 import HelpText from '../../widgets/HelpText';
 
 export interface TextareaProps {
   id: string;
-  label?: string;
+  label?: string | ReactNode;
   labelHelp?: string;
   helpText?: React.ReactNode | string;
   hasError?: boolean;

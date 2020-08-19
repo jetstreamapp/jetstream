@@ -5,6 +5,7 @@ import classNames from 'classnames';
 import isString from 'lodash/isString';
 
 export interface CardProps {
+  className?: string;
   title?: string | ReactNode;
   icon?: IconObj;
   actions?: ReactNode;
@@ -15,10 +16,10 @@ export interface CardProps {
  * This is used when a button is inline on a form where there needs to be top-margin to align with the inputs
  * (e.x. ExpressionConditionRow)
  */
-export const Card: FunctionComponent<CardProps> = ({ title, icon, actions, footer, children }) => {
+export const Card: FunctionComponent<CardProps> = ({ className, title, icon, actions, footer, children }) => {
   const titleContent = isString(title) ? <span className="slds-truncate">{title}</span> : title;
   return (
-    <article className="slds-card">
+    <article className={classNames('slds-card', className)}>
       {title && (
         <div className="slds-card__header slds-grid">
           <header className={classNames('slds-media slds-media_center slds-has-flexi-truncate')}>

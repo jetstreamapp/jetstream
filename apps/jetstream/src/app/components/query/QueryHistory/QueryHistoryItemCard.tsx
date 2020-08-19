@@ -1,6 +1,6 @@
 import { pluralizeFromNumber } from '@jetstream/shared/utils';
 import { QueryHistoryItem } from '@jetstream/types';
-import { Card, Grid, GridCol, Icon, CodeEditor, Textarea } from '@jetstream/ui';
+import { Card, Grid, GridCol, Icon, CodeEditor, Textarea, CopyToClipboard } from '@jetstream/ui';
 import React, { Fragment, FunctionComponent, useState, useEffect } from 'react';
 import moment from 'moment-mini';
 import { useRouteMatch, Link } from 'react-router-dom';
@@ -25,6 +25,7 @@ export const QueryHistoryItemCard: FunctionComponent<QueryHistoryItemCardProps> 
   return (
     <Fragment>
       <Card
+        className="modal-card-override"
         title={
           <Fragment>
             <Grid wrap>
@@ -61,8 +62,22 @@ export const QueryHistoryItemCard: FunctionComponent<QueryHistoryItemCardProps> 
             <GridCol>
               {soql && (
                 <div>
-                  <Textarea id="soql" label="SOQL Query">
-                    <CodeEditor value={soql} lineNumbers readOnly="nocursor" size={{ height: 150 }} shouldRefresh={readyToRenderCode} />
+                  <Textarea
+                    id="soql"
+                    label={
+                      <span>
+                        SOQL Query
+                        <CopyToClipboard className="slds-m-left--xx-small" content={soql} />
+                      </span>
+                    }
+                  >
+                    <CodeEditor
+                      className="CodeMirror-soql-history"
+                      value={soql}
+                      readOnly={true}
+                      size={{ height: 'auto' }}
+                      shouldRefresh={readyToRenderCode}
+                    />
                   </Textarea>
                 </div>
               )}

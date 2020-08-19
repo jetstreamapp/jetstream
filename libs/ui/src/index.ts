@@ -57,6 +57,7 @@ export * from './lib/toolbar/Toolbar';
 export * from './lib/toolbar/ToolbarItemActions';
 export * from './lib/toolbar/ToolbarItemGroup';
 export * from './lib/widgets/Badge';
+export * from './lib/widgets/CopyToClipboard';
 export * from './lib/widgets/HelpText';
 export * from './lib/widgets/Icon';
 export * from './lib/widgets/SalesforceLogin';

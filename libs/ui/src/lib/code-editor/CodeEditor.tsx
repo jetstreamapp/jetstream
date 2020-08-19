@@ -8,6 +8,7 @@ import { EditorConfiguration, Editor, EditorChange } from 'codemirror';
 require('codemirror/mode/sql/sql');
 
 export interface CodeEditorProps {
+  className?: string;
   value?: string;
   readOnly?: boolean | 'nocursor';
   lineNumbers?: boolean;
@@ -20,6 +21,7 @@ export interface CodeEditorProps {
 }
 
 export const CodeEditor: FunctionComponent<CodeEditorProps> = ({
+  className,
   value,
   readOnly = false,
   lineNumbers = false,
@@ -66,6 +68,7 @@ export const CodeEditor: FunctionComponent<CodeEditorProps> = ({
 
   return (
     <CodeMirror
+      className={className}
       value={currValue}
       options={options}
       editorDidMount={(editor: Editor, next) => {

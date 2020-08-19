@@ -71,6 +71,7 @@ export interface UiTabSection {
 }
 
 // Generic size types
+
 export type SizeSmMdLg = SizeSm | SizeMd | SizeLg;
 export type SizeSmMdLgXl = SizeSmMdLg | SizeXl;
 export type SizeSmMdLgXlFull = SizeSmMdLgXl | SizeFull;
@@ -88,6 +89,9 @@ export type sizeMedium = 'medium';
 export type sizeLarge = 'large';
 export type sizeXLarge = 'x-large';
 export type sizeXXLarge = 'xx-large';
+
+export type SizeXSmallSmallLarge = sizeXSmall | sizeSmall | sizeLarge;
+export type SizeXXSmallXSmallSmall = sizeXXXSmall | sizeXSmall | sizeSmall;
 
 export type FullWidth = 'full-width';
 

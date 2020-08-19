@@ -25,7 +25,7 @@ function handleMessage(name: MessageName, payloadData: any) {
       const { query, whereExpression }: { query: Query; whereExpression: ExpressionType } = payloadData;
       query.where = convertFiltersToWhereClause(whereExpression);
 
-      const soql = composeQuery(query, { format: true });
+      const soql = composeQuery(query, { format: true, formatOptions: { fieldMaxLineLength: 80 } });
       replyToMessage(name, soql);
       break;
     }

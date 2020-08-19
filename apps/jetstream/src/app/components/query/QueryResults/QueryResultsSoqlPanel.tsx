@@ -29,9 +29,9 @@ export const QueryResultsSoqlPanel: FunctionComponent<QueryResultsSoqlPanelProps
   return (
     <Panel heading="SOQL Query" isOpen={isOpen} size="lg" fullHeight={false} position="left" onClosed={onClosed}>
       <Textarea id="soql" label="SOQL Query">
-        <CodeEditor value={userSoql} lineNumbers onChange={setUserSoql} />
+        <CodeEditor className="CodeMirror-textarea" value={userSoql} onChange={setUserSoql} />
       </Textarea>
-      <div className="slds-grid slds-grid_align-end">
+      <div className="slds-grid slds-grid_align-end slds-m-top--small">
         <button type="submit" className="slds-button slds-button_brand" onClick={() => submitQuery()}>
           <Icon type="utility" icon="play" className="slds-button__icon slds-button__icon_left" omitContainer />
           Execute Query

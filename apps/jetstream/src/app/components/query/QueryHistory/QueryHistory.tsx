@@ -115,9 +115,7 @@ export const QueryHistory: FunctionComponent<QueryHistoryProps> = () => {
                 `}
               >
                 {queryHistory.map((item) => (
-                  <div className="slds-border_bottom" key={item.key}>
-                    <QueryHistoryItemCard key={item.key} item={item} />
-                  </div>
+                  <QueryHistoryItemCard key={item.key} item={item} />
                 ))}
               </GridCol>
             </Grid>

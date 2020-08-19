@@ -79,3 +79,32 @@
     color: $brand-text-link-active;
   }
 }
+
+.modal-card-override {
+  background: #fff;
+  border: 1px solid #dddbda !important;
+  border-radius: 0.25rem;
+  background-clip: padding-box;
+  box-shadow: 0 2px 2px 0 rgba(0, 0, 0, 0.1);
+  margin-top: 5px;
+  margin-bottom: 5px;
+}
+
+.CodeMirror {
+  font-size: 1.25em;
+}
+
+.CodeMirror-soql-history {
+  height: auto;
+  // max-height: 150px;
+}
+
+.CodeMirror-textarea {
+  .CodeMirror {
+    background-color: #fff;
+    border: 1px solid #dddbda;
+    border-radius: 0.25rem;
+    -webkit-appearance: none;
+    resize: vertical;
+  }
+}

@@ -90,6 +90,7 @@
     "react-router-dom": "5.2.0",
     "react-split": "^2.0.7",
     "react-table": "^7.1.0",
+    "react-use-clipboard": "^1.0.0",
     "recoil": "0.0.10",
     "reflect-metadata": "^0.1.13",
     "rollbar": "^2.19.1",
