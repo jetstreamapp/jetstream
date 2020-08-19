@@ -1,4 +1,4 @@
-FROM fusionauth/fusionauth-app:1.18.7 AS builder
+FROM fusionauth/fusionauth-app:1.17.0 AS builder
 
 USER root
 
@@ -6,7 +6,7 @@ RUN mkdir -p static-temp
 ADD static-assets/static-assets.zip /static-temp
 RUN cd /static-temp && unzip static-assets.zip && rm static-assets.zip
 
-FROM fusionauth/fusionauth-app:1.18.7
+FROM fusionauth/fusionauth-app:1.17.0
 COPY --chown=fusionauth:fusionauth --from=builder /static-temp/ /usr/local/fusionauth/static-temp
 
 RUN mkdir /usr/local/fusionauth/fusionauth-app/web/icons

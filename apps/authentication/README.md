@@ -7,6 +7,7 @@ This is deployed as a docker image to Render with a slightly different process f
 ## Upgrading
 
 - Update the version in the dockerfile
+  - ⚠️ MAKE SURE TO UPDATE BOTH VERSION REFERENCES ⚠️
   - https://hub.docker.com/r/fusionauth/fusionauth-app/tags
 - Download the zip from the same version
   - https://fusionauth.io/direct-download
