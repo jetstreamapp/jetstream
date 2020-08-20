@@ -3,7 +3,7 @@ import { MapOf, Record } from '@jetstream/types';
 import { isObject } from 'util';
 import { REGEX } from './regex';
 import { unix } from 'moment-mini';
-import { QueryResults } from '../../../../api-interfaces/src';
+import { QueryResults, QueryResultsColumn } from '@jetstream/api-interfaces';
 import { QueryResult } from 'jsforce';
 import { FieldSubquery } from 'soql-parser-js';
 
@@ -120,4 +120,18 @@ export function replaceSubqueryQueryResultsWithRecords(results: QueryResults<any
     }
   }
   return results;
+}
+
+export function queryResultColumnToTypeLabel(column: QueryResultsColumn, fallback = 'Unknown'): string {
+  if (column.textType) {
+    return 'Text';
+  }
+  if (column.booleanType) {
+    return 'Checkbox';
+  } else if (column.numberType) {
+    return 'Number';
+  } else if (Array.isArray(column.childColumnPaths)) {
+    return 'Child Records';
+  }
+  return column.apexType || fallback;
 }

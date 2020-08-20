@@ -6,8 +6,8 @@ import { QueryResultsColumn } from '@jetstream/api-interfaces';
 import { logger } from '@jetstream/shared/client-logger';
 import { query } from '@jetstream/shared/data';
 import { useObservable } from '@jetstream/shared/ui-utils';
-import { pluralizeIfMultiple, replaceSubqueryQueryResultsWithRecords, NOOP } from '@jetstream/shared/utils';
-import { AsyncJob, AsyncJobNew, BulkDownloadJob, MapOf, QueryFieldHeader, Record, SalesforceOrgUi, FileExtCsvXLSX } from '@jetstream/types';
+import { pluralizeIfMultiple, queryResultColumnToTypeLabel, replaceSubqueryQueryResultsWithRecords } from '@jetstream/shared/utils';
+import { AsyncJob, AsyncJobNew, BulkDownloadJob, FileExtCsvXLSX, MapOf, QueryFieldHeader, Record, SalesforceOrgUi } from '@jetstream/types';
 import {
   AutoFullHeightContainer,
   DataTable,
@@ -24,20 +24,19 @@ import numeral from 'numeral';
 import React, { Fragment, FunctionComponent, useEffect, useMemo, useState } from 'react';
 import { Link, NavLink, useLocation } from 'react-router-dom';
 import { Column } from 'react-table';
-import { useRecoilState, useRecoilValue, useSetRecoilState } from 'recoil';
+import { useRecoilState, useRecoilValue } from 'recoil';
 import { filter } from 'rxjs/operators';
-import { FieldSubquery, getFlattenedFields, Query } from 'soql-parser-js';
+import { FieldSubquery, getFlattenedFields } from 'soql-parser-js';
 import { isFieldSubquery } from 'soql-parser-js/dist/src/utils';
 import { applicationCookieState, selectedOrgState } from '../../../app-state';
 import * as fromJetstreamEvents from '../../core/jetstream-events';
 import * as fromQueryHistory from '../QueryHistory/query-history.state';
+import QueryHistory from '../QueryHistory/QueryHistory';
 import QueryDownloadModal from './QueryDownloadModal';
 import QueryResultsSoqlPanel from './QueryResultsSoqlPanel';
 import { getQueryResultsCellContents } from './QueryResultsTable/query-results-table-utils';
 import QueryResultsViewCellModal from './QueryResultsTable/QueryResultsViewCellModal';
 import QueryResultsViewRecordFields from './QueryResultsViewRecordFields';
-import { DescribeGlobalSObjectResult } from 'jsforce';
-import QueryHistory from '../QueryHistory/QueryHistory';
 
 function getStubbedField(field: string) {
   return {
@@ -98,7 +97,6 @@ export const QueryResults: FunctionComponent<QueryResultsProps> = React.memo(() 
               Header: () => (
                 <div className="slds-truncate" title={field.title}>
                   <div>{field.accessor}</div>
-                  {field.label !== field.accessor && <div>{field.label}</div>}
                 </div>
               ),
               Cell: ({ value }) => {
@@ -198,7 +196,7 @@ export const QueryResults: FunctionComponent<QueryResultsProps> = React.memo(() 
           return {
             label: col.displayName,
             accessor: col.columnFullPath,
-            title: `${field} (${col.apexType})`,
+            title: `${col.displayName} (${queryResultColumnToTypeLabel(col)})`,
             columnMetadata: col,
           };
         }

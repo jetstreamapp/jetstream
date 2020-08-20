@@ -8,6 +8,7 @@ import { DataTable, Icon, Modal } from '@jetstream/ui';
 import { Fragment, FunctionComponent, useState } from 'react';
 import { Column } from 'react-table';
 import { getQueryResultsCellContents } from './query-results-table-utils';
+import { queryResultColumnToTypeLabel } from '@jetstream/shared/utils';
 // eslint-disable-next-line @typescript-eslint/no-empty-interface
 export interface QueryResultsViewCellModalProps {
   field: QueryFieldHeader;
@@ -26,11 +27,25 @@ export const QueryResultsViewCellModal: FunctionComponent<QueryResultsViewCellMo
 
   function handleOpen() {
     if (!columns) {
+      // core path that will result in the best table outcome
+      let tempColumnsWithMeta: QueryFieldHeader[];
+      // fallback if we do not have field metadata - will not render all fields
       let tempColumns: string[];
       let data = value;
       try {
         if (!data) {
           setHasNoData(true);
+        } else if (Array.isArray(field?.columnMetadata?.childColumnPaths)) {
+          const replaceRegex = new RegExp(`^${field.columnMetadata.columnFullPath}\.`);
+          tempColumnsWithMeta = field.columnMetadata.childColumnPaths.map((columnMetadata) => {
+            const fieldPath = columnMetadata.columnFullPath.replace(replaceRegex, '');
+            return {
+              accessor: fieldPath,
+              columnMetadata,
+              label: fieldPath,
+              title: `${columnMetadata.displayName} (${queryResultColumnToTypeLabel(columnMetadata)})`,
+            };
+          });
         } else {
           data = Array.isArray(data) ? data : [data];
           if (data.length === 0) {
@@ -45,7 +60,22 @@ export const QueryResultsViewCellModal: FunctionComponent<QueryResultsViewCellMo
         setHasNoData(true);
       }
 
-      if (tempColumns) {
+      if (tempColumnsWithMeta) {
+        setRows(data);
+        setColumns(
+          tempColumnsWithMeta.map((column) => ({
+            accessor: column.accessor,
+            Header: () => (
+              <div className="slds-line-clamp_medium" title={column.title}>
+                {column.label}
+              </div>
+            ),
+            Cell: ({ value }) => {
+              return getQueryResultsCellContents(column, serverUrl, org, value);
+            },
+          }))
+        );
+      } else if (tempColumns) {
         setRows(data);
         setColumns(
           tempColumns
