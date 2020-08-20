@@ -67,7 +67,7 @@ export const OrgsDropdown: FunctionComponent<OrgsDropdownProps> = () => {
    */
   function handleAddOrg(org: SalesforceOrgUi, replaceOrgUniqueId?: string) {
     const sortedOrgs = uniqBy(
-      orderBy([...orgs.filter((org) => (replaceOrgUniqueId ? org.uniqueId !== replaceOrgUniqueId : true)), org], 'username'),
+      orderBy([org, ...orgs.filter((org) => (replaceOrgUniqueId ? org.uniqueId !== replaceOrgUniqueId : true))], 'username'),
       'uniqueId'
     );
     setOrgs(sortedOrgs);
