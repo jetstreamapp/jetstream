@@ -113,6 +113,7 @@ export const OrgInfoPopover: FunctionComponent<OrgInfoPopoverProps> = ({ org, on
                   serverUrl={applicationState.serverUrl}
                   className="slds-button slds-button_neutral slds-button_stretch"
                   org={org}
+                  returnUrl="/lightning/setup/SetupOneHome/home"
                   title="Login to Salesforce Setup Menu"
                 >
                   Setup Menu
