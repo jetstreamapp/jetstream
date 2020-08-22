@@ -1,14 +1,14 @@
 /** @jsx jsx */
 // https://www.lightningdesignsystem.com/components/input/#Fixed-Text
 import { jsx } from '@emotion/core';
-import { FunctionComponent, useState } from 'react';
+import { FunctionComponent, useState, useEffect } from 'react';
 import Icon from '../../widgets/Icon';
 
 export interface DateGridPrevNextSelectorProps {
   id: string;
   currMonth: string;
   availableYears?: number[];
-  initialYear?: number;
+  currYear?: number;
   onPrev: () => void;
   onNext: () => void;
   onYearChange: (year: number) => void;
@@ -18,12 +18,19 @@ export const DateGridPrevNextSelector: FunctionComponent<DateGridPrevNextSelecto
   id = 'date-picker',
   currMonth,
   availableYears = DEFAULT_YEARS,
-  initialYear,
+  currYear,
   onPrev,
   onNext,
   onYearChange,
 }) => {
-  const [year, setYear] = useState(initialYear || new Date().getFullYear());
+  const [year, setYear] = useState(currYear || new Date().getFullYear());
+
+  useEffect(() => {
+    if (currYear && year !== currYear) {
+      setYear(currYear);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currYear]);
 
   return (
     <div className="slds-datepicker__filter slds-grid">

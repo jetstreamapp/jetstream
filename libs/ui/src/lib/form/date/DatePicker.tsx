@@ -3,11 +3,12 @@
 import { jsx } from '@emotion/core';
 import classNames from 'classnames';
 import moment from 'moment-mini';
-import { ChangeEvent, FunctionComponent, useEffect, useState } from 'react';
+import { ChangeEvent, FunctionComponent, useEffect, useState, useRef, KeyboardEvent } from 'react';
 import Icon from '../../widgets/Icon';
 import DatePickerPopup from './DatePickerPopup';
 import OutsideClickHandler from '../../utils/OutsideClickHandler';
 import { PositionLeftRight } from '@jetstream/types';
+import { useHotkeys } from 'react-hotkeys-hook';
 
 export interface DatePickerProps {
   className?: string;
@@ -79,45 +80,59 @@ export const DatePicker: FunctionComponent<DatePickerProps> = ({
   }
 
   return (
-    <div
-      className={classNames('slds-form-element slds-dropdown-trigger slds-dropdown-trigger_click', { 'slds-is-open': isOpen }, className)}
-    >
-      <label className={classNames('slds-form-element__label', { 'slds-assistive-text': hideLabel })} htmlFor={id}>
-        {label}
-      </label>
-      <div className="slds-form-element__control slds-input-has-icon slds-input-has-icon_right">
-        <input
-          type="text"
-          autoComplete="false"
-          id={id}
-          placeholder=""
-          className="slds-input"
-          value={value}
-          onChange={onValueChange}
-          onClick={() => handleToggleOpen(true)}
-          disabled={disabled}
-        />
-        <button
-          className="slds-button slds-button_icon slds-input__icon slds-input__icon_right"
-          title="Select a date"
-          onClick={() => handleToggleOpen(true)}
-          disabled={disabled}
-        >
-          <Icon type="utility" icon="event" className="slds-button__icon" omitContainer description="Select a date" />
-        </button>
-      </div>
-      <OutsideClickHandler className="slds-combobox_container" onOutsideClick={() => handleToggleOpen(false)}>
+    <OutsideClickHandler className="slds-combobox_container" onOutsideClick={() => handleToggleOpen(false)}>
+      <div
+        className={classNames('slds-form-element slds-dropdown-trigger slds-dropdown-trigger_click', { 'slds-is-open': isOpen }, className)}
+      >
+        <label className={classNames('slds-form-element__label', { 'slds-assistive-text': hideLabel })} htmlFor={id}>
+          {label}
+        </label>
+        <div className="slds-form-element__control slds-input-has-icon slds-input-has-icon_right">
+          <input
+            type="text"
+            autoComplete="false"
+            id={id}
+            placeholder=""
+            className="slds-input"
+            value={value}
+            onChange={onValueChange}
+            onClick={() => {
+              if (!isOpen) {
+                handleToggleOpen(true);
+              }
+            }}
+            onKeyUp={(event: KeyboardEvent<HTMLInputElement>) => {
+              if (isOpen && event.keyCode === 27) {
+                handleToggleOpen(false);
+              }
+            }}
+            disabled={disabled}
+          />
+          <button
+            className="slds-button slds-button_icon slds-input__icon slds-input__icon_right"
+            title="Select a date"
+            onClick={() => {
+              if (!isOpen) {
+                handleToggleOpen(true);
+              }
+            }}
+            disabled={disabled}
+          >
+            <Icon type="utility" icon="event" className="slds-button__icon" omitContainer description="Select a date" />
+          </button>
+        </div>
         {isOpen && (
           <DatePickerPopup
             initialSelectedDate={selectedDate}
             initialVisibleDate={initialVisibleDate || selectedDate}
             availableYears={availableYears}
             dropDownPosition={dropDownPosition}
+            onClose={() => handleToggleOpen(false)}
             onSelection={handleDateSelection}
           />
         )}
-      </OutsideClickHandler>
-    </div>
+      </div>
+    </OutsideClickHandler>
   );
 };
 

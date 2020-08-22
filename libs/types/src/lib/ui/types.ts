@@ -180,6 +180,10 @@ export interface ListItem<V = string, M = any> {
   meta?: M;
 }
 
+export type Previous = 'PREVIOUS';
+export type Next = 'NEXT';
+export type PreviousNext = Previous | Next;
+
 export type Select = 'SELECT';
 export type Text = 'TEXT';
 export type TextArea = 'TEXTAREA';

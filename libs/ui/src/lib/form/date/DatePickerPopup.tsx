@@ -5,13 +5,14 @@ import moment from 'moment-mini';
 import { FunctionComponent, useState, useEffect } from 'react';
 import DateGrid from './DateGrid';
 import DateGridPrevNextSelector from './DateGridPrevNextSelector';
-import { PositionLeftRight } from '@jetstream/types';
+import { PositionLeftRight, PreviousNext } from '@jetstream/types';
 
 export interface DatePickerPopupProps {
   initialSelectedDate?: moment.Moment;
   initialVisibleDate?: moment.Moment;
   availableYears?: number[];
   dropDownPosition?: PositionLeftRight;
+  onClose: () => void;
   onSelection: (date: moment.Moment) => void;
 }
 
@@ -20,6 +21,7 @@ export const DatePickerPopup: FunctionComponent<DatePickerPopupProps> = ({
   initialVisibleDate = moment().startOf('month'),
   availableYears,
   dropDownPosition = 'left',
+  onClose,
   onSelection,
 }) => {
   const [selectedDate, setSelectedDate] = useState(() => initialSelectedDate);
@@ -27,6 +29,7 @@ export const DatePickerPopup: FunctionComponent<DatePickerPopupProps> = ({
   const [currMonthString, setCurrMonthString] = useState(() => initialVisibleDate.format('MMMM'));
   const [currMonth, setCurrMonth] = useState(() => initialVisibleDate.month());
   const [currYear, setCurrYear] = useState(() => initialVisibleDate.year());
+  const [cameFromMonth, setCameFromMonth] = useState<PreviousNext>(null);
 
   useEffect(() => {
     setCurrMonthString(visibleMonth.format('MMMM'));
@@ -43,6 +46,11 @@ export const DatePickerPopup: FunctionComponent<DatePickerPopupProps> = ({
     onSelection(date.clone());
   }
 
+  function handleOnPrevOnNext(numMonths: -1 | 1) {
+    setCameFromMonth(numMonths === -1 ? 'NEXT' : 'PREVIOUS');
+    setVisibleMonth(visibleMonth.clone().add(numMonths, 'month'));
+  }
+
   return (
     <div
       aria-hidden="false"
@@ -54,12 +62,23 @@ export const DatePickerPopup: FunctionComponent<DatePickerPopupProps> = ({
         id="date-picker"
         availableYears={availableYears}
         currMonth={currMonthString}
-        initialYear={currYear}
-        onPrev={() => setVisibleMonth(visibleMonth.clone().add(-1, 'month'))}
-        onNext={() => setVisibleMonth(visibleMonth.clone().add(1, 'month'))}
+        currYear={currYear}
+        onPrev={() => handleOnPrevOnNext(-1)}
+        onNext={() => handleOnPrevOnNext(1)}
         onYearChange={setCurrYear}
       />
-      <DateGrid currMonth={currMonth} currYear={currYear} selectedDate={selectedDate} onSelected={handleSelection} />
+      <DateGrid
+        currMonth={currMonth}
+        currYear={currYear}
+        selectedDate={selectedDate}
+        cameFromMonth={cameFromMonth}
+        onSelected={handleSelection}
+        onClose={onClose}
+        onPrevMonth={() => handleOnPrevOnNext(-1)}
+        onNextMonth={() => handleOnPrevOnNext(1)}
+        onPrevYear={() => setCurrYear(currYear - 1)}
+        onNextYear={() => setCurrYear(currYear + 1)}
+      />
 
       <button className="slds-button slds-align_absolute-center slds-text-link" onClick={() => handleSelection(moment())}>
         Today
