@@ -9,7 +9,11 @@ export const QueryResetButton: FunctionComponent = () => {
   const resetFns = [
     useResetRecoilState(fromQueryState.sObjectsState),
     useResetRecoilState(fromQueryState.selectedSObjectState),
+    useResetRecoilState(fromQueryState.queryFieldsKey),
+    useResetRecoilState(fromQueryState.queryChildRelationships),
+    useResetRecoilState(fromQueryState.queryFieldsMapState),
     useResetRecoilState(fromQueryState.selectedQueryFieldsState),
+    useResetRecoilState(fromQueryState.selectedSubqueryFieldsState),
     useResetRecoilState(fromQueryState.filterQueryFieldsState),
     useResetRecoilState(fromQueryState.queryFiltersState),
     useResetRecoilState(fromQueryState.queryLimit),
