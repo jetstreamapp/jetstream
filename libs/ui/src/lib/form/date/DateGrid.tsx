@@ -1,11 +1,24 @@
 /** @jsx jsx */
 // https://www.lightningdesignsystem.com/components/input/#Fixed-Text
 import { jsx } from '@emotion/core';
-import classNames from 'classnames';
-import moment from 'moment-mini';
-import { FunctionComponent, useEffect, useState, useRef, KeyboardEvent, createRef, RefObject } from 'react';
-import { isNumber } from 'lodash';
+import {
+  hasModifierKey,
+  isArrowDownKey,
+  isArrowLeftKey,
+  isArrowRightKey,
+  isArrowUpKey,
+  isEndKey,
+  isEnterOrSpace,
+  isEscapeKey,
+  isHomeKey,
+  isPageDownKey,
+  isPageUpKey,
+} from '@jetstream/shared/ui-utils';
 import { PreviousNext } from '@jetstream/types';
+import classNames from 'classnames';
+import { isNumber } from 'lodash';
+import moment from 'moment-mini';
+import { createRef, FunctionComponent, KeyboardEvent, RefObject, useEffect, useRef, useState } from 'react';
 
 interface DateGridDate {
   label: number;
@@ -49,7 +62,7 @@ export const DateGrid: FunctionComponent<DateGridProps> = ({
     const refs: RefObject<HTMLTableDataCellElement>[][] = [];
     dateGrid.forEach((week, i) => {
       refs[i] = elRefs[i] || [];
-      week.forEach((week, k) => {
+      week.forEach((day, k) => {
         refs[i][k] = refs[i][k] ? refs[i][k] : createRef();
       });
     });
@@ -61,45 +74,49 @@ export const DateGrid: FunctionComponent<DateGridProps> = ({
    * Determine which day should be initially focused
    */
   useEffect(() => {
-    if (dateGrid && elRefs.current && elRefs.current.length > 0) {
-      let selectedIdx: { week: number; day: number };
-      let todayIdx: { week: number; day: number };
-      let firstOfMonthIdx: { week: number; day: number };
-      let lastOfMonthIdx: { week: number; day: number };
-      let lastDayOfMonth;
-      dateGrid.forEach((week, i) => {
-        week.forEach((day, k) => {
-          if (day.isCurrMonth) {
-            if (!lastDayOfMonth) {
-              lastDayOfMonth = moment(day.value).endOf('month');
+    try {
+      if (dateGrid && elRefs.current && elRefs.current.length > 0) {
+        let selectedIdx: { week: number; day: number };
+        let todayIdx: { week: number; day: number };
+        let firstOfMonthIdx: { week: number; day: number };
+        let lastOfMonthIdx: { week: number; day: number };
+        let lastDayOfMonth;
+        dateGrid.forEach((week, i) => {
+          week.forEach((day, k) => {
+            if (day.isCurrMonth) {
+              if (!lastDayOfMonth) {
+                lastDayOfMonth = moment(day.value).endOf('month');
+              }
+              if (day.isToday) {
+                todayIdx = { week: i, day: k };
+              }
+              if (day.value.date() === 1) {
+                firstOfMonthIdx = { week: i, day: k };
+              } else if (day.value.isSame(lastDayOfMonth, 'day')) {
+                lastOfMonthIdx = { week: i, day: k };
+              }
+              if (day.isSelected) {
+                selectedIdx = { week: i, day: k };
+              }
             }
-            if (day.isToday) {
-              todayIdx = { week: i, day: k };
-            }
-            if (day.value.date() === 1) {
-              firstOfMonthIdx = { week: i, day: k };
-            } else if (day.value.isSame(lastDayOfMonth, 'day')) {
-              lastOfMonthIdx = { week: i, day: k };
-            }
-            if (day.isSelected) {
-              selectedIdx = { week: i, day: k };
-            }
-          }
+          });
         });
-      });
-      if (cameFromMonth === 'PREVIOUS' && firstOfMonthIdx) {
-        elRefs.current[firstOfMonthIdx.week][firstOfMonthIdx.day].current.focus();
-      } else if (cameFromMonth === 'NEXT' && lastOfMonthIdx) {
-        elRefs.current[lastOfMonthIdx.week][lastOfMonthIdx.day].current.focus();
-      } else {
-        if (selectedIdx) {
-          elRefs.current[selectedIdx.week][selectedIdx.day].current.focus();
-        } else if (todayIdx) {
-          elRefs.current[todayIdx.week][todayIdx.day].current.focus();
-        } else if (firstOfMonthIdx) {
+        if (cameFromMonth === 'PREVIOUS' && firstOfMonthIdx) {
           elRefs.current[firstOfMonthIdx.week][firstOfMonthIdx.day].current.focus();
+        } else if (cameFromMonth === 'NEXT' && lastOfMonthIdx) {
+          elRefs.current[lastOfMonthIdx.week][lastOfMonthIdx.day].current.focus();
+        } else {
+          if (selectedIdx) {
+            elRefs.current[selectedIdx.week][selectedIdx.day].current.focus();
+          } else if (todayIdx) {
+            elRefs.current[todayIdx.week][todayIdx.day].current.focus();
+          } else if (firstOfMonthIdx) {
+            elRefs.current[firstOfMonthIdx.week][firstOfMonthIdx.day].current.focus();
+          }
         }
       }
+    } catch (ex) {
+      // silent failure
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [dateGrid, elRefs.current]);
@@ -158,35 +175,35 @@ export const DateGrid: FunctionComponent<DateGridProps> = ({
     let targetWeekIdx;
     let targetDayIdx;
 
-    if (event.key === 'Escape' || event.keyCode === 27) {
+    if (isEscapeKey(event)) {
       onClose();
       return;
     }
 
-    if (event.key === 'Enter' || event.keyCode === 13 || event.keyCode === 32) {
+    if (isEnterOrSpace(event)) {
       onSelected(day.value);
       return;
     }
 
-    if (event.altKey || event.ctrlKey || event.metaKey) {
-      if (event.key === 'ArrowUp' || event.keyCode === 38) {
+    if (hasModifierKey(event)) {
+      if (isArrowUpKey(event)) {
         return onPrevYear();
-      } else if (event.key === 'ArrowDown' || event.keyCode === 40) {
+      } else if (isArrowDownKey(event)) {
         return onNextYear();
       }
     }
 
-    if (event.key === 'PageUp' || event.keyCode === 33) {
+    if (isPageUpKey(event)) {
       return onPrevMonth();
-    } else if (event.key === 'PageDown' || event.keyCode === 34) {
+    } else if (isPageDownKey(event)) {
       return onNextMonth();
-    } else if (event.key === 'Home' || event.keyCode === 36) {
+    } else if (isHomeKey(event)) {
       targetWeekIdx = weekIdx;
       targetDayIdx = 0;
-    } else if (event.key === 'End' || event.keyCode === 35) {
+    } else if (isEndKey(event)) {
       targetWeekIdx = weekIdx;
       targetDayIdx = currentRefs[weekIdx].length - 1;
-    } else if (event.key === 'ArrowLeft' || event.keyCode === 37) {
+    } else if (isArrowLeftKey(event)) {
       if (dayIdx === 0) {
         targetWeekIdx = weekIdx;
         targetDayIdx = currentRefs[weekIdx].length - 1;
@@ -194,14 +211,14 @@ export const DateGrid: FunctionComponent<DateGridProps> = ({
         targetWeekIdx = weekIdx;
         targetDayIdx = dayIdx - 1;
       }
-    } else if (event.key === 'ArrowUp' || event.keyCode === 38) {
+    } else if (isArrowUpKey(event)) {
       if (weekIdx === 0) {
         return onPrevMonth();
       } else {
         targetWeekIdx = weekIdx - 1;
         targetDayIdx = dayIdx;
       }
-    } else if (event.key === 'ArrowRight' || event.keyCode === 39) {
+    } else if (isArrowRightKey(event)) {
       if (dayIdx === currentRefs[weekIdx].length - 1) {
         targetWeekIdx = weekIdx;
         targetDayIdx = 0;
@@ -209,7 +226,7 @@ export const DateGrid: FunctionComponent<DateGridProps> = ({
         targetWeekIdx = weekIdx;
         targetDayIdx = dayIdx + 1;
       }
-    } else if (event.key === 'ArrowDown' || event.keyCode === 40) {
+    } else if (isArrowDownKey(event)) {
       if (weekIdx === currentRefs.length - 1) {
         return onNextMonth();
       } else {

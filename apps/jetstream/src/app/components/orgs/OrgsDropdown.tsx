@@ -1,17 +1,17 @@
 /** @jsx jsx */
 import { css, jsx } from '@emotion/core';
+import { deleteOrg, getOrgs } from '@jetstream/shared/data';
 import { MapOf, SalesforceOrgUi } from '@jetstream/types';
 import { Combobox, ComboboxListItem, ComboboxListItemGroup } from '@jetstream/ui';
 import groupBy from 'lodash/groupBy';
 import orderBy from 'lodash/orderBy';
 import uniqBy from 'lodash/uniqBy';
 import { Fragment, FunctionComponent, useEffect, useState } from 'react';
-import { useRecoilState, useRecoilValue, useResetRecoilState } from 'recoil';
+import { useRecoilState, useRecoilValue } from 'recoil';
 import * as fromAppState from '../../app-state';
 import AddOrg from './AddOrg';
 import OrgInfoPopover from './OrgInfoPopover';
 import OrgPersistence from './OrgPersistence';
-import { deleteOrg, getOrgs } from '@jetstream/shared/data';
 // eslint-disable-next-line @typescript-eslint/no-empty-interface
 export interface OrgsDropdownProps {}
 

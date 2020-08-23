@@ -1,10 +1,23 @@
 /* eslint-disable jsx-a11y/anchor-is-valid */
-import React, { FunctionComponent, useState, useMemo, Fragment, ReactNode } from 'react';
+import { isArrowDownKey, isArrowUpKey, isEnterOrSpace } from '@jetstream/shared/ui-utils';
+import { DropDownItem, IconObj } from '@jetstream/types';
 import classNames from 'classnames';
+import isNumber from 'lodash/isNumber';
 import isString from 'lodash/isString';
-import Icon from '../../widgets/Icon';
-import { IconObj, DropDownItem } from '@jetstream/types';
+import React, {
+  createRef,
+  Fragment,
+  FunctionComponent,
+  KeyboardEvent,
+  ReactNode,
+  RefObject,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
 import OutsideClickHandler from '../../utils/OutsideClickHandler';
+import Icon from '../../widgets/Icon';
 
 export interface DropDownProps {
   position?: 'left' | 'right';
@@ -36,6 +49,64 @@ export const DropDown: FunctionComponent<DropDownProps> = ({
   const scrollLengthClass = useMemo<string | undefined>(() => (scrollLength ? `slds-dropdown_length-${scrollLength}` : undefined), [
     scrollLength,
   ]);
+  const [focusedItem, setFocusedItem] = useState<number>(null);
+  const elRefs = useRef<RefObject<HTMLAnchorElement>[]>([]);
+
+  // init array to hold element refs for each item in list
+  if (elRefs.current.length !== items.length) {
+    const refs: RefObject<HTMLAnchorElement>[] = [];
+    items.forEach((item, i) => {
+      refs[i] = elRefs[i] || createRef();
+    });
+    // add or remove refs
+    elRefs.current = refs;
+  }
+
+  useEffect(() => {
+    if (elRefs.current && isNumber(focusedItem) && elRefs.current[focusedItem] && elRefs.current[focusedItem]) {
+      try {
+        elRefs.current[focusedItem].current.focus();
+      } catch (ex) {
+        // silent error on keyboard navigation
+      }
+    }
+  }, [focusedItem]);
+
+  useEffect(() => {
+    if (isOpen && !isNumber(focusedItem)) {
+      setFocusedItem(0);
+    } else if (!isOpen) {
+      setFocusedItem(null);
+    }
+  }, [isOpen]);
+
+  function handleKeyUp(event: KeyboardEvent<HTMLAnchorElement>) {
+    event.preventDefault();
+    event.stopPropagation();
+    let newFocusedItem;
+
+    if (isArrowUpKey(event)) {
+      if (!isNumber(focusedItem) || focusedItem === 0) {
+        newFocusedItem = items.length - 1;
+      } else {
+        newFocusedItem = focusedItem - 1;
+      }
+    } else if (isArrowDownKey(event)) {
+      if (!isNumber(focusedItem) || focusedItem === items.length - 1) {
+        newFocusedItem = 0;
+      } else {
+        newFocusedItem = focusedItem + 1;
+      }
+    } else if (isEnterOrSpace(event) && isNumber(focusedItem)) {
+      const item = items[focusedItem];
+      onSelected(item.id, item.metadata);
+      setIsOpen(false);
+    }
+
+    if (isNumber(newFocusedItem)) {
+      setFocusedItem(newFocusedItem);
+    }
+  }
 
   return (
     <OutsideClickHandler onOutsideClick={() => setIsOpen(false)}>
@@ -77,7 +148,7 @@ export const DropDown: FunctionComponent<DropDownProps> = ({
           )}
         >
           <ul className="slds-dropdown__list" role="menu" aria-label={actionText}>
-            {items.map(({ id, subheader, value, icon, metadata }) => (
+            {items.map(({ id, subheader, value, icon, metadata }, i) => (
               <Fragment key={id}>
                 {subheader && (
                   <li className="slds-dropdown__header slds-truncate" title={subheader} role="separator">
@@ -86,8 +157,10 @@ export const DropDown: FunctionComponent<DropDownProps> = ({
                 )}
                 <li className="slds-dropdown__item" role="presentation">
                   <a
+                    ref={elRefs.current[i]}
                     role="menuitem"
                     tabIndex={0}
+                    onKeyUp={handleKeyUp}
                     onClick={(event) => {
                       event.preventDefault();
                       onSelected(id, metadata);

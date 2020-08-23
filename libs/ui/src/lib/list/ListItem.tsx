@@ -2,9 +2,10 @@
 import { jsx, css } from '@emotion/core';
 import classNames from 'classnames';
 import isString from 'lodash/isString';
-import { memo } from 'react';
+import { memo, RefObject } from 'react';
 
 export interface ListItemProps {
+  liRef?: RefObject<HTMLLIElement>;
   heading: string | JSX.Element;
   subheading?: string;
   isActive?: boolean;
@@ -12,9 +13,11 @@ export interface ListItemProps {
   onSelected: () => void;
 }
 
-export const ListItem = memo<ListItemProps>(({ heading, subheading, isActive, subheadingPlaceholder, onSelected }) => {
+export const ListItem = memo<ListItemProps>(({ liRef, heading, subheading, isActive, subheadingPlaceholder, onSelected }) => {
   return (
     <li
+      ref={liRef}
+      tabIndex={-1}
       className={classNames('slds-item', { 'is-active': isActive })}
       onClick={(event) => {
         event.preventDefault();

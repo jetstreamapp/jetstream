@@ -1,13 +1,14 @@
 /** @jsx jsx */
 import { css, jsx } from '@emotion/core';
 import { DescribeGlobalSObjectResult } from 'jsforce';
-import { Fragment, FunctionComponent, useEffect, useState } from 'react';
+import { Fragment, FunctionComponent, useEffect, useState, createRef } from 'react';
 import SearchInput from '../form/search-input/SearchInput';
 import EmptyState from '../illustrations/EmptyState';
 import AutoFullHeightContainer from '../layout/AutoFullHeightContainer';
 import List from '../list/List';
 import Spinner from '../widgets/Spinner';
 import numeral from 'numeral';
+import { UpDown } from '@jetstream/types';
 
 export interface SobjectListProps {
   sobjects: DescribeGlobalSObjectResult[];
@@ -27,7 +28,9 @@ export const SobjectList: FunctionComponent<SobjectListProps> = ({
   errorReattempt,
 }) => {
   const [filteredSobjects, setFilteredSobjects] = useState<DescribeGlobalSObjectResult[]>(null);
-  const [searchTerm, setSearchTerm] = useState<string>('');
+  const [searchTerm, setSearchTerm] = useState('');
+  const [searchInputId] = useState(`object-filter-${Date.now()}`);
+  const ulRef = createRef<HTMLUListElement>();
 
   useEffect(() => {
     if (sobjects && sobjects.length > 0 && searchTerm) {
@@ -38,6 +41,12 @@ export const SobjectList: FunctionComponent<SobjectListProps> = ({
       setFilteredSobjects(sobjects);
     }
   }, [sobjects, searchTerm]);
+
+  function handleSearchKeyboard(direction: UpDown) {
+    if (ulRef && ulRef.current) {
+      ulRef.current.focus();
+    }
+  }
 
   return (
     <Fragment>
@@ -63,13 +72,19 @@ export const SobjectList: FunctionComponent<SobjectListProps> = ({
         {sobjects && filteredSobjects && (
           <Fragment>
             <div className="slds-p-bottom--xx-small">
-              <SearchInput id="object-filter" placeholder="Filter Objects" onChange={setSearchTerm} />
+              <SearchInput
+                id={searchInputId}
+                placeholder="Filter Objects"
+                onChange={setSearchTerm}
+                onArrowKeyUpDown={handleSearchKeyboard}
+              />
               <div className="slds-text-body_small slds-text-color_weak slds-p-left--xx-small">
                 Showing {numeral(filteredSobjects.length).format('0,0')} of {numeral(sobjects.length).format('0,0')} objects
               </div>
             </div>
             <AutoFullHeightContainer>
               <List
+                ref={ulRef}
                 items={filteredSobjects}
                 isActive={(item: DescribeGlobalSObjectResult) => item.name === selectedSObject?.name}
                 onSelected={(key) => onSelected(sobjects.find((item) => item.name === key))}

@@ -1,7 +1,8 @@
-import React, { FunctionComponent } from 'react';
+import React, { FunctionComponent, RefObject } from 'react';
 import classNames from 'classnames';
 
 export interface CheckboxProps {
+  inputRef?: RefObject<HTMLInputElement>;
   id: string;
   checked: boolean;
   label: string;
@@ -12,6 +13,7 @@ export interface CheckboxProps {
 }
 
 export const Checkbox: FunctionComponent<CheckboxProps> = ({
+  inputRef,
   id,
   checked,
   label,
@@ -25,6 +27,7 @@ export const Checkbox: FunctionComponent<CheckboxProps> = ({
       <div className="slds-form-element__control">
         <div className="slds-checkbox">
           <input
+            ref={inputRef}
             type="checkbox"
             name="options"
             id={id}

@@ -1,14 +1,33 @@
-import React, { FunctionComponent, useState, useEffect, Children, Fragment } from 'react';
-import uniqueId from 'lodash/uniqueId';
-import Icon from '../../widgets/Icon';
-import classNames from 'classnames';
-import Spinner from '../../widgets/Spinner';
-import OutsideClickHandler from '../../utils/OutsideClickHandler';
-import { ComboboxListItem } from './ComboboxListItem';
+import { logger } from '@jetstream/shared/client-logger';
+import { isArrowDownKey, isArrowUpKey, isEnterOrSpace, isEscapeKey } from '@jetstream/shared/ui-utils';
 import { NOOP } from '@jetstream/shared/utils';
-import HelpText from '../../widgets/HelpText';
 import { FormGroupDropdownItem } from '@jetstream/types';
+import classNames from 'classnames';
+import isNumber from 'lodash/isNumber';
+import uniqueId from 'lodash/uniqueId';
+import React, {
+  Children,
+  cloneElement,
+  createRef,
+  Fragment,
+  FunctionComponent,
+  isValidElement,
+  KeyboardEvent,
+  ReactElement,
+  useEffect,
+  useRef,
+  useState,
+} from 'react';
+import OutsideClickHandler from '../../utils/OutsideClickHandler';
+import HelpText from '../../widgets/HelpText';
+import Icon from '../../widgets/Icon';
+import Spinner from '../../widgets/Spinner';
 import { FormGroupDropdown } from '../formGroupDropDown/FormGroupDropdown';
+import { ComboboxListItem, ComboboxListItemProps } from './ComboboxListItem';
+import { ComboboxListItemGroup, ComboboxListItemGroupProps } from './ComboboxListItemGroup';
+
+type ChildListItem = ComboboxListItemProps & React.RefAttributes<HTMLLIElement>;
+type ChildListGroup = ComboboxListItemGroupProps & { children: React.ReactNode };
 
 export interface ComboboxProps {
   label: string;
@@ -18,7 +37,6 @@ export interface ComboboxProps {
   noItemsPlaceholder?: string;
   disabled?: boolean;
   loading?: boolean;
-  hasGroups?: boolean;
   selectedItemLabel?: string; // used for text
   selectedItemTitle?: string; // used for text
   leadingDropdown?: {
@@ -47,7 +65,6 @@ export const Combobox: FunctionComponent<ComboboxProps> = ({
   noItemsPlaceholder = 'There are no items for selection',
   disabled,
   loading,
-  hasGroups,
   selectedItemLabel,
   selectedItemTitle,
   leadingDropdown,
@@ -61,7 +78,21 @@ export const Combobox: FunctionComponent<ComboboxProps> = ({
   const [id] = useState<string>(uniqueId('Combobox'));
   const [listId] = useState<string>(uniqueId('Combobox-list'));
   const [value, setValue] = useState<string>('');
+  const [hasGroups, setHasGroups] = useState(false);
   const hasDropdownGroup = !!leadingDropdown && !!leadingDropdown.items?.length;
+
+  const [focusedItem, setFocusedItem] = useState<number>(null);
+  const elRefs = useRef<HTMLLIElement[]>([]);
+
+  useEffect(() => {
+    try {
+      if (elRefs.current && isNumber(focusedItem) && elRefs.current[focusedItem] && elRefs.current[focusedItem]) {
+        elRefs.current[focusedItem].focus();
+      }
+    } catch (ex) {
+      logger.log('Error with keybaord navigation', ex);
+    }
+  }, [focusedItem]);
 
   // when closed, set input value in case user modified
   useEffect(() => {
@@ -86,14 +117,149 @@ export const Combobox: FunctionComponent<ComboboxProps> = ({
     }
   }, [selectedItemLabel]);
 
-  // TODO: down or enter should open after has focus
-  // TODO: keyboard navigation, including enter to select
-  // TODO: escape OR outside click to close
-  // TODO: single and multi-selection (maybe have two components for this because the UI is very different)
-  // TODO: auto-complete list (could be another component and have a base component) (ex. filter when user types, could also load more)
-  // TODO: possible multi-selection with checkboxes (not recommended)
-  // TODO: menu in front of item (e.x. we could use this with query filters)
-  // TODO: show text of selected item!!!!!! (e.x. in expression drop-down)
+  // Determine if children are groups instead of items
+  let childrenSize = Children.count(children);
+  // if (!checkedForGroups) {
+  // setCheckedForGroups(true);
+  Children.forEach(children, (child) => {
+    if (isValidElement(child)) {
+      if (child.type === ComboboxListItemGroup) {
+        childrenSize += Children.count(child.props.children);
+        if (!hasGroups) {
+          setHasGroups(true);
+        }
+      }
+    }
+  });
+  // }
+
+  // remove double counted children size - since we really just want to know grandchildren size
+  if (hasGroups) {
+    childrenSize -= Children.count(children);
+  }
+
+  // init refs for children for keyboard navigation
+  if (elRefs.current.length !== childrenSize) {
+    const refs: HTMLLIElement[] = [];
+    let counter = 0;
+    Children.forEach(children, (child, i) => {
+      // if groups, use grandchildren
+      if (hasGroups) {
+        if (isValidElement(child)) {
+          Children.forEach(child.props.children, (grandChild) => {
+            refs[counter] = elRefs[counter] || createRef();
+            counter++;
+          });
+        }
+      } else {
+        refs[counter] = elRefs[counter] || createRef();
+        counter++;
+      }
+    });
+    // add or remove refs
+    elRefs.current = refs;
+  }
+
+  /**
+   * Create a ref on all children or grandchildren (for groups)
+   * This allows moving between elements with keyboard
+   */
+  let counter = 0;
+  const childrenWithRef = Children.map(children, (child: ReactElement<ChildListItem | ChildListGroup>, i) => {
+    if (!isValidElement<ChildListItem | ChildListGroup>(child)) {
+      return child;
+    }
+    // set refs on all grandchildren list items
+    if (hasGroups && isValidElement<ChildListGroup>(child)) {
+      return cloneElement(child as ReactElement<ChildListGroup>, {
+        children: Children.map(child.props.children, (grandChild: ReactElement<ChildListItem>) => {
+          if (!isValidElement<ChildListItem>(grandChild)) {
+            return grandChild;
+          }
+          const clonedEl = cloneElement(grandChild, {
+            ref: ((currCounter: number) => (node) => {
+              elRefs.current[currCounter] = node;
+              // Call the original ref, if any
+              const { ref } = child as any;
+              if (typeof ref === 'function') {
+                ref(node);
+              } else if (ref !== null) {
+                ref.current = node;
+              }
+            })(counter),
+          });
+          counter++;
+          return clonedEl;
+        }),
+      });
+    } else {
+      return cloneElement(child, {
+        ref: (node) => {
+          elRefs.current[i] = node;
+          // Call the original ref, if any
+          const { ref } = child as any;
+          if (typeof ref === 'function') {
+            ref(node);
+          } else if (ref !== null) {
+            ref.current = node;
+          }
+        },
+      });
+    }
+  });
+
+  /**
+   * When on input, move focus down the first list item
+   */
+  function handleInputKeyUp(event: KeyboardEvent<HTMLInputElement>) {
+    if (isArrowUpKey(event)) {
+      setFocusedItem(elRefs.current.length - 1);
+    } else if (isArrowDownKey(event)) {
+      setFocusedItem(0);
+    } else {
+      if (onInputChange) {
+        onInputChange(event.currentTarget.value);
+      }
+    }
+  }
+
+  /**
+   * Handle keyboard interaction when list items have focus
+   * The outer div listens for the keyboard events and handles actions
+   */
+  function handleListKeyUp(event: KeyboardEvent<HTMLDivElement>) {
+    let newFocusedItem = focusedItem;
+    if (isOpen && isEscapeKey(event)) {
+      setIsOpen(false);
+      return;
+    }
+    if (isNumber(focusedItem) && isEnterOrSpace(event)) {
+      try {
+        elRefs.current[focusedItem].click();
+        setIsOpen(false);
+      } catch (ex) {
+        // error
+      }
+      return;
+    }
+    if (isArrowUpKey(event)) {
+      if (!isNumber(focusedItem) || focusedItem === 0) {
+        newFocusedItem = elRefs.current.length - 1;
+      } else {
+        newFocusedItem = newFocusedItem - 1;
+      }
+    } else if (isArrowDownKey(event)) {
+      if (!isNumber(focusedItem) || focusedItem === elRefs.current.length - 1) {
+        newFocusedItem = 0;
+      } else {
+        newFocusedItem = newFocusedItem + 1;
+      }
+    }
+
+    if (isNumber(newFocusedItem) && newFocusedItem !== focusedItem) {
+      setFocusedItem(newFocusedItem);
+    }
+  }
 
   return (
     <div className={classNames('slds-form-element', { 'slds-has-error': hasError })}>
@@ -138,7 +304,7 @@ export const Combobox: FunctionComponent<ComboboxProps> = ({
                     autoComplete="off"
                     placeholder={placeholder}
                     disabled={disabled}
-                    onKeyUp={(event) => onInputChange && onInputChange(event.currentTarget.value)}
+                    onKeyUp={handleInputKeyUp}
                     onChange={(event) => setValue(event.target.value)}
                     value={value}
                     title={selectedItemTitle || value}
@@ -168,16 +334,17 @@ export const Combobox: FunctionComponent<ComboboxProps> = ({
                   id={listId}
                   className={classNames(`slds-dropdown slds-dropdown_length-${itemLength} slds-dropdown_fluid`)}
                   role="listbox"
+                  onKeyUp={handleListKeyUp}
                 >
                   {Children.count(children) === 0 && (
                     <ul className="slds-listbox slds-listbox_vertical" role="presentation">
                       <ComboboxListItem id="placeholder" label={noItemsPlaceholder} selected={false} onSelection={NOOP} />
                     </ul>
                   )}
-                  {hasGroups && children}
+                  {hasGroups && childrenWithRef}
                   {!hasGroups && (
                     <ul className="slds-listbox slds-listbox_vertical" role="presentation">
-                      {children}
+                      {childrenWithRef}
                     </ul>
                   )}
                 </div>

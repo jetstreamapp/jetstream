@@ -1,13 +1,25 @@
 /* eslint-disable jsx-a11y/anchor-is-valid */
+import {
+  hasCtrlModifierKey,
+  hasShiftModifierKey,
+  isAKey,
+  isArrowDownKey,
+  isArrowUpKey,
+  isControlKey,
+  isEnterOrSpace,
+  isEscapeKey,
+  isShiftKey,
+} from '@jetstream/shared/ui-utils';
 import { ListItem, ListItemGroup } from '@jetstream/types';
 import classNames from 'classnames';
+import isNumber from 'lodash/isNumber';
 import uniqueId from 'lodash/uniqueId';
-import React, { FunctionComponent, useEffect, useMemo, useState } from 'react';
+import React, { createRef, FunctionComponent, KeyboardEvent, RefObject, useEffect, useMemo, useRef, useState } from 'react';
 import OutsideClickHandler from '../../utils/OutsideClickHandler';
+import HelpText from '../../widgets/HelpText';
 import Icon from '../../widgets/Icon';
 import Pill from '../../widgets/Pill';
 import PicklistItem from './PicklistItem';
-import HelpText from '../../widgets/HelpText';
 
 export interface PicklistProps {
   containerClassName?: string; // e.x. slds-combobox_container slds-size_small
@@ -56,12 +68,43 @@ export const Picklist: FunctionComponent<PicklistProps> = ({
   const scrollLengthClass = useMemo<string | undefined>(() => (scrollLength ? `slds-dropdown_length-${scrollLength}` : undefined), [
     scrollLength,
   ]);
+  const [focusedItem, setFocusedItem] = useState<number>(null);
+  const elRefs = useRef<RefObject<HTMLLIElement>[]>([]);
+
+  // populate array of refs of child items for keyboard navigation
+  if (elRefs.current.length !== items.length) {
+    const refs: RefObject<HTMLLIElement>[] = [];
+    items.forEach((item, i) => {
+      refs[i] = elRefs[i] || createRef();
+    });
+    // add or remove refs
+    elRefs.current = refs;
+  }
+
+  useEffect(() => {
+    setFocusedItem(null);
+  }, [items]);
+
+  useEffect(() => {
+    if (elRefs.current && isNumber(focusedItem) && elRefs.current[focusedItem] && elRefs.current[focusedItem]) {
+      try {
+        elRefs.current[focusedItem].current.focus();
+      } catch (ex) {
+        // silent failure
+      }
+    }
+  }, [focusedItem]);
 
   useEffect(() => {
     if (disabled && isOpen) {
       setIsOpen(false);
     }
   }, [disabled, isOpen]);
+
+  useEffect(() => {
+    onChange(items.filter((item) => selectedItemsIdsSet.has(item.id)));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedItemsIdsSet]);
 
   useEffect(() => {
     if (selectedItemsIdsSet.size > 1) {
@@ -94,7 +137,74 @@ export const Picklist: FunctionComponent<PicklistProps> = ({
     }
 
     setSelectedItemsIdsSet(new Set(selectedItemsIdsSet));
-    onChange(items.filter((item) => selectedItemsIdsSet.has(item.id)));
+  }
+
+  function handleKeyboardSelection(
+    item: ListItem,
+    options: {
+      ctrlModifier?: boolean;
+      shiftModifier?: boolean;
+      isAKey?: boolean;
+    }
+  ) {
+    const { ctrlModifier, shiftModifier, isAKey } = options;
+
+    if (multiSelection) {
+      if (ctrlModifier && isAKey) {
+        // toggle select/de-select all
+        const newSelectedItemIdSet = selectedItemsIdsSet.size === items.length ? new Set() : new Set(items.map((item) => item.id));
+        setSelectedItemsIdsSet(newSelectedItemIdSet);
+      } else if (shiftModifier) {
+        // when shift is pressed, then select or unselect current item and leave all others selected
+        if (selectedItemsIdsSet.has(item.id)) {
+          selectedItemsIdsSet.delete(item.id);
+        } else {
+          selectedItemsIdsSet.add(item.id);
+        }
+        setSelectedItemsIdsSet(new Set(selectedItemsIdsSet));
+      } else {
+        setSelectedItemsIdsSet(new Set([item.id]));
+      }
+    } else {
+      setSelectedItemsIdsSet(new Set([item.id]));
+    }
+  }
+
+  function handleKeyUp(event: KeyboardEvent<HTMLInputElement>) {
+    let newFocusedItem = focusedItem;
+    if (isControlKey(event) || isShiftKey(event)) {
+      return;
+    }
+    if (isEscapeKey(event) || isEnterOrSpace(event)) {
+      setIsOpen(false);
+      return;
+    }
+    if (!isOpen) {
+      setIsOpen(true);
+    }
+    if (isArrowDownKey(event)) {
+      if (!isNumber(focusedItem) || focusedItem === items.length - 1) {
+        newFocusedItem = 0;
+      } else {
+        newFocusedItem = newFocusedItem + 1;
+      }
+    } else if (isArrowUpKey(event)) {
+      if (!isNumber(focusedItem) || focusedItem === 0) {
+        newFocusedItem = items.length - 1;
+      } else {
+        newFocusedItem = newFocusedItem - 1;
+      }
+    }
+    if (isNumber(newFocusedItem)) {
+      setFocusedItem(newFocusedItem);
+      const item = items[newFocusedItem];
+
+      handleKeyboardSelection(item, {
+        ctrlModifier: hasCtrlModifierKey(event),
+        shiftModifier: hasShiftModifierKey(event),
+        isAKey: isAKey(event),
+      });
+    }
   }
 
   return (
@@ -126,6 +236,7 @@ export const Picklist: FunctionComponent<PicklistProps> = ({
                   value={selectedItemText || ''}
                   title={selectedItemText}
                   disabled={disabled}
+                  onKeyUp={handleKeyUp}
                 />
                 <span className="slds-icon_container slds-icon-utility-down slds-input__icon slds-input__icon_right">
                   <Icon type="utility" icon="down" className="slds-icon slds-icon slds-icon_x-small slds-icon-text-default" omitContainer />
@@ -135,11 +246,13 @@ export const Picklist: FunctionComponent<PicklistProps> = ({
                 id={listboxId}
                 className={classNames('slds-dropdown slds-dropdown_fluid slds-dropdown_length-7', scrollLengthClass)}
                 role="listbox"
+                onKeyUp={handleKeyUp}
               >
                 {Array.isArray(items) && (
                   <ul className="slds-listbox slds-listbox_vertical" role="presentation">
-                    {items.map((item) => (
+                    {items.map((item, i) => (
                       <PicklistItem
+                        ref={elRefs.current[i]}
                         key={item.id}
                         id={item.id}
                         label={item.label}
@@ -161,8 +274,9 @@ export const Picklist: FunctionComponent<PicklistProps> = ({
                           </h3>
                         </div>
                       </li>
-                      {group.items.map((item) => (
+                      {group.items.map((item, i) => (
                         <PicklistItem
+                          ref={elRefs.current[i]}
                           key={item.id}
                           id={item.id}
                           label={item.label}

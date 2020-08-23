@@ -1,8 +1,8 @@
 /** @jsx jsx */
 import { css, jsx } from '@emotion/core';
-import { FieldWrapper, MapOf, QueryFields } from '@jetstream/types';
+import { FieldWrapper, MapOf, QueryFields, UpDown } from '@jetstream/types';
 import { isString } from 'lodash';
-import { Fragment, FunctionComponent, useEffect, useState } from 'react';
+import { Fragment, FunctionComponent, useEffect, useState, createRef } from 'react';
 import Checkbox from '../form/checkbox/Checkbox';
 import SearchInput from '../form/search-input/SearchInput';
 import EmptyState from '../illustrations/EmptyState';
@@ -58,9 +58,9 @@ export const SobjectFieldList: FunctionComponent<SobjectFieldListProps> = ({
   const [fieldLength, setFieldLength] = useState<number>(0);
   const [filteredFields, setFilteredFields] = useState<FieldWrapper[]>(null);
   const [visibleFields, setVisibleFields] = useState<Set<string>>(null);
-
-  // const [searchTerm, setSearchTerm] = useState<string>(''); // can I use this from queryFieldsMap?
   const [selectAll, setSelectAll] = useState<boolean>(false);
+  const [searchInputId] = useState(`object-field-${sobject}-filter-${Date.now()}`);
+  const ulRef = createRef<HTMLUListElement>();
 
   useEffect(() => {
     if (isString(itemKey) && queryFieldsMap[itemKey]) {
@@ -123,6 +123,12 @@ export const SobjectFieldList: FunctionComponent<SobjectFieldListProps> = ({
     };
   }
 
+  function handleSearchKeyboard(direction: UpDown) {
+    if (ulRef && ulRef.current) {
+      ulRef.current.focus();
+    }
+  }
+
   return (
     <div
       className={`query-level-${level}`}
@@ -144,9 +150,10 @@ export const SobjectFieldList: FunctionComponent<SobjectFieldListProps> = ({
         <Fragment>
           <div className="slds-p-bottom--xx-small">
             <SearchInput
-              id="object-field-filter"
+              id={searchInputId}
               placeholder={`Filter ${sobject} Fields`}
               onChange={(value) => onFilterChanged(itemKey, value)}
+              onArrowKeyUpDown={handleSearchKeyboard}
             />
             <div className="slds-text-body_small slds-text-color_weak slds-p-left--xx-small">
               Showing {numeral(filteredFields.length).format('0,0')} of {numeral(fieldLength).format('0,0')} fields
@@ -161,7 +168,14 @@ export const SobjectFieldList: FunctionComponent<SobjectFieldListProps> = ({
               onChange={updateSelectAll}
             />
           </div>
-          <List items={filteredFields} useCheckbox isActive={isFieldActive} onSelected={handleFieldSelected} getContent={getFieldContent} />
+          <List
+            ref={ulRef}
+            items={filteredFields}
+            useCheckbox
+            isActive={isFieldActive}
+            onSelected={handleFieldSelected}
+            getContent={getFieldContent}
+          />
           {!filteredFields.length && (
             <EmptyState imageWidth={200} showIllustration={level === 0}>
               <p>There are no matching fields</p>

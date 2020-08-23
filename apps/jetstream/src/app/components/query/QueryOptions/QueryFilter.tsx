@@ -49,6 +49,9 @@ function resourceTypeFns(fields: ListItemGroup[]) {
   const getResourceTypeFns: ExpressionGetResourceTypeFns = {
     getTypes: (selected: ExpressionConditionRowSelectedItems): ListItem<ExpressionRowValueType>[] => {
       const fieldMeta: Field = findResourceMeta(fields, selected);
+      if (!fieldMeta) {
+        return undefined;
+      }
       if (fieldMeta.type === 'date') {
         return [
           {
@@ -85,6 +88,9 @@ function resourceTypeFns(fields: ListItemGroup[]) {
       if (selected.resourceType) {
         return selected.resourceType;
       }
+      if (!fieldMeta) {
+        return undefined;
+      }
       /**
        * TODO:
        * boolean <---- could we show
@@ -115,6 +121,9 @@ function resourceTypeFns(fields: ListItemGroup[]) {
     },
     getSelectItems: (selected: ExpressionConditionRowSelectedItems): ListItem[] | undefined => {
       const fieldMeta: Field = findResourceMeta(fields, selected);
+      if (!fieldMeta) {
+        return [];
+      }
       switch (fieldMeta.type) {
         case 'date':
         case 'datetime':
