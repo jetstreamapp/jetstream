@@ -1,6 +1,6 @@
 import { logger } from '@jetstream/shared/client-logger';
 import { fetchFields, getFieldKey, sortQueryFieldsStr } from '@jetstream/shared/ui-utils';
-import { FieldWrapper, MapOf, QueryFields, SalesforceOrgUi } from '@jetstream/types';
+import { FieldWrapper, MapOf, QueryFields, SalesforceOrgUi, QueryFieldWithPolymorphic } from '@jetstream/types';
 import { AutoFullHeightContainer, SobjectFieldList } from '@jetstream/ui';
 import isEmpty from 'lodash/isEmpty';
 import React, { Fragment, FunctionComponent, useEffect, useState } from 'react';
@@ -14,7 +14,7 @@ const CHILD_FIELD_SEPARATOR = `~`;
 export interface QueryChildFieldsProps {
   selectedSObject: string;
   parentRelationshipName: string;
-  onSelectionChanged: (fields: string[]) => void;
+  onSelectionChanged: (fields: QueryFieldWithPolymorphic[]) => void;
   // onFieldsFetched: (queryFields: MapOf<QueryFields>) => void;
 }
 
@@ -57,6 +57,7 @@ export const QueryChildFieldsComponent: FunctionComponent<QueryChildFieldsProps>
       baseQueryFieldsMap = { ...baseQueryFieldsMap };
       baseQueryFieldsMap = {
         key: BASE_KEY,
+        isPolymorphic: false,
         expanded: true,
         loading: true,
         hasError: false,
@@ -99,18 +100,20 @@ export const QueryChildFieldsComponent: FunctionComponent<QueryChildFieldsProps>
    * @param fieldsMap
    */
   function emitSelectedFieldsChanged(fieldsMap: MapOf<QueryFields> = queryFieldsMap) {
-    const fields = Object.values(fieldsMap)
+    const fields: QueryFieldWithPolymorphic[] = Object.values(fieldsMap)
       .filter((queryField) => queryField.key.startsWith(baseKey))
       .flatMap((queryField) => {
         // remove the first part of the key (which identified this object)
         const basePath = queryField.key.replace(/.+\|/, '');
-        return sortQueryFieldsStr(Array.from(queryField.selectedFields)).map((fieldKey) => `${basePath}${fieldKey}`);
+        return sortQueryFieldsStr(Array.from(queryField.selectedFields))
+          .map((fieldKey) => `${basePath}${fieldKey}`)
+          .map((field) => ({ field, polymorphicObj: queryField.isPolymorphic ? queryField.sobject : undefined }));
       });
 
     onSelectionChanged(fields);
   }
 
-  async function handleToggleFieldExpand(parentKey: string, field: FieldWrapper) {
+  async function handleToggleFieldExpand(parentKey: string, field: FieldWrapper, relatedSobject: string) {
     // FIXME: should be centralized:
     // const key = `${parentKey}${field.metadata.relationshipName}.`;
     const key = getFieldKey(parentKey, field.metadata);
@@ -126,7 +129,8 @@ export const QueryChildFieldsComponent: FunctionComponent<QueryChildFieldsProps>
         loading: true,
         hasError: false,
         filterTerm: '',
-        sobject: field.relatedSobject as string,
+        sobject: relatedSobject,
+        isPolymorphic: Array.isArray(field.relatedSobject),
         fields: {},
         visibleFields: new Set(),
         selectedFields: new Set(),

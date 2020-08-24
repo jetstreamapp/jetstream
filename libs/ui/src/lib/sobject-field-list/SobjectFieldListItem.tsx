@@ -6,13 +6,14 @@ import { Fragment, FunctionComponent, useEffect, useState } from 'react';
 import Icon from '../widgets/Icon';
 import SobjectFieldList from './SobjectFieldList';
 import SobjectFieldListType from './SobjectFieldListType';
+import SobjectExpandChildrenBtn from './SobjectExpandChildrenBtn';
 
 export interface SobjectFieldListItemProps {
   level: number;
   parentKey: string;
   field: FieldWrapper;
   queryFieldsMap: MapOf<QueryFields>;
-  onToggleExpand: (key: string, field: FieldWrapper) => void;
+  onToggleExpand: (key: string, field: FieldWrapper, relatedSobject: string) => void;
   onSelectField: (key: string, field: FieldWrapper) => void;
   onSelectAll: (key: string, value: boolean) => void;
   onFilterChanged: (key: string, filterTerm: string) => void;
@@ -32,11 +33,11 @@ export const SobjectFieldListItem: FunctionComponent<SobjectFieldListItemProps> 
 }) => {
   const [relationshipKey, setRelationshipKey] = useState<string>(null);
   const [isExpanded, setIsExpanded] = useState<boolean>(false);
+  const [selectedSObject, setSelectedSObject] = useState(queryFieldsMap[relationshipKey]?.sobject);
 
-  function handleExpand(event: React.MouseEvent<HTMLButtonElement, MouseEvent>) {
-    event.preventDefault();
-    event.stopPropagation();
-    onToggleExpand(parentKey, field);
+  function handleExpand(key: string, field: FieldWrapper, relatedSobject: string) {
+    setSelectedSObject(relatedSobject);
+    onToggleExpand(key, field, relatedSobject);
   }
 
   useEffect(() => {
@@ -71,17 +72,24 @@ export const SobjectFieldListItem: FunctionComponent<SobjectFieldListItemProps> 
             margin-right: -1.25rem;
           `}
         >
-          <button className="slds-button" onClick={handleExpand}>
+          <SobjectExpandChildrenBtn
+            initialSelectedSObject={queryFieldsMap[relationshipKey]?.sobject}
+            parentKey={parentKey}
+            field={field}
+            isExpanded={isExpanded}
+            onToggleExpand={handleExpand}
+          />
+          {/* <button className="slds-button" onClick={handleExpand}>
             <Icon type="utility" icon={isExpanded ? 'dash' : 'add'} className="slds-button__icon slds-button__icon_left" />
             {isExpanded ? 'Hide' : 'View'} {field.relatedSobject} Fields
-          </button>
+          </button> */}
           {isExpanded && (
             <div>
               <SobjectFieldList
                 level={level + 1}
                 itemKey={relationshipKey}
                 queryFieldsMap={queryFieldsMap}
-                sobject={field.relatedSobject}
+                sobject={selectedSObject}
                 onToggleExpand={onToggleExpand}
                 onSelectField={onSelectField}
                 onSelectAll={onSelectAll}

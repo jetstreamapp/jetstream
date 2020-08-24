@@ -2,7 +2,7 @@
 /** @jsx jsx */
 import { css, jsx } from '@emotion/core';
 import { logger } from '@jetstream/shared/client-logger';
-import { WorkerMessage, ListItemGroup } from '@jetstream/types';
+import { WorkerMessage, ListItemGroup, QueryFieldWithPolymorphic } from '@jetstream/types';
 import {
   Accordion,
   AutoFullHeightContainer,
@@ -127,7 +127,7 @@ export const QueryBuilder: FunctionComponent<QueryBuilderProps> = () => {
     }
   }, [queryWorker, setFilterFields]);
 
-  function handleSubquerySelectedField(relationshipName: string, fields: string[]) {
+  function handleSubquerySelectedField(relationshipName: string, fields: QueryFieldWithPolymorphic[]) {
     const tempSelectedSubqueryFieldsState = { ...selectedSubqueryFieldsState, [relationshipName]: fields };
     setSelectedSubqueryFieldsState(tempSelectedSubqueryFieldsState);
   }

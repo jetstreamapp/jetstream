@@ -95,7 +95,7 @@
     "reflect-metadata": "^0.1.13",
     "rollbar": "^2.19.1",
     "rxjs": "^6.6.0",
-    "soql-parser-js": "^2.5.4",
+    "soql-parser-js": "^2.5.5",
     "superagent": "^5.2.2",
     "tailwindcss": "^1.6.0",
     "typeorm": "^0.2.25",

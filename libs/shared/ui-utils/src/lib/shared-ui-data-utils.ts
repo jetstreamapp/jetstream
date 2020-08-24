@@ -39,12 +39,16 @@ export async function fetchFields(org: SalesforceOrgUi, queryFields: QueryFields
     sortQueryFields(describeResults.fields).map((field: Field) => {
       const type = fieldDefByApiName[field.name]?.DataType || polyfillFieldDefinition(field);
       const filterText = `${field.name || ''}${field.label || ''}${type}${type.replace(REGEX.NOT_ALPHA, '')}`.toLowerCase();
+      let relatedSobject: string | string[];
+      if (field.type === 'reference' && field.referenceTo?.length) {
+        relatedSobject = field.referenceTo.length === 1 ? field.referenceTo[0] : field.referenceTo;
+      }
       return {
         name: field.name,
         label: field.label,
         type,
         sobject,
-        relatedSobject: field.type === 'reference' && field.referenceTo?.length ? field.referenceTo[0] : undefined,
+        relatedSobject,
         filterText,
         metadata: field,
         fieldDefinition: fieldDefByApiName[field.name],

@@ -2,7 +2,7 @@ import React, { FunctionComponent, Fragment, ReactNode } from 'react';
 import HelpText from '../../widgets/HelpText';
 import classNames from 'classnames';
 
-export interface TextareaProps {
+export interface SelectProps {
   id: string;
   label?: string | ReactNode;
   labelHelp?: string;
@@ -13,7 +13,7 @@ export interface TextareaProps {
   errorMessage?: React.ReactNode | string;
 }
 
-export const Textarea: FunctionComponent<TextareaProps> = ({
+export const Select: FunctionComponent<SelectProps> = ({
   id,
   label,
   labelHelp,
@@ -39,7 +39,9 @@ export const Textarea: FunctionComponent<TextareaProps> = ({
           {labelHelp && <HelpText id={`${id}-label-help-text`} content={labelHelp} />}
         </Fragment>
       )}
-      <div className="slds-form-element__control">{children}</div>
+      <div className="slds-form-element__control">
+        <div className="slds-select_container">{children}</div>
+      </div>
       {helpText && <div className="slds-form-element__help">{helpText}</div>}
       {hasError && errorMessage && (
         <div className="slds-form-element__help" id={errorMessageId}>
@@ -50,4 +52,4 @@ export const Textarea: FunctionComponent<TextareaProps> = ({
   );
 };
 
-export default Textarea;
+export default Select;
