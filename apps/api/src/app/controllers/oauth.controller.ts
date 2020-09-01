@@ -1,11 +1,22 @@
+/* eslint-disable @typescript-eslint/camelcase */
+import { encryptString, getJsforceOauth2, hexToBase64 } from '@jetstream/shared/node-utils';
+import { SalesforceOrgUi, SObjectOrganization, UserAuthSession } from '@jetstream/types';
 import * as express from 'express';
 import * as jsforce from 'jsforce';
 import * as querystring from 'querystring';
-import { encryptString, hexToBase64, getJsforceOauth2 } from '@jetstream/shared/node-utils';
-import { SalesforceOrgUi, SObjectOrganization, UserAuthSession } from '@jetstream/types';
-import { exchangeOAuthCodeForAccessToken, getLoginUrl, createOrUpdateSession, destroySession, getLogoutUrl } from '../services/auth';
 import { logger } from '../config/logger.config';
 import { SalesforceOrg } from '../db/entites/SalesforceOrg';
+import { createOrUpdateSession, destroySession, getLoginUrl, getLogoutUrl, exchangeCodeForAccessToken } from '../services/auth';
+
+interface CognitoResponse {
+  access_token?: string;
+  expires_in?: number;
+  id_token?: string;
+  refresh_token?: string;
+  scope?: string;
+  token_type?: any; // TODO:
+  userId?: string;
+}
 
 interface SfdcOauthState {
   loginUrl: string;
@@ -17,9 +28,12 @@ export async function jetstreamOauthInitAuth(req: express.Request, res: express.
 
 export async function jetstreamOauthLogin(req: express.Request, res: express.Response) {
   // TODO: figure out error handling
-  const { code, state, locale, userState } = req.query;
+  const { code, state } = req.query;
 
-  const accessToken = await exchangeOAuthCodeForAccessToken(code as string);
+  // const accessToken = await exchangeOAuthCodeForAccessToken(code as string);
+
+  // Exchange oauth code for access token
+  const accessToken = await exchangeCodeForAccessToken(code as string);
 
   createOrUpdateSession(req, accessToken);
 

@@ -1,15 +1,17 @@
 // decoded JWT
 export interface UserAuthJwt {
+  at_hash: string;
+  sub: string; // username
   aud: string;
+  email_verified: true;
+  token_use: 'id';
+  auth_time: number;
+  iss: 'https://cognito-idp.us-east-1.amazonaws.com/us-east-1_BKTsg5Qef';
+  name: string;
+  'cognito:username': string;
   exp: number;
   iat: number;
-  iss: 'getjetstream.app';
-  sub: string;
-  authenticationType: 'PASSWORD' | 'REFRESH_TOKEN' | 'SAMLv2';
   email: string;
-  email_verified: boolean;
-  applicationId: string;
-  roles: string[];
 }
 
 export interface UserAuthSession {

@@ -21,23 +21,23 @@ export interface ApplicationCookie {
   serverUrl: string;
 }
 
+export interface AuthenticationToken {
+  access_token?: string;
+  refresh_token?: string;
+  id_token?: string;
+  expires_in?: number;
+  scope?: string;
+  token_type?: 'Bearer';
+}
+
 export type UserProfileUsernameStatus = 'ACTIVE' | 'PENDING' | 'REJECTED';
 
 export interface UserProfile {
   id: string;
+  name: string;
   email: string;
-  firstName: string;
-  lastName: string;
-  fullName: string;
   active: boolean;
-  data?: any; // could be used in future
-  passwordChangeRequired: boolean;
-  preferredLanguages: string[];
-  timezone: string;
-  tenantId: string;
-  usernameStatus: UserProfileUsernameStatus;
   username: string;
-  verified: boolean;
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any

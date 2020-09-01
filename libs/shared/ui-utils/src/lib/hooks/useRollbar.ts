@@ -20,13 +20,13 @@ function getRollbarInstance(accessToken: string, environment: ProductionDevelopm
     });
   if (!_rollbarIsConfigured && userProfile) {
     _rollbarIsConfigured = true;
-    const { id, email, tenantId } = userProfile;
+    const { id, email, username } = userProfile;
     rollbar.configure({
       payload: {
         person: {
           id,
           email,
-          tenantId,
+          username,
         },
       },
     });

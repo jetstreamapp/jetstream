@@ -1,6 +1,6 @@
 import * as express from 'express';
 import { UserFacingError, AuthenticationError, NotFoundError } from './error-handler';
-import { getLoginUrl } from '../services/auth';
+import { getLoginUrl, getLogoutUrl } from '../services/auth';
 import { HTTP, ERROR_MESSAGES } from '@jetstream/shared/constants';
 import { logger } from '../config/logger.config';
 import { SalesforceOrg } from '../db/entites/SalesforceOrg';
@@ -23,7 +23,7 @@ export function sendJson(res: express.Response, content?: any, status = 200) {
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 export async function uncaughtErrorHandler(err: any, req: express.Request, res: express.Response, next: express.NextFunction) {
-  logger.info('[RESPONSE][ERROR] %s', err.message, { error: err.message });
+  logger.info('[RESPONSE][ERROR] %s', err.message, { error: err.message || err });
   const isJson = (req.get(HTTP.HEADERS.ACCEPT) || '').includes(HTTP.CONTENT_TYPE.JSON);
 
   // If org had a connection error, ensure that the database is updated
@@ -48,7 +48,7 @@ export async function uncaughtErrorHandler(err: any, req: express.Request, res: 
   } else if (err instanceof AuthenticationError) {
     res.status(401);
     res.set(HTTP.HEADERS.X_LOGOUT, '1');
-    res.set(HTTP.HEADERS.X_LOGOUT_URL, getLoginUrl());
+    res.set(HTTP.HEADERS.X_LOGOUT_URL, getLogoutUrl());
     if (isJson) {
       return res.json({
         error: true,

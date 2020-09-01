@@ -36,9 +36,9 @@ export async function checkAuth(req: express.Request, res: express.Response, nex
     }
 
     const sessionAuth: UserAuthSession = req.session.auth;
-    const fusionAuthExpires = dateFromTimestamp(sessionAuth.user.exp);
+    const authExpires = dateFromTimestamp(sessionAuth.user.exp);
 
-    if (moment().isAfter(fusionAuthExpires)) {
+    if (moment().isAfter(authExpires)) {
       const accessToken = await refreshAuthToken(sessionAuth.refresh_token);
       createOrUpdateSession(req, accessToken);
     }

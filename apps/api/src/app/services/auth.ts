@@ -1,63 +1,111 @@
 /* eslint-disable @typescript-eslint/camelcase */
-import { FusionAuthClient, AccessToken } from '@fusionauth/typescript-client';
-// FIXME: https://github.com/FusionAuth/fusionauth-typescript-client/issues/27
-import ClientResponse from '@fusionauth/typescript-client/build/src/ClientResponse';
-import { UserAuthJwt, UserAuthSession } from '@jetstream/types';
+import { UserAuthJwt, UserAuthSession, AuthenticationToken, UserProfile } from '@jetstream/types';
 import * as express from 'express';
 import * as jwt from 'jsonwebtoken';
 import * as querystring from 'querystring';
 import { NOOP } from '@jetstream/shared/utils';
 import { logger } from '../config/logger.config';
+import * as request from 'superagent'; // http://visionmedia.github.io/superagent
+import { AuthenticationError } from '../utils/error-handler';
 
-const FUSIONAUTH_SCOPE = 'openid offline_access';
-
-let _client: FusionAuthClient;
-
-function getAuthClient() {
-  _client =
-    _client ||
-    new FusionAuthClient(process.env.JETSTREAM_AUTH_API_KEY, process.env.JETSTREAM_AUTH_SERVER_URL, process.env.JETSTREAM_AUTH_TENANT_ID);
-  return _client;
+interface CognitoUserInfoResponse {
+  sub: string;
+  name: string;
+  email: string;
+  username: string; // same as sub
 }
 
-function getLoginRedirectUrl() {
-  return `${process.env.JETSTREAM_SERVER_URL}/oauth/callback`;
-}
+const AUTH_SCOPE = 'email openid phone profile aws.cognito.signin.user.admin';
 
-function returnResponseOrThrow<T>(clientResponse: ClientResponse<T>, errorLogText: string) {
-  const { statusCode, response, exception } = clientResponse;
-  const success = statusCode >= 200 && statusCode < 300;
+export async function exchangeCodeForAccessToken(code: string): Promise<AuthenticationToken> {
+  try {
+    // https://docs.aws.amazon.com/cognito/latest/developerguide/token-endpoint.html#post-token-positive-exchanging-client-credentials-for-an-access-token
+    const response = await request
+      .post(`${process.env.AUTH_BASE_URL}/oauth2/token`)
+      .auth(process.env.AUTH_CLIENT_ID, process.env.AUTH_CLIENT_SECRET)
+      .type('form')
+      .send({
+        grant_type: 'authorization_code', // could also be "refresh_token", in which case refresh_token is required to be provided
+        client_id: process.env.AUTH_CLIENT_ID,
+        code,
+        redirect_uri: process.env.AUTH_CALLBACK_URL,
+      });
 
-  if (!success) {
-    logger.info('[AUTH] %s', errorLogText);
-    throw exception;
+    // TODO: createOrUpdateUser in our local DB (if we decide we want to do this)
+
+    return response.body;
+  } catch (ex) {
+    throw new AuthenticationError('Unauthorized');
   }
-
-  return response;
 }
 
-export async function getUserDetails(userId: string) {
-  return returnResponseOrThrow(await getAuthClient().retrieveUser(userId), 'retrieveUser');
+export async function refreshAuthToken(refresh_token: string) {
+  try {
+    // https://docs.aws.amazon.com/cognito/latest/developerguide/token-endpoint.html#post-token-positive-exchanging-a-refresh-token-for-tokens.title
+    const response = await request
+      .post(`${process.env.AUTH_BASE_URL}/oauth2/token`)
+      .auth(process.env.AUTH_CLIENT_ID, process.env.AUTH_CLIENT_SECRET)
+      .type('form')
+      .send({
+        grant_type: 'refresh_token',
+        client_id: process.env.AUTH_CLIENT_ID,
+        refresh_token,
+      });
+
+    return response.body;
+  } catch (ex) {
+    throw new AuthenticationError('Unauthorized');
+  }
+}
+
+export function getLoginUrl() {
+  const params = {
+    client_id: process.env.AUTH_CLIENT_ID,
+    response_type: 'code',
+    scope: AUTH_SCOPE,
+    redirect_uri: process.env.AUTH_CALLBACK_URL,
+  };
+
+  return `${process.env.AUTH_BASE_URL}/login?${querystring.stringify(params)}`;
 }
 
 export function getLogoutUrl() {
   const params = {
-    client_id: process.env.JETSTREAM_AUTH_CLIENT_ID,
-    post_logout_redirect_uri: `${process.env.JETSTREAM_SERVER_URL}`, // root page - TODO: fix for localhost
-    tenantId: process.env.JETSTREAM_AUTH_TENANT_ID,
+    client_id: process.env.AUTH_CLIENT_ID,
+    response_type: 'code',
+    scope: AUTH_SCOPE,
+    redirect_uri: process.env.AUTH_CALLBACK_URL,
   };
 
-  return `${process.env.JETSTREAM_AUTH_SERVER_URL}/oauth2/logout?${querystring.stringify(params)}`;
+  return `${process.env.AUTH_BASE_URL}/logout?${querystring.stringify(params)}`;
 }
 
-export function createOrUpdateSession(req: express.Request, userAuthToken: AccessToken) {
-  const userAuthJwt: UserAuthJwt = jwt.decode(userAuthToken.access_token) as UserAuthJwt;
+export async function getUserDetails(accessToken: string): Promise<UserProfile> {
+  try {
+    const response = await request.get(`${process.env.AUTH_BASE_URL}/oauth2/userInfo`).set('Authorization', `Bearer ${accessToken}`);
+
+    const cognitoUser = response.body as CognitoUserInfoResponse;
+
+    return {
+      id: cognitoUser.sub,
+      name: cognitoUser.name,
+      email: cognitoUser.email,
+      active: true,
+      username: cognitoUser.username,
+    };
+  } catch (ex) {
+    throw new AuthenticationError('Unauthorized');
+  }
+}
+
+export function createOrUpdateSession(req: express.Request, userAuthToken: AuthenticationToken) {
+  const userAuthJwt: UserAuthJwt = jwt.decode(userAuthToken.id_token) as UserAuthJwt;
 
   const userAuthSession: UserAuthSession = {
     access_token: userAuthToken.access_token,
     id_token: userAuthToken.id_token,
-    refresh_token: userAuthToken.refresh_token, // TODO: do we actually need this?
-    userId: userAuthToken.userId,
+    refresh_token: userAuthToken.refresh_token,
+    userId: userAuthJwt.sub,
     user: userAuthJwt,
   };
 
@@ -73,55 +121,4 @@ export function destroySession(req: express.Request) {
   } catch (ex) {
     logger.info('[AUTH][SESSION][DESTROY ERROR]', ex.message);
   }
-}
-
-/**
- * Generate login URL for Jetstream OAuth
- * @param options
- */
-export function getLoginUrl(options: { deviceDescription?: string; locale?: string } = { locale: 'en' }) {
-  options = options || {};
-  options.deviceDescription = options.deviceDescription || 'unknown';
-  options.locale = options.locale || 'en';
-  const { deviceDescription, locale } = options;
-
-  const queryParams = {
-    client_id: process.env.JETSTREAM_AUTH_CLIENT_ID,
-    redirect_uri: getLoginRedirectUrl(),
-    response_type: 'code',
-    tenantId: process.env.JETSTREAM_AUTH_TENANT_ID,
-    scope: FUSIONAUTH_SCOPE,
-    'metaData.device.description': deviceDescription,
-    state: 'state',
-    locale,
-  };
-
-  return `${process.env.JETSTREAM_AUTH_SERVER_URL}/oauth2/authorize?${querystring.stringify(queryParams)}`;
-}
-
-export async function exchangeOAuthCodeForAccessToken(code: string) {
-  return returnResponseOrThrow(
-    await getAuthClient().exchangeOAuthCodeForAccessToken(
-      code,
-      process.env.JETSTREAM_AUTH_CLIENT_ID,
-      process.env.JETSTREAM_AUTH_CLIENT_SECRET,
-      getLoginRedirectUrl()
-    ),
-    'exchangeOAuthCodeForAccessToken'
-  );
-}
-
-export async function refreshAuthToken(refresh_token: string) {
-  // TODO: submit PR to fix optional properties with request
-  // https://github.com/FusionAuth/fusionauth-typescript-client/issues/29
-  return returnResponseOrThrow(
-    await getAuthClient().exchangeRefreshTokenForAccessToken(
-      refresh_token,
-      process.env.JETSTREAM_AUTH_CLIENT_ID,
-      process.env.JETSTREAM_AUTH_CLIENT_SECRET,
-      FUSIONAUTH_SCOPE,
-      undefined
-    ),
-    'exchangeRefreshTokenForAccessToken'
-  );
 }
