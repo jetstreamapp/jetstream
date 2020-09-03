@@ -6,7 +6,7 @@ import { UserAuthSession } from '@jetstream/types';
 import { dateFromTimestamp } from '@jetstream/shared/utils';
 import { HTTP } from '@jetstream/shared/constants';
 import * as moment from 'moment';
-import { refreshAuthToken, createOrUpdateSession } from '../services/auth';
+import { refreshAuthToken, createOrUpdateSession, getUserDetails } from '../services/auth';
 import { isNumber } from 'lodash';
 import { logger } from '../config/logger.config';
 import { SalesforceOrg } from '../db/entites/SalesforceOrg';
@@ -30,17 +30,18 @@ export async function checkAuth(req: express.Request, res: express.Response, nex
    */
 
   try {
-    if (!req.session || !req.session.id || !isNumber(req.session.auth?.user?.exp)) {
+    if (!req.session || !req.session.id) {
       logger.info('[AUTH][INVALID SESSION]');
       return next(new AuthenticationError('Unauthorized'));
     }
 
     const sessionAuth: UserAuthSession = req.session.auth;
-    const authExpires = dateFromTimestamp(sessionAuth.user.exp);
+    const authExpires = dateFromTimestamp(sessionAuth.userAuth.exp);
 
     if (moment().isAfter(authExpires)) {
-      const accessToken = await refreshAuthToken(sessionAuth.refresh_token);
-      createOrUpdateSession(req, accessToken);
+      const authenticationToken = await refreshAuthToken(sessionAuth.refresh_token);
+      const userProfile = await getUserDetails(authenticationToken.access_token);
+      createOrUpdateSession(req, authenticationToken, userProfile);
     }
 
     next();

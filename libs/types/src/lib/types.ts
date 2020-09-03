@@ -34,10 +34,14 @@ export type UserProfileUsernameStatus = 'ACTIVE' | 'PENDING' | 'REJECTED';
 
 export interface UserProfile {
   id: string;
-  name: string;
   email: string;
-  active: boolean;
+  emailVerified: boolean;
   username: string;
+  name: string;
+  familyName: string;
+  givenName: string;
+  locale: string;
+  timezone: string;
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any

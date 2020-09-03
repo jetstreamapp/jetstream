@@ -6,7 +6,15 @@ import * as jsforce from 'jsforce';
 import * as querystring from 'querystring';
 import { logger } from '../config/logger.config';
 import { SalesforceOrg } from '../db/entites/SalesforceOrg';
-import { createOrUpdateSession, destroySession, getLoginUrl, getLogoutUrl, exchangeCodeForAccessToken } from '../services/auth';
+import {
+  createOrUpdateSession,
+  destroySession,
+  getLoginUrl,
+  getLogoutUrl,
+  exchangeCodeForAccessToken,
+  revokeAuthToken,
+  getUserDetails,
+} from '../services/auth';
 
 interface CognitoResponse {
   access_token?: string;
@@ -33,16 +41,27 @@ export async function jetstreamOauthLogin(req: express.Request, res: express.Res
   // const accessToken = await exchangeOAuthCodeForAccessToken(code as string);
 
   // Exchange oauth code for access token
-  const accessToken = await exchangeCodeForAccessToken(code as string);
+  const authenticationToken = await exchangeCodeForAccessToken(code as string);
+  const userProfile = await getUserDetails(authenticationToken.access_token);
 
-  createOrUpdateSession(req, accessToken);
+  createOrUpdateSession(req, authenticationToken, userProfile);
 
   res.redirect(process.env.JETSTREAM_CLIENT_URL);
 }
 
 export async function jetstreamLogout(req: express.Request, res: express.Response) {
+  const revokeCalls: Promise<void>[] = [];
+  const idToken = req.session?.auth?.id_token;
+  if (req.session?.auth?.access_token) {
+    revokeCalls.push(revokeAuthToken('access_token', req.session.auth.access_token));
+  }
+  if (req.session?.auth?.refresh_token) {
+    revokeCalls.push(revokeAuthToken('refresh_token', req.session.auth.refresh_token));
+  }
+  await Promise.all(revokeCalls);
   destroySession(req);
-  res.redirect(getLogoutUrl());
+  const url = idToken ? getLogoutUrl(idToken) : process.env.JETSTREAM_LANDING_URL || 'https://getjetstream.app';
+  res.redirect(url);
 }
 
 /**
