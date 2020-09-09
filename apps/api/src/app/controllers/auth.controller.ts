@@ -30,17 +30,12 @@ export async function callback(req: Request, res: Response, next: NextFunction) 
 export async function logout(req: Request, res: Response) {
   req.logout();
 
-  let returnTo = `${req.protocol}://${req.hostname}`;
-  const port = req.connection.localPort;
-  if (port !== undefined && port !== 80 && port !== 443) {
-    returnTo += ':' + port;
-  }
   const logoutURL = new URL(`https://${process.env.AUTH0_DOMAIN}/v2/logout`);
 
   logoutURL.search = querystring.stringify({
     // eslint-disable-next-line @typescript-eslint/camelcase
     client_id: process.env.AUTH0_CLIENT_ID,
-    returnTo: returnTo,
+    returnTo: process.env.JETSTREAM_SERVER_URL,
   });
 
   res.redirect(logoutURL.toString());
