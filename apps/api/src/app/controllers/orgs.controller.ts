@@ -1,4 +1,4 @@
-import { UserProfile } from '@jetstream/types';
+import { UserProfileServer } from '@jetstream/types';
 import { NextFunction, Request, Response } from 'express';
 import { SalesforceOrg } from '../db/entites/SalesforceOrg';
 import { UserFacingError } from '../utils/error-handler';
@@ -6,7 +6,7 @@ import { sendJson } from '../utils/response.handlers';
 
 export async function getOrgs(req: Request, res: Response, next: NextFunction) {
   try {
-    const user = req.user as UserProfile;
+    const user = req.user as UserProfileServer;
     const orgs = await SalesforceOrg.findByUserId(user.id);
     sendJson(res, orgs);
   } catch (ex) {
@@ -17,7 +17,7 @@ export async function getOrgs(req: Request, res: Response, next: NextFunction) {
 // TODO: this is not yet implemented in UI
 export async function deleteOrg(req: Request, res: Response, next: NextFunction) {
   try {
-    const user = req.user as UserProfile;
+    const user = req.user as UserProfileServer;
     const existingOrg = await SalesforceOrg.findByUniqueId(user.id, req.params.uniqueId);
     if (!existingOrg) {
       return next(new UserFacingError('An org was not found with the provided id'));

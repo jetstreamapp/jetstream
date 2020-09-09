@@ -1,6 +1,6 @@
 import { HTTP } from '@jetstream/shared/constants';
 import { decryptString, encryptString, getJsforceOauth2, hexToBase64 } from '@jetstream/shared/node-utils';
-import { UserProfile } from '@jetstream/types';
+import { UserProfileServer } from '@jetstream/types';
 import * as express from 'express';
 import * as jsforce from 'jsforce';
 import { logger } from '../config/logger.config';
@@ -30,7 +30,7 @@ export async function checkAuth(req: express.Request, res: express.Response, nex
 export async function addOrgsToLocal(req: express.Request, res: express.Response, next: express.NextFunction) {
   try {
     const uniqueId = (req.get(HTTP.HEADERS.X_SFDC_ID) || req.query[HTTP.HEADERS.X_SFDC_ID]) as string;
-    const user = req.user as UserProfile;
+    const user = req.user as UserProfileServer;
 
     if (!uniqueId) {
       return next();

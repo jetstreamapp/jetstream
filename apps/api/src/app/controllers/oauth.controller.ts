@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/camelcase */
 import { encryptString, getJsforceOauth2, hexToBase64 } from '@jetstream/shared/node-utils';
-import { SalesforceOrgUi, SObjectOrganization, UserProfile } from '@jetstream/types';
+import { SalesforceOrgUi, SObjectOrganization, UserProfileServer } from '@jetstream/types';
 import * as express from 'express';
 import * as jsforce from 'jsforce';
 import * as querystring from 'querystring';
@@ -39,7 +39,7 @@ export function salesforceOauthInitAuth(req: express.Request, res: express.Respo
  */
 export async function salesforceOauthCallback(req: express.Request, res: express.Response) {
   try {
-    const user = req.user as UserProfile;
+    const user = req.user as UserProfileServer;
     const state = querystring.parse(req.query.state as string);
     const loginUrl = state.loginUrl as string;
     const clientUrl = state.clientUrl as string;

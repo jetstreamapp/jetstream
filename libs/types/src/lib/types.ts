@@ -38,11 +38,12 @@ export interface UserProfileUi {
   name: string;
   nickname: string;
   picture: string;
-  sub: string;
+  sub: string; // userid
   updated_at: string;
 }
 
-export interface UserProfile {
+// SERVER ONLY TYPE - BROWSER WILL GET UserProfileUi
+export interface UserProfileServer {
   _json: UserProfileUi;
   _raw: string;
   id: string;
