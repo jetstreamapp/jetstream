@@ -1,6 +1,6 @@
 /** @jsx jsx */
 import { css, jsx } from '@emotion/core';
-import { UserProfile } from '@jetstream/types';
+import { UserProfileUi } from '@jetstream/types';
 import { Header, Navbar, NavbarItem, Icon } from '@jetstream/ui';
 import Logo from '../../../assets/images/jetstream-logo-v1-200w.png';
 import OrgsDropdown from '../orgs/OrgsDropdown';
@@ -11,7 +11,7 @@ import Jobs from './jobs/Jobs';
 import { Link } from 'react-router-dom';
 
 export interface HeaderNavbarProps {
-  userProfile: UserProfile;
+  userProfile: UserProfileUi;
 }
 
 function logout(serverUrl: string) {

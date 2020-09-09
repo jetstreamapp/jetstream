@@ -1,4 +1,4 @@
-import { UserProfile } from '@jetstream/types';
+import { UserProfileUi } from '@jetstream/types';
 import React, { Fragment, FunctionComponent, useEffect } from 'react';
 import { useRecoilState, useRecoilValue } from 'recoil';
 import * as fromAppState from '../../app-state';
@@ -28,13 +28,13 @@ localforage.config({
 });
 
 export interface AppInitializerProps {
-  onUserProfile: (userProfile: UserProfile) => void;
+  onUserProfile: (userProfile: UserProfileUi) => void;
 }
 
 export const AppInitializer: FunctionComponent<AppInitializerProps> = ({ onUserProfile, children }) => {
   // FIXME: Cannot update a component (`Batcher`) while rendering a different component (`AppInitializer`)
   // Recoil needs to fix this
-  const userProfile = useRecoilValue<UserProfile>(fromAppState.userProfileState);
+  const userProfile = useRecoilValue<UserProfileUi>(fromAppState.userProfileState);
   const [orgs, setOrgs] = useRecoilState(fromAppState.salesforceOrgsState);
   const invalidOrg = useObservable(orgConnectionError$);
   // this ensures rollbar is configured and has user profile information

@@ -1,6 +1,6 @@
 /** @jsx jsx */
 import { css, jsx } from '@emotion/core';
-import { UserProfile } from '@jetstream/types';
+import { UserProfileUi } from '@jetstream/types';
 import { ConfirmationServiceProvider } from '@jetstream/ui';
 import { Suspense, useState, lazy } from 'react';
 import { BrowserRouter as Router, Route, Switch, Redirect } from 'react-router-dom';
@@ -15,7 +15,7 @@ const Query = lazy(() => import('./components/query/Query'));
 const Feedback = lazy(() => import('./components/feedback/Feedback'));
 
 export const App = () => {
-  const [userProfile, setUserProfile] = useState<UserProfile>();
+  const [userProfile, setUserProfile] = useState<UserProfileUi>();
 
   return (
     <ConfirmationServiceProvider>

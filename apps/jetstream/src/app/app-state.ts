@@ -1,6 +1,6 @@
 import { atom, selector } from 'recoil';
 import isString from 'lodash/isString';
-import { SalesforceOrgUi, UserProfile, ApplicationCookie } from '@jetstream/types';
+import { SalesforceOrgUi, UserProfileUi, ApplicationCookie } from '@jetstream/types';
 import { getUserProfile, getOrgs } from '@jetstream/shared/data';
 import { parseCookie } from '@jetstream/shared/ui-utils';
 import { HTTP } from '@jetstream/shared/constants';
@@ -31,7 +31,7 @@ async function getSelectedOrgFromStorage(): Promise<string | undefined> {
   }
 }
 
-async function fetchUserProfile(): Promise<UserProfile> {
+async function fetchUserProfile(): Promise<UserProfileUi> {
   const userProfile = await getUserProfile();
   return userProfile;
 }
@@ -41,7 +41,7 @@ export const applicationCookieState = atom<ApplicationCookie>({
   default: parseCookie<ApplicationCookie>(HTTP.COOKIE.JETSTREAM),
 });
 
-export const userProfileState = atom<UserProfile>({
+export const userProfileState = atom<UserProfileUi>({
   key: 'userState',
   default: fetchUserProfile(),
 });
