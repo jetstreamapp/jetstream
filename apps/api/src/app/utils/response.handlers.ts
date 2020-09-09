@@ -1,9 +1,8 @@
+import { ERROR_MESSAGES, HTTP } from '@jetstream/shared/constants';
 import * as express from 'express';
-import { UserFacingError, AuthenticationError, NotFoundError } from './error-handler';
-import { getLoginUrl, getLogoutUrl } from '../services/auth';
-import { HTTP, ERROR_MESSAGES } from '@jetstream/shared/constants';
 import { logger } from '../config/logger.config';
 import { SalesforceOrg } from '../db/entites/SalesforceOrg';
+import { AuthenticationError, NotFoundError, UserFacingError } from './error-handler';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function healthCheck(req: express.Request, res: express.Response) {
