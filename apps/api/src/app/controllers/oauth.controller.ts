@@ -1,68 +1,11 @@
 /* eslint-disable @typescript-eslint/camelcase */
 import { encryptString, getJsforceOauth2, hexToBase64 } from '@jetstream/shared/node-utils';
-import { SalesforceOrgUi, SObjectOrganization, UserAuthSession } from '@jetstream/types';
+import { SalesforceOrgUi, SObjectOrganization, UserProfile } from '@jetstream/types';
 import * as express from 'express';
 import * as jsforce from 'jsforce';
 import * as querystring from 'querystring';
 import { logger } from '../config/logger.config';
 import { SalesforceOrg } from '../db/entites/SalesforceOrg';
-import {
-  createOrUpdateSession,
-  destroySession,
-  getLoginUrl,
-  getLogoutUrl,
-  exchangeCodeForAccessToken,
-  revokeAuthToken,
-  getUserDetails,
-} from '../services/auth';
-
-interface CognitoResponse {
-  access_token?: string;
-  expires_in?: number;
-  id_token?: string;
-  refresh_token?: string;
-  scope?: string;
-  token_type?: any; // TODO:
-  userId?: string;
-}
-
-interface SfdcOauthState {
-  loginUrl: string;
-}
-
-export async function jetstreamOauthInitAuth(req: express.Request, res: express.Response) {
-  res.redirect(getLoginUrl());
-}
-
-export async function jetstreamOauthLogin(req: express.Request, res: express.Response) {
-  // TODO: figure out error handling
-  const { code, state } = req.query;
-
-  // const accessToken = await exchangeOAuthCodeForAccessToken(code as string);
-
-  // Exchange oauth code for access token
-  const authenticationToken = await exchangeCodeForAccessToken(code as string);
-  const userProfile = await getUserDetails(authenticationToken.access_token);
-
-  createOrUpdateSession(req, authenticationToken, userProfile);
-
-  res.redirect(process.env.JETSTREAM_CLIENT_URL);
-}
-
-export async function jetstreamLogout(req: express.Request, res: express.Response) {
-  const revokeCalls: Promise<void>[] = [];
-  const idToken = req.session?.auth?.id_token;
-  if (req.session?.auth?.access_token) {
-    revokeCalls.push(revokeAuthToken('access_token', req.session.auth.access_token));
-  }
-  if (req.session?.auth?.refresh_token) {
-    revokeCalls.push(revokeAuthToken('refresh_token', req.session.auth.refresh_token));
-  }
-  await Promise.all(revokeCalls);
-  destroySession(req);
-  const url = idToken ? getLogoutUrl(idToken) : process.env.JETSTREAM_LANDING_URL || 'https://getjetstream.app';
-  res.redirect(url);
-}
 
 /**
  * Prepare SFDC auth and redirect to Salesforce
@@ -96,7 +39,7 @@ export function salesforceOauthInitAuth(req: express.Request, res: express.Respo
  */
 export async function salesforceOauthCallback(req: express.Request, res: express.Response) {
   try {
-    const { userId } = req.session.auth as UserAuthSession;
+    const user = req.user as UserProfile;
     const state = querystring.parse(req.query.state as string);
     const loginUrl = state.loginUrl as string;
     const clientUrl = state.clientUrl as string;
@@ -161,19 +104,19 @@ export async function salesforceOauthCallback(req: express.Request, res: express
       orgTrialExpirationDate: companyInfoRecord?.TrialExpirationDate,
     };
 
-    let salesforceOrg = await SalesforceOrg.findByUniqueId(userId, salesforceOrgUi.uniqueId);
+    let salesforceOrg = await SalesforceOrg.findByUniqueId(user.id, salesforceOrgUi.uniqueId);
 
     if (salesforceOrg) {
       salesforceOrg.initFromUiOrg(salesforceOrgUi);
     } else {
-      salesforceOrg = new SalesforceOrg(userId, salesforceOrgUi);
+      salesforceOrg = new SalesforceOrg(user.id, salesforceOrgUi);
     }
 
     // If org was being fixed but the id is different, delete the old org
     // This is useful for sandbox refreshes
     try {
       if (replaceOrgUniqueId && replaceOrgUniqueId !== salesforceOrg.uniqueId) {
-        const oldSalesforceOrg = await SalesforceOrg.findByUniqueId(userId, replaceOrgUniqueId);
+        const oldSalesforceOrg = await SalesforceOrg.findByUniqueId(user.id, replaceOrgUniqueId);
         if (oldSalesforceOrg) {
           await oldSalesforceOrg.remove();
         }

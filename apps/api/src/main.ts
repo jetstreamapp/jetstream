@@ -13,6 +13,8 @@ import { pgPool } from './app/config/db.config';
 import { SESSION_EXP_DAYS, HTTP } from '@jetstream/shared/constants';
 import { ApplicationCookie } from '@jetstream/types';
 import { logger } from './app/config/logger.config';
+import * as passport from 'passport';
+import * as Auth0Strategy from 'passport-auth0';
 
 const pgSession = pgSimple(session);
 
@@ -35,7 +37,7 @@ app.use(
     secret: process.env.JESTREAM_SESSION_SECRET,
     rolling: true,
     resave: true,
-    saveUninitialized: false,
+    saveUninitialized: true,
     name: 'sessionid',
   })
 );
@@ -50,6 +52,34 @@ app.use((req: express.Request, res: express.Response, next: express.NextFunction
   res.cookie(HTTP.COOKIE.JETSTREAM, appCookie, { httpOnly: false });
   next();
 });
+
+passport.use(
+  new Auth0Strategy(
+    {
+      domain: process.env.AUTH0_DOMAIN,
+      clientID: process.env.AUTH0_CLIENT_ID,
+      clientSecret: process.env.AUTH0_CLIENT_SECRET,
+      callbackURL: `${process.env.JETSTREAM_SERVER_URL}/oauth/callback`,
+    },
+    (accessToken, refreshToken, extraParams, profile, done) => {
+      // accessToken is the token to call Auth0 API (not needed in the most cases)
+      // extraParams.id_token has the JSON Web Token
+      // profile has all the information from the user
+      return done(null, profile);
+    }
+  )
+);
+
+passport.serializeUser(function (user, done) {
+  done(null, user);
+});
+
+passport.deserializeUser(function (user, done) {
+  done(null, user);
+});
+
+app.use(passport.initialize());
+app.use(passport.session());
 
 app.use(json({ limit: '20mb' }));
 app.use(urlencoded({ extended: true }));
@@ -79,6 +109,9 @@ if (environment.production) {
   app.use('/app', logRoute, (req: express.Request, res: express.Response) => {
     res.sendFile(join(__dirname, '../jetstream/index.html'));
   });
+} else {
+  // localhost will only use landing page resources
+  app.use(express.static(join(__dirname, '../../../dist/apps/landing/exported')));
 }
 
 app.use('*', notFoundMiddleware);

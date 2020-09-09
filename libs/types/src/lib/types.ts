@@ -32,16 +32,27 @@ export interface AuthenticationToken {
 
 export type UserProfileUsernameStatus = 'ACTIVE' | 'PENDING' | 'REJECTED';
 
-export interface UserProfile {
-  id: string;
+export interface UserProfileUi {
   email: string;
-  emailVerified: boolean;
-  username: string;
+  email_verified: string;
   name: string;
-  familyName: string;
-  givenName: string;
-  locale: string;
-  timezone: string;
+  nickname: string;
+  picture: string;
+  sub: string;
+  updated_at: string;
+}
+
+export interface UserProfile {
+  _json: UserProfileUi;
+  _raw: string;
+  id: string;
+  displayName: string;
+  emails: { value: string }[];
+  name: any;
+  nickname: string;
+  picture: string;
+  provider: string;
+  user_id: string;
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
