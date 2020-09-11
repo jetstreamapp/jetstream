@@ -3,7 +3,7 @@ import * as API from '@jetstream/api-interfaces';
 import { DescribeGlobalResult, DescribeSObjectResult } from 'jsforce';
 import * as request from 'superagent'; // http://visionmedia.github.io/superagent
 import { handleRequest } from './core';
-import { SalesforceOrgUi, UserProfile, HttpMethod, SobjectOperation } from '@jetstream/types';
+import { SalesforceOrgUi, UserProfileUi, HttpMethod, SobjectOperation } from '@jetstream/types';
 
 //// LANDING PAGE ROUTES
 
@@ -12,7 +12,7 @@ export async function signUpNotify(email: string): Promise<DescribeGlobalResult>
 }
 
 //// APPLICATION ROUTES
-export async function getUserProfile(): Promise<UserProfile> {
+export async function getUserProfile(): Promise<UserProfileUi> {
   return handleRequest(request.get('/api/me'));
 }
 

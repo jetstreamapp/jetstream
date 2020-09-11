@@ -1,11 +1,11 @@
 import { useEffect, useState } from 'react';
 import Rollbar from 'rollbar';
-import { ProductionDevelopment, UserProfile } from '@jetstream/types';
+import { ProductionDevelopment, UserProfileUi } from '@jetstream/types';
 
 // Ensure rollbar is only initialized and configured once no matter how often hook is used
 let _rollbar: Rollbar;
 let _rollbarIsConfigured = false;
-function getRollbarInstance(accessToken: string, environment: ProductionDevelopment, userProfile?: UserProfile) {
+function getRollbarInstance(accessToken: string, environment: ProductionDevelopment, userProfile?: UserProfileUi) {
   const rollbar =
     _rollbar ||
     new Rollbar({
@@ -20,13 +20,12 @@ function getRollbarInstance(accessToken: string, environment: ProductionDevelopm
     });
   if (!_rollbarIsConfigured && userProfile) {
     _rollbarIsConfigured = true;
-    const { id, email, tenantId } = userProfile;
+    const { sub, email } = userProfile;
     rollbar.configure({
       payload: {
         person: {
-          id,
+          id: sub,
           email,
-          tenantId,
         },
       },
     });
@@ -35,7 +34,7 @@ function getRollbarInstance(accessToken: string, environment: ProductionDevelopm
   return rollbar;
 }
 
-export function useRollbar(accessToken: string, environment: ProductionDevelopment, userProfile?: UserProfile) {
+export function useRollbar(accessToken: string, environment: ProductionDevelopment, userProfile?: UserProfileUi) {
   const [isConfigured, setIsConfigured] = useState(false);
   const [rollbar] = useState(() => getRollbarInstance(accessToken, environment, userProfile));
 

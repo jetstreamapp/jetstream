@@ -1,15 +1,11 @@
-import * as express from 'express';
-import { decryptString, hexToBase64, getJsforceOauth2, encryptString } from '@jetstream/shared/node-utils';
-import * as jsforce from 'jsforce';
-import { UserFacingError, AuthenticationError, NotFoundError } from '../utils/error-handler';
-import { UserAuthSession } from '@jetstream/types';
-import { dateFromTimestamp } from '@jetstream/shared/utils';
 import { HTTP } from '@jetstream/shared/constants';
-import * as moment from 'moment';
-import { refreshAuthToken, createOrUpdateSession } from '../services/auth';
-import { isNumber } from 'lodash';
+import { decryptString, encryptString, getJsforceOauth2, hexToBase64 } from '@jetstream/shared/node-utils';
+import { UserProfileServer } from '@jetstream/types';
+import * as express from 'express';
+import * as jsforce from 'jsforce';
 import { logger } from '../config/logger.config';
 import { SalesforceOrg } from '../db/entites/SalesforceOrg';
+import { AuthenticationError, NotFoundError, UserFacingError } from '../utils/error-handler';
 
 export function logRoute(req: express.Request, res: express.Response, next: express.NextFunction) {
   res.locals.path = req.path;
@@ -24,42 +20,23 @@ export function notFoundMiddleware(req: express.Request, res: express.Response, 
 }
 
 export async function checkAuth(req: express.Request, res: express.Response, next: express.NextFunction) {
-  /**
-   * 1. ensure auth token exists
-   * 2. check expiration of token, and if required refresh token
-   */
-
-  try {
-    if (!req.session || !req.session.id || !isNumber(req.session.auth?.user?.exp)) {
-      logger.info('[AUTH][INVALID SESSION]');
-      return next(new AuthenticationError('Unauthorized'));
-    }
-
-    const sessionAuth: UserAuthSession = req.session.auth;
-    const fusionAuthExpires = dateFromTimestamp(sessionAuth.user.exp);
-
-    if (moment().isAfter(fusionAuthExpires)) {
-      const accessToken = await refreshAuthToken(sessionAuth.refresh_token);
-      createOrUpdateSession(req, accessToken);
-    }
-
-    next();
-  } catch (ex) {
-    logger.error('[AUTH][EXCEPTION]', ex);
-    next(new AuthenticationError('Unauthorized'));
+  if (req.user) {
+    return next();
   }
+  logger.error('[AUTH][UNAUTHORIZED]');
+  next(new AuthenticationError('Unauthorized'));
 }
 
 export async function addOrgsToLocal(req: express.Request, res: express.Response, next: express.NextFunction) {
   try {
     const uniqueId = (req.get(HTTP.HEADERS.X_SFDC_ID) || req.query[HTTP.HEADERS.X_SFDC_ID]) as string;
-    const sessionAuth: UserAuthSession = req.session.auth;
+    const user = req.user as UserProfileServer;
 
     if (!uniqueId) {
       return next();
     }
 
-    const org = await SalesforceOrg.findByUniqueId(sessionAuth.userId, uniqueId);
+    const org = await SalesforceOrg.findByUniqueId(user.id, uniqueId);
 
     if (!org) {
       return next(new UserFacingError('An org was not found with the provided id'));

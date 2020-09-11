@@ -8,7 +8,7 @@ export const NavBar = () => (
     </div>
     <div className="block md:ml-10 md:pr-4">
       <a
-        href="/app"
+        href="/oauth/login"
         className="mt-4 w-full p-2 border border-transparent text-base leading-6 font-medium rounded-md text-white bg-blue-600 shadow-sm hover:bg-blue-700 focus:outline-none focus:shadow-outline active:bg-blue-800 transition duration-150 ease-in-out"
       >
         Log in

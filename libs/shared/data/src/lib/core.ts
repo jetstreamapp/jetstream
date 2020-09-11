@@ -32,7 +32,7 @@ export async function handleRequest<T = any>(currRequest: request.SuperAgentRequ
       // take user to login page
       if (response.get(HTTP.HEADERS.X_LOGOUT) === '1') {
         // LOG USER OUT
-        const logoutUrl = response.get(HTTP.HEADERS.X_LOGOUT_URL) || '/oauth/login';
+        const logoutUrl = response.get(HTTP.HEADERS.X_LOGOUT_URL) || '/oauth/logout';
         // eslint-disable-next-line no-restricted-globals
         location.href = logoutUrl;
       }
