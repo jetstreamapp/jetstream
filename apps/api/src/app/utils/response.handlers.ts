@@ -3,6 +3,7 @@ import * as express from 'express';
 import { logger } from '../config/logger.config';
 import { SalesforceOrg } from '../db/entites/SalesforceOrg';
 import { AuthenticationError, NotFoundError, UserFacingError } from './error-handler';
+import * as querystring from 'querystring';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function healthCheck(req: express.Request, res: express.Response) {
@@ -55,7 +56,10 @@ export async function uncaughtErrorHandler(err: any, req: express.Request, res: 
         data: err.additionalData,
       });
     } else {
-      return res.redirect('/oauth/login'); // TODO: can we show an error message to the user on this page or redirect to alternate page?
+      const params = querystring.stringify({
+        error: `Your session is invalid or expired, please login again. Error code: ${err.message}`,
+      });
+      return res.redirect(`/?${params}`); // TODO: can we show an error message to the user on this page or redirect to alternate page?
     }
   } else if (err instanceof NotFoundError) {
     res.status(404);

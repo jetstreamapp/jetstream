@@ -2,29 +2,36 @@ import { Request, Response, NextFunction } from 'express';
 import * as passport from 'passport';
 import { URL } from 'url';
 import * as querystring from 'querystring';
+import { AuthenticationError } from '../utils/error-handler';
 
 export async function login(req: Request, res: Response) {
   res.redirect('/');
 }
 
 export async function callback(req: Request, res: Response, next: NextFunction) {
-  passport.authenticate('auth0', (err, user, info) => {
-    if (err) {
-      return next(err);
-    }
-    if (!user) {
-      return res.redirect('/oauth/login');
-    }
-    req.logIn(user, (err) => {
+  passport.authenticate(
+    'auth0',
+    {
+      failureRedirect: '/',
+    },
+    (err, user, info) => {
       if (err) {
-        return next(err);
+        return next(new AuthenticationError(err));
       }
-      const returnTo = req.session.returnTo;
-      delete req.session.returnTo;
-      // TODO: figure out the route here
-      res.redirect(returnTo || process.env.JETSTREAM_CLIENT_URL);
-    });
-  })(req, res, next);
+      if (!user) {
+        return res.redirect('/oauth/login');
+      }
+      req.logIn(user, (err) => {
+        if (err) {
+          return next(new AuthenticationError(err));
+        }
+        const returnTo = req.session.returnTo;
+        delete req.session.returnTo;
+        // TODO: figure out the route here
+        res.redirect(returnTo || process.env.JETSTREAM_CLIENT_URL);
+      });
+    }
+  )(req, res, next);
 }
 
 export async function logout(req: Request, res: Response) {
