@@ -122,7 +122,7 @@ export const QueryResults: FunctionComponent<QueryResultsProps> = React.memo(() 
 
   useEffect(() => {
     if (bulkDeleteJob && executeQuery) {
-      executeQuery(location.state.soql);
+      executeQuery(soql);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [bulkDeleteJob]);
@@ -137,15 +137,10 @@ export const QueryResults: FunctionComponent<QueryResultsProps> = React.memo(() 
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [location]);
 
-  function handleViewData(field: QueryFieldHeader, value: unknown) {
-    //
-  }
-
   function saveQueryHistory(soql: string, sObject: string) {
-    // location.state.selectedSObject
     let sObjectLabel: string;
     // if object name did not change since last query, use data from location
-    if (location.state && location.state.sobject) {
+    if (location?.state?.sobject) {
       if (location.state.sobject.name === sObject) {
         sObjectLabel = location.state.sobject.label;
       }
