@@ -4,6 +4,7 @@ import { parseQuery, Query } from 'soql-parser-js';
 import { QueryColumnsSfdc, QueryColumnMetadata } from '../types/types';
 import { QueryResultsColumns, QueryResultsColumn, QueryResults } from '@jetstream/api-interfaces';
 import { logger } from '../config/logger.config';
+import * as querystring from 'querystring';
 
 export async function queryRecords(conn: Connection, query: string, isTooling = false): Promise<QueryResults> {
   // Fetch records from SFDC
@@ -16,7 +17,10 @@ export async function queryRecords(conn: Connection, query: string, isTooling = 
   try {
     const tempColumns = (await conn.request({
       method: 'GET',
-      url: `${isTooling ? '/tooling' : ''}/query/?q=${query}&columns=true`,
+      url: `${isTooling ? '/tooling' : ''}/query/?${querystring.stringify({
+        q: query,
+        columns: true,
+      })}`,
     })) as QueryColumnsSfdc;
 
     columns = {
