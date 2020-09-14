@@ -103,6 +103,7 @@ export const Jobs: FunctionComponent<JobsProps> = () => {
               setJobs(newJobs);
             } catch (ex) {
               // TODO:
+              logger.error('[ERROR][JOB] Error processing job results', ex);
             }
             break;
           }
@@ -134,6 +135,7 @@ export const Jobs: FunctionComponent<JobsProps> = () => {
               setJobs(newJobs);
             } catch (ex) {
               // TODO:
+              logger.error('[ERROR][JOB] Error processing job results', ex);
             }
             break;
           }

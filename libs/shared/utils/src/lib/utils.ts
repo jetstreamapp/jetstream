@@ -54,6 +54,29 @@ export function flattenRecords(records: Record[], fields: string[]): MapOf<strin
   });
 }
 
+export function splitArrayToMaxSize<T = unknown>(items: T[], maxSize: number): T[][] {
+  if (!maxSize || maxSize < 1) {
+    throw new Error('maxSize must be greater than 0');
+  }
+  if (!items || items.length === 0) {
+    return [[]];
+  }
+  let output = [];
+  let currSet = [];
+  items.forEach((item) => {
+    if (currSet.length < maxSize) {
+      currSet.push(item);
+    } else {
+      output.push(currSet);
+      currSet = [item];
+    }
+  });
+  if (currSet.length > 0) {
+    output.push(currSet);
+  }
+  return output;
+}
+
 export function toBoolean(value: boolean | string | null | undefined, defaultValue: boolean = false) {
   if (isBoolean(value)) {
     return value;
