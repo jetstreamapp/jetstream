@@ -271,6 +271,7 @@ export interface DropDownItem<T = any> {
   subheader?: string;
   value: string | ReactNode;
   icon?: IconObj;
+  trailingDivider?: boolean;
   metadata?: T;
 }
 

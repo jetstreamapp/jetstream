@@ -515,3 +515,10 @@ export function addOrg(
   window.addEventListener('message', handleWindowEvent, false);
 }
 /// END ADD ORG ////
+
+export function hasFeatureFlagAccess(featureFlags: Set<string>, flag: string) {
+  if (featureFlags.has('all')) {
+    return true;
+  }
+  return featureFlags.has(flag);
+}

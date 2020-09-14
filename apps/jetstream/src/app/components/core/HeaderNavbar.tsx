@@ -9,9 +9,11 @@ import { useRecoilState } from 'recoil';
 import { applicationCookieState } from '../../app-state';
 import Jobs from './jobs/Jobs';
 import { Link } from 'react-router-dom';
+import { hasFeatureFlagAccess } from '@jetstream/shared/ui-utils';
 
 export interface HeaderNavbarProps {
   userProfile: UserProfileUi;
+  featureFlags: Set<string>;
 }
 
 function logout(serverUrl: string) {
@@ -20,7 +22,7 @@ function logout(serverUrl: string) {
   location.href = logoutUrl;
 }
 
-export const HeaderNavbar: FunctionComponent<HeaderNavbarProps> = () => {
+export const HeaderNavbar: FunctionComponent<HeaderNavbarProps> = ({ userProfile, featureFlags }) => {
   const [applicationState] = useRecoilState(applicationCookieState);
 
   function handleUserMenuSelection(id: string) {
@@ -37,7 +39,7 @@ export const HeaderNavbar: FunctionComponent<HeaderNavbarProps> = () => {
     <Header
       logo={Logo}
       orgs={<OrgsDropdown />}
-      userMenuItems={[{ id: 'nav-user-logout', value: 'Logout', icon: { type: 'utility', icon: 'logout' } }]}
+      userMenuItems={[{ id: 'nav-user-logout', value: 'Logout', subheader: userProfile?.email, icon: { type: 'utility', icon: 'logout' } }]}
       rightHandMenuItems={[
         <Link
           className="slds-button slds-button_icon slds-button_icon slds-button_icon-container slds-button_icon-small slds-global-actions__help slds-global-actions__item-action"
@@ -52,7 +54,7 @@ export const HeaderNavbar: FunctionComponent<HeaderNavbarProps> = () => {
       <Navbar>
         {/* TODO: home page */}
         {/* <NavbarItem path="/" title="Home" label="Home" /> */}
-        <NavbarItem path="/query" title="Query Records" label="Query Records" />
+        {hasFeatureFlagAccess(featureFlags, 'query') && <NavbarItem path="/query" title="Query Records" label="Query Records" />}
       </Navbar>
     </Header>
   );

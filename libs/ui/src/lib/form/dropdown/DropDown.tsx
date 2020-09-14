@@ -148,7 +148,7 @@ export const DropDown: FunctionComponent<DropDownProps> = ({
           )}
         >
           <ul className="slds-dropdown__list" role="menu" aria-label={actionText}>
-            {items.map(({ id, subheader, value, icon, metadata }, i) => (
+            {items.map(({ id, subheader, value, icon, trailingDivider, metadata }, i) => (
               <Fragment key={id}>
                 {subheader && (
                   <li className="slds-dropdown__header slds-truncate" title={subheader} role="separator">
@@ -184,6 +184,7 @@ export const DropDown: FunctionComponent<DropDownProps> = ({
                     )}
                   </a>
                 </li>
+                {trailingDivider && <li className="slds-has-divider_top-space" role="separator"></li>}
               </Fragment>
             ))}
           </ul>

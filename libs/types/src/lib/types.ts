@@ -32,9 +32,16 @@ export interface AuthenticationToken {
 
 export type UserProfileUsernameStatus = 'ACTIVE' | 'PENDING' | 'REJECTED';
 
+export interface FeatureFlag {
+  flagVersion: string; // V1.0
+  flags: string[]; // all | query
+  isDefault: boolean;
+}
+
 export interface UserProfileUi {
   email: string;
   email_verified: string;
+  'http://getjetstream.app/app_metadata': { featureFlags: FeatureFlag };
   name: string;
   nickname: string;
   picture: string;
