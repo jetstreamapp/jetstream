@@ -74,7 +74,7 @@ export const QueryHistoryItemCard: FunctionComponent<QueryHistoryItemCardProps> 
                     <CodeEditor
                       className="CodeMirror-soql-history"
                       value={soql}
-                      readOnly={true}
+                      readOnly
                       size={{ height: 'auto' }}
                       shouldRefresh={readyToRenderCode}
                     />

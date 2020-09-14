@@ -193,7 +193,7 @@ export function prepareCsvFile(data: MapOf<string>[], header: string[]): string 
 }
 
 export function getFilename(org: SalesforceOrgUi, parts: string[]) {
-  return `${parts.join('-')}-${org.orgName}-${org.username}`.replace(REGEX.SAFE_FILENAME, '_');
+  return `${parts.join('-')}-${org.username}-${new Date().getTime()}`.replace(REGEX.SAFE_FILENAME, '_');
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any

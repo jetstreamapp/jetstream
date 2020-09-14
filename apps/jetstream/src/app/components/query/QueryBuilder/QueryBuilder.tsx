@@ -257,7 +257,7 @@ export const QueryBuilder: FunctionComponent<QueryBuilderProps> = () => {
                       { id: 'limit', title: 'Limit', content: <QueryLimit /> },
                       { id: 'soql', title: 'Soql Query', content: <SoqlTextarea /> },
                     ]}
-                    allowMultiple={true}
+                    allowMultiple
                   ></Accordion>
                 )}
               </AutoFullHeightContainer>

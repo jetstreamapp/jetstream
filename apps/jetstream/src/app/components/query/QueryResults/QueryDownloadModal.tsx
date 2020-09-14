@@ -8,7 +8,7 @@ import { flattenRecords } from '@jetstream/shared/utils';
 import { FileExtCsv, FileExtCsvXLSX, FileExtXLSX, QueryFieldHeader, Record, SalesforceOrgUi, MimeType } from '@jetstream/types';
 import { Input, Modal, Radio, RadioGroup } from '@jetstream/ui';
 import numeral from 'numeral';
-import { Fragment, FunctionComponent, useState, useEffect } from 'react';
+import { Fragment, FunctionComponent, useState, useEffect, useRef, MouseEvent, FocusEvent } from 'react';
 
 export interface QueryDownloadModalProps {
   org: SalesforceOrgUi;
@@ -43,6 +43,28 @@ export const QueryDownloadModal: FunctionComponent<QueryDownloadModalProps> = ({
   const [downloadRecordsValue, setDownloadRecordsValue] = useState<string>(hasMoreRecords ? RADIO_ALL_SERVER : RADIO_ALL_BROWSER);
   const [fileFormat, setFileFormat] = useState<FileExtCsvXLSX>(RADIO_FORMAT_XLSX);
   const [fileName, setFileName] = useState<string>(getFilename(org, ['records']));
+  // If the user changes the filename, we do not want to focus/select the text again or else the user cannot type
+  const [doFocusInput, setDoFocusInput] = useState<boolean>(true);
+  const inputEl = useRef<HTMLInputElement>();
+
+  useEffect(() => {
+    if (downloadModalOpen) {
+      setDoFocusInput(true);
+      if (records.length > 0 && records[0].attributes && records[0].attributes.type) {
+        setFileName(getFilename(org, ['records', records[0].attributes.type]));
+      } else {
+        setFileName(getFilename(org, ['records']));
+      }
+    }
+  }, [downloadModalOpen, records]);
+
+  useEffect(() => {
+    if (doFocusInput && fileName && downloadModalOpen && inputEl.current) {
+      inputEl.current.focus();
+      inputEl.current.select();
+      setDoFocusInput(false);
+    }
+  }, [fileName]);
 
   useEffect(() => {
     const hasMoreRecordsTemp = totalRecordCount && records && totalRecordCount > records.length;
@@ -98,6 +120,7 @@ export const QueryDownloadModal: FunctionComponent<QueryDownloadModalProps> = ({
               Download
             </button>
           }
+          skipAutoFocus
           onClose={() => onModalClose()}
         >
           <div>
@@ -154,8 +177,14 @@ export const QueryDownloadModal: FunctionComponent<QueryDownloadModalProps> = ({
                 onChange={(value: FileExtCsv) => setFileFormat(value)}
               />
             </RadioGroup>
-            <Input label="Filename" isRequired={true} rightAddon={`.${fileFormat}`}>
-              <input id="download-filename" className="slds-input" value={fileName} onChange={(event) => setFileName(event.target.value)} />
+            <Input label="Filename" isRequired rightAddon={`.${fileFormat}`}>
+              <input
+                ref={inputEl}
+                id="download-filename"
+                className="slds-input"
+                value={fileName}
+                onChange={(event) => setFileName(event.target.value)}
+              />
             </Input>
           </div>
         </Modal>

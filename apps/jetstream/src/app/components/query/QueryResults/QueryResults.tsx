@@ -410,7 +410,7 @@ export const QueryResults: FunctionComponent<QueryResultsProps> = React.memo(() 
                   Showing {numeral(records.length).format('0,0')} of {numeral(totalRecordCount).format('0,0')} records
                 </div>
               </div>
-              <DataTable columns={memoizedFields} data={memoizedRecords} allowRowSelection={true} onRowSelection={setSelectedRows} />
+              <DataTable columns={memoizedFields} data={memoizedRecords} allowRowSelection onRowSelection={setSelectedRows} />
             </Fragment>
           )}
         </AutoFullHeightContainer>

@@ -1,10 +1,9 @@
-import React, { Fragment, FunctionComponent, useRef, useEffect } from 'react';
+import React, { Fragment, FunctionComponent, useRef, useEffect, KeyboardEvent } from 'react';
 import Icon from '../widgets/Icon';
 import { SizeSmMdLg } from '@jetstream/types';
 import classNames from 'classnames';
-import { useHotkeys } from 'react-hotkeys-hook';
 import { createPortal } from 'react-dom';
-
+import { isEscapeKey } from '@jetstream/shared/ui-utils';
 /* eslint-disable-next-line */
 export interface ModalProps {
   className?: string;
@@ -14,6 +13,7 @@ export interface ModalProps {
   directionalFooter?: boolean;
   size?: SizeSmMdLg;
   containerClassName?: string;
+  closeOnEsc?: boolean;
   closeOnBackdropClick?: boolean;
   skipAutoFocus?: boolean;
   onClose: () => void;
@@ -77,6 +77,7 @@ export const ModalContent: FunctionComponent<ModalProps> = ({
   directionalFooter,
   size,
   containerClassName,
+  closeOnEsc = true,
   closeOnBackdropClick,
   skipAutoFocus,
   children,
@@ -90,6 +91,19 @@ export const ModalContent: FunctionComponent<ModalProps> = ({
     }
   }, []);
 
+  function handleKeyUp(event: KeyboardEvent<HTMLInputElement>) {
+    if (closeOnEsc && isEscapeKey(event)) {
+      onClose();
+    }
+  }
+
+  // THIS DOES NOT WORK: the modal content is in front of this button ;(
+  function handleBackdropClick() {
+    if (closeOnBackdropClick) {
+      onClose();
+    }
+  }
+
   return (
     <Fragment>
       <section
@@ -99,6 +113,7 @@ export const ModalContent: FunctionComponent<ModalProps> = ({
         aria-labelledby="modal"
         aria-modal="true"
         aria-describedby="modal-content"
+        onKeyUp={handleKeyUp}
       >
         <div className="slds-modal__container">
           <header className={classNames('slds-modal__header', { 'slds-modal__header_empty': !header })}>
@@ -124,7 +139,11 @@ export const ModalContent: FunctionComponent<ModalProps> = ({
           )}
         </div>
       </section>
-      {<div className="slds-backdrop slds-backdrop_open"></div>}
+      {
+        <button aria-hidden="true" className="slds-backdrop slds-backdrop_open" onClick={handleBackdropClick}>
+          <span className="sr-only">Close Modal</span>
+        </button>
+      }
     </Fragment>
   );
 };

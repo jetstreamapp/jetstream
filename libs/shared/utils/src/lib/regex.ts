@@ -6,5 +6,6 @@ export const REGEX = {
   VALID_EMAIL: /^(([^<>()\[\]\\.,;:\s@"]+(\.[^<>()\[\]\\.,;:\s@"]+)*)|(".+"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$/,
   SALESFORCE_ID: /[a-zA-Z0-9]{18}/,
   NOT_UNSIGNED_NUMERIC: /[^0-9]/g,
-  SAFE_FILENAME: /[^a-zA-Z0-9-\.]/g,
+  // SAFE_FILENAME: /[^a-zA-Z0-9-\.]/g,
+  SAFE_FILENAME: /[\/\?<>\\:\*\|"]/g,
 };

@@ -99,7 +99,7 @@ export const OrgsDropdown: FunctionComponent<OrgsDropdownProps> = () => {
         >
           <Combobox
             label="Orgs"
-            hideLabel={true}
+            hideLabel
             placeholder="Select an Org"
             itemLength={7}
             hasError={orgHasError(selectedOrg)}

@@ -34,7 +34,7 @@ export const Alert: FunctionComponent<AlertProps> = ({ type, leadingIcon, allowC
             title="Close"
             onClick={() => onClose && onClose()}
           >
-            <Icon type="utility" icon="close" omitContainer={true} className="slds-button__icon" />{' '}
+            <Icon type="utility" icon="close" omitContainer className="slds-button__icon" />{' '}
             <span className="slds-assistive-text">Close</span>
           </button>
         )}

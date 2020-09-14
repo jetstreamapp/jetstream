@@ -11,7 +11,7 @@ export const SoqlTextarea: FunctionComponent<SoqlTextareaProps> = React.memo(() 
 
   return (
     <Textarea id="soql-textarea" label="Generated SOQL">
-      <CodeEditor className="CodeMirror-textarea" value={soql} readOnly={true} />
+      <CodeEditor className="CodeMirror-textarea" value={soql} readOnly />
     </Textarea>
   );
 });
