@@ -10,6 +10,7 @@ import { applicationCookieState } from '../../app-state';
 import Jobs from './jobs/Jobs';
 import { Link } from 'react-router-dom';
 import { hasFeatureFlagAccess } from '@jetstream/shared/ui-utils';
+import { FEATURE_FLAGS } from '@jetstream/shared/constants';
 
 export interface HeaderNavbarProps {
   userProfile: UserProfileUi;
@@ -54,7 +55,12 @@ export const HeaderNavbar: FunctionComponent<HeaderNavbarProps> = ({ userProfile
       <Navbar>
         {/* TODO: home page */}
         {/* <NavbarItem path="/" title="Home" label="Home" /> */}
-        {hasFeatureFlagAccess(featureFlags, 'query') && <NavbarItem path="/query" title="Query Records" label="Query Records" />}
+        {hasFeatureFlagAccess(featureFlags, FEATURE_FLAGS.QUERY) && (
+          <NavbarItem path="/query" title="Query Records" label="Query Records" />
+        )}
+        {hasFeatureFlagAccess(featureFlags, FEATURE_FLAGS.AUTOMATION_CONTROL) && (
+          <NavbarItem path="/automation-control" title="Automation Control" label="Automation Control" />
+        )}
       </Navbar>
     </Header>
   );

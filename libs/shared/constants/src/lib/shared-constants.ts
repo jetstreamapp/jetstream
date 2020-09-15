@@ -3,6 +3,12 @@ import { MapOf, MimeType } from '@jetstream/types';
 
 export const SESSION_EXP_DAYS = 5;
 
+export const FEATURE_FLAGS = {
+  ALL: 'all',
+  AUTOMATION_CONTROL: 'automation-control',
+  QUERY: 'query',
+};
+
 export const HTTP = {
   COOKIE: {
     JETSTREAM: 'jetstream',

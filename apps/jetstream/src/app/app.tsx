@@ -11,8 +11,10 @@ import OrgSelectionRequired from './components/orgs/OrgSelectionRequired';
 import { ErrorBoundary } from 'react-error-boundary';
 import ErrorBoundaryFallback from './components/core/ErrorBoundaryFallback';
 import { hasFeatureFlagAccess } from '@jetstream/shared/ui-utils';
+import { FEATURE_FLAGS } from '@jetstream/shared/constants';
 
 const Query = lazy(() => import('./components/query/Query'));
+const AutomationControl = lazy(() => import('./components/automation-control/AutomationControl'));
 const Feedback = lazy(() => import('./components/feedback/Feedback'));
 
 export const App = () => {
@@ -45,19 +47,27 @@ export const App = () => {
                   <Suspense fallback={<div>Loading...</div>}>
                     <ErrorBoundary FallbackComponent={ErrorBoundaryFallback}>
                       <Switch>
-                        {hasFeatureFlagAccess(featureFlags, 'query') && (
+                        {hasFeatureFlagAccess(featureFlags, FEATURE_FLAGS.QUERY) && (
                           <Route path="/query">
                             <OrgSelectionRequired>
                               <Query />
                             </OrgSelectionRequired>
                           </Route>
                         )}
+                        {hasFeatureFlagAccess(featureFlags, FEATURE_FLAGS.AUTOMATION_CONTROL) && (
+                          <Route path="/automation-control">
+                            <OrgSelectionRequired>
+                              <AutomationControl />
+                            </OrgSelectionRequired>
+                          </Route>
+                        )}
                         <Route path="/feedback">
                           <Feedback />
                         </Route>
-                        <Route path="*">
+                        {/* This is taking precedence on reload ;( */}
+                        {/* <Route path="*">
                           <Redirect to="/query" />
-                        </Route>
+                        </Route> */}
                       </Switch>
                     </ErrorBoundary>
                   </Suspense>
