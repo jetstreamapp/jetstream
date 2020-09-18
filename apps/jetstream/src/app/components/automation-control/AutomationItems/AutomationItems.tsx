@@ -1,30 +1,6 @@
 /** @jsx jsx */
-import { css, jsx } from '@emotion/core';
-import { SalesforceOrgUi } from '@jetstream/types';
-import { FunctionComponent, useEffect, useState } from 'react';
-import { useRecoilState, useRecoilValue } from 'recoil';
-import {
-  Accordion,
-  AutoFullHeightContainer,
-  Checkbox,
-  Icon,
-  Page,
-  PageHeader,
-  PageHeaderActions,
-  PageHeaderRow,
-  PageHeaderTitle,
-  SobjectList,
-  SobjectListMultiSelect,
-  Tabs,
-} from '@jetstream/ui';
-import { selectedOrgState } from '../../app-state';
-import classNames from 'classnames';
-import Split from 'react-split';
-import * as fromAutomationCtlState from './automation-control.state';
-import { describeGlobal } from '@jetstream/shared/data';
-import { orderObjectsBy } from '@jetstream/shared/utils';
-import { DescribeGlobalSObjectResult } from 'jsforce';
-import { logger } from '@jetstream/shared/client-logger';
+import { jsx } from '@emotion/core';
+import { FunctionComponent } from 'react';
 
 const HEIGHT_BUFFER = 170;
 
