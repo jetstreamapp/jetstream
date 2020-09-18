@@ -7,6 +7,7 @@ import { MapOf, SalesforceOrgUi, UiTabSection } from '@jetstream/types';
 import {
   Accordion,
   AutoFullHeightContainer,
+  Checkbox,
   Icon,
   Page,
   PageHeader,
@@ -112,8 +113,9 @@ export const AutomationControlTabContent: FunctionComponent<AutomationControlTab
                   (item.automationItems.ValidationRule.items.length > 0 ? (
                     <ul>
                       {item.automationItems.ValidationRule.items.map((item) => (
-                        <li key={item.fullName}>
-                          - {item.label} {item.description} - Active: {item.currentValue}
+                        <li key={item.fullName} className="slds-m-left_small">
+                          {item.label} {item.description}
+                          <Checkbox id={`ValidationRule-${item.fullName}`} label="Is Active" readOnly checked={item.currentValue} />
                         </li>
                       ))}
                     </ul>
@@ -134,8 +136,9 @@ export const AutomationControlTabContent: FunctionComponent<AutomationControlTab
                   (item.automationItems.ApexTrigger.items.length > 0 ? (
                     <ul>
                       {item.automationItems.ApexTrigger.items.map((item) => (
-                        <li key={item.fullName}>
-                          - {item.label} {item.description} - Active: {item.currentValue}
+                        <li key={item.fullName} className="slds-m-left_small">
+                          {item.label} {item.description}
+                          <Checkbox id={`ApexTrigger-${item.fullName}`} label="Is Active" readOnly checked={item.currentValue} />
                         </li>
                       ))}
                     </ul>
@@ -154,8 +157,9 @@ export const AutomationControlTabContent: FunctionComponent<AutomationControlTab
                   (item.automationItems.AssignmentRule.items.length > 0 ? (
                     <ul>
                       {item.automationItems.AssignmentRule.items.map((item) => (
-                        <li key={item.fullName}>
-                          - {item.label} {item.description} - Active: {item.currentValue}
+                        <li key={item.fullName} className="slds-m-left_small">
+                          {item.label} {item.description}
+                          <Checkbox id={`AssignmentRule-${item.fullName}`} label="Is Active" readOnly checked={item.currentValue} />
                         </li>
                       ))}
                     </ul>

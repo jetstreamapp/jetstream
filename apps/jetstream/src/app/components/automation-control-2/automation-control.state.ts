@@ -2,11 +2,11 @@ import { DescribeGlobalSObjectResult } from 'jsforce';
 import { atom } from 'recoil';
 
 export const sObjectsState = atom<DescribeGlobalSObjectResult[]>({
-  key: 'query.sObjectsState',
+  key: 'automationControl.sObjectsState2',
   default: null,
 });
 
 export const selectedSObjectsState = atom<DescribeGlobalSObjectResult[]>({
-  key: 'query.selectedSObjectsState',
+  key: 'automationControl.selectedSObjectsState2',
   default: [],
 });
