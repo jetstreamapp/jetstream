@@ -1,5 +1,5 @@
 /* eslint-disable jsx-a11y/anchor-is-valid */
-import React from 'react';
+import React, { Fragment } from 'react';
 import Tabs from './Tabs';
 import Icon from '../widgets/Icon';
 
@@ -38,6 +38,80 @@ export const base = () => (
         ),
         titleText: 'Tab 3 accessible hover title!',
         content: 'This is my fancy tab 3 has a custom title! Make sure to set {titleText} if title is not a string',
+      },
+    ]}
+  />
+);
+
+export const vertical = () => (
+  <Tabs
+    position="vertical"
+    tabs={[
+      {
+        id: 'Tab1',
+        title: 'Tab One',
+        content: 'This is my fancy tab 1!',
+      },
+      {
+        id: 'Tab2',
+        title: 'Tab Two',
+        content: 'This is my fancy tab 2!',
+      },
+      {
+        id: 'Tab3',
+        title: (
+          <Fragment>
+            <span className="slds-vertical-tabs__left-icon">
+              <Icon
+                type="standard"
+                icon="opportunity"
+                containerClassname="lds-icon_container slds-icon-standard-opportunity"
+                className="slds-icon slds-icon_small"
+              />
+            </span>
+            <span className="slds-truncate" title="Tab Three">
+              <em>Tab</em> Three
+            </span>
+            <span className="slds-vertical-tabs__right-icon">
+              <Icon
+                type="standard"
+                icon="opportunity"
+                containerClassname="lds-icon_container slds-icon-standard-opportunity"
+                className="slds-icon slds-icon_small"
+              />
+            </span>
+          </Fragment>
+        ),
+        titleText: 'Tab 3 accessible hover title!',
+        content: 'This is my fancy tab 3 has a custom title! Make sure to set {titleText} if title is not a string',
+      },
+      {
+        id: 'Tab4',
+        title: (
+          <Fragment>
+            <span className="slds-vertical-tabs__left-icon"></span>
+            <span className="slds-truncate" title="Tab Four">
+              Tab 4 content
+            </span>
+            <span className="slds-vertical-tabs__right-icon">
+              <Icon
+                type="standard"
+                icon="opportunity"
+                containerClassname="lds-icon_container slds-icon-standard-opportunity"
+                className="slds-icon slds-icon_small"
+              />
+            </span>
+          </Fragment>
+        ),
+        titleText: 'Tab 4 accessible hover title!',
+        content: (
+          <div className="slds-text-longform">
+            <h3 className="slds-text-heading_medium">Tab Four Title</h3>
+            <p>Content for Tab 1</p>
+            <p>Lorem ipsum dolor...</p>
+            <p>Lorem ipsum dolor...</p>
+          </div>
+        ),
       },
     ]}
   />

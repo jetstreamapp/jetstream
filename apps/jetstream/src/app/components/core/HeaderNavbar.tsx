@@ -4,7 +4,7 @@ import { UserProfileUi } from '@jetstream/types';
 import { Header, Navbar, NavbarItem, Icon } from '@jetstream/ui';
 import Logo from '../../../assets/images/jetstream-logo-v1-200w.png';
 import OrgsDropdown from '../orgs/OrgsDropdown';
-import { FunctionComponent } from 'react';
+import { Fragment, FunctionComponent } from 'react';
 import { useRecoilState } from 'recoil';
 import { applicationCookieState } from '../../app-state';
 import Jobs from './jobs/Jobs';
@@ -59,7 +59,11 @@ export const HeaderNavbar: FunctionComponent<HeaderNavbarProps> = ({ userProfile
           <NavbarItem path="/query" title="Query Records" label="Query Records" />
         )}
         {hasFeatureFlagAccess(featureFlags, FEATURE_FLAGS.AUTOMATION_CONTROL) && (
-          <NavbarItem path="/automation-control" title="Automation Control" label="Automation Control" />
+          <Fragment>
+            <NavbarItem path="/automation-control" title="Automation Control" label="Automation Control (Object List)" />
+            <NavbarItem path="/automation-control-2" title="Automation Control" label="Automation Control (Tree Grid)" />
+            <NavbarItem path="/automation-control-3" title="Automation Control" label="Automation Control (Vertical Tabs)" />
+          </Fragment>
         )}
       </Navbar>
     </Header>

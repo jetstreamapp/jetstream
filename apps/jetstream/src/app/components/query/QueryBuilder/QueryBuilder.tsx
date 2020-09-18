@@ -191,6 +191,8 @@ export const QueryBuilder: FunctionComponent<QueryBuilderProps> = () => {
             <div className="slds-p-horizontal_x-small">
               {selectedSObject && (
                 <Tabs
+                  key={selectedSObject.name}
+                  initialActiveId="BaseFields"
                   tabs={[
                     {
                       id: 'BaseFields',
@@ -233,7 +235,7 @@ export const QueryBuilder: FunctionComponent<QueryBuilderProps> = () => {
                       ),
                       titleText: 'Related Objects (Subquery)',
                       content: (
-                        <AutoFullHeightContainer bottomBuffer={245}>
+                        <AutoFullHeightContainer bottomBuffer={10}>
                           <QuerySubquerySObjects childRelationships={childRelationships} onSelectionChanged={handleSubquerySelectedField} />
                         </AutoFullHeightContainer>
                       ),
