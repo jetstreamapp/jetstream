@@ -253,7 +253,11 @@ export const ExpressionConditionRow: FunctionComponent<ExpressionConditionRowPro
                   items={resourceSelectItems || []}
                   selectedItemIds={selectedValue ? [selectedValue] : []}
                   allowDeselection={false}
-                  onChange={(item) => setSelectValue(item[0].id)}
+                  onChange={(item) => {
+                    if (item && item[0]) {
+                      setSelectValue(item[0].id);
+                    }
+                  }}
                   disabled={disableValueForOperators.includes(selectedValue as QueryFilterOperator)}
                 />
               )}

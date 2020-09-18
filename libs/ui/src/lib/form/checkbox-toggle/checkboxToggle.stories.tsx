@@ -16,6 +16,19 @@ export const base = () => (
     checked={boolean('checked', true)}
     label={text('label', 'My Label')}
     hideLabel={boolean('hideLabel', false)}
+    labelPosition={text('labelPosition', 'left') as any}
+    disabled={boolean('disabled', false)}
+    onChange={action('on-selected')}
+  />
+);
+
+export const labelRight = () => (
+  <CheckboxToggle
+    id={uniqueId('checkbox')}
+    checked={boolean('checked', true)}
+    label={text('label', 'My Label')}
+    hideLabel={boolean('hideLabel', false)}
+    labelPosition={text('labelPosition', 'right') as any}
     disabled={boolean('disabled', false)}
     onChange={action('on-selected')}
   />
