@@ -6,6 +6,7 @@ import { useRecoilState, useRecoilValue } from 'recoil';
 import {
   Accordion,
   AutoFullHeightContainer,
+  Checkbox,
   Icon,
   Page,
   PageHeader,
@@ -41,6 +42,12 @@ export const AutomationControl: FunctionComponent<AutomationControlProps> = () =
 
   const selectedOrg = useRecoilValue<SalesforceOrgUi>(selectedOrgState);
 
+  const [duplicateSelected, setDuplicateSelected] = useState<boolean>(true);
+  const [validationSelected, setValidationSelected] = useState<boolean>(true);
+  const [workflowSelected, setWorkflowSelected] = useState<boolean>(true);
+  const [processSelected, setProcessSelected] = useState<boolean>(true);
+  const [apexSelected, setApexSelected] = useState<boolean>(true);
+
   // reset everything if the selected org changes
   useEffect(() => {
     if (selectedOrg && priorSelectedOrg !== selectedOrg.uniqueId) {
@@ -73,71 +80,85 @@ export const AutomationControl: FunctionComponent<AutomationControlProps> = () =
   }
 
   return (
-    <div>
-      <Page>
-        <PageHeader>
-          <PageHeaderRow>
-            <PageHeaderTitle icon={{ type: 'standard', icon: 'activations' }} label="Automation Control" />
-            <PageHeaderActions colType="actions" buttonType="separate">
-              <button className={classNames('slds-button slds-button_neutral')} title="Enable All">
-                <Icon type="utility" icon="add" className="slds-button__icon slds-button__icon_left" omitContainer />
-                Enable All
-              </button>
-              <button className={classNames('slds-button slds-button_neutral')} title="Disable All">
-                <Icon type="utility" icon="dash" className="slds-button__icon slds-button__icon_left" omitContainer />
-                Disable All
-              </button>
-              <button className="slds-button slds-button_brand">
-                <Icon type="utility" icon="upload" className="slds-button__icon slds-button__icon_left" />
-                Deploy Changes
-              </button>
-            </PageHeaderActions>
-          </PageHeaderRow>
-        </PageHeader>
-        <AutoFullHeightContainer className="slds-p-horizontal_x-small slds-scrollable_none" bufferIfNotRendered={HEIGHT_BUFFER}>
-          <Split
-            sizes={[25, 75]}
-            minSize={[300, 600]}
-            gutterSize={10}
-            className="slds-gutters"
-            css={css`
-              display: flex;
-              flex-direction: row;
-            `}
-          >
-            <div className="slds-p-horizontal_x-small">
-              <h2 className="slds-text-heading_medium slds-text-align_center">Objects</h2>
-              {/* FIXME: allow multi-select (new component?) */}
-              <SobjectListMultiSelect
-                sobjects={sobjects}
-                selectedSObjects={selectedSObjects}
-                loading={loading}
-                errorMessage={errorMessage}
-                onSelected={setSelectedSObjects}
-                errorReattempt={() => setErrorMessage(null)}
-              />
+    <Page>
+      <PageHeader>
+        <PageHeaderRow>
+          <PageHeaderTitle icon={{ type: 'standard', icon: 'activations' }} label="Automation Control" />
+          <PageHeaderActions colType="actions" buttonType="separate">
+            <button className={classNames('slds-button slds-button_neutral')} title="Enable All">
+              <Icon type="utility" icon="add" className="slds-button__icon slds-button__icon_left" omitContainer />
+              Enable All
+            </button>
+            <button className={classNames('slds-button slds-button_neutral')} title="Disable All">
+              <Icon type="utility" icon="dash" className="slds-button__icon slds-button__icon_left" omitContainer />
+              Disable All
+            </button>
+            <button className="slds-button slds-button_brand">
+              <Icon type="utility" icon="upload" className="slds-button__icon slds-button__icon_left" />
+              Deploy Changes
+            </button>
+          </PageHeaderActions>
+        </PageHeaderRow>
+      </PageHeader>
+      <AutoFullHeightContainer className="slds-p-horizontal_x-small slds-scrollable_none" bufferIfNotRendered={HEIGHT_BUFFER}>
+        <Split
+          sizes={[25, 75]}
+          minSize={[300, 600]}
+          gutterSize={10}
+          className="slds-gutters"
+          css={css`
+            display: flex;
+            flex-direction: row;
+          `}
+        >
+          <div className="slds-p-horizontal_x-small">
+            <h2 className="slds-text-heading_medium slds-text-align_center">Objects</h2>
+            {/* Disable if user clicked continue? Or show completely new page? */}
+            <SobjectListMultiSelect
+              sobjects={sobjects}
+              selectedSObjects={selectedSObjects}
+              loading={loading}
+              errorMessage={errorMessage}
+              onSelected={setSelectedSObjects}
+              errorReattempt={() => setErrorMessage(null)}
+            />
+          </div>
+          {/* TODO: move to component */}
+          <div className="slds-p-horizontal_x-small">
+            <div>{selectedSObjects.length} Objects selected</div>
+            <div>Which automation do you want to work manage?</div>
+            <div>
+              <ul>
+                <li>
+                  <Checkbox id="duplicate-checkbox" checked={duplicateSelected} label="Duplicate Rules" onChange={setDuplicateSelected} />
+                </li>
+                <li>
+                  <Checkbox
+                    id="validation-checkbox"
+                    checked={validationSelected}
+                    label="Validation Rules"
+                    onChange={setValidationSelected}
+                  />
+                </li>
+                <li>
+                  <Checkbox id="workflow-checkbox" checked={workflowSelected} label="Workflow Rules" onChange={setWorkflowSelected} />
+                </li>
+                <li>
+                  <Checkbox id="process-checkbox" checked={processSelected} label="Process Builders" onChange={setProcessSelected} />
+                </li>
+                <li>
+                  <Checkbox id="apex-checkbox" checked={apexSelected} label="Apex Triggers" onChange={setApexSelected} />
+                </li>
+              </ul>
             </div>
-            <div className="slds-p-horizontal_x-small">
-              <div>{selectedSObjects.length} Objects selected</div>
-              <div>Which automation do you want to work with?</div>
-              <div>
-                <ul>
-                  <li>- Duplicate Rules</li>
-                  <li>- Validation Rules</li>
-                  <li>- Workflow Rules</li>
-                  <li>- Process Builders</li>
-                  <li>- Apex Triggers</li>
-                </ul>
-              </div>
-              <button className="slds-button slds-button_brand">
-                Continue to View Current Automation
-                <Icon type="utility" icon="forward" className="slds-button__icon slds-button__icon_right" />
-              </button>
-            </div>
-          </Split>
-        </AutoFullHeightContainer>
-      </Page>
-    </div>
+            <button className="slds-button slds-button_brand">
+              Continue to View Current Automation
+              <Icon type="utility" icon="forward" className="slds-button__icon slds-button__icon_right" />
+            </button>
+          </div>
+        </Split>
+      </AutoFullHeightContainer>
+    </Page>
   );
 };
 
