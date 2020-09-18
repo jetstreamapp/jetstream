@@ -455,8 +455,8 @@ export function getDateLiteralListItems(): ListItem[] {
 
 export function getBooleanListItems(): ListItem[] {
   return [
-    { id: 'True', label: 'True', value: 'True' },
-    { id: 'False', label: 'False', value: 'False' },
+    { id: 'TRUE', label: 'True', value: 'True' },
+    { id: 'FALSE', label: 'False', value: 'False' },
   ];
 }
 
