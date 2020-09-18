@@ -115,6 +115,7 @@ export type Bottom = 'bottom';
 export type Left = 'left';
 
 export type TopRightBottomLeft = Top | Right | Bottom | Left;
+export type RightLeft = Right | Left;
 
 // Generic position types
 export type PositionLeftRight = PositionLeft | PositionRight;
