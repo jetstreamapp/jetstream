@@ -5,6 +5,7 @@ import { AutoFullHeightContainer, SobjectFieldList } from '@jetstream/ui';
 import isEmpty from 'lodash/isEmpty';
 import React, { Fragment, FunctionComponent, useEffect, useState } from 'react';
 import { useRecoilState, useRecoilValue, useSetRecoilState } from 'recoil';
+import { orderStringsBy } from '@jetstream/shared/utils';
 import { selectedOrgState } from '../../../app-state';
 import * as fromQueryState from '../query.state';
 
@@ -77,12 +78,16 @@ export const QueryFieldsComponent: FunctionComponent<QueryFieldsProps> = ({ sele
   }, [selectedOrg, selectedSObject]);
 
   function emitSelectedFieldsChanged(fieldsMap: MapOf<QueryFields> = queryFieldsMap) {
-    const fields = Object.values(fieldsMap)
-      .filter((queryField) => !queryField.key.includes(CHILD_FIELD_SEPARATOR))
-      .flatMap((queryField) => {
-        const basePath = queryField.key.replace(/.+\|/, '');
-        return sortQueryFieldsStr(Array.from(queryField.selectedFields)).map((fieldKey) => `${basePath}${fieldKey}`);
-      });
+    const fields = sortQueryFieldsStr(
+      orderStringsBy(
+        Object.values(fieldsMap)
+          .filter((queryField) => !queryField.key.includes(CHILD_FIELD_SEPARATOR))
+          .flatMap((queryField) => {
+            const basePath = queryField.key.replace(/.+\|/, '');
+            return Array.from(queryField.selectedFields).map((fieldKey) => `${basePath}${fieldKey}`);
+          })
+      )
+    );
     onSelectionChanged(fields);
   }
 
