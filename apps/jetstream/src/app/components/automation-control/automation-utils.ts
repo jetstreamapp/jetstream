@@ -83,17 +83,27 @@ export function convertWorkflowRuleRecordsToAutomationControlItem(
 
 export function convertFlowRecordsToAutomationControlItem(
   records: ToolingFlowDefinitionWithVersions[]
-): AutomationControlMetadataTypeItem<ToolingFlowDefinitionWithVersions>[] {
+): AutomationControlMetadataTypeItem<ToolingFlowDefinitionWithVersions, ToolingFlowRecord>[] {
   return records.map(
-    (record): AutomationControlMetadataTypeItem<ToolingFlowDefinitionWithVersions> => ({
+    (record): AutomationControlMetadataTypeItem<ToolingFlowDefinitionWithVersions, ToolingFlowRecord> => ({
       fullName: record.DeveloperName,
       // MasterLabel is only populated if flow has an active version
-      label: record.MasterLabel || record.Versions?.[0]?.MasterLabel || record.DeveloperName,
-      description: record.Description || record.Versions?.[0]?.Description,
+      label: `${record.DeveloperName}`,
+      description: '',
       // TODO: do we need to do something different with these?
       // versions are what gets set to active
       currentValue: !!record.ActiveVersionId,
       initialValue: !!record.ActiveVersionId,
+      children: Array.isArray(record.Versions)
+        ? record.Versions.map((version) => ({
+            fullName: version.Id, // not full name in this case
+            label: version.MasterLabel,
+            description: version.Description,
+            currentValue: version.Status === 'Active',
+            initialValue: version.Status === 'Active',
+            metadata: version,
+          }))
+        : [],
       metadata: record,
     })
   );

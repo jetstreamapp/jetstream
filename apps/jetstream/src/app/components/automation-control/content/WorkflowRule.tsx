@@ -14,8 +14,9 @@ interface AutomationControlContentWorkflowRuleProps {
   loading?: boolean;
   onChange: (
     type: AutomationMetadataType,
-    item: AutomationControlMetadataTypeItem<ToolingWorkflowRuleRecordWithMetadata>,
-    value: boolean
+    value: boolean,
+    item: AutomationControlMetadataTypeItem,
+    grandChildItem?: AutomationControlMetadataTypeItem
   ) => void;
 }
 
@@ -118,7 +119,7 @@ export const AutomationControlContentWorkflowRule: FunctionComponent<AutomationC
                       label="Is Active"
                       hideLabel
                       checked={item.currentValue}
-                      onChange={(value) => onChange('WorkflowRule', item, value)}
+                      onChange={(value) => onChange('WorkflowRule', value, item)}
                     />
                   </div>
                 </td>

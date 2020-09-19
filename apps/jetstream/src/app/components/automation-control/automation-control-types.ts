@@ -21,19 +21,20 @@ export interface AutomationControlParentSobject {
   };
 }
 
-export interface AutomationControlMetadataType<T = unknown> {
+export interface AutomationControlMetadataType<T = unknown, K = unknown> {
   metadataType: string;
   loading: boolean;
   hasLoaded: boolean;
-  items: AutomationControlMetadataTypeItem<T>[];
+  items: AutomationControlMetadataTypeItem<T, K>[];
 }
 
-export interface AutomationControlMetadataTypeItem<T = unknown> {
+export interface AutomationControlMetadataTypeItem<T = unknown, K = unknown> {
   fullName: string;
   label: string;
   description: string;
   initialValue: boolean;
   currentValue: boolean;
+  children?: AutomationControlMetadataTypeItem<K>[]; // Process Builder is the only type with children
   metadata: T;
 }
 

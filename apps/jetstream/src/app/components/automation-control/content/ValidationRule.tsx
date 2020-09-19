@@ -7,7 +7,12 @@ import { AutomationControlMetadataTypeItem, AutomationMetadataType, ToolingValid
 
 interface AutomationControlContentValidationRuleProps {
   items: AutomationControlMetadataTypeItem<ToolingValidationRuleRecord>[];
-  onChange: (type: AutomationMetadataType, item: AutomationControlMetadataTypeItem<ToolingValidationRuleRecord>, value: boolean) => void;
+  onChange: (
+    type: AutomationMetadataType,
+    value: boolean,
+    item: AutomationControlMetadataTypeItem,
+    grandChildItem?: AutomationControlMetadataTypeItem
+  ) => void;
 }
 
 export const AutomationControlContentValidationRule: FunctionComponent<AutomationControlContentValidationRuleProps> = ({
@@ -105,7 +110,7 @@ export const AutomationControlContentValidationRule: FunctionComponent<Automatio
                       label="Is Active"
                       hideLabel
                       checked={item.currentValue}
-                      onChange={(value) => onChange('ValidationRule', item, value)}
+                      onChange={(value) => onChange('ValidationRule', value, item)}
                     />
                   </div>
                 </td>

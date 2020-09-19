@@ -7,7 +7,12 @@ import { AutomationControlMetadataTypeItem, AutomationMetadataType, ToolingApexT
 
 interface AutomationControlContentApexTriggerProps {
   items: AutomationControlMetadataTypeItem<ToolingApexTriggerRecord>[];
-  onChange: (type: AutomationMetadataType, item: AutomationControlMetadataTypeItem<ToolingApexTriggerRecord>, value: boolean) => void;
+  onChange: (
+    type: AutomationMetadataType,
+    value: boolean,
+    item: AutomationControlMetadataTypeItem,
+    grandChildItem?: AutomationControlMetadataTypeItem
+  ) => void;
 }
 
 export const AutomationControlContentApexTrigger: FunctionComponent<AutomationControlContentApexTriggerProps> = ({ items, onChange }) => {
@@ -92,7 +97,7 @@ export const AutomationControlContentApexTrigger: FunctionComponent<AutomationCo
                       label="Is Active"
                       hideLabel
                       checked={item.currentValue}
-                      onChange={(value) => onChange('ApexTrigger', item, value)}
+                      onChange={(value) => onChange('ApexTrigger', value, item)}
                     />
                   </div>
                 </td>

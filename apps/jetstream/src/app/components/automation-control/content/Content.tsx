@@ -11,7 +11,12 @@ import { AutomationControlContentValidationRule } from './ValidationRule';
 import AutomationControlContentWorkflowRule from './WorkflowRule';
 interface AutomationControlTabContentProps {
   item: AutomationControlParentSobject;
-  onChange: (type: AutomationMetadataType, item: AutomationControlMetadataTypeItem, value: boolean) => void;
+  onChange: (
+    type: AutomationMetadataType,
+    value: boolean,
+    item: AutomationControlMetadataTypeItem,
+    grandChildItem?: AutomationControlMetadataTypeItem
+  ) => void;
   toggleAll: (value: boolean | null) => void;
 }
 

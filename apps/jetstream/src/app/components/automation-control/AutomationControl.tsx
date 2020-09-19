@@ -24,6 +24,8 @@ import {
   AutomationControlParentSobject,
   AutomationMetadataType,
   ToolingEntityDefinitionRecord,
+  ToolingFlowDefinitionWithVersions,
+  ToolingFlowRecord,
 } from './automation-control-types';
 import * as fromAutomationCtlState from './automation-control.state';
 import {
@@ -145,7 +147,7 @@ export const AutomationControl3: FunctionComponent<AutomationControl3Props> = ()
             content: (
               <AutomationControlTabContent
                 item={item}
-                onChange={(type, childItem, value) => handleItemChange(item.key, type, childItem, value)}
+                onChange={(type, value, childItem, grandChildItem) => handleItemChange(item.key, type, value, childItem, grandChildItem)}
                 toggleAll={(value) => handleToggleAll(item.key, value)}
               />
             ),
@@ -154,16 +156,52 @@ export const AutomationControl3: FunctionComponent<AutomationControl3Props> = ()
     );
   }, [itemIds, itemsById]);
 
-  function handleItemChange(parentItemKey: string, type: AutomationMetadataType, item: AutomationControlMetadataTypeItem, value: boolean) {
+  function handleItemChange(
+    parentItemKey: string,
+    type: AutomationMetadataType,
+    value: boolean,
+    item: AutomationControlMetadataTypeItem,
+    grandChildItem?: AutomationControlMetadataTypeItem
+  ) {
     const itemsByIdTemp = { ...itemsById, [parentItemKey]: { ...itemsById[parentItemKey] } };
     // This seems complicated because typescript is being stupid because of our generic types :sob:
     // This just changed to checkbox for currentItem = value
-    itemsByIdTemp[parentItemKey].automationItems[type as any] = {
-      ...itemsByIdTemp[parentItemKey].automationItems[type],
-      items: (itemsByIdTemp[parentItemKey].automationItems[type].items as AutomationControlMetadataTypeItem[]).map((currItem) =>
-        currItem.fullName === item.fullName ? { ...item, currentValue: value } : currItem
-      ),
-    };
+    itemsByIdTemp[parentItemKey].automationItems[type as any] = { ...itemsByIdTemp[parentItemKey].automationItems[type] };
+    if (type !== 'Flow') {
+      const currItem: AutomationControlMetadataType = itemsByIdTemp[parentItemKey].automationItems[type as any];
+      currItem.items = currItem.items.map((childItem) =>
+        childItem.fullName === item.fullName ? { ...item, currentValue: value } : childItem
+      );
+    } else {
+      // For process builders, we need to set the parent item based on the child items
+      // and only one items can be active at a time
+      const currItem: AutomationControlMetadataType<ToolingFlowDefinitionWithVersions, ToolingFlowRecord> =
+        itemsByIdTemp[parentItemKey].automationItems[type as any];
+
+      currItem.items = currItem.items.map((childItem) => {
+        // see if FlowDefinition matches the current childItem
+        if (childItem.fullName !== item.fullName || !Array.isArray(childItem.children)) {
+          return childItem;
+        }
+        // Match - process flow versions
+        childItem = { ...childItem };
+        // If false, set every flow version to false including flow definition
+        if (!value) {
+          childItem.currentValue = false;
+          childItem.children = childItem.children.map((currGrandChildItem) => ({ ...currGrandChildItem, currentValue: false }));
+        } else {
+          // If value is true, set parent to true, all other items to false, and current item to true
+          childItem.currentValue = value;
+          childItem.children = childItem.children.map((currGrandChildItem) =>
+            currGrandChildItem.fullName === grandChildItem.fullName
+              ? { ...currGrandChildItem, currentValue: true }
+              : { ...currGrandChildItem, currentValue: false }
+          );
+        }
+        return childItem;
+      });
+    }
+
     setItemsById(itemsByIdTemp);
   }
 

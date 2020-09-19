@@ -7,7 +7,12 @@ import { AutomationControlMetadataTypeItem, AutomationMetadataType, ToolingAssig
 
 interface AutomationControlContentAssignmentRuleProps {
   items: AutomationControlMetadataTypeItem<ToolingAssignmentRuleRecord>[];
-  onChange: (type: AutomationMetadataType, item: AutomationControlMetadataTypeItem<ToolingAssignmentRuleRecord>, value: boolean) => void;
+  onChange: (
+    type: AutomationMetadataType,
+    value: boolean,
+    item: AutomationControlMetadataTypeItem,
+    grandChildItem?: AutomationControlMetadataTypeItem
+  ) => void;
 }
 
 export const AutomationControlContentAssignmentRule: FunctionComponent<AutomationControlContentAssignmentRuleProps> = ({
@@ -95,7 +100,7 @@ export const AutomationControlContentAssignmentRule: FunctionComponent<Automatio
                       label="Is Active"
                       hideLabel
                       checked={item.currentValue}
-                      onChange={(value) => onChange('AssignmentRule', item, value)}
+                      onChange={(value) => onChange('AssignmentRule', value, item)}
                     />
                   </div>
                 </td>
