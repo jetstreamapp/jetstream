@@ -15,7 +15,7 @@ export interface AutomationControlParentSobject {
   automationItems: {
     ValidationRule: AutomationControlMetadataType<ToolingValidationRuleRecord>;
     WorkflowRule: AutomationControlMetadataType<ToolingWorkflowRuleRecordWithMetadata>;
-    Flow: AutomationControlMetadataType;
+    Flow: AutomationControlMetadataType<ToolingFlowDefinitionWithVersions>;
     ApexTrigger: AutomationControlMetadataType<ToolingApexTriggerRecord>;
     AssignmentRule: AutomationControlMetadataType<ToolingAssignmentRuleRecord>;
   };
@@ -50,6 +50,18 @@ interface SystemFields {
   LastModifiedDate: string;
   LastModifiedBy: { attributes: RecordAttributes; Name: string };
 }
+
+export interface ToolingMetadataComponentDependencyRecord {
+  Id: string;
+  RefMetadataComponentId: string;
+  RefMetadataComponentType: string;
+  RefMetadataComponentName: string;
+  MetadataComponentId: string;
+  MetadataComponentType: string;
+  MetadataComponentName: string;
+  MetadataComponentNamespace: string;
+}
+
 export interface ToolingValidationRuleRecord extends SystemFields {
   EntityDefinitionId: string;
   ValidationName: string;
@@ -102,22 +114,39 @@ export interface ToolingWorkflowRuleRecord extends SystemFields {
   TableEnumOrId: string;
 }
 
-export interface FlowRecord extends SystemFields {
+export interface ToolingFlowRecord extends SystemFields {
+  Description: string;
+  MasterLabel: string;
+  DefinitionId: string;
+  ManageableState: string;
+  ProcessType: 'Workflow' | 'InvocableProcess';
+  Status: 'Active' | 'Draft' | 'Obsolete' | 'InvalidDraft';
+  VersionNumber: number;
+}
+
+export interface ToolingFlowRecordWithDefinition extends ToolingFlowRecord {
+  Definition: ToolingFlowDefinition;
+}
+
+export interface ToolingFlowDefinition extends SystemFields {
   Id: string;
+  Description: string;
   DeveloperName: string;
   MasterLabel: string;
-  Description: string;
   ActiveVersionId: string;
+  ActiveVersion?: { VersionNumber: number };
   LatestVersionId: string;
+  LatestVersion?: { VersionNumber: number };
+  ManageableState: string;
+  NamespacePrefix: string;
+}
+
+export interface ToolingFlowDefinitionWithVersions extends ToolingFlowDefinition {
+  Versions: ToolingFlowRecord[];
 }
 
 export interface ToolingWorkflowRuleRecordWithMetadata {
   tooling: ToolingWorkflowRuleRecord;
-  metadata: MetadataWorkflowRuleRecord;
-}
-
-export interface FlowRecordWithMetadata {
-  tooling: FlowRecord;
   metadata: MetadataWorkflowRuleRecord;
 }
 
@@ -161,27 +190,4 @@ export interface MetadataWorkflowRuleRecord {
     timeLength: string;
     workflowTimeTriggerUnit: 'Hours' | 'Days';
   };
-}
-
-export interface MetadataFlowRecord {
-  description: string;
-  interviewLabel: string;
-  label: string;
-  processType:
-    | 'Appointments'
-    | 'AutoLaunchedFlow'
-    | 'ContactRequestFlow'
-    | 'CustomerLifecycle'
-    | 'CustomEvent'
-    | 'FieldServiceMobile'
-    | 'FieldServiceWeb'
-    | 'Flow'
-    | 'InvocableProcess'
-    | 'Survey'
-    | 'SurveyEnrich'
-    | 'Workflow';
-  startElementReference: string;
-  status: 'Active' | 'Draft' | 'Obsolete' | 'InvalidDraft';
-  isAdditionalPermissionRequiredToRun?: boolean;
-  isTemplate?: boolean;
 }

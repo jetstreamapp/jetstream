@@ -1,8 +1,8 @@
 /** @jsx jsx */
 import { jsx } from '@emotion/core';
-import { Accordion, Checkbox, Grid, GridCol } from '@jetstream/ui';
-import { Fragment, FunctionComponent, useState } from 'react';
-import { AutomationControlParentSobject } from './temp-types';
+import { Grid, GridCol } from '@jetstream/ui';
+import { Fragment, FunctionComponent } from 'react';
+import { AutomationControlMetadataType, AutomationControlParentSobject } from './automation-control-types';
 
 interface AutomationControlTabContentProps {
   item: AutomationControlParentSobject;
@@ -15,7 +15,7 @@ export interface AutomationControlTabTitleProps {
 }
 
 function getModifiedItemsText(item: AutomationControlParentSobject) {
-  const modifiedItemCount = Object.values(item.automationItems).flatMap((childItem) =>
+  const modifiedItemCount = Object.values(item.automationItems).flatMap((childItem: AutomationControlMetadataType) =>
     childItem.items.filter((currItem) => currItem.currentValue !== currItem.initialValue)
   ).length;
   if (modifiedItemCount) {

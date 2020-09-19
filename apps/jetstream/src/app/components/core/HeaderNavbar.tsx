@@ -60,9 +60,7 @@ export const HeaderNavbar: FunctionComponent<HeaderNavbarProps> = ({ userProfile
         )}
         {hasFeatureFlagAccess(featureFlags, FEATURE_FLAGS.AUTOMATION_CONTROL) && (
           <Fragment>
-            <NavbarItem path="/automation-control" title="Automation Control" label="Automation Control (Object List)" />
-            <NavbarItem path="/automation-control-2" title="Automation Control" label="Automation Control (Tree Grid)" />
-            <NavbarItem path="/automation-control-3" title="Automation Control" label="Automation Control (Vertical Tabs)" />
+            <NavbarItem path="/automation-control" title="Automation Control" label="Automation Control" />
           </Fragment>
         )}
       </Navbar>

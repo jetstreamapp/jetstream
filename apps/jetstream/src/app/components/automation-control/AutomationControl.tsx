@@ -1,71 +1,70 @@
 /** @jsx jsx */
-import { css, jsx } from '@emotion/core';
-import { SalesforceOrgUi } from '@jetstream/types';
-import { FunctionComponent, useEffect, useState } from 'react';
-import { useRecoilState, useRecoilValue } from 'recoil';
+import { jsx } from '@emotion/core';
+import { logger } from '@jetstream/shared/client-logger';
+import { query } from '@jetstream/shared/data';
+import { orderObjectsBy } from '@jetstream/shared/utils';
+import { MapOf, SalesforceOrgUi, UiTabSection } from '@jetstream/types';
 import {
-  Accordion,
   AutoFullHeightContainer,
-  Checkbox,
   Icon,
   Page,
   PageHeader,
   PageHeaderActions,
   PageHeaderRow,
   PageHeaderTitle,
-  SobjectList,
-  SobjectListMultiSelect,
+  Spinner,
   Tabs,
 } from '@jetstream/ui';
+import { FunctionComponent, useEffect, useState } from 'react';
+import { useRecoilState, useRecoilValue } from 'recoil';
 import { selectedOrgState } from '../../app-state';
-import classNames from 'classnames';
-import Split from 'react-split';
+import {
+  AutomationControlMetadataType,
+  AutomationControlMetadataTypeItem,
+  AutomationControlParentSobject,
+  AutomationMetadataType,
+  ToolingEntityDefinitionRecord,
+} from './automation-control-types';
 import * as fromAutomationCtlState from './automation-control.state';
-import { describeGlobal } from '@jetstream/shared/data';
-import { orderObjectsBy } from '@jetstream/shared/utils';
-import { DescribeGlobalSObjectResult } from 'jsforce';
-import { logger } from '@jetstream/shared/client-logger';
+import {
+  convertApexTriggerRecordsToAutomationControlItem,
+  convertAssignmentRuleRecordsToAutomationControlItem,
+  convertFlowRecordsToAutomationControlItem,
+  convertValidationRuleRecordsToAutomationControlItem,
+  convertWorkflowRuleRecordsToAutomationControlItem,
+  getEntityDefinitionQuery,
+  getProcessBuilders,
+  getWorkflowRulesMetadata,
+} from './automation-utils';
+import { AutomationControlTabContent } from './content/Content';
+import { AutomationControlTabTitle } from './AutomationControlTitle';
 
 const HEIGHT_BUFFER = 170;
 
 // eslint-disable-next-line @typescript-eslint/no-empty-interface
-export interface AutomationControlProps {}
+export interface AutomationControl3Props {}
 
-export const AutomationControl: FunctionComponent<AutomationControlProps> = () => {
+export const AutomationControl3: FunctionComponent<AutomationControl3Props> = () => {
+  const selectedOrg = useRecoilValue<SalesforceOrgUi>(selectedOrgState);
   const [priorSelectedOrg, setPriorSelectedOrg] = useState<string>(null);
   // TODO: reset when org changes
   const [sobjects, setSobjects] = useRecoilState(fromAutomationCtlState.sObjectsState);
   const [loading, setLoading] = useState<boolean>(false);
   const [errorMessage, setErrorMessage] = useState<string>(null);
-  // TODO: do we want full object type?
-  const [selectedSObjects, setSelectedSObjects] = useState<string[]>([]);
 
-  const selectedOrg = useRecoilValue<SalesforceOrgUi>(selectedOrgState);
-
-  const [duplicateSelected, setDuplicateSelected] = useState<boolean>(true);
-  const [validationSelected, setValidationSelected] = useState<boolean>(true);
-  const [workflowSelected, setWorkflowSelected] = useState<boolean>(true);
-  const [processSelected, setProcessSelected] = useState<boolean>(true);
-  const [apexSelected, setApexSelected] = useState<boolean>(true);
-
-  // reset everything if the selected org changes
-  useEffect(() => {
-    if (selectedOrg && priorSelectedOrg !== selectedOrg.uniqueId) {
-      setPriorSelectedOrg(selectedOrg.uniqueId);
-      // RESET STUFF
-    } else if (!selectedOrg) {
-      // RESET STUFF
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedOrg, priorSelectedOrg]);
+  const [itemIds, setItemIds] = useState<string[]>([]);
+  const [itemsById, setItemsById] = useState<MapOf<AutomationControlParentSobject>>({});
+  const [activeItemId, setActiveItemId] = useState<string>(null);
+  const [tabs, setTabs] = useState<UiTabSection[]>([]);
 
   useEffect(() => {
     if (selectedOrg && !loading && !errorMessage && !sobjects) {
       (async () => {
         setLoading(true);
         try {
-          const results = await describeGlobal(selectedOrg);
-          setSobjects(orderObjectsBy(results.sobjects.filter(filterSobjectFn), 'label'));
+          // TODO: adjust where clause to ensure we are getting correct sobjects
+          const entityDefinitions = await query<ToolingEntityDefinitionRecord>(selectedOrg, getEntityDefinitionQuery(), true);
+          setSobjects(orderObjectsBy(entityDefinitions.queryResults.records, 'MasterLabel'));
         } catch (ex) {
           logger.error(ex);
           setErrorMessage(ex.message);
@@ -75,8 +74,186 @@ export const AutomationControl: FunctionComponent<AutomationControlProps> = () =
     }
   }, [selectedOrg, loading, errorMessage, sobjects, setSobjects]);
 
-  function filterSobjectFn(sobject: DescribeGlobalSObjectResult): boolean {
-    return sobject.queryable && !sobject.name.endsWith('CleanInfo') && !sobject.name.endsWith('share') && !sobject.name.endsWith('history');
+  useEffect(() => {
+    if (sobjects) {
+      const itemIdsTemp: string[] = [];
+      const itemsByIdTemp = sobjects.reduce((output: MapOf<AutomationControlParentSobject>, sobject) => {
+        itemIdsTemp.push(sobject.QualifiedApiName);
+        output[sobject.QualifiedApiName] = {
+          key: sobject.QualifiedApiName,
+          entityDefinitionId: sobject.Id,
+          entityDefinitionRecord: sobject,
+          sobjectName: sobject.QualifiedApiName,
+          sobjectLabel: sobject.MasterLabel,
+          loading: false,
+          hasLoaded: false,
+          inProgress: false,
+          error: null,
+          automationItems: {
+            ValidationRule: {
+              metadataType: 'ValidationRule',
+              loading: false,
+              hasLoaded: true,
+              items: sobject.ValidationRules
+                ? convertValidationRuleRecordsToAutomationControlItem(sobject.QualifiedApiName, sobject.ValidationRules.records)
+                : [],
+            },
+            WorkflowRule: {
+              metadataType: 'WorkflowRule',
+              loading: false,
+              hasLoaded: false,
+              items: [],
+            },
+            Flow: {
+              metadataType: 'Flow',
+              loading: false,
+              hasLoaded: false,
+              items: [],
+            },
+            ApexTrigger: {
+              metadataType: 'ApexTrigger',
+              loading: false,
+              hasLoaded: true,
+              items: sobject.ApexTriggers ? convertApexTriggerRecordsToAutomationControlItem(sobject.ApexTriggers.records) : [],
+            },
+            AssignmentRule: {
+              metadataType: 'AssignmentRule',
+              loading: false,
+              hasLoaded: true,
+              items: sobject.AssignmentRules
+                ? convertAssignmentRuleRecordsToAutomationControlItem(sobject.QualifiedApiName, sobject.AssignmentRules.records)
+                : [],
+            },
+          },
+        };
+        return output;
+      }, {});
+      setItemIds(itemIdsTemp);
+      setItemsById(itemsByIdTemp);
+    }
+  }, [sobjects]);
+
+  useEffect(() => {
+    setTabs(
+      itemIds
+        .map((itemId) => itemsById[itemId])
+        .map(
+          (item): UiTabSection => ({
+            id: item.key,
+            title: <AutomationControlTabTitle item={item} isActive={item.key === activeItemId} />,
+            titleText: item.sobjectLabel,
+            content: (
+              <AutomationControlTabContent
+                item={item}
+                onChange={(type, childItem, value) => handleItemChange(item.key, type, childItem, value)}
+                toggleAll={(value) => handleToggleAll(item.key, value)}
+              />
+            ),
+          })
+        )
+    );
+  }, [itemIds, itemsById]);
+
+  function handleItemChange(parentItemKey: string, type: AutomationMetadataType, item: AutomationControlMetadataTypeItem, value: boolean) {
+    const itemsByIdTemp = { ...itemsById, [parentItemKey]: { ...itemsById[parentItemKey] } };
+    // This seems complicated because typescript is being stupid because of our generic types :sob:
+    // This just changed to checkbox for currentItem = value
+    itemsByIdTemp[parentItemKey].automationItems[type as any] = {
+      ...itemsByIdTemp[parentItemKey].automationItems[type],
+      items: (itemsByIdTemp[parentItemKey].automationItems[type].items as AutomationControlMetadataTypeItem[]).map((currItem) =>
+        currItem.fullName === item.fullName ? { ...item, currentValue: value } : currItem
+      ),
+    };
+    setItemsById(itemsByIdTemp);
+  }
+
+  function handleToggleAll(parentItemKey: string, value: boolean | null) {
+    // clone items that will be modified
+    const itemsByIdTemp = {
+      ...itemsById,
+      [parentItemKey]: { ...itemsById[parentItemKey], automationItems: { ...itemsById[parentItemKey].automationItems } },
+    };
+    Object.values(itemsByIdTemp[parentItemKey].automationItems).forEach((automationItem: AutomationControlMetadataType) => {
+      automationItem.items = automationItem.items.map((item) => {
+        if (value === null) {
+          return { ...item, currentValue: item.initialValue };
+        }
+        return { ...item, currentValue: !!value };
+      });
+    });
+    setItemsById(itemsByIdTemp);
+  }
+
+  async function handleActiveTabIdChange(tabId: string) {
+    const itemsByIdTemp = { ...itemsById };
+    itemsByIdTemp[tabId] = { ...itemsById[tabId] };
+    const currTab = itemsById[tabId];
+
+    setActiveItemId(tabId);
+
+    if (!currTab.hasLoaded && !currTab.loading) {
+      // Indicate that we are loading
+      currTab.loading = true;
+      const needToLoad = {
+        WorkflowRule: false,
+        Flow: false,
+      };
+
+      if (!currTab.automationItems.WorkflowRule.hasLoaded && !currTab.automationItems.WorkflowRule.loading) {
+        currTab.automationItems.WorkflowRule = { ...currTab.automationItems.WorkflowRule, loading: true };
+        needToLoad.WorkflowRule = true;
+      }
+
+      if (!currTab.automationItems.Flow.hasLoaded && !currTab.automationItems.Flow.loading) {
+        currTab.automationItems.Flow = { ...currTab.automationItems.Flow, loading: true };
+        needToLoad.Flow = true;
+      }
+
+      // set loading indicator
+      setItemsById(itemsByIdTemp);
+
+      // Fetch and load metadata
+      if (needToLoad.WorkflowRule) {
+        loadWorkflowRules(tabId);
+      }
+      if (needToLoad.Flow) {
+        loadProcessBuilders(tabId);
+      }
+    }
+  }
+
+  async function loadWorkflowRules(tabId: string) {
+    const itemsByIdTemp = { ...itemsById };
+    itemsByIdTemp[tabId] = { ...itemsById[tabId] };
+    const currTab = itemsById[tabId];
+
+    const workflowRules = await getWorkflowRulesMetadata(selectedOrg, currTab.sobjectName);
+
+    currTab.automationItems.WorkflowRule = {
+      ...currTab.automationItems.WorkflowRule,
+      loading: false,
+      hasLoaded: true,
+      items: convertWorkflowRuleRecordsToAutomationControlItem(workflowRules),
+    };
+
+    setItemsById(itemsByIdTemp);
+  }
+
+  async function loadProcessBuilders(tabId: string) {
+    const itemsByIdTemp = { ...itemsById };
+    itemsByIdTemp[tabId] = { ...itemsById[tabId] };
+    const currTab = itemsById[tabId];
+
+    const flows = await getProcessBuilders(selectedOrg, currTab.entityDefinitionRecord.DurableId);
+
+    currTab.automationItems.Flow = {
+      ...currTab.automationItems.WorkflowRule,
+      loading: false,
+      hasLoaded: true,
+      items: convertFlowRecordsToAutomationControlItem(flows),
+    };
+
+    setItemsById(itemsByIdTemp);
   }
 
   return (
@@ -85,14 +262,6 @@ export const AutomationControl: FunctionComponent<AutomationControlProps> = () =
         <PageHeaderRow>
           <PageHeaderTitle icon={{ type: 'standard', icon: 'activations' }} label="Automation Control" />
           <PageHeaderActions colType="actions" buttonType="separate">
-            <button className={classNames('slds-button slds-button_neutral')} title="Enable All">
-              <Icon type="utility" icon="add" className="slds-button__icon slds-button__icon_left" omitContainer />
-              Enable All
-            </button>
-            <button className={classNames('slds-button slds-button_neutral')} title="Disable All">
-              <Icon type="utility" icon="dash" className="slds-button__icon slds-button__icon_left" omitContainer />
-              Disable All
-            </button>
             <button className="slds-button slds-button_brand">
               <Icon type="utility" icon="upload" className="slds-button__icon slds-button__icon_left" />
               Deploy Changes
@@ -101,65 +270,22 @@ export const AutomationControl: FunctionComponent<AutomationControlProps> = () =
         </PageHeaderRow>
       </PageHeader>
       <AutoFullHeightContainer className="slds-p-horizontal_x-small slds-scrollable_none" bufferIfNotRendered={HEIGHT_BUFFER}>
-        <Split
-          sizes={[25, 75]}
-          minSize={[300, 600]}
-          gutterSize={10}
-          className="slds-gutters"
-          css={css`
-            display: flex;
-            flex-direction: row;
-          `}
-        >
-          <div className="slds-p-horizontal_x-small">
-            <h2 className="slds-text-heading_medium slds-text-align_center">Objects</h2>
-            {/* Disable if user clicked continue? Or show completely new page? */}
-            <SobjectListMultiSelect
-              sobjects={sobjects}
-              selectedSObjects={selectedSObjects}
-              loading={loading}
-              errorMessage={errorMessage}
-              onSelected={setSelectedSObjects}
-              errorReattempt={() => setErrorMessage(null)}
-            />
-          </div>
-          {/* TODO: move to component */}
-          <div className="slds-p-horizontal_x-small">
-            <div>{selectedSObjects.length} Objects selected</div>
-            <div>Which automation do you want to work manage?</div>
-            <div>
-              <ul>
-                <li>
-                  <Checkbox id="duplicate-checkbox" checked={duplicateSelected} label="Duplicate Rules" onChange={setDuplicateSelected} />
-                </li>
-                <li>
-                  <Checkbox
-                    id="validation-checkbox"
-                    checked={validationSelected}
-                    label="Validation Rules"
-                    onChange={setValidationSelected}
-                  />
-                </li>
-                <li>
-                  <Checkbox id="workflow-checkbox" checked={workflowSelected} label="Workflow Rules" onChange={setWorkflowSelected} />
-                </li>
-                <li>
-                  <Checkbox id="process-checkbox" checked={processSelected} label="Process Builders" onChange={setProcessSelected} />
-                </li>
-                <li>
-                  <Checkbox id="apex-checkbox" checked={apexSelected} label="Apex Triggers" onChange={setApexSelected} />
-                </li>
-              </ul>
-            </div>
-            <button className="slds-button slds-button_brand">
-              Continue to View Current Automation
-              <Icon type="utility" icon="forward" className="slds-button__icon slds-button__icon_right" />
-            </button>
-          </div>
-        </Split>
+        {loading && <Spinner />}
+        {sobjects && sobjects.length > 0 && (
+          <Tabs
+            position="vertical"
+            tabs={tabs}
+            // TODO: we probably need to calculate this because the % does not work across all screen sizes
+            ulStyle={{
+              maxHeight: '86vh',
+              overflowY: 'scroll',
+            }}
+            onChange={handleActiveTabIdChange}
+          />
+        )}
       </AutoFullHeightContainer>
     </Page>
   );
 };
 
-export default AutomationControl;
+export default AutomationControl3;

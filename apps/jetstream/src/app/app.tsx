@@ -1,22 +1,20 @@
 /** @jsx jsx */
 import { css, jsx } from '@emotion/core';
+import { FEATURE_FLAGS } from '@jetstream/shared/constants';
+import { hasFeatureFlagAccess } from '@jetstream/shared/ui-utils';
 import { UserProfileUi } from '@jetstream/types';
 import { ConfirmationServiceProvider } from '@jetstream/ui';
-import { Suspense, useState, lazy, useEffect, Fragment } from 'react';
-import { BrowserRouter as Router, Route, Switch, Redirect } from 'react-router-dom';
+import { lazy, Suspense, useEffect, useState } from 'react';
+import { ErrorBoundary } from 'react-error-boundary';
+import { BrowserRouter as Router, Route, Switch } from 'react-router-dom';
 import { RecoilRoot } from 'recoil';
 import AppInitializer from './components/core/AppInitializer';
+import ErrorBoundaryFallback from './components/core/ErrorBoundaryFallback';
 import HeaderNavbar from './components/core/HeaderNavbar';
 import OrgSelectionRequired from './components/orgs/OrgSelectionRequired';
-import { ErrorBoundary } from 'react-error-boundary';
-import ErrorBoundaryFallback from './components/core/ErrorBoundaryFallback';
-import { hasFeatureFlagAccess } from '@jetstream/shared/ui-utils';
-import { FEATURE_FLAGS } from '@jetstream/shared/constants';
 
 const Query = lazy(() => import('./components/query/Query'));
 const AutomationControl = lazy(() => import('./components/automation-control/AutomationControl'));
-const AutomationControl2 = lazy(() => import('./components/automation-control-2/AutomationControl'));
-const AutomationControl3 = lazy(() => import('./components/automation-control-3/AutomationControl'));
 const Feedback = lazy(() => import('./components/feedback/Feedback'));
 
 export const App = () => {
@@ -57,23 +55,11 @@ export const App = () => {
                           </Route>
                         )}
                         {hasFeatureFlagAccess(featureFlags, FEATURE_FLAGS.AUTOMATION_CONTROL) && (
-                          <Fragment>
-                            <Route path="/automation-control">
-                              <OrgSelectionRequired>
-                                <AutomationControl />
-                              </OrgSelectionRequired>
-                            </Route>
-                            <Route path="/automation-control-2">
-                              <OrgSelectionRequired>
-                                <AutomationControl2 />
-                              </OrgSelectionRequired>
-                            </Route>
-                            <Route path="/automation-control-3">
-                              <OrgSelectionRequired>
-                                <AutomationControl3 />
-                              </OrgSelectionRequired>
-                            </Route>
-                          </Fragment>
+                          <Route path="/automation-control">
+                            <OrgSelectionRequired>
+                              <AutomationControl />
+                            </OrgSelectionRequired>
+                          </Route>
                         )}
                         <Route path="/feedback">
                           <Feedback />

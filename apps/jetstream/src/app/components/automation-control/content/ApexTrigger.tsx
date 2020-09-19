@@ -3,17 +3,14 @@ import { jsx, css } from '@emotion/core';
 import { Checkbox, Grid, GridCol } from '@jetstream/ui';
 import classNames from 'classnames';
 import { Fragment, FunctionComponent } from 'react';
-import { AutomationControlMetadataTypeItem, AutomationMetadataType, ToolingAssignmentRuleRecord } from '../temp-types';
+import { AutomationControlMetadataTypeItem, AutomationMetadataType, ToolingApexTriggerRecord } from '../automation-control-types';
 
-interface AutomationControlContentAssignmentRuleProps {
-  items: AutomationControlMetadataTypeItem<ToolingAssignmentRuleRecord>[];
-  onChange: (type: AutomationMetadataType, item: AutomationControlMetadataTypeItem<ToolingAssignmentRuleRecord>, value: boolean) => void;
+interface AutomationControlContentApexTriggerProps {
+  items: AutomationControlMetadataTypeItem<ToolingApexTriggerRecord>[];
+  onChange: (type: AutomationMetadataType, item: AutomationControlMetadataTypeItem<ToolingApexTriggerRecord>, value: boolean) => void;
 }
 
-export const AutomationControlContentAssignmentRule: FunctionComponent<AutomationControlContentAssignmentRuleProps> = ({
-  items,
-  onChange,
-}) => {
+export const AutomationControlContentApexTrigger: FunctionComponent<AutomationControlContentApexTriggerProps> = ({ items, onChange }) => {
   return (
     <Fragment>
       {!items || (!items.length && 'No items to display')}
@@ -91,11 +88,11 @@ export const AutomationControlContentAssignmentRule: FunctionComponent<Automatio
                 <td>
                   <div className="slds-cell-wrap slds-line-clamp" title={`${item.currentValue}`}>
                     <Checkbox
-                      id={`AssignmentRule-${item.fullName}`}
+                      id={`ApexTrigger-${item.fullName}`}
                       label="Is Active"
                       hideLabel
                       checked={item.currentValue}
-                      onChange={(value) => onChange('AssignmentRule', item, value)}
+                      onChange={(value) => onChange('ApexTrigger', item, value)}
                     />
                   </div>
                 </td>
@@ -108,4 +105,4 @@ export const AutomationControlContentAssignmentRule: FunctionComponent<Automatio
   );
 };
 
-export default AutomationControlContentAssignmentRule;
+export default AutomationControlContentApexTrigger;

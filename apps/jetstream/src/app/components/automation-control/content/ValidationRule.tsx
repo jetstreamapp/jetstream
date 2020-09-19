@@ -1,42 +1,23 @@
 /** @jsx jsx */
 import { jsx, css } from '@emotion/core';
-import { Checkbox, Grid, GridCol, Spinner } from '@jetstream/ui';
+import { Checkbox, Grid, GridCol } from '@jetstream/ui';
 import classNames from 'classnames';
 import { Fragment, FunctionComponent } from 'react';
-import { AutomationControlMetadataTypeItem, AutomationMetadataType, ToolingWorkflowRuleRecordWithMetadata } from '../temp-types';
+import { AutomationControlMetadataTypeItem, AutomationMetadataType, ToolingValidationRuleRecord } from '../automation-control-types';
 
-interface AutomationControlContentWorkflowRuleProps {
-  items: AutomationControlMetadataTypeItem<ToolingWorkflowRuleRecordWithMetadata>[];
-  loading?: boolean;
-  onChange: (
-    type: AutomationMetadataType,
-    item: AutomationControlMetadataTypeItem<ToolingWorkflowRuleRecordWithMetadata>,
-    value: boolean
-  ) => void;
+interface AutomationControlContentValidationRuleProps {
+  items: AutomationControlMetadataTypeItem<ToolingValidationRuleRecord>[];
+  onChange: (type: AutomationMetadataType, item: AutomationControlMetadataTypeItem<ToolingValidationRuleRecord>, value: boolean) => void;
 }
 
-export const AutomationControlContentWorkflowRule: FunctionComponent<AutomationControlContentWorkflowRuleProps> = ({
+export const AutomationControlContentValidationRule: FunctionComponent<AutomationControlContentValidationRuleProps> = ({
   items,
-  loading,
   onChange,
 }) => {
   return (
     <Fragment>
-      {!loading && (!items || (!items.length && 'No items to display'))}
-      {loading && (
-        <span
-          className="slds-is-relative"
-          css={css`
-            margin-left: 50px;
-            margin-top: 25px;
-            display: inline-block;
-            min-height: 25px;
-          `}
-        >
-          <Spinner inline />
-        </span>
-      )}
-      {!loading && items && !!items.length && (
+      {!items || (!items.length && 'No items to display')}
+      {items && !!items.length && (
         <table className="slds-table slds-table_cell-buffer slds-table_bordered slds-no-row-hover">
           <thead>
             <tr className="slds-line-height_reset">
@@ -53,6 +34,11 @@ export const AutomationControlContentWorkflowRule: FunctionComponent<AutomationC
               <th scope="col">
                 <div className="slds-truncate" title="Description">
                   Description
+                </div>
+              </th>
+              <th scope="col">
+                <div className="slds-truncate" title="Rule Error Message">
+                  Rule Error Message
                 </div>
               </th>
               <th
@@ -94,15 +80,20 @@ export const AutomationControlContentWorkflowRule: FunctionComponent<AutomationC
                   </div>
                 </td>
                 <td>
+                  <div className="slds-cell-wrap slds-line-clamp" title={item.metadata.ErrorMessage}>
+                    {item.metadata.ErrorMessage}
+                  </div>
+                </td>
+                <td>
                   <Grid vertical>
                     <GridCol>
-                      <div className="slds-truncate" title={item.metadata.tooling.LastModifiedBy.Name}>
-                        {item.metadata.tooling.LastModifiedBy.Name}
+                      <div className="slds-truncate" title={item.metadata.LastModifiedBy.Name}>
+                        {item.metadata.LastModifiedBy.Name}
                       </div>
                     </GridCol>
                     <GridCol>
-                      <div className="slds-truncate" title={item.metadata.tooling.LastModifiedDate}>
-                        {item.metadata.tooling.LastModifiedDate}
+                      <div className="slds-truncate" title={item.metadata.LastModifiedDate}>
+                        {item.metadata.LastModifiedDate}
                       </div>
                     </GridCol>
                   </Grid>
@@ -110,11 +101,11 @@ export const AutomationControlContentWorkflowRule: FunctionComponent<AutomationC
                 <td>
                   <div className="slds-cell-wrap slds-line-clamp" title={`${item.currentValue}`}>
                     <Checkbox
-                      id={`WorkflowRule-${item.fullName}`}
+                      id={`ValidationRule-${item.fullName}`}
                       label="Is Active"
                       hideLabel
                       checked={item.currentValue}
-                      onChange={(value) => onChange('WorkflowRule', item, value)}
+                      onChange={(value) => onChange('ValidationRule', item, value)}
                     />
                   </div>
                 </td>
@@ -127,4 +118,4 @@ export const AutomationControlContentWorkflowRule: FunctionComponent<AutomationC
   );
 };
 
-export default AutomationControlContentWorkflowRule;
+export default AutomationControlContentValidationRule;

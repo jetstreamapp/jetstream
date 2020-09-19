@@ -1,23 +1,42 @@
 /** @jsx jsx */
 import { jsx, css } from '@emotion/core';
-import { Checkbox, Grid, GridCol } from '@jetstream/ui';
+import { Checkbox, Grid, GridCol, Spinner } from '@jetstream/ui';
 import classNames from 'classnames';
 import { Fragment, FunctionComponent } from 'react';
-import { AutomationControlMetadataTypeItem, AutomationMetadataType, ToolingValidationRuleRecord } from '../temp-types';
+import { AutomationControlMetadataTypeItem, AutomationMetadataType, ToolingFlowDefinitionWithVersions } from '../automation-control-types';
 
-interface AutomationControlContentValidationRuleProps {
-  items: AutomationControlMetadataTypeItem<ToolingValidationRuleRecord>[];
-  onChange: (type: AutomationMetadataType, item: AutomationControlMetadataTypeItem<ToolingValidationRuleRecord>, value: boolean) => void;
+interface AutomationControlContentFlowProps {
+  items: AutomationControlMetadataTypeItem<ToolingFlowDefinitionWithVersions>[];
+  loading?: boolean;
+  onChange: (
+    type: AutomationMetadataType,
+    item: AutomationControlMetadataTypeItem<ToolingFlowDefinitionWithVersions>,
+    value: boolean
+  ) => void;
 }
 
-export const AutomationControlContentValidationRule: FunctionComponent<AutomationControlContentValidationRuleProps> = ({
-  items,
-  onChange,
-}) => {
+export const AutomationControlContentFlow: FunctionComponent<AutomationControlContentFlowProps> = ({ items, loading, onChange }) => {
   return (
     <Fragment>
-      {!items || (!items.length && 'No items to display')}
-      {items && !!items.length && (
+      {!loading && (!items || (!items.length && 'No items to display'))}
+      {loading && (
+        <span
+          className="slds-is-relative"
+          css={css`
+            margin-left: 50px;
+            margin-top: 25px;
+            display: inline-block;
+            min-height: 25px;
+          `}
+        >
+          <Spinner inline />
+        </span>
+      )}
+      <div>
+        TODO: flow versions are actually what the user wants to activate/deactivate, not the parent container. Impacts data model since the
+        structure is so different from other types.
+      </div>
+      {!loading && items && !!items.length && (
         <table className="slds-table slds-table_cell-buffer slds-table_bordered slds-no-row-hover">
           <thead>
             <tr className="slds-line-height_reset">
@@ -37,8 +56,8 @@ export const AutomationControlContentValidationRule: FunctionComponent<Automatio
                 </div>
               </th>
               <th scope="col">
-                <div className="slds-truncate" title="Rule Error Message">
-                  Rule Error Message
+                <div className="slds-truncate" title="Versions">
+                  Versions
                 </div>
               </th>
               <th
@@ -80,8 +99,24 @@ export const AutomationControlContentValidationRule: FunctionComponent<Automatio
                   </div>
                 </td>
                 <td>
-                  <div className="slds-cell-wrap slds-line-clamp" title={item.metadata.ErrorMessage}>
-                    {item.metadata.ErrorMessage}
+                  <div className="slds-cell-wrap slds-line-clamp" title={`${item.metadata.Versions.length}`}>
+                    <Grid vertical>
+                      <GridCol>
+                        <div className="slds-truncate" title={item.metadata.LastModifiedBy.Name}>
+                          Total Versions: {item.metadata.Versions.length}
+                        </div>
+                      </GridCol>
+                      <GridCol>
+                        <div className="slds-truncate" title={`${item.metadata.ActiveVersion?.VersionNumber || 'None'}`}>
+                          Active Version: {item.metadata.ActiveVersion?.VersionNumber || 'None'}
+                        </div>
+                      </GridCol>
+                      <GridCol>
+                        <div className="slds-truncate" title={`${item.metadata.LatestVersion?.VersionNumber || 'None'}`}>
+                          Latest Version: {item.metadata.LatestVersion?.VersionNumber || 'None'}
+                        </div>
+                      </GridCol>
+                    </Grid>
                   </div>
                 </td>
                 <td>
@@ -101,11 +136,11 @@ export const AutomationControlContentValidationRule: FunctionComponent<Automatio
                 <td>
                   <div className="slds-cell-wrap slds-line-clamp" title={`${item.currentValue}`}>
                     <Checkbox
-                      id={`ValidationRule-${item.fullName}`}
+                      id={`Flow-${item.fullName}`}
                       label="Is Active"
                       hideLabel
                       checked={item.currentValue}
-                      onChange={(value) => onChange('ValidationRule', item, value)}
+                      onChange={(value) => onChange('Flow', item, value)}
                     />
                   </div>
                 </td>
@@ -118,4 +153,4 @@ export const AutomationControlContentValidationRule: FunctionComponent<Automatio
   );
 };
 
-export default AutomationControlContentValidationRule;
+export default AutomationControlContentFlow;

@@ -1,16 +1,18 @@
 /** @jsx jsx */
 import { jsx } from '@emotion/core';
-import { Accordion } from '@jetstream/ui';
-import { FunctionComponent, useState } from 'react';
-import AutomationControlContentApexTrigger from './content/ApexTrigger';
-import AutomationControlContentAssignmentRule from './content/AssignmentRule';
-import { AutomationControlContentValidationRule } from './content/ValidationRule';
-import AutomationControlContentWorkflowRule from './content/WorkflowRule';
-import { AutomationControlMetadataTypeItem, AutomationControlParentSobject, AutomationMetadataType } from './temp-types';
-
+import { Accordion, AutoFullHeightContainer, Grid, GridCol } from '@jetstream/ui';
+import { FunctionComponent } from 'react';
+import { AutomationControlMetadataTypeItem, AutomationControlParentSobject, AutomationMetadataType } from '../automation-control-types';
+import AutomationControlContentApexTrigger from './ApexTrigger';
+import AutomationControlContentAssignmentRule from './AssignmentRule';
+import AutomationControlTabContentButtons from './ContentButtons';
+import AutomationControlContentFlow from './Flow';
+import { AutomationControlContentValidationRule } from './ValidationRule';
+import AutomationControlContentWorkflowRule from './WorkflowRule';
 interface AutomationControlTabContentProps {
   item: AutomationControlParentSobject;
   onChange: (type: AutomationMetadataType, item: AutomationControlMetadataTypeItem, value: boolean) => void;
+  toggleAll: (value: boolean | null) => void;
 }
 
 function getModifiedItemsText(items: AutomationControlMetadataTypeItem[]) {
@@ -22,10 +24,17 @@ function getModifiedItemsText(items: AutomationControlMetadataTypeItem[]) {
   }
 }
 
-export const AutomationControlTabContent: FunctionComponent<AutomationControlTabContentProps> = ({ item, onChange }) => {
+export const AutomationControlTabContent: FunctionComponent<AutomationControlTabContentProps> = ({ item, onChange, toggleAll }) => {
   return (
-    <div>
-      <h3 className="slds-text-heading_medium">{item.sobjectLabel}</h3>
+    <AutoFullHeightContainer bottomBuffer={30}>
+      <Grid align="spread">
+        <GridCol>
+          <h3 className="slds-text-heading_medium">{item.sobjectLabel}</h3>
+        </GridCol>
+        <GridCol>
+          <AutomationControlTabContentButtons item={item} toggleAll={toggleAll} />
+        </GridCol>
+      </Grid>
       <Accordion
         initOpenIds={['ValidationRule', 'WorkflowRule', 'Flow', 'ApexTrigger', 'AssignmentRule']}
         showExpandCollapseAll
@@ -50,13 +59,11 @@ export const AutomationControlTabContent: FunctionComponent<AutomationControlTab
             id: 'Flow',
             title: `Process Builders`,
             content: (
-              <span>
-                this is proving VERY challenging... we might want to scrap this for v1. It is easy to set an active version, but it is very
-                difficult to figure out the sobject that process builder belongs to. requires obtaining all full metadata for every process
-                builder in the system and then parsing the response to figure this out. And we still have to deal with versions here, so
-                more data to keep track of for reactivation. If we could show all the process builders in the org instead of by object, then
-                it would not be a big deal.
-              </span>
+              <AutomationControlContentFlow
+                items={item.automationItems.Flow.items}
+                loading={item.automationItems.Flow.loading}
+                onChange={onChange}
+              />
             ),
           },
 
@@ -73,6 +80,8 @@ export const AutomationControlTabContent: FunctionComponent<AutomationControlTab
         ]}
         allowMultiple={true}
       ></Accordion>
-    </div>
+    </AutoFullHeightContainer>
   );
 };
+
+export default AutomationControlTabContent;
