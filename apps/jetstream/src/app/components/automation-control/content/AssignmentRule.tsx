@@ -76,9 +76,11 @@ export const AutomationControlContentAssignmentRule: FunctionComponent<Automatio
             <td>
               <Grid vertical>
                 <GridCol>
-                  <div className="slds-truncate" title={item.metadata.LastModifiedBy.Name}>
-                    {item.metadata.LastModifiedBy.Name}
-                  </div>
+                  {item.metadata.LastModifiedBy && (
+                    <div className="slds-truncate" title={item.metadata.LastModifiedBy.Name}>
+                      {item.metadata.LastModifiedBy.Name}
+                    </div>
+                  )}
                 </GridCol>
                 <GridCol>
                   <div className="slds-truncate" title={item.metadata.LastModifiedDate}>

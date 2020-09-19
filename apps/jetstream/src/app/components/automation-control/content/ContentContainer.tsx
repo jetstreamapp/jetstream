@@ -1,7 +1,9 @@
 /** @jsx jsx */
 import { css, jsx } from '@emotion/core';
 import { Grid, Icon, Spinner } from '@jetstream/ui';
-import { Fragment, FunctionComponent } from 'react';
+import { FunctionComponent } from 'react';
+import { ErrorBoundary } from 'react-error-boundary';
+import ErrorBoundaryFallback from '../../core/ErrorBoundaryFallback';
 import { AutomationControlMetadataType, AutomationControlMetadataTypeItem } from '../automation-control-types';
 
 interface AutomationControlContentContainerProps {
@@ -20,7 +22,7 @@ export const AutomationControlContentContainer: FunctionComponent<AutomationCont
   const showNoItems = !isLoading && !hasError && !hasItems;
   const showItems = !isLoading && !hasError && hasItems;
   return (
-    <Fragment>
+    <ErrorBoundary FallbackComponent={ErrorBoundaryFallback}>
       {showNoItems && 'No items to display'}
       {isLoading && (
         <span
@@ -47,7 +49,7 @@ export const AutomationControlContentContainer: FunctionComponent<AutomationCont
         </Grid>
       )}
       {showItems && children}
-    </Fragment>
+    </ErrorBoundary>
   );
 };
 

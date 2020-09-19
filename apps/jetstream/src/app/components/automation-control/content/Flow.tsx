@@ -115,9 +115,11 @@ export const AutomationControlContentFlow: FunctionComponent<AutomationControlCo
               <td>
                 <Grid vertical>
                   <GridCol>
-                    <div className="slds-truncate" title={item.metadata.LastModifiedBy.Name}>
-                      {item.metadata.LastModifiedBy.Name}
-                    </div>
+                    {item.metadata.LastModifiedBy && (
+                      <div className="slds-truncate" title={item.metadata.LastModifiedBy.Name}>
+                        {item.metadata.LastModifiedBy.Name}
+                      </div>
+                    )}
                   </GridCol>
                   <GridCol>
                     <div className="slds-truncate" title={item.metadata.LastModifiedDate}>
@@ -172,9 +174,11 @@ export const AutomationControlContentFlow: FunctionComponent<AutomationControlCo
                   <td>
                     <Grid vertical>
                       <GridCol>
-                        <div className="slds-truncate" title={childItem.metadata.LastModifiedBy.Name}>
-                          {childItem.metadata.LastModifiedBy.Name}
-                        </div>
+                        {childItem.metadata.LastModifiedBy && (
+                          <div className="slds-truncate" title={childItem.metadata.LastModifiedBy.Name}>
+                            {childItem.metadata.LastModifiedBy.Name}
+                          </div>
+                        )}
                       </GridCol>
                       <GridCol>
                         <div className="slds-truncate" title={childItem.metadata.LastModifiedDate}>
