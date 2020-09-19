@@ -2,6 +2,8 @@
 import React, { Fragment } from 'react';
 import Tabs from './Tabs';
 import Icon from '../widgets/Icon';
+import Grid from '../grid/Grid';
+import GridCol from '../grid/GridCol';
 
 export default {
   component: Tabs,
@@ -90,9 +92,10 @@ export const vertical = () => (
         title: (
           <Fragment>
             <span className="slds-vertical-tabs__left-icon"></span>
-            <span className="slds-truncate" title="Tab Four">
-              Tab 4 content
-            </span>
+            <Grid vertical>
+              <GridCol>Tab 4 content</GridCol>
+              <GridCol className="slds-text-body_small slds-text-color_weak">Tab 4 subheading</GridCol>
+            </Grid>
             <span className="slds-vertical-tabs__right-icon">
               <Icon
                 type="standard"

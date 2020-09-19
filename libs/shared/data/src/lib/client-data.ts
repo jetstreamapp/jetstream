@@ -56,6 +56,15 @@ export async function sobjectOperation<T = any>(
   return handleRequest(request.post(`/api/record/${operation}/${sobject}`).query(query).send(body), org);
 }
 
+// TODO:
+// export async function listMetadata<T = any>(org: SalesforceOrgUi, query: string, isTooling = false): Promise<API.QueryResults<T>> {
+//   return handleRequest(request.post(`/api/query`).query({ isTooling }).send({ query }), org);
+// }
+
+export async function readMetadata<T = any>(org: SalesforceOrgUi, type: string, fullNames: string[]): Promise<T[]> {
+  return handleRequest(request.post(`/api/metadata/read/${type}`).send({ fullNames }), org);
+}
+
 export async function genericRequest<T = any>(org: SalesforceOrgUi, method: HttpMethod, url: string, body?: any): Promise<T> {
   return handleRequest(request.post(`/api/request`).send({ method, url, body }), org);
 }

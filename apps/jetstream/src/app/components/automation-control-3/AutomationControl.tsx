@@ -1,13 +1,11 @@
 /** @jsx jsx */
-import { css, jsx } from '@emotion/core';
+import { jsx } from '@emotion/core';
 import { logger } from '@jetstream/shared/client-logger';
-import { describeGlobal, query } from '@jetstream/shared/data';
+import { query } from '@jetstream/shared/data';
 import { orderObjectsBy } from '@jetstream/shared/utils';
 import { MapOf, SalesforceOrgUi, UiTabSection } from '@jetstream/types';
 import {
-  Accordion,
   AutoFullHeightContainer,
-  Checkbox,
   Icon,
   Page,
   PageHeader,
@@ -18,163 +16,26 @@ import {
   Tabs,
 } from '@jetstream/ui';
 import classNames from 'classnames';
-import { DescribeGlobalSObjectResult } from 'jsforce';
-import { Fragment, FunctionComponent, useEffect, useMemo, useState } from 'react';
+import { FunctionComponent, useEffect, useState } from 'react';
 import { useRecoilState, useRecoilValue } from 'recoil';
+import { composeQuery, getField } from 'soql-parser-js';
 import { selectedOrgState } from '../../app-state';
 import * as fromAutomationCtlState from './automation-control.state';
+import { getWorkflowRulesMetadata } from './automation-utils';
+import { AutomationControlTabContent } from './AutomationControlContent';
+import { AutomationControlTabTitle } from './AutomationControlTitle';
 import {
+  AutomationControlMetadataTypeItem,
+  AutomationControlParentSobject,
+  AutomationMetadataType,
+  ToolingWorkflowRuleRecordWithMetadata,
   ToolingApexTriggerRecord,
   ToolingAssignmentRuleRecord,
   ToolingEntityDefinitionRecord,
   ToolingValidationRuleRecord,
 } from './temp-types';
-import { composeQuery, getField } from 'soql-parser-js';
+
 const HEIGHT_BUFFER = 170;
-const SUB_ROW_PLACEHOLDER = 'SUB_ROW_PLACEHOLDER';
-
-interface AutomationControlParentSobject {
-  key: string;
-  entityDefinitionId: string;
-  entityDefinitionRecord: ToolingEntityDefinitionRecord;
-  sobjectName: string;
-  sobjectLabel: string;
-  loading: boolean;
-  hasLoaded: boolean;
-  inProgress: boolean;
-  error: boolean;
-  automationItems: {
-    ValidationRule: AutomationControlMetadataType;
-    WorkflowRule: AutomationControlMetadataType;
-    Flow: AutomationControlMetadataType;
-    ApexTrigger: AutomationControlMetadataType;
-    AssignmentRule: AutomationControlMetadataType;
-  };
-}
-
-interface AutomationControlMetadataType<T = unknown> {
-  metadataType: string;
-  loading: boolean;
-  hasLoaded: boolean;
-  items: AutomationControlMetadataTypeItem<T>[];
-}
-
-interface AutomationControlMetadataTypeItem<T = unknown> {
-  fullName: string;
-  label: string;
-  description: string;
-  isDirty: boolean;
-  initialValue: boolean;
-  currentValue: boolean;
-  metadata: T;
-}
-
-interface AutomationControlTabTitleProps {
-  item: AutomationControlParentSobject;
-  isActive: boolean; // TODO: do I need this?
-}
-export const AutomationControlTabTitle: FunctionComponent<AutomationControlTabTitleProps> = ({ item, isActive }) => {
-  return (
-    <Fragment>
-      <span className="slds-vertical-tabs__left-icon"></span>
-      <span className="slds-truncate" title={item.sobjectLabel}>
-        {item.sobjectLabel}
-      </span>
-      <span className="slds-vertical-tabs__right-icon">
-        {/* TODO: loading / status / etc.. */}
-        {/* <Icon
-        type="standard"
-        icon="opportunity"
-        containerClassname="lds-icon_container slds-icon-standard-opportunity"
-        className="slds-icon slds-icon_small"
-      /> */}
-      </span>
-    </Fragment>
-  );
-};
-
-interface AutomationControlTabContentProps {
-  item: AutomationControlParentSobject;
-  isActive: boolean; // TODO: do I need this?
-}
-export const AutomationControlTabContent: FunctionComponent<AutomationControlTabContentProps> = ({ item, isActive }) => {
-  return (
-    <div>
-      <h3 className="slds-text-heading_medium">{item.sobjectLabel}</h3>
-      <Accordion
-        initOpenIds={[]}
-        sections={[
-          {
-            id: 'ValidationRule',
-            title: 'Validation Rules',
-            content: (
-              <span>
-                {item.automationItems.ValidationRule.hasLoaded &&
-                  (item.automationItems.ValidationRule.items.length > 0 ? (
-                    <ul>
-                      {item.automationItems.ValidationRule.items.map((item) => (
-                        <li key={item.fullName} className="slds-m-left_small">
-                          {item.label} {item.description}
-                          <Checkbox id={`ValidationRule-${item.fullName}`} label="Is Active" readOnly checked={item.currentValue} />
-                        </li>
-                      ))}
-                    </ul>
-                  ) : (
-                    'No items to display'
-                  ))}
-              </span>
-            ),
-          },
-          { id: 'WorkflowRule', title: 'Workflow Rules', content: <span>TODO:</span> },
-          { id: 'Flow', title: 'Process Builders', content: <span>TODO:</span> },
-          {
-            id: 'ApexTrigger',
-            title: 'Apex Triggers',
-            content: (
-              <span>
-                {item.automationItems.ApexTrigger.hasLoaded &&
-                  (item.automationItems.ApexTrigger.items.length > 0 ? (
-                    <ul>
-                      {item.automationItems.ApexTrigger.items.map((item) => (
-                        <li key={item.fullName} className="slds-m-left_small">
-                          {item.label} {item.description}
-                          <Checkbox id={`ApexTrigger-${item.fullName}`} label="Is Active" readOnly checked={item.currentValue} />
-                        </li>
-                      ))}
-                    </ul>
-                  ) : (
-                    'No items to display'
-                  ))}
-              </span>
-            ),
-          },
-          {
-            id: 'AssignmentRule',
-            title: 'Assignment Rules',
-            content: (
-              <span>
-                {item.automationItems.AssignmentRule.hasLoaded &&
-                  (item.automationItems.AssignmentRule.items.length > 0 ? (
-                    <ul>
-                      {item.automationItems.AssignmentRule.items.map((item) => (
-                        <li key={item.fullName} className="slds-m-left_small">
-                          {item.label} {item.description}
-                          <Checkbox id={`AssignmentRule-${item.fullName}`} label="Is Active" readOnly checked={item.currentValue} />
-                        </li>
-                      ))}
-                    </ul>
-                  ) : (
-                    'No items to display'
-                  ))}
-              </span>
-            ),
-          },
-        ]}
-        allowMultiple={true}
-      ></Accordion>
-    </div>
-  );
-};
 
 // eslint-disable-next-line @typescript-eslint/no-empty-interface
 export interface AutomationControl3Props {}
@@ -199,12 +60,12 @@ export const AutomationControl3: FunctionComponent<AutomationControl3Props> = ()
         try {
           const EntityDefinitionSoql =
             ` SELECT Id, ` +
-            ` (SELECT Id, Name, ApiVersion, EntityDefinitionId, Status, CreatedDate, CreatedBy.Name, LastModifiedDate, LastModifiedBy.Name FROM ApexTriggers),` +
-            ` (SELECT Id, EntityDefinitionId, Name, Active, CreatedDate, CreatedBy.Name, LastModifiedDate, LastModifiedBy.Name FROM AssignmentRules),` +
-            ` (SELECT Id, EntityDefinitionId, ValidationName, Active, Description, ErrorMessage, CreatedDate, CreatedBy.Name, LastModifiedDate, LastModifiedBy.Name FROM ValidationRules),` +
+            ` (SELECT Id, Name, ApiVersion, EntityDefinitionId, Status, FORMAT(CreatedDate), CreatedBy.Name, FORMAT(LastModifiedDate), LastModifiedBy.Name FROM ApexTriggers),` +
+            ` (SELECT Id, EntityDefinitionId, Name, Active, FORMAT(CreatedDate), CreatedBy.Name, FORMAT(LastModifiedDate), LastModifiedBy.Name FROM AssignmentRules),` +
+            ` (SELECT Id, EntityDefinitionId, ValidationName, Active, Description, ErrorMessage, FORMAT(CreatedDate), CreatedBy.Name, FORMAT(LastModifiedDate), LastModifiedBy.Name FROM ValidationRules),` +
             ` DeploymentStatus, Description,` +
             ` DetailUrl, DeveloperName, DurableId, EditDefinitionUrl, EditUrl,` +
-            ` KeyPrefix, Label, LastModifiedDate, MasterLabel, NamespacePrefix,` +
+            ` KeyPrefix, Label, FORMAT(LastModifiedDate), MasterLabel, NamespacePrefix,` +
             ` NewUrl, PluralLabel, PublisherId, QualifiedApiName, LastModifiedById` +
             ` FROM EntityDefinition` +
             ` WHERE IsCustomSetting = false` +
@@ -229,9 +90,9 @@ export const AutomationControl3: FunctionComponent<AutomationControl3Props> = ()
   useEffect(() => {
     if (sobjects) {
       // TODO: prepare some sort of data
-      const tabIdsTemp: string[] = [];
-      const tabsByIdTemp = sobjects.reduce((output: MapOf<AutomationControlParentSobject>, sobject) => {
-        tabIdsTemp.push(sobject.QualifiedApiName);
+      const itemIdsTemp: string[] = [];
+      const itemsByIdTemp = sobjects.reduce((output: MapOf<AutomationControlParentSobject>, sobject) => {
+        itemIdsTemp.push(sobject.QualifiedApiName);
         output[sobject.QualifiedApiName] = {
           key: sobject.QualifiedApiName,
           entityDefinitionId: sobject.Id,
@@ -277,8 +138,8 @@ export const AutomationControl3: FunctionComponent<AutomationControl3Props> = ()
         };
         return output;
       }, {});
-      setItemIds(tabIdsTemp);
-      setItemsById(tabsByIdTemp);
+      setItemIds(itemIdsTemp);
+      setItemsById(itemsByIdTemp);
     }
   }, [sobjects]);
 
@@ -291,22 +152,74 @@ export const AutomationControl3: FunctionComponent<AutomationControl3Props> = ()
             id: item.key,
             title: <AutomationControlTabTitle item={item} isActive={item.key === activeItemId} />,
             titleText: item.sobjectLabel,
-            content: <AutomationControlTabContent item={item} isActive={item.key === activeItemId} />,
+            content: (
+              <AutomationControlTabContent
+                item={item}
+                onChange={(type, childItem, value) => handleItemChange(item.key, type, childItem, value)}
+              />
+            ),
           })
         )
     );
   }, [itemIds, itemsById]);
 
-  function filterSobjectFn(sobject: DescribeGlobalSObjectResult): boolean {
-    return sobject.queryable && !sobject.name.endsWith('CleanInfo') && !sobject.name.endsWith('share') && !sobject.name.endsWith('history');
+  function handleItemChange(parentItemKey: string, type: AutomationMetadataType, item: AutomationControlMetadataTypeItem, value: boolean) {
+    const itemsByIdTemp = { ...itemsById, [parentItemKey]: { ...itemsById[parentItemKey] } };
+    // This seems complicated because typescript is being stupid because of our generic types :sob:
+    // This just changed to checkbox for currentItem = value
+    itemsByIdTemp[parentItemKey].automationItems[type as any] = {
+      ...itemsByIdTemp[parentItemKey].automationItems[type],
+      items: (itemsByIdTemp[parentItemKey].automationItems[type].items as AutomationControlMetadataTypeItem<any>[]).map((currItem) =>
+        currItem.fullName === item.fullName ? { ...item, currentValue: value } : currItem
+      ),
+    };
+    setItemsById(itemsByIdTemp);
   }
 
   async function handleActiveTabIdChange(tabId: string) {
-    const itemsByIdTemp = { ...itemsById };
+    let itemsByIdTemp = { ...itemsById };
     itemsById[tabId] = { ...itemsById[tabId] };
-    const currTab = itemsById[tabId];
+    let currTab = itemsById[tabId];
 
     // TODO: get all items that have not yet been loaded (if any)
+
+    setActiveItemId(tabId);
+
+    if (!currTab.hasLoaded && !currTab.loading) {
+      // Indicate that we are loading
+      currTab.loading = true;
+      const needToLoad = {
+        WorkflowRule: false,
+      };
+
+      if (!currTab.automationItems.WorkflowRule.hasLoaded && !currTab.automationItems.WorkflowRule.loading) {
+        currTab.automationItems.WorkflowRule = { ...currTab.automationItems.WorkflowRule, loading: true };
+        needToLoad.WorkflowRule = true;
+      }
+      // TODO: other types
+
+      // set loading indicator
+      setItemsById(itemsByIdTemp);
+
+      // re-clone items
+      itemsByIdTemp = { ...itemsById };
+      itemsById[tabId] = { ...itemsById[tabId] };
+      currTab = itemsById[tabId];
+
+      if (needToLoad.WorkflowRule) {
+        const workflowRules = await getWorkflowRulesMetadata(selectedOrg, currTab.sobjectName);
+        // TODO: convert workflowRules into correct structure
+        currTab.automationItems.WorkflowRule = {
+          ...currTab.automationItems.WorkflowRule,
+          loading: false,
+          hasLoaded: true,
+          items: convertWorkflowRuleRecords(currTab.sobjectName, workflowRules),
+        };
+      }
+
+      setItemsById(itemsByIdTemp);
+    }
+
     // once all are loaded, set tab as loaded
     // set all items as loading, then query, then update (may need to re-clone :sob:)
     // if (!currTab.loading && !currTab.hasLoaded) {
@@ -357,54 +270,69 @@ export const AutomationControl3: FunctionComponent<AutomationControl3Props> = ()
     //         description: record.Description,
     //         currentValue: record.Active,
     //         initialValue: record.Active,
-    //         isDirty: false,
     //         metadata: record,
     //       })
     //     ),
     //   };
     // }
-
-    setActiveItemId(tabId);
-    setItemsById(itemsByIdTemp);
   }
 
-  function convertApexTriggerRecords(records: ToolingApexTriggerRecord[]): AutomationControlMetadataTypeItem[] {
+  function convertApexTriggerRecords(records: ToolingApexTriggerRecord[]): AutomationControlMetadataTypeItem<ToolingApexTriggerRecord>[] {
     return records.map(
-      (record): AutomationControlMetadataTypeItem => ({
+      (record): AutomationControlMetadataTypeItem<ToolingApexTriggerRecord> => ({
         fullName: encodeURIComponent(record.Name),
         label: record.Name,
         description: '',
         currentValue: record.Status === 'Active',
         initialValue: record.Status === 'Active',
-        isDirty: false,
         metadata: record,
       })
     );
   }
 
-  function convertAssignmentRuleRecords(sobjectName: string, records: ToolingAssignmentRuleRecord[]): AutomationControlMetadataTypeItem[] {
+  function convertAssignmentRuleRecords(
+    sobjectName: string,
+    records: ToolingAssignmentRuleRecord[]
+  ): AutomationControlMetadataTypeItem<ToolingAssignmentRuleRecord>[] {
     return records.map(
-      (record): AutomationControlMetadataTypeItem => ({
+      (record): AutomationControlMetadataTypeItem<ToolingAssignmentRuleRecord> => ({
         fullName: encodeURIComponent(`${sobjectName}.${record.Name}`),
         label: record.Name,
         description: '',
         currentValue: record.Active,
         initialValue: record.Active,
-        isDirty: false,
         metadata: record,
       })
     );
   }
 
-  function convertValidationRuleRecords(sobjectName: string, records: ToolingValidationRuleRecord[]): AutomationControlMetadataTypeItem[] {
+  function convertValidationRuleRecords(
+    sobjectName: string,
+    records: ToolingValidationRuleRecord[]
+  ): AutomationControlMetadataTypeItem<ToolingValidationRuleRecord>[] {
     return records.map(
-      (record): AutomationControlMetadataTypeItem => ({
+      (record): AutomationControlMetadataTypeItem<ToolingValidationRuleRecord> => ({
         fullName: encodeURIComponent(`${sobjectName}.${record.ValidationName}`),
         label: record.ValidationName,
         description: record.Description,
         currentValue: record.Active,
         initialValue: record.Active,
-        isDirty: false,
+        metadata: record,
+      })
+    );
+  }
+
+  function convertWorkflowRuleRecords(
+    sobjectName: string,
+    records: ToolingWorkflowRuleRecordWithMetadata[]
+  ): AutomationControlMetadataTypeItem<ToolingWorkflowRuleRecordWithMetadata>[] {
+    return records.map(
+      (record): AutomationControlMetadataTypeItem<ToolingWorkflowRuleRecordWithMetadata> => ({
+        fullName: record.metadata.fullName,
+        label: record.tooling.Name,
+        description: record.metadata.description,
+        currentValue: record.metadata.active,
+        initialValue: record.metadata.active,
         metadata: record,
       })
     );

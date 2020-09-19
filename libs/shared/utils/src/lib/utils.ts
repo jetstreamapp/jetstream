@@ -158,3 +158,12 @@ export function queryResultColumnToTypeLabel(column: QueryResultsColumn, fallbac
   }
   return column.apexType || fallback;
 }
+
+export function ensureBoolean(value: string | boolean | null | undefined) {
+  if (isBoolean(value)) {
+    return value;
+  } else if (isString(value)) {
+    return value.toLowerCase().startsWith('t');
+  }
+  return !!value;
+}
