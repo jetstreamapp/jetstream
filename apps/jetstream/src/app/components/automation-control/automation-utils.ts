@@ -246,13 +246,13 @@ export function getEntityDefinitionQuery(): string {
   const soql = composeQuery({
     fields: [
       getField(
-        '(SELECT Id, Name, ApiVersion, EntityDefinitionId, Status, FORMAT(CreatedDate), CreatedBy.Name, FORMAT(LastModifiedDate), LastModifiedBy.Name FROM ApexTriggers)'
+        `(SELECT Id, Name, ApiVersion, EntityDefinitionId, Status, FORMAT(CreatedDate), CreatedBy.Name, FORMAT(LastModifiedDate), LastModifiedBy.Name FROM ApexTriggers WHERE ManageableState = 'unmanaged' ORDER BY NAme)`
       ),
       getField(
-        '(SELECT Id, EntityDefinitionId, Name, Active, FORMAT(CreatedDate), CreatedBy.Name, FORMAT(LastModifiedDate), LastModifiedBy.Name FROM AssignmentRules)'
+        `(SELECT Id, EntityDefinitionId, Name, Active, FORMAT(CreatedDate), CreatedBy.Name, FORMAT(LastModifiedDate), LastModifiedBy.Name FROM AssignmentRules ORDER BY Name)`
       ),
       getField(
-        '(SELECT Id, EntityDefinitionId, ValidationName, Active, Description, ErrorMessage, FORMAT(CreatedDate), CreatedBy.Name, FORMAT(LastModifiedDate), LastModifiedBy.Name FROM ValidationRules)'
+        `(SELECT Id, EntityDefinitionId, ValidationName, Active, Description, ErrorMessage, FORMAT(CreatedDate), CreatedBy.Name, FORMAT(LastModifiedDate), LastModifiedBy.Name FROM ValidationRules WHERE ManageableState = 'unmanaged' ORDER BY ValidationName)`
       ),
       getField('DeploymentStatus'),
       getField('Description'),
@@ -265,7 +265,6 @@ export function getEntityDefinitionQuery(): string {
       getField('Label'),
       getField('FORMAT(LastModifiedDate)'),
       getField('MasterLabel'),
-      getField('NamespacePrefix'),
       getField('NewUrl'),
       getField('PluralLabel'),
       getField('PublisherId'),
@@ -345,6 +344,15 @@ export function getWorkflowRuleQuery(sobject: string) {
         value: sobject,
         literalType: 'STRING',
       },
+      operator: 'AND',
+      right: {
+        left: {
+          field: 'ManageableState',
+          operator: '=',
+          value: 'unmanaged',
+          literalType: 'STRING',
+        },
+      },
     },
     orderBy: {
       field: 'Name',
@@ -374,15 +382,6 @@ export function getFlowDependencyQuery(durableId: string) {
         value: 'Flow',
         literalType: 'STRING',
       },
-      operator: 'AND',
-      right: {
-        left: {
-          field: 'RefMetadataComponentId',
-          operator: '=',
-          value: durableId,
-          literalType: 'STRING',
-        },
-      },
     },
   });
   logger.info('getFlowDependencyQuery()', { soql });
@@ -396,7 +395,6 @@ export function getFlowsQuery(flowVersionIds: string[]) {
       getField('Description'),
       getField('MasterLabel'),
       getField('DefinitionId'),
-      getField('ManageableState'),
       getField('ProcessType'),
       getField('Status'),
       getField('VersionNumber'),
@@ -412,8 +410,6 @@ export function getFlowsQuery(flowVersionIds: string[]) {
       getField('Definition.ActiveVersion.VersionNumber'),
       getField('Definition.LatestVersionId'),
       getField('Definition.LatestVersion.VersionNumber'),
-      getField('Definition.ManageableState'),
-      getField('Definition.NamespacePrefix'),
       getField('FORMAT(Definition.LastModifiedDate)'),
       getField('Definition.LastModifiedBy.Name'),
       getField('FORMAT(Definition.CreatedDate)'),
@@ -434,6 +430,15 @@ export function getFlowsQuery(flowVersionIds: string[]) {
           operator: 'IN',
           value: flowVersionIds,
           literalType: 'STRING',
+        },
+        operator: 'AND',
+        right: {
+          left: {
+            field: 'ManageableState',
+            operator: '=',
+            value: 'unmanaged',
+            literalType: 'STRING',
+          },
         },
       },
     },
