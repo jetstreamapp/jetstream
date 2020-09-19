@@ -15,8 +15,8 @@ export const AutomationControlContentContainer: FunctionComponent<AutomationCont
   children,
 }) => {
   const isLoading = parentItem.loading && !parentItem.errorMessage;
-  const hasError = parentItem.errorMessage;
-  const hasItems = items && items.length;
+  const hasError = !!parentItem.errorMessage;
+  const hasItems = items && !!items.length;
   const showNoItems = !isLoading && !hasError && !hasItems;
   const showItems = !isLoading && !hasError && hasItems;
   return (
