@@ -15,67 +15,9 @@ import {
   ToolingValidationRuleRecord,
   ToolingAssignmentRuleRecord,
   ToolingApexTriggerRecord,
-  AutomationControlParentSobject,
-  ToolingEntityDefinitionRecord,
 } from './automation-control-types';
 import { ensureBoolean } from '@jetstream/shared/utils';
 import { logger } from '@jetstream/shared/client-logger';
-
-export function initItemsById(sobjects: ToolingEntityDefinitionRecord[]): [string[], MapOf<AutomationControlParentSobject>] {
-  const itemIdsTemp: string[] = [];
-  const itemsByIdTemp = sobjects.reduce((output: MapOf<AutomationControlParentSobject>, sobject) => {
-    itemIdsTemp.push(sobject.QualifiedApiName);
-    output[sobject.QualifiedApiName] = {
-      key: sobject.QualifiedApiName,
-      entityDefinitionId: sobject.Id,
-      entityDefinitionRecord: sobject,
-      sobjectName: sobject.QualifiedApiName,
-      sobjectLabel: sobject.MasterLabel,
-      loading: false,
-      hasLoaded: false,
-      inProgress: false,
-      error: null,
-      automationItems: {
-        ValidationRule: {
-          metadataType: 'ValidationRule',
-          loading: false,
-          hasLoaded: true,
-          items: sobject.ValidationRules
-            ? convertValidationRuleRecordsToAutomationControlItem(sobject.QualifiedApiName, sobject.ValidationRules.records)
-            : [],
-        },
-        WorkflowRule: {
-          metadataType: 'WorkflowRule',
-          loading: false,
-          hasLoaded: false,
-          items: [],
-        },
-        Flow: {
-          metadataType: 'Flow',
-          loading: false,
-          hasLoaded: false,
-          items: [],
-        },
-        ApexTrigger: {
-          metadataType: 'ApexTrigger',
-          loading: false,
-          hasLoaded: true,
-          items: sobject.ApexTriggers ? convertApexTriggerRecordsToAutomationControlItem(sobject.ApexTriggers.records) : [],
-        },
-        AssignmentRule: {
-          metadataType: 'AssignmentRule',
-          loading: false,
-          hasLoaded: true,
-          items: sobject.AssignmentRules
-            ? convertAssignmentRuleRecordsToAutomationControlItem(sobject.QualifiedApiName, sobject.AssignmentRules.records)
-            : [],
-        },
-      },
-    };
-    return output;
-  }, {});
-  return [itemIdsTemp, itemsByIdTemp];
-}
 
 export function convertApexTriggerRecordsToAutomationControlItem(
   records: ToolingApexTriggerRecord[]

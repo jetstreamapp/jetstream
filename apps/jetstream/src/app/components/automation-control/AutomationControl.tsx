@@ -3,7 +3,7 @@ import { jsx } from '@emotion/core';
 import { logger } from '@jetstream/shared/client-logger';
 import { query } from '@jetstream/shared/data';
 import { orderObjectsBy } from '@jetstream/shared/utils';
-import { MapOf, SalesforceOrgUi, UiTabSection } from '@jetstream/types';
+import { SalesforceOrgUi, UiTabSection } from '@jetstream/types';
 import {
   AutoFullHeightContainer,
   Icon,
@@ -16,48 +16,50 @@ import {
   Tabs,
 } from '@jetstream/ui';
 import { FunctionComponent, useEffect, useState } from 'react';
-import { useRecoilState, useRecoilValue } from 'recoil';
+import { useRecoilState, useRecoilValue, useResetRecoilState } from 'recoil';
 import { selectedOrgState } from '../../app-state';
 import {
   AutomationControlMetadataType,
   AutomationControlMetadataTypeItem,
-  AutomationControlParentSobject,
   AutomationMetadataType,
   ToolingEntityDefinitionRecord,
   ToolingFlowDefinitionWithVersions,
-  ToolingFlowRecord,
+  ToolingWorkflowRuleRecordWithMetadata,
 } from './automation-control-types';
 import * as fromAutomationCtlState from './automation-control.state';
 import {
-  convertApexTriggerRecordsToAutomationControlItem,
-  convertAssignmentRuleRecordsToAutomationControlItem,
   convertFlowRecordsToAutomationControlItem,
-  convertValidationRuleRecordsToAutomationControlItem,
   convertWorkflowRuleRecordsToAutomationControlItem,
   getEntityDefinitionQuery,
   getProcessBuilders,
   getWorkflowRulesMetadata,
+  initItemsById,
 } from './automation-utils';
-import { AutomationControlTabContent } from './content/Content';
 import { AutomationControlTabTitle } from './AutomationControlTitle';
+import { AutomationControlTabContent } from './content/Content';
 
 const HEIGHT_BUFFER = 170;
 
 // eslint-disable-next-line @typescript-eslint/no-empty-interface
-export interface AutomationControl3Props {}
+export interface AutomationControlProps {}
 
-export const AutomationControl3: FunctionComponent<AutomationControl3Props> = () => {
+export const AutomationControl: FunctionComponent<AutomationControlProps> = () => {
   const selectedOrg = useRecoilValue<SalesforceOrgUi>(selectedOrgState);
-  const [priorSelectedOrg, setPriorSelectedOrg] = useState<string>(null);
-  // TODO: reset when org changes
+  const [priorSelectedOrg, setPriorSelectedOrg] = useRecoilState(fromAutomationCtlState.priorSelectedOrg);
   const [sobjects, setSobjects] = useRecoilState(fromAutomationCtlState.sObjectsState);
   const [loading, setLoading] = useState<boolean>(false);
   const [errorMessage, setErrorMessage] = useState<string>(null);
 
-  const [itemIds, setItemIds] = useState<string[]>([]);
-  const [itemsById, setItemsById] = useState<MapOf<AutomationControlParentSobject>>({});
-  const [activeItemId, setActiveItemId] = useState<string>(null);
-  const [tabs, setTabs] = useState<UiTabSection[]>([]);
+  const [itemIds, setItemIds] = useRecoilState(fromAutomationCtlState.itemIds);
+  const [itemsById, setItemsById] = useRecoilState(fromAutomationCtlState.itemsById);
+  const [activeItemId, setActiveItemId] = useRecoilState(fromAutomationCtlState.activeItemId);
+  const [tabs, setTabs] = useRecoilState(fromAutomationCtlState.tabs);
+
+  const resetSObjectsState = useResetRecoilState(fromAutomationCtlState.sObjectsState);
+  const resetItemIds = useResetRecoilState(fromAutomationCtlState.itemIds);
+  const resetItemsById = useResetRecoilState(fromAutomationCtlState.itemsById);
+  const resetActiveItemId = useResetRecoilState(fromAutomationCtlState.activeItemId);
+  const resetTabs = useResetRecoilState(fromAutomationCtlState.tabs);
 
   useEffect(() => {
     if (selectedOrg && !loading && !errorMessage && !sobjects) {
@@ -77,63 +79,34 @@ export const AutomationControl3: FunctionComponent<AutomationControl3Props> = ()
   }, [selectedOrg, loading, errorMessage, sobjects, setSobjects]);
 
   useEffect(() => {
-    if (sobjects) {
-      const itemIdsTemp: string[] = [];
-      const itemsByIdTemp = sobjects.reduce((output: MapOf<AutomationControlParentSobject>, sobject) => {
-        itemIdsTemp.push(sobject.QualifiedApiName);
-        output[sobject.QualifiedApiName] = {
-          key: sobject.QualifiedApiName,
-          entityDefinitionId: sobject.Id,
-          entityDefinitionRecord: sobject,
-          sobjectName: sobject.QualifiedApiName,
-          sobjectLabel: sobject.MasterLabel,
-          loading: false,
-          hasLoaded: false,
-          inProgress: false,
-          error: null,
-          automationItems: {
-            ValidationRule: {
-              metadataType: 'ValidationRule',
-              loading: false,
-              hasLoaded: true,
-              items: sobject.ValidationRules
-                ? convertValidationRuleRecordsToAutomationControlItem(sobject.QualifiedApiName, sobject.ValidationRules.records)
-                : [],
-            },
-            WorkflowRule: {
-              metadataType: 'WorkflowRule',
-              loading: false,
-              hasLoaded: false,
-              items: [],
-            },
-            Flow: {
-              metadataType: 'Flow',
-              loading: false,
-              hasLoaded: false,
-              items: [],
-            },
-            ApexTrigger: {
-              metadataType: 'ApexTrigger',
-              loading: false,
-              hasLoaded: true,
-              items: sobject.ApexTriggers ? convertApexTriggerRecordsToAutomationControlItem(sobject.ApexTriggers.records) : [],
-            },
-            AssignmentRule: {
-              metadataType: 'AssignmentRule',
-              loading: false,
-              hasLoaded: true,
-              items: sobject.AssignmentRules
-                ? convertAssignmentRuleRecordsToAutomationControlItem(sobject.QualifiedApiName, sobject.AssignmentRules.records)
-                : [],
-            },
-          },
-        };
-        return output;
-      }, {});
+    if (selectedOrg && priorSelectedOrg && priorSelectedOrg !== selectedOrg.uniqueId) {
+      setPriorSelectedOrg(selectedOrg.uniqueId);
+      setLoading(false);
+      setErrorMessage(null);
+      resetSObjectsState();
+      resetItemIds();
+      resetItemsById();
+      resetActiveItemId();
+      resetTabs();
+    } else if (!priorSelectedOrg) {
+      setPriorSelectedOrg(selectedOrg.uniqueId);
+    } else if (!selectedOrg) {
+      resetSObjectsState();
+      resetItemIds();
+      resetItemsById();
+      resetActiveItemId();
+      resetTabs();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedOrg, priorSelectedOrg]);
+
+  useEffect(() => {
+    if (sobjects && itemIds.length === 0) {
+      const [itemIdsTemp, itemsByIdTemp] = initItemsById(sobjects);
       setItemIds(itemIdsTemp);
       setItemsById(itemsByIdTemp);
     }
-  }, [sobjects]);
+  }, [sobjects, itemIds]);
 
   useEffect(() => {
     setTabs(
@@ -156,6 +129,14 @@ export const AutomationControl3: FunctionComponent<AutomationControl3Props> = ()
     );
   }, [itemIds, itemsById]);
 
+  /**
+   * Called when user toggles a checkbox
+   * @param parentItemKey Sobject key (what tab to operate on)
+   * @param type  {AutomationMetadataType} Key in automationItems
+   * @param value Boolean - new value of item
+   * @param item Item that was checked, or parent item that was checked for process builders
+   * @param grandChildItem FlowVersion that was checked - only considered if Type === 'Flow'
+   */
   function handleItemChange(
     parentItemKey: string,
     type: AutomationMetadataType,
@@ -166,17 +147,21 @@ export const AutomationControl3: FunctionComponent<AutomationControl3Props> = ()
     const itemsByIdTemp = { ...itemsById, [parentItemKey]: { ...itemsById[parentItemKey] } };
     // This seems complicated because typescript is being stupid because of our generic types :sob:
     // This just changed to checkbox for currentItem = value
-    itemsByIdTemp[parentItemKey].automationItems[type as any] = { ...itemsByIdTemp[parentItemKey].automationItems[type] };
+
+    itemsByIdTemp[parentItemKey].automationItems = {
+      ...itemsByIdTemp[parentItemKey].automationItems,
+      [type]: { ...itemsByIdTemp[parentItemKey].automationItems[type] },
+    };
+
     if (type !== 'Flow') {
-      const currItem: AutomationControlMetadataType = itemsByIdTemp[parentItemKey].automationItems[type as any];
+      const currItem: AutomationControlMetadataType = itemsByIdTemp[parentItemKey].automationItems[type];
       currItem.items = currItem.items.map((childItem) =>
         childItem.fullName === item.fullName ? { ...item, currentValue: value } : childItem
       );
     } else {
       // For process builders, we need to set the parent item based on the child items
       // and only one items can be active at a time
-      const currItem: AutomationControlMetadataType<ToolingFlowDefinitionWithVersions, ToolingFlowRecord> =
-        itemsByIdTemp[parentItemKey].automationItems[type as any];
+      const currItem = itemsByIdTemp[parentItemKey].automationItems[type];
 
       currItem.items = currItem.items.map((childItem) => {
         // see if FlowDefinition matches the current childItem
@@ -211,21 +196,54 @@ export const AutomationControl3: FunctionComponent<AutomationControl3Props> = ()
       ...itemsById,
       [parentItemKey]: { ...itemsById[parentItemKey], automationItems: { ...itemsById[parentItemKey].automationItems } },
     };
-    Object.values(itemsByIdTemp[parentItemKey].automationItems).forEach((automationItem: AutomationControlMetadataType) => {
-      automationItem.items = automationItem.items.map((item) => {
-        if (value === null) {
-          return { ...item, currentValue: item.initialValue };
-        }
-        return { ...item, currentValue: !!value };
-      });
+    Object.keys(itemsByIdTemp[parentItemKey].automationItems).forEach((key) => {
+      if (key !== 'Flow') {
+        itemsByIdTemp[parentItemKey].automationItems[key] = {
+          ...itemsByIdTemp[parentItemKey].automationItems[key],
+          items: itemsByIdTemp[parentItemKey].automationItems[key].items.map((item) => {
+            if (value === null) {
+              return { ...item, currentValue: item.initialValue };
+            }
+            return { ...item, currentValue: !!value };
+          }),
+        };
+      } else {
+        itemsByIdTemp[parentItemKey].automationItems[key] = {
+          ...itemsByIdTemp[parentItemKey].automationItems[key],
+          items: itemsByIdTemp[parentItemKey].automationItems[key].items.map((item) => {
+            const returnItem = { ...item };
+            // reset parent and grandchildren to OG value
+            if (value === null) {
+              returnItem.currentValue = item.initialValue;
+              if (Array.isArray(returnItem.children)) {
+                returnItem.children = returnItem.children.map((grandChild) => ({ ...grandChild, currentValue: grandChild.initialValue }));
+              }
+            } else if (value) {
+              // If no item selected, then select most recent version (first item in list) - otherwise ignore
+              returnItem.currentValue = true;
+              returnItem.children = returnItem.children.map((grandChild, i) => ({ ...grandChild, currentValue: i === 0 }));
+            } else {
+              // If deselect all, then unselect parent and every child
+              returnItem.currentValue = false;
+              returnItem.children = returnItem.children.map((grandChild, i) => ({ ...grandChild, currentValue: false }));
+            }
+            return returnItem;
+          }),
+        };
+      }
     });
     setItemsById(itemsByIdTemp);
   }
 
-  async function handleActiveTabIdChange(tabId: string) {
-    const itemsByIdTemp = { ...itemsById };
+  /**
+   * When selected object changes, load all metadata if we have not already loaded it previously
+   *
+   * @param tabId
+   */
+  function handleActiveTabIdChange(tabId: string) {
+    let itemsByIdTemp = { ...itemsById };
     itemsByIdTemp[tabId] = { ...itemsById[tabId] };
-    const currTab = itemsById[tabId];
+    let currTab = itemsByIdTemp[tabId];
 
     setActiveItemId(tabId);
 
@@ -238,12 +256,12 @@ export const AutomationControl3: FunctionComponent<AutomationControl3Props> = ()
       };
 
       if (!currTab.automationItems.WorkflowRule.hasLoaded && !currTab.automationItems.WorkflowRule.loading) {
-        currTab.automationItems.WorkflowRule = { ...currTab.automationItems.WorkflowRule, loading: true };
+        currTab.automationItems = { ...currTab.automationItems, WorkflowRule: { ...currTab.automationItems.WorkflowRule, loading: true } };
         needToLoad.WorkflowRule = true;
       }
 
       if (!currTab.automationItems.Flow.hasLoaded && !currTab.automationItems.Flow.loading) {
-        currTab.automationItems.Flow = { ...currTab.automationItems.Flow, loading: true };
+        currTab.automationItems = { ...currTab.automationItems, Flow: { ...currTab.automationItems.Flow, loading: true } };
         needToLoad.Flow = true;
       }
 
@@ -252,46 +270,95 @@ export const AutomationControl3: FunctionComponent<AutomationControl3Props> = ()
 
       // Fetch and load metadata
       if (needToLoad.WorkflowRule) {
-        loadWorkflowRules(tabId);
+        loadWorkflowRules(currTab.sobjectName, currTab.automationItems.WorkflowRule)
+          .then((workflowRules) => {
+            itemsByIdTemp = { ...itemsByIdTemp };
+            itemsByIdTemp[tabId] = { ...itemsByIdTemp[tabId] };
+            currTab = itemsByIdTemp[tabId];
+
+            currTab.automationItems = {
+              ...currTab.automationItems,
+              WorkflowRule: workflowRules,
+            };
+            setItemsById(itemsByIdTemp);
+          })
+          .catch((err) => {
+            logger.error(err);
+            itemsByIdTemp = { ...itemsByIdTemp };
+            itemsByIdTemp[tabId] = { ...itemsByIdTemp[tabId] };
+            currTab = itemsByIdTemp[tabId];
+
+            currTab.automationItems = {
+              ...currTab.automationItems,
+              WorkflowRule: {
+                ...currTab.automationItems.WorkflowRule,
+                hasLoaded: true,
+                loading: false,
+                errorMessage: 'There was an error loading these items',
+              },
+            };
+            setItemsById(itemsByIdTemp);
+          });
       }
       if (needToLoad.Flow) {
-        loadProcessBuilders(tabId);
+        loadProcessBuilders(currTab.entityDefinitionRecord.DurableId, currTab.automationItems.Flow)
+          .then((flows) => {
+            itemsByIdTemp = { ...itemsByIdTemp };
+            itemsByIdTemp[tabId] = { ...itemsByIdTemp[tabId] };
+            currTab = itemsByIdTemp[tabId];
+
+            currTab.automationItems = {
+              ...currTab.automationItems,
+              Flow: flows,
+            };
+            setItemsById(itemsByIdTemp);
+          })
+          .catch((err) => {
+            logger.error(err);
+            itemsByIdTemp = { ...itemsByIdTemp };
+            itemsByIdTemp[tabId] = { ...itemsByIdTemp[tabId] };
+            currTab = itemsByIdTemp[tabId];
+
+            currTab.automationItems = {
+              ...currTab.automationItems,
+              Flow: {
+                ...currTab.automationItems.Flow,
+                hasLoaded: true,
+                loading: false,
+                errorMessage: 'There was an error loading these items. If the problem persists, submit a ticket for assistance.',
+              },
+            };
+            setItemsById(itemsByIdTemp);
+          });
       }
     }
   }
 
-  async function loadWorkflowRules(tabId: string) {
-    const itemsByIdTemp = { ...itemsById };
-    itemsByIdTemp[tabId] = { ...itemsById[tabId] };
-    const currTab = itemsById[tabId];
-
-    const workflowRules = await getWorkflowRulesMetadata(selectedOrg, currTab.sobjectName);
-
-    currTab.automationItems.WorkflowRule = {
-      ...currTab.automationItems.WorkflowRule,
+  async function loadWorkflowRules(
+    sobjectName: string,
+    currentWorkflowFlowRuleMeta: AutomationControlMetadataType<ToolingWorkflowRuleRecordWithMetadata>
+  ): Promise<AutomationControlMetadataType<ToolingWorkflowRuleRecordWithMetadata>> {
+    const workflowRules = await getWorkflowRulesMetadata(selectedOrg, sobjectName);
+    return {
+      ...currentWorkflowFlowRuleMeta,
       loading: false,
       hasLoaded: true,
       items: convertWorkflowRuleRecordsToAutomationControlItem(workflowRules),
     };
-
-    setItemsById(itemsByIdTemp);
   }
 
-  async function loadProcessBuilders(tabId: string) {
-    const itemsByIdTemp = { ...itemsById };
-    itemsByIdTemp[tabId] = { ...itemsById[tabId] };
-    const currTab = itemsById[tabId];
+  async function loadProcessBuilders(
+    durableId: string,
+    currentFlowMeta: AutomationControlMetadataType<ToolingFlowDefinitionWithVersions>
+  ): Promise<AutomationControlMetadataType<ToolingFlowDefinitionWithVersions>> {
+    const flows = await getProcessBuilders(selectedOrg, durableId);
 
-    const flows = await getProcessBuilders(selectedOrg, currTab.entityDefinitionRecord.DurableId);
-
-    currTab.automationItems.Flow = {
-      ...currTab.automationItems.WorkflowRule,
+    return {
+      ...currentFlowMeta,
       loading: false,
       hasLoaded: true,
       items: convertFlowRecordsToAutomationControlItem(flows),
     };
-
-    setItemsById(itemsByIdTemp);
   }
 
   return (
@@ -326,4 +393,4 @@ export const AutomationControl3: FunctionComponent<AutomationControl3Props> = ()
   );
 };
 
-export default AutomationControl3;
+export default AutomationControl;

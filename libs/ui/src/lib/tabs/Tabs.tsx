@@ -1,9 +1,8 @@
 /* eslint-disable jsx-a11y/anchor-is-valid */
-import { UiTabSection, HorizontalVertical } from '@jetstream/types';
+import { HorizontalVertical, UiTabSection } from '@jetstream/types';
 import classNames from 'classnames';
 import isNil from 'lodash/isNil';
 import React, { FunctionComponent, useEffect, useState } from 'react';
-import Icon from '../widgets/Icon';
 
 export interface TabsProps {
   position?: HorizontalVertical;
@@ -12,6 +11,7 @@ export interface TabsProps {
   className?: string; // slds-tabs_medium, slds-tabs_large, slds-tabs_card
   style?: React.CSSProperties;
   ulStyle?: React.CSSProperties;
+  emptyState?: React.ReactNode;
   onChange?: (activeId: string) => void;
 }
 
@@ -22,6 +22,7 @@ export const Tabs: FunctionComponent<TabsProps> = ({
   className,
   style,
   ulStyle,
+  emptyState = <h3 className="slds-text-heading_medium slds-m-around_medium">Select an item to continue</h3>,
   onChange,
 }) => {
   const isHorizontal = position === 'horizontal';
@@ -102,9 +103,7 @@ export const Tabs: FunctionComponent<TabsProps> = ({
           {activeTab.content}
         </div>
       )}
-      {isNil(activeTab) && tabs && tabs.length > 0 && (
-        <h3 className="slds-text-heading_medium slds-m-around_medium">Select an item to continue</h3>
-      )}
+      {isNil(activeTab) && tabs && tabs.length > 0 && emptyState}
     </div>
   );
 };

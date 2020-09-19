@@ -2,6 +2,14 @@ import { QueryResult } from 'jsforce';
 
 export type AutomationMetadataType = 'ValidationRule' | 'WorkflowRule' | 'Flow' | 'ApexTrigger' | 'AssignmentRule';
 
+type AutomationControlMetadataTypeGeneric =
+  | ToolingValidationRuleRecord
+  | ToolingWorkflowRuleRecordWithMetadata
+  | ToolingFlowDefinitionWithVersions
+  | ToolingApexTriggerRecord
+  | ToolingAssignmentRuleRecord
+  | ToolingFlowRecord;
+
 export interface AutomationControlParentSobject {
   key: string;
   entityDefinitionId: string;
@@ -13,22 +21,23 @@ export interface AutomationControlParentSobject {
   inProgress: boolean;
   error: boolean;
   automationItems: {
-    ValidationRule: AutomationControlMetadataType<ToolingValidationRuleRecord>;
-    WorkflowRule: AutomationControlMetadataType<ToolingWorkflowRuleRecordWithMetadata>;
-    Flow: AutomationControlMetadataType<ToolingFlowDefinitionWithVersions>;
-    ApexTrigger: AutomationControlMetadataType<ToolingApexTriggerRecord>;
-    AssignmentRule: AutomationControlMetadataType<ToolingAssignmentRuleRecord>;
+    ValidationRule: AutomationControlMetadataType<ToolingValidationRuleRecord, null>;
+    WorkflowRule: AutomationControlMetadataType<ToolingWorkflowRuleRecordWithMetadata, null>;
+    Flow: AutomationControlMetadataType<ToolingFlowDefinitionWithVersions, ToolingFlowRecord>;
+    ApexTrigger: AutomationControlMetadataType<ToolingApexTriggerRecord, null>;
+    AssignmentRule: AutomationControlMetadataType<ToolingAssignmentRuleRecord, null>;
   };
 }
 
-export interface AutomationControlMetadataType<T = unknown, K = unknown> {
+export interface AutomationControlMetadataType<T = AutomationControlMetadataTypeGeneric, K = void | ToolingFlowRecord> {
   metadataType: string;
   loading: boolean;
   hasLoaded: boolean;
+  errorMessage?: string;
   items: AutomationControlMetadataTypeItem<T, K>[];
 }
 
-export interface AutomationControlMetadataTypeItem<T = unknown, K = unknown> {
+export interface AutomationControlMetadataTypeItem<T = AutomationControlMetadataTypeGeneric, K = void | ToolingFlowRecord> {
   fullName: string;
   label: string;
   description: string;

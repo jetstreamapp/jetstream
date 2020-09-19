@@ -6,6 +6,7 @@ import { AutomationControlMetadataTypeItem, AutomationControlParentSobject, Auto
 import AutomationControlContentApexTrigger from './ApexTrigger';
 import AutomationControlContentAssignmentRule from './AssignmentRule';
 import AutomationControlTabContentButtons from './ContentButtons';
+import AutomationControlContentContainer from './ContentContainer';
 import AutomationControlContentFlow from './Flow';
 import { AutomationControlContentValidationRule } from './ValidationRule';
 import AutomationControlContentWorkflowRule from './WorkflowRule';
@@ -47,40 +48,60 @@ export const AutomationControlTabContent: FunctionComponent<AutomationControlTab
           {
             id: 'ValidationRule',
             title: `Validation Rules ${getModifiedItemsText(item.automationItems.ValidationRule.items)}`,
-            content: <AutomationControlContentValidationRule items={item.automationItems.ValidationRule.items} onChange={onChange} />,
+            content: (
+              <AutomationControlContentContainer
+                parentItem={item.automationItems.ValidationRule}
+                items={item.automationItems.ValidationRule.items}
+              >
+                <AutomationControlContentValidationRule items={item.automationItems.ValidationRule.items} onChange={onChange} />
+              </AutomationControlContentContainer>
+            ),
           },
           {
             id: 'WorkflowRule',
             title: `Workflow Rules ${getModifiedItemsText(item.automationItems.WorkflowRule.items)}`,
             content: (
-              <AutomationControlContentWorkflowRule
+              <AutomationControlContentContainer
+                parentItem={item.automationItems.WorkflowRule}
                 items={item.automationItems.WorkflowRule.items}
-                loading={item.automationItems.WorkflowRule.loading}
-                onChange={onChange}
-              />
+              >
+                <AutomationControlContentWorkflowRule items={item.automationItems.WorkflowRule.items} onChange={onChange} />
+              </AutomationControlContentContainer>
             ),
           },
           {
             id: 'Flow',
             title: `Process Builders`,
             content: (
-              <AutomationControlContentFlow
-                items={item.automationItems.Flow.items}
-                loading={item.automationItems.Flow.loading}
-                onChange={onChange}
-              />
+              <AutomationControlContentContainer parentItem={item.automationItems.Flow} items={item.automationItems.Flow.items}>
+                <AutomationControlContentFlow items={item.automationItems.Flow.items} onChange={onChange} />
+              </AutomationControlContentContainer>
             ),
           },
 
           {
             id: `ApexTrigger`,
             title: `Apex Triggers ${getModifiedItemsText(item.automationItems.ApexTrigger.items)}`,
-            content: <AutomationControlContentApexTrigger items={item.automationItems.ApexTrigger.items} onChange={onChange} />,
+            content: (
+              <AutomationControlContentContainer
+                parentItem={item.automationItems.ApexTrigger}
+                items={item.automationItems.ApexTrigger.items}
+              >
+                <AutomationControlContentApexTrigger items={item.automationItems.ApexTrigger.items} onChange={onChange} />
+              </AutomationControlContentContainer>
+            ),
           },
           {
             id: 'AssignmentRule',
             title: `Assignment Rules ${getModifiedItemsText(item.automationItems.AssignmentRule.items)}`,
-            content: <AutomationControlContentAssignmentRule items={item.automationItems.AssignmentRule.items} onChange={onChange} />,
+            content: (
+              <AutomationControlContentContainer
+                parentItem={item.automationItems.AssignmentRule}
+                items={item.automationItems.AssignmentRule.items}
+              >
+                <AutomationControlContentAssignmentRule items={item.automationItems.AssignmentRule.items} onChange={onChange} />
+              </AutomationControlContentContainer>
+            ),
           },
         ]}
         allowMultiple={true}
