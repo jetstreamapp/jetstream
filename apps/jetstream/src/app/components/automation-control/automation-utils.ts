@@ -382,6 +382,24 @@ export function getFlowDependencyQuery(durableId: string) {
         value: 'Flow',
         literalType: 'STRING',
       },
+      operator: 'AND',
+      right: {
+        left: {
+          field: 'RefMetadataComponentType',
+          operator: '=',
+          value: 'CustomObject',
+          literalType: 'STRING',
+        },
+        operator: 'AND',
+        right: {
+          left: {
+            field: 'RefMetadataComponentId',
+            operator: '=',
+            value: durableId,
+            literalType: 'STRING',
+          },
+        },
+      },
     },
   });
   logger.info('getFlowDependencyQuery()', { soql });
