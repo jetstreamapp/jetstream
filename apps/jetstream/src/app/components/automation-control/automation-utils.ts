@@ -393,10 +393,22 @@ export function getFlowDependencyQuery(durableId: string) {
         operator: 'AND',
         right: {
           left: {
+            openParen: 1,
             field: 'RefMetadataComponentId',
             operator: '=',
             value: durableId,
             literalType: 'STRING',
+          },
+          operator: 'OR',
+          // Custom objects use the sobject api name as the durable id
+          right: {
+            left: {
+              closeParen: 1,
+              field: 'RefMetadataComponentName',
+              operator: '=',
+              value: durableId,
+              literalType: 'STRING',
+            },
           },
         },
       },
