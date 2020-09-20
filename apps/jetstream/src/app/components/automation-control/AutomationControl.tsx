@@ -32,6 +32,7 @@ import {
   convertWorkflowRuleRecordsToAutomationControlItem,
   getEntityDefinitionQuery,
   getProcessBuilders,
+  getProcessBuildersNew,
   getWorkflowRulesMetadata,
   initItemsById,
 } from './automation-utils';
@@ -54,12 +55,14 @@ export const AutomationControl: FunctionComponent<AutomationControlProps> = () =
   const [itemsById, setItemsById] = useRecoilState(fromAutomationCtlState.itemsById);
   const [activeItemId, setActiveItemId] = useRecoilState(fromAutomationCtlState.activeItemId);
   const [tabs, setTabs] = useRecoilState(fromAutomationCtlState.tabs);
+  const [flowVersionsBySobject, setFlowVersionsBySobject] = useRecoilState(fromAutomationCtlState.flowVersionsBySobject);
 
   const resetSObjectsState = useResetRecoilState(fromAutomationCtlState.sObjectsState);
   const resetItemIds = useResetRecoilState(fromAutomationCtlState.itemIds);
   const resetItemsById = useResetRecoilState(fromAutomationCtlState.itemsById);
   const resetActiveItemId = useResetRecoilState(fromAutomationCtlState.activeItemId);
   const resetTabs = useResetRecoilState(fromAutomationCtlState.tabs);
+  const resetFlowVersionsBySobject = useResetRecoilState(fromAutomationCtlState.flowVersionsBySobject);
 
   useEffect(() => {
     if (selectedOrg && !loading && !errorMessage && !sobjects) {
@@ -88,6 +91,7 @@ export const AutomationControl: FunctionComponent<AutomationControlProps> = () =
       resetItemsById();
       resetActiveItemId();
       resetTabs();
+      resetFlowVersionsBySobject();
     } else if (!priorSelectedOrg) {
       setPriorSelectedOrg(selectedOrg.uniqueId);
     } else if (!selectedOrg) {
@@ -96,6 +100,7 @@ export const AutomationControl: FunctionComponent<AutomationControlProps> = () =
       resetItemsById();
       resetActiveItemId();
       resetTabs();
+      resetFlowVersionsBySobject();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedOrg, priorSelectedOrg]);
@@ -301,7 +306,8 @@ export const AutomationControl: FunctionComponent<AutomationControlProps> = () =
           });
       }
       if (needToLoad.Flow) {
-        loadProcessBuilders(currTab.entityDefinitionRecord.DurableId, currTab.automationItems.Flow)
+        // loadProcessBuilders(currTab.entityDefinitionRecord.DurableId, currTab.automationItems.Flow)
+        loadProcessBuildersNew(currTab.sobjectName, currTab.automationItems.Flow)
           .then((flows) => {
             itemsByIdTemp = { ...itemsByIdTemp };
             itemsByIdTemp[tabId] = { ...itemsByIdTemp[tabId] };
@@ -347,17 +353,36 @@ export const AutomationControl: FunctionComponent<AutomationControlProps> = () =
     };
   }
 
-  async function loadProcessBuilders(
-    durableId: string,
+  // async function loadProcessBuilders(
+  //   durableId: string,
+  //   currentFlowMeta: AutomationControlMetadataType<ToolingFlowDefinitionWithVersions>
+  // ): Promise<AutomationControlMetadataType<ToolingFlowDefinitionWithVersions>> {
+  //   const flows = await getProcessBuilders(selectedOrg, durableId);
+
+  //   return {
+  //     ...currentFlowMeta,
+  //     loading: false,
+  //     hasLoaded: true,
+  //     items: convertFlowRecordsToAutomationControlItem(flows),
+  //   };
+  // }
+
+  async function loadProcessBuildersNew(
+    sobject: string,
     currentFlowMeta: AutomationControlMetadataType<ToolingFlowDefinitionWithVersions>
   ): Promise<AutomationControlMetadataType<ToolingFlowDefinitionWithVersions>> {
-    const flows = await getProcessBuilders(selectedOrg, durableId);
+    const response = await getProcessBuildersNew(selectedOrg, sobject, flowVersionsBySobject);
+
+    // this is only set once, so if not already set then set it. If not null, it is the same object passed in
+    if (flowVersionsBySobject == null) {
+      setFlowVersionsBySobject(response.flowVersionsBySobject);
+    }
 
     return {
       ...currentFlowMeta,
       loading: false,
       hasLoaded: true,
-      items: convertFlowRecordsToAutomationControlItem(flows),
+      items: convertFlowRecordsToAutomationControlItem(response.flows),
     };
   }
 

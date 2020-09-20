@@ -124,6 +124,12 @@ export interface ToolingWorkflowRuleRecord extends SystemFields {
   TableEnumOrId: string;
 }
 
+export interface ToolingFlowAggregateRecord {
+  attributes: { type: 'AggregateResult' };
+  MostRecentId: string;
+  DefinitionId: string;
+}
+
 export interface ToolingFlowRecord extends SystemFields {
   Description: string;
   MasterLabel: string;
@@ -200,4 +206,48 @@ export interface MetadataWorkflowRuleRecord {
     timeLength: string;
     workflowTimeTriggerUnit: 'Hours' | 'Days';
   };
+}
+
+export interface FlowMetadata {
+  actionCalls: any[];
+  apexPluginCalls: any[];
+  assignments: any[];
+  choices: any[];
+  constants: any[];
+  decisions: any[];
+  description: string;
+  dynamicChoiceSets: any[];
+  formulas: any[];
+  interviewLabel: string;
+  isAdditionalPermissionRequiredToRun?: any;
+  isTemplate?: any;
+  label: string;
+  loops: any[];
+  processMetadataValues: {
+    name: string;
+    value: {
+      booleanValue?: any;
+      dateTimeValue?: any;
+      dateValue?: any;
+      elementReference: string;
+      numberValue?: any;
+      stringValue: string;
+    };
+  }[];
+  processType: string;
+  recordCreates: any[];
+  recordDeletes: any[];
+  recordLookups: any[];
+  recordUpdates: any[];
+  runInMode?: any;
+  screens: any[];
+  start?: any;
+  startElementReference: string;
+  status: string;
+  steps: any[];
+  subflows: any[];
+  textTemplates: any[];
+  urls?: any;
+  variables: any[];
+  waits: any[];
 }

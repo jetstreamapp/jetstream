@@ -1,8 +1,29 @@
 import { toBoolean } from '@jetstream/shared/utils';
+import { GenericRequestPayload } from '@jetstream/types';
 import { NextFunction, Request, Response } from 'express';
+import { body } from 'express-validator';
 import * as jsforce from 'jsforce';
+import { isObject } from 'lodash';
 import { UserFacingError } from '../utils/error-handler';
 import { sendJson } from '../utils/response.handlers';
+
+export const routeValidators = {
+  getFrontdoorLoginUrl: [],
+  makeJsforceRequest: [
+    body('url').isString(),
+    body('method').isIn(['GET', 'POST', 'PUT', 'PATCH', 'DELETE']),
+    body('method')
+      .if(body('method').isIn(['POST', 'PUT', 'PATCH']))
+      .custom((value, { req }) => isObject(req.body.body)),
+    body('isTooling').toBoolean(),
+    body('body').optional(),
+    body('headers').optional(),
+    body('options').optional(),
+  ],
+  recordOperation: [
+    // TODO: move all validation here (entire switch statement replaced with validator)
+  ],
+};
 
 export async function getFrontdoorLoginUrl(req: Request, res: Response, next: NextFunction) {
   try {
@@ -20,11 +41,25 @@ export async function getFrontdoorLoginUrl(req: Request, res: Response, next: Ne
   }
 }
 
+// https://github.com/jsforce/jsforce/issues/934
+// TODO: the api version in the urls needs to match - we should not have this hard-coded on front-end
 export async function makeJsforceRequest(req: Request, res: Response, next: NextFunction) {
   try {
-    const { url, method = 'GET' } = req.body; // TODO: add validation
-    const conn: jsforce.Connection = res.locals.jsforceConn;
-    const results = await conn.request({ method, url });
+    const { url, method, isTooling, body, headers, options } = req.body as GenericRequestPayload;
+    const conn: jsforce.Connection | jsforce.Tooling = isTooling ? res.locals.jsforceConn.tooling : res.locals.jsforceConn;
+
+    const requestOptions: jsforce.RequestInfo = {
+      method,
+      url,
+      body: isObject(body) ? JSON.stringify(body) : body,
+      headers:
+        (isObject(headers) || isObject(body)) && !headers?.['Content-Type']
+          ? { ...headers, ['Content-Type']: 'application/json' }
+          : headers,
+    };
+
+    const results = await conn.request(requestOptions, options);
+
     sendJson(res, results);
   } catch (ex) {
     next(new UserFacingError(ex.message));

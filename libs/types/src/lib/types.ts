@@ -92,3 +92,15 @@ export interface SalesforceOrgUi {
   createdAt?: string;
   updatedAt?: string;
 }
+
+export interface GenericRequestPayload {
+  url: string;
+  method: HttpMethod;
+  isTooling: boolean;
+  body?: any;
+  headers?: any;
+  options?: {
+    responseType?: string;
+    noContentResponse?: any;
+  };
+}

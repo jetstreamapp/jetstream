@@ -5,7 +5,8 @@ import * as sfMiscController from '../controllers/sf-misc.controller';
 import * as userController from '../controllers/user.controller';
 import * as orgsController from '../controllers/orgs.controller';
 import * as metadataToolingController from '../controllers/sf-metadata-tooling.controller';
-import { addOrgsToLocal, checkAuth, ensureOrgExists } from './route.middleware';
+import { addOrgsToLocal, checkAuth, ensureOrgExists, validate } from './route.middleware';
+import { validationResult } from 'express-validator';
 
 const routes: express.Router = Router();
 
@@ -27,6 +28,11 @@ routes.post('/record/:operation/:sobject', ensureOrgExists, sfMiscController.rec
 routes.post('/metadata/list', ensureOrgExists, metadataToolingController.listMetadata);
 routes.post('/metadata/read/:type', ensureOrgExists, metadataToolingController.readMetadata);
 
-routes.post('/request', ensureOrgExists, sfMiscController.makeJsforceRequest);
+routes.post(
+  '/request',
+  ensureOrgExists,
+  validate(sfMiscController.routeValidators.makeJsforceRequest),
+  sfMiscController.makeJsforceRequest
+);
 
 export default routes;

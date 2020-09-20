@@ -1,8 +1,8 @@
 // LAME
 
 import { composeQuery, getField } from 'soql-parser-js';
-import { query, readMetadata } from '@jetstream/shared/data';
-import { MapOf, SalesforceOrgUi } from '@jetstream/types';
+import { genericRequest, query, readMetadata } from '@jetstream/shared/data';
+import { MapOf, SalesforceOrgUi, CompositeRequest, CompositeRequestBody, CompositeResponse } from '@jetstream/types';
 import {
   ToolingFlowRecord,
   ToolingFlowRecordWithDefinition,
@@ -17,8 +17,10 @@ import {
   ToolingApexTriggerRecord,
   AutomationControlParentSobject,
   ToolingEntityDefinitionRecord,
+  FlowMetadata,
+  ToolingFlowAggregateRecord,
 } from './automation-control-types';
-import { ensureBoolean } from '@jetstream/shared/utils';
+import { ensureBoolean, splitArrayToMaxSize } from '@jetstream/shared/utils';
 import { logger } from '@jetstream/shared/client-logger';
 
 export function initItemsById(sobjects: ToolingEntityDefinitionRecord[]): [string[], MapOf<AutomationControlParentSobject>] {
@@ -236,6 +238,86 @@ export async function getProcessBuilders(selectedOrg: SalesforceOrgUi, durableId
   }
 
   return [];
+}
+
+export async function getProcessBuildersNew(
+  selectedOrg: SalesforceOrgUi,
+  sobject: string,
+  flowVersionsBySobject: MapOf<string[]> | null
+): Promise<{
+  flowVersionsBySobject: MapOf<string[]>;
+  flows: ToolingFlowDefinitionWithVersions[];
+}> {
+  /**
+   * If we do not have a cached response already, then get all metadata
+   */
+  if (!flowVersionsBySobject) {
+    flowVersionsBySobject = flowVersionsBySobject || {};
+    const flowDependencyOnSobjectResults = await query<ToolingFlowAggregateRecord>(selectedOrg, getLatestFlowDefinitionIds(), true);
+    const recordSets = splitArrayToMaxSize(flowDependencyOnSobjectResults.queryResults.records, 25);
+
+    /**
+     * Composite request allows up to 25 records to be processed at once
+     * Using a for loop to allow async/await - serially process results and combine them into flowVersionsBySobject
+     */
+    for (const records of recordSets) {
+      // get ids, build aggregate request
+      const requestBody: CompositeRequest = {
+        allOrNone: false,
+        compositeRequest: records.map(
+          ({ MostRecentId: referenceId }): CompositeRequestBody => ({
+            method: 'GET',
+            url: `/services/data/v49.0/tooling/sobjects/Flow/${referenceId}?fields=Id,DefinitionId,FullName,Metadata`,
+            referenceId,
+          })
+        ),
+      };
+      const response = await genericRequest<
+        CompositeResponse<{ Id: string; DefinitionId: string; FullName: string; Metadata: FlowMetadata }>
+      >(selectedOrg, {
+        isTooling: true,
+        method: 'POST',
+        url: '/services/data/v49.0/tooling/composite',
+        body: requestBody,
+      });
+      const invalidResponses = response.compositeResponse.filter((response) => response.httpStatusCode !== 200);
+      if (invalidResponses.length > 0) {
+        throw new Error('There were errors obtaining the process builder metadata from Salesforce');
+      }
+      flowVersionsBySobject = response.compositeResponse.reduce((output: MapOf<string[]>, record) => {
+        const [sobject] = record.body.Metadata.processMetadataValues
+          .filter((value) => value.name === 'ObjectType')
+          .map((value) => value.value.stringValue);
+        if (sobject) {
+          output[sobject] = output[sobject] || [];
+          output[sobject].push(record.body.Id);
+        }
+        return output;
+      }, flowVersionsBySobject);
+    }
+  }
+
+  const flowVersionIds = flowVersionsBySobject[sobject];
+  // re-query everything that we need and combine into the correct data structure
+  if (flowVersionIds && flowVersionIds.length > 0) {
+    const flowResults = await query<ToolingFlowRecordWithDefinition>(selectedOrg, getFlowsQuery(flowVersionIds), true);
+
+    if (flowResults.queryResults.totalSize > 0) {
+      const flowDefinitionsById = flowResults.queryResults.records.reduce(
+        (flowDefinitionsById: MapOf<ToolingFlowDefinitionWithVersions>, record) => {
+          flowDefinitionsById[record.DefinitionId] = flowDefinitionsById[record.DefinitionId] || { ...record.Definition, Versions: [] };
+          flowDefinitionsById[record.DefinitionId].Versions.push({ ...record, Definition: undefined } as ToolingFlowRecord);
+          return flowDefinitionsById;
+        },
+        {}
+      );
+
+      return { flows: Object.values(flowDefinitionsById), flowVersionsBySobject };
+    }
+  }
+
+  // There are no flow versions for the selected SObject
+  return { flows: [], flowVersionsBySobject };
 }
 
 /**
@@ -484,5 +566,47 @@ export function getFlowsQuery(flowVersionIds: string[]) {
     ],
   });
   logger.info('getWorkflowRuleQuery()', { soql });
+  return soql;
+}
+
+export function getLatestFlowDefinitionIds() {
+  const soql = composeQuery({
+    fields: [
+      {
+        type: 'FieldFunctionExpression',
+        functionName: 'MAX',
+        parameters: ['Id'],
+        isAggregateFn: true,
+        rawValue: 'MAX(Id)',
+        alias: 'MostRecentId',
+      },
+      {
+        type: 'Field',
+        field: 'DefinitionId',
+      },
+    ],
+    sObject: 'Flow',
+    where: {
+      left: {
+        field: 'ProcessType',
+        operator: 'IN',
+        value: ["'Workflow'", "'InvocableProcess'"],
+        literalType: 'STRING',
+      },
+      operator: 'AND',
+      right: {
+        left: {
+          field: 'ManageableState',
+          operator: '=',
+          value: 'unmanaged',
+          literalType: 'STRING',
+        },
+      },
+    },
+    groupBy: {
+      field: ['ProcessType', 'DefinitionId'],
+    },
+  });
+  logger.info('getLatestFlowDefinitionIds()', { soql });
   return soql;
 }

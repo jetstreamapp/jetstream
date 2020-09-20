@@ -1,3 +1,5 @@
+import { HttpMethod, MapOf } from '../types';
+
 export type SalesforceOrgEdition =
   | 'Team Edition'
   | 'Professional Edition'
@@ -84,3 +86,24 @@ export interface SuccessResult {
 // NOTE: this type is returned for composite API if an array of data is passed to SFDC
 // if one record, then the source in the jsforce type library is used
 export type RecordResult = SuccessResult | ErrorResult;
+
+export interface CompositeRequest {
+  allOrNone?: boolean;
+  compositeRequest?: CompositeRequestBody[];
+}
+export interface CompositeRequestBody {
+  method: HttpMethod;
+  url: string;
+  httpHeaders?: MapOf<string>;
+  body?: any;
+  referenceId: string;
+}
+
+export interface CompositeResponse<T = unknown> {
+  compositeResponse: {
+    body: T;
+    httpHeaders: any;
+    httpStatusCode: number;
+    referenceId: string;
+  }[];
+}

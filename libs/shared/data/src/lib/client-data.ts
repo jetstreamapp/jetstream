@@ -3,7 +3,7 @@ import * as API from '@jetstream/api-interfaces';
 import { DescribeGlobalResult, DescribeSObjectResult } from 'jsforce';
 import * as request from 'superagent'; // http://visionmedia.github.io/superagent
 import { handleRequest } from './core';
-import { SalesforceOrgUi, UserProfileUi, HttpMethod, SobjectOperation } from '@jetstream/types';
+import { SalesforceOrgUi, UserProfileUi, SobjectOperation, GenericRequestPayload } from '@jetstream/types';
 
 //// LANDING PAGE ROUTES
 
@@ -25,7 +25,16 @@ export async function deleteOrg(org: SalesforceOrgUi): Promise<void> {
 }
 
 export async function describeGlobal(org: SalesforceOrgUi): Promise<DescribeGlobalResult> {
-  return handleRequest(request.get('/api/describe'), org);
+  return handleRequest(request.get('/api/describe'), org).then((response: DescribeGlobalResult) => {
+    if (response && Array.isArray(response.sobjects)) {
+      response.sobjects.forEach((sobject) => {
+        if (sobject.label.startsWith('__MISSING LABEL__')) {
+          sobject.label = sobject.name;
+        }
+      });
+    }
+    return response;
+  });
 }
 
 export async function describeSObject(org: SalesforceOrgUi, SObject: string): Promise<DescribeSObjectResult> {
@@ -65,6 +74,6 @@ export async function readMetadata<T = any>(org: SalesforceOrgUi, type: string, 
   return handleRequest(request.post(`/api/metadata/read/${type}`).send({ fullNames }), org);
 }
 
-export async function genericRequest<T = any>(org: SalesforceOrgUi, method: HttpMethod, url: string, body?: any): Promise<T> {
-  return handleRequest(request.post(`/api/request`).send({ method, url, body }), org);
+export async function genericRequest<T = any>(org: SalesforceOrgUi, payload: GenericRequestPayload): Promise<T> {
+  return handleRequest(request.post(`/api/request`).send(payload), org);
 }
