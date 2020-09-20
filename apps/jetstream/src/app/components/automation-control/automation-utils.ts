@@ -206,59 +206,71 @@ export async function getWorkflowRulesMetadata(
   return [];
 }
 
+// /** DID NOT WORK WITH STANDARD OBJECTS
+//  * This uses the dependency API to figure out the dependent flows
+//  * Then fetches the relevant flows
+//  * @param selectedOrg
+//  * @param entityDefinitionId
+//  */
+// export async function getProcessBuilders(selectedOrg: SalesforceOrgUi, durableId: string): Promise<ToolingFlowDefinitionWithVersions[]> {
+//   const flowDependencyOnSobjectResults = await query<ToolingMetadataComponentDependencyRecord>(
+//     selectedOrg,
+//     getFlowDependencyQuery(durableId),
+//     true
+//   );
+
+//   const flowVersionIds = flowDependencyOnSobjectResults.queryResults.records.map((record) => record.MetadataComponentId);
+//   if (flowVersionIds.length > 0) {
+//     const flowResults = await query<ToolingFlowRecordWithDefinition>(selectedOrg, getFlowsQuery(flowVersionIds), true);
+
+//     if (flowResults.queryResults.totalSize > 0) {
+//       const flowDefinitionsById = flowResults.queryResults.records.reduce(
+//         (flowDefinitionsById: MapOf<ToolingFlowDefinitionWithVersions>, record) => {
+//           flowDefinitionsById[record.DefinitionId] = flowDefinitionsById[record.DefinitionId] || { ...record.Definition, Versions: [] };
+//           flowDefinitionsById[record.DefinitionId].Versions.push({ ...record, Definition: undefined } as ToolingFlowRecord);
+//           return flowDefinitionsById;
+//         },
+//         {}
+//       );
+
+//       return Object.values(flowDefinitionsById);
+//     }
+//   }
+
+//   return [];
+// }
+
 /**
- * This uses the dependency API to figure out the dependent flows
- * Then fetches the relevant flows
+ * Gets FlowDefinition with a subquery of FlowVersions
+ *
+ * Fetches all metadata using composite requests (Slow) and returns all the data
+ * the slow fetch only needs to happen once, then the results can be used for all
+ * subsequent object requests
+ *
  * @param selectedOrg
- * @param entityDefinitionId
+ * @param sobject
+ * @param flowDefinitionsBySobject
+ * @returns process builders
  */
-export async function getProcessBuilders(selectedOrg: SalesforceOrgUi, durableId: string): Promise<ToolingFlowDefinitionWithVersions[]> {
-  const flowDependencyOnSobjectResults = await query<ToolingMetadataComponentDependencyRecord>(
-    selectedOrg,
-    getFlowDependencyQuery(durableId),
-    true
-  );
-
-  const flowVersionIds = flowDependencyOnSobjectResults.queryResults.records.map((record) => record.MetadataComponentId);
-  if (flowVersionIds.length > 0) {
-    const flowResults = await query<ToolingFlowRecordWithDefinition>(selectedOrg, getFlowsQuery(flowVersionIds), true);
-
-    if (flowResults.queryResults.totalSize > 0) {
-      const flowDefinitionsById = flowResults.queryResults.records.reduce(
-        (flowDefinitionsById: MapOf<ToolingFlowDefinitionWithVersions>, record) => {
-          flowDefinitionsById[record.DefinitionId] = flowDefinitionsById[record.DefinitionId] || { ...record.Definition, Versions: [] };
-          flowDefinitionsById[record.DefinitionId].Versions.push({ ...record, Definition: undefined } as ToolingFlowRecord);
-          return flowDefinitionsById;
-        },
-        {}
-      );
-
-      return Object.values(flowDefinitionsById);
-    }
-  }
-
-  return [];
-}
-
-export async function getProcessBuildersNew(
+export async function getProcessBuilders(
   selectedOrg: SalesforceOrgUi,
   sobject: string,
-  flowVersionsBySobject: MapOf<string[]> | null
+  flowDefinitionsBySobject: MapOf<string[]> | null
 ): Promise<{
-  flowVersionsBySobject: MapOf<string[]>;
+  flowDefinitionsBySobject: MapOf<string[]>;
   flows: ToolingFlowDefinitionWithVersions[];
 }> {
   /**
    * If we do not have a cached response already, then get all metadata
    */
-  if (!flowVersionsBySobject) {
-    flowVersionsBySobject = flowVersionsBySobject || {};
+  if (!flowDefinitionsBySobject) {
+    flowDefinitionsBySobject = flowDefinitionsBySobject || {};
     const flowDependencyOnSobjectResults = await query<ToolingFlowAggregateRecord>(selectedOrg, getLatestFlowDefinitionIds(), true);
     const recordSets = splitArrayToMaxSize(flowDependencyOnSobjectResults.queryResults.records, 25);
 
     /**
      * Composite request allows up to 25 records to be processed at once
-     * Using a for loop to allow async/await - serially process results and combine them into flowVersionsBySobject
+     * Using a for loop to allow async/await - serially process results and combine them into flowDefinitionsBySobject
      */
     for (const records of recordSets) {
       // get ids, build aggregate request
@@ -284,40 +296,49 @@ export async function getProcessBuildersNew(
       if (invalidResponses.length > 0) {
         throw new Error('There were errors obtaining the process builder metadata from Salesforce');
       }
-      flowVersionsBySobject = response.compositeResponse.reduce((output: MapOf<string[]>, record) => {
+      flowDefinitionsBySobject = response.compositeResponse.reduce((output: MapOf<string[]>, record) => {
         const [sobject] = record.body.Metadata.processMetadataValues
           .filter((value) => value.name === 'ObjectType')
           .map((value) => value.value.stringValue);
         if (sobject) {
           output[sobject] = output[sobject] || [];
-          output[sobject].push(record.body.Id);
+          output[sobject].push(record.body.DefinitionId);
         }
         return output;
-      }, flowVersionsBySobject);
+      }, flowDefinitionsBySobject);
     }
   }
 
-  const flowVersionIds = flowVersionsBySobject[sobject];
+  const flowVersionIds = flowDefinitionsBySobject[sobject];
   // re-query everything that we need and combine into the correct data structure
   if (flowVersionIds && flowVersionIds.length > 0) {
-    const flowResults = await query<ToolingFlowRecordWithDefinition>(selectedOrg, getFlowsQuery(flowVersionIds), true);
+    const flowDefinitionResults = await query<ToolingFlowDefinitionWithVersions>(selectedOrg, getFlowsQuery(flowVersionIds), true);
 
-    if (flowResults.queryResults.totalSize > 0) {
-      const flowDefinitionsById = flowResults.queryResults.records.reduce(
-        (flowDefinitionsById: MapOf<ToolingFlowDefinitionWithVersions>, record) => {
-          flowDefinitionsById[record.DefinitionId] = flowDefinitionsById[record.DefinitionId] || { ...record.Definition, Versions: [] };
-          flowDefinitionsById[record.DefinitionId].Versions.push({ ...record, Definition: undefined } as ToolingFlowRecord);
-          return flowDefinitionsById;
-        },
-        {}
-      );
+    if (flowDefinitionResults.queryResults.totalSize > 0) {
+      const flowDefinitions = flowDefinitionResults.queryResults.records.map((record) => {
+        if (record.Versions) {
+          record.Versions = (record.Versions as any).records;
+        } else {
+          record.Versions = [];
+        }
+        return record;
+      });
 
-      return { flows: Object.values(flowDefinitionsById), flowVersionsBySobject };
+      // const flowDefinitionsById = flowResults.queryResults.records.reduce(
+      //   (flowDefinitionsById: MapOf<ToolingFlowDefinitionWithVersions>, record) => {
+      //     flowDefinitionsById[record.DefinitionId] = flowDefinitionsById[record.DefinitionId] || { ...record.Definition, Versions: [] };
+      //     flowDefinitionsById[record.DefinitionId].Versions.push({ ...record, Definition: undefined } as ToolingFlowRecord);
+      //     return flowDefinitionsById;
+      //   },
+      //   {}
+      // );
+
+      return { flows: flowDefinitions, flowDefinitionsBySobject };
     }
   }
 
   // There are no flow versions for the selected SObject
-  return { flows: [], flowVersionsBySobject };
+  return { flows: [], flowDefinitionsBySobject };
 }
 
 /**
@@ -500,74 +521,102 @@ export function getFlowDependencyQuery(durableId: string) {
   return soql;
 }
 
-export function getFlowsQuery(flowVersionIds: string[]) {
+export function getFlowsQuery(flowDefinitionIds: string[]) {
   const soql = composeQuery({
     fields: [
       getField('Id'),
       getField('Description'),
+      getField('DeveloperName'),
       getField('MasterLabel'),
-      getField('DefinitionId'),
-      getField('ProcessType'),
-      getField('Status'),
-      getField('VersionNumber'),
+      getField('ActiveVersionId'),
+      getField('ActiveVersion.VersionNumber'),
+      getField('LatestVersionId'),
+      getField('LatestVersion.VersionNumber'),
       getField('FORMAT(LastModifiedDate)'),
       getField('LastModifiedBy.Name'),
       getField('FORMAT(CreatedDate)'),
       getField('CreatedBy.Name'),
-      getField('Definition.Id'),
-      getField('Definition.Description'),
-      getField('Definition.DeveloperName'),
-      getField('Definition.MasterLabel'),
-      getField('Definition.ActiveVersionId'),
-      getField('Definition.ActiveVersion.VersionNumber'),
-      getField('Definition.LatestVersionId'),
-      getField('Definition.LatestVersion.VersionNumber'),
-      getField('FORMAT(Definition.LastModifiedDate)'),
-      getField('Definition.LastModifiedBy.Name'),
-      getField('FORMAT(Definition.CreatedDate)'),
-      getField('Definition.CreatedBy.Name'),
+      getField(
+        '(SELECT Id, Description, MasterLabel, DefinitionId, ProcessType, Status, VersionNumber, FORMAT(LastModifiedDate), LastModifiedBy.Name, FORMAT(CreatedDate), CreatedBy.Name FROM Versions ORDER BY VersionNumber DESC)'
+      ),
     ],
-    sObject: 'Flow',
-    where: {
-      left: {
-        field: 'ProcessType',
-        operator: 'IN',
-        value: ["'Workflow'", "'InvocableProcess'"],
-        literalType: 'STRING',
-      },
-      operator: 'AND',
-      right: {
-        left: {
-          field: 'Id',
-          operator: 'IN',
-          value: flowVersionIds,
-          literalType: 'STRING',
-        },
-        operator: 'AND',
-        right: {
-          left: {
-            field: 'ManageableState',
-            operator: '=',
-            value: 'unmanaged',
-            literalType: 'STRING',
-          },
-        },
-      },
+    sObject: 'FlowDefinition',
+    orderBy: {
+      field: 'DeveloperName',
     },
-    orderBy: [
-      {
-        field: 'Definition.DeveloperName',
-        order: 'ASC',
-      },
-      {
-        field: 'VersionNumber',
-        order: 'DESC',
-      },
-    ],
   });
-  logger.info('getWorkflowRuleQuery()', { soql });
+  logger.info('getFlowsQuery()', { soql });
   return soql;
 }
+
+// export function getFlowsQuery(flowVersionIds: string[]) {
+//   const soql = composeQuery({
+//     fields: [
+//       getField('Id'),
+//       getField('Description'),
+//       getField('MasterLabel'),
+//       getField('DefinitionId'),
+//       getField('ProcessType'),
+//       getField('Status'),
+//       getField('VersionNumber'),
+//       getField('FORMAT(LastModifiedDate)'),
+//       getField('LastModifiedBy.Name'),
+//       getField('FORMAT(CreatedDate)'),
+//       getField('CreatedBy.Name'),
+//       getField('Definition.Id'),
+//       getField('Definition.Description'),
+//       getField('Definition.DeveloperName'),
+//       getField('Definition.MasterLabel'),
+//       getField('Definition.ActiveVersionId'),
+//       getField('Definition.ActiveVersion.VersionNumber'),
+//       getField('Definition.LatestVersionId'),
+//       getField('Definition.LatestVersion.VersionNumber'),
+//       getField('FORMAT(Definition.LastModifiedDate)'),
+//       getField('Definition.LastModifiedBy.Name'),
+//       getField('FORMAT(Definition.CreatedDate)'),
+//       getField('Definition.CreatedBy.Name'),
+//     ],
+//     sObject: 'Flow',
+//     where: {
+//       left: {
+//         field: 'ProcessType',
+//         operator: 'IN',
+//         value: ["'Workflow'", "'InvocableProcess'"],
+//         literalType: 'STRING',
+//       },
+//       operator: 'AND',
+//       right: {
+//         left: {
+//           field: 'Id',
+//           operator: 'IN',
+//           value: flowVersionIds,
+//           literalType: 'STRING',
+//         },
+//         operator: 'AND',
+//         right: {
+//           left: {
+//             field: 'ManageableState',
+//             operator: '=',
+//             value: 'unmanaged',
+//             literalType: 'STRING',
+//           },
+//         },
+//       },
+//     },
+//     orderBy: [
+//       {
+//         field: 'Definition.DeveloperName',
+//         order: 'ASC',
+//       },
+//       {
+//         field: 'VersionNumber',
+//         order: 'DESC',
+//       },
+//     ],
+//   });
+//   logger.info('getWorkflowRuleQuery()', { soql });
+//   return soql;
+// }
 
 export function getLatestFlowDefinitionIds() {
   const soql = composeQuery({
@@ -580,10 +629,7 @@ export function getLatestFlowDefinitionIds() {
         rawValue: 'MAX(Id)',
         alias: 'MostRecentId',
       },
-      {
-        type: 'Field',
-        field: 'DefinitionId',
-      },
+      getField('DefinitionId'),
     ],
     sObject: 'Flow',
     where: {

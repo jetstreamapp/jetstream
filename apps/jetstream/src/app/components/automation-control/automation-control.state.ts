@@ -33,7 +33,7 @@ export const tabs = atom<UiTabSection[]>({
 });
 
 // sobject: [id1, id2]
-export const flowVersionsBySobject = atom<MapOf<string[]>>({
-  key: 'automationControl.flowVersionsBySobject',
+export const flowDefinitionsBySobject = atom<MapOf<string[]>>({
+  key: 'automationControl.flowDefinitionsBySobject',
   default: null,
 });
