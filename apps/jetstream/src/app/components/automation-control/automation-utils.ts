@@ -40,6 +40,7 @@ export function initItemsById(sobjects: ToolingEntityDefinitionRecord[]): [strin
           metadataType: 'ValidationRule',
           loading: false,
           hasLoaded: true,
+          expanded: true,
           items: sobject.ValidationRules
             ? convertValidationRuleRecordsToAutomationControlItem(sobject.QualifiedApiName, sobject.ValidationRules.records)
             : [],
@@ -48,24 +49,28 @@ export function initItemsById(sobjects: ToolingEntityDefinitionRecord[]): [strin
           metadataType: 'WorkflowRule',
           loading: false,
           hasLoaded: false,
+          expanded: true,
           items: [],
         },
         Flow: {
           metadataType: 'Flow',
           loading: false,
           hasLoaded: false,
+          expanded: true,
           items: [],
         },
         ApexTrigger: {
           metadataType: 'ApexTrigger',
           loading: false,
           hasLoaded: true,
+          expanded: true,
           items: sobject.ApexTriggers ? convertApexTriggerRecordsToAutomationControlItem(sobject.ApexTriggers.records) : [],
         },
         AssignmentRule: {
           metadataType: 'AssignmentRule',
           loading: false,
           hasLoaded: true,
+          expanded: true,
           items: sobject.AssignmentRules
             ? convertAssignmentRuleRecordsToAutomationControlItem(sobject.QualifiedApiName, sobject.AssignmentRules.records)
             : [],

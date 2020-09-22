@@ -46,15 +46,16 @@ export const Accordion: FunctionComponent<AccordionProps> = ({
   }
 
   function handleExpandAll() {
-    setOpenIds(new Set(sections.map((section) => section.id)));
+    const newOpenIds = new Set(sections.map((section) => section.id));
+    setOpenIds(newOpenIds);
     if (onActiveIdsChange) {
-      onActiveIdsChange(Array.from(openIds));
+      onActiveIdsChange(Array.from(newOpenIds));
     }
   }
   function handleCollapseAll() {
     setOpenIds(new Set());
     if (onActiveIdsChange) {
-      onActiveIdsChange(Array.from(openIds));
+      onActiveIdsChange([]);
     }
   }
 

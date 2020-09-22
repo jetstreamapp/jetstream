@@ -34,6 +34,7 @@ export interface AutomationControlMetadataType<T = AutomationControlMetadataType
   loading: boolean;
   hasLoaded: boolean;
   errorMessage?: string;
+  expanded: boolean;
   items: AutomationControlMetadataTypeItem<T, K>[];
 }
 

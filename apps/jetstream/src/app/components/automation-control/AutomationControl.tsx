@@ -124,7 +124,8 @@ export const AutomationControl: FunctionComponent<AutomationControlProps> = () =
             content: (
               <AutomationControlTabContent
                 item={item}
-                toggleExpanded={(type, value, childItem) => handleToggleExpand(item.key, type, value, childItem)}
+                automationItemExpandChange={(metadataTypes) => handleAutomationItemExpandChanged(item.key, metadataTypes)}
+                toggleChildItemExpand={(type, value, childItem) => handleToggleChildItemExpand(item.key, type, value, childItem)}
                 onChange={(type, value, childItem, grandChildItem) => handleItemChange(item.key, type, value, childItem, grandChildItem)}
                 toggleAll={(value) => handleToggleAll(item.key, value)}
               />
@@ -134,7 +135,23 @@ export const AutomationControl: FunctionComponent<AutomationControlProps> = () =
     );
   }, [itemIds, itemsById]);
 
-  function handleToggleExpand(
+  function handleAutomationItemExpandChanged(parentItemKey: string, automationItems: string[]) {
+    const automationItemsSet = new Set(automationItems);
+    const itemsByIdTemp = {
+      ...itemsById,
+      [parentItemKey]: { ...itemsById[parentItemKey], automationItems: { ...itemsById[parentItemKey].automationItems } },
+    };
+
+    Object.keys(itemsByIdTemp[parentItemKey].automationItems).forEach((metadataType) => {
+      itemsByIdTemp[parentItemKey].automationItems[metadataType] = {
+        ...itemsByIdTemp[parentItemKey].automationItems[metadataType],
+        expanded: automationItemsSet.has(metadataType),
+      };
+    });
+    setItemsById(itemsByIdTemp);
+  }
+
+  function handleToggleChildItemExpand(
     parentItemKey: string,
     type: AutomationMetadataType,
     value: boolean,

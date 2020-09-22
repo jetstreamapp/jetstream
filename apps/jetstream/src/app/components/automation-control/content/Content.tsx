@@ -12,7 +12,8 @@ import { AutomationControlContentValidationRule } from './ValidationRule';
 import AutomationControlContentWorkflowRule from './WorkflowRule';
 interface AutomationControlTabContentProps {
   item: AutomationControlParentSobject;
-  toggleExpanded: (type: AutomationMetadataType, value: boolean, item: AutomationControlMetadataTypeItem) => void;
+  automationItemExpandChange: (expandedType: AutomationMetadataType[]) => void;
+  toggleChildItemExpand: (type: AutomationMetadataType, value: boolean, item: AutomationControlMetadataTypeItem) => void;
   onChange: (
     type: AutomationMetadataType,
     value: boolean,
@@ -33,10 +34,14 @@ function getModifiedItemsText(items: AutomationControlMetadataTypeItem[]) {
 
 export const AutomationControlTabContent: FunctionComponent<AutomationControlTabContentProps> = ({
   item,
-  toggleExpanded,
+  automationItemExpandChange,
+  toggleChildItemExpand,
   onChange,
   toggleAll,
 }) => {
+  const expandedAutomationItems = Object.values(item.automationItems)
+    .filter((item) => item.expanded)
+    .map((item) => item.metadataType);
   return (
     <AutoFullHeightContainer bottomBuffer={30}>
       <Grid align="spread">
@@ -48,8 +53,10 @@ export const AutomationControlTabContent: FunctionComponent<AutomationControlTab
         </GridCol>
       </Grid>
       <Accordion
-        initOpenIds={['ValidationRule', 'WorkflowRule', 'Flow', 'ApexTrigger', 'AssignmentRule']}
+        initOpenIds={expandedAutomationItems}
+        onActiveIdsChange={(openIds) => automationItemExpandChange(openIds as AutomationMetadataType[])}
         showExpandCollapseAll
+        allowMultiple
         sections={[
           {
             id: 'ValidationRule',
@@ -80,7 +87,11 @@ export const AutomationControlTabContent: FunctionComponent<AutomationControlTab
             title: `Process Builders`,
             content: (
               <AutomationControlContentContainer parentItem={item.automationItems.Flow} items={item.automationItems.Flow.items}>
-                <AutomationControlContentFlow items={item.automationItems.Flow.items} toggleExpanded={toggleExpanded} onChange={onChange} />
+                <AutomationControlContentFlow
+                  items={item.automationItems.Flow.items}
+                  toggleExpanded={toggleChildItemExpand}
+                  onChange={onChange}
+                />
               </AutomationControlContentContainer>
             ),
           },
@@ -110,7 +121,6 @@ export const AutomationControlTabContent: FunctionComponent<AutomationControlTab
             ),
           },
         ]}
-        allowMultiple={true}
       ></Accordion>
     </AutoFullHeightContainer>
   );
