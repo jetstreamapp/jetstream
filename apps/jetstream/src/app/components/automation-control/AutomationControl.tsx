@@ -369,20 +369,6 @@ export const AutomationControl: FunctionComponent<AutomationControlProps> = () =
     };
   }
 
-  // async function loadProcessBuilders(
-  //   durableId: string,
-  //   currentFlowMeta: AutomationControlMetadataType<ToolingFlowDefinitionWithVersions>
-  // ): Promise<AutomationControlMetadataType<ToolingFlowDefinitionWithVersions>> {
-  //   const flows = await getProcessBuilders(selectedOrg, durableId);
-
-  //   return {
-  //     ...currentFlowMeta,
-  //     loading: false,
-  //     hasLoaded: true,
-  //     items: convertFlowRecordsToAutomationControlItem(flows),
-  //   };
-  // }
-
   async function loadProcessBuildersNew(
     sobject: string,
     currentFlowMeta: AutomationControlMetadataType<ToolingFlowDefinitionWithVersions>
@@ -420,6 +406,7 @@ export const AutomationControl: FunctionComponent<AutomationControlProps> = () =
         {sobjects && sobjects.length > 0 && (
           <Tabs
             position="vertical"
+            showFilter
             tabs={tabs}
             // TODO: we probably need to calculate this because the % does not work across all screen sizes
             ulStyle={{

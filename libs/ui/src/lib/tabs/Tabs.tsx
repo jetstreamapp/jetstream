@@ -2,10 +2,14 @@
 import { HorizontalVertical, UiTabSection } from '@jetstream/types';
 import classNames from 'classnames';
 import isNil from 'lodash/isNil';
+import numeral from 'numeral';
 import React, { FunctionComponent, useEffect, useState } from 'react';
+import { REGEX } from '../../../../shared/utils/src';
+import SearchInput from '../form/search-input/SearchInput';
 
 export interface TabsProps {
   position?: HorizontalVertical;
+  showFilter?: boolean; // only applies to vertical tabs
   tabs: UiTabSection[];
   initialActiveId?: string;
   className?: string; // slds-tabs_medium, slds-tabs_large, slds-tabs_card
@@ -17,6 +21,7 @@ export interface TabsProps {
 
 export const Tabs: FunctionComponent<TabsProps> = ({
   position = 'horizontal',
+  showFilter,
   tabs,
   initialActiveId,
   className,
@@ -37,6 +42,8 @@ export const Tabs: FunctionComponent<TabsProps> = ({
       return tabs[0];
     }
   });
+  const [filterValue, setFilterValue] = useState('');
+  const [filteredTabs, setFilteredTabs] = useState(tabs);
 
   useEffect(() => {
     if (tabs && activeId) {
@@ -49,6 +56,16 @@ export const Tabs: FunctionComponent<TabsProps> = ({
       setActiveId(initialActiveId);
     }
   }, [initialActiveId]);
+
+  useEffect(() => {
+    if (!filterValue && tabs !== filteredTabs) {
+      setFilteredTabs(tabs);
+    } else if (filterValue) {
+      const value = new RegExp(filterValue.replace(REGEX.NOT_ALPHANUMERIC_OR_UNDERSCORE, ''), 'i');
+      setFilteredTabs(tabs.filter((tab) => value.test(`${tab.titleText || tab.title}${tab.id}`)));
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [tabs, filterValue]);
 
   function handleTabClick(event: React.MouseEvent<HTMLAnchorElement, MouseEvent>, tab: UiTabSection) {
     event.preventDefault();
@@ -67,7 +84,21 @@ export const Tabs: FunctionComponent<TabsProps> = ({
         aria-orientation={position}
         style={ulStyle}
       >
-        {tabs.map((tab) => (
+        {showFilter && position === 'vertical' && (
+          <div className="slds-p-bottom--xx-small">
+            <SearchInput
+              id="accordion-input-filter"
+              placeholder="Search"
+              autoFocus
+              onChange={setFilterValue}
+              // onArrowKeyUpDown={handleSearchKeyboard}
+            />
+            <div className="slds-text-body_small slds-text-color_weak slds-p-left--xx-small">
+              Showing {numeral(filteredTabs.length).format('0,0')} of {numeral(tabs.length).format('0,0')} items
+            </div>
+          </div>
+        )}
+        {filteredTabs.map((tab) => (
           <li
             key={tab.id}
             className={classNames(

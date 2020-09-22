@@ -48,6 +48,7 @@ export const base = () => (
 export const vertical = () => (
   <Tabs
     position="vertical"
+    showFilter
     tabs={[
       {
         id: 'Tab1',
