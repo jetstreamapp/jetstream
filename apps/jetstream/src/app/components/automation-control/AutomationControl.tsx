@@ -124,6 +124,7 @@ export const AutomationControl: FunctionComponent<AutomationControlProps> = () =
             content: (
               <AutomationControlTabContent
                 item={item}
+                toggleExpanded={(type, value, childItem) => handleToggleExpand(item.key, type, value, childItem)}
                 onChange={(type, value, childItem, grandChildItem) => handleItemChange(item.key, type, value, childItem, grandChildItem)}
                 toggleAll={(value) => handleToggleAll(item.key, value)}
               />
@@ -132,6 +133,22 @@ export const AutomationControl: FunctionComponent<AutomationControlProps> = () =
         )
     );
   }, [itemIds, itemsById]);
+
+  function handleToggleExpand(
+    parentItemKey: string,
+    type: AutomationMetadataType,
+    value: boolean,
+    item: AutomationControlMetadataTypeItem
+  ) {
+    const itemsByIdTemp = { ...itemsById, [parentItemKey]: { ...itemsById[parentItemKey] } };
+    itemsByIdTemp[parentItemKey].automationItems = {
+      ...itemsByIdTemp[parentItemKey].automationItems,
+      [type]: { ...itemsByIdTemp[parentItemKey].automationItems[type] },
+    };
+    const currItem: AutomationControlMetadataType = itemsByIdTemp[parentItemKey].automationItems[type];
+    currItem.items = currItem.items.map((childItem) => (childItem.fullName === item.fullName ? { ...item, expanded: value } : childItem));
+    setItemsById(itemsByIdTemp);
+  }
 
   /**
    * Called when user toggles a checkbox

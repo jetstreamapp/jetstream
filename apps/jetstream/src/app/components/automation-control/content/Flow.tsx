@@ -12,6 +12,7 @@ import {
 
 interface AutomationControlContentFlowProps {
   items: AutomationControlMetadataTypeItem<ToolingFlowDefinitionWithVersions, ToolingFlowRecord>[];
+  toggleExpanded: (type: AutomationMetadataType, value: boolean, item: AutomationControlMetadataTypeItem) => void;
   onChange: (
     type: AutomationMetadataType,
     value: boolean,
@@ -20,9 +21,9 @@ interface AutomationControlContentFlowProps {
   ) => void;
 }
 
-export const AutomationControlContentFlow: FunctionComponent<AutomationControlContentFlowProps> = ({ items, onChange }) => {
+export const AutomationControlContentFlow: FunctionComponent<AutomationControlContentFlowProps> = ({ items, toggleExpanded, onChange }) => {
   return (
-    <table className="slds-table slds-table_cell-buffer slds-table_bordered slds-no-row-hover slds-tree" role="treegrid">
+    <table className="slds-table slds-table_cell-buffer slds-table_bordered slds-no-row-hover slds-tree slds-table_tree" role="treegrid">
       <thead>
         <tr className="slds-line-height_reset">
           <th
@@ -72,31 +73,34 @@ export const AutomationControlContentFlow: FunctionComponent<AutomationControlCo
           <Fragment key={item.fullName}>
             <tr
               key={item.fullName}
-              aria-expanded={true}
+              aria-expanded={item.expanded || false}
               aria-level={1}
               aria-posinset={i}
               aria-selected={false}
               aria-setsize={items.length}
               className={classNames({ 'slds-is-edited': item.currentValue !== item.initialValue }, 'slds-hint-parent')}
+              onClick={() => toggleExpanded('Flow', !item.expanded, item)}
             >
-              <th scope="row">
-                {/* This icon made things look cluttered */}
-                {/* <Icon
-                      type="utility"
-                      icon="chevrondown"
-                      className="slds-icon slds-icon_x-small slds-icon-text-default slds-m-top_xx-small slds-m-right_xx-small"
-                      omitContainer
-                    /> */}
-                <div className="slds-cell-wrap slds-line-clamp" title={item.label}>
+              <th className="slds-tree__item" scope="row">
+                <button
+                  className="slds-button slds-button_icon slds-button_icon-x-small slds-m-right_x-small"
+                  aria-hidden="true"
+                  tabIndex={-1}
+                  title={`Toggle Expand/Collapse ${item.label}`}
+                >
+                  <Icon type="utility" icon="chevronright" className="slds-button__icon slds-button__icon_small" omitContainer />
+                  <span className="slds-assistive-text">Toggle Versions</span>
+                </button>
+                <div className="slds-cell-wrap slds-line-clamp slds-text-link" title={item.label}>
                   {item.label}
                 </div>
               </th>
-              <td>
+              <td role="gridcell">
                 <div className="slds-cell-wrap slds-line-clamp" title={item.description}>
                   {item.description}
                 </div>
               </td>
-              <td>
+              <td role="gridcell">
                 <div className="slds-cell-wrap slds-line-clamp" title={`${item.metadata.Versions.length}`}>
                   <Grid vertical>
                     <GridCol>
@@ -112,7 +116,7 @@ export const AutomationControlContentFlow: FunctionComponent<AutomationControlCo
                   </Grid>
                 </div>
               </td>
-              <td>
+              <td role="gridcell">
                 <Grid vertical>
                   <GridCol>
                     {item.metadata.LastModifiedBy && (
@@ -128,13 +132,14 @@ export const AutomationControlContentFlow: FunctionComponent<AutomationControlCo
                   </GridCol>
                 </Grid>
               </td>
-              <td>
+              <td role="gridcell">
                 <div className="slds-cell-wrap slds-line-clamp" title={`${item.currentValue}`}>
                   <Checkbox id={`Flow-${item.fullName}`} label="Is Active" hideLabel checked={item.currentValue} readOnly disabled />
                 </div>
               </td>
             </tr>
-            {Array.isArray(item.children) &&
+            {item.expanded &&
+              Array.isArray(item.children) &&
               item.children.map((childItem, k) => (
                 <tr
                   key={childItem.fullName}
@@ -144,16 +149,8 @@ export const AutomationControlContentFlow: FunctionComponent<AutomationControlCo
                   aria-setsize={item.children.length}
                   className={classNames({ 'slds-is-edited': childItem.currentValue !== childItem.initialValue }, 'slds-hint-parent')}
                 >
-                  <th className="slds-m-left_x-small" scope="row">
-                    <Grid>
-                      <GridCol growNone>
-                        <Icon
-                          type="utility"
-                          icon="level_down"
-                          className="slds-icon slds-icon_x-small slds-icon-text-default slds-m-right_xx-small slds-m-bottom_xx-small"
-                          omitContainer
-                        />
-                      </GridCol>
+                  <th scope="row">
+                    <Grid className="slds-grid slds-p-left_xx-large">
                       <GridCol>
                         <div className="slds-cell-wrap slds-line-clamp" title={childItem.label}>
                           {childItem.label}
@@ -161,17 +158,17 @@ export const AutomationControlContentFlow: FunctionComponent<AutomationControlCo
                       </GridCol>
                     </Grid>
                   </th>
-                  <td>
+                  <td role="gridcell">
                     <div className="slds-cell-wrap slds-line-clamp" title={childItem.description}>
                       {childItem.description}
                     </div>
                   </td>
-                  <td>
+                  <td role="gridcell">
                     <div className="slds-cell-wrap slds-line-clamp" title={`${childItem.metadata.VersionNumber}`}>
                       {childItem.metadata.VersionNumber}
                     </div>
                   </td>
-                  <td>
+                  <td role="gridcell">
                     <Grid vertical>
                       <GridCol>
                         {childItem.metadata.LastModifiedBy && (
@@ -187,7 +184,7 @@ export const AutomationControlContentFlow: FunctionComponent<AutomationControlCo
                       </GridCol>
                     </Grid>
                   </td>
-                  <td>
+                  <td role="gridcell">
                     <div className="slds-cell-wrap slds-line-clamp" title={`${childItem.currentValue}`}>
                       <Checkbox
                         id={`Flow-${childItem.fullName}`}

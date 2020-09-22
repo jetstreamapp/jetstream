@@ -43,6 +43,7 @@ export interface AutomationControlMetadataTypeItem<T = AutomationControlMetadata
   description: string;
   initialValue: boolean;
   currentValue: boolean;
+  expanded?: boolean; // only applies to items with children
   children?: AutomationControlMetadataTypeItem<K>[]; // Process Builder is the only type with children
   metadata: T;
 }

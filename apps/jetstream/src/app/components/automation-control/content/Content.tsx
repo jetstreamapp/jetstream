@@ -12,6 +12,7 @@ import { AutomationControlContentValidationRule } from './ValidationRule';
 import AutomationControlContentWorkflowRule from './WorkflowRule';
 interface AutomationControlTabContentProps {
   item: AutomationControlParentSobject;
+  toggleExpanded: (type: AutomationMetadataType, value: boolean, item: AutomationControlMetadataTypeItem) => void;
   onChange: (
     type: AutomationMetadataType,
     value: boolean,
@@ -30,7 +31,12 @@ function getModifiedItemsText(items: AutomationControlMetadataTypeItem[]) {
   }
 }
 
-export const AutomationControlTabContent: FunctionComponent<AutomationControlTabContentProps> = ({ item, onChange, toggleAll }) => {
+export const AutomationControlTabContent: FunctionComponent<AutomationControlTabContentProps> = ({
+  item,
+  toggleExpanded,
+  onChange,
+  toggleAll,
+}) => {
   return (
     <AutoFullHeightContainer bottomBuffer={30}>
       <Grid align="spread">
@@ -74,7 +80,7 @@ export const AutomationControlTabContent: FunctionComponent<AutomationControlTab
             title: `Process Builders`,
             content: (
               <AutomationControlContentContainer parentItem={item.automationItems.Flow} items={item.automationItems.Flow.items}>
-                <AutomationControlContentFlow items={item.automationItems.Flow.items} onChange={onChange} />
+                <AutomationControlContentFlow items={item.automationItems.Flow.items} toggleExpanded={toggleExpanded} onChange={onChange} />
               </AutomationControlContentContainer>
             ),
           },
