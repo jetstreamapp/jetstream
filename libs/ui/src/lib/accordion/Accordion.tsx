@@ -88,7 +88,7 @@ export const Accordion: FunctionComponent<AccordionProps> = ({
             }
           }
           return (
-            <li className="slds-accordion__list-item" key={item.id}>
+            <li className={classNames('slds-accordion__list-item', item.className)} key={item.id} style={item.style}>
               <section className={classNames('slds-accordion__section', { 'slds-is-open': isOpen })}>
                 <div className="slds-accordion__summary">
                   <h3 className="slds-accordion__summary-heading">

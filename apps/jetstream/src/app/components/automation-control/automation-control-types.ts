@@ -1,14 +1,26 @@
 import { QueryResult } from 'jsforce';
+import { MapOf } from '@jetstream/types';
 
-export type AutomationMetadataType = 'ValidationRule' | 'WorkflowRule' | 'Flow' | 'ApexTrigger' | 'AssignmentRule';
+export type ValidationRule = 'ValidationRule';
+export type WorkflowRule = 'WorkflowRule';
+export type Flow = 'Flow';
+export type FlowDefinition = 'FlowDefinition';
+export type ApexTrigger = 'ApexTrigger';
+
+export type AutomationMetadataType = ValidationRule | WorkflowRule | Flow | ApexTrigger;
+export type AutomationMetadataDeployType = ValidationRule | WorkflowRule | FlowDefinition | ApexTrigger;
 
 type AutomationControlMetadataTypeGeneric =
   | ToolingValidationRuleRecord
   | ToolingWorkflowRuleRecordWithMetadata
   | ToolingFlowDefinitionWithVersions
   | ToolingApexTriggerRecord
-  | ToolingAssignmentRuleRecord
   | ToolingFlowRecord;
+
+export interface DirtyAutomationItems {
+  anyDirty: boolean;
+  itemsById: MapOf<boolean>;
+}
 
 export interface AutomationControlParentSobject {
   key: string;
@@ -25,7 +37,6 @@ export interface AutomationControlParentSobject {
     WorkflowRule: AutomationControlMetadataType<ToolingWorkflowRuleRecordWithMetadata, null>;
     Flow: AutomationControlMetadataType<ToolingFlowDefinitionWithVersions, ToolingFlowRecord>;
     ApexTrigger: AutomationControlMetadataType<ToolingApexTriggerRecord, null>;
-    AssignmentRule: AutomationControlMetadataType<ToolingAssignmentRuleRecord, null>;
   };
 }
 
@@ -44,6 +55,8 @@ export interface AutomationControlMetadataTypeItem<T = AutomationControlMetadata
   description: string;
   initialValue: boolean;
   currentValue: boolean;
+  initialActiveVersion?: number; // only applies to item with versions (Flow)
+  currentActiveVersion?: number; // only applies to item with versions (Flow)
   expanded?: boolean; // only applies to items with children
   children?: AutomationControlMetadataTypeItem<K>[]; // Process Builder is the only type with children
   metadata: T;
@@ -90,12 +103,6 @@ export interface ToolingApexTriggerRecord extends SystemFields {
   Status: 'Inactive' | 'Active' | 'Deleted';
 }
 
-export interface ToolingAssignmentRuleRecord extends SystemFields {
-  EntityDefinitionId: string;
-  Name: string;
-  Active: boolean;
-}
-
 export interface ToolingEntityDefinitionRecord {
   attributes: {};
   Id: string;
@@ -116,7 +123,6 @@ export interface ToolingEntityDefinitionRecord {
   PublisherId: string | '<local>' | 'System';
   LastModifiedById: string;
   ApexTriggers: QueryResult<ToolingApexTriggerRecord>;
-  AssignmentRules: QueryResult<ToolingAssignmentRuleRecord>;
   ValidationRules: QueryResult<ToolingValidationRuleRecord>;
 }
 

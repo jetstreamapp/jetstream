@@ -3,7 +3,7 @@ import { jsx } from '@emotion/core';
 import { logger } from '@jetstream/shared/client-logger';
 import { query } from '@jetstream/shared/data';
 import { orderObjectsBy } from '@jetstream/shared/utils';
-import { SalesforceOrgUi, UiTabSection } from '@jetstream/types';
+import { MapOf, SalesforceOrgUi, UiTabSection } from '@jetstream/types';
 import {
   AutoFullHeightContainer,
   Icon,
@@ -21,6 +21,7 @@ import { selectedOrgState } from '../../app-state';
 import {
   AutomationControlMetadataType,
   AutomationControlMetadataTypeItem,
+  AutomationControlParentSobject,
   AutomationMetadataType,
   ToolingEntityDefinitionRecord,
   ToolingFlowDefinitionWithVersions,
@@ -30,6 +31,7 @@ import * as fromAutomationCtlState from './automation-control.state';
 import {
   convertFlowRecordsToAutomationControlItem,
   convertWorkflowRuleRecordsToAutomationControlItem,
+  deployChanges,
   getEntityDefinitionQuery,
   getProcessBuilders,
   getWorkflowRulesMetadata,
@@ -55,6 +57,7 @@ export const AutomationControl: FunctionComponent<AutomationControlProps> = () =
   const [activeItemId, setActiveItemId] = useRecoilState(fromAutomationCtlState.activeItemId);
   const [tabs, setTabs] = useRecoilState(fromAutomationCtlState.tabs);
   const [flowDefinitionsBySobject, setFlowDefinitionsBySobject] = useRecoilState(fromAutomationCtlState.flowDefinitionsBySobject);
+  const dirtyItems = useRecoilValue(fromAutomationCtlState.selectDirtyItems);
 
   const resetSObjectsState = useResetRecoilState(fromAutomationCtlState.sObjectsState);
   const resetItemIds = useResetRecoilState(fromAutomationCtlState.itemIds);
@@ -124,6 +127,7 @@ export const AutomationControl: FunctionComponent<AutomationControlProps> = () =
             content: (
               <AutomationControlTabContent
                 item={item}
+                isDirty={dirtyItems.itemsById[item.key]}
                 automationItemExpandChange={(metadataTypes) => handleAutomationItemExpandChanged(item.key, metadataTypes)}
                 toggleChildItemExpand={(type, value, childItem) => handleToggleChildItemExpand(item.key, type, value, childItem)}
                 onChange={(type, value, childItem, grandChildItem) => handleItemChange(item.key, type, value, childItem, grandChildItem)}
@@ -211,15 +215,20 @@ export const AutomationControl: FunctionComponent<AutomationControlProps> = () =
         // If false, set every flow version to false including flow definition
         if (!value) {
           childItem.currentValue = false;
+          childItem.currentActiveVersion = null;
           childItem.children = childItem.children.map((currGrandChildItem) => ({ ...currGrandChildItem, currentValue: false }));
         } else {
           // If value is true, set parent to true, all other items to false, and current item to true
           childItem.currentValue = value;
-          childItem.children = childItem.children.map((currGrandChildItem) =>
-            currGrandChildItem.fullName === grandChildItem.fullName
-              ? { ...currGrandChildItem, currentValue: true }
-              : { ...currGrandChildItem, currentValue: false }
-          );
+          childItem.currentActiveVersion = null;
+          childItem.children = childItem.children.map((currGrandChildItem) => {
+            if (currGrandChildItem.fullName === grandChildItem.fullName) {
+              childItem.currentActiveVersion = currGrandChildItem.metadata.VersionNumber;
+              return { ...currGrandChildItem, currentValue: true };
+            } else {
+              return { ...currGrandChildItem, currentValue: false };
+            }
+          });
         }
         return childItem;
       });
@@ -253,16 +262,21 @@ export const AutomationControl: FunctionComponent<AutomationControlProps> = () =
             // reset parent and grandchildren to OG value
             if (value === null) {
               returnItem.currentValue = item.initialValue;
+              returnItem.currentActiveVersion = item.initialActiveVersion;
               if (Array.isArray(returnItem.children)) {
                 returnItem.children = returnItem.children.map((grandChild) => ({ ...grandChild, currentValue: grandChild.initialValue }));
               }
             } else if (value) {
               // If no item selected, then select most recent version (first item in list) - otherwise ignore
-              returnItem.currentValue = true;
-              returnItem.children = returnItem.children.map((grandChild, i) => ({ ...grandChild, currentValue: i === 0 }));
+              if (returnItem.children.every((grandChild) => !grandChild.currentValue)) {
+                returnItem.currentValue = true;
+                returnItem.currentActiveVersion = returnItem.children[0].metadata.VersionNumber;
+                returnItem.children = returnItem.children.map((grandChild, i) => ({ ...grandChild, currentValue: i === 0 }));
+              }
             } else {
               // If deselect all, then unselect parent and every child
               returnItem.currentValue = false;
+              returnItem.currentActiveVersion = null;
               returnItem.children = returnItem.children.map((grandChild, i) => ({ ...grandChild, currentValue: false }));
             }
             return returnItem;
@@ -405,13 +419,24 @@ export const AutomationControl: FunctionComponent<AutomationControlProps> = () =
     };
   }
 
+  async function handleDeploy() {
+    const modifiedItemsById = Object.keys(dirtyItems.itemsById)
+      .filter((key) => dirtyItems.itemsById[key])
+      .reduce((output: MapOf<AutomationControlParentSobject>, key) => {
+        output[key] = itemsById[key];
+        return output;
+      }, {});
+
+    await deployChanges(selectedOrg, modifiedItemsById);
+  }
+
   return (
     <Page>
       <PageHeader>
         <PageHeaderRow>
           <PageHeaderTitle icon={{ type: 'standard', icon: 'activations' }} label="Automation Control" />
           <PageHeaderActions colType="actions" buttonType="separate">
-            <button className="slds-button slds-button_brand">
+            <button className="slds-button slds-button_brand" disabled={!dirtyItems.anyDirty} onClick={handleDeploy}>
               <Icon type="utility" icon="upload" className="slds-button__icon slds-button__icon_left" />
               Deploy Changes
             </button>
@@ -423,12 +448,14 @@ export const AutomationControl: FunctionComponent<AutomationControlProps> = () =
         {sobjects && sobjects.length > 0 && (
           <Tabs
             position="vertical"
-            showFilter
+            filterVisible
+            filterPlaceholder="Filter Objects"
             tabs={tabs}
             // TODO: we probably need to calculate this because the % does not work across all screen sizes
             ulStyle={{
               maxHeight: '86vh',
               overflowY: 'scroll',
+              width: '25rem',
             }}
             onChange={handleActiveTabIdChange}
           />

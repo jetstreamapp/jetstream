@@ -1,6 +1,6 @@
 /** @jsx jsx */
 import { css, jsx } from '@emotion/core';
-import { Checkbox, Grid, GridCol } from '@jetstream/ui';
+import { CheckboxToggle, Grid, GridCol } from '@jetstream/ui';
 import classNames from 'classnames';
 import { FunctionComponent } from 'react';
 import {
@@ -27,6 +27,16 @@ export const AutomationControlContentWorkflowRule: FunctionComponent<AutomationC
           <th
             scope="col"
             css={css`
+              width: 50px;
+            `}
+          >
+            <div className="slds-truncate" title="Is Active">
+              Is Active
+            </div>
+          </th>
+          <th
+            scope="col"
+            css={css`
               width: 220px;
             `}
           >
@@ -49,21 +59,20 @@ export const AutomationControlContentWorkflowRule: FunctionComponent<AutomationC
               Last Modified
             </div>
           </th>
-          <th
-            scope="col"
-            css={css`
-              width: 50px;
-            `}
-          >
-            <div className="slds-truncate" title="Is Active">
-              Is Active
-            </div>
-          </th>
         </tr>
       </thead>
       <tbody>
         {items.map((item) => (
           <tr key={item.fullName} className={classNames({ 'slds-is-edited': item.currentValue !== item.initialValue }, 'slds-hint-parent')}>
+            <td>
+              <CheckboxToggle
+                id={`WorkflowRule-${item.fullName}`}
+                label="Is Active"
+                hideLabel
+                checked={item.currentValue}
+                onChange={(value) => onChange('WorkflowRule', value, item)}
+              />
+            </td>
             <th scope="row">
               <div className="slds-cell-wrap slds-line-clamp" title={item.label}>
                 {item.label}
@@ -89,17 +98,6 @@ export const AutomationControlContentWorkflowRule: FunctionComponent<AutomationC
                   </div>
                 </GridCol>
               </Grid>
-            </td>
-            <td>
-              <div className="slds-cell-wrap slds-line-clamp" title={`${item.currentValue}`}>
-                <Checkbox
-                  id={`WorkflowRule-${item.fullName}`}
-                  label="Is Active"
-                  hideLabel
-                  checked={item.currentValue}
-                  onChange={(value) => onChange('WorkflowRule', value, item)}
-                />
-              </div>
             </td>
           </tr>
         ))}

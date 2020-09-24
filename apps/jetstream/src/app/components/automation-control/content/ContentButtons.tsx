@@ -6,10 +6,15 @@ import { Fragment, FunctionComponent } from 'react';
 import { AutomationControlParentSobject } from '../automation-control-types';
 interface AutomationControlTabContentButtonsProps {
   item: AutomationControlParentSobject;
+  isDirty: boolean;
   toggleAll: (value: boolean | null) => void;
 }
 
-export const AutomationControlTabContentButtons: FunctionComponent<AutomationControlTabContentButtonsProps> = ({ item, toggleAll }) => {
+export const AutomationControlTabContentButtons: FunctionComponent<AutomationControlTabContentButtonsProps> = ({
+  item,
+  isDirty,
+  toggleAll,
+}) => {
   const loading = Object.values(item.automationItems).some((automationItem) => !automationItem.hasLoaded);
   return (
     <Fragment>
@@ -17,7 +22,7 @@ export const AutomationControlTabContentButtons: FunctionComponent<AutomationCon
         className={classNames('slds-button slds-button_neutral')}
         title="Reset Changes"
         onClick={() => toggleAll(null)}
-        disabled={loading}
+        disabled={loading || !isDirty}
       >
         <Icon type="utility" icon="undo" className="slds-button__icon slds-button__icon_left" omitContainer />
         Reset Changes

@@ -16,7 +16,9 @@ export interface AutomationControlTabTitleProps {
 
 function getModifiedItemsText(item: AutomationControlParentSobject) {
   const modifiedItemCount = Object.values(item.automationItems).flatMap((childItem: AutomationControlMetadataType) =>
-    childItem.items.filter((currItem) => currItem.currentValue !== currItem.initialValue)
+    childItem.items.filter(
+      (currItem) => currItem.currentValue !== currItem.initialValue || currItem.currentActiveVersion !== currItem.initialActiveVersion
+    )
   ).length;
   if (modifiedItemCount) {
     return <span className="slds-badge slds-badge_inverse">{modifiedItemCount}</span>;

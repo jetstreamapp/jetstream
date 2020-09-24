@@ -1,6 +1,6 @@
 /** @jsx jsx */
 import { css, jsx } from '@emotion/core';
-import { Checkbox, Grid, GridCol, Icon } from '@jetstream/ui';
+import { CheckboxToggle, Grid, GridCol, Icon } from '@jetstream/ui';
 import classNames from 'classnames';
 import { Fragment, FunctionComponent } from 'react';
 import {
@@ -26,6 +26,16 @@ export const AutomationControlContentFlow: FunctionComponent<AutomationControlCo
     <table className="slds-table slds-table_cell-buffer slds-table_bordered slds-no-row-hover slds-tree slds-table_tree" role="treegrid">
       <thead>
         <tr className="slds-line-height_reset">
+          <th
+            scope="col"
+            css={css`
+              width: 50px;
+            `}
+          >
+            <div className="slds-truncate" title="Is Active">
+              Is Active
+            </div>
+          </th>
           <th
             scope="col"
             css={css`
@@ -56,16 +66,6 @@ export const AutomationControlContentFlow: FunctionComponent<AutomationControlCo
               Last Modified
             </div>
           </th>
-          <th
-            scope="col"
-            css={css`
-              width: 50px;
-            `}
-          >
-            <div className="slds-truncate" title="Is Active">
-              Is Active
-            </div>
-          </th>
         </tr>
       </thead>
       <tbody>
@@ -78,9 +78,15 @@ export const AutomationControlContentFlow: FunctionComponent<AutomationControlCo
               aria-posinset={i}
               aria-selected={false}
               aria-setsize={items.length}
-              className={classNames({ 'slds-is-edited': item.currentValue !== item.initialValue }, 'slds-hint-parent')}
+              className={classNames(
+                { 'slds-is-edited': item.currentValue !== item.initialValue || item.initialActiveVersion !== item.currentActiveVersion },
+                'slds-hint-parent'
+              )}
               onClick={() => toggleExpanded('Flow', !item.expanded, item)}
             >
+              <td role="gridcell">
+                <CheckboxToggle id={`Flow-${item.fullName}`} label="Is Active" hideLabel checked={item.currentValue} disabled />
+              </td>
               <th className="slds-tree__item" scope="row">
                 <button
                   className="slds-button slds-button_icon slds-button_icon-x-small slds-m-right_x-small"
@@ -132,11 +138,6 @@ export const AutomationControlContentFlow: FunctionComponent<AutomationControlCo
                   </GridCol>
                 </Grid>
               </td>
-              <td role="gridcell">
-                <div className="slds-cell-wrap slds-line-clamp" title={`${item.currentValue}`}>
-                  <Checkbox id={`Flow-${item.fullName}`} label="Is Active" hideLabel checked={item.currentValue} readOnly disabled />
-                </div>
-              </td>
             </tr>
             {item.expanded &&
               Array.isArray(item.children) &&
@@ -147,8 +148,20 @@ export const AutomationControlContentFlow: FunctionComponent<AutomationControlCo
                   aria-posinset={k}
                   aria-selected={false}
                   aria-setsize={item.children.length}
-                  className={classNames({ 'slds-is-edited': childItem.currentValue !== childItem.initialValue }, 'slds-hint-parent')}
+                  className={classNames(
+                    { 'slds-is-edited': false /** childItem.currentValue !== childItem.initialValue */ },
+                    'slds-hint-parent'
+                  )}
                 >
+                  <td role="gridcell">
+                    <CheckboxToggle
+                      id={`Flow-${childItem.fullName}`}
+                      label="Is Active"
+                      hideLabel
+                      checked={childItem.currentValue}
+                      onChange={(value) => onChange('Flow', value, item, childItem)}
+                    />
+                  </td>
                   <th scope="row">
                     <Grid className="slds-grid slds-p-left_xx-large">
                       <GridCol>
@@ -183,17 +196,6 @@ export const AutomationControlContentFlow: FunctionComponent<AutomationControlCo
                         </div>
                       </GridCol>
                     </Grid>
-                  </td>
-                  <td role="gridcell">
-                    <div className="slds-cell-wrap slds-line-clamp" title={`${childItem.currentValue}`}>
-                      <Checkbox
-                        id={`Flow-${childItem.fullName}`}
-                        label="Is Active"
-                        hideLabel
-                        checked={childItem.currentValue}
-                        onChange={(value) => onChange('Flow', value, item, childItem)}
-                      />
-                    </div>
                   </td>
                 </tr>
               ))}

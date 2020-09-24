@@ -4,14 +4,15 @@ import { logger } from '@jetstream/shared/client-logger';
 import { genericRequest, query, readMetadata } from '@jetstream/shared/data';
 import { ensureBoolean, splitArrayToMaxSize } from '@jetstream/shared/utils';
 import { CompositeRequest, CompositeRequestBody, CompositeResponse, MapOf, SalesforceOrgUi } from '@jetstream/types';
+import isNil from 'lodash/isNil';
 import { composeQuery, getField } from 'soql-parser-js';
 import {
   AutomationControlMetadataTypeItem,
   AutomationControlParentSobject,
+  AutomationMetadataDeployType,
   FlowMetadata,
   MetadataWorkflowRuleRecord,
   ToolingApexTriggerRecord,
-  ToolingAssignmentRuleRecord,
   ToolingEntityDefinitionRecord,
   ToolingFlowAggregateRecord,
   ToolingFlowDefinitionWithVersions,
@@ -66,15 +67,6 @@ export function initItemsById(sobjects: ToolingEntityDefinitionRecord[]): [strin
           expanded: true,
           items: sobject.ApexTriggers ? convertApexTriggerRecordsToAutomationControlItem(sobject.ApexTriggers.records) : [],
         },
-        AssignmentRule: {
-          metadataType: 'AssignmentRule',
-          loading: false,
-          hasLoaded: true,
-          expanded: true,
-          items: sobject.AssignmentRules
-            ? convertAssignmentRuleRecordsToAutomationControlItem(sobject.QualifiedApiName, sobject.AssignmentRules.records)
-            : [],
-        },
       },
     };
     return output;
@@ -92,22 +84,6 @@ export function convertApexTriggerRecordsToAutomationControlItem(
       description: '',
       currentValue: record.Status === 'Active',
       initialValue: record.Status === 'Active',
-      metadata: record,
-    })
-  );
-}
-
-export function convertAssignmentRuleRecordsToAutomationControlItem(
-  sobjectName: string,
-  records: ToolingAssignmentRuleRecord[]
-): AutomationControlMetadataTypeItem<ToolingAssignmentRuleRecord>[] {
-  return records.map(
-    (record): AutomationControlMetadataTypeItem<ToolingAssignmentRuleRecord> => ({
-      fullName: encodeURIComponent(`${sobjectName}.${record.Name}`),
-      label: record.Name,
-      description: '',
-      currentValue: record.Active,
-      initialValue: record.Active,
       metadata: record,
     })
   );
@@ -157,6 +133,8 @@ export function convertFlowRecordsToAutomationControlItem(
       // versions are what gets set to active
       currentValue: !!record.ActiveVersionId,
       initialValue: !!record.ActiveVersionId,
+      currentActiveVersion: record.ActiveVersion?.VersionNumber || null,
+      initialActiveVersion: record.ActiveVersion?.VersionNumber || null,
       expanded: false,
       children: Array.isArray(record.Versions)
         ? record.Versions.map((version) => ({
@@ -302,6 +280,242 @@ export async function getProcessBuilders(
   return { flows: [], flowDefinitionsBySobject };
 }
 
+interface DeployPrePayload {
+  type: AutomationMetadataDeployType;
+  id: string;
+  activeVersion?: number; // only applies to process builders
+  value: boolean;
+  metadataRetrieve?: { Id: string; FullName: string; Metadata: any };
+  metadataDeploy?: { FullName: string; Metadata: any };
+  retrieveError?: any;
+  deployError?: any;
+}
+
+// only dirty items should be passed in - every item passed in
+export function preparePayloads(
+  itemsById: MapOf<AutomationControlParentSobject>
+): {
+  validationRules: DeployPrePayload[];
+  workflowRules: DeployPrePayload[];
+  apexTriggers: DeployPrePayload[];
+  processBuilders: DeployPrePayload[];
+} {
+  const validationRulesMetadata: DeployPrePayload[] = Object.values(itemsById).flatMap((item) =>
+    item.automationItems.ValidationRule.items
+      .filter((childItem) => childItem.initialValue !== childItem.currentValue)
+      .map((childItem): DeployPrePayload => ({ id: childItem.metadata.Id, value: childItem.currentValue, type: 'ValidationRule' }))
+  );
+
+  // TODO: get full metadata
+  const workflowRulesMetadata: DeployPrePayload[] = Object.values(itemsById).flatMap((item) =>
+    item.automationItems.WorkflowRule.items
+      .filter((childItem) => childItem.initialValue !== childItem.currentValue)
+      .map(
+        (childItem): DeployPrePayload => ({
+          id: childItem.metadata.tooling.Id,
+          value: childItem.currentValue,
+          type: 'WorkflowRule',
+          metadataRetrieve: {
+            Id: childItem.metadata.tooling.Id,
+            FullName: childItem.metadata.metadata.fullName,
+            Metadata: { ...childItem.metadata.metadata },
+          },
+          metadataDeploy: {
+            FullName: childItem.metadata.metadata.fullName,
+            Metadata: { ...childItem.metadata.metadata },
+          },
+        })
+      )
+  );
+
+  const apexTriggersMetadata: DeployPrePayload[] = Object.values(itemsById).flatMap((item) =>
+    item.automationItems.ApexTrigger.items
+      .filter((childItem) => childItem.initialValue !== childItem.currentValue)
+      .map((childItem): DeployPrePayload => ({ id: childItem.metadata.Id, value: childItem.currentValue, type: 'ApexTrigger' }))
+  );
+
+  const processBuildersMetadata: DeployPrePayload[] = Object.values(itemsById).flatMap((item) =>
+    item.automationItems.Flow.items
+      .filter(
+        (childItem) =>
+          childItem.initialValue !== childItem.currentValue || childItem.initialActiveVersion !== childItem.currentActiveVersion
+      )
+      .map(
+        (childItem): DeployPrePayload => ({
+          id: childItem.metadata.Id,
+          value: childItem.currentValue,
+          type: 'FlowDefinition',
+          activeVersion: isNil(childItem.currentValue)
+            ? null
+            : childItem.children
+                .filter((grandChildItem) => grandChildItem.currentValue)
+                .map((grandChildItem) => grandChildItem.metadata.VersionNumber)[0],
+        })
+      )
+  );
+
+  return {
+    validationRules: validationRulesMetadata,
+    workflowRules: workflowRulesMetadata,
+    apexTriggers: apexTriggersMetadata,
+    processBuilders: processBuildersMetadata,
+  };
+}
+
+// TODO: this should have better types - just here to get things going
+export async function deployChanges(selectedOrg: SalesforceOrgUi, itemsById: MapOf<AutomationControlParentSobject>) {
+  const PayloadItems = preparePayloads(itemsById);
+  const { validationRules, workflowRules, apexTriggers, processBuilders } = PayloadItems;
+  logger.log('[PREPARED ITEMS]', PayloadItems);
+
+  /**
+   * TODO:
+   * NOTE: ALL metadata fields must be provided or else they are over-written
+   * there is no such thing as a partial update :sob:
+   *
+   * This means that we need to get the metadata for EVERY item
+   * OPTIONS:
+   * - fetch ALL metadata up-front (like we do for process builders) - but this will add time even if user never toggles items
+   * - Read all first, then update and send back
+   * - Composite fetch/update together (we have to hard-code every key)
+   * - readMetadata (sucks because XML conversion is horrid)
+   * - file-based metadata (sucks because XML conversion is horrid and requires)
+   */
+
+  // used to add the metadata property to each item
+  const metadataItemById = Object.values(PayloadItems).reduce((itemById: MapOf<DeployPrePayload>, metadataType) => {
+    metadataType.forEach((item) => {
+      itemById[item.id] = item;
+    });
+    return itemById;
+  }, {});
+
+  // FIXME: remove hard-coded version number
+  const metadataFetchRequests: CompositeRequestBody[][] = splitArrayToMaxSize(
+    Object.values(PayloadItems).flatMap((metadataType) =>
+      metadataType
+        .filter((item) => !item.metadataRetrieve)
+        .map(
+          (item): CompositeRequestBody => ({
+            method: 'GET',
+            url: `/services/data/v49.0/tooling/sobjects/${item.type}/${item.id}?fields=Id,FullName,Metadata`,
+            referenceId: item.id,
+          })
+        )
+    ),
+    25
+  );
+
+  for (const compositeRequest of metadataFetchRequests) {
+    const requestBody: CompositeRequest = {
+      allOrNone: false,
+      compositeRequest,
+    };
+    // FIXME: remove hard-coded version number
+    const response = await genericRequest<CompositeResponse<{ Id: string; FullName: string; Metadata: FlowMetadata }>>(selectedOrg, {
+      isTooling: true,
+      method: 'POST',
+      url: '/services/data/v49.0/tooling/composite',
+      body: requestBody,
+    });
+    response.compositeResponse.forEach((item) => {
+      if (item.httpStatusCode === 200) {
+        metadataItemById[item.referenceId].metadataRetrieve = item.body;
+        metadataItemById[item.referenceId].metadataDeploy = { ...item.body, Id: undefined } as any; // shallow clone - nested properties will not be modified
+      } else {
+        metadataItemById[item.referenceId].retrieveError = item.body as any;
+      }
+    });
+  }
+
+  const metadataUpdateRequests: CompositeRequestBody[][] = splitArrayToMaxSize(
+    Object.values(PayloadItems).flatMap((metadataType) =>
+      metadataType
+        .filter((item) => !!item.metadataRetrieve)
+        .map(
+          (item): CompositeRequestBody => {
+            switch (item.type) {
+              // FIXME: this requires the metadata API
+              /**
+                Apex triggers cannot be deactivated using Tooling API.
+                You can deactivate Apex triggers using Metadata API.
+                Consider using custom metadata records and include logic in your trigger to bypass trigger configuration logic.
+                For more information, see the Metadata API Developer Guide.
+               */
+
+              case 'ApexTrigger': {
+                item.metadataDeploy.Metadata.status = item.value ? 'Active' : 'Inactive';
+                break;
+              }
+              case 'FlowDefinition': {
+                item.metadataDeploy.Metadata.activeVersionNumber = item.activeVersion;
+                break;
+              }
+              case 'WorkflowRule':
+              case 'ValidationRule': {
+                item.metadataDeploy.Metadata.active = item.value;
+                break;
+              }
+              default:
+                break;
+            }
+
+            return {
+              method: 'PATCH',
+              url: `/services/data/v49.0/tooling/sobjects/${item.type}/${item.id}`,
+              referenceId: item.id,
+              body: item.metadataDeploy,
+            };
+          }
+        )
+    ),
+    25
+  );
+
+  for (const compositeRequest of metadataUpdateRequests) {
+    const requestBody: CompositeRequest = {
+      allOrNone: false,
+      compositeRequest,
+    };
+    logger.log({ requestBody });
+  }
+
+  /// TODO: modify metadata based on type to prepare payload
+
+  /// DEPLOY CHANGES - TODO:
+
+  // validationRules.forEach((validationRule) => {
+  //   requests.push({
+  //     method: 'PATCH',
+  //     url: `/services/data/v49.0/tooling/sobjects/ValidationRule/${validationRule.Id}`,
+  //     referenceId: `ValidationRule-${validationRule.Id}`,
+  //     body: { Active: validationRule.Active },
+  //   });
+  // });
+
+  // workflowRules.forEach((workflowRule) => {
+  //   requests.push({
+  //     method: 'PATCH',
+  //     url: `/services/data/v49.0/tooling/sobjects/WorkflowRule/${workflowRule.Id}`,
+  //     referenceId: `WorkflowRule-${workflowRule.Id}`,
+  //     body: { FullName: workflowRule.fullName, metadata: { active: workflowRule.active } },
+  //   });
+  // });
+
+  // apexTriggers.forEach((apexTrigger) => {
+  //   requests.push({
+  //     method: 'PATCH',
+  //     url: `/services/data/v49.0/tooling/sobjects/ApexTrigger/${apexTrigger.Id}`,
+  //     referenceId: `ApexTrigger-${apexTrigger.Id}`,
+  //     body: { Status: apexTrigger.Status },
+  //   });
+  // });
+
+  // TODO: process builders
+
+  logger.log('[REQUEST PAYLOADS]', { metadataFetchRequests, metadataUpdateRequests, metadataItemById });
+}
+
 /**
  * SOQL QUERIES
  */
@@ -311,9 +525,6 @@ export function getEntityDefinitionQuery(): string {
     fields: [
       getField(
         `(SELECT Id, Name, ApiVersion, EntityDefinitionId, Status, FORMAT(CreatedDate), CreatedBy.Name, FORMAT(LastModifiedDate), LastModifiedBy.Name FROM ApexTriggers WHERE ManageableState = 'unmanaged' ORDER BY NAme)`
-      ),
-      getField(
-        `(SELECT Id, EntityDefinitionId, Name, Active, FORMAT(CreatedDate), CreatedBy.Name, FORMAT(LastModifiedDate), LastModifiedBy.Name FROM AssignmentRules ORDER BY Name)`
       ),
       getField(
         `(SELECT Id, EntityDefinitionId, ValidationName, Active, Description, ErrorMessage, FORMAT(CreatedDate), CreatedBy.Name, FORMAT(LastModifiedDate), LastModifiedBy.Name FROM ValidationRules WHERE ManageableState = 'unmanaged' ORDER BY ValidationName)`

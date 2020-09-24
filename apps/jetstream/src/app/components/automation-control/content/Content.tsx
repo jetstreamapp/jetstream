@@ -2,16 +2,23 @@
 import { jsx } from '@emotion/core';
 import { Accordion, AutoFullHeightContainer, Grid, GridCol } from '@jetstream/ui';
 import { FunctionComponent } from 'react';
-import { AutomationControlMetadataTypeItem, AutomationControlParentSobject, AutomationMetadataType } from '../automation-control-types';
+import {
+  AutomationControlMetadataType,
+  AutomationControlMetadataTypeItem,
+  AutomationControlParentSobject,
+  AutomationMetadataType,
+} from '../automation-control-types';
 import AutomationControlContentApexTrigger from './ApexTrigger';
-import AutomationControlContentAssignmentRule from './AssignmentRule';
 import AutomationControlTabContentButtons from './ContentButtons';
 import AutomationControlContentContainer from './ContentContainer';
 import AutomationControlContentFlow from './Flow';
 import { AutomationControlContentValidationRule } from './ValidationRule';
 import AutomationControlContentWorkflowRule from './WorkflowRule';
+import classNames from 'classnames';
+
 interface AutomationControlTabContentProps {
   item: AutomationControlParentSobject;
+  isDirty: boolean;
   automationItemExpandChange: (expandedType: AutomationMetadataType[]) => void;
   toggleChildItemExpand: (type: AutomationMetadataType, value: boolean, item: AutomationControlMetadataTypeItem) => void;
   onChange: (
@@ -32,8 +39,13 @@ function getModifiedItemsText(items: AutomationControlMetadataTypeItem[]) {
   }
 }
 
+function hasNoItems(item: AutomationControlMetadataType) {
+  return !item.loading && item.items.length === 0;
+}
+
 export const AutomationControlTabContent: FunctionComponent<AutomationControlTabContentProps> = ({
   item,
+  isDirty,
   automationItemExpandChange,
   toggleChildItemExpand,
   onChange,
@@ -49,7 +61,7 @@ export const AutomationControlTabContent: FunctionComponent<AutomationControlTab
           <h3 className="slds-text-heading_medium">{item.sobjectLabel}</h3>
         </GridCol>
         <GridCol>
-          <AutomationControlTabContentButtons item={item} toggleAll={toggleAll} />
+          <AutomationControlTabContentButtons item={item} isDirty={isDirty} toggleAll={toggleAll} />
         </GridCol>
       </Grid>
       <Accordion
@@ -61,6 +73,7 @@ export const AutomationControlTabContent: FunctionComponent<AutomationControlTab
           {
             id: 'ValidationRule',
             title: `Validation Rules ${getModifiedItemsText(item.automationItems.ValidationRule.items)}`,
+            className: classNames({ 'opacity-6': hasNoItems(item.automationItems.ValidationRule) }),
             content: (
               <AutomationControlContentContainer
                 parentItem={item.automationItems.ValidationRule}
@@ -72,7 +85,8 @@ export const AutomationControlTabContent: FunctionComponent<AutomationControlTab
           },
           {
             id: 'WorkflowRule',
-            title: `Workflow Rules ${getModifiedItemsText(item.automationItems.WorkflowRule.items)}`,
+            title: `Workflow Rules ${getModifiedItemsText(item.automationItems.ValidationRule.items)}`,
+            className: classNames({ 'opacity-6': hasNoItems(item.automationItems.ValidationRule) }),
             content: (
               <AutomationControlContentContainer
                 parentItem={item.automationItems.WorkflowRule}
@@ -84,7 +98,8 @@ export const AutomationControlTabContent: FunctionComponent<AutomationControlTab
           },
           {
             id: 'Flow',
-            title: `Process Builders`,
+            title: `Process Builders ${getModifiedItemsText(item.automationItems.Flow.items)}`,
+            className: classNames({ 'opacity-6': hasNoItems(item.automationItems.Flow) }),
             content: (
               <AutomationControlContentContainer parentItem={item.automationItems.Flow} items={item.automationItems.Flow.items}>
                 <AutomationControlContentFlow
@@ -99,24 +114,13 @@ export const AutomationControlTabContent: FunctionComponent<AutomationControlTab
           {
             id: `ApexTrigger`,
             title: `Apex Triggers ${getModifiedItemsText(item.automationItems.ApexTrigger.items)}`,
+            className: classNames({ 'opacity-6': hasNoItems(item.automationItems.ApexTrigger) }),
             content: (
               <AutomationControlContentContainer
                 parentItem={item.automationItems.ApexTrigger}
                 items={item.automationItems.ApexTrigger.items}
               >
                 <AutomationControlContentApexTrigger items={item.automationItems.ApexTrigger.items} onChange={onChange} />
-              </AutomationControlContentContainer>
-            ),
-          },
-          {
-            id: 'AssignmentRule',
-            title: `Assignment Rules ${getModifiedItemsText(item.automationItems.AssignmentRule.items)}`,
-            content: (
-              <AutomationControlContentContainer
-                parentItem={item.automationItems.AssignmentRule}
-                items={item.automationItems.AssignmentRule.items}
-              >
-                <AutomationControlContentAssignmentRule items={item.automationItems.AssignmentRule.items} onChange={onChange} />
               </AutomationControlContentContainer>
             ),
           },

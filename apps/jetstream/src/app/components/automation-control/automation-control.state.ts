@@ -1,6 +1,12 @@
-import { atom } from 'recoil';
+import { atom, selector } from 'recoil';
 import { MapOf, UiTabSection } from '@jetstream/types';
-import { AutomationControlParentSobject, ToolingEntityDefinitionRecord } from './automation-control-types';
+import {
+  AutomationControlParentSobject,
+  ToolingEntityDefinitionRecord,
+  AutomationControlMetadataType,
+  DirtyAutomationItems,
+} from './automation-control-types';
+import isUndefined from 'lodash/isUndefined';
 
 export const priorSelectedOrg = atom<string>({
   key: 'automationControl.priorSelectedOrg',
@@ -32,8 +38,33 @@ export const tabs = atom<UiTabSection[]>({
   default: [],
 });
 
-// sobject: [id1, id2]
 export const flowDefinitionsBySobject = atom<MapOf<string[]>>({
   key: 'automationControl.flowDefinitionsBySobject',
   default: null,
+});
+
+export const selectDirtyItems = selector<DirtyAutomationItems>({
+  key: 'automationControl.selectDirtyItems',
+  get: ({ get }) => {
+    const _itemsById = get(itemsById);
+    return get(itemIds).reduce(
+      (output: DirtyAutomationItems, itemId) => {
+        const item = _itemsById[itemId];
+        const isDirty = Object.values(item.automationItems).some((automationItem: AutomationControlMetadataType) => {
+          return automationItem.items.some((childItem) => {
+            if (Array.isArray(childItem.children)) {
+              return childItem.children.some((grandChildItem) => grandChildItem.initialValue !== grandChildItem.currentValue);
+            }
+            return childItem.initialValue !== childItem.currentValue || childItem.initialActiveVersion !== childItem.currentActiveVersion;
+          });
+        });
+        output.itemsById[itemId] = isDirty;
+        if (isDirty) {
+          output.anyDirty = true;
+        }
+        return output;
+      },
+      { anyDirty: false, itemsById: {} }
+    );
+  },
 });

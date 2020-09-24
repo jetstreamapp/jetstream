@@ -59,6 +59,8 @@ export interface UiSection {
   titleText?: string; // use if title is not a string
   content: React.ReactNode | Function; // => React.ReactNode
   disabled?: boolean;
+  className?: string;
+  style?: React.CSSProperties;
 }
 
 export interface UiTabSection {

@@ -1,6 +1,6 @@
 /** @jsx jsx */
 import { css, jsx } from '@emotion/core';
-import { Checkbox, Grid, GridCol } from '@jetstream/ui';
+import { CheckboxToggle, Grid, GridCol } from '@jetstream/ui';
 import classNames from 'classnames';
 import { FunctionComponent } from 'react';
 import { AutomationControlMetadataTypeItem, AutomationMetadataType, ToolingValidationRuleRecord } from '../automation-control-types';
@@ -23,6 +23,16 @@ export const AutomationControlContentValidationRule: FunctionComponent<Automatio
     <table className="slds-table slds-table_cell-buffer slds-table_bordered slds-no-row-hover">
       <thead>
         <tr className="slds-line-height_reset">
+          <th
+            scope="col"
+            css={css`
+              width: 50px;
+            `}
+          >
+            <div className="slds-truncate" title="Is Active">
+              Is Active
+            </div>
+          </th>
           <th
             scope="col"
             css={css`
@@ -53,21 +63,20 @@ export const AutomationControlContentValidationRule: FunctionComponent<Automatio
               Last Modified
             </div>
           </th>
-          <th
-            scope="col"
-            css={css`
-              width: 50px;
-            `}
-          >
-            <div className="slds-truncate" title="Is Active">
-              Is Active
-            </div>
-          </th>
         </tr>
       </thead>
       <tbody>
         {items.map((item) => (
           <tr key={item.fullName} className={classNames({ 'slds-is-edited': item.currentValue !== item.initialValue }, 'slds-hint-parent')}>
+            <td>
+              <CheckboxToggle
+                id={`ValidationRule-${item.fullName}`}
+                label="Is Active"
+                hideLabel
+                checked={item.currentValue}
+                onChange={(value) => onChange('ValidationRule', value, item)}
+              />
+            </td>
             <th scope="row">
               <div className="slds-cell-wrap slds-line-clamp" title={item.label}>
                 {item.label}
@@ -98,17 +107,6 @@ export const AutomationControlContentValidationRule: FunctionComponent<Automatio
                   </div>
                 </GridCol>
               </Grid>
-            </td>
-            <td>
-              <div className="slds-cell-wrap slds-line-clamp" title={`${item.currentValue}`}>
-                <Checkbox
-                  id={`ValidationRule-${item.fullName}`}
-                  label="Is Active"
-                  hideLabel
-                  checked={item.currentValue}
-                  onChange={(value) => onChange('ValidationRule', value, item)}
-                />
-              </div>
             </td>
           </tr>
         ))}

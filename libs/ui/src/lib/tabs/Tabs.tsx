@@ -1,15 +1,19 @@
 /* eslint-disable jsx-a11y/anchor-is-valid */
+/** @jsx jsx */
+import { css, jsx } from '@emotion/core';
 import { HorizontalVertical, UiTabSection } from '@jetstream/types';
 import classNames from 'classnames';
 import isNil from 'lodash/isNil';
 import numeral from 'numeral';
-import React, { FunctionComponent, useEffect, useState } from 'react';
-import { REGEX } from '../../../../shared/utils/src';
+import React, { Fragment, FunctionComponent, useEffect, useState } from 'react';
+import { REGEX } from '@jetstream/shared/utils';
 import SearchInput from '../form/search-input/SearchInput';
+import Split from 'react-split';
 
 export interface TabsProps {
   position?: HorizontalVertical;
-  showFilter?: boolean; // only applies to vertical tabs
+  filterVisible?: boolean; // only applies to vertical tabs
+  filterPlaceholder?: string; // only applies to vertical tabs
   tabs: UiTabSection[];
   initialActiveId?: string;
   className?: string; // slds-tabs_medium, slds-tabs_large, slds-tabs_card
@@ -21,7 +25,8 @@ export interface TabsProps {
 
 export const Tabs: FunctionComponent<TabsProps> = ({
   position = 'horizontal',
-  showFilter,
+  filterVisible,
+  filterPlaceholder = 'Search',
   tabs,
   initialActiveId,
   className,
@@ -76,6 +81,30 @@ export const Tabs: FunctionComponent<TabsProps> = ({
     }
   }
 
+  function getContent() {
+    if (activeTab) {
+      return (
+        <div
+          id={activeTab.id}
+          className={classNames({ 'slds-tabs_default__content': isHorizontal, 'slds-vertical-tabs__content': !isHorizontal }, 'slds-show')}
+          role="tabpanel"
+          aria-labelledby={`tab-${activeTab.id}`}
+        >
+          {activeTab.content}
+        </div>
+      );
+    } else if (isNil(activeTab) && tabs && tabs.length > 0) {
+      return emptyState;
+    } else {
+      return (
+        <div
+          className={classNames({ 'slds-tabs_default__content': isHorizontal, 'slds-vertical-tabs__content': !isHorizontal }, 'slds-show')}
+          role="tabpanel"
+        />
+      );
+    }
+  }
+
   return (
     <div className={classNames({ 'slds-tabs_default': isHorizontal, 'slds-vertical-tabs': !isHorizontal }, className)} style={style}>
       <ul
@@ -84,11 +113,11 @@ export const Tabs: FunctionComponent<TabsProps> = ({
         aria-orientation={position}
         style={ulStyle}
       >
-        {showFilter && position === 'vertical' && (
+        {filterVisible && position === 'vertical' && (
           <div className="slds-p-bottom--xx-small">
             <SearchInput
               id="accordion-input-filter"
-              placeholder="Search"
+              placeholder={filterPlaceholder}
               autoFocus
               onChange={setFilterValue}
               // onArrowKeyUpDown={handleSearchKeyboard}
@@ -123,18 +152,7 @@ export const Tabs: FunctionComponent<TabsProps> = ({
           </li>
         ))}
       </ul>
-      {activeTab && (
-        <div
-          key={activeTab.id}
-          id={activeTab.id}
-          className={classNames({ 'slds-tabs_default__content': isHorizontal, 'slds-vertical-tabs__content': !isHorizontal }, 'slds-show')}
-          role="tabpanel"
-          aria-labelledby={`tab-${activeTab.id}`}
-        >
-          {activeTab.content}
-        </div>
-      )}
-      {isNil(activeTab) && tabs && tabs.length > 0 && emptyState}
+      {getContent()}
     </div>
   );
 };
