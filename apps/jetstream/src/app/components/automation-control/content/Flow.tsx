@@ -165,7 +165,11 @@ export const AutomationControlContentFlow: FunctionComponent<AutomationControlCo
                   <th scope="row">
                     <Grid className="slds-grid slds-p-left_xx-large">
                       <GridCol>
-                        <div className="slds-cell-wrap slds-line-clamp" title={childItem.label}>
+                        <div
+                          className="slds-cell-wrap slds-line-clamp slds-text-link"
+                          title={childItem.label}
+                          onClick={() => onChange('Flow', !childItem.currentValue, item, childItem)}
+                        >
                           {childItem.label}
                         </div>
                       </GridCol>

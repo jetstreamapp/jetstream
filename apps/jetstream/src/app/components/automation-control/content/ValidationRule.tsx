@@ -78,7 +78,11 @@ export const AutomationControlContentValidationRule: FunctionComponent<Automatio
               />
             </td>
             <th scope="row">
-              <div className="slds-cell-wrap slds-line-clamp" title={item.label}>
+              <div
+                className="slds-cell-wrap slds-line-clamp slds-text-link"
+                title={item.label}
+                onClick={() => onChange('ValidationRule', !item.currentValue, item)}
+              >
                 {item.label}
               </div>
             </th>

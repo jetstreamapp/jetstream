@@ -70,7 +70,11 @@ export const AutomationControlContentApexTrigger: FunctionComponent<AutomationCo
               />
             </td>
             <th scope="row">
-              <div className="slds-cell-wrap slds-line-clamp" title={item.label}>
+              <div
+                className="slds-cell-wrap slds-line-clamp slds-text-link"
+                title={item.label}
+                onClick={() => onChange('ApexTrigger', !item.currentValue, item)}
+              >
                 {item.label}
               </div>
             </th>
