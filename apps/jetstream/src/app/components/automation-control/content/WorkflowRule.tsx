@@ -90,16 +90,18 @@ export const AutomationControlContentWorkflowRule: FunctionComponent<AutomationC
             <td>
               <Grid vertical>
                 <GridCol>
-                  {item.metadata.tooling.LastModifiedBy && (
-                    <div className="slds-truncate" title={item.metadata.tooling.LastModifiedBy.Name}>
-                      {item.metadata.tooling.LastModifiedBy.Name}
+                  {item.LastModifiedByName && (
+                    <div className="slds-truncate" title={item.LastModifiedByName}>
+                      {item.LastModifiedByName}
                     </div>
                   )}
                 </GridCol>
                 <GridCol>
-                  <div className="slds-truncate" title={item.metadata.tooling.LastModifiedDate}>
-                    {item.metadata.tooling.LastModifiedDate}
-                  </div>
+                  {item.LastModifiedDate && (
+                    <div className="slds-truncate" title={item.LastModifiedDate}>
+                      {item.LastModifiedDate}
+                    </div>
+                  )}
                 </GridCol>
               </Grid>
             </td>

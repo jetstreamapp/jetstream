@@ -1,12 +1,13 @@
-import { atom, selector } from 'recoil';
 import { MapOf, UiTabSection } from '@jetstream/types';
+import { atom, selector } from 'recoil';
 import {
-  AutomationControlParentSobject,
-  ToolingEntityDefinitionRecord,
   AutomationControlMetadataType,
+  AutomationItemsChildren,
+  AutomationControlParentSobject,
+  AutomationItems,
   DirtyAutomationItems,
+  ToolingEntityDefinitionRecord,
 } from './automation-control-types';
-import isUndefined from 'lodash/isUndefined';
 
 export const priorSelectedOrg = atom<string>({
   key: 'automationControl.priorSelectedOrg',
@@ -41,6 +42,37 @@ export const tabs = atom<UiTabSection[]>({
 export const flowDefinitionsBySobject = atom<MapOf<string[]>>({
   key: 'automationControl.flowDefinitionsBySobject',
   default: null,
+});
+
+export const selectModifiedChildAutomationItems = selector<MapOf<AutomationItemsChildren>>({
+  key: 'automationControl.selectChildAutomationItems',
+  get: ({ get }) => {
+    const _itemsById = get(itemsById);
+    const dirtyItems = get(selectDirtyItems);
+    return get(itemIds)
+      .filter((itemId) => dirtyItems.itemsById[itemId])
+      .reduce((output: MapOf<AutomationItemsChildren>, itemId) => {
+        const modifiedAutomationItems: AutomationItemsChildren = {
+          key: _itemsById[itemId].key,
+          sobjectName: _itemsById[itemId].sobjectName,
+          sobjectLabel: _itemsById[itemId].sobjectLabel,
+          automationItems: {
+            ValidationRule: _itemsById[itemId].automationItems.ValidationRule.items
+              .filter((item) => item.initialValue !== item.currentValue)
+              .map((item) => ({ ...item })),
+            WorkflowRule: _itemsById[itemId].automationItems.WorkflowRule.items
+              .filter((item) => item.initialValue !== item.currentValue)
+              .map((item) => ({ ...item })),
+            Flow: _itemsById[itemId].automationItems.Flow.items
+              .filter((item) => item.initialValue !== item.currentValue || item.initialActiveVersion !== item.currentActiveVersion)
+              .map((item) => ({ ...item })),
+            ApexTrigger: _itemsById[itemId].automationItems.ApexTrigger.items.filter((item) => item.initialValue !== item.currentValue),
+          },
+        };
+        output[itemId] = modifiedAutomationItems;
+        return output;
+      }, {});
+  },
 });
 
 export const selectDirtyItems = selector<DirtyAutomationItems>({

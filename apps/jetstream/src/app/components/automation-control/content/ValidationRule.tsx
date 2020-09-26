@@ -99,16 +99,18 @@ export const AutomationControlContentValidationRule: FunctionComponent<Automatio
             <td>
               <Grid vertical>
                 <GridCol>
-                  {item.metadata.LastModifiedBy && (
-                    <div className="slds-truncate" title={item.metadata.LastModifiedBy.Name}>
-                      {item.metadata.LastModifiedBy.Name}
+                  {item.LastModifiedByName && (
+                    <div className="slds-truncate" title={item.LastModifiedByName}>
+                      {item.LastModifiedByName}
                     </div>
                   )}
                 </GridCol>
                 <GridCol>
-                  <div className="slds-truncate" title={item.metadata.LastModifiedDate}>
-                    {item.metadata.LastModifiedDate}
-                  </div>
+                  {item.LastModifiedDate && (
+                    <div className="slds-truncate" title={item.LastModifiedDate}>
+                      {item.LastModifiedDate}
+                    </div>
+                  )}
                 </GridCol>
               </Grid>
             </td>

@@ -85,8 +85,8 @@ export const AutomationControlTabContent: FunctionComponent<AutomationControlTab
           },
           {
             id: 'WorkflowRule',
-            title: `Workflow Rules ${getModifiedItemsText(item.automationItems.ValidationRule.items)}`,
-            className: classNames({ 'opacity-6': hasNoItems(item.automationItems.ValidationRule) }),
+            title: `Workflow Rules ${getModifiedItemsText(item.automationItems.WorkflowRule.items)}`,
+            className: classNames({ 'opacity-6': hasNoItems(item.automationItems.WorkflowRule) }),
             content: (
               <AutomationControlContentContainer
                 parentItem={item.automationItems.WorkflowRule}

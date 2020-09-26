@@ -3,7 +3,7 @@ import { jsx } from '@emotion/core';
 import { logger } from '@jetstream/shared/client-logger';
 import { query } from '@jetstream/shared/data';
 import { orderObjectsBy } from '@jetstream/shared/utils';
-import { MapOf, SalesforceOrgUi, UiTabSection } from '@jetstream/types';
+import { SalesforceOrgUi, UiTabSection } from '@jetstream/types';
 import {
   AutoFullHeightContainer,
   Icon,
@@ -21,7 +21,6 @@ import { selectedOrgState } from '../../app-state';
 import {
   AutomationControlMetadataType,
   AutomationControlMetadataTypeItem,
-  AutomationControlParentSobject,
   AutomationMetadataType,
   ToolingEntityDefinitionRecord,
   ToolingFlowDefinitionWithVersions,
@@ -31,7 +30,6 @@ import * as fromAutomationCtlState from './automation-control.state';
 import {
   convertFlowRecordsToAutomationControlItem,
   convertWorkflowRuleRecordsToAutomationControlItem,
-  deployChanges,
   getEntityDefinitionQuery,
   getProcessBuilders,
   getWorkflowRulesMetadata,
@@ -39,6 +37,7 @@ import {
 } from './automation-utils';
 import { AutomationControlTabTitle } from './AutomationControlTitle';
 import { AutomationControlTabContent } from './content/Content';
+import AutomationControlDeployModal from './deploy/DeployModal';
 
 const HEIGHT_BUFFER = 170;
 
@@ -51,6 +50,7 @@ export const AutomationControl: FunctionComponent<AutomationControlProps> = () =
   const [sobjects, setSobjects] = useRecoilState(fromAutomationCtlState.sObjectsState);
   const [loading, setLoading] = useState<boolean>(false);
   const [errorMessage, setErrorMessage] = useState<string>(null);
+  const [deployModalActive, setDeployModalActive] = useState<boolean>(false);
 
   const [itemIds, setItemIds] = useRecoilState(fromAutomationCtlState.itemIds);
   const [itemsById, setItemsById] = useRecoilState(fromAutomationCtlState.itemsById);
@@ -58,6 +58,7 @@ export const AutomationControl: FunctionComponent<AutomationControlProps> = () =
   const [tabs, setTabs] = useRecoilState(fromAutomationCtlState.tabs);
   const [flowDefinitionsBySobject, setFlowDefinitionsBySobject] = useRecoilState(fromAutomationCtlState.flowDefinitionsBySobject);
   const dirtyItems = useRecoilValue(fromAutomationCtlState.selectDirtyItems);
+  const modifiedChildAutomationItems = useRecoilValue(fromAutomationCtlState.selectModifiedChildAutomationItems);
 
   const resetSObjectsState = useResetRecoilState(fromAutomationCtlState.sObjectsState);
   const resetItemIds = useResetRecoilState(fromAutomationCtlState.itemIds);
@@ -138,6 +139,15 @@ export const AutomationControl: FunctionComponent<AutomationControlProps> = () =
         )
     );
   }, [itemIds, itemsById]);
+
+  function resetAfterDeploy() {
+    resetSObjectsState();
+    resetItemIds();
+    resetItemsById();
+    resetTabs();
+    resetFlowDefinitionsBySobject();
+    // setSobjects(null);
+  }
 
   function handleAutomationItemExpandChanged(parentItemKey: string, automationItems: string[]) {
     const automationItemsSet = new Set(automationItems);
@@ -396,7 +406,7 @@ export const AutomationControl: FunctionComponent<AutomationControlProps> = () =
       ...currentWorkflowFlowRuleMeta,
       loading: false,
       hasLoaded: true,
-      items: convertWorkflowRuleRecordsToAutomationControlItem(workflowRules),
+      items: convertWorkflowRuleRecordsToAutomationControlItem(sobjectName, workflowRules),
     };
   }
 
@@ -415,19 +425,21 @@ export const AutomationControl: FunctionComponent<AutomationControlProps> = () =
       ...currentFlowMeta,
       loading: false,
       hasLoaded: true,
-      items: convertFlowRecordsToAutomationControlItem(response.flows),
+      items: convertFlowRecordsToAutomationControlItem(sobject, response.flows),
     };
   }
 
   async function handleDeploy() {
-    const modifiedItemsById = Object.keys(dirtyItems.itemsById)
-      .filter((key) => dirtyItems.itemsById[key])
-      .reduce((output: MapOf<AutomationControlParentSobject>, key) => {
-        output[key] = itemsById[key];
-        return output;
-      }, {});
+    setDeployModalActive(true);
+    // const modifiedItemsById = Object.keys(dirtyItems.itemsById)
+    //   .filter((key) => dirtyItems.itemsById[key])
+    //   .reduce((output: MapOf<AutomationControlParentSobject>, key) => {
+    //     const currItem = itemsById[key];
+    //     output[key] = itemsById[key];
+    //     return output;
+    //   }, {});
 
-    await deployChanges(selectedOrg, modifiedItemsById);
+    // await deployChanges(selectedOrg, modifiedItemsById);
   }
 
   return (
@@ -438,7 +450,7 @@ export const AutomationControl: FunctionComponent<AutomationControlProps> = () =
           <PageHeaderActions colType="actions" buttonType="separate">
             <button className="slds-button slds-button_brand" disabled={!dirtyItems.anyDirty} onClick={handleDeploy}>
               <Icon type="utility" icon="upload" className="slds-button__icon slds-button__icon_left" />
-              Deploy Changes
+              Review Changes
             </button>
           </PageHeaderActions>
         </PageHeaderRow>
@@ -461,6 +473,18 @@ export const AutomationControl: FunctionComponent<AutomationControlProps> = () =
           />
         )}
       </AutoFullHeightContainer>
+      {deployModalActive && (
+        <AutomationControlDeployModal
+          selectedOrg={selectedOrg}
+          itemsById={modifiedChildAutomationItems}
+          onClose={(refreshData?: boolean) => {
+            setDeployModalActive(false);
+            if (refreshData) {
+              resetAfterDeploy();
+            }
+          }}
+        />
+      )}
     </Page>
   );
 };

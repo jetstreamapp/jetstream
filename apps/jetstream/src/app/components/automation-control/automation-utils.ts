@@ -4,12 +4,13 @@ import { logger } from '@jetstream/shared/client-logger';
 import { genericRequest, query, readMetadata } from '@jetstream/shared/data';
 import { ensureBoolean, splitArrayToMaxSize } from '@jetstream/shared/utils';
 import { CompositeRequest, CompositeRequestBody, CompositeResponse, MapOf, SalesforceOrgUi } from '@jetstream/types';
-import isNil from 'lodash/isNil';
+import { Observable, Subject } from 'rxjs';
 import { composeQuery, getField } from 'soql-parser-js';
 import {
+  AutomationControlDeploymentItem,
   AutomationControlMetadataTypeItem,
   AutomationControlParentSobject,
-  AutomationMetadataDeployType,
+  DeploymentItemMap,
   FlowMetadata,
   MetadataWorkflowRuleRecord,
   ToolingApexTriggerRecord,
@@ -65,7 +66,9 @@ export function initItemsById(sobjects: ToolingEntityDefinitionRecord[]): [strin
           loading: false,
           hasLoaded: true,
           expanded: true,
-          items: sobject.ApexTriggers ? convertApexTriggerRecordsToAutomationControlItem(sobject.ApexTriggers.records) : [],
+          items: sobject.ApexTriggers
+            ? convertApexTriggerRecordsToAutomationControlItem(sobject.QualifiedApiName, sobject.ApexTriggers.records)
+            : [],
         },
       },
     };
@@ -75,15 +78,19 @@ export function initItemsById(sobjects: ToolingEntityDefinitionRecord[]): [strin
 }
 
 export function convertApexTriggerRecordsToAutomationControlItem(
+  sobjectName: string,
   records: ToolingApexTriggerRecord[]
 ): AutomationControlMetadataTypeItem<ToolingApexTriggerRecord>[] {
   return records.map(
     (record): AutomationControlMetadataTypeItem<ToolingApexTriggerRecord> => ({
+      key: `${sobjectName}|ApexTrigger|${encodeURIComponent(record.Name)}`,
       fullName: encodeURIComponent(record.Name),
       label: record.Name,
       description: '',
       currentValue: record.Status === 'Active',
       initialValue: record.Status === 'Active',
+      LastModifiedDate: record.LastModifiedDate,
+      LastModifiedByName: record.LastModifiedBy?.Name,
       metadata: record,
     })
   );
@@ -95,36 +102,45 @@ export function convertValidationRuleRecordsToAutomationControlItem(
 ): AutomationControlMetadataTypeItem<ToolingValidationRuleRecord>[] {
   return records.map(
     (record): AutomationControlMetadataTypeItem<ToolingValidationRuleRecord> => ({
+      key: `${sobjectName}|ValidationRule|${sobjectName}.${record.ValidationName}`,
       fullName: encodeURIComponent(`${sobjectName}.${record.ValidationName}`),
       label: record.ValidationName,
       description: record.Description,
       currentValue: record.Active,
       initialValue: record.Active,
+      LastModifiedDate: record.LastModifiedDate,
+      LastModifiedByName: record.LastModifiedBy?.Name,
       metadata: record,
     })
   );
 }
 
 export function convertWorkflowRuleRecordsToAutomationControlItem(
+  sobjectName: string,
   records: ToolingWorkflowRuleRecordWithMetadata[]
 ): AutomationControlMetadataTypeItem<ToolingWorkflowRuleRecordWithMetadata>[] {
   return records.map(
     (record): AutomationControlMetadataTypeItem<ToolingWorkflowRuleRecordWithMetadata> => ({
+      key: `${sobjectName}|WorkflowRule|${record.metadata.fullName}`,
       fullName: record.metadata.fullName,
       label: record.tooling.Name,
       description: record.metadata.description,
       currentValue: record.metadata.active,
       initialValue: record.metadata.active,
+      LastModifiedDate: record.tooling.LastModifiedDate,
+      LastModifiedByName: record.tooling.LastModifiedBy?.Name,
       metadata: record,
     })
   );
 }
 
 export function convertFlowRecordsToAutomationControlItem(
+  sobjectName: string,
   records: ToolingFlowDefinitionWithVersions[]
 ): AutomationControlMetadataTypeItem<ToolingFlowDefinitionWithVersions, ToolingFlowRecord>[] {
   return records.map(
     (record): AutomationControlMetadataTypeItem<ToolingFlowDefinitionWithVersions, ToolingFlowRecord> => ({
+      key: `${sobjectName}|Flow|${record.DeveloperName}`,
       fullName: record.DeveloperName,
       // MasterLabel is only populated if flow has an active version
       label: `${record.DeveloperName}`,
@@ -136,13 +152,18 @@ export function convertFlowRecordsToAutomationControlItem(
       currentActiveVersion: record.ActiveVersion?.VersionNumber || null,
       initialActiveVersion: record.ActiveVersion?.VersionNumber || null,
       expanded: false,
+      LastModifiedDate: record.LastModifiedDate,
+      LastModifiedByName: record.LastModifiedBy?.Name,
       children: Array.isArray(record.Versions)
         ? record.Versions.map((version) => ({
+            key: `${sobjectName}|Flow|${version.Id}`,
             fullName: version.Id, // not full name in this case
             label: version.MasterLabel,
             description: version.Description,
             currentValue: version.Status === 'Active',
             initialValue: version.Status === 'Active',
+            LastModifiedDate: version.LastModifiedDate,
+            LastModifiedByName: version.LastModifiedBy?.Name,
             metadata: version,
           }))
         : [],
@@ -280,132 +301,84 @@ export async function getProcessBuilders(
   return { flows: [], flowDefinitionsBySobject };
 }
 
-interface DeployPrePayload {
-  type: AutomationMetadataDeployType;
-  id: string;
-  activeVersion?: number; // only applies to process builders
-  value: boolean;
-  metadataRetrieve?: { Id: string; FullName: string; Metadata: any };
-  metadataDeploy?: { FullName: string; Metadata: any };
-  retrieveError?: any;
-  deployError?: any;
-}
-
-// only dirty items should be passed in - every item passed in
+/**
+ * Prepare payload for items and emit data as it comes in
+ *
+ * @param selectedOrg
+ * @param itemsByKey
+ */
 export function preparePayloads(
-  itemsById: MapOf<AutomationControlParentSobject>
-): {
-  validationRules: DeployPrePayload[];
-  workflowRules: DeployPrePayload[];
-  apexTriggers: DeployPrePayload[];
-  processBuilders: DeployPrePayload[];
-} {
-  const validationRulesMetadata: DeployPrePayload[] = Object.values(itemsById).flatMap((item) =>
-    item.automationItems.ValidationRule.items
-      .filter((childItem) => childItem.initialValue !== childItem.currentValue)
-      .map((childItem): DeployPrePayload => ({ id: childItem.metadata.Id, value: childItem.currentValue, type: 'ValidationRule' }))
-  );
+  selectedOrg: SalesforceOrgUi,
+  itemsByKey: DeploymentItemMap
+): Observable<{ key: string; deploymentItem: AutomationControlDeploymentItem }[]> {
+  const payloadEvent = new Subject<{ key: string; deploymentItem: AutomationControlDeploymentItem }[]>();
+  const payloadEvent$ = payloadEvent.asObservable();
 
-  // TODO: get full metadata
-  const workflowRulesMetadata: DeployPrePayload[] = Object.values(itemsById).flatMap((item) =>
-    item.automationItems.WorkflowRule.items
-      .filter((childItem) => childItem.initialValue !== childItem.currentValue)
-      .map(
-        (childItem): DeployPrePayload => ({
-          id: childItem.metadata.tooling.Id,
-          value: childItem.currentValue,
-          type: 'WorkflowRule',
-          metadataRetrieve: {
-            Id: childItem.metadata.tooling.Id,
-            FullName: childItem.metadata.metadata.fullName,
-            Metadata: { ...childItem.metadata.metadata },
-          },
-          metadataDeploy: {
-            FullName: childItem.metadata.metadata.fullName,
-            Metadata: { ...childItem.metadata.metadata },
-          },
-        })
-      )
-  );
+  Promise.resolve().then(() => {
+    preparePayloadsForDeployment(selectedOrg, itemsByKey, payloadEvent)
+      .then(() => {
+        payloadEvent.complete();
+      })
+      .catch((err) => {
+        payloadEvent.error(err);
+      });
+  });
 
-  const apexTriggersMetadata: DeployPrePayload[] = Object.values(itemsById).flatMap((item) =>
-    item.automationItems.ApexTrigger.items
-      .filter((childItem) => childItem.initialValue !== childItem.currentValue)
-      .map((childItem): DeployPrePayload => ({ id: childItem.metadata.Id, value: childItem.currentValue, type: 'ApexTrigger' }))
-  );
-
-  const processBuildersMetadata: DeployPrePayload[] = Object.values(itemsById).flatMap((item) =>
-    item.automationItems.Flow.items
-      .filter(
-        (childItem) =>
-          childItem.initialValue !== childItem.currentValue || childItem.initialActiveVersion !== childItem.currentActiveVersion
-      )
-      .map(
-        (childItem): DeployPrePayload => ({
-          id: childItem.metadata.Id,
-          value: childItem.currentValue,
-          type: 'FlowDefinition',
-          activeVersion: isNil(childItem.currentValue)
-            ? null
-            : childItem.children
-                .filter((grandChildItem) => grandChildItem.currentValue)
-                .map((grandChildItem) => grandChildItem.metadata.VersionNumber)[0],
-        })
-      )
-  );
-
-  return {
-    validationRules: validationRulesMetadata,
-    workflowRules: workflowRulesMetadata,
-    apexTriggers: apexTriggersMetadata,
-    processBuilders: processBuildersMetadata,
-  };
+  return payloadEvent$;
 }
 
-// TODO: this should have better types - just here to get things going
-export async function deployChanges(selectedOrg: SalesforceOrgUi, itemsById: MapOf<AutomationControlParentSobject>) {
-  const PayloadItems = preparePayloads(itemsById);
-  const { validationRules, workflowRules, apexTriggers, processBuilders } = PayloadItems;
-  logger.log('[PREPARED ITEMS]', PayloadItems);
-
-  /**
-   * TODO:
-   * NOTE: ALL metadata fields must be provided or else they are over-written
-   * there is no such thing as a partial update :sob:
-   *
-   * This means that we need to get the metadata for EVERY item
-   * OPTIONS:
-   * - fetch ALL metadata up-front (like we do for process builders) - but this will add time even if user never toggles items
-   * - Read all first, then update and send back
-   * - Composite fetch/update together (we have to hard-code every key)
-   * - readMetadata (sucks because XML conversion is horrid)
-   * - file-based metadata (sucks because XML conversion is horrid and requires)
-   */
-
-  // used to add the metadata property to each item
-  const metadataItemById = Object.values(PayloadItems).reduce((itemById: MapOf<DeployPrePayload>, metadataType) => {
-    metadataType.forEach((item) => {
-      itemById[item.id] = item;
-    });
-    return itemById;
+export async function preparePayloadsForDeployment(
+  selectedOrg: SalesforceOrgUi,
+  itemsByKey: DeploymentItemMap,
+  payloadEvent: Subject<{ key: string; deploymentItem: AutomationControlDeploymentItem }[]>
+) {
+  // SFDC referenceId for composite cannot contain "." - this is an alternate way to lookup the key
+  const idToKeyMap: MapOf<string> = Object.keys(itemsByKey).reduce((output, key) => {
+    output[itemsByKey[key].deploy.id] = key;
+    return output;
   }, {});
 
-  // FIXME: remove hard-coded version number
+  // This sort of worked, but we can just fetch metadata to ensure we have good data instead of metadata api xml conversion
+  // // For items where we have already fetched metadata, emit events immediately
+  // const workflowRuleMetadata = Object.keys(itemsByKey)
+  //   .filter((key) => itemsByKey[key].deploy.type === 'WorkflowRule')
+  //   .map((key) => ({
+  //     key,
+  //     deploymentItem: {
+  //       ...itemsByKey[key].deploy,
+  //       metadataRetrieve: {
+  //         Id: itemsByKey[key].deploy.id,
+  //         FullName: itemsByKey[key].metadata.fullName,
+  //         Metadata: { ...itemsByKey[key].metadata.metadata }, // INVALID - this for some reason adds an extra "metadata" property
+  //       },
+  //       metadataDeploy: {
+  //         FullName: itemsByKey[key].metadata.fullName,
+  //         Metadata: { ...itemsByKey[key].metadata.metadata },
+  //       },
+  //     },
+  //   }));
+  // payloadEvent.next(workflowRuleMetadata);
+
+  /// fetch other metadata and prepare deploy payloads
+
+  // Prepare composite requests
   const metadataFetchRequests: CompositeRequestBody[][] = splitArrayToMaxSize(
-    Object.values(PayloadItems).flatMap((metadataType) =>
-      metadataType
-        .filter((item) => !item.metadataRetrieve)
-        .map(
-          (item): CompositeRequestBody => ({
+    Object.keys(itemsByKey)
+      .filter((key) => !itemsByKey[key].deploy.metadataRetrieve)
+      .map(
+        (key): CompositeRequestBody => {
+          const item = itemsByKey[key].deploy;
+          return {
             method: 'GET',
             url: `/services/data/v49.0/tooling/sobjects/${item.type}/${item.id}?fields=Id,FullName,Metadata`,
             referenceId: item.id,
-          })
-        )
-    ),
+          };
+        }
+      ),
     25
   );
 
+  // fetch metadata required for deployment
   for (const compositeRequest of metadataFetchRequests) {
     const requestBody: CompositeRequest = {
       allOrNone: false,
@@ -418,103 +391,335 @@ export async function deployChanges(selectedOrg: SalesforceOrgUi, itemsById: Map
       url: '/services/data/v49.0/tooling/composite',
       body: requestBody,
     });
-    response.compositeResponse.forEach((item) => {
+    const items = response.compositeResponse.map((item): { key: string; deploymentItem: AutomationControlDeploymentItem } => {
+      const key = idToKeyMap[item.referenceId];
+      const deploymentItem: AutomationControlDeploymentItem = { ...itemsByKey[key].deploy };
       if (item.httpStatusCode === 200) {
-        metadataItemById[item.referenceId].metadataRetrieve = item.body;
-        metadataItemById[item.referenceId].metadataDeploy = { ...item.body, Id: undefined } as any; // shallow clone - nested properties will not be modified
+        deploymentItem.metadataRetrieve = item.body;
+        deploymentItem.metadataDeploy = JSON.parse(JSON.stringify({ ...item.body, Id: undefined })) as any;
       } else {
-        metadataItemById[item.referenceId].retrieveError = item.body as any;
+        deploymentItem.retrieveError = item.body as any;
       }
+
+      switch (deploymentItem.type) {
+        // FIXME:
+        /**
+          Apex triggers cannot be deactivated using Tooling API.
+          You can deactivate Apex triggers using Metadata API.
+          Consider using custom metadata records and include logic in your trigger to bypass trigger configuration logic.
+          For more information, see the Metadata API Developer Guide.
+         */
+
+        case 'ApexTrigger': {
+          deploymentItem.metadataDeploy.Metadata.status = deploymentItem.value ? 'Active' : 'Inactive';
+          break;
+        }
+        case 'FlowDefinition': {
+          deploymentItem.metadataDeploy.Metadata.activeVersionNumber = deploymentItem.activeVersion;
+          break;
+        }
+        case 'WorkflowRule':
+        case 'ValidationRule': {
+          deploymentItem.metadataDeploy.Metadata.active = deploymentItem.value;
+          break;
+        }
+        default:
+          break;
+      }
+
+      return { key, deploymentItem };
     });
+    payloadEvent.next(items);
   }
-
-  const metadataUpdateRequests: CompositeRequestBody[][] = splitArrayToMaxSize(
-    Object.values(PayloadItems).flatMap((metadataType) =>
-      metadataType
-        .filter((item) => !!item.metadataRetrieve)
-        .map(
-          (item): CompositeRequestBody => {
-            switch (item.type) {
-              // FIXME: this requires the metadata API
-              /**
-                Apex triggers cannot be deactivated using Tooling API.
-                You can deactivate Apex triggers using Metadata API.
-                Consider using custom metadata records and include logic in your trigger to bypass trigger configuration logic.
-                For more information, see the Metadata API Developer Guide.
-               */
-
-              case 'ApexTrigger': {
-                item.metadataDeploy.Metadata.status = item.value ? 'Active' : 'Inactive';
-                break;
-              }
-              case 'FlowDefinition': {
-                item.metadataDeploy.Metadata.activeVersionNumber = item.activeVersion;
-                break;
-              }
-              case 'WorkflowRule':
-              case 'ValidationRule': {
-                item.metadataDeploy.Metadata.active = item.value;
-                break;
-              }
-              default:
-                break;
-            }
-
-            return {
-              method: 'PATCH',
-              url: `/services/data/v49.0/tooling/sobjects/${item.type}/${item.id}`,
-              referenceId: item.id,
-              body: item.metadataDeploy,
-            };
-          }
-        )
-    ),
-    25
-  );
-
-  for (const compositeRequest of metadataUpdateRequests) {
-    const requestBody: CompositeRequest = {
-      allOrNone: false,
-      compositeRequest,
-    };
-    logger.log({ requestBody });
-  }
-
-  /// TODO: modify metadata based on type to prepare payload
-
-  /// DEPLOY CHANGES - TODO:
-
-  // validationRules.forEach((validationRule) => {
-  //   requests.push({
-  //     method: 'PATCH',
-  //     url: `/services/data/v49.0/tooling/sobjects/ValidationRule/${validationRule.Id}`,
-  //     referenceId: `ValidationRule-${validationRule.Id}`,
-  //     body: { Active: validationRule.Active },
-  //   });
-  // });
-
-  // workflowRules.forEach((workflowRule) => {
-  //   requests.push({
-  //     method: 'PATCH',
-  //     url: `/services/data/v49.0/tooling/sobjects/WorkflowRule/${workflowRule.Id}`,
-  //     referenceId: `WorkflowRule-${workflowRule.Id}`,
-  //     body: { FullName: workflowRule.fullName, metadata: { active: workflowRule.active } },
-  //   });
-  // });
-
-  // apexTriggers.forEach((apexTrigger) => {
-  //   requests.push({
-  //     method: 'PATCH',
-  //     url: `/services/data/v49.0/tooling/sobjects/ApexTrigger/${apexTrigger.Id}`,
-  //     referenceId: `ApexTrigger-${apexTrigger.Id}`,
-  //     body: { Status: apexTrigger.Status },
-  //   });
-  // });
-
-  // TODO: process builders
-
-  logger.log('[REQUEST PAYLOADS]', { metadataFetchRequests, metadataUpdateRequests, metadataItemById });
 }
+
+export function deployMetadata(
+  selectedOrg: SalesforceOrgUi,
+  itemsByKey: DeploymentItemMap
+): Observable<{ key: string; deploymentItem: AutomationControlDeploymentItem }[]> {
+  const payloadEvent = new Subject<{ key: string; deploymentItem: AutomationControlDeploymentItem }[]>();
+  const payloadEvent$ = payloadEvent.asObservable();
+
+  Promise.resolve().then(async () => {
+    try {
+      const idToKeyMap: MapOf<string> = Object.keys(itemsByKey).reduce((output, key) => {
+        output[itemsByKey[key].deploy.id] = key;
+        return output;
+      }, {});
+
+      // TODO: handle apex triggers!
+      const metadataUpdateRequests: CompositeRequestBody[][] = splitArrayToMaxSize(
+        Object.keys(itemsByKey)
+          .filter((key) => !itemsByKey[key].deploy.retrieveError)
+          .map(
+            (key): CompositeRequestBody => {
+              const item = itemsByKey[key].deploy;
+              return {
+                method: 'PATCH',
+                url: `/services/data/v49.0/tooling/sobjects/${item.type}/${item.id}`,
+                referenceId: item.id,
+                body: item.metadataDeploy,
+              };
+            }
+          ),
+        25
+      );
+
+      for (const compositeRequest of metadataUpdateRequests) {
+        const requestBody: CompositeRequest = {
+          allOrNone: false,
+          compositeRequest,
+        };
+        // FIXME: remove hard-coded version number
+        const response = await genericRequest<CompositeResponse<{ Id: string; FullName: string; Metadata: FlowMetadata }>>(selectedOrg, {
+          isTooling: true,
+          method: 'POST',
+          url: '/services/data/v49.0/tooling/composite',
+          body: requestBody,
+        });
+        const items = response.compositeResponse.map((item): { key: string; deploymentItem: AutomationControlDeploymentItem } => {
+          const key = idToKeyMap[item.referenceId];
+          const deploymentItem: AutomationControlDeploymentItem = { ...itemsByKey[key].deploy };
+          if (item.httpStatusCode > 299) {
+            deploymentItem.deployError = item.body;
+          }
+          return { key, deploymentItem };
+        });
+        payloadEvent.next(items);
+      }
+      payloadEvent.complete();
+    } catch (ex) {
+      payloadEvent.error(ex);
+    }
+  });
+
+  return payloadEvent$;
+}
+
+// export function preparePayloads(itemsById: MapOf<AutomationControlParentSobject>): DeploymentItemByType {
+//   const validationRulesMetadata: AutomationControlDeploymentItem[] = Object.values(itemsById).flatMap((item) =>
+//     item.automationItems.ValidationRule.items
+//       .filter((childItem) => childItem.initialValue !== childItem.currentValue)
+//       .map(
+//         (childItem): AutomationControlDeploymentItem => ({
+//           id: childItem.metadata.Id,
+//           value: childItem.currentValue,
+//           type: 'ValidationRule',
+//         })
+//       )
+//   );
+
+//   // TODO: get full metadata
+//   const workflowRulesMetadata: AutomationControlDeploymentItem[] = Object.values(itemsById).flatMap((item) =>
+//     item.automationItems.WorkflowRule.items
+//       .filter((childItem) => childItem.initialValue !== childItem.currentValue)
+//       .map(
+//         (childItem): AutomationControlDeploymentItem => ({
+//           id: childItem.metadata.tooling.Id,
+//           value: childItem.currentValue,
+//           type: 'WorkflowRule',
+//           metadataRetrieve: {
+//             Id: childItem.metadata.tooling.Id,
+//             FullName: childItem.metadata.metadata.fullName,
+//             Metadata: { ...childItem.metadata.metadata },
+//           },
+//           metadataDeploy: {
+//             FullName: childItem.metadata.metadata.fullName,
+//             Metadata: { ...childItem.metadata.metadata },
+//           },
+//         })
+//       )
+//   );
+
+//   const apexTriggersMetadata: AutomationControlDeploymentItem[] = Object.values(itemsById).flatMap((item) =>
+//     item.automationItems.ApexTrigger.items
+//       .filter((childItem) => childItem.initialValue !== childItem.currentValue)
+//       .map(
+//         (childItem): AutomationControlDeploymentItem => ({ id: childItem.metadata.Id, value: childItem.currentValue, type: 'ApexTrigger' })
+//       )
+//   );
+
+//   const processBuildersMetadata: AutomationControlDeploymentItem[] = Object.values(itemsById).flatMap((item) =>
+//     item.automationItems.Flow.items
+//       .filter(
+//         (childItem) =>
+//           childItem.initialValue !== childItem.currentValue || childItem.initialActiveVersion !== childItem.currentActiveVersion
+//       )
+//       .map(
+//         (childItem): AutomationControlDeploymentItem => ({
+//           id: childItem.metadata.Id,
+//           value: childItem.currentValue,
+//           type: 'FlowDefinition',
+//           activeVersion: isNil(childItem.currentValue)
+//             ? null
+//             : childItem.children
+//                 .filter((grandChildItem) => grandChildItem.currentValue)
+//                 .map((grandChildItem) => grandChildItem.metadata.VersionNumber)[0],
+//         })
+//       )
+//   );
+
+//   return {
+//     validationRules: validationRulesMetadata,
+//     workflowRules: workflowRulesMetadata,
+//     apexTriggers: apexTriggersMetadata,
+//     processBuilders: processBuildersMetadata,
+//   };
+// }
+
+// // TODO: this should have better types - just here to get things going
+// export async function deployChanges(selectedOrg: SalesforceOrgUi, itemsById: MapOf<AutomationControlParentSobject>) {
+//   const PayloadItems = preparePayloads(itemsById);
+//   const { validationRules, workflowRules, apexTriggers, processBuilders } = PayloadItems;
+//   logger.log('[PREPARED ITEMS]', PayloadItems);
+
+//   /**
+//    * TODO:
+//    * NOTE: ALL metadata fields must be provided or else they are over-written
+//    * there is no such thing as a partial update :sob:
+//    *
+//    * This means that we need to get the metadata for EVERY item
+//    * OPTIONS:
+//    * - fetch ALL metadata up-front (like we do for process builders) - but this will add time even if user never toggles items
+//    * - Read all first, then update and send back
+//    * - Composite fetch/update together (we have to hard-code every key)
+//    * - readMetadata (sucks because XML conversion is horrid)
+//    * - file-based metadata (sucks because XML conversion is horrid and requires)
+//    */
+
+//   // used to add the metadata property to each item
+//   const metadataItemById = Object.values(PayloadItems).reduce((itemById: MapOf<AutomationControlDeploymentItem>, metadataType) => {
+//     metadataType.forEach((item) => {
+//       itemById[item.id] = item;
+//     });
+//     return itemById;
+//   }, {});
+
+//   // FIXME: remove hard-coded version number
+//   const metadataFetchRequests: CompositeRequestBody[][] = splitArrayToMaxSize(
+//     Object.values(PayloadItems).flatMap((metadataType) =>
+//       metadataType
+//         .filter((item) => !item.metadataRetrieve)
+//         .map(
+//           (item): CompositeRequestBody => ({
+//             method: 'GET',
+//             url: `/services/data/v49.0/tooling/sobjects/${item.type}/${item.id}?fields=Id,FullName,Metadata`,
+//             referenceId: item.id,
+//           })
+//         )
+//     ),
+//     25
+//   );
+
+//   for (const compositeRequest of metadataFetchRequests) {
+//     const requestBody: CompositeRequest = {
+//       allOrNone: false,
+//       compositeRequest,
+//     };
+//     // FIXME: remove hard-coded version number
+//     const response = await genericRequest<CompositeResponse<{ Id: string; FullName: string; Metadata: FlowMetadata }>>(selectedOrg, {
+//       isTooling: true,
+//       method: 'POST',
+//       url: '/services/data/v49.0/tooling/composite',
+//       body: requestBody,
+//     });
+//     response.compositeResponse.forEach((item) => {
+//       if (item.httpStatusCode === 200) {
+//         metadataItemById[item.referenceId].metadataRetrieve = item.body;
+//         metadataItemById[item.referenceId].metadataDeploy = { ...item.body, Id: undefined } as any; // shallow clone - nested properties will not be modified
+//       } else {
+//         metadataItemById[item.referenceId].retrieveError = item.body as any;
+//       }
+//     });
+//   }
+
+//   const metadataUpdateRequests: CompositeRequestBody[][] = splitArrayToMaxSize(
+//     Object.values(PayloadItems).flatMap((metadataType) =>
+//       metadataType
+//         .filter((item) => !!item.metadataRetrieve)
+//         .map(
+//           (item): CompositeRequestBody => {
+//             switch (item.type) {
+//               // FIXME: this requires the metadata API
+//               /**
+//                 Apex triggers cannot be deactivated using Tooling API.
+//                 You can deactivate Apex triggers using Metadata API.
+//                 Consider using custom metadata records and include logic in your trigger to bypass trigger configuration logic.
+//                 For more information, see the Metadata API Developer Guide.
+//                */
+
+//               case 'ApexTrigger': {
+//                 item.metadataDeploy.Metadata.status = item.value ? 'Active' : 'Inactive';
+//                 break;
+//               }
+//               case 'FlowDefinition': {
+//                 item.metadataDeploy.Metadata.activeVersionNumber = item.activeVersion;
+//                 break;
+//               }
+//               case 'WorkflowRule':
+//               case 'ValidationRule': {
+//                 item.metadataDeploy.Metadata.active = item.value;
+//                 break;
+//               }
+//               default:
+//                 break;
+//             }
+
+//             return {
+//               method: 'PATCH',
+//               url: `/services/data/v49.0/tooling/sobjects/${item.type}/${item.id}`,
+//               referenceId: item.id,
+//               body: item.metadataDeploy,
+//             };
+//           }
+//         )
+//     ),
+//     25
+//   );
+
+//   for (const compositeRequest of metadataUpdateRequests) {
+//     const requestBody: CompositeRequest = {
+//       allOrNone: false,
+//       compositeRequest,
+//     };
+//     logger.log({ requestBody });
+//   }
+
+//   /// TODO: modify metadata based on type to prepare payload
+
+//   /// DEPLOY CHANGES - TODO:
+
+//   // validationRules.forEach((validationRule) => {
+//   //   requests.push({
+//   //     method: 'PATCH',
+//   //     url: `/services/data/v49.0/tooling/sobjects/ValidationRule/${validationRule.Id}`,
+//   //     referenceId: `ValidationRule-${validationRule.Id}`,
+//   //     body: { Active: validationRule.Active },
+//   //   });
+//   // });
+
+//   // workflowRules.forEach((workflowRule) => {
+//   //   requests.push({
+//   //     method: 'PATCH',
+//   //     url: `/services/data/v49.0/tooling/sobjects/WorkflowRule/${workflowRule.Id}`,
+//   //     referenceId: `WorkflowRule-${workflowRule.Id}`,
+//   //     body: { FullName: workflowRule.fullName, metadata: { active: workflowRule.active } },
+//   //   });
+//   // });
+
+//   // apexTriggers.forEach((apexTrigger) => {
+//   //   requests.push({
+//   //     method: 'PATCH',
+//   //     url: `/services/data/v49.0/tooling/sobjects/ApexTrigger/${apexTrigger.Id}`,
+//   //     referenceId: `ApexTrigger-${apexTrigger.Id}`,
+//   //     body: { Status: apexTrigger.Status },
+//   //   });
+//   // });
+
+//   // TODO: process builders
+
+//   logger.log('[REQUEST PAYLOADS]', { metadataFetchRequests, metadataUpdateRequests, metadataItemById });
+// }
 
 /**
  * SOQL QUERIES

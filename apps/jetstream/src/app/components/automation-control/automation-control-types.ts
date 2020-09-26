@@ -22,6 +22,51 @@ export interface DirtyAutomationItems {
   itemsById: MapOf<boolean>;
 }
 
+export type DeploymentItemStatus = 'Not Started' | 'Preparing' | 'Ready for Deploy' | 'Deploying' | 'Success' | 'Error';
+
+export type DeploymentItemMap = MapOf<{
+  status: DeploymentItemStatus;
+  metadata: AutomationControlMetadataTypeItem;
+  deploy: AutomationControlDeploymentItem;
+}>;
+
+export interface AutomationControlDeploymentItem {
+  type: AutomationMetadataDeployType;
+  id: string;
+  activeVersion?: number; // only applies to process builders
+  value: boolean;
+  metadataRetrieve?: { Id: string; FullName: string; Metadata: any };
+  metadataDeploy?: { FullName: string; Metadata: any };
+  retrieveError?: any;
+  deployError?: any;
+}
+
+export interface DeploymentItemByType {
+  validationRules: AutomationControlDeploymentItem[];
+  workflowRules: AutomationControlDeploymentItem[];
+  apexTriggers: AutomationControlDeploymentItem[];
+  processBuilders: AutomationControlDeploymentItem[];
+}
+
+export interface AutomationItems {
+  ValidationRule: AutomationControlMetadataType<ToolingValidationRuleRecord, null>;
+  WorkflowRule: AutomationControlMetadataType<ToolingWorkflowRuleRecordWithMetadata, null>;
+  Flow: AutomationControlMetadataType<ToolingFlowDefinitionWithVersions, ToolingFlowRecord>;
+  ApexTrigger: AutomationControlMetadataType<ToolingApexTriggerRecord, null>;
+}
+
+export interface AutomationItemsChildren {
+  key: string;
+  sobjectName: string;
+  sobjectLabel: string;
+  automationItems: {
+    ValidationRule: AutomationControlMetadataTypeItem<ToolingValidationRuleRecord, null>[];
+    WorkflowRule: AutomationControlMetadataTypeItem<ToolingWorkflowRuleRecordWithMetadata, null>[];
+    Flow: AutomationControlMetadataTypeItem<ToolingFlowDefinitionWithVersions, ToolingFlowRecord>[];
+    ApexTrigger: AutomationControlMetadataTypeItem<ToolingApexTriggerRecord, null>[];
+  };
+}
+
 export interface AutomationControlParentSobject {
   key: string;
   entityDefinitionId: string;
@@ -32,12 +77,7 @@ export interface AutomationControlParentSobject {
   hasLoaded: boolean;
   inProgress: boolean;
   error: boolean;
-  automationItems: {
-    ValidationRule: AutomationControlMetadataType<ToolingValidationRuleRecord, null>;
-    WorkflowRule: AutomationControlMetadataType<ToolingWorkflowRuleRecordWithMetadata, null>;
-    Flow: AutomationControlMetadataType<ToolingFlowDefinitionWithVersions, ToolingFlowRecord>;
-    ApexTrigger: AutomationControlMetadataType<ToolingApexTriggerRecord, null>;
-  };
+  automationItems: AutomationItems;
 }
 
 export interface AutomationControlMetadataType<T = AutomationControlMetadataTypeGeneric, K = void | ToolingFlowRecord> {
@@ -50,6 +90,7 @@ export interface AutomationControlMetadataType<T = AutomationControlMetadataType
 }
 
 export interface AutomationControlMetadataTypeItem<T = AutomationControlMetadataTypeGeneric, K = void | ToolingFlowRecord> {
+  key: string;
   fullName: string;
   label: string;
   description: string;
@@ -59,6 +100,8 @@ export interface AutomationControlMetadataTypeItem<T = AutomationControlMetadata
   currentActiveVersion?: number; // only applies to item with versions (Flow)
   expanded?: boolean; // only applies to items with children
   children?: AutomationControlMetadataTypeItem<K>[]; // Process Builder is the only type with children
+  LastModifiedDate: string;
+  LastModifiedByName: string;
   metadata: T;
 }
 

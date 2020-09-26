@@ -44,6 +44,7 @@ export * from './lib/nav/NavbarAppLauncher';
 export * from './lib/nav/NavbarItem';
 export * from './lib/nav/NavbarMenuItems';
 export * from './lib/popover/Popover';
+export * from './lib/progress-indicator/ProgressIndicator';
 export * from './lib/providers/DialogServiceProvider';
 export * from './lib/sobject-field-list/SobjectFieldList';
 export * from './lib/sobject-field-list/SobjectFieldListItem';

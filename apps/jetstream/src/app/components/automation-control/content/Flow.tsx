@@ -125,16 +125,18 @@ export const AutomationControlContentFlow: FunctionComponent<AutomationControlCo
               <td role="gridcell">
                 <Grid vertical>
                   <GridCol>
-                    {item.metadata.LastModifiedBy && (
-                      <div className="slds-truncate" title={item.metadata.LastModifiedBy.Name}>
-                        {item.metadata.LastModifiedBy.Name}
+                    {item.LastModifiedByName && (
+                      <div className="slds-truncate" title={item.LastModifiedByName}>
+                        {item.LastModifiedByName}
                       </div>
                     )}
                   </GridCol>
                   <GridCol>
-                    <div className="slds-truncate" title={item.metadata.LastModifiedDate}>
-                      {item.metadata.LastModifiedDate}
-                    </div>
+                    {item.LastModifiedDate && (
+                      <div className="slds-truncate" title={item.LastModifiedDate}>
+                        {item.LastModifiedDate}
+                      </div>
+                    )}
                   </GridCol>
                 </Grid>
               </td>
@@ -188,16 +190,18 @@ export const AutomationControlContentFlow: FunctionComponent<AutomationControlCo
                   <td role="gridcell">
                     <Grid vertical>
                       <GridCol>
-                        {childItem.metadata.LastModifiedBy && (
-                          <div className="slds-truncate" title={childItem.metadata.LastModifiedBy.Name}>
-                            {childItem.metadata.LastModifiedBy.Name}
+                        {childItem.LastModifiedByName && (
+                          <div className="slds-truncate" title={childItem.LastModifiedByName}>
+                            {childItem.LastModifiedByName}
                           </div>
                         )}
                       </GridCol>
                       <GridCol>
-                        <div className="slds-truncate" title={childItem.metadata.LastModifiedDate}>
-                          {childItem.metadata.LastModifiedDate}
-                        </div>
+                        {childItem.LastModifiedDate && (
+                          <div className="slds-truncate" title={childItem.LastModifiedDate}>
+                            {childItem.LastModifiedDate}
+                          </div>
+                        )}
                       </GridCol>
                     </Grid>
                   </td>
