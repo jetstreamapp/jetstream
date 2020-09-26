@@ -12,7 +12,7 @@ export type AutomationMetadataDeployType = ValidationRule | WorkflowRule | FlowD
 
 type AutomationControlMetadataTypeGeneric =
   | ToolingValidationRuleRecord
-  | ToolingWorkflowRuleRecordWithMetadata
+  | ToolingWorkflowRuleRecord
   | ToolingFlowDefinitionWithVersions
   | ToolingApexTriggerRecord
   | ToolingFlowRecord;
@@ -50,7 +50,7 @@ export interface DeploymentItemByType {
 
 export interface AutomationItems {
   ValidationRule: AutomationControlMetadataType<ToolingValidationRuleRecord, null>;
-  WorkflowRule: AutomationControlMetadataType<ToolingWorkflowRuleRecordWithMetadata, null>;
+  WorkflowRule: AutomationControlMetadataType<ToolingWorkflowRuleRecord, null>;
   Flow: AutomationControlMetadataType<ToolingFlowDefinitionWithVersions, ToolingFlowRecord>;
   ApexTrigger: AutomationControlMetadataType<ToolingApexTriggerRecord, null>;
 }
@@ -61,7 +61,7 @@ export interface AutomationItemsChildren {
   sobjectLabel: string;
   automationItems: {
     ValidationRule: AutomationControlMetadataTypeItem<ToolingValidationRuleRecord, null>[];
-    WorkflowRule: AutomationControlMetadataTypeItem<ToolingWorkflowRuleRecordWithMetadata, null>[];
+    WorkflowRule: AutomationControlMetadataTypeItem<ToolingWorkflowRuleRecord, null>[];
     Flow: AutomationControlMetadataTypeItem<ToolingFlowDefinitionWithVersions, ToolingFlowRecord>[];
     ApexTrigger: AutomationControlMetadataTypeItem<ToolingApexTriggerRecord, null>[];
   };
@@ -136,6 +136,8 @@ export interface ToolingValidationRuleRecord extends SystemFields {
   Active: boolean;
   Description: string;
   ErrorMessage: string;
+  FullName: string;
+  Metadata: MetadataValidationRuleRecord;
 }
 
 export interface ToolingApexTriggerRecord extends SystemFields {
@@ -173,6 +175,8 @@ export interface ToolingWorkflowRuleRecord extends SystemFields {
   Id: string;
   Name: string;
   TableEnumOrId: string;
+  FullName: string;
+  Metadata: MetadataWorkflowRuleRecord;
 }
 
 export interface ToolingFlowAggregateRecord {
@@ -212,17 +216,27 @@ export interface ToolingFlowDefinitionWithVersions extends ToolingFlowDefinition
   Versions: ToolingFlowRecord[];
 }
 
-export interface ToolingWorkflowRuleRecordWithMetadata {
-  tooling: ToolingWorkflowRuleRecord;
-  metadata: MetadataWorkflowRuleRecord;
+// export interface ToolingWorkflowRuleRecordWithMetadata {
+//   tooling: ToolingWorkflowRuleRecord;
+//   metadata: MetadataWorkflowRuleRecord;
+// }
+
+export interface MetadataValidationRuleRecord {
+  description: string;
+  errorConditionFormula: string;
+  errorDisplayField: string;
+  errorMessage: string;
+  shouldEvaluateOnClient: null;
+  urls: null;
+  active: boolean;
 }
 
 export interface MetadataWorkflowRuleRecord {
   actions: {
     // WorkflowActionReference
-    name: 'Update_Some_Field';
+    name: string;
     type: 'Alert' | 'FieldUpdate' | 'FlowAction' | 'OutboundMessage' | 'Task';
-  };
+  }[];
   description?: string;
   active: boolean; // TODO: convert to bool
   formula: string;
@@ -245,18 +259,17 @@ export interface MetadataWorkflowRuleRecord {
     value: string;
     valueField: string;
   }[];
-  fullName: string;
   triggerType: 'onCreateOrTriggeringUpdate' | 'onAllChanges' | 'onCreateOnly';
   workflowTimeTriggers?: {
     actions: {
       // WorkflowActionReference
       name: 'Update_Some_Field';
       type: 'Alert' | 'FieldUpdate' | 'FlowAction' | 'OutboundMessage' | 'Task';
-    };
+    }[];
     offsetFromField: string;
     timeLength: string;
     workflowTimeTriggerUnit: 'Hours' | 'Days';
-  };
+  }[];
 }
 
 export interface FlowMetadata {

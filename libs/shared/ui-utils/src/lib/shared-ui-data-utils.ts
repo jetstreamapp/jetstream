@@ -1,7 +1,7 @@
-import { describeSObject, query } from '@jetstream/shared/data';
-import { MapOf, SalesforceOrgUi } from '@jetstream/types';
+import { describeSObject, genericRequest, query } from '@jetstream/shared/data';
+import { CompositeRequest, CompositeRequestBody, CompositeResponse, MapOf, SalesforceOrgUi } from '@jetstream/types';
 import { FieldDefinition } from '@jetstream/types';
-import { REGEX, getMapOf, alwaysResolve } from '@jetstream/shared/utils';
+import { REGEX, getMapOf, alwaysResolve, splitArrayToMaxSize } from '@jetstream/shared/utils';
 import { FieldWrapper, QueryFields } from '@jetstream/types';
 import { Field } from 'jsforce';
 import { composeQuery, getField } from 'soql-parser-js';
@@ -55,4 +55,66 @@ export async function fetchFields(org: SalesforceOrgUi, queryFields: QueryFields
   );
 
   return { ...queryFields, fields, visibleFields: new Set(Object.keys(fields)), childRelationships };
+}
+
+/**
+ * For the provided ids, fetch each record using the composite API
+ * These are automatically split into sets of up to 25 records
+ *
+ * The referenceId is set to the recordId
+ *
+ * @param selectedOrg
+ * @param metadataType
+ * @param recordIds
+ * @param fields
+ * @param apiVersion
+ */
+export async function getToolingRecords<T>(
+  selectedOrg: SalesforceOrgUi,
+  metadataType: string,
+  recordIds: string[],
+  fields: string[] = ['Id', 'FullName', 'Metadata'],
+  apiVersion = 'v49.0' // TODO: remove hard-coded id
+): Promise<CompositeResponse<T>> {
+  const compositeRequests = recordIds.map(
+    (id): CompositeRequestBody => ({
+      method: 'GET',
+      url: `/services/data/${apiVersion}/tooling/sobjects/${metadataType}/${id}?fields=${fields.join(',')}`,
+      referenceId: id,
+    })
+  );
+  return await makeToolingRequests<T>(selectedOrg, compositeRequests, apiVersion, false);
+}
+
+/**
+ * Submit tooling requests using the composite API which allows 25 records to be processed at once
+ * Requests are automatically split into sets of 25 records
+ *
+ * @param selectedOrg
+ * @param compositeRequests
+ * @param apiVersion
+ * @param allOrNone
+ */
+export async function makeToolingRequests<T>(
+  selectedOrg: SalesforceOrgUi,
+  compositeRequests: CompositeRequestBody[],
+  apiVersion = 'v49.0', // TODO: remove hard-coded id
+  allOrNone = false
+): Promise<CompositeResponse<T>> {
+  const compositeRequestSets = splitArrayToMaxSize(compositeRequests, 25);
+  let results: CompositeResponse<T>;
+  for (const compositeRequest of compositeRequestSets) {
+    const response = await genericRequest<CompositeResponse<T>>(selectedOrg, {
+      isTooling: true,
+      method: 'POST',
+      url: `/services/data/${apiVersion}/tooling/composite`,
+      body: { allOrNone, compositeRequest },
+    });
+    if (!results) {
+      results = response;
+    } else {
+      results.compositeResponse = results.compositeResponse.concat(response.compositeResponse);
+    }
+  }
+  return results;
 }

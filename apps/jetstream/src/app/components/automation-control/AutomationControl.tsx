@@ -24,17 +24,18 @@ import {
   AutomationMetadataType,
   ToolingEntityDefinitionRecord,
   ToolingFlowDefinitionWithVersions,
-  ToolingWorkflowRuleRecordWithMetadata,
+  ToolingValidationRuleRecord,
+  ToolingWorkflowRuleRecord,
 } from './automation-control-types';
 import * as fromAutomationCtlState from './automation-control.state';
 import {
   convertFlowRecordsToAutomationControlItem,
+  convertValidationRuleRecordsToAutomationControlItem,
   convertWorkflowRuleRecordsToAutomationControlItem,
-  getEntityDefinitionQuery,
-  getProcessBuilders,
-  getWorkflowRulesMetadata,
   initItemsById,
-} from './automation-utils';
+} from './utils/automation-control-utils';
+import { getProcessBuilders, getValidationRulesMetadata, getWorkflowRulesMetadata } from './utils/automation-control-data-utils';
+import { getEntityDefinitionQuery } from './utils/automation-control-soql-utils';
 import { AutomationControlTabTitle } from './AutomationControlTitle';
 import { AutomationControlTabContent } from './content/Content';
 import AutomationControlDeployModal from './deploy/DeployModal';
@@ -313,9 +314,18 @@ export const AutomationControl: FunctionComponent<AutomationControlProps> = () =
       // Indicate that we are loading
       currTab.loading = true;
       const needToLoad = {
+        ValidationRule: false,
         WorkflowRule: false,
         Flow: false,
       };
+
+      if (!currTab.automationItems.ValidationRule.hasLoaded && !currTab.automationItems.ValidationRule.loading) {
+        currTab.automationItems = {
+          ...currTab.automationItems,
+          ValidationRule: { ...currTab.automationItems.ValidationRule, loading: true },
+        };
+        needToLoad.ValidationRule = true;
+      }
 
       if (!currTab.automationItems.WorkflowRule.hasLoaded && !currTab.automationItems.WorkflowRule.loading) {
         currTab.automationItems = { ...currTab.automationItems, WorkflowRule: { ...currTab.automationItems.WorkflowRule, loading: true } };
@@ -329,6 +339,38 @@ export const AutomationControl: FunctionComponent<AutomationControlProps> = () =
 
       // set loading indicator
       setItemsById(itemsByIdTemp);
+
+      if (needToLoad.ValidationRule) {
+        loadValidationRules(currTab.entityDefinitionId, currTab.sobjectName, currTab.automationItems.ValidationRule)
+          .then((validationRules) => {
+            itemsByIdTemp = { ...itemsByIdTemp };
+            itemsByIdTemp[tabId] = { ...itemsByIdTemp[tabId] };
+            currTab = itemsByIdTemp[tabId];
+
+            currTab.automationItems = {
+              ...currTab.automationItems,
+              ValidationRule: validationRules,
+            };
+            setItemsById(itemsByIdTemp);
+          })
+          .catch((err) => {
+            logger.error(err);
+            itemsByIdTemp = { ...itemsByIdTemp };
+            itemsByIdTemp[tabId] = { ...itemsByIdTemp[tabId] };
+            currTab = itemsByIdTemp[tabId];
+
+            currTab.automationItems = {
+              ...currTab.automationItems,
+              ValidationRule: {
+                ...currTab.automationItems.ValidationRule,
+                hasLoaded: true,
+                loading: false,
+                errorMessage: 'There was an error loading these items',
+              },
+            };
+            setItemsById(itemsByIdTemp);
+          });
+      }
 
       // Fetch and load metadata
       if (needToLoad.WorkflowRule) {
@@ -397,10 +439,24 @@ export const AutomationControl: FunctionComponent<AutomationControlProps> = () =
     }
   }
 
+  async function loadValidationRules(
+    entityDefinitionId: string,
+    sobjectName: string,
+    currentValidationRuleMeta: AutomationControlMetadataType<ToolingValidationRuleRecord>
+  ): Promise<AutomationControlMetadataType<ToolingValidationRuleRecord>> {
+    const validationRules = await getValidationRulesMetadata(selectedOrg, entityDefinitionId);
+    return {
+      ...currentValidationRuleMeta,
+      loading: false,
+      hasLoaded: true,
+      items: convertValidationRuleRecordsToAutomationControlItem(sobjectName, validationRules),
+    };
+  }
+
   async function loadWorkflowRules(
     sobjectName: string,
-    currentWorkflowFlowRuleMeta: AutomationControlMetadataType<ToolingWorkflowRuleRecordWithMetadata>
-  ): Promise<AutomationControlMetadataType<ToolingWorkflowRuleRecordWithMetadata>> {
+    currentWorkflowFlowRuleMeta: AutomationControlMetadataType<ToolingWorkflowRuleRecord>
+  ): Promise<AutomationControlMetadataType<ToolingWorkflowRuleRecord>> {
     const workflowRules = await getWorkflowRulesMetadata(selectedOrg, sobjectName);
     return {
       ...currentWorkflowFlowRuleMeta,

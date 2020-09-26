@@ -1,6 +1,6 @@
 /** @jsx jsx */
 import { css, jsx } from '@emotion/core';
-import { CheckboxToggle, Grid, GridCol } from '@jetstream/ui';
+import { CheckboxToggle, Grid, GridCol, Icon, CopyToClipboard, Tooltip } from '@jetstream/ui';
 import classNames from 'classnames';
 import { FunctionComponent } from 'react';
 import { AutomationControlMetadataTypeItem, AutomationMetadataType, ToolingValidationRuleRecord } from '../automation-control-types';
@@ -48,9 +48,26 @@ export const AutomationControlContentValidationRule: FunctionComponent<Automatio
               Description
             </div>
           </th>
-          <th scope="col">
-            <div className="slds-truncate" title="Rule Error Message">
-              Rule Error Message
+          <th
+            scope="col"
+            className="slds-text-align_center"
+            css={css`
+              width: 80px;
+            `}
+          >
+            <div className="slds-truncate" title="Error Message">
+              Message
+            </div>
+          </th>
+          <th
+            scope="col"
+            className="slds-text-align_center"
+            css={css`
+              width: 80px;
+            `}
+          >
+            <div className="slds-truncate" title="Error Condition">
+              Condition
             </div>
           </th>
           <th
@@ -91,10 +108,29 @@ export const AutomationControlContentValidationRule: FunctionComponent<Automatio
                 {item.description}
               </div>
             </td>
-            <td>
-              <div className="slds-cell-wrap slds-line-clamp" title={item.metadata.ErrorMessage}>
-                {item.metadata.ErrorMessage}
-              </div>
+            <td className="slds-text-align_center">
+              <Tooltip
+                id={`errorConditionFormula-${item.key}`}
+                content={<span className="slds-text-font_monospace">{item.metadata.ErrorMessage}</span>}
+              >
+                <CopyToClipboard
+                  icon={{ type: 'utility', icon: 'search', description: 'rule error message' }}
+                  size="large"
+                  content={item.metadata.ErrorMessage}
+                />
+              </Tooltip>
+            </td>
+            <td className="slds-text-align_center">
+              <Tooltip
+                id={`errorConditionFormula-${item.key}`}
+                content={<span className="slds-text-font_monospace">{item.metadata.Metadata.errorConditionFormula}</span>}
+              >
+                <CopyToClipboard
+                  icon={{ type: 'utility', icon: 'search', description: 'view error condition formula' }}
+                  size="large"
+                  content={item.metadata.Metadata.errorConditionFormula}
+                />
+              </Tooltip>
             </td>
             <td>
               <Grid vertical>

@@ -8,6 +8,7 @@ import Tooltip from './Tooltip';
 import Badge from './Badge';
 import Pill from './Pill';
 import { action } from '@storybook/addon-actions';
+import CopyToClipboard from './CopyToClipboard';
 
 export default {
   title: 'Widgets',
@@ -117,6 +118,37 @@ export const iconSuccess = () => (
       description={text('description', 'description for accessibility')}
     />
   </div>
+);
+
+export const copyToClipboard = () => (
+  <CopyToClipboard
+    className={text('className', 'slds-m-left--xx-small')}
+    icon={{ type: 'utility', icon: text('icon', 'copy'), description: text('iconDescription', 'copy to clipboard') }}
+    size={select(
+      'size',
+      {
+        none: undefined,
+        xSmall: 'x-small',
+        small: 'small',
+        large: 'large',
+      },
+      undefined
+    )}
+    container={boolean('container', false)}
+    skipTransitionIcon={boolean('skipTransitionIcon', false)}
+    containerSize={select(
+      'containerSize',
+      {
+        none: undefined,
+        xxxSmall: 'xxx-small',
+        xSmall: 'x-small',
+        Small: 'small',
+      },
+      undefined
+    )}
+    content={text('content', 'content to copy')}
+    copied={action('copied')}
+  />
 );
 
 export const tooltipBasic = () => (

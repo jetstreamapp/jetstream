@@ -5,7 +5,7 @@ import { Modal, ProgressIndicator } from '@jetstream/ui';
 import { Fragment, FunctionComponent, useEffect, useState } from 'react';
 import { logger } from '@jetstream/shared/client-logger';
 import { AutomationControlDeploymentItem, AutomationItemsChildren, DeploymentItemMap } from '../automation-control-types';
-import { deployMetadata, preparePayloads } from '../automation-utils';
+import { deployMetadata, preparePayloads } from '../utils/automation-control-data-utils';
 import AutomationControlPreDeploymentTable from './PreDeploymentTable';
 
 // eslint-disable-next-line @typescript-eslint/no-empty-interface
@@ -72,7 +72,7 @@ function getDeploymentItemMap(itemsById: MapOf<AutomationItemsChildren>) {
           metadata: item,
           deploy: {
             type: 'WorkflowRule',
-            id: item.metadata.tooling.Id,
+            id: item.metadata.Id,
             activeVersion: null,
             value: item.currentValue,
             metadataRetrieve: null,
