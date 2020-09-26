@@ -24,11 +24,18 @@ export interface DirtyAutomationItems {
 
 export type DeploymentItemStatus = 'Not Started' | 'Preparing' | 'Ready for Deploy' | 'Deploying' | 'Success' | 'Error';
 
-export type DeploymentItemMap = MapOf<{
+export type DeploymentItemMap = MapOf<DeploymentItem>;
+export interface DeploymentItem {
   status: DeploymentItemStatus;
   metadata: AutomationControlMetadataTypeItem;
   deploy: AutomationControlDeploymentItem;
-}>;
+}
+
+export interface SalesforceApiError {
+  errorCode: string;
+  fields?: string[];
+  message: string;
+}
 
 export interface AutomationControlDeploymentItem {
   type: AutomationMetadataDeployType;
@@ -37,8 +44,8 @@ export interface AutomationControlDeploymentItem {
   value: boolean;
   metadataRetrieve?: { Id: string; FullName: string; Metadata: any };
   metadataDeploy?: { FullName: string; Metadata: any };
-  retrieveError?: any;
-  deployError?: any;
+  retrieveError?: SalesforceApiError[];
+  deployError?: SalesforceApiError[];
 }
 
 export interface DeploymentItemByType {

@@ -85,30 +85,42 @@ export const AutomationControlPreDeploymentTable: FunctionComponent<AutomationCo
               </tr>
             </thead>
             <tbody>
-              <AutomationControlPreDeploymentTableRow
-                type="ValidationRule"
-                typeLabel="Validation Rule"
-                items={item.automationItems.ValidationRule}
-                deploymentItemMap={deploymentItemMap}
-              />
-              <AutomationControlPreDeploymentTableRow
-                type="WorkflowRule"
-                typeLabel="Workflow Rule"
-                items={item.automationItems.WorkflowRule}
-                deploymentItemMap={deploymentItemMap}
-              />
-              <AutomationControlPreDeploymentTableRow
-                type="Flow"
-                typeLabel="Process Builder"
-                items={item.automationItems.Flow}
-                deploymentItemMap={deploymentItemMap}
-              />
-              <AutomationControlPreDeploymentTableRow
-                type="ApexTrigger"
-                typeLabel="Apex Trigger"
-                items={item.automationItems.ApexTrigger}
-                deploymentItemMap={deploymentItemMap}
-              />
+              {item.automationItems.ValidationRule.map((currRowItem) => (
+                <AutomationControlPreDeploymentTableRow
+                  key={currRowItem.fullName}
+                  type="ValidationRule"
+                  typeLabel="Validation Rule"
+                  item={currRowItem}
+                  deploymentItem={deploymentItemMap[currRowItem.key]}
+                />
+              ))}
+              {item.automationItems.WorkflowRule.map((currRowItem) => (
+                <AutomationControlPreDeploymentTableRow
+                  key={currRowItem.fullName}
+                  type="WorkflowRule"
+                  typeLabel="Workflow Rule"
+                  item={currRowItem}
+                  deploymentItem={deploymentItemMap[currRowItem.key]}
+                />
+              ))}
+              {item.automationItems.Flow.map((currRowItem) => (
+                <AutomationControlPreDeploymentTableRow
+                  key={currRowItem.fullName}
+                  type="Flow"
+                  typeLabel="Process Builder"
+                  item={currRowItem}
+                  deploymentItem={deploymentItemMap[currRowItem.key]}
+                />
+              ))}
+              {item.automationItems.ApexTrigger.map((currRowItem) => (
+                <AutomationControlPreDeploymentTableRow
+                  key={currRowItem.fullName}
+                  type="ApexTrigger"
+                  typeLabel="Apex Trigger"
+                  item={currRowItem}
+                  deploymentItem={deploymentItemMap[currRowItem.key]}
+                />
+              ))}
             </tbody>
           </table>
         </div>
