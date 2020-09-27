@@ -147,23 +147,24 @@ export const AutomationControl: FunctionComponent<AutomationControlProps> = () =
     resetItemsById();
     resetTabs();
     resetFlowDefinitionsBySobject();
-    // setSobjects(null);
   }
 
   function handleAutomationItemExpandChanged(parentItemKey: string, automationItems: string[]) {
-    const automationItemsSet = new Set(automationItems);
-    const itemsByIdTemp = {
-      ...itemsById,
-      [parentItemKey]: { ...itemsById[parentItemKey], automationItems: { ...itemsById[parentItemKey].automationItems } },
-    };
-
-    Object.keys(itemsByIdTemp[parentItemKey].automationItems).forEach((metadataType) => {
-      itemsByIdTemp[parentItemKey].automationItems[metadataType] = {
-        ...itemsByIdTemp[parentItemKey].automationItems[metadataType],
-        expanded: automationItemsSet.has(metadataType),
+    setItemsById((previousItemsById) => {
+      const automationItemsSet = new Set(automationItems);
+      const itemsByIdTemp = {
+        ...previousItemsById,
+        [parentItemKey]: { ...itemsById[parentItemKey], automationItems: { ...itemsById[parentItemKey].automationItems } },
       };
+
+      Object.keys(itemsByIdTemp[parentItemKey].automationItems).forEach((metadataType) => {
+        itemsByIdTemp[parentItemKey].automationItems[metadataType] = {
+          ...itemsByIdTemp[parentItemKey].automationItems[metadataType],
+          expanded: automationItemsSet.has(metadataType),
+        };
+      });
+      return itemsByIdTemp;
     });
-    setItemsById(itemsByIdTemp);
   }
 
   function handleToggleChildItemExpand(
@@ -172,14 +173,16 @@ export const AutomationControl: FunctionComponent<AutomationControlProps> = () =
     value: boolean,
     item: AutomationControlMetadataTypeItem
   ) {
-    const itemsByIdTemp = { ...itemsById, [parentItemKey]: { ...itemsById[parentItemKey] } };
-    itemsByIdTemp[parentItemKey].automationItems = {
-      ...itemsByIdTemp[parentItemKey].automationItems,
-      [type]: { ...itemsByIdTemp[parentItemKey].automationItems[type] },
-    };
-    const currItem: AutomationControlMetadataType = itemsByIdTemp[parentItemKey].automationItems[type];
-    currItem.items = currItem.items.map((childItem) => (childItem.fullName === item.fullName ? { ...item, expanded: value } : childItem));
-    setItemsById(itemsByIdTemp);
+    setItemsById((previousItemsById) => {
+      const itemsByIdTemp = { ...previousItemsById, [parentItemKey]: { ...previousItemsById[parentItemKey] } };
+      itemsByIdTemp[parentItemKey].automationItems = {
+        ...itemsByIdTemp[parentItemKey].automationItems,
+        [type]: { ...itemsByIdTemp[parentItemKey].automationItems[type] },
+      };
+      const currItem: AutomationControlMetadataType = itemsByIdTemp[parentItemKey].automationItems[type];
+      currItem.items = currItem.items.map((childItem) => (childItem.fullName === item.fullName ? { ...item, expanded: value } : childItem));
+      return itemsByIdTemp;
+    });
   }
 
   /**
@@ -197,105 +200,108 @@ export const AutomationControl: FunctionComponent<AutomationControlProps> = () =
     item: AutomationControlMetadataTypeItem,
     grandChildItem?: AutomationControlMetadataTypeItem
   ) {
-    const itemsByIdTemp = { ...itemsById, [parentItemKey]: { ...itemsById[parentItemKey] } };
-    // This seems complicated because typescript is being stupid because of our generic types :sob:
-    // This just changed to checkbox for currentItem = value
+    setItemsById((previousItemsById) => {
+      const itemsByIdTemp = { ...previousItemsById, [parentItemKey]: { ...previousItemsById[parentItemKey] } };
+      // This seems complicated because typescript is being stupid because of our generic types :sob:
+      // This just changed to checkbox for currentItem = value
 
-    itemsByIdTemp[parentItemKey].automationItems = {
-      ...itemsByIdTemp[parentItemKey].automationItems,
-      [type]: { ...itemsByIdTemp[parentItemKey].automationItems[type] },
-    };
+      itemsByIdTemp[parentItemKey].automationItems = {
+        ...itemsByIdTemp[parentItemKey].automationItems,
+        [type]: { ...itemsByIdTemp[parentItemKey].automationItems[type] },
+      };
 
-    if (type !== 'Flow') {
-      const currItem: AutomationControlMetadataType = itemsByIdTemp[parentItemKey].automationItems[type];
-      currItem.items = currItem.items.map((childItem) =>
-        childItem.fullName === item.fullName ? { ...item, currentValue: value } : childItem
-      );
-    } else {
-      // For process builders, we need to set the parent item based on the child items
-      // and only one items can be active at a time
-      const currItem = itemsByIdTemp[parentItemKey].automationItems[type];
+      if (type !== 'Flow') {
+        const currItem: AutomationControlMetadataType = itemsByIdTemp[parentItemKey].automationItems[type];
+        currItem.items = currItem.items.map((childItem) =>
+          childItem.fullName === item.fullName ? { ...item, currentValue: value } : childItem
+        );
+      } else {
+        // For process builders, we need to set the parent item based on the child items
+        // and only one items can be active at a time
+        const currItem = itemsByIdTemp[parentItemKey].automationItems[type];
 
-      currItem.items = currItem.items.map((childItem) => {
-        // see if FlowDefinition matches the current childItem
-        if (childItem.fullName !== item.fullName || !Array.isArray(childItem.children)) {
+        currItem.items = currItem.items.map((childItem) => {
+          // see if FlowDefinition matches the current childItem
+          if (childItem.fullName !== item.fullName || !Array.isArray(childItem.children)) {
+            return childItem;
+          }
+          // Match - process flow versions
+          childItem = { ...childItem };
+          // If false, set every flow version to false including flow definition
+          if (!value) {
+            childItem.currentValue = false;
+            childItem.currentActiveVersion = null;
+            childItem.children = childItem.children.map((currGrandChildItem) => ({ ...currGrandChildItem, currentValue: false }));
+          } else {
+            // If value is true, set parent to true, all other items to false, and current item to true
+            childItem.currentValue = value;
+            childItem.currentActiveVersion = null;
+            childItem.children = childItem.children.map((currGrandChildItem) => {
+              if (currGrandChildItem.fullName === grandChildItem.fullName) {
+                childItem.currentActiveVersion = currGrandChildItem.metadata.VersionNumber;
+                return { ...currGrandChildItem, currentValue: true };
+              } else {
+                return { ...currGrandChildItem, currentValue: false };
+              }
+            });
+          }
           return childItem;
-        }
-        // Match - process flow versions
-        childItem = { ...childItem };
-        // If false, set every flow version to false including flow definition
-        if (!value) {
-          childItem.currentValue = false;
-          childItem.currentActiveVersion = null;
-          childItem.children = childItem.children.map((currGrandChildItem) => ({ ...currGrandChildItem, currentValue: false }));
-        } else {
-          // If value is true, set parent to true, all other items to false, and current item to true
-          childItem.currentValue = value;
-          childItem.currentActiveVersion = null;
-          childItem.children = childItem.children.map((currGrandChildItem) => {
-            if (currGrandChildItem.fullName === grandChildItem.fullName) {
-              childItem.currentActiveVersion = currGrandChildItem.metadata.VersionNumber;
-              return { ...currGrandChildItem, currentValue: true };
-            } else {
-              return { ...currGrandChildItem, currentValue: false };
-            }
-          });
-        }
-        return childItem;
-      });
-    }
-
-    setItemsById(itemsByIdTemp);
+        });
+      }
+      return itemsByIdTemp;
+    });
   }
 
   function handleToggleAll(parentItemKey: string, value: boolean | null) {
-    // clone items that will be modified
-    const itemsByIdTemp = {
-      ...itemsById,
-      [parentItemKey]: { ...itemsById[parentItemKey], automationItems: { ...itemsById[parentItemKey].automationItems } },
-    };
-    Object.keys(itemsByIdTemp[parentItemKey].automationItems).forEach((key) => {
-      if (key !== 'Flow') {
-        itemsByIdTemp[parentItemKey].automationItems[key] = {
-          ...itemsByIdTemp[parentItemKey].automationItems[key],
-          items: itemsByIdTemp[parentItemKey].automationItems[key].items.map((item) => {
-            if (value === null) {
-              return { ...item, currentValue: item.initialValue };
-            }
-            return { ...item, currentValue: !!value };
-          }),
-        };
-      } else {
-        itemsByIdTemp[parentItemKey].automationItems[key] = {
-          ...itemsByIdTemp[parentItemKey].automationItems[key],
-          items: itemsByIdTemp[parentItemKey].automationItems[key].items.map((item) => {
-            const returnItem = { ...item };
-            // reset parent and grandchildren to OG value
-            if (value === null) {
-              returnItem.currentValue = item.initialValue;
-              returnItem.currentActiveVersion = item.initialActiveVersion;
-              if (Array.isArray(returnItem.children)) {
-                returnItem.children = returnItem.children.map((grandChild) => ({ ...grandChild, currentValue: grandChild.initialValue }));
+    setItemsById((previousItemsById) => {
+      // clone items that will be modified
+      const itemsByIdTemp = {
+        ...previousItemsById,
+        [parentItemKey]: { ...itemsById[parentItemKey], automationItems: { ...previousItemsById[parentItemKey].automationItems } },
+      };
+      Object.keys(itemsByIdTemp[parentItemKey].automationItems).forEach((key) => {
+        if (key !== 'Flow') {
+          itemsByIdTemp[parentItemKey].automationItems[key] = {
+            ...itemsByIdTemp[parentItemKey].automationItems[key],
+            items: itemsByIdTemp[parentItemKey].automationItems[key].items.map((item) => {
+              if (value === null) {
+                return { ...item, currentValue: item.initialValue };
               }
-            } else if (value) {
-              // If no item selected, then select most recent version (first item in list) - otherwise ignore
-              if (returnItem.children.every((grandChild) => !grandChild.currentValue)) {
-                returnItem.currentValue = true;
-                returnItem.currentActiveVersion = returnItem.children[0].metadata.VersionNumber;
-                returnItem.children = returnItem.children.map((grandChild, i) => ({ ...grandChild, currentValue: i === 0 }));
+              return { ...item, currentValue: !!value };
+            }),
+          };
+        } else {
+          itemsByIdTemp[parentItemKey].automationItems[key] = {
+            ...itemsByIdTemp[parentItemKey].automationItems[key],
+            items: itemsByIdTemp[parentItemKey].automationItems[key].items.map((item) => {
+              const returnItem = { ...item };
+              // reset parent and grandchildren to OG value
+              if (value === null) {
+                returnItem.currentValue = item.initialValue;
+                returnItem.currentActiveVersion = item.initialActiveVersion;
+                if (Array.isArray(returnItem.children)) {
+                  returnItem.children = returnItem.children.map((grandChild) => ({ ...grandChild, currentValue: grandChild.initialValue }));
+                }
+              } else if (value) {
+                // If no item selected, then select most recent version (first item in list) - otherwise ignore
+                if (returnItem.children.every((grandChild) => !grandChild.currentValue)) {
+                  returnItem.currentValue = true;
+                  returnItem.currentActiveVersion = returnItem.children[0].metadata.VersionNumber;
+                  returnItem.children = returnItem.children.map((grandChild, i) => ({ ...grandChild, currentValue: i === 0 }));
+                }
+              } else {
+                // If deselect all, then unselect parent and every child
+                returnItem.currentValue = false;
+                returnItem.currentActiveVersion = null;
+                returnItem.children = returnItem.children.map((grandChild, i) => ({ ...grandChild, currentValue: false }));
               }
-            } else {
-              // If deselect all, then unselect parent and every child
-              returnItem.currentValue = false;
-              returnItem.currentActiveVersion = null;
-              returnItem.children = returnItem.children.map((grandChild, i) => ({ ...grandChild, currentValue: false }));
-            }
-            return returnItem;
-          }),
-        };
-      }
+              return returnItem;
+            }),
+          };
+        }
+      });
+      return itemsByIdTemp;
     });
-    setItemsById(itemsByIdTemp);
   }
 
   /**
@@ -304,9 +310,7 @@ export const AutomationControl: FunctionComponent<AutomationControlProps> = () =
    * @param tabId
    */
   function handleActiveTabIdChange(tabId: string) {
-    let itemsByIdTemp = { ...itemsById };
-    itemsByIdTemp[tabId] = { ...itemsById[tabId] };
-    let currTab = itemsByIdTemp[tabId];
+    const currTab = { ...itemsById[tabId] };
 
     setActiveItemId(tabId);
 
@@ -338,37 +342,37 @@ export const AutomationControl: FunctionComponent<AutomationControlProps> = () =
       }
 
       // set loading indicator
-      setItemsById(itemsByIdTemp);
+      setItemsById((previousItemsById) => {
+        return { ...previousItemsById, [tabId]: currTab };
+      });
 
       if (needToLoad.ValidationRule) {
         loadValidationRules(currTab.entityDefinitionId, currTab.sobjectName, currTab.automationItems.ValidationRule)
           .then((validationRules) => {
-            itemsByIdTemp = { ...itemsByIdTemp };
-            itemsByIdTemp[tabId] = { ...itemsByIdTemp[tabId] };
-            currTab = itemsByIdTemp[tabId];
-
-            currTab.automationItems = {
-              ...currTab.automationItems,
-              ValidationRule: validationRules,
-            };
-            setItemsById(itemsByIdTemp);
+            setItemsById((priorItems) => {
+              const currTab = { ...priorItems[tabId] };
+              currTab.automationItems = {
+                ...currTab.automationItems,
+                ValidationRule: validationRules,
+              };
+              return { ...priorItems, [tabId]: currTab };
+            });
           })
           .catch((err) => {
             logger.error(err);
-            itemsByIdTemp = { ...itemsByIdTemp };
-            itemsByIdTemp[tabId] = { ...itemsByIdTemp[tabId] };
-            currTab = itemsByIdTemp[tabId];
-
-            currTab.automationItems = {
-              ...currTab.automationItems,
-              ValidationRule: {
-                ...currTab.automationItems.ValidationRule,
-                hasLoaded: true,
-                loading: false,
-                errorMessage: 'There was an error loading these items',
-              },
-            };
-            setItemsById(itemsByIdTemp);
+            setItemsById((priorItems) => {
+              const currTab = { ...priorItems[tabId] };
+              currTab.automationItems = {
+                ...currTab.automationItems,
+                ValidationRule: {
+                  ...currTab.automationItems.ValidationRule,
+                  hasLoaded: true,
+                  loading: false,
+                  errorMessage: 'There was an error loading these items',
+                },
+              };
+              return { ...priorItems, [tabId]: currTab };
+            });
           });
       }
 
@@ -376,64 +380,59 @@ export const AutomationControl: FunctionComponent<AutomationControlProps> = () =
       if (needToLoad.WorkflowRule) {
         loadWorkflowRules(currTab.sobjectName, currTab.automationItems.WorkflowRule)
           .then((workflowRules) => {
-            itemsByIdTemp = { ...itemsByIdTemp };
-            itemsByIdTemp[tabId] = { ...itemsByIdTemp[tabId] };
-            currTab = itemsByIdTemp[tabId];
-
-            currTab.automationItems = {
-              ...currTab.automationItems,
-              WorkflowRule: workflowRules,
-            };
-            setItemsById(itemsByIdTemp);
+            setItemsById((priorItems) => {
+              const currTab = { ...priorItems[tabId] };
+              currTab.automationItems = {
+                ...currTab.automationItems,
+                WorkflowRule: workflowRules,
+              };
+              return { ...priorItems, [tabId]: currTab };
+            });
           })
           .catch((err) => {
             logger.error(err);
-            itemsByIdTemp = { ...itemsByIdTemp };
-            itemsByIdTemp[tabId] = { ...itemsByIdTemp[tabId] };
-            currTab = itemsByIdTemp[tabId];
-
-            currTab.automationItems = {
-              ...currTab.automationItems,
-              WorkflowRule: {
-                ...currTab.automationItems.WorkflowRule,
-                hasLoaded: true,
-                loading: false,
-                errorMessage: 'There was an error loading these items',
-              },
-            };
-            setItemsById(itemsByIdTemp);
+            setItemsById((priorItems) => {
+              const currTab = { ...priorItems[tabId] };
+              currTab.automationItems = {
+                ...currTab.automationItems,
+                WorkflowRule: {
+                  ...currTab.automationItems.WorkflowRule,
+                  hasLoaded: true,
+                  loading: false,
+                  errorMessage: 'There was an error loading these items',
+                },
+              };
+              return { ...priorItems, [tabId]: currTab };
+            });
           });
       }
       if (needToLoad.Flow) {
-        // loadProcessBuilders(currTab.entityDefinitionRecord.DurableId, currTab.automationItems.Flow)
         loadProcessBuildersNew(currTab.sobjectName, currTab.automationItems.Flow)
           .then((flows) => {
-            itemsByIdTemp = { ...itemsByIdTemp };
-            itemsByIdTemp[tabId] = { ...itemsByIdTemp[tabId] };
-            currTab = itemsByIdTemp[tabId];
-
-            currTab.automationItems = {
-              ...currTab.automationItems,
-              Flow: flows,
-            };
-            setItemsById(itemsByIdTemp);
+            setItemsById((priorItems) => {
+              const currTab = { ...priorItems[tabId] };
+              currTab.automationItems = {
+                ...currTab.automationItems,
+                Flow: flows,
+              };
+              return { ...priorItems, [tabId]: currTab };
+            });
           })
           .catch((err) => {
             logger.error(err);
-            itemsByIdTemp = { ...itemsByIdTemp };
-            itemsByIdTemp[tabId] = { ...itemsByIdTemp[tabId] };
-            currTab = itemsByIdTemp[tabId];
-
-            currTab.automationItems = {
-              ...currTab.automationItems,
-              Flow: {
-                ...currTab.automationItems.Flow,
-                hasLoaded: true,
-                loading: false,
-                errorMessage: 'There was an error loading these items. If the problem persists, submit a ticket for assistance.',
-              },
-            };
-            setItemsById(itemsByIdTemp);
+            setItemsById((priorItems) => {
+              const currTab = { ...priorItems[tabId] };
+              currTab.automationItems = {
+                ...currTab.automationItems,
+                Flow: {
+                  ...currTab.automationItems.Flow,
+                  hasLoaded: true,
+                  loading: false,
+                  errorMessage: 'There was an error loading these items. If the problem persists, submit a ticket for assistance.',
+                },
+              };
+              return { ...priorItems, [tabId]: currTab };
+            });
           });
       }
     }
@@ -487,15 +486,6 @@ export const AutomationControl: FunctionComponent<AutomationControlProps> = () =
 
   async function handleDeploy() {
     setDeployModalActive(true);
-    // const modifiedItemsById = Object.keys(dirtyItems.itemsById)
-    //   .filter((key) => dirtyItems.itemsById[key])
-    //   .reduce((output: MapOf<AutomationControlParentSobject>, key) => {
-    //     const currItem = itemsById[key];
-    //     output[key] = itemsById[key];
-    //     return output;
-    //   }, {});
-
-    // await deployChanges(selectedOrg, modifiedItemsById);
   }
 
   return (
