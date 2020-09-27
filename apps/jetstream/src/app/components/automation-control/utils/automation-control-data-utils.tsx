@@ -1,7 +1,7 @@
 // LAME
 
-import { genericRequest, query } from '@jetstream/shared/data';
-import { getToolingRecords } from '@jetstream/shared/ui-utils';
+import { genericRequest, query, deployMetadata as deployMetadataZip } from '@jetstream/shared/data';
+import { getToolingRecords, pollMetadataResultsUntilDone } from '@jetstream/shared/ui-utils';
 import { getMapOf, splitArrayToMaxSize } from '@jetstream/shared/utils';
 import { CompositeRequest, CompositeRequestBody, CompositeResponse, MapOf, SalesforceOrgUi } from '@jetstream/types';
 import { Observable, Subject } from 'rxjs';
@@ -9,12 +9,16 @@ import {
   AutomationControlDeploymentItem,
   DeploymentItemMap,
   FlowMetadata,
+  MetadataCompositeResponseSuccessOrError,
   ToolingFlowAggregateRecord,
   ToolingFlowDefinitionWithVersions,
   ToolingValidationRuleRecord,
   ToolingWorkflowRuleRecord,
+  MetadataCompositeResponseError,
+  MetadataCompositeResponseSuccess,
 } from '../automation-control-types';
 import { getFlowsQuery, getLatestFlowDefinitionIds, getValidationRuleQuery, getWorkflowRuleQuery } from './automation-control-soql-utils';
+import { logger } from '@jetstream/shared/client-logger';
 
 /**
  * Adds FullName and Metadata fields to existing WFR records and returns a new array
@@ -186,12 +190,15 @@ export async function preparePayloadsForDeployment(
   itemsByKey: DeploymentItemMap,
   payloadEvent: Subject<{ key: string; deploymentItem: AutomationControlDeploymentItem }[]>
 ) {
+  // FIXME: hard-coded version number
+  const apiVersion = '49.0';
   // SFDC referenceId for composite cannot contain "." - this is an alternate way to lookup the key
   const idToKeyMap: MapOf<string> = Object.keys(itemsByKey).reduce((output, key) => {
     output[itemsByKey[key].deploy.id] = key;
     return output;
   }, {});
 
+  const baseFields = ['Id', 'FullName', 'Metadata'];
   // Prepare composite requests
   const metadataFetchRequests: CompositeRequestBody[][] = splitArrayToMaxSize(
     Object.keys(itemsByKey)
@@ -199,9 +206,11 @@ export async function preparePayloadsForDeployment(
       .map(
         (key): CompositeRequestBody => {
           const item = itemsByKey[key].deploy;
+          const fields: string[] = item.type === 'ApexTrigger' ? baseFields.concat(['Body', 'ApiVersion']) : baseFields;
+
           return {
             method: 'GET',
-            url: `/services/data/v49.0/tooling/sobjects/${item.type}/${item.id}?fields=Id,FullName,Metadata`,
+            url: `/services/data/v${apiVersion}/tooling/sobjects/${item.type}/${item.id}?fields=${fields.join(',')}`,
             referenceId: item.id,
           };
         }
@@ -215,32 +224,23 @@ export async function preparePayloadsForDeployment(
       allOrNone: false,
       compositeRequest,
     };
-    // FIXME: remove hard-coded version number
-    const response = await genericRequest<CompositeResponse<{ Id: string; FullName: string; Metadata: FlowMetadata }>>(selectedOrg, {
+    const response = await genericRequest<CompositeResponse<MetadataCompositeResponseSuccessOrError>>(selectedOrg, {
       isTooling: true,
       method: 'POST',
-      url: '/services/data/v49.0/tooling/composite',
+      url: `/services/data/v${apiVersion}/tooling/composite`,
       body: requestBody,
     });
     const items = response.compositeResponse.map((item): { key: string; deploymentItem: AutomationControlDeploymentItem } => {
       const key = idToKeyMap[item.referenceId];
       const deploymentItem: AutomationControlDeploymentItem = { ...itemsByKey[key].deploy };
       if (item.httpStatusCode === 200) {
-        deploymentItem.metadataRetrieve = item.body;
+        deploymentItem.metadataRetrieve = item.body as MetadataCompositeResponseSuccess;
         deploymentItem.metadataDeploy = JSON.parse(JSON.stringify({ ...item.body, Id: undefined })) as any;
       } else {
-        deploymentItem.retrieveError = item.body as any;
+        deploymentItem.retrieveError = item.body as MetadataCompositeResponseError[];
       }
 
       switch (deploymentItem.type) {
-        // FIXME:
-        /**
-          Apex triggers cannot be deactivated using Tooling API.
-          You can deactivate Apex triggers using Metadata API.
-          Consider using custom metadata records and include logic in your trigger to bypass trigger configuration logic.
-          For more information, see the Metadata API Developer Guide.
-         */
-
         case 'ApexTrigger': {
           deploymentItem.metadataDeploy.Metadata.status = deploymentItem.value ? 'Active' : 'Inactive';
           break;
@@ -270,7 +270,9 @@ export function deployMetadata(
 ): Observable<{ key: string; deploymentItem: AutomationControlDeploymentItem }[]> {
   const payloadEvent = new Subject<{ key: string; deploymentItem: AutomationControlDeploymentItem }[]>();
   const payloadEvent$ = payloadEvent.asObservable();
+  const apiVersion = '49.0';
 
+  // ensure next tick so that events do not emit prior to observable subscription
   Promise.resolve().then(async () => {
     try {
       const idToKeyMap: MapOf<string> = Object.keys(itemsByKey).reduce((output, key) => {
@@ -278,16 +280,15 @@ export function deployMetadata(
         return output;
       }, {});
 
-      // TODO: handle apex triggers!
       const metadataUpdateRequests: CompositeRequestBody[][] = splitArrayToMaxSize(
         Object.keys(itemsByKey)
-          .filter((key) => !itemsByKey[key].deploy.retrieveError)
+          .filter((key) => !itemsByKey[key].deploy.retrieveError && !itemsByKey[key].deploy.requireMetadataApi)
           .map(
             (key): CompositeRequestBody => {
               const item = itemsByKey[key].deploy;
               return {
                 method: 'PATCH',
-                url: `/services/data/v49.0/tooling/sobjects/${item.type}/${item.id}`,
+                url: `/services/data/v${apiVersion}/tooling/sobjects/${item.type}/${item.id}`,
                 referenceId: item.id,
                 body: item.metadataDeploy,
               };
@@ -302,22 +303,31 @@ export function deployMetadata(
           compositeRequest,
         };
         // FIXME: remove hard-coded version number
-        const response = await genericRequest<CompositeResponse<{ Id: string; FullName: string; Metadata: FlowMetadata }>>(selectedOrg, {
+        const response = await genericRequest<CompositeResponse<MetadataCompositeResponseSuccessOrError>>(selectedOrg, {
           isTooling: true,
           method: 'POST',
-          url: '/services/data/v49.0/tooling/composite',
+          url: `/services/data/v${apiVersion}/tooling/composite`,
           body: requestBody,
         });
         const items = response.compositeResponse.map((item): { key: string; deploymentItem: AutomationControlDeploymentItem } => {
           const key = idToKeyMap[item.referenceId];
           const deploymentItem: AutomationControlDeploymentItem = { ...itemsByKey[key].deploy };
           if (item.httpStatusCode > 299) {
-            deploymentItem.deployError = item.body;
+            deploymentItem.deployError = item.body as MetadataCompositeResponseError[];
           }
           return { key, deploymentItem };
         });
         payloadEvent.next(items);
       }
+
+      // perform deployments that are not supported using tooling api
+      const metadataDeployResults = await deployMetadataFileBased(selectedOrg, itemsByKey, Number(apiVersion));
+
+      if (metadataDeployResults) {
+        const deployResults = await pollMetadataResultsUntilDone(selectedOrg, metadataDeployResults.deployResultsId);
+        payloadEvent.next(metadataDeployResults.metadataItems.map((key) => ({ key, deploymentItem: { ...itemsByKey[key].deploy } })));
+      }
+
       payloadEvent.complete();
     } catch (ex) {
       payloadEvent.error(ex);
@@ -325,4 +335,90 @@ export function deployMetadata(
   });
 
   return payloadEvent$;
+}
+
+export async function deployMetadataFileBased(
+  selectedOrg: SalesforceOrgUi,
+  itemsByKey: DeploymentItemMap,
+  apiVersion: number
+): Promise<{ deployResultsId: string; metadataItems: string[] } | null> {
+  const fileBasedMetadataItems = Object.keys(itemsByKey).filter(
+    (key) => !itemsByKey[key].deploy.retrieveError && itemsByKey[key].deploy.requireMetadataApi
+  );
+
+  if (fileBasedMetadataItems.length === 0) {
+    return null;
+  }
+
+  const deployItems: MapOf<
+    {
+      fullName: string;
+      dirPath: string;
+      files: {
+        name: string;
+        content: string;
+      }[];
+    }[]
+  > = {};
+
+  // prepare data to build XML
+  fileBasedMetadataItems.forEach((key) => {
+    const item = itemsByKey[key];
+    switch (item.deploy.type) {
+      case 'ApexTrigger':
+        deployItems['ApexTrigger'] = deployItems['ApexTrigger'] || [];
+        deployItems['ApexTrigger'].push({
+          fullName: item.metadata.fullName,
+          dirPath: 'triggers',
+          files: [
+            {
+              name: `${item.metadata.fullName}.trigger`,
+              content: item.deploy.metadataDeploy.Body,
+            },
+            {
+              name: `${item.metadata.fullName}.trigger-meta.xml`,
+              content: [
+                `<?xml version="1.0" encoding="UTF-8"?>`,
+                `<ApexTrigger xmlns="http://soap.sforce.com/2006/04/metadata">`,
+                `\t<apiVersion>${item.deploy.metadataRetrieve.ApiVersion || Number(apiVersion)}.0</apiVersion>`,
+                `\t<status>${item.deploy.metadataDeploy.Metadata.status}</status>`,
+                `</ApexTrigger>`,
+              ].join('\n'),
+            },
+          ],
+        });
+        break;
+      default:
+        break;
+    }
+  });
+
+  const packageXml = [`<?xml version="1.0" encoding="UTF-8"?>`, `<Package xmlns="http://soap.sforce.com/2006/04/metadata">`];
+
+  Object.keys(deployItems).forEach((key) => {
+    packageXml.push('\t<types>');
+    deployItems[key].forEach((item) => packageXml.push(`\t\t<members>${item.fullName}</members>`));
+    packageXml.push(`\t\t<name>${key}</name>`);
+    packageXml.push('\t</types>');
+  });
+
+  packageXml.push(`\t<version>${apiVersion}.0</version>`);
+  packageXml.push('</Package>');
+
+  const files: { fullFilename: string; content: string }[] = [{ fullFilename: 'package.xml', content: packageXml.join('\n') }];
+
+  Object.keys(deployItems).forEach((key) => {
+    deployItems[key].forEach((item) => {
+      item.files.forEach(({ content, name }) => {
+        files.push({ fullFilename: `${item.dirPath}/${name}`, content });
+      });
+    });
+  });
+
+  // deploy file
+  const deployResults = await deployMetadataZip(selectedOrg, files, { singlePackage: true, rollbackOnError: true });
+  // id is only field not deprecated
+  // https://developer.salesforce.com/docs/atlas.en-us.api_meta.meta/api_meta/meta_asyncresult.htm
+  logger.info('deployResults', deployResults);
+  return { deployResultsId: deployResults.id, metadataItems: fileBasedMetadataItems };
 }

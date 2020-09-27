@@ -2,7 +2,7 @@
 import { css, jsx } from '@emotion/core';
 import { FunctionComponent } from 'react';
 import { CopyToClipboard, Grid, GridCol, Icon, Spinner, Tooltip } from '@jetstream/ui';
-import { DeploymentItemStatus, SalesforceApiError } from '../automation-control-types';
+import { DeploymentItemStatus, MetadataCompositeResponseError } from '../automation-control-types';
 import classNames from 'classnames';
 import { uniqueId } from 'lodash';
 
@@ -11,11 +11,11 @@ const loadingStatuses: DeploymentItemStatus[] = ['Preparing', 'Deploying'];
 // eslint-disable-next-line @typescript-eslint/no-empty-interface
 export interface AutomationControlPreDeploymentTableRowStatusProps {
   status: DeploymentItemStatus;
-  retrieveError?: SalesforceApiError[];
-  deployError?: SalesforceApiError[];
+  retrieveError?: MetadataCompositeResponseError[];
+  deployError?: MetadataCompositeResponseError[];
 }
 
-function getErrorMessageContent(deployError?: SalesforceApiError[]) {
+function getErrorMessageContent(deployError?: MetadataCompositeResponseError[]) {
   if (Array.isArray(deployError) && deployError.length > 0) {
     return (
       <ul>
@@ -27,7 +27,7 @@ function getErrorMessageContent(deployError?: SalesforceApiError[]) {
   }
 }
 
-function getErrorMessageContentString(deployError?: SalesforceApiError[]) {
+function getErrorMessageContentString(deployError?: MetadataCompositeResponseError[]) {
   if (Array.isArray(deployError) && deployError.length > 0) {
     return deployError.map((item, i) => item.message).join('\n\n');
   }

@@ -27,6 +27,7 @@ function getDeploymentItemMap(itemsById: MapOf<AutomationItemsChildren>) {
             id: item.metadata.Id,
             activeVersion: null,
             value: item.currentValue,
+            requireMetadataApi: true,
             metadataRetrieve: null,
             metadataDeploy: null,
             retrieveError: null,
@@ -43,6 +44,7 @@ function getDeploymentItemMap(itemsById: MapOf<AutomationItemsChildren>) {
             id: item.metadata.Id,
             activeVersion: item.currentActiveVersion || null,
             value: item.currentValue,
+            requireMetadataApi: false,
             metadataRetrieve: null,
             metadataDeploy: null,
             retrieveError: null,
@@ -59,6 +61,7 @@ function getDeploymentItemMap(itemsById: MapOf<AutomationItemsChildren>) {
             id: item.metadata.Id,
             activeVersion: null,
             value: item.currentValue,
+            requireMetadataApi: false,
             metadataRetrieve: null,
             metadataDeploy: null,
             retrieveError: null,
@@ -75,6 +78,7 @@ function getDeploymentItemMap(itemsById: MapOf<AutomationItemsChildren>) {
             id: item.metadata.Id,
             activeVersion: null,
             value: item.currentValue,
+            requireMetadataApi: false,
             metadataRetrieve: null,
             metadataDeploy: null,
             retrieveError: null,
@@ -133,14 +137,13 @@ export const AutomationControlDeployModal: FunctionComponent<AutomationControlDe
           subscription.unsubscribe();
         };
       }
+      case 3: {
+        handleCloseModal();
+      }
       default:
         break;
     }
   }, [currentStep]);
-
-  function buttonsDisabled() {
-    return inProgress || currentStep >= 2;
-  }
 
   function handleCloseModal() {
     if (!inProgress) {
@@ -165,7 +168,6 @@ export const AutomationControlDeployModal: FunctionComponent<AutomationControlDe
       },
       (err) => {
         logger.warn('preparePayloads - error()', err);
-        setInProgress(false);
         // Set all items not already prepared as error since observable is cancelled on error
         setDeploymentItemMap((prevState) => ({
           ...prevState,
@@ -176,6 +178,7 @@ export const AutomationControlDeployModal: FunctionComponent<AutomationControlDe
               return output;
             }, {}),
         }));
+        setInProgress(false);
       },
       () => {
         logger.log('preparePayloads - complete()');
@@ -201,7 +204,6 @@ export const AutomationControlDeployModal: FunctionComponent<AutomationControlDe
       },
       (err) => {
         logger.warn('handleDeployMetadata - error()', err);
-        setInProgress(false);
         // Set all items not already prepared as error since observable is cancelled on error
         setDeploymentItemMap((prevState) => ({
           ...prevState,
@@ -210,11 +212,14 @@ export const AutomationControlDeployModal: FunctionComponent<AutomationControlDe
             return output;
           }, {}),
         }));
+        setInProgress(false);
+        setNextButtonLabel('Close');
       },
       () => {
         logger.log('handleDeployMetadata - complete()');
         setInProgress(false);
         setDidDeployMetadata(true);
+        setNextButtonLabel('Close');
       }
     );
   }
@@ -224,11 +229,11 @@ export const AutomationControlDeployModal: FunctionComponent<AutomationControlDe
       header={modalLabel}
       footer={
         <Fragment>
-          <button className="slds-button slds-button_neutral" onClick={() => onClose()} disabled={buttonsDisabled()}>
+          <button className="slds-button slds-button_neutral" onClick={() => onClose()} disabled={inProgress}>
             Cancel
           </button>
           <ProgressIndicator className="slds-progress_shade" totalSteps={3} currentStep={currentStep} readOnly></ProgressIndicator>
-          <button className="slds-button slds-button_brand" onClick={() => setCurrentStep(currentStep + 1)} disabled={buttonsDisabled()}>
+          <button className="slds-button slds-button_brand" onClick={() => setCurrentStep(currentStep + 1)} disabled={inProgress}>
             {nextButtonLabel}
           </button>
         </Fragment>

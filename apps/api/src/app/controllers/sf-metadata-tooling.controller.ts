@@ -3,14 +3,14 @@ import * as jsforce from 'jsforce';
 import { sendJson } from '../utils/response.handlers';
 import { UserFacingError } from '../utils/error-handler';
 import { splitArrayToMaxSize } from '@jetstream/shared/utils';
+import { body, param, query } from 'express-validator';
+import * as JSZip from 'jszip';
 
-// async function tempJsforceConn() {
-//   const conn = new jsforce.Connection({
-//     loginUrl: 'https://login.salesforce.com',
-//   });
-//   await conn.login('austin@atginfo-personal.com', '25M2p^$MvC2*o#');
-//   return conn;
-// }
+export const routeValidators = {
+  readMetadata: [body('fullNames').isArray().isLength({ min: 1 })],
+  deployMetadata: [body('files').isArray().isLength({ min: 1 })],
+  checkMetadataResults: [param('id').isLength({ min: 15, max: 18 }), query('includeDetails').toBoolean()],
+};
 
 export async function listMetadata(req: Request, res: Response, next: NextFunction) {
   try {
@@ -29,12 +29,39 @@ export async function readMetadata(req: Request, res: Response, next: NextFuncti
     const metadataType = req.params.type;
     const conn: jsforce.Connection = res.locals.jsforceConn;
 
-    if (!Array.isArray(fullNames) || fullNames.length === 0) {
-      throw new UserFacingError('fullNames must be provided');
-    }
     const results = await (
       await Promise.all(splitArrayToMaxSize(fullNames, 10).map((fullNames) => conn.metadata.read(metadataType, fullNames)))
     ).flat();
+
+    sendJson(res, results);
+  } catch (ex) {
+    next(new UserFacingError(ex.message));
+  }
+}
+
+export async function deployMetadata(req: Request, res: Response, next: NextFunction) {
+  try {
+    const conn: jsforce.Connection = res.locals.jsforceConn;
+    const files: { fullFilename: string; content: string }[] = req.body.files;
+
+    const zip = new JSZip();
+    files.forEach((file) => zip.file(file.fullFilename, file.content));
+
+    const results = await conn.metadata.deploy(zip.generateNodeStream(), req.body.options);
+
+    sendJson(res, results);
+  } catch (ex) {
+    next(new UserFacingError(ex.message));
+  }
+}
+
+export async function checkMetadataResults(req: Request, res: Response, next: NextFunction) {
+  try {
+    const conn: jsforce.Connection = res.locals.jsforceConn;
+    const id = req.params.id;
+    const includeDetails: boolean = req.query.includeDetails as any; // express validator conversion
+
+    const results = await conn.metadata.checkDeployStatus(id, includeDetails);
 
     sendJson(res, results);
   } catch (ex) {

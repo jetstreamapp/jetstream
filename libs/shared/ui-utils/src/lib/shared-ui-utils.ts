@@ -1,6 +1,6 @@
 import { logger } from '@jetstream/shared/client-logger';
 import { HTTP } from '@jetstream/shared/constants';
-import { orderObjectsBy, REGEX } from '@jetstream/shared/utils';
+import { orderObjectsBy, REGEX, delay } from '@jetstream/shared/utils';
 import {
   ExpressionConditionRowSelectedItems,
   ExpressionType,
@@ -12,13 +12,14 @@ import {
   SalesforceOrgUi,
 } from '@jetstream/types';
 import { saveAs } from 'file-saver';
-import { Field } from 'jsforce';
+import { DeployResult, Field } from 'jsforce';
 import { get as safeGet } from 'lodash';
 import isString from 'lodash/isString';
 import { unparse } from 'papaparse';
 import { LiteralType, Operator, WhereClause } from 'soql-parser-js';
 import { Placement as tippyPlacement } from 'tippy.js';
 import * as XLSX from 'xlsx';
+import { checkMetadataResults } from '../../../data/src';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function parseQueryParams<T = any>(queryString: string): T {
@@ -521,4 +522,39 @@ export function hasFeatureFlagAccess(featureFlags: Set<string>, flag: string) {
     return true;
   }
   return featureFlags.has(flag);
+}
+
+/**
+ *
+ * @param selectedOrg
+ * @param id
+ * @param options Defaults below
+ *  includeDetails = false
+ *  interval = 2000
+ *  maxAttempts = 100
+ */
+export async function pollMetadataResultsUntilDone(
+  selectedOrg: SalesforceOrgUi,
+  id: string,
+  options?: { includeDetails?: boolean; interval?: number; maxAttempts?: number }
+) {
+  let { includeDetails, interval, maxAttempts } = options || {};
+  includeDetails = includeDetails || false;
+  interval = interval || 2000;
+  maxAttempts = maxAttempts || 100;
+
+  let attempts = 0;
+  let done = false;
+  let deployResults: DeployResult;
+  while (!done && attempts <= maxAttempts) {
+    await delay(interval);
+    deployResults = await checkMetadataResults(selectedOrg, id, includeDetails);
+    logger.log({ deployResults });
+    done = deployResults.done;
+    attempts++;
+  }
+  if (!done) {
+    throw new Error('Timed out while checking for metadata results');
+  }
+  return deployResults;
 }

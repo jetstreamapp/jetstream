@@ -151,10 +151,11 @@ export type PositionBottom = 'bottom';
 export type PositionBottomLeft = 'bottom-left';
 export type PositionBottomRight = 'bottom-right';
 
-export type MimeType = MimeTypePlainText | MimeTypeCsv | MimeTypeOctetStream;
+export type MimeType = MimeTypePlainText | MimeTypeCsv | MimeTypeOctetStream | MimeTypeZip;
 export type MimeTypePlainText = 'text/plain;charset=utf-8';
 export type MimeTypeCsv = 'text/csv;charset=utf-8';
 export type MimeTypeOctetStream = 'application/octet-stream;charset=utf-8';
+export type MimeTypeZip = 'application/zip;charset=utf-8';
 
 // Generic status types
 export type Info = 'info';

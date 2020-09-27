@@ -167,3 +167,12 @@ export function ensureBoolean(value: string | boolean | null | undefined) {
   }
   return !!value;
 }
+
+/**
+ * Returns a promise that is delayed by {milliseconds}
+ * @param milliseconds
+ */
+export async function delay(milliseconds: number) {
+  // return await for better async stack trace support in case of errors.
+  return await new Promise((resolve) => setTimeout(resolve, milliseconds));
+}

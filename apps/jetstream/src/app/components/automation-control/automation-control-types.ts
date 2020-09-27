@@ -31,7 +31,17 @@ export interface DeploymentItem {
   deploy: AutomationControlDeploymentItem;
 }
 
-export interface SalesforceApiError {
+export type MetadataCompositeResponseSuccessOrError = MetadataCompositeResponseSuccess | MetadataCompositeResponseError[];
+
+export interface MetadataCompositeResponseSuccess {
+  Id: string;
+  FullName: string;
+  Body?: string; // ApexTrigger
+  ApiVersion?: number; // ApexTrigger
+  Metadata: any;
+}
+
+export interface MetadataCompositeResponseError {
   errorCode: string;
   fields?: string[];
   message: string;
@@ -42,10 +52,11 @@ export interface AutomationControlDeploymentItem {
   id: string;
   activeVersion?: number; // only applies to process builders
   value: boolean;
-  metadataRetrieve?: { Id: string; FullName: string; Metadata: any };
-  metadataDeploy?: { FullName: string; Metadata: any };
-  retrieveError?: SalesforceApiError[];
-  deployError?: SalesforceApiError[];
+  requireMetadataApi: boolean;
+  metadataRetrieve?: MetadataCompositeResponseSuccess;
+  metadataDeploy?: MetadataCompositeResponseSuccess;
+  retrieveError?: MetadataCompositeResponseError[];
+  deployError?: MetadataCompositeResponseError[];
 }
 
 export interface DeploymentItemByType {
