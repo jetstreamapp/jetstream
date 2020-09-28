@@ -45,7 +45,7 @@
     "@fullhuman/postcss-purgecss": "^2.2.0",
     "@fusionauth/typescript-client": "^1.17.0",
     "@popperjs/core": "^2.4.0",
-    "@salesforce-ux/design-system": "^2.12.2",
+    "@salesforce-ux/design-system": "^2.13.3",
     "@tippyjs/react": "^4.0.2",
     "@types/async": "^3.2.3",
     "@types/codemirror": "0.0.97",

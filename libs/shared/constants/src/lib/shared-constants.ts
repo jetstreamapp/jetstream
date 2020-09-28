@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/camelcase */
-import { MapOf, MimeType } from '@jetstream/types';
+import { InputAcceptTypeCsv, InputAcceptTypeExcel, InputAcceptTypeZip, MapOf, MimeType } from '@jetstream/types';
 
 export const SESSION_EXP_DAYS = 5;
 
@@ -7,6 +7,17 @@ export const FEATURE_FLAGS = {
   ALL: 'all',
   AUTOMATION_CONTROL: 'automation-control',
   QUERY: 'query',
+  LOAD: 'load',
+};
+
+export const INPUT_ACCEPT_FILETYPES: {
+  ZIP: InputAcceptTypeZip;
+  CSV: InputAcceptTypeCsv;
+  EXCEL: InputAcceptTypeExcel;
+} = {
+  ZIP: 'application/zip',
+  CSV: 'text/csv',
+  EXCEL: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
 };
 
 export const HTTP = {

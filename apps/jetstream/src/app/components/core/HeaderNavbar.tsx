@@ -58,6 +58,7 @@ export const HeaderNavbar: FunctionComponent<HeaderNavbarProps> = ({ userProfile
         {hasFeatureFlagAccess(featureFlags, FEATURE_FLAGS.QUERY) && (
           <NavbarItem path="/query" title="Query Records" label="Query Records" />
         )}
+        {hasFeatureFlagAccess(featureFlags, FEATURE_FLAGS.LOAD) && <NavbarItem path="/load" title="Load Records" label="Load Records" />}
         {hasFeatureFlagAccess(featureFlags, FEATURE_FLAGS.AUTOMATION_CONTROL) && (
           <Fragment>
             <NavbarItem path="/automation-control" title="Automation Control" label="Automation Control" />

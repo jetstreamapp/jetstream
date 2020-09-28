@@ -11,6 +11,7 @@ import { RecoilRoot } from 'recoil';
 import AppInitializer from './components/core/AppInitializer';
 import ErrorBoundaryFallback from './components/core/ErrorBoundaryFallback';
 import HeaderNavbar from './components/core/HeaderNavbar';
+import LoadRecords from './components/load-records/LoadRecords';
 import OrgSelectionRequired from './components/orgs/OrgSelectionRequired';
 
 const Query = lazy(() => import('./components/query/Query'));
@@ -51,6 +52,13 @@ export const App = () => {
                           <Route path="/query">
                             <OrgSelectionRequired>
                               <Query />
+                            </OrgSelectionRequired>
+                          </Route>
+                        )}
+                        {hasFeatureFlagAccess(featureFlags, FEATURE_FLAGS.QUERY) && (
+                          <Route path="/load">
+                            <OrgSelectionRequired>
+                              <LoadRecords />
                             </OrgSelectionRequired>
                           </Route>
                         )}

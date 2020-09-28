@@ -6,10 +6,19 @@ export interface RadioGroupProps {
   label: string;
   required?: boolean;
   hasError?: boolean;
+  isButtonGroup?: boolean;
   errorMessage?: string;
 }
 
-export const RadioGroup: FunctionComponent<RadioGroupProps> = ({ className, label, required, hasError, errorMessage, children }) => {
+export const RadioGroup: FunctionComponent<RadioGroupProps> = ({
+  className,
+  label,
+  required,
+  hasError,
+  errorMessage,
+  isButtonGroup,
+  children,
+}) => {
   return (
     <fieldset className={classNames('slds-form-element', { 'slds-has-error': hasError }, className)}>
       <legend className="slds-form-element__legend slds-form-element__label">
@@ -20,7 +29,10 @@ export const RadioGroup: FunctionComponent<RadioGroupProps> = ({ className, labe
         )}
         {label}
       </legend>
-      <div className="slds-form-element__control">{children}</div>
+      <div className="slds-form-element__control">
+        {isButtonGroup && <div className="slds-radio_button-group">{children}</div>}
+        {!isButtonGroup && children}
+      </div>
       {hasError && errorMessage && (
         <div id={`${label}-error-message`} className="slds-form-element__help">
           {errorMessage}

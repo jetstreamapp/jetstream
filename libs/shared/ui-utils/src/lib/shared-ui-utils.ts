@@ -19,7 +19,7 @@ import { unparse } from 'papaparse';
 import { LiteralType, Operator, WhereClause } from 'soql-parser-js';
 import { Placement as tippyPlacement } from 'tippy.js';
 import * as XLSX from 'xlsx';
-import { checkMetadataResults } from '../../../data/src';
+import { checkMetadataResults } from '@jetstream/shared/data';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function parseQueryParams<T = any>(queryString: string): T {
@@ -557,4 +557,28 @@ export async function pollMetadataResultsUntilDone(
     throw new Error('Timed out while checking for metadata results');
   }
   return deployResults;
+}
+
+export function readFile(file: File, readAsArrayBuffer = false): Promise<string | ArrayBuffer> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    if (readAsArrayBuffer) {
+      reader.readAsArrayBuffer(file);
+    } else {
+      reader.readAsText(file);
+    }
+    reader.onload = (event: ProgressEvent<FileReader>) => {
+      logger.log('onload', { event });
+      logger.log(reader.result);
+      resolve(reader.result);
+    };
+    reader.onabort = (event: ProgressEvent<FileReader>) => {
+      logger.log('onabort', { event });
+      reject(new Error('Reading the file was aborted'));
+    };
+    reader.onerror = (event: ProgressEvent<FileReader>) => {
+      logger.log('onerror', { event });
+      reject(reader.error);
+    };
+  });
 }
