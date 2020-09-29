@@ -1,7 +1,7 @@
 /** @jsx jsx */
 import { jsx } from '@emotion/core';
 import { MapOf, SalesforceOrgUi } from '@jetstream/types';
-import { Modal, ProgressIndicator } from '@jetstream/ui';
+import { Icon, Modal } from '@jetstream/ui';
 import { Fragment, FunctionComponent, useEffect, useState } from 'react';
 import { logger } from '@jetstream/shared/client-logger';
 import { AutomationControlDeploymentItem, AutomationItemsChildren, DeploymentItemMap } from '../automation-control-types';
@@ -97,6 +97,8 @@ export const AutomationControlDeployModal: FunctionComponent<AutomationControlDe
   const [modalLabel, setModalLabel] = useState('Review Changes');
   const [nextButtonLabel, setNextButtonLabel] = useState('Continue');
   const [inProgress, setInProgress] = useState(false);
+  const [didDeploy, setDidDeploy] = useState(false);
+  const [didRollback, setDidRollback] = useState(false);
   const [didDeployMetadata, setDidDeployMetadata] = useState(false);
 
   useEffect(() => {
@@ -127,7 +129,7 @@ export const AutomationControlDeployModal: FunctionComponent<AutomationControlDe
             return output;
           }, {})
         );
-        const subscription = handleDeployMetadata();
+        const subscription = handleDeployMetadata(deploymentItemMap);
         return () => {
           subscription.unsubscribe();
         };
@@ -183,8 +185,13 @@ export const AutomationControlDeployModal: FunctionComponent<AutomationControlDe
     );
   }
 
-  function handleDeployMetadata() {
-    return deployMetadata(selectedOrg, deploymentItemMap).subscribe(
+  /**
+   *
+   * @param currDeploymentItemMap use to allow an object to passed in prior to it being committed to state (used for rollback)
+   * @param isRollback if true, will set didRollback property
+   */
+  function handleDeployMetadata(currDeploymentItemMap: DeploymentItemMap, isRollback?: boolean) {
+    return deployMetadata(selectedOrg, currDeploymentItemMap).subscribe(
       (items: { key: string; deploymentItem: AutomationControlDeploymentItem }[]) => {
         logger.log('handleDeployMetadata - emitted()', items);
         const tempDeploymentItemMap = items.reduce((output: DeploymentItemMap, item) => {
@@ -210,39 +217,87 @@ export const AutomationControlDeployModal: FunctionComponent<AutomationControlDe
         }));
         setInProgress(false);
         setNextButtonLabel('Close');
+        setDidDeploy(true);
+        if (isRollback) {
+          setModalLabel('Rollback Complete');
+          setDidRollback(true);
+        } else {
+          setModalLabel('Deploy Complete');
+        }
       },
       () => {
         logger.log('handleDeployMetadata - complete()');
         setInProgress(false);
         setDidDeployMetadata(true);
         setNextButtonLabel('Close');
+
+        setDidDeploy(true);
+        if (isRollback) {
+          setModalLabel('Rollback Complete');
+          setDidRollback(true);
+        } else {
+          setModalLabel('Deploy Complete');
+        }
       }
     );
+  }
+
+  /**
+   * Set as deploying and copy metadataDeployRollback to metadataDeploy
+   * then pass to regular deploy function
+   */
+  function handleRollbackMetadata() {
+    setModalLabel('Rolling back Changes');
+    setInProgress(true);
+    // clone items to rollback and replace metadataDeploy with metadataDeployRollback
+    const itemsToRollback = Object.keys(deploymentItemMap)
+      .filter((key) => deploymentItemMap[key].status === 'Success')
+      .reduce((output: DeploymentItemMap, key) => {
+        output[key] = {
+          ...deploymentItemMap[key],
+          status: 'Deploying',
+          deploy: {
+            ...deploymentItemMap[key].deploy,
+            metadataDeploy: deploymentItemMap[key].deploy.metadataDeployRollback,
+          },
+        };
+        return output;
+      }, {});
+
+    setDeploymentItemMap((prevState) => ({
+      ...prevState,
+      ...itemsToRollback,
+    }));
+
+    handleDeployMetadata(itemsToRollback, true);
   }
 
   return (
     <Modal
       header={modalLabel}
       footer={
-        // <Fragment>
-        //   <button className="slds-button slds-button_neutral" onClick={() => onClose()} disabled={inProgress}>
-        //     Cancel
-        //   </button>
-        //   <ProgressIndicator className="slds-progress_shade" totalSteps={3} currentStep={currentStep} readOnly></ProgressIndicator>
-        //   <button className="slds-button slds-button_brand" onClick={() => setCurrentStep(currentStep + 1)} disabled={inProgress}>
-        //     {nextButtonLabel}
-        //   </button>
-        // </Fragment>
         <Fragment>
-          <button className="slds-button slds-button_neutral" onClick={() => onClose()} disabled={inProgress}>
-            Cancel
-          </button>
+          {!didDeploy && (
+            <button className="slds-button slds-button_neutral" onClick={() => onClose()} disabled={inProgress}>
+              Cancel
+            </button>
+          )}
+          {didDeploy && !didRollback && (
+            <button
+              className="slds-button slds-button_neutral"
+              onClick={() => handleRollbackMetadata()}
+              title="Revert all successfully deployed items"
+              disabled={inProgress}
+            >
+              <Icon type="utility" icon="undo" className="slds-button__icon slds-button__icon_left" omitContainer />
+              Rollback
+            </button>
+          )}
           <button className="slds-button slds-button_brand" onClick={() => setCurrentStep(currentStep + 1)} disabled={inProgress}>
             {nextButtonLabel}
           </button>
         </Fragment>
       }
-      // footerClassName="slds-grid slds-grid_align-spread"
       size="lg"
       onClose={handleCloseModal}
     >

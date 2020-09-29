@@ -55,6 +55,7 @@ export interface AutomationControlDeploymentItem {
   requireMetadataApi: boolean;
   metadataRetrieve?: MetadataCompositeResponseSuccess;
   metadataDeploy?: MetadataCompositeResponseSuccess;
+  metadataDeployRollback?: MetadataCompositeResponseSuccess;
   retrieveError?: MetadataCompositeResponseError[];
   deployError?: MetadataCompositeResponseError[];
 }
