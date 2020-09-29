@@ -8,19 +8,18 @@ import { FileSelector, Grid, GridCol, Icon, ProgressIndicator, RadioButton, Radi
 import { isString } from 'lodash';
 import { parse as parseCsv } from 'papaparse';
 import * as XLSX from 'xlsx';
+import LoadRecordsFieldMapping from './LoadRecordsFieldMapping';
 
-const HEIGHT_BUFFER = 170;
-
-// eslint-disable-next-line @typescript-eslint/no-empty-interface
 export interface LoadRecordsConfigurationProps {
   selectedOrg: SalesforceOrgUi;
   selectedSObject: DescribeGlobalSObjectResult;
 }
 
-export const LoadRecordsConfiguration: FunctionComponent<LoadRecordsConfigurationProps> = () => {
+export const LoadRecordsConfiguration: FunctionComponent<LoadRecordsConfigurationProps> = ({ selectedOrg, selectedSObject }) => {
   const [loading, setLoading] = useState<boolean>(false);
   const [fileData, setFileData] = useState<any[]>();
   const [errorMessage, setErrorMessage] = useState<string>(null);
+  const [fieldMappingModalOpen, setFieldMappingModalOpen] = useState(false);
 
   function handleFile({ filename, extension, content }: { filename: string; extension: string; content: string | ArrayBuffer }) {
     if (isString(content)) {
@@ -45,9 +44,23 @@ export const LoadRecordsConfiguration: FunctionComponent<LoadRecordsConfiguratio
 
   return (
     <div>
+      {fieldMappingModalOpen && (
+        <LoadRecordsFieldMapping
+          selectedOrg={selectedOrg}
+          selectedSObject={selectedSObject}
+          fields={[]}
+          fileData={fileData}
+          onClose={() => setFieldMappingModalOpen(false)}
+        />
+      )}
       <Grid vertical>
         <GridCol>
           <ProgressIndicator totalSteps={5} currentStep={3} readOnly></ProgressIndicator>
+          <div>Could do vertical tile - https://www.lightningdesignsystem.com/components/progress-indicator/#Vertical</div>
+          <div>
+            could do summary detail and show info about step completion -
+            https://www.lightningdesignsystem.com/components/summary-detail/#Closed-with-Complex-title
+          </div>
         </GridCol>
         <GridCol>
           <Grid>
@@ -61,7 +74,11 @@ export const LoadRecordsConfiguration: FunctionComponent<LoadRecordsConfiguratio
               ></FileSelector>
             </GridCol>
             <GridCol grow className="slds-m-top_large slds-p-top_xx-small">
-              <button className="slds-button slds-button_brand">
+              <button
+                className="slds-button slds-button_brand"
+                onClick={() => setFieldMappingModalOpen(true)}
+                disabled={!selectedSObject || !fileData || !fileData.length}
+              >
                 <Icon type="utility" icon="data_mapping" className="slds-button__icon slds-button__icon_left" />
                 Map Fields
               </button>
@@ -98,7 +115,6 @@ export const LoadRecordsConfiguration: FunctionComponent<LoadRecordsConfiguratio
               onChange={() => {}}
             />
             <RadioButton
-              className="slds-button_destructive"
               name="DELETE"
               label="Delete"
               value="DELETE"

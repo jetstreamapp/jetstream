@@ -1,9 +1,10 @@
-import React, { Fragment, FunctionComponent, useRef, useEffect, KeyboardEvent } from 'react';
+import React, { Fragment, FunctionComponent, useRef, useEffect, KeyboardEvent, useState } from 'react';
 import Icon from '../widgets/Icon';
 import { SizeSmMdLg } from '@jetstream/types';
 import classNames from 'classnames';
 import { createPortal } from 'react-dom';
 import { isEscapeKey } from '@jetstream/shared/ui-utils';
+import { uniqueId } from 'lodash';
 /* eslint-disable-next-line */
 export interface ModalProps {
   className?: string;
@@ -72,6 +73,7 @@ export class Modal extends React.Component<ModalProps> {
 }
 
 export const ModalContent: FunctionComponent<ModalProps> = ({
+  className,
   header,
   tagline,
   footer,
@@ -86,6 +88,7 @@ export const ModalContent: FunctionComponent<ModalProps> = ({
   onClose,
 }) => {
   const closeButtonRef = useRef(null);
+  const [modalId] = useState(uniqueId('modal-content'));
 
   useEffect(() => {
     if (!skipAutoFocus) {
@@ -114,7 +117,7 @@ export const ModalContent: FunctionComponent<ModalProps> = ({
         className={classNames(containerClassName || 'slds-modal slds-slide-up-open', getSizeClass(size))}
         aria-labelledby="modal"
         aria-modal="true"
-        aria-describedby="modal-content"
+        aria-describedby={modalId}
         onKeyUp={handleKeyUp}
       >
         <div className="slds-modal__container">
@@ -133,7 +136,7 @@ export const ModalContent: FunctionComponent<ModalProps> = ({
             </h2>
             {tagline && <p className="slds-m-top_x-small">{tagline}</p>}
           </header>
-          <div className="slds-modal__content slds-p-around_medium" id="modal-content">
+          <div className={classNames('slds-modal__content', className || 'slds-p-around_medium')} id={modalId}>
             {children}
           </div>
           {footer && (
