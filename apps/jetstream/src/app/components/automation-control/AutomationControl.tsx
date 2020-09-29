@@ -17,7 +17,7 @@ import {
 } from '@jetstream/ui';
 import { FunctionComponent, useEffect, useState } from 'react';
 import { useRecoilState, useRecoilValue, useResetRecoilState } from 'recoil';
-import { selectedOrgState } from '../../app-state';
+import { applicationCookieState, selectedOrgState } from '../../app-state';
 import {
   AutomationControlMetadataType,
   AutomationControlMetadataTypeItem,
@@ -53,6 +53,7 @@ export const AutomationControl: FunctionComponent<AutomationControlProps> = () =
   const [errorMessage, setErrorMessage] = useState<string>(null);
   const [deployModalActive, setDeployModalActive] = useState<boolean>(false);
 
+  const [{ serverUrl }] = useRecoilState(applicationCookieState);
   const [itemIds, setItemIds] = useRecoilState(fromAutomationCtlState.itemIds);
   const [itemsById, setItemsById] = useRecoilState(fromAutomationCtlState.itemsById);
   const [activeItemId, setActiveItemId] = useRecoilState(fromAutomationCtlState.activeItemId);
@@ -128,6 +129,8 @@ export const AutomationControl: FunctionComponent<AutomationControlProps> = () =
             titleText: item.sobjectLabel,
             content: (
               <AutomationControlTabContent
+                selectedOrg={selectedOrg}
+                serverUrl={serverUrl}
                 item={item}
                 isDirty={dirtyItems.itemsById[item.key]}
                 automationItemExpandChange={(metadataTypes) => handleAutomationItemExpandChanged(item.key, metadataTypes)}

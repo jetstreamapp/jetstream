@@ -1,11 +1,14 @@
 /** @jsx jsx */
 import { css, jsx } from '@emotion/core';
-import { CheckboxToggle, Grid, GridCol, Icon, CopyToClipboard, Tooltip } from '@jetstream/ui';
+import { CheckboxToggle, CopyToClipboard, Grid, GridCol, Icon, SalesforceLogin, Tooltip } from '@jetstream/ui';
 import classNames from 'classnames';
 import { FunctionComponent } from 'react';
+import { SalesforceOrgUi } from '@jetstream/types';
 import { AutomationControlMetadataTypeItem, AutomationMetadataType, ToolingValidationRuleRecord } from '../automation-control-types';
 
 interface AutomationControlContentValidationRuleProps {
+  selectedOrg: SalesforceOrgUi;
+  serverUrl: string;
   items: AutomationControlMetadataTypeItem<ToolingValidationRuleRecord>[];
   onChange: (
     type: AutomationMetadataType,
@@ -16,6 +19,8 @@ interface AutomationControlContentValidationRuleProps {
 }
 
 export const AutomationControlContentValidationRule: FunctionComponent<AutomationControlContentValidationRuleProps> = ({
+  selectedOrg,
+  serverUrl,
   items,
   onChange,
 }) => {
@@ -95,12 +100,15 @@ export const AutomationControlContentValidationRule: FunctionComponent<Automatio
               />
             </td>
             <th scope="row">
-              <div
-                className="slds-cell-wrap slds-line-clamp slds-text-link"
-                title={item.label}
-                onClick={() => onChange('ValidationRule', !item.currentValue, item)}
-              >
-                {item.label}
+              <div title={`Open in Salesforce: ${item.label}`}>
+                <SalesforceLogin
+                  serverUrl={serverUrl}
+                  org={selectedOrg}
+                  returnUrl={`/lightning/setup/ObjectManager/${item.metadata.EntityDefinitionId}/ValidationRules/${item.metadata.Id}/view`}
+                  iconPosition="right"
+                >
+                  {item.label}
+                </SalesforceLogin>
               </div>
             </th>
             <td>

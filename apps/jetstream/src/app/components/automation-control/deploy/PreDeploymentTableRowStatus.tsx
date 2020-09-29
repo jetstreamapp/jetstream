@@ -46,22 +46,28 @@ export const AutomationControlPreDeploymentTableRowStatus: FunctionComponent<Aut
     <div title={status}>
       <Grid gutters guttersSize="small">
         <GridCol
-          size={1}
-          maxSize={3}
           className="slds-relative"
           css={css`
             min-width: 30px;
-            /* max-width: 30px; */
           `}
         >
           {isLoading && <Spinner size="small" inline className="slds-spinner slds-spinner_small slds-spinner_brand slds-m-top_x-small" />}
+          {readyToDeploy && (
+            <Icon
+              type="utility"
+              icon="check"
+              className="slds-icon slds-icon-text-success slds-icon_x-small"
+              containerClassname="slds-icon_container slds-icon-utility-success"
+              description="ready for deploy"
+            />
+          )}
           {isSuccess && (
             <Icon
               type="utility"
               icon="success"
               className="slds-icon slds-icon-text-success slds-icon_x-small"
               containerClassname="slds-icon_container slds-icon-utility-success"
-              description="success"
+              description="deployed successfully"
             />
           )}
           {isError && (

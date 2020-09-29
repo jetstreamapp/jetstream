@@ -1,8 +1,9 @@
 /** @jsx jsx */
 import { css, jsx } from '@emotion/core';
-import { CheckboxToggle, Grid, GridCol, Icon } from '@jetstream/ui';
+import { CheckboxToggle, Grid, GridCol, Icon, SalesforceLogin } from '@jetstream/ui';
 import classNames from 'classnames';
 import { Fragment, FunctionComponent } from 'react';
+import { SalesforceOrgUi } from '@jetstream/types';
 import {
   AutomationControlMetadataTypeItem,
   AutomationMetadataType,
@@ -11,6 +12,8 @@ import {
 } from '../automation-control-types';
 
 interface AutomationControlContentFlowProps {
+  selectedOrg: SalesforceOrgUi;
+  serverUrl: string;
   items: AutomationControlMetadataTypeItem<ToolingFlowDefinitionWithVersions, ToolingFlowRecord>[];
   toggleExpanded: (type: AutomationMetadataType, value: boolean, item: AutomationControlMetadataTypeItem) => void;
   onChange: (
@@ -21,7 +24,13 @@ interface AutomationControlContentFlowProps {
   ) => void;
 }
 
-export const AutomationControlContentFlow: FunctionComponent<AutomationControlContentFlowProps> = ({ items, toggleExpanded, onChange }) => {
+export const AutomationControlContentFlow: FunctionComponent<AutomationControlContentFlowProps> = ({
+  selectedOrg,
+  serverUrl,
+  items,
+  toggleExpanded,
+  onChange,
+}) => {
   return (
     <table className="slds-table slds-table_cell-buffer slds-table_bordered slds-no-row-hover slds-tree slds-table_tree" role="treegrid">
       <thead>
@@ -167,12 +176,15 @@ export const AutomationControlContentFlow: FunctionComponent<AutomationControlCo
                   <th scope="row">
                     <Grid className="slds-grid slds-p-left_xx-large">
                       <GridCol>
-                        <div
-                          className="slds-cell-wrap slds-line-clamp slds-text-link"
-                          title={childItem.label}
-                          onClick={() => onChange('Flow', !childItem.currentValue, item, childItem)}
-                        >
-                          {childItem.label}
+                        <div title={`Open in Salesforce: ${childItem.label}`}>
+                          <SalesforceLogin
+                            serverUrl={serverUrl}
+                            org={selectedOrg}
+                            returnUrl={`/lightning/setup/ProcessAutomation/home`}
+                            iconPosition="right"
+                          >
+                            {childItem.label}
+                          </SalesforceLogin>
                         </div>
                       </GridCol>
                     </Grid>

@@ -101,14 +101,9 @@ export const AutomationControlDeployModal: FunctionComponent<AutomationControlDe
 
   useEffect(() => {
     switch (currentStep) {
-      case 0:
+      case 0: {
         setModalLabel('Review Changes');
-        setNextButtonLabel('Continue');
-        break;
-      case 1: {
-        setModalLabel('Preparing Changes');
         setNextButtonLabel('Deploy Changes');
-
         setInProgress(true);
 
         setDeploymentItemMap(
@@ -122,7 +117,7 @@ export const AutomationControlDeployModal: FunctionComponent<AutomationControlDe
           subscription.unsubscribe();
         };
       }
-      case 2: {
+      case 1: {
         setModalLabel('Deploying Changes');
         setInProgress(true);
 
@@ -137,8 +132,9 @@ export const AutomationControlDeployModal: FunctionComponent<AutomationControlDe
           subscription.unsubscribe();
         };
       }
-      case 3: {
+      case 2: {
         handleCloseModal();
+        break;
       }
       default:
         break;
@@ -228,17 +224,25 @@ export const AutomationControlDeployModal: FunctionComponent<AutomationControlDe
     <Modal
       header={modalLabel}
       footer={
+        // <Fragment>
+        //   <button className="slds-button slds-button_neutral" onClick={() => onClose()} disabled={inProgress}>
+        //     Cancel
+        //   </button>
+        //   <ProgressIndicator className="slds-progress_shade" totalSteps={3} currentStep={currentStep} readOnly></ProgressIndicator>
+        //   <button className="slds-button slds-button_brand" onClick={() => setCurrentStep(currentStep + 1)} disabled={inProgress}>
+        //     {nextButtonLabel}
+        //   </button>
+        // </Fragment>
         <Fragment>
           <button className="slds-button slds-button_neutral" onClick={() => onClose()} disabled={inProgress}>
             Cancel
           </button>
-          <ProgressIndicator className="slds-progress_shade" totalSteps={3} currentStep={currentStep} readOnly></ProgressIndicator>
           <button className="slds-button slds-button_brand" onClick={() => setCurrentStep(currentStep + 1)} disabled={inProgress}>
             {nextButtonLabel}
           </button>
         </Fragment>
       }
-      footerClassName="slds-grid slds-grid_align-spread"
+      // footerClassName="slds-grid slds-grid_align-spread"
       size="lg"
       onClose={handleCloseModal}
     >
