@@ -6,21 +6,15 @@
       "dependencies": "*",
       "devDependencies": "*"
     },
-    "tsconfig.json": "*",
     "tslint.json": "*",
-    "nx.json": "*"
+    "nx.json": "*",
+    "tsconfig.base.json": "*"
   },
   "tasksRunnerOptions": {
     "default": {
       "runner": "@nrwl/workspace/tasks-runners/default",
       "options": {
-        "cacheableOperations": [
-          "build",
-          "lint",
-          "test",
-          "e2e",
-          "build-storybook"
-        ]
+        "cacheableOperations": ["build", "lint", "test", "e2e", "build-storybook"]
       }
     }
   },
@@ -48,9 +42,7 @@
     },
     "ui-e2e": {
       "tags": [],
-      "implicitDependencies": [
-        "ui"
-      ]
+      "implicitDependencies": ["ui"]
     },
     "shared-constants": {
       "tags": []
@@ -60,18 +52,14 @@
     },
     "jetstream-e2e": {
       "tags": [],
-      "implicitDependencies": [
-        "jetstream"
-      ]
+      "implicitDependencies": ["jetstream"]
     },
     "landing": {
       "tags": []
     },
     "landing-e2e": {
       "tags": [],
-      "implicitDependencies": [
-        "landing"
-      ]
+      "implicitDependencies": ["landing"]
     },
     "shared-node-utils": {
       "tags": []
@@ -79,5 +67,8 @@
     "shared-client-logger": {
       "tags": []
     }
+  },
+  "affected": {
+    "defaultBase": "master"
   }
 }

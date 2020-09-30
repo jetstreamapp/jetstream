@@ -64,15 +64,13 @@ export const QueryBuilder: FunctionComponent<QueryBuilderProps> = () => {
 
   const [queryWorker] = useState(() => new QueryWorker());
 
-  // FIXME: this is a hack and should not be here
   useEffect(() => {
     let timer1;
     if (!selectedSObject) {
       setShowRightHandPane(false);
       timer1 = undefined;
     } else {
-      setShowRightHandPane(false);
-      timer1 = setTimeout(() => setShowRightHandPane(true));
+      setShowRightHandPane(true);
     }
     return () => {
       if (timer1) {

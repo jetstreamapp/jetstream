@@ -4,5 +4,6 @@
     "lib": ["es2018", "webworker"],
     "types": []
   },
-  "include": ["**/*.js/*.worker.ts"]
+  "include": ["**/*.js/*.worker.ts"],
+  "files": ["../../node_modules/@nrwl/react/typings/cssmodule.d.ts", "../../node_modules/@nrwl/react/typings/image.d.ts"]
 }
