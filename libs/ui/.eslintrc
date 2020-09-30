@@ -25,7 +25,13 @@
     "no-invalid-regexp": "warn",
     "no-iterator": "warn",
     "no-label-var": "warn",
-    "no-labels": ["warn", { "allowLoop": true, "allowSwitch": false }],
+    "no-labels": [
+      "warn",
+      {
+        "allowLoop": true,
+        "allowSwitch": false
+      }
+    ],
     "no-lone-blocks": "warn",
     "no-loop-func": "warn",
     "no-mixed-operators": [
@@ -125,12 +131,26 @@
     ],
     "no-unexpected-multiline": "warn",
     "no-unreachable": "warn",
-    "no-unused-expressions": ["error", { "allowShortCircuit": true, "allowTernary": true, "allowTaggedTemplates": true }],
+    "no-unused-expressions": [
+      "error",
+      {
+        "allowShortCircuit": true,
+        "allowTernary": true,
+        "allowTaggedTemplates": true
+      }
+    ],
     "no-unused-labels": "warn",
     "no-useless-computed-key": "warn",
     "no-useless-concat": "warn",
     "no-useless-escape": "warn",
-    "no-useless-rename": ["warn", { "ignoreDestructuring": false, "ignoreImport": false, "ignoreExport": false }],
+    "no-useless-rename": [
+      "warn",
+      {
+        "ignoreDestructuring": false,
+        "ignoreImport": false,
+        "ignoreExport": false
+      }
+    ],
     "no-with": "warn",
     "no-whitespace-before-property": "warn",
     "react-hooks/exhaustive-deps": "warn",
@@ -157,12 +177,23 @@
     "import/first": "error",
     "import/no-amd": "error",
     "import/no-webpack-loader-syntax": "error",
-    "react/forbid-foreign-prop-types": ["warn", { "allowInPropTypes": true }],
+    "react/forbid-foreign-prop-types": [
+      "warn",
+      {
+        "allowInPropTypes": true
+      }
+    ],
     "react/jsx-no-comment-textnodes": "warn",
     "react/jsx-no-duplicate-props": "warn",
     "react/jsx-no-target-blank": "warn",
     "react/jsx-no-undef": "error",
-    "react/jsx-pascal-case": ["warn", { "allowAllCaps": true, "ignore": [] }],
+    "react/jsx-pascal-case": [
+      "warn",
+      {
+        "allowAllCaps": true,
+        "ignore": []
+      }
+    ],
     "react/jsx-uses-react": "warn",
     "react/jsx-uses-vars": "warn",
     "react/no-danger-with-children": "warn",
@@ -175,7 +206,12 @@
     "jsx-a11y/accessible-emoji": "warn",
     "jsx-a11y/alt-text": "warn",
     "jsx-a11y/anchor-has-content": "warn",
-    "jsx-a11y/anchor-is-valid": ["warn", { "aspects": ["noHref", "invalidHref"] }],
+    "jsx-a11y/anchor-is-valid": [
+      "warn",
+      {
+        "aspects": ["noHref", "invalidHref"]
+      }
+    ],
     "jsx-a11y/aria-activedescendant-has-tabindex": "warn",
     "jsx-a11y/aria-props": "warn",
     "jsx-a11y/aria-proptypes": "warn",
@@ -199,14 +235,38 @@
     "@typescript-eslint/no-array-constructor": "warn",
     "@typescript-eslint/no-namespace": "error",
     "no-use-before-define": "off",
-    "@typescript-eslint/no-use-before-define": ["warn", { "functions": false, "classes": false, "variables": false, "typedefs": false }],
+    "@typescript-eslint/no-use-before-define": [
+      "warn",
+      {
+        "functions": false,
+        "classes": false,
+        "variables": false,
+        "typedefs": false
+      }
+    ],
     "no-unused-vars": "off",
-    "@typescript-eslint/no-unused-vars": ["warn", { "args": "none", "ignoreRestSiblings": true }],
+    "@typescript-eslint/no-unused-vars": [
+      "warn",
+      {
+        "args": "none",
+        "ignoreRestSiblings": true
+      }
+    ],
     "no-useless-constructor": "off",
     "@typescript-eslint/no-useless-constructor": "warn"
   },
-  "env": { "browser": true, "commonjs": true, "es6": true, "jest": true, "node": true },
-  "settings": { "react": { "version": "detect" } },
+  "env": {
+    "browser": true,
+    "commonjs": true,
+    "es6": true,
+    "jest": true,
+    "node": true
+  },
+  "settings": {
+    "react": {
+      "version": "detect"
+    }
+  },
   "plugins": ["import", "jsx-a11y", "react", "react-hooks"],
   "extends": ["../../.eslintrc"],
   "ignorePatterns": ["!**/*"]

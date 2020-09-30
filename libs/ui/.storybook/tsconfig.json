@@ -3,6 +3,7 @@
   "compilerOptions": {
     "emitDecoratorMetadata": true
   },
-  "exclude": ["../src/test.ts", "../**/*.spec.ts"],
-  "include": ["../src/**/*"]
+  "exclude": ["../src/test.ts", "../**/*.spec.ts", "../**/*.spec.js", "../**/*.spec.tsx", "../**/*.spec.jsx"],
+  "include": ["../src/**/*"],
+  "files": ["../../../node_modules/@nrwl/react/typings/cssmodule.d.ts", "../../../node_modules/@nrwl/react/typings/image.d.ts"]
 }
