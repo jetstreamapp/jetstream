@@ -22,7 +22,15 @@ export interface DirtyAutomationItems {
   itemsById: MapOf<boolean>;
 }
 
-export type DeploymentItemStatus = 'Not Started' | 'Preparing' | 'Ready for Deploy' | 'Deploying' | 'Success' | 'Error';
+export type DeploymentItemStatus =
+  | 'Not Started'
+  | 'Preparing'
+  | 'Ready for Deploy'
+  | 'Deploying'
+  | 'Rolling Back'
+  | 'Deployed'
+  | 'Rolled Back'
+  | 'Error';
 
 export type DeploymentItemMap = MapOf<DeploymentItem>;
 export interface DeploymentItem {

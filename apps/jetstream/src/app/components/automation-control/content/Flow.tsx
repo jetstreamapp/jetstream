@@ -94,7 +94,15 @@ export const AutomationControlContentFlow: FunctionComponent<AutomationControlCo
               onClick={() => toggleExpanded('Flow', !item.expanded, item)}
             >
               <td role="gridcell">
-                <CheckboxToggle id={`Flow-${item.fullName}`} label="Is Active" hideLabel checked={item.currentValue} disabled />
+                <CheckboxToggle
+                  id={`Flow-${item.fullName}`}
+                  label="Is Active"
+                  onText="Active"
+                  offText="Inactive"
+                  hideLabel
+                  checked={item.currentValue}
+                  disabled
+                />
               </td>
               <th className="slds-tree__item" scope="row">
                 <button
@@ -168,6 +176,8 @@ export const AutomationControlContentFlow: FunctionComponent<AutomationControlCo
                     <CheckboxToggle
                       id={`Flow-${childItem.fullName}`}
                       label="Is Active"
+                      onText="Active"
+                      offText="Inactive"
                       hideLabel
                       checked={childItem.currentValue}
                       onChange={(value) => onChange('Flow', value, item, childItem)}
@@ -181,7 +191,7 @@ export const AutomationControlContentFlow: FunctionComponent<AutomationControlCo
                             serverUrl={serverUrl}
                             org={selectedOrg}
                             returnUrl={`/lightning/setup/ProcessAutomation/home`}
-                            iconPosition="right"
+                            omitIcon
                           >
                             {childItem.label}
                           </SalesforceLogin>

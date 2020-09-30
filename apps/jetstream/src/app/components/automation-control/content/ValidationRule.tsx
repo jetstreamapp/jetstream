@@ -94,6 +94,8 @@ export const AutomationControlContentValidationRule: FunctionComponent<Automatio
               <CheckboxToggle
                 id={`ValidationRule-${item.fullName}`}
                 label="Is Active"
+                onText="Active"
+                offText="Inactive"
                 hideLabel
                 checked={item.currentValue}
                 onChange={(value) => onChange('ValidationRule', value, item)}
@@ -105,7 +107,7 @@ export const AutomationControlContentValidationRule: FunctionComponent<Automatio
                   serverUrl={serverUrl}
                   org={selectedOrg}
                   returnUrl={`/lightning/setup/ObjectManager/${item.metadata.EntityDefinitionId}/ValidationRules/${item.metadata.Id}/view`}
-                  iconPosition="right"
+                  omitIcon
                 >
                   {item.label}
                 </SalesforceLogin>

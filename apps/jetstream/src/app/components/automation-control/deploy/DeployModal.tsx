@@ -1,9 +1,9 @@
 /** @jsx jsx */
 import { jsx } from '@emotion/core';
+import { logger } from '@jetstream/shared/client-logger';
 import { MapOf, SalesforceOrgUi } from '@jetstream/types';
 import { Icon, Modal } from '@jetstream/ui';
 import { Fragment, FunctionComponent, useEffect, useState } from 'react';
-import { logger } from '@jetstream/shared/client-logger';
 import { AutomationControlDeploymentItem, AutomationItemsChildren, DeploymentItemMap } from '../automation-control-types';
 import { deployMetadata, preparePayloads } from '../utils/automation-control-data-utils';
 import AutomationControlPreDeploymentTable from './PreDeploymentTable';
@@ -195,9 +195,10 @@ export const AutomationControlDeployModal: FunctionComponent<AutomationControlDe
       (items: { key: string; deploymentItem: AutomationControlDeploymentItem }[]) => {
         logger.log('handleDeployMetadata - emitted()', items);
         const tempDeploymentItemMap = items.reduce((output: DeploymentItemMap, item) => {
+          const successStatus = isRollback ? 'Rolled Back' : 'Deployed';
           output[item.key] = {
             ...deploymentItemMap[item.key],
-            status: item.deploymentItem.deployError ? 'Error' : 'Success',
+            status: item.deploymentItem.deployError ? 'Error' : successStatus,
             deploy: item.deploymentItem,
           };
           return output;
@@ -251,11 +252,11 @@ export const AutomationControlDeployModal: FunctionComponent<AutomationControlDe
     setInProgress(true);
     // clone items to rollback and replace metadataDeploy with metadataDeployRollback
     const itemsToRollback = Object.keys(deploymentItemMap)
-      .filter((key) => deploymentItemMap[key].status === 'Success')
+      .filter((key) => deploymentItemMap[key].status === 'Deployed')
       .reduce((output: DeploymentItemMap, key) => {
         output[key] = {
           ...deploymentItemMap[key],
-          status: 'Deploying',
+          status: 'Rolling Back',
           deploy: {
             ...deploymentItemMap[key].deploy,
             metadataDeploy: deploymentItemMap[key].deploy.metadataDeployRollback,

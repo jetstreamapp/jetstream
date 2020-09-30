@@ -72,6 +72,8 @@ export const AutomationControlContentApexTrigger: FunctionComponent<AutomationCo
               <CheckboxToggle
                 id={`ApexTrigger-${item.fullName}`}
                 label="Is Active"
+                onText="Active"
+                offText="Inactive"
                 hideLabel
                 checked={item.currentValue}
                 onChange={(value) => onChange('ApexTrigger', value, item)}
@@ -83,7 +85,7 @@ export const AutomationControlContentApexTrigger: FunctionComponent<AutomationCo
                   serverUrl={serverUrl}
                   org={selectedOrg}
                   returnUrl={`/lightning/setup/ObjectManager/${item.metadata.EntityDefinitionId}/ApexTriggers/${item.metadata.Id}/view`}
-                  iconPosition="right"
+                  omitIcon
                 >
                   {item.label}
                 </SalesforceLogin>

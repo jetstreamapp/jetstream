@@ -94,6 +94,8 @@ export const AutomationControlContentWorkflowRule: FunctionComponent<AutomationC
               <CheckboxToggle
                 id={`WorkflowRule-${item.fullName}`}
                 label="Is Active"
+                onText="Active"
+                offText="Inactive"
                 hideLabel
                 checked={item.currentValue}
                 onChange={(value) => onChange('WorkflowRule', value, item)}
@@ -105,7 +107,7 @@ export const AutomationControlContentWorkflowRule: FunctionComponent<AutomationC
                   serverUrl={serverUrl}
                   org={selectedOrg}
                   returnUrl={`/lightning/setup/WorkflowRules/page?address=%2F${item.metadata.Id}&nodeId=WorkflowRules`}
-                  iconPosition="right"
+                  omitIcon
                 >
                   {item.label}
                 </SalesforceLogin>

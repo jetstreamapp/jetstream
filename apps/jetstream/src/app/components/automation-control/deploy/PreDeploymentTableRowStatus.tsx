@@ -1,12 +1,12 @@
 /** @jsx jsx */
 import { css, jsx } from '@emotion/core';
-import { FunctionComponent } from 'react';
 import { CopyToClipboard, Grid, GridCol, Icon, Spinner, Tooltip } from '@jetstream/ui';
-import { DeploymentItemStatus, MetadataCompositeResponseError } from '../automation-control-types';
 import classNames from 'classnames';
 import { uniqueId } from 'lodash';
+import { FunctionComponent } from 'react';
+import { DeploymentItemStatus, MetadataCompositeResponseError } from '../automation-control-types';
 
-const loadingStatuses: DeploymentItemStatus[] = ['Preparing', 'Deploying'];
+const loadingStatuses: DeploymentItemStatus[] = ['Preparing', 'Deploying', 'Rolling Back'];
 
 // eslint-disable-next-line @typescript-eslint/no-empty-interface
 export interface AutomationControlPreDeploymentTableRowStatusProps {
@@ -39,7 +39,7 @@ export const AutomationControlPreDeploymentTableRowStatus: FunctionComponent<Aut
   deployError,
 }) => {
   const isLoading = loadingStatuses.includes(status);
-  const isSuccess = status === 'Success';
+  const isSuccess = status === 'Deployed' || status === 'Rolled Back';
   const isError = status === 'Error';
   const readyToDeploy = status === 'Ready for Deploy';
   return (
@@ -55,10 +55,10 @@ export const AutomationControlPreDeploymentTableRowStatus: FunctionComponent<Aut
           {readyToDeploy && (
             <Icon
               type="utility"
-              icon="check"
-              className="slds-icon slds-icon-text-success slds-icon_x-small"
+              icon="success"
+              className="slds-icon slds-icon-text-default slds-icon_x-small"
               containerClassname="slds-icon_container slds-icon-utility-success"
-              description="ready for deploy"
+              description="Ready for deploy"
             />
           )}
           {isSuccess && (
