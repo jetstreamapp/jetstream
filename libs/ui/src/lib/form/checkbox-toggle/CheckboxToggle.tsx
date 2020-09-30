@@ -8,6 +8,8 @@ export interface CheckboxCheckboxToggleProps {
   hideLabel?: boolean;
   disabled?: boolean;
   labelPosition?: RightLeft;
+  onText?: string;
+  offText?: string;
   onChange?: (value: boolean) => void;
 }
 
@@ -18,6 +20,8 @@ export const CheckboxToggle: FunctionComponent<CheckboxCheckboxToggleProps> = ({
   disabled = false,
   hideLabel = false,
   labelPosition = 'left',
+  onText = 'Enabled',
+  offText = 'Disabled',
   onChange,
 }) => {
   return (
@@ -34,8 +38,8 @@ export const CheckboxToggle: FunctionComponent<CheckboxCheckboxToggleProps> = ({
         />
         <span id={id} className="slds-checkbox_faux_container" aria-live="assertive">
           <span className="slds-checkbox_faux"></span>
-          <span className="slds-checkbox_on">Enabled</span>
-          <span className="slds-checkbox_off">Disabled</span>
+          <span className="slds-checkbox_on">{onText}</span>
+          <span className="slds-checkbox_off">{offText}</span>
         </span>
         {!hideLabel && labelPosition === 'right' && (
           <span className="slds-form-element__label slds-m-left_xx-small slds-m-bottom_none">{label}</span>

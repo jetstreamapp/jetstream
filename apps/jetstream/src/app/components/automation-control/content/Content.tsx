@@ -15,8 +15,11 @@ import AutomationControlContentFlow from './Flow';
 import { AutomationControlContentValidationRule } from './ValidationRule';
 import AutomationControlContentWorkflowRule from './WorkflowRule';
 import classNames from 'classnames';
+import { SalesforceOrgUi } from '@jetstream/types';
 
 interface AutomationControlTabContentProps {
+  selectedOrg: SalesforceOrgUi;
+  serverUrl: string;
   item: AutomationControlParentSobject;
   isDirty: boolean;
   automationItemExpandChange: (expandedType: AutomationMetadataType[]) => void;
@@ -31,7 +34,9 @@ interface AutomationControlTabContentProps {
 }
 
 function getModifiedItemsText(items: AutomationControlMetadataTypeItem[]) {
-  const modifiedItemCount = items.filter((item) => item.currentValue !== item.initialValue).length;
+  const modifiedItemCount = items.filter(
+    (item) => item.currentValue !== item.initialValue || item.currentActiveVersion !== item.initialActiveVersion
+  ).length;
   if (modifiedItemCount) {
     return ` (${modifiedItemCount} Modified)`;
   } else {
@@ -44,6 +49,8 @@ function hasNoItems(item: AutomationControlMetadataType) {
 }
 
 export const AutomationControlTabContent: FunctionComponent<AutomationControlTabContentProps> = ({
+  selectedOrg,
+  serverUrl,
   item,
   isDirty,
   automationItemExpandChange,
@@ -79,7 +86,12 @@ export const AutomationControlTabContent: FunctionComponent<AutomationControlTab
                 parentItem={item.automationItems.ValidationRule}
                 items={item.automationItems.ValidationRule.items}
               >
-                <AutomationControlContentValidationRule items={item.automationItems.ValidationRule.items} onChange={onChange} />
+                <AutomationControlContentValidationRule
+                  selectedOrg={selectedOrg}
+                  serverUrl={serverUrl}
+                  items={item.automationItems.ValidationRule.items}
+                  onChange={onChange}
+                />
               </AutomationControlContentContainer>
             ),
           },
@@ -92,7 +104,12 @@ export const AutomationControlTabContent: FunctionComponent<AutomationControlTab
                 parentItem={item.automationItems.WorkflowRule}
                 items={item.automationItems.WorkflowRule.items}
               >
-                <AutomationControlContentWorkflowRule items={item.automationItems.WorkflowRule.items} onChange={onChange} />
+                <AutomationControlContentWorkflowRule
+                  selectedOrg={selectedOrg}
+                  serverUrl={serverUrl}
+                  items={item.automationItems.WorkflowRule.items}
+                  onChange={onChange}
+                />
               </AutomationControlContentContainer>
             ),
           },
@@ -103,6 +120,8 @@ export const AutomationControlTabContent: FunctionComponent<AutomationControlTab
             content: (
               <AutomationControlContentContainer parentItem={item.automationItems.Flow} items={item.automationItems.Flow.items}>
                 <AutomationControlContentFlow
+                  selectedOrg={selectedOrg}
+                  serverUrl={serverUrl}
                   items={item.automationItems.Flow.items}
                   toggleExpanded={toggleChildItemExpand}
                   onChange={onChange}
@@ -120,7 +139,12 @@ export const AutomationControlTabContent: FunctionComponent<AutomationControlTab
                 parentItem={item.automationItems.ApexTrigger}
                 items={item.automationItems.ApexTrigger.items}
               >
-                <AutomationControlContentApexTrigger items={item.automationItems.ApexTrigger.items} onChange={onChange} />
+                <AutomationControlContentApexTrigger
+                  selectedOrg={selectedOrg}
+                  serverUrl={serverUrl}
+                  items={item.automationItems.ApexTrigger.items}
+                  onChange={onChange}
+                />
               </AutomationControlContentContainer>
             ),
           },

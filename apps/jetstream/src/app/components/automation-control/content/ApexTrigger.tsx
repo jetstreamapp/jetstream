@@ -1,11 +1,14 @@
 /** @jsx jsx */
 import { css, jsx } from '@emotion/core';
-import { CheckboxToggle, Grid, GridCol } from '@jetstream/ui';
+import { CheckboxToggle, Grid, GridCol, SalesforceLogin } from '@jetstream/ui';
 import classNames from 'classnames';
 import { FunctionComponent } from 'react';
+import { SalesforceOrgUi } from '@jetstream/types';
 import { AutomationControlMetadataTypeItem, AutomationMetadataType, ToolingApexTriggerRecord } from '../automation-control-types';
 
 interface AutomationControlContentApexTriggerProps {
+  selectedOrg: SalesforceOrgUi;
+  serverUrl: string;
   items: AutomationControlMetadataTypeItem<ToolingApexTriggerRecord>[];
   onChange: (
     type: AutomationMetadataType,
@@ -15,7 +18,12 @@ interface AutomationControlContentApexTriggerProps {
   ) => void;
 }
 
-export const AutomationControlContentApexTrigger: FunctionComponent<AutomationControlContentApexTriggerProps> = ({ items, onChange }) => {
+export const AutomationControlContentApexTrigger: FunctionComponent<AutomationControlContentApexTriggerProps> = ({
+  selectedOrg,
+  serverUrl,
+  items,
+  onChange,
+}) => {
   return (
     <table className="slds-table slds-table_cell-buffer slds-table_bordered slds-no-row-hover">
       <thead>
@@ -64,18 +72,23 @@ export const AutomationControlContentApexTrigger: FunctionComponent<AutomationCo
               <CheckboxToggle
                 id={`ApexTrigger-${item.fullName}`}
                 label="Is Active"
+                onText="Active"
+                offText="Inactive"
                 hideLabel
                 checked={item.currentValue}
                 onChange={(value) => onChange('ApexTrigger', value, item)}
               />
             </td>
             <th scope="row">
-              <div
-                className="slds-cell-wrap slds-line-clamp slds-text-link"
-                title={item.label}
-                onClick={() => onChange('ApexTrigger', !item.currentValue, item)}
-              >
-                {item.label}
+              <div title={`Open in Salesforce: ${item.label}`}>
+                <SalesforceLogin
+                  serverUrl={serverUrl}
+                  org={selectedOrg}
+                  returnUrl={`/lightning/setup/ObjectManager/${item.metadata.EntityDefinitionId}/ApexTriggers/${item.metadata.Id}/view`}
+                  omitIcon
+                >
+                  {item.label}
+                </SalesforceLogin>
               </div>
             </th>
             <td>

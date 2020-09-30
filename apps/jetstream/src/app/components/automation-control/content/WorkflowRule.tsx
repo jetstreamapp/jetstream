@@ -1,11 +1,14 @@
 /** @jsx jsx */
 import { css, jsx } from '@emotion/core';
-import { CheckboxToggle, CopyToClipboard, Grid, GridCol, Icon, Tooltip } from '@jetstream/ui';
+import { CheckboxToggle, Grid, GridCol, Icon, SalesforceLogin, Tooltip } from '@jetstream/ui';
 import classNames from 'classnames';
 import { Fragment, FunctionComponent } from 'react';
+import { SalesforceOrgUi } from '@jetstream/types';
 import { AutomationControlMetadataTypeItem, AutomationMetadataType, ToolingWorkflowRuleRecord } from '../automation-control-types';
 
 interface AutomationControlContentWorkflowRuleProps {
+  selectedOrg: SalesforceOrgUi;
+  serverUrl: string;
   items: AutomationControlMetadataTypeItem<ToolingWorkflowRuleRecord>[];
   onChange: (
     type: AutomationMetadataType,
@@ -15,7 +18,12 @@ interface AutomationControlContentWorkflowRuleProps {
   ) => void;
 }
 
-export const AutomationControlContentWorkflowRule: FunctionComponent<AutomationControlContentWorkflowRuleProps> = ({ items, onChange }) => {
+export const AutomationControlContentWorkflowRule: FunctionComponent<AutomationControlContentWorkflowRuleProps> = ({
+  selectedOrg,
+  serverUrl,
+  items,
+  onChange,
+}) => {
   return (
     <table className="slds-table slds-table_cell-buffer slds-table_bordered">
       <thead>
@@ -86,18 +94,23 @@ export const AutomationControlContentWorkflowRule: FunctionComponent<AutomationC
               <CheckboxToggle
                 id={`WorkflowRule-${item.fullName}`}
                 label="Is Active"
+                onText="Active"
+                offText="Inactive"
                 hideLabel
                 checked={item.currentValue}
                 onChange={(value) => onChange('WorkflowRule', value, item)}
               />
             </td>
             <th scope="row">
-              <div
-                className="slds-cell-wrap slds-line-clamp slds-text-link"
-                title={item.label}
-                onClick={() => onChange('WorkflowRule', !item.currentValue, item)}
-              >
-                {item.label}
+              <div title={`Open in Salesforce: ${item.label}`}>
+                <SalesforceLogin
+                  serverUrl={serverUrl}
+                  org={selectedOrg}
+                  returnUrl={`/lightning/setup/WorkflowRules/page?address=%2F${item.metadata.Id}&nodeId=WorkflowRules`}
+                  omitIcon
+                >
+                  {item.label}
+                </SalesforceLogin>
               </div>
             </th>
             <td>

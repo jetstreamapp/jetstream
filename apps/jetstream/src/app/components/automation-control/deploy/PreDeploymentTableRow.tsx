@@ -2,7 +2,7 @@
 import { jsx } from '@emotion/core';
 import { CheckboxToggle, Grid, GridCol } from '@jetstream/ui';
 import isNumber from 'lodash/isNumber';
-import { FunctionComponent, useEffect, useState } from 'react';
+import { FunctionComponent } from 'react';
 import { AutomationControlMetadataTypeItem, AutomationMetadataType, DeploymentItem } from '../automation-control-types';
 import AutomationControlPreDeploymentTableRowStatus from './PreDeploymentTableRowStatus';
 
@@ -25,7 +25,14 @@ export const AutomationControlPreDeploymentTableRow: FunctionComponent<Automatio
       <td>
         <Grid vertical>
           <GridCol>
-            <CheckboxToggle id={`ValidationRule-${item.fullName}`} label="Is Active" hideLabel checked={item.initialValue} />
+            <CheckboxToggle
+              id={`ValidationRule-${item.fullName}`}
+              label="Is Active"
+              onText="Active"
+              offText="Inactive"
+              hideLabel
+              checked={item.initialValue}
+            />
           </GridCol>
           {type === 'Flow' && <GridCol>Version: {isNumber(item.initialActiveVersion) ? item.initialActiveVersion : 'none'}</GridCol>}
         </Grid>
@@ -33,7 +40,14 @@ export const AutomationControlPreDeploymentTableRow: FunctionComponent<Automatio
       <td>
         <Grid vertical>
           <GridCol>
-            <CheckboxToggle id={`ValidationRule-${item.fullName}`} label="Is Active" hideLabel checked={item.currentValue} />
+            <CheckboxToggle
+              id={`ValidationRule-${item.fullName}`}
+              label="Is Active"
+              onText="Active"
+              offText="Inactive"
+              hideLabel
+              checked={item.currentValue}
+            />
           </GridCol>
           {type === 'Flow' && <GridCol>Version: {isNumber(item.currentActiveVersion) ? item.currentActiveVersion : 'none'}</GridCol>}
         </Grid>

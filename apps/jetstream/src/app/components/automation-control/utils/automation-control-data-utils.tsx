@@ -235,6 +235,7 @@ export async function preparePayloadsForDeployment(
       const deploymentItem: AutomationControlDeploymentItem = { ...itemsByKey[key].deploy };
       if (item.httpStatusCode === 200) {
         deploymentItem.metadataRetrieve = item.body as MetadataCompositeResponseSuccess;
+        deploymentItem.metadataDeployRollback = JSON.parse(JSON.stringify({ ...item.body, Id: undefined })) as any;
         deploymentItem.metadataDeploy = JSON.parse(JSON.stringify({ ...item.body, Id: undefined })) as any;
       } else {
         deploymentItem.retrieveError = item.body as MetadataCompositeResponseError[];

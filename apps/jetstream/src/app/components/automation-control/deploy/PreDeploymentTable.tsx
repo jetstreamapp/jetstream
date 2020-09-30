@@ -1,7 +1,6 @@
 /** @jsx jsx */
 import { css, jsx } from '@emotion/core';
 import { MapOf } from '@jetstream/types';
-import { CheckboxToggle, Grid, GridCol } from '@jetstream/ui';
 import { FunctionComponent } from 'react';
 import { AutomationItemsChildren, DeploymentItemMap } from '../automation-control-types';
 import AutomationControlPreDeploymentTableRow from './PreDeploymentTableRow';
