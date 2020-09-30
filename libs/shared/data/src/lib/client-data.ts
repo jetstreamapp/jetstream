@@ -1,9 +1,9 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import * as API from '@jetstream/api-interfaces';
-import { DescribeGlobalResult, DescribeSObjectResult } from 'jsforce';
+import { DescribeGlobalResult, DescribeSObjectResult, DeployOptions, AsyncResult, DeployResult } from 'jsforce';
 import * as request from 'superagent'; // http://visionmedia.github.io/superagent
 import { handleRequest } from './core';
-import { SalesforceOrgUi, UserProfileUi, HttpMethod, SobjectOperation } from '@jetstream/types';
+import { SalesforceOrgUi, UserProfileUi, SobjectOperation, GenericRequestPayload } from '@jetstream/types';
 
 //// LANDING PAGE ROUTES
 
@@ -25,7 +25,16 @@ export async function deleteOrg(org: SalesforceOrgUi): Promise<void> {
 }
 
 export async function describeGlobal(org: SalesforceOrgUi): Promise<DescribeGlobalResult> {
-  return handleRequest(request.get('/api/describe'), org);
+  return handleRequest(request.get('/api/describe'), org).then((response: DescribeGlobalResult) => {
+    if (response && Array.isArray(response.sobjects)) {
+      response.sobjects.forEach((sobject) => {
+        if (sobject.label.startsWith('__MISSING LABEL__')) {
+          sobject.label = sobject.name;
+        }
+      });
+    }
+    return response;
+  });
 }
 
 export async function describeSObject(org: SalesforceOrgUi, SObject: string): Promise<DescribeSObjectResult> {
@@ -56,6 +65,28 @@ export async function sobjectOperation<T = any>(
   return handleRequest(request.post(`/api/record/${operation}/${sobject}`).query(query).send(body), org);
 }
 
-export async function genericRequest<T = any>(org: SalesforceOrgUi, method: HttpMethod, url: string, body?: any): Promise<T> {
-  return handleRequest(request.post(`/api/request`).send({ method, url, body }), org);
+// TODO:
+// export async function listMetadata<T = any>(org: SalesforceOrgUi, query: string, isTooling = false): Promise<API.QueryResults<T>> {
+//   return handleRequest(request.post(`/api/query`).query({ isTooling }).send({ query }), org);
+// }
+
+export async function readMetadata<T = any>(org: SalesforceOrgUi, type: string, fullNames: string[]): Promise<T[]> {
+  return handleRequest(request.post(`/api/metadata/read/${type}`).send({ fullNames }), org);
+}
+
+// we should also have an option to stream a zip file (build when we have future requirements)
+export async function deployMetadata(
+  org: SalesforceOrgUi,
+  files: { fullFilename: string; content: string }[],
+  options?: DeployOptions
+): Promise<AsyncResult> {
+  return handleRequest(request.post(`/api/metadata/deploy`).send({ files, options }), org);
+}
+
+export async function checkMetadataResults(org: SalesforceOrgUi, id: string, includeDetails = false): Promise<DeployResult> {
+  return handleRequest(request.get(`/api/metadata/deploy/${id}`).query({ includeDetails }), org);
+}
+
+export async function genericRequest<T = any>(org: SalesforceOrgUi, payload: GenericRequestPayload): Promise<T> {
+  return handleRequest(request.post(`/api/request`).send(payload), org);
 }

@@ -3,6 +3,12 @@ import { MapOf, MimeType } from '@jetstream/types';
 
 export const SESSION_EXP_DAYS = 5;
 
+export const FEATURE_FLAGS = {
+  ALL: 'all',
+  AUTOMATION_CONTROL: 'automation-control',
+  QUERY: 'query',
+};
+
 export const HTTP = {
   COOKIE: {
     JETSTREAM: 'jetstream',
@@ -12,6 +18,7 @@ export const HTTP = {
     X_LOGOUT: 'X-AUTH-LOGOUT', // 1=true
     X_LOGOUT_URL: 'X-LOGOUT-URL',
     X_SFDC_ID: 'X-SFDC-ID',
+    X_SFDC_API_VERSION: 'X_SFDC_API_VERSION',
     X_SFDC_ORG_CONNECTION_ERROR: 'X-SFDC-ORG-CONNECTION-ERROR',
   },
   CONTENT_TYPE: {

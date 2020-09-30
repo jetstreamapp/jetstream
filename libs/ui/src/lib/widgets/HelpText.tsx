@@ -13,14 +13,7 @@ export const HelpText: FunctionComponent<HelpTextProps> = ({ id, content, childr
   return (
     <div className="slds-form-element__icon">
       <Tooltip id={id} content={content}>
-        <Icon
-          type="utility"
-          icon="info"
-          className="slds-icon slds-icon-text-default slds-icon_xx-small"
-          css={css`
-            cursor: pointer;
-          `}
-        />
+        <Icon type="utility" icon="info" className="slds-icon slds-icon-text-default slds-icon_xx-small cursor-pointer" />
         <span className="slds-assistive-text">{content}</span>
       </Tooltip>
     </div>

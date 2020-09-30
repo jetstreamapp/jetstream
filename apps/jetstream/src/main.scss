@@ -1,5 +1,25 @@
 @import '~@salesforce-ux/design-system/scss/_design-tokens';
 
+.cursor-pointer {
+  cursor: pointer;
+}
+
+.opacity-5 {
+  opacity: 0.5;
+}
+
+.opacity-6 {
+  opacity: 0.6;
+}
+
+.opacity-8 {
+  opacity: 0.8;
+}
+
+.slds-text-link {
+  cursor: pointer;
+}
+
 .gutter {
   background-color: $color-background;
   background-repeat: no-repeat;

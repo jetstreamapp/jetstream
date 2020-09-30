@@ -158,3 +158,21 @@ export function queryResultColumnToTypeLabel(column: QueryResultsColumn, fallbac
   }
   return column.apexType || fallback;
 }
+
+export function ensureBoolean(value: string | boolean | null | undefined) {
+  if (isBoolean(value)) {
+    return value;
+  } else if (isString(value)) {
+    return value.toLowerCase().startsWith('t');
+  }
+  return !!value;
+}
+
+/**
+ * Returns a promise that is delayed by {milliseconds}
+ * @param milliseconds
+ */
+export async function delay(milliseconds: number) {
+  // return await for better async stack trace support in case of errors.
+  return await new Promise((resolve) => setTimeout(resolve, milliseconds));
+}

@@ -11,6 +11,7 @@ export interface ModalProps {
   tagline?: string | JSX.Element;
   footer?: JSX.Element;
   directionalFooter?: boolean;
+  footerClassName?: string;
   size?: SizeSmMdLg;
   containerClassName?: string;
   closeOnEsc?: boolean;
@@ -75,6 +76,7 @@ export const ModalContent: FunctionComponent<ModalProps> = ({
   tagline,
   footer,
   directionalFooter,
+  footerClassName,
   size,
   containerClassName,
   closeOnEsc = true,
@@ -135,7 +137,9 @@ export const ModalContent: FunctionComponent<ModalProps> = ({
             {children}
           </div>
           {footer && (
-            <footer className={classNames('slds-modal__footer', { 'slds-modal__footer_directional': directionalFooter })}>{footer}</footer>
+            <footer className={classNames('slds-modal__footer', { 'slds-modal__footer_directional': directionalFooter }, footerClassName)}>
+              {footer}
+            </footer>
           )}
         </div>
       </section>

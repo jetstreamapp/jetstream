@@ -2,6 +2,7 @@ import { HTTP } from '@jetstream/shared/constants';
 import { decryptString, encryptString, getJsforceOauth2, hexToBase64 } from '@jetstream/shared/node-utils';
 import { UserProfileServer } from '@jetstream/types';
 import * as express from 'express';
+import { ValidationChain, validationResult } from 'express-validator';
 import * as jsforce from 'jsforce';
 import { logger } from '../config/logger.config';
 import { SalesforceOrg } from '../db/entites/SalesforceOrg';
@@ -12,6 +13,17 @@ export function logRoute(req: express.Request, res: express.Response, next: expr
   // logger.info(req.method, req.originalUrl);
   logger.debug('[REQ] %s %s %s', req.method, req.originalUrl, { method: req.method, url: req.originalUrl });
   next();
+}
+
+export function validate(validations: ValidationChain[]) {
+  return async (req: express.Request, res: express.Response, next: express.NextFunction) => {
+    await Promise.all(validations.map((validation) => validation.run(req)));
+    const errors = validationResult(req);
+    if (errors.isEmpty()) {
+      return next();
+    }
+    return next(new UserFacingError('The provided input is invalid', errors.array()));
+  };
 }
 
 export function notFoundMiddleware(req: express.Request, res: express.Response, next: express.NextFunction) {
@@ -30,6 +42,8 @@ export async function checkAuth(req: express.Request, res: express.Response, nex
 export async function addOrgsToLocal(req: express.Request, res: express.Response, next: express.NextFunction) {
   try {
     const uniqueId = (req.get(HTTP.HEADERS.X_SFDC_ID) || req.query[HTTP.HEADERS.X_SFDC_ID]) as string;
+    // TODO: not yet implemented on the front-end
+    const apiVersion = (req.get(HTTP.HEADERS.X_SFDC_API_VERSION) || req.query[HTTP.HEADERS.X_SFDC_API_VERSION]) as string | undefined;
     const user = req.user as UserProfileServer;
 
     if (!uniqueId) {
@@ -42,7 +56,7 @@ export async function addOrgsToLocal(req: express.Request, res: express.Response
       return next(new UserFacingError('An org was not found with the provided id'));
     }
 
-    const { accessToken: encryptedAccessToken, loginUrl, instanceUrl, apiVersion, orgNamespacePrefix } = org;
+    const { accessToken: encryptedAccessToken, loginUrl, instanceUrl, orgNamespacePrefix } = org;
 
     const [accessToken, refreshToken] = decryptString(encryptedAccessToken, hexToBase64(process.env.SFDC_CONSUMER_SECRET)).split(' ');
 
@@ -52,7 +66,7 @@ export async function addOrgsToLocal(req: express.Request, res: express.Response
       accessToken,
       refreshToken,
       maxRequest: 5,
-      version: apiVersion || undefined,
+      version: apiVersion || org.apiVersion || process.env.SFDC_FALLBACK_API_VERSION,
     };
 
     if (orgNamespacePrefix) {

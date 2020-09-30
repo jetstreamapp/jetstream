@@ -59,6 +59,8 @@ export interface UiSection {
   titleText?: string; // use if title is not a string
   content: React.ReactNode | Function; // => React.ReactNode
   disabled?: boolean;
+  className?: string;
+  style?: React.CSSProperties;
 }
 
 export interface UiTabSection {
@@ -117,6 +119,11 @@ export type Left = 'left';
 export type TopRightBottomLeft = Top | Right | Bottom | Left;
 export type RightLeft = Right | Left;
 
+export type Horizontal = 'horizontal';
+export type Vertical = 'vertical';
+
+export type HorizontalVertical = Horizontal | Vertical;
+
 // Generic position types
 export type PositionLeftRight = PositionLeft | PositionRight;
 export type PositionLeftRightTopBottom = PositionLeft | PositionRight | PositionTop | PositionBottom;
@@ -144,10 +151,11 @@ export type PositionBottom = 'bottom';
 export type PositionBottomLeft = 'bottom-left';
 export type PositionBottomRight = 'bottom-right';
 
-export type MimeType = MimeTypePlainText | MimeTypeCsv | MimeTypeOctetStream;
+export type MimeType = MimeTypePlainText | MimeTypeCsv | MimeTypeOctetStream | MimeTypeZip;
 export type MimeTypePlainText = 'text/plain;charset=utf-8';
 export type MimeTypeCsv = 'text/csv;charset=utf-8';
 export type MimeTypeOctetStream = 'application/octet-stream;charset=utf-8';
+export type MimeTypeZip = 'application/zip;charset=utf-8';
 
 // Generic status types
 export type Info = 'info';

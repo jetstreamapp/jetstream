@@ -76,6 +76,7 @@
     "file-saver": "^2.0.2",
     "jsforce": "^1.9.3",
     "jsonwebtoken": "^8.5.1",
+    "jszip": "^3.5.0",
     "localforage": "^1.9.0",
     "lodash": "^4.17.15",
     "moment": "^2.25.3",

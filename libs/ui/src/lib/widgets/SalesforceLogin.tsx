@@ -1,6 +1,6 @@
 /** @jsx jsx */
 import { jsx } from '@emotion/core';
-import { SalesforceOrgUi } from '@jetstream/types';
+import { PositionLeftRight, SalesforceOrgUi } from '@jetstream/types';
 import { FunctionComponent, useEffect, useState } from 'react';
 import { getOrgUrlParams } from '@jetstream/shared/ui-utils';
 import Icon from './Icon';
@@ -11,6 +11,7 @@ export interface SalesforceLoginProps {
   org: SalesforceOrgUi;
   title?: string;
   returnUrl?: string;
+  iconPosition?: PositionLeftRight;
   omitIcon?: boolean;
 }
 
@@ -20,6 +21,7 @@ export const SalesforceLogin: FunctionComponent<SalesforceLoginProps> = ({
   org,
   title,
   returnUrl,
+  iconPosition = 'left',
   omitIcon,
   children,
 }) => {
@@ -36,8 +38,13 @@ export const SalesforceLogin: FunctionComponent<SalesforceLoginProps> = ({
 
   return (
     <a className={className} href={loginUrl} target="_blank" rel="noopener noreferrer" title={title}>
-      {!omitIcon && <Icon type="utility" icon="new_window" className="slds-button__icon slds-button__icon_left" omitContainer />}
+      {!omitIcon && iconPosition === 'left' && (
+        <Icon type="utility" icon="new_window" className="slds-button__icon slds-button__icon_left" omitContainer />
+      )}
       {children}
+      {!omitIcon && iconPosition === 'right' && (
+        <Icon type="utility" icon="new_window" className="slds-button__icon slds-button__icon_right" omitContainer />
+      )}
     </a>
   );
 };
