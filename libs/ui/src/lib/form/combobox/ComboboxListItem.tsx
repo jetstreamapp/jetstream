@@ -11,6 +11,7 @@ export interface ComboboxListItemProps {
   disabled?: boolean;
   hasError?: boolean;
   onSelection: (id: string) => void;
+  children?: React.ReactNode; // required because forwardRef
 }
 
 export const ComboboxListItem = forwardRef<HTMLLIElement, ComboboxListItemProps>(

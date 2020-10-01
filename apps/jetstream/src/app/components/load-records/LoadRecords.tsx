@@ -1,25 +1,14 @@
 /** @jsx jsx */
 import { css, jsx } from '@emotion/core';
-
-import Split from 'react-split';
 import { SalesforceOrgUi } from '@jetstream/types';
-import {
-  AutoFullHeightContainer,
-  Icon,
-  Page,
-  PageHeader,
-  PageHeaderActions,
-  PageHeaderRow,
-  PageHeaderTitle,
-  Spinner,
-  Tabs,
-} from '@jetstream/ui';
-import { FunctionComponent, useEffect, useState } from 'react';
+import { AutoFullHeightContainer, Icon, Page, PageHeader, PageHeaderActions, PageHeaderRow, PageHeaderTitle } from '@jetstream/ui';
+import { FunctionComponent, useState } from 'react';
+import Split from 'react-split';
 import { useRecoilState, useRecoilValue } from 'recoil';
 import { selectedOrgState } from '../../app-state';
 import * as fromLoadRecordsState from './load-records.state';
-import LoadRecordsSObjects from './LoadRecordsSObjects';
 import LoadRecordsConfiguration from './LoadRecordsConfiguration';
+import LoadRecordsSObjects from './LoadRecordsSObjects';
 
 const HEIGHT_BUFFER = 170;
 

@@ -568,8 +568,6 @@ export function readFile(file: File, readAsArrayBuffer = false): Promise<string 
       reader.readAsText(file);
     }
     reader.onload = (event: ProgressEvent<FileReader>) => {
-      logger.log('onload', { event });
-      logger.log(reader.result);
       resolve(reader.result);
     };
     reader.onabort = (event: ProgressEvent<FileReader>) => {

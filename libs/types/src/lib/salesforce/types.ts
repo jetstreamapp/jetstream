@@ -1,4 +1,4 @@
-import { HttpMethod, MapOf } from '../types';
+import { HttpMethod, MapOf, RecordAttributes } from '../types';
 
 export type SalesforceOrgEdition =
   | 'Team Edition'
@@ -70,6 +70,12 @@ export interface FieldDefinition {
   IsPolymorphicForeignKey: boolean;
 }
 
+export type Insert = 'INSERT';
+export type Update = 'UPDATE';
+export type Upsert = 'UPSERT';
+export type Delete = 'DELETE';
+export type InsertUpdateUpsertDelete = Insert | Update | Upsert | Delete;
+
 export interface ErrorResult {
   errors: {
     fields: string[];
@@ -106,4 +112,26 @@ export interface CompositeResponse<T = unknown> {
     httpStatusCode: number;
     referenceId: string;
   }[];
+}
+
+/**
+ * SALESFORCE RECORDS
+ */
+
+export interface EntityParticleRecord {
+  attributes: RecordAttributes;
+  Id: string;
+  Name: string;
+  Label: string;
+  IsIdLookup: boolean;
+  DataType: string;
+  ValueTypeId: string;
+  ReferenceTo: {
+    referenceTo: null | string[];
+  };
+  EntityDefinitionId: string;
+  IsCreatable: boolean;
+  IsUpdatable: boolean;
+  QualifiedApiName: string;
+  RelationshipName: string | null;
 }
