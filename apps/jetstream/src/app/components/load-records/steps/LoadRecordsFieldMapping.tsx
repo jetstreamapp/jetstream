@@ -1,7 +1,7 @@
 /** @jsx jsx */
 import { css, jsx } from '@emotion/core';
 import { DescribeGlobalSObjectResult } from 'jsforce';
-import { FunctionComponent, useState } from 'react';
+import { FunctionComponent, useEffect, useState } from 'react';
 import { EntityParticleRecordWithRelatedExtIds, FieldMapping } from '../load-records-types';
 import { autoMapFields } from '../utils/load-records-utils';
 import LoadRecordsFieldMappingRow from './LoadRecordsFieldMappingRow';
@@ -30,6 +30,10 @@ export const LoadRecordsFieldMapping: FunctionComponent<LoadRecordsFieldMappingP
   //   onClose(fieldMapping);
   // }
 
+  useEffect(() => {
+    onFieldMappingChange(fieldMapping);
+  }, [fieldMapping]);
+
   /**
    * This is purposefully mutating this state data to avoid re-rendering each child which makes the app seem slow
    * Each child handles its own re-render and stores this state there
@@ -38,9 +42,8 @@ export const LoadRecordsFieldMapping: FunctionComponent<LoadRecordsFieldMappingP
    * // TODO: figure out how/when to pass to parent to allow reloading without constant re-render
    */
   function handleFieldMappingChange(csvField: string, field: string) {
-    fieldMapping[csvField] = { ...fieldMapping[csvField], targetField: field };
-    setFieldMapping(fieldMapping);
-    onFieldMappingChange(fieldMapping);
+    // fieldMapping[csvField] = { ...fieldMapping[csvField], targetField: field };
+    setFieldMapping((fieldMapping) => ({ ...fieldMapping, [csvField]: { ...fieldMapping[csvField], targetField: field } }));
   }
 
   function handleResetMapping() {
@@ -80,7 +83,6 @@ export const LoadRecordsFieldMapping: FunctionComponent<LoadRecordsFieldMappingP
                   Salesforce Field
                 </div>
               </th>
-              <th scope="col"></th>
               <th
                 scope="col"
                 css={css`

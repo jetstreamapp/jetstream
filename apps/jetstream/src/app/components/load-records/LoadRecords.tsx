@@ -11,9 +11,6 @@ import {
   PageHeaderActions,
   PageHeaderRow,
   PageHeaderTitle,
-  ProgressIndicator,
-  ProgressIndicatorListItem,
-  ProgressIndicatorNew,
 } from '@jetstream/ui';
 import { startCase } from 'lodash';
 import { FunctionComponent, useEffect, useState } from 'react';
@@ -24,7 +21,7 @@ import * as fromLoadRecordsState from './load-records.state';
 import LoadRecordsProgress from './LoadRecordsProgress';
 import LoadRecordsFieldMapping from './steps/LoadRecordsFieldMapping';
 import LoadRecordsObjectAndFile from './steps/LoadRecordsObjectAndFile';
-import { getFieldMetadata } from './utils/load-records-utils';
+import { autoMapFields, getFieldMetadata } from './utils/load-records-utils';
 
 const HEIGHT_BUFFER = 170;
 
@@ -71,6 +68,12 @@ export const LoadRecords: FunctionComponent<LoadRecordsProps> = () => {
     }
     return () => (isSubscribed = false);
   }, [selectedSObject]);
+
+  useEffect(() => {
+    if (fields && inputFileHeader) {
+      setFieldMapping(autoMapFields(inputFileHeader, fields));
+    }
+  }, [fields, inputFileHeader]);
 
   useEffect(() => {
     setExternalIdFields(fields.filter((field) => field.IsIdLookup));

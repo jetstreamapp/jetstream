@@ -90,7 +90,6 @@ export const LoadRecordsFieldMappingRow: FunctionComponent<LoadRecordsFieldMappi
           ))}
         </Combobox>
       </td>
-      <td>show rel fields external id</td>
       <td>
         <div>
           <button

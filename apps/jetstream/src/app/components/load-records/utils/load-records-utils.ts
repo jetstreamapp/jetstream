@@ -20,12 +20,11 @@ export async function getFieldMetadata(
   fields: EntityParticleRecordWithRelatedExtIds[];
 }> {
   const initialFields = await query<EntityParticleRecordWithRelatedExtIds>(selectedOrg, getInitialEntityDefinitionQuery(sobject), true);
-  const fieldsWithRelationships = initialFields.queryResults.records.filter(
-    (record) => !!record.RelationshipName && Array.isArray(record.ReferenceTo.referenceTo)
-  );
+  const fields = initialFields.queryResults.records.filter((record) => record.IsCreatable || record.IsUpdatable || record.IsIdLookup);
+  const fieldsWithRelationships = fields.filter((record) => !!record.RelationshipName && Array.isArray(record.ReferenceTo.referenceTo));
   const relatedObjects = new Set(fieldsWithRelationships.map((record) => record.ReferenceTo.referenceTo[0]));
   if (relatedObjects.size > 0) {
-    const relatedEntities = await await query<EntityParticleRecord>(
+    const relatedEntities = await query<EntityParticleRecord>(
       selectedOrg,
       getRelatedEntityDefinitionQuery(Array.from(relatedObjects)),
       true
@@ -35,7 +34,7 @@ export async function getFieldMetadata(
       record.attributes.relatedRecords = relatedEntitiesByObj[record.ReferenceTo.referenceTo[0]] || [];
     });
   }
-  return { sobject, fields: initialFields.queryResults.records };
+  return { sobject, fields };
 }
 
 /**
@@ -117,15 +116,15 @@ function getInitialEntityDefinitionQuery(sobject: string) {
         value: sobject,
         literalType: 'STRING',
       },
-      operator: 'AND',
-      right: {
-        left: {
-          field: 'IsUpdatable',
-          operator: '=',
-          value: 'true',
-          literalType: 'BOOLEAN',
-        },
-      },
+      // operator: 'AND',
+      // right: {
+      //   left: {
+      //     field: 'IsCreatable',
+      //     operator: '=',
+      //     value: 'true',
+      //     literalType: 'BOOLEAN',
+      //   },
+      // },
     },
     orderBy: {
       field: 'Label',
@@ -164,7 +163,7 @@ function getRelatedEntityDefinitionQuery(sobjects: string[]) {
       operator: 'AND',
       right: {
         left: {
-          field: 'IsUpdatable',
+          field: 'IsIdLookup',
           operator: '=',
           value: 'true',
           literalType: 'BOOLEAN',
