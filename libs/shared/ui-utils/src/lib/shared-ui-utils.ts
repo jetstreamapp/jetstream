@@ -18,6 +18,7 @@ import isString from 'lodash/isString';
 import { unparse } from 'papaparse';
 import { LiteralType, Operator, WhereClause } from 'soql-parser-js';
 import { Placement as tippyPlacement } from 'tippy.js';
+import { parse as parseCsv } from 'papaparse';
 import * as XLSX from 'xlsx';
 import { checkMetadataResults } from '@jetstream/shared/data';
 
@@ -559,6 +560,11 @@ export async function pollMetadataResultsUntilDone(
   return deployResults;
 }
 
+/**
+ * Read file in browser using FileReader
+ * @param file
+ * @param readAsArrayBuffer
+ */
 export function readFile(file: File, readAsArrayBuffer = false): Promise<string | ArrayBuffer> {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
@@ -579,4 +585,45 @@ export function readFile(file: File, readAsArrayBuffer = false): Promise<string 
       reject(reader.error);
     };
   });
+}
+
+/**
+ * Parse file
+ * Supported Types: CSV / XLSX
+ *
+ * TODO: support other filetypes (.zip)
+ *
+ * @param content string | ArrayBuffer
+ */
+export function parseFile(
+  content: string | ArrayBuffer
+): {
+  data: any[];
+  headers: string[];
+} {
+  if (isString(content)) {
+    // csv - read from papaparse
+    const csvResult = parseCsv(content, {
+      delimiter: ',', // FIXME: support other delimiters based on locale
+      header: true,
+      skipEmptyLines: true,
+      preview: 0, // TODO: allow options to control things like this
+    });
+    return {
+      data: csvResult.data,
+      headers: csvResult.meta.fields,
+    };
+  } else {
+    // ArrayBuffer - xlsx file
+    const workbook = XLSX.read(content, { cellText: false, cellDates: true, type: 'array' });
+    const data = XLSX.utils.sheet_to_json(workbook.Sheets[workbook.SheetNames[0]], {
+      dateNF: 'yyyy"-"mm"-"dd"T"hh:mm:ss',
+      defval: '',
+      blankrows: false,
+    });
+    return {
+      data,
+      headers: data.length > 0 ? Object.keys(data[0]) : [],
+    };
+  }
 }

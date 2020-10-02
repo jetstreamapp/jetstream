@@ -354,3 +354,9 @@ export interface QueryHistorySelection {
   name: string;
   label: string;
 }
+
+export interface InputReadFileContent {
+  filename: string;
+  extension: string;
+  content: string | ArrayBuffer;
+}

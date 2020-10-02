@@ -5,19 +5,28 @@ import { SalesforceOrgUi } from '@jetstream/types';
 import { SobjectList } from '@jetstream/ui';
 import { DescribeGlobalSObjectResult } from 'jsforce';
 import React, { Fragment, FunctionComponent, useEffect, useState } from 'react';
-import { useRecoilState, useRecoilValue } from 'recoil';
-import { selectedOrgState } from '../../app-state';
-import * as fromLoadRecordsState from './load-records.state';
 
 // eslint-disable-next-line @typescript-eslint/no-empty-interface
-export interface LoadRecordsSObjectsProps {}
+export interface LoadRecordsSObjectsProps {
+  selectedOrg: SalesforceOrgUi;
+  sobjects: DescribeGlobalSObjectResult[];
+  selectedSObject: DescribeGlobalSObjectResult;
+  onSobjects: (sobjects: DescribeGlobalSObjectResult[]) => void;
+  onSelectedSobject: (selectedSObject: DescribeGlobalSObjectResult) => void;
+}
 
-export const LoadRecordsSObjects: FunctionComponent<LoadRecordsSObjectsProps> = () => {
-  const [sobjects, setSobjects] = useRecoilState(fromLoadRecordsState.sObjectsState);
-  const [selectedSObject, setSelectedSObject] = useRecoilState(fromLoadRecordsState.selectedSObjectState);
+export const LoadRecordsSObjects: FunctionComponent<LoadRecordsSObjectsProps> = ({
+  selectedOrg,
+  sobjects,
+  selectedSObject,
+  onSobjects,
+  onSelectedSobject,
+}) => {
+  // const [sobjects, setSobjects] = useRecoilState(fromLoadRecordsState.sObjectsState);
+  // const [selectedSObject, setSelectedSObject] = useRecoilState(fromLoadRecordsState.selectedSObjectState);
   const [loading, setLoading] = useState<boolean>(false);
   const [errorMessage, setErrorMessage] = useState<string>(null);
-  const selectedOrg = useRecoilValue<SalesforceOrgUi>(selectedOrgState);
+  // const selectedOrg = useRecoilValue<SalesforceOrgUi>(selectedOrgState);
 
   useEffect(() => {
     if (selectedOrg && !loading && !errorMessage && !sobjects) {
@@ -25,7 +34,7 @@ export const LoadRecordsSObjects: FunctionComponent<LoadRecordsSObjectsProps> = 
         setLoading(true);
         try {
           const results = await describeGlobal(selectedOrg);
-          setSobjects(orderObjectsBy(results.sobjects.filter(filterSobjectFn), 'label'));
+          onSobjects(orderObjectsBy(results.sobjects.filter(filterSobjectFn), 'label'));
         } catch (ex) {
           logger.error(ex);
           setErrorMessage(ex.message);
@@ -33,7 +42,7 @@ export const LoadRecordsSObjects: FunctionComponent<LoadRecordsSObjectsProps> = 
         setLoading(false);
       })();
     }
-  }, [selectedOrg, loading, errorMessage, sobjects, setSobjects]);
+  }, [selectedOrg, loading, errorMessage, sobjects, onSobjects]);
 
   function filterSobjectFn(sobject: DescribeGlobalSObjectResult): boolean {
     return (
@@ -48,7 +57,7 @@ export const LoadRecordsSObjects: FunctionComponent<LoadRecordsSObjectsProps> = 
         selectedSObject={selectedSObject}
         loading={loading}
         errorMessage={errorMessage}
-        onSelected={setSelectedSObject}
+        onSelected={onSelectedSobject}
         errorReattempt={() => setErrorMessage(null)}
       />
     </Fragment>

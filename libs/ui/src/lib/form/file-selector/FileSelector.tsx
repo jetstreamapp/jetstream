@@ -3,7 +3,7 @@ import classNames from 'classnames';
 import Icon from '../../widgets/Icon';
 import { logger } from '@jetstream/shared/client-logger';
 import { readFile } from '@jetstream/shared/ui-utils';
-import { InputAcceptType } from '@jetstream/types';
+import { InputAcceptType, InputReadFileContent } from '@jetstream/types';
 
 export interface FileSelectorProps {
   id: string;
@@ -13,7 +13,7 @@ export interface FileSelectorProps {
   accept?: InputAcceptType[];
   readAs?: 'string' | '';
   userHelpText?: string;
-  onReadFile: (fileContent: { filename: string; extension: string; content: string | ArrayBuffer }) => void;
+  onReadFile: (fileContent: InputReadFileContent) => void;
 }
 
 export const FileSelector: FunctionComponent<FileSelectorProps> = ({

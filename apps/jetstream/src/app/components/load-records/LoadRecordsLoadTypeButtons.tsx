@@ -9,18 +9,20 @@ export interface LoadRecordsLoadTypeButtonsProps {
   selectedType: InsertUpdateUpsertDelete;
   loadingFields: boolean;
   externalIdFields: EntityParticleRecordWithRelatedExtIds[];
-  onChange: (type: InsertUpdateUpsertDelete, externalId?: string) => void;
+  externalId: string;
+  onChange: (type: InsertUpdateUpsertDelete, externalId: string) => void;
 }
 
 export const LoadRecordsLoadTypeButtons: FunctionComponent<LoadRecordsLoadTypeButtonsProps> = ({
   selectedType = 'INSERT',
   loadingFields,
   externalIdFields,
+  externalId: externalIdInit,
   onChange,
 }) => {
   const [textFilter, setTextFilter] = useState<string>('');
   const [visibleExternalIdFields, setVisibleExternalIds] = useState(() => [...externalIdFields]);
-  const [externalId, setExternalId] = useState('');
+  const [externalId, setExternalId] = useState(externalIdInit || '');
   const [externalIdNoItemsText, setExternalIdNoItemsText] = useState('');
 
   useEffect(() => {
@@ -45,7 +47,7 @@ export const LoadRecordsLoadTypeButtons: FunctionComponent<LoadRecordsLoadTypeBu
 
   function handleChange(type: InsertUpdateUpsertDelete) {
     if (type === 'UPSERT') {
-      onChange(type, externalId);
+      onChange(type, externalId || null);
     } else {
       onChange(type, undefined);
     }
@@ -53,7 +55,7 @@ export const LoadRecordsLoadTypeButtons: FunctionComponent<LoadRecordsLoadTypeBu
 
   function handleExternalIdChange(value: string) {
     setExternalId(value);
-    onChange(selectedType, externalId);
+    onChange(selectedType, value || null);
   }
 
   return (

@@ -1,7 +1,16 @@
-import { ExpressionType, ListItemGroup, MapOf, QueryFields, QueryOrderByClause, QueryHistoryItem } from '@jetstream/types';
+import {
+  ExpressionType,
+  ListItemGroup,
+  MapOf,
+  QueryFields,
+  QueryOrderByClause,
+  QueryHistoryItem,
+  InsertUpdateUpsertDelete,
+} from '@jetstream/types';
 import { DescribeGlobalSObjectResult } from 'jsforce';
 import { atom, selector } from 'recoil';
 import { orderStringsBy } from '@jetstream/shared/utils';
+import { FieldMapping } from './load-records-types';
 
 export const priorSelectedOrg = atom<string>({
   key: 'load.priorSelectedOrg',
@@ -16,4 +25,24 @@ export const sObjectsState = atom<DescribeGlobalSObjectResult[]>({
 export const selectedSObjectState = atom<DescribeGlobalSObjectResult>({
   key: 'load.selectedSObjectState',
   default: null,
+});
+
+export const loadTypeState = atom<InsertUpdateUpsertDelete>({
+  key: 'load.loadTypeState',
+  default: 'INSERT',
+});
+
+export const inputFileDataState = atom<any[]>({
+  key: 'load.inputFileDataState',
+  default: null,
+});
+
+export const inputFileHeaderState = atom<string[]>({
+  key: 'load.inputFileHeaderState',
+  default: null,
+});
+
+export const fieldMappingState = atom<FieldMapping>({
+  key: 'load.fieldMappingState',
+  default: {},
 });
