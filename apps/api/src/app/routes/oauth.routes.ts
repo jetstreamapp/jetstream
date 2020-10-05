@@ -7,6 +7,17 @@ import { checkAuth } from './route.middleware';
 
 export const routes: express.Router = Router();
 
+// https://auth0.com/docs/universal-login/new-experience#signup
+routes.get(
+  '/signup',
+  passport.authenticate('auth0', {
+    scope: 'openid email profile',
+    // eslint-disable-next-line @typescript-eslint/camelcase
+    screen_hint: 'signup',
+  } as any),
+  authController.login
+);
+
 routes.get(
   '/login',
   passport.authenticate('auth0', {
