@@ -11,6 +11,7 @@ import {
   PageHeaderActions,
   PageHeaderRow,
   PageHeaderTitle,
+  Spinner,
 } from '@jetstream/ui';
 import { startCase } from 'lodash';
 import { FunctionComponent, useEffect, useState } from 'react';
@@ -21,6 +22,9 @@ import * as fromLoadRecordsState from './load-records.state';
 import LoadRecordsProgress from './LoadRecordsProgress';
 import LoadRecordsFieldMapping from './steps/LoadRecordsFieldMapping';
 import LoadRecordsObjectAndFile from './steps/LoadRecordsObjectAndFile';
+import LoadRecordsLoadRecords from './steps/LoadRecordsLoadRecords';
+import LoadRecordsLoadAutomationDeploy from './steps/LoadRecordsLoadAutomationDeploy';
+import LoadRecordsLoadAutomationRollback from './steps/LoadRecordsLoadAutomationRollback';
 import { autoMapFields, getFieldMetadata } from './utils/load-records-utils';
 
 const HEIGHT_BUFFER = 170;
@@ -36,6 +40,7 @@ export const LoadRecords: FunctionComponent<LoadRecordsProps> = () => {
   const [selectedSObject, setSelectedSObject] = useRecoilState(fromLoadRecordsState.selectedSObjectState);
   const [loadType, setLoadType] = useRecoilState(fromLoadRecordsState.loadTypeState);
   const [fields, setFields] = useState<EntityParticleRecordWithRelatedExtIds[]>([]);
+  const [mappableFields, setMappableFields] = useState<EntityParticleRecordWithRelatedExtIds[]>([]);
   const [externalIdFields, setExternalIdFields] = useState<EntityParticleRecordWithRelatedExtIds[]>([]);
   const [externalId, setExternalId] = useState<string>('');
   const [inputFileData, setInputFileData] = useRecoilState(fromLoadRecordsState.inputFileDataState);
@@ -71,9 +76,21 @@ export const LoadRecords: FunctionComponent<LoadRecordsProps> = () => {
 
   useEffect(() => {
     if (fields && inputFileHeader) {
-      setFieldMapping(autoMapFields(inputFileHeader, fields));
+      let tempFields = fields;
+      if (loadType === 'INSERT') {
+        tempFields = fields.filter((field) => field.QualifiedApiName !== 'Id');
+      } else if (loadType === 'DELETE') {
+        tempFields = fields.filter((field) => field.QualifiedApiName === 'Id');
+      }
+      setMappableFields(tempFields);
     }
-  }, [fields, inputFileHeader]);
+  }, [fields, loadType, inputFileHeader]);
+
+  useEffect(() => {
+    if (mappableFields && inputFileHeader) {
+      setFieldMapping(autoMapFields(inputFileHeader, mappableFields));
+    }
+  }, [mappableFields, inputFileHeader, loadType, setFieldMapping]);
 
   useEffect(() => {
     setExternalIdFields(fields.filter((field) => field.IsIdLookup));
@@ -86,18 +103,31 @@ export const LoadRecords: FunctionComponent<LoadRecordsProps> = () => {
       case 0:
         currStepButtonText = 'Continue to Map Fields';
         isNextStepDisabled =
-          !selectedSObject || !inputFileData || !inputFileData.length || !loadType || (loadType === 'UPSERT' && !externalId);
+          !selectedSObject ||
+          !inputFileData ||
+          !inputFileData.length ||
+          !loadType ||
+          (loadType === 'UPSERT' && !externalId) ||
+          loadingFields;
         break;
       case 1:
         // TODO: Allow skipping this step
         currStepButtonText = 'Continue to Disable Automation';
+        isNextStepDisabled = !fieldMapping || Object.keys(fieldMapping).length === 0;
         break;
       case 2:
-        currStepButtonText = 'Continue to Load Records Automation';
+        currStepButtonText = 'Continue to Load Records';
+        isNextStepDisabled = false;
         break;
       case 3:
         // TODO: Only show this if automation was disabled
-        currStepButtonText = 'Continue to Revert Automation';
+        currStepButtonText = 'Continue to Rollback Automation';
+        isNextStepDisabled = false;
+        break;
+      case 4:
+        // TODO: Only show this if automation was disabled
+        currStepButtonText = 'Done';
+        isNextStepDisabled = true;
         break;
       default:
         currStepButtonText = currentStepText;
@@ -106,7 +136,7 @@ export const LoadRecords: FunctionComponent<LoadRecordsProps> = () => {
     }
     setCurrentStepText(currStepButtonText);
     setNextStepDisabled(isNextStepDisabled);
-  }, [currentStep, selectedSObject, inputFileData, loadType, externalId]);
+  }, [currentStep, selectedSObject, inputFileData, loadType, externalId, loadingFields]);
 
   useEffect(() => {
     const text: string[] = [];
@@ -150,9 +180,14 @@ export const LoadRecords: FunctionComponent<LoadRecordsProps> = () => {
               <Icon type="utility" icon="back" className="slds-button__icon slds-button__icon_left" />
               Go Back To Previous Step
             </button>
-            <button className="slds-button slds-button_brand" onClick={() => setCurrentStep(currentStep + 1)} disabled={nextStepDisabled}>
+            <button
+              className="slds-button slds-button_brand slds-is-relative"
+              onClick={() => setCurrentStep(currentStep + 1)}
+              disabled={nextStepDisabled}
+            >
               {currentStepText}
               <Icon type="utility" icon="forward" className="slds-button__icon slds-button__icon_right" />
+              {loadingFields && <Spinner size="small" />}
             </button>
           </PageHeaderActions>
         </PageHeaderRow>
@@ -182,7 +217,7 @@ export const LoadRecords: FunctionComponent<LoadRecordsProps> = () => {
             {currentStep === 1 && (
               <span>
                 <LoadRecordsFieldMapping
-                  fields={fields}
+                  fields={mappableFields}
                   inputHeader={inputFileHeader}
                   fieldMapping={fieldMapping}
                   fileData={inputFileData}
@@ -190,9 +225,27 @@ export const LoadRecords: FunctionComponent<LoadRecordsProps> = () => {
                 />
               </span>
             )}
-            {currentStep === 2 && <span>Disable Automation</span>}
-            {currentStep === 3 && <span>Load Data</span>}
-            {currentStep === 4 && <span>Rollback Automation</span>}
+            {currentStep === 2 && (
+              <span>
+                <LoadRecordsLoadAutomationDeploy />
+              </span>
+            )}
+            {currentStep === 3 && (
+              <span>
+                <LoadRecordsLoadRecords
+                  selectedOrg={selectedOrg}
+                  selectedSObject={selectedSObject.name}
+                  loadType={loadType}
+                  fieldMapping={fieldMapping}
+                  inputFileData={inputFileData}
+                />
+              </span>
+            )}
+            {currentStep === 4 && (
+              <span>
+                <LoadRecordsLoadAutomationRollback />
+              </span>
+            )}
           </GridCol>
           <GridCol size={2}>
             <LoadRecordsProgress

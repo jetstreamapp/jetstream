@@ -1,10 +1,13 @@
 /** @jsx jsx */
 import { css, jsx } from '@emotion/core';
-import { DescribeGlobalSObjectResult } from 'jsforce';
 import { FunctionComponent, useEffect, useState } from 'react';
+import { Grid, GridCol, DropDown } from '@jetstream/ui';
 import { EntityParticleRecordWithRelatedExtIds, FieldMapping } from '../load-records-types';
 import { autoMapFields } from '../utils/load-records-utils';
 import LoadRecordsFieldMappingRow from './LoadRecordsFieldMappingRow';
+
+const MAPPING_CLEAR = 'CLEAR';
+const MAPPING_RESET = 'RESET';
 
 export interface LoadRecordsFieldMappingProps {
   fields: EntityParticleRecordWithRelatedExtIds[];
@@ -46,14 +49,25 @@ export const LoadRecordsFieldMapping: FunctionComponent<LoadRecordsFieldMappingP
     setFieldMapping((fieldMapping) => ({ ...fieldMapping, [csvField]: { ...fieldMapping[csvField], targetField: field } }));
   }
 
-  function handleResetMapping() {
-    setFieldMapping(autoMapFields(inputHeader, fields));
+  function handleAction(id: string) {
+    switch (id) {
+      case MAPPING_CLEAR:
+        setFieldMapping({});
+        break;
+      case MAPPING_RESET:
+        setFieldMapping(autoMapFields(inputHeader, fields));
+        break;
+
+      default:
+        break;
+    }
     setKeyPrefix(new Date().getTime());
   }
 
   return (
-    <div className="slds-grid slds-grid_vertical">
-      <div className="slds-grow">
+    <Grid vertical>
+      <GridCol>Add filters for "all/mapped/unmapped" like DL.io</GridCol>
+      <GridCol grow>
         <table className="slds-table slds-table_cell-buffer slds-table_bordered slds-table_fixed-layout">
           <thead>
             <tr className="slds-line-height_reset">
@@ -88,7 +102,23 @@ export const LoadRecordsFieldMapping: FunctionComponent<LoadRecordsFieldMappingP
                 css={css`
                   width: 75px;
                 `}
-              ></th>
+              >
+                <DropDown
+                  position="right"
+                  actionText="Mapping Options"
+                  description="Mapping Options"
+                  leadingIcon={{ type: 'utility', icon: 'settings' }}
+                  items={[
+                    { id: MAPPING_CLEAR, icon: { type: 'utility', icon: 'clear', description: 'Clear mapping' }, value: 'Clear Mapping' },
+                    {
+                      id: MAPPING_RESET,
+                      icon: { type: 'utility', icon: 'undo', description: 'Reset mapping to defaults' },
+                      value: 'Reset Mapping',
+                    },
+                  ]}
+                  onSelected={handleAction}
+                />
+              </th>
             </tr>
           </thead>
           <tbody>
@@ -104,8 +134,8 @@ export const LoadRecordsFieldMapping: FunctionComponent<LoadRecordsFieldMappingP
             ))}
           </tbody>
         </table>
-      </div>
-    </div>
+      </GridCol>
+    </Grid>
   );
 };
 

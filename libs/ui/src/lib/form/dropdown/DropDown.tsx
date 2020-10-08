@@ -108,6 +108,12 @@ export const DropDown: FunctionComponent<DropDownProps> = ({
     }
   }
 
+  function handleSelection(event: React.MouseEvent<HTMLAnchorElement, MouseEvent>, id: string, metadata?: any) {
+    event.preventDefault();
+    setIsOpen(false);
+    onSelected(id, metadata);
+  }
+
   return (
     <OutsideClickHandler onOutsideClick={() => setIsOpen(false)}>
       <div className={classNames('slds-dropdown-trigger slds-dropdown-trigger_click', { 'slds-is-open': isOpen })}>
@@ -161,10 +167,7 @@ export const DropDown: FunctionComponent<DropDownProps> = ({
                     role="menuitem"
                     tabIndex={0}
                     onKeyUp={handleKeyUp}
-                    onClick={(event) => {
-                      event.preventDefault();
-                      onSelected(id, metadata);
-                    }}
+                    onClick={(event) => handleSelection(event, id, metadata)}
                   >
                     {isString(value) ? (
                       <span className="slds-truncate" title={value}>
