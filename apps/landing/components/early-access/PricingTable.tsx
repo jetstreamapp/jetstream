@@ -15,13 +15,11 @@ export const PricingTable = () => (
           </span>
         </p>
       </div>
-      <ul className="bg-teal-600 bg-opacity-50 rounded sm:grid sm:grid-cols-2 sm:grid-rows-3 sm:grid-flow-col">
+      <ul className="bg-teal-600 bg-opacity-50 rounded sm:grid sm:grid-cols-2 sm:grid-rows-2 sm:grid-flow-col">
         <PricingTableItem text="Unlimited Orgs" />
         <PricingTableItem text="Unlimited Usage" />
         <PricingTableItem text="Optimized Workflows" />
-        <PricingTableItem text="More Coming Soon" />
-        <PricingTableItem text="More Coming Soon" />
-        <PricingTableItem text="More Coming Soon" />
+        <PricingTableItem text="Securely Built" />
       </ul>
       <a
         href="/oauth/signup"
