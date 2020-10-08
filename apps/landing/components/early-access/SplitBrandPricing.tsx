@@ -18,7 +18,7 @@ export const SplitBrandPricing = () => (
           </p>
           <dl className="mt-12 space-y-10">
             <FeatureWithIcon title="Automation Control" icon={<StandardActivationsIcon />}>
-              Quickly toggle automation, such as Workflow Rules, Validation Rules, Process Builders, or Apex Triggers in your org.
+              Quickly toggle automation such as Workflow Rules, Validation Rules, Process Builders, and Apex Triggers in your org.
             </FeatureWithIcon>
             <FeatureWithIcon title="Coming Soon" icon={<StandardAnnouncementIcon />}>
               More features are being developed and will be released soon!
