@@ -5,9 +5,16 @@ import { Grid, GridCol, DropDown } from '@jetstream/ui';
 import { EntityParticleRecordWithRelatedExtIds, FieldMapping } from '../load-records-types';
 import { autoMapFields } from '../utils/load-records-utils';
 import LoadRecordsFieldMappingRow from './LoadRecordsFieldMappingRow';
+import { EntityParticleRecord } from '../../../../../../../libs/types/src';
 
-const MAPPING_CLEAR = 'CLEAR';
-const MAPPING_RESET = 'RESET';
+type DropDownAction = 'CLEAR' | 'RESET' | 'ALL' | 'MAPPED' | 'UNMAPPED';
+
+const MAPPING_CLEAR: DropDownAction = 'CLEAR';
+const MAPPING_RESET: DropDownAction = 'RESET';
+
+const FILTER_ALL: DropDownAction = 'ALL';
+const FILTER_MAPPED: DropDownAction = 'MAPPED';
+const FILTER_UNMAPPED: DropDownAction = 'UNMAPPED';
 
 export interface LoadRecordsFieldMappingProps {
   fields: EntityParticleRecordWithRelatedExtIds[];
@@ -28,6 +35,7 @@ export const LoadRecordsFieldMapping: FunctionComponent<LoadRecordsFieldMappingP
   // hack to force child re-render when fields are re-mapped
   const [keyPrefix, setKeyPrefix] = useState<number>(() => new Date().getTime());
   const [fieldMapping, setFieldMapping] = useState<FieldMapping>(() => JSON.parse(JSON.stringify(fieldMappingInit)));
+  const [visibleFields, setVisibleFields] = useState<EntityParticleRecordWithRelatedExtIds[]>(() => fields);
 
   // function handleSave() {
   //   onClose(fieldMapping);
@@ -42,19 +50,32 @@ export const LoadRecordsFieldMapping: FunctionComponent<LoadRecordsFieldMappingP
    * Each child handles its own re-render and stores this state there
    * comboboxes are expensive to re-render if there are many on the page
    *
-   * // TODO: figure out how/when to pass to parent to allow reloading without constant re-render
    */
-  function handleFieldMappingChange(csvField: string, field: string) {
-    // fieldMapping[csvField] = { ...fieldMapping[csvField], targetField: field };
-    setFieldMapping((fieldMapping) => ({ ...fieldMapping, [csvField]: { ...fieldMapping[csvField], targetField: field } }));
+  function handleFieldMappingChange(csvField: string, field: string, relatedField?: string) {
+    let fieldMetadata = fields.find((currField) => currField.Name === field);
+    if (relatedField) {
+      fieldMetadata = fieldMetadata.attributes.relatedRecords.find(
+        (currField) => currField.Name === relatedField
+      ) as EntityParticleRecordWithRelatedExtIds;
+    }
+    setFieldMapping((fieldMapping) => ({ ...fieldMapping, [csvField]: { ...fieldMapping[csvField], targetField: field, fieldMetadata } }));
   }
 
-  function handleAction(id: string) {
+  function handleAction(id: DropDownAction) {
     switch (id) {
       case MAPPING_CLEAR:
         setFieldMapping({});
         break;
       case MAPPING_RESET:
+        setFieldMapping(autoMapFields(inputHeader, fields));
+        break;
+      case FILTER_ALL:
+        setFieldMapping(autoMapFields(inputHeader, fields));
+        break;
+      case FILTER_MAPPED:
+        setFieldMapping(autoMapFields(inputHeader, fields));
+        break;
+      case FILTER_UNMAPPED:
         setFieldMapping(autoMapFields(inputHeader, fields));
         break;
 
@@ -67,6 +88,7 @@ export const LoadRecordsFieldMapping: FunctionComponent<LoadRecordsFieldMappingP
   return (
     <Grid vertical>
       <GridCol>Add filters for "all/mapped/unmapped" like DL.io</GridCol>
+      <GridCol>Allow mapping to related field</GridCol>
       <GridCol grow>
         <table className="slds-table slds-table_cell-buffer slds-table_bordered slds-table_fixed-layout">
           <thead>
@@ -118,6 +140,19 @@ export const LoadRecordsFieldMapping: FunctionComponent<LoadRecordsFieldMappingP
                   ]}
                   onSelected={handleAction}
                 />
+                {/* TODO: this requires selectable dropdown, which requires refactors */}
+                {/* <DropDown
+                  position="right"
+                  actionText="Mapping Filter"
+                  description="Mapping Filter"
+                  leadingIcon={{ type: 'utility', icon: 'filterList' }}
+                  items={[
+                    { id: FILTER_ALL, value: 'Show All' },
+                    { id: FILTER_MAPPED, value: 'Show Mapped' },
+                    { id: FILTER_UNMAPPED, value: 'Show Unmapped' },
+                  ]}
+                  onSelected={handleAction}
+                /> */}
               </th>
             </tr>
           </thead>
@@ -125,7 +160,7 @@ export const LoadRecordsFieldMapping: FunctionComponent<LoadRecordsFieldMappingP
             {inputHeader.map((header, i) => (
               <LoadRecordsFieldMappingRow
                 key={`${keyPrefix}-${i}`}
-                fields={fields}
+                fields={visibleFields}
                 fieldMappingItem={fieldMapping[header]}
                 csvField={header}
                 csvRowData={firstRow[header]}

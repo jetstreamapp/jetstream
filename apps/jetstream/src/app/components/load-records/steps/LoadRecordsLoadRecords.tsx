@@ -40,6 +40,7 @@ export const LoadRecordsLoadRecords: FunctionComponent<LoadRecordsLoadRecordsPro
   const [insertNulls, setInsertNulls] = useState<boolean>(false);
   const [serialMode, setSerialMode] = useState<boolean>(false);
   const [dateFormat, setDateFormat] = useState<string>(DATE_FORMATS.MM_DD_YYYY);
+  const [loading, setLoading] = useState<boolean>(false);
 
   useEffect(() => {
     setBatchSize(getMaxBatchSize(apiMode));
@@ -62,6 +63,8 @@ export const LoadRecordsLoadRecords: FunctionComponent<LoadRecordsLoadRecordsPro
     const value = Number.parseInt(event.target.value);
     if (Number.isInteger(value)) {
       setBatchSize(value);
+    } else if (!event.target.value) {
+      setBatchSize(null);
     }
   }
 
@@ -69,30 +72,53 @@ export const LoadRecordsLoadRecords: FunctionComponent<LoadRecordsLoadRecordsPro
     setDateFormat(event.target.value);
   }
 
+  async function handleStartLoad() {
+    setLoading(true);
+  }
+
+  /**
+   * TODO:
+   * limit batch api based on number of records and batch size (maybe limit to 50 or 100 api calls total)?
+   */
+
   return (
     <div>
-      <h1 className="slds-text-heading_medium">Summary</h1>
-      <div className="slds-p-around_small">
-        <span>{startCase(loadType.toLowerCase())}</span> <strong>{inputFileData.length}</strong> records to{' '}
-        <strong>{selectedOrg.username}</strong> ({selectedOrg.orgIsSandbox ? 'Sandbox' : 'Production'}).
-      </div>
       <h1 className="slds-text-heading_medium">Options</h1>
       <div className="slds-p-around_small">
-        <RadioGroup label="Api Mode" required>
+        <RadioGroup
+          className="slds-m-bottom_xx-small"
+          idPrefix="apiMode"
+          label="Api Mode"
+          required
+          labelHelp="The Bulk API is optimized for loading in large datasets and you can view the progress within Salesforce. The Batch API will load records in sets of up to 200 at a time and cannot be used with large datasets."
+        >
           <Radio
+            idPrefix="apiMode"
+            id="apiMode-bulk"
+            name="BULK"
+            label="Bulk API"
+            value="BULK"
+            checked={apiMode === 'BULK'}
+            disabled={loading}
+            onChange={setApiMode as (value: string) => void}
+          />
+          <Radio
+            idPrefix="apiMode"
+            id="apiMode-batch"
             name="BATCH"
             label="Batch API"
             value="BATCH"
             checked={apiMode === 'BATCH'}
+            disabled={loading}
             onChange={setApiMode as (value: string) => void}
           />
-          <Radio name="BULK" label="Bulk API" value="BULK" checked={apiMode === 'BULK'} onChange={setApiMode as (value: string) => void} />
         </RadioGroup>
         <Checkbox
           id={'insert-null-values'}
           checked={insertNulls}
           label={'Insert Null Values'}
-          labelHelp="Select this option to insert mapped empty values as null values."
+          labelHelp="Select this option to clear any mapped fields where the field is blank in your file."
+          disabled={loading}
           onChange={setInsertNulls}
         />
 
@@ -100,8 +126,8 @@ export const LoadRecordsLoadRecords: FunctionComponent<LoadRecordsLoadRecordsPro
           id={'serial-mode'}
           checked={serialMode}
           label={'Serial Mode'}
-          labelHelp="Serial mode processes the batches one-by-one instead of parallel. The Batch API always processes in serial mode."
-          disabled={apiMode !== 'BULK'}
+          labelHelp="Serial mode processes the batches one-by-one instead of parallel. The Batch API always processes data in serial mode."
+          disabled={loading || apiMode !== 'BULK'}
           onChange={setSerialMode}
         />
 
@@ -117,8 +143,9 @@ export const LoadRecordsLoadRecords: FunctionComponent<LoadRecordsLoadRecordsPro
             id="batch-size"
             className="slds-input"
             placeholder="Set batch size"
-            value={batchSize}
+            value={batchSize || ''}
             aria-describedby={batchSizeError}
+            disabled={loading}
             onChange={handleBatchSize}
           />
         </Input>
@@ -134,6 +161,7 @@ export const LoadRecordsLoadRecords: FunctionComponent<LoadRecordsLoadRecordsPro
             id="date-format-select"
             required
             value={dateFormat}
+            disabled={loading}
             onChange={handleDateFormatChange}
           >
             <option value={DATE_FORMATS.MM_DD_YYYY}>{DATE_FORMATS.MM_DD_YYYY}</option>
@@ -142,8 +170,20 @@ export const LoadRecordsLoadRecords: FunctionComponent<LoadRecordsLoadRecordsPro
           </select>
         </Select>
       </div>
+      <h1 className="slds-text-heading_medium">Summary</h1>
+      <div className="slds-p-around_small">
+        <div>
+          <span>{startCase(loadType.toLowerCase())}</span> <strong>{inputFileData.length}</strong> records to{' '}
+          <strong>{selectedOrg.username}</strong> ({selectedOrg.orgIsSandbox ? 'Sandbox' : 'Production'}).
+        </div>
+        <div className="slds-m-top_small">
+          <button className="slds-button slds-button_brand" onClick={handleStartLoad}>
+            Load Records
+          </button>
+        </div>
+      </div>
       <h1 className="slds-text-heading_medium">Results</h1>
-      <div className="slds-p-around_small">Results will go here</div>
+      <div className="slds-p-around_small"></div>
     </div>
   );
 };

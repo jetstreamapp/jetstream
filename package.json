@@ -67,6 +67,7 @@
     "connect-pg-simple": "^6.1.0",
     "consolidated-events": "^2.0.2",
     "cors": "^2.8.5",
+    "date-fns": "^2.16.1",
     "document-register-element": "1.13.1",
     "document.contains": "^1.0.1",
     "express": "4.17.1",

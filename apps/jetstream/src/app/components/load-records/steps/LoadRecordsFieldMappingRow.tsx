@@ -10,7 +10,8 @@ export interface LoadRecordsFieldMappingRowProps {
   fieldMappingItem: FieldMappingItem;
   csvField: string;
   csvRowData: string;
-  onSelectionChanged: (csvField: string, field: string) => void;
+  // TODO: add relatedField
+  onSelectionChanged: (csvField: string, field: string, relatedField?: string) => void;
 }
 
 export const LoadRecordsFieldMappingRow: FunctionComponent<LoadRecordsFieldMappingRowProps> = ({

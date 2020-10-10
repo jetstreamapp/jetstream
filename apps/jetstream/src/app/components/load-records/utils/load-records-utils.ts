@@ -4,8 +4,12 @@ import { composeQuery, getField } from 'soql-parser-js';
 import { logger } from '@jetstream/shared/client-logger';
 import { EntityParticleRecord } from '@jetstream/types';
 import { REGEX } from '@jetstream/shared/utils';
-import { EntityParticleRecordWithRelatedExtIds, FieldMapping } from '../load-records-types';
+import { ApiMode, EntityParticleRecordWithRelatedExtIds, FieldMapping } from '../load-records-types';
 import groupBy from 'lodash/groupBy';
+import isString from 'lodash/isString';
+import { DATE_FORMATS, SFDC_BULK_API_NULL_VALUE } from '@jetstream/shared/constants';
+import { parse as parseDate, parseISO as parseISODate, formatISO as formatISODate } from 'date-fns';
+import isNil from 'lodash/isNil';
 
 /**
  * Fetch all fields and related fields, which are added to attributes.relatedRecords
@@ -61,7 +65,7 @@ export function autoMapFields(inputHeader: string[], fields: EntityParticleRecor
     fieldVariations[lowercase.replace(REGEX.NOT_ALPHANUMERIC, '')] = field;
   });
 
-  inputHeader.filter((field) => {
+  inputHeader.forEach((field) => {
     const [baseFieldOrRelationship, relatedField] = field.split('.');
     const lowercaseFieldOrRelationship = baseFieldOrRelationship.toLowerCase();
     const matchedField =
@@ -72,6 +76,7 @@ export function autoMapFields(inputHeader: string[], fields: EntityParticleRecor
     output[field] = {
       targetField: matchedField?.QualifiedApiName || null,
       mappedToLookup: false,
+      fieldMetadata: matchedField,
     };
 
     if (relatedField && matchedField && Array.isArray(matchedField.attributes.relatedRecords)) {
@@ -83,6 +88,8 @@ export function autoMapFields(inputHeader: string[], fields: EntityParticleRecor
       if (matchedRelatedField) {
         output[field].mappedToLookup = true;
         output[field].targetLookupField = matchedRelatedField.QualifiedApiName;
+        output[field].relationshipName = matchedField.RelationshipName;
+        output[field].fieldMetadata = matchedRelatedField;
       }
     }
   });
@@ -179,4 +186,147 @@ function getRelatedEntityDefinitionQuery(sobjects: string[]) {
   });
   logger.info('getWorkflowRuleQuery()', { soql });
   return soql;
+}
+
+export function transformData(
+  fileData: any[],
+  fieldMapping: FieldMapping,
+  options: { sObjectName: string; insertNulls: boolean; dateFormat: string; apiMode: ApiMode }
+): any[] {
+  const { sObjectName, insertNulls, dateFormat, apiMode } = options;
+  return fileData.map((row) => {
+    return Object.keys(fieldMapping).reduce((output: any, field, i) => {
+      if (apiMode === 'BATCH' && i === 0) {
+        output.attributes = { type: sObjectName };
+      }
+      let skipField = false;
+      const fieldMappingItem = fieldMapping[field];
+      // SFDC handles automatic type conversion with both bulk and batch apis (if possible, otherwise the record errors)
+      let value = row[field];
+
+      if (isNil(value) || (isString(value) && !value)) {
+        if (apiMode === 'BULK' && insertNulls) {
+          value = SFDC_BULK_API_NULL_VALUE;
+        } else if (apiMode === 'BATCH' && insertNulls) {
+          value = null;
+        } else if (apiMode === 'BATCH') {
+          // batch api will always clear the value in SFDC if a null is passed, so we must ensure it is not included at all
+          skipField = true;
+        }
+      } else if (fieldMappingItem.fieldMetadata.DataType === 'date') {
+        value = transformDate(value, dateFormat);
+      } else if (fieldMappingItem.fieldMetadata.DataType === 'datetime') {
+        value = transformDateTime(value, dateFormat);
+      }
+      // should we automatically do this? should we give the user an option?
+      // else if(isString(value)) {
+      // value = value.trim();
+      // }
+
+      if (!skipField) {
+        if (apiMode === 'BATCH' && fieldMappingItem.mappedToLookup && fieldMappingItem.targetLookupField) {
+          output[fieldMappingItem.relationshipName] = { [fieldMappingItem.targetLookupField]: value };
+        } else if (fieldMappingItem.mappedToLookup && fieldMappingItem.targetLookupField) {
+          output[`${fieldMappingItem.relationshipName}.${fieldMappingItem.targetLookupField}`] = value;
+        } else {
+          output[fieldMappingItem.targetField] = value;
+        }
+      }
+
+      return output;
+    }, {});
+  });
+}
+
+function transformDate(value: any, dateFormat: string): string | null {
+  if (!value) {
+    return null;
+  }
+  if (value instanceof Date) {
+    if (!isNaN(value.getTime())) {
+      return formatISODate(value, { representation: 'date' });
+    } else {
+      // date is invalid
+      return null;
+    }
+  } else if (isString(value)) {
+    if (REGEX.ISO_DATE.test(value)) {
+      return formatISODate(parseISODate(value), { representation: 'date' });
+    }
+    const tempValue = value.replace(REGEX.NOT_NUMERIC, '-');
+    const [first, middle, end] = tempValue.split('-');
+    if (!first || !middle || !end) {
+      return null;
+    }
+    switch (dateFormat) {
+      case DATE_FORMATS.MM_DD_YYYY: {
+        first.padStart(2, '0');
+        middle.padStart(2, '0');
+        end.padStart(4, '19');
+        return formatISODate(parseDate(`${first}-${middle}-${end}`, DATE_FORMATS.MM_DD_YYYY, new Date()), { representation: 'date' });
+      }
+      case DATE_FORMATS.DD_MM_YYYY: {
+        first.padStart(2, '0');
+        middle.padStart(2, '0');
+        end.padStart(4, '19');
+        return formatISODate(parseDate(`${first}-${middle}-${end}`, DATE_FORMATS.DD_MM_YYYY, new Date()), { representation: 'date' });
+      }
+      case DATE_FORMATS.YYYY_MM_DD: {
+        end.padStart(2, '0');
+        first.padStart(2, '0');
+        middle.padStart(4, '19');
+        return formatISODate(parseDate(`${first}-${middle}-${end}`, DATE_FORMATS.YYYY_MM_DD, new Date()), { representation: 'date' });
+      }
+      default:
+        break;
+    }
+  }
+  return null;
+}
+
+function transformDateTime(value: string | null | Date, dateFormat: string): string | null {
+  if (!value) {
+    return null;
+  }
+  if (value instanceof Date) {
+    if (!isNaN(value.getTime())) {
+      return formatISODate(value, { representation: 'complete' });
+    } else {
+      // date is invalid
+      return null;
+    }
+  } else if (isString(value)) {
+    if (REGEX.ISO_DATE.test(value)) {
+      return formatISODate(parseISODate(value), { representation: 'complete' });
+    }
+    const tempValue = value.replace(REGEX.NOT_NUMERIC, '-');
+    const [first, middle, end] = tempValue.split('-');
+    if (!first || !middle || !end) {
+      return null;
+    }
+    // TODO: figure out how to parse time
+    switch (dateFormat) {
+      case DATE_FORMATS.MM_DD_YYYY: {
+        first.padStart(2, '0');
+        middle.padStart(2, '0');
+        end.padStart(4, '19');
+        return formatISODate(parseDate(`${first}-${middle}-${end}`, DATE_FORMATS.MM_DD_YYYY, new Date()), { representation: 'complete' });
+      }
+      case DATE_FORMATS.DD_MM_YYYY: {
+        first.padStart(2, '0');
+        middle.padStart(2, '0');
+        end.padStart(4, '19');
+        return formatISODate(parseDate(`${first}-${middle}-${end}`, DATE_FORMATS.DD_MM_YYYY, new Date()), { representation: 'complete' });
+      }
+      case DATE_FORMATS.YYYY_MM_DD: {
+        end.padStart(2, '0');
+        first.padStart(2, '0');
+        middle.padStart(4, '19');
+        return formatISODate(parseDate(`${first}-${middle}-${end}`, DATE_FORMATS.YYYY_MM_DD, new Date()), { representation: 'complete' });
+      }
+      default:
+        break;
+    }
+  }
+  return null;
 }

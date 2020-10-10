@@ -2,6 +2,7 @@
 import { InputAcceptTypeCsv, InputAcceptTypeExcel, InputAcceptTypeZip, MapOf, MimeType } from '@jetstream/types';
 
 export const SESSION_EXP_DAYS = 5;
+export const SFDC_BULK_API_NULL_VALUE = '#N/A';
 
 export const FEATURE_FLAGS = {
   ALL: 'all',

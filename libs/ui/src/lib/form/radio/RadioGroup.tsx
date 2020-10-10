@@ -1,9 +1,12 @@
 import React, { FunctionComponent } from 'react';
 import classNames from 'classnames';
+import HelpText from '../../widgets/HelpText';
 
 export interface RadioGroupProps {
+  idPrefix?: string;
   className?: string;
   label: string;
+  labelHelp?: string;
   required?: boolean;
   hasError?: boolean;
   isButtonGroup?: boolean;
@@ -11,8 +14,10 @@ export interface RadioGroupProps {
 }
 
 export const RadioGroup: FunctionComponent<RadioGroupProps> = ({
+  idPrefix,
   className,
   label,
+  labelHelp,
   required,
   hasError,
   errorMessage,
@@ -29,12 +34,13 @@ export const RadioGroup: FunctionComponent<RadioGroupProps> = ({
         )}
         {label}
       </legend>
+      {labelHelp && <HelpText id={`${idPrefix}-label-help-text`} content={labelHelp} />}
       <div className="slds-form-element__control">
         {isButtonGroup && <div className="slds-radio_button-group">{children}</div>}
         {!isButtonGroup && children}
       </div>
       {hasError && errorMessage && (
-        <div id={`${label}-error-message`} className="slds-form-element__help">
+        <div id={`${idPrefix}-error-message`} className="slds-form-element__help">
           {errorMessage}
         </div>
       )}

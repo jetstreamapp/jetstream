@@ -176,3 +176,7 @@ export async function delay(milliseconds: number) {
   // return await for better async stack trace support in case of errors.
   return await new Promise((resolve) => setTimeout(resolve, milliseconds));
 }
+
+export function isValidDate(date: Date) {
+  return date instanceof Date && !isNaN(date.getTime());
+}

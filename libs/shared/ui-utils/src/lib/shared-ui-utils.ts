@@ -620,6 +620,7 @@ export function parseFile(
       dateNF: 'yyyy"-"mm"-"dd"T"hh:mm:ss',
       defval: '',
       blankrows: false,
+      rawNumbers: true,
     });
     return {
       data,

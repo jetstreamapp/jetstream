@@ -16,5 +16,7 @@ export interface FieldMapping {
 export interface FieldMappingItem {
   targetField: string | null;
   mappedToLookup: boolean;
+  relationshipName?: string;
   targetLookupField?: string;
+  fieldMetadata: EntityParticleRecord;
 }
