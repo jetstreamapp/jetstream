@@ -3,6 +3,8 @@ import FeatureWithIcon from './FeatureWithIcon';
 import PricingTable from './PricingTable';
 import StandardActivationsIcon from '../icons/StandardActivationsIcon';
 import StandardAnnouncementIcon from '../icons/StandardAnnouncementIcon';
+import StandardEntityIcon from '../icons/StandardEntityIcon';
+import StandardDataStreamsIcon from '../icons/StandardDataStreamsIcon';
 
 export const SplitBrandPricing = () => (
   <div className="relative bg-white">
@@ -17,7 +19,14 @@ export const SplitBrandPricing = () => (
             Everything you need to get your work done faster.
           </p>
           <dl className="mt-12 space-y-10">
-            <FeatureWithIcon title="Automation Control" icon={<StandardActivationsIcon />}>
+            <FeatureWithIcon title="Query Records" icon={<StandardEntityIcon />} bgColorClass="bg-standard-entity">
+              Use the advanced query builder to quickly retrieve records and easily view information about fields and object relationships.
+            </FeatureWithIcon>
+            <FeatureWithIcon title="Load Records" icon={<StandardDataStreamsIcon />} bgColorClass="bg-standard-data-streams">
+              Create or update records using our easy to use data loader. You can even disable automation, such as validation rules, before
+              you load your data and enable them once the data load is finished.
+            </FeatureWithIcon>
+            <FeatureWithIcon title="Automation Control" icon={<StandardActivationsIcon />} bgColorClass="bg-standard-activations">
               Quickly toggle automation such as Workflow Rules, Validation Rules, Process Builders, and Apex Triggers in your org.
             </FeatureWithIcon>
             <FeatureWithIcon title="Coming Soon" icon={<StandardAnnouncementIcon />}>
