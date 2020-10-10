@@ -15,7 +15,7 @@ import {
   Spinner,
   Tabs,
 } from '@jetstream/ui';
-import { FunctionComponent, useEffect, useState } from 'react';
+import { FunctionComponent, useEffect, useRef, useState } from 'react';
 import { useRecoilState, useRecoilValue, useResetRecoilState } from 'recoil';
 import { applicationCookieState, selectedOrgState } from '../../app-state';
 import {
@@ -46,6 +46,7 @@ const HEIGHT_BUFFER = 170;
 export interface AutomationControlProps {}
 
 export const AutomationControl: FunctionComponent<AutomationControlProps> = () => {
+  const isMounted = useRef(null);
   const selectedOrg = useRecoilValue<SalesforceOrgUi>(selectedOrgState);
   const [priorSelectedOrg, setPriorSelectedOrg] = useRecoilState(fromAutomationCtlState.priorSelectedOrg);
   const [sobjects, setSobjects] = useRecoilState(fromAutomationCtlState.sObjectsState);
@@ -70,15 +71,27 @@ export const AutomationControl: FunctionComponent<AutomationControlProps> = () =
   const resetFlowDefinitionsBySobject = useResetRecoilState(fromAutomationCtlState.flowDefinitionsBySobject);
 
   useEffect(() => {
+    isMounted.current = true;
+    return () => (isMounted.current = false);
+  }, []);
+
+  useEffect(() => {
     if (selectedOrg && !loading && !errorMessage && !sobjects) {
       (async () => {
+        const uniqueId = selectedOrg.uniqueId;
         setLoading(true);
         try {
           // TODO: adjust where clause to ensure we are getting correct sobjects
           const entityDefinitions = await query<ToolingEntityDefinitionRecord>(selectedOrg, getEntityDefinitionQuery(), true);
+          if (!isMounted.current || uniqueId !== selectedOrg.uniqueId) {
+            return;
+          }
           setSobjects(orderObjectsBy(entityDefinitions.queryResults.records, 'MasterLabel'));
         } catch (ex) {
           logger.error(ex);
+          if (!isMounted.current || uniqueId !== selectedOrg.uniqueId) {
+            return;
+          }
           setErrorMessage(ex.message);
         }
         setLoading(false);

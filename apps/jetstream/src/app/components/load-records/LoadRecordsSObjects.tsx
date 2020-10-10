@@ -4,7 +4,7 @@ import { orderObjectsBy } from '@jetstream/shared/utils';
 import { SalesforceOrgUi } from '@jetstream/types';
 import { SobjectList } from '@jetstream/ui';
 import { DescribeGlobalSObjectResult } from 'jsforce';
-import React, { Fragment, FunctionComponent, useEffect, useState } from 'react';
+import React, { Fragment, FunctionComponent, useEffect, useRef, useState } from 'react';
 
 // eslint-disable-next-line @typescript-eslint/no-empty-interface
 export interface LoadRecordsSObjectsProps {
@@ -22,6 +22,7 @@ export const LoadRecordsSObjects: FunctionComponent<LoadRecordsSObjectsProps> = 
   onSobjects,
   onSelectedSobject,
 }) => {
+  const isMounted = useRef(null);
   // const [sobjects, setSobjects] = useRecoilState(fromLoadRecordsState.sObjectsState);
   // const [selectedSObject, setSelectedSObject] = useRecoilState(fromLoadRecordsState.selectedSObjectState);
   const [loading, setLoading] = useState<boolean>(false);
@@ -29,14 +30,26 @@ export const LoadRecordsSObjects: FunctionComponent<LoadRecordsSObjectsProps> = 
   // const selectedOrg = useRecoilValue<SalesforceOrgUi>(selectedOrgState);
 
   useEffect(() => {
+    isMounted.current = true;
+    return () => (isMounted.current = false);
+  }, []);
+
+  useEffect(() => {
     if (selectedOrg && !loading && !errorMessage && !sobjects) {
       (async () => {
+        const uniqueId = selectedOrg.uniqueId;
         setLoading(true);
         try {
           const results = await describeGlobal(selectedOrg);
+          if (!isMounted.current || uniqueId !== selectedOrg.uniqueId) {
+            return;
+          }
           onSobjects(orderObjectsBy(results.sobjects.filter(filterSobjectFn), 'label'));
         } catch (ex) {
           logger.error(ex);
+          if (!isMounted.current || uniqueId !== selectedOrg.uniqueId) {
+            return;
+          }
           setErrorMessage(ex.message);
         }
         setLoading(false);

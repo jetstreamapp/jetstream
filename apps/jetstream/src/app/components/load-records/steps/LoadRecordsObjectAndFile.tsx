@@ -11,7 +11,6 @@ import LoadRecordsLoadTypeButtons from '../LoadRecordsLoadTypeButtons';
 import { parseFile } from '@jetstream/shared/ui-utils';
 import { EntityParticleRecordWithRelatedExtIds } from '../load-records-types';
 
-// eslint-disable-next-line @typescript-eslint/no-empty-interface
 export interface LoadRecordsObjectAndFileProps {
   selectedOrg: SalesforceOrgUi;
   sobjects: DescribeGlobalSObjectResult[];

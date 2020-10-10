@@ -14,7 +14,7 @@ import {
   Spinner,
 } from '@jetstream/ui';
 import { startCase } from 'lodash';
-import { FunctionComponent, useEffect, useState } from 'react';
+import { FunctionComponent, useEffect, useRef, useState } from 'react';
 import { useRecoilState, useRecoilValue } from 'recoil';
 import { selectedOrgState } from '../../app-state';
 import { EntityParticleRecordWithRelatedExtIds } from './load-records-types';
@@ -33,6 +33,7 @@ const HEIGHT_BUFFER = 170;
 export interface LoadRecordsProps {}
 
 export const LoadRecords: FunctionComponent<LoadRecordsProps> = () => {
+  const isMounted = useRef(null);
   const selectedOrg = useRecoilValue<SalesforceOrgUi>(selectedOrgState);
   // TODO: probably need this to know when to reset state
   const [priorSelectedOrg, setPriorSelectedOrg] = useRecoilState(fromLoadRecordsState.priorSelectedOrg);
@@ -58,20 +59,23 @@ export const LoadRecords: FunctionComponent<LoadRecordsProps> = () => {
   const [loadSummaryText, setLoadSummaryText] = useState<string>('');
 
   useEffect(() => {
-    let isSubscribed = true;
+    isMounted.current = true;
+    return () => (isMounted.current = false);
+  }, []);
+
+  useEffect(() => {
     if (selectedSObject) {
       // fetch all fields
       setLoadingFields(true);
       (async () => {
         const { sobject, fields } = await getFieldMetadata(selectedOrg, selectedSObject.name);
         // ensure object did not change and that component is still mounted
-        if (isSubscribed && selectedSObject.name === sobject) {
+        if (isMounted.current && selectedSObject.name === sobject) {
           setFields(fields);
           setLoadingFields(false);
         }
       })();
     }
-    return () => (isSubscribed = false);
   }, [selectedSObject]);
 
   useEffect(() => {
