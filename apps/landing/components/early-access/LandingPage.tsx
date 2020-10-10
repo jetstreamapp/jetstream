@@ -1,7 +1,7 @@
 import React from 'react';
 import CallToActionFooter from './CallToActionFooter';
 import CallToActionHeader from './CallToActionHeader';
-import Faq from './FAQ';
+import Faq from './Faq';
 import SplitBrandPricing from './SplitBrandPricing';
 
 export const LandingPage = () => (
