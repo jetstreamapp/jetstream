@@ -11,7 +11,7 @@ import LoadRecordsLoadTypeButtons from '../components/LoadRecordsLoadTypeButtons
 import { parseFile } from '@jetstream/shared/ui-utils';
 import { EntityParticleRecordWithRelatedExtIds } from '../load-records-types';
 
-export interface LoadRecordsObjectAndFileProps {
+export interface LoadRecordsSelectObjectAndFileProps {
   selectedOrg: SalesforceOrgUi;
   sobjects: DescribeGlobalSObjectResult[];
   selectedSObject: DescribeGlobalSObjectResult;
@@ -26,7 +26,7 @@ export interface LoadRecordsObjectAndFileProps {
   onExternalIdChange: (externalId?: string) => void;
 }
 
-export const LoadRecordsObjectAndFile: FunctionComponent<LoadRecordsObjectAndFileProps> = ({
+export const LoadRecordsSelectObjectAndFile: FunctionComponent<LoadRecordsSelectObjectAndFileProps> = ({
   selectedOrg,
   selectedSObject,
   sobjects,
@@ -101,4 +101,4 @@ export const LoadRecordsObjectAndFile: FunctionComponent<LoadRecordsObjectAndFil
   );
 };
 
-export default LoadRecordsObjectAndFile;
+export default LoadRecordsSelectObjectAndFile;

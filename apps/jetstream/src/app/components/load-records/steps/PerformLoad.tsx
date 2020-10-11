@@ -1,13 +1,14 @@
 /** @jsx jsx */
 import { jsx } from '@emotion/core';
-import startCase from 'lodash/startCase';
-import { ChangeEvent, FunctionComponent, useEffect, useState } from 'react';
-import { InsertUpdateUpsertDelete, SalesforceOrgUi } from '@jetstream/types';
-import { ApiMode, FieldMapping } from '../load-records-types';
-import { Checkbox, Grid, GridCol, Input, Radio, RadioButton, RadioGroup, Select } from '@jetstream/ui';
-import { isNumber } from 'lodash';
 import { DATE_FORMATS } from '@jetstream/shared/constants';
-import LoadRecordsLoadRecordsResults from '../components/LoadRecordsLoadRecordsResults';
+import { InsertUpdateUpsertDelete, SalesforceOrgUi } from '@jetstream/types';
+import { Checkbox, Input, Radio, RadioGroup, Select } from '@jetstream/ui';
+import { isNumber } from 'lodash';
+import startCase from 'lodash/startCase';
+import numeral from 'numeral';
+import { ChangeEvent, FunctionComponent, useEffect, useState } from 'react';
+import LoadRecordsResults from '../components/load-results/LoadRecordsResults';
+import { ApiMode, FieldMapping } from '../load-records-types';
 
 const MAX_BULK = 10000;
 const MAX_BATCH = 200;
@@ -20,7 +21,7 @@ function getMaxBatchSize(apiMode: ApiMode) {
   }
 }
 
-export interface LoadRecordsLoadRecordsProps {
+export interface LoadRecordsPerformLoadProps {
   selectedOrg: SalesforceOrgUi;
   selectedSObject: string;
   loadType: InsertUpdateUpsertDelete;
@@ -29,7 +30,7 @@ export interface LoadRecordsLoadRecordsProps {
   externalId?: string;
 }
 
-export const LoadRecordsLoadRecords: FunctionComponent<LoadRecordsLoadRecordsProps> = ({
+export const LoadRecordsPerformLoad: FunctionComponent<LoadRecordsPerformLoadProps> = ({
   selectedOrg,
   selectedSObject,
   loadType,
@@ -178,7 +179,7 @@ export const LoadRecordsLoadRecords: FunctionComponent<LoadRecordsLoadRecordsPro
       <h1 className="slds-text-heading_medium">Summary</h1>
       <div className="slds-p-around_small">
         <div>
-          <span>{startCase(loadType.toLowerCase())}</span> <strong>{inputFileData.length}</strong> records to{' '}
+          <span>{startCase(loadType.toLowerCase())}</span> <strong>{numeral(inputFileData.length).format('0,0')}</strong> records to{' '}
           <strong>{selectedOrg.username}</strong> ({selectedOrg.orgIsSandbox ? 'Sandbox' : 'Production'}).
         </div>
         <div className="slds-m-top_small">
@@ -191,7 +192,7 @@ export const LoadRecordsLoadRecords: FunctionComponent<LoadRecordsLoadRecordsPro
       <div className="slds-p-around_small">
         {/* TODO: this wil not work to show finished results */}
         {loadInProgress && (
-          <LoadRecordsLoadRecordsResults
+          <LoadRecordsResults
             selectedOrg={selectedOrg}
             selectedSObject={selectedSObject}
             fieldMapping={fieldMapping}
@@ -214,4 +215,4 @@ export const LoadRecordsLoadRecords: FunctionComponent<LoadRecordsLoadRecordsPro
   );
 };
 
-export default LoadRecordsLoadRecords;
+export default LoadRecordsPerformLoad;

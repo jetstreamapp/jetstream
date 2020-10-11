@@ -99,7 +99,7 @@ export async function genericRequest<T = any>(org: SalesforceOrgUi, payload: Gen
   return handleRequest(request.post(`/api/request`).send(payload), org);
 }
 
-export async function bulkApiCreateJob(org: SalesforceOrgUi, payload: BulkApiCreateJobRequestPayload): Promise<BulkJob> {
+export async function bulkApiCreateJob(org: SalesforceOrgUi, payload: BulkApiCreateJobRequestPayload): Promise<BulkJobWithBatches> {
   return handleRequest(request.post(`/api/bulk`).send(payload), org);
 }
 
@@ -111,6 +111,11 @@ export async function bulkApiCloseJob(org: SalesforceOrgUi, jobId: string): Prom
   return handleRequest(request.delete(`/api/bulk/${jobId}`), org);
 }
 
-export async function bulkApiAddBatchToJob(org: SalesforceOrgUi, jobId: string, csv: string, closeJob?: boolean): Promise<BulkJob> {
+export async function bulkApiAddBatchToJob(
+  org: SalesforceOrgUi,
+  jobId: string,
+  csv: string,
+  closeJob?: boolean
+): Promise<BulkJobWithBatches> {
   return handleRequest(request.post(`/api/bulk/${jobId}`).type(HTTP.CONTENT_TYPE.CSV).query({ closeJob }).send(csv), org);
 }

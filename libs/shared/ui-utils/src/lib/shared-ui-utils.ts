@@ -21,6 +21,7 @@ import { Placement as tippyPlacement } from 'tippy.js';
 import { parse as parseCsv, unparse as unparseCsv, UnparseConfig } from 'papaparse';
 import * as XLSX from 'xlsx';
 import { checkMetadataResults } from '@jetstream/shared/data';
+import { parseISO } from 'date-fns';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function parseQueryParams<T = any>(queryString: string): T {
@@ -170,9 +171,8 @@ export function polyfillFieldDefinition(field: Field) {
 
 export function prepareExcelFile(data: MapOf<string>[], header: string[]): ArrayBuffer {
   const workbook = XLSX.utils.book_new();
-  const worksheet = XLSX.utils.json_to_sheet<MapOf<string>>(data, {
-    header,
-  });
+  const worksheet = XLSX.utils.aoa_to_sheet(convertArrayOfObjectToArrayOfArray(data, header));
+
   XLSX.utils.book_append_sheet(workbook, worksheet, 'Records');
 
   // https://github.com/sheetjs/sheetjs#writing-options
@@ -190,7 +190,7 @@ export function prepareCsvFile(data: MapOf<string>[], header: string[]): string 
       data,
       fields: header,
     },
-    { header: true, quotes: true }
+    { header: true, quotes: true, delimiter: detectDelimiter() }
   );
 }
 
@@ -633,6 +633,9 @@ export function parseFile(
 export function generateCsv(data: unknown[], options: UnparseConfig = {}): string {
   options = options || {};
   options.newline = options.newline || '\n';
+  if (!options.delimiter) {
+    options.delimiter = detectDelimiter();
+  }
   return unparseCsv(data, options);
 }
 
@@ -648,4 +651,16 @@ function detectDelimiter(): string {
     logger.warn('[ERROR] Error detecting CSV delimiter', ex);
   }
   return delimiter;
+}
+
+export function convertDateToLocale(isoDateStr: string) {
+  return parseISO(isoDateStr).toLocaleString();
+}
+
+export function convertArrayOfObjectToArrayOfArray(data: any[], headers?: string[]): any[][] {
+  if (!data || !data.length) {
+    return [];
+  }
+  headers = headers || Object.keys(data[0]);
+  return [headers].concat(data.map((row) => headers.map((header) => row[header])));
 }

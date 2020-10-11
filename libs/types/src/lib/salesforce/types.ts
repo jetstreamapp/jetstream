@@ -92,6 +92,16 @@ export interface SuccessResult {
 // NOTE: this type is returned for composite API if an array of data is passed to SFDC
 // if one record, then the source in the jsforce type library is used
 export type RecordResult = SuccessResult | ErrorResult;
+export type RecordResultWithRecord = RecordResult & { record: any };
+
+export interface SobjectCollectionRequest {
+  allOrNone?: boolean;
+  records?: SobjectCollectionRequestRecord[];
+}
+
+export type SobjectCollectionRequestRecord<T = { [field: string]: any }> = T & { attributes: { type: string } };
+
+export type SobjectCollectionResponse = RecordResult[];
 
 export interface CompositeRequest {
   allOrNone?: boolean;

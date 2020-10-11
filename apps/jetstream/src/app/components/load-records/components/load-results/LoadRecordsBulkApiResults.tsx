@@ -1,15 +1,18 @@
 /** @jsx jsx */
-import { css, jsx } from '@emotion/core';
-import { Fragment, FunctionComponent, useEffect, useState } from 'react';
-import { BulkJob, BulkJobWithBatches, InsertUpdateUpsertDelete, MapOf, SalesforceOrgUi, WorkerMessage } from '@jetstream/types';
-import { ApiMode, FieldMapping, LoadDataStatusPayload } from '../load-records-types';
-import LoadWorker from '../../../workers/load.worker';
+import { jsx } from '@emotion/core';
 import { logger } from '@jetstream/shared/client-logger';
-import { SalesforceLogin } from '@jetstream/ui';
-import { applicationCookieState } from '../../../app-state';
-import { useRecoilState } from 'recoil';
-import LoadRecordsBatchResultsTable from './LoadRecordsBatchResultsTable';
 import { bulkApiGetJob } from '@jetstream/shared/data';
+import { BulkJobWithBatches, FileExtCsvXLSX, InsertUpdateUpsertDelete, SalesforceOrgUi, WorkerMessage } from '@jetstream/types';
+import { SalesforceLogin } from '@jetstream/ui';
+import { Fragment, FunctionComponent, useEffect, useState } from 'react';
+import { useRecoilState } from 'recoil';
+import { convertDateToLocale } from '@jetstream/shared/ui-utils';
+import { applicationCookieState } from '../../../../app-state';
+import LoadWorker from '../../../../workers/load.worker';
+import { ApiMode, FieldMapping, LoadDataBulkApiStatusPayload } from '../../load-records-types';
+import LoadRecordsBulkApiResultsTable from './LoadRecordsBulkApiResultsTable';
+import orderBy from 'lodash/orderBy';
+import FileDownloadModal from '../../../core/FileDownloadModal';
 
 type Status = 'Preparing Data' | 'Uploading Data' | 'Processing Data' | 'Finished' | 'Error';
 
@@ -40,7 +43,7 @@ function checkIfJobIsDone(jobInfo: BulkJobWithBatches) {
   );
 }
 
-export interface LoadRecordsLoadRecordsResultsProps {
+export interface LoadRecordsBulkApiResultsProps {
   selectedOrg: SalesforceOrgUi;
   selectedSObject: string;
   fieldMapping: FieldMapping;
@@ -55,7 +58,7 @@ export interface LoadRecordsLoadRecordsResultsProps {
   onFinish: (success: boolean) => void; // TODO: add types
 }
 
-export const LoadRecordsLoadRecordsResults: FunctionComponent<LoadRecordsLoadRecordsResultsProps> = ({
+export const LoadRecordsBulkApiResults: FunctionComponent<LoadRecordsBulkApiResultsProps> = ({
   selectedOrg,
   selectedSObject,
   fieldMapping,
@@ -74,17 +77,16 @@ export const LoadRecordsLoadRecordsResults: FunctionComponent<LoadRecordsLoadRec
   const [loadWorker] = useState(() => new LoadWorker());
   const [status, setStatus] = useState<Status>(STATUSES.PREPARING);
   const [jobInfo, setJobInfo] = useState<BulkJobWithBatches>();
-  const [batchSummary, setBatchSummary] = useState<LoadDataStatusPayload>();
+  const [batchSummary, setBatchSummary] = useState<LoadDataBulkApiStatusPayload>();
   const [intervalCount, setIntervalCount] = useState<number>(0);
-
-  /**
-   * TODO:
-   * transform data
-   * - remove unmapped fields
-   * - ensure fields are in correct data type (might only apply to dat)
-   * submit data to salesforce
-   * show results
-   */
+  const [downloadModalData, setDownloadModalData] = useState({
+    open: false,
+    data: [],
+    header: [],
+    fileNameParts: [],
+    url: '',
+    filename: '',
+  });
 
   useEffect(() => {
     if (loadWorker) {
@@ -137,6 +139,11 @@ export const LoadRecordsLoadRecordsResults: FunctionComponent<LoadRecordsLoadRec
         // we need to wait until all data is uploaded?
         setTimeout(async () => {
           const jobInfoWithBatches = await bulkApiGetJob(selectedOrg, jobInfo.id);
+          jobInfoWithBatches.batches = orderBy(jobInfoWithBatches.batches, ['createdDate']);
+          jobInfoWithBatches.batches.forEach((batch) => {
+            batch.createdDate = convertDateToLocale(batch.createdDate);
+            batch.systemModstamp = convertDateToLocale(batch.systemModstamp);
+          });
           setJobInfo(jobInfoWithBatches);
           setIntervalCount(intervalCount + 1);
         }, CHECK_INTERVAL);
@@ -149,7 +156,7 @@ export const LoadRecordsLoadRecordsResults: FunctionComponent<LoadRecordsLoadRec
       loadWorker.onmessage = (event: MessageEvent) => {
         const payload: WorkerMessage<
           'prepareData' | 'loadDataStatus' | 'loadData',
-          { preparedData?: any[]; jobInfo?: BulkJobWithBatches; resultsSummary?: LoadDataStatusPayload }
+          { preparedData?: any[]; jobInfo?: BulkJobWithBatches; resultsSummary?: LoadDataBulkApiStatusPayload }
         > = event.data;
         logger.log('prepareData', { payload });
         switch (payload.name) {
@@ -165,6 +172,9 @@ export const LoadRecordsLoadRecordsResults: FunctionComponent<LoadRecordsLoadRec
           }
           case 'loadDataStatus': {
             setBatchSummary(payload.data.resultsSummary);
+            if (Array.isArray(payload.data.resultsSummary.jobInfo.batches) && payload.data.resultsSummary.jobInfo.batches.length) {
+              setJobInfo(payload.data.resultsSummary.jobInfo);
+            }
             break;
           }
           case 'loadData': {
@@ -183,25 +193,45 @@ export const LoadRecordsLoadRecordsResults: FunctionComponent<LoadRecordsLoadRec
       };
     }
   }, [loadWorker]);
+  function handleDownloadRecords(type: 'results' | 'failure', url: string) {
+    setDownloadModalData({ ...downloadModalData, open: true, fileNameParts: [type], url });
+  }
 
-  /**
-   * BULK:
-   * State 1: initial
-   * State 2: Creating Job (VERY QUICK)
-   * State 3: Uploading batches (could be quick or slow depending on batches)
-   * State 4: Monitoring to completion
-   * State 5: Finished - success
-   * State 6: Finished - with errors
-   *
-   * BATCH:
-   * State 1: initial
-   * State 2: Uploading batches (allow cancellation if more batches)
-   * State 3: Finished - success
-   * State 4: Finished - with errors
-   */
+  function handleModalClose() {
+    setDownloadModalData({ ...downloadModalData, open: false, fileNameParts: [], url: '', filename: '' });
+  }
+
+  function handleModalChange({ fileName, fileFormat }: { fileName: string; fileFormat: FileExtCsvXLSX }) {
+    const fullFilename = encodeURIComponent(`${fileName}.${fileFormat}`);
+    if (downloadModalData.filename !== fullFilename) {
+      setDownloadModalData({ ...downloadModalData, filename: encodeURIComponent(`${fileName}.${fileFormat}`) });
+    }
+  }
 
   return (
     <div>
+      {downloadModalData.open && (
+        <FileDownloadModal
+          org={selectedOrg}
+          data={downloadModalData.data}
+          header={downloadModalData.header}
+          fileNameParts={downloadModalData.fileNameParts}
+          allowedTypes={['csv']}
+          onModalClose={handleModalClose}
+          onChange={handleModalChange}
+          alternateDownloadButton={
+            <a
+              className="slds-button slds-button_brand"
+              href={`${downloadModalData.url}&filename=${downloadModalData.filename}`}
+              target="_blank"
+              rel="noreferrer"
+              onClick={handleModalClose}
+            >
+              Download
+            </a>
+          }
+        />
+      )}
       <h3 className="slds-text-heading_small">{status}</h3>
       {batchSummary && (
         <Fragment>
@@ -216,15 +246,22 @@ export const LoadRecordsLoadRecordsResults: FunctionComponent<LoadRecordsLoadRec
         </Fragment>
       )}
       {/* Data is being uploaded */}
-      {batchSummary && !jobInfo && (
+      {batchSummary && status === STATUSES.UPLOADING && (
         <div>
           Uploading batch {batchSummary.batchSummary.filter((item) => item.completed).length} of {batchSummary.totalBatches}
         </div>
       )}
       {/* Data is being processed */}
-      {jobInfo && <LoadRecordsBatchResultsTable selectedOrg={selectedOrg} serverUrl={serverUrl} jobInfo={jobInfo} />}
+      {jobInfo && (
+        <LoadRecordsBulkApiResultsTable
+          selectedOrg={selectedOrg}
+          serverUrl={serverUrl}
+          jobInfo={jobInfo}
+          onDownload={handleDownloadRecords}
+        />
+      )}
     </div>
   );
 };
 
-export default LoadRecordsLoadRecordsResults;
+export default LoadRecordsBulkApiResults;

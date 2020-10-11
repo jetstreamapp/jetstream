@@ -1,4 +1,11 @@
-import { BulkJob, EntityParticleRecord, InsertUpdateUpsertDelete, RecordAttributes, SalesforceOrgUi } from '@jetstream/types';
+import {
+  BulkJob,
+  BulkJobWithBatches,
+  EntityParticleRecord,
+  InsertUpdateUpsertDelete,
+  RecordAttributes,
+  SalesforceOrgUi,
+} from '@jetstream/types';
 
 type RecordAttributesWithRelatedRecords = RecordAttributes & { relatedRecords: EntityParticleRecord[] };
 
@@ -40,15 +47,21 @@ export interface LoadDataPayload {
   externalId?: string; // required for upsert, ignored for all others.
 }
 
-export interface LoadDataBatch {
+export interface LoadDataBulkApi {
   data: any;
   batchNumber: number;
   completed: boolean;
   success: boolean;
 }
 
-export interface LoadDataStatusPayload {
-  jobInfo: BulkJob;
+export interface LoadDataBulkApiStatusPayload {
+  jobInfo: BulkJobWithBatches;
   totalBatches: number;
-  batchSummary: Omit<LoadDataBatch, 'data'>[];
+  batchSummary: Omit<LoadDataBulkApi, 'data'>[];
+}
+
+export interface LoadDataBatchApiProgress {
+  total: number;
+  success: number;
+  failure: number;
 }

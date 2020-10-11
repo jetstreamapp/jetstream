@@ -1,16 +1,11 @@
-import { bulkApiEnsureTyped } from '@jetstream/shared/utils';
-import { BulkApiCreateJobRequestPayload, BulkJobUntyped, BulkJobBatchInfoUntyped } from '@jetstream/types';
 import { HTTP } from '@jetstream/shared/constants';
+import { BulkApiCreateJobRequestPayload, BulkJobWithBatches } from '@jetstream/types';
 import { NextFunction, Request, Response } from 'express';
 import { body, param, query } from 'express-validator';
 import * as jsforce from 'jsforce';
+import { SfBulkAddBatchToJob, SfBulkCloseJob, SfBulkCreateJob, sfBulkDownloadRecords, SfBulkGetJobInfo } from '../services/sf-bulk';
 import { UserFacingError } from '../utils/error-handler';
 import { sendJson } from '../utils/response.handlers';
-import { create as xmlBuilder } from 'xmlbuilder2';
-import * as request from 'superagent';
-import { SfBulkAddBatchToJob, SfBulkCloseJob, SfBulkCreateJob, sfBulkDownloadRecords, SfBulkGetJobInfo } from '../services/sf-bulk';
-import * as stream from 'stream';
-import * as papa from 'papaparse';
 
 const { HEADERS, CONTENT_TYPE } = HTTP;
 
@@ -81,7 +76,15 @@ export async function addBatchToJob(req: Request, res: Response, next: NextFunct
     const closeJob = req.query.closeJob as any;
     const conn: jsforce.Connection = res.locals.jsforceConn;
 
-    const results = await SfBulkAddBatchToJob(conn, csv, jobId, closeJob);
+    let results: BulkJobWithBatches;
+    await SfBulkAddBatchToJob(conn, csv, jobId, closeJob);
+
+    try {
+      results = await SfBulkGetJobInfo(conn, jobId);
+    } catch (ex) {
+      // ignore error
+    }
+
     sendJson(res, results);
   } catch (ex) {
     next(new UserFacingError(ex.message));
