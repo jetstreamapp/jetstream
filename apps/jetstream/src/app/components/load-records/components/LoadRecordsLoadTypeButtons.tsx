@@ -3,7 +3,7 @@ import { jsx } from '@emotion/core';
 import { InsertUpdateUpsertDelete } from '@jetstream/types';
 import { Combobox, ComboboxListItem, Grid, GridCol, RadioButton, RadioGroup, Spinner } from '@jetstream/ui';
 import { FunctionComponent, useEffect, useState } from 'react';
-import { EntityParticleRecordWithRelatedExtIds } from './load-records-types';
+import { EntityParticleRecordWithRelatedExtIds } from '../load-records-types';
 
 export interface LoadRecordsLoadTypeButtonsProps {
   selectedType: InsertUpdateUpsertDelete;

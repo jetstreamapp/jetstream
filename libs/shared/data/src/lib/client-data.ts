@@ -1,10 +1,18 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import * as API from '@jetstream/api-interfaces';
-import { DescribeGlobalResult, DescribeSObjectResult, DeployOptions, AsyncResult, DeployResult } from 'jsforce';
+import { HTTP } from '@jetstream/shared/constants';
+import {
+  BulkApiCreateJobRequestPayload,
+  BulkJob,
+  BulkJobWithBatches,
+  GenericRequestPayload,
+  SalesforceOrgUi,
+  SobjectOperation,
+  UserProfileUi,
+} from '@jetstream/types';
+import { AsyncResult, DeployOptions, DeployResult, DescribeGlobalResult, DescribeSObjectResult } from 'jsforce';
 import * as request from 'superagent'; // http://visionmedia.github.io/superagent
 import { handleRequest } from './core';
-import { SalesforceOrgUi, UserProfileUi, SobjectOperation, GenericRequestPayload } from '@jetstream/types';
-
 //// LANDING PAGE ROUTES
 
 export async function signUpNotify(email: string): Promise<DescribeGlobalResult> {
@@ -89,4 +97,20 @@ export async function checkMetadataResults(org: SalesforceOrgUi, id: string, inc
 
 export async function genericRequest<T = any>(org: SalesforceOrgUi, payload: GenericRequestPayload): Promise<T> {
   return handleRequest(request.post(`/api/request`).send(payload), org);
+}
+
+export async function bulkApiCreateJob(org: SalesforceOrgUi, payload: BulkApiCreateJobRequestPayload): Promise<BulkJob> {
+  return handleRequest(request.post(`/api/bulk`).send(payload), org);
+}
+
+export async function bulkApiGetJob(org: SalesforceOrgUi, jobId: string): Promise<BulkJobWithBatches> {
+  return handleRequest(request.get(`/api/bulk/${jobId}`), org);
+}
+
+export async function bulkApiCloseJob(org: SalesforceOrgUi, jobId: string): Promise<BulkJob> {
+  return handleRequest(request.delete(`/api/bulk/${jobId}`), org);
+}
+
+export async function bulkApiAddBatchToJob(org: SalesforceOrgUi, jobId: string, csv: string, closeJob?: boolean): Promise<BulkJob> {
+  return handleRequest(request.post(`/api/bulk/${jobId}`).type(HTTP.CONTENT_TYPE.CSV).query({ closeJob }).send(csv), org);
 }

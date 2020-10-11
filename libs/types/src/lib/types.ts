@@ -1,5 +1,5 @@
 import { SalesforceId } from 'jsforce';
-import { SalesforceOrgEdition, SalesforceOrgLocaleKey } from './salesforce/types';
+import { InsertUpdateUpsertDelete, SalesforceOrgEdition, SalesforceOrgLocaleKey } from './salesforce/types';
 
 export type Production = 'production';
 export type Development = 'development';
@@ -103,4 +103,11 @@ export interface GenericRequestPayload {
     responseType?: string;
     noContentResponse?: any;
   };
+}
+
+export interface BulkApiCreateJobRequestPayload {
+  type: InsertUpdateUpsertDelete;
+  sObject: string;
+  serialMode?: boolean;
+  externalId?: string;
 }

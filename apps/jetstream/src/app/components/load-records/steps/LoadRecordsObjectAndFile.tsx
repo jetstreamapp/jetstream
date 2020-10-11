@@ -4,10 +4,10 @@ import { DescribeGlobalSObjectResult } from 'jsforce';
 import { FunctionComponent } from 'react';
 import Split from 'react-split';
 import { InsertUpdateUpsertDelete, SalesforceOrgUi, InputReadFileContent } from '@jetstream/types';
-import LoadRecordsSObjects from '../LoadRecordsSObjects';
+import LoadRecordsSObjects from '../components/LoadRecordsSObjects';
 import { FileSelector, Grid, GridCol } from '@jetstream/ui';
 import { INPUT_ACCEPT_FILETYPES } from '@jetstream/shared/constants';
-import LoadRecordsLoadTypeButtons from '../LoadRecordsLoadTypeButtons';
+import LoadRecordsLoadTypeButtons from '../components/LoadRecordsLoadTypeButtons';
 import { parseFile } from '@jetstream/shared/ui-utils';
 import { EntityParticleRecordWithRelatedExtIds } from '../load-records-types';
 

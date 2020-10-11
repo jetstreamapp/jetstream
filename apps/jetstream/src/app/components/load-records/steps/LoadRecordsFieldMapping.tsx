@@ -4,8 +4,8 @@ import { FunctionComponent, useEffect, useState } from 'react';
 import { Grid, GridCol, DropDown } from '@jetstream/ui';
 import { EntityParticleRecordWithRelatedExtIds, FieldMapping } from '../load-records-types';
 import { autoMapFields } from '../utils/load-records-utils';
-import LoadRecordsFieldMappingRow from './LoadRecordsFieldMappingRow';
-import { EntityParticleRecord } from '../../../../../../../libs/types/src';
+import LoadRecordsFieldMappingRow from '../components/LoadRecordsFieldMappingRow';
+import { EntityParticleRecord } from '@jetstream/types';
 
 type DropDownAction = 'CLEAR' | 'RESET' | 'ALL' | 'MAPPED' | 'UNMAPPED';
 

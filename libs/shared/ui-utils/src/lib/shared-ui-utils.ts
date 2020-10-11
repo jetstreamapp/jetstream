@@ -18,7 +18,7 @@ import isString from 'lodash/isString';
 import { unparse } from 'papaparse';
 import { LiteralType, Operator, WhereClause } from 'soql-parser-js';
 import { Placement as tippyPlacement } from 'tippy.js';
-import { parse as parseCsv } from 'papaparse';
+import { parse as parseCsv, unparse as unparseCsv, UnparseConfig } from 'papaparse';
 import * as XLSX from 'xlsx';
 import { checkMetadataResults } from '@jetstream/shared/data';
 
@@ -427,8 +427,9 @@ function convertQueryFilterOperator(operator: QueryFilterOperator): Operator {
  * Generate authentication in the url from a salesforce
  * @param org
  */
-export function getOrgUrlParams(org: SalesforceOrgUi): string {
+export function getOrgUrlParams(org: SalesforceOrgUi, additionalParams: { [param: string]: string } = {}): string {
   const params = {
+    ...additionalParams,
     [HTTP.HEADERS.X_SFDC_ID]: org.uniqueId || '',
   };
   return Object.keys(params)
@@ -604,7 +605,7 @@ export function parseFile(
   if (isString(content)) {
     // csv - read from papaparse
     const csvResult = parseCsv(content, {
-      delimiter: ',', // FIXME: support other delimiters based on locale
+      delimiter: detectDelimiter(),
       header: true,
       skipEmptyLines: true,
       preview: 0, // TODO: allow options to control things like this
@@ -627,4 +628,24 @@ export function parseFile(
       headers: data.length > 0 ? Object.keys(data[0]) : [],
     };
   }
+}
+
+export function generateCsv(data: unknown[], options: UnparseConfig = {}): string {
+  options = options || {};
+  options.newline = options.newline || '\n';
+  return unparseCsv(data, options);
+}
+
+function detectDelimiter(): string {
+  let delimiter = ',';
+  try {
+    // determine if delimiter is the same as the decimal symbol in current locale
+    // if so, change delimiter to ;
+    if (delimiter === (1.1).toLocaleString(navigator.language).substring(1, 2)) {
+      delimiter = ';';
+    }
+  } catch (ex) {
+    logger.warn('[ERROR] Error detecting CSV delimiter', ex);
+  }
+  return delimiter;
 }

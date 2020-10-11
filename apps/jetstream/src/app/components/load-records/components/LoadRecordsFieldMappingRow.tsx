@@ -4,6 +4,17 @@ import { Combobox, ComboboxListItem, Icon } from '@jetstream/ui';
 import { FunctionComponent, useEffect, useState } from 'react';
 import { EntityParticleRecordWithRelatedExtIds, FieldMappingItem } from '../load-records-types';
 import classNames from 'classnames';
+import isNil from 'lodash/isNil';
+
+function getPreviewData(csvRowData: string | Date | boolean | number | null): string {
+  if (isNil(csvRowData)) {
+    return '';
+  }
+  if (csvRowData instanceof Date) {
+    return csvRowData.toJSON();
+  }
+  return `${csvRowData}`;
+}
 
 export interface LoadRecordsFieldMappingRowProps {
   fields: EntityParticleRecordWithRelatedExtIds[];
@@ -39,11 +50,13 @@ export const LoadRecordsFieldMappingRow: FunctionComponent<LoadRecordsFieldMappi
     onSelectionChanged(csvField, field);
   }
 
+  const csvRowDataStr = getPreviewData(csvRowData);
+
   return (
     <tr>
       <td>
-        <div className="slds-truncate" title={`${csvRowData || ''}`}>
-          {csvRowData}
+        <div className="slds-truncate" title={csvRowDataStr}>
+          {csvRowDataStr}
         </div>
       </td>
       <th scope="row">

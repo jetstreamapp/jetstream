@@ -32,9 +32,15 @@ export const HTTP = {
     X_SFDC_ID: 'X-SFDC-ID',
     X_SFDC_API_VERSION: 'X_SFDC_API_VERSION',
     X_SFDC_ORG_CONNECTION_ERROR: 'X-SFDC-ORG-CONNECTION-ERROR',
+    X_SFDC_Session: 'X-SFDC-Session',
+    CONTENT_TYPE: 'Content-Type',
+    CONTENT_DISPOSITION: 'Content-Disposition',
   },
   CONTENT_TYPE: {
     JSON: 'application/json',
+    XML: 'application/xml',
+    XML_UTF8: 'application/xml; charset=UTF-8',
+    CSV: 'text/csv; charset=UTF-8',
   },
 };
 
@@ -64,4 +70,5 @@ export const DATE_FORMATS = {
   YYYY_MM_DD,
   YYYY_MM_DD__HH_mm_ss,
   YYYY_MM_DD_HH_mm_ss_z,
+  HH_MM_SS_A: 'h:mm:ss A',
 };

@@ -7,6 +7,7 @@ import { ApiMode, FieldMapping } from '../load-records-types';
 import { Checkbox, Grid, GridCol, Input, Radio, RadioButton, RadioGroup, Select } from '@jetstream/ui';
 import { isNumber } from 'lodash';
 import { DATE_FORMATS } from '@jetstream/shared/constants';
+import LoadRecordsLoadRecordsResults from '../components/LoadRecordsLoadRecordsResults';
 
 const MAX_BULK = 10000;
 const MAX_BATCH = 200;
@@ -25,6 +26,7 @@ export interface LoadRecordsLoadRecordsProps {
   loadType: InsertUpdateUpsertDelete;
   fieldMapping: FieldMapping;
   inputFileData: any[];
+  externalId?: string;
 }
 
 export const LoadRecordsLoadRecords: FunctionComponent<LoadRecordsLoadRecordsProps> = ({
@@ -33,6 +35,7 @@ export const LoadRecordsLoadRecords: FunctionComponent<LoadRecordsLoadRecordsPro
   loadType,
   fieldMapping,
   inputFileData,
+  externalId,
 }) => {
   const [apiMode, setApiMode] = useState<ApiMode>('BULK');
   const [batchSize, setBatchSize] = useState<number>(MAX_BULK);
@@ -41,6 +44,7 @@ export const LoadRecordsLoadRecords: FunctionComponent<LoadRecordsLoadRecordsPro
   const [serialMode, setSerialMode] = useState<boolean>(false);
   const [dateFormat, setDateFormat] = useState<string>(DATE_FORMATS.MM_DD_YYYY);
   const [loading, setLoading] = useState<boolean>(false);
+  const [loadInProgress, setLoadInProgress] = useState<boolean>(false);
 
   useEffect(() => {
     setBatchSize(getMaxBatchSize(apiMode));
@@ -74,6 +78,7 @@ export const LoadRecordsLoadRecords: FunctionComponent<LoadRecordsLoadRecordsPro
 
   async function handleStartLoad() {
     setLoading(true);
+    setLoadInProgress(true);
   }
 
   /**
@@ -183,7 +188,28 @@ export const LoadRecordsLoadRecords: FunctionComponent<LoadRecordsLoadRecordsPro
         </div>
       </div>
       <h1 className="slds-text-heading_medium">Results</h1>
-      <div className="slds-p-around_small"></div>
+      <div className="slds-p-around_small">
+        {/* TODO: this wil not work to show finished results */}
+        {loadInProgress && (
+          <LoadRecordsLoadRecordsResults
+            selectedOrg={selectedOrg}
+            selectedSObject={selectedSObject}
+            fieldMapping={fieldMapping}
+            inputFileData={inputFileData}
+            apiMode={apiMode}
+            loadType={loadType}
+            externalId={externalId}
+            batchSize={batchSize}
+            insertNulls={insertNulls}
+            serialMode={serialMode}
+            dateFormat={dateFormat}
+            onFinish={(success) => {
+              setLoading(false);
+              setLoadInProgress(false);
+            }}
+          />
+        )}
+      </div>
     </div>
   );
 };

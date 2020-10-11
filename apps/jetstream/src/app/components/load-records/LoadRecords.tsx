@@ -19,7 +19,7 @@ import { useRecoilState, useRecoilValue } from 'recoil';
 import { selectedOrgState } from '../../app-state';
 import { EntityParticleRecordWithRelatedExtIds } from './load-records-types';
 import * as fromLoadRecordsState from './load-records.state';
-import LoadRecordsProgress from './LoadRecordsProgress';
+import LoadRecordsProgress from './components/LoadRecordsProgress';
 import LoadRecordsFieldMapping from './steps/LoadRecordsFieldMapping';
 import LoadRecordsObjectAndFile from './steps/LoadRecordsObjectAndFile';
 import LoadRecordsLoadRecords from './steps/LoadRecordsLoadRecords';
@@ -242,6 +242,7 @@ export const LoadRecords: FunctionComponent<LoadRecordsProps> = () => {
                   loadType={loadType}
                   fieldMapping={fieldMapping}
                   inputFileData={inputFileData}
+                  externalId={externalId}
                 />
               </span>
             )}

@@ -110,7 +110,8 @@
     "typeorm": "^0.2.25",
     "validator": "^13.0.0",
     "winston": "^3.2.1",
-    "xlsx": "^0.16.6"
+    "xlsx": "^0.16.6",
+    "xmlbuilder2": "^2.4.0"
   },
   "devDependencies": {
     "@babel/core": "7.8.3",

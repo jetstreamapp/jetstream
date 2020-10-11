@@ -1,5 +1,5 @@
 import './app/utils/config';
-import { json, urlencoded } from 'body-parser';
+import { json, urlencoded, raw } from 'body-parser';
 import * as cors from 'cors';
 import * as express from 'express';
 import { join } from 'path';
@@ -81,7 +81,8 @@ passport.deserializeUser(function (user, done) {
 app.use(passport.initialize());
 app.use(passport.session());
 
-app.use(json({ limit: '20mb' }));
+app.use(raw({ limit: '30mb', type: ['text/csv'] }));
+app.use(json({ limit: '20mb', type: ['json', 'application/csp-report'] }));
 app.use(urlencoded({ extended: true }));
 
 app.use('/healthz', healthCheck);
