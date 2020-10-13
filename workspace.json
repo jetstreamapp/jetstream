@@ -528,6 +528,22 @@
           }
         }
       }
+    },
+    "icon-factory": {
+      "root": "libs/icon-factory",
+      "sourceRoot": "libs/icon-factory/src",
+      "projectType": "library",
+      "schematics": {},
+      "architect": {
+        "lint": {
+          "builder": "@nrwl/linter:lint",
+          "options": {
+            "linter": "eslint",
+            "tsConfig": ["libs/icon-factory/tsconfig.lib.json"],
+            "exclude": ["**/node_modules/**", "!libs/icon-factory/**/*"]
+          }
+        }
+      }
     }
   },
   "cli": {

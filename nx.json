@@ -66,6 +66,9 @@
     },
     "shared-client-logger": {
       "tags": []
+    },
+    "icon-factory": {
+      "tags": []
     }
   },
   "affected": {
