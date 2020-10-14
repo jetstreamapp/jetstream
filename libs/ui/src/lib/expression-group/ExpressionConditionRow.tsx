@@ -20,6 +20,7 @@ import DatePicker from '../form/date/DatePicker';
 import moment from 'moment-mini';
 // eslint-disable-next-line @typescript-eslint/camelcase
 import { YYYY_MM_DD, YYYY_MM_DD_HH_mm_ss_z } from '@jetstream/shared/constants';
+import { useDebounce } from '@jetstream/shared/ui-utils';
 
 export interface ExpressionConditionRowProps {
   row: number;
@@ -84,11 +85,12 @@ export const ExpressionConditionRow: FunctionComponent<ExpressionConditionRowPro
       return null;
     });
     const [selectedResourceTitle] = useState<string>(null);
+    const debouncedSelectedValue = useDebounce(selectedValue, 500);
 
     useEffect(() => {
-      onChange({ ...selected, value: selectedValue });
+      onChange({ ...selected, value: debouncedSelectedValue });
       // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [selectedValue]);
+    }, [debouncedSelectedValue]);
 
     useEffect(() => {
       setDisableValueInput(disableValueForOperators.includes(selected.operator));
