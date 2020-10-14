@@ -5,6 +5,7 @@
     "aria-hidden": "true"
   },
   "replaceAttrValues": {
-    "#FFF": "unset"
+    "#FFF": "unset",
+    "#fff": "unset"
   }
 }

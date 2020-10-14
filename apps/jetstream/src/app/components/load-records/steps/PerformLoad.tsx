@@ -38,6 +38,7 @@ export const LoadRecordsPerformLoad: FunctionComponent<LoadRecordsPerformLoadPro
   inputFileData,
   externalId,
 }) => {
+  const [loadNumber, setLoadNumber] = useState<number>(0);
   const [apiMode, setApiMode] = useState<ApiMode>('BULK');
   const [batchSize, setBatchSize] = useState<number>(MAX_BULK);
   const [batchSizeError, setBatchSizeError] = useState<string>(null);
@@ -46,9 +47,13 @@ export const LoadRecordsPerformLoad: FunctionComponent<LoadRecordsPerformLoadPro
   const [dateFormat, setDateFormat] = useState<string>(DATE_FORMATS.MM_DD_YYYY);
   const [loading, setLoading] = useState<boolean>(false);
   const [loadInProgress, setLoadInProgress] = useState<boolean>(false);
+  const [hasLoadResults, setHasLoadResults] = useState<boolean>(false);
 
   useEffect(() => {
     setBatchSize(getMaxBatchSize(apiMode));
+    if (hasLoadResults) {
+      setHasLoadResults(false);
+    }
     if (apiMode === 'BATCH' && !serialMode) {
       setSerialMode(true);
     } else if (apiMode === 'BULK' && serialMode) {
@@ -77,9 +82,17 @@ export const LoadRecordsPerformLoad: FunctionComponent<LoadRecordsPerformLoadPro
     setDateFormat(event.target.value);
   }
 
-  async function handleStartLoad() {
+  function handleStartLoad() {
+    setLoadNumber(loadNumber + 1);
     setLoading(true);
     setLoadInProgress(true);
+    setHasLoadResults(false);
+  }
+
+  function handleFinishLoad() {
+    setLoading(false);
+    setHasLoadResults(true);
+    setLoadInProgress(false);
   }
 
   /**
@@ -183,7 +196,7 @@ export const LoadRecordsPerformLoad: FunctionComponent<LoadRecordsPerformLoadPro
           <strong>{selectedOrg.username}</strong> ({selectedOrg.orgIsSandbox ? 'Sandbox' : 'Production'}).
         </div>
         <div className="slds-m-top_small">
-          <button className="slds-button slds-button_brand" onClick={handleStartLoad}>
+          <button className="slds-button slds-button_brand" disabled={loadInProgress} onClick={handleStartLoad}>
             Load Records
           </button>
         </div>
@@ -191,8 +204,9 @@ export const LoadRecordsPerformLoad: FunctionComponent<LoadRecordsPerformLoadPro
       <h1 className="slds-text-heading_medium">Results</h1>
       <div className="slds-p-around_small">
         {/* TODO: this wil not work to show finished results */}
-        {loadInProgress && (
+        {(loadInProgress || hasLoadResults) && (
           <LoadRecordsResults
+            key={loadNumber}
             selectedOrg={selectedOrg}
             selectedSObject={selectedSObject}
             fieldMapping={fieldMapping}
@@ -204,10 +218,7 @@ export const LoadRecordsPerformLoad: FunctionComponent<LoadRecordsPerformLoadPro
             insertNulls={insertNulls}
             serialMode={serialMode}
             dateFormat={dateFormat}
-            onFinish={(success) => {
-              setLoading(false);
-              setLoadInProgress(false);
-            }}
+            onFinish={handleFinishLoad}
           />
         )}
       </div>

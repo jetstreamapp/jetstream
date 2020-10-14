@@ -155,13 +155,13 @@ async function loadBatchApiData({ org, data, sObject, type, batchSize, externalI
         });
         responseWithRecord = response.map((record, i): RecordResultWithRecord => ({ ...record, record: batch.records[i] }));
       } catch (ex) {
-        responseWithRecord = batches.map(
+        responseWithRecord = batch.records.map(
           (record, i): RecordResultWithRecord => ({
             success: false,
             errors: [
               {
                 fields: [],
-                message: 'An unknown error has occurred',
+                message: `An unknown error has occurred. Salesforce Message: ${ex.message}`,
                 statusCode: 'UNKNOWN',
               },
             ],

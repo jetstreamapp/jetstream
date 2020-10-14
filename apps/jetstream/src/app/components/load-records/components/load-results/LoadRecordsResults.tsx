@@ -18,7 +18,7 @@ export interface LoadRecordsResultsProps {
   insertNulls: boolean;
   serialMode: boolean;
   dateFormat: string;
-  onFinish: (success: boolean) => void;
+  onFinish: () => void;
 }
 
 export const LoadRecordsResults: FunctionComponent<LoadRecordsResultsProps> = ({

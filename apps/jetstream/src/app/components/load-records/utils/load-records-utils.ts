@@ -10,6 +10,7 @@ import isString from 'lodash/isString';
 import { DATE_FORMATS, SFDC_BULK_API_NULL_VALUE } from '@jetstream/shared/constants';
 import { parse as parseDate, parseISO as parseISODate, formatISO as formatISODate, startOfDay as startOfDayDate } from 'date-fns';
 import isNil from 'lodash/isNil';
+import { isNumber } from 'lodash';
 
 /**
  * Fetch all fields and related fields, which are added to attributes.relatedRecords
@@ -210,10 +211,25 @@ export function transformData({ data, fieldMapping, sObject, insertNulls, dateFo
             // batch api will always clear the value in SFDC if a null is passed, so we must ensure it is not included at all
             skipField = true;
           }
+        } else if (fieldMappingItem.fieldMetadata.DataType === 'boolean') {
+          if (isString(value) || isNumber(value)) {
+            // any string that starts with "t" or number that starts with "1" is set to true
+            // all other values to false (case-insensitive)
+            value = REGEX.BOOLEAN_STR_TRUE.test(`${value}`);
+          }
         } else if (fieldMappingItem.fieldMetadata.DataType === 'date') {
           value = transformDate(value, dateFormat);
         } else if (fieldMappingItem.fieldMetadata.DataType === 'datetime') {
           value = transformDateTime(value, dateFormat);
+        } else if (fieldMappingItem.fieldMetadata.DataType === 'time') {
+          // time format is specific
+          // TODO: detect if times should be corrected
+          // 10 PM
+          // 10:10 PM
+          // 10:10:00 PM
+          // 10:10
+          // -->expected
+          // 13:15:00.000Z
         }
         // should we automatically do this? should we give the user an option?
         // else if(isString(value)) {

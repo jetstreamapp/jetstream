@@ -2,7 +2,7 @@
 import { jsx } from '@emotion/core';
 import { logger } from '@jetstream/shared/client-logger';
 import { InsertUpdateUpsertDelete, RecordResultWithRecord, SalesforceOrgUi, WorkerMessage } from '@jetstream/types';
-import { FunctionComponent, useEffect, useState } from 'react';
+import { FunctionComponent, useEffect, useRef, useState } from 'react';
 import { generateCsv } from '../../../../../../../../libs/shared/ui-utils/src';
 import LoadWorker from '../../../../workers/load.worker';
 import FileDownloadModal from '../../../core/FileDownloadModal';
@@ -35,7 +35,7 @@ export interface LoadRecordsBatchApiResultsProps {
   insertNulls: boolean;
   serialMode: boolean;
   dateFormat: string;
-  onFinish: (success: boolean) => void; // TODO: add types
+  onFinish: () => void; // TODO: add types
 }
 
 export const LoadRecordsBatchApiResults: FunctionComponent<LoadRecordsBatchApiResultsProps> = ({
@@ -52,6 +52,7 @@ export const LoadRecordsBatchApiResults: FunctionComponent<LoadRecordsBatchApiRe
   dateFormat,
   onFinish,
 }) => {
+  const isMounted = useRef(null);
   const [preparedData, setPreparedData] = useState<any[]>();
   const [loadWorker] = useState(() => new LoadWorker());
   const [status, setStatus] = useState<Status>(STATUSES.PREPARING);
@@ -64,6 +65,11 @@ export const LoadRecordsBatchApiResults: FunctionComponent<LoadRecordsBatchApiRe
     failure: 0,
   });
   const [downloadModalData, setDownloadModalData] = useState({ open: false, data: [], header: [], fileNameParts: [] });
+
+  useEffect(() => {
+    isMounted.current = true;
+    return () => (isMounted.current = false);
+  }, []);
 
   useEffect(() => {
     if (loadWorker) {
@@ -120,11 +126,14 @@ export const LoadRecordsBatchApiResults: FunctionComponent<LoadRecordsBatchApiRe
   useEffect(() => {
     if (loadWorker) {
       loadWorker.onmessage = (event: MessageEvent) => {
+        if (!isMounted.current) {
+          return;
+        }
         const payload: WorkerMessage<
           'prepareData' | 'loadDataStatus' | 'loadData',
           { preparedData?: any[]; records?: RecordResultWithRecord[] }
         > = event.data;
-        logger.log('prepareData', { payload });
+        logger.log('[LOAD DATA]', payload.name, { payload });
         switch (payload.name) {
           case 'prepareData': {
             if (payload.error) {
@@ -145,11 +154,13 @@ export const LoadRecordsBatchApiResults: FunctionComponent<LoadRecordsBatchApiRe
             if (payload.error) {
               logger.error('ERROR', payload.error);
               setStatus(STATUSES.ERROR);
-              onFinish(false);
+              onFinish();
             } else {
               setStatus(STATUSES.FINISHED);
               setEndTime(new Date().toLocaleString());
             }
+            onFinish();
+            setEndTime(new Date().toLocaleString());
             break;
           }
           default:
@@ -171,7 +182,7 @@ export const LoadRecordsBatchApiResults: FunctionComponent<LoadRecordsBatchApiRe
 
       const header = Object.keys(data[0]).filter((field) => field !== 'attributes');
 
-      setDownloadModalData({ open: true, data, header, fileNameParts: [type] });
+      setDownloadModalData({ open: true, data, header, fileNameParts: ['load', type] });
     } else {
       data = processedRecords
         .filter((records) => !records.success)
@@ -183,7 +194,7 @@ export const LoadRecordsBatchApiResults: FunctionComponent<LoadRecordsBatchApiRe
         }));
     }
     const header = Object.keys(data[0] || {}).filter((field) => field !== 'attributes');
-    setDownloadModalData({ open: true, data, header, fileNameParts: [type] });
+    setDownloadModalData({ open: true, data, header, fileNameParts: ['load', type] });
   }
 
   function handleModalClose() {

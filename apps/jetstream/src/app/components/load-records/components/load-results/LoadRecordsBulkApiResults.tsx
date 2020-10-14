@@ -4,7 +4,7 @@ import { logger } from '@jetstream/shared/client-logger';
 import { bulkApiGetJob } from '@jetstream/shared/data';
 import { BulkJobWithBatches, FileExtCsvXLSX, InsertUpdateUpsertDelete, SalesforceOrgUi, WorkerMessage } from '@jetstream/types';
 import { SalesforceLogin } from '@jetstream/ui';
-import { Fragment, FunctionComponent, useEffect, useState } from 'react';
+import { Fragment, FunctionComponent, useEffect, useRef, useState } from 'react';
 import { useRecoilState } from 'recoil';
 import { convertDateToLocale } from '@jetstream/shared/ui-utils';
 import { applicationCookieState } from '../../../../app-state';
@@ -33,12 +33,13 @@ const STATUSES: {
 const CHECK_INTERVAL = 3000;
 const MAX_INTERVAL_CHECK_COUNT = 200; // 3000*200/60=10 minutes
 
-function checkIfJobIsDone(jobInfo: BulkJobWithBatches) {
+function checkIfJobIsDone(jobInfo: BulkJobWithBatches, batchSummary: LoadDataBulkApiStatusPayload) {
   if (jobInfo.state === 'Failed') {
     return true;
   }
   return (
     jobInfo.batches.length > 0 &&
+    jobInfo.batches.length === batchSummary.totalBatches &&
     jobInfo.batches.every((batch) => batch.state === 'Completed' || batch.state === 'Failed' || batch.state === 'NotProcessed')
   );
 }
@@ -55,8 +56,10 @@ export interface LoadRecordsBulkApiResultsProps {
   insertNulls: boolean;
   serialMode: boolean;
   dateFormat: string;
-  onFinish: (success: boolean) => void; // TODO: add types
+  onFinish: () => void;
 }
+
+let currTimeout: any;
 
 export const LoadRecordsBulkApiResults: FunctionComponent<LoadRecordsBulkApiResultsProps> = ({
   selectedOrg,
@@ -72,6 +75,7 @@ export const LoadRecordsBulkApiResults: FunctionComponent<LoadRecordsBulkApiResu
   dateFormat,
   onFinish,
 }) => {
+  const isMounted = useRef(null);
   const [{ serverUrl }] = useRecoilState(applicationCookieState);
   const [preparedData, setPreparedData] = useState<any[]>();
   const [loadWorker] = useState(() => new LoadWorker());
@@ -87,6 +91,11 @@ export const LoadRecordsBulkApiResults: FunctionComponent<LoadRecordsBulkApiResu
     url: '',
     filename: '',
   });
+
+  useEffect(() => {
+    isMounted.current = true;
+    return () => (isMounted.current = false);
+  }, []);
 
   useEffect(() => {
     if (loadWorker) {
@@ -132,13 +141,20 @@ export const LoadRecordsBulkApiResults: FunctionComponent<LoadRecordsBulkApiResu
    */
   useEffect(() => {
     if (jobInfo) {
-      const isDone = checkIfJobIsDone(jobInfo);
+      const isDone = checkIfJobIsDone(jobInfo, batchSummary);
       if (isDone) {
         setStatus(STATUSES.FINISHED);
+        onFinish();
       } else if (status === STATUSES.PROCESSING && intervalCount < MAX_INTERVAL_CHECK_COUNT) {
         // we need to wait until all data is uploaded?
         setTimeout(async () => {
+          if (!isMounted.current) {
+            return;
+          }
           const jobInfoWithBatches = await bulkApiGetJob(selectedOrg, jobInfo.id);
+          if (!isMounted.current) {
+            return;
+          }
           jobInfoWithBatches.batches = orderBy(jobInfoWithBatches.batches, ['createdDate']);
           jobInfoWithBatches.batches.forEach((batch) => {
             batch.createdDate = convertDateToLocale(batch.createdDate);
@@ -149,16 +165,20 @@ export const LoadRecordsBulkApiResults: FunctionComponent<LoadRecordsBulkApiResu
         }, CHECK_INTERVAL);
       }
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [jobInfo, status]);
 
   useEffect(() => {
     if (loadWorker) {
       loadWorker.onmessage = (event: MessageEvent) => {
+        if (!isMounted.current) {
+          return;
+        }
         const payload: WorkerMessage<
           'prepareData' | 'loadDataStatus' | 'loadData',
           { preparedData?: any[]; jobInfo?: BulkJobWithBatches; resultsSummary?: LoadDataBulkApiStatusPayload }
         > = event.data;
-        logger.log('prepareData', { payload });
+        logger.log('[LOAD DATA]', payload.name, { payload });
         switch (payload.name) {
           case 'prepareData': {
             if (payload.error) {
@@ -180,7 +200,7 @@ export const LoadRecordsBulkApiResults: FunctionComponent<LoadRecordsBulkApiResu
           case 'loadData': {
             if (payload.error) {
               logger.error('ERROR', payload.error);
-              onFinish(false);
+              onFinish();
             } else {
               setJobInfo(payload.data.jobInfo);
               setStatus(STATUSES.PROCESSING);
@@ -193,8 +213,20 @@ export const LoadRecordsBulkApiResults: FunctionComponent<LoadRecordsBulkApiResu
       };
     }
   }, [loadWorker]);
+
+  function getUploadingText() {
+    if (
+      !batchSummary ||
+      !(status === STATUSES.UPLOADING || status === STATUSES.PROCESSING) ||
+      batchSummary.totalBatches === jobInfo?.batches?.length
+    ) {
+      return '';
+    }
+    return `Uploading batch ${batchSummary.batchSummary.filter((item) => item.completed).length} of ${batchSummary.totalBatches}`;
+  }
+
   function handleDownloadRecords(type: 'results' | 'failure', url: string) {
-    setDownloadModalData({ ...downloadModalData, open: true, fileNameParts: [type], url });
+    setDownloadModalData({ ...downloadModalData, open: true, fileNameParts: ['load', type], url });
   }
 
   function handleModalClose() {
@@ -232,7 +264,9 @@ export const LoadRecordsBulkApiResults: FunctionComponent<LoadRecordsBulkApiResu
           }
         />
       )}
-      <h3 className="slds-text-heading_small">{status}</h3>
+      <h3 className="slds-text-heading_small">
+        {status} <span className="slds-text-title">{getUploadingText()}</span>
+      </h3>
       {batchSummary && (
         <Fragment>
           <SalesforceLogin
@@ -244,12 +278,6 @@ export const LoadRecordsBulkApiResults: FunctionComponent<LoadRecordsBulkApiResu
             View job in Salesforce
           </SalesforceLogin>
         </Fragment>
-      )}
-      {/* Data is being uploaded */}
-      {batchSummary && status === STATUSES.UPLOADING && (
-        <div>
-          Uploading batch {batchSummary.batchSummary.filter((item) => item.completed).length} of {batchSummary.totalBatches}
-        </div>
       )}
       {/* Data is being processed */}
       {jobInfo && (

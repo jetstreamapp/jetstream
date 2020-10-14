@@ -98,10 +98,10 @@ export const LoadRecordsBatchApiResultsTable: FunctionComponent<LoadRecordsBatch
             {!failed && !inProgress && !!processingStatus.failure && (
               <Icon
                 type="utility"
-                icon="success"
-                description="Completed with errors"
-                title="Completed with errors"
-                className="slds-icon slds-icon_small slds-icon-text-success slds-m-horizontal_xxx-small"
+                icon="warning"
+                description="Batch completed with errors"
+                title="Batch completed with errors"
+                className="slds-icon slds-icon_small slds-icon-text-warning slds-m-horizontal_xxx-small"
               />
             )}
 
