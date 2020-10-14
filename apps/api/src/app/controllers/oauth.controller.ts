@@ -7,10 +7,6 @@ import * as querystring from 'querystring';
 import { logger } from '../config/logger.config';
 import { SalesforceOrg } from '../db/entites/SalesforceOrg';
 
-export function salesforceAuthResults(req: express.Request, res: express.Response) {
-  res.send();
-}
-
 /**
  * Prepare SFDC auth and redirect to Salesforce
  * @param req
