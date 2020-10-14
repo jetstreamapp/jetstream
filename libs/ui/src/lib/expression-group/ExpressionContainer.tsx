@@ -89,7 +89,18 @@ export const ExpressionContainer: FunctionComponent<ExpressionContainerProps> = 
     onChange,
   }) => {
     const [expression, setExpression] = useState<ExpressionType>(() => initExpression(expressionInitValue));
-    const [nextConditionNumber, setNextConditionNumber] = useState<number>(1);
+    const [nextConditionNumber, setNextConditionNumber] = useState<number>(() => {
+      let nextNumber = 1;
+      if (expressionInitValue) {
+        nextNumber = Math.max(
+          ...expressionInitValue.groups
+            .flatMap((group) => group.rows.map((row) => row.key))
+            .concat(expressionInitValue.rows.map((row) => row.key))
+        );
+        nextNumber++;
+      }
+      return nextNumber;
+    });
     const [isInit, setIsInit] = useState<boolean>(false);
 
     useEffect(() => {

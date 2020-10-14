@@ -141,6 +141,8 @@ function resourceTypeFns(fields: ListItemGroup[]) {
   return getResourceTypeFns;
 }
 
+const disableValueForOperators: QueryFilterOperator[] = ['isNull', 'isNotNull'];
+
 export const QueryFilter: FunctionComponent<QueryFilterProps> = ({ fields }) => {
   const [queryFilters, setQueryFilters] = useRecoilState(fromQueryState.queryFiltersState);
   const [initialQueryFilters] = useState(queryFilters);
@@ -160,7 +162,7 @@ export const QueryFilter: FunctionComponent<QueryFilterProps> = ({ fields }) => 
       resources={fields}
       operators={operators}
       getResourceTypeFns={getResourceTypeFns}
-      disableValueForOperators={['isNull', 'isNotNull']}
+      disableValueForOperators={disableValueForOperators}
       onChange={(filters) => {
         logger.log({ filters });
         setQueryFilters(filters);
