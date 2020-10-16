@@ -100,7 +100,7 @@ if (!environment.production) {
   app.use(cors({ origin: /http:\/\/localhost:[0-9]+$/ }));
 }
 
-app.use(express.static(join(__dirname, './assets')));
+app.use('/assets', express.static(join(__dirname, './assets')));
 
 if (environment.production) {
   app.set('trust proxy', 1);
