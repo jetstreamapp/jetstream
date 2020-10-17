@@ -5,7 +5,7 @@ import classNames from 'classnames';
 import { Fragment, FunctionComponent } from 'react';
 import HelpText from '../../widgets/HelpText';
 import Icon from '../../widgets/Icon';
-import { IconType } from '@jetstream/types';
+import { IconType } from '@jetstream/icon-factory';
 
 export interface InputProps {
   id?: string;

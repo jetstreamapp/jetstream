@@ -3,7 +3,6 @@ import { jsx } from '@emotion/core';
 import { logger } from '@jetstream/shared/client-logger';
 import { InsertUpdateUpsertDelete, RecordResultWithRecord, SalesforceOrgUi, WorkerMessage } from '@jetstream/types';
 import { FunctionComponent, useEffect, useRef, useState } from 'react';
-import { generateCsv } from '../../../../../../../../libs/shared/ui-utils/src';
 import LoadWorker from '../../../../workers/load.worker';
 import FileDownloadModal from '../../../core/FileDownloadModal';
 import { ApiMode, FieldMapping, LoadDataBatchApiProgress } from '../../load-records-types';

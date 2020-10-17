@@ -1,7 +1,7 @@
 /** @jsx jsx */
 import { jsx } from '@emotion/core';
 import { getIcon, IconName } from '@jetstream/icon-factory';
-import { IconType } from '@jetstream/types';
+import { IconType } from '@jetstream/icon-factory';
 import classNames from 'classnames';
 import { FunctionComponent } from 'react';
 

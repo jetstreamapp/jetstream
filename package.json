@@ -57,7 +57,6 @@
     "@types/codemirror": "0.0.97",
     "@types/connect-pg-simple": "^4.2.0",
     "@types/cors": "^2.8.6",
-    "@types/dotenv": "^8.2.0",
     "@types/express-session": "^1.17.0",
     "@types/jsonwebtoken": "^8.5.0",
     "@types/numeral": "0.0.28",

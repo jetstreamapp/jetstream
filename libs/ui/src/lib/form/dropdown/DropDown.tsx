@@ -1,6 +1,7 @@
 /* eslint-disable jsx-a11y/anchor-is-valid */
 import { isArrowDownKey, isArrowUpKey, isEnterOrSpace } from '@jetstream/shared/ui-utils';
-import { DropDownItem, IconObj } from '@jetstream/types';
+import { DropDownItem } from '@jetstream/types';
+import { IconObj } from '@jetstream/icon-factory';
 import classNames from 'classnames';
 import isNumber from 'lodash/isNumber';
 import isString from 'lodash/isString';

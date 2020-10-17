@@ -1,4 +1,4 @@
-import { IconObj } from '@jetstream/types';
+import { IconObj } from '@jetstream/icon-factory';
 import Avatar from '@salesforce-ux/design-system/assets/images/profile_avatar_96.png';
 import { action } from '@storybook/addon-actions';
 import { array, number, object, text } from '@storybook/addon-knobs';

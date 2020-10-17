@@ -4,6 +4,14 @@
  */
 import React from 'react';
 
+export type IconType = 'action' | 'custom' | 'doctype' | 'standard' | 'utility';
+
+export interface IconObj {
+  type: IconType;
+  icon: IconName;
+  description?: string;
+}
+
 export type IconName = StandardIcon | UtilityIcon;
 export type StandardIcon = keyof StandardIconObj;
 export type UtilityIcon = keyof UtilityIconObj;

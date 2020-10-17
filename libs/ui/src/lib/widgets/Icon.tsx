@@ -2,7 +2,7 @@
 // https://www.lightningdesignsystem.com/components/icons/
 import { jsx } from '@emotion/core';
 import { IconName } from '@jetstream/icon-factory';
-import { IconType } from '@jetstream/types';
+import { IconType } from '@jetstream/icon-factory';
 import React, { FunctionComponent, Suspense } from 'react';
 
 const IconLazyWrapper = React.lazy(() => import('./IconLazyWrapper'));

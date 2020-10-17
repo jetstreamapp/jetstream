@@ -9,13 +9,6 @@ export type FileExtCsv = 'csv';
 export type FileExtXLSX = 'xlsx';
 export type FileExtCsvXLSX = FileExtCsv | FileExtXLSX;
 
-export type IconType = 'action' | 'custom' | 'doctype' | 'standard' | 'utility';
-export interface IconObj {
-  type: IconType;
-  icon: string;
-  description?: string;
-}
-
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export interface WorkerMessage<T, K = any, E = any> {
   name: T;
@@ -284,7 +277,7 @@ export interface DropDownItem<T = any> {
   id: string;
   subheader?: string;
   value: string | ReactNode;
-  icon?: IconObj;
+  icon?: any; // FIXME:
   trailingDivider?: boolean;
   metadata?: T;
 }
@@ -299,7 +292,7 @@ export interface QueryFieldHeader {
 export interface FormGroupDropdownItem {
   id: string;
   label: string;
-  icon: IconObj;
+  icon: any; // FIXME:
 }
 
 export type AsyncJobType = 'BulkDelete' | 'BulkDownload';

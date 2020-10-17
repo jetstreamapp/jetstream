@@ -630,7 +630,7 @@ export function parseFile(
   }
 }
 
-export function generateCsv(data: unknown[], options: UnparseConfig = {}): string {
+export function generateCsv(data: object[], options: UnparseConfig = {}): string {
   options = options || {};
   options.newline = options.newline || '\n';
   if (!options.delimiter) {

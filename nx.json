@@ -29,7 +29,8 @@
       "tags": []
     },
     "types": {
-      "tags": []
+      "tags": [],
+      "implicitDependencies": ["icon-factory"]
     },
     "shared-utils": {
       "tags": []

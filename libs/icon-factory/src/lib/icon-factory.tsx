@@ -3,7 +3,7 @@
  * Every icon used in the application must be individually imported
  */
 import { logger } from '@jetstream/shared/client-logger';
-import { IconType } from '@jetstream/types';
+import { IconType } from '@jetstream/icon-factory';
 import classNames from 'classnames';
 import React from 'react';
 import { StandardIconObj, UtilityIconObj } from './icon-types';

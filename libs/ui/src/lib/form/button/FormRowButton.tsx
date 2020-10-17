@@ -1,6 +1,6 @@
 import React, { FunctionComponent } from 'react';
 import Icon from '../../widgets/Icon';
-import { IconObj } from '@jetstream/types';
+import { IconObj } from '@jetstream/icon-factory';
 
 export interface FormRowButtonProps {
   title: string;

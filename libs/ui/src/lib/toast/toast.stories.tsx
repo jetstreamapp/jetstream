@@ -1,5 +1,5 @@
 /* eslint-disable jsx-a11y/anchor-is-valid */
-import { IconObj } from '@jetstream/types';
+import { IconObj } from '@jetstream/icon-factory';
 import { action } from '@storybook/addon-actions';
 import { array, number, object, text, boolean } from '@storybook/addon-knobs';
 import uniqueId from 'lodash/uniqueId';
