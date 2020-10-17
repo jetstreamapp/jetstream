@@ -18,10 +18,11 @@ export interface LoadRecordsSelectObjectAndFileProps {
   loadType: InsertUpdateUpsertDelete;
   externalIdFields: EntityParticleRecordWithRelatedExtIds[];
   externalId: string;
+  inputFilename: string;
   loadingFields: boolean;
   onSobjects: (sobjects: DescribeGlobalSObjectResult[]) => void;
   onSelectedSobject: (selectedSObject: DescribeGlobalSObjectResult) => void;
-  onFileChange: (data: any[], headers: string[]) => void;
+  onFileChange: (data: any[], headers: string[], filename: string) => void;
   onLoadTypeChange: (type: InsertUpdateUpsertDelete) => void;
   onExternalIdChange: (externalId?: string) => void;
 }
@@ -33,6 +34,7 @@ export const LoadRecordsSelectObjectAndFile: FunctionComponent<LoadRecordsSelect
   loadType,
   externalIdFields,
   externalId,
+  inputFilename,
   loadingFields,
   onSobjects,
   onSelectedSobject,
@@ -40,9 +42,9 @@ export const LoadRecordsSelectObjectAndFile: FunctionComponent<LoadRecordsSelect
   onLoadTypeChange,
   onExternalIdChange,
 }) => {
-  function handleFile({ content }: InputReadFileContent) {
+  function handleFile({ content, filename }: InputReadFileContent) {
     const { data, headers } = parseFile(content);
-    onFileChange(data, headers);
+    onFileChange(data, headers, filename);
   }
 
   function handleLoadTypeChange(type: InsertUpdateUpsertDelete, externalId?: string) {
@@ -79,6 +81,7 @@ export const LoadRecordsSelectObjectAndFile: FunctionComponent<LoadRecordsSelect
                 <FileSelector
                   id="load-record-file"
                   label="File to Load"
+                  initialFilename={inputFilename}
                   accept={[INPUT_ACCEPT_FILETYPES.CSV, INPUT_ACCEPT_FILETYPES.EXCEL]}
                   userHelpText="Choose CSV or XLSX file to upload"
                   onReadFile={handleFile}

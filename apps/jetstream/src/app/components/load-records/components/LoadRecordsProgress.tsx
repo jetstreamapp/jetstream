@@ -1,58 +1,28 @@
 /** @jsx jsx */
 import { jsx } from '@emotion/core';
-import { InsertUpdateUpsertDelete } from '@jetstream/types';
-import { ProgressIndicatorListItem, ProgressIndicator } from '@jetstream/ui';
-import { FunctionComponent, useEffect, useState } from 'react';
+import { ProgressIndicator, ProgressIndicatorListItem } from '@jetstream/ui';
+import { FunctionComponent } from 'react';
+import { Step } from '../load-records-types';
 
 export interface LoadRecordsProgressProps {
-  currentStep: number;
-  hasFileData: boolean;
-  hasSelectedObject: boolean;
-  loadType: InsertUpdateUpsertDelete;
-  hasExternalId: boolean;
+  currentStepIdx: number;
+  enabledSteps: Step[];
 }
 
-export const LoadRecordsProgress: FunctionComponent<LoadRecordsProgressProps> = ({
-  currentStep,
-  hasFileData,
-  hasSelectedObject,
-  loadType,
-  hasExternalId,
-}) => {
-  const [currentStepText, setCurrentStepText] = useState<string>('');
-  const [nextStepDisabled, setNextStepDisabled] = useState<boolean>(true);
-
-  useEffect(() => {
-    let currStepButtonText = '';
-    let isNextStepDisabled = true;
-    switch (currentStep) {
-      case 0:
-        currStepButtonText = 'Continue to Map Fields';
-        isNextStepDisabled = !hasSelectedObject || !hasFileData || !loadType || (loadType === 'UPSERT' && !hasExternalId);
-        break;
-      case 1:
-        // TODO: Allow skipping this step
-        currStepButtonText = 'Continue to Disable Automation';
-        break;
-      case 2:
-        currStepButtonText = 'Continue to Load Records Automation';
-        break;
-      case 3:
-        // TODO: Only show this if automation was disabled
-        currStepButtonText = 'Continue to Revert Automation';
-        break;
-      default:
-        currStepButtonText = currentStepText;
-        isNextStepDisabled = nextStepDisabled;
-        break;
-    }
-    setCurrentStepText(currStepButtonText);
-    setNextStepDisabled(isNextStepDisabled);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [currentStep, hasSelectedObject, hasFileData, loadType, hasExternalId]);
-
+export const LoadRecordsProgress: FunctionComponent<LoadRecordsProgressProps> = ({ currentStepIdx, enabledSteps }) => {
   return (
-    <ProgressIndicator currentStep={currentStep} isVertical>
+    <ProgressIndicator currentStep={currentStepIdx} isVertical>
+      {enabledSteps.map((step, i) => (
+        <ProgressIndicatorListItem
+          key={step.name}
+          step={i}
+          stepText={step.label}
+          isVertical
+          isActive={currentStepIdx === i}
+          isComplete={currentStepIdx > i}
+        />
+      ))}
+      {/*
       <ProgressIndicatorListItem
         step={0}
         stepText="Choose Object and Load File"
@@ -75,7 +45,7 @@ export const LoadRecordsProgress: FunctionComponent<LoadRecordsProgressProps> = 
         isVertical
         isActive={currentStep === 4}
         isComplete={currentStep > 4}
-      />
+      /> */}
     </ProgressIndicator>
   );
 };

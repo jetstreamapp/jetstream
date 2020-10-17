@@ -1,8 +1,8 @@
 /** @jsx jsx */
 import { jsx } from '@emotion/core';
 import { DATE_FORMATS } from '@jetstream/shared/constants';
-import { InsertUpdateUpsertDelete, SalesforceOrgUi } from '@jetstream/types';
-import { Checkbox, Input, Radio, RadioGroup, Select } from '@jetstream/ui';
+import { InsertUpdateUpsertDelete, SalesforceOrgUi, SalesforceOrgUiType } from '@jetstream/types';
+import { Badge, Checkbox, Input, Radio, RadioGroup, Select } from '@jetstream/ui';
 import { isNumber } from 'lodash';
 import startCase from 'lodash/startCase';
 import numeral from 'numeral';
@@ -23,20 +23,24 @@ function getMaxBatchSize(apiMode: ApiMode) {
 
 export interface LoadRecordsPerformLoadProps {
   selectedOrg: SalesforceOrgUi;
+  orgType: SalesforceOrgUiType;
   selectedSObject: string;
   loadType: InsertUpdateUpsertDelete;
   fieldMapping: FieldMapping;
   inputFileData: any[];
   externalId?: string;
+  onIsLoading: (isLoading: boolean) => void;
 }
 
 export const LoadRecordsPerformLoad: FunctionComponent<LoadRecordsPerformLoadProps> = ({
   selectedOrg,
+  orgType,
   selectedSObject,
   loadType,
   fieldMapping,
   inputFileData,
   externalId,
+  onIsLoading,
 }) => {
   const [loadNumber, setLoadNumber] = useState<number>(0);
   const [apiMode, setApiMode] = useState<ApiMode>('BULK');
@@ -48,6 +52,8 @@ export const LoadRecordsPerformLoad: FunctionComponent<LoadRecordsPerformLoadPro
   const [loading, setLoading] = useState<boolean>(false);
   const [loadInProgress, setLoadInProgress] = useState<boolean>(false);
   const [hasLoadResults, setHasLoadResults] = useState<boolean>(false);
+  const loadTypeLabel = startCase(loadType.toLowerCase());
+  const numRecordsImpactedLabel = numeral(inputFileData.length).format('0,0');
 
   useEffect(() => {
     setBatchSize(getMaxBatchSize(apiMode));
@@ -87,12 +93,14 @@ export const LoadRecordsPerformLoad: FunctionComponent<LoadRecordsPerformLoadPro
     setLoading(true);
     setLoadInProgress(true);
     setHasLoadResults(false);
+    onIsLoading(true);
   }
 
   function handleFinishLoad() {
     setLoading(false);
     setHasLoadResults(true);
     setLoadInProgress(false);
+    onIsLoading(false);
   }
 
   /**
@@ -192,12 +200,14 @@ export const LoadRecordsPerformLoad: FunctionComponent<LoadRecordsPerformLoadPro
       <h1 className="slds-text-heading_medium">Summary</h1>
       <div className="slds-p-around_small">
         <div>
-          <span>{startCase(loadType.toLowerCase())}</span> <strong>{numeral(inputFileData.length).format('0,0')}</strong> records to{' '}
-          <strong>{selectedOrg.username}</strong> ({selectedOrg.orgIsSandbox ? 'Sandbox' : 'Production'}).
+          <Badge type={orgType === 'Production' ? 'warning' : 'light'} title={orgType}>
+            {orgType}
+          </Badge>
+          <strong className="slds-m-left_xx-small">{selectedOrg.username}</strong>
         </div>
         <div className="slds-m-top_small">
           <button className="slds-button slds-button_brand" disabled={loadInProgress} onClick={handleStartLoad}>
-            Load Records
+            {loadTypeLabel} <strong className="slds-m-horizontal_xx-small">{numRecordsImpactedLabel}</strong> Records
           </button>
         </div>
       </div>

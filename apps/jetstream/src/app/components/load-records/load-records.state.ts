@@ -42,6 +42,11 @@ export const inputFileHeaderState = atom<string[]>({
   default: null,
 });
 
+export const inputFilenameState = atom<string>({
+  key: 'load.inputFilenameState',
+  default: null,
+});
+
 export const fieldMappingState = atom<FieldMapping>({
   key: 'load.fieldMappingState',
   default: {},

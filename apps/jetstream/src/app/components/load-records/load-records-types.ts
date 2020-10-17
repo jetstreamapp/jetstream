@@ -7,6 +7,16 @@ import {
   SalesforceOrgUi,
 } from '@jetstream/types';
 
+export interface Step {
+  idx: number;
+  name: StepName;
+  label: string;
+  active: boolean;
+  enabled: boolean;
+}
+
+export type StepName = 'sobjectAndFile' | 'fieldMapping' | 'automationDeploy' | 'loadRecords' | 'automationRollback';
+
 type RecordAttributesWithRelatedRecords = RecordAttributes & { relatedRecords: EntityParticleRecord[] };
 
 export type ApiModeBulk = 'BULK';

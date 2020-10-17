@@ -8,6 +8,7 @@ import { InputAcceptType, InputReadFileContent } from '@jetstream/types';
 export interface FileSelectorProps {
   id: string;
   label: string;
+  initialFilename?: string;
   hideLabel?: boolean;
   disabled?: boolean;
   accept?: InputAcceptType[];
@@ -19,6 +20,7 @@ export interface FileSelectorProps {
 export const FileSelector: FunctionComponent<FileSelectorProps> = ({
   id,
   label,
+  initialFilename,
   hideLabel,
   disabled,
   accept,
@@ -28,7 +30,7 @@ export const FileSelector: FunctionComponent<FileSelectorProps> = ({
   const [labelPrimaryId] = useState(() => `${id}-label-primary`);
   const [labelSecondaryId] = useState(() => `${id}-label`);
   const [errorMessage, setErrorMessage] = useState<string>(null);
-  const [filename, setFilename] = useState<string>(null);
+  const [filename, setFilename] = useState<string>(initialFilename);
   const [filenameTruncated, setFilenameTruncated] = useState<string>(null);
   const [isDraggingOver, setIsDraggingOver] = useState(false);
   const inputRef = useRef<HTMLInputElement>();
@@ -94,7 +96,7 @@ export const FileSelector: FunctionComponent<FileSelectorProps> = ({
       const readAsArrayBuffer = extension.toLowerCase() !== '.csv';
       const content = await readFile(file, readAsArrayBuffer);
 
-      onReadFile({ filename: filename, extension, content });
+      onReadFile({ filename: file.name, extension, content });
     } catch (ex) {
       setErrorMessage(ex.message);
       setFilename(null);

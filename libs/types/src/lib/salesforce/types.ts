@@ -201,6 +201,7 @@ export interface BulkJobBatchInfo {
   id: string;
   jobId: string;
   state: 'Queued' | 'InProgress' | 'Completed' | 'Failed' | 'NotProcessed';
+  stateMessage?: string;
   createdDate: string;
   systemModstamp: string;
   totalProcessingTime: number;

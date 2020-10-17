@@ -92,6 +92,11 @@ export const LoadRecordsBulkApiResultsTableRow: FunctionComponent<LoadRecordsBul
                   )} */}
           </Grid>
         )}
+        {batch.state === 'Failed' && batch.stateMessage && (
+          <div className="slds-cell-wrap slds-line-clamp slds-text-color_error" title="{batch.stateMessage}">
+            {batch.stateMessage}
+          </div>
+        )}
       </td>
       <td>
         <div className="slds-truncate" title={batch.createdDate}>

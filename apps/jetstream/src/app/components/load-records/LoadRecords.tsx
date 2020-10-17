@@ -16,8 +16,8 @@ import {
 import { startCase } from 'lodash';
 import { FunctionComponent, useEffect, useRef, useState } from 'react';
 import { useRecoilState, useRecoilValue } from 'recoil';
-import { selectedOrgState } from '../../app-state';
-import { EntityParticleRecordWithRelatedExtIds } from './load-records-types';
+import { selectedOrgState, selectedOrgType } from '../../app-state';
+import { EntityParticleRecordWithRelatedExtIds, Step } from './load-records-types';
 import * as fromLoadRecordsState from './load-records.state';
 import LoadRecordsProgress from './components/LoadRecordsProgress';
 import LoadRecordsFieldMapping from './steps/FieldMapping';
@@ -30,12 +30,23 @@ import numeral from 'numeral';
 
 const HEIGHT_BUFFER = 170;
 
+const steps: Step[] = [
+  { idx: 0, name: 'sobjectAndFile', label: 'Choose Object and Load File', active: true, enabled: true },
+  { idx: 1, name: 'fieldMapping', label: 'Map Fields', active: false, enabled: true },
+  { idx: 2, name: 'automationDeploy', label: 'Disable Automation (optional)', active: false, enabled: false },
+  { idx: 3, name: 'loadRecords', label: 'Load Data', active: false, enabled: true },
+  { idx: 4, name: 'automationRollback', label: 'Rollback Automation (optional)', active: false, enabled: false },
+];
+
+const enabledSteps: Step[] = steps.filter((step) => step.enabled);
+
 // eslint-disable-next-line @typescript-eslint/no-empty-interface
 export interface LoadRecordsProps {}
 
 export const LoadRecords: FunctionComponent<LoadRecordsProps> = () => {
   const isMounted = useRef(null);
   const selectedOrg = useRecoilValue<SalesforceOrgUi>(selectedOrgState);
+  const orgType = useRecoilValue(selectedOrgType);
   // TODO: probably need this to know when to reset state
   const [priorSelectedOrg, setPriorSelectedOrg] = useRecoilState(fromLoadRecordsState.priorSelectedOrg);
   const [sobjects, setSobjects] = useRecoilState(fromLoadRecordsState.sObjectsState);
@@ -47,6 +58,7 @@ export const LoadRecords: FunctionComponent<LoadRecordsProps> = () => {
   const [externalId, setExternalId] = useState<string>('');
   const [inputFileData, setInputFileData] = useRecoilState(fromLoadRecordsState.inputFileDataState);
   const [inputFileHeader, setInputFileHeader] = useRecoilState(fromLoadRecordsState.inputFileHeaderState);
+  const [inputFilename, setInputFilename] = useRecoilState(fromLoadRecordsState.inputFilenameState);
   const [fieldMapping, setFieldMapping] = useRecoilState(fromLoadRecordsState.fieldMappingState);
 
   const [loading, setLoading] = useState<boolean>(false);
@@ -54,15 +66,21 @@ export const LoadRecords: FunctionComponent<LoadRecordsProps> = () => {
   const [errorMessage, setErrorMessage] = useState<string>(null);
   const [deployModalActive, setDeployModalActive] = useState<boolean>(false);
 
-  const [currentStep, setCurrentStep] = useState<number>(0);
+  const [currentStep, setCurrentStep] = useState<Step>(steps[0]);
+  const [currentStepIdx, setCurrentStepIdx] = useState<number>(0);
   const [currentStepText, setCurrentStepText] = useState<string>('');
   const [nextStepDisabled, setNextStepDisabled] = useState<boolean>(true);
+  const [hasNextStep, setHasNextStep] = useState<boolean>(true);
   const [loadSummaryText, setLoadSummaryText] = useState<string>('');
 
   useEffect(() => {
     isMounted.current = true;
     return () => (isMounted.current = false);
   }, []);
+
+  useEffect(() => {
+    setCurrentStepIdx(enabledSteps.findIndex((step) => step.idx === currentStep.idx));
+  }, [currentStep]);
 
   useEffect(() => {
     if (selectedSObject) {
@@ -104,8 +122,8 @@ export const LoadRecords: FunctionComponent<LoadRecordsProps> = () => {
   useEffect(() => {
     let currStepButtonText = '';
     let isNextStepDisabled = true;
-    switch (currentStep) {
-      case 0:
+    switch (currentStep.name) {
+      case 'sobjectAndFile':
         currStepButtonText = 'Continue to Map Fields';
         isNextStepDisabled =
           !selectedSObject ||
@@ -115,21 +133,23 @@ export const LoadRecords: FunctionComponent<LoadRecordsProps> = () => {
           (loadType === 'UPSERT' && !externalId) ||
           loadingFields;
         break;
-      case 1:
-        // TODO: Allow skipping this step
-        currStepButtonText = 'Continue to Disable Automation';
+      case 'fieldMapping':
+        // currStepButtonText = 'Continue to Disable Automation';
+        currStepButtonText = 'Continue to Load Records';
         isNextStepDisabled = !fieldMapping || Object.keys(fieldMapping).length === 0;
         break;
-      case 2:
+      case 'automationDeploy':
         currStepButtonText = 'Continue to Load Records';
         isNextStepDisabled = false;
         break;
-      case 3:
+      case 'loadRecords':
         // TODO: Only show this if automation was disabled
-        currStepButtonText = 'Continue to Rollback Automation';
-        isNextStepDisabled = false;
+        // currStepButtonText = 'Continue to Rollback Automation';
+        currStepButtonText = 'Done';
+        isNextStepDisabled = true;
+        setHasNextStep(false); // FIXME: this is temp solution to remove next arrow
         break;
-      case 4:
+      case 'automationRollback':
         // TODO: Only show this if automation was disabled
         currStepButtonText = 'Done';
         isNextStepDisabled = true;
@@ -167,11 +187,18 @@ export const LoadRecords: FunctionComponent<LoadRecordsProps> = () => {
     setLoadSummaryText(text.join(' • '));
   }, [selectedSObject, loadType, fieldMapping, inputFileHeader]);
 
-  function handleFileChange(data: any[], headers: string[]) {
+  function handleFileChange(data: any[], headers: string[], filename: string) {
     setInputFileData(data);
     setInputFileHeader(headers);
-    // TODO: fetch fields (useEffect)
-    // set external ids (useEffect)
+    setInputFilename(filename);
+  }
+
+  function changeStep(changeBy: number) {
+    setCurrentStep(enabledSteps[currentStepIdx + changeBy]);
+  }
+
+  function handleIsLoading(isLoading: boolean) {
+    setLoading(isLoading);
   }
 
   return (
@@ -181,21 +208,13 @@ export const LoadRecords: FunctionComponent<LoadRecordsProps> = () => {
           <PageHeaderTitle icon={{ type: 'standard', icon: 'data_streams' }} label="Load Records" />
           <PageHeaderActions colType="actions" buttonType="separate">
             {/* TODO: move to component since there is a bit of logic. */}
-            <button
-              className="slds-button slds-button_neutral"
-              onClick={() => setCurrentStep(currentStep - 1)}
-              disabled={currentStep === 0 || loading}
-            >
+            <button className="slds-button slds-button_neutral" onClick={() => changeStep(-1)} disabled={currentStep.idx === 0 || loading}>
               <Icon type="utility" icon="back" className="slds-button__icon slds-button__icon_left" />
               Go Back To Previous Step
             </button>
-            <button
-              className="slds-button slds-button_brand slds-is-relative"
-              onClick={() => setCurrentStep(currentStep + 1)}
-              disabled={nextStepDisabled}
-            >
+            <button className="slds-button slds-button_brand slds-is-relative" onClick={() => changeStep(1)} disabled={nextStepDisabled}>
               {currentStepText}
-              <Icon type="utility" icon="forward" className="slds-button__icon slds-button__icon_right" />
+              {hasNextStep && <Icon type="utility" icon="forward" className="slds-button__icon slds-button__icon_right" />}
               {loadingFields && <Spinner size="small" />}
             </button>
           </PageHeaderActions>
@@ -207,7 +226,7 @@ export const LoadRecords: FunctionComponent<LoadRecordsProps> = () => {
       <AutoFullHeightContainer className="slds-p-horizontal_x-small slds-scrollable_none" bufferIfNotRendered={HEIGHT_BUFFER}>
         <Grid gutters>
           <GridCol>
-            {currentStep === 0 && (
+            {currentStep.name === 'sobjectAndFile' && (
               <LoadRecordsSelectObjectAndFile
                 selectedOrg={selectedOrg}
                 sobjects={sobjects}
@@ -216,6 +235,7 @@ export const LoadRecords: FunctionComponent<LoadRecordsProps> = () => {
                 externalIdFields={externalIdFields}
                 loadingFields={loadingFields}
                 externalId={externalId}
+                inputFilename={inputFilename}
                 onSobjects={setSobjects}
                 onSelectedSobject={setSelectedSObject}
                 onFileChange={handleFileChange}
@@ -223,7 +243,7 @@ export const LoadRecords: FunctionComponent<LoadRecordsProps> = () => {
                 onExternalIdChange={setExternalId}
               />
             )}
-            {currentStep === 1 && (
+            {currentStep.name === 'fieldMapping' && (
               <span>
                 <LoadRecordsFieldMapping
                   fields={mappableFields}
@@ -234,37 +254,33 @@ export const LoadRecords: FunctionComponent<LoadRecordsProps> = () => {
                 />
               </span>
             )}
-            {currentStep === 2 && (
+            {currentStep.name === 'automationDeploy' && (
               <span>
                 <LoadRecordsLoadAutomationDeploy />
               </span>
             )}
-            {currentStep === 3 && (
+            {currentStep.name === 'loadRecords' && (
               <span>
                 <LoadRecordsPerformLoad
                   selectedOrg={selectedOrg}
+                  orgType={orgType}
                   selectedSObject={selectedSObject.name}
                   loadType={loadType}
                   fieldMapping={fieldMapping}
                   inputFileData={inputFileData}
                   externalId={externalId}
+                  onIsLoading={handleIsLoading}
                 />
               </span>
             )}
-            {currentStep === 4 && (
+            {currentStep.name === 'automationRollback' && (
               <span>
                 <LoadRecordsLoadAutomationRollback />
               </span>
             )}
           </GridCol>
           <GridCol size={2}>
-            <LoadRecordsProgress
-              currentStep={currentStep}
-              hasFileData={!!inputFileData?.length}
-              hasSelectedObject={!!selectedSObject}
-              loadType={loadType}
-              hasExternalId={!!externalId}
-            />
+            <LoadRecordsProgress currentStepIdx={currentStepIdx} enabledSteps={enabledSteps} />
           </GridCol>
         </Grid>
       </AutoFullHeightContainer>
