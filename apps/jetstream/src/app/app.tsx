@@ -17,7 +17,7 @@ import OrgSelectionRequired from './components/orgs/OrgSelectionRequired';
 const Query = lazy(() => import('./components/query/Query'));
 const AutomationControl = lazy(() => import('./components/automation-control/AutomationControl'));
 const Feedback = lazy(() => import('./components/feedback/Feedback'));
-const ffAll = new Set('All');
+const ffAll = new Set(['all']);
 
 export const App = () => {
   const [userProfile, setUserProfile] = useState<UserProfileUi>();
