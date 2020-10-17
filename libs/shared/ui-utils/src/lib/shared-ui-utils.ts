@@ -19,7 +19,7 @@ import { unparse } from 'papaparse';
 import { LiteralType, Operator, WhereClause } from 'soql-parser-js';
 import { Placement as tippyPlacement } from 'tippy.js';
 import * as XLSX from 'xlsx';
-import { checkMetadataResults } from '../../../data/src';
+import { checkMetadataResults } from '@jetstream/shared/data';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function parseQueryParams<T = any>(queryString: string): T {

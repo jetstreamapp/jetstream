@@ -6,7 +6,7 @@ import { UserProfileUi } from '@jetstream/types';
 import { ConfirmationServiceProvider } from '@jetstream/ui';
 import { lazy, Suspense, useEffect, useState } from 'react';
 import { ErrorBoundary } from 'react-error-boundary';
-import { BrowserRouter as Router, Route, Switch } from 'react-router-dom';
+import { BrowserRouter as Router, Redirect, Route, Switch } from 'react-router-dom';
 import { RecoilRoot } from 'recoil';
 import AppInitializer from './components/core/AppInitializer';
 import ErrorBoundaryFallback from './components/core/ErrorBoundaryFallback';
@@ -16,6 +16,7 @@ import OrgSelectionRequired from './components/orgs/OrgSelectionRequired';
 const Query = lazy(() => import('./components/query/Query'));
 const AutomationControl = lazy(() => import('./components/automation-control/AutomationControl'));
 const Feedback = lazy(() => import('./components/feedback/Feedback'));
+const ffAll = new Set('All');
 
 export const App = () => {
   const [userProfile, setUserProfile] = useState<UserProfileUi>();
@@ -64,10 +65,11 @@ export const App = () => {
                         <Route path="/feedback">
                           <Feedback />
                         </Route>
-                        {/* This is taking precedence on reload ;( */}
-                        {/* <Route path="*">
-                          <Redirect to="/query" />
-                        </Route> */}
+                        {hasFeatureFlagAccess(ffAll, FEATURE_FLAGS.QUERY) && (
+                          <Route path="*">
+                            <Redirect to="/query" />
+                          </Route>
+                        )}
                       </Switch>
                     </ErrorBoundary>
                   </Suspense>

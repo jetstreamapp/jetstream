@@ -138,10 +138,10 @@ export const QueryBuilder: FunctionComponent<QueryBuilderProps> = () => {
             <PageHeaderTitle icon={{ type: 'standard', icon: 'entity' }} label="Query Records" />
             <PageHeaderActions colType="actions" buttonType="separate">
               <QueryResetButton />
-              <button className={classNames('slds-button slds-button_neutral')} aria-haspopup="true" title="Favorites">
+              {/* <button className={classNames('slds-button slds-button_neutral')} aria-haspopup="true" title="Favorites">
                 <Icon type="utility" icon="favorite" className="slds-button__icon slds-button__icon_left" omitContainer />
                 View Favorites
-              </button>
+              </button> */}
               <QueryHistory />
               {soql && (
                 <Link
