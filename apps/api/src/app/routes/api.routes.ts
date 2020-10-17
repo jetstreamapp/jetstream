@@ -5,6 +5,7 @@ import * as sfMiscController from '../controllers/sf-misc.controller';
 import * as userController from '../controllers/user.controller';
 import * as orgsController from '../controllers/orgs.controller';
 import * as metadataToolingController from '../controllers/sf-metadata-tooling.controller';
+import * as bulkApiController from '../controllers/sf-bulk-api.controller';
 import { addOrgsToLocal, checkAuth, ensureOrgExists, validate } from './route.middleware';
 
 const routes: express.Router = Router();
@@ -51,5 +52,10 @@ routes.post(
   validate(sfMiscController.routeValidators.makeJsforceRequest),
   sfMiscController.makeJsforceRequest
 );
+
+routes.post('/bulk', ensureOrgExists, validate(bulkApiController.routeValidators.createJob), bulkApiController.createJob);
+routes.get('/bulk/:jobId', ensureOrgExists, validate(bulkApiController.routeValidators.getJob), bulkApiController.getJob);
+routes.delete('/bulk/:jobId', ensureOrgExists, validate(bulkApiController.routeValidators.closeJob), bulkApiController.closeJob);
+routes.post('/bulk/:jobId', ensureOrgExists, validate(bulkApiController.routeValidators.addBatchToJob), bulkApiController.addBatchToJob);
 
 export default routes;

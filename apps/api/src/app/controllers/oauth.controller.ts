@@ -49,7 +49,7 @@ export async function salesforceOauthCallback(req: express.Request, res: express
     if (req.query.error) {
       const errorMsg = req.query.error_description ? req.query.error_description : 'There was an error authenticating Salesforce.';
       const errorObj = { message: errorMsg, error: req.query.error };
-      return res.redirect(`/oauth?${querystring.stringify(errorObj)}`);
+      return res.redirect(`/assets/oauth?${querystring.stringify(errorObj)}`);
     }
 
     const conn = new jsforce.Connection({ oauth2: getJsforceOauth2(loginUrl as string) });
@@ -139,11 +139,11 @@ export async function salesforceOauthCallback(req: express.Request, res: express
     // TODO: we need to return a web-page that will use something to send org details back to core app
     // https://stackoverflow.com/questions/28230845/communication-between-tabs-or-windows
 
-    return res.redirect(`/oauth?${querystring.stringify(salesforceOrg)}&clientUrl=${clientUrl}`);
+    return res.redirect(`/assets/oauth?${querystring.stringify(salesforceOrg)}&clientUrl=${clientUrl}`);
   } catch (ex) {
     logger.info('[OAUTH][ERROR] %o', ex.message);
     const errorMsg = req.query.error_description ? req.query.error_description : 'There was an error authenticating Salesforce.';
     const errorObj = { message: errorMsg, error: ex.message };
-    return res.redirect(`/oauth?${querystring.stringify(errorObj)}`);
+    return res.redirect(`/assets/oauth?${querystring.stringify(errorObj)}`);
   }
 }

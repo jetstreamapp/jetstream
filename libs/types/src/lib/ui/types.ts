@@ -9,13 +9,6 @@ export type FileExtCsv = 'csv';
 export type FileExtXLSX = 'xlsx';
 export type FileExtCsvXLSX = FileExtCsv | FileExtXLSX;
 
-export type IconType = 'action' | 'custom' | 'doctype' | 'standard' | 'utility';
-export interface IconObj {
-  type: IconType;
-  icon: string;
-  description?: string;
-}
-
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export interface WorkerMessage<T, K = any, E = any> {
   name: T;
@@ -157,6 +150,11 @@ export type MimeTypeCsv = 'text/csv;charset=utf-8';
 export type MimeTypeOctetStream = 'application/octet-stream;charset=utf-8';
 export type MimeTypeZip = 'application/zip;charset=utf-8';
 
+export type InputAcceptType = InputAcceptTypeZip | InputAcceptTypeCsv | InputAcceptTypeExcel;
+export type InputAcceptTypeZip = 'application/zip';
+export type InputAcceptTypeCsv = 'text/csv';
+export type InputAcceptTypeExcel = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
+
 // Generic status types
 export type Info = 'info';
 export type Success = 'success';
@@ -279,7 +277,7 @@ export interface DropDownItem<T = any> {
   id: string;
   subheader?: string;
   value: string | ReactNode;
-  icon?: IconObj;
+  icon?: any; // FIXME:
   trailingDivider?: boolean;
   metadata?: T;
 }
@@ -294,7 +292,7 @@ export interface QueryFieldHeader {
 export interface FormGroupDropdownItem {
   id: string;
   label: string;
-  icon: IconObj;
+  icon: any; // FIXME:
 }
 
 export type AsyncJobType = 'BulkDelete' | 'BulkDownload';
@@ -348,4 +346,10 @@ export interface QueryHistorySelection {
   key: string;
   name: string;
   label: string;
+}
+
+export interface InputReadFileContent {
+  filename: string;
+  extension: string;
+  content: string | ArrayBuffer;
 }

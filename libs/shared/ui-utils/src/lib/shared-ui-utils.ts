@@ -18,8 +18,10 @@ import isString from 'lodash/isString';
 import { unparse } from 'papaparse';
 import { LiteralType, Operator, WhereClause } from 'soql-parser-js';
 import { Placement as tippyPlacement } from 'tippy.js';
+import { parse as parseCsv, unparse as unparseCsv, UnparseConfig } from 'papaparse';
 import * as XLSX from 'xlsx';
 import { checkMetadataResults } from '@jetstream/shared/data';
+import { parseISO } from 'date-fns';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function parseQueryParams<T = any>(queryString: string): T {
@@ -169,9 +171,8 @@ export function polyfillFieldDefinition(field: Field) {
 
 export function prepareExcelFile(data: MapOf<string>[], header: string[]): ArrayBuffer {
   const workbook = XLSX.utils.book_new();
-  const worksheet = XLSX.utils.json_to_sheet<MapOf<string>>(data, {
-    header,
-  });
+  const worksheet = XLSX.utils.aoa_to_sheet(convertArrayOfObjectToArrayOfArray(data, header));
+
   XLSX.utils.book_append_sheet(workbook, worksheet, 'Records');
 
   // https://github.com/sheetjs/sheetjs#writing-options
@@ -189,7 +190,7 @@ export function prepareCsvFile(data: MapOf<string>[], header: string[]): string 
       data,
       fields: header,
     },
-    { header: true, quotes: true }
+    { header: true, quotes: true, delimiter: detectDelimiter() }
   );
 }
 
@@ -426,8 +427,9 @@ function convertQueryFilterOperator(operator: QueryFilterOperator): Operator {
  * Generate authentication in the url from a salesforce
  * @param org
  */
-export function getOrgUrlParams(org: SalesforceOrgUi): string {
+export function getOrgUrlParams(org: SalesforceOrgUi, additionalParams: { [param: string]: string } = {}): string {
   const params = {
+    ...additionalParams,
     [HTTP.HEADERS.X_SFDC_ID]: org.uniqueId || '',
   };
   return Object.keys(params)
@@ -557,4 +559,108 @@ export async function pollMetadataResultsUntilDone(
     throw new Error('Timed out while checking for metadata results');
   }
   return deployResults;
+}
+
+/**
+ * Read file in browser using FileReader
+ * @param file
+ * @param readAsArrayBuffer
+ */
+export function readFile(file: File, readAsArrayBuffer = false): Promise<string | ArrayBuffer> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    if (readAsArrayBuffer) {
+      reader.readAsArrayBuffer(file);
+    } else {
+      reader.readAsText(file);
+    }
+    reader.onload = (event: ProgressEvent<FileReader>) => {
+      resolve(reader.result);
+    };
+    reader.onabort = (event: ProgressEvent<FileReader>) => {
+      logger.log('onabort', { event });
+      reject(new Error('Reading the file was aborted'));
+    };
+    reader.onerror = (event: ProgressEvent<FileReader>) => {
+      logger.log('onerror', { event });
+      reject(reader.error);
+    };
+  });
+}
+
+/**
+ * Parse file
+ * Supported Types: CSV / XLSX
+ *
+ * TODO: support other filetypes (.zip)
+ *
+ * @param content string | ArrayBuffer
+ */
+export function parseFile(
+  content: string | ArrayBuffer
+): {
+  data: any[];
+  headers: string[];
+} {
+  if (isString(content)) {
+    // csv - read from papaparse
+    const csvResult = parseCsv(content, {
+      delimiter: detectDelimiter(),
+      header: true,
+      skipEmptyLines: true,
+      preview: 0, // TODO: allow options to control things like this
+    });
+    return {
+      data: csvResult.data,
+      headers: csvResult.meta.fields,
+    };
+  } else {
+    // ArrayBuffer - xlsx file
+    const workbook = XLSX.read(content, { cellText: false, cellDates: true, type: 'array' });
+    const data = XLSX.utils.sheet_to_json(workbook.Sheets[workbook.SheetNames[0]], {
+      dateNF: 'yyyy"-"mm"-"dd"T"hh:mm:ss',
+      defval: '',
+      blankrows: false,
+      rawNumbers: true,
+    });
+    return {
+      data,
+      headers: data.length > 0 ? Object.keys(data[0]) : [],
+    };
+  }
+}
+
+export function generateCsv(data: object[], options: UnparseConfig = {}): string {
+  options = options || {};
+  options.newline = options.newline || '\n';
+  if (!options.delimiter) {
+    options.delimiter = detectDelimiter();
+  }
+  return unparseCsv(data, options);
+}
+
+function detectDelimiter(): string {
+  let delimiter = ',';
+  try {
+    // determine if delimiter is the same as the decimal symbol in current locale
+    // if so, change delimiter to ;
+    if (delimiter === (1.1).toLocaleString(navigator.language).substring(1, 2)) {
+      delimiter = ';';
+    }
+  } catch (ex) {
+    logger.warn('[ERROR] Error detecting CSV delimiter', ex);
+  }
+  return delimiter;
+}
+
+export function convertDateToLocale(isoDateStr: string) {
+  return parseISO(isoDateStr).toLocaleString();
+}
+
+export function convertArrayOfObjectToArrayOfArray(data: any[], headers?: string[]): any[][] {
+  if (!data || !data.length) {
+    return [];
+  }
+  headers = headers || Object.keys(data[0]);
+  return [headers].concat(data.map((row) => headers.map((header) => row[header])));
 }

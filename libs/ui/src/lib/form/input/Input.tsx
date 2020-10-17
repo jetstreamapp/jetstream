@@ -5,7 +5,7 @@ import classNames from 'classnames';
 import { Fragment, FunctionComponent } from 'react';
 import HelpText from '../../widgets/HelpText';
 import Icon from '../../widgets/Icon';
-import { IconType } from '@jetstream/types';
+import { IconType, IconName } from '@jetstream/icon-factory';
 
 export interface InputProps {
   id?: string;
@@ -17,9 +17,9 @@ export interface InputProps {
   isRequired?: boolean;
   errorMessageId?: string;
   errorMessage?: React.ReactNode | string;
-  iconLeft?: string;
+  iconLeft?: IconName;
   iconLeftType?: IconType;
-  iconRight?: string;
+  iconRight?: IconName;
   iconRightType?: IconType;
   leftAddon?: React.ReactNode | string;
   rightAddon?: React.ReactNode | string;

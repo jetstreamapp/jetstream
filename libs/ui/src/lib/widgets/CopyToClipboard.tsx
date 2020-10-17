@@ -1,5 +1,6 @@
 import React, { FunctionComponent, useState, useEffect } from 'react';
-import { IconObj, SizeXSmallSmallLarge, SizeXXSmallXSmallSmall } from '@jetstream/types';
+import { SizeXSmallSmallLarge, SizeXXSmallXSmallSmall } from '@jetstream/types';
+import { IconObj } from '@jetstream/icon-factory';
 import Icon from './Icon';
 import classNames from 'classnames';
 import useClipboard from 'react-use-clipboard';

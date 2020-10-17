@@ -1,4 +1,4 @@
-import { HttpMethod, MapOf } from '../types';
+import { HttpMethod, MapOf, RecordAttributes } from '../types';
 
 export type SalesforceOrgEdition =
   | 'Team Edition'
@@ -70,6 +70,12 @@ export interface FieldDefinition {
   IsPolymorphicForeignKey: boolean;
 }
 
+export type Insert = 'INSERT';
+export type Update = 'UPDATE';
+export type Upsert = 'UPSERT';
+export type Delete = 'DELETE';
+export type InsertUpdateUpsertDelete = Insert | Update | Upsert | Delete;
+
 export interface ErrorResult {
   errors: {
     fields: string[];
@@ -86,6 +92,16 @@ export interface SuccessResult {
 // NOTE: this type is returned for composite API if an array of data is passed to SFDC
 // if one record, then the source in the jsforce type library is used
 export type RecordResult = SuccessResult | ErrorResult;
+export type RecordResultWithRecord = RecordResult & { record: any };
+
+export interface SobjectCollectionRequest {
+  allOrNone?: boolean;
+  records?: SobjectCollectionRequestRecord[];
+}
+
+export type SobjectCollectionRequestRecord<T = { [field: string]: any }> = T & { attributes: { type: string } };
+
+export type SobjectCollectionResponse = RecordResult[];
 
 export interface CompositeRequest {
   allOrNone?: boolean;
@@ -106,4 +122,105 @@ export interface CompositeResponse<T = unknown> {
     httpStatusCode: number;
     referenceId: string;
   }[];
+}
+
+/**
+ * SALESFORCE RECORDS
+ */
+
+export interface EntityParticleRecord {
+  attributes: RecordAttributes;
+  Id: string;
+  Name: string;
+  Label: string;
+  IsIdLookup: boolean;
+  DataType: string;
+  ValueTypeId: string;
+  ReferenceTo: {
+    referenceTo: null | string[];
+  };
+  EntityDefinitionId: string;
+  IsCreatable: boolean;
+  IsUpdatable: boolean;
+  QualifiedApiName: string;
+  RelationshipName: string | null;
+}
+
+export type BulkJobWithBatches = BulkJob & { batches: BulkJobBatchInfo[] };
+
+export interface BulkJob {
+  concurrencyMode: 'Parallel' | 'Serial';
+  contentType: string;
+  createdById: string;
+  createdDate: string;
+  id: string;
+  object: string;
+  operation: InsertUpdateUpsertDelete;
+  state: 'Open' | 'Closed' | 'Aborted' | 'Failed';
+  systemModstamp: string;
+  apexProcessingTime: number;
+  apiActiveProcessingTime: number;
+  apiVersion: number;
+  numberBatchesCompleted: number;
+  numberBatchesFailed: number;
+  numberBatchesInProgress: number;
+  numberBatchesQueued: number;
+  numberBatchesTotal: number;
+  numberRecordsFailed: number;
+  numberRecordsProcessed: number;
+  numberRetries: number;
+  totalProcessingTime: number;
+}
+
+export interface BulkJobUntyped extends Object {
+  $: any;
+  concurrencyMode: 'Parallel' | 'Serial';
+  contentType: string;
+  createdById: string;
+  createdDate: string;
+  id: string;
+  object: string;
+  operation: InsertUpdateUpsertDelete;
+  state: 'Open' | 'Closed' | 'Aborted' | 'Failed';
+  systemModstamp: string;
+  apexProcessingTime: string | number;
+  apiActiveProcessingTime: string | number;
+  apiVersion: string | number;
+  numberBatchesCompleted: string | number;
+  numberBatchesFailed: string | number;
+  numberBatchesInProgress: string | number;
+  numberBatchesQueued: string | number;
+  numberBatchesTotal: string | number;
+  numberRecordsFailed: string | number;
+  numberRecordsProcessed: string | number;
+  numberRetries: string | number;
+  totalProcessingTime: string | number;
+}
+
+export interface BulkJobBatchInfo {
+  id: string;
+  jobId: string;
+  state: 'Queued' | 'InProgress' | 'Completed' | 'Failed' | 'NotProcessed';
+  stateMessage?: string;
+  createdDate: string;
+  systemModstamp: string;
+  totalProcessingTime: number;
+  numberRecordsProcessed: number;
+  numberRecordsFailed: number;
+  apiActiveProcessingTime: number;
+  apexProcessingTime: number;
+}
+
+export interface BulkJobBatchInfoUntyped extends Object {
+  $: any;
+  id: string;
+  jobId: string;
+  state: 'Queued' | 'InProgress' | 'Completed' | 'Failed' | 'NotProcessed';
+  createdDate: string;
+  systemModstamp: string;
+  totalProcessingTime: string | number;
+  numberRecordsProcessed: string | number;
+  numberRecordsFailed: string | number;
+  apiActiveProcessingTime: string | number;
+  apexProcessingTime: string | number;
 }

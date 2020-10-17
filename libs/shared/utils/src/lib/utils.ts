@@ -1,5 +1,5 @@
-import { orderBy, isString, get as lodashGet, isBoolean } from 'lodash';
-import { MapOf, Record } from '@jetstream/types';
+import { orderBy, isString, get as lodashGet, isBoolean, isNil } from 'lodash';
+import { MapOf, Record, BulkJob, BulkJobUntyped, BulkJobBatchInfo, BulkJobBatchInfoUntyped } from '@jetstream/types';
 import { isObject } from 'util';
 import { REGEX } from './regex';
 import { unix } from 'moment-mini';
@@ -168,6 +168,13 @@ export function ensureBoolean(value: string | boolean | null | undefined) {
   return !!value;
 }
 
+export function ensureArray<T = unknown>(value: T): T {
+  if (isNil(value)) {
+    return [] as any;
+  }
+  return (Array.isArray(value) ? value : [value]) as any;
+}
+
 /**
  * Returns a promise that is delayed by {milliseconds}
  * @param milliseconds
@@ -175,4 +182,39 @@ export function ensureBoolean(value: string | boolean | null | undefined) {
 export async function delay(milliseconds: number) {
   // return await for better async stack trace support in case of errors.
   return await new Promise((resolve) => setTimeout(resolve, milliseconds));
+}
+
+export function isValidDate(date: Date) {
+  return date instanceof Date && !isNaN(date.getTime());
+}
+
+export function bulkApiEnsureTyped(job: BulkJobBatchInfo | BulkJobBatchInfoUntyped): BulkJobBatchInfo;
+export function bulkApiEnsureTyped(job: BulkJob | BulkJobUntyped): BulkJob;
+export function bulkApiEnsureTyped(job: any | any): BulkJob | BulkJobBatchInfo {
+  if (!isObject(job)) {
+    return job as BulkJob | BulkJobBatchInfo;
+  }
+  const numberTypes = [
+    'apexProcessingTime',
+    'apiActiveProcessingTime',
+    'apiVersion',
+    'numberBatchesCompleted',
+    'numberBatchesFailed',
+    'numberBatchesInProgress',
+    'numberBatchesQueued',
+    'numberBatchesTotal',
+    'numberRecordsFailed',
+    'numberRecordsProcessed',
+    'numberRetries',
+    'totalProcessingTime',
+  ];
+  if (job['$']) {
+    job['$'] = undefined;
+  }
+  numberTypes.forEach((prop) => {
+    if (job.hasOwnProperty(prop) && typeof job[prop] === 'string') {
+      job[prop] = Number(job[prop]);
+    }
+  });
+  return job as BulkJob | BulkJobBatchInfo;
 }

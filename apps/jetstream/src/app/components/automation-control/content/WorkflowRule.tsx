@@ -25,7 +25,7 @@ export const AutomationControlContentWorkflowRule: FunctionComponent<AutomationC
   onChange,
 }) => {
   return (
-    <table className="slds-table slds-table_cell-buffer slds-table_bordered slds-no-row-hover">
+    <table className="slds-table slds-table_cell-buffer slds-table_bordered">
       <thead>
         <tr className="slds-line-height_reset">
           <th

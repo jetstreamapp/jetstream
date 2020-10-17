@@ -1,0 +1,11 @@
+{
+  "typescript": true,
+  "dimensions": false,
+  "svgProps": {
+    "aria-hidden": "true"
+  },
+  "replaceAttrValues": {
+    "#FFF": "unset",
+    "#fff": "unset"
+  }
+}

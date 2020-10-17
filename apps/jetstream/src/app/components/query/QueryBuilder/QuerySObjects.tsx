@@ -4,7 +4,7 @@ import { orderObjectsBy } from '@jetstream/shared/utils';
 import { SalesforceOrgUi } from '@jetstream/types';
 import { SobjectList } from '@jetstream/ui';
 import { DescribeGlobalSObjectResult } from 'jsforce';
-import React, { Fragment, FunctionComponent, useEffect, useState } from 'react';
+import React, { Fragment, FunctionComponent, useEffect, useRef, useState } from 'react';
 import { useRecoilState, useRecoilValue } from 'recoil';
 import { selectedOrgState } from '../../../app-state';
 import * as fromQueryState from '../query.state';
@@ -13,6 +13,7 @@ import * as fromQueryState from '../query.state';
 export interface QuerySObjectsProps {}
 
 export const QuerySObjects: FunctionComponent<QuerySObjectsProps> = () => {
+  const isMounted = useRef(null);
   const [sobjects, setSobjects] = useRecoilState(fromQueryState.sObjectsState);
   const [selectedSObject, setSelectedSObject] = useRecoilState(fromQueryState.selectedSObjectState);
   const [loading, setLoading] = useState<boolean>(false);
@@ -20,14 +21,26 @@ export const QuerySObjects: FunctionComponent<QuerySObjectsProps> = () => {
   const selectedOrg = useRecoilValue<SalesforceOrgUi>(selectedOrgState);
 
   useEffect(() => {
+    isMounted.current = true;
+    return () => (isMounted.current = false);
+  }, []);
+
+  useEffect(() => {
     if (selectedOrg && !loading && !errorMessage && !sobjects) {
+      const uniqueId = selectedOrg.uniqueId;
       (async () => {
         setLoading(true);
         try {
           const results = await describeGlobal(selectedOrg);
+          if (!isMounted.current || uniqueId !== selectedOrg.uniqueId) {
+            return;
+          }
           setSobjects(orderObjectsBy(results.sobjects.filter(filterSobjectFn), 'label'));
         } catch (ex) {
           logger.error(ex);
+          if (!isMounted.current || uniqueId !== selectedOrg.uniqueId) {
+            return;
+          }
           setErrorMessage(ex.message);
         }
         setLoading(false);

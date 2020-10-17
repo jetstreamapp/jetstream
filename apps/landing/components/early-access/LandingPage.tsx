@@ -1,7 +1,7 @@
 import React from 'react';
 import CallToActionFooter from './CallToActionFooter';
 import CallToActionHeader from './CallToActionHeader';
-// import Faq from './FrequentlyAskedQuestions';
+import Faq from './FrequentlyAskedQuestions';
 import SplitBrandPricing from './SplitBrandPricing';
 
 export const LandingPage = () => (
@@ -34,7 +34,7 @@ export const LandingPage = () => (
   </div> */}
 
     {/* END CALLOUT */}
-    {/* <Faq /> */}
+    <Faq />
     <CallToActionFooter />
   </div>
 );

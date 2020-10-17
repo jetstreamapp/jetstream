@@ -1,6 +1,6 @@
 import React, { FunctionComponent, ReactNode } from 'react';
 import Icon from '../widgets/Icon';
-import { IconObj } from '@jetstream/types';
+import { IconObj } from '@jetstream/icon-factory';
 import classNames from 'classnames';
 import isString from 'lodash/isString';
 

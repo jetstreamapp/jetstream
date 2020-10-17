@@ -37,7 +37,8 @@
       "tags": []
     },
     "types": {
-      "tags": []
+      "tags": [],
+      "implicitDependencies": ["icon-factory"]
     },
     "shared-utils": {
       "tags": []
@@ -79,6 +80,9 @@
       "tags": []
     },
     "shared-client-logger": {
+      "tags": []
+    },
+    "icon-factory": {
       "tags": []
     }
   },
