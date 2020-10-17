@@ -1,6 +1,6 @@
 import { atom, selector } from 'recoil';
 import isString from 'lodash/isString';
-import { SalesforceOrgUi, UserProfileUi, ApplicationCookie } from '@jetstream/types';
+import { SalesforceOrgUi, UserProfileUi, ApplicationCookie, SalesforceOrgUiType } from '@jetstream/types';
 import { getUserProfile, getOrgs } from '@jetstream/shared/data';
 import { parseCookie } from '@jetstream/shared/ui-utils';
 import { HTTP } from '@jetstream/shared/constants';
@@ -63,6 +63,20 @@ export const selectedOrgState = selector({
     const selectedOrgId = get(selectedOrgIdState);
     if (isString(selectedOrgId) && Array.isArray(salesforceOrgs)) {
       return salesforceOrgs.find((org) => org.uniqueId === selectedOrgId);
+    }
+    return undefined;
+  },
+});
+
+export const selectedOrgType = selector<SalesforceOrgUiType>({
+  key: 'selectedOrgType',
+  get: ({ get }) => {
+    const salesforceOrgs = get(selectedOrgState);
+    if (salesforceOrgs) {
+      if (salesforceOrgs.orgIsSandbox) {
+        return 'Sandbox';
+      }
+      return salesforceOrgs.orgOrganizationType === 'Developer Edition' ? 'Developer' : 'Production';
     }
     return undefined;
   },
