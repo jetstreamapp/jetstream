@@ -93,6 +93,8 @@ export interface SalesforceOrgUi {
   updatedAt?: string;
 }
 
+export type SalesforceOrgUiType = 'Sandbox' | 'Developer' | 'Production';
+
 export interface GenericRequestPayload {
   url: string;
   method: HttpMethod;

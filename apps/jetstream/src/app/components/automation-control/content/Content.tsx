@@ -15,10 +15,11 @@ import AutomationControlContentFlow from './Flow';
 import { AutomationControlContentValidationRule } from './ValidationRule';
 import AutomationControlContentWorkflowRule from './WorkflowRule';
 import classNames from 'classnames';
-import { SalesforceOrgUi } from '@jetstream/types';
+import { SalesforceOrgUi, SalesforceOrgUiType } from '@jetstream/types';
 
 interface AutomationControlTabContentProps {
   selectedOrg: SalesforceOrgUi;
+  orgType: SalesforceOrgUiType;
   serverUrl: string;
   item: AutomationControlParentSobject;
   isDirty: boolean;
@@ -50,6 +51,7 @@ function hasNoItems(item: AutomationControlMetadataType) {
 
 export const AutomationControlTabContent: FunctionComponent<AutomationControlTabContentProps> = ({
   selectedOrg,
+  orgType,
   serverUrl,
   item,
   isDirty,
@@ -143,6 +145,7 @@ export const AutomationControlTabContent: FunctionComponent<AutomationControlTab
                   selectedOrg={selectedOrg}
                   serverUrl={serverUrl}
                   items={item.automationItems.ApexTrigger.items}
+                  isReadOnly={orgType === 'Production'}
                   onChange={onChange}
                 />
               </AutomationControlContentContainer>

@@ -21,7 +21,10 @@ import { Placement as tippyPlacement } from 'tippy.js';
 import { parse as parseCsv, unparse as unparseCsv, UnparseConfig } from 'papaparse';
 import * as XLSX from 'xlsx';
 import { checkMetadataResults } from '@jetstream/shared/data';
+<<<<<<< HEAD
 import { parseISO } from 'date-fns';
+=======
+>>>>>>> master
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function parseQueryParams<T = any>(queryString: string): T {

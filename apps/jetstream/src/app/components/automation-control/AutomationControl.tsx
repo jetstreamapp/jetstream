@@ -3,7 +3,7 @@ import { jsx } from '@emotion/core';
 import { logger } from '@jetstream/shared/client-logger';
 import { query } from '@jetstream/shared/data';
 import { orderObjectsBy } from '@jetstream/shared/utils';
-import { SalesforceOrgUi, UiTabSection } from '@jetstream/types';
+import { SalesforceOrgUi, SalesforceOrgUiType, UiTabSection } from '@jetstream/types';
 import {
   AutoFullHeightContainer,
   Icon,
@@ -17,7 +17,7 @@ import {
 } from '@jetstream/ui';
 import { FunctionComponent, useEffect, useRef, useState } from 'react';
 import { useRecoilState, useRecoilValue, useResetRecoilState } from 'recoil';
-import { applicationCookieState, selectedOrgState } from '../../app-state';
+import { applicationCookieState, selectedOrgState, selectedOrgType } from '../../app-state';
 import {
   AutomationControlMetadataType,
   AutomationControlMetadataTypeItem,
@@ -48,6 +48,7 @@ export interface AutomationControlProps {}
 export const AutomationControl: FunctionComponent<AutomationControlProps> = () => {
   const isMounted = useRef(null);
   const selectedOrg = useRecoilValue<SalesforceOrgUi>(selectedOrgState);
+  const orgType = useRecoilValue<SalesforceOrgUiType>(selectedOrgType);
   const [priorSelectedOrg, setPriorSelectedOrg] = useRecoilState(fromAutomationCtlState.priorSelectedOrg);
   const [sobjects, setSobjects] = useRecoilState(fromAutomationCtlState.sObjectsState);
   const [loading, setLoading] = useState<boolean>(false);
@@ -143,6 +144,7 @@ export const AutomationControl: FunctionComponent<AutomationControlProps> = () =
             content: (
               <AutomationControlTabContent
                 selectedOrg={selectedOrg}
+                orgType={orgType}
                 serverUrl={serverUrl}
                 item={item}
                 isDirty={dirtyItems.itemsById[item.key]}
