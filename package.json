@@ -14,7 +14,7 @@
     "build": "cross-env NODE_ENV=production npm-run-all build:client build:api build:landing",
     "build:test": "npm-run-all build:client:test build:api:test build:landing",
     "build:client": "nx build jetstream --prod",
-    "build:client:test": "nx build jetstream --configuration=test",
+    "build:client:test": "nx build jetstream --configuration=test --verbose",
     "build:api": "nx build api --prod",
     "build:api:test": "nx build api --configuration=test",
     "build:landing": "NODE_ENV=production nx run landing:export",
