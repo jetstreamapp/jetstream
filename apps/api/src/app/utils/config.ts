@@ -1,6 +1,5 @@
 /* eslint-disable @typescript-eslint/camelcase */
 import * as dotenv from 'dotenv';
-import { AuthenticateOptions } from 'passport';
 import * as Auth0Strategy from 'passport-auth0';
 dotenv.config();
 
