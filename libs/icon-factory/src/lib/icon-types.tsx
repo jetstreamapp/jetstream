@@ -50,6 +50,7 @@ export interface UtilityIconObj {
   expand_all: IconEl;
   fallback: IconEl;
   favorite: IconEl;
+  filter: IconEl;
   forward: IconEl;
   help: IconEl;
   info: IconEl;

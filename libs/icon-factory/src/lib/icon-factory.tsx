@@ -2,14 +2,14 @@
 /**
  * Every icon used in the application must be individually imported
  */
-import { logger } from '@jetstream/shared/client-logger';
 import { IconType } from '@jetstream/icon-factory';
+import { logger } from '@jetstream/shared/client-logger';
 import classNames from 'classnames';
 import React from 'react';
 import { StandardIconObj, UtilityIconObj } from './icon-types';
 import StandardIcon_Activations from './icons/standard/Activations';
-import StandardIcon_Entity from './icons/standard/Entity';
 import StandardIcon_DataStreams from './icons/standard/DataStreams';
+import StandardIcon_Entity from './icons/standard/Entity';
 import StandardIcon_Opportunity from './icons/standard/Opportunity';
 import StandardIcon_Record from './icons/standard/Record';
 import StandardIcon_RelatedList from './icons/standard/RelatedList';
@@ -37,6 +37,7 @@ import UtilityIcon_Event from './icons/utility/Event';
 import UtilityIcon_ExpandAll from './icons/utility/ExpandAll';
 import UtilityIcon_Fallback from './icons/utility/Fallback';
 import UtilityIcon_Favorite from './icons/utility/Favorite';
+import UtilityIcon_Filter from './icons/utility/Filter';
 import UtilityIcon_Forward from './icons/utility/Forward';
 import UtilityIcon_Help from './icons/utility/Help';
 import UtilityIcon_Info from './icons/utility/Info';
@@ -91,6 +92,7 @@ const utilityIcons: UtilityIconObj = {
   expand_all: UtilityIcon_ExpandAll,
   fallback: UtilityIcon_Fallback,
   favorite: UtilityIcon_Favorite,
+  filter: UtilityIcon_Filter,
   forward: UtilityIcon_Forward,
   help: UtilityIcon_Help,
   info: UtilityIcon_Info,

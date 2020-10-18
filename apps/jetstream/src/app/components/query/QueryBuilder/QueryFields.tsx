@@ -166,15 +166,20 @@ export const QueryFieldsComponent: FunctionComponent<QueryFieldsProps> = ({ sele
     }
   }
 
-  function handleFieldSelectAll(key: string, value: boolean) {
+  /**
+   * @param key sobject key
+   * @param value select all = true/false
+   * @param impactedKeys children may have filtered data locally, so keys are passed in to specify the specific fields
+   */
+  function handleFieldSelectAll(key: string, value: boolean, impactedKeys: string[]) {
     if (queryFieldsMap[key]) {
       const clonedQueryFieldsMap = { ...queryFieldsMap };
       if (value) {
-        clonedQueryFieldsMap[key] = { ...clonedQueryFieldsMap[key], selectedFields: new Set(clonedQueryFieldsMap[key].visibleFields) };
+        clonedQueryFieldsMap[key] = { ...clonedQueryFieldsMap[key], selectedFields: new Set(impactedKeys) };
       } else {
         // remove visible fields from list (this could be all or only some of the fields)
         const selectedFields = new Set(clonedQueryFieldsMap[key].selectedFields);
-        clonedQueryFieldsMap[key].visibleFields.forEach((field) => selectedFields.delete(field));
+        impactedKeys.forEach((field) => selectedFields.delete(field));
         clonedQueryFieldsMap[key] = { ...clonedQueryFieldsMap[key], selectedFields };
       }
       setQueryFieldsMap(clonedQueryFieldsMap);

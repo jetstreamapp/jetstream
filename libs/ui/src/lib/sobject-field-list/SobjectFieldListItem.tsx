@@ -14,7 +14,7 @@ export interface SobjectFieldListItemProps {
   queryFieldsMap: MapOf<QueryFields>;
   onToggleExpand: (key: string, field: FieldWrapper) => void;
   onSelectField: (key: string, field: FieldWrapper) => void;
-  onSelectAll: (key: string, value: boolean) => void;
+  onSelectAll: (key: string, value: boolean, impactedKeys: string[]) => void;
   onFilterChanged: (key: string, filterTerm: string) => void;
   errorReattempt: (key: string) => void;
 }
