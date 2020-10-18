@@ -48,7 +48,7 @@ export async function uncaughtErrorHandler(err: any, req: express.Request, res: 
   } else if (err instanceof AuthenticationError) {
     res.status(401);
     res.set(HTTP.HEADERS.X_LOGOUT, '1');
-    res.set(HTTP.HEADERS.X_LOGOUT_URL, `${process.env.JETSTREAM_SERVER_URL}/oauth/logout`);
+    res.set(HTTP.HEADERS.X_LOGOUT_URL, `${process.env.JETSTREAM_SERVER_URL}/oauth/login`);
     if (isJson) {
       return res.json({
         error: true,

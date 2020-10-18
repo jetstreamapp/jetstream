@@ -10,8 +10,8 @@ import { addOrgsToLocal, checkAuth, ensureOrgExists, validate } from './route.mi
 
 const routes: express.Router = Router();
 
-routes.use(addOrgsToLocal);
 routes.use(checkAuth); // NOTE: all routes here must be authenticated
+routes.use(addOrgsToLocal);
 
 routes.get('/me', userController.getUserProfile);
 
