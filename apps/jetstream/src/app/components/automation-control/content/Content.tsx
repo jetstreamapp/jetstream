@@ -32,6 +32,7 @@ interface AutomationControlTabContentProps {
     grandChildItem?: AutomationControlMetadataTypeItem
   ) => void;
   toggleAll: (value: boolean | null) => void;
+  onExport: () => void;
 }
 
 function getModifiedItemsText(items: AutomationControlMetadataTypeItem[]) {
@@ -59,18 +60,19 @@ export const AutomationControlTabContent: FunctionComponent<AutomationControlTab
   toggleChildItemExpand,
   onChange,
   toggleAll,
+  onExport,
 }) => {
   const expandedAutomationItems = Object.values(item.automationItems)
     .filter((item) => item.expanded)
     .map((item) => item.metadataType);
   return (
     <AutoFullHeightContainer bottomBuffer={30}>
-      <Grid align="spread">
+      <Grid align="spread" className="slds-p-top_xx-small">
         <GridCol>
           <h3 className="slds-text-heading_medium">{item.sobjectLabel}</h3>
         </GridCol>
         <GridCol>
-          <AutomationControlTabContentButtons item={item} isDirty={isDirty} toggleAll={toggleAll} />
+          <AutomationControlTabContentButtons item={item} isDirty={isDirty} toggleAll={toggleAll} onExport={onExport} />
         </GridCol>
       </Grid>
       <Accordion

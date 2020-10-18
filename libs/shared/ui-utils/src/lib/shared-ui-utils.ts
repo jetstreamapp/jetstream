@@ -169,11 +169,34 @@ export function polyfillFieldDefinition(field: Field) {
   return `${prefix}${value}${suffix}`;
 }
 
-export function prepareExcelFile(data: MapOf<string>[], header: string[]): ArrayBuffer {
+/**
+ * Prepares excel file
+ * @param data Array of objects for one sheet, or map of multiple objects where the key is sheet name
+ * @param header Array of strings id data is array, or map of strings[] where the key matches the sheet name This will be auto-detected if not provided
+ * @param [defaultSheetName]
+ * @returns excel file
+ */
+export function prepareExcelFile(data: any[], header?: string[], defaultSheetName?: string): ArrayBuffer;
+export function prepareExcelFile(data: MapOf<any[]>, header?: MapOf<string[]>, defaultSheetName?: void): ArrayBuffer;
+export function prepareExcelFile(data: any, header: any, defaultSheetName: any = 'Records'): ArrayBuffer {
   const workbook = XLSX.utils.book_new();
-  const worksheet = XLSX.utils.aoa_to_sheet(convertArrayOfObjectToArrayOfArray(data, header));
 
-  XLSX.utils.book_append_sheet(workbook, worksheet, 'Records');
+  if (Array.isArray(data)) {
+    header = header || Object.keys(data[0]);
+    const worksheet = XLSX.utils.aoa_to_sheet(convertArrayOfObjectToArrayOfArray(data, header as string[]));
+    XLSX.utils.book_append_sheet(workbook, worksheet, defaultSheetName);
+  } else {
+    Object.keys(data).forEach((sheetName) => {
+      if (data[sheetName].length > 0) {
+        const currentHeader = (header && header[sheetName]) || Object.keys(data[sheetName][0]);
+        XLSX.utils.book_append_sheet(
+          workbook,
+          XLSX.utils.aoa_to_sheet(convertArrayOfObjectToArrayOfArray(data[sheetName], currentHeader)),
+          sheetName
+        );
+      }
+    });
+  }
 
   // https://github.com/sheetjs/sheetjs#writing-options
   const workbookArrayBuffer: ArrayBuffer = XLSX.write(workbook, {

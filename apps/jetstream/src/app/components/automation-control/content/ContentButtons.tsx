@@ -8,16 +8,22 @@ interface AutomationControlTabContentButtonsProps {
   item: AutomationControlParentSobject;
   isDirty: boolean;
   toggleAll: (value: boolean | null) => void;
+  onExport: () => void;
 }
 
 export const AutomationControlTabContentButtons: FunctionComponent<AutomationControlTabContentButtonsProps> = ({
   item,
   isDirty,
   toggleAll,
+  onExport,
 }) => {
   const loading = Object.values(item.automationItems).some((automationItem) => !automationItem.hasLoaded);
   return (
     <Fragment>
+      <button className={classNames('slds-button slds-button_neutral')} title="Export" onClick={() => onExport()} disabled={loading}>
+        <Icon type="utility" icon="download" className="slds-button__icon slds-button__icon_left" omitContainer />
+        Export
+      </button>
       <button
         className={classNames('slds-button slds-button_neutral')}
         title="Reset Changes"

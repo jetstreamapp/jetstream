@@ -3,7 +3,7 @@ import { jsx } from '@emotion/core';
 import { logger } from '@jetstream/shared/client-logger';
 import { query } from '@jetstream/shared/data';
 import { orderObjectsBy } from '@jetstream/shared/utils';
-import { SalesforceOrgUi, SalesforceOrgUiType, UiTabSection } from '@jetstream/types';
+import { MapOf, SalesforceOrgUi, SalesforceOrgUiType, UiTabSection } from '@jetstream/types';
 import {
   AutoFullHeightContainer,
   Icon,
@@ -15,7 +15,7 @@ import {
   Spinner,
   Tabs,
 } from '@jetstream/ui';
-import { FunctionComponent, useEffect, useRef, useState } from 'react';
+import { Fragment, FunctionComponent, useEffect, useRef, useState } from 'react';
 import { useRecoilState, useRecoilValue, useResetRecoilState } from 'recoil';
 import { applicationCookieState, selectedOrgState, selectedOrgType } from '../../app-state';
 import {
@@ -39,6 +39,7 @@ import { getEntityDefinitionQuery } from './utils/automation-control-soql-utils'
 import { AutomationControlTabTitle } from './AutomationControlTitle';
 import { AutomationControlTabContent } from './content/Content';
 import AutomationControlDeployModal from './deploy/DeployModal';
+import FileDownloadModal from '../core/FileDownloadModal';
 
 const HEIGHT_BUFFER = 170;
 
@@ -54,6 +55,8 @@ export const AutomationControl: FunctionComponent<AutomationControlProps> = () =
   const [loading, setLoading] = useState<boolean>(false);
   const [errorMessage, setErrorMessage] = useState<string>(null);
   const [deployModalActive, setDeployModalActive] = useState<boolean>(false);
+  const [exportDataModalOpen, setExportDataModalOpen] = useState<boolean>(false);
+  const [exportDataModalData, setExportDataModalData] = useState<MapOf<any[]>>({});
 
   const [{ serverUrl }] = useRecoilState(applicationCookieState);
   const [itemIds, setItemIds] = useRecoilState(fromAutomationCtlState.itemIds);
@@ -152,6 +155,7 @@ export const AutomationControl: FunctionComponent<AutomationControlProps> = () =
                 toggleChildItemExpand={(type, value, childItem) => handleToggleChildItemExpand(item.key, type, value, childItem)}
                 onChange={(type, value, childItem, grandChildItem) => handleItemChange(item.key, type, value, childItem, grandChildItem)}
                 toggleAll={(value) => handleToggleAll(item.key, value)}
+                onExport={() => toggleExportModal(true)}
               />
             ),
           })
@@ -506,6 +510,52 @@ export const AutomationControl: FunctionComponent<AutomationControlProps> = () =
     setDeployModalActive(true);
   }
 
+  function toggleExportModal(isOpen: boolean) {
+    if (isOpen) {
+      // prepare data
+      const automationControl = itemsById[activeItemId];
+      const xlsxData = {
+        [`Validation Rules`]: automationControl.automationItems.ValidationRule.items.map((item) => ({
+          Object: automationControl.sobjectLabel,
+          Name: item.label,
+          'Is Active': item.initialValue,
+          'Active Version': '',
+          'Last Modified By': item.LastModifiedByName,
+          'Last Modified Date': item.LastModifiedDate,
+        })),
+        [`Workflow Rules`]: automationControl.automationItems.WorkflowRule.items.map((item) => ({
+          Object: automationControl.sobjectLabel,
+          Name: item.label,
+          'Is Active': item.initialValue,
+          'Active Version': '',
+          'Last Modified By': item.LastModifiedByName,
+          'Last Modified Date': item.LastModifiedDate,
+        })),
+        [`Process Builders`]: automationControl.automationItems.Flow.items.map((item) => ({
+          Object: automationControl.sobjectLabel,
+          Name: item.label,
+          'Is Active': item.initialValue,
+          'Active Version': '',
+          'Last Modified By': item.LastModifiedByName,
+          'Last Modified Date': item.LastModifiedDate,
+        })),
+        [`Apex Triggers`]: automationControl.automationItems.ApexTrigger.items.map((item) => ({
+          Object: automationControl.sobjectLabel,
+          Name: item.label,
+          'Is Active': item.initialValue,
+          'Active Version': '',
+          'Last Modified By': item.LastModifiedByName,
+          'Last Modified Date': item.LastModifiedDate,
+        })),
+      };
+      setExportDataModalData(xlsxData);
+    } else {
+      setExportDataModalData({});
+    }
+
+    setExportDataModalOpen(isOpen);
+  }
+
   return (
     <Page>
       <PageHeader>
@@ -547,6 +597,17 @@ export const AutomationControl: FunctionComponent<AutomationControlProps> = () =
               resetAfterDeploy();
             }
           }}
+        />
+      )}
+      {exportDataModalOpen && (
+        <FileDownloadModal
+          org={selectedOrg}
+          modalHeader="Export Automation"
+          modalTagline="Exported data will reflect what is in Salesforce, not unsaved changes"
+          data={exportDataModalData}
+          fileNameParts={['automation', itemsById[activeItemId].sobjectName]}
+          allowedTypes={['xlsx']}
+          onModalClose={() => toggleExportModal(false)}
         />
       )}
     </Page>

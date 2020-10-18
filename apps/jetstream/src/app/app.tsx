@@ -90,7 +90,7 @@ export const App = () => {
                     <ErrorBoundary FallbackComponent={ErrorBoundaryFallback}>
                       <Switch>
                         {routes.map((route) => (
-                          <Route path={route.path} render={route.render} />
+                          <Route key={route.path} path={route.path} render={route.render} />
                         ))}
                       </Switch>
                     </ErrorBoundary>
