@@ -175,6 +175,7 @@ export const AutomationControlContentFlow: FunctionComponent<AutomationControlCo
                   <td role="gridcell">
                     <CheckboxToggle
                       id={`Flow-${childItem.fullName}`}
+                      containerClassname="slds-p-left_x-small"
                       label="Is Active"
                       onText="Active"
                       offText="Inactive"
