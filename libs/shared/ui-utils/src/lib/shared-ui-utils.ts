@@ -16,7 +16,16 @@ import { DeployResult, Field } from 'jsforce';
 import { get as safeGet } from 'lodash';
 import isString from 'lodash/isString';
 import { unparse } from 'papaparse';
-import { LiteralType, Operator, WhereClause } from 'soql-parser-js';
+import {
+  Condition,
+  LiteralType,
+  NegationCondition,
+  Operator,
+  ValueCondition,
+  ValueWithDateLiteralCondition,
+  WhereClause,
+  WhereClauseWithRightCondition,
+} from 'soql-parser-js';
 import { Placement as tippyPlacement } from 'tippy.js';
 import { parse as parseCsv, unparse as unparseCsv, UnparseConfig } from 'papaparse';
 import * as XLSX from 'xlsx';
@@ -286,46 +295,85 @@ export function convertFiltersToWhereClause(filters: ExpressionType): WhereClaus
   }
 
   // init all where clauses
-  const whereClauses = rows.map((row, i) => {
-    const whereClause: WhereClause = {
-      left: {
-        operator: convertQueryFilterOperator(row.selected.operator),
-        logicalPrefix: hasLogicalPrefix(row.selected.operator) ? 'NOT' : undefined,
-        field: row.selected.resource,
-        value: getValue(row.selected.operator, row.selected.value),
-        literalType: getLiteralType(row.selected),
-      },
-      // operator: i !== 0 ? filters.action : undefined,
-      operator: filters.action,
-    };
-    return whereClause;
-  });
-
-  // init all groups where clauses
-  groups.forEach((group, i) => {
-    const tempWhereClauses: WhereClause[] = [];
-    group.rows.forEach((row, i) => {
-      const whereClause: WhereClause = {
+  const whereClauses = rows.reduce((whereClauses: WhereClause[], row, i) => {
+    // REGULAR WHERE CLAUSE
+    if (isNegationOperator(row.selected.operator)) {
+      whereClauses.push({
+        left: { openParen: 1 },
+        operator: 'NOT',
+      });
+      whereClauses.push({
         left: {
           operator: convertQueryFilterOperator(row.selected.operator),
-          logicalPrefix: hasLogicalPrefix(row.selected.operator) ? 'NOT' : undefined,
+          logicalPrefix: isNegationOperator(row.selected.operator) ? 'NOT' : undefined,
           field: row.selected.resource,
           value: getValue(row.selected.operator, row.selected.value),
           literalType: getLiteralType(row.selected),
-        },
+          closeParen: 1,
+        } as ValueCondition | ValueWithDateLiteralCondition,
+        operator: filters.action,
+      });
+    } else {
+      // REGULAR WHERE CLAUSE
+      whereClauses.push({
+        left: {
+          operator: convertQueryFilterOperator(row.selected.operator),
+          logicalPrefix: isNegationOperator(row.selected.operator) ? 'NOT' : undefined,
+          field: row.selected.resource,
+          value: getValue(row.selected.operator, row.selected.value),
+          literalType: getLiteralType(row.selected),
+        } as ValueCondition | ValueWithDateLiteralCondition,
+        operator: filters.action,
+      });
+    }
+    return whereClauses;
+  }, []);
+
+  // init all groups where clauses
+  groups.reduce((whereClauses, group, i) => {
+    const tempWhereClauses: WhereClauseWithRightCondition[] = [];
+    group.rows.forEach((row, i) => {
+      const whereClause: Partial<WhereClauseWithRightCondition> = {
+        left: {
+          operator: convertQueryFilterOperator(row.selected.operator),
+          logicalPrefix: isNegationOperator(row.selected.operator) ? 'NOT' : undefined,
+          field: row.selected.resource,
+          value: getValue(row.selected.operator, row.selected.value),
+          literalType: getLiteralType(row.selected),
+        } as ValueCondition | ValueWithDateLiteralCondition,
         // operator: i !== 0 ? group.action : undefined,
         operator: group.action,
       };
-      tempWhereClauses.push(whereClause);
-      whereClauses.push(whereClause);
+      // Add additional where clause
+      if (isNegationOperator(row.selected.operator)) {
+        const negationCondition: Partial<WhereClauseWithRightCondition> = {
+          left: { openParen: 1 },
+          operator: 'NOT',
+        };
+        (whereClause.left as ValueCondition | ValueWithDateLiteralCondition).closeParen = 1;
+        tempWhereClauses.push(negationCondition as WhereClauseWithRightCondition);
+        whereClauses.push(negationCondition as WhereClause);
+      }
+      tempWhereClauses.push(whereClause as WhereClauseWithRightCondition);
+      whereClauses.push(whereClause as WhereClause);
     });
-    tempWhereClauses[0].left.openParen = 1;
-    tempWhereClauses[tempWhereClauses.length - 1].left.closeParen = 1;
-  });
+    if (tempWhereClauses[0].left.openParen) {
+      tempWhereClauses[0].left.openParen += 1;
+    } else {
+      tempWhereClauses[0].left.openParen = 1;
+    }
+    if ((tempWhereClauses[tempWhereClauses.length - 1].left as ValueCondition | ValueWithDateLiteralCondition).closeParen) {
+      (tempWhereClauses[tempWhereClauses.length - 1].left as ValueCondition | ValueWithDateLiteralCondition).closeParen += 1;
+    } else {
+      (tempWhereClauses[tempWhereClauses.length - 1].left as ValueCondition | ValueWithDateLiteralCondition).closeParen = 1;
+    }
+
+    return whereClauses;
+  }, whereClauses);
 
   // combine all where clauses
   const rootClause = whereClauses[0];
-  whereClauses.reduce((whereClause, currWhereClause, i) => {
+  whereClauses.reduce((whereClause: WhereClauseWithRightCondition, currWhereClause, i) => {
     if (whereClause) {
       whereClause.right = currWhereClause;
       // use current operator as the prior operator (e.x. AND on this item applies to the prior item and this item)
@@ -340,7 +388,7 @@ export function convertFiltersToWhereClause(filters: ExpressionType): WhereClaus
   return rootClause;
 }
 
-function hasLogicalPrefix(operator: QueryFilterOperator): boolean {
+function isNegationOperator(operator: QueryFilterOperator): boolean {
   switch (operator) {
     case 'doesNotContain':
     case 'doesNotStartWith':
