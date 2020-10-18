@@ -23,7 +23,7 @@ import classNames from 'classnames';
 import numeral from 'numeral';
 import React, { Fragment, FunctionComponent, useEffect, useMemo, useState } from 'react';
 import { Link, NavLink, useLocation } from 'react-router-dom';
-import { Column } from 'react-table';
+import { Column, Row } from 'react-table';
 import { useRecoilState, useRecoilValue } from 'recoil';
 import { filter } from 'rxjs/operators';
 import { FieldSubquery, getFlattenedFields } from 'soql-parser-js';
@@ -58,6 +58,36 @@ function getStubbedField(field: string) {
       updatable: false,
     },
   };
+}
+
+function renderQueryResultsWrapper(subqueryFieldMap: MapOf<string[]>) {
+  function renderQueryResults(
+    parentRecord: any,
+    field: QueryFieldHeader,
+    serverUrl: string,
+    org: SalesforceOrgUi,
+    value: any
+  ): React.ReactNode {
+    // transform data if subquery
+    let headers: string[] = null;
+    if (subqueryFieldMap && subqueryFieldMap[field.accessor]) {
+      headers = subqueryFieldMap[field.accessor];
+    }
+    if (value && Array.isArray(value.records)) {
+      value = value.records;
+    }
+    return (
+      <QueryResultsViewCellModal
+        parentRecord={parentRecord}
+        field={field}
+        serverUrl={serverUrl}
+        org={org}
+        value={value}
+        headers={headers}
+      />
+    );
+  }
+  return renderQueryResults;
 }
 
 // eslint-disable-next-line @typescript-eslint/no-empty-interface
@@ -99,19 +129,29 @@ export const QueryResults: FunctionComponent<QueryResultsProps> = React.memo(() 
                   <div>{field.accessor}</div>
                 </div>
               ),
-              Cell: ({ value }) => {
-                return getQueryResultsCellContents(field, serverUrl, selectedOrg, value, (field, serverUrl, org, value: any) => {
-                  // transform data if subquery
-                  let headers: string[] = null;
-                  if (subqueryFieldMap && subqueryFieldMap[field.accessor]) {
-                    headers = subqueryFieldMap[field.accessor];
-                  }
-                  if (value && Array.isArray(value.records)) {
-                    value = value.records;
-                  }
-                  return <QueryResultsViewCellModal field={field} serverUrl={serverUrl} org={org} value={value} headers={headers} />;
-                });
+              Cell: ({ value, row }) => {
+                return getQueryResultsCellContents(
+                  field,
+                  serverUrl,
+                  selectedOrg,
+                  value,
+                  row.original,
+                  renderQueryResultsWrapper(subqueryFieldMap)
+                );
               },
+              // Cell: ({ value, row }) => {
+              //   return getQueryResultsCellContents(field, serverUrl, selectedOrg, value, row.original, (parentRecord, field, serverUrl, org, value: any) => {
+              //     // transform data if subquery
+              //     let headers: string[] = null;
+              //     if (subqueryFieldMap && subqueryFieldMap[field.accessor]) {
+              //       headers = subqueryFieldMap[field.accessor];
+              //     }
+              //     if (value && Array.isArray(value.records)) {
+              //       value = value.records;
+              //     }
+              //     return <QueryResultsViewCellModal parentRecord={parentRecord} field={field} serverUrl={serverUrl} org={org} value={value} headers={headers} />;
+              //   });
+              // },
             };
             return column;
           })
