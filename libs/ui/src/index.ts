@@ -53,6 +53,7 @@ export * from './lib/providers/DialogServiceProvider';
 export * from './lib/sobject-field-list/SobjectFieldList';
 export * from './lib/sobject-field-list/SobjectFieldListItem';
 export * from './lib/sobject-field-list/SobjectFieldListType';
+export * from './lib/sobject-list/ConnectedSobjectList';
 export * from './lib/sobject-list/SobjectList';
 export * from './lib/sobject-list/SobjectListMultiSelect';
 export * from './lib/table/TableBase';

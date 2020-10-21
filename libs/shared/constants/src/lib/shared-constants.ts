@@ -30,9 +30,13 @@ export const HTTP = {
     X_LOGOUT: 'X-AUTH-LOGOUT', // 1=true
     X_LOGOUT_URL: 'X-LOGOUT-URL',
     X_SFDC_ID: 'X-SFDC-ID',
-    X_SFDC_API_VERSION: 'X_SFDC_API_VERSION',
+    X_SFDC_API_VERSION: 'X-SFDC-API-VERSION',
     X_SFDC_ORG_CONNECTION_ERROR: 'X-SFDC-ORG-CONNECTION-ERROR',
-    X_SFDC_Session: 'X-SFDC-Session',
+    X_SFDC_Session: 'X-SFDC-SESSION',
+    X_CACHE_RESPONSE: 'X-CACHE-RESPONSE',
+    X_CACHE_KEY: 'X-CACHE-KEY',
+    X_CACHE_AGE: 'X-CACHE-AGE',
+    X_CACHE_EXP: 'X-CACHE-ECP',
     CONTENT_TYPE: 'Content-Type',
     CONTENT_DISPOSITION: 'Content-Disposition',
   },
@@ -57,6 +61,7 @@ export const MIME_TYPES: MapOf<MimeType> = {
 export const INDEXED_DB = {
   KEYS: {
     queryHistory: 'HISTORY:QUERY',
+    httpCache: 'HTTP:CACHE',
   },
 };
 

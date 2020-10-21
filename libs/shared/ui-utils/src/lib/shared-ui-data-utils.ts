@@ -21,10 +21,12 @@ export function getFieldKey(parentKey: string, field: Field) {
  */
 export async function fetchFields(org: SalesforceOrgUi, queryFields: QueryFields, parentKey: string): Promise<QueryFields> {
   const { sobject } = queryFields;
-  const [describeResults, queryResults] = await Promise.all([
+  const [describeResultsWithCache, queryResults] = await Promise.all([
     describeSObject(org, sobject),
-    alwaysResolve(query<FieldDefinition>(org, getFieldDefinitionQuery(sobject), true), undefined),
+    alwaysResolve(query<FieldDefinition>(org, getFieldDefinitionQuery(sobject), true, true), undefined),
   ]);
+  // unwrap cache
+  const describeResults = describeResultsWithCache.data;
 
   // TODO: we can possibly remove this - roll-up fields and some others might not be optimal
   // but some objects (user) fail and it does require an additional api call - so ditching it could be a benefit

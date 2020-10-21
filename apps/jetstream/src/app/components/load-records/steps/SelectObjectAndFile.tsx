@@ -5,7 +5,7 @@ import { FunctionComponent } from 'react';
 import Split from 'react-split';
 import { InsertUpdateUpsertDelete, SalesforceOrgUi, InputReadFileContent } from '@jetstream/types';
 import LoadRecordsSObjects from '../components/LoadRecordsSObjects';
-import { FileSelector, Grid, GridCol } from '@jetstream/ui';
+import { ConnectedSobjectList, FileSelector, Grid, GridCol } from '@jetstream/ui';
 import { INPUT_ACCEPT_FILETYPES } from '@jetstream/shared/constants';
 import LoadRecordsLoadTypeButtons from '../components/LoadRecordsLoadTypeButtons';
 import { parseFile } from '@jetstream/shared/ui-utils';
@@ -64,13 +64,12 @@ export const LoadRecordsSelectObjectAndFile: FunctionComponent<LoadRecordsSelect
       `}
     >
       <div className="slds-p-horizontal_x-small">
-        <h2 className="slds-text-heading_medium slds-text-align_center">Objects</h2>
-        <LoadRecordsSObjects
+        <ConnectedSobjectList
           selectedOrg={selectedOrg}
           sobjects={sobjects}
-          onSobjects={onSobjects}
           selectedSObject={selectedSObject}
-          onSelectedSobject={onSelectedSobject}
+          onSobjects={onSobjects}
+          onSelectedSObject={onSelectedSobject}
         />
       </div>
       <div className="slds-p-horizontal_x-small">
