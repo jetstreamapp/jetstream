@@ -16,9 +16,9 @@ export const INPUT_ACCEPT_FILETYPES: {
   CSV: InputAcceptTypeCsv;
   EXCEL: InputAcceptTypeExcel;
 } = {
-  ZIP: 'application/zip',
-  CSV: 'text/csv',
-  EXCEL: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+  ZIP: '.zip',
+  CSV: '.csv',
+  EXCEL: '.xlsx',
 };
 
 export const HTTP = {

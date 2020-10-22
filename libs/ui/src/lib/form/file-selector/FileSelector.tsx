@@ -82,18 +82,18 @@ export const FileSelector: FunctionComponent<FileSelectorProps> = ({
         throw new Error('Only 1 file is supported');
       }
       const file = files.item(0);
+      logger.info(file);
 
-      // TODO: There is probably a way to improve this, but extension vs mime is a bit tricky
-      if (accept && !accept.includes(file.type as any)) {
-        throw new Error(`File type ${file.type} is not supported`);
+      const extension = (file.name.substring(file.name.lastIndexOf('.')) || '').toLowerCase() as InputAcceptType;
+
+      if (accept && !accept.includes(extension)) {
+        throw new Error(`File type ${extension} is not supported`);
       }
 
-      logger.info(file);
       setFilename(file.name);
-      const extension = file.name.substring(file.name.lastIndexOf('.')) || '';
 
       // TODO: we might want to do something else here in the future
-      const readAsArrayBuffer = extension.toLowerCase() !== '.csv';
+      const readAsArrayBuffer = extension !== '.csv';
       const content = await readFile(file, readAsArrayBuffer);
 
       onReadFile({ filename: file.name, extension, content });

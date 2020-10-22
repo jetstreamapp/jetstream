@@ -151,9 +151,9 @@ export type MimeTypeOctetStream = 'application/octet-stream;charset=utf-8';
 export type MimeTypeZip = 'application/zip;charset=utf-8';
 
 export type InputAcceptType = InputAcceptTypeZip | InputAcceptTypeCsv | InputAcceptTypeExcel;
-export type InputAcceptTypeZip = 'application/zip';
-export type InputAcceptTypeCsv = 'text/csv';
-export type InputAcceptTypeExcel = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
+export type InputAcceptTypeZip = '.zip';
+export type InputAcceptTypeCsv = '.csv';
+export type InputAcceptTypeExcel = '.xlsx';
 
 // Generic status types
 export type Info = 'info';
