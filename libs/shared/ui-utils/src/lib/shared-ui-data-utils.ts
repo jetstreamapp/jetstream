@@ -1,4 +1,4 @@
-import { describeSObject, genericRequest, query } from '@jetstream/shared/data';
+import { describeSObject, genericRequest, query, queryWithCache } from '@jetstream/shared/data';
 import { CompositeRequest, CompositeRequestBody, CompositeResponse, MapOf, SalesforceOrgUi } from '@jetstream/types';
 import { FieldDefinition } from '@jetstream/types';
 import { REGEX, getMapOf, alwaysResolve, splitArrayToMaxSize } from '@jetstream/shared/utils';
@@ -21,10 +21,13 @@ export function getFieldKey(parentKey: string, field: Field) {
  */
 export async function fetchFields(org: SalesforceOrgUi, queryFields: QueryFields, parentKey: string): Promise<QueryFields> {
   const { sobject } = queryFields;
-  const [describeResults, queryResults] = await Promise.all([
+  const [describeResultsWithCache, queryResultsWithCache] = await Promise.all([
     describeSObject(org, sobject),
-    alwaysResolve(query<FieldDefinition>(org, getFieldDefinitionQuery(sobject), true), undefined),
+    alwaysResolve(queryWithCache<FieldDefinition>(org, getFieldDefinitionQuery(sobject), true), undefined),
   ]);
+  // unwrap cache
+  const describeResults = describeResultsWithCache.data;
+  const queryResults = queryResultsWithCache.data;
 
   // TODO: we can possibly remove this - roll-up fields and some others might not be optimal
   // but some objects (user) fail and it does require an additional api call - so ditching it could be a benefit

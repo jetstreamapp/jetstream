@@ -1,8 +1,9 @@
-import { Response } from 'superagent';
+// import { Response } from 'superagent';
 import { SalesforceOrgUi } from '@jetstream/types';
+import { AxiosResponse } from 'axios';
 
 // Network failures, timeouts, and other errors that produce no response will not call these functions
-export type HttpErrorMiddlewareFn = (response: Response, org?: SalesforceOrgUi) => void;
+export type HttpErrorMiddlewareFn = (response: AxiosResponse, org?: SalesforceOrgUi) => void;
 
 // Could add these in future
 // const requestMiddleware = [];

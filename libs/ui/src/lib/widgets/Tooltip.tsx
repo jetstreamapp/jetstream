@@ -16,7 +16,7 @@ export const Tooltip: FunctionComponent<TooltipProps> = ({ id = 'tooltip', conte
   return (
     <Tippy
       onHide={() => setVisible(false)}
-      onShow={() => setVisible(true)}
+      onShow={() => content && setVisible(true)}
       allowHTML
       render={(attrs) => {
         // NOTE: In addition to the tooltip placement bug, this causes another error with react 16.13

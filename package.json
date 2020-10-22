@@ -67,6 +67,7 @@
     "@zeit/next-sass": "1.0.1",
     "async": "^3.2.0",
     "autoprefixer": "^9.8.0",
+    "axios": "^0.20.0",
     "class-transformer": "^0.2.3",
     "classnames": "^2.2.6",
     "codemirror": "^5.56.0",

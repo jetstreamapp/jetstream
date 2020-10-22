@@ -1,6 +1,23 @@
 import { SalesforceId } from 'jsforce';
 import { InsertUpdateUpsertDelete, SalesforceOrgEdition, SalesforceOrgLocaleKey } from './salesforce/types';
 
+export interface ApiResponse<T = unknown> {
+  data: T;
+  cache?: CacheItem;
+}
+
+export type OrgCacheItem<T> = MapOf<CacheItemWithData<T>>;
+
+export interface CacheItem {
+  key: string;
+  exp: number;
+  age: number;
+}
+
+export interface CacheItemWithData<T> extends CacheItem {
+  data: T;
+}
+
 export type Production = 'production';
 export type Development = 'development';
 export type ProductionDevelopment = Production | Development;
