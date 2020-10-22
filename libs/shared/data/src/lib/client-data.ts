@@ -59,16 +59,22 @@ export async function describeSObject(org: SalesforceOrgUi, SObject: string): Pr
   return handleRequest({ method: 'GET', url: `/api/describe/${SObject}` }, { org, useCache: true });
 }
 
-export async function query<T = any>(
-  org: SalesforceOrgUi,
-  query: string,
-  isTooling = false,
-  useCache?: boolean
-): Promise<API.QueryResults<T>> {
+export async function query<T = any>(org: SalesforceOrgUi, query: string, isTooling = false): Promise<API.QueryResults<T>> {
   return handleRequest(
     { method: 'POST', url: `/api/query`, params: { isTooling }, data: { query } },
-    { org, useCache, useQueryParamsInCacheKey: true, useBodyInCacheKey: true }
+    { org, useQueryParamsInCacheKey: true, useBodyInCacheKey: true }
   ).then(unwrapResponseIgnoreCache);
+}
+
+export async function queryWithCache<T = any>(
+  org: SalesforceOrgUi,
+  query: string,
+  isTooling = false
+): Promise<ApiResponse<API.QueryResults<T>>> {
+  return handleRequest(
+    { method: 'POST', url: `/api/query`, params: { isTooling }, data: { query } },
+    { org, useCache: true, useQueryParamsInCacheKey: true, useBodyInCacheKey: true }
+  );
 }
 
 export async function queryMore<T = any>(org: SalesforceOrgUi, nextRecordsUrl: string, isTooling = false): Promise<API.QueryResults<T>> {

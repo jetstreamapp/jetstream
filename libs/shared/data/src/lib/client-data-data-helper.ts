@@ -39,6 +39,7 @@ function requestInterceptor<T>(options: {
   useBodyInCacheKey?: boolean;
 }) {
   return async (config: AxiosRequestConfig) => {
+    logger.info(`[HTTP][REQ][${config.method.toUpperCase()}]`, config.url, { request: config });
     const { org, useCache, useQueryParamsInCacheKey, useBodyInCacheKey } = options;
     // add request headers
     config.headers = config.headers || {};
@@ -54,7 +55,6 @@ function requestInterceptor<T>(options: {
     if (useCache && org) {
       const cachedResults = await getCacheItem<T>(config, org, useQueryParamsInCacheKey, useBodyInCacheKey);
       if (cachedResults) {
-        logger.info(`[HTTP][REQ][${config.method}][CACHE]`, config.url, { request: config });
         config.adapter = async (config: AxiosRequestConfig) => {
           return {
             config,
@@ -77,11 +77,7 @@ function requestInterceptor<T>(options: {
             request: {},
           };
         };
-      } else {
-        logger.info(`[HTTP][REQ][${config.method}]`, config.url, { request: config });
       }
-    } else {
-      logger.info(`[HTTP][REQ][${config.method}]`, config.url, { request: config });
     }
 
     return config;
@@ -99,13 +95,20 @@ function responseInterceptor<T>(options: {
 }): (response: AxiosResponse) => Promise<AxiosResponse<T>> {
   return async (response: AxiosResponse) => {
     const { org, useCache, useQueryParamsInCacheKey, useBodyInCacheKey } = options;
-    logger.info(`[HTTP][RES][${response.config.method}][${response.status}]`, response.config.url, { response: response.data });
+    const cachedResponse = response.headers[HTTP.HEADERS.X_CACHE_RESPONSE] === '1';
+    if (cachedResponse) {
+      logger.info(`[HTTP][RES][${response.config.method.toUpperCase()}][CACHE]`, response.config.url, { response: response.data });
+    } else {
+      logger.info(`[HTTP][RES][${response.config.method.toUpperCase()}][${response.status}]`, response.config.url, {
+        response: response.data,
+      });
+    }
 
     const body: ApiResponse<T> = response.data;
     const responseData = body ? body.data : undefined;
 
     // if response should be cached and response came from server, save
-    if (useCache && responseData && !response.headers[HTTP.HEADERS.X_CACHE_RESPONSE]) {
+    if (useCache && responseData && !cachedResponse) {
       // promise results are ignored from critical path
       const cacheItem = await saveCacheItem<T>(responseData, response.config, org, useQueryParamsInCacheKey, useBodyInCacheKey);
       if (cacheItem) {

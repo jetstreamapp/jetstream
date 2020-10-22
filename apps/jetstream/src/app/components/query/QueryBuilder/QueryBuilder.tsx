@@ -143,7 +143,7 @@ export const QueryBuilder: FunctionComponent<QueryBuilderProps> = () => {
                 View Favorites
               </button> */}
               <QueryHistory />
-              {soql && (
+              {soql && selectedSObject && (
                 <Link
                   className="slds-button slds-button_brand"
                   to={{

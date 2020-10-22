@@ -1,11 +1,12 @@
 /** @jsx jsx */
 import { jsx } from '@emotion/core';
 import { logger } from '@jetstream/shared/client-logger';
-import { query } from '@jetstream/shared/data';
-import { orderObjectsBy } from '@jetstream/shared/utils';
+import { clearCacheForOrg, queryWithCache } from '@jetstream/shared/data';
+import { NOOP, orderObjectsBy } from '@jetstream/shared/utils';
 import { MapOf, SalesforceOrgUi, SalesforceOrgUiType, UiTabSection } from '@jetstream/types';
 import {
   AutoFullHeightContainer,
+  Grid,
   Icon,
   Page,
   PageHeader,
@@ -14,10 +15,13 @@ import {
   PageHeaderTitle,
   Spinner,
   Tabs,
+  Tooltip,
 } from '@jetstream/ui';
-import { Fragment, FunctionComponent, useEffect, useRef, useState } from 'react';
+import formatRelative from 'date-fns/formatRelative';
+import { FunctionComponent, useEffect, useRef, useState } from 'react';
 import { useRecoilState, useRecoilValue, useResetRecoilState } from 'recoil';
 import { applicationCookieState, selectedOrgState, selectedOrgType } from '../../app-state';
+import FileDownloadModal from '../core/FileDownloadModal';
 import {
   AutomationControlMetadataType,
   AutomationControlMetadataTypeItem,
@@ -28,19 +32,19 @@ import {
   ToolingWorkflowRuleRecord,
 } from './automation-control-types';
 import * as fromAutomationCtlState from './automation-control.state';
+import { AutomationControlTabTitle } from './AutomationControlTitle';
+import { AutomationControlTabContent } from './content/Content';
+import AutomationControlDeployModal from './deploy/DeployModal';
+import { getProcessBuilders, getValidationRulesMetadata, getWorkflowRulesMetadata } from './utils/automation-control-data-utils';
+import { getEntityDefinitionQuery } from './utils/automation-control-soql-utils';
 import {
   convertFlowRecordsToAutomationControlItem,
   convertValidationRuleRecordsToAutomationControlItem,
   convertWorkflowRuleRecordsToAutomationControlItem,
   initItemsById,
 } from './utils/automation-control-utils';
-import { getProcessBuilders, getValidationRulesMetadata, getWorkflowRulesMetadata } from './utils/automation-control-data-utils';
-import { getEntityDefinitionQuery } from './utils/automation-control-soql-utils';
-import { AutomationControlTabTitle } from './AutomationControlTitle';
-import { AutomationControlTabContent } from './content/Content';
-import AutomationControlDeployModal from './deploy/DeployModal';
-import FileDownloadModal from '../core/FileDownloadModal';
 
+let _lastRefreshed: string;
 const HEIGHT_BUFFER = 170;
 
 // eslint-disable-next-line @typescript-eslint/no-empty-interface
@@ -48,6 +52,7 @@ export interface AutomationControlProps {}
 
 export const AutomationControl: FunctionComponent<AutomationControlProps> = () => {
   const isMounted = useRef(null);
+  const [lastRefreshed, setLastRefreshed] = useState<string>(_lastRefreshed);
   const selectedOrg = useRecoilValue<SalesforceOrgUi>(selectedOrgState);
   const orgType = useRecoilValue<SalesforceOrgUiType>(selectedOrgType);
   const [priorSelectedOrg, setPriorSelectedOrg] = useRecoilState(fromAutomationCtlState.priorSelectedOrg);
@@ -80,26 +85,12 @@ export const AutomationControl: FunctionComponent<AutomationControlProps> = () =
   }, []);
 
   useEffect(() => {
+    _lastRefreshed = lastRefreshed;
+  }, [lastRefreshed]);
+
+  useEffect(() => {
     if (selectedOrg && !loading && !errorMessage && !sobjects) {
-      (async () => {
-        const uniqueId = selectedOrg.uniqueId;
-        setLoading(true);
-        try {
-          // TODO: adjust where clause to ensure we are getting correct sobjects
-          const entityDefinitions = await query<ToolingEntityDefinitionRecord>(selectedOrg, getEntityDefinitionQuery(), true);
-          if (!isMounted.current || uniqueId !== selectedOrg.uniqueId) {
-            return;
-          }
-          setSobjects(orderObjectsBy(entityDefinitions.queryResults.records, 'MasterLabel'));
-        } catch (ex) {
-          logger.error(ex);
-          if (!isMounted.current || uniqueId !== selectedOrg.uniqueId) {
-            return;
-          }
-          setErrorMessage(ex.message);
-        }
-        setLoading(false);
-      })();
+      loadObjects().then(NOOP);
     }
   }, [selectedOrg, loading, errorMessage, sobjects, setSobjects]);
 
@@ -162,6 +153,33 @@ export const AutomationControl: FunctionComponent<AutomationControlProps> = () =
         )
     );
   }, [itemIds, itemsById]);
+
+  async function loadObjects() {
+    const uniqueId = selectedOrg.uniqueId;
+    setLoading(true);
+    try {
+      // TODO: adjust where clause to ensure we are getting correct sobjects
+      const entityDefinitionsWithCache = await queryWithCache<ToolingEntityDefinitionRecord>(selectedOrg, getEntityDefinitionQuery(), true);
+      if (!isMounted.current || uniqueId !== selectedOrg.uniqueId) {
+        return;
+      }
+
+      const entityDefinitions = entityDefinitionsWithCache.data;
+      if (entityDefinitionsWithCache.cache) {
+        const cache = entityDefinitionsWithCache.cache;
+        setLastRefreshed(`Last updated ${formatRelative(cache.age, new Date())}`);
+      }
+
+      setSobjects(orderObjectsBy(entityDefinitions.queryResults.records, 'MasterLabel'));
+    } catch (ex) {
+      logger.error(ex);
+      if (!isMounted.current || uniqueId !== selectedOrg.uniqueId) {
+        return;
+      }
+      setErrorMessage(ex.message);
+    }
+    setLoading(false);
+  }
 
   function resetAfterDeploy() {
     resetSObjectsState();
@@ -556,6 +574,20 @@ export const AutomationControl: FunctionComponent<AutomationControlProps> = () =
     setExportDataModalOpen(isOpen);
   }
 
+  async function handleRefresh() {
+    try {
+      await clearCacheForOrg(selectedOrg);
+      resetSObjectsState();
+      resetItemIds();
+      resetItemsById();
+      resetTabs();
+      resetFlowDefinitionsBySobject();
+      await loadObjects();
+    } catch (ex) {
+      // error
+    }
+  }
+
   return (
     <Page>
       <PageHeader>
@@ -584,7 +616,24 @@ export const AutomationControl: FunctionComponent<AutomationControlProps> = () =
               width: '25rem',
             }}
             onChange={handleActiveTabIdChange}
-          />
+          >
+            <Grid>
+              <h2 className="slds-text-heading_medium slds-grow slds-text-align_center">Objects</h2>
+              <div>
+                <Tooltip id={`sobject-list-refresh-tooltip`} content={lastRefreshed}>
+                  <button className="slds-button slds-button_icon slds-button_icon-container" disabled={loading} onClick={handleRefresh}>
+                    <Icon
+                      type="utility"
+                      icon="refresh"
+                      description={`Reload objects - Last loaded: foo`}
+                      className="slds-button__icon"
+                      omitContainer
+                    />
+                  </button>
+                </Tooltip>
+              </div>
+            </Grid>
+          </Tabs>
         )}
       </AutoFullHeightContainer>
       {deployModalActive && (

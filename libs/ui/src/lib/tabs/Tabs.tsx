@@ -5,10 +5,9 @@ import { HorizontalVertical, UiTabSection } from '@jetstream/types';
 import classNames from 'classnames';
 import isNil from 'lodash/isNil';
 import numeral from 'numeral';
-import React, { Fragment, FunctionComponent, useEffect, useState } from 'react';
+import React, { FunctionComponent, useEffect, useState } from 'react';
 import { REGEX } from '@jetstream/shared/utils';
 import SearchInput from '../form/search-input/SearchInput';
-import Split from 'react-split';
 
 export interface TabsProps {
   position?: HorizontalVertical;
@@ -34,6 +33,7 @@ export const Tabs: FunctionComponent<TabsProps> = ({
   ulStyle,
   emptyState = <h3 className="slds-text-heading_medium slds-m-around_medium">Select an item to continue</h3>,
   onChange,
+  children,
 }) => {
   const isHorizontal = position === 'horizontal';
   const [activeId, setActiveId] = useState(() => {
@@ -113,6 +113,7 @@ export const Tabs: FunctionComponent<TabsProps> = ({
         aria-orientation={position}
         style={ulStyle}
       >
+        {children}
         {filterVisible && position === 'vertical' && (
           <div className="slds-p-bottom--xx-small">
             <SearchInput
