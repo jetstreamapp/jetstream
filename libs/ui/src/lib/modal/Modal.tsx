@@ -4,7 +4,7 @@ import { SizeSmMdLg } from '@jetstream/types';
 import classNames from 'classnames';
 import { createPortal } from 'react-dom';
 import { isEscapeKey } from '@jetstream/shared/ui-utils';
-import { uniqueId } from 'lodash';
+import uniqueId from 'lodash/uniqueId';
 /* eslint-disable-next-line */
 export interface ModalProps {
   className?: string;

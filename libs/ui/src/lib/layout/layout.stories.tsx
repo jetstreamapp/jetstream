@@ -10,7 +10,7 @@ import PageHeaderActions from './page-header/PageHeaderActions';
 import PageHeaderRow from './page-header/PageHeaderRow';
 import PageHeaderTitle from './page-header/PageHeaderTitle';
 import Panel from './Panel';
-import { uniqueId } from 'lodash';
+import uniqueId from 'lodash/uniqueId';
 import Logo from '../../assets/jetstream-logo-v1-200w.png';
 
 export default {

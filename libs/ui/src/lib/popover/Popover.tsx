@@ -5,7 +5,7 @@ import uniqueId from 'lodash/uniqueId';
 import { FunctionComponent, useState, useEffect } from 'react';
 import PopoverContent from './PopoverContent';
 import { Placement } from 'tippy.js';
-import { isBoolean } from 'lodash';
+import isBoolean from 'lodash/isBoolean';
 import { SmallMediumLargeFullWidth } from '@jetstream/types';
 
 // TODO: use popper to detect nubbin position
