@@ -1,11 +1,17 @@
-import { describeSObject, genericRequest, query, queryWithCache } from '@jetstream/shared/data';
-import { CompositeRequest, CompositeRequestBody, CompositeResponse, MapOf, SalesforceOrgUi } from '@jetstream/types';
-import { FieldDefinition } from '@jetstream/types';
-import { REGEX, getMapOf, alwaysResolve, splitArrayToMaxSize } from '@jetstream/shared/utils';
-import { FieldWrapper, QueryFields } from '@jetstream/types';
+import { describeSObject, genericRequest } from '@jetstream/shared/data';
+import { getMapOf, REGEX, splitArrayToMaxSize } from '@jetstream/shared/utils';
+import {
+  CompositeRequestBody,
+  CompositeResponse,
+  DescribeSObjectResultWithExtendedField,
+  FieldWithExtendedType,
+  FieldWrapper,
+  MapOf,
+  QueryFields,
+  SalesforceOrgUi,
+} from '@jetstream/types';
 import { Field } from 'jsforce';
 import { composeQuery, getField } from 'soql-parser-js';
-import { getFieldDefinitionQuery } from './queries';
 import { polyfillFieldDefinition, sortQueryFields } from './shared-ui-utils';
 
 export function buildQuery(sObject: string, fields: string[]) {
@@ -17,30 +23,34 @@ export function getFieldKey(parentKey: string, field: Field) {
 }
 
 /**
+ * Describe SObject with user-friendly type added in typeLabel property
+ *
+ * @param org
+ * @param sobject
+ */
+export async function describeSObjectWithExtendedTypes(
+  org: SalesforceOrgUi,
+  sobject: string
+): Promise<DescribeSObjectResultWithExtendedField> {
+  const describeResults = (await describeSObject(org, sobject)).data;
+  const fields: FieldWithExtendedType[] = sortQueryFields(describeResults.fields).map((field: Field) => ({
+    ...field,
+    typeLabel: polyfillFieldDefinition(field),
+  }));
+  return { ...describeResults, fields };
+}
+
+/**
  * Fetch fields and add to queryFields
  */
 export async function fetchFields(org: SalesforceOrgUi, queryFields: QueryFields, parentKey: string): Promise<QueryFields> {
   const { sobject } = queryFields;
-  const [describeResultsWithCache, queryResultsWithCache] = await Promise.all([
-    describeSObject(org, sobject),
-    alwaysResolve(queryWithCache<FieldDefinition>(org, getFieldDefinitionQuery(sobject), true), undefined),
-  ]);
-  // unwrap cache
-  const describeResults = describeResultsWithCache.data;
-  const queryResults = queryResultsWithCache.data;
-
-  // TODO: we can possibly remove this - roll-up fields and some others might not be optimal
-  // but some objects (user) fail and it does require an additional api call - so ditching it could be a benefit
-  const fieldDefByApiName: MapOf<FieldDefinition> = {};
-  if (queryResults?.queryResults?.records) {
-    // fieldDefByApiName = getMapOf(queryResults?.queryResults?.records, 'QualifiedApiName');
-  }
+  const describeResults = await describeSObjectWithExtendedTypes(org, sobject);
 
   const childRelationships = describeResults.childRelationships.filter((relationship) => !!relationship.relationshipName);
-
   const fields: MapOf<FieldWrapper> = getMapOf(
-    sortQueryFields(describeResults.fields).map((field: Field) => {
-      const type = fieldDefByApiName[field.name]?.DataType || polyfillFieldDefinition(field);
+    describeResults.fields.map((field: Field & { typeLabel: string }) => {
+      const type = field.typeLabel;
       const filterText = `${field.name || ''}${field.label || ''}${type}${type.replace(REGEX.NOT_ALPHA, '')}`.toLowerCase();
       return {
         name: field.name,
@@ -50,7 +60,6 @@ export async function fetchFields(org: SalesforceOrgUi, queryFields: QueryFields
         relatedSobject: field.type === 'reference' && field.referenceTo?.length ? field.referenceTo[0] : undefined,
         filterText,
         metadata: field,
-        fieldDefinition: fieldDefByApiName[field.name],
         relationshipKey: field.type === 'reference' && field.referenceTo?.length ? getFieldKey(parentKey, field) : undefined,
       };
     }),

@@ -200,6 +200,7 @@ export const LoadRecordsBulkApiResults: FunctionComponent<LoadRecordsBulkApiResu
           case 'loadData': {
             if (payload.error) {
               logger.error('ERROR', payload.error);
+              setStatus(STATUSES.ERROR);
               onFinish();
             } else {
               setJobInfo(payload.data.jobInfo);

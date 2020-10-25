@@ -2,10 +2,9 @@
 import { css, jsx } from '@emotion/core';
 import { FunctionComponent, useEffect, useState } from 'react';
 import { Grid, GridCol, DropDown } from '@jetstream/ui';
-import { EntityParticleRecordWithRelatedExtIds, FieldMapping } from '../load-records-types';
-import { autoMapFields } from '../utils/load-records-utils';
+import { FieldWithRelatedEntities, FieldMapping, FieldMappingItem } from '../load-records-types';
+import { autoMapFields, checkForDuplicateFieldMappings, resetFieldMapping } from '../utils/load-records-utils';
 import LoadRecordsFieldMappingRow from '../components/LoadRecordsFieldMappingRow';
-import { EntityParticleRecord } from '@jetstream/types';
 
 type DropDownAction = 'CLEAR' | 'RESET' | 'ALL' | 'MAPPED' | 'UNMAPPED';
 
@@ -17,7 +16,7 @@ const FILTER_MAPPED: DropDownAction = 'MAPPED';
 const FILTER_UNMAPPED: DropDownAction = 'UNMAPPED';
 
 export interface LoadRecordsFieldMappingProps {
-  fields: EntityParticleRecordWithRelatedExtIds[];
+  fields: FieldWithRelatedEntities[];
   inputHeader: string[];
   fieldMapping: FieldMapping;
   fileData: any[]; // first row will be used to obtain header
@@ -35,7 +34,7 @@ export const LoadRecordsFieldMapping: FunctionComponent<LoadRecordsFieldMappingP
   // hack to force child re-render when fields are re-mapped
   const [keyPrefix, setKeyPrefix] = useState<number>(() => new Date().getTime());
   const [fieldMapping, setFieldMapping] = useState<FieldMapping>(() => JSON.parse(JSON.stringify(fieldMappingInit)));
-  const [visibleFields, setVisibleFields] = useState<EntityParticleRecordWithRelatedExtIds[]>(() => fields);
+  const [visibleFields, setVisibleFields] = useState<FieldWithRelatedEntities[]>(() => fields);
 
   // function handleSave() {
   //   onClose(fieldMapping);
@@ -51,33 +50,28 @@ export const LoadRecordsFieldMapping: FunctionComponent<LoadRecordsFieldMappingP
    * comboboxes are expensive to re-render if there are many on the page
    *
    */
-  function handleFieldMappingChange(csvField: string, field: string, relatedField?: string) {
-    let fieldMetadata = fields.find((currField) => currField.Name === field);
-    if (relatedField) {
-      fieldMetadata = fieldMetadata.attributes.relatedRecords.find(
-        (currField) => currField.Name === relatedField
-      ) as EntityParticleRecordWithRelatedExtIds;
-    }
-    setFieldMapping((fieldMapping) => ({ ...fieldMapping, [csvField]: { ...fieldMapping[csvField], targetField: field, fieldMetadata } }));
+  function handleFieldMappingChange(csvField: string, fieldMappingItem: FieldMappingItem) {
+    setFieldMapping((fieldMapping) => checkForDuplicateFieldMappings({ ...fieldMapping, [csvField]: fieldMappingItem }));
   }
 
   function handleAction(id: DropDownAction) {
     switch (id) {
       case MAPPING_CLEAR:
-        setFieldMapping({});
+        setFieldMapping(resetFieldMapping(inputHeader));
         break;
       case MAPPING_RESET:
         setFieldMapping(autoMapFields(inputHeader, fields));
         break;
-      case FILTER_ALL:
-        setFieldMapping(autoMapFields(inputHeader, fields));
-        break;
-      case FILTER_MAPPED:
-        setFieldMapping(autoMapFields(inputHeader, fields));
-        break;
-      case FILTER_UNMAPPED:
-        setFieldMapping(autoMapFields(inputHeader, fields));
-        break;
+      // TODO:
+      // case FILTER_ALL:
+      //   setFieldMapping(autoMapFields(inputHeader, fields));
+      //   break;
+      // case FILTER_MAPPED:
+      //   setFieldMapping(autoMapFields(inputHeader, fields));
+      //   break;
+      // case FILTER_UNMAPPED:
+      //   setFieldMapping(autoMapFields(inputHeader, fields));
+      //   break;
 
       default:
         break;
@@ -87,8 +81,7 @@ export const LoadRecordsFieldMapping: FunctionComponent<LoadRecordsFieldMappingP
 
   return (
     <Grid vertical>
-      <GridCol>Add filters for "all/mapped/unmapped" like DL.io</GridCol>
-      <GridCol>Allow mapping to related field</GridCol>
+      {/* TODO: <GridCol>Add filters for "all/mapped/unmapped" like DL.io</GridCol> */}
       <GridCol grow>
         <table className="slds-table slds-table_cell-buffer slds-table_bordered slds-table_fixed-layout">
           <thead>

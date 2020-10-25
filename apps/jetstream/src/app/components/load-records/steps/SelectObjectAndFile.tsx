@@ -8,14 +8,14 @@ import { ConnectedSobjectList, FileSelector, Grid, GridCol } from '@jetstream/ui
 import { INPUT_ACCEPT_FILETYPES } from '@jetstream/shared/constants';
 import LoadRecordsLoadTypeButtons from '../components/LoadRecordsLoadTypeButtons';
 import { parseFile } from '@jetstream/shared/ui-utils';
-import { EntityParticleRecordWithRelatedExtIds } from '../load-records-types';
+import { FieldWithRelatedEntities } from '../load-records-types';
 
 export interface LoadRecordsSelectObjectAndFileProps {
   selectedOrg: SalesforceOrgUi;
   sobjects: DescribeGlobalSObjectResult[];
   selectedSObject: DescribeGlobalSObjectResult;
   loadType: InsertUpdateUpsertDelete;
-  externalIdFields: EntityParticleRecordWithRelatedExtIds[];
+  externalIdFields: FieldWithRelatedEntities[];
   externalId: string;
   inputFilename: string;
   loadingFields: boolean;

@@ -1,5 +1,5 @@
 /** @jsx jsx */
-import { jsx } from '@emotion/core';
+import { css, jsx } from '@emotion/core';
 import { SalesforceOrgUi } from '@jetstream/types';
 import {
   AutoFullHeightContainer,
@@ -17,7 +17,7 @@ import { startCase } from 'lodash';
 import { FunctionComponent, useEffect, useRef, useState } from 'react';
 import { useRecoilState, useRecoilValue } from 'recoil';
 import { selectedOrgState, selectedOrgType } from '../../app-state';
-import { EntityParticleRecordWithRelatedExtIds, Step } from './load-records-types';
+import { FieldRelatedEntity, FieldWithRelatedEntities, Step } from './load-records-types';
 import * as fromLoadRecordsState from './load-records.state';
 import LoadRecordsProgress from './components/LoadRecordsProgress';
 import LoadRecordsFieldMapping from './steps/FieldMapping';
@@ -52,9 +52,9 @@ export const LoadRecords: FunctionComponent<LoadRecordsProps> = () => {
   const [sobjects, setSobjects] = useRecoilState(fromLoadRecordsState.sObjectsState);
   const [selectedSObject, setSelectedSObject] = useRecoilState(fromLoadRecordsState.selectedSObjectState);
   const [loadType, setLoadType] = useRecoilState(fromLoadRecordsState.loadTypeState);
-  const [fields, setFields] = useState<EntityParticleRecordWithRelatedExtIds[]>([]);
-  const [mappableFields, setMappableFields] = useState<EntityParticleRecordWithRelatedExtIds[]>([]);
-  const [externalIdFields, setExternalIdFields] = useState<EntityParticleRecordWithRelatedExtIds[]>([]);
+  const [fields, setFields] = useState<FieldWithRelatedEntities[]>([]);
+  const [mappableFields, setMappableFields] = useState<FieldWithRelatedEntities[]>([]);
+  const [externalIdFields, setExternalIdFields] = useState<FieldWithRelatedEntities[]>([]);
   const [externalId, setExternalId] = useState<string>('');
   const [inputFileData, setInputFileData] = useRecoilState(fromLoadRecordsState.inputFileDataState);
   const [inputFileHeader, setInputFileHeader] = useRecoilState(fromLoadRecordsState.inputFileHeaderState);
@@ -87,9 +87,9 @@ export const LoadRecords: FunctionComponent<LoadRecordsProps> = () => {
       // fetch all fields
       setLoadingFields(true);
       (async () => {
-        const { sobject, fields } = await getFieldMetadata(selectedOrg, selectedSObject.name);
+        const fields = await getFieldMetadata(selectedOrg, selectedSObject.name);
         // ensure object did not change and that component is still mounted
-        if (isMounted.current && selectedSObject.name === sobject) {
+        if (isMounted.current) {
           setFields(fields);
           setLoadingFields(false);
         }
@@ -101,9 +101,9 @@ export const LoadRecords: FunctionComponent<LoadRecordsProps> = () => {
     if (fields && inputFileHeader) {
       let tempFields = fields;
       if (loadType === 'INSERT') {
-        tempFields = fields.filter((field) => field.QualifiedApiName !== 'Id');
+        tempFields = fields.filter((field) => field.name !== 'Id');
       } else if (loadType === 'DELETE') {
-        tempFields = fields.filter((field) => field.QualifiedApiName === 'Id');
+        tempFields = fields.filter((field) => field.name === 'Id');
       }
       setMappableFields(tempFields);
     }
@@ -116,7 +116,7 @@ export const LoadRecords: FunctionComponent<LoadRecordsProps> = () => {
   }, [mappableFields, inputFileHeader, loadType, setFieldMapping]);
 
   useEffect(() => {
-    setExternalIdFields(fields.filter((field) => field.IsIdLookup));
+    setExternalIdFields(fields.filter((field) => field.externalId));
   }, [fields]);
 
   useEffect(() => {
@@ -166,26 +166,27 @@ export const LoadRecords: FunctionComponent<LoadRecordsProps> = () => {
   useEffect(() => {
     const text: string[] = [];
 
-    if (loadType) {
-      text.push(`Load Type: ${startCase(loadType.toLowerCase())}`);
-    }
-
     if (selectedSObject) {
+      if (loadType) {
+        const appendExtId = externalId ? ` (${externalId})` : '';
+        text.push(`${startCase(loadType.toLowerCase())}${appendExtId}`);
+      }
+
       text.push(`Object: ${selectedSObject.label}`);
-    }
 
-    if (inputFileData?.length) {
-      text.push(`${numeral(inputFileData.length).format('0,0')} records impacted`);
-    }
+      if (inputFileData?.length) {
+        text.push(`${numeral(inputFileData.length).format('0,0')} records impacted`);
+      }
 
-    if (inputFileHeader) {
-      const fieldMappingItems = Object.values(fieldMapping);
-      const numItemsMapped = fieldMappingItems.filter((item) => item.targetField).length;
-      text.push(`${numeral(numItemsMapped).format('0,0')} of ${numeral(inputFileHeader.length).format('0,0')} fields mapped`);
+      if (inputFileHeader) {
+        const fieldMappingItems = Object.values(fieldMapping);
+        const numItemsMapped = fieldMappingItems.filter((item) => item.targetField).length;
+        text.push(`${numeral(numItemsMapped).format('0,0')} of ${numeral(inputFileHeader.length).format('0,0')} fields mapped`);
+      }
     }
 
     setLoadSummaryText(text.join(' • '));
-  }, [selectedSObject, loadType, fieldMapping, inputFileHeader]);
+  }, [selectedSObject, loadType, fieldMapping, inputFileHeader, externalId]);
 
   function handleFileChange(data: any[], headers: string[], filename: string) {
     setInputFileData(data);
@@ -220,7 +221,14 @@ export const LoadRecords: FunctionComponent<LoadRecordsProps> = () => {
           </PageHeaderActions>
         </PageHeaderRow>
         <PageHeaderRow>
-          <div className="slds-page-header__col-meta">{loadSummaryText}</div>
+          <div
+            className="slds-page-header__col-meta"
+            css={css`
+              min-height: 19px;
+            `}
+          >
+            {loadSummaryText}
+          </div>
         </PageHeaderRow>
       </PageHeader>
       <AutoFullHeightContainer className="slds-p-horizontal_x-small slds-scrollable_none" bufferIfNotRendered={HEIGHT_BUFFER}>

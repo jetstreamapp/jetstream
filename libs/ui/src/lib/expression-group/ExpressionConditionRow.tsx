@@ -148,7 +148,7 @@ export const ExpressionConditionRow: FunctionComponent<ExpressionConditionRowPro
             <div className="slds-col">
               <Combobox
                 label={resourceLabel}
-                helpText={resourceHelpText}
+                labelHelp={resourceHelpText}
                 onInputChange={(filter) => setResourcesFilter(filter)}
                 selectedItemLabel={selectedResourceComboboxLabel}
                 selectedItemTitle={selectedResourceTitle}

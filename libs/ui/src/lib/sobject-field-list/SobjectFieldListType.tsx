@@ -33,7 +33,20 @@ function getContent(field: FieldWrapper) {
         </Tooltip>
       );
     }
-    // TODO: add other tooltip (e.x. formula)
+  } else if (field.metadata.calculatedFormula) {
+    return (
+      <Tooltip id={`${field.name}-type-tooltip`} content={field.metadata.calculatedFormula}>
+        <span className="slds-badge__icon slds-badge__icon_left slds-badge__icon_inverse">
+          <Icon
+            type="utility"
+            icon="search"
+            className="slds-icon slds-icon_xx-small"
+            containerClassname="slds-icon_container slds-icon-utility-moneybag slds-current-color"
+          />
+        </span>
+        {field.type}
+      </Tooltip>
+    );
   } else {
     return field.type;
   }
@@ -41,7 +54,7 @@ function getContent(field: FieldWrapper) {
 
 export const SobjectFieldListType: FunctionComponent<SobjectFieldListTypeProps> = ({ field }) => {
   return (
-    <Badge className="slds-truncate" title={field.fieldDefinition?.DataType || field.metadata.type}>
+    <Badge className="slds-truncate" title={field.type}>
       {getContent(field)}
     </Badge>
   );

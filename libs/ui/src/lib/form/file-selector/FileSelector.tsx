@@ -8,12 +8,16 @@ import { InputAcceptType, InputReadFileContent } from '@jetstream/types';
 export interface FileSelectorProps {
   id: string;
   label: string;
+  labelHelp?: string;
+  helpText?: React.ReactNode | string;
   initialFilename?: string;
   hideLabel?: boolean;
   disabled?: boolean;
   accept?: InputAcceptType[];
   readAs?: 'string' | '';
   userHelpText?: string;
+  hasError?: boolean;
+  errorMessage?: React.ReactNode | string;
   onReadFile: (fileContent: InputReadFileContent) => void;
 }
 
@@ -25,11 +29,13 @@ export const FileSelector: FunctionComponent<FileSelectorProps> = ({
   disabled,
   accept,
   userHelpText,
+  hasError,
+  errorMessage,
   onReadFile,
 }) => {
   const [labelPrimaryId] = useState(() => `${id}-label-primary`);
   const [labelSecondaryId] = useState(() => `${id}-label`);
-  const [errorMessage, setErrorMessage] = useState<string>(null);
+  const [systemErrorMessage, setSystemErrorMessage] = useState<string>(null);
   const [filename, setFilename] = useState<string>(initialFilename);
   const [filenameTruncated, setFilenameTruncated] = useState<string>(null);
   const [isDraggingOver, setIsDraggingOver] = useState(false);
@@ -74,7 +80,7 @@ export const FileSelector: FunctionComponent<FileSelectorProps> = ({
 
   async function handleFiles(files: FileList) {
     try {
-      setErrorMessage(null);
+      setSystemErrorMessage(null);
       setFilename(null);
       if (!files || files.length === 0) {
         return;
@@ -98,7 +104,7 @@ export const FileSelector: FunctionComponent<FileSelectorProps> = ({
 
       onReadFile({ filename: file.name, extension, content });
     } catch (ex) {
-      setErrorMessage(ex.message);
+      setSystemErrorMessage(ex.message);
       setFilename(null);
     } finally {
       if (inputRef?.current) {
@@ -107,15 +113,19 @@ export const FileSelector: FunctionComponent<FileSelectorProps> = ({
     }
   }
 
+  function hasErrorState() {
+    return systemErrorMessage || (hasError && errorMessage);
+  }
+
   return (
-    <div className={classNames('"slds-form-element"', { 'slds-has-error': errorMessage })}>
+    <div className={classNames('"slds-form-element"', { 'slds-has-error': hasErrorState() })}>
       <span className={classNames('slds-form-element__label', { 'slds-assistive-text': hideLabel })} id={labelPrimaryId}>
         {label}
       </span>
       <div className="slds-form-element__control">
         <div className="slds-file-selector slds-file-selector_files">
           <div
-            className={classNames('slds-file-selector__dropzone', { 'slds-has-drag-over': isDraggingOver && !errorMessage })}
+            className={classNames('slds-file-selector__dropzone', { 'slds-has-drag-over': isDraggingOver && !hasErrorState() })}
             onDragEnter={handleDragEnter}
             onDragOver={handleDragEnter}
             onDragLeave={handleDragLeave}
@@ -127,7 +137,7 @@ export const FileSelector: FunctionComponent<FileSelectorProps> = ({
               className="slds-file-selector__input slds-assistive-text"
               accept={accept ? accept.join(', ') : undefined}
               id={id}
-              aria-describedby="file-input-help file-input-error file-input-name"
+              aria-describedby="file-input-help file-input-system-error file-input-error file-input-name"
               aria-labelledby={`${labelPrimaryId} ${labelSecondaryId}`}
               disabled={disabled}
               onChange={handleInputChange}
@@ -152,9 +162,14 @@ export const FileSelector: FunctionComponent<FileSelectorProps> = ({
           {filenameTruncated}
         </div>
       )}
-      {errorMessage && (
+      {systemErrorMessage && (
+        <div className="slds-form-element__help slds-truncate" id="file-input-system-error">
+          {systemErrorMessage}
+        </div>
+      )}
+      {hasError && errorMessage && (
         <div className="slds-form-element__help slds-truncate" id="file-input-error">
-          {errorMessage}
+          {systemErrorMessage}
         </div>
       )}
     </div>

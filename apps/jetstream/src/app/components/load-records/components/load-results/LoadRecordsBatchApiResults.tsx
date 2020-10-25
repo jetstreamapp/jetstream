@@ -2,6 +2,7 @@
 import { jsx } from '@emotion/core';
 import { logger } from '@jetstream/shared/client-logger';
 import { InsertUpdateUpsertDelete, RecordResultWithRecord, SalesforceOrgUi, WorkerMessage } from '@jetstream/types';
+import { flattenRecord } from '@jetstream/shared/utils';
 import { FunctionComponent, useEffect, useRef, useState } from 'react';
 import LoadWorker from '../../../../workers/load.worker';
 import FileDownloadModal from '../../../core/FileDownloadModal';
@@ -171,28 +172,29 @@ export const LoadRecordsBatchApiResults: FunctionComponent<LoadRecordsBatchApiRe
 
   function handleDownloadRecords(type: 'results' | 'failure') {
     let data: any[] = [];
-    if (type === 'results') {
-      data = processedRecords.map((record) => ({
-        _id: record.success ? record.id : '',
-        _success: record.success,
-        _errors: record.success === false ? record.errors.map((error) => error.message).join('\n') : '',
-        ...record.record,
-      }));
+    // Use field mapping to determine headers in output data and account for relationship fields
+    const fields = Object.values(fieldMapping)
+      .filter((item) => !!item.targetField)
+      .map((item) => {
+        let output = item.targetField;
+        if (item.mappedToLookup && item.targetLookupField) {
+          output = `${item.relationshipName}.${item.targetLookupField}`;
+        }
+        return output;
+      });
 
-      const header = Object.keys(data[0]).filter((field) => field !== 'attributes');
-
-      setDownloadModalData({ open: true, data, header, fileNameParts: ['load', type] });
-    } else {
-      data = processedRecords
-        .filter((records) => !records.success)
-        .map((record) => ({
+    data = processedRecords
+      .filter((record: RecordResultWithRecord) => (type === 'results' ? true : !record.success))
+      .map((record) => {
+        return {
           _id: record.success ? record.id : '',
           _success: record.success,
           _errors: record.success === false ? record.errors.map((error) => error.message).join('\n') : '',
-          ...record.record,
-        }));
-    }
-    const header = Object.keys(data[0] || {}).filter((field) => field !== 'attributes');
+          ...flattenRecord(record.record, fields),
+        };
+      });
+
+    const header = ['_id', '_success', '_errors'].concat(fields);
     setDownloadModalData({ open: true, data, header, fileNameParts: ['load', type] });
   }
 

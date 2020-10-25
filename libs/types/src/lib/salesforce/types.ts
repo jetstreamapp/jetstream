@@ -1,4 +1,8 @@
+import { DescribeSObjectResult, Field } from 'jsforce';
 import { HttpMethod, MapOf, RecordAttributes } from '../types';
+
+export type FieldWithExtendedType = Field & { typeLabel: string };
+export type DescribeSObjectResultWithExtendedField = Omit<DescribeSObjectResult, 'fields'> & { fields: FieldWithExtendedType[] };
 
 export type SalesforceOrgEdition =
   | 'Team Edition'

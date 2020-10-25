@@ -1,15 +1,6 @@
-import {
-  ExpressionType,
-  ListItemGroup,
-  MapOf,
-  QueryFields,
-  QueryOrderByClause,
-  QueryHistoryItem,
-  InsertUpdateUpsertDelete,
-} from '@jetstream/types';
+import { InsertUpdateUpsertDelete } from '@jetstream/types';
 import { DescribeGlobalSObjectResult } from 'jsforce';
-import { atom, selector } from 'recoil';
-import { orderStringsBy } from '@jetstream/shared/utils';
+import { atom } from 'recoil';
 import { FieldMapping } from './load-records-types';
 
 export const priorSelectedOrg = atom<string>({

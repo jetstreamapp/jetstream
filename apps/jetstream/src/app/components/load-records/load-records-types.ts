@@ -1,11 +1,22 @@
-import {
-  BulkJob,
-  BulkJobWithBatches,
-  EntityParticleRecord,
-  InsertUpdateUpsertDelete,
-  RecordAttributes,
-  SalesforceOrgUi,
-} from '@jetstream/types';
+import { BulkJobWithBatches, EntityParticleRecord, InsertUpdateUpsertDelete, RecordAttributes, SalesforceOrgUi } from '@jetstream/types';
+import { FieldType } from 'jsforce';
+
+export interface FieldWithRelatedEntities {
+  label: string;
+  name: string;
+  type: FieldType;
+  typeLabel: string;
+  externalId: boolean;
+  referenceTo?: string;
+  relationshipName?: string;
+  relatedFields?: FieldRelatedEntity[];
+}
+
+export interface FieldRelatedEntity {
+  name: string;
+  label: string;
+  type: string;
+}
 
 export interface Step {
   idx: number;
@@ -30,11 +41,14 @@ export interface FieldMapping {
 }
 
 export interface FieldMappingItem {
+  csvField: string;
   targetField: string | null;
   mappedToLookup: boolean;
   relationshipName?: string;
   targetLookupField?: string;
-  fieldMetadata: EntityParticleRecord;
+  fieldMetadata: FieldWithRelatedEntities;
+  relatedFieldMetadata?: FieldRelatedEntity;
+  isDuplicateMappedField?: boolean;
 }
 
 export interface PrepareDataPayload {
