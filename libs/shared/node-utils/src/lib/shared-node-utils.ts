@@ -1,14 +1,4 @@
 import * as crypto from 'crypto';
-import * as jsforce from 'jsforce';
-
-export function getJsforceOauth2(loginUrl: string) {
-  return new jsforce.OAuth2({
-    loginUrl,
-    clientId: process.env.SFDC_CONSUMER_KEY,
-    clientSecret: process.env.SFDC_CONSUMER_SECRET,
-    redirectUri: process.env.SFDC_CALLBACK_URL,
-  });
-}
 
 export function generateKey(): string {
   // Generates 32 byte cryptographically strong pseudo-random data as a base64 encoded string

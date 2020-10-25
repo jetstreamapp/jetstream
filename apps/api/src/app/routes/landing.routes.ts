@@ -4,10 +4,11 @@ import * as request from 'superagent';
 import Router from 'express-promise-router';
 import { UserFacingError } from '../utils/error-handler';
 import { logger } from '../config/logger.config';
+import { ENV } from '../config/env-config';
 
-const MAILCHIMP_USER = process.env.MAILCHIMP_USER;
-const MAILCHIMP_API_KEY = process.env.MAILCHIMP_API_KEY;
-const MAILCHIMP_AUDIENCE_ID = process.env.MAILCHIMP_AUDIENCE_ID;
+const MAILCHIMP_USER = ENV.MAILCHIMP_USER;
+const MAILCHIMP_API_KEY = ENV.MAILCHIMP_API_KEY;
+const MAILCHIMP_AUDIENCE_ID = ENV.MAILCHIMP_AUDIENCE_ID;
 
 export const routes: express.Router = Router();
 

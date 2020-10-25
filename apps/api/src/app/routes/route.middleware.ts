@@ -1,11 +1,13 @@
 import { HTTP } from '@jetstream/shared/constants';
-import { decryptString, encryptString, getJsforceOauth2, hexToBase64 } from '@jetstream/shared/node-utils';
+import { decryptString, encryptString, hexToBase64 } from '@jetstream/shared/node-utils';
 import { UserProfileServer } from '@jetstream/types';
 import * as express from 'express';
 import { ValidationChain, validationResult } from 'express-validator';
 import * as jsforce from 'jsforce';
+import { ENV } from '../config/env-config';
 import { logger } from '../config/logger.config';
 import { SalesforceOrg } from '../db/entites/SalesforceOrg';
+import { getJsforceOauth2 } from '../utils/auth-utils';
 import { AuthenticationError, NotFoundError, UserFacingError } from '../utils/error-handler';
 
 export function logRoute(req: express.Request, res: express.Response, next: express.NextFunction) {
@@ -58,7 +60,7 @@ export async function addOrgsToLocal(req: express.Request, res: express.Response
 
     const { accessToken: encryptedAccessToken, loginUrl, instanceUrl, orgNamespacePrefix } = org;
 
-    const [accessToken, refreshToken] = decryptString(encryptedAccessToken, hexToBase64(process.env.SFDC_CONSUMER_SECRET)).split(' ');
+    const [accessToken, refreshToken] = decryptString(encryptedAccessToken, hexToBase64(ENV.SFDC_CONSUMER_SECRET)).split(' ');
 
     const connData: jsforce.ConnectionOptions = {
       oauth2: getJsforceOauth2(loginUrl),
@@ -66,7 +68,7 @@ export async function addOrgsToLocal(req: express.Request, res: express.Response
       accessToken,
       refreshToken,
       maxRequest: 5,
-      version: apiVersion || org.apiVersion || process.env.SFDC_FALLBACK_API_VERSION,
+      version: apiVersion || org.apiVersion || ENV.SFDC_FALLBACK_API_VERSION,
     };
 
     if (orgNamespacePrefix) {
@@ -82,7 +84,7 @@ export async function addOrgsToLocal(req: express.Request, res: express.Response
       // Refresh event will be fired when renewed access token
       // to store it in your storage for next request
       try {
-        org.accessToken = encryptString(`${accessToken} ${refreshToken}`, hexToBase64(process.env.SFDC_CONSUMER_SECRET));
+        org.accessToken = encryptString(`${accessToken} ${refreshToken}`, hexToBase64(ENV.SFDC_CONSUMER_SECRET));
         await org.save();
         logger.info('[ORG][REFRESH] Org refreshed successfully');
       } catch (ex) {

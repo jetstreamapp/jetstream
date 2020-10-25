@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/camelcase */
-import * as dotenv from 'dotenv';
 import * as Auth0Strategy from 'passport-auth0';
-dotenv.config();
+import * as jsforce from 'jsforce';
+import { ENV } from '../config/env-config';
 
 interface AuthorizationParamsOptions {
   audience?: string;
@@ -13,6 +13,15 @@ interface AuthorizationParamsOptions {
   acr_values?: string;
   maxAge?: number;
   nonce?: string;
+}
+
+export function getJsforceOauth2(loginUrl: string) {
+  return new jsforce.OAuth2({
+    loginUrl,
+    clientId: ENV.SFDC_CONSUMER_KEY,
+    clientSecret: ENV.SFDC_CONSUMER_SECRET,
+    redirectUri: ENV.SFDC_CALLBACK_URL,
+  });
 }
 
 // Monkey Patch Auth0Strategy to allow directing a user to the login page

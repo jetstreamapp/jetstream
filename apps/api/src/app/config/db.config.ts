@@ -2,11 +2,12 @@ import { Pool } from 'pg';
 import 'reflect-metadata';
 import { createConnection } from 'typeorm';
 import { SalesforceOrg } from '../db/entites/SalesforceOrg';
+import { ENV } from './env-config';
 import { logger } from './logger.config';
 
 export const pgPool = new Pool({
   // Insert pool options here
-  connectionString: process.env.JESTREAM_POSTGRES_DBURI,
+  connectionString: ENV.JESTREAM_POSTGRES_DBURI,
   connectionTimeoutMillis: 2000,
   idleTimeoutMillis: 30000,
 });
@@ -18,7 +19,7 @@ pgPool.on('error', (err, client) => {
 
 createConnection({
   type: 'postgres',
-  url: process.env.JESTREAM_POSTGRES_DBURI,
+  url: ENV.JESTREAM_POSTGRES_DBURI,
   entities: [SalesforceOrg],
   synchronize: true,
   logging: ['error', 'schema'],

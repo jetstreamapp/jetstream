@@ -4,6 +4,7 @@ import { logger } from '../config/logger.config';
 import { SalesforceOrg } from '../db/entites/SalesforceOrg';
 import { AuthenticationError, NotFoundError, UserFacingError } from './error-handler';
 import * as querystring from 'querystring';
+import { ENV } from '../config/env-config';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function healthCheck(req: express.Request, res: express.Response) {
@@ -48,7 +49,7 @@ export async function uncaughtErrorHandler(err: any, req: express.Request, res: 
   } else if (err instanceof AuthenticationError) {
     res.status(401);
     res.set(HTTP.HEADERS.X_LOGOUT, '1');
-    res.set(HTTP.HEADERS.X_LOGOUT_URL, `${process.env.JETSTREAM_SERVER_URL}/oauth/login`);
+    res.set(HTTP.HEADERS.X_LOGOUT_URL, `${ENV.JETSTREAM_SERVER_URL}/oauth/login`);
     if (isJson) {
       return res.json({
         error: true,

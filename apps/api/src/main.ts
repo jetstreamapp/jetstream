@@ -1,4 +1,3 @@
-import './app/utils/config';
 import { json, urlencoded, raw } from 'body-parser';
 import * as cors from 'cors';
 import * as express from 'express';
@@ -15,6 +14,7 @@ import { ApplicationCookie } from '@jetstream/types';
 import { logger } from './app/config/logger.config';
 import * as passport from 'passport';
 import * as Auth0Strategy from 'passport-auth0';
+import { ENV } from './app/config/env-config';
 
 const pgSession = pgSimple(session);
 
@@ -32,9 +32,9 @@ app.use(
       httpOnly: false,
       secure: environment.production,
       maxAge: 1000 * 60 * 60 * 24 * SESSION_EXP_DAYS,
-      domain: process.env.JETSTREAM_SERVER_DOMAIN,
+      domain: ENV.JETSTREAM_SERVER_DOMAIN,
     },
-    secret: process.env.JESTREAM_SESSION_SECRET,
+    secret: ENV.JESTREAM_SESSION_SECRET,
     rolling: true,
     resave: true,
     saveUninitialized: true,
@@ -47,7 +47,8 @@ app.use(
 // Setup application cookie
 app.use((req: express.Request, res: express.Response, next: express.NextFunction) => {
   const appCookie: ApplicationCookie = {
-    serverUrl: process.env.JETSTREAM_SERVER_URL,
+    serverUrl: ENV.JETSTREAM_SERVER_URL,
+    environment: ENV.ENVIRONMENT as any,
   };
   res.cookie(HTTP.COOKIE.JETSTREAM, appCookie, { httpOnly: false });
   next();
@@ -56,10 +57,10 @@ app.use((req: express.Request, res: express.Response, next: express.NextFunction
 passport.use(
   new Auth0Strategy(
     {
-      domain: process.env.AUTH0_DOMAIN,
-      clientID: process.env.AUTH0_CLIENT_ID,
-      clientSecret: process.env.AUTH0_CLIENT_SECRET,
-      callbackURL: `${process.env.JETSTREAM_SERVER_URL}/oauth/callback`,
+      domain: ENV.AUTH0_DOMAIN,
+      clientID: ENV.AUTH0_CLIENT_ID,
+      clientSecret: ENV.AUTH0_CLIENT_SECRET,
+      callbackURL: `${ENV.JETSTREAM_SERVER_URL}/oauth/callback`,
     },
     (accessToken, refreshToken, extraParams, profile, done) => {
       // accessToken is the token to call Auth0 API (not needed in the most cases)
@@ -91,10 +92,8 @@ app.use('/static', logRoute, staticAuthenticatedRoutes); // these are routes tha
 app.use('/landing', logRoute, landingRoutes);
 app.use('/oauth', logRoute, oauthRoutes); // NOTE: there are also static files with same path
 
-const port = process.env.port || 3333;
-
-const server = app.listen(port, () => {
-  logger.info('Listening at http://localhost:' + port);
+const server = app.listen(Number(ENV.PORT), () => {
+  logger.info('Listening at http://localhost:' + ENV.PORT);
 });
 
 if (!environment.production) {

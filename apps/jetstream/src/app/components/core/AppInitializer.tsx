@@ -1,4 +1,4 @@
-import { UserProfileUi } from '@jetstream/types';
+import { ApplicationCookie, UserProfileUi } from '@jetstream/types';
 import React, { Fragment, FunctionComponent, useEffect } from 'react';
 import { useRecoilState, useRecoilValue } from 'recoil';
 import * as fromAppState from '../../app-state';
@@ -35,10 +35,11 @@ export const AppInitializer: FunctionComponent<AppInitializerProps> = ({ onUserP
   // FIXME: Cannot update a component (`Batcher`) while rendering a different component (`AppInitializer`)
   // Recoil needs to fix this
   const userProfile = useRecoilValue<UserProfileUi>(fromAppState.userProfileState);
+  const appCookie = useRecoilValue<ApplicationCookie>(fromAppState.applicationCookieState);
   const [orgs, setOrgs] = useRecoilState(fromAppState.salesforceOrgsState);
   const invalidOrg = useObservable(orgConnectionError$);
   // this ensures rollbar is configured and has user profile information
-  useRollbar(environment.rollbarClientAccessToken, environment.production ? 'production' : 'development', userProfile);
+  useRollbar(environment.rollbarClientAccessToken, appCookie.environment, userProfile);
 
   useEffect(() => {
     if (invalidOrg) {

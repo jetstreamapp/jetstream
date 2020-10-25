@@ -1,11 +1,13 @@
 /* eslint-disable @typescript-eslint/camelcase */
-import { encryptString, getJsforceOauth2, hexToBase64 } from '@jetstream/shared/node-utils';
+import { encryptString, hexToBase64 } from '@jetstream/shared/node-utils';
 import { SalesforceOrgUi, SObjectOrganization, UserProfileServer } from '@jetstream/types';
 import * as express from 'express';
 import * as jsforce from 'jsforce';
 import * as querystring from 'querystring';
+import { ENV } from '../config/env-config';
 import { logger } from '../config/logger.config';
 import { SalesforceOrg } from '../db/entites/SalesforceOrg';
+import { getJsforceOauth2 } from '../utils/auth-utils';
 
 /**
  * Prepare SFDC auth and redirect to Salesforce
@@ -84,7 +86,7 @@ export async function salesforceOauthCallback(req: express.Request, res: express
     const salesforceOrgUi: SalesforceOrgUi = {
       uniqueId: `${userInfo.organizationId}-${userInfo.id}`,
       filterText: `${identity.username}${orgName}`.toLowerCase(),
-      accessToken: encryptString(`${conn.accessToken} ${conn.refreshToken}`, hexToBase64(process.env.SFDC_CONSUMER_SECRET)),
+      accessToken: encryptString(`${conn.accessToken} ${conn.refreshToken}`, hexToBase64(ENV.SFDC_CONSUMER_SECRET)),
       instanceUrl: conn.instanceUrl,
       loginUrl: state.loginUrl as string, // might also have conn.loginUrl
       userId: identity.user_id,

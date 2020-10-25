@@ -1,3 +1,5 @@
+import { ENV } from '../app/config/env-config';
+
 export const environment = {
-  production: process.env.NODE_ENV === 'production',
+  production: ENV.NODE_ENV === 'production',
 };

@@ -19,8 +19,9 @@ export interface CacheItemWithData<T> extends CacheItem {
 }
 
 export type Production = 'production';
+export type Test = 'test';
 export type Development = 'development';
-export type ProductionDevelopment = Production | Development;
+export type Environment = Production | Test | Development;
 
 export type HttpMethod = 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE';
 export type SobjectOperation = 'retrieve' | 'create' | 'update' | 'upsert' | 'delete';
@@ -36,6 +37,7 @@ export interface RecordAttributes {
 
 export interface ApplicationCookie {
   serverUrl: string;
+  environment: Environment;
 }
 
 export interface AuthenticationToken {
