@@ -40,7 +40,6 @@ export interface FieldWrapper {
   // text used to filter data
   filterText: string;
   metadata: Field;
-  fieldDefinition: FieldDefinition;
   // key of related object within QueryFieldMap - only populated for relationship fields and key will only exist once expanded and fetched
   relationshipKey?: string;
 }

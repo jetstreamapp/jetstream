@@ -31,7 +31,8 @@ type ChildListGroup = ComboboxListItemGroupProps & { children: React.ReactNode }
 
 export interface ComboboxProps {
   label: string;
-  helpText?: string;
+  labelHelp?: string;
+  helpText?: React.ReactNode | string;
   hideLabel?: boolean;
   placeholder?: string;
   noItemsPlaceholder?: string;
@@ -46,6 +47,8 @@ export interface ComboboxProps {
   };
   itemLength?: 5 | 7;
   hasError?: boolean;
+  errorMessageId?: string;
+  errorMessage?: React.ReactNode | string;
   onInputChange?: (value: string) => void;
   onLeadingDropdownChange?: (item: FormGroupDropdownItem) => void;
 }
@@ -59,6 +62,7 @@ function getContainer(hasGroup: boolean, children: React.ReactNode) {
 
 export const Combobox: FunctionComponent<ComboboxProps> = ({
   label,
+  labelHelp,
   helpText,
   hideLabel = false,
   placeholder = 'Select an Option',
@@ -70,6 +74,8 @@ export const Combobox: FunctionComponent<ComboboxProps> = ({
   leadingDropdown,
   itemLength = 5,
   hasError,
+  errorMessageId,
+  errorMessage,
   children,
   onInputChange,
   onLeadingDropdownChange,
@@ -266,7 +272,7 @@ export const Combobox: FunctionComponent<ComboboxProps> = ({
       <label className={classNames('slds-form-element__label', { 'slds-assistive-text': hideLabel })} htmlFor={id}>
         {label}
       </label>
-      {helpText && <HelpText id={`${id}-label-help-text`} content={helpText} />}
+      {labelHelp && <HelpText id={`${id}-label-help-text`} content={labelHelp} />}
       <div className="slds-form-element__control">
         {getContainer(
           hasDropdownGroup,
@@ -301,6 +307,7 @@ export const Combobox: FunctionComponent<ComboboxProps> = ({
                     className={classNames('slds-input slds-combobox__input', { 'slds-text-color_error': hasError })}
                     id={id}
                     aria-controls={listId}
+                    aria-describedby={errorMessageId}
                     autoComplete="off"
                     placeholder={placeholder}
                     disabled={disabled}
@@ -353,6 +360,12 @@ export const Combobox: FunctionComponent<ComboboxProps> = ({
           </Fragment>
         )}
       </div>
+      {helpText && <div className="slds-form-element__help">{helpText}</div>}
+      {hasError && errorMessage && (
+        <div className="slds-form-element__help" id={errorMessageId}>
+          {errorMessage}
+        </div>
+      )}
     </div>
   );
 };

@@ -1,45 +1,55 @@
-import { query } from '@jetstream/shared/data';
-import { MapOf, SalesforceOrgUi } from '@jetstream/types';
-import { composeQuery, getField } from 'soql-parser-js';
 import { logger } from '@jetstream/shared/client-logger';
-import { EntityParticleRecord } from '@jetstream/types';
-import { REGEX } from '@jetstream/shared/utils';
-import { ApiMode, EntityParticleRecordWithRelatedExtIds, FieldMapping, PrepareDataPayload } from '../load-records-types';
-import groupBy from 'lodash/groupBy';
-import isString from 'lodash/isString';
 import { DATE_FORMATS, SFDC_BULK_API_NULL_VALUE } from '@jetstream/shared/constants';
-import { parse as parseDate, parseISO as parseISODate, formatISO as formatISODate, startOfDay as startOfDayDate } from 'date-fns';
-import isNil from 'lodash/isNil';
+import { queryWithCache } from '@jetstream/shared/data';
+import { describeSObjectWithExtendedTypes } from '@jetstream/shared/ui-utils';
+import { REGEX } from '@jetstream/shared/utils';
+import { EntityParticleRecord, MapOf, SalesforceOrgUi } from '@jetstream/types';
+import { formatISO as formatISODate, parse as parseDate, parseISO as parseISODate, startOfDay as startOfDayDate } from 'date-fns';
 import { isNumber } from 'lodash';
+import groupBy from 'lodash/groupBy';
+import isNil from 'lodash/isNil';
+import isString from 'lodash/isString';
+import { composeQuery, getField } from 'soql-parser-js';
+import { FieldWithRelatedEntities, FieldMapping, FieldRelatedEntity, PrepareDataPayload } from '../load-records-types';
 
-/**
- * Fetch all fields and related fields, which are added to attributes.relatedRecords
- * @param selectedOrg
- * @param sobject
- */
-export async function getFieldMetadata(
-  selectedOrg: SalesforceOrgUi,
-  sobject: string
-): Promise<{
-  sobject: string;
-  fields: EntityParticleRecordWithRelatedExtIds[];
-}> {
-  const initialFields = await query<EntityParticleRecordWithRelatedExtIds>(selectedOrg, getInitialEntityDefinitionQuery(sobject), true);
-  const fields = initialFields.queryResults.records.filter((record) => record.IsCreatable || record.IsUpdatable || record.IsIdLookup);
-  const fieldsWithRelationships = fields.filter((record) => !!record.RelationshipName && Array.isArray(record.ReferenceTo.referenceTo));
-  const relatedObjects = new Set(fieldsWithRelationships.map((record) => record.ReferenceTo.referenceTo[0]));
-  if (relatedObjects.size > 0) {
-    const relatedEntities = await query<EntityParticleRecord>(
-      selectedOrg,
-      getRelatedEntityDefinitionQuery(Array.from(relatedObjects)),
-      true
+export async function getFieldMetadata(org: SalesforceOrgUi, sobject: string): Promise<FieldWithRelatedEntities[]> {
+  const fields = (await describeSObjectWithExtendedTypes(org, sobject)).fields
+    .filter((field) => field.createable || field.updateable || field.name === 'Id')
+    .map(
+      (field): FieldWithRelatedEntities => ({
+        label: field.label,
+        name: field.name,
+        type: field.type,
+        externalId: field.externalId,
+        typeLabel: field.typeLabel,
+        referenceTo: (field.type === 'reference' && field.referenceTo?.[0]) || undefined,
+        relationshipName: field.relationshipName || undefined,
+      })
     );
-    const relatedEntitiesByObj = groupBy(relatedEntities.queryResults.records, 'EntityDefinitionId');
-    fieldsWithRelationships.forEach((record) => {
-      record.attributes.relatedRecords = relatedEntitiesByObj[record.ReferenceTo.referenceTo[0]] || [];
+
+  // fetch all related external Id fields
+  const fieldsWithRelationships = fields.filter((field) => !!field.referenceTo);
+  const relatedObjects = new Set(fieldsWithRelationships.map((field) => field.referenceTo));
+  // related records
+  if (relatedObjects.size > 0) {
+    const relatedEntities = (
+      await queryWithCache<EntityParticleRecord>(org, getExternalIdFieldsForSobjectsQuery(Array.from(relatedObjects)), true)
+    ).data;
+    const relatedEntitiesByObj = groupBy(relatedEntities.queryResults.records, 'EntityDefinition.DeveloperName');
+    fieldsWithRelationships.forEach((field) => {
+      const relatedFields = relatedEntitiesByObj[field.referenceTo];
+      if (relatedFields) {
+        field.relatedFields = relatedFields.map(
+          (particle): FieldRelatedEntity => ({
+            name: particle.Name,
+            label: particle.Label,
+            type: particle.DataType,
+          })
+        );
+      }
     });
   }
-  return { sobject, fields };
+  return fields;
 }
 
 /**
@@ -54,15 +64,19 @@ export async function getFieldMetadata(
  * @param inputHeader
  * @param fields
  */
-export function autoMapFields(inputHeader: string[], fields: EntityParticleRecordWithRelatedExtIds[]): FieldMapping {
+export function autoMapFields(inputHeader: string[], fields: FieldWithRelatedEntities[]): FieldMapping {
   const output: FieldMapping = {};
-  const fieldVariations: MapOf<EntityParticleRecordWithRelatedExtIds> = {};
+  const fieldVariations: MapOf<FieldWithRelatedEntities> = {};
 
   // create versions of field that can be used to match back to original field
   fields.forEach((field) => {
-    fieldVariations[field.QualifiedApiName] = field;
-    const lowercase = field.QualifiedApiName.toLowerCase();
+    fieldVariations[field.name] = field;
+    const lowercase = field.name.toLowerCase();
     fieldVariations[lowercase] = field;
+    if (isString(field.relationshipName)) {
+      fieldVariations[field.relationshipName] = field;
+      fieldVariations[field.relationshipName.toLowerCase()] = field;
+    }
     fieldVariations[lowercase.replace(REGEX.NOT_ALPHANUMERIC, '')] = field;
   });
 
@@ -75,74 +89,62 @@ export function autoMapFields(inputHeader: string[], fields: EntityParticleRecor
       fieldVariations[lowercaseFieldOrRelationship.replace(REGEX.NOT_ALPHANUMERIC, '')];
 
     output[field] = {
-      targetField: matchedField?.QualifiedApiName || null,
+      csvField: field,
+      targetField: matchedField?.name || null,
       mappedToLookup: false,
       fieldMetadata: matchedField,
     };
 
-    if (relatedField && matchedField && Array.isArray(matchedField.attributes.relatedRecords)) {
-      const matchedRelatedField = matchedField.attributes.relatedRecords.find(
+    if (relatedField && matchedField && Array.isArray(matchedField.relatedFields)) {
+      const matchedRelatedField = matchedField.relatedFields.find(
         (relatedEntityField) =>
-          relatedField === relatedEntityField.QualifiedApiName ||
-          relatedField.toLowerCase() === relatedEntityField.QualifiedApiName.toLowerCase()
+          relatedField === relatedEntityField.name || relatedField.toLowerCase() === relatedEntityField.name.toLowerCase()
       );
       if (matchedRelatedField) {
         output[field].mappedToLookup = true;
-        output[field].targetLookupField = matchedRelatedField.QualifiedApiName;
-        output[field].relationshipName = matchedField.RelationshipName;
-        output[field].fieldMetadata = matchedRelatedField;
+        output[field].targetLookupField = matchedRelatedField.name;
+        output[field].relationshipName = matchedField.relationshipName;
+        output[field].fieldMetadata = matchedField;
+        output[field].relatedFieldMetadata = matchedRelatedField;
       }
     }
   });
 
-  return output;
+  return checkForDuplicateFieldMappings(output);
 }
 
-function getInitialEntityDefinitionQuery(sobject: string) {
-  const soql = composeQuery({
-    fields: [
-      getField('Id'),
-      getField('Name'),
-      getField('EntityDefinitionId'),
-      getField('IsIdLookup'),
-      getField('DataType'),
-      getField('ValueTypeId'),
-      getField('ReferenceTo'),
-      getField('EntityDefinition.DeveloperName'),
-      getField('IsCreatable'),
-      getField('IsUpdatable'),
-      getField('Label'),
-      getField('MasterLabel'),
-      getField('QualifiedApiName'),
-      getField('RelationshipName'),
-    ],
-    sObject: 'EntityParticle',
-    where: {
-      left: {
-        field: 'EntityDefinitionId',
-        operator: '=',
-        value: sobject,
-        literalType: 'STRING',
-      },
-      // operator: 'AND',
-      // right: {
-      //   left: {
-      //     field: 'IsCreatable',
-      //     operator: '=',
-      //     value: 'true',
-      //     literalType: 'BOOLEAN',
-      //   },
-      // },
-    },
-    orderBy: {
-      field: 'Label',
-    },
+export function resetFieldMapping(inputHeader: string[]): FieldMapping {
+  return inputHeader.reduce((output: FieldMapping, field) => {
+    output[field] = {
+      csvField: field,
+      targetField: null,
+      mappedToLookup: false,
+      fieldMetadata: undefined,
+    };
+    return output;
+  }, {});
+}
+
+export function checkForDuplicateFieldMappings(fieldMapping: FieldMapping): FieldMapping {
+  fieldMapping = { ...fieldMapping };
+  const mappedFieldFrequency = Object.values(fieldMapping)
+    .filter((field) => !!field.targetField)
+    .reduce((output: MapOf<number>, field) => {
+      output[field.targetField] = output[field.targetField] || 0;
+      output[field.targetField] += 1;
+      return output;
+    }, {});
+  Object.keys(fieldMapping).forEach((key) => {
+    if (fieldMapping[key].targetField) {
+      fieldMapping[key] = { ...fieldMapping[key], isDuplicateMappedField: mappedFieldFrequency[fieldMapping[key].targetField] > 1 };
+    } else {
+      fieldMapping[key] = { ...fieldMapping[key], isDuplicateMappedField: false };
+    }
   });
-  logger.info('getWorkflowRuleQuery()', { soql });
-  return soql;
+  return fieldMapping;
 }
 
-function getRelatedEntityDefinitionQuery(sobjects: string[]) {
+function getExternalIdFieldsForSobjectsQuery(sobjects: string[]) {
   const soql = composeQuery({
     fields: [
       getField('Id'),
@@ -185,7 +187,7 @@ function getRelatedEntityDefinitionQuery(sobjects: string[]) {
       { field: 'Label' },
     ],
   });
-  logger.info('getWorkflowRuleQuery()', { soql });
+  logger.info('getExternalIdFieldsForSobjectsQuery()', { soql });
   return soql;
 }
 
@@ -211,17 +213,17 @@ export function transformData({ data, fieldMapping, sObject, insertNulls, dateFo
             // batch api will always clear the value in SFDC if a null is passed, so we must ensure it is not included at all
             skipField = true;
           }
-        } else if (fieldMappingItem.fieldMetadata.DataType === 'boolean') {
+        } else if (fieldMappingItem.fieldMetadata.type === 'boolean') {
           if (isString(value) || isNumber(value)) {
             // any string that starts with "t" or number that starts with "1" is set to true
             // all other values to false (case-insensitive)
             value = REGEX.BOOLEAN_STR_TRUE.test(`${value}`);
           }
-        } else if (fieldMappingItem.fieldMetadata.DataType === 'date') {
+        } else if (fieldMappingItem.fieldMetadata.type === 'date') {
           value = transformDate(value, dateFormat);
-        } else if (fieldMappingItem.fieldMetadata.DataType === 'datetime') {
+        } else if (fieldMappingItem.fieldMetadata.type === 'datetime') {
           value = transformDateTime(value, dateFormat);
-        } else if (fieldMappingItem.fieldMetadata.DataType === 'time') {
+        } else if (fieldMappingItem.fieldMetadata.type === 'time') {
           // time format is specific
           // TODO: detect if times should be corrected
           // 10 PM

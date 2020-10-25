@@ -13,13 +13,16 @@ export async function SfBulkCreateJob(conn: jsforce.Connection, options: BulkApi
   const jobInfoNode = xmlBuilder({ version: '1.0', encoding: 'UTF-8' })
       .ele('jobInfo', { xmlns: 'http://www.force.com/2009/06/asyncapi/dataload' })
         .ele('operation').txt(type.toLowerCase()).up()
-        .ele('object').txt(sObject).up()
-        .ele('concurrencyMode').txt(serialMode ? 'Serial' : 'Parallel').up()
-        .ele('contentType').txt('CSV').up();
+        .ele('object').txt(sObject).up();
 
   if (type === 'UPSERT') {
     jobInfoNode.ele('externalIdFieldName').txt(externalId).up();
   }
+
+  // job fails if these come before externalIdFieldName
+  // prettier-ignore
+  jobInfoNode.ele('concurrencyMode').txt(serialMode ? 'Serial' : 'Parallel').up();
+  jobInfoNode.ele('contentType').txt('CSV').up();
 
   const xml = jobInfoNode.end({ prettyPrint: true });
 

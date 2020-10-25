@@ -118,7 +118,7 @@ export function sortQueryFieldsStr(fields: string[]): string[] {
   return firstItems.concat(reducedFields.remaining);
 }
 
-export function polyfillFieldDefinition(field: Field) {
+export function polyfillFieldDefinition(field: Field): string {
   const autoNumber: boolean = field['autoNumber'];
   const { type, calculated, calculatedFormula, externalId, nameField, extraTypeInfo, length, precision, referenceTo, scale } = field;
   let prefix = '';
@@ -672,6 +672,7 @@ export function parseFile(
 ): {
   data: any[];
   headers: string[];
+  errors: string[];
 } {
   if (isString(content)) {
     // csv - read from papaparse
@@ -679,11 +680,11 @@ export function parseFile(
       delimiter: detectDelimiter(),
       header: true,
       skipEmptyLines: true,
-      preview: 0, // TODO: allow options to control things like this
     });
     return {
       data: csvResult.data,
-      headers: csvResult.meta.fields,
+      headers: Array.from(new Set(csvResult.meta.fields)), // remove duplicates, if any
+      errors: csvResult.errors.map((error) => `Row ${error.row}: ${error.message}`),
     };
   } else {
     // ArrayBuffer - xlsx file
@@ -694,9 +695,11 @@ export function parseFile(
       blankrows: false,
       rawNumbers: true,
     });
+    const headers = data.length > 0 ? Object.keys(data[0]) : [];
     return {
       data,
-      headers: data.length > 0 ? Object.keys(data[0]) : [],
+      headers: headers.filter((field) => field.startsWith('__empty')),
+      errors: [], // TODO:
     };
   }
 }

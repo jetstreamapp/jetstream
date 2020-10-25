@@ -19,7 +19,7 @@ import {
   LoadDataBulkApiStatusPayload,
 } from '../components/load-records/load-records-types';
 import isString from 'lodash/isString';
-import { splitArrayToMaxSize } from '@jetstream/shared/utils';
+import { getHttpMethod, splitArrayToMaxSize } from '@jetstream/shared/utils';
 import { generateCsv, convertDateToLocale } from '@jetstream/shared/ui-utils';
 import { bulkApiAddBatchToJob, bulkApiCloseJob, bulkApiCreateJob, bulkApiGetJob, genericRequest } from '@jetstream/shared/data';
 import orderBy from 'lodash/orderBy';
@@ -137,12 +137,7 @@ async function loadBatchApiData({ org, data, sObject, type, batchSize, externalI
     if (type === 'UPSERT' && externalId) {
       url += `/${sObject}/${externalId}`;
     }
-    let method: HttpMethod = 'POST';
-    if (type === 'UPDATE') {
-      method = 'PATCH';
-    } else if (type === 'DELETE') {
-      method = 'DELETE';
-    }
+    const method: HttpMethod = getHttpMethod(type);
 
     for (const batch of batches) {
       let responseWithRecord: RecordResultWithRecord[];

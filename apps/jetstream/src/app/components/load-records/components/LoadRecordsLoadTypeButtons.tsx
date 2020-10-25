@@ -3,12 +3,12 @@ import { jsx } from '@emotion/core';
 import { InsertUpdateUpsertDelete } from '@jetstream/types';
 import { Combobox, ComboboxListItem, Grid, GridCol, RadioButton, RadioGroup, Spinner } from '@jetstream/ui';
 import { FunctionComponent, useEffect, useState } from 'react';
-import { EntityParticleRecordWithRelatedExtIds } from '../load-records-types';
+import { FieldWithRelatedEntities } from '../load-records-types';
 
 export interface LoadRecordsLoadTypeButtonsProps {
   selectedType: InsertUpdateUpsertDelete;
   loadingFields: boolean;
-  externalIdFields: EntityParticleRecordWithRelatedExtIds[];
+  externalIdFields: FieldWithRelatedEntities[];
   externalId: string;
   onChange: (type: InsertUpdateUpsertDelete, externalId: string) => void;
 }
@@ -30,18 +30,20 @@ export const LoadRecordsLoadTypeButtons: FunctionComponent<LoadRecordsLoadTypeBu
       setVisibleExternalIds(externalIdFields);
     } else if (textFilter) {
       const filter = textFilter.toLowerCase().trim();
-      setVisibleExternalIds(
-        externalIdFields.filter((field) => `${field.Label.toLowerCase()}${field.QualifiedApiName.toLowerCase()}`.includes(filter))
-      );
+      setVisibleExternalIds(externalIdFields.filter((field) => `${field.label.toLowerCase()}${field.name.toLowerCase()}`.includes(filter)));
     }
   }, [externalIdFields, textFilter]);
 
   useEffect(() => {
-    setExternalId('');
     if (externalIdFields && externalIdFields.length) {
       setExternalIdNoItemsText('Select an object before selecting an external Id');
     } else {
       setExternalIdNoItemsText('There are no items for selection');
+    }
+    if (Array.isArray(externalIdFields) && externalId) {
+      if (!externalIdFields.some((field) => field.name === externalId)) {
+        setExternalId('');
+      }
     }
   }, [externalIdFields]);
 
@@ -106,23 +108,23 @@ export const LoadRecordsLoadTypeButtons: FunctionComponent<LoadRecordsLoadTypeBu
               selectedItemTitle={externalId}
               noItemsPlaceholder={externalIdNoItemsText}
               onInputChange={setTextFilter}
-              helpText="Upsert requires an external Id as an alternative to a record id for matching rows in your input data to records in Salesforce. If a match is found, the record will be updated. Otherwise a new record will be created."
+              labelHelp="Upsert requires an external Id as an alternative to a record id for matching rows in your input data to records in Salesforce. If a match is found, the record will be updated. Otherwise a new record will be created."
             >
               {externalIdFields.map((field) => (
                 <ComboboxListItem
-                  key={field.QualifiedApiName}
-                  id={field.QualifiedApiName}
-                  selected={field.QualifiedApiName === externalId}
+                  key={field.name}
+                  id={field.name}
+                  selected={field.name === externalId}
                   onSelection={handleExternalIdChange}
                 >
                   <span className="slds-listbox__option-text slds-listbox__option-text_entity">
-                    <span title={field.Label} className="slds-truncate">
-                      {field.Label}
+                    <span title={field.label} className="slds-truncate">
+                      {field.label}
                     </span>
                   </span>
                   <span className="slds-listbox__option-meta slds-listbox__option-meta_entity">
-                    <span title={field.QualifiedApiName} className="slds-truncate">
-                      {field.QualifiedApiName}
+                    <span title={field.name} className="slds-truncate">
+                      {field.name}
                     </span>
                   </span>
                 </ComboboxListItem>

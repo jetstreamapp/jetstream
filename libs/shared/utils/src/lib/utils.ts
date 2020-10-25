@@ -1,5 +1,14 @@
 import { orderBy, isString, get as lodashGet, isBoolean, isNil } from 'lodash';
-import { MapOf, Record, BulkJob, BulkJobUntyped, BulkJobBatchInfo, BulkJobBatchInfoUntyped } from '@jetstream/types';
+import {
+  MapOf,
+  Record,
+  BulkJob,
+  BulkJobUntyped,
+  BulkJobBatchInfo,
+  BulkJobBatchInfoUntyped,
+  InsertUpdateUpsertDelete,
+  HttpMethod,
+} from '@jetstream/types';
 import { isObject } from 'util';
 import { REGEX } from './regex';
 import { unix } from 'moment-mini';
@@ -45,13 +54,15 @@ export function populateFromMapOf<T>(mapOf: MapOf<T>, items: string[]): T[] {
 }
 
 export function flattenRecords(records: Record[], fields: string[]): MapOf<string>[] {
-  return records.map((record) => {
-    return fields.reduce((obj, field) => {
-      const value = lodashGet(record, field);
-      obj[field] = isObject(value) ? JSON.stringify(value).replace(REGEX.LEADING_TRAILING_QUOTES, '') : value;
-      return obj;
-    }, {});
-  });
+  return records.map((record) => flattenRecord(record, fields));
+}
+
+export function flattenRecord(record: Record, fields: string[]): MapOf<string> {
+  return fields.reduce((obj, field) => {
+    const value = lodashGet(record, field);
+    obj[field] = isObject(value) ? JSON.stringify(value).replace(REGEX.LEADING_TRAILING_QUOTES, '') : value;
+    return obj;
+  }, {});
 }
 
 export function splitArrayToMaxSize<T = unknown>(items: T[], maxSize: number): T[][] {
@@ -217,4 +228,16 @@ export function bulkApiEnsureTyped(job: any | any): BulkJob | BulkJobBatchInfo {
     }
   });
   return job as BulkJob | BulkJobBatchInfo;
+}
+
+export function getHttpMethod(type: InsertUpdateUpsertDelete): HttpMethod {
+  switch (type) {
+    case 'UPDATE':
+    case 'UPSERT':
+      return 'PATCH';
+    case 'DELETE':
+      return 'DELETE';
+    default:
+      return 'POST';
+  }
 }
