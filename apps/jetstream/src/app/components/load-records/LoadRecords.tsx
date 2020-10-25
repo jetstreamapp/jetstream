@@ -79,6 +79,15 @@ export const LoadRecords: FunctionComponent<LoadRecordsProps> = () => {
   }, []);
 
   useEffect(() => {
+    if (priorSelectedOrg && selectedOrg && selectedOrg.uniqueId !== priorSelectedOrg) {
+      setPriorSelectedOrg(selectedOrg.uniqueId);
+      setCurrentStep(steps[0]);
+    } else {
+      setPriorSelectedOrg(selectedOrg.uniqueId);
+    }
+  }, [selectedOrg]);
+
+  useEffect(() => {
     setCurrentStepIdx(enabledSteps.findIndex((step) => step.idx === currentStep.idx));
   }, [currentStep]);
 

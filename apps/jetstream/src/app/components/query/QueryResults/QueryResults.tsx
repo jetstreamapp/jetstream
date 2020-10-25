@@ -21,7 +21,7 @@ import {
 } from '@jetstream/ui';
 import classNames from 'classnames';
 import numeral from 'numeral';
-import React, { Fragment, FunctionComponent, useEffect, useMemo, useState } from 'react';
+import React, { Fragment, FunctionComponent, useEffect, useMemo, useRef, useState } from 'react';
 import { Link, NavLink, useLocation } from 'react-router-dom';
 import { Column, Row } from 'react-table';
 import { useRecoilState, useRecoilValue } from 'recoil';
@@ -94,6 +94,8 @@ function renderQueryResultsWrapper(subqueryFieldMap: MapOf<string[]>) {
 export interface QueryResultsProps {}
 
 export const QueryResults: FunctionComponent<QueryResultsProps> = React.memo(() => {
+  const isMounted = useRef(null);
+  const [priorSelectedOrg, setPriorSelectedOrg] = useState<string>(null);
   const location = useLocation<{ soql: string; sobject?: { name: string; label: string } }>();
   const [soqlPanelOpen, setSoqlPanelOpen] = useState<boolean>(false);
   const [recordDetailPanelOpen, setRecordDetailPanelOpen] = useState<boolean>(false);
@@ -161,6 +163,11 @@ export const QueryResults: FunctionComponent<QueryResultsProps> = React.memo(() 
   const memoizedRecords: Record[] = useMemo(() => (records ? [...records] : undefined), [records]);
 
   useEffect(() => {
+    isMounted.current = true;
+    return () => (isMounted.current = false);
+  }, []);
+
+  useEffect(() => {
     if (bulkDeleteJob && executeQuery) {
       executeQuery(soql);
     }
@@ -176,6 +183,15 @@ export const QueryResults: FunctionComponent<QueryResultsProps> = React.memo(() 
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [location]);
+
+  useEffect(() => {
+    if (priorSelectedOrg && selectedOrg && selectedOrg.uniqueId !== priorSelectedOrg) {
+      setPriorSelectedOrg(selectedOrg.uniqueId);
+      executeQuery(soql);
+    } else {
+      setPriorSelectedOrg(selectedOrg.uniqueId);
+    }
+  }, [selectedOrg]);
 
   function saveQueryHistory(soql: string, sObject: string) {
     let sObjectLabel: string;
@@ -206,6 +222,9 @@ export const QueryResults: FunctionComponent<QueryResultsProps> = React.memo(() 
       setRecords(null);
       setFields(null);
       const results = await query(selectedOrg, soql).then(replaceSubqueryQueryResultsWithRecords);
+      if (!isMounted.current) {
+        return;
+      }
       setNextRecordsUrl(results.queryResults.nextRecordsUrl);
       saveQueryHistory(soql, results.parsedQuery?.sObject || results.columns?.entityName);
 

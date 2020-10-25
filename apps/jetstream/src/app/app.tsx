@@ -4,11 +4,12 @@ import { FEATURE_FLAGS } from '@jetstream/shared/constants';
 import { hasFeatureFlagAccess } from '@jetstream/shared/ui-utils';
 import { UserProfileUi } from '@jetstream/types';
 import { ConfirmationServiceProvider } from '@jetstream/ui';
-import { lazy, Suspense, useEffect, useState } from 'react';
+import { Fragment, lazy, Suspense, useEffect, useState } from 'react';
 import { ErrorBoundary } from 'react-error-boundary';
 import { BrowserRouter as Router, Redirect, Route, RouteComponentProps, Switch } from 'react-router-dom';
 import { RecoilRoot } from 'recoil';
 import AppInitializer from './components/core/AppInitializer';
+import AppStateResetOnOrgChange from './components/core/AppStateResetOnOrgChange';
 import ErrorBoundaryFallback from './components/core/ErrorBoundaryFallback';
 import HeaderNavbar from './components/core/HeaderNavbar';
 import OrgSelectionRequired from './components/orgs/OrgSelectionRequired';
@@ -75,29 +76,32 @@ export const App = () => {
         {/* TODO: make better loading indicators for suspense (both global and localized versions - maybe SVG placeholders) */}
         <Suspense fallback={<div>Loading...</div>}>
           <AppInitializer onUserProfile={setUserProfile}>
-            <Router basename="/app">
-              <div>
+            <Fragment>
+              <AppStateResetOnOrgChange />
+              <Router basename="/app">
                 <div>
-                  <HeaderNavbar userProfile={userProfile} featureFlags={featureFlags} />
+                  <div>
+                    <HeaderNavbar userProfile={userProfile} featureFlags={featureFlags} />
+                  </div>
+                  <div
+                    className="slds-p-horizontal_small slds-p-vertical_xx-small"
+                    css={css`
+                      margin-top: 90px;
+                    `}
+                  >
+                    <Suspense fallback={<div>Loading...</div>}>
+                      <ErrorBoundary FallbackComponent={ErrorBoundaryFallback}>
+                        <Switch>
+                          {routes.map((route) => (
+                            <Route key={route.path} path={route.path} render={route.render} />
+                          ))}
+                        </Switch>
+                      </ErrorBoundary>
+                    </Suspense>
+                  </div>
                 </div>
-                <div
-                  className="slds-p-horizontal_small slds-p-vertical_xx-small"
-                  css={css`
-                    margin-top: 90px;
-                  `}
-                >
-                  <Suspense fallback={<div>Loading...</div>}>
-                    <ErrorBoundary FallbackComponent={ErrorBoundaryFallback}>
-                      <Switch>
-                        {routes.map((route) => (
-                          <Route key={route.path} path={route.path} render={route.render} />
-                        ))}
-                      </Switch>
-                    </ErrorBoundary>
-                  </Suspense>
-                </div>
-              </div>
-            </Router>
+              </Router>
+            </Fragment>
           </AppInitializer>
         </Suspense>
       </RecoilRoot>
