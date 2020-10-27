@@ -30,11 +30,11 @@ app.use(
     }),
     cookie: {
       path: '/',
-      httpOnly: true,
+      httpOnly: false, // FIXME: set to true
       secure: environment.production,
       maxAge: 1000 * 60 * 60 * 24 * SESSION_EXP_DAYS,
       domain: ENV.JETSTREAM_SERVER_DOMAIN,
-      sameSite: 'strict',
+      // sameSite: 'strict', // FIXME: was this part of the issue?
     },
     secret: ENV.JESTREAM_SESSION_SECRET,
     rolling: true,
@@ -44,11 +44,12 @@ app.use(
   })
 );
 // app.use(compression());
-app.use(
-  helmet({
-    noSniff: false,
-  })
-);
+// TODO: some .js files were giving a 404 and caused this to break
+// app.use(
+//   helmet({
+//     noSniff: false,
+//   })
+// );
 
 // Setup application cookie
 app.use((req: express.Request, res: express.Response, next: express.NextFunction) => {
