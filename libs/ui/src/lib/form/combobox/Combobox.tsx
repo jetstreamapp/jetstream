@@ -60,7 +60,35 @@ function getContainer(hasGroup: boolean, children: React.ReactNode) {
   return <Fragment>{children}</Fragment>;
 }
 
-export const Combobox: FunctionComponent<ComboboxProps> = ({
+const iconLoading = (
+  <div className="slds-input__icon-group slds-input__icon-group_right">
+    <Spinner className="slds-spinner slds-spinner_brand slds-spinner_x-small slds-input__spinner" size="x-small" />
+    <Icon
+      type="utility"
+      icon="down"
+      className="slds-icon slds-icon slds-icon_x-small slds-icon-text-default"
+      containerClassname="slds-icon_container slds-icon-utility-down slds-input__icon slds-input__icon_right"
+    />
+  </div>
+);
+
+const iconNotLoading = (
+  <Icon
+    type="utility"
+    icon="down"
+    className="slds-icon slds-icon slds-icon_x-small slds-icon-text-default"
+    containerClassname="slds-icon_container slds-icon-utility-down slds-input__icon slds-input__icon_right"
+  />
+);
+
+/**
+ * Optimization to skip re-renders of parts of component
+ */
+export const Combobox: FunctionComponent<ComboboxProps> = (props) => (
+  <ComboboxElement {...props} icon={props.loading ? iconLoading : iconNotLoading} />
+);
+
+const ComboboxElement: FunctionComponent<ComboboxProps & { icon: JSX.Element }> = ({
   label,
   labelHelp,
   helpText,
@@ -69,6 +97,7 @@ export const Combobox: FunctionComponent<ComboboxProps> = ({
   noItemsPlaceholder = 'There are no items for selection',
   disabled,
   loading,
+  icon,
   selectedItemLabel,
   selectedItemTitle,
   leadingDropdown,
@@ -83,7 +112,7 @@ export const Combobox: FunctionComponent<ComboboxProps> = ({
   const [isOpen, setIsOpen] = useState<boolean>(false);
   const [id] = useState<string>(uniqueId('Combobox'));
   const [listId] = useState<string>(uniqueId('Combobox-list'));
-  const [value, setValue] = useState<string>('');
+  const [value, setValue] = useState<string>(selectedItemLabel || '');
   const [hasGroups, setHasGroups] = useState(false);
   const hasDropdownGroup = !!leadingDropdown && !!leadingDropdown.items?.length;
 
@@ -105,7 +134,9 @@ export const Combobox: FunctionComponent<ComboboxProps> = ({
     if (isOpen) {
       setValue('');
     } else {
-      setValue(selectedItemLabel || '');
+      if (value !== (selectedItemLabel || '')) {
+        setValue(selectedItemLabel || '');
+      }
     }
     if (onInputChange) {
       onInputChange('');
@@ -118,7 +149,7 @@ export const Combobox: FunctionComponent<ComboboxProps> = ({
     if (isOpen) {
       setIsOpen(false);
     }
-    if (value !== selectedItemLabel) {
+    if (value !== (selectedItemLabel || '')) {
       setValue(selectedItemLabel || '');
     }
   }, [selectedItemLabel]);
@@ -316,26 +347,7 @@ export const Combobox: FunctionComponent<ComboboxProps> = ({
                     value={value}
                     title={selectedItemTitle || value}
                   />
-
-                  {loading && (
-                    <div className="slds-input__icon-group slds-input__icon-group_right">
-                      <Spinner className="slds-spinner slds-spinner_brand slds-spinner_x-small slds-input__spinner" size="x-small" />
-                      <Icon
-                        type="utility"
-                        icon="down"
-                        className="slds-icon slds-icon slds-icon_x-small slds-icon-text-default"
-                        containerClassname="slds-icon_container slds-icon-utility-down slds-input__icon slds-input__icon_right"
-                      />
-                    </div>
-                  )}
-                  {!loading && (
-                    <Icon
-                      type="utility"
-                      icon="down"
-                      className="slds-icon slds-icon slds-icon_x-small slds-icon-text-default"
-                      containerClassname="slds-icon_container slds-icon-utility-down slds-input__icon slds-input__icon_right"
-                    />
-                  )}
+                  {icon}
                 </div>
                 <div
                   id={listId}
