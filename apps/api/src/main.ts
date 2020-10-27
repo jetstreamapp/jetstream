@@ -15,6 +15,7 @@ import { logger } from './app/config/logger.config';
 import * as passport from 'passport';
 import * as Auth0Strategy from 'passport-auth0';
 import { ENV } from './app/config/env-config';
+import * as helmet from 'helmet';
 
 const pgSession = pgSimple(session);
 
@@ -29,10 +30,11 @@ app.use(
     }),
     cookie: {
       path: '/',
-      httpOnly: false,
+      httpOnly: true,
       secure: environment.production,
       maxAge: 1000 * 60 * 60 * 24 * SESSION_EXP_DAYS,
       domain: ENV.JETSTREAM_SERVER_DOMAIN,
+      sameSite: 'strict',
     },
     secret: ENV.JESTREAM_SESSION_SECRET,
     rolling: true,
@@ -42,7 +44,7 @@ app.use(
   })
 );
 // app.use(compression());
-// app.use(helmet({...}));
+app.use(helmet({}));
 
 // Setup application cookie
 app.use((req: express.Request, res: express.Response, next: express.NextFunction) => {
@@ -50,7 +52,7 @@ app.use((req: express.Request, res: express.Response, next: express.NextFunction
     serverUrl: ENV.JETSTREAM_SERVER_URL,
     environment: ENV.ENVIRONMENT as any,
   };
-  res.cookie(HTTP.COOKIE.JETSTREAM, appCookie, { httpOnly: false });
+  res.cookie(HTTP.COOKIE.JETSTREAM, appCookie, { httpOnly: false, sameSite: 'strict' });
   next();
 });
 

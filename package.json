@@ -84,6 +84,7 @@
     "express-session": "^1.17.1",
     "express-validator": "^6.5.0",
     "file-saver": "^2.0.2",
+    "helmet": "^4.1.1",
     "jsforce": "^1.9.3",
     "jsonwebtoken": "^8.5.1",
     "jszip": "^3.5.0",
