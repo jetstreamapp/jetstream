@@ -3,6 +3,7 @@ import { HTTP } from '@jetstream/shared/constants';
 import { orderObjectsBy, REGEX, delay } from '@jetstream/shared/utils';
 import {
   ExpressionConditionRowSelectedItems,
+  ExpressionConditionType,
   ExpressionType,
   ListItem,
   MapOf,
@@ -268,23 +269,26 @@ export function convertTippyPlacementToSlds(placement: tippyPlacement): Position
   }
 }
 
+function hasValue(row: ExpressionConditionType) {
+  return (
+    row.selected.operator &&
+    row.selected.resource &&
+    (row.selected.value || row.selected.operator === 'isNull' || row.selected.operator === 'isNotNull')
+  );
+}
+
 export function convertFiltersToWhereClause(filters: ExpressionType): WhereClause {
   if (!filters) {
     return;
   }
   logger.log({ filters });
   // filter out all invalid/incomplete filters
-  const rows = filters.rows.filter(
-    (row) =>
-      row.selected.operator &&
-      row.selected.resource &&
-      (row.selected.value || row.selected.operator === 'isNull' || row.selected.operator === 'isNotNull')
-  );
+  const rows = filters.rows.filter(hasValue);
   const groups = filters.groups
     .map((group) => {
       return {
         ...group,
-        rows: group.rows.filter((row) => row.selected.operator && row.selected.resource && row.selected.value),
+        rows: group.rows.filter(hasValue),
       };
     })
     .filter((group) => group.rows.length > 0);

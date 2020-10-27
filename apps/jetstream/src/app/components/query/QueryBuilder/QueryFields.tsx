@@ -175,7 +175,11 @@ export const QueryFieldsComponent: FunctionComponent<QueryFieldsProps> = ({ sele
     if (queryFieldsMap[key]) {
       const clonedQueryFieldsMap = { ...queryFieldsMap };
       if (value) {
-        clonedQueryFieldsMap[key] = { ...clonedQueryFieldsMap[key], selectedFields: new Set(impactedKeys) };
+        // keep existing fields and add newly selected fields
+        clonedQueryFieldsMap[key] = {
+          ...clonedQueryFieldsMap[key],
+          selectedFields: new Set(Array.from(clonedQueryFieldsMap[key].selectedFields).concat(impactedKeys)),
+        };
       } else {
         // remove visible fields from list (this could be all or only some of the fields)
         const selectedFields = new Set(clonedQueryFieldsMap[key].selectedFields);
