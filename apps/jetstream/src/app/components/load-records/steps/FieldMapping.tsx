@@ -1,6 +1,6 @@
 /** @jsx jsx */
 import { css, jsx } from '@emotion/core';
-import { FunctionComponent, useEffect, useState } from 'react';
+import { FunctionComponent, memo, useEffect, useRef, useState } from 'react';
 import { Grid, GridCol, DropDown } from '@jetstream/ui';
 import { FieldWithRelatedEntities, FieldMapping, FieldMappingItem } from '../load-records-types';
 import { autoMapFields, checkForDuplicateFieldMappings, resetFieldMapping } from '../utils/load-records-utils';
@@ -23,118 +23,118 @@ export interface LoadRecordsFieldMappingProps {
   onFieldMappingChange: (fieldMapping: FieldMapping) => void;
 }
 
-export const LoadRecordsFieldMapping: FunctionComponent<LoadRecordsFieldMappingProps> = ({
-  fields,
-  inputHeader,
-  fieldMapping: fieldMappingInit,
-  fileData,
-  onFieldMappingChange,
-}) => {
-  const [firstRow] = useState<string[]>(() => fileData[0]);
-  // hack to force child re-render when fields are re-mapped
-  const [keyPrefix, setKeyPrefix] = useState<number>(() => new Date().getTime());
-  const [fieldMapping, setFieldMapping] = useState<FieldMapping>(() => JSON.parse(JSON.stringify(fieldMappingInit)));
-  const [visibleFields, setVisibleFields] = useState<FieldWithRelatedEntities[]>(() => fields);
+export const LoadRecordsFieldMapping = memo<LoadRecordsFieldMappingProps>(
+  ({ fields, inputHeader, fieldMapping: fieldMappingInit, fileData, onFieldMappingChange }) => {
+    const hasInitialized = useRef(false);
+    const [firstRow] = useState<string[]>(() => fileData[0]);
+    // hack to force child re-render when fields are re-mapped
+    const [keyPrefix, setKeyPrefix] = useState<number>(() => new Date().getTime());
+    const [fieldMapping, setFieldMapping] = useState<FieldMapping>(() => JSON.parse(JSON.stringify(fieldMappingInit)));
+    const [visibleFields, setVisibleFields] = useState<FieldWithRelatedEntities[]>(() => fields);
 
-  // function handleSave() {
-  //   onClose(fieldMapping);
-  // }
+    // function handleSave() {
+    //   onClose(fieldMapping);
+    // }
 
-  useEffect(() => {
-    onFieldMappingChange(fieldMapping);
-  }, [fieldMapping]);
+    useEffect(() => {
+      if (hasInitialized.current) {
+        onFieldMappingChange(fieldMapping);
+      } else {
+        hasInitialized.current = true;
+      }
+    }, [fieldMapping]);
 
-  /**
-   * This is purposefully mutating this state data to avoid re-rendering each child which makes the app seem slow
-   * Each child handles its own re-render and stores this state there
-   * comboboxes are expensive to re-render if there are many on the page
-   *
-   */
-  function handleFieldMappingChange(csvField: string, fieldMappingItem: FieldMappingItem) {
-    setFieldMapping((fieldMapping) => checkForDuplicateFieldMappings({ ...fieldMapping, [csvField]: fieldMappingItem }));
-  }
-
-  function handleAction(id: DropDownAction) {
-    switch (id) {
-      case MAPPING_CLEAR:
-        setFieldMapping(resetFieldMapping(inputHeader));
-        break;
-      case MAPPING_RESET:
-        setFieldMapping(autoMapFields(inputHeader, fields));
-        break;
-      // TODO:
-      // case FILTER_ALL:
-      //   setFieldMapping(autoMapFields(inputHeader, fields));
-      //   break;
-      // case FILTER_MAPPED:
-      //   setFieldMapping(autoMapFields(inputHeader, fields));
-      //   break;
-      // case FILTER_UNMAPPED:
-      //   setFieldMapping(autoMapFields(inputHeader, fields));
-      //   break;
-
-      default:
-        break;
+    /**
+     * This is purposefully mutating this state data to avoid re-rendering each child which makes the app seem slow
+     * Each child handles its own re-render and stores this state there
+     * comboboxes are expensive to re-render if there are many on the page
+     *
+     */
+    function handleFieldMappingChange(csvField: string, fieldMappingItem: FieldMappingItem) {
+      setFieldMapping((fieldMapping) => checkForDuplicateFieldMappings({ ...fieldMapping, [csvField]: fieldMappingItem }));
     }
-    setKeyPrefix(new Date().getTime());
-  }
 
-  return (
-    <Grid vertical>
-      {/* TODO: <GridCol>Add filters for "all/mapped/unmapped" like DL.io</GridCol> */}
-      <GridCol grow>
-        <table className="slds-table slds-table_cell-buffer slds-table_bordered slds-table_fixed-layout">
-          <thead>
-            <tr className="slds-line-height_reset">
-              <th
-                scope="col"
-                css={css`
-                  width: 200px;
-                `}
-              >
-                <div className="slds-truncate" title="Example Data">
-                  Example Data
-                </div>
-              </th>
-              <th scope="col">
-                <div className="slds-truncate" title="Field from File">
-                  Field from File
-                </div>
-              </th>
-              <th
-                scope="col"
-                css={css`
-                  width: 35px;
-                `}
-              ></th>
-              <th scope="col">
-                <div className="slds-truncate" title="Salesforce Field">
-                  Salesforce Field
-                </div>
-              </th>
-              <th
-                scope="col"
-                css={css`
-                  width: 75px;
-                `}
-              >
-                <DropDown
-                  position="right"
-                  actionText="Mapping Options"
-                  description="Mapping Options"
-                  leadingIcon={{ type: 'utility', icon: 'settings' }}
-                  items={[
-                    { id: MAPPING_CLEAR, icon: { type: 'utility', icon: 'clear', description: 'Clear mapping' }, value: 'Clear Mapping' },
-                    {
-                      id: MAPPING_RESET,
-                      icon: { type: 'utility', icon: 'undo', description: 'Reset mapping to defaults' },
-                      value: 'Reset Mapping',
-                    },
-                  ]}
-                  onSelected={handleAction}
-                />
-                {/* TODO: this requires selectable dropdown, which requires refactors */}
-                {/* <DropDown
+    function handleAction(id: DropDownAction) {
+      switch (id) {
+        case MAPPING_CLEAR:
+          setFieldMapping(resetFieldMapping(inputHeader));
+          break;
+        case MAPPING_RESET:
+          setFieldMapping(autoMapFields(inputHeader, fields));
+          break;
+        // TODO:
+        // case FILTER_ALL:
+        //   setFieldMapping(autoMapFields(inputHeader, fields));
+        //   break;
+        // case FILTER_MAPPED:
+        //   setFieldMapping(autoMapFields(inputHeader, fields));
+        //   break;
+        // case FILTER_UNMAPPED:
+        //   setFieldMapping(autoMapFields(inputHeader, fields));
+        //   break;
+
+        default:
+          break;
+      }
+      setKeyPrefix(new Date().getTime());
+    }
+
+    return (
+      <Grid vertical>
+        {/* TODO: <GridCol>Add filters for "all/mapped/unmapped" like DL.io</GridCol> */}
+        <GridCol grow>
+          <table className="slds-table slds-table_cell-buffer slds-table_bordered slds-table_fixed-layout">
+            <thead>
+              <tr className="slds-line-height_reset">
+                <th
+                  scope="col"
+                  css={css`
+                    width: 200px;
+                  `}
+                >
+                  <div className="slds-truncate" title="Example Data">
+                    Example Data
+                  </div>
+                </th>
+                <th scope="col">
+                  <div className="slds-truncate" title="Field from File">
+                    Field from File
+                  </div>
+                </th>
+                <th
+                  scope="col"
+                  css={css`
+                    width: 35px;
+                  `}
+                ></th>
+                <th scope="col">
+                  <div className="slds-truncate" title="Salesforce Field">
+                    Salesforce Field
+                  </div>
+                </th>
+                <th
+                  scope="col"
+                  css={css`
+                    width: 75px;
+                  `}
+                >
+                  <DropDown
+                    position="right"
+                    actionText="Mapping Options"
+                    description="Mapping Options"
+                    leadingIcon={{ type: 'utility', icon: 'settings' }}
+                    items={[
+                      { id: MAPPING_CLEAR, icon: { type: 'utility', icon: 'clear', description: 'Clear mapping' }, value: 'Clear Mapping' },
+                      {
+                        id: MAPPING_RESET,
+                        icon: { type: 'utility', icon: 'undo', description: 'Reset mapping to defaults' },
+                        value: 'Reset Mapping',
+                      },
+                    ]}
+                    onSelected={handleAction}
+                  />
+                  {/* TODO: this requires selectable dropdown, which requires refactors */}
+                  {/* <DropDown
                   position="right"
                   actionText="Mapping Filter"
                   description="Mapping Filter"
@@ -146,25 +146,26 @@ export const LoadRecordsFieldMapping: FunctionComponent<LoadRecordsFieldMappingP
                   ]}
                   onSelected={handleAction}
                 /> */}
-              </th>
-            </tr>
-          </thead>
-          <tbody>
-            {inputHeader.map((header, i) => (
-              <LoadRecordsFieldMappingRow
-                key={`${keyPrefix}-${i}`}
-                fields={visibleFields}
-                fieldMappingItem={fieldMapping[header]}
-                csvField={header}
-                csvRowData={firstRow[header]}
-                onSelectionChanged={handleFieldMappingChange}
-              />
-            ))}
-          </tbody>
-        </table>
-      </GridCol>
-    </Grid>
-  );
-};
+                </th>
+              </tr>
+            </thead>
+            <tbody>
+              {inputHeader.map((header, i) => (
+                <LoadRecordsFieldMappingRow
+                  key={`${keyPrefix}-${i}`}
+                  fields={visibleFields}
+                  fieldMappingItem={fieldMapping[header]}
+                  csvField={header}
+                  csvRowData={firstRow[header]}
+                  onSelectionChanged={handleFieldMappingChange}
+                />
+              ))}
+            </tbody>
+          </table>
+        </GridCol>
+      </Grid>
+    );
+  }
+);
 
 export default LoadRecordsFieldMapping;

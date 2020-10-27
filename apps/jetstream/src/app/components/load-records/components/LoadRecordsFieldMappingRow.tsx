@@ -107,6 +107,12 @@ export const LoadRecordsFieldMappingRow: FunctionComponent<LoadRecordsFieldMappi
 
   const csvRowDataStr = getPreviewData(csvRowData);
 
+  function handleInputChange(value: string) {
+    if (value !== textFilter) {
+      setTextFilter(value);
+    }
+  }
+
   return (
     <tr>
       <td className="slds-align-top">
@@ -136,7 +142,7 @@ export const LoadRecordsFieldMappingRow: FunctionComponent<LoadRecordsFieldMappi
           selectedItemLabel={fieldMappingItem.targetField}
           selectedItemTitle={fieldMappingItem.targetField}
           hideLabel
-          onInputChange={setTextFilter}
+          onInputChange={handleInputChange}
           hasError={fieldMappingItem.isDuplicateMappedField}
           errorMessageId={`${csvField}-${fieldMappingItem.targetField}-duplicate-field-error`}
           errorMessage="Each Salesforce field should only be mapped once"

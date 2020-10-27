@@ -702,7 +702,7 @@ export function parseFile(
     const headers = data.length > 0 ? Object.keys(data[0]) : [];
     return {
       data,
-      headers: headers.filter((field) => field.startsWith('__empty')),
+      headers: headers.filter((field) => !field.startsWith('__empty')),
       errors: [], // TODO:
     };
   }
