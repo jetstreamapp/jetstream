@@ -44,7 +44,11 @@ app.use(
   })
 );
 // app.use(compression());
-app.use(helmet({}));
+app.use(
+  helmet({
+    noSniff: false,
+  })
+);
 
 // Setup application cookie
 app.use((req: express.Request, res: express.Response, next: express.NextFunction) => {
