@@ -44,12 +44,7 @@ app.use(
   })
 );
 // app.use(compression());
-// TODO: some .js files were giving a 404 and caused this to break
-// app.use(
-//   helmet({
-//     noSniff: false,
-//   })
-// );
+app.use(helmet());
 
 // Setup application cookie
 app.use((req: express.Request, res: express.Response, next: express.NextFunction) => {
