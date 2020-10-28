@@ -30,11 +30,11 @@ app.use(
     }),
     cookie: {
       path: '/',
-      httpOnly: false, // FIXME: set to true
+      httpOnly: true, // FIXME: set to true
       secure: environment.production,
       maxAge: 1000 * 60 * 60 * 24 * SESSION_EXP_DAYS,
       domain: ENV.JETSTREAM_SERVER_DOMAIN,
-      // sameSite: 'strict', // FIXME: was this part of the issue?
+      sameSite: 'strict', // FIXME: was this part of the issue?
     },
     secret: ENV.JESTREAM_SESSION_SECRET,
     rolling: true,
