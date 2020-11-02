@@ -4,6 +4,7 @@ export * from './lib/card/Card';
 export * from './lib/code-editor/CodeEditor';
 export * from './lib/confirmation-dialog/ConfirmationDialog';
 export * from './lib/data-table/DataTable';
+export * from './lib/data-table/SalesforceRecordDataTable';
 export * from './lib/expression-group/ExpressionContainer';
 export * from './lib/form/button/ButtonGroupContainer';
 export * from './lib/form/button/ButtonRowContainer';

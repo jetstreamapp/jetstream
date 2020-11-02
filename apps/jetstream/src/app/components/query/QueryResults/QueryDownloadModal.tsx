@@ -5,7 +5,7 @@ import { jsx } from '@emotion/core';
 import { MIME_TYPES } from '@jetstream/shared/constants';
 import { getFilename, prepareCsvFile, prepareExcelFile, saveFile } from '@jetstream/shared/ui-utils';
 import { flattenRecords } from '@jetstream/shared/utils';
-import { FileExtCsv, FileExtCsvXLSX, FileExtXLSX, QueryFieldHeader, Record, SalesforceOrgUi, MimeType } from '@jetstream/types';
+import { FileExtCsv, FileExtCsvXLSX, FileExtXLSX, Record, SalesforceOrgUi, MimeType } from '@jetstream/types';
 import { Input, Modal, Radio, RadioGroup } from '@jetstream/ui';
 import numeral from 'numeral';
 import { Fragment, FunctionComponent, useState, useEffect, useRef, MouseEvent, FocusEvent } from 'react';
@@ -13,7 +13,7 @@ import { Fragment, FunctionComponent, useState, useEffect, useRef, MouseEvent, F
 export interface QueryDownloadModalProps {
   org: SalesforceOrgUi;
   downloadModalOpen: boolean;
-  fields: QueryFieldHeader[];
+  fields: string[];
   records: Record[];
   selectedRecords: Record[];
   totalRecordCount?: number;
@@ -81,19 +81,18 @@ export const QueryDownloadModal: FunctionComponent<QueryDownloadModalProps> = ({
         onDownloadFromServer(fileFormat, fileNameWithExt);
         onModalClose();
       } else {
-        const stringFields = fields.map((field) => field.accessor);
         const activeRecords = downloadRecordsValue === RADIO_ALL_BROWSER ? records : selectedRecords;
-        const data = flattenRecords(activeRecords, stringFields);
+        const data = flattenRecords(activeRecords, fields);
         let mimeType: MimeType;
         let fileData;
         switch (fileFormat) {
           case 'xlsx': {
-            fileData = prepareExcelFile(data, stringFields);
+            fileData = prepareExcelFile(data, fields);
             mimeType = MIME_TYPES.XLSX;
             break;
           }
           case 'csv': {
-            fileData = prepareCsvFile(data, stringFields);
+            fileData = prepareCsvFile(data, fields);
             mimeType = MIME_TYPES.CSV;
             break;
           }
