@@ -51,7 +51,7 @@ app.use(
         defaultSrc: ["'self'", '*.rollbar.com', '*.google.com'],
         baseUri: ["'self'"],
         blockAllMixedContent: [],
-        fontSrc: ["'self'", 'https:', "'unsafe-inline'"],
+        fontSrc: ["'self'", 'https:', "'unsafe-inline'", 'data:'],
         frameAncestors: ["'self'"],
         imgSrc: ["'self'", 'data:'],
         objectSrc: ["'none'"],
