@@ -2,17 +2,18 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 /** @jsx jsx */
 import { css, jsx } from '@emotion/core';
-import { QueryResultsColumn } from '@jetstream/api-interfaces';
+import { QueryResults as IQueryResults } from '@jetstream/api-interfaces';
 import { logger } from '@jetstream/shared/client-logger';
 import { query } from '@jetstream/shared/data';
 import { useObservable } from '@jetstream/shared/ui-utils';
-import { pluralizeIfMultiple, queryResultColumnToTypeLabel, replaceSubqueryQueryResultsWithRecords } from '@jetstream/shared/utils';
-import { AsyncJob, AsyncJobNew, BulkDownloadJob, FileExtCsvXLSX, MapOf, QueryFieldHeader, Record, SalesforceOrgUi } from '@jetstream/types';
+import { pluralizeIfMultiple, replaceSubqueryQueryResultsWithRecords } from '@jetstream/shared/utils';
+import { AsyncJob, AsyncJobNew, BulkDownloadJob, FileExtCsvXLSX, Record, SalesforceOrgUi } from '@jetstream/types';
 import {
   AutoFullHeightContainer,
-  DataTable,
   EmptyState,
   Icon,
+  RecordDownloadModal,
+  SalesforceRecordDataTable,
   Spinner,
   Toolbar,
   ToolbarItemActions,
@@ -20,75 +21,16 @@ import {
   useConfirmation,
 } from '@jetstream/ui';
 import classNames from 'classnames';
-import numeral from 'numeral';
-import React, { Fragment, FunctionComponent, useEffect, useMemo, useRef, useState } from 'react';
+import React, { Fragment, FunctionComponent, useEffect, useRef, useState } from 'react';
 import { Link, NavLink, useLocation } from 'react-router-dom';
-import { Column, Row } from 'react-table';
 import { useRecoilState, useRecoilValue } from 'recoil';
 import { filter } from 'rxjs/operators';
-import { FieldSubquery, getFlattenedFields } from 'soql-parser-js';
-import { isFieldSubquery } from 'soql-parser-js/dist/src/utils';
 import { applicationCookieState, selectedOrgState } from '../../../app-state';
 import * as fromJetstreamEvents from '../../core/jetstream-events';
 import * as fromQueryHistory from '../QueryHistory/query-history.state';
 import QueryHistory from '../QueryHistory/QueryHistory';
-import QueryDownloadModal from './QueryDownloadModal';
 import QueryResultsSoqlPanel from './QueryResultsSoqlPanel';
-import { getQueryResultsCellContents } from './QueryResultsTable/query-results-table-utils';
-import QueryResultsViewCellModal from './QueryResultsTable/QueryResultsViewCellModal';
 import QueryResultsViewRecordFields from './QueryResultsViewRecordFields';
-
-function getStubbedField(field: string) {
-  return {
-    label: field,
-    accessor: field,
-    title: field,
-    columnMetadata: {
-      aggregate: false,
-      apexType: 'String',
-      booleanType: false,
-      columnFullPath: field,
-      columnName: field,
-      custom: false,
-      displayName: field,
-      foreignKeyName: null,
-      insertable: false,
-      numberType: false,
-      textType: false,
-      updatable: false,
-    },
-  };
-}
-
-function renderQueryResultsWrapper(subqueryFieldMap: MapOf<string[]>) {
-  function renderQueryResults(
-    parentRecord: any,
-    field: QueryFieldHeader,
-    serverUrl: string,
-    org: SalesforceOrgUi,
-    value: any
-  ): React.ReactNode {
-    // transform data if subquery
-    let headers: string[] = null;
-    if (subqueryFieldMap && subqueryFieldMap[field.accessor]) {
-      headers = subqueryFieldMap[field.accessor];
-    }
-    if (value && Array.isArray(value.records)) {
-      value = value.records;
-    }
-    return (
-      <QueryResultsViewCellModal
-        parentRecord={parentRecord}
-        field={field}
-        serverUrl={serverUrl}
-        org={org}
-        value={value}
-        headers={headers}
-      />
-    );
-  }
-  return renderQueryResults;
-}
 
 // eslint-disable-next-line @typescript-eslint/no-empty-interface
 export interface QueryResultsProps {}
@@ -102,9 +44,10 @@ export const QueryResults: FunctionComponent<QueryResultsProps> = React.memo(() 
   const [recordDetailSelectedRow, setRecordDetailSelectedRow] = useState<Record>(null);
   const [soql, setSoql] = useState<string>(null);
   const [userSoql, setUserSoql] = useState<string>(null);
+  const [queryResults, setQueryResults] = useState<IQueryResults>(null);
   const [records, setRecords] = useState<Record[]>(null);
   const [nextRecordsUrl, setNextRecordsUrl] = useState<string>(null);
-  const [fields, setFields] = useState<QueryFieldHeader[]>(null);
+  const [fields, setFields] = useState<string[]>(null);
   const [selectedRows, setSelectedRows] = useState<Record[]>([]);
   const [loading, setLoading] = useState<boolean>(false);
   const [errorMessage, setErrorMessage] = useState<string>(null);
@@ -112,55 +55,11 @@ export const QueryResults: FunctionComponent<QueryResultsProps> = React.memo(() 
   const selectedOrg = useRecoilValue<SalesforceOrgUi>(selectedOrgState);
   const [{ serverUrl }] = useRecoilState(applicationCookieState);
   const [totalRecordCount, setTotalRecordCount] = useState<number>(null);
-  const [subqueryFieldMap, setSubqueryFieldMap] = useState<MapOf<string[]>>({});
   const [queryHistory, setQueryHistory] = useRecoilState(fromQueryHistory.queryHistoryState);
   const bulkDeleteJob = useObservable(
     fromJetstreamEvents.getObservable('jobFinished').pipe(filter((ev: AsyncJob) => ev.type === 'BulkDelete'))
   );
   const confirm = useConfirmation();
-
-  const memoizedFields: Column<any>[] = useMemo<any>(
-    () =>
-      fields
-        ? fields.map((field) => {
-            const column: Column = {
-              accessor: field.accessor,
-              minWidth: 25,
-              Header: () => (
-                <div className="slds-truncate" title={field.title}>
-                  <div>{field.accessor}</div>
-                </div>
-              ),
-              Cell: ({ value, row }) => {
-                return getQueryResultsCellContents(
-                  field,
-                  serverUrl,
-                  selectedOrg,
-                  value,
-                  row.original,
-                  renderQueryResultsWrapper(subqueryFieldMap)
-                );
-              },
-              // Cell: ({ value, row }) => {
-              //   return getQueryResultsCellContents(field, serverUrl, selectedOrg, value, row.original, (parentRecord, field, serverUrl, org, value: any) => {
-              //     // transform data if subquery
-              //     let headers: string[] = null;
-              //     if (subqueryFieldMap && subqueryFieldMap[field.accessor]) {
-              //       headers = subqueryFieldMap[field.accessor];
-              //     }
-              //     if (value && Array.isArray(value.records)) {
-              //       value = value.records;
-              //     }
-              //     return <QueryResultsViewCellModal parentRecord={parentRecord} field={field} serverUrl={serverUrl} org={org} value={value} headers={headers} />;
-              //   });
-              // },
-            };
-            return column;
-          })
-        : undefined,
-    [fields, selectedOrg, serverUrl]
-  );
-  const memoizedRecords: Record[] = useMemo(() => (records ? [...records] : undefined), [records]);
 
   useEffect(() => {
     isMounted.current = true;
@@ -220,61 +119,22 @@ export const QueryResults: FunctionComponent<QueryResultsProps> = React.memo(() 
       setLoading(true);
       setSoql(soql);
       setRecords(null);
-      setFields(null);
+      // setFields(null);
       const results = await query(selectedOrg, soql).then(replaceSubqueryQueryResultsWithRecords);
       if (!isMounted.current) {
         return;
       }
+      setQueryResults(results);
       setNextRecordsUrl(results.queryResults.nextRecordsUrl);
       saveQueryHistory(soql, results.parsedQuery?.sObject || results.columns?.entityName);
 
-      let queryColumnsByPath: MapOf<QueryResultsColumn> = {};
-
-      if (results.columns?.columns) {
-        queryColumnsByPath = results.columns.columns.reduce((out, curr) => {
-          out[curr.columnFullPath.toLowerCase()] = curr;
-          if (Array.isArray(curr.childColumnPaths)) {
-            curr.childColumnPaths.forEach((subqueryField) => {
-              out[subqueryField.columnFullPath.toLowerCase()] = subqueryField;
-            });
-          }
-          return out;
-        }, {});
-      }
-
-      // Base fields
-      const flattenedFields: QueryFieldHeader[] = getFlattenedFields(results.parsedQuery).map((field) => {
-        const fieldLowercase = field.toLowerCase();
-        if (queryColumnsByPath[fieldLowercase]) {
-          const col = queryColumnsByPath[fieldLowercase];
-          return {
-            label: col.displayName,
-            accessor: col.columnFullPath,
-            title: `${col.displayName} (${queryResultColumnToTypeLabel(col)})`,
-            columnMetadata: col,
-          };
-        }
-        // default values since column was not available
-        return getStubbedField(field);
-      });
-
-      // subquery fields - only used if user clicks "view data" on a field so that the table can be built properly
-      const tempSubqueryFieldMap: MapOf<string[]> = {};
-      results.parsedQuery.fields
-        .filter((field) => isFieldSubquery(field))
-        .forEach((field: FieldSubquery) => {
-          tempSubqueryFieldMap[field.subquery.relationshipName] = getFlattenedFields(field.subquery).map((field) => {
-            const fieldLowercase = field.toLowerCase();
-            return queryColumnsByPath[fieldLowercase] ? queryColumnsByPath[fieldLowercase].columnFullPath : field;
-          });
-        });
-
-      setFields(flattenedFields);
-      setSubqueryFieldMap(tempSubqueryFieldMap);
       setRecords(results.queryResults.records);
       setTotalRecordCount(results.queryResults.totalSize);
       setErrorMessage(null);
     } catch (ex) {
+      if (!isMounted.current) {
+        return;
+      }
       logger.warn('ERROR', ex);
       setErrorMessage(ex.message);
       setSoqlPanelOpen(true);
@@ -343,7 +203,7 @@ export const QueryResults: FunctionComponent<QueryResultsProps> = React.memo(() 
         type: 'BulkDownload',
         title: `Download Records`,
         meta: {
-          fields: fields.map((field) => field.accessor),
+          fields,
           records: records,
           nextRecordsUrl,
           fileFormat,
@@ -354,9 +214,17 @@ export const QueryResults: FunctionComponent<QueryResultsProps> = React.memo(() 
     fromJetstreamEvents.emit({ type: 'newJob', payload: jobs });
   }
 
+  function handleLoadMore(results: IQueryResults<any>) {
+    if (isMounted.current) {
+      setNextRecordsUrl(results.queryResults.nextRecordsUrl);
+      saveQueryHistory(soql, results.parsedQuery?.sObject || results.columns?.entityName);
+      setRecords(records.concat(results.queryResults.records));
+    }
+  }
+
   return (
     <div>
-      <QueryDownloadModal
+      <RecordDownloadModal
         org={selectedOrg}
         downloadModalOpen={downloadModalOpen}
         fields={fields}
@@ -459,12 +327,14 @@ export const QueryResults: FunctionComponent<QueryResultsProps> = React.memo(() 
           )}
           {records && !!records.length && (
             <Fragment>
-              <div className="slds-grid slds-p-around_xx-small">
-                <div className="slds-col">
-                  Showing {numeral(records.length).format('0,0')} of {numeral(totalRecordCount).format('0,0')} records
-                </div>
-              </div>
-              <DataTable columns={memoizedFields} data={memoizedRecords} allowRowSelection onRowSelection={setSelectedRows} />
+              <SalesforceRecordDataTable
+                org={selectedOrg}
+                serverUrl={serverUrl}
+                queryResults={queryResults}
+                onSelectionChanged={setSelectedRows}
+                onFields={setFields}
+                onLoadMoreRecords={handleLoadMore}
+              />
             </Fragment>
           )}
         </AutoFullHeightContainer>

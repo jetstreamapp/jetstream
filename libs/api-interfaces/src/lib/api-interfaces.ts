@@ -1,12 +1,12 @@
 import { Query } from 'soql-parser-js';
-import * as jsforce from 'jsforce';
+import { QueryResult } from 'jsforce';
 
 export interface RequestResult<T> {
   data: T;
 }
 
 export interface QueryResults<T = unknown> {
-  queryResults: jsforce.QueryResult<T>;
+  queryResults: QueryResult<T>;
   columns?: QueryResultsColumns;
   parsedQuery?: Query;
 }

@@ -2,7 +2,6 @@ import { QueryResultsColumn } from '@jetstream/api-interfaces';
 import { MapOf } from '@jetstream/types';
 import { ChildRelationship, Field } from 'jsforce';
 import { ReactNode } from 'react';
-import { FieldDefinition } from '../salesforce/types';
 import { SalesforceOrgUi } from '../types';
 
 export type FileExtCsv = 'csv';

@@ -144,13 +144,14 @@ export const QueryResultsViewCellModal: FunctionComponent<QueryResultsViewCellMo
     setIsOpen(true);
   }
 
+  // TODO: deprecate me!
   return (
     <Fragment>
       {isOpen && (
         <Modal size="lg" header={field.title} tagline={modalTagline} closeOnBackdropClick onClose={() => setIsOpen(false)}>
           <div className="slds-scrollable_x">
             {hasNoData && <span>There is no data to show.</span>}
-            {!hasNoData && columns && <DataTable columns={columns} data={rows} />}
+            {/* {!hasNoData && columns && <DataTable columns={columns} data={rows} />} */}
           </div>
         </Modal>
       )}

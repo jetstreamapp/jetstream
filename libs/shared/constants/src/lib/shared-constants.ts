@@ -72,8 +72,12 @@ export const YYYY_MM_DD_HH_mm_ss_z = 'YYYY-MM-DDTHH:mm:ssZ';
 export const DATE_FORMATS = {
   MM_DD_YYYY: 'MM/DD/YYYY',
   DD_MM_YYYY: 'DD/MM/YYYY',
+  yyyy_MM_dd: 'yyyy-MM-dd',
   YYYY_MM_DD,
   YYYY_MM_DD__HH_mm_ss,
   YYYY_MM_DD_HH_mm_ss_z,
+  YYYY_MM_DD_HH_mm_ss_a: 'yyyy-MM-dd h:mm:ss a',
+  HH_mm_ss_ssss_z: `HH:mm:ss'.'SSSS'Z'`,
   HH_MM_SS_A: 'h:mm:ss A',
+  HH_MM_SS_a: 'h:mm:ss a',
 };
