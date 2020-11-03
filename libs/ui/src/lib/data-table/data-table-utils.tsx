@@ -107,7 +107,7 @@ export const dataTableDateFormatter = ({ value }: ValueFormatterParams): string 
   } else if (dateOrDateTime.length === 28) {
     return formatDate(parseISO(dateOrDateTime), DATE_FORMATS.YYYY_MM_DD_HH_mm_ss_a);
   } else if (dateOrDateTime.length === 10) {
-    return formatDate(startOfDay(parseISO(dateOrDateTime)), DATE_FORMATS.YYYY_MM_DD);
+    return formatDate(startOfDay(parseISO(dateOrDateTime)), DATE_FORMATS.yyyy_MM_dd);
   } else {
     return dateOrDateTime;
   }

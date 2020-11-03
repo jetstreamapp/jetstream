@@ -39,7 +39,6 @@ export const DataTable: FunctionComponent<DataTableProps> = ({
   return (
     <div className="ag-theme-custom-react" style={style}>
       <AgGridReact
-        rowBuffer={25}
         rowSelection="multiple"
         frameworkComponents={{
           // CELL RENDERERS
