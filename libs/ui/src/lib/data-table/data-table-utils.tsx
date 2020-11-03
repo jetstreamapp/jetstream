@@ -1,19 +1,19 @@
 /** @jsx jsx */
+import { CellEvent, CellKeyDownEvent, ColDef, ValueFormatterParams } from '@ag-grid-community/core';
 import { QueryResults, QueryResultsColumn } from '@jetstream/api-interfaces';
+import { DATE_FORMATS } from '@jetstream/shared/constants';
+import { isEnterKey } from '@jetstream/shared/ui-utils';
 import { queryResultColumnToTypeLabel } from '@jetstream/shared/utils';
 import { MapOf, SalesforceOrgUi } from '@jetstream/types';
-import { isEnterKey } from '@jetstream/shared/ui-utils';
-import { CellEvent, CellKeyDownEvent, ColDef, ValueFormatterParams, IDatasource, IGetRowsParams } from '@ag-grid-community/core';
 import copy from 'copy-to-clipboard';
 import formatDate from 'date-fns/format';
-import parseISO from 'date-fns/parseISO';
 import parseDate from 'date-fns/parse';
+import parseISO from 'date-fns/parseISO';
 import startOfDay from 'date-fns/startOfDay';
 import isObject from 'lodash/isObject';
 import { createContext } from 'react';
 import { FieldSubquery, getFlattenedFields, isFieldSubquery } from 'soql-parser-js';
 import './data-table-styles.scss';
-import { DATE_FORMATS } from '@jetstream/shared/constants';
 
 export interface SalesforceAddressField {
   city?: string;
