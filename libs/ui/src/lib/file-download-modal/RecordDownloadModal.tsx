@@ -132,7 +132,7 @@ export const RecordDownloadModal: FunctionComponent<RecordDownloadModalProps> = 
                 <Fragment>
                   <Radio
                     name="radio-download"
-                    label={`All records (${numeral(totalRecordCount).format('0,0')})`}
+                    label={`All records (${numeral(totalRecordCount || records.length).format('0,0')})`}
                     value={RADIO_ALL_SERVER}
                     checked={downloadRecordsValue === RADIO_ALL_SERVER}
                     onChange={setDownloadRecordsValue}
@@ -149,7 +149,7 @@ export const RecordDownloadModal: FunctionComponent<RecordDownloadModalProps> = 
               {!hasMoreRecords && (
                 <Radio
                   name="radio-download"
-                  label={`All records (${numeral(totalRecordCount).format('0,0')})`}
+                  label={`All records (${numeral(totalRecordCount || records.length).format('0,0')})`}
                   value={RADIO_ALL_BROWSER}
                   checked={downloadRecordsValue === RADIO_ALL_BROWSER}
                   onChange={setDownloadRecordsValue}
