@@ -56,6 +56,7 @@ app.use(
         imgSrc: ["'self'", 'data:'],
         objectSrc: ["'none'"],
         scriptSrc: ["'self'"],
+        scriptSrcAttr: ["'none'"],
         styleSrc: ["'self'", 'https:', "'unsafe-inline'"],
         upgradeInsecureRequests: [],
       },
