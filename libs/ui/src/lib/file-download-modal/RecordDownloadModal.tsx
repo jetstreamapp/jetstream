@@ -5,30 +5,27 @@ import { jsx } from '@emotion/core';
 import { MIME_TYPES } from '@jetstream/shared/constants';
 import { getFilename, prepareCsvFile, prepareExcelFile, saveFile } from '@jetstream/shared/ui-utils';
 import { flattenRecords } from '@jetstream/shared/utils';
-import { FileExtCsv, FileExtCsvXLSX, FileExtXLSX, Record, SalesforceOrgUi, MimeType } from '@jetstream/types';
-import { Input, Modal, Radio, RadioGroup } from '@jetstream/ui';
+import { FileExtCsv, FileExtCsvXLSX, FileExtXLSX, MimeType, Record, SalesforceOrgUi } from '@jetstream/types';
 import numeral from 'numeral';
-import { Fragment, FunctionComponent, useState, useEffect, useRef, MouseEvent, FocusEvent } from 'react';
+import { Fragment, FunctionComponent, useEffect, useRef, useState } from 'react';
+import Input from '../form/input/Input';
+import Radio from '../form/radio/Radio';
+import RadioGroup from '../form/radio/RadioGroup';
+import Modal from '../modal/Modal';
+import { RADIO_ALL_BROWSER, RADIO_ALL_SERVER, RADIO_FORMAT_CSV, RADIO_FORMAT_XLSX, RADIO_SELECTED } from './download-modal-utils';
 
-export interface QueryDownloadModalProps {
+export interface RecordDownloadModalProps {
   org: SalesforceOrgUi;
   downloadModalOpen: boolean;
   fields: string[];
   records: Record[];
-  selectedRecords: Record[];
+  selectedRecords?: Record[];
   totalRecordCount?: number;
-  onModalClose: () => void;
-  onDownloadFromServer: (fileFormat: FileExtCsvXLSX, fileName: string) => void;
+  onModalClose: (cancelled?: boolean) => void;
+  onDownloadFromServer?: (fileFormat: FileExtCsvXLSX, fileName: string) => void;
 }
 
-export const RADIO_ALL_BROWSER = 'all-browser';
-export const RADIO_ALL_SERVER = 'all-server';
-export const RADIO_SELECTED = 'selected';
-
-export const RADIO_FORMAT_XLSX: FileExtXLSX = 'xlsx';
-export const RADIO_FORMAT_CSV: FileExtCsv = 'csv';
-
-export const QueryDownloadModal: FunctionComponent<QueryDownloadModalProps> = ({
+export const RecordDownloadModal: FunctionComponent<RecordDownloadModalProps> = ({
   org,
   downloadModalOpen,
   fields,
@@ -78,7 +75,9 @@ export const QueryDownloadModal: FunctionComponent<QueryDownloadModalProps> = ({
       const fileNameWithExt = `${fileName}.${fileFormat}`;
       if (downloadRecordsValue === RADIO_ALL_SERVER) {
         // emit event, which starts job, which downloads in the background
-        onDownloadFromServer(fileFormat, fileNameWithExt);
+        if (onDownloadFromServer) {
+          onDownloadFromServer(fileFormat, fileNameWithExt);
+        }
         onModalClose();
       } else {
         const activeRecords = downloadRecordsValue === RADIO_ALL_BROWSER ? records : selectedRecords;
@@ -115,12 +114,17 @@ export const QueryDownloadModal: FunctionComponent<QueryDownloadModalProps> = ({
         <Modal
           header="Download Records"
           footer={
-            <button className="slds-button slds-button_brand" onClick={downloadRecords}>
-              Download
-            </button>
+            <Fragment>
+              <button className="slds-button slds-button_neutral" onClick={() => onModalClose(true)}>
+                Cancel
+              </button>
+              <button className="slds-button slds-button_brand" onClick={downloadRecords}>
+                Download
+              </button>
+            </Fragment>
           }
           skipAutoFocus
-          onClose={() => onModalClose()}
+          onClose={() => onModalClose(true)}
         >
           <div>
             <RadioGroup label="Which Records" required className="slds-m-bottom_small">
@@ -151,14 +155,16 @@ export const QueryDownloadModal: FunctionComponent<QueryDownloadModalProps> = ({
                   onChange={setDownloadRecordsValue}
                 />
               )}
-              <Radio
-                name="radio-download"
-                label={`Selected records (${selectedRecords?.length || 0})`}
-                value={RADIO_SELECTED}
-                disabled={!selectedRecords?.length}
-                checked={downloadRecordsValue === RADIO_SELECTED}
-                onChange={setDownloadRecordsValue}
-              />
+              {Array.isArray(selectedRecords) && (
+                <Radio
+                  name="radio-download"
+                  label={`Selected records (${selectedRecords.length || 0})`}
+                  value={RADIO_SELECTED}
+                  disabled={!selectedRecords?.length}
+                  checked={downloadRecordsValue === RADIO_SELECTED}
+                  onChange={setDownloadRecordsValue}
+                />
+              )}
             </RadioGroup>
             <RadioGroup label="File Format" required className="slds-m-bottom_small">
               <Radio
@@ -193,4 +199,4 @@ export const QueryDownloadModal: FunctionComponent<QueryDownloadModalProps> = ({
   );
 };
 
-export default QueryDownloadModal;
+export default RecordDownloadModal;

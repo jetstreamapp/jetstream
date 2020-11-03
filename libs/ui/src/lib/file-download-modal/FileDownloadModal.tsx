@@ -4,8 +4,12 @@ import { jsx } from '@emotion/core';
 import { MIME_TYPES } from '@jetstream/shared/constants';
 import { getFilename, prepareCsvFile, prepareExcelFile, saveFile } from '@jetstream/shared/ui-utils';
 import { FileExtCsv, FileExtCsvXLSX, FileExtXLSX, MapOf, MimeType, SalesforceOrgUi } from '@jetstream/types';
-import { Input, Modal, Radio, RadioGroup } from '@jetstream/ui';
 import { Fragment, FunctionComponent, useEffect, useRef, useState } from 'react';
+import Input from '../form/input/Input';
+import Radio from '../form/radio/Radio';
+import RadioGroup from '../form/radio/RadioGroup';
+import Modal from '../modal/Modal';
+import { RADIO_FORMAT_CSV, RADIO_FORMAT_XLSX } from './download-modal-utils';
 
 export interface FileDownloadModalProps {
   modalHeader?: string;
@@ -22,9 +26,6 @@ export interface FileDownloadModalProps {
   // this may be useful if alternateDownloadButton is provided, otherwise this usually is not required
   onChange?: (data: { fileName: string; fileFormat: FileExtCsvXLSX }) => void;
 }
-
-export const RADIO_FORMAT_XLSX: FileExtXLSX = 'xlsx';
-export const RADIO_FORMAT_CSV: FileExtCsv = 'csv';
 
 const defaultAllowedTypes = [RADIO_FORMAT_XLSX, RADIO_FORMAT_CSV];
 

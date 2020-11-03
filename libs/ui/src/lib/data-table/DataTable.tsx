@@ -1,11 +1,16 @@
 /** @jsx jsx */
 import { jsx } from '@emotion/core';
 import { SalesforceOrgUi } from '@jetstream/types';
-import { ColDef } from 'ag-grid-community';
-import { AgGridReact, AgGridReactProps } from 'ag-grid-react';
+import { ModuleRegistry, ColDef } from '@ag-grid-community/core';
+import { ClientSideRowModelModule } from '@ag-grid-community/client-side-row-model';
+import { InfiniteRowModelModule } from '@ag-grid-community/infinite-row-model';
+import { AgGridReact, AgGridReactProps } from '@ag-grid-community/react';
 import { CSSProperties, FunctionComponent } from 'react';
 import './data-table-styles.scss';
+import { handleCellDoubleClicked, handleCellKeydown } from './data-table-utils';
 import { BooleanFilterRenderer, BooleanRenderer, configIdLinkRenderer, IdLinkRenderer, SubqueryRenderer } from './DataTableRenderers';
+
+ModuleRegistry.registerModules([ClientSideRowModelModule, InfiniteRowModelModule]);
 
 export interface DataTableProps {
   style?: CSSProperties;
@@ -46,6 +51,8 @@ export const DataTable: FunctionComponent<DataTableProps> = ({
         }}
         columnDefs={columns}
         rowData={data}
+        onCellDoubleClicked={handleCellDoubleClicked}
+        onCellKeyDown={handleCellKeydown}
         {...agGridProps}
       ></AgGridReact>
     </div>

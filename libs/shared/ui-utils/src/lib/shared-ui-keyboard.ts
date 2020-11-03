@@ -24,7 +24,7 @@ export function isEndKey(event: KeyboardEvent<unknown>): boolean {
 }
 
 export function isEnterKey(event: KeyboardEvent<unknown>): boolean {
-  return event.key === 'Enter' || event.keyCode === 13 || event.keyCode === 32;
+  return event.key === 'Enter' || event.keyCode === 13;
 }
 
 export function isSpaceKey(event: KeyboardEvent<unknown>): boolean {

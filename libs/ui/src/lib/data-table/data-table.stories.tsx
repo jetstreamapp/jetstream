@@ -1,5 +1,5 @@
 import { action } from '@storybook/addon-actions';
-import { ColDef } from 'ag-grid-community';
+import { ColDef } from '@ag-grid-community/core';
 import React from 'react';
 import { dataTableAddressFormatter, getCheckboxColumnDef } from './data-table-utils';
 import DataTable from './DataTable';

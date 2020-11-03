@@ -6,6 +6,7 @@ import { NOOP, orderObjectsBy } from '@jetstream/shared/utils';
 import { MapOf, SalesforceOrgUi, SalesforceOrgUiType, UiTabSection } from '@jetstream/types';
 import {
   AutoFullHeightContainer,
+  FileDownloadModal,
   Grid,
   Icon,
   Page,
@@ -21,7 +22,6 @@ import formatRelative from 'date-fns/formatRelative';
 import { FunctionComponent, useEffect, useRef, useState } from 'react';
 import { useRecoilState, useRecoilValue, useResetRecoilState } from 'recoil';
 import { applicationCookieState, selectedOrgState, selectedOrgType } from '../../app-state';
-import FileDownloadModal from '../core/FileDownloadModal';
 import {
   AutomationControlMetadataType,
   AutomationControlMetadataTypeItem,

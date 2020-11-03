@@ -48,6 +48,10 @@
   },
   "private": true,
   "dependencies": {
+    "@ag-grid-community/client-side-row-model": "^24.1.0",
+    "@ag-grid-community/core": "^24.1.0",
+    "@ag-grid-community/infinite-row-model": "^24.1.0",
+    "@ag-grid-community/react": "^24.1.1",
     "@emotion/core": "10.0.28",
     "@emotion/styled": "10.0.27",
     "@fullhuman/postcss-purgecss": "^2.2.0",
@@ -77,6 +81,7 @@
     "codemirror": "^5.56.0",
     "connect-pg-simple": "^6.1.0",
     "consolidated-events": "^2.0.2",
+    "copy-to-clipboard": "^3.3.1",
     "cors": "^2.8.5",
     "date-fns": "^2.16.1",
     "document-register-element": "1.13.1",

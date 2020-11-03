@@ -12,6 +12,7 @@ import {
   AutoFullHeightContainer,
   EmptyState,
   Icon,
+  RecordDownloadModal,
   SalesforceRecordDataTable,
   Spinner,
   Toolbar,
@@ -28,7 +29,6 @@ import { applicationCookieState, selectedOrgState } from '../../../app-state';
 import * as fromJetstreamEvents from '../../core/jetstream-events';
 import * as fromQueryHistory from '../QueryHistory/query-history.state';
 import QueryHistory from '../QueryHistory/QueryHistory';
-import QueryDownloadModal from './QueryDownloadModal';
 import QueryResultsSoqlPanel from './QueryResultsSoqlPanel';
 import QueryResultsViewRecordFields from './QueryResultsViewRecordFields';
 
@@ -132,6 +132,9 @@ export const QueryResults: FunctionComponent<QueryResultsProps> = React.memo(() 
       setTotalRecordCount(results.queryResults.totalSize);
       setErrorMessage(null);
     } catch (ex) {
+      if (!isMounted.current) {
+        return;
+      }
       logger.warn('ERROR', ex);
       setErrorMessage(ex.message);
       setSoqlPanelOpen(true);
@@ -211,9 +214,17 @@ export const QueryResults: FunctionComponent<QueryResultsProps> = React.memo(() 
     fromJetstreamEvents.emit({ type: 'newJob', payload: jobs });
   }
 
+  function handleLoadMore(results: IQueryResults<any>) {
+    if (isMounted.current) {
+      setNextRecordsUrl(results.queryResults.nextRecordsUrl);
+      saveQueryHistory(soql, results.parsedQuery?.sObject || results.columns?.entityName);
+      setRecords(records.concat(results.queryResults.records));
+    }
+  }
+
   return (
     <div>
-      <QueryDownloadModal
+      <RecordDownloadModal
         org={selectedOrg}
         downloadModalOpen={downloadModalOpen}
         fields={fields}
@@ -322,6 +333,7 @@ export const QueryResults: FunctionComponent<QueryResultsProps> = React.memo(() 
                 queryResults={queryResults}
                 onSelectionChanged={setSelectedRows}
                 onFields={setFields}
+                onLoadMoreRecords={handleLoadMore}
               />
             </Fragment>
           )}

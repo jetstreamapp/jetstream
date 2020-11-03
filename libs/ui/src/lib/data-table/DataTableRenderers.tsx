@@ -1,13 +1,19 @@
 /** @jsx jsx */
 import { jsx } from '@emotion/core';
-import { ICellRendererParams, IFilter, IFilterComp, IFilterParams } from 'ag-grid-community';
-import { forwardRef, FunctionComponent, useEffect, useImperativeHandle, useRef, useState } from 'react';
 import { SalesforceOrgUi } from '@jetstream/types';
+import { ICellRendererParams, IFilter, IFilterParams } from '@ag-grid-community/core';
+import { QueryResult } from 'jsforce';
+import { forwardRef, FunctionComponent, useEffect, useImperativeHandle, useRef, useState } from 'react';
+import RecordDownloadModal from '../file-download-modal/RecordDownloadModal';
+import CheckboxToggle from '../form/checkbox-toggle/CheckboxToggle';
+import Checkbox from '../form/checkbox/Checkbox';
+import AutoFullHeightContainer from '../layout/AutoFullHeightContainer';
+import Modal from '../modal/Modal';
 import Icon from '../widgets/Icon';
 import SalesforceLogin from '../widgets/SalesforceLogin';
 import './data-table-styles.scss';
-import Checkbox from '../form/checkbox/Checkbox';
-import CheckboxToggle from '../form/checkbox-toggle/CheckboxToggle';
+import { DataTableContext, getSubqueryModalTagline, SalesforceQueryColumnDefinition } from './data-table-utils';
+import DataTable from './DataTable';
 
 // CONFIGURATION
 
@@ -24,18 +30,118 @@ export function configIdLinkRenderer(serverUrl: string, org: SalesforceOrgUi) {
 }
 
 // CELL RENDERERS
+export const SubqueryRenderer: FunctionComponent<ICellRendererParams> = ({ value, colDef, data }) => {
+  const [isActive, setIsActive] = useState(false);
+  const [modalTagline, setModalTagline] = useState<string>();
+  const [downloadModalIsActive, setDownloadModalIsActive] = useState(false);
 
-export const SubqueryRenderer: FunctionComponent<ICellRendererParams> = ({ value }) => {
+  // const {serverUrl, org, columnsDefinition} = context as DataTableContextValue;
+
+  function handleViewData() {
+    if (isActive) {
+      setIsActive(false);
+    } else {
+      if (!modalTagline) {
+        setModalTagline(getSubqueryModalTagline(data));
+      }
+      setIsActive(true);
+    }
+  }
+
+  function getColumns(columnDefinitions: SalesforceQueryColumnDefinition) {
+    return columnDefinitions.subqueryColumns[colDef.field];
+  }
+
+  function getFields(columnDefinitions: SalesforceQueryColumnDefinition) {
+    return getColumns(columnDefinitions)
+      .filter((column) => column.field)
+      .map((column) => column.field);
+  }
+
+  function getRecords() {
+    return value;
+    // return (value as QueryResult<any>).records;
+  }
+
+  function handleCloseModal(cancelled?: boolean) {
+    if (typeof cancelled === 'boolean' && cancelled) {
+      setIsActive(true);
+      setDownloadModalIsActive(false);
+    } else {
+      setIsActive(false);
+      setDownloadModalIsActive(false);
+    }
+  }
+
+  function openDownloadModal() {
+    setIsActive(false);
+    setDownloadModalIsActive(true);
+  }
+
   if (!Array.isArray(value) || value.length === 0) {
     return <div />;
   }
+
   return (
-    <div>
-      <button className="slds-button">
-        <Icon type="utility" icon="search" className="slds-button__icon slds-button__icon_left" omitContainer />
-        View Data
-      </button>
-    </div>
+    <DataTableContext.Consumer>
+      {({ serverUrl, org, columnDefinitions }) => (
+        <div>
+          {isActive && (
+            <Modal
+              size="lg"
+              header={colDef.field}
+              tagline={modalTagline}
+              closeOnBackdropClick
+              onClose={handleCloseModal}
+              footer={
+                <button className="slds-button slds-button_brand" onClick={openDownloadModal}>
+                  <Icon type="utility" icon="download" className="slds-button__icon slds-button__icon_left" omitContainer />
+                  Download Records
+                </button>
+              }
+            >
+              <div className="slds-scrollable_x">
+                <AutoFullHeightContainer fillHeight setHeightAttr bottomBuffer={300}>
+                  <DataTable
+                    serverUrl={serverUrl}
+                    org={org}
+                    columns={getColumns(columnDefinitions)}
+                    data={getRecords()}
+                    agGridProps={{
+                      rowSelection: null,
+                      immutableData: true,
+                      // getRowNodeId, // TODO: get attributes fom child record // return data?.attributes?.url || data.Id || Object.keys(data)[0];
+                      suppressMenuHide: true,
+                      headerHeight: 25,
+                      gridOptions: {
+                        defaultColDef: {
+                          filter: true,
+                          sortable: true,
+                          resizable: true,
+                        },
+                      },
+                    }}
+                  />
+                </AutoFullHeightContainer>
+              </div>
+            </Modal>
+          )}
+          {downloadModalIsActive && (
+            <RecordDownloadModal
+              org={org}
+              downloadModalOpen
+              fields={getFields(columnDefinitions)}
+              records={value}
+              onModalClose={handleCloseModal}
+            />
+          )}
+          <button className="slds-button" onClick={handleViewData}>
+            <Icon type="utility" icon="search" className="slds-button__icon slds-button__icon_left" omitContainer />
+            View Data
+          </button>
+        </div>
+      )}
+    </DataTableContext.Consumer>
   );
 };
 

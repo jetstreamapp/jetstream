@@ -3,7 +3,7 @@ import { jsx } from '@emotion/core';
 import { logger } from '@jetstream/shared/client-logger';
 import { bulkApiGetJob } from '@jetstream/shared/data';
 import { BulkJobWithBatches, FileExtCsvXLSX, InsertUpdateUpsertDelete, SalesforceOrgUi, WorkerMessage } from '@jetstream/types';
-import { SalesforceLogin } from '@jetstream/ui';
+import { SalesforceLogin, FileDownloadModal } from '@jetstream/ui';
 import { Fragment, FunctionComponent, useEffect, useRef, useState } from 'react';
 import { useRecoilState } from 'recoil';
 import { convertDateToLocale } from '@jetstream/shared/ui-utils';
@@ -12,7 +12,6 @@ import LoadWorker from '../../../../workers/load.worker';
 import { ApiMode, FieldMapping, LoadDataBulkApiStatusPayload } from '../../load-records-types';
 import LoadRecordsBulkApiResultsTable from './LoadRecordsBulkApiResultsTable';
 import orderBy from 'lodash/orderBy';
-import FileDownloadModal from '../../../core/FileDownloadModal';
 
 type Status = 'Preparing Data' | 'Uploading Data' | 'Processing Data' | 'Finished' | 'Error';
 

@@ -5,9 +5,9 @@ import { InsertUpdateUpsertDelete, RecordResultWithRecord, SalesforceOrgUi, Work
 import { flattenRecord } from '@jetstream/shared/utils';
 import { FunctionComponent, useEffect, useRef, useState } from 'react';
 import LoadWorker from '../../../../workers/load.worker';
-import FileDownloadModal from '../../../core/FileDownloadModal';
 import { ApiMode, FieldMapping, LoadDataBatchApiProgress } from '../../load-records-types';
 import LoadRecordsBatchApiResultsTable from './LoadRecordsBatchApiResultsTable';
+import { FileDownloadModal } from '@jetstream/ui';
 
 type Status = 'Preparing Data' | 'Processing Data' | 'Finished' | 'Error';
 
