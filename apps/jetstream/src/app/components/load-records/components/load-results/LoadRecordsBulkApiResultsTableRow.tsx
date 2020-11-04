@@ -4,7 +4,7 @@ import { BulkJobBatchInfo } from '@jetstream/types';
 import { Grid, Icon, Spinner } from '@jetstream/ui';
 import classNames from 'classnames';
 import { FunctionComponent } from 'react';
-import numeral from 'numeral';
+import { formatNumber } from '@jetstream/shared/utils';
 
 export interface LoadRecordsBulkApiResultsTableRowProps {
   batch: BulkJobBatchInfo;
@@ -31,9 +31,9 @@ export const LoadRecordsBulkApiResultsTableRow: FunctionComponent<LoadRecordsBul
     return url;
   }
 
-  const total = numeral(batch.numberRecordsProcessed).format('0,0');
-  const success = numeral(batch.numberRecordsProcessed - batch.numberRecordsFailed).format('0,0');
-  const failure = numeral(batch.numberRecordsFailed || 0).format('0,0');
+  const total = formatNumber(batch.numberRecordsProcessed);
+  const success = formatNumber(batch.numberRecordsProcessed - batch.numberRecordsFailed);
+  const failure = formatNumber(batch.numberRecordsFailed || 0);
 
   return (
     <tr key={batch.id} className="slds-hint-parent">

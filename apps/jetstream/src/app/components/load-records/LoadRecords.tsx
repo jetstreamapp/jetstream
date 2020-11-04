@@ -26,7 +26,8 @@ import LoadRecordsPerformLoad from './steps/PerformLoad';
 import LoadRecordsLoadAutomationDeploy from './steps/LoadRecordsAutomationDeploy';
 import LoadRecordsLoadAutomationRollback from './steps/LoadRecordsAutomationRollback';
 import { autoMapFields, getFieldMetadata } from './utils/load-records-utils';
-import numeral from 'numeral';
+import LoadRecordsDataPreview from './components/LoadRecordsDataPreview';
+import { formatNumber } from '@jetstream/shared/utils';
 
 const HEIGHT_BUFFER = 170;
 
@@ -184,13 +185,13 @@ export const LoadRecords: FunctionComponent<LoadRecordsProps> = () => {
       text.push(`Object: ${selectedSObject.label}`);
 
       if (inputFileData?.length) {
-        text.push(`${numeral(inputFileData.length).format('0,0')} records impacted`);
+        text.push(`${formatNumber(inputFileData.length)} records impacted`);
       }
 
       if (inputFileHeader) {
         const fieldMappingItems = Object.values(fieldMapping);
         const numItemsMapped = fieldMappingItems.filter((item) => item.targetField).length;
-        text.push(`${numeral(numItemsMapped).format('0,0')} of ${numeral(inputFileHeader.length).format('0,0')} fields mapped`);
+        text.push(`${formatNumber(numItemsMapped)} of ${formatNumber(inputFileHeader.length)} fields mapped`);
       }
     }
 
@@ -258,7 +259,15 @@ export const LoadRecords: FunctionComponent<LoadRecordsProps> = () => {
                 onFileChange={handleFileChange}
                 onLoadTypeChange={setLoadType}
                 onExternalIdChange={setExternalId}
-              />
+              >
+                <LoadRecordsDataPreview
+                  selectedOrg={selectedOrg}
+                  selectedSObject={selectedSObject}
+                  loadType={loadType}
+                  data={inputFileData}
+                  header={inputFileHeader}
+                />
+              </LoadRecordsSelectObjectAndFile>
             )}
             {currentStep.name === 'fieldMapping' && (
               <span>

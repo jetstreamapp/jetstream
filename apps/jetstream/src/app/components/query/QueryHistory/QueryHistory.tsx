@@ -7,7 +7,7 @@ import { REGEX } from '@jetstream/shared/utils';
 import { QueryHistoryItem, QueryHistorySelection, MapOf, UpDown } from '@jetstream/types';
 import { Grid, GridCol, Icon, List, Modal, SearchInput, EmptyState } from '@jetstream/ui';
 import localforage from 'localforage';
-import numeral from 'numeral';
+import { formatNumber } from '@jetstream/shared/utils';
 import { createRef, FunctionComponent, useEffect, useState } from 'react';
 import { useRecoilState, useRecoilValue, useResetRecoilState } from 'recoil';
 import * as fromQueryHistoryState from './query-history.state';
@@ -104,8 +104,7 @@ export const QueryHistory: FunctionComponent<QueryHistoryProps> = () => {
                     onArrowKeyUpDown={handleSearchKeyboard}
                   />
                   <div className="slds-text-body_small slds-text-color_weak slds-p-left--xx-small">
-                    Showing {numeral(filteredSelectObjectsList.length).format('0,0')} of {numeral(selectObjectsList.length).format('0,0')}{' '}
-                    objects
+                    Showing {formatNumber(filteredSelectObjectsList.length)} of {formatNumber(selectObjectsList.length)} objects
                   </div>
                 </div>
                 <List

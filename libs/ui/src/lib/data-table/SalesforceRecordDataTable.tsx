@@ -3,7 +3,7 @@ import { ColDef, SelectionChangedEvent } from '@ag-grid-community/core';
 import { jsx } from '@emotion/core';
 import { QueryResults } from '@jetstream/api-interfaces';
 import { SalesforceOrgUi } from '@jetstream/types';
-import numeral from 'numeral';
+import { formatNumber } from '@jetstream/shared/utils';
 import { Fragment, FunctionComponent, memo, useEffect, useRef, useState } from 'react';
 import { queryMore } from '@jetstream/shared/data';
 import Grid from '../grid/Grid';
@@ -94,7 +94,7 @@ export const SalesforceRecordDataTable: FunctionComponent<SalesforceRecordDataTa
       <Fragment>
         <Grid className="slds-p-around_xx-small">
           <GridCol growNone className="slds-p-around_x-small">
-            Showing {numeral(records.length).format('0,0')} of {numeral(totalRecordCount).format('0,0')} records
+            Showing {formatNumber(records.length)} of {formatNumber(totalRecordCount)} records
           </GridCol>
           {hasMoreRecords && (
             <GridCol>

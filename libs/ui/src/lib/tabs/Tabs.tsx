@@ -4,7 +4,7 @@ import { css, jsx } from '@emotion/core';
 import { HorizontalVertical, UiTabSection } from '@jetstream/types';
 import classNames from 'classnames';
 import isNil from 'lodash/isNil';
-import numeral from 'numeral';
+import { formatNumber } from '@jetstream/shared/utils';
 import React, { FunctionComponent, useEffect, useState } from 'react';
 import { REGEX } from '@jetstream/shared/utils';
 import SearchInput from '../form/search-input/SearchInput';
@@ -124,7 +124,7 @@ export const Tabs: FunctionComponent<TabsProps> = ({
               // onArrowKeyUpDown={handleSearchKeyboard}
             />
             <div className="slds-text-body_small slds-text-color_weak slds-p-left--xx-small">
-              Showing {numeral(filteredTabs.length).format('0,0')} of {numeral(tabs.length).format('0,0')} items
+              Showing {formatNumber(filteredTabs.length)} of {formatNumber(tabs.length)} items
             </div>
           </div>
         )}

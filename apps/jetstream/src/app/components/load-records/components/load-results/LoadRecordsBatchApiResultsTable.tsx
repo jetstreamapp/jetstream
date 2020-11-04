@@ -4,7 +4,7 @@ import { Grid, Icon, Spinner } from '@jetstream/ui';
 import classNames from 'classnames';
 import { FunctionComponent } from 'react';
 import { LoadDataBatchApiProgress } from '../../load-records-types';
-import numeral from 'numeral';
+import { formatNumber } from '@jetstream/shared/utils';
 
 export interface LoadRecordsBatchApiResultsTableProps {
   processingStatus: LoadDataBatchApiProgress;
@@ -24,9 +24,9 @@ export const LoadRecordsBatchApiResultsTable: FunctionComponent<LoadRecordsBatch
   onDownload,
 }) => {
   const status = inProgress ? 'Processing' : 'Finished';
-  const total = numeral(processingStatus.total || 0).format('0,0');
-  const success = numeral(processingStatus.success || 0).format('0,0');
-  const failure = numeral(processingStatus.failure || 0).format('0,0');
+  const total = formatNumber(processingStatus.total || 0);
+  const success = formatNumber(processingStatus.success || 0);
+  const failure = formatNumber(processingStatus.failure || 0);
 
   return (
     <table className="slds-table slds-table_cell-buffer slds-table_bordered">

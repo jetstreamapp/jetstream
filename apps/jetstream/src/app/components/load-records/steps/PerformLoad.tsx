@@ -5,7 +5,7 @@ import { InsertUpdateUpsertDelete, SalesforceOrgUi, SalesforceOrgUiType } from '
 import { Badge, Checkbox, Input, Radio, RadioGroup, Select } from '@jetstream/ui';
 import { isNumber } from 'lodash';
 import startCase from 'lodash/startCase';
-import numeral from 'numeral';
+import { formatNumber } from '@jetstream/shared/utils';
 import { ChangeEvent, FunctionComponent, useEffect, useState } from 'react';
 import LoadRecordsResults from '../components/load-results/LoadRecordsResults';
 import { ApiMode, FieldMapping } from '../load-records-types';
@@ -53,7 +53,7 @@ export const LoadRecordsPerformLoad: FunctionComponent<LoadRecordsPerformLoadPro
   const [loadInProgress, setLoadInProgress] = useState<boolean>(false);
   const [hasLoadResults, setHasLoadResults] = useState<boolean>(false);
   const loadTypeLabel = startCase(loadType.toLowerCase());
-  const numRecordsImpactedLabel = numeral(inputFileData.length).format('0,0');
+  const numRecordsImpactedLabel = formatNumber(inputFileData.length);
 
   useEffect(() => {
     setBatchSize(getMaxBatchSize(apiMode));

@@ -6,7 +6,7 @@ import { MIME_TYPES } from '@jetstream/shared/constants';
 import { getFilename, prepareCsvFile, prepareExcelFile, saveFile } from '@jetstream/shared/ui-utils';
 import { flattenRecords } from '@jetstream/shared/utils';
 import { FileExtCsv, FileExtCsvXLSX, FileExtXLSX, MimeType, Record, SalesforceOrgUi } from '@jetstream/types';
-import numeral from 'numeral';
+import { formatNumber } from '@jetstream/shared/utils';
 import { Fragment, FunctionComponent, useEffect, useRef, useState } from 'react';
 import Input from '../form/input/Input';
 import Radio from '../form/radio/Radio';
@@ -132,14 +132,14 @@ export const RecordDownloadModal: FunctionComponent<RecordDownloadModalProps> = 
                 <Fragment>
                   <Radio
                     name="radio-download"
-                    label={`All records (${numeral(totalRecordCount || records.length).format('0,0')})`}
+                    label={`All records (${formatNumber(totalRecordCount || records.length)})`}
                     value={RADIO_ALL_SERVER}
                     checked={downloadRecordsValue === RADIO_ALL_SERVER}
                     onChange={setDownloadRecordsValue}
                   />
                   <Radio
                     name="radio-download"
-                    label={`First set of records (${numeral(records.length).format('0,0')})`}
+                    label={`First set of records (${formatNumber(records.length)})`}
                     value={RADIO_ALL_BROWSER}
                     checked={downloadRecordsValue === RADIO_ALL_BROWSER}
                     onChange={setDownloadRecordsValue}
@@ -149,7 +149,7 @@ export const RecordDownloadModal: FunctionComponent<RecordDownloadModalProps> = 
               {!hasMoreRecords && (
                 <Radio
                   name="radio-download"
-                  label={`All records (${numeral(totalRecordCount || records.length).format('0,0')})`}
+                  label={`All records (${formatNumber(totalRecordCount || records.length)})`}
                   value={RADIO_ALL_BROWSER}
                   checked={downloadRecordsValue === RADIO_ALL_BROWSER}
                   onChange={setDownloadRecordsValue}

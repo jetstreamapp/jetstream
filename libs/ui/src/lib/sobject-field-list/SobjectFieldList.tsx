@@ -9,7 +9,7 @@ import EmptyState from '../illustrations/EmptyState';
 import List from '../list/List';
 import Spinner from '../widgets/Spinner';
 import SobjectFieldListItem from './SobjectFieldListItem';
-import numeral from 'numeral';
+import { formatNumber } from '@jetstream/shared/utils';
 import Grid from '../grid/Grid';
 import SobjectFieldListFilter from './SobjectFieldListFilter';
 import { FilterType } from './SobjectFieldListTypes';
@@ -181,7 +181,7 @@ export const SobjectFieldList: FunctionComponent<SobjectFieldListProps> = ({
               onArrowKeyUpDown={handleSearchKeyboard}
             />
             <div className="slds-text-body_small slds-text-color_weak slds-p-left--xx-small">
-              Showing {numeral(filteredFields.length).format('0,0')} of {numeral(fieldLength).format('0,0')} fields
+              Showing {formatNumber(filteredFields.length)} of {formatNumber(fieldLength)} fields
             </div>
           </div>
           <Grid

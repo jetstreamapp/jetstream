@@ -1,13 +1,13 @@
 /** @jsx jsx */
 import { css, jsx } from '@emotion/core';
+import { INPUT_ACCEPT_FILETYPES } from '@jetstream/shared/constants';
+import { parseFile } from '@jetstream/shared/ui-utils';
+import { InputReadFileContent, InsertUpdateUpsertDelete, SalesforceOrgUi } from '@jetstream/types';
+import { ConnectedSobjectList, FileSelector, Grid, GridCol } from '@jetstream/ui';
 import { DescribeGlobalSObjectResult } from 'jsforce';
 import { FunctionComponent } from 'react';
 import Split from 'react-split';
-import { InsertUpdateUpsertDelete, SalesforceOrgUi, InputReadFileContent } from '@jetstream/types';
-import { ConnectedSobjectList, FileSelector, Grid, GridCol } from '@jetstream/ui';
-import { INPUT_ACCEPT_FILETYPES } from '@jetstream/shared/constants';
 import LoadRecordsLoadTypeButtons from '../components/LoadRecordsLoadTypeButtons';
-import { parseFile } from '@jetstream/shared/ui-utils';
 import { FieldWithRelatedEntities } from '../load-records-types';
 
 export interface LoadRecordsSelectObjectAndFileProps {
@@ -40,6 +40,7 @@ export const LoadRecordsSelectObjectAndFile: FunctionComponent<LoadRecordsSelect
   onFileChange,
   onLoadTypeChange,
   onExternalIdChange,
+  children,
 }) => {
   function handleFile({ content, filename }: InputReadFileContent) {
     const { data, headers } = parseFile(content);
@@ -96,6 +97,7 @@ export const LoadRecordsSelectObjectAndFile: FunctionComponent<LoadRecordsSelect
               onChange={handleLoadTypeChange}
             />
           </GridCol>
+          <GridCol className="slds-m-top_large">{children}</GridCol>
         </Grid>
       </div>
     </Split>
