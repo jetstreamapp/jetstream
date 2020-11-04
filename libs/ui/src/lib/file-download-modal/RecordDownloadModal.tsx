@@ -3,10 +3,9 @@
 /** @jsx jsx */
 import { jsx } from '@emotion/core';
 import { MIME_TYPES } from '@jetstream/shared/constants';
-import { getFilename, prepareCsvFile, prepareExcelFile, saveFile } from '@jetstream/shared/ui-utils';
+import { formatNumber, getFilename, prepareCsvFile, prepareExcelFile, saveFile } from '@jetstream/shared/ui-utils';
 import { flattenRecords } from '@jetstream/shared/utils';
 import { FileExtCsv, FileExtCsvXLSX, FileExtXLSX, MimeType, Record, SalesforceOrgUi } from '@jetstream/types';
-import { formatNumber } from '@jetstream/shared/utils';
 import { Fragment, FunctionComponent, useEffect, useRef, useState } from 'react';
 import Input from '../form/input/Input';
 import Radio from '../form/radio/Radio';

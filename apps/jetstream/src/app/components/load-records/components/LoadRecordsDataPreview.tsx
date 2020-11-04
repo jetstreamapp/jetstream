@@ -2,11 +2,11 @@
 import { ColDef } from '@ag-grid-community/core';
 import { css, jsx } from '@emotion/core';
 import { query } from '@jetstream/shared/data';
+import { formatNumber } from '@jetstream/shared/ui-utils';
 import { InsertUpdateUpsertDelete, SalesforceOrgUi } from '@jetstream/types';
 import { AutoFullHeightContainer, DataTable, Grid, GridCol, Icon, Spinner } from '@jetstream/ui';
 import { DescribeGlobalSObjectResult } from 'jsforce';
 import { Fragment, FunctionComponent, useEffect, useRef, useState } from 'react';
-import { formatNumber } from '@jetstream/shared/utils';
 
 const NUM_COLUMN = '_num';
 

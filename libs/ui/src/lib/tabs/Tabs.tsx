@@ -1,12 +1,12 @@
 /* eslint-disable jsx-a11y/anchor-is-valid */
 /** @jsx jsx */
-import { css, jsx } from '@emotion/core';
+import { jsx } from '@emotion/core';
+import { formatNumber } from '@jetstream/shared/ui-utils';
+import { REGEX } from '@jetstream/shared/utils';
 import { HorizontalVertical, UiTabSection } from '@jetstream/types';
 import classNames from 'classnames';
 import isNil from 'lodash/isNil';
-import { formatNumber } from '@jetstream/shared/utils';
 import React, { FunctionComponent, useEffect, useState } from 'react';
-import { REGEX } from '@jetstream/shared/utils';
 import SearchInput from '../form/search-input/SearchInput';
 
 export interface TabsProps {

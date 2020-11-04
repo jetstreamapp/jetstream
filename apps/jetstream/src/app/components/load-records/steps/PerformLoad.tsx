@@ -1,11 +1,11 @@
 /** @jsx jsx */
 import { jsx } from '@emotion/core';
 import { DATE_FORMATS } from '@jetstream/shared/constants';
+import { formatNumber } from '@jetstream/shared/ui-utils';
 import { InsertUpdateUpsertDelete, SalesforceOrgUi, SalesforceOrgUiType } from '@jetstream/types';
 import { Badge, Checkbox, Input, Radio, RadioGroup, Select } from '@jetstream/ui';
 import { isNumber } from 'lodash';
 import startCase from 'lodash/startCase';
-import { formatNumber } from '@jetstream/shared/utils';
 import { ChangeEvent, FunctionComponent, useEffect, useState } from 'react';
 import LoadRecordsResults from '../components/load-results/LoadRecordsResults';
 import { ApiMode, FieldMapping } from '../load-records-types';

@@ -1,10 +1,10 @@
 /** @jsx jsx */
 import { jsx } from '@emotion/core';
+import { formatNumber } from '@jetstream/shared/ui-utils';
 import { BulkJobBatchInfo } from '@jetstream/types';
 import { Grid, Icon, Spinner } from '@jetstream/ui';
 import classNames from 'classnames';
 import { FunctionComponent } from 'react';
-import { formatNumber } from '@jetstream/shared/utils';
 
 export interface LoadRecordsBulkApiResultsTableRowProps {
   batch: BulkJobBatchInfo;

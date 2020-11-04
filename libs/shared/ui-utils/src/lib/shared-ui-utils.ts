@@ -1,6 +1,7 @@
 import { logger } from '@jetstream/shared/client-logger';
 import { HTTP } from '@jetstream/shared/constants';
-import { orderObjectsBy, REGEX, delay } from '@jetstream/shared/utils';
+import { checkMetadataResults } from '@jetstream/shared/data';
+import { delay, orderObjectsBy, REGEX } from '@jetstream/shared/utils';
 import {
   ExpressionConditionRowSelectedItems,
   ExpressionConditionType,
@@ -12,15 +13,15 @@ import {
   QueryFilterOperator,
   SalesforceOrgUi,
 } from '@jetstream/types';
+import parseISO from 'date-fns/parseISO';
 import { saveAs } from 'file-saver';
 import { DeployResult, Field } from 'jsforce';
 import { get as safeGet } from 'lodash';
 import isString from 'lodash/isString';
-import { unparse } from 'papaparse';
+import numeral from 'numeral';
+import { parse as parseCsv, unparse, unparse as unparseCsv, UnparseConfig } from 'papaparse';
 import {
-  Condition,
   LiteralType,
-  NegationCondition,
   Operator,
   ValueCondition,
   ValueWithDateLiteralCondition,
@@ -28,11 +29,11 @@ import {
   WhereClauseWithRightCondition,
 } from 'soql-parser-js';
 import { Placement as tippyPlacement } from 'tippy.js';
-import { parse as parseCsv, unparse as unparseCsv, UnparseConfig } from 'papaparse';
 import * as XLSX from 'xlsx';
-import { checkMetadataResults } from '@jetstream/shared/data';
-import parseISO from 'date-fns/parseISO';
 
+export function formatNumber(number: number) {
+  return numeral(number).format('0,0');
+}
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function parseQueryParams<T = any>(queryString: string): T {
   const pairs = (queryString[0] === '?' ? queryString.substr(1) : queryString).split('&');

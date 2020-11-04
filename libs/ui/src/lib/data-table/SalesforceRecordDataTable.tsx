@@ -3,7 +3,7 @@ import { ColDef, SelectionChangedEvent } from '@ag-grid-community/core';
 import { jsx } from '@emotion/core';
 import { QueryResults } from '@jetstream/api-interfaces';
 import { SalesforceOrgUi } from '@jetstream/types';
-import { formatNumber } from '@jetstream/shared/utils';
+import { formatNumber } from '@jetstream/shared/ui-utils';
 import { Fragment, FunctionComponent, memo, useEffect, useRef, useState } from 'react';
 import { queryMore } from '@jetstream/shared/data';
 import Grid from '../grid/Grid';

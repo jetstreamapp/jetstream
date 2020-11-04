@@ -1,14 +1,14 @@
 /** @jsx jsx */
 import { css, jsx } from '@emotion/core';
+import { formatNumber } from '@jetstream/shared/ui-utils';
+import { UpDown } from '@jetstream/types';
 import { DescribeGlobalSObjectResult } from 'jsforce';
-import { Fragment, FunctionComponent, useEffect, useState, createRef } from 'react';
+import { createRef, Fragment, FunctionComponent, useEffect, useState } from 'react';
 import SearchInput from '../form/search-input/SearchInput';
 import EmptyState from '../illustrations/EmptyState';
 import AutoFullHeightContainer from '../layout/AutoFullHeightContainer';
 import List from '../list/List';
 import Spinner from '../widgets/Spinner';
-import { formatNumber } from '@jetstream/shared/utils';
-import { UpDown } from '@jetstream/types';
 
 export interface SobjectListProps {
   sobjects: DescribeGlobalSObjectResult[];

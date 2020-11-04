@@ -15,12 +15,8 @@ import { unix } from 'moment-mini';
 import { QueryResults, QueryResultsColumn } from '@jetstream/api-interfaces';
 import { QueryResult } from 'jsforce';
 import { FieldSubquery } from 'soql-parser-js';
-import * as numeral from 'numeral';
-export function NOOP() {}
 
-export function formatNumber(number: number) {
-  return numeral(number).format('0,0');
-}
+export function NOOP() {}
 
 export function dateFromTimestamp(timestamp: number): Date {
   return unix(timestamp).toDate();

@@ -1,10 +1,10 @@
 /** @jsx jsx */
 import { css, jsx } from '@emotion/core';
+import { formatNumber } from '@jetstream/shared/ui-utils';
 import { Grid, Icon, Spinner } from '@jetstream/ui';
 import classNames from 'classnames';
 import { FunctionComponent } from 'react';
 import { LoadDataBatchApiProgress } from '../../load-records-types';
-import { formatNumber } from '@jetstream/shared/utils';
 
 export interface LoadRecordsBatchApiResultsTableProps {
   processingStatus: LoadDataBatchApiProgress;

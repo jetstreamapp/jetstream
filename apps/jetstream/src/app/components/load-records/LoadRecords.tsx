@@ -1,5 +1,6 @@
 /** @jsx jsx */
 import { css, jsx } from '@emotion/core';
+import { formatNumber } from '@jetstream/shared/ui-utils';
 import { SalesforceOrgUi } from '@jetstream/types';
 import {
   AutoFullHeightContainer,
@@ -17,17 +18,16 @@ import { startCase } from 'lodash';
 import { FunctionComponent, useEffect, useRef, useState } from 'react';
 import { useRecoilState, useRecoilValue } from 'recoil';
 import { selectedOrgState, selectedOrgType } from '../../app-state';
-import { FieldRelatedEntity, FieldWithRelatedEntities, Step } from './load-records-types';
-import * as fromLoadRecordsState from './load-records.state';
+import LoadRecordsDataPreview from './components/LoadRecordsDataPreview';
 import LoadRecordsProgress from './components/LoadRecordsProgress';
+import { FieldWithRelatedEntities, Step } from './load-records-types';
+import * as fromLoadRecordsState from './load-records.state';
 import LoadRecordsFieldMapping from './steps/FieldMapping';
-import LoadRecordsSelectObjectAndFile from './steps/SelectObjectAndFile';
-import LoadRecordsPerformLoad from './steps/PerformLoad';
 import LoadRecordsLoadAutomationDeploy from './steps/LoadRecordsAutomationDeploy';
 import LoadRecordsLoadAutomationRollback from './steps/LoadRecordsAutomationRollback';
+import LoadRecordsPerformLoad from './steps/PerformLoad';
+import LoadRecordsSelectObjectAndFile from './steps/SelectObjectAndFile';
 import { autoMapFields, getFieldMetadata } from './utils/load-records-utils';
-import LoadRecordsDataPreview from './components/LoadRecordsDataPreview';
-import { formatNumber } from '@jetstream/shared/utils';
 
 const HEIGHT_BUFFER = 170;
 
