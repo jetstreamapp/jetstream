@@ -1,19 +1,19 @@
 /** @jsx jsx */
 import { css, jsx } from '@emotion/core';
-import { FunctionComponent, memo, useEffect, useRef, useState } from 'react';
-import { Grid, GridCol, DropDown } from '@jetstream/ui';
-import { FieldWithRelatedEntities, FieldMapping, FieldMappingItem } from '../load-records-types';
-import { autoMapFields, checkForDuplicateFieldMappings, resetFieldMapping } from '../utils/load-records-utils';
+import { DropDown, Grid, GridCol } from '@jetstream/ui';
+import { memo, useEffect, useRef, useState } from 'react';
 import LoadRecordsFieldMappingRow from '../components/LoadRecordsFieldMappingRow';
+import { FieldMapping, FieldMappingItem, FieldWithRelatedEntities } from '../load-records-types';
+import { autoMapFields, checkForDuplicateFieldMappings, resetFieldMapping } from '../utils/load-records-utils';
 
 type DropDownAction = 'CLEAR' | 'RESET' | 'ALL' | 'MAPPED' | 'UNMAPPED';
 
 const MAPPING_CLEAR: DropDownAction = 'CLEAR';
 const MAPPING_RESET: DropDownAction = 'RESET';
 
-const FILTER_ALL: DropDownAction = 'ALL';
-const FILTER_MAPPED: DropDownAction = 'MAPPED';
-const FILTER_UNMAPPED: DropDownAction = 'UNMAPPED';
+// const FILTER_ALL: DropDownAction = 'ALL';
+// const FILTER_MAPPED: DropDownAction = 'MAPPED';
+// const FILTER_UNMAPPED: DropDownAction = 'UNMAPPED';
 
 export interface LoadRecordsFieldMappingProps {
   fields: FieldWithRelatedEntities[];

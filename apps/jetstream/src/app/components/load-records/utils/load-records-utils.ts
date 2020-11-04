@@ -106,6 +106,9 @@ export function autoMapFields(inputHeader: string[], fields: FieldWithRelatedEnt
         output[field].relationshipName = matchedField.relationshipName;
         output[field].fieldMetadata = matchedField;
         output[field].relatedFieldMetadata = matchedRelatedField;
+      } else {
+        output[field].targetField = null;
+        output[field].fieldMetadata = undefined;
       }
     }
   });
