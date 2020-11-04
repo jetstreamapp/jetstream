@@ -188,9 +188,9 @@ function getColDef(field: string, queryColumnsByPath: MapOf<QueryResultsColumn>,
   // If we have column data from SFDC, then use it
   if (queryColumnsByPath[fieldLowercase]) {
     const col = queryColumnsByPath[fieldLowercase];
-    colDef.headerName = col.displayName;
+    colDef.headerName = col.columnFullPath;
     colDef.field = col.columnFullPath;
-    colDef.headerTooltip = `${col.displayName} (${queryResultColumnToTypeLabel(col)})`;
+    colDef.headerTooltip = `${col.columnFullPath} (${queryResultColumnToTypeLabel(col)})`;
     if (col.booleanType) {
       colDef.cellRenderer = 'booleanRenderer';
       colDef.filter = 'booleanFilterRenderer';
