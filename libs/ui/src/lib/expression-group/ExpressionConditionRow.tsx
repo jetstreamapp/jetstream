@@ -85,7 +85,7 @@ export const ExpressionConditionRow: FunctionComponent<ExpressionConditionRowPro
       return null;
     });
     const [selectedResourceTitle] = useState<string>(null);
-    const debouncedSelectedValue = useDebounce(selectedValue, 500);
+    const debouncedSelectedValue = useDebounce(selectedValue, 150);
 
     useEffect(() => {
       onChange({ ...selected, value: debouncedSelectedValue });

@@ -19,7 +19,7 @@ import { Fragment, FunctionComponent, useEffect, useState } from 'react';
 import { Link, useRouteMatch } from 'react-router-dom';
 import Split from 'react-split';
 import { useRecoilState, useRecoilValue, useResetRecoilState } from 'recoil';
-import QueryWorker from '../../../workers/query.worker';
+// import QueryWorker from '../../../workers/query.worker';
 import * as fromQueryState from '../query.state';
 import QueryBuilderSoqlUpdater from './QueryBuilderSoqlUpdater';
 import QueryFieldsComponent from './QueryFields';
@@ -31,6 +31,7 @@ import QuerySObjects from './QuerySObjects';
 import QueryResetButton from '../QueryOptions/QueryResetButton';
 import QuerySubquerySObjects from './QuerySubquerySObjects';
 import QueryHistory from '../QueryHistory/QueryHistory';
+import { calculateSoqlQueryFilter } from '../utils/query-utils';
 
 const HEIGHT_BUFFER = 170;
 // eslint-disable-next-line @typescript-eslint/no-empty-interface
@@ -54,15 +55,13 @@ export const QueryBuilder: FunctionComponent<QueryBuilderProps> = () => {
   const resetQueryLimit = useResetRecoilState(fromQueryState.queryLimit);
   const resetQueryLimitSkip = useResetRecoilState(fromQueryState.queryLimitSkip);
   const resetQuerySoqlState = useResetRecoilState(fromQueryState.querySoqlState);
-  const resetQueryFieldsMapState = useResetRecoilState(fromQueryState.queryFieldsMapState);
-  const resetQueryFieldsKey = useResetRecoilState(fromQueryState.queryFieldsKey);
   const resetQueryChildRelationships = useResetRecoilState(fromQueryState.queryChildRelationships);
 
   // FIXME: this is a hack and should not be here
   const [showRightHandPane, setShowRightHandPane] = useState(!!selectedSObject);
   const [priorSelectedSObject, setPriorSelectedSObject] = useState(selectedSObject);
 
-  const [queryWorker] = useState(() => new QueryWorker());
+  // const [queryWorker] = useState(() => new QueryWorker());
 
   useEffect(() => {
     let timer1;
@@ -81,10 +80,12 @@ export const QueryBuilder: FunctionComponent<QueryBuilderProps> = () => {
 
   useEffect(() => {
     if (queryFieldsMap && selectedSObject) {
-      queryWorker.postMessage({
-        name: 'calculateFilter',
-        data: queryFieldsMap,
-      });
+      // using worker:
+      // queryWorker.postMessage({
+      // name: 'calculateFilter',
+      // data: queryFieldsMap,
+      // });
+      setFilterFields(calculateSoqlQueryFilter(queryFieldsMap));
     } else {
       setFilterFields([]);
     }
@@ -107,22 +108,22 @@ export const QueryBuilder: FunctionComponent<QueryBuilderProps> = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedSObject]);
 
-  useEffect(() => {
-    if (queryWorker) {
-      queryWorker.onmessage = (event: MessageEvent) => {
-        const payload: WorkerMessage<'calculateFilter', ListItemGroup[]> = event.data;
-        logger.log({ payload });
-        switch (payload.name) {
-          case 'calculateFilter': {
-            setFilterFields(payload.data);
-            break;
-          }
-          default:
-            break;
-        }
-      };
-    }
-  }, [queryWorker, setFilterFields]);
+  // useEffect(() => {
+  //   if (queryWorker) {
+  //     queryWorker.onmessage = (event: MessageEvent) => {
+  //       const payload: WorkerMessage<'calculateFilter', ListItemGroup[]> = event.data;
+  //       logger.log({ payload });
+  //       switch (payload.name) {
+  //         case 'calculateFilter': {
+  //           setFilterFields(payload.data);
+  //           break;
+  //         }
+  //         default:
+  //           break;
+  //       }
+  //     };
+  //   }
+  // }, [queryWorker, setFilterFields]);
 
   function handleSubquerySelectedField(relationshipName: string, fields: string[]) {
     const tempSelectedSubqueryFieldsState = { ...selectedSubqueryFieldsState, [relationshipName]: fields };

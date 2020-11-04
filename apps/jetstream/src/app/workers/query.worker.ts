@@ -1,11 +1,9 @@
 /// <reference lib="webworker" />
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { convertFiltersToWhereClause } from '@jetstream/shared/ui-utils';
-import { ExpressionType, ListItemGroup, MapOf, QueryFields, WorkerMessage } from '@jetstream/types';
-import { composeQuery, Query } from 'soql-parser-js';
 import { logger } from '@jetstream/shared/client-logger';
-
-const CHILD_FIELD_SEPARATOR = `~`;
+import { ExpressionType, MapOf, QueryFields, WorkerMessage } from '@jetstream/types';
+import { Query } from 'soql-parser-js';
+import { calculateSoqlQueryFilter, composeSoqlQuery } from '../components/query/utils/query-utils';
 
 type MessageName = 'composeQuery' | 'calculateFilter';
 
@@ -23,51 +21,12 @@ function handleMessage(name: MessageName, payloadData: any) {
   switch (name) {
     case 'composeQuery': {
       const { query, whereExpression }: { query: Query; whereExpression: ExpressionType } = payloadData;
-      query.where = convertFiltersToWhereClause(whereExpression);
-
-      const soql = composeQuery(query, { format: true, formatOptions: { fieldMaxLineLength: 80 } });
-      replyToMessage(name, soql);
+      replyToMessage(name, composeSoqlQuery(query, whereExpression));
       break;
     }
     case 'calculateFilter': {
       const queryFieldsMap: MapOf<QueryFields> = payloadData;
-      const newFilterFields: ListItemGroup[] = [];
-      Object.values(queryFieldsMap)
-        .filter((queryField) => !queryField.key.includes(CHILD_FIELD_SEPARATOR))
-        .forEach((queryField) => {
-          const [base, path] = queryField.key.split('|');
-          const currGroup: ListItemGroup = {
-            id: queryField.key,
-            label: path ? path.substring(0, path.length - 1) : base,
-            items: [],
-          };
-          newFilterFields.push(currGroup);
-          if (!path) {
-            Object.values(queryField.fields).forEach((field) => {
-              const value = `${path || ''}${field.name}`;
-              currGroup.items.push({
-                id: value,
-                label: field.label,
-                secondaryLabel: `(${field.name})`,
-                value: value,
-                meta: field,
-              });
-            });
-          } else {
-            queryField.selectedFields.forEach((selectedFieldKey) => {
-              const field = queryField.fields[selectedFieldKey];
-              const value = `${path || ''}${field.name}`;
-              currGroup.items.push({
-                id: value,
-                label: field.label,
-                secondaryLabel: `(${field.name})`,
-                value: value,
-                meta: field,
-              });
-            });
-          }
-        });
-      replyToMessage(name, newFilterFields);
+      replyToMessage(name, calculateSoqlQueryFilter(queryFieldsMap));
       break;
     }
     default:
