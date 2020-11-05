@@ -3,13 +3,10 @@ import { css, jsx } from '@emotion/core';
 import { INPUT_ACCEPT_FILETYPES } from '@jetstream/shared/constants';
 import { parseFile } from '@jetstream/shared/ui-utils';
 import { InputReadFileContent, InsertUpdateUpsertDelete, SalesforceOrgUi } from '@jetstream/types';
-import { ConnectedSobjectList, FileSelector, Grid, GridCol } from '@jetstream/ui';
+import { ConnectedSobjectList, FileSelector, Grid, GridCol, XlsxSheetSelectionModalPromise } from '@jetstream/ui';
 import { DescribeGlobalSObjectResult } from 'jsforce';
 import { FunctionComponent } from 'react';
 import Split from 'react-split';
-import { InsertUpdateUpsertDelete, SalesforceOrgUi, InputReadFileContent } from '@jetstream/types';
-import { ConnectedSobjectList, FileSelector, Grid, GridCol, Modal, XlsxSheetSelectionModalPromise } from '@jetstream/ui';
-import { INPUT_ACCEPT_FILETYPES } from '@jetstream/shared/constants';
 import LoadRecordsLoadTypeButtons from '../components/LoadRecordsLoadTypeButtons';
 import { FieldWithRelatedEntities } from '../load-records-types';
 
