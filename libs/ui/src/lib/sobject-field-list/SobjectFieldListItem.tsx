@@ -55,11 +55,11 @@ export const SobjectFieldListItem: FunctionComponent<SobjectFieldListItemProps> 
 
   return (
     <Fragment>
-      <div className="slds-truncate" title={field.label}>
+      <div className="slds-truncate" title={field.label} onClick={() => onSelectField(parentKey, field)}>
         {field.label}
       </div>
       <div className="slds-text-body_small slds-grid slds-grid_align-spread">
-        <div className="slds-text-color_weak slds-truncate" title={field.name}>
+        <div className="slds-text-color_weak slds-truncate" title={field.name} onClick={() => onSelectField(parentKey, field)}>
           {field.name}
         </div>
         <SobjectFieldListType field={field} />

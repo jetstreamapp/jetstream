@@ -12,6 +12,9 @@ import isString from 'lodash/isString';
 import { composeQuery, getField } from 'soql-parser-js';
 import { FieldWithRelatedEntities, FieldMapping, FieldRelatedEntity, PrepareDataPayload } from '../load-records-types';
 
+const DATE_ERR_MESSAGE =
+  'There was an error reading one or more date fields in your file. Ensure date fields are properly formatted with a four character year.';
+
 export async function getFieldMetadata(org: SalesforceOrgUi, sobject: string): Promise<FieldWithRelatedEntities[]> {
   const fields = (await describeSObjectWithExtendedTypes(org, sobject)).fields
     .filter((field) => field.createable || field.updateable || field.name === 'Id')
@@ -262,16 +265,28 @@ function transformDate(value: any, dateFormat: string): string | null {
   }
   if (value instanceof Date) {
     if (!isNaN(value.getTime())) {
-      return formatISODate(value, { representation: 'date' });
+      try {
+        return formatISODate(value, { representation: 'date' });
+      } catch (ex) {
+        throw new Error(DATE_ERR_MESSAGE);
+      }
     } else {
       // date is invalid
       return null;
     }
   } else if (isString(value)) {
     if (REGEX.ISO_DATE.test(value)) {
-      return formatISODate(parseISODate(value), { representation: 'date' });
+      try {
+        return formatISODate(parseISODate(value), { representation: 'date' });
+      } catch (ex) {
+        throw new Error(DATE_ERR_MESSAGE);
+      }
     }
-    return buildDateFromString(value, dateFormat, 'date');
+    try {
+      return buildDateFromString(value, dateFormat, 'date');
+    } catch (ex) {
+      throw new Error(DATE_ERR_MESSAGE);
+    }
   }
   return null;
 }
@@ -330,7 +345,7 @@ function transformDateTime(value: string | null | Date, dateFormat: string): str
     }
 
     // TODO:
-    // based on locase, we need to parse the date and the time
+    // based on locale, we need to parse the date and the time
     // could be 12 hour time, or 24 hour time
     // date will vary depending on locale
     return null; // FIXME:

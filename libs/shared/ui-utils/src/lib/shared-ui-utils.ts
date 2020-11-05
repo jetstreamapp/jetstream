@@ -671,14 +671,18 @@ export function readFile(file: File, readAsArrayBuffer = false): Promise<string 
  * TODO: support other filetypes (.zip)
  *
  * @param content string | ArrayBuffer
+ * @param options - If onParsedMultipleWorkbooks is provided, then this is called to ask the user which worksheet to use
  */
-export function parseFile(
-  content: string | ArrayBuffer
-): {
+export async function parseFile(
+  content: string | ArrayBuffer,
+  options?: {
+    onParsedMultipleWorkbooks?: (worksheets: string[]) => Promise<string>;
+  }
+): Promise<{
   data: any[];
   headers: string[];
   errors: string[];
-} {
+}> {
   if (isString(content)) {
     // csv - read from papaparse
     const csvResult = parseCsv(content, {
@@ -694,7 +698,15 @@ export function parseFile(
   } else {
     // ArrayBuffer - xlsx file
     const workbook = XLSX.read(content, { cellText: false, cellDates: true, type: 'array' });
-    const data = XLSX.utils.sheet_to_json(workbook.Sheets[workbook.SheetNames[0]], {
+    let selectedSheet = workbook.Sheets[workbook.SheetNames[0]];
+    if (workbook.SheetNames.length > 1 && typeof options.onParsedMultipleWorkbooks === 'function') {
+      const sheetName = await options.onParsedMultipleWorkbooks(workbook.SheetNames);
+      if (workbook.Sheets[sheetName]) {
+        selectedSheet = workbook.Sheets[sheetName];
+      }
+    }
+    // TODO: ask user what worksheet to use!
+    const data = XLSX.utils.sheet_to_json(selectedSheet, {
       dateNF: 'yyyy"-"mm"-"dd"T"hh:mm:ss',
       defval: '',
       blankrows: false,

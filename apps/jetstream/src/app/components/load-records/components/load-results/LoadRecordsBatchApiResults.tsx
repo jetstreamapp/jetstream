@@ -4,7 +4,7 @@ import { logger } from '@jetstream/shared/client-logger';
 import { InsertUpdateUpsertDelete, RecordResultWithRecord, SalesforceOrgUi, WorkerMessage } from '@jetstream/types';
 import { flattenRecord } from '@jetstream/shared/utils';
 import { FunctionComponent, useEffect, useRef, useState } from 'react';
-import LoadWorker from '../../../../workers/load.worker';
+import LoadWorker from '../../load-records.worker';
 import { ApiMode, FieldMapping, LoadDataBatchApiProgress } from '../../load-records-types';
 import LoadRecordsBatchApiResultsTable from './LoadRecordsBatchApiResultsTable';
 import { FileDownloadModal } from '@jetstream/ui';
@@ -56,6 +56,7 @@ export const LoadRecordsBatchApiResults: FunctionComponent<LoadRecordsBatchApiRe
   const [preparedData, setPreparedData] = useState<any[]>();
   const [loadWorker] = useState(() => new LoadWorker());
   const [status, setStatus] = useState<Status>(STATUSES.PREPARING);
+  const [fatalError, setFatalError] = useState<string>(null);
   const [startTime, setStartTime] = useState<string>(null);
   const [endTime, setEndTime] = useState<string>(null);
   const [processedRecords, setProcessedRecords] = useState<RecordResultWithRecord[]>([]);
@@ -74,6 +75,7 @@ export const LoadRecordsBatchApiResults: FunctionComponent<LoadRecordsBatchApiRe
   useEffect(() => {
     if (loadWorker) {
       setStatus(STATUSES.PREPARING);
+      setFatalError(null);
       loadWorker.postMessage({
         name: 'prepareData',
         data: {
@@ -139,11 +141,13 @@ export const LoadRecordsBatchApiResults: FunctionComponent<LoadRecordsBatchApiRe
             if (payload.error) {
               logger.error('ERROR', payload.error);
               setStatus(STATUSES.ERROR);
+              setFatalError(payload.error.message);
+              onFinish();
             } else {
               setStatus(STATUSES.PROCESSING);
               setPreparedData(payload.data.preparedData);
+              setStartTime(new Date().toLocaleString());
             }
-            setStartTime(new Date().toLocaleString());
             break;
           }
           case 'loadDataStatus': {
@@ -214,6 +218,11 @@ export const LoadRecordsBatchApiResults: FunctionComponent<LoadRecordsBatchApiRe
         />
       )}
       <h3 className="slds-text-heading_small">{status}</h3>
+      {fatalError && (
+        <div className="slds-text-color_error">
+          <strong>Fatal Error</strong>: {fatalError}
+        </div>
+      )}
       {/* Data is being processed */}
       {startTime && (
         <LoadRecordsBatchApiResultsTable

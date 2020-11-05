@@ -1,28 +1,27 @@
 /// <reference lib="webworker" />
 /* eslint-disable @typescript-eslint/no-explicit-any */
+import { logger } from '@jetstream/shared/client-logger';
+import { bulkApiAddBatchToJob, bulkApiCloseJob, bulkApiCreateJob, bulkApiGetJob, genericRequest } from '@jetstream/shared/data';
+import { convertDateToLocale, generateCsv } from '@jetstream/shared/ui-utils';
+import { getHttpMethod, splitArrayToMaxSize } from '@jetstream/shared/utils';
 import {
-  BulkJob,
+  BulkJobWithBatches,
   HttpMethod,
+  RecordResultWithRecord,
   SobjectCollectionRequest,
   SobjectCollectionRequestRecord,
   SobjectCollectionResponse,
-  RecordResultWithRecord,
   WorkerMessage,
-  BulkJobWithBatches,
 } from '@jetstream/types';
-import { transformData } from '../components/load-records/utils/load-records-utils';
-import { logger } from '@jetstream/shared/client-logger';
+import isString from 'lodash/isString';
+import orderBy from 'lodash/orderBy';
 import {
-  LoadDataPayload,
-  PrepareDataPayload,
   LoadDataBulkApi,
   LoadDataBulkApiStatusPayload,
-} from '../components/load-records/load-records-types';
-import isString from 'lodash/isString';
-import { getHttpMethod, splitArrayToMaxSize } from '@jetstream/shared/utils';
-import { generateCsv, convertDateToLocale } from '@jetstream/shared/ui-utils';
-import { bulkApiAddBatchToJob, bulkApiCloseJob, bulkApiCreateJob, bulkApiGetJob, genericRequest } from '@jetstream/shared/data';
-import orderBy from 'lodash/orderBy';
+  LoadDataPayload,
+  PrepareDataPayload,
+} from '../../components/load-records/load-records-types';
+import { transformData } from '../../components/load-records/utils/load-records-utils';
 
 type MessageName = 'prepareData' | 'loadData' | 'loadDataStatus';
 // eslint-disable-next-line no-restricted-globals
