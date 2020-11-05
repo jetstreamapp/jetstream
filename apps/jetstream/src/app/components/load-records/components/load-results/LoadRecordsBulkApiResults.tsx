@@ -8,7 +8,7 @@ import { Fragment, FunctionComponent, useEffect, useRef, useState } from 'react'
 import { useRecoilState } from 'recoil';
 import { convertDateToLocale } from '@jetstream/shared/ui-utils';
 import { applicationCookieState } from '../../../../app-state';
-import LoadWorker from '../../../../workers/load.worker';
+import LoadWorker from '../../load-records.worker';
 import { ApiMode, FieldMapping, LoadDataBulkApiStatusPayload } from '../../load-records-types';
 import LoadRecordsBulkApiResultsTable from './LoadRecordsBulkApiResultsTable';
 import orderBy from 'lodash/orderBy';
@@ -58,8 +58,6 @@ export interface LoadRecordsBulkApiResultsProps {
   onFinish: () => void;
 }
 
-let currTimeout: any;
-
 export const LoadRecordsBulkApiResults: FunctionComponent<LoadRecordsBulkApiResultsProps> = ({
   selectedOrg,
   selectedSObject,
@@ -79,6 +77,7 @@ export const LoadRecordsBulkApiResults: FunctionComponent<LoadRecordsBulkApiResu
   const [preparedData, setPreparedData] = useState<any[]>();
   const [loadWorker] = useState(() => new LoadWorker());
   const [status, setStatus] = useState<Status>(STATUSES.PREPARING);
+  const [fatalError, setFatalError] = useState<string>(null);
   const [jobInfo, setJobInfo] = useState<BulkJobWithBatches>();
   const [batchSummary, setBatchSummary] = useState<LoadDataBulkApiStatusPayload>();
   const [intervalCount, setIntervalCount] = useState<number>(0);
@@ -99,6 +98,7 @@ export const LoadRecordsBulkApiResults: FunctionComponent<LoadRecordsBulkApiResu
   useEffect(() => {
     if (loadWorker) {
       setStatus(STATUSES.PREPARING);
+      setFatalError(null);
       loadWorker.postMessage({
         name: 'prepareData',
         data: {
@@ -183,6 +183,8 @@ export const LoadRecordsBulkApiResults: FunctionComponent<LoadRecordsBulkApiResu
             if (payload.error) {
               logger.error('ERROR', payload.error);
               setStatus(STATUSES.ERROR);
+              setFatalError(payload.error.message);
+              onFinish();
             } else {
               setStatus(STATUSES.UPLOADING);
               setPreparedData(payload.data.preparedData);
@@ -267,6 +269,11 @@ export const LoadRecordsBulkApiResults: FunctionComponent<LoadRecordsBulkApiResu
       <h3 className="slds-text-heading_small">
         {status} <span className="slds-text-title">{getUploadingText()}</span>
       </h3>
+      {fatalError && (
+        <div className="slds-text-color_error">
+          <strong>Fatal Error</strong>: {fatalError}
+        </div>
+      )}
       {batchSummary && (
         <Fragment>
           <SalesforceLogin

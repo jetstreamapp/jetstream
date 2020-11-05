@@ -13,6 +13,7 @@ import AppStateResetOnOrgChange from './components/core/AppStateResetOnOrgChange
 import ErrorBoundaryFallback from './components/core/ErrorBoundaryFallback';
 import HeaderNavbar from './components/core/HeaderNavbar';
 import OrgSelectionRequired from './components/orgs/OrgSelectionRequired';
+import ModalContainer from 'react-modal-promise';
 
 const AutomationControl = lazy(() => import('./components/automation-control/AutomationControl'));
 const Feedback = lazy(() => import('./components/feedback/Feedback'));
@@ -77,6 +78,7 @@ export const App = () => {
         <Suspense fallback={<div>Loading...</div>}>
           <AppInitializer onUserProfile={setUserProfile}>
             <Fragment>
+              <ModalContainer />
               <AppStateResetOnOrgChange />
               <Router basename="/app">
                 <div>

@@ -45,6 +45,7 @@ export const QueryResults: FunctionComponent<QueryResultsProps> = React.memo(() 
   const [soql, setSoql] = useState<string>(null);
   const [userSoql, setUserSoql] = useState<string>(null);
   const [queryResults, setQueryResults] = useState<IQueryResults>(null);
+  const [recordCount, setRecordCount] = useState<number>(null);
   const [records, setRecords] = useState<Record[]>(null);
   const [nextRecordsUrl, setNextRecordsUrl] = useState<string>(null);
   const [fields, setFields] = useState<string[]>(null);
@@ -119,6 +120,7 @@ export const QueryResults: FunctionComponent<QueryResultsProps> = React.memo(() 
       setLoading(true);
       setSoql(soql);
       setRecords(null);
+      setRecordCount(null);
       // setFields(null);
       const results = await query(selectedOrg, soql).then(replaceSubqueryQueryResultsWithRecords);
       if (!isMounted.current) {
@@ -127,7 +129,7 @@ export const QueryResults: FunctionComponent<QueryResultsProps> = React.memo(() 
       setQueryResults(results);
       setNextRecordsUrl(results.queryResults.nextRecordsUrl);
       saveQueryHistory(soql, results.parsedQuery?.sObject || results.columns?.entityName);
-
+      setRecordCount(results.queryResults.totalSize);
       setRecords(results.queryResults.records);
       setTotalRecordCount(results.queryResults.totalSize);
       setErrorMessage(null);
@@ -265,6 +267,10 @@ export const QueryResults: FunctionComponent<QueryResultsProps> = React.memo(() 
             <Icon type="utility" icon="delete" className="slds-button__icon slds-button__icon_left" omitContainer />
             Delete Selected Records
           </button>
+          <button className="slds-button slds-button_neutral" onClick={() => executeQuery(soql)}>
+            <Icon type="utility" icon="refresh" className="slds-button__icon slds-button__icon_left" omitContainer />
+            Re-load Records
+          </button>
           <button className="slds-button slds-button_brand" onClick={() => setDownloadModalOpen(true)}>
             <Icon type="utility" icon="download" className="slds-button__icon slds-button__icon_left" omitContainer />
             Download Records
@@ -305,7 +311,7 @@ export const QueryResults: FunctionComponent<QueryResultsProps> = React.memo(() 
               </pre>
             </div>
           )}
-          {!loading && !errorMessage && !records?.length && (
+          {!loading && !errorMessage && !records?.length && !recordCount && (
             <EmptyState
               headline="Your query yielded no results!"
               callToAction={
@@ -324,6 +330,11 @@ export const QueryResults: FunctionComponent<QueryResultsProps> = React.memo(() 
               <p>There are no records matching your query.</p>
               <p>Better luck next time!</p>
             </EmptyState>
+          )}
+          {!loading && !errorMessage && !records?.length && recordCount && (
+            <div className="slds-col slds-text-heading_small slds-p-around_medium">
+              Record Count: <strong>{recordCount}</strong>
+            </div>
           )}
           {records && !!records.length && (
             <Fragment>

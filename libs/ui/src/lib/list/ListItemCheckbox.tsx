@@ -24,8 +24,12 @@ export const ListItemCheckbox = memo<ListItemCheckboxProps>(
             <Checkbox inputRef={inputRef} id={id} checked={!!isActive} label="" hideLabel onChange={() => onSelected && onSelected()} />
           </div>
           <div className="slds-col slds-grow slds-has-flexi-truncate">
-            {isString(heading) ? <div>{heading}</div> : heading}
-            {subheading && <div className="slds-text-body_small slds-text-color_weak">{subheading}</div>}
+            {isString(heading) ? <span onClick={() => onSelected && onSelected()}>{heading}</span> : heading}
+            {subheading && (
+              <span className="slds-text-body_small slds-text-color_weak" onClick={() => onSelected && onSelected()}>
+                {subheading}
+              </span>
+            )}
             {!subheading && subheadingPlaceholder && (
               <div
                 css={css`
