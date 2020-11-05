@@ -265,6 +265,10 @@ export const QueryResults: FunctionComponent<QueryResultsProps> = React.memo(() 
             <Icon type="utility" icon="delete" className="slds-button__icon slds-button__icon_left" omitContainer />
             Delete Selected Records
           </button>
+          <button className="slds-button slds-button_neutral" onClick={() => executeQuery(soql)}>
+            <Icon type="utility" icon="refresh" className="slds-button__icon slds-button__icon_left" omitContainer />
+            Re-load Records
+          </button>
           <button className="slds-button slds-button_brand" onClick={() => setDownloadModalOpen(true)}>
             <Icon type="utility" icon="download" className="slds-button__icon slds-button__icon_left" omitContainer />
             Download Records
