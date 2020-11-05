@@ -46,6 +46,7 @@ export * from './lib/list/List';
 export * from './lib/list/ListItem';
 export * from './lib/list/ListItemCheckbox';
 export * from './lib/modal/Modal';
+export * from './lib/modal/XlsxSheetSelectionModalPromise';
 export * from './lib/nav/Navbar';
 export * from './lib/nav/NavbarAppLauncher';
 export * from './lib/nav/NavbarItem';
