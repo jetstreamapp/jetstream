@@ -34,10 +34,10 @@ app.use(
     }),
     cookie: {
       path: '/',
-      httpOnly: true,
+      // httpOnly: true,
       secure: environment.production,
       maxAge: 1000 * 60 * 60 * 24 * SESSION_EXP_DAYS,
-      sameSite: 'strict',
+      // sameSite: 'strict',
     },
     secret: ENV.JESTREAM_SESSION_SECRET,
     resave: false,
