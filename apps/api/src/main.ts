@@ -84,7 +84,6 @@ passport.use(
       clientID: ENV.AUTH0_CLIENT_ID,
       clientSecret: ENV.AUTH0_CLIENT_SECRET,
       callbackURL: `${ENV.JETSTREAM_SERVER_URL}/oauth/callback`,
-      state: false,
     },
     (accessToken, refreshToken, extraParams, profile, done) => {
       // accessToken is the token to call Auth0 API (not needed in the most cases)
@@ -127,7 +126,6 @@ if (!environment.production) {
 app.use('/assets', express.static(join(__dirname, './assets')));
 
 if (environment.production) {
-  app.set('trust proxy', 1);
   app.use(express.static(join(__dirname, '../landing/exported')));
   app.use(express.static(join(__dirname, '../jetstream')));
   app.use('/app', logRoute, (req: express.Request, res: express.Response) => {
