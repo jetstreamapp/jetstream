@@ -25,4 +25,5 @@ export const ENV = {
   SFDC_CONSUMER_SECRET: process.env.SFDC_CONSUMER_SECRET,
   SFDC_CONSUMER_KEY: process.env.SFDC_CONSUMER_KEY,
   SFDC_CALLBACK_URL: process.env.SFDC_CALLBACK_URL,
+  SESSION_ID_COOKIE_NAME: process.env.SESSION_ID_COOKIE_NAME || 'sessionid',
 };

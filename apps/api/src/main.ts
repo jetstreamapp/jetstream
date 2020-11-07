@@ -40,7 +40,7 @@ app.use(
     rolling: true,
     resave: true,
     saveUninitialized: true,
-    name: 'sessionid',
+    name: ENV.SESSION_ID_COOKIE_NAME,
   })
 );
 // app.use(compression());
