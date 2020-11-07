@@ -33,14 +33,13 @@ app.use(
       httpOnly: true, // FIXME: set to true
       secure: environment.production,
       maxAge: 1000 * 60 * 60 * 24 * SESSION_EXP_DAYS,
-      domain: ENV.JETSTREAM_SERVER_DOMAIN,
       sameSite: 'strict', // FIXME: was this part of the issue?
     },
     secret: ENV.JESTREAM_SESSION_SECRET,
     rolling: true,
     resave: true,
     saveUninitialized: true,
-    name: ENV.SESSION_ID_COOKIE_NAME,
+    name: 'sessionid',
   })
 );
 // app.use(compression());
