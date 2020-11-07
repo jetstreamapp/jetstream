@@ -40,9 +40,8 @@ app.use(
       sameSite: 'strict',
     },
     secret: ENV.JESTREAM_SESSION_SECRET,
-    rolling: false,
     resave: false,
-    saveUninitialized: true,
+    saveUninitialized: false,
     name: 'sessionid',
   })
 );

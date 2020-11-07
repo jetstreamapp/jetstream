@@ -23,6 +23,7 @@ export async function callback(req: Request, res: Response, next: NextFunction) 
       }
       if (!user) {
         logger.warn('[AUTH][ERROR] no user');
+        logger.warn('[AUTH][ERROR] no info %o', info);
         return res.redirect('/oauth/login');
       }
       req.logIn(user, (err) => {
