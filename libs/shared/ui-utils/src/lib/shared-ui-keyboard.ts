@@ -73,3 +73,5 @@ export function hasShiftModifierKey(event: KeyboardEvent<unknown>): boolean {
 export function hasModifierKey(event: KeyboardEvent<unknown>) {
   return hasAltModifierKey(event) || hasMetaModifierKey(event) || hasCtrlModifierKey(event);
 }
+
+export function selectMenuItemFromKeyboard() {}
