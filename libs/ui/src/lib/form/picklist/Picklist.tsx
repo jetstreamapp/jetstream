@@ -194,7 +194,12 @@ export const Picklist: FunctionComponent<PicklistProps> = ({
       } else {
         newFocusedItem = newFocusedItem - 1;
       }
+    } else {
+      // TODO: allow user to type in keys to navigate to item
+      // make sure: not esc, not tab, not space, not enter.
+      // WHAT ABOUT MULTIPLE KEYPRESSES (SFDC uses keybuffer)?
     }
+
     if (isNumber(newFocusedItem)) {
       setFocusedItem(newFocusedItem);
       const item = items[newFocusedItem];
