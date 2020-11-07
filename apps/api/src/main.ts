@@ -21,6 +21,10 @@ const pgSession = pgSimple(session);
 
 const app = express();
 
+if (environment.production) {
+  app.set('trust proxy', 1); // required for environments such as heroku / {render?}
+}
+
 // Setup session
 app.use(
   session({
@@ -30,15 +34,14 @@ app.use(
     }),
     cookie: {
       path: '/',
-      httpOnly: true, // FIXME: set to true
+      // httpOnly: true,
       secure: environment.production,
       maxAge: 1000 * 60 * 60 * 24 * SESSION_EXP_DAYS,
-      sameSite: 'strict', // FIXME: was this part of the issue?
+      // sameSite: 'strict',
     },
     secret: ENV.JESTREAM_SESSION_SECRET,
-    rolling: true,
-    resave: true,
-    saveUninitialized: true,
+    resave: false,
+    saveUninitialized: false,
     name: 'sessionid',
   })
 );
@@ -122,7 +125,6 @@ if (!environment.production) {
 app.use('/assets', express.static(join(__dirname, './assets')));
 
 if (environment.production) {
-  app.set('trust proxy', 1);
   app.use(express.static(join(__dirname, '../landing/exported')));
   app.use(express.static(join(__dirname, '../jetstream')));
   app.use('/app', logRoute, (req: express.Request, res: express.Response) => {
