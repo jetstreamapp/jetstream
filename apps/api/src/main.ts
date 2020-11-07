@@ -30,14 +30,14 @@ app.use(
     }),
     cookie: {
       path: '/',
-      httpOnly: true, // FIXME: set to true
+      httpOnly: true,
       secure: environment.production,
       maxAge: 1000 * 60 * 60 * 24 * SESSION_EXP_DAYS,
-      sameSite: 'strict', // FIXME: was this part of the issue?
+      sameSite: 'strict',
     },
     secret: ENV.JESTREAM_SESSION_SECRET,
-    rolling: true,
-    resave: true,
+    rolling: false,
+    resave: false,
     saveUninitialized: true,
     name: 'sessionid',
   })

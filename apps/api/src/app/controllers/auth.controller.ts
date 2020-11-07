@@ -4,6 +4,7 @@ import { URL } from 'url';
 import * as querystring from 'querystring';
 import { AuthenticationError } from '../utils/error-handler';
 import { ENV } from '../config/env-config';
+import { logger } from '../config/logger.config';
 
 export async function login(req: Request, res: Response) {
   res.redirect('/');
@@ -17,18 +18,21 @@ export async function callback(req: Request, res: Response, next: NextFunction) 
     },
     (err, user, info) => {
       if (err) {
+        logger.warn('[AUTH][ERROR] Error with authentication %o', err);
         return next(new AuthenticationError(err));
       }
       if (!user) {
+        logger.warn('[AUTH][ERROR] no user');
         return res.redirect('/oauth/login');
       }
       req.logIn(user, (err) => {
         if (err) {
+          logger.warn('[AUTH][ERROR] Error logging in %o', err);
           return next(new AuthenticationError(err));
         }
         const returnTo = req.session.returnTo;
         delete req.session.returnTo;
-        // TODO: figure out the route here
+        logger.info('[AUTH][SUCCESS] Logged in %s', user.email);
         res.redirect(returnTo || ENV.JETSTREAM_CLIENT_URL);
       });
     }
