@@ -21,6 +21,10 @@ const pgSession = pgSimple(session);
 
 const app = express();
 
+if (environment.production) {
+  app.set('trust proxy', 1); // required for environments such as heroku / {render?}
+}
+
 // Setup session
 app.use(
   session({
