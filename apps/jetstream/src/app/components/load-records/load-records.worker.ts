@@ -14,7 +14,6 @@ import {
   WorkerMessage,
 } from '@jetstream/types';
 import isString from 'lodash/isString';
-import orderBy from 'lodash/orderBy';
 import {
   LoadDataBulkApi,
   LoadDataBulkApiStatusPayload,
@@ -69,7 +68,7 @@ async function handleMessage(name: MessageName, payloadData: any) {
 async function loadBulkApiData({ org, data, sObject, type, batchSize, externalId, serialMode }: LoadDataPayload) {
   const replyName = 'loadData';
   try {
-    let results = await bulkApiCreateJob(org, { type, sObject, serialMode, externalId });
+    const results = await bulkApiCreateJob(org, { type, sObject, serialMode, externalId });
     const jobId = results.id;
     const batches: LoadDataBulkApi[] = splitArrayToMaxSize(data, batchSize)
       .map((batch) => generateCsv(batch))
@@ -79,15 +78,12 @@ async function loadBulkApiData({ org, data, sObject, type, batchSize, externalId
     let currItem = 1;
     for (const batch of batches) {
       try {
-        const resultsTemp = await bulkApiAddBatchToJob(org, jobId, batch.data, currItem === batches.length);
-        if (resultsTemp) {
-          results = resultsTemp;
-          results.batches = orderBy(results.batches, ['createdDate']);
-          results.batches.forEach((batch) => {
-            batch.createdDate = convertDateToLocale(batch.createdDate);
-            batch.systemModstamp = convertDateToLocale(batch.systemModstamp);
-          });
-        }
+        const batchResult = await bulkApiAddBatchToJob(org, jobId, batch.data, currItem === batches.length);
+        batchResult.createdDate = convertDateToLocale(batchResult.createdDate);
+        batchResult.systemModstamp = convertDateToLocale(batchResult.systemModstamp);
+        results.batches = results.batches || [];
+        results.batches.push(batchResult);
+        batch.id = batchResult.id;
         batch.completed = true;
         batch.success = true;
       } catch (ex) {
@@ -100,7 +96,6 @@ async function loadBulkApiData({ org, data, sObject, type, batchSize, externalId
     }
     const jobInfoWithBatches = await bulkApiGetJob(org, jobId);
 
-    jobInfoWithBatches.batches = orderBy(jobInfoWithBatches.batches, ['createdDate']);
     jobInfoWithBatches.batches.forEach((batch) => {
       batch.createdDate = convertDateToLocale(batch.createdDate);
       batch.systemModstamp = convertDateToLocale(batch.systemModstamp);
@@ -176,7 +171,7 @@ function getBatchSummary(results: BulkJobWithBatches, batches: LoadDataBulkApi[]
   return {
     jobInfo: results,
     totalBatches: batches.length,
-    batchSummary: batches.map(({ batchNumber, completed, success }) => ({ batchNumber, completed, success })),
+    batchSummary: batches.map(({ id, batchNumber, completed, success }) => ({ id, batchNumber, completed, success })),
   };
 }
 

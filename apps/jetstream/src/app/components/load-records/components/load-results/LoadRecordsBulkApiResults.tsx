@@ -1,17 +1,25 @@
 /** @jsx jsx */
 import { jsx } from '@emotion/core';
 import { logger } from '@jetstream/shared/client-logger';
-import { bulkApiGetJob } from '@jetstream/shared/data';
-import { BulkJobWithBatches, FileExtCsvXLSX, InsertUpdateUpsertDelete, SalesforceOrgUi, WorkerMessage } from '@jetstream/types';
-import { SalesforceLogin, FileDownloadModal } from '@jetstream/ui';
+import { bulkApiGetJob, bulkApiGetRecords } from '@jetstream/shared/data';
+import { convertDateToLocale } from '@jetstream/shared/ui-utils';
+import {
+  BulkJobBatchInfo,
+  BulkJobResultRecord,
+  BulkJobWithBatches,
+  InsertUpdateUpsertDelete,
+  MapOf,
+  SalesforceOrgUi,
+  WorkerMessage,
+} from '@jetstream/types';
+import { FileDownloadModal, SalesforceLogin } from '@jetstream/ui';
 import { Fragment, FunctionComponent, useEffect, useRef, useState } from 'react';
 import { useRecoilState } from 'recoil';
-import { convertDateToLocale } from '@jetstream/shared/ui-utils';
 import { applicationCookieState } from '../../../../app-state';
-import LoadWorker from '../../load-records.worker';
 import { ApiMode, FieldMapping, LoadDataBulkApiStatusPayload } from '../../load-records-types';
+import LoadWorker from '../../load-records.worker';
+import { getFieldHeaderFromMapping } from '../../utils/load-records-utils';
 import LoadRecordsBulkApiResultsTable from './LoadRecordsBulkApiResultsTable';
-import orderBy from 'lodash/orderBy';
 
 type Status = 'Preparing Data' | 'Uploading Data' | 'Processing Data' | 'Finished' | 'Error';
 
@@ -78,8 +86,11 @@ export const LoadRecordsBulkApiResults: FunctionComponent<LoadRecordsBulkApiResu
   const [loadWorker] = useState(() => new LoadWorker());
   const [status, setStatus] = useState<Status>(STATUSES.PREPARING);
   const [fatalError, setFatalError] = useState<string>(null);
+  const [downloadError, setDownloadError] = useState<string>(null);
   const [jobInfo, setJobInfo] = useState<BulkJobWithBatches>();
   const [batchSummary, setBatchSummary] = useState<LoadDataBulkApiStatusPayload>();
+  // Salesforce changes order of batches, so we want to ensure order is retained based on the input file
+  const [batchIdByIndex, setBatchIdByIndex] = useState<MapOf<number>>();
   const [intervalCount, setIntervalCount] = useState<number>(0);
   const [downloadModalData, setDownloadModalData] = useState({
     open: false,
@@ -94,6 +105,20 @@ export const LoadRecordsBulkApiResults: FunctionComponent<LoadRecordsBulkApiResu
     isMounted.current = true;
     return () => (isMounted.current = false);
   }, []);
+
+  useEffect(() => {
+    if (batchSummary && batchSummary.batchSummary) {
+      const batchSummariesWithId = batchSummary.batchSummary.filter((batch) => batch.id);
+      if (Array.isArray(batchSummariesWithId)) {
+        setBatchIdByIndex(
+          batchSummariesWithId.reduce((output: MapOf<number>, batch) => {
+            output[batch.id] = batch.batchNumber;
+            return output;
+          }, {})
+        );
+      }
+    }
+  }, [batchSummary]);
 
   useEffect(() => {
     if (loadWorker) {
@@ -154,11 +179,15 @@ export const LoadRecordsBulkApiResults: FunctionComponent<LoadRecordsBulkApiResu
           if (!isMounted.current) {
             return;
           }
-          jobInfoWithBatches.batches = orderBy(jobInfoWithBatches.batches, ['createdDate']);
+          // jobInfoWithBatches.batches = orderBy(jobInfoWithBatches.batches, ['createdDate']);
+          const batches: BulkJobBatchInfo[] = [];
+          // re-order (if needed) and enrich data
           jobInfoWithBatches.batches.forEach((batch) => {
             batch.createdDate = convertDateToLocale(batch.createdDate);
             batch.systemModstamp = convertDateToLocale(batch.systemModstamp);
+            batches[batchIdByIndex[batch.id]] = batch;
           });
+          jobInfoWithBatches.batches = batches;
           setJobInfo(jobInfoWithBatches);
           setIntervalCount(intervalCount + 1);
         }, CHECK_INTERVAL);
@@ -227,19 +256,40 @@ export const LoadRecordsBulkApiResults: FunctionComponent<LoadRecordsBulkApiResu
     return `Uploading batch ${batchSummary.batchSummary.filter((item) => item.completed).length} of ${batchSummary.totalBatches}`;
   }
 
-  function handleDownloadRecords(type: 'results' | 'failure', url: string) {
-    setDownloadModalData({ ...downloadModalData, open: true, fileNameParts: ['load', type], url });
+  async function handleDownloadRecords(type: 'results' | 'failure', batch: BulkJobBatchInfo, batchIndex: number): Promise<void> {
+    try {
+      if (downloadError) {
+        setDownloadError(null);
+      }
+      // download records, combine results from salesforce with actual records, open download modal
+      const results = await bulkApiGetRecords<BulkJobResultRecord>(selectedOrg, jobInfo.id, batch.id, 'result');
+      // this should match, but will fallback to batchIndex if for some reason we cannot find the batch
+      const batchSummaryItem = batchSummary.batchSummary.find((item) => item.id === batch.id);
+      const startIdx = (batchSummaryItem?.batchNumber ?? batchIndex) * batchSize;
+      const records: any[] = preparedData.slice(startIdx, startIdx + batchSize);
+      const combinedResults = [];
+      results.forEach((resultRecord, i) => {
+        // show all if results, otherwise just include errors
+        if (type === 'results' || !resultRecord.Success) {
+          combinedResults.push({
+            _id: resultRecord.Id || records[i].Id || null,
+            _success: resultRecord.Success,
+            _errors: resultRecord.Error,
+            ...records[i],
+          });
+        }
+      });
+      logger.log({ combinedResults });
+      const header = ['_id', '_success', '_errors'].concat(getFieldHeaderFromMapping(fieldMapping));
+      setDownloadModalData({ ...downloadModalData, open: true, fileNameParts: ['load', type], header, data: combinedResults });
+    } catch (ex) {
+      logger.warn(ex);
+      setDownloadError('ex.message');
+    }
   }
 
   function handleModalClose() {
     setDownloadModalData({ ...downloadModalData, open: false, fileNameParts: [], url: '', filename: '' });
-  }
-
-  function handleModalChange({ fileName, fileFormat }: { fileName: string; fileFormat: FileExtCsvXLSX }) {
-    const fullFilename = encodeURIComponent(`${fileName}.${fileFormat}`);
-    if (downloadModalData.filename !== fullFilename) {
-      setDownloadModalData({ ...downloadModalData, filename: encodeURIComponent(`${fileName}.${fileFormat}`) });
-    }
   }
 
   return (
@@ -250,20 +300,7 @@ export const LoadRecordsBulkApiResults: FunctionComponent<LoadRecordsBulkApiResu
           data={downloadModalData.data}
           header={downloadModalData.header}
           fileNameParts={downloadModalData.fileNameParts}
-          allowedTypes={['csv']}
           onModalClose={handleModalClose}
-          onChange={handleModalChange}
-          alternateDownloadButton={
-            <a
-              className="slds-button slds-button_brand"
-              href={`${downloadModalData.url}&filename=${downloadModalData.filename}`}
-              target="_blank"
-              rel="noreferrer"
-              onClick={handleModalClose}
-            >
-              Download
-            </a>
-          }
         />
       )}
       <h3 className="slds-text-heading_small">
@@ -272,6 +309,11 @@ export const LoadRecordsBulkApiResults: FunctionComponent<LoadRecordsBulkApiResu
       {fatalError && (
         <div className="slds-text-color_error">
           <strong>Fatal Error</strong>: {fatalError}
+        </div>
+      )}
+      {downloadError && (
+        <div className="slds-text-color_error">
+          <strong>Error preparing data</strong>: {downloadError}
         </div>
       )}
       {batchSummary && (

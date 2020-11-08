@@ -110,12 +110,16 @@ export const LoadRecordsBatchApiResultsTable: FunctionComponent<LoadRecordsBatch
           <td>
             {!inProgress && (
               <Grid vertical>
-                <div>
-                  <button className="slds-button" onClick={() => onDownload('results')}>
-                    <Icon type="utility" icon="download" className="slds-button__icon slds-button__icon_left" omitContainer />
-                    Download Results
-                  </button>
-                </div>
+                {/* All Results */}
+                {processingStatus.success > 0 && (
+                  <div>
+                    <button className="slds-button" onClick={() => onDownload('results')}>
+                      <Icon type="utility" icon="download" className="slds-button__icon slds-button__icon_left" omitContainer />
+                      Download Results
+                    </button>
+                  </div>
+                )}
+                {/* Failure Results */}
                 {processingStatus.failure > 0 && (
                   <div>
                     <button className="slds-button" onClick={() => onDownload('failure')}>

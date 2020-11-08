@@ -6,7 +6,10 @@ import { formatNumber } from '@jetstream/shared/ui-utils';
 import { InsertUpdateUpsertDelete, SalesforceOrgUi } from '@jetstream/types';
 import { AutoFullHeightContainer, DataTable, Grid, GridCol, Icon, Spinner } from '@jetstream/ui';
 import { DescribeGlobalSObjectResult } from 'jsforce';
+import isNil from 'lodash/isNil';
 import { Fragment, FunctionComponent, useEffect, useRef, useState } from 'react';
+import { useRecoilState } from 'recoil';
+import * as fromLoadRecordsState from '../load-records.state';
 
 const NUM_COLUMN = '_num';
 
@@ -83,7 +86,7 @@ export const LoadRecordsDataPreview: FunctionComponent<LoadRecordsDataPreviewPro
   loadType,
 }) => {
   const isMounted = useRef(null);
-  const [totalRecordCount, setTotalRecordCount] = useState<number>();
+  const [totalRecordCount, setTotalRecordCount] = useRecoilState(fromLoadRecordsState.loadExistingRecordCount);
   const [columns, setColumns] = useState<ColDef[]>(null);
   const [rows, setRows] = useState<any[]>(null);
   const [loading, setLoading] = useState(false);
@@ -94,10 +97,9 @@ export const LoadRecordsDataPreview: FunctionComponent<LoadRecordsDataPreviewPro
   }, []);
 
   useEffect(() => {
-    if (selectedOrg && selectedSObject) {
+    if (selectedOrg && selectedSObject && isNil(totalRecordCount)) {
       (async () => {
         setLoading(true);
-        setTotalRecordCount(null);
         const sobjectName = selectedSObject.name;
         const results = await query(selectedOrg, `SELECT COUNT() FROM ${sobjectName}`);
         if (!isMounted.current || selectedSObject?.name !== sobjectName) {
@@ -106,10 +108,8 @@ export const LoadRecordsDataPreview: FunctionComponent<LoadRecordsDataPreviewPro
         setTotalRecordCount(results.queryResults.totalSize);
         setLoading(false);
       })();
-    } else {
-      setTotalRecordCount(null);
     }
-  }, [selectedOrg, selectedSObject]);
+  }, [selectedOrg, selectedSObject, totalRecordCount]);
 
   useEffect(() => {
     if (data && header) {

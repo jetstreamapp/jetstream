@@ -45,6 +45,7 @@ export * from './lib/layout/Panel';
 export * from './lib/list/List';
 export * from './lib/list/ListItem';
 export * from './lib/list/ListItemCheckbox';
+export * from './lib/modal/ConfirmationModalPromise';
 export * from './lib/modal/Modal';
 export * from './lib/modal/XlsxSheetSelectionModalPromise';
 export * from './lib/nav/Navbar';

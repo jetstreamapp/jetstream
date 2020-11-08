@@ -72,6 +72,7 @@ export interface LoadDataPayload {
 }
 
 export interface LoadDataBulkApi {
+  id?: string;
   data: any;
   batchNumber: number;
   completed: boolean;

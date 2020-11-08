@@ -16,7 +16,7 @@ import {
 } from '@jetstream/ui';
 import { startCase } from 'lodash';
 import { FunctionComponent, useEffect, useRef, useState } from 'react';
-import { useRecoilState, useRecoilValue } from 'recoil';
+import { useRecoilState, useRecoilValue, useResetRecoilState } from 'recoil';
 import { selectedOrgState, selectedOrgType } from '../../app-state';
 import LoadRecordsDataPreview from './components/LoadRecordsDataPreview';
 import LoadRecordsProgress from './components/LoadRecordsProgress';
@@ -61,6 +61,7 @@ export const LoadRecords: FunctionComponent<LoadRecordsProps> = () => {
   const [inputFileHeader, setInputFileHeader] = useRecoilState(fromLoadRecordsState.inputFileHeaderState);
   const [inputFilename, setInputFilename] = useRecoilState(fromLoadRecordsState.inputFilenameState);
   const [fieldMapping, setFieldMapping] = useRecoilState(fromLoadRecordsState.fieldMappingState);
+  const resetLoadExistingRecordCount = useResetRecoilState(fromLoadRecordsState.loadExistingRecordCount);
 
   const [loading, setLoading] = useState<boolean>(false);
   const [loadingFields, setLoadingFields] = useState<boolean>(false);
@@ -83,6 +84,7 @@ export const LoadRecords: FunctionComponent<LoadRecordsProps> = () => {
     if (priorSelectedOrg && selectedOrg && selectedOrg.uniqueId !== priorSelectedOrg) {
       setPriorSelectedOrg(selectedOrg.uniqueId);
       setCurrentStep(steps[0]);
+      resetLoadExistingRecordCount();
     } else {
       setPriorSelectedOrg(selectedOrg.uniqueId);
     }
@@ -96,6 +98,7 @@ export const LoadRecords: FunctionComponent<LoadRecordsProps> = () => {
     if (selectedSObject) {
       // fetch all fields
       setLoadingFields(true);
+      resetLoadExistingRecordCount();
       (async () => {
         const fields = await getFieldMetadata(selectedOrg, selectedSObject.name);
         // ensure object did not change and that component is still mounted

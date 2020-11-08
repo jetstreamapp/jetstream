@@ -1,14 +1,14 @@
 /** @jsx jsx */
 import { css, jsx } from '@emotion/core';
 import { getFilename, getOrgUrlParams } from '@jetstream/shared/ui-utils';
-import { BulkJobWithBatches, SalesforceOrgUi } from '@jetstream/types';
+import { BulkJobBatchInfo, BulkJobWithBatches, SalesforceOrgUi } from '@jetstream/types';
 import { FunctionComponent, useEffect, useState } from 'react';
 import LoadRecordsBulkApiResultsTableRow from './LoadRecordsBulkApiResultsTableRow';
 export interface LoadRecordsBulkApiResultsTableProps {
   selectedOrg: SalesforceOrgUi;
   serverUrl: string;
   jobInfo: BulkJobWithBatches;
-  onDownload: (type: 'results' | 'failure', url: string) => void;
+  onDownload: (type: 'results' | 'failure', batch: BulkJobBatchInfo, batchIndex: number) => Promise<void>;
 }
 
 export const LoadRecordsBulkApiResultsTable: FunctionComponent<LoadRecordsBulkApiResultsTableProps> = ({
@@ -86,15 +86,12 @@ export const LoadRecordsBulkApiResultsTable: FunctionComponent<LoadRecordsBulkAp
         </tr>
       </thead>
       <tbody>
-        {jobInfo.batches.map((batch) => (
+        {jobInfo.batches.map((batch, i) => (
           <LoadRecordsBulkApiResultsTableRow
             key={batch.id}
             batch={batch}
-            serverUrl={serverUrl}
             hasErrors={hasErrors}
-            filenamePrefix={filenamePrefix}
-            orgUrlParams={orgUrlParams}
-            onDownload={onDownload}
+            onDownload={(type, batch) => onDownload(type, batch, i)}
           />
         ))}
       </tbody>

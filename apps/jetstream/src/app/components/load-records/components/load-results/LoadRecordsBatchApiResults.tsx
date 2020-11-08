@@ -8,6 +8,7 @@ import LoadWorker from '../../load-records.worker';
 import { ApiMode, FieldMapping, LoadDataBatchApiProgress } from '../../load-records-types';
 import LoadRecordsBatchApiResultsTable from './LoadRecordsBatchApiResultsTable';
 import { FileDownloadModal } from '@jetstream/ui';
+import { getFieldHeaderFromMapping } from '../../utils/load-records-utils';
 
 type Status = 'Preparing Data' | 'Processing Data' | 'Finished' | 'Error';
 
@@ -177,26 +178,19 @@ export const LoadRecordsBatchApiResults: FunctionComponent<LoadRecordsBatchApiRe
   function handleDownloadRecords(type: 'results' | 'failure') {
     let data: any[] = [];
     // Use field mapping to determine headers in output data and account for relationship fields
-    const fields = Object.values(fieldMapping)
-      .filter((item) => !!item.targetField)
-      .map((item) => {
-        let output = item.targetField;
-        if (item.mappedToLookup && item.targetLookupField) {
-          output = `${item.relationshipName}.${item.targetLookupField}`;
-        }
-        return output;
-      });
+    const fields = getFieldHeaderFromMapping(fieldMapping);
 
-    data = processedRecords
-      .filter((record: RecordResultWithRecord) => (type === 'results' ? true : !record.success))
-      .map((record) => {
-        return {
-          _id: record.success ? record.id : '',
+    processedRecords.forEach((record) => {
+      if (type === 'results' ? true : !record.success) {
+        // for failure records, if the Id field is present, then include in _id field
+        data.push({
+          _id: record.success ? record.id : record['Id'] || '',
           _success: record.success,
           _errors: record.success === false ? record.errors.map((error) => error.message).join('\n') : '',
           ...flattenRecord(record.record, fields),
-        };
-      });
+        });
+      }
+    });
 
     const header = ['_id', '_success', '_errors'].concat(fields);
     setDownloadModalData({ open: true, data, header, fileNameParts: ['load', type] });
