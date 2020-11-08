@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { ApiResponse, OrgCacheItem, CacheItemWithData, SalesforceOrgUi } from '@jetstream/types';
+import { ApiResponse, OrgCacheItem, CacheItemWithData, SalesforceOrgUi, MapOf } from '@jetstream/types';
 import { HTTP, INDEXED_DB } from '@jetstream/shared/constants';
 import { logger } from '@jetstream/shared/client-logger';
 import { errorMiddleware } from './middleware';
@@ -10,6 +10,13 @@ import { isString } from 'lodash';
 
 // 3 days
 const CACHE_TTL = 1000 * 60 * 60 * 24 * 3;
+
+function getHeader(headers: MapOf<string>, header: string) {
+  if (!headers || !header) {
+    return null;
+  }
+  return headers[header] || headers[header.toLowerCase()];
+}
 
 export async function handleRequest<T = any>(
   config: AxiosRequestConfig,
@@ -95,7 +102,7 @@ function responseInterceptor<T>(options: {
 }): (response: AxiosResponse) => Promise<AxiosResponse<T>> {
   return async (response: AxiosResponse) => {
     const { org, useCache, useQueryParamsInCacheKey, useBodyInCacheKey } = options;
-    const cachedResponse = response.headers[HTTP.HEADERS.X_CACHE_RESPONSE] === '1';
+    const cachedResponse = getHeader(response.headers, HTTP.HEADERS.X_CACHE_RESPONSE) === '1';
     if (cachedResponse) {
       logger.info(`[HTTP][RES][${response.config.method.toUpperCase()}][CACHE]`, response.config.url, { response: response.data });
     } else {
@@ -144,9 +151,9 @@ function responseErrorInterceptor<T>(options: {
       const responseBody: { error: boolean; message: string } = response.data;
       message = responseBody.message || 'An unknown error has occurred';
       // take user to login page
-      if (response.headers[HTTP.HEADERS.X_LOGOUT] === '1') {
+      if (getHeader(response.headers, HTTP.HEADERS.X_LOGOUT) === '1') {
         // LOG USER OUT
-        const logoutUrl = response.headers[HTTP.HEADERS.X_LOGOUT_URL] || '/oauth/login';
+        const logoutUrl = getHeader(response.headers, HTTP.HEADERS.X_LOGOUT_URL) || '/oauth/login';
         // eslint-disable-next-line no-restricted-globals
         location.href = logoutUrl;
       }
