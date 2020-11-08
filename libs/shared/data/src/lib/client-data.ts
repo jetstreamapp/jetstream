@@ -2,14 +2,16 @@
 import * as API from '@jetstream/api-interfaces';
 import { HTTP } from '@jetstream/shared/constants';
 import {
+  ApiResponse,
   BulkApiCreateJobRequestPayload,
+  BulkApiDownloadType,
   BulkJob,
+  BulkJobBatchInfo,
   BulkJobWithBatches,
   GenericRequestPayload,
   SalesforceOrgUi,
   SobjectOperation,
   UserProfileUi,
-  ApiResponse,
 } from '@jetstream/types';
 import { AsyncResult, DeployOptions, DeployResult, DescribeGlobalResult, DescribeSObjectResult } from 'jsforce';
 import { handleRequest } from './client-data-data-helper';
@@ -146,9 +148,18 @@ export async function bulkApiAddBatchToJob(
   jobId: string,
   csv: string,
   closeJob?: boolean
-): Promise<BulkJobWithBatches> {
+): Promise<BulkJobBatchInfo> {
   return handleRequest(
     { method: 'POST', url: `/api/bulk/${jobId}`, data: csv, headers: { [HTTP.HEADERS.CONTENT_TYPE]: HTTP.CONTENT_TYPE.CSV } },
     { org }
   ).then(unwrapResponseIgnoreCache);
+}
+
+export async function bulkApiGetRecords<T = any>(
+  org: SalesforceOrgUi,
+  jobId: string,
+  batchId: string,
+  type: BulkApiDownloadType
+): Promise<T[]> {
+  return handleRequest({ method: 'GET', url: `/api/bulk/${jobId}/${batchId}`, params: { type } }, { org }).then(unwrapResponseIgnoreCache);
 }

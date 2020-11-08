@@ -197,6 +197,18 @@ function getExternalIdFieldsForSobjectsQuery(sobjects: string[]) {
   return soql;
 }
 
+export function getFieldHeaderFromMapping(fieldMapping: FieldMapping) {
+  return Object.values(fieldMapping)
+    .filter((item) => !!item.targetField)
+    .map((item) => {
+      let output = item.targetField;
+      if (item.mappedToLookup && item.targetLookupField) {
+        output = `${item.relationshipName}.${item.targetLookupField}`;
+      }
+      return output;
+    });
+}
+
 export function transformData({ data, fieldMapping, sObject, insertNulls, dateFormat, apiMode }: PrepareDataPayload): any[] {
   return data.map((row) => {
     return Object.keys(fieldMapping)

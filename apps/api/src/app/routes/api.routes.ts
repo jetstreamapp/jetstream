@@ -1,11 +1,11 @@
 import * as express from 'express';
 import Router from 'express-promise-router';
-import * as sfQueryController from '../controllers/sf-query.controller';
-import * as sfMiscController from '../controllers/sf-misc.controller';
-import * as userController from '../controllers/user.controller';
 import * as orgsController from '../controllers/orgs.controller';
-import * as metadataToolingController from '../controllers/sf-metadata-tooling.controller';
 import * as bulkApiController from '../controllers/sf-bulk-api.controller';
+import * as metadataToolingController from '../controllers/sf-metadata-tooling.controller';
+import * as sfMiscController from '../controllers/sf-misc.controller';
+import * as sfQueryController from '../controllers/sf-query.controller';
+import * as userController from '../controllers/user.controller';
 import { addOrgsToLocal, checkAuth, ensureOrgExists, validate } from './route.middleware';
 
 const routes: express.Router = Router();
@@ -57,5 +57,11 @@ routes.post('/bulk', ensureOrgExists, validate(bulkApiController.routeValidators
 routes.get('/bulk/:jobId', ensureOrgExists, validate(bulkApiController.routeValidators.getJob), bulkApiController.getJob);
 routes.delete('/bulk/:jobId', ensureOrgExists, validate(bulkApiController.routeValidators.closeJob), bulkApiController.closeJob);
 routes.post('/bulk/:jobId', ensureOrgExists, validate(bulkApiController.routeValidators.addBatchToJob), bulkApiController.addBatchToJob);
+routes.get(
+  '/bulk/:jobId/:batchId',
+  ensureOrgExists,
+  validate(bulkApiController.routeValidators.downloadResults),
+  bulkApiController.downloadResults
+);
 
 export default routes;

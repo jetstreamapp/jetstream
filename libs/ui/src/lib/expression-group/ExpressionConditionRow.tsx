@@ -182,6 +182,7 @@ export const ExpressionConditionRow: FunctionComponent<ExpressionConditionRowPro
                 items={operators}
                 selectedItems={[initialSelectedOperator]}
                 allowDeselection={false}
+                scrollLength={10}
                 onChange={(items) => onChange({ ...selected, operator: items[0].value as QueryFilterOperator })}
               />
             </div>
@@ -193,6 +194,7 @@ export const ExpressionConditionRow: FunctionComponent<ExpressionConditionRowPro
                   items={resourceTypes}
                   selectedItems={selectedResourceType}
                   allowDeselection={false}
+                  scrollLength={10}
                   onChange={handleSelectedResource}
                 />
               </div>

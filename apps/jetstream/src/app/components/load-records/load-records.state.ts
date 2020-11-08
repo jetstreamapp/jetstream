@@ -18,6 +18,11 @@ export const selectedSObjectState = atom<DescribeGlobalSObjectResult>({
   default: null,
 });
 
+export const loadExistingRecordCount = atom<number>({
+  key: 'load.loadExistingRecordCount',
+  default: null,
+});
+
 export const loadTypeState = atom<InsertUpdateUpsertDelete>({
   key: 'load.loadTypeState',
   default: 'INSERT',

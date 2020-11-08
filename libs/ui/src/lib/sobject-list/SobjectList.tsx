@@ -1,14 +1,14 @@
 /** @jsx jsx */
 import { css, jsx } from '@emotion/core';
+import { formatNumber } from '@jetstream/shared/ui-utils';
+import { UpDown } from '@jetstream/types';
 import { DescribeGlobalSObjectResult } from 'jsforce';
-import { Fragment, FunctionComponent, useEffect, useState, createRef } from 'react';
+import { createRef, Fragment, FunctionComponent, useEffect, useState } from 'react';
 import SearchInput from '../form/search-input/SearchInput';
 import EmptyState from '../illustrations/EmptyState';
 import AutoFullHeightContainer from '../layout/AutoFullHeightContainer';
 import List from '../list/List';
 import Spinner from '../widgets/Spinner';
-import numeral from 'numeral';
-import { UpDown } from '@jetstream/types';
 
 export interface SobjectListProps {
   sobjects: DescribeGlobalSObjectResult[];
@@ -79,7 +79,7 @@ export const SobjectList: FunctionComponent<SobjectListProps> = ({
                 onArrowKeyUpDown={handleSearchKeyboard}
               />
               <div className="slds-text-body_small slds-text-color_weak slds-p-left--xx-small">
-                Showing {numeral(filteredSobjects.length).format('0,0')} of {numeral(sobjects.length).format('0,0')} objects
+                Showing {formatNumber(filteredSobjects.length)} of {formatNumber(sobjects.length)} objects
               </div>
             </div>
             <AutoFullHeightContainer>

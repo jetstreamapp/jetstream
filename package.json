@@ -161,7 +161,7 @@
     "@types/jest": "26.0.8",
     "@types/jsforce": "^1.9.18",
     "@types/lodash": "^4.14.151",
-    "@types/node": "~8.9.4",
+    "@types/node": "^12.12.70",
     "@types/papaparse": "^5.0.3",
     "@types/react": "16.9.38",
     "@types/react-dom": "16.9.8",

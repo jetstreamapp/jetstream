@@ -1,10 +1,10 @@
 /** @jsx jsx */
 import { css, jsx } from '@emotion/core';
+import { formatNumber } from '@jetstream/shared/ui-utils';
 import { Grid, Icon, Spinner } from '@jetstream/ui';
 import classNames from 'classnames';
 import { FunctionComponent } from 'react';
 import { LoadDataBatchApiProgress } from '../../load-records-types';
-import numeral from 'numeral';
 
 export interface LoadRecordsBatchApiResultsTableProps {
   processingStatus: LoadDataBatchApiProgress;
@@ -24,9 +24,9 @@ export const LoadRecordsBatchApiResultsTable: FunctionComponent<LoadRecordsBatch
   onDownload,
 }) => {
   const status = inProgress ? 'Processing' : 'Finished';
-  const total = numeral(processingStatus.total || 0).format('0,0');
-  const success = numeral(processingStatus.success || 0).format('0,0');
-  const failure = numeral(processingStatus.failure || 0).format('0,0');
+  const total = formatNumber(processingStatus.total || 0);
+  const success = formatNumber(processingStatus.success || 0);
+  const failure = formatNumber(processingStatus.failure || 0);
 
   return (
     <table className="slds-table slds-table_cell-buffer slds-table_bordered">
@@ -110,12 +110,16 @@ export const LoadRecordsBatchApiResultsTable: FunctionComponent<LoadRecordsBatch
           <td>
             {!inProgress && (
               <Grid vertical>
-                <div>
-                  <button className="slds-button" onClick={() => onDownload('results')}>
-                    <Icon type="utility" icon="download" className="slds-button__icon slds-button__icon_left" omitContainer />
-                    Download Results
-                  </button>
-                </div>
+                {/* All Results */}
+                {processingStatus.success > 0 && (
+                  <div>
+                    <button className="slds-button" onClick={() => onDownload('results')}>
+                      <Icon type="utility" icon="download" className="slds-button__icon slds-button__icon_left" omitContainer />
+                      Download Results
+                    </button>
+                  </div>
+                )}
+                {/* Failure Results */}
                 {processingStatus.failure > 0 && (
                   <div>
                     <button className="slds-button" onClick={() => onDownload('failure')}>

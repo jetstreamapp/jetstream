@@ -1,6 +1,8 @@
 import { DescribeSObjectResult, Field } from 'jsforce';
 import { HttpMethod, MapOf, RecordAttributes } from '../types';
 
+export type BulkApiDownloadType = 'request' | 'result';
+
 export type FieldWithExtendedType = Field & { typeLabel: string };
 export type DescribeSObjectResultWithExtendedField = Omit<DescribeSObjectResult, 'fields'> & { fields: FieldWithExtendedType[] };
 
@@ -216,7 +218,8 @@ export interface BulkJobBatchInfo {
 }
 
 export interface BulkJobBatchInfoUntyped extends Object {
-  $: any;
+  $?: any;
+  '@xmlns'?: string;
   id: string;
   jobId: string;
   state: 'Queued' | 'InProgress' | 'Completed' | 'Failed' | 'NotProcessed';
@@ -227,4 +230,11 @@ export interface BulkJobBatchInfoUntyped extends Object {
   numberRecordsFailed: string | number;
   apiActiveProcessingTime: string | number;
   apexProcessingTime: string | number;
+}
+
+export interface BulkJobResultRecord {
+  Id: string | null;
+  Success: boolean;
+  Created: boolean;
+  Error: string | null;
 }

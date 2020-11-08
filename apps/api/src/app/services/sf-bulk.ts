@@ -1,9 +1,17 @@
-import * as jsforce from 'jsforce';
-import { create as xmlBuilder } from 'xmlbuilder2';
-import * as request from 'superagent';
 import { HTTP } from '@jetstream/shared/constants';
 import { bulkApiEnsureTyped, ensureArray } from '@jetstream/shared/utils';
-import { BulkApiCreateJobRequestPayload, BulkJobUntyped, BulkJobBatchInfoUntyped, BulkJobWithBatches, BulkJob } from '@jetstream/types';
+import {
+  BulkApiCreateJobRequestPayload,
+  BulkApiDownloadType,
+  BulkJob,
+  BulkJobBatchInfo,
+  BulkJobBatchInfoUntyped,
+  BulkJobUntyped,
+  BulkJobWithBatches,
+} from '@jetstream/types';
+import * as jsforce from 'jsforce';
+import * as request from 'superagent';
+import { create as xmlBuilder, convert as xmlConverter } from 'xmlbuilder2';
 
 const { HEADERS, CONTENT_TYPE } = HTTP;
 
@@ -90,22 +98,28 @@ export async function SfBulkAddBatchToJob(
   csv: string | Buffer | ArrayBuffer,
   jobId: string,
   closeJob = false
-): Promise<void> {
-  await request
+): Promise<BulkJobBatchInfo> {
+  const results = await request
     .post(`${conn.instanceUrl}/services/async/${conn.version}/job/${jobId}/batch`)
     .set({ [HEADERS.CONTENT_TYPE]: CONTENT_TYPE.CSV, Accept: CONTENT_TYPE.XML, [HEADERS.X_SFDC_Session]: conn.accessToken })
-    .send(csv);
+    .send(csv)
+    .then((res) => {
+      const resultXml = xmlConverter((res.body as Buffer).toString(), { format: 'object', wellFormed: true }) as any;
+      const bulkJob = bulkApiEnsureTyped(resultXml.batchInfo);
+      return bulkJob;
+    });
 
   if (closeJob) {
     await SfBulkCloseJob(conn, jobId);
   }
+  return results;
 }
 
 export function sfBulkDownloadRecords(
   conn: jsforce.Connection,
   jobId: string,
   batchId: string,
-  type: 'request' | 'result'
+  type: BulkApiDownloadType
 ): request.SuperAgentRequest {
   return request
     .get(`${conn.instanceUrl}/services/async/${conn.version}/job/${jobId}/batch/${batchId}/${type}`)

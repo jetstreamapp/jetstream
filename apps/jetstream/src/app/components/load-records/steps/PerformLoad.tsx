@@ -1,17 +1,18 @@
 /** @jsx jsx */
 import { jsx } from '@emotion/core';
 import { DATE_FORMATS } from '@jetstream/shared/constants';
+import { formatNumber } from '@jetstream/shared/ui-utils';
 import { InsertUpdateUpsertDelete, SalesforceOrgUi, SalesforceOrgUiType } from '@jetstream/types';
-import { Badge, Checkbox, Input, Radio, RadioGroup, Select } from '@jetstream/ui';
+import { Badge, Checkbox, ConfirmationModalPromise, Input, Radio, RadioGroup, Select } from '@jetstream/ui';
 import { isNumber } from 'lodash';
 import startCase from 'lodash/startCase';
-import numeral from 'numeral';
 import { ChangeEvent, FunctionComponent, useEffect, useState } from 'react';
 import LoadRecordsResults from '../components/load-results/LoadRecordsResults';
 import { ApiMode, FieldMapping } from '../load-records-types';
 
 const MAX_BULK = 10000;
 const MAX_BATCH = 200;
+const MAX_API_CALLS = 250;
 
 function getMaxBatchSize(apiMode: ApiMode) {
   if (apiMode === 'BATCH') {
@@ -19,6 +20,14 @@ function getMaxBatchSize(apiMode: ApiMode) {
   } else {
     return MAX_BULK;
   }
+}
+
+function getBatchSizeExceededError(numApiCalls: number): string {
+  return (
+    `Either your batch size is too low or you are loading in too many records. ` +
+    `Your configuration would require ${formatNumber(numApiCalls)} calls to Salesforce, which exceeds the limit of ${MAX_API_CALLS}. ` +
+    `Increase your batch size or reduce the number of records in your file.`
+  );
 }
 
 export interface LoadRecordsPerformLoadProps {
@@ -49,11 +58,21 @@ export const LoadRecordsPerformLoad: FunctionComponent<LoadRecordsPerformLoadPro
   const [insertNulls, setInsertNulls] = useState<boolean>(false);
   const [serialMode, setSerialMode] = useState<boolean>(false);
   const [dateFormat, setDateFormat] = useState<string>(DATE_FORMATS.MM_DD_YYYY);
+  const [batchApiLimitError, setBatchApiLimitError] = useState<string>(null);
   const [loading, setLoading] = useState<boolean>(false);
   const [loadInProgress, setLoadInProgress] = useState<boolean>(false);
   const [hasLoadResults, setHasLoadResults] = useState<boolean>(false);
   const loadTypeLabel = startCase(loadType.toLowerCase());
-  const numRecordsImpactedLabel = numeral(inputFileData.length).format('0,0');
+  const numRecordsImpactedLabel = formatNumber(inputFileData.length);
+
+  // ensure that the Batch API does not consume an huge amount of API calls
+  useEffect(() => {
+    if (inputFileData.length && batchSize && inputFileData.length / batchSize > MAX_API_CALLS) {
+      setBatchApiLimitError(getBatchSizeExceededError(Math.round(inputFileData.length / batchSize)));
+    } else if (batchApiLimitError) {
+      setBatchApiLimitError(null);
+    }
+  }, [batchSize, inputFileData.length, batchApiLimitError]);
 
   useEffect(() => {
     setBatchSize(getMaxBatchSize(apiMode));
@@ -88,12 +107,19 @@ export const LoadRecordsPerformLoad: FunctionComponent<LoadRecordsPerformLoadPro
     setDateFormat(event.target.value);
   }
 
-  function handleStartLoad() {
-    setLoadNumber(loadNumber + 1);
-    setLoading(true);
-    setLoadInProgress(true);
-    setHasLoadResults(false);
-    onIsLoading(true);
+  async function handleStartLoad() {
+    if (
+      loadNumber === 0 ||
+      (await ConfirmationModalPromise({
+        content: 'This file has already been loaded, are you sure you want to load it again?',
+      }))
+    ) {
+      setLoadNumber(loadNumber + 1);
+      setLoading(true);
+      setLoadInProgress(true);
+      setHasLoadResults(false);
+      onIsLoading(true);
+    }
   }
 
   function handleFinishLoad() {
@@ -101,6 +127,10 @@ export const LoadRecordsPerformLoad: FunctionComponent<LoadRecordsPerformLoadPro
     setHasLoadResults(true);
     setLoadInProgress(false);
     onIsLoading(false);
+  }
+
+  function hasDataInputError(): boolean {
+    return !!batchSizeError || !!batchApiLimitError;
   }
 
   /**
@@ -161,9 +191,9 @@ export const LoadRecordsPerformLoad: FunctionComponent<LoadRecordsPerformLoadPro
         <Input
           label="Batch Size"
           isRequired={true}
-          hasError={!!batchSizeError}
+          hasError={!!batchSizeError || !!batchApiLimitError}
           errorMessageId="batch-size-error"
-          errorMessage={batchSizeError}
+          errorMessage={batchSizeError || batchApiLimitError}
           labelHelp="The batch size determines how many records will be processed together."
         >
           <input
@@ -206,14 +236,13 @@ export const LoadRecordsPerformLoad: FunctionComponent<LoadRecordsPerformLoadPro
           <strong className="slds-m-left_xx-small">{selectedOrg.username}</strong>
         </div>
         <div className="slds-m-top_small">
-          <button className="slds-button slds-button_brand" disabled={loadInProgress} onClick={handleStartLoad}>
+          <button className="slds-button slds-button_brand" disabled={hasDataInputError() || loadInProgress} onClick={handleStartLoad}>
             {loadTypeLabel} <strong className="slds-m-horizontal_xx-small">{numRecordsImpactedLabel}</strong> Records
           </button>
         </div>
       </div>
       <h1 className="slds-text-heading_medium">Results</h1>
       <div className="slds-p-around_small">
-        {/* TODO: this wil not work to show finished results */}
         {(loadInProgress || hasLoadResults) && (
           <LoadRecordsResults
             key={loadNumber}

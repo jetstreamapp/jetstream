@@ -1,17 +1,17 @@
 /** @jsx jsx */
 import { css, jsx } from '@emotion/core';
+import { formatNumber } from '@jetstream/shared/ui-utils';
 import { FieldWrapper, MapOf, QueryFields, UpDown } from '@jetstream/types';
 import isString from 'lodash/isString';
-import { Fragment, FunctionComponent, useEffect, useState, createRef } from 'react';
+import { createRef, Fragment, FunctionComponent, useEffect, useState } from 'react';
 import Checkbox from '../form/checkbox/Checkbox';
 import SearchInput from '../form/search-input/SearchInput';
+import Grid from '../grid/Grid';
 import EmptyState from '../illustrations/EmptyState';
 import List from '../list/List';
 import Spinner from '../widgets/Spinner';
-import SobjectFieldListItem from './SobjectFieldListItem';
-import numeral from 'numeral';
-import Grid from '../grid/Grid';
 import SobjectFieldListFilter from './SobjectFieldListFilter';
+import SobjectFieldListItem from './SobjectFieldListItem';
 import { FilterType } from './SobjectFieldListTypes';
 
 function getBgColor(level: number): string {
@@ -181,7 +181,7 @@ export const SobjectFieldList: FunctionComponent<SobjectFieldListProps> = ({
               onArrowKeyUpDown={handleSearchKeyboard}
             />
             <div className="slds-text-body_small slds-text-color_weak slds-p-left--xx-small">
-              Showing {numeral(filteredFields.length).format('0,0')} of {numeral(fieldLength).format('0,0')} fields
+              Showing {formatNumber(filteredFields.length)} of {formatNumber(fieldLength)} fields
             </div>
           </div>
           <Grid

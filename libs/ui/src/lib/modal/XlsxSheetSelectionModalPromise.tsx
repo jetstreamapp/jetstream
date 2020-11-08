@@ -3,7 +3,7 @@ import { css, jsx } from '@emotion/core';
 import { Fragment, FunctionComponent, useState } from 'react';
 import { createModal } from 'react-modal-promise';
 import Picklist from '../form/picklist/Picklist';
-import Modal, { ModalProps } from './Modal';
+import Modal from './Modal';
 
 export interface XlsxSheetSelectionModalPromiseProps /** extends ModalProps */ {
   isOpen: boolean;
@@ -51,5 +51,4 @@ const XlsxSheetSelectionModalPromiseModal: FunctionComponent<XlsxSheetSelectionM
   );
 };
 
-// If used, pass in prop: {contentAlternateChildren}
-export const XlsxSheetSelectionModalPromise = createModal<XlsxSheetSelectionModalPromiseProps>(XlsxSheetSelectionModalPromiseModal);
+export const XlsxSheetSelectionModalPromise = createModal<XlsxSheetSelectionModalPromiseProps, string>(XlsxSheetSelectionModalPromiseModal);

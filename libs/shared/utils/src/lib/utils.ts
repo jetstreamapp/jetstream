@@ -222,6 +222,9 @@ export function bulkApiEnsureTyped(job: any | any): BulkJob | BulkJobBatchInfo {
   if (job['$']) {
     job['$'] = undefined;
   }
+  if (job['@xmlns']) {
+    job['@xmlns'] = undefined;
+  }
   numberTypes.forEach((prop) => {
     if (job.hasOwnProperty(prop) && typeof job[prop] === 'string') {
       job[prop] = Number(job[prop]);

@@ -1,5 +1,6 @@
 /** @jsx jsx */
 import { css, jsx } from '@emotion/core';
+import { formatNumber } from '@jetstream/shared/ui-utils';
 import { SalesforceOrgUi } from '@jetstream/types';
 import {
   AutoFullHeightContainer,
@@ -15,18 +16,18 @@ import {
 } from '@jetstream/ui';
 import { startCase } from 'lodash';
 import { FunctionComponent, useEffect, useRef, useState } from 'react';
-import { useRecoilState, useRecoilValue } from 'recoil';
+import { useRecoilState, useRecoilValue, useResetRecoilState } from 'recoil';
 import { selectedOrgState, selectedOrgType } from '../../app-state';
-import { FieldRelatedEntity, FieldWithRelatedEntities, Step } from './load-records-types';
-import * as fromLoadRecordsState from './load-records.state';
+import LoadRecordsDataPreview from './components/LoadRecordsDataPreview';
 import LoadRecordsProgress from './components/LoadRecordsProgress';
+import { FieldWithRelatedEntities, Step } from './load-records-types';
+import * as fromLoadRecordsState from './load-records.state';
 import LoadRecordsFieldMapping from './steps/FieldMapping';
-import LoadRecordsSelectObjectAndFile from './steps/SelectObjectAndFile';
-import LoadRecordsPerformLoad from './steps/PerformLoad';
 import LoadRecordsLoadAutomationDeploy from './steps/LoadRecordsAutomationDeploy';
 import LoadRecordsLoadAutomationRollback from './steps/LoadRecordsAutomationRollback';
+import LoadRecordsPerformLoad from './steps/PerformLoad';
+import LoadRecordsSelectObjectAndFile from './steps/SelectObjectAndFile';
 import { autoMapFields, getFieldMetadata } from './utils/load-records-utils';
-import numeral from 'numeral';
 
 const HEIGHT_BUFFER = 170;
 
@@ -60,6 +61,7 @@ export const LoadRecords: FunctionComponent<LoadRecordsProps> = () => {
   const [inputFileHeader, setInputFileHeader] = useRecoilState(fromLoadRecordsState.inputFileHeaderState);
   const [inputFilename, setInputFilename] = useRecoilState(fromLoadRecordsState.inputFilenameState);
   const [fieldMapping, setFieldMapping] = useRecoilState(fromLoadRecordsState.fieldMappingState);
+  const resetLoadExistingRecordCount = useResetRecoilState(fromLoadRecordsState.loadExistingRecordCount);
 
   const [loading, setLoading] = useState<boolean>(false);
   const [loadingFields, setLoadingFields] = useState<boolean>(false);
@@ -82,6 +84,7 @@ export const LoadRecords: FunctionComponent<LoadRecordsProps> = () => {
     if (priorSelectedOrg && selectedOrg && selectedOrg.uniqueId !== priorSelectedOrg) {
       setPriorSelectedOrg(selectedOrg.uniqueId);
       setCurrentStep(steps[0]);
+      resetLoadExistingRecordCount();
     } else {
       setPriorSelectedOrg(selectedOrg.uniqueId);
     }
@@ -95,6 +98,7 @@ export const LoadRecords: FunctionComponent<LoadRecordsProps> = () => {
     if (selectedSObject) {
       // fetch all fields
       setLoadingFields(true);
+      resetLoadExistingRecordCount();
       (async () => {
         const fields = await getFieldMetadata(selectedOrg, selectedSObject.name);
         // ensure object did not change and that component is still mounted
@@ -184,13 +188,13 @@ export const LoadRecords: FunctionComponent<LoadRecordsProps> = () => {
       text.push(`Object: ${selectedSObject.label}`);
 
       if (inputFileData?.length) {
-        text.push(`${numeral(inputFileData.length).format('0,0')} records impacted`);
+        text.push(`${formatNumber(inputFileData.length)} records impacted`);
       }
 
       if (inputFileHeader) {
         const fieldMappingItems = Object.values(fieldMapping);
         const numItemsMapped = fieldMappingItems.filter((item) => item.targetField).length;
-        text.push(`${numeral(numItemsMapped).format('0,0')} of ${numeral(inputFileHeader.length).format('0,0')} fields mapped`);
+        text.push(`${formatNumber(numItemsMapped)} of ${formatNumber(inputFileHeader.length)} fields mapped`);
       }
     }
 
@@ -258,7 +262,15 @@ export const LoadRecords: FunctionComponent<LoadRecordsProps> = () => {
                 onFileChange={handleFileChange}
                 onLoadTypeChange={setLoadType}
                 onExternalIdChange={setExternalId}
-              />
+              >
+                <LoadRecordsDataPreview
+                  selectedOrg={selectedOrg}
+                  selectedSObject={selectedSObject}
+                  loadType={loadType}
+                  data={inputFileData}
+                  header={inputFileHeader}
+                />
+              </LoadRecordsSelectObjectAndFile>
             )}
             {currentStep.name === 'fieldMapping' && (
               <span>

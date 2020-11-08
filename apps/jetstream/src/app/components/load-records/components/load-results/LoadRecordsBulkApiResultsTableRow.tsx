@@ -1,43 +1,54 @@
 /** @jsx jsx */
 import { jsx } from '@emotion/core';
+import { formatNumber } from '@jetstream/shared/ui-utils';
 import { BulkJobBatchInfo } from '@jetstream/types';
 import { Grid, Icon, Spinner } from '@jetstream/ui';
 import classNames from 'classnames';
-import { FunctionComponent } from 'react';
-import numeral from 'numeral';
+import { FunctionComponent, useEffect, useRef, useState } from 'react';
 
 export interface LoadRecordsBulkApiResultsTableRowProps {
   batch: BulkJobBatchInfo;
-  serverUrl: string;
   hasErrors: boolean;
-  filenamePrefix: string;
-  orgUrlParams: string;
-  onDownload: (type: 'results' | 'failure', url: string) => void;
+  onDownload: (type: 'results' | 'failure', batch: BulkJobBatchInfo) => Promise<void>;
 }
 
 export const LoadRecordsBulkApiResultsTableRow: FunctionComponent<LoadRecordsBulkApiResultsTableRowProps> = ({
   batch,
-  serverUrl,
   hasErrors,
-  filenamePrefix,
-  orgUrlParams,
   onDownload,
 }) => {
-  function getLinkUrl(batch: BulkJobBatchInfo, type: 'request' | 'result' | 'failed') {
-    let url = `${serverUrl}/static/sfdc/bulk/${batch.jobId}/${batch.id}`;
-    url += `?type=${type}`;
-    // url += `&filename=${encodeURIComponent(`${filenamePrefix}-${type}.csv`)}`;
-    url += `&${orgUrlParams}`;
-    return url;
-  }
+  const isMounted = useRef(null);
+  const [downloadResultsRecordsLoading, setDownloadResultsRecordsLoading] = useState(false);
 
-  const total = numeral(batch.numberRecordsProcessed).format('0,0');
-  const success = numeral(batch.numberRecordsProcessed - batch.numberRecordsFailed).format('0,0');
-  const failure = numeral(batch.numberRecordsFailed || 0).format('0,0');
+  useEffect(() => {
+    isMounted.current = true;
+    return () => (isMounted.current = false);
+  }, []);
+
+  const total = formatNumber(batch.numberRecordsProcessed);
+  const success = formatNumber(batch.numberRecordsProcessed - batch.numberRecordsFailed);
+  const failure = formatNumber(batch.numberRecordsFailed || 0);
+
+  async function downloadResults(type: 'results' | 'failure') {
+    try {
+      // Emit to parent that the user would like to download records
+      // this is a promise to control loading indicators
+      setDownloadResultsRecordsLoading(true);
+      await onDownload(type, batch);
+      if (isMounted.current) {
+        setDownloadResultsRecordsLoading(false);
+      }
+    } catch (ex) {
+      if (isMounted.current && downloadResultsRecordsLoading) {
+        setDownloadResultsRecordsLoading(false);
+      }
+      // TODO: show error message
+    }
+  }
 
   return (
     <tr key={batch.id} className="slds-hint-parent">
-      <td className="slds-is-relative">
+      <th className="slds-is-relative" scope="row">
         {batch.state === 'Failed' && (
           <Icon
             type="utility"
@@ -65,31 +76,29 @@ export const LoadRecordsBulkApiResultsTableRow: FunctionComponent<LoadRecordsBul
           />
         )}
         {(batch.state === 'Queued' || batch.state === 'InProgress') && <Spinner size="x-small" />}
-      </td>
+      </th>
       <td>
         {batch.state === 'Completed' && (
           <Grid vertical>
-            <div>
+            <div className="slds-is-relative">
+              {downloadResultsRecordsLoading && <Spinner size="small" />}
               {/* All Results */}
-              {/* <a className="slds-button" href={getLinkUrl(batch, 'result')} target="_blank" rel="noreferrer">
-                <Icon type="utility" icon="download" className="slds-button__icon slds-button__icon_left" omitContainer />
-                Download Results
-              </a> */}
-              <button className="slds-button" onClick={() => onDownload('results', getLinkUrl(batch, 'result'))}>
-                <Icon type="utility" icon="download" className="slds-button__icon slds-button__icon_left" omitContainer />
-                Download Results
-              </button>
+              {batch.numberRecordsProcessed > batch.numberRecordsFailed && (
+                <button className="slds-button" onClick={() => downloadResults('results')}>
+                  <Icon type="utility" icon="download" className="slds-button__icon slds-button__icon_left" omitContainer />
+                  Download Results
+                </button>
+              )}
+              {/* Failure Results */}
+              {batch.numberRecordsFailed > 0 && (
+                <div>
+                  <button className="slds-button" onClick={() => downloadResults('failure')}>
+                    <Icon type="utility" icon="download" className="slds-button__icon slds-button__icon_left" omitContainer />
+                    Download Failures
+                  </button>
+                </div>
+              )}
             </div>
-            {/* TODO: implement me */}
-            {/* Failure Results */}
-            {/* {batch.numberRecordsFailed > 0 && (
-                    <div>
-              <button className="slds-button" onClick={() => onDownload('failed', getLinkUrl(batch, 'failed'))}>
-                <Icon type="utility" icon="download" className="slds-button__icon slds-button__icon_left" omitContainer />
-                Download Failures
-              </button>
-                    </div>
-                  )} */}
           </Grid>
         )}
         {batch.state === 'Failed' && batch.stateMessage && (
@@ -131,10 +140,8 @@ export const LoadRecordsBulkApiResultsTableRow: FunctionComponent<LoadRecordsBul
           </span>
         </div>
       </td>
-      <td>
-        <div className="slds-truncate" title={batch.state}>
-          {batch.state}
-        </div>
+      <td title={`Batch Id: ${batch.id.substring(0, 15)}`}>
+        <div className="slds-truncate">{batch.state}</div>
       </td>
     </tr>
   );
