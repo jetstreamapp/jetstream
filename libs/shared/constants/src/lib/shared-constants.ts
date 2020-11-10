@@ -38,6 +38,7 @@ export const HTTP = {
     X_CACHE_AGE: 'X-CACHE-AGE',
     X_CACHE_EXP: 'X-CACHE-ECP',
     CONTENT_TYPE: 'Content-Type',
+    X_MOCK_KEY: 'X-MOCK-KEY',
     CONTENT_DISPOSITION: 'Content-Disposition',
   },
   CONTENT_TYPE: {

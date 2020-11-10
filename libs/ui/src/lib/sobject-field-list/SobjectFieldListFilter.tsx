@@ -34,6 +34,13 @@ export const SobjectFieldListFilter: FunctionComponent<SobjectFieldListFilterPro
             checked={active === 'updateable'}
             onChange={onChange}
           />
+          <Radio
+            name="radio-filter-selected"
+            label="Selected Fields"
+            value="selected"
+            checked={active === 'selected'}
+            onChange={onChange}
+          />
         </RadioGroup>
       }
     >

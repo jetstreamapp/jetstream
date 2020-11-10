@@ -86,6 +86,8 @@ export const SobjectFieldList: FunctionComponent<SobjectFieldListProps> = ({
                 return field.metadata.createable;
               case 'updateable':
                 return field.metadata.updateable;
+              case 'selected':
+                return queryFields.selectedFields.has(field.name);
               default:
                 return true;
             }
@@ -150,7 +152,7 @@ export const SobjectFieldList: FunctionComponent<SobjectFieldListProps> = ({
     }
   }
 
-  function handleFilterChange(active: 'all' | 'creatable' | 'updateable') {
+  function handleFilterChange(active: FilterType) {
     setActiveFilter(active);
   }
 

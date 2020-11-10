@@ -6,7 +6,8 @@ import { errorMiddleware } from './middleware';
 import axios, { AxiosRequestConfig, AxiosResponse, AxiosError } from 'axios';
 import localforage from 'localforage';
 import { REGEX } from '@jetstream/shared/utils';
-import { isString } from 'lodash';
+import isString from 'lodash/isString';
+import { SOBJECT_DESCRIBE_CACHED_RESPONSES } from './client-data-data-cached-responses';
 
 // 3 days
 const CACHE_TTL = 1000 * 60 * 60 * 24 * 3;
@@ -22,11 +23,16 @@ export async function handleRequest<T = any>(
   config: AxiosRequestConfig,
   options: {
     org?: SalesforceOrgUi;
+    mockHeaderKey?: string;
     useCache?: boolean;
     useQueryParamsInCacheKey?: boolean;
     useBodyInCacheKey?: boolean;
   } = {}
 ): Promise<ApiResponse<T>> {
+  if (options.mockHeaderKey && isString(options.mockHeaderKey)) {
+    config.headers = config.headers || {};
+    config.headers[HTTP.HEADERS.X_MOCK_KEY] = options.mockHeaderKey;
+  }
   const axiosInstance = axios.create(config);
   axiosInstance.interceptors.request.use(requestInterceptor(options));
   axiosInstance.interceptors.response.use(responseInterceptor(options), responseErrorInterceptor(options));
@@ -58,8 +64,22 @@ function requestInterceptor<T>(options: {
       config.headers[HTTP.HEADERS.X_SFDC_ID] = org.uniqueId || '';
     }
 
-    // return cached response if available
-    if (useCache && org) {
+    // IF mock response header exists and mock response exists, return data instead of making actual request
+    if (config.headers[HTTP.HEADERS.X_MOCK_KEY] && SOBJECT_DESCRIBE_CACHED_RESPONSES[config.headers[HTTP.HEADERS.X_MOCK_KEY]]) {
+      config.adapter = async (config: AxiosRequestConfig) => {
+        return {
+          config,
+          data: {
+            data: SOBJECT_DESCRIBE_CACHED_RESPONSES[config.headers[HTTP.HEADERS.X_MOCK_KEY]],
+          },
+          headers: { [HTTP.HEADERS.X_MOCK_KEY]: config.headers[HTTP.HEADERS.X_MOCK_KEY] },
+          status: 200,
+          statusText: 'OK (MOCKED)',
+          request: {},
+        };
+      };
+    } else if (useCache && org) {
+      // return cached response if available
       const cachedResults = await getCacheItem<T>(config, org, useQueryParamsInCacheKey, useBodyInCacheKey);
       if (cachedResults) {
         config.adapter = async (config: AxiosRequestConfig) => {
