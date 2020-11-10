@@ -4,7 +4,7 @@ import { css, jsx } from '@emotion/core';
 import { query } from '@jetstream/shared/data';
 import { formatNumber } from '@jetstream/shared/ui-utils';
 import { InsertUpdateUpsertDelete, SalesforceOrgUi } from '@jetstream/types';
-import { AutoFullHeightContainer, DataTable, Grid, GridCol, Icon, Spinner } from '@jetstream/ui';
+import { Alert, AutoFullHeightContainer, DataTable, Grid, GridCol, Spinner } from '@jetstream/ui';
 import { DescribeGlobalSObjectResult } from 'jsforce';
 import isNil from 'lodash/isNil';
 import { Fragment, FunctionComponent, useEffect, useRef, useState } from 'react';
@@ -76,8 +76,6 @@ function getColumnDefinitions(headers: string[]): ColDef[] {
   return colDefs;
 }
 
-const infoIcon = <Icon type="utility" icon="info" className="slds-icon slds-icon-text-default slds-icon_xx-small slds-m-right_xx-small" />;
-
 export const LoadRecordsDataPreview: FunctionComponent<LoadRecordsDataPreviewProps> = ({
   selectedOrg,
   selectedSObject,
@@ -126,16 +124,14 @@ export const LoadRecordsDataPreview: FunctionComponent<LoadRecordsDataPreviewPro
       <Grid vertical>
         <GridCol className="slds-m-bottom--medium">
           {!selectedSObject && (
-            <Fragment>
-              {infoIcon}
+            <Alert type="warning" leadingIcon="info">
               <strong>Select an object from the list on the left to continue</strong>
-            </Fragment>
+            </Alert>
           )}
           {selectedSObject && !data && (
-            <Fragment>
-              {infoIcon}
+            <Alert type="warning" leadingIcon="info">
               <strong>Upload a file to continue</strong>
-            </Fragment>
+            </Alert>
           )}
           {selectedSObject && data && (
             <div className="slds-is-relative">
