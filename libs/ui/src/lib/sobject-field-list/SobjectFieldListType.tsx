@@ -49,8 +49,14 @@ function getContent(field: FieldWrapper) {
     }
   } else if (field.metadata.calculatedFormula) {
     copyToClipboardValue = field.metadata.calculatedFormula;
+    const tooltipContent = (
+      <span>
+        <div>{copyToClipboardValue}</div>
+        {copyToClipboardMsg}
+      </span>
+    );
     return (
-      <Tooltip id={`${field.name}-type-tooltip`} content={field.metadata.calculatedFormula} onClick={() => copy(copyToClipboardValue)}>
+      <Tooltip id={`${field.name}-type-tooltip`} content={tooltipContent} onClick={() => copy(copyToClipboardValue)}>
         <span className="slds-badge__icon slds-badge__icon_left slds-badge__icon_inverse">
           <Icon
             type="utility"
@@ -60,7 +66,6 @@ function getContent(field: FieldWrapper) {
           />
         </span>
         {field.type}
-        {copyToClipboardMsg}
       </Tooltip>
     );
   } else {
