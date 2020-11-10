@@ -1,1 +1,1 @@
-export type FilterType = 'all' | 'creatable' | 'updateable';
+export type FilterType = 'all' | 'creatable' | 'updateable' | 'selected';
