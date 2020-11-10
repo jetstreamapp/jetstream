@@ -45,6 +45,7 @@ export async function describeSObjectWithExtendedTypes(
  */
 export async function fetchFields(org: SalesforceOrgUi, queryFields: QueryFields, parentKey: string): Promise<QueryFields> {
   const { sobject } = queryFields;
+  const isCustomMetadata = sobject.endsWith('__mdt');
   const describeResults = await describeSObjectWithExtendedTypes(org, sobject);
 
   const childRelationships = describeResults.childRelationships.filter((relationship) => !!relationship.relationshipName);
@@ -52,6 +53,12 @@ export async function fetchFields(org: SalesforceOrgUi, queryFields: QueryFields
     describeResults.fields.map((field: Field & { typeLabel: string }) => {
       const type = field.typeLabel;
       const filterText = `${field.name || ''}${field.label || ''}${type}${type.replace(REGEX.NOT_ALPHA, '')}`.toLowerCase();
+      // setup custom metadata lookup fields to pull mocked lookup data for relationship
+      if (isCustomMetadata && field.extraTypeInfo === 'externallookup') {
+        field.type = 'reference';
+        field.referenceTo = ['@EntityDefinition'];
+        field.relationshipName = field.name.replace('__c', '__r');
+      }
       return {
         name: field.name,
         label: field.label,

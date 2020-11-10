@@ -58,7 +58,10 @@ export async function describeGlobal(org: SalesforceOrgUi): Promise<ApiResponse<
 }
 
 export async function describeSObject(org: SalesforceOrgUi, SObject: string): Promise<ApiResponse<DescribeSObjectResult>> {
-  return handleRequest({ method: 'GET', url: `/api/describe/${SObject}` }, { org, useCache: true });
+  return handleRequest(
+    { method: 'GET', url: `/api/describe/${SObject}` },
+    { org, useCache: true, mockHeaderKey: SObject.startsWith('@') ? SObject : undefined }
+  );
 }
 
 export async function query<T = any>(org: SalesforceOrgUi, query: string, isTooling = false): Promise<API.QueryResults<T>> {

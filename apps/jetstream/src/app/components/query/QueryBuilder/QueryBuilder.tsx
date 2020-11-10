@@ -1,8 +1,6 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 /** @jsx jsx */
 import { css, jsx } from '@emotion/core';
-import { logger } from '@jetstream/shared/client-logger';
-import { WorkerMessage, ListItemGroup } from '@jetstream/types';
 import {
   Accordion,
   AutoFullHeightContainer,
@@ -14,24 +12,23 @@ import {
   PageHeaderTitle,
   Tabs,
 } from '@jetstream/ui';
-import classNames from 'classnames';
 import { Fragment, FunctionComponent, useEffect, useState } from 'react';
 import { Link, useRouteMatch } from 'react-router-dom';
 import Split from 'react-split';
 import { useRecoilState, useRecoilValue, useResetRecoilState } from 'recoil';
 // import QueryWorker from '../../../workers/query.worker';
 import * as fromQueryState from '../query.state';
-import QueryBuilderSoqlUpdater from './QueryBuilderSoqlUpdater';
-import QueryFieldsComponent from './QueryFields';
+import QueryHistory from '../QueryHistory/QueryHistory';
 import QueryFilter from '../QueryOptions/QueryFilter';
 import QueryLimit from '../QueryOptions/QueryLimit';
 import QueryOrderBy from '../QueryOptions/QueryOrderBy';
-import SoqlTextarea from '../QueryOptions/SoqlTextarea';
-import QuerySObjects from './QuerySObjects';
 import QueryResetButton from '../QueryOptions/QueryResetButton';
-import QuerySubquerySObjects from './QuerySubquerySObjects';
-import QueryHistory from '../QueryHistory/QueryHistory';
+import SoqlTextarea from '../QueryOptions/SoqlTextarea';
 import { calculateSoqlQueryFilter } from '../utils/query-utils';
+import QueryBuilderSoqlUpdater from './QueryBuilderSoqlUpdater';
+import QueryFieldsComponent from './QueryFields';
+import QuerySObjects from './QuerySObjects';
+import QuerySubquerySObjects from './QuerySubquerySObjects';
 
 const HEIGHT_BUFFER = 170;
 // eslint-disable-next-line @typescript-eslint/no-empty-interface
