@@ -1,7 +1,7 @@
 import { logger } from '@jetstream/shared/client-logger';
 import { HTTP } from '@jetstream/shared/constants';
 import { checkMetadataResults } from '@jetstream/shared/data';
-import { delay, orderObjectsBy, REGEX } from '@jetstream/shared/utils';
+import { delay, ensureBoolean, orderObjectsBy, REGEX } from '@jetstream/shared/utils';
 import {
   ExpressionConditionRowSelectedItems,
   ExpressionConditionType,
@@ -562,6 +562,7 @@ function handleWindowEvent(event: MessageEvent) {
   if (isString(event.data)) {
     try {
       const org: SalesforceOrgUi = JSON.parse(event.data);
+      org.orgIsSandbox = ensureBoolean(org.orgIsSandbox);
       // ensure from our origin // FIXME:
       logger.log({ org });
       if (addOrgCallbackFn) {

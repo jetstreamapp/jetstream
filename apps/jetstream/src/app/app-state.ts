@@ -68,6 +68,14 @@ export const selectedOrgState = selector({
   },
 });
 
+export const hasConfiguredOrgState = selector({
+  key: 'hasConfiguredOrgState',
+  get: ({ get }) => {
+    const salesforceOrgs = get(salesforceOrgsState);
+    return salesforceOrgs?.length > 0 || false;
+  },
+});
+
 export const selectedOrgType = selector<SalesforceOrgUiType>({
   key: 'selectedOrgType',
   get: ({ get }) => {

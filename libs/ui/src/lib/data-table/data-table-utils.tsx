@@ -1,5 +1,5 @@
 /** @jsx jsx */
-import { CellEvent, CellKeyDownEvent, ColDef, ValueFormatterParams } from '@ag-grid-community/core';
+import { CellEvent, CellKeyDownEvent, ColDef, ColumnEvent, ValueFormatterParams } from '@ag-grid-community/core';
 import { QueryResults, QueryResultsColumn } from '@jetstream/api-interfaces';
 import { DATE_FORMATS } from '@jetstream/shared/constants';
 import { isEnterKey } from '@jetstream/shared/ui-utils';
@@ -123,6 +123,22 @@ export const dataTableTimeFormatter = ({ value }: ValueFormatterParams): string 
     return time;
   }
 };
+
+export function getCurrentColumnOrder(event: ColumnEvent): string[] {
+  return event.columnApi
+    .getAllDisplayedColumns()
+    .map((col) => col.getColDef())
+    .filter((col) => col.field)
+    .map((col) => col.field);
+}
+
+export function getFilteredRows<T = any>(event: ColumnEvent): T[] {
+  const visibleRecords: T[] = [];
+  event.api.forEachNodeAfterFilter((rowNode, index) => {
+    visibleRecords.push(rowNode.data);
+  });
+  return visibleRecords;
+}
 
 export function getColumnDefinitions(results: QueryResults<any>): SalesforceQueryColumnDefinition {
   const output: SalesforceQueryColumnDefinition = {
