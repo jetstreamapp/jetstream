@@ -11,13 +11,21 @@ import Input from '../form/input/Input';
 import Radio from '../form/radio/Radio';
 import RadioGroup from '../form/radio/RadioGroup';
 import Modal from '../modal/Modal';
-import { RADIO_ALL_BROWSER, RADIO_ALL_SERVER, RADIO_FORMAT_CSV, RADIO_FORMAT_XLSX, RADIO_SELECTED } from './download-modal-utils';
+import {
+  RADIO_ALL_BROWSER,
+  RADIO_ALL_SERVER,
+  RADIO_FILTERED,
+  RADIO_FORMAT_CSV,
+  RADIO_FORMAT_XLSX,
+  RADIO_SELECTED,
+} from './download-modal-utils';
 
 export interface RecordDownloadModalProps {
   org: SalesforceOrgUi;
   downloadModalOpen: boolean;
   fields: string[];
   records: Record[];
+  filteredRecords?: Record[];
   selectedRecords?: Record[];
   totalRecordCount?: number;
   onModalClose: (cancelled?: boolean) => void;
@@ -29,6 +37,7 @@ export const RecordDownloadModal: FunctionComponent<RecordDownloadModalProps> = 
   downloadModalOpen,
   fields,
   records,
+  filteredRecords,
   selectedRecords,
   totalRecordCount,
   onModalClose,
@@ -51,6 +60,9 @@ export const RecordDownloadModal: FunctionComponent<RecordDownloadModalProps> = 
       } else {
         setFileName(getFilename(org, ['records']));
       }
+    } else {
+      setDownloadRecordsValue(hasMoreRecords ? RADIO_ALL_SERVER : RADIO_ALL_BROWSER);
+      setFileFormat(RADIO_FORMAT_XLSX);
     }
   }, [downloadModalOpen, records]);
 
@@ -79,7 +91,12 @@ export const RecordDownloadModal: FunctionComponent<RecordDownloadModalProps> = 
         }
         onModalClose();
       } else {
-        const activeRecords = downloadRecordsValue === RADIO_ALL_BROWSER ? records : selectedRecords;
+        let activeRecords = records;
+        if (downloadRecordsValue === RADIO_FILTERED) {
+          activeRecords = filteredRecords;
+        } else if (downloadRecordsValue === RADIO_SELECTED) {
+          activeRecords = selectedRecords;
+        }
         const data = flattenRecords(activeRecords, fields);
         let mimeType: MimeType;
         let fileData;
@@ -105,6 +122,14 @@ export const RecordDownloadModal: FunctionComponent<RecordDownloadModalProps> = 
     } catch (ex) {
       // TODO: show error message somewhere
     }
+  }
+
+  function hasFilteredRecords(): boolean {
+    return Array.isArray(filteredRecords) && filteredRecords.length && filteredRecords.length !== records.length ? true : false;
+  }
+
+  function hasSelectedRecords(): boolean {
+    return Array.isArray(selectedRecords) && selectedRecords.length && selectedRecords.length !== records.length ? true : false;
   }
 
   return (
@@ -154,12 +179,20 @@ export const RecordDownloadModal: FunctionComponent<RecordDownloadModalProps> = 
                   onChange={setDownloadRecordsValue}
                 />
               )}
-              {Array.isArray(selectedRecords) && (
+              {hasFilteredRecords() && (
                 <Radio
                   name="radio-download"
-                  label={`Selected records (${selectedRecords.length || 0})`}
+                  label={`Filtered records (${formatNumber(filteredRecords.length) || 0})`}
+                  value={RADIO_FILTERED}
+                  checked={downloadRecordsValue === RADIO_FILTERED}
+                  onChange={setDownloadRecordsValue}
+                />
+              )}
+              {hasSelectedRecords() && (
+                <Radio
+                  name="radio-download"
+                  label={`Selected records (${formatNumber(selectedRecords.length) || 0})`}
                   value={RADIO_SELECTED}
-                  disabled={!selectedRecords?.length}
                   checked={downloadRecordsValue === RADIO_SELECTED}
                   onChange={setDownloadRecordsValue}
                 />

@@ -49,6 +49,7 @@ export const QueryResults: FunctionComponent<QueryResultsProps> = React.memo(() 
   const [records, setRecords] = useState<Record[]>(null);
   const [nextRecordsUrl, setNextRecordsUrl] = useState<string>(null);
   const [fields, setFields] = useState<string[]>(null);
+  const [filteredRows, setFilteredRows] = useState<Record[]>([]);
   const [selectedRows, setSelectedRows] = useState<Record[]>([]);
   const [loading, setLoading] = useState<boolean>(false);
   const [errorMessage, setErrorMessage] = useState<string>(null);
@@ -224,6 +225,10 @@ export const QueryResults: FunctionComponent<QueryResultsProps> = React.memo(() 
     }
   }
 
+  function hasRecords() {
+    return !loading && !errorMessage && records?.length;
+  }
+
   return (
     <div>
       <RecordDownloadModal
@@ -231,6 +236,7 @@ export const QueryResults: FunctionComponent<QueryResultsProps> = React.memo(() 
         downloadModalOpen={downloadModalOpen}
         fields={fields}
         records={records}
+        filteredRecords={filteredRows}
         selectedRecords={selectedRows}
         totalRecordCount={totalRecordCount}
         onModalClose={() => setDownloadModalOpen(false)}
@@ -267,11 +273,11 @@ export const QueryResults: FunctionComponent<QueryResultsProps> = React.memo(() 
             <Icon type="utility" icon="delete" className="slds-button__icon slds-button__icon_left" omitContainer />
             Delete Selected Records
           </button>
-          <button className="slds-button slds-button_neutral" onClick={() => executeQuery(soql)}>
+          <button className="slds-button slds-button_neutral" onClick={() => executeQuery(soql)} disabled={!!(loading || errorMessage)}>
             <Icon type="utility" icon="refresh" className="slds-button__icon slds-button__icon_left" omitContainer />
             Re-load Records
           </button>
-          <button className="slds-button slds-button_brand" onClick={() => setDownloadModalOpen(true)}>
+          <button className="slds-button slds-button_brand" onClick={() => setDownloadModalOpen(true)} disabled={!hasRecords()}>
             <Icon type="utility" icon="download" className="slds-button__icon slds-button__icon_left" omitContainer />
             Download Records
           </button>
@@ -344,6 +350,7 @@ export const QueryResults: FunctionComponent<QueryResultsProps> = React.memo(() 
                 queryResults={queryResults}
                 onSelectionChanged={setSelectedRows}
                 onFields={setFields}
+                onFilteredRowsChanged={setFilteredRows}
                 onLoadMoreRecords={handleLoadMore}
               />
             </Fragment>
