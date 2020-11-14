@@ -15,6 +15,11 @@ export interface WorkerMessage<T, K = any, E = any> {
   error?: E;
 }
 
+export interface QueryFieldWithPolymorphic {
+  field: string;
+  polymorphicObj: string;
+}
+
 export interface QueryFields {
   // this is also the path that will be appended to each field
   // this should end in a "." for related objects
@@ -24,6 +29,7 @@ export interface QueryFields {
   hasError: boolean;
   filterTerm: string;
   sobject: string;
+  isPolymorphic: boolean;
   fields: MapOf<FieldWrapper>;
   childRelationships?: ChildRelationship[];
   visibleFields: Set<string>;
@@ -35,7 +41,7 @@ export interface FieldWrapper {
   label: string;
   type: string;
   sobject: string;
-  relatedSobject?: string;
+  relatedSobject?: string | string[];
   // text used to filter data
   filterText: string;
   metadata: Field;

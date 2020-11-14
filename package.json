@@ -121,7 +121,7 @@
     "recoil": "0.0.13",
     "reflect-metadata": "^0.1.13",
     "rollbar": "^2.19.1",
-    "rxjs": "6.5.5",
+    "rxjs": "^6.6.0",
     "soql-parser-js": "^3.0.0",
     "superagent": "^5.2.2",
     "tailwindcss": "^1.9.3",

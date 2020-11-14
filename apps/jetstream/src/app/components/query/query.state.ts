@@ -1,8 +1,16 @@
-import { ExpressionType, ListItemGroup, MapOf, QueryFields, QueryOrderByClause, QueryHistoryItem } from '@jetstream/types';
-import { DescribeGlobalSObjectResult, ChildRelationship } from 'jsforce';
+import { orderStringsBy, convertFieldWithPolymorphicToQueryFields } from '@jetstream/shared/utils';
+import {
+  ExpressionType,
+  ListItemGroup,
+  MapOf,
+  QueryFields,
+  QueryHistoryItem,
+  QueryOrderByClause,
+  QueryFieldWithPolymorphic,
+} from '@jetstream/types';
+import { ChildRelationship, DescribeGlobalSObjectResult } from 'jsforce';
 import { atom, selector } from 'recoil';
-import { getField, FieldType, OrderByClause, Subquery } from 'soql-parser-js';
-import { orderStringsBy } from '@jetstream/shared/utils';
+import { ComposeFieldTypeof, FieldType, getField, OrderByClause, Subquery } from 'soql-parser-js';
 
 export const sObjectsState = atom<DescribeGlobalSObjectResult[]>({
   key: 'query.sObjectsState',
@@ -29,12 +37,12 @@ export const queryFieldsMapState = atom<MapOf<QueryFields>>({
   default: {},
 });
 
-export const selectedQueryFieldsState = atom<string[]>({
+export const selectedQueryFieldsState = atom<QueryFieldWithPolymorphic[]>({
   key: 'query.selectedQueryFieldsState',
   default: [],
 });
 
-export const selectedSubqueryFieldsState = atom<MapOf<string[]>>({
+export const selectedSubqueryFieldsState = atom<MapOf<QueryFieldWithPolymorphic[]>>({
   key: 'query.selectedSubqueryFieldsState',
   default: {},
 });
@@ -42,7 +50,7 @@ export const selectedSubqueryFieldsState = atom<MapOf<string[]>>({
 export const selectQueryField = selector<FieldType[]>({
   key: 'query.selectQueryField',
   get: ({ get }) => {
-    let fields = get(selectedQueryFieldsState).map((field) => getField(field));
+    let fields = convertFieldWithPolymorphicToQueryFields(get(selectedQueryFieldsState));
     const fieldsByChildRelName = get(selectedSubqueryFieldsState);
     // Concat subquery fields
     fields = fields.concat(
@@ -51,7 +59,7 @@ export const selectQueryField = selector<FieldType[]>({
         .filter((relationshipName) => fieldsByChildRelName[relationshipName].length > 0)
         .map((relationshipName) => {
           const subquery: Subquery = {
-            fields: fieldsByChildRelName[relationshipName].map((field) => getField(field)),
+            fields: convertFieldWithPolymorphicToQueryFields(fieldsByChildRelName[relationshipName]),
             relationshipName,
           };
           return getField({ subquery });

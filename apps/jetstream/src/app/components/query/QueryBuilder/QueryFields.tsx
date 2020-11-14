@@ -1,11 +1,10 @@
 import { logger } from '@jetstream/shared/client-logger';
 import { fetchFields, getFieldKey, sortQueryFieldsStr } from '@jetstream/shared/ui-utils';
-import { FieldWrapper, MapOf, QueryFields, SalesforceOrgUi } from '@jetstream/types';
+import { FieldWrapper, MapOf, QueryFields, SalesforceOrgUi, QueryFieldWithPolymorphic } from '@jetstream/types';
 import { AutoFullHeightContainer, SobjectFieldList } from '@jetstream/ui';
 import isEmpty from 'lodash/isEmpty';
 import React, { Fragment, FunctionComponent, useEffect, useState } from 'react';
 import { useRecoilState, useRecoilValue, useSetRecoilState } from 'recoil';
-import { orderStringsBy } from '@jetstream/shared/utils';
 import { selectedOrgState } from '../../../app-state';
 import * as fromQueryState from '../query.state';
 
@@ -14,7 +13,7 @@ const CHILD_FIELD_SEPARATOR = `~`;
 
 export interface QueryFieldsProps {
   selectedSObject: string;
-  onSelectionChanged: (fields: string[]) => void;
+  onSelectionChanged: (fields: { field: string; polymorphicObj: string }[]) => void;
   // onFieldsFetched: (queryFields: MapOf<QueryFields>) => void;
 }
 
@@ -45,6 +44,7 @@ export const QueryFieldsComponent: FunctionComponent<QueryFieldsProps> = ({ sele
           key: BASE_KEY,
           expanded: true,
           loading: true,
+          isPolymorphic: false,
           hasError: false,
           filterTerm: '',
           sobject: selectedSObject,
@@ -78,26 +78,42 @@ export const QueryFieldsComponent: FunctionComponent<QueryFieldsProps> = ({ sele
   }, [selectedOrg, selectedSObject]);
 
   function emitSelectedFieldsChanged(fieldsMap: MapOf<QueryFields> = queryFieldsMap) {
-    const fields = sortQueryFieldsStr(
-      orderStringsBy(
-        Object.values(fieldsMap)
-          .filter((queryField) => !queryField.key.includes(CHILD_FIELD_SEPARATOR))
-          .flatMap((queryField) => {
-            const basePath = queryField.key.replace(/.+\|/, '');
-            return Array.from(queryField.selectedFields).map((fieldKey) => `${basePath}${fieldKey}`);
-          })
-      )
-    );
+    // const fields: QueryFieldWithPolymorphic[] = Object.values(fieldsMap)
+    //   .filter((queryField) => !queryField.key.includes(CHILD_FIELD_SEPARATOR))
+    //   .flatMap((queryField) => {
+    //     const basePath = queryField.key.replace(/.+\|/, '');
+    //     return sortQueryFieldsStr(Array.from(queryField.selectedFields))
+    //       .map((fieldKey) => `${basePath}${fieldKey}`)
+    //       .map((field) => ({ field, polymorphicObj: queryField.isPolymorphic ? queryField.sobject : undefined }));
+    //   });
+
+    // const fields = sortQueryFieldsStr(
+    //   orderStringsBy(
+    //     Object.values(fieldsMap)
+    //       .filter((queryField) => !queryField.key.includes(CHILD_FIELD_SEPARATOR))
+    //       .flatMap((queryField) => {
+    //         const basePath = queryField.key.replace(/.+\|/, '');
+    //         return Array.from(queryField.selectedFields).map((fieldKey) => `${basePath}${fieldKey}`);
+    //       })
+    //   )
+    // );
+    const fields: QueryFieldWithPolymorphic[] = Object.values(fieldsMap)
+      .filter((queryField) => !queryField.key.includes(CHILD_FIELD_SEPARATOR))
+      .flatMap((queryField) => {
+        const basePath = queryField.key.replace(/.+\|/, '');
+        return sortQueryFieldsStr(Array.from(queryField.selectedFields))
+          .map((fieldKey) => `${basePath}${fieldKey}`)
+          .map((field) => ({ field, polymorphicObj: queryField.isPolymorphic ? queryField.sobject : undefined }));
+      });
+
     onSelectionChanged(fields);
   }
 
-  async function handleToggleFieldExpand(parentKey: string, field: FieldWrapper) {
-    // FIXME: should be centralized:
-    // const key = `${parentKey}${field.metadata.relationshipName}.`;
+  async function handleToggleFieldExpand(parentKey: string, field: FieldWrapper, relatedSobject: string) {
     const key = getFieldKey(parentKey, field.metadata);
     // if field is already initialized
     const clonedQueryFieldsMap = { ...queryFieldsMap };
-    if (clonedQueryFieldsMap[key]) {
+    if (clonedQueryFieldsMap[key] && clonedQueryFieldsMap[key].sobject === relatedSobject) {
       clonedQueryFieldsMap[key] = { ...clonedQueryFieldsMap[key], expanded: !clonedQueryFieldsMap[key].expanded };
     } else {
       // this is a new expansion that we have not seen, we need to fetch the fields and init the object
@@ -107,7 +123,8 @@ export const QueryFieldsComponent: FunctionComponent<QueryFieldsProps> = ({ sele
         loading: true,
         hasError: false,
         filterTerm: '',
-        sobject: field.relatedSobject as string,
+        sobject: relatedSobject,
+        isPolymorphic: Array.isArray(field.relatedSobject),
         fields: {},
         visibleFields: new Set(),
         selectedFields: new Set(),

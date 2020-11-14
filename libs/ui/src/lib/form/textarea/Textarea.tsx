@@ -1,5 +1,6 @@
 import React, { FunctionComponent, Fragment, ReactNode } from 'react';
 import HelpText from '../../widgets/HelpText';
+import classNames from 'classnames';
 
 export interface TextareaProps {
   id: string;
@@ -24,7 +25,7 @@ export const Textarea: FunctionComponent<TextareaProps> = ({
   children,
 }) => {
   return (
-    <div className="slds-form-element">
+    <div className={classNames('slds-form-element', { 'slds-has-error': hasError })}>
       {label && (
         <Fragment>
           <label className="slds-form-element__label" htmlFor={id}>

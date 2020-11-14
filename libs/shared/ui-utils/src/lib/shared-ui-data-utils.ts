@@ -52,22 +52,30 @@ export async function fetchFields(org: SalesforceOrgUi, queryFields: QueryFields
   const fields: MapOf<FieldWrapper> = getMapOf(
     describeResults.fields.map((field: Field & { typeLabel: string }) => {
       const type = field.typeLabel;
+
       const filterText = `${field.name || ''}${field.label || ''}${type}${type.replace(REGEX.NOT_ALPHA, '')}`.toLowerCase();
+      let relatedSobject: string | string[];
+      if (field.type === 'reference' && field.relationshipName && field.referenceTo?.length) {
+        relatedSobject = field.referenceTo.length === 1 ? field.referenceTo[0] : field.referenceTo;
+      }
+
       // setup custom metadata lookup fields to pull mocked lookup data for relationship
       if (isCustomMetadata && field.extraTypeInfo === 'externallookup') {
         field.type = 'reference';
         field.referenceTo = ['@EntityDefinition'];
         field.relationshipName = field.name.replace('__c', '__r');
       }
+
       return {
         name: field.name,
         label: field.label,
         type,
         sobject,
-        relatedSobject: field.type === 'reference' && field.referenceTo?.length ? field.referenceTo[0] : undefined,
+        relatedSobject,
         filterText,
         metadata: field,
-        relationshipKey: field.type === 'reference' && field.referenceTo?.length ? getFieldKey(parentKey, field) : undefined,
+        relationshipKey:
+          field.type === 'reference' && field.relationshipName && field.referenceTo?.length ? getFieldKey(parentKey, field) : undefined,
       };
     }),
     'name'
