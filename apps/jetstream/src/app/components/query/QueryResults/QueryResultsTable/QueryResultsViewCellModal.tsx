@@ -5,12 +5,13 @@ import { jsx } from '@emotion/core';
 import { logger } from '@jetstream/shared/client-logger';
 import { QueryFieldHeader, SalesforceOrgUi } from '@jetstream/types';
 import { DataTable, Icon, Modal } from '@jetstream/ui';
-import { Fragment, FunctionComponent, useState } from 'react';
+import { Fragment, FunctionComponent, useEffect, useState } from 'react';
 import { Column } from 'react-table';
 import { getQueryResultsCellContents } from './query-results-table-utils';
 import { queryResultColumnToTypeLabel } from '@jetstream/shared/utils';
 // eslint-disable-next-line @typescript-eslint/no-empty-interface
 export interface QueryResultsViewCellModalProps {
+  parentRecord?: any;
   field: QueryFieldHeader;
   serverUrl: string;
   org: SalesforceOrgUi;
@@ -19,14 +20,60 @@ export interface QueryResultsViewCellModalProps {
   headers?: string[];
 }
 
-export const QueryResultsViewCellModal: FunctionComponent<QueryResultsViewCellModalProps> = ({ field, serverUrl, org, value, headers }) => {
+export const QueryResultsViewCellModal: FunctionComponent<QueryResultsViewCellModalProps> = ({
+  parentRecord,
+  field,
+  serverUrl,
+  org,
+  value,
+  headers,
+}) => {
   const [isOpen, setIsOpen] = useState<boolean>(false);
+  const [modalHeader, setModalHeader] = useState<string>();
+  const [modalTagline, setModalTagline] = useState<string>();
   const [hasNoData, setHasNoData] = useState<boolean>(false);
   const [columns, setColumns] = useState<Column<any>[]>(null);
   const [rows, setRows] = useState<any[]>(null);
 
+  function calculateHeader() {
+    if (!modalTagline && !!parentRecord) {
+      let currModalTagline: string;
+      let recordName: string;
+      let recordId: string;
+      try {
+        if (parentRecord.Name) {
+          recordName = parentRecord.Name;
+        }
+        if (parentRecord?.Id) {
+          recordId = parentRecord.Id;
+        } else if (parentRecord?.attributes?.url) {
+          recordId = parentRecord.attributes.url.substring(parentRecord.attributes.url.lastIndexOf('/') + 1);
+        }
+      } catch (ex) {
+        // ignore error
+      } finally {
+        // if we have name and id, then show both, otherwise only show one or the other
+        if (recordName || recordId) {
+          currModalTagline = 'Parent Record: ';
+          if (recordName) {
+            currModalTagline += recordName;
+          }
+          if (recordName && recordId) {
+            currModalTagline += ` (${recordId})`;
+          } else if (recordId) {
+            currModalTagline += recordId;
+          }
+        }
+        if (currModalTagline) {
+          setModalTagline(currModalTagline);
+        }
+      }
+    }
+  }
+
   function handleOpen() {
     if (!columns) {
+      calculateHeader();
       // core path that will result in the best table outcome
       let tempColumnsWithMeta: QueryFieldHeader[];
       // fallback if we do not have field metadata - will not render all fields
@@ -97,13 +144,14 @@ export const QueryResultsViewCellModal: FunctionComponent<QueryResultsViewCellMo
     setIsOpen(true);
   }
 
+  // TODO: deprecate me!
   return (
     <Fragment>
       {isOpen && (
-        <Modal size="lg" closeOnBackdropClick onClose={() => setIsOpen(false)}>
+        <Modal size="lg" header={field.title} tagline={modalTagline} closeOnBackdropClick onClose={() => setIsOpen(false)}>
           <div className="slds-scrollable_x">
             {hasNoData && <span>There is no data to show.</span>}
-            {!hasNoData && columns && <DataTable columns={columns} data={rows} />}
+            {/* {!hasNoData && columns && <DataTable columns={columns} data={rows} />} */}
           </div>
         </Modal>
       )}

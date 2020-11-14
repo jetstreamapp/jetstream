@@ -14,7 +14,7 @@ export default {
 
 export const base = () => (
   <Combobox label={text('label', 'My Combobox')} onInputChange={action('onInputChange')}>
-    <ComboboxListItem id="item1" label="Item 1" selected={false} onSelection={action('selected')} />
+    <ComboboxListItem id="item1" label="Item 1" secondaryLabel="secondary label" selected={false} onSelection={action('selected')} />
     <ComboboxListItem id="item2" label="Item 2" selected={false} onSelection={action('selected')} />
     <ComboboxListItem id="item3" label="Item 3" selected={false} onSelection={action('selected')} />
     <ComboboxListItem id="item4" label="Item 4" selected={false} onSelection={action('selected')} />
@@ -24,6 +24,36 @@ export const base = () => (
     <ComboboxListItem id="item8" label="Item 8" selected={false} onSelection={action('selected')} />
     <ComboboxListItem id="item9" label="Item 9" selected={false} onSelection={action('selected')} />
     <ComboboxListItem id="item10" label="Item 10" selected={false} onSelection={action('selected')} />
+  </Combobox>
+);
+
+export const customContent = () => (
+  <Combobox label={text('label', 'My Combobox')} onInputChange={action('onInputChange')}>
+    <ComboboxListItem id="item10" label="Item 10" selected={false} onSelection={action('selected')} />
+    <ComboboxListItem id="item1" selected={false} onSelection={action('selected')}>
+      <span className="slds-listbox__option-text slds-listbox__option-text_entity">
+        <span title="AccountNumber" className="slds-truncate">
+          Account Number
+        </span>
+      </span>
+      <span className="slds-listbox__option-meta slds-listbox__option-meta_entity">
+        <span title="Account Number" className="slds-truncate">
+          AccountNumber
+        </span>
+      </span>
+    </ComboboxListItem>
+    <ComboboxListItem id="item2" selected={false} onSelection={action('selected')}>
+      <span className="slds-listbox__option-text slds-listbox__option-text_entity">
+        <span title="AccountNumber" className="slds-truncate">
+          Account Number
+        </span>
+      </span>
+      <span className="slds-listbox__option-meta slds-listbox__option-meta_entity">
+        <span title="Account Number" className="slds-truncate">
+          AccountNumber
+        </span>
+      </span>
+    </ComboboxListItem>
   </Combobox>
 );
 

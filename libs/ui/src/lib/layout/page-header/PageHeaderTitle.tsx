@@ -2,7 +2,7 @@
 import { jsx } from '@emotion/core';
 import { FunctionComponent } from 'react';
 import Icon from '../../widgets/Icon';
-import { IconObj } from '@jetstream/types';
+import { IconObj } from '@jetstream/icon-factory';
 import classNames from 'classnames';
 
 // eslint-disable-next-line @typescript-eslint/no-empty-interface
@@ -21,7 +21,7 @@ export const PageHeaderTitle: FunctionComponent<PageHeaderTitleProps> = ({ icon,
             type={icon.type}
             icon={icon.icon}
             description={icon.description}
-            className={`slds-icon slds-page-header__icon slds-icon-${icon.type}-${icon.icon}`}
+            className={`slds-icon slds-page-header__icon slds-icon-${icon.type}-${icon.icon?.replace('_', '-')}`}
           />
         </div>
         <div className="slds-media__body">

@@ -6,21 +6,19 @@
       "dependencies": "*",
       "devDependencies": "*"
     },
-    "tsconfig.json": "*",
     "tslint.json": "*",
-    "nx.json": "*"
+    "nx.json": "*",
+    "tsconfig.base.json": "*",
+    ".eslintrc.json": "*"
   },
   "tasksRunnerOptions": {
     "default": {
-      "runner": "@nrwl/workspace/tasks-runners/default",
+      "runner": "@nrwl/nx-cloud",
       "options": {
-        "cacheableOperations": [
-          "build",
-          "lint",
-          "test",
-          "e2e",
-          "build-storybook"
-        ]
+        "accessToken": "NDVhZTc2NDAtMjQ0Ni00YTk0LWI3MjktNzUwMmE3NTIzYWRjfHJlYWQtd3JpdGU=",
+        "cacheableOperations": ["build", "test", "lint", "e2e"],
+        "canTrackAnalytics": false,
+        "showUsageWarnings": true
       }
     }
   },
@@ -32,10 +30,11 @@
       "tags": []
     },
     "ui": {
-      "tags": []
+      "tags": ["ui"]
     },
     "types": {
-      "tags": []
+      "tags": [],
+      "implicitDependencies": ["icon-factory"]
     },
     "shared-utils": {
       "tags": []
@@ -48,9 +47,7 @@
     },
     "ui-e2e": {
       "tags": [],
-      "implicitDependencies": [
-        "ui"
-      ]
+      "implicitDependencies": ["ui"]
     },
     "shared-constants": {
       "tags": []
@@ -60,24 +57,26 @@
     },
     "jetstream-e2e": {
       "tags": [],
-      "implicitDependencies": [
-        "jetstream"
-      ]
+      "implicitDependencies": ["jetstream"]
     },
     "landing": {
       "tags": []
     },
     "landing-e2e": {
       "tags": [],
-      "implicitDependencies": [
-        "landing"
-      ]
+      "implicitDependencies": ["landing"]
     },
     "shared-node-utils": {
       "tags": []
     },
     "shared-client-logger": {
       "tags": []
+    },
+    "icon-factory": {
+      "tags": []
     }
+  },
+  "affected": {
+    "defaultBase": "master"
   }
 }

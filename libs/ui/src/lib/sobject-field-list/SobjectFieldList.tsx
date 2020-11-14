@@ -1,15 +1,18 @@
 /** @jsx jsx */
 import { css, jsx } from '@emotion/core';
+import { formatNumber } from '@jetstream/shared/ui-utils';
 import { FieldWrapper, MapOf, QueryFields, UpDown } from '@jetstream/types';
-import { isString } from 'lodash';
-import { Fragment, FunctionComponent, useEffect, useState, createRef } from 'react';
+import isString from 'lodash/isString';
+import { createRef, Fragment, FunctionComponent, useEffect, useState } from 'react';
 import Checkbox from '../form/checkbox/Checkbox';
 import SearchInput from '../form/search-input/SearchInput';
+import Grid from '../grid/Grid';
 import EmptyState from '../illustrations/EmptyState';
 import List from '../list/List';
 import Spinner from '../widgets/Spinner';
+import SobjectFieldListFilter from './SobjectFieldListFilter';
 import SobjectFieldListItem from './SobjectFieldListItem';
-import numeral from 'numeral';
+import { FilterType } from './SobjectFieldListTypes';
 
 function getBgColor(level: number): string {
   switch (level) {
@@ -38,7 +41,7 @@ export interface SobjectFieldListProps {
   sobject: string;
   onToggleExpand: (key: string, field: FieldWrapper, relatedSobject: string) => void;
   onSelectField: (key: string, field: FieldWrapper) => void;
-  onSelectAll: (key: string, value: boolean) => void;
+  onSelectAll: (key: string, value: boolean, impactedKeys: string[]) => void;
   onFilterChanged: (key: string, filterTerm: string) => void;
   errorReattempt: (key: string) => void;
 }
@@ -56,6 +59,7 @@ export const SobjectFieldList: FunctionComponent<SobjectFieldListProps> = ({
 }) => {
   const [queryFields, setQueryFields] = useState<QueryFields>(null);
   const [fieldLength, setFieldLength] = useState<number>(0);
+  const [activeFilter, setActiveFilter] = useState<FilterType>('all');
   const [filteredFields, setFilteredFields] = useState<FieldWrapper[]>(null);
   const [visibleFields, setVisibleFields] = useState<Set<string>>(null);
   const [selectAll, setSelectAll] = useState<boolean>(false);
@@ -73,10 +77,25 @@ export const SobjectFieldList: FunctionComponent<SobjectFieldListProps> = ({
 
   useEffect(() => {
     if (visibleFields) {
-      setFilteredFields(Array.from(visibleFields).map((key) => queryFields.fields[key]));
+      setFilteredFields(
+        Array.from(visibleFields)
+          .map((key) => queryFields.fields[key])
+          .filter((field) => {
+            switch (activeFilter) {
+              case 'creatable':
+                return field.metadata.createable;
+              case 'updateable':
+                return field.metadata.updateable;
+              case 'selected':
+                return queryFields.selectedFields.has(field.name);
+              default:
+                return true;
+            }
+          })
+      );
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [visibleFields]);
+  }, [visibleFields, activeFilter]);
 
   // when filtered fields changes, see if all fields are selected and possibly update allSelected state
   useEffect(() => {
@@ -92,7 +111,11 @@ export const SobjectFieldList: FunctionComponent<SobjectFieldListProps> = ({
   // When select all is explicitly modified, update field selection for visible fields
   function updateSelectAll(value: boolean) {
     setSelectAll(value);
-    onSelectAll(itemKey, value);
+    onSelectAll(
+      itemKey,
+      value,
+      filteredFields.map((field) => field.name)
+    );
   }
 
   function isFieldActive(field: FieldWrapper) {
@@ -129,6 +152,10 @@ export const SobjectFieldList: FunctionComponent<SobjectFieldListProps> = ({
     }
   }
 
+  function handleFilterChange(active: FilterType) {
+    setActiveFilter(active);
+  }
+
   return (
     <div
       className={`query-level-${level}`}
@@ -156,18 +183,26 @@ export const SobjectFieldList: FunctionComponent<SobjectFieldListProps> = ({
               onArrowKeyUpDown={handleSearchKeyboard}
             />
             <div className="slds-text-body_small slds-text-color_weak slds-p-left--xx-small">
-              Showing {numeral(filteredFields.length).format('0,0')} of {numeral(fieldLength).format('0,0')} fields
+              Showing {formatNumber(filteredFields.length)} of {formatNumber(fieldLength)} fields
             </div>
           </div>
-          <div className="slds-p-bottom--xx-small slds-p-left--xx-small slds-m-left--xx-small border-bottom-thick">
-            <Checkbox
-              id={`${itemKey}select-all-fields`}
-              checked={visibleFields.size > 0 && selectAll}
-              label={`Select All (${visibleFields.size})`}
-              disabled={visibleFields.size === 0}
-              onChange={updateSelectAll}
-            />
-          </div>
+          <Grid
+            align="spread"
+            className="slds-p-bottom--xx-small slds-p-horizontal--xx-small slds-m-horizontal--xx-small border-bottom-thick"
+          >
+            <div>
+              <Checkbox
+                id={`${itemKey}select-all-fields`}
+                checked={filteredFields.length > 0 && selectAll}
+                label={`Select All (${filteredFields.length})`}
+                disabled={filteredFields.length === 0}
+                onChange={updateSelectAll}
+              />
+            </div>
+            <div>
+              <SobjectFieldListFilter active={activeFilter} onChange={handleFilterChange} />
+            </div>
+          </Grid>
           <List
             ref={ulRef}
             items={filteredFields}

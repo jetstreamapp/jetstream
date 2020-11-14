@@ -7,8 +7,9 @@ import { WorkerMessage } from '@jetstream/types';
 import { Fragment, FunctionComponent, useEffect, useState } from 'react';
 import { useRecoilState, useRecoilValue } from 'recoil';
 import { Query } from 'soql-parser-js';
-import QueryWorker from '../../../workers/query.worker';
+// import QueryWorker from '../../../workers/query.worker';
 import * as fromQueryState from '../query.state';
+import { composeSoqlQuery } from '../utils/query-utils';
 
 /**
  * This component ensures that the entire state tree is not re-rendered each time some query element needs to be modified
@@ -27,52 +28,53 @@ export const QueryBuilderSoqlUpdater: FunctionComponent = () => {
 
   const debouncedFilters = useDebounce(filters);
 
-  const [queryWorker] = useState(() => new QueryWorker());
+  // const [queryWorker] = useState(() => new QueryWorker());
 
   useEffect(() => {
     if (!!selectedSObject && selectedFields?.length > 0) {
-      if (queryWorker) {
-        const query: Query = {
-          sObject: selectedSObject.name,
-          fields: selectedFields,
-          orderBy: orderByClauses,
-          limit: queryLimit,
-          offset: queryLimitSkip,
-        };
-        queryWorker.postMessage({
-          name: 'composeQuery',
-          data: {
-            query: query,
-            whereExpression: debouncedFilters,
-          },
-        });
-      }
+      const query: Query = {
+        sObject: selectedSObject.name,
+        fields: selectedFields,
+        orderBy: orderByClauses,
+        limit: queryLimit,
+        offset: queryLimitSkip,
+      };
+      setSoql(composeSoqlQuery(query, debouncedFilters));
+      // if (queryWorker) {
+      //   queryWorker.postMessage({
+      //     name: 'composeQuery',
+      //     data: {
+      //       query: query,
+      //       whereExpression: debouncedFilters,
+      //     },
+      //   });
+      // }
     } else if (soql !== '') {
       setSoql('');
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedSObject, selectedFields, debouncedFilters, orderByClauses, queryLimit, queryLimitSkip]);
 
-  useEffect(() => {
-    if (queryWorker) {
-      queryWorker.onmessage = (event: MessageEvent) => {
-        const payload: WorkerMessage<'composeQuery', string> = event.data;
-        logger.log({ payload });
-        switch (payload.name) {
-          case 'composeQuery': {
-            if (payload.error) {
-              // TODO:
-            } else {
-              setSoql(payload.data);
-            }
-            break;
-          }
-          default:
-            break;
-        }
-      };
-    }
-  }, [queryWorker, setSoql]);
+  // useEffect(() => {
+  //   if (queryWorker) {
+  //     queryWorker.onmessage = (event: MessageEvent) => {
+  //       const payload: WorkerMessage<'composeQuery', string> = event.data;
+  //       logger.log({ payload });
+  //       switch (payload.name) {
+  //         case 'composeQuery': {
+  //           if (payload.error) {
+  //             // TODO:
+  //           } else {
+  //             setSoql(payload.data);
+  //           }
+  //           break;
+  //         }
+  //         default:
+  //           break;
+  //       }
+  //     };
+  //   }
+  // }, [queryWorker, setSoql]);
 
   return <Fragment />;
 };

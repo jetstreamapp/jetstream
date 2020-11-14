@@ -1,6 +1,7 @@
 /* eslint-disable jsx-a11y/anchor-is-valid */
 import { isArrowDownKey, isArrowUpKey, isEnterOrSpace } from '@jetstream/shared/ui-utils';
-import { DropDownItem, IconObj } from '@jetstream/types';
+import { DropDownItem } from '@jetstream/types';
+import { IconObj } from '@jetstream/icon-factory';
 import classNames from 'classnames';
 import isNumber from 'lodash/isNumber';
 import isString from 'lodash/isString';
@@ -108,6 +109,12 @@ export const DropDown: FunctionComponent<DropDownProps> = ({
     }
   }
 
+  function handleSelection(event: React.MouseEvent<HTMLAnchorElement, MouseEvent>, id: string, metadata?: any) {
+    event.preventDefault();
+    setIsOpen(false);
+    onSelected(id, metadata);
+  }
+
   return (
     <OutsideClickHandler onOutsideClick={() => setIsOpen(false)}>
       <div className={classNames('slds-dropdown-trigger slds-dropdown-trigger_click', { 'slds-is-open': isOpen })}>
@@ -148,7 +155,7 @@ export const DropDown: FunctionComponent<DropDownProps> = ({
           )}
         >
           <ul className="slds-dropdown__list" role="menu" aria-label={actionText}>
-            {items.map(({ id, subheader, value, icon, metadata }, i) => (
+            {items.map(({ id, subheader, value, icon, trailingDivider, metadata }, i) => (
               <Fragment key={id}>
                 {subheader && (
                   <li className="slds-dropdown__header slds-truncate" title={subheader} role="separator">
@@ -161,10 +168,7 @@ export const DropDown: FunctionComponent<DropDownProps> = ({
                     role="menuitem"
                     tabIndex={0}
                     onKeyUp={handleKeyUp}
-                    onClick={(event) => {
-                      event.preventDefault();
-                      onSelected(id, metadata);
-                    }}
+                    onClick={(event) => handleSelection(event, id, metadata)}
                   >
                     {isString(value) ? (
                       <span className="slds-truncate" title={value}>
@@ -184,6 +188,7 @@ export const DropDown: FunctionComponent<DropDownProps> = ({
                     )}
                   </a>
                 </li>
+                {trailingDivider && <li className="slds-has-divider_top-space" role="separator"></li>}
               </Fragment>
             ))}
           </ul>

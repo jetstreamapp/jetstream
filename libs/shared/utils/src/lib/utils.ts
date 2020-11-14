@@ -1,6 +1,15 @@
-import { orderBy, isString, get as lodashGet, isBoolean } from 'lodash';
-import { MapOf, Record, QueryFieldWithPolymorphic } from '@jetstream/types';
-import { isObject } from 'util';
+import { orderBy, isString, get as lodashGet, isBoolean, isNil, isObject } from 'lodash';
+import {
+  MapOf,
+  Record,
+  QueryFieldWithPolymorphic,
+  BulkJob,
+  BulkJobUntyped,
+  BulkJobBatchInfo,
+  BulkJobBatchInfoUntyped,
+  InsertUpdateUpsertDelete,
+  HttpMethod,
+} from '@jetstream/types';
 import { REGEX } from './regex';
 import { unix } from 'moment-mini';
 import { QueryResults, QueryResultsColumn } from '@jetstream/api-interfaces';
@@ -45,13 +54,38 @@ export function populateFromMapOf<T>(mapOf: MapOf<T>, items: string[]): T[] {
 }
 
 export function flattenRecords(records: Record[], fields: string[]): MapOf<string>[] {
-  return records.map((record) => {
-    return fields.reduce((obj, field) => {
-      const value = lodashGet(record, field);
-      obj[field] = isObject(value) ? JSON.stringify(value).replace(REGEX.LEADING_TRAILING_QUOTES, '') : value;
-      return obj;
-    }, {});
+  return records.map((record) => flattenRecord(record, fields));
+}
+
+export function flattenRecord(record: Record, fields: string[]): MapOf<string> {
+  return fields.reduce((obj, field) => {
+    const value = lodashGet(record, field);
+    obj[field] = isObject(value) ? JSON.stringify(value).replace(REGEX.LEADING_TRAILING_QUOTES, '') : value;
+    return obj;
+  }, {});
+}
+
+export function splitArrayToMaxSize<T = unknown>(items: T[], maxSize: number): T[][] {
+  if (!maxSize || maxSize < 1) {
+    throw new Error('maxSize must be greater than 0');
+  }
+  if (!items || items.length === 0) {
+    return [[]];
+  }
+  let output = [];
+  let currSet = [];
+  items.forEach((item) => {
+    if (currSet.length < maxSize) {
+      currSet.push(item);
+    } else {
+      output.push(currSet);
+      currSet = [item];
+    }
   });
+  if (currSet.length > 0) {
+    output.push(currSet);
+  }
+  return output;
 }
 
 export function toBoolean(value: boolean | string | null | undefined, defaultValue: boolean = false) {
@@ -203,4 +237,79 @@ export function convertFieldWithPolymorphicToQueryFields(inputFields: QueryField
   }
 
   return outputFields;
+}
+
+export function ensureBoolean(value: string | boolean | null | undefined) {
+  if (isBoolean(value)) {
+    return value;
+  } else if (isString(value)) {
+    return value.toLowerCase().startsWith('t');
+  }
+  return !!value;
+}
+
+export function ensureArray<T = unknown>(value: T): T {
+  if (isNil(value)) {
+    return [] as any;
+  }
+  return (Array.isArray(value) ? value : [value]) as any;
+}
+
+/**
+ * Returns a promise that is delayed by {milliseconds}
+ * @param milliseconds
+ */
+export async function delay(milliseconds: number) {
+  // return await for better async stack trace support in case of errors.
+  return await new Promise((resolve) => setTimeout(resolve, milliseconds));
+}
+
+export function isValidDate(date: Date) {
+  return date instanceof Date && !isNaN(date.getTime());
+}
+
+export function bulkApiEnsureTyped(job: BulkJobBatchInfo | BulkJobBatchInfoUntyped): BulkJobBatchInfo;
+export function bulkApiEnsureTyped(job: BulkJob | BulkJobUntyped): BulkJob;
+export function bulkApiEnsureTyped(job: any | any): BulkJob | BulkJobBatchInfo {
+  if (!isObject(job)) {
+    return job as BulkJob | BulkJobBatchInfo;
+  }
+  const numberTypes = [
+    'apexProcessingTime',
+    'apiActiveProcessingTime',
+    'apiVersion',
+    'numberBatchesCompleted',
+    'numberBatchesFailed',
+    'numberBatchesInProgress',
+    'numberBatchesQueued',
+    'numberBatchesTotal',
+    'numberRecordsFailed',
+    'numberRecordsProcessed',
+    'numberRetries',
+    'totalProcessingTime',
+  ];
+  if (job['$']) {
+    job['$'] = undefined;
+  }
+  if (job['@xmlns']) {
+    job['@xmlns'] = undefined;
+  }
+  numberTypes.forEach((prop) => {
+    if (job.hasOwnProperty(prop) && typeof job[prop] === 'string') {
+      job[prop] = Number(job[prop]);
+    }
+  });
+  return job as BulkJob | BulkJobBatchInfo;
+}
+
+export function getHttpMethod(type: InsertUpdateUpsertDelete): HttpMethod {
+  switch (type) {
+    case 'UPDATE':
+    case 'UPSERT':
+      return 'PATCH';
+    case 'DELETE':
+      return 'DELETE';
+    default:
+      return 'POST';
+  }
 }

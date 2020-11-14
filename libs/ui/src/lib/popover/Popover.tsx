@@ -5,7 +5,7 @@ import uniqueId from 'lodash/uniqueId';
 import { FunctionComponent, useState, useEffect } from 'react';
 import PopoverContent from './PopoverContent';
 import { Placement } from 'tippy.js';
-import { isBoolean } from 'lodash';
+import isBoolean from 'lodash/isBoolean';
 import { SmallMediumLargeFullWidth } from '@jetstream/types';
 
 // TODO: use popper to detect nubbin position
@@ -64,8 +64,8 @@ export const Popover: FunctionComponent<PopoverProps> = ({
       visible={visible}
       placement={placement}
       onClickOutside={() => setVisible(false)}
-      interactive={true}
-      allowHTML={true}
+      interactive
+      allowHTML
       onShow={() => onOpen && onOpen()}
       onHide={() => onClose && onClose()}
       render={(attrs) => {

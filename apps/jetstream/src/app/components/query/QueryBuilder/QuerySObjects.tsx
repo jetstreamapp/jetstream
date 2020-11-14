@@ -1,53 +1,49 @@
-import { logger } from '@jetstream/shared/client-logger';
-import { describeGlobal } from '@jetstream/shared/data';
-import { orderObjectsBy } from '@jetstream/shared/utils';
 import { SalesforceOrgUi } from '@jetstream/types';
-import { SobjectList } from '@jetstream/ui';
+import { ConnectedSobjectList } from '@jetstream/ui';
 import { DescribeGlobalSObjectResult } from 'jsforce';
-import React, { Fragment, FunctionComponent, useEffect, useState } from 'react';
-import { useRecoilState, useRecoilValue } from 'recoil';
+import React, { Fragment, FunctionComponent } from 'react';
+import { useRecoilState, useRecoilValue, useResetRecoilState } from 'recoil';
 import { selectedOrgState } from '../../../app-state';
 import * as fromQueryState from '../query.state';
 
-// eslint-disable-next-line @typescript-eslint/no-empty-interface
-export interface QuerySObjectsProps {}
-
-export const QuerySObjects: FunctionComponent<QuerySObjectsProps> = () => {
+export const QuerySObjects: FunctionComponent = () => {
+  const selectedOrg = useRecoilValue<SalesforceOrgUi>(selectedOrgState);
   const [sobjects, setSobjects] = useRecoilState(fromQueryState.sObjectsState);
   const [selectedSObject, setSelectedSObject] = useRecoilState(fromQueryState.selectedSObjectState);
-  const [loading, setLoading] = useState<boolean>(false);
-  const [errorMessage, setErrorMessage] = useState<string>(null);
-  const selectedOrg = useRecoilValue<SalesforceOrgUi>(selectedOrgState);
+  const resetSelectedSubqueryFieldsState = useResetRecoilState(fromQueryState.selectedSubqueryFieldsState);
+  const resetQueryFiltersState = useResetRecoilState(fromQueryState.queryFiltersState);
+  const resetQueryOrderByState = useResetRecoilState(fromQueryState.queryOrderByState);
+  const resetQueryLimit = useResetRecoilState(fromQueryState.queryLimit);
+  const resetQueryLimitSkip = useResetRecoilState(fromQueryState.queryLimitSkip);
+  const resetQuerySoqlState = useResetRecoilState(fromQueryState.querySoqlState);
+  const resetQueryChildRelationships = useResetRecoilState(fromQueryState.queryChildRelationships);
+  const resetQueryFieldsMapState = useResetRecoilState(fromQueryState.queryFieldsMapState);
+  const resetQueryFieldsKey = useResetRecoilState(fromQueryState.queryFieldsKey);
 
-  useEffect(() => {
-    if (selectedOrg && !loading && !errorMessage && !sobjects) {
-      (async () => {
-        setLoading(true);
-        try {
-          const results = await describeGlobal(selectedOrg);
-          setSobjects(orderObjectsBy(results.sobjects.filter(filterSobjectFn), 'label'));
-        } catch (ex) {
-          logger.error(ex);
-          setErrorMessage(ex.message);
-        }
-        setLoading(false);
-      })();
+  function handleSobjectChange(sobjects: DescribeGlobalSObjectResult[]) {
+    setSobjects(sobjects);
+    if (!sobjects) {
+      // sobjects cleared, reset other state
+      resetQueryFieldsMapState();
+      resetQueryFieldsKey();
+      resetSelectedSubqueryFieldsState();
+      resetQueryFiltersState();
+      resetQueryOrderByState();
+      resetQueryLimit();
+      resetQueryLimitSkip();
+      resetQuerySoqlState();
+      resetQueryChildRelationships();
     }
-  }, [selectedOrg, loading, errorMessage, sobjects, setSobjects]);
-
-  function filterSobjectFn(sobject: DescribeGlobalSObjectResult): boolean {
-    return sobject.queryable && !sobject.name.endsWith('CleanInfo');
   }
 
   return (
     <Fragment>
-      <SobjectList
+      <ConnectedSobjectList
+        selectedOrg={selectedOrg}
         sobjects={sobjects}
         selectedSObject={selectedSObject}
-        loading={loading}
-        errorMessage={errorMessage}
-        onSelected={setSelectedSObject}
-        errorReattempt={() => setErrorMessage(null)}
+        onSobjects={handleSobjectChange}
+        onSelectedSObject={setSelectedSObject}
       />
     </Fragment>
   );

@@ -1,21 +1,75 @@
 /** @jsx jsx */
 import { css, jsx } from '@emotion/core';
-import { UserProfile } from '@jetstream/types';
+import { FEATURE_FLAGS } from '@jetstream/shared/constants';
+import { hasFeatureFlagAccess } from '@jetstream/shared/ui-utils';
+import { UserProfileUi } from '@jetstream/types';
 import { ConfirmationServiceProvider } from '@jetstream/ui';
-import { Suspense, useState, lazy } from 'react';
-import { BrowserRouter as Router, Route, Switch, Redirect } from 'react-router-dom';
+import { Fragment, lazy, Suspense, useEffect, useState } from 'react';
+import { ErrorBoundary } from 'react-error-boundary';
+import { BrowserRouter as Router, Redirect, Route, RouteComponentProps, Switch } from 'react-router-dom';
 import { RecoilRoot } from 'recoil';
 import AppInitializer from './components/core/AppInitializer';
+import AppStateResetOnOrgChange from './components/core/AppStateResetOnOrgChange';
+import ErrorBoundaryFallback from './components/core/ErrorBoundaryFallback';
 import HeaderNavbar from './components/core/HeaderNavbar';
 import OrgSelectionRequired from './components/orgs/OrgSelectionRequired';
-import { ErrorBoundary } from 'react-error-boundary';
-import ErrorBoundaryFallback from './components/core/ErrorBoundaryFallback';
+import ModalContainer from 'react-modal-promise';
 
-const Query = lazy(() => import('./components/query/Query'));
+const AutomationControl = lazy(() => import('./components/automation-control/AutomationControl'));
 const Feedback = lazy(() => import('./components/feedback/Feedback'));
+const LoadRecords = lazy(() => import('./components/load-records/LoadRecords'));
+const Query = lazy(() => import('./components/query/Query'));
+
+interface RouteItem {
+  path: string;
+  flag?: string;
+  render: (props: RouteComponentProps<any>) => React.ReactNode;
+}
+
+const ROUTES: RouteItem[] = [
+  {
+    path: '/query',
+    flag: FEATURE_FLAGS.QUERY,
+    render: () => (
+      <OrgSelectionRequired>
+        <Query />
+      </OrgSelectionRequired>
+    ),
+  },
+  {
+    path: '/load',
+    flag: FEATURE_FLAGS.LOAD,
+    render: () => (
+      <OrgSelectionRequired>
+        <LoadRecords />
+      </OrgSelectionRequired>
+    ),
+  },
+  {
+    path: '/automation-control',
+    flag: FEATURE_FLAGS.AUTOMATION_CONTROL,
+    render: () => (
+      <OrgSelectionRequired>
+        <AutomationControl />
+      </OrgSelectionRequired>
+    ),
+  },
+  { path: '/feedback', render: () => <Feedback /> },
+  { path: '*', render: () => <Redirect to="/query" /> },
+];
 
 export const App = () => {
-  const [userProfile, setUserProfile] = useState<UserProfile>();
+  const [userProfile, setUserProfile] = useState<UserProfileUi>();
+  const [featureFlags, setFeatureFlags] = useState<Set<string>>(new Set());
+  const [routes, setRoutes] = useState<RouteItem[]>([]);
+
+  useEffect(() => {
+    if (userProfile && userProfile['http://getjetstream.app/app_metadata']?.featureFlags) {
+      const flags = new Set<string>(userProfile['http://getjetstream.app/app_metadata'].featureFlags.flags);
+      setRoutes(ROUTES.filter((route) => !route.flag || hasFeatureFlagAccess(flags, route.flag)));
+      setFeatureFlags(flags);
+    }
+  }, [userProfile]);
 
   return (
     <ConfirmationServiceProvider>
@@ -23,37 +77,33 @@ export const App = () => {
         {/* TODO: make better loading indicators for suspense (both global and localized versions - maybe SVG placeholders) */}
         <Suspense fallback={<div>Loading...</div>}>
           <AppInitializer onUserProfile={setUserProfile}>
-            <Router basename="/app">
-              <div>
+            <Fragment>
+              <ModalContainer />
+              <AppStateResetOnOrgChange />
+              <Router basename="/app">
                 <div>
-                  <HeaderNavbar userProfile={userProfile} />
-                </div>
-                <div
-                  className="slds-p-horizontal_small slds-p-vertical_xx-small"
-                  css={css`
-                    margin-top: 90px;
-                  `}
-                >
-                  <Suspense fallback={<div>Loading...</div>}>
-                    <ErrorBoundary FallbackComponent={ErrorBoundaryFallback}>
-                      <OrgSelectionRequired>
+                  <div>
+                    <HeaderNavbar userProfile={userProfile} featureFlags={featureFlags} />
+                  </div>
+                  <div
+                    className="slds-p-horizontal_small slds-p-vertical_xx-small"
+                    css={css`
+                      margin-top: 90px;
+                    `}
+                  >
+                    <Suspense fallback={<div>Loading...</div>}>
+                      <ErrorBoundary FallbackComponent={ErrorBoundaryFallback}>
                         <Switch>
-                          <Route path="/query">
-                            <Query />
-                          </Route>
-                          <Route path="/feedback">
-                            <Feedback />
-                          </Route>
-                          <Route path="*">
-                            <Redirect to="/query" />
-                          </Route>
+                          {routes.map((route) => (
+                            <Route key={route.path} path={route.path} render={route.render} />
+                          ))}
                         </Switch>
-                      </OrgSelectionRequired>
-                    </ErrorBoundary>
-                  </Suspense>
+                      </ErrorBoundary>
+                    </Suspense>
+                  </div>
                 </div>
-              </div>
-            </Router>
+              </Router>
+            </Fragment>
           </AppInitializer>
         </Suspense>
       </RecoilRoot>

@@ -1,8 +1,7 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 /** @jsx jsx */
 import { css, jsx } from '@emotion/core';
-import { logger } from '@jetstream/shared/client-logger';
-import { WorkerMessage, ListItemGroup, QueryFieldWithPolymorphic } from '@jetstream/types';
+import { QueryFieldWithPolymorphic } from '@jetstream/types';
 import {
   Accordion,
   AutoFullHeightContainer,
@@ -14,23 +13,23 @@ import {
   PageHeaderTitle,
   Tabs,
 } from '@jetstream/ui';
-import classNames from 'classnames';
 import { Fragment, FunctionComponent, useEffect, useState } from 'react';
 import { Link, useRouteMatch } from 'react-router-dom';
 import Split from 'react-split';
 import { useRecoilState, useRecoilValue, useResetRecoilState } from 'recoil';
-import QueryWorker from '../../../workers/query.worker';
+// import QueryWorker from '../../../workers/query.worker';
 import * as fromQueryState from '../query.state';
-import QueryBuilderSoqlUpdater from './QueryBuilderSoqlUpdater';
-import QueryFieldsComponent from './QueryFields';
+import QueryHistory from '../QueryHistory/QueryHistory';
 import QueryFilter from '../QueryOptions/QueryFilter';
 import QueryLimit from '../QueryOptions/QueryLimit';
 import QueryOrderBy from '../QueryOptions/QueryOrderBy';
-import SoqlTextarea from '../QueryOptions/SoqlTextarea';
-import QuerySObjects from './QuerySObjects';
 import QueryResetButton from '../QueryOptions/QueryResetButton';
+import SoqlTextarea from '../QueryOptions/SoqlTextarea';
+import { calculateSoqlQueryFilter } from '../utils/query-utils';
+import QueryBuilderSoqlUpdater from './QueryBuilderSoqlUpdater';
+import QueryFieldsComponent from './QueryFields';
+import QuerySObjects from './QuerySObjects';
 import QuerySubquerySObjects from './QuerySubquerySObjects';
-import QueryHistory from '../QueryHistory/QueryHistory';
 
 const HEIGHT_BUFFER = 170;
 // eslint-disable-next-line @typescript-eslint/no-empty-interface
@@ -54,25 +53,21 @@ export const QueryBuilder: FunctionComponent<QueryBuilderProps> = () => {
   const resetQueryLimit = useResetRecoilState(fromQueryState.queryLimit);
   const resetQueryLimitSkip = useResetRecoilState(fromQueryState.queryLimitSkip);
   const resetQuerySoqlState = useResetRecoilState(fromQueryState.querySoqlState);
-  const resetQueryFieldsMapState = useResetRecoilState(fromQueryState.queryFieldsMapState);
-  const resetQueryFieldsKey = useResetRecoilState(fromQueryState.queryFieldsKey);
   const resetQueryChildRelationships = useResetRecoilState(fromQueryState.queryChildRelationships);
 
   // FIXME: this is a hack and should not be here
   const [showRightHandPane, setShowRightHandPane] = useState(!!selectedSObject);
   const [priorSelectedSObject, setPriorSelectedSObject] = useState(selectedSObject);
 
-  const [queryWorker] = useState(() => new QueryWorker());
+  // const [queryWorker] = useState(() => new QueryWorker());
 
-  // FIXME: this is a hack and should not be here
   useEffect(() => {
     let timer1;
     if (!selectedSObject) {
       setShowRightHandPane(false);
       timer1 = undefined;
     } else {
-      setShowRightHandPane(false);
-      timer1 = setTimeout(() => setShowRightHandPane(true));
+      setShowRightHandPane(true);
     }
     return () => {
       if (timer1) {
@@ -83,10 +78,12 @@ export const QueryBuilder: FunctionComponent<QueryBuilderProps> = () => {
 
   useEffect(() => {
     if (queryFieldsMap && selectedSObject) {
-      queryWorker.postMessage({
-        name: 'calculateFilter',
-        data: queryFieldsMap,
-      });
+      // using worker:
+      // queryWorker.postMessage({
+      // name: 'calculateFilter',
+      // data: queryFieldsMap,
+      // });
+      setFilterFields(calculateSoqlQueryFilter(queryFieldsMap));
     } else {
       setFilterFields([]);
     }
@@ -98,7 +95,6 @@ export const QueryBuilder: FunctionComponent<QueryBuilderProps> = () => {
       setPriorSelectedSObject(selectedSObject);
     } else if (selectedSObject && selectedSObject.name !== priorSelectedSObject.name) {
       setPriorSelectedSObject(selectedSObject);
-      resetQueryFieldsMapState();
       resetQueryChildRelationships();
       resetSelectedSubqueryFieldsState();
       resetQueryFiltersState();
@@ -110,22 +106,22 @@ export const QueryBuilder: FunctionComponent<QueryBuilderProps> = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedSObject]);
 
-  useEffect(() => {
-    if (queryWorker) {
-      queryWorker.onmessage = (event: MessageEvent) => {
-        const payload: WorkerMessage<'calculateFilter', ListItemGroup[]> = event.data;
-        logger.log({ payload });
-        switch (payload.name) {
-          case 'calculateFilter': {
-            setFilterFields(payload.data);
-            break;
-          }
-          default:
-            break;
-        }
-      };
-    }
-  }, [queryWorker, setFilterFields]);
+  // useEffect(() => {
+  //   if (queryWorker) {
+  //     queryWorker.onmessage = (event: MessageEvent) => {
+  //       const payload: WorkerMessage<'calculateFilter', ListItemGroup[]> = event.data;
+  //       logger.log({ payload });
+  //       switch (payload.name) {
+  //         case 'calculateFilter': {
+  //           setFilterFields(payload.data);
+  //           break;
+  //         }
+  //         default:
+  //           break;
+  //       }
+  //     };
+  //   }
+  // }, [queryWorker, setFilterFields]);
 
   function handleSubquerySelectedField(relationshipName: string, fields: QueryFieldWithPolymorphic[]) {
     const tempSelectedSubqueryFieldsState = { ...selectedSubqueryFieldsState, [relationshipName]: fields };
@@ -141,12 +137,12 @@ export const QueryBuilder: FunctionComponent<QueryBuilderProps> = () => {
             <PageHeaderTitle icon={{ type: 'standard', icon: 'entity' }} label="Query Records" />
             <PageHeaderActions colType="actions" buttonType="separate">
               <QueryResetButton />
-              <button className={classNames('slds-button slds-button_neutral')} aria-haspopup="true" title="Favorites">
+              {/* <button className={classNames('slds-button slds-button_neutral')} aria-haspopup="true" title="Favorites">
                 <Icon type="utility" icon="favorite" className="slds-button__icon slds-button__icon_left" omitContainer />
                 View Favorites
-              </button>
+              </button> */}
               <QueryHistory />
-              {soql && (
+              {soql && selectedSObject && (
                 <Link
                   className="slds-button slds-button_brand"
                   to={{
@@ -185,12 +181,14 @@ export const QueryBuilder: FunctionComponent<QueryBuilderProps> = () => {
             `}
           >
             <div className="slds-p-horizontal_x-small">
-              <h2 className="slds-text-heading_medium slds-text-align_center">Objects</h2>
+              {/* <h2 className="slds-text-heading_medium slds-text-align_center">Objects</h2> */}
               <QuerySObjects />
             </div>
             <div className="slds-p-horizontal_x-small">
               {selectedSObject && (
                 <Tabs
+                  key={selectedSObject.name}
+                  initialActiveId="BaseFields"
                   tabs={[
                     {
                       id: 'BaseFields',
@@ -233,7 +231,7 @@ export const QueryBuilder: FunctionComponent<QueryBuilderProps> = () => {
                       ),
                       titleText: 'Related Objects (Subquery)',
                       content: (
-                        <AutoFullHeightContainer bottomBuffer={245}>
+                        <AutoFullHeightContainer bottomBuffer={10}>
                           <QuerySubquerySObjects childRelationships={childRelationships} onSelectionChanged={handleSubquerySelectedField} />
                         </AutoFullHeightContainer>
                       ),
@@ -257,7 +255,7 @@ export const QueryBuilder: FunctionComponent<QueryBuilderProps> = () => {
                       { id: 'limit', title: 'Limit', content: <QueryLimit /> },
                       { id: 'soql', title: 'Soql Query', content: <SoqlTextarea /> },
                     ]}
-                    allowMultiple={true}
+                    allowMultiple
                   ></Accordion>
                 )}
               </AutoFullHeightContainer>

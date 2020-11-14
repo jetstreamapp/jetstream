@@ -1,4 +1,5 @@
 import React, { FunctionComponent } from 'react';
+import { RightLeft } from '@jetstream/types';
 import classNames from 'classnames';
 
 export interface CheckboxCheckboxToggleProps {
@@ -7,7 +8,12 @@ export interface CheckboxCheckboxToggleProps {
   label: string;
   hideLabel?: boolean;
   disabled?: boolean;
-  onChange: (value: boolean) => void;
+  labelPosition?: RightLeft;
+  onText?: string;
+  offText?: string;
+  containerClassname?: string;
+  labelClassname?: string;
+  onChange?: (value: boolean) => void;
 }
 
 export const CheckboxToggle: FunctionComponent<CheckboxCheckboxToggleProps> = ({
@@ -16,26 +22,33 @@ export const CheckboxToggle: FunctionComponent<CheckboxCheckboxToggleProps> = ({
   label,
   disabled = false,
   hideLabel = false,
+  labelPosition = 'left',
+  onText = 'Enabled',
+  offText = 'Disabled',
+  containerClassname,
+  labelClassname,
   onChange,
 }) => {
   return (
-    <div className="slds-form-element">
-      <label className="slds-checkbox_toggle slds-grid">
-        {!hideLabel && <span className="slds-form-element__label slds-m-bottom_none">{label}</span>}
-        <input type="checkbox" name="checkbox-toggle-16" value="checkbox-toggle-16" />
+    <div className={classNames('slds-form-element', containerClassname)}>
+      <label className={classNames('slds-checkbox_toggle slds-grid', labelClassname)}>
+        {!hideLabel && labelPosition === 'left' && <span className="slds-form-element__label slds-m-bottom_none">{label}</span>}
         <input
           type="checkbox"
-          name="options"
+          name={id}
           aria-describedby={id}
           checked={checked}
           disabled={disabled}
-          onChange={(event) => onChange(event.target.checked)}
+          onChange={(event) => onChange && onChange(event.target.checked)}
         />
         <span id={id} className="slds-checkbox_faux_container" aria-live="assertive">
           <span className="slds-checkbox_faux"></span>
-          <span className="slds-checkbox_on">Enabled</span>
-          <span className="slds-checkbox_off">Disabled</span>
+          <span className="slds-checkbox_on">{onText}</span>
+          <span className="slds-checkbox_off">{offText}</span>
         </span>
+        {!hideLabel && labelPosition === 'right' && (
+          <span className="slds-form-element__label slds-m-left_xx-small slds-m-bottom_none">{label}</span>
+        )}
       </label>
     </div>
   );

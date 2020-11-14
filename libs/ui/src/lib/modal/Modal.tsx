@@ -1,10 +1,10 @@
-import React, { Fragment, FunctionComponent, useRef, useEffect } from 'react';
+import React, { Fragment, FunctionComponent, useRef, useEffect, KeyboardEvent, useState } from 'react';
 import Icon from '../widgets/Icon';
 import { SizeSmMdLg } from '@jetstream/types';
 import classNames from 'classnames';
-import { useHotkeys } from 'react-hotkeys-hook';
 import { createPortal } from 'react-dom';
-
+import { isEscapeKey } from '@jetstream/shared/ui-utils';
+import uniqueId from 'lodash/uniqueId';
 /* eslint-disable-next-line */
 export interface ModalProps {
   className?: string;
@@ -12,8 +12,10 @@ export interface ModalProps {
   tagline?: string | JSX.Element;
   footer?: JSX.Element;
   directionalFooter?: boolean;
+  footerClassName?: string;
   size?: SizeSmMdLg;
   containerClassName?: string;
+  closeOnEsc?: boolean;
   closeOnBackdropClick?: boolean;
   skipAutoFocus?: boolean;
   onClose: () => void;
@@ -71,24 +73,41 @@ export class Modal extends React.Component<ModalProps> {
 }
 
 export const ModalContent: FunctionComponent<ModalProps> = ({
+  className,
   header,
   tagline,
   footer,
   directionalFooter,
+  footerClassName,
   size,
   containerClassName,
+  closeOnEsc = true,
   closeOnBackdropClick,
   skipAutoFocus,
   children,
   onClose,
 }) => {
   const closeButtonRef = useRef(null);
+  const [modalId] = useState(uniqueId('modal-content'));
 
   useEffect(() => {
     if (!skipAutoFocus) {
       closeButtonRef.current.focus();
     }
   }, []);
+
+  function handleKeyUp(event: KeyboardEvent<HTMLInputElement>) {
+    if (closeOnEsc && isEscapeKey(event)) {
+      onClose();
+    }
+  }
+
+  // THIS DOES NOT WORK: the modal content is in front of this button ;(
+  function handleBackdropClick() {
+    if (closeOnBackdropClick) {
+      onClose();
+    }
+  }
 
   return (
     <Fragment>
@@ -98,7 +117,8 @@ export const ModalContent: FunctionComponent<ModalProps> = ({
         className={classNames(containerClassName || 'slds-modal slds-slide-up-open', getSizeClass(size))}
         aria-labelledby="modal"
         aria-modal="true"
-        aria-describedby="modal-content"
+        aria-describedby={modalId}
+        onKeyUp={handleKeyUp}
       >
         <div className="slds-modal__container">
           <header className={classNames('slds-modal__header', { 'slds-modal__header_empty': !header })}>
@@ -116,15 +136,21 @@ export const ModalContent: FunctionComponent<ModalProps> = ({
             </h2>
             {tagline && <p className="slds-m-top_x-small">{tagline}</p>}
           </header>
-          <div className="slds-modal__content slds-p-around_medium" id="modal-content">
+          <div className={classNames('slds-modal__content', className || 'slds-p-around_medium')} id={modalId}>
             {children}
           </div>
           {footer && (
-            <footer className={classNames('slds-modal__footer', { 'slds-modal__footer_directional': directionalFooter })}>{footer}</footer>
+            <footer className={classNames('slds-modal__footer', { 'slds-modal__footer_directional': directionalFooter }, footerClassName)}>
+              {footer}
+            </footer>
           )}
         </div>
       </section>
-      {<div className="slds-backdrop slds-backdrop_open"></div>}
+      {
+        <button aria-hidden="true" className="slds-backdrop slds-backdrop_open" onClick={handleBackdropClick}>
+          <span className="sr-only">Close Modal</span>
+        </button>
+      }
     </Fragment>
   );
 };

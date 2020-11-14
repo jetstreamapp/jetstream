@@ -31,7 +31,8 @@ type ChildListGroup = ComboboxListItemGroupProps & { children: React.ReactNode }
 
 export interface ComboboxProps {
   label: string;
-  helpText?: string;
+  labelHelp?: string;
+  helpText?: React.ReactNode | string;
   hideLabel?: boolean;
   placeholder?: string;
   noItemsPlaceholder?: string;
@@ -46,6 +47,8 @@ export interface ComboboxProps {
   };
   itemLength?: 5 | 7;
   hasError?: boolean;
+  errorMessageId?: string;
+  errorMessage?: React.ReactNode | string;
   onInputChange?: (value: string) => void;
   onLeadingDropdownChange?: (item: FormGroupDropdownItem) => void;
 }
@@ -57,19 +60,51 @@ function getContainer(hasGroup: boolean, children: React.ReactNode) {
   return <Fragment>{children}</Fragment>;
 }
 
-export const Combobox: FunctionComponent<ComboboxProps> = ({
+const iconLoading = (
+  <div className="slds-input__icon-group slds-input__icon-group_right">
+    <Spinner className="slds-spinner slds-spinner_brand slds-spinner_x-small slds-input__spinner" size="x-small" />
+    <Icon
+      type="utility"
+      icon="down"
+      className="slds-icon slds-icon slds-icon_x-small slds-icon-text-default"
+      containerClassname="slds-icon_container slds-icon-utility-down slds-input__icon slds-input__icon_right"
+    />
+  </div>
+);
+
+const iconNotLoading = (
+  <Icon
+    type="utility"
+    icon="down"
+    className="slds-icon slds-icon slds-icon_x-small slds-icon-text-default"
+    containerClassname="slds-icon_container slds-icon-utility-down slds-input__icon slds-input__icon_right"
+  />
+);
+
+/**
+ * Optimization to skip re-renders of parts of component
+ */
+export const Combobox: FunctionComponent<ComboboxProps> = (props) => (
+  <ComboboxElement {...props} icon={props.loading ? iconLoading : iconNotLoading} />
+);
+
+const ComboboxElement: FunctionComponent<ComboboxProps & { icon: JSX.Element }> = ({
   label,
+  labelHelp,
   helpText,
   hideLabel = false,
   placeholder = 'Select an Option',
   noItemsPlaceholder = 'There are no items for selection',
   disabled,
   loading,
+  icon,
   selectedItemLabel,
   selectedItemTitle,
   leadingDropdown,
   itemLength = 5,
   hasError,
+  errorMessageId,
+  errorMessage,
   children,
   onInputChange,
   onLeadingDropdownChange,
@@ -77,7 +112,7 @@ export const Combobox: FunctionComponent<ComboboxProps> = ({
   const [isOpen, setIsOpen] = useState<boolean>(false);
   const [id] = useState<string>(uniqueId('Combobox'));
   const [listId] = useState<string>(uniqueId('Combobox-list'));
-  const [value, setValue] = useState<string>('');
+  const [value, setValue] = useState<string>(selectedItemLabel || '');
   const [hasGroups, setHasGroups] = useState(false);
   const hasDropdownGroup = !!leadingDropdown && !!leadingDropdown.items?.length;
 
@@ -99,7 +134,9 @@ export const Combobox: FunctionComponent<ComboboxProps> = ({
     if (isOpen) {
       setValue('');
     } else {
-      setValue(selectedItemLabel || '');
+      if (value !== (selectedItemLabel || '')) {
+        setValue(selectedItemLabel || '');
+      }
     }
     if (onInputChange) {
       onInputChange('');
@@ -112,7 +149,7 @@ export const Combobox: FunctionComponent<ComboboxProps> = ({
     if (isOpen) {
       setIsOpen(false);
     }
-    if (value !== selectedItemLabel) {
+    if (value !== (selectedItemLabel || '')) {
       setValue(selectedItemLabel || '');
     }
   }, [selectedItemLabel]);
@@ -266,7 +303,7 @@ export const Combobox: FunctionComponent<ComboboxProps> = ({
       <label className={classNames('slds-form-element__label', { 'slds-assistive-text': hideLabel })} htmlFor={id}>
         {label}
       </label>
-      {helpText && <HelpText id={`${id}-label-help-text`} content={helpText} />}
+      {labelHelp && <HelpText id={`${id}-label-help-text`} content={labelHelp} />}
       <div className="slds-form-element__control">
         {getContainer(
           hasDropdownGroup,
@@ -301,6 +338,7 @@ export const Combobox: FunctionComponent<ComboboxProps> = ({
                     className={classNames('slds-input slds-combobox__input', { 'slds-text-color_error': hasError })}
                     id={id}
                     aria-controls={listId}
+                    aria-describedby={errorMessageId}
                     autoComplete="off"
                     placeholder={placeholder}
                     disabled={disabled}
@@ -309,26 +347,7 @@ export const Combobox: FunctionComponent<ComboboxProps> = ({
                     value={value}
                     title={selectedItemTitle || value}
                   />
-
-                  {loading && (
-                    <div className="slds-input__icon-group slds-input__icon-group_right">
-                      <Spinner className="slds-spinner slds-spinner_brand slds-spinner_x-small slds-input__spinner" size="x-small" />
-                      <Icon
-                        type="utility"
-                        icon="down"
-                        className="slds-icon slds-icon slds-icon_x-small slds-icon-text-default"
-                        containerClassname="slds-icon_container slds-icon-utility-down slds-input__icon slds-input__icon_right"
-                      />
-                    </div>
-                  )}
-                  {!loading && (
-                    <Icon
-                      type="utility"
-                      icon="down"
-                      className="slds-icon slds-icon slds-icon_x-small slds-icon-text-default"
-                      containerClassname="slds-icon_container slds-icon-utility-down slds-input__icon slds-input__icon_right"
-                    />
-                  )}
+                  {icon}
                 </div>
                 <div
                   id={listId}
@@ -353,6 +372,12 @@ export const Combobox: FunctionComponent<ComboboxProps> = ({
           </Fragment>
         )}
       </div>
+      {helpText && <div className="slds-form-element__help">{helpText}</div>}
+      {hasError && errorMessage && (
+        <div className="slds-form-element__help" id={errorMessageId}>
+          {errorMessage}
+        </div>
+      )}
     </div>
   );
 };

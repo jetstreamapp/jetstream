@@ -6,9 +6,13 @@ import {
   isArrowDownKey,
   isArrowUpKey,
   isControlKey,
-  isEnterOrSpace,
+  isEnterKey,
   isEscapeKey,
   isShiftKey,
+  isTabKey,
+  KeyBuffer,
+  selectMenuItemFromKeyboard,
+  trapEventImmediate,
 } from '@jetstream/shared/ui-utils';
 import { ListItem, ListItemGroup } from '@jetstream/types';
 import classNames from 'classnames';
@@ -26,7 +30,7 @@ export interface PicklistProps {
   label: string;
   helpText?: string;
   placeholder?: string;
-  items: ListItem[];
+  items?: ListItem[];
   groups?: ListItemGroup[];
   selectedItems?: ListItem[]; // This only applies on initialization, then the component will manage ongoing state
   selectedItemIds?: string[]; // This only applies on initialization, will be ignored if selectedItems is provided
@@ -52,6 +56,7 @@ export const Picklist: FunctionComponent<PicklistProps> = ({
   disabled,
   onChange,
 }) => {
+  const keyBuffer = useRef(new KeyBuffer());
   const [comboboxId] = useState<string>(uniqueId('picklist'));
   const [listboxId] = useState<string>(uniqueId('listbox'));
   const [isOpen, setIsOpen] = useState<boolean>(false);
@@ -174,8 +179,7 @@ export const Picklist: FunctionComponent<PicklistProps> = ({
     let newFocusedItem = focusedItem;
     if (isControlKey(event) || isShiftKey(event)) {
       return;
-    }
-    if (isEscapeKey(event) || isEnterOrSpace(event)) {
+    } else if (isTabKey(event) || isEscapeKey(event) || isEnterKey(event)) {
       setIsOpen(false);
       return;
     }
@@ -183,18 +187,38 @@ export const Picklist: FunctionComponent<PicklistProps> = ({
       setIsOpen(true);
     }
     if (isArrowDownKey(event)) {
+      trapEventImmediate(event);
       if (!isNumber(focusedItem) || focusedItem === items.length - 1) {
         newFocusedItem = 0;
       } else {
         newFocusedItem = newFocusedItem + 1;
       }
     } else if (isArrowUpKey(event)) {
+      trapEventImmediate(event);
       if (!isNumber(focusedItem) || focusedItem === 0) {
         newFocusedItem = items.length - 1;
       } else {
         newFocusedItem = newFocusedItem - 1;
       }
+    } else {
+      let allItems: ListItem[] = [];
+      if (Array.isArray(items)) {
+        allItems = items;
+      } else if (Array.isArray(groups)) {
+        groups.forEach((group) => {
+          allItems = allItems.concat(group.items);
+        });
+      }
+
+      // allow user to use keyboard to navigate to a specific item in the list by typing words
+      newFocusedItem = selectMenuItemFromKeyboard({
+        key: event.key,
+        keyCode: event.keyCode,
+        keyBuffer: keyBuffer.current,
+        items: allItems,
+      });
     }
+
     if (isNumber(newFocusedItem)) {
       setFocusedItem(newFocusedItem);
       const item = items[newFocusedItem];

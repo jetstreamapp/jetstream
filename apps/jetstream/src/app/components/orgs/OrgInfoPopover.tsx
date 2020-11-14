@@ -1,7 +1,7 @@
 /** @jsx jsx */
 import { jsx } from '@emotion/core';
 import { SalesforceOrgUi } from '@jetstream/types';
-import { ButtonGroupContainer, Icon, Popover, GridCol, Grid } from '@jetstream/ui';
+import { ButtonGroupContainer, Icon, Popover, GridCol, Grid, Checkbox } from '@jetstream/ui';
 import startCase from 'lodash/startCase';
 import { FunctionComponent, ReactNode, useState, Fragment } from 'react';
 import { SalesforceLogin } from '@jetstream/ui';
@@ -18,7 +18,7 @@ export interface OrgInfoPopoverProps {
 function getOrgProp(serverUrl: string, org: SalesforceOrgUi, prop: keyof SalesforceOrgUi, label?: string) {
   label = label || startCase(prop);
   let value: string | number | boolean | ReactNode = org[prop];
-  if (!value) {
+  if (!value && prop !== 'orgIsSandbox') {
     return undefined;
   }
   if (prop === 'organizationId') {
@@ -33,6 +33,8 @@ function getOrgProp(serverUrl: string, org: SalesforceOrgUi, prop: keyof Salesfo
         {value}
       </SalesforceLogin>
     );
+  } else if (prop === 'orgIsSandbox') {
+    value = <Checkbox id="is-org-sandbox" label="is-sandbox" checked={!!value} hideLabel disabled />;
   }
   return (
     <tr className="slds-hint-parent">
@@ -142,6 +144,7 @@ export const OrgInfoPopover: FunctionComponent<OrgInfoPopoverProps> = ({ org, on
               {getOrgProp(applicationState.serverUrl, org, 'orgInstanceName', 'Instance')}
               {getOrgProp(applicationState.serverUrl, org, 'instanceUrl')}
               {getOrgProp(applicationState.serverUrl, org, 'orgOrganizationType', 'Org Type')}
+              {getOrgProp(applicationState.serverUrl, org, 'orgIsSandbox', 'Is Sandbox')}
               {getOrgProp(applicationState.serverUrl, org, 'orgTrialExpirationDate', 'Trial Expiration')}
               {getOrgProp(applicationState.serverUrl, org, 'userId')}
               {getOrgProp(applicationState.serverUrl, org, 'username')}

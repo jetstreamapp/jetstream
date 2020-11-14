@@ -24,13 +24,13 @@ export const singleSelection = () => (
       5
     )}
     items={[
-      { id: 'item1', label: 'Item 1', value: 'item1' },
-      { id: 'item2', label: 'Item 2', value: 'item2' },
+      { id: 'item1', label: 'Apple', value: 'item1' },
+      { id: 'item2', label: 'Banana', value: 'item2' },
       { id: 'item3', label: 'Item 3', value: 'item3' },
-      { id: 'item4', label: 'Item 4', value: 'item4' },
-      { id: 'item5', label: 'Item 5', value: 'item5' },
-      { id: 'item6', label: 'Item 6', value: 'item6' },
-      { id: 'item7', label: 'Item 7', value: 'item7' },
+      { id: 'item4', label: 'Zoo', value: 'item4' },
+      { id: 'item5', label: 'Zoo And Stuff', value: 'item5' },
+      { id: 'item6', label: 'Foo', value: 'item6' },
+      { id: 'item7', label: 'Bar', value: 'item7' },
       { id: 'item8', label: 'Item 8', value: 'item8' },
       { id: 'item9', label: 'Item 9', value: 'item9' },
       { id: 'item10', label: 'Item 10', value: 'item10' },

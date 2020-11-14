@@ -1,6 +1,6 @@
 import { atom, selector } from 'recoil';
 import isString from 'lodash/isString';
-import { SalesforceOrgUi, UserProfile, ApplicationCookie } from '@jetstream/types';
+import { SalesforceOrgUi, UserProfileUi, ApplicationCookie, SalesforceOrgUiType } from '@jetstream/types';
 import { getUserProfile, getOrgs } from '@jetstream/shared/data';
 import { parseCookie } from '@jetstream/shared/ui-utils';
 import { HTTP } from '@jetstream/shared/constants';
@@ -31,7 +31,7 @@ async function getSelectedOrgFromStorage(): Promise<string | undefined> {
   }
 }
 
-async function fetchUserProfile(): Promise<UserProfile> {
+async function fetchUserProfile(): Promise<UserProfileUi> {
   const userProfile = await getUserProfile();
   return userProfile;
 }
@@ -41,7 +41,7 @@ export const applicationCookieState = atom<ApplicationCookie>({
   default: parseCookie<ApplicationCookie>(HTTP.COOKIE.JETSTREAM),
 });
 
-export const userProfileState = atom<UserProfile>({
+export const userProfileState = atom<UserProfileUi>({
   key: 'userState',
   default: fetchUserProfile(),
 });
@@ -63,6 +63,28 @@ export const selectedOrgState = selector({
     const selectedOrgId = get(selectedOrgIdState);
     if (isString(selectedOrgId) && Array.isArray(salesforceOrgs)) {
       return salesforceOrgs.find((org) => org.uniqueId === selectedOrgId);
+    }
+    return undefined;
+  },
+});
+
+export const hasConfiguredOrgState = selector({
+  key: 'hasConfiguredOrgState',
+  get: ({ get }) => {
+    const salesforceOrgs = get(salesforceOrgsState);
+    return salesforceOrgs?.length > 0 || false;
+  },
+});
+
+export const selectedOrgType = selector<SalesforceOrgUiType>({
+  key: 'selectedOrgType',
+  get: ({ get }) => {
+    const salesforceOrgs = get(selectedOrgState);
+    if (salesforceOrgs) {
+      if (salesforceOrgs.orgIsSandbox) {
+        return 'Sandbox';
+      }
+      return salesforceOrgs.orgOrganizationType === 'Developer Edition' ? 'Developer' : 'Production';
     }
     return undefined;
   },

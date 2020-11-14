@@ -1,7 +1,8 @@
 import { PositionAll, SmallMediumLargeFullWidth } from '@jetstream/types';
 import classNames from 'classnames';
 import uniqueId from 'lodash/uniqueId';
-import React, { FunctionComponent } from 'react';
+import React, { FunctionComponent, KeyboardEvent } from 'react';
+import { isEscapeKey } from '@jetstream/shared/ui-utils';
 import Icon from '../widgets/Icon';
 
 export interface PopoverContentProps {
@@ -30,6 +31,12 @@ export const PopoverContent: FunctionComponent<PopoverContentProps> = ({
   children,
   onClose,
 }) => {
+  function handleKeyUp(event: KeyboardEvent<HTMLInputElement>) {
+    if (isEscapeKey(event)) {
+      onClose();
+    }
+  }
+
   return (
     <section
       aria-describedby={id}
@@ -40,6 +47,7 @@ export const PopoverContent: FunctionComponent<PopoverContentProps> = ({
         size ? `slds-popover_${size}` : undefined
       )}
       role="dialog"
+      onKeyUp={handleKeyUp}
     >
       <button
         className={classNames('slds-button slds-button_icon slds-button_icon-small slds-float_right slds-popover__close', {
@@ -47,6 +55,7 @@ export const PopoverContent: FunctionComponent<PopoverContentProps> = ({
         })}
         title="Close dialog"
         onClick={() => onClose()}
+        autoFocus
       >
         <Icon type="utility" icon="close" className="slds-button__icon" omitContainer />
         <span className="slds-assistive-text">Close dialog</span>

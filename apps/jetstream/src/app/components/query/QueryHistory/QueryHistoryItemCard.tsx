@@ -55,7 +55,7 @@ export const QueryHistoryItemCard: FunctionComponent<QueryHistoryItemCardProps> 
         }
       >
         <Fragment>
-          <Grid wrap className="slds-m-bottom_x-small">
+          <Grid wrap className="slds-m-bottom_x-small slds-scrollable_x">
             <GridCol size={12} className="slds-text-body_small slds-text-color_weak slds-m-bottom_xx-small">
               Last Run: {moment(lastRun).format('LLL')} - Run: {runCount} {pluralizeFromNumber('time', runCount)}
             </GridCol>
@@ -74,7 +74,7 @@ export const QueryHistoryItemCard: FunctionComponent<QueryHistoryItemCardProps> 
                     <CodeEditor
                       className="CodeMirror-soql-history"
                       value={soql}
-                      readOnly={true}
+                      readOnly
                       size={{ height: 'auto' }}
                       shouldRefresh={readyToRenderCode}
                     />

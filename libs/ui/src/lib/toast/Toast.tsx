@@ -1,5 +1,5 @@
 /* eslint-disable jsx-a11y/anchor-is-valid */
-import { IconObj, InfoSuccessWarningError } from '@jetstream/types';
+import { InfoSuccessWarningError } from '@jetstream/types';
 import classNames from 'classnames';
 import React, { FunctionComponent } from 'react';
 import Icon from '../widgets/Icon';
@@ -8,7 +8,7 @@ export interface ToastProps {
   type?: InfoSuccessWarningError;
   showIcon?: boolean;
   headingClassName?: string;
-  onClose: () => void;
+  onClose?: () => void;
 }
 
 function getCssClass(type?: InfoSuccessWarningError) {
@@ -50,12 +50,14 @@ export const Toast: FunctionComponent<ToastProps> = ({
         <div className="slds-notify__content">
           <h2 className={headingClassName}>{children}</h2>
         </div>
-        <div className="slds-notify__close">
-          <button className="slds-button slds-button_icon slds-button_icon-inverse" title="Close" onClick={onClose}>
-            <Icon type="utility" icon="close" className="slds-button__icon slds-button__icon_large" omitContainer />
-            <span className="slds-assistive-text">Close</span>
-          </button>
-        </div>
+        {onClose && (
+          <div className="slds-notify__close">
+            <button className="slds-button slds-button_icon slds-button_icon-inverse" title="Close" onClick={onClose}>
+              <Icon type="utility" icon="close" className="slds-button__icon slds-button__icon_large" omitContainer />
+              <span className="slds-assistive-text">Close</span>
+            </button>
+          </div>
+        )}
       </div>
     </div>
   );

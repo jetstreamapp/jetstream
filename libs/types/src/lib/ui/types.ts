@@ -2,19 +2,11 @@ import { QueryResultsColumn } from '@jetstream/api-interfaces';
 import { MapOf } from '@jetstream/types';
 import { ChildRelationship, Field } from 'jsforce';
 import { ReactNode } from 'react';
-import { FieldDefinition } from '../salesforce/types';
 import { SalesforceOrgUi } from '../types';
 
 export type FileExtCsv = 'csv';
 export type FileExtXLSX = 'xlsx';
 export type FileExtCsvXLSX = FileExtCsv | FileExtXLSX;
-
-export type IconType = 'action' | 'custom' | 'doctype' | 'standard' | 'utility';
-export interface IconObj {
-  type: IconType;
-  icon: string;
-  description?: string;
-}
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export interface WorkerMessage<T, K = any, E = any> {
@@ -53,7 +45,6 @@ export interface FieldWrapper {
   // text used to filter data
   filterText: string;
   metadata: Field;
-  fieldDefinition: FieldDefinition;
   // key of related object within QueryFieldMap - only populated for relationship fields and key will only exist once expanded and fetched
   relationshipKey?: string;
 }
@@ -65,6 +56,8 @@ export interface UiSection {
   titleText?: string; // use if title is not a string
   content: React.ReactNode | Function; // => React.ReactNode
   disabled?: boolean;
+  className?: string;
+  style?: React.CSSProperties;
 }
 
 export interface UiTabSection {
@@ -121,6 +114,12 @@ export type Bottom = 'bottom';
 export type Left = 'left';
 
 export type TopRightBottomLeft = Top | Right | Bottom | Left;
+export type RightLeft = Right | Left;
+
+export type Horizontal = 'horizontal';
+export type Vertical = 'vertical';
+
+export type HorizontalVertical = Horizontal | Vertical;
 
 // Generic position types
 export type PositionLeftRight = PositionLeft | PositionRight;
@@ -149,10 +148,16 @@ export type PositionBottom = 'bottom';
 export type PositionBottomLeft = 'bottom-left';
 export type PositionBottomRight = 'bottom-right';
 
-export type MimeType = MimeTypePlainText | MimeTypeCsv | MimeTypeOctetStream;
+export type MimeType = MimeTypePlainText | MimeTypeCsv | MimeTypeOctetStream | MimeTypeZip;
 export type MimeTypePlainText = 'text/plain;charset=utf-8';
 export type MimeTypeCsv = 'text/csv;charset=utf-8';
 export type MimeTypeOctetStream = 'application/octet-stream;charset=utf-8';
+export type MimeTypeZip = 'application/zip;charset=utf-8';
+
+export type InputAcceptType = InputAcceptTypeZip | InputAcceptTypeCsv | InputAcceptTypeExcel;
+export type InputAcceptTypeZip = '.zip';
+export type InputAcceptTypeCsv = '.csv';
+export type InputAcceptTypeExcel = '.xlsx';
 
 // Generic status types
 export type Info = 'info';
@@ -276,7 +281,8 @@ export interface DropDownItem<T = any> {
   id: string;
   subheader?: string;
   value: string | ReactNode;
-  icon?: IconObj;
+  icon?: any; // FIXME:
+  trailingDivider?: boolean;
   metadata?: T;
 }
 
@@ -290,7 +296,7 @@ export interface QueryFieldHeader {
 export interface FormGroupDropdownItem {
   id: string;
   label: string;
-  icon: IconObj;
+  icon: any; // FIXME:
 }
 
 export type AsyncJobType = 'BulkDelete' | 'BulkDownload';
@@ -344,4 +350,10 @@ export interface QueryHistorySelection {
   key: string;
   name: string;
   label: string;
+}
+
+export interface InputReadFileContent {
+  filename: string;
+  extension: string;
+  content: string | ArrayBuffer;
 }

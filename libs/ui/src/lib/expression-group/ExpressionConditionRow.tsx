@@ -20,6 +20,7 @@ import DatePicker from '../form/date/DatePicker';
 import moment from 'moment-mini';
 // eslint-disable-next-line @typescript-eslint/camelcase
 import { YYYY_MM_DD, YYYY_MM_DD_HH_mm_ss_z } from '@jetstream/shared/constants';
+import { useDebounce } from '@jetstream/shared/ui-utils';
 
 export interface ExpressionConditionRowProps {
   row: number;
@@ -84,11 +85,12 @@ export const ExpressionConditionRow: FunctionComponent<ExpressionConditionRowPro
       return null;
     });
     const [selectedResourceTitle] = useState<string>(null);
+    const debouncedSelectedValue = useDebounce(selectedValue, 150);
 
     useEffect(() => {
-      onChange({ ...selected, value: selectedValue });
+      onChange({ ...selected, value: debouncedSelectedValue });
       // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [selectedValue]);
+    }, [debouncedSelectedValue]);
 
     useEffect(() => {
       setDisableValueInput(disableValueForOperators.includes(selected.operator));
@@ -146,7 +148,7 @@ export const ExpressionConditionRow: FunctionComponent<ExpressionConditionRowPro
             <div className="slds-col">
               <Combobox
                 label={resourceLabel}
-                helpText={resourceHelpText}
+                labelHelp={resourceHelpText}
                 onInputChange={(filter) => setResourcesFilter(filter)}
                 selectedItemLabel={selectedResourceComboboxLabel}
                 selectedItemTitle={selectedResourceTitle}
@@ -180,6 +182,7 @@ export const ExpressionConditionRow: FunctionComponent<ExpressionConditionRowPro
                 items={operators}
                 selectedItems={[initialSelectedOperator]}
                 allowDeselection={false}
+                scrollLength={10}
                 onChange={(items) => onChange({ ...selected, operator: items[0].value as QueryFilterOperator })}
               />
             </div>
@@ -191,6 +194,7 @@ export const ExpressionConditionRow: FunctionComponent<ExpressionConditionRowPro
                   items={resourceTypes}
                   selectedItems={selectedResourceType}
                   allowDeselection={false}
+                  scrollLength={10}
                   onChange={handleSelectedResource}
                 />
               </div>
@@ -253,7 +257,11 @@ export const ExpressionConditionRow: FunctionComponent<ExpressionConditionRowPro
                   items={resourceSelectItems || []}
                   selectedItemIds={selectedValue ? [selectedValue] : []}
                   allowDeselection={false}
-                  onChange={(item) => setSelectValue(item[0].id)}
+                  onChange={(item) => {
+                    if (item && item[0]) {
+                      setSelectValue(item[0].id);
+                    }
+                  }}
                   disabled={disableValueForOperators.includes(selectedValue as QueryFilterOperator)}
                 />
               )}

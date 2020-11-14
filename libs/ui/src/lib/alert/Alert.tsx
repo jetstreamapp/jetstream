@@ -2,10 +2,11 @@ import React, { FunctionComponent } from 'react';
 import { InfoWarningErrorOffline } from '@jetstream/types';
 import classNames from 'classnames';
 import Icon from '../widgets/Icon';
+import { IconName } from '@jetstream/icon-factory';
 
 export interface AlertProps {
   type: InfoWarningErrorOffline;
-  leadingIcon?: string;
+  leadingIcon?: IconName;
   allowClose?: boolean;
   onClose?: () => void;
 }
@@ -34,7 +35,7 @@ export const Alert: FunctionComponent<AlertProps> = ({ type, leadingIcon, allowC
             title="Close"
             onClick={() => onClose && onClose()}
           >
-            <Icon type="utility" icon="close" omitContainer={true} className="slds-button__icon" />{' '}
+            <Icon type="utility" icon="close" omitContainer className="slds-button__icon" />{' '}
             <span className="slds-assistive-text">Close</span>
           </button>
         )}

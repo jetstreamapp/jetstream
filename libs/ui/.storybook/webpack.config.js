@@ -7,7 +7,9 @@ module.exports = async ({ config, mode }) => {
   config.resolve.extensions.push('.tsx');
   config.resolve.extensions.push('.ts');
 
-  const tsPaths = new TsconfigPathsPlugin();
+  const tsPaths = new TsconfigPathsPlugin({
+    configFile: 'libs/ui/.storybook/tsconfig.json',
+  });
 
   config.resolve.plugins ? config.resolve.plugins.push(tsPaths) : (config.resolve.plugins = [tsPaths]);
 

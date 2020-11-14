@@ -1,9 +1,8 @@
-import { UserProfile } from '@jetstream/types';
+import { ApplicationCookie, UserProfileUi } from '@jetstream/types';
 import React, { Fragment, FunctionComponent, useEffect } from 'react';
 import { useRecoilState, useRecoilValue } from 'recoil';
 import * as fromAppState from '../../app-state';
 import { Subject } from 'rxjs';
-import { Response } from 'superagent';
 import { registerMiddleware } from '@jetstream/shared/data';
 import { useObservable } from '@jetstream/shared/ui-utils';
 import { SalesforceOrgUi } from '@jetstream/types';
@@ -12,13 +11,14 @@ import { logger } from '@jetstream/shared/client-logger';
 import { useRollbar } from '@jetstream/shared/ui-utils';
 import { environment } from '../../../environments/environment';
 import localforage from 'localforage';
+import { AxiosResponse } from 'axios';
 
 const orgConnectionError = new Subject<{ uniqueId: string; connectionError: string }>();
 const orgConnectionError$ = orgConnectionError.asObservable();
 
-registerMiddleware('Error', (response: Response, org?: SalesforceOrgUi) => {
-  if (org && response.get(HTTP.HEADERS.X_SFDC_ORG_CONNECTION_ERROR)) {
-    orgConnectionError.next({ uniqueId: org.uniqueId, connectionError: response.get(HTTP.HEADERS.X_SFDC_ORG_CONNECTION_ERROR) });
+registerMiddleware('Error', (response: AxiosResponse, org?: SalesforceOrgUi) => {
+  if (org && response.headers[HTTP.HEADERS.X_SFDC_ORG_CONNECTION_ERROR]) {
+    orgConnectionError.next({ uniqueId: org.uniqueId, connectionError: response.headers[HTTP.HEADERS.X_SFDC_ORG_CONNECTION_ERROR] });
   }
 });
 
@@ -28,17 +28,18 @@ localforage.config({
 });
 
 export interface AppInitializerProps {
-  onUserProfile: (userProfile: UserProfile) => void;
+  onUserProfile: (userProfile: UserProfileUi) => void;
 }
 
 export const AppInitializer: FunctionComponent<AppInitializerProps> = ({ onUserProfile, children }) => {
   // FIXME: Cannot update a component (`Batcher`) while rendering a different component (`AppInitializer`)
   // Recoil needs to fix this
-  const userProfile = useRecoilValue<UserProfile>(fromAppState.userProfileState);
+  const userProfile = useRecoilValue<UserProfileUi>(fromAppState.userProfileState);
+  const appCookie = useRecoilValue<ApplicationCookie>(fromAppState.applicationCookieState);
   const [orgs, setOrgs] = useRecoilState(fromAppState.salesforceOrgsState);
   const invalidOrg = useObservable(orgConnectionError$);
   // this ensures rollbar is configured and has user profile information
-  useRollbar(environment.rollbarClientAccessToken, environment.production ? 'production' : 'development', userProfile);
+  useRollbar(environment.rollbarClientAccessToken, appCookie.environment, userProfile);
 
   useEffect(() => {
     if (invalidOrg) {

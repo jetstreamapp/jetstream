@@ -1,15 +1,17 @@
 import * as express from 'express';
 import Router from 'express-promise-router';
-import * as sfQueryController from '../controllers/sf-query.controller';
-import * as sfMiscController from '../controllers/sf-misc.controller';
-import * as userController from '../controllers/user.controller';
 import * as orgsController from '../controllers/orgs.controller';
-import { addOrgsToLocal, checkAuth, ensureOrgExists } from './route.middleware';
+import * as bulkApiController from '../controllers/sf-bulk-api.controller';
+import * as metadataToolingController from '../controllers/sf-metadata-tooling.controller';
+import * as sfMiscController from '../controllers/sf-misc.controller';
+import * as sfQueryController from '../controllers/sf-query.controller';
+import * as userController from '../controllers/user.controller';
+import { addOrgsToLocal, checkAuth, ensureOrgExists, validate } from './route.middleware';
 
 const routes: express.Router = Router();
 
-routes.use(addOrgsToLocal);
 routes.use(checkAuth); // NOTE: all routes here must be authenticated
+routes.use(addOrgsToLocal);
 
 routes.get('/me', userController.getUserProfile);
 
@@ -18,11 +20,48 @@ routes.delete('/orgs/:uniqueId', orgsController.deleteOrg);
 
 routes.get('/describe', ensureOrgExists, sfQueryController.describe);
 routes.get('/describe/:sobject', ensureOrgExists, sfQueryController.describeSObject);
-routes.post('/query', ensureOrgExists, sfQueryController.query);
-routes.get('/query-more', ensureOrgExists, sfQueryController.queryMore);
+routes.post('/query', ensureOrgExists, validate(sfQueryController.routeValidators.query), sfQueryController.query);
+routes.get('/query-more', ensureOrgExists, validate(sfQueryController.routeValidators.queryMore), sfQueryController.queryMore);
 
 routes.post('/record/:operation/:sobject', ensureOrgExists, sfMiscController.recordOperation);
 
-routes.post('/request', ensureOrgExists, sfMiscController.makeJsforceRequest);
+routes.post('/metadata/list', ensureOrgExists, metadataToolingController.listMetadata);
+routes.post(
+  '/metadata/read/:type',
+  ensureOrgExists,
+  validate(metadataToolingController.routeValidators.readMetadata),
+  metadataToolingController.readMetadata
+);
+routes.post(
+  '/metadata/deploy',
+  ensureOrgExists,
+  validate(metadataToolingController.routeValidators.deployMetadata),
+  metadataToolingController.deployMetadata
+);
+
+routes.get(
+  '/metadata/deploy/:id',
+  ensureOrgExists,
+  validate(metadataToolingController.routeValidators.checkMetadataResults),
+  metadataToolingController.checkMetadataResults
+);
+
+routes.post(
+  '/request',
+  ensureOrgExists,
+  validate(sfMiscController.routeValidators.makeJsforceRequest),
+  sfMiscController.makeJsforceRequest
+);
+
+routes.post('/bulk', ensureOrgExists, validate(bulkApiController.routeValidators.createJob), bulkApiController.createJob);
+routes.get('/bulk/:jobId', ensureOrgExists, validate(bulkApiController.routeValidators.getJob), bulkApiController.getJob);
+routes.delete('/bulk/:jobId', ensureOrgExists, validate(bulkApiController.routeValidators.closeJob), bulkApiController.closeJob);
+routes.post('/bulk/:jobId', ensureOrgExists, validate(bulkApiController.routeValidators.addBatchToJob), bulkApiController.addBatchToJob);
+routes.get(
+  '/bulk/:jobId/:batchId',
+  ensureOrgExists,
+  validate(bulkApiController.routeValidators.downloadResults),
+  bulkApiController.downloadResults
+);
 
 export default routes;

@@ -2,7 +2,7 @@ import React from 'react';
 import { action } from '@storybook/addon-actions';
 import { text, boolean } from '@storybook/addon-knobs';
 import Checkbox from './Checkbox';
-import { IconObj } from '@jetstream/types';
+import { IconObj } from '@jetstream/icon-factory';
 import uniqueId from 'lodash/uniqueId';
 
 export default {
@@ -14,8 +14,14 @@ export const base = () => (
   <Checkbox
     id={uniqueId('checkbox')}
     checked={boolean('checked', true)}
+    labelHelp={text('labelHelp', 'This is label help text')}
     label={text('label', 'My Label')}
     hideLabel={boolean('hideLabel', false)}
+    helpText={text('helpText', 'This is help text')}
+    isRequired={boolean('isRequired', true)}
+    hasError={boolean('hasError', false)}
+    errorMessageId={text('errorMessageId', undefined)}
+    errorMessage={text('errorMessage', undefined)}
     disabled={boolean('disabled', false)}
     onChange={action('on-selected')}
   />

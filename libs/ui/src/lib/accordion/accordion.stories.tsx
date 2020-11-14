@@ -16,6 +16,7 @@ export const base = () => (
       { id: '3', title: 'Section 3', content: <span>Accordion content 3</span> },
       { id: '4', title: 'Section 4', content: <span>Accordion content 4</span> },
     ]}
+    showExpandCollapseAll={boolean('showExpandCollapseAll', false)}
     allowMultiple={boolean('allowMultiple', false)}
   ></Accordion>
 );

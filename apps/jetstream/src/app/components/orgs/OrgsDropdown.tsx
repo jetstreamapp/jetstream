@@ -2,7 +2,7 @@
 import { css, jsx } from '@emotion/core';
 import { deleteOrg, getOrgs } from '@jetstream/shared/data';
 import { MapOf, SalesforceOrgUi } from '@jetstream/types';
-import { Combobox, ComboboxListItem, ComboboxListItemGroup } from '@jetstream/ui';
+import { Combobox, ComboboxListItem, ComboboxListItemGroup, Badge } from '@jetstream/ui';
 import groupBy from 'lodash/groupBy';
 import orderBy from 'lodash/orderBy';
 import uniqBy from 'lodash/uniqBy';
@@ -12,6 +12,8 @@ import * as fromAppState from '../../app-state';
 import AddOrg from './AddOrg';
 import OrgInfoPopover from './OrgInfoPopover';
 import OrgPersistence from './OrgPersistence';
+import classNames from 'classnames';
+
 // eslint-disable-next-line @typescript-eslint/no-empty-interface
 export interface OrgsDropdownProps {}
 
@@ -42,6 +44,7 @@ export const OrgsDropdown: FunctionComponent<OrgsDropdownProps> = () => {
   const [orgs, setOrgs] = useRecoilState<SalesforceOrgUi[]>(fromAppState.salesforceOrgsState);
   const [selectedOrgId, setSelectedOrgId] = useRecoilState<string>(fromAppState.selectedOrgIdState);
   const selectedOrg = useRecoilValue<SalesforceOrgUi>(fromAppState.selectedOrgState);
+  const orgType = useRecoilValue(fromAppState.selectedOrgType);
   const [visibleOrgs, setVisibleOrgs] = useState<SalesforceOrgUi[]>([]);
   const [orgsByOrganization, setOrgsByOrganization] = useState<MapOf<SalesforceOrgUi[]>>({});
   const [filterText, setFilterText] = useState<string>('');
@@ -91,6 +94,13 @@ export const OrgsDropdown: FunctionComponent<OrgsDropdownProps> = () => {
     <Fragment>
       <OrgPersistence />
       <div className="slds-grid slds-grid-no-wrap">
+        {
+          <div className={classNames('slds-col slds-p-around_xx-small')}>
+            <Badge type={orgType === 'Production' ? 'warning' : 'light'} title={orgType}>
+              {orgType}
+            </Badge>
+          </div>
+        }
         <div
           className="slds-col"
           css={css`
@@ -99,7 +109,7 @@ export const OrgsDropdown: FunctionComponent<OrgsDropdownProps> = () => {
         >
           <Combobox
             label="Orgs"
-            hideLabel={true}
+            hideLabel
             placeholder="Select an Org"
             itemLength={7}
             hasError={orgHasError(selectedOrg)}

@@ -1,9 +1,10 @@
+import { ERROR_MESSAGES, HTTP } from '@jetstream/shared/constants';
 import * as express from 'express';
-import { UserFacingError, AuthenticationError, NotFoundError } from './error-handler';
-import { getLoginUrl } from '../services/auth';
-import { HTTP, ERROR_MESSAGES } from '@jetstream/shared/constants';
 import { logger } from '../config/logger.config';
 import { SalesforceOrg } from '../db/entites/SalesforceOrg';
+import { AuthenticationError, NotFoundError, UserFacingError } from './error-handler';
+import * as querystring from 'querystring';
+import { ENV } from '../config/env-config';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function healthCheck(req: express.Request, res: express.Response) {
@@ -23,7 +24,7 @@ export function sendJson(res: express.Response, content?: any, status = 200) {
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 export async function uncaughtErrorHandler(err: any, req: express.Request, res: express.Response, next: express.NextFunction) {
-  logger.info('[RESPONSE][ERROR] %s', err.message, { error: err.message });
+  logger.info('[RESPONSE][ERROR] %s', err.message, { error: err.message || err });
   const isJson = (req.get(HTTP.HEADERS.ACCEPT) || '').includes(HTTP.CONTENT_TYPE.JSON);
 
   // If org had a connection error, ensure that the database is updated
@@ -48,7 +49,7 @@ export async function uncaughtErrorHandler(err: any, req: express.Request, res: 
   } else if (err instanceof AuthenticationError) {
     res.status(401);
     res.set(HTTP.HEADERS.X_LOGOUT, '1');
-    res.set(HTTP.HEADERS.X_LOGOUT_URL, getLoginUrl());
+    res.set(HTTP.HEADERS.X_LOGOUT_URL, `${ENV.JETSTREAM_SERVER_URL}/oauth/login`);
     if (isJson) {
       return res.json({
         error: true,
@@ -56,7 +57,10 @@ export async function uncaughtErrorHandler(err: any, req: express.Request, res: 
         data: err.additionalData,
       });
     } else {
-      return res.redirect('/oauth/login'); // TODO: can we show an error message to the user on this page or redirect to alternate page?
+      const params = querystring.stringify({
+        error: `Your session is invalid or expired, please login again. Error code: ${err.message}`,
+      });
+      return res.redirect(`/?${params}`); // TODO: can we show an error message to the user on this page or redirect to alternate page?
     }
   } else if (err instanceof NotFoundError) {
     res.status(404);

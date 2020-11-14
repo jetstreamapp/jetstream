@@ -2,12 +2,14 @@ import { Entity, Column, PrimaryGeneratedColumn, BaseEntity, CreateDateColumn, U
 import { SalesforceOrgEdition, SalesforceOrgLocaleKey } from '@jetstream/types';
 import { SalesforceOrgUi } from '@jetstream/types';
 import { Exclude, classToPlain } from 'class-transformer';
+import { ENV } from '../../config/env-config';
 
 @Entity()
 export class SalesforceOrg extends BaseEntity {
   constructor(jetstreamUserId: string, uiOrg?: SalesforceOrgUi) {
     super();
     this.jetstreamUserId = jetstreamUserId;
+    this.jetstreamUrl = ENV.JETSTREAM_SERVER_URL;
     if (uiOrg) {
       this.initFromUiOrg(uiOrg);
     }
@@ -44,6 +46,10 @@ export class SalesforceOrg extends BaseEntity {
   @Column()
   @Exclude()
   jetstreamUserId: string;
+
+  @Column()
+  @Exclude()
+  jetstreamUrl: string;
 
   @Column()
   uniqueId: string;
@@ -141,6 +147,7 @@ export class SalesforceOrg extends BaseEntity {
     return this.createQueryBuilder('salesforce_org')
       .where('salesforce_org.jetstreamUserId = :jetstreamUserId', { jetstreamUserId })
       .andWhere('salesforce_org.uniqueId = :uniqueId', { uniqueId })
+      .andWhere('salesforce_org.jetstreamUrl = :jetstreamUrl', { jetstreamUrl: ENV.JETSTREAM_SERVER_URL })
       .cache(true, 3000)
       .getOne();
   }
@@ -148,6 +155,7 @@ export class SalesforceOrg extends BaseEntity {
   static findByUserId(jetstreamUserId: string) {
     return this.createQueryBuilder('salesforce_org')
       .where('salesforce_org.jetstreamUserId = :jetstreamUserId', { jetstreamUserId })
+      .andWhere('salesforce_org.jetstreamUrl = :jetstreamUrl', { jetstreamUrl: ENV.JETSTREAM_SERVER_URL })
       .getMany();
   }
 }

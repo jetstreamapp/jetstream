@@ -28,7 +28,7 @@ export const Footer = ({ currPage }: FooterProps) => (
         {getLink('/privacy', 'Privacy Policy', currPage === 'privacy')}
       </nav>
       <div className="mt-8">
-        <p className="text-center text-base leading-6 text-gray-400">&copy; 2020 Jetstream, Inc. All rights reserved.</p>
+        <p className="text-center text-base leading-6 text-gray-400">&copy; 2020 Jetstream, LLC. All rights reserved.</p>
       </div>
     </div>
   </div>

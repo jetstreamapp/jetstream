@@ -3,14 +3,12 @@ import * as jsforce from 'jsforce';
 import * as queryService from '../services/query';
 import { sendJson } from '../utils/response.handlers';
 import { UserFacingError } from '../utils/error-handler';
+import { body, query as queryString } from 'express-validator';
 
-// async function tempJsforceConn() {
-//   const conn = new jsforce.Connection({
-//     loginUrl: 'https://login.salesforce.com',
-//   });
-//   await conn.login('austin@atginfo-personal.com', '25M2p^$MvC2*o#');
-//   return conn;
-// }
+export const routeValidators = {
+  query: [body('query').isString()],
+  queryMore: [queryString('nextRecordsUrl').isString()],
+};
 
 export async function describe(req: Request, res: Response, next: NextFunction) {
   try {

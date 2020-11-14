@@ -1,22 +1,24 @@
 /** @jsx jsx */
 import { jsx, css } from '@emotion/core';
 import Tippy from '@tippyjs/react';
-import { FunctionComponent, useState } from 'react';
+import { FunctionComponent, MouseEvent, useState } from 'react';
 import { PositionAll } from '@jetstream/types';
 import { convertTippyPlacementToSlds } from '@jetstream/shared/ui-utils';
 
 export interface TooltipProps {
   id?: string;
   content: string | JSX.Element;
+  onClick?: (event: MouseEvent<HTMLElement>) => void;
 }
 
-export const Tooltip: FunctionComponent<TooltipProps> = ({ id = 'tooltip', content, children }) => {
+export const Tooltip: FunctionComponent<TooltipProps> = ({ id = 'tooltip', content, onClick, children }) => {
   const [nubbinPosition, setNubbinPosition] = useState<PositionAll>();
   const [visible, setVisible] = useState(false);
   return (
     <Tippy
       onHide={() => setVisible(false)}
-      onShow={() => setVisible(true)}
+      onShow={() => content && setVisible(true)}
+      hideOnClick={false}
       allowHTML
       render={(attrs) => {
         // NOTE: In addition to the tooltip placement bug, this causes another error with react 16.13
@@ -38,7 +40,9 @@ export const Tooltip: FunctionComponent<TooltipProps> = ({ id = 'tooltip', conte
         );
       }}
     >
-      <span tabIndex={0}>{children}</span>
+      <span tabIndex={0} onClick={onClick}>
+        {children}
+      </span>
     </Tippy>
   );
 };

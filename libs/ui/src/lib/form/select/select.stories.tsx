@@ -1,4 +1,3 @@
-import { action } from '@storybook/addon-actions';
 import { text, boolean } from '@storybook/addon-knobs';
 import uniqueId from 'lodash/uniqueId';
 import React from 'react';
@@ -23,7 +22,7 @@ export const base = () => {
       hasError={boolean('hasError', false)}
     >
       <select className="slds-select" id={id}>
-        <option value="">Please select</option>
+        <option value="">Select…</option>
         <option>Option One</option>
         <option>Option Two</option>
         <option>Option Three</option>

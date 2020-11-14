@@ -1,9 +1,27 @@
 import { SalesforceId } from 'jsforce';
-import { SalesforceOrgEdition, SalesforceOrgLocaleKey } from './salesforce/types';
+import { InsertUpdateUpsertDelete, SalesforceOrgEdition, SalesforceOrgLocaleKey } from './salesforce/types';
+
+export interface ApiResponse<T = unknown> {
+  data: T;
+  cache?: CacheItem;
+}
+
+export type OrgCacheItem<T> = MapOf<CacheItemWithData<T>>;
+
+export interface CacheItem {
+  key: string;
+  exp: number;
+  age: number;
+}
+
+export interface CacheItemWithData<T> extends CacheItem {
+  data: T;
+}
 
 export type Production = 'production';
+export type Test = 'test';
 export type Development = 'development';
-export type ProductionDevelopment = Production | Development;
+export type Environment = Production | Test | Development;
 
 export type HttpMethod = 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE';
 export type SobjectOperation = 'retrieve' | 'create' | 'update' | 'upsert' | 'delete';
@@ -19,25 +37,49 @@ export interface RecordAttributes {
 
 export interface ApplicationCookie {
   serverUrl: string;
+  environment: Environment;
+}
+
+export interface AuthenticationToken {
+  access_token?: string;
+  refresh_token?: string;
+  id_token?: string;
+  expires_in?: number;
+  scope?: string;
+  token_type?: 'Bearer';
 }
 
 export type UserProfileUsernameStatus = 'ACTIVE' | 'PENDING' | 'REJECTED';
 
-export interface UserProfile {
-  id: string;
+export interface FeatureFlag {
+  flagVersion: string; // V1.0
+  flags: string[]; // all | query
+  isDefault: boolean;
+}
+
+export interface UserProfileUi {
   email: string;
-  firstName: string;
-  lastName: string;
-  fullName: string;
-  active: boolean;
-  data?: any; // could be used in future
-  passwordChangeRequired: boolean;
-  preferredLanguages: string[];
-  timezone: string;
-  tenantId: string;
-  usernameStatus: UserProfileUsernameStatus;
-  username: string;
-  verified: boolean;
+  email_verified: string;
+  'http://getjetstream.app/app_metadata': { featureFlags: FeatureFlag };
+  name: string;
+  nickname: string;
+  picture: string;
+  sub: string; // userid
+  updated_at: string;
+}
+
+// SERVER ONLY TYPE - BROWSER WILL GET UserProfileUi
+export interface UserProfileServer {
+  _json: UserProfileUi;
+  _raw: string;
+  id: string;
+  displayName: string;
+  emails: { value: string }[];
+  name: any;
+  nickname: string;
+  picture: string;
+  provider: string;
+  user_id: string;
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -68,4 +110,25 @@ export interface SalesforceOrgUi {
   connectionError?: string;
   createdAt?: string;
   updatedAt?: string;
+}
+
+export type SalesforceOrgUiType = 'Sandbox' | 'Developer' | 'Production';
+
+export interface GenericRequestPayload {
+  url: string;
+  method: HttpMethod;
+  isTooling: boolean;
+  body?: any;
+  headers?: any;
+  options?: {
+    responseType?: string;
+    noContentResponse?: any;
+  };
+}
+
+export interface BulkApiCreateJobRequestPayload {
+  type: InsertUpdateUpsertDelete;
+  sObject: string;
+  serialMode?: boolean;
+  externalId?: string;
 }

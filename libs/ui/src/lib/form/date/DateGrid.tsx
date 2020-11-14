@@ -16,7 +16,7 @@ import {
 } from '@jetstream/shared/ui-utils';
 import { PreviousNext } from '@jetstream/types';
 import classNames from 'classnames';
-import { isNumber } from 'lodash';
+import isNumber from 'lodash/isNumber';
 import moment from 'moment-mini';
 import { createRef, FunctionComponent, KeyboardEvent, RefObject, useEffect, useRef, useState } from 'react';
 

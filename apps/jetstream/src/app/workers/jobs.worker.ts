@@ -18,7 +18,8 @@ import {
   WorkerMessage,
 } from '@jetstream/types';
 import { Record } from 'jsforce';
-
+import queue from 'async/queue';
+import { splitArrayToMaxSize } from '@jetstream/shared/utils';
 // eslint-disable-next-line no-restricted-globals
 const ctx: Worker = self as any;
 
@@ -36,12 +37,28 @@ async function handleMessage(name: AsyncJobType, payloadData: AsyncJobWorkerMess
       try {
         // TODO: add validation to ensure that we have at least one record
         // also, we are assuming that all records are same SObject
+        const MAX_DELETE_RECORDS = 200;
+        const CONCURRENCY = 1;
         let records: Record | Record[] = job.meta; // TODO: add strong type
         records = Array.isArray(records) ? records : [records];
         const sobject = getSObjectFromRecordUrl(records[0].attributes.url);
-        const ids = records.map((record) => getIdFromRecordUrl(record.attributes.url));
-        let results = await sobjectOperation(org, sobject, 'delete', { ids });
-        results = Array.isArray(results) ? results : [results];
+        const allIds: string[] = records.map((record) => getIdFromRecordUrl(record.attributes.url));
+
+        const results: any[] = [];
+        const q = queue(async function ({ ids, results }: { ids: string[]; results: any[] }, callback) {
+          const tempResults = await sobjectOperation(org, sobject, 'delete', { ids });
+          (Array.isArray(tempResults) ? tempResults : [tempResults]).forEach((result) => results.push(result));
+          callback();
+        }, CONCURRENCY);
+
+        q.push(splitArrayToMaxSize(allIds, MAX_DELETE_RECORDS).map((ids) => ({ ids, results })));
+
+        q.error((err, task) => {
+          logger.error('There was an error processing this task', { err, task });
+        });
+
+        await q.drain();
+
         const response: AsyncJobWorkerMessageResponse = { job, results };
         replyToMessage(name, response);
       } catch (ex) {

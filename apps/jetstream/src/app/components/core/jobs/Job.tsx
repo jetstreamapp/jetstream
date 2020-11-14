@@ -46,7 +46,7 @@ export const Job: FunctionComponent<JobProps> = ({ job, dismiss }) => {
                     icon="sync"
                     className="slds-icon slds-icon-text-default slds-icon_xx-small"
                     containerClassname="slds-icon_container slds-icon-utility-sync"
-                    description="in progress"
+                    description="job in progress"
                   />
                 </abbr>
               )}
@@ -57,7 +57,7 @@ export const Job: FunctionComponent<JobProps> = ({ job, dismiss }) => {
                     icon="success"
                     className="slds-icon slds-icon-text-success slds-icon_xx-small"
                     containerClassname="slds-icon_container slds-icon-utility-success"
-                    description="in progress"
+                    description="job success"
                   />
                 </abbr>
               )}
@@ -68,7 +68,7 @@ export const Job: FunctionComponent<JobProps> = ({ job, dismiss }) => {
                     icon="info"
                     className="slds-icon slds-icon-text-info slds-icon_xx-small"
                     containerClassname="slds-icon_container slds-icon-utility-info"
-                    description="in progress"
+                    description="job aborted"
                   />
                 </abbr>
               )}
@@ -79,7 +79,7 @@ export const Job: FunctionComponent<JobProps> = ({ job, dismiss }) => {
                     icon="error"
                     className="slds-icon slds-icon-text-error slds-icon_xx-small"
                     containerClassname="slds-icon_container slds-icon-utility-error"
-                    description="in progress"
+                    description="jop error"
                   />
                 </abbr>
               )}

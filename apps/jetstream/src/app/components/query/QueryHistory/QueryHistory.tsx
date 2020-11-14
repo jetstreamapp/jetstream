@@ -1,20 +1,20 @@
 /** @jsx jsx */
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { jsx, css } from '@emotion/core';
+import { css, jsx } from '@emotion/core';
 import { logger } from '@jetstream/shared/client-logger';
 import { INDEXED_DB } from '@jetstream/shared/constants';
+import { formatNumber } from '@jetstream/shared/ui-utils';
 import { REGEX } from '@jetstream/shared/utils';
-import { QueryHistoryItem, QueryHistorySelection, MapOf } from '@jetstream/types';
-import { Grid, GridCol, Icon, List, Modal, SearchInput, EmptyState } from '@jetstream/ui';
+import { MapOf, QueryHistoryItem, QueryHistorySelection, UpDown } from '@jetstream/types';
+import { EmptyState, Grid, GridCol, Icon, List, Modal, SearchInput } from '@jetstream/ui';
 import localforage from 'localforage';
-import numeral from 'numeral';
-import { FunctionComponent, useEffect, useState } from 'react';
+import { createRef, FunctionComponent, useEffect, useState } from 'react';
+import { ErrorBoundary } from 'react-error-boundary';
+import { useLocation } from 'react-router-dom';
 import { useRecoilState, useRecoilValue, useResetRecoilState } from 'recoil';
+import ErrorBoundaryFallback from '../../core/ErrorBoundaryFallback';
 import * as fromQueryHistoryState from './query-history.state';
 import QueryHistoryItemCard from './QueryHistoryItemCard';
-import { ErrorBoundary } from 'react-error-boundary';
-import ErrorBoundaryFallback from '../../core/ErrorBoundaryFallback';
-import { useLocation } from 'react-router-dom';
 
 // eslint-disable-next-line @typescript-eslint/no-empty-interface
 export interface QueryHistoryProps {}
@@ -23,6 +23,7 @@ export const QueryHistory: FunctionComponent<QueryHistoryProps> = () => {
   const location = useLocation();
   const queryHistoryStateMap = useRecoilValue(fromQueryHistoryState.queryHistoryState);
   const queryHistory = useRecoilValue(fromQueryHistoryState.selectQueryHistoryState);
+  const ulRef = createRef<HTMLUListElement>();
 
   const [selectedObject, setSelectedObject] = useRecoilState(fromQueryHistoryState.selectedObjectState);
   const resetSelectedObject = useResetRecoilState(fromQueryHistoryState.selectedObjectState);
@@ -70,6 +71,12 @@ export const QueryHistory: FunctionComponent<QueryHistoryProps> = () => {
     resetSelectedObject();
   }
 
+  function handleSearchKeyboard(direction: UpDown) {
+    if (ulRef && ulRef.current) {
+      ulRef.current.focus();
+    }
+  }
+
   return (
     <ErrorBoundary FallbackComponent={ErrorBoundaryFallback}>
       <button className="slds-button slds-button_neutral" aria-haspopup="true" title="Favorites" onClick={() => setIsOpen(true)}>
@@ -89,13 +96,19 @@ export const QueryHistory: FunctionComponent<QueryHistoryProps> = () => {
               <GridCol size={6} sizeMedium={4} className="slds-scrollable_y">
                 <h2 className="slds-text-heading_medium slds-text-align_center">Objects</h2>
                 <div className="slds-p-bottom--xx-small">
-                  <SearchInput id="query-history-object-filter" placeholder="Filter Objects" autoFocus onChange={setFilterValue} />
+                  <SearchInput
+                    id="query-history-object-filter"
+                    placeholder="Filter Objects"
+                    autoFocus
+                    onChange={setFilterValue}
+                    onArrowKeyUpDown={handleSearchKeyboard}
+                  />
                   <div className="slds-text-body_small slds-text-color_weak slds-p-left--xx-small">
-                    Showing {numeral(filteredSelectObjectsList.length).format('0,0')} of {numeral(selectObjectsList.length).format('0,0')}{' '}
-                    objects
+                    Showing {formatNumber(filteredSelectObjectsList.length)} of {formatNumber(selectObjectsList.length)} objects
                   </div>
                 </div>
                 <List
+                  ref={ulRef}
                   items={filteredSelectObjectsList}
                   isActive={(item: QueryHistorySelection) => item.name === selectedObject}
                   subheadingPlaceholder

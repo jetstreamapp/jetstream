@@ -1,8 +1,10 @@
 import { logger } from '@jetstream/shared/client-logger';
 import { HTTP } from '@jetstream/shared/constants';
-import { orderObjectsBy, REGEX } from '@jetstream/shared/utils';
+import { checkMetadataResults } from '@jetstream/shared/data';
+import { delay, ensureBoolean, orderObjectsBy, REGEX } from '@jetstream/shared/utils';
 import {
   ExpressionConditionRowSelectedItems,
+  ExpressionConditionType,
   ExpressionType,
   ListItem,
   MapOf,
@@ -11,15 +13,27 @@ import {
   QueryFilterOperator,
   SalesforceOrgUi,
 } from '@jetstream/types';
+import parseISO from 'date-fns/parseISO';
 import { saveAs } from 'file-saver';
-import { Field } from 'jsforce';
+import { DeployResult, Field } from 'jsforce';
 import { get as safeGet } from 'lodash';
 import isString from 'lodash/isString';
-import { unparse } from 'papaparse';
-import { LiteralType, Operator, WhereClause } from 'soql-parser-js';
+import numeral from 'numeral';
+import { parse as parseCsv, unparse, unparse as unparseCsv, UnparseConfig } from 'papaparse';
+import {
+  LiteralType,
+  Operator,
+  ValueCondition,
+  ValueWithDateLiteralCondition,
+  WhereClause,
+  WhereClauseWithRightCondition,
+} from 'soql-parser-js';
 import { Placement as tippyPlacement } from 'tippy.js';
 import * as XLSX from 'xlsx';
 
+export function formatNumber(number: number) {
+  return numeral(number).format('0,0');
+}
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function parseQueryParams<T = any>(queryString: string): T {
   const pairs = (queryString[0] === '?' ? queryString.substr(1) : queryString).split('&');
@@ -106,7 +120,7 @@ export function sortQueryFieldsStr(fields: string[]): string[] {
   return firstItems.concat(reducedFields.remaining);
 }
 
-export function polyfillFieldDefinition(field: Field) {
+export function polyfillFieldDefinition(field: Field): string {
   const autoNumber: boolean = field['autoNumber'];
   const { type, calculated, calculatedFormula, externalId, nameField, extraTypeInfo, length, precision, referenceTo, scale } = field;
   let prefix = '';
@@ -166,12 +180,34 @@ export function polyfillFieldDefinition(field: Field) {
   return `${prefix}${value}${suffix}`;
 }
 
-export function prepareExcelFile(data: MapOf<string>[], header: string[]): ArrayBuffer {
+/**
+ * Prepares excel file
+ * @param data Array of objects for one sheet, or map of multiple objects where the key is sheet name
+ * @param header Array of strings id data is array, or map of strings[] where the key matches the sheet name This will be auto-detected if not provided
+ * @param [defaultSheetName]
+ * @returns excel file
+ */
+export function prepareExcelFile(data: any[], header?: string[], defaultSheetName?: string): ArrayBuffer;
+export function prepareExcelFile(data: MapOf<any[]>, header?: MapOf<string[]>, defaultSheetName?: void): ArrayBuffer;
+export function prepareExcelFile(data: any, header: any, defaultSheetName: any = 'Records'): ArrayBuffer {
   const workbook = XLSX.utils.book_new();
-  const worksheet = XLSX.utils.json_to_sheet<MapOf<string>>(data, {
-    header,
-  });
-  XLSX.utils.book_append_sheet(workbook, worksheet, 'Records');
+
+  if (Array.isArray(data)) {
+    header = header || Object.keys(data[0]);
+    const worksheet = XLSX.utils.aoa_to_sheet(convertArrayOfObjectToArrayOfArray(data, header as string[]));
+    XLSX.utils.book_append_sheet(workbook, worksheet, defaultSheetName);
+  } else {
+    Object.keys(data).forEach((sheetName) => {
+      if (data[sheetName].length > 0) {
+        const currentHeader = (header && header[sheetName]) || Object.keys(data[sheetName][0]);
+        XLSX.utils.book_append_sheet(
+          workbook,
+          XLSX.utils.aoa_to_sheet(convertArrayOfObjectToArrayOfArray(data[sheetName], currentHeader)),
+          sheetName
+        );
+      }
+    });
+  }
 
   // https://github.com/sheetjs/sheetjs#writing-options
   const workbookArrayBuffer: ArrayBuffer = XLSX.write(workbook, {
@@ -188,12 +224,12 @@ export function prepareCsvFile(data: MapOf<string>[], header: string[]): string 
       data,
       fields: header,
     },
-    { header: true, quotes: true }
+    { header: true, quotes: true, delimiter: detectDelimiter() }
   );
 }
 
 export function getFilename(org: SalesforceOrgUi, parts: string[]) {
-  return `${parts.join('-')}-${org.orgName}-${org.username}`.replace(REGEX.SAFE_FILENAME, '_');
+  return `${parts.join('-')}-${org.username}-${new Date().getTime()}`.replace(REGEX.SAFE_FILENAME, '_');
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -234,23 +270,26 @@ export function convertTippyPlacementToSlds(placement: tippyPlacement): Position
   }
 }
 
+function hasValue(row: ExpressionConditionType) {
+  return (
+    row.selected.operator &&
+    row.selected.resource &&
+    (row.selected.value || row.selected.operator === 'isNull' || row.selected.operator === 'isNotNull')
+  );
+}
+
 export function convertFiltersToWhereClause(filters: ExpressionType): WhereClause {
   if (!filters) {
     return;
   }
   logger.log({ filters });
   // filter out all invalid/incomplete filters
-  const rows = filters.rows.filter(
-    (row) =>
-      row.selected.operator &&
-      row.selected.resource &&
-      (row.selected.value || row.selected.operator === 'isNull' || row.selected.operator === 'isNotNull')
-  );
+  const rows = filters.rows.filter(hasValue);
   const groups = filters.groups
     .map((group) => {
       return {
         ...group,
-        rows: group.rows.filter((row) => row.selected.operator && row.selected.resource && row.selected.value),
+        rows: group.rows.filter(hasValue),
       };
     })
     .filter((group) => group.rows.length > 0);
@@ -261,46 +300,85 @@ export function convertFiltersToWhereClause(filters: ExpressionType): WhereClaus
   }
 
   // init all where clauses
-  const whereClauses = rows.map((row, i) => {
-    const whereClause: WhereClause = {
-      left: {
-        operator: convertQueryFilterOperator(row.selected.operator),
-        logicalPrefix: hasLogicalPrefix(row.selected.operator) ? 'NOT' : undefined,
-        field: row.selected.resource,
-        value: getValue(row.selected.operator, row.selected.value),
-        literalType: getLiteralType(row.selected),
-      },
-      // operator: i !== 0 ? filters.action : undefined,
-      operator: filters.action,
-    };
-    return whereClause;
-  });
-
-  // init all groups where clauses
-  groups.forEach((group, i) => {
-    const tempWhereClauses: WhereClause[] = [];
-    group.rows.forEach((row, i) => {
-      const whereClause: WhereClause = {
+  const whereClauses = rows.reduce((whereClauses: WhereClause[], row, i) => {
+    // REGULAR WHERE CLAUSE
+    if (isNegationOperator(row.selected.operator)) {
+      whereClauses.push({
+        left: { openParen: 1 },
+        operator: 'NOT',
+      });
+      whereClauses.push({
         left: {
           operator: convertQueryFilterOperator(row.selected.operator),
-          logicalPrefix: hasLogicalPrefix(row.selected.operator) ? 'NOT' : undefined,
+          logicalPrefix: isNegationOperator(row.selected.operator) ? 'NOT' : undefined,
           field: row.selected.resource,
           value: getValue(row.selected.operator, row.selected.value),
           literalType: getLiteralType(row.selected),
-        },
+          closeParen: 1,
+        } as ValueCondition | ValueWithDateLiteralCondition,
+        operator: filters.action,
+      });
+    } else {
+      // REGULAR WHERE CLAUSE
+      whereClauses.push({
+        left: {
+          operator: convertQueryFilterOperator(row.selected.operator),
+          logicalPrefix: isNegationOperator(row.selected.operator) ? 'NOT' : undefined,
+          field: row.selected.resource,
+          value: getValue(row.selected.operator, row.selected.value),
+          literalType: getLiteralType(row.selected),
+        } as ValueCondition | ValueWithDateLiteralCondition,
+        operator: filters.action,
+      });
+    }
+    return whereClauses;
+  }, []);
+
+  // init all groups where clauses
+  groups.reduce((whereClauses, group, i) => {
+    const tempWhereClauses: WhereClauseWithRightCondition[] = [];
+    group.rows.forEach((row, i) => {
+      const whereClause: Partial<WhereClauseWithRightCondition> = {
+        left: {
+          operator: convertQueryFilterOperator(row.selected.operator),
+          logicalPrefix: isNegationOperator(row.selected.operator) ? 'NOT' : undefined,
+          field: row.selected.resource,
+          value: getValue(row.selected.operator, row.selected.value),
+          literalType: getLiteralType(row.selected),
+        } as ValueCondition | ValueWithDateLiteralCondition,
         // operator: i !== 0 ? group.action : undefined,
         operator: group.action,
       };
-      tempWhereClauses.push(whereClause);
-      whereClauses.push(whereClause);
+      // Add additional where clause
+      if (isNegationOperator(row.selected.operator)) {
+        const negationCondition: Partial<WhereClauseWithRightCondition> = {
+          left: { openParen: 1 },
+          operator: 'NOT',
+        };
+        (whereClause.left as ValueCondition | ValueWithDateLiteralCondition).closeParen = 1;
+        tempWhereClauses.push(negationCondition as WhereClauseWithRightCondition);
+        whereClauses.push(negationCondition as WhereClause);
+      }
+      tempWhereClauses.push(whereClause as WhereClauseWithRightCondition);
+      whereClauses.push(whereClause as WhereClause);
     });
-    tempWhereClauses[0].left.openParen = 1;
-    tempWhereClauses[tempWhereClauses.length - 1].left.closeParen = 1;
-  });
+    if (tempWhereClauses[0].left.openParen) {
+      tempWhereClauses[0].left.openParen += 1;
+    } else {
+      tempWhereClauses[0].left.openParen = 1;
+    }
+    if ((tempWhereClauses[tempWhereClauses.length - 1].left as ValueCondition | ValueWithDateLiteralCondition).closeParen) {
+      (tempWhereClauses[tempWhereClauses.length - 1].left as ValueCondition | ValueWithDateLiteralCondition).closeParen += 1;
+    } else {
+      (tempWhereClauses[tempWhereClauses.length - 1].left as ValueCondition | ValueWithDateLiteralCondition).closeParen = 1;
+    }
+
+    return whereClauses;
+  }, whereClauses);
 
   // combine all where clauses
   const rootClause = whereClauses[0];
-  whereClauses.reduce((whereClause, currWhereClause, i) => {
+  whereClauses.reduce((whereClause: WhereClauseWithRightCondition, currWhereClause, i) => {
     if (whereClause) {
       whereClause.right = currWhereClause;
       // use current operator as the prior operator (e.x. AND on this item applies to the prior item and this item)
@@ -315,7 +393,7 @@ export function convertFiltersToWhereClause(filters: ExpressionType): WhereClaus
   return rootClause;
 }
 
-function hasLogicalPrefix(operator: QueryFilterOperator): boolean {
+function isNegationOperator(operator: QueryFilterOperator): boolean {
   switch (operator) {
     case 'doesNotContain':
     case 'doesNotStartWith':
@@ -425,8 +503,9 @@ function convertQueryFilterOperator(operator: QueryFilterOperator): Operator {
  * Generate authentication in the url from a salesforce
  * @param org
  */
-export function getOrgUrlParams(org: SalesforceOrgUi): string {
+export function getOrgUrlParams(org: SalesforceOrgUi, additionalParams: { [param: string]: string } = {}): string {
   const params = {
+    ...additionalParams,
     [HTTP.HEADERS.X_SFDC_ID]: org.uniqueId || '',
   };
   return Object.keys(params)
@@ -455,8 +534,8 @@ export function getDateLiteralListItems(): ListItem[] {
 
 export function getBooleanListItems(): ListItem[] {
   return [
-    { id: 'True', label: 'True', value: 'True' },
-    { id: 'False', label: 'False', value: 'False' },
+    { id: 'TRUE', label: 'True', value: 'True' },
+    { id: 'FALSE', label: 'False', value: 'False' },
   ];
 }
 
@@ -483,6 +562,7 @@ function handleWindowEvent(event: MessageEvent) {
   if (isString(event.data)) {
     try {
       const org: SalesforceOrgUi = JSON.parse(event.data);
+      org.orgIsSandbox = ensureBoolean(org.orgIsSandbox);
       // ensure from our origin // FIXME:
       logger.log({ org });
       if (addOrgCallbackFn) {
@@ -515,3 +595,164 @@ export function addOrg(
   window.addEventListener('message', handleWindowEvent, false);
 }
 /// END ADD ORG ////
+
+export function hasFeatureFlagAccess(featureFlags: Set<string>, flag: string) {
+  if (featureFlags.has('all')) {
+    return true;
+  }
+  return featureFlags.has(flag);
+}
+
+/**
+ *
+ * @param selectedOrg
+ * @param id
+ * @param options Defaults below
+ *  includeDetails = false
+ *  interval = 2000
+ *  maxAttempts = 100
+ */
+export async function pollMetadataResultsUntilDone(
+  selectedOrg: SalesforceOrgUi,
+  id: string,
+  options?: { includeDetails?: boolean; interval?: number; maxAttempts?: number }
+) {
+  let { includeDetails, interval, maxAttempts } = options || {};
+  includeDetails = includeDetails || false;
+  interval = interval || 2000;
+  maxAttempts = maxAttempts || 100;
+
+  let attempts = 0;
+  let done = false;
+  let deployResults: DeployResult;
+  while (!done && attempts <= maxAttempts) {
+    await delay(interval);
+    deployResults = await checkMetadataResults(selectedOrg, id, includeDetails);
+    logger.log({ deployResults });
+    done = deployResults.done;
+    attempts++;
+  }
+  if (!done) {
+    throw new Error('Timed out while checking for metadata results');
+  }
+  return deployResults;
+}
+
+/**
+ * Read file in browser using FileReader
+ * @param file
+ * @param readAsArrayBuffer
+ */
+export function readFile(file: File, readAsArrayBuffer = false): Promise<string | ArrayBuffer> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    if (readAsArrayBuffer) {
+      reader.readAsArrayBuffer(file);
+    } else {
+      reader.readAsText(file);
+    }
+    reader.onload = (event: ProgressEvent<FileReader>) => {
+      resolve(reader.result);
+    };
+    reader.onabort = (event: ProgressEvent<FileReader>) => {
+      logger.log('onabort', { event });
+      reject(new Error('Reading the file was aborted'));
+    };
+    reader.onerror = (event: ProgressEvent<FileReader>) => {
+      logger.log('onerror', { event });
+      reject(reader.error);
+    };
+  });
+}
+
+/**
+ * Parse file
+ * Supported Types: CSV / XLSX
+ *
+ * TODO: support other filetypes (.zip)
+ *
+ * @param content string | ArrayBuffer
+ * @param options - If onParsedMultipleWorkbooks is provided, then this is called to ask the user which worksheet to use
+ */
+export async function parseFile(
+  content: string | ArrayBuffer,
+  options?: {
+    onParsedMultipleWorkbooks?: (worksheets: string[]) => Promise<string>;
+  }
+): Promise<{
+  data: any[];
+  headers: string[];
+  errors: string[];
+}> {
+  if (isString(content)) {
+    // csv - read from papaparse
+    const csvResult = parseCsv(content, {
+      delimiter: detectDelimiter(),
+      header: true,
+      skipEmptyLines: true,
+    });
+    return {
+      data: csvResult.data,
+      headers: Array.from(new Set(csvResult.meta.fields)), // remove duplicates, if any
+      errors: csvResult.errors.map((error) => `Row ${error.row}: ${error.message}`),
+    };
+  } else {
+    // ArrayBuffer - xlsx file
+    const workbook = XLSX.read(content, { cellText: false, cellDates: true, type: 'array' });
+    let selectedSheet = workbook.Sheets[workbook.SheetNames[0]];
+    if (workbook.SheetNames.length > 1 && typeof options.onParsedMultipleWorkbooks === 'function') {
+      const sheetName = await options.onParsedMultipleWorkbooks(workbook.SheetNames);
+      if (workbook.Sheets[sheetName]) {
+        selectedSheet = workbook.Sheets[sheetName];
+      }
+    }
+    // TODO: ask user what worksheet to use!
+    const data = XLSX.utils.sheet_to_json(selectedSheet, {
+      dateNF: 'yyyy"-"mm"-"dd"T"hh:mm:ss',
+      defval: '',
+      blankrows: false,
+      rawNumbers: true,
+    });
+    const headers = data.length > 0 ? Object.keys(data[0]) : [];
+    return {
+      data,
+      headers: headers.filter((field) => !field.startsWith('__empty')),
+      errors: [], // TODO:
+    };
+  }
+}
+
+export function generateCsv(data: object[], options: UnparseConfig = {}): string {
+  options = options || {};
+  options.newline = options.newline || '\n';
+  if (!options.delimiter) {
+    options.delimiter = detectDelimiter();
+  }
+  return unparseCsv(data, options);
+}
+
+function detectDelimiter(): string {
+  let delimiter = ',';
+  try {
+    // determine if delimiter is the same as the decimal symbol in current locale
+    // if so, change delimiter to ;
+    if (delimiter === (1.1).toLocaleString(navigator.language).substring(1, 2)) {
+      delimiter = ';';
+    }
+  } catch (ex) {
+    logger.warn('[ERROR] Error detecting CSV delimiter', ex);
+  }
+  return delimiter;
+}
+
+export function convertDateToLocale(isoDateStr: string) {
+  return parseISO(isoDateStr).toLocaleString();
+}
+
+export function convertArrayOfObjectToArrayOfArray(data: any[], headers?: string[]): any[][] {
+  if (!data || !data.length) {
+    return [];
+  }
+  headers = headers || Object.keys(data[0]);
+  return [headers].concat(data.map((row) => headers.map((header) => row[header])));
+}

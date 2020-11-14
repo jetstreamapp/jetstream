@@ -10,7 +10,8 @@ export function getQueryResultsCellContents(
   serverUrl: string,
   org: SalesforceOrgUi,
   value: unknown,
-  complexDataRenderer?: (field: QueryFieldHeader, serverUrl: string, org: SalesforceOrgUi, value: unknown) => ReactNode
+  fullRecord?: any,
+  complexDataRenderer?: (parentRecord: any, field: QueryFieldHeader, serverUrl: string, org: SalesforceOrgUi, value: unknown) => ReactNode
   // onViewData?: (field: QueryFieldHeader, value: unknown) => void
 ) {
   let type: 'other' | 'object' | 'boolean' | 'id' = 'other';
@@ -26,7 +27,7 @@ export function getQueryResultsCellContents(
   switch (type) {
     case 'object':
       if (complexDataRenderer) {
-        content = complexDataRenderer(field, serverUrl, org, value);
+        content = complexDataRenderer(fullRecord, field, serverUrl, org, value);
       } else {
         try {
           content = <div className="slds-line-clamp_medium">{JSON.stringify(value)}</div>;

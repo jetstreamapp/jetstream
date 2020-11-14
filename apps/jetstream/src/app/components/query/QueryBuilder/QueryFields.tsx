@@ -78,6 +78,25 @@ export const QueryFieldsComponent: FunctionComponent<QueryFieldsProps> = ({ sele
   }, [selectedOrg, selectedSObject]);
 
   function emitSelectedFieldsChanged(fieldsMap: MapOf<QueryFields> = queryFieldsMap) {
+    // const fields: QueryFieldWithPolymorphic[] = Object.values(fieldsMap)
+    //   .filter((queryField) => !queryField.key.includes(CHILD_FIELD_SEPARATOR))
+    //   .flatMap((queryField) => {
+    //     const basePath = queryField.key.replace(/.+\|/, '');
+    //     return sortQueryFieldsStr(Array.from(queryField.selectedFields))
+    //       .map((fieldKey) => `${basePath}${fieldKey}`)
+    //       .map((field) => ({ field, polymorphicObj: queryField.isPolymorphic ? queryField.sobject : undefined }));
+    //   });
+
+    // const fields = sortQueryFieldsStr(
+    //   orderStringsBy(
+    //     Object.values(fieldsMap)
+    //       .filter((queryField) => !queryField.key.includes(CHILD_FIELD_SEPARATOR))
+    //       .flatMap((queryField) => {
+    //         const basePath = queryField.key.replace(/.+\|/, '');
+    //         return Array.from(queryField.selectedFields).map((fieldKey) => `${basePath}${fieldKey}`);
+    //       })
+    //   )
+    // );
     const fields: QueryFieldWithPolymorphic[] = Object.values(fieldsMap)
       .filter((queryField) => !queryField.key.includes(CHILD_FIELD_SEPARATOR))
       .flatMap((queryField) => {
@@ -86,6 +105,7 @@ export const QueryFieldsComponent: FunctionComponent<QueryFieldsProps> = ({ sele
           .map((fieldKey) => `${basePath}${fieldKey}`)
           .map((field) => ({ field, polymorphicObj: queryField.isPolymorphic ? queryField.sobject : undefined }));
       });
+
     onSelectionChanged(fields);
   }
 
@@ -163,15 +183,24 @@ export const QueryFieldsComponent: FunctionComponent<QueryFieldsProps> = ({ sele
     }
   }
 
-  function handleFieldSelectAll(key: string, value: boolean) {
+  /**
+   * @param key sobject key
+   * @param value select all = true/false
+   * @param impactedKeys children may have filtered data locally, so keys are passed in to specify the specific fields
+   */
+  function handleFieldSelectAll(key: string, value: boolean, impactedKeys: string[]) {
     if (queryFieldsMap[key]) {
       const clonedQueryFieldsMap = { ...queryFieldsMap };
       if (value) {
-        clonedQueryFieldsMap[key] = { ...clonedQueryFieldsMap[key], selectedFields: new Set(clonedQueryFieldsMap[key].visibleFields) };
+        // keep existing fields and add newly selected fields
+        clonedQueryFieldsMap[key] = {
+          ...clonedQueryFieldsMap[key],
+          selectedFields: new Set(Array.from(clonedQueryFieldsMap[key].selectedFields).concat(impactedKeys)),
+        };
       } else {
         // remove visible fields from list (this could be all or only some of the fields)
         const selectedFields = new Set(clonedQueryFieldsMap[key].selectedFields);
-        clonedQueryFieldsMap[key].visibleFields.forEach((field) => selectedFields.delete(field));
+        impactedKeys.forEach((field) => selectedFields.delete(field));
         clonedQueryFieldsMap[key] = { ...clonedQueryFieldsMap[key], selectedFields };
       }
       setQueryFieldsMap(clonedQueryFieldsMap);

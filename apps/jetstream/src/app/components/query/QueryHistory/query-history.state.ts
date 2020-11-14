@@ -1,11 +1,11 @@
 import { QueryHistorySelection, QueryHistoryItem, MapOf, SalesforceOrgUi } from '@jetstream/types';
 import { atom, selector } from 'recoil';
-import { orderObjectsBy, getMapOf, REGEX } from '@jetstream/shared/utils';
+import { orderObjectsBy, REGEX } from '@jetstream/shared/utils';
 import localforage from 'localforage';
 import { INDEXED_DB } from '@jetstream/shared/constants';
 import * as fromAppState from '../../../app-state';
 import orderBy from 'lodash/orderBy';
-import { describeGlobal, describeSObject } from '@jetstream/shared/data';
+import { describeSObject } from '@jetstream/shared/data';
 
 const defaultSelectedObject: QueryHistorySelection = {
   key: 'all',
@@ -30,7 +30,8 @@ export async function getQueryHistoryItem(
   sObjectLabel?: string
 ): Promise<QueryHistoryItem> {
   if (!sObjectLabel) {
-    const results = await describeSObject(org, sObject);
+    const resultsWithCache = await describeSObject(org, sObject);
+    const results = resultsWithCache.data;
     sObjectLabel = results.name;
   }
   const queryHistoryItem: QueryHistoryItem = {
