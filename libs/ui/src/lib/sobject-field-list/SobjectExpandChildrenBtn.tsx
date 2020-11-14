@@ -54,6 +54,7 @@ export const SobjectExpandChildrenBtn: FunctionComponent<SobjectExpandChildrenBt
               value={selectedSObject}
               onChange={(event) => setSelectedSObject(event.target.value)}
               disabled={isExpanded}
+              title={isExpanded ? 'Hide fields to enable this element' : ''}
             >
               {(field.relatedSobject as string[]).map((relationship) => (
                 <option key={relationship} value={relationship}>
