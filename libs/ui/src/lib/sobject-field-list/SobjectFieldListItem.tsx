@@ -3,7 +3,6 @@ import { css, jsx } from '@emotion/core';
 import { getFieldKey } from '@jetstream/shared/ui-utils';
 import { FieldWrapper, MapOf, QueryFields } from '@jetstream/types';
 import { Fragment, FunctionComponent, useEffect, useState } from 'react';
-import Icon from '../widgets/Icon';
 import SobjectFieldList from './SobjectFieldList';
 import SobjectFieldListType from './SobjectFieldListType';
 import SobjectExpandChildrenBtn from './SobjectExpandChildrenBtn';
@@ -60,7 +59,14 @@ export const SobjectFieldListItem: FunctionComponent<SobjectFieldListItemProps> 
         {field.label}
       </div>
       <div className="slds-text-body_small slds-grid slds-grid_align-spread">
-        <div className="slds-text-color_weak slds-truncate" title={field.name} onClick={() => onSelectField(parentKey, field)}>
+        <div
+          css={css`
+            min-width: 75px;
+          `}
+          className="slds-text-color_weak slds-truncate"
+          title={field.name}
+          onClick={() => onSelectField(parentKey, field)}
+        >
           {field.name}
         </div>
         <SobjectFieldListType field={field} />
@@ -79,10 +85,6 @@ export const SobjectFieldListItem: FunctionComponent<SobjectFieldListItemProps> 
             isExpanded={isExpanded}
             onToggleExpand={handleExpand}
           />
-          {/* <button className="slds-button" onClick={handleExpand}>
-            <Icon type="utility" icon={isExpanded ? 'dash' : 'add'} className="slds-button__icon slds-button__icon_left" />
-            {isExpanded ? 'Hide' : 'View'} {field.relatedSobject} Fields
-          </button> */}
           {isExpanded && (
             <div>
               <SobjectFieldList

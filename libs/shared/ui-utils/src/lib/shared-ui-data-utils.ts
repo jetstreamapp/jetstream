@@ -55,7 +55,7 @@ export async function fetchFields(org: SalesforceOrgUi, queryFields: QueryFields
 
       const filterText = `${field.name || ''}${field.label || ''}${type}${type.replace(REGEX.NOT_ALPHA, '')}`.toLowerCase();
       let relatedSobject: string | string[];
-      if (field.type === 'reference' && field.referenceTo?.length) {
+      if (field.type === 'reference' && field.relationshipName && field.referenceTo?.length) {
         relatedSobject = field.referenceTo.length === 1 ? field.referenceTo[0] : field.referenceTo;
       }
 
@@ -74,7 +74,8 @@ export async function fetchFields(org: SalesforceOrgUi, queryFields: QueryFields
         relatedSobject,
         filterText,
         metadata: field,
-        relationshipKey: field.type === 'reference' && field.referenceTo?.length ? getFieldKey(parentKey, field) : undefined,
+        relationshipKey:
+          field.type === 'reference' && field.relationshipName && field.referenceTo?.length ? getFieldKey(parentKey, field) : undefined,
       };
     }),
     'name'

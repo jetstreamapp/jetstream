@@ -176,6 +176,7 @@ function getTypeOfField(polymorphicItems: { field: string; sobject: string; fiel
     // force Id onto query because it will be used in the ELSE section
     fields.unshift('Id');
   }
+
   const output: ComposeFieldTypeof = {
     field,
     conditions: [
@@ -218,6 +219,10 @@ export function convertFieldWithPolymorphicToQueryFields(inputFields: QueryField
       } else {
         polymorphicItems.fields.push(sobjectField);
       }
+    } else if (polymorphicItems.field && field.field.startsWith(`${polymorphicItems.field}.`)) {
+      // field is a relationship through a polymorphic field, but is not itself polymorphic
+      // we need to strip off the prefix and add to the list of fields
+      polymorphicItems.fields.push(field.field.replace(`${polymorphicItems.field}.`, ''));
     } else {
       // Compose prior polymorphic fields
       if (polymorphicItems.field && polymorphicItems.fields.length > 0) {

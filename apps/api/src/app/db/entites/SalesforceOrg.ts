@@ -47,7 +47,7 @@ export class SalesforceOrg extends BaseEntity {
   @Exclude()
   jetstreamUserId: string;
 
-  @Column()
+  @Column({ nullable: true })
   @Exclude()
   jetstreamUrl: string;
 

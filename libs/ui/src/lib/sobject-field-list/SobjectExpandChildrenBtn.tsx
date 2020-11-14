@@ -6,8 +6,9 @@ import Icon from '../widgets/Icon';
 import Select from '../form/select/Select';
 
 const relationshipHelpText =
-  'This relationship can be associated to a different parent object for each record. ' +
-  'Only records associated to the selected object will be displayed in the results.';
+  'This relationship can be associated to a different object for each record. ' +
+  'Only records associated to the selected object will display the selected fields, ' +
+  'and other records will only display the Id of the related record.';
 
 export interface SobjectExpandChildrenBtnProps {
   initialSelectedSObject: string;
@@ -55,7 +56,9 @@ export const SobjectExpandChildrenBtn: FunctionComponent<SobjectExpandChildrenBt
               disabled={isExpanded}
             >
               {(field.relatedSobject as string[]).map((relationship) => (
-                <option value={relationship}>{relationship}</option>
+                <option key={relationship} value={relationship}>
+                  {relationship}
+                </option>
               ))}
             </select>
           </Select>

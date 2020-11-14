@@ -47,29 +47,6 @@ export const selectedSubqueryFieldsState = atom<MapOf<QueryFieldWithPolymorphic[
   default: {},
 });
 
-function getTypeOfField(polymorphicItems: { field: string; sobject: string; fields: string[] }): FieldType {
-  const { field, sobject, fields } = polymorphicItems;
-  if (!fields.includes('Id')) {
-    // force Id onto query because it will be used in the ELSE section
-    fields.unshift('Id');
-  }
-  const output: ComposeFieldTypeof = {
-    field,
-    conditions: [
-      {
-        type: 'WHEN',
-        objectType: sobject,
-        fieldList: fields,
-      },
-      {
-        type: 'ELSE',
-        fieldList: ['Id'],
-      },
-    ],
-  };
-  return getField(output);
-}
-
 export const selectQueryField = selector<FieldType[]>({
   key: 'query.selectQueryField',
   get: ({ get }) => {
