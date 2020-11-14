@@ -1,7 +1,8 @@
-import { orderBy, isString, get as lodashGet, isBoolean, isNil } from 'lodash';
+import { orderBy, isString, get as lodashGet, isBoolean, isNil, isObject } from 'lodash';
 import {
   MapOf,
   Record,
+  QueryFieldWithPolymorphic,
   BulkJob,
   BulkJobUntyped,
   BulkJobBatchInfo,
@@ -9,12 +10,11 @@ import {
   InsertUpdateUpsertDelete,
   HttpMethod,
 } from '@jetstream/types';
-import { isObject } from 'util';
 import { REGEX } from './regex';
 import { unix } from 'moment-mini';
 import { QueryResults, QueryResultsColumn } from '@jetstream/api-interfaces';
 import { QueryResult } from 'jsforce';
-import { FieldSubquery } from 'soql-parser-js';
+import { FieldSubquery, FieldType, ComposeFieldTypeof, getField } from 'soql-parser-js';
 
 export function NOOP() {}
 
@@ -168,6 +168,80 @@ export function queryResultColumnToTypeLabel(column: QueryResultsColumn, fallbac
     return 'Child Records';
   }
   return column.apexType || fallback;
+}
+
+function getTypeOfField(polymorphicItems: { field: string; sobject: string; fields: string[] }): FieldType {
+  const { field, sobject, fields } = polymorphicItems;
+  if (!fields.includes('Id')) {
+    // force Id onto query because it will be used in the ELSE section
+    fields.unshift('Id');
+  }
+
+  const output: ComposeFieldTypeof = {
+    field,
+    conditions: [
+      {
+        type: 'WHEN',
+        objectType: sobject,
+        fieldList: fields,
+      },
+      {
+        type: 'ELSE',
+        fieldList: ['Id'],
+      },
+    ],
+  };
+  return getField(output);
+}
+
+export function convertFieldWithPolymorphicToQueryFields(inputFields: QueryFieldWithPolymorphic[]): FieldType[] {
+  let polymorphicItems: { field: string; sobject: string; fields: string[] } = {
+    field: null,
+    sobject: null,
+    fields: [],
+  };
+  let outputFields = inputFields.reduce((output: FieldType[], field) => {
+    if (field.polymorphicObj) {
+      const polymorphicField = field.field.substring(0, field.field.lastIndexOf('.'));
+      const sobjectField = field.field.substring(field.field.lastIndexOf('.') + 1);
+      // polymorphic fields will all be sorted, so if we see a new one we can assume it is a new set of conditions
+      if (polymorphicItems.field !== polymorphicField) {
+        // Compose prior polymorphic fields and reset
+        if (polymorphicItems.field && polymorphicItems.fields.length > 0) {
+          // build polymorphic query from prior fields
+          output.push(getTypeOfField(polymorphicItems));
+        }
+        polymorphicItems = {
+          field: polymorphicField,
+          sobject: field.polymorphicObj,
+          fields: [sobjectField],
+        };
+      } else {
+        polymorphicItems.fields.push(sobjectField);
+      }
+    } else if (polymorphicItems.field && field.field.startsWith(`${polymorphicItems.field}.`)) {
+      // field is a relationship through a polymorphic field, but is not itself polymorphic
+      // we need to strip off the prefix and add to the list of fields
+      polymorphicItems.fields.push(field.field.replace(`${polymorphicItems.field}.`, ''));
+    } else {
+      // Compose prior polymorphic fields
+      if (polymorphicItems.field && polymorphicItems.fields.length > 0) {
+        output.push(getTypeOfField(polymorphicItems));
+        polymorphicItems = { field: null, sobject: null, fields: [] };
+      }
+      // return regular non-TYPEOF fields
+      output.push(getField(field.field));
+    }
+    return output;
+  }, []);
+
+  // Compose remaining polymorphic fields
+  if (polymorphicItems.field && polymorphicItems.fields.length > 0) {
+    outputFields.push(getTypeOfField(polymorphicItems));
+    polymorphicItems = { field: null, sobject: null, fields: [] };
+  }
+
+  return outputFields;
 }
 
 export function ensureBoolean(value: string | boolean | null | undefined) {

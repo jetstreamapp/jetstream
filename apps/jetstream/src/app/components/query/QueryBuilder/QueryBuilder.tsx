@@ -1,6 +1,7 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 /** @jsx jsx */
 import { css, jsx } from '@emotion/core';
+import { QueryFieldWithPolymorphic } from '@jetstream/types';
 import {
   Accordion,
   AutoFullHeightContainer,
@@ -122,7 +123,7 @@ export const QueryBuilder: FunctionComponent<QueryBuilderProps> = () => {
   //   }
   // }, [queryWorker, setFilterFields]);
 
-  function handleSubquerySelectedField(relationshipName: string, fields: string[]) {
+  function handleSubquerySelectedField(relationshipName: string, fields: QueryFieldWithPolymorphic[]) {
     const tempSelectedSubqueryFieldsState = { ...selectedSubqueryFieldsState, [relationshipName]: fields };
     setSelectedSubqueryFieldsState(tempSelectedSubqueryFieldsState);
   }

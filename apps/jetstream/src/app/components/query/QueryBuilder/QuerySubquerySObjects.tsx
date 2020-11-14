@@ -1,4 +1,4 @@
-import { MapOf } from '@jetstream/types';
+import { MapOf, QueryFieldWithPolymorphic } from '@jetstream/types';
 import { Accordion, Grid, GridCol } from '@jetstream/ui';
 import { ChildRelationship } from 'jsforce';
 import React, { FunctionComponent, useState } from 'react';
@@ -7,7 +7,7 @@ import QueryChildFieldsComponent from './QueryChildFields';
 // eslint-disable-next-line @typescript-eslint/no-empty-interface
 export interface QuerySubquerySObjectsProps {
   childRelationships: ChildRelationship[];
-  onSelectionChanged: (relationshipName: string, fields: string[]) => void;
+  onSelectionChanged: (relationshipName: string, fields: QueryFieldWithPolymorphic[]) => void;
 }
 
 export const QuerySubquerySObjects: FunctionComponent<QuerySubquerySObjectsProps> = ({ childRelationships, onSelectionChanged }) => {
@@ -23,7 +23,7 @@ export const QuerySubquerySObjects: FunctionComponent<QuerySubquerySObjectsProps
           <QueryChildFieldsComponent
             selectedSObject={childRelationship.childSObject}
             parentRelationshipName={childRelationship.relationshipName}
-            onSelectionChanged={(fields: string[]) => onSelectionChanged(childRelationship.relationshipName, fields)}
+            onSelectionChanged={(fields: QueryFieldWithPolymorphic[]) => onSelectionChanged(childRelationship.relationshipName, fields)}
           />
         );
         setTimeout(() => setChildRelationshipContent({ ...childRelationshipContent, [childRelationship.relationshipName]: content }));
