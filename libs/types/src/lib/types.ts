@@ -49,6 +49,10 @@ export interface AuthenticationToken {
   token_type?: 'Bearer';
 }
 
+export interface UserProfilePreferences {
+  skipQueryWalkthrough: boolean;
+}
+
 export type UserProfileUsernameStatus = 'ACTIVE' | 'PENDING' | 'REJECTED';
 
 export interface FeatureFlag {

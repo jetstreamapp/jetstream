@@ -63,6 +63,7 @@ export const INDEXED_DB = {
   KEYS: {
     queryHistory: 'HISTORY:QUERY',
     httpCache: 'HTTP:CACHE',
+    userPreferences: 'USER:PREFERENCES',
   },
 };
 

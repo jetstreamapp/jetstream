@@ -1,13 +1,33 @@
 import { atom, selector } from 'recoil';
 import isString from 'lodash/isString';
-import { SalesforceOrgUi, UserProfileUi, ApplicationCookie, SalesforceOrgUiType } from '@jetstream/types';
+import { SalesforceOrgUi, UserProfileUi, ApplicationCookie, SalesforceOrgUiType, MapOf, UserProfilePreferences } from '@jetstream/types';
 import { getUserProfile, getOrgs } from '@jetstream/shared/data';
 import { parseCookie } from '@jetstream/shared/ui-utils';
 import { HTTP } from '@jetstream/shared/constants';
+import localforage from 'localforage';
+import { INDEXED_DB } from '@jetstream/shared/constants';
 
 export const STORAGE_KEYS = {
   SELECTED_ORG_STORAGE_KEY: `SELECTED_ORG`,
 };
+
+function ensureUserProfileInit(pref?: UserProfilePreferences): UserProfilePreferences {
+  return {
+    // DEFAULTS
+    skipQueryWalkthrough: false,
+    // CURRENT
+    ...pref,
+  };
+}
+
+async function getUserPreferences(): Promise<UserProfilePreferences> {
+  try {
+    const userPreferences = await localforage.getItem<UserProfilePreferences>(INDEXED_DB.KEYS.userPreferences);
+    return ensureUserProfileInit(userPreferences);
+  } catch (ex) {
+    return ensureUserProfileInit();
+  }
+}
 
 async function getOrgsFromStorage(): Promise<SalesforceOrgUi[]> {
   try {
@@ -35,6 +55,11 @@ async function fetchUserProfile(): Promise<UserProfileUi> {
   const userProfile = await getUserProfile();
   return userProfile;
 }
+
+const userPreferenceState = atom<UserProfilePreferences>({
+  key: 'userPreferenceState',
+  default: getUserPreferences(),
+});
 
 export const applicationCookieState = atom<ApplicationCookie>({
   key: 'applicationCookieState',
@@ -87,5 +112,21 @@ export const selectedOrgType = selector<SalesforceOrgUiType>({
       return salesforceOrgs.orgOrganizationType === 'Developer Edition' ? 'Developer' : 'Production';
     }
     return undefined;
+  },
+});
+
+export const selectUserPreferenceState = selector<UserProfilePreferences>({
+  key: 'selectUserPreferenceState',
+  get: ({ get }) => {
+    const userPreferences = get(userPreferenceState);
+    return userPreferences;
+  },
+  set: async ({ set }, userPreferences: UserProfilePreferences) => {
+    set(userPreferenceState, userPreferences);
+    try {
+      await localforage.setItem<UserProfilePreferences>(INDEXED_DB.KEYS.userPreferences, userPreferences);
+    } catch (ex) {
+      // could not save to localstorage
+    }
   },
 });

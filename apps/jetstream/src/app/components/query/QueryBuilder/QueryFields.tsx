@@ -1,5 +1,6 @@
 import { logger } from '@jetstream/shared/client-logger';
-import { fetchFields, getFieldKey, sortQueryFieldsStr } from '@jetstream/shared/ui-utils';
+import { fetchFields, getFieldKey, sortQueryFieldsPolymorphic } from '@jetstream/shared/ui-utils';
+import { orderObjectsBy } from '@jetstream/shared/utils';
 import { FieldWrapper, MapOf, QueryFields, SalesforceOrgUi, QueryFieldWithPolymorphic } from '@jetstream/types';
 import { AutoFullHeightContainer, SobjectFieldList } from '@jetstream/ui';
 import isEmpty from 'lodash/isEmpty';
@@ -13,8 +14,7 @@ const CHILD_FIELD_SEPARATOR = `~`;
 
 export interface QueryFieldsProps {
   selectedSObject: string;
-  onSelectionChanged: (fields: { field: string; polymorphicObj: string }[]) => void;
-  // onFieldsFetched: (queryFields: MapOf<QueryFields>) => void;
+  onSelectionChanged: (fields: QueryFieldWithPolymorphic[]) => void;
 }
 
 function getQueryFieldKey(selectedOrg: SalesforceOrgUi, selectedSObject: string) {
@@ -22,7 +22,6 @@ function getQueryFieldKey(selectedOrg: SalesforceOrgUi, selectedSObject: string)
 }
 
 export const QueryFieldsComponent: FunctionComponent<QueryFieldsProps> = ({ selectedSObject, onSelectionChanged }) => {
-  // const [queryFieldsMap, setQueryFieldsMap] = useState<MapOf<QueryFields>>({});
   const [queryFieldsMap, setQueryFieldsMap] = useRecoilState(fromQueryState.queryFieldsMapState);
   const [queryFieldsKey, setQueryFieldsKey] = useRecoilState(fromQueryState.queryFieldsKey);
   const setChildRelationships = useSetRecoilState(fromQueryState.queryChildRelationships);
@@ -97,14 +96,19 @@ export const QueryFieldsComponent: FunctionComponent<QueryFieldsProps> = ({ sele
     //       })
     //   )
     // );
-    const fields: QueryFieldWithPolymorphic[] = Object.values(fieldsMap)
-      .filter((queryField) => !queryField.key.includes(CHILD_FIELD_SEPARATOR))
-      .flatMap((queryField) => {
-        const basePath = queryField.key.replace(/.+\|/, '');
-        return sortQueryFieldsStr(Array.from(queryField.selectedFields))
-          .map((fieldKey) => `${basePath}${fieldKey}`)
-          .map((field) => ({ field, polymorphicObj: queryField.isPolymorphic ? queryField.sobject : undefined }));
-      });
+    const fields: QueryFieldWithPolymorphic[] = sortQueryFieldsPolymorphic(
+      orderObjectsBy(
+        Object.values(fieldsMap)
+          .filter((queryField) => !queryField.key.includes(CHILD_FIELD_SEPARATOR))
+          .flatMap((queryField) => {
+            const basePath = queryField.key.replace(/.+\|/, '');
+            return Array.from(queryField.selectedFields)
+              .map((fieldKey) => `${basePath}${fieldKey}`)
+              .map((field) => ({ field, polymorphicObj: queryField.isPolymorphic ? queryField.sobject : undefined }));
+          }),
+        'field'
+      )
+    );
 
     onSelectionChanged(fields);
   }
@@ -231,6 +235,15 @@ export const QueryFieldsComponent: FunctionComponent<QueryFieldsProps> = ({ sele
     }
   }
 
+  function handleOnUnselectAll() {
+    const clonedQueryFieldsMap = { ...queryFieldsMap };
+    Object.keys(clonedQueryFieldsMap).forEach((key) => {
+      clonedQueryFieldsMap[key] = { ...clonedQueryFieldsMap[key], selectedFields: new Set() };
+    });
+    setQueryFieldsMap(clonedQueryFieldsMap);
+    emitSelectedFieldsChanged(clonedQueryFieldsMap);
+  }
+
   return (
     <Fragment>
       {selectedSObject && queryFieldsMap[baseKey] && (
@@ -244,6 +257,7 @@ export const QueryFieldsComponent: FunctionComponent<QueryFieldsProps> = ({ sele
             onToggleExpand={handleToggleFieldExpand}
             onSelectField={handleFieldSelection}
             onSelectAll={handleFieldSelectAll}
+            onUnselectAll={handleOnUnselectAll}
             onFilterChanged={handleFieldFilterChanged}
           />
         </AutoFullHeightContainer>
