@@ -13,6 +13,7 @@ export interface QueryProps {}
 export const Query: FunctionComponent<QueryProps> = () => {
   const match = useRouteMatch();
   const location = useLocation<{ soql: string }>();
+  const selectedOrg = useRecoilValue<SalesforceOrgUi>(selectedOrgState);
   const resetSobjects = useResetRecoilState(fromQueryState.sObjectsState);
   const resetSelectedSObject = useResetRecoilState(fromQueryState.selectedSObjectState);
   const resetQueryFieldsKey = useResetRecoilState(fromQueryState.queryFieldsKey);
@@ -24,10 +25,6 @@ export const Query: FunctionComponent<QueryProps> = () => {
   const resetQueryOrderByState = useResetRecoilState(fromQueryState.queryOrderByState);
   const resetQuerySoqlState = useResetRecoilState(fromQueryState.querySoqlState);
   const [priorSelectedOrg, setPriorSelectedOrg] = useState<string>(null);
-
-  // FIXME: Cannot update a component (`Batcher`) while rendering a different component (`Query`)
-  // Recoil needs to fix this
-  const selectedOrg = useRecoilValue<SalesforceOrgUi>(selectedOrgState);
 
   // reset everything if the selected org changes
   useEffect(() => {

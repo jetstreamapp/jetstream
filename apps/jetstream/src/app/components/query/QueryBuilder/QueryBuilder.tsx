@@ -19,12 +19,14 @@ import Split from 'react-split';
 import { useRecoilState, useRecoilValue, useResetRecoilState } from 'recoil';
 // import QueryWorker from '../../../workers/query.worker';
 import * as fromQueryState from '../query.state';
+import { selectUserPreferenceState } from '../../../app-state';
 import QueryHistory from '../QueryHistory/QueryHistory';
 import QueryFilter from '../QueryOptions/QueryFilter';
 import QueryLimit from '../QueryOptions/QueryLimit';
 import QueryOrderBy from '../QueryOptions/QueryOrderBy';
 import QueryResetButton from '../QueryOptions/QueryResetButton';
 import SoqlTextarea from '../QueryOptions/SoqlTextarea';
+import QueryWalkthrough from '../QueryWalkthrough/QueryWalkthrough';
 import { calculateSoqlQueryFilter } from '../utils/query-utils';
 import QueryBuilderSoqlUpdater from './QueryBuilderSoqlUpdater';
 import QueryFieldsComponent from './QueryFields';
@@ -54,10 +56,12 @@ export const QueryBuilder: FunctionComponent<QueryBuilderProps> = () => {
   const resetQueryLimitSkip = useResetRecoilState(fromQueryState.queryLimitSkip);
   const resetQuerySoqlState = useResetRecoilState(fromQueryState.querySoqlState);
   const resetQueryChildRelationships = useResetRecoilState(fromQueryState.queryChildRelationships);
+  const [userPreferences, setUserPreferences] = useRecoilState(selectUserPreferenceState);
 
   // FIXME: this is a hack and should not be here
   const [showRightHandPane, setShowRightHandPane] = useState(!!selectedSObject);
   const [priorSelectedSObject, setPriorSelectedSObject] = useState(selectedSObject);
+  const [showWalkthrough, setShowWalkthrough] = useState(!userPreferences.skipQueryWalkthrough);
 
   // const [queryWorker] = useState(() => new QueryWorker());
 
@@ -128,14 +132,24 @@ export const QueryBuilder: FunctionComponent<QueryBuilderProps> = () => {
     setSelectedSubqueryFieldsState(tempSelectedSubqueryFieldsState);
   }
 
+  function handleQueryWalkthroughClose(skipInFuture: boolean) {
+    setShowWalkthrough(false);
+    setUserPreferences({ ...userPreferences, skipQueryWalkthrough: skipInFuture });
+  }
+
   return (
     <Fragment>
       <QueryBuilderSoqlUpdater />
+      {showWalkthrough && <QueryWalkthrough onClose={handleQueryWalkthroughClose} />}
       <Page>
         <PageHeader>
           <PageHeaderRow>
             <PageHeaderTitle icon={{ type: 'standard', icon: 'entity' }} label="Query Records" />
             <PageHeaderActions colType="actions" buttonType="separate">
+              <button className="slds-button slds-button_neutral" title="Open help walkthrough" onClick={() => setShowWalkthrough(true)}>
+                <Icon type="utility" icon="help" description="Open help walkthrough" className="slds-button__icon slds-button__icon_left" />
+                Help
+              </button>
               <QueryResetButton />
               {/* <button className={classNames('slds-button slds-button_neutral')} aria-haspopup="true" title="Favorites">
                 <Icon type="utility" icon="favorite" className="slds-button__icon slds-button__icon_left" omitContainer />
