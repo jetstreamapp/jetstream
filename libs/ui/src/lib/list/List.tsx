@@ -1,7 +1,7 @@
 /** @jsx jsx */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { jsx } from '@emotion/core';
-import { isArrowDownKey, isArrowUpKey, isEndKey, isEnterOrSpace, isHomeKey } from '@jetstream/shared/ui-utils';
+import { isArrowDownKey, isArrowUpKey, isEndKey, isEnterOrSpace, isHomeKey, useNonInitialEffect } from '@jetstream/shared/ui-utils';
 import isNumber from 'lodash/isNumber';
 import { createRef, forwardRef, Fragment, KeyboardEvent, RefObject, useEffect, useRef, useState } from 'react';
 import ListItem from './ListItem';
@@ -11,6 +11,7 @@ type RefObjType = RefObject<HTMLLIElement>[] | RefObject<HTMLInputElement>[];
 
 export interface ListProps {
   items: any[];
+  autoScrollToFocus?: boolean;
   useCheckbox?: boolean;
   subheadingPlaceholder?: boolean;
   isActive: (item: any) => boolean;
@@ -27,8 +28,12 @@ export interface ListProps {
 }
 
 export const List = forwardRef<HTMLUListElement, ListProps>(
-  ({ items, useCheckbox = false, subheadingPlaceholder = false, isActive, getContent, onSelected }, ref: RefObject<HTMLUListElement>) => {
+  (
+    { items, autoScrollToFocus = false, useCheckbox = false, subheadingPlaceholder = false, isActive, getContent, onSelected },
+    ref: RefObject<HTMLUListElement>
+  ) => {
     const [focusedItem, setFocusedItem] = useState<number>(null);
+    const [didScrollIntoView, setDidScrollIntoView] = useState(false);
     const elRefs = useRef<RefObjType>([]);
 
     // keep track of ref for all items in list
@@ -41,9 +46,19 @@ export const List = forwardRef<HTMLUListElement, ListProps>(
       elRefs.current = refs;
     }
 
-    useEffect(() => {
+    useNonInitialEffect(() => {
       setFocusedItem(null);
     }, [items]);
+
+    useEffect(() => {
+      if (autoScrollToFocus && !didScrollIntoView && items?.length) {
+        const activeItemIdx = items.findIndex(isActive);
+        if (elRefs.current[activeItemIdx] && elRefs.current[activeItemIdx].current) {
+          elRefs.current[activeItemIdx].current.scrollIntoView();
+          setDidScrollIntoView(true);
+        }
+      }
+    }, [autoScrollToFocus, items]);
 
     useEffect(() => {
       if (elRefs.current && isNumber(focusedItem) && elRefs.current[focusedItem] && elRefs.current[focusedItem]) {
@@ -61,6 +76,8 @@ export const List = forwardRef<HTMLUListElement, ListProps>(
         setFocusedItem(idx);
       }
     }
+
+    function scrollIntoView() {}
 
     function handleKeyUp(event: KeyboardEvent<HTMLUListElement>) {
       event.stopPropagation();

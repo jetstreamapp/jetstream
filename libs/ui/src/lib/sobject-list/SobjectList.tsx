@@ -85,6 +85,7 @@ export const SobjectList: FunctionComponent<SobjectListProps> = ({
             <AutoFullHeightContainer>
               <List
                 ref={ulRef}
+                autoScrollToFocus
                 items={filteredSobjects}
                 isActive={(item: DescribeGlobalSObjectResult) => item.name === selectedSObject?.name}
                 onSelected={(key) => onSelected(sobjects.find((item) => item.name === key))}

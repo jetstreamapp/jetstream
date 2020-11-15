@@ -317,7 +317,7 @@ export const QueryResults: FunctionComponent<QueryResultsProps> = React.memo(() 
               </pre>
             </div>
           )}
-          {!loading && !errorMessage && !records?.length && !recordCount && (
+          {!!(!loading && !errorMessage && !records?.length && !recordCount) && (
             <EmptyState
               headline="Your query yielded no results!"
               callToAction={
@@ -337,12 +337,12 @@ export const QueryResults: FunctionComponent<QueryResultsProps> = React.memo(() 
               <p>Better luck next time!</p>
             </EmptyState>
           )}
-          {!loading && !errorMessage && !records?.length && recordCount && (
+          {!!(!loading && !errorMessage && !records?.length && recordCount) && (
             <div className="slds-col slds-text-heading_small slds-p-around_medium">
               Record Count: <strong>{recordCount}</strong>
             </div>
           )}
-          {records && !!records.length && (
+          {!!(records && !!records.length) && (
             <Fragment>
               <SalesforceRecordDataTable
                 org={selectedOrg}
