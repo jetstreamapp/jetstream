@@ -228,6 +228,15 @@ export const QueryChildFieldsComponent: FunctionComponent<QueryChildFieldsProps>
     }
   }
 
+  function handleOnUnselectAll() {
+    const clonedQueryFieldsMap = { ...queryFieldsMap };
+    Object.keys(clonedQueryFieldsMap).forEach((key) => {
+      clonedQueryFieldsMap[key] = { ...clonedQueryFieldsMap[key], selectedFields: new Set() };
+    });
+    setQueryFieldsMap(clonedQueryFieldsMap);
+    emitSelectedFieldsChanged(clonedQueryFieldsMap);
+  }
+
   return (
     <Fragment>
       {selectedSObject && queryFieldsMap[baseKey] && (
@@ -241,6 +250,7 @@ export const QueryChildFieldsComponent: FunctionComponent<QueryChildFieldsProps>
           onSelectField={handleFieldSelection}
           onSelectAll={handleFieldSelectAll}
           onFilterChanged={handleFieldFilterChanged}
+          onUnselectAll={handleOnUnselectAll}
         />
       )}
     </Fragment>

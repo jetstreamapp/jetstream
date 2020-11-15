@@ -6,6 +6,7 @@ import isString from 'lodash/isString';
 import { createRef, Fragment, FunctionComponent, useEffect, useState } from 'react';
 import Checkbox from '../form/checkbox/Checkbox';
 import SearchInput from '../form/search-input/SearchInput';
+import DropDown from '../form/dropdown/DropDown';
 import Grid from '../grid/Grid';
 import EmptyState from '../illustrations/EmptyState';
 import List from '../list/List';
@@ -42,6 +43,7 @@ export interface SobjectFieldListProps {
   onToggleExpand: (key: string, field: FieldWrapper, relatedSobject: string) => void;
   onSelectField: (key: string, field: FieldWrapper) => void;
   onSelectAll: (key: string, value: boolean, impactedKeys: string[]) => void;
+  onUnselectAll?: () => void;
   onFilterChanged: (key: string, filterTerm: string) => void;
   errorReattempt: (key: string) => void;
 }
@@ -55,6 +57,7 @@ export const SobjectFieldList: FunctionComponent<SobjectFieldListProps> = ({
   onSelectField,
   onSelectAll,
   onFilterChanged,
+  onUnselectAll,
   errorReattempt,
 }) => {
   const [queryFields, setQueryFields] = useState<QueryFields>(null);
@@ -176,15 +179,28 @@ export const SobjectFieldList: FunctionComponent<SobjectFieldListProps> = ({
       {queryFields && !queryFields.loading && !queryFields.hasError && filteredFields && (
         <Fragment>
           <div className="slds-p-bottom--xx-small">
-            <SearchInput
-              id={searchInputId}
-              placeholder={`Filter ${sobject} Fields`}
-              onChange={(value) => onFilterChanged(itemKey, value)}
-              onArrowKeyUpDown={handleSearchKeyboard}
-            />
-            <div className="slds-text-body_small slds-text-color_weak slds-p-left--xx-small">
-              Showing {formatNumber(filteredFields.length)} of {formatNumber(fieldLength)} fields
-            </div>
+            <Grid>
+              <div className="slds-grow">
+                <SearchInput
+                  id={searchInputId}
+                  placeholder={`Filter ${sobject} Fields`}
+                  onChange={(value) => onFilterChanged(itemKey, value)}
+                  onArrowKeyUpDown={handleSearchKeyboard}
+                />
+                <div className="slds-text-body_small slds-text-color_weak slds-p-left--xx-small">
+                  Showing {formatNumber(filteredFields.length)} of {formatNumber(fieldLength)} fields
+                </div>
+              </div>
+              {level === 0 && !!onUnselectAll && (
+                <div className="slds-p-horizontal_xx-small">
+                  <DropDown
+                    position="right"
+                    items={[{ id: 'unselect-all', value: 'Unselect All', icon: { type: 'utility', icon: 'dash' } }]}
+                    onSelected={onUnselectAll}
+                  />
+                </div>
+              )}
+            </Grid>
           </div>
           <Grid
             align="spread"

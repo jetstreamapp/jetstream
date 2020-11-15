@@ -10,6 +10,7 @@ import {
   MapOf,
   MimeType,
   PositionAll,
+  QueryFieldWithPolymorphic,
   QueryFilterOperator,
   SalesforceOrgUi,
 } from '@jetstream/types';
@@ -99,6 +100,38 @@ export function sortQueryFieldsStr(fields: string[]): string[] {
         out.name = field;
       } else {
         out.remaining.push(field);
+      }
+      return out;
+    },
+    {
+      id: null,
+      name: null,
+      remaining: [],
+    }
+  );
+
+  const firstItems = [];
+  if (reducedFields.id) {
+    firstItems.push(reducedFields.id);
+  }
+  if (reducedFields.name) {
+    firstItems.push(reducedFields.name);
+  }
+
+  return firstItems.concat(reducedFields.remaining);
+}
+
+export function sortQueryFieldsPolymorphic(fields: QueryFieldWithPolymorphic[]): QueryFieldWithPolymorphic[] {
+  // partition name and id field out, then append to front
+  const reducedFields = fields.reduce(
+    (out, item) => {
+      const { field } = item;
+      if (field === 'Id') {
+        out.id = item;
+      } else if (field === 'Name') {
+        out.name = item;
+      } else {
+        out.remaining.push(item);
       }
       return out;
     },
