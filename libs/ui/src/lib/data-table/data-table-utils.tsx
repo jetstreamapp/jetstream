@@ -149,8 +149,15 @@ export function getColumnDefinitions(results: QueryResults<any>): SalesforceQuer
   // map each field to the returned metadata from SFDC
   let queryColumnsByPath: MapOf<QueryResultsColumn> = {};
   if (results.columns?.columns) {
-    queryColumnsByPath = results.columns.columns.reduce((out, curr) => {
+    queryColumnsByPath = results.columns.columns.reduce((out, curr, i) => {
       out[curr.columnFullPath.toLowerCase()] = curr;
+      // some subqueries (e.x. TYPEOF) is not returned from the salesforce "column.childColumnPaths"
+      // in this case, we need to mock the response structure
+      // https://github.com/paustint/jetstream/issues/3#issuecomment-728028624
+      if (!Array.isArray(curr.childColumnPaths) && results.parsedQuery?.fields?.[i] && isFieldSubquery(results.parsedQuery.fields[i])) {
+        curr.childColumnPaths = [];
+      }
+
       if (Array.isArray(curr.childColumnPaths)) {
         curr.childColumnPaths.forEach((subqueryField) => {
           out[subqueryField.columnFullPath.toLowerCase()] = subqueryField;
