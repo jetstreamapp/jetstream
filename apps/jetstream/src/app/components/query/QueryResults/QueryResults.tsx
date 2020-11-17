@@ -29,14 +29,17 @@ import { applicationCookieState, selectedOrgState } from '../../../app-state';
 import * as fromJetstreamEvents from '../../core/jetstream-events';
 import * as fromQueryHistory from '../QueryHistory/query-history.state';
 import QueryHistory from '../QueryHistory/QueryHistory';
+import IncludeDeletedRecordsToggle from '../QueryOptions/IncludeDeletedRecords';
 import QueryResultsSoqlPanel from './QueryResultsSoqlPanel';
 import QueryResultsViewRecordFields from './QueryResultsViewRecordFields';
+import * as fromQueryState from '../query.state';
 
 // eslint-disable-next-line @typescript-eslint/no-empty-interface
 export interface QueryResultsProps {}
 
 export const QueryResults: FunctionComponent<QueryResultsProps> = React.memo(() => {
   const isMounted = useRef(null);
+  const includeDeletedRecords = useRecoilValue(fromQueryState.queryIncludeDeletedRecordsState);
   const [priorSelectedOrg, setPriorSelectedOrg] = useState<string>(null);
   const location = useLocation<{ soql: string; sobject?: { name: string; label: string } }>();
   const [soqlPanelOpen, setSoqlPanelOpen] = useState<boolean>(false);
@@ -123,7 +126,7 @@ export const QueryResults: FunctionComponent<QueryResultsProps> = React.memo(() 
       setRecords(null);
       setRecordCount(null);
       // setFields(null);
-      const results = await query(selectedOrg, soql).then(replaceSubqueryQueryResultsWithRecords);
+      const results = await query(selectedOrg, soql, false, includeDeletedRecords).then(replaceSubqueryQueryResultsWithRecords);
       if (!isMounted.current) {
         return;
       }
@@ -348,6 +351,11 @@ export const QueryResults: FunctionComponent<QueryResultsProps> = React.memo(() 
                 org={selectedOrg}
                 serverUrl={serverUrl}
                 queryResults={queryResults}
+                summaryHeaderRightContent={
+                  <div dir="rtl">
+                    <IncludeDeletedRecordsToggle />
+                  </div>
+                }
                 onSelectionChanged={setSelectedRows}
                 onFields={setFields}
                 onFilteredRowsChanged={setFilteredRows}

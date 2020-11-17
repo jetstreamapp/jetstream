@@ -49,6 +49,8 @@ export const QueryBuilder: FunctionComponent<QueryBuilderProps> = () => {
   const [filterFields, setFilterFields] = useRecoilState(fromQueryState.filterQueryFieldsState);
   const [soql, setSoql] = useRecoilState(fromQueryState.querySoqlState);
   const [isFavorite, setIsFavorite] = useRecoilState(fromQueryState.queryIsFavoriteState);
+  const resetQueryFieldsMapState = useResetRecoilState(fromQueryState.queryFieldsMapState);
+  const resetQueryFieldsKey = useResetRecoilState(fromQueryState.queryFieldsKey);
   const resetSelectedSubqueryFieldsState = useResetRecoilState(fromQueryState.selectedSubqueryFieldsState);
   const resetQueryFiltersState = useResetRecoilState(fromQueryState.queryFiltersState);
   const resetQueryOrderByState = useResetRecoilState(fromQueryState.queryOrderByState);
@@ -56,6 +58,7 @@ export const QueryBuilder: FunctionComponent<QueryBuilderProps> = () => {
   const resetQueryLimitSkip = useResetRecoilState(fromQueryState.queryLimitSkip);
   const resetQuerySoqlState = useResetRecoilState(fromQueryState.querySoqlState);
   const resetQueryChildRelationships = useResetRecoilState(fromQueryState.queryChildRelationships);
+  const resetQueryIncludeDeletedRecordsState = useResetRecoilState(fromQueryState.queryIncludeDeletedRecordsState);
   const [userPreferences, setUserPreferences] = useRecoilState(selectUserPreferenceState);
 
   // FIXME: this is a hack and should not be here
@@ -65,12 +68,15 @@ export const QueryBuilder: FunctionComponent<QueryBuilderProps> = () => {
 
   // const [queryWorker] = useState(() => new QueryWorker());
 
+  // stupid hack to force query filters to re-render :sob:
   useEffect(() => {
     let timer1;
-    if (!selectedSObject) {
+    if (priorSelectedSObject && selectedSObject && selectedSObject.name !== priorSelectedSObject.name) {
       setShowRightHandPane(false);
-      timer1 = undefined;
-    } else {
+      timer1 = setTimeout(() => {
+        setShowRightHandPane(true);
+      }, 0);
+    } else if (!showRightHandPane) {
       setShowRightHandPane(true);
     }
     return () => {
@@ -99,13 +105,16 @@ export const QueryBuilder: FunctionComponent<QueryBuilderProps> = () => {
       setPriorSelectedSObject(selectedSObject);
     } else if (selectedSObject && selectedSObject.name !== priorSelectedSObject.name) {
       setPriorSelectedSObject(selectedSObject);
-      resetQueryChildRelationships();
+      resetQueryFieldsMapState();
+      resetQueryFieldsKey();
       resetSelectedSubqueryFieldsState();
       resetQueryFiltersState();
+      resetQueryOrderByState();
       resetQueryLimit();
       resetQueryLimitSkip();
-      resetQueryOrderByState();
       resetQuerySoqlState();
+      resetQueryChildRelationships();
+      resetQueryIncludeDeletedRecordsState();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedSObject]);

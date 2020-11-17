@@ -16,6 +16,27 @@ function getPreviewData(csvRowData: string | Date | boolean | number | null): st
   return `${csvRowData}`;
 }
 
+function getComboboxFieldName(fieldMappingItem: FieldMappingItem) {
+  if (!fieldMappingItem || !fieldMappingItem.targetField) {
+    return undefined;
+  }
+  return `${fieldMappingItem.fieldMetadata.label} (${fieldMappingItem.targetField})`;
+}
+
+function getComboboxFieldTitle(fieldMappingItem: FieldMappingItem) {
+  if (!fieldMappingItem || !fieldMappingItem.targetField) {
+    return undefined;
+  }
+  return `${fieldMappingItem.fieldMetadata.label} (${fieldMappingItem.targetField}) - ${fieldMappingItem.fieldMetadata.typeLabel}`;
+}
+
+function getComboboxRelatedFieldName(relatedFieldMetadata: FieldRelatedEntity) {
+  if (!relatedFieldMetadata) {
+    return undefined;
+  }
+  return `${relatedFieldMetadata.label} (${relatedFieldMetadata.name})`;
+}
+
 export interface LoadRecordsFieldMappingRowProps {
   fields: FieldWithRelatedEntities[];
   fieldMappingItem: FieldMappingItem;
@@ -115,7 +136,7 @@ export const LoadRecordsFieldMappingRow: FunctionComponent<LoadRecordsFieldMappi
 
   return (
     <tr>
-      <td className="slds-align-top">
+      <td className="slds-align-top slds-text-color_weak">
         <div className="slds-truncate slds-m-top_x-small" title={csvRowDataStr}>
           {csvRowDataStr}
         </div>
@@ -139,8 +160,8 @@ export const LoadRecordsFieldMappingRow: FunctionComponent<LoadRecordsFieldMappi
       <td>
         <Combobox
           label="Salesforce Fields"
-          selectedItemLabel={fieldMappingItem.targetField}
-          selectedItemTitle={fieldMappingItem.targetField}
+          selectedItemLabel={getComboboxFieldName(fieldMappingItem)}
+          selectedItemTitle={getComboboxFieldTitle(fieldMappingItem)}
           hideLabel
           onInputChange={handleInputChange}
           hasError={fieldMappingItem.isDuplicateMappedField}
@@ -186,8 +207,8 @@ export const LoadRecordsFieldMappingRow: FunctionComponent<LoadRecordsFieldMappi
             {fieldMappingItem.mappedToLookup && (
               <Combobox
                 label="Related External Id Fields"
-                selectedItemLabel={fieldMappingItem.targetLookupField}
-                selectedItemTitle={fieldMappingItem.targetLookupField}
+                selectedItemLabel={getComboboxRelatedFieldName(fieldMappingItem.relatedFieldMetadata)}
+                selectedItemTitle={getComboboxRelatedFieldName(fieldMappingItem.relatedFieldMetadata)}
                 hideLabel
                 onInputChange={setRelatedTextFilter}
               >

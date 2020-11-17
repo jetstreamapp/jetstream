@@ -304,10 +304,11 @@ export function convertTippyPlacementToSlds(placement: tippyPlacement): Position
 }
 
 function hasValue(row: ExpressionConditionType) {
+  const hasValue = Array.isArray(row.selected.value) ? row.selected.value.length : !!row.selected.value;
   return (
     row.selected.operator &&
     row.selected.resource &&
-    (row.selected.value || row.selected.operator === 'isNull' || row.selected.operator === 'isNotNull')
+    (hasValue || row.selected.operator === 'isNull' || row.selected.operator === 'isNotNull')
   );
 }
 
@@ -437,7 +438,7 @@ function isNegationOperator(operator: QueryFilterOperator): boolean {
   }
 }
 
-function getValue(operator: QueryFilterOperator, value: string): string | string[] {
+function getValue(operator: QueryFilterOperator, value: string | string[]): string | string[] {
   value = value || '';
   switch (operator) {
     case 'contains':
@@ -456,7 +457,7 @@ function getValue(operator: QueryFilterOperator, value: string): string | string
     case 'notIn':
     case 'includes':
     case 'excludes':
-      return value.split('\n');
+      return Array.isArray(value) ? value : value.split('\n');
     default:
       return value;
   }
@@ -573,19 +574,11 @@ export function getBooleanListItems(): ListItem[] {
 }
 
 export function getPicklistListItems(field: Field): ListItem[] {
-  return [
-    {
-      id: '',
-      label: `-- No Value --`,
-      value: '',
-    },
-  ].concat(
-    (field.picklistValues || []).map((item) => ({
-      id: item.value,
-      label: item.label || item.value,
-      value: item.value,
-    }))
-  );
+  return (field.picklistValues || []).map((item) => ({
+    id: item.value,
+    label: item.label || item.value,
+    value: item.value,
+  }));
 }
 /// START ADD ORG ////
 let windowRef: Window | undefined;

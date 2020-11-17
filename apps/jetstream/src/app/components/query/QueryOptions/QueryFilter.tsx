@@ -45,7 +45,11 @@ function findResourceMeta(fields: ListItemGroup[], selected: ExpressionCondition
   return fields.find((group) => group.id === selected.resourceGroup)?.items.find((item) => item.id === selected.resource).meta.metadata;
 }
 
-function resourceTypeFns(fields: ListItemGroup[]) {
+function isListOperator(operator: QueryFilterOperator): boolean {
+  return operator === 'in' || operator === 'notIn' || operator === 'includes' || operator === 'excludes';
+}
+
+function resourceTypeFns(fields: ListItemGroup[]): ExpressionGetResourceTypeFns {
   const getResourceTypeFns: ExpressionGetResourceTypeFns = {
     getTypes: (selected: ExpressionConditionRowSelectedItems): ListItem<ExpressionRowValueType>[] => {
       const fieldMeta: Field = findResourceMeta(fields, selected);
@@ -105,19 +109,34 @@ function resourceTypeFns(fields: ListItemGroup[]) {
           return 'DATETIME';
         case 'boolean':
         case 'picklist':
-        case 'multipicklist':
+        case 'multipicklist': {
+          if (isListOperator(selected.operator)) {
+            return 'SELECT-MULTI';
+          }
           return 'SELECT';
+        }
         default:
-          if (
-            selected.operator === 'in' ||
-            selected.operator === 'notIn' ||
-            selected.operator === 'includes' ||
-            selected.operator === 'excludes'
-          ) {
+          if (isListOperator(selected.operator)) {
             return 'TEXTAREA';
           }
           return 'TEXT';
       }
+    },
+    checkSelected: (selected: ExpressionConditionRowSelectedItems): ExpressionConditionRowSelectedItems => {
+      if (isListOperator(selected.operator) && !Array.isArray(selected.value)) {
+        if (selected.value) {
+          selected.value = [selected.value];
+        } else {
+          selected.value = [];
+        }
+      } else if (!isListOperator(selected.operator) && Array.isArray(selected.value)) {
+        if (selected.value.length) {
+          selected.value = selected.value[0];
+        } else {
+          selected.value = '';
+        }
+      }
+      return selected;
     },
     getSelectItems: (selected: ExpressionConditionRowSelectedItems): ListItem[] | undefined => {
       const fieldMeta: Field = findResourceMeta(fields, selected);

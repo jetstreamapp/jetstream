@@ -201,6 +201,7 @@ export const ExpressionContainer: FunctionComponent<ExpressionContainerProps> = 
           mutableRow.resourceTypes = getResourceTypeFns.getTypes ? getResourceTypeFns.getTypes(selected) : undefined;
           mutableRow.resourceType = getResourceTypeFns.getType(selected);
           mutableRow.resourceSelectItems = getResourceTypeFns.getSelectItems(selected);
+          mutableRow.selected = getResourceTypeFns?.checkSelected(selected) || selected;
         } catch (ex) {
           logger.warn('Error setting resource type or selected items', ex);
         }

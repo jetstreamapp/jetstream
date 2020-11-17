@@ -5,7 +5,7 @@ export interface RadioProps {
   idPrefix?: string;
   id?: string;
   name: string;
-  label: string;
+  label: string | JSX.Element;
   checked: boolean;
   value: string;
   disabled?: boolean;

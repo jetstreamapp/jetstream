@@ -64,9 +64,14 @@ export async function describeSObject(org: SalesforceOrgUi, SObject: string): Pr
   );
 }
 
-export async function query<T = any>(org: SalesforceOrgUi, query: string, isTooling = false): Promise<API.QueryResults<T>> {
+export async function query<T = any>(
+  org: SalesforceOrgUi,
+  query: string,
+  isTooling = false,
+  includeDeletedRecords = false
+): Promise<API.QueryResults<T>> {
   return handleRequest(
-    { method: 'POST', url: `/api/query`, params: { isTooling }, data: { query } },
+    { method: 'POST', url: `/api/query`, params: { isTooling, includeDeletedRecords }, data: { query } },
     { org, useQueryParamsInCacheKey: true, useBodyInCacheKey: true }
   ).then(unwrapResponseIgnoreCache);
 }

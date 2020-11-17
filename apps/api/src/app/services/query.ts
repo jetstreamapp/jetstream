@@ -6,9 +6,16 @@ import { QueryResultsColumns, QueryResultsColumn, QueryResults } from '@jetstrea
 import { logger } from '../config/logger.config';
 import * as querystring from 'querystring';
 
-export async function queryRecords(conn: Connection, query: string, isTooling = false): Promise<QueryResults> {
+export async function queryRecords(
+  conn: Connection,
+  query: string,
+  isTooling = false,
+  includeDeletedRecords = false
+): Promise<QueryResults> {
   // Fetch records from SFDC
-  const queryResults = await (isTooling ? conn.tooling.query(query) : conn.query(query));
+  const queryResults = await (isTooling
+    ? conn.tooling.query(query, { scanAll: includeDeletedRecords })
+    : conn.query(query, { scanAll: includeDeletedRecords }));
 
   let columns: QueryResultsColumns;
   let parsedQuery: Query;

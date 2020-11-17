@@ -13,6 +13,7 @@ import { ApiMode, FieldMapping } from '../load-records-types';
 const MAX_BULK = 10000;
 const MAX_BATCH = 200;
 const MAX_API_CALLS = 250;
+const BATCH_RECOMMENDED_THRESHOLD = 2000;
 
 function getMaxBatchSize(apiMode: ApiMode) {
   if (apiMode === 'BATCH') {
@@ -20,6 +21,21 @@ function getMaxBatchSize(apiMode: ApiMode) {
   } else {
     return MAX_BULK;
   }
+}
+
+function getLabelWithOptionalRecommended(label: string, recommended: boolean): string | JSX.Element {
+  if (!recommended) {
+    return label;
+  }
+  return (
+    <span>
+      {label} <span className="slds-text-body_small slds-text-color_weak">(Recommended based on the number of impacted records)</span>
+    </span>
+  );
+}
+
+function getRecommendedApiMode(numRecords: number): ApiMode {
+  return numRecords > BATCH_RECOMMENDED_THRESHOLD ? 'BULK' : 'BATCH';
 }
 
 function getBatchSizeExceededError(numApiCalls: number): string {
@@ -52,7 +68,13 @@ export const LoadRecordsPerformLoad: FunctionComponent<LoadRecordsPerformLoadPro
   onIsLoading,
 }) => {
   const [loadNumber, setLoadNumber] = useState<number>(0);
-  const [apiMode, setApiMode] = useState<ApiMode>('BULK');
+  const [apiMode, setApiMode] = useState<ApiMode>(() => getRecommendedApiMode(inputFileData.length));
+  const [bulkApiModeLabel] = useState<string | JSX.Element>(() =>
+    getLabelWithOptionalRecommended('Bulk API', inputFileData.length > BATCH_RECOMMENDED_THRESHOLD)
+  );
+  const [batchApiModeLabel] = useState<string | JSX.Element>(() =>
+    getLabelWithOptionalRecommended('Batch API', inputFileData.length <= BATCH_RECOMMENDED_THRESHOLD)
+  );
   const [batchSize, setBatchSize] = useState<number>(MAX_BULK);
   const [batchSizeError, setBatchSizeError] = useState<string>(null);
   const [insertNulls, setInsertNulls] = useState<boolean>(false);
@@ -153,7 +175,7 @@ export const LoadRecordsPerformLoad: FunctionComponent<LoadRecordsPerformLoadPro
             idPrefix="apiMode"
             id="apiMode-bulk"
             name="BULK"
-            label="Bulk API"
+            label={bulkApiModeLabel}
             value="BULK"
             checked={apiMode === 'BULK'}
             disabled={loading}
@@ -163,7 +185,7 @@ export const LoadRecordsPerformLoad: FunctionComponent<LoadRecordsPerformLoadPro
             idPrefix="apiMode"
             id="apiMode-batch"
             name="BATCH"
-            label="Batch API"
+            label={batchApiModeLabel}
             value="BATCH"
             checked={apiMode === 'BATCH'}
             disabled={loading}
