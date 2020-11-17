@@ -39,7 +39,6 @@ export const QueryHistory: FunctionComponent<QueryHistoryProps> = () => {
       // load history and put into store
       (async () => {
         try {
-          logger.info('Updating query history store', queryHistory);
           await localforage.setItem<MapOf<QueryHistoryItem>>(INDEXED_DB.KEYS.queryHistory, queryHistoryStateMap);
         } catch (ex) {
           logger.warn(ex);

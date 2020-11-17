@@ -186,7 +186,7 @@ export const LoadRecordsBatchApiResults: FunctionComponent<LoadRecordsBatchApiRe
         data.push({
           _id: record.success ? record.id : record['Id'] || '',
           _success: record.success,
-          _errors: record.success === false ? record.errors.map((error) => error.message).join('\n') : '',
+          _errors: record.success === false ? record.errors.map((error) => `${error.statusCode}: ${error.message}`).join('\n') : '',
           ...flattenRecord(record.record, fields),
         });
       }

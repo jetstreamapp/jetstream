@@ -149,7 +149,7 @@ export const LoadRecords: FunctionComponent<LoadRecordsProps> = () => {
       case 'fieldMapping':
         // currStepButtonText = 'Continue to Disable Automation';
         currStepButtonText = 'Continue to Load Records';
-        isNextStepDisabled = !fieldMapping || Object.keys(fieldMapping).length === 0;
+        isNextStepDisabled = !fieldMapping || Object.values(fieldMapping).filter((field) => field.targetField).length === 0;
         break;
       case 'automationDeploy':
         currStepButtonText = 'Continue to Load Records';
@@ -174,7 +174,7 @@ export const LoadRecords: FunctionComponent<LoadRecordsProps> = () => {
     }
     setCurrentStepText(currStepButtonText);
     setNextStepDisabled(isNextStepDisabled);
-  }, [currentStep, selectedSObject, inputFileData, loadType, externalId, loadingFields]);
+  }, [currentStep, selectedSObject, inputFileData, loadType, externalId, fieldMapping, loadingFields]);
 
   useEffect(() => {
     const text: string[] = [];
