@@ -65,6 +65,7 @@ export const HeaderNavbar: FunctionComponent<HeaderNavbarProps> = ({ userProfile
             <NavbarItem path="/automation-control" title="Automation Control" label="Automation Control" />
           </Fragment>
         )}
+        <NavbarItem path="/feedback" title="Product Feedback" label="Product Feedback" />
       </Navbar>
     </Header>
   );
