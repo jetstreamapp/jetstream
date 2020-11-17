@@ -21,6 +21,7 @@ import moment from 'moment-mini';
 // eslint-disable-next-line @typescript-eslint/camelcase
 import { YYYY_MM_DD, YYYY_MM_DD_HH_mm_ss_z } from '@jetstream/shared/constants';
 import { useDebounce } from '@jetstream/shared/ui-utils';
+import isString from 'lodash/isString';
 
 export interface ExpressionConditionRowProps {
   row: number;
@@ -85,12 +86,23 @@ export const ExpressionConditionRow: FunctionComponent<ExpressionConditionRowPro
       return null;
     });
     const [selectedResourceTitle] = useState<string>(null);
+    // used to force re-render and re-init for picklist values - since array turns to string and takes multiple renders
+    // the default picklist value does not get picked up in time - so this forces the picklist to re-render
+    const [picklistKey, setPicklistKey] = useState<string>(`${new Date().getTime()}`);
     const debouncedSelectedValue = useDebounce(selectedValue, 150);
 
     useEffect(() => {
       onChange({ ...selected, value: debouncedSelectedValue });
       // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [debouncedSelectedValue]);
+
+    useEffect(() => {
+      if (selected.value !== selectedValue) {
+        setSelectValue(selected.value);
+        setPicklistKey(`${new Date().getTime()}`);
+      }
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [selected.value]);
 
     useEffect(() => {
       setDisableValueInput(disableValueForOperators.includes(selected.operator));
@@ -251,15 +263,31 @@ export const ExpressionConditionRow: FunctionComponent<ExpressionConditionRowPro
                 />
               )}
               {resourceType === 'SELECT' && (
-                // TODO: this should optionally allow multi-selection, but not sure how to represent
                 <Picklist
+                  key={picklistKey}
                   label={valueLabel}
                   items={resourceSelectItems || []}
-                  selectedItemIds={selectedValue ? [selectedValue] : []}
+                  selectedItemIds={selectedValue ? [selectedValue as string] : []}
                   allowDeselection={false}
                   onChange={(item) => {
                     if (item && item[0]) {
                       setSelectValue(item[0].id);
+                    }
+                  }}
+                  disabled={disableValueForOperators.includes(selectedValue as QueryFilterOperator)}
+                />
+              )}
+              {resourceType === 'SELECT-MULTI' && (
+                <Picklist
+                  key={picklistKey}
+                  label={valueLabel}
+                  items={resourceSelectItems || []}
+                  selectedItemIds={isString(selectedValue) ? [selectedValue] : (selectedValue as string[]) || []}
+                  multiSelection
+                  omitMultiSelectPills
+                  onChange={(items) => {
+                    if (items) {
+                      setSelectValue(items.map((item) => item.id));
                     }
                   }}
                   disabled={disableValueForOperators.includes(selectedValue as QueryFilterOperator)}

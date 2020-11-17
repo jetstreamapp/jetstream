@@ -35,6 +35,7 @@ export interface PicklistProps {
   selectedItems?: ListItem[]; // This only applies on initialization, then the component will manage ongoing state
   selectedItemIds?: string[]; // This only applies on initialization, will be ignored if selectedItems is provided
   multiSelection?: boolean;
+  omitMultiSelectPills?: boolean;
   allowDeselection?: boolean;
   scrollLength?: 5 | 7 | 10;
   disabled?: boolean;
@@ -51,6 +52,7 @@ export const Picklist: FunctionComponent<PicklistProps> = ({
   selectedItems = [],
   selectedItemIds = [],
   multiSelection = false,
+  omitMultiSelectPills = false,
   allowDeselection = true,
   scrollLength,
   disabled,
@@ -314,7 +316,7 @@ export const Picklist: FunctionComponent<PicklistProps> = ({
               </div>
             </div>
           </div>
-          {multiSelection && selectedItemsIdsSet.size > 0 && (
+          {multiSelection && !omitMultiSelectPills && selectedItemsIdsSet.size > 0 && (
             <div className="slds-listbox_selection-group">
               <ul
                 className="slds-listbox slds-listbox_horizontal"
@@ -326,7 +328,7 @@ export const Picklist: FunctionComponent<PicklistProps> = ({
                   {items
                     .filter((item) => selectedItemsIdsSet.has(item.id))
                     .map((item) => (
-                      <Pill label={item.label} onRemove={() => handleSelection(item)} />
+                      <Pill key={item.id} label={item.label} onRemove={() => handleSelection(item)} />
                     ))}
                 </li>
               </ul>

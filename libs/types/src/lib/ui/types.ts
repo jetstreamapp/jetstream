@@ -200,12 +200,13 @@ export type Down = 'DOWN';
 export type UpDown = Up | Down;
 
 export type Select = 'SELECT';
+export type SelectMulti = 'SELECT-MULTI';
 export type Text = 'TEXT';
 export type TextArea = 'TEXTAREA';
 export type DateStr = 'DATE';
 export type Datetime = 'DATETIME';
 
-export type ExpressionRowValueType = Select | Text | TextArea | DateStr | Datetime | 'NUMBER' | 'BOOLEAN';
+export type ExpressionRowValueType = Select | SelectMulti | Text | TextArea | DateStr | Datetime | 'NUMBER' | 'BOOLEAN';
 
 export type AndOr = 'AND' | 'OR';
 export type AscDesc = 'ASC' | 'DESC';
@@ -237,13 +238,15 @@ export interface ExpressionConditionRowSelectedItems<T = any> {
   resourceGroup: string | null;
   operator: QueryFilterOperator | null;
   resourceType?: ExpressionRowValueType;
-  value: string;
+  value: string | string[];
 }
 
 export interface ExpressionGetResourceTypeFns {
   // used to allow user selection of multiple types - if provided, adds dropdown before value
   getTypes?: (selected: ExpressionConditionRowSelectedItems) => ListItem<ExpressionRowValueType>[];
   getType: (selected: ExpressionConditionRowSelectedItems) => ExpressionRowValueType;
+  // optional function to mutate the selected properties (e.x. convert value from/to array from string)
+  checkSelected?: (selected: ExpressionConditionRowSelectedItems) => ExpressionConditionRowSelectedItems;
   // used if getType returns select, which shows the user a dropdown
   getSelectItems: (selected: ExpressionConditionRowSelectedItems) => ListItem[] | undefined;
 }
