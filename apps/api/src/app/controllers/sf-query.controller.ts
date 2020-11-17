@@ -35,10 +35,11 @@ export async function describeSObject(req: Request, res: Response, next: NextFun
 export async function query(req: Request, res: Response, next: NextFunction) {
   try {
     const isTooling = req.query.isTooling === 'true';
+    const includeDeletedRecords = req.query.includeDeletedRecords === 'true';
     const query = req.body.query;
     const conn: jsforce.Connection = res.locals.jsforceConn;
 
-    const response = await queryService.queryRecords(conn, query, isTooling);
+    const response = await queryService.queryRecords(conn, query, isTooling, includeDeletedRecords);
 
     sendJson(res, response);
   } catch (ex) {

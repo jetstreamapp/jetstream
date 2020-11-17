@@ -19,6 +19,7 @@ export const QuerySObjects: FunctionComponent = () => {
   const resetQueryChildRelationships = useResetRecoilState(fromQueryState.queryChildRelationships);
   const resetQueryFieldsMapState = useResetRecoilState(fromQueryState.queryFieldsMapState);
   const resetQueryFieldsKey = useResetRecoilState(fromQueryState.queryFieldsKey);
+  const resetQueryIncludeDeletedRecordsState = useResetRecoilState(fromQueryState.queryIncludeDeletedRecordsState);
 
   function handleSobjectChange(sobjects: DescribeGlobalSObjectResult[]) {
     setSobjects(sobjects);
@@ -33,6 +34,7 @@ export const QuerySObjects: FunctionComponent = () => {
       resetQueryLimitSkip();
       resetQuerySoqlState();
       resetQueryChildRelationships();
+      resetQueryIncludeDeletedRecordsState();
     }
   }
 

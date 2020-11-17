@@ -58,6 +58,7 @@ export const QueryBuilder: FunctionComponent<QueryBuilderProps> = () => {
   const resetQueryLimitSkip = useResetRecoilState(fromQueryState.queryLimitSkip);
   const resetQuerySoqlState = useResetRecoilState(fromQueryState.querySoqlState);
   const resetQueryChildRelationships = useResetRecoilState(fromQueryState.queryChildRelationships);
+  const resetQueryIncludeDeletedRecordsState = useResetRecoilState(fromQueryState.queryIncludeDeletedRecordsState);
   const [userPreferences, setUserPreferences] = useRecoilState(selectUserPreferenceState);
 
   // FIXME: this is a hack and should not be here
@@ -113,6 +114,7 @@ export const QueryBuilder: FunctionComponent<QueryBuilderProps> = () => {
       resetQueryLimitSkip();
       resetQuerySoqlState();
       resetQueryChildRelationships();
+      resetQueryIncludeDeletedRecordsState();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedSObject]);

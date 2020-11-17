@@ -149,6 +149,11 @@ export const querySoqlState = atom<string>({
   default: '',
 });
 
+export const queryIncludeDeletedRecordsState = atom<boolean>({
+  key: 'query.queryIncludeDeletedRecordsState',
+  default: false,
+});
+
 // TODO: move to selector
 export const queryIsFavoriteState = atom<boolean>({
   key: 'query.queryIsFavoriteState',

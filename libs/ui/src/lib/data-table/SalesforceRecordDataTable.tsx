@@ -5,7 +5,7 @@ import { QueryResults } from '@jetstream/api-interfaces';
 import { queryMore } from '@jetstream/shared/data';
 import { formatNumber } from '@jetstream/shared/ui-utils';
 import { SalesforceOrgUi } from '@jetstream/types';
-import { Fragment, FunctionComponent, memo, useEffect, useRef, useState } from 'react';
+import { Fragment, FunctionComponent, memo, ReactNode, useEffect, useRef, useState } from 'react';
 import { logger } from '@jetstream/shared/client-logger';
 import Grid from '../grid/Grid';
 import GridCol from '../grid/GridCol';
@@ -29,6 +29,7 @@ export interface SalesforceRecordDataTableProps {
   serverUrl: string;
   org: SalesforceOrgUi;
   queryResults: QueryResults<any>;
+  summaryHeaderRightContent?: ReactNode;
   onSelectionChanged: (rows: any[]) => void;
   onFilteredRowsChanged: (rows: any[]) => void;
   /** Fired when query is loaded OR user changes column order */
@@ -37,7 +38,7 @@ export interface SalesforceRecordDataTableProps {
 }
 
 export const SalesforceRecordDataTable: FunctionComponent<SalesforceRecordDataTableProps> = memo<SalesforceRecordDataTableProps>(
-  ({ serverUrl, org, queryResults, onSelectionChanged, onFilteredRowsChanged, onFields, onLoadMoreRecords }) => {
+  ({ serverUrl, org, queryResults, summaryHeaderRightContent, onSelectionChanged, onFilteredRowsChanged, onFields, onLoadMoreRecords }) => {
     const isMounted = useRef(null);
     const [columns, setColumns] = useState<ColDef[]>();
     const [columnDefinitions, setColumnDefinitions] = useState<SalesforceQueryColumnDefinition>();
@@ -118,17 +119,18 @@ export const SalesforceRecordDataTable: FunctionComponent<SalesforceRecordDataTa
     return records ? (
       <Fragment>
         <Grid className="slds-p-around_xx-small">
-          <GridCol growNone className="slds-p-around_x-small">
+          <div className="slds-p-around_x-small">
             Showing {formatNumber(records.length)} of {formatNumber(totalRecordCount)} records
-          </GridCol>
+          </div>
           {hasMoreRecords && (
-            <GridCol>
+            <div>
               <button className="slds-button slds-button_neutral slds-is-relative" onClick={loadMore} disabled={isLoadingMore}>
                 Load More
                 {isLoadingMore && <Spinner size="small" />}
               </button>
-            </GridCol>
+            </div>
           )}
+          {summaryHeaderRightContent && <div className="slds-col_bump-left">{summaryHeaderRightContent}</div>}
         </Grid>
         <DataTableContext.Provider
           value={{
