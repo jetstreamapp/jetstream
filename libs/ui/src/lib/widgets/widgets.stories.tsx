@@ -9,6 +9,7 @@ import Badge from './Badge';
 import Pill from './Pill';
 import { action } from '@storybook/addon-actions';
 import CopyToClipboard from './CopyToClipboard';
+import { IconName } from '@jetstream/icon-factory';
 
 export default {
   title: 'Widgets',
@@ -38,7 +39,7 @@ export const basicIcon = () => (
         },
         'utility'
       )}
-      icon={text('icon', 'add')}
+      icon={text('icon', 'add') as IconName}
       omitContainer={boolean('omitContainer', false)}
       containerClassname={text('containerClassname', undefined)}
       className={text('className', undefined)}
@@ -62,7 +63,7 @@ export const iconWithCustomClass = () => (
         },
         'custom'
       )}
-      icon={text('icon', 'custom5')}
+      icon={text('icon', 'custom5') as IconName}
       omitContainer={boolean('omitContainer', false)}
       containerClassname={text('containerClassname', 'slds-icon-custom-custom5')}
       className={text('className', undefined)}
@@ -86,7 +87,7 @@ export const iconWithCircleContainer = () => (
         },
         'action'
       )}
-      icon={text('icon', 'description')}
+      icon={text('icon', 'description') as IconName}
       omitContainer={boolean('omitContainer', false)}
       containerClassname={text('containerClassname', 'slds-icon_container_circle slds-icon-action-description')}
       className={text('className', undefined)}
@@ -110,7 +111,7 @@ export const iconSuccess = () => (
         },
         'utility'
       )}
-      icon={text('icon', 'announcement')}
+      icon={text('icon', 'announcement') as IconName}
       omitContainer={boolean('omitContainer', false)}
       containerClassname={text('containerClassname', 'slds-icon-utility-announcement')}
       className={text('className', 'slds-icon-text-success')}
@@ -123,7 +124,7 @@ export const iconSuccess = () => (
 export const copyToClipboard = () => (
   <CopyToClipboard
     className={text('className', 'slds-m-left--xx-small')}
-    icon={{ type: 'utility', icon: text('icon', 'copy'), description: text('iconDescription', 'copy to clipboard') }}
+    icon={{ type: 'utility', icon: text('icon', 'copy') as IconName, description: text('iconDescription', 'copy to clipboard') }}
     size={select(
       'size',
       {
@@ -210,7 +211,9 @@ export const badges = () => (
 
 export const pill = () => (
   <Fragment>
-    <Pill label="My Pill" onRemove={action('onRemove')} />
-    <Pill label="My Pill (can't be removed)" />
+    <Pill title="My Pill :)" onRemove={action('onRemove')}>
+      My Pill
+    </Pill>
+    <Pill>My Pill (can't be removed)</Pill>
   </Fragment>
 );
