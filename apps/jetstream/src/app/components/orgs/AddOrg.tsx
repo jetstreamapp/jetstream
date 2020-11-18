@@ -1,6 +1,6 @@
 import { addOrg } from '@jetstream/shared/ui-utils';
 import { SalesforceOrgUi } from '@jetstream/types';
-import { Icon, Input, Popover, Radio, RadioGroup } from '@jetstream/ui';
+import { Grid, GridCol, Icon, Input, Popover, Radio, RadioGroup } from '@jetstream/ui';
 import React, { Fragment, FunctionComponent, useEffect, useState } from 'react';
 import { useRecoilState } from 'recoil';
 import { applicationCookieState } from '../../app-state';
@@ -110,11 +110,13 @@ export const AddOrg: FunctionComponent<AddOrgProps> = ({ onAddOrg }) => {
       }
       footer={
         <footer className="slds-popover__footer">
-          <div className="slds-grid slds-grid_vertical-align-center">
-            <button className="slds-button slds-button_brand slds-col_bump-left" onClick={handleAddOrg}>
-              Continue
-            </button>
-          </div>
+          <Grid verticalAlign="center">
+            <GridCol bump="left">
+              <button className="slds-button slds-button_brand" onClick={handleAddOrg}>
+                Continue
+              </button>
+            </GridCol>
+          </Grid>
         </footer>
       }
     >

@@ -5,6 +5,8 @@ import { css, jsx } from '@emotion/core';
 import { action } from '@storybook/addon-actions';
 import { boolean, text } from '@storybook/addon-knobs';
 import { Fragment } from 'react';
+import Grid from '../grid/Grid';
+import GridCol from '../grid/GridCol';
 import Icon from '../widgets/Icon';
 import Popover from './Popover';
 
@@ -151,10 +153,12 @@ export const withHeaderAndFooter = () => (
     }
     footer={
       <footer className="slds-popover__footer">
-        <div className="slds-grid slds-grid_vertical-align-center">
-          <span className="slds-text-title">Step 2 of 4</span>
-          <button className="slds-button slds-button_brand slds-col_bump-left">Next</button>
-        </div>
+        <Grid verticalAlign="center">
+          <GridCol className="slds-text-title">Step 2 of 4</GridCol>
+          <GridCol bump="left">
+            <button className="slds-button slds-button_brand">Next</button>
+          </GridCol>
+        </Grid>
       </footer>
     }
     content={

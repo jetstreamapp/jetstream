@@ -1,6 +1,6 @@
 /** @jsx jsx */
 import { jsx } from '@emotion/core';
-import { FunctionComponent } from 'react';
+import { FunctionComponent, HTMLAttributes } from 'react';
 import classNames from 'classnames';
 import { TopRightBottomLeft } from '@jetstream/types';
 
@@ -24,6 +24,7 @@ export interface GridColProps {
   maxSizeMedium?: number;
   sizeLarge?: number;
   maxSizeLarge?: number;
+  extraProps?: HTMLAttributes<HTMLDivElement>;
 }
 
 function getClassWithModifier(base: string, modifier?: TopRightBottomLeft) {
@@ -50,13 +51,14 @@ export const GridCol: FunctionComponent<GridColProps> = ({
   maxSizeMedium = DEFAULT_SIZE,
   sizeLarge,
   maxSizeLarge = DEFAULT_SIZE,
+  extraProps = {},
   children,
 }) => {
   return (
     <div
       className={classNames(
-        'slds-col',
         {
+          'slds-col': !bump,
           'slds-no-flex': noFlex,
           'slds-no-space': noSpace,
           'slds-grow': grow,
@@ -71,6 +73,7 @@ export const GridCol: FunctionComponent<GridColProps> = ({
         sizeLarge ? `slds-large-size_${sizeLarge}-of-${maxSizeLarge}` : undefined,
         className
       )}
+      {...extraProps}
     >
       {children}
     </div>

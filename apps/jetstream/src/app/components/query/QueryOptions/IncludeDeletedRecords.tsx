@@ -13,6 +13,10 @@ export const IncludeDeletedRecordsToggle: FunctionComponent<IncludeDeletedRecord
 
   return (
     <CheckboxToggle
+      extraProps={{
+        title:
+          'Turning this on will include deleted records in the query results. You can use include the "IsDeleted" field to the query to identify which records are deleted.',
+      }}
       id="include-deleted"
       containerClassname={containerClassname}
       label="Include Deleted Records"

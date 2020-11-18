@@ -130,7 +130,7 @@ export const SalesforceRecordDataTable: FunctionComponent<SalesforceRecordDataTa
               </button>
             </div>
           )}
-          {summaryHeaderRightContent && <div className="slds-col_bump-left">{summaryHeaderRightContent}</div>}
+          {summaryHeaderRightContent && <GridCol bump="left">{summaryHeaderRightContent}</GridCol>}
         </Grid>
         <DataTableContext.Provider
           value={{

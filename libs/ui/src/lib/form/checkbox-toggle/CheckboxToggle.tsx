@@ -1,4 +1,4 @@
-import React, { FunctionComponent } from 'react';
+import React, { FunctionComponent, HTMLAttributes } from 'react';
 import { RightLeft } from '@jetstream/types';
 import classNames from 'classnames';
 
@@ -13,6 +13,7 @@ export interface CheckboxCheckboxToggleProps {
   offText?: string;
   containerClassname?: string;
   labelClassname?: string;
+  extraProps?: HTMLAttributes<HTMLDivElement>;
   onChange?: (value: boolean) => void;
 }
 
@@ -27,10 +28,11 @@ export const CheckboxToggle: FunctionComponent<CheckboxCheckboxToggleProps> = ({
   offText = 'Disabled',
   containerClassname,
   labelClassname,
+  extraProps,
   onChange,
 }) => {
   return (
-    <div className={classNames('slds-form-element', containerClassname)}>
+    <div className={classNames('slds-form-element', containerClassname)} {...extraProps}>
       <label className={classNames('slds-checkbox_toggle slds-grid', labelClassname)}>
         {!hideLabel && labelPosition === 'left' && <span className="slds-form-element__label slds-m-bottom_none">{label}</span>}
         <input
