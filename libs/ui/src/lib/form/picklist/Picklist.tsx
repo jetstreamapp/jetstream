@@ -328,7 +328,9 @@ export const Picklist: FunctionComponent<PicklistProps> = ({
                   {items
                     .filter((item) => selectedItemsIdsSet.has(item.id))
                     .map((item) => (
-                      <Pill key={item.id} label={item.label} onRemove={() => handleSelection(item)} />
+                      <Pill key={item.id} title={item.label} onRemove={() => handleSelection(item)}>
+                        {item.label}
+                      </Pill>
                     ))}
                 </li>
               </ul>
