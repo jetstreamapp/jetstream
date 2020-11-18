@@ -24,38 +24,34 @@ export interface LoadRecordsDataPreviewProps {
 // function valueGetter: ((params: ValueGetterParams) => any) | string;
 
 function getLoadDescription(loadType: InsertUpdateUpsertDelete, totalRecordCount: number, data: any[]) {
+  let action: string;
   switch (loadType) {
     case 'INSERT':
-      return (
-        <span>
-          To a total of <strong>{formatNumber(totalRecordCount)}</strong> records, you are about to{' '}
-          <strong>add {formatNumber(data.length)}</strong> records.
-        </span>
-      );
+      action = 'create';
+      break;
     case 'UPDATE':
-      return (
-        <span>
-          From a total of <strong>{formatNumber(totalRecordCount)}</strong> records, you are about to{' '}
-          <strong>update {formatNumber(data.length)}</strong> records.
-        </span>
-      );
+      action = 'update';
+      break;
     case 'UPSERT':
-      return (
-        <span>
-          From a total of <strong>{formatNumber(totalRecordCount)}</strong> records, you are about to{' '}
-          <strong>update or add {formatNumber(data.length)}</strong> records.
-        </span>
-      );
+      action = 'update or create';
+      break;
     case 'DELETE':
-      return (
-        <span>
-          From a total of <strong>{formatNumber(totalRecordCount)}</strong> records, you are about to{' '}
-          <strong>delete {formatNumber(data.length)}</strong> records.
-        </span>
-      );
     default:
+      action = 'delete';
       break;
   }
+  return (
+    <span>
+      <span>
+        You are about to{' '}
+        <strong>
+          {action} {formatNumber(data.length)}
+        </strong>{' '}
+        records.{' '}
+      </span>
+      <span className="slds-text-color_weak">There are currently {formatNumber(totalRecordCount)} records in Salesforce.</span>
+    </span>
+  );
 }
 
 function getColumnDefinitions(headers: string[]): ColDef[] {

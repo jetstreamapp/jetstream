@@ -98,6 +98,13 @@ export function toBoolean(value: boolean | string | null | undefined, defaultVal
   return defaultValue;
 }
 
+export function truncate(value: string, maxLength: number, trailingChar: string = '...'): string {
+  if (!value || value.length <= maxLength) {
+    return value;
+  }
+  return `${value.substring(0, maxLength)}${trailingChar}`;
+}
+
 export function pluralizeIfMultiple(value: string, items: any[], plural: string = 's'): string {
   if (!items || items.length !== 1) {
     return `${value}${plural}`;

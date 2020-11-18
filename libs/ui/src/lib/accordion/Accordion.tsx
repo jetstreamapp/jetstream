@@ -1,6 +1,6 @@
 /** @jsx jsx */
 // https://www.lightningdesignsystem.com/components/Accordion/#Fixed-Text
-import { jsx } from '@emotion/core';
+import { css, jsx } from '@emotion/core';
 import classNames from 'classnames';
 import { Fragment, FunctionComponent, useState } from 'react';
 import Icon from '../widgets/Icon';
@@ -107,6 +107,7 @@ export const Accordion: FunctionComponent<AccordionProps> = ({
                       />
                       <span className="slds-accordion__summary-content" title={item.titleText || (item.title as string)}>
                         {item.title}
+                        {!isOpen && item.titleSummaryIfCollapsed}
                       </span>
                     </button>
                   </h3>

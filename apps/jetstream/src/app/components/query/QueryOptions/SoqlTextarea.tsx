@@ -1,4 +1,4 @@
-import { CodeEditor, Grid, Textarea } from '@jetstream/ui';
+import { CodeEditor, Grid, GridCol, Textarea } from '@jetstream/ui';
 import React, { Fragment, FunctionComponent } from 'react';
 import { useRecoilValue } from 'recoil';
 import * as fromQueryState from '../query.state';
@@ -16,9 +16,9 @@ export const SoqlTextarea: FunctionComponent<SoqlTextareaProps> = React.memo(() 
         <CodeEditor className="CodeMirror-textarea" value={soql} readOnly />
       </Textarea>
       <Grid>
-        <div dir="rtl" className="slds-col_bump-left">
+        <GridCol extraProps={{ dir: 'rtl' }} bump="left">
           <IncludeDeletedRecordsToggle containerClassname="slds-p-top_small" />
-        </div>
+        </GridCol>
       </Grid>
     </Fragment>
   );
