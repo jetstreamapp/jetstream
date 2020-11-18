@@ -53,6 +53,7 @@ export interface FieldWrapper {
 export interface UiSection {
   id: string;
   title: string | ReactNode;
+  titleSummaryIfCollapsed?: string | ReactNode; // extra title content to show if collapsed
   titleText?: string; // use if title is not a string
   content: React.ReactNode | Function; // => React.ReactNode
   disabled?: boolean;

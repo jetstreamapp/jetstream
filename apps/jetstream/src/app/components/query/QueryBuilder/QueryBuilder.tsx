@@ -17,10 +17,13 @@ import { Fragment, FunctionComponent, useEffect, useState } from 'react';
 import { Link, useRouteMatch } from 'react-router-dom';
 import Split from 'react-split';
 import { useRecoilState, useRecoilValue, useResetRecoilState } from 'recoil';
+import { selectUserPreferenceState } from '../../../app-state';
 // import QueryWorker from '../../../workers/query.worker';
 import * as fromQueryState from '../query.state';
-import { selectUserPreferenceState } from '../../../app-state';
 import QueryHistory from '../QueryHistory/QueryHistory';
+import QueryFilterTitleSummary from '../QueryOptions/accordion-titles/QueryFilterTitleSummary';
+import QueryLimitTitleSummary from '../QueryOptions/accordion-titles/QueryLimitTitleSummary';
+import QueryOrderByTitleSummary from '../QueryOptions/accordion-titles/QueryOrderByTitleSummary';
 import QueryFilter from '../QueryOptions/QueryFilter';
 import QueryLimit from '../QueryOptions/QueryLimit';
 import QueryOrderBy from '../QueryOptions/QueryOrderBy';
@@ -272,10 +275,16 @@ export const QueryBuilder: FunctionComponent<QueryBuilderProps> = () => {
                       {
                         id: 'filters',
                         title: 'Filters',
+                        titleSummaryIfCollapsed: <QueryFilterTitleSummary />,
                         content: <QueryFilter fields={filterFields} />,
                       },
-                      { id: 'orderBy', title: 'Order By', content: <QueryOrderBy fields={filterFields} /> },
-                      { id: 'limit', title: 'Limit', content: <QueryLimit /> },
+                      {
+                        id: 'orderBy',
+                        title: 'Order By',
+                        titleSummaryIfCollapsed: <QueryOrderByTitleSummary />,
+                        content: <QueryOrderBy fields={filterFields} />,
+                      },
+                      { id: 'limit', title: 'Limit', titleSummaryIfCollapsed: <QueryLimitTitleSummary />, content: <QueryLimit /> },
                       { id: 'soql', title: 'Soql Query', content: <SoqlTextarea /> },
                     ]}
                     allowMultiple
