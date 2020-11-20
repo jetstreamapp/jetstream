@@ -2,7 +2,7 @@ import React, { FunctionComponent, useEffect, useRef, useState } from 'react';
 import classNames from 'classnames';
 import Icon from '../../widgets/Icon';
 import { logger } from '@jetstream/shared/client-logger';
-import { readFile } from '@jetstream/shared/ui-utils';
+import { readFile, useNonInitialEffect } from '@jetstream/shared/ui-utils';
 import { InputAcceptType, InputReadFileContent } from '@jetstream/types';
 
 export interface FileSelectorProps {
@@ -10,7 +10,7 @@ export interface FileSelectorProps {
   label: string;
   labelHelp?: string;
   helpText?: React.ReactNode | string;
-  initialFilename?: string;
+  filename?: string; // optional, will be managed if not provided
   hideLabel?: boolean;
   disabled?: boolean;
   accept?: InputAcceptType[];
@@ -24,7 +24,7 @@ export interface FileSelectorProps {
 export const FileSelector: FunctionComponent<FileSelectorProps> = ({
   id,
   label,
-  initialFilename,
+  filename,
   hideLabel,
   disabled,
   accept,
@@ -36,7 +36,7 @@ export const FileSelector: FunctionComponent<FileSelectorProps> = ({
   const [labelPrimaryId] = useState(() => `${id}-label-primary`);
   const [labelSecondaryId] = useState(() => `${id}-label`);
   const [systemErrorMessage, setSystemErrorMessage] = useState<string>(null);
-  const [filename, setFilename] = useState<string>(initialFilename);
+  const [managedFilename, setManagedFilename] = useState<string>(filename);
   const [filenameTruncated, setFilenameTruncated] = useState<string>(null);
   const [isDraggingOver, setIsDraggingOver] = useState(false);
   const inputRef = useRef<HTMLInputElement>();
@@ -51,6 +51,10 @@ export const FileSelector: FunctionComponent<FileSelectorProps> = ({
         setFilenameTruncated(filename);
       }
     }
+  }, [filename]);
+
+  useNonInitialEffect(() => {
+    setManagedFilename(filename);
   }, [filename]);
 
   function preventEventDefaults(event: React.DragEvent<HTMLDivElement> | React.ChangeEvent<HTMLInputElement>) {
@@ -81,7 +85,7 @@ export const FileSelector: FunctionComponent<FileSelectorProps> = ({
   async function handleFiles(files: FileList) {
     try {
       setSystemErrorMessage(null);
-      setFilename(null);
+      setManagedFilename(null);
       if (!files || files.length === 0) {
         return;
       } else if (files.length > 1) {
@@ -96,7 +100,7 @@ export const FileSelector: FunctionComponent<FileSelectorProps> = ({
         throw new Error(`File type ${extension} is not supported`);
       }
 
-      setFilename(file.name);
+      setManagedFilename(file.name);
 
       // TODO: we might want to do something else here in the future
       const readAsArrayBuffer = extension !== '.csv';
@@ -105,7 +109,7 @@ export const FileSelector: FunctionComponent<FileSelectorProps> = ({
       onReadFile({ filename: file.name, extension, content });
     } catch (ex) {
       setSystemErrorMessage(ex.message);
-      setFilename(null);
+      setManagedFilename(null);
     } finally {
       if (inputRef?.current) {
         inputRef.current.value = '';
@@ -152,13 +156,13 @@ export const FileSelector: FunctionComponent<FileSelectorProps> = ({
           </div>
         </div>
       </div>
-      {userHelpText && !filename && (
+      {userHelpText && !managedFilename && (
         <div className="slds-form-element__help slds-truncate" id="file-input-help" title={userHelpText}>
           {userHelpText}
         </div>
       )}
-      {filename && (
-        <div className="slds-form-element__help slds-truncate" id="file-input-name" title={filename}>
+      {managedFilename && (
+        <div className="slds-form-element__help slds-truncate" id="file-input-name" title={managedFilename}>
           {filenameTruncated}
         </div>
       )}
