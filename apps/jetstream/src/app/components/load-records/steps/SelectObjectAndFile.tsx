@@ -83,7 +83,7 @@ export const LoadRecordsSelectObjectAndFile: FunctionComponent<LoadRecordsSelect
                 <FileSelector
                   id="load-record-file"
                   label="File to Load"
-                  initialFilename={inputFilename}
+                  filename={inputFilename}
                   accept={[INPUT_ACCEPT_FILETYPES.CSV, INPUT_ACCEPT_FILETYPES.EXCEL]}
                   userHelpText="Choose CSV or XLSX file to upload"
                   onReadFile={handleFile}

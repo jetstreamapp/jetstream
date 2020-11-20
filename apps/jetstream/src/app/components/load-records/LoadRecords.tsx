@@ -40,6 +40,7 @@ const steps: Step[] = [
 ];
 
 const enabledSteps: Step[] = steps.filter((step) => step.enabled);
+const finalStep: Step = enabledSteps[enabledSteps.length - 1];
 
 // eslint-disable-next-line @typescript-eslint/no-empty-interface
 export interface LoadRecordsProps {}
@@ -61,12 +62,9 @@ export const LoadRecords: FunctionComponent<LoadRecordsProps> = () => {
   const [inputFileHeader, setInputFileHeader] = useRecoilState(fromLoadRecordsState.inputFileHeaderState);
   const [inputFilename, setInputFilename] = useRecoilState(fromLoadRecordsState.inputFilenameState);
   const [fieldMapping, setFieldMapping] = useRecoilState(fromLoadRecordsState.fieldMappingState);
-  const resetLoadExistingRecordCount = useResetRecoilState(fromLoadRecordsState.loadExistingRecordCount);
 
   const [loading, setLoading] = useState<boolean>(false);
   const [loadingFields, setLoadingFields] = useState<boolean>(false);
-  const [errorMessage, setErrorMessage] = useState<string>(null);
-  const [deployModalActive, setDeployModalActive] = useState<boolean>(false);
 
   const [currentStep, setCurrentStep] = useState<Step>(steps[0]);
   const [currentStepIdx, setCurrentStepIdx] = useState<number>(0);
@@ -74,6 +72,14 @@ export const LoadRecords: FunctionComponent<LoadRecordsProps> = () => {
   const [nextStepDisabled, setNextStepDisabled] = useState<boolean>(true);
   const [hasNextStep, setHasNextStep] = useState<boolean>(true);
   const [loadSummaryText, setLoadSummaryText] = useState<string>('');
+
+  const resetLoadExistingRecordCount = useResetRecoilState(fromLoadRecordsState.loadExistingRecordCount);
+  const resetSelectedSObjectState = useResetRecoilState(fromLoadRecordsState.selectedSObjectState);
+  const resetLoadTypeState = useResetRecoilState(fromLoadRecordsState.loadTypeState);
+  const resetInputFileDataState = useResetRecoilState(fromLoadRecordsState.inputFileDataState);
+  const resetInputFileHeaderState = useResetRecoilState(fromLoadRecordsState.inputFileHeaderState);
+  const resetInputFilenameState = useResetRecoilState(fromLoadRecordsState.inputFilenameState);
+  const resetFieldMappingState = useResetRecoilState(fromLoadRecordsState.fieldMappingState);
 
   useEffect(() => {
     isMounted.current = true;
@@ -135,6 +141,7 @@ export const LoadRecords: FunctionComponent<LoadRecordsProps> = () => {
   useEffect(() => {
     let currStepButtonText = '';
     let isNextStepDisabled = true;
+    let hasNextStep = true;
     switch (currentStep.name) {
       case 'sobjectAndFile':
         currStepButtonText = 'Continue to Map Fields';
@@ -145,27 +152,31 @@ export const LoadRecords: FunctionComponent<LoadRecordsProps> = () => {
           !loadType ||
           (loadType === 'UPSERT' && !externalId) ||
           loadingFields;
+        hasNextStep = true;
         break;
       case 'fieldMapping':
         // currStepButtonText = 'Continue to Disable Automation';
         currStepButtonText = 'Continue to Load Records';
         isNextStepDisabled = !fieldMapping || Object.values(fieldMapping).filter((field) => field.targetField).length === 0;
+        hasNextStep = true;
         break;
       case 'automationDeploy':
         currStepButtonText = 'Continue to Load Records';
         isNextStepDisabled = false;
+        hasNextStep = true;
         break;
       case 'loadRecords':
         // TODO: Only show this if automation was disabled
         // currStepButtonText = 'Continue to Rollback Automation';
-        currStepButtonText = 'Done';
-        isNextStepDisabled = true;
-        setHasNextStep(false); // FIXME: this is temp solution to remove next arrow
+        currStepButtonText = 'Start Over';
+        isNextStepDisabled = false;
+        hasNextStep = false;
         break;
       case 'automationRollback':
         // TODO: Only show this if automation was disabled
-        currStepButtonText = 'Done';
-        isNextStepDisabled = true;
+        currStepButtonText = 'Start Over';
+        isNextStepDisabled = false;
+        hasNextStep = false;
         break;
       default:
         currStepButtonText = currentStepText;
@@ -174,6 +185,7 @@ export const LoadRecords: FunctionComponent<LoadRecordsProps> = () => {
     }
     setCurrentStepText(currStepButtonText);
     setNextStepDisabled(isNextStepDisabled);
+    setHasNextStep(hasNextStep);
   }, [currentStep, selectedSObject, inputFileData, loadType, externalId, fieldMapping, loadingFields]);
 
   useEffect(() => {
@@ -208,11 +220,26 @@ export const LoadRecords: FunctionComponent<LoadRecordsProps> = () => {
   }
 
   function changeStep(changeBy: number) {
-    setCurrentStep(enabledSteps[currentStepIdx + changeBy]);
+    if (changeBy === 1 && enabledSteps[currentStepIdx] === finalStep) {
+      handleStartOver();
+    } else {
+      setCurrentStep(enabledSteps[currentStepIdx + changeBy]);
+    }
   }
 
   function handleIsLoading(isLoading: boolean) {
     setLoading(isLoading);
+  }
+
+  function handleStartOver() {
+    setCurrentStep(enabledSteps[0]);
+    resetSelectedSObjectState();
+    resetLoadTypeState();
+    resetInputFileDataState();
+    resetInputFileHeaderState();
+    resetInputFilenameState();
+    resetFieldMappingState();
+    setExternalId('');
   }
 
   return (
@@ -222,11 +249,16 @@ export const LoadRecords: FunctionComponent<LoadRecordsProps> = () => {
           <PageHeaderTitle icon={{ type: 'standard', icon: 'data_streams' }} label="Load Records" />
           <PageHeaderActions colType="actions" buttonType="separate">
             {/* TODO: move to component since there is a bit of logic. */}
-            <button className="slds-button slds-button_neutral" onClick={() => changeStep(-1)} disabled={currentStep.idx === 0 || loading}>
+            <button className="slds-button slds-button_neutral" disabled={currentStep.idx === 0 || loading} onClick={() => changeStep(-1)}>
               <Icon type="utility" icon="back" className="slds-button__icon slds-button__icon_left" />
               Go Back To Previous Step
             </button>
-            <button className="slds-button slds-button_brand slds-is-relative" onClick={() => changeStep(1)} disabled={nextStepDisabled}>
+            <button
+              className="slds-button slds-button_brand slds-is-relative"
+              disabled={nextStepDisabled || loading}
+              onClick={() => changeStep(1)}
+            >
+              {currentStep === finalStep && <Icon type="utility" icon="refresh" className="slds-button__icon slds-button__icon_left" />}
               {currentStepText}
               {hasNextStep && <Icon type="utility" icon="forward" className="slds-button__icon slds-button__icon_right" />}
               {loadingFields && <Spinner size="small" />}

@@ -38,7 +38,7 @@ export async function getFieldMetadata(org: SalesforceOrgUi, sobject: string): P
     const relatedEntities = (
       await queryWithCache<EntityParticleRecord>(org, getExternalIdFieldsForSobjectsQuery(Array.from(relatedObjects)), true)
     ).data;
-    const relatedEntitiesByObj = groupBy(relatedEntities.queryResults.records, 'EntityDefinition.DeveloperName');
+    const relatedEntitiesByObj = groupBy(relatedEntities.queryResults.records, 'EntityDefinition.QualifiedApiName');
     fieldsWithRelationships.forEach((field) => {
       const relatedFields = relatedEntitiesByObj[field.referenceTo];
       if (relatedFields) {
@@ -156,7 +156,7 @@ function getExternalIdFieldsForSobjectsQuery(sobjects: string[]) {
       getField('Id'),
       getField('Name'),
       getField('EntityDefinitionId'),
-      getField('EntityDefinition.DeveloperName'),
+      getField('EntityDefinition.QualifiedApiName'),
       getField('IsIdLookup'),
       getField('DataType'),
       getField('ValueTypeId'),
@@ -171,7 +171,7 @@ function getExternalIdFieldsForSobjectsQuery(sobjects: string[]) {
     sObject: 'EntityParticle',
     where: {
       left: {
-        field: 'EntityDefinition.DeveloperName',
+        field: 'EntityDefinition.QualifiedApiName',
         operator: 'IN',
         value: sobjects,
         literalType: 'STRING',
