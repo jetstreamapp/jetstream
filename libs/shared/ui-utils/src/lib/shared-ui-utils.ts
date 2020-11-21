@@ -3,8 +3,10 @@ import { HTTP } from '@jetstream/shared/constants';
 import { checkMetadataResults } from '@jetstream/shared/data';
 import { delay, ensureBoolean, orderObjectsBy, REGEX } from '@jetstream/shared/utils';
 import {
+  AndOr,
   ExpressionConditionRowSelectedItems,
   ExpressionConditionType,
+  ExpressionGroupType,
   ExpressionType,
   ListItem,
   MapOf,
@@ -304,7 +306,7 @@ export function convertTippyPlacementToSlds(placement: tippyPlacement): Position
   }
 }
 
-function hasValue(row: ExpressionConditionType) {
+function queryFilterHasValueValue(row: ExpressionConditionType) {
   const hasValue = Array.isArray(row.selected.value) ? row.selected.value.length : !!row.selected.value;
   return (
     row.selected.operator &&
@@ -312,104 +314,36 @@ function hasValue(row: ExpressionConditionType) {
     (hasValue || row.selected.operator === 'isNull' || row.selected.operator === 'isNotNull')
   );
 }
+// did not want to have circular imports
+function isExpressionConditionType(value: any): value is ExpressionConditionType {
+  return !Array.isArray(value.rows);
+}
 
 export function convertFiltersToWhereClause(filters: ExpressionType): WhereClause {
   if (!filters) {
     return;
   }
   logger.log({ filters });
-  // filter out all invalid/incomplete filters
-  const rows = filters.rows.filter(hasValue);
-  const groups = filters.groups
-    .map((group) => {
-      return {
-        ...group,
-        rows: group.rows.filter(hasValue),
-      };
-    })
-    .filter((group) => group.rows.length > 0);
 
-  // return if no items to process
-  if (rows.length === 0 && rows.length === 0) {
-    return undefined;
-  }
-
-  // init all where clauses
-  const whereClauses = rows.reduce((whereClauses: WhereClause[], row, i) => {
-    // REGULAR WHERE CLAUSE
-    if (isNegationOperator(row.selected.operator)) {
-      whereClauses.push({
-        left: { openParen: 1 },
-        operator: 'NOT',
-      });
-      whereClauses.push({
-        left: {
-          operator: convertQueryFilterOperator(row.selected.operator),
-          logicalPrefix: isNegationOperator(row.selected.operator) ? 'NOT' : undefined,
-          field: row.selected.resource,
-          value: getValue(row.selected.operator, row.selected.value),
-          literalType: getLiteralType(row.selected),
-          closeParen: 1,
-        } as ValueCondition | ValueWithDateLiteralCondition,
-        operator: filters.action,
-      });
+  // Process all where clauses
+  const whereClauses = filters.rows.reduce((whereClauses: WhereClause[], row, i) => {
+    if (isExpressionConditionType(row)) {
+      if (queryFilterHasValueValue(row)) {
+        buildExpressionConditionWhereClause(whereClauses, row, filters.action);
+      }
     } else {
-      // REGULAR WHERE CLAUSE
-      whereClauses.push({
-        left: {
-          operator: convertQueryFilterOperator(row.selected.operator),
-          logicalPrefix: isNegationOperator(row.selected.operator) ? 'NOT' : undefined,
-          field: row.selected.resource,
-          value: getValue(row.selected.operator, row.selected.value),
-          literalType: getLiteralType(row.selected),
-        } as ValueCondition | ValueWithDateLiteralCondition,
-        operator: filters.action,
-      });
+      const group = { ...row };
+      group.rows = group.rows.filter(queryFilterHasValueValue);
+      if (group.rows.length > 0) {
+        buildExpressionGroupConditionWhereClause(whereClauses, group, filters.action);
+      }
     }
     return whereClauses;
   }, []);
 
-  // init all groups where clauses
-  groups.reduce((whereClauses, group, i) => {
-    const tempWhereClauses: WhereClauseWithRightCondition[] = [];
-    group.rows.forEach((row, i) => {
-      const whereClause: Partial<WhereClauseWithRightCondition> = {
-        left: {
-          operator: convertQueryFilterOperator(row.selected.operator),
-          logicalPrefix: isNegationOperator(row.selected.operator) ? 'NOT' : undefined,
-          field: row.selected.resource,
-          value: getValue(row.selected.operator, row.selected.value),
-          literalType: getLiteralType(row.selected),
-        } as ValueCondition | ValueWithDateLiteralCondition,
-        // operator: i !== 0 ? group.action : undefined,
-        operator: group.action,
-      };
-      // Add additional where clause
-      if (isNegationOperator(row.selected.operator)) {
-        const negationCondition: Partial<WhereClauseWithRightCondition> = {
-          left: { openParen: 1 },
-          operator: 'NOT',
-        };
-        (whereClause.left as ValueCondition | ValueWithDateLiteralCondition).closeParen = 1;
-        tempWhereClauses.push(negationCondition as WhereClauseWithRightCondition);
-        whereClauses.push(negationCondition as WhereClause);
-      }
-      tempWhereClauses.push(whereClause as WhereClauseWithRightCondition);
-      whereClauses.push(whereClause as WhereClause);
-    });
-    if (tempWhereClauses[0].left.openParen) {
-      tempWhereClauses[0].left.openParen += 1;
-    } else {
-      tempWhereClauses[0].left.openParen = 1;
-    }
-    if ((tempWhereClauses[tempWhereClauses.length - 1].left as ValueCondition | ValueWithDateLiteralCondition).closeParen) {
-      (tempWhereClauses[tempWhereClauses.length - 1].left as ValueCondition | ValueWithDateLiteralCondition).closeParen += 1;
-    } else {
-      (tempWhereClauses[tempWhereClauses.length - 1].left as ValueCondition | ValueWithDateLiteralCondition).closeParen = 1;
-    }
-
-    return whereClauses;
-  }, whereClauses);
+  if (!whereClauses.length) {
+    return;
+  }
 
   // combine all where clauses
   const rootClause = whereClauses[0];
@@ -426,6 +360,84 @@ export function convertFiltersToWhereClause(filters: ExpressionType): WhereClaus
   });
 
   return rootClause;
+}
+
+/**
+ * Build where clauses from filter rows
+ */
+function buildExpressionConditionWhereClause(whereClauses: WhereClause[], row: ExpressionConditionType, action: AndOr) {
+  // REGULAR WHERE CLAUSE
+  if (isNegationOperator(row.selected.operator)) {
+    whereClauses.push({
+      left: { openParen: 1 },
+      operator: 'NOT',
+    });
+    whereClauses.push({
+      left: {
+        operator: convertQueryFilterOperator(row.selected.operator),
+        logicalPrefix: isNegationOperator(row.selected.operator) ? 'NOT' : undefined,
+        field: row.selected.resource,
+        value: getValue(row.selected.operator, row.selected.value),
+        literalType: getLiteralType(row.selected),
+        closeParen: 1,
+      } as ValueCondition | ValueWithDateLiteralCondition,
+      operator: action,
+    });
+  } else {
+    // REGULAR WHERE CLAUSE
+    whereClauses.push({
+      left: {
+        operator: convertQueryFilterOperator(row.selected.operator),
+        logicalPrefix: isNegationOperator(row.selected.operator) ? 'NOT' : undefined,
+        field: row.selected.resource,
+        value: getValue(row.selected.operator, row.selected.value),
+        literalType: getLiteralType(row.selected),
+      } as ValueCondition | ValueWithDateLiteralCondition,
+      operator: action,
+    });
+  }
+  return whereClauses;
+}
+
+function buildExpressionGroupConditionWhereClause(whereClauses: WhereClause[], group: ExpressionGroupType, parentAction: AndOr) {
+  const tempWhereClauses: WhereClauseWithRightCondition[] = [];
+  group.rows.forEach((row, i) => {
+    const whereClause: Partial<WhereClauseWithRightCondition> = {
+      left: {
+        operator: convertQueryFilterOperator(row.selected.operator),
+        logicalPrefix: isNegationOperator(row.selected.operator) ? 'NOT' : undefined,
+        field: row.selected.resource,
+        value: getValue(row.selected.operator, row.selected.value),
+        literalType: getLiteralType(row.selected),
+      } as ValueCondition | ValueWithDateLiteralCondition,
+      // for final row, use the parent action as the operator so that the next filter does not get the group's operator
+      operator: i === group.rows.length - 1 ? parentAction : group.action,
+    };
+    // Add additional where clause
+    if (isNegationOperator(row.selected.operator)) {
+      const negationCondition: Partial<WhereClauseWithRightCondition> = {
+        left: { openParen: 1 },
+        operator: 'NOT',
+      };
+      (whereClause.left as ValueCondition | ValueWithDateLiteralCondition).closeParen = 1;
+      tempWhereClauses.push(negationCondition as WhereClauseWithRightCondition);
+      whereClauses.push(negationCondition as WhereClause);
+    }
+    tempWhereClauses.push(whereClause as WhereClauseWithRightCondition);
+    whereClauses.push(whereClause as WhereClause);
+  });
+  if (tempWhereClauses[0].left.openParen) {
+    tempWhereClauses[0].left.openParen += 1;
+  } else {
+    tempWhereClauses[0].left.openParen = 1;
+  }
+  if ((tempWhereClauses[tempWhereClauses.length - 1].left as ValueCondition | ValueWithDateLiteralCondition).closeParen) {
+    (tempWhereClauses[tempWhereClauses.length - 1].left as ValueCondition | ValueWithDateLiteralCondition).closeParen += 1;
+  } else {
+    (tempWhereClauses[tempWhereClauses.length - 1].left as ValueCondition | ValueWithDateLiteralCondition).closeParen = 1;
+  }
+
+  return whereClauses;
 }
 
 function isNegationOperator(operator: QueryFilterOperator): boolean {

@@ -215,14 +215,9 @@ export type FirstLast = 'FIRST' | 'LAST';
 
 export interface ExpressionType {
   action: AndOr;
-  rows: ExpressionConditionType[];
-  groups: ExpressionGroupType[];
-}
-
-export interface ExpressionGroupType {
-  key: number;
-  action: AndOr;
-  rows: ExpressionConditionType[];
+  rows: (ExpressionConditionType | ExpressionGroupType)[];
+  // rows: ExpressionConditionType[];
+  // groups: ExpressionGroupType[];
 }
 
 export interface ExpressionConditionType {
@@ -231,6 +226,12 @@ export interface ExpressionConditionType {
   resourceType?: ExpressionRowValueType;
   resourceSelectItems?: ListItem[];
   selected: ExpressionConditionRowSelectedItems;
+}
+
+export interface ExpressionGroupType {
+  key: number;
+  action: AndOr;
+  rows: ExpressionConditionType[];
 }
 
 export interface ExpressionConditionRowSelectedItems<T = any> {

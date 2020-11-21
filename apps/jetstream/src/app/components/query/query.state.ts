@@ -83,7 +83,6 @@ export const queryFiltersState = atom<ExpressionType>({
   key: 'query.queryFiltersState',
   default: {
     action: 'AND',
-    groups: [],
     rows: [
       {
         key: 0,

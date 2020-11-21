@@ -6,6 +6,7 @@ export * from './lib/confirmation-dialog/ConfirmationDialog';
 export * from './lib/data-table/DataTable';
 export * from './lib/data-table/SalesforceRecordDataTable';
 export * from './lib/expression-group/ExpressionContainer';
+export * from './lib/expression-group/expression-utils';
 export * from './lib/file-download-modal/download-modal-utils';
 export * from './lib/file-download-modal/FileDownloadModal';
 export * from './lib/file-download-modal/RecordDownloadModal';
