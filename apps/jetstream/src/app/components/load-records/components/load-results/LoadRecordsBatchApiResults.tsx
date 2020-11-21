@@ -175,7 +175,7 @@ export const LoadRecordsBatchApiResults: FunctionComponent<LoadRecordsBatchApiRe
     }
   }, [loadWorker]);
 
-  function handleDownloadRecords(type: 'results' | 'failure') {
+  function handleDownloadRecords(type: 'results' | 'failures') {
     let data: any[] = [];
     // Use field mapping to determine headers in output data and account for relationship fields
     const fields = getFieldHeaderFromMapping(fieldMapping);
@@ -193,7 +193,12 @@ export const LoadRecordsBatchApiResults: FunctionComponent<LoadRecordsBatchApiRe
     });
 
     const header = ['_id', '_success', '_errors'].concat(fields);
-    setDownloadModalData({ open: true, data, header, fileNameParts: ['load', type] });
+    setDownloadModalData({
+      open: true,
+      data,
+      header,
+      fileNameParts: [loadType.toLocaleLowerCase(), selectedSObject.toLocaleLowerCase(), type],
+    });
   }
 
   function handleModalClose() {

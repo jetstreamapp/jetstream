@@ -9,7 +9,7 @@ import { FunctionComponent, useEffect, useRef, useState } from 'react';
 export interface LoadRecordsBulkApiResultsTableRowProps {
   batch: BulkJobBatchInfo;
   hasErrors: boolean;
-  onDownload: (type: 'results' | 'failure', batch: BulkJobBatchInfo) => Promise<void>;
+  onDownload: (type: 'results' | 'failures', batch: BulkJobBatchInfo) => Promise<void>;
 }
 
 export const LoadRecordsBulkApiResultsTableRow: FunctionComponent<LoadRecordsBulkApiResultsTableRowProps> = ({
@@ -29,7 +29,7 @@ export const LoadRecordsBulkApiResultsTableRow: FunctionComponent<LoadRecordsBul
   const success = formatNumber(batch.numberRecordsProcessed - batch.numberRecordsFailed);
   const failure = formatNumber(batch.numberRecordsFailed || 0);
 
-  async function downloadResults(type: 'results' | 'failure') {
+  async function downloadResults(type: 'results' | 'failures') {
     try {
       // Emit to parent that the user would like to download records
       // this is a promise to control loading indicators
@@ -92,7 +92,7 @@ export const LoadRecordsBulkApiResultsTableRow: FunctionComponent<LoadRecordsBul
               {/* Failure Results */}
               {batch.numberRecordsFailed > 0 && (
                 <div>
-                  <button className="slds-button" onClick={() => downloadResults('failure')}>
+                  <button className="slds-button" onClick={() => downloadResults('failures')}>
                     <Icon type="utility" icon="download" className="slds-button__icon slds-button__icon_left" omitContainer />
                     Download Failures
                   </button>

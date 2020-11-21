@@ -8,7 +8,7 @@ export interface LoadRecordsBulkApiResultsTableProps {
   selectedOrg: SalesforceOrgUi;
   serverUrl: string;
   jobInfo: BulkJobWithBatches;
-  onDownload: (type: 'results' | 'failure', batch: BulkJobBatchInfo, batchIndex: number) => Promise<void>;
+  onDownload: (type: 'results' | 'failures', batch: BulkJobBatchInfo, batchIndex: number) => Promise<void>;
 }
 
 export const LoadRecordsBulkApiResultsTable: FunctionComponent<LoadRecordsBulkApiResultsTableProps> = ({
