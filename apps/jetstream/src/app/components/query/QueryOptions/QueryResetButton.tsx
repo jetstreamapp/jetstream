@@ -15,6 +15,7 @@ export const QueryResetButton: FunctionComponent = () => {
     useResetRecoilState(fromQueryState.selectedQueryFieldsState),
     useResetRecoilState(fromQueryState.selectedSubqueryFieldsState),
     useResetRecoilState(fromQueryState.filterQueryFieldsState),
+    useResetRecoilState(fromQueryState.orderByQueryFieldsState),
     useResetRecoilState(fromQueryState.queryFiltersState),
     useResetRecoilState(fromQueryState.queryLimit),
     useResetRecoilState(fromQueryState.queryLimitSkip),

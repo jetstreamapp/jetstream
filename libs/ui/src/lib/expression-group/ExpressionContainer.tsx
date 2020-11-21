@@ -14,6 +14,7 @@ import Expression from './Expression';
 import ExpressionConditionRow from './ExpressionConditionRow';
 import ExpressionGroup from './ExpressionGroup';
 import { logger } from '@jetstream/shared/client-logger';
+import { isExpressionConditionType } from './expression-utils';
 
 export interface ExpressionContainerProps {
   title?: string;
@@ -44,7 +45,6 @@ function initExpression(expression?: ExpressionType): ExpressionType {
   }
   return {
     action: 'AND',
-    groups: [],
     rows: [initRow(0)],
   };
 }
@@ -92,11 +92,7 @@ export const ExpressionContainer: FunctionComponent<ExpressionContainerProps> = 
     const [nextConditionNumber, setNextConditionNumber] = useState<number>(() => {
       let nextNumber = 1;
       if (expressionInitValue) {
-        nextNumber = Math.max(
-          ...expressionInitValue.groups
-            .flatMap((group) => group.rows.map((row) => row.key))
-            .concat(expressionInitValue.rows.map((row) => row.key))
-        );
+        nextNumber = Math.max(...expressionInitValue.rows.map((row) => row.key));
         nextNumber++;
       }
       return nextNumber;
@@ -121,12 +117,13 @@ export const ExpressionContainer: FunctionComponent<ExpressionContainerProps> = 
     function handleAddCondition(group?: ExpressionGroupType) {
       const clonedExpression = { ...expression };
       if (group) {
-        const groupIdx = clonedExpression.groups.findIndex((item) => item.key === group.key);
+        const groupIdx = clonedExpression.rows.findIndex((item) => item.key === group.key);
         if (groupIdx >= 0) {
-          clonedExpression.groups = [...clonedExpression.groups];
-          clonedExpression.groups[groupIdx] = { ...clonedExpression.groups[groupIdx] };
-          clonedExpression.groups[groupIdx].rows = [...clonedExpression.groups[groupIdx].rows];
-          clonedExpression.groups[groupIdx].rows = clonedExpression.groups[groupIdx].rows.concat(initRow(nextConditionNumber));
+          clonedExpression.rows = [...clonedExpression.rows];
+          const currRow = { ...clonedExpression.rows[groupIdx] } as ExpressionGroupType;
+          currRow.rows = [...currRow.rows];
+          currRow.rows = currRow.rows.concat(initRow(nextConditionNumber));
+          clonedExpression.rows[groupIdx] = currRow;
         }
       } else {
         clonedExpression.rows = [...clonedExpression.rows];
@@ -138,17 +135,17 @@ export const ExpressionContainer: FunctionComponent<ExpressionContainerProps> = 
 
     function handleAddGroup() {
       const clonedExpression = { ...expression };
-      clonedExpression.groups = clonedExpression.groups.concat(initGroup(nextConditionNumber, nextConditionNumber + 1));
+      clonedExpression.rows = clonedExpression.rows.concat(initGroup(nextConditionNumber, nextConditionNumber + 1));
       setNextConditionNumber(nextConditionNumber + 2);
       setExpression(clonedExpression);
     }
 
     function handleGroupActionChange(action: AndOr, group: ExpressionGroupType) {
       const clonedExpression = { ...expression };
-      const groupIdx = clonedExpression.groups.findIndex((item) => item.key === group.key);
+      const groupIdx = clonedExpression.rows.findIndex((item) => item.key === group.key);
       if (groupIdx >= 0) {
-        clonedExpression.groups = [...clonedExpression.groups];
-        clonedExpression.groups[groupIdx] = { ...clonedExpression.groups[groupIdx], action };
+        clonedExpression.rows = [...clonedExpression.rows];
+        clonedExpression.rows[groupIdx] = { ...clonedExpression.rows[groupIdx], action };
       }
       setExpression(clonedExpression);
     }
@@ -156,39 +153,41 @@ export const ExpressionContainer: FunctionComponent<ExpressionContainerProps> = 
     function handleRowChange(selected: ExpressionConditionRowSelectedItems, row: ExpressionConditionType, group?: ExpressionGroupType) {
       const clonedExpression = { ...expression };
       if (group) {
-        const groupIdx = clonedExpression.groups.findIndex((item) => item.key === group.key);
+        const groupIdx = clonedExpression.rows.findIndex((item) => item.key === group.key);
         if (groupIdx >= 0) {
-          const rowIdx = clonedExpression.groups[groupIdx].rows.findIndex((item) => item.key === row.key);
+          const rowIdx = (clonedExpression.rows[groupIdx] as ExpressionGroupType).rows.findIndex((item) => item.key === row.key);
           if (rowIdx >= 0) {
-            clonedExpression.groups = [...clonedExpression.groups];
-            clonedExpression.groups[groupIdx] = { ...clonedExpression.groups[groupIdx] };
-            clonedExpression.groups[groupIdx].rows = [...clonedExpression.groups[groupIdx].rows];
+            clonedExpression.rows = [...clonedExpression.rows];
+            clonedExpression.rows[groupIdx] = { ...clonedExpression.rows[groupIdx] };
+            const currRow = clonedExpression.rows[groupIdx] as ExpressionGroupType;
+            currRow.rows = [...currRow.rows];
 
             const resourceChanged =
-              clonedExpression.groups[groupIdx].rows[rowIdx].selected.resource !== selected.resource ||
-              clonedExpression.groups[groupIdx].rows[rowIdx].selected.operator !== selected.operator ||
-              clonedExpression.groups[groupIdx].rows[rowIdx].selected.resourceType !== selected.resourceType;
+              currRow.rows[rowIdx].selected.resource !== selected.resource ||
+              currRow.rows[rowIdx].selected.operator !== selected.operator ||
+              currRow.rows[rowIdx].selected.resourceType !== selected.resourceType;
 
-            clonedExpression.groups[groupIdx].rows[rowIdx] = { ...clonedExpression.groups[groupIdx].rows[rowIdx], selected };
+            currRow.rows[rowIdx] = { ...currRow.rows[rowIdx], selected };
 
             if (resourceChanged) {
-              updateResourcesOnRow(clonedExpression.groups[groupIdx].rows[rowIdx], selected);
+              updateResourcesOnRow(currRow.rows[rowIdx], selected);
             }
           }
         }
       } else {
         const rowIdx = clonedExpression.rows.findIndex((item) => item.key === row.key);
         if (rowIdx >= 0) {
+          const currRow = clonedExpression.rows[rowIdx] as ExpressionConditionType;
           const resourceChanged =
-            clonedExpression.rows[rowIdx].selected.resource !== selected.resource ||
-            clonedExpression.rows[rowIdx].selected.operator !== selected.operator ||
-            clonedExpression.rows[rowIdx].selected.resourceType !== selected.resourceType;
+            currRow.selected.resource !== selected.resource ||
+            currRow.selected.operator !== selected.operator ||
+            currRow.selected.resourceType !== selected.resourceType;
 
           clonedExpression.rows = [...clonedExpression.rows];
           clonedExpression.rows[rowIdx] = { ...clonedExpression.rows[rowIdx], selected };
 
           if (resourceChanged) {
-            updateResourcesOnRow(clonedExpression.rows[rowIdx], selected);
+            updateResourcesOnRow(currRow, selected);
           }
         }
       }
@@ -211,14 +210,15 @@ export const ExpressionContainer: FunctionComponent<ExpressionContainerProps> = 
     function handleDeleteRow(row: ExpressionConditionType, group?: ExpressionGroupType) {
       const clonedExpression = { ...expression };
       if (group) {
-        const groupIdx = clonedExpression.groups.findIndex((item) => item.key === group.key);
+        const groupIdx = clonedExpression.rows.findIndex((item) => item.key === group.key);
         if (groupIdx >= 0) {
-          clonedExpression.groups = [...clonedExpression.groups];
-          clonedExpression.groups[groupIdx] = { ...clonedExpression.groups[groupIdx] };
-          clonedExpression.groups[groupIdx].rows = clonedExpression.groups[groupIdx].rows.filter((item) => item.key !== row.key);
+          clonedExpression.rows = [...clonedExpression.rows];
+          clonedExpression.rows[groupIdx] = { ...clonedExpression.rows[groupIdx] };
+          const currRow = clonedExpression.rows[groupIdx] as ExpressionGroupType;
+          currRow.rows = currRow.rows.filter((item) => item.key !== row.key);
           // remove group if all rows are deleted
-          if (clonedExpression.groups[groupIdx].rows.length === 0) {
-            clonedExpression.groups.splice(groupIdx, 1);
+          if (currRow.rows.length === 0) {
+            clonedExpression.rows.splice(groupIdx, 1);
           }
         }
       } else {
@@ -241,61 +241,66 @@ export const ExpressionContainer: FunctionComponent<ExpressionContainerProps> = 
         onAddCondition={handleAddCondition}
         onAddGroup={handleAddGroup}
       >
-        {expression.rows.map((row, i) => (
-          <ExpressionConditionRow
-            key={row.key}
-            row={i + 1}
-            resourceTypes={row.resourceTypes}
-            resourceType={row.resourceType}
-            resourceSelectItems={row.resourceSelectItems}
-            resourceLabel={resourceLabel}
-            resourceHelpText={resourceHelpText}
-            operatorLabel={operatorLabel}
-            operatorHelpText={operatorHelpText}
-            valueLabel={valueLabel}
-            valueLabelHelpText={valueLabelHelpText}
-            AndOr={expression.action}
-            resources={resources}
-            operators={operators}
-            selected={row.selected}
-            disableValueForOperators={disableValueForOperators}
-            onChange={(selected) => handleRowChange(selected, row)}
-            onDelete={() => handleDeleteRow(row)}
-          ></ExpressionConditionRow>
-        ))}
-        {expression.groups.map((group, i) => (
-          <ExpressionGroup
-            key={group.key}
-            group={i + 1}
-            parentAction={expression.action}
-            onActionChange={(andOr) => handleGroupActionChange(andOr, group)}
-            onAddCondition={() => handleAddCondition(group)}
-          >
-            {group.rows.map((row, k) => (
+        {expression.rows.map((row, i) => {
+          if (isExpressionConditionType(row)) {
+            return (
               <ExpressionConditionRow
                 key={row.key}
-                group={i + 1}
-                row={k + 1}
+                row={i + 1}
                 resourceTypes={row.resourceTypes}
                 resourceType={row.resourceType}
                 resourceSelectItems={row.resourceSelectItems}
-                AndOr={group.action}
                 resourceLabel={resourceLabel}
                 resourceHelpText={resourceHelpText}
                 operatorLabel={operatorLabel}
                 operatorHelpText={operatorHelpText}
                 valueLabel={valueLabel}
                 valueLabelHelpText={valueLabelHelpText}
+                AndOr={expression.action}
                 resources={resources}
                 operators={operators}
                 selected={row.selected}
                 disableValueForOperators={disableValueForOperators}
-                onChange={(selected) => handleRowChange(selected, row, group)}
-                onDelete={() => handleDeleteRow(row, group)}
+                onChange={(selected) => handleRowChange(selected, row)}
+                onDelete={() => handleDeleteRow(row)}
               ></ExpressionConditionRow>
-            ))}
-          </ExpressionGroup>
-        ))}
+            );
+          } else {
+            return (
+              <ExpressionGroup
+                key={row.key}
+                group={i + 1}
+                parentAction={expression.action}
+                onActionChange={(andOr) => handleGroupActionChange(andOr, row)}
+                onAddCondition={() => handleAddCondition(row)}
+              >
+                {row.rows.map((childRow: ExpressionConditionType, k) => (
+                  <ExpressionConditionRow
+                    key={childRow.key}
+                    group={i + 1}
+                    row={k + 1}
+                    resourceTypes={childRow.resourceTypes}
+                    resourceType={childRow.resourceType}
+                    resourceSelectItems={childRow.resourceSelectItems}
+                    AndOr={row.action}
+                    resourceLabel={resourceLabel}
+                    resourceHelpText={resourceHelpText}
+                    operatorLabel={operatorLabel}
+                    operatorHelpText={operatorHelpText}
+                    valueLabel={valueLabel}
+                    valueLabelHelpText={valueLabelHelpText}
+                    resources={resources}
+                    operators={operators}
+                    selected={childRow.selected}
+                    disableValueForOperators={disableValueForOperators}
+                    onChange={(selected) => handleRowChange(selected, childRow, row)}
+                    onDelete={() => handleDeleteRow(childRow, row)}
+                  ></ExpressionConditionRow>
+                ))}
+              </ExpressionGroup>
+            );
+          }
+        })}
       </Expression>
     );
   }

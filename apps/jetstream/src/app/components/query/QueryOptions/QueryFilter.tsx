@@ -9,7 +9,7 @@ import {
   ExpressionRowValueType,
 } from '@jetstream/types';
 import { ExpressionContainer } from '@jetstream/ui';
-import React, { FunctionComponent, useState, useEffect } from 'react';
+import React, { FunctionComponent, useState, useEffect, useRef } from 'react';
 import * as fromQueryState from '../query.state';
 import { useRecoilState } from 'recoil';
 import { Field } from 'jsforce';
@@ -163,9 +163,16 @@ function resourceTypeFns(fields: ListItemGroup[]): ExpressionGetResourceTypeFns 
 const disableValueForOperators: QueryFilterOperator[] = ['isNull', 'isNotNull'];
 
 export const QueryFilter: FunctionComponent<QueryFilterProps> = ({ fields }) => {
+  const isMounted = useRef(null);
+
   const [queryFilters, setQueryFilters] = useRecoilState(fromQueryState.queryFiltersState);
   const [initialQueryFilters] = useState(queryFilters);
   const [getResourceTypeFns, setResourceTypeFns] = useState(() => resourceTypeFns(fields));
+
+  useEffect(() => {
+    isMounted.current = true;
+    return () => (isMounted.current = false);
+  }, []);
 
   // ensure that we have fields in scope
   useEffect(() => {
@@ -176,15 +183,16 @@ export const QueryFilter: FunctionComponent<QueryFilterProps> = ({ fields }) => 
     <ExpressionContainer
       expressionInitValue={initialQueryFilters}
       actionLabel="Filter When"
-      resourceHelpText="Related fields must be selected to appear in this list"
+      resourceHelpText="Related fields must be selected to appear in this list and only fields that allow filtering are included."
       resourceLabel="Fields"
       resources={fields}
       operators={operators}
       getResourceTypeFns={getResourceTypeFns}
       disableValueForOperators={disableValueForOperators}
       onChange={(filters) => {
-        logger.log({ filters });
-        setQueryFilters(filters);
+        if (isMounted) {
+          setQueryFilters(filters);
+        }
       }}
     />
   );

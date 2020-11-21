@@ -12,7 +12,7 @@ export interface LoadRecordsBatchApiResultsTableProps {
   failed: boolean;
   startTime: string;
   endTime: string;
-  onDownload: (type: 'results' | 'failure') => void;
+  onDownload: (type: 'results' | 'failures') => void;
 }
 
 export const LoadRecordsBatchApiResultsTable: FunctionComponent<LoadRecordsBatchApiResultsTableProps> = ({
@@ -122,7 +122,7 @@ export const LoadRecordsBatchApiResultsTable: FunctionComponent<LoadRecordsBatch
                 {/* Failure Results */}
                 {processingStatus.failure > 0 && (
                   <div>
-                    <button className="slds-button" onClick={() => onDownload('failure')}>
+                    <button className="slds-button" onClick={() => onDownload('failures')}>
                       <Icon type="utility" icon="download" className="slds-button__icon slds-button__icon_left" omitContainer />
                       Download Failures
                     </button>

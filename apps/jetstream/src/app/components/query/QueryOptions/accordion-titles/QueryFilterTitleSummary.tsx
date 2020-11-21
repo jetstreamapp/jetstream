@@ -2,7 +2,7 @@
 import { formatNumber } from '@jetstream/shared/ui-utils';
 import { truncate } from '@jetstream/shared/utils';
 import { ExpressionConditionType } from '@jetstream/types';
-import { Badge } from '@jetstream/ui';
+import { Badge, isExpressionConditionType } from '@jetstream/ui';
 import React, { Fragment, FunctionComponent } from 'react';
 import { ErrorBoundary } from 'react-error-boundary';
 import { useRecoilValue } from 'recoil';
@@ -104,7 +104,9 @@ function getFilterLabel(row: ExpressionConditionType) {
 export const QueryFilterTitleSummary: FunctionComponent<QueryFilterTitleSummaryProps> = () => {
   const filters = useRecoilValue(fromQueryState.queryFiltersState);
 
-  const configuredFilters = filters.rows.concat(filters.groups.flatMap((group) => group.rows)).filter(hasValue);
+  const configuredFilters = filters.rows
+    .flatMap((filterRow) => (isExpressionConditionType(filterRow) ? filterRow : filterRow.rows))
+    .filter(hasValue);
   const beyondDisplayLimit = configuredFilters.length > 3;
 
   return (

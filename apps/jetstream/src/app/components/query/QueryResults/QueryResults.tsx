@@ -5,7 +5,7 @@ import { css, jsx } from '@emotion/core';
 import { QueryResults as IQueryResults } from '@jetstream/api-interfaces';
 import { logger } from '@jetstream/shared/client-logger';
 import { query } from '@jetstream/shared/data';
-import { useObservable } from '@jetstream/shared/ui-utils';
+import { transformTabularDataToExcelStr, useObservable } from '@jetstream/shared/ui-utils';
 import { pluralizeIfMultiple, replaceSubqueryQueryResultsWithRecords } from '@jetstream/shared/utils';
 import { AsyncJob, AsyncJobNew, BulkDownloadJob, FileExtCsvXLSX, Record, SalesforceOrgUi } from '@jetstream/types';
 import {
@@ -35,6 +35,7 @@ import IncludeDeletedRecordsToggle from '../QueryOptions/IncludeDeletedRecords';
 import QueryResultsSoqlPanel from './QueryResultsSoqlPanel';
 import QueryResultsViewRecordFields from './QueryResultsViewRecordFields';
 import * as fromQueryState from '../query.state';
+import copyToClipboard from 'copy-to-clipboard';
 
 // eslint-disable-next-line @typescript-eslint/no-empty-interface
 export interface QueryResultsProps {}
@@ -234,6 +235,10 @@ export const QueryResults: FunctionComponent<QueryResultsProps> = React.memo(() 
     return !loading && !errorMessage && records?.length;
   }
 
+  function handleCopyToClipboard() {
+    copyToClipboard(transformTabularDataToExcelStr(records, fields), { format: 'text/plain' });
+  }
+
   return (
     <div>
       <RecordDownloadModal
@@ -250,7 +255,7 @@ export const QueryResults: FunctionComponent<QueryResultsProps> = React.memo(() 
       <Toolbar>
         <ToolbarItemGroup>
           <Link
-            className="slds-button slds-button_neutral"
+            className="slds-button slds-button_brand"
             to={{
               pathname: `/query`,
               state: { soql },
@@ -261,10 +266,20 @@ export const QueryResults: FunctionComponent<QueryResultsProps> = React.memo(() 
           </Link>
           <button
             className={classNames('slds-button', { 'slds-button_neutral': !soqlPanelOpen, 'slds-button_brand': soqlPanelOpen })}
+            title="View or manually edit SOQL query"
             onClick={() => setSoqlPanelOpen(!soqlPanelOpen)}
           >
             <Icon type="utility" icon="component_customization" className="slds-button__icon slds-button__icon_left" omitContainer />
             Manage SOQL Query
+          </button>
+          <button
+            className="slds-button slds-button_neutral"
+            onClick={() => executeQuery(soql)}
+            disabled={!!(loading || errorMessage)}
+            title="Re-run the current query"
+          >
+            <Icon type="utility" icon="refresh" className="slds-button__icon slds-button__icon_left" omitContainer />
+            Re-load
           </button>
           <QueryHistory />
         </ToolbarItemGroup>
@@ -276,11 +291,16 @@ export const QueryResults: FunctionComponent<QueryResultsProps> = React.memo(() 
             onClick={() => handleBulkRowAction('delete record', selectedRows)}
           >
             <Icon type="utility" icon="delete" className="slds-button__icon slds-button__icon_left" omitContainer />
-            Delete Selected Records
+            Delete Selected
           </button>
-          <button className="slds-button slds-button_neutral" onClick={() => executeQuery(soql)} disabled={!!(loading || errorMessage)}>
-            <Icon type="utility" icon="refresh" className="slds-button__icon slds-button__icon_left" omitContainer />
-            Re-load Records
+          <button
+            className="slds-button slds-button_neutral"
+            onClick={() => handleCopyToClipboard()}
+            disabled={!hasRecords()}
+            title="Copy the queried records to the clipboard. The records can then be pasted into a spreadsheet."
+          >
+            <Icon type="utility" icon="copy_to_clipboard" className="slds-button__icon slds-button__icon_left" omitContainer />
+            Copy to Clipboard
           </button>
           <button className="slds-button slds-button_brand" onClick={() => setDownloadModalOpen(true)} disabled={!hasRecords()}>
             <Icon type="utility" icon="download" className="slds-button__icon slds-button__icon_left" omitContainer />

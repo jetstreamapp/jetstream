@@ -256,7 +256,7 @@ export const LoadRecordsBulkApiResults: FunctionComponent<LoadRecordsBulkApiResu
     return `Uploading batch ${batchSummary.batchSummary.filter((item) => item.completed).length} of ${batchSummary.totalBatches}`;
   }
 
-  async function handleDownloadRecords(type: 'results' | 'failure', batch: BulkJobBatchInfo, batchIndex: number): Promise<void> {
+  async function handleDownloadRecords(type: 'results' | 'failures', batch: BulkJobBatchInfo, batchIndex: number): Promise<void> {
     try {
       if (downloadError) {
         setDownloadError(null);
@@ -281,7 +281,13 @@ export const LoadRecordsBulkApiResults: FunctionComponent<LoadRecordsBulkApiResu
       });
       logger.log({ combinedResults });
       const header = ['_id', '_success', '_errors'].concat(getFieldHeaderFromMapping(fieldMapping));
-      setDownloadModalData({ ...downloadModalData, open: true, fileNameParts: ['load', type], header, data: combinedResults });
+      setDownloadModalData({
+        ...downloadModalData,
+        open: true,
+        fileNameParts: [loadType.toLocaleLowerCase(), selectedSObject.toLocaleLowerCase(), type],
+        header,
+        data: combinedResults,
+      });
     } catch (ex) {
       logger.warn(ex);
       setDownloadError('ex.message');

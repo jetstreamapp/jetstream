@@ -34,6 +34,21 @@ export const SobjectFieldListFilter: FunctionComponent<SobjectFieldListFilterPro
             checked={active === 'updateable'}
             onChange={onChange}
           />
+          <Radio name="radio-filter-custom" label="Custom Fields" value="custom" checked={active === 'custom'} onChange={onChange} />
+          <Radio
+            name="radio-filter-non-managed"
+            label="Non-Managed Fields"
+            value="non-managed"
+            checked={active === 'non-managed'}
+            onChange={onChange}
+          />
+          <Radio
+            name="radio-filter-non-managed"
+            label="Custom and Non-Managed Fields"
+            value="custom-non-managed"
+            checked={active === 'custom-non-managed'}
+            onChange={onChange}
+          />
           <Radio
             name="radio-filter-selected"
             label="Selected Fields"

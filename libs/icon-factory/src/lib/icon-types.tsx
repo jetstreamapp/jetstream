@@ -40,6 +40,7 @@ export interface UtilityIconObj {
   collapse_all: IconEl;
   component_customization: IconEl;
   copy: IconEl;
+  copy_to_clipboard: IconEl;
   dash: IconEl;
   date_time: IconEl;
   delete: IconEl;

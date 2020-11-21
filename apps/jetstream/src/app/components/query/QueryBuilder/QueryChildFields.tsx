@@ -36,8 +36,6 @@ export const QueryChildFieldsComponent: FunctionComponent<QueryChildFieldsProps>
   // TODO: this is global - the parent can clear, but we cannot!
   // we can add to this as long as our keys are unique
   const [queryFieldsMap, setQueryFieldsMap] = useRecoilState(fromQueryState.queryFieldsMapState);
-  // TODO: WTF is this? and how will it destroy me?
-  const [queryFieldsKey, setQueryFieldsKey] = useRecoilState(fromQueryState.queryFieldsKey);
   const [baseKey, setBaseKey] = useState<string>(getBaseKey(selectedSObject, parentRelationshipName));
   const selectedOrg = useRecoilValue(selectedOrgState);
 

@@ -74,11 +74,15 @@ export const filterQueryFieldsState = atom<ListItemGroup[]>({
   default: [],
 });
 
+export const orderByQueryFieldsState = atom<ListItemGroup[]>({
+  key: 'query.orderByQueryFieldsState',
+  default: [],
+});
+
 export const queryFiltersState = atom<ExpressionType>({
   key: 'query.queryFiltersState',
   default: {
     action: 'AND',
-    groups: [],
     rows: [
       {
         key: 0,

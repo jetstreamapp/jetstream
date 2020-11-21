@@ -56,7 +56,16 @@ export async function fetchFields(org: SalesforceOrgUi, queryFields: QueryFields
       const filterText = `${field.name || ''}${field.label || ''}${type}${type.replace(REGEX.NOT_ALPHA, '')}`.toLowerCase();
       let relatedSobject: string | string[];
       if (field.type === 'reference' && field.relationshipName && field.referenceTo?.length) {
-        relatedSobject = field.referenceTo.length === 1 ? field.referenceTo[0] : field.referenceTo;
+        if (field.referenceTo.length === 1) {
+          relatedSobject = field.referenceTo[0];
+        } else {
+          // if only two polymorphic fields exist and the second is user, reverse the order so that User is first as it is most commonly used
+          if (field.referenceTo.length === 2 && field.referenceTo[1] === 'User') {
+            relatedSobject = field.referenceTo.reverse();
+          } else {
+            relatedSobject = field.referenceTo;
+          }
+        }
       }
 
       // setup custom metadata lookup fields to pull mocked lookup data for relationship

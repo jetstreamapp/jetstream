@@ -50,6 +50,7 @@ export const QueryBuilder: FunctionComponent<QueryBuilderProps> = () => {
   const [selectedFields, setSelectedFields] = useRecoilState(fromQueryState.selectedQueryFieldsState);
   const [selectedSubqueryFieldsState, setSelectedSubqueryFieldsState] = useRecoilState(fromQueryState.selectedSubqueryFieldsState);
   const [filterFields, setFilterFields] = useRecoilState(fromQueryState.filterQueryFieldsState);
+  const [orderByFields, setOrderByFields] = useRecoilState(fromQueryState.orderByQueryFieldsState);
   const [soql, setSoql] = useRecoilState(fromQueryState.querySoqlState);
   const [isFavorite, setIsFavorite] = useRecoilState(fromQueryState.queryIsFavoriteState);
   const resetQueryFieldsMapState = useResetRecoilState(fromQueryState.queryFieldsMapState);
@@ -96,9 +97,11 @@ export const QueryBuilder: FunctionComponent<QueryBuilderProps> = () => {
       // name: 'calculateFilter',
       // data: queryFieldsMap,
       // });
-      setFilterFields(calculateSoqlQueryFilter(queryFieldsMap));
+      setFilterFields(calculateSoqlQueryFilter(queryFieldsMap, ['filterable']));
+      setOrderByFields(calculateSoqlQueryFilter(queryFieldsMap, ['sortable']));
     } else {
       setFilterFields([]);
+      setOrderByFields([]);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedSObject, queryFieldsMap, selectedFields]);
@@ -282,7 +285,7 @@ export const QueryBuilder: FunctionComponent<QueryBuilderProps> = () => {
                         id: 'orderBy',
                         title: 'Order By',
                         titleSummaryIfCollapsed: <QueryOrderByTitleSummary />,
-                        content: <QueryOrderBy fields={filterFields} />,
+                        content: <QueryOrderBy fields={orderByFields} />,
                       },
                       { id: 'limit', title: 'Limit', titleSummaryIfCollapsed: <QueryLimitTitleSummary />, content: <QueryLimit /> },
                       { id: 'soql', title: 'Soql Query', content: <SoqlTextarea /> },

@@ -22,6 +22,7 @@ import UtilityIcon_Chart from './icons/utility/Chart';
 import UtilityIcon_Check from './icons/utility/Check';
 import UtilityIcon_Chevrondown from './icons/utility/Chevrondown';
 import UtilityIcon_Chevronright from './icons/utility/Chevronright';
+import UtilityIcon_CopyToClipboard from './icons/utility/CopyToClipboard';
 import UtilityIcon_Clear from './icons/utility/Clear';
 import UtilityIcon_Close from './icons/utility/Close';
 import UtilityIcon_CollapseAll from './icons/utility/CollapseAll';
@@ -80,6 +81,7 @@ const utilityIcons: UtilityIconObj = {
   clear: UtilityIcon_Clear,
   close: UtilityIcon_Close,
   collapse_all: UtilityIcon_CollapseAll,
+  copy_to_clipboard: UtilityIcon_CopyToClipboard,
   component_customization: UtilityIcon_ComponentCustomization,
   copy: UtilityIcon_Copy,
   dash: UtilityIcon_Dash,
