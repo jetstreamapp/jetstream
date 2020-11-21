@@ -19,6 +19,7 @@ import { saveAs } from 'file-saver';
 import { DeployResult, Field } from 'jsforce';
 import { get as safeGet } from 'lodash';
 import isString from 'lodash/isString';
+import isNil from 'lodash/isNil';
 import numeral from 'numeral';
 import { parse as parseCsv, unparse, unparse as unparseCsv, UnparseConfig } from 'papaparse';
 import {
@@ -781,4 +782,52 @@ export function convertArrayOfObjectToArrayOfArray(data: any[], headers?: string
   }
   headers = headers || Object.keys(data[0]);
   return [headers].concat(data.map((row) => headers.map((header) => row[header])));
+}
+
+/**
+ * Copy an object into a string that is spreadsheet compatible for pasting
+ *
+ * @param data
+ * @param fields
+ */
+export function transformTabularDataToExcelStr<T = unknown>(data: T[], fields?: string[], includeHeader = true): string {
+  if (!Array.isArray(data) || data.length === 0) {
+    return '';
+  }
+  if (!fields) {
+    fields = Object.keys(data[0]);
+  }
+  const replaceQuoteRegex = /"/g;
+
+  function getValue(value: any) {
+    if (isNil(value)) {
+      value = '';
+    } else if (isString(value)) {
+      if (value.includes('\n') || value.includes('\t') || value.includes('"')) {
+        value = `"${value.replace(replaceQuoteRegex, '""')}"`;
+      } else if (value.startsWith('+')) {
+        value = `'${value}`;
+      }
+    } else if (typeof value === 'object') {
+      value = JSON.stringify(value);
+    }
+    return value;
+  }
+
+  // turn each row into \t delimited string, then combine each row into a string delimited by \n
+  let output: string = data
+    .map((row) =>
+      fields
+        .map((field) => {
+          return getValue(row[field]);
+        })
+        .join('\t')
+    )
+    .join('\n');
+
+  if (includeHeader) {
+    output = `${fields.map(getValue).join('\t')}\n${output}`;
+  }
+
+  return output;
 }
