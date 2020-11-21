@@ -44,7 +44,7 @@ export const QueryOrderBy: FunctionComponent<QueryOrderByProps> = ({ orderBy, fi
       <div className="slds-col">
         <Combobox
           label="Field"
-          labelHelp="Related fields must be selected to appear in this list"
+          labelHelp="Related fields must be selected to appear in this list and only fields that allow sorting are included."
           onInputChange={(filter) => setFieldFilter(filter)}
           selectedItemLabel={orderBy.fieldLabel}
           selectedItemTitle={null}
