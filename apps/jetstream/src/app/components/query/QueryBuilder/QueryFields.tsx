@@ -4,7 +4,7 @@ import { orderObjectsBy } from '@jetstream/shared/utils';
 import { FieldWrapper, MapOf, QueryFields, SalesforceOrgUi, QueryFieldWithPolymorphic } from '@jetstream/types';
 import { AutoFullHeightContainer, SobjectFieldList } from '@jetstream/ui';
 import isEmpty from 'lodash/isEmpty';
-import React, { Fragment, FunctionComponent, useEffect, useState } from 'react';
+import React, { Fragment, FunctionComponent, useEffect, useRef, useState } from 'react';
 import { useRecoilState, useRecoilValue, useSetRecoilState } from 'recoil';
 import { selectedOrgState } from '../../../app-state';
 import * as fromQueryState from '../query.state';
@@ -22,11 +22,17 @@ function getQueryFieldKey(selectedOrg: SalesforceOrgUi, selectedSObject: string)
 }
 
 export const QueryFieldsComponent: FunctionComponent<QueryFieldsProps> = ({ selectedSObject, onSelectionChanged }) => {
+  const isMounted = useRef(null);
   const [queryFieldsMap, setQueryFieldsMap] = useRecoilState(fromQueryState.queryFieldsMapState);
   const [queryFieldsKey, setQueryFieldsKey] = useRecoilState(fromQueryState.queryFieldsKey);
   const setChildRelationships = useSetRecoilState(fromQueryState.queryChildRelationships);
   const [baseKey, setBaseKey] = useState<string>(`${selectedSObject}|`);
   const selectedOrg = useRecoilValue(selectedOrgState);
+
+  useEffect(() => {
+    isMounted.current = true;
+    return () => (isMounted.current = false);
+  }, []);
 
   // Fetch fields for base object if the selected object changes
   useEffect(() => {
@@ -53,22 +59,27 @@ export const QueryFieldsComponent: FunctionComponent<QueryFieldsProps> = ({ sele
         };
         setChildRelationships([]);
         setQueryFieldsMap(tempQueryFieldsMap);
-        setQueryFieldsKey(getQueryFieldKey(selectedOrg, selectedSObject));
+        setQueryFieldsKey(fieldKey);
         (async () => {
           tempQueryFieldsMap = { ...tempQueryFieldsMap };
           try {
             tempQueryFieldsMap[BASE_KEY] = await fetchFields(selectedOrg, tempQueryFieldsMap[BASE_KEY], BASE_KEY);
-            tempQueryFieldsMap[BASE_KEY] = { ...tempQueryFieldsMap[BASE_KEY], loading: false };
-            setChildRelationships(tempQueryFieldsMap[BASE_KEY].childRelationships || []);
-            if (tempQueryFieldsMap[BASE_KEY].fields.Id) {
-              tempQueryFieldsMap[BASE_KEY].selectedFields.add('Id');
-              emitSelectedFieldsChanged(tempQueryFieldsMap);
+            if (isMounted) {
+              tempQueryFieldsMap[BASE_KEY] = { ...tempQueryFieldsMap[BASE_KEY], loading: false };
+              setChildRelationships(tempQueryFieldsMap[BASE_KEY].childRelationships || []);
+              if (tempQueryFieldsMap[BASE_KEY].fields.Id) {
+                tempQueryFieldsMap[BASE_KEY].selectedFields.add('Id');
+                emitSelectedFieldsChanged(tempQueryFieldsMap);
+              }
             }
           } catch (ex) {
             logger.warn('Query SObject error', ex);
             tempQueryFieldsMap[BASE_KEY] = { ...tempQueryFieldsMap[BASE_KEY], loading: false, hasError: true };
           } finally {
-            setQueryFieldsMap(tempQueryFieldsMap);
+            if (isMounted) {
+              setQueryFieldsMap(tempQueryFieldsMap);
+              setQueryFieldsKey(fieldKey);
+            }
           }
         })();
       }
