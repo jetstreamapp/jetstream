@@ -14,6 +14,7 @@ import Spinner from '../widgets/Spinner';
 import SobjectFieldListFilter from './SobjectFieldListFilter';
 import SobjectFieldListItem from './SobjectFieldListItem';
 import { FilterType } from './SobjectFieldListTypes';
+import { REGEX } from '../../../../shared/utils/src';
 
 function getBgColor(level: number): string {
   switch (level) {
@@ -89,6 +90,12 @@ export const SobjectFieldList: FunctionComponent<SobjectFieldListProps> = ({
                 return field.metadata.createable;
               case 'updateable':
                 return field.metadata.updateable;
+              case 'custom':
+                return field.metadata.custom;
+              case 'non-managed':
+                return !REGEX.HAS_NAMESPACE.test(field.metadata.name);
+              case 'custom-non-managed':
+                return field.metadata.custom && !REGEX.HAS_NAMESPACE.test(field.metadata.name);
               case 'selected':
                 return queryFields.selectedFields.has(field.name);
               default:
