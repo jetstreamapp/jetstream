@@ -1,20 +1,18 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
+import { getBooleanListItems, getDateLiteralListItems, getPicklistListItems } from '@jetstream/shared/ui-utils';
 import {
-  ExpressionType,
-  ListItem,
-  QueryFilterOperator,
-  ListItemGroup,
-  ExpressionGetResourceTypeFns,
   ExpressionConditionRowSelectedItems,
+  ExpressionGetResourceTypeFns,
   ExpressionRowValueType,
+  ListItem,
+  ListItemGroup,
+  QueryFilterOperator,
 } from '@jetstream/types';
 import { ExpressionContainer } from '@jetstream/ui';
-import React, { FunctionComponent, useState, useEffect, useRef } from 'react';
-import * as fromQueryState from '../query.state';
-import { useRecoilState } from 'recoil';
 import { Field } from 'jsforce';
-import { getDateLiteralListItems, getBooleanListItems, getPicklistListItems } from '@jetstream/shared/ui-utils';
-import { logger } from '@jetstream/shared/client-logger';
+import React, { FunctionComponent, useEffect, useRef, useState } from 'react';
+import { useRecoilState } from 'recoil';
+import * as fromQueryState from '../query.state';
 
 export interface QueryFilterProps {
   fields: ListItemGroup[];
@@ -190,7 +188,7 @@ export const QueryFilter: FunctionComponent<QueryFilterProps> = ({ fields }) => 
       getResourceTypeFns={getResourceTypeFns}
       disableValueForOperators={disableValueForOperators}
       onChange={(filters) => {
-        if (isMounted) {
+        if (isMounted.current) {
           setQueryFilters(filters);
         }
       }}

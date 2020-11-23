@@ -1,15 +1,26 @@
-import { atom, selector } from 'recoil';
-import isString from 'lodash/isString';
-import { SalesforceOrgUi, UserProfileUi, ApplicationCookie, SalesforceOrgUiType, MapOf, UserProfilePreferences } from '@jetstream/types';
-import { getUserProfile, getOrgs } from '@jetstream/shared/data';
+import { HTTP, INDEXED_DB } from '@jetstream/shared/constants';
+import { getOrgs, getUserProfile } from '@jetstream/shared/data';
 import { parseCookie } from '@jetstream/shared/ui-utils';
-import { HTTP } from '@jetstream/shared/constants';
+import { ApplicationCookie, SalesforceOrgUi, SalesforceOrgUiType, UserProfilePreferences, UserProfileUi } from '@jetstream/types';
 import localforage from 'localforage';
-import { INDEXED_DB } from '@jetstream/shared/constants';
+import isString from 'lodash/isString';
+import { atom, selector } from 'recoil';
 
 export const STORAGE_KEYS = {
   SELECTED_ORG_STORAGE_KEY: `SELECTED_ORG`,
 };
+
+/**
+ * Parse application state with a fallback in case there is an issue parsing
+ */
+function getAppCookie() {
+  let appState = parseCookie<ApplicationCookie>(HTTP.COOKIE.JETSTREAM);
+  appState = appState || { serverUrl: 'http://localhost:3333', environment: 'development', defaultApiVersion: 'v49.0' };
+  appState.serverUrl = appState.serverUrl || 'https://getjetstream.app/';
+  appState.environment = appState.environment || 'production';
+  appState.defaultApiVersion = appState.defaultApiVersion || 'v49.0';
+  return appState;
+}
 
 function ensureUserProfileInit(pref?: UserProfilePreferences): UserProfilePreferences {
   return {
@@ -63,7 +74,7 @@ const userPreferenceState = atom<UserProfilePreferences>({
 
 export const applicationCookieState = atom<ApplicationCookie>({
   key: 'applicationCookieState',
-  default: parseCookie<ApplicationCookie>(HTTP.COOKIE.JETSTREAM),
+  default: getAppCookie(),
 });
 
 export const userProfileState = atom<UserProfileUi>({

@@ -14,6 +14,12 @@ export const singleSelection = () => (
     placeholder="Select an Option"
     multiSelection={boolean('multiSelection', false)}
     allowDeselection={boolean('allowDeselection', false)}
+    labelHelp={text('labelHelp', 'My fancy label help text')}
+    helpText={text('helpText', 'My fancy help text')}
+    isRequired={boolean('isRequired', false)}
+    hasError={boolean('hasError', false)}
+    errorMessageId="error-id-used-for-accessibility"
+    errorMessage={text('errorMessage', 'Error Message')}
     scrollLength={select(
       'scrollLength',
       {

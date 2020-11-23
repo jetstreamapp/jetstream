@@ -18,6 +18,11 @@
 
 .slds-text-link {
   cursor: pointer;
+  .faux-button-link {
+    :hover {
+      color: $brand-accessible;
+    }
+  }
 }
 
 .gutter {
@@ -131,4 +136,14 @@
     -webkit-appearance: none;
     resize: vertical;
   }
+}
+
+.d-inline {
+  display: inline;
+}
+.d-block {
+  display: block;
+}
+.d-inline-block {
+  display: inline-block;
 }

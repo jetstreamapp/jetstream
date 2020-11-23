@@ -1,20 +1,20 @@
+import { logger } from '@jetstream/shared/client-logger';
 import {
   AndOr,
   ExpressionConditionRowSelectedItems,
   ExpressionConditionType,
+  ExpressionGetResourceTypeFns,
   ExpressionGroupType,
   ExpressionType,
   ListItem,
   ListItemGroup,
-  ExpressionGetResourceTypeFns,
   QueryFilterOperator,
 } from '@jetstream/types';
 import React, { FunctionComponent, useEffect, useState } from 'react';
 import Expression from './Expression';
+import { isExpressionConditionType } from './expression-utils';
 import ExpressionConditionRow from './ExpressionConditionRow';
 import ExpressionGroup from './ExpressionGroup';
-import { logger } from '@jetstream/shared/client-logger';
-import { isExpressionConditionType } from './expression-utils';
 
 export interface ExpressionContainerProps {
   title?: string;
@@ -187,7 +187,7 @@ export const ExpressionContainer: FunctionComponent<ExpressionContainerProps> = 
           clonedExpression.rows[rowIdx] = { ...clonedExpression.rows[rowIdx], selected };
 
           if (resourceChanged) {
-            updateResourcesOnRow(currRow, selected);
+            updateResourcesOnRow(clonedExpression.rows[rowIdx] as ExpressionConditionType, selected);
           }
         }
       }

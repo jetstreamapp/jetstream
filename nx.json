@@ -74,6 +74,9 @@
     },
     "icon-factory": {
       "tags": []
+    },
+    "shared-ui-record-form": {
+      "tags": []
     }
   },
   "affected": {

@@ -30,7 +30,7 @@ export const ExpressionActionDropDown: FunctionComponent<ExpressionActionDropDow
     <div className="slds-expression__options">
       <Picklist
         label={label}
-        helpText={helpText}
+        labelHelp={helpText}
         items={items}
         selectedItems={selectedItem}
         allowDeselection={false}

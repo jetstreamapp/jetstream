@@ -1,20 +1,20 @@
-import { orderBy, isString, get as lodashGet, isBoolean, isNil, isObject } from 'lodash';
+import { QueryResults, QueryResultsColumn } from '@jetstream/api-interfaces';
 import {
-  MapOf,
-  Record,
-  QueryFieldWithPolymorphic,
   BulkJob,
-  BulkJobUntyped,
   BulkJobBatchInfo,
   BulkJobBatchInfoUntyped,
-  InsertUpdateUpsertDelete,
+  BulkJobUntyped,
   HttpMethod,
+  InsertUpdateUpsertDelete,
+  MapOf,
+  QueryFieldWithPolymorphic,
+  Record,
 } from '@jetstream/types';
-import { REGEX } from './regex';
-import { unix } from 'moment-mini';
-import { QueryResults, QueryResultsColumn } from '@jetstream/api-interfaces';
 import { QueryResult } from 'jsforce';
-import { FieldSubquery, FieldType, ComposeFieldTypeof, getField } from 'soql-parser-js';
+import { get as lodashGet, isBoolean, isNil, isObject, isString, orderBy } from 'lodash';
+import { unix } from 'moment-mini';
+import { ComposeFieldTypeof, FieldSubquery, FieldType, getField } from 'soql-parser-js';
+import { REGEX } from './regex';
 
 export function NOOP() {}
 
@@ -199,6 +199,15 @@ function getTypeOfField(polymorphicItems: { field: string; sobject: string; fiel
     ],
   };
   return getField(output);
+}
+
+export function getRecordIdFromAttributes(record: any) {
+  return record.attributes.url.substring(record.attributes.url.lastIndexOf('/') + 1);
+}
+
+export function getSObjectNameFromAttributes(record: any) {
+  let urlWithoutId = record.attributes.url.substring(0, record.attributes.url.lastIndexOf('/'));
+  return urlWithoutId.substring(urlWithoutId.lastIndexOf('/') + 1);
 }
 
 export function convertFieldWithPolymorphicToQueryFields(inputFields: QueryFieldWithPolymorphic[]): FieldType[] {

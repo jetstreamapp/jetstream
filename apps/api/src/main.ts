@@ -71,6 +71,7 @@ app.use((req: express.Request, res: express.Response, next: express.NextFunction
   const appCookie: ApplicationCookie = {
     serverUrl: ENV.JETSTREAM_SERVER_URL,
     environment: ENV.ENVIRONMENT as any,
+    defaultApiVersion: `v${ENV.SFDC_FALLBACK_API_VERSION}`,
   };
   res.cookie(HTTP.COOKIE.JETSTREAM, appCookie, { httpOnly: false, sameSite: 'strict' });
   next();

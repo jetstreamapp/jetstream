@@ -4,6 +4,7 @@ import { checkMetadataResults } from '@jetstream/shared/data';
 import { delay, ensureBoolean, orderObjectsBy, REGEX } from '@jetstream/shared/utils';
 import {
   AndOr,
+  ErrorResult,
   ExpressionConditionRowSelectedItems,
   ExpressionConditionType,
   ExpressionGroupType,
@@ -20,8 +21,8 @@ import parseISO from 'date-fns/parseISO';
 import { saveAs } from 'file-saver';
 import { DeployResult, Field } from 'jsforce';
 import { get as safeGet } from 'lodash';
-import isString from 'lodash/isString';
 import isNil from 'lodash/isNil';
+import isString from 'lodash/isString';
 import numeral from 'numeral';
 import { parse as parseCsv, unparse, unparse as unparseCsv, UnparseConfig } from 'papaparse';
 import {
@@ -842,4 +843,8 @@ export function transformTabularDataToExcelStr<T = unknown>(data: T[], fields?: 
   }
 
   return output;
+}
+
+export function isErrorResponse(value: any): value is ErrorResult {
+  return !value.success;
 }

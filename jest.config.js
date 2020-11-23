@@ -11,5 +11,6 @@ module.exports = {
     '<rootDir>/apps/landing',
     '<rootDir>/libs/shared/node-utils',
     '<rootDir>/libs/shared/client-logger',
+    '<rootDir>/libs/shared/ui-record-form',
   ],
 };

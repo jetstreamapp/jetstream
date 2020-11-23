@@ -1,9 +1,9 @@
 import { pluralizeFromNumber } from '@jetstream/shared/utils';
 import { QueryHistoryItem } from '@jetstream/types';
-import { Card, Grid, GridCol, Icon, CodeEditor, Textarea, CopyToClipboard } from '@jetstream/ui';
-import React, { Fragment, FunctionComponent, useState, useEffect } from 'react';
+import { Card, CodeEditor, CopyToClipboard, Grid, GridCol, Icon, Textarea } from '@jetstream/ui';
 import moment from 'moment-mini';
-import { useRouteMatch, Link } from 'react-router-dom';
+import React, { Fragment, FunctionComponent, useEffect, useRef, useState } from 'react';
+import { Link, useRouteMatch } from 'react-router-dom';
 
 // eslint-disable-next-line @typescript-eslint/no-empty-interface
 export interface QueryHistoryItemCardProps {
@@ -11,12 +11,20 @@ export interface QueryHistoryItemCardProps {
 }
 
 export const QueryHistoryItemCard: FunctionComponent<QueryHistoryItemCardProps> = ({ item }) => {
+  const isMounted = useRef(null);
   const match = useRouteMatch();
   const [readyToRenderCode, setReadyToRenderCode] = useState(false);
 
   useEffect(() => {
+    isMounted.current = true;
+    return () => (isMounted.current = false);
+  }, []);
+
+  useEffect(() => {
     setTimeout(() => {
-      setReadyToRenderCode(true);
+      if (isMounted.current) {
+        setReadyToRenderCode(true);
+      }
     });
   }, []);
 

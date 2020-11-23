@@ -25,7 +25,8 @@
       "@jetstream/shared/constants": ["libs/shared/constants/src/index.ts"],
       "@jetstream/shared/node-utils": ["libs/shared/node-utils/src/index.ts"],
       "@jetstream/shared/client-logger": ["libs/shared/client-logger/src/index.ts"],
-      "@jetstream/icon-factory": ["libs/icon-factory/src/index.ts"]
+      "@jetstream/icon-factory": ["libs/icon-factory/src/index.ts"],
+      "@jetstream/record-form": ["libs/shared/ui-record-form/src/index.ts"]
     }
   },
   "exclude": ["node_modules", "tmp"]

@@ -6,7 +6,12 @@ import { QueryResults as IQueryResults } from '@jetstream/api-interfaces';
 import { logger } from '@jetstream/shared/client-logger';
 import { query } from '@jetstream/shared/data';
 import { transformTabularDataToExcelStr, useObservable } from '@jetstream/shared/ui-utils';
-import { pluralizeIfMultiple, replaceSubqueryQueryResultsWithRecords } from '@jetstream/shared/utils';
+import {
+  getRecordIdFromAttributes,
+  getSObjectNameFromAttributes,
+  pluralizeIfMultiple,
+  replaceSubqueryQueryResultsWithRecords,
+} from '@jetstream/shared/utils';
 import { AsyncJob, AsyncJobNew, BulkDownloadJob, FileExtCsvXLSX, Record, SalesforceOrgUi } from '@jetstream/types';
 import {
   AutoFullHeightContainer,
@@ -23,19 +28,20 @@ import {
   useConfirmation,
 } from '@jetstream/ui';
 import classNames from 'classnames';
+import copyToClipboard from 'copy-to-clipboard';
 import React, { Fragment, FunctionComponent, useEffect, useRef, useState } from 'react';
 import { Link, NavLink, useLocation } from 'react-router-dom';
 import { useRecoilState, useRecoilValue } from 'recoil';
 import { filter } from 'rxjs/operators';
 import { applicationCookieState, selectedOrgState } from '../../../app-state';
 import * as fromJetstreamEvents from '../../core/jetstream-events';
+import * as fromQueryState from '../query.state';
 import * as fromQueryHistory from '../QueryHistory/query-history.state';
 import QueryHistory from '../QueryHistory/QueryHistory';
 import IncludeDeletedRecordsToggle from '../QueryOptions/IncludeDeletedRecords';
+import QueryResultsActions from './QueryResultsActions';
 import QueryResultsSoqlPanel from './QueryResultsSoqlPanel';
 import QueryResultsViewRecordFields from './QueryResultsViewRecordFields';
-import * as fromQueryState from '../query.state';
-import copyToClipboard from 'copy-to-clipboard';
 
 // eslint-disable-next-line @typescript-eslint/no-empty-interface
 export interface QueryResultsProps {}
@@ -61,13 +67,15 @@ export const QueryResults: FunctionComponent<QueryResultsProps> = React.memo(() 
   const [errorMessage, setErrorMessage] = useState<string>(null);
   const [downloadModalOpen, setDownloadModalOpen] = useState<boolean>(false);
   const selectedOrg = useRecoilValue<SalesforceOrgUi>(selectedOrgState);
-  const [{ serverUrl }] = useRecoilState(applicationCookieState);
+  const [{ serverUrl, defaultApiVersion }] = useRecoilState(applicationCookieState);
   const [totalRecordCount, setTotalRecordCount] = useState<number>(null);
   const [queryHistory, setQueryHistory] = useRecoilState(fromQueryHistory.queryHistoryState);
   const bulkDeleteJob = useObservable(
     fromJetstreamEvents.getObservable('jobFinished').pipe(filter((ev: AsyncJob) => ev.type === 'BulkDelete'))
   );
   const confirm = useConfirmation();
+
+  const [editOrCloneRecord, setEditOrCloneRecord] = useState<{ action: 'edit' | 'clone'; sobjectName: string; recordId: string }>();
 
   useEffect(() => {
     isMounted.current = true;
@@ -188,7 +196,7 @@ export const QueryResults: FunctionComponent<QueryResultsProps> = React.memo(() 
       case 'delete record': {
         const recordCountText = `${rows.length} ${pluralizeIfMultiple('Record', rows)}`;
         confirm({
-          content: `Are you sure you want to delete ${recordCountText}?`,
+          content: <div className="slds-m-around_medium">Are you sure you want to delete {recordCountText}?</div>,
         }).then(() => {
           const jobs: AsyncJobNew[] = [
             {
@@ -239,6 +247,29 @@ export const QueryResults: FunctionComponent<QueryResultsProps> = React.memo(() 
     copyToClipboard(transformTabularDataToExcelStr(records, fields), { format: 'text/plain' });
   }
 
+  async function handleEditOrClone(record: any, action: 'edit' | 'clone') {
+    if (action === 'edit') {
+      setEditOrCloneRecord({
+        action,
+        recordId: record.Id || getRecordIdFromAttributes(record),
+        sobjectName: getSObjectNameFromAttributes(record),
+      });
+    } else {
+      setEditOrCloneRecord({
+        action,
+        recordId: record.Id || getRecordIdFromAttributes(record),
+        sobjectName: getSObjectNameFromAttributes(record),
+      });
+    }
+  }
+
+  async function handleCloseEditCloneModal(reloadRecords?: boolean) {
+    setEditOrCloneRecord(null);
+    if (reloadRecords) {
+      executeQuery(soql);
+    }
+  }
+
   return (
     <div>
       <RecordDownloadModal
@@ -252,6 +283,16 @@ export const QueryResults: FunctionComponent<QueryResultsProps> = React.memo(() 
         onModalClose={() => setDownloadModalOpen(false)}
         onDownloadFromServer={handleDownloadFromServer}
       />
+      {editOrCloneRecord && (
+        <QueryResultsActions
+          apiVersion={defaultApiVersion}
+          selectedOrg={selectedOrg}
+          action={editOrCloneRecord.action}
+          sobjectName={editOrCloneRecord.sobjectName}
+          recordId={editOrCloneRecord.recordId}
+          onClose={handleCloseEditCloneModal}
+        />
+      )}
       <Toolbar>
         <ToolbarItemGroup>
           <Link
@@ -389,6 +430,12 @@ export const QueryResults: FunctionComponent<QueryResultsProps> = React.memo(() 
                 onFields={setFields}
                 onFilteredRowsChanged={setFilteredRows}
                 onLoadMoreRecords={handleLoadMore}
+                onEdit={(record) => {
+                  handleEditOrClone(record, 'edit');
+                }}
+                onClone={(record) => {
+                  handleEditOrClone(record, 'clone');
+                }}
               />
             </Fragment>
           )}
