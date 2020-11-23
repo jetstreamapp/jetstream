@@ -26,9 +26,18 @@ import Pill from '../../widgets/Pill';
 import PicklistItem from './PicklistItem';
 
 export interface PicklistProps {
+  id?: string;
+  className?: string; // form-control classname
   containerClassName?: string; // e.x. slds-combobox_container slds-size_small
+  // choose contents to ensure full width display
+  containerDisplay?: 'block' | 'flex' | 'inline' | 'inline-block' | 'contents';
   label: string;
-  helpText?: string;
+  labelHelp?: string;
+  helpText?: React.ReactNode | string;
+  hasError?: boolean;
+  isRequired?: boolean;
+  errorMessageId?: string;
+  errorMessage?: React.ReactNode | string;
   placeholder?: string;
   items?: ListItem[];
   groups?: ListItemGroup[];
@@ -43,9 +52,17 @@ export interface PicklistProps {
 }
 
 export const Picklist: FunctionComponent<PicklistProps> = ({
+  id,
+  className,
   containerClassName,
+  containerDisplay,
   label,
+  labelHelp,
   helpText,
+  hasError,
+  isRequired,
+  errorMessageId,
+  errorMessage,
   placeholder,
   items,
   groups,
@@ -59,7 +76,7 @@ export const Picklist: FunctionComponent<PicklistProps> = ({
   onChange,
 }) => {
   const keyBuffer = useRef(new KeyBuffer());
-  const [comboboxId] = useState<string>(uniqueId('picklist'));
+  const [comboboxId] = useState<string>(uniqueId(id || 'picklist'));
   const [listboxId] = useState<string>(uniqueId('listbox'));
   const [isOpen, setIsOpen] = useState<boolean>(false);
   const [selectedItemText, setSelectedItemText] = useState<string>();
@@ -234,12 +251,17 @@ export const Picklist: FunctionComponent<PicklistProps> = ({
   }
 
   return (
-    <OutsideClickHandler onOutsideClick={() => setIsOpen(false)}>
-      <div className="slds-form-element">
+    <OutsideClickHandler display={containerDisplay} onOutsideClick={() => setIsOpen(false)}>
+      <div className={classNames('slds-form-element', className, { 'slds-has-error': hasError })}>
         <label className="slds-form-element__label" htmlFor={comboboxId}>
+          {isRequired && (
+            <abbr className="slds-required" title="required">
+              *{' '}
+            </abbr>
+          )}
           {label}
         </label>
-        {helpText && <HelpText id={`${comboboxId}-label-help-text`} content={helpText} />}
+        {labelHelp && <HelpText id={`${comboboxId}-label-help-text`} content={labelHelp} />}
         <div className="slds-form-element__control">
           <div className={containerClassName || 'slds-combobox_container'}>
             <div
@@ -256,6 +278,7 @@ export const Picklist: FunctionComponent<PicklistProps> = ({
                   className={classNames('slds-input slds-combobox__input slds-combobox__input-value', { 'slds-has-focus': isOpen })}
                   id={comboboxId}
                   aria-controls={listboxId}
+                  aria-describedby={errorMessageId}
                   autoComplete="off"
                   placeholder={placeholder}
                   readOnly
@@ -337,6 +360,12 @@ export const Picklist: FunctionComponent<PicklistProps> = ({
             </div>
           )}
         </div>
+        {helpText && <div className="slds-form-element__help">{helpText}</div>}
+        {hasError && errorMessage && (
+          <div className="slds-form-element__help" id={errorMessageId}>
+            {errorMessage}
+          </div>
+        )}
       </div>
     </OutsideClickHandler>
   );

@@ -109,8 +109,8 @@ export async function getToolingRecords<T>(
   selectedOrg: SalesforceOrgUi,
   metadataType: string,
   recordIds: string[],
-  fields: string[] = ['Id', 'FullName', 'Metadata'],
-  apiVersion = 'v49.0' // TODO: remove hard-coded id
+  apiVersion: string,
+  fields: string[] = ['Id', 'FullName', 'Metadata']
 ): Promise<CompositeResponse<T>> {
   const compositeRequests = recordIds.map(
     (id): CompositeRequestBody => ({
@@ -134,7 +134,7 @@ export async function getToolingRecords<T>(
 export async function makeToolingRequests<T>(
   selectedOrg: SalesforceOrgUi,
   compositeRequests: CompositeRequestBody[],
-  apiVersion = 'v49.0', // TODO: remove hard-coded id
+  apiVersion,
   allOrNone = false
 ): Promise<CompositeResponse<T>> {
   const compositeRequestSets = splitArrayToMaxSize(compositeRequests, 25);

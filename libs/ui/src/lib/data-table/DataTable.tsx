@@ -8,7 +8,14 @@ import { AgGridReact, AgGridReactProps } from '@ag-grid-community/react';
 import { CSSProperties, FunctionComponent } from 'react';
 import './data-table-styles.scss';
 import { handleCellDoubleClicked, handleCellKeydown } from './data-table-utils';
-import { BooleanFilterRenderer, BooleanRenderer, configIdLinkRenderer, IdLinkRenderer, SubqueryRenderer } from './DataTableRenderers';
+import {
+  ActionRenderer,
+  BooleanFilterRenderer,
+  BooleanRenderer,
+  configIdLinkRenderer,
+  IdLinkRenderer,
+  SubqueryRenderer,
+} from './DataTableRenderers';
 
 ModuleRegistry.registerModules([ClientSideRowModelModule, InfiniteRowModelModule]);
 
@@ -42,6 +49,7 @@ export const DataTable: FunctionComponent<DataTableProps> = ({
         rowSelection="multiple"
         frameworkComponents={{
           // CELL RENDERERS
+          actionRenderer: ActionRenderer,
           booleanRenderer: BooleanRenderer,
           idLinkRenderer: IdLinkRenderer,
           subqueryRenderer: SubqueryRenderer,

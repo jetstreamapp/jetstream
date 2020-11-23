@@ -1,9 +1,8 @@
 /** @jsx jsx */
 import { jsx } from '@emotion/core';
-import { getIcon, IconName } from '@jetstream/icon-factory';
-import { IconType } from '@jetstream/icon-factory';
+import { getIcon, IconName, IconType } from '@jetstream/icon-factory';
 import classNames from 'classnames';
-import { FunctionComponent } from 'react';
+import { FunctionComponent, HTMLAttributes } from 'react';
 
 export interface IconLazyWrapperProps {
   containerClassname?: string; // container classname, only used if not omitted
@@ -13,6 +12,7 @@ export interface IconLazyWrapperProps {
   type: IconType;
   icon: IconName; // TODO: see if we can add some types
   description?: string;
+  spanProps?: HTMLAttributes<HTMLSpanElement>;
 }
 
 export const IconLazyWrapper: FunctionComponent<IconLazyWrapperProps> = ({
@@ -23,6 +23,7 @@ export const IconLazyWrapper: FunctionComponent<IconLazyWrapperProps> = ({
   type,
   icon,
   description,
+  spanProps,
 }) => {
   containerClassname = containerClassname || '';
   className = className || '';
@@ -31,7 +32,7 @@ export const IconLazyWrapper: FunctionComponent<IconLazyWrapperProps> = ({
     return svg;
   } else {
     return (
-      <span className={classNames('slds-icon_container', containerClassname)} title={title}>
+      <span className={classNames('slds-icon_container', containerClassname)} title={title} {...spanProps}>
         {svg}
         {description && <span className="slds-assistive-text">{description}</span>}
       </span>

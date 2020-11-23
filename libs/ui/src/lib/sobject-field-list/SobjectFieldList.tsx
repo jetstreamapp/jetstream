@@ -1,12 +1,13 @@
 /** @jsx jsx */
 import { css, jsx } from '@emotion/core';
 import { formatNumber } from '@jetstream/shared/ui-utils';
+import { REGEX } from '@jetstream/shared/utils';
 import { FieldWrapper, MapOf, QueryFields, UpDown } from '@jetstream/types';
 import isString from 'lodash/isString';
 import { createRef, Fragment, FunctionComponent, useEffect, useState } from 'react';
 import Checkbox from '../form/checkbox/Checkbox';
-import SearchInput from '../form/search-input/SearchInput';
 import DropDown from '../form/dropdown/DropDown';
+import SearchInput from '../form/search-input/SearchInput';
 import Grid from '../grid/Grid';
 import EmptyState from '../illustrations/EmptyState';
 import List from '../list/List';
@@ -14,7 +15,6 @@ import Spinner from '../widgets/Spinner';
 import SobjectFieldListFilter from './SobjectFieldListFilter';
 import SobjectFieldListItem from './SobjectFieldListItem';
 import { FilterType } from './SobjectFieldListTypes';
-import { REGEX } from '../../../../shared/utils/src';
 
 function getBgColor(level: number): string {
   switch (level) {

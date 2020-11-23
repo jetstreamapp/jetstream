@@ -1,7 +1,7 @@
 import { logger } from '@jetstream/shared/client-logger';
 import { fetchFields, getFieldKey, sortQueryFieldsPolymorphic } from '@jetstream/shared/ui-utils';
 import { orderObjectsBy } from '@jetstream/shared/utils';
-import { FieldWrapper, MapOf, QueryFields, SalesforceOrgUi, QueryFieldWithPolymorphic } from '@jetstream/types';
+import { FieldWrapper, MapOf, QueryFields, QueryFieldWithPolymorphic, SalesforceOrgUi } from '@jetstream/types';
 import { AutoFullHeightContainer, SobjectFieldList } from '@jetstream/ui';
 import isEmpty from 'lodash/isEmpty';
 import React, { Fragment, FunctionComponent, useEffect, useRef, useState } from 'react';
@@ -64,7 +64,7 @@ export const QueryFieldsComponent: FunctionComponent<QueryFieldsProps> = ({ sele
           tempQueryFieldsMap = { ...tempQueryFieldsMap };
           try {
             tempQueryFieldsMap[BASE_KEY] = await fetchFields(selectedOrg, tempQueryFieldsMap[BASE_KEY], BASE_KEY);
-            if (isMounted) {
+            if (isMounted.current) {
               tempQueryFieldsMap[BASE_KEY] = { ...tempQueryFieldsMap[BASE_KEY], loading: false };
               setChildRelationships(tempQueryFieldsMap[BASE_KEY].childRelationships || []);
               if (tempQueryFieldsMap[BASE_KEY].fields.Id) {
@@ -76,7 +76,7 @@ export const QueryFieldsComponent: FunctionComponent<QueryFieldsProps> = ({ sele
             logger.warn('Query SObject error', ex);
             tempQueryFieldsMap[BASE_KEY] = { ...tempQueryFieldsMap[BASE_KEY], loading: false, hasError: true };
           } finally {
-            if (isMounted) {
+            if (isMounted.current) {
               setQueryFieldsMap(tempQueryFieldsMap);
               setQueryFieldsKey(fieldKey);
             }
@@ -88,25 +88,6 @@ export const QueryFieldsComponent: FunctionComponent<QueryFieldsProps> = ({ sele
   }, [selectedOrg, selectedSObject]);
 
   function emitSelectedFieldsChanged(fieldsMap: MapOf<QueryFields> = queryFieldsMap) {
-    // const fields: QueryFieldWithPolymorphic[] = Object.values(fieldsMap)
-    //   .filter((queryField) => !queryField.key.includes(CHILD_FIELD_SEPARATOR))
-    //   .flatMap((queryField) => {
-    //     const basePath = queryField.key.replace(/.+\|/, '');
-    //     return sortQueryFieldsStr(Array.from(queryField.selectedFields))
-    //       .map((fieldKey) => `${basePath}${fieldKey}`)
-    //       .map((field) => ({ field, polymorphicObj: queryField.isPolymorphic ? queryField.sobject : undefined }));
-    //   });
-
-    // const fields = sortQueryFieldsStr(
-    //   orderStringsBy(
-    //     Object.values(fieldsMap)
-    //       .filter((queryField) => !queryField.key.includes(CHILD_FIELD_SEPARATOR))
-    //       .flatMap((queryField) => {
-    //         const basePath = queryField.key.replace(/.+\|/, '');
-    //         return Array.from(queryField.selectedFields).map((fieldKey) => `${basePath}${fieldKey}`);
-    //       })
-    //   )
-    // );
     const fields: QueryFieldWithPolymorphic[] = sortQueryFieldsPolymorphic(
       orderObjectsBy(
         Object.values(fieldsMap)
