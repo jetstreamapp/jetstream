@@ -2,11 +2,12 @@
 import { ColDef, ColumnEvent, SelectionChangedEvent } from '@ag-grid-community/core';
 import { jsx } from '@emotion/core';
 import { QueryResults } from '@jetstream/api-interfaces';
+import { logger } from '@jetstream/shared/client-logger';
 import { queryMore } from '@jetstream/shared/data';
 import { formatNumber } from '@jetstream/shared/ui-utils';
 import { SalesforceOrgUi } from '@jetstream/types';
+import uniqueId from 'lodash/uniqueId';
 import { Fragment, FunctionComponent, memo, ReactNode, useEffect, useRef, useState } from 'react';
-import { logger } from '@jetstream/shared/client-logger';
 import Grid from '../grid/Grid';
 import GridCol from '../grid/GridCol';
 import AutoFullHeightContainer from '../layout/AutoFullHeightContainer';
@@ -22,7 +23,14 @@ import {
 import DataTable from './DataTable';
 
 function getRowNodeId(data: any): string {
-  return data?.attributes?.url || data.Id || Object.keys(data)[0];
+  if (data?.attributes?.type === 'AggregateResult') {
+    return uniqueId('query-results-node-id');
+  }
+  let nodeId = data?.attributes?.url || data.Id;
+  if (!nodeId) {
+    nodeId = uniqueId('query-results-node-id');
+  }
+  return nodeId;
 }
 
 export interface SalesforceRecordDataTableProps {
@@ -35,10 +43,23 @@ export interface SalesforceRecordDataTableProps {
   /** Fired when query is loaded OR user changes column order */
   onFields: (fields: string[]) => void;
   onLoadMoreRecords?: (queryResults: QueryResults<any>) => void;
+  onEdit: (record: any) => void;
+  onClone: (record: any) => void;
 }
 
 export const SalesforceRecordDataTable: FunctionComponent<SalesforceRecordDataTableProps> = memo<SalesforceRecordDataTableProps>(
-  ({ serverUrl, org, queryResults, summaryHeaderRightContent, onSelectionChanged, onFilteredRowsChanged, onFields, onLoadMoreRecords }) => {
+  ({
+    serverUrl,
+    org,
+    queryResults,
+    summaryHeaderRightContent,
+    onSelectionChanged,
+    onFilteredRowsChanged,
+    onFields,
+    onLoadMoreRecords,
+    onEdit,
+    onClone,
+  }) => {
     const isMounted = useRef(null);
     const [columns, setColumns] = useState<ColDef[]>();
     const [columnDefinitions, setColumnDefinitions] = useState<SalesforceQueryColumnDefinition>();
@@ -156,6 +177,12 @@ export const SalesforceRecordDataTable: FunctionComponent<SalesforceRecordDataTa
                     filter: true,
                     sortable: true,
                     resizable: true,
+                  },
+                },
+                context: {
+                  actions: {
+                    edit: onEdit,
+                    clone: onClone,
                   },
                 },
                 onSelectionChanged: handleSelectionChanged,

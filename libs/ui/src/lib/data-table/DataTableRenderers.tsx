@@ -1,9 +1,8 @@
 /** @jsx jsx */
+import { ICellRendererParams, IFilter, IFilterParams } from '@ag-grid-community/core';
 import { jsx } from '@emotion/core';
 import { SalesforceOrgUi } from '@jetstream/types';
-import { ICellRendererParams, IFilter, IFilterParams } from '@ag-grid-community/core';
-import { QueryResult } from 'jsforce';
-import { forwardRef, FunctionComponent, useEffect, useImperativeHandle, useRef, useState } from 'react';
+import { forwardRef, Fragment, FunctionComponent, useEffect, useImperativeHandle, useRef, useState } from 'react';
 import RecordDownloadModal from '../file-download-modal/RecordDownloadModal';
 import CheckboxToggle from '../form/checkbox-toggle/CheckboxToggle';
 import Checkbox from '../form/checkbox/Checkbox';
@@ -12,7 +11,7 @@ import Modal from '../modal/Modal';
 import Icon from '../widgets/Icon';
 import SalesforceLogin from '../widgets/SalesforceLogin';
 import './data-table-styles.scss';
-import { DataTableContext, getSubqueryModalTagline, SalesforceQueryColumnDefinition } from './data-table-utils';
+import { DataTableContext, getSubqueryModalTagline, SalesforceQueryColumnDefinition, TableContext } from './data-table-utils';
 import DataTable from './DataTable';
 
 // CONFIGURATION
@@ -152,6 +151,20 @@ export const IdLinkRenderer: FunctionComponent<ICellRendererParams> = ({ value }
         {value}
       </SalesforceLogin>
     </div>
+  );
+};
+
+export const ActionRenderer: FunctionComponent<ICellRendererParams> = ({ node, context }) => {
+  const { actions } = context as TableContext;
+  return (
+    <Fragment>
+      <button className="slds-button slds-button_icon" title="Edit Record" onClick={() => actions.edit(node.data)}>
+        <Icon type="utility" icon="edit" className="slds-button__icon " omitContainer />
+      </button>
+      <button className="slds-button slds-button_icon" title="Clone Record" onClick={() => actions.clone(node.data)}>
+        <Icon type="utility" icon="copy" className="slds-button__icon " omitContainer />
+      </button>
+    </Fragment>
   );
 };
 

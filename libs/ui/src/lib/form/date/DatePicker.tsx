@@ -1,41 +1,61 @@
 /** @jsx jsx */
 // https://www.lightningdesignsystem.com/components/input/#Fixed-Text
 import { jsx } from '@emotion/core';
+import { useNonInitialEffect } from '@jetstream/shared/ui-utils';
+import { PositionLeftRight } from '@jetstream/types';
 import classNames from 'classnames';
 import moment from 'moment-mini';
-import { ChangeEvent, FunctionComponent, useEffect, useState, useRef, KeyboardEvent } from 'react';
+import { ChangeEvent, FunctionComponent, KeyboardEvent, useEffect, useState } from 'react';
+import OutsideClickHandler from '../../utils/OutsideClickHandler';
+import HelpText from '../../widgets/HelpText';
 import Icon from '../../widgets/Icon';
 import DatePickerPopup from './DatePickerPopup';
-import OutsideClickHandler from '../../utils/OutsideClickHandler';
-import { PositionLeftRight } from '@jetstream/types';
-import { useHotkeys } from 'react-hotkeys-hook';
 
 export interface DatePickerProps {
+  id?: string;
   className?: string;
+  // choose contents to ensure full width display
+  containerDisplay?: 'block' | 'flex' | 'inline' | 'inline-block' | 'contents';
   label: string;
   hideLabel?: boolean;
+  labelHelp?: string;
+  helpText?: React.ReactNode | string;
+  isRequired?: boolean;
+  hasError?: boolean;
+  errorMessageId?: string;
+  errorMessage?: React.ReactNode | string;
   initialSelectedDate?: moment.Moment;
   initialVisibleDate?: moment.Moment;
   availableYears?: number[];
   dropDownPosition?: PositionLeftRight;
   disabled?: boolean;
+  readOnly?: boolean;
   onChange: (date: moment.Moment) => void;
 }
 
 export const DatePicker: FunctionComponent<DatePickerProps> = ({
+  id: _id,
   className,
+  containerDisplay,
   label,
   hideLabel,
+  labelHelp,
+  helpText,
+  isRequired,
+  hasError,
+  errorMessageId,
+  errorMessage,
   initialSelectedDate,
   initialVisibleDate,
   availableYears,
   dropDownPosition,
   disabled,
+  readOnly,
   onChange,
 }) => {
   initialSelectedDate = initialSelectedDate && initialSelectedDate.isValid() ? initialSelectedDate : undefined;
   initialVisibleDate = initialVisibleDate && initialVisibleDate.isValid() ? initialVisibleDate : undefined;
-  const [id] = useState<string>(`date-picker-${Date.now()}`); // used to avoid auto-complete
+  const [id] = useState<string>(`${_id || 'date-picker'}-${Date.now()}`); // used to avoid auto-complete
   const [value, setValue] = useState<string>('');
   const [selectedDate, setSelectedDate] = useState(() =>
     initialSelectedDate && initialSelectedDate.isValid() ? initialSelectedDate : undefined
@@ -48,11 +68,11 @@ export const DatePicker: FunctionComponent<DatePickerProps> = ({
     }
   }, [selectedDate]);
 
-  useEffect(() => {
+  useNonInitialEffect(() => {
     if (selectedDate) {
       onChange(selectedDate);
     }
-  }, [onChange, selectedDate]);
+  }, [selectedDate]);
 
   function onValueChange(event: ChangeEvent<HTMLInputElement>) {
     const value = event.target.value;
@@ -74,21 +94,35 @@ export const DatePicker: FunctionComponent<DatePickerProps> = ({
   }
 
   function handleToggleOpen(value) {
+    if (readOnly && !isOpen) {
+      return;
+    }
     if (isOpen !== value) {
       setIsOpen(value);
     }
   }
 
   return (
-    <OutsideClickHandler className="slds-combobox_container" onOutsideClick={() => handleToggleOpen(false)}>
+    <OutsideClickHandler display={containerDisplay} className="slds-combobox_container" onOutsideClick={() => handleToggleOpen(false)}>
       <div
-        className={classNames('slds-form-element slds-dropdown-trigger slds-dropdown-trigger_click', { 'slds-is-open': isOpen }, className)}
+        className={classNames(
+          'slds-form-element slds-dropdown-trigger slds-dropdown-trigger_click',
+          { 'slds-is-open': isOpen, 'slds-has-error': hasError },
+          className
+        )}
       >
         <label className={classNames('slds-form-element__label', { 'slds-assistive-text': hideLabel })} htmlFor={id}>
+          {isRequired && (
+            <abbr className="slds-required" title="required">
+              *{' '}
+            </abbr>
+          )}
           {label}
         </label>
+        {!hideLabel && labelHelp && <HelpText id={`${id}-label-help-text`} content={labelHelp} />}
         <div className="slds-form-element__control slds-input-has-icon slds-input-has-icon_right">
           <input
+            aria-describedby={errorMessageId}
             type="text"
             autoComplete="false"
             id={id}
@@ -96,6 +130,7 @@ export const DatePicker: FunctionComponent<DatePickerProps> = ({
             className="slds-input"
             value={value}
             onChange={onValueChange}
+            readOnly={readOnly}
             onClick={() => {
               if (!isOpen) {
                 handleToggleOpen(true);
@@ -118,7 +153,7 @@ export const DatePicker: FunctionComponent<DatePickerProps> = ({
             }}
             disabled={disabled}
           >
-            <Icon type="utility" icon="event" className="slds-button__icon" omitContainer description="Select a date" />
+            {!readOnly && <Icon type="utility" icon="event" className="slds-button__icon" omitContainer description="Select a date" />}
           </button>
         </div>
         {isOpen && (
@@ -130,6 +165,12 @@ export const DatePicker: FunctionComponent<DatePickerProps> = ({
             onClose={() => handleToggleOpen(false)}
             onSelection={handleDateSelection}
           />
+        )}
+        {helpText && <div className="slds-form-element__help">{helpText}</div>}
+        {hasError && errorMessage && (
+          <div className="slds-form-element__help" id={errorMessageId}>
+            {errorMessage}
+          </div>
         )}
       </div>
     </OutsideClickHandler>

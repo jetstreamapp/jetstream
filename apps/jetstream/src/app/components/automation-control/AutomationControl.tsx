@@ -63,7 +63,7 @@ export const AutomationControl: FunctionComponent<AutomationControlProps> = () =
   const [exportDataModalOpen, setExportDataModalOpen] = useState<boolean>(false);
   const [exportDataModalData, setExportDataModalData] = useState<MapOf<any[]>>({});
 
-  const [{ serverUrl }] = useRecoilState(applicationCookieState);
+  const [{ serverUrl, defaultApiVersion }] = useRecoilState(applicationCookieState);
   const [itemIds, setItemIds] = useRecoilState(fromAutomationCtlState.itemIds);
   const [itemsById, setItemsById] = useRecoilState(fromAutomationCtlState.itemsById);
   const [activeItemId, setActiveItemId] = useRecoilState(fromAutomationCtlState.activeItemId);
@@ -483,7 +483,7 @@ export const AutomationControl: FunctionComponent<AutomationControlProps> = () =
     sobjectName: string,
     currentValidationRuleMeta: AutomationControlMetadataType<ToolingValidationRuleRecord>
   ): Promise<AutomationControlMetadataType<ToolingValidationRuleRecord>> {
-    const validationRules = await getValidationRulesMetadata(selectedOrg, entityDefinitionId);
+    const validationRules = await getValidationRulesMetadata(selectedOrg, defaultApiVersion, entityDefinitionId);
     return {
       ...currentValidationRuleMeta,
       loading: false,
@@ -496,7 +496,7 @@ export const AutomationControl: FunctionComponent<AutomationControlProps> = () =
     sobjectName: string,
     currentWorkflowFlowRuleMeta: AutomationControlMetadataType<ToolingWorkflowRuleRecord>
   ): Promise<AutomationControlMetadataType<ToolingWorkflowRuleRecord>> {
-    const workflowRules = await getWorkflowRulesMetadata(selectedOrg, sobjectName);
+    const workflowRules = await getWorkflowRulesMetadata(selectedOrg, defaultApiVersion, sobjectName);
     return {
       ...currentWorkflowFlowRuleMeta,
       loading: false,
@@ -509,7 +509,7 @@ export const AutomationControl: FunctionComponent<AutomationControlProps> = () =
     sobject: string,
     currentFlowMeta: AutomationControlMetadataType<ToolingFlowDefinitionWithVersions>
   ): Promise<AutomationControlMetadataType<ToolingFlowDefinitionWithVersions>> {
-    const response = await getProcessBuilders(selectedOrg, sobject, flowDefinitionsBySobject);
+    const response = await getProcessBuilders(selectedOrg, defaultApiVersion, sobject, flowDefinitionsBySobject);
 
     // this is only set once, so if not already set then set it. If not null, it is the same object passed in
     if (flowDefinitionsBySobject == null) {
@@ -622,13 +622,7 @@ export const AutomationControl: FunctionComponent<AutomationControlProps> = () =
               <div>
                 <Tooltip id={`sobject-list-refresh-tooltip`} content={lastRefreshed}>
                   <button className="slds-button slds-button_icon slds-button_icon-container" disabled={loading} onClick={handleRefresh}>
-                    <Icon
-                      type="utility"
-                      icon="refresh"
-                      description={`Reload objects - Last loaded: foo`}
-                      className="slds-button__icon"
-                      omitContainer
-                    />
+                    <Icon type="utility" icon="refresh" className="slds-button__icon" omitContainer />
                   </button>
                 </Tooltip>
               </div>
@@ -639,6 +633,7 @@ export const AutomationControl: FunctionComponent<AutomationControlProps> = () =
       {deployModalActive && (
         <AutomationControlDeployModal
           selectedOrg={selectedOrg}
+          apiVersion={defaultApiVersion}
           itemsById={modifiedChildAutomationItems}
           onClose={(refreshData?: boolean) => {
             setDeployModalActive(false);

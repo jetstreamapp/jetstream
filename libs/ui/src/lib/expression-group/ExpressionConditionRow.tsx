@@ -1,27 +1,27 @@
-import {
-  AndOr,
-  ExpressionConditionRowSelectedItems,
-  ListItem,
-  ListItemGroup,
-  QueryFilterOperator,
-  ExpressionRowValueType,
-} from '@jetstream/types';
-import classNames from 'classnames';
-import isNumber from 'lodash/isNumber';
-import React, { FunctionComponent, useState, useEffect } from 'react';
-import Input from '../form/input/Input';
-import Textarea from '../form/textarea/Textarea';
-import Picklist from '../form/picklist/Picklist';
-import Combobox from '../form/combobox/Combobox';
-import { ComboboxListItem } from '../form/combobox/ComboboxListItem';
-import { ComboboxListItemGroup } from '../form/combobox/ComboboxListItemGroup';
-import FormRowButton from '../form/button/FormRowButton';
-import DatePicker from '../form/date/DatePicker';
-import moment from 'moment-mini';
 // eslint-disable-next-line @typescript-eslint/camelcase
 import { YYYY_MM_DD, YYYY_MM_DD_HH_mm_ss_z } from '@jetstream/shared/constants';
 import { useDebounce } from '@jetstream/shared/ui-utils';
+import {
+  AndOr,
+  ExpressionConditionRowSelectedItems,
+  ExpressionRowValueType,
+  ListItem,
+  ListItemGroup,
+  QueryFilterOperator,
+} from '@jetstream/types';
+import classNames from 'classnames';
+import isNumber from 'lodash/isNumber';
 import isString from 'lodash/isString';
+import moment from 'moment-mini';
+import React, { FunctionComponent, useEffect, useState } from 'react';
+import FormRowButton from '../form/button/FormRowButton';
+import Combobox from '../form/combobox/Combobox';
+import { ComboboxListItem } from '../form/combobox/ComboboxListItem';
+import { ComboboxListItemGroup } from '../form/combobox/ComboboxListItemGroup';
+import DatePicker from '../form/date/DatePicker';
+import Input from '../form/input/Input';
+import Picklist from '../form/picklist/Picklist';
+import Textarea from '../form/textarea/Textarea';
 
 export interface ExpressionConditionRowProps {
   row: number;
@@ -190,7 +190,7 @@ export const ExpressionConditionRow: FunctionComponent<ExpressionConditionRowPro
             <div className="slds-col slds-grow-none">
               <Picklist
                 label={operatorLabel}
-                helpText={operatorHelpText}
+                labelHelp={operatorHelpText}
                 items={operators}
                 selectedItems={[initialSelectedOperator]}
                 allowDeselection={false}

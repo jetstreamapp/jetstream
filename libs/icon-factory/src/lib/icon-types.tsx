@@ -46,6 +46,7 @@ export interface UtilityIconObj {
   delete: IconEl;
   down: IconEl;
   download: IconEl;
+  edit: IconEl;
   error: IconEl;
   event: IconEl;
   expand_all: IconEl;

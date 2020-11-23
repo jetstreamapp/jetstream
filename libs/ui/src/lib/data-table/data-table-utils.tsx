@@ -43,6 +43,13 @@ export interface DataTableContextValue {
   columnDefinitions: SalesforceQueryColumnDefinition;
 }
 
+export interface TableContext {
+  actions: {
+    edit: (row: any) => void;
+    clone: (row: any) => void;
+  };
+}
+
 const newLineRegex = /\\n/g;
 
 /**
@@ -55,12 +62,13 @@ export const DataTableContext = createContext<DataTableContextValue>({
   columnDefinitions: { parentColumns: [], subqueryColumns: {} },
 });
 
-export function getCheckboxColumnDef(): ColDef {
+export function getCheckboxColumnDef(includeActions?: boolean): ColDef {
   return {
+    cellRenderer: includeActions ? 'actionRenderer' : undefined,
     checkboxSelection: true,
     headerCheckboxSelection: true,
     headerCheckboxSelectionFilteredOnly: true,
-    width: 50,
+    width: includeActions ? 110 : 50,
     filter: false,
     sortable: false,
     resizable: false,
@@ -141,6 +149,10 @@ export function getFilteredRows<T = any>(event: ColumnEvent): T[] {
 }
 
 export function getColumnDefinitions(results: QueryResults<any>): SalesforceQueryColumnDefinition {
+  // if we have id, include record actions
+  const includeRecordActions = results.queryResults.records.length
+    ? !!(results.queryResults.records[0]?.Id || results.queryResults.records[0]?.attributes.url)
+    : false;
   const output: SalesforceQueryColumnDefinition = {
     parentColumns: [],
     subqueryColumns: {},
@@ -174,7 +186,7 @@ export function getColumnDefinitions(results: QueryResults<any>): SalesforceQuer
 
   // set checkbox as first column
   if (flattenedFields.length > 0) {
-    flattenedFields.unshift(getCheckboxColumnDef());
+    flattenedFields.unshift(getCheckboxColumnDef(includeRecordActions));
   }
 
   output.parentColumns = flattenedFields;

@@ -10,6 +10,7 @@ import AutomationControlPreDeploymentTable from './PreDeploymentTable';
 
 // eslint-disable-next-line @typescript-eslint/no-empty-interface
 export interface AutomationControlDeployModalProps {
+  apiVersion: string;
   selectedOrg: SalesforceOrgUi;
   itemsById: MapOf<AutomationItemsChildren>;
   onClose: (refreshData?: boolean) => void;
@@ -91,7 +92,12 @@ function getDeploymentItemMap(itemsById: MapOf<AutomationItemsChildren>) {
   };
 }
 
-export const AutomationControlDeployModal: FunctionComponent<AutomationControlDeployModalProps> = ({ selectedOrg, itemsById, onClose }) => {
+export const AutomationControlDeployModal: FunctionComponent<AutomationControlDeployModalProps> = ({
+  apiVersion,
+  selectedOrg,
+  itemsById,
+  onClose,
+}) => {
   const [currentStep, setCurrentStep] = useState<number>(0);
   const [deploymentItemMap, setDeploymentItemMap] = useState<DeploymentItemMap>(getDeploymentItemMap(itemsById));
   const [modalLabel, setModalLabel] = useState('Review Changes');
@@ -150,7 +156,7 @@ export const AutomationControlDeployModal: FunctionComponent<AutomationControlDe
   }
 
   function handlePreparePayloads() {
-    return preparePayloads(selectedOrg, deploymentItemMap).subscribe(
+    return preparePayloads(apiVersion, selectedOrg, deploymentItemMap).subscribe(
       (items: { key: string; deploymentItem: AutomationControlDeploymentItem }[]) => {
         logger.log('preparePayloads - emitted()', items);
         const tempDeploymentItemMap = items.reduce((output: DeploymentItemMap, item) => {
@@ -191,7 +197,7 @@ export const AutomationControlDeployModal: FunctionComponent<AutomationControlDe
    * @param isRollback if true, will set didRollback property
    */
   function handleDeployMetadata(currDeploymentItemMap: DeploymentItemMap, isRollback?: boolean) {
-    return deployMetadata(selectedOrg, currDeploymentItemMap).subscribe(
+    return deployMetadata(apiVersion, selectedOrg, currDeploymentItemMap).subscribe(
       (items: { key: string; deploymentItem: AutomationControlDeploymentItem }[]) => {
         logger.log('handleDeployMetadata - emitted()', items);
         const tempDeploymentItemMap = items.reduce((output: DeploymentItemMap, item) => {

@@ -238,3 +238,26 @@ export interface BulkJobResultRecord {
   Created: boolean;
   Error: string | null;
 }
+
+// https://developer.salesforce.com/docs/atlas.en-us.uiapi.meta/uiapi/ui_api_responses_picklist_values.htm#ui_api_responses_picklist_values
+export interface PicklistFieldValuesResponse {
+  eTag: string;
+  picklistFieldValues: PicklistFieldValues;
+}
+
+export type PicklistFieldValues = MapOf<PicklistFieldValue>;
+
+export interface PicklistFieldValue {
+  eTag: string;
+  url: string;
+  controllerValues: MapOf<number>;
+  defaultValue: any;
+  values: PicklistFieldValueItem[];
+}
+
+export interface PicklistFieldValueItem {
+  attributes: null;
+  label: string;
+  value: string;
+  validFor: number[];
+}

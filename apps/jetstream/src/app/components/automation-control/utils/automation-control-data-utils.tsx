@@ -1,6 +1,7 @@
 // LAME
 
-import { genericRequest, query, deployMetadata as deployMetadataZip } from '@jetstream/shared/data';
+import { logger } from '@jetstream/shared/client-logger';
+import { deployMetadata as deployMetadataZip, genericRequest, query } from '@jetstream/shared/data';
 import { getToolingRecords, pollMetadataResultsUntilDone } from '@jetstream/shared/ui-utils';
 import { getMapOf, splitArrayToMaxSize } from '@jetstream/shared/utils';
 import { CompositeRequest, CompositeRequestBody, CompositeResponse, MapOf, SalesforceOrgUi } from '@jetstream/types';
@@ -9,16 +10,15 @@ import {
   AutomationControlDeploymentItem,
   DeploymentItemMap,
   FlowMetadata,
+  MetadataCompositeResponseError,
+  MetadataCompositeResponseSuccess,
   MetadataCompositeResponseSuccessOrError,
   ToolingFlowAggregateRecord,
   ToolingFlowDefinitionWithVersions,
   ToolingValidationRuleRecord,
   ToolingWorkflowRuleRecord,
-  MetadataCompositeResponseError,
-  MetadataCompositeResponseSuccess,
 } from '../automation-control-types';
 import { getFlowsQuery, getLatestFlowDefinitionIds, getValidationRuleQuery, getWorkflowRuleQuery } from './automation-control-soql-utils';
-import { logger } from '@jetstream/shared/client-logger';
 
 /**
  * Adds FullName and Metadata fields to existing WFR records and returns a new array
@@ -28,6 +28,7 @@ import { logger } from '@jetstream/shared/client-logger';
  */
 export async function getValidationRulesMetadata(
   selectedOrg: SalesforceOrgUi,
+  apiVersion: string,
   entityDefinitionId: string
 ): Promise<ToolingValidationRuleRecord[]> {
   const validationRuleRecords = (await query<ToolingWorkflowRuleRecord>(selectedOrg, getValidationRuleQuery(entityDefinitionId), true))
@@ -39,7 +40,8 @@ export async function getValidationRulesMetadata(
   const validationRules = await getToolingRecords<ToolingValidationRuleRecord>(
     selectedOrg,
     'ValidationRule',
-    validationRuleRecords.map((record) => record.Id)
+    validationRuleRecords.map((record) => record.Id),
+    apiVersion
   );
   const validationRuleMetaById = getMapOf(
     validationRules.compositeResponse.map((item) => item.body),
@@ -58,7 +60,11 @@ export async function getValidationRulesMetadata(
  * @param selectedOrg
  * @param sobject
  */
-export async function getWorkflowRulesMetadata(selectedOrg: SalesforceOrgUi, sobject: string): Promise<ToolingWorkflowRuleRecord[]> {
+export async function getWorkflowRulesMetadata(
+  selectedOrg: SalesforceOrgUi,
+  apiVersion: string,
+  sobject: string
+): Promise<ToolingWorkflowRuleRecord[]> {
   const workflowRuleRecords = (await query<ToolingWorkflowRuleRecord>(selectedOrg, getWorkflowRuleQuery(sobject), true)).queryResults
     .records;
 
@@ -69,7 +75,8 @@ export async function getWorkflowRulesMetadata(selectedOrg: SalesforceOrgUi, sob
   const workflowRules = await getToolingRecords<ToolingWorkflowRuleRecord>(
     selectedOrg,
     'WorkflowRule',
-    workflowRuleRecords.map((record) => record.Id)
+    workflowRuleRecords.map((record) => record.Id),
+    apiVersion
   );
 
   const workflowRuleMetaById = getMapOf(
@@ -97,6 +104,7 @@ export async function getWorkflowRulesMetadata(selectedOrg: SalesforceOrgUi, sob
  */
 export async function getProcessBuilders(
   selectedOrg: SalesforceOrgUi,
+  apiVersion: string,
   sobject: string,
   flowDefinitionsBySobject: MapOf<string[]> | null
 ): Promise<{
@@ -117,6 +125,7 @@ export async function getProcessBuilders(
       selectedOrg,
       'Flow',
       recordIds,
+      apiVersion,
       ['Id', 'DefinitionId', 'FullName', 'Metadata']
     );
 
@@ -166,6 +175,7 @@ export async function getProcessBuilders(
  * @param itemsByKey
  */
 export function preparePayloads(
+  apiVersion: string,
   selectedOrg: SalesforceOrgUi,
   itemsByKey: DeploymentItemMap
 ): Observable<{ key: string; deploymentItem: AutomationControlDeploymentItem }[]> {
@@ -173,7 +183,7 @@ export function preparePayloads(
   const payloadEvent$ = payloadEvent.asObservable();
 
   Promise.resolve().then(() => {
-    preparePayloadsForDeployment(selectedOrg, itemsByKey, payloadEvent)
+    preparePayloadsForDeployment(apiVersion, selectedOrg, itemsByKey, payloadEvent)
       .then(() => {
         payloadEvent.complete();
       })
@@ -186,12 +196,11 @@ export function preparePayloads(
 }
 
 export async function preparePayloadsForDeployment(
+  apiVersion: string,
   selectedOrg: SalesforceOrgUi,
   itemsByKey: DeploymentItemMap,
   payloadEvent: Subject<{ key: string; deploymentItem: AutomationControlDeploymentItem }[]>
 ) {
-  // FIXME: hard-coded version number
-  const apiVersion = '49.0';
   // SFDC referenceId for composite cannot contain "." - this is an alternate way to lookup the key
   const idToKeyMap: MapOf<string> = Object.keys(itemsByKey).reduce((output, key) => {
     output[itemsByKey[key].deploy.id] = key;
@@ -210,7 +219,7 @@ export async function preparePayloadsForDeployment(
 
           return {
             method: 'GET',
-            url: `/services/data/v${apiVersion}/tooling/sobjects/${item.type}/${item.id}?fields=${fields.join(',')}`,
+            url: `/services/data/${apiVersion}/tooling/sobjects/${item.type}/${item.id}?fields=${fields.join(',')}`,
             referenceId: item.id,
           };
         }
@@ -227,7 +236,7 @@ export async function preparePayloadsForDeployment(
     const response = await genericRequest<CompositeResponse<MetadataCompositeResponseSuccessOrError>>(selectedOrg, {
       isTooling: true,
       method: 'POST',
-      url: `/services/data/v${apiVersion}/tooling/composite`,
+      url: `/services/data/${apiVersion}/tooling/composite`,
       body: requestBody,
     });
     const items = response.compositeResponse.map((item): { key: string; deploymentItem: AutomationControlDeploymentItem } => {
@@ -266,12 +275,12 @@ export async function preparePayloadsForDeployment(
 }
 
 export function deployMetadata(
+  apiVersion: string,
   selectedOrg: SalesforceOrgUi,
   itemsByKey: DeploymentItemMap
 ): Observable<{ key: string; deploymentItem: AutomationControlDeploymentItem }[]> {
   const payloadEvent = new Subject<{ key: string; deploymentItem: AutomationControlDeploymentItem }[]>();
   const payloadEvent$ = payloadEvent.asObservable();
-  const apiVersion = '49.0';
 
   // ensure next tick so that events do not emit prior to observable subscription
   Promise.resolve().then(async () => {
@@ -289,7 +298,7 @@ export function deployMetadata(
               const item = itemsByKey[key].deploy;
               return {
                 method: 'PATCH',
-                url: `/services/data/v${apiVersion}/tooling/sobjects/${item.type}/${item.id}`,
+                url: `/services/data/${apiVersion}/tooling/sobjects/${item.type}/${item.id}`,
                 referenceId: item.id,
                 body: item.metadataDeploy,
               };
@@ -307,7 +316,7 @@ export function deployMetadata(
         const response = await genericRequest<CompositeResponse<MetadataCompositeResponseSuccessOrError>>(selectedOrg, {
           isTooling: true,
           method: 'POST',
-          url: `/services/data/v${apiVersion}/tooling/composite`,
+          url: `/services/data/${apiVersion}/tooling/composite`,
           body: requestBody,
         });
         const items = response.compositeResponse.map((item): { key: string; deploymentItem: AutomationControlDeploymentItem } => {

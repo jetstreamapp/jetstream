@@ -22,17 +22,18 @@ import UtilityIcon_Chart from './icons/utility/Chart';
 import UtilityIcon_Check from './icons/utility/Check';
 import UtilityIcon_Chevrondown from './icons/utility/Chevrondown';
 import UtilityIcon_Chevronright from './icons/utility/Chevronright';
-import UtilityIcon_CopyToClipboard from './icons/utility/CopyToClipboard';
 import UtilityIcon_Clear from './icons/utility/Clear';
 import UtilityIcon_Close from './icons/utility/Close';
 import UtilityIcon_CollapseAll from './icons/utility/CollapseAll';
 import UtilityIcon_ComponentCustomization from './icons/utility/ComponentCustomization';
 import UtilityIcon_Copy from './icons/utility/Copy';
+import UtilityIcon_CopyToClipboard from './icons/utility/CopyToClipboard';
 import UtilityIcon_Dash from './icons/utility/Dash';
 import UtilityIcon_DateTime from './icons/utility/DateTime';
 import UtilityIcon_Delete from './icons/utility/Delete';
 import UtilityIcon_Down from './icons/utility/Down';
 import UtilityIcon_Download from './icons/utility/Download';
+import UtilityIcon_Edit from './icons/utility/Edit';
 import UtilityIcon_Error from './icons/utility/Error';
 import UtilityIcon_Event from './icons/utility/Event';
 import UtilityIcon_ExpandAll from './icons/utility/ExpandAll';
@@ -89,6 +90,7 @@ const utilityIcons: UtilityIconObj = {
   delete: UtilityIcon_Delete,
   down: UtilityIcon_Down,
   download: UtilityIcon_Download,
+  edit: UtilityIcon_Edit,
   error: UtilityIcon_Error,
   event: UtilityIcon_Event,
   expand_all: UtilityIcon_ExpandAll,

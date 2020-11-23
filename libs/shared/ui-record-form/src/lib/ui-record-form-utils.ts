@@ -1,0 +1,110 @@
+import { sortQueryFields } from '@jetstream/shared/ui-utils';
+import { PicklistFieldValues, Record } from '@jetstream/types';
+import { Field, FieldType } from 'jsforce';
+import isString from 'lodash/isString';
+import {
+  EditableFieldCheckbox,
+  EditableFieldDate,
+  EditableFieldInput,
+  EditableFieldPicklist,
+  EditableFields,
+  EditableFieldTextarea,
+} from './ui-record-form-types';
+
+const IGNORED_FIELD_TYPES = new Set<FieldType>(['address', 'location', 'complexvalue']);
+
+const CHECKBOX_FIELD_TYPES = new Set<FieldType>(['boolean']);
+const DATE_FIELD_TYPES = new Set<FieldType>(['date', 'datetime']);
+const PICKLIST_FIELD_TYPES = new Set<FieldType>(['combobox', 'picklist', 'multipicklist']);
+const TEXTAREA_FIELD_TYPES = new Set<FieldType>(['textarea']);
+const NUMBER_TYPES = new Set<FieldType>(['int', 'double', 'currency', 'percent']);
+
+export function isInput(value: any): value is EditableFieldInput {
+  return value && value.type === 'input';
+}
+
+export function isCheckbox(value: any): value is EditableFieldCheckbox {
+  return value && value.type === 'checkbox';
+}
+
+export function isTextarea(value: any): value is EditableFieldTextarea {
+  return value && value.type === 'textarea';
+}
+
+export function isDate(value: any): value is EditableFieldDate {
+  return value && value.type === 'date';
+}
+
+export function isPicklist(value: any): value is EditableFieldPicklist {
+  return value && value.type === 'picklist';
+}
+
+export function convertMetadataToEditableFields(
+  fields: Field[],
+  picklistValues: PicklistFieldValues,
+  action: 'edit' | 'clone',
+  record: Record
+): EditableFields[] {
+  return sortQueryFields(fields.filter((field) => !IGNORED_FIELD_TYPES.has(field.type))).map(
+    (field): EditableFields => {
+      const output: Partial<EditableFields> = {
+        label: `${field.label} (${field.name})`,
+        name: field.name,
+        labelHelpText: field.inlineHelpText,
+        inputHelpText: `${field.name}`,
+        required: !field.nillable && field.type !== 'boolean',
+        readOnly: action === 'edit' ? !field.updateable : !field.createable,
+        metadata: field,
+      };
+      if (CHECKBOX_FIELD_TYPES.has(field.type)) {
+        output.type = 'checkbox';
+        (output as EditableFieldTextarea).isRichTextarea = field.extraTypeInfo === 'richtextarea';
+      } else if (DATE_FIELD_TYPES.has(field.type)) {
+        output.type = 'date';
+      } else if (TEXTAREA_FIELD_TYPES.has(field.type)) {
+        output.type = 'textarea';
+        (output as EditableFieldTextarea).maxLength = field.length || undefined;
+      } else if (PICKLIST_FIELD_TYPES.has(field.type)) {
+        output.type = 'picklist';
+        (output as EditableFieldPicklist).defaultValue = null;
+        (output as EditableFieldPicklist).values = [];
+        if (picklistValues[field.name]) {
+          const picklist = picklistValues[field.name];
+          const picklistOutput = output as EditableFieldPicklist;
+          picklistOutput.defaultValue = picklist.defaultValue;
+          picklistOutput.values = picklist.values.map((item) => ({
+            id: item.value,
+            label: item.label,
+            value: item.value,
+            meta: item,
+          }));
+          // if record has an inactive value, this will show the field as dirty - so instead we add the inactive value to the list
+          if (isString(record[field.name]) && !picklistOutput.values.find((item) => item.value === record[field.name])) {
+            picklistOutput.values.push({
+              id: record[field.name],
+              label: `${record[field.name]} (Inactive)`,
+              value: record[field.name],
+              meta: {
+                attributes: null,
+                validFor: null,
+                label: `${record[field.name]} (Inactive)`,
+                value: record[field.name],
+              },
+            });
+          }
+        }
+      } else {
+        output.type = 'input';
+        if (NUMBER_TYPES.has(field.type)) {
+          (output as EditableFieldInput).maxLength = undefined;
+          (output as EditableFieldInput).inputMode = 'decimal';
+          (output as EditableFieldInput).step = 'any';
+        } else {
+          // this will ensure that 0 length will not get specified
+          (output as EditableFieldInput).maxLength = field.length || undefined;
+        }
+      }
+      return output as EditableFields;
+    }
+  );
+}

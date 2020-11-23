@@ -38,6 +38,7 @@ export interface RecordAttributes {
 export interface ApplicationCookie {
   serverUrl: string;
   environment: Environment;
+  defaultApiVersion: string;
 }
 
 export interface AuthenticationToken {
