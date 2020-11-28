@@ -135,10 +135,16 @@ async function loadBatchApiData({ org, data, sObject, type, batchSize, externalI
 
     for (const batch of batches) {
       let responseWithRecord: RecordResultWithRecord[];
+      let queryParams = '';
+
+      if (type === 'DELETE') {
+        queryParams = `?ids=${batch.records.map((record) => record.Id).join(',')}&allOrNone=false`;
+      }
+
       try {
         const response = await genericRequest<SobjectCollectionResponse>(org, {
           method,
-          url,
+          url: `${url}${queryParams}`,
           body: batch,
           isTooling: false,
         });
