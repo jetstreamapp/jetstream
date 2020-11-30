@@ -1,4 +1,5 @@
 /* eslint-disable jsx-a11y/anchor-is-valid */
+import { IconName } from '@jetstream/icon-factory';
 import {
   hasCtrlModifierKey,
   hasShiftModifierKey,
@@ -29,6 +30,7 @@ export interface PicklistProps {
   id?: string;
   className?: string; // form-control classname
   containerClassName?: string; // e.x. slds-combobox_container slds-size_small
+  dropdownIcon?: IconName;
   // choose contents to ensure full width display
   containerDisplay?: 'block' | 'flex' | 'inline' | 'inline-block' | 'contents';
   label: string;
@@ -55,6 +57,7 @@ export const Picklist: FunctionComponent<PicklistProps> = ({
   id,
   className,
   containerClassName,
+  dropdownIcon = 'down',
   containerDisplay,
   label,
   labelHelp,
@@ -288,7 +291,12 @@ export const Picklist: FunctionComponent<PicklistProps> = ({
                   onKeyUp={handleKeyUp}
                 />
                 <span className="slds-icon_container slds-icon-utility-down slds-input__icon slds-input__icon_right">
-                  <Icon type="utility" icon="down" className="slds-icon slds-icon slds-icon_x-small slds-icon-text-default" omitContainer />
+                  <Icon
+                    type="utility"
+                    icon={dropdownIcon}
+                    className="slds-icon slds-icon slds-icon_x-small slds-icon-text-default"
+                    omitContainer
+                  />
                 </span>
               </div>
               <div
