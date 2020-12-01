@@ -125,7 +125,7 @@ export function combineRecordsForClone(sobjectFields: Field[], initialRecord: Re
       clonedRecord[field.name] = undefined;
     }
   });
-  return clonedRecord;
+  return JSON.parse(JSON.stringify(clonedRecord));
 }
 
 /**

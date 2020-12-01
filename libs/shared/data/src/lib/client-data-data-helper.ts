@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { ApiResponse, OrgCacheItem, CacheItemWithData, SalesforceOrgUi, MapOf } from '@jetstream/types';
+import { ApiResponse, OrgCacheItem, CacheItemWithData, SalesforceOrgUi, MapOf, QueryHistoryItem } from '@jetstream/types';
 import { HTTP, INDEXED_DB } from '@jetstream/shared/constants';
 import { logger } from '@jetstream/shared/client-logger';
 import { errorMiddleware } from './middleware';
@@ -196,6 +196,21 @@ export async function clearCacheForOrg(org: SalesforceOrgUi) {
     logger.log('[HTTP][CACHE][REMOVED]', key);
   } catch (ex) {
     logger.log('[HTTP][CACHE][ERROR]', ex);
+  }
+}
+
+export async function clearQueryHistoryForOrg(org: SalesforceOrgUi) {
+  try {
+    const queryHistory = await localforage.getItem<MapOf<QueryHistoryItem>>(INDEXED_DB.KEYS.queryHistory);
+    for (const [key] of Object.entries(queryHistory)) {
+      if (key.startsWith(org.uniqueId)) {
+        queryHistory[key] = undefined;
+      }
+    }
+    await localforage.setItem(INDEXED_DB.KEYS.queryHistory, JSON.parse(JSON.stringify(queryHistory)));
+    logger.log('[QUERY-HISTORY][REMOVED]', queryHistory);
+  } catch (ex) {
+    logger.log('[QUERY-HISTORY][ERROR]', ex);
   }
 }
 

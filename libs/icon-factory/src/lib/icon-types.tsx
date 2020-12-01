@@ -36,6 +36,7 @@ export interface UtilityIconObj {
   chevrondown: IconEl;
   chevronright: IconEl;
   clear: IconEl;
+  clock: IconEl;
   close: IconEl;
   collapse_all: IconEl;
   component_customization: IconEl;
