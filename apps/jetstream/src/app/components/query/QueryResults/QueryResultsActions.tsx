@@ -138,7 +138,6 @@ export const QueryResultsActions: FunctionComponent<QueryResultsActionsProps> = 
 
   async function handleSave() {
     let record = transformEditForm(sobjectFields, modifiedRecord);
-    record = combineRecordsForClone(sobjectFields, initialRecord, modifiedRecord);
     const currentFormErrors = validateEditForm(sobjectFields, record);
 
     if (currentFormErrors.hasErrors) {
@@ -158,6 +157,8 @@ export const QueryResultsActions: FunctionComponent<QueryResultsActionsProps> = 
         record.Id = recordId;
         recordResponse = (await sobjectOperation<SobjectCollectionResponse>(selectedOrg, sobjectName, 'update', { records: [record] }))[0];
       } else {
+        // include all creatable fields from original record
+        record = combineRecordsForClone(sobjectFields, initialRecord, record);
         recordResponse = (await sobjectOperation<SobjectCollectionResponse>(selectedOrg, sobjectName, 'create', { records: [record] }))[0];
       }
 
