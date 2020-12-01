@@ -5,6 +5,7 @@ import { describeSObjectWithExtendedTypes } from '@jetstream/shared/ui-utils';
 import { REGEX } from '@jetstream/shared/utils';
 import { EntityParticleRecord, MapOf, SalesforceOrgUi } from '@jetstream/types';
 import { formatISO as formatISODate, parse as parseDate, parseISO as parseISODate, startOfDay as startOfDayDate } from 'date-fns';
+import { DescribeGlobalSObjectResult } from 'jsforce';
 import { isNumber } from 'lodash';
 import groupBy from 'lodash/groupBy';
 import isNil from 'lodash/isNil';
@@ -14,6 +15,16 @@ import { FieldWithRelatedEntities, FieldMapping, FieldRelatedEntity, PrepareData
 
 const DATE_ERR_MESSAGE =
   'There was an error reading one or more date fields in your file. Ensure date fields are properly formatted with a four character year.';
+
+export function filterLoadSobjects(sobject: DescribeGlobalSObjectResult) {
+  return (
+    sobject.createable &&
+    sobject.updateable &&
+    !sobject.name.endsWith('__History') &&
+    !sobject.name.endsWith('__Tag') &&
+    !sobject.name.endsWith('__Share')
+  );
+}
 
 export async function getFieldMetadata(org: SalesforceOrgUi, sobject: string): Promise<FieldWithRelatedEntities[]> {
   const fields = (await describeSObjectWithExtendedTypes(org, sobject)).fields

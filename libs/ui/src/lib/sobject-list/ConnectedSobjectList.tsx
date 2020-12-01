@@ -23,6 +23,7 @@ export interface ConnectedSobjectListProps {
   selectedOrg: SalesforceOrgUi;
   sobjects: DescribeGlobalSObjectResult[];
   selectedSObject: DescribeGlobalSObjectResult;
+  filterFn?: (sobject: DescribeGlobalSObjectResult) => boolean;
   onSobjects: (sobjects: DescribeGlobalSObjectResult[]) => void;
   onSelectedSObject: (selectedSObject: DescribeGlobalSObjectResult) => void;
 }
@@ -32,6 +33,7 @@ export const ConnectedSobjectList: FunctionComponent<ConnectedSobjectListProps> 
   selectedOrg,
   sobjects,
   selectedSObject,
+  filterFn = filterSobjectFn,
   onSobjects,
   onSelectedSObject,
 }) => {

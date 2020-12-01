@@ -9,6 +9,7 @@ import { FunctionComponent } from 'react';
 import Split from 'react-split';
 import LoadRecordsLoadTypeButtons from '../components/LoadRecordsLoadTypeButtons';
 import { FieldWithRelatedEntities } from '../load-records-types';
+import { filterLoadSobjects } from '../utils/load-records-utils';
 
 export interface LoadRecordsSelectObjectAndFileProps {
   selectedOrg: SalesforceOrgUi;
@@ -71,6 +72,7 @@ export const LoadRecordsSelectObjectAndFile: FunctionComponent<LoadRecordsSelect
           selectedOrg={selectedOrg}
           sobjects={sobjects}
           selectedSObject={selectedSObject}
+          filterFn={filterLoadSobjects}
           onSobjects={onSobjects}
           onSelectedSObject={onSelectedSobject}
         />
