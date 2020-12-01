@@ -1,8 +1,9 @@
 /** @jsx jsx */
 import { css, jsx } from '@emotion/core';
-import { deleteOrg, getOrgs } from '@jetstream/shared/data';
+import { clearCacheForOrg, clearQueryHistoryForOrg, deleteOrg, getOrgs } from '@jetstream/shared/data';
 import { MapOf, SalesforceOrgUi } from '@jetstream/types';
-import { Combobox, ComboboxListItem, ComboboxListItemGroup, Badge } from '@jetstream/ui';
+import { Badge, Combobox, ComboboxListItem, ComboboxListItemGroup } from '@jetstream/ui';
+import classNames from 'classnames';
 import groupBy from 'lodash/groupBy';
 import orderBy from 'lodash/orderBy';
 import uniqBy from 'lodash/uniqBy';
@@ -12,7 +13,6 @@ import * as fromAppState from '../../app-state';
 import AddOrg from './AddOrg';
 import OrgInfoPopover from './OrgInfoPopover';
 import OrgPersistence from './OrgPersistence';
-import classNames from 'classnames';
 
 // eslint-disable-next-line @typescript-eslint/no-empty-interface
 export interface OrgsDropdownProps {}
@@ -85,6 +85,10 @@ export const OrgsDropdown: FunctionComponent<OrgsDropdownProps> = () => {
       await deleteOrg(org);
       setOrgs(await getOrgs());
       setSelectedOrgId(undefined);
+      // async, but results are ignored as this will not throw
+      clearCacheForOrg(org);
+      clearQueryHistoryForOrg(org);
+      // TODO: delete browser cache
     } catch (ex) {
       // TODO:
     }
