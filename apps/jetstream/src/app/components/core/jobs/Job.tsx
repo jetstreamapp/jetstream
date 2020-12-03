@@ -30,6 +30,12 @@ export const Job: FunctionComponent<JobProps> = ({ job, dismiss }) => {
               <strong>{job.title}</strong>
             </h3>
             <p
+              className="slds-truncate slds-text-color_weak slds-text-body_small"
+              title={`${job.org.instanceUrl} - ${job.org.orgOrganizationType}`}
+            >
+              Org: {job.org.username}
+            </p>
+            <p
               className={classNames('slds-truncate', {
                 'slds-text-color_success': job.status === 'success',
                 'slds-text-color_error': job.status === 'failed',

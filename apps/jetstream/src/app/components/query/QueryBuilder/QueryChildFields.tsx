@@ -182,7 +182,10 @@ export const QueryChildFieldsComponent: FunctionComponent<QueryChildFieldsProps>
       } else {
         clonedFieldsMapItem.selectedFields.add(field.name);
       }
-      setQueryFieldsMap(queryFieldsMap);
+      setQueryFieldsMap({
+        ...queryFieldsMap,
+        [key]: { ...clonedFieldsMapItem, selectedFields: new Set(clonedFieldsMapItem.selectedFields) },
+      });
       emitSelectedFieldsChanged(queryFieldsMap);
     }
   }

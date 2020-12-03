@@ -202,6 +202,7 @@ export const QueryResults: FunctionComponent<QueryResultsProps> = React.memo(() 
             {
               type: 'BulkDelete',
               title: `Delete ${recordCountText}`,
+              org: selectedOrg,
               meta: rows,
             },
           ];
@@ -219,6 +220,7 @@ export const QueryResults: FunctionComponent<QueryResultsProps> = React.memo(() 
       {
         type: 'BulkDownload',
         title: `Download Records`,
+        org: selectedOrg,
         meta: {
           fields,
           records: records,

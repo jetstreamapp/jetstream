@@ -313,6 +313,7 @@ export interface AsyncJob<T = unknown, R = unknown> {
   id: string;
   type: AsyncJobType;
   title: string;
+  org: SalesforceOrgUi;
   started: Date; // could use moment instead - figure out later
   finished: Date; // could use moment instead - figure out later
   lastActivity: Date; // could use moment instead - figure out later
