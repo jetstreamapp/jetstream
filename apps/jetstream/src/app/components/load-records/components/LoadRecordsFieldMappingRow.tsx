@@ -116,6 +116,7 @@ export const LoadRecordsFieldMappingRow: FunctionComponent<LoadRecordsFieldMappi
       mappedToLookup: true,
       targetLookupField: field.name,
       relatedFieldMetadata: field,
+      relationshipName: fieldMappingItem.fieldMetadata.relationshipName,
     });
   }
 
