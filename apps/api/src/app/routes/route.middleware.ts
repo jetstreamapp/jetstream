@@ -13,7 +13,8 @@ import { AuthenticationError, NotFoundError, UserFacingError } from '../utils/er
 export function logRoute(req: express.Request, res: express.Response, next: express.NextFunction) {
   res.locals.path = req.path;
   // logger.info(req.method, req.originalUrl);
-  logger.debug('[REQ] %s %s %s', req.method, req.originalUrl, { method: req.method, url: req.originalUrl });
+  const userInfo = req.user ? { username: (req.user as any)?.displayName, userId: (req.user as any)?.user_id } : undefined;
+  logger.debug('[REQ] %s %s %s', req.method, req.originalUrl, { method: req.method, url: req.originalUrl, ...userInfo });
   next();
 }
 
