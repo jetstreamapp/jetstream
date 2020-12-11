@@ -7,6 +7,7 @@ import { logger } from '@jetstream/shared/client-logger';
 import { query } from '@jetstream/shared/data';
 import { transformTabularDataToExcelStr, useObservable } from '@jetstream/shared/ui-utils';
 import {
+  flattenRecords,
   getRecordIdFromAttributes,
   getSObjectNameFromAttributes,
   pluralizeIfMultiple,
@@ -246,7 +247,8 @@ export const QueryResults: FunctionComponent<QueryResultsProps> = React.memo(() 
   }
 
   function handleCopyToClipboard() {
-    copyToClipboard(transformTabularDataToExcelStr(records, fields), { format: 'text/plain' });
+    const flattenedData = flattenRecords(records, fields);
+    copyToClipboard(transformTabularDataToExcelStr(flattenedData, fields), { format: 'text/plain' });
   }
 
   async function handleEditOrClone(record: any, action: 'edit' | 'clone') {
