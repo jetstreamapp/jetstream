@@ -4,13 +4,16 @@ import { Card, CodeEditor, CopyToClipboard, Grid, GridCol, Icon, Textarea } from
 import moment from 'moment-mini';
 import React, { Fragment, FunctionComponent, useEffect, useRef, useState } from 'react';
 import { Link, useRouteMatch } from 'react-router-dom';
+import RestoreQuery from '../QueryBuilder/RestoreQuery';
 
 // eslint-disable-next-line @typescript-eslint/no-empty-interface
 export interface QueryHistoryItemCardProps {
   item: QueryHistoryItem;
+  startRestore: () => void;
+  endRestore: (fatalError: boolean, errors?: any) => void;
 }
 
-export const QueryHistoryItemCard: FunctionComponent<QueryHistoryItemCardProps> = ({ item }) => {
+export const QueryHistoryItemCard: FunctionComponent<QueryHistoryItemCardProps> = ({ item, startRestore, endRestore }) => {
   const isMounted = useRef(null);
   const match = useRouteMatch();
   const [readyToRenderCode, setReadyToRenderCode] = useState(false);
@@ -44,22 +47,30 @@ export const QueryHistoryItemCard: FunctionComponent<QueryHistoryItemCardProps> 
         }
         // icon={{ type: 'standard', icon: 'account', description: 'Account' }}
         actions={
-          <Link
-            className="slds-button slds-button_neutral"
-            to={{
-              pathname: `${match.url}/results`,
-              state: {
-                soql,
-                sobject: {
-                  label,
-                  name: sObject,
+          <Fragment>
+            <RestoreQuery
+              soql={soql}
+              className="slds-button_neutral slds-m-right_x-small"
+              startRestore={startRestore}
+              endRestore={endRestore}
+            />
+            <Link
+              className="slds-button slds-button_neutral"
+              to={{
+                pathname: `${match.url}/results`,
+                state: {
+                  soql,
+                  sobject: {
+                    label,
+                    name: sObject,
+                  },
                 },
-              },
-            }}
-          >
-            <Icon type="utility" icon="right" className="slds-button__icon slds-button__icon_left" />
-            Execute
-          </Link>
+              }}
+            >
+              <Icon type="utility" icon="right" className="slds-button__icon slds-button__icon_left" />
+              Execute
+            </Link>
+          </Fragment>
         }
       >
         <Fragment>

@@ -55,6 +55,7 @@ export * from './lib/nav/NavbarAppLauncher';
 export * from './lib/nav/NavbarItem';
 export * from './lib/nav/NavbarMenuItems';
 export * from './lib/popover/Popover';
+export * from './lib/popover/PopoverErrorButton';
 export * from './lib/progress-indicator/ProgressIndicator';
 export * from './lib/progress-indicator/ProgressIndicatorListItem';
 export * from './lib/providers/DialogServiceProvider';

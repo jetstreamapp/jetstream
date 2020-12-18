@@ -4,6 +4,7 @@ import Icon from '../widgets/Icon';
 import ExpressionActionDropDown from './ExpressionActionDropDown';
 
 export interface ExpressionProps {
+  value: AndOr;
   title?: string;
   actionHelpText?: string;
   actionLabel: string;
@@ -13,6 +14,7 @@ export interface ExpressionProps {
 }
 
 export const Expression: FunctionComponent<ExpressionProps> = ({
+  value,
   title,
   actionLabel,
   actionHelpText,
@@ -24,7 +26,7 @@ export const Expression: FunctionComponent<ExpressionProps> = ({
   return (
     <div className="slds-expression">
       {title && <h2 className="slds-expression__title">{title}</h2>}
-      <ExpressionActionDropDown label={actionLabel} helpText={actionHelpText} value="AND" onChange={onActionChange} />
+      <ExpressionActionDropDown label={actionLabel} helpText={actionHelpText} value={value || 'AND'} onChange={onActionChange} />
       <ul>{children}</ul>
       <div className="slds-expression__buttons">
         <button className="slds-button slds-button_neutral" onClick={() => onAddCondition()}>

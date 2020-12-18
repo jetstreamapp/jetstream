@@ -13,7 +13,7 @@ import {
   SalesforceOrgUi,
   SobjectCollectionResponse,
 } from '@jetstream/types';
-import { Checkbox, Grid, Modal, Spinner } from '@jetstream/ui';
+import { Checkbox, Grid, Modal, PopoverErrorButton, Spinner } from '@jetstream/ui';
 import { Field } from 'jsforce';
 import isUndefined from 'lodash/isUndefined';
 import { Fragment, FunctionComponent, useEffect, useRef, useState } from 'react';
@@ -24,7 +24,6 @@ import {
   transformEditForm,
   validateEditForm,
 } from '../utils/query-utils';
-import QueryResultsActionsError from './QueryResultsActionsError';
 
 export interface QueryResultsActionsProps {
   apiVersion: string;
@@ -209,7 +208,7 @@ export const QueryResultsActions: FunctionComponent<QueryResultsActionsProps> = 
               <div>
                 {formErrors.hasErrors && formErrors.generalErrors.length > 0 && (
                   <span className="slds-text-align_left d-inline-block">
-                    <QueryResultsActionsError errors={formErrors.generalErrors} />
+                    <PopoverErrorButton errors={formErrors.generalErrors} />
                   </span>
                 )}
                 <button className="slds-button slds-button_neutral" onClick={() => onClose()} disabled={loading}>

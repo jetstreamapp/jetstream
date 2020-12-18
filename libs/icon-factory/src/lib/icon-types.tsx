@@ -70,6 +70,7 @@ export interface UtilityIconObj {
   success: IconEl;
   switch: IconEl;
   sync: IconEl;
+  task: IconEl;
   undo: IconEl;
   upload: IconEl;
   warning: IconEl;

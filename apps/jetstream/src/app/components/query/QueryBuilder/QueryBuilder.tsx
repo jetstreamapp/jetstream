@@ -1,6 +1,7 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 /** @jsx jsx */
 import { css, jsx } from '@emotion/core';
+import { useNonInitialEffect } from '@jetstream/shared/ui-utils';
 import { QueryFieldWithPolymorphic } from '@jetstream/types';
 import {
   Accordion,
@@ -14,7 +15,7 @@ import {
   Tabs,
 } from '@jetstream/ui';
 import { Fragment, FunctionComponent, useEffect, useState } from 'react';
-import { Link, useRouteMatch } from 'react-router-dom';
+import { Link, useLocation, useRouteMatch } from 'react-router-dom';
 import Split from 'react-split';
 import { useRecoilState, useRecoilValue, useResetRecoilState } from 'recoil';
 import { selectUserPreferenceState } from '../../../app-state';
@@ -30,7 +31,7 @@ import QueryOrderBy from '../QueryOptions/QueryOrderBy';
 import QueryResetButton from '../QueryOptions/QueryResetButton';
 import SoqlTextarea from '../QueryOptions/SoqlTextarea';
 import QueryWalkthrough from '../QueryWalkthrough/QueryWalkthrough';
-import { calculateSoqlQueryFilter } from '../utils/query-utils';
+import { calculateFilterAndOrderByListGroupFields } from '../utils/query-utils';
 import QueryBuilderSoqlUpdater from './QueryBuilderSoqlUpdater';
 import QueryFieldsComponent from './QueryFields';
 import QuerySObjects from './QuerySObjects';
@@ -42,10 +43,12 @@ export interface QueryBuilderProps {}
 
 export const QueryBuilder: FunctionComponent<QueryBuilderProps> = () => {
   const match = useRouteMatch();
+  const location = useLocation<{ soql: string; sobject?: { name: string; label: string } }>();
 
   const selectedSObject = useRecoilValue(fromQueryState.selectedSObjectState);
   const queryFieldsMap = useRecoilValue(fromQueryState.queryFieldsMapState);
   const childRelationships = useRecoilValue(fromQueryState.queryChildRelationships);
+  const isRestore = useRecoilValue(fromQueryState.isRestore);
 
   const [selectedFields, setSelectedFields] = useRecoilState(fromQueryState.selectedQueryFieldsState);
   const [selectedSubqueryFieldsState, setSelectedSubqueryFieldsState] = useRecoilState(fromQueryState.selectedSubqueryFieldsState);
@@ -90,16 +93,12 @@ export const QueryBuilder: FunctionComponent<QueryBuilderProps> = () => {
     };
   }, [selectedSObject]);
 
-  useEffect(() => {
+  useNonInitialEffect(() => {
     if (queryFieldsMap && selectedSObject) {
-      // using worker:
-      // queryWorker.postMessage({
-      // name: 'calculateFilter',
-      // data: queryFieldsMap,
-      // });
-      setFilterFields(calculateSoqlQueryFilter(queryFieldsMap, ['filterable']));
-      setOrderByFields(calculateSoqlQueryFilter(queryFieldsMap, ['sortable']));
-    } else {
+      setFilterFields(calculateFilterAndOrderByListGroupFields(queryFieldsMap, ['filterable']));
+      setOrderByFields(calculateFilterAndOrderByListGroupFields(queryFieldsMap, ['sortable']));
+    } else if (!isRestore) {
+      // if restore is true, then avoid reset will page is being re-hydrated
       setFilterFields([]);
       setOrderByFields([]);
     }
@@ -109,7 +108,7 @@ export const QueryBuilder: FunctionComponent<QueryBuilderProps> = () => {
   useEffect(() => {
     if (!priorSelectedSObject && selectedSObject) {
       setPriorSelectedSObject(selectedSObject);
-    } else if (selectedSObject && selectedSObject.name !== priorSelectedSObject.name) {
+    } else if (!isRestore && selectedSObject && selectedSObject.name !== priorSelectedSObject.name) {
       setPriorSelectedSObject(selectedSObject);
       resetQueryFieldsMapState();
       resetQueryFieldsKey();
@@ -124,23 +123,6 @@ export const QueryBuilder: FunctionComponent<QueryBuilderProps> = () => {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedSObject]);
-
-  // useEffect(() => {
-  //   if (queryWorker) {
-  //     queryWorker.onmessage = (event: MessageEvent) => {
-  //       const payload: WorkerMessage<'calculateFilter', ListItemGroup[]> = event.data;
-  //       logger.log({ payload });
-  //       switch (payload.name) {
-  //         case 'calculateFilter': {
-  //           setFilterFields(payload.data);
-  //           break;
-  //         }
-  //         default:
-  //           break;
-  //       }
-  //     };
-  //   }
-  // }, [queryWorker, setFilterFields]);
 
   function handleSubquerySelectedField(relationshipName: string, fields: QueryFieldWithPolymorphic[]) {
     const tempSelectedSubqueryFieldsState = { ...selectedSubqueryFieldsState, [relationshipName]: fields };

@@ -4,4 +4,9 @@ import '@salesforce-ux/design-system/assets/styles/salesforce-lightning-design-s
 import App from './app/app';
 import './main.scss';
 
-ReactDOM.render(<App />, document.getElementById('root'));
+ReactDOM.render(
+  <div className="app">
+    <App />
+  </div>,
+  document.getElementById('root')
+);

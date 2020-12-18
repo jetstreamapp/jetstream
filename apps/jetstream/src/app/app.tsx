@@ -6,14 +6,15 @@ import { UserProfileUi } from '@jetstream/types';
 import { ConfirmationServiceProvider } from '@jetstream/ui';
 import { Fragment, lazy, Suspense, useEffect, useState } from 'react';
 import { ErrorBoundary } from 'react-error-boundary';
+import ModalContainer from 'react-modal-promise';
 import { BrowserRouter as Router, Redirect, Route, RouteComponentProps, Switch } from 'react-router-dom';
 import { RecoilRoot } from 'recoil';
 import AppInitializer from './components/core/AppInitializer';
 import AppStateResetOnOrgChange from './components/core/AppStateResetOnOrgChange';
+import AppToast from './components/core/AppToast';
 import ErrorBoundaryFallback from './components/core/ErrorBoundaryFallback';
 import HeaderNavbar from './components/core/HeaderNavbar';
 import OrgSelectionRequired from './components/orgs/OrgSelectionRequired';
-import ModalContainer from 'react-modal-promise';
 
 const AutomationControl = lazy(() => import('./components/automation-control/AutomationControl'));
 const Feedback = lazy(() => import('./components/feedback/Feedback'));
@@ -80,6 +81,7 @@ export const App = () => {
             <Fragment>
               <ModalContainer />
               <AppStateResetOnOrgChange />
+              <AppToast />
               <Router basename="/app">
                 <div>
                   <div>

@@ -6,7 +6,7 @@ import { INDEXED_DB } from '@jetstream/shared/constants';
 import { formatNumber } from '@jetstream/shared/ui-utils';
 import { REGEX } from '@jetstream/shared/utils';
 import { MapOf, QueryHistoryItem, QueryHistorySelection, UpDown } from '@jetstream/types';
-import { EmptyState, Grid, GridCol, Icon, List, Modal, SearchInput } from '@jetstream/ui';
+import { EmptyState, Grid, GridCol, Icon, List, Modal, SearchInput, Spinner } from '@jetstream/ui';
 import localforage from 'localforage';
 import { createRef, FunctionComponent, useEffect, useState } from 'react';
 import { ErrorBoundary } from 'react-error-boundary';
@@ -16,10 +16,11 @@ import ErrorBoundaryFallback from '../../core/ErrorBoundaryFallback';
 import * as fromQueryHistoryState from './query-history.state';
 import QueryHistoryItemCard from './QueryHistoryItemCard';
 
-// eslint-disable-next-line @typescript-eslint/no-empty-interface
-export interface QueryHistoryProps {}
+export interface QueryHistoryProps {
+  onRestore?: (soql: string) => void;
+}
 
-export const QueryHistory: FunctionComponent<QueryHistoryProps> = () => {
+export const QueryHistory: FunctionComponent<QueryHistoryProps> = ({ onRestore }) => {
   const location = useLocation();
   const queryHistoryStateMap = useRecoilValue(fromQueryHistoryState.queryHistoryState);
   const queryHistory = useRecoilValue(fromQueryHistoryState.selectQueryHistoryState);
@@ -30,6 +31,7 @@ export const QueryHistory: FunctionComponent<QueryHistoryProps> = () => {
   const selectObjectsList = useRecoilValue(fromQueryHistoryState.selectObjectsList);
 
   const [isOpen, setIsOpen] = useState(false);
+  const [isRestoring, setIsRestoring] = useState(false);
   const [filterValue, setFilterValue] = useState('');
   const [filteredSelectObjectsList, setFilteredSelectObjectsList] = useState(selectObjectsList);
 
@@ -76,6 +78,18 @@ export const QueryHistory: FunctionComponent<QueryHistoryProps> = () => {
     }
   }
 
+  function handleStartRestore() {
+    setIsRestoring(true);
+  }
+
+  function handleEndRestore(soql: string, fatalError: boolean, errors?: any) {
+    setIsRestoring(false);
+    if (!fatalError) {
+      setIsOpen(false);
+      onRestore && onRestore(soql);
+    }
+  }
+
   return (
     <ErrorBoundary FallbackComponent={ErrorBoundaryFallback}>
       <button className="slds-button slds-button_neutral" aria-haspopup="true" title="Favorites" onClick={() => setIsOpen(true)}>
@@ -83,7 +97,8 @@ export const QueryHistory: FunctionComponent<QueryHistoryProps> = () => {
         View History
       </button>
       {isOpen && (
-        <Modal header="Query History" size="lg" skipAutoFocus onClose={() => onModalClose()}>
+        <Modal header="Query History" size="lg" skipAutoFocus onClose={() => onModalClose()} className="slds-is-relative">
+          {isRestoring && <Spinner />}
           {selectObjectsList.length <= 1 && (
             <EmptyState imageWidth={200}>
               <p>We couldn't find any previous queries with the currently selected org.</p>
@@ -127,7 +142,12 @@ export const QueryHistory: FunctionComponent<QueryHistoryProps> = () => {
                 `}
               >
                 {queryHistory.map((item) => (
-                  <QueryHistoryItemCard key={item.key} item={item} />
+                  <QueryHistoryItemCard
+                    key={item.key}
+                    item={item}
+                    startRestore={handleStartRestore}
+                    endRestore={(fatalError, errors) => handleEndRestore(item.soql, fatalError, errors)}
+                  />
                 ))}
               </GridCol>
             </Grid>
