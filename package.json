@@ -118,7 +118,7 @@
     "react-split": "^2.0.7",
     "react-table": "^7.1.0",
     "react-use-clipboard": "^1.0.0",
-    "recoil": "0.0.13",
+    "recoil": "^0.1.2",
     "reflect-metadata": "^0.1.13",
     "rollbar": "^2.19.1",
     "rxjs": "^6.6.0",

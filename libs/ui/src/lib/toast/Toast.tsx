@@ -7,6 +7,7 @@ import Icon from '../widgets/Icon';
 export interface ToastProps {
   type?: InfoSuccessWarningError;
   showIcon?: boolean;
+  className?: string;
   headingClassName?: string;
   onClose?: () => void;
 }
@@ -38,12 +39,13 @@ function getIcon(type?: InfoSuccessWarningError) {
 export const Toast: FunctionComponent<ToastProps> = ({
   type = 'info',
   showIcon = true,
+  className = 'slds-notify_container slds-is-relative',
   headingClassName = 'slds-text-heading_small',
   onClose,
   children,
 }) => {
   return (
-    <div className="slds-notify_container slds-is-relative">
+    <div className={className}>
       <div className={classNames('slds-notify slds-notify_toast', getCssClass(type))} role="status">
         <span className="slds-assistive-text">{type || 'info'}</span>
         {showIcon && getIcon(type)}

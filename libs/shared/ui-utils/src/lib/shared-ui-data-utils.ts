@@ -10,7 +10,7 @@ import {
   QueryFields,
   SalesforceOrgUi,
 } from '@jetstream/types';
-import { Field } from 'jsforce';
+import { DescribeSObjectResult, Field } from 'jsforce';
 import { composeQuery, getField } from 'soql-parser-js';
 import { polyfillFieldDefinition, sortQueryFields } from './shared-ui-utils';
 
@@ -32,7 +32,13 @@ export async function describeSObjectWithExtendedTypes(
   org: SalesforceOrgUi,
   sobject: string
 ): Promise<DescribeSObjectResultWithExtendedField> {
-  const describeResults = (await describeSObject(org, sobject)).data;
+  const { data: describeResults } = await describeSObject(org, sobject);
+  return convertDescribeToDescribeSObjectWithExtendedTypes(describeResults);
+}
+
+export function convertDescribeToDescribeSObjectWithExtendedTypes(
+  describeResults: DescribeSObjectResult
+): DescribeSObjectResultWithExtendedField {
   const fields: FieldWithExtendedType[] = sortQueryFields(describeResults.fields).map((field: Field) => ({
     ...field,
     typeLabel: polyfillFieldDefinition(field),
@@ -44,9 +50,17 @@ export async function describeSObjectWithExtendedTypes(
  * Fetch fields and add to queryFields
  */
 export async function fetchFields(org: SalesforceOrgUi, queryFields: QueryFields, parentKey: string): Promise<QueryFields> {
+  const describeResults = await describeSObjectWithExtendedTypes(org, queryFields.sobject);
+  return fetchFieldsProcessResults(describeResults, queryFields, parentKey);
+}
+
+export function fetchFieldsProcessResults(
+  describeResults: DescribeSObjectResultWithExtendedField,
+  queryFields: QueryFields,
+  parentKey: string
+): QueryFields {
   const { sobject } = queryFields;
   const isCustomMetadata = sobject.endsWith('__mdt');
-  const describeResults = await describeSObjectWithExtendedTypes(org, sobject);
 
   const childRelationships = describeResults.childRelationships.filter((relationship) => !!relationship.relationshipName);
   const fields: MapOf<FieldWrapper> = getMapOf(

@@ -1,24 +1,22 @@
 import { logger } from '@jetstream/shared/client-logger';
-import { fetchFields, getFieldKey, sortQueryFieldsPolymorphic } from '@jetstream/shared/ui-utils';
-import { orderObjectsBy } from '@jetstream/shared/utils';
-import { FieldWrapper, MapOf, QueryFields, QueryFieldWithPolymorphic, SalesforceOrgUi } from '@jetstream/types';
+import { fetchFields, getFieldKey } from '@jetstream/shared/ui-utils';
+import { FieldWrapper, MapOf, QueryFields, QueryFieldWithPolymorphic } from '@jetstream/types';
 import { AutoFullHeightContainer, SobjectFieldList } from '@jetstream/ui';
 import isEmpty from 'lodash/isEmpty';
 import React, { Fragment, FunctionComponent, useEffect, useRef, useState } from 'react';
 import { useRecoilState, useRecoilValue, useSetRecoilState } from 'recoil';
 import { selectedOrgState } from '../../../app-state';
 import * as fromQueryState from '../query.state';
-
-// separator used on key of suquery fields - this are omitted from field selection
-const CHILD_FIELD_SEPARATOR = `~`;
+import {
+  getQueryFieldBaseKey,
+  getQueryFieldKey,
+  getSelectedFieldsFromQueryFields,
+  initQueryFieldStateItem,
+} from '../utils/query-fields-utils';
 
 export interface QueryFieldsProps {
   selectedSObject: string;
   onSelectionChanged: (fields: QueryFieldWithPolymorphic[]) => void;
-}
-
-function getQueryFieldKey(selectedOrg: SalesforceOrgUi, selectedSObject: string) {
-  return `${selectedOrg?.uniqueId}-${selectedSObject}`;
 }
 
 export const QueryFieldsComponent: FunctionComponent<QueryFieldsProps> = ({ selectedSObject, onSelectionChanged }) => {
@@ -42,21 +40,10 @@ export const QueryFieldsComponent: FunctionComponent<QueryFieldsProps> = ({ sele
       let tempQueryFieldsMap: MapOf<QueryFields> = {};
       setQueryFieldsMap(tempQueryFieldsMap);
       if (selectedSObject) {
-        const BASE_KEY = `${selectedSObject}|`;
+        const BASE_KEY = getQueryFieldBaseKey(selectedSObject);
         setBaseKey(BASE_KEY);
         tempQueryFieldsMap = { ...tempQueryFieldsMap };
-        tempQueryFieldsMap[BASE_KEY] = {
-          key: BASE_KEY,
-          expanded: true,
-          loading: true,
-          isPolymorphic: false,
-          hasError: false,
-          filterTerm: '',
-          sobject: selectedSObject,
-          fields: {},
-          visibleFields: new Set(),
-          selectedFields: new Set(),
-        };
+        tempQueryFieldsMap[BASE_KEY] = initQueryFieldStateItem(BASE_KEY, selectedSObject, { loading: true });
         setChildRelationships([]);
         setQueryFieldsMap(tempQueryFieldsMap);
         setQueryFieldsKey(fieldKey);
@@ -88,19 +75,7 @@ export const QueryFieldsComponent: FunctionComponent<QueryFieldsProps> = ({ sele
   }, [selectedOrg, selectedSObject]);
 
   function emitSelectedFieldsChanged(fieldsMap: MapOf<QueryFields> = queryFieldsMap) {
-    const fields: QueryFieldWithPolymorphic[] = sortQueryFieldsPolymorphic(
-      orderObjectsBy(
-        Object.values(fieldsMap)
-          .filter((queryField) => !queryField.key.includes(CHILD_FIELD_SEPARATOR))
-          .flatMap((queryField) => {
-            const basePath = queryField.key.replace(/.+\|/, '');
-            return Array.from(queryField.selectedFields)
-              .map((fieldKey) => `${basePath}${fieldKey}`)
-              .map((field) => ({ field, polymorphicObj: queryField.isPolymorphic ? queryField.sobject : undefined }));
-          }),
-        'field'
-      )
-    );
+    const fields: QueryFieldWithPolymorphic[] = getSelectedFieldsFromQueryFields(fieldsMap);
 
     onSelectionChanged(fields);
   }
@@ -113,18 +88,10 @@ export const QueryFieldsComponent: FunctionComponent<QueryFieldsProps> = ({ sele
       clonedQueryFieldsMap[key] = { ...clonedQueryFieldsMap[key], expanded: !clonedQueryFieldsMap[key].expanded };
     } else {
       // this is a new expansion that we have not seen, we need to fetch the fields and init the object
-      clonedQueryFieldsMap[key] = {
-        key,
-        expanded: true,
+      clonedQueryFieldsMap[key] = initQueryFieldStateItem(key, relatedSobject, {
         loading: true,
-        hasError: false,
-        filterTerm: '',
-        sobject: relatedSobject,
         isPolymorphic: Array.isArray(field.relatedSobject),
-        fields: {},
-        visibleFields: new Set(),
-        selectedFields: new Set(),
-      };
+      });
       // fetch fields and update once resolved
       (async () => {
         try {

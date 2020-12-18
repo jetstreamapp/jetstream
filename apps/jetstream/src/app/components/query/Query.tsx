@@ -1,11 +1,12 @@
 import { SalesforceOrgUi } from '@jetstream/types';
-import React, { Fragment, FunctionComponent, useState, useEffect } from 'react';
+import React, { Fragment, FunctionComponent, useEffect, useState } from 'react';
 import { Redirect, Route, Switch, useLocation, useRouteMatch } from 'react-router-dom';
 import { useRecoilValue, useResetRecoilState } from 'recoil';
 import { selectedOrgState } from '../../app-state';
+import StateDebugObserver from '../core/StateDebugObserver';
+import * as fromQueryState from './query.state';
 import QueryBuilder from './QueryBuilder/QueryBuilder';
 import QueryResults from './QueryResults/QueryResults';
-import * as fromQueryState from './query.state';
 
 // eslint-disable-next-line @typescript-eslint/no-empty-interface
 export interface QueryProps {}
@@ -51,6 +52,20 @@ export const Query: FunctionComponent<QueryProps> = () => {
 
   return (
     <Fragment>
+      <StateDebugObserver
+        name="QUERY SNAPSHOT"
+        atoms={[
+          ['selectedSObjectState', fromQueryState.selectedSObjectState],
+          ['queryFieldsKey', fromQueryState.queryFieldsKey],
+          ['queryFieldsMapState', fromQueryState.queryFieldsMapState],
+          ['selectedQueryFieldsState', fromQueryState.selectedQueryFieldsState],
+          ['selectedSubqueryFieldsState', fromQueryState.selectedSubqueryFieldsState],
+          ['queryFiltersState', fromQueryState.queryFiltersState],
+          ['queryLimit', fromQueryState.queryLimit],
+          ['queryLimitSkip', fromQueryState.queryLimitSkip],
+          ['queryOrderByState', fromQueryState.queryOrderByState],
+        ]}
+      />
       <Switch>
         <Route path={`${match.url}`} exact>
           <QueryBuilder />

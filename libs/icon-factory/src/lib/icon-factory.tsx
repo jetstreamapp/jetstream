@@ -57,6 +57,7 @@ import UtilityIcon_Settings from './icons/utility/Settings';
 import UtilityIcon_Success from './icons/utility/Success';
 import UtilityIcon_Switch from './icons/utility/Switch';
 import UtilityIcon_Sync from './icons/utility/Sync';
+import UtilityIcon_Task from './icons/utility/Task';
 import UtilityIcon_Undo from './icons/utility/Undo';
 import UtilityIcon_Upload from './icons/utility/Upload';
 import UtilityIcon_Warning from './icons/utility/Warning';
@@ -115,6 +116,7 @@ const utilityIcons: UtilityIconObj = {
   success: UtilityIcon_Success,
   switch: UtilityIcon_Switch,
   sync: UtilityIcon_Sync,
+  task: UtilityIcon_Task,
   undo: UtilityIcon_Undo,
   upload: UtilityIcon_Upload,
   warning: UtilityIcon_Warning,

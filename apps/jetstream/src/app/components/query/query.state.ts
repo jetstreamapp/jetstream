@@ -1,16 +1,21 @@
-import { orderStringsBy, convertFieldWithPolymorphicToQueryFields } from '@jetstream/shared/utils';
+import { convertFieldWithPolymorphicToQueryFields, orderStringsBy } from '@jetstream/shared/utils';
 import {
   ExpressionType,
   ListItemGroup,
   MapOf,
   QueryFields,
+  QueryFieldWithPolymorphic,
   QueryHistoryItem,
   QueryOrderByClause,
-  QueryFieldWithPolymorphic,
 } from '@jetstream/types';
 import { ChildRelationship, DescribeGlobalSObjectResult } from 'jsforce';
 import { atom, selector } from 'recoil';
-import { ComposeFieldTypeof, FieldType, getField, OrderByClause, Subquery } from 'soql-parser-js';
+import { FieldType, getField, OrderByClause, Subquery } from 'soql-parser-js';
+
+export const isRestore = atom<boolean>({
+  key: 'query.isRestore',
+  default: false,
+});
 
 export const sObjectsState = atom<DescribeGlobalSObjectResult[]>({
   key: 'query.sObjectsState',

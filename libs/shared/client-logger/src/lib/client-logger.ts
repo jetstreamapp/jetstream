@@ -2,6 +2,7 @@
 import { NOOP } from '@jetstream/shared/utils';
 
 interface Logger {
+  isEnabled: boolean;
   log: (...args: any[]) => void;
   info: (...args: any[]) => void;
   warn: (...args: any[]) => void;
@@ -12,6 +13,7 @@ interface Logger {
 }
 
 export const logger: Logger = {
+  isEnabled: false,
   log: NOOP,
   info: NOOP,
   warn: NOOP,
@@ -22,6 +24,7 @@ export const logger: Logger = {
 };
 
 export const enableLogger = (enable: boolean) => {
+  logger.isEnabled = enable;
   if (!enable) {
     logger.log = NOOP;
     logger.info = NOOP;

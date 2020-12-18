@@ -1,0 +1,164 @@
+import { logger } from '@jetstream/shared/client-logger';
+import { useRollbar } from '@jetstream/shared/ui-utils';
+import { SalesforceOrgUi } from '@jetstream/types';
+import { isString } from 'lodash';
+import { useEffect, useRef, useState } from 'react';
+import { useRecoilState, useRecoilValue, useResetRecoilState, useSetRecoilState } from 'recoil';
+import { parseQuery, Query } from 'soql-parser-js';
+import { environment } from '../../../../environments/environment.prod';
+import { selectedOrgState } from '../../../app-state';
+import { fireToast } from '../../core/AppToast';
+import * as fromQueryState from '../query.state';
+import { QueryRestoreErrors, restoreQuery, UserFacingRestoreError } from '../utils/query-restore-utils';
+
+const ERROR_MESSAGES = {
+  PARSE_ERROR: 'There was an error parsing your query, please try again or submit a support request if the problem continues.',
+};
+
+export type UseQueryRestoreReturnType = [(soqlOverride?: string) => Promise<void>, string];
+
+export const useQueryRestore = (
+  soql: string,
+  options?: {
+    // emit toast messages on errors
+    silent?: boolean;
+    // called when restore is started
+    startRestore?: () => void;
+    // called when restore is finished
+    endRestore?: (fatalError: boolean, errors?: QueryRestoreErrors) => void;
+  }
+): UseQueryRestoreReturnType => {
+  options = options || {};
+  const { silent, startRestore, endRestore } = options;
+
+  const rollbar = useRollbar(environment.rollbarClientAccessToken, environment.production ? 'production' : 'development');
+
+  const isMounted = useRef(null);
+  const [errorMessage, setErrorMessage] = useState<string>();
+  const org = useRecoilValue<SalesforceOrgUi>(selectedOrgState);
+  // we should compare setting here vs in a selector - any difference in performance?
+
+  const [isRestore, setIsRestore] = useRecoilState(fromQueryState.isRestore);
+  const setSObjectsState = useSetRecoilState(fromQueryState.sObjectsState);
+  const setSelectedSObjectState = useSetRecoilState(fromQueryState.selectedSObjectState);
+  const setQueryFieldsKey = useSetRecoilState(fromQueryState.queryFieldsKey);
+  const setQueryChildRelationships = useSetRecoilState(fromQueryState.queryChildRelationships);
+  const setQueryFieldsMapState = useSetRecoilState(fromQueryState.queryFieldsMapState);
+  const setSelectedQueryFieldsState = useSetRecoilState(fromQueryState.selectedQueryFieldsState);
+  const setSelectedSubqueryFieldsState = useSetRecoilState(fromQueryState.selectedSubqueryFieldsState);
+  const setFilterQueryFieldsState = useSetRecoilState(fromQueryState.filterQueryFieldsState);
+  const setQueryFiltersState = useSetRecoilState(fromQueryState.queryFiltersState);
+  const setOrderByQueryFieldsState = useSetRecoilState(fromQueryState.orderByQueryFieldsState);
+  const setQueryOrderByState = useSetRecoilState(fromQueryState.queryOrderByState);
+  const setQueryLimit = useSetRecoilState(fromQueryState.queryLimit);
+  const setQueryLimitSkip = useSetRecoilState(fromQueryState.queryLimitSkip);
+
+  const resetSelectedSObjectState = useResetRecoilState(fromQueryState.selectedSObjectState);
+
+  const resetQueryFiltersState = useResetRecoilState(fromQueryState.queryFiltersState);
+  const resetQueryOrderByState = useResetRecoilState(fromQueryState.queryOrderByState);
+  const resetQueryLimit = useResetRecoilState(fromQueryState.queryLimit);
+  const resetQueryLimitSkip = useResetRecoilState(fromQueryState.queryLimitSkip);
+
+  useEffect(() => {
+    isMounted.current = true;
+    return () => (isMounted.current = false);
+  }, []);
+
+  async function restore(soqlOverride?: string) {
+    const currSoql = isString(soqlOverride) ? soqlOverride : soql;
+    setErrorMessage(null);
+    let query: Query;
+    try {
+      query = parseQuery(currSoql);
+    } catch (ex) {
+      setErrorMessage(ERROR_MESSAGES.PARSE_ERROR);
+      if (endRestore) {
+        // TODO: send error info
+        endRestore(true);
+      }
+      return;
+    }
+
+    setIsRestore(true);
+    if (startRestore) {
+      startRestore();
+    }
+
+    try {
+      const results = await restoreQuery(org, query);
+
+      if (isMounted.current) {
+        resetSelectedSObjectState();
+
+        setFilterQueryFieldsState(results.filterQueryFieldsState);
+        setOrderByQueryFieldsState(results.orderByQueryFieldsState);
+        results.queryFiltersState ? setQueryFiltersState(results.queryFiltersState) : resetQueryFiltersState();
+        results.queryOrderByState ? setQueryOrderByState(results.queryOrderByState) : resetQueryOrderByState();
+        results.queryLimit ? setQueryLimit(results.queryLimit) : resetQueryLimit();
+        results.queryLimitSkip ? setQueryLimitSkip(results.queryLimitSkip) : resetQueryLimitSkip();
+
+        // The order of these are critical to QueryFields.tsx to ensure no bad init
+        setQueryFieldsMapState(results.queryFieldsMapState);
+        setQueryFieldsKey(results.queryFieldsKey);
+
+        setSObjectsState(results.sObjectsState);
+        setQueryChildRelationships(results.queryChildRelationships);
+        setSelectedQueryFieldsState(results.selectedQueryFieldsState);
+        setSelectedSubqueryFieldsState(results.selectedSubqueryFieldsState);
+
+        // This must come last to ensure components are not rendered prior to data being set
+        setSelectedSObjectState(results.selectedSObjectState);
+
+        if (endRestore) {
+          endRestore(false, {
+            missingFields: results.missingFields,
+            missingSubqueryFields: results.missingSubqueryFields,
+            missingMisc: results.missingMisc,
+          });
+        }
+
+        if (!silent) {
+          if (results.missingFields.length) {
+            fireToast({
+              message: 'Some fields could not be restored',
+              type: 'warning',
+            });
+          }
+          if (Object.values(results.missingSubqueryFields).reduce((numFields, items) => numFields + items.length, 0)) {
+            fireToast({
+              message: 'Some subquery fields could not be restored',
+              type: 'warning',
+            });
+          }
+          if (Object.keys(results.missingMisc).length) {
+            fireToast({
+              message: 'Some parts of the query could not be restored',
+              type: 'warning',
+            });
+          }
+        }
+      }
+    } catch (ex) {
+      if (isMounted.current && endRestore) {
+        if (ex instanceof UserFacingRestoreError) {
+          setErrorMessage(ex.message);
+        } else {
+          logger.warn('[QUERY RESTORE][ERROR]', ex);
+          setErrorMessage('An unknown error has ocurred while restoring your query');
+          rollbar.error(ex.message, { ex, query: currSoql });
+        }
+        endRestore(true);
+      }
+    } finally {
+      // ensure page has time to catch up - dom takes an moment to render things
+      if (isMounted.current) {
+        setIsRestore(false);
+      }
+    }
+  }
+
+  return [restore, errorMessage];
+};
+
+export default useQueryRestore;

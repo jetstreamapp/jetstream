@@ -363,10 +363,45 @@ export function convertFiltersToWhereClause(filters: ExpressionType): WhereClaus
   return rootClause;
 }
 
+export function getOperatorFromWhereClause(operator: Operator, value: string, hasNegation = false): QueryFilterOperator {
+  switch (operator) {
+    case '=':
+      return 'eq';
+    case '!=':
+      return 'ne';
+    case '<=':
+      return 'lte';
+    case '>=':
+      return 'gte';
+    case '>':
+      return 'gt';
+    case '<':
+      return 'lt';
+    case 'LIKE':
+      if (value.startsWith('%') && value.endsWith('%')) {
+        return hasNegation ? 'contains' : 'doesNotContain';
+      } else if (value.startsWith('%')) {
+        return hasNegation ? 'endsWith' : 'doesNotEndWith';
+      } else {
+        return hasNegation ? 'startsWith' : 'doesNotStartWith';
+      }
+    case 'IN':
+      return 'in';
+    case 'NOT IN':
+      return 'notIn';
+    case 'INCLUDES':
+      return 'includes';
+    case 'EXCLUDES':
+      return 'excludes';
+    default:
+      return 'eq';
+  }
+}
+
 /**
  * Build where clauses from filter rows
  */
-function buildExpressionConditionWhereClause(whereClauses: WhereClause[], row: ExpressionConditionType, action: AndOr) {
+function buildExpressionConditionWhereClause(whereClauses: WhereClause[], row: ExpressionConditionType, action: AndOr): WhereClause[] {
   // REGULAR WHERE CLAUSE
   if (isNegationOperator(row.selected.operator)) {
     whereClauses.push({
@@ -400,7 +435,11 @@ function buildExpressionConditionWhereClause(whereClauses: WhereClause[], row: E
   return whereClauses;
 }
 
-function buildExpressionGroupConditionWhereClause(whereClauses: WhereClause[], group: ExpressionGroupType, parentAction: AndOr) {
+function buildExpressionGroupConditionWhereClause(
+  whereClauses: WhereClause[],
+  group: ExpressionGroupType,
+  parentAction: AndOr
+): WhereClause[] {
   const tempWhereClauses: WhereClauseWithRightCondition[] = [];
   group.rows.forEach((row, i) => {
     const whereClause: Partial<WhereClauseWithRightCondition> = {
@@ -441,7 +480,7 @@ function buildExpressionGroupConditionWhereClause(whereClauses: WhereClause[], g
   return whereClauses;
 }
 
-function isNegationOperator(operator: QueryFilterOperator): boolean {
+export function isNegationOperator(operator: QueryFilterOperator): boolean {
   switch (operator) {
     case 'doesNotContain':
     case 'doesNotStartWith':

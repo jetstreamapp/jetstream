@@ -32,7 +32,10 @@ export function composeSoqlQuery(query: Query, whereExpression: ExpressionType) 
  *
  * @param queryFieldsMap Query fields with filter data
  */
-export function calculateSoqlQueryFilter(queryFieldsMap: MapOf<QueryFields>, requiredMetadataProps?: [keyof Field]): ListItemGroup[] {
+export function calculateFilterAndOrderByListGroupFields(
+  queryFieldsMap: MapOf<QueryFields>,
+  requiredMetadataProps?: [keyof Field]
+): ListItemGroup[] {
   const newFilterFields: ListItemGroup[] = [];
 
   function includeField(metadata: Field) {

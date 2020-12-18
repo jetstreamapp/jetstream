@@ -37,16 +37,13 @@ export interface ExpressionContainerProps {
 }
 
 function initExpression(expression?: ExpressionType): ExpressionType {
-  if (expression) {
-    if (expression.rows.length === 0) {
-      expression.rows.push(initRow(0));
-    }
-    return expression;
+  if (!expression || !expression?.rows?.length) {
+    return {
+      action: 'AND',
+      rows: [initRow(0)],
+    };
   }
-  return {
-    action: 'AND',
-    rows: [initRow(0)],
-  };
+  return expression;
 }
 
 function initRow(key: number): ExpressionConditionType {
@@ -237,6 +234,7 @@ export const ExpressionContainer: FunctionComponent<ExpressionContainerProps> = 
       <Expression
         actionLabel={actionLabel}
         title={title}
+        value={expression.action}
         onActionChange={handleExpressionActionChange}
         onAddCondition={handleAddCondition}
         onAddGroup={handleAddGroup}

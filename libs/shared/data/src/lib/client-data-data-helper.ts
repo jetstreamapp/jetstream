@@ -174,8 +174,9 @@ function responseErrorInterceptor<T>(options: {
       if (getHeader(response.headers, HTTP.HEADERS.X_LOGOUT) === '1') {
         // LOG USER OUT
         const logoutUrl = getHeader(response.headers, HTTP.HEADERS.X_LOGOUT_URL) || '/oauth/login';
+        // stupid unit tests - location.href is readonly TS compilation failure
         // eslint-disable-next-line no-restricted-globals
-        location.href = logoutUrl;
+        (location as any).href = logoutUrl;
       }
     }
     throw new Error(message);

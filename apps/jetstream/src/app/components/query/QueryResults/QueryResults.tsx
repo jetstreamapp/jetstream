@@ -31,7 +31,7 @@ import {
 import classNames from 'classnames';
 import copyToClipboard from 'copy-to-clipboard';
 import React, { Fragment, FunctionComponent, useEffect, useRef, useState } from 'react';
-import { Link, NavLink, useLocation } from 'react-router-dom';
+import { Link, NavLink, useHistory, useLocation } from 'react-router-dom';
 import { useRecoilState, useRecoilValue } from 'recoil';
 import { filter } from 'rxjs/operators';
 import { applicationCookieState, selectedOrgState } from '../../../app-state';
@@ -40,6 +40,7 @@ import * as fromQueryState from '../query.state';
 import * as fromQueryHistory from '../QueryHistory/query-history.state';
 import QueryHistory from '../QueryHistory/QueryHistory';
 import IncludeDeletedRecordsToggle from '../QueryOptions/IncludeDeletedRecords';
+import useQueryRestore from '../utils/useQueryRestore';
 import QueryResultsActions from './QueryResultsActions';
 import QueryResultsSoqlPanel from './QueryResultsSoqlPanel';
 import QueryResultsViewRecordFields from './QueryResultsViewRecordFields';
@@ -49,6 +50,8 @@ export interface QueryResultsProps {}
 
 export const QueryResults: FunctionComponent<QueryResultsProps> = React.memo(() => {
   const isMounted = useRef(null);
+  const history = useHistory();
+  const previousSoql = useRecoilValue(fromQueryState.querySoqlState);
   const includeDeletedRecords = useRecoilValue(fromQueryState.queryIncludeDeletedRecordsState);
   const [priorSelectedOrg, setPriorSelectedOrg] = useState<string>(null);
   const location = useLocation<{ soql: string; sobject?: { name: string; label: string } }>();
@@ -77,6 +80,7 @@ export const QueryResults: FunctionComponent<QueryResultsProps> = React.memo(() 
   const confirm = useConfirmation();
 
   const [editOrCloneRecord, setEditOrCloneRecord] = useState<{ action: 'edit' | 'clone'; sobjectName: string; recordId: string }>();
+  const [restore] = useQueryRestore(soql, { silent: true });
 
   useEffect(() => {
     isMounted.current = true;
@@ -103,7 +107,7 @@ export const QueryResults: FunctionComponent<QueryResultsProps> = React.memo(() 
   useEffect(() => {
     if (priorSelectedOrg && selectedOrg && selectedOrg.uniqueId !== priorSelectedOrg) {
       setPriorSelectedOrg(selectedOrg.uniqueId);
-      executeQuery(soql);
+      executeQuery(soql, true);
     } else {
       setPriorSelectedOrg(selectedOrg.uniqueId);
     }
@@ -131,7 +135,7 @@ export const QueryResults: FunctionComponent<QueryResultsProps> = React.memo(() 
     }
   }
 
-  async function executeQuery(soql: string) {
+  async function executeQuery(soql: string, forceRestore?: boolean) {
     try {
       setLoading(true);
       setSoql(soql);
@@ -149,6 +153,10 @@ export const QueryResults: FunctionComponent<QueryResultsProps> = React.memo(() 
       setRecords(results.queryResults.records);
       setTotalRecordCount(results.queryResults.totalSize);
       setErrorMessage(null);
+
+      if (forceRestore || previousSoql !== soql) {
+        restore(soql);
+      }
     } catch (ex) {
       if (!isMounted.current) {
         return;
@@ -274,6 +282,10 @@ export const QueryResults: FunctionComponent<QueryResultsProps> = React.memo(() 
     }
   }
 
+  function handleRestoreFromHistory(soql: string) {
+    history.push(`/query`, { soql });
+  }
+
   return (
     <div>
       <RecordDownloadModal
@@ -326,7 +338,7 @@ export const QueryResults: FunctionComponent<QueryResultsProps> = React.memo(() 
             <Icon type="utility" icon="refresh" className="slds-button__icon slds-button__icon_left" omitContainer />
             Re-load
           </button>
-          <QueryHistory />
+          <QueryHistory onRestore={handleRestoreFromHistory} />
         </ToolbarItemGroup>
         <ToolbarItemActions>
           {/* FIXME: strongly type me! */}

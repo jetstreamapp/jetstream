@@ -13,4 +13,5 @@ export const REGEX = {
   BOOLEAN_STR_TRUE: /^t|^1/i,
   SAFE_EXCEL_SHEET_CHARS: /[a-zA-Z0-9\ \_\.]/g,
   HAS_NAMESPACE: /__[a-z0-9]+__/i,
+  START_END_SINGLE_QUOTE: /^'|'$/g,
 };

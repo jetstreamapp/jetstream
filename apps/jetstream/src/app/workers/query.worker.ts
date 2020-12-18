@@ -3,7 +3,7 @@
 import { logger } from '@jetstream/shared/client-logger';
 import { ExpressionType, MapOf, QueryFields, WorkerMessage } from '@jetstream/types';
 import { Query } from 'soql-parser-js';
-import { calculateSoqlQueryFilter, composeSoqlQuery } from '../components/query/utils/query-utils';
+import { calculateFilterAndOrderByListGroupFields, composeSoqlQuery } from '../components/query/utils/query-utils';
 
 type MessageName = 'composeQuery' | 'calculateFilter';
 
@@ -26,7 +26,7 @@ function handleMessage(name: MessageName, payloadData: any) {
     }
     case 'calculateFilter': {
       const queryFieldsMap: MapOf<QueryFields> = payloadData;
-      replyToMessage(name, calculateSoqlQueryFilter(queryFieldsMap));
+      replyToMessage(name, calculateFilterAndOrderByListGroupFields(queryFieldsMap));
       break;
     }
     default:
