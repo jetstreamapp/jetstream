@@ -305,7 +305,7 @@ function flattenWhereClause(
             resourceMeta: fieldMetadata,
             resourceGroup: parentKey,
             operator,
-            value: removeQuotes(condition.value),
+            value: ['isNull', 'isNotNull'].includes(operator) ? '' : removeQuotes(condition.value),
           },
         };
       } else {
@@ -596,8 +596,6 @@ function getFieldsFromAllPartsOfQuery(query: Query): ParsableFields {
       });
   }
 
-  parsableFields.fields = parsableFields.fields.concat(getParsableFieldsFromFilter(query.where));
-
   return parsableFields;
 }
 
@@ -642,7 +640,7 @@ function getParsableFieldsFromFilter(where: WhereClause, fields: string[] = []):
     fields.push(where.left.field);
   }
   if (isWhereOrHavingClauseWithRightCondition(where)) {
-    getParsableFieldsFromFilter(where, fields);
+    getParsableFieldsFromFilter(where.right, fields);
   }
   return fields;
 }
