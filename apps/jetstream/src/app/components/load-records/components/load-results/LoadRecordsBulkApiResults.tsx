@@ -253,7 +253,7 @@ export const LoadRecordsBulkApiResults: FunctionComponent<LoadRecordsBulkApiResu
     ) {
       return '';
     }
-    return `Uploading batch ${batchSummary.batchSummary.filter((item) => item.completed).length} of ${batchSummary.totalBatches}`;
+    return `Uploading batch ${batchSummary.batchSummary.filter((item) => item.completed).length + 1} of ${batchSummary.totalBatches}`;
   }
 
   async function handleDownloadRecords(type: 'results' | 'failures', batch: BulkJobBatchInfo, batchIndex: number): Promise<void> {
