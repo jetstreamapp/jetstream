@@ -72,14 +72,17 @@ async function handleMessage(name: AsyncJobType, payloadData: AsyncJobWorkerMess
         const { org, job } = payloadData as AsyncJobWorkerMessagePayload<BulkDownloadJob>;
         const { fields, records, fileFormat, fileName } = job.meta;
         let { nextRecordsUrl } = job.meta;
-        let downloadedRecords = flattenRecords(records, fields);
+        let downloadedRecords = fileFormat === 'json' ? records : flattenRecords(records, fields);
         let done = false;
 
         while (!done) {
           const { queryResults } = await queryMore(org, nextRecordsUrl).then(replaceSubqueryQueryResultsWithRecords);
           done = queryResults.done;
           nextRecordsUrl = queryResults.nextRecordsUrl;
-          downloadedRecords = downloadedRecords.concat(flattenRecords(queryResults.records, fields));
+          downloadedRecords =
+            fileFormat === 'json'
+              ? downloadedRecords.concat(queryResults.records)
+              : downloadedRecords.concat(flattenRecords(queryResults.records, fields));
         }
 
         const data = flattenRecords(downloadedRecords, fields);
@@ -95,6 +98,11 @@ async function handleMessage(name: AsyncJobType, payloadData: AsyncJobWorkerMess
           case 'csv': {
             fileData = prepareCsvFile(data, fields);
             mimeType = MIME_TYPES.CSV;
+            break;
+          }
+          case 'json': {
+            fileData = JSON.stringify(downloadedRecords, null, 2);
+            mimeType = MIME_TYPES.JSON;
             break;
           }
           default:

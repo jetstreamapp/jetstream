@@ -3,18 +3,18 @@
 import { jsx } from '@emotion/core';
 import { MIME_TYPES } from '@jetstream/shared/constants';
 import { getFilename, prepareCsvFile, prepareExcelFile, saveFile } from '@jetstream/shared/ui-utils';
-import { FileExtCsv, FileExtCsvXLSX, FileExtXLSX, MapOf, MimeType, SalesforceOrgUi } from '@jetstream/types';
+import { FileExtCsv, FileExtCsvXLSXJson, FileExtXLSX, MapOf, MimeType, SalesforceOrgUi } from '@jetstream/types';
 import { Fragment, FunctionComponent, useEffect, useRef, useState } from 'react';
 import Input from '../form/input/Input';
 import Radio from '../form/radio/Radio';
 import RadioGroup from '../form/radio/RadioGroup';
 import Modal from '../modal/Modal';
-import { RADIO_FORMAT_CSV, RADIO_FORMAT_XLSX } from './download-modal-utils';
+import { RADIO_FORMAT_CSV, RADIO_FORMAT_JSON, RADIO_FORMAT_XLSX } from './download-modal-utils';
 
 export interface FileDownloadModalProps {
   modalHeader?: string;
   modalTagline?: string;
-  allowedTypes?: FileExtCsvXLSX[]; // defaults to all types
+  allowedTypes?: FileExtCsvXLSXJson[]; // defaults to all types
   org: SalesforceOrgUi;
   // if data is MapOf<any[]> then only excel is a supported option and header, if provided, should be the same type
   data: any[] | MapOf<any[]>;
@@ -24,10 +24,10 @@ export interface FileDownloadModalProps {
   onModalClose: () => void;
   // TODO: we may want to provide a hook "onPrepareDownload" to override default file generation process
   // this may be useful if alternateDownloadButton is provided, otherwise this usually is not required
-  onChange?: (data: { fileName: string; fileFormat: FileExtCsvXLSX }) => void;
+  onChange?: (data: { fileName: string; fileFormat: FileExtCsvXLSXJson }) => void;
 }
 
-const defaultAllowedTypes = [RADIO_FORMAT_XLSX, RADIO_FORMAT_CSV];
+const defaultAllowedTypes = [RADIO_FORMAT_XLSX, RADIO_FORMAT_CSV, RADIO_FORMAT_JSON];
 
 export const FileDownloadModal: FunctionComponent<FileDownloadModalProps> = ({
   modalHeader = 'Download Records',
@@ -42,7 +42,7 @@ export const FileDownloadModal: FunctionComponent<FileDownloadModalProps> = ({
   onChange,
 }) => {
   const [allowedTypesSet, setAllowedTypesSet] = useState<Set<string>>(() => new Set(allowedTypes));
-  const [fileFormat, setFileFormat] = useState<FileExtCsvXLSX>(allowedTypes[0]);
+  const [fileFormat, setFileFormat] = useState<FileExtCsvXLSXJson>(allowedTypes[0]);
   const [fileName, setFileName] = useState<string>(getFilename(org, fileNameParts));
   // If the user changes the filename, we do not want to focus/select the text again or else the user cannot type
   const [doFocusInput, setDoFocusInput] = useState<boolean>(true);
@@ -101,6 +101,11 @@ export const FileDownloadModal: FunctionComponent<FileDownloadModalProps> = ({
           mimeType = MIME_TYPES.CSV;
           break;
         }
+        case 'json': {
+          fileData = JSON.stringify(data, null, 2);
+          mimeType = MIME_TYPES.JSON;
+          break;
+        }
         default:
           throw new Error('A valid file type type has not been selected');
       }
@@ -148,6 +153,15 @@ export const FileDownloadModal: FunctionComponent<FileDownloadModalProps> = ({
                 label="CSV"
                 value={RADIO_FORMAT_CSV}
                 checked={fileFormat === RADIO_FORMAT_CSV}
+                onChange={(value: FileExtCsv) => setFileFormat(value)}
+              />
+            )}
+            {allowedTypesSet.has('json') && (
+              <Radio
+                name="radio-download-file-format"
+                label="JSON"
+                value={RADIO_FORMAT_JSON}
+                checked={fileFormat === RADIO_FORMAT_JSON}
                 onChange={(value: FileExtCsv) => setFileFormat(value)}
               />
             )}

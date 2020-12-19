@@ -5,7 +5,7 @@ import { jsx } from '@emotion/core';
 import { MIME_TYPES } from '@jetstream/shared/constants';
 import { formatNumber, getFilename, prepareCsvFile, prepareExcelFile, saveFile } from '@jetstream/shared/ui-utils';
 import { flattenRecords } from '@jetstream/shared/utils';
-import { FileExtCsv, FileExtCsvXLSX, FileExtXLSX, MimeType, Record, SalesforceOrgUi } from '@jetstream/types';
+import { FileExtCsv, FileExtCsvXLSXJson, FileExtJson, FileExtXLSX, MimeType, Record, SalesforceOrgUi } from '@jetstream/types';
 import { Fragment, FunctionComponent, useEffect, useRef, useState } from 'react';
 import Input from '../form/input/Input';
 import Radio from '../form/radio/Radio';
@@ -16,6 +16,7 @@ import {
   RADIO_ALL_SERVER,
   RADIO_FILTERED,
   RADIO_FORMAT_CSV,
+  RADIO_FORMAT_JSON,
   RADIO_FORMAT_XLSX,
   RADIO_SELECTED,
 } from './download-modal-utils';
@@ -29,7 +30,7 @@ export interface RecordDownloadModalProps {
   selectedRecords?: Record[];
   totalRecordCount?: number;
   onModalClose: (cancelled?: boolean) => void;
-  onDownloadFromServer?: (fileFormat: FileExtCsvXLSX, fileName: string) => void;
+  onDownloadFromServer?: (fileFormat: FileExtCsvXLSXJson, fileName: string) => void;
 }
 
 export const RecordDownloadModal: FunctionComponent<RecordDownloadModalProps> = ({
@@ -46,7 +47,7 @@ export const RecordDownloadModal: FunctionComponent<RecordDownloadModalProps> = 
 }) => {
   const [hasMoreRecords, setHasMoreRecords] = useState<boolean>(false);
   const [downloadRecordsValue, setDownloadRecordsValue] = useState<string>(hasMoreRecords ? RADIO_ALL_SERVER : RADIO_ALL_BROWSER);
-  const [fileFormat, setFileFormat] = useState<FileExtCsvXLSX>(RADIO_FORMAT_XLSX);
+  const [fileFormat, setFileFormat] = useState<FileExtCsvXLSXJson>(RADIO_FORMAT_XLSX);
   const [fileName, setFileName] = useState<string>(getFilename(org, ['records']));
   // If the user changes the filename, we do not want to focus/select the text again or else the user cannot type
   const [doFocusInput, setDoFocusInput] = useState<boolean>(true);
@@ -109,6 +110,11 @@ export const RecordDownloadModal: FunctionComponent<RecordDownloadModalProps> = 
           case 'csv': {
             fileData = prepareCsvFile(data, fields);
             mimeType = MIME_TYPES.CSV;
+            break;
+          }
+          case 'json': {
+            fileData = JSON.stringify(activeRecords, null, 2);
+            mimeType = MIME_TYPES.JSON;
             break;
           }
           default:
@@ -212,6 +218,13 @@ export const RecordDownloadModal: FunctionComponent<RecordDownloadModalProps> = 
                 value={RADIO_FORMAT_CSV}
                 checked={fileFormat === RADIO_FORMAT_CSV}
                 onChange={(value: FileExtCsv) => setFileFormat(value)}
+              />
+              <Radio
+                name="radio-download-file-format"
+                label="JSON"
+                value={RADIO_FORMAT_JSON}
+                checked={fileFormat === RADIO_FORMAT_JSON}
+                onChange={(value: FileExtJson) => setFileFormat(value)}
               />
             </RadioGroup>
             <Input label="Filename" isRequired rightAddon={`.${fileFormat}`}>

@@ -6,7 +6,9 @@ import { SalesforceOrgUi } from '../types';
 
 export type FileExtCsv = 'csv';
 export type FileExtXLSX = 'xlsx';
+export type FileExtJson = 'json';
 export type FileExtCsvXLSX = FileExtCsv | FileExtXLSX;
+export type FileExtCsvXLSXJson = FileExtCsvXLSX | FileExtJson;
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export interface WorkerMessage<T, K = any, E = any> {
@@ -149,11 +151,12 @@ export type PositionBottom = 'bottom';
 export type PositionBottomLeft = 'bottom-left';
 export type PositionBottomRight = 'bottom-right';
 
-export type MimeType = MimeTypePlainText | MimeTypeCsv | MimeTypeOctetStream | MimeTypeZip;
+export type MimeType = MimeTypePlainText | MimeTypeCsv | MimeTypeOctetStream | MimeTypeZip | MimeTypeJson;
 export type MimeTypePlainText = 'text/plain;charset=utf-8';
 export type MimeTypeCsv = 'text/csv;charset=utf-8';
 export type MimeTypeOctetStream = 'application/octet-stream;charset=utf-8';
 export type MimeTypeZip = 'application/zip;charset=utf-8';
+export type MimeTypeJson = 'application/json;charset=utf-8';
 
 export type InputAcceptType = InputAcceptTypeZip | InputAcceptTypeCsv | InputAcceptTypeExcel;
 export type InputAcceptTypeZip = '.zip';
@@ -337,7 +340,7 @@ export interface BulkDownloadJob {
   nextRecordsUrl: string;
   fields: string[];
   records: MapOf<string>[];
-  fileFormat: FileExtCsvXLSX;
+  fileFormat: FileExtCsvXLSXJson;
   fileName: string;
 }
 
