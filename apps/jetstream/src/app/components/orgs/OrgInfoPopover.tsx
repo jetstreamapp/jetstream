@@ -1,18 +1,20 @@
 /** @jsx jsx */
 import { jsx } from '@emotion/core';
+import { addOrg, isEnterKey, isEscapeKey } from '@jetstream/shared/ui-utils';
 import { SalesforceOrgUi } from '@jetstream/types';
-import { ButtonGroupContainer, Icon, Popover, GridCol, Grid, Checkbox } from '@jetstream/ui';
+import { ButtonGroupContainer, Checkbox, Grid, GridCol, Icon, Input, Popover, SalesforceLogin, Spinner } from '@jetstream/ui';
+import classNames from 'classnames';
 import startCase from 'lodash/startCase';
-import { FunctionComponent, ReactNode, useState, Fragment } from 'react';
-import { SalesforceLogin } from '@jetstream/ui';
+import { Fragment, FunctionComponent, ReactNode, useEffect, useState } from 'react';
 import { useRecoilState } from 'recoil';
 import { applicationCookieState } from '../../app-state';
-import { addOrg } from '@jetstream/shared/ui-utils';
 
 export interface OrgInfoPopoverProps {
   org: SalesforceOrgUi;
+  loading?: boolean;
   onAddOrg: (org: SalesforceOrgUi, replaceOrgUniqueId?: string) => void;
   onRemoveOrg: (org: SalesforceOrgUi) => void;
+  onSaveLabel: (org: SalesforceOrgUi, updatedOrg: Partial<SalesforceOrgUi>) => void;
 }
 
 function getOrgProp(serverUrl: string, org: SalesforceOrgUi, prop: keyof SalesforceOrgUi, label?: string) {
@@ -50,10 +52,23 @@ function getOrgProp(serverUrl: string, org: SalesforceOrgUi, prop: keyof Salesfo
   );
 }
 
-export const OrgInfoPopover: FunctionComponent<OrgInfoPopoverProps> = ({ org, onAddOrg, onRemoveOrg }) => {
+export const OrgInfoPopover: FunctionComponent<OrgInfoPopoverProps> = ({ org, loading, onAddOrg, onRemoveOrg, onSaveLabel }) => {
   const [applicationState] = useRecoilState(applicationCookieState);
+  const [orgLabel, setOrgLabel] = useState(org.label || org.username);
   const [removeOrgActive, setRemoveOrgActive] = useState(false);
+  const [isDirty, setIsDirty] = useState(false);
   const hasError = !!org.connectionError;
+
+  useEffect(() => {
+    const tempIsDirty = orgLabel !== org.label;
+    if (tempIsDirty !== isDirty) {
+      setIsDirty(tempIsDirty);
+    }
+  }, [isDirty, org, orgLabel]);
+
+  useEffect(() => {
+    setOrgLabel(org.label);
+  }, [org]);
 
   function handleFixOrg() {
     addOrg(
@@ -68,6 +83,32 @@ export const OrgInfoPopover: FunctionComponent<OrgInfoPopoverProps> = ({ org, on
     );
   }
 
+  function handleLabelChange(event: React.ChangeEvent<HTMLInputElement>) {
+    setOrgLabel(event.target.value);
+  }
+
+  function handleLabelKeyDown(event: React.KeyboardEvent<HTMLInputElement>) {
+    if (isEscapeKey(event)) {
+      handleReset();
+    } else if (isDirty && isEnterKey(event)) {
+      handleSave();
+    }
+  }
+
+  function handleReset() {
+    setOrgLabel(org.label);
+  }
+
+  function handleSave() {
+    onSaveLabel(org, { label: orgLabel });
+  }
+
+  function handlePopoverClose() {
+    if (isDirty) {
+      setOrgLabel(org.username);
+    }
+  }
+
   return (
     <Popover
       placement="bottom-end"
@@ -75,6 +116,7 @@ export const OrgInfoPopover: FunctionComponent<OrgInfoPopoverProps> = ({ org, on
       bodyClassName="slds-popover__body slds-p-around_none"
       containerClassName={hasError ? 'slds-popover_error' : undefined}
       inverseIcons={hasError}
+      onClose={handlePopoverClose}
       header={
         <header className="slds-popover__header">
           <h2 className="slds-truncate slds-text-heading_small" title="Org Info">
@@ -84,7 +126,8 @@ export const OrgInfoPopover: FunctionComponent<OrgInfoPopoverProps> = ({ org, on
         </header>
       }
       content={
-        <div>
+        <div className="slds-is-relative">
+          {loading && <Spinner />}
           {hasError && (
             <div className="slds-p-around_xx-small">
               <ButtonGroupContainer className="slds-button_stretch">
@@ -139,6 +182,32 @@ export const OrgInfoPopover: FunctionComponent<OrgInfoPopoverProps> = ({ org, on
               </tr>
             </thead>
             <tbody>
+              <tr className={classNames('slds-hint-parent', { 'active-item-yellow-bg': isDirty })}>
+                <td>
+                  <div title="Label">Label</div>
+                </td>
+                <td>
+                  <Input>
+                    <input
+                      className="slds-input"
+                      onChange={handleLabelChange}
+                      value={orgLabel}
+                      onKeyDown={handleLabelKeyDown}
+                      maxLength={255}
+                    />
+                  </Input>
+                  {isDirty && (
+                    <Grid align="spread">
+                      <button className="slds-button" disabled={!orgLabel} onClick={handleReset}>
+                        Undo
+                      </button>
+                      <button className="slds-button" disabled={!orgLabel} onClick={handleSave}>
+                        Save
+                      </button>
+                    </Grid>
+                  )}
+                </td>
+              </tr>
               {getOrgProp(applicationState.serverUrl, org, 'orgName', 'Org Name')}
               {getOrgProp(applicationState.serverUrl, org, 'organizationId', 'Org Id')}
               {getOrgProp(applicationState.serverUrl, org, 'orgInstanceName', 'Instance')}

@@ -38,6 +38,10 @@ export async function getOrgs(): Promise<SalesforceOrgUi[]> {
   return handleRequest({ method: 'GET', url: '/api/orgs' }).then(unwrapResponseIgnoreCache);
 }
 
+export async function updateOrg(org: SalesforceOrgUi, partialOrg: Partial<SalesforceOrgUi>): Promise<void> {
+  return handleRequest({ method: 'PATCH', url: `/api/orgs/${org.uniqueId}`, data: partialOrg }).then(unwrapResponseIgnoreCache);
+}
+
 export async function deleteOrg(org: SalesforceOrgUi): Promise<void> {
   return handleRequest({ method: 'DELETE', url: `/api/orgs/${org.uniqueId}` }).then(unwrapResponseIgnoreCache);
 }

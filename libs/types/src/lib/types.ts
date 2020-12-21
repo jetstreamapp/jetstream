@@ -93,6 +93,7 @@ export type Record<T = any> = { attributes?: RecordAttributes; Id?: SalesforceId
 export interface SalesforceOrgUi {
   id?: number;
   uniqueId: string;
+  label: string;
   filterText: string;
   accessToken: string;
   instanceUrl: string;

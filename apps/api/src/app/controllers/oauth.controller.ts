@@ -83,6 +83,7 @@ export async function salesforceOauthCallback(req: express.Request, res: express
 
     const salesforceOrgUi: SalesforceOrgUi = {
       uniqueId: `${userInfo.organizationId}-${userInfo.id}`,
+      label: identity.username,
       filterText: `${identity.username}${orgName}`.toLowerCase(),
       accessToken: encryptString(`${conn.accessToken} ${conn.refreshToken}`, hexToBase64(ENV.SFDC_CONSUMER_SECRET)),
       instanceUrl: conn.instanceUrl,

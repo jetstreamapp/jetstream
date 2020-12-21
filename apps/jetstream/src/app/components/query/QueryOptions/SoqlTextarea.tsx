@@ -3,7 +3,6 @@ import React, { Fragment, FunctionComponent } from 'react';
 import { useRecoilValue } from 'recoil';
 import * as fromQueryState from '../query.state';
 import IncludeDeletedRecordsToggle from './IncludeDeletedRecords';
-import ManualSoql from './ManualSoql';
 
 // eslint-disable-next-line @typescript-eslint/no-empty-interface
 export interface SoqlTextareaProps {}
