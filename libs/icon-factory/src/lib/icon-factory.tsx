@@ -50,6 +50,7 @@ import UtilityIcon_Moneybag from './icons/utility/Moneybag';
 import UtilityIcon_NewWindow from './icons/utility/NewWindow';
 import UtilityIcon_Notification from './icons/utility/Notification';
 import UtilityIcon_Play from './icons/utility/Play';
+import UtilityIcon_PromptEdit from './icons/utility/PromptEdit';
 import UtilityIcon_Refresh from './icons/utility/Refresh';
 import UtilityIcon_Right from './icons/utility/Right';
 import UtilityIcon_Search from './icons/utility/Search';
@@ -109,6 +110,7 @@ const utilityIcons: UtilityIconObj = {
   new_window: UtilityIcon_NewWindow,
   notification: UtilityIcon_Notification,
   play: UtilityIcon_Play,
+  prompt_edit: UtilityIcon_PromptEdit,
   refresh: UtilityIcon_Refresh,
   right: UtilityIcon_Right,
   search: UtilityIcon_Search,

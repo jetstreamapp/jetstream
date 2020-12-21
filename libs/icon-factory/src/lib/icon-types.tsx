@@ -63,6 +63,7 @@ export interface UtilityIconObj {
   new_window: IconEl;
   notification: IconEl;
   play: IconEl;
+  prompt_edit: IconEl;
   refresh: IconEl;
   right: IconEl;
   search: IconEl;

@@ -4,8 +4,9 @@ import { Link, useRouteMatch } from 'react-router-dom';
 import { isQueryValid } from 'soql-parser-js';
 import RestoreQuery from '../QueryBuilder/RestoreQuery';
 
-// eslint-disable-next-line @typescript-eslint/no-empty-interface
-export interface ManualSoqlProps {}
+export interface ManualSoqlProps {
+  className?: string;
+}
 
 const NoQuery = () => {
   return <span className="slds-text-color_weak">Provide a valid query to continue</span>;
@@ -39,7 +40,7 @@ const InvalidQuery = () => {
   );
 };
 
-export const ManualSoql: FunctionComponent<ManualSoqlProps> = () => {
+export const ManualSoql: FunctionComponent<ManualSoqlProps> = ({ className }) => {
   const isMounted = useRef(null);
   const match = useRouteMatch();
   const [isOpen, setIsOpen] = useState<boolean>(false);
@@ -78,10 +79,9 @@ export const ManualSoql: FunctionComponent<ManualSoqlProps> = () => {
   }
 
   return (
-    <div className="slds-m-top_small">
+    <div className={className}>
       <Popover
         isOpen={isOpen}
-        containerClassName=""
         content={
           <Fragment>
             {isRestoring && <Spinner />}
@@ -135,6 +135,7 @@ export const ManualSoql: FunctionComponent<ManualSoqlProps> = () => {
         }
       >
         <button className="slds-button slds-button_neutral" onClick={() => setIsOpen(true)}>
+          <Icon type="utility" icon="prompt_edit" description="Manually enter query" className="slds-button__icon slds-button__icon_left" />
           Manual Query
         </button>
       </Popover>

@@ -17,7 +17,6 @@ export const SoqlTextarea: FunctionComponent<SoqlTextareaProps> = React.memo(() 
         <CodeEditor className="CodeMirror-textarea" value={soql} readOnly />
       </Textarea>
       <Grid>
-        <ManualSoql />
         <GridCol extraProps={{ dir: 'rtl' }} bump="left">
           <IncludeDeletedRecordsToggle containerClassname="slds-p-top_small" />
         </GridCol>
