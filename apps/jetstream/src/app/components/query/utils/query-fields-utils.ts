@@ -10,6 +10,10 @@ export function getQueryFieldKey(selectedOrg: SalesforceOrgUi, selectedSObject: 
   return `${selectedOrg?.uniqueId}-${selectedSObject}`;
 }
 
+export function getChildQueryFieldKey(selectedOrg: SalesforceOrgUi, selectedSObject: string, parentRelationshipName: string): string {
+  return `${selectedOrg?.uniqueId}-${selectedSObject}-${parentRelationshipName}`;
+}
+
 // all field keys start with the based key
 export function getQueryFieldBaseKey(selectedSObject: string) {
   return `${selectedSObject}${BASE_FIELD_SEPARATOR}`;

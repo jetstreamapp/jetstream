@@ -472,7 +472,7 @@ function setSelectedFields(
           missingFields.push(`${field.field}.${relatedField}`);
         }
       });
-    } else {
+    } else if (field.type !== 'FieldSubquery') {
       missingMisc.push(`${field.type} is not supported`);
     }
   });

@@ -17,6 +17,7 @@ export class SalesforceOrg extends BaseEntity {
 
   initFromUiOrg(uiOrg: SalesforceOrgUi) {
     this.uniqueId = uiOrg.uniqueId ?? this.uniqueId;
+    this.label = uiOrg.label ?? this.username;
     this.filterText = uiOrg.filterText ?? this.filterText;
     this.accessToken = uiOrg.accessToken ?? this.accessToken;
     this.instanceUrl = uiOrg.instanceUrl ?? this.instanceUrl;
@@ -53,6 +54,9 @@ export class SalesforceOrg extends BaseEntity {
 
   @Column()
   uniqueId: string;
+
+  @Column({ nullable: true })
+  label: string;
 
   @Column()
   filterText: string;
@@ -140,7 +144,9 @@ export class SalesforceOrg extends BaseEntity {
    * This ensures that specific properties will be omitted when serialized
    */
   toJSON() {
-    return classToPlain(this);
+    const obj = classToPlain(this);
+    obj['label'] = obj['label'] || obj['username'];
+    return obj;
   }
 
   static findByUniqueId(jetstreamUserId: string, uniqueId: string) {

@@ -12,8 +12,8 @@ export default {
 };
 
 const values = array('items', [
-  'item 1',
-  'item 2',
+  'item foo',
+  'item bar',
   'item 3',
   'item 4',
   'item 5',

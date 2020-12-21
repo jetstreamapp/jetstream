@@ -88,7 +88,7 @@ export const App = () => {
                     <HeaderNavbar userProfile={userProfile} featureFlags={featureFlags} />
                   </div>
                   <div
-                    className="slds-p-horizontal_small slds-p-vertical_xx-small"
+                    className="slds-p-horizontal_xx-small slds-p-vertical_xx-small"
                     css={css`
                       margin-top: 90px;
                     `}

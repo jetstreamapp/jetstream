@@ -1,15 +1,13 @@
 import { logger } from '@jetstream/shared/client-logger';
 import { fetchFields, getFieldKey, sortQueryFieldsStr } from '@jetstream/shared/ui-utils';
-import { FieldWrapper, MapOf, QueryFields, SalesforceOrgUi, QueryFieldWithPolymorphic } from '@jetstream/types';
-import { AutoFullHeightContainer, SobjectFieldList } from '@jetstream/ui';
+import { FieldWrapper, MapOf, QueryFields, QueryFieldWithPolymorphic } from '@jetstream/types';
+import { SobjectFieldList } from '@jetstream/ui';
 import isEmpty from 'lodash/isEmpty';
 import React, { Fragment, FunctionComponent, useEffect, useState } from 'react';
 import { useRecoilState, useRecoilValue } from 'recoil';
 import { selectedOrgState } from '../../../app-state';
 import * as fromQueryState from '../query.state';
-
-// separator used on key of suquery fields - only fields with this key are included
-const CHILD_FIELD_SEPARATOR = `~`;
+import { getSubqueryFieldBaseKey } from '../utils/query-fields-utils';
 
 export interface QueryChildFieldsProps {
   selectedSObject: string;
@@ -18,32 +16,18 @@ export interface QueryChildFieldsProps {
   // onFieldsFetched: (queryFields: MapOf<QueryFields>) => void;
 }
 
-// TODO: use this same pattern with QueryFields.tsx
-function getBaseKey(selectedSObject: string, parentRelationshipName: string) {
-  return `${selectedSObject}~${parentRelationshipName}|`;
-}
-
-// TODO: what does this do/mean for a subquery???? isn't this just to know if results belong to same selection?
-function getQueryFieldKey(selectedOrg: SalesforceOrgUi, selectedSObject: string, parentRelationshipName: string) {
-  return `${selectedOrg?.uniqueId}-${selectedSObject}-${parentRelationshipName}`;
-}
-
 export const QueryChildFieldsComponent: FunctionComponent<QueryChildFieldsProps> = ({
   selectedSObject,
   parentRelationshipName,
   onSelectionChanged,
 }) => {
-  // TODO: this is global - the parent can clear, but we cannot!
-  // we can add to this as long as our keys are unique
   const [queryFieldsMap, setQueryFieldsMap] = useRecoilState(fromQueryState.queryFieldsMapState);
-  const [baseKey, setBaseKey] = useState<string>(getBaseKey(selectedSObject, parentRelationshipName));
+  const [baseKey, setBaseKey] = useState<string>(getSubqueryFieldBaseKey(selectedSObject, parentRelationshipName));
   const selectedOrg = useRecoilValue(selectedOrgState);
 
   // Fetch fields for base object if the selected object changes
   useEffect(() => {
-    const BASE_KEY = getBaseKey(selectedSObject, parentRelationshipName);
-    // TODO: do I need this? do we use this for subquery? how do we handle results after obj changed?
-    const fieldKey = getQueryFieldKey(selectedOrg, selectedSObject, parentRelationshipName);
+    const BASE_KEY = getSubqueryFieldBaseKey(selectedSObject, parentRelationshipName);
 
     let baseQueryFieldsMap: QueryFields = queryFieldsMap[BASE_KEY];
 
@@ -240,6 +224,7 @@ export const QueryChildFieldsComponent: FunctionComponent<QueryChildFieldsProps>
 
   return (
     <Fragment>
+      {}
       {selectedSObject && queryFieldsMap[baseKey] && (
         <SobjectFieldList
           level={0}

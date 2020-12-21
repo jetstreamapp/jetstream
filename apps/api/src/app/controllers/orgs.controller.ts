@@ -14,7 +14,25 @@ export async function getOrgs(req: Request, res: Response, next: NextFunction) {
   }
 }
 
-// TODO: this is not yet implemented in UI
+export async function updateOrg(req: Request, res: Response, next: NextFunction) {
+  try {
+    const user = req.user as UserProfileServer;
+    const existingOrg = await SalesforceOrg.findByUniqueId(user.id, req.params.uniqueId);
+    if (!existingOrg) {
+      return next(new UserFacingError('An org was not found with the provided id'));
+    }
+
+    // update specific properties
+    existingOrg.label = req.body.label;
+
+    await existingOrg.save();
+
+    sendJson(res, undefined, 201);
+  } catch (ex) {
+    next(new UserFacingError(ex.message));
+  }
+}
+
 export async function deleteOrg(req: Request, res: Response, next: NextFunction) {
   try {
     const user = req.user as UserProfileServer;

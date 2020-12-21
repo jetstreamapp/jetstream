@@ -21,7 +21,7 @@ const copyToClipboardMsg = (
 
 function getContent(field: FieldWrapper) {
   let copyToClipboardValue: string = undefined;
-  if (field.metadata.type === 'picklist') {
+  if (field.metadata.type === 'picklist' || field.metadata.type === 'multipicklist') {
     let tooltipContent: JSX.Element = undefined;
     if (Array.isArray(field.metadata.picklistValues) && field.metadata.picklistValues.length > 0) {
       copyToClipboardValue = field.metadata.picklistValues?.map((picklist) => picklist.value).join('\n');

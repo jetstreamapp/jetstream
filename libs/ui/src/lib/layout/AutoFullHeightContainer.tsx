@@ -39,7 +39,7 @@ export class AutoFullHeightContainer extends Component<AutoFullHeightContainerPr
   render() {
     const { bottomBuffer, bufferIfNotRendered, className, baseCss, fillHeight = true, setHeightAttr, children } = this.props;
     const topPosition = this.state.topPosition || bufferIfNotRendered || 0;
-    const heightStr = `calc(100vh - ${topPosition + (bottomBuffer || 10)}px);`;
+    const heightStr = `calc(100vh - ${topPosition + (bottomBuffer || 0)}px);`;
     return (
       <div
         className={className}

@@ -16,6 +16,7 @@ export interface TabsProps {
   tabs: UiTabSection[];
   initialActiveId?: string;
   className?: string; // slds-tabs_medium, slds-tabs_large, slds-tabs_card
+  contentClassname?: string;
   style?: React.CSSProperties;
   ulStyle?: React.CSSProperties;
   emptyState?: React.ReactNode;
@@ -29,6 +30,7 @@ export const Tabs: FunctionComponent<TabsProps> = ({
   tabs,
   initialActiveId,
   className,
+  contentClassname,
   style,
   ulStyle,
   emptyState = <h3 className="slds-text-heading_medium slds-m-around_medium">Select an item to continue</h3>,
@@ -86,7 +88,11 @@ export const Tabs: FunctionComponent<TabsProps> = ({
       return (
         <div
           id={activeTab.id}
-          className={classNames({ 'slds-tabs_default__content': isHorizontal, 'slds-vertical-tabs__content': !isHorizontal }, 'slds-show')}
+          className={classNames(
+            { 'slds-tabs_default__content': isHorizontal, 'slds-vertical-tabs__content': !isHorizontal },
+            'slds-show',
+            contentClassname
+          )}
           role="tabpanel"
           aria-labelledby={`tab-${activeTab.id}`}
         >
@@ -98,7 +104,11 @@ export const Tabs: FunctionComponent<TabsProps> = ({
     } else {
       return (
         <div
-          className={classNames({ 'slds-tabs_default__content': isHorizontal, 'slds-vertical-tabs__content': !isHorizontal }, 'slds-show')}
+          className={classNames(
+            { 'slds-tabs_default__content': isHorizontal, 'slds-vertical-tabs__content': !isHorizontal },
+            'slds-show',
+            contentClassname
+          )}
           role="tabpanel"
         />
       );

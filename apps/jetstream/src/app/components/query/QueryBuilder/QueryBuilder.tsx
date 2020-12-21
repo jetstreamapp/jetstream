@@ -25,6 +25,7 @@ import QueryHistory from '../QueryHistory/QueryHistory';
 import QueryFilterTitleSummary from '../QueryOptions/accordion-titles/QueryFilterTitleSummary';
 import QueryLimitTitleSummary from '../QueryOptions/accordion-titles/QueryLimitTitleSummary';
 import QueryOrderByTitleSummary from '../QueryOptions/accordion-titles/QueryOrderByTitleSummary';
+import ManualSoql from '../QueryOptions/ManualSoql';
 import QueryFilter from '../QueryOptions/QueryFilter';
 import QueryLimit from '../QueryOptions/QueryLimit';
 import QueryOrderBy from '../QueryOptions/QueryOrderBy';
@@ -153,6 +154,7 @@ export const QueryBuilder: FunctionComponent<QueryBuilderProps> = () => {
                 View Favorites
               </button> */}
               <QueryHistory />
+              <ManualSoql className="" />
               {soql && selectedSObject && (
                 <Link
                   className="slds-button slds-button_brand"
@@ -180,7 +182,11 @@ export const QueryBuilder: FunctionComponent<QueryBuilderProps> = () => {
             </PageHeaderActions>
           </PageHeaderRow>
         </PageHeader>
-        <AutoFullHeightContainer className="slds-p-horizontal_x-small slds-scrollable_none" bufferIfNotRendered={HEIGHT_BUFFER}>
+        <AutoFullHeightContainer
+          bottomBuffer={0}
+          className="slds-p-horizontal_x-small slds-scrollable_none"
+          bufferIfNotRendered={HEIGHT_BUFFER}
+        >
           <Split
             sizes={[17, 33, 50]}
             minSize={[200, 300, 300]}
@@ -200,6 +206,7 @@ export const QueryBuilder: FunctionComponent<QueryBuilderProps> = () => {
                 <Tabs
                   key={selectedSObject.name}
                   initialActiveId="BaseFields"
+                  contentClassname="slds-p-bottom_none"
                   tabs={[
                     {
                       id: 'BaseFields',

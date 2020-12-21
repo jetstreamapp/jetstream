@@ -66,6 +66,7 @@
 
 .slds-item {
   cursor: pointer;
+  margin: 1px;
   &:hover {
     background-color: $color-background;
   }
@@ -150,4 +151,8 @@
 }
 .d-inline-block {
   display: inline-block;
+}
+
+.text-uppercase {
+  text-transform: uppercase;
 }

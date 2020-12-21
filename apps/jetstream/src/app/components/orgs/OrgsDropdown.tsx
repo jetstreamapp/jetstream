@@ -1,6 +1,6 @@
 /** @jsx jsx */
 import { css, jsx } from '@emotion/core';
-import { clearCacheForOrg, clearQueryHistoryForOrg, deleteOrg, getOrgs } from '@jetstream/shared/data';
+import { clearCacheForOrg, clearQueryHistoryForOrg, deleteOrg, updateOrg, getOrgs } from '@jetstream/shared/data';
 import { MapOf, SalesforceOrgUi } from '@jetstream/types';
 import { Badge, Combobox, ComboboxListItem, ComboboxListItemGroup } from '@jetstream/ui';
 import classNames from 'classnames';
@@ -21,14 +21,22 @@ function getSelectedItemLabel(org?: SalesforceOrgUi) {
   if (!org) {
     return;
   }
-  return `${org.username}`;
+  let subtext = '';
+  if (org.label !== org.username) {
+    subtext += ` (${org.username})`;
+  }
+  return `${org.label}${subtext}`;
 }
 
 function getSelectedItemTitle(org?: SalesforceOrgUi) {
   if (!org) {
     return;
   }
-  return `${org.orgInstanceName} - ${org.username}`;
+  let subtext = '';
+  if (org.label !== org.username) {
+    subtext += ` (${org.username})`;
+  }
+  return `${org.orgInstanceName} - ${org.label}${subtext}`;
 }
 
 function orgHasError(org?: SalesforceOrgUi): boolean {
@@ -48,6 +56,7 @@ export const OrgsDropdown: FunctionComponent<OrgsDropdownProps> = () => {
   const [visibleOrgs, setVisibleOrgs] = useState<SalesforceOrgUi[]>([]);
   const [orgsByOrganization, setOrgsByOrganization] = useState<MapOf<SalesforceOrgUi[]>>({});
   const [filterText, setFilterText] = useState<string>('');
+  const [orgLoading, setOrgLoading] = useState(false);
 
   useEffect(() => {
     if (Array.isArray(visibleOrgs)) {
@@ -78,9 +87,6 @@ export const OrgsDropdown: FunctionComponent<OrgsDropdownProps> = () => {
   }
 
   async function handleRemoveOrg(org: SalesforceOrgUi) {
-    // call server to delete
-    // remove from state
-    // unselect org
     try {
       await deleteOrg(org);
       setOrgs(await getOrgs());
@@ -88,9 +94,20 @@ export const OrgsDropdown: FunctionComponent<OrgsDropdownProps> = () => {
       // async, but results are ignored as this will not throw
       clearCacheForOrg(org);
       clearQueryHistoryForOrg(org);
-      // TODO: delete browser cache
     } catch (ex) {
       // TODO:
+    }
+  }
+
+  async function handleUpdateOrg(org: SalesforceOrgUi, updatedOrg: Partial<SalesforceOrgUi>) {
+    try {
+      setOrgLoading(true);
+      await updateOrg(org, updatedOrg);
+      setOrgs(await getOrgs());
+    } catch (ex) {
+      // TODO:
+    } finally {
+      setOrgLoading(false);
     }
   }
 
@@ -127,7 +144,8 @@ export const OrgsDropdown: FunctionComponent<OrgsDropdownProps> = () => {
                   <ComboboxListItem
                     key={org.uniqueId}
                     id={org.uniqueId}
-                    label={org.username}
+                    label={org.label || org.username}
+                    secondaryLabel={org.username !== org.label ? org.username : undefined}
                     hasError={orgHasError(org)}
                     selected={selectedOrg && selectedOrg.uniqueId === org.uniqueId}
                     onSelection={(id) => setSelectedOrgId(org.uniqueId)}
@@ -139,7 +157,13 @@ export const OrgsDropdown: FunctionComponent<OrgsDropdownProps> = () => {
         </div>
         {selectedOrg && (
           <div className="slds-col slds-m-left--xx-small slds-p-top--xx-small">
-            <OrgInfoPopover org={selectedOrg} onAddOrg={handleAddOrg} onRemoveOrg={handleRemoveOrg} />
+            <OrgInfoPopover
+              org={selectedOrg}
+              loading={orgLoading}
+              onAddOrg={handleAddOrg}
+              onRemoveOrg={handleRemoveOrg}
+              onSaveLabel={handleUpdateOrg}
+            />
           </div>
         )}
         <div className="slds-col">

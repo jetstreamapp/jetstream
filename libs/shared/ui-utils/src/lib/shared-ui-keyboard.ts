@@ -2,11 +2,12 @@ import { KeyboardEvent, SyntheticEvent } from 'react';
 import { escapeRegExp } from 'lodash';
 import { ListItem } from '@jetstream/types';
 
-export interface SelectMenuItemFromKeyboardOptions {
+export interface SelectMenuItemFromKeyboardOptions<T> {
   key: string;
   keyCode: number;
   keyBuffer: KeyBuffer;
-  items: ListItem[];
+  items: T[];
+  labelProp: keyof T;
 }
 
 export class KeyBuffer {
@@ -66,7 +67,13 @@ export function trapEventImmediate(event: SyntheticEvent) {
  * Given a list of items (picklist), determine which is selected based on keys user is entering
  * @param param0 {SelectMenuItemFromKeyboardOptions}
  */
-export function selectMenuItemFromKeyboard({ key, keyCode, keyBuffer, items }: SelectMenuItemFromKeyboardOptions): number {
+export function selectMenuItemFromKeyboard<T = ListItem>({
+  key,
+  keyCode,
+  keyBuffer,
+  items,
+  labelProp,
+}: SelectMenuItemFromKeyboardOptions<T>): number {
   /* Copyright (c) 2015-present, salesforce.com, inc. All rights reserved */
   /* Licensed under BSD 3-Clause - see LICENSE.txt or git.io/sfdc-license */
   // https://github.com/salesforce/design-system-react/blob/master/utilities/key-letter-menu-item-select.js
@@ -88,7 +95,7 @@ export function selectMenuItemFromKeyboard({ key, keyCode, keyBuffer, items }: S
   }
 
   items.forEach((item, i) => {
-    const itemLabel = String(item.label).toLowerCase();
+    const itemLabel = String(item[labelProp]).toLowerCase();
 
     if (
       (focusedIndex === undefined && itemLabel.substr(0, pattern.length) === pattern) ||

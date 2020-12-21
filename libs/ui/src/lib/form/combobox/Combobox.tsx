@@ -1,5 +1,12 @@
 import { logger } from '@jetstream/shared/client-logger';
-import { isArrowDownKey, isArrowUpKey, isEnterOrSpace, isEscapeKey } from '@jetstream/shared/ui-utils';
+import {
+  isArrowDownKey,
+  isArrowUpKey,
+  isEnterOrSpace,
+  isEscapeKey,
+  menuItemSelectScroll,
+  useNonInitialEffect,
+} from '@jetstream/shared/ui-utils';
 import { NOOP } from '@jetstream/shared/utils';
 import { FormGroupDropdownItem } from '@jetstream/types';
 import classNames from 'classnames';
@@ -117,15 +124,20 @@ const ComboboxElement: FunctionComponent<ComboboxProps & { icon: JSX.Element }> 
   const hasDropdownGroup = !!leadingDropdown && !!leadingDropdown.items?.length;
 
   const [focusedItem, setFocusedItem] = useState<number>(null);
+  const divContainerEl = useRef<HTMLDivElement>(null);
   const elRefs = useRef<HTMLLIElement[]>([]);
 
-  useEffect(() => {
+  useNonInitialEffect(() => {
     try {
       if (elRefs.current && isNumber(focusedItem) && elRefs.current[focusedItem] && elRefs.current[focusedItem]) {
         elRefs.current[focusedItem].focus();
       }
+      menuItemSelectScroll({
+        container: divContainerEl.current,
+        focusedIndex: focusedItem,
+      });
     } catch (ex) {
-      logger.log('Error with keybaord navigation', ex);
+      logger.log('Error with keyboard navigation', ex);
     }
   }, [focusedItem]);
 
@@ -264,13 +276,17 @@ const ComboboxElement: FunctionComponent<ComboboxProps & { icon: JSX.Element }> 
    * Handle keyboard interaction when list items have focus
    * The outer div listens for the keyboard events and handles actions
    */
-  function handleListKeyUp(event: KeyboardEvent<HTMLDivElement>) {
+  function handleListKeyDown(event: KeyboardEvent<HTMLDivElement>) {
     let newFocusedItem = focusedItem;
     if (isOpen && isEscapeKey(event)) {
+      event.preventDefault();
+      event.stopPropagation();
       setIsOpen(false);
       return;
     }
     if (isNumber(focusedItem) && isEnterOrSpace(event)) {
+      event.preventDefault();
+      event.stopPropagation();
       try {
         elRefs.current[focusedItem].click();
         setIsOpen(false);
@@ -280,12 +296,16 @@ const ComboboxElement: FunctionComponent<ComboboxProps & { icon: JSX.Element }> 
       return;
     }
     if (isArrowUpKey(event)) {
+      event.preventDefault();
+      event.stopPropagation();
       if (!isNumber(focusedItem) || focusedItem === 0) {
         newFocusedItem = elRefs.current.length - 1;
       } else {
         newFocusedItem = newFocusedItem - 1;
       }
     } else if (isArrowDownKey(event)) {
+      event.preventDefault();
+      event.stopPropagation();
       if (!isNumber(focusedItem) || focusedItem === elRefs.current.length - 1) {
         newFocusedItem = 0;
       } else {
@@ -353,7 +373,8 @@ const ComboboxElement: FunctionComponent<ComboboxProps & { icon: JSX.Element }> 
                   id={listId}
                   className={classNames(`slds-dropdown slds-dropdown_length-${itemLength} slds-dropdown_fluid`)}
                   role="listbox"
-                  onKeyUp={handleListKeyUp}
+                  onKeyDown={handleListKeyDown}
+                  ref={divContainerEl}
                 >
                   {Children.count(children) === 0 && (
                     <ul className="slds-listbox slds-listbox_vertical" role="presentation">

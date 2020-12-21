@@ -79,7 +79,7 @@ export const FormGroupDropdown: FunctionComponent<FormGroupDropdownProps> = ({
                   {items.map((item) => (
                     <li
                       role="presentation"
-                      className="slds-listbox__item"
+                      className="slds-listbox__item slds-item"
                       onClick={(event) => {
                         event.preventDefault();
                         event.stopPropagation();

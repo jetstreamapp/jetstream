@@ -16,6 +16,7 @@ routes.use(addOrgsToLocal);
 routes.get('/me', userController.getUserProfile);
 
 routes.get('/orgs', orgsController.getOrgs);
+routes.patch('/orgs/:uniqueId', orgsController.updateOrg);
 routes.delete('/orgs/:uniqueId', orgsController.deleteOrg);
 
 routes.get('/describe', ensureOrgExists, sfQueryController.describe);

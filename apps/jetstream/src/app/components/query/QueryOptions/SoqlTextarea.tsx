@@ -3,7 +3,6 @@ import React, { Fragment, FunctionComponent } from 'react';
 import { useRecoilValue } from 'recoil';
 import * as fromQueryState from '../query.state';
 import IncludeDeletedRecordsToggle from './IncludeDeletedRecords';
-import ManualSoql from './ManualSoql';
 
 // eslint-disable-next-line @typescript-eslint/no-empty-interface
 export interface SoqlTextareaProps {}
@@ -17,7 +16,6 @@ export const SoqlTextarea: FunctionComponent<SoqlTextareaProps> = React.memo(() 
         <CodeEditor className="CodeMirror-textarea" value={soql} readOnly />
       </Textarea>
       <Grid>
-        <ManualSoql />
         <GridCol extraProps={{ dir: 'rtl' }} bump="left">
           <IncludeDeletedRecordsToggle containerClassname="slds-p-top_small" />
         </GridCol>

@@ -82,7 +82,7 @@ export const SobjectList: FunctionComponent<SobjectListProps> = ({
                 Showing {formatNumber(filteredSobjects.length)} of {formatNumber(sobjects.length)} objects
               </div>
             </div>
-            <AutoFullHeightContainer>
+            <AutoFullHeightContainer bottomBuffer={10}>
               <List
                 ref={ulRef}
                 autoScrollToFocus

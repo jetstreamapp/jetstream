@@ -6,7 +6,7 @@ export interface ComboboxListItemLoadMoreProps {}
 
 export const ComboboxListItemLoadMore: FunctionComponent<ComboboxListItemLoadMoreProps> = () => {
   return (
-    <li role="presentation" className="slds-listbox__item">
+    <li role="presentation" className="slds-listbox__item slds-item">
       <div className="slds-align_absolute-center slds-p-top_medium">
         <Spinner className="slds-spinner slds-spinner_brand slds-spinner_x-small slds-spinner_inline" hasContainer={false} />
         {/* <div role="status" className="slds-spinner slds-spinner_x-small slds-spinner_inline">

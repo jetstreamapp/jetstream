@@ -1,7 +1,14 @@
 /* eslint-disable jsx-a11y/anchor-is-valid */
-import { isArrowDownKey, isArrowUpKey, isEnterOrSpace } from '@jetstream/shared/ui-utils';
-import { DropDownItem } from '@jetstream/types';
 import { IconObj } from '@jetstream/icon-factory';
+import {
+  isArrowDownKey,
+  isArrowUpKey,
+  isEnterKey,
+  KeyBuffer,
+  menuItemSelectScroll,
+  selectMenuItemFromKeyboard,
+} from '@jetstream/shared/ui-utils';
+import { DropDownItem } from '@jetstream/types';
 import classNames from 'classnames';
 import isNumber from 'lodash/isNumber';
 import isString from 'lodash/isString';
@@ -46,11 +53,13 @@ export const DropDown: FunctionComponent<DropDownProps> = ({
   description,
   onSelected,
 }) => {
+  const keyBuffer = useRef(new KeyBuffer());
   const [isOpen, setIsOpen] = useState<boolean>(false);
   const scrollLengthClass = useMemo<string | undefined>(() => (scrollLength ? `slds-dropdown_length-${scrollLength}` : undefined), [
     scrollLength,
   ]);
   const [focusedItem, setFocusedItem] = useState<number>(null);
+  const ulContainerEl = useRef<HTMLUListElement>(null);
   const elRefs = useRef<RefObject<HTMLAnchorElement>[]>([]);
 
   // init array to hold element refs for each item in list
@@ -67,6 +76,11 @@ export const DropDown: FunctionComponent<DropDownProps> = ({
     if (elRefs.current && isNumber(focusedItem) && elRefs.current[focusedItem] && elRefs.current[focusedItem]) {
       try {
         elRefs.current[focusedItem].current.focus();
+
+        menuItemSelectScroll({
+          container: ulContainerEl.current,
+          focusedIndex: focusedItem,
+        });
       } catch (ex) {
         // silent error on keyboard navigation
       }
@@ -81,7 +95,7 @@ export const DropDown: FunctionComponent<DropDownProps> = ({
     }
   }, [isOpen]);
 
-  function handleKeyUp(event: KeyboardEvent<HTMLAnchorElement>) {
+  function handleKeyDown(event: KeyboardEvent<HTMLAnchorElement>) {
     event.preventDefault();
     event.stopPropagation();
     let newFocusedItem;
@@ -98,10 +112,19 @@ export const DropDown: FunctionComponent<DropDownProps> = ({
       } else {
         newFocusedItem = focusedItem + 1;
       }
-    } else if (isEnterOrSpace(event) && isNumber(focusedItem)) {
+    } else if (isEnterKey(event) && isNumber(focusedItem)) {
       const item = items[focusedItem];
       onSelected(item.id, item.metadata);
       setIsOpen(false);
+    } else {
+      // allow user to use keyboard to navigate to a specific item in the list by typing words
+      newFocusedItem = selectMenuItemFromKeyboard<DropDownItem>({
+        key: event.key,
+        keyCode: event.keyCode,
+        keyBuffer: keyBuffer.current,
+        items: items,
+        labelProp: 'value',
+      });
     }
 
     if (isNumber(newFocusedItem)) {
@@ -154,7 +177,7 @@ export const DropDown: FunctionComponent<DropDownProps> = ({
             dropDownClassName
           )}
         >
-          <ul className="slds-dropdown__list" role="menu" aria-label={actionText}>
+          <ul className="slds-dropdown__list" role="menu" aria-label={actionText} ref={ulContainerEl}>
             {items.map(({ id, subheader, value, icon, trailingDivider, metadata }, i) => (
               <Fragment key={id}>
                 {subheader && (
@@ -167,7 +190,7 @@ export const DropDown: FunctionComponent<DropDownProps> = ({
                     ref={elRefs.current[i]}
                     role="menuitem"
                     tabIndex={0}
-                    onKeyUp={handleKeyUp}
+                    onKeyDown={handleKeyDown}
                     onClick={(event) => handleSelection(event, id, metadata)}
                   >
                     {isString(value) ? (
