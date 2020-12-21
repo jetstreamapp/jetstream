@@ -18,7 +18,7 @@ export const PicklistItem = forwardRef<HTMLLIElement, PicklistItemProps>(
       <li
         ref={ref}
         role="presentation"
-        className="slds-listbox__item"
+        className="slds-listbox__item slds-item"
         tabIndex={-1}
         onClick={(event) => {
           event.preventDefault();

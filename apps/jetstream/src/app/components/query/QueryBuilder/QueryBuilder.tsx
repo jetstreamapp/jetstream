@@ -180,7 +180,11 @@ export const QueryBuilder: FunctionComponent<QueryBuilderProps> = () => {
             </PageHeaderActions>
           </PageHeaderRow>
         </PageHeader>
-        <AutoFullHeightContainer className="slds-p-horizontal_x-small slds-scrollable_none" bufferIfNotRendered={HEIGHT_BUFFER}>
+        <AutoFullHeightContainer
+          bottomBuffer={0}
+          className="slds-p-horizontal_x-small slds-scrollable_none"
+          bufferIfNotRendered={HEIGHT_BUFFER}
+        >
           <Split
             sizes={[17, 33, 50]}
             minSize={[200, 300, 300]}
@@ -200,6 +204,7 @@ export const QueryBuilder: FunctionComponent<QueryBuilderProps> = () => {
                 <Tabs
                   key={selectedSObject.name}
                   initialActiveId="BaseFields"
+                  contentClassname="slds-p-bottom_none"
                   tabs={[
                     {
                       id: 'BaseFields',

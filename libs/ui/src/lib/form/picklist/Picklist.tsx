@@ -12,8 +12,10 @@ import {
   isShiftKey,
   isTabKey,
   KeyBuffer,
+  menuItemSelectScroll,
   selectMenuItemFromKeyboard,
   trapEventImmediate,
+  useNonInitialEffect,
 } from '@jetstream/shared/ui-utils';
 import { ListItem, ListItemGroup } from '@jetstream/types';
 import classNames from 'classnames';
@@ -96,6 +98,7 @@ export const Picklist: FunctionComponent<PicklistProps> = ({
     scrollLength,
   ]);
   const [focusedItem, setFocusedItem] = useState<number>(null);
+  const divContainerEl = useRef<HTMLDivElement>(null);
   const elRefs = useRef<RefObject<HTMLLIElement>[]>([]);
 
   // populate array of refs of child items for keyboard navigation
@@ -112,10 +115,15 @@ export const Picklist: FunctionComponent<PicklistProps> = ({
     setFocusedItem(null);
   }, [items]);
 
-  useEffect(() => {
+  useNonInitialEffect(() => {
     if (elRefs.current && isNumber(focusedItem) && elRefs.current[focusedItem] && elRefs.current[focusedItem]) {
       try {
         elRefs.current[focusedItem].current.focus();
+
+        menuItemSelectScroll({
+          container: divContainerEl.current,
+          focusedIndex: focusedItem,
+        });
       } catch (ex) {
         // silent failure
       }
@@ -197,18 +205,23 @@ export const Picklist: FunctionComponent<PicklistProps> = ({
     }
   }
 
-  function handleKeyUp(event: KeyboardEvent<HTMLInputElement>) {
+  function handleKeyDown(event: KeyboardEvent<HTMLInputElement>) {
     let newFocusedItem = focusedItem;
     if (isControlKey(event) || isShiftKey(event)) {
       return;
     } else if (isTabKey(event) || isEscapeKey(event) || isEnterKey(event)) {
+      event.preventDefault();
+      event.stopPropagation();
       setIsOpen(false);
       return;
     }
+
     if (!isOpen) {
       setIsOpen(true);
     }
     if (isArrowDownKey(event)) {
+      event.preventDefault();
+      event.stopPropagation();
       trapEventImmediate(event);
       if (!isNumber(focusedItem) || focusedItem === items.length - 1) {
         newFocusedItem = 0;
@@ -216,6 +229,8 @@ export const Picklist: FunctionComponent<PicklistProps> = ({
         newFocusedItem = newFocusedItem + 1;
       }
     } else if (isArrowUpKey(event)) {
+      event.preventDefault();
+      event.stopPropagation();
       trapEventImmediate(event);
       if (!isNumber(focusedItem) || focusedItem === 0) {
         newFocusedItem = items.length - 1;
@@ -238,6 +253,7 @@ export const Picklist: FunctionComponent<PicklistProps> = ({
         keyCode: event.keyCode,
         keyBuffer: keyBuffer.current,
         items: allItems,
+        labelProp: 'label',
       });
     }
 
@@ -265,7 +281,7 @@ export const Picklist: FunctionComponent<PicklistProps> = ({
           {label}
         </label>
         {labelHelp && <HelpText id={`${comboboxId}-label-help-text`} content={labelHelp} />}
-        <div className="slds-form-element__control">
+        <div className="slds-form-element__control" ref={divContainerEl}>
           <div className={containerClassName || 'slds-combobox_container'}>
             <div
               className={classNames('slds-combobox slds-dropdown-trigger slds-dropdown-trigger_click', { 'slds-is-open': isOpen })}
@@ -288,7 +304,7 @@ export const Picklist: FunctionComponent<PicklistProps> = ({
                   value={selectedItemText || ''}
                   title={selectedItemText}
                   disabled={disabled}
-                  onKeyUp={handleKeyUp}
+                  onKeyUp={handleKeyDown}
                 />
                 <span className="slds-icon_container slds-icon-utility-down slds-input__icon slds-input__icon_right">
                   <Icon
@@ -303,7 +319,7 @@ export const Picklist: FunctionComponent<PicklistProps> = ({
                 id={listboxId}
                 className={classNames('slds-dropdown slds-dropdown_fluid slds-dropdown_length-7', scrollLengthClass)}
                 role="listbox"
-                onKeyUp={handleKeyUp}
+                onKeyDown={handleKeyDown}
               >
                 {Array.isArray(items) && (
                   <ul className="slds-listbox slds-listbox_vertical" role="presentation">
@@ -324,7 +340,7 @@ export const Picklist: FunctionComponent<PicklistProps> = ({
                 {Array.isArray(groups) &&
                   groups.map((group) => (
                     <ul key={group.id} className="slds-listbox slds-listbox_vertical" role="group" aria-label={group.label}>
-                      <li role="presentation" className="slds-listbox__item">
+                      <li role="presentation" className="slds-listbox__item slds-item">
                         <div className="slds-media slds-listbox__option slds-listbox__option_plain slds-media_small" role="presentation">
                           <h3 className="slds-listbox__option-header" role="presentation">
                             {group.label}

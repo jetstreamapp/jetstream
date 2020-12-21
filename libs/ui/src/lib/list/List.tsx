@@ -1,7 +1,15 @@
 /** @jsx jsx */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { jsx } from '@emotion/core';
-import { isArrowDownKey, isArrowUpKey, isEndKey, isEnterOrSpace, isHomeKey, useNonInitialEffect } from '@jetstream/shared/ui-utils';
+import {
+  isArrowDownKey,
+  isArrowUpKey,
+  isEndKey,
+  isEnterOrSpace,
+  isHomeKey,
+  menuItemSelectScroll,
+  useNonInitialEffect,
+} from '@jetstream/shared/ui-utils';
 import isNumber from 'lodash/isNumber';
 import { createRef, forwardRef, Fragment, KeyboardEvent, RefObject, useEffect, useRef, useState } from 'react';
 import ListItem from './ListItem';
@@ -54,16 +62,23 @@ export const List = forwardRef<HTMLUListElement, ListProps>(
       if (autoScrollToFocus && !didScrollIntoView && items?.length) {
         const activeItemIdx = items.findIndex(isActive);
         if (elRefs.current[activeItemIdx] && elRefs.current[activeItemIdx].current) {
-          elRefs.current[activeItemIdx].current.scrollIntoView();
+          // without timeout, the viewport does not appear to have been fully rendered and the scroll position was slightly off
+          const timeout = setTimeout(() => elRefs.current[activeItemIdx].current.scrollIntoView());
           setDidScrollIntoView(true);
+          return () => clearTimeout(timeout);
         }
       }
     }, [autoScrollToFocus, items]);
 
-    useEffect(() => {
+    useNonInitialEffect(() => {
       if (elRefs.current && isNumber(focusedItem) && elRefs.current[focusedItem] && elRefs.current[focusedItem]) {
         try {
           elRefs.current[focusedItem].current.focus();
+
+          menuItemSelectScroll({
+            container: ref.current,
+            focusedIndex: focusedItem,
+          });
         } catch (ex) {
           // silent failure
         }
@@ -77,15 +92,14 @@ export const List = forwardRef<HTMLUListElement, ListProps>(
       }
     }
 
-    function scrollIntoView() {}
-
-    function handleKeyUp(event: KeyboardEvent<HTMLUListElement>) {
+    function handleKeyDown(event: KeyboardEvent<HTMLUListElement>) {
       event.stopPropagation();
       let newFocusedItem;
       let currFocusedItem = focusedItem;
 
       // see if there is a selected item and start there
       if (!isNumber(currFocusedItem) && (isArrowUpKey(event) || isArrowDownKey(event))) {
+        event.preventDefault();
         const activeIndex = items.findIndex((item) => isActive(item));
         if (activeIndex >= 0) {
           currFocusedItem = activeIndex;
@@ -93,22 +107,27 @@ export const List = forwardRef<HTMLUListElement, ListProps>(
       }
 
       if (isArrowUpKey(event)) {
+        event.preventDefault();
         if (!isNumber(currFocusedItem) || currFocusedItem === 0) {
           newFocusedItem = items.length - 1;
         } else {
           newFocusedItem = currFocusedItem - 1;
         }
       } else if (isArrowDownKey(event)) {
+        event.preventDefault();
         if (!isNumber(currFocusedItem) || currFocusedItem >= items.length - 1) {
           newFocusedItem = 0;
         } else {
           newFocusedItem = currFocusedItem + 1;
         }
       } else if (isHomeKey(event)) {
+        event.preventDefault();
         newFocusedItem = 0;
       } else if (isEndKey(event)) {
+        event.preventDefault();
         newFocusedItem = items.length - 1;
       } else if (!useCheckbox && isEnterOrSpace(event)) {
+        event.preventDefault();
         const { key } = getContent(items[currFocusedItem]);
         handleSelect(key, currFocusedItem);
         return;
@@ -121,7 +140,7 @@ export const List = forwardRef<HTMLUListElement, ListProps>(
     return (
       <Fragment>
         {Array.isArray(items) && items.length > 0 && (
-          <ul ref={ref} className="slds-has-dividers_bottom-space" tabIndex={0} onKeyUp={handleKeyUp}>
+          <ul ref={ref} className="slds-has-dividers_bottom-space" tabIndex={0} onKeyDown={handleKeyDown}>
             {items.map((item, i) => {
               const { key, id, heading, subheading } = getContent(item);
               return useCheckbox ? (

@@ -19,7 +19,7 @@ export const ComboboxListItem = forwardRef<HTMLLIElement, ComboboxListItemProps>
     const backupTitle = `${label || ''} ${secondaryLabel || ''}`;
     title = title || backupTitle;
     return (
-      <li ref={ref} role="presentation" className="slds-listbox__item" onClick={() => onSelection(id)} tabIndex={-1}>
+      <li ref={ref} role="presentation" className="slds-listbox__item slds-item" onClick={() => onSelection(id)} tabIndex={-1}>
         <div
           id={id}
           aria-disabled={disabled}

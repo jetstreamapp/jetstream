@@ -893,3 +893,33 @@ export function transformTabularDataToExcelStr<T = unknown>(data: T[], fields?: 
 export function isErrorResponse(value: any): value is ErrorResult {
   return !value.success;
 }
+
+// https://github.com/salesforce/design-system-react/blob/master/utilities/menu-item-select-scroll.js
+/* Copyright (c) 2015-present, salesforce.com, inc. All rights reserved */
+export function menuItemSelectScroll({
+  container,
+  focusedIndex,
+  itemTag = 'li',
+  scrollPadding = 4,
+}: {
+  container: HTMLElement;
+  focusedIndex: number;
+  itemTag?: string;
+  scrollPadding?: number;
+}) {
+  try {
+    const domItem: HTMLLIElement = container.querySelector(`${itemTag}:nth-child(${focusedIndex + 1})`);
+
+    if (domItem) {
+      if (domItem.offsetHeight - container.scrollTop + domItem.offsetTop >= container.offsetHeight) {
+        // eslint-disable-next-line no-param-reassign
+        container.scrollTop = domItem.offsetHeight + domItem.offsetTop - container.offsetHeight + scrollPadding;
+      } else if (domItem.offsetTop <= container.scrollTop) {
+        // eslint-disable-next-line no-param-reassign
+        container.scrollTop = domItem.offsetTop - scrollPadding;
+      }
+    }
+  } catch (ex) {
+    // ignore errors
+  }
+}
