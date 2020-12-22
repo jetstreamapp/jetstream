@@ -1,5 +1,5 @@
 /** @jsx jsx */
-import { CellEvent, CellKeyDownEvent, ColDef, ColumnEvent, ValueFormatterParams } from '@ag-grid-community/core';
+import { CellEvent, CellKeyDownEvent, ColDef, ColumnEvent, GetQuickFilterTextParams, ValueFormatterParams } from '@ag-grid-community/core';
 import { QueryResults, QueryResultsColumn } from '@jetstream/api-interfaces';
 import { DATE_FORMATS } from '@jetstream/shared/constants';
 import { isEnterKey } from '@jetstream/shared/ui-utils';
@@ -90,7 +90,7 @@ export function DateFilterComparator(filterDate: Date, cellValue: string): numbe
   }
 }
 
-export const dataTableAddressFormatter = ({ value }: ValueFormatterParams): string => {
+export const dataTableAddressFormatter = ({ value }: ValueFormatterParams | GetQuickFilterTextParams): string => {
   if (!isObject(value)) {
     return '';
   }
@@ -100,7 +100,7 @@ export const dataTableAddressFormatter = ({ value }: ValueFormatterParams): stri
   return [street, remainingParts].join('\n');
 };
 
-export const dataTableLocationFormatter = ({ value }: ValueFormatterParams): string => {
+export const dataTableLocationFormatter = ({ value }: ValueFormatterParams | GetQuickFilterTextParams): string => {
   if (!isObject(value)) {
     return '';
   }
@@ -108,7 +108,7 @@ export const dataTableLocationFormatter = ({ value }: ValueFormatterParams): str
   return `Latitude: ${location.latitude}°, Longitude: ${location.longitude}°`;
 };
 
-export const dataTableDateFormatter = ({ value }: ValueFormatterParams): string => {
+export const dataTableDateFormatter = ({ value }: ValueFormatterParams | GetQuickFilterTextParams): string => {
   const dateOrDateTime: string = value;
   if (!dateOrDateTime) {
     return '';
@@ -121,7 +121,7 @@ export const dataTableDateFormatter = ({ value }: ValueFormatterParams): string 
   }
 };
 
-export const dataTableTimeFormatter = ({ value }: ValueFormatterParams): string => {
+export const dataTableTimeFormatter = ({ value }: ValueFormatterParams | GetQuickFilterTextParams): string => {
   const time: string = value;
   if (!time) {
     return '';
@@ -235,17 +235,21 @@ function getColDef(field: string, queryColumnsByPath: MapOf<QueryResultsColumn>,
       colDef.cellRenderer = 'idLinkRenderer';
     } else if (col.apexType === 'Date' || col.apexType === 'Datetime') {
       colDef.valueFormatter = dataTableDateFormatter;
+      colDef.getQuickFilterText = dataTableDateFormatter;
       colDef.filter = 'agDateColumnFilter';
       colDef.filterParams.comparator = DateFilterComparator;
     } else if (col.apexType === 'Time') {
       colDef.valueFormatter = dataTableTimeFormatter;
+      colDef.getQuickFilterText = dataTableTimeFormatter;
       // TODO: add time filter
       // colDef.filter = 'agDateColumnFilter';
       // colDef.filterParams.comparator = DateFilterComparator;
     } else if (col.apexType === 'Address') {
       colDef.valueFormatter = dataTableAddressFormatter;
+      colDef.getQuickFilterText = dataTableAddressFormatter;
     } else if (col.apexType === 'Location') {
       colDef.valueFormatter = dataTableLocationFormatter;
+      colDef.getQuickFilterText = dataTableLocationFormatter;
     } else if (Array.isArray(col.childColumnPaths)) {
       colDef.cellRenderer = 'subqueryRenderer';
     }

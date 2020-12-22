@@ -9,7 +9,7 @@ import { SalesforceOrgUi } from '@jetstream/types';
 import uniqueId from 'lodash/uniqueId';
 import { Fragment, FunctionComponent, memo, ReactNode, useEffect, useRef, useState } from 'react';
 import Grid from '../grid/Grid';
-import GridCol from '../grid/GridCol';
+import SearchInput from '../form/search-input/SearchInput';
 import AutoFullHeightContainer from '../layout/AutoFullHeightContainer';
 import Spinner from '../widgets/Spinner';
 import './data-table-styles.scss';
@@ -68,6 +68,7 @@ export const SalesforceRecordDataTable: FunctionComponent<SalesforceRecordDataTa
     const [isLoadingMore, setIsLoadingMore] = useState<boolean>(false);
     const [hasMoreRecords, setHasMoreRecords] = useState<boolean>(false);
     const [nextRecordsUrl, setNextRecordsUrl] = useState<string>();
+    const [globalFilter, setGlobalFilter] = useState<string>(null);
 
     useEffect(() => {
       isMounted.current = true;
@@ -139,19 +140,24 @@ export const SalesforceRecordDataTable: FunctionComponent<SalesforceRecordDataTa
 
     return records ? (
       <Fragment>
-        <Grid className="slds-p-around_xx-small">
-          <div className="slds-p-around_x-small">
-            Showing {formatNumber(records.length)} of {formatNumber(totalRecordCount)} records
-          </div>
-          {hasMoreRecords && (
-            <div>
-              <button className="slds-button slds-button_neutral slds-is-relative" onClick={loadMore} disabled={isLoadingMore}>
-                Load More
-                {isLoadingMore && <Spinner size="small" />}
-              </button>
+        <Grid className="slds-p-around_xx-small" align="spread">
+          <div className="slds-grid">
+            <div className="slds-p-around_x-small">
+              Showing {formatNumber(records.length)} of {formatNumber(totalRecordCount)} records
             </div>
-          )}
-          {summaryHeaderRightContent && <GridCol bump="left">{summaryHeaderRightContent}</GridCol>}
+            {hasMoreRecords && (
+              <div>
+                <button className="slds-button slds-button_neutral slds-is-relative" onClick={loadMore} disabled={isLoadingMore}>
+                  Load More
+                  {isLoadingMore && <Spinner size="small" />}
+                </button>
+              </div>
+            )}
+          </div>
+          <div className="slds-p-top_xx-small">
+            <SearchInput id="record-filter" placeholder="Search records..." onChange={setGlobalFilter} />
+          </div>
+          <div>{summaryHeaderRightContent}</div>
         </Grid>
         <DataTableContext.Provider
           value={{
@@ -166,6 +172,7 @@ export const SalesforceRecordDataTable: FunctionComponent<SalesforceRecordDataTa
               org={org}
               columns={columns}
               data={records}
+              quickFilterText={globalFilter}
               agGridProps={{
                 immutableData: true,
                 getRowNodeId,
