@@ -24,6 +24,7 @@ export interface DataTableProps {
   columns: ColDef[];
   data: any[];
   agGridProps?: AgGridReactProps;
+  quickFilterText?: string;
   serverUrl?: string;
   org?: SalesforceOrgUi;
 }
@@ -36,6 +37,7 @@ export const DataTable: FunctionComponent<DataTableProps> = ({
   columns,
   data,
   agGridProps = {},
+  quickFilterText,
   serverUrl,
   org,
 }) => {
@@ -47,6 +49,7 @@ export const DataTable: FunctionComponent<DataTableProps> = ({
     <div className="ag-theme-custom-react" style={style}>
       <AgGridReact
         rowSelection="multiple"
+        quickFilterText={quickFilterText}
         frameworkComponents={{
           // CELL RENDERERS
           actionRenderer: ActionRenderer,

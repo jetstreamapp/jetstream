@@ -1,6 +1,7 @@
+import { useNonInitialEffect } from '@jetstream/shared/ui-utils';
 import { pluralizeFromNumber } from '@jetstream/shared/utils';
 import { MapOf, QueryFieldWithPolymorphic } from '@jetstream/types';
-import { Accordion, Badge, EmptyState, Grid, GridCol } from '@jetstream/ui';
+import { Accordion, Badge, EmptyState, Grid, GridCol, SearchInput } from '@jetstream/ui';
 import { ChildRelationship } from 'jsforce';
 import React, { Fragment, FunctionComponent, useState } from 'react';
 import { useRecoilValue } from 'recoil';
@@ -14,8 +15,29 @@ export interface QuerySubquerySObjectsProps {
 }
 
 export const QuerySubquerySObjects: FunctionComponent<QuerySubquerySObjectsProps> = ({ childRelationships, onSelectionChanged }) => {
+  const [visibleChildRelationships, setVisibleChildRelationships] = useState<ChildRelationship[]>(childRelationships);
   const [childRelationshipContent, setChildRelationshipContent] = useState<MapOf<ChildRelationship>>({});
+  const [textFilter, setTextFilter] = useState<string>('');
   const selectedFieldState = useRecoilValue(fromQueryState.selectedSubqueryFieldsState);
+
+  useNonInitialEffect(() => {
+    setVisibleChildRelationships(childRelationships);
+    setTextFilter('');
+  }, [childRelationships]);
+
+  useNonInitialEffect(() => {
+    if (textFilter) {
+      setVisibleChildRelationships(
+        childRelationships.filter((childRelationship) =>
+          `${childRelationship.relationshipName}${childRelationship.childSObject}${childRelationship.field}`
+            .toLowerCase()
+            .includes(textFilter.toLowerCase())
+        )
+      );
+    } else {
+      setVisibleChildRelationships(childRelationships);
+    }
+  }, [textFilter]);
 
   function getContent(childRelationship: ChildRelationship) {
     return () => {
@@ -55,29 +77,34 @@ export const QuerySubquerySObjects: FunctionComponent<QuerySubquerySObjectsProps
           <p>This object does not have any related objects</p>
         </EmptyState>
       )}
-      <Accordion
-        initOpenIds={[]}
-        allowMultiple={false}
-        sections={childRelationships.map((childRelationship) => ({
-          id: childRelationship.relationshipName,
-          titleText: `${childRelationship.relationshipName} (${childRelationship.childSObject}.${childRelationship.field})`,
-          title: (
-            <Grid align="spread" gutters>
-              <GridCol>
-                <Grid vertical gutters>
-                  <GridCol>{childRelationship.relationshipName}</GridCol>
-                  <GridCol className="slds-text-body_small slds-text-color_weak">
-                    {childRelationship.childSObject}.{childRelationship.field}
+      {childRelationships.length > 0 && (
+        <Fragment>
+          <SearchInput id="subquery-filter" placeholder="Filter child objects" onChange={setTextFilter} />
+          <Accordion
+            initOpenIds={[]}
+            allowMultiple={false}
+            sections={visibleChildRelationships.map((childRelationship) => ({
+              id: childRelationship.relationshipName,
+              titleText: `${childRelationship.relationshipName} (${childRelationship.childSObject}.${childRelationship.field})`,
+              title: (
+                <Grid align="spread" gutters>
+                  <GridCol>
+                    <Grid vertical gutters>
+                      <GridCol>{childRelationship.relationshipName}</GridCol>
+                      <GridCol className="slds-text-body_small slds-text-color_weak">
+                        {childRelationship.childSObject}.{childRelationship.field}
+                      </GridCol>
+                    </Grid>
                   </GridCol>
                 </Grid>
-              </GridCol>
-            </Grid>
-          ),
+              ),
 
-          titleSummaryIfCollapsed: getCollapsedSummary(childRelationship),
-          content: getContent(childRelationship),
-        }))}
-      />
+              titleSummaryIfCollapsed: getCollapsedSummary(childRelationship),
+              content: getContent(childRelationship),
+            }))}
+          />
+        </Fragment>
+      )}
     </Fragment>
   );
 };
