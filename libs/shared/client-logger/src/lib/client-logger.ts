@@ -12,6 +12,43 @@ interface Logger {
   groupEnd: (...args: any[]) => void;
 }
 
+// value used in sessionStorage to indicate logging is enabled
+const SESSION_KEY = 'LOGGER';
+const SESSION_VALUE_ENABLED = '1';
+
+// if logging was previously turned on for session, then retain state
+const SESSION_LOGGING_ENABLED = getLoggingEnabledState();
+
+function getLoggingEnabledState() {
+  try {
+    if (sessionStorage) {
+      return sessionStorage.getItem(SESSION_KEY);
+    }
+  } catch (ex) {
+    return undefined;
+  }
+}
+
+function saveLoggingEnabledState() {
+  try {
+    if (sessionStorage) {
+      sessionStorage.setItem(SESSION_KEY, SESSION_VALUE_ENABLED);
+    }
+  } catch (ex) {
+    // ignore errors
+  }
+}
+
+function clearLoggingEnabledState() {
+  try {
+    if (sessionStorage) {
+      sessionStorage.removeItem(SESSION_KEY);
+    }
+  } catch (ex) {
+    // ignore errors
+  }
+}
+
 export const logger: Logger = {
   isEnabled: false,
   log: NOOP,
@@ -26,6 +63,7 @@ export const logger: Logger = {
 export const enableLogger = (enable: boolean) => {
   logger.isEnabled = enable;
   if (!enable) {
+    clearLoggingEnabledState();
     logger.log = NOOP;
     logger.info = NOOP;
     logger.warn = NOOP;
@@ -35,6 +73,7 @@ export const enableLogger = (enable: boolean) => {
     logger.groupEnd = NOOP;
   } else {
     try {
+      saveLoggingEnabledState();
       logger.log = console.log.bind(window.console, '%c DEBUG', 'color: blue; font-weight: bold;');
       logger.info = console.info.bind(window.console, '%c INFO', 'color: green; font-weight: bold;');
       logger.warn = console.warn.bind(window.console, '%c WARN', 'font-weight: bold;');
@@ -48,8 +87,8 @@ export const enableLogger = (enable: boolean) => {
   }
 };
 
-if (process.env.NODE_ENV === 'production') {
-  enableLogger(false);
-} else {
+if (SESSION_LOGGING_ENABLED || process.env.NODE_ENV !== 'production') {
   enableLogger(true);
+} else {
+  enableLogger(false);
 }

@@ -1,17 +1,15 @@
-import { ApplicationCookie, UserProfileUi } from '@jetstream/types';
+import { logger } from '@jetstream/shared/client-logger';
+import { HTTP } from '@jetstream/shared/constants';
+import { registerMiddleware } from '@jetstream/shared/data';
+import { useObservable, useRollbar } from '@jetstream/shared/ui-utils';
+import { ApplicationCookie, SalesforceOrgUi, UserProfileUi } from '@jetstream/types';
+import { AxiosResponse } from 'axios';
+import localforage from 'localforage';
 import React, { Fragment, FunctionComponent, useEffect } from 'react';
 import { useRecoilState, useRecoilValue } from 'recoil';
-import * as fromAppState from '../../app-state';
 import { Subject } from 'rxjs';
-import { registerMiddleware } from '@jetstream/shared/data';
-import { useObservable } from '@jetstream/shared/ui-utils';
-import { SalesforceOrgUi } from '@jetstream/types';
-import { HTTP } from '@jetstream/shared/constants';
-import { logger } from '@jetstream/shared/client-logger';
-import { useRollbar } from '@jetstream/shared/ui-utils';
 import { environment } from '../../../environments/environment';
-import localforage from 'localforage';
-import { AxiosResponse } from 'axios';
+import * as fromAppState from '../../app-state';
 
 const orgConnectionError = new Subject<{ uniqueId: string; connectionError: string }>();
 const orgConnectionError$ = orgConnectionError.asObservable();
@@ -32,8 +30,6 @@ export interface AppInitializerProps {
 }
 
 export const AppInitializer: FunctionComponent<AppInitializerProps> = ({ onUserProfile, children }) => {
-  // FIXME: Cannot update a component (`Batcher`) while rendering a different component (`AppInitializer`)
-  // Recoil needs to fix this
   const userProfile = useRecoilValue<UserProfileUi>(fromAppState.userProfileState);
   const appCookie = useRecoilValue<ApplicationCookie>(fromAppState.applicationCookieState);
   const [orgs, setOrgs] = useRecoilState(fromAppState.salesforceOrgsState);
