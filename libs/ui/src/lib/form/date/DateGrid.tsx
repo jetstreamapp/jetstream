@@ -16,13 +16,22 @@ import {
 } from '@jetstream/shared/ui-utils';
 import { PreviousNext } from '@jetstream/types';
 import classNames from 'classnames';
+import addDays from 'date-fns/addDays';
+import addWeeks from 'date-fns/addWeeks';
+import endOfMonth from 'date-fns/endOfMonth';
+import isBefore from 'date-fns/isBefore';
+import isSameDay from 'date-fns/isSameDay';
+import isSameMonth from 'date-fns/isSameMonth';
+import setDay from 'date-fns/setDay';
+import setMonth from 'date-fns/setMonth';
+import setYear from 'date-fns/setYear';
+import startOfMonth from 'date-fns/startOfMonth';
 import isNumber from 'lodash/isNumber';
-import moment from 'moment-mini';
 import { createRef, FunctionComponent, KeyboardEvent, RefObject, useEffect, useRef, useState } from 'react';
 
 interface DateGridDate {
   label: number;
-  value: moment.Moment;
+  value: Date;
   isCurrMonth: boolean;
   isToday: boolean;
   isSelected: boolean;
@@ -31,10 +40,10 @@ interface DateGridDate {
 export interface DateGridProps {
   currMonth: number;
   currYear: number;
-  selectedDate?: moment.Moment;
+  selectedDate?: Date;
   cameFromMonth: PreviousNext;
   onClose: () => void;
-  onSelected: (date: moment.Moment) => void;
+  onSelected: (date: Date) => void;
   onPrevMonth: () => void;
   onNextMonth: () => void;
   onPrevYear: () => void;
@@ -85,14 +94,14 @@ export const DateGrid: FunctionComponent<DateGridProps> = ({
           week.forEach((day, k) => {
             if (day.isCurrMonth) {
               if (!lastDayOfMonth) {
-                lastDayOfMonth = moment(day.value).endOf('month');
+                lastDayOfMonth = endOfMonth(day.value);
               }
               if (day.isToday) {
                 todayIdx = { week: i, day: k };
               }
-              if (day.value.date() === 1) {
+              if (day.value.getDate() === 1) {
                 firstOfMonthIdx = { week: i, day: k };
-              } else if (day.value.isSame(lastDayOfMonth, 'day')) {
+              } else if (isSameDay(day.value, lastDayOfMonth)) {
                 lastOfMonthIdx = { week: i, day: k };
               }
               if (day.isSelected) {
@@ -123,37 +132,37 @@ export const DateGrid: FunctionComponent<DateGridProps> = ({
 
   // Calculate date grid for a 5 week period
   useEffect(() => {
-    let date: moment.Moment;
+    let date: Date;
     if (isNumber(currMonth) && isNumber(currYear)) {
-      date = moment().month(currMonth).year(currYear).startOf('month');
+      date = startOfMonth(setYear(setMonth(new Date(), currMonth), currYear));
     } else {
-      date = moment().startOf('month');
+      date = startOfMonth(new Date());
     }
     // Set date to sunday of current week, which is likely in prior month
-    const startDate = date.clone().day(0);
+    const startDate = setDay(date, 0);
     // set end date to show a full 5 weeks from start date
-    const endDate = startDate.clone().add(6, 'weeks').subtract(1, 'day');
+    const endDate = addDays(addWeeks(startDate, 6), -1);
 
-    const today = moment();
-    const currDate = startDate.clone();
+    const today = new Date();
+    let currDate = startDate;
     const grid: DateGridDate[][] = [];
     let currWeek: DateGridDate[] = [];
     let isFirstIteration = true;
     // create grid
-    while (currDate.isSameOrBefore(endDate, 'day')) {
-      if (!isFirstIteration && currDate.day() === 0) {
+    while (isBefore(currDate, endDate) || isSameDay(currDate, endDate)) {
+      if (!isFirstIteration && currDate.getDay() === 0) {
         grid.push(currWeek);
         currWeek = [];
       }
       isFirstIteration = false;
       currWeek.push({
-        label: currDate.date(),
-        value: currDate.clone(),
-        isCurrMonth: currDate.month() === currMonth,
-        isToday: currDate.isSame(today, 'day'),
-        isSelected: selectedDate && selectedDate.isSame(currDate, 'day'),
+        label: currDate.getDate(),
+        value: currDate,
+        isCurrMonth: currDate.getMonth() === currMonth,
+        isToday: isSameDay(currDate, today),
+        isSelected: selectedDate && isSameDay(currDate, selectedDate),
       });
-      currDate.add(1, 'day');
+      currDate = addDays(currDate, 1);
     }
     setDateGrid(grid);
   }, [selectedDate, currMonth, currYear]);
@@ -238,9 +247,9 @@ export const DateGrid: FunctionComponent<DateGridProps> = ({
     if (isNumber(targetWeekIdx) && isNumber(targetDayIdx)) {
       const newDay = dateGrid[targetWeekIdx][targetDayIdx].value;
       // if day is in different month, then change months
-      if (newDay.isSame(day.value, 'month')) {
+      if (isSameMonth(newDay, day.value)) {
         currentRefs[targetWeekIdx][targetDayIdx].current.focus();
-      } else if (newDay.isBefore(day.value)) {
+      } else if (isBefore(newDay, day.value)) {
         onPrevMonth();
       } else {
         onNextMonth();

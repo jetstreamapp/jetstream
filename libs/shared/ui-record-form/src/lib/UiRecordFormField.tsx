@@ -8,7 +8,6 @@ import formatISO from 'date-fns/formatISO';
 import parseISO from 'date-fns/parseISO';
 import startOfDay from 'date-fns/startOfDay';
 import uniqueId from 'lodash/uniqueId';
-import moment from 'moment-mini';
 import { FunctionComponent, ReactNode, SyntheticEvent, useEffect, useState } from 'react';
 import { EditableFields } from './ui-record-form-types';
 import { isCheckbox, isDate, isInput, isPicklist, isTextarea } from './ui-record-form-utils';
@@ -109,8 +108,8 @@ export const UiRecordFormField: FunctionComponent<UiRecordFormFieldProps> = ({
     checkIfDirtyAndEmit(currValue);
   }
 
-  function handleDateChange(currValue: moment.Moment) {
-    const newValue = formatISO(currValue.toDate());
+  function handleDateChange(currValue: Date) {
+    const newValue = formatISO(currValue);
     setValue(newValue);
     checkIfDirtyAndEmit(newValue);
   }
@@ -214,7 +213,7 @@ export const UiRecordFormField: FunctionComponent<UiRecordFormFieldProps> = ({
             isRequired={!readOnly && required}
             hasError={!!saveError}
             errorMessageId={`${id}-error`}
-            initialSelectedDate={moment(value as string)}
+            initialSelectedDate={parseISO(value as string)}
             readOnly={readOnly}
             onChange={handleDateChange}
           />

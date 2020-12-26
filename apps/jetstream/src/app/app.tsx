@@ -14,6 +14,7 @@ import AppStateResetOnOrgChange from './components/core/AppStateResetOnOrgChange
 import AppToast from './components/core/AppToast';
 import ErrorBoundaryFallback from './components/core/ErrorBoundaryFallback';
 import HeaderNavbar from './components/core/HeaderNavbar';
+import LogInitializer from './components/core/LogInitializer';
 import OrgSelectionRequired from './components/orgs/OrgSelectionRequired';
 
 const AutomationControl = lazy(() => import('./components/automation-control/AutomationControl'));
@@ -83,6 +84,7 @@ export const App = () => {
               <AppStateResetOnOrgChange />
               <AppToast />
               <Router basename="/app">
+                <LogInitializer />
                 <div>
                   <div>
                     <HeaderNavbar userProfile={userProfile} featureFlags={featureFlags} />

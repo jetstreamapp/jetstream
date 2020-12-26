@@ -4,7 +4,11 @@ import { jsx } from '@emotion/core';
 import { useNonInitialEffect } from '@jetstream/shared/ui-utils';
 import { PositionLeftRight } from '@jetstream/types';
 import classNames from 'classnames';
-import moment from 'moment-mini';
+import formatISO from 'date-fns/formatISO';
+import isSameDay from 'date-fns/isSameDay';
+import isValidDate from 'date-fns/isValid';
+import parseISO from 'date-fns/parseISO';
+import startOfDay from 'date-fns/startOfDay';
 import { ChangeEvent, FunctionComponent, KeyboardEvent, useEffect, useState } from 'react';
 import OutsideClickHandler from '../../utils/OutsideClickHandler';
 import HelpText from '../../widgets/HelpText';
@@ -24,13 +28,13 @@ export interface DatePickerProps {
   hasError?: boolean;
   errorMessageId?: string;
   errorMessage?: React.ReactNode | string;
-  initialSelectedDate?: moment.Moment;
-  initialVisibleDate?: moment.Moment;
+  initialSelectedDate?: Date;
+  initialVisibleDate?: Date;
   availableYears?: number[];
   dropDownPosition?: PositionLeftRight;
   disabled?: boolean;
   readOnly?: boolean;
-  onChange: (date: moment.Moment) => void;
+  onChange: (date: Date) => void;
 }
 
 export const DatePicker: FunctionComponent<DatePickerProps> = ({
@@ -53,18 +57,16 @@ export const DatePicker: FunctionComponent<DatePickerProps> = ({
   readOnly,
   onChange,
 }) => {
-  initialSelectedDate = initialSelectedDate && initialSelectedDate.isValid() ? initialSelectedDate : undefined;
-  initialVisibleDate = initialVisibleDate && initialVisibleDate.isValid() ? initialVisibleDate : undefined;
+  initialSelectedDate = isValidDate(initialSelectedDate) ? initialSelectedDate : undefined;
+  initialVisibleDate = isValidDate(initialVisibleDate) ? initialVisibleDate : undefined;
   const [id] = useState<string>(`${_id || 'date-picker'}-${Date.now()}`); // used to avoid auto-complete
   const [value, setValue] = useState<string>('');
-  const [selectedDate, setSelectedDate] = useState(() =>
-    initialSelectedDate && initialSelectedDate.isValid() ? initialSelectedDate : undefined
-  );
+  const [selectedDate, setSelectedDate] = useState(() => (isValidDate(initialSelectedDate) ? initialSelectedDate : undefined));
   const [isOpen, setIsOpen] = useState(false);
 
   useEffect(() => {
     if (selectedDate) {
-      setValue(selectedDate.format('l'));
+      setValue(formatISO(selectedDate, { representation: 'date' }));
     }
   }, [selectedDate]);
 
@@ -77,20 +79,24 @@ export const DatePicker: FunctionComponent<DatePickerProps> = ({
   function onValueChange(event: ChangeEvent<HTMLInputElement>) {
     const value = event.target.value;
     setValue(value);
-    const currDate = moment(value, 'l');
-    if (currDate.isValid()) {
-      setSelectedDate(currDate);
-    } // else invalid date
+    try {
+      const currDate = parseISO(value);
+      if (isValidDate(currDate)) {
+        setSelectedDate(currDate);
+      } // else invalid date
+    } catch (ex) {
+      // invlaid date
+    }
     if (value === '') {
       onChange(null);
     }
   }
 
-  function handleDateSelection(date: moment.Moment) {
-    if (!selectedDate || !selectedDate.isSame(date, 'day')) {
+  function handleDateSelection(date: Date) {
+    if (!selectedDate || !isSameDay(selectedDate, date)) {
       setIsOpen(false);
     }
-    setSelectedDate(date.startOf('day'));
+    setSelectedDate(startOfDay(date));
   }
 
   function handleToggleOpen(value) {

@@ -1,10 +1,11 @@
 import { pluralizeFromNumber } from '@jetstream/shared/utils';
 import { QueryHistoryItem } from '@jetstream/types';
 import { Card, CodeEditor, CopyToClipboard, Grid, GridCol, Icon, Textarea } from '@jetstream/ui';
-import moment from 'moment-mini';
 import React, { Fragment, FunctionComponent, useEffect, useRef, useState } from 'react';
 import { Link, useRouteMatch } from 'react-router-dom';
+import { DATE_FORMATS } from '@jetstream/shared/constants';
 import RestoreQuery from '../QueryBuilder/RestoreQuery';
+import formatDate from 'date-fns/format';
 
 // eslint-disable-next-line @typescript-eslint/no-empty-interface
 export interface QueryHistoryItemCardProps {
@@ -76,7 +77,7 @@ export const QueryHistoryItemCard: FunctionComponent<QueryHistoryItemCardProps> 
         <Fragment>
           <Grid wrap className="slds-m-bottom_x-small slds-scrollable_x">
             <GridCol size={12} className="slds-text-body_small slds-text-color_weak slds-m-bottom_xx-small">
-              Last Run: {moment(lastRun).format('LLL')} - Run: {runCount} {pluralizeFromNumber('time', runCount)}
+              Last Run: {formatDate(lastRun, DATE_FORMATS.FULL)} - Run: {runCount} {pluralizeFromNumber('time', runCount)}
             </GridCol>
             <GridCol>
               {soql && (

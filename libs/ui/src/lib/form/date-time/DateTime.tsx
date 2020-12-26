@@ -60,7 +60,7 @@ export const DateTime: FunctionComponent<DateTimeProps> = ({ legendLabel, datePr
         <div className="slds-form-element__group">
           <div className="slds-form-element__row">
             {/* FIXME: when moment is deprecated we should refactor */}
-            <DatePicker {...dateProps} onChange={(value) => handleDatePickerChange(value.toDate())} />
+            <DatePicker {...dateProps} onChange={handleDatePickerChange} />
             <TimePicker {...timeProps} onChange={handleTimePickerChange} />
           </div>
         </div>
