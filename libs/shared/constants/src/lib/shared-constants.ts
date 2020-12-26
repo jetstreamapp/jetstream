@@ -68,19 +68,20 @@ export const INDEXED_DB = {
   },
 };
 
-export const YYYY_MM_DD = 'YYYY-MM-DD';
-export const YYYY_MM_DD__HH_mm_ss = 'YYYY-MM-DD HH:mm:ss';
-export const YYYY_MM_DD_HH_mm_ss_z = 'YYYY-MM-DDTHH:mm:ssZ';
+export const YYYY_MM_DD = 'YYYY-MM-DD'; // NOT DATE-FN COMPATIBLE
+export const YYYY_MM_DD__HH_mm_ss = 'YYYY-MM-DD HH:mm:ss'; // NOT DATE-FN COMPATIBLE
+export const YYYY_MM_DD_HH_mm_ss_z = 'YYYY-MM-DDTHH:mm:ssZ'; // NOT DATE-FN COMPATIBLE
 
 export const DATE_FORMATS = {
-  MM_DD_YYYY: 'MM/DD/YYYY',
-  DD_MM_YYYY: 'DD/MM/YYYY',
+  MM_DD_YYYY: 'MM/DD/YYYY', // NOT DATE-FN COMPATIBLE
+  DD_MM_YYYY: 'DD/MM/YYYY', // NOT DATE-FN COMPATIBLE
   yyyy_MM_dd: 'yyyy-MM-dd',
-  YYYY_MM_DD,
-  YYYY_MM_DD__HH_mm_ss,
-  YYYY_MM_DD_HH_mm_ss_z,
+  YYYY_MM_DD, // NOT DATE-FN COMPATIBLE
+  YYYY_MM_DD__HH_mm_ss, // NOT DATE-FN COMPATIBLE
+  YYYY_MM_DD_HH_mm_ss_z, // NOT DATE-FN COMPATIBLE
   YYYY_MM_DD_HH_mm_ss_a: 'yyyy-MM-dd h:mm:ss a',
   HH_mm_ss_ssss_z: `HH:mm:ss'.'SSSS'Z'`,
-  HH_MM_SS_A: 'h:mm:ss A',
+  HH_MM_SS_A: 'h:mm:ss A', // NOT DATE-FN COMPATIBLE
   HH_MM_SS_a: 'h:mm:ss a',
+  FULL: 'MMMM do, yyyy hh:mm aa',
 };

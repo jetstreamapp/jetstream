@@ -1,24 +1,28 @@
 /** @jsx jsx */
 // https://www.lightningdesignsystem.com/components/input/#Fixed-Text
 import { jsx } from '@emotion/core';
-import moment from 'moment-mini';
 import { FunctionComponent, useState, useEffect } from 'react';
 import DateGrid from './DateGrid';
 import DateGridPrevNextSelector from './DateGridPrevNextSelector';
 import { PositionLeftRight, PreviousNext } from '@jetstream/types';
+import startOfDay from 'date-fns/startOfDay';
+import startOfMonth from 'date-fns/startOfMonth';
+import addMonths from 'date-fns/addMonths';
+import formatDate from 'date-fns/format';
+import cloneDate from 'date-fns/toDate';
 
 export interface DatePickerPopupProps {
-  initialSelectedDate?: moment.Moment;
-  initialVisibleDate?: moment.Moment;
+  initialSelectedDate?: Date;
+  initialVisibleDate?: Date;
   availableYears?: number[];
   dropDownPosition?: PositionLeftRight;
   onClose: () => void;
-  onSelection: (date: moment.Moment) => void;
+  onSelection: (date: Date) => void;
 }
 
 export const DatePickerPopup: FunctionComponent<DatePickerPopupProps> = ({
   initialSelectedDate,
-  initialVisibleDate = moment().startOf('month'),
+  initialVisibleDate = startOfMonth(new Date()),
   availableYears,
   dropDownPosition = 'left',
   onClose,
@@ -26,29 +30,26 @@ export const DatePickerPopup: FunctionComponent<DatePickerPopupProps> = ({
 }) => {
   const [selectedDate, setSelectedDate] = useState(() => initialSelectedDate);
   const [visibleMonth, setVisibleMonth] = useState(initialVisibleDate);
-  const [currMonthString, setCurrMonthString] = useState(() => initialVisibleDate.format('MMMM'));
-  const [currMonth, setCurrMonth] = useState(() => initialVisibleDate.month());
-  const [currYear, setCurrYear] = useState(() => initialVisibleDate.year());
+  const [currMonthString, setCurrMonthString] = useState(() => formatDate(initialVisibleDate, 'MMMM'));
+  const [currMonth, setCurrMonth] = useState(() => initialVisibleDate.getMonth());
+  const [currYear, setCurrYear] = useState(() => initialVisibleDate.getFullYear());
   const [cameFromMonth, setCameFromMonth] = useState<PreviousNext>(null);
 
   useEffect(() => {
-    setCurrMonthString(visibleMonth.format('MMMM'));
-    setCurrMonth(visibleMonth.month());
-    setCurrYear(visibleMonth.year());
+    setCurrMonthString(formatDate(visibleMonth, 'MMMM'));
+    setCurrMonth(visibleMonth.getMonth());
+    setCurrYear(visibleMonth.getFullYear());
   }, [visibleMonth]);
 
-  // TODO: surround in input (maybe make new component called "DatePickerInput" for this)
-
-  function handleSelection(date: moment.Moment) {
-    date.startOf('day');
-    setVisibleMonth(date.clone().startOf('month'));
-    setSelectedDate(date.clone());
-    onSelection(date.clone());
+  function handleSelection(date: Date) {
+    setVisibleMonth(startOfMonth(date));
+    setSelectedDate(cloneDate(date));
+    onSelection(cloneDate(date));
   }
 
   function handleOnPrevOnNext(numMonths: -1 | 1) {
     setCameFromMonth(numMonths === -1 ? 'NEXT' : 'PREVIOUS');
-    setVisibleMonth(visibleMonth.clone().add(numMonths, 'month'));
+    setVisibleMonth(addMonths(visibleMonth, numMonths));
   }
 
   return (
@@ -80,7 +81,7 @@ export const DatePickerPopup: FunctionComponent<DatePickerPopupProps> = ({
         onNextYear={() => setCurrYear(currYear + 1)}
       />
 
-      <button className="slds-button slds-align_absolute-center slds-text-link" onClick={() => handleSelection(moment())}>
+      <button className="slds-button slds-align_absolute-center slds-text-link" onClick={() => handleSelection(startOfDay(new Date()))}>
         Today
       </button>
     </div>

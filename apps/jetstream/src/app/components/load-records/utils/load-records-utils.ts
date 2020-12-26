@@ -326,19 +326,19 @@ function buildDateFromString(value: string, dateFormat: string, representation: 
       first.padStart(2, '0');
       middle.padStart(2, '0');
       end.padStart(4, '19');
-      return formatISODate(parseDate(`${first}-${middle}-${end}`, DATE_FORMATS.MM_DD_YYYY, refDate), { representation });
+      return formatISODate(parseDate(`${first}-${middle}-${end}`, 'MM-dd-yyyy', refDate), { representation });
     }
     case DATE_FORMATS.DD_MM_YYYY: {
       first.padStart(2, '0');
       middle.padStart(2, '0');
       end.padStart(4, '19');
-      return formatISODate(parseDate(`${first}-${middle}-${end}`, DATE_FORMATS.DD_MM_YYYY, refDate), { representation });
+      return formatISODate(parseDate(`${first}-${middle}-${end}`, 'dd-MM-yyyy', refDate), { representation });
     }
     case DATE_FORMATS.YYYY_MM_DD: {
       end.padStart(2, '0');
       first.padStart(2, '0');
       middle.padStart(4, '19');
-      return formatISODate(parseDate(`${first}-${middle}-${end}`, DATE_FORMATS.YYYY_MM_DD, refDate), { representation });
+      return formatISODate(parseDate(`${first}-${middle}-${end}`, 'yyyy-MM-dd', refDate), { representation });
     }
     default:
       break;

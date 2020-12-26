@@ -1,6 +1,6 @@
 import { AsyncJob, AsyncJobType } from '@jetstream/types';
 import { Icon } from '@jetstream/ui';
-import moment from 'moment-mini';
+import formatDistanceToNow from 'date-fns/formatDistanceToNow';
 import React, { FunctionComponent } from 'react';
 import classNames from 'classnames';
 import { downloadJob } from './job-utils';
@@ -17,9 +17,9 @@ export const Job: FunctionComponent<JobProps> = ({ job, dismiss }) => {
   let message;
   const inProgress = job.status === 'pending' || job.status === 'in-progress';
   if (inProgress) {
-    message = 'Job started ' + moment(job.started).fromNow();
+    message = 'Job started ' + formatDistanceToNow(job.started, { addSuffix: true });
   } else {
-    message = 'Job finished ' + moment(job.finished).fromNow();
+    message = 'Job finished ' + formatDistanceToNow(job.finished, { addSuffix: true });
   }
   return (
     <li className="slds-global-header__notification">

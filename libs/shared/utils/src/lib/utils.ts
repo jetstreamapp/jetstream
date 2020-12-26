@@ -12,14 +12,14 @@ import {
 } from '@jetstream/types';
 import { QueryResult } from 'jsforce';
 import { get as lodashGet, isBoolean, isNil, isObject, isString, orderBy } from 'lodash';
-import { unix } from 'moment-mini';
 import { ComposeFieldTypeof, FieldSubquery, FieldType, getField } from 'soql-parser-js';
 import { REGEX } from './regex';
+import fromUnixTime from 'date-fns/fromUnixTime';
 
 export function NOOP() {}
 
 export function dateFromTimestamp(timestamp: number): Date {
-  return unix(timestamp).toDate();
+  return fromUnixTime(timestamp);
 }
 
 export async function alwaysResolve<T = any>(promise: Promise<T>, valueIfError: T): Promise<T> {

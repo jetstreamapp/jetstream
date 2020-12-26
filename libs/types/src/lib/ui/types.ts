@@ -317,9 +317,9 @@ export interface AsyncJob<T = unknown, R = unknown> {
   type: AsyncJobType;
   title: string;
   org: SalesforceOrgUi;
-  started: Date; // could use moment instead - figure out later
-  finished: Date; // could use moment instead - figure out later
-  lastActivity: Date; // could use moment instead - figure out later
+  started: Date;
+  finished: Date;
+  lastActivity: Date;
   status: AsyncJobStatus;
   statusMessage?: string; // will fallback to status if not provided
   meta: T;

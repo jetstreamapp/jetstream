@@ -1,5 +1,4 @@
 // eslint-disable-next-line @typescript-eslint/camelcase
-import { YYYY_MM_DD, YYYY_MM_DD_HH_mm_ss_z } from '@jetstream/shared/constants';
 import { useDebounce } from '@jetstream/shared/ui-utils';
 import {
   AndOr,
@@ -10,9 +9,11 @@ import {
   QueryFilterOperator,
 } from '@jetstream/types';
 import classNames from 'classnames';
+import formatISO from 'date-fns/formatISO';
+import isValidDate from 'date-fns/isValid';
+import parseISO from 'date-fns/parseISO';
 import isNumber from 'lodash/isNumber';
 import isString from 'lodash/isString';
-import moment from 'moment-mini';
 import React, { FunctionComponent, useEffect, useState } from 'react';
 import FormRowButton from '../form/button/FormRowButton';
 import Combobox from '../form/combobox/Combobox';
@@ -148,6 +149,17 @@ export const ExpressionConditionRow: FunctionComponent<ExpressionConditionRowPro
       }
     }
 
+    function parseDate(value: string | string[]) {
+      if (isString(value)) {
+        try {
+          const newValue = parseISO(value);
+          return isValidDate(newValue) ? newValue : undefined;
+        } catch (ex) {
+          return undefined;
+        }
+      }
+    }
+
     return (
       <li className={classNames('slds-expression__row', { 'slds-expression__row_group': isNumber(group) })}>
         <fieldset>
@@ -245,20 +257,20 @@ export const ExpressionConditionRow: FunctionComponent<ExpressionConditionRowPro
               {resourceType === 'DATE' && (
                 <DatePicker
                   className="width-100"
-                  initialSelectedDate={selectedValue ? moment(selectedValue, YYYY_MM_DD) : undefined}
+                  initialSelectedDate={selectedValue ? parseDate(selectedValue) : undefined}
                   label={valueLabel}
                   dropDownPosition="right"
-                  onChange={(value) => setSelectValue(value.format(YYYY_MM_DD))}
+                  onChange={(value) => setSelectValue(formatISO(value, { representation: 'date' }))}
                   disabled={disableValueInput}
                 />
               )}
               {resourceType === 'DATETIME' && (
                 <DatePicker
                   className="width-100"
-                  initialSelectedDate={selectedValue ? moment(selectedValue, YYYY_MM_DD_HH_mm_ss_z) : undefined}
+                  initialSelectedDate={selectedValue ? parseDate(selectedValue) : undefined}
                   label={valueLabel}
                   dropDownPosition="right"
-                  onChange={(value) => setSelectValue(value.format(YYYY_MM_DD_HH_mm_ss_z))}
+                  onChange={(value) => setSelectValue(formatISO(value))}
                   disabled={disableValueForOperators.includes(selectedValue as QueryFilterOperator)}
                 />
               )}
