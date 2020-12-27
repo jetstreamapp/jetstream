@@ -3,7 +3,9 @@ import { withKnobs } from '@storybook/addon-knobs';
 import { withActions } from '@storybook/addon-actions';
 import StoryRouter from 'storybook-react-router';
 import '@salesforce-ux/design-system/assets/styles/salesforce-lightning-design-system.min.css';
-import '../../../apps/jetstream/src/main.scss';
+// This file must be manually updated here on occasion
+// this is to avoid circular dependency
+import './main.scss';
 
 addDecorator(withKnobs);
 addDecorator(withActions());

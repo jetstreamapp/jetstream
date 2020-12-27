@@ -1,5 +1,5 @@
 /** @jsx jsx */
-import { jsx } from '@emotion/core';
+import { jsx } from '@emotion/react';
 import { FunctionComponent } from 'react';
 import classNames from 'classnames';
 import { sizeXXXSmallToXXLarge, CenterSpaceSpreadEnd, StartCenterEnd } from '@jetstream/types';

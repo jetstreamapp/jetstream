@@ -1,5 +1,5 @@
 /** @jsx jsx */
-import { css, jsx } from '@emotion/core';
+import { css, jsx } from '@emotion/react';
 import { Card, Grid, GridCol, Icon } from '@jetstream/ui';
 import welcomeBackgroundImage from '@salesforce-ux/design-system/assets/images/welcome-mat/bg-info@2x.png';
 import { FunctionComponent } from 'react';

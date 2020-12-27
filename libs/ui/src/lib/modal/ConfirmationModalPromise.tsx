@@ -1,5 +1,5 @@
 /** @jsx jsx */
-import { jsx } from '@emotion/core';
+import { jsx } from '@emotion/react';
 import { Fragment, FunctionComponent } from 'react';
 import { createModal } from 'react-modal-promise';
 import Modal, { ModalProps } from './Modal';

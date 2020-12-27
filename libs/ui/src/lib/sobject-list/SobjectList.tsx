@@ -1,5 +1,5 @@
 /** @jsx jsx */
-import { css, jsx } from '@emotion/core';
+import { css, jsx } from '@emotion/react';
 import { formatNumber } from '@jetstream/shared/ui-utils';
 import { UpDown } from '@jetstream/types';
 import { DescribeGlobalSObjectResult } from 'jsforce';

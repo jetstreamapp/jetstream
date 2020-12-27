@@ -1,6 +1,6 @@
 /** @jsx jsx */
 // https://www.lightningdesignsystem.com/components/input/#Fixed-Text
-import { jsx } from '@emotion/core';
+import { jsx } from '@emotion/react';
 import { useNonInitialEffect } from '@jetstream/shared/ui-utils';
 import { PositionLeftRight } from '@jetstream/types';
 import classNames from 'classnames';

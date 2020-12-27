@@ -1,6 +1,6 @@
 /** @jsx jsx */
 // https://www.lightningdesignsystem.com/components/input/#Fixed-Text
-import { jsx } from '@emotion/core';
+import { jsx } from '@emotion/react';
 import {
   hasModifierKey,
   isArrowDownKey,

@@ -1,5 +1,5 @@
 /** @jsx jsx */
-import { css, jsx } from '@emotion/core';
+import { css, jsx } from '@emotion/react';
 import { Fragment, FunctionComponent, useState } from 'react';
 import { createModal } from 'react-modal-promise';
 import Picklist from '../form/picklist/Picklist';

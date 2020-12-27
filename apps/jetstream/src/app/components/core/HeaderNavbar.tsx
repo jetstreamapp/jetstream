@@ -1,5 +1,5 @@
 /** @jsx jsx */
-import { css, jsx } from '@emotion/core';
+import { css, jsx } from '@emotion/react';
 import { UserProfileUi } from '@jetstream/types';
 import { Header, Navbar, NavbarItem, Icon } from '@jetstream/ui';
 import Logo from '../../../assets/images/jetstream-logo-v1-200w.png';

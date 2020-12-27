@@ -1,5 +1,5 @@
 /** @jsx jsx */
-import { css, jsx } from '@emotion/core';
+import { css, jsx } from '@emotion/react';
 import { polyfillFieldDefinition } from '@jetstream/shared/ui-utils';
 import { ListItem, PicklistFieldValueItem } from '@jetstream/types';
 import { Checkbox, DatePicker, Grid, Icon, Input, Picklist, Textarea } from '@jetstream/ui';

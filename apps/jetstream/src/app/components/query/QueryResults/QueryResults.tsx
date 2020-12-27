@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 /** @jsx jsx */
-import { css, jsx } from '@emotion/core';
+import { css, jsx } from '@emotion/react';
 import { QueryResults as IQueryResults } from '@jetstream/api-interfaces';
 import { logger } from '@jetstream/shared/client-logger';
 import { query } from '@jetstream/shared/data';

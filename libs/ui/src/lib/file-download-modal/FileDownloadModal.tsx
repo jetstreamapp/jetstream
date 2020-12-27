@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 /** @jsx jsx */
-import { jsx } from '@emotion/core';
+import { jsx } from '@emotion/react';
 import { MIME_TYPES } from '@jetstream/shared/constants';
 import { getFilename, prepareCsvFile, prepareExcelFile, saveFile } from '@jetstream/shared/ui-utils';
 import { FileExtCsv, FileExtCsvXLSXJson, FileExtXLSX, MapOf, MimeType, SalesforceOrgUi } from '@jetstream/types';

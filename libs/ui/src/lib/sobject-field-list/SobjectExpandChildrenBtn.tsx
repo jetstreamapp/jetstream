@@ -1,5 +1,5 @@
 /** @jsx jsx */
-import { css, jsx } from '@emotion/core';
+import { css, jsx } from '@emotion/react';
 import { FunctionComponent, Fragment, useState, useEffect } from 'react';
 import { FieldWrapper } from '@jetstream/types';
 import Icon from '../widgets/Icon';

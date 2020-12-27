@@ -1,0 +1,158 @@
+@import '~@salesforce-ux/design-system/scss/_design-tokens';
+
+.app {
+  // brand styling
+}
+
+.cursor-pointer {
+  cursor: pointer;
+}
+
+.opacity-5 {
+  opacity: 0.5;
+}
+
+.opacity-6 {
+  opacity: 0.6;
+}
+
+.opacity-8 {
+  opacity: 0.8;
+}
+
+.slds-text-link {
+  cursor: pointer;
+  .faux-button-link {
+    :hover {
+      color: $brand-accessible;
+    }
+  }
+}
+
+.gutter {
+  background-color: $color-background;
+  background-repeat: no-repeat;
+  background-position: 50%;
+}
+
+.gutter.gutter-horizontal {
+  background-image: url('assets/images/split-grip-vertical.png');
+  cursor: col-resize;
+}
+
+.gutter.gutter-vertical {
+  background-image: url('assets/images/split-grip-horizontal.png');
+  cursor: row-resize;
+}
+
+.bg-white {
+  background-color: $color-background-alt;
+}
+
+.width-100 {
+  width: 100%;
+}
+
+.modal-full-height {
+}
+
+.border-bottom-thick {
+  border-bottom: 3px solid #dddbda;
+}
+
+.active-item-yellow-bg {
+  background-color: $color-background-highlight;
+}
+
+.slds-item {
+  cursor: pointer;
+  margin: 1px;
+  &:hover {
+    background-color: $color-background;
+  }
+  &.is-active {
+    background-color: $color-background-highlight;
+  }
+}
+
+.table-row.is-selected {
+  background-color: $color-background-highlight;
+}
+
+.is-disabled {
+  background-color: $color-background-input-disabled;
+}
+
+.border-radius-25 {
+  border-radius: 0.25rem;
+}
+
+.slds-text-color_brand {
+  color: $brand-accessible;
+}
+
+/**
+ * Apply to a button to make it look like a link
+ */
+.link-button {
+  background-color: transparent;
+  border: none;
+  cursor: pointer;
+  display: inline;
+  margin: 0;
+  padding: 0;
+
+  color: $brand-text-link;
+  text-decoration: none;
+  transition: color 0.1s linear;
+
+  &:hover,
+  &:active,
+  &:focus {
+    text-decoration: underline;
+    color: $brand-text-link-active;
+  }
+}
+
+.modal-card-override {
+  background: #fff;
+  border: 1px solid #dddbda !important;
+  border-radius: 0.25rem;
+  background-clip: padding-box;
+  box-shadow: 0 2px 2px 0 rgba(0, 0, 0, 0.1);
+  margin-top: 5px;
+  margin-bottom: 5px;
+}
+
+.CodeMirror {
+  font-size: 1.25em;
+}
+
+.CodeMirror-soql-history {
+  height: auto;
+  // max-height: 150px;
+}
+
+.CodeMirror-textarea {
+  .CodeMirror {
+    background-color: #fff;
+    border: 1px solid #dddbda;
+    border-radius: 0.25rem;
+    -webkit-appearance: none;
+    resize: vertical;
+  }
+}
+
+.d-inline {
+  display: inline;
+}
+.d-block {
+  display: block;
+}
+.d-inline-block {
+  display: inline-block;
+}
+
+.text-uppercase {
+  text-transform: uppercase;
+}

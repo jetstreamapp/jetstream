@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 /** @jsx jsx */
-import { css, jsx } from '@emotion/core';
+import { css, jsx } from '@emotion/react';
 import { UiRecordForm } from '@jetstream/record-form';
 import { describeSObject, genericRequest, sobjectOperation } from '@jetstream/shared/data';
 import { isErrorResponse, useNonInitialEffect } from '@jetstream/shared/ui-utils';

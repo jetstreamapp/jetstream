@@ -1,5 +1,5 @@
 /** @jsx jsx */
-import { css, jsx } from '@emotion/core';
+import { css, jsx } from '@emotion/react';
 import { DropDown, Grid, GridCol } from '@jetstream/ui';
 import { memo, useEffect, useRef, useState } from 'react';
 import LoadRecordsFieldMappingRow from '../components/LoadRecordsFieldMappingRow';

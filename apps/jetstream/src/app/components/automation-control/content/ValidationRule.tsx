@@ -1,5 +1,5 @@
 /** @jsx jsx */
-import { css, jsx } from '@emotion/core';
+import { css, jsx } from '@emotion/react';
 import { CheckboxToggle, CopyToClipboard, Grid, GridCol, Icon, SalesforceLogin, Tooltip } from '@jetstream/ui';
 import classNames from 'classnames';
 import { FunctionComponent } from 'react';

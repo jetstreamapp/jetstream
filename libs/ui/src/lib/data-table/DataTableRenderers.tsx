@@ -1,6 +1,6 @@
 /** @jsx jsx */
 import { ICellRendererParams, IFilter, IFilterParams } from '@ag-grid-community/core';
-import { jsx } from '@emotion/core';
+import { jsx } from '@emotion/react';
 import { SalesforceOrgUi } from '@jetstream/types';
 import { forwardRef, Fragment, FunctionComponent, useEffect, useImperativeHandle, useRef, useState } from 'react';
 import RecordDownloadModal from '../file-download-modal/RecordDownloadModal';

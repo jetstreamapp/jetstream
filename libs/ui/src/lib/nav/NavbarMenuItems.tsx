@@ -1,5 +1,5 @@
 /** @jsx jsx */
-import { jsx } from '@emotion/core';
+import { jsx } from '@emotion/react';
 import { FunctionComponent, useState, Fragment } from 'react';
 import Icon from '../widgets/Icon';
 import { Link } from 'react-router-dom';
