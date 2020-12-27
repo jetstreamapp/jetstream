@@ -7,7 +7,7 @@ export interface FaqItemProps {
 export const FaqItem: FunctionComponent<FaqItemProps> = ({ title, text }) => (
   <div className="space-y-2">
     <dt className="text-lg leading-6 font-medium text-gray-900">{title}</dt>
-    <dd className="text-base leading-6 text-gray-500">{text}</dd>
+    <dd className="mt-2 text-base text-gray-500">{text}</dd>
   </div>
 );
 
