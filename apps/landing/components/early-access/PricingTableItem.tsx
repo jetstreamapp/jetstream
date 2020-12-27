@@ -1,5 +1,5 @@
 import React, { FunctionComponent } from 'react';
-
+import classNames from 'classnames';
 // first item
 // py-4 px-4 flex items-center space-x-3 text-base leading-6 text-white
 
@@ -14,10 +14,19 @@ import React, { FunctionComponent } from 'react';
 
 export interface PricingTableItemProps {
   text: string;
+  topBorder?: boolean;
+  omitTopBoarderOnSmall?: boolean;
+  leftBorder?: boolean;
 }
 
-export const PricingTableItem: FunctionComponent<PricingTableItemProps> = ({ text }) => (
-  <li className="py-4 px-4 flex items-center space-x-3 text-base leading-6 text-white">
+export const PricingTableItem: FunctionComponent<PricingTableItemProps> = ({ text, topBorder, omitTopBoarderOnSmall, leftBorder }) => (
+  <li
+    className={classNames('py-4 px-4 flex items-center space-x-3 text-base leading-6 text-white', {
+      'border-t border-indigo-400 border-opacity-25': topBorder,
+      'sm:border-t-0': omitTopBoarderOnSmall,
+      'sm:border-l': leftBorder,
+    })}
+  >
     {/* <!-- Heroicon name: check --> */}
     <svg
       className="h-6 w-6 text-blue-200"
