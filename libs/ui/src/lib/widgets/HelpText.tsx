@@ -1,5 +1,5 @@
 /** @jsx jsx */
-import { css, jsx } from '@emotion/core';
+import { css, jsx } from '@emotion/react';
 import { FunctionComponent } from 'react';
 import Icon from './Icon';
 import Tooltip from './Tooltip';

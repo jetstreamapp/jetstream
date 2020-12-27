@@ -1,6 +1,6 @@
 /* eslint-disable jsx-a11y/anchor-is-valid */
 /** @jsx jsx */
-import { jsx } from '@emotion/core';
+import { jsx } from '@emotion/react';
 import { formatNumber } from '@jetstream/shared/ui-utils';
 import { REGEX } from '@jetstream/shared/utils';
 import { HorizontalVertical, UiTabSection } from '@jetstream/types';

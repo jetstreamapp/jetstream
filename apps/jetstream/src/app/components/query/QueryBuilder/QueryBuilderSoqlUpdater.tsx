@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 /** @jsx jsx */
-import { jsx } from '@emotion/core';
+import { jsx } from '@emotion/react';
 import { logger } from '@jetstream/shared/client-logger';
 import { useDebounce } from '@jetstream/shared/ui-utils';
 import { WorkerMessage } from '@jetstream/types';

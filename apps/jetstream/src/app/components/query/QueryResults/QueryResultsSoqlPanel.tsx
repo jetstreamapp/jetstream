@@ -1,5 +1,5 @@
 /** @jsx jsx */
-import { jsx } from '@emotion/core';
+import { jsx } from '@emotion/react';
 import { FunctionComponent, useEffect, useState } from 'react';
 import { Panel, CodeEditor } from '@jetstream/ui';
 import { Textarea } from '@jetstream/ui';

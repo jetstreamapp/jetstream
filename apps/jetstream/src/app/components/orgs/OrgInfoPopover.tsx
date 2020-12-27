@@ -1,5 +1,5 @@
 /** @jsx jsx */
-import { jsx } from '@emotion/core';
+import { jsx } from '@emotion/react';
 import { addOrg, isEnterKey, isEscapeKey } from '@jetstream/shared/ui-utils';
 import { SalesforceOrgUi } from '@jetstream/types';
 import { ButtonGroupContainer, Checkbox, Grid, GridCol, Icon, Input, Popover, SalesforceLogin, Spinner } from '@jetstream/ui';

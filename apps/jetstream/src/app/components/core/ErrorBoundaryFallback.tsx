@@ -1,5 +1,5 @@
 /** @jsx jsx */
-import { jsx } from '@emotion/core';
+import { jsx } from '@emotion/react';
 import { FunctionComponent, useEffect } from 'react';
 import { FallbackProps } from 'react-error-boundary';
 import { logger } from '@jetstream/shared/client-logger';

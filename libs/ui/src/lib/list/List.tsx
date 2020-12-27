@@ -1,6 +1,6 @@
 /** @jsx jsx */
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { jsx } from '@emotion/core';
+import { jsx } from '@emotion/react';
 import {
   isArrowDownKey,
   isArrowUpKey,

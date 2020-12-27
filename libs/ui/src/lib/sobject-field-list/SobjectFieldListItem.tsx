@@ -1,5 +1,5 @@
 /** @jsx jsx */
-import { css, jsx } from '@emotion/core';
+import { css, jsx } from '@emotion/react';
 import { getFieldKey } from '@jetstream/shared/ui-utils';
 import { FieldWrapper, MapOf, QueryFields } from '@jetstream/types';
 import { Fragment, FunctionComponent, useEffect, useState } from 'react';

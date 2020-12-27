@@ -1,5 +1,5 @@
 /** @jsx jsx */
-import { css, jsx } from '@emotion/core';
+import { css, jsx } from '@emotion/react';
 import { clearCacheForOrg, clearQueryHistoryForOrg, deleteOrg, updateOrg, getOrgs } from '@jetstream/shared/data';
 import { MapOf, SalesforceOrgUi } from '@jetstream/types';
 import { Badge, Combobox, ComboboxListItem, ComboboxListItemGroup } from '@jetstream/ui';

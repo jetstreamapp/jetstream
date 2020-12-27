@@ -1,5 +1,5 @@
 /** @jsx jsx */
-import { css, jsx } from '@emotion/core';
+import { css, jsx } from '@emotion/react';
 import { INPUT_ACCEPT_FILETYPES } from '@jetstream/shared/constants';
 import { parseFile } from '@jetstream/shared/ui-utils';
 import { InputReadFileContent, InsertUpdateUpsertDelete, SalesforceOrgUi } from '@jetstream/types';

@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 /** @jsx jsx */
-import { jsx } from '@emotion/core';
+import { jsx } from '@emotion/react';
 import { logger } from '@jetstream/shared/client-logger';
 import { QueryFieldHeader, SalesforceOrgUi } from '@jetstream/types';
 import { DataTable, Icon, Modal } from '@jetstream/ui';

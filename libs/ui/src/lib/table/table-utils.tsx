@@ -9,7 +9,7 @@
  */
 
 /** @jsx jsx */
-import { jsx } from '@emotion/core';
+import { jsx } from '@emotion/react';
 import { QueryFieldHeader, SalesforceOrgUi } from '@jetstream/types';
 import classNames from 'classnames';
 import isBoolean from 'lodash/isBoolean';

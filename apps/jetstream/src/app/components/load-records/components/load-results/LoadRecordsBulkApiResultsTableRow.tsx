@@ -1,5 +1,5 @@
 /** @jsx jsx */
-import { jsx } from '@emotion/core';
+import { jsx } from '@emotion/react';
 import { formatNumber } from '@jetstream/shared/ui-utils';
 import { BulkJobBatchInfo } from '@jetstream/types';
 import { Grid, Icon, Spinner } from '@jetstream/ui';

@@ -1,5 +1,5 @@
 /** @jsx jsx */
-import { jsx, css } from '@emotion/core';
+import { jsx, css } from '@emotion/react';
 import isString from 'lodash/isString';
 import { memo, RefObject } from 'react';
 import Checkbox from '../form/checkbox/Checkbox';

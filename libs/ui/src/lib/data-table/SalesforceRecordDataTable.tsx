@@ -1,6 +1,6 @@
 /** @jsx jsx */
 import { ColDef, ColumnEvent, SelectionChangedEvent } from '@ag-grid-community/core';
-import { jsx } from '@emotion/core';
+import { jsx } from '@emotion/react';
 import { QueryResults } from '@jetstream/api-interfaces';
 import { logger } from '@jetstream/shared/client-logger';
 import { queryMore } from '@jetstream/shared/data';

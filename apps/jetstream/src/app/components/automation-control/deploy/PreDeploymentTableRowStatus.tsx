@@ -1,5 +1,5 @@
 /** @jsx jsx */
-import { css, jsx } from '@emotion/core';
+import { css, jsx } from '@emotion/react';
 import { CopyToClipboard, Grid, GridCol, Icon, Spinner, Tooltip } from '@jetstream/ui';
 import classNames from 'classnames';
 import { uniqueId } from 'lodash';

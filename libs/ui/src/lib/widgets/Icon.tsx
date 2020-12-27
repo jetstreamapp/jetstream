@@ -1,6 +1,6 @@
 /** @jsx jsx */
 // https://www.lightningdesignsystem.com/components/icons/
-import { jsx } from '@emotion/core';
+import { jsx } from '@emotion/react';
 import { IconName, IconType } from '@jetstream/icon-factory';
 import React, { FunctionComponent, Suspense } from 'react';
 

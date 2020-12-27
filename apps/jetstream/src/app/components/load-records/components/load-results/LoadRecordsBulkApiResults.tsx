@@ -1,5 +1,5 @@
 /** @jsx jsx */
-import { jsx } from '@emotion/core';
+import { jsx } from '@emotion/react';
 import { logger } from '@jetstream/shared/client-logger';
 import { bulkApiGetJob, bulkApiGetRecords } from '@jetstream/shared/data';
 import { convertDateToLocale } from '@jetstream/shared/ui-utils';

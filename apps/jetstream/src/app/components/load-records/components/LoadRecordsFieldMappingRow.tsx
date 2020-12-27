@@ -1,5 +1,5 @@
 /** @jsx jsx */
-import { jsx } from '@emotion/core';
+import { jsx } from '@emotion/react';
 import { Checkbox, Combobox, ComboboxListItem, Grid, Icon } from '@jetstream/ui';
 import { Fragment, FunctionComponent, useEffect, useState } from 'react';
 import { FieldWithRelatedEntities, FieldMappingItem, FieldRelatedEntity } from '../load-records-types';

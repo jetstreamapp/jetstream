@@ -1,5 +1,5 @@
 /** @jsx jsx */
-import { css, jsx } from '@emotion/core';
+import { css, jsx } from '@emotion/react';
 import { formatNumber } from '@jetstream/shared/ui-utils';
 import { orderStringsBy, pluralizeIfMultiple } from '@jetstream/shared/utils';
 import { UpDown } from '@jetstream/types';

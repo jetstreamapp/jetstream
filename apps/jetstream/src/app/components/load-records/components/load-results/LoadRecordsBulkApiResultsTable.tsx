@@ -1,5 +1,5 @@
 /** @jsx jsx */
-import { css, jsx } from '@emotion/core';
+import { css, jsx } from '@emotion/react';
 import { getFilename, getOrgUrlParams } from '@jetstream/shared/ui-utils';
 import { BulkJobBatchInfo, BulkJobWithBatches, SalesforceOrgUi } from '@jetstream/types';
 import { FunctionComponent, useEffect, useState } from 'react';
