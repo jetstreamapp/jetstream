@@ -1,5 +1,5 @@
 /** @jsx jsx */
-import { jsx } from '@emotion/core';
+import { jsx } from '@emotion/react';
 import { CheckboxToggle, Grid, GridCol } from '@jetstream/ui';
 import isNumber from 'lodash/isNumber';
 import { FunctionComponent } from 'react';

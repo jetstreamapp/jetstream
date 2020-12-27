@@ -9,7 +9,7 @@
  *
  */
 
-import { jsx } from '@emotion/core';
+import { jsx } from '@emotion/react';
 import { QueryFieldHeader, SalesforceOrgUi } from '@jetstream/types';
 import { Fragment, FunctionComponent, memo, useMemo } from 'react';
 import TableBase from '../table/TableBase';

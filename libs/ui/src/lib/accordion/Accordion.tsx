@@ -1,6 +1,6 @@
 /** @jsx jsx */
 // https://www.lightningdesignsystem.com/components/Accordion/#Fixed-Text
-import { css, jsx } from '@emotion/core';
+import { css, jsx } from '@emotion/react';
 import classNames from 'classnames';
 import { Fragment, FunctionComponent, useState } from 'react';
 import Icon from '../widgets/Icon';

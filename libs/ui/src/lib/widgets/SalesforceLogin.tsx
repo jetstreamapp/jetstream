@@ -1,5 +1,5 @@
 /** @jsx jsx */
-import { jsx } from '@emotion/core';
+import { jsx } from '@emotion/react';
 import { PositionLeftRight, SalesforceOrgUi } from '@jetstream/types';
 import { FunctionComponent, useEffect, useState } from 'react';
 import { getOrgUrlParams } from '@jetstream/shared/ui-utils';

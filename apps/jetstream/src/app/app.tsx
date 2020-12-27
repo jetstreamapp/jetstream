@@ -1,5 +1,5 @@
 /** @jsx jsx */
-import { css, jsx } from '@emotion/core';
+import { css, jsx } from '@emotion/react';
 import { FEATURE_FLAGS } from '@jetstream/shared/constants';
 import { hasFeatureFlagAccess } from '@jetstream/shared/ui-utils';
 import { UserProfileUi } from '@jetstream/types';
@@ -25,7 +25,7 @@ const Query = lazy(() => import('./components/query/Query'));
 interface RouteItem {
   path: string;
   flag?: string;
-  render: (props: RouteComponentProps<any>) => React.ReactNode;
+  render: (props: RouteComponentProps<unknown>) => React.ReactNode;
 }
 
 const ROUTES: RouteItem[] = [

@@ -1,5 +1,5 @@
 /** @jsx jsx */
-import { css, jsx, SerializedStyles } from '@emotion/core';
+import { css, jsx, SerializedStyles } from '@emotion/react';
 import { Component, createRef, RefObject } from 'react';
 
 export interface AutoFullHeightContainerProps {

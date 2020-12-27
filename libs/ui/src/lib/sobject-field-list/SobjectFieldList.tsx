@@ -1,5 +1,5 @@
 /** @jsx jsx */
-import { css, jsx } from '@emotion/core';
+import { css, jsx } from '@emotion/react';
 import { formatNumber } from '@jetstream/shared/ui-utils';
 import { REGEX } from '@jetstream/shared/utils';
 import { FieldWrapper, MapOf, QueryFields, UpDown } from '@jetstream/types';

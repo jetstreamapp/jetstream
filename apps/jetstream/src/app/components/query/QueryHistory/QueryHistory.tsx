@@ -1,6 +1,6 @@
 /** @jsx jsx */
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { css, jsx } from '@emotion/core';
+import { css, jsx } from '@emotion/react';
 import { logger } from '@jetstream/shared/client-logger';
 import { INDEXED_DB } from '@jetstream/shared/constants';
 import { formatNumber } from '@jetstream/shared/ui-utils';

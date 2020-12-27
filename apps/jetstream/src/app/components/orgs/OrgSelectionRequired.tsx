@@ -1,5 +1,5 @@
 /** @jsx jsx */
-import { jsx } from '@emotion/core';
+import { jsx } from '@emotion/react';
 import { SalesforceOrgUi } from '@jetstream/types';
 import { Alert } from '@jetstream/ui';
 import { Fragment, FunctionComponent } from 'react';

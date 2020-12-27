@@ -1,5 +1,5 @@
 /** @jsx jsx */
-import { jsx } from '@emotion/core';
+import { jsx } from '@emotion/react';
 import { Accordion, AutoFullHeightContainer, Grid, GridCol } from '@jetstream/ui';
 import { FunctionComponent } from 'react';
 import {

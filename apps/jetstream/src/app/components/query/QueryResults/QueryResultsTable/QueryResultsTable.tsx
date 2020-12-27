@@ -1,5 +1,5 @@
 /** @jsx jsx */
-import { css, jsx } from '@emotion/core';
+import { css, jsx } from '@emotion/react';
 import { Record } from '@jetstream/types';
 import { Icon } from '@jetstream/ui';
 import classNames from 'classnames';

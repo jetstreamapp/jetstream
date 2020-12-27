@@ -1,6 +1,6 @@
 //
 /** @jsx jsx */
-import { css, jsx } from '@emotion/core';
+import { css, jsx } from '@emotion/react';
 import { FunctionComponent } from 'react';
 
 const MIN_COL_SIZE = 375;

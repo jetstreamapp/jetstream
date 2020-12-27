@@ -1,6 +1,6 @@
 /** @jsx jsx */
 import { ColDef } from '@ag-grid-community/core';
-import { css, jsx } from '@emotion/core';
+import { css, jsx } from '@emotion/react';
 import { query } from '@jetstream/shared/data';
 import { formatNumber } from '@jetstream/shared/ui-utils';
 import { InsertUpdateUpsertDelete, SalesforceOrgUi } from '@jetstream/types';

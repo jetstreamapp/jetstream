@@ -1,5 +1,5 @@
 /** @jsx jsx */
-import { jsx } from '@emotion/core';
+import { jsx } from '@emotion/react';
 import { InsertUpdateUpsertDelete } from '@jetstream/types';
 import { Combobox, ComboboxListItem, Grid, GridCol, RadioButton, RadioGroup, Spinner } from '@jetstream/ui';
 import { FunctionComponent, useEffect, useState } from 'react';
