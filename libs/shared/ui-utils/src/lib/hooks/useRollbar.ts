@@ -2,6 +2,9 @@ import { useEffect, useState } from 'react';
 import Rollbar from 'rollbar';
 import { Environment, UserProfileUi } from '@jetstream/types';
 
+const VERSION = process.env.GIT_VERSION;
+console.log('[JETSTREAM VERSION]:', VERSION);
+
 // Ensure rollbar is only initialized and configured once no matter how often hook is used
 let _rollbar: Rollbar;
 let _rollbarIsConfigured = false;
@@ -9,6 +12,7 @@ function getRollbarInstance(accessToken: string, environment: Environment, userP
   const rollbar =
     _rollbar ||
     new Rollbar({
+      codeVersion: VERSION,
       accessToken,
       captureUncaught: true,
       captureUnhandledRejections: true,
@@ -23,6 +27,7 @@ function getRollbarInstance(accessToken: string, environment: Environment, userP
     _rollbarIsConfigured = true;
     const { sub, email } = userProfile;
     rollbar.configure({
+      code_version: VERSION,
       payload: {
         person: {
           id: sub,
