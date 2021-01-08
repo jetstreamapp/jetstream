@@ -10,9 +10,13 @@ import './data-table-styles.scss';
 import { handleCellDoubleClicked, handleCellKeydown } from './data-table-utils';
 import {
   ActionRenderer,
+  BasicTextFilterRenderer,
+  BasicTextFloatingFilterRenderer,
+  BooleanEditableRenderer,
   BooleanFilterRenderer,
   BooleanRenderer,
   configIdLinkRenderer,
+  FullWidthRenderer,
   IdLinkRenderer,
   SubqueryRenderer,
 } from './DataTableRenderers';
@@ -24,6 +28,7 @@ export interface DataTableProps {
   columns: ColDef[];
   data: any[];
   agGridProps?: AgGridReactProps;
+  frameworkComponents?: any;
   quickFilterText?: string;
   serverUrl?: string;
   org?: SalesforceOrgUi;
@@ -37,6 +42,7 @@ export const DataTable: FunctionComponent<DataTableProps> = ({
   columns,
   data,
   agGridProps = {},
+  frameworkComponents = {},
   quickFilterText,
   serverUrl,
   org,
@@ -49,6 +55,7 @@ export const DataTable: FunctionComponent<DataTableProps> = ({
     <div className="ag-theme-custom-react" style={style}>
       <AgGridReact
         rowSelection="multiple"
+        suppressDragLeaveHidesColumns
         quickFilterText={quickFilterText}
         frameworkComponents={{
           // CELL RENDERERS
@@ -56,8 +63,14 @@ export const DataTable: FunctionComponent<DataTableProps> = ({
           booleanRenderer: BooleanRenderer,
           idLinkRenderer: IdLinkRenderer,
           subqueryRenderer: SubqueryRenderer,
+          booleanEditableRenderer: BooleanEditableRenderer,
+          fullWidthRenderer: FullWidthRenderer,
           // FILTER RENDERERS
+          basicTextFilterRenderer: BasicTextFilterRenderer,
+          basicTextFloatingFilterRenderer: BasicTextFloatingFilterRenderer,
           booleanFilterRenderer: BooleanFilterRenderer,
+          // Custom renderers that apply to specific implementations
+          ...frameworkComponents,
         }}
         columnDefs={columns}
         rowData={data}

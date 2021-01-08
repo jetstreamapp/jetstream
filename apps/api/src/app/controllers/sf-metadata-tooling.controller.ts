@@ -7,6 +7,7 @@ import { body, param, query } from 'express-validator';
 import * as JSZip from 'jszip';
 
 export const routeValidators = {
+  listMetadata: [body('types').isArray().isLength({ min: 1 })],
   readMetadata: [body('fullNames').isArray().isLength({ min: 1 })],
   deployMetadata: [body('files').isArray().isLength({ min: 1 })],
   checkMetadataResults: [param('id').isLength({ min: 15, max: 18 }), query('includeDetails').toBoolean()],
@@ -14,10 +15,11 @@ export const routeValidators = {
 
 export async function listMetadata(req: Request, res: Response, next: NextFunction) {
   try {
-    const isTooling = req.query.isTooling === 'true';
+    const types: { type: string; folder?: string }[] = req.body.types;
     const conn: jsforce.Connection = res.locals.jsforceConn;
-    // TODO: implement me
-    sendJson(res, ['TODO']);
+    const response = await conn.metadata.list(types);
+
+    sendJson(res, response);
   } catch (ex) {
     next(new UserFacingError(ex.message));
   }

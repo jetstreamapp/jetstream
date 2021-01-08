@@ -728,6 +728,47 @@
           "outputs": ["{options.outputPath}"]
         }
       }
+    },
+    "connected-connected-ui": {
+      "root": "libs/connected/connected-ui",
+      "sourceRoot": "libs/connected/connected-ui/src",
+      "projectType": "library",
+      "architect": {
+        "lint": {
+          "builder": "@nrwl/linter:eslint",
+          "options": {
+            "lintFilePatterns": ["libs/connected/connected-ui/**/*.{ts,tsx,js,jsx}"]
+          }
+        },
+        "build": {
+          "builder": "@nrwl/web:package",
+          "outputs": ["{options.outputPath}"],
+          "options": {
+            "outputPath": "dist/libs/connected/connected-ui",
+            "tsConfig": "libs/connected/connected-ui/tsconfig.lib.json",
+            "project": "libs/connected/connected-ui/package.json",
+            "entryFile": "libs/connected/connected-ui/src/index.ts",
+            "external": ["react", "react-dom", "@emotion/styled", "@emotion/react"],
+            "babelConfig": "@nrwl/react/plugins/bundle-babel",
+            "rollupConfig": "@nrwl/react/plugins/bundle-rollup",
+            "assets": [
+              {
+                "glob": "README.md",
+                "input": ".",
+                "output": "."
+              }
+            ]
+          }
+        },
+        "test": {
+          "builder": "@nrwl/jest:jest",
+          "outputs": ["coverage/libs/connected/connected-ui"],
+          "options": {
+            "jestConfig": "libs/connected/connected-ui/jest.config.js",
+            "passWithNoTests": true
+          }
+        }
+      }
     }
   },
   "cli": {

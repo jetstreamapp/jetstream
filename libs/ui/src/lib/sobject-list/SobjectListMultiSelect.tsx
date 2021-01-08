@@ -69,11 +69,14 @@ export const SobjectListMultiSelect: FunctionComponent<SobjectListMultiSelectPro
   }
 
   function handleSelectAll(value: boolean) {
-    if (value) {
-      onSelected(sobjects.map((item) => item.name));
-    } else {
-      onSelected([]);
-    }
+    filteredSobjects.forEach((item) => {
+      if (value) {
+        selectedSObjectSet.add(item.name);
+      } else {
+        selectedSObjectSet.delete(item.name);
+      }
+    });
+    onSelected(orderStringsBy(Array.from(selectedSObjectSet)));
   }
 
   return (
@@ -113,15 +116,20 @@ export const SobjectListMultiSelect: FunctionComponent<SobjectListMultiSelectPro
                 <div className="slds-text-body_small slds-text-color_weak slds-p-left--xx-small">
                   <Checkbox
                     id="select-all-sobject-multi"
-                    checked={selectedSObjects.length === sobjects.length}
+                    checked={
+                      filteredSobjects.length !== 0 &&
+                      selectedSObjectSet.size >= filteredSobjects.length &&
+                      filteredSobjects.every((item) => selectedSObjectSet.has(item.name))
+                    }
                     label="Select All"
                     onChange={handleSelectAll}
+                    disabled={filteredSobjects.length === 0}
                   />
-                  {formatNumber(selectedSObjects.length)} {pluralizeIfMultiple('object', selectedSObjects)} selected
+                  {formatNumber(selectedSObjectSet.size)} {pluralizeIfMultiple('object', selectedSObjects)} selected
                 </div>
               )}
             </div>
-            <AutoFullHeightContainer>
+            <AutoFullHeightContainer bottomBuffer={25}>
               <List
                 ref={ulRef}
                 items={filteredSobjects}

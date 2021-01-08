@@ -13,7 +13,11 @@ export interface NavbarItemProps {
 export const NavbarItem: FunctionComponent<NavbarItemProps> = ({ path, label, title }) => {
   const location = useLocation<{ soql: string }>();
   return (
-    <li className={classNames('slds-context-bar__item', { 'slds-is-active': location.pathname === path })}>
+    <li
+      className={classNames('slds-context-bar__item', {
+        'slds-is-active': location.pathname === path || location.pathname.startsWith(`${path}/`),
+      })}
+    >
       <Link tabIndex={-1} role="menuitem" className="slds-context-bar__label-action" title={title} to={{ pathname: path }}>
         <span className="slds-truncate" title={title}>
           {label}

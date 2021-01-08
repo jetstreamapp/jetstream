@@ -12,6 +12,8 @@ import {
   ListItem,
   MapOf,
   MimeType,
+  PermissionSetRecord,
+  PermissionSetWithProfileRecord,
   PositionAll,
   QueryFieldWithPolymorphic,
   QueryFilterOperator,
@@ -246,6 +248,10 @@ export function prepareExcelFile(data: any, header: any, defaultSheetName: any =
     });
   }
 
+  return excelWorkbookToArrayBuffer(workbook);
+}
+
+export function excelWorkbookToArrayBuffer(workbook: XLSX.WorkBook): ArrayBuffer {
   // https://github.com/sheetjs/sheetjs#writing-options
   const workbookArrayBuffer: ArrayBuffer = XLSX.write(workbook, {
     bookType: 'xlsx',
@@ -263,6 +269,21 @@ export function prepareCsvFile(data: MapOf<string>[], header: string[]): string 
     },
     { header: true, quotes: true, delimiter: detectDelimiter() }
   );
+}
+
+/**
+ * Helper method to allow auto-detecting column widths for excel export
+ */
+export function getMaxWidthFromColumnContent(data: string[][]): XLSX.ColInfo[] {
+  const output: number[] = [];
+  data.forEach((row) => {
+    row.forEach((col, i) => {
+      const width = `${col || ''}`.length;
+      output[i] = output[i] || 0;
+      output[i] = output[i] > width ? output[i] : width;
+    });
+  });
+  return output.map((width): XLSX.ColInfo => ({ width: width + 2 }));
 }
 
 export function getFilename(org: SalesforceOrgUi, parts: string[]) {
@@ -922,4 +943,8 @@ export function menuItemSelectScroll({
   } catch (ex) {
     // ignore errors
   }
+}
+
+export function isPermissionSetWithProfile(value: PermissionSetRecord): value is PermissionSetWithProfileRecord {
+  return value.IsOwnedByProfile;
 }
