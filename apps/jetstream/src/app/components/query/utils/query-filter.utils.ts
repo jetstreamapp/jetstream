@@ -43,12 +43,12 @@ export function getDateResourceTypes(): ListItem<ExpressionRowValueType>[] {
   return [
     {
       id: 'date',
-      label: 'Date',
+      label: 'Date Picker',
       value: 'DATE',
     },
     {
       id: 'literal',
-      label: 'Literal',
+      label: 'Relative Value',
       value: 'SELECT',
     },
   ];
@@ -58,12 +58,12 @@ export function getDateTimeResourceTypes(): ListItem<ExpressionRowValueType>[] {
   return [
     {
       id: 'date',
-      label: 'Date',
+      label: 'Date Picker',
       value: 'DATETIME',
     },
     {
       id: 'literal',
-      label: 'Literal',
+      label: 'Relative Value',
       value: 'SELECT',
     },
   ];

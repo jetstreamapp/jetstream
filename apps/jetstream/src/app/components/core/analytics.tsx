@@ -34,15 +34,15 @@ export function useAmplitude() {
     if (!hasProfileInit && userProfile && appCookie) {
       hasProfileInit = true;
       const identify = new amplitude.Identify()
+        .set('id', userProfile.sub)
         .set('email', userProfile.email)
         .set('email-verified', userProfile.email_verified)
-        .set('name', userProfile.name)
         .set('feature-flags', userProfile['http://getjetstream.app/app_metadata']?.featureFlags)
         .set('environment', appCookie.environment)
         .add('app-init-count', 1);
 
       amplitude.getInstance().identify(identify);
-      amplitude.getInstance().setUserId(userProfile.sub);
+      amplitude.getInstance().setUserId(userProfile.email);
     }
   }, [userProfile, appCookie]);
 
