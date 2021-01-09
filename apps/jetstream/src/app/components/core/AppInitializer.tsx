@@ -10,6 +10,7 @@ import { useRecoilState, useRecoilValue } from 'recoil';
 import { Subject } from 'rxjs';
 import { environment } from '../../../environments/environment';
 import * as fromAppState from '../../app-state';
+import { useAmplitude, usePageViews } from './analytics';
 
 const orgConnectionError = new Subject<{ uniqueId: string; connectionError: string }>();
 const orgConnectionError$ = orgConnectionError.asObservable();
@@ -34,8 +35,11 @@ export const AppInitializer: FunctionComponent<AppInitializerProps> = ({ onUserP
   const appCookie = useRecoilValue<ApplicationCookie>(fromAppState.applicationCookieState);
   const [orgs, setOrgs] = useRecoilState(fromAppState.salesforceOrgsState);
   const invalidOrg = useObservable(orgConnectionError$);
+
   // this ensures rollbar is configured and has user profile information
   useRollbar(environment.rollbarClientAccessToken, appCookie.environment, userProfile);
+  useAmplitude();
+  usePageViews();
 
   useEffect(() => {
     if (invalidOrg) {

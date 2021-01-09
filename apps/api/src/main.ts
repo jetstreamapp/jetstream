@@ -16,6 +16,7 @@ import * as passport from 'passport';
 import * as Auth0Strategy from 'passport-auth0';
 import { ENV } from './app/config/env-config';
 import * as helmet from 'helmet';
+import proxy from 'express-http-proxy';
 
 const pgSession = pgSimple(session);
 
@@ -24,6 +25,19 @@ const app = express();
 if (environment.production) {
   app.set('trust proxy', 1); // required for environments such as heroku / {render?}
 }
+
+/**
+ * All analytics go through our server instead of directly to amplitude
+ * This ensures that amplitude is not blocked by various browser tools
+ */
+app.use(
+  '/analytics',
+  // (req, res, next) => {
+  //   logger.info('[ANALYTICS PROXY]');
+  //   next();
+  // },
+  proxy('https://api.amplitude.com')
+);
 
 // Setup session
 app.use(
@@ -50,7 +64,7 @@ app.use(
   helmet({
     contentSecurityPolicy: {
       directives: {
-        defaultSrc: ["'self'", '*.rollbar.com', '*.google.com'],
+        defaultSrc: ["'self'", '*.rollbar.com', '*.google.com', 'api.amplitude.com'],
         baseUri: ["'self'"],
         blockAllMixedContent: [],
         fontSrc: ["'self'", 'https:', "'unsafe-inline'", 'data:'],
