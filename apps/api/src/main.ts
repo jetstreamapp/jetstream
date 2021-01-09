@@ -26,19 +26,6 @@ if (environment.production) {
   app.set('trust proxy', 1); // required for environments such as heroku / {render?}
 }
 
-/**
- * All analytics go through our server instead of directly to amplitude
- * This ensures that amplitude is not blocked by various browser tools
- */
-app.use(
-  '/analytics',
-  // (req, res, next) => {
-  //   logger.info('[ANALYTICS PROXY]');
-  //   next();
-  // },
-  proxy('https://api.amplitude.com')
-);
-
 // Setup session
 app.use(
   session({
@@ -79,6 +66,20 @@ app.use(
     },
   })
 );
+
+if (ENV.ENVIRONMENT === 'development') {
+  /**
+   * All analytics go through our server instead of directly to amplitude
+   * This ensures that amplitude is not blocked by various browser tools
+   */
+  app.use('/analytics', cors({ origin: /http:\/\/localhost:[0-9]+$/ }), (req, res) => res.status(200).send('success'));
+} else {
+  /**
+   * All analytics go through our server instead of directly to amplitude
+   * This ensures that amplitude is not blocked by various browser tools
+   */
+  app.use('/analytics', proxy('https://api.amplitude.com'));
+}
 
 // Setup application cookie
 app.use((req: express.Request, res: express.Response, next: express.NextFunction) => {
