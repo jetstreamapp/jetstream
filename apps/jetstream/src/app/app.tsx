@@ -7,7 +7,7 @@ import { ConfirmationServiceProvider } from '@jetstream/ui';
 import { Fragment, lazy, Suspense, useEffect, useState } from 'react';
 import { ErrorBoundary } from 'react-error-boundary';
 import ModalContainer from 'react-modal-promise';
-import { BrowserRouter as Router, Redirect, Route, RouteComponentProps, Switch } from 'react-router-dom';
+import { Redirect, Route, RouteComponentProps, Switch } from 'react-router-dom';
 import { RecoilRoot } from 'recoil';
 import AppInitializer from './components/core/AppInitializer';
 import AppStateResetOnOrgChange from './components/core/AppStateResetOnOrgChange';
@@ -93,30 +93,28 @@ export const App = () => {
               <ModalContainer />
               <AppStateResetOnOrgChange />
               <AppToast />
-              <Router basename="/app">
-                <LogInitializer />
+              <LogInitializer />
+              <div>
                 <div>
-                  <div>
-                    <HeaderNavbar userProfile={userProfile} featureFlags={featureFlags} />
-                  </div>
-                  <div
-                    className="slds-p-horizontal_xx-small slds-p-vertical_xx-small"
-                    css={css`
-                      margin-top: 90px;
-                    `}
-                  >
-                    <Suspense fallback={<div>Loading...</div>}>
-                      <ErrorBoundary FallbackComponent={ErrorBoundaryFallback}>
-                        <Switch>
-                          {routes.map((route) => (
-                            <Route key={route.path} path={route.path} render={route.render} />
-                          ))}
-                        </Switch>
-                      </ErrorBoundary>
-                    </Suspense>
-                  </div>
+                  <HeaderNavbar userProfile={userProfile} featureFlags={featureFlags} />
                 </div>
-              </Router>
+                <div
+                  className="slds-p-horizontal_xx-small slds-p-vertical_xx-small"
+                  css={css`
+                    margin-top: 90px;
+                  `}
+                >
+                  <Suspense fallback={<div>Loading...</div>}>
+                    <ErrorBoundary FallbackComponent={ErrorBoundaryFallback}>
+                      <Switch>
+                        {routes.map((route) => (
+                          <Route key={route.path} path={route.path} render={route.render} />
+                        ))}
+                      </Switch>
+                    </ErrorBoundary>
+                  </Suspense>
+                </div>
+              </div>
             </Fragment>
           </AppInitializer>
         </Suspense>

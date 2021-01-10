@@ -127,36 +127,59 @@ export function sortQueryFieldsStr(fields: string[]): string[] {
   return firstItems.concat(reducedFields.remaining);
 }
 
-export function sortQueryFieldsPolymorphic(fields: QueryFieldWithPolymorphic[]): QueryFieldWithPolymorphic[] {
-  // partition name and id field out, then append to front
-  const reducedFields = fields.reduce(
-    (out, item) => {
-      const { field } = item;
-      if (field === 'Id') {
-        out.id = item;
-      } else if (field === 'Name') {
-        out.name = item;
-      } else {
-        out.remaining.push(item);
-      }
-      return out;
-    },
-    {
-      id: null,
-      name: null,
-      remaining: [],
+/**
+ * Sort fields, Id and Name are first, then remaining fields
+ * Relationship fields will always sort in order with the current relationship level
+ * This is required to ensure that TYPEOF fields are processed accurately
+ *
+ * USAGE:
+ * [{...}].sort(sortQueryFieldsPolymorphicComparable)
+ *
+ * NOTE: this is slow algorithm as it is recursive through relationships
+ * But the input values is not extremely high, so it should be ok
+ *
+ * May be worth investing in some optimization
+ */
+export function sortQueryFieldsPolymorphicComparable(field1: QueryFieldWithPolymorphic, field2: QueryFieldWithPolymorphic): number {
+  const a = `${field1.field || ''}`.toLocaleLowerCase();
+  const aParts = a.split('.');
+  const b = `${field2.field || ''}`.toLocaleLowerCase();
+  const bParts = b.split('.');
+  if (a === b) {
+    return 0;
+  } else if (a === 'id') {
+    return -1;
+  } else if (b === 'id') {
+    return 1;
+  } else if (a === 'name') {
+    return -1;
+  } else if (b === 'name') {
+    return 1;
+  } else if (aParts.length === 1 || bParts.length === 1) {
+    if (a < b) {
+      return -1;
+    } else if (a > b) {
+      return 1;
     }
-  );
-
-  const firstItems = [];
-  if (reducedFields.id) {
-    firstItems.push(reducedFields.id);
+    return 0;
+  } else {
+    // has related fields, remove first element and sort based on remaining parts
+    const aRoot = aParts.shift();
+    const bRoot = bParts.shift();
+    if (aRoot === bRoot) {
+      return sortQueryFieldsPolymorphicComparable(
+        { field: aParts.join('.'), polymorphicObj: field1.polymorphicObj },
+        { field: bParts.join('.'), polymorphicObj: field2.polymorphicObj }
+      );
+    } else {
+      if (a < b) {
+        return -1;
+      } else if (a > b) {
+        return 1;
+      }
+      return 0;
+    }
   }
-  if (reducedFields.name) {
-    firstItems.push(reducedFields.name);
-  }
-
-  return firstItems.concat(reducedFields.remaining);
 }
 
 export function polyfillFieldDefinition(field: Field): string {

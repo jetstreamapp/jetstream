@@ -1,4 +1,4 @@
-import { sortQueryFieldsPolymorphic } from '@jetstream/shared/ui-utils';
+import { sortQueryFieldsPolymorphicComparable } from '@jetstream/shared/ui-utils';
 import { orderObjectsBy } from '@jetstream/shared/utils';
 import { MapOf, QueryFields, QueryFieldWithPolymorphic, SalesforceOrgUi } from '@jetstream/types';
 
@@ -40,8 +40,7 @@ export function initQueryFieldStateItem(key: string, sobject: string, props: Par
 }
 
 export function getSelectedFieldsFromQueryFields(fieldsMap: MapOf<QueryFields>): QueryFieldWithPolymorphic[] {
-  const fields: QueryFieldWithPolymorphic[] = sortQueryFieldsPolymorphic(
-    orderObjectsBy(
+  const fields: QueryFieldWithPolymorphic[] = orderObjectsBy(
       Object.values(fieldsMap)
         .filter((queryField) => !queryField.key.includes(CHILD_FIELD_SEPARATOR))
         .flatMap((queryField) => {
@@ -51,7 +50,6 @@ export function getSelectedFieldsFromQueryFields(fieldsMap: MapOf<QueryFields>):
             .map((field) => ({ field, polymorphicObj: queryField.isPolymorphic ? queryField.sobject : undefined }));
         }),
       'field'
-    )
-  );
+    ).sort(sortQueryFieldsPolymorphicComparable)
   return fields;
 }

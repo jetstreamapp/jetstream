@@ -16,6 +16,7 @@ import * as passport from 'passport';
 import * as Auth0Strategy from 'passport-auth0';
 import { ENV } from './app/config/env-config';
 import * as helmet from 'helmet';
+import proxy from 'express-http-proxy';
 
 const pgSession = pgSimple(session);
 
@@ -50,7 +51,7 @@ app.use(
   helmet({
     contentSecurityPolicy: {
       directives: {
-        defaultSrc: ["'self'", '*.rollbar.com', '*.google.com'],
+        defaultSrc: ["'self'", '*.rollbar.com', '*.google.com', 'api.amplitude.com'],
         baseUri: ["'self'"],
         blockAllMixedContent: [],
         fontSrc: ["'self'", 'https:', "'unsafe-inline'", 'data:'],
@@ -65,6 +66,20 @@ app.use(
     },
   })
 );
+
+if (ENV.ENVIRONMENT === 'development') {
+  /**
+   * All analytics go through our server instead of directly to amplitude
+   * This ensures that amplitude is not blocked by various browser tools
+   */
+  app.use('/analytics', cors({ origin: /http:\/\/localhost:[0-9]+$/ }), (req, res) => res.status(200).send('success'));
+} else {
+  /**
+   * All analytics go through our server instead of directly to amplitude
+   * This ensures that amplitude is not blocked by various browser tools
+   */
+  app.use('/analytics', proxy('https://api.amplitude.com'));
+}
 
 // Setup application cookie
 app.use((req: express.Request, res: express.Response, next: express.NextFunction) => {
