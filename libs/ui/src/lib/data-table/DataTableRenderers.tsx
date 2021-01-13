@@ -1,15 +1,18 @@
 /** @jsx jsx */
-import { ICellRendererParams, IFilter, IFilterParams } from '@ag-grid-community/core';
-import { jsx } from '@emotion/react';
+import { ICellRendererParams, IFilter, IFilterParams, IFloatingFilter, IFloatingFilterParams } from '@ag-grid-community/core';
+import { jsx, css } from '@emotion/react';
 import { SalesforceOrgUi } from '@jetstream/types';
-import { forwardRef, Fragment, FunctionComponent, useEffect, useImperativeHandle, useRef, useState } from 'react';
+import { isFunction } from 'lodash';
+import { forwardRef, Fragment, FunctionComponent, MouseEvent, useEffect, useImperativeHandle, useRef, useState } from 'react';
 import RecordDownloadModal from '../file-download-modal/RecordDownloadModal';
 import CheckboxToggle from '../form/checkbox-toggle/CheckboxToggle';
 import Checkbox from '../form/checkbox/Checkbox';
+import Input from '../form/input/Input';
 import AutoFullHeightContainer from '../layout/AutoFullHeightContainer';
 import Modal from '../modal/Modal';
 import Icon from '../widgets/Icon';
 import SalesforceLogin from '../widgets/SalesforceLogin';
+import Tooltip from '../widgets/Tooltip';
 import './data-table-styles.scss';
 import { DataTableContext, getSubqueryModalTagline, SalesforceQueryColumnDefinition, TableContext } from './data-table-utils';
 import DataTable from './DataTable';
@@ -169,15 +172,128 @@ export const ActionRenderer: FunctionComponent<ICellRendererParams> = ({ node, c
 };
 
 export const BooleanRenderer: FunctionComponent<ICellRendererParams> = ({ value, node, column, colDef }) => {
-  return <Checkbox id={`${colDef.field}-${node.id}`} checked={value} label="value" hideLabel readOnly />;
+  return (
+    <Checkbox className="slds-align_absolute-center" id={`${colDef.field}-${node.id}`} checked={value} label="value" hideLabel readOnly />
+  );
+};
+
+/**
+ * This component shows an optional additional component
+ */
+export const BooleanEditableRenderer: FunctionComponent<ICellRendererParams> = ({ value, node, column, colDef, context }) => {
+  let isReadOnly = false;
+  let additionalComponent;
+  if (isFunction(context.isReadOnly)) {
+    isReadOnly = context.isReadOnly({ value, node, column, colDef });
+  }
+  if (isFunction(context.additionalComponent)) {
+    additionalComponent = context.additionalComponent({ value, node, column, colDef });
+  }
+  const colId = column.getColId();
+  function setValue(event: MouseEvent<HTMLDivElement>) {
+    if (!isReadOnly) {
+      event.preventDefault();
+      event.stopPropagation();
+      node.setDataValue(colId, !value);
+    }
+  }
+  return (
+    <div className="slds-align_absolute-center" onClick={setValue}>
+      <Checkbox id={`${node.id}-${colId}`} checked={value} label="value" hideLabel readOnly={isReadOnly} />
+      {additionalComponent && additionalComponent}
+    </div>
+  );
+};
+
+// value is blank, so this is pretty specific for the use-case
+export const FullWidthRenderer: FunctionComponent<ICellRendererParams> = ({ value, node, column, colDef }) => {
+  return <div className="slds-align_absolute-center slds-text-heading_medium bg-background-selection">{node.data.label}</div>;
 };
 
 // FILTER RENDERERS
 
+interface FilterWithFloatingFilterCallback extends IFilter {
+  onFloatingFilterValueChanged(value: string): void;
+}
+
+export const BasicTextFilterRenderer = forwardRef<any, IFilterParams>(({ filterChangedCallback, valueGetter }, ref) => {
+  const [value, setValue] = useState('');
+  useEffect(() => {
+    filterChangedCallback();
+  }, [value]);
+  useImperativeHandle(ref, () => {
+    const filterComp: FilterWithFloatingFilterCallback = {
+      onFloatingFilterValueChanged(currValue: string) {
+        setValue(currValue || '');
+      },
+
+      isFilterActive() {
+        return !!value;
+      },
+
+      doesFilterPass({ node }) {
+        return node.isFullWidthCell() || `${valueGetter(node)}`.toLowerCase().indexOf(value.toLowerCase()) >= 0;
+      },
+
+      getModel() {
+        return { value };
+      },
+
+      setModel(model) {
+        setValue(model ? model.value : '');
+      },
+    };
+    return filterComp;
+  });
+
+  return (
+    <div>
+      <div className="slds-m-around_x-small">
+        <Input>
+          <input className="slds-input" placeholder="Filter..." value={value || ''} onChange={(event) => setValue(event.target.value)} />
+        </Input>
+      </div>
+      <hr className="slds-m-vertical_none" />
+      <div className="slds-grid slds-grid_align-end">
+        <button className="slds-button slds-button_neutral slds-m-around_x-small" onClick={() => setValue('')}>
+          Reset
+        </button>
+      </div>
+    </div>
+  );
+});
+
+/**
+ * This requires BasicTextFilterRenderer to be set as the normal filter for the row
+ */
+export const BasicTextFloatingFilterRenderer = forwardRef<any, IFloatingFilterParams>(({ parentFilterInstance }, ref) => {
+  const [value, setValue] = useState('');
+  useEffect(() => {
+    parentFilterInstance((instance) => {
+      instance.getFrameworkComponentInstance().onFloatingFilterValueChanged(value);
+    });
+  }, [value]);
+  useImperativeHandle(ref, () => {
+    const filterComp: IFloatingFilter = {
+      onParentModelChanged(parentModel) {
+        setValue(parentModel?.value || '');
+      },
+    };
+    return filterComp;
+  });
+
+  return (
+    <div className="slds-m-around_x-small">
+      <Input clearButton={!!value} onClear={() => setValue('')}>
+        <input className="slds-input" placeholder="Filter..." value={value} onChange={(event) => setValue(event.target.value)} />
+      </Input>
+    </div>
+  );
+});
+
 export const BooleanFilterRenderer = forwardRef<any, IFilterParams>(({ filterChangedCallback, valueGetter, colDef }, ref) => {
   const [isEnabled, setIsEnabled] = useState(false);
   const [value, setValue] = useState(true);
-  const refInput = useRef(null);
   useEffect(() => {
     filterChangedCallback();
   }, [isEnabled, value]);

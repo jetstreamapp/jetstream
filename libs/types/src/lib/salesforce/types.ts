@@ -152,6 +152,83 @@ export interface EntityParticleRecord {
   RelationshipName: string | null;
 }
 
+export interface EntityParticlePermissionsRecord {
+  QualifiedApiName: string;
+  Label: string;
+  DataType: string;
+  DurableId: string;
+  EntityDefinition: { QualifiedApiName: string };
+  FieldDefinitionId: string;
+  NamespacePrefix: string;
+  IsCompound: boolean;
+  IsCreatable: boolean;
+  IsPermissionable: boolean;
+}
+
+export interface PermissionSetRecord {
+  attributes: RecordAttributes;
+  Id: string;
+  Name: string;
+  Label: string;
+  Type: 'Profile' | 'Regular' | 'Group';
+  IsCustom: boolean;
+  IsOwnedByProfile: boolean;
+  NamespacePrefix: string | null;
+  ProfileId: string | null;
+  Profile?: PermissionSetProfileRecord;
+}
+
+export interface PermissionSetProfileRecord {
+  attributes: RecordAttributes;
+  Id: string;
+  Name: string;
+  UserType: string;
+}
+
+export interface PermissionSetNoProfileRecord extends PermissionSetRecord {
+  Type: 'Regular';
+  IsOwnedByProfile: false;
+  ProfileId: null;
+  Profile: undefined;
+}
+
+export interface PermissionSetWithProfileRecord extends PermissionSetRecord {
+  Type: 'Profile';
+  IsOwnedByProfile: true;
+  ProfileId: string;
+  Profile: PermissionSetProfileRecord;
+}
+
+export interface PermissionPermissionSetRecord {
+  Id: string;
+  Name: string;
+  IsOwnedByProfile: boolean;
+  ProfileId?: string;
+}
+
+export interface ObjectPermissionRecord {
+  Id: string;
+  SobjectType: string;
+  PermissionsRead: boolean;
+  PermissionsCreate: boolean;
+  PermissionsEdit: boolean;
+  PermissionsDelete: boolean;
+  PermissionsModifyAllRecords: boolean;
+  PermissionsViewAllRecords: boolean;
+  ParentId: string;
+  parent: PermissionPermissionSetRecord;
+}
+
+export interface FieldPermissionRecord {
+  Id: string;
+  SobjectType: string;
+  Field: string;
+  PermissionsRead: boolean;
+  PermissionsEdit: boolean;
+  ParentId: string;
+  parent: PermissionPermissionSetRecord;
+}
+
 export type BulkJobWithBatches = BulkJob & { batches: BulkJobBatchInfo[] };
 
 export interface BulkJob {
@@ -260,4 +337,19 @@ export interface PicklistFieldValueItem {
   label: string;
   value: string;
   validFor: number[];
+}
+
+export interface ListMetadataResult {
+  createdById: string;
+  createdByName: string;
+  createdDate: string;
+  fileName: string;
+  fullName: string;
+  id: string;
+  lastModifiedById: string;
+  lastModifiedByName: string;
+  lastModifiedDate: string;
+  manageableState?: 'beta' | 'deleted' | 'deprecated' | 'deprecatedEditable' | 'installed' | 'installedEditable' | 'released' | 'unmanaged';
+  namespacePrefix?: string;
+  type: string;
 }

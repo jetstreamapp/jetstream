@@ -2,7 +2,7 @@ import { logger } from '@jetstream/shared/client-logger';
 import { clearCacheForOrg, describeGlobal } from '@jetstream/shared/data';
 import { NOOP, orderObjectsBy } from '@jetstream/shared/utils';
 import { SalesforceOrgUi } from '@jetstream/types';
-import { SobjectList } from './SobjectList';
+import { SobjectListMultiSelect } from './SobjectListMultiSelect';
 import { DescribeGlobalSObjectResult } from 'jsforce';
 import React, { Fragment, FunctionComponent, useEffect, useRef, useState } from 'react';
 import Grid from '../grid/Grid';
@@ -18,24 +18,24 @@ function filterSobjectFn(sobject: DescribeGlobalSObjectResult): boolean {
   return sobject.queryable && !sobject.name.endsWith('CleanInfo');
 }
 
-export interface ConnectedSobjectListProps {
+export interface ConnectedSobjectListMultiSelectProps {
   label?: string;
   selectedOrg: SalesforceOrgUi;
   sobjects: DescribeGlobalSObjectResult[];
-  selectedSObject: DescribeGlobalSObjectResult;
+  selectedSObjects: string[];
   filterFn?: (sobject: DescribeGlobalSObjectResult) => boolean;
   onSobjects: (sobjects: DescribeGlobalSObjectResult[]) => void;
-  onSelectedSObject: (selectedSObject: DescribeGlobalSObjectResult) => void;
+  onSelectedSObjects: (selectedSObjects: string[]) => void;
 }
 
-export const ConnectedSobjectList: FunctionComponent<ConnectedSobjectListProps> = ({
+export const ConnectedSobjectListMultiSelect: FunctionComponent<ConnectedSobjectListMultiSelectProps> = ({
   label = 'Objects',
   selectedOrg,
   sobjects,
-  selectedSObject,
+  selectedSObjects,
   filterFn = filterSobjectFn,
   onSobjects,
-  onSelectedSObject,
+  onSelectedSObjects,
 }) => {
   const isMounted = useRef(null);
   const [loading, setLoading] = useState<boolean>(false);
@@ -85,7 +85,7 @@ export const ConnectedSobjectList: FunctionComponent<ConnectedSobjectListProps> 
     try {
       await clearCacheForOrg(selectedOrg);
       onSobjects(null);
-      onSelectedSObject(null);
+      onSelectedSObjects(null);
       await loadObjects();
     } catch (ex) {
       // error
@@ -99,27 +99,21 @@ export const ConnectedSobjectList: FunctionComponent<ConnectedSobjectListProps> 
         <div>
           <Tooltip id={`sobject-list-refresh-tooltip`} content={lastRefreshed}>
             <button className="slds-button slds-button_icon slds-button_icon-container" disabled={loading} onClick={handleRefresh}>
-              <Icon
-                type="utility"
-                icon="refresh"
-                description={`Reload objects`}
-                className="slds-button__icon"
-                omitContainer
-              />
+              <Icon type="utility" icon="refresh" description={`Reload objects`} className="slds-button__icon" omitContainer />
             </button>
           </Tooltip>
         </div>
       </Grid>
-      <SobjectList
+      <SobjectListMultiSelect
         sobjects={sobjects}
-        selectedSObject={selectedSObject}
+        selectedSObjects={selectedSObjects}
         loading={loading}
         errorMessage={errorMessage}
-        onSelected={onSelectedSObject}
+        onSelected={onSelectedSObjects}
         errorReattempt={() => setErrorMessage(null)}
       />
     </Fragment>
   );
 };
 
-export default ConnectedSobjectList;
+export default ConnectedSobjectListMultiSelect;

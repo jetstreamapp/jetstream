@@ -16,8 +16,8 @@ export interface FileDownloadModalProps {
   modalTagline?: string;
   allowedTypes?: FileExtCsvXLSXJson[]; // defaults to all types
   org: SalesforceOrgUi;
-  // if data is MapOf<any[]> then only excel is a supported option and header, if provided, should be the same type
-  data: any[] | MapOf<any[]>;
+  // if data is MapOf<any[]> | ArrayBuffer then only excel is a supported option and header, if provided, should be the same type
+  data: any[] | MapOf<any[]> | ArrayBuffer;
   header?: string[] | MapOf<any[]>; // can be omitted if every field should be included in download, otherwise pass in a list of fields to include in file
   fileNameParts?: string[];
   alternateDownloadButton?: React.ReactNode; // If provided, then caller must manage what happens on click - used for URL links
@@ -86,11 +86,13 @@ export const FileDownloadModal: FunctionComponent<FileDownloadModalProps> = ({
       let fileData;
       switch (fileFormat) {
         case 'xlsx': {
-          if (Array.isArray(data)) {
+          if (data instanceof ArrayBuffer) {
+            fileData = data;
+          } else if (Array.isArray(data)) {
             const headerFields = (header ? header : Object.keys(data[0])) as string[];
             fileData = prepareExcelFile(data, headerFields);
           } else {
-            fileData = prepareExcelFile(data, header as MapOf<string[]>);
+            fileData = prepareExcelFile(data as any, header as MapOf<string[]>);
           }
           mimeType = MIME_TYPES.XLSX;
           break;
