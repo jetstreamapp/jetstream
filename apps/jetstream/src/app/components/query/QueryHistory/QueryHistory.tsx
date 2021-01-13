@@ -89,6 +89,13 @@ export const QueryHistory: FunctionComponent<QueryHistoryProps> = ({ onRestore }
   }, [location]);
 
   useEffect(() => {
+    if (selectedObject) {
+      setSqlFilterValue('');
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedObject]);
+
+  useEffect(() => {
     if (!filterValue && selectObjectsList !== filteredSelectObjectsList) {
       setFilteredSelectObjectsList(selectObjectsList);
     } else if (filterValue) {
@@ -149,6 +156,7 @@ export const QueryHistory: FunctionComponent<QueryHistoryProps> = ({ onRestore }
                     id="query-history-object-filter"
                     placeholder="Filter Objects"
                     autoFocus
+                    value={filterValue}
                     onChange={setFilterValue}
                     onArrowKeyUpDown={handleSearchKeyboard}
                   />
@@ -177,7 +185,13 @@ export const QueryHistory: FunctionComponent<QueryHistoryProps> = ({ onRestore }
                 `}
               >
                 <h2 className="slds-text-heading_medium slds-text-align_center">Objects</h2>
-                <SearchInput id="query-history-sql-filter" placeholder="Filter Queries" autoFocus onChange={setSqlFilterValue} />
+                <SearchInput
+                  id="query-history-sql-filter"
+                  placeholder="Filter Queries"
+                  autoFocus
+                  value={sqlFilterValue}
+                  onChange={setSqlFilterValue}
+                />
                 {visibleQueryHistory.map((item) => (
                   <QueryHistoryItemCard
                     key={item.key}
