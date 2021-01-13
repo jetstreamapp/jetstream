@@ -16,6 +16,8 @@ import ErrorBoundaryFallback from '../../core/ErrorBoundaryFallback';
 import * as fromQueryHistoryState from './query-history.state';
 import QueryHistoryItemCard from './QueryHistoryItemCard';
 
+const SHOWING_STEP = 10;
+
 export interface QueryHistoryProps {
   onRestore?: (soql: string) => void;
 }
@@ -35,6 +37,12 @@ export const QueryHistory: FunctionComponent<QueryHistoryProps> = ({ onRestore }
   const [filterValue, setFilterValue] = useState('');
   const [filteredSelectObjectsList, setFilteredSelectObjectsList] = useState(selectObjectsList);
 
+  const [sqlFilterValue, setSqlFilterValue] = useState('');
+  const [filteredQueryHistory, setFilteredQueryHistory] = useState(queryHistory);
+
+  const [showingUpTo, setShowingUpTo] = useState(SHOWING_STEP);
+  const [visibleQueryHistory, setVisibleQueryHistory] = useState(filteredQueryHistory.slice(0, showingUpTo));
+
   // Update store if queryHistory was modified
   useEffect(() => {
     if (queryHistory) {
@@ -49,6 +57,29 @@ export const QueryHistory: FunctionComponent<QueryHistoryProps> = ({ onRestore }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [queryHistory]);
+
+  useEffect(() => {
+    if (!isOpen && showingUpTo !== SHOWING_STEP) {
+      setShowingUpTo(SHOWING_STEP);
+    }
+  }, [isOpen, showingUpTo]);
+
+  useEffect(() => {
+    if (queryHistory) {
+      setShowingUpTo(SHOWING_STEP);
+      if (!sqlFilterValue) {
+        setFilteredQueryHistory(queryHistory);
+      } else {
+        setFilteredQueryHistory(queryHistory.filter((item) => item.soql.toLowerCase().includes(sqlFilterValue.toLowerCase())));
+      }
+    }
+  }, [queryHistory, sqlFilterValue]);
+
+  useEffect(() => {
+    if (filteredQueryHistory && showingUpTo) {
+      setVisibleQueryHistory(filteredQueryHistory.slice(0, showingUpTo));
+    }
+  }, [filteredQueryHistory, showingUpTo]);
 
   useEffect(() => {
     if (isOpen) {
@@ -88,6 +119,10 @@ export const QueryHistory: FunctionComponent<QueryHistoryProps> = ({ onRestore }
       setIsOpen(false);
       onRestore && onRestore(soql);
     }
+  }
+
+  function showMore() {
+    setShowingUpTo(showingUpTo + SHOWING_STEP);
   }
 
   return (
@@ -135,13 +170,15 @@ export const QueryHistory: FunctionComponent<QueryHistoryProps> = ({ onRestore }
                 />
               </GridCol>
               <GridCol
-                className="slds-p-around_x-small slds-scrollable_y"
+                className="slds-p-horizontal_x-small slds-scrollable_y"
                 css={css`
                   max-height: 75vh;
                   min-height: 75vh;
                 `}
               >
-                {queryHistory.map((item) => (
+                <h2 className="slds-text-heading_medium slds-text-align_center">Objects</h2>
+                <SearchInput id="query-history-sql-filter" placeholder="Filter Queries" autoFocus onChange={setSqlFilterValue} />
+                {visibleQueryHistory.map((item) => (
                   <QueryHistoryItemCard
                     key={item.key}
                     item={item}
@@ -149,6 +186,19 @@ export const QueryHistory: FunctionComponent<QueryHistoryProps> = ({ onRestore }
                     endRestore={(fatalError, errors) => handleEndRestore(item.soql, fatalError, errors)}
                   />
                 ))}
+                {visibleQueryHistory.length === 0 && (
+                  <EmptyState imageWidth={200}>
+                    <p>There are no matching queries.</p>
+                    <p>Adjust your selection.</p>
+                  </EmptyState>
+                )}
+                {!!visibleQueryHistory.length && visibleQueryHistory.length < filteredQueryHistory.length && (
+                  <div className="slds-grid slds-grid_align-center slds-m-around_small">
+                    <button className="slds-button slds-button_neutral" onClick={showMore}>
+                      Load More
+                    </button>
+                  </div>
+                )}
               </GridCol>
             </Grid>
           )}
