@@ -65,6 +65,9 @@ export const HeaderNavbar: FunctionComponent<HeaderNavbarProps> = ({ userProfile
             <NavbarItem path="/automation-control" title="Automation Control" label="Automation Control" />
           </Fragment>
         )}
+        {hasFeatureFlagAccess(featureFlags, FEATURE_FLAGS.PERMISSION_MANAGER) && (
+          <NavbarItem path="/permissions-manager" title="Manage Permissions" label="Manage Permissions" />
+        )}
         <NavbarItem path="/feedback" title="Product Feedback" label="Product Feedback" />
       </Navbar>
     </Header>

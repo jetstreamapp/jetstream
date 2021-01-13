@@ -1,15 +1,15 @@
-/* eslint-disable @typescript-eslint/camelcase */
 import { InputAcceptTypeCsv, InputAcceptTypeExcel, InputAcceptTypeZip, MapOf, MimeType } from '@jetstream/types';
 
 export const SESSION_EXP_DAYS = 5;
 export const SFDC_BULK_API_NULL_VALUE = '#N/A';
 
-export const FEATURE_FLAGS = {
+export const FEATURE_FLAGS = Object.freeze({
   ALL: 'all',
   AUTOMATION_CONTROL: 'automation-control',
   QUERY: 'query',
   LOAD: 'load',
-};
+  PERMISSION_MANAGER: 'permission-manager',
+});
 
 export const INPUT_ACCEPT_FILETYPES: {
   ZIP: InputAcceptTypeZip;

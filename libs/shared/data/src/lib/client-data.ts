@@ -12,6 +12,7 @@ import {
   SalesforceOrgUi,
   SobjectOperation,
   UserProfileUi,
+  ListMetadataResult,
 } from '@jetstream/types';
 import { AsyncResult, DeployOptions, DeployResult, DescribeGlobalResult, DescribeSObjectResult } from 'jsforce';
 import { handleRequest } from './client-data-data-helper';
@@ -110,15 +111,17 @@ export async function sobjectOperation<T = any>(
     allOrNone?: boolean;
   } = {}
 ): Promise<T> {
-  return handleRequest({ method: 'POST', url: `/api/record/${operation}/${sobject}`, params: { query }, data: body }, { org }).then(
+  return handleRequest({ method: 'POST', url: `/api/record/${operation}/${sobject}`, params: { ...query }, data: body }, { org }).then(
     unwrapResponseIgnoreCache
   );
 }
 
-// TODO:
-// export async function listMetadata<T = any>(org: SalesforceOrgUi, query: string, isTooling = false): Promise<API.QueryResults<T>> {
-//   return handleRequest(request.post(`/api/query`).query({ isTooling }).send({ query }), org);
-// }
+export async function listMetadata(
+  org: SalesforceOrgUi,
+  types: { type: string; folder?: string }[]
+): Promise<ApiResponse<ListMetadataResult[]>> {
+  return handleRequest({ method: 'POST', url: `/api/metadata/list`, data: { types } }, { org, useCache: true, useBodyInCacheKey: true });
+}
 
 export async function readMetadata<T = any>(org: SalesforceOrgUi, type: string, fullNames: string[]): Promise<T[]> {
   return handleRequest({ method: 'POST', url: `/api/metadata/read/${type}`, data: { fullNames } }, { org }).then(unwrapResponseIgnoreCache);

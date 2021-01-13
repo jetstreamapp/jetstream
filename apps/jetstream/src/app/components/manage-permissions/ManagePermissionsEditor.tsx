@@ -1,0 +1,459 @@
+/** @jsx jsx */
+import { ColDef, ColGroupDef } from '@ag-grid-community/core';
+import { jsx } from '@emotion/react';
+import { logger } from '@jetstream/shared/client-logger';
+import { MapOf, SalesforceOrgUi } from '@jetstream/types';
+import {
+  AutoFullHeightContainer,
+  ConfirmationModalPromise,
+  FileDownloadModal,
+  Icon,
+  Spinner,
+  Tabs,
+  Toolbar,
+  ToolbarItemActions,
+  ToolbarItemGroup,
+  Tooltip,
+} from '@jetstream/ui';
+import { Fragment, FunctionComponent, useEffect, useRef, useState } from 'react';
+import { Link } from 'react-router-dom';
+import { useRecoilState, useRecoilValue, useResetRecoilState } from 'recoil';
+import { selectedOrgState } from '../../app-state';
+import * as fromPermissionsStateState from './manage-permissions.state';
+import ManagePermissionsEditorFieldTable from './ManagePermissionsEditorFieldTable';
+import ManagePermissionsEditorObjectTable from './ManagePermissionsEditorObjectTable';
+import { usePermissionRecords } from './usePermissionRecords';
+import { generateExcelWorkbookFromTable } from './utils/permission-manager-export-utils';
+import {
+  getConfirmationModalContent,
+  getDirtyFieldPermissions,
+  getDirtyObjectPermissions,
+  getFieldColumns,
+  getFieldRows,
+  getObjectColumns,
+  getObjectRows,
+  updateFieldRowsAfterSave,
+  updateObjectRowsAfterSave,
+} from './utils/permission-manager-table-utils';
+import {
+  DirtyRow,
+  FieldPermissionDefinitionMap,
+  FieldPermissionRecordForSave,
+  ManagePermissionsEditorTableRef,
+  ObjectPermissionDefinitionMap,
+  ObjectPermissionRecordForSave,
+  PermissionFieldSaveData,
+  PermissionObjectSaveData,
+  PermissionSaveResults,
+  PermissionTableFieldCell,
+  PermissionTableFieldCellPermission,
+  PermissionTableObjectCell,
+  PermissionTableObjectCellPermission,
+} from './utils/permission-manager-types';
+import {
+  clearPermissionErrorMessage,
+  getUpdatedFieldPermissions,
+  getUpdatedObjectPermissions,
+  permissionsHaveError,
+  prepareFieldPermissionSaveData,
+  prepareObjectPermissionSaveData,
+  savePermissionRecords,
+} from './utils/permission-manager-utils';
+
+const HEIGHT_BUFFER = 170;
+
+export function ErrorTooltip({ hasError, id }: { hasError: boolean; id: string }) {
+  if (!hasError) {
+    return null;
+  }
+  return (
+    <Tooltip
+      id={`tooltip-${id}`}
+      content={
+        <div>
+          <strong>There were errors saving your data, review the table for more information.</strong>
+        </div>
+      }
+    >
+      <Icon type="utility" icon="error" className="slds-icon slds-icon-text-error slds-icon_xx-small slds-m-left_small" />
+    </Tooltip>
+  );
+}
+
+// eslint-disable-next-line @typescript-eslint/no-empty-interface
+export interface ManagePermissionsEditorProps {}
+
+export const ManagePermissionsEditor: FunctionComponent<ManagePermissionsEditorProps> = () => {
+  const isMounted = useRef(null);
+  const managePermissionsEditorObjectTableRef = useRef<ManagePermissionsEditorTableRef>();
+  const managePermissionsEditorFieldTableRef = useRef<ManagePermissionsEditorTableRef>();
+  const selectedOrg = useRecoilValue<SalesforceOrgUi>(selectedOrgState);
+
+  const [loading, setLoading] = useState(false);
+  const [hasLoaded, setHasLoaded] = useState(false);
+  const [hasError, setHasError] = useState(false);
+  const [fileDownloadModalOpen, setFileDownloadModalOpen] = useState<boolean>(false);
+  const [fileDownloadData, setFileDownloadData] = useState<ArrayBuffer>(null);
+
+  const selectedProfiles = useRecoilValue(fromPermissionsStateState.selectedProfilesPermSetState);
+  const selectedPermissionSets = useRecoilValue(fromPermissionsStateState.selectedPermissionSetsState);
+  const selectedSObjects = useRecoilValue(fromPermissionsStateState.selectedSObjectsState);
+
+  const profilesById = useRecoilValue(fromPermissionsStateState.profilesByIdSelector);
+  const permissionSetsById = useRecoilValue(fromPermissionsStateState.permissionSetsByIdSelector);
+  const [fieldsByObject, setFieldsByObject] = useRecoilState(fromPermissionsStateState.fieldsByObject);
+  const [fieldsByKey, setFieldsByKey] = useRecoilState(fromPermissionsStateState.fieldsByKey);
+  const [objectPermissionMap, setObjectPermissionMap] = useRecoilState(fromPermissionsStateState.objectPermissionMap);
+  const [fieldPermissionMap, setFieldPermissionMap] = useRecoilState(fromPermissionsStateState.fieldPermissionMap);
+  const resetFieldsByObject = useResetRecoilState(fromPermissionsStateState.fieldsByObject);
+  const resetFieldsByKey = useResetRecoilState(fromPermissionsStateState.fieldsByKey);
+  const resetObjectPermissionMap = useResetRecoilState(fromPermissionsStateState.objectPermissionMap);
+  const resetFieldPermissionMap = useResetRecoilState(fromPermissionsStateState.fieldPermissionMap);
+
+  // TODO: what about if we already have profiles and perm sets from state?
+  // TODO: when loading, should we clear prior selections?
+  const recordData = usePermissionRecords(selectedOrg, selectedSObjects, selectedProfiles, selectedPermissionSets);
+
+  const [objectColumns, setObjectColumns] = useState<(ColDef | ColGroupDef)[]>([]);
+  const [objectRows, setObjectRows] = useState<PermissionTableObjectCell[]>(null);
+  const [dirtyObjectRows, setDirtyObjectRows] = useState<MapOf<DirtyRow<PermissionTableObjectCell>>>({});
+
+  const [fieldColumns, setFieldColumns] = useState<(ColDef | ColGroupDef)[]>([]);
+  const [fieldRows, setFieldRows] = useState<PermissionTableFieldCell[]>(null);
+  const [dirtyFieldRows, setDirtyFieldRows] = useState<MapOf<DirtyRow<PermissionTableFieldCell>>>({});
+
+  const [dirtyObjectCount, setDirtyObjectCount] = useState<number>(0);
+  const [dirtyFieldCount, setDirtyFieldCount] = useState<number>(0);
+
+  const [objectsHaveErrors, setObjectsHaveErrors] = useState<boolean>(false);
+  const [fieldsHaveErrors, setFieldsHaveErrors] = useState<boolean>(false);
+
+  useEffect(() => {
+    isMounted.current = true;
+    return () => (isMounted.current = false);
+  }, []);
+
+  useEffect(() => {
+    setFieldsByObject(recordData.fieldsByObject);
+    setFieldsByKey(recordData.fieldsByKey);
+    setObjectPermissionMap(recordData.objectPermissionMap);
+    setFieldPermissionMap(recordData.fieldPermissionMap);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [recordData.fieldsByObject, recordData.fieldsByKey, recordData.objectPermissionMap, recordData.fieldPermissionMap]);
+
+  useEffect(() => {
+    setLoading(recordData.loading);
+  }, [recordData.loading]);
+
+  useEffect(() => {
+    if (!loading && !hasLoaded && fieldsByObject && fieldsByKey && objectPermissionMap && fieldPermissionMap) {
+      setHasLoaded(true);
+      initTableData();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [fieldsByObject, fieldsByKey, objectPermissionMap, fieldPermissionMap]);
+
+  useEffect(() => {
+    setHasError(recordData.hasError);
+  }, [recordData.hasError]);
+
+  useEffect(() => {
+    if (objectPermissionMap && fieldPermissionMap) {
+      setObjectsHaveErrors(permissionsHaveError(objectPermissionMap));
+      setFieldsHaveErrors(permissionsHaveError(fieldPermissionMap));
+    }
+  }, [objectPermissionMap, fieldPermissionMap]);
+
+  useEffect(() => {
+    setDirtyFieldCount(Object.values(dirtyFieldRows).reduce((output, { dirtyCount }) => output + dirtyCount, 0));
+  }, [dirtyFieldRows]);
+
+  useEffect(() => {
+    setDirtyObjectCount(Object.values(dirtyObjectRows).reduce((output, { dirtyCount }) => output + dirtyCount, 0));
+  }, [dirtyObjectRows]);
+
+  function initTableData(
+    includeColumns = true,
+    objectPermissionMapOverride?: MapOf<ObjectPermissionDefinitionMap>,
+    fieldPermissionMapOverride?: MapOf<FieldPermissionDefinitionMap>
+  ) {
+    if (includeColumns) {
+      setObjectColumns(getObjectColumns(selectedProfiles, selectedPermissionSets, profilesById, permissionSetsById));
+      setFieldColumns(getFieldColumns(selectedProfiles, selectedPermissionSets, profilesById, permissionSetsById));
+    }
+    setObjectRows(getObjectRows(selectedSObjects, objectPermissionMapOverride || objectPermissionMap));
+    setFieldRows(getFieldRows(selectedSObjects, fieldsByObject, fieldPermissionMapOverride || fieldPermissionMap));
+    setDirtyFieldRows({});
+    setDirtyObjectRows({});
+    resetTable();
+  }
+
+  function exportChanges() {
+    // generate brand-new columns/rows just for export
+    // This is required in the case where a tab may not have been rendered
+    setFileDownloadData(
+      generateExcelWorkbookFromTable(
+        {
+          columns: getObjectColumns(selectedProfiles, selectedPermissionSets, profilesById, permissionSetsById),
+          rows: getObjectRows(selectedSObjects, objectPermissionMap),
+        },
+        {
+          columns: getFieldColumns(selectedProfiles, selectedPermissionSets, profilesById, permissionSetsById),
+          rows: getFieldRows(selectedSObjects, fieldsByObject, fieldPermissionMap),
+        }
+      )
+    );
+    setFileDownloadModalOpen(true);
+  }
+
+  async function saveChanges() {
+    if (
+      await ConfirmationModalPromise({
+        header: 'Confirmation',
+        confirm: 'Save Changes',
+        content: getConfirmationModalContent(dirtyObjectCount, dirtyFieldCount),
+      })
+    ) {
+      setLoading(true);
+      let objectPermissionData: PermissionObjectSaveData;
+      let fieldPermissionData: PermissionFieldSaveData;
+      if (dirtyObjectCount) {
+        const dirtyPermissions = getDirtyObjectPermissions(dirtyObjectRows);
+        if (dirtyPermissions.length > 0) {
+          objectPermissionData = prepareObjectPermissionSaveData(dirtyPermissions);
+        }
+      }
+      if (dirtyFieldCount) {
+        const dirtyPermissions = getDirtyFieldPermissions(dirtyFieldRows);
+        if (dirtyPermissions.length > 0) {
+          fieldPermissionData = prepareFieldPermissionSaveData(dirtyPermissions);
+        }
+      }
+
+      let objectSaveResults: PermissionSaveResults<ObjectPermissionRecordForSave, PermissionTableObjectCellPermission>[];
+      let fieldSaveResults: PermissionSaveResults<FieldPermissionRecordForSave, PermissionTableFieldCellPermission>[];
+
+      if (objectPermissionData) {
+        objectSaveResults = await savePermissionRecords<ObjectPermissionRecordForSave, PermissionTableObjectCellPermission>(
+          selectedOrg,
+          'ObjectPermissions',
+          objectPermissionData
+        );
+        logger.log({ objectSaveResults });
+      }
+      if (fieldPermissionData) {
+        fieldSaveResults = await savePermissionRecords<FieldPermissionRecordForSave, PermissionTableFieldCellPermission>(
+          selectedOrg,
+          'FieldPermissions',
+          fieldPermissionData
+        );
+        logger.log({ fieldSaveResults });
+      }
+
+      if (isMounted.current) {
+        if (objectSaveResults) {
+          const permissionsMap = getUpdatedObjectPermissions(objectPermissionMap, objectSaveResults);
+          const rows = updateObjectRowsAfterSave(objectRows, permissionsMap);
+          setObjectPermissionMap(permissionsMap);
+          setObjectRows(rows);
+          handleObjectBulkRowUpdate(rows);
+        }
+        if (fieldSaveResults) {
+          const permissionsMap = getUpdatedFieldPermissions(fieldPermissionMap, fieldSaveResults);
+          const rows = updateFieldRowsAfterSave(fieldRows, permissionsMap);
+          setFieldPermissionMap(permissionsMap);
+          setFieldRows(rows);
+          handleFieldBulkRowUpdate(rows);
+        }
+        resetTable();
+        setLoading(false);
+      }
+    }
+  }
+
+  function resetChanges() {
+    const updatedObjectPermissionMap = clearPermissionErrorMessage(objectPermissionMap);
+    const updatedFieldPermissionMap = clearPermissionErrorMessage(fieldPermissionMap);
+    setObjectPermissionMap(updatedObjectPermissionMap);
+    setFieldPermissionMap(updatedFieldPermissionMap);
+    initTableData(false, updatedObjectPermissionMap, updatedFieldPermissionMap);
+  }
+
+  /**
+   * This ensured that each table cell is re-rendered
+   * This is required because of the way the error message is implemented
+   */
+  function resetTable() {
+    if (managePermissionsEditorObjectTableRef.current) {
+      managePermissionsEditorObjectTableRef.current.resetRows();
+    }
+    if (managePermissionsEditorFieldTableRef.current) {
+      managePermissionsEditorFieldTableRef.current.resetRows();
+    }
+  }
+
+  function handleGoBack() {
+    resetFieldsByObject();
+    resetFieldsByKey();
+    resetObjectPermissionMap();
+    resetFieldPermissionMap();
+  }
+
+  function handleObjectBulkRowUpdate(rows: PermissionTableObjectCell[]) {
+    setDirtyObjectRows((priorValue) => {
+      const newValues = { ...priorValue };
+      rows.forEach((row) => {
+        const rowKey = row.key; // e.x. Obj__c.Field__c
+        const dirtyCount = Object.values(row.permissions).reduce(
+          (output, { createIsDirty, readIsDirty, editIsDirty, deleteIsDirty, viewAllIsDirty, modifyAllIsDirty }) => {
+            output += createIsDirty ? 1 : 0;
+            output += readIsDirty ? 1 : 0;
+            output += editIsDirty ? 1 : 0;
+            output += deleteIsDirty ? 1 : 0;
+            output += viewAllIsDirty ? 1 : 0;
+            output += modifyAllIsDirty ? 1 : 0;
+            return output;
+          },
+          0
+        );
+        newValues[rowKey] = { rowKey, dirtyCount, row };
+      });
+      // remove items with a dirtyCount of 0 to reduce future processing required
+      return Object.keys(newValues).reduce((output: MapOf<DirtyRow<PermissionTableObjectCell>>, key) => {
+        if (newValues[key].dirtyCount) {
+          output[key] = newValues[key];
+        }
+        return output;
+      }, {});
+    });
+  }
+
+  function handleFieldBulkRowUpdate(rows: PermissionTableFieldCell[]) {
+    setDirtyFieldRows((priorValue) => {
+      const newValues = { ...priorValue };
+      rows.forEach((row) => {
+        const rowKey = row.key; // e.x. Obj__c.Field__c
+        const dirtyCount = Object.values(row.permissions).reduce((output, { readIsDirty, editIsDirty }) => {
+          output += readIsDirty ? 1 : 0;
+          output += editIsDirty ? 1 : 0;
+          return output;
+        }, 0);
+        newValues[rowKey] = { rowKey, dirtyCount, row };
+      });
+      // remove items with a dirtyCount of 0 to reduce future processing required
+      return Object.keys(newValues).reduce((output: MapOf<DirtyRow<PermissionTableFieldCell>>, key) => {
+        if (newValues[key].dirtyCount) {
+          output[key] = newValues[key];
+        }
+        return output;
+      }, {});
+    });
+  }
+
+  return (
+    <div>
+      {fileDownloadData && fileDownloadModalOpen && (
+        <FileDownloadModal
+          org={selectedOrg}
+          data={fileDownloadData}
+          fileNameParts={['permissions', 'export']}
+          allowedTypes={['xlsx']}
+          onModalClose={() => setFileDownloadModalOpen(false)}
+        />
+      )}
+      <Toolbar>
+        <ToolbarItemGroup>
+          <Link className="slds-button slds-button_brand" to={{ pathname: `/permissions-manager` }} onClick={handleGoBack}>
+            <Icon type="utility" icon="back" className="slds-button__icon slds-button__icon_left" omitContainer />
+            Go Back
+          </Link>
+        </ToolbarItemGroup>
+        <ToolbarItemActions>
+          <button
+            className="slds-button slds-button_neutral"
+            onClick={resetChanges}
+            disabled={!dirtyObjectCount && !dirtyFieldCount && !objectsHaveErrors && !fieldsHaveErrors}
+          >
+            <Icon type="utility" icon="refresh" className="slds-button__icon slds-button__icon_left" />
+            Reset Changes
+          </button>
+          <button className="slds-button slds-button_neutral" onClick={exportChanges}>
+            <Icon type="utility" icon="download" className="slds-button__icon slds-button__icon_left" />
+            Export
+          </button>
+          <button className="slds-button slds-button_brand" onClick={saveChanges} disabled={!dirtyObjectCount && !dirtyFieldCount}>
+            <Icon type="utility" icon="upload" className="slds-button__icon slds-button__icon_left" />
+            Save
+          </button>
+        </ToolbarItemActions>
+      </Toolbar>
+      <AutoFullHeightContainer bottomBuffer={10} className="slds-scrollable_none" bufferIfNotRendered={HEIGHT_BUFFER}>
+        {loading && <Spinner />}
+        {hasLoaded && (
+          <Tabs
+            initialActiveId="field-permissions"
+            tabs={[
+              {
+                id: 'object-permissions',
+                title: (
+                  <Fragment>
+                    <span className="slds-tabs__left-icon">
+                      <Icon
+                        type="standard"
+                        icon="entity"
+                        containerClassname="slds-icon_container slds-icon-standard-entity"
+                        className="slds-icon slds-icon_small"
+                      />
+                    </span>
+                    Object Permissions {dirtyObjectCount ? `(${dirtyObjectCount})` : ''}
+                    <ErrorTooltip hasError={objectsHaveErrors} id="object-errors" />
+                  </Fragment>
+                ),
+                titleText: 'Object Permissions',
+                disabled: true,
+                content: (
+                  <ManagePermissionsEditorObjectTable
+                    ref={managePermissionsEditorObjectTableRef}
+                    columns={objectColumns}
+                    rows={objectRows}
+                    onBulkUpdate={handleObjectBulkRowUpdate}
+                    onDirtyRows={setDirtyObjectRows}
+                  />
+                ),
+              },
+              {
+                id: 'field-permissions',
+                title: (
+                  <Fragment>
+                    <span className="slds-tabs__left-icon">
+                      <Icon
+                        type="standard"
+                        icon="multi_picklist"
+                        containerClassname="slds-icon_container slds-icon-standard-multi-picklist"
+                        className="slds-icon slds-icon_small"
+                      />
+                    </span>
+                    Field Permissions {dirtyFieldCount ? `(${dirtyFieldCount})` : ''}
+                    <ErrorTooltip hasError={fieldsHaveErrors} id="field-errors" />
+                  </Fragment>
+                ),
+                titleText: 'Field Permissions',
+                content: (
+                  <ManagePermissionsEditorFieldTable
+                    ref={managePermissionsEditorFieldTableRef}
+                    columns={fieldColumns}
+                    rows={fieldRows}
+                    onBulkUpdate={handleFieldBulkRowUpdate}
+                    onDirtyRows={setDirtyFieldRows}
+                  />
+                ),
+              },
+            ]}
+          />
+        )}
+      </AutoFullHeightContainer>
+    </div>
+  );
+};
+
+export default ManagePermissionsEditor;

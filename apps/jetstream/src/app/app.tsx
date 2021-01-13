@@ -21,6 +21,7 @@ const AutomationControl = lazy(() => import('./components/automation-control/Aut
 const Feedback = lazy(() => import('./components/feedback/Feedback'));
 const LoadRecords = lazy(() => import('./components/load-records/LoadRecords'));
 const Query = lazy(() => import('./components/query/Query'));
+const ManagePermissions = lazy(() => import('./components/manage-permissions/ManagePermissions'));
 
 interface RouteItem {
   path: string;
@@ -53,6 +54,15 @@ const ROUTES: RouteItem[] = [
     render: () => (
       <OrgSelectionRequired>
         <AutomationControl />
+      </OrgSelectionRequired>
+    ),
+  },
+  {
+    path: '/permissions-manager',
+    flag: FEATURE_FLAGS.PERMISSION_MANAGER,
+    render: () => (
+      <OrgSelectionRequired>
+        <ManagePermissions />
       </OrgSelectionRequired>
     ),
   },

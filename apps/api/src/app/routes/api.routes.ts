@@ -26,7 +26,12 @@ routes.get('/query-more', ensureOrgExists, validate(sfQueryController.routeValid
 
 routes.post('/record/:operation/:sobject', ensureOrgExists, sfMiscController.recordOperation);
 
-routes.post('/metadata/list', ensureOrgExists, metadataToolingController.listMetadata);
+routes.post(
+  '/metadata/list',
+  ensureOrgExists,
+  validate(metadataToolingController.routeValidators.listMetadata),
+  metadataToolingController.listMetadata
+);
 routes.post(
   '/metadata/read/:type',
   ensureOrgExists,

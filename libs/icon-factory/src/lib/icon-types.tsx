@@ -20,9 +20,11 @@ export interface StandardIconObj {
   activations: IconEl;
   entity: IconEl;
   opportunity: IconEl;
+  multi_picklist: IconEl;
   record: IconEl;
   related_list: IconEl;
   data_streams: IconEl;
+  portal: IconEl;
 }
 
 export interface UtilityIconObj {
@@ -53,6 +55,7 @@ export interface UtilityIconObj {
   expand_all: IconEl;
   fallback: IconEl;
   favorite: IconEl;
+  file: IconEl;
   filter: IconEl;
   forward: IconEl;
   help: IconEl;
@@ -60,14 +63,17 @@ export interface UtilityIconObj {
   left: IconEl;
   logout: IconEl;
   moneybag: IconEl;
+  multi_select_checkbox: IconEl;
   new_window: IconEl;
   notification: IconEl;
   play: IconEl;
   prompt_edit: IconEl;
   refresh: IconEl;
   right: IconEl;
+  save: IconEl;
   search: IconEl;
   settings: IconEl;
+  steps: IconEl;
   success: IconEl;
   switch: IconEl;
   sync: IconEl;

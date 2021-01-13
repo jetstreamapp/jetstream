@@ -20,6 +20,26 @@
   opacity: 0.8;
 }
 
+.bg-color-gray {
+  background-color: $color-background;
+}
+
+.bg-color-gray-dark {
+  background-color: $color-background-dark;
+}
+
+.bg-color-color-orange {
+  background-color: $color-background-customer;
+}
+
+.bg-color-inverse {
+  background-color: $color-background-alt-inverse;
+}
+
+.bg-color-backdrop-tint {
+  background-color: $color-background-backdrop-tint;
+}
+
 .slds-text-link {
   cursor: pointer;
   .faux-button-link {
@@ -62,6 +82,14 @@
 
 .active-item-yellow-bg {
   background-color: $color-background-highlight;
+}
+
+.bg-background-selection {
+  background-color: $color-background-selection;
+}
+
+.bg-new-item {
+  background-color: $color-background-row-new;
 }
 
 .slds-item {
