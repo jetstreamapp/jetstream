@@ -13,8 +13,8 @@ import {
   PageHeaderTitle,
 } from '@jetstream/ui';
 import { DescribeGlobalSObjectResult } from 'jsforce';
-import { FunctionComponent, useEffect, useState } from 'react';
-import { Link, useLocation, useRouteMatch } from 'react-router-dom';
+import { FunctionComponent, useEffect } from 'react';
+import { Link, useRouteMatch } from 'react-router-dom';
 import Split from 'react-split';
 import { useRecoilState, useRecoilValue, useResetRecoilState } from 'recoil';
 import { selectedOrgState } from '../../app-state';
@@ -29,10 +29,8 @@ export interface ManagePermissionsSelectionProps {}
 
 export const ManagePermissionsSelection: FunctionComponent<ManagePermissionsSelectionProps> = () => {
   const match = useRouteMatch();
-  const location = useLocation<{}>();
 
   const selectedOrg = useRecoilValue<SalesforceOrgUi>(selectedOrgState);
-  const [priorSelectedOrg, setPriorSelectedOrg] = useState<string>(null);
 
   const [profiles, setProfiles] = useRecoilState(fromPermissionsStateState.profilesState);
   const [selectedProfiles, setSelectedProfiles] = useRecoilState(fromPermissionsStateState.selectedProfilesPermSetState);
