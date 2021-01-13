@@ -11,45 +11,67 @@ import {
 } from '@ag-grid-community/core';
 import { jsx } from '@emotion/react';
 import { logger } from '@jetstream/shared/client-logger';
+import { orderStringsBy, pluralizeFromNumber } from '@jetstream/shared/utils';
 import { MapOf, PermissionSetNoProfileRecord, PermissionSetWithProfileRecord } from '@jetstream/types';
 import { Icon, Input, Tooltip } from '@jetstream/ui';
-import { FunctionComponent, useEffect, useState } from 'react';
-import { FieldPermissionDefinitionMap, FieldPermissionItem } from './permission-manager-utils';
+import { isFunction } from 'lodash';
+import { Fragment, FunctionComponent, useEffect, useState } from 'react';
+import {
+  FieldPermissionTypes,
+  ObjectPermissionTypes,
+  PermissionTableObjectCell,
+  PermissionTableFieldCell,
+  PermissionTableFieldCellPermission,
+  ObjectPermissionDefinitionMap,
+  FieldPermissionDefinitionMap,
+  PermissionTableObjectCellPermission,
+  PermissionTableCell,
+  DirtyRow,
+  ObjectPermissionItem,
+  FieldPermissionItem,
+} from './permission-manager-types';
 
-export interface PermissionTableFieldCell {
-  key: string;
-  fullWidthRow?: boolean;
-  sobject: string;
-  apiName: string;
-  label: string;
-  type: string;
-  allowEditPermission: boolean;
-  permissions: MapOf<PermissionTableFieldCellPermission>;
+export function getObjectValue(which: ObjectPermissionTypes) {
+  return ({ node, data, colDef }: ValueGetterParams) => {
+    if (node.isRowPinned()) {
+      return;
+    }
+    return (data as PermissionTableObjectCell).permissions?.[colDef.field]?.[which] || false;
+  };
 }
 
-export interface PermissionTableFieldCellPermission {
-  rowKey: string;
-  parentId: string; // permissions set (placeholder profile or permission set Id)
-  sobject: string;
-  field: string;
-  read: boolean;
-  edit: boolean;
-  record: FieldPermissionItem;
-  readIsDirty: boolean;
-  editIsDirty: boolean;
-  errorMessage?: string;
+// FIXME: TODO: fixme!
+export function setObjectValue(which: ObjectPermissionTypes) {
+  return ({ node, colDef, newValue }: ValueSetterParams) => {
+    if (node.isRowPinned()) {
+      return;
+    }
+    const data: PermissionTableObjectCell = node.data;
+    const permission = data.permissions[colDef.field];
+    if (which === 'create') {
+      permission.create = newValue;
+      setObjectDependencies(permission, newValue, ['read'], []);
+    } else if (which === 'read') {
+      permission.read = newValue;
+      setObjectDependencies(permission, newValue, [], ['create', 'edit', 'delete', 'viewAll', 'modifyAll']);
+    } else if (which === 'edit') {
+      permission.edit = newValue;
+      setObjectDependencies(permission, newValue, ['read'], ['delete', 'modifyAll']);
+    } else if (which === 'delete') {
+      permission.delete = newValue;
+      setObjectDependencies(permission, newValue, ['read', 'edit'], ['modifyAll']);
+    } else if (which === 'viewAll') {
+      permission.viewAll = newValue;
+      setObjectDependencies(permission, newValue, ['read'], ['modifyAll']);
+    } else if (which === 'modifyAll') {
+      permission.modifyAll = newValue;
+      setObjectDependencies(permission, newValue, ['read', 'edit', 'delete', 'viewAll'], []);
+    }
+    return true;
+  };
 }
 
-export interface ManagePermissionsEditorTableProps {
-  fieldsByObject: MapOf<string[]>;
-}
-
-export interface ManagePermissionsEditorTableRef {
-  resetChanges: () => void;
-  getDirtyPermissionsForSave: () => PermissionTableFieldCellPermission[];
-}
-
-export function getFieldValue(which: 'read' | 'edit') {
+export function getFieldValue(which: ObjectPermissionTypes | FieldPermissionTypes) {
   return ({ node, data, colDef }: ValueGetterParams) => {
     if (node.isRowPinned()) {
       return;
@@ -58,7 +80,7 @@ export function getFieldValue(which: 'read' | 'edit') {
   };
 }
 
-export function setFieldValue(which: 'read' | 'edit') {
+export function setFieldValue(which: FieldPermissionTypes) {
   return ({ node, colDef, newValue }: ValueSetterParams) => {
     if (node.isRowPinned()) {
       return;
@@ -67,26 +89,74 @@ export function setFieldValue(which: 'read' | 'edit') {
     const permission = data.permissions[colDef.field];
     if (which === 'read') {
       permission.read = newValue;
-      permission.readIsDirty = permission.read !== permission.record.read;
-      // edit is not allowed unless read is set
-      if (!newValue) {
-        permission.edit = false;
-        permission.editIsDirty = permission.edit !== permission.record.edit;
-      }
+      setFieldDependencies(permission, newValue, [], ['edit']);
     } else if (data.allowEditPermission) {
       permission.edit = newValue;
-      permission.editIsDirty = permission.edit !== permission.record.edit;
-      // read is required if edit is true
-      if (newValue) {
-        permission.read = true;
-        permission.readIsDirty = permission.read !== permission.record.read;
-      }
+      setFieldDependencies(permission, newValue, ['read'], []);
     }
     return true;
   };
 }
 
-export function getFieldDirtyValue(which: 'read' | 'edit') {
+/**
+ * Set dependent fields based on what selections are made
+ */
+function setObjectDependencies(
+  permission: PermissionTableObjectCellPermission,
+  value: boolean,
+  setIfTrue: ObjectPermissionTypes[],
+  setIfFalse: ObjectPermissionTypes[]
+) {
+  if (value) {
+    setIfTrue.forEach((prop) => (permission[prop] = value));
+  } else {
+    setIfFalse.forEach((prop) => (permission[prop] = value));
+  }
+  permission.createIsDirty = permission.create !== permission.record.create;
+  permission.readIsDirty = permission.read !== permission.record.read;
+  permission.editIsDirty = permission.edit !== permission.record.edit;
+  permission.deleteIsDirty = permission.delete !== permission.record.delete;
+  permission.viewAllIsDirty = permission.viewAll !== permission.record.viewAll;
+  permission.modifyAllIsDirty = permission.modifyAll !== permission.record.modifyAll;
+}
+
+/**
+ * Set dependent fields based on what selections are made
+ */
+function setFieldDependencies(
+  permission: PermissionTableFieldCellPermission,
+  value: boolean,
+  setIfTrue: FieldPermissionTypes[],
+  setIfFalse: FieldPermissionTypes[]
+) {
+  if (value) {
+    setIfTrue.forEach((prop) => (permission[prop] = value));
+  } else {
+    setIfFalse.forEach((prop) => (permission[prop] = value));
+  }
+  permission.readIsDirty = permission.read !== permission.record.read;
+  permission.editIsDirty = permission.edit !== permission.record.edit;
+}
+
+export function getObjectDirtyValue(which: ObjectPermissionTypes) {
+  return ({ node, colDef }: CellClassParams) => {
+    if (node.isRowPinned()) {
+      return;
+    }
+    const data: PermissionTableObjectCell = node.data;
+    const permission = data.permissions[colDef.field];
+    return (
+      (which === 'create' && permission.createIsDirty) ||
+      (which === 'read' && permission.readIsDirty) ||
+      (which === 'edit' && permission.editIsDirty) ||
+      (which === 'delete' && permission.deleteIsDirty) ||
+      (which === 'viewAll' && permission.viewAllIsDirty) ||
+      (which === 'modifyAll' && permission.modifyAllIsDirty)
+    );
+  };
+}
+
+export function getFieldDirtyValue(which: FieldPermissionTypes) {
   return ({ node, colDef }: CellClassParams) => {
     if (node.isRowPinned()) {
       return;
@@ -101,43 +171,123 @@ export function isFullWidthCell(rowNode: RowNode) {
   return rowNode.data.fullWidthRow;
 }
 
-export function resetGridChanges(gridApi: GridApi) {
+export function resetGridChanges(gridApi: GridApi, type: 'object' | 'field') {
   const itemsToUpdate = [];
   gridApi.forEachNodeAfterFilterAndSort((rowNode, index) => {
-    const data: PermissionTableFieldCell = rowNode.data;
-    if (!data.fullWidthRow && !rowNode.isRowPinned()) {
-      const dirtyPermissions = Object.values(data.permissions).filter((permission) => permission.readIsDirty || permission.editIsDirty);
-      if (dirtyPermissions.length) {
-        dirtyPermissions.forEach((row) => {
-          row.read = row.readIsDirty ? !row.read : row.read;
-          row.edit = row.editIsDirty ? !row.edit : row.edit;
-          row.readIsDirty = false;
-          row.editIsDirty = false;
-        });
-        itemsToUpdate.push(data);
+    if (type === 'object') {
+      const data: PermissionTableObjectCell = rowNode.data;
+      if (!data.fullWidthRow && !rowNode.isRowPinned()) {
+        const dirtyPermissions = Object.values(data.permissions).filter(
+          (permission) =>
+            permission.createIsDirty ||
+            permission.readIsDirty ||
+            permission.editIsDirty ||
+            permission.deleteIsDirty ||
+            permission.viewAllIsDirty ||
+            permission.modifyAllIsDirty
+        );
+        if (dirtyPermissions.length) {
+          dirtyPermissions.forEach((row) => {
+            row.create = row.createIsDirty ? !row.create : row.create;
+            row.read = row.readIsDirty ? !row.read : row.read;
+            row.edit = row.editIsDirty ? !row.edit : row.edit;
+            row.delete = row.deleteIsDirty ? !row.delete : row.delete;
+            row.viewAll = row.viewAllIsDirty ? !row.viewAll : row.viewAll;
+            row.modifyAll = row.modifyAllIsDirty ? !row.modifyAll : row.modifyAll;
+            row.createIsDirty = false;
+            row.readIsDirty = false;
+            row.editIsDirty = false;
+            row.deleteIsDirty = false;
+            row.viewAllIsDirty = false;
+            row.modifyAllIsDirty = false;
+          });
+          itemsToUpdate.push(data);
+        }
+      }
+    } else {
+      const data: PermissionTableFieldCell = rowNode.data;
+      if (!data.fullWidthRow && !rowNode.isRowPinned()) {
+        const dirtyPermissions = Object.values(data.permissions).filter((permission) => permission.readIsDirty || permission.editIsDirty);
+        if (dirtyPermissions.length) {
+          dirtyPermissions.forEach((row) => {
+            row.read = row.readIsDirty ? !row.read : row.read;
+            row.edit = row.editIsDirty ? !row.edit : row.edit;
+            row.readIsDirty = false;
+            row.editIsDirty = false;
+          });
+          itemsToUpdate.push(data);
+        }
       }
     }
-    if (itemsToUpdate.length) {
-      const transactionResult = gridApi.applyTransaction({ update: itemsToUpdate });
-      logger.log({ transactionResult });
-    }
   });
+  if (itemsToUpdate.length) {
+    const transactionResult = gridApi.applyTransaction({ update: itemsToUpdate });
+    logger.log({ transactionResult });
+  }
 }
 
-export function getDirtyPermissions(gridApi: GridApi): PermissionTableFieldCellPermission[] {
-  let dirtyPermissions: PermissionTableFieldCellPermission[] = [];
-  gridApi.forEachNode((rowNode, index) => {
-    const data: PermissionTableFieldCell = rowNode.data;
-    if (!data.fullWidthRow && !rowNode.isRowPinned()) {
-      dirtyPermissions = dirtyPermissions.concat(
-        Object.values(data.permissions).filter((permission) => permission.readIsDirty || permission.editIsDirty)
-      );
-    }
-  });
-  return dirtyPermissions;
+export function getDirtyObjectPermissions(dirtyRows: MapOf<DirtyRow<PermissionTableObjectCell>>) {
+  return Object.values(dirtyRows).flatMap(({ row }) =>
+    Object.values(row.permissions).filter(
+      (permission) =>
+        permission.createIsDirty ||
+        permission.readIsDirty ||
+        permission.editIsDirty ||
+        permission.deleteIsDirty ||
+        permission.viewAllIsDirty ||
+        permission.modifyAllIsDirty
+    )
+  );
 }
 
-export function getPermissionsColumn(which: 'read' | 'edit', id) {
+export function getDirtyFieldPermissions(dirtyRows: MapOf<DirtyRow<PermissionTableFieldCell>>) {
+  return Object.values(dirtyRows).flatMap(({ row }) =>
+    Object.values(row.permissions).filter((permission) => permission.readIsDirty || permission.editIsDirty)
+  );
+}
+
+export function getObjectPermissionsColumn(which: ObjectPermissionTypes, id) {
+  let headerName = 'Create';
+  switch (which) {
+    case 'create':
+      headerName = 'Create';
+      break;
+    case 'read':
+      headerName = 'Read';
+      break;
+    case 'edit':
+      headerName = 'Edit';
+      break;
+    case 'delete':
+      headerName = 'Delete';
+      break;
+    case 'viewAll':
+      headerName = 'View All';
+      break;
+    case 'modifyAll':
+      headerName = 'Modify All';
+      break;
+    default:
+      break;
+  }
+  const colDef: ColDef = {
+    headerName,
+    colId: `${id}-${which}`,
+    field: id,
+    filter: 'booleanFilterRenderer',
+    valueGetter: getObjectValue(which),
+    valueSetter: setObjectValue(which),
+    initialWidth: 125,
+    cellClassRules: {
+      'active-item-yellow-bg': getObjectDirtyValue(which),
+    },
+    cellRenderer: 'booleanEditableRenderer',
+    pinnedRowCellRenderer: 'pinnedSelectAllRenderer',
+  };
+  return colDef;
+}
+
+export function getFieldPermissionsColumn(which: FieldPermissionTypes, id) {
   const colDef: ColDef = {
     headerName: which === 'read' ? 'Read Access' : 'Edit Access',
     colId: `${id}-${which}`,
@@ -145,6 +295,7 @@ export function getPermissionsColumn(which: 'read' | 'edit', id) {
     filter: 'booleanFilterRenderer',
     valueGetter: getFieldValue(which),
     valueSetter: setFieldValue(which),
+    initialWidth: 135,
     cellClassRules: {
       'active-item-yellow-bg': getFieldDirtyValue(which),
     },
@@ -154,7 +305,140 @@ export function getPermissionsColumn(which: 'read' | 'edit', id) {
   return colDef;
 }
 
-export function getColumns(
+export function getObjectColumns(
+  selectedProfiles: string[],
+  selectedPermissionSets: string[],
+  profilesById: MapOf<PermissionSetWithProfileRecord>,
+  permissionSetsById: MapOf<PermissionSetNoProfileRecord>
+) {
+  const newColumns: (ColDef | ColGroupDef)[] = [
+    {
+      headerName: 'Object',
+      field: 'label',
+      lockPosition: true,
+      pinned: true,
+      filter: 'basicTextFilterRenderer',
+      pinnedRowCellRenderer: 'pinnedInputFilter',
+      suppressMenu: true,
+      valueFormatter: (params) => {
+        const data: PermissionTableObjectCell = params.data;
+        return `${data.label} (${data.apiName})`;
+      },
+    },
+  ];
+  // Create column groups for profiles
+  selectedProfiles.forEach((profileId) => {
+    const profile = profilesById[profileId];
+    const currColumn: ColGroupDef = {
+      headerName: `${profile.Profile.Name} (Profile)`,
+      groupId: profileId,
+      openByDefault: true,
+      marryChildren: true,
+      children: [
+        getObjectPermissionsColumn('read', profileId),
+        getObjectPermissionsColumn('create', profileId),
+        getObjectPermissionsColumn('edit', profileId),
+        getObjectPermissionsColumn('delete', profileId),
+        getObjectPermissionsColumn('viewAll', profileId),
+        getObjectPermissionsColumn('modifyAll', profileId),
+      ],
+    };
+    newColumns.push(currColumn);
+  });
+  // Create column groups for permission sets
+  selectedPermissionSets.forEach((permissionSetId) => {
+    const permissionSet = permissionSetsById[permissionSetId];
+    const currColumn: ColGroupDef = {
+      headerName: `${permissionSet.Name} (Permission Set)`,
+      groupId: permissionSetId,
+      openByDefault: true,
+      marryChildren: true,
+      children: [
+        getObjectPermissionsColumn('read', permissionSetId),
+        getObjectPermissionsColumn('create', permissionSetId),
+        getObjectPermissionsColumn('edit', permissionSetId),
+        getObjectPermissionsColumn('delete', permissionSetId),
+        getObjectPermissionsColumn('viewAll', permissionSetId),
+        getObjectPermissionsColumn('modifyAll', permissionSetId),
+      ],
+    };
+    newColumns.push(currColumn);
+  });
+  return newColumns;
+}
+
+export function getObjectRows(selectedSObjects: string[], objectPermissionMap: MapOf<ObjectPermissionDefinitionMap>) {
+  const rows: PermissionTableObjectCell[] = [];
+  orderStringsBy(selectedSObjects).forEach((sobject) => {
+    const objectPermission = objectPermissionMap[sobject];
+
+    const currRow: PermissionTableObjectCell = {
+      key: sobject,
+      sobject: sobject,
+      apiName: objectPermission.apiName,
+      label: objectPermission.label,
+      // FIXME: are there circumstances where it should be read-only?
+      // // formula fields and auto-number fields do not allow editing
+      allowEditPermission: true, // objectPermission.metadata.IsCompound || objectPermission.metadata.IsCreatable,
+      permissions: {},
+    };
+
+    objectPermission.permissionKeys.forEach((key) => {
+      const item = objectPermission.permissions[key];
+      currRow.permissions[key] = getRowObjectPermissionFromObjectPermissionItem(key, sobject, item);
+    });
+
+    rows.push(currRow);
+  });
+  return rows;
+}
+
+function getRowObjectPermissionFromObjectPermissionItem(
+  key: string,
+  sobject: string,
+  item: ObjectPermissionItem
+): PermissionTableObjectCellPermission {
+  return {
+    rowKey: sobject,
+    parentId: key,
+    sobject,
+    create: item.create,
+    read: item.read,
+    edit: item.edit,
+    delete: item.delete,
+    viewAll: item.viewAll,
+    modifyAll: item.modifyAll,
+    record: item,
+    createIsDirty: false,
+    readIsDirty: false,
+    editIsDirty: false,
+    deleteIsDirty: false,
+    viewAllIsDirty: false,
+    modifyAllIsDirty: false,
+    errorMessage: item.errorMessage,
+  };
+}
+
+export function updateObjectRowsAfterSave(
+  rows: PermissionTableObjectCell[],
+  objectPermissionMap: MapOf<ObjectPermissionDefinitionMap>
+): PermissionTableObjectCell[] {
+  return rows.map((oldRow) => {
+    const row = { ...oldRow };
+    objectPermissionMap[row.key].permissionKeys.forEach((key) => {
+      row.permissions = { ...row.permissions };
+      const objectPermission = objectPermissionMap[row.key].permissions[key];
+      if (objectPermission.errorMessage) {
+        row.permissions[key] = { ...row.permissions[key], errorMessage: objectPermission.errorMessage };
+      } else {
+        row.permissions[key] = getRowObjectPermissionFromObjectPermissionItem(key, row.apiName, objectPermission);
+      }
+    });
+    return row;
+  });
+}
+
+export function getFieldColumns(
   selectedProfiles: string[],
   selectedPermissionSets: string[],
   profilesById: MapOf<PermissionSetWithProfileRecord>,
@@ -184,7 +468,7 @@ export function getColumns(
       openByDefault: true,
       marryChildren: true,
       // headerGroupComponent // TODO: show header name on two rows and add bg color
-      children: [getPermissionsColumn('read', profileId), getPermissionsColumn('edit', profileId)],
+      children: [getFieldPermissionsColumn('read', profileId), getFieldPermissionsColumn('edit', profileId)],
     };
     newColumns.push(currColumn);
   });
@@ -196,20 +480,20 @@ export function getColumns(
       groupId: permissionSetId,
       openByDefault: true,
       marryChildren: true,
-      children: [getPermissionsColumn('read', permissionSetId), getPermissionsColumn('edit', permissionSetId)],
+      children: [getFieldPermissionsColumn('read', permissionSetId), getFieldPermissionsColumn('edit', permissionSetId)],
     };
     newColumns.push(currColumn);
   });
   return newColumns;
 }
 
-export function getRows(
+export function getFieldRows(
   selectedSObjects: string[],
   fieldsByObject: MapOf<string[]>,
   fieldPermissionMap: MapOf<FieldPermissionDefinitionMap>
 ) {
   const rows: PermissionTableFieldCell[] = [];
-  selectedSObjects.forEach((sobject) => {
+  orderStringsBy(selectedSObjects).forEach((sobject) => {
     // full width row
     rows.push({
       key: `${sobject}-fullWidth`,
@@ -238,24 +522,100 @@ export function getRows(
 
       fieldPermission.permissionKeys.forEach((key) => {
         const item = fieldPermission.permissions[key];
-        currRow.permissions[key] = {
-          rowKey: fieldKey,
-          parentId: key,
-          sobject,
-          field: fieldPermission.apiName,
-          read: item.read,
-          edit: item.edit,
-          record: item,
-          readIsDirty: false,
-          editIsDirty: false,
-          errorMessage: item.errorMessage,
-        };
+        currRow.permissions[key] = getRowFieldPermissionFromFieldPermissionItem(key, sobject, fieldPermission.apiName, item);
       });
 
       rows.push(currRow);
     });
   });
   return rows;
+}
+
+function getRowFieldPermissionFromFieldPermissionItem(
+  key: string,
+  sobject: string,
+  field: string,
+  item: FieldPermissionItem
+): PermissionTableFieldCellPermission {
+  return {
+    rowKey: sobject,
+    parentId: key,
+    sobject,
+    field,
+    read: item.read,
+    edit: item.edit,
+    record: item,
+    readIsDirty: false,
+    editIsDirty: false,
+    errorMessage: item.errorMessage,
+  };
+}
+
+/**
+ * For rows with error messages on the fieldMap, this will retain the current state but add the error message
+ * For other rows, everything is reset
+ * @param rows
+ * @param fieldPermissionsMap
+ */
+export function updateFieldRowsAfterSave(
+  rows: PermissionTableFieldCell[],
+  fieldPermissionsMap: MapOf<FieldPermissionDefinitionMap>
+): PermissionTableFieldCell[] {
+  return rows
+    .filter((row) => !row.fullWidthRow)
+    .map((oldRow) => {
+      const row = { ...oldRow };
+      fieldPermissionsMap[row.key].permissionKeys.forEach((key) => {
+        row.permissions = { ...row.permissions };
+        const objectPermission = fieldPermissionsMap[row.key].permissions[key];
+        if (objectPermission.errorMessage) {
+          row.permissions[key] = { ...row.permissions[key], errorMessage: objectPermission.errorMessage };
+        } else {
+          row.permissions[key] = getRowFieldPermissionFromFieldPermissionItem(key, row.sobject, row.apiName, objectPermission);
+        }
+      });
+      return row;
+    });
+}
+
+/**
+ *
+ * JSX Components
+ *
+ */
+
+export function getConfirmationModalContent(dirtyObjectCount: number, dirtyFieldCount: number) {
+  let output;
+  const dirtyObj = (
+    <Fragment>
+      <strong>
+        {dirtyObjectCount} Object {pluralizeFromNumber('Permission', dirtyObjectCount)}
+      </strong>
+    </Fragment>
+  );
+  const dirtyField = (
+    <Fragment>
+      <strong>
+        {dirtyFieldCount} Field {pluralizeFromNumber('Permission', dirtyFieldCount)}
+      </strong>
+    </Fragment>
+  );
+  if (dirtyObjectCount && dirtyFieldCount) {
+    output = (
+      <Fragment>
+        {dirtyObj} and {dirtyField}
+      </Fragment>
+    );
+  } else if (dirtyObjectCount) {
+    output = dirtyObj;
+  } else {
+    output = dirtyField;
+  }
+  return (
+    <div>
+      <p>You have made changes to {output}.</p>
+    </div>
+  );
 }
 
 /**
@@ -280,47 +640,70 @@ export const PinnedLabelInputFilter: FunctionComponent<ICellRendererParams> = ({
 /**
  * Pinned row selection rendere
  */
-export const PinnedSelectAllRenderer: FunctionComponent<ICellRendererParams> = ({ api, node, column, colDef }) => {
+export const PinnedSelectAllRendererWrapper = (type: 'object' | 'field'): FunctionComponent<ICellRendererParams> => ({
+  api,
+  node,
+  column,
+  colDef,
+  context,
+}) => {
   function handleSelection(action: 'selectAll' | 'unselectAll' | 'reset') {
     const [id, which] = colDef.colId.split('-');
-    const itemsToUpdate = [];
+    const itemsToUpdate: any[] = [];
     api.forEachNodeAfterFilter((rowNode, index) => {
       if (!rowNode.isRowPinned() && !rowNode.isFullWidthCell()) {
-        const data: PermissionTableFieldCell = rowNode.data;
-        const currItem = data.permissions[id];
-        const newValue = action === 'selectAll';
-        if (which === 'read') {
-          if (action === 'reset') {
-            currItem.read = currItem.record.read;
-            currItem.readIsDirty = false;
-          } else {
-            currItem.read = newValue;
-            currItem.readIsDirty = currItem.read !== currItem.record.read;
+        let newValue = action === 'selectAll';
+
+        if (type === 'object') {
+          const data: PermissionTableObjectCell = rowNode.data;
+          const permission = data.permissions[id];
+          if (which === 'create') {
+            newValue = action === 'reset' ? permission.record.create : newValue;
+            permission.create = newValue;
+            setObjectDependencies(permission, newValue, ['read'], []);
+          } else if (which === 'read') {
+            newValue = action === 'reset' ? permission.record.read : newValue;
+            permission.read = newValue;
+            setObjectDependencies(permission, newValue, [], ['create', 'edit', 'delete', 'viewAll', 'modifyAll']);
+          } else if (which === 'edit') {
+            newValue = action === 'reset' ? permission.record.edit : newValue;
+            permission.edit = newValue;
+            setObjectDependencies(permission, newValue, ['read'], ['delete', 'modifyAll']);
+          } else if (which === 'delete') {
+            newValue = action === 'reset' ? permission.record.delete : newValue;
+            permission.delete = newValue;
+            setObjectDependencies(permission, newValue, ['read', 'edit'], ['modifyAll']);
+          } else if (which === 'viewAll') {
+            newValue = action === 'reset' ? permission.record.viewAll : newValue;
+            permission.viewAll = newValue;
+            setObjectDependencies(permission, newValue, ['read'], ['modifyAll']);
+          } else if (which === 'modifyAll') {
+            newValue = action === 'reset' ? permission.record.modifyAll : newValue;
+            permission.modifyAll = newValue;
+            setObjectDependencies(permission, newValue, ['read', 'edit', 'delete', 'viewAll'], []);
           }
-          // edit is not allowed if read is false
-          if (!currItem.read) {
-            currItem.edit = false;
-            currItem.editIsDirty = currItem.edit !== currItem.record.edit;
+          itemsToUpdate.push(data);
+        } else {
+          const data: PermissionTableFieldCell = rowNode.data;
+          const permission = data.permissions[id];
+          if (which === 'read') {
+            newValue = action === 'reset' ? permission.record.read : newValue;
+            permission.read = newValue;
+            setFieldDependencies(permission, newValue, [], ['edit']);
+          } else if (data.allowEditPermission) {
+            newValue = action === 'reset' ? permission.record.edit : newValue;
+            permission.edit = newValue;
+            setFieldDependencies(permission, newValue, ['read'], []);
           }
-        } else if (data.allowEditPermission) {
-          if (action === 'reset') {
-            currItem.edit = currItem.record.edit;
-            currItem.editIsDirty = false;
-          } else {
-            currItem.edit = newValue;
-            currItem.editIsDirty = currItem.edit !== currItem.record.edit;
-          }
-          // read is required if edit is true
-          if (currItem.edit) {
-            currItem.read = true;
-            currItem.readIsDirty = currItem.read !== currItem.record.read;
-          }
+          itemsToUpdate.push(data);
         }
-        itemsToUpdate.push(data);
       }
     });
     const transactionResult = api.applyTransaction({ update: itemsToUpdate });
     logger.log({ transactionResult });
+    if (isFunction(context.onBulkUpdate)) {
+      context.onBulkUpdate(itemsToUpdate);
+    }
   }
 
   return (
@@ -361,7 +744,7 @@ export const PinnedSelectAllRenderer: FunctionComponent<ICellRendererParams> = (
 
 export function ErrorTooltipRenderer({ node, column, colDef, context }: ICellRendererParams) {
   const colId = column.getColId();
-  const data: PermissionTableFieldCell = node.data;
+  const data: PermissionTableCell = node.data;
   const permission = data.permissions[colDef.field];
   if (node.isRowPinned() || node.isFullWidthCell() || !permission.errorMessage) {
     return undefined;

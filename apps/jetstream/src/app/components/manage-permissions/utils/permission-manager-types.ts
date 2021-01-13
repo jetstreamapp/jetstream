@@ -6,7 +6,9 @@ import {
   RecordAttributes,
   RecordResult,
 } from '@jetstream/types';
-import { PermissionTableFieldCellPermission } from './permission-manager-table-utils';
+
+export type ObjectPermissionTypes = 'create' | 'read' | 'edit' | 'delete' | 'viewAll' | 'modifyAll';
+export type FieldPermissionTypes = 'read' | 'edit';
 
 export interface ObjectPermissionDefinitionMap {
   apiName: string;
@@ -22,9 +24,10 @@ export interface ObjectPermissionItem {
   read: boolean;
   edit: boolean;
   delete: boolean;
-  viewAllRecords: boolean;
-  modifyAllRecords: boolean;
+  viewAll: boolean;
+  modifyAll: boolean;
   record?: ObjectPermissionRecord;
+  errorMessage?: string;
 }
 
 export interface FieldPermissionDefinitionMap {
@@ -40,6 +43,12 @@ export interface FieldPermissionItem {
   read: boolean;
   edit: boolean;
   record?: FieldPermissionRecord;
+  errorMessage?: string;
+}
+
+export interface ObjectPermissionRecordForSave extends Omit<ObjectPermissionRecord, 'Id' | 'parent'> {
+  attributes: Partial<RecordAttributes>;
+  Id?: string;
 }
 
 export interface FieldPermissionRecordForSave extends Omit<FieldPermissionRecord, 'Id' | 'parent'> {
@@ -47,11 +56,86 @@ export interface FieldPermissionRecordForSave extends Omit<FieldPermissionRecord
   Id?: string;
 }
 
-export interface PermissionSaveResults {
-  dirtyPermission: PermissionTableFieldCellPermission;
+export interface PermissionSaveResults<RecordType, DirtyPermType> {
+  dirtyPermission: DirtyPermType;
   dirtyPermissionIdx: number;
   operation: 'insert' | 'update';
-  record: FieldPermissionRecordForSave;
+  record: RecordType;
   recordIdx: number;
   response?: RecordResult;
+}
+
+export interface PermissionTableCell<T = PermissionTableFieldCellPermission | PermissionTableObjectCellPermission> {
+  key: string;
+  fullWidthRow?: boolean;
+  sobject: string;
+  apiName: string;
+  label: string;
+  permissions: MapOf<T>;
+}
+
+export interface PermissionTableObjectCell extends PermissionTableCell<PermissionTableObjectCellPermission> {
+  allowEditPermission: boolean; // TODO: what other permissions may be restricted here??
+}
+
+export interface PermissionTableFieldCell extends PermissionTableCell<PermissionTableFieldCellPermission> {
+  type: string;
+  allowEditPermission: boolean;
+}
+
+export interface PermissionTableObjectCellPermissionBase<T = ObjectPermissionItem | FieldPermissionItem> {
+  rowKey: string;
+  parentId: string; // permissions set (placeholder profile or permission set Id)
+  sobject: string;
+  errorMessage?: string;
+  record: T;
+}
+
+export interface PermissionTableObjectCellPermission extends PermissionTableObjectCellPermissionBase<ObjectPermissionItem> {
+  create: boolean;
+  read: boolean;
+  edit: boolean;
+  delete: boolean;
+  viewAll: boolean;
+  modifyAll: boolean;
+  createIsDirty: boolean;
+  readIsDirty: boolean;
+  editIsDirty: boolean;
+  deleteIsDirty: boolean;
+  viewAllIsDirty: boolean;
+  modifyAllIsDirty: boolean;
+}
+export interface PermissionTableFieldCellPermission extends PermissionTableObjectCellPermissionBase<FieldPermissionItem> {
+  field: string;
+  read: boolean;
+  edit: boolean;
+  readIsDirty: boolean;
+  editIsDirty: boolean;
+}
+
+export interface ManagePermissionsEditorTableProps {
+  fieldsByObject: MapOf<string[]>;
+}
+
+export interface DirtyRow<T> {
+  rowKey: string;
+  dirtyCount: number;
+  row: T;
+}
+
+export interface ManagePermissionsEditorTableRef {
+  resetChanges: () => void;
+  resetRows: () => void;
+}
+
+export interface PermissionObjectSaveData {
+  permissionSaveResults: PermissionSaveResults<ObjectPermissionRecordForSave, PermissionTableObjectCellPermission>[];
+  recordsToInsert: ObjectPermissionRecordForSave[];
+  recordsToUpdate: ObjectPermissionRecordForSave[];
+}
+
+export interface PermissionFieldSaveData {
+  permissionSaveResults: PermissionSaveResults<FieldPermissionRecordForSave, PermissionTableFieldCellPermission>[];
+  recordsToInsert: FieldPermissionRecordForSave[];
+  recordsToUpdate: FieldPermissionRecordForSave[];
 }

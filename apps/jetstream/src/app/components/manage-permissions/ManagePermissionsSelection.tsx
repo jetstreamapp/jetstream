@@ -16,7 +16,7 @@ import { DescribeGlobalSObjectResult } from 'jsforce';
 import { FunctionComponent, useEffect, useState } from 'react';
 import { Link, useLocation, useRouteMatch } from 'react-router-dom';
 import Split from 'react-split';
-import { useRecoilState, useRecoilValue } from 'recoil';
+import { useRecoilState, useRecoilValue, useResetRecoilState } from 'recoil';
 import { selectedOrgState } from '../../app-state';
 import * as fromPermissionsStateState from './manage-permissions.state';
 import { useProfilesAndPermSets } from './useProfilesAndPermSets';
@@ -43,6 +43,11 @@ export const ManagePermissionsSelection: FunctionComponent<ManagePermissionsSele
   const [sobjects, setSobjects] = useRecoilState(fromPermissionsStateState.sObjectsState);
   const [selectedSObjects, setSelectedSObjects] = useRecoilState(fromPermissionsStateState.selectedSObjectsState);
 
+  const resetFieldsByObject = useResetRecoilState(fromPermissionsStateState.fieldsByObject);
+  const resetFieldsByKey = useResetRecoilState(fromPermissionsStateState.fieldsByKey);
+  const resetObjectPermissionMap = useResetRecoilState(fromPermissionsStateState.objectPermissionMap);
+  const resetFieldPermissionMap = useResetRecoilState(fromPermissionsStateState.fieldPermissionMap);
+
   // TODO: what about if we already have profiles and perm sets from state?
   // TODO: when loading, should we clear prior selections?
   const profilesAndPermSetsData = useProfilesAndPermSets(selectedOrg);
@@ -55,38 +60,16 @@ export const ManagePermissionsSelection: FunctionComponent<ManagePermissionsSele
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [profilesAndPermSetsData.profiles, profilesAndPermSetsData.permissionSets]);
 
-  // placeholder for reset
-  function handleFoo(profiles: string[]) {
-    // if (!sobjects) {
-    //   // sobjects cleared, reset other state
-    //   resetQueryFieldsMapState();
-    //   resetQueryFieldsKey();
-    //   resetSelectedSubqueryFieldsState();
-    //   resetQueryFiltersState();
-    //   resetQueryOrderByState();
-    //   resetQueryLimit();
-    //   resetQueryLimitSkip();
-    //   resetQuerySoqlState();
-    //   resetQueryChildRelationships();
-    //   resetQueryIncludeDeletedRecordsState();
-    // }
-  }
+  useEffect(() => {
+    resetFieldsByObject();
+    resetFieldsByKey();
+    resetObjectPermissionMap();
+    resetFieldPermissionMap();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedProfiles, selectedPermissionSets, selectedSObjects]);
 
   function handleSobjectChange(sobjects: DescribeGlobalSObjectResult[]) {
     setSobjects(sobjects);
-    // if (!sobjects) {
-    //   // sobjects cleared, reset other state
-    //   resetQueryFieldsMapState();
-    //   resetQueryFieldsKey();
-    //   resetSelectedSubqueryFieldsState();
-    //   resetQueryFiltersState();
-    //   resetQueryOrderByState();
-    //   resetQueryLimit();
-    //   resetQueryLimitSkip();
-    //   resetQuerySoqlState();
-    //   resetQueryChildRelationships();
-    //   resetQueryIncludeDeletedRecordsState();
-    // }
   }
 
   return (

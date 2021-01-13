@@ -297,10 +297,14 @@ export function prepareCsvFile(data: MapOf<string>[], header: string[]): string 
 /**
  * Helper method to allow auto-detecting column widths for excel export
  */
-export function getMaxWidthFromColumnContent(data: string[][]): XLSX.ColInfo[] {
+export function getMaxWidthFromColumnContent(data: string[][], skipRows: Set<number> = new Set(), defaultIfSkipped = 15): XLSX.ColInfo[] {
   const output: number[] = [];
-  data.forEach((row) => {
+  data.forEach((row, rowIdx) => {
     row.forEach((col, i) => {
+      if (skipRows.has(rowIdx)) {
+        output[i] = defaultIfSkipped;
+        return;
+      }
       const width = `${col || ''}`.length;
       output[i] = output[i] || 0;
       output[i] = output[i] > width ? output[i] : width;

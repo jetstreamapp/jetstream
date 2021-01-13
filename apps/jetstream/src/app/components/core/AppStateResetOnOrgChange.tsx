@@ -5,7 +5,9 @@ import * as fromAppState from '../../app-state';
 import * as fromAutomationControlState from '../automation-control/automation-control.state';
 import * as fromLoadState from '../load-records/load-records.state';
 import * as fromQueryState from '../query/query.state';
+import * as fromPermissionsStateState from '../manage-permissions/manage-permissions.state';
 
+// eslint-disable-next-line @typescript-eslint/no-empty-interface
 export interface AppStateResetOnOrgChangeProps {}
 
 export const AppStateResetOnOrgChange: FunctionComponent<AppStateResetOnOrgChangeProps> = () => {
@@ -38,6 +40,17 @@ export const AppStateResetOnOrgChange: FunctionComponent<AppStateResetOnOrgChang
     useResetRecoilState(fromAutomationControlState.itemsById),
     useResetRecoilState(fromAutomationControlState.activeItemId),
     useResetRecoilState(fromAutomationControlState.tabs),
+    // Manage Permissions
+    useResetRecoilState(fromPermissionsStateState.profilesState),
+    useResetRecoilState(fromPermissionsStateState.selectedProfilesPermSetState),
+    useResetRecoilState(fromPermissionsStateState.permissionSetsState),
+    useResetRecoilState(fromPermissionsStateState.selectedPermissionSetsState),
+    useResetRecoilState(fromPermissionsStateState.sObjectsState),
+    useResetRecoilState(fromPermissionsStateState.selectedSObjectsState),
+    useResetRecoilState(fromPermissionsStateState.fieldsByObject),
+    useResetRecoilState(fromPermissionsStateState.fieldsByKey),
+    useResetRecoilState(fromPermissionsStateState.objectPermissionMap),
+    useResetRecoilState(fromPermissionsStateState.fieldPermissionMap),
   ];
 
   useEffect(() => {

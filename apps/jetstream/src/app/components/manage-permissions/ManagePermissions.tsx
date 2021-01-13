@@ -1,30 +1,29 @@
 import { SalesforceOrgUi } from '@jetstream/types';
 import React, { Fragment, FunctionComponent, useEffect, useState } from 'react';
-import { Redirect, Route, Switch, useLocation, useRouteMatch } from 'react-router-dom';
-import { useRecoilValue } from 'recoil';
+import { Redirect, Route, Switch, useRouteMatch } from 'react-router-dom';
+import { useRecoilValue, useResetRecoilState } from 'recoil';
 import { selectedOrgState } from '../../app-state';
 import StateDebugObserver from '../core/StateDebugObserver';
-import ManagePermissionsSelection from './ManagePermissionsSelection';
 import * as fromPermissionsStateState from './manage-permissions.state';
 import ManagePermissionsEditor from './ManagePermissionsEditor';
+import ManagePermissionsSelection from './ManagePermissionsSelection';
 
 // eslint-disable-next-line @typescript-eslint/no-empty-interface
 export interface QueryProps {}
 
 export const Query: FunctionComponent<QueryProps> = () => {
   const match = useRouteMatch();
-  const location = useLocation<{ soql: string }>();
   const selectedOrg = useRecoilValue<SalesforceOrgUi>(selectedOrgState);
-  // const resetSobjects = useResetRecoilState(fromQueryState.sObjectsState);
-  // const resetSelectedSObject = useResetRecoilState(fromQueryState.selectedSObjectState);
-  // const resetQueryFieldsKey = useResetRecoilState(fromQueryState.queryFieldsKey);
-  // const resetQueryFieldsMapState = useResetRecoilState(fromQueryState.queryFieldsMapState);
-  // const resetSelectedQueryFieldsState = useResetRecoilState(fromQueryState.selectedQueryFieldsState);
-  // const resetSelectedSubqueryFieldsState = useResetRecoilState(fromQueryState.selectedSubqueryFieldsState);
-  // const resetQueryFiltersState = useResetRecoilState(fromQueryState.queryFiltersState);
-  // const resetQueryLimitSkip = useResetRecoilState(fromQueryState.queryLimitSkip);
-  // const resetQueryOrderByState = useResetRecoilState(fromQueryState.queryOrderByState);
-  // const resetQuerySoqlState = useResetRecoilState(fromQueryState.querySoqlState);
+  const resetProfilesState = useResetRecoilState(fromPermissionsStateState.profilesState);
+  const resetSelectedProfilesPermSetState = useResetRecoilState(fromPermissionsStateState.selectedProfilesPermSetState);
+  const resetPermissionSetsState = useResetRecoilState(fromPermissionsStateState.permissionSetsState);
+  const resetSelectedPermissionSetsState = useResetRecoilState(fromPermissionsStateState.selectedPermissionSetsState);
+  const resetSObjectsState = useResetRecoilState(fromPermissionsStateState.sObjectsState);
+  const resetSelectedSObjectsState = useResetRecoilState(fromPermissionsStateState.selectedSObjectsState);
+  const resetFieldsByObject = useResetRecoilState(fromPermissionsStateState.fieldsByObject);
+  const resetFieldsByKey = useResetRecoilState(fromPermissionsStateState.fieldsByKey);
+  const resetObjectPermissionMap = useResetRecoilState(fromPermissionsStateState.objectPermissionMap);
+  const resetFieldPermissionMap = useResetRecoilState(fromPermissionsStateState.fieldPermissionMap);
   const [priorSelectedOrg, setPriorSelectedOrg] = useState<string>(null);
 
   const hasSelectionsMade = useRecoilValue(fromPermissionsStateState.hasSelectionsMade);
@@ -35,19 +34,27 @@ export const Query: FunctionComponent<QueryProps> = () => {
       setPriorSelectedOrg(selectedOrg.uniqueId);
     } else if (selectedOrg && priorSelectedOrg !== selectedOrg.uniqueId) {
       setPriorSelectedOrg(selectedOrg.uniqueId);
-      // resetSobjects();
-      // resetSelectedSObject();
-      // resetQueryFieldsKey();
-      // resetQueryFieldsMapState();
-      // resetSelectedQueryFieldsState();
-      // resetSelectedSubqueryFieldsState();
-      // resetQueryFiltersState();
-      // resetQueryLimitSkip();
-      // resetQueryOrderByState();
-      // resetQuerySoqlState();
+      resetProfilesState();
+      resetSelectedProfilesPermSetState();
+      resetPermissionSetsState();
+      resetSelectedPermissionSetsState();
+      resetSObjectsState();
+      resetSelectedSObjectsState();
+      resetFieldsByObject();
+      resetFieldsByKey();
+      resetObjectPermissionMap();
+      resetFieldPermissionMap();
     } else if (!selectedOrg) {
-      // resetSobjects();
-      // resetSelectedSObject();
+      resetProfilesState();
+      resetSelectedProfilesPermSetState();
+      resetPermissionSetsState();
+      resetSelectedPermissionSetsState();
+      resetSObjectsState();
+      resetSelectedSObjectsState();
+      resetFieldsByObject();
+      resetFieldsByKey();
+      resetObjectPermissionMap();
+      resetFieldPermissionMap();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedOrg, priorSelectedOrg]);

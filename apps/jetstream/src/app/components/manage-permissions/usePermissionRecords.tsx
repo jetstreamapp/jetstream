@@ -4,13 +4,12 @@ import { EntityParticlePermissionsRecord, FieldPermissionRecord, MapOf, ObjectPe
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { logger } from '@jetstream/shared/client-logger';
 import {
-  FieldPermissionDefinitionMap,
   getFieldDefinitionKey,
   getQueryForAllPermissionableFields,
   getQueryForFieldPermissions,
   getQueryObjectPermissions,
-  ObjectPermissionDefinitionMap,
 } from './utils/permission-manager-utils';
+import { FieldPermissionDefinitionMap, ObjectPermissionDefinitionMap } from './utils/permission-manager-types';
 
 export function usePermissionRecords(selectedOrg: SalesforceOrgUi, sobjects: string[], profilePermSetIds: string[], permSetIds: string[]) {
   const isMounted = useRef(null);
@@ -184,8 +183,8 @@ function getObjectPermissionMap(
           read: permissionRecord.PermissionsRead,
           edit: permissionRecord.PermissionsEdit,
           delete: permissionRecord.PermissionsDelete,
-          viewAllRecords: permissionRecord.PermissionsViewAllRecords,
-          modifyAllRecords: permissionRecord.PermissionsModifyAllRecords,
+          viewAll: permissionRecord.PermissionsViewAllRecords,
+          modifyAll: permissionRecord.PermissionsModifyAllRecords,
           record: permissionRecord,
         };
       } else {
@@ -194,8 +193,8 @@ function getObjectPermissionMap(
           read: false,
           edit: false,
           delete: false,
-          viewAllRecords: false,
-          modifyAllRecords: false,
+          viewAll: false,
+          modifyAll: false,
           record: null,
         };
       }

@@ -9,7 +9,7 @@ import {
 } from '@jetstream/types';
 import { DescribeGlobalSObjectResult } from 'jsforce';
 import { atom, selector } from 'recoil';
-import { FieldPermissionDefinitionMap, ObjectPermissionDefinitionMap } from './utils/permission-manager-utils';
+import { FieldPermissionDefinitionMap, ObjectPermissionDefinitionMap } from './utils/permission-manager-types';
 
 export const sObjectsState = atom<DescribeGlobalSObjectResult[]>({
   key: 'permission-manager.sObjectsState',
