@@ -59,7 +59,7 @@ const ROUTES: RouteItem[] = [
   },
   {
     path: '/permissions-manager',
-    // flag: FEATURE_FLAGS.AUTOMATION_CONTROL,
+    flag: FEATURE_FLAGS.PERMISSION_MANAGER,
     render: () => (
       <OrgSelectionRequired>
         <ManagePermissions />
