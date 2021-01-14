@@ -1,7 +1,7 @@
 /** @jsx jsx */
 import { css, jsx } from '@emotion/react';
 import { formatNumber } from '@jetstream/shared/ui-utils';
-import { orderStringsBy, pluralizeIfMultiple } from '@jetstream/shared/utils';
+import { multiWordObjectFilter, orderStringsBy, pluralizeIfMultiple } from '@jetstream/shared/utils';
 import { ListItem as ListItemType, UpDown } from '@jetstream/types';
 import { createRef, Fragment, FunctionComponent, useEffect, useState } from 'react';
 import Checkbox from '../form/checkbox/Checkbox';
@@ -51,11 +51,7 @@ export const ListWithFilterMultiSelect: FunctionComponent<ListWithFilterMultiSel
 
   useEffect(() => {
     if (items && items.length > 0 && searchTerm) {
-      const lowercaseTerm = searchTerm.toLowerCase();
-      const currFilteredItems = items.filter((item) =>
-        `${item.label || ''}${item.secondaryLabel || ''}`.toLowerCase().includes(lowercaseTerm)
-      );
-      setFilteredItems(currFilteredItems);
+      setFilteredItems(items.filter(multiWordObjectFilter(['label', 'secondaryLabel'], searchTerm)));
     } else {
       setFilteredItems(items);
     }

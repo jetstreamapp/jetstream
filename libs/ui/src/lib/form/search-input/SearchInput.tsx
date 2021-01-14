@@ -10,14 +10,31 @@ export interface SearchInputProps {
   id: string;
   placeholder?: string;
   autoFocus?: boolean;
+  // this can generally be omitted, but can be used to control the value
+  value?: string;
   onChange: (value: string) => void;
   onArrowKeyUpDown?: (direction: UpDown) => void;
 }
 
-export const SearchInput: FunctionComponent<SearchInputProps> = ({ id, placeholder, autoFocus, onChange, onArrowKeyUpDown, children }) => {
-  const [value, setValue] = useState<string>('');
+export const SearchInput: FunctionComponent<SearchInputProps> = ({
+  id,
+  placeholder,
+  autoFocus,
+  value: incomingValue = '',
+  onChange,
+  onArrowKeyUpDown,
+  children,
+}) => {
+  const [value, setValue] = useState<string>(incomingValue || '');
   const debouncedFilters = useDebounce(value);
   const inputEl = useRef<HTMLInputElement>();
+
+  useEffect(() => {
+    if (incomingValue !== value) {
+      setValue(incomingValue);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [incomingValue]);
 
   useEffect(() => {
     if (autoFocus && inputEl.current) {

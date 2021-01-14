@@ -1,4 +1,5 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
+import { multiWordObjectFilter } from '@jetstream/shared/utils';
 import { AscDesc, FirstLast, ListItem, ListItemGroup, QueryOrderByClause } from '@jetstream/types';
 import { Combobox, ComboboxListItem, ComboboxListItemGroup, FormRowButton, Picklist } from '@jetstream/ui';
 import React, { FunctionComponent, useEffect, useState } from 'react';
@@ -31,7 +32,7 @@ export const QueryOrderBy: FunctionComponent<QueryOrderByProps> = ({ orderBy, fi
       fields.forEach((field) => {
         tempFields.push({
           ...field,
-          items: field.items.filter((item) => `${item.label.toLowerCase()}${item.value.toLowerCase()}`.includes(filter)),
+          items: field.items.filter(multiWordObjectFilter(['label', 'value'], filter)),
         });
       });
       setVisibleFields(tempFields);

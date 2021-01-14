@@ -1,9 +1,9 @@
 /** @jsx jsx */
 import { ICellRendererParams, IFilter, IFilterParams, IFloatingFilter, IFloatingFilterParams } from '@ag-grid-community/core';
-import { jsx, css } from '@emotion/react';
+import { jsx } from '@emotion/react';
 import { SalesforceOrgUi } from '@jetstream/types';
 import { isFunction } from 'lodash';
-import { forwardRef, Fragment, FunctionComponent, MouseEvent, useEffect, useImperativeHandle, useRef, useState } from 'react';
+import { forwardRef, Fragment, FunctionComponent, MouseEvent, useEffect, useImperativeHandle, useState } from 'react';
 import RecordDownloadModal from '../file-download-modal/RecordDownloadModal';
 import CheckboxToggle from '../form/checkbox-toggle/CheckboxToggle';
 import Checkbox from '../form/checkbox/Checkbox';
@@ -12,7 +12,6 @@ import AutoFullHeightContainer from '../layout/AutoFullHeightContainer';
 import Modal from '../modal/Modal';
 import Icon from '../widgets/Icon';
 import SalesforceLogin from '../widgets/SalesforceLogin';
-import Tooltip from '../widgets/Tooltip';
 import './data-table-styles.scss';
 import { DataTableContext, getSubqueryModalTagline, SalesforceQueryColumnDefinition, TableContext } from './data-table-utils';
 import DataTable from './DataTable';
@@ -197,6 +196,7 @@ export const BooleanEditableRenderer: FunctionComponent<ICellRendererParams> = (
       node.setDataValue(colId, !value);
     }
   }
+
   return (
     <div className="slds-align_absolute-center" onClick={setValue}>
       <Checkbox id={`${node.id}-${colId}`} checked={value} label="value" hideLabel readOnly={isReadOnly} />
@@ -232,7 +232,13 @@ export const BasicTextFilterRenderer = forwardRef<any, IFilterParams>(({ filterC
       },
 
       doesFilterPass({ node }) {
-        return node.isFullWidthCell() || `${valueGetter(node)}`.toLowerCase().indexOf(value.toLowerCase()) >= 0;
+        return (
+          node.isFullWidthCell() ||
+          value
+            .toLowerCase()
+            .split(' ')
+            .every((word) => `${valueGetter(node)}`.toLowerCase().includes(word))
+        );
       },
 
       getModel() {

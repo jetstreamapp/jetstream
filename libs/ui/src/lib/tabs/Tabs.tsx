@@ -2,7 +2,7 @@
 /** @jsx jsx */
 import { jsx } from '@emotion/react';
 import { formatNumber } from '@jetstream/shared/ui-utils';
-import { REGEX } from '@jetstream/shared/utils';
+import { multiWordObjectFilter } from '@jetstream/shared/utils';
 import { HorizontalVertical, UiTabSection } from '@jetstream/types';
 import classNames from 'classnames';
 import isNil from 'lodash/isNil';
@@ -68,8 +68,7 @@ export const Tabs: FunctionComponent<TabsProps> = ({
     if (!filterValue && tabs !== filteredTabs) {
       setFilteredTabs(tabs);
     } else if (filterValue) {
-      const value = new RegExp(filterValue.replace(REGEX.NOT_ALPHANUMERIC_OR_UNDERSCORE, ''), 'i');
-      setFilteredTabs(tabs.filter((tab) => value.test(`${tab.titleText || tab.title}${tab.id}`)));
+      setFilteredTabs(tabs.filter(multiWordObjectFilter(['titleText', 'title', 'id'], filterValue)));
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tabs, filterValue]);

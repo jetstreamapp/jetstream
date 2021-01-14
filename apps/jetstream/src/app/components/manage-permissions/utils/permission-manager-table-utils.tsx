@@ -1,35 +1,42 @@
 /** @jsx jsx */
 import {
   CellClassParams,
+  CellKeyPressEvent,
   ColDef,
   ColGroupDef,
   GridApi,
   ICellRendererParams,
   RowNode,
+  SuppressKeyboardEventParams,
   ValueGetterParams,
   ValueSetterParams,
 } from '@ag-grid-community/core';
 import { jsx } from '@emotion/react';
 import { logger } from '@jetstream/shared/client-logger';
+import { isArrowKey, isEnterOrSpace, isTabKey } from '@jetstream/shared/ui-utils';
 import { orderStringsBy, pluralizeFromNumber } from '@jetstream/shared/utils';
 import { MapOf, PermissionSetNoProfileRecord, PermissionSetWithProfileRecord } from '@jetstream/types';
 import { Icon, Input, Tooltip } from '@jetstream/ui';
 import { isFunction } from 'lodash';
 import { Fragment, FunctionComponent, useEffect, useState } from 'react';
 import {
+  DirtyRow,
+  FieldPermissionDefinitionMap,
+  FieldPermissionItem,
   FieldPermissionTypes,
+  ObjectPermissionDefinitionMap,
+  ObjectPermissionItem,
   ObjectPermissionTypes,
-  PermissionTableObjectCell,
+  PermissionTableCell,
   PermissionTableFieldCell,
   PermissionTableFieldCellPermission,
-  ObjectPermissionDefinitionMap,
-  FieldPermissionDefinitionMap,
+  PermissionTableObjectCell,
   PermissionTableObjectCellPermission,
-  PermissionTableCell,
-  DirtyRow,
-  ObjectPermissionItem,
-  FieldPermissionItem,
 } from './permission-manager-types';
+
+function suppressKeyboardEventOnPinnedInput({ node, event }: SuppressKeyboardEventParams) {
+  return node.isRowPinned() && !isArrowKey(event as any) && !isTabKey(event as any);
+}
 
 export function getObjectValue(which: ObjectPermissionTypes) {
   return ({ node, data, colDef }: ValueGetterParams) => {
@@ -40,7 +47,19 @@ export function getObjectValue(which: ObjectPermissionTypes) {
   };
 }
 
-// FIXME: TODO: fixme!
+/**
+ * This provides enter/space to toggle field selection
+ */
+export function handleOnCellPressed({ event, node, column, colDef, value, context }: CellKeyPressEvent) {
+  if (colDef.cellRenderer === 'booleanEditableRenderer' && isEnterOrSpace(event as any)) {
+    event.preventDefault();
+    event.stopPropagation();
+    if (isFunction(context.isReadOnly) && !context.isReadOnly({ value, node, column, colDef })) {
+      node.setDataValue(column.getColId(), !value);
+    }
+  }
+}
+
 export function setObjectValue(which: ObjectPermissionTypes) {
   return ({ node, colDef, newValue }: ValueSetterParams) => {
     if (node.isRowPinned()) {
@@ -320,6 +339,7 @@ export function getObjectColumns(
       filter: 'basicTextFilterRenderer',
       pinnedRowCellRenderer: 'pinnedInputFilter',
       suppressMenu: true,
+      suppressKeyboardEvent: suppressKeyboardEventOnPinnedInput,
       valueFormatter: (params) => {
         const data: PermissionTableObjectCell = params.data;
         return `${data.label} (${data.apiName})`;
@@ -457,6 +477,7 @@ export function getFieldColumns(
         const data: PermissionTableFieldCell = params.data;
         return `${data.label} (${data.apiName})`;
       },
+      suppressKeyboardEvent: suppressKeyboardEventOnPinnedInput,
     },
   ];
   // Create column groups for profiles

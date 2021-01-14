@@ -1,7 +1,7 @@
 /** @jsx jsx */
 import { css, jsx } from '@emotion/react';
 import { formatNumber } from '@jetstream/shared/ui-utils';
-import { orderStringsBy, pluralizeIfMultiple } from '@jetstream/shared/utils';
+import { multiWordObjectFilter, orderStringsBy, pluralizeIfMultiple } from '@jetstream/shared/utils';
 import { UpDown } from '@jetstream/types';
 import { DescribeGlobalSObjectResult } from 'jsforce';
 import { createRef, Fragment, FunctionComponent, useEffect, useState } from 'react';
@@ -41,9 +41,7 @@ export const SobjectListMultiSelect: FunctionComponent<SobjectListMultiSelectPro
 
   useEffect(() => {
     if (sobjects && sobjects.length > 0 && searchTerm) {
-      const lowercaseTerm = searchTerm.toLowerCase();
-      const filteredSobject = sobjects.filter((obj) => `${obj.name || ''}${obj.label || ''}`.toLowerCase().includes(lowercaseTerm));
-      setFilteredSobjects(filteredSobject);
+      setFilteredSobjects(sobjects.filter(multiWordObjectFilter(['name', 'label'], searchTerm)));
     } else {
       setFilteredSobjects(sobjects);
     }

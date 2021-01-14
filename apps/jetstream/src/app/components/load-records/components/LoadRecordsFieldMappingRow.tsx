@@ -1,10 +1,11 @@
 /** @jsx jsx */
 import { jsx } from '@emotion/react';
+import { multiWordObjectFilter } from '@jetstream/shared/utils';
 import { Checkbox, Combobox, ComboboxListItem, Grid, Icon } from '@jetstream/ui';
-import { Fragment, FunctionComponent, useEffect, useState } from 'react';
-import { FieldWithRelatedEntities, FieldMappingItem, FieldRelatedEntity } from '../load-records-types';
 import classNames from 'classnames';
 import isNil from 'lodash/isNil';
+import { Fragment, FunctionComponent, useEffect, useState } from 'react';
+import { FieldMappingItem, FieldRelatedEntity, FieldWithRelatedEntities } from '../load-records-types';
 
 function getPreviewData(csvRowData: string | Date | boolean | number | null): string {
   if (isNil(csvRowData)) {
@@ -54,19 +55,15 @@ export const LoadRecordsFieldMappingRow: FunctionComponent<LoadRecordsFieldMappi
 }) => {
   const [textFilter, setTextFilter] = useState<string>('');
   const [visibleFields, setVisibleFields] = useState(fields);
-  // const [mapToRelated, setMapToRelated] = useState<boolean>(fieldMappingItem.mappedToLookup);
 
   const [relatedTextFilter, setRelatedTextFilter] = useState<string>('');
   const [visibleRelatedFields, setVisibleRelatedFields] = useState<FieldRelatedEntity[]>([]);
-
-  // const [fieldMappingItem, setFieldMappingItem] = useState<FieldMappingItem>(() => ({ ...fieldMappingItemTemp }));
 
   useEffect(() => {
     if (!textFilter && fields.length !== visibleFields.length) {
       setVisibleFields(fields);
     } else if (textFilter) {
-      const filter = textFilter.toLowerCase().trim();
-      setVisibleFields(fields.filter((field) => `${field.label.toLowerCase()}${field.name.toLowerCase()}`.includes(filter)));
+      setVisibleFields(fields.filter(multiWordObjectFilter(['name', 'label'], textFilter)));
     }
   }, [fields, textFilter]);
 
@@ -80,15 +77,12 @@ export const LoadRecordsFieldMappingRow: FunctionComponent<LoadRecordsFieldMappi
       ) {
         setVisibleRelatedFields(fieldMappingItem.fieldMetadata.relatedFields);
       } else if (relatedTextFilter) {
-        const filter = relatedTextFilter.toLowerCase().trim();
         setVisibleRelatedFields(
-          fieldMappingItem.fieldMetadata.relatedFields.filter((field) =>
-            `${field.label.toLowerCase()}${field.name.toLowerCase()}`.includes(filter)
-          )
+          fieldMappingItem.fieldMetadata.relatedFields.filter(multiWordObjectFilter(['name', 'label'], relatedTextFilter))
         );
       }
     }
-  }, [fieldMappingItem, visibleRelatedFields, relatedTextFilter]);
+  }, [fieldMappingItem, relatedTextFilter]);
 
   function handleSelectionChanged(field: FieldWithRelatedEntities) {
     if (!field) {

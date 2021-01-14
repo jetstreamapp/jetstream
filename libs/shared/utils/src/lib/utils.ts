@@ -10,11 +10,11 @@ import {
   QueryFieldWithPolymorphic,
   Record,
 } from '@jetstream/types';
+import fromUnixTime from 'date-fns/fromUnixTime';
 import { QueryResult } from 'jsforce';
 import { get as lodashGet, isBoolean, isNil, isObject, isString, orderBy } from 'lodash';
 import { ComposeFieldTypeof, FieldSubquery, FieldType, getField } from 'soql-parser-js';
 import { REGEX } from './regex';
-import fromUnixTime from 'date-fns/fromUnixTime';
 
 export function NOOP() {}
 
@@ -28,6 +28,45 @@ export async function alwaysResolve<T = any>(promise: Promise<T>, valueIfError: 
   } catch (ex) {
     return valueIfError;
   }
+}
+
+/**
+ * For a list of objects, return a predicate function to search across multiple fields
+ * If the search term is multiple words, then each word will be matched individually and all must match to return a value
+ * This is a basic form of fuzzy searching, but does not account for typos
+ *
+ * @param props Array of keys from item
+ * @param value search term
+ * @returns a predecate function that can be used in filter function
+ */
+export function multiWordObjectFilter<T>(
+  props: Array<keyof T>,
+  value: string,
+  optionalExtraCondition?: (item: T) => boolean
+): (value: T, index: number, array: T[]) => boolean {
+  const search = (value || '').toLocaleLowerCase().split(' ');
+  const hasValue = search.length > 0;
+  return (item: T) => {
+    if (!hasValue || !item) {
+      return true;
+    }
+    const normalizedValue = props
+      .map((prop) => (item[prop] ?? '').toString())
+      .join()
+      .toLocaleLowerCase();
+    return search.every((word) => normalizedValue.includes(word)) || optionalExtraCondition?.(item);
+  };
+}
+
+export function multiWordStringFilter(value: string): (value: string, index: number, array: string[]) => boolean {
+  const search = (value || '').toLocaleLowerCase().split(' ');
+  const hasValue = search.length > 0;
+  return (item: string) => {
+    if (!hasValue || !item) {
+      return true;
+    }
+    return search.every((word) => (item || '').toLocaleLowerCase().includes(word));
+  };
 }
 
 export function orderObjectsBy<T>(items: T[], field: keyof T, order: 'asc' | 'desc' = 'asc'): T[] {
