@@ -1,5 +1,6 @@
 /** @jsx jsx */
 import { jsx } from '@emotion/react';
+import { multiWordObjectFilter } from '@jetstream/shared/utils';
 import { InsertUpdateUpsertDelete } from '@jetstream/types';
 import { Combobox, ComboboxListItem, Grid, GridCol, RadioButton, RadioGroup, Spinner } from '@jetstream/ui';
 import { FunctionComponent, useEffect, useState } from 'react';
@@ -29,8 +30,7 @@ export const LoadRecordsLoadTypeButtons: FunctionComponent<LoadRecordsLoadTypeBu
     if (!textFilter && visibleExternalIdFields.length !== externalIdFields.length) {
       setVisibleExternalIds(externalIdFields);
     } else if (textFilter) {
-      const filter = textFilter.toLowerCase().trim();
-      setVisibleExternalIds(externalIdFields.filter((field) => `${field.label.toLowerCase()}${field.name.toLowerCase()}`.includes(filter)));
+      setVisibleExternalIds(externalIdFields.filter(multiWordObjectFilter(['name', 'label'], textFilter)));
     }
   }, [externalIdFields, textFilter]);
 
@@ -110,7 +110,7 @@ export const LoadRecordsLoadTypeButtons: FunctionComponent<LoadRecordsLoadTypeBu
               onInputChange={setTextFilter}
               labelHelp="Upsert requires an external Id as an alternative to a record id for matching rows in your input data to records in Salesforce. If a match is found, the record will be updated. Otherwise a new record will be created."
             >
-              {externalIdFields.map((field) => (
+              {visibleExternalIdFields.map((field) => (
                 <ComboboxListItem
                   key={field.name}
                   id={field.name}

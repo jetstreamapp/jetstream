@@ -4,7 +4,7 @@ import { css, jsx } from '@emotion/react';
 import { logger } from '@jetstream/shared/client-logger';
 import { INDEXED_DB } from '@jetstream/shared/constants';
 import { formatNumber } from '@jetstream/shared/ui-utils';
-import { REGEX } from '@jetstream/shared/utils';
+import { multiWordObjectFilter } from '@jetstream/shared/utils';
 import { MapOf, QueryHistoryItem, QueryHistorySelection, UpDown } from '@jetstream/types';
 import { EmptyState, Grid, GridCol, Icon, List, Modal, SearchInput, Spinner } from '@jetstream/ui';
 import localforage from 'localforage';
@@ -70,7 +70,7 @@ export const QueryHistory: FunctionComponent<QueryHistoryProps> = ({ onRestore }
       if (!sqlFilterValue) {
         setFilteredQueryHistory(queryHistory);
       } else {
-        setFilteredQueryHistory(queryHistory.filter((item) => item.soql.toLowerCase().includes(sqlFilterValue.toLowerCase())));
+        setFilteredQueryHistory(queryHistory.filter(multiWordObjectFilter(['soql'], sqlFilterValue)));
       }
     }
   }, [queryHistory, sqlFilterValue]);
@@ -99,8 +99,9 @@ export const QueryHistory: FunctionComponent<QueryHistoryProps> = ({ onRestore }
     if (!filterValue && selectObjectsList !== filteredSelectObjectsList) {
       setFilteredSelectObjectsList(selectObjectsList);
     } else if (filterValue) {
-      const value = new RegExp(filterValue.replace(REGEX.NOT_ALPHANUMERIC_OR_UNDERSCORE, ''), 'i');
-      setFilteredSelectObjectsList(selectObjectsList.filter((item) => item.name === 'all' || value.test(`${item.name}${item.label}`)));
+      setFilteredSelectObjectsList(
+        selectObjectsList.filter(multiWordObjectFilter(['name', 'label'], filterValue, (item) => item.name === 'all'))
+      );
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectObjectsList, filterValue]);

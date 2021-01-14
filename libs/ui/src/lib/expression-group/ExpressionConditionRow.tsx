@@ -1,5 +1,6 @@
 // eslint-disable-next-line @typescript-eslint/camelcase
 import { useDebounce } from '@jetstream/shared/ui-utils';
+import { multiWordObjectFilter } from '@jetstream/shared/utils';
 import {
   AndOr,
   ExpressionConditionRowSelectedItems,
@@ -135,7 +136,7 @@ export const ExpressionConditionRow: FunctionComponent<ExpressionConditionRowPro
         resources.forEach((resource) => {
           tempResources.push({
             ...resource,
-            items: resource.items.filter((item) => `${item.label.toLowerCase()}${item.value.toLowerCase()}`.includes(filter)),
+            items: resource.items.filter(multiWordObjectFilter(['label', 'value'], filter)),
           });
         });
         setVisibleResources(tempResources);

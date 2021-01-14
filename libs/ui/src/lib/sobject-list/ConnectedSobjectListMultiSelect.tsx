@@ -2,13 +2,13 @@ import { logger } from '@jetstream/shared/client-logger';
 import { clearCacheForOrg, describeGlobal } from '@jetstream/shared/data';
 import { NOOP, orderObjectsBy } from '@jetstream/shared/utils';
 import { SalesforceOrgUi } from '@jetstream/types';
-import { SobjectListMultiSelect } from './SobjectListMultiSelect';
+import formatRelative from 'date-fns/formatRelative';
 import { DescribeGlobalSObjectResult } from 'jsforce';
 import React, { Fragment, FunctionComponent, useEffect, useRef, useState } from 'react';
 import Grid from '../grid/Grid';
 import Icon from '../widgets/Icon';
 import Tooltip from '../widgets/Tooltip';
-import formatRelative from 'date-fns/formatRelative';
+import { SobjectListMultiSelect } from './SobjectListMultiSelect';
 
 // Store global state so that if a user leaves and comes back and items are restored
 // we know the most recent known value to start with instead of no value

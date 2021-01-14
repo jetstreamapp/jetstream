@@ -1,6 +1,6 @@
-import { KeyboardEvent, SyntheticEvent } from 'react';
-import { escapeRegExp } from 'lodash';
 import { ListItem } from '@jetstream/types';
+import { escapeRegExp } from 'lodash';
+import { KeyboardEvent, SyntheticEvent } from 'react';
 
 export interface SelectMenuItemFromKeyboardOptions<T> {
   key: string;
@@ -111,6 +111,10 @@ export function selectMenuItemFromKeyboard<T = ListItem>({
 
 export function isAKey(event: KeyboardEvent<unknown>): boolean {
   return event.key === 'a' || event.key === 'A' || event.keyCode === 65;
+}
+
+export function isArrowKey(event: KeyboardEvent<unknown>): boolean {
+  return isArrowLeftKey(event) || isArrowUpKey(event) || isArrowRightKey(event) || isArrowDownKey(event);
 }
 
 export function isArrowLeftKey(event: KeyboardEvent<unknown>): boolean {

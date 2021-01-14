@@ -1,5 +1,5 @@
 import { useNonInitialEffect } from '@jetstream/shared/ui-utils';
-import { pluralizeFromNumber } from '@jetstream/shared/utils';
+import { multiWordObjectFilter, pluralizeFromNumber } from '@jetstream/shared/utils';
 import { MapOf, QueryFieldWithPolymorphic } from '@jetstream/types';
 import { Accordion, Badge, EmptyState, Grid, GridCol, SearchInput } from '@jetstream/ui';
 import { ChildRelationship } from 'jsforce';
@@ -28,11 +28,7 @@ export const QuerySubquerySObjects: FunctionComponent<QuerySubquerySObjectsProps
   useNonInitialEffect(() => {
     if (textFilter) {
       setVisibleChildRelationships(
-        childRelationships.filter((childRelationship) =>
-          `${childRelationship.relationshipName}${childRelationship.childSObject}${childRelationship.field}`
-            .toLowerCase()
-            .includes(textFilter.toLowerCase())
-        )
+        childRelationships.filter(multiWordObjectFilter(['relationshipName', 'childSObject', 'field'], textFilter))
       );
     } else {
       setVisibleChildRelationships(childRelationships);

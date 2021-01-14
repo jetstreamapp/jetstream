@@ -1,5 +1,6 @@
 import { logger } from '@jetstream/shared/client-logger';
 import { fetchFields, getFieldKey, sortQueryFieldsStr } from '@jetstream/shared/ui-utils';
+import { multiWordObjectFilter } from '@jetstream/shared/utils';
 import { FieldWrapper, MapOf, QueryFields, QueryFieldWithPolymorphic } from '@jetstream/types';
 import { SobjectFieldList } from '@jetstream/ui';
 import isEmpty from 'lodash/isEmpty';
@@ -201,9 +202,12 @@ export const QueryChildFieldsComponent: FunctionComponent<QueryChildFieldsProps>
         tempQueryField.visibleFields = new Set(
           Object.values(tempQueryField.fields)
             .filter(
-              (field) =>
-                field.filterText.includes(filterTerm) ||
-                (!!field.relationshipKey && queryFieldsMap[field.relationshipKey] && queryFieldsMap[field.relationshipKey].expanded)
+              multiWordObjectFilter(
+                ['filterText'],
+                filterTerm,
+                (field) =>
+                  !!field.relationshipKey && queryFieldsMap[field.relationshipKey] && queryFieldsMap[field.relationshipKey].expanded
+              )
             )
             .map((field) => field.name)
         );

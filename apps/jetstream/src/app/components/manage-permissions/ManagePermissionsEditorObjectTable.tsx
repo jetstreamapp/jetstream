@@ -1,41 +1,23 @@
 /** @jsx jsx */
 import { ColDef, ColGroupDef, GridApi, GridReadyEvent, ICellRendererParams } from '@ag-grid-community/core';
 import { jsx } from '@emotion/react';
-import { logger } from '@jetstream/shared/client-logger';
 import { useNonInitialEffect } from '@jetstream/shared/ui-utils';
-import { MapOf, PermissionSetNoProfileRecord, PermissionSetWithProfileRecord } from '@jetstream/types';
+import { MapOf } from '@jetstream/types';
 import { AutoFullHeightContainer, DataTable } from '@jetstream/ui';
-import { forwardRef, useEffect, useImperativeHandle, useState } from 'react';
-import { useRecoilValue } from 'recoil';
-import * as fromPermissionsStateState from './manage-permissions.state';
+import { forwardRef, useImperativeHandle, useState } from 'react';
 import {
   ErrorTooltipRenderer,
-  getObjectColumns,
-  getObjectRows,
+  handleOnCellPressed,
   isFullWidthCell,
   PinnedLabelInputFilter,
   PinnedSelectAllRendererWrapper,
   resetGridChanges,
 } from './utils/permission-manager-table-utils';
-import {
-  DirtyRow,
-  ManagePermissionsEditorTableRef,
-  ObjectPermissionDefinitionMap,
-  PermissionTableObjectCell,
-} from './utils/permission-manager-types';
+import { DirtyRow, ManagePermissionsEditorTableRef, PermissionTableObjectCell } from './utils/permission-manager-types';
 
 export interface ManagePermissionsEditorObjectTableProps {
   columns: (ColDef | ColGroupDef)[];
   rows: PermissionTableObjectCell[];
-  // selectedProfiles: string[];
-  // selectedPermissionSets: string[];
-  // selectedSObjects: string[];
-  // profilesById: MapOf<PermissionSetWithProfileRecord>;
-  // permissionSetsById: MapOf<PermissionSetNoProfileRecord>;
-  // objectPermissionMap: MapOf<ObjectPermissionDefinitionMap>;
-  // initialRows: PermissionTableObjectCell[];
-  // onColumns: (columns: (ColDef | ColGroupDef)[]) => void;
-  // onRows: (rows: PermissionTableObjectCell[]) => void;
   onBulkUpdate: (rows: PermissionTableObjectCell[]) => void;
   onDirtyRows?: (values: MapOf<DirtyRow<PermissionTableObjectCell>>) => void;
 }
@@ -57,26 +39,7 @@ const pinnedSelectAllRow = {
  */
 
 export const ManagePermissionsEditorObjectTable = forwardRef<any, ManagePermissionsEditorObjectTableProps>(
-  (
-    {
-      columns,
-      rows,
-      // selectedProfiles,
-      // selectedPermissionSets,
-      // selectedSObjects,
-      // profilesById,
-      // permissionSetsById,
-      // objectPermissionMap,
-      // initialRows,
-      // onColumns,
-      // onRows,
-      onBulkUpdate,
-      onDirtyRows,
-    },
-    ref
-  ) => {
-    // const [columns, setColumns] = useState<(ColDef | ColGroupDef)[]>([]);
-    // const [rows, setRows] = useState<PermissionTableObjectCell[]>([]);
+  ({ columns, rows, onBulkUpdate, onDirtyRows }, ref) => {
     const [gridApi, setGridApi] = useState<GridApi>(null);
     const [dirtyRows, setDirtyRows] = useState<MapOf<DirtyRow<PermissionTableObjectCell>>>({});
 
@@ -99,54 +62,9 @@ export const ManagePermissionsEditorObjectTable = forwardRef<any, ManagePermissi
       dirtyRows && onDirtyRows && onDirtyRows(dirtyRows);
     }, [dirtyRows, onDirtyRows]);
 
-    // useEffect(() => {
-    //   const columns = getObjectColumns(selectedProfiles, selectedPermissionSets, profilesById, permissionSetsById);
-    //   const rows = initialRows || getObjectRows(selectedSObjects, objectPermissionMap);
-    //   logger.log('[PERM TABLE]', { columns, rows });
-    //   setColumns(columns);
-    //   setRows(rows);
-    //   onColumns(columns);
-    //   onRows(rows);
-    //   // only run on first render
-    // }, []);
-
-    // useNonInitialEffect(() => {
-    //   setRows(getObjectRows(selectedSObjects, objectPermissionMap));
-    //   setDirtyRows({});
-    // }, [objectPermissionMap]);
-
     function handleOnGridReady({ api }: GridReadyEvent) {
       setGridApi(api);
     }
-
-    // function handleBulkRowUpdate(rows: PermissionTableObjectCell[]) {
-    //   setDirtyRows((priorValue) => {
-    //     const newValues = { ...priorValue };
-    //     rows.forEach((row) => {
-    //       const rowKey = row.key; // e.x. Obj__c.Field__c
-    //       const dirtyCount = Object.values(row.permissions).reduce(
-    //         (output, { createIsDirty, readIsDirty, editIsDirty, deleteIsDirty, viewAllIsDirty, modifyAllIsDirty }) => {
-    //           output += createIsDirty ? 1 : 0;
-    //           output += readIsDirty ? 1 : 0;
-    //           output += editIsDirty ? 1 : 0;
-    //           output += deleteIsDirty ? 1 : 0;
-    //           output += viewAllIsDirty ? 1 : 0;
-    //           output += modifyAllIsDirty ? 1 : 0;
-    //           return output;
-    //         },
-    //         0
-    //       );
-    //       newValues[rowKey] = { rowKey, dirtyCount, row };
-    //     });
-    //     // remove items with a dirtyCount of 0 to reduce future processing required
-    //     return Object.keys(newValues).reduce((output: MapOf<DirtyRow<PermissionTableObjectCell>>, key) => {
-    //       if (newValues[key].dirtyCount) {
-    //         output[key] = newValues[key];
-    //       }
-    //       return output;
-    //     }, {});
-    //   });
-    // }
 
     return (
       <div>
@@ -162,6 +80,7 @@ export const ManagePermissionsEditorObjectTable = forwardRef<any, ManagePermissi
             agGridProps={{
               pinnedTopRowData: [pinnedSelectAllRow],
               suppressRowClickSelection: true,
+              rowSelection: null,
               headerHeight: 25,
               gridOptions: {
                 context: {
@@ -176,6 +95,7 @@ export const ManagePermissionsEditorObjectTable = forwardRef<any, ManagePermissi
                   onBulkUpdate: onBulkUpdate,
                 },
                 immutableData: true,
+                onCellKeyPress: handleOnCellPressed,
                 getRowNodeId: (data: PermissionTableObjectCell) => data.key,
                 isFullWidthCell: isFullWidthCell,
                 fullWidthCellRenderer: 'fullWidthRenderer',
