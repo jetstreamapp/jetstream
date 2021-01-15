@@ -15,17 +15,18 @@ const ERROR_MESSAGES = {
   PARSE_ERROR: 'There was an error parsing your query, please try again or submit a support request if the problem continues.',
 };
 
-export type UseQueryRestoreReturnType = [(soqlOverride?: string) => Promise<void>, string];
+export type UseQueryRestoreReturnType = [(soqlOverride?: string, toolingOverride?: boolean) => Promise<void>, string];
 
 export const useQueryRestore = (
   soql: string,
+  isTooling: boolean,
   options?: {
     // emit toast messages on errors
     silent?: boolean;
     // called when restore is started
     startRestore?: () => void;
     // called when restore is finished
-    endRestore?: (fatalError: boolean, errors?: QueryRestoreErrors) => void;
+    endRestore?: (isTooling: boolean, fatalError: boolean, errors?: QueryRestoreErrors) => void;
   }
 ): UseQueryRestoreReturnType => {
   options = options || {};
@@ -39,6 +40,7 @@ export const useQueryRestore = (
   // we should compare setting here vs in a selector - any difference in performance?
 
   const [isRestore, setIsRestore] = useRecoilState(fromQueryState.isRestore);
+  const setIsTooling = useSetRecoilState(fromQueryState.isTooling);
   const setSObjectsState = useSetRecoilState(fromQueryState.sObjectsState);
   const setSelectedSObjectState = useSetRecoilState(fromQueryState.selectedSObjectState);
   const setQueryFieldsKey = useSetRecoilState(fromQueryState.queryFieldsKey);
@@ -65,7 +67,7 @@ export const useQueryRestore = (
     return () => (isMounted.current = false);
   }, []);
 
-  async function restore(soqlOverride?: string) {
+  async function restore(soqlOverride?: string, toolingOverride = false) {
     const currSoql = isString(soqlOverride) ? soqlOverride : soql;
     setErrorMessage(null);
     let query: Query;
@@ -75,7 +77,7 @@ export const useQueryRestore = (
       setErrorMessage(ERROR_MESSAGES.PARSE_ERROR);
       if (endRestore) {
         // TODO: send error info
-        endRestore(true);
+        endRestore(true, toolingOverride ?? isTooling);
       }
       return;
     }
@@ -86,11 +88,12 @@ export const useQueryRestore = (
     }
 
     try {
-      const results = await restoreQuery(org, query);
+      const results = await restoreQuery(org, query, toolingOverride ?? isTooling);
 
       if (isMounted.current) {
         resetSelectedSObjectState();
 
+        setIsTooling(toolingOverride ?? isTooling);
         setFilterQueryFieldsState(results.filterQueryFieldsState);
         setOrderByQueryFieldsState(results.orderByQueryFieldsState);
         results.queryFiltersState ? setQueryFiltersState(results.queryFiltersState) : resetQueryFiltersState();
@@ -111,7 +114,7 @@ export const useQueryRestore = (
         setSelectedSObjectState(results.selectedSObjectState);
 
         if (endRestore) {
-          endRestore(false, {
+          endRestore(false, toolingOverride ?? isTooling, {
             missingFields: results.missingFields,
             missingSubqueryFields: results.missingSubqueryFields,
             missingMisc: results.missingMisc,
@@ -148,7 +151,7 @@ export const useQueryRestore = (
           setErrorMessage('An unknown error has ocurred while restoring your query');
           rollbar.error(ex.message, { ex, query: currSoql });
         }
-        endRestore(true);
+        endRestore(true, toolingOverride ?? isTooling);
       }
     } finally {
       // ensure page has time to catch up - dom takes an moment to render things

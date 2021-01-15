@@ -1,11 +1,15 @@
-import { CodeEditor, Grid, GridCol, Icon, Popover, Spinner, Textarea } from '@jetstream/ui';
-import React, { Fragment, FunctionComponent, useEffect, useRef, useState } from 'react';
+/** @jsx jsx */
+import { css, jsx } from '@emotion/react';
+import { CheckboxToggle, CodeEditor, Grid, GridCol, Icon, Popover, Spinner, Textarea } from '@jetstream/ui';
+import { Fragment, FunctionComponent, useEffect, useRef, useState } from 'react';
 import { Link, useRouteMatch } from 'react-router-dom';
 import { isQueryValid } from 'soql-parser-js';
 import RestoreQuery from '../QueryBuilder/RestoreQuery';
 
 export interface ManualSoqlProps {
   className?: string;
+  styles?: string;
+  isTooling: boolean;
 }
 
 const NoQuery = () => {
@@ -40,18 +44,23 @@ const InvalidQuery = () => {
   );
 };
 
-export const ManualSoql: FunctionComponent<ManualSoqlProps> = ({ className }) => {
+export const ManualSoql: FunctionComponent<ManualSoqlProps> = ({ styles, className, isTooling = false }) => {
   const isMounted = useRef(null);
   const match = useRouteMatch();
   const [isOpen, setIsOpen] = useState<boolean>(false);
   const [soql, setSoql] = useState<string>('');
   const [isRestoring, setIsRestoring] = useState(false);
   const [queryIsValid, setQueryIsValid] = useState(false);
+  const [userTooling, setUserTooling] = useState<boolean>(isTooling);
 
   useEffect(() => {
     isMounted.current = true;
     return () => (isMounted.current = false);
   }, []);
+
+  useEffect(() => {
+    setUserTooling(isTooling);
+  }, [isTooling]);
 
   useEffect(() => {
     if (soql && isQueryValid(soql)) {
@@ -88,9 +97,24 @@ export const ManualSoql: FunctionComponent<ManualSoqlProps> = ({ className }) =>
             <Textarea id="soql-manual" label="SOQL Query">
               <CodeEditor className="CodeMirror-textarea" value={soql} onChange={setSoql} />
             </Textarea>
-            {!soql && <NoQuery />}
-            {queryIsValid && <ValidQuery />}
-            {soql && !queryIsValid && <InvalidQuery />}
+            <Grid>
+              <div>
+                {!soql && <NoQuery />}
+                {queryIsValid && <ValidQuery />}
+                {soql && !queryIsValid && <InvalidQuery />}
+              </div>
+              <GridCol extraProps={{ dir: 'rtl' }} bump="left">
+                <CheckboxToggle
+                  id="is-tooling-user-soql"
+                  label="Query Type"
+                  onText="Metadata Query"
+                  offText="Object Query"
+                  hideLabel
+                  checked={userTooling}
+                  onChange={setUserTooling}
+                />
+              </GridCol>
+            </Grid>
           </Fragment>
         }
         footer={
@@ -99,6 +123,7 @@ export const ManualSoql: FunctionComponent<ManualSoqlProps> = ({ className }) =>
               <GridCol bump="left">
                 <RestoreQuery
                   soql={soql}
+                  isTooling={userTooling}
                   tooltip="Update the page to match this query. If the query contains SOQL features that are not supported by Jetstream, they will be removed from your query."
                   buttonProps={{ disabled: !queryIsValid || isRestoring }}
                   className="slds-button_neutral slds-m-right_x-small"
@@ -113,6 +138,7 @@ export const ManualSoql: FunctionComponent<ManualSoqlProps> = ({ className }) =>
                     to={{
                       pathname: `${match.url}/results`,
                       state: {
+                        isTooling: userTooling,
                         soql,
                       },
                     }}
@@ -134,7 +160,13 @@ export const ManualSoql: FunctionComponent<ManualSoqlProps> = ({ className }) =>
           </footer>
         }
       >
-        <button className="slds-button slds-button_neutral" onClick={() => setIsOpen(true)}>
+        <button
+          css={css`
+            ${styles}
+          `}
+          className="slds-button slds-button_neutral"
+          onClick={() => setIsOpen(true)}
+        >
           <Icon type="utility" icon="prompt_edit" description="Manually enter query" className="slds-button__icon slds-button__icon_left" />
           Manual Query
         </button>

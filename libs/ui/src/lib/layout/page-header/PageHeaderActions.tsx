@@ -1,6 +1,6 @@
 /** @jsx jsx */
 import { jsx } from '@emotion/react';
-import { Children, FunctionComponent, Fragment } from 'react';
+import { Children, Fragment, FunctionComponent } from 'react';
 
 // eslint-disable-next-line @typescript-eslint/no-empty-interface
 export interface PageHeaderActionsProps {
@@ -16,7 +16,7 @@ export const PageHeaderActions: FunctionComponent<PageHeaderActionsProps> = ({ c
         <div className="slds-page-header__controls">
           {children &&
             buttonType === 'separate' &&
-            Children.map(children, (child) => <div className="slds-page-header__control">{child}</div>)}
+            Children.map(children, (child) => <Fragment>{child && <div className="slds-page-header__control">{child}</div>}</Fragment>)}
 
           {children && buttonType === 'list-group' && (
             <div className="slds-page-header__control">

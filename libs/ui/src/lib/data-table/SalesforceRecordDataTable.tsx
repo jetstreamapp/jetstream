@@ -8,8 +8,8 @@ import { formatNumber } from '@jetstream/shared/ui-utils';
 import { SalesforceOrgUi } from '@jetstream/types';
 import uniqueId from 'lodash/uniqueId';
 import { Fragment, FunctionComponent, memo, ReactNode, useEffect, useRef, useState } from 'react';
-import Grid from '../grid/Grid';
 import SearchInput from '../form/search-input/SearchInput';
+import Grid from '../grid/Grid';
 import AutoFullHeightContainer from '../layout/AutoFullHeightContainer';
 import Spinner from '../widgets/Spinner';
 import './data-table-styles.scss';
@@ -34,8 +34,9 @@ function getRowNodeId(data: any): string {
 }
 
 export interface SalesforceRecordDataTableProps {
-  serverUrl: string;
   org: SalesforceOrgUi;
+  isTooling: boolean;
+  serverUrl: string;
   queryResults: QueryResults<any>;
   summaryHeaderRightContent?: ReactNode;
   onSelectionChanged: (rows: any[]) => void;
@@ -49,8 +50,9 @@ export interface SalesforceRecordDataTableProps {
 
 export const SalesforceRecordDataTable: FunctionComponent<SalesforceRecordDataTableProps> = memo<SalesforceRecordDataTableProps>(
   ({
-    serverUrl,
     org,
+    isTooling,
+    serverUrl,
     queryResults,
     summaryHeaderRightContent,
     onSelectionChanged,
@@ -77,7 +79,7 @@ export const SalesforceRecordDataTable: FunctionComponent<SalesforceRecordDataTa
 
     useEffect(() => {
       if (queryResults) {
-        const columnDefinitions = getColumnDefinitions(queryResults);
+        const columnDefinitions = getColumnDefinitions(queryResults, isTooling);
         setColumns(columnDefinitions.parentColumns);
         onFields(columnDefinitions.parentColumns.filter((column) => column.field).map((column) => column.field));
         setColumnDefinitions(columnDefinitions);
@@ -116,7 +118,7 @@ export const SalesforceRecordDataTable: FunctionComponent<SalesforceRecordDataTa
     async function loadMore() {
       try {
         setIsLoadingMore(true);
-        const results = await queryMore(org, nextRecordsUrl);
+        const results = await queryMore(org, nextRecordsUrl, isTooling);
         if (!isMounted.current) {
           return;
         }

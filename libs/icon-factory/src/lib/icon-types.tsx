@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/camelcase */
 /**
  * Every icon used in the application must be individually imported
  */
@@ -33,6 +32,7 @@ export interface UtilityIconObj {
   arrowdown: IconEl;
   arrowup: IconEl;
   back: IconEl;
+  change_record_type: IconEl;
   chart: IconEl;
   check: IconEl;
   chevrondown: IconEl;
@@ -68,11 +68,13 @@ export interface UtilityIconObj {
   notification: IconEl;
   play: IconEl;
   prompt_edit: IconEl;
+  record_lookup: IconEl;
   refresh: IconEl;
   right: IconEl;
   save: IconEl;
   search: IconEl;
   settings: IconEl;
+  setup: IconEl;
   steps: IconEl;
   success: IconEl;
   switch: IconEl;

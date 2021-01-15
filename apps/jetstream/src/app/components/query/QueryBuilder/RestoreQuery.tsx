@@ -6,16 +6,18 @@ import useQueryRestore from '../utils/useQueryRestore';
 
 interface RestoreQueryProps {
   soql: string;
+  isTooling: boolean;
   label?: string;
   className?: string;
   tooltip?: string;
   buttonProps?: ButtonHTMLAttributes<HTMLButtonElement>;
   startRestore?: () => void;
-  endRestore?: (fatalError: boolean, errors?: QueryRestoreErrors) => void;
+  endRestore?: (isTooling: boolean, fatalError: boolean, errors?: QueryRestoreErrors) => void;
 }
 
 export const RestoreQuery: FunctionComponent<RestoreQueryProps> = ({
   soql,
+  isTooling,
   label = 'Restore',
   className,
   tooltip = 'Show this query on the query builder page',
@@ -23,7 +25,7 @@ export const RestoreQuery: FunctionComponent<RestoreQueryProps> = ({
   startRestore,
   endRestore,
 }) => {
-  const [restore, errorMessage] = useQueryRestore(soql, { startRestore, endRestore });
+  const [restore, errorMessage] = useQueryRestore(soql, isTooling, { startRestore, endRestore });
 
   return (
     <Fragment>

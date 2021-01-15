@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/camelcase */
 /**
  * Every icon used in the application must be individually imported
  */
@@ -12,14 +11,15 @@ import StandardIcon_DataStreams from './icons/standard/DataStreams';
 import StandardIcon_Entity from './icons/standard/Entity';
 import StandardIcon_MultiPicklist from './icons/standard/MultiPicklist';
 import StandardIcon_Opportunity from './icons/standard/Opportunity';
-import StandardIcon_Record from './icons/standard/Record';
 import StandardIcon_Portal from './icons/standard/Portal';
+import StandardIcon_Record from './icons/standard/Record';
 import StandardIcon_RelatedList from './icons/standard/RelatedList';
 import UtilityIcon_Add from './icons/utility/Add';
 import UtilityIcon_ApexPlugin from './icons/utility/ApexPlugin';
 import UtilityIcon_Arrowdown from './icons/utility/Arrowdown';
 import UtilityIcon_Arrowup from './icons/utility/Arrowup';
 import UtilityIcon_Back from './icons/utility/Back';
+import UtilityIcon_ChangeRecordType from './icons/utility/ChangeRecordType';
 import UtilityIcon_Chart from './icons/utility/Chart';
 import UtilityIcon_Check from './icons/utility/Check';
 import UtilityIcon_Chevrondown from './icons/utility/Chevrondown';
@@ -42,8 +42,8 @@ import UtilityIcon_Event from './icons/utility/Event';
 import UtilityIcon_ExpandAll from './icons/utility/ExpandAll';
 import UtilityIcon_Fallback from './icons/utility/Fallback';
 import UtilityIcon_Favorite from './icons/utility/Favorite';
-import UtilityIcon_Filter from './icons/utility/Filter';
 import UtilityIcon_File from './icons/utility/File';
+import UtilityIcon_Filter from './icons/utility/Filter';
 import UtilityIcon_Forward from './icons/utility/Forward';
 import UtilityIcon_Help from './icons/utility/Help';
 import UtilityIcon_Info from './icons/utility/Info';
@@ -55,11 +55,13 @@ import UtilityIcon_NewWindow from './icons/utility/NewWindow';
 import UtilityIcon_Notification from './icons/utility/Notification';
 import UtilityIcon_Play from './icons/utility/Play';
 import UtilityIcon_PromptEdit from './icons/utility/PromptEdit';
+import UtilityIcon_RecordLookup from './icons/utility/RecordLookup';
 import UtilityIcon_Refresh from './icons/utility/Refresh';
 import UtilityIcon_Right from './icons/utility/Right';
 import UtilityIcon_Save from './icons/utility/Save';
 import UtilityIcon_Search from './icons/utility/Search';
 import UtilityIcon_Settings from './icons/utility/Settings';
+import UtilityIcon_Setup from './icons/utility/Setup';
 import UtilityIcon_Steps from './icons/utility/Steps';
 import UtilityIcon_Success from './icons/utility/Success';
 import UtilityIcon_Switch from './icons/utility/Switch';
@@ -86,6 +88,7 @@ const utilityIcons: UtilityIconObj = {
   arrowdown: UtilityIcon_Arrowdown,
   arrowup: UtilityIcon_Arrowup,
   back: UtilityIcon_Back,
+  change_record_type: UtilityIcon_ChangeRecordType,
   chart: UtilityIcon_Chart,
   check: UtilityIcon_Check,
   chevrondown: UtilityIcon_Chevrondown,
@@ -121,11 +124,13 @@ const utilityIcons: UtilityIconObj = {
   notification: UtilityIcon_Notification,
   play: UtilityIcon_Play,
   prompt_edit: UtilityIcon_PromptEdit,
+  record_lookup: UtilityIcon_RecordLookup,
   refresh: UtilityIcon_Refresh,
   right: UtilityIcon_Right,
   save: UtilityIcon_Save,
   search: UtilityIcon_Search,
   settings: UtilityIcon_Settings,
+  setup: UtilityIcon_Setup,
   steps: UtilityIcon_Steps,
   success: UtilityIcon_Success,
   switch: UtilityIcon_Switch,

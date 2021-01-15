@@ -1,17 +1,17 @@
+import { DATE_FORMATS } from '@jetstream/shared/constants';
 import { pluralizeFromNumber } from '@jetstream/shared/utils';
 import { QueryHistoryItem } from '@jetstream/types';
-import { Card, CodeEditor, CopyToClipboard, Grid, GridCol, Icon, Textarea } from '@jetstream/ui';
+import { Badge, Card, CodeEditor, CopyToClipboard, Grid, GridCol, Icon, Textarea } from '@jetstream/ui';
+import formatDate from 'date-fns/format';
 import React, { Fragment, FunctionComponent, useEffect, useRef, useState } from 'react';
 import { Link, useRouteMatch } from 'react-router-dom';
-import { DATE_FORMATS } from '@jetstream/shared/constants';
 import RestoreQuery from '../QueryBuilder/RestoreQuery';
-import formatDate from 'date-fns/format';
 
 // eslint-disable-next-line @typescript-eslint/no-empty-interface
 export interface QueryHistoryItemCardProps {
   item: QueryHistoryItem;
   startRestore: () => void;
-  endRestore: (fatalError: boolean, errors?: any) => void;
+  endRestore: (isTooling: boolean, fatalError: boolean, errors?: any) => void;
 }
 
 export const QueryHistoryItemCard: FunctionComponent<QueryHistoryItemCardProps> = ({ item, startRestore, endRestore }) => {
@@ -32,7 +32,7 @@ export const QueryHistoryItemCard: FunctionComponent<QueryHistoryItemCardProps> 
     });
   }, []);
 
-  const { sObject, label, soql, runCount, lastRun } = item;
+  const { sObject, label, soql, isTooling, runCount, lastRun } = item;
 
   return (
     <Fragment>
@@ -41,7 +41,14 @@ export const QueryHistoryItemCard: FunctionComponent<QueryHistoryItemCardProps> 
         title={
           <Fragment>
             <Grid wrap>
-              <GridCol size={12}>{label}</GridCol>
+              <GridCol size={12}>
+                <span>{label}</span>
+                {isTooling && (
+                  <Badge type="light" className="slds-m-left_small">
+                    METADATA
+                  </Badge>
+                )}
+              </GridCol>
               <GridCol className="slds-text-body_small slds-text-color_weak">{sObject}</GridCol>
             </Grid>
           </Fragment>
@@ -51,6 +58,7 @@ export const QueryHistoryItemCard: FunctionComponent<QueryHistoryItemCardProps> 
           <Fragment>
             <RestoreQuery
               soql={soql}
+              isTooling={isTooling}
               className="slds-button_neutral slds-m-right_x-small"
               startRestore={startRestore}
               endRestore={endRestore}
@@ -61,6 +69,7 @@ export const QueryHistoryItemCard: FunctionComponent<QueryHistoryItemCardProps> 
                 pathname: `${match.url}/results`,
                 state: {
                   soql,
+                  isTooling,
                   sobject: {
                     label,
                     name: sObject,

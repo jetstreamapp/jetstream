@@ -37,6 +37,7 @@ function getBgColor(level: number): string {
 }
 
 export interface SobjectFieldListProps {
+  isTooling: boolean;
   level: number;
   itemKey: string;
   queryFieldsMap: MapOf<QueryFields>;
@@ -50,6 +51,7 @@ export interface SobjectFieldListProps {
 }
 
 export const SobjectFieldList: FunctionComponent<SobjectFieldListProps> = ({
+  isTooling,
   level,
   itemKey,
   queryFieldsMap,
@@ -142,6 +144,7 @@ export const SobjectFieldList: FunctionComponent<SobjectFieldListProps> = ({
       id: `${itemKey}${item.name}`,
       heading: (
         <SobjectFieldListItem
+          isTooling={isTooling}
           level={level}
           parentKey={itemKey}
           field={item}

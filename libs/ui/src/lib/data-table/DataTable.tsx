@@ -15,6 +15,7 @@ import {
   BooleanEditableRenderer,
   BooleanFilterRenderer,
   BooleanRenderer,
+  ComplexDataRenderer,
   configIdLinkRenderer,
   FullWidthRenderer,
   IdLinkRenderer,
@@ -63,6 +64,7 @@ export const DataTable: FunctionComponent<DataTableProps> = ({
           booleanRenderer: BooleanRenderer,
           idLinkRenderer: IdLinkRenderer,
           subqueryRenderer: SubqueryRenderer,
+          complexDataRenderer: ComplexDataRenderer,
           booleanEditableRenderer: BooleanEditableRenderer,
           fullWidthRenderer: FullWidthRenderer,
           // FILTER RENDERERS

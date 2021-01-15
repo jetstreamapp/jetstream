@@ -54,7 +54,8 @@ export const QueryResults: FunctionComponent<QueryResultsProps> = React.memo(() 
   const previousSoql = useRecoilValue(fromQueryState.querySoqlState);
   const includeDeletedRecords = useRecoilValue(fromQueryState.queryIncludeDeletedRecordsState);
   const [priorSelectedOrg, setPriorSelectedOrg] = useState<string>(null);
-  const location = useLocation<{ soql: string; sobject?: { name: string; label: string } }>();
+  const [isTooling, setIsTooling] = useRecoilState(fromQueryState.isTooling);
+  const location = useLocation<{ soql: string; isTooling: boolean; sobject?: { name: string; label: string } }>();
   const [soqlPanelOpen, setSoqlPanelOpen] = useState<boolean>(false);
   const [recordDetailPanelOpen, setRecordDetailPanelOpen] = useState<boolean>(false);
   const [recordDetailSelectedRow, setRecordDetailSelectedRow] = useState<Record>(null);
@@ -80,7 +81,7 @@ export const QueryResults: FunctionComponent<QueryResultsProps> = React.memo(() 
   const confirm = useConfirmation();
 
   const [editOrCloneRecord, setEditOrCloneRecord] = useState<{ action: 'edit' | 'clone'; sobjectName: string; recordId: string }>();
-  const [restore] = useQueryRestore(soql, { silent: true });
+  const [restore] = useQueryRestore(soql, isTooling, { silent: true });
 
   useEffect(() => {
     isMounted.current = true;
@@ -99,7 +100,8 @@ export const QueryResults: FunctionComponent<QueryResultsProps> = React.memo(() 
     if (location.state) {
       setSoql(location.state.soql || '');
       setUserSoql(location.state.soql || '');
-      executeQuery(location.state.soql);
+      setIsTooling(location.state.isTooling ? true : false);
+      executeQuery(location.state.soql, false, location.state.isTooling);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [location]);
@@ -107,13 +109,13 @@ export const QueryResults: FunctionComponent<QueryResultsProps> = React.memo(() 
   useEffect(() => {
     if (priorSelectedOrg && selectedOrg && selectedOrg.uniqueId !== priorSelectedOrg) {
       setPriorSelectedOrg(selectedOrg.uniqueId);
-      executeQuery(soql, true);
+      executeQuery(soql, true, isTooling);
     } else {
       setPriorSelectedOrg(selectedOrg.uniqueId);
     }
   }, [selectedOrg]);
 
-  function saveQueryHistory(soql: string, sObject: string) {
+  function saveQueryHistory(soql: string, sObject: string, tooling: boolean) {
     let sObjectLabel: string;
     // if object name did not change since last query, use data from location
     if (location?.state?.sobject) {
@@ -123,7 +125,7 @@ export const QueryResults: FunctionComponent<QueryResultsProps> = React.memo(() 
     }
     if (soql && sObject) {
       fromQueryHistory
-        .getQueryHistoryItem(selectedOrg, soql, sObject, sObjectLabel)
+        .getQueryHistoryItem(selectedOrg, soql, sObject, sObjectLabel, tooling)
         .then((queryHistoryItem) => {
           if (queryHistory && queryHistory[queryHistoryItem.key]) {
             queryHistoryItem.runCount = queryHistory[queryHistoryItem.key].runCount + 1;
@@ -135,27 +137,34 @@ export const QueryResults: FunctionComponent<QueryResultsProps> = React.memo(() 
     }
   }
 
-  async function executeQuery(soql: string, forceRestore?: boolean) {
+  async function executeQuery(soqlQuery: string, forceRestore = false, tooling = false) {
     try {
       setLoading(true);
-      setSoql(soql);
+      if (soql !== soqlQuery) {
+        setSoql(soqlQuery);
+      }
+      if (isTooling !== tooling) {
+        setIsTooling(tooling);
+      }
       setRecords(null);
       setRecordCount(null);
       // setFields(null);
-      const results = await query(selectedOrg, soql, false, includeDeletedRecords).then(replaceSubqueryQueryResultsWithRecords);
+      const results = await query(selectedOrg, soqlQuery, tooling, !tooling && includeDeletedRecords).then(
+        replaceSubqueryQueryResultsWithRecords
+      );
       if (!isMounted.current) {
         return;
       }
       setQueryResults(results);
       setNextRecordsUrl(results.queryResults.nextRecordsUrl);
-      saveQueryHistory(soql, results.parsedQuery?.sObject || results.columns?.entityName);
+      saveQueryHistory(soqlQuery, results.parsedQuery?.sObject || results.columns?.entityName, tooling);
       setRecordCount(results.queryResults.totalSize);
       setRecords(results.queryResults.records);
       setTotalRecordCount(results.queryResults.totalSize);
       setErrorMessage(null);
 
-      if (forceRestore || previousSoql !== soql) {
-        restore(soql);
+      if (forceRestore || previousSoql !== soqlQuery) {
+        restore(soqlQuery, tooling);
       }
     } catch (ex) {
       if (!isMounted.current) {
@@ -168,36 +177,6 @@ export const QueryResults: FunctionComponent<QueryResultsProps> = React.memo(() 
       setLoading(false);
     }
   }
-
-  // Deprecated for now - this is worked and can be uncommented when we decide on specific row actions
-  // function handleRowAction(id: string, row: Record) {
-  //   logger.log({ id, row });
-  //   const recordId = row.Id || getIdFromRecordUrl(row.attributes.url);
-  //   switch (id) {
-  //     case 'view-record':
-  //       setRecordDetailSelectedRow(row);
-  //       setSoqlPanelOpen(false);
-  //       setRecordDetailPanelOpen(true);
-  //       break;
-  //     case 'delete record': {
-  //       confirm({
-  //         content: `Are you sure you want to delete record ${recordId}`,
-  //       }).then(() => {
-  //         const jobs: AsyncJobNew[] = [
-  //           {
-  //             type: 'BulkDelete',
-  //             title: `Delete Record ${recordId}`,
-  //             meta: row,
-  //           },
-  //         ];
-  //         fromJetstreamEvents.emit({ type: 'newJob', payload: jobs });
-  //       });
-  //       break;
-  //     }
-  //     default:
-  //       break;
-  //   }
-  // }
 
   function handleBulkRowAction(id: string, rows: Record[]) {
     logger.log({ id, rows });
@@ -231,6 +210,7 @@ export const QueryResults: FunctionComponent<QueryResultsProps> = React.memo(() 
         title: `Download Records`,
         org: selectedOrg,
         meta: {
+          isTooling,
           fields,
           records: records,
           nextRecordsUrl,
@@ -245,7 +225,7 @@ export const QueryResults: FunctionComponent<QueryResultsProps> = React.memo(() 
   function handleLoadMore(results: IQueryResults<any>) {
     if (isMounted.current) {
       setNextRecordsUrl(results.queryResults.nextRecordsUrl);
-      saveQueryHistory(soql, results.parsedQuery?.sObject || results.columns?.entityName);
+      saveQueryHistory(soql, results.parsedQuery?.sObject || results.columns?.entityName, isTooling);
       setRecords(records.concat(results.queryResults.records));
     }
   }
@@ -282,8 +262,8 @@ export const QueryResults: FunctionComponent<QueryResultsProps> = React.memo(() 
     }
   }
 
-  function handleRestoreFromHistory(soql: string) {
-    history.push(`/query`, { soql });
+  function handleRestoreFromHistory(soql: string, tooling) {
+    history.push(`/query`, { soql, isTooling: tooling });
   }
 
   return (
@@ -331,7 +311,7 @@ export const QueryResults: FunctionComponent<QueryResultsProps> = React.memo(() 
           </button>
           <button
             className="slds-button slds-button_neutral"
-            onClick={() => executeQuery(soql)}
+            onClick={() => executeQuery(soql, false, isTooling)}
             disabled={!!(loading || errorMessage)}
             title="Re-run the current query"
           >
@@ -344,7 +324,7 @@ export const QueryResults: FunctionComponent<QueryResultsProps> = React.memo(() 
           {/* FIXME: strongly type me! */}
           <button
             className="slds-button slds-button_text-destructive"
-            disabled={selectedRows.length === 0}
+            disabled={selectedRows.length === 0 || isTooling}
             onClick={() => handleBulkRowAction('delete record', selectedRows)}
           >
             <Icon type="utility" icon="delete" className="slds-button__icon slds-button__icon_left" omitContainer />
@@ -366,7 +346,13 @@ export const QueryResults: FunctionComponent<QueryResultsProps> = React.memo(() 
         </ToolbarItemActions>
       </Toolbar>
       <div className="slds-grid">
-        <QueryResultsSoqlPanel soql={soql} isOpen={soqlPanelOpen} onClosed={() => setSoqlPanelOpen(false)} executeQuery={executeQuery} />
+        <QueryResultsSoqlPanel
+          soql={soql}
+          isTooling={isTooling}
+          isOpen={soqlPanelOpen}
+          onClosed={() => setSoqlPanelOpen(false)}
+          executeQuery={(soql, tooling) => executeQuery(soql, false, tooling)}
+        />
         <QueryResultsViewRecordFields
           org={selectedOrg}
           row={recordDetailSelectedRow}
@@ -435,6 +421,7 @@ export const QueryResults: FunctionComponent<QueryResultsProps> = React.memo(() 
             <Fragment>
               <SalesforceRecordDataTable
                 org={selectedOrg}
+                isTooling={isTooling}
                 serverUrl={serverUrl}
                 queryResults={queryResults}
                 summaryHeaderRightContent={

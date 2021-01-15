@@ -10,6 +10,7 @@ import Checkbox from '../form/checkbox/Checkbox';
 import Input from '../form/input/Input';
 import AutoFullHeightContainer from '../layout/AutoFullHeightContainer';
 import Modal from '../modal/Modal';
+import CopyToClipboard from '../widgets/CopyToClipboard';
 import Icon from '../widgets/Icon';
 import SalesforceLogin from '../widgets/SalesforceLogin';
 import './data-table-styles.scss';
@@ -143,6 +144,49 @@ export const SubqueryRenderer: FunctionComponent<ICellRendererParams> = ({ value
         </div>
       )}
     </DataTableContext.Consumer>
+  );
+};
+
+export const ComplexDataRenderer: FunctionComponent<ICellRendererParams> = ({ value, colDef, data }) => {
+  const [isActive, setIsActive] = useState(false);
+  const [jsonValue] = useState(JSON.stringify(value || '', null, 2));
+
+  function handleViewData() {
+    if (isActive) {
+      setIsActive(false);
+    } else {
+      setIsActive(true);
+    }
+  }
+
+  function handleCloseModal(cancelled?: boolean) {
+    if (typeof cancelled === 'boolean' && cancelled) {
+      setIsActive(true);
+    } else {
+      setIsActive(false);
+    }
+  }
+
+  return (
+    <div>
+      {isActive && (
+        <Modal
+          size="lg"
+          header={colDef.field}
+          closeOnBackdropClick
+          onClose={handleCloseModal}
+          footer={<CopyToClipboard type="button" className="slds-button_neutral" content={jsonValue} />}
+        >
+          <pre>
+            <code>{jsonValue}</code>
+          </pre>
+        </Modal>
+      )}
+      <button className="slds-button" onClick={handleViewData}>
+        <Icon type="utility" icon="search" className="slds-button__icon slds-button__icon_left" omitContainer />
+        View Data
+      </button>
+    </div>
   );
 };
 

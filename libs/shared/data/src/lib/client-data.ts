@@ -47,25 +47,30 @@ export async function deleteOrg(org: SalesforceOrgUi): Promise<void> {
   return handleRequest({ method: 'DELETE', url: `/api/orgs/${org.uniqueId}` }).then(unwrapResponseIgnoreCache);
 }
 
-export async function describeGlobal(org: SalesforceOrgUi): Promise<ApiResponse<DescribeGlobalResult>> {
-  return handleRequest({ method: 'GET', url: '/api/describe' }, { org, useCache: true }).then(
-    (response: ApiResponse<DescribeGlobalResult>) => {
-      if (response.data && Array.isArray(response.data.sobjects)) {
-        response.data.sobjects.forEach((sobject) => {
-          if (sobject.label.startsWith('__MISSING LABEL__')) {
-            sobject.label = sobject.name;
-          }
-        });
-      }
-      return response;
+export async function describeGlobal(org: SalesforceOrgUi, isTooling = false): Promise<ApiResponse<DescribeGlobalResult>> {
+  return handleRequest(
+    { method: 'GET', url: '/api/describe', params: { isTooling } },
+    { org, useCache: true, useQueryParamsInCacheKey: true }
+  ).then((response: ApiResponse<DescribeGlobalResult>) => {
+    if (response.data && Array.isArray(response.data.sobjects)) {
+      response.data.sobjects.forEach((sobject) => {
+        if (sobject.label.startsWith('__MISSING LABEL__')) {
+          sobject.label = sobject.name;
+        }
+      });
     }
-  );
+    return response;
+  });
 }
 
-export async function describeSObject(org: SalesforceOrgUi, SObject: string): Promise<ApiResponse<DescribeSObjectResult>> {
+export async function describeSObject(
+  org: SalesforceOrgUi,
+  SObject: string,
+  isTooling = false
+): Promise<ApiResponse<DescribeSObjectResult>> {
   return handleRequest(
-    { method: 'GET', url: `/api/describe/${SObject}` },
-    { org, useCache: true, mockHeaderKey: SObject.startsWith('@') ? SObject : undefined }
+    { method: 'GET', url: `/api/describe/${SObject}`, params: { isTooling } },
+    { org, useCache: true, useQueryParamsInCacheKey: true, mockHeaderKey: SObject.startsWith('@') ? SObject : undefined }
   );
 }
 
@@ -130,12 +135,16 @@ export async function queryAll<T = any>(
  * @param selectedOrg
  * @param queries
  */
-export async function queryAllUsingOffset<T = any>(selectedOrg: SalesforceOrgUi, soqlQuery: string): Promise<API.QueryResults<T>> {
+export async function queryAllUsingOffset<T = any>(
+  selectedOrg: SalesforceOrgUi,
+  soqlQuery: string,
+  isTooling = false
+): Promise<API.QueryResults<T>> {
   const LIMIT = 2000;
   let offset = 0;
   let done = false;
 
-  const results = await query<T>(selectedOrg, `${soqlQuery} LIMIT ${LIMIT} OFFSET ${offset}`);
+  const results = await query<T>(selectedOrg, `${soqlQuery} LIMIT ${LIMIT} OFFSET ${offset}`, isTooling);
 
   // Metadata objects may not allow queryMore, we use this to fetch more
   while (done) {

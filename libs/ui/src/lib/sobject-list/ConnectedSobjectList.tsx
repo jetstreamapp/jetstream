@@ -1,14 +1,15 @@
 import { logger } from '@jetstream/shared/client-logger';
 import { clearCacheForOrg, describeGlobal } from '@jetstream/shared/data';
-import { NOOP, orderObjectsBy } from '@jetstream/shared/utils';
+import { useNonInitialEffect } from '@jetstream/shared/ui-utils';
+import { orderObjectsBy } from '@jetstream/shared/utils';
 import { SalesforceOrgUi } from '@jetstream/types';
-import { SobjectList } from './SobjectList';
+import formatRelative from 'date-fns/formatRelative';
 import { DescribeGlobalSObjectResult } from 'jsforce';
-import React, { Fragment, FunctionComponent, useEffect, useRef, useState } from 'react';
+import React, { Fragment, FunctionComponent, useCallback, useEffect, useRef, useState } from 'react';
 import Grid from '../grid/Grid';
 import Icon from '../widgets/Icon';
 import Tooltip from '../widgets/Tooltip';
-import formatRelative from 'date-fns/formatRelative';
+import { SobjectList } from './SobjectList';
 
 // Store global state so that if a user leaves and comes back and items are restored
 // we know the most recent known value to start with instead of no value
@@ -23,6 +24,7 @@ export interface ConnectedSobjectListProps {
   selectedOrg: SalesforceOrgUi;
   sobjects: DescribeGlobalSObjectResult[];
   selectedSObject: DescribeGlobalSObjectResult;
+  isTooling?: boolean;
   filterFn?: (sobject: DescribeGlobalSObjectResult) => boolean;
   onSobjects: (sobjects: DescribeGlobalSObjectResult[]) => void;
   onSelectedSObject: (selectedSObject: DescribeGlobalSObjectResult) => void;
@@ -33,6 +35,7 @@ export const ConnectedSobjectList: FunctionComponent<ConnectedSobjectListProps> 
   selectedOrg,
   sobjects,
   selectedSObject,
+  isTooling,
   filterFn = filterSobjectFn,
   onSobjects,
   onSelectedSObject,
@@ -51,19 +54,14 @@ export const ConnectedSobjectList: FunctionComponent<ConnectedSobjectListProps> 
     _lastRefreshed = lastRefreshed;
   }, [lastRefreshed]);
 
-  useEffect(() => {
-    if (selectedOrg && !loading && !errorMessage && !sobjects) {
-      loadObjects().then(NOOP);
-    }
-  }, [selectedOrg, loading, errorMessage, sobjects, onSobjects]);
-
-  async function loadObjects() {
+  const loadObjects = useCallback(async () => {
     const uniqueId = selectedOrg.uniqueId;
+    const priorToolingValue = isTooling;
     try {
       setLoading(true);
-      const resultsWithCache = await describeGlobal(selectedOrg);
+      const resultsWithCache = await describeGlobal(selectedOrg, isTooling);
       const results = resultsWithCache.data;
-      if (!isMounted.current || uniqueId !== selectedOrg.uniqueId) {
+      if (!isMounted.current || uniqueId !== selectedOrg.uniqueId || priorToolingValue !== isTooling) {
         return;
       }
       if (resultsWithCache.cache) {
@@ -73,13 +71,25 @@ export const ConnectedSobjectList: FunctionComponent<ConnectedSobjectListProps> 
       onSobjects(orderObjectsBy(results.sobjects.filter(filterFn), 'label'));
     } catch (ex) {
       logger.error(ex);
-      if (!isMounted.current || uniqueId !== selectedOrg.uniqueId) {
+      if (!isMounted.current || uniqueId !== selectedOrg.uniqueId || priorToolingValue !== isTooling) {
         return;
       }
       setErrorMessage(ex.message);
     }
     setLoading(false);
-  }
+  }, [filterFn, onSobjects, selectedOrg, isTooling]);
+
+  useEffect(() => {
+    if (selectedOrg && !loading && !errorMessage && !sobjects) {
+      loadObjects();
+    }
+  }, [selectedOrg, loading, errorMessage, sobjects, onSobjects, loadObjects]);
+
+  useNonInitialEffect(() => {
+    if (selectedOrg && !loading) {
+      loadObjects();
+    }
+  }, [isTooling]);
 
   async function handleRefresh() {
     try {
@@ -99,13 +109,7 @@ export const ConnectedSobjectList: FunctionComponent<ConnectedSobjectListProps> 
         <div>
           <Tooltip id={`sobject-list-refresh-tooltip`} content={lastRefreshed}>
             <button className="slds-button slds-button_icon slds-button_icon-container" disabled={loading} onClick={handleRefresh}>
-              <Icon
-                type="utility"
-                icon="refresh"
-                description={`Reload objects`}
-                className="slds-button__icon"
-                omitContainer
-              />
+              <Icon type="utility" icon="refresh" description={`Reload objects`} className="slds-button__icon" omitContainer />
             </button>
           </Tooltip>
         </div>

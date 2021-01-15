@@ -1,21 +1,22 @@
 import { CodeEditor, Grid, GridCol, Textarea } from '@jetstream/ui';
 import React, { Fragment, FunctionComponent } from 'react';
-import { useRecoilValue } from 'recoil';
-import * as fromQueryState from '../query.state';
 import IncludeDeletedRecordsToggle from './IncludeDeletedRecords';
+import ManualSoql from './ManualSoql';
 
 // eslint-disable-next-line @typescript-eslint/no-empty-interface
-export interface SoqlTextareaProps {}
+export interface SoqlTextareaProps {
+  soql: string;
+  isTooling: boolean;
+}
 
-export const SoqlTextarea: FunctionComponent<SoqlTextareaProps> = React.memo(() => {
-  const soql = useRecoilValue(fromQueryState.querySoqlState);
-
+export const SoqlTextarea: FunctionComponent<SoqlTextareaProps> = React.memo(({ soql, isTooling }) => {
   return (
     <Fragment>
       <Textarea id="soql-textarea" label="Generated SOQL">
         <CodeEditor className="CodeMirror-textarea" value={soql} readOnly />
       </Textarea>
-      <Grid>
+      <Grid verticalAlign="center">
+        <ManualSoql isTooling={isTooling} />
         <GridCol extraProps={{ dir: 'rtl' }} bump="left">
           <IncludeDeletedRecordsToggle containerClassname="slds-p-top_small" />
         </GridCol>

@@ -1,16 +1,17 @@
-import { QueryHistorySelection, QueryHistoryItem, MapOf, SalesforceOrgUi } from '@jetstream/types';
-import { atom, selector } from 'recoil';
-import { orderObjectsBy, REGEX } from '@jetstream/shared/utils';
-import localforage from 'localforage';
 import { INDEXED_DB } from '@jetstream/shared/constants';
-import * as fromAppState from '../../../app-state';
-import orderBy from 'lodash/orderBy';
 import { describeSObject } from '@jetstream/shared/data';
+import { orderObjectsBy, REGEX } from '@jetstream/shared/utils';
+import { MapOf, QueryHistoryItem, QueryHistorySelection, SalesforceOrgUi } from '@jetstream/types';
+import localforage from 'localforage';
+import orderBy from 'lodash/orderBy';
+import { atom, selector } from 'recoil';
+import * as fromAppState from '../../../app-state';
 
 const defaultSelectedObject: QueryHistorySelection = {
   key: 'all',
   name: 'all',
   label: 'All Objects',
+  isTooling: false,
 };
 
 function initQueryHistory(): Promise<MapOf<QueryHistoryItem>> {
@@ -27,10 +28,11 @@ export async function getQueryHistoryItem(
   org: SalesforceOrgUi,
   soql: string,
   sObject: string,
-  sObjectLabel?: string
+  sObjectLabel?: string,
+  isTooling = false
 ): Promise<QueryHistoryItem> {
   if (!sObjectLabel) {
-    const resultsWithCache = await describeSObject(org, sObject);
+    const resultsWithCache = await describeSObject(org, sObject, isTooling);
     const results = resultsWithCache.data;
     sObjectLabel = results.name;
   }
@@ -43,6 +45,7 @@ export async function getQueryHistoryItem(
     sObject,
     lastRun: new Date(),
     created: new Date(),
+    isTooling,
   };
   return queryHistoryItem;
 }
@@ -102,6 +105,7 @@ export const selectObjectsList = selector<QueryHistorySelection[]>({
           key: item.sObject,
           name: item.sObject,
           label: item.label,
+          isTooling: item.isTooling,
         };
         return items;
       }, {})

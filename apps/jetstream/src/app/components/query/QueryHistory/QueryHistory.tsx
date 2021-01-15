@@ -6,9 +6,9 @@ import { INDEXED_DB } from '@jetstream/shared/constants';
 import { formatNumber } from '@jetstream/shared/ui-utils';
 import { multiWordObjectFilter } from '@jetstream/shared/utils';
 import { MapOf, QueryHistoryItem, QueryHistorySelection, UpDown } from '@jetstream/types';
-import { EmptyState, Grid, GridCol, Icon, List, Modal, SearchInput, Spinner } from '@jetstream/ui';
+import { Badge, EmptyState, Grid, GridCol, Icon, List, Modal, SearchInput, Spinner } from '@jetstream/ui';
 import localforage from 'localforage';
-import { createRef, FunctionComponent, useEffect, useState } from 'react';
+import { createRef, Fragment, FunctionComponent, useEffect, useState } from 'react';
 import { ErrorBoundary } from 'react-error-boundary';
 import { useLocation } from 'react-router-dom';
 import { useRecoilState, useRecoilValue, useResetRecoilState } from 'recoil';
@@ -19,10 +19,11 @@ import QueryHistoryItemCard from './QueryHistoryItemCard';
 const SHOWING_STEP = 10;
 
 export interface QueryHistoryProps {
-  onRestore?: (soql: string) => void;
+  styles?: string;
+  onRestore?: (soql: string, tooling: boolean) => void;
 }
 
-export const QueryHistory: FunctionComponent<QueryHistoryProps> = ({ onRestore }) => {
+export const QueryHistory: FunctionComponent<QueryHistoryProps> = ({ styles, onRestore }) => {
   const location = useLocation();
   const queryHistoryStateMap = useRecoilValue(fromQueryHistoryState.queryHistoryState);
   const queryHistory = useRecoilValue(fromQueryHistoryState.selectQueryHistoryState);
@@ -121,11 +122,11 @@ export const QueryHistory: FunctionComponent<QueryHistoryProps> = ({ onRestore }
     setIsRestoring(true);
   }
 
-  function handleEndRestore(soql: string, fatalError: boolean, errors?: any) {
+  function handleEndRestore(soql: string, tooling: boolean, fatalError: boolean, errors?: any) {
     setIsRestoring(false);
     if (!fatalError) {
       setIsOpen(false);
-      onRestore && onRestore(soql);
+      onRestore && onRestore(soql, tooling);
     }
   }
 
@@ -135,7 +136,15 @@ export const QueryHistory: FunctionComponent<QueryHistoryProps> = ({ onRestore }
 
   return (
     <ErrorBoundary FallbackComponent={ErrorBoundaryFallback}>
-      <button className="slds-button slds-button_neutral" aria-haspopup="true" title="Favorites" onClick={() => setIsOpen(true)}>
+      <button
+        css={css`
+          ${styles}
+        `}
+        className="slds-button slds-button_neutral"
+        aria-haspopup="true"
+        title="Favorites"
+        onClick={() => setIsOpen(true)}
+      >
         <Icon type="utility" icon="date_time" className="slds-button__icon slds-button__icon_left" omitContainer />
         View History
       </button>
@@ -173,7 +182,16 @@ export const QueryHistory: FunctionComponent<QueryHistoryProps> = ({ onRestore }
                   onSelected={setSelectedObject}
                   getContent={(item: QueryHistorySelection) => ({
                     key: item.key,
-                    heading: item.label,
+                    heading: (
+                      <Fragment>
+                        {item.label}
+                        {item.isTooling && (
+                          <Badge type="light" className="slds-m-left_small">
+                            METADATA
+                          </Badge>
+                        )}
+                      </Fragment>
+                    ),
                     subheading: item.name !== 'all' ? item.name : '',
                   })}
                 />
@@ -198,7 +216,7 @@ export const QueryHistory: FunctionComponent<QueryHistoryProps> = ({ onRestore }
                     key={item.key}
                     item={item}
                     startRestore={handleStartRestore}
-                    endRestore={(fatalError, errors) => handleEndRestore(item.soql, fatalError, errors)}
+                    endRestore={(fatalError, errors) => handleEndRestore(item.soql, item.isTooling, fatalError, errors)}
                   />
                 ))}
                 {visibleQueryHistory.length === 0 && (

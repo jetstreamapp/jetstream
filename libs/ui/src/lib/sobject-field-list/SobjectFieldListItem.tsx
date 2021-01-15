@@ -3,11 +3,14 @@ import { css, jsx } from '@emotion/react';
 import { getFieldKey } from '@jetstream/shared/ui-utils';
 import { FieldWrapper, MapOf, QueryFields } from '@jetstream/types';
 import { Fragment, FunctionComponent, useEffect, useState } from 'react';
-import SobjectFieldList from './SobjectFieldList';
-import SobjectFieldListType from './SobjectFieldListType';
+import Grid from '../grid/Grid';
 import SobjectExpandChildrenBtn from './SobjectExpandChildrenBtn';
+import SobjectFieldList from './SobjectFieldList';
+import SobjectFieldListMetadataWarning from './SobjectFieldListMetadataWarning';
+import SobjectFieldListType from './SobjectFieldListType';
 
 export interface SobjectFieldListItemProps {
+  isTooling: boolean;
   level: number;
   parentKey: string;
   field: FieldWrapper;
@@ -20,6 +23,7 @@ export interface SobjectFieldListItemProps {
 }
 
 export const SobjectFieldListItem: FunctionComponent<SobjectFieldListItemProps> = ({
+  isTooling,
   level,
   parentKey,
   field,
@@ -33,6 +37,8 @@ export const SobjectFieldListItem: FunctionComponent<SobjectFieldListItemProps> 
   const [relationshipKey, setRelationshipKey] = useState<string>(null);
   const [isExpanded, setIsExpanded] = useState<boolean>(false);
   const [selectedSObject, setSelectedSObject] = useState(queryFieldsMap[relationshipKey]?.sobject);
+
+  const isSelected = queryFieldsMap[parentKey]?.selectedFields?.has(field.name);
 
   function handleExpand(key: string, field: FieldWrapper, relatedSobject: string) {
     setSelectedSObject(relatedSobject);
@@ -55,9 +61,12 @@ export const SobjectFieldListItem: FunctionComponent<SobjectFieldListItemProps> 
 
   return (
     <Fragment>
-      <div className="slds-truncate" title={field.label} onClick={() => onSelectField(parentKey, field)}>
-        {field.label}
-      </div>
+      <Grid>
+        <div className="slds-truncate" title={field.label} onClick={() => onSelectField(parentKey, field)}>
+          {field.label}
+        </div>
+        {isTooling && isSelected && <SobjectFieldListMetadataWarning apiName={field.name} />}
+      </Grid>
       <div className="slds-text-body_small slds-grid slds-grid_align-spread">
         <div
           css={css`
@@ -88,6 +97,7 @@ export const SobjectFieldListItem: FunctionComponent<SobjectFieldListItemProps> 
           {isExpanded && (
             <div>
               <SobjectFieldList
+                isTooling={isTooling}
                 level={level + 1}
                 itemKey={relationshipKey}
                 queryFieldsMap={queryFieldsMap}

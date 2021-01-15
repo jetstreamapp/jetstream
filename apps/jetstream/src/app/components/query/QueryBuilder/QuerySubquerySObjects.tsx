@@ -6,15 +6,20 @@ import { ChildRelationship } from 'jsforce';
 import React, { Fragment, FunctionComponent, useState } from 'react';
 import { useRecoilValue } from 'recoil';
 import * as fromQueryState from '../query.state';
-import QueryChildFieldsComponent from './QueryChildFields';
+import QueryChildFields from './QueryChildFields';
 
 // eslint-disable-next-line @typescript-eslint/no-empty-interface
 export interface QuerySubquerySObjectsProps {
+  isTooling: boolean;
   childRelationships: ChildRelationship[];
   onSelectionChanged: (relationshipName: string, fields: QueryFieldWithPolymorphic[]) => void;
 }
 
-export const QuerySubquerySObjects: FunctionComponent<QuerySubquerySObjectsProps> = ({ childRelationships, onSelectionChanged }) => {
+export const QuerySubquerySObjects: FunctionComponent<QuerySubquerySObjectsProps> = ({
+  isTooling,
+  childRelationships,
+  onSelectionChanged,
+}) => {
   const [visibleChildRelationships, setVisibleChildRelationships] = useState<ChildRelationship[]>(childRelationships);
   const [childRelationshipContent, setChildRelationshipContent] = useState<MapOf<ChildRelationship>>({});
   const [textFilter, setTextFilter] = useState<string>('');
@@ -42,7 +47,8 @@ export const QuerySubquerySObjects: FunctionComponent<QuerySubquerySObjectsProps
         content = childRelationshipContent[childRelationship.relationshipName];
       } else {
         content = (
-          <QueryChildFieldsComponent
+          <QueryChildFields
+            isTooling={isTooling}
             selectedSObject={childRelationship.childSObject}
             parentRelationshipName={childRelationship.relationshipName}
             onSelectionChanged={(fields: QueryFieldWithPolymorphic[]) => onSelectionChanged(childRelationship.relationshipName, fields)}

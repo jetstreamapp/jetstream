@@ -11,13 +11,15 @@ import * as fromQueryState from '../query.state';
 import { getSubqueryFieldBaseKey } from '../utils/query-fields-utils';
 
 export interface QueryChildFieldsProps {
+  isTooling: boolean;
   selectedSObject: string;
   parentRelationshipName: string;
   onSelectionChanged: (fields: QueryFieldWithPolymorphic[]) => void;
   // onFieldsFetched: (queryFields: MapOf<QueryFields>) => void;
 }
 
-export const QueryChildFieldsComponent: FunctionComponent<QueryChildFieldsProps> = ({
+export const QueryChildFields: FunctionComponent<QueryChildFieldsProps> = ({
+  isTooling,
   selectedSObject,
   parentRelationshipName,
   onSelectionChanged,
@@ -231,6 +233,7 @@ export const QueryChildFieldsComponent: FunctionComponent<QueryChildFieldsProps>
       {}
       {selectedSObject && queryFieldsMap[baseKey] && (
         <SobjectFieldList
+          isTooling={isTooling}
           level={0}
           itemKey={baseKey}
           queryFieldsMap={queryFieldsMap}
@@ -247,4 +250,4 @@ export const QueryChildFieldsComponent: FunctionComponent<QueryChildFieldsProps>
   );
 };
 
-export default QueryChildFieldsComponent;
+export default QueryChildFields;
