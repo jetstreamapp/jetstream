@@ -98,6 +98,61 @@ export async function queryMore<T = any>(org: SalesforceOrgUi, nextRecordsUrl: s
   );
 }
 
+/**
+ * Query all records using a query locator to fetch all records
+ *
+ * @param org
+ * @param soqlQuery
+ * @param isTooling
+ * @param includeDeletedRecords
+ */
+export async function queryAll<T = any>(
+  org: SalesforceOrgUi,
+  soqlQuery: string,
+  isTooling = false,
+  includeDeletedRecords = false
+): Promise<API.QueryResults<T>> {
+  const results = await query(org, soqlQuery, isTooling, includeDeletedRecords);
+  while (!results.queryResults.done) {
+    const currentResults = await queryMore(org, results.queryResults.nextRecordsUrl, isTooling);
+    // update initial object with current results
+    results.queryResults.records = results.queryResults.records.concat(currentResults.queryResults.records);
+    results.queryResults.nextRecordsUrl = currentResults.queryResults.nextRecordsUrl;
+    results.queryResults.done = currentResults.queryResults.done;
+  }
+  results.queryResults.done = true;
+  return results;
+}
+
+/**
+ * This could result in an error: Maximum SOQL offset allowed is 2000
+ *
+ * @param selectedOrg
+ * @param queries
+ */
+export async function queryAllUsingOffset<T = any>(selectedOrg: SalesforceOrgUi, soqlQuery: string): Promise<API.QueryResults<T>> {
+  const LIMIT = 2000;
+  let offset = 0;
+  let done = false;
+
+  const results = await query<T>(selectedOrg, `${soqlQuery} LIMIT ${LIMIT} OFFSET ${offset}`);
+
+  // Metadata objects may not allow queryMore, we use this to fetch more
+  while (done) {
+    const { queryResults } = await query<T>(selectedOrg, `${soqlQuery} LIMIT ${LIMIT} OFFSET ${offset}`);
+    results.queryResults.records = results.queryResults.records.concat(queryResults.records);
+    done = queryResults.done;
+
+    if (queryResults.records.length === LIMIT) {
+      done = false;
+      offset += LIMIT;
+    } else {
+      done = true;
+    }
+  }
+  return results;
+}
+
 export async function sobjectOperation<T = any>(
   org: SalesforceOrgUi,
   sobject: string,

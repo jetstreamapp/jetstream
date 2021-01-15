@@ -10,6 +10,7 @@ import {
   Icon,
   Spinner,
   Tabs,
+  Toast,
   Toolbar,
   ToolbarItemActions,
   ToolbarItemGroup,
@@ -377,7 +378,7 @@ export const ManagePermissionsEditor: FunctionComponent<ManagePermissionsEditorP
             <Icon type="utility" icon="refresh" className="slds-button__icon slds-button__icon_left" />
             Reset Changes
           </button>
-          <button className="slds-button slds-button_neutral" onClick={exportChanges}>
+          <button className="slds-button slds-button_neutral" onClick={exportChanges} disabled={hasError}>
             <Icon type="utility" icon="download" className="slds-button__icon slds-button__icon_left" />
             Export
           </button>
@@ -389,6 +390,7 @@ export const ManagePermissionsEditor: FunctionComponent<ManagePermissionsEditorP
       </Toolbar>
       <AutoFullHeightContainer bottomBuffer={10} className="slds-scrollable_none" bufferIfNotRendered={HEIGHT_BUFFER}>
         {loading && <Spinner />}
+        {hasError && <Toast type="error">Uh Oh. There was a problem getting the permission data from Salesforce.</Toast>}
         {hasLoaded && (
           <Tabs
             initialActiveId="field-permissions"

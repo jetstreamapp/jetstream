@@ -1,5 +1,5 @@
 /** @jsx jsx */
-import { query } from '@jetstream/shared/data';
+import { query, queryAll, queryAllUsingOffset } from '@jetstream/shared/data';
 import { EntityParticlePermissionsRecord, FieldPermissionRecord, MapOf, ObjectPermissionRecord, SalesforceOrgUi } from '@jetstream/types';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { logger } from '@jetstream/shared/client-logger';
@@ -10,9 +10,11 @@ import {
   getQueryObjectPermissions,
 } from './utils/permission-manager-utils';
 import { FieldPermissionDefinitionMap, ObjectPermissionDefinitionMap } from './utils/permission-manager-types';
+import { useRollbar } from '@jetstream/shared/ui-utils';
 
 export function usePermissionRecords(selectedOrg: SalesforceOrgUi, sobjects: string[], profilePermSetIds: string[], permSetIds: string[]) {
   const isMounted = useRef(null);
+  const rollbar = useRollbar();
   const [loading, setLoading] = useState(true);
   const [hasError, setHasError] = useState(false);
 
@@ -44,7 +46,7 @@ export function usePermissionRecords(selectedOrg: SalesforceOrgUi, sobjects: str
       }
       // query all data and transform into state maps
       const output = await Promise.all([
-        queryAndCombineResults<EntityParticlePermissionsRecord>(selectedOrg, getQueryForAllPermissionableFields(sobjects)),
+        queryAndCombineResults<EntityParticlePermissionsRecord>(selectedOrg, getQueryForAllPermissionableFields(sobjects), true),
         queryAndCombineResults<ObjectPermissionRecord>(selectedOrg, getQueryObjectPermissions(sobjects, permSetIds, profilePermSetIds)),
         queryAndCombineResults<FieldPermissionRecord>(selectedOrg, getQueryForFieldPermissions(sobjects, permSetIds, profilePermSetIds)),
       ]).then(([fieldDefinition, objectPermissions, fieldPermissions]) => {
@@ -63,6 +65,7 @@ export function usePermissionRecords(selectedOrg: SalesforceOrgUi, sobjects: str
       }
     } catch (ex) {
       logger.warn('[useProfilesAndPermSets][ERROR]', ex.message);
+      rollbar.error('[useProfilesAndPermSets][ERROR]', ex);
       if (isMounted.current) {
         setHasError(true);
       }
@@ -86,23 +89,15 @@ export function usePermissionRecords(selectedOrg: SalesforceOrgUi, sobjects: str
 }
 
 // This could be eligible to pull into generic method for expanded use
-async function queryAndCombineResults<T>(selectedOrg: SalesforceOrgUi, queries: string[]): Promise<T[]> {
+async function queryAndCombineResults<T>(selectedOrg: SalesforceOrgUi, queries: string[], useOffset = false): Promise<T[]> {
   let output: T[] = [];
   for (const currQuery of queries) {
-    const LIMIT = 2000;
-    let hasMoreRecs = true;
-    let offset = 0;
-
-    // since queryMore is not supported for EntityParticle, we need to manually query more if required
-    while (hasMoreRecs) {
-      hasMoreRecs = false;
-      const { queryResults } = await query<T>(selectedOrg, `${currQuery} LIMIT ${LIMIT} OFFSET ${offset}`);
+    if (useOffset) {
+      const { queryResults } = await queryAllUsingOffset<T>(selectedOrg, currQuery);
       output = output.concat(queryResults.records);
-
-      if (queryResults.records.length === LIMIT) {
-        hasMoreRecs = true;
-        offset += LIMIT;
-      }
+    } else {
+      const { queryResults } = await queryAll<T>(selectedOrg, currQuery);
+      output = output.concat(queryResults.records);
     }
   }
   return output;
@@ -116,42 +111,12 @@ function getAllFieldsByObject(fields: EntityParticlePermissionsRecord[]): MapOf<
   }, {});
 }
 
-// function getPermissionKeysByObjectAndField(
-//   objectPermissions: ObjectPermissionRecord[],
-//   fieldPermissions: FieldPermissionRecord[]
-// ): MapOf<string[]> {
-//   const output: MapOf<string[]> = {};
-//   objectPermissions.forEach((record) => {
-//     output[record.SobjectType] = output[record.SobjectType] || [];
-//     output[record.SobjectType].push(getObjectPermissionKey(record));
-//   });
-//   fieldPermissions.forEach((record) => {
-//     output[record.Field] = output[record.Field] || [];
-//     output[record.Field].push(getFieldPermissionKey(record));
-//   });
-//   return output;
-// }
-
 function groupFields(fields: EntityParticlePermissionsRecord[]): MapOf<EntityParticlePermissionsRecord> {
   return fields.reduce((output: MapOf<EntityParticlePermissionsRecord>, record) => {
     output[getFieldDefinitionKey(record)] = record;
     return output;
   }, {});
 }
-
-// function groupObjectPermissions(permissions: ObjectPermissionRecord[]): MapOf<ObjectPermissionRecord> {
-//   return permissions.reduce((output: MapOf<ObjectPermissionRecord>, record) => {
-//     output[getObjectPermissionKey(record)] = record;
-//     return output;
-//   }, {});
-// }
-
-// function groupFieldPermissions(permissions: FieldPermissionRecord[]): MapOf<FieldPermissionRecord> {
-//   return permissions.reduce((output: MapOf<FieldPermissionRecord>, record) => {
-//     output[getFieldPermissionKey(record)] = record;
-//     return output;
-//   }, {});
-// }
 
 function getObjectPermissionMap(
   sobjects: string[],
