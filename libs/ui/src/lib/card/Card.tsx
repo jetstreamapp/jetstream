@@ -28,8 +28,9 @@ export const Card: FunctionComponent<CardProps> = ({ className, title, icon, act
                 <Icon
                   type={icon.type}
                   icon={icon.icon}
+                  title={icon.title}
                   description={icon.description}
-                  containerClassname={classNames('slds-icon_container', `slds-icon-${icon.type}-${icon.icon}`)}
+                  containerClassname={classNames('slds-icon_container', `slds-icon-${icon.type}-${icon.icon.replace('_', '-')}`)}
                   className="slds-icon slds-icon_small"
                 />
               </div>

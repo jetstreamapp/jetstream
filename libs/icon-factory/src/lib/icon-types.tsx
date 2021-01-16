@@ -8,6 +8,7 @@ export type IconType = 'action' | 'custom' | 'doctype' | 'standard' | 'utility';
 export interface IconObj {
   type: IconType;
   icon: IconName;
+  title?: string;
   description?: string;
 }
 
@@ -17,13 +18,15 @@ export type UtilityIcon = keyof UtilityIconObj;
 type IconEl = (props: React.SVGProps<SVGSVGElement>) => JSX.Element;
 export interface StandardIconObj {
   activations: IconEl;
+  data_streams: IconEl;
   entity: IconEl;
-  opportunity: IconEl;
   multi_picklist: IconEl;
+  opportunity: IconEl;
+  portal: IconEl;
   record: IconEl;
   related_list: IconEl;
-  data_streams: IconEl;
-  portal: IconEl;
+  record_lookup: IconEl;
+  settings: IconEl;
 }
 
 export interface UtilityIconObj {

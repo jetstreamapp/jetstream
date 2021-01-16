@@ -8,7 +8,6 @@ import RestoreQuery from '../QueryBuilder/RestoreQuery';
 
 export interface ManualSoqlProps {
   className?: string;
-  styles?: string;
   isTooling: boolean;
 }
 
@@ -44,7 +43,7 @@ const InvalidQuery = () => {
   );
 };
 
-export const ManualSoql: FunctionComponent<ManualSoqlProps> = ({ styles, className, isTooling = false }) => {
+export const ManualSoql: FunctionComponent<ManualSoqlProps> = ({ className, isTooling = false }) => {
   const isMounted = useRef(null);
   const match = useRouteMatch();
   const [isOpen, setIsOpen] = useState<boolean>(false);
@@ -160,13 +159,7 @@ export const ManualSoql: FunctionComponent<ManualSoqlProps> = ({ styles, classNa
           </footer>
         }
       >
-        <button
-          css={css`
-            ${styles}
-          `}
-          className="slds-button slds-button_neutral"
-          onClick={() => setIsOpen(true)}
-        >
+        <button className="slds-button slds-button_neutral" onClick={() => setIsOpen(true)}>
           <Icon type="utility" icon="prompt_edit" description="Manually enter query" className="slds-button__icon slds-button__icon_left" />
           Manual Query
         </button>

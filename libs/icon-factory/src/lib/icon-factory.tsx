@@ -13,7 +13,9 @@ import StandardIcon_MultiPicklist from './icons/standard/MultiPicklist';
 import StandardIcon_Opportunity from './icons/standard/Opportunity';
 import StandardIcon_Portal from './icons/standard/Portal';
 import StandardIcon_Record from './icons/standard/Record';
+import StandardIcon_RecordLookup from './icons/standard/RecordLookup';
 import StandardIcon_RelatedList from './icons/standard/RelatedList';
+import StandardIcon_Settings from './icons/standard/Settings';
 import UtilityIcon_Add from './icons/utility/Add';
 import UtilityIcon_ApexPlugin from './icons/utility/ApexPlugin';
 import UtilityIcon_Arrowdown from './icons/utility/Arrowdown';
@@ -73,13 +75,15 @@ import UtilityIcon_Warning from './icons/utility/Warning';
 
 const standardIcons: StandardIconObj = {
   activations: StandardIcon_Activations,
+  data_streams: StandardIcon_DataStreams,
   entity: StandardIcon_Entity,
   multi_picklist: StandardIcon_MultiPicklist,
   opportunity: StandardIcon_Opportunity,
+  portal: StandardIcon_Portal,
   record: StandardIcon_Record,
   related_list: StandardIcon_RelatedList,
-  data_streams: StandardIcon_DataStreams,
-  portal: StandardIcon_Portal,
+  record_lookup: StandardIcon_RecordLookup,
+  settings: StandardIcon_Settings,
 };
 
 const utilityIcons: UtilityIconObj = {

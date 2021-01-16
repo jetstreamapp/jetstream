@@ -185,12 +185,6 @@ export const queryIncludeDeletedRecordsState = atom<boolean>({
   default: false,
 });
 
-// TODO: move to selector
-export const queryIsFavoriteState = atom<boolean>({
-  key: 'query.queryIsFavoriteState',
-  default: false,
-});
-
 export const queryHistoryState = atom<MapOf<QueryHistoryItem>>({
   key: 'query.queryHistory',
   default: {},

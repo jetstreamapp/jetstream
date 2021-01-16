@@ -92,6 +92,7 @@ export const SobjectFieldListItem: FunctionComponent<SobjectFieldListItemProps> 
             parentKey={parentKey}
             field={field}
             isExpanded={isExpanded}
+            allowMultiple={level === 0}
             onToggleExpand={handleExpand}
           />
           {isExpanded && (

@@ -1,11 +1,15 @@
+import { IconObj } from '@jetstream/icon-factory';
 import { DATE_FORMATS } from '@jetstream/shared/constants';
 import { pluralizeFromNumber } from '@jetstream/shared/utils';
 import { QueryHistoryItem } from '@jetstream/types';
-import { Badge, Card, CodeEditor, CopyToClipboard, Grid, GridCol, Icon, Textarea } from '@jetstream/ui';
+import { Card, CodeEditor, CopyToClipboard, Grid, GridCol, Icon, Textarea } from '@jetstream/ui';
 import formatDate from 'date-fns/format';
 import React, { Fragment, FunctionComponent, useEffect, useRef, useState } from 'react';
 import { Link, useRouteMatch } from 'react-router-dom';
 import RestoreQuery from '../QueryBuilder/RestoreQuery';
+
+const SOBJECT_QUERY_ICON: IconObj = { type: 'standard', icon: 'record_lookup', description: 'Object Query' };
+const METADATA_QUERY_ICON: IconObj = { type: 'standard', icon: 'settings', description: 'Metadata Query' };
 
 // eslint-disable-next-line @typescript-eslint/no-empty-interface
 export interface QueryHistoryItemCardProps {
@@ -38,16 +42,12 @@ export const QueryHistoryItemCard: FunctionComponent<QueryHistoryItemCardProps> 
     <Fragment>
       <Card
         className="modal-card-override"
+        icon={isTooling ? METADATA_QUERY_ICON : SOBJECT_QUERY_ICON}
         title={
           <Fragment>
             <Grid wrap>
               <GridCol size={12}>
                 <span>{label}</span>
-                {isTooling && (
-                  <Badge type="light" className="slds-m-left_small">
-                    METADATA
-                  </Badge>
-                )}
               </GridCol>
               <GridCol className="slds-text-body_small slds-text-color_weak">{sObject}</GridCol>
             </Grid>

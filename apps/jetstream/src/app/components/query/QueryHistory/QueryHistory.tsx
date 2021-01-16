@@ -1,14 +1,14 @@
 /** @jsx jsx */
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { css, jsx } from '@emotion/react';
+import { jsx } from '@emotion/react';
 import { logger } from '@jetstream/shared/client-logger';
 import { INDEXED_DB } from '@jetstream/shared/constants';
 import { formatNumber } from '@jetstream/shared/ui-utils';
 import { multiWordObjectFilter } from '@jetstream/shared/utils';
 import { MapOf, QueryHistoryItem, QueryHistorySelection, UpDown } from '@jetstream/types';
-import { Badge, EmptyState, Grid, GridCol, Icon, List, Modal, SearchInput, Spinner } from '@jetstream/ui';
+import { EmptyState, Grid, GridCol, Icon, List, Modal, SearchInput, Spinner } from '@jetstream/ui';
 import localforage from 'localforage';
-import { createRef, Fragment, FunctionComponent, useEffect, useState } from 'react';
+import { createRef, FunctionComponent, useEffect, useState } from 'react';
 import { ErrorBoundary } from 'react-error-boundary';
 import { useLocation } from 'react-router-dom';
 import { useRecoilState, useRecoilValue, useResetRecoilState } from 'recoil';
@@ -19,11 +19,10 @@ import QueryHistoryItemCard from './QueryHistoryItemCard';
 const SHOWING_STEP = 10;
 
 export interface QueryHistoryProps {
-  styles?: string;
   onRestore?: (soql: string, tooling: boolean) => void;
 }
 
-export const QueryHistory: FunctionComponent<QueryHistoryProps> = ({ styles, onRestore }) => {
+export const QueryHistory: FunctionComponent<QueryHistoryProps> = ({ onRestore }) => {
   const location = useLocation();
   const queryHistoryStateMap = useRecoilValue(fromQueryHistoryState.queryHistoryState);
   const queryHistory = useRecoilValue(fromQueryHistoryState.selectQueryHistoryState);
@@ -136,20 +135,12 @@ export const QueryHistory: FunctionComponent<QueryHistoryProps> = ({ styles, onR
 
   return (
     <ErrorBoundary FallbackComponent={ErrorBoundaryFallback}>
-      <button
-        css={css`
-          ${styles}
-        `}
-        className="slds-button slds-button_neutral"
-        aria-haspopup="true"
-        title="Favorites"
-        onClick={() => setIsOpen(true)}
-      >
+      <button className="slds-button slds-button_neutral" aria-haspopup="true" title="Favorites" onClick={() => setIsOpen(true)}>
         <Icon type="utility" icon="date_time" className="slds-button__icon slds-button__icon_left" omitContainer />
         View History
       </button>
       {isOpen && (
-        <Modal header="Query History" size="lg" skipAutoFocus onClose={() => onModalClose()} className="slds-is-relative">
+        <Modal header="Query History" size="lg" skipAutoFocus onClose={() => onModalClose()}>
           {isRestoring && <Spinner />}
           {selectObjectsList.length <= 1 && (
             <EmptyState imageWidth={200}>
@@ -160,10 +151,10 @@ export const QueryHistory: FunctionComponent<QueryHistoryProps> = ({ styles, onR
           {selectObjectsList.length > 1 && (
             <Grid className="slds-scrollable_y">
               <GridCol size={6} sizeMedium={4} className="slds-scrollable_y">
-                <h2 className="slds-text-heading_medium slds-text-align_center">Objects</h2>
                 <div className="slds-p-bottom--xx-small">
                   <SearchInput
                     id="query-history-object-filter"
+                    className="slds-p-around_xx-small"
                     placeholder="Filter Objects"
                     autoFocus
                     value={filterValue}
@@ -183,29 +174,26 @@ export const QueryHistory: FunctionComponent<QueryHistoryProps> = ({ styles, onR
                   getContent={(item: QueryHistorySelection) => ({
                     key: item.key,
                     heading: (
-                      <Fragment>
-                        {item.label}
-                        {item.isTooling && (
-                          <Badge type="light" className="slds-m-left_small">
-                            METADATA
-                          </Badge>
+                      <Grid align="spread">
+                        <div className="slds-truncate">{item.label}</div>
+                        {item.name !== 'all' && (
+                          <Icon
+                            type="utility"
+                            className="slds-icon slds-icon-text-default slds-icon_x-small"
+                            icon={item.isTooling ? 'setup' : 'record_lookup'}
+                            title={item.isTooling ? 'Metadata Query' : 'Object Query'}
+                          />
                         )}
-                      </Fragment>
+                      </Grid>
                     ),
                     subheading: item.name !== 'all' ? item.name : '',
                   })}
                 />
               </GridCol>
-              <GridCol
-                className="slds-p-horizontal_x-small slds-scrollable_y"
-                css={css`
-                  max-height: 75vh;
-                  min-height: 75vh;
-                `}
-              >
-                <h2 className="slds-text-heading_medium slds-text-align_center">Objects</h2>
+              <GridCol className="slds-p-horizontal_x-small slds-scrollable_y">
                 <SearchInput
                   id="query-history-sql-filter"
+                  className="slds-p-top_xx-small"
                   placeholder="Filter Queries"
                   autoFocus
                   value={sqlFilterValue}

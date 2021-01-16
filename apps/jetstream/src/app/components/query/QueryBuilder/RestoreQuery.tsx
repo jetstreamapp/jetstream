@@ -31,7 +31,7 @@ export const RestoreQuery: FunctionComponent<RestoreQueryProps> = ({
     <Fragment>
       {errorMessage && <PopoverErrorButton errors={[errorMessage]} />}
       <Tooltip content={tooltip}>
-        <button className={classNames('slds-button', className)} onClick={() => restore()} {...buttonProps}>
+        <button className={classNames('slds-button', className)} onClick={() => restore(undefined, isTooling)} {...buttonProps}>
           <Icon type="utility" icon="task" className="slds-button__icon slds-button__icon_left" />
           {label}
         </button>
