@@ -337,6 +337,7 @@ export interface AsyncJobWorkerMessageResponse<T = unknown, R = unknown> {
 }
 
 export interface BulkDownloadJob {
+  isTooling: boolean;
   nextRecordsUrl: string;
   fields: string[];
   records: MapOf<string>[];
@@ -353,12 +354,14 @@ export interface QueryHistoryItem {
   created: Date;
   lastRun: Date;
   runCount: number;
+  isTooling: boolean;
 }
 
 export interface QueryHistorySelection {
   key: string;
   name: string;
   label: string;
+  isTooling: boolean;
 }
 
 export interface InputReadFileContent {

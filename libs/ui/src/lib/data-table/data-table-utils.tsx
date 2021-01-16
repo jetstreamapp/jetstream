@@ -148,11 +148,12 @@ export function getFilteredRows<T = any>(event: ColumnEvent): T[] {
   return visibleRecords;
 }
 
-export function getColumnDefinitions(results: QueryResults<any>): SalesforceQueryColumnDefinition {
+export function getColumnDefinitions(results: QueryResults<any>, isTooling: boolean): SalesforceQueryColumnDefinition {
   // if we have id, include record actions
-  const includeRecordActions = results.queryResults.records.length
-    ? !!(results.queryResults.records[0]?.Id || results.queryResults.records[0]?.attributes.url)
-    : false;
+  const includeRecordActions =
+    !isTooling && results.queryResults.records.length
+      ? !!(results.queryResults.records[0]?.Id || results.queryResults.records[0]?.attributes.url)
+      : false;
   const output: SalesforceQueryColumnDefinition = {
     parentColumns: [],
     subqueryColumns: {},
@@ -250,6 +251,8 @@ function getColDef(field: string, queryColumnsByPath: MapOf<QueryResultsColumn>,
     } else if (col.apexType === 'Location') {
       colDef.valueFormatter = dataTableLocationFormatter;
       colDef.getQuickFilterText = dataTableLocationFormatter;
+    } else if (col.apexType === 'complexvaluetype' || col.columnName === 'Metadata') {
+      colDef.cellRenderer = 'complexDataRenderer';
     } else if (Array.isArray(col.childColumnPaths)) {
       colDef.cellRenderer = 'subqueryRenderer';
     }

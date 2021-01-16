@@ -9,6 +9,9 @@ console.log('[JETSTREAM VERSION]:', VERSION);
 let _rollbar: Rollbar;
 let _rollbarIsConfigured = false;
 function getRollbarInstance(accessToken: string, environment: Environment, userProfile?: UserProfileUi) {
+  if (!accessToken || !environment) {
+    return _rollbar;
+  }
   const rollbar =
     _rollbar ||
     new Rollbar({
@@ -39,8 +42,16 @@ function getRollbarInstance(accessToken: string, environment: Environment, userP
   _rollbar = rollbar;
   return rollbar;
 }
-// Environment
-export function useRollbar(accessToken: string, environment: Environment, userProfile?: UserProfileUi) {
+
+/**
+ * Parameters are only required on initialization component
+ * Anything else lower in the tree will be able to use without arguments
+ *
+ * @param accessToken
+ * @param environment
+ * @param userProfile
+ */
+export function useRollbar(accessToken?: string, environment?: Environment, userProfile?: UserProfileUi) {
   const [isConfigured, setIsConfigured] = useState(false);
   const [rollbar] = useState(() => getRollbarInstance(accessToken, environment, userProfile));
 

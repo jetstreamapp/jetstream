@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/camelcase */
 /**
  * Every icon used in the application must be individually imported
  */
@@ -9,6 +8,7 @@ export type IconType = 'action' | 'custom' | 'doctype' | 'standard' | 'utility';
 export interface IconObj {
   type: IconType;
   icon: IconName;
+  title?: string;
   description?: string;
 }
 
@@ -18,13 +18,15 @@ export type UtilityIcon = keyof UtilityIconObj;
 type IconEl = (props: React.SVGProps<SVGSVGElement>) => JSX.Element;
 export interface StandardIconObj {
   activations: IconEl;
+  data_streams: IconEl;
   entity: IconEl;
-  opportunity: IconEl;
   multi_picklist: IconEl;
+  opportunity: IconEl;
+  portal: IconEl;
   record: IconEl;
   related_list: IconEl;
-  data_streams: IconEl;
-  portal: IconEl;
+  record_lookup: IconEl;
+  settings: IconEl;
 }
 
 export interface UtilityIconObj {
@@ -33,6 +35,7 @@ export interface UtilityIconObj {
   arrowdown: IconEl;
   arrowup: IconEl;
   back: IconEl;
+  change_record_type: IconEl;
   chart: IconEl;
   check: IconEl;
   chevrondown: IconEl;
@@ -68,11 +71,13 @@ export interface UtilityIconObj {
   notification: IconEl;
   play: IconEl;
   prompt_edit: IconEl;
+  record_lookup: IconEl;
   refresh: IconEl;
   right: IconEl;
   save: IconEl;
   search: IconEl;
   settings: IconEl;
+  setup: IconEl;
   steps: IconEl;
   success: IconEl;
   switch: IconEl;

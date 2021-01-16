@@ -1,29 +1,39 @@
 /** @jsx jsx */
 import { jsx } from '@emotion/react';
+import { CheckboxToggle, CodeEditor, Icon, Panel, Textarea } from '@jetstream/ui';
 import { FunctionComponent, useEffect, useState } from 'react';
-import { Panel, CodeEditor } from '@jetstream/ui';
-import { Textarea } from '@jetstream/ui';
 import { useHotkeys } from 'react-hotkeys-hook';
-import { Icon } from '@jetstream/ui';
 
 // eslint-disable-next-line @typescript-eslint/no-empty-interface
 export interface QueryResultsSoqlPanelProps {
   soql: string;
+  isTooling: boolean;
   isOpen: boolean;
   onClosed: () => void;
-  executeQuery: (soql: string) => void;
+  executeQuery: (soql: string, isTooling: boolean) => void;
 }
 
-export const QueryResultsSoqlPanel: FunctionComponent<QueryResultsSoqlPanelProps> = ({ soql, isOpen, onClosed, executeQuery }) => {
+export const QueryResultsSoqlPanel: FunctionComponent<QueryResultsSoqlPanelProps> = ({
+  soql,
+  isTooling,
+  isOpen,
+  onClosed,
+  executeQuery,
+}) => {
   const [userSoql, setUserSoql] = useState<string>(soql);
+  const [userTooling, setUserTooling] = useState<boolean>(isTooling);
   useHotkeys('ctrl+enter, cmd+enter', submitQuery, { enableOnTags: ['TEXTAREA'] }, [soql, userSoql]);
 
   useEffect(() => {
     setUserSoql(soql);
   }, [soql]);
 
+  useEffect(() => {
+    setUserTooling(isTooling);
+  }, [isTooling]);
+
   function submitQuery() {
-    executeQuery(userSoql);
+    executeQuery(userSoql, userTooling);
   }
 
   return (
@@ -31,7 +41,16 @@ export const QueryResultsSoqlPanel: FunctionComponent<QueryResultsSoqlPanelProps
       <Textarea id="soql" label="SOQL Query">
         <CodeEditor className="CodeMirror-textarea" value={userSoql} onChange={setUserSoql} />
       </Textarea>
-      <div className="slds-grid slds-grid_align-end slds-m-top--small">
+      <div className="slds-grid slds-grid_align-spread slds-m-top--small">
+        <CheckboxToggle
+          id="is-tooling-user-soql"
+          label="Query Type"
+          onText="Metadata Query"
+          offText="Object Query"
+          hideLabel
+          checked={userTooling}
+          onChange={setUserTooling}
+        />
         <button type="submit" className="slds-button slds-button_brand" onClick={() => submitQuery()}>
           <Icon type="utility" icon="play" className="slds-button__icon slds-button__icon_left" omitContainer />
           Execute Query

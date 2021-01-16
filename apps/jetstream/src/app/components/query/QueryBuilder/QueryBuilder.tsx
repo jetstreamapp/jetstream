@@ -2,23 +2,27 @@
 /** @jsx jsx */
 import { css, jsx } from '@emotion/react';
 import { useNonInitialEffect } from '@jetstream/shared/ui-utils';
-import { QueryFieldWithPolymorphic } from '@jetstream/types';
+import { DropDownItem, QueryFieldWithPolymorphic, SalesforceOrgUi } from '@jetstream/types';
 import {
   Accordion,
   AutoFullHeightContainer,
+  ConnectedSobjectList,
+  DropDown,
   Icon,
   Page,
   PageHeader,
   PageHeaderActions,
+  PageHeaderMetadataCol,
   PageHeaderRow,
   PageHeaderTitle,
   Tabs,
 } from '@jetstream/ui';
-import { Fragment, FunctionComponent, useEffect, useState } from 'react';
+import { DescribeGlobalSObjectResult } from 'jsforce';
+import { Fragment, FunctionComponent, useEffect, useRef, useState } from 'react';
 import { Link, useLocation, useRouteMatch } from 'react-router-dom';
 import Split from 'react-split';
 import { useRecoilState, useRecoilValue, useResetRecoilState } from 'recoil';
-import { selectUserPreferenceState } from '../../../app-state';
+import { selectedOrgState, selectUserPreferenceState } from '../../../app-state';
 // import QueryWorker from '../../../workers/query.worker';
 import * as fromQueryState from '../query.state';
 import QueryHistory from '../QueryHistory/QueryHistory';
@@ -33,30 +37,53 @@ import QueryResetButton from '../QueryOptions/QueryResetButton';
 import SoqlTextarea from '../QueryOptions/SoqlTextarea';
 import QueryWalkthrough from '../QueryWalkthrough/QueryWalkthrough';
 import { calculateFilterAndOrderByListGroupFields } from '../utils/query-utils';
+import ExecuteQueryButton from './ExecuteQueryButton';
 import QueryBuilderSoqlUpdater from './QueryBuilderSoqlUpdater';
 import QueryFieldsComponent from './QueryFields';
-import QuerySObjects from './QuerySObjects';
 import QuerySubquerySObjects from './QuerySubquerySObjects';
+import { IconObj } from '@jetstream/icon-factory';
 
-const HEIGHT_BUFFER = 170;
+const HEIGHT_BUFFER = 175;
+
+const SOBJECT_QUERY_ID = 'sobjects';
+const SOBJECT_QUERY_TITLE = 'Query Object Records';
+const SOBJECT_QUERY_ICON: IconObj = { type: 'standard', icon: 'record_lookup', description: 'Object Query' };
+
+const METADATA_QUERY_ID = 'metadata';
+const METADATA_QUERY_TITLE = 'Query Metadata Records';
+const METADATA_QUERY_ICON: IconObj = { type: 'standard', icon: 'settings', description: 'Metadata Query' };
+
+const LIST_VIEW_ITEMS: DropDownItem[] = [
+  { id: SOBJECT_QUERY_ID, value: SOBJECT_QUERY_TITLE, icon: { type: 'utility', icon: 'record_lookup' } },
+  { id: METADATA_QUERY_ID, value: METADATA_QUERY_TITLE, icon: { type: 'utility', icon: 'setup' } },
+];
+
 // eslint-disable-next-line @typescript-eslint/no-empty-interface
 export interface QueryBuilderProps {}
 
 export const QueryBuilder: FunctionComponent<QueryBuilderProps> = () => {
+  const isMounted = useRef(null);
   const match = useRouteMatch();
   const location = useLocation<{ soql: string; sobject?: { name: string; label: string } }>();
 
-  const selectedSObject = useRecoilValue(fromQueryState.selectedSObjectState);
+  const selectedOrg = useRecoilValue<SalesforceOrgUi>(selectedOrgState);
   const queryFieldsMap = useRecoilValue(fromQueryState.queryFieldsMapState);
   const childRelationships = useRecoilValue(fromQueryState.queryChildRelationships);
   const isRestore = useRecoilValue(fromQueryState.isRestore);
+  const soql = useRecoilValue(fromQueryState.querySoqlState);
 
+  const [sobjects, setSobjects] = useRecoilState(fromQueryState.sObjectsState);
+  const [selectedSObject, setSelectedSObject] = useRecoilState(fromQueryState.selectedSObjectState);
+  const [isTooling, setIsTooling] = useRecoilState(fromQueryState.isTooling);
   const [selectedFields, setSelectedFields] = useRecoilState(fromQueryState.selectedQueryFieldsState);
   const [selectedSubqueryFieldsState, setSelectedSubqueryFieldsState] = useRecoilState(fromQueryState.selectedSubqueryFieldsState);
   const [filterFields, setFilterFields] = useRecoilState(fromQueryState.filterQueryFieldsState);
   const [orderByFields, setOrderByFields] = useRecoilState(fromQueryState.orderByQueryFieldsState);
-  const [soql, setSoql] = useRecoilState(fromQueryState.querySoqlState);
-  const [isFavorite, setIsFavorite] = useRecoilState(fromQueryState.queryIsFavoriteState);
+
+  const resetSelectedQueryFieldsState = useResetRecoilState(fromQueryState.selectedQueryFieldsState);
+  const resetFilterQueryFieldsState = useResetRecoilState(fromQueryState.filterQueryFieldsState);
+  const resetOrderByQueryFieldsState = useResetRecoilState(fromQueryState.orderByQueryFieldsState);
+  const resetSelectedSObject = useResetRecoilState(fromQueryState.selectedSObjectState);
   const resetQueryFieldsMapState = useResetRecoilState(fromQueryState.queryFieldsMapState);
   const resetQueryFieldsKey = useResetRecoilState(fromQueryState.queryFieldsKey);
   const resetSelectedSubqueryFieldsState = useResetRecoilState(fromQueryState.selectedSubqueryFieldsState);
@@ -69,30 +96,19 @@ export const QueryBuilder: FunctionComponent<QueryBuilderProps> = () => {
   const resetQueryIncludeDeletedRecordsState = useResetRecoilState(fromQueryState.queryIncludeDeletedRecordsState);
   const [userPreferences, setUserPreferences] = useRecoilState(selectUserPreferenceState);
 
-  // FIXME: this is a hack and should not be here
-  const [showRightHandPane, setShowRightHandPane] = useState(!!selectedSObject);
-  const [priorSelectedSObject, setPriorSelectedSObject] = useState(selectedSObject);
+  const [pageTitle, setPageTitle] = useState(isTooling ? METADATA_QUERY_TITLE : SOBJECT_QUERY_TITLE);
+
   const [showWalkthrough, setShowWalkthrough] = useState(!userPreferences.skipQueryWalkthrough);
 
-  // const [queryWorker] = useState(() => new QueryWorker());
-
-  // stupid hack to force query filters to re-render :sob:
   useEffect(() => {
-    let timer1;
-    if (priorSelectedSObject && selectedSObject && selectedSObject.name !== priorSelectedSObject.name) {
-      setShowRightHandPane(false);
-      timer1 = setTimeout(() => {
-        setShowRightHandPane(true);
-      }, 0);
-    } else if (!showRightHandPane) {
-      setShowRightHandPane(true);
-    }
-    return () => {
-      if (timer1) {
-        clearTimeout(timer1);
-      }
-    };
-  }, [selectedSObject]);
+    isMounted.current = true;
+    return () => (isMounted.current = false);
+  }, []);
+
+  useNonInitialEffect(() => {
+    setPageTitle(isTooling ? METADATA_QUERY_TITLE : SOBJECT_QUERY_TITLE);
+    resetState();
+  }, [isTooling]);
 
   useNonInitialEffect(() => {
     if (queryFieldsMap && selectedSObject) {
@@ -106,25 +122,6 @@ export const QueryBuilder: FunctionComponent<QueryBuilderProps> = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedSObject, queryFieldsMap, selectedFields]);
 
-  useEffect(() => {
-    if (!priorSelectedSObject && selectedSObject) {
-      setPriorSelectedSObject(selectedSObject);
-    } else if (!isRestore && selectedSObject && selectedSObject.name !== priorSelectedSObject.name) {
-      setPriorSelectedSObject(selectedSObject);
-      resetQueryFieldsMapState();
-      resetQueryFieldsKey();
-      resetSelectedSubqueryFieldsState();
-      resetQueryFiltersState();
-      resetQueryOrderByState();
-      resetQueryLimit();
-      resetQueryLimitSkip();
-      resetQuerySoqlState();
-      resetQueryChildRelationships();
-      resetQueryIncludeDeletedRecordsState();
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedSObject]);
-
   function handleSubquerySelectedField(relationshipName: string, fields: QueryFieldWithPolymorphic[]) {
     const tempSelectedSubqueryFieldsState = { ...selectedSubqueryFieldsState, [relationshipName]: fields };
     setSelectedSubqueryFieldsState(tempSelectedSubqueryFieldsState);
@@ -135,6 +132,43 @@ export const QueryBuilder: FunctionComponent<QueryBuilderProps> = () => {
     setUserPreferences({ ...userPreferences, skipQueryWalkthrough: skipInFuture });
   }
 
+  function handleSobjectsChange(sobjects: DescribeGlobalSObjectResult[]) {
+    setSobjects(sobjects);
+    if (!sobjects) {
+      resetState();
+    }
+  }
+
+  function handleSelectedSObject(sobject: DescribeGlobalSObjectResult) {
+    if (sobject?.name !== selectedSObject?.name) {
+      resetState(false);
+      setSelectedSObject(sobject);
+    }
+  }
+
+  function handleQueryTypeChange(id: string) {
+    setIsTooling(id === METADATA_QUERY_ID);
+  }
+
+  function resetState(includeSobjectReset = true) {
+    if (includeSobjectReset) {
+      resetSelectedSObject();
+    }
+    resetQueryFieldsMapState();
+    resetQueryFieldsKey();
+    resetSelectedQueryFieldsState();
+    resetFilterQueryFieldsState();
+    resetOrderByQueryFieldsState();
+    resetSelectedSubqueryFieldsState();
+    resetQueryFiltersState();
+    resetQueryOrderByState();
+    resetQueryLimit();
+    resetQueryLimitSkip();
+    resetQuerySoqlState();
+    resetQueryChildRelationships();
+    resetQueryIncludeDeletedRecordsState();
+  }
+
   return (
     <Fragment>
       <QueryBuilderSoqlUpdater />
@@ -142,43 +176,32 @@ export const QueryBuilder: FunctionComponent<QueryBuilderProps> = () => {
       <Page>
         <PageHeader>
           <PageHeaderRow>
-            <PageHeaderTitle icon={{ type: 'standard', icon: 'entity' }} label="Query Records" />
+            <PageHeaderTitle
+              icon={isTooling ? METADATA_QUERY_ICON : SOBJECT_QUERY_ICON}
+              labelHeading={isTooling ? 'Metadata' : 'Objects'}
+              // label={pageTitle}
+              label="Query Records"
+              titleDropDown={
+                <DropDown
+                  buttonClassName="slds-button slds-button_icon slds-m-left_small"
+                  actionText="Switch Query Type"
+                  description="Switch Query Type"
+                  leadingIcon={{ icon: 'change_record_type', type: 'utility' }}
+                  items={LIST_VIEW_ITEMS}
+                  initialSelectedId={isTooling ? METADATA_QUERY_ID : SOBJECT_QUERY_ID}
+                  onSelected={handleQueryTypeChange}
+                />
+              }
+            />
             <PageHeaderActions colType="actions" buttonType="separate">
               <button className="slds-button slds-button_neutral" title="Open help walkthrough" onClick={() => setShowWalkthrough(true)}>
                 <Icon type="utility" icon="help" description="Open help walkthrough" className="slds-button__icon slds-button__icon_left" />
                 Help
               </button>
               <QueryResetButton />
-              {/* <button className={classNames('slds-button slds-button_neutral')} aria-haspopup="true" title="Favorites">
-                <Icon type="utility" icon="favorite" className="slds-button__icon slds-button__icon_left" omitContainer />
-                View Favorites
-              </button> */}
+              <ManualSoql isTooling={isTooling} />
               <QueryHistory />
-              <ManualSoql className="" />
-              {soql && selectedSObject && (
-                <Link
-                  className="slds-button slds-button_brand"
-                  to={{
-                    pathname: `${match.url}/results`,
-                    state: {
-                      soql,
-                      sobject: {
-                        label: selectedSObject.label,
-                        name: selectedSObject.name,
-                      },
-                    },
-                  }}
-                >
-                  <Icon type="utility" icon="right" className="slds-button__icon slds-button__icon_left" />
-                  Execute
-                </Link>
-              )}
-              {!soql && (
-                <button className="slds-button slds-button_brand" disabled>
-                  <Icon type="utility" icon="right" className="slds-button__icon slds-button__icon_left" />
-                  Execute
-                </button>
-              )}
+              <ExecuteQueryButton soql={soql} isTooling={isTooling} selectedSObject={selectedSObject} />
             </PageHeaderActions>
           </PageHeaderRow>
         </PageHeader>
@@ -199,7 +222,15 @@ export const QueryBuilder: FunctionComponent<QueryBuilderProps> = () => {
           >
             <div className="slds-p-horizontal_x-small">
               {/* <h2 className="slds-text-heading_medium slds-text-align_center">Objects</h2> */}
-              <QuerySObjects />
+              <ConnectedSobjectList
+                label={isTooling ? 'Metadata' : 'Objects'}
+                selectedOrg={selectedOrg}
+                sobjects={sobjects}
+                selectedSObject={selectedSObject}
+                isTooling={isTooling}
+                onSobjects={handleSobjectsChange}
+                onSelectedSObject={handleSelectedSObject}
+              />
             </div>
             <div className="slds-p-horizontal_x-small">
               {selectedSObject && (
@@ -227,6 +258,7 @@ export const QueryBuilder: FunctionComponent<QueryBuilderProps> = () => {
                       content: (
                         <QueryFieldsComponent
                           selectedSObject={selectedSObject ? selectedSObject.name : undefined}
+                          isTooling={isTooling}
                           onSelectionChanged={setSelectedFields}
                         />
                       ),
@@ -250,7 +282,11 @@ export const QueryBuilder: FunctionComponent<QueryBuilderProps> = () => {
                       titleText: 'Related Objects (Subquery)',
                       content: (
                         <AutoFullHeightContainer bottomBuffer={10}>
-                          <QuerySubquerySObjects childRelationships={childRelationships} onSelectionChanged={handleSubquerySelectedField} />
+                          <QuerySubquerySObjects
+                            isTooling={isTooling}
+                            childRelationships={childRelationships}
+                            onSelectionChanged={handleSubquerySelectedField}
+                          />
                         </AutoFullHeightContainer>
                       ),
                     },
@@ -260,24 +296,34 @@ export const QueryBuilder: FunctionComponent<QueryBuilderProps> = () => {
             </div>
             <div className="slds-p-horizontal_x-small">
               <AutoFullHeightContainer fillHeight bufferIfNotRendered={HEIGHT_BUFFER}>
-                {selectedSObject && showRightHandPane && (
+                {selectedSObject && isMounted.current && (
                   <Accordion
+                    key={selectedSObject.name}
                     initOpenIds={['filters', 'soql']}
                     sections={[
                       {
                         id: 'filters',
                         title: 'Filters',
-                        titleSummaryIfCollapsed: <QueryFilterTitleSummary />,
-                        content: <QueryFilter fields={filterFields} />,
+                        titleSummaryIfCollapsed: <QueryFilterTitleSummary key={selectedSObject.name} />,
+                        content: <QueryFilter key={selectedSObject.name} fields={filterFields} />,
                       },
                       {
                         id: 'orderBy',
                         title: 'Order By',
-                        titleSummaryIfCollapsed: <QueryOrderByTitleSummary />,
-                        content: <QueryOrderBy fields={orderByFields} />,
+                        titleSummaryIfCollapsed: <QueryOrderByTitleSummary key={selectedSObject.name} />,
+                        content: <QueryOrderBy key={selectedSObject.name} fields={orderByFields} />,
                       },
-                      { id: 'limit', title: 'Limit', titleSummaryIfCollapsed: <QueryLimitTitleSummary />, content: <QueryLimit /> },
-                      { id: 'soql', title: 'Soql Query', content: <SoqlTextarea /> },
+                      {
+                        id: 'limit',
+                        title: 'Limit',
+                        titleSummaryIfCollapsed: <QueryLimitTitleSummary key={selectedSObject.name} />,
+                        content: <QueryLimit key={selectedSObject.name} />,
+                      },
+                      {
+                        id: 'soql',
+                        title: 'Soql Query',
+                        content: <SoqlTextarea key={selectedSObject.name} soql={soql} isTooling={isTooling} />,
+                      },
                     ]}
                     allowMultiple
                   ></Accordion>

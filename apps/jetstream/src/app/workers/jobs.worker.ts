@@ -70,13 +70,13 @@ async function handleMessage(name: AsyncJobType, payloadData: AsyncJobWorkerMess
     case 'BulkDownload': {
       try {
         const { org, job } = payloadData as AsyncJobWorkerMessagePayload<BulkDownloadJob>;
-        const { fields, records, fileFormat, fileName } = job.meta;
+        const { isTooling, fields, records, fileFormat, fileName } = job.meta;
         let { nextRecordsUrl } = job.meta;
         let downloadedRecords = fileFormat === 'json' ? records : flattenRecords(records, fields);
         let done = false;
 
         while (!done) {
-          const { queryResults } = await queryMore(org, nextRecordsUrl).then(replaceSubqueryQueryResultsWithRecords);
+          const { queryResults } = await queryMore(org, nextRecordsUrl, isTooling).then(replaceSubqueryQueryResultsWithRecords);
           done = queryResults.done;
           nextRecordsUrl = queryResults.nextRecordsUrl;
           downloadedRecords =

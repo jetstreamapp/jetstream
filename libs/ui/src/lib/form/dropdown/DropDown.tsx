@@ -36,6 +36,7 @@ export interface DropDownProps {
   actionText?: string;
   scrollLength?: 5 | 7 | 10;
   description?: string; // assistive text, ignored if buttonContent is provided
+  initialSelectedId?: string;
   items: DropDownItem[];
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   onSelected: (id: string, metadata?: any) => void;
@@ -49,6 +50,7 @@ export const DropDown: FunctionComponent<DropDownProps> = ({
   dropDownClassName,
   actionText = 'action',
   scrollLength,
+  initialSelectedId,
   items,
   description,
   onSelected,
@@ -59,6 +61,7 @@ export const DropDown: FunctionComponent<DropDownProps> = ({
     scrollLength,
   ]);
   const [focusedItem, setFocusedItem] = useState<number>(null);
+  const [selectedItem, setSelectedItem] = useState<string>(initialSelectedId);
   const ulContainerEl = useRef<HTMLUListElement>(null);
   const elRefs = useRef<RefObject<HTMLAnchorElement>[]>([]);
 
@@ -89,7 +92,13 @@ export const DropDown: FunctionComponent<DropDownProps> = ({
 
   useEffect(() => {
     if (isOpen && !isNumber(focusedItem)) {
-      setFocusedItem(0);
+      if (selectedItem) {
+        let idx = items.findIndex((item) => item.id === selectedItem);
+        idx = idx >= 0 ? idx : 0;
+        setFocusedItem(idx);
+      } else {
+        setFocusedItem(0);
+      }
     } else if (!isOpen) {
       setFocusedItem(null);
     }
@@ -114,6 +123,7 @@ export const DropDown: FunctionComponent<DropDownProps> = ({
       }
     } else if (isEnterKey(event) && isNumber(focusedItem)) {
       const item = items[focusedItem];
+      setSelectedItem(item.id);
       onSelected(item.id, item.metadata);
       setIsOpen(false);
     } else {
@@ -136,6 +146,7 @@ export const DropDown: FunctionComponent<DropDownProps> = ({
     event.preventDefault();
     setIsOpen(false);
     onSelected(id, metadata);
+    setSelectedItem(id);
   }
 
   return (

@@ -68,7 +68,7 @@ export const SobjectList: FunctionComponent<SobjectListProps> = ({
             </button>
           </p>
         )}
-        {sobjects && filteredSobjects && (
+        {!loading && sobjects && filteredSobjects && (
           <Fragment>
             <div className="slds-p-bottom--xx-small">
               <SearchInput

@@ -1,6 +1,6 @@
 /** @jsx jsx */
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { css, jsx } from '@emotion/react';
+import { jsx } from '@emotion/react';
 import { logger } from '@jetstream/shared/client-logger';
 import { INDEXED_DB } from '@jetstream/shared/constants';
 import { formatNumber } from '@jetstream/shared/ui-utils';
@@ -19,7 +19,7 @@ import QueryHistoryItemCard from './QueryHistoryItemCard';
 const SHOWING_STEP = 10;
 
 export interface QueryHistoryProps {
-  onRestore?: (soql: string) => void;
+  onRestore?: (soql: string, tooling: boolean) => void;
 }
 
 export const QueryHistory: FunctionComponent<QueryHistoryProps> = ({ onRestore }) => {
@@ -121,11 +121,11 @@ export const QueryHistory: FunctionComponent<QueryHistoryProps> = ({ onRestore }
     setIsRestoring(true);
   }
 
-  function handleEndRestore(soql: string, fatalError: boolean, errors?: any) {
+  function handleEndRestore(soql: string, tooling: boolean, fatalError: boolean, errors?: any) {
     setIsRestoring(false);
     if (!fatalError) {
       setIsOpen(false);
-      onRestore && onRestore(soql);
+      onRestore && onRestore(soql, tooling);
     }
   }
 
@@ -140,7 +140,7 @@ export const QueryHistory: FunctionComponent<QueryHistoryProps> = ({ onRestore }
         View History
       </button>
       {isOpen && (
-        <Modal header="Query History" size="lg" skipAutoFocus onClose={() => onModalClose()} className="slds-is-relative">
+        <Modal header="Query History" size="lg" skipAutoFocus onClose={() => onModalClose()}>
           {isRestoring && <Spinner />}
           {selectObjectsList.length <= 1 && (
             <EmptyState imageWidth={200}>
@@ -151,10 +151,10 @@ export const QueryHistory: FunctionComponent<QueryHistoryProps> = ({ onRestore }
           {selectObjectsList.length > 1 && (
             <Grid className="slds-scrollable_y">
               <GridCol size={6} sizeMedium={4} className="slds-scrollable_y">
-                <h2 className="slds-text-heading_medium slds-text-align_center">Objects</h2>
                 <div className="slds-p-bottom--xx-small">
                   <SearchInput
                     id="query-history-object-filter"
+                    className="slds-p-around_xx-small"
                     placeholder="Filter Objects"
                     autoFocus
                     value={filterValue}
@@ -173,21 +173,27 @@ export const QueryHistory: FunctionComponent<QueryHistoryProps> = ({ onRestore }
                   onSelected={setSelectedObject}
                   getContent={(item: QueryHistorySelection) => ({
                     key: item.key,
-                    heading: item.label,
+                    heading: (
+                      <Grid align="spread">
+                        <div className="slds-truncate">{item.label}</div>
+                        {item.name !== 'all' && (
+                          <Icon
+                            type="utility"
+                            className="slds-icon slds-icon-text-default slds-icon_x-small"
+                            icon={item.isTooling ? 'setup' : 'record_lookup'}
+                            title={item.isTooling ? 'Metadata Query' : 'Object Query'}
+                          />
+                        )}
+                      </Grid>
+                    ),
                     subheading: item.name !== 'all' ? item.name : '',
                   })}
                 />
               </GridCol>
-              <GridCol
-                className="slds-p-horizontal_x-small slds-scrollable_y"
-                css={css`
-                  max-height: 75vh;
-                  min-height: 75vh;
-                `}
-              >
-                <h2 className="slds-text-heading_medium slds-text-align_center">Objects</h2>
+              <GridCol className="slds-p-horizontal_x-small slds-scrollable_y">
                 <SearchInput
                   id="query-history-sql-filter"
+                  className="slds-p-top_xx-small"
                   placeholder="Filter Queries"
                   autoFocus
                   value={sqlFilterValue}
@@ -198,7 +204,7 @@ export const QueryHistory: FunctionComponent<QueryHistoryProps> = ({ onRestore }
                     key={item.key}
                     item={item}
                     startRestore={handleStartRestore}
-                    endRestore={(fatalError, errors) => handleEndRestore(item.soql, fatalError, errors)}
+                    endRestore={(fatalError, errors) => handleEndRestore(item.soql, item.isTooling, fatalError, errors)}
                   />
                 ))}
                 {visibleQueryHistory.length === 0 && (

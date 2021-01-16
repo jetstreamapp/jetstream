@@ -15,6 +15,7 @@ export interface SobjectExpandChildrenBtnProps {
   parentKey: string;
   field: FieldWrapper;
   isExpanded: boolean;
+  allowMultiple: boolean;
   onToggleExpand: (key: string, field: FieldWrapper, relatedSobject: string) => void;
 }
 
@@ -23,9 +24,11 @@ export const SobjectExpandChildrenBtn: FunctionComponent<SobjectExpandChildrenBt
   parentKey,
   field,
   isExpanded,
+  allowMultiple,
   onToggleExpand,
 }) => {
   const hasMultiple = Array.isArray(field.relatedSobject);
+  const showWhich = hasMultiple && allowMultiple ? 'multiple' : 'single';
   const [selectedSObject, setSelectedSObject] = useState<string>(
     () => initialSelectedSObject || (hasMultiple ? field.relatedSobject[0] : (field.relatedSobject as string))
   );
@@ -45,7 +48,7 @@ export const SobjectExpandChildrenBtn: FunctionComponent<SobjectExpandChildrenBt
 
   return (
     <Fragment>
-      {hasMultiple && (
+      {showWhich === 'multiple' && (
         <Fragment>
           <Select id={selectId} label="Which Related Object" labelHelp={relationshipHelpText}>
             <select
@@ -69,7 +72,7 @@ export const SobjectExpandChildrenBtn: FunctionComponent<SobjectExpandChildrenBt
           </button>
         </Fragment>
       )}
-      {!hasMultiple && (
+      {showWhich === 'single' && (
         <button className="slds-button" onClick={handleExpand}>
           <Icon type="utility" icon={isExpanded ? 'dash' : 'add'} className="slds-button__icon slds-button__icon_left" />
           {isExpanded ? 'Hide' : 'View'} {selectedSObject} Fields

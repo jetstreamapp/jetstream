@@ -1,26 +1,40 @@
-import React from 'react';
+/** @jsx jsx */
+import { css, jsx } from '@emotion/react';
 import FeatureWithIcon from './FeatureWithIcon';
 import PricingTable from './PricingTable';
 import StandardActivationsIcon from '../icons/StandardActivationsIcon';
 import StandardAnnouncementIcon from '../icons/StandardAnnouncementIcon';
-import StandardEntityIcon from '../icons/StandardEntityIcon';
+import RecordLookupIcon from '../icons/RecordLookupIcon';
+import StandardPortalIcon from '../icons/StandardPortalIcon';
 import StandardDataStreamsIcon from '../icons/StandardDataStreamsIcon';
+import BackgroundImage from '../../assets/images/einstein-header-background.svg';
 
 export const SplitBrandPricing = () => (
   <div className="relative bg-white">
+    <div
+      css={css`
+        z-index: 100;
+        opacity: 0.7;
+        position: absolute;
+        background: url(${BackgroundImage}) repeat-x bottom;
+        width: 100%;
+        height: 100%;
+      `}
+    ></div>
     <div className="absolute inset-0" aria-hidden="true">
-      <div className="absolute inset-y-0 right-0 w-1/2 bg-blue-700"></div>
+      <div className="absolute inset-y-0 right-0 w-1/2 bg-blue-700" />
     </div>
     <div className="relative max-w-screen-xl mx-auto lg:grid lg:grid-cols-2 lg:px-8">
-      <div className="bg-white py-16 px-4 sm:py-24 sm:px-6 lg:px-0 lg:pr-8">
+      <div className="bg-white py-16 px-4 sm:pt-8 sm:pb-24 sm:px-6 lg:px-0 lg:pr-8">
         <div className="max-w-lg mx-auto lg:mx-0">
           <h2 className="text-base leading-6 font-semibold tracking-wide text-blue-700 uppercase">Full-featured</h2>
           <p className="mt-2 text-2xl leading-8 font-extrabold text-gray-900 sm:text-3xl sm:leading-9">
             Everything you need to get your work done faster.
           </p>
           <dl className="mt-12 space-y-10">
-            <FeatureWithIcon title="Query Records" icon={<StandardEntityIcon />} bgColorClass="bg-standard-entity">
-              Use the advanced query builder to quickly retrieve records and easily view information about fields and object relationships.
+            <FeatureWithIcon title="Query Records" icon={<RecordLookupIcon />} bgColorClass="bg-standard-record-lookup">
+              Use the advanced query builder to quickly retrieve records or metadata and easily view information about fields and object
+              relationships.
             </FeatureWithIcon>
             <FeatureWithIcon title="Load Records" icon={<StandardDataStreamsIcon />} bgColorClass="bg-standard-data-streams">
               Create or update records using our easy to use data loader. You can even disable automation, such as validation rules, before
@@ -28,6 +42,9 @@ export const SplitBrandPricing = () => (
             </FeatureWithIcon>
             <FeatureWithIcon title="Automation Control" icon={<StandardActivationsIcon />} bgColorClass="bg-standard-activations">
               Quickly toggle automation such as Workflow Rules, Validation Rules, Process Builders, and Apex Triggers in your org.
+            </FeatureWithIcon>
+            <FeatureWithIcon title="Manage Permissions" icon={<StandardPortalIcon />} bgColorClass="bg-standard-portal">
+              Easily update object and field level security across many objects for multiple profiles or permission sets.
             </FeatureWithIcon>
             <FeatureWithIcon title="Coming Soon" icon={<StandardAnnouncementIcon />}>
               More features are being developed and will be released soon!

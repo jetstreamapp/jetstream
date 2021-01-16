@@ -17,6 +17,11 @@ export const isRestore = atom<boolean>({
   default: false,
 });
 
+export const isTooling = atom<boolean>({
+  key: 'query.isTooling',
+  default: false,
+});
+
 export const sObjectsState = atom<DescribeGlobalSObjectResult[]>({
   key: 'query.sObjectsState',
   default: null,
@@ -107,9 +112,26 @@ export const queryLimit = atom<string>({
   default: '',
 });
 
+export const selectQueryLimitHasOverride = selector<boolean>({
+  key: 'query.selectQueryLimitHasOverride',
+  get: ({ get }) => {
+    if (!get(isTooling)) {
+      return false;
+    }
+    const hasRestrictedFieldSelected = (get(selectedQueryFieldsState) || []).some(
+      ({ field }) => field === 'FullName' || field === 'Metadata'
+    );
+    return hasRestrictedFieldSelected;
+  },
+});
+
 export const selectQueryLimit = selector<number | undefined>({
   key: 'query.selectQueryLimit',
   get: ({ get }) => {
+    if (get(selectQueryLimitHasOverride)) {
+      return 1;
+    }
+
     const tempQueryLimit = get(queryLimit);
     if (tempQueryLimit) {
       return Number(tempQueryLimit);
@@ -160,12 +182,6 @@ export const querySoqlState = atom<string>({
 
 export const queryIncludeDeletedRecordsState = atom<boolean>({
   key: 'query.queryIncludeDeletedRecordsState',
-  default: false,
-});
-
-// TODO: move to selector
-export const queryIsFavoriteState = atom<boolean>({
-  key: 'query.queryIsFavoriteState',
   default: false,
 });
 

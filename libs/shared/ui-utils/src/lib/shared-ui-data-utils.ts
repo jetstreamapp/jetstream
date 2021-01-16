@@ -30,9 +30,10 @@ export function getFieldKey(parentKey: string, field: Field) {
  */
 export async function describeSObjectWithExtendedTypes(
   org: SalesforceOrgUi,
-  sobject: string
+  sobject: string,
+  isTooling = false
 ): Promise<DescribeSObjectResultWithExtendedField> {
-  const { data: describeResults } = await describeSObject(org, sobject);
+  const { data: describeResults } = await describeSObject(org, sobject, isTooling);
   return convertDescribeToDescribeSObjectWithExtendedTypes(describeResults);
 }
 
@@ -49,8 +50,13 @@ export function convertDescribeToDescribeSObjectWithExtendedTypes(
 /**
  * Fetch fields and add to queryFields
  */
-export async function fetchFields(org: SalesforceOrgUi, queryFields: QueryFields, parentKey: string): Promise<QueryFields> {
-  const describeResults = await describeSObjectWithExtendedTypes(org, queryFields.sobject);
+export async function fetchFields(
+  org: SalesforceOrgUi,
+  queryFields: QueryFields,
+  parentKey: string,
+  isTooling = false
+): Promise<QueryFields> {
+  const describeResults = await describeSObjectWithExtendedTypes(org, queryFields.sobject, isTooling);
   return fetchFieldsProcessResults(describeResults, queryFields, parentKey);
 }
 

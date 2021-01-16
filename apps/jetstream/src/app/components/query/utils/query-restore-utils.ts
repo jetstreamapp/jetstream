@@ -101,7 +101,6 @@ interface QueryRestoreStateItems extends QueryRestoreErrors {
   queryLimitSkip: string;
   queryOrderByState: QueryOrderByClause[];
   querySoqlState: string;
-  // RESET: queryIncludeDeletedRecordsState, queryIsFavoriteState
 }
 
 interface FieldWrapperWithParentKey {
@@ -126,11 +125,11 @@ export class UserFacingRestoreError extends Error {}
  * @param org
  * @param query
  */
-export async function restoreQuery(org: SalesforceOrgUi, query: Query): Promise<QueryRestoreStateItems> {
+export async function restoreQuery(org: SalesforceOrgUi, query: Query, isTooling): Promise<QueryRestoreStateItems> {
   // get metadata for all selected fields
   let queryRestoreFetchOutput: QueryRestoreFetchOutput;
   try {
-    queryRestoreFetchOutput = await queryRestoreFetchData(org, query);
+    queryRestoreFetchOutput = await queryRestoreFetchData(org, query, isTooling);
   } catch (ex) {
     if (ex instanceof UserFacingRestoreError) {
       throw ex;
@@ -535,15 +534,15 @@ function getMapOfKeyToMetadataTreeNode(metadataTree: MapOf<QueryRestoreMetadataT
  *
  * @param soql
  */
-async function queryRestoreFetchData(org: SalesforceOrgUi, query: Query): Promise<QueryRestoreFetchOutput> {
+async function queryRestoreFetchData(org: SalesforceOrgUi, query: Query, isTooling = false): Promise<QueryRestoreFetchOutput> {
   // fetch initial sobject metadata
-  const { data: describeResults } = await describeGlobal(org);
+  const { data: describeResults } = await describeGlobal(org, isTooling);
   const selectedSobjectMetadata = describeResults.sobjects.find((item) => item.name.toLowerCase() === query.sObject.toLowerCase());
   if (!selectedSobjectMetadata) {
     throw new UserFacingRestoreError(`Object ${query.sObject} was not found in org`);
   }
 
-  const { data: rootSobjectDescribe } = await describeSObject(org, selectedSobjectMetadata.name);
+  const { data: rootSobjectDescribe } = await describeSObject(org, selectedSobjectMetadata.name, isTooling);
 
   const output: QueryRestoreFetchOutput = {
     sobjectMetadata: describeResults.sobjects,
@@ -557,7 +556,7 @@ async function queryRestoreFetchData(org: SalesforceOrgUi, query: Query): Promis
   };
 
   const parsableFields = getFieldsFromAllPartsOfQuery(query);
-  output.metadata = await fetchAllMetadata(org, rootSobjectDescribe, parsableFields.fields);
+  output.metadata = await fetchAllMetadata(org, isTooling, rootSobjectDescribe, parsableFields.fields);
 
   getLowercaseFieldMapWithFullPath(output.metadata, output.lowercaseFieldMap);
 
@@ -566,11 +565,12 @@ async function queryRestoreFetchData(org: SalesforceOrgUi, query: Query): Promis
       (currChildRelationship) => currChildRelationship.relationshipName === childRelationship
     );
     if (foundRelationship) {
-      const { data: rootSobjectChildDescribe } = await describeSObject(org, foundRelationship.childSObject);
+      const { data: rootSobjectChildDescribe } = await describeSObject(org, foundRelationship.childSObject, isTooling);
       output.childMetadata[childRelationship] = {
         objectMetadata: rootSobjectChildDescribe,
         metadataTree: await fetchAllMetadata(
           org,
+          isTooling,
           rootSobjectChildDescribe,
           parsableFields.subqueries[childRelationship],
           childRelationship
@@ -652,6 +652,7 @@ function getParsableFieldsFromFilter(where: WhereClause, fields: string[] = []):
  */
 async function fetchAllMetadata(
   org: SalesforceOrgUi,
+  isTooling: boolean,
   describeSobject: DescribeSObjectResult,
   parsableFields: string[],
   subqueryRelationshipName?: string
@@ -660,7 +661,7 @@ async function fetchAllMetadata(
   const baseKey = subqueryRelationshipName
     ? getSubqueryFieldBaseKey(describeSobject.name, subqueryRelationshipName)
     : getQueryFieldBaseKey(describeSobject.name);
-  const metadata = await fetchRecursiveMetadata(org, fields, describeSobject, baseKey);
+  const metadata = await fetchRecursiveMetadata(org, isTooling, fields, describeSobject, baseKey);
   return metadata;
 }
 
@@ -696,6 +697,7 @@ function findRequiredRelationships(fields: string[]): string[] {
 
 async function fetchRecursiveMetadata(
   org: SalesforceOrgUi,
+  isTooling: boolean,
   fieldRelationships: string[],
   parentMetadata: DescribeSObjectResult,
   parentKey: string,
@@ -727,7 +729,7 @@ async function fetchRecursiveMetadata(
         if (field.referenceTo.length > 1 && relatedObject) {
           relatedSObject = field.referenceTo.find((obj) => obj.toLowerCase() === relatedObject) || field.referenceTo[0];
         }
-        const { data: relatedDescribeResults } = await describeSObject(org, relatedSObject);
+        const { data: relatedDescribeResults } = await describeSObject(org, relatedSObject, isTooling);
 
         let currNode: QueryRestoreMetadataTree;
         const lowercaseFieldMap = getLowercaseFieldMap(relatedDescribeResults.fields);
@@ -762,7 +764,7 @@ async function fetchRecursiveMetadata(
           .filter((field) => field.indexOf('.') > -1 && field.startsWith(`${currRelationship}.`))
           .map((field) => field.slice(field.indexOf('.') + 1));
         if (ancestorRelationships.length > 0 && currNode.level <= 5) {
-          await fetchRecursiveMetadata(org, ancestorRelationships, relatedDescribeResults, currNode.fieldKey, output, currNode);
+          await fetchRecursiveMetadata(org, isTooling, ancestorRelationships, relatedDescribeResults, currNode.fieldKey, output, currNode);
         }
       }
     } catch (ex) {

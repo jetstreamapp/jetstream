@@ -8,6 +8,7 @@ import Input from '../input/Input';
 
 export interface SearchInputProps {
   id: string;
+  className?: string;
   placeholder?: string;
   autoFocus?: boolean;
   // this can generally be omitted, but can be used to control the value
@@ -18,6 +19,7 @@ export interface SearchInputProps {
 
 export const SearchInput: FunctionComponent<SearchInputProps> = ({
   id,
+  className,
   placeholder,
   autoFocus,
   value: incomingValue = '',
@@ -63,7 +65,7 @@ export const SearchInput: FunctionComponent<SearchInputProps> = ({
   }
 
   return (
-    <Input iconLeft="search" iconLeftType="utility" clearButton={!!value} onClear={() => setValue('')}>
+    <Input className={className} iconLeft="search" iconLeftType="utility" clearButton={!!value} onClear={() => setValue('')}>
       <input
         ref={inputEl}
         className="slds-input"

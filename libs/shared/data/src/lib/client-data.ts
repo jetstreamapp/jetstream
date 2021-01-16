@@ -47,25 +47,30 @@ export async function deleteOrg(org: SalesforceOrgUi): Promise<void> {
   return handleRequest({ method: 'DELETE', url: `/api/orgs/${org.uniqueId}` }).then(unwrapResponseIgnoreCache);
 }
 
-export async function describeGlobal(org: SalesforceOrgUi): Promise<ApiResponse<DescribeGlobalResult>> {
-  return handleRequest({ method: 'GET', url: '/api/describe' }, { org, useCache: true }).then(
-    (response: ApiResponse<DescribeGlobalResult>) => {
-      if (response.data && Array.isArray(response.data.sobjects)) {
-        response.data.sobjects.forEach((sobject) => {
-          if (sobject.label.startsWith('__MISSING LABEL__')) {
-            sobject.label = sobject.name;
-          }
-        });
-      }
-      return response;
+export async function describeGlobal(org: SalesforceOrgUi, isTooling = false): Promise<ApiResponse<DescribeGlobalResult>> {
+  return handleRequest(
+    { method: 'GET', url: '/api/describe', params: { isTooling } },
+    { org, useCache: true, useQueryParamsInCacheKey: true }
+  ).then((response: ApiResponse<DescribeGlobalResult>) => {
+    if (response.data && Array.isArray(response.data.sobjects)) {
+      response.data.sobjects.forEach((sobject) => {
+        if (sobject.label.startsWith('__MISSING LABEL__')) {
+          sobject.label = sobject.name;
+        }
+      });
     }
-  );
+    return response;
+  });
 }
 
-export async function describeSObject(org: SalesforceOrgUi, SObject: string): Promise<ApiResponse<DescribeSObjectResult>> {
+export async function describeSObject(
+  org: SalesforceOrgUi,
+  SObject: string,
+  isTooling = false
+): Promise<ApiResponse<DescribeSObjectResult>> {
   return handleRequest(
-    { method: 'GET', url: `/api/describe/${SObject}` },
-    { org, useCache: true, mockHeaderKey: SObject.startsWith('@') ? SObject : undefined }
+    { method: 'GET', url: `/api/describe/${SObject}`, params: { isTooling } },
+    { org, useCache: true, useQueryParamsInCacheKey: true, mockHeaderKey: SObject.startsWith('@') ? SObject : undefined }
   );
 }
 
@@ -96,6 +101,65 @@ export async function queryMore<T = any>(org: SalesforceOrgUi, nextRecordsUrl: s
   return handleRequest({ method: 'GET', url: `/api/query-more`, params: { nextRecordsUrl, isTooling } }, { org }).then(
     unwrapResponseIgnoreCache
   );
+}
+
+/**
+ * Query all records using a query locator to fetch all records
+ *
+ * @param org
+ * @param soqlQuery
+ * @param isTooling
+ * @param includeDeletedRecords
+ */
+export async function queryAll<T = any>(
+  org: SalesforceOrgUi,
+  soqlQuery: string,
+  isTooling = false,
+  includeDeletedRecords = false
+): Promise<API.QueryResults<T>> {
+  const results = await query(org, soqlQuery, isTooling, includeDeletedRecords);
+  while (!results.queryResults.done) {
+    const currentResults = await queryMore(org, results.queryResults.nextRecordsUrl, isTooling);
+    // update initial object with current results
+    results.queryResults.records = results.queryResults.records.concat(currentResults.queryResults.records);
+    results.queryResults.nextRecordsUrl = currentResults.queryResults.nextRecordsUrl;
+    results.queryResults.done = currentResults.queryResults.done;
+  }
+  results.queryResults.done = true;
+  return results;
+}
+
+/**
+ * This could result in an error: Maximum SOQL offset allowed is 2000
+ *
+ * @param selectedOrg
+ * @param queries
+ */
+export async function queryAllUsingOffset<T = any>(
+  selectedOrg: SalesforceOrgUi,
+  soqlQuery: string,
+  isTooling = false
+): Promise<API.QueryResults<T>> {
+  const LIMIT = 2000;
+  let offset = 0;
+  let done = false;
+
+  const results = await query<T>(selectedOrg, `${soqlQuery} LIMIT ${LIMIT} OFFSET ${offset}`, isTooling);
+
+  // Metadata objects may not allow queryMore, we use this to fetch more
+  while (done) {
+    const { queryResults } = await query<T>(selectedOrg, `${soqlQuery} LIMIT ${LIMIT} OFFSET ${offset}`);
+    results.queryResults.records = results.queryResults.records.concat(queryResults.records);
+    done = queryResults.done;
+
+    if (queryResults.records.length === LIMIT) {
+      done = false;
+      offset += LIMIT;
+    } else {
+      done = true;
+    }
+  }
+  return results;
 }
 
 export async function sobjectOperation<T = any>(
