@@ -9,7 +9,8 @@ export const Index = () => {
   return (
     <div>
       <Head>
-        <title>Jetstream</title>
+        <title>Jetstream - Supercharge your life!</title>
+        <meta name="description" content="Jetstream is a set of tools that supercharge your administration of Salesforce.com. Jetstream is build for administrators, developers, quality assurance, or power users that want to speed up your management of Salesforce. Jetstream comes with an advanced query builder for viewing records, a powerful data loader for making changes to your record data, and many more features!"/>
         <link rel="icon" type="image/png" href={favicon}></link>
         <meta charSet="UTF-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -38,7 +39,7 @@ export const Index = () => {
       </Head>
 
       <div>
-        <div className="relative py-3 px-4 sm:px-6 lg:px-8">
+        <div className="relative py-3 sm:px-6 lg:px-8">
           <NavBar />
         </div>
         <LandingPage />

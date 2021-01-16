@@ -225,6 +225,14 @@ function TermsOfService() {
         </p>
         <h2>SECTION 20 - CONTACT INFORMATION</h2>
         <p className="mb-2 pl-2">Questions about the Terms of Service should be sent to us at {email}.</p>
+        <h2>SECTION 21 - 3RD PARTY LICENSE INFORMATION</h2>
+        <p className="mb-2 pl-2">
+          License information is available upon request. The Jetstream homepage uses the following open source licenses that require
+          attribution.
+        </p>
+        <p className="mb-2 pl-2">https://github.com/salesforce-ux/design-system/blob/master/LICENSE-font.txt</p>
+        <p className="mb-2 pl-2">https://github.com/salesforce-ux/design-system/blob/master/LICENSE-icons-images.txt</p>
+        <p className="mb-2 pl-2">https://github.com/salesforce-ux/design-system/blob/master/LICENSE.txt</p>
         <Footer currPage="tos" />
       </div>
     </Fragment>

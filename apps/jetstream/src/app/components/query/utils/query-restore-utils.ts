@@ -101,7 +101,6 @@ interface QueryRestoreStateItems extends QueryRestoreErrors {
   queryLimitSkip: string;
   queryOrderByState: QueryOrderByClause[];
   querySoqlState: string;
-  // RESET: queryIncludeDeletedRecordsState, queryIsFavoriteState
 }
 
 interface FieldWrapperWithParentKey {
