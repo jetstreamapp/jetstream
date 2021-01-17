@@ -1,4 +1,4 @@
-import React, { FunctionComponent } from 'react';
+import React, { Fragment, FunctionComponent } from 'react';
 import { FieldWrapper } from '@jetstream/types';
 import Tooltip from '../widgets/Tooltip';
 import Badge from '../widgets/Badge';
@@ -25,10 +25,16 @@ function getContent(field: FieldWrapper) {
     let tooltipContent: JSX.Element = undefined;
     if (Array.isArray(field.metadata.picklistValues) && field.metadata.picklistValues.length > 0) {
       copyToClipboardValue = field.metadata.picklistValues?.map((picklist) => picklist.value).join('\n');
+      let values: (string | JSX.Element)[] = field.metadata.picklistValues?.map((picklist) => picklist.label || picklist.value) || [];
+      if (values.length > 10) {
+        values = values.slice(0, 10);
+        values.push(<div className="slds-text-color_inverse-weak">Too many values to show</div>);
+      }
       tooltipContent = (
         <span>
-          {field.metadata.picklistValues?.map((picklist) => (
-            <div key={picklist.value}>{picklist.label}</div>
+          <h3 className="slds-text-title_caps slds-text-color_inverse">Picklist Values</h3>
+          {values.map((value, i) => (
+            <div key={i}>{value}</div>
           ))}
           {copyToClipboardMsg}
         </span>
