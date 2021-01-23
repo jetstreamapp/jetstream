@@ -93,12 +93,14 @@
 }
 
 .slds-item {
-  cursor: pointer;
+  &:not(.read-only) {
+    cursor: pointer;
+  }
   margin: 1px;
-  &:hover {
+  &:not(.read-only):hover {
     background-color: $color-background;
   }
-  &.is-active {
+  &:not(.read-only).is-active {
     background-color: $color-background-highlight;
   }
 }

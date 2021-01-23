@@ -12,12 +12,14 @@ export interface IconObj {
   description?: string;
 }
 
-export type IconName = StandardIcon | UtilityIcon;
+export type IconName = StandardIcon | UtilityIcon | DoctypeIcon;
 export type StandardIcon = keyof StandardIconObj;
+export type DoctypeIcon = keyof DoctypeIconObj;
 export type UtilityIcon = keyof UtilityIconObj;
 type IconEl = (props: React.SVGProps<SVGSVGElement>) => JSX.Element;
 export interface StandardIconObj {
   activations: IconEl;
+  asset_relationship: IconEl;
   data_streams: IconEl;
   entity: IconEl;
   multi_picklist: IconEl;
@@ -27,6 +29,13 @@ export interface StandardIconObj {
   related_list: IconEl;
   record_lookup: IconEl;
   settings: IconEl;
+}
+
+export interface DoctypeIconObj {
+  xml: IconEl;
+  excel: IconEl;
+  pack: IconEl;
+  zip: IconEl;
 }
 
 export interface UtilityIconObj {
@@ -69,6 +78,7 @@ export interface UtilityIconObj {
   multi_select_checkbox: IconEl;
   new_window: IconEl;
   notification: IconEl;
+  page: IconEl;
   play: IconEl;
   prompt_edit: IconEl;
   record_lookup: IconEl;
@@ -78,6 +88,7 @@ export interface UtilityIconObj {
   search: IconEl;
   settings: IconEl;
   setup: IconEl;
+  share: IconEl;
   steps: IconEl;
   success: IconEl;
   switch: IconEl;

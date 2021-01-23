@@ -2,13 +2,17 @@ import { QueryResultsColumn } from '@jetstream/api-interfaces';
 import { MapOf } from '@jetstream/types';
 import { ChildRelationship, Field } from 'jsforce';
 import { ReactNode } from 'react';
+import { ListMetadataResult } from '../salesforce/types';
 import { SalesforceOrgUi } from '../types';
 
 export type FileExtCsv = 'csv';
 export type FileExtXLSX = 'xlsx';
 export type FileExtJson = 'json';
+export type FileExtXml = 'xml';
+export type FileExtZip = 'zip';
 export type FileExtCsvXLSX = FileExtCsv | FileExtXLSX;
 export type FileExtCsvXLSXJson = FileExtCsvXLSX | FileExtJson;
+export type FileExtAllTypes = FileExtCsv | FileExtXLSX | FileExtJson | FileExtXml | FileExtZip;
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export interface WorkerMessage<T, K = any, E = any> {
@@ -151,12 +155,13 @@ export type PositionBottom = 'bottom';
 export type PositionBottomLeft = 'bottom-left';
 export type PositionBottomRight = 'bottom-right';
 
-export type MimeType = MimeTypePlainText | MimeTypeCsv | MimeTypeOctetStream | MimeTypeZip | MimeTypeJson;
+export type MimeType = MimeTypePlainText | MimeTypeCsv | MimeTypeOctetStream | MimeTypeZip | MimeTypeJson | MimeTypeXML;
 export type MimeTypePlainText = 'text/plain;charset=utf-8';
 export type MimeTypeCsv = 'text/csv;charset=utf-8';
 export type MimeTypeOctetStream = 'application/octet-stream;charset=utf-8';
 export type MimeTypeZip = 'application/zip;charset=utf-8';
 export type MimeTypeJson = 'application/json;charset=utf-8';
+export type MimeTypeXML = 'text/xml;charset=utf-8';
 
 export type InputAcceptType = InputAcceptTypeZip | InputAcceptTypeCsv | InputAcceptTypeExcel;
 export type InputAcceptTypeZip = '.zip';
@@ -192,6 +197,7 @@ export interface ListItem<V = string, M = any> {
   label: string;
   secondaryLabel?: string;
   value: V;
+  title?: string;
   meta?: M;
 }
 
@@ -307,7 +313,7 @@ export interface FormGroupDropdownItem {
   icon: any; // FIXME:
 }
 
-export type AsyncJobType = 'BulkDelete' | 'BulkDownload';
+export type AsyncJobType = 'BulkDelete' | 'BulkDownload' | 'RetrievePackageZip';
 export type AsyncJobStatus = 'pending' | 'in-progress' | 'success' | 'failed' | 'aborted';
 
 export type AsyncJobNew<T = unknown> = Omit<AsyncJob<T>, 'id' | 'started' | 'finished' | 'lastActivity' | 'status' | 'statusMessage'>;
@@ -341,8 +347,14 @@ export interface BulkDownloadJob {
   nextRecordsUrl: string;
   fields: string[];
   records: MapOf<string>[];
-  fileFormat: FileExtCsvXLSXJson;
+  fileFormat: FileExtAllTypes;
   fileName: string;
+}
+
+export interface RetrievePackageZipJob {
+  listMetadataItems: MapOf<ListMetadataResult[]>;
+  fileName: string;
+  mimeType: MimeType;
 }
 
 export interface QueryHistoryItem {

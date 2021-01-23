@@ -5,8 +5,9 @@ import { IconType } from '@jetstream/icon-factory';
 import { logger } from '@jetstream/shared/client-logger';
 import classNames from 'classnames';
 import React from 'react';
-import { StandardIconObj, UtilityIconObj } from './icon-types';
+import { DoctypeIconObj, StandardIconObj, UtilityIconObj } from './icon-types';
 import StandardIcon_Activations from './icons/standard/Activations';
+import StandardIcon_AssetRelationship from './icons/standard/AssetRelationship';
 import StandardIcon_DataStreams from './icons/standard/DataStreams';
 import StandardIcon_Entity from './icons/standard/Entity';
 import StandardIcon_MultiPicklist from './icons/standard/MultiPicklist';
@@ -16,6 +17,10 @@ import StandardIcon_Record from './icons/standard/Record';
 import StandardIcon_RecordLookup from './icons/standard/RecordLookup';
 import StandardIcon_RelatedList from './icons/standard/RelatedList';
 import StandardIcon_Settings from './icons/standard/Settings';
+import DoctypeIcon_Xml from './icons/doctype/Xml';
+import DoctypeIcon_Excel from './icons/doctype/Excel';
+import DoctypeIcon_Pack from './icons/doctype/Pack';
+import DoctypeIcon_Zip from './icons/doctype/Zip';
 import UtilityIcon_Add from './icons/utility/Add';
 import UtilityIcon_ApexPlugin from './icons/utility/ApexPlugin';
 import UtilityIcon_Arrowdown from './icons/utility/Arrowdown';
@@ -55,6 +60,7 @@ import UtilityIcon_Moneybag from './icons/utility/Moneybag';
 import UtilityIcon_MultiSelectCheckbox from './icons/utility/MultiSelectCheckbox';
 import UtilityIcon_NewWindow from './icons/utility/NewWindow';
 import UtilityIcon_Notification from './icons/utility/Notification';
+import UtilityIcon_Page from './icons/utility/Page';
 import UtilityIcon_Play from './icons/utility/Play';
 import UtilityIcon_PromptEdit from './icons/utility/PromptEdit';
 import UtilityIcon_RecordLookup from './icons/utility/RecordLookup';
@@ -62,6 +68,7 @@ import UtilityIcon_Refresh from './icons/utility/Refresh';
 import UtilityIcon_Right from './icons/utility/Right';
 import UtilityIcon_Save from './icons/utility/Save';
 import UtilityIcon_Search from './icons/utility/Search';
+import UtilityIcon_Share from './icons/utility/Share';
 import UtilityIcon_Settings from './icons/utility/Settings';
 import UtilityIcon_Setup from './icons/utility/Setup';
 import UtilityIcon_Steps from './icons/utility/Steps';
@@ -75,6 +82,7 @@ import UtilityIcon_Warning from './icons/utility/Warning';
 
 const standardIcons: StandardIconObj = {
   activations: StandardIcon_Activations,
+  asset_relationship: StandardIcon_AssetRelationship,
   data_streams: StandardIcon_DataStreams,
   entity: StandardIcon_Entity,
   multi_picklist: StandardIcon_MultiPicklist,
@@ -84,6 +92,13 @@ const standardIcons: StandardIconObj = {
   related_list: StandardIcon_RelatedList,
   record_lookup: StandardIcon_RecordLookup,
   settings: StandardIcon_Settings,
+};
+
+const doctypeIcons: DoctypeIconObj = {
+  xml: DoctypeIcon_Xml,
+  excel: DoctypeIcon_Excel,
+  pack: DoctypeIcon_Pack,
+  zip: DoctypeIcon_Zip,
 };
 
 const utilityIcons: UtilityIconObj = {
@@ -126,6 +141,7 @@ const utilityIcons: UtilityIconObj = {
   multi_select_checkbox: UtilityIcon_MultiSelectCheckbox,
   new_window: UtilityIcon_NewWindow,
   notification: UtilityIcon_Notification,
+  page: UtilityIcon_Page,
   play: UtilityIcon_Play,
   prompt_edit: UtilityIcon_PromptEdit,
   record_lookup: UtilityIcon_RecordLookup,
@@ -133,6 +149,7 @@ const utilityIcons: UtilityIconObj = {
   right: UtilityIcon_Right,
   save: UtilityIcon_Save,
   search: UtilityIcon_Search,
+  share: UtilityIcon_Share,
   settings: UtilityIcon_Settings,
   setup: UtilityIcon_Setup,
   steps: UtilityIcon_Steps,
@@ -152,6 +169,12 @@ export function getIcon(type: IconType, icon: string, className?: string) {
     case 'standard':
       if (standardIcons[icon]) {
         IconOrFallback = standardIcons[icon];
+        found = true;
+      }
+      break;
+    case 'doctype':
+      if (doctypeIcons[icon]) {
+        IconOrFallback = doctypeIcons[icon];
         found = true;
       }
       break;

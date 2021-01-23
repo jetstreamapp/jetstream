@@ -330,6 +330,7 @@ export const Picklist: FunctionComponent<PicklistProps> = ({
                         id={item.id}
                         label={item.label}
                         secondaryLabel={item.secondaryLabel}
+                        title={item.title}
                         value={item.value}
                         isSelected={selectedItemsIdsSet.has(item.id)}
                         onClick={() => handleSelection(item)}

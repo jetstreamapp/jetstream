@@ -15,6 +15,7 @@ export interface ModalProps {
   footerClassName?: string;
   size?: SizeSmMdLg;
   containerClassName?: string;
+  closeDisabled?: boolean;
   closeOnEsc?: boolean;
   closeOnBackdropClick?: boolean;
   skipAutoFocus?: boolean;
@@ -81,6 +82,7 @@ export const ModalContent: FunctionComponent<ModalProps> = ({
   footerClassName,
   size,
   containerClassName,
+  closeDisabled,
   closeOnEsc = true,
   closeOnBackdropClick,
   skipAutoFocus,
@@ -97,14 +99,14 @@ export const ModalContent: FunctionComponent<ModalProps> = ({
   }, []);
 
   function handleKeyUp(event: KeyboardEvent<HTMLInputElement>) {
-    if (closeOnEsc && isEscapeKey(event)) {
+    if (!closeDisabled && closeOnEsc && isEscapeKey(event)) {
       onClose();
     }
   }
 
   // THIS DOES NOT WORK: the modal content is in front of this button ;(
   function handleBackdropClick() {
-    if (closeOnBackdropClick) {
+    if (!closeDisabled && closeOnBackdropClick) {
       onClose();
     }
   }
@@ -126,6 +128,7 @@ export const ModalContent: FunctionComponent<ModalProps> = ({
               className="slds-button slds-button_icon slds-modal__close slds-button_icon-inverse"
               title="Close"
               ref={closeButtonRef}
+              disabled={closeDisabled}
               onClick={() => onClose()}
             >
               <Icon type="utility" icon="close" className="slds-button__icon slds-button__icon_large" omitContainer />

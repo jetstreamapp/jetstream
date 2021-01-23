@@ -22,6 +22,7 @@ const Feedback = lazy(() => import('./components/feedback/Feedback'));
 const LoadRecords = lazy(() => import('./components/load-records/LoadRecords'));
 const Query = lazy(() => import('./components/query/Query'));
 const ManagePermissions = lazy(() => import('./components/manage-permissions/ManagePermissions'));
+const DeployMetadata = lazy(() => import('./components/deploy/deploy-metadata/DeployMetadata'));
 
 interface RouteItem {
   path: string;
@@ -63,6 +64,15 @@ const ROUTES: RouteItem[] = [
     render: () => (
       <OrgSelectionRequired>
         <ManagePermissions />
+      </OrgSelectionRequired>
+    ),
+  },
+  {
+    path: '/deploy/deploy-metadata',
+    // flag: FEATURE_FLAGS.PERMISSION_MANAGER, // TODO:
+    render: () => (
+      <OrgSelectionRequired>
+        <DeployMetadata />
       </OrgSelectionRequired>
     ),
   },

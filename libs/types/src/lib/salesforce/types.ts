@@ -1,4 +1,4 @@
-import { DescribeSObjectResult, Field } from 'jsforce';
+import { DescribeSObjectResult, Field, RetrieveResult as RetrieveResultSfdc } from 'jsforce';
 import { HttpMethod, MapOf, RecordAttributes } from '../types';
 
 export type BulkApiDownloadType = 'request' | 'result';
@@ -339,7 +339,7 @@ export interface PicklistFieldValueItem {
   validFor: number[];
 }
 
-export interface ListMetadataResult {
+export interface ListMetadataResultRaw {
   createdById: string;
   createdByName: string;
   createdDate: string;
@@ -352,4 +352,41 @@ export interface ListMetadataResult {
   manageableState?: 'beta' | 'deleted' | 'deprecated' | 'deprecatedEditable' | 'installed' | 'installedEditable' | 'released' | 'unmanaged';
   namespacePrefix?: string;
   type: string;
+}
+
+export interface ListMetadataResult {
+  createdById: string;
+  createdByName: string;
+  createdDate: Date;
+  fileName: string;
+  fullName: string;
+  id: string;
+  lastModifiedById: string;
+  lastModifiedByName: string;
+  lastModifiedDate: Date;
+  manageableState?: 'beta' | 'deleted' | 'deprecated' | 'deprecatedEditable' | 'installed' | 'installedEditable' | 'released' | 'unmanaged';
+  namespacePrefix?: string;
+  type: string;
+}
+
+export interface RetrieveResult extends Omit<RetrieveResultSfdc, 'zipFile'> {
+  // fileProperties: FileProperties[];
+  // id: string;
+  // messages: RetrieveMessage[];
+  // zipFile: string
+  done: boolean;
+  errorMessage?: string;
+  errorStatusCode?: string;
+  status: 'Pending' | 'InProgress' | 'Succeeded' | 'Failed';
+  success: boolean;
+  zipFile?: string;
+}
+
+export interface RetrieveResultRaw extends Omit<RetrieveResultSfdc, 'zipFile'> {
+  done: 'true' | 'false';
+  errorMessage?: string;
+  errorStatusCode?: string;
+  status: 'Pending' | 'InProgress' | 'Succeeded' | 'Failed';
+  success: 'true' | 'false';
+  zipFile?: string | { $: { 'xsi:nil': 'true' } };
 }

@@ -1,0 +1,53 @@
+/** @jsx jsx */
+import { jsx } from '@emotion/react';
+import { ListItem, SalesforceOrgUi } from '@jetstream/types';
+import { ListWithFilterMultiSelect } from '@jetstream/ui';
+import { FunctionComponent, useEffect } from 'react';
+import { SalesforceUser } from './deploy-metadata.types';
+import { useUsers } from './utils/userUsers';
+
+export interface DeployMetadataUserListProps {
+  selectedOrg: SalesforceOrgUi;
+  initialUsers: ListItem<string, SalesforceUser>[];
+  selectedUsers: string[];
+  onUsers: (users: ListItem<string, SalesforceUser>[]) => void;
+  onSelection: (users: string[]) => void;
+}
+
+export const DeployMetadataUserList: FunctionComponent<DeployMetadataUserListProps> = ({
+  selectedOrg,
+  initialUsers,
+  selectedUsers,
+  onUsers,
+  onSelection,
+}) => {
+  const { loadUsers, loading, users, hasError, lastRefreshed } = useUsers(selectedOrg, initialUsers);
+
+  useEffect(() => {
+    if (users && users.length) {
+      onUsers(users);
+    }
+  }, [users, onUsers]);
+
+  return (
+    <ListWithFilterMultiSelect
+      labels={{
+        listHeading: 'Users',
+        filter: 'Filter Users',
+        descriptorSingular: 'user',
+        descriptorPlural: 'users',
+      }}
+      allowRefresh
+      lastRefreshed={lastRefreshed}
+      items={users}
+      selectedItems={selectedUsers}
+      loading={loading}
+      onSelected={onSelection}
+      hasError={hasError}
+      errorReattempt={loadUsers}
+      onRefresh={() => loadUsers(true)}
+    />
+  );
+};
+
+export default DeployMetadataUserList;

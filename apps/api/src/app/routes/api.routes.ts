@@ -6,7 +6,7 @@ import * as metadataToolingController from '../controllers/sf-metadata-tooling.c
 import * as sfMiscController from '../controllers/sf-misc.controller';
 import * as sfQueryController from '../controllers/sf-query.controller';
 import * as userController from '../controllers/user.controller';
-import { addOrgsToLocal, checkAuth, ensureOrgExists, validate } from './route.middleware';
+import { addOrgsToLocal, checkAuth, ensureOrgExists, ensureTargetOrgExists, validate } from './route.middleware';
 
 const routes: express.Router = Router();
 
@@ -26,6 +26,7 @@ routes.get('/query-more', ensureOrgExists, validate(sfQueryController.routeValid
 
 routes.post('/record/:operation/:sobject', ensureOrgExists, sfMiscController.recordOperation);
 
+routes.get('/metadata/describe', ensureOrgExists, metadataToolingController.describeMetadata);
 routes.post(
   '/metadata/list',
   ensureOrgExists,
@@ -38,6 +39,7 @@ routes.post(
   validate(metadataToolingController.routeValidators.readMetadata),
   metadataToolingController.readMetadata
 );
+
 routes.post(
   '/metadata/deploy',
   ensureOrgExists,
@@ -50,6 +52,46 @@ routes.get(
   ensureOrgExists,
   validate(metadataToolingController.routeValidators.checkMetadataResults),
   metadataToolingController.checkMetadataResults
+);
+
+routes.post(
+  '/metadata/retrieve/list-metadata',
+  ensureOrgExists,
+  metadataToolingController.routeValidators.retrievePackageFromLisMetadataResults,
+  metadataToolingController.retrievePackageFromLisMetadataResults
+);
+routes.post(
+  '/metadata/retrieve/package-names',
+  ensureOrgExists,
+  metadataToolingController.routeValidators.retrievePackageFromExistingServerPackages,
+  metadataToolingController.retrievePackageFromExistingServerPackages
+);
+routes.post(
+  '/metadata/retrieve/manifest',
+  ensureOrgExists,
+  metadataToolingController.routeValidators.retrievePackageFromManifest,
+  metadataToolingController.retrievePackageFromManifest
+);
+routes.get(
+  '/metadata/retrieve/check-results',
+  ensureOrgExists,
+  metadataToolingController.routeValidators.checkRetrieveStatus,
+  metadataToolingController.checkRetrieveStatus
+);
+
+routes.post(
+  '/metadata/retrieve/check-and-redeploy',
+  ensureOrgExists,
+  ensureTargetOrgExists,
+  metadataToolingController.routeValidators.checkRetrieveStatusAndRedeploy,
+  metadataToolingController.checkRetrieveStatusAndRedeploy
+);
+
+routes.post(
+  '/metadata/package-xml',
+  ensureOrgExists,
+  validate(metadataToolingController.routeValidators.getPackageXml),
+  metadataToolingController.getPackageXml
 );
 
 routes.post(

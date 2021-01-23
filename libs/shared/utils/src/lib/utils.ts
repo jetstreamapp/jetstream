@@ -6,6 +6,8 @@ import {
   BulkJobUntyped,
   HttpMethod,
   InsertUpdateUpsertDelete,
+  ListMetadataResult,
+  ListMetadataResultRaw,
   MapOf,
   QueryFieldWithPolymorphic,
   Record,

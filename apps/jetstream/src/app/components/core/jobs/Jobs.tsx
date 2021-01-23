@@ -139,6 +139,38 @@ export const Jobs: FunctionComponent<JobsProps> = () => {
             }
             break;
           }
+          case 'RetrievePackageZip': {
+            try {
+              const newJobs = { ...jobsObj };
+              const { job } = data;
+              if (error) {
+                newJobs[job.id] = {
+                  ...job,
+                  finished: new Date(),
+                  lastActivity: new Date(),
+                  status: 'failed',
+                  statusMessage: error || 'An unknown error ocurred',
+                };
+              } else {
+                const { fileData, mimeType, fileName } = data.results as { fileData: ArrayBuffer; mimeType: MimeType; fileName: string };
+
+                newJobs[job.id] = {
+                  ...job,
+                  finished: new Date(),
+                  lastActivity: new Date(),
+                  status: 'success',
+                  statusMessage: 'Package downloaded successfully',
+                };
+
+                saveFile(fileData, fileName, mimeType);
+              }
+              setJobs(newJobs);
+            } catch (ex) {
+              // TODO:
+              logger.error('[ERROR][JOB] Error processing job results', ex);
+            }
+            break;
+          }
           default:
             break;
         }

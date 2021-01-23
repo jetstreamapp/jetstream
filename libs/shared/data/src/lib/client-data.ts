@@ -13,9 +13,20 @@ import {
   SobjectOperation,
   UserProfileUi,
   ListMetadataResult,
+  ListMetadataResultRaw,
+  MapOf,
+  RetrieveResult,
 } from '@jetstream/types';
-import { AsyncResult, DeployOptions, DeployResult, DescribeGlobalResult, DescribeSObjectResult } from 'jsforce';
-import { handleRequest } from './client-data-data-helper';
+import {
+  AsyncResult,
+  DeployOptions,
+  DeployResult,
+  DescribeGlobalResult,
+  DescribeMetadataResult,
+  DescribeSObjectResult,
+  ListMetadataQuery,
+} from 'jsforce';
+import { handleRequest, transformListMetadataResponse } from './client-data-data-helper';
 //// LANDING PAGE ROUTES
 
 function unwrapResponseIgnoreCache<T>(response: ApiResponse<T>) {
@@ -180,11 +191,22 @@ export async function sobjectOperation<T = any>(
   );
 }
 
+export async function describeMetadata(org: SalesforceOrgUi): Promise<ApiResponse<DescribeMetadataResult>> {
+  return handleRequest({ method: 'GET', url: `/api/metadata/describe` }, { org, useCache: true });
+}
+
 export async function listMetadata(
   org: SalesforceOrgUi,
-  types: { type: string; folder?: string }[]
+  types: ListMetadataQuery[],
+  skipRequestCache = false
 ): Promise<ApiResponse<ListMetadataResult[]>> {
-  return handleRequest({ method: 'POST', url: `/api/metadata/list`, data: { types } }, { org, useCache: true, useBodyInCacheKey: true });
+  return handleRequest<ListMetadataResultRaw[]>(
+    { method: 'POST', url: `/api/metadata/list`, data: { types } },
+    { org, useCache: true, skipRequestCache, useBodyInCacheKey: true }
+  ).then(({ data, cache }) => ({
+    data: transformListMetadataResponse(data),
+    cache,
+  }));
 }
 
 export async function readMetadata<T = any>(org: SalesforceOrgUi, type: string, fullNames: string[]): Promise<T[]> {
@@ -202,6 +224,64 @@ export async function deployMetadata(
 
 export async function checkMetadataResults(org: SalesforceOrgUi, id: string, includeDetails = false): Promise<DeployResult> {
   return handleRequest({ method: 'GET', url: `/api/metadata/deploy/${id}`, params: { includeDetails } }, { org }).then(
+    unwrapResponseIgnoreCache
+  );
+}
+
+export async function retrieveMetadataFromListMetadata(
+  org: SalesforceOrgUi,
+  payload: MapOf<ListMetadataResult[]>
+): Promise<RetrieveResult> {
+  return handleRequest({ method: 'POST', url: `/api/metadata/retrieve/list-metadata`, data: payload }, { org }).then(
+    unwrapResponseIgnoreCache
+  );
+}
+
+export async function retrieveMetadataFromPackagesNames(org: SalesforceOrgUi, packageNames: string[]): Promise<RetrieveResult> {
+  return handleRequest({ method: 'POST', url: `/api/metadata/retrieve/package-names`, data: { packageNames } }, { org }).then(
+    unwrapResponseIgnoreCache
+  );
+}
+
+export async function retrieveMetadataFromManifestFile(org: SalesforceOrgUi, packageManifest: string): Promise<RetrieveResult> {
+  return handleRequest({ method: 'POST', url: `/api/metadata/retrieve/manifest`, data: { packageManifest } }, { org }).then(
+    unwrapResponseIgnoreCache
+  );
+}
+
+export async function checkMetadataRetrieveResults(org: SalesforceOrgUi, id: string): Promise<RetrieveResult> {
+  return handleRequest({ method: 'GET', url: `/api/metadata/retrieve/check-results`, params: { id } }, { org }).then(
+    unwrapResponseIgnoreCache
+  );
+}
+
+export async function checkMetadataRetrieveResultsAndDeployToTarget(
+  org: SalesforceOrgUi,
+  targetOrg: SalesforceOrgUi,
+  {
+    id,
+    deployOptions,
+    replacementPackageXml,
+    changesetName,
+  }: { id: string; deployOptions: DeployOptions; replacementPackageXml?: string; changesetName?: string }
+): Promise<{ type: 'deploy' | 'retrieve'; results: RetrieveResult }> {
+  return handleRequest(
+    {
+      method: 'POST',
+      url: `/api/metadata/retrieve/check-and-redeploy`,
+      params: { id },
+      data: { deployOptions, replacementPackageXml, changesetName },
+    },
+    { org, targetOrg }
+  ).then(unwrapResponseIgnoreCache);
+}
+
+export async function getPackageXml(
+  org: SalesforceOrgUi,
+  metadata: MapOf<ListMetadataResult[]>,
+  otherFields: MapOf<string> = {}
+): Promise<string> {
+  return handleRequest({ method: 'POST', url: `/api/metadata/package-xml`, data: { metadata, otherFields } }, { org }).then(
     unwrapResponseIgnoreCache
   );
 }

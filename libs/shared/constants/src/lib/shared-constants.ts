@@ -31,6 +31,8 @@ export const HTTP = {
     X_LOGOUT_URL: 'X-LOGOUT-URL',
     X_SFDC_ID: 'X-SFDC-ID',
     X_SFDC_API_VERSION: 'X-SFDC-API-VERSION',
+    X_SFDC_ID_TARGET: 'X-SFDC-ID-TARGET',
+    X_SFDC_API_TARGET_VERSION: 'X-SFDC-API-TARGET-VERSION',
     X_SFDC_ORG_CONNECTION_ERROR: 'X-SFDC-ORG-CONNECTION-ERROR',
     X_SFDC_Session: 'X-SFDC-SESSION',
     X_CACHE_RESPONSE: 'X-CACHE-RESPONSE',
@@ -58,6 +60,8 @@ export const MIME_TYPES: MapOf<MimeType> = {
   CSV: 'text/csv;charset=utf-8',
   XLSX: 'application/octet-stream;charset=utf-8',
   JSON: 'application/json;charset=utf-8',
+  XML: 'text/xml;charset=utf-8',
+  ZIP: 'application/zip;charset=utf-8',
 };
 
 export const INDEXED_DB = {

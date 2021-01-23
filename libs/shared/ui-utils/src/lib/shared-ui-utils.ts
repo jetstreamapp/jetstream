@@ -1,7 +1,7 @@
 import { logger } from '@jetstream/shared/client-logger';
 import { HTTP } from '@jetstream/shared/constants';
-import { checkMetadataResults } from '@jetstream/shared/data';
-import { delay, ensureBoolean, orderObjectsBy, REGEX } from '@jetstream/shared/utils';
+import { checkMetadataResults, checkMetadataRetrieveResults, checkMetadataRetrieveResultsAndDeployToTarget } from '@jetstream/shared/data';
+import { delay, ensureBoolean, NOOP, orderObjectsBy, REGEX } from '@jetstream/shared/utils';
 import {
   AndOr,
   ErrorResult,
@@ -18,11 +18,12 @@ import {
   QueryFieldWithPolymorphic,
   QueryFilterOperator,
   SalesforceOrgUi,
+  RetrieveResult,
 } from '@jetstream/types';
 import parseISO from 'date-fns/parseISO';
 import { saveAs } from 'file-saver';
-import { DeployResult, Field } from 'jsforce';
-import { get as safeGet } from 'lodash';
+import { DeployOptions, DeployResult, Field } from 'jsforce';
+import { get as safeGet, isFunction } from 'lodash';
 import isNil from 'lodash/isNil';
 import isString from 'lodash/isString';
 import numeral from 'numeral';
@@ -319,9 +320,12 @@ export function getFilename(org: SalesforceOrgUi, parts: string[]) {
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function saveFile(content: any, filename: string, type: MimeType) {
-  // saveAs(new Blob([wbout],{type:"application/octet-stream"}), "test.xlsx");
   const blob = new Blob([content], { type });
   saveAs(blob, filename);
+}
+
+export function base64ToArrayBuffer(base64: string) {
+  return Uint8Array.from(atob(base64), (c) => c.charCodeAt(0)).buffer;
 }
 
 export function convertTippyPlacementToSlds(placement: tippyPlacement): PositionAll | null {
@@ -748,12 +752,13 @@ export function hasFeatureFlagAccess(featureFlags: Set<string>, flag: string) {
 export async function pollMetadataResultsUntilDone(
   selectedOrg: SalesforceOrgUi,
   id: string,
-  options?: { includeDetails?: boolean; interval?: number; maxAttempts?: number }
+  options?: { includeDetails?: boolean; interval?: number; maxAttempts?: number; onChecked?: (deployResults: DeployResult) => void }
 ) {
-  let { includeDetails, interval, maxAttempts } = options || {};
+  let { includeDetails, interval, maxAttempts, onChecked } = options || {};
   includeDetails = includeDetails || false;
   interval = interval || 2000;
   maxAttempts = maxAttempts || 100;
+  onChecked = isFunction(onChecked) ? onChecked : NOOP;
 
   let attempts = 0;
   let done = false;
@@ -762,6 +767,7 @@ export async function pollMetadataResultsUntilDone(
     await delay(interval);
     deployResults = await checkMetadataResults(selectedOrg, id, includeDetails);
     logger.log({ deployResults });
+    onChecked(deployResults);
     done = deployResults.done;
     attempts++;
   }
@@ -769,6 +775,81 @@ export async function pollMetadataResultsUntilDone(
     throw new Error('Timed out while checking for metadata results');
   }
   return deployResults;
+}
+
+export async function pollRetrieveMetadataResultsUntilDone(
+  selectedOrg: SalesforceOrgUi,
+  id: string,
+  options?: { interval?: number; maxAttempts?: number; onChecked?: (retrieveResults: RetrieveResult) => void }
+) {
+  let { interval, maxAttempts, onChecked } = options || {};
+  interval = interval || 2000;
+  maxAttempts = maxAttempts || 100;
+  onChecked = isFunction(onChecked) ? onChecked : NOOP;
+
+  let attempts = 0;
+  let done = false;
+  let retrieveResults: RetrieveResult;
+  while (!done && attempts <= maxAttempts) {
+    await delay(interval);
+    retrieveResults = await checkMetadataRetrieveResults(selectedOrg, id);
+    logger.log({ retrieveResults });
+    onChecked(retrieveResults);
+    done = retrieveResults.done;
+    attempts++;
+  }
+  if (!done) {
+    throw new Error('Timed out while checking for metadata results');
+  }
+  return retrieveResults;
+}
+
+/**
+ * Retrieve and deploy to second org once results are ready
+ * @param selectedOrg
+ * @param targetOrg
+ * @param id
+ * @param options
+ */
+export async function pollAndDeployMetadataResultsWhenReady(
+  selectedOrg: SalesforceOrgUi,
+  targetOrg: SalesforceOrgUi,
+  id: string,
+  options?: {
+    interval?: number;
+    maxAttempts?: number;
+    deployOptions: DeployOptions;
+    changesetName?: string;
+    replacementPackageXml?: string;
+    onChecked?: (retrieveResults: { type: 'deploy' | 'retrieve'; results: RetrieveResult }) => void;
+  }
+) {
+  // eslint-disable-next-line prefer-const
+  let { interval, maxAttempts, deployOptions, replacementPackageXml, changesetName, onChecked } = options || {};
+  interval = interval || 2000;
+  maxAttempts = maxAttempts || 100;
+  onChecked = isFunction(onChecked) ? onChecked : NOOP;
+
+  let attempts = 0;
+  let done = false;
+  let retrieveResults: { type: 'deploy' | 'retrieve'; results: RetrieveResult };
+  while (!done && attempts <= maxAttempts) {
+    await delay(interval);
+    retrieveResults = await checkMetadataRetrieveResultsAndDeployToTarget(selectedOrg, targetOrg, {
+      id,
+      deployOptions,
+      replacementPackageXml,
+      changesetName,
+    });
+    logger.log({ retrieveResults });
+    onChecked(retrieveResults);
+    done = retrieveResults.type === 'deploy';
+    attempts++;
+  }
+  if (!done) {
+    throw new Error('Timed out while checking for metadata results');
+  }
+  return retrieveResults;
 }
 
 /**

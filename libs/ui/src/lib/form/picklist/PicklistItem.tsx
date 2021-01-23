@@ -8,12 +8,13 @@ export interface PicklistItemProps {
   label: string;
   secondaryLabel?: string;
   value: string;
+  title?: string;
   isSelected: boolean;
   onClick: (id: string) => void;
 }
 
 export const PicklistItem = forwardRef<HTMLLIElement, PicklistItemProps>(
-  ({ id, label, secondaryLabel, value, isSelected, onClick }, ref) => {
+  ({ id, label, secondaryLabel, value, title, isSelected, onClick }, ref) => {
     return (
       <li
         ref={ref}
@@ -45,7 +46,7 @@ export const PicklistItem = forwardRef<HTMLLIElement, PicklistItemProps>(
             )}
           </span>
           <span className="slds-media__body">
-            <span className="slds-truncate" title={`${label || ''} ${secondaryLabel || ''}`}>
+            <span className="slds-truncate" title={title || `${label || ''} ${secondaryLabel || ''}`}>
               {label}
               {secondaryLabel && <span className="slds-text-color_weak slds-m-left_xx-small">{secondaryLabel}</span>}
             </span>
