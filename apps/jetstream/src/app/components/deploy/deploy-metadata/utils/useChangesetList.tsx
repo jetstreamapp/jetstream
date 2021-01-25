@@ -1,60 +1,54 @@
 /** @jsx jsx */
 import { logger } from '@jetstream/shared/client-logger';
 import { query } from '@jetstream/shared/data';
+import { useReducerFetchFn } from '@jetstream/shared/ui-utils';
 import { ListItem, SalesforceOrgUi } from '@jetstream/types';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useReducer, useRef } from 'react';
 import { ChangeSetPackage } from '../deploy-metadata.types';
 import { getQueryForPackage } from './deploy-metadata.utils';
 
 export function useChangesetList(selectedOrg: SalesforceOrgUi, initialPackages: ListItem<string, ChangeSetPackage>[]) {
   const isMounted = useRef(null);
-  const [hasLoaded, setHasLoaded] = useState(initialPackages ? true : false);
-  const [loading, setLoading] = useState(false);
-  const [hasError, setHasError] = useState(false);
-  const [changesetPackages, setChangesetPackages] = useState<ListItem<string, ChangeSetPackage>[]>(initialPackages || []);
+
+  const [{ hasLoaded, loading, data, hasError, errorMessage }, dispatch] = useReducer(
+    useReducerFetchFn<ListItem<string, ChangeSetPackage>[]>(),
+    {
+      hasLoaded: !!initialPackages,
+      loading: false,
+      hasError: false,
+      data: initialPackages || [],
+    }
+  );
 
   useEffect(() => {
     isMounted.current = true;
     return () => (isMounted.current = false);
   }, []);
 
-  useEffect(() => {
-    // LOAD PROFILES/PERM SETS
-    if (selectedOrg && !hasLoaded) {
-      loadPackages();
-    } else if (!selectedOrg) {
-      setChangesetPackages([]);
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedOrg]);
-
   const loadPackages = useCallback(async () => {
     try {
-      setHasLoaded(true);
-      setLoading(true);
-      if (hasError) {
-        setHasError(false);
-      }
-
+      dispatch({ type: 'REQUEST', payload: [] });
       const { queryResults } = await query<ChangeSetPackage>(selectedOrg, getQueryForPackage());
 
       if (isMounted.current) {
-        setChangesetPackages(getListItemFromQueryResults(queryResults.records));
+        dispatch({ type: 'SUCCESS', payload: getListItemFromQueryResults(queryResults.records) });
       }
     } catch (ex) {
       logger.warn('[useChangesetList][ERROR]', ex.message);
       if (isMounted.current) {
-        setHasError(true);
-      }
-    } finally {
-      if (isMounted.current) {
-        setLoading(false);
+        dispatch({ type: 'ERROR', payload: ex.message });
       }
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedOrg]);
 
-  return { loadPackages, loading, changesetPackages, hasError };
+  useEffect(() => {
+    // LOAD PROFILES/PERM SETS
+    if (selectedOrg && !hasLoaded) {
+      loadPackages();
+    }
+  }, [selectedOrg, hasLoaded, loadPackages]);
+
+  return { loadPackages, loading, changesetPackages: data, hasError, errorMessage };
 }
 
 /**

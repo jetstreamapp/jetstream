@@ -5,6 +5,20 @@ import { ReactNode } from 'react';
 import { ListMetadataResult } from '../salesforce/types';
 import { SalesforceOrgUi } from '../types';
 
+// generic useReducer actions/state for a basic fetch reducer function
+export type UseReducerFetchAction<T> =
+  | { type: 'REQUEST'; payload?: T }
+  | { type: 'SUCCESS'; payload: T }
+  | { type: 'ERROR'; payload?: { errorMessage: string; data?: T | null } };
+
+export interface UseReducerFetchState<T> {
+  hasLoaded: boolean;
+  loading: boolean;
+  hasError: boolean;
+  errorMessage?: string | null;
+  data: T;
+}
+
 export type FileExtCsv = 'csv';
 export type FileExtXLSX = 'xlsx';
 export type FileExtJson = 'json';

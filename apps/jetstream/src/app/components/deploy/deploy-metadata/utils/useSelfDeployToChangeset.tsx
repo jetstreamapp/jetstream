@@ -4,9 +4,52 @@ import { getPackageXml, retrieveMetadataFromListMetadata } from '@jetstream/shar
 import { pollAndDeployMetadataResultsWhenReady, pollMetadataResultsUntilDone } from '@jetstream/shared/ui-utils';
 import { ListMetadataResult, MapOf, SalesforceOrgUi } from '@jetstream/types';
 import { DeployResult } from 'jsforce';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useReducer, useRef, useState } from 'react';
 
 export type AddItemsToChangesetStatus = 'idle' | 'submitting' | 'preparing' | 'adding';
+
+type Action =
+  | { type: 'REQUEST' }
+  | { type: 'RETRIEVE_SUCCESS' }
+  | { type: 'DEPLOY_IN_PROG'; payload: { deployId: string } }
+  | { type: 'SUCCESS'; payload?: { results: DeployResult } }
+  | { type: 'ERROR'; payload?: { errorMessage: string } };
+
+interface State {
+  hasLoaded: boolean;
+  loading: boolean;
+  hasError: boolean;
+  errorMessage?: string | null;
+  status: AddItemsToChangesetStatus;
+  deployId: string;
+  results: DeployResult;
+}
+
+function reducer(state: State, action: Action): State {
+  switch (action.type) {
+    case 'REQUEST':
+      return {
+        ...state,
+        hasLoaded: true,
+        loading: true,
+        hasError: false,
+        errorMessage: null,
+        status: 'submitting',
+        deployId: null,
+        results: null,
+      };
+    case 'RETRIEVE_SUCCESS':
+      return { ...state, status: 'preparing' };
+    case 'DEPLOY_IN_PROG':
+      return { ...state, status: 'adding', deployId: action.payload.deployId };
+    case 'SUCCESS':
+      return { ...state, loading: false, status: 'idle', results: action.payload.results };
+    case 'ERROR':
+      return { ...state, loading: false, hasError: true, errorMessage: action.payload.errorMessage, status: 'idle', results: null };
+    default:
+      throw new Error('Invalid action');
+  }
+}
 
 /**
  * Give an org and a changeset name
@@ -24,13 +67,17 @@ export function useAddItemsToChangeset(
   }: { changesetName: string; changesetDescription: string; selectedMetadata: MapOf<ListMetadataResult[]> }
 ) {
   const isMounted = useRef(null);
-  const [loading, setLoading] = useState(false);
-  const [hasError, setHasError] = useState(false);
-  const [errorMessage, setErrorMessage] = useState<string>();
-  const [status, setStatus] = useState<AddItemsToChangesetStatus>('idle');
+
+  const [{ hasLoaded, loading, hasError, errorMessage, status, deployId, results }, dispatch] = useReducer(reducer, {
+    hasLoaded: false,
+    loading: false,
+    hasError: false,
+    status: 'idle',
+    deployId: null,
+    results: null,
+  });
+
   const [lastChecked, setLastChecked] = useState<Date>(null);
-  const [deployId, setDeployId] = useState<string>();
-  const [results, setResults] = useState<DeployResult>();
 
   useEffect(() => {
     isMounted.current = true;
@@ -39,16 +86,10 @@ export function useAddItemsToChangeset(
 
   const deployMetadata = useCallback(async () => {
     try {
-      setLoading(true);
-      setErrorMessage(null);
-      setResults(null);
-      setHasError(false);
-      setDeployId(null);
-
-      setStatus('submitting');
+      dispatch({ type: 'REQUEST' });
       const { id } = await retrieveMetadataFromListMetadata(selectedOrg, selectedMetadata);
       if (isMounted.current) {
-        setStatus('preparing');
+        dispatch({ type: 'RETRIEVE_SUCCESS' });
         const replacementPackageXml = await getPackageXml(selectedOrg, selectedMetadata, {
           fullName: changesetName,
           description: changesetDescription,
@@ -68,24 +109,17 @@ export function useAddItemsToChangeset(
         });
 
         if (isMounted.current) {
-          setStatus('adding');
-          setDeployId(deployResults.id);
+          dispatch({ type: 'DEPLOY_IN_PROG', payload: { deployId: deployResults.id } });
           const results = await pollMetadataResultsUntilDone(selectedOrg, deployResults.id, {
             onChecked: () => setLastChecked(new Date()),
           });
-          setResults(results);
+          dispatch({ type: 'SUCCESS', payload: { results } });
         }
       }
     } catch (ex) {
       logger.warn('[useAddItemsToChangeset][ERROR]', ex.message);
       if (isMounted.current) {
-        setHasError(true);
-        setErrorMessage(ex.message);
-      }
-    } finally {
-      if (isMounted.current) {
-        setStatus('idle');
-        setLoading(false);
+        dispatch({ type: 'ERROR', payload: { errorMessage: ex.message } });
       }
     }
   }, [selectedOrg, changesetName, changesetDescription, selectedMetadata]);

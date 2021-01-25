@@ -84,6 +84,7 @@ export interface UtilityIconObj {
   record_lookup: IconEl;
   refresh: IconEl;
   right: IconEl;
+  salesforce1: IconEl;
   save: IconEl;
   search: IconEl;
   settings: IconEl;

@@ -2,8 +2,10 @@
 import { jsx, css } from '@emotion/react';
 import { useNonInitialEffect } from '@jetstream/shared/ui-utils';
 import { ListItem, SalesforceOrgUi } from '@jetstream/types';
-import { Grid, Input, Modal, Picklist, Radio, RadioGroup, Spinner, Textarea } from '@jetstream/ui';
+import { Grid, GridCol, Icon, Input, Modal, Picklist, Radio, RadioGroup, SalesforceLogin, Spinner, Textarea } from '@jetstream/ui';
+import { applicationCookieState } from 'apps/jetstream/src/app/app-state';
 import { Fragment, FunctionComponent, useEffect, useState } from 'react';
+import { useRecoilState } from 'recoil';
 import { ChangeSetPackage } from './deploy-metadata.types';
 import { useChangesetList } from './utils/useChangesetList';
 
@@ -28,6 +30,7 @@ export const DeployMetadataUploadToChangesetModal: FunctionComponent<DeployMetad
   onClose,
   onDeploy,
 }) => {
+  const [{ serverUrl }] = useRecoilState(applicationCookieState);
   const [changesetEntryType, setChangesetEntryType] = useState<'list' | 'manual'>('list');
   const [changesetPackage, setChangesetPackage] = useState<string>(initialPackage || '');
   const [changesetDescription, setChangesetDescription] = useState<string>(initialDescription || '');
@@ -77,17 +80,30 @@ export const DeployMetadataUploadToChangesetModal: FunctionComponent<DeployMetad
       <div className="slds-is-relative">
         {loadingChangesetPackages && <Spinner />}
 
-        <p>Show org summary</p>
-        <p>This will update the last modified date of all items</p>
-        <p>You must create your changeset in advance. If you have not yet created an outbound changeset, do so before continuing</p>
-        <p>If the changeset name is not unique, the process will fail. :D</p>
+        <ul className="slds-list_dotted">
+          <li>
+            The changes will be applied to <strong> {selectedOrg.label} </strong>
+          </li>
+          <li>
+            An Outbound Changeset with a <strong>unique name</strong> must already exist.{' '}
+            <SalesforceLogin
+              serverUrl={serverUrl}
+              org={selectedOrg}
+              returnUrl={`/lightning/setup/OutboundChangeSet/home`}
+              iconPosition="right"
+            >
+              Create one here.
+            </SalesforceLogin>
+          </li>
+          <li>The last modified user and date will get updated on all the items you are adding to the changeset.</li>
+        </ul>
 
         <RadioGroup
-          className="slds-m-bottom_xx-small"
+          className="slds-m-top_small slds-m-bottom_x-small"
           idPrefix="package"
           label="Choose changeset from list"
           required
-          labelHelp="Salesforce does not have great support for showing changesets, so if your changeset is not showing in the list, manually enter the name."
+          labelHelp="Salesforce does not have great support for getting changesets, if your changeset is not shown below, manually enter the name."
         >
           <Radio
             idPrefix="package"

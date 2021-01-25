@@ -20,33 +20,33 @@ export function useDeployMetadata(selectedOrg: SalesforceOrgUi, deployOptions: D
     return () => (isMounted.current = false);
   }, []);
 
-  const deployMetadata = useCallback(async () => {
-    try {
-      setHasLoaded(true);
-      setLoading(true);
-      if (hasError) {
-        setHasError(false);
-      }
+  // const deployMetadata = useCallback(async () => {
+  //   try {
+  //     setHasLoaded(true);
+  //     setLoading(true);
+  //     if (hasError) {
+  //       setHasError(false);
+  //     }
 
-      const { queryResults } = await query<ChangeSetPackage>(selectedOrg, getQueryForPackage());
+  //     const { queryResults } = await query<ChangeSetPackage>(selectedOrg, getQueryForPackage());
 
-      if (isMounted.current) {
-        setChangesetPackages(getListItemFromQueryResults(queryResults.records));
-      }
-    } catch (ex) {
-      logger.warn('[useChangesetList][ERROR]', ex.message);
-      if (isMounted.current) {
-        setHasError(true);
-      }
-    } finally {
-      if (isMounted.current) {
-        setLoading(false);
-      }
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedOrg]);
+  //     if (isMounted.current) {
+  //       setChangesetPackages(getListItemFromQueryResults(queryResults.records));
+  //     }
+  //   } catch (ex) {
+  //     logger.warn('[useChangesetList][ERROR]', ex.message);
+  //     if (isMounted.current) {
+  //       setHasError(true);
+  //     }
+  //   } finally {
+  //     if (isMounted.current) {
+  //       setLoading(false);
+  //     }
+  //   }
+  //   // eslint-disable-next-line react-hooks/exhaustive-deps
+  // }, [selectedOrg]);
 
-  return { loadPackages, loading, changesetPackages, hasError };
+  // return { loadPackages, loading, changesetPackages, hasError };
 }
 
 /**

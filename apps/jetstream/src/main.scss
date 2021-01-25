@@ -42,6 +42,7 @@
 
 .slds-text-link {
   cursor: pointer;
+  fill: $brand-text-link;
   .faux-button-link {
     :hover {
       color: $brand-accessible;

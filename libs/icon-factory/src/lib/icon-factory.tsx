@@ -66,6 +66,7 @@ import UtilityIcon_PromptEdit from './icons/utility/PromptEdit';
 import UtilityIcon_RecordLookup from './icons/utility/RecordLookup';
 import UtilityIcon_Refresh from './icons/utility/Refresh';
 import UtilityIcon_Right from './icons/utility/Right';
+import UtilityIcon_Salesforce1 from './icons/utility/Salesforce1';
 import UtilityIcon_Save from './icons/utility/Save';
 import UtilityIcon_Search from './icons/utility/Search';
 import UtilityIcon_Share from './icons/utility/Share';
@@ -147,6 +148,7 @@ const utilityIcons: UtilityIconObj = {
   record_lookup: UtilityIcon_RecordLookup,
   refresh: UtilityIcon_Refresh,
   right: UtilityIcon_Right,
+  salesforce1: UtilityIcon_Salesforce1,
   save: UtilityIcon_Save,
   search: UtilityIcon_Search,
   share: UtilityIcon_Share,

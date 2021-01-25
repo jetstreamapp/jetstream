@@ -19,11 +19,13 @@ import {
   QueryFilterOperator,
   SalesforceOrgUi,
   RetrieveResult,
+  UseReducerFetchState,
+  UseReducerFetchAction,
 } from '@jetstream/types';
 import parseISO from 'date-fns/parseISO';
 import { saveAs } from 'file-saver';
 import { DeployOptions, DeployResult, Field } from 'jsforce';
-import { get as safeGet, isFunction } from 'lodash';
+import { get as safeGet, isFunction, isUndefined } from 'lodash';
 import isNil from 'lodash/isNil';
 import isString from 'lodash/isString';
 import numeral from 'numeral';
@@ -1055,4 +1057,27 @@ export function menuItemSelectScroll({
 
 export function isPermissionSetWithProfile(value: PermissionSetRecord): value is PermissionSetWithProfileRecord {
   return value.IsOwnedByProfile;
+}
+
+/**
+ * Returns a reducer function for useReducers that can be used for fetch actions
+ * Nested function allows type safety, otherwise generic would not be able to be specified un useReducer
+ */
+export function useReducerFetchFn<T>() {
+  function reducer(state: UseReducerFetchState<T>, action: UseReducerFetchAction<T>): UseReducerFetchState<T> {
+    switch (action.type) {
+      case 'REQUEST':
+        // data is only overwritten if provided
+        return isUndefined(action.payload)
+          ? { ...state, hasLoaded: true, loading: true, hasError: false, errorMessage: null }
+          : { ...state, hasLoaded: true, loading: true, hasError: false, errorMessage: null, data: action.payload };
+      case 'SUCCESS':
+        return { ...state, loading: false, data: action.payload };
+      case 'ERROR':
+        return { ...state, loading: false, hasError: true, errorMessage: action.payload.errorMessage, data: action.payload.data };
+      default:
+        throw new Error('Invalid action');
+    }
+  }
+  return reducer;
 }
