@@ -5,10 +5,17 @@ import { DATE_FORMATS } from '@jetstream/shared/constants';
 import { orderStringsBy } from '@jetstream/shared/utils';
 import { ListMetadataResult, MapOf } from '@jetstream/types';
 import { DateFilterComparator, getCheckboxColumnDef } from '@jetstream/ui';
-import { right } from '@popperjs/core';
 import formatDate from 'date-fns/format';
 import { composeQuery, getField, Query } from 'soql-parser-js';
 import { DeployMetadataTableRow } from '../deploy-metadata.types';
+
+export function getDeploymentStatusUrl(id: string) {
+  // double encode retUrl
+  const address = encodeURIComponent(
+    `/changemgmt/monitorDeploymentsDetails.apexp?asyncId=${id}&retURL=${encodeURIComponent('/changemgmt/monitorDeployment.apexp')}`
+  );
+  return `/lightning/setup/DeployStatus/page?address=${address}`;
+}
 
 export function getQueryForUsers(): string {
   const query: Query = {

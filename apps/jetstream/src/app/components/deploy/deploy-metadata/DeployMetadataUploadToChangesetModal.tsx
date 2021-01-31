@@ -82,7 +82,7 @@ export const DeployMetadataUploadToChangesetModal: FunctionComponent<DeployMetad
 
         <ul className="slds-list_dotted">
           <li>
-            The changes will be applied to <strong> {selectedOrg.label} </strong>
+            The changes will be applied to the org <strong> {selectedOrg.label} </strong>.
           </li>
           <li>
             An Outbound Changeset with a <strong>unique name</strong> must already exist.{' '}
