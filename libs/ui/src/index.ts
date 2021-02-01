@@ -62,6 +62,7 @@ export * from './lib/popover/Popover';
 export * from './lib/popover/PopoverErrorButton';
 export * from './lib/progress-indicator/ProgressIndicator';
 export * from './lib/progress-indicator/ProgressIndicatorListItem';
+export * from './lib/progress-ring/ProgressRing';
 export * from './lib/providers/DialogServiceProvider';
 export * from './lib/sobject-field-list/SobjectFieldList';
 export * from './lib/sobject-field-list/SobjectFieldListItem';

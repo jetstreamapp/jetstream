@@ -1,15 +1,15 @@
 /** @jsx jsx */
-import { jsx, css } from '@emotion/react';
+import { css, jsx } from '@emotion/react';
 import { useNonInitialEffect } from '@jetstream/shared/ui-utils';
 import { ListItem, SalesforceOrgUi } from '@jetstream/types';
-import { Grid, GridCol, Icon, Input, Modal, Picklist, Radio, RadioGroup, SalesforceLogin, Spinner, Textarea } from '@jetstream/ui';
-import { applicationCookieState } from 'apps/jetstream/src/app/app-state';
+import { Grid, Input, Modal, Picklist, Radio, RadioGroup, SalesforceLogin, Spinner, Textarea } from '@jetstream/ui';
 import { Fragment, FunctionComponent, useEffect, useState } from 'react';
 import { useRecoilState } from 'recoil';
-import { ChangeSetPackage } from './deploy-metadata.types';
-import { useChangesetList } from './utils/useChangesetList';
+import { applicationCookieState } from '../../../../app-state';
+import { ChangeSetPackage } from '../deploy-metadata.types';
+import { useChangesetList } from '../utils/useChangesetList';
 
-export interface DeployMetadataUploadToChangesetModalProps {
+export interface AddToChangesetConfigModalProps {
   selectedOrg: SalesforceOrgUi;
   initialPackages?: ListItem<string, ChangeSetPackage>[];
   initialPackage?: string;
@@ -17,10 +17,10 @@ export interface DeployMetadataUploadToChangesetModalProps {
   onChangesetPackages: (changesetPackages: ListItem<string, ChangeSetPackage>[]) => void;
   onSelection: (changesetPackage: string) => void;
   onClose: () => void;
-  onDeploy: (changesetPackage: string, changesetDescription: string) => void;
+  onDeploy: (changesetPackage: string, changesetDescription: string, changesetId?: string) => void;
 }
 
-export const DeployMetadataUploadToChangesetModal: FunctionComponent<DeployMetadataUploadToChangesetModalProps> = ({
+export const AddToChangesetConfigModal: FunctionComponent<AddToChangesetConfigModalProps> = ({
   selectedOrg,
   initialPackages,
   initialPackage,
@@ -34,6 +34,7 @@ export const DeployMetadataUploadToChangesetModal: FunctionComponent<DeployMetad
   const [changesetEntryType, setChangesetEntryType] = useState<'list' | 'manual'>('list');
   const [changesetPackage, setChangesetPackage] = useState<string>(initialPackage || '');
   const [changesetDescription, setChangesetDescription] = useState<string>(initialDescription || '');
+  const [changesetId, setChangesetId] = useState<string>(null);
   const [loading, setLoading] = useState(false);
   const { loadPackages, loading: loadingChangesetPackages, changesetPackages, hasError } = useChangesetList(selectedOrg, initialPackages);
 
@@ -49,11 +50,13 @@ export const DeployMetadataUploadToChangesetModal: FunctionComponent<DeployMetad
 
   function handleSelection(selectedItems: ListItem<string, ChangeSetPackage>[]) {
     if (selectedItems?.length) {
-      setChangesetPackage(selectedItems[0].value);
-      setChangesetDescription(selectedItems[0].meta?.Description || '');
+      setChangesetPackage(decodeURIComponent(selectedItems[0].value || ''));
+      setChangesetDescription(decodeURIComponent(selectedItems[0].meta?.Description || ''));
+      setChangesetId(selectedItems[0].meta?.Id);
     } else {
       setChangesetPackage('');
       setChangesetDescription('');
+      setChangesetId(null);
     }
   }
 
@@ -67,7 +70,7 @@ export const DeployMetadataUploadToChangesetModal: FunctionComponent<DeployMetad
           </button>
           <button
             className="slds-button slds-button_brand"
-            onClick={() => onDeploy(changesetPackage, changesetDescription)}
+            onClick={() => onDeploy(changesetPackage, changesetDescription, changesetId)}
             disabled={loadingChangesetPackages || !changesetPackage}
           >
             Deploy
@@ -190,4 +193,4 @@ export const DeployMetadataUploadToChangesetModal: FunctionComponent<DeployMetad
   );
 };
 
-export default DeployMetadataUploadToChangesetModal;
+export default AddToChangesetConfigModal;

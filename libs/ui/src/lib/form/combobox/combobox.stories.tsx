@@ -1,5 +1,5 @@
 import { action } from '@storybook/addon-actions';
-import { text } from '@storybook/addon-knobs';
+import { boolean, text } from '@storybook/addon-knobs';
 import React from 'react';
 import Combobox from './Combobox';
 import { ComboboxListItem } from './ComboboxListItem';
@@ -13,7 +13,7 @@ export default {
 };
 
 export const base = () => (
-  <Combobox label={text('label', 'My Combobox')} onInputChange={action('onInputChange')}>
+  <Combobox label={text('label', 'My Combobox')} onInputChange={action('onInputChange')} isRequired={boolean('isRequired', true)}>
     <ComboboxListItem id="item1" label="Item 1" secondaryLabel="secondary label" selected={false} onSelection={action('selected')} />
     <ComboboxListItem id="item2" label="Item 2" selected={false} onSelection={action('selected')} />
     <ComboboxListItem id="item3" label="Item 3" selected={false} onSelection={action('selected')} />

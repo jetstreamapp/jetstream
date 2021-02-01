@@ -6,6 +6,8 @@ import { getPackageXml } from '@jetstream/shared/data';
 import { formatNumber, saveFile } from '@jetstream/shared/ui-utils';
 import {
   AsyncJobNew,
+  DeployOptions,
+  DeployResult,
   FileExtAllTypes,
   ListMetadataResult,
   MapOf,
@@ -13,29 +15,79 @@ import {
   RetrievePackageZipJob,
   SalesforceOrgUi,
 } from '@jetstream/types';
-import { Badge, FileFauxDownloadModal, Grid, Icon, Spinner, Toast, Toolbar, ToolbarItemActions, ToolbarItemGroup } from '@jetstream/ui';
-import DeployMetadataUploadToChangesetModal from './DeployMetadataUploadToChangesetModal';
-import { convertRowsToMapOfListMetadataResults } from './utils/deploy-metadata.utils';
+import {
+  Badge,
+  FileDownloadModal,
+  FileFauxDownloadModal,
+  Grid,
+  Icon,
+  Spinner,
+  Toast,
+  Toolbar,
+  ToolbarItemActions,
+  ToolbarItemGroup,
+} from '@jetstream/ui';
 import addMinutes from 'date-fns/addMinutes';
 import formatISODate from 'date-fns/formatISO';
 import isBefore from 'date-fns/isBefore';
 import startOfDay from 'date-fns/startOfDay';
 import { FunctionComponent, useCallback, useEffect, useState } from 'react';
 import { Link, useRouteMatch } from 'react-router-dom';
-import { useRecoilState, useRecoilValue, useResetRecoilState } from 'recoil';
+import { useRecoilState, useRecoilValue } from 'recoil';
 import * as fromJetstreamEvents from '../../core/jetstream-events';
+import AddToChangesetConfigModal from './add-to-changeset/AddToChangesetConfigModal';
+import AddToChangesetStatusModal from './add-to-changeset/AddToChangesetStatusModal';
 import * as fromDeployMetadataState from './deploy-metadata.state';
 import { AllUser, DeployMetadataTableRow } from './deploy-metadata.types';
+import DeployMetadataToOrgConfigModal from './deploy-to-different-org/DeployMetadataToOrgConfigModal';
+import DeployMetadataToOrgStatusModal from './deploy-to-different-org/DeployMetadataToOrgStatusModal';
 import DeployMetadataDeploymentTable from './DeployMetadataDeploymentTable';
 import DeployMetadataLastRefreshedPopover from './DeployMetadataLastRefreshedPopover';
-import DeployMetadataUploadStatusModal from './DeployMetadataUploadStatusModal';
+import { convertRowsToMapOfListMetadataResults, getDeployResultsExcelData } from './utils/deploy-metadata.utils';
 
-const DEFAULT_MODAL_DATA = {
+const DEFAULT_MODAL_DATA: ModalDataEmpty = {
+  downloadType: 'empty',
   modalOpen: false,
+  modalHeader: null,
   type: null,
   fileNameParts: [],
   allowedTypes: [],
 };
+interface ModalDataBase {
+  downloadType: 'manifest' | 'package' | 'empty' | 'deploy-results';
+  modalOpen: boolean;
+  modalHeader: string;
+  type: 'XML' | 'ZIP' | 'XLSX';
+  fileNameParts: string[];
+  allowedTypes: FileExtAllTypes[];
+}
+
+interface ModalDataEmpty extends ModalDataBase {
+  downloadType: 'empty';
+  type: null;
+  allowedTypes: [];
+}
+
+interface ModalDataRequireFetchXml extends ModalDataBase {
+  downloadType: 'manifest';
+  type: 'XML';
+  allowedTypes: ['xml'];
+}
+
+interface ModalDataRequireFetchZip extends ModalDataBase {
+  downloadType: 'package';
+  type: 'ZIP';
+  allowedTypes: ['zip'];
+}
+
+interface ModalDataHasData extends ModalDataBase {
+  downloadType: 'deploy-results';
+  type: 'XLSX';
+  allowedTypes: ['xlsx'];
+  downloadData: MapOf<any[]>;
+}
+
+type ModalData = ModalDataEmpty | ModalDataRequireFetchXml | ModalDataRequireFetchZip | ModalDataHasData;
 
 export interface DeployMetadataDeploymentProps {
   selectedOrg: SalesforceOrgUi;
@@ -45,12 +97,7 @@ export const DeployMetadataDeployment: FunctionComponent<DeployMetadataDeploymen
   const match = useRouteMatch();
 
   const { loadListMetadata, loadListMetadataItem, loading, listMetadataItems, hasError } = useListMetadata(selectedOrg);
-  const [modalData, setModalData] = useState<{
-    modalOpen: boolean;
-    type: 'XML' | 'ZIP';
-    fileNameParts: string[];
-    allowedTypes: FileExtAllTypes[];
-  }>(DEFAULT_MODAL_DATA);
+  const [modalData, setModalData] = useState<ModalData>(DEFAULT_MODAL_DATA);
 
   const listMetadataQueries = useRecoilValue(fromDeployMetadataState.listMetadataQueriesSelector);
   const userSelection = useRecoilValue<AllUser>(fromDeployMetadataState.userSelectionState);
@@ -58,14 +105,22 @@ export const DeployMetadataDeployment: FunctionComponent<DeployMetadataDeploymen
   const dateRangeSelection = useRecoilValue<AllUser>(fromDeployMetadataState.dateRangeSelectionState);
   const dateRange = useRecoilValue<Date>(fromDeployMetadataState.dateRangeState);
 
+  // DEPLOY TO ORG
+  const [deployMetadataConfigModalOpen, setDeployMetadataConfigModalOpen] = useState(false);
+  const [deployMetadataStatusModalOpen, setDeployMetadataStatusModalOpen] = useState(false);
+  const [destinationOrg, setDestinationOrg] = useState<SalesforceOrgUi>();
+  const [deployMetadataOptions, setDeployMetadataOptions] = useState<DeployOptions>();
+
+  // ADD TO CHANGESET
   const [changesetDeployModalOpen, setChangesetDeployModalOpen] = useState(false);
+  const [deployChangesetModalOpen, setDeployChangesetModalOpen] = useState(false);
   const [changesetPackageName, setChangesetPackageName] = useState<string>();
   const [changesetPackageDescription, setChangesetPackageDescription] = useState<string>();
-  const [selectedMetadata, setSelectedMetadata] = useState<MapOf<ListMetadataResult[]>>();
-  const [deployChangesetModalOpen, setDeployChangesetModalOpen] = useState(false);
+  const [changesetId, setChangesetId] = useState<string>(null);
   const [changesetPackage, setChangesetPackage] = useRecoilState(fromDeployMetadataState.changesetPackage);
   const [changesetPackages, setChangesetPackages] = useRecoilState(fromDeployMetadataState.changesetPackages);
 
+  const [selectedMetadata, setSelectedMetadata] = useState<MapOf<ListMetadataResult[]>>();
   const [selectedRows, setSelectedRows] = useState<Set<DeployMetadataTableRow>>(new Set());
 
   const listMetadataFilterFn = useCallback(
@@ -107,7 +162,9 @@ export const DeployMetadataDeployment: FunctionComponent<DeployMetadataDeploymen
 
   async function handleDownloadManifest() {
     setModalData({
+      downloadType: 'manifest',
       modalOpen: true,
+      modalHeader: 'Download Manifest',
       type: 'XML',
       fileNameParts: ['package-manifest'],
       allowedTypes: ['xml'],
@@ -116,10 +173,24 @@ export const DeployMetadataDeployment: FunctionComponent<DeployMetadataDeploymen
 
   async function handleDownloadZip() {
     setModalData({
+      downloadType: 'package',
       modalOpen: true,
+      modalHeader: 'Download Package',
       type: 'ZIP',
       fileNameParts: ['metadata-package'],
       allowedTypes: ['zip'],
+    });
+  }
+
+  function handleDeployResultsDownload(deployResults: DeployResult, deploymentUrl: string) {
+    setModalData({
+      downloadType: 'deploy-results',
+      modalOpen: true,
+      modalHeader: 'Download Deploy Results',
+      type: 'XLSX',
+      fileNameParts: ['deploy-results'],
+      allowedTypes: ['xlsx'],
+      downloadData: getDeployResultsExcelData(deployResults, deploymentUrl),
     });
   }
 
@@ -164,9 +235,23 @@ export const DeployMetadataDeployment: FunctionComponent<DeployMetadataDeploymen
     }
   }
 
-  function handleDeployToChangeset(packageName: string, changesetDescription: string) {
+  function handleCloseMetadataModal() {
+    setDeployMetadataConfigModalOpen(false);
+    setDeployMetadataOptions(null);
+  }
+
+  function handleDeployMetadata(destinationOrg: SalesforceOrgUi, deployOptions: DeployOptions) {
+    setDestinationOrg(destinationOrg);
+    setDeployMetadataOptions(deployOptions);
+    setSelectedMetadata(convertRowsToMapOfListMetadataResults(Array.from(selectedRows)));
+    setDeployMetadataConfigModalOpen(false);
+    setDeployMetadataStatusModalOpen(true);
+  }
+
+  function handleDeployToChangeset(packageName: string, changesetDescription: string, changesetId?: string) {
     setChangesetPackageName(packageName);
     setChangesetPackageDescription(changesetDescription);
+    setChangesetId(changesetId);
     setSelectedMetadata(convertRowsToMapOfListMetadataResults(Array.from(selectedRows)));
     setChangesetDeployModalOpen(false);
     setDeployChangesetModalOpen(true);
@@ -174,15 +259,25 @@ export const DeployMetadataDeployment: FunctionComponent<DeployMetadataDeploymen
 
   return (
     <div>
-      {modalData.modalOpen && (
+      {modalData.modalOpen && (modalData.downloadType === 'manifest' || modalData.downloadType === 'package') && (
         <FileFauxDownloadModal
-          modalHeader="Download Package Manifest"
+          modalHeader={modalData.modalHeader}
           modalTagline={`${formatNumber(selectedRows.size)} components will be included`}
           org={selectedOrg}
           fileNameParts={modalData.fileNameParts}
           allowedTypes={modalData.allowedTypes}
           onCancel={handleFileModalClose}
           onDownload={handleFileDownload}
+        />
+      )}
+      {modalData.modalOpen && modalData.downloadType === 'deploy-results' && (
+        <FileDownloadModal
+          modalHeader={modalData.modalHeader}
+          org={selectedOrg}
+          fileNameParts={modalData.fileNameParts}
+          allowedTypes={modalData.allowedTypes}
+          data={modalData.downloadData}
+          onModalClose={handleFileModalClose}
         />
       )}
       <Toolbar>
@@ -209,7 +304,11 @@ export const DeployMetadataDeployment: FunctionComponent<DeployMetadataDeploymen
             <Icon type="utility" icon="upload" className="slds-button__icon slds-button__icon_left" omitContainer />
             Add To Outbound Changeset
           </button>
-          <button className="slds-button slds-button_brand" disabled>
+          <button
+            className="slds-button slds-button_brand"
+            disabled={loading || selectedRows.size === 0}
+            onClick={() => setDeployMetadataConfigModalOpen(true)}
+          >
             <Icon type="utility" icon="share" className="slds-button__icon slds-button__icon_left" omitContainer />
             Deploy to Different Org
           </button>
@@ -248,8 +347,26 @@ export const DeployMetadataDeployment: FunctionComponent<DeployMetadataDeploymen
         {!hasError && listMetadataItems && (
           <DeployMetadataDeploymentTable listMetadataItems={listMetadataItems} onSelectedRows={setSelectedRows} />
         )}
+
+        {/* DEPLOY METADATA TO ANY ORG */}
+        {deployMetadataConfigModalOpen && (
+          <DeployMetadataToOrgConfigModal onClose={handleCloseMetadataModal} onDeploy={handleDeployMetadata} />
+        )}
+        {deployMetadataStatusModalOpen && (
+          <DeployMetadataToOrgStatusModal
+            hideModal={modalData.modalOpen}
+            sourceOrg={selectedOrg}
+            destinationOrg={destinationOrg}
+            selectedMetadata={selectedMetadata}
+            deployOptions={deployMetadataOptions}
+            onClose={() => setDeployMetadataStatusModalOpen(false)}
+            onDownload={handleDeployResultsDownload}
+          />
+        )}
+
+        {/* ADD METADATA TO CHANGESET */}
         {changesetDeployModalOpen && (
-          <DeployMetadataUploadToChangesetModal
+          <AddToChangesetConfigModal
             selectedOrg={selectedOrg}
             initialPackages={changesetPackages}
             initialPackage={changesetPackage}
@@ -260,10 +377,11 @@ export const DeployMetadataDeployment: FunctionComponent<DeployMetadataDeploymen
           />
         )}
         {deployChangesetModalOpen && (
-          <DeployMetadataUploadStatusModal
+          <AddToChangesetStatusModal
             selectedOrg={selectedOrg}
             changesetName={changesetPackageName}
             changesetDescription={changesetPackageDescription}
+            changesetId={changesetId}
             selectedMetadata={selectedMetadata}
             onClose={() => setDeployChangesetModalOpen(false)}
           />

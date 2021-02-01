@@ -3,31 +3,34 @@ import { jsx } from '@emotion/react';
 import { ListMetadataResult, MapOf, SalesforceOrgUi } from '@jetstream/types';
 import { Icon, Modal, SalesforceLogin } from '@jetstream/ui';
 import { Fragment, FunctionComponent, useEffect, useState } from 'react';
-import { AddItemsToChangesetStatus, useAddItemsToChangeset } from './utils/useSelfDeployToChangeset';
+import { getStatusValue, useAddItemsToChangeset } from '../utils/useAddItemsToChangeset';
 import formatDate from 'date-fns/format';
 import { DATE_FORMATS } from '@jetstream/shared/constants';
 import { useNonInitialEffect } from '@jetstream/shared/ui-utils';
-import { getDeploymentStatusUrl } from 'apps/jetstream/src/app/components/deploy/deploy-metadata/utils/deploy-metadata.utils';
+import { getDeploymentStatusUrl, getChangesetUrl } from '../utils/deploy-metadata.utils';
 import { useRecoilState } from 'recoil';
-import { applicationCookieState } from 'apps/jetstream/src/app/app-state';
+import { applicationCookieState } from '../../../../app-state';
 
-export interface DeployMetadataUploadStatusModalProps {
+export interface AddToChangesetStatusModalProps {
   selectedOrg: SalesforceOrgUi;
   selectedMetadata: MapOf<ListMetadataResult[]>;
   changesetName: string;
   changesetDescription: string;
+  changesetId?: string;
   onClose: () => void;
 }
 
-export const DeployMetadataUploadStatusModal: FunctionComponent<DeployMetadataUploadStatusModalProps> = ({
+export const AddToChangesetStatusModal: FunctionComponent<AddToChangesetStatusModalProps> = ({
   selectedOrg,
   changesetName,
   changesetDescription,
+  changesetId,
   selectedMetadata,
   onClose,
 }) => {
   const [{ serverUrl }] = useRecoilState(applicationCookieState);
   const [deployStatusUrl, setDeployStatusUrl] = useState<string>();
+  const [changesetUrl, setChangesetUrl] = useState<string>();
   const { deployMetadata, results, deployId, loading, status, lastChecked, hasError, errorMessage } = useAddItemsToChangeset(selectedOrg, {
     changesetName,
     changesetDescription,
@@ -47,22 +50,15 @@ export const DeployMetadataUploadStatusModal: FunctionComponent<DeployMetadataUp
     }
   }, [deployId]);
 
-  function getStatusValue(value: AddItemsToChangesetStatus) {
-    switch (value) {
-      case 'submitting':
-        return 'Requesting metadata from org';
-      case 'preparing':
-        return 'Waiting for metadata to be ready';
-      case 'adding':
-        return 'Adding metadata to changeset';
-      default:
-        return '';
+  useEffect(() => {
+    if (changesetId) {
+      setChangesetUrl(getChangesetUrl(changesetId));
     }
-  }
+  }, [changesetId]);
 
   return (
     <Modal
-      header="Deploy Metadata Status"
+      header="Update Outbound Changeset"
       closeDisabled={loading}
       closeOnBackdropClick={false}
       closeOnEsc={false}
@@ -108,6 +104,13 @@ export const DeployMetadataUploadStatusModal: FunctionComponent<DeployMetadataUp
                   <strong>Status:</strong> {results.status}
                 </p>
                 <div>Number of items deployed: {results.numberComponentsDeployed}</div>
+                {changesetUrl && (
+                  <div>
+                    <SalesforceLogin org={selectedOrg} serverUrl={serverUrl} iconPosition="right" returnUrl={changesetUrl}>
+                      View the outbound changeset.
+                    </SalesforceLogin>
+                  </div>
+                )}
               </div>
             )}
             {results.status !== 'Succeeded' && (
@@ -129,7 +132,7 @@ export const DeployMetadataUploadStatusModal: FunctionComponent<DeployMetadataUp
         {deployStatusUrl && (
           <div>
             <SalesforceLogin org={selectedOrg} serverUrl={serverUrl} iconPosition="right" returnUrl={deployStatusUrl}>
-              View the deployment details in Salesforce.
+              View the deployment details.
             </SalesforceLogin>
           </div>
         )}
@@ -138,4 +141,4 @@ export const DeployMetadataUploadStatusModal: FunctionComponent<DeployMetadataUp
   );
 };
 
-export default DeployMetadataUploadStatusModal;
+export default AddToChangesetStatusModal;

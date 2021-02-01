@@ -1,20 +1,20 @@
-import React, { Fragment, FunctionComponent, useRef, useEffect, KeyboardEvent, useState } from 'react';
-import Icon from '../widgets/Icon';
+import { isEscapeKey } from '@jetstream/shared/ui-utils';
 import { SizeSmMdLg } from '@jetstream/types';
 import classNames from 'classnames';
-import { createPortal } from 'react-dom';
-import { isEscapeKey } from '@jetstream/shared/ui-utils';
 import uniqueId from 'lodash/uniqueId';
+import React, { Fragment, FunctionComponent, KeyboardEvent, useEffect, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
+import Icon from '../widgets/Icon';
 /* eslint-disable-next-line */
 export interface ModalProps {
   className?: string;
+  hide?: boolean; // used to hide the modal without destroying contents
   header?: string | JSX.Element;
   tagline?: string | JSX.Element;
   footer?: JSX.Element;
   directionalFooter?: boolean;
   footerClassName?: string;
   size?: SizeSmMdLg;
-  containerClassName?: string;
   closeDisabled?: boolean;
   closeOnEsc?: boolean;
   closeOnBackdropClick?: boolean;
@@ -75,13 +75,13 @@ export class Modal extends React.Component<ModalProps> {
 
 export const ModalContent: FunctionComponent<ModalProps> = ({
   className,
+  hide = false,
   header,
   tagline,
   footer,
   directionalFooter,
   footerClassName,
   size,
-  containerClassName,
   closeDisabled,
   closeOnEsc = true,
   closeOnBackdropClick,
@@ -116,7 +116,7 @@ export const ModalContent: FunctionComponent<ModalProps> = ({
       <section
         role="dialog"
         tabIndex={-1}
-        className={classNames(containerClassName || 'slds-modal slds-slide-up-open', getSizeClass(size))}
+        className={classNames('slds-modal', { 'slds-slide-up-open': !hide }, getSizeClass(size))}
         aria-labelledby="modal"
         aria-modal="true"
         aria-describedby={modalId}

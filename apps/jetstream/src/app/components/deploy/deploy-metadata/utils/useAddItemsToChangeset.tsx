@@ -2,11 +2,23 @@
 import { logger } from '@jetstream/shared/client-logger';
 import { getPackageXml, retrieveMetadataFromListMetadata } from '@jetstream/shared/data';
 import { pollAndDeployMetadataResultsWhenReady, pollMetadataResultsUntilDone } from '@jetstream/shared/ui-utils';
-import { ListMetadataResult, MapOf, SalesforceOrgUi } from '@jetstream/types';
-import { DeployResult } from 'jsforce';
+import { DeployResult, ListMetadataResult, MapOf, SalesforceOrgUi } from '@jetstream/types';
 import { useCallback, useEffect, useReducer, useRef, useState } from 'react';
 
 export type AddItemsToChangesetStatus = 'idle' | 'submitting' | 'preparing' | 'adding';
+
+export function getStatusValue(value: AddItemsToChangesetStatus) {
+  switch (value) {
+    case 'submitting':
+      return 'Requesting metadata from org';
+    case 'preparing':
+      return 'Waiting for metadata to be ready';
+    case 'adding':
+      return 'Adding metadata to changeset';
+    default:
+      return '';
+  }
+}
 
 type Action =
   | { type: 'REQUEST' }
@@ -102,7 +114,7 @@ export function useAddItemsToChangeset(
             runAllTests: false,
             singlePackage: false,
             testLevel: 'NoTestRun',
-          } as any,
+          },
           replacementPackageXml,
           changesetName,
           onChecked: () => setLastChecked(new Date()),

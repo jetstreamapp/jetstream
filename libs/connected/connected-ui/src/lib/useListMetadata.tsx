@@ -2,7 +2,7 @@
 import { logger } from '@jetstream/shared/client-logger';
 import { listMetadata as listMetadataApi } from '@jetstream/shared/data';
 import { useRollbar } from '@jetstream/shared/ui-utils';
-import { getMapOf, splitArrayToMaxSize } from '@jetstream/shared/utils';
+import { getMapOf, orderObjectsBy, splitArrayToMaxSize } from '@jetstream/shared/utils';
 import { ListMetadataResult, MapOf, SalesforceOrgUi } from '@jetstream/types';
 import formatRelative from 'date-fns/formatRelative';
 import { ListMetadataQuery } from 'jsforce';
@@ -27,8 +27,6 @@ export interface ListMetadataResultItem {
   items: ListMetadataResult[];
 }
 
-const CONCURRENCY = 3;
-
 // helper method
 async function fetchListMetadata(
   selectedOrg: SalesforceOrgUi,
@@ -40,7 +38,7 @@ async function fetchListMetadata(
   const { data: items, cache } = await listMetadataApi(selectedOrg, [{ type, folder }], skipRequestCache);
   return {
     ...item,
-    items: items.filter(filterFn),
+    items: orderObjectsBy(items.filter(filterFn), 'fullName'),
     loading: false,
     lastRefreshed: cache ? `Last updated ${formatRelative(cache.age, new Date())}` : null,
   };

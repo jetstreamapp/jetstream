@@ -390,3 +390,160 @@ export interface RetrieveResultRaw extends Omit<RetrieveResultSfdc, 'zipFile'> {
   success: 'true' | 'false';
   zipFile?: string | { $: { 'xsi:nil': 'true' } };
 }
+
+export type DeployOptionsTestLevel = 'NoTestRun' | 'RunSpecifiedTests' | 'RunLocalTests' | 'RunAllTestsInOrg';
+
+export interface DeployOptions {
+  allowMissingFiles?: boolean;
+  autoUpdatePackage?: boolean;
+  checkOnly?: boolean;
+  ignoreWarnings?: boolean;
+  performRetrieve?: boolean;
+  purgeOnDelete?: boolean;
+  rollbackOnError?: boolean;
+  runAllTests?: boolean;
+  runTests?: string[];
+  singlePackage?: boolean;
+  testLevel?: DeployOptionsTestLevel;
+}
+
+export interface DeployResult {
+  id: string;
+  canceledBy?: string;
+  canceledByName?: string;
+  checkOnly: boolean;
+  completedDate: string;
+  createdBy: string;
+  createdByName: string;
+  createdDate: string;
+  details?: {
+    componentFailures: DeployMessage[];
+    componentSuccesses: DeployMessage[];
+    runTestResult: RunTestsResult;
+  };
+  done: boolean;
+  errorMessage?: string;
+  errorStatusCode?: string;
+  ignoreWarnings?: boolean;
+  lastModifiedDate: string;
+  numberComponentErrors: number;
+  numberComponentsDeployed: number;
+  numberComponentsTotal: number;
+  numberTestErrors: number;
+  numberTestsCompleted: number;
+  numberTestsTotal: number;
+  rollbackOnError?: boolean;
+  runTestsEnabled: boolean;
+  startDate: string;
+  status: DeployResultStatus;
+  success: boolean;
+}
+
+export type DeployResultStatus = 'Pending' | 'InProgress' | 'Succeeded' | 'SucceededPartial' | 'Failed' | 'Canceling' | 'Canceled';
+
+export interface DeployMessage {
+  changed: boolean;
+  columnNumber: number;
+  componentType: string;
+  created: boolean;
+  createdDate: boolean;
+  deleted: boolean;
+  fileName: string;
+  fullName: string;
+  id: string;
+  lineNumber: number;
+  problem: string;
+  problemType: 'Warning' | 'Error';
+  success: boolean;
+}
+
+// https://developer.salesforce.com/docs/atlas.en-us.api_meta.meta/api_meta/meta_deployresult.htm
+export interface RunTestsResult {
+  apexLogId: string;
+  codeCoverage: CodeCoverageResult[];
+  codeCoverageWarnings: CodeCoverageWarning[];
+  failures: RunTestFailure[];
+  flowCoverage: FlowCoverageResult[];
+  flowCoverageWarnings: FlowCoverageWarning[];
+  numFailures: number;
+  numTestsRun: number;
+  successes: RunTestSuccess[];
+  totalTime: number;
+}
+
+export interface CodeCoverageResult {
+  dmlInfo: CodeLocation[];
+  id: string;
+  locationsNotCovered: CodeLocation[];
+  methodInfo: CodeLocation[];
+  name: string;
+  namespace: string;
+  numLocations: number;
+  numLocationsNotCovered: number;
+  soqlInfo: CodeLocation[];
+  type: string;
+}
+
+export interface CodeCoverageWarning {
+  id: string;
+  message: string;
+  name: string;
+  namespace: string;
+}
+
+export interface RunTestFailure {
+  id: string;
+  message: string;
+  methodName: string;
+  name: string;
+  namespace: string;
+  seeAllData: boolean;
+  stackTrace: string;
+  time: number;
+  type: string;
+}
+
+export interface FlowCoverageResult {
+  elementsNotCovered: string;
+  flowId: string;
+  flowName: string;
+  flowNamespace: string;
+  numElements: number;
+  numElementsNotCovered: number;
+  processType: string;
+}
+
+export interface FlowCoverageWarning {
+  flowId: string;
+  flowName: string;
+  flowNamespace: string;
+  message: string;
+}
+
+export interface RunTestSuccess {
+  id: string;
+  methodName: string;
+  name: string;
+  namespace: string;
+  seeAllData: boolean;
+  time: number;
+}
+
+export interface RunTestFailure {
+  id: string;
+  message: string;
+  methodName: string;
+  name: string;
+  namespace: string;
+  seeAllData: boolean;
+  stackTrace: string;
+  time: number;
+  type: string;
+}
+
+export interface CodeLocation {
+  column: number;
+  line: number;
+  numExecutions: number;
+  time: number;
+}

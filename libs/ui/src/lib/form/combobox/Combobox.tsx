@@ -40,6 +40,7 @@ export interface ComboboxProps {
   label: string;
   labelHelp?: string;
   helpText?: React.ReactNode | string;
+  isRequired?: boolean;
   hideLabel?: boolean;
   placeholder?: string;
   noItemsPlaceholder?: string;
@@ -99,6 +100,7 @@ const ComboboxElement: FunctionComponent<ComboboxProps & { icon: JSX.Element }> 
   label,
   labelHelp,
   helpText,
+  isRequired,
   hideLabel = false,
   placeholder = 'Select an Option',
   noItemsPlaceholder = 'There are no items for selection',
@@ -321,6 +323,11 @@ const ComboboxElement: FunctionComponent<ComboboxProps & { icon: JSX.Element }> 
   return (
     <div className={classNames('slds-form-element', { 'slds-has-error': hasError })}>
       <label className={classNames('slds-form-element__label', { 'slds-assistive-text': hideLabel })} htmlFor={id}>
+        {isRequired && (
+          <abbr className="slds-required" title="required">
+            *{' '}
+          </abbr>
+        )}
         {label}
       </label>
       {labelHelp && <HelpText id={`${id}-label-help-text`} content={labelHelp} />}

@@ -5,6 +5,8 @@ import { useNonInitialEffect } from '@jetstream/shared/ui-utils';
 import { PositionLeftRight } from '@jetstream/types';
 import classNames from 'classnames';
 import formatISO from 'date-fns/formatISO';
+import isAfter from 'date-fns/isAfter';
+import isBefore from 'date-fns/isBefore';
 import isSameDay from 'date-fns/isSameDay';
 import isValidDate from 'date-fns/isValid';
 import parseISO from 'date-fns/parseISO';
@@ -30,7 +32,8 @@ export interface DatePickerProps {
   errorMessage?: React.ReactNode | string;
   initialSelectedDate?: Date;
   initialVisibleDate?: Date;
-  availableYears?: number[];
+  minAvailableDate?: Date;
+  maxAvailableDate?: Date;
   dropDownPosition?: PositionLeftRight;
   disabled?: boolean;
   readOnly?: boolean;
@@ -51,7 +54,8 @@ export const DatePicker: FunctionComponent<DatePickerProps> = ({
   errorMessage,
   initialSelectedDate,
   initialVisibleDate,
-  availableYears,
+  minAvailableDate: initialMinAvailableDate,
+  maxAvailableDate: initialMaxAvailableDate,
   dropDownPosition,
   disabled,
   readOnly,
@@ -63,12 +67,34 @@ export const DatePicker: FunctionComponent<DatePickerProps> = ({
   const [value, setValue] = useState<string>('');
   const [selectedDate, setSelectedDate] = useState(() => (isValidDate(initialSelectedDate) ? initialSelectedDate : undefined));
   const [isOpen, setIsOpen] = useState(false);
+  const [availableYears, setAvailableYears] = useState(() => getDatePickerYears(initialMinAvailableDate, initialMaxAvailableDate));
+
+  const [minAvailableDate, setMinAvailableDate] = useState(initialMinAvailableDate);
+  const [maxAvailableDate, setMaxAvailableDate] = useState(initialMaxAvailableDate);
 
   useEffect(() => {
     if (selectedDate) {
       setValue(formatISO(selectedDate, { representation: 'date' }));
     }
   }, [selectedDate]);
+
+  useNonInitialEffect(() => {
+    setMinAvailableDate(initialMinAvailableDate);
+    setMaxAvailableDate(initialMaxAvailableDate);
+  }, [initialMinAvailableDate, initialMaxAvailableDate]);
+
+  useNonInitialEffect(() => {
+    setAvailableYears(getDatePickerYears(minAvailableDate, maxAvailableDate));
+  }, [minAvailableDate, maxAvailableDate]);
+
+  // If selected date is beyond valid range, change valid range to include this date
+  useEffect(() => {
+    if (selectedDate && minAvailableDate && isAfter(minAvailableDate, selectedDate)) {
+      setMinAvailableDate(selectedDate);
+    } else if (selectedDate && maxAvailableDate && isBefore(maxAvailableDate, selectedDate)) {
+      setMaxAvailableDate(selectedDate);
+    }
+  }, [selectedDate, minAvailableDate, maxAvailableDate]);
 
   useNonInitialEffect(() => {
     if (selectedDate) {
@@ -167,6 +193,8 @@ export const DatePicker: FunctionComponent<DatePickerProps> = ({
             initialSelectedDate={selectedDate}
             initialVisibleDate={initialVisibleDate || selectedDate}
             availableYears={availableYears}
+            minAvailableDate={minAvailableDate}
+            maxAvailableDate={maxAvailableDate}
             dropDownPosition={dropDownPosition}
             onClose={() => handleToggleOpen(false)}
             onSelection={handleDateSelection}
@@ -182,5 +210,26 @@ export const DatePicker: FunctionComponent<DatePickerProps> = ({
     </OutsideClickHandler>
   );
 };
+
+/**
+ * Returns an array of years available for selection in the datepicker
+ *
+ * @param minAvailableDate The year from this date is used for the earliest year. Defaults to 1970
+ * @param maxAvailableDate The year from this date is used for the latest year. Defaults to current year + 50
+ */
+export function getDatePickerYears(minAvailableDate?: Date, maxAvailableDate?: Date) {
+  let minYear = minAvailableDate?.getFullYear() || 1969;
+  const maxYear = maxAvailableDate?.getFullYear() || new Date().getFullYear() + 50;
+  if (minYear > maxYear) {
+    minYear = maxYear;
+  }
+  let currYear = minYear;
+  const output = new Set<number>();
+  while (currYear <= maxYear) {
+    output.add(currYear);
+    currYear++;
+  }
+  return Array.from(output);
+}
 
 export default DatePicker;

@@ -1,15 +1,12 @@
 /** @jsx jsx */
-import { ColDef, ColumnEvent, GridApi, GridReadyEvent, ICellRendererParams, SelectionChangedEvent } from '@ag-grid-community/core';
+import { ColDef, GridApi, GridReadyEvent, ICellRendererParams, SelectionChangedEvent } from '@ag-grid-community/core';
 import { jsx } from '@emotion/react';
 import { ListMetadataResultItem } from '@jetstream/connected-ui';
-import { logger } from '@jetstream/shared/client-logger';
 import { MapOf } from '@jetstream/types';
 import { AutoFullHeightContainer, DataTable, Spinner } from '@jetstream/ui';
 import { FunctionComponent, useEffect, useState } from 'react';
 import { DeployMetadataTableRow } from './deploy-metadata.types';
 import { getColumnDefinitions, getRows } from './utils/deploy-metadata.utils';
-
-const HEIGHT_BUFFER = 170;
 
 export interface DeployMetadataDeploymentTableProps {
   listMetadataItems: MapOf<ListMetadataResultItem>;
@@ -64,7 +61,6 @@ export const DeployMetadataDeploymentTable: FunctionComponent<DeployMetadataDepl
           row.selectable = false;
         }
       });
-      gridApi.selectAll();
     }
   }, [gridApi, rows]);
 

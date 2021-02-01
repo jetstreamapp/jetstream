@@ -81,6 +81,28 @@ export const hasSelectionsMadeSelector = selector<boolean>({
   },
 });
 
+export const hasSelectionsMadeMessageSelector = selector<string | null>({
+  key: 'deploy-metadata.hasSelectionsMadeMessageSelector',
+  get: ({ get }) => {
+    const metadataSelectionType = get(metadataSelectionTypeState);
+    const userSelection = get(userSelectionState);
+    const dateRangeSelection = get(dateRangeSelectionState);
+    const dateRange = get(dateRangeState);
+    const selectedMetadataItems = get(selectedMetadataItemsState);
+    const selectedUsers = get(selectedUsersState);
+
+    if (metadataSelectionType === 'user' && selectedMetadataItems.size === 0) {
+      return 'Choose one or more metadata types.';
+    } else if (userSelection === 'user' && selectedUsers.length === 0) {
+      return 'Choose one or more users or select All Users.';
+    } else if (dateRangeSelection === 'user' && !dateRange) {
+      return 'Choose a last modified date or select Any Date.';
+    }
+
+    return null;
+  },
+});
+
 export const listMetadataQueriesSelector = selector<ListMetadataQueryExtended[]>({
   key: 'deploy-metadata.listMetadataQueriesSelector',
   get: ({ get }) => {

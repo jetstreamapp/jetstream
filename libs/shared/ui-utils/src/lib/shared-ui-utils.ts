@@ -4,6 +4,8 @@ import { checkMetadataResults, checkMetadataRetrieveResults, checkMetadataRetrie
 import { delay, ensureBoolean, NOOP, orderObjectsBy, REGEX } from '@jetstream/shared/utils';
 import {
   AndOr,
+  DeployOptions,
+  DeployResult,
   ErrorResult,
   ExpressionConditionRowSelectedItems,
   ExpressionConditionType,
@@ -17,14 +19,14 @@ import {
   PositionAll,
   QueryFieldWithPolymorphic,
   QueryFilterOperator,
-  SalesforceOrgUi,
   RetrieveResult,
-  UseReducerFetchState,
+  SalesforceOrgUi,
   UseReducerFetchAction,
+  UseReducerFetchState,
 } from '@jetstream/types';
 import parseISO from 'date-fns/parseISO';
 import { saveAs } from 'file-saver';
-import { DeployOptions, DeployResult, Field } from 'jsforce';
+import { Field } from 'jsforce';
 import { get as safeGet, isFunction, isUndefined } from 'lodash';
 import isNil from 'lodash/isNil';
 import isString from 'lodash/isString';
@@ -264,10 +266,18 @@ export function prepareExcelFile(data: any, header: any, defaultSheetName: any =
   } else {
     Object.keys(data).forEach((sheetName) => {
       if (data[sheetName].length > 0) {
-        const currentHeader = (header && header[sheetName]) || Object.keys(data[sheetName][0]);
+        let currentHeader = header && header[sheetName];
+        let isArrayOfArray = false;
+        if (!currentHeader) {
+          if (Array.isArray(data[sheetName][0])) {
+            isArrayOfArray = true;
+          } else {
+            currentHeader = Object.keys(data[sheetName][0]);
+          }
+        }
         XLSX.utils.book_append_sheet(
           workbook,
-          XLSX.utils.aoa_to_sheet(convertArrayOfObjectToArrayOfArray(data[sheetName], currentHeader)),
+          XLSX.utils.aoa_to_sheet(isArrayOfArray ? data[sheetName] : convertArrayOfObjectToArrayOfArray(data[sheetName], currentHeader)),
           sheetName
         );
       }

@@ -1,21 +1,24 @@
 /** @jsx jsx */
 // https://www.lightningdesignsystem.com/components/input/#Fixed-Text
 import { jsx } from '@emotion/react';
-import { FunctionComponent, useState, useEffect } from 'react';
-import DateGrid from './DateGrid';
-import DateGridPrevNextSelector from './DateGridPrevNextSelector';
 import { PositionLeftRight, PreviousNext } from '@jetstream/types';
-import startOfDay from 'date-fns/startOfDay';
-import startOfMonth from 'date-fns/startOfMonth';
+import { isAfter, isBefore, setYear } from 'date-fns';
 import addMonths from 'date-fns/addMonths';
 import formatDate from 'date-fns/format';
+import startOfDay from 'date-fns/startOfDay';
+import startOfMonth from 'date-fns/startOfMonth';
 import cloneDate from 'date-fns/toDate';
+import { FunctionComponent, useEffect, useState } from 'react';
+import DateGrid from './DateGrid';
+import DateGridPrevNextSelector from './DateGridPrevNextSelector';
 
 export interface DatePickerPopupProps {
   initialSelectedDate?: Date;
   initialVisibleDate?: Date;
-  availableYears?: number[];
   dropDownPosition?: PositionLeftRight;
+  availableYears: number[];
+  minAvailableDate: Date;
+  maxAvailableDate: Date;
   onClose: () => void;
   onSelection: (date: Date) => void;
 }
@@ -24,6 +27,8 @@ export const DatePickerPopup: FunctionComponent<DatePickerPopupProps> = ({
   initialSelectedDate,
   initialVisibleDate = startOfMonth(new Date()),
   availableYears,
+  minAvailableDate,
+  maxAvailableDate,
   dropDownPosition = 'left',
   onClose,
   onSelection,
@@ -34,12 +39,23 @@ export const DatePickerPopup: FunctionComponent<DatePickerPopupProps> = ({
   const [currMonth, setCurrMonth] = useState(() => initialVisibleDate.getMonth());
   const [currYear, setCurrYear] = useState(() => initialVisibleDate.getFullYear());
   const [cameFromMonth, setCameFromMonth] = useState<PreviousNext>(null);
+  const [prevMonthAvailable, setPrevMonthAvailable] = useState(true);
+  const [nextMonthAvailable, setNextMonthAvailable] = useState(true);
 
   useEffect(() => {
     setCurrMonthString(formatDate(visibleMonth, 'MMMM'));
     setCurrMonth(visibleMonth.getMonth());
     setCurrYear(visibleMonth.getFullYear());
   }, [visibleMonth]);
+
+  useEffect(() => {
+    if (minAvailableDate) {
+      setPrevMonthAvailable(isBefore(startOfMonth(minAvailableDate), visibleMonth));
+    }
+    if (maxAvailableDate) {
+      setNextMonthAvailable(isAfter(startOfMonth(maxAvailableDate), visibleMonth));
+    }
+  }, [maxAvailableDate, minAvailableDate, visibleMonth]);
 
   function handleSelection(date: Date) {
     setVisibleMonth(startOfMonth(date));
@@ -48,8 +64,16 @@ export const DatePickerPopup: FunctionComponent<DatePickerPopupProps> = ({
   }
 
   function handleOnPrevOnNext(numMonths: -1 | 1) {
-    setCameFromMonth(numMonths === -1 ? 'NEXT' : 'PREVIOUS');
-    setVisibleMonth(addMonths(visibleMonth, numMonths));
+    if ((numMonths === -1 && prevMonthAvailable) || (numMonths === 1 && nextMonthAvailable)) {
+      setCameFromMonth(numMonths === -1 ? 'NEXT' : 'PREVIOUS');
+      const newDate = addMonths(visibleMonth, numMonths);
+      setVisibleMonth(newDate);
+    }
+  }
+
+  function handleYearChange(currYear: number) {
+    setCurrYear(currYear);
+    setVisibleMonth(setYear(visibleMonth, currYear));
   }
 
   return (
@@ -61,18 +85,24 @@ export const DatePickerPopup: FunctionComponent<DatePickerPopupProps> = ({
     >
       <DateGridPrevNextSelector
         id="date-picker"
-        availableYears={availableYears}
         currMonth={currMonthString}
         currYear={currYear}
+        availableYears={availableYears}
+        prevMonthAvailable={prevMonthAvailable}
+        nextMonthAvailable={nextMonthAvailable}
         onPrev={() => handleOnPrevOnNext(-1)}
         onNext={() => handleOnPrevOnNext(1)}
-        onYearChange={setCurrYear}
+        onYearChange={handleYearChange}
       />
       <DateGrid
         currMonth={currMonth}
         currYear={currYear}
         selectedDate={selectedDate}
         cameFromMonth={cameFromMonth}
+        minYear={availableYears[0]}
+        maxYear={availableYears[availableYears.length - 1]}
+        minAvailableDate={minAvailableDate}
+        maxAvailableDate={maxAvailableDate}
         onSelected={handleSelection}
         onClose={onClose}
         onPrevMonth={() => handleOnPrevOnNext(-1)}

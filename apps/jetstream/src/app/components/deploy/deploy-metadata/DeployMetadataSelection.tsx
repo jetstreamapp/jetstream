@@ -15,8 +15,9 @@ import {
   RadioGroup,
   ReadonlyList,
 } from '@jetstream/ui';
+import addDays from 'date-fns/addDays';
 import isBoolean from 'lodash/isBoolean';
-import { Fragment, FunctionComponent } from 'react';
+import { Fragment, FunctionComponent, useState } from 'react';
 import { Link, useRouteMatch } from 'react-router-dom';
 import Split from 'react-split';
 import { CSSTransition } from 'react-transition-group';
@@ -80,6 +81,8 @@ export interface DeployMetadataSelectionProps {
 export const DeployMetadataSelection: FunctionComponent<DeployMetadataSelectionProps> = ({ selectedOrg }) => {
   const match = useRouteMatch();
 
+  const [maxDate] = useState(() => addDays(new Date(), 1));
+
   const [metadataSelectionType, setMetadataSelectionType] = useRecoilState<CommonUser>(fromDeployMetadataState.metadataSelectionTypeState);
   const [userSelection, setUserSelection] = useRecoilState<AllUser>(fromDeployMetadataState.userSelectionState);
   const [dateRangeSelection, setDateRangeSelection] = useRecoilState<AllUser>(fromDeployMetadataState.dateRangeSelectionState);
@@ -94,6 +97,7 @@ export const DeployMetadataSelection: FunctionComponent<DeployMetadataSelectionP
   const [usersList, setUsersList] = useRecoilState(fromDeployMetadataState.usersList);
   const [selectedUsers, setSelectedUsers] = useRecoilState(fromDeployMetadataState.selectedUsersState);
   const hasSelectionsMade = useRecoilValue(fromDeployMetadataState.hasSelectionsMadeSelector);
+  const hasSelectionsMadeMessage = useRecoilValue(fromDeployMetadataState.hasSelectionsMadeMessageSelector);
 
   // useNonInitialEffect(() => {
   //   let configured = true;
@@ -177,7 +181,7 @@ export const DeployMetadataSelection: FunctionComponent<DeployMetadataSelectionP
               min-height: 19px;
             `}
           >
-            {true && <span>Some message here if there are items that need to bey selected</span>}
+            {hasSelectionsMadeMessage && <span>{hasSelectionsMadeMessage}</span>}
           </div>
         </PageHeaderRow>
       </PageHeader>
@@ -275,6 +279,7 @@ export const DeployMetadataSelection: FunctionComponent<DeployMetadataSelectionP
                       id="modified-since"
                       label="Modified Since"
                       className="slds-m-top_small slds-form-element_stacked slds-is-editing"
+                      maxAvailableDate={maxDate}
                       // containerDisplay="contents"
                       errorMessage="Choose a valid date in the past"
                       labelHelp="All metadata items that were created or modified since this date will be shown"
