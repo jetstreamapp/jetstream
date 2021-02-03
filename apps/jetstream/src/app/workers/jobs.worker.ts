@@ -2,7 +2,13 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { logger } from '@jetstream/shared/client-logger';
 import { MIME_TYPES } from '@jetstream/shared/constants';
-import { queryMore, retrieveMetadataFromListMetadata, sobjectOperation } from '@jetstream/shared/data';
+import {
+  queryMore,
+  retrieveMetadataFromListMetadata,
+  retrieveMetadataFromManifestFile,
+  retrieveMetadataFromPackagesNames,
+  sobjectOperation,
+} from '@jetstream/shared/data';
 import { base64ToArrayBuffer, pollRetrieveMetadataResultsUntilDone, prepareCsvFile, prepareExcelFile } from '@jetstream/shared/ui-utils';
 import {
   flattenRecords,
@@ -16,7 +22,9 @@ import {
   AsyncJobWorkerMessagePayload,
   AsyncJobWorkerMessageResponse,
   BulkDownloadJob,
-  RetrievePackageZipJob,
+  RetrievePackageFromListMetadataJob,
+  RetrievePackageFromManifestJob,
+  RetrievePackageFromPackageNamesJob,
   WorkerMessage,
 } from '@jetstream/types';
 import queue from 'async/queue';
@@ -123,10 +131,32 @@ async function handleMessage(name: AsyncJobType, payloadData: AsyncJobWorkerMess
     }
     case 'RetrievePackageZip': {
       try {
-        const { org, job } = payloadData as AsyncJobWorkerMessagePayload<RetrievePackageZipJob>;
-        const { listMetadataItems, fileName, mimeType } = job.meta;
+        const { org, job } = payloadData as AsyncJobWorkerMessagePayload<
+          RetrievePackageFromListMetadataJob | RetrievePackageFromManifestJob | RetrievePackageFromPackageNamesJob
+        >;
+        const { fileName, mimeType } = job.meta;
 
-        const { id } = await retrieveMetadataFromListMetadata(org, listMetadataItems);
+        let id: string;
+        switch (job.meta.type) {
+          case 'listMetadata': {
+            id = (await retrieveMetadataFromListMetadata(org, job.meta.listMetadataItems)).id;
+            break;
+          }
+          case 'packageManifest': {
+            id = (await retrieveMetadataFromManifestFile(org, job.meta.packageManifest)).id;
+            break;
+          }
+          case 'packageNames': {
+            id = (await retrieveMetadataFromPackagesNames(org, job.meta.packageNames)).id;
+            break;
+          }
+          default: {
+            const response: AsyncJobWorkerMessageResponse = { job };
+            replyToMessage(name, response, 'An imvalid metadata type was provided');
+            return;
+          }
+        }
+
         const results = await pollRetrieveMetadataResultsUntilDone(org, id);
 
         if (isString(results.zipFile)) {

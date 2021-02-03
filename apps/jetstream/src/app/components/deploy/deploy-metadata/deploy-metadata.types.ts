@@ -1,5 +1,7 @@
 import { ListMetadataResult } from '@jetstream/types';
 
+export type DeployMetadataStatus = 'idle' | 'submitting' | 'preparing' | 'adding';
+
 type Common = 'common';
 type User = 'user';
 type All = 'all';

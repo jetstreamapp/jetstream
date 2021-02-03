@@ -177,7 +177,7 @@ export const DeployMetadataToOrgConfigOptions: FunctionComponent<DeployMetadataT
           ))}
           <div
             css={css`
-              min-height: 100px;
+              min-height: 110px;
             `}
           >
             {runSpecifiedTestsVisible && !hiddenOptions.has('runTests') && (

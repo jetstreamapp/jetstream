@@ -3,11 +3,10 @@ import { logger } from '@jetstream/shared/client-logger';
 import { getPackageXml, retrieveMetadataFromListMetadata } from '@jetstream/shared/data';
 import { pollAndDeployMetadataResultsWhenReady, pollMetadataResultsUntilDone } from '@jetstream/shared/ui-utils';
 import { DeployResult, ListMetadataResult, MapOf, SalesforceOrgUi } from '@jetstream/types';
+import { DeployMetadataStatus } from '../deploy-metadata.types';
 import { useCallback, useEffect, useReducer, useRef, useState } from 'react';
 
-export type AddItemsToChangesetStatus = 'idle' | 'submitting' | 'preparing' | 'adding';
-
-export function getStatusValue(value: AddItemsToChangesetStatus) {
+export function getStatusValue(value: DeployMetadataStatus) {
   switch (value) {
     case 'submitting':
       return 'Requesting metadata from org';
@@ -32,7 +31,7 @@ interface State {
   loading: boolean;
   hasError: boolean;
   errorMessage?: string | null;
-  status: AddItemsToChangesetStatus;
+  status: DeployMetadataStatus;
   deployId: string;
   results: DeployResult;
 }
@@ -123,6 +122,7 @@ export function useAddItemsToChangeset(
         if (isMounted.current) {
           dispatch({ type: 'DEPLOY_IN_PROG', payload: { deployId: deployResults.id } });
           const results = await pollMetadataResultsUntilDone(selectedOrg, deployResults.id, {
+            includeDetails: true,
             onChecked: () => setLastChecked(new Date()),
           });
           dispatch({ type: 'SUCCESS', payload: { results } });

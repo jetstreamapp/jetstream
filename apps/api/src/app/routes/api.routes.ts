@@ -47,6 +47,14 @@ routes.post(
   metadataToolingController.deployMetadata
 );
 
+// Content-Type=Application/zip
+routes.post(
+  '/metadata/deploy-zip',
+  ensureOrgExists,
+  validate(metadataToolingController.routeValidators.deployMetadataZip),
+  metadataToolingController.deployMetadataZip
+);
+
 routes.get(
   '/metadata/deploy/:id',
   ensureOrgExists,

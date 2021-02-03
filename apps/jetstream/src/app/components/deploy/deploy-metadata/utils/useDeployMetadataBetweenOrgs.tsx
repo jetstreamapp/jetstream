@@ -3,9 +3,8 @@ import { logger } from '@jetstream/shared/client-logger';
 import { retrieveMetadataFromListMetadata } from '@jetstream/shared/data';
 import { pollAndDeployMetadataResultsWhenReady, pollMetadataResultsUntilDone } from '@jetstream/shared/ui-utils';
 import { DeployOptions, DeployResult, ListMetadataResult, MapOf, SalesforceOrgUi } from '@jetstream/types';
+import { DeployMetadataStatus } from '../deploy-metadata.types';
 import { useCallback, useEffect, useReducer, useRef, useState } from 'react';
-
-export type DeployMetadataStatus = 'idle' | 'submitting' | 'preparing' | 'adding';
 
 export function getStatusValue(value: DeployMetadataStatus) {
   switch (value) {
@@ -70,7 +69,7 @@ function reducer(state: State, action: Action): State {
  * @param selectedOrg
  * @param changesetName
  */
-export function useDeployMetadata(
+export function useDeployMetadataBetweenOrgs(
   sourceOrg: SalesforceOrgUi,
   destinationOrg: SalesforceOrgUi,
   selectedMetadata: MapOf<ListMetadataResult[]>,
@@ -118,7 +117,7 @@ export function useDeployMetadata(
         }
       }
     } catch (ex) {
-      logger.warn('[useDeployMetadata][ERROR]', ex.message);
+      logger.warn('[useDeployMetadataBetweenOrgs][ERROR]', ex.message);
       if (isMounted.current) {
         dispatch({ type: 'ERROR', payload: { errorMessage: ex.message } });
       }

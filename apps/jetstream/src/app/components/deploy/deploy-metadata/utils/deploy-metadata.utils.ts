@@ -144,12 +144,8 @@ export function getRows(listMetadataItems: MapOf<ListMetadataResultItem>): Deplo
   orderStringsBy(Object.keys(listMetadataItems)).forEach((metadataType) => {
     const { type, error, folder, items, lastRefreshed, loading } = listMetadataItems[metadataType];
     const typeLabel = getMetadataLabelFromFullName(type);
-    // TODO: what about a full-width row for metadata?
-    // loading would be nice
-    // we could tell users there are no items
-    // we could tell user when last refresh was and allow refresh?
-    // but sorting is crazy
     if (loading || error) {
+      // LOADING ROW
       output.push({
         key: metadataType,
         loading,
@@ -160,6 +156,7 @@ export function getRows(listMetadataItems: MapOf<ListMetadataResultItem>): Deplo
         folder,
       });
     } else if (items.length > 0) {
+      // METADATA RETURNED
       items.forEach((metadata) => {
         const { fullName, lastModifiedByName, lastModifiedDate, createdByName, createdDate } = metadata;
         output.push({
@@ -179,8 +176,7 @@ export function getRows(listMetadataItems: MapOf<ListMetadataResultItem>): Deplo
         });
       });
     } else {
-      // FIXME: empty row - should we tell user there are no items? Should we just show as a summary somewhere?
-      // Should we have a full-width row for each metadata type? (makes sorting crazy)
+      // EMPTY ROW - NO ITEMS RETURNED
       output.push({
         key: metadataType,
         loading,
@@ -206,6 +202,9 @@ export function convertRowsToMapOfListMetadataResults(rows: DeployMetadataTableR
   }, {});
 }
 
+/**
+ * Convert deployment results into excel compatible data
+ */
 export function getDeployResultsExcelData(deployResults: DeployResult, deploymentUrl: string): MapOf<any[]> {
   // The data parsing from SOAP is not reliable, so we must ensure that the formats are correct
   if (deployResults.details) {

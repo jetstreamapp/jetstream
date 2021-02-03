@@ -177,10 +177,11 @@ export type MimeTypeZip = 'application/zip;charset=utf-8';
 export type MimeTypeJson = 'application/json;charset=utf-8';
 export type MimeTypeXML = 'text/xml;charset=utf-8';
 
-export type InputAcceptType = InputAcceptTypeZip | InputAcceptTypeCsv | InputAcceptTypeExcel;
+export type InputAcceptType = InputAcceptTypeZip | InputAcceptTypeCsv | InputAcceptTypeExcel | InputAcceptTypeXml;
 export type InputAcceptTypeZip = '.zip';
 export type InputAcceptTypeCsv = '.csv';
 export type InputAcceptTypeExcel = '.xlsx';
+export type InputAcceptTypeXml = '.xml';
 
 // Generic status types
 export type Info = 'info';
@@ -365,10 +366,25 @@ export interface BulkDownloadJob {
   fileName: string;
 }
 
-export interface RetrievePackageZipJob {
-  listMetadataItems: MapOf<ListMetadataResult[]>;
+export interface RetrievePackageJob {
+  type: 'listMetadata' | 'packageManifest' | 'packageNames';
   fileName: string;
   mimeType: MimeType;
+}
+
+export interface RetrievePackageFromListMetadataJob extends RetrievePackageJob {
+  type: 'listMetadata';
+  listMetadataItems: MapOf<ListMetadataResult[]>;
+  fileName: string;
+}
+
+export interface RetrievePackageFromManifestJob extends RetrievePackageJob {
+  type: 'packageManifest';
+  packageManifest: string;
+}
+export interface RetrievePackageFromPackageNamesJob extends RetrievePackageJob {
+  type: 'packageNames';
+  packageNames: string[];
 }
 
 export interface QueryHistoryItem {

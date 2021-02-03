@@ -7,7 +7,7 @@ import { useCallback, useEffect, useReducer, useRef } from 'react';
 import { ChangeSetPackage } from '../deploy-metadata.types';
 import { getQueryForPackage } from './deploy-metadata.utils';
 
-export function useChangesetList(selectedOrg: SalesforceOrgUi, initialPackages: ListItem<string, ChangeSetPackage>[]) {
+export function useChangesetList(selectedOrg: SalesforceOrgUi, initialPackages?: ListItem<string, ChangeSetPackage>[]) {
   const isMounted = useRef(null);
 
   const [{ hasLoaded, loading, data, hasError, errorMessage }, dispatch] = useReducer(

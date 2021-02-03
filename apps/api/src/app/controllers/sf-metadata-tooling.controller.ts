@@ -9,12 +9,12 @@ import { isObject, isString } from 'lodash';
 import { buildPackageXml, getRetrieveRequestFromListMetadata, getRetrieveRequestFromManifest } from '../services/sf-misc';
 import { UserFacingError } from '../utils/error-handler';
 import { sendJson } from '../utils/response.handlers';
-import { createWriteStream } from 'fs';
 
 export const routeValidators = {
   listMetadata: [body('types').isArray().isLength({ min: 1 })],
   readMetadata: [body('fullNames').isArray().isLength({ min: 1 })],
   deployMetadata: [body('files').isArray().isLength({ min: 1 })],
+  deployMetadataZip: [body().exists({ checkNull: true }), query('options').isJSON()],
   checkMetadataResults: [param('id').isLength({ min: 15, max: 18 }), query('includeDetails').toBoolean()],
   retrievePackageFromLisMetadataResults: [body().notEmpty(), body().not().isString(), body().not().isArray()],
   retrievePackageFromExistingServerPackages: [body('packageNames').isArray().isLength({ min: 1 })],
@@ -114,6 +114,21 @@ export async function deployMetadata(req: Request, res: Response, next: NextFunc
     files.forEach((file) => zip.file(file.fullFilename, file.content));
 
     const results = await conn.metadata.deploy(zip.generateNodeStream(), req.body.options);
+
+    sendJson(res, results);
+  } catch (ex) {
+    next(new UserFacingError(ex.message));
+  }
+}
+
+export async function deployMetadataZip(req: Request, res: Response, next: NextFunction) {
+  try {
+    const conn: jsforce.Connection = res.locals.jsforceConn;
+    const metadataPackage = req.body; // buffer
+    // this is validated as valid JSON previously
+    const options = JSON.parse(req.query.options as string);
+
+    const results = await conn.metadata.deploy(metadataPackage, options);
 
     sendJson(res, results);
   } catch (ex) {

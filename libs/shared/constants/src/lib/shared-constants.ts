@@ -1,4 +1,4 @@
-import { InputAcceptTypeCsv, InputAcceptTypeExcel, InputAcceptTypeZip, MapOf, MimeType } from '@jetstream/types';
+import { InputAcceptTypeCsv, InputAcceptTypeExcel, InputAcceptTypeXml, InputAcceptTypeZip, MapOf, MimeType } from '@jetstream/types';
 
 export const SESSION_EXP_DAYS = 5;
 export const SFDC_BULK_API_NULL_VALUE = '#N/A';
@@ -15,10 +15,12 @@ export const INPUT_ACCEPT_FILETYPES: {
   ZIP: InputAcceptTypeZip;
   CSV: InputAcceptTypeCsv;
   EXCEL: InputAcceptTypeExcel;
+  XML: InputAcceptTypeXml;
 } = {
   ZIP: '.zip',
   CSV: '.csv',
   EXCEL: '.xlsx',
+  XML: '.xml',
 };
 
 export const HTTP = {
@@ -48,6 +50,7 @@ export const HTTP = {
     XML: 'application/xml',
     XML_UTF8: 'application/xml; charset=UTF-8',
     CSV: 'text/csv; charset=UTF-8',
+    ZIP: 'application/zip',
   },
 };
 

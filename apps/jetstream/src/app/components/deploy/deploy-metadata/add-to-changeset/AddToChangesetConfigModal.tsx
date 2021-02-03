@@ -85,7 +85,7 @@ export const AddToChangesetConfigModal: FunctionComponent<AddToChangesetConfigMo
 
         <ul className="slds-list_dotted">
           <li>
-            The changes will be applied to the org <strong> {selectedOrg.label} </strong>.
+            The changes will be applied to <strong>{selectedOrg.label}</strong>.
           </li>
           <li>
             An Outbound Changeset with a <strong>unique name</strong> must already exist.{' '}
@@ -98,6 +98,7 @@ export const AddToChangesetConfigModal: FunctionComponent<AddToChangesetConfigMo
               Create one here.
             </SalesforceLogin>
           </li>
+          <li>This process can be used for outbound changeset or unmanaged packages.</li>
           <li>The last modified user and date will get updated on all the items you are adding to the changeset.</li>
         </ul>
 
@@ -106,7 +107,7 @@ export const AddToChangesetConfigModal: FunctionComponent<AddToChangesetConfigMo
           idPrefix="package"
           label="Choose changeset from list"
           required
-          labelHelp="Salesforce does not have great support for getting changesets, if your changeset is not shown below, manually enter the name."
+          labelHelp="Salesforce has limited support for obtaining changesets, if your changeset is not shown below, manually enter the name. This list may also include unmanaged packages, which can be used successfully with this process."
         >
           <Radio
             idPrefix="package"

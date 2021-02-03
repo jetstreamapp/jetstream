@@ -1,9 +1,11 @@
-import { orderObjectsBy } from '@jetstream/shared/utils';
+import { ensureArray, orderObjectsBy } from '@jetstream/shared/utils';
 import { ListMetadataResult, MapOf } from '@jetstream/types';
 import { PackageTypeMembers, RetrieveRequest } from 'jsforce';
-import { get as lodashGet, isString } from 'lodash';
+import { get as lodashGet, isObjectLike, isString } from 'lodash';
 import { create as xmlBuilder } from 'xmlbuilder2';
 import { UserFacingError } from '../utils/error-handler';
+
+const VALID_PACKAGE_VERSION = /^[0-9]+\.[0-9]+$/;
 
 export function buildPackageXml(types: MapOf<ListMetadataResult[]>, version: string, otherFields: MapOf<string> = {}, prettyPrint = true) {
   // prettier-ignore
@@ -67,9 +69,12 @@ export function getRetrieveRequestFromManifest(packageManifest: string) {
     throw new UserFacingError('The package manifest format is invalid');
   } else {
     const version: string = lodashGet(manifestXml, 'Package.version');
-    const types: PackageTypeMembers[] = lodashGet(manifestXml, 'Package.types');
-    if (!isString(version)) {
-      throw new UserFacingError('The package manifest version is missing');
+    let types: PackageTypeMembers[] = lodashGet(manifestXml, 'Package.types');
+    if (isObjectLike(types)) {
+      types = ensureArray(types);
+    }
+    if (!isString(version) || !VALID_PACKAGE_VERSION.test(version)) {
+      throw new UserFacingError('The package manifest version is invalid or is missing');
     } else if (!Array.isArray(types) || !types.length) {
       throw new UserFacingError('The package manifest is missing types');
     }
@@ -77,8 +82,6 @@ export function getRetrieveRequestFromManifest(packageManifest: string) {
     const retrieveRequest: RetrieveRequest = {
       apiVersion: version,
       unpackaged: {
-        description: 'My Test Package Description!',
-        fullName: 'My Test Package!',
         types,
         version: version,
       },

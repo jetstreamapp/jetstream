@@ -1,11 +1,14 @@
-import React, { FunctionComponent, useEffect, useRef, useState } from 'react';
-import classNames from 'classnames';
-import Icon from '../../widgets/Icon';
+/** @jsx jsx */
+import { css, jsx } from '@emotion/react';
 import { logger } from '@jetstream/shared/client-logger';
 import { readFile, useNonInitialEffect } from '@jetstream/shared/ui-utils';
 import { InputAcceptType, InputReadFileContent } from '@jetstream/types';
+import classNames from 'classnames';
+import { FunctionComponent, useEffect, useRef, useState } from 'react';
+import Icon from '../../widgets/Icon';
 
 export interface FileSelectorProps {
+  className?: string;
   id: string;
   label: string;
   labelHelp?: string;
@@ -14,7 +17,6 @@ export interface FileSelectorProps {
   hideLabel?: boolean;
   disabled?: boolean;
   accept?: InputAcceptType[];
-  readAs?: 'string' | '';
   userHelpText?: string;
   hasError?: boolean;
   errorMessage?: React.ReactNode | string;
@@ -22,6 +24,7 @@ export interface FileSelectorProps {
 }
 
 export const FileSelector: FunctionComponent<FileSelectorProps> = ({
+  className,
   id,
   label,
   filename,
@@ -103,7 +106,7 @@ export const FileSelector: FunctionComponent<FileSelectorProps> = ({
       setManagedFilename(file.name);
 
       // TODO: we might want to do something else here in the future
-      const readAsArrayBuffer = extension !== '.csv';
+      const readAsArrayBuffer = extension !== '.csv' && extension !== '.xml';
       const content = await readFile(file, readAsArrayBuffer);
 
       onReadFile({ filename: file.name, extension, content });
@@ -122,7 +125,7 @@ export const FileSelector: FunctionComponent<FileSelectorProps> = ({
   }
 
   return (
-    <div className={classNames('"slds-form-element"', { 'slds-has-error': hasErrorState() })}>
+    <div className={classNames('"slds-form-element"', { 'slds-has-error': hasErrorState() }, className)}>
       <span className={classNames('slds-form-element__label', { 'slds-assistive-text': hideLabel })} id={labelPrimaryId}>
         {label}
       </span>
@@ -156,26 +159,32 @@ export const FileSelector: FunctionComponent<FileSelectorProps> = ({
           </div>
         </div>
       </div>
-      {userHelpText && !managedFilename && (
-        <div className="slds-form-element__help slds-truncate" id="file-input-help" title={userHelpText}>
-          {userHelpText}
-        </div>
-      )}
-      {managedFilename && (
-        <div className="slds-form-element__help slds-truncate" id="file-input-name" title={managedFilename}>
-          {filenameTruncated}
-        </div>
-      )}
-      {systemErrorMessage && (
-        <div className="slds-form-element__help slds-truncate" id="file-input-system-error">
-          {systemErrorMessage}
-        </div>
-      )}
-      {hasError && errorMessage && (
-        <div className="slds-form-element__help slds-truncate" id="file-input-error">
-          {systemErrorMessage}
-        </div>
-      )}
+      <div
+        css={css`
+          min-height: 20px;
+        `}
+      >
+        {userHelpText && !managedFilename && (
+          <div className="slds-form-element__help slds-truncate" id="file-input-help" title={userHelpText}>
+            {userHelpText}
+          </div>
+        )}
+        {managedFilename && (
+          <div className="slds-form-element__help slds-truncate" id="file-input-name" title={managedFilename}>
+            {filenameTruncated}
+          </div>
+        )}
+        {systemErrorMessage && (
+          <div className="slds-form-element__help slds-truncate" id="file-input-system-error">
+            {systemErrorMessage}
+          </div>
+        )}
+        {hasError && errorMessage && (
+          <div className="slds-form-element__help slds-truncate" id="file-input-error">
+            {systemErrorMessage}
+          </div>
+        )}
+      </div>
     </div>
   );
 };

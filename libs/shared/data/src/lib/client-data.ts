@@ -213,13 +213,25 @@ export async function readMetadata<T = any>(org: SalesforceOrgUi, type: string, 
   return handleRequest({ method: 'POST', url: `/api/metadata/read/${type}`, data: { fullNames } }, { org }).then(unwrapResponseIgnoreCache);
 }
 
-// we should also have an option to stream a zip file (build when we have future requirements)
 export async function deployMetadata(
   org: SalesforceOrgUi,
   files: { fullFilename: string; content: string }[],
   options?: DeployOptions
 ): Promise<AsyncResult> {
   return handleRequest({ method: 'POST', url: `/api/metadata/deploy`, data: { files, options } }, { org }).then(unwrapResponseIgnoreCache);
+}
+
+export async function deployMetadataZip(org: SalesforceOrgUi, zipFile: any, options: DeployOptions): Promise<AsyncResult> {
+  return handleRequest(
+    {
+      method: 'POST',
+      url: `/api/metadata/deploy-zip`,
+      data: zipFile,
+      params: { options: JSON.stringify(options) },
+      headers: { [HTTP.HEADERS.CONTENT_TYPE]: HTTP.CONTENT_TYPE.ZIP },
+    },
+    { org }
+  ).then(unwrapResponseIgnoreCache);
 }
 
 export async function checkMetadataResults(org: SalesforceOrgUi, id: string, includeDetails = false): Promise<DeployResult> {

@@ -7,7 +7,7 @@ import { Fragment, FunctionComponent, useState } from 'react';
 import { useRecoilValue } from 'recoil';
 import { salesforceOrgsState } from '../../../../app-state';
 import OrgsCombobox from '../../../../components/core/OrgsCombobox';
-import DeployMetadataToOrgConfigOptions from './DeployMetadataToOrgConfigOptions';
+import DeployMetadataOptions from '../utils/DeployMetadataOptions';
 
 const DISABLED_OPTIONS = new Set<keyof DeployOptions>(['allowMissingFiles', 'autoUpdatePackage', 'purgeOnDelete', 'singlePackage']);
 
@@ -77,7 +77,7 @@ export const DeployMetadataToOrgConfigModal: FunctionComponent<DeployMetadataToO
         />
         <div>
           {/* OPTIONS */}
-          <DeployMetadataToOrgConfigOptions deployOptions={deployOptions} hiddenOptions={DISABLED_OPTIONS} onChange={setDeployOptions} />
+          <DeployMetadataOptions deployOptions={deployOptions} hiddenOptions={DISABLED_OPTIONS} onChange={setDeployOptions} />
         </div>
       </div>
     </Modal>

@@ -372,15 +372,15 @@ export const Picklist: FunctionComponent<PicklistProps> = ({
                 aria-label="Selected Options:"
                 aria-orientation="horizontal"
               >
-                <li className="slds-listbox-item" role="presentation">
-                  {items
-                    .filter((item) => selectedItemsIdsSet.has(item.id))
-                    .map((item) => (
-                      <Pill key={item.id} title={item.label} onRemove={() => handleSelection(item)}>
+                {items
+                  .filter((item) => selectedItemsIdsSet.has(item.id))
+                  .map((item) => (
+                    <li key={item.id} className="slds-listbox-item" role="presentation">
+                      <Pill title={item.label} onRemove={() => handleSelection(item)}>
                         {item.label}
                       </Pill>
-                    ))}
-                </li>
+                    </li>
+                  ))}
               </ul>
             </div>
           )}

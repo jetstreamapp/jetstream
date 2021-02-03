@@ -1,15 +1,14 @@
 /** @jsx jsx */
 import { jsx } from '@emotion/react';
-import { ListMetadataResult, MapOf, SalesforceOrgUi } from '@jetstream/types';
-import { Icon, Modal, SalesforceLogin } from '@jetstream/ui';
-import { Fragment, FunctionComponent, useEffect, useState } from 'react';
-import { getStatusValue, useAddItemsToChangeset } from '../utils/useAddItemsToChangeset';
-import formatDate from 'date-fns/format';
-import { DATE_FORMATS } from '@jetstream/shared/constants';
 import { useNonInitialEffect } from '@jetstream/shared/ui-utils';
-import { getDeploymentStatusUrl, getChangesetUrl } from '../utils/deploy-metadata.utils';
+import { DeployResult, ListMetadataResult, MapOf, SalesforceOrgUi } from '@jetstream/types';
+import { SalesforceLogin } from '@jetstream/ui';
+import { Fragment, FunctionComponent, useEffect, useState } from 'react';
 import { useRecoilState } from 'recoil';
 import { applicationCookieState } from '../../../../app-state';
+import { getChangesetUrl, getDeploymentStatusUrl } from '../utils/deploy-metadata.utils';
+import DeployMetadataStatusModal from '../utils/DeployMetadataStatusModal';
+import { getStatusValue, useAddItemsToChangeset } from '../utils/useAddItemsToChangeset';
 
 export interface AddToChangesetStatusModalProps {
   selectedOrg: SalesforceOrgUi;
@@ -17,7 +16,10 @@ export interface AddToChangesetStatusModalProps {
   changesetName: string;
   changesetDescription: string;
   changesetId?: string;
+  // used to hide while download window is open
+  hideModal: boolean;
   onClose: () => void;
+  onDownload: (deployResults: DeployResult, deploymentUrl: string) => void;
 }
 
 export const AddToChangesetStatusModal: FunctionComponent<AddToChangesetStatusModalProps> = ({
@@ -26,7 +28,9 @@ export const AddToChangesetStatusModal: FunctionComponent<AddToChangesetStatusMo
   changesetDescription,
   changesetId,
   selectedMetadata,
+  hideModal,
   onClose,
+  onDownload,
 }) => {
   const [{ serverUrl }] = useRecoilState(applicationCookieState);
   const [deployStatusUrl, setDeployStatusUrl] = useState<string>();
@@ -57,87 +61,43 @@ export const AddToChangesetStatusModal: FunctionComponent<AddToChangesetStatusMo
   }, [changesetId]);
 
   return (
-    <Modal
-      header="Update Outbound Changeset"
-      closeDisabled={loading}
-      closeOnBackdropClick={false}
-      closeOnEsc={false}
-      footer={
+    <DeployMetadataStatusModal
+      destinationOrg={selectedOrg}
+      deployLabel="Add to Changeset"
+      inProgressLabel="Your items are being added, this may take a few minutes."
+      finishedSuccessfullyLabel="Your changeset has been updated successfully"
+      fallbackErrorMessageLabel="There was a problem updating your changeset."
+      fallbackUnknownErrorMessageLabel="There was a problem updating your changeset."
+      deployStatusUrl={deployStatusUrl}
+      loading={loading}
+      status={status}
+      results={results}
+      lastChecked={lastChecked}
+      errorMessage={errorMessage}
+      hasError={hasError}
+      statusUrls={
         <Fragment>
-          <button className="slds-button slds-button_brand" onClick={() => onClose()} disabled={loading}>
-            Close
-          </button>
+          {changesetUrl && (
+            <div>
+              <SalesforceLogin org={selectedOrg} serverUrl={serverUrl} iconPosition="right" returnUrl={changesetUrl}>
+                View the outbound changeset.
+              </SalesforceLogin>
+            </div>
+          )}
+          {deployStatusUrl && (
+            <div>
+              <SalesforceLogin org={selectedOrg} serverUrl={serverUrl} iconPosition="right" returnUrl={deployStatusUrl}>
+                View the deployment details.
+              </SalesforceLogin>
+            </div>
+          )}
         </Fragment>
       }
-      size="lg"
+      hideModal={hideModal}
+      getStatusValue={getStatusValue}
       onClose={onClose}
-    >
-      <div className="slds-is-relative slds-m-around_large">
-        {status !== 'idle' && (
-          <div>
-            <div>Your items are being added to your changeset, this may take a few minutes.</div>
-            <p>
-              <strong>Status:</strong> {getStatusValue(status)}
-            </p>
-            {lastChecked && (
-              <p className="slds-text-body_small slds-text-color_weak slds-m-bottom_xx-small">
-                {formatDate(lastChecked, DATE_FORMATS.FULL)}
-              </p>
-            )}
-          </div>
-        )}
-        {status === 'idle' && results && (
-          <Fragment>
-            {results.status === 'Succeeded' && (
-              <div>
-                <div>
-                  Your deployment has finished successfully
-                  <Icon
-                    type="utility"
-                    icon="success"
-                    className="slds-icon slds-icon-text-success slds-icon_x-small slds-m-left_xx-small"
-                    containerClassname="slds-icon_container slds-icon-utility-success"
-                    description="deployed successfully"
-                  />
-                </div>
-                <p>
-                  <strong>Status:</strong> {results.status}
-                </p>
-                <div>Number of items deployed: {results.numberComponentsDeployed}</div>
-                {changesetUrl && (
-                  <div>
-                    <SalesforceLogin org={selectedOrg} serverUrl={serverUrl} iconPosition="right" returnUrl={changesetUrl}>
-                      View the outbound changeset.
-                    </SalesforceLogin>
-                  </div>
-                )}
-              </div>
-            )}
-            {results.status !== 'Succeeded' && (
-              <div>
-                <div>
-                  There was a problem deploying your metadata.
-                  <Icon
-                    type="utility"
-                    icon="error"
-                    className="slds-icon slds-icon-text-error slds-icon_x-small slds-m-left_xx-small"
-                    containerClassname="slds-icon_container slds-icon-utility-error"
-                    description="There was an error with the deployment"
-                  />
-                </div>
-              </div>
-            )}
-          </Fragment>
-        )}
-        {deployStatusUrl && (
-          <div>
-            <SalesforceLogin org={selectedOrg} serverUrl={serverUrl} iconPosition="right" returnUrl={deployStatusUrl}>
-              View the deployment details.
-            </SalesforceLogin>
-          </div>
-        )}
-      </div>
-    </Modal>
+      onDownload={onDownload}
+    />
   );
 };
 

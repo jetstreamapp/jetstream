@@ -15,6 +15,7 @@ import {
   RadioGroup,
   ReadonlyList,
 } from '@jetstream/ui';
+import DeployMetadataPackage from './deploy-metadata-package/DeployMetadataPackage';
 import addDays from 'date-fns/addDays';
 import isBoolean from 'lodash/isBoolean';
 import { Fragment, FunctionComponent, useState } from 'react';
@@ -26,6 +27,7 @@ import * as fromDeployMetadataState from './deploy-metadata.state';
 import { AllUser, CommonUser } from './deploy-metadata.types';
 import './DeployMetadataSelection.scss';
 import DeployMetadataUserList from './DeployMetadataUserList';
+import DownloadMetadataPackage from 'apps/jetstream/src/app/components/deploy/deploy-metadata/download-metadata-package/DownloadMetadataPackage';
 
 interface RadioButtonItem<T = string> {
   name: T;
@@ -99,33 +101,6 @@ export const DeployMetadataSelection: FunctionComponent<DeployMetadataSelectionP
   const hasSelectionsMade = useRecoilValue(fromDeployMetadataState.hasSelectionsMadeSelector);
   const hasSelectionsMadeMessage = useRecoilValue(fromDeployMetadataState.hasSelectionsMadeMessageSelector);
 
-  // useNonInitialEffect(() => {
-  //   let configured = true;
-  //   if (metadataSelectionType === 'user' && selectedMetadataItems.size === 0) {
-  //     configured = false;
-  //   } else if (userSelection === 'user' && selectedUsers.length === 0) {
-  //     configured = false;
-  //   } else if (dateRangeSelection === 'user' && !dateRange) {
-  //     configured = false;
-  //   }
-
-  //   if (!configured && configuration.configured) {
-  //     resetConfiguration();
-  //   } else if (configured && !configuration.configured) {
-  //     setConfiguration({ ...configuration, configured: true });
-  //   }
-  //   // eslint-disable-next-line react-hooks/exhaustive-deps
-  // }, [
-  //   metadataSelectionType,
-  //   dateRangeSelection,
-  //   userSelection,
-  //   selectedMetadataItems,
-  //   dateRange,
-  //   selectedUsers,
-  //   resetConfiguration,
-  //   setConfiguration,
-  // ]);
-
   function handleSelection(items: string[], selectAllValue?: boolean) {
     // add or remove all
     if (isBoolean(selectAllValue)) {
@@ -155,6 +130,8 @@ export const DeployMetadataSelection: FunctionComponent<DeployMetadataSelectionP
         <PageHeaderRow>
           <PageHeaderTitle icon={{ type: 'standard', icon: 'asset_relationship' }} label="Deploy Metadata Between Orgs" />
           <PageHeaderActions colType="actions" buttonType="separate">
+            <DownloadMetadataPackage selectedOrg={selectedOrg} />
+            <DeployMetadataPackage selectedOrg={selectedOrg} />
             {hasSelectionsMade && (
               <Link
                 className="slds-button slds-button_brand"
