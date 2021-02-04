@@ -49,7 +49,7 @@ export const DeployMetadataPackageConfigModal: FunctionComponent<DeployMetadataP
 
   return (
     <Modal
-      header="Upload metadata from Package"
+      header="Upload metadata from package"
       footer={
         <Fragment>
           <button className="slds-button slds-button_neutral" onClick={() => onClose()}>

@@ -446,7 +446,7 @@ export interface DeployMessage {
   columnNumber: number;
   componentType: string;
   created: boolean;
-  createdDate: boolean;
+  createdDate: string;
   deleted: boolean;
   fileName: string;
   fullName: string;

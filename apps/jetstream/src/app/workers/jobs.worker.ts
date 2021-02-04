@@ -25,6 +25,7 @@ import {
   RetrievePackageFromListMetadataJob,
   RetrievePackageFromManifestJob,
   RetrievePackageFromPackageNamesJob,
+  RetrieveResult,
   WorkerMessage,
 } from '@jetstream/types';
 import queue from 'async/queue';
@@ -152,12 +153,17 @@ async function handleMessage(name: AsyncJobType, payloadData: AsyncJobWorkerMess
           }
           default: {
             const response: AsyncJobWorkerMessageResponse = { job };
-            replyToMessage(name, response, 'An imvalid metadata type was provided');
+            replyToMessage(name, response, 'An invalid metadata type was provided');
             return;
           }
         }
 
-        const results = await pollRetrieveMetadataResultsUntilDone(org, id);
+        const results = await pollRetrieveMetadataResultsUntilDone(org, id, {
+          onChecked: () => {
+            const response: AsyncJobWorkerMessageResponse = { job, lastActivityUpdate: true };
+            replyToMessage(name, response, undefined);
+          },
+        });
 
         if (isString(results.zipFile)) {
           const fileData = base64ToArrayBuffer(results.zipFile);

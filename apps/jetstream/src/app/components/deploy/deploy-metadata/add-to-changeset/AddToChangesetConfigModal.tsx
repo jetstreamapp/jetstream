@@ -62,7 +62,7 @@ export const AddToChangesetConfigModal: FunctionComponent<AddToChangesetConfigMo
 
   return (
     <Modal
-      header="Add metadata to Changeset"
+      header="Add metadata to changeset"
       footer={
         <Fragment>
           <button className="slds-button slds-button_neutral" onClick={() => onClose()} disabled={loadingChangesetPackages}>

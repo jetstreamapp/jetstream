@@ -1,9 +1,21 @@
 /** @jsx jsx */
 import { jsx } from '@emotion/react';
 import { useListMetadata } from '@jetstream/connected-ui';
-import { formatNumber } from '@jetstream/shared/ui-utils';
-import { ListMetadataResult, SalesforceOrgUi } from '@jetstream/types';
-import { Badge, Grid, Icon, Spinner, Toast, Toolbar, ToolbarItemActions, ToolbarItemGroup } from '@jetstream/ui';
+import { formatNumber, transformTabularDataToExcelStr } from '@jetstream/shared/ui-utils';
+import { ListMetadataResult, MapOf, SalesforceOrgUi } from '@jetstream/types';
+import {
+  Badge,
+  DropDown,
+  Grid,
+  Icon,
+  Spinner,
+  Toast,
+  Toolbar,
+  ToolbarItemActions,
+  ToolbarItemGroup,
+  FileDownloadModal,
+} from '@jetstream/ui';
+import copyToClipboard from 'copy-to-clipboard';
 import addMinutes from 'date-fns/addMinutes';
 import formatISODate from 'date-fns/formatISO';
 import isBefore from 'date-fns/isBefore';
@@ -17,8 +29,11 @@ import { AllUser, DeployMetadataTableRow } from './deploy-metadata.types';
 import DeployMetadataToOrg from './deploy-to-different-org/DeployMetadataToOrg';
 import DeployMetadataDeploymentTable from './DeployMetadataDeploymentTable';
 import DeployMetadataLastRefreshedPopover from './DeployMetadataLastRefreshedPopover';
-import { convertRowsToMapOfListMetadataResults } from './utils/deploy-metadata.utils';
+import { convertRowsForExport, convertRowsToMapOfListMetadataResults } from './utils/deploy-metadata.utils';
 import DownloadPackageWithFileSelector from './utils/DownloadPackageWithFileSelector';
+
+const TABLE_ACTION_CLIPBOARD = 'table-copy-to-clipboard';
+const TABLE_ACTION_DOWNLOAD = 'table-download';
 
 export interface DeployMetadataDeploymentProps {
   selectedOrg: SalesforceOrgUi;
@@ -35,6 +50,8 @@ export const DeployMetadataDeployment: FunctionComponent<DeployMetadataDeploymen
   const dateRangeSelection = useRecoilValue<AllUser>(fromDeployMetadataState.dateRangeSelectionState);
   const dateRange = useRecoilValue<Date>(fromDeployMetadataState.dateRangeState);
 
+  const [exportData, setExportData] = useState<MapOf<any>>();
+  const [rows, setRows] = useState<DeployMetadataTableRow[]>();
   const [selectedRows, setSelectedRows] = useState<Set<DeployMetadataTableRow>>(new Set());
 
   const listMetadataFilterFn = useCallback(
@@ -88,6 +105,15 @@ export const DeployMetadataDeployment: FunctionComponent<DeployMetadataDeploymen
     setActiveDownloadType(null);
   }
 
+  function handleTableAction(id: string) {
+    const exportDataTemp = convertRowsForExport(rows);
+    if (id === TABLE_ACTION_CLIPBOARD) {
+      copyToClipboard(transformTabularDataToExcelStr(exportDataTemp), { format: 'text/plain' });
+    } else if (TABLE_ACTION_DOWNLOAD) {
+      setExportData(exportDataTemp);
+    }
+  }
+
   return (
     <div>
       {activeDownloadType && (
@@ -97,6 +123,17 @@ export const DeployMetadataDeployment: FunctionComponent<DeployMetadataDeploymen
           modalTagline={`${formatNumber(selectedRows.size)} components will be included`}
           listMetadataItems={convertRowsToMapOfListMetadataResults(Array.from(selectedRows))}
           onClose={handleFileModalClose}
+        />
+      )}
+
+      {exportData && (
+        <FileDownloadModal
+          org={selectedOrg}
+          modalHeader="Export Metadata"
+          data={exportData}
+          fileNameParts={['metadata']}
+          allowedTypes={['xlsx', 'csv', 'json']}
+          onModalClose={() => setExportData(null)}
         />
       )}
 
@@ -147,6 +184,28 @@ export const DeployMetadataDeployment: FunctionComponent<DeployMetadataDeploymen
           <div className="slds-m-horizontal_x-small">
             <Badge>{formatNumber(selectedRows.size)} Components Selected</Badge>
           </div>
+          {!loading && rows && (
+            <div className="slds-p-top_xxx-small">
+              <DropDown
+                buttonClassName="slds-button slds-button_icon slds-button_icon-border-filled slds-button_icon-small"
+                actionText="Table Actions"
+                description="Table Actions"
+                items={[
+                  {
+                    id: TABLE_ACTION_CLIPBOARD,
+                    icon: { type: 'utility', icon: 'copy_to_clipboard', description: 'Copy table to Clipboard' },
+                    value: 'Copy metadata to Clipboard',
+                  },
+                  {
+                    id: TABLE_ACTION_DOWNLOAD,
+                    icon: { type: 'utility', icon: 'download', description: 'Download table' },
+                    value: 'Download metadata',
+                  },
+                ]}
+                onSelected={handleTableAction}
+              />
+            </div>
+          )}
           {!loading && listMetadataItems && (
             <div className="slds-col_bump-left">
               <DeployMetadataLastRefreshedPopover
@@ -159,7 +218,7 @@ export const DeployMetadataDeployment: FunctionComponent<DeployMetadataDeploymen
         </Grid>
         {hasError && <Toast type="error">Uh Oh. There was a problem getting the permission data from Salesforce.</Toast>}
         {!hasError && listMetadataItems && (
-          <DeployMetadataDeploymentTable listMetadataItems={listMetadataItems} onSelectedRows={setSelectedRows} />
+          <DeployMetadataDeploymentTable listMetadataItems={listMetadataItems} onRows={setRows} onSelectedRows={setSelectedRows} />
         )}
       </div>
     </div>

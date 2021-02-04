@@ -10,7 +10,7 @@ export const JobPlaceholder: FunctionComponent<JobPlaceholderProps> = () => {
         <div className="slds-grid slds-grid_align-spread">
           <div className="slds-has-flexi-truncate">
             <p className="slds-truncate" title="There are no active jobs">
-              No background jobs have been submitted
+              There are no background jobs to show.
             </p>
           </div>
         </div>

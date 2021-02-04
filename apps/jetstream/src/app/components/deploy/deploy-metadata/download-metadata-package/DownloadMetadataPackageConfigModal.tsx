@@ -66,8 +66,8 @@ export const DownloadMetadataPackageConfigModal: FunctionComponent<DownloadMetad
   }
 
   return (
-    <Modal header="Download metadata from Package" size="lg" onClose={onClose}>
-      <div className="slds-is-relative">
+    <Modal header="Download metadata from package" size="lg" onClose={onClose}>
+      <div className="slds-is-relative slds-p-around_large">
         <Grid wrap verticalStretch>
           <GridCol
             className="slds-p-around_medium"
@@ -109,7 +109,6 @@ export const DownloadMetadataPackageConfigModal: FunctionComponent<DownloadMetad
               allowDeselection
               multiSelection
               label="Outbound Changesets / Unmanaged Packages"
-              scrollLength={7}
               placeholder="Select a Package"
               items={changesetPackages || []}
               selectedItemIds={packageNames}

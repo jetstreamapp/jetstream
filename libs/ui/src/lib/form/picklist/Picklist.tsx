@@ -94,9 +94,7 @@ export const Picklist: FunctionComponent<PicklistProps> = ({
     }
     return selectedItemIdsSet;
   });
-  const scrollLengthClass = useMemo<string | undefined>(() => (scrollLength ? `slds-dropdown_length-${scrollLength}` : undefined), [
-    scrollLength,
-  ]);
+  const scrollLengthClass = useMemo(() => `slds-dropdown_length-${scrollLength || 5}`, [scrollLength]);
   const [focusedItem, setFocusedItem] = useState<number>(null);
   const divContainerEl = useRef<HTMLDivElement>(null);
   const elRefs = useRef<RefObject<HTMLLIElement>[]>([]);
@@ -317,7 +315,7 @@ export const Picklist: FunctionComponent<PicklistProps> = ({
               </div>
               <div
                 id={listboxId}
-                className={classNames('slds-dropdown slds-dropdown_fluid slds-dropdown_length-7', scrollLengthClass)}
+                className={classNames('slds-dropdown slds-dropdown_fluid', scrollLengthClass)}
                 role="listbox"
                 onKeyDown={handleKeyDown}
               >

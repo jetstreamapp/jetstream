@@ -212,6 +212,9 @@ export function useListMetadata(selectedOrg: SalesforceOrgUi) {
         }
         setListMetadataItems((previousItems) => ({ ...previousItems, [type]: responseItem }));
       } catch (ex) {
+        if (!isMounted.current) {
+          return;
+        }
         setListMetadataItems((previousItems) => ({
           ...previousItems,
           [type]: { ...previousItems[type], loading: false, error: true, items: [], lastRefreshed: null },

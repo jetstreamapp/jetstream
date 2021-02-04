@@ -10,6 +10,7 @@ import { getColumnDefinitions, getRows } from './utils/deploy-metadata.utils';
 
 export interface DeployMetadataDeploymentTableProps {
   listMetadataItems: MapOf<ListMetadataResultItem>;
+  onRows?: (rows: DeployMetadataTableRow[]) => void;
   onSelectedRows: (selectedRows: Set<DeployMetadataTableRow>) => void;
 }
 
@@ -29,6 +30,7 @@ const ValueOrLoadingRenderer: FunctionComponent<ICellRendererParams> = ({ value,
 
 export const DeployMetadataDeploymentTable: FunctionComponent<DeployMetadataDeploymentTableProps> = ({
   listMetadataItems,
+  onRows,
   onSelectedRows,
 }) => {
   const [gridApi, setGridApi] = useState<GridApi>(null);
@@ -44,6 +46,12 @@ export const DeployMetadataDeploymentTable: FunctionComponent<DeployMetadataDepl
   useEffect(() => {
     setRows(getRows(listMetadataItems));
   }, [listMetadataItems]);
+
+  useEffect(() => {
+    if (onRows && rows) {
+      onRows(rows);
+    }
+  }, [onRows, rows]);
 
   useEffect(() => {
     onSelectedRows(selectedRows);

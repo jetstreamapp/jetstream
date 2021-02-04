@@ -354,6 +354,7 @@ export interface AsyncJobWorkerMessagePayload<T = unknown> {
 
 export interface AsyncJobWorkerMessageResponse<T = unknown, R = unknown> {
   job: AsyncJob<T>;
+  lastActivityUpdate?: boolean;
   results?: R;
 }
 

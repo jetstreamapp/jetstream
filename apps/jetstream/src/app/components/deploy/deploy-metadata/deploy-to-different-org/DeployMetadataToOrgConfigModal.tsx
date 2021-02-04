@@ -46,7 +46,7 @@ export const DeployMetadataToOrgConfigModal: FunctionComponent<DeployMetadataToO
 
   return (
     <Modal
-      header="Add metadata to Changeset"
+      header="Add metadata to changeset"
       footer={
         <Fragment>
           <button className="slds-button slds-button_neutral" onClick={() => onClose()}>

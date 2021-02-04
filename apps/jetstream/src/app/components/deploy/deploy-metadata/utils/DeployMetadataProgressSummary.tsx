@@ -2,6 +2,7 @@ import { pluralizeFromNumber } from '@jetstream/shared/utils';
 import { DeployResultStatus } from '@jetstream/types';
 import { Grid, ProgressRing } from '@jetstream/ui';
 import React, { FunctionComponent, useEffect, useState } from 'react';
+import classNames from 'classnames';
 
 export interface DeployMetadataProgressSummaryProps {
   className?: string;
@@ -69,7 +70,12 @@ export const DeployMetadataProgressSummary: FunctionComponent<DeployMetadataProg
         <small>{Math.round(fillPercent * 100)}%</small>
       </ProgressRing>
       <span className="slds-align-middle">{componentSummary}</span>
-      <span className="slds-align-middle slds-text-color_error">
+      <span
+        className={classNames('slds-align-middle', {
+          'slds-text-color_success': totalErrors === 0,
+          'slds-text-color_error': totalErrors > 0,
+        })}
+      >
         {totalErrors} {pluralizeFromNumber('Error', totalErrors)}
       </span>
     </Grid>

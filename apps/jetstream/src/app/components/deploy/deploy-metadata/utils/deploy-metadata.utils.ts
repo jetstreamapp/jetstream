@@ -5,7 +5,10 @@ import { DATE_FORMATS } from '@jetstream/shared/constants';
 import { ensureArray, orderStringsBy } from '@jetstream/shared/utils';
 import { DeployResult, ListMetadataResult, MapOf } from '@jetstream/types';
 import { DateFilterComparator, getCheckboxColumnDef } from '@jetstream/ui';
+import parseISO from 'date-fns/parseISO';
+import formatISO from 'date-fns/formatISO';
 import formatDate from 'date-fns/format';
+import isString from 'lodash/isString';
 import { composeQuery, getField, Query } from 'soql-parser-js';
 import { DeployMetadataTableRow } from '../deploy-metadata.types';
 
@@ -192,6 +195,20 @@ export function getRows(listMetadataItems: MapOf<ListMetadataResultItem>): Deplo
   return output;
 }
 
+export function convertRowsForExport(rows: DeployMetadataTableRow[]): MapOf<any>[] {
+  return rows
+    .filter((row) => row.fullName && row.metadata)
+    .map((row) => ({
+      Id: row.metadata.id,
+      Type: row.metadata.type,
+      Name: row.metadata.fullName,
+      'Last Modified By': `${row.metadata.lastModifiedByName} (${row.metadata.lastModifiedById})`,
+      'Last Modified Date': row.metadata.lastModifiedDate,
+      'Created By': `${row.metadata.createdByName} (${row.metadata.createdById})`,
+      CreatedDate: row.metadata.createdDate,
+    }));
+}
+
 export function convertRowsToMapOfListMetadataResults(rows: DeployMetadataTableRow[]): MapOf<ListMetadataResult[]> {
   return rows.reduce((output: MapOf<ListMetadataResult[]>, row) => {
     if (row.metadata) {
@@ -248,8 +265,8 @@ export function getDeployResultsExcelData(deployResults: DeployResult, deploymen
       ['Id', deployResults.id],
       ['Status', deployResults.status],
       ['Success', deployResults.success],
-      ['Started', deployResults.startDate],
-      ['Completed', deployResults.completedDate],
+      ['Started', getFriendlyTimestamp(deployResults.startDate)],
+      ['Completed', getFriendlyTimestamp(deployResults.completedDate)],
       ['Check Only (Validate)', deployResults.checkOnly],
       ['Ignore Warnings', deployResults.ignoreWarnings],
       ['Rollback on Error', deployResults.rollbackOnError],
@@ -273,7 +290,7 @@ export function getDeployResultsExcelData(deployResults: DeployResult, deploymen
           Created: item.created,
           Changed: item.changed,
           Deleted: item.deleted,
-          'Created Date': item.createdDate,
+          'Created Date': getFriendlyTimestamp(item.createdDate),
         })) || [],
     [`Failed Components`]:
       deployResults.details?.componentFailures?.map((item) => ({
@@ -288,7 +305,7 @@ export function getDeployResultsExcelData(deployResults: DeployResult, deploymen
         Created: item.created,
         Changed: item.changed,
         Deleted: item.deleted,
-        'Created Date': item.createdDate,
+        'Created Date': getFriendlyTimestamp(item.createdDate),
       })) || [],
   };
 
@@ -325,4 +342,11 @@ export function getDeployResultsExcelData(deployResults: DeployResult, deploymen
   }
 
   return xlsxData;
+}
+
+function getFriendlyTimestamp(value?: string) {
+  if (!isString(value)) {
+    return value;
+  }
+  return formatISO(parseISO(value));
 }

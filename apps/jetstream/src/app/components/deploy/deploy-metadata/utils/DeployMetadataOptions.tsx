@@ -2,7 +2,7 @@
 import { css, jsx } from '@emotion/react';
 import { useNonInitialEffect } from '@jetstream/shared/ui-utils';
 import { DeployOptions, DeployOptionsTestLevel } from '@jetstream/types';
-import { Checkbox, Radio, RadioGroup, Textarea } from '@jetstream/ui';
+import { Checkbox, Icon, Radio, RadioGroup, Textarea, Tooltip } from '@jetstream/ui';
 import { Fragment, FunctionComponent, useState } from 'react';
 
 const SPLIT_LINE_COMMA = /(\n|, |,)/g;
@@ -84,6 +84,17 @@ export const DeployMetadataToOrgConfigOptions: FunctionComponent<DeployMetadataT
     <Fragment>
       <fieldset className="slds-form-element slds-m-top_small">
         <legend className="slds-form-element__legend slds-form-element__label">Deployment Options</legend>
+        <div className="slds-form-element__icon">
+          <Tooltip id="upload-options" content="Learn more about these options">
+            <a
+              href="https://developer.salesforce.com/docs/atlas.en-us.api_meta.meta/api_meta/meta_deploy.htm#deploy_options"
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              <Icon type="utility" icon="new_window" className="slds-icon slds-text-link slds-icon_xx-small cursor-pointer" />
+            </a>
+          </Tooltip>
+        </div>
         {/* TODO: disable this if org is a production org (parent should own this) */}
         {!hiddenOptions.has('allowMissingFiles') && (
           <Checkbox
