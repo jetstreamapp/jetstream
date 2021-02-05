@@ -15,8 +15,12 @@ import { SobjectList } from './SobjectList';
 // we know the most recent known value to start with instead of no value
 let _lastRefreshed: string;
 
-function filterSobjectFn(sobject: DescribeGlobalSObjectResult): boolean {
+export function filterSobjectFn(sobject: DescribeGlobalSObjectResult): boolean {
   return sobject.queryable && !sobject.name.endsWith('CleanInfo');
+}
+
+export function filterToolingSobjectFn(sobject: DescribeGlobalSObjectResult): boolean {
+  return sobject.queryable && sobject.label !== 'Entity';
 }
 
 export interface ConnectedSobjectListProps {
@@ -36,7 +40,7 @@ export const ConnectedSobjectList: FunctionComponent<ConnectedSobjectListProps> 
   sobjects,
   selectedSObject,
   isTooling,
-  filterFn = filterSobjectFn,
+  filterFn = isTooling ? filterToolingSobjectFn : filterSobjectFn,
   onSobjects,
   onSelectedSObject,
 }) => {

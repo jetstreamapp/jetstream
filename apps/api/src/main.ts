@@ -121,6 +121,7 @@ app.use(passport.initialize());
 app.use(passport.session());
 
 app.use(raw({ limit: '30mb', type: ['text/csv'] }));
+app.use(raw({ limit: '30mb', type: ['application/zip'] }));
 app.use(json({ limit: '20mb', type: ['json', 'application/csp-report'] }));
 app.use(urlencoded({ extended: true }));
 

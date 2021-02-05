@@ -1,13 +1,26 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { ApiResponse, OrgCacheItem, CacheItemWithData, SalesforceOrgUi, MapOf, QueryHistoryItem } from '@jetstream/types';
-import { HTTP, INDEXED_DB } from '@jetstream/shared/constants';
 import { logger } from '@jetstream/shared/client-logger';
-import { errorMiddleware } from './middleware';
-import axios, { AxiosRequestConfig, AxiosResponse, AxiosError } from 'axios';
-import localforage from 'localforage';
+import { HTTP, INDEXED_DB } from '@jetstream/shared/constants';
 import { REGEX } from '@jetstream/shared/utils';
+import {
+  ApiResponse,
+  CacheItemWithData,
+  ListMetadataResult,
+  ListMetadataResultRaw,
+  MapOf,
+  OrgCacheItem,
+  QueryHistoryItem,
+  RetrieveResult,
+  RetrieveResultRaw,
+  SalesforceOrgUi,
+} from '@jetstream/types';
+import axios, { AxiosError, AxiosRequestConfig, AxiosResponse } from 'axios';
+import parseISO from 'date-fns/parseISO';
+import localforage from 'localforage';
+import { isEmpty, isObject } from 'lodash';
 import isString from 'lodash/isString';
 import { SOBJECT_DESCRIBE_CACHED_RESPONSES } from './client-data-data-cached-responses';
+import { errorMiddleware } from './middleware';
 
 // 3 days
 const CACHE_TTL = 1000 * 60 * 60 * 24 * 3;
@@ -23,8 +36,10 @@ export async function handleRequest<T = any>(
   config: AxiosRequestConfig,
   options: {
     org?: SalesforceOrgUi;
+    targetOrg?: SalesforceOrgUi;
     mockHeaderKey?: string;
     useCache?: boolean;
+    skipRequestCache?: boolean;
     useQueryParamsInCacheKey?: boolean;
     useBodyInCacheKey?: boolean;
   } = {}
@@ -47,13 +62,15 @@ export async function handleRequest<T = any>(
  */
 function requestInterceptor<T>(options: {
   org?: SalesforceOrgUi;
+  targetOrg?: SalesforceOrgUi;
   useCache?: boolean;
+  skipRequestCache?: boolean;
   useQueryParamsInCacheKey?: boolean;
   useBodyInCacheKey?: boolean;
 }) {
   return async (config: AxiosRequestConfig) => {
     logger.info(`[HTTP][REQ][${config.method.toUpperCase()}]`, config.url, { request: config });
-    const { org, useCache, useQueryParamsInCacheKey, useBodyInCacheKey } = options;
+    const { org, targetOrg, useCache, skipRequestCache, useQueryParamsInCacheKey, useBodyInCacheKey } = options;
     // add request headers
     config.headers = config.headers || {};
     if (!config.headers[HTTP.HEADERS.ACCEPT]) {
@@ -62,6 +79,10 @@ function requestInterceptor<T>(options: {
 
     if (org) {
       config.headers[HTTP.HEADERS.X_SFDC_ID] = org.uniqueId || '';
+    }
+
+    if (targetOrg) {
+      config.headers[HTTP.HEADERS.X_SFDC_ID_TARGET] = targetOrg.uniqueId || '';
     }
 
     // IF mock response header exists and mock response exists, return data instead of making actual request
@@ -78,7 +99,7 @@ function requestInterceptor<T>(options: {
           request: {},
         };
       };
-    } else if (useCache && org) {
+    } else if (useCache && org && !skipRequestCache) {
       // return cached response if available
       const cachedResults = await getCacheItem<T>(config, org, useQueryParamsInCacheKey, useBodyInCacheKey);
       if (cachedResults) {
@@ -297,4 +318,27 @@ function getCacheKey(config: AxiosRequestConfig, useQueryParamsInCacheKey?: bool
   }
   const cacheKey = `${cacheKeys.join('|')}`;
   return cacheKey;
+}
+
+export function transformListMetadataResponse(items: ListMetadataResultRaw[]): ListMetadataResult[] {
+  // metadata responses have variable return types because XML parsing is sketchy
+  if (!Array.isArray(items)) {
+    items = isEmpty(items) ? [] : [items];
+  }
+  return items.map((item) => ({
+    ...item,
+    fileName: decodeURIComponent(item.fileName),
+    fullName: decodeURIComponent(item.fullName),
+    createdDate: parseISO(item.createdDate),
+    lastModifiedDate: parseISO(item.lastModifiedDate),
+  }));
+}
+
+export function transformRetrieveRequestResponse(item: RetrieveResultRaw): RetrieveResult {
+  return {
+    ...item,
+    done: item.done === 'true',
+    success: item.success === 'true',
+    zipFile: isObject(item.zipFile) ? null : item.zipFile,
+  };
 }

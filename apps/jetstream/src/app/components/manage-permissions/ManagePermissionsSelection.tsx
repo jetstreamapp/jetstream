@@ -131,9 +131,12 @@ export const ManagePermissionsSelection: FunctionComponent<ManagePermissionsSele
               }}
               items={profiles}
               selectedItems={selectedProfiles}
+              allowRefresh
+              lastRefreshed={profilesAndPermSetsData.lastRefreshed}
               loading={profilesAndPermSetsData.loading}
               onSelected={setSelectedProfiles}
-              errorReattempt={() => {}}
+              errorReattempt={profilesAndPermSetsData.fetchMetadata}
+              onRefresh={() => profilesAndPermSetsData.fetchMetadata(true)}
             />
           </div>
           <div className="slds-p-horizontal_x-small">
@@ -145,10 +148,13 @@ export const ManagePermissionsSelection: FunctionComponent<ManagePermissionsSele
                 descriptorPlural: 'permission sets',
               }}
               items={permissionSets}
+              allowRefresh
+              lastRefreshed={profilesAndPermSetsData.lastRefreshed}
               selectedItems={selectedPermissionSets}
               loading={profilesAndPermSetsData.loading}
               onSelected={setSelectedPermissionSets}
-              errorReattempt={() => {}}
+              errorReattempt={profilesAndPermSetsData.fetchMetadata}
+              onRefresh={() => profilesAndPermSetsData.fetchMetadata(true)}
             />
           </div>
           <div className="slds-p-horizontal_x-small">

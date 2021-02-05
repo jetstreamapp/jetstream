@@ -3,28 +3,29 @@
 import { jsx } from '@emotion/react';
 import { MIME_TYPES } from '@jetstream/shared/constants';
 import { getFilename, prepareCsvFile, prepareExcelFile, saveFile } from '@jetstream/shared/ui-utils';
-import { FileExtCsv, FileExtCsvXLSXJson, FileExtXLSX, MapOf, MimeType, SalesforceOrgUi } from '@jetstream/types';
+import { FileExtAllTypes, FileExtCsv, FileExtXLSX, FileExtXml, FileExtZip, MapOf, MimeType, SalesforceOrgUi } from '@jetstream/types';
+import { isString } from 'lodash';
 import { Fragment, FunctionComponent, useEffect, useRef, useState } from 'react';
 import Input from '../form/input/Input';
 import Radio from '../form/radio/Radio';
 import RadioGroup from '../form/radio/RadioGroup';
 import Modal from '../modal/Modal';
-import { RADIO_FORMAT_CSV, RADIO_FORMAT_JSON, RADIO_FORMAT_XLSX } from './download-modal-utils';
+import { RADIO_FORMAT_CSV, RADIO_FORMAT_JSON, RADIO_FORMAT_XLSX, RADIO_FORMAT_XML, RADIO_FORMAT_ZIP } from './download-modal-utils';
 
 export interface FileDownloadModalProps {
   modalHeader?: string;
   modalTagline?: string;
-  allowedTypes?: FileExtCsvXLSXJson[]; // defaults to all types
+  allowedTypes?: FileExtAllTypes[]; // defaults to all types
   org: SalesforceOrgUi;
   // if data is MapOf<any[]> | ArrayBuffer then only excel is a supported option and header, if provided, should be the same type
-  data: any[] | MapOf<any[]> | ArrayBuffer;
+  data: any[] | MapOf<any[]> | ArrayBuffer | string;
   header?: string[] | MapOf<any[]>; // can be omitted if every field should be included in download, otherwise pass in a list of fields to include in file
   fileNameParts?: string[];
   alternateDownloadButton?: React.ReactNode; // If provided, then caller must manage what happens on click - used for URL links
   onModalClose: () => void;
   // TODO: we may want to provide a hook "onPrepareDownload" to override default file generation process
   // this may be useful if alternateDownloadButton is provided, otherwise this usually is not required
-  onChange?: (data: { fileName: string; fileFormat: FileExtCsvXLSXJson }) => void;
+  onChange?: (data: { fileName: string; fileFormat: FileExtAllTypes }) => void;
 }
 
 const defaultAllowedTypes = [RADIO_FORMAT_XLSX, RADIO_FORMAT_CSV, RADIO_FORMAT_JSON];
@@ -42,7 +43,7 @@ export const FileDownloadModal: FunctionComponent<FileDownloadModalProps> = ({
   onChange,
 }) => {
   const [allowedTypesSet, setAllowedTypesSet] = useState<Set<string>>(() => new Set(allowedTypes));
-  const [fileFormat, setFileFormat] = useState<FileExtCsvXLSXJson>(allowedTypes[0]);
+  const [fileFormat, setFileFormat] = useState<FileExtAllTypes>(allowedTypes[0]);
   const [fileName, setFileName] = useState<string>(getFilename(org, fileNameParts));
   // If the user changes the filename, we do not want to focus/select the text again or else the user cannot type
   const [doFocusInput, setDoFocusInput] = useState<boolean>(true);
@@ -54,7 +55,9 @@ export const FileDownloadModal: FunctionComponent<FileDownloadModalProps> = ({
       if (!Array.isArray(data)) {
         if (allowedTypes.length !== 1) {
           throw new Error('An improper configuration of data was provided');
-        } else if (allowedTypes[0] !== 'xlsx') {
+        } else if (!isString(data) && allowedTypes[0] !== 'xlsx') {
+          throw new Error('An improper configuration of data was provided');
+        } else if (isString(data) && allowedTypes[0] !== 'xml') {
           throw new Error('An improper configuration of data was provided');
         }
       }
@@ -106,6 +109,18 @@ export const FileDownloadModal: FunctionComponent<FileDownloadModalProps> = ({
         case 'json': {
           fileData = JSON.stringify(data, null, 2);
           mimeType = MIME_TYPES.JSON;
+          break;
+        }
+        case 'xml': {
+          fileData = data as string;
+          mimeType = MIME_TYPES.XML;
+          fileData = data;
+          break;
+        }
+        case 'zip': {
+          fileData = data as string;
+          mimeType = MIME_TYPES.ZIP;
+          fileData = data;
           break;
         }
         default:
@@ -165,6 +180,24 @@ export const FileDownloadModal: FunctionComponent<FileDownloadModalProps> = ({
                 value={RADIO_FORMAT_JSON}
                 checked={fileFormat === RADIO_FORMAT_JSON}
                 onChange={(value: FileExtCsv) => setFileFormat(value)}
+              />
+            )}
+            {allowedTypesSet.has('xml') && (
+              <Radio
+                name="radio-download-file-format"
+                label="XML"
+                value={RADIO_FORMAT_XML}
+                checked={fileFormat === RADIO_FORMAT_XML}
+                onChange={(value: FileExtXml) => setFileFormat(value)}
+              />
+            )}
+            {allowedTypesSet.has('zip') && (
+              <Radio
+                name="radio-download-file-format"
+                label="ZIP"
+                value={RADIO_FORMAT_ZIP}
+                checked={fileFormat === RADIO_FORMAT_ZIP}
+                onChange={(value: FileExtZip) => setFileFormat(value)}
               />
             )}
           </RadioGroup>

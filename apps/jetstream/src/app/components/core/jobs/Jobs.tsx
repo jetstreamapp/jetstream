@@ -16,7 +16,7 @@ import { Icon, Popover } from '@jetstream/ui';
 import classNames from 'classnames';
 import uniqueId from 'lodash/uniqueId';
 import React, { FunctionComponent, useEffect, useState } from 'react';
-import { useRecoilState, useRecoilValue } from 'recoil';
+import { useRecoilState, useRecoilValue, useSetRecoilState } from 'recoil';
 import { filter } from 'rxjs/operators';
 import { selectedOrgState } from '../../../app-state';
 import JobsWorker from '../../../workers/jobs.worker';
@@ -28,7 +28,7 @@ import { jobsState, jobsUnreadState, selectActiveJobCount, selectJobs } from './
 export interface JobsProps {}
 
 export const Jobs: FunctionComponent<JobsProps> = () => {
-  const [jobsObj, setJobs] = useRecoilState(jobsState);
+  const setJobs = useSetRecoilState(jobsState);
   const [jobsUnread, setJobsUnread] = useRecoilState(jobsUnreadState);
   const [jobs, setJobsArr] = useRecoilState(selectJobs);
   const activeJobCount = useRecoilValue(selectActiveJobCount);
@@ -73,11 +73,10 @@ export const Jobs: FunctionComponent<JobsProps> = () => {
         switch (name) {
           case 'BulkDelete': {
             try {
-              const newJobs = { ...jobsObj };
-              const { job } = data;
+              let newJob = { ...data.job };
               if (error) {
-                newJobs[job.id] = {
-                  ...job,
+                newJob = {
+                  ...newJob,
                   finished: new Date(),
                   lastActivity: new Date(),
                   status: 'failed',
@@ -87,8 +86,8 @@ export const Jobs: FunctionComponent<JobsProps> = () => {
                 const results: RecordResult[] = Array.isArray(data.results) ? data.results : [data.results];
                 const firstErrorRec = results.filter((record) => !record.success) as ErrorResult[];
 
-                newJobs[job.id] = {
-                  ...job,
+                newJob = {
+                  ...newJob,
                   results,
                   finished: new Date(),
                   lastActivity: new Date(),
@@ -100,7 +99,7 @@ export const Jobs: FunctionComponent<JobsProps> = () => {
                     : 'Record was deleted successfully',
                 };
               }
-              setJobs(newJobs);
+              setJobs((prevJobs) => ({ ...prevJobs, [newJob.id]: newJob }));
             } catch (ex) {
               // TODO:
               logger.error('[ERROR][JOB] Error processing job results', ex);
@@ -109,11 +108,10 @@ export const Jobs: FunctionComponent<JobsProps> = () => {
           }
           case 'BulkDownload': {
             try {
-              const newJobs = { ...jobsObj };
-              const { job } = data;
+              let newJob = { ...data.job };
               if (error) {
-                newJobs[job.id] = {
-                  ...job,
+                newJob = {
+                  ...newJob,
                   finished: new Date(),
                   lastActivity: new Date(),
                   status: 'failed',
@@ -122,8 +120,8 @@ export const Jobs: FunctionComponent<JobsProps> = () => {
               } else {
                 const { fileData, fileName, mimeType } = data.results as { fileData: any; mimeType: MimeType; fileName: string };
 
-                newJobs[job.id] = {
-                  ...job,
+                newJob = {
+                  ...newJob,
                   finished: new Date(),
                   lastActivity: new Date(),
                   status: 'success',
@@ -132,7 +130,43 @@ export const Jobs: FunctionComponent<JobsProps> = () => {
 
                 saveFile(fileData, fileName, mimeType);
               }
-              setJobs(newJobs);
+              setJobs((prevJobs) => ({ ...prevJobs, [newJob.id]: newJob }));
+            } catch (ex) {
+              // TODO:
+              logger.error('[ERROR][JOB] Error processing job results', ex);
+            }
+            break;
+          }
+          case 'RetrievePackageZip': {
+            try {
+              let newJob = { ...data.job };
+              if (error) {
+                newJob = {
+                  ...newJob,
+                  finished: new Date(),
+                  lastActivity: new Date(),
+                  status: 'failed',
+                  statusMessage: error || 'An unknown error ocurred',
+                };
+              } else if (data.lastActivityUpdate) {
+                newJob = {
+                  ...newJob,
+                  lastActivity: new Date(),
+                };
+              } else {
+                const { fileData, mimeType, fileName } = data.results as { fileData: ArrayBuffer; mimeType: MimeType; fileName: string };
+
+                newJob = {
+                  ...newJob,
+                  finished: new Date(),
+                  lastActivity: new Date(),
+                  status: 'success',
+                  statusMessage: 'Package downloaded successfully',
+                };
+
+                saveFile(fileData, fileName, mimeType);
+              }
+              setJobs((prevJobs) => ({ ...prevJobs, [newJob.id]: newJob }));
             } catch (ex) {
               // TODO:
               logger.error('[ERROR][JOB] Error processing job results', ex);
@@ -142,13 +176,15 @@ export const Jobs: FunctionComponent<JobsProps> = () => {
           default:
             break;
         }
-        if (data && data.job) {
+        if (data && data.lastActivityUpdate) {
+          fromJetstreamEvents.emit({ type: 'lastActivityUpdate', payload: data.job });
+        }
+        if (data && !data.lastActivityUpdate && data.job) {
           fromJetstreamEvents.emit({ type: 'jobFinished', payload: data.job });
         }
       };
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [jobsWorker]);
+  }, [jobsWorker, setJobs]);
 
   function handleDismiss(job: AsyncJob) {
     setJobsArr(jobs.filter(({ id }) => id !== job.id));

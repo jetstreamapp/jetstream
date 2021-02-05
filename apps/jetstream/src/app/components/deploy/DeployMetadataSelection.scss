@@ -1,0 +1,14 @@
+.animation-item-enter {
+  opacity: 0;
+}
+.animation-item-enter-active {
+  opacity: 1;
+  transition: opacity 200ms;
+}
+.animation-item-exit {
+  opacity: 1;
+}
+.animation-item-exit-active {
+  opacity: 0;
+  transition: opacity 200ms;
+}

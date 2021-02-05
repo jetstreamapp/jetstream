@@ -94,9 +94,7 @@ export const Picklist: FunctionComponent<PicklistProps> = ({
     }
     return selectedItemIdsSet;
   });
-  const scrollLengthClass = useMemo<string | undefined>(() => (scrollLength ? `slds-dropdown_length-${scrollLength}` : undefined), [
-    scrollLength,
-  ]);
+  const scrollLengthClass = useMemo(() => `slds-dropdown_length-${scrollLength || 5}`, [scrollLength]);
   const [focusedItem, setFocusedItem] = useState<number>(null);
   const divContainerEl = useRef<HTMLDivElement>(null);
   const elRefs = useRef<RefObject<HTMLLIElement>[]>([]);
@@ -317,7 +315,7 @@ export const Picklist: FunctionComponent<PicklistProps> = ({
               </div>
               <div
                 id={listboxId}
-                className={classNames('slds-dropdown slds-dropdown_fluid slds-dropdown_length-7', scrollLengthClass)}
+                className={classNames('slds-dropdown slds-dropdown_fluid', scrollLengthClass)}
                 role="listbox"
                 onKeyDown={handleKeyDown}
               >
@@ -330,6 +328,7 @@ export const Picklist: FunctionComponent<PicklistProps> = ({
                         id={item.id}
                         label={item.label}
                         secondaryLabel={item.secondaryLabel}
+                        title={item.title}
                         value={item.value}
                         isSelected={selectedItemsIdsSet.has(item.id)}
                         onClick={() => handleSelection(item)}
@@ -371,15 +370,15 @@ export const Picklist: FunctionComponent<PicklistProps> = ({
                 aria-label="Selected Options:"
                 aria-orientation="horizontal"
               >
-                <li className="slds-listbox-item" role="presentation">
-                  {items
-                    .filter((item) => selectedItemsIdsSet.has(item.id))
-                    .map((item) => (
-                      <Pill key={item.id} title={item.label} onRemove={() => handleSelection(item)}>
+                {items
+                  .filter((item) => selectedItemsIdsSet.has(item.id))
+                  .map((item) => (
+                    <li key={item.id} className="slds-listbox-item" role="presentation">
+                      <Pill title={item.label} onRemove={() => handleSelection(item)}>
                         {item.label}
                       </Pill>
-                    ))}
-                </li>
+                    </li>
+                  ))}
               </ul>
             </div>
           )}

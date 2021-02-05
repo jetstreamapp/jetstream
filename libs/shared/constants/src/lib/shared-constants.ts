@@ -1,4 +1,4 @@
-import { InputAcceptTypeCsv, InputAcceptTypeExcel, InputAcceptTypeZip, MapOf, MimeType } from '@jetstream/types';
+import { InputAcceptTypeCsv, InputAcceptTypeExcel, InputAcceptTypeXml, InputAcceptTypeZip, MapOf, MimeType } from '@jetstream/types';
 
 export const SESSION_EXP_DAYS = 5;
 export const SFDC_BULK_API_NULL_VALUE = '#N/A';
@@ -9,16 +9,19 @@ export const FEATURE_FLAGS = Object.freeze({
   QUERY: 'query',
   LOAD: 'load',
   PERMISSION_MANAGER: 'permission-manager',
+  DEPLOYMENT: 'deployment',
 });
 
 export const INPUT_ACCEPT_FILETYPES: {
   ZIP: InputAcceptTypeZip;
   CSV: InputAcceptTypeCsv;
   EXCEL: InputAcceptTypeExcel;
+  XML: InputAcceptTypeXml;
 } = {
   ZIP: '.zip',
   CSV: '.csv',
   EXCEL: '.xlsx',
+  XML: '.xml',
 };
 
 export const HTTP = {
@@ -31,6 +34,8 @@ export const HTTP = {
     X_LOGOUT_URL: 'X-LOGOUT-URL',
     X_SFDC_ID: 'X-SFDC-ID',
     X_SFDC_API_VERSION: 'X-SFDC-API-VERSION',
+    X_SFDC_ID_TARGET: 'X-SFDC-ID-TARGET',
+    X_SFDC_API_TARGET_VERSION: 'X-SFDC-API-TARGET-VERSION',
     X_SFDC_ORG_CONNECTION_ERROR: 'X-SFDC-ORG-CONNECTION-ERROR',
     X_SFDC_Session: 'X-SFDC-SESSION',
     X_CACHE_RESPONSE: 'X-CACHE-RESPONSE',
@@ -46,6 +51,7 @@ export const HTTP = {
     XML: 'application/xml',
     XML_UTF8: 'application/xml; charset=UTF-8',
     CSV: 'text/csv; charset=UTF-8',
+    ZIP: 'application/zip',
   },
 };
 
@@ -58,6 +64,8 @@ export const MIME_TYPES: MapOf<MimeType> = {
   CSV: 'text/csv;charset=utf-8',
   XLSX: 'application/octet-stream;charset=utf-8',
   JSON: 'application/json;charset=utf-8',
+  XML: 'text/xml;charset=utf-8',
+  ZIP: 'application/zip;charset=utf-8',
 };
 
 export const INDEXED_DB = {

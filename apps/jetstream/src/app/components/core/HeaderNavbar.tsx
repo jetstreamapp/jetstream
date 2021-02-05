@@ -54,7 +54,7 @@ export const HeaderNavbar: FunctionComponent<HeaderNavbarProps> = ({ userProfile
       onUserMenuItemSelected={handleUserMenuSelection}
     >
       <Navbar>
-        {/* TODO: home page */}
+        {/* TODO: home page - also pass this in from app instead if possible */}
         {/* <NavbarItem path="/" title="Home" label="Home" /> */}
         {hasFeatureFlagAccess(featureFlags, FEATURE_FLAGS.QUERY) && (
           <NavbarItem path="/query" title="Query Records" label="Query Records" />
@@ -67,6 +67,9 @@ export const HeaderNavbar: FunctionComponent<HeaderNavbarProps> = ({ userProfile
         )}
         {hasFeatureFlagAccess(featureFlags, FEATURE_FLAGS.PERMISSION_MANAGER) && (
           <NavbarItem path="/permissions-manager" title="Manage Permissions" label="Manage Permissions" />
+        )}
+        {hasFeatureFlagAccess(featureFlags, FEATURE_FLAGS.DEPLOYMENT) && (
+          <NavbarItem path="/deploy-metadata" title="Deploy Metadata" label="Deploy Metadata" />
         )}
         <NavbarItem path="/feedback" title="Product Feedback" label="Product Feedback" />
       </Navbar>

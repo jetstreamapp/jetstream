@@ -9,9 +9,9 @@ import ManagePermissionsEditor from './ManagePermissionsEditor';
 import ManagePermissionsSelection from './ManagePermissionsSelection';
 
 // eslint-disable-next-line @typescript-eslint/no-empty-interface
-export interface QueryProps {}
+export interface ManagePermissionsProps {}
 
-export const Query: FunctionComponent<QueryProps> = () => {
+export const ManagePermissions: FunctionComponent<ManagePermissionsProps> = () => {
   const match = useRouteMatch();
   const selectedOrg = useRecoilValue<SalesforceOrgUi>(selectedOrgState);
   const resetProfilesState = useResetRecoilState(fromPermissionsStateState.profilesState);
@@ -86,4 +86,4 @@ export const Query: FunctionComponent<QueryProps> = () => {
   );
 };
 
-export default Query;
+export default ManagePermissions;

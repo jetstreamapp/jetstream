@@ -1,6 +1,6 @@
 /** @jsx jsx */
 // https://www.lightningdesignsystem.com/components/input/#Fixed-Text
-import { jsx } from '@emotion/react';
+import { css, jsx } from '@emotion/react';
 import {
   hasModifierKey,
   isArrowDownKey,
@@ -16,9 +16,11 @@ import {
 } from '@jetstream/shared/ui-utils';
 import { PreviousNext } from '@jetstream/types';
 import classNames from 'classnames';
+import { lastDayOfMonth } from 'date-fns';
 import addDays from 'date-fns/addDays';
 import addWeeks from 'date-fns/addWeeks';
 import endOfMonth from 'date-fns/endOfMonth';
+import isAfter from 'date-fns/isAfter';
 import isBefore from 'date-fns/isBefore';
 import isSameDay from 'date-fns/isSameDay';
 import isSameMonth from 'date-fns/isSameMonth';
@@ -32,16 +34,22 @@ import { createRef, FunctionComponent, KeyboardEvent, RefObject, useEffect, useR
 interface DateGridDate {
   label: number;
   value: Date;
+  readOnly: boolean;
   isCurrMonth: boolean;
   isToday: boolean;
   isSelected: boolean;
 }
 
 export interface DateGridProps {
+  minYear: number;
+  maxYear: number;
+  minAvailableDate?: Date;
+  maxAvailableDate?: Date;
   currMonth: number;
   currYear: number;
   selectedDate?: Date;
   cameFromMonth: PreviousNext;
+
   onClose: () => void;
   onSelected: (date: Date) => void;
   onPrevMonth: () => void;
@@ -51,6 +59,10 @@ export interface DateGridProps {
 }
 
 export const DateGrid: FunctionComponent<DateGridProps> = ({
+  minYear,
+  maxYear,
+  minAvailableDate,
+  maxAvailableDate,
   currMonth,
   currYear,
   selectedDate,
@@ -63,8 +75,6 @@ export const DateGrid: FunctionComponent<DateGridProps> = ({
   onNextYear,
 }) => {
   const [dateGrid, setDateGrid] = useState<DateGridDate[][]>([]);
-  // const tdRefs = useRef<RefObject<HTMLTableDataCellElement>[][]>([]);
-  // const [elRefs, setElRefs] = useState<RefObject<HTMLTableDataCellElement>[][]>([]);
   const elRefs = useRef<RefObject<HTMLTableDataCellElement>[][]>([]);
 
   if (elRefs.current.length !== dateGrid.length) {
@@ -127,7 +137,6 @@ export const DateGrid: FunctionComponent<DateGridProps> = ({
     } catch (ex) {
       // silent failure
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [dateGrid, elRefs.current]);
 
   // Calculate date grid for a 5 week period
@@ -143,6 +152,10 @@ export const DateGrid: FunctionComponent<DateGridProps> = ({
     // set end date to show a full 5 weeks from start date
     const endDate = addDays(addWeeks(startDate, 6), -1);
 
+    if (endDate.getDate() < 7) {
+      endDate.setDate(7);
+    }
+
     const today = new Date();
     let currDate = startDate;
     const grid: DateGridDate[][] = [];
@@ -154,10 +167,19 @@ export const DateGrid: FunctionComponent<DateGridProps> = ({
         grid.push(currWeek);
         currWeek = [];
       }
+      let readOnly = false;
+      if (currDate.getFullYear() < minYear || currDate.getFullYear() > maxYear) {
+        readOnly = true;
+      } else if (minAvailableDate && isBefore(currDate, minAvailableDate)) {
+        readOnly = true;
+      } else if (maxAvailableDate && isAfter(currDate, maxAvailableDate)) {
+        readOnly = true;
+      }
       isFirstIteration = false;
       currWeek.push({
         label: currDate.getDate(),
         value: currDate,
+        readOnly,
         isCurrMonth: currDate.getMonth() === currMonth,
         isToday: isSameDay(currDate, today),
         isSelected: selectedDate && isSameDay(currDate, selectedDate),
@@ -165,7 +187,7 @@ export const DateGrid: FunctionComponent<DateGridProps> = ({
       currDate = addDays(currDate, 1);
     }
     setDateGrid(grid);
-  }, [selectedDate, currMonth, currYear]);
+  }, [selectedDate, currMonth, currYear, minAvailableDate, maxAvailableDate, minYear, maxYear]);
 
   /**
    * Handle keyboard navigation
@@ -190,7 +212,9 @@ export const DateGrid: FunctionComponent<DateGridProps> = ({
     }
 
     if (isEnterOrSpace(event)) {
-      onSelected(day.value);
+      if (!day.readOnly) {
+        onSelected(day.value);
+      }
       return;
     }
 
@@ -295,12 +319,17 @@ export const DateGrid: FunctionComponent<DateGridProps> = ({
                   aria-selected={day.isSelected}
                   className={classNames({
                     'slds-is-selected': day.isSelected,
-                    'slds-day_adjacent-month': !day.isCurrMonth,
+                    'slds-day_adjacent-month': !day.isCurrMonth || day.readOnly,
                     'slds-is-today': day.isToday,
+                    'slds-disabled-text': day.readOnly,
                   })}
+                  css={css`
+                    ${day.readOnly && `cursor: not-allowed`}
+                  `}
                   role="gridcell"
-                  tabIndex={day.label === 1 && day.isCurrMonth ? 0 : -1}
-                  onClick={() => onSelected(day.value)}
+                  aria-disabled={day.readOnly}
+                  tabIndex={day.readOnly ? undefined : day.label === 1 && day.isCurrMonth ? 0 : -1}
+                  onClick={() => !day.readOnly && onSelected(day.value)}
                   onKeyUp={(event) => handleKeyUp(day, i, k, event)}
                 >
                   <span className="slds-day">{day.label}</span>

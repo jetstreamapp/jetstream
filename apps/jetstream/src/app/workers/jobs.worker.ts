@@ -2,24 +2,36 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { logger } from '@jetstream/shared/client-logger';
 import { MIME_TYPES } from '@jetstream/shared/constants';
-import { queryMore, sobjectOperation } from '@jetstream/shared/data';
-import { prepareCsvFile, prepareExcelFile } from '@jetstream/shared/ui-utils';
+import {
+  queryMore,
+  retrieveMetadataFromListMetadata,
+  retrieveMetadataFromManifestFile,
+  retrieveMetadataFromPackagesNames,
+  sobjectOperation,
+} from '@jetstream/shared/data';
+import { base64ToArrayBuffer, pollRetrieveMetadataResultsUntilDone, prepareCsvFile, prepareExcelFile } from '@jetstream/shared/ui-utils';
 import {
   flattenRecords,
   getIdFromRecordUrl,
   getSObjectFromRecordUrl,
   replaceSubqueryQueryResultsWithRecords,
+  splitArrayToMaxSize,
 } from '@jetstream/shared/utils';
 import {
   AsyncJobType,
   AsyncJobWorkerMessagePayload,
   AsyncJobWorkerMessageResponse,
   BulkDownloadJob,
+  RetrievePackageFromListMetadataJob,
+  RetrievePackageFromManifestJob,
+  RetrievePackageFromPackageNamesJob,
+  RetrieveResult,
   WorkerMessage,
 } from '@jetstream/types';
-import { Record } from 'jsforce';
 import queue from 'async/queue';
-import { splitArrayToMaxSize } from '@jetstream/shared/utils';
+import { Record } from 'jsforce';
+import isString from 'lodash/isString';
+
 // eslint-disable-next-line no-restricted-globals
 const ctx: Worker = self as any;
 
@@ -112,6 +124,55 @@ async function handleMessage(name: AsyncJobType, payloadData: AsyncJobWorkerMess
 
         const response: AsyncJobWorkerMessageResponse = { job, results };
         replyToMessage(name, response);
+      } catch (ex) {
+        const response: AsyncJobWorkerMessageResponse = { job };
+        replyToMessage(name, response, ex.message);
+      }
+      break;
+    }
+    case 'RetrievePackageZip': {
+      try {
+        const { org, job } = payloadData as AsyncJobWorkerMessagePayload<
+          RetrievePackageFromListMetadataJob | RetrievePackageFromManifestJob | RetrievePackageFromPackageNamesJob
+        >;
+        const { fileName, mimeType } = job.meta;
+
+        let id: string;
+        switch (job.meta.type) {
+          case 'listMetadata': {
+            id = (await retrieveMetadataFromListMetadata(org, job.meta.listMetadataItems)).id;
+            break;
+          }
+          case 'packageManifest': {
+            id = (await retrieveMetadataFromManifestFile(org, job.meta.packageManifest)).id;
+            break;
+          }
+          case 'packageNames': {
+            id = (await retrieveMetadataFromPackagesNames(org, job.meta.packageNames)).id;
+            break;
+          }
+          default: {
+            const response: AsyncJobWorkerMessageResponse = { job };
+            replyToMessage(name, response, 'An invalid metadata type was provided');
+            return;
+          }
+        }
+
+        const results = await pollRetrieveMetadataResultsUntilDone(org, id, {
+          onChecked: () => {
+            const response: AsyncJobWorkerMessageResponse = { job, lastActivityUpdate: true };
+            replyToMessage(name, response, undefined);
+          },
+        });
+
+        if (isString(results.zipFile)) {
+          const fileData = base64ToArrayBuffer(results.zipFile);
+          const response: AsyncJobWorkerMessageResponse = { job, results: { fileData, mimeType, fileName } };
+          replyToMessage(name, response, undefined, fileData);
+        } else {
+          const response: AsyncJobWorkerMessageResponse = { job };
+          replyToMessage(name, response, 'No file was provided from Salesforce');
+        }
       } catch (ex) {
         const response: AsyncJobWorkerMessageResponse = { job };
         replyToMessage(name, response, ex.message);

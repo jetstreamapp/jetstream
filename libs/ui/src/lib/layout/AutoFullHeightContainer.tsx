@@ -1,6 +1,6 @@
 /** @jsx jsx */
 import { css, jsx, SerializedStyles } from '@emotion/react';
-import { Component, createRef, RefObject } from 'react';
+import { Component, createRef, LegacyRef, RefObject } from 'react';
 
 export interface AutoFullHeightContainerProps {
   className?: string;
@@ -15,25 +15,35 @@ export interface AutoFullHeightContainerProps {
 
 export interface AutoFullHeightContainerState {
   topPosition: number;
+  hasRefCalculated: boolean;
 }
 
 export class AutoFullHeightContainer extends Component<AutoFullHeightContainerProps, AutoFullHeightContainerState> {
-  ref: RefObject<HTMLDivElement>;
+  ref: HTMLDivElement;
 
   constructor(props) {
     super(props);
-    this.ref = createRef<HTMLDivElement>();
-    this.state = { topPosition: 0 };
+    this.state = { topPosition: 0, hasRefCalculated: false };
   }
 
-  componentDidMount() {
-    this.setState({
-      topPosition: this.getElementTopPosition(),
-    });
-  }
+  setRef = (element: HTMLDivElement) => {
+    this.ref = element;
+    if (this.ref && !this.state.hasRefCalculated) {
+      this.setState({
+        topPosition: this.getElementTopPosition(),
+        hasRefCalculated: true,
+      });
+    }
+  };
+
+  // componentDidMount() {
+  //   this.setState({
+  //     topPosition: this.getElementTopPosition(),
+  //   });
+  // }
 
   getElementTopPosition = () => {
-    return this.ref?.current?.getBoundingClientRect().top || this.props.bufferIfNotRendered || 0;
+    return this.ref?.getBoundingClientRect().top || this.props.bufferIfNotRendered || 0;
   };
 
   render() {
@@ -43,7 +53,7 @@ export class AutoFullHeightContainer extends Component<AutoFullHeightContainerPr
     return (
       <div
         className={className}
-        ref={this.ref}
+        ref={this.setRef}
         css={css`
           ${baseCss || ''}
           max-height: ${heightStr}

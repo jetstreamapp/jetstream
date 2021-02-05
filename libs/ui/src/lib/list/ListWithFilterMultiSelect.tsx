@@ -1,14 +1,17 @@
 /** @jsx jsx */
 import { css, jsx } from '@emotion/react';
 import { formatNumber } from '@jetstream/shared/ui-utils';
-import { multiWordObjectFilter, orderStringsBy, pluralizeIfMultiple } from '@jetstream/shared/utils';
+import { multiWordObjectFilter, NOOP, orderStringsBy, pluralizeIfMultiple } from '@jetstream/shared/utils';
 import { ListItem as ListItemType, UpDown } from '@jetstream/types';
 import { createRef, Fragment, FunctionComponent, useEffect, useState } from 'react';
 import Checkbox from '../form/checkbox/Checkbox';
 import SearchInput from '../form/search-input/SearchInput';
+import Grid from '../grid/Grid';
 import EmptyState from '../illustrations/EmptyState';
 import AutoFullHeightContainer from '../layout/AutoFullHeightContainer';
+import Icon from '../widgets/Icon';
 import Spinner from '../widgets/Spinner';
+import Tooltip from '../widgets/Tooltip';
 import List from './List';
 
 export interface ListWithFilterMultiSelectProps {
@@ -21,11 +24,14 @@ export interface ListWithFilterMultiSelectProps {
   items: ListItemType[];
   selectedItems: string[];
   allowSelectAll?: boolean;
-  disabled?: boolean;
+  // disabled?: boolean;
   loading: boolean;
-  errorMessage?: string; // TODO:
+  hasError?: boolean;
+  allowRefresh?: boolean;
+  lastRefreshed?: string;
   onSelected: (items: string[]) => void;
-  errorReattempt: () => void;
+  errorReattempt?: () => void;
+  onRefresh?: () => void;
 }
 
 /**
@@ -37,11 +43,14 @@ export const ListWithFilterMultiSelect: FunctionComponent<ListWithFilterMultiSel
   items,
   selectedItems = [],
   allowSelectAll = true,
-  disabled = false, // TODO:
+  // disabled = false, // TODO:
   loading,
-  errorMessage,
+  hasError,
+  allowRefresh,
+  lastRefreshed,
   onSelected,
   errorReattempt,
+  onRefresh = NOOP,
 }) => {
   const [filteredItems, setFilteredItems] = useState<ListItemType[]>(null);
   const [selectedItemsSet, setSelectedItemsSet] = useState<Set<string>>(new Set<string>(selectedItems || []));
@@ -90,9 +99,31 @@ export const ListWithFilterMultiSelect: FunctionComponent<ListWithFilterMultiSel
   return (
     <Fragment>
       {labels.listHeading && (
-        <h2 className="slds-text-heading_medium slds-grow slds-text-align_center slds-p-top_xx-small slds-p-bottom_xx-small">
-          {labels.listHeading}
-        </h2>
+        <Fragment>
+          {allowRefresh && (
+            <Grid>
+              <h2 className="slds-text-heading_medium slds-grow slds-text-align_center">{labels.listHeading}</h2>
+              <div>
+                <Tooltip id={`sobject-list-refresh-tooltip`} content={lastRefreshed}>
+                  <button className="slds-button slds-button_icon slds-button_icon-container" disabled={loading} onClick={onRefresh}>
+                    <Icon
+                      type="utility"
+                      icon="refresh"
+                      description={`Reload ${labels.descriptorPlural}`}
+                      className="slds-button__icon"
+                      omitContainer
+                    />
+                  </button>
+                </Tooltip>
+              </div>
+            </Grid>
+          )}
+          {!allowRefresh && (
+            <h2 className="slds-text-heading_medium slds-grow slds-text-align_center slds-p-top_xx-small slds-p-bottom_xx-small">
+              {labels.listHeading}
+            </h2>
+          )}
+        </Fragment>
       )}
       {loading && (
         <div
@@ -105,15 +136,17 @@ export const ListWithFilterMultiSelect: FunctionComponent<ListWithFilterMultiSel
         </div>
       )}
       <div>
-        {errorMessage && (
+        {hasError && (
           <p className="slds-p-around_medium slds-text-align_center">
             <span className="slds-text-color_error">There was an error loading {labels.descriptorPlural} for the selected org.</span>
-            <button className="slds-button slds-m-left_xx-small" onClick={() => errorReattempt()}>
-              Try Again?
-            </button>
+            {errorReattempt && (
+              <button className="slds-button slds-m-left_xx-small" onClick={() => errorReattempt()}>
+                Try Again?
+              </button>
+            )}
           </p>
         )}
-        {!loading && items && filteredItems && (
+        {!loading && !hasError && items && filteredItems && (
           <Fragment>
             <div className="slds-p-bottom--xx-small">
               <SearchInput
@@ -143,7 +176,7 @@ export const ListWithFilterMultiSelect: FunctionComponent<ListWithFilterMultiSel
                 </div>
               )}
             </div>
-            <AutoFullHeightContainer>
+            <AutoFullHeightContainer bottomBuffer={15}>
               <List
                 ref={ulRef}
                 items={filteredItems}

@@ -1,0 +1,151 @@
+/** @jsx jsx */
+import { css, jsx } from '@emotion/react';
+import { INPUT_ACCEPT_FILETYPES } from '@jetstream/shared/constants';
+import { InputReadFileContent, ListItem, SalesforceOrgUi } from '@jetstream/types';
+import { FileSelector, Grid, GridCol, Modal, Picklist, Spinner, Textarea } from '@jetstream/ui';
+import { FunctionComponent, useEffect, useState } from 'react';
+import { ChangeSetPackage } from '../deploy-metadata.types';
+import { useChangesetList } from '../utils/useChangesetList';
+
+// TODO: this is used in two places, move to constants
+const SPLIT_LINE_COMMA = /(\n|, |,)/g;
+
+export interface DownloadMetadataPackageConfigModalProps {
+  selectedOrg: SalesforceOrgUi;
+  onClose: () => void;
+  onDownloadFromManifest: (packageManifest: string) => void;
+  onDownloadFromPackageNames: (packageNames: string[]) => void;
+}
+
+export const DownloadMetadataPackageConfigModal: FunctionComponent<DownloadMetadataPackageConfigModalProps> = ({
+  selectedOrg,
+  onClose,
+  onDownloadFromManifest,
+  onDownloadFromPackageNames,
+}) => {
+  const [file, setFile] = useState<string>();
+  const [filename, setFileName] = useState<string>();
+  // const [changesetEntryType, setChangesetEntryType] = useState<'list' | 'manual'>('list');
+  const [packageNames, setPackageNames] = useState<string[]>([]);
+  const [packageNamesStr, setPackageNamesStr] = useState<string>('');
+
+  const { loadPackages, loading, changesetPackages, hasError } = useChangesetList(selectedOrg);
+
+  useEffect(() => {
+    loadPackages();
+  }, [loadPackages, selectedOrg]);
+
+  function handleFile({ content, filename }: InputReadFileContent) {
+    setFileName(filename);
+    setFile(content as string);
+  }
+
+  function handleSelectPackage(selectedItems: ListItem<string, ChangeSetPackage>[]) {
+    setPackageNames(selectedItems.map((item) => item.value));
+  }
+
+  function handleDownloadFromPackageNames() {
+    // combine selected packages with manually entered packages
+    onDownloadFromPackageNames(
+      Array.from(
+        new Set(
+          packageNames
+            .concat(packageNamesStr.replace(SPLIT_LINE_COMMA, ',').split(','))
+            .map((item) => item.trim())
+            .filter((item) => !!item)
+        )
+      )
+    );
+  }
+
+  function isPackageNameDownloadButtonEnabled() {
+    if (packageNames.length || setPackageNamesStr.length) {
+      return false;
+    }
+    return true;
+  }
+
+  return (
+    <Modal header="Download metadata from package" size="lg" onClose={onClose}>
+      <div className="slds-is-relative slds-p-around_large">
+        <Grid wrap verticalStretch>
+          <GridCol
+            className="slds-p-around_medium"
+            size={12}
+            sizeMedium={4}
+            css={css`
+              border-bottom: 1px solid #dddbda;
+              @media (min-width: 48em) {
+                border-right: 1px solid #dddbda;
+                border-bottom: none;
+              }
+            `}
+          >
+            <h1 className="slds-text-heading_medium slds-m-bottom_small">Download from Package.xml manifest file</h1>
+            <p>Provide a package.xml file that will be used to download a package</p>
+            <FileSelector
+              className="slds-m-top_x-small"
+              id="package-manifest"
+              label="Package Manifest"
+              filename={filename}
+              accept={[INPUT_ACCEPT_FILETYPES.XML]}
+              userHelpText="Choose package.xml manifest file"
+              onReadFile={handleFile}
+            ></FileSelector>
+            <button
+              className="slds-button slds-button_brand slds-m-top_medium"
+              onClick={() => onDownloadFromManifest(file)}
+              disabled={!file}
+            >
+              Download
+            </button>
+          </GridCol>
+          <GridCol className="slds-p-around_medium slds-is-relative" size={12} sizeMedium={8}>
+            {loading && <Spinner />}
+            <h1 className="slds-text-heading_medium slds-m-bottom_small">Download from outbound changeset or unmanaged package</h1>
+            <p>Choose packages from the list and/or manually enter the package names</p>
+            <Picklist
+              className="slds-m-top_x-small"
+              allowDeselection
+              multiSelection
+              label="Outbound Changesets / Unmanaged Packages"
+              placeholder="Select a Package"
+              items={changesetPackages || []}
+              selectedItemIds={packageNames}
+              disabled={loading}
+              onChange={handleSelectPackage}
+              hasError={hasError}
+              errorMessage="There was a problem loading packages for this org"
+              errorMessageId="packages-fetch-error"
+            ></Picklist>
+
+            <Textarea
+              id="package-names"
+              label="Packages Names"
+              className="slds-m-top_x-small"
+              helpText="One package name per line or comma delimited"
+            >
+              <textarea
+                id="changeset-description"
+                className="slds-textarea"
+                value={packageNamesStr}
+                onChange={(event) => setPackageNamesStr(event.target.value)}
+                maxLength={255}
+              />
+            </Textarea>
+
+            <button
+              className="slds-button slds-button_brand slds-m-top_medium"
+              onClick={handleDownloadFromPackageNames}
+              disabled={isPackageNameDownloadButtonEnabled()}
+            >
+              Download
+            </button>
+          </GridCol>
+        </Grid>
+      </div>
+    </Modal>
+  );
+};
+
+export default DownloadMetadataPackageConfigModal;

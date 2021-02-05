@@ -5,6 +5,7 @@ import HelpText from '../../widgets/HelpText';
 export interface RadioGroupProps {
   idPrefix?: string;
   className?: string;
+  formControlClassName?: string;
   label: string;
   labelHelp?: string;
   required?: boolean;
@@ -16,6 +17,7 @@ export interface RadioGroupProps {
 export const RadioGroup: FunctionComponent<RadioGroupProps> = ({
   idPrefix,
   className,
+  formControlClassName,
   label,
   labelHelp,
   required,
@@ -35,7 +37,7 @@ export const RadioGroup: FunctionComponent<RadioGroupProps> = ({
         {label}
       </legend>
       {labelHelp && <HelpText id={`${idPrefix}-label-help-text`} content={labelHelp} />}
-      <div className="slds-form-element__control">
+      <div className={classNames('slds-form-element__control', formControlClassName)}>
         {isButtonGroup && <div className="slds-radio_button-group">{children}</div>}
         {!isButtonGroup && children}
       </div>

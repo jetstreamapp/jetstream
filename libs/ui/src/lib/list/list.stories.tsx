@@ -4,6 +4,7 @@ import uniqueId from 'lodash/uniqueId';
 import { boolean } from '@storybook/addon-knobs';
 import { action } from '@storybook/addon-actions';
 import ToolbarItemActions from '../toolbar/ToolbarItemActions';
+import ReadonlyList from './ReadonlyList';
 
 export default {
   title: 'List',
@@ -86,3 +87,5 @@ export const customContentWithCheckbox = () => (
     })}
   />
 );
+
+export const readonlyList = () => <ReadonlyList items={items} getContent={(item) => item} />;

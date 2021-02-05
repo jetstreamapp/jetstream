@@ -4,8 +4,10 @@ import formatDistanceToNow from 'date-fns/formatDistanceToNow';
 import React, { FunctionComponent } from 'react';
 import classNames from 'classnames';
 import { downloadJob } from './job-utils';
+import formatDate from 'date-fns/format';
 
-const JOBS_WITH_DOWNLOAD: AsyncJobType[] = ['BulkDelete'];
+const JOBS_WITH_DOWNLOAD = new Set<AsyncJobType>(['BulkDelete']);
+const JOBS_WITH_TIMESTAMP_UPDATE = new Set<AsyncJobType>(['RetrievePackageZip']);
 
 export interface JobProps {
   job: AsyncJob;
@@ -44,6 +46,9 @@ export const Job: FunctionComponent<JobProps> = ({ job, dismiss }) => {
             >
               {status}
             </p>
+            {inProgress && JOBS_WITH_TIMESTAMP_UPDATE.has(job.type) && (
+              <p className="slds-text-color_weak slds-truncate">Last Checked {formatDate(job.lastActivity, 'h:mm:ss')}</p>
+            )}
             <p className="slds-text-color_weak">
               {inProgress && (
                 <abbr className="slds-m-horizontal_xx-small">
@@ -90,16 +95,13 @@ export const Job: FunctionComponent<JobProps> = ({ job, dismiss }) => {
                 </abbr>
               )}
               {message}
-              {/* TODO: have an optional link to SFDC or some abort action - would need to store data on the job to know what to do */}
-              {/* TODO: add way to dismiss an item */}
-              {/* TODO: do we need an entire page dedicated to event results? */}
             </p>
           </div>
         </div>
-        {job.results && (
+        {!inProgress && (
           <div className="slds-m-top_x-small slds-grid slds-grid_align-spread">
             <div className="slds-col">
-              {JOBS_WITH_DOWNLOAD.includes(job.type) && (
+              {JOBS_WITH_DOWNLOAD.has(job.type) && (
                 <button className="slds-button slds-button_neutral" onClick={() => downloadJob(job)}>
                   <Icon type="utility" icon="download" className="slds-button__icon slds-button__icon_left" omitContainer />
                   Download Results

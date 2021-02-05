@@ -1,4 +1,4 @@
-import { DescribeSObjectResult, Field } from 'jsforce';
+import { DescribeSObjectResult, Field, RetrieveResult as RetrieveResultSfdc } from 'jsforce';
 import { HttpMethod, MapOf, RecordAttributes } from '../types';
 
 export type BulkApiDownloadType = 'request' | 'result';
@@ -339,7 +339,7 @@ export interface PicklistFieldValueItem {
   validFor: number[];
 }
 
-export interface ListMetadataResult {
+export interface ListMetadataResultRaw {
   createdById: string;
   createdByName: string;
   createdDate: string;
@@ -352,4 +352,198 @@ export interface ListMetadataResult {
   manageableState?: 'beta' | 'deleted' | 'deprecated' | 'deprecatedEditable' | 'installed' | 'installedEditable' | 'released' | 'unmanaged';
   namespacePrefix?: string;
   type: string;
+}
+
+export interface ListMetadataResult {
+  createdById: string;
+  createdByName: string;
+  createdDate: Date;
+  fileName: string;
+  fullName: string;
+  id: string;
+  lastModifiedById: string;
+  lastModifiedByName: string;
+  lastModifiedDate: Date;
+  manageableState?: 'beta' | 'deleted' | 'deprecated' | 'deprecatedEditable' | 'installed' | 'installedEditable' | 'released' | 'unmanaged';
+  namespacePrefix?: string;
+  type: string;
+}
+
+export interface RetrieveResult extends Omit<RetrieveResultSfdc, 'zipFile'> {
+  // fileProperties: FileProperties[];
+  // id: string;
+  // messages: RetrieveMessage[];
+  // zipFile: string
+  done: boolean;
+  errorMessage?: string;
+  errorStatusCode?: string;
+  status: 'Pending' | 'InProgress' | 'Succeeded' | 'Failed';
+  success: boolean;
+  zipFile?: string;
+}
+
+export interface RetrieveResultRaw extends Omit<RetrieveResultSfdc, 'zipFile'> {
+  done: 'true' | 'false';
+  errorMessage?: string;
+  errorStatusCode?: string;
+  status: 'Pending' | 'InProgress' | 'Succeeded' | 'Failed';
+  success: 'true' | 'false';
+  zipFile?: string | { $: { 'xsi:nil': 'true' } };
+}
+
+export type DeployOptionsTestLevel = 'NoTestRun' | 'RunSpecifiedTests' | 'RunLocalTests' | 'RunAllTestsInOrg';
+
+export interface DeployOptions {
+  allowMissingFiles?: boolean;
+  autoUpdatePackage?: boolean;
+  checkOnly?: boolean;
+  ignoreWarnings?: boolean;
+  performRetrieve?: boolean;
+  purgeOnDelete?: boolean;
+  rollbackOnError?: boolean;
+  runAllTests?: boolean;
+  runTests?: string[];
+  singlePackage?: boolean;
+  testLevel?: DeployOptionsTestLevel;
+}
+
+export interface DeployResult {
+  id: string;
+  canceledBy?: string;
+  canceledByName?: string;
+  checkOnly: boolean;
+  completedDate: string;
+  createdBy: string;
+  createdByName: string;
+  createdDate: string;
+  details?: {
+    componentFailures: DeployMessage[];
+    componentSuccesses: DeployMessage[];
+    runTestResult: RunTestsResult;
+  };
+  done: boolean;
+  errorMessage?: string;
+  errorStatusCode?: string;
+  ignoreWarnings?: boolean;
+  lastModifiedDate: string;
+  numberComponentErrors: number;
+  numberComponentsDeployed: number;
+  numberComponentsTotal: number;
+  numberTestErrors: number;
+  numberTestsCompleted: number;
+  numberTestsTotal: number;
+  rollbackOnError?: boolean;
+  runTestsEnabled: boolean;
+  startDate: string;
+  status: DeployResultStatus;
+  success: boolean;
+}
+
+export type DeployResultStatus = 'Pending' | 'InProgress' | 'Succeeded' | 'SucceededPartial' | 'Failed' | 'Canceling' | 'Canceled';
+
+export interface DeployMessage {
+  changed: boolean;
+  columnNumber: number;
+  componentType: string;
+  created: boolean;
+  createdDate: string;
+  deleted: boolean;
+  fileName: string;
+  fullName: string;
+  id: string;
+  lineNumber: number;
+  problem: string;
+  problemType: 'Warning' | 'Error';
+  success: boolean;
+}
+
+// https://developer.salesforce.com/docs/atlas.en-us.api_meta.meta/api_meta/meta_deployresult.htm
+export interface RunTestsResult {
+  apexLogId: string;
+  codeCoverage: CodeCoverageResult[];
+  codeCoverageWarnings: CodeCoverageWarning[];
+  failures: RunTestFailure[];
+  flowCoverage: FlowCoverageResult[];
+  flowCoverageWarnings: FlowCoverageWarning[];
+  numFailures: number;
+  numTestsRun: number;
+  successes: RunTestSuccess[];
+  totalTime: number;
+}
+
+export interface CodeCoverageResult {
+  dmlInfo: CodeLocation[];
+  id: string;
+  locationsNotCovered: CodeLocation[];
+  methodInfo: CodeLocation[];
+  name: string;
+  namespace: string;
+  numLocations: number;
+  numLocationsNotCovered: number;
+  soqlInfo: CodeLocation[];
+  type: string;
+}
+
+export interface CodeCoverageWarning {
+  id: string;
+  message: string;
+  name: string;
+  namespace: string;
+}
+
+export interface RunTestFailure {
+  id: string;
+  message: string;
+  methodName: string;
+  name: string;
+  namespace: string;
+  seeAllData: boolean;
+  stackTrace: string;
+  time: number;
+  type: string;
+}
+
+export interface FlowCoverageResult {
+  elementsNotCovered: string;
+  flowId: string;
+  flowName: string;
+  flowNamespace: string;
+  numElements: number;
+  numElementsNotCovered: number;
+  processType: string;
+}
+
+export interface FlowCoverageWarning {
+  flowId: string;
+  flowName: string;
+  flowNamespace: string;
+  message: string;
+}
+
+export interface RunTestSuccess {
+  id: string;
+  methodName: string;
+  name: string;
+  namespace: string;
+  seeAllData: boolean;
+  time: number;
+}
+
+export interface RunTestFailure {
+  id: string;
+  message: string;
+  methodName: string;
+  name: string;
+  namespace: string;
+  seeAllData: boolean;
+  stackTrace: string;
+  time: number;
+  type: string;
+}
+
+export interface CodeLocation {
+  column: number;
+  line: number;
+  numExecutions: number;
+  time: number;
 }

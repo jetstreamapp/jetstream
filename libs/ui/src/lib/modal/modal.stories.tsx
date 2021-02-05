@@ -43,7 +43,6 @@ export const modal = () => (
       },
       undefined
     )}
-    containerClassName={text('containerClassName', '')}
     onClose={action('onclose')}
   >
     {content}
@@ -65,7 +64,6 @@ export const modalWithoutHeaderOrFooter = () => (
       },
       undefined
     )}
-    containerClassName={text('containerClassName', '')}
     onClose={action('onclose')}
   >
     {content}
@@ -93,7 +91,6 @@ export const modalWizard = () => (
       },
       undefined
     )}
-    containerClassName={text('containerClassName', '')}
     onClose={action('onclose')}
   >
     {content}
