@@ -64,12 +64,9 @@ export const DeployMetadataPackageConfigModal: FunctionComponent<DeployMetadataP
       onClose={onClose}
     >
       <div className="slds-is-relative">
-        <p>If you have previously downloaded a package you can deploy it to the same or a different org.</p>
-        <p>
-          A common use-case is to move metadata between orgs or to make changes to metadata locally and save the changes back to Salesforce.
-        </p>
+        <p>If you have previously downloaded a package, you can deploy it to the same or a different org.</p>
         <div className="slds-m-vertical_x-small">
-          You are about to deploy changes to <strong>{selectedOrg.label}</strong>.
+          The package will be deployed to <strong>{selectedOrg.label}</strong>.
         </div>
         <div className="slds-m-bottom_x-small">
           <FileSelector

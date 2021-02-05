@@ -1,42 +1,39 @@
 /** @jsx jsx */
 import { jsx } from '@emotion/react';
 import { useNonInitialEffect } from '@jetstream/shared/ui-utils';
-import { DeployOptions, DeployResult, ListMetadataResult, MapOf, SalesforceOrgUi } from '@jetstream/types';
+import { DeployOptions, DeployResult, SalesforceOrgUi } from '@jetstream/types';
 import { SalesforceLogin } from '@jetstream/ui';
 import { Fragment, FunctionComponent, useEffect, useState } from 'react';
 import { useRecoilState } from 'recoil';
-import { applicationCookieState } from '../../../../app-state';
-import DeployMetadataStatusModal from '../utils/DeployMetadataStatusModal';
+import { applicationCookieState } from '../../../app-state';
 import { getDeploymentStatusUrl } from '../utils/deploy-metadata.utils';
-import { getStatusValue, useDeployMetadataBetweenOrgs } from '../utils/useDeployMetadataBetweenOrgs';
+import DeployMetadataStatusModal from '../utils/DeployMetadataStatusModal';
+import { getStatusValue, useDeployMetadataPackage } from '../utils/useDeployMetadataPackage';
 
-export interface DeployMetadataToOrgStatusModalProps {
-  sourceOrg: SalesforceOrgUi;
+export interface DeployMetadataPackageStatusModalProps {
   destinationOrg: SalesforceOrgUi;
-  selectedMetadata: MapOf<ListMetadataResult[]>;
   deployOptions: DeployOptions;
+  file: ArrayBuffer;
   // used to hide while download window is open
   hideModal: boolean;
   onClose: () => void;
   onDownload: (deployResults: DeployResult, deploymentUrl: string) => void;
 }
 
-export const DeployMetadataToOrgStatusModal: FunctionComponent<DeployMetadataToOrgStatusModalProps> = ({
-  sourceOrg,
+export const DeployMetadataPackageStatusModal: FunctionComponent<DeployMetadataPackageStatusModalProps> = ({
   destinationOrg,
-  selectedMetadata,
   deployOptions,
+  file,
   hideModal,
   onClose,
   onDownload,
 }) => {
   const [{ serverUrl }] = useRecoilState(applicationCookieState);
   const [deployStatusUrl, setDeployStatusUrl] = useState<string>();
-  const { deployMetadata, results, deployId, loading, status, lastChecked, hasError, errorMessage } = useDeployMetadataBetweenOrgs(
-    sourceOrg,
+  const { deployMetadata, results, deployId, loading, status, lastChecked, hasError, errorMessage } = useDeployMetadataPackage(
     destinationOrg,
-    selectedMetadata,
-    deployOptions
+    deployOptions,
+    file
   );
 
   useEffect(() => {
@@ -79,4 +76,4 @@ export const DeployMetadataToOrgStatusModal: FunctionComponent<DeployMetadataToO
   );
 };
 
-export default DeployMetadataToOrgStatusModal;
+export default DeployMetadataPackageStatusModal;

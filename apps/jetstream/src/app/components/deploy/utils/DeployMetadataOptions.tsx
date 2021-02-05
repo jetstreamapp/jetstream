@@ -101,7 +101,7 @@ export const DeployMetadataToOrgConfigOptions: FunctionComponent<DeployMetadataT
             id="deploy-allowMissingFiles"
             checked={allowMissingFiles}
             label="Allow Missing Files"
-            labelHelp="allowMissingFiles - If files that are specified in package.xml are not in the .zip file, specifies whether a deployment can still succeed. Do not set this argument for deployment to production orgs."
+            labelHelp="allowMissingFiles - Allows the deployment to succeed if files are specified in your package.xml but are not included in the deployment. Not allowed for production orgs."
             onChange={setAllowMissingFiles}
             disabled={disabledOptions.has('allowMissingFiles')}
           />
@@ -111,7 +111,7 @@ export const DeployMetadataToOrgConfigOptions: FunctionComponent<DeployMetadataT
             id="deploy-autoUpdatePackage"
             checked={autoUpdatePackage}
             label="Auto Update Package"
-            labelHelp="autoUpdatePackage - Include file in deployment even if the Package.xml does not specify file."
+            labelHelp="autoUpdatePackage - Allow files in your package to be deployed even if omitted from the package.xml. Usee this option to update an existing outbound changeset."
             onChange={setAutoUpdatePackage}
             disabled={disabledOptions.has('autoUpdatePackage')}
           />
@@ -121,7 +121,7 @@ export const DeployMetadataToOrgConfigOptions: FunctionComponent<DeployMetadataT
             id="deploy-checkOnly"
             checked={checkOnly}
             label="Validate Only"
-            labelHelp="checkOnly - Set to true to validate the deployment without making any actual changes."
+            labelHelp="checkOnly - Set to true to validate the deployment without making actual changes."
             onChange={setCheckOnly}
             disabled={disabledOptions.has('checkOnly')}
           />
@@ -151,7 +151,7 @@ export const DeployMetadataToOrgConfigOptions: FunctionComponent<DeployMetadataT
             id="deploy-purgeOnDelete"
             checked={purgeOnDelete}
             label="Skip Recycle Bin on Delete"
-            labelHelp="purgeOnDelete - Skip the recycle bin if your deployment includes a destructive package."
+            labelHelp="purgeOnDelete - Skip the recycle bin for deleted components in a destructive package."
             onChange={setPurgeOnDelete}
             disabled={disabledOptions.has('purgeOnDelete')}
           />
@@ -161,7 +161,7 @@ export const DeployMetadataToOrgConfigOptions: FunctionComponent<DeployMetadataT
             id="deploy-singlePackage"
             checked={singlePackage}
             label="Single Package"
-            labelHelp="singlePackage - Set to true if the root of the zip file includes sub-folders for each package."
+            labelHelp="singlePackage - Set to true if your package.xml is in the root of your zip file."
             onChange={setSinglePackage}
             disabled={disabledOptions.has('singlePackage')}
           />
@@ -173,7 +173,7 @@ export const DeployMetadataToOrgConfigOptions: FunctionComponent<DeployMetadataT
           className="slds-m-top_small"
           idPrefix="deploy"
           label="Unit Tests to Run"
-          labelHelp="testLevel - This determines which unit tests will be executed for the deployment."
+          labelHelp="testLevel - This determines which unit tests will be initiated as part of the deployment."
         >
           {testLevelOptions.map((item) => (
             <Radio
@@ -195,7 +195,7 @@ export const DeployMetadataToOrgConfigOptions: FunctionComponent<DeployMetadataT
               <Textarea
                 id="deploy-runTests"
                 label="Specified Tests"
-                labelHelp="runTests - Specific unit tests to run. Specify one test per line."
+                labelHelp="runTests - One test per line or comma delimited."
                 helpText="One test per line or comma delimited"
               >
                 <textarea
@@ -204,7 +204,7 @@ export const DeployMetadataToOrgConfigOptions: FunctionComponent<DeployMetadataT
                   disabled={disabledOptions.has('runTests')}
                   value={runTestsStr}
                   onChange={(event) => setRunTestsStr(event.target.value)}
-                  maxLength={2000}
+                  maxLength={2500}
                 />
               </Textarea>
             )}

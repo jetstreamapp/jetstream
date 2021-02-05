@@ -27,7 +27,7 @@ import * as fromDeployMetadataState from './deploy-metadata.state';
 import { AllUser, CommonUser } from './deploy-metadata.types';
 import './DeployMetadataSelection.scss';
 import DeployMetadataUserList from './DeployMetadataUserList';
-import DownloadMetadataPackage from 'apps/jetstream/src/app/components/deploy/deploy-metadata/download-metadata-package/DownloadMetadataPackage';
+import DownloadMetadataPackage from './download-metadata-package/DownloadMetadataPackage';
 
 interface RadioButtonItem<T = string> {
   name: T;

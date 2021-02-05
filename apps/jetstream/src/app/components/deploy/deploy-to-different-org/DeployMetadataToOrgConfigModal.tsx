@@ -5,8 +5,8 @@ import { DeployOptions, SalesforceOrgUi } from '@jetstream/types';
 import { Modal } from '@jetstream/ui';
 import { Fragment, FunctionComponent, useState } from 'react';
 import { useRecoilValue } from 'recoil';
-import { salesforceOrgsState } from '../../../../app-state';
-import OrgsCombobox from '../../../../components/core/OrgsCombobox';
+import { salesforceOrgsOmitSelectedState } from '../../../app-state';
+import OrgsCombobox from '../../../components/core/OrgsCombobox';
 import DeployMetadataOptions from '../utils/DeployMetadataOptions';
 
 const DISABLED_OPTIONS = new Set<keyof DeployOptions>(['allowMissingFiles', 'autoUpdatePackage', 'purgeOnDelete', 'singlePackage']);
@@ -24,7 +24,7 @@ export const DeployMetadataToOrgConfigModal: FunctionComponent<DeployMetadataToO
   onClose,
   onDeploy,
 }) => {
-  const orgs = useRecoilValue<SalesforceOrgUi[]>(salesforceOrgsState);
+  const orgs = useRecoilValue<SalesforceOrgUi[]>(salesforceOrgsOmitSelectedState);
   const [destinationOrg, setDestinationOrg] = useState<SalesforceOrgUi>(null);
   const [deployOptions, setDeployOptions] = useState<DeployOptions>(
     initialOptions || {
@@ -46,7 +46,7 @@ export const DeployMetadataToOrgConfigModal: FunctionComponent<DeployMetadataToO
 
   return (
     <Modal
-      header="Add metadata to changeset"
+      header="Deploy Metadata"
       footer={
         <Fragment>
           <button className="slds-button slds-button_neutral" onClick={() => onClose()}>

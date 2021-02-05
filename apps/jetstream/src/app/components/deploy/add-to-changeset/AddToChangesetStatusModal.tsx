@@ -5,7 +5,7 @@ import { DeployResult, ListMetadataResult, MapOf, SalesforceOrgUi } from '@jetst
 import { SalesforceLogin } from '@jetstream/ui';
 import { Fragment, FunctionComponent, useEffect, useState } from 'react';
 import { useRecoilState } from 'recoil';
-import { applicationCookieState } from '../../../../app-state';
+import { applicationCookieState } from '../../../app-state';
 import { getChangesetUrl, getDeploymentStatusUrl } from '../utils/deploy-metadata.utils';
 import DeployMetadataStatusModal from '../utils/DeployMetadataStatusModal';
 import { getStatusValue, useAddItemsToChangeset } from '../utils/useAddItemsToChangeset';

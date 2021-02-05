@@ -16,7 +16,7 @@ import {
 import { FileFauxDownloadModal } from '@jetstream/ui';
 import isString from 'lodash/isString';
 import { Fragment, FunctionComponent } from 'react';
-import * as fromJetstreamEvents from '../../../core/jetstream-events';
+import * as fromJetstreamEvents from '../../core/jetstream-events';
 export interface DownloadPackageWithFileSelectorProps {
   type: 'manifest' | 'package';
   selectedOrg: SalesforceOrgUi;

@@ -92,14 +92,14 @@ export const hasSelectionsMadeMessageSelector = selector<string | null>({
     const selectedUsers = get(selectedUsersState);
 
     if (metadataSelectionType === 'user' && selectedMetadataItems.size === 0) {
-      return 'Choose one or more metadata types.';
+      return 'Choose one or more metadata types';
     } else if (userSelection === 'user' && selectedUsers.length === 0) {
-      return 'Choose one or more users or select All Users.';
+      return 'Choose one or more users or select All Users';
     } else if (dateRangeSelection === 'user' && !dateRange) {
-      return 'Choose a last modified date or select Any Date.';
+      return 'Choose a last modified date or select Any Date';
+    } else {
+      return 'Continue to select the metadata components to deploy';
     }
-
-    return null;
   },
 });
 

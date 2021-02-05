@@ -5,7 +5,7 @@ import { ListItem, SalesforceOrgUi } from '@jetstream/types';
 import { Grid, Input, Modal, Picklist, Radio, RadioGroup, SalesforceLogin, Spinner, Textarea } from '@jetstream/ui';
 import { Fragment, FunctionComponent, useEffect, useState } from 'react';
 import { useRecoilState } from 'recoil';
-import { applicationCookieState } from '../../../../app-state';
+import { applicationCookieState } from '../../../app-state';
 import { ChangeSetPackage } from '../deploy-metadata.types';
 import { useChangesetList } from '../utils/useChangesetList';
 

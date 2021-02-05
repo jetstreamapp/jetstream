@@ -2,6 +2,7 @@
 import { jsx } from '@emotion/react';
 import { useListMetadata } from '@jetstream/connected-ui';
 import { formatNumber, transformTabularDataToExcelStr } from '@jetstream/shared/ui-utils';
+import { pluralizeFromNumber, pluralizeIfMultiple } from '@jetstream/shared/utils';
 import { ListMetadataResult, MapOf, SalesforceOrgUi } from '@jetstream/types';
 import {
   Badge,
@@ -139,7 +140,7 @@ export const DeployMetadataDeployment: FunctionComponent<DeployMetadataDeploymen
 
       <Toolbar>
         <ToolbarItemGroup>
-          <Link className="slds-button slds-button_brand" to={{ pathname: `/deploy/deploy-metadata` }}>
+          <Link className="slds-button slds-button_brand" to={{ pathname: `/deploy-metadata` }}>
             <Icon type="utility" icon="back" className="slds-button__icon slds-button__icon_left" omitContainer />
             Go Back
           </Link>
@@ -169,10 +170,14 @@ export const DeployMetadataDeployment: FunctionComponent<DeployMetadataDeploymen
         <Grid className="slds-box_small slds-theme_default slds-is-relative">
           {loading && <Spinner size="small"></Spinner>}
           <div className="slds-m-horizontal_x-small">
-            <Badge>{formatNumber(listMetadataQueries.length)} Metadata Types</Badge>
+            <Badge>
+              {formatNumber(listMetadataQueries.length)} Metadata {pluralizeIfMultiple('Type', listMetadataQueries)}
+            </Badge>
           </div>
           <div className="slds-m-horizontal_x-small">
-            <Badge>{userSelection === 'all' ? 'From All Users' : `Across ${selectedUsers.length} users`}</Badge>
+            <Badge>
+              {userSelection === 'all' ? 'From All Users' : `Across ${selectedUsers.length} ${pluralizeIfMultiple('user', selectedUsers)}`}
+            </Badge>
           </div>
           <div className="slds-m-horizontal_x-small">
             <Badge>
@@ -182,7 +187,9 @@ export const DeployMetadataDeployment: FunctionComponent<DeployMetadataDeploymen
             </Badge>
           </div>
           <div className="slds-m-horizontal_x-small">
-            <Badge>{formatNumber(selectedRows.size)} Components Selected</Badge>
+            <Badge>
+              {formatNumber(selectedRows.size)} {pluralizeFromNumber('Component', selectedRows.size)} Selected
+            </Badge>
           </div>
           {!loading && rows && (
             <div className="slds-p-top_xxx-small">
@@ -194,12 +201,12 @@ export const DeployMetadataDeployment: FunctionComponent<DeployMetadataDeploymen
                   {
                     id: TABLE_ACTION_CLIPBOARD,
                     icon: { type: 'utility', icon: 'copy_to_clipboard', description: 'Copy table to Clipboard' },
-                    value: 'Copy metadata to Clipboard',
+                    value: 'Copy metadata table to Clipboard',
                   },
                   {
                     id: TABLE_ACTION_DOWNLOAD,
                     icon: { type: 'utility', icon: 'download', description: 'Download table' },
-                    value: 'Download metadata',
+                    value: 'Download metadata table',
                   },
                 ]}
                 onSelected={handleTableAction}

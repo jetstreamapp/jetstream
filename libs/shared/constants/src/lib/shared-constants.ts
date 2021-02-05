@@ -9,6 +9,7 @@ export const FEATURE_FLAGS = Object.freeze({
   QUERY: 'query',
   LOAD: 'load',
   PERMISSION_MANAGER: 'permission-manager',
+  DEPLOYMENT: 'deployment',
 });
 
 export const INPUT_ACCEPT_FILETYPES: {

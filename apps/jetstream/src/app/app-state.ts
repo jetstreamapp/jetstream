@@ -104,6 +104,18 @@ export const selectedOrgState = selector({
   },
 });
 
+export const salesforceOrgsOmitSelectedState = selector({
+  key: 'salesforceOrgsOmitSelectedState',
+  get: ({ get }) => {
+    const salesforceOrgs = get(salesforceOrgsState);
+    const selectedOrgId = get(selectedOrgIdState);
+    if (isString(selectedOrgId) && Array.isArray(salesforceOrgs)) {
+      return salesforceOrgs.filter((org) => org.uniqueId !== selectedOrgId);
+    }
+    return salesforceOrgs;
+  },
+});
+
 export const hasConfiguredOrgState = selector({
   key: 'hasConfiguredOrgState',
   get: ({ get }) => {
