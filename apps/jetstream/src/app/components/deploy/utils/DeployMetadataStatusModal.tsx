@@ -145,7 +145,7 @@ export const DeployMetadataStatusModal: FunctionComponent<DeployMetadataStatusMo
         )}
         {status === 'idle' && !results && hasError && (
           <div>
-            <div>
+            <div className="slds-text-color_error">
               {errorMessage || fallbackUnknownErrorMessageLabel}
               <Icon
                 type="utility"
