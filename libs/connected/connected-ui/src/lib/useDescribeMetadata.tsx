@@ -83,28 +83,30 @@ export function useDescribeMetadata(
           testRequired: data.testRequired,
         });
 
-        const { items, itemMap } = data.metadataObjects.reduce(
-          (output: { items: string[]; itemMap: MapOf<MetadataObject> }, item) => {
-            // map parent item
-            output.items.push(item.xmlName);
-            output.itemMap[item.xmlName] = item;
-            // map child items
-            if (Array.isArray(item.childXmlNames) && item.childXmlNames.length > 0) {
-              item.childXmlNames.forEach((childItem) => {
-                output.items.push(childItem);
-                output.itemMap[childItem] = {
-                  xmlName: childItem,
-                  inFolder: false,
-                };
-              });
+        const { items, itemMap } = data.metadataObjects
+          .filter((item) => !!item)
+          .reduce(
+            (output: { items: string[]; itemMap: MapOf<MetadataObject> }, item) => {
+              // map parent item
+              output.items.push(item.xmlName);
+              output.itemMap[item.xmlName] = item;
+              // map child items
+              if (Array.isArray(item.childXmlNames) && item.childXmlNames.length > 0) {
+                item.childXmlNames.forEach((childItem) => {
+                  output.items.push(childItem);
+                  output.itemMap[childItem] = {
+                    xmlName: childItem,
+                    inFolder: false,
+                  };
+                });
+              }
+              return output;
+            },
+            {
+              items: [],
+              itemMap: {},
             }
-            return output;
-          },
-          {
-            items: [],
-            itemMap: {},
-          }
-        );
+          );
 
         setMetadataItemMap(itemMap);
         setMetadataItems(orderStringsBy(items.filter((item) => !METADATA_TYPES_TO_OMIT.has(item))));

@@ -109,15 +109,17 @@ export const listMetadataQueriesSelector = selector<ListMetadataQueryExtended[]>
     const metadataSelectionType = get(metadataSelectionTypeState);
     const metadataItemsMap = get(metadataItemsMapState);
     const selectedMetadataItems = get(selectedMetadataItemsState);
-    return (metadataSelectionType === 'common' ? COMMON_METADATA_TYPES : Array.from(selectedMetadataItems)).map(
-      (item): ListMetadataQueryExtended => {
-        const metadataDescribe = metadataItemsMap[item];
-        return {
-          type: metadataDescribe.xmlName,
-          folder: null,
-          inFolder: metadataDescribe.inFolder,
-        };
-      }
-    );
+    return (metadataSelectionType === 'common' ? COMMON_METADATA_TYPES : Array.from(selectedMetadataItems))
+      .filter((item) => metadataItemsMap[item])
+      .map(
+        (item): ListMetadataQueryExtended => {
+          const metadataDescribe = metadataItemsMap[item];
+          return {
+            type: metadataDescribe.xmlName,
+            folder: null,
+            inFolder: metadataDescribe.inFolder,
+          };
+        }
+      );
   },
 });

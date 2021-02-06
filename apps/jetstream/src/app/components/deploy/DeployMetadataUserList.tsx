@@ -4,7 +4,7 @@ import { ListItem, SalesforceOrgUi } from '@jetstream/types';
 import { ListWithFilterMultiSelect } from '@jetstream/ui';
 import { FunctionComponent, useEffect } from 'react';
 import { SalesforceUser } from './deploy-metadata.types';
-import { useUsers } from './utils/userUsers';
+import { useUsers } from './utils/useUsers';
 
 export interface DeployMetadataUserListProps {
   selectedOrg: SalesforceOrgUi;

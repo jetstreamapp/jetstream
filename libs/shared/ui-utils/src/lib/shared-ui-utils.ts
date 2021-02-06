@@ -752,6 +752,11 @@ export function hasFeatureFlagAccess(featureFlags: Set<string>, flag: string) {
   return featureFlags.has(flag);
 }
 
+const DEFAULT_INTERVAL_5_SEC = 5000;
+const DEFAULT_MAX_ATTEMPTS = 500;
+// number of attempts before checking less often
+const BACK_OFF_INTERVAL = 25;
+
 /**
  *
  * @param selectedOrg
@@ -768,8 +773,8 @@ export async function pollMetadataResultsUntilDone(
 ) {
   let { includeDetails, interval, maxAttempts, onChecked } = options || {};
   includeDetails = includeDetails || false;
-  interval = interval || 2000;
-  maxAttempts = maxAttempts || 100;
+  interval = interval || DEFAULT_INTERVAL_5_SEC;
+  maxAttempts = maxAttempts || DEFAULT_MAX_ATTEMPTS;
   onChecked = isFunction(onChecked) ? onChecked : NOOP;
 
   let attempts = 0;
@@ -782,21 +787,32 @@ export async function pollMetadataResultsUntilDone(
     onChecked(deployResults);
     done = deployResults.done;
     attempts++;
+    // back off checking if it is taking a long time
+    if (attempts % BACK_OFF_INTERVAL === 0) {
+      interval += DEFAULT_INTERVAL_5_SEC;
+    }
   }
   if (!done) {
-    throw new Error('Timed out while checking for metadata results');
+    throw new Error('Timed out while checking for metadata results, check Salesforce for results.');
   }
   return deployResults;
 }
 
+/**
+ *
+ * @param selectedOrg
+ * @param id
+ * @param options
+ * @returns
+ */
 export async function pollRetrieveMetadataResultsUntilDone(
   selectedOrg: SalesforceOrgUi,
   id: string,
   options?: { interval?: number; maxAttempts?: number; onChecked?: (retrieveResults: RetrieveResult) => void }
 ) {
   let { interval, maxAttempts, onChecked } = options || {};
-  interval = interval || 2000;
-  maxAttempts = maxAttempts || 100;
+  interval = interval || DEFAULT_INTERVAL_5_SEC;
+  maxAttempts = maxAttempts || DEFAULT_MAX_ATTEMPTS;
   onChecked = isFunction(onChecked) ? onChecked : NOOP;
 
   let attempts = 0;
@@ -809,9 +825,13 @@ export async function pollRetrieveMetadataResultsUntilDone(
     onChecked(retrieveResults);
     done = retrieveResults.done;
     attempts++;
+    // back off checking if it is taking a long time
+    if (attempts % BACK_OFF_INTERVAL === 0) {
+      interval += DEFAULT_INTERVAL_5_SEC;
+    }
   }
   if (!done) {
-    throw new Error('Timed out while checking for metadata results');
+    throw new Error('Timed out while checking for metadata results, check Salesforce for results.');
   }
   return retrieveResults;
 }
@@ -838,8 +858,8 @@ export async function pollAndDeployMetadataResultsWhenReady(
 ) {
   // eslint-disable-next-line prefer-const
   let { interval, maxAttempts, deployOptions, replacementPackageXml, changesetName, onChecked } = options || {};
-  interval = interval || 2000;
-  maxAttempts = maxAttempts || 100;
+  interval = interval || DEFAULT_INTERVAL_5_SEC;
+  maxAttempts = maxAttempts || DEFAULT_MAX_ATTEMPTS;
   onChecked = isFunction(onChecked) ? onChecked : NOOP;
 
   let attempts = 0;
@@ -857,9 +877,12 @@ export async function pollAndDeployMetadataResultsWhenReady(
     onChecked(retrieveResults);
     done = retrieveResults.type === 'deploy';
     attempts++;
+    if (attempts % BACK_OFF_INTERVAL === 0) {
+      interval += DEFAULT_INTERVAL_5_SEC;
+    }
   }
   if (!done) {
-    throw new Error('Timed out while checking for metadata results');
+    throw new Error('Timed out while checking for metadata results, check Salesforce for results.');
   }
   return retrieveResults;
 }
