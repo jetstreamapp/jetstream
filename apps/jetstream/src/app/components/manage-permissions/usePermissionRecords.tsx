@@ -46,7 +46,7 @@ export function usePermissionRecords(selectedOrg: SalesforceOrgUi, sobjects: str
       }
       // query all data and transform into state maps
       const output = await Promise.all([
-        queryAndCombineResults<EntityParticlePermissionsRecord>(selectedOrg, getQueryForAllPermissionableFields(sobjects), true),
+        queryAndCombineResults<EntityParticlePermissionsRecord>(selectedOrg, getQueryForAllPermissionableFields(sobjects), true, true),
         queryAndCombineResults<ObjectPermissionRecord>(selectedOrg, getQueryObjectPermissions(sobjects, permSetIds, profilePermSetIds)),
         queryAndCombineResults<FieldPermissionRecord>(selectedOrg, getQueryForFieldPermissions(sobjects, permSetIds, profilePermSetIds)),
       ]).then(([fieldDefinition, objectPermissions, fieldPermissions]) => {
@@ -89,14 +89,19 @@ export function usePermissionRecords(selectedOrg: SalesforceOrgUi, sobjects: str
 }
 
 // This could be eligible to pull into generic method for expanded use
-async function queryAndCombineResults<T>(selectedOrg: SalesforceOrgUi, queries: string[], useOffset = false): Promise<T[]> {
+async function queryAndCombineResults<T>(
+  selectedOrg: SalesforceOrgUi,
+  queries: string[],
+  useOffset = false,
+  isTooling = false
+): Promise<T[]> {
   let output: T[] = [];
   for (const currQuery of queries) {
     if (useOffset) {
-      const { queryResults } = await queryAllUsingOffset<T>(selectedOrg, currQuery);
+      const { queryResults } = await queryAllUsingOffset<T>(selectedOrg, currQuery, isTooling);
       output = output.concat(queryResults.records);
     } else {
-      const { queryResults } = await queryAll<T>(selectedOrg, currQuery);
+      const { queryResults } = await queryAll<T>(selectedOrg, currQuery, isTooling);
       output = output.concat(queryResults.records);
     }
   }
