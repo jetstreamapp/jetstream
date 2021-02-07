@@ -65,6 +65,7 @@ export const LoadRecords: FunctionComponent<LoadRecordsProps> = () => {
 
   const [loading, setLoading] = useState<boolean>(false);
   const [loadingFields, setLoadingFields] = useState<boolean>(false);
+  const [didPerformDataLoad, setDidPerformDataLoad] = useState<boolean>(false);
 
   const [currentStep, setCurrentStep] = useState<Step>(steps[0]);
   const [currentStepIdx, setCurrentStepIdx] = useState<number>(0);
@@ -85,6 +86,28 @@ export const LoadRecords: FunctionComponent<LoadRecordsProps> = () => {
     isMounted.current = true;
     return () => (isMounted.current = false);
   }, []);
+
+  // reset start when user leaves page
+  useEffect(() => {
+    return () => {
+      if (didPerformDataLoad) {
+        resetSelectedSObjectState();
+        resetLoadTypeState();
+        resetInputFileDataState();
+        resetInputFileHeaderState();
+        resetInputFilenameState();
+        resetFieldMappingState();
+      }
+    };
+  }, [
+    didPerformDataLoad,
+    resetFieldMappingState,
+    resetInputFileDataState,
+    resetInputFileHeaderState,
+    resetInputFilenameState,
+    resetLoadTypeState,
+    resetSelectedSObjectState,
+  ]);
 
   useEffect(() => {
     if (priorSelectedOrg && selectedOrg && selectedOrg.uniqueId !== priorSelectedOrg) {
@@ -226,6 +249,7 @@ export const LoadRecords: FunctionComponent<LoadRecordsProps> = () => {
 
   function handleIsLoading(isLoading: boolean) {
     setLoading(isLoading);
+    setDidPerformDataLoad(true);
   }
 
   function handleStartOver() {
