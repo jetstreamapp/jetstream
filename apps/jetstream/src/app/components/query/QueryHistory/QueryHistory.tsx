@@ -3,7 +3,7 @@
 import { jsx } from '@emotion/react';
 import { logger } from '@jetstream/shared/client-logger';
 import { INDEXED_DB } from '@jetstream/shared/constants';
-import { formatNumber } from '@jetstream/shared/ui-utils';
+import { formatNumber, useNonInitialEffect } from '@jetstream/shared/ui-utils';
 import { multiWordObjectFilter } from '@jetstream/shared/utils';
 import { MapOf, QueryHistoryItem, QueryHistorySelection, UpDown } from '@jetstream/types';
 import { EmptyState, Grid, GridCol, Icon, List, Modal, SearchInput, Spinner } from '@jetstream/ui';
@@ -62,7 +62,15 @@ export const QueryHistory: FunctionComponent<QueryHistoryProps> = ({ onRestore }
     if (!isOpen && showingUpTo !== SHOWING_STEP) {
       setShowingUpTo(SHOWING_STEP);
     }
-  }, [isOpen, showingUpTo]);
+  }, [isOpen, resetSelectedObject, showingUpTo]);
+
+  useNonInitialEffect(() => {
+    if (!isOpen) {
+      resetSelectedObject();
+      setFilterValue('');
+      setSqlFilterValue('');
+    }
+  }, [isOpen, resetSelectedObject, showingUpTo]);
 
   useEffect(() => {
     if (queryHistory) {
