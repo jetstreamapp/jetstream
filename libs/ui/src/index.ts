@@ -30,6 +30,7 @@ export * from './lib/form/picklist/Picklist';
 export * from './lib/form/radio/Radio';
 export * from './lib/form/radio/RadioButton';
 export * from './lib/form/radio/RadioGroup';
+export * from './lib/form/readonly-form-element/ReadOnlyFormElement';
 export * from './lib/form/search-input/SearchInput';
 export * from './lib/form/select/Select';
 export * from './lib/form/textarea/Textarea';

@@ -80,6 +80,7 @@ export interface UtilityIconObj {
   notification: IconEl;
   page: IconEl;
   play: IconEl;
+  preview: IconEl;
   prompt_edit: IconEl;
   record_lookup: IconEl;
   refresh: IconEl;

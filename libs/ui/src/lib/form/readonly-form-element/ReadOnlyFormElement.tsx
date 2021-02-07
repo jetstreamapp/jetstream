@@ -2,31 +2,35 @@ import classNames from 'classnames';
 import React, { Fragment, FunctionComponent, ReactNode } from 'react';
 import HelpText from '../../widgets/HelpText';
 
-export interface TextareaProps {
+export interface ReadOnlyFormElementProps {
   id: string;
   className?: string;
   label?: string | ReactNode;
   labelHelp?: string;
   helpText?: React.ReactNode | string;
   hasError?: boolean;
-  readOnly?: boolean;
   isRequired?: boolean;
   errorMessageId?: string;
   errorMessage?: React.ReactNode | string;
+  value: string;
+  bottomBorder?: boolean;
 }
 
-export const Textarea: FunctionComponent<TextareaProps> = ({
+/**
+ * Should not be used for normal <input> elements, as they have a different read-only style
+ */
+export const ReadOnlyFormElement: FunctionComponent<ReadOnlyFormElementProps> = ({
   id,
   className,
   label,
   labelHelp,
   helpText,
   hasError,
-  readOnly,
   isRequired,
   errorMessageId,
   errorMessage,
-  children,
+  value,
+  bottomBorder,
 }) => {
   return (
     <div className={classNames('slds-form-element', className, { 'slds-has-error': hasError })}>
@@ -43,7 +47,11 @@ export const Textarea: FunctionComponent<TextareaProps> = ({
           {labelHelp && <HelpText id={`${id}-label-help-text`} content={labelHelp} />}
         </Fragment>
       )}
-      <div className={classNames('slds-form-element__control', { 'slds-border_bottom': readOnly })}>{children}</div>
+      <div id={id} className={classNames('slds-form-element__control', { 'slds-border_bottom': bottomBorder })}>
+        <div className="slds-form-element__static">
+          <p>{value}</p>
+        </div>
+      </div>
       {helpText && <div className="slds-form-element__help">{helpText}</div>}
       {hasError && errorMessage && (
         <div className="slds-form-element__help" id={errorMessageId}>
@@ -54,4 +62,4 @@ export const Textarea: FunctionComponent<TextareaProps> = ({
   );
 };
 
-export default Textarea;
+export default ReadOnlyFormElement;

@@ -22,7 +22,7 @@ export interface FileDownloadModalProps {
   header?: string[] | MapOf<any[]>; // can be omitted if every field should be included in download, otherwise pass in a list of fields to include in file
   fileNameParts?: string[];
   alternateDownloadButton?: React.ReactNode; // If provided, then caller must manage what happens on click - used for URL links
-  onModalClose: () => void;
+  onModalClose: (cancelled?: boolean) => void;
   // TODO: we may want to provide a hook "onPrepareDownload" to override default file generation process
   // this may be useful if alternateDownloadButton is provided, otherwise this usually is not required
   onChange?: (data: { fileName: string; fileFormat: FileExtAllTypes }) => void;
@@ -143,15 +143,20 @@ export const FileDownloadModal: FunctionComponent<FileDownloadModalProps> = ({
         footer={
           <Fragment>
             {!alternateDownloadButton && (
-              <button className="slds-button slds-button_brand" onClick={downloadRecords}>
-                Download
-              </button>
+              <Fragment>
+                <button className="slds-button slds-button_neutral" onClick={() => onModalClose(true)}>
+                  Cancel
+                </button>
+                <button className="slds-button slds-button_brand" onClick={downloadRecords}>
+                  Download
+                </button>
+              </Fragment>
             )}
             {alternateDownloadButton}
           </Fragment>
         }
         skipAutoFocus
-        onClose={() => onModalClose()}
+        onClose={() => onModalClose(true)}
       >
         <div>
           <RadioGroup label="File Format" required className="slds-m-bottom_small">

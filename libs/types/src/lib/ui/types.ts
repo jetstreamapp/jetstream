@@ -28,6 +28,11 @@ export type FileExtCsvXLSX = FileExtCsv | FileExtXLSX;
 export type FileExtCsvXLSXJson = FileExtCsvXLSX | FileExtJson;
 export type FileExtAllTypes = FileExtCsv | FileExtXLSX | FileExtJson | FileExtXml | FileExtZip;
 
+export type Edit = 'edit';
+export type Clone = 'clone';
+export type View = 'view';
+export type CloneEditView = Edit | Clone | View;
+
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export interface WorkerMessage<T, K = any, E = any> {
   name: T;

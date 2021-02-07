@@ -2,7 +2,7 @@
 import { jsx } from '@emotion/react';
 import { useNonInitialEffect } from '@jetstream/shared/ui-utils';
 import { splitArrayToMaxSize } from '@jetstream/shared/utils';
-import { MapOf, PicklistFieldValues, Record } from '@jetstream/types';
+import { CloneEditView, MapOf, PicklistFieldValues, Record } from '@jetstream/types';
 import { Field } from 'jsforce';
 import { Fragment, FunctionComponent, useEffect, useState } from 'react';
 import { EditableFields } from './ui-record-form-types';
@@ -11,7 +11,7 @@ import UiRecordFormField from './UiRecordFormField';
 
 /* eslint-disable-next-line */
 export interface UiRecordFormProps {
-  action: 'edit' | 'clone';
+  action: CloneEditView;
   sobjectFields: Field[];
   picklistValues: PicklistFieldValues;
   record: Record;

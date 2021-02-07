@@ -2,13 +2,13 @@
 import { css, jsx } from '@emotion/react';
 import { polyfillFieldDefinition } from '@jetstream/shared/ui-utils';
 import { ListItem, PicklistFieldValueItem } from '@jetstream/types';
-import { Checkbox, DatePicker, Grid, Icon, Input, Picklist, Textarea } from '@jetstream/ui';
+import { Checkbox, DatePicker, Grid, Icon, Input, Picklist, ReadOnlyFormElement, Textarea } from '@jetstream/ui';
 import classNames from 'classnames';
 import formatISO from 'date-fns/formatISO';
 import parseISO from 'date-fns/parseISO';
 import startOfDay from 'date-fns/startOfDay';
 import uniqueId from 'lodash/uniqueId';
-import { FunctionComponent, ReactNode, SyntheticEvent, useEffect, useState } from 'react';
+import { Fragment, FunctionComponent, ReactNode, SyntheticEvent, useEffect, useState } from 'react';
 import { EditableFields } from './ui-record-form-types';
 import { isCheckbox, isDate, isInput, isPicklist, isTextarea } from './ui-record-form-utils';
 
@@ -57,12 +57,10 @@ export const UiRecordFormField: FunctionComponent<UiRecordFormFieldProps> = ({
   const [helpText, setHelpText] = useState<ReactNode>();
 
   useEffect(() => {
-    if (!readOnly) {
-      if (showFieldTypes && !helpText) {
-        setHelpText(<span className="slds-text-color_weak">{polyfillFieldDefinition(metadata)}</span>);
-      } else if (!showFieldTypes && helpText) {
-        setHelpText(null);
-      }
+    if (showFieldTypes && !helpText) {
+      setHelpText(<span className="slds-text-color_weak">{polyfillFieldDefinition(metadata)}</span>);
+    } else if (!showFieldTypes && helpText) {
+      setHelpText(null);
     }
   }, [readOnly, showFieldTypes, metadata, helpText]);
 
@@ -152,120 +150,136 @@ export const UiRecordFormField: FunctionComponent<UiRecordFormFieldProps> = ({
         </div>
       )}
       <div>
-        {isInput(field) && (
-          <Input
+        {readOnly && (
+          <ReadOnlyFormElement
             id={id}
             label={label}
-            className="slds-form-element_stacked slds-is-editing"
+            className="slds-m-bottom_x-small"
             errorMessage={saveError}
             labelHelp={labelHelpText}
             helpText={helpText}
             isRequired={required}
             hasError={!!saveError}
             errorMessageId={`${id}-error`}
-            clearButton={!readOnly && !!value}
-            onClear={handleClearInput}
-          >
-            <input
-              id={id}
-              className="slds-input"
-              readOnly={readOnly}
-              required={required}
-              disabled={disabled}
-              value={(value as string) || ''}
-              onChange={handleInputChange}
-              onBlur={handleInputBlur}
-              aria-describedby={`${id}-error`}
-              maxLength={field.maxLength}
-              inputMode={field.inputMode}
-              step={field.step}
-            />
-          </Input>
-        )}
-        {isCheckbox(field) && (
-          <Checkbox
-            id={id}
-            checked={!!value}
-            label={label}
-            className="slds-form-element_stacked slds-is-editing"
-            isStandAlone
-            errorMessage={saveError}
-            labelHelp={labelHelpText}
-            helpText={helpText}
-            isRequired={required}
-            hasError={!!saveError}
-            errorMessageId={`${id}-error`}
-            readOnly={readOnly}
-            disabled={disabled}
-            onChange={handleCheckboxChange}
-          />
-        )}
-        {isDate(field) && (
-          <DatePicker
-            key={key}
-            id={id}
-            label={label}
-            className="slds-form-element_stacked slds-is-editing"
-            containerDisplay="contents"
-            errorMessage={saveError}
-            labelHelp={labelHelpText}
-            helpText={helpText}
-            isRequired={!readOnly && required}
-            hasError={!!saveError}
-            errorMessageId={`${id}-error`}
-            initialSelectedDate={parseISO(value as string)}
-            readOnly={readOnly}
-            onChange={handleDateChange}
+            value={(value as string) || ''}
+            bottomBorder
           />
         )}
 
-        {isTextarea(field) && (
-          <Textarea
-            id={id}
-            label={label}
-            className="slds-form-element_stacked slds-is-editing"
-            errorMessage={saveError}
-            labelHelp={labelHelpText}
-            helpText={helpText}
-            isRequired={required}
-            hasError={!!saveError}
-            errorMessageId={`${id}-error`}
-          >
-            <textarea
-              id={id}
-              className="slds-textarea"
-              readOnly={readOnly}
-              required={required}
-              disabled={disabled}
-              value={(value as string) || ''}
-              onChange={handleInputChange}
-              onBlur={handleInputBlur}
-              aria-describedby={`${id}-error`}
-              maxLength={metadata.length}
-            />
-          </Textarea>
-        )}
+        {!readOnly && (
+          <Fragment>
+            {isInput(field) && (
+              <Input
+                id={id}
+                label={label}
+                className="slds-form-element_stacked slds-is-editing"
+                errorMessage={saveError}
+                labelHelp={labelHelpText}
+                helpText={helpText}
+                isRequired={required}
+                hasError={!!saveError}
+                errorMessageId={`${id}-error`}
+                clearButton={!readOnly && !!value}
+                onClear={handleClearInput}
+              >
+                <input
+                  id={id}
+                  className="slds-input"
+                  required={required}
+                  disabled={disabled}
+                  value={(value as string) || ''}
+                  onChange={handleInputChange}
+                  onBlur={handleInputBlur}
+                  aria-describedby={`${id}-error`}
+                  maxLength={field.maxLength}
+                  inputMode={field.inputMode}
+                  step={field.step}
+                />
+              </Input>
+            )}
+            {isCheckbox(field) && (
+              <Checkbox
+                id={id}
+                checked={!!value}
+                label={label}
+                className="slds-form-element_stacked slds-is-editing"
+                isStandAlone
+                errorMessage={saveError}
+                labelHelp={labelHelpText}
+                helpText={helpText}
+                isRequired={required}
+                hasError={!!saveError}
+                errorMessageId={`${id}-error`}
+                disabled={disabled}
+                onChange={handleCheckboxChange}
+              />
+            )}
+            {isDate(field) && (
+              <DatePicker
+                key={key}
+                id={id}
+                label={label}
+                className="slds-form-element_stacked slds-is-editing"
+                containerDisplay="contents"
+                errorMessage={saveError}
+                labelHelp={labelHelpText}
+                helpText={helpText}
+                isRequired={!readOnly && required}
+                hasError={!!saveError}
+                errorMessageId={`${id}-error`}
+                initialSelectedDate={parseISO(value as string)}
+                onChange={handleDateChange}
+              />
+            )}
 
-        {isPicklist(field) && (
-          <Picklist
-            key={key}
-            id={id}
-            label={label}
-            className="slds-form-element_stacked slds-is-editing"
-            containerDisplay="contents"
-            omitMultiSelectPills
-            errorMessage={saveError}
-            labelHelp={labelHelpText}
-            helpText={helpText}
-            isRequired={required}
-            hasError={!!saveError}
-            errorMessageId={`${id}-error`}
-            multiSelection={field.metadata.type === 'multipicklist'}
-            allowDeselection
-            items={field.values}
-            selectedItemIds={initialValue as string[]}
-            onChange={handlePicklistValueChange}
-          ></Picklist>
+            {isTextarea(field) && (
+              <Textarea
+                id={id}
+                label={label}
+                className="slds-form-element_stacked slds-is-editing"
+                errorMessage={saveError}
+                labelHelp={labelHelpText}
+                helpText={helpText}
+                isRequired={required}
+                hasError={!!saveError}
+                errorMessageId={`${id}-error`}
+              >
+                <textarea
+                  id={id}
+                  className="slds-textarea"
+                  required={required}
+                  disabled={disabled}
+                  value={(value as string) || ''}
+                  onChange={handleInputChange}
+                  onBlur={handleInputBlur}
+                  aria-describedby={`${id}-error`}
+                  maxLength={metadata.length}
+                />
+              </Textarea>
+            )}
+
+            {isPicklist(field) && (
+              <Picklist
+                key={key}
+                id={id}
+                label={label}
+                className="slds-form-element_stacked slds-is-editing"
+                containerDisplay="contents"
+                omitMultiSelectPills
+                errorMessage={saveError}
+                labelHelp={labelHelpText}
+                helpText={helpText}
+                isRequired={required}
+                hasError={!!saveError}
+                errorMessageId={`${id}-error`}
+                multiSelection={field.metadata.type === 'multipicklist'}
+                allowDeselection
+                items={field.values}
+                selectedItemIds={initialValue as string[]}
+                onChange={handlePicklistValueChange}
+              ></Picklist>
+            )}
+          </Fragment>
         )}
       </div>
     </Grid>
