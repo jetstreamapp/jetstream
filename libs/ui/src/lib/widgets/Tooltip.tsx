@@ -1,17 +1,17 @@
 /** @jsx jsx */
-import { jsx, css } from '@emotion/react';
+import { jsx } from '@emotion/react';
+import { PositionAll } from '@jetstream/types';
 import Tippy from '@tippyjs/react';
 import { FunctionComponent, MouseEvent, useState } from 'react';
-import { PositionAll } from '@jetstream/types';
-import { convertTippyPlacementToSlds } from '@jetstream/shared/ui-utils';
 
 export interface TooltipProps {
   id?: string;
+  className?: string;
   content: string | JSX.Element;
   onClick?: (event: MouseEvent<HTMLElement>) => void;
 }
 
-export const Tooltip: FunctionComponent<TooltipProps> = ({ id = 'tooltip', content, onClick, children }) => {
+export const Tooltip: FunctionComponent<TooltipProps> = ({ id = 'tooltip', className, content, onClick, children }) => {
   const [nubbinPosition, setNubbinPosition] = useState<PositionAll>();
   const [visible, setVisible] = useState(false);
   return (
@@ -40,7 +40,7 @@ export const Tooltip: FunctionComponent<TooltipProps> = ({ id = 'tooltip', conte
         );
       }}
     >
-      <span tabIndex={0} onClick={onClick}>
+      <span className={className} tabIndex={0} onClick={onClick}>
         {children}
       </span>
     </Tippy>
