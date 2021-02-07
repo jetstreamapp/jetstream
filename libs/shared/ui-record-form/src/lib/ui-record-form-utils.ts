@@ -1,5 +1,5 @@
 import { sortQueryFields } from '@jetstream/shared/ui-utils';
-import { PicklistFieldValues, Record } from '@jetstream/types';
+import { CloneEditView, PicklistFieldValues, Record } from '@jetstream/types';
 import { Field, FieldType } from 'jsforce';
 import isString from 'lodash/isString';
 import {
@@ -42,18 +42,22 @@ export function isPicklist(value: any): value is EditableFieldPicklist {
 export function convertMetadataToEditableFields(
   fields: Field[],
   picklistValues: PicklistFieldValues,
-  action: 'edit' | 'clone',
+  action: CloneEditView,
   record: Record
 ): EditableFields[] {
   return sortQueryFields(fields.filter((field) => !IGNORED_FIELD_TYPES.has(field.type))).map(
     (field): EditableFields => {
+      let readOnly = action === 'view';
+      if (!readOnly) {
+        readOnly = action === 'edit' ? !field.updateable : !field.createable;
+      }
       const output: Partial<EditableFields> = {
         label: `${field.label} (${field.name})`,
         name: field.name,
         labelHelpText: field.inlineHelpText,
         inputHelpText: `${field.name}`,
         required: !field.nillable && field.type !== 'boolean',
-        readOnly: action === 'edit' ? !field.updateable : !field.createable,
+        readOnly,
         metadata: field,
       };
       if (CHECKBOX_FIELD_TYPES.has(field.type)) {

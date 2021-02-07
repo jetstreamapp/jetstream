@@ -2,6 +2,8 @@
 import { css, jsx } from '@emotion/react';
 import { getFieldKey } from '@jetstream/shared/ui-utils';
 import { FieldWrapper, MapOf, QueryFields } from '@jetstream/types';
+import Icon from 'libs/ui/src/lib/widgets/Icon';
+import Tooltip from 'libs/ui/src/lib/widgets/Tooltip';
 import { Fragment, FunctionComponent, useEffect, useState } from 'react';
 import Grid from '../grid/Grid';
 import SobjectExpandChildrenBtn from './SobjectExpandChildrenBtn';
@@ -64,6 +66,16 @@ export const SobjectFieldListItem: FunctionComponent<SobjectFieldListItemProps> 
       <Grid>
         <div className="slds-truncate" title={field.label} onClick={() => onSelectField(parentKey, field)}>
           {field.label}
+          {field.metadata.inlineHelpText && (
+            <Tooltip
+              id={`${parentKey}-${relationshipKey}-${field.name}-helptext`}
+              content={field.metadata.inlineHelpText}
+              className="slds-m-left_xx-small"
+            >
+              <Icon type="utility" icon="info" className="slds-icon slds-icon-text-default slds-icon_xx-small cursor-pointer" />
+              <span className="slds-assistive-text">{field.metadata.inlineHelpText}</span>
+            </Tooltip>
+          )}
         </div>
         {isTooling && isSelected && <SobjectFieldListMetadataWarning apiName={field.name} />}
       </Grid>

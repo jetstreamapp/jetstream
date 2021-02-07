@@ -24,7 +24,7 @@ import Split from 'react-split';
 import { CSSTransition } from 'react-transition-group';
 import { useRecoilState, useRecoilValue } from 'recoil';
 import * as fromDeployMetadataState from './deploy-metadata.state';
-import { AllUser, CommonUser } from './deploy-metadata.types';
+import { AllUser, CommonUser, YesNo } from './deploy-metadata.types';
 import './DeployMetadataSelection.scss';
 import DeployMetadataUserList from './DeployMetadataUserList';
 import DownloadMetadataPackage from './download-metadata-package/DownloadMetadataPackage';
@@ -63,6 +63,19 @@ const DATE_RANGE_RADIO_BUTTONS: RadioButtonItem<AllUser>[] = [
   },
 ];
 
+const INCL_MANAGED_PACKAGE_RADIO_BUTTONS: RadioButtonItem<YesNo>[] = [
+  {
+    name: 'No',
+    label: 'Unmanaged Only',
+    value: 'No',
+  },
+  {
+    name: 'Yes',
+    label: 'Include Managed',
+    value: 'Yes',
+  },
+];
+
 const USER_SELECTION_RADIO_BUTTONS: RadioButtonItem<AllUser>[] = [
   {
     name: 'all',
@@ -88,6 +101,9 @@ export const DeployMetadataSelection: FunctionComponent<DeployMetadataSelectionP
   const [metadataSelectionType, setMetadataSelectionType] = useRecoilState<CommonUser>(fromDeployMetadataState.metadataSelectionTypeState);
   const [userSelection, setUserSelection] = useRecoilState<AllUser>(fromDeployMetadataState.userSelectionState);
   const [dateRangeSelection, setDateRangeSelection] = useRecoilState<AllUser>(fromDeployMetadataState.dateRangeSelectionState);
+  const [includeManagedPackageItems, setIncludeManagedPackageItems] = useRecoilState<YesNo>(
+    fromDeployMetadataState.includeManagedPackageItems
+  );
   const [dateRange, setDateRange] = useRecoilState<Date>(fromDeployMetadataState.dateRangeState);
 
   const [metadataItems, setMetadataItems] = useRecoilState(fromDeployMetadataState.metadataItemsState);
@@ -220,7 +236,6 @@ export const DeployMetadataSelection: FunctionComponent<DeployMetadataSelectionP
                 label={'Show metadata modified by which users'}
                 items={USER_SELECTION_RADIO_BUTTONS}
                 checkedValue={userSelection}
-                disabled={false}
                 onChange={(value: AllUser) => setUserSelection(value)}
               />
             </div>
@@ -243,15 +258,18 @@ export const DeployMetadataSelection: FunctionComponent<DeployMetadataSelectionP
                 label={'Show metadata created or changed since'}
                 items={DATE_RANGE_RADIO_BUTTONS}
                 checkedValue={dateRangeSelection}
-                disabled={false}
                 onChange={(value: AllUser) => setDateRangeSelection(value)}
               />
             </div>
             <CSSTransition in={dateRangeSelection === 'user'} timeout={300} classNames="animation-item">
-              <Fragment key="modified-since">
+              <div
+                key="modified-since"
+                css={css`
+                  min-height: 80px;
+                `}
+              >
                 {dateRangeSelection === 'user' && (
                   <Fragment>
-                    <hr className="slds-m-vertical_small" />
                     <DatePicker
                       id="modified-since"
                       label="Modified Since"
@@ -268,8 +286,18 @@ export const DeployMetadataSelection: FunctionComponent<DeployMetadataSelectionP
                     />
                   </Fragment>
                 )}
-              </Fragment>
+              </div>
             </CSSTransition>
+            <hr className="slds-m-vertical_small" />
+            <div className="slds-align_absolute-center">
+              <RadioButtonSelection
+                label={'Include Managed Package Metadata'}
+                items={INCL_MANAGED_PACKAGE_RADIO_BUTTONS}
+                checkedValue={includeManagedPackageItems}
+                helpText={<em className="slds-text-color_weak">Managed components may not allow deployment or modification</em>}
+                onChange={(value: YesNo) => setIncludeManagedPackageItems(value)}
+              />
+            </div>
           </div>
         </Split>
       </AutoFullHeightContainer>
@@ -283,13 +311,21 @@ interface RadioButtonSelectionProps {
   label: string;
   items: RadioButtonItem[];
   checkedValue: string;
-  disabled: boolean;
+  disabled?: boolean;
+  helpText?: string | JSX.Element;
   onChange: (value: string) => void;
 }
 
-const RadioButtonSelection: FunctionComponent<RadioButtonSelectionProps> = ({ label, items, checkedValue, disabled, onChange }) => {
+const RadioButtonSelection: FunctionComponent<RadioButtonSelectionProps> = ({
+  label,
+  items,
+  checkedValue,
+  disabled,
+  helpText,
+  onChange,
+}) => {
   return (
-    <RadioGroup label={label} isButtonGroup formControlClassName="slds-align_absolute-center">
+    <RadioGroup label={label} isButtonGroup formControlClassName="slds-align_absolute-center" helpText={helpText}>
       {items.map((item) => (
         <RadioButton
           key={item.value}

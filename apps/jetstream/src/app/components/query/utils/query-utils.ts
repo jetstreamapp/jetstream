@@ -147,7 +147,7 @@ export function validateEditForm(sobjectFields: Field[], record: Record): EditFr
       if (!field.nillable && value === null) {
         output.hasErrors = true;
         fieldErrors[fieldName] = 'Complete this field';
-      } else if (NUMBER_TYPES.has(field.type) && !isNil(value) && !Number.isFinite(value)) {
+      } else if (NUMBER_TYPES.has(field.type) && !isNil(value) && value !== '' && !Number.isFinite(value)) {
         output.hasErrors = true;
         fieldErrors[fieldName] = 'Enter a valid value';
       }

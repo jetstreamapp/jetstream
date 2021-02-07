@@ -63,6 +63,7 @@ import UtilityIcon_Notification from './icons/utility/Notification';
 import UtilityIcon_Page from './icons/utility/Page';
 import UtilityIcon_Play from './icons/utility/Play';
 import UtilityIcon_PromptEdit from './icons/utility/PromptEdit';
+import UtilityIcon_Preview from './icons/utility/Preview';
 import UtilityIcon_RecordLookup from './icons/utility/RecordLookup';
 import UtilityIcon_Refresh from './icons/utility/Refresh';
 import UtilityIcon_Right from './icons/utility/Right';
@@ -145,6 +146,7 @@ const utilityIcons: UtilityIconObj = {
   page: UtilityIcon_Page,
   play: UtilityIcon_Play,
   prompt_edit: UtilityIcon_PromptEdit,
+  preview: UtilityIcon_Preview,
   record_lookup: UtilityIcon_RecordLookup,
   refresh: UtilityIcon_Refresh,
   right: UtilityIcon_Right,

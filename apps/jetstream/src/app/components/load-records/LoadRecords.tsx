@@ -65,6 +65,7 @@ export const LoadRecords: FunctionComponent<LoadRecordsProps> = () => {
 
   const [loading, setLoading] = useState<boolean>(false);
   const [loadingFields, setLoadingFields] = useState<boolean>(false);
+  const [didPerformDataLoad, setDidPerformDataLoad] = useState<boolean>(false);
 
   const [currentStep, setCurrentStep] = useState<Step>(steps[0]);
   const [currentStepIdx, setCurrentStepIdx] = useState<number>(0);
@@ -85,6 +86,28 @@ export const LoadRecords: FunctionComponent<LoadRecordsProps> = () => {
     isMounted.current = true;
     return () => (isMounted.current = false);
   }, []);
+
+  // reset start when user leaves page
+  useEffect(() => {
+    return () => {
+      if (didPerformDataLoad) {
+        resetSelectedSObjectState();
+        resetLoadTypeState();
+        resetInputFileDataState();
+        resetInputFileHeaderState();
+        resetInputFilenameState();
+        resetFieldMappingState();
+      }
+    };
+  }, [
+    didPerformDataLoad,
+    resetFieldMappingState,
+    resetInputFileDataState,
+    resetInputFileHeaderState,
+    resetInputFilenameState,
+    resetLoadTypeState,
+    resetSelectedSObjectState,
+  ]);
 
   useEffect(() => {
     if (priorSelectedOrg && selectedOrg && selectedOrg.uniqueId !== priorSelectedOrg) {
@@ -168,16 +191,17 @@ export const LoadRecords: FunctionComponent<LoadRecordsProps> = () => {
       case 'loadRecords':
         // TODO: Only show this if automation was disabled
         // currStepButtonText = 'Continue to Rollback Automation';
-        currStepButtonText = 'Start Over';
-        isNextStepDisabled = false;
+        currStepButtonText = 'No More Steps';
+        isNextStepDisabled = true;
         hasNextStep = false;
         break;
-      case 'automationRollback':
-        // TODO: Only show this if automation was disabled
-        currStepButtonText = 'Start Over';
-        isNextStepDisabled = false;
-        hasNextStep = false;
-        break;
+      // TODO: if we decide to add this back in, enable
+      // case 'automationRollback':
+      //   // TODO: Only show this if automation was disabled
+      //   currStepButtonText = 'No More Steps';
+      //   isNextStepDisabled = true;
+      //   hasNextStep = false;
+      //   break;
       default:
         currStepButtonText = currentStepText;
         isNextStepDisabled = nextStepDisabled;
@@ -220,15 +244,12 @@ export const LoadRecords: FunctionComponent<LoadRecordsProps> = () => {
   }
 
   function changeStep(changeBy: number) {
-    if (changeBy === 1 && enabledSteps[currentStepIdx] === finalStep) {
-      handleStartOver();
-    } else {
-      setCurrentStep(enabledSteps[currentStepIdx + changeBy]);
-    }
+    setCurrentStep(enabledSteps[currentStepIdx + changeBy]);
   }
 
   function handleIsLoading(isLoading: boolean) {
     setLoading(isLoading);
+    setDidPerformDataLoad(true);
   }
 
   function handleStartOver() {
@@ -249,6 +270,14 @@ export const LoadRecords: FunctionComponent<LoadRecordsProps> = () => {
           <PageHeaderTitle icon={{ type: 'standard', icon: 'data_streams' }} label="Load Records" />
           <PageHeaderActions colType="actions" buttonType="separate">
             {/* TODO: move to component since there is a bit of logic. */}
+            <button
+              className="slds-button slds-button_neutral"
+              disabled={currentStep.idx === 0 || loading}
+              onClick={() => handleStartOver()}
+            >
+              <Icon type="utility" icon="refresh" className="slds-button__icon slds-button__icon_left" />
+              Start Over
+            </button>
             <button className="slds-button slds-button_neutral" disabled={currentStep.idx === 0 || loading} onClick={() => changeStep(-1)}>
               <Icon type="utility" icon="back" className="slds-button__icon slds-button__icon_left" />
               Go Back To Previous Step
@@ -258,9 +287,8 @@ export const LoadRecords: FunctionComponent<LoadRecordsProps> = () => {
               disabled={nextStepDisabled || loading}
               onClick={() => changeStep(1)}
             >
-              {currentStep === finalStep && <Icon type="utility" icon="refresh" className="slds-button__icon slds-button__icon_left" />}
               {currentStepText}
-              {hasNextStep && <Icon type="utility" icon="forward" className="slds-button__icon slds-button__icon_right" />}
+              <Icon type="utility" icon="forward" className="slds-button__icon slds-button__icon_right" />
               {loadingFields && <Spinner size="small" />}
             </button>
           </PageHeaderActions>

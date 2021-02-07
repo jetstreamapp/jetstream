@@ -46,6 +46,7 @@ export interface SalesforceRecordDataTableProps {
   onLoadMoreRecords?: (queryResults: QueryResults<any>) => void;
   onEdit: (record: any) => void;
   onClone: (record: any) => void;
+  onView: (record: any) => void;
 }
 
 export const SalesforceRecordDataTable: FunctionComponent<SalesforceRecordDataTableProps> = memo<SalesforceRecordDataTableProps>(
@@ -61,6 +62,7 @@ export const SalesforceRecordDataTable: FunctionComponent<SalesforceRecordDataTa
     onLoadMoreRecords,
     onEdit,
     onClone,
+    onView,
   }) => {
     const isMounted = useRef(null);
     const [columns, setColumns] = useState<ColDef[]>();
@@ -192,6 +194,7 @@ export const SalesforceRecordDataTable: FunctionComponent<SalesforceRecordDataTa
                   actions: {
                     edit: onEdit,
                     clone: onClone,
+                    view: onView,
                   },
                 },
                 onSelectionChanged: handleSelectionChanged,

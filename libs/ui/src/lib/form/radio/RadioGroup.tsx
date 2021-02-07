@@ -1,6 +1,7 @@
-import React, { FunctionComponent } from 'react';
+import React, { FunctionComponent, useEffect, useState } from 'react';
 import classNames from 'classnames';
 import HelpText from '../../widgets/HelpText';
+import { useFormIds } from '../../hooks/useFormIds';
 
 export interface RadioGroupProps {
   idPrefix?: string;
@@ -8,6 +9,7 @@ export interface RadioGroupProps {
   formControlClassName?: string;
   label: string;
   labelHelp?: string;
+  helpText?: string | JSX.Element;
   required?: boolean;
   hasError?: boolean;
   isButtonGroup?: boolean;
@@ -20,14 +22,17 @@ export const RadioGroup: FunctionComponent<RadioGroupProps> = ({
   formControlClassName,
   label,
   labelHelp,
+  helpText,
   required,
   hasError,
   errorMessage,
   isButtonGroup,
   children,
 }) => {
+  const { formId, ariaDescribedbyText, labelHelpId, helpTextId, errorMessageId } = useFormIds(idPrefix);
+
   return (
-    <fieldset className={classNames('slds-form-element', { 'slds-has-error': hasError }, className)}>
+    <fieldset className={classNames('slds-form-element', { 'slds-has-error': hasError }, className)} aria-describedby={ariaDescribedbyText}>
       <legend className="slds-form-element__legend slds-form-element__label">
         {required && (
           <abbr className="slds-required" title="required">
@@ -36,13 +41,18 @@ export const RadioGroup: FunctionComponent<RadioGroupProps> = ({
         )}
         {label}
       </legend>
-      {labelHelp && <HelpText id={`${idPrefix}-label-help-text`} content={labelHelp} />}
+      {labelHelp && <HelpText id={labelHelpId} content={labelHelp} />}
       <div className={classNames('slds-form-element__control', formControlClassName)}>
         {isButtonGroup && <div className="slds-radio_button-group">{children}</div>}
         {!isButtonGroup && children}
       </div>
+      {helpText && (
+        <div id={helpTextId} className="slds-form-element__help">
+          {helpText}
+        </div>
+      )}
       {hasError && errorMessage && (
-        <div id={`${idPrefix}-error-message`} className="slds-form-element__help">
+        <div id={errorMessageId} className="slds-form-element__help">
           {errorMessage}
         </div>
       )}

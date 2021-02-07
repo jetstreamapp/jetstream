@@ -1,4 +1,5 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
+import { useNonInitialEffect } from '@jetstream/shared/ui-utils';
 import { REGEX } from '@jetstream/shared/utils';
 import { Input } from '@jetstream/ui';
 import React, { FunctionComponent, useEffect, useState } from 'react';
@@ -17,43 +18,42 @@ export const QueryLimit: FunctionComponent<QueryLimitProps> = React.memo(() => {
   const [queryLimitState, setQueryLimitState] = useRecoilState(fromQueryState.queryLimit);
   const [queryLimitSkipState, setQueryLimitSkipState] = useRecoilState(fromQueryState.queryLimitSkip);
 
-  const [queryLimitPriorValue, setQueryLimitPriorValue] = useState(queryLimitState);
+  // const [queryLimitPriorValue, setQueryLimitPriorValue] = useState(queryLimitState);
   const [queryLimit, setQueryLimit] = useState(queryLimitState);
   const [queryLimitSkip, setQueryLimitSkip] = useState(queryLimitSkipState);
 
   // If local state changes to something different, update globally
   // ignore limit change if in override mode
   useEffect(() => {
-    if (!hasLimitOverride && queryLimitState !== queryLimit) {
+    if (queryLimitState !== queryLimit) {
       setQueryLimitState(queryLimit);
     }
 
     if (queryLimitSkip !== queryLimitSkipState) {
       setQueryLimitSkipState(queryLimitSkip);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [hasLimitOverride, queryLimit, queryLimitSkip]);
+  }, [hasLimitOverride, queryLimit, queryLimitSkip, queryLimitSkipState, queryLimitState, setQueryLimitSkipState, setQueryLimitState]);
+
+  useNonInitialEffect(() => {
+    if (hasLimitOverride) {
+      setQueryLimit('1');
+    } else {
+      setQueryLimit('');
+    }
+  }, [hasLimitOverride, setQueryLimitState]);
 
   // If state changes to something different, update locally
-  useEffect(() => {
-    if (hasLimitOverride) {
-      setQueryLimitPriorValue(queryLimit);
-      setQueryLimit('1');
-    } else if (queryLimitPriorValue !== queryLimit) {
-      setQueryLimit(queryLimitPriorValue);
-    } else if (queryLimitState !== queryLimit) {
-      setQueryLimitPriorValue(queryLimit);
+  useNonInitialEffect(() => {
+    if (queryLimitState !== queryLimit) {
       setQueryLimit(queryLimit);
     }
     if (queryLimitSkipState !== queryLimitSkip) {
       setQueryLimitSkip(queryLimitState);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [hasLimitOverride, queryLimitState, queryLimitSkipState]);
+  }, [queryLimitState, queryLimitSkipState, queryLimit, queryLimitSkip]);
 
   function handleQueryLimitChange(event: React.ChangeEvent<HTMLInputElement>) {
     const value = sanitize(event.target.value);
-    setQueryLimitPriorValue(value);
     setQueryLimit(value);
   }
 

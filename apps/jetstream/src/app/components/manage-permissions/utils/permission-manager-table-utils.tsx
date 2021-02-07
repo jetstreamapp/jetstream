@@ -340,6 +340,10 @@ export function getObjectColumns(
       pinnedRowCellRenderer: 'pinnedInputFilter',
       suppressMenu: true,
       suppressKeyboardEvent: suppressKeyboardEventOnPinnedInput,
+      filterValueGetter: (params) => {
+        const data: PermissionTableFieldCell = params.data;
+        return `${data.label} (${data.apiName})`;
+      },
       valueFormatter: (params) => {
         const data: PermissionTableObjectCell = params.data;
         return `${data.label} (${data.apiName})`;
@@ -473,6 +477,10 @@ export function getFieldColumns(
       filter: 'basicTextFilterRenderer',
       pinnedRowCellRenderer: 'pinnedInputFilter',
       suppressMenu: true,
+      filterValueGetter: (params) => {
+        const data: PermissionTableFieldCell = params.data;
+        return `${data.label} (${data.apiName})`;
+      },
       valueFormatter: (params) => {
         const data: PermissionTableFieldCell = params.data;
         return `${data.label} (${data.apiName})`;

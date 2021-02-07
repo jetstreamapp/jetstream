@@ -204,6 +204,9 @@ export const ActionRenderer: FunctionComponent<ICellRendererParams> = ({ node, c
   const { actions } = context as TableContext;
   return (
     <Fragment>
+      <button className="slds-button slds-button_icon" title="View Full Record" onClick={() => actions.view(node.data)}>
+        <Icon type="utility" icon="preview" className="slds-button__icon " omitContainer />
+      </button>
       <button className="slds-button slds-button_icon" title="Edit Record" onClick={() => actions.edit(node.data)}>
         <Icon type="utility" icon="edit" className="slds-button__icon " omitContainer />
       </button>

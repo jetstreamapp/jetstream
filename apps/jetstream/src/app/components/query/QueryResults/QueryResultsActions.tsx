@@ -6,6 +6,7 @@ import { UiRecordForm } from '@jetstream/record-form';
 import { describeSObject, genericRequest, sobjectOperation } from '@jetstream/shared/data';
 import { isErrorResponse, useNonInitialEffect } from '@jetstream/shared/ui-utils';
 import {
+  CloneEditView,
   PicklistFieldValues,
   PicklistFieldValuesResponse,
   Record,
@@ -13,7 +14,7 @@ import {
   SalesforceOrgUi,
   SobjectCollectionResponse,
 } from '@jetstream/types';
-import { Checkbox, Grid, Modal, PopoverErrorButton, Spinner } from '@jetstream/ui';
+import { Checkbox, FileDownloadModal, Grid, Icon, Modal, PopoverErrorButton, Spinner } from '@jetstream/ui';
 import { Field } from 'jsforce';
 import isUndefined from 'lodash/isUndefined';
 import { Fragment, FunctionComponent, useEffect, useRef, useState } from 'react';
@@ -28,10 +29,11 @@ import {
 export interface QueryResultsActionsProps {
   apiVersion: string;
   selectedOrg: SalesforceOrgUi;
-  action: 'edit' | 'clone';
+  action: CloneEditView;
   sobjectName: string;
   recordId: string;
   onClose: (reloadRecords?: boolean) => void;
+  onChangeAction: (action: CloneEditView) => void;
 }
 
 export const QueryResultsActions: FunctionComponent<QueryResultsActionsProps> = ({
@@ -41,6 +43,7 @@ export const QueryResultsActions: FunctionComponent<QueryResultsActionsProps> = 
   sobjectName,
   recordId,
   onClose,
+  onChangeAction,
 }) => {
   const isMounted = useRef(null);
   const [sobjectFields, setSobjectFields] = useState<Field[]>();
@@ -53,12 +56,18 @@ export const QueryResultsActions: FunctionComponent<QueryResultsActionsProps> = 
   const [showReadOnlyFields, setShowReadOnlyFields] = useState<boolean>(true);
   const [showFieldTypes, setShowFieldTypes] = useState<boolean>(false);
   const [formErrors, setFormErrors] = useState<EditFromErrors>({ hasErrors: false, fieldErrors: {}, generalErrors: [] });
-  const [modalTitle] = useState(`${action === 'edit' ? 'Edit' : 'Clone'} Record`);
+  const [modalTitle, setModalTitle] = useState(getModalTitle);
+
+  const [downloadModalOpen, setDownloadModalOpen] = useState(false);
 
   useEffect(() => {
     isMounted.current = true;
     return () => (isMounted.current = false);
   }, []);
+
+  useNonInitialEffect(() => {
+    setModalTitle(getModalTitle);
+  }, [action]);
 
   useNonInitialEffect(() => {
     const isDirty = Object.values(modifiedRecord).filter((value) => value !== undefined).length > 0;
@@ -129,7 +138,16 @@ export const QueryResultsActions: FunctionComponent<QueryResultsActionsProps> = 
         }
       }
     })();
-  }, [recordId, selectedOrg, sobjectName]);
+  }, [action, apiVersion, recordId, selectedOrg, sobjectName]);
+
+  function getModalTitle() {
+    if (action === 'view') {
+      return 'View Record';
+    } else if (action === 'edit') {
+      return 'Edit Record';
+    }
+    return 'Clone Record';
+  }
 
   async function handleRecordChange(record: Record) {
     setModifiedRecord(record);
@@ -179,76 +197,128 @@ export const QueryResultsActions: FunctionComponent<QueryResultsActionsProps> = 
     }
   }
 
+  function handleDownloadModalClose(canceled?: boolean) {
+    if (canceled) {
+      setDownloadModalOpen(false);
+    } else {
+      onClose();
+    }
+  }
+
   return (
     <div>
-      <Modal
-        header={modalTitle}
-        tagline={`${sobjectName} - ${recordId}`}
-        size="lg"
-        closeOnEsc={!loading && !saving}
-        footer={
-          <Fragment>
-            <Grid align="spread">
-              <div className="slds-size--1-of-3 slds-text-align_left">
-                <Checkbox
-                  id={`record-actions-show-read-only`}
-                  checked={showReadOnlyFields}
-                  onChange={setShowReadOnlyFields}
-                  label="Show Read Ony Fields"
-                  disabled={loading || saving || !initialRecord}
-                />
-                <Checkbox
-                  id={`record-actions-show-field-types`}
-                  checked={showFieldTypes}
-                  onChange={setShowFieldTypes}
-                  label="Show Field Types"
-                  disabled={loading || saving || !initialRecord}
-                />
-              </div>
-              <div>
-                {formErrors.hasErrors && formErrors.generalErrors.length > 0 && (
-                  <span className="slds-text-align_left d-inline-block">
-                    <PopoverErrorButton errors={formErrors.generalErrors} />
-                  </span>
-                )}
-                <button className="slds-button slds-button_neutral" onClick={() => onClose()} disabled={loading}>
-                  Cancel
-                </button>
-                <button
-                  className="slds-button slds-button_brand"
-                  onClick={handleSave}
-                  disabled={(action === 'edit' && !isFromDirty) || loading || !initialRecord}
-                >
-                  Save
-                </button>
-              </div>
-              <div className="slds-size--1-of-3" />
-            </Grid>
-          </Fragment>
-        }
-        onClose={() => onClose()}
-      >
-        <div
-          className="slds-is-relative"
-          css={css`
-            min-height: 250px;
-          `}
+      {downloadModalOpen && (
+        <FileDownloadModal
+          org={selectedOrg}
+          modalHeader="Download Record"
+          data={[initialRecord]}
+          fileNameParts={['record', recordId]}
+          allowedTypes={['xlsx', 'csv', 'json']}
+          onModalClose={handleDownloadModalClose}
+        />
+      )}
+      {!downloadModalOpen && (
+        <Modal
+          header={modalTitle}
+          tagline={`${sobjectName} - ${recordId}`}
+          size="lg"
+          closeOnEsc={!loading && !saving}
+          footer={
+            <Fragment>
+              {action === 'view' && (
+                <Grid align="spread">
+                  <div>
+                    <Checkbox
+                      id={`record-actions-show-field-types`}
+                      checked={showFieldTypes}
+                      onChange={setShowFieldTypes}
+                      label="Show Field Types"
+                      disabled={loading || saving || !initialRecord}
+                    />
+                  </div>
+                  <div>
+                    <button className="slds-button slds-button_neutral" onClick={() => onChangeAction('edit')} disabled={loading}>
+                      <Icon type="utility" icon="edit" className="slds-button__icon slds-button__icon_left" omitContainer />
+                      Edit Record
+                    </button>
+                    <button className="slds-button slds-button_neutral" onClick={() => onChangeAction('clone')} disabled={loading}>
+                      <Icon type="utility" icon="copy" className="slds-button__icon slds-button__icon_left" omitContainer />
+                      Clone Record
+                    </button>
+                    <button className="slds-button slds-button_neutral" onClick={() => setDownloadModalOpen(true)} disabled={loading}>
+                      <Icon type="utility" icon="download" className="slds-button__icon slds-button__icon_left" omitContainer />
+                      Download
+                    </button>
+                    <button className="slds-button slds-button_brand" onClick={() => onClose()} disabled={loading}>
+                      Close
+                    </button>
+                  </div>
+                </Grid>
+              )}
+              {action !== 'view' && (
+                <Grid align="spread">
+                  <div className="slds-size--1-of-3 slds-text-align_left">
+                    <Checkbox
+                      id={`record-actions-show-read-only`}
+                      checked={showReadOnlyFields}
+                      onChange={setShowReadOnlyFields}
+                      label="Show Read Ony Fields"
+                      disabled={loading || saving || !initialRecord}
+                    />
+                    <Checkbox
+                      id={`record-actions-show-field-types`}
+                      checked={showFieldTypes}
+                      onChange={setShowFieldTypes}
+                      label="Show Field Types"
+                      disabled={loading || saving || !initialRecord}
+                    />
+                  </div>
+                  <div>
+                    {formErrors.hasErrors && formErrors.generalErrors.length > 0 && (
+                      <span className="slds-text-align_left d-inline-block">
+                        <PopoverErrorButton errors={formErrors.generalErrors} />
+                      </span>
+                    )}
+                    <button className="slds-button slds-button_neutral" onClick={() => onClose()} disabled={loading}>
+                      Cancel
+                    </button>
+                    <button
+                      className="slds-button slds-button_brand"
+                      onClick={handleSave}
+                      disabled={(action === 'edit' && !isFromDirty) || loading || !initialRecord}
+                    >
+                      Save
+                    </button>
+                  </div>
+                  <div className="slds-size--1-of-3" />
+                </Grid>
+              )}
+            </Fragment>
+          }
+          onClose={() => onClose()}
         >
-          {(loading || saving) && <Spinner />}
-          {!loading && initialRecord && (
-            <UiRecordForm
-              action={action}
-              sobjectFields={sobjectFields}
-              picklistValues={picklistValues}
-              record={initialRecord}
-              showReadOnlyFields={showReadOnlyFields}
-              showFieldTypes={showFieldTypes}
-              saveErrors={formErrors.fieldErrors}
-              onChange={handleRecordChange}
-            />
-          )}
-        </div>
-      </Modal>
+          <div
+            className="slds-is-relative"
+            css={css`
+              min-height: 250px;
+            `}
+          >
+            {(loading || saving) && <Spinner />}
+            {!loading && initialRecord && (
+              <UiRecordForm
+                action={action}
+                sobjectFields={sobjectFields}
+                picklistValues={picklistValues}
+                record={initialRecord}
+                showReadOnlyFields={showReadOnlyFields}
+                showFieldTypes={showFieldTypes}
+                saveErrors={formErrors.fieldErrors}
+                onChange={handleRecordChange}
+              />
+            )}
+          </div>
+        </Modal>
+      )}
     </div>
   );
 };

@@ -13,10 +13,11 @@ import {
   pluralizeIfMultiple,
   replaceSubqueryQueryResultsWithRecords,
 } from '@jetstream/shared/utils';
-import { AsyncJob, AsyncJobNew, BulkDownloadJob, FileExtCsvXLSX, Record, SalesforceOrgUi } from '@jetstream/types';
+import { AsyncJob, AsyncJobNew, BulkDownloadJob, CloneEditView, FileExtCsvXLSX, Record, SalesforceOrgUi } from '@jetstream/types';
 import {
   AutoFullHeightContainer,
   EmptyState,
+  FileDownloadModal,
   Grid,
   GridCol,
   Icon,
@@ -80,7 +81,7 @@ export const QueryResults: FunctionComponent<QueryResultsProps> = React.memo(() 
   );
   const confirm = useConfirmation();
 
-  const [editOrCloneRecord, setEditOrCloneRecord] = useState<{ action: 'edit' | 'clone'; sobjectName: string; recordId: string }>();
+  const [cloneEditViewRecord, setCloneEditViewRecord] = useState<{ action: CloneEditView; sobjectName: string; recordId: string }>();
   const [restore] = useQueryRestore(soql, isTooling, { silent: true });
 
   useEffect(() => {
@@ -239,24 +240,20 @@ export const QueryResults: FunctionComponent<QueryResultsProps> = React.memo(() 
     copyToClipboard(transformTabularDataToExcelStr(flattenedData, fields), { format: 'text/plain' });
   }
 
-  async function handleEditOrClone(record: any, action: 'edit' | 'clone') {
-    if (action === 'edit') {
-      setEditOrCloneRecord({
-        action,
-        recordId: record.Id || getRecordIdFromAttributes(record),
-        sobjectName: getSObjectNameFromAttributes(record),
-      });
-    } else {
-      setEditOrCloneRecord({
-        action,
-        recordId: record.Id || getRecordIdFromAttributes(record),
-        sobjectName: getSObjectNameFromAttributes(record),
-      });
-    }
+  function handleCloneEditView(record: any, action: CloneEditView) {
+    setCloneEditViewRecord({
+      action,
+      recordId: record.Id || getRecordIdFromAttributes(record),
+      sobjectName: getSObjectNameFromAttributes(record),
+    });
+  }
+
+  function handleChangeAction(action: CloneEditView) {
+    setCloneEditViewRecord((currentAction) => ({ ...currentAction, action }));
   }
 
   async function handleCloseEditCloneModal(reloadRecords?: boolean) {
-    setEditOrCloneRecord(null);
+    setCloneEditViewRecord(null);
     if (reloadRecords) {
       executeQuery(soql);
     }
@@ -279,14 +276,15 @@ export const QueryResults: FunctionComponent<QueryResultsProps> = React.memo(() 
         onModalClose={() => setDownloadModalOpen(false)}
         onDownloadFromServer={handleDownloadFromServer}
       />
-      {editOrCloneRecord && (
+      {cloneEditViewRecord && (
         <QueryResultsActions
           apiVersion={defaultApiVersion}
           selectedOrg={selectedOrg}
-          action={editOrCloneRecord.action}
-          sobjectName={editOrCloneRecord.sobjectName}
-          recordId={editOrCloneRecord.recordId}
+          action={cloneEditViewRecord.action}
+          sobjectName={cloneEditViewRecord.sobjectName}
+          recordId={cloneEditViewRecord.recordId}
           onClose={handleCloseEditCloneModal}
+          onChangeAction={handleChangeAction}
         />
       )}
       <Toolbar>
@@ -434,10 +432,13 @@ export const QueryResults: FunctionComponent<QueryResultsProps> = React.memo(() 
                 onFilteredRowsChanged={setFilteredRows}
                 onLoadMoreRecords={handleLoadMore}
                 onEdit={(record) => {
-                  handleEditOrClone(record, 'edit');
+                  handleCloneEditView(record, 'edit');
                 }}
                 onClone={(record) => {
-                  handleEditOrClone(record, 'clone');
+                  handleCloneEditView(record, 'clone');
+                }}
+                onView={(record) => {
+                  handleCloneEditView(record, 'view');
                 }}
               />
             </Fragment>
