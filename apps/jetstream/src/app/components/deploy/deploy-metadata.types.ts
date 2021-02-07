@@ -5,9 +5,12 @@ export type DeployMetadataStatus = 'idle' | 'submitting' | 'preparing' | 'adding
 type Common = 'common';
 type User = 'user';
 type All = 'all';
+type Yes = 'Yes';
+type No = 'No';
 
 export type CommonUser = Common | User;
 export type AllUser = All | User;
+export type YesNo = Yes | No;
 
 export interface SalesforceUser {
   Id: string;
@@ -38,6 +41,7 @@ export interface DeployMetadataTableRow {
   lastModifiedDate?: Date;
   createdByName?: string;
   createdDate?: Date;
+  manageableState?: 'beta' | 'deleted' | 'deprecated' | 'deprecatedEditable' | 'installed' | 'installedEditable' | 'released' | 'unmanaged';
   loading: boolean;
   error: boolean;
   metadata?: ListMetadataResult;

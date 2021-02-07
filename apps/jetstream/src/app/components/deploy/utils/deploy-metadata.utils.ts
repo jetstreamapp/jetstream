@@ -136,6 +136,12 @@ export function getColumnDefinitions(): ColDef[] {
         comparator: DateFilterComparator,
       },
     },
+    {
+      headerName: 'Manageable State',
+      colId: 'manageableState',
+      field: 'manageableState',
+      width: 170,
+    },
   ];
 
   return output;
@@ -161,7 +167,7 @@ export function getRows(listMetadataItems: MapOf<ListMetadataResultItem>): Deplo
     } else if (items.length > 0) {
       // METADATA RETURNED
       items.forEach((metadata) => {
-        const { fullName, lastModifiedByName, lastModifiedDate, createdByName, createdDate } = metadata;
+        const { fullName, lastModifiedByName, lastModifiedDate, createdByName, createdDate, manageableState } = metadata;
         output.push({
           key: `${metadataType}-${fullName}`,
           loading,
@@ -176,6 +182,7 @@ export function getRows(listMetadataItems: MapOf<ListMetadataResultItem>): Deplo
           createdByName,
           createdDate,
           metadata,
+          manageableState,
         });
       });
     } else {
@@ -206,6 +213,7 @@ export function convertRowsForExport(rows: DeployMetadataTableRow[]): MapOf<any>
       'Last Modified Date': row.metadata.lastModifiedDate,
       'Created By': `${row.metadata.createdByName} (${row.metadata.createdById})`,
       CreatedDate: row.metadata.createdDate,
+      'Manageable State': row.metadata.manageableState,
     }));
 }
 

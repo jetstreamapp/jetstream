@@ -2,7 +2,7 @@ import { COMMON_METADATA_TYPES, ListMetadataQueryExtended } from '@jetstream/con
 import { ListItem, MapOf } from '@jetstream/types';
 import { MetadataObject } from 'jsforce';
 import { atom, selector } from 'recoil';
-import { AllUser, ChangeSetPackage, CommonUser, SalesforceUser } from './deploy-metadata.types';
+import { AllUser, ChangeSetPackage, CommonUser, SalesforceUser, YesNo } from './deploy-metadata.types';
 
 export const metadataItemsState = atom<string[]>({
   key: 'deploy-metadata.metadataItemsState',
@@ -37,6 +37,11 @@ export const userSelectionState = atom<AllUser>({
 export const dateRangeSelectionState = atom<AllUser>({
   key: 'deploy-metadata.dateRangeSelectionState',
   default: 'all',
+});
+
+export const includeManagedPackageItems = atom<YesNo>({
+  key: 'deploy-metadata.includeManagedPackageItems',
+  default: 'No',
 });
 
 export const dateRangeState = atom<Date>({

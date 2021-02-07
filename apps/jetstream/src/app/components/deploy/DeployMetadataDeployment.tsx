@@ -26,7 +26,7 @@ import { Link } from 'react-router-dom';
 import { useRecoilValue } from 'recoil';
 import AddToChangeset from './add-to-changeset/AddToChangeset';
 import * as fromDeployMetadataState from './deploy-metadata.state';
-import { AllUser, DeployMetadataTableRow } from './deploy-metadata.types';
+import { AllUser, DeployMetadataTableRow, YesNo } from './deploy-metadata.types';
 import DeployMetadataToOrg from './deploy-to-different-org/DeployMetadataToOrg';
 import DeployMetadataDeploymentTable from './DeployMetadataDeploymentTable';
 import DeployMetadataLastRefreshedPopover from './DeployMetadataLastRefreshedPopover';
@@ -50,6 +50,7 @@ export const DeployMetadataDeployment: FunctionComponent<DeployMetadataDeploymen
   const selectedUsers = useRecoilValue(fromDeployMetadataState.selectedUsersState);
   const dateRangeSelection = useRecoilValue<AllUser>(fromDeployMetadataState.dateRangeSelectionState);
   const dateRange = useRecoilValue<Date>(fromDeployMetadataState.dateRangeState);
+  const includeManagedPackageItems = useRecoilValue<YesNo>(fromDeployMetadataState.includeManagedPackageItems);
 
   const [exportData, setExportData] = useState<MapOf<any>>();
   const [rows, setRows] = useState<DeployMetadataTableRow[]>();
@@ -59,7 +60,7 @@ export const DeployMetadataDeployment: FunctionComponent<DeployMetadataDeploymen
     (item: ListMetadataResult) => {
       const selectedUserSet = new Set(selectedUsers);
       const dateToCompare = startOfDay(addMinutes(dateRange || new Date(), -1));
-      if (item.manageableState !== 'unmanaged') {
+      if (includeManagedPackageItems === 'No' && item.manageableState !== 'unmanaged') {
         return false;
       }
       if (userSelection === 'user' && !selectedUserSet.has(item.lastModifiedById)) {
@@ -70,7 +71,7 @@ export const DeployMetadataDeployment: FunctionComponent<DeployMetadataDeploymen
       }
       return true;
     },
-    [selectedUsers, dateRange, userSelection, dateRangeSelection]
+    [selectedUsers, dateRange, includeManagedPackageItems, userSelection, dateRangeSelection]
   );
 
   useEffect(() => {
