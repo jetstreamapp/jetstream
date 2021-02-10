@@ -2,17 +2,19 @@
 import { jsx } from '@emotion/react';
 import { useNonInitialEffect } from '@jetstream/shared/ui-utils';
 import { DeployOptions, SalesforceOrgUi } from '@jetstream/types';
-import { Modal } from '@jetstream/ui';
+import { Icon, Modal } from '@jetstream/ui';
 import { Fragment, FunctionComponent, useState } from 'react';
 import { useRecoilValue } from 'recoil';
 import { salesforceOrgsOmitSelectedState } from '../../../app-state';
 import OrgsCombobox from '../../../components/core/OrgsCombobox';
+import OrgLabelBadge from '../../core/OrgLabelBadge';
 import DeployMetadataOptions from '../utils/DeployMetadataOptions';
 
 const DISABLED_OPTIONS = new Set<keyof DeployOptions>(['allowMissingFiles', 'autoUpdatePackage', 'purgeOnDelete', 'singlePackage']);
 
 export interface DeployMetadataToOrgConfigModalProps {
   initialOptions?: DeployOptions;
+  sourceOrg: SalesforceOrgUi;
   onSelection?: (deployOptions: DeployOptions) => void;
   onClose: () => void;
   onDeploy: (destinationOrg: SalesforceOrgUi, deployOptions: DeployOptions) => void;
@@ -20,6 +22,7 @@ export interface DeployMetadataToOrgConfigModalProps {
 
 export const DeployMetadataToOrgConfigModal: FunctionComponent<DeployMetadataToOrgConfigModalProps> = ({
   initialOptions,
+  sourceOrg,
   onSelection,
   onClose,
   onDeploy,
@@ -47,6 +50,14 @@ export const DeployMetadataToOrgConfigModal: FunctionComponent<DeployMetadataToO
   return (
     <Modal
       header="Deploy Metadata"
+      tagline={
+        <div className="slds-align_absolute-center">
+          Moving changes from <OrgLabelBadge org={sourceOrg} />
+          <Icon type="utility" icon="forward" className="slds-icon slds-icon-text-default slds-icon_x-small" />
+          {destinationOrg && <OrgLabelBadge org={destinationOrg} />}
+          {!destinationOrg && <em className="slds-m-left_xx-small">Select a destination org</em>}
+        </div>
+      }
       footer={
         <Fragment>
           <button className="slds-button slds-button_neutral" onClick={() => onClose()}>

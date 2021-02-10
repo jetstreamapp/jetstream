@@ -1,10 +1,11 @@
-import React, { FunctionComponent } from 'react';
 import { BadgeTypes } from '@jetstream/types';
+import React, { FunctionComponent, HTMLAttributes } from 'react';
 
 export interface BadgeProps {
   className?: string;
   title?: string;
   type?: BadgeTypes;
+  spanProps?: HTMLAttributes<HTMLSpanElement>;
 }
 
 function getCssClass(type: BadgeTypes) {
@@ -31,9 +32,9 @@ function getCssClass(type: BadgeTypes) {
   return cssClass;
 }
 
-export const Badge: FunctionComponent<BadgeProps> = ({ className, title, type = 'default', children }) => {
+export const Badge: FunctionComponent<BadgeProps> = ({ className, title, type = 'default', spanProps, children }) => {
   return (
-    <span className={`${className || ''} ${getCssClass(type)}`} title={title}>
+    <span className={`${className || ''} ${getCssClass(type)}`} title={title} {...spanProps}>
       {children}
     </span>
   );

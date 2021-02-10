@@ -137,7 +137,7 @@ export const ModalContent: FunctionComponent<ModalProps> = ({
             <h2 id="modal" className="slds-modal__title slds-hyphenate">
               {header}
             </h2>
-            {tagline && <p className="slds-m-top_x-small">{tagline}</p>}
+            {tagline && <div className="slds-m-top_x-small">{tagline}</div>}
           </header>
           <div className={classNames('slds-modal__content', className || 'slds-p-around_medium')} id={modalId}>
             {children}

@@ -3,9 +3,10 @@ import { css, jsx } from '@emotion/react';
 import { DATE_FORMATS } from '@jetstream/shared/constants';
 import { DeployResult, SalesforceOrgUi } from '@jetstream/types';
 import { Grid, Icon, Modal } from '@jetstream/ui';
-import { DeployMetadataStatus } from '../deploy-metadata.types';
 import formatDate from 'date-fns/format';
 import { Fragment, FunctionComponent } from 'react';
+import OrgLabelBadge from '../../core/OrgLabelBadge';
+import { DeployMetadataStatus } from '../deploy-metadata.types';
 import DeployMetadataProgressSummary from './DeployMetadataProgressSummary';
 
 export interface DeployMetadataStatusModalProps {
@@ -59,6 +60,11 @@ export const DeployMetadataStatusModal: FunctionComponent<DeployMetadataStatusMo
       closeDisabled={loading}
       closeOnBackdropClick={false}
       closeOnEsc={false}
+      tagline={
+        <div className="slds-align_absolute-center">
+          Deploying changes to <OrgLabelBadge org={destinationOrg} />
+        </div>
+      }
       footer={
         <Grid align="spread">
           <div>
@@ -89,9 +95,6 @@ export const DeployMetadataStatusModal: FunctionComponent<DeployMetadataStatusMo
           min-height: 225px;
         `}
       >
-        <div className="slds-m-bottom_x-small">
-          The changes are being applied to <strong>{destinationOrg.label}</strong>.
-        </div>
         {status !== 'idle' && (
           <div>
             <div>{inProgressLabel}</div>

@@ -6,6 +6,7 @@ import { Grid, Input, Modal, Picklist, Radio, RadioGroup, SalesforceLogin, Spinn
 import { Fragment, FunctionComponent, useEffect, useState } from 'react';
 import { useRecoilState } from 'recoil';
 import { applicationCookieState } from '../../../app-state';
+import OrgLabelBadge from '../../core/OrgLabelBadge';
 import { ChangeSetPackage } from '../deploy-metadata.types';
 import { useChangesetList } from '../utils/useChangesetList';
 
@@ -63,6 +64,11 @@ export const AddToChangesetConfigModal: FunctionComponent<AddToChangesetConfigMo
   return (
     <Modal
       header="Add metadata to changeset"
+      tagline={
+        <div className="slds-align_absolute-center">
+          The changeset will be updated in <OrgLabelBadge org={selectedOrg} />
+        </div>
+      }
       footer={
         <Fragment>
           <button className="slds-button slds-button_neutral" onClick={() => onClose()} disabled={loadingChangesetPackages}>
@@ -84,9 +90,6 @@ export const AddToChangesetConfigModal: FunctionComponent<AddToChangesetConfigMo
         {loadingChangesetPackages && <Spinner />}
 
         <ul className="slds-list_dotted">
-          <li>
-            The changes will be applied to <strong>{selectedOrg.label}</strong>.
-          </li>
           <li>
             An Outbound Changeset with a <strong>unique name</strong> must already exist.{' '}
             <SalesforceLogin

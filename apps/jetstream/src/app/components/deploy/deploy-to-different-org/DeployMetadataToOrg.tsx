@@ -54,7 +54,9 @@ export const DeployMetadataToOrg: FunctionComponent<DeployMetadataToOrgProps> = 
         Deploy to Different Org
       </button>
       {/* MODALS */}
-      {configModalOpen && <DeployMetadataToOrgConfigModal onClose={handleCloseConfigModal} onDeploy={handleDeployMetadata} />}
+      {configModalOpen && (
+        <DeployMetadataToOrgConfigModal sourceOrg={selectedOrg} onClose={handleCloseConfigModal} onDeploy={handleDeployMetadata} />
+      )}
       {deployStatusModalOpen && (
         <DeployMetadataToOrgStatusModal
           hideModal={downloadResultsModalOpen}
