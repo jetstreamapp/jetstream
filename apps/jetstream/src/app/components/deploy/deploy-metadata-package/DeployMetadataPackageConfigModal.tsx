@@ -5,6 +5,7 @@ import { useNonInitialEffect } from '@jetstream/shared/ui-utils';
 import { DeployOptions, InputReadFileContent, SalesforceOrgUi } from '@jetstream/types';
 import { FileSelector, Modal } from '@jetstream/ui';
 import { Fragment, FunctionComponent, useState } from 'react';
+import OrgLabelBadge from '../../core/OrgLabelBadge';
 import DeployMetadataOptions from '../utils/DeployMetadataOptions';
 
 export interface DeployMetadataPackageConfigModalProps {
@@ -50,6 +51,11 @@ export const DeployMetadataPackageConfigModal: FunctionComponent<DeployMetadataP
   return (
     <Modal
       header="Upload metadata from package"
+      tagline={
+        <div className="slds-align_absolute-center">
+          Your metadata will be uploaded to <OrgLabelBadge org={selectedOrg} />
+        </div>
+      }
       footer={
         <Fragment>
           <button className="slds-button slds-button_neutral" onClick={() => onClose()}>

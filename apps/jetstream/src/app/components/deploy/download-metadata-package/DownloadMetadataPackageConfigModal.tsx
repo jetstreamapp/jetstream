@@ -3,6 +3,7 @@ import { css, jsx } from '@emotion/react';
 import { INPUT_ACCEPT_FILETYPES } from '@jetstream/shared/constants';
 import { InputReadFileContent, ListItem, SalesforceOrgUi } from '@jetstream/types';
 import { FileSelector, Grid, GridCol, Modal, Picklist, Spinner, Textarea } from '@jetstream/ui';
+import OrgLabelBadge from '../../../components/core/OrgLabelBadge';
 import { FunctionComponent, useEffect, useState } from 'react';
 import { ChangeSetPackage } from '../deploy-metadata.types';
 import { useChangesetList } from '../utils/useChangesetList';
@@ -66,7 +67,16 @@ export const DownloadMetadataPackageConfigModal: FunctionComponent<DownloadMetad
   }
 
   return (
-    <Modal header="Download metadata from package" size="lg" onClose={onClose}>
+    <Modal
+      header="Download metadata from package"
+      size="lg"
+      onClose={onClose}
+      tagline={
+        <div className="slds-align_absolute-center">
+          Your metadata will be downloaded from from <OrgLabelBadge org={selectedOrg} />
+        </div>
+      }
+    >
       <div className="slds-is-relative slds-p-around_large">
         <Grid wrap verticalStretch>
           <GridCol

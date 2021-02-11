@@ -21,6 +21,7 @@ import {
   QueryFilterOperator,
   RetrieveResult,
   SalesforceOrgUi,
+  SalesforceOrgUiType,
   UseReducerFetchAction,
   UseReducerFetchState,
 } from '@jetstream/types';
@@ -668,6 +669,16 @@ export function getOrgUrlParams(org: SalesforceOrgUi, additionalParams: { [param
   return Object.keys(params)
     .map((key) => `${key}=${encodeURIComponent(params[key])}`)
     .join('&');
+}
+
+export function getOrgType(org: SalesforceOrgUi): SalesforceOrgUiType | undefined {
+  if (org) {
+    if (org.orgIsSandbox) {
+      return 'Sandbox';
+    }
+    return org.orgOrganizationType === 'Developer Edition' ? 'Developer' : 'Production';
+  }
+  return undefined;
 }
 
 export function getDateLiteralListItems(): ListItem[] {

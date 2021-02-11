@@ -1,6 +1,6 @@
 import { HTTP, INDEXED_DB } from '@jetstream/shared/constants';
 import { getOrgs, getUserProfile } from '@jetstream/shared/data';
-import { parseCookie } from '@jetstream/shared/ui-utils';
+import { getOrgType, parseCookie } from '@jetstream/shared/ui-utils';
 import { ApplicationCookie, SalesforceOrgUi, SalesforceOrgUiType, UserProfilePreferences, UserProfileUi } from '@jetstream/types';
 import localforage from 'localforage';
 import isString from 'lodash/isString';
@@ -126,16 +126,7 @@ export const hasConfiguredOrgState = selector({
 
 export const selectedOrgType = selector<SalesforceOrgUiType>({
   key: 'selectedOrgType',
-  get: ({ get }) => {
-    const salesforceOrgs = get(selectedOrgState);
-    if (salesforceOrgs) {
-      if (salesforceOrgs.orgIsSandbox) {
-        return 'Sandbox';
-      }
-      return salesforceOrgs.orgOrganizationType === 'Developer Edition' ? 'Developer' : 'Production';
-    }
-    return undefined;
-  },
+  get: ({ get }) => getOrgType(get(selectedOrgState)),
 });
 
 export const selectUserPreferenceState = selector<UserProfilePreferences>({

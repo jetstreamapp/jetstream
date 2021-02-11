@@ -6,8 +6,8 @@ import { SalesforceLogin } from '@jetstream/ui';
 import { Fragment, FunctionComponent, useEffect, useState } from 'react';
 import { useRecoilState } from 'recoil';
 import { applicationCookieState } from '../../../app-state';
-import DeployMetadataStatusModal from '../utils/DeployMetadataStatusModal';
 import { getDeploymentStatusUrl } from '../utils/deploy-metadata.utils';
+import DeployMetadataStatusModal from '../utils/DeployMetadataStatusModal';
 import { getStatusValue, useDeployMetadataBetweenOrgs } from '../utils/useDeployMetadataBetweenOrgs';
 
 export interface DeployMetadataToOrgStatusModalProps {
