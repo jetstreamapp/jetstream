@@ -145,6 +145,15 @@ export const AddToChangesetConfigModal: FunctionComponent<AddToChangesetConfigMo
                 <Picklist
                   isRequired
                   label="Changesets"
+                  helpText={
+                    <span>
+                      Salesforce has limited changeset support for 3rd party applications. If your changeset does not appear, choose to{' '}
+                      <span className="slds-text-link" onClick={() => setChangesetEntryType('manual')}>
+                        manually enter
+                      </span>{' '}
+                      the changeset name.
+                    </span>
+                  }
                   scrollLength={5}
                   placeholder="Select an Option"
                   items={changesetPackages || []}
@@ -156,7 +165,10 @@ export const AddToChangesetConfigModal: FunctionComponent<AddToChangesetConfigMo
               </div>
               <div className="slds-m-horizontal_small">
                 <button
-                  className="slds-button slds-button_neutral slds-m-top_small"
+                  css={css`
+                    margin-bottom: 20px;
+                  `}
+                  className="slds-button slds-button_neutral"
                   onClick={() => loadPackages()}
                   disabled={loadingChangesetPackages || loading}
                 >
@@ -172,7 +184,7 @@ export const AddToChangesetConfigModal: FunctionComponent<AddToChangesetConfigMo
               labelHelp="This is case-sensitive and must match the exact name of the outbound changeset in Salesforce"
             >
               <input
-                id="batch-size"
+                id="changeset-name"
                 className="slds-input"
                 placeholder="Changeset name"
                 value={changesetPackage}
