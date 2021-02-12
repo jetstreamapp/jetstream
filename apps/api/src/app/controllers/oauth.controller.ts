@@ -142,7 +142,8 @@ export async function salesforceOauthCallback(req: express.Request, res: express
 
     return res.redirect(`/assets/oauth?${querystring.stringify(salesforceOrg as any)}&clientUrl=${clientUrl}`);
   } catch (ex) {
-    logger.info('[OAUTH][ERROR] %o', ex.message);
+    const userInfo = req.user ? { username: (req.user as any)?.displayName, userId: (req.user as any)?.user_id } : undefined;
+    logger.info('[OAUTH][ERROR] %o', ex.message, { userInfo });
     const errorMsg = req.query.error_description ? req.query.error_description : 'There was an error authenticating Salesforce.';
     const errorObj = { message: errorMsg, error: ex.message };
     return res.redirect(`/assets/oauth?${querystring.stringify(errorObj as any)}`);

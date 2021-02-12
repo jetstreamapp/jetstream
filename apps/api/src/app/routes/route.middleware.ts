@@ -182,7 +182,8 @@ async function getOrgFromHeaderOrQuery(req: express.Request, headerKey: string, 
     callOptions: {
       // Magical metadata shows up when using this
       // http://www.fishofprey.com/2016/03/salesforce-forcecom-ide-superpowers.html
-      client: `apex_eclipse/${apiVersion || org.apiVersion || ENV.SFDC_FALLBACK_API_VERSION}`,
+      // FIXME: this breaks some orgs
+      // client: `apex_eclipse/v${apiVersion || org.apiVersion || ENV.SFDC_FALLBACK_API_VERSION}`,
     },
   };
 
@@ -190,14 +191,14 @@ async function getOrgFromHeaderOrQuery(req: express.Request, headerKey: string, 
     connData.callOptions = { ...connData.callOptions, defaultNamespace: orgNamespacePrefix };
   }
 
-  const connection = new jsforce.Connection(connData);
+  const conn = new jsforce.Connection(connData);
 
   // Handle org refresh - then remove event listener if refreshed
-  const handleRefresh = async (accessToken) => {
+  const handleRefresh = async (accessToken, res) => {
     // Refresh event will be fired when renewed access token
     // to store it in your storage for next request
     try {
-      org.accessToken = encryptString(`${accessToken} ${refreshToken}`, hexToBase64(ENV.SFDC_CONSUMER_SECRET));
+      org.accessToken = encryptString(`${accessToken} ${conn.refreshToken}`, hexToBase64(ENV.SFDC_CONSUMER_SECRET));
       await org.save();
       logger.info('[ORG][REFRESH] Org refreshed successfully');
     } catch (ex) {
@@ -205,7 +206,7 @@ async function getOrgFromHeaderOrQuery(req: express.Request, headerKey: string, 
     }
   };
 
-  connection.on('refresh', handleRefresh);
+  conn.on('refresh', handleRefresh);
 
-  return { org, connection };
+  return { org, connection: conn };
 }
