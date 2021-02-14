@@ -25,7 +25,14 @@ export function sendJson(res: express.Response, content?: any, status = 200) {
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 export async function uncaughtErrorHandler(err: any, req: express.Request, res: express.Response, next: express.NextFunction) {
   const userInfo = req.user ? { username: (req.user as any)?.displayName, userId: (req.user as any)?.user_id } : undefined;
-  logger.info('[RESPONSE][ERROR] %s', err.message, { error: err.message || err, userInfo });
+  logger.warn('[RESPONSE][ERROR] %s', err.message, {
+    error: err.message || err,
+    method: req.method,
+    url: req.originalUrl,
+    ip: req.headers[HTTP.HEADERS.X_FORWARDED_FOR] || req.connection.remoteAddress,
+    userInfo,
+  });
+
   const isJson = (req.get(HTTP.HEADERS.ACCEPT) || '').includes(HTTP.CONTENT_TYPE.JSON);
 
   // If org had a connection error, ensure that the database is updated
@@ -36,7 +43,7 @@ export async function uncaughtErrorHandler(err: any, req: express.Request, res: 
       org.connectionError = ERROR_MESSAGES.SFDC_EXPIRED_TOKEN;
       await org.save();
     } catch (ex) {
-      logger.info('[RESPONSE][ERROR UPDATING INVALID ORG] %s', ex.message, { error: ex.message, userInfo });
+      logger.warn('[RESPONSE][ERROR UPDATING INVALID ORG] %s', ex.message, { error: ex.message, userInfo });
     }
   }
 
@@ -82,7 +89,7 @@ export async function uncaughtErrorHandler(err: any, req: express.Request, res: 
 
   // TODO: clean up everything below this
 
-  logger.info(err.message, { userInfo });
+  logger.warn(err.message, { userInfo });
   logger.error(err.stack, { userInfo });
 
   const errorMessage = 'There was an error processing the request';

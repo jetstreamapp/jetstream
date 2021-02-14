@@ -7,6 +7,14 @@ import { useNonInitialEffect } from './useNonInitialEffect';
 const VERSION = process.env.GIT_VERSION;
 console.log('[JETSTREAM VERSION]:', VERSION);
 
+const getRecentLogs = () => {
+  try {
+    return JSON.stringify(logBuffer);
+  } catch (ex) {
+    return `[ERROR GETTING RECENT LOGS: ${ex.message}]`;
+  }
+};
+
 class RollbarConfig {
   private static instance: RollbarConfig;
 
@@ -42,7 +50,7 @@ class RollbarConfig {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         onSendCallback: (_isUncaught: boolean, _args: Rollbar.LogArgument[], payload: any) => {
           payload = payload || {};
-          payload.recentLogs = logBuffer;
+          payload.recentLogs = getRecentLogs();
         },
       });
     this.rollbar.global({ itemsPerMinute: 10, maxItems: 20 });

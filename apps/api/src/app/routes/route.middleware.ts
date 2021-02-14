@@ -14,7 +14,12 @@ export function logRoute(req: express.Request, res: express.Response, next: expr
   res.locals.path = req.path;
   // logger.info(req.method, req.originalUrl);
   const userInfo = req.user ? { username: (req.user as any)?.displayName, userId: (req.user as any)?.user_id } : undefined;
-  logger.debug('[REQ] %s %s %s', req.method, req.originalUrl, { method: req.method, url: req.originalUrl, ...userInfo });
+  logger.debug('[REQ] %s %s %s', req.method, req.originalUrl, {
+    method: req.method,
+    url: req.originalUrl,
+    ip: req.headers[HTTP.HEADERS.X_FORWARDED_FOR] || req.connection.remoteAddress,
+    ...userInfo,
+  });
   next();
 }
 
@@ -64,62 +69,6 @@ export async function addOrgsToLocal(req: express.Request, res: express.Response
         }
       }
     }
-
-    // const uniqueId = (req.get(HTTP.HEADERS.X_SFDC_ID) || req.query[HTTP.HEADERS.X_SFDC_ID]) as string;
-    // // TODO: not yet implemented on the front-end
-    // const apiVersion = (req.get(HTTP.HEADERS.X_SFDC_API_VERSION) || req.query[HTTP.HEADERS.X_SFDC_API_VERSION]) as string | undefined;
-    // const user = req.user as UserProfileServer;
-
-    // if (!uniqueId) {
-    //   return next();
-    // }
-
-    // const org = await SalesforceOrg.findByUniqueId(user.id, uniqueId);
-
-    // if (!org) {
-    //   return next(new UserFacingError('An org was not found with the provided id'));
-    // }
-
-    // const { accessToken: encryptedAccessToken, loginUrl, instanceUrl, orgNamespacePrefix } = org;
-
-    // const [accessToken, refreshToken] = decryptString(encryptedAccessToken, hexToBase64(ENV.SFDC_CONSUMER_SECRET)).split(' ');
-
-    // const connData: jsforce.ConnectionOptions = {
-    //   oauth2: getJsforceOauth2(loginUrl),
-    //   instanceUrl,
-    //   accessToken,
-    //   refreshToken,
-    //   maxRequest: 5,
-    //   version: apiVersion || org.apiVersion || ENV.SFDC_FALLBACK_API_VERSION,
-    //   callOptions: {
-    //     // Magical metadata shows up when using this
-    //     // http://www.fishofprey.com/2016/03/salesforce-forcecom-ide-superpowers.html
-    //     client: `apex_eclipse/${apiVersion || org.apiVersion || ENV.SFDC_FALLBACK_API_VERSION}`,
-    //   },
-    // };
-
-    // if (orgNamespacePrefix) {
-    //   connData.callOptions = { ...connData.callOptions, defaultNamespace: orgNamespacePrefix };
-    // }
-
-    // res.locals = res.locals || {};
-    // res.locals.org = org;
-    // res.locals.jsforceConn = new jsforce.Connection(connData);
-
-    // // Handle org refresh - then remove event listener if refreshed
-    // const handleRefresh = async (accessToken) => {
-    //   // Refresh event will be fired when renewed access token
-    //   // to store it in your storage for next request
-    //   try {
-    //     org.accessToken = encryptString(`${accessToken} ${refreshToken}`, hexToBase64(ENV.SFDC_CONSUMER_SECRET));
-    //     await org.save();
-    //     logger.info('[ORG][REFRESH] Org refreshed successfully');
-    //   } catch (ex) {
-    //     logger.error('[ORG][REFRESH] Error saving refresh token', ex);
-    //   }
-    // };
-
-    // (res.locals.jsforceConn as jsforce.Connection).on('refresh', handleRefresh);
   } catch (ex) {
     logger.warn('[INIT-ORG][ERROR] %o', ex);
     return next(new UserFacingError('There was an error initializing the connection to Salesforce'));

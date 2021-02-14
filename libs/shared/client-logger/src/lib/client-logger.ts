@@ -6,7 +6,7 @@ const LOG_BUFFER_SIZE = 5;
 
 function LOG_NOOP(...logs: any[]) {
   logBuffer.unshift(logs);
-  logBuffer = logBuffer.slice(0, LOG_BUFFER_SIZE);
+  logBuffer.splice(LOG_BUFFER_SIZE + 1);
 }
 
 interface Logger {
