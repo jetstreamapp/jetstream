@@ -55,6 +55,7 @@ export class AutoFullHeightContainer extends Component<AutoFullHeightContainerPr
         className={className}
         ref={this.setRef}
         css={css`
+          position: relative;
           ${baseCss || ''}
           max-height: ${heightStr}
           ${fillHeight && `min-height: ${heightStr}`}

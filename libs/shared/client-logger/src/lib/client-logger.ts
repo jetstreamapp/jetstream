@@ -1,5 +1,13 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { NOOP } from '@jetstream/shared/utils';
+
+// save the last {LOG_BUFFER_SIZE} logs in case of exception, logs can be provided
+export let logBuffer = [];
+const LOG_BUFFER_SIZE = 5;
+
+function LOG_NOOP(...logs: any[]) {
+  logBuffer.unshift(logs);
+  logBuffer = logBuffer.slice(0, LOG_BUFFER_SIZE);
+}
 
 interface Logger {
   isEnabled: boolean;
@@ -51,26 +59,26 @@ function clearLoggingEnabledState() {
 
 export const logger: Logger = {
   isEnabled: false,
-  log: NOOP,
-  info: NOOP,
-  warn: NOOP,
-  error: NOOP,
-  group: NOOP,
-  groupCollapsed: NOOP,
-  groupEnd: NOOP,
+  log: LOG_NOOP,
+  info: LOG_NOOP,
+  warn: LOG_NOOP,
+  error: LOG_NOOP,
+  group: LOG_NOOP,
+  groupCollapsed: LOG_NOOP,
+  groupEnd: LOG_NOOP,
 };
 
 export const enableLogger = (enable: boolean) => {
   logger.isEnabled = enable;
   if (!enable) {
     clearLoggingEnabledState();
-    logger.log = NOOP;
-    logger.info = NOOP;
-    logger.warn = NOOP;
-    logger.error = NOOP;
-    logger.group = NOOP;
-    logger.groupCollapsed = NOOP;
-    logger.groupEnd = NOOP;
+    logger.log = LOG_NOOP;
+    logger.info = LOG_NOOP;
+    logger.warn = LOG_NOOP;
+    logger.error = LOG_NOOP;
+    logger.group = LOG_NOOP;
+    logger.groupCollapsed = LOG_NOOP;
+    logger.groupEnd = LOG_NOOP;
   } else {
     try {
       saveLoggingEnabledState();

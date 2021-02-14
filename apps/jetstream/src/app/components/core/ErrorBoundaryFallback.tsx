@@ -4,10 +4,9 @@ import { FunctionComponent, useEffect } from 'react';
 import { FallbackProps } from 'react-error-boundary';
 import { logger } from '@jetstream/shared/client-logger';
 import { useRollbar } from '@jetstream/shared/ui-utils';
-import { environment } from '../../../environments/environment';
 
 export const ErrorBoundaryFallback: FunctionComponent<FallbackProps> = ({ error, componentStack, resetErrorBoundary }) => {
-  const rollbar = useRollbar(environment.rollbarClientAccessToken, environment.production ? 'production' : 'development');
+  const rollbar = useRollbar();
 
   useEffect(() => {
     if (error && rollbar) {

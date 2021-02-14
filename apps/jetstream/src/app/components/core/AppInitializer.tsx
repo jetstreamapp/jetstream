@@ -36,8 +36,11 @@ export const AppInitializer: FunctionComponent<AppInitializerProps> = ({ onUserP
   const [orgs, setOrgs] = useRecoilState(fromAppState.salesforceOrgsState);
   const invalidOrg = useObservable(orgConnectionError$);
 
-  // this ensures rollbar is configured and has user profile information
-  useRollbar(environment.rollbarClientAccessToken, appCookie.environment, userProfile);
+  useRollbar({
+    accessToken: environment.rollbarClientAccessToken,
+    environment: appCookie.environment,
+    userProfile: userProfile,
+  });
   useAmplitude();
   usePageViews();
 
