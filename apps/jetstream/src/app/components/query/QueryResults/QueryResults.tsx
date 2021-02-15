@@ -29,6 +29,7 @@ import {
   ToolbarItemGroup,
   useConfirmation,
 } from '@jetstream/ui';
+import { useQueryResultsFetchMetadata } from './useQueryResultsFetchMetadata';
 import classNames from 'classnames';
 import copyToClipboard from 'copy-to-clipboard';
 import React, { Fragment, FunctionComponent, useEffect, useRef, useState } from 'react';
@@ -83,6 +84,8 @@ export const QueryResults: FunctionComponent<QueryResultsProps> = React.memo(() 
 
   const [cloneEditViewRecord, setCloneEditViewRecord] = useState<{ action: CloneEditView; sobjectName: string; recordId: string }>();
   const [restore] = useQueryRestore(soql, isTooling, { silent: true });
+
+  const { fieldMetadata } = useQueryResultsFetchMetadata(selectedOrg, queryResults?.parsedQuery);
 
   useEffect(() => {
     isMounted.current = true;
@@ -422,6 +425,7 @@ export const QueryResults: FunctionComponent<QueryResultsProps> = React.memo(() 
                 isTooling={isTooling}
                 serverUrl={serverUrl}
                 queryResults={queryResults}
+                fieldMetadata={fieldMetadata}
                 summaryHeaderRightContent={
                   <div dir="rtl">
                     <IncludeDeletedRecordsToggle />

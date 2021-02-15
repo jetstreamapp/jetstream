@@ -1,11 +1,12 @@
 /** @jsx jsx */
-import { ColDef, ColumnEvent, SelectionChangedEvent } from '@ag-grid-community/core';
+import { ColDef, ColumnEvent, GridApi, GridReadyEvent, SelectionChangedEvent } from '@ag-grid-community/core';
 import { jsx } from '@emotion/react';
 import { QueryResults } from '@jetstream/api-interfaces';
 import { logger } from '@jetstream/shared/client-logger';
 import { queryMore } from '@jetstream/shared/data';
 import { formatNumber } from '@jetstream/shared/ui-utils';
-import { SalesforceOrgUi } from '@jetstream/types';
+import { MapOf, SalesforceOrgUi } from '@jetstream/types';
+import { Field } from 'jsforce';
 import uniqueId from 'lodash/uniqueId';
 import { Fragment, FunctionComponent, memo, ReactNode, useEffect, useRef, useState } from 'react';
 import SearchInput from '../form/search-input/SearchInput';
@@ -38,6 +39,7 @@ export interface SalesforceRecordDataTableProps {
   isTooling: boolean;
   serverUrl: string;
   queryResults: QueryResults<any>;
+  fieldMetadata: MapOf<Field>;
   summaryHeaderRightContent?: ReactNode;
   onSelectionChanged: (rows: any[]) => void;
   onFilteredRowsChanged: (rows: any[]) => void;
@@ -55,6 +57,7 @@ export const SalesforceRecordDataTable: FunctionComponent<SalesforceRecordDataTa
     isTooling,
     serverUrl,
     queryResults,
+    fieldMetadata,
     summaryHeaderRightContent,
     onSelectionChanged,
     onFilteredRowsChanged,
@@ -65,6 +68,7 @@ export const SalesforceRecordDataTable: FunctionComponent<SalesforceRecordDataTa
     onView,
   }) => {
     const isMounted = useRef(null);
+    const [gridApi, setGridApi] = useState<GridApi>(null);
     const [columns, setColumns] = useState<ColDef[]>();
     const [columnDefinitions, setColumnDefinitions] = useState<SalesforceQueryColumnDefinition>();
     const [records, setRecords] = useState<any[]>();
@@ -95,6 +99,36 @@ export const SalesforceRecordDataTable: FunctionComponent<SalesforceRecordDataTa
       }
       // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [queryResults]);
+
+    /**
+     *
+     * FIXME:
+     * This is a WIP
+     *
+     * This shows the field label instead of the field name for queries
+     * BUT:
+     * 1. it is not configurable
+     * 2. may not work on subquery table
+     * 3. does not apply to downloaded data
+     * 4. have not tested complex or aggregate queries
+     *
+     * Would be nice if:
+     * 1. we could show both (or at least allow user to choose)
+     * 2. on download, we could ask the user which to include (important because of loading in downloaded data is better with API names)
+     * 3. Would be cool to show other, better, metadata in tooltip (e.x. type, description, etc..)
+     *
+     * The header custom renderer is tricky - so it may not be worth it
+     *
+     */
+
+    useEffect(() => {
+      if (fieldMetadata && gridApi) {
+        const columnDefinitions = getColumnDefinitions(queryResults, isTooling).parentColumns;
+        columnDefinitions.forEach((col) => (col.headerName = fieldMetadata[col.field?.toLowerCase()]?.label || col.headerName));
+        gridApi.setColumnDefs(columnDefinitions);
+        setColumns(columnDefinitions);
+      }
+    }, [fieldMetadata, gridApi, isTooling, queryResults]);
 
     function handleSelectionChanged(event: SelectionChangedEvent) {
       if (onSelectionChanged) {
@@ -140,6 +174,10 @@ export const SalesforceRecordDataTable: FunctionComponent<SalesforceRecordDataTa
         // oops. show the user an error
         setIsLoadingMore(false);
       }
+    }
+
+    function handleOnGridReady({ api }: GridReadyEvent) {
+      setGridApi(api);
     }
 
     return records ? (
@@ -197,6 +235,7 @@ export const SalesforceRecordDataTable: FunctionComponent<SalesforceRecordDataTa
                     view: onView,
                   },
                 },
+                onGridReady: handleOnGridReady,
                 onSelectionChanged: handleSelectionChanged,
                 onColumnMoved: handleColumnMoved,
                 onFilterChanged: handleFilterChangeOrRowDataUpdated,
