@@ -403,6 +403,7 @@ export interface QueryHistoryItem {
   lastRun: Date;
   runCount: number;
   isTooling: boolean;
+  isFavorite?: boolean;
 }
 
 export interface QueryHistorySelection {

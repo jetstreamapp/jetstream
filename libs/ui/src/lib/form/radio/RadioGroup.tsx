@@ -1,13 +1,13 @@
-import React, { FunctionComponent, useEffect, useState } from 'react';
 import classNames from 'classnames';
-import HelpText from '../../widgets/HelpText';
+import React, { Fragment, FunctionComponent } from 'react';
 import { useFormIds } from '../../hooks/useFormIds';
+import HelpText from '../../widgets/HelpText';
 
 export interface RadioGroupProps {
   idPrefix?: string;
   className?: string;
   formControlClassName?: string;
-  label: string;
+  label?: string;
   labelHelp?: string;
   helpText?: string | JSX.Element;
   required?: boolean;
@@ -33,15 +33,19 @@ export const RadioGroup: FunctionComponent<RadioGroupProps> = ({
 
   return (
     <fieldset className={classNames('slds-form-element', { 'slds-has-error': hasError }, className)} aria-describedby={ariaDescribedbyText}>
-      <legend className="slds-form-element__legend slds-form-element__label">
-        {required && (
-          <abbr className="slds-required" title="required">
-            *
-          </abbr>
-        )}
-        {label}
-      </legend>
-      {labelHelp && <HelpText id={labelHelpId} content={labelHelp} />}
+      {label && (
+        <Fragment>
+          <legend className="slds-form-element__legend slds-form-element__label">
+            {required && (
+              <abbr className="slds-required" title="required">
+                *
+              </abbr>
+            )}
+            {label}
+          </legend>
+          {labelHelp && <HelpText id={labelHelpId} content={labelHelp} />}
+        </Fragment>
+      )}
       <div className={classNames('slds-form-element__control', formControlClassName)}>
         {isButtonGroup && <div className="slds-radio_button-group">{children}</div>}
         {!isButtonGroup && children}

@@ -2,7 +2,7 @@ import { IconObj } from '@jetstream/icon-factory';
 import { DATE_FORMATS } from '@jetstream/shared/constants';
 import { pluralizeFromNumber } from '@jetstream/shared/utils';
 import { QueryHistoryItem } from '@jetstream/types';
-import { Card, CodeEditor, CopyToClipboard, Grid, GridCol, Icon, Textarea } from '@jetstream/ui';
+import { Card, CheckboxButton, CodeEditor, CopyToClipboard, Grid, GridCol, Icon, Textarea } from '@jetstream/ui';
 import formatDate from 'date-fns/format';
 import React, { Fragment, FunctionComponent, useEffect, useRef, useState } from 'react';
 import { Link, useRouteMatch } from 'react-router-dom';
@@ -14,11 +14,12 @@ const METADATA_QUERY_ICON: IconObj = { type: 'standard', icon: 'settings', descr
 // eslint-disable-next-line @typescript-eslint/no-empty-interface
 export interface QueryHistoryItemCardProps {
   item: QueryHistoryItem;
+  onSave: (item: QueryHistoryItem, value: boolean) => void;
   startRestore: () => void;
   endRestore: (isTooling: boolean, fatalError: boolean, errors?: any) => void;
 }
 
-export const QueryHistoryItemCard: FunctionComponent<QueryHistoryItemCardProps> = ({ item, startRestore, endRestore }) => {
+export const QueryHistoryItemCard: FunctionComponent<QueryHistoryItemCardProps> = ({ item, onSave, startRestore, endRestore }) => {
   const isMounted = useRef(null);
   const match = useRouteMatch();
   const [readyToRenderCode, setReadyToRenderCode] = useState(false);
@@ -56,6 +57,16 @@ export const QueryHistoryItemCard: FunctionComponent<QueryHistoryItemCardProps> 
         // icon={{ type: 'standard', icon: 'account', description: 'Account' }}
         actions={
           <Fragment>
+            <CheckboxButton
+              id={item.key}
+              className="slds-m-right_x-small"
+              checked={!!item.isFavorite}
+              label="Save Query"
+              checkedLabel="Query is saved"
+              icon="add"
+              iconChecked="check"
+              onChange={(value) => onSave(item, value)}
+            />
             <RestoreQuery
               soql={soql}
               isTooling={isTooling}
