@@ -11,10 +11,14 @@ import {
   QueryFilterOperator,
 } from '@jetstream/types';
 import React, { FunctionComponent, useEffect, useState } from 'react';
+import DropDown from '../form/dropdown/DropDown';
 import Expression from './Expression';
 import { isExpressionConditionType } from './expression-utils';
 import ExpressionConditionRow from './ExpressionConditionRow';
 import ExpressionGroup from './ExpressionGroup';
+
+const DISPLAY_OPT_ROW = 'expression-ancillary-row';
+const DISPLAY_OPT_WRAP = 'expression-ancillary-wrap';
 
 export interface ExpressionContainerProps {
   title?: string;
@@ -86,6 +90,7 @@ export const ExpressionContainer: FunctionComponent<ExpressionContainerProps> = 
     onChange,
   }) => {
     const [expression, setExpression] = useState<ExpressionType>(() => initExpression(expressionInitValue));
+    const [displayOption, setDisplayOption] = useState(DISPLAY_OPT_ROW);
     const [nextConditionNumber, setNextConditionNumber] = useState<number>(() => {
       let nextNumber = 1;
       if (expressionInitValue) {
@@ -235,6 +240,20 @@ export const ExpressionContainer: FunctionComponent<ExpressionContainerProps> = 
         actionLabel={actionLabel}
         title={title}
         value={expression.action}
+        ancillaryOptions={
+          <div className="slds-m-top_large slds-m-left_xx-small">
+            <DropDown
+              position="left"
+              description="Display options"
+              initialSelectedId={displayOption}
+              items={[
+                { id: DISPLAY_OPT_ROW, value: 'Display filters on one row' },
+                { id: DISPLAY_OPT_WRAP, value: 'Wrap filters if limited space' },
+              ]}
+              onSelected={(id) => setDisplayOption(id)}
+            />
+          </div>
+        }
         onActionChange={handleExpressionActionChange}
         onAddCondition={handleAddCondition}
         onAddGroup={handleAddGroup}
@@ -245,6 +264,7 @@ export const ExpressionContainer: FunctionComponent<ExpressionContainerProps> = 
               <ExpressionConditionRow
                 key={row.key}
                 row={i + 1}
+                wrap={displayOption === DISPLAY_OPT_WRAP}
                 resourceTypes={row.resourceTypes}
                 resourceType={row.resourceType}
                 resourceSelectItems={row.resourceSelectItems}
@@ -277,6 +297,7 @@ export const ExpressionContainer: FunctionComponent<ExpressionContainerProps> = 
                     key={childRow.key}
                     group={i + 1}
                     row={k + 1}
+                    wrap={displayOption === DISPLAY_OPT_WRAP}
                     resourceTypes={childRow.resourceTypes}
                     resourceType={childRow.resourceType}
                     resourceSelectItems={childRow.resourceSelectItems}

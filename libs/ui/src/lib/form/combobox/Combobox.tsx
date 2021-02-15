@@ -2,6 +2,7 @@ import { logger } from '@jetstream/shared/client-logger';
 import {
   isArrowDownKey,
   isArrowUpKey,
+  isEnterKey,
   isEnterOrSpace,
   isEscapeKey,
   menuItemSelectScroll,
@@ -58,6 +59,7 @@ export interface ComboboxProps {
   errorMessageId?: string;
   errorMessage?: React.ReactNode | string;
   onInputChange?: (value: string) => void;
+  onInputEnter?: () => void;
   onLeadingDropdownChange?: (item: FormGroupDropdownItem) => void;
 }
 
@@ -116,6 +118,7 @@ const ComboboxElement: FunctionComponent<ComboboxProps & { icon: JSX.Element }> 
   errorMessage,
   children,
   onInputChange,
+  onInputEnter,
   onLeadingDropdownChange,
 }) => {
   const [isOpen, setIsOpen] = useState<boolean>(false);
@@ -148,6 +151,7 @@ const ComboboxElement: FunctionComponent<ComboboxProps & { icon: JSX.Element }> 
     if (isOpen) {
       setValue('');
     } else {
+      setFocusedItem(null);
       if (value !== (selectedItemLabel || '')) {
         setValue(selectedItemLabel || '');
       }
@@ -265,8 +269,16 @@ const ComboboxElement: FunctionComponent<ComboboxProps & { icon: JSX.Element }> 
   function handleInputKeyUp(event: KeyboardEvent<HTMLInputElement>) {
     if (isArrowUpKey(event)) {
       setFocusedItem(elRefs.current.length - 1);
+      if (!isOpen) {
+        setIsOpen(true);
+      }
     } else if (isArrowDownKey(event)) {
       setFocusedItem(0);
+      if (!isOpen) {
+        setIsOpen(true);
+      }
+    } else if (isEnterKey(event) && isOpen && onInputEnter) {
+      onInputEnter();
     } else {
       if (onInputChange) {
         onInputChange(event.currentTarget.value);

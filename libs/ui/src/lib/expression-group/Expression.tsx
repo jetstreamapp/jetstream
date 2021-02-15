@@ -8,6 +8,7 @@ export interface ExpressionProps {
   title?: string;
   actionHelpText?: string;
   actionLabel: string;
+  ancillaryOptions?: JSX.Element;
   onActionChange: (value: AndOr) => void;
   onAddCondition: () => void;
   onAddGroup: () => void;
@@ -18,6 +19,7 @@ export const Expression: FunctionComponent<ExpressionProps> = ({
   title,
   actionLabel,
   actionHelpText,
+  ancillaryOptions,
   children,
   onActionChange,
   onAddCondition,
@@ -26,7 +28,13 @@ export const Expression: FunctionComponent<ExpressionProps> = ({
   return (
     <div className="slds-expression">
       {title && <h2 className="slds-expression__title">{title}</h2>}
-      <ExpressionActionDropDown label={actionLabel} helpText={actionHelpText} value={value || 'AND'} onChange={onActionChange} />
+      <ExpressionActionDropDown
+        label={actionLabel}
+        helpText={actionHelpText}
+        value={value || 'AND'}
+        ancillaryOptions={ancillaryOptions}
+        onChange={onActionChange}
+      />
       <ul>{children}</ul>
       <div className="slds-expression__buttons">
         <button className="slds-button slds-button_neutral" onClick={() => onAddCondition()}>

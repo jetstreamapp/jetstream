@@ -22,6 +22,7 @@ export * from './lib/form/combobox/Combobox';
 export * from './lib/form/combobox/ComboboxListItem';
 export * from './lib/form/combobox/ComboboxListItemGroup';
 export * from './lib/form/combobox/ComboboxListItemLoadMore';
+export * from './lib/form/combobox/ComboboxWithItems';
 export * from './lib/form/date/DatePicker';
 export * from './lib/form/dropdown/DropDown';
 export * from './lib/form/file-selector/FileSelector';

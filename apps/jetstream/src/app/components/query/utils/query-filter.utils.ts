@@ -39,6 +39,36 @@ function isListOperator(operator: QueryFilterOperator): boolean {
   return operator === 'in' || operator === 'notIn' || operator === 'includes' || operator === 'excludes';
 }
 
+export function getPicklistSingleResourceTypes(): ListItem<ExpressionRowValueType>[] {
+  return [
+    {
+      id: 'picklistValue',
+      label: 'Picklist Value',
+      value: 'SELECT',
+    },
+    {
+      id: 'text',
+      label: 'Text',
+      value: 'TEXT',
+    },
+  ];
+}
+
+export function getPicklistMultiResourceTypes(): ListItem<ExpressionRowValueType>[] {
+  return [
+    {
+      id: 'picklistValue',
+      label: 'Picklist Value',
+      value: 'SELECT-MULTI',
+    },
+    {
+      id: 'text',
+      label: 'Text',
+      value: 'TEXTAREA',
+    },
+  ];
+}
+
 export function getDateResourceTypes(): ListItem<ExpressionRowValueType>[] {
   return [
     {
@@ -97,6 +127,35 @@ export function getTypeFromMetadata(type: FieldType, operator: QueryFilterOperat
   }
 }
 
+export function getFieldSelectItems(field: Field) {
+  switch (field.type) {
+    case 'date':
+    case 'datetime':
+      return getDateLiteralListItems();
+    case 'boolean':
+      return getBooleanListItems();
+    case 'picklist':
+    case 'multipicklist':
+      return getPicklistListItems(field);
+    default:
+      return [];
+  }
+}
+
+export function getFieldResourceTypes(field: Field, operator: QueryFilterOperator): ListItem<ExpressionRowValueType, any>[] {
+  if (field.type === 'picklist') {
+    if (isListOperator(operator)) {
+      return getPicklistMultiResourceTypes();
+    }
+    return getPicklistSingleResourceTypes();
+  } else if (field.type === 'date') {
+    return getDateResourceTypes();
+  } else if (field.type === 'datetime') {
+    return getDateTimeResourceTypes();
+  }
+  return undefined;
+}
+
 export function getResourceTypeFnsFromFields(fields: ListItemGroup[]): ExpressionGetResourceTypeFns {
   const getResourceTypeFns: ExpressionGetResourceTypeFns = {
     getTypes: (selected: ExpressionConditionRowSelectedItems): ListItem<ExpressionRowValueType>[] => {
@@ -104,21 +163,16 @@ export function getResourceTypeFnsFromFields(fields: ListItemGroup[]): Expressio
       if (!fieldMeta) {
         return undefined;
       }
-      if (fieldMeta.type === 'date') {
-        return getDateResourceTypes();
-      } else if (fieldMeta.type === 'datetime') {
-        return getDateTimeResourceTypes();
-      }
-      return undefined;
+      return getFieldResourceTypes(fieldMeta, selected.operator);
     },
     getType: (selected: ExpressionConditionRowSelectedItems): ExpressionRowValueType => {
       const fieldMeta: Field = findResourceMeta(fields, selected);
+      if (!fieldMeta) {
+        return undefined;
+      }
       // e.x. IN or NOT NULL
       if (selected.resourceType) {
         return selected.resourceType;
-      }
-      if (!fieldMeta) {
-        return undefined;
       }
       return getTypeFromMetadata(fieldMeta.type, selected.operator);
     },
@@ -143,18 +197,7 @@ export function getResourceTypeFnsFromFields(fields: ListItemGroup[]): Expressio
       if (!fieldMeta) {
         return [];
       }
-      switch (fieldMeta.type) {
-        case 'date':
-        case 'datetime':
-          return getDateLiteralListItems();
-        case 'boolean':
-          return getBooleanListItems();
-        case 'picklist':
-        case 'multipicklist':
-          return getPicklistListItems(fieldMeta);
-        default:
-          return [];
-      }
+      return getFieldSelectItems(fieldMeta);
     },
   };
   return getResourceTypeFns;
