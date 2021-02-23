@@ -1,4 +1,3 @@
-// eslint-disable-next-line @typescript-eslint/camelcase
 import { useDebounce } from '@jetstream/shared/ui-utils';
 import { multiWordObjectFilter } from '@jetstream/shared/utils';
 import {
@@ -20,6 +19,7 @@ import FormRowButton from '../form/button/FormRowButton';
 import Combobox from '../form/combobox/Combobox';
 import { ComboboxListItem } from '../form/combobox/ComboboxListItem';
 import { ComboboxListItemGroup } from '../form/combobox/ComboboxListItemGroup';
+import ComboboxWithItems from '../form/combobox/ComboboxWithItems';
 import DatePicker from '../form/date/DatePicker';
 import Input from '../form/input/Input';
 import Picklist from '../form/picklist/Picklist';
@@ -29,6 +29,7 @@ export interface ExpressionConditionRowProps {
   row: number;
   group?: number;
   AndOr?: AndOr;
+  wrap?: boolean;
   resourceLabel?: string;
   resourceHelpText?: string;
   operatorLabel?: string;
@@ -55,6 +56,7 @@ export const ExpressionConditionRow: FunctionComponent<ExpressionConditionRowPro
     row,
     group,
     AndOr,
+    wrap,
     resourceLabel = 'Resource',
     resourceHelpText,
     operatorLabel = 'Operator',
@@ -104,7 +106,7 @@ export const ExpressionConditionRow: FunctionComponent<ExpressionConditionRowPro
         setPicklistKey(`${new Date().getTime()}`);
       }
       // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [selected.value]);
+    }, [selected.value, selected.resourceType]);
 
     useEffect(() => {
       setDisableValueInput(disableValueForOperators.includes(selected.operator));
@@ -113,7 +115,16 @@ export const ExpressionConditionRow: FunctionComponent<ExpressionConditionRowPro
     useEffect(() => {
       let selectedType: ListItem<ExpressionRowValueType>;
       if (resourceTypes?.length) {
-        selectedType = resourceTypes.find((type) => type.value === resourceType) || resourceTypes[0];
+        // changing operator can change the resource type, some types are considered equivalent
+        if (resourceType === 'TEXT' || resourceType === 'TEXTAREA') {
+          selectedType = resourceTypes.find((type) => type.value === 'TEXT' || type.value === 'TEXTAREA');
+        } else if (resourceType === 'SELECT' || resourceType === 'SELECT-MULTI') {
+          selectedType = resourceTypes.find((type) => type.value === 'SELECT' || type.value === 'SELECT-MULTI');
+        } else {
+          selectedType = resourceTypes.find((type) => type.value === resourceType);
+        }
+        // fallback if no type match
+        selectedType = selectedType || resourceTypes[0];
         setSelectedResourceType([selectedType]);
       }
       if (!selectedType) {
@@ -162,13 +173,18 @@ export const ExpressionConditionRow: FunctionComponent<ExpressionConditionRowPro
     }
 
     return (
-      <li className={classNames('slds-expression__row', { 'slds-expression__row_group': isNumber(group) })}>
+      <li
+        className={classNames('slds-expression__row', {
+          'slds-expression__row_group': isNumber(group),
+          'slds-border_top': row > 1 && wrap,
+        })}
+      >
         <fieldset>
           <legend className="slds-expression__legend">
             {row !== 1 && AndOr && <span>{AndOr}</span>}
             <span className="slds-assistive-text">{`Condition ${row} ${group ? `Of Group ${group}` : ''}`}</span>
           </legend>
-          <div className="slds-grid slds-gutters_xx-small">
+          <div className={classNames('slds-grid slds-gutters_xx-small', { 'slds-wrap': wrap })}>
             {/* Resource */}
             <div className="slds-col">
               <Combobox
@@ -177,6 +193,15 @@ export const ExpressionConditionRow: FunctionComponent<ExpressionConditionRowPro
                 onInputChange={(filter) => setResourcesFilter(filter)}
                 selectedItemLabel={selectedResourceComboboxLabel}
                 selectedItemTitle={selectedResourceTitle}
+                onInputEnter={() => {
+                  const groupWithItems = visibleResources.findIndex((group) => group.items.length > 0);
+                  if (groupWithItems >= 0) {
+                    const group = visibleResources[groupWithItems];
+                    const item = group.items[0];
+                    setSelectedResourceComboboxLabel(getSelectionLabel(group.label, item));
+                    onChange({ ...selected, resource: item.id, resourceGroup: group.id, resourceMeta: item.meta });
+                  }
+                }}
               >
                 {visibleResources
                   .filter((group) => group.items.length > 0)
@@ -201,14 +226,14 @@ export const ExpressionConditionRow: FunctionComponent<ExpressionConditionRowPro
             </div>
             {/* Operator */}
             <div className="slds-col slds-grow-none">
-              <Picklist
-                label={operatorLabel}
-                labelHelp={operatorHelpText}
+              <ComboboxWithItems
+                comboboxProps={{
+                  label: operatorLabel,
+                  labelHelp: operatorHelpText,
+                }}
                 items={operators}
-                selectedItems={[initialSelectedOperator]}
-                allowDeselection={false}
-                scrollLength={10}
-                onChange={(items) => onChange({ ...selected, operator: items[0].value as QueryFilterOperator })}
+                selectedItemId={selected.operator}
+                onSelected={(item) => onChange({ ...selected, operator: item.value as QueryFilterOperator })}
               />
             </div>
             {/* Type (*Optional*) */}
@@ -272,7 +297,7 @@ export const ExpressionConditionRow: FunctionComponent<ExpressionConditionRowPro
                   label={valueLabel}
                   dropDownPosition="right"
                   onChange={(value) => setSelectValue(formatISO(value))}
-                  disabled={disableValueForOperators.includes(selectedValue as QueryFilterOperator)}
+                  disabled={disableValueInput}
                 />
               )}
               {resourceType === 'SELECT' && (
@@ -281,13 +306,13 @@ export const ExpressionConditionRow: FunctionComponent<ExpressionConditionRowPro
                   label={valueLabel}
                   items={resourceSelectItems || []}
                   selectedItemIds={selectedValue ? [selectedValue as string] : []}
-                  allowDeselection={false}
+                  allowDeselection
                   onChange={(item) => {
                     if (item && item[0]) {
                       setSelectValue(item[0].id);
                     }
                   }}
-                  disabled={disableValueForOperators.includes(selectedValue as QueryFilterOperator)}
+                  disabled={disableValueInput}
                 />
               )}
               {resourceType === 'SELECT-MULTI' && (
@@ -303,7 +328,7 @@ export const ExpressionConditionRow: FunctionComponent<ExpressionConditionRowPro
                       setSelectValue(items.map((item) => item.id));
                     }
                   }}
-                  disabled={disableValueForOperators.includes(selectedValue as QueryFilterOperator)}
+                  disabled={disableValueInput}
                 />
               )}
             </div>

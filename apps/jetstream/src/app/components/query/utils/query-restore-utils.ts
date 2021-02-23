@@ -11,10 +11,8 @@ import { orderStringsBy, REGEX } from '@jetstream/shared/utils';
 import {
   ExpressionConditionType,
   ExpressionGroupType,
-  ExpressionRowValueType,
   ExpressionType,
   FieldWrapper,
-  ListItem,
   ListItemGroup,
   MapOf,
   QueryFields,
@@ -48,7 +46,7 @@ import {
   getSubqueryFieldBaseKey,
   initQueryFieldStateItem,
 } from './query-fields-utils';
-import { getDateResourceTypes, getDateTimeResourceTypes, getTypeFromMetadata } from './query-filter.utils';
+import { getFieldResourceTypes, getFieldSelectItems, getTypeFromMetadata } from './query-filter.utils';
 import { calculateFilterAndOrderByListGroupFields } from './query-utils';
 
 interface QueryRestoreMetadataTree {
@@ -286,19 +284,16 @@ function flattenWhereClause(
       const foundField = fieldWrapperWithParentKey[condition.field.toLowerCase()];
       const { fieldMetadata, fieldKey, parentKey } = foundField;
       const field = fieldMetadata.metadata;
-      let resourceTypes: ListItem<ExpressionRowValueType, any>[] = undefined;
       const operator = getOperatorFromWhereClause(condition.operator, condition.value as string, priorConditionIsNegation);
-      if (field.type === 'date') {
-        resourceTypes = getDateResourceTypes();
-      } else if (field.type === 'datetime') {
-        resourceTypes = getDateTimeResourceTypes();
-      }
+
       if (field) {
         expressionCondition = {
           key: currKey,
-          resourceSelectItems: [],
+          resourceSelectItems: getFieldSelectItems(field),
+          // FIXME: for picklist restore, what if one or more values are not valid in metadata?
+          // we could turn into text/area instead
           resourceType: getTypeFromMetadata(field.type, operator),
-          resourceTypes,
+          resourceTypes: getFieldResourceTypes(field, operator),
           selected: {
             resource: fieldKey,
             resourceMeta: fieldMetadata,

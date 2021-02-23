@@ -200,7 +200,7 @@ export const QueryBuilder: FunctionComponent<QueryBuilderProps> = () => {
               </button>
               <QueryResetButton />
               <ManualSoql isTooling={isTooling} />
-              <QueryHistory />
+              <QueryHistory selectedOrg={selectedOrg} />
               <ExecuteQueryButton soql={soql} isTooling={isTooling} selectedSObject={selectedSObject} />
             </PageHeaderActions>
           </PageHeaderRow>

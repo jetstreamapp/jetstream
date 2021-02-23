@@ -316,7 +316,7 @@ export const QueryResults: FunctionComponent<QueryResultsProps> = React.memo(() 
             <Icon type="utility" icon="refresh" className="slds-button__icon slds-button__icon_left" omitContainer />
             Re-load
           </button>
-          <QueryHistory onRestore={handleRestoreFromHistory} />
+          <QueryHistory selectedOrg={selectedOrg} onRestore={handleRestoreFromHistory} />
         </ToolbarItemGroup>
         <ToolbarItemActions>
           {/* FIXME: strongly type me! */}

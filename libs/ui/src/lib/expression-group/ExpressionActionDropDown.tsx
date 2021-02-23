@@ -6,6 +6,7 @@ export interface ExpressionActionDropDownProps {
   label: string;
   helpText?: string;
   value: AndOr;
+  ancillaryOptions?: JSX.Element;
   onChange: (value: AndOr) => void;
 }
 
@@ -23,11 +24,17 @@ function getInitSelected(value: AndOr) {
   }
 }
 
-export const ExpressionActionDropDown: FunctionComponent<ExpressionActionDropDownProps> = ({ label, helpText, value, onChange }) => {
+export const ExpressionActionDropDown: FunctionComponent<ExpressionActionDropDownProps> = ({
+  label,
+  helpText,
+  value,
+  ancillaryOptions,
+  onChange,
+}) => {
   const [selectedItem] = useState<ListItem[]>(getInitSelected(value));
 
   return (
-    <div className="slds-expression__options">
+    <div className="slds-expression__options slds-grid">
       <Picklist
         label={label}
         labelHelp={helpText}
@@ -36,6 +43,7 @@ export const ExpressionActionDropDown: FunctionComponent<ExpressionActionDropDow
         allowDeselection={false}
         onChange={(items) => onChange(items[0].id as AndOr)}
       />
+      {ancillaryOptions}
     </div>
   );
 };

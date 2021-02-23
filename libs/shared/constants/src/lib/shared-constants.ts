@@ -44,6 +44,7 @@ export const HTTP = {
     X_CACHE_EXP: 'X-CACHE-ECP',
     CONTENT_TYPE: 'Content-Type',
     X_MOCK_KEY: 'X-MOCK-KEY',
+    X_FORWARDED_FOR: 'X-FORWARDED-FOR',
     CONTENT_DISPOSITION: 'Content-Disposition',
   },
   CONTENT_TYPE: {

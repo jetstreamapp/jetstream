@@ -32,7 +32,7 @@ export const useQueryRestore = (
   options = options || {};
   const { silent, startRestore, endRestore } = options;
 
-  const rollbar = useRollbar(environment.rollbarClientAccessToken, environment.production ? 'production' : 'development');
+  const rollbar = useRollbar();
 
   const isMounted = useRef(null);
   const [errorMessage, setErrorMessage] = useState<string>();

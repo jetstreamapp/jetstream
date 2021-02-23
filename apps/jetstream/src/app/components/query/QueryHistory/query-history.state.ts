@@ -1,11 +1,17 @@
+import { logger } from '@jetstream/shared/client-logger';
 import { INDEXED_DB } from '@jetstream/shared/constants';
 import { describeSObject } from '@jetstream/shared/data';
-import { orderObjectsBy, REGEX } from '@jetstream/shared/utils';
+import { getMapOf, orderObjectsBy, REGEX } from '@jetstream/shared/utils';
 import { MapOf, QueryHistoryItem, QueryHistorySelection, SalesforceOrgUi } from '@jetstream/types';
+import addDays from 'date-fns/addDays';
+import isBefore from 'date-fns/isBefore';
+import startOfDay from 'date-fns/startOfDay';
 import localforage from 'localforage';
 import orderBy from 'lodash/orderBy';
 import { atom, selector } from 'recoil';
 import * as fromAppState from '../../../app-state';
+
+let didRunCleanup = false;
 
 const defaultSelectedObject: QueryHistorySelection = {
   key: 'all',
@@ -13,6 +19,48 @@ const defaultSelectedObject: QueryHistorySelection = {
   label: 'All Objects',
   isTooling: false,
 };
+
+/**
+ * If query history grows to a very large size,
+ * prune older entries
+ */
+export async function cleanUpHistoryState(): Promise<MapOf<QueryHistoryItem> | undefined> {
+  const ITEMS_UNTIL_PRUNE = 750; // require this many items before taking action
+  const DAYS_TO_KEEP = 90; // if action is taken, remove items older than this, keep all others
+  try {
+    if (didRunCleanup) {
+      return;
+    }
+    didRunCleanup = true;
+    const history = await initQueryHistory();
+    if (Object.keys(history).length > ITEMS_UNTIL_PRUNE) {
+      logger.info('[QUERY-HISTORY][CLEANUP]', 'Cleaning up query history');
+      const dateCutOff = startOfDay(addDays(new Date(), -1 * DAYS_TO_KEEP));
+      const itemsToKeep = getMapOf(
+        Object.values(history).filter((item) => {
+          // keep favorites no matter what
+          if (item.isFavorite) {
+            return true;
+          }
+          // Remove if older than DAYS_TO_KEEP
+          return isBefore(dateCutOff, item.lastRun);
+        }),
+        'key'
+      );
+
+      if (Object.keys(history).length === Object.keys(itemsToKeep).length) {
+        logger.info('[QUERY-HISTORY][CLEANUP]', 'No items to cleanup');
+        return;
+      }
+
+      logger.info('[QUERY-HISTORY][CLEANUP]', 'Keeping items', itemsToKeep);
+      await localforage.setItem<MapOf<QueryHistoryItem>>(INDEXED_DB.KEYS.queryHistory, itemsToKeep);
+      return itemsToKeep;
+    }
+  } catch (ex) {
+    logger.warn('[QUERY-HISTORY][CLEANUP]', 'Error cleaning up query history', ex);
+  }
+}
 
 function initQueryHistory(): Promise<MapOf<QueryHistoryItem>> {
   return localforage.getItem<MapOf<QueryHistoryItem>>(INDEXED_DB.KEYS.queryHistory);
@@ -46,6 +94,7 @@ export async function getQueryHistoryItem(
     lastRun: new Date(),
     created: new Date(),
     isTooling,
+    isFavorite: false,
   };
   return queryHistoryItem;
 }
@@ -62,22 +111,46 @@ export const queryHistoryState = atom<MapOf<QueryHistoryItem>>({
   default: initQueryHistory(),
 });
 
-export const selectQueryHistoryForOrg = selector({
-  key: 'queryHistory.selectQueryHistoryForOrg',
+export const queryHistoryWhichType = atom<'HISTORY' | 'SAVED'>({
+  key: 'queryHistory.queryHistoryWhichType',
+  default: 'HISTORY',
+});
+
+export const queryHistoryWhichOrg = atom<'ALL' | 'SELECTED'>({
+  key: 'queryHistory.queryHistoryWhichOrg',
+  default: 'SELECTED',
+});
+
+/**
+ * Returns based on selected org and either all items or saved items
+ */
+const selectQueryHistoryItems = selector({
+  key: 'queryHistory.selectQueryHistoryItems',
   get: ({ get }) => {
+    const whichOrg = get(queryHistoryWhichOrg);
+    const whichType = get(queryHistoryWhichType);
     const queryHistoryItems = get(queryHistoryState);
     const selectedOrg = get(fromAppState.selectedOrgState);
     if (!selectedOrg || !queryHistoryItems) {
       return [];
     }
-    return Object.values(queryHistoryItems).filter((item) => item.org === selectedOrg.uniqueId);
+
+    return Object.values(queryHistoryItems).filter((item) => {
+      if (whichOrg === 'SELECTED' && item.org !== selectedOrg.uniqueId) {
+        return false;
+      }
+      if (whichType === 'SAVED' && !item.isFavorite) {
+        return false;
+      }
+      return true;
+    });
   },
 });
 
 export const selectQueryHistoryState = selector({
   key: 'queryHistory.selectQueryHistoryState',
   get: ({ get }) => {
-    const queryHistoryItems = get(selectQueryHistoryForOrg);
+    const queryHistoryItems = get(selectQueryHistoryItems);
     const selectedObject = get(selectedObjectState);
     return orderBy(
       queryHistoryItems.filter((item) => {
@@ -98,7 +171,7 @@ export const selectQueryHistoryState = selector({
 export const selectObjectsList = selector<QueryHistorySelection[]>({
   key: 'queryHistory.selectObjectsList',
   get: ({ get }) => {
-    const queryHistoryItems = get(selectQueryHistoryForOrg);
+    const queryHistoryItems = get(selectQueryHistoryItems);
     const objectList = Object.values(
       queryHistoryItems.reduce((items: MapOf<QueryHistorySelection>, item) => {
         items[item.sObject] = {
