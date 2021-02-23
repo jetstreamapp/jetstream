@@ -4,7 +4,7 @@ import { jsx } from '@emotion/react';
 import { QueryResults } from '@jetstream/api-interfaces';
 import { logger } from '@jetstream/shared/client-logger';
 import { queryMore } from '@jetstream/shared/data';
-import { formatNumber, polyfillFieldDefinition } from '@jetstream/shared/ui-utils';
+import { formatNumber } from '@jetstream/shared/ui-utils';
 import { MapOf, SalesforceOrgUi } from '@jetstream/types';
 import { Field } from 'jsforce';
 import uniqueId from 'lodash/uniqueId';
@@ -15,6 +15,7 @@ import AutoFullHeightContainer from '../layout/AutoFullHeightContainer';
 import Spinner from '../widgets/Spinner';
 import './data-table-styles.scss';
 import {
+  addFieldLabelToColumn,
   DataTableContext,
   getColumnDefinitions,
   getCurrentColumnOrder,
@@ -40,6 +41,7 @@ export interface SalesforceRecordDataTableProps {
   serverUrl: string;
   queryResults: QueryResults<any>;
   fieldMetadata: MapOf<Field>;
+  fieldMetadataSubquery: MapOf<MapOf<Field>>;
   summaryHeaderRightContent?: ReactNode;
   onSelectionChanged: (rows: any[]) => void;
   onFilteredRowsChanged: (rows: any[]) => void;
@@ -58,6 +60,7 @@ export const SalesforceRecordDataTable: FunctionComponent<SalesforceRecordDataTa
     serverUrl,
     queryResults,
     fieldMetadata,
+    fieldMetadataSubquery,
     summaryHeaderRightContent,
     onSelectionChanged,
     onFilteredRowsChanged,
@@ -101,36 +104,29 @@ export const SalesforceRecordDataTable: FunctionComponent<SalesforceRecordDataTa
     }, [queryResults]);
 
     /**
-     *
-     * FIXME:
-     * This is a WIP
-     *
-     * This shows the field label instead of the field name for queries
-     * BUT:
-     * 1. it is not configurable (WHO CARES - AS-S IS FINE)
-     * 2. may not work on subquery table (WOULD BE NICE...)
-     * 3. does not apply to downloaded data (PROBABLY OK AS-IS)
-     * 4. have not tested complex or aggregate queries
-     *   - AGGREGATE - if alias is the same as a field name, the field name is used (e.x. name an alias "id")
-     *   - SELECT Count(Id) id, AccountId FROM Contact GROUP BY AccountId
-     *
+     * When metadata is obtained, update the grid columns to include field labels
      */
-
     useEffect(() => {
       if (fieldMetadata && gridApi) {
-        const columnDefinitions = getColumnDefinitions(queryResults, isTooling).parentColumns;
-        // set field api name and label
-        columnDefinitions.forEach((col) => {
-          if (fieldMetadata[col.field?.toLowerCase()]?.label) {
-            const label = fieldMetadata[col.field.toLowerCase()].label;
-            col.headerName = `${col.field} (${label})`;
-            col.headerTooltip = `${col.field} - ${label} (${polyfillFieldDefinition(fieldMetadata[col.field.toLowerCase()])})`;
+        const columnDefinitions = getColumnDefinitions(queryResults, isTooling);
+        const parentColumnDefinitions = columnDefinitions.parentColumns;
+        const childColumnDefinitions = columnDefinitions.subqueryColumns;
+        addFieldLabelToColumn(parentColumnDefinitions, fieldMetadata);
+
+        if (fieldMetadataSubquery) {
+          // If there are subqueries, update field definition
+          for (const key in childColumnDefinitions) {
+            if (fieldMetadataSubquery[key.toLowerCase()]) {
+              addFieldLabelToColumn(childColumnDefinitions[key], fieldMetadataSubquery[key.toLowerCase()]);
+            }
           }
-        });
-        gridApi.setColumnDefs(columnDefinitions);
-        setColumns(columnDefinitions);
+        }
+
+        gridApi.setColumnDefs(parentColumnDefinitions);
+        setColumns(parentColumnDefinitions);
+        setColumnDefinitions(columnDefinitions);
       }
-    }, [fieldMetadata, gridApi, isTooling, queryResults]);
+    }, [fieldMetadata, fieldMetadataSubquery, gridApi, isTooling, queryResults]);
 
     function handleSelectionChanged(event: SelectionChangedEvent) {
       if (onSelectionChanged) {

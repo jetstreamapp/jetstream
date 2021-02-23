@@ -85,7 +85,7 @@ export const QueryResults: FunctionComponent<QueryResultsProps> = React.memo(() 
   const [cloneEditViewRecord, setCloneEditViewRecord] = useState<{ action: CloneEditView; sobjectName: string; recordId: string }>();
   const [restore] = useQueryRestore(soql, isTooling, { silent: true });
 
-  const { fieldMetadata } = useQueryResultsFetchMetadata(selectedOrg, queryResults?.parsedQuery);
+  const { fieldMetadata, fieldMetadataSubquery } = useQueryResultsFetchMetadata(selectedOrg, queryResults?.parsedQuery);
 
   useEffect(() => {
     isMounted.current = true;
@@ -426,6 +426,7 @@ export const QueryResults: FunctionComponent<QueryResultsProps> = React.memo(() 
                 serverUrl={serverUrl}
                 queryResults={queryResults}
                 fieldMetadata={fieldMetadata}
+                fieldMetadataSubquery={fieldMetadataSubquery}
                 summaryHeaderRightContent={
                   <div dir="rtl">
                     <IncludeDeletedRecordsToggle />

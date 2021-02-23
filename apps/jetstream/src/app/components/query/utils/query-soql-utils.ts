@@ -34,6 +34,8 @@ export interface SoqlFetchMetadataOutput {
     [childRelationshipName: string]: {
       objectMetadata: DescribeSObjectResult;
       metadataTree: MapOf<SoqlMetadataTree>;
+      // includes full path
+      lowercaseFieldMap: MapOf<Field>;
     };
   };
   // includes full path
@@ -84,6 +86,7 @@ export async function fetchMetadataFromSoql(
   const parsableFields = includeEntireQuery ? getFieldsFromAllPartsOfQuery(query) : getParsableFields(query.fields);
   output.metadata = await fetchAllMetadata(org, isTooling, rootSobjectDescribe, parsableFields.fields);
 
+  // add entries to lowercaseFieldMap for all related objects
   getLowercaseFieldMapWithFullPath(output.metadata, output.lowercaseFieldMap);
 
   for (const childRelationship in parsableFields.subqueries) {
@@ -101,7 +104,14 @@ export async function fetchMetadataFromSoql(
           parsableFields.subqueries[childRelationship],
           childRelationship
         ),
+        lowercaseFieldMap: getLowercaseFieldMap(rootSobjectChildDescribe.fields),
       };
+
+      // add entries to lowercaseFieldMap for all related objects
+      getLowercaseFieldMapWithFullPath(
+        output.childMetadata[childRelationship].metadataTree,
+        output.childMetadata[childRelationship].lowercaseFieldMap
+      );
     }
   }
   // return output as SoqlFetchMetadataOutput;
