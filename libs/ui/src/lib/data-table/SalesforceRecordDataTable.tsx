@@ -4,7 +4,7 @@ import { jsx } from '@emotion/react';
 import { QueryResults } from '@jetstream/api-interfaces';
 import { logger } from '@jetstream/shared/client-logger';
 import { queryMore } from '@jetstream/shared/data';
-import { formatNumber } from '@jetstream/shared/ui-utils';
+import { formatNumber, polyfillFieldDefinition } from '@jetstream/shared/ui-utils';
 import { MapOf, SalesforceOrgUi } from '@jetstream/types';
 import { Field } from 'jsforce';
 import uniqueId from 'lodash/uniqueId';
@@ -107,24 +107,26 @@ export const SalesforceRecordDataTable: FunctionComponent<SalesforceRecordDataTa
      *
      * This shows the field label instead of the field name for queries
      * BUT:
-     * 1. it is not configurable
-     * 2. may not work on subquery table
-     * 3. does not apply to downloaded data
+     * 1. it is not configurable (WHO CARES - AS-S IS FINE)
+     * 2. may not work on subquery table (WOULD BE NICE...)
+     * 3. does not apply to downloaded data (PROBABLY OK AS-IS)
      * 4. have not tested complex or aggregate queries
-     *
-     * Would be nice if:
-     * 1. we could show both (or at least allow user to choose)
-     * 2. on download, we could ask the user which to include (important because of loading in downloaded data is better with API names)
-     * 3. Would be cool to show other, better, metadata in tooltip (e.x. type, description, etc..)
-     *
-     * The header custom renderer is tricky - so it may not be worth it
+     *   - AGGREGATE - if alias is the same as a field name, the field name is used (e.x. name an alias "id")
+     *   - SELECT Count(Id) id, AccountId FROM Contact GROUP BY AccountId
      *
      */
 
     useEffect(() => {
       if (fieldMetadata && gridApi) {
         const columnDefinitions = getColumnDefinitions(queryResults, isTooling).parentColumns;
-        columnDefinitions.forEach((col) => (col.headerName = fieldMetadata[col.field?.toLowerCase()]?.label || col.headerName));
+        // set field api name and label
+        columnDefinitions.forEach((col) => {
+          if (fieldMetadata[col.field?.toLowerCase()]?.label) {
+            const label = fieldMetadata[col.field.toLowerCase()].label;
+            col.headerName = `${col.field} (${label})`;
+            col.headerTooltip = `${col.field} - ${label} (${polyfillFieldDefinition(fieldMetadata[col.field.toLowerCase()])})`;
+          }
+        });
         gridApi.setColumnDefs(columnDefinitions);
         setColumns(columnDefinitions);
       }
