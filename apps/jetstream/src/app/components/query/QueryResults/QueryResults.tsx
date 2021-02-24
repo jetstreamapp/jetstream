@@ -131,6 +131,7 @@ export const QueryResults: FunctionComponent<QueryResultsProps> = React.memo(() 
           if (queryHistory && queryHistory[queryHistoryItem.key]) {
             queryHistoryItem.runCount = queryHistory[queryHistoryItem.key].runCount + 1;
             queryHistoryItem.created = queryHistory[queryHistoryItem.key].created;
+            queryHistoryItem.isFavorite = queryHistory[queryHistoryItem.key].isFavorite;
           }
           setQueryHistory({ ...queryHistory, [queryHistoryItem.key]: queryHistoryItem });
         })

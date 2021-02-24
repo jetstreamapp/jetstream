@@ -87,6 +87,8 @@ export const QueryHistory: FunctionComponent<QueryHistoryProps> = ({ selectedOrg
       resetSelectedObject();
       setFilterValue('');
       setSqlFilterValue('');
+      resetWhichType();
+      resetWhichOrg();
     }
   }, [isOpen, resetSelectedObject, showingUpTo]);
 
