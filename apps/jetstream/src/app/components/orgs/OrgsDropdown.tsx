@@ -1,18 +1,24 @@
 /** @jsx jsx */
 import { jsx } from '@emotion/react';
-import { clearCacheForOrg, clearQueryHistoryForOrg, deleteOrg, getOrgs, updateOrg } from '@jetstream/shared/data';
+import { clearCacheForOrg, clearQueryHistoryForOrg, deleteOrg, getOrgs, query, updateOrg } from '@jetstream/shared/data';
 import { SalesforceOrgUi } from '@jetstream/types';
-import { Badge } from '@jetstream/ui';
+import { Badge, Icon, Tooltip } from '@jetstream/ui';
 import classNames from 'classnames';
 import orderBy from 'lodash/orderBy';
 import uniqBy from 'lodash/uniqBy';
-import { Fragment, FunctionComponent, useState } from 'react';
+import { Fragment, FunctionComponent, useEffect, useState } from 'react';
 import { useRecoilState, useRecoilValue, useSetRecoilState } from 'recoil';
 import * as fromAppState from '../../app-state';
 import OrgsCombobox from '../../components/core/OrgsCombobox';
 import AddOrg from './AddOrg';
 import OrgInfoPopover from './OrgInfoPopover';
 import OrgPersistence from './OrgPersistence';
+
+interface UserPermissionAccess {
+  Id: string;
+  PermissionsModifyAllData: boolean;
+  PermissionsModifyMetadata: boolean;
+}
 
 export const OrgsDropdown: FunctionComponent = () => {
   // Recoil needs to fix this
@@ -21,6 +27,20 @@ export const OrgsDropdown: FunctionComponent = () => {
   const selectedOrg = useRecoilValue<SalesforceOrgUi>(fromAppState.selectedOrgState);
   const orgType = useRecoilValue(fromAppState.selectedOrgType);
   const [orgLoading, setOrgLoading] = useState(false);
+  const [hasMetadataAccess, setHasMetadataAccess] = useState(true);
+
+  useEffect(() => {
+    if (selectedOrg) {
+      query<UserPermissionAccess>(
+        selectedOrg,
+        'SELECT Id, PermissionsModifyAllData, PermissionsModifyMetadata FROM UserPermissionAccess'
+      ).then(({ queryResults }) => {
+        if (queryResults.records.length > 0) {
+          setHasMetadataAccess(queryResults.records[0].PermissionsModifyAllData || queryResults.records[0].PermissionsModifyMetadata);
+        }
+      });
+    }
+  });
 
   /**
    *
@@ -65,13 +85,24 @@ export const OrgsDropdown: FunctionComponent = () => {
     <Fragment>
       <OrgPersistence />
       <div className="slds-grid slds-grid-no-wrap">
-        {
-          <div className={classNames('slds-col slds-p-around_xx-small')}>
-            <Badge type={orgType === 'Production' ? 'warning' : 'light'} title={orgType}>
-              {orgType}
-            </Badge>
-          </div>
-        }
+        {!hasMetadataAccess && (
+          <Tooltip
+            id={`limited-org-access`}
+            content={`Your user does not have the permission "Modify Metadata Through Metadata API Functions" Or "Modify All Data". Some Jetstream features will not work properly.`}
+          >
+            <div className={classNames('slds-col slds-p-around_xx-small')}>
+              <Badge type="warning" title="Limited Access">
+                <Icon type="utility" icon="warning" className="slds-icon_xx-small slds-m-right_xx-small" />
+                Limited Access
+              </Badge>
+            </div>
+          </Tooltip>
+        )}
+        <div className={classNames('slds-col slds-p-around_xx-small')}>
+          <Badge type={orgType === 'Production' ? 'warning' : 'light'} title={orgType}>
+            {orgType}
+          </Badge>
+        </div>
         <OrgsCombobox orgs={orgs} selectedOrg={selectedOrg} onSelected={(org: SalesforceOrgUi) => setSelectedOrgId(org.uniqueId)} />
         {selectedOrg && (
           <div className="slds-col slds-m-left--xx-small slds-p-top--xx-small">
