@@ -143,7 +143,7 @@ export function getFieldSelectItems(field: Field) {
 }
 
 export function getFieldResourceTypes(field: Field, operator: QueryFilterOperator): ListItem<ExpressionRowValueType, any>[] {
-  if (field.type === 'picklist') {
+  if (field.type === 'picklist' || field.type === 'multipicklist') {
     if (isListOperator(operator)) {
       return getPicklistMultiResourceTypes();
     }
