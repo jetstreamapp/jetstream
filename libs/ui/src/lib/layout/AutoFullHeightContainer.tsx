@@ -36,12 +36,6 @@ export class AutoFullHeightContainer extends Component<AutoFullHeightContainerPr
     }
   };
 
-  // componentDidMount() {
-  //   this.setState({
-  //     topPosition: this.getElementTopPosition(),
-  //   });
-  // }
-
   getElementTopPosition = () => {
     return this.ref?.getBoundingClientRect().top || this.props.bufferIfNotRendered || 0;
   };
@@ -49,7 +43,9 @@ export class AutoFullHeightContainer extends Component<AutoFullHeightContainerPr
   render() {
     const { bottomBuffer, bufferIfNotRendered, className, baseCss, fillHeight = true, setHeightAttr, children } = this.props;
     const topPosition = this.state.topPosition || bufferIfNotRendered || 0;
-    const heightStr = `calc(100vh - ${topPosition + (bottomBuffer || 0)}px);`;
+    const maxHeightStr = `calc(100vh - ${topPosition + (bottomBuffer || 0)}px);`;
+    // make the min height string slightly smaller in attempt to limit possible scrollbar creep
+    const minHeightStr = `calc(100vh - ${topPosition + (bottomBuffer || 0) + 10}px);`;
     return (
       <div
         className={className}
@@ -57,9 +53,9 @@ export class AutoFullHeightContainer extends Component<AutoFullHeightContainerPr
         css={css`
           position: relative;
           ${baseCss || ''}
-          max-height: ${heightStr}
-          ${fillHeight && `min-height: ${heightStr}`}
-          ${setHeightAttr && `height: ${heightStr}`}
+          max-height: ${maxHeightStr}
+          ${fillHeight && `min-height: ${minHeightStr}`}
+          ${setHeightAttr && `height: ${maxHeightStr}`}
           overflow-y: auto;
         `}
       >

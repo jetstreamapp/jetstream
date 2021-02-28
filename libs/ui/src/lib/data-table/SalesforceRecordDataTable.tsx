@@ -206,7 +206,7 @@ export const SalesforceRecordDataTable: FunctionComponent<SalesforceRecordDataTa
             columnDefinitions,
           }}
         >
-          <AutoFullHeightContainer fillHeight setHeightAttr>
+          <AutoFullHeightContainer fillHeight setHeightAttr bottomBuffer={10}>
             <DataTable
               serverUrl={serverUrl}
               org={org}

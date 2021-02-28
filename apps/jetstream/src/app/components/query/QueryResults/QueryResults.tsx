@@ -362,6 +362,7 @@ export const QueryResults: FunctionComponent<QueryResultsProps> = React.memo(() 
         />
         <AutoFullHeightContainer
           className="slds-scrollable bg-white"
+          bottomBuffer={10}
           css={css`
             width: 100%;
           `}
