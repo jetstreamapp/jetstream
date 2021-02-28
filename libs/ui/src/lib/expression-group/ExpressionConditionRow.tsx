@@ -2,6 +2,7 @@ import { useDebounce } from '@jetstream/shared/ui-utils';
 import { multiWordObjectFilter } from '@jetstream/shared/utils';
 import {
   AndOr,
+  ExpressionConditionHelpText,
   ExpressionConditionRowSelectedItems,
   ExpressionRowValueType,
   ListItem,
@@ -36,6 +37,7 @@ export interface ExpressionConditionRowProps {
   operatorHelpText?: string;
   valueLabel?: string;
   valueLabelHelpText?: string;
+  rowHelpText?: ExpressionConditionHelpText;
   resources: ListItemGroup[];
   operators: ListItem<string, QueryFilterOperator>[];
   selected: ExpressionConditionRowSelectedItems;
@@ -63,6 +65,7 @@ export const ExpressionConditionRow: FunctionComponent<ExpressionConditionRowPro
     operatorHelpText,
     valueLabel = 'Value',
     valueLabelHelpText,
+    rowHelpText,
     resources,
     operators,
     selected,
@@ -342,6 +345,18 @@ export const ExpressionConditionRow: FunctionComponent<ExpressionConditionRowPro
             </div>
           </div>
         </fieldset>
+        {rowHelpText && (
+          <div className="slds-m-left_xx-large">
+            <span
+              className={classNames('slds-p-left_xx-small', {
+                'slds-text-color_weak': rowHelpText.type === 'hint',
+                'text-color_warning': rowHelpText.type === 'warning',
+              })}
+            >
+              {rowHelpText.value}
+            </span>
+          </div>
+        )}
       </li>
     );
   }

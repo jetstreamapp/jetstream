@@ -40,6 +40,14 @@
   background-color: $color-background-backdrop-tint;
 }
 
+.text-color_warning {
+  color: $color-text-warning-alt;
+}
+
+.text-color_inverse-warning {
+  color: $color-text-warning;
+}
+
 .slds-text-link {
   cursor: pointer;
   svg {
