@@ -1,5 +1,5 @@
 import classNames from 'classnames';
-import React, { FunctionComponent, RefObject } from 'react';
+import React, { Fragment, FunctionComponent, RefObject } from 'react';
 import HelpText from '../../widgets/HelpText';
 
 export interface CheckboxProps {
@@ -44,15 +44,17 @@ export const Checkbox: FunctionComponent<CheckboxProps> = ({
   return (
     <div className={classNames('slds-form-element', className, { 'slds-has-error': hasError })}>
       {isStandAlone && (
-        <label className="slds-form-element__label" htmlFor={id}>
-          {isRequired && (
-            <abbr className="slds-required" title="required">
-              *{' '}
-            </abbr>
-          )}
-          {label}
+        <Fragment>
+          <label className="slds-form-element__label" htmlFor={id}>
+            {isRequired && (
+              <abbr className="slds-required" title="required">
+                *{' '}
+              </abbr>
+            )}
+            {label}
+          </label>
           {labelHelp && <HelpText id={`${id}-label-help-text`} content={labelHelp} />}
-        </label>
+        </Fragment>
       )}
       <div className="slds-form-element__control">
         <div className={classNames('slds-checkbox', { 'slds-checkbox_standalone': isStandAlone }, checkboxClassName)}>
@@ -74,11 +76,13 @@ export const Checkbox: FunctionComponent<CheckboxProps> = ({
           />
           {isStandAlone && <span className="slds-checkbox_faux"></span>}
           {!isStandAlone && (
-            <label className="slds-checkbox__label" htmlFor={id}>
-              <span className="slds-checkbox_faux"></span>
-              <span className={classNames('slds-form-element__label', { 'slds-assistive-text': hideLabel })}>{label}</span>
+            <Fragment>
+              <label className="slds-checkbox__label" htmlFor={id}>
+                <span className="slds-checkbox_faux"></span>
+                <span className={classNames('slds-form-element__label', { 'slds-assistive-text': hideLabel })}>{label}</span>
+              </label>
               {labelHelp && <HelpText id={`${id}-label-help-text`} content={labelHelp} />}
-            </label>
+            </Fragment>
           )}
         </div>
       </div>

@@ -1,10 +1,16 @@
 import { ListItem, PicklistFieldValueItem } from '@jetstream/types';
 import { Field } from 'jsforce';
 
-export type EditableFields = EditableFieldInput | EditableFieldCheckbox | EditableFieldDate | EditableFieldTextarea | EditableFieldPicklist;
+export type EditableFields =
+  | EditableFieldInput
+  | EditableFieldCheckbox
+  | EditableFieldDate
+  | EditableFieldDateTime
+  | EditableFieldTextarea
+  | EditableFieldPicklist;
 
 export interface EditableField {
-  type: 'input' | 'textarea' | 'picklist' | 'date' | 'checkbox';
+  type: 'input' | 'textarea' | 'picklist' | 'date' | 'datetime' | 'checkbox';
   label: string;
   name: string;
   labelHelpText?: string;
@@ -33,6 +39,10 @@ export interface EditableFieldTextarea extends EditableField {
 export interface EditableFieldDate extends EditableField {
   type: 'date';
 }
+export interface EditableFieldDateTime extends EditableField {
+  type: 'datetime';
+}
+
 export interface EditableFieldPicklist extends EditableField {
   type: 'picklist';
   defaultValue: string | null;

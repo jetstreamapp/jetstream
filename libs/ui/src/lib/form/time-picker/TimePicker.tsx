@@ -1,7 +1,10 @@
 /* eslint-disable jsx-a11y/anchor-is-valid */
 import { useNonInitialEffect } from '@jetstream/shared/ui-utils';
 import { ListItem } from '@jetstream/types';
-import { addMinutes, format as formatDate, isSameDay, parse as parseDate } from 'date-fns';
+import addMinutes from 'date-fns/addMinutes';
+import formatDate from 'date-fns/format';
+import isSameDay from 'date-fns/isSameDay';
+import parseDate from 'date-fns/parse';
 import React, { FunctionComponent, useState } from 'react';
 import Picklist, { PicklistProps } from '../picklist/Picklist';
 
@@ -19,7 +22,7 @@ function generateTimeListItems(stepInMinutes: number) {
     const label = formatDate(currDate, 'p');
     const value = formatDate(currDate, 'HH:mm:ss.SSS');
     output.push({
-      id: label,
+      id: value,
       label,
       value,
     });

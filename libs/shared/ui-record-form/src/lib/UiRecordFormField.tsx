@@ -2,15 +2,16 @@
 import { css, jsx } from '@emotion/react';
 import { polyfillFieldDefinition } from '@jetstream/shared/ui-utils';
 import { ListItem, PicklistFieldValueItem } from '@jetstream/types';
-import { Checkbox, DatePicker, Grid, Icon, Input, Picklist, ReadOnlyFormElement, Textarea } from '@jetstream/ui';
+import { Checkbox, DatePicker, DateTime, Grid, Icon, Input, Picklist, ReadOnlyFormElement, Textarea } from '@jetstream/ui';
 import classNames from 'classnames';
+import formatDate from 'date-fns/format';
 import formatISO from 'date-fns/formatISO';
 import parseISO from 'date-fns/parseISO';
 import startOfDay from 'date-fns/startOfDay';
 import uniqueId from 'lodash/uniqueId';
 import { Fragment, FunctionComponent, ReactNode, SyntheticEvent, useEffect, useState } from 'react';
 import { EditableFields } from './ui-record-form-types';
-import { isCheckbox, isDate, isInput, isPicklist, isTextarea } from './ui-record-form-utils';
+import { isCheckbox, isDate, isDateTime, isInput, isPicklist, isTextarea } from './ui-record-form-utils';
 
 /* eslint-disable-next-line */
 export interface UiRecordFormFieldProps {
@@ -40,8 +41,10 @@ export const UiRecordFormField: FunctionComponent<UiRecordFormFieldProps> = ({
   const [key, setKey] = useState(getUndoKey(name));
   const [initialValue] = useState(() => {
     if (_initialValue) {
-      if (metadata.type === 'datetime' || metadata.type === 'date') {
+      if (metadata.type === 'date') {
         return formatISO(startOfDay(parseISO(_initialValue as string)));
+      } else if (metadata.type === 'datetime') {
+        return formatISO(parseISO(_initialValue as string));
       } else if (metadata.type === 'picklist') {
         return [_initialValue];
       } else if (metadata.type === 'multipicklist') {
@@ -55,6 +58,20 @@ export const UiRecordFormField: FunctionComponent<UiRecordFormFieldProps> = ({
   const [value, setValue] = useState(initialValue);
   const [isDirty, setIsDirty] = useState(false);
   const [helpText, setHelpText] = useState<ReactNode>();
+
+  const [initialSelectedDate] = useState(() => {
+    if (initialValue && (isDate(field) || isDateTime(field))) {
+      return parseISO(initialValue as string);
+    }
+  });
+
+  useEffect(() => {
+    if (showFieldTypes && !helpText) {
+      setHelpText(<span className="slds-text-color_weak">{polyfillFieldDefinition(metadata)}</span>);
+    } else if (!showFieldTypes && helpText) {
+      setHelpText(null);
+    }
+  }, [readOnly, showFieldTypes, metadata, helpText]);
 
   useEffect(() => {
     if (showFieldTypes && !helpText) {
@@ -107,9 +124,20 @@ export const UiRecordFormField: FunctionComponent<UiRecordFormFieldProps> = ({
   }
 
   function handleDateChange(currValue: Date) {
-    const newValue = formatISO(currValue);
-    setValue(newValue);
-    checkIfDirtyAndEmit(newValue);
+    let newValue = value as string;
+    try {
+      newValue = currValue ? formatISO(currValue) : '';
+    } catch (ex) {
+      // could not parse date - keeping old value
+    } finally {
+      setValue(newValue);
+      checkIfDirtyAndEmit(newValue || null);
+    }
+  }
+
+  function handleDateTimeChange(currValue: string) {
+    setValue(currValue);
+    checkIfDirtyAndEmit(currValue || null);
   }
 
   function handlePicklistValueChange(values: ListItem<string, PicklistFieldValueItem>[]) {
@@ -227,8 +255,32 @@ export const UiRecordFormField: FunctionComponent<UiRecordFormFieldProps> = ({
                 isRequired={!readOnly && required}
                 hasError={!!saveError}
                 errorMessageId={`${id}-error`}
-                initialSelectedDate={parseISO(value as string)}
+                initialSelectedDate={initialSelectedDate}
                 onChange={handleDateChange}
+              />
+            )}
+
+            {isDateTime(field) && (
+              <DateTime
+                key={key}
+                initialDateValue={initialSelectedDate}
+                dateProps={{
+                  id,
+                  label,
+                  className: 'slds-form-element_stacked slds-is-editing',
+                  containerDisplay: 'contents',
+                  errorMessage: saveError,
+                  labelHelp: labelHelpText,
+                  helpText: helpText,
+                  isRequired: !readOnly && required,
+                  hasError: !!saveError,
+                  errorMessageId: `${id}-error`,
+                }}
+                timeProps={{
+                  label: 'Time',
+                  className: 'slds-form-element_stacked slds-is-editing',
+                }}
+                onChange={handleDateTimeChange}
               />
             )}
 
