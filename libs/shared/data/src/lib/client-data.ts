@@ -42,6 +42,10 @@ export async function signUpNotify(email: string): Promise<DescribeGlobalResult>
 }
 
 //// APPLICATION ROUTES
+export async function checkHeartbeat(): Promise<{ version: string }> {
+  return handleRequest({ method: 'GET', url: '/api/heartbeat' }).then(unwrapResponseIgnoreCache);
+}
+
 export async function getUserProfile(): Promise<UserProfileUi> {
   return handleRequest({ method: 'GET', url: '/api/me' }).then(unwrapResponseIgnoreCache);
 }

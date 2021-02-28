@@ -7,11 +7,17 @@ import * as sfMiscController from '../controllers/sf-misc.controller';
 import * as sfQueryController from '../controllers/sf-query.controller';
 import * as userController from '../controllers/user.controller';
 import { addOrgsToLocal, checkAuth, ensureOrgExists, ensureTargetOrgExists, validate } from './route.middleware';
+import { sendJson } from '../utils/response.handlers';
 
 const routes: express.Router = Router();
 
 routes.use(checkAuth); // NOTE: all routes here must be authenticated
 routes.use(addOrgsToLocal);
+
+// used to make sure the user is authenticated and can communicate with the server
+routes.get('/heartbeat', (req: express.Request, res: express.Response) => {
+  sendJson(res, { version: process.env.GIT_VERSION || null });
+});
 
 routes.get('/me', userController.getUserProfile);
 

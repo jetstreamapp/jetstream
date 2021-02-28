@@ -178,11 +178,7 @@ export const DatePicker: FunctionComponent<DatePickerProps> = ({
           <button
             className="slds-button slds-button_icon slds-input__icon slds-input__icon_right"
             title="Select a date"
-            onClick={() => {
-              if (!isOpen) {
-                handleToggleOpen(true);
-              }
-            }}
+            onClick={() => handleToggleOpen(!isOpen)}
             disabled={disabled}
           >
             {!readOnly && <Icon type="utility" icon="event" className="slds-button__icon" omitContainer description="Select a date" />}

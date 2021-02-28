@@ -5,7 +5,6 @@ import Rollbar from 'rollbar';
 import { useNonInitialEffect } from './useNonInitialEffect';
 
 const VERSION = process.env.GIT_VERSION;
-console.log('[JETSTREAM VERSION]:', VERSION);
 
 const getRecentLogs = () => {
   try {
@@ -46,7 +45,7 @@ class RollbarConfig {
           // eslint-disable-next-line no-restricted-globals
           log: location.hostname !== 'localhost',
         },
-        hostBlackList: ['localhost'],
+        hostBlockList: ['localhost'],
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         onSendCallback: (_isUncaught: boolean, _args: Rollbar.LogArgument[], payload: any) => {
           payload = payload || {};

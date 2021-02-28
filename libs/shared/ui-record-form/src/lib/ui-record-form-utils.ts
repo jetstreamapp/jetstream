@@ -5,6 +5,7 @@ import isString from 'lodash/isString';
 import {
   EditableFieldCheckbox,
   EditableFieldDate,
+  EditableFieldDateTime,
   EditableFieldInput,
   EditableFieldPicklist,
   EditableFields,
@@ -14,7 +15,8 @@ import {
 const IGNORED_FIELD_TYPES = new Set<FieldType>(['address', 'location', 'complexvalue']);
 
 const CHECKBOX_FIELD_TYPES = new Set<FieldType>(['boolean']);
-const DATE_FIELD_TYPES = new Set<FieldType>(['date', 'datetime']);
+const DATE_FIELD_TYPES = new Set<FieldType>(['date']);
+const DATE_TIME_FIELD_TYPES = new Set<FieldType>(['datetime']);
 const PICKLIST_FIELD_TYPES = new Set<FieldType>(['combobox', 'picklist', 'multipicklist']);
 const TEXTAREA_FIELD_TYPES = new Set<FieldType>(['textarea']);
 const NUMBER_TYPES = new Set<FieldType>(['int', 'double', 'currency', 'percent']);
@@ -33,6 +35,10 @@ export function isTextarea(value: any): value is EditableFieldTextarea {
 
 export function isDate(value: any): value is EditableFieldDate {
   return value && value.type === 'date';
+}
+
+export function isDateTime(value: any): value is EditableFieldDateTime {
+  return value && value.type === 'datetime';
 }
 
 export function isPicklist(value: any): value is EditableFieldPicklist {
@@ -65,6 +71,8 @@ export function convertMetadataToEditableFields(
         (output as EditableFieldTextarea).isRichTextarea = field.extraTypeInfo === 'richtextarea';
       } else if (DATE_FIELD_TYPES.has(field.type)) {
         output.type = 'date';
+      } else if (DATE_TIME_FIELD_TYPES.has(field.type)) {
+        output.type = 'datetime';
       } else if (TEXTAREA_FIELD_TYPES.has(field.type)) {
         output.type = 'textarea';
         (output as EditableFieldTextarea).maxLength = field.length || undefined;

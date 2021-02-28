@@ -1,16 +1,22 @@
+/* eslint-disable no-restricted-globals */
 import { logger } from '@jetstream/shared/client-logger';
 import { HTTP } from '@jetstream/shared/constants';
-import { registerMiddleware } from '@jetstream/shared/data';
+import { registerMiddleware, checkHeartbeat } from '@jetstream/shared/data';
 import { useObservable, useRollbar } from '@jetstream/shared/ui-utils';
 import { ApplicationCookie, SalesforceOrgUi, UserProfileUi } from '@jetstream/types';
 import { AxiosResponse } from 'axios';
 import localforage from 'localforage';
-import React, { Fragment, FunctionComponent, useEffect } from 'react';
+import React, { Fragment, FunctionComponent, useCallback, useEffect } from 'react';
 import { useRecoilState, useRecoilValue } from 'recoil';
 import { Subject } from 'rxjs';
 import { environment } from '../../../environments/environment';
 import * as fromAppState from '../../app-state';
 import { useAmplitude, usePageViews } from './analytics';
+
+const browserVersion = process.env.GIT_VERSION;
+if (browserVersion) {
+  console.log('JETSTREAM VERSION:', browserVersion);
+}
 
 const orgConnectionError = new Subject<{ uniqueId: string; connectionError: string }>();
 const orgConnectionError$ = orgConnectionError.asObservable();
@@ -65,6 +71,31 @@ export const AppInitializer: FunctionComponent<AppInitializerProps> = ({ onUserP
       onUserProfile(userProfile);
     }
   }, [onUserProfile, userProfile]);
+
+  /**
+   * When a tab/browser window becomes visible check with the server
+   * 1. ensure user is still authenticated
+   * 2. make sure the app version has not changed, if it has then refresh the page
+   */
+  const handleWindowFocus = useCallback(async (event: FocusEvent) => {
+    try {
+      if (document.visibilityState === 'visible') {
+        const { version: serverVersion } = await checkHeartbeat();
+        // TODO: inform user that there is a new version and that they should refresh their browser.
+        // We could force refresh, but don't want to get into some weird infinite refresh state
+        if (browserVersion !== serverVersion) {
+          console.log('VERSION MISMATCH', { serverVersion, browserVersion });
+        }
+      }
+    } catch (ex) {
+      // ignore error, but user should have been logged out if this failed
+    }
+  }, []);
+
+  useEffect(() => {
+    document.addEventListener('visibilitychange', handleWindowFocus);
+    return () => document.removeEventListener('visibilitychange', handleWindowFocus);
+  }, [handleWindowFocus]);
 
   return <Fragment>{children}</Fragment>;
 };

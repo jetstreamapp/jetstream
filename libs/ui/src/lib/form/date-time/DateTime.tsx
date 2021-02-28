@@ -5,6 +5,7 @@ import React, { FunctionComponent, useState } from 'react';
 import DatePicker, { DatePickerProps } from '../date/DatePicker';
 import { PicklistProps } from '../picklist/Picklist';
 import TimePicker, { TimePickerProps } from '../time-picker/TimePicker';
+import formatDate from 'date-fns/format';
 
 export type PicklistPropsWithoutItems = Omit<
   PicklistProps,
@@ -16,24 +17,58 @@ export interface DateTimeProps {
   dateProps: Omit<DatePickerProps, 'onChange'>;
   timeProps: Omit<TimePickerProps, 'onChange'>;
   initialValue?: string;
+  initialDateValue?: Date;
   // ISO8601 date string
   onChange: (date: string) => void;
 }
 
-export const DateTime: FunctionComponent<DateTimeProps> = ({ legendLabel, dateProps, timeProps, initialValue, onChange }) => {
-  const [value, setValue] = useState(initialValue);
-  const [datePickerValue, setDatePickerValue] = useState<string>(null);
-  const [timeValue, setTimeValue] = useState<string>(null);
+const TIME_FORMAT = 'HH:mm:ss.SSS';
+
+export const DateTime: FunctionComponent<DateTimeProps> = ({
+  legendLabel,
+  dateProps,
+  timeProps,
+  initialValue,
+  initialDateValue,
+  onChange,
+}) => {
+  const [value, setValue] = useState(() => {
+    if (initialValue) {
+      return initialValue;
+    }
+    if (initialDateValue) {
+      return formatISO(initialDateValue);
+    }
+  });
+
+  const [datePickerValue, setDatePickerValue] = useState<string>(() => {
+    if (initialValue) {
+      return formatISO(parseISO(initialValue), { representation: 'date' });
+    }
+    if (initialDateValue) {
+      return formatISO(initialDateValue, { representation: 'date' });
+    }
+  });
+
+  const [timeValue, setTimeValue] = useState<string>(() => {
+    if (initialValue) {
+      return formatDate(parseISO(initialValue), TIME_FORMAT);
+    }
+    if (initialDateValue) {
+      return formatDate(initialDateValue, TIME_FORMAT);
+    }
+  });
 
   useNonInitialEffect(() => {
-    let newValue = null;
+    let newValue: string = null;
     if (datePickerValue && timeValue) {
       // combine date and time into ISO8601
-      newValue = formatISO(parseDate(timeValue, 'HH:mm:ss.SSS', parseISO(datePickerValue)));
+      newValue = formatISO(parseDate(timeValue, TIME_FORMAT, parseISO(datePickerValue)));
     } else if (datePickerValue) {
       newValue = formatISO(parseISO(datePickerValue));
     } else if (timeValue) {
-      newValue = formatISO(parseDate(timeValue, 'HH:mm:ss.SSS', new Date()));
+      // do not allow stand-alone timeValue
+      newValue = null;
     }
     if (value !== newValue) {
       setValue(newValue);
@@ -60,8 +95,8 @@ export const DateTime: FunctionComponent<DateTimeProps> = ({ legendLabel, datePr
         <div className="slds-form-element__group">
           <div className="slds-form-element__row">
             {/* FIXME: when moment is deprecated we should refactor */}
-            <DatePicker {...dateProps} onChange={handleDatePickerChange} />
-            <TimePicker {...timeProps} onChange={handleTimePickerChange} />
+            <DatePicker {...dateProps} initialSelectedDate={initialDateValue} onChange={handleDatePickerChange} />
+            <TimePicker {...timeProps} selectedItem={timeValue} onChange={handleTimePickerChange} />
           </div>
         </div>
       </div>

@@ -14,12 +14,19 @@ const METADATA_QUERY_ICON: IconObj = { type: 'standard', icon: 'settings', descr
 // eslint-disable-next-line @typescript-eslint/no-empty-interface
 export interface QueryHistoryItemCardProps {
   item: QueryHistoryItem;
+  onExecute: (item: QueryHistoryItem) => void;
   onSave: (item: QueryHistoryItem, value: boolean) => void;
   startRestore: () => void;
   endRestore: (isTooling: boolean, fatalError: boolean, errors?: any) => void;
 }
 
-export const QueryHistoryItemCard: FunctionComponent<QueryHistoryItemCardProps> = ({ item, onSave, startRestore, endRestore }) => {
+export const QueryHistoryItemCard: FunctionComponent<QueryHistoryItemCardProps> = ({
+  item,
+  onExecute,
+  onSave,
+  startRestore,
+  endRestore,
+}) => {
   const isMounted = useRef(null);
   const match = useRouteMatch();
   const [readyToRenderCode, setReadyToRenderCode] = useState(false);
@@ -76,6 +83,7 @@ export const QueryHistoryItemCard: FunctionComponent<QueryHistoryItemCardProps> 
             />
             <Link
               className="slds-button slds-button_neutral"
+              onClick={() => onExecute(item)}
               to={{
                 pathname: `${match.url}/results`,
                 state: {

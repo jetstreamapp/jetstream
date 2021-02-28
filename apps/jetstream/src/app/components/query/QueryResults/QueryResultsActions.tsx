@@ -50,7 +50,7 @@ export const QueryResultsActions: FunctionComponent<QueryResultsActionsProps> = 
   const [picklistValues, setPicklistValues] = useState<PicklistFieldValues>();
   const [initialRecord, setInitialRecord] = useState<Record>();
   const [modifiedRecord, setModifiedRecord] = useState<Record>();
-  const [isFromDirty, setIsFormDirty] = useState<boolean>(false);
+  const [formIsDirty, setIsFormDirty] = useState<boolean>(false);
   const [loading, setLoading] = useState<boolean>(false);
   const [saving, setSaving] = useState<boolean>(false);
   const [showReadOnlyFields, setShowReadOnlyFields] = useState<boolean>(true);
@@ -222,7 +222,7 @@ export const QueryResultsActions: FunctionComponent<QueryResultsActionsProps> = 
           header={modalTitle}
           tagline={`${sobjectName} - ${recordId}`}
           size="lg"
-          closeOnEsc={!loading && !saving}
+          closeOnEsc={!loading && !formIsDirty}
           footer={
             <Fragment>
               {action === 'view' && (
@@ -285,7 +285,7 @@ export const QueryResultsActions: FunctionComponent<QueryResultsActionsProps> = 
                     <button
                       className="slds-button slds-button_brand"
                       onClick={handleSave}
-                      disabled={(action === 'edit' && !isFromDirty) || loading || !initialRecord}
+                      disabled={(action === 'edit' && !formIsDirty) || loading || !initialRecord}
                     >
                       Save
                     </button>

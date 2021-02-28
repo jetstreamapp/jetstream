@@ -30,6 +30,8 @@ interface RouteItem {
   render: (props: RouteComponentProps<unknown>) => React.ReactNode;
 }
 
+let _userProfile: UserProfileUi;
+
 const ROUTES: RouteItem[] = [
   {
     path: '/query',
@@ -76,7 +78,7 @@ const ROUTES: RouteItem[] = [
       </OrgSelectionRequired>
     ),
   },
-  { path: '/feedback', render: () => <Feedback /> },
+  { path: '/feedback', render: () => <Feedback userProfile={_userProfile} /> },
   { path: '*', render: () => <Redirect to="/query" /> },
 ];
 
@@ -86,6 +88,7 @@ export const App = () => {
   const [routes, setRoutes] = useState<RouteItem[]>([]);
 
   useEffect(() => {
+    _userProfile = userProfile;
     if (userProfile && userProfile['http://getjetstream.app/app_metadata']?.featureFlags) {
       const flags = new Set<string>(userProfile['http://getjetstream.app/app_metadata'].featureFlags.flags);
       setRoutes(ROUTES.filter((route) => !route.flag || hasFeatureFlagAccess(flags, route.flag)));

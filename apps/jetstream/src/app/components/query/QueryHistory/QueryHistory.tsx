@@ -246,6 +246,7 @@ export const QueryHistory: FunctionComponent<QueryHistoryProps> = ({ selectedOrg
                   <QueryHistoryItemCard
                     key={item.key}
                     item={item}
+                    onExecute={() => onModalClose()}
                     onSave={handleSaveFavorite}
                     startRestore={handleStartRestore}
                     endRestore={(fatalError, errors) => handleEndRestore(item.soql, item.isTooling, fatalError, errors)}

@@ -202,6 +202,7 @@ export const ExpressionContainer: FunctionComponent<ExpressionContainerProps> = 
           mutableRow.resourceTypes = getResourceTypeFns.getTypes ? getResourceTypeFns.getTypes(selected) : undefined;
           mutableRow.resourceType = getResourceTypeFns.getType(selected);
           mutableRow.resourceSelectItems = getResourceTypeFns.getSelectItems(selected);
+          mutableRow.helpText = getResourceTypeFns?.getHelpText(selected);
           mutableRow.selected = getResourceTypeFns?.checkSelected(selected) || selected;
         } catch (ex) {
           logger.warn('Error setting resource type or selected items', ex);
@@ -274,6 +275,7 @@ export const ExpressionContainer: FunctionComponent<ExpressionContainerProps> = 
                 operatorHelpText={operatorHelpText}
                 valueLabel={valueLabel}
                 valueLabelHelpText={valueLabelHelpText}
+                rowHelpText={row.helpText}
                 AndOr={expression.action}
                 resources={resources}
                 operators={operators}
@@ -308,6 +310,7 @@ export const ExpressionContainer: FunctionComponent<ExpressionContainerProps> = 
                     operatorHelpText={operatorHelpText}
                     valueLabel={valueLabel}
                     valueLabelHelpText={valueLabelHelpText}
+                    rowHelpText={childRow.helpText}
                     resources={resources}
                     operators={operators}
                     selected={childRow.selected}
