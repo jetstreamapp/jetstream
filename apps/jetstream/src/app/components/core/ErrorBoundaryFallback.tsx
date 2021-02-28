@@ -5,12 +5,20 @@ import { FallbackProps } from 'react-error-boundary';
 import { logger } from '@jetstream/shared/client-logger';
 import { useRollbar } from '@jetstream/shared/ui-utils';
 
+// Check if error message was from a failed loading of chunk
+const chunkLoadingRegex = /Loading chunk [\d]+ failed/i;
+
 export const ErrorBoundaryFallback: FunctionComponent<FallbackProps> = ({ error, componentStack, resetErrorBoundary }) => {
   const rollbar = useRollbar();
 
   useEffect(() => {
     if (error && rollbar) {
       try {
+        // if loading chunk failed, refresh the browser
+        if (chunkLoadingRegex.test(error.message)) {
+          window.location.reload();
+          return;
+        }
         logger.error(error);
         logger.error(componentStack);
         rollbar.error(error.message, {
