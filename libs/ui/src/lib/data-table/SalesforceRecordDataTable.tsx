@@ -1,11 +1,12 @@
 /** @jsx jsx */
-import { ColDef, ColumnEvent, SelectionChangedEvent } from '@ag-grid-community/core';
+import { ColDef, ColumnEvent, GridApi, GridReadyEvent, SelectionChangedEvent } from '@ag-grid-community/core';
 import { jsx } from '@emotion/react';
 import { QueryResults } from '@jetstream/api-interfaces';
 import { logger } from '@jetstream/shared/client-logger';
 import { queryMore } from '@jetstream/shared/data';
 import { formatNumber } from '@jetstream/shared/ui-utils';
-import { SalesforceOrgUi } from '@jetstream/types';
+import { MapOf, SalesforceOrgUi } from '@jetstream/types';
+import { Field } from 'jsforce';
 import uniqueId from 'lodash/uniqueId';
 import { Fragment, FunctionComponent, memo, ReactNode, useEffect, useRef, useState } from 'react';
 import SearchInput from '../form/search-input/SearchInput';
@@ -14,6 +15,7 @@ import AutoFullHeightContainer from '../layout/AutoFullHeightContainer';
 import Spinner from '../widgets/Spinner';
 import './data-table-styles.scss';
 import {
+  addFieldLabelToColumn,
   DataTableContext,
   getColumnDefinitions,
   getCurrentColumnOrder,
@@ -38,6 +40,8 @@ export interface SalesforceRecordDataTableProps {
   isTooling: boolean;
   serverUrl: string;
   queryResults: QueryResults<any>;
+  fieldMetadata: MapOf<Field>;
+  fieldMetadataSubquery: MapOf<MapOf<Field>>;
   summaryHeaderRightContent?: ReactNode;
   onSelectionChanged: (rows: any[]) => void;
   onFilteredRowsChanged: (rows: any[]) => void;
@@ -55,6 +59,8 @@ export const SalesforceRecordDataTable: FunctionComponent<SalesforceRecordDataTa
     isTooling,
     serverUrl,
     queryResults,
+    fieldMetadata,
+    fieldMetadataSubquery,
     summaryHeaderRightContent,
     onSelectionChanged,
     onFilteredRowsChanged,
@@ -65,6 +71,7 @@ export const SalesforceRecordDataTable: FunctionComponent<SalesforceRecordDataTa
     onView,
   }) => {
     const isMounted = useRef(null);
+    const [gridApi, setGridApi] = useState<GridApi>(null);
     const [columns, setColumns] = useState<ColDef[]>();
     const [columnDefinitions, setColumnDefinitions] = useState<SalesforceQueryColumnDefinition>();
     const [records, setRecords] = useState<any[]>();
@@ -95,6 +102,31 @@ export const SalesforceRecordDataTable: FunctionComponent<SalesforceRecordDataTa
       }
       // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [queryResults]);
+
+    /**
+     * When metadata is obtained, update the grid columns to include field labels
+     */
+    useEffect(() => {
+      if (fieldMetadata && gridApi) {
+        const columnDefinitions = getColumnDefinitions(queryResults, isTooling);
+        const parentColumnDefinitions = columnDefinitions.parentColumns;
+        const childColumnDefinitions = columnDefinitions.subqueryColumns;
+        addFieldLabelToColumn(parentColumnDefinitions, fieldMetadata);
+
+        if (fieldMetadataSubquery) {
+          // If there are subqueries, update field definition
+          for (const key in childColumnDefinitions) {
+            if (fieldMetadataSubquery[key.toLowerCase()]) {
+              addFieldLabelToColumn(childColumnDefinitions[key], fieldMetadataSubquery[key.toLowerCase()]);
+            }
+          }
+        }
+
+        gridApi.setColumnDefs(parentColumnDefinitions);
+        setColumns(parentColumnDefinitions);
+        setColumnDefinitions(columnDefinitions);
+      }
+    }, [fieldMetadata, fieldMetadataSubquery, gridApi, isTooling, queryResults]);
 
     function handleSelectionChanged(event: SelectionChangedEvent) {
       if (onSelectionChanged) {
@@ -140,6 +172,10 @@ export const SalesforceRecordDataTable: FunctionComponent<SalesforceRecordDataTa
         // oops. show the user an error
         setIsLoadingMore(false);
       }
+    }
+
+    function handleOnGridReady({ api }: GridReadyEvent) {
+      setGridApi(api);
     }
 
     return records ? (
@@ -197,6 +233,7 @@ export const SalesforceRecordDataTable: FunctionComponent<SalesforceRecordDataTa
                     view: onView,
                   },
                 },
+                onGridReady: handleOnGridReady,
                 onSelectionChanged: handleSelectionChanged,
                 onColumnMoved: handleColumnMoved,
                 onFilterChanged: handleFilterChangeOrRowDataUpdated,

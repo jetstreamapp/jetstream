@@ -2,7 +2,7 @@
 import { CellEvent, CellKeyDownEvent, ColDef, ColumnEvent, GetQuickFilterTextParams, ValueFormatterParams } from '@ag-grid-community/core';
 import { QueryResults, QueryResultsColumn } from '@jetstream/api-interfaces';
 import { DATE_FORMATS } from '@jetstream/shared/constants';
-import { isEnterKey } from '@jetstream/shared/ui-utils';
+import { isEnterKey, polyfillFieldDefinition } from '@jetstream/shared/ui-utils';
 import { queryResultColumnToTypeLabel } from '@jetstream/shared/utils';
 import { MapOf, SalesforceOrgUi } from '@jetstream/types';
 import copy from 'copy-to-clipboard';
@@ -10,6 +10,7 @@ import formatDate from 'date-fns/format';
 import parseDate from 'date-fns/parse';
 import parseISO from 'date-fns/parseISO';
 import startOfDay from 'date-fns/startOfDay';
+import { Field } from 'jsforce';
 import isObject from 'lodash/isObject';
 import { createContext } from 'react';
 import { FieldSubquery, getFlattenedFields, isFieldSubquery } from 'soql-parser-js';
@@ -267,6 +268,30 @@ function getColDef(field: string, queryColumnsByPath: MapOf<QueryResultsColumn>,
   }
 
   return colDef;
+}
+
+/**
+ * Mutates ColDef[]
+ * Adds field label to column and flags update via the GridApi
+ * Returns modified columns
+ *
+ * @param columnDefinitions
+ * @param fieldMetadata
+ * @param gridApi
+ * @returns
+ */
+export function addFieldLabelToColumn(columnDefinitions: ColDef[], fieldMetadata: MapOf<Field>) {
+  if (fieldMetadata) {
+    // set field api name and label
+    columnDefinitions.forEach((col) => {
+      if (fieldMetadata[col.field?.toLowerCase()]?.label) {
+        const label = fieldMetadata[col.field.toLowerCase()].label;
+        col.headerName = `${col.field} (${label})`;
+        col.headerTooltip = `${col.field} - ${label} (${polyfillFieldDefinition(fieldMetadata[col.field.toLowerCase()])})`;
+      }
+    });
+    return columnDefinitions;
+  }
 }
 
 export function getSubqueryModalTagline(parentRecord: any) {
