@@ -4,6 +4,13 @@ import { useCallback, useEffect, useState } from 'react';
 import { Query } from 'soql-parser-js';
 import { fetchMetadataFromSoql } from '../utils/query-soql-utils';
 
+/**
+ * If query changes, fetch all metadata for all the fields in the query
+ *
+ * @param org
+ * @param parsedQuery
+ * @returns
+ */
 export function useQueryResultsFetchMetadata(org: SalesforceOrgUi, parsedQuery: Query) {
   const [parsedQueryStr, setParsedQueryStr] = useState<string>(null);
   const [fieldMetadata, setFieldMetadata] = useState<MapOf<Field>>(null);

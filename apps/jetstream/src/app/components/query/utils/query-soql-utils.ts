@@ -49,6 +49,30 @@ interface ParsableFields {
 const TYPEOF_SEPARATOR = '!';
 
 /**
+ * Use provided cache if available
+ * This skips the cache at the data-helper layer to avoid unnecessary serialization/de-serialization
+ *
+ * @param org
+ * @param SObject
+ * @param isTooling
+ * @param describeCache
+ * @returns
+ */
+async function describeSObjectWithLocalCache(
+  org: SalesforceOrgUi,
+  SObject: string,
+  isTooling = false,
+  describeCache: MapOf<DescribeSObjectResult>
+): Promise<DescribeSObjectResult> {
+  if (describeCache[SObject]) {
+    return describeCache[SObject];
+  }
+  const { data } = await describeSObject(org, SObject, isTooling);
+  describeCache[SObject] = data;
+  return data;
+}
+
+/**
  * Get metadata for every object
  *
  * 1. Parse Query
@@ -70,7 +94,9 @@ export async function fetchMetadataFromSoql(
     throw new Error(`Object ${query.sObject} was not found in org`);
   }
 
-  const { data: rootSobjectDescribe } = await describeSObject(org, selectedSobjectMetadata.name, isTooling);
+  const describeCache: MapOf<DescribeSObjectResult> = {};
+
+  const rootSobjectDescribe = await describeSObjectWithLocalCache(org, selectedSobjectMetadata.name, isTooling, describeCache);
 
   const output: SoqlFetchMetadataOutput = {
     sobjectMetadata: describeResults.sobjects,
@@ -84,7 +110,7 @@ export async function fetchMetadataFromSoql(
   };
 
   const parsableFields = includeEntireQuery ? getFieldsFromAllPartsOfQuery(query) : getParsableFields(query.fields);
-  output.metadata = await fetchAllMetadata(org, isTooling, rootSobjectDescribe, parsableFields.fields);
+  output.metadata = await fetchAllMetadata(org, isTooling, rootSobjectDescribe, parsableFields.fields, describeCache);
 
   // add entries to lowercaseFieldMap for all related objects
   getLowercaseFieldMapWithFullPath(output.metadata, output.lowercaseFieldMap);
@@ -94,7 +120,7 @@ export async function fetchMetadataFromSoql(
       (currChildRelationship) => currChildRelationship.relationshipName === childRelationship
     );
     if (foundRelationship) {
-      const { data: rootSobjectChildDescribe } = await describeSObject(org, foundRelationship.childSObject, isTooling);
+      const rootSobjectChildDescribe = await describeSObjectWithLocalCache(org, foundRelationship.childSObject, isTooling, describeCache);
       output.childMetadata[childRelationship] = {
         objectMetadata: rootSobjectChildDescribe,
         metadataTree: await fetchAllMetadata(
@@ -102,6 +128,7 @@ export async function fetchMetadataFromSoql(
           isTooling,
           rootSobjectChildDescribe,
           parsableFields.subqueries[childRelationship],
+          describeCache,
           childRelationship
         ),
         lowercaseFieldMap: getLowercaseFieldMap(rootSobjectChildDescribe.fields),
@@ -191,13 +218,14 @@ async function fetchAllMetadata(
   isTooling: boolean,
   describeSobject: DescribeSObjectResult,
   parsableFields: string[],
+  describeCache: MapOf<DescribeSObjectResult>,
   subqueryRelationshipName?: string
 ) {
   const fields = findRequiredRelationships(parsableFields);
   const baseKey = subqueryRelationshipName
     ? getSubqueryFieldBaseKey(describeSobject.name, subqueryRelationshipName)
     : getQueryFieldBaseKey(describeSobject.name);
-  const metadata = await fetchRecursiveMetadata(org, isTooling, fields, describeSobject, baseKey);
+  const metadata = await fetchRecursiveMetadata(org, isTooling, fields, describeSobject, baseKey, describeCache);
   return metadata;
 }
 
@@ -237,6 +265,7 @@ async function fetchRecursiveMetadata(
   fieldRelationships: string[],
   parentMetadata: DescribeSObjectResult,
   parentKey: string,
+  describeCache: MapOf<DescribeSObjectResult>,
   output: MapOf<SoqlMetadataTree> = {},
   parentNode: SoqlMetadataTree = null
 ): Promise<MapOf<SoqlMetadataTree>> {
@@ -265,7 +294,7 @@ async function fetchRecursiveMetadata(
         if (field.referenceTo.length > 1 && relatedObject) {
           relatedSObject = field.referenceTo.find((obj) => obj.toLowerCase() === relatedObject) || field.referenceTo[0];
         }
-        const { data: relatedDescribeResults } = await describeSObject(org, relatedSObject, isTooling);
+        const relatedDescribeResults = await describeSObjectWithLocalCache(org, relatedSObject, isTooling, describeCache);
 
         let currNode: SoqlMetadataTree;
         const lowercaseFieldMap = getLowercaseFieldMap(relatedDescribeResults.fields);
@@ -300,7 +329,16 @@ async function fetchRecursiveMetadata(
           .filter((field) => field.indexOf('.') > -1 && field.startsWith(`${currRelationship}.`))
           .map((field) => field.slice(field.indexOf('.') + 1));
         if (ancestorRelationships.length > 0 && currNode.level <= 5) {
-          await fetchRecursiveMetadata(org, isTooling, ancestorRelationships, relatedDescribeResults, currNode.fieldKey, output, currNode);
+          await fetchRecursiveMetadata(
+            org,
+            isTooling,
+            ancestorRelationships,
+            relatedDescribeResults,
+            currNode.fieldKey,
+            describeCache,
+            output,
+            currNode
+          );
         }
       }
     } catch (ex) {

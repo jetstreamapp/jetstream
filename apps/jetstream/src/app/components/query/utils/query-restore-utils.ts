@@ -75,8 +75,6 @@ interface FieldWrapperWithParentKey {
   fieldMetadata: FieldWrapper;
 }
 
-// const TYPEOF_SEPARATOR = '!';
-
 export class UserFacingRestoreError extends Error {}
 
 /**
