@@ -42,16 +42,6 @@ export const QueryLimit: FunctionComponent<QueryLimitProps> = React.memo(() => {
     }
   }, [hasLimitOverride, setQueryLimitState]);
 
-  // If state changes to something different, update locally
-  useNonInitialEffect(() => {
-    if (queryLimitState !== queryLimit) {
-      setQueryLimit(queryLimit);
-    }
-    if (queryLimitSkipState !== queryLimitSkip) {
-      setQueryLimitSkip(queryLimitState);
-    }
-  }, [queryLimitState, queryLimitSkipState, queryLimit, queryLimitSkip]);
-
   function handleQueryLimitChange(event: React.ChangeEvent<HTMLInputElement>) {
     const value = sanitize(event.target.value);
     setQueryLimit(value);

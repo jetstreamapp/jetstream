@@ -245,8 +245,6 @@ export type FirstLast = 'FIRST' | 'LAST';
 export interface ExpressionType {
   action: AndOr;
   rows: (ExpressionConditionType | ExpressionGroupType)[];
-  // rows: ExpressionConditionType[];
-  // groups: ExpressionGroupType[];
 }
 
 export interface ExpressionConditionType {
@@ -255,6 +253,7 @@ export interface ExpressionConditionType {
   resourceType?: ExpressionRowValueType;
   resourceSelectItems?: ListItem[];
   selected: ExpressionConditionRowSelectedItems;
+  helpText?: ExpressionConditionHelpText;
 }
 
 export interface ExpressionGroupType {
@@ -272,10 +271,17 @@ export interface ExpressionConditionRowSelectedItems<T = any> {
   value: string | string[];
 }
 
+export interface ExpressionConditionHelpText {
+  value: string;
+  type: 'hint' | 'warning';
+}
+
 export interface ExpressionGetResourceTypeFns {
   // used to allow user selection of multiple types - if provided, adds dropdown before value
   getTypes?: (selected: ExpressionConditionRowSelectedItems) => ListItem<ExpressionRowValueType>[];
   getType: (selected: ExpressionConditionRowSelectedItems) => ExpressionRowValueType;
+  // used to display optional text below the row
+  getHelpText?: (selected: ExpressionConditionRowSelectedItems) => ExpressionConditionHelpText | undefined;
   // optional function to mutate the selected properties (e.x. convert value from/to array from string)
   checkSelected?: (selected: ExpressionConditionRowSelectedItems) => ExpressionConditionRowSelectedItems;
   // used if getType returns select, which shows the user a dropdown

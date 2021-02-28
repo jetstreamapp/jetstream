@@ -1,6 +1,7 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 import { getBooleanListItems, getDateLiteralListItems, getPicklistListItems } from '@jetstream/shared/ui-utils';
 import {
+  ExpressionConditionHelpText,
   ExpressionConditionRowSelectedItems,
   ExpressionGetResourceTypeFns,
   ExpressionRowValueType,
@@ -37,6 +38,25 @@ function findResourceMeta(fields: ListItemGroup[], selected: ExpressionCondition
 
 function isListOperator(operator: QueryFilterOperator): boolean {
   return operator === 'in' || operator === 'notIn' || operator === 'includes' || operator === 'excludes';
+}
+
+function isDatetimeCompatibleFilter(operator: QueryFilterOperator): boolean {
+  return operator === 'lt' || operator === 'lte' || operator === 'gt' || operator === 'gte';
+}
+
+function isLikeOperator(operator: QueryFilterOperator): boolean {
+  return (
+    operator === 'contains' ||
+    operator === 'doesNotContain' ||
+    operator === 'startsWith' ||
+    operator === 'doesNotStartWith' ||
+    operator === 'endsWith' ||
+    operator === 'doesNotEndWith'
+  );
+}
+
+function isIncludesExcludesOperator(operator: QueryFilterOperator): boolean {
+  return operator === 'includes' || operator === 'excludes';
 }
 
 export function getPicklistSingleResourceTypes(): ListItem<ExpressionRowValueType>[] {
@@ -143,7 +163,7 @@ export function getFieldSelectItems(field: Field) {
 }
 
 export function getFieldResourceTypes(field: Field, operator: QueryFilterOperator): ListItem<ExpressionRowValueType, any>[] {
-  if (field.type === 'picklist') {
+  if (field.type === 'picklist' || field.type === 'multipicklist') {
     if (isListOperator(operator)) {
       return getPicklistMultiResourceTypes();
     }
@@ -175,6 +195,24 @@ export function getResourceTypeFnsFromFields(fields: ListItemGroup[]): Expressio
         return selected.resourceType;
       }
       return getTypeFromMetadata(fieldMeta.type, selected.operator);
+    },
+    getHelpText: (selected: ExpressionConditionRowSelectedItems): ExpressionConditionHelpText => {
+      const fieldMeta: Field = findResourceMeta(fields, selected);
+      if (!fieldMeta) {
+        return undefined;
+      }
+      if (fieldMeta.type === 'datetime' && selected.resourceType === 'DATETIME' && !isDatetimeCompatibleFilter(selected.operator)) {
+        return { type: 'warning', value: 'Datetime filters work best with a relative value or the Greater Than, Less Than operators.' };
+      }
+      if (fieldMeta.type === 'id' && isLikeOperator(selected.operator)) {
+        return { type: 'warning', value: 'The selected operator is not allowed with Id fields.' };
+      }
+      if (fieldMeta.type === 'multipicklist') {
+        return { type: 'hint', value: 'Use Includes and Excludes to match multiple values for multi-select picklists.' };
+      }
+      if (isIncludesExcludesOperator(selected.operator)) {
+        return { type: 'warning', value: 'Includes and Excludes operators are only compatible with multi-select picklists.' };
+      }
     },
     checkSelected: (selected: ExpressionConditionRowSelectedItems): ExpressionConditionRowSelectedItems => {
       if (isListOperator(selected.operator) && !Array.isArray(selected.value)) {

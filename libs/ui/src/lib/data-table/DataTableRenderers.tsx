@@ -1,6 +1,7 @@
 /** @jsx jsx */
 import { ICellRendererParams, IFilter, IFilterParams, IFloatingFilter, IFloatingFilterParams } from '@ag-grid-community/core';
 import { jsx } from '@emotion/react';
+import { flattenRecords } from '@jetstream/shared/utils';
 import { SalesforceOrgUi } from '@jetstream/types';
 import { isFunction } from 'lodash';
 import { forwardRef, Fragment, FunctionComponent, MouseEvent, useEffect, useImperativeHandle, useState } from 'react';
@@ -16,6 +17,8 @@ import SalesforceLogin from '../widgets/SalesforceLogin';
 import './data-table-styles.scss';
 import { DataTableContext, getSubqueryModalTagline, SalesforceQueryColumnDefinition, TableContext } from './data-table-utils';
 import DataTable from './DataTable';
+import copyToClipboard from 'copy-to-clipboard';
+import { transformTabularDataToExcelStr } from '@jetstream/shared/ui-utils';
 
 // CONFIGURATION
 
@@ -80,6 +83,12 @@ export const SubqueryRenderer: FunctionComponent<ICellRendererParams> = ({ value
     setDownloadModalIsActive(true);
   }
 
+  function handleCopyToClipboard(columnDefinitions: SalesforceQueryColumnDefinition) {
+    const fields = getFields(columnDefinitions);
+    const flattenedData = flattenRecords(value, fields);
+    copyToClipboard(transformTabularDataToExcelStr(flattenedData, fields), { format: 'text/plain' });
+  }
+
   if (!Array.isArray(value) || value.length === 0) {
     return <div />;
   }
@@ -96,10 +105,20 @@ export const SubqueryRenderer: FunctionComponent<ICellRendererParams> = ({ value
               closeOnBackdropClick
               onClose={handleCloseModal}
               footer={
-                <button className="slds-button slds-button_brand" onClick={openDownloadModal}>
-                  <Icon type="utility" icon="download" className="slds-button__icon slds-button__icon_left" omitContainer />
-                  Download Records
-                </button>
+                <Fragment>
+                  <button
+                    className="slds-button slds-button_neutral"
+                    onClick={() => handleCopyToClipboard(columnDefinitions)}
+                    title="Copy the queried records to the clipboard. The records can then be pasted into a spreadsheet."
+                  >
+                    <Icon type="utility" icon="copy_to_clipboard" className="slds-button__icon slds-button__icon_left" omitContainer />
+                    Copy to Clipboard
+                  </button>
+                  <button className="slds-button slds-button_brand" onClick={openDownloadModal}>
+                    <Icon type="utility" icon="download" className="slds-button__icon slds-button__icon_left" omitContainer />
+                    Download Records
+                  </button>
+                </Fragment>
               }
             >
               <div className="slds-scrollable_x">
