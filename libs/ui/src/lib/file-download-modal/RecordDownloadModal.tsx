@@ -30,6 +30,7 @@ export interface RecordDownloadModalProps {
   selectedRecords?: Record[];
   totalRecordCount?: number;
   onModalClose: (cancelled?: boolean) => void;
+  onDownload?: (fileFormat: FileExtCsvXLSXJson, fileName: string) => void;
   onDownloadFromServer?: (fileFormat: FileExtCsvXLSXJson, fileName: string) => void;
 }
 
@@ -42,6 +43,7 @@ export const RecordDownloadModal: FunctionComponent<RecordDownloadModalProps> = 
   selectedRecords,
   totalRecordCount,
   onModalClose,
+  onDownload,
   onDownloadFromServer,
   children,
 }) => {
@@ -122,7 +124,9 @@ export const RecordDownloadModal: FunctionComponent<RecordDownloadModalProps> = 
         }
 
         saveFile(fileData, fileNameWithExt, mimeType);
-
+        if (onDownload) {
+          onDownload(fileFormat, fileNameWithExt);
+        }
         onModalClose();
       }
     } catch (ex) {

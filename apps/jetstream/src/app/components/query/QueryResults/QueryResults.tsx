@@ -4,8 +4,9 @@
 import { css, jsx } from '@emotion/react';
 import { QueryResults as IQueryResults } from '@jetstream/api-interfaces';
 import { logger } from '@jetstream/shared/client-logger';
+import { ANALYTICS_KEYS } from '@jetstream/shared/constants';
 import { query } from '@jetstream/shared/data';
-import { transformTabularDataToExcelStr, useObservable } from '@jetstream/shared/ui-utils';
+import { transformTabularDataToExcelStr, useNonInitialEffect, useObservable } from '@jetstream/shared/ui-utils';
 import {
   flattenRecords,
   getRecordIdFromAttributes,
@@ -35,6 +36,7 @@ import { Link, NavLink, useHistory, useLocation } from 'react-router-dom';
 import { useRecoilState, useRecoilValue } from 'recoil';
 import { filter } from 'rxjs/operators';
 import { applicationCookieState, selectedOrgState } from '../../../app-state';
+import { useAmplitude } from '../../core/analytics';
 import * as fromJetstreamEvents from '../../core/jetstream-events';
 import * as fromQueryState from '../query.state';
 import * as fromQueryHistory from '../QueryHistory/query-history.state';
@@ -44,6 +46,17 @@ import useQueryRestore from '../utils/useQueryRestore';
 import QueryResultsActions from './QueryResultsActions';
 import QueryResultsSoqlPanel from './QueryResultsSoqlPanel';
 import QueryResultsViewRecordFields from './QueryResultsViewRecordFields';
+import { useQueryResultsFetchMetadata } from './useQueryResultsFetchMetadata';
+
+type SourceAction = 'STANDARD' | 'ORG_CHANGE' | 'BULK_DELETE' | 'HISTORY' | 'RECORD_ACTION' | 'MANUAL' | 'RELOAD';
+
+const SOURCE_STANDARD: SourceAction = 'STANDARD';
+const SOURCE_ORG_CHANGE: SourceAction = 'ORG_CHANGE';
+const SOURCE_BULK_DELETE: SourceAction = 'BULK_DELETE';
+const SOURCE_HISTORY: SourceAction = 'HISTORY';
+const SOURCE_RECORD_ACTION: SourceAction = 'RECORD_ACTION';
+const SOURCE_MANUAL: SourceAction = 'MANUAL';
+const SOURCE_RELOAD: SourceAction = 'RELOAD';
 
 // eslint-disable-next-line @typescript-eslint/no-empty-interface
 export interface QueryResultsProps {}
@@ -51,11 +64,12 @@ export interface QueryResultsProps {}
 export const QueryResults: FunctionComponent<QueryResultsProps> = React.memo(() => {
   const isMounted = useRef(null);
   const history = useHistory();
+  const { trackEvent } = useAmplitude();
   const previousSoql = useRecoilValue(fromQueryState.querySoqlState);
   const includeDeletedRecords = useRecoilValue(fromQueryState.queryIncludeDeletedRecordsState);
   const [priorSelectedOrg, setPriorSelectedOrg] = useState<string>(null);
   const [isTooling, setIsTooling] = useRecoilState(fromQueryState.isTooling);
-  const location = useLocation<{ soql: string; isTooling: boolean; sobject?: { name: string; label: string } }>();
+  const location = useLocation<{ soql: string; isTooling: boolean; fromHistory?: boolean; sobject?: { name: string; label: string } }>();
   const [soqlPanelOpen, setSoqlPanelOpen] = useState<boolean>(false);
   const [recordDetailPanelOpen, setRecordDetailPanelOpen] = useState<boolean>(false);
   const [recordDetailSelectedRow, setRecordDetailSelectedRow] = useState<Record>(null);
@@ -83,6 +97,8 @@ export const QueryResults: FunctionComponent<QueryResultsProps> = React.memo(() 
   const [cloneEditViewRecord, setCloneEditViewRecord] = useState<{ action: CloneEditView; sobjectName: string; recordId: string }>();
   const [restore] = useQueryRestore(soql, isTooling, { silent: true });
 
+  const { fieldMetadata, fieldMetadataSubquery } = useQueryResultsFetchMetadata(selectedOrg, queryResults?.parsedQuery, isTooling);
+
   useEffect(() => {
     isMounted.current = true;
     return () => (isMounted.current = false);
@@ -90,10 +106,16 @@ export const QueryResults: FunctionComponent<QueryResultsProps> = React.memo(() 
 
   useEffect(() => {
     if (bulkDeleteJob && executeQuery) {
-      executeQuery(soql);
+      executeQuery(soql, SOURCE_BULK_DELETE);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [bulkDeleteJob]);
+
+  useNonInitialEffect(() => {
+    if (soqlPanelOpen) {
+      trackEvent(ANALYTICS_KEYS.query_ManualSoqlOpened, { isTooling });
+    }
+  }, [soqlPanelOpen]);
 
   useEffect(() => {
     logger.log({ location });
@@ -101,7 +123,9 @@ export const QueryResults: FunctionComponent<QueryResultsProps> = React.memo(() 
       setSoql(location.state.soql || '');
       setUserSoql(location.state.soql || '');
       setIsTooling(location.state.isTooling ? true : false);
-      executeQuery(location.state.soql, false, location.state.isTooling);
+      executeQuery(location.state.soql, location.state.fromHistory ? SOURCE_HISTORY : SOURCE_STANDARD, {
+        isTooling: location.state.isTooling,
+      });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [location]);
@@ -109,10 +133,11 @@ export const QueryResults: FunctionComponent<QueryResultsProps> = React.memo(() 
   useEffect(() => {
     if (priorSelectedOrg && selectedOrg && selectedOrg.uniqueId !== priorSelectedOrg) {
       setPriorSelectedOrg(selectedOrg.uniqueId);
-      executeQuery(soql, true, isTooling);
+      executeQuery(soql, SOURCE_ORG_CHANGE, { forceRestore: true, isTooling });
     } else {
       setPriorSelectedOrg(selectedOrg.uniqueId);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedOrg]);
 
   function saveQueryHistory(soql: string, sObject: string, tooling: boolean) {
@@ -138,7 +163,16 @@ export const QueryResults: FunctionComponent<QueryResultsProps> = React.memo(() 
     }
   }
 
-  async function executeQuery(soqlQuery: string, forceRestore = false, tooling = false) {
+  async function executeQuery(
+    soqlQuery: string,
+    source: SourceAction,
+    options: {
+      forceRestore?: boolean;
+      isTooling?: boolean;
+    } = { forceRestore: false, isTooling: false }
+  ) {
+    const forceRestore = options.forceRestore ?? false;
+    const tooling = options.isTooling ?? false;
     try {
       setLoading(true);
       if (soql !== soqlQuery) {
@@ -167,6 +201,7 @@ export const QueryResults: FunctionComponent<QueryResultsProps> = React.memo(() 
       if (forceRestore || previousSoql !== soqlQuery) {
         restore(soqlQuery, tooling);
       }
+      trackEvent(ANALYTICS_KEYS.query_ExecuteQuery, { source, success: true, isTooling: tooling, includeDeletedRecords });
     } catch (ex) {
       if (!isMounted.current) {
         return;
@@ -174,6 +209,7 @@ export const QueryResults: FunctionComponent<QueryResultsProps> = React.memo(() 
       logger.warn('ERROR', ex);
       setErrorMessage(ex.message);
       setSoqlPanelOpen(true);
+      trackEvent(ANALYTICS_KEYS.query_ExecuteQuery, { source, success: false, isTooling: tooling, includeDeletedRecords });
     } finally {
       setLoading(false);
     }
@@ -196,12 +232,17 @@ export const QueryResults: FunctionComponent<QueryResultsProps> = React.memo(() 
             },
           ];
           fromJetstreamEvents.emit({ type: 'newJob', payload: jobs });
+          trackEvent(ANALYTICS_KEYS.query_BulkDelete, { numRecords: rows.length });
         });
         break;
       }
       default:
         break;
     }
+  }
+
+  function handleDidDownload(fileFormat: FileExtCsvXLSX, fileName: string) {
+    trackEvent(ANALYTICS_KEYS.query_DownloadResults, { source: 'BROWSER', fileFormat, isTooling });
   }
 
   function handleDownloadFromServer(fileFormat: FileExtCsvXLSX, fileName: string) {
@@ -221,6 +262,7 @@ export const QueryResults: FunctionComponent<QueryResultsProps> = React.memo(() 
       },
     ];
     fromJetstreamEvents.emit({ type: 'newJob', payload: jobs });
+    trackEvent(ANALYTICS_KEYS.query_DownloadResults, { source: 'SERVER', fileFormat, isTooling });
   }
 
   function handleLoadMore(results: IQueryResults<any>) {
@@ -228,6 +270,12 @@ export const QueryResults: FunctionComponent<QueryResultsProps> = React.memo(() 
       setNextRecordsUrl(results.queryResults.nextRecordsUrl);
       saveQueryHistory(soql, results.parsedQuery?.sObject || results.columns?.entityName, isTooling);
       setRecords(records.concat(results.queryResults.records));
+      trackEvent(ANALYTICS_KEYS.query_LoadMore, {
+        existingRecordCount: records.length,
+        nextSetCount: results.queryResults.records.length,
+        totalSize: results.queryResults.totalSize,
+        isTooling,
+      });
     }
   }
 
@@ -238,6 +286,7 @@ export const QueryResults: FunctionComponent<QueryResultsProps> = React.memo(() 
   function handleCopyToClipboard() {
     const flattenedData = flattenRecords(records, fields);
     copyToClipboard(transformTabularDataToExcelStr(flattenedData, fields), { format: 'text/plain' });
+    trackEvent(ANALYTICS_KEYS.query_CopyToClipboard, { isTooling });
   }
 
   function handleCloneEditView(record: any, action: CloneEditView) {
@@ -246,6 +295,7 @@ export const QueryResults: FunctionComponent<QueryResultsProps> = React.memo(() 
       recordId: record.Id || getRecordIdFromAttributes(record),
       sobjectName: getSObjectNameFromAttributes(record),
     });
+    trackEvent(ANALYTICS_KEYS.query_RecordAction, { action });
   }
 
   function handleChangeAction(action: CloneEditView) {
@@ -255,12 +305,12 @@ export const QueryResults: FunctionComponent<QueryResultsProps> = React.memo(() 
   async function handleCloseEditCloneModal(reloadRecords?: boolean) {
     setCloneEditViewRecord(null);
     if (reloadRecords) {
-      executeQuery(soql);
+      executeQuery(soql, SOURCE_RECORD_ACTION, { isTooling });
     }
   }
 
   function handleRestoreFromHistory(soql: string, tooling) {
-    history.push(`/query`, { soql, isTooling: tooling });
+    history.push(`/query`, { soql, isTooling: tooling, fromHistory: true });
   }
 
   return (
@@ -274,6 +324,7 @@ export const QueryResults: FunctionComponent<QueryResultsProps> = React.memo(() 
         selectedRecords={selectedRows}
         totalRecordCount={totalRecordCount}
         onModalClose={() => setDownloadModalOpen(false)}
+        onDownload={handleDidDownload}
         onDownloadFromServer={handleDownloadFromServer}
       />
       {cloneEditViewRecord && (
@@ -309,7 +360,7 @@ export const QueryResults: FunctionComponent<QueryResultsProps> = React.memo(() 
           </button>
           <button
             className="slds-button slds-button_neutral"
-            onClick={() => executeQuery(soql, false, isTooling)}
+            onClick={() => executeQuery(soql, SOURCE_RELOAD, { isTooling })}
             disabled={!!(loading || errorMessage)}
             title="Re-run the current query"
           >
@@ -349,7 +400,7 @@ export const QueryResults: FunctionComponent<QueryResultsProps> = React.memo(() 
           isTooling={isTooling}
           isOpen={soqlPanelOpen}
           onClosed={() => setSoqlPanelOpen(false)}
-          executeQuery={(soql, tooling) => executeQuery(soql, false, tooling)}
+          executeQuery={(soql, tooling) => executeQuery(soql, SOURCE_MANUAL, { isTooling: tooling })}
         />
         <QueryResultsViewRecordFields
           org={selectedOrg}
@@ -359,6 +410,7 @@ export const QueryResults: FunctionComponent<QueryResultsProps> = React.memo(() 
         />
         <AutoFullHeightContainer
           className="slds-scrollable bg-white"
+          bottomBuffer={10}
           css={css`
             width: 100%;
           `}
@@ -422,6 +474,8 @@ export const QueryResults: FunctionComponent<QueryResultsProps> = React.memo(() 
                 isTooling={isTooling}
                 serverUrl={serverUrl}
                 queryResults={queryResults}
+                fieldMetadata={fieldMetadata}
+                fieldMetadataSubquery={fieldMetadataSubquery}
                 summaryHeaderRightContent={
                   <div dir="rtl">
                     <IncludeDeletedRecordsToggle />

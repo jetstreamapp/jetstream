@@ -1,40 +1,54 @@
 /** @jsx jsx */
 import { css, jsx } from '@emotion/react';
-import { DropDown, Grid, GridCol } from '@jetstream/ui';
+import { ANALYTICS_KEYS } from '@jetstream/shared/constants';
+import { useDebounce, useNonInitialEffect } from '@jetstream/shared/ui-utils';
+import { InsertUpdateUpsertDelete } from '@jetstream/types';
+import { Alert, DropDown, Grid, GridCol, Icon } from '@jetstream/ui';
+import classNames from 'classnames';
 import { memo, useEffect, useRef, useState } from 'react';
+import { useAmplitude } from '../../core/analytics';
 import LoadRecordsFieldMappingRow from '../components/LoadRecordsFieldMappingRow';
 import { FieldMapping, FieldMappingItem, FieldWithRelatedEntities } from '../load-records-types';
 import { autoMapFields, checkForDuplicateFieldMappings, resetFieldMapping } from '../utils/load-records-utils';
 
 type DropDownAction = 'CLEAR' | 'RESET' | 'ALL' | 'MAPPED' | 'UNMAPPED';
+type Filter = 'ALL' | 'MAPPED' | 'UNMAPPED';
 
-const MAPPING_CLEAR: DropDownAction = 'CLEAR';
-const MAPPING_RESET: DropDownAction = 'RESET';
+const MAPPING_CLEAR = 'CLEAR';
+const MAPPING_RESET = 'RESET';
 
-// const FILTER_ALL: DropDownAction = 'ALL';
-// const FILTER_MAPPED: DropDownAction = 'MAPPED';
-// const FILTER_UNMAPPED: DropDownAction = 'UNMAPPED';
+const FILTER_ALL = 'ALL';
+const FILTER_MAPPED = 'MAPPED';
+const FILTER_UNMAPPED = 'UNMAPPED';
 
 export interface LoadRecordsFieldMappingProps {
   fields: FieldWithRelatedEntities[];
   inputHeader: string[];
   fieldMapping: FieldMapping;
   fileData: any[]; // first row will be used to obtain header
+  loadType: InsertUpdateUpsertDelete;
+  externalId?: string;
   onFieldMappingChange: (fieldMapping: FieldMapping) => void;
 }
 
 export const LoadRecordsFieldMapping = memo<LoadRecordsFieldMappingProps>(
-  ({ fields, inputHeader, fieldMapping: fieldMappingInit, fileData, onFieldMappingChange }) => {
+  ({ fields, inputHeader, fieldMapping: fieldMappingInit, fileData, loadType, externalId, onFieldMappingChange }) => {
+    const { trackEvent } = useAmplitude();
     const hasInitialized = useRef(false);
-    const [firstRow] = useState<string[]>(() => fileData[0]);
+    const [visibleHeaders, setVisibleHeaders] = useState(inputHeader);
+    const [activeRowIndex, setActiveRowIndex] = useState(0);
+    const [activeRow, setActiveRow] = useState<string[]>(() => fileData[activeRowIndex]);
     // hack to force child re-render when fields are re-mapped
     const [keyPrefix, setKeyPrefix] = useState<number>(() => new Date().getTime());
     const [fieldMapping, setFieldMapping] = useState<FieldMapping>(() => JSON.parse(JSON.stringify(fieldMappingInit)));
-    const [visibleFields, setVisibleFields] = useState<FieldWithRelatedEntities[]>(() => fields);
+    const [warningMessage, setWarningMessage] = useState<string>(null);
+    const [filter, setFilter] = useState<Filter>(FILTER_ALL);
 
-    // function handleSave() {
-    //   onClose(fieldMapping);
-    // }
+    const debouncedSelectedValue = useDebounce(activeRowIndex, 150);
+
+    useNonInitialEffect(() => {
+      setActiveRow(fileData[debouncedSelectedValue] || fileData[0]);
+    }, [debouncedSelectedValue, fileData, trackEvent]);
 
     useEffect(() => {
       if (hasInitialized.current) {
@@ -42,7 +56,25 @@ export const LoadRecordsFieldMapping = memo<LoadRecordsFieldMappingProps>(
       } else {
         hasInitialized.current = true;
       }
-    }, [fieldMapping]);
+    }, [fieldMapping, onFieldMappingChange]);
+
+    useEffect(() => {
+      if (loadType === 'UPSERT' && !fieldMapping[externalId]?.targetField) {
+        setWarningMessage(`You must map the External Id field ${externalId}.`);
+      } else {
+        setWarningMessage(null);
+      }
+    }, [externalId, fieldMapping, loadType]);
+
+    useNonInitialEffect(() => {
+      if (filter === FILTER_ALL) {
+        setVisibleHeaders(inputHeader);
+      } else if (filter === FILTER_MAPPED) {
+        setVisibleHeaders(inputHeader.filter((header) => !!fieldMapping[header]?.targetField));
+      } else {
+        setVisibleHeaders(inputHeader.filter((header) => !fieldMapping[header]?.targetField));
+      }
+    }, [filter]);
 
     /**
      * This is purposefully mutating this state data to avoid re-rendering each child which makes the app seem slow
@@ -58,30 +90,43 @@ export const LoadRecordsFieldMapping = memo<LoadRecordsFieldMappingProps>(
       switch (id) {
         case MAPPING_CLEAR:
           setFieldMapping(resetFieldMapping(inputHeader));
+          trackEvent(ANALYTICS_KEYS.load_MappingAutomationChanged, { action: id });
           break;
         case MAPPING_RESET:
           setFieldMapping(autoMapFields(inputHeader, fields));
+          setFilter(FILTER_ALL);
+          trackEvent(ANALYTICS_KEYS.load_MappingAutomationChanged, { action: id });
           break;
-        // TODO:
-        // case FILTER_ALL:
-        //   setFieldMapping(autoMapFields(inputHeader, fields));
-        //   break;
-        // case FILTER_MAPPED:
-        //   setFieldMapping(autoMapFields(inputHeader, fields));
-        //   break;
-        // case FILTER_UNMAPPED:
-        //   setFieldMapping(autoMapFields(inputHeader, fields));
-        //   break;
-
+        case FILTER_ALL:
+        case FILTER_MAPPED:
+        case FILTER_UNMAPPED:
+          setFilter(id as Filter);
+          trackEvent(ANALYTICS_KEYS.load_MappingFilterChanged, { filter: id });
+          break;
         default:
           break;
       }
       setKeyPrefix(new Date().getTime());
     }
 
+    function handlePrevNextRowPreview(action: 'PREV' | 'NEXT') {
+      if (action === 'PREV') {
+        setActiveRowIndex(activeRowIndex - 1);
+      } else {
+        setActiveRowIndex(activeRowIndex + 1);
+      }
+      trackEvent(ANALYTICS_KEYS.load_MappingRowPreviewChanged, { action, rowNumber: activeRowIndex });
+    }
+
     return (
       <Grid vertical>
-        {/* TODO: <GridCol>Add filters for "all/mapped/unmapped" like DL.io</GridCol> */}
+        <GridCol>
+          {warningMessage && (
+            <Alert type="warning" leadingIcon="info">
+              <strong>{warningMessage}</strong>
+            </Alert>
+          )}
+        </GridCol>
         <GridCol grow>
           <table className="slds-table slds-table_cell-buffer slds-table_bordered slds-table_fixed-layout">
             <thead>
@@ -92,9 +137,29 @@ export const LoadRecordsFieldMapping = memo<LoadRecordsFieldMappingProps>(
                     width: 200px;
                   `}
                 >
-                  <div className="slds-truncate" title="Example Data">
-                    Example Data
-                  </div>
+                  <Grid verticalAlign="center">
+                    <button
+                      className="slds-button slds-button_icon slds-button_icon-small"
+                      title="Preview previous row"
+                      disabled={activeRowIndex === 0}
+                      onClick={() => handlePrevNextRowPreview('PREV')}
+                    >
+                      <Icon type="utility" icon="left" omitContainer className="slds-button__icon" />
+                      <span className="slds-assistive-text">Previous</span>
+                    </button>
+                    <div className="slds-truncate slds-m-horizontal_x-small" title="Example Data">
+                      Example Data
+                    </div>
+                    <button
+                      className="slds-button slds-button_icon slds-button_icon-small"
+                      title="Preview next row"
+                      disabled={activeRowIndex === fileData.length - 1}
+                      onClick={() => handlePrevNextRowPreview('NEXT')}
+                    >
+                      <Icon type="utility" icon="right" omitContainer className="slds-button__icon" />
+                      <span className="slds-assistive-text">Next</span>
+                    </button>
+                  </Grid>
                 </th>
                 <th scope="col">
                   <div className="slds-truncate" title="Field from File">
@@ -108,9 +173,27 @@ export const LoadRecordsFieldMapping = memo<LoadRecordsFieldMappingProps>(
                   `}
                 ></th>
                 <th scope="col">
-                  <div className="slds-truncate" title="Salesforce Field">
-                    Salesforce Field
-                  </div>
+                  <Grid verticalAlign="center">
+                    <div className="slds-truncate" title="Salesforce Field">
+                      Salesforce Field
+                    </div>
+                    <DropDown
+                      position="right"
+                      buttonClassName={classNames('slds-button slds-button_icon slds-button_icon-small slds-m-left_x-small', {
+                        'text-color_brand': filter !== FILTER_ALL,
+                      })}
+                      actionText="Mapping Filter"
+                      description="Mapping Filter"
+                      leadingIcon={{ type: 'utility', icon: 'filterList' }}
+                      items={[
+                        { id: FILTER_ALL, value: 'Show All' },
+                        { id: FILTER_MAPPED, value: 'Show Mapped' },
+                        { id: FILTER_UNMAPPED, value: 'Show Unmapped' },
+                      ]}
+                      initialSelectedId={filter}
+                      onSelected={handleAction}
+                    />
+                  </Grid>
                 </th>
                 <th
                   scope="col"
@@ -133,30 +216,17 @@ export const LoadRecordsFieldMapping = memo<LoadRecordsFieldMappingProps>(
                     ]}
                     onSelected={handleAction}
                   />
-                  {/* TODO: this requires selectable dropdown, which requires refactors */}
-                  {/* <DropDown
-                  position="right"
-                  actionText="Mapping Filter"
-                  description="Mapping Filter"
-                  leadingIcon={{ type: 'utility', icon: 'filterList' }}
-                  items={[
-                    { id: FILTER_ALL, value: 'Show All' },
-                    { id: FILTER_MAPPED, value: 'Show Mapped' },
-                    { id: FILTER_UNMAPPED, value: 'Show Unmapped' },
-                  ]}
-                  onSelected={handleAction}
-                /> */}
                 </th>
               </tr>
             </thead>
             <tbody>
-              {inputHeader.map((header, i) => (
+              {visibleHeaders.map((header, i) => (
                 <LoadRecordsFieldMappingRow
                   key={`${keyPrefix}-${i}`}
-                  fields={visibleFields}
+                  fields={fields}
                   fieldMappingItem={fieldMapping[header]}
                   csvField={header}
-                  csvRowData={firstRow[header]}
+                  csvRowData={activeRow[header]}
                   onSelectionChanged={handleFieldMappingChange}
                 />
               ))}

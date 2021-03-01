@@ -6,12 +6,16 @@ import classNames from 'classnames';
 import { FunctionComponent } from 'react';
 import { useResetRecoilState } from 'recoil';
 import * as fromQueryState from '../query.state';
+import { useAmplitude } from '../../core/analytics';
+import { ANALYTICS_KEYS } from '@jetstream/shared/constants';
 
 export interface QueryResetButtonProps {
   className?: string;
 }
 
 export const QueryResetButton: FunctionComponent<QueryResetButtonProps> = ({ className }) => {
+  const { trackEvent } = useAmplitude();
+
   const resetFns = [
     useResetRecoilState(fromQueryState.sObjectsState),
     useResetRecoilState(fromQueryState.selectedSObjectState),
@@ -31,6 +35,7 @@ export const QueryResetButton: FunctionComponent<QueryResetButtonProps> = ({ cla
 
   function resetQuery() {
     resetFns.forEach((fn) => fn());
+    trackEvent(ANALYTICS_KEYS.query_ResetPage);
   }
 
   return (
