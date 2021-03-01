@@ -6,6 +6,10 @@ import { logger } from '@jetstream/shared/client-logger';
 import classNames from 'classnames';
 import React from 'react';
 import { DoctypeIconObj, StandardIconObj, UtilityIconObj } from './icon-types';
+import DoctypeIcon_Excel from './icons/doctype/Excel';
+import DoctypeIcon_Pack from './icons/doctype/Pack';
+import DoctypeIcon_Xml from './icons/doctype/Xml';
+import DoctypeIcon_Zip from './icons/doctype/Zip';
 import StandardIcon_Activations from './icons/standard/Activations';
 import StandardIcon_AssetRelationship from './icons/standard/AssetRelationship';
 import StandardIcon_DataStreams from './icons/standard/DataStreams';
@@ -17,10 +21,6 @@ import StandardIcon_Record from './icons/standard/Record';
 import StandardIcon_RecordLookup from './icons/standard/RecordLookup';
 import StandardIcon_RelatedList from './icons/standard/RelatedList';
 import StandardIcon_Settings from './icons/standard/Settings';
-import DoctypeIcon_Xml from './icons/doctype/Xml';
-import DoctypeIcon_Excel from './icons/doctype/Excel';
-import DoctypeIcon_Pack from './icons/doctype/Pack';
-import DoctypeIcon_Zip from './icons/doctype/Zip';
 import UtilityIcon_Add from './icons/utility/Add';
 import UtilityIcon_ApexPlugin from './icons/utility/ApexPlugin';
 import UtilityIcon_Arrowdown from './icons/utility/Arrowdown';
@@ -51,6 +51,7 @@ import UtilityIcon_Fallback from './icons/utility/Fallback';
 import UtilityIcon_Favorite from './icons/utility/Favorite';
 import UtilityIcon_File from './icons/utility/File';
 import UtilityIcon_Filter from './icons/utility/Filter';
+import UtilityIcon_FilterList from './icons/utility/FilterList';
 import UtilityIcon_Forward from './icons/utility/Forward';
 import UtilityIcon_Help from './icons/utility/Help';
 import UtilityIcon_Info from './icons/utility/Info';
@@ -62,17 +63,17 @@ import UtilityIcon_NewWindow from './icons/utility/NewWindow';
 import UtilityIcon_Notification from './icons/utility/Notification';
 import UtilityIcon_Page from './icons/utility/Page';
 import UtilityIcon_Play from './icons/utility/Play';
-import UtilityIcon_PromptEdit from './icons/utility/PromptEdit';
 import UtilityIcon_Preview from './icons/utility/Preview';
+import UtilityIcon_PromptEdit from './icons/utility/PromptEdit';
 import UtilityIcon_RecordLookup from './icons/utility/RecordLookup';
 import UtilityIcon_Refresh from './icons/utility/Refresh';
 import UtilityIcon_Right from './icons/utility/Right';
 import UtilityIcon_Salesforce1 from './icons/utility/Salesforce1';
 import UtilityIcon_Save from './icons/utility/Save';
 import UtilityIcon_Search from './icons/utility/Search';
-import UtilityIcon_Share from './icons/utility/Share';
 import UtilityIcon_Settings from './icons/utility/Settings';
 import UtilityIcon_Setup from './icons/utility/Setup';
+import UtilityIcon_Share from './icons/utility/Share';
 import UtilityIcon_Steps from './icons/utility/Steps';
 import UtilityIcon_Success from './icons/utility/Success';
 import UtilityIcon_Switch from './icons/utility/Switch';
@@ -133,6 +134,7 @@ const utilityIcons: UtilityIconObj = {
   fallback: UtilityIcon_Fallback,
   favorite: UtilityIcon_Favorite,
   filter: UtilityIcon_Filter,
+  filterList: UtilityIcon_FilterList,
   file: UtilityIcon_File,
   forward: UtilityIcon_Forward,
   help: UtilityIcon_Help,

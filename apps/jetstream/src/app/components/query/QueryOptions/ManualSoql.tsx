@@ -1,9 +1,11 @@
 /** @jsx jsx */
-import { css, jsx } from '@emotion/react';
+import { jsx } from '@emotion/react';
+import { ANALYTICS_KEYS } from '@jetstream/shared/constants';
 import { CheckboxToggle, CodeEditor, Grid, GridCol, Icon, Popover, Spinner, Textarea } from '@jetstream/ui';
 import { Fragment, FunctionComponent, useEffect, useRef, useState } from 'react';
 import { Link, useRouteMatch } from 'react-router-dom';
 import { isQueryValid } from 'soql-parser-js';
+import { useAmplitude } from '../../core/analytics';
 import RestoreQuery from '../QueryBuilder/RestoreQuery';
 
 export interface ManualSoqlProps {
@@ -45,6 +47,7 @@ const InvalidQuery = () => {
 
 export const ManualSoql: FunctionComponent<ManualSoqlProps> = ({ className, isTooling = false }) => {
   const isMounted = useRef(null);
+  const { trackEvent } = useAmplitude();
   const match = useRouteMatch();
   const [isOpen, setIsOpen] = useState<boolean>(false);
   const [soql, setSoql] = useState<string>('');
@@ -72,6 +75,12 @@ export const ManualSoql: FunctionComponent<ManualSoqlProps> = ({ className, isTo
       }
     }
   }, [soql]);
+
+  useEffect(() => {
+    if (isOpen) {
+      trackEvent(ANALYTICS_KEYS.query_ManualQueryOpened, { isTooling });
+    }
+  }, [isOpen, isTooling, trackEvent]);
 
   function handleStartRestore() {
     setIsRestoring(true);

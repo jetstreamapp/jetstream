@@ -18,6 +18,7 @@ function init(appCookie: ApplicationCookie) {
     apiEndpoint: `${appCookie.serverUrl.replace(REMOVE_PROTO_REGEX, '')}/analytics`,
     forceHttps: false,
   });
+  amplitude.getInstance().setVersionName(process.env.GIT_VERSION);
 }
 
 export function useAmplitude() {

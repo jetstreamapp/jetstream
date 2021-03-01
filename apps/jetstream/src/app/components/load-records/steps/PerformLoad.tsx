@@ -1,12 +1,13 @@
 /** @jsx jsx */
 import { jsx } from '@emotion/react';
-import { DATE_FORMATS } from '@jetstream/shared/constants';
+import { ANALYTICS_KEYS, DATE_FORMATS } from '@jetstream/shared/constants';
 import { formatNumber } from '@jetstream/shared/ui-utils';
 import { InsertUpdateUpsertDelete, SalesforceOrgUi, SalesforceOrgUiType } from '@jetstream/types';
 import { Badge, Checkbox, ConfirmationModalPromise, Input, Radio, RadioGroup, Select } from '@jetstream/ui';
 import { isNumber } from 'lodash';
 import startCase from 'lodash/startCase';
 import { ChangeEvent, FunctionComponent, useEffect, useState } from 'react';
+import { useAmplitude } from '../../core/analytics';
 import LoadRecordsResults from '../components/load-results/LoadRecordsResults';
 import { ApiMode, FieldMapping } from '../load-records-types';
 
@@ -67,6 +68,7 @@ export const LoadRecordsPerformLoad: FunctionComponent<LoadRecordsPerformLoadPro
   externalId,
   onIsLoading,
 }) => {
+  const { trackEvent } = useAmplitude();
   const [loadNumber, setLoadNumber] = useState<number>(0);
   const [apiMode, setApiMode] = useState<ApiMode>(() => getRecommendedApiMode(inputFileData.length));
   const [bulkApiModeLabel] = useState<string | JSX.Element>(() =>
@@ -141,6 +143,15 @@ export const LoadRecordsPerformLoad: FunctionComponent<LoadRecordsPerformLoadPro
       setLoadInProgress(true);
       setHasLoadResults(false);
       onIsLoading(true);
+      trackEvent(ANALYTICS_KEYS.load_Submitted, {
+        loadType,
+        apiMode,
+        batchSize,
+        insertNulls,
+        serialMode,
+        dateFormat,
+        timesSameDataSubmitted: loadNumber + 1,
+      });
     }
   }
 

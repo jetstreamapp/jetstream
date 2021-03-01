@@ -69,6 +69,7 @@ export interface UtilityIconObj {
   favorite: IconEl;
   file: IconEl;
   filter: IconEl;
+  filterList: IconEl;
   forward: IconEl;
   help: IconEl;
   info: IconEl;

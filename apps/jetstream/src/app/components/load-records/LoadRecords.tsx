@@ -1,5 +1,6 @@
 /** @jsx jsx */
 import { css, jsx } from '@emotion/react';
+import { ANALYTICS_KEYS } from '@jetstream/shared/constants';
 import { formatNumber } from '@jetstream/shared/ui-utils';
 import { SalesforceOrgUi } from '@jetstream/types';
 import {
@@ -18,6 +19,7 @@ import { startCase } from 'lodash';
 import { FunctionComponent, useEffect, useRef, useState } from 'react';
 import { useRecoilState, useRecoilValue, useResetRecoilState } from 'recoil';
 import { selectedOrgState, selectedOrgType } from '../../app-state';
+import { useAmplitude } from '../core/analytics';
 import LoadRecordsDataPreview from './components/LoadRecordsDataPreview';
 import LoadRecordsProgress from './components/LoadRecordsProgress';
 import { FieldWithRelatedEntities, Step } from './load-records-types';
@@ -47,6 +49,7 @@ export interface LoadRecordsProps {}
 
 export const LoadRecords: FunctionComponent<LoadRecordsProps> = () => {
   const isMounted = useRef(null);
+  const { trackEvent } = useAmplitude();
   const selectedOrg = useRecoilValue<SalesforceOrgUi>(selectedOrgState);
   const orgType = useRecoilValue(selectedOrgType);
   // TODO: probably need this to know when to reset state
@@ -243,6 +246,11 @@ export const LoadRecords: FunctionComponent<LoadRecordsProps> = () => {
     setInputFilename(filename);
   }
 
+  function handleGoBackToPrev() {
+    changeStep(-1);
+    trackEvent(ANALYTICS_KEYS.load_GoBackToPrevStep, { step: currentStepIdx });
+  }
+
   function changeStep(changeBy: number) {
     setCurrentStep(enabledSteps[currentStepIdx + changeBy]);
   }
@@ -261,6 +269,7 @@ export const LoadRecords: FunctionComponent<LoadRecordsProps> = () => {
     resetInputFilenameState();
     resetFieldMappingState();
     setExternalId('');
+    trackEvent(ANALYTICS_KEYS.load_StartOver, { page: currentStep.name });
   }
 
   return (
@@ -278,7 +287,11 @@ export const LoadRecords: FunctionComponent<LoadRecordsProps> = () => {
               <Icon type="utility" icon="refresh" className="slds-button__icon slds-button__icon_left" />
               Start Over
             </button>
-            <button className="slds-button slds-button_neutral" disabled={currentStep.idx === 0 || loading} onClick={() => changeStep(-1)}>
+            <button
+              className="slds-button slds-button_neutral"
+              disabled={currentStep.idx === 0 || loading}
+              onClick={() => handleGoBackToPrev()}
+            >
               <Icon type="utility" icon="back" className="slds-button__icon slds-button__icon_left" />
               Go Back To Previous Step
             </button>
@@ -339,6 +352,8 @@ export const LoadRecords: FunctionComponent<LoadRecordsProps> = () => {
                   inputHeader={inputFileHeader}
                   fieldMapping={fieldMapping}
                   fileData={inputFileData}
+                  loadType={loadType}
+                  externalId={externalId}
                   onFieldMappingChange={setFieldMapping}
                 />
               </span>

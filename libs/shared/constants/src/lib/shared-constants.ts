@@ -94,3 +94,32 @@ export const DATE_FORMATS = {
   HH_MM_SS_a: 'h:mm:ss a',
   FULL: 'MMMM do, yyyy hh:mm aa',
 };
+
+export const ANALYTICS_KEYS = {
+  /** QUERY */
+  query_BulkDelete: 'query_BulkDelete',
+  query_CopyToClipboard: 'query_CopyToClipboard',
+  query_DownloadResults: 'query_DownloadResults',
+  query_ExecuteQuery: 'query_ExecuteQuery',
+  query_HelpClicked: 'query_HelpClicked',
+  query_HistoryChangeOrgs: 'query_HistoryChangeOrgs',
+  query_HistoryExecute: 'query_HistoryExecute',
+  query_HistoryModalOpened: 'query_HistoryModalOpened',
+  query_HistoryRestore: 'query_HistoryRestore',
+  query_HistorySaveQueryToggled: 'query_HistorySaveQueryToggled',
+  query_HistoryShowMore: 'query_HistoryShowMore',
+  query_HistoryTypeChanged: 'query_HistoryTypeChanged',
+  query_LoadMore: 'query_LoadMore',
+  query_ManualQueryOpened: 'query_ManualQueryOpened',
+  query_ManualSoqlOpened: 'query_ManualSoqlOpened',
+  query_MetadataQueryToggled: 'query_MetadataQueryToggled',
+  query_RecordAction: 'query_RecordAction',
+  query_ResetPage: 'query_ResetPage',
+  /** LOAD */
+  load_GoBackToPrevStep: 'load_GoBackToPrevStep',
+  load_MappingAutomationChanged: 'load_MappingAutomationChanged',
+  load_MappingFilterChanged: 'load_MappingFilterChanged',
+  load_MappingRowPreviewChanged: 'load_MappingRowPreviewChanged',
+  load_StartOver: 'load_StartOver',
+  load_Submitted: 'load_Submitted',
+};

@@ -131,7 +131,7 @@ export const LoadRecordsFieldMappingRow: FunctionComponent<LoadRecordsFieldMappi
 
   return (
     <tr>
-      <td className="slds-align-top slds-text-color_weak">
+      <td className="slds-align-top slds-text-color_weak bg-color-backdrop-tint">
         <div className="slds-truncate slds-m-top_x-small" title={csvRowDataStr}>
           {csvRowDataStr}
         </div>

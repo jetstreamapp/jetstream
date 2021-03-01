@@ -2,7 +2,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { jsx } from '@emotion/react';
 import { logger } from '@jetstream/shared/client-logger';
-import { INDEXED_DB } from '@jetstream/shared/constants';
+import { ANALYTICS_KEYS, INDEXED_DB } from '@jetstream/shared/constants';
 import { formatNumber, useNonInitialEffect } from '@jetstream/shared/ui-utils';
 import { multiWordObjectFilter } from '@jetstream/shared/utils';
 import { MapOf, QueryHistoryItem, QueryHistorySelection, SalesforceOrgUi, UpDown } from '@jetstream/types';
@@ -12,6 +12,7 @@ import { createRef, FunctionComponent, useEffect, useState } from 'react';
 import { ErrorBoundary } from 'react-error-boundary';
 import { useLocation } from 'react-router-dom';
 import { useRecoilState, useRecoilValue, useResetRecoilState } from 'recoil';
+import { useAmplitude } from '../../core/analytics';
 import ErrorBoundaryFallback from '../../core/ErrorBoundaryFallback';
 import * as fromQueryHistoryState from './query-history.state';
 import QueryHistoryEmptyState from './QueryHistoryEmptyState';
@@ -28,6 +29,7 @@ export interface QueryHistoryProps {
 
 export const QueryHistory: FunctionComponent<QueryHistoryProps> = ({ selectedOrg, onRestore }) => {
   const location = useLocation();
+  const { trackEvent } = useAmplitude();
   const [queryHistoryStateMap, setQueryHistorySateMap] = useRecoilState(fromQueryHistoryState.queryHistoryState);
   const queryHistory = useRecoilValue(fromQueryHistoryState.selectQueryHistoryState);
   const [whichType, setWhichType] = useRecoilState(fromQueryHistoryState.queryHistoryWhichType);
@@ -83,6 +85,14 @@ export const QueryHistory: FunctionComponent<QueryHistoryProps> = ({ selectedOrg
   }, [isOpen, selectedObject, whichType, whichOrg]);
 
   useNonInitialEffect(() => {
+    trackEvent(ANALYTICS_KEYS.query_HistoryChangeOrgs, { whichOrg });
+  }, [whichOrg]);
+
+  useNonInitialEffect(() => {
+    trackEvent(ANALYTICS_KEYS.query_HistoryTypeChanged, { whichType });
+  }, [whichType]);
+
+  useNonInitialEffect(() => {
     if (!isOpen) {
       resetSelectedObject();
       setFilterValue('');
@@ -110,6 +120,12 @@ export const QueryHistory: FunctionComponent<QueryHistoryProps> = ({ selectedOrg
 
   useEffect(() => {
     if (isOpen) {
+      trackEvent(ANALYTICS_KEYS.query_HistoryModalOpened);
+    }
+  }, [isOpen, trackEvent]);
+
+  useEffect(() => {
+    if (isOpen) {
       setIsOpen(false);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -133,6 +149,17 @@ export const QueryHistory: FunctionComponent<QueryHistoryProps> = ({ selectedOrg
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectObjectsList, filterValue]);
 
+  function handleExecute({ created, lastRun, runCount, isTooling, isFavorite }: QueryHistoryItem) {
+    trackEvent(ANALYTICS_KEYS.query_HistoryExecute, {
+      created,
+      lastRun,
+      runCount,
+      isTooling,
+      isFavorite,
+    });
+    onModalClose();
+  }
+
   function onModalClose() {
     setIsOpen(false);
     resetSelectedObject();
@@ -150,20 +177,24 @@ export const QueryHistory: FunctionComponent<QueryHistoryProps> = ({ selectedOrg
     setIsRestoring(true);
   }
 
-  function handleEndRestore(soql: string, tooling: boolean, fatalError: boolean, errors?: any) {
+  function handleEndRestore(item: QueryHistoryItem, fatalError: boolean, errors?: any) {
+    const { soql, created, lastRun, runCount, isTooling, isFavorite } = item;
     setIsRestoring(false);
     if (!fatalError) {
       setIsOpen(false);
-      onRestore && onRestore(soql, tooling);
+      onRestore && onRestore(soql, isTooling);
     }
+    trackEvent(ANALYTICS_KEYS.query_HistoryRestore, { created, lastRun, runCount, isTooling, isFavorite, fatalError, errors });
   }
 
   function showMore() {
     setShowingUpTo(showingUpTo + SHOWING_STEP);
+    trackEvent(ANALYTICS_KEYS.query_HistoryShowMore);
   }
 
   function handleSaveFavorite(item: QueryHistoryItem, isFavorite: boolean) {
     setQueryHistorySateMap({ ...queryHistoryStateMap, [item.key]: { ...item, isFavorite } });
+    trackEvent(ANALYTICS_KEYS.query_HistorySaveQueryToggled, { isFavorite });
   }
 
   return (
@@ -246,10 +277,10 @@ export const QueryHistory: FunctionComponent<QueryHistoryProps> = ({ selectedOrg
                   <QueryHistoryItemCard
                     key={item.key}
                     item={item}
-                    onExecute={() => onModalClose()}
+                    onExecute={handleExecute}
                     onSave={handleSaveFavorite}
                     startRestore={handleStartRestore}
-                    endRestore={(fatalError, errors) => handleEndRestore(item.soql, item.isTooling, fatalError, errors)}
+                    endRestore={(fatalError, errors) => handleEndRestore(item, fatalError, errors)}
                   />
                 ))}
                 {visibleQueryHistory.length === 0 && (

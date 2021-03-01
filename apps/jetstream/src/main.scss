@@ -48,6 +48,14 @@
   color: $color-text-warning;
 }
 
+.text-color_brand {
+  color: $color-text-link-hover;
+}
+
+.button-focus-color {
+  color: var(--sds-c-button-text-color-hover, $brand-accessible-active);
+}
+
 .slds-text-link {
   cursor: pointer;
   fill: $brand-text-link;

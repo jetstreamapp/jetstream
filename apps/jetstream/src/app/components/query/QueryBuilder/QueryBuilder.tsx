@@ -1,6 +1,7 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 /** @jsx jsx */
 import { css, jsx } from '@emotion/react';
+import { IconObj } from '@jetstream/icon-factory';
 import { useNonInitialEffect } from '@jetstream/shared/ui-utils';
 import { DropDownItem, QueryFieldWithPolymorphic, SalesforceOrgUi } from '@jetstream/types';
 import {
@@ -12,17 +13,18 @@ import {
   Page,
   PageHeader,
   PageHeaderActions,
-  PageHeaderMetadataCol,
   PageHeaderRow,
   PageHeaderTitle,
   Tabs,
 } from '@jetstream/ui';
 import { DescribeGlobalSObjectResult } from 'jsforce';
 import { Fragment, FunctionComponent, useEffect, useRef, useState } from 'react';
-import { Link, useLocation, useRouteMatch } from 'react-router-dom';
+import { useLocation, useRouteMatch } from 'react-router-dom';
 import Split from 'react-split';
 import { useRecoilState, useRecoilValue, useResetRecoilState } from 'recoil';
 import { selectedOrgState, selectUserPreferenceState } from '../../../app-state';
+import { useAmplitude } from '../../core/analytics';
+import { ANALYTICS_KEYS } from '@jetstream/shared/constants';
 // import QueryWorker from '../../../workers/query.worker';
 import * as fromQueryState from '../query.state';
 import QueryHistory from '../QueryHistory/QueryHistory';
@@ -41,7 +43,6 @@ import ExecuteQueryButton from './ExecuteQueryButton';
 import QueryBuilderSoqlUpdater from './QueryBuilderSoqlUpdater';
 import QueryFieldsComponent from './QueryFields';
 import QuerySubquerySObjects from './QuerySubquerySObjects';
-import { IconObj } from '@jetstream/icon-factory';
 
 const HEIGHT_BUFFER = 175;
 
@@ -63,6 +64,7 @@ export interface QueryBuilderProps {}
 
 export const QueryBuilder: FunctionComponent<QueryBuilderProps> = () => {
   const isMounted = useRef(null);
+  const { trackEvent } = useAmplitude();
   const match = useRouteMatch();
   const location = useLocation<{ soql: string; sobject?: { name: string; label: string } }>();
 
@@ -111,6 +113,12 @@ export const QueryBuilder: FunctionComponent<QueryBuilderProps> = () => {
   }, [isTooling]);
 
   useNonInitialEffect(() => {
+    if (showWalkthrough) {
+      trackEvent(ANALYTICS_KEYS.query_HelpClicked, { isTooling });
+    }
+  }, [showWalkthrough]);
+
+  useNonInitialEffect(() => {
     if (queryFieldsMap && selectedSObject) {
       setFilterFields(calculateFilterAndOrderByListGroupFields(queryFieldsMap, ['filterable']));
       setOrderByFields(calculateFilterAndOrderByListGroupFields(queryFieldsMap, ['sortable']));
@@ -148,6 +156,7 @@ export const QueryBuilder: FunctionComponent<QueryBuilderProps> = () => {
 
   function handleQueryTypeChange(id: string) {
     setIsTooling(id === METADATA_QUERY_ID);
+    trackEvent(ANALYTICS_KEYS.query_MetadataQueryToggled, { changedTo: id });
   }
 
   function resetState(includeSobjectReset = true) {
