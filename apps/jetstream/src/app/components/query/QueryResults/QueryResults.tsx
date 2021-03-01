@@ -97,7 +97,7 @@ export const QueryResults: FunctionComponent<QueryResultsProps> = React.memo(() 
   const [cloneEditViewRecord, setCloneEditViewRecord] = useState<{ action: CloneEditView; sobjectName: string; recordId: string }>();
   const [restore] = useQueryRestore(soql, isTooling, { silent: true });
 
-  const { fieldMetadata, fieldMetadataSubquery } = useQueryResultsFetchMetadata(selectedOrg, queryResults?.parsedQuery);
+  const { fieldMetadata, fieldMetadataSubquery } = useQueryResultsFetchMetadata(selectedOrg, queryResults?.parsedQuery, isTooling);
 
   useEffect(() => {
     isMounted.current = true;

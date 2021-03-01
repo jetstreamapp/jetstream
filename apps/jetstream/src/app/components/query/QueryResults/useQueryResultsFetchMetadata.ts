@@ -12,7 +12,7 @@ import { fetchMetadataFromSoql } from '../utils/query-soql-utils';
  * @param parsedQuery
  * @returns
  */
-export function useQueryResultsFetchMetadata(org: SalesforceOrgUi, parsedQuery: Query) {
+export function useQueryResultsFetchMetadata(org: SalesforceOrgUi, parsedQuery: Query, isTooling: boolean) {
   const [parsedQueryStr, setParsedQueryStr] = useState<string>(null);
   const [fieldMetadata, setFieldMetadata] = useState<MapOf<Field>>(null);
   const [fieldMetadataSubquery, setFieldMetadataSubquery] = useState<MapOf<MapOf<Field>>>(null);
@@ -20,7 +20,7 @@ export function useQueryResultsFetchMetadata(org: SalesforceOrgUi, parsedQuery: 
   const fetchMetadata = useCallback(async () => {
     try {
       if (org && parsedQuery && (!parsedQueryStr || parsedQueryStr !== JSON.stringify(parsedQuery.fields))) {
-        const queryMetadata = await fetchMetadataFromSoql(org, parsedQuery);
+        const queryMetadata = await fetchMetadataFromSoql(org, parsedQuery, false, isTooling);
 
         const subqueryMetadata: MapOf<MapOf<Field>> = {};
         for (const key in queryMetadata.childMetadata) {
@@ -34,7 +34,7 @@ export function useQueryResultsFetchMetadata(org: SalesforceOrgUi, parsedQuery: 
     } catch (ex) {
       logger.log('[useQueryResultsFetchMetadata][ERROR]', ex);
     }
-  }, [org, parsedQuery, parsedQueryStr]);
+  }, [isTooling, org, parsedQuery, parsedQueryStr]);
 
   useEffect(() => {
     fetchMetadata();
