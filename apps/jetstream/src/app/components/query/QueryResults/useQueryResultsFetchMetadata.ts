@@ -1,3 +1,4 @@
+import { logger } from '@jetstream/shared/client-logger';
 import { MapOf, SalesforceOrgUi } from '@jetstream/types';
 import { Field } from 'jsforce';
 import { useCallback, useEffect, useState } from 'react';
@@ -17,17 +18,21 @@ export function useQueryResultsFetchMetadata(org: SalesforceOrgUi, parsedQuery: 
   const [fieldMetadataSubquery, setFieldMetadataSubquery] = useState<MapOf<MapOf<Field>>>(null);
 
   const fetchMetadata = useCallback(async () => {
-    if (org && parsedQuery && (!parsedQueryStr || parsedQueryStr !== JSON.stringify(parsedQuery.fields))) {
-      const queryMetadata = await fetchMetadataFromSoql(org, parsedQuery);
+    try {
+      if (org && parsedQuery && (!parsedQueryStr || parsedQueryStr !== JSON.stringify(parsedQuery.fields))) {
+        const queryMetadata = await fetchMetadataFromSoql(org, parsedQuery);
 
-      const subqueryMetadata: MapOf<MapOf<Field>> = {};
-      for (const key in queryMetadata.childMetadata) {
-        subqueryMetadata[key.toLowerCase()] = queryMetadata.childMetadata[key].lowercaseFieldMap;
+        const subqueryMetadata: MapOf<MapOf<Field>> = {};
+        for (const key in queryMetadata.childMetadata) {
+          subqueryMetadata[key.toLowerCase()] = queryMetadata.childMetadata[key].lowercaseFieldMap;
+        }
+
+        setParsedQueryStr(JSON.stringify(parsedQuery.fields));
+        setFieldMetadata(queryMetadata.lowercaseFieldMap);
+        setFieldMetadataSubquery(subqueryMetadata);
       }
-
-      setParsedQueryStr(JSON.stringify(parsedQuery.fields));
-      setFieldMetadata(queryMetadata.lowercaseFieldMap);
-      setFieldMetadataSubquery(subqueryMetadata);
+    } catch (ex) {
+      logger.log('[useQueryResultsFetchMetadata][ERROR]', ex);
     }
   }, [org, parsedQuery, parsedQueryStr]);
 
