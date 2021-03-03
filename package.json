@@ -180,6 +180,7 @@
     "@typescript-eslint/parser": "4.3.0",
     "babel-jest": "26.2.2",
     "babel-loader": "8.0.6",
+    "contentful": "^8.1.8",
     "cross-env": "^7.0.2",
     "css-loader": "^5.0.0",
     "cypress": "^4.1.0",

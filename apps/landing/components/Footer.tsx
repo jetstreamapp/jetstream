@@ -2,7 +2,7 @@ import React from 'react';
 import Link from 'next/link';
 
 interface FooterProps {
-  currPage: 'home' | 'about' | 'tos' | 'privacy';
+  currPage: 'home' | 'blog' | 'about' | 'tos' | 'privacy';
 }
 
 function getLink(path: string, label: string, isActive: boolean) {
@@ -24,6 +24,7 @@ export const Footer = ({ currPage }: FooterProps) => (
     <div className="max-w-screen-xl mx-auto py-12 px-4 overflow-hidden sm:px-6 lg:px-8">
       <nav className="-mx-5 -my-2 flex flex-wrap justify-center">
         {getLink('/', 'Home', currPage === 'home')}
+        {getLink('/blog', 'Blog', currPage === 'blog')}
         {getLink('/terms-of-service', 'Terms of Service', currPage === 'tos')}
         {getLink('/privacy', 'Privacy Policy', currPage === 'privacy')}
       </nav>
@@ -35,3 +36,22 @@ export const Footer = ({ currPage }: FooterProps) => (
 );
 
 export default Footer;
+
+/**
+ *
+ * TODO:
+ *
+ * SEO spam
+ *
+ * recent publications on home page
+ * https://tailwindui.com/components/marketing/sections/blog-sections
+ *
+ * List:
+ * go back,
+ * cards? list? sidebar? categories? search?
+ *
+ * Content:
+ * https://tailwindui.com/components/marketing/sections/content-sections
+ * bread crumb?
+ *
+ */
