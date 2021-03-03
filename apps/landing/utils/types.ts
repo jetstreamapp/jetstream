@@ -1,4 +1,5 @@
-import { Sys, EntryFields, Asset } from 'contentful';
+import { Document } from '@contentful/rich-text-types';
+import { Asset, EntryFields, Sys } from 'contentful';
 
 export interface ContentfulBlogPost {
   sys: Sys;
@@ -7,9 +8,10 @@ export interface ContentfulBlogPost {
 
 export interface ContentfulBlogPostField {
   title: EntryFields.Text;
+  summary: EntryFields.Text;
   tags: Array<string>;
   slug: EntryFields.Text;
-  content: EntryFields.RichText;
+  content: Document;
   publishDate: string;
   author: {
     sys: {
@@ -22,7 +24,7 @@ export interface ContentfulBlogPostField {
 export interface ContentfulBlogPostAuthor {
   sys: Sys;
   fields: {
-    title: EntryFields.Text;
+    name: EntryFields.Text;
     description?: EntryFields.Text;
   };
 }
@@ -35,12 +37,13 @@ export interface ContentfulIncludes {
 export interface BlogPost {
   id: string;
   title: string;
+  summary: string;
   tags: Array<string>;
   slug: string;
   publishDate: string;
-  content: EntryFields.RichText;
+  content: Document;
   author: ContentfulBlogPostAuthor;
-  relatedAssets: AssetsById;
+  // relatedAssets: AssetsById;
 }
 
 export interface BlogPostsBySlug {

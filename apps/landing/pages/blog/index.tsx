@@ -5,6 +5,7 @@ import { fetchBlogPosts } from '../../utils/data';
 import { BlogPost } from '../../utils/types';
 // import { GetStaticPaths } from 'next';
 import Head from 'next/head';
+import { parseISO, format } from 'date-fns';
 // WTF - broken
 // import favicon from '../../assets/images/favicon.ico';
 
@@ -48,15 +49,32 @@ function BlogPosts({ blogPosts }: PostProps) {
         <link rel="icon" type="image/png" sizes="96x96" href="/assets/images/favicon-96x96.png" />
         <link rel="icon" type="image/png" sizes="16x16" href="/assets/images/favicon-16x16.png" />
       </Head>
-      <h1>Blog</h1>
-      <ul>
+      <div className="relative py-16 bg-white overflow-hidden">
+        <div className="relative px-4 sm:px-6 lg:px-8">
+          <div className="text-lg max-w-prose mx-auto">
+            <h1 className="text-center mt-2 block text-3xl leading-8 font-extrabold tracking-tight text-gray-900 sm:text-4xl">Blog</h1>
+          </div>
+        </div>
         {blogPosts.map((post) => (
-          <li key={post.id}>
-            <a href={`/blog/posts/${post.slug}`}>{post.title}</a>
-          </li>
+          <div key={post.id}>
+            <hr className="my-5" />
+            <div className="flex justify-center">
+              <div className="w-full md:w-6/12 xl:w-4/12 px-6 md:px-0">
+                <h3>
+                  <a href={`/blog/post/${post.slug}`}>{post.title}</a>
+                </h3>
+                <p className="my-2 text-gray-500 text-sm">{format(parseISO(post.publishDate), 'MMMM d, y')}</p>
+                <section className="text-sm mt-4">{post.summary}</section>
+                <div className="mt-8">
+                  <a className="text-blue-700" href={`/blog/post/${post.slug}`}>
+                    Read More
+                  </a>
+                </div>
+              </div>
+            </div>
+          </div>
         ))}
-      </ul>
-
+      </div>
       <Footer currPage="blog" />
     </Fragment>
   );

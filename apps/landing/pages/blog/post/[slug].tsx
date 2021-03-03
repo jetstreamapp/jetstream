@@ -1,8 +1,10 @@
 import Head from 'next/head';
 import React, { Fragment } from 'react';
+import { renderBlogPostRichText } from '../../../components/blog-post-renderers';
 import Footer from '../../../components/Footer';
 import { fetchBlogPosts } from '../../../utils/data';
 import { BlogPost } from '../../../utils/types';
+import { parseISO, format } from 'date-fns';
 // WTF - broken
 // import favicon from '../../assets/images/favicon.ico';
 
@@ -43,25 +45,24 @@ function Post({ post }: PostProps) {
         <link rel="icon" type="image/png" sizes="96x96" href="/assets/images/favicon-96x96.png" />
         <link rel="icon" type="image/png" sizes="16x16" href="/assets/images/favicon-16x16.png" />
       </Head>
-      <h1>{post.title}</h1>
-      <div>{post.slug}</div>
-
       <div className="relative py-16 bg-white overflow-hidden">
         <div className="relative px-4 sm:px-6 lg:px-8">
-          <div className="text-lg max-w-prose mx-auto">
-            <span className="mt-2 block text-3xl text-center leading-8 font-extrabold tracking-tight text-gray-900 sm:text-4xl">
-              {post.title}
-            </span>
+          <div className="text-lg max-w-prose mx-auto text-center">
+            <h1 className="mt-2 block text-3xl leading-8 font-extrabold tracking-tight text-gray-900 sm:text-4xl">{post.title}</h1>
+            <div className="my-2 text-gray-500">Published {format(parseISO(post.publishDate), 'MMMM d, y')}</div>
+            <div>{post.author.fields.name}</div>
           </div>
-          <div className="mt-6 prose prose-indigo prose-lg text-gray-500 mx-auto">
+          <hr className="my-5" />
+          <div className="mt-6 prose prose-indigo text-gray-500 mx-auto">
             {/* TODO: show all the content here! */}
             {/* show thr data somewhere */}
             {/* show the author somewhere */}
             {/* https://tailwindui.com/components/marketing/sections/content-sections */}
-            {post.content.content.map((content) => {
+            {renderBlogPostRichText(post.content)}
+            {/* {post.content.content.map((content) => {
               // TODO: may want to have helper functions return content
               // blockquoer
-            })}
+            })} */}
           </div>
         </div>
       </div>

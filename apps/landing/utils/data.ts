@@ -22,10 +22,11 @@ export async function fetchBlogPosts() {
 
   const { Asset, Entry } = entries.includes as ContentfulIncludes;
 
-  const assetsById = Asset.reduce((output: AssetsById, item) => {
-    output[item.sys.id] = item;
-    return output;
-  }, {});
+  // const assetsById = Asset.reduce((output: AssetsById, item) => {
+  //   output[item.sys.id] = item;
+  //   return output;
+  // }, {});
+
   const authorsById = Entry.reduce((output: AuthorsById, item) => {
     output[item.sys.id] = item;
     return output;
@@ -37,12 +38,13 @@ export async function fetchBlogPosts() {
         return {
           id: sys.id,
           title: fields.title,
+          summary: fields.summary,
           tags: fields.tags,
           slug: fields.slug,
           publishDate: fields.publishDate,
           content: fields.content,
           author: authorsById[fields.author?.sys.id],
-          relatedAssets: getRelatedAssets(fields.content.content, assetsById),
+          // relatedAssets: getRelatedAssets(fields.content.content as RichTextContent[], assetsById),
         };
       }
     )
@@ -54,17 +56,22 @@ export async function fetchBlogPosts() {
   return blogPostsWithRelated;
 }
 
-function getRelatedAssets(rootContent: RichTextContent[], assetsById: AssetsById, output: AssetsById = {}) {
-  return rootContent.reduce((content: AssetsById, item) => {
-    if (item.data?.target?.sys.linkType === 'Asset' && assetsById[item.data.target.sys.id]) {
-      content[item.data.target.sys.id] = assetsById[item.data.target.sys.id];
-    }
+// getEntries appears to relate assets OOB
+// function getRelatedAssets(rootContent: RichTextContent[], assetsById: AssetsById, output: AssetsById = {}) {
+//   return rootContent.reduce((content: AssetsById, item) => {
+//     if ((item.nodeType as any) === 'embedded-asset-block') {
+//       console.log('SHOULD HAVE ASSET');
+//       console.log(item.data);
+//     }
+//     if (item.data?.target?.sys.linkType === 'Asset' && assetsById[item.data.target.sys.id]) {
+//       content[item.data.target.sys.id] = assetsById[item.data.target.sys.id];
+//     }
 
-    // recursively find any related assets
-    if (Array.isArray(item.content)) {
-      getRelatedAssets(item.content, assetsById, output);
-    }
+//     // recursively find any related assets
+//     if (Array.isArray(item.content)) {
+//       getRelatedAssets(item.content, assetsById, output);
+//     }
 
-    return content;
-  }, output);
-}
+//     return content;
+//   }, output);
+// }
