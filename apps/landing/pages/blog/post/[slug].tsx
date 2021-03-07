@@ -5,8 +5,8 @@ import Footer from '../../../components/Footer';
 import { fetchBlogPosts } from '../../../utils/data';
 import { BlogPost } from '../../../utils/types';
 import { parseISO, format } from 'date-fns';
-// WTF - broken
-// import favicon from '../../assets/images/favicon.ico';
+import NavBar from '../../../components/NavBar';
+import Breadcrumbs from '../../../components/Breadcrumbs';
 
 interface PostProps {
   post: BlogPost;
@@ -18,8 +18,8 @@ function Post({ post }: PostProps) {
     <Fragment>
       <Head>
         <title>Jetstream Blog - {post.title}</title>
-        <meta name="description" content={`Jetstream blog - ${post.title}.`} />
-        {/* <link rel="icon" type="image/png" href={favicon}></link> */}
+        <meta name="description" content={`Jetstream blog - ${post.summary}.`} />
+        <link rel="icon" type="image/png" href="/assets/images/favicon-32x32.png"></link>
         <meta charSet="UTF-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 
@@ -45,29 +45,29 @@ function Post({ post }: PostProps) {
         <link rel="icon" type="image/png" sizes="96x96" href="/assets/images/favicon-96x96.png" />
         <link rel="icon" type="image/png" sizes="16x16" href="/assets/images/favicon-16x16.png" />
       </Head>
-      <div className="relative py-16 bg-white overflow-hidden">
-        <div className="relative px-4 sm:px-6 lg:px-8">
-          <div className="text-lg max-w-prose mx-auto text-center">
-            <h1 className="mt-2 block text-3xl leading-8 font-extrabold tracking-tight text-gray-900 sm:text-4xl">{post.title}</h1>
-            <div className="my-2 text-gray-500">Published {format(parseISO(post.publishDate), 'MMMM d, y')}</div>
-            <div>{post.author.fields.name}</div>
-          </div>
-          <hr className="my-5" />
-          <div className="mt-6 prose prose-indigo text-gray-500 mx-auto">
-            {/* TODO: show all the content here! */}
-            {/* show thr data somewhere */}
-            {/* show the author somewhere */}
-            {/* https://tailwindui.com/components/marketing/sections/content-sections */}
-            {renderBlogPostRichText(post.content)}
-            {/* {post.content.content.map((content) => {
-              // TODO: may want to have helper functions return content
-              // blockquoer
-            })} */}
+
+      <div>
+        <NavBar currPage="blog" />
+        <Breadcrumbs
+          items={[
+            { label: 'Blog', path: '/blog' },
+            { label: post.title, path: `/blog/post/${post.slug}` },
+          ]}
+        />
+        <div className="relative py-16 bg-white overflow-hidden">
+          <div className="relative px-4 sm:px-6 lg:px-8">
+            <div className="text-lg max-w-prose mx-auto text-center">
+              <h1 className="mt-2 block text-3xl leading-8 font-extrabold tracking-tight text-gray-900 sm:text-4xl">{post.title}</h1>
+              <div className="my-2 text-gray-500">Published {format(parseISO(post.publishDate), 'MMMM d, y')}</div>
+              <div>{post.author.fields.name}</div>
+            </div>
+            <hr className="my-5" />
+            <div className="mt-6 prose prose-blue text-gray-500 mx-auto">{renderBlogPostRichText(post.content)}</div>
           </div>
         </div>
-      </div>
 
-      <Footer currPage="blog" />
+        <Footer currPage="blog" />
+      </div>
     </Fragment>
   );
 }

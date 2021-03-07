@@ -1,13 +1,11 @@
+import { format, parseISO } from 'date-fns';
+import Head from 'next/head';
 import React, { Fragment } from 'react';
+import Breadcrumbs from '../../components/Breadcrumbs';
 import Footer from '../../components/Footer';
-import Logo from '../../components/Logo';
+import NavBar from '../../components/NavBar';
 import { fetchBlogPosts } from '../../utils/data';
 import { BlogPost } from '../../utils/types';
-// import { GetStaticPaths } from 'next';
-import Head from 'next/head';
-import { parseISO, format } from 'date-fns';
-// WTF - broken
-// import favicon from '../../assets/images/favicon.ico';
 
 interface PostProps {
   blogPosts: Array<BlogPost>;
@@ -23,7 +21,7 @@ function BlogPosts({ blogPosts }: PostProps) {
           name="description"
           content="Jetstream is a set of tools that supercharge your administration of Salesforce.com. Jetstream is build for administrators, developers, quality assurance, or power users that want to speed up your management of Salesforce. Jetstream comes with an advanced query builder for viewing records, a powerful data loader for making changes to your record data, and many more features!"
         />
-        {/* <link rel="icon" type="image/png" href={favicon}></link> */}
+        <link rel="icon" type="image/png" href="/assets/images/favicon-32x32.png"></link>
         <meta charSet="UTF-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 
@@ -49,33 +47,42 @@ function BlogPosts({ blogPosts }: PostProps) {
         <link rel="icon" type="image/png" sizes="96x96" href="/assets/images/favicon-96x96.png" />
         <link rel="icon" type="image/png" sizes="16x16" href="/assets/images/favicon-16x16.png" />
       </Head>
-      <div className="relative py-16 bg-white overflow-hidden">
-        <div className="relative px-4 sm:px-6 lg:px-8">
-          <div className="text-lg max-w-prose mx-auto">
-            <h1 className="text-center mt-2 block text-3xl leading-8 font-extrabold tracking-tight text-gray-900 sm:text-4xl">Blog</h1>
+      <div>
+        <NavBar currPage="blog" />
+        <Breadcrumbs items={[{ label: 'Blog', path: '/blog' }]} />
+        <div className="relative py-16 bg-white overflow-hidden">
+          <div className="relative px-4 sm:px-6 lg:px-8">
+            <div className="text-lg max-w-prose mx-auto">
+              <h1 className="text-center mt-2 block text-3xl leading-8 font-extrabold tracking-tight text-gray-900 sm:text-4xl">
+                Jetstream Blog
+              </h1>
+            </div>
           </div>
-        </div>
-        {blogPosts.map((post) => (
-          <div key={post.id}>
-            <hr className="my-5" />
-            <div className="flex justify-center">
-              <div className="w-full md:w-6/12 xl:w-4/12 px-6 md:px-0">
-                <h3>
-                  <a href={`/blog/post/${post.slug}`}>{post.title}</a>
-                </h3>
-                <p className="my-2 text-gray-500 text-sm">{format(parseISO(post.publishDate), 'MMMM d, y')}</p>
-                <section className="text-sm mt-4">{post.summary}</section>
-                <div className="mt-8">
-                  <a className="text-blue-700" href={`/blog/post/${post.slug}`}>
-                    Read More
-                  </a>
+          {blogPosts.length === 0 && (
+            <div className="text-center pt-8 text-gray-500">There aren't any blog posts right now, check back soon.</div>
+          )}
+          {blogPosts.map((post) => (
+            <div key={post.id}>
+              <hr className="my-5" />
+              <div className="flex justify-center">
+                <div className="w-full md:w-6/12 xl:w-4/12 px-6 md:px-0">
+                  <h3 className="text-xl">
+                    <a href={`/blog/post/${post.slug}`}>{post.title}</a>
+                  </h3>
+                  <p className="my-2 text-gray-500 text-sm">{format(parseISO(post.publishDate), 'MMMM d, y')}</p>
+                  <section className="text-sm mt-4">{post.summary}</section>
+                  <div className="mt-8">
+                    <a className="text-blue-700" href={`/blog/post/${post.slug}`}>
+                      Read More
+                    </a>
+                  </div>
                 </div>
               </div>
             </div>
-          </div>
-        ))}
+          ))}
+        </div>
+        <Footer currPage="blog" />
       </div>
-      <Footer currPage="blog" />
     </Fragment>
   );
 }

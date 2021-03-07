@@ -16,9 +16,10 @@ export const SplitBrandPricing = () => (
         z-index: 100;
         opacity: 0.7;
         position: absolute;
-        background: url(${BackgroundImage}) repeat-x bottom;
+        /* background: url(${BackgroundImage}) repeat-x bottom; */
         width: 100%;
         height: 100%;
+        pointer-events: none;
       `}
     ></div>
     <div className="absolute inset-0" aria-hidden="true">

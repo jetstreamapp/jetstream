@@ -9,7 +9,6 @@ export interface ContentfulBlogPost {
 export interface ContentfulBlogPostField {
   title: EntryFields.Text;
   summary: EntryFields.Text;
-  tags: Array<string>;
   slug: EntryFields.Text;
   content: Document;
   publishDate: string;
@@ -38,7 +37,6 @@ export interface BlogPost {
   id: string;
   title: string;
   summary: string;
-  tags: Array<string>;
   slug: string;
   publishDate: string;
   content: Document;

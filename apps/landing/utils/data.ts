@@ -1,11 +1,11 @@
-import { createClient, RichTextContent } from 'contentful';
-import { BlogPost, AssetsById, AuthorsById, ContentfulBlogPostField, ContentfulIncludes, BlogPostsBySlug } from './types';
+import { createClient } from 'contentful';
+import { AuthorsById, BlogPost, BlogPostsBySlug, ContentfulBlogPostField, ContentfulIncludes } from './types';
 
-let blogPostsWithRelated: BlogPostsBySlug;
+let blogPostsBySlug: BlogPostsBySlug;
 
 export async function fetchBlogPosts() {
-  if (blogPostsWithRelated) {
-    return blogPostsWithRelated;
+  if (blogPostsBySlug) {
+    return blogPostsBySlug;
   }
 
   const client = createClient({
@@ -16,62 +16,44 @@ export async function fetchBlogPosts() {
 
   const entries = await client.getEntries<ContentfulBlogPostField>({
     content_type: 'blogPost',
-    order: 'fields.publishDate',
+    order: '-fields.publishDate',
     include: 2,
   });
 
-  const { Asset, Entry } = entries.includes as ContentfulIncludes;
+  if (Array.isArray(entries.errors) && entries.errors.length > 0) {
+    console.log('[CONTENTFUL ERROR]', JSON.stringify(entries.errors));
+    throw new Error('Error with contentful API');
+  }
 
-  // const assetsById = Asset.reduce((output: AssetsById, item) => {
-  //   output[item.sys.id] = item;
-  //   return output;
-  // }, {});
+  if (entries.total > 0) {
+    const { Entry } = entries.includes as ContentfulIncludes;
 
-  const authorsById = Entry.reduce((output: AuthorsById, item) => {
-    output[item.sys.id] = item;
-    return output;
-  }, {});
-
-  blogPostsWithRelated = entries.items
-    .map(
-      ({ sys, fields }): BlogPost => {
-        return {
-          id: sys.id,
-          title: fields.title,
-          summary: fields.summary,
-          tags: fields.tags,
-          slug: fields.slug,
-          publishDate: fields.publishDate,
-          content: fields.content,
-          author: authorsById[fields.author?.sys.id],
-          // relatedAssets: getRelatedAssets(fields.content.content as RichTextContent[], assetsById),
-        };
-      }
-    )
-    .reduce((output: BlogPostsBySlug, item) => {
-      output[item.slug] = item;
+    const authorsById = Entry.reduce((output: AuthorsById, item) => {
+      output[item.sys.id] = item;
       return output;
     }, {});
 
-  return blogPostsWithRelated;
+    blogPostsBySlug = entries.items
+      .map(
+        ({ sys, fields }): BlogPost => {
+          return {
+            id: sys.id,
+            title: fields.title,
+            summary: fields.summary,
+            slug: fields.slug,
+            publishDate: fields.publishDate,
+            content: fields.content,
+            author: authorsById[fields.author?.sys.id],
+          };
+        }
+      )
+      .reduce((output: BlogPostsBySlug, item) => {
+        output[item.slug] = item;
+        return output;
+      }, {});
+  } else {
+    blogPostsBySlug = {};
+  }
+
+  return blogPostsBySlug;
 }
-
-// getEntries appears to relate assets OOB
-// function getRelatedAssets(rootContent: RichTextContent[], assetsById: AssetsById, output: AssetsById = {}) {
-//   return rootContent.reduce((content: AssetsById, item) => {
-//     if ((item.nodeType as any) === 'embedded-asset-block') {
-//       console.log('SHOULD HAVE ASSET');
-//       console.log(item.data);
-//     }
-//     if (item.data?.target?.sys.linkType === 'Asset' && assetsById[item.data.target.sys.id]) {
-//       content[item.data.target.sys.id] = assetsById[item.data.target.sys.id];
-//     }
-
-//     // recursively find any related assets
-//     if (Array.isArray(item.content)) {
-//       getRelatedAssets(item.content, assetsById, output);
-//     }
-
-//     return content;
-//   }, output);
-// }
