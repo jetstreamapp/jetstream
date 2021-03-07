@@ -1,16 +1,5 @@
 import React, { FunctionComponent } from 'react';
 import classNames from 'classnames';
-// first item
-// py-4 px-4 flex items-center space-x-3 text-base leading-6 text-white
-
-// all remaining items
-// border-t border-teal-300 border-opacity-25 py-4 px-4 flex items-center space-x-3 text-base leading-6 text-white
-
-// first item, second column
-// border-t border-teal-300 border-opacity-25 py-4 px-4 flex items-center space-x-3 text-base leading-6 text-white sm:border-t-0 sm:border-l
-
-// remaining items in second col
-// border-t border-teal-300 border-opacity-25 py-4 px-4 flex items-center space-x-3 text-base leading-6 text-white sm:border-l
 
 export interface PricingTableItemProps {
   text: string;
@@ -22,7 +11,7 @@ export interface PricingTableItemProps {
 export const PricingTableItem: FunctionComponent<PricingTableItemProps> = ({ text, topBorder, omitTopBoarderOnSmall, leftBorder }) => (
   <li
     className={classNames('py-4 px-4 flex items-center space-x-3 text-base leading-6 text-white', {
-      'border-t border-indigo-400 border-opacity-25': topBorder,
+      'border-t border-blue-100 border-opacity-75': topBorder,
       'sm:border-t-0': omitTopBoarderOnSmall,
       'sm:border-l': leftBorder,
     })}

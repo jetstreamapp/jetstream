@@ -4,7 +4,6 @@ import PricingTableItem from './PricingTableItem';
 
 export const PricingTable = () => (
   <div className="bg-blue-700 py-16 px-4 sm:py-24 sm:px-6 lg:bg-none lg:flex lg:items-center lg:justify-end lg:px-0 lg:pl-8">
-    {/* <img src={BgPattern} /> */}
     <div className="max-w-lg mx-auto w-full space-y-8 lg:mx-4">
       <div>
         <h2 className="sr-only">Price</h2>
@@ -17,7 +16,7 @@ export const PricingTable = () => (
           </span>
         </p>
       </div>
-      <ul className="bg-teal-600 bg-opacity-50 rounded sm:grid sm:grid-cols-2 sm:grid-rows-2 sm:grid-flow-col">
+      <ul className="bg-blue-400 bg-opacity-50 rounded sm:grid sm:grid-cols-2 sm:grid-rows-2 sm:grid-flow-col">
         <PricingTableItem text="Unlimited Orgs" />
         <PricingTableItem text="Unlimited Usage" topBorder />
         <PricingTableItem text="Optimized Workflows" topBorder omitTopBoarderOnSmall leftBorder />

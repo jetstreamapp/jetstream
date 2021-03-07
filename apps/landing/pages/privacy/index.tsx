@@ -1,14 +1,14 @@
 import React, { Fragment } from 'react';
+import Breadcrumbs from '../../components/Breadcrumbs';
 import Footer from '../../components/Footer';
-import Logo from '../../components/Logo';
+import NavBar from '../../components/NavBar';
 
 function Privacy() {
   const email = 'support@getjetstream.app';
   return (
     <Fragment>
-      <div className="m-8">
-        <Logo />
-      </div>
+      <NavBar currPage="privacy" omitBlogPosts />
+      <Breadcrumbs items={[{ label: 'Privacy policy', path: '/privacy' }]} />
       <div className="m-8">
         <h1>Privacy Policy</h1>
         <p className="mb-2 pl-2">
