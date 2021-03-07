@@ -2,12 +2,13 @@ import React from 'react';
 import Link from 'next/link';
 
 interface FooterProps {
-  currPage: 'home' | 'about' | 'tos' | 'privacy';
+  currPage: 'home' | 'blog' | 'about' | 'tos' | 'privacy';
+  omitBlogPosts?: boolean;
 }
 
 function getLink(path: string, label: string, isActive: boolean) {
   return (
-    <div className="px-5 py-2">
+    <div className="px-5 py-2 text-center sm:text-left">
       {!isActive && (
         <Link href={path}>
           {/* eslint-disable-next-line jsx-a11y/anchor-is-valid */}
@@ -19,11 +20,12 @@ function getLink(path: string, label: string, isActive: boolean) {
   );
 }
 
-export const Footer = ({ currPage }: FooterProps) => (
+export const Footer = ({ currPage, omitBlogPosts }: FooterProps) => (
   <div className="">
     <div className="max-w-screen-xl mx-auto py-12 px-4 overflow-hidden sm:px-6 lg:px-8">
-      <nav className="-mx-5 -my-2 flex flex-wrap justify-center">
+      <nav className="-mx-5 -my-2 flex flex-wrap justify-center flex-col sm:flex-row">
         {getLink('/', 'Home', currPage === 'home')}
+        {!omitBlogPosts && getLink('/blog', 'Blog', currPage === 'blog')}
         {getLink('/terms-of-service', 'Terms of Service', currPage === 'tos')}
         {getLink('/privacy', 'Privacy Policy', currPage === 'privacy')}
       </nav>
