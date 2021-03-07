@@ -128,8 +128,10 @@ export const List = forwardRef<HTMLUListElement, ListProps>(
         newFocusedItem = items.length - 1;
       } else if (!useCheckbox && isEnterOrSpace(event)) {
         event.preventDefault();
-        const { key } = getContent(items[currFocusedItem]);
-        handleSelect(key, currFocusedItem);
+        if (items[currFocusedItem]) {
+          const { key } = getContent(items[currFocusedItem]);
+          handleSelect(key, currFocusedItem);
+        }
         return;
       }
       if (isNumber(newFocusedItem)) {
