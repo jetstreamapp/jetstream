@@ -1,7 +1,7 @@
 /** @jsx jsx */
 import { css, jsx } from '@emotion/react';
 import { formatNumber } from '@jetstream/shared/ui-utils';
-import { multiWordObjectFilter, orderStringsBy, pluralizeIfMultiple } from '@jetstream/shared/utils';
+import { multiWordObjectFilter, orderStringsBy } from '@jetstream/shared/utils';
 import { UpDown } from '@jetstream/types';
 import { DescribeGlobalSObjectResult } from 'jsforce';
 import { createRef, Fragment, FunctionComponent, useEffect, useState } from 'react';
@@ -10,6 +10,7 @@ import SearchInput from '../form/search-input/SearchInput';
 import EmptyState from '../illustrations/EmptyState';
 import AutoFullHeightContainer from '../layout/AutoFullHeightContainer';
 import List from '../list/List';
+import ItemSelectionText from '../widgets/ItemSelectionText';
 import Spinner from '../widgets/Spinner';
 
 export interface SobjectListMultiSelectProps {
@@ -123,7 +124,7 @@ export const SobjectListMultiSelect: FunctionComponent<SobjectListMultiSelectPro
                     onChange={handleSelectAll}
                     disabled={filteredSobjects.length === 0}
                   />
-                  {formatNumber(selectedSObjectSet.size)} {pluralizeIfMultiple('object', selectedSObjects)} selected
+                  <ItemSelectionText selected={selectedSObjectSet.size} onClick={() => onSelected([])} />
                 </div>
               )}
             </div>

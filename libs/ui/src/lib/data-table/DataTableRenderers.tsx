@@ -15,7 +15,13 @@ import CopyToClipboard from '../widgets/CopyToClipboard';
 import Icon from '../widgets/Icon';
 import SalesforceLogin from '../widgets/SalesforceLogin';
 import './data-table-styles.scss';
-import { DataTableContext, getSubqueryModalTagline, SalesforceQueryColumnDefinition, TableContext } from './data-table-utils';
+import {
+  DataTableContext,
+  getSfdcRetUrl,
+  getSubqueryModalTagline,
+  SalesforceQueryColumnDefinition,
+  TableContext,
+} from './data-table-utils';
 import DataTable from './DataTable';
 import copyToClipboard from 'copy-to-clipboard';
 import { transformTabularDataToExcelStr } from '@jetstream/shared/ui-utils';
@@ -209,10 +215,11 @@ export const ComplexDataRenderer: FunctionComponent<ICellRendererParams> = ({ va
   );
 };
 
-export const IdLinkRenderer: FunctionComponent<ICellRendererParams> = ({ value }) => {
+export const IdLinkRenderer: FunctionComponent<ICellRendererParams> = ({ value, data, colDef }) => {
+  const { skipFrontDoorAuth, url } = colDef.field === 'Id' ? getSfdcRetUrl(value, data) : { skipFrontDoorAuth: false, url: `/${value}` };
   return (
     <div className="slds-truncate" title={`${value}`}>
-      <SalesforceLogin serverUrl={_serverUrl} org={_org} returnUrl={`/${value}`} omitIcon>
+      <SalesforceLogin serverUrl={_serverUrl} org={_org} returnUrl={url} skipFrontDoorAuth={skipFrontDoorAuth} omitIcon>
         {value}
       </SalesforceLogin>
     </div>

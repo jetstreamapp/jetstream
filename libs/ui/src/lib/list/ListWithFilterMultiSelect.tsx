@@ -10,6 +10,7 @@ import Grid from '../grid/Grid';
 import EmptyState from '../illustrations/EmptyState';
 import AutoFullHeightContainer from '../layout/AutoFullHeightContainer';
 import Icon from '../widgets/Icon';
+import ItemSelectionText from '../widgets/ItemSelectionText';
 import Spinner from '../widgets/Spinner';
 import Tooltip from '../widgets/Tooltip';
 import List from './List';
@@ -172,7 +173,7 @@ export const ListWithFilterMultiSelect: FunctionComponent<ListWithFilterMultiSel
                     onChange={handleSelectAll}
                     disabled={filteredItems.length === 0}
                   />
-                  {formatNumber(selectedItems.length)} {pluralizeIfMultiple(labels.descriptorSingular, selectedItems)} selected
+                  <ItemSelectionText selected={selectedItems.length} onClick={() => onSelected([])} />
                 </div>
               )}
             </div>

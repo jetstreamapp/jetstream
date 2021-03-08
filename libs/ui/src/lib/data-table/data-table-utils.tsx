@@ -357,3 +357,24 @@ export function handleCellDoubleClicked(props: CellEvent) {
     });
   }
 }
+
+/**
+ * Some URLS from salesforce do not allow accessing from id, but have varying URL structures
+ * Also, some url paths are not allowed as redirect urls and are flagged to be skipped
+ *
+ * @param id
+ * @param record
+ * @returns
+ */
+export function getSfdcRetUrl(id: string, record: any): { skipFrontDoorAuth: boolean; url: string } {
+  const type = record?.attributes?.type;
+  switch (type) {
+    case 'Group':
+      return {
+        skipFrontDoorAuth: true,
+        url: `/lightning/setup/PublicGroups/page?address=${encodeURIComponent(`/setup/own/groupdetail.jsp?id=${id}`)}`,
+      };
+    default:
+      return { skipFrontDoorAuth: false, url: `/${id}` };
+  }
+}

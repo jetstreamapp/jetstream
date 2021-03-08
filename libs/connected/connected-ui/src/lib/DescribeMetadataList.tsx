@@ -1,9 +1,20 @@
 /** @jsx jsx */
 import { css, jsx } from '@emotion/react';
 import { formatNumber, useNonInitialEffect } from '@jetstream/shared/ui-utils';
-import { multiWordStringFilter, pluralizeFromNumber } from '@jetstream/shared/utils';
+import { multiWordStringFilter } from '@jetstream/shared/utils';
 import { MapOf, SalesforceOrgUi, UpDown } from '@jetstream/types';
-import { AutoFullHeightContainer, Checkbox, EmptyState, Grid, Icon, List, SearchInput, Spinner, Tooltip } from '@jetstream/ui';
+import {
+  AutoFullHeightContainer,
+  Checkbox,
+  EmptyState,
+  Grid,
+  Icon,
+  ItemSelectionText,
+  List,
+  SearchInput,
+  Spinner,
+  Tooltip,
+} from '@jetstream/ui';
 import { MetadataObject } from 'jsforce';
 import { startCase } from 'lodash';
 import { createRef, Fragment, FunctionComponent, useEffect, useRef, useState } from 'react';
@@ -18,7 +29,7 @@ export interface DescribeMetadataListProps {
   selectedItems: Set<string>;
   onItems: (items: string[]) => void;
   onItemsMap: (itemMap: MapOf<MetadataObject>) => void;
-  onSelected: (items: string[], selectAllValue?: boolean) => void;
+  onSelected: (items: string[], options?: { selectAllValue?: boolean; clearSelection?: boolean }) => void;
 }
 
 export const DescribeMetadataList: FunctionComponent<DescribeMetadataListProps> = ({
@@ -138,9 +149,9 @@ export const DescribeMetadataList: FunctionComponent<DescribeMetadataListProps> 
                   }
                   label={'Select All'}
                   disabled={filteredMetadataItems.length === 0}
-                  onChange={(value) => onSelected([...filteredMetadataItems], value)}
+                  onChange={(value) => onSelected([...filteredMetadataItems], { selectAllValue: value })}
                 />
-                {formatNumber(selectedItems.size)} {pluralizeFromNumber('object', selectedItems.size)} selected
+                <ItemSelectionText selected={selectedItems.size} onClick={() => onSelected([], { clearSelection: true })} />
               </div>
             </div>
             <AutoFullHeightContainer bottomBuffer={20}>
