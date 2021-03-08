@@ -6,6 +6,8 @@ import { getOrgUrlParams } from '@jetstream/shared/ui-utils';
 import Icon from './Icon';
 
 export interface SalesforceLoginProps {
+  // If true, the request will go directly to SFDC without logging in
+  skipFrontDoorAuth?: boolean;
   serverUrl: string;
   className?: string;
   org: SalesforceOrgUi;
@@ -16,6 +18,7 @@ export interface SalesforceLoginProps {
 }
 
 export const SalesforceLogin: FunctionComponent<SalesforceLoginProps> = ({
+  skipFrontDoorAuth = false,
   serverUrl,
   className,
   org,
@@ -27,14 +30,18 @@ export const SalesforceLogin: FunctionComponent<SalesforceLoginProps> = ({
 }) => {
   const [loginUrl, setLoginUrl] = useState<string>();
   useEffect(() => {
-    if (serverUrl) {
-      let url = `${serverUrl}/static/sfdc/login?${getOrgUrlParams(org)}`;
-      if (returnUrl) {
-        url += `&returnUrl=${encodeURIComponent(returnUrl)}`;
+    if (skipFrontDoorAuth) {
+      setLoginUrl(`${org.instanceUrl}/${returnUrl}`);
+    } else {
+      if (serverUrl) {
+        let url = `${serverUrl}/static/sfdc/login?${getOrgUrlParams(org)}`;
+        if (returnUrl) {
+          url += `&returnUrl=${encodeURIComponent(returnUrl)}`;
+        }
+        setLoginUrl(url);
       }
-      setLoginUrl(url);
     }
-  }, [serverUrl, org, returnUrl, loginUrl]);
+  }, [serverUrl, org, returnUrl, loginUrl, skipFrontDoorAuth]);
 
   return (
     <a className={className} href={loginUrl} target="_blank" rel="noopener noreferrer" title={title}>

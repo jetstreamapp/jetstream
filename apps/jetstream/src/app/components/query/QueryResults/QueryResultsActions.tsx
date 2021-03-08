@@ -3,6 +3,7 @@
 /** @jsx jsx */
 import { css, jsx } from '@emotion/react';
 import { UiRecordForm } from '@jetstream/record-form';
+import { logger } from '@jetstream/shared/client-logger';
 import { describeSObject, genericRequest, sobjectOperation } from '@jetstream/shared/data';
 import { isErrorResponse, useNonInitialEffect } from '@jetstream/shared/ui-utils';
 import {
@@ -17,7 +18,7 @@ import {
 import { Checkbox, FileDownloadModal, Grid, Icon, Modal, PopoverErrorButton, Spinner } from '@jetstream/ui';
 import { Field } from 'jsforce';
 import isUndefined from 'lodash/isUndefined';
-import { Fragment, FunctionComponent, useEffect, useRef, useState } from 'react';
+import { Fragment, FunctionComponent, useCallback, useEffect, useRef, useState } from 'react';
 import {
   combineRecordsForClone,
   EditFromErrors,
@@ -90,55 +91,83 @@ export const QueryResultsActions: FunctionComponent<QueryResultsActionsProps> = 
     }
   }, [modifiedRecord]);
 
-  useEffect(() => {
-    setLoading(true);
-    (async () => {
-      try {
-        let picklistValues: PicklistFieldValues = {};
-        const record = await sobjectOperation<Record>(selectedOrg, sobjectName, 'retrieve', { ids: recordId });
-        const sobjectMetadata = await describeSObject(selectedOrg, sobjectName);
+  const fetchMetadata = useCallback(async () => {
+    try {
+      let picklistValues: PicklistFieldValues = {};
+      const record = await sobjectOperation<Record>(selectedOrg, sobjectName, 'retrieve', { ids: recordId });
+      const sobjectMetadata = await describeSObject(selectedOrg, sobjectName);
 
-        let recordTypeId = record.RecordTypeId;
-        if (!recordTypeId) {
-          const recordTypeInfos = sobjectMetadata.data.recordTypeInfos;
-          if (recordTypeInfos.length === 1) {
-            recordTypeId = recordTypeInfos[0].recordTypeId;
-          } else {
-            const foundRecordType = recordTypeInfos.find((recordType) => recordType.master);
-            if (foundRecordType) {
-              recordTypeId = foundRecordType.recordTypeId;
-            }
+      let recordTypeId = record.RecordTypeId;
+      if (!recordTypeId) {
+        const recordTypeInfos = sobjectMetadata.data.recordTypeInfos;
+        if (recordTypeInfos.length === 1) {
+          recordTypeId = recordTypeInfos[0].recordTypeId;
+        } else {
+          const foundRecordType = recordTypeInfos.find((recordType) => recordType.master);
+          if (foundRecordType) {
+            recordTypeId = foundRecordType.recordTypeId;
           }
         }
-        if (recordTypeId) {
+      }
+      if (recordTypeId) {
+        try {
           const results = await genericRequest<PicklistFieldValuesResponse>(selectedOrg, {
             method: 'GET',
             url: `/services/data/${apiVersion}/ui-api/object-info/${sobjectName}/picklist-values/${recordTypeId}`,
             isTooling: false,
           });
           picklistValues = results.picklistFieldValues;
-        }
-
-        if (action === 'clone') {
-          record.attributes = undefined;
-          record.Id = undefined;
-        }
-
-        if (isMounted.current) {
-          setSobjectFields(sobjectMetadata.data.fields);
-          setPicklistValues(picklistValues);
-          setInitialRecord(record);
-          setLoading(false);
-        }
-      } catch (ex) {
-        // TODO: error handling
-        if (isMounted.current) {
-          setFormErrors({ hasErrors: true, fieldErrors: {}, generalErrors: ['Oops. There was a problem loading the record information.'] });
-          setLoading(false);
+        } catch (ex) {
+          logger.warn('[RECORD-UI][ERROR]', ex);
+          if (ex?.message?.endsWith('not supported in UI API')) {
+            // UI API is not supported, artificially build picklist values
+            picklistValues = sobjectMetadata.data.fields
+              .filter((field) => field.type === 'picklist' || field.type === 'multipicklist')
+              .reduce((output: PicklistFieldValues, field) => {
+                output[field.name] = {
+                  eTag: '',
+                  url: '',
+                  controllerValues: {},
+                  defaultValue: field.defaultValue,
+                  values: field.picklistValues.map(({ label, value, validFor }) => ({
+                    attributes: null,
+                    label,
+                    value,
+                    validFor: [],
+                  })),
+                };
+                return output;
+              }, {});
+          } else {
+            throw ex;
+          }
         }
       }
-    })();
+
+      if (action === 'clone') {
+        record.attributes = undefined;
+        record.Id = undefined;
+      }
+
+      if (isMounted.current) {
+        setSobjectFields(sobjectMetadata.data.fields);
+        setPicklistValues(picklistValues);
+        setInitialRecord(record);
+        setLoading(false);
+      }
+    } catch (ex) {
+      // TODO: error handling
+      if (isMounted.current) {
+        setFormErrors({ hasErrors: true, fieldErrors: {}, generalErrors: ['Oops. There was a problem loading the record information.'] });
+        setLoading(false);
+      }
+    }
   }, [action, apiVersion, recordId, selectedOrg, sobjectName]);
+
+  useEffect(() => {
+    setLoading(true);
+    fetchMetadata();
+  }, [fetchMetadata]);
 
   function getModalTitle() {
     if (action === 'view') {
@@ -237,6 +266,11 @@ export const QueryResultsActions: FunctionComponent<QueryResultsActionsProps> = 
                     />
                   </div>
                   <div>
+                    {formErrors.hasErrors && formErrors.generalErrors.length > 0 && (
+                      <span className="slds-text-align_left d-inline-block">
+                        <PopoverErrorButton errors={formErrors.generalErrors} />
+                      </span>
+                    )}
                     <button className="slds-button slds-button_neutral" onClick={() => onChangeAction('edit')} disabled={loading}>
                       <Icon type="utility" icon="edit" className="slds-button__icon slds-button__icon_left" omitContainer />
                       Edit Record
