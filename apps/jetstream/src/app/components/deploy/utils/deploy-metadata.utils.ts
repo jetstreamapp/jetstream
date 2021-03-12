@@ -167,9 +167,9 @@ export function getRows(listMetadataItems: MapOf<ListMetadataResultItem>): Deplo
     } else if (items.length > 0) {
       // METADATA RETURNED
       items.forEach((metadata) => {
-        const { fullName, lastModifiedByName, lastModifiedDate, createdByName, createdDate, manageableState } = metadata;
+        const { id, fullName, lastModifiedByName, lastModifiedDate, createdByName, createdDate, manageableState } = metadata;
         output.push({
-          key: `${metadataType}-${fullName}`,
+          key: `${metadataType}-${fullName}-${id}`,
           loading,
           lastRefreshed,
           error,
