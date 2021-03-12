@@ -63,9 +63,10 @@ async function fetchListMetadataForItemsInFolder(
   skipRequestCache = false
 ): Promise<ListMetadataResultItem> {
   const { type } = item;
+  const typeWithFolder = type === 'EmailTemplate' ? 'EmailFolder' : `${type}Folder`;
   let outputItems: ListMetadataResult[] = [];
   // get list of folders
-  const { data, cache } = await listMetadataApi(selectedOrg, [{ type: `${type}Folder`, folder: null }], skipRequestCache);
+  const { data, cache } = await listMetadataApi(selectedOrg, [{ type: typeWithFolder, folder: null }], skipRequestCache);
 
   // we need to fetch for each folder, split into sets of 3
   const folderItems = splitArrayToMaxSize(
@@ -86,7 +87,7 @@ async function fetchListMetadataForItemsInFolder(
 
   return {
     ...item,
-    items: outputItems.filter(filterFn),
+    items: orderObjectsBy(outputItems.filter(filterFn), 'fullName'),
     loading: false,
     lastRefreshed: cache ? `Last updated ${formatRelative(cache.age, new Date())}` : null,
   };

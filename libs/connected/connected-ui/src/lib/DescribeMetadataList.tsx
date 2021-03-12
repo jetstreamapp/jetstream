@@ -91,6 +91,7 @@ export const DescribeMetadataList: FunctionComponent<DescribeMetadataListProps> 
   async function handleRefresh() {
     try {
       loadDescribeMetadata(true);
+      onSelected([], { clearSelection: true });
     } catch (ex) {
       // error
     }
