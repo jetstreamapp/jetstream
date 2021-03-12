@@ -82,6 +82,7 @@ export async function getFieldMetadata(org: SalesforceOrgUi, sobject: string): P
 export function autoMapFields(inputHeader: string[], fields: FieldWithRelatedEntities[]): FieldMapping {
   const output: FieldMapping = {};
   const fieldVariations: MapOf<FieldWithRelatedEntities> = {};
+  const fieldLabelVariations: MapOf<FieldWithRelatedEntities> = {};
 
   // create versions of field that can be used to match back to original field
   fields.forEach((field) => {
@@ -93,15 +94,26 @@ export function autoMapFields(inputHeader: string[], fields: FieldWithRelatedEnt
       fieldVariations[field.relationshipName.toLowerCase()] = field;
     }
     fieldVariations[lowercase.replace(REGEX.NOT_ALPHANUMERIC, '')] = field;
+
+    // label takes second priority to api name
+    fieldLabelVariations[field.label] = field;
+    const lowercaseLabel = field.label.toLowerCase();
+    fieldLabelVariations[lowercaseLabel] = field;
+    fieldLabelVariations[lowercaseLabel.replace(REGEX.NOT_ALPHANUMERIC, '')] = field;
   });
 
   inputHeader.forEach((field) => {
     const [baseFieldOrRelationship, relatedField] = field.split('.');
     const lowercaseFieldOrRelationship = baseFieldOrRelationship.toLowerCase();
     const matchedField =
+      /** Match Against Api name or full path with api name */
       fieldVariations[baseFieldOrRelationship] ||
       fieldVariations[lowercaseFieldOrRelationship] ||
-      fieldVariations[lowercaseFieldOrRelationship.replace(REGEX.NOT_ALPHANUMERIC, '')];
+      fieldVariations[lowercaseFieldOrRelationship.replace(REGEX.NOT_ALPHANUMERIC, '')] ||
+      /** Match Against Label (relationship fields are not considered) */
+      fieldLabelVariations[baseFieldOrRelationship] ||
+      fieldLabelVariations[lowercaseFieldOrRelationship] ||
+      fieldLabelVariations[lowercaseFieldOrRelationship.replace(REGEX.NOT_ALPHANUMERIC, '')];
 
     output[field] = {
       csvField: field,
