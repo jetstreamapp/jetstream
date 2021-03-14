@@ -126,4 +126,18 @@ routes.get(
   bulkApiController.downloadResults
 );
 
+routes.post(
+  '/apex/anonymous',
+  ensureOrgExists,
+  validate(metadataToolingController.routeValidators.anonymousApex),
+  metadataToolingController.anonymousApex
+);
+
+routes.get(
+  '/apex/completions/:type',
+  ensureOrgExists,
+  validate(metadataToolingController.routeValidators.apexCompletions),
+  metadataToolingController.apexCompletions
+);
+
 export default routes;

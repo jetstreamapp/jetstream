@@ -1,11 +1,13 @@
-import { splitArrayToMaxSize } from '@jetstream/shared/utils';
-import { ListMetadataResult, MapOf } from '@jetstream/types';
+import { HTTP, MIME_TYPES } from '@jetstream/shared/constants';
+import { getValueOrSoapNull, splitArrayToMaxSize, toBoolean } from '@jetstream/shared/utils';
+import { AnonymousApexResponse, AnonymousApexSoapResponse, ApexCompletionResponse, ListMetadataResult, MapOf } from '@jetstream/types';
 import { NextFunction, Request, Response } from 'express';
 import { body, param, query } from 'express-validator';
 import * as jsforce from 'jsforce';
 import { DeployOptions, RetrieveRequest } from 'jsforce';
 import * as JSZip from 'jszip';
-import { isObject, isString } from 'lodash';
+import { isObject, isString, toNumber } from 'lodash';
+import { logger } from '../config/logger.config';
 import { buildPackageXml, getRetrieveRequestFromListMetadata, getRetrieveRequestFromManifest } from '../services/sf-misc';
 import { UserFacingError } from '../utils/error-handler';
 import { sendJson } from '../utils/response.handlers';
@@ -34,6 +36,8 @@ export const routeValidators = {
     body('otherFields').optional().not().isArray(),
     body('otherFields').optional().not().isString(),
   ],
+  anonymousApex: [body('apex').isString().isLength({ min: 1 })],
+  apexCompletions: [param('type').isIn(['apex', 'visualforce'])],
 };
 
 export function correctInvalidArrayXmlResponseTypes<T = any[]>(item: T[]): T[] {
@@ -262,9 +266,90 @@ export async function getPackageXml(req: Request, res: Response, next: NextFunct
     const types: MapOf<ListMetadataResult[]> = req.body.metadata;
     const otherFields: MapOf<string> = req.body.otherFields;
     const conn: jsforce.Connection = res.locals.jsforceConn;
-    // otherFields
 
     sendJson(res, buildPackageXml(types, conn.version, otherFields));
+  } catch (ex) {
+    next(ex);
+  }
+}
+
+/**
+ * This uses the SOAP api to allow returning logs
+ */
+export async function anonymousApex(req: Request, res: Response, next: NextFunction) {
+  try {
+    const apex: string = req.body.apex;
+    const conn: jsforce.Connection = res.locals.jsforceConn;
+    const requestOptions: jsforce.RequestInfo = {
+      method: 'POST',
+      url: `${conn.instanceUrl}/services/Soap/s/${conn.version}`,
+      headers: {
+        [HTTP.HEADERS.CONTENT_TYPE]: MIME_TYPES.XML,
+        [HTTP.HEADERS.ACCEPT]: MIME_TYPES.XML,
+        SOAPAction: '""',
+      },
+      body: `<soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/" xmlns:apex="http://soap.sforce.com/2006/08/apex">
+  <soapenv:Header>
+      <apex:CallOptions>
+        <apex:client>jetstream</apex:client>
+      </apex:CallOptions>
+      <apex:DebuggingHeader>
+        <apex:categories>
+            <apex:category>Apex_code</apex:category>
+            <apex:level>FINEST</apex:level>
+        </apex:categories>
+        <apex:debugLevel>DETAIL</apex:debugLevel>
+      </apex:DebuggingHeader>
+      <apex:SessionHeader>
+        <apex:sessionId>${conn.accessToken}</apex:sessionId>
+      </apex:SessionHeader>
+  </soapenv:Header>
+  <soapenv:Body>
+      <apex:executeAnonymous>
+        <apex:String>${apex}</apex:String>
+      </apex:executeAnonymous>
+  </soapenv:Body>
+</soapenv:Envelope>`,
+    };
+
+    const soapResponse = await conn.request<AnonymousApexSoapResponse>(requestOptions, { responseType: 'text/xml' });
+    const header = soapResponse['soapenv:Envelope']['soapenv:Header'];
+    const body = soapResponse?.['soapenv:Envelope']?.['soapenv:Body']?.executeAnonymousResponse?.result;
+    const results: AnonymousApexResponse = {
+      debugLog: header?.DebuggingInfo?.debugLog || '',
+      result: {
+        column: toNumber(getValueOrSoapNull(body.column) || -1),
+        compileProblem: getValueOrSoapNull(body.compileProblem) || null,
+        compiled: toBoolean(getValueOrSoapNull(body.compiled)) || false,
+        exceptionMessage: getValueOrSoapNull(body.exceptionMessage) || null,
+        exceptionStackTrace: getValueOrSoapNull(body.exceptionStackTrace) || null,
+        line: toNumber(getValueOrSoapNull(body.line)) || -1,
+        success: toBoolean(getValueOrSoapNull(body.success)) || false,
+      },
+    };
+    sendJson(res, results);
+  } catch (ex) {
+    next(ex);
+  }
+}
+
+export async function apexCompletions(req: Request, res: Response, next: NextFunction) {
+  try {
+    const type = req.params.type;
+    const conn: jsforce.Connection = res.locals.jsforceConn;
+    const requestOptions: jsforce.RequestInfo = {
+      method: 'GET',
+      url: `${conn.instanceUrl}/services/data/v${conn.version}/tooling/completions?type=${type}`,
+      headers: {
+        [HTTP.HEADERS.CONTENT_TYPE]: MIME_TYPES.JSON,
+        [HTTP.HEADERS.ACCEPT]: MIME_TYPES.JSON,
+      },
+    };
+
+    logger.info(requestOptions.url);
+    const completions = await conn.request<ApexCompletionResponse>(requestOptions);
+
+    sendJson(res, completions);
   } catch (ex) {
     next(ex);
   }

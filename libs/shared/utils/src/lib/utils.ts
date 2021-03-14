@@ -6,11 +6,10 @@ import {
   BulkJobUntyped,
   HttpMethod,
   InsertUpdateUpsertDelete,
-  ListMetadataResult,
-  ListMetadataResultRaw,
   MapOf,
   QueryFieldWithPolymorphic,
   Record,
+  SoapNil,
 } from '@jetstream/types';
 import fromUnixTime from 'date-fns/fromUnixTime';
 import { QueryResult } from 'jsforce';
@@ -137,6 +136,16 @@ export function toBoolean(value: boolean | string | null | undefined, defaultVal
     return value.toLowerCase().startsWith('t');
   }
   return defaultValue;
+}
+
+export function toNumber(value: number | string | null | undefined) {
+  if (isString(value)) {
+    const val = Number.parseInt(value);
+    if (Number.isFinite(val)) {
+      return val;
+    }
+  }
+  return value;
 }
 
 export function truncate(value: string, maxLength: number, trailingChar: string = '...'): string {
@@ -374,4 +383,17 @@ export function getHttpMethod(type: InsertUpdateUpsertDelete): HttpMethod {
     default:
       return 'POST';
   }
+}
+
+export function getValueOrSoapNull(value: string | SoapNil) {
+  return isString(value) ? value : null;
+}
+
+// https://stackoverflow.com/questions/7616461/generate-a-hash-from-string-in-javascript
+export function hashString(value: string = ''): number {
+  let hash = 0;
+  for (let i = 0; i < value.length; i++) {
+    hash = (Math.imul(31, hash) + value.charCodeAt(i)) | 0;
+  }
+  return hash;
 }

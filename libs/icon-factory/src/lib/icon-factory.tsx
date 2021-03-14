@@ -22,6 +22,7 @@ import StandardIcon_RecordLookup from './icons/standard/RecordLookup';
 import StandardIcon_RelatedList from './icons/standard/RelatedList';
 import StandardIcon_Settings from './icons/standard/Settings';
 import UtilityIcon_Add from './icons/utility/Add';
+import UtilityIcon_Apex from './icons/utility/Apex';
 import UtilityIcon_ApexPlugin from './icons/utility/ApexPlugin';
 import UtilityIcon_Arrowdown from './icons/utility/Arrowdown';
 import UtilityIcon_Arrowup from './icons/utility/Arrowup';
@@ -106,6 +107,7 @@ const doctypeIcons: DoctypeIconObj = {
 
 const utilityIcons: UtilityIconObj = {
   add: UtilityIcon_Add,
+  apex: UtilityIcon_Apex,
   apex_plugin: UtilityIcon_ApexPlugin,
   arrowdown: UtilityIcon_Arrowdown,
   arrowup: UtilityIcon_Arrowup,

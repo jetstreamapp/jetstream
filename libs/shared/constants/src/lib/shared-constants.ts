@@ -72,6 +72,7 @@ export const MIME_TYPES: MapOf<MimeType> = {
 export const INDEXED_DB = {
   KEYS: {
     queryHistory: 'HISTORY:QUERY',
+    apexHistory: 'HISTORY:APEX',
     httpCache: 'HTTP:CACHE',
     userPreferences: 'USER:PREFERENCES',
   },
@@ -122,4 +123,6 @@ export const ANALYTICS_KEYS = {
   load_MappingRowPreviewChanged: 'load_MappingRowPreviewChanged',
   load_StartOver: 'load_StartOver',
   load_Submitted: 'load_Submitted',
+  /** ANON APEX */
+  apex_Submitted: 'apex_Submitted',
 };

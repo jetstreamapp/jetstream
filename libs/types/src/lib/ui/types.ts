@@ -419,6 +419,14 @@ export interface QueryHistorySelection {
   isTooling: boolean;
 }
 
+export interface ApexHistoryItem {
+  key: string; // org:object:timestamp
+  org: string;
+  label: string;
+  apex: string;
+  lastRun: Date;
+}
+
 export interface InputReadFileContent {
   filename: string;
   extension: string;

@@ -2,6 +2,8 @@
 import * as API from '@jetstream/api-interfaces';
 import { HTTP } from '@jetstream/shared/constants';
 import {
+  AnonymousApexResponse,
+  ApexCompletionResponse,
   ApiResponse,
   BulkApiCreateJobRequestPayload,
   BulkApiDownloadType,
@@ -337,4 +339,12 @@ export async function bulkApiGetRecords<T = any>(
   type: BulkApiDownloadType
 ): Promise<T[]> {
   return handleRequest({ method: 'GET', url: `/api/bulk/${jobId}/${batchId}`, params: { type } }, { org }).then(unwrapResponseIgnoreCache);
+}
+
+export async function anonymousApex(org: SalesforceOrgUi, apex: string): Promise<AnonymousApexResponse> {
+  return handleRequest({ method: 'POST', url: `/api/apex/anonymous`, data: { apex } }, { org }).then(unwrapResponseIgnoreCache);
+}
+
+export async function apexCompletions(org: SalesforceOrgUi, type: 'apex' | 'visualforce' = 'apex'): Promise<ApexCompletionResponse> {
+  return handleRequest({ method: 'GET', url: `/api/apex/completions/${type}` }, { org, useCache: true }).then(unwrapResponseIgnoreCache);
 }
