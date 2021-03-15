@@ -6,12 +6,12 @@ import * as fromApexState from './apex.state';
 
 const PREV_APEX_KEY = '_prev_';
 
-export interface SalesforceApexHistoryProps {
+export interface AnonymousApexHistoryProps {
   className?: string;
   onHistorySelected: (apex: string) => void;
 }
 
-export const SalesforceApexHistory: FunctionComponent<SalesforceApexHistoryProps> = ({ className, onHistorySelected }) => {
+export const AnonymousApexHistory: FunctionComponent<AnonymousApexHistoryProps> = ({ className, onHistorySelected }) => {
   const historyItems = useRecoilValue(fromApexState.selectApexHistoryState);
   // TODO: allow showing across all orgs
   // const [whichOrg, setWhichOrg] = useRecoilState(fromApexState.apexHistoryWhichOrg);
@@ -47,4 +47,4 @@ export const SalesforceApexHistory: FunctionComponent<SalesforceApexHistoryProps
   );
 };
 
-export default SalesforceApexHistory;
+export default AnonymousApexHistory;

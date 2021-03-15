@@ -13,7 +13,7 @@ import { useRecoilState, useRecoilValue } from 'recoil';
 import { selectedOrgState, STORAGE_KEYS } from '../../app-state';
 import { useAmplitude } from '../core/analytics';
 import * as fromApexState from './apex.state';
-import SalesforceApexHistory from './SalesforceApexHistory';
+import AnonymousApexHistory from './AnonymousApexHistory';
 import { useApexCompletions } from './useApexCompletions';
 require('codemirror/mode/clike/clike');
 require('codemirror/addon/edit/closebrackets');
@@ -30,9 +30,9 @@ require('codemirror/addon/fold/foldgutter.css');
 require('codemirror/theme/monokai.css');
 
 // eslint-disable-next-line @typescript-eslint/no-empty-interface
-export interface SalesforceApexProps {}
+export interface AnonymousApexProps {}
 
-export const SalesforceApex: FunctionComponent<SalesforceApexProps> = () => {
+export const AnonymousApex: FunctionComponent<AnonymousApexProps> = () => {
   const isMounted = useRef(null);
   const { trackEvent } = useAmplitude();
   const selectedOrg = useRecoilValue<SalesforceOrgUi>(selectedOrgState);
@@ -107,7 +107,7 @@ export const SalesforceApex: FunctionComponent<SalesforceApexProps> = () => {
             title="Anonymous Apex"
             actions={
               <Grid>
-                <SalesforceApexHistory className="slds-col" onHistorySelected={setApex} />
+                <AnonymousApexHistory className="slds-col" onHistorySelected={setApex} />
                 <button className="slds-button slds-button_brand" onClick={onSubmit}>
                   <Icon type="utility" icon="apex" className="slds-button__icon slds-button__icon_left" omitContainer />
                   Submit
@@ -158,4 +158,4 @@ export const SalesforceApex: FunctionComponent<SalesforceApexProps> = () => {
   );
 };
 
-export default SalesforceApex;
+export default AnonymousApex;
