@@ -15,18 +15,6 @@ import { useAmplitude } from '../core/analytics';
 import * as fromApexState from './apex.state';
 import AnonymousApexHistory from './AnonymousApexHistory';
 import { useApexCompletions } from './useApexCompletions';
-require('codemirror/mode/clike/clike');
-require('codemirror/addon/edit/closebrackets');
-require('codemirror/addon/edit/matchbrackets');
-require('codemirror/addon/hint/anyword-hint');
-require('codemirror/addon/hint/show-hint');
-require('codemirror/addon/hint/show-hint.css');
-require('codemirror/addon/search/match-highlighter');
-require('codemirror/addon/comment/comment');
-require('codemirror/addon/comment/continuecomment');
-require('codemirror/addon/fold/foldcode');
-require('codemirror/addon/fold/brace-fold');
-require('codemirror/addon/fold/foldgutter.css');
 require('codemirror/theme/monokai.css');
 
 // eslint-disable-next-line @typescript-eslint/no-empty-interface

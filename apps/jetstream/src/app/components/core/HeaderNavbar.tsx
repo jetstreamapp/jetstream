@@ -76,7 +76,10 @@ export const HeaderNavbar: FunctionComponent<HeaderNavbarProps> = ({ userProfile
         )}
         <NavbarMenuItems
           label="Developer Tools"
-          items={[{ id: 'apex', path: '/apex', title: 'Anonymous Apex', label: 'Anonymous Apex' }]}
+          items={[
+            { id: 'apex', path: '/apex', title: 'Anonymous Apex', label: 'Anonymous Apex' },
+            { id: 'salesforce-api', path: '/salesforce-api', title: 'Salesforce API', label: 'Salesforce API' },
+          ]}
         />
         <NavbarItem path="/feedback" title="Feedback" label="Product Feedback" />
       </Navbar>
