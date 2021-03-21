@@ -2,12 +2,13 @@
 import { css, jsx } from '@emotion/react';
 import { DATE_FORMATS } from '@jetstream/shared/constants';
 import { DeployResult, SalesforceOrgUi } from '@jetstream/types';
-import { Grid, Icon, Modal } from '@jetstream/ui';
+import { Grid, GridCol, Icon, Modal } from '@jetstream/ui';
 import formatDate from 'date-fns/format';
 import { Fragment, FunctionComponent } from 'react';
 import OrgLabelBadge from '../../core/OrgLabelBadge';
 import { DeployMetadataStatus } from '../deploy-metadata.types';
 import DeployMetadataProgressSummary from './DeployMetadataProgressSummary';
+import DeployMetadataFailureResultsTable from './DeployMetadataFailureResultsTable';
 
 export interface DeployMetadataStatusModalProps {
   destinationOrg: SalesforceOrgUi;
@@ -95,42 +96,67 @@ export const DeployMetadataStatusModal: FunctionComponent<DeployMetadataStatusMo
           min-height: 225px;
         `}
       >
-        {status !== 'idle' && (
-          <div>
-            <div>{inProgressLabel}</div>
-            <p>
-              <strong>Status:</strong> {getStatusValue(status)}
-            </p>
-            {lastChecked && (
-              <p className="slds-text-body_small slds-text-color_weak slds-m-bottom_xx-small">
-                {formatDate(lastChecked, DATE_FORMATS.HH_MM_SS_a)}
-              </p>
-            )}
-          </div>
-        )}
-        {status === 'idle' && results && (
-          <Fragment>
-            {results.status === 'Succeeded' && (
+        <Grid>
+          <GridCol
+            css={css`
+              min-width: 265px;
+            `}
+          >
+            {status !== 'idle' && (
               <div>
-                <div>
-                  {finishedSuccessfullyLabel}
-                  <Icon
-                    type="utility"
-                    icon="success"
-                    className="slds-icon slds-icon-text-success slds-icon_x-small slds-m-left_xx-small"
-                    containerClassname="slds-icon_container slds-icon-utility-success"
-                    description="deployed successfully"
-                  />
-                </div>
+                <div>{inProgressLabel}</div>
                 <p>
-                  <strong>Status:</strong> {results.status}
+                  <strong>Status:</strong> {getStatusValue(status)}
                 </p>
+                {lastChecked && (
+                  <p className="slds-text-body_small slds-text-color_weak slds-m-bottom_xx-small">
+                    {formatDate(lastChecked, DATE_FORMATS.HH_MM_SS_a)}
+                  </p>
+                )}
               </div>
             )}
-            {results.status !== 'Succeeded' && (
+            {status === 'idle' && results && (
+              <Fragment>
+                {results.status === 'Succeeded' && (
+                  <div>
+                    <div>
+                      {finishedSuccessfullyLabel}
+                      <Icon
+                        type="utility"
+                        icon="success"
+                        className="slds-icon slds-icon-text-success slds-icon_x-small slds-m-left_xx-small"
+                        containerClassname="slds-icon_container slds-icon-utility-success"
+                        description="deployed successfully"
+                      />
+                    </div>
+                    <p>
+                      <strong>Status:</strong> {results.status}
+                    </p>
+                  </div>
+                )}
+                {results.status !== 'Succeeded' && (
+                  <div>
+                    <div>
+                      {errorMessage || fallbackErrorMessageLabel}
+                      <Icon
+                        type="utility"
+                        icon="error"
+                        className="slds-icon slds-icon-text-error slds-icon_x-small slds-m-left_xx-small"
+                        containerClassname="slds-icon_container slds-icon-utility-error"
+                        description="There was an error with the deployment"
+                      />
+                    </div>
+                    <p>
+                      <strong>Status:</strong> {results.status}
+                    </p>
+                  </div>
+                )}
+              </Fragment>
+            )}
+            {status === 'idle' && !results && hasError && (
               <div>
-                <div>
-                  {errorMessage || fallbackErrorMessageLabel}
+                <div className="slds-text-color_error">
+                  {errorMessage || fallbackUnknownErrorMessageLabel}
                   <Icon
                     type="utility"
                     icon="error"
@@ -139,51 +165,39 @@ export const DeployMetadataStatusModal: FunctionComponent<DeployMetadataStatusMo
                     description="There was an error with the deployment"
                   />
                 </div>
-                <p>
-                  <strong>Status:</strong> {results.status}
-                </p>
               </div>
             )}
-          </Fragment>
-        )}
-        {status === 'idle' && !results && hasError && (
-          <div>
-            <div className="slds-text-color_error">
-              {errorMessage || fallbackUnknownErrorMessageLabel}
-              <Icon
-                type="utility"
-                icon="error"
-                className="slds-icon slds-icon-text-error slds-icon_x-small slds-m-left_xx-small"
-                containerClassname="slds-icon_container slds-icon-utility-error"
-                description="There was an error with the deployment"
-              />
-            </div>
-          </div>
-        )}
-        {statusUrls}
-        {results && (
-          <Fragment>
-            <Grid className="slds-m-top_large">
-              <DeployMetadataProgressSummary
-                className="slds-m-right_large"
-                title={`${results.checkOnly ? 'Validate' : deployLabel} Results`}
-                status={results.status}
-                totalProcessed={results.numberComponentsDeployed}
-                totalErrors={results.numberComponentErrors}
-                totalItems={results.numberComponentsTotal}
-              />
-              {results.runTestsEnabled && (
-                <DeployMetadataProgressSummary
-                  title="Unit Test Results"
-                  status={results.status}
-                  totalProcessed={results.numberTestsCompleted}
-                  totalErrors={results.numberTestErrors}
-                  totalItems={results.numberTestsTotal}
-                />
-              )}
-            </Grid>
-          </Fragment>
-        )}
+            {statusUrls}
+            {results && (
+              <Fragment>
+                <Grid className="slds-m-top_large">
+                  <DeployMetadataProgressSummary
+                    className="slds-m-right_large"
+                    title={`${results.checkOnly ? 'Validate' : deployLabel} Results`}
+                    status={results.status}
+                    totalProcessed={results.numberComponentsDeployed}
+                    totalErrors={results.numberComponentErrors}
+                    totalItems={results.numberComponentsTotal}
+                  />
+                  {results.runTestsEnabled && (
+                    <DeployMetadataProgressSummary
+                      title="Unit Test Results"
+                      status={results.status}
+                      totalProcessed={results.numberTestsCompleted}
+                      totalErrors={results.numberTestErrors}
+                      totalItems={results.numberTestsTotal}
+                    />
+                  )}
+                </Grid>
+              </Fragment>
+            )}
+          </GridCol>
+          <GridCol className="slds-scrollable">
+            {Array.isArray(results?.details?.componentFailures) && (
+              <DeployMetadataFailureResultsTable componentFailures={results.details.componentFailures} />
+            )}
+          </GridCol>
+        </Grid>
       </div>
     </Modal>
   );
