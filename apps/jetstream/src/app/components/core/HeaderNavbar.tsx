@@ -1,16 +1,16 @@
 /** @jsx jsx */
-import { css, jsx } from '@emotion/react';
-import { UserProfileUi } from '@jetstream/types';
-import { Header, Navbar, NavbarItem, Icon } from '@jetstream/ui';
-import Logo from '../../../assets/images/jetstream-logo-v1-200w.png';
-import OrgsDropdown from '../orgs/OrgsDropdown';
-import { Fragment, FunctionComponent } from 'react';
-import { useRecoilState } from 'recoil';
-import { applicationCookieState } from '../../app-state';
-import Jobs from './jobs/Jobs';
-import { Link } from 'react-router-dom';
-import { hasFeatureFlagAccess } from '@jetstream/shared/ui-utils';
+import { jsx } from '@emotion/react';
 import { FEATURE_FLAGS } from '@jetstream/shared/constants';
+import { hasFeatureFlagAccess } from '@jetstream/shared/ui-utils';
+import { UserProfileUi } from '@jetstream/types';
+import { Header, Icon, Navbar, NavbarItem, NavbarMenuItems } from '@jetstream/ui';
+import { Fragment, FunctionComponent } from 'react';
+import { Link } from 'react-router-dom';
+import { useRecoilState } from 'recoil';
+import Logo from '../../../assets/images/jetstream-logo-v1-200w.png';
+import { applicationCookieState } from '../../app-state';
+import OrgsDropdown from '../orgs/OrgsDropdown';
+import Jobs from './jobs/Jobs';
 
 export interface HeaderNavbarProps {
   userProfile: UserProfileUi;
@@ -69,9 +69,19 @@ export const HeaderNavbar: FunctionComponent<HeaderNavbarProps> = ({ userProfile
           <NavbarItem path="/permissions-manager" title="Manage Permissions" label="Manage Permissions" />
         )}
         {hasFeatureFlagAccess(featureFlags, FEATURE_FLAGS.DEPLOYMENT) && (
-          <NavbarItem path="/deploy-metadata" title="Deploy Metadata" label="Deploy Metadata" />
+          <Fragment>
+            <NavbarItem path="/deploy-metadata" title="Deploy Metadata" label="Deploy Metadata" />
+            {/* <NavbarItem path="/apex" title="Anonymous Apex" label="Anonymous Apex" /> */}
+          </Fragment>
         )}
-        <NavbarItem path="/feedback" title="Product Feedback" label="Product Feedback" />
+        <NavbarMenuItems
+          label="Developer Tools"
+          items={[
+            { id: 'apex', path: '/apex', title: 'Anonymous Apex', label: 'Anonymous Apex' },
+            { id: 'salesforce-api', path: '/salesforce-api', title: 'Salesforce API', label: 'Salesforce API' },
+          ]}
+        />
+        <NavbarItem path="/feedback" title="Feedback" label="Product Feedback" />
       </Navbar>
     </Header>
   );

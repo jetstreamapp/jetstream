@@ -23,6 +23,8 @@ const LoadRecords = lazy(() => import('./components/load-records/LoadRecords'));
 const Query = lazy(() => import('./components/query/Query'));
 const ManagePermissions = lazy(() => import('./components/manage-permissions/ManagePermissions'));
 const DeployMetadata = lazy(() => import('./components/deploy/DeployMetadata'));
+const AnonymousApex = lazy(() => import('./components/anonymous-apex/AnonymousApex'));
+const SalesforceApi = lazy(() => import('./components/salesforce-api/SalesforceApi'));
 
 interface RouteItem {
   path: string;
@@ -78,6 +80,8 @@ const ROUTES: RouteItem[] = [
       </OrgSelectionRequired>
     ),
   },
+  { path: '/apex', render: () => <AnonymousApex /> },
+  { path: '/salesforce-api', render: () => <SalesforceApi /> },
   { path: '/feedback', render: () => <Feedback userProfile={_userProfile} /> },
   { path: '*', render: () => <Redirect to="/query" /> },
 ];

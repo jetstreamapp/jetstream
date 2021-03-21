@@ -115,6 +115,13 @@ routes.post(
   sfMiscController.makeJsforceRequest
 );
 
+routes.post(
+  '/request-manual',
+  ensureOrgExists,
+  validate(sfMiscController.routeValidators.makeJsforceRequestViaAxios),
+  sfMiscController.makeJsforceRequestViaAxios
+);
+
 routes.post('/bulk', ensureOrgExists, validate(bulkApiController.routeValidators.createJob), bulkApiController.createJob);
 routes.get('/bulk/:jobId', ensureOrgExists, validate(bulkApiController.routeValidators.getJob), bulkApiController.getJob);
 routes.delete('/bulk/:jobId', ensureOrgExists, validate(bulkApiController.routeValidators.closeJob), bulkApiController.closeJob);
@@ -124,6 +131,20 @@ routes.get(
   ensureOrgExists,
   validate(bulkApiController.routeValidators.downloadResults),
   bulkApiController.downloadResults
+);
+
+routes.post(
+  '/apex/anonymous',
+  ensureOrgExists,
+  validate(metadataToolingController.routeValidators.anonymousApex),
+  metadataToolingController.anonymousApex
+);
+
+routes.get(
+  '/apex/completions/:type',
+  ensureOrgExists,
+  validate(metadataToolingController.routeValidators.apexCompletions),
+  metadataToolingController.apexCompletions
 );
 
 export default routes;

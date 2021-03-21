@@ -15,6 +15,7 @@ export interface CopyToClipboardProps {
   container?: boolean;
   containerSize?: SizeXXSmallXSmallSmall;
   skipTransitionIcon?: boolean;
+  disabled?: boolean;
   copied?: (isActive: boolean) => void;
 }
 
@@ -27,6 +28,7 @@ export const CopyToClipboard: FunctionComponent<CopyToClipboardProps> = ({
   containerSize,
   skipTransitionIcon,
   content,
+  disabled,
   copied,
 }) => {
   const [isCopied, setClipboard] = useClipboard(content, {
@@ -57,7 +59,7 @@ export const CopyToClipboard: FunctionComponent<CopyToClipboardProps> = ({
         type === 'icon' && container && containerSize ? `slds-button_icon-${containerSize}` : undefined,
         className
       )}
-      disabled={!skipTransitionIcon && isCopied}
+      disabled={disabled || (!skipTransitionIcon && isCopied)}
       onClick={() => handleCopy()}
     >
       <Icon

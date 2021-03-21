@@ -40,6 +40,7 @@ export interface DoctypeIconObj {
 
 export interface UtilityIconObj {
   add: IconEl;
+  apex: IconEl;
   apex_plugin: IconEl;
   arrowdown: IconEl;
   arrowup: IconEl;

@@ -1,11 +1,14 @@
 import { toBoolean } from '@jetstream/shared/utils';
-import { GenericRequestPayload } from '@jetstream/types';
+import { GenericRequestPayload, ManualRequestPayload, ManualRequestResponse } from '@jetstream/types';
 import { NextFunction, Request, Response } from 'express';
 import { body } from 'express-validator';
 import * as jsforce from 'jsforce';
-import { isObject } from 'lodash';
+import { isObject, isString } from 'lodash';
 import { UserFacingError } from '../utils/error-handler';
 import { sendJson } from '../utils/response.handlers';
+import axios, { AxiosError, AxiosRequestConfig, AxiosResponse } from 'axios';
+
+const SESSION_ID_RGX = /\{sessionId\}/i;
 
 export const routeValidators = {
   getFrontdoorLoginUrl: [],
@@ -15,10 +18,19 @@ export const routeValidators = {
     body('method')
       .if(body('method').isIn(['POST', 'PUT', 'PATCH']))
       .custom((value, { req }) => isObject(req.body.body)),
-    body('isTooling').toBoolean(),
+    body('isTooling').optional().toBoolean(),
     body('body').optional(),
     body('headers').optional(),
     body('options').optional(),
+  ],
+  makeJsforceRequestViaAxios: [
+    body('url').isString(),
+    body('method').isIn(['GET', 'POST', 'PUT', 'PATCH', 'DELETE']),
+    body('method')
+      .if(body('method').isIn(['POST', 'PUT', 'PATCH']))
+      .custom((value, { req }) => isString(req.body.body)),
+    body('body').optional(),
+    body('headers').optional(),
   ],
   recordOperation: [
     // TODO: move all validation here (entire switch statement replaced with validator)
@@ -61,6 +73,79 @@ export async function makeJsforceRequest(req: Request, res: Response, next: Next
     const results = await conn.request(requestOptions, options);
 
     sendJson(res, results);
+  } catch (ex) {
+    next(new UserFacingError(ex.message));
+  }
+}
+
+export async function makeJsforceRequestViaAxios(req: Request, res: Response, next: NextFunction) {
+  try {
+    const { url, method, headers } = req.body as ManualRequestPayload;
+    let { body } = req.body as ManualRequestPayload;
+    const conn: jsforce.Connection = res.locals.jsforceConn;
+
+    const config: AxiosRequestConfig = {
+      url,
+      method,
+      baseURL: conn.instanceUrl,
+      // X-SFDC-Session is used for some SOAP APIs, such as the bulk api
+      headers: { ...(headers || {}), ['Authorization']: `Bearer ${conn.accessToken}`, ['X-SFDC-Session']: conn.accessToken },
+      responseType: 'text',
+      validateStatus: null,
+      timeout: 120000,
+      transformResponse: [], // required to avoid automatic json parsing
+    };
+
+    if (isString(body) && SESSION_ID_RGX.test(body)) {
+      body = body.replace(SESSION_ID_RGX, conn.accessToken);
+    }
+
+    if (method !== 'GET' && body) {
+      config.data = body;
+    }
+
+    axios
+      .request(config)
+      .then((response) => {
+        sendJson<ManualRequestResponse>(res, {
+          error: response.status < 200 || response.status > 300,
+          status: response.status,
+          statusText: response.statusText,
+          headers: JSON.stringify(response.headers || {}, null, 2),
+          body: response.data,
+        });
+      })
+      .catch((error: AxiosError) => {
+        if (error.isAxiosError) {
+          if (error.response) {
+            return sendJson<ManualRequestResponse>(res, {
+              error: true,
+              errorMessage: null,
+              status: error.response.status,
+              statusText: error.response.statusText,
+              headers: JSON.stringify(error.response.headers || {}, null, 2),
+              body: error.response.data,
+            });
+          } else if (error.request) {
+            return sendJson<ManualRequestResponse>(res, {
+              error: true,
+              errorMessage: error.message || 'An unknown error has occurred.',
+              status: null,
+              statusText: null,
+              headers: null,
+              body: null,
+            });
+          }
+        }
+        sendJson<ManualRequestResponse>(res, {
+          error: true,
+          errorMessage: error.message || 'An unknown error has occurred, the request was not made.',
+          status: null,
+          statusText: null,
+          headers: null,
+          body: null,
+        });
+      });
   } catch (ex) {
     next(new UserFacingError(ex.message));
   }

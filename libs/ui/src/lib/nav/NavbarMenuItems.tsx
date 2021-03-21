@@ -1,10 +1,11 @@
 /** @jsx jsx */
 import { jsx } from '@emotion/react';
-import { FunctionComponent, useState, Fragment } from 'react';
-import Icon from '../widgets/Icon';
-import { Link } from 'react-router-dom';
+import { useNonInitialEffect } from '@jetstream/shared/ui-utils';
 import classNames from 'classnames';
+import { Fragment, FunctionComponent, useState } from 'react';
+import { Link, useLocation } from 'react-router-dom';
 import OutsideClickHandler from '../utils/OutsideClickHandler';
+import Icon from '../widgets/Icon';
 
 export type NabarMenuItem = NabarMenuItemLink | NabarMenuItemAction;
 
@@ -37,13 +38,28 @@ function isLink(item: any): item is NabarMenuItemLink {
   return !!item.path;
 }
 
-// slds-context-bar__item slds-context-bar__dropdown-trigger slds-dropdown-trigger slds-dropdown-trigger_click slds-is-open
-
 export const NavbarMenuItems: FunctionComponent<NavbarMenuItemsProps> = ({ label, path, items }) => {
   const [isOpen, setIsOpen] = useState<boolean>(false);
+  const location = useLocation();
+  const [isParentActive, setIsParentActive] = useState(false);
+
+  // Set parent item as active if it is active or if a child item is active
+  useNonInitialEffect(() => {
+    if (path && (location.pathname === path || location.pathname.startsWith(`${path}/`))) {
+      setIsParentActive(true);
+    } else {
+      const childPaths = items
+        .filter((item) => isLink(item))
+        .map((item: NabarMenuItemLink) => item.path)
+        .some((childPath) => location.pathname === childPath || location.pathname.startsWith(`${childPath}/`));
+      setIsParentActive(childPaths);
+    }
+  }, [path, items, location.pathname]);
+
   return (
     <li
       className={classNames('slds-context-bar__item slds-context-bar__dropdown-trigger slds-dropdown-trigger slds-dropdown-trigger_click', {
+        'slds-is-active': isParentActive,
         'slds-is-open': isOpen,
       })}
     >
@@ -67,7 +83,7 @@ export const NavbarMenuItems: FunctionComponent<NavbarMenuItemsProps> = ({ label
           <button
             className="slds-button slds-button_icon slds-button_icon slds-context-bar__button"
             aria-haspopup="true"
-            title="Open menu item submenu"
+            title="Open menu"
             onClick={() => setIsOpen(!isOpen)}
           >
             <Icon
@@ -79,26 +95,44 @@ export const NavbarMenuItems: FunctionComponent<NavbarMenuItemsProps> = ({ label
             <span className="slds-assistive-text">Open menu item</span>
           </button>
         </div>
-        <div className="slds-dropdown slds-dropdown_right">
+        <div className="slds-dropdown slds-dropdown_right slds-dropdown_small">
           <ul className="slds-dropdown__list" role="menu">
-            {items.map((item) => (
+            {items.map((item, i) => (
               <Fragment key={item.id}>
                 {item.heading && (
                   <li className="slds-dropdown__header slds-has-divider_top-space" role="separator">
                     {item.heading}
                   </li>
                 )}
-                <li className="slds-dropdown__item" role="presentation">
+                <li
+                  className={classNames('slds-dropdown__item', {
+                    'slds-is-selected': isLink(item) && (location.pathname === item.path || location.pathname.startsWith(`${item.path}/`)),
+                  })}
+                  role="presentation"
+                >
                   {isLink(item) && (
-                    <Link tabIndex={-1} role="menuitem" to={{ pathname: item.path }}>
+                    <Link tabIndex={i === 0 ? 0 : -1} role="menuitemcheckbox" to={{ pathname: item.path }} onClick={() => setIsOpen(false)}>
                       <span className="slds-truncate" title={item.title}>
+                        <Icon
+                          type="utility"
+                          icon="check"
+                          className="slds-icon slds-icon_selected slds-icon_x-small slds-icon-text-default slds-m-right_x-small"
+                          omitContainer
+                        />
                         {item.label}
                       </span>
                     </Link>
                   )}
                   {!isLink(item) && (
                     // eslint-disable-next-line jsx-a11y/anchor-is-valid
-                    <a tabIndex={-1} role="menuitem" onClick={() => item.action(item.id)}>
+                    <a
+                      tabIndex={i === 0 ? 0 : -1}
+                      role="menuitem"
+                      onClick={(event) => {
+                        event.preventDefault();
+                        item.action(item.id);
+                      }}
+                    >
                       <span className="slds-truncate" title={item.title}>
                         {item.label}
                       </span>

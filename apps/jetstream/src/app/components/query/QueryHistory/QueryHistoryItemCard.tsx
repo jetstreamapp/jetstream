@@ -120,7 +120,7 @@ export const QueryHistoryItemCard: FunctionComponent<QueryHistoryItemCardProps> 
                     }
                   >
                     <CodeEditor
-                      className="CodeMirror-soql-history"
+                      className="CodeMirror-full-height"
                       value={soql}
                       readOnly
                       size={{ height: 'auto' }}
