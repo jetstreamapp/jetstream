@@ -1,9 +1,14 @@
 import { logger } from '@jetstream/shared/client-logger';
-import { DATE_FORMATS, INDEXED_DB } from '@jetstream/shared/constants';
-import { getMapOf, hashString } from '@jetstream/shared/utils';
-import { ApexHistoryItem, MapOf, SalesforceOrgUi } from '@jetstream/types';
+import { INDEXED_DB } from '@jetstream/shared/constants';
+import { getMapOf } from '@jetstream/shared/utils';
+import {
+  MapOf,
+  SalesforceApiHistoryItem,
+  SalesforceApiHistoryRequest,
+  SalesforceApiHistoryResponse,
+  SalesforceOrgUi,
+} from '@jetstream/types';
 import addDays from 'date-fns/addDays';
-import formatDate from 'date-fns/format';
 import isBefore from 'date-fns/isBefore';
 import startOfDay from 'date-fns/startOfDay';
 import localforage from 'localforage';
@@ -17,7 +22,7 @@ let didRunCleanup = false;
  * If history grows to a very large size,
  * prune older entries
  */
-export async function cleanUpHistoryState(): Promise<MapOf<ApexHistoryItem> | undefined> {
+export async function cleanUpHistoryState(): Promise<MapOf<SalesforceApiHistoryItem> | undefined> {
   const ITEMS_UNTIL_PRUNE = 100; // require this many items before taking action
   const DAYS_TO_KEEP = 60; // if action is taken, remove items older than this, keep all others
   try {
@@ -25,9 +30,9 @@ export async function cleanUpHistoryState(): Promise<MapOf<ApexHistoryItem> | un
       return;
     }
     didRunCleanup = true;
-    const history = await initApexHistory();
+    const history = await initSalesforceApiHistory();
     if (Object.keys(history).length > ITEMS_UNTIL_PRUNE) {
-      logger.info('[APEX-HISTORY][CLEANUP]', 'Cleaning up apex history');
+      logger.info('[API-HISTORY][CLEANUP]', 'Cleaning up api history');
       const dateCutOff = startOfDay(addDays(new Date(), -1 * DAYS_TO_KEEP));
       const itemsToKeep = getMapOf(
         Object.values(history).filter((item) => isBefore(dateCutOff, item.lastRun)),
@@ -35,63 +40,67 @@ export async function cleanUpHistoryState(): Promise<MapOf<ApexHistoryItem> | un
       );
 
       if (Object.keys(history).length === Object.keys(itemsToKeep).length) {
-        logger.info('[APEX-HISTORY][CLEANUP]', 'No items to cleanup');
+        logger.info('[API-HISTORY][CLEANUP]', 'No items to cleanup');
         return;
       }
 
-      logger.info('[APEX-HISTORY][CLEANUP]', 'Keeping items', itemsToKeep);
-      await localforage.setItem<MapOf<ApexHistoryItem>>(INDEXED_DB.KEYS.apexHistory, itemsToKeep);
+      logger.info('[API-HISTORY][CLEANUP]', 'Keeping items', itemsToKeep);
+      await localforage.setItem<MapOf<SalesforceApiHistoryItem>>(INDEXED_DB.KEYS.salesforceApiHistory, itemsToKeep);
       return itemsToKeep;
     }
   } catch (ex) {
-    logger.warn('[APEX-HISTORY][CLEANUP]', 'Error cleaning up apex history', ex);
+    logger.warn('[API-HISTORY][CLEANUP]', 'Error cleaning up api history', ex);
   }
 }
 
-function initApexHistory(): Promise<MapOf<ApexHistoryItem>> {
-  return localforage.getItem<MapOf<ApexHistoryItem>>(INDEXED_DB.KEYS.apexHistory);
+function initSalesforceApiHistory(): Promise<MapOf<SalesforceApiHistoryItem>> {
+  return localforage.getItem<MapOf<SalesforceApiHistoryItem>>(INDEXED_DB.KEYS.salesforceApiHistory);
 }
 
 /**
  * Get new history item to save
  * If we do not know the label of the object, then we go fetch it
  */
-export function getApexHistoryItem(org: SalesforceOrgUi, apex: string): ApexHistoryItem {
-  const date = formatDate(new Date(), DATE_FORMATS.YYYY_MM_DD_HH_mm_ss_a);
-  const ApexHistoryItem: ApexHistoryItem = {
-    key: `${org.uniqueId}:${hashString(apex)}`,
+export function getSalesforceApiHistoryItem(
+  org: SalesforceOrgUi,
+  request: SalesforceApiHistoryRequest,
+  response?: SalesforceApiHistoryResponse
+): SalesforceApiHistoryItem {
+  const SalesforceApiHistoryItem: SalesforceApiHistoryItem = {
+    key: `${org.uniqueId}:${request.method}:${request.url}`,
     org: org.uniqueId,
-    label: date,
-    apex,
+    label: `${request.method}: ${request.url}`,
+    request,
+    response,
     lastRun: new Date(),
   };
-  return ApexHistoryItem;
+  return SalesforceApiHistoryItem;
 }
 
-export const apexHistoryState = atom<MapOf<ApexHistoryItem>>({
-  key: 'salesforceApiHistory.apexHistoryState',
-  default: initApexHistory(),
+export const salesforceApiHistoryState = atom<MapOf<SalesforceApiHistoryItem>>({
+  key: 'salesforceApiHistory.salesforceApiHistoryState',
+  default: initSalesforceApiHistory(),
 });
 
-export const apexHistoryWhichOrg = atom<'ALL' | 'SELECTED'>({
-  key: 'salesforceApiHistory.apexHistoryWhichOrg',
+export const salesforceApiHistoryWhichOrg = atom<'ALL' | 'SELECTED'>({
+  key: 'salesforceApiHistory.salesforceApiHistoryWhichOrg',
   default: 'SELECTED',
 });
 
 /**
  * Returns based on selected org and either all items or saved items
  */
-const salesforceApiHistoryItems = selector({
-  key: 'salesforceApiHistory.salesforceApiHistoryItems',
+const selectSalesforceApiHistoryItems = selector({
+  key: 'salesforceApiHistory.selectSalesforceApiHistoryItems',
   get: ({ get }) => {
-    const whichOrg = get(apexHistoryWhichOrg);
-    const apexHistoryItems = get(apexHistoryState);
+    const whichOrg = get(salesforceApiHistoryWhichOrg);
+    const salesforceApiHistoryItems = get(salesforceApiHistoryState);
     const selectedOrg = get(fromAppState.selectedOrgState);
-    if (!selectedOrg || !apexHistoryItems) {
+    if (!selectedOrg || !salesforceApiHistoryItems) {
       return [];
     }
 
-    return Object.values(apexHistoryItems).filter((item) => {
+    return Object.values(salesforceApiHistoryItems).filter((item) => {
       if (whichOrg === 'SELECTED' && item.org !== selectedOrg.uniqueId) {
         return false;
       }
@@ -100,10 +109,10 @@ const salesforceApiHistoryItems = selector({
   },
 });
 
-export const salesforceApiHistoryState = selector({
-  key: 'salesforceApiHistory.salesforceApiHistoryState',
+export const selectSalesforceApiHistoryState = selector({
+  key: 'salesforceApiHistory.selectSalesforceApiHistoryState',
   get: ({ get }) => {
-    const apexHistoryItems = get(salesforceApiHistoryItems);
-    return orderBy<ApexHistoryItem>(apexHistoryItems, ['lastRun'], ['desc']);
+    const salesforceApiHistoryItems = get(selectSalesforceApiHistoryItems);
+    return orderBy<SalesforceApiHistoryItem>(salesforceApiHistoryItems, ['lastRun'], ['desc']);
   },
 });

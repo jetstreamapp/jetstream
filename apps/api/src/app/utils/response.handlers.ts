@@ -6,17 +6,13 @@ import { AuthenticationError, NotFoundError, UserFacingError } from './error-han
 import * as querystring from 'querystring';
 import { ENV } from '../config/env-config';
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function healthCheck(req: express.Request, res: express.Response) {
   return res.status(200).end();
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export function sendJson(res: express.Response, content?: any, status = 200) {
-  content = content || {};
+export function sendJson<ResponseType = any>(res: express.Response, content?: ResponseType, status = 200) {
   res.status(status);
-
-  return res.json({ data: content });
+  return res.json({ data: content || {} });
 }
 
 // TODO: implement user facing errors and system facing errors and separate them

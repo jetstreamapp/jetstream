@@ -34,6 +34,7 @@ export interface CodeEditorProps {
   // addons can define additional options
   options?: EditorConfiguration & any;
   onChange?: (value: string) => void;
+  onInstance?: (value: Editor) => void;
 }
 
 export const CodeEditor: FunctionComponent<CodeEditorProps> = ({
@@ -45,6 +46,7 @@ export const CodeEditor: FunctionComponent<CodeEditorProps> = ({
   shouldRefresh,
   options: additionalOptions = {},
   onChange,
+  onInstance,
 }) => {
   const [currValue, setValue] = useState<string>(value || '');
   const [codeEditorInstance, setCodeEditorInstance] = useState<Editor>();
@@ -65,6 +67,12 @@ export const CodeEditor: FunctionComponent<CodeEditorProps> = ({
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [value]);
+
+  useEffect(() => {
+    if (onInstance && codeEditorInstance) {
+      onInstance(codeEditorInstance);
+    }
+  }, [codeEditorInstance, onInstance]);
 
   useEffect(() => {
     if (size && codeEditorInstance) {

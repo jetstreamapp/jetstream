@@ -50,7 +50,7 @@ export const AnonymousApex: FunctionComponent<AnonymousApexProps> = () => {
         }
       })();
     }
-  }, [historyItems]);
+  }, [apex, historyItems]);
 
   const onSubmit = useCallback(async () => {
     setLoading(true);
@@ -67,7 +67,7 @@ export const AnonymousApex: FunctionComponent<AnonymousApexProps> = () => {
       } else {
         setResults(results.debugLog);
         const newItem = fromApexState.getApexHistoryItem(selectedOrg, apex);
-        setHistoryItems({ [newItem.key]: newItem, ...historyItems });
+        setHistoryItems({ ...historyItems, [newItem.key]: newItem });
       }
       trackEvent(ANALYTICS_KEYS.apex_Submitted, { success: results.result.success });
     } catch (ex) {

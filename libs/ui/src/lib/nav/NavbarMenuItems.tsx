@@ -95,27 +95,30 @@ export const NavbarMenuItems: FunctionComponent<NavbarMenuItemsProps> = ({ label
             <span className="slds-assistive-text">Open menu item</span>
           </button>
         </div>
-        <div className="slds-dropdown slds-dropdown_right">
+        <div className="slds-dropdown slds-dropdown_right slds-dropdown_small">
           <ul className="slds-dropdown__list" role="menu">
-            {items.map((item) => (
+            {items.map((item, i) => (
               <Fragment key={item.id}>
                 {item.heading && (
                   <li className="slds-dropdown__header slds-has-divider_top-space" role="separator">
                     {item.heading}
                   </li>
                 )}
-                <li className="slds-dropdown__item" role="presentation">
+                <li
+                  className={classNames('slds-dropdown__item', {
+                    'slds-is-selected': isLink(item) && (location.pathname === item.path || location.pathname.startsWith(`${item.path}/`)),
+                  })}
+                  role="presentation"
+                >
                   {isLink(item) && (
-                    <Link tabIndex={-1} role="menuitem" to={{ pathname: item.path }} onClick={() => setIsOpen(false)}>
-                      {(location.pathname === item.path || location.pathname.startsWith(`${item.path}/`)) && (
+                    <Link tabIndex={i === 0 ? 0 : -1} role="menuitemcheckbox" to={{ pathname: item.path }} onClick={() => setIsOpen(false)}>
+                      <span className="slds-truncate" title={item.title}>
                         <Icon
                           type="utility"
                           icon="check"
-                          className="slds-icon slds-icon_x-small slds-icon-text-default slds-m-right_x-small"
+                          className="slds-icon slds-icon_selected slds-icon_x-small slds-icon-text-default slds-m-right_x-small"
                           omitContainer
                         />
-                      )}
-                      <span className="slds-truncate" title={item.title}>
                         {item.label}
                       </span>
                     </Link>
@@ -123,7 +126,7 @@ export const NavbarMenuItems: FunctionComponent<NavbarMenuItemsProps> = ({ label
                   {!isLink(item) && (
                     // eslint-disable-next-line jsx-a11y/anchor-is-valid
                     <a
-                      tabIndex={-1}
+                      tabIndex={i === 0 ? 0 : -1}
                       role="menuitem"
                       onClick={(event) => {
                         event.preventDefault();

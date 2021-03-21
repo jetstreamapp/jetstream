@@ -1,8 +1,9 @@
 /** @jsx jsx */
 import { jsx } from '@emotion/react';
+import { hasModifierKey, isEnterKey } from '@jetstream/shared/ui-utils';
 import { HttpMethod, SalesforceOrgUi } from '@jetstream/types';
 import { Grid, GridCol, Input, Select } from '@jetstream/ui';
-import { FunctionComponent } from 'react';
+import { FunctionComponent, KeyboardEvent } from 'react';
 import { useRecoilState } from 'recoil';
 import { applicationCookieState } from '../../app-state';
 
@@ -17,6 +18,7 @@ export interface SalesforceApiUserInputProps {
   loading: boolean;
   onUrlChange: (url: string) => void;
   onMethodChange: (method: HttpMethod) => void;
+  onAltEnter: () => void;
 }
 
 export const SalesforceApiUserInput: FunctionComponent<SalesforceApiUserInputProps> = ({
@@ -26,8 +28,15 @@ export const SalesforceApiUserInput: FunctionComponent<SalesforceApiUserInputPro
   loading,
   onUrlChange,
   onMethodChange,
+  onAltEnter,
 }) => {
   const [{ defaultApiVersion }] = useRecoilState(applicationCookieState);
+
+  function handleKeyUp(event: KeyboardEvent<HTMLElement>) {
+    if (onAltEnter && hasModifierKey(event) && isEnterKey(event)) {
+      onAltEnter();
+    }
+  }
 
   return (
     <Grid guttersDirect>
@@ -37,6 +46,8 @@ export const SalesforceApiUserInput: FunctionComponent<SalesforceApiUserInputPro
             className="slds-select"
             id="salesforce-api-http-method"
             value={method}
+            disabled={loading}
+            onKeyDown={handleKeyUp}
             onChange={(event) => onMethodChange(event.target.value as HttpMethod)}
           >
             <option value={'GET'}>GET</option>
@@ -59,6 +70,7 @@ export const SalesforceApiUserInput: FunctionComponent<SalesforceApiUserInputPro
             placeholder={getDefaultUrl(defaultApiVersion)}
             value={url}
             disabled={loading}
+            onKeyDown={handleKeyUp}
             onChange={(event) => onUrlChange(event.target.value)}
           />
         </Input>

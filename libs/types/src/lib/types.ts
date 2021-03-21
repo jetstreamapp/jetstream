@@ -132,6 +132,17 @@ export interface GenericRequestPayload {
   };
 }
 
+export type ManualRequestPayload = Omit<GenericRequestPayload, 'isTooling' | 'options'>;
+
+export type ManualRequestResponse = {
+  error: boolean;
+  errorMessage?: string;
+  status: number | null;
+  statusText: string | null;
+  headers: string | null;
+  body?: string;
+};
+
 export interface BulkApiCreateJobRequestPayload {
   type: InsertUpdateUpsertDelete;
   sObject: string;

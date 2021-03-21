@@ -1,44 +1,57 @@
 /** @jsx jsx */
-import { jsx } from '@emotion/react';
-import { FunctionComponent, useCallback } from 'react';
-import { useRecoilState, useRecoilValue } from 'recoil';
+import { css, jsx } from '@emotion/react';
+import { SalesforceApiHistoryRequest } from '@jetstream/types';
+import { FunctionComponent, useCallback, useEffect, useState } from 'react';
+import { useRecoilValue } from 'recoil';
 import * as fromSalesforceApiState from './salesforceApi.state';
 
-const PREV_APEX_KEY = '_prev_';
+const _NO_SELECTION = '_prev_';
 
 export interface SalesforceApiHistoryProps {
   className?: string;
-  onHistorySelected: (apex: string) => void;
+  disabled?: boolean;
+  onHistorySelected: (request: SalesforceApiHistoryRequest) => void;
 }
 
-export const SalesforceApiHistory: FunctionComponent<SalesforceApiHistoryProps> = ({ className, onHistorySelected }) => {
-  const historyItems = useRecoilValue(fromSalesforceApiState.salesforceApiHistoryState);
+export const SalesforceApiHistory: FunctionComponent<SalesforceApiHistoryProps> = ({ className, disabled, onHistorySelected }) => {
+  const historyItems = useRecoilValue(fromSalesforceApiState.selectSalesforceApiHistoryState);
+  const [value, setValue] = useState(_NO_SELECTION);
   // TODO: allow showing across all orgs
-  // const [whichOrg, setWhichOrg] = useRecoilState(fromApexState.apexHistoryWhichOrg);
+  // const [whichOrg, setWhichOrg] = useRecoilState(fromSalesforceApiState.salesforceApiHistoryWhichOrg);
 
   const handleChange = useCallback(
     (event: React.ChangeEvent<HTMLSelectElement>) => {
+      setValue(event.target.value);
       const foundItem = historyItems.find((item) => item.key === event.target.value);
       if (foundItem) {
-        onHistorySelected(foundItem.apex);
+        onHistorySelected(foundItem.request);
       }
     },
     [historyItems, onHistorySelected]
   );
 
+  useEffect(() => {
+    setValue(_NO_SELECTION);
+  }, [historyItems]);
+
   return (
     <div className={className}>
       {historyItems.length > 0 && (
         <select
+          css={css`
+            max-width: 200px;
+            min-width: 200px;
+          `}
           className="slds-select"
           id="apex-history"
-          // value={`${year}`}
+          value={value}
           onChange={handleChange}
+          disabled={disabled}
         >
-          <option value={PREV_APEX_KEY}>-- History --</option>
-          {historyItems.map(({ key, label, apex }) => (
-            <option key={key} value={key} title={apex}>
-              {label}
+          <option value={_NO_SELECTION}>-- History --</option>
+          {historyItems.map(({ key, label, response, lastRun }) => (
+            <option key={key} value={key} title={lastRun.toLocaleString()}>
+              {response ? `(${response.status} ${response.statusText}) ` : ''} {label}
             </option>
           ))}
         </select>

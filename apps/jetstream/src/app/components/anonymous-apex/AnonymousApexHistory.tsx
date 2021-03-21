@@ -1,5 +1,5 @@
 /** @jsx jsx */
-import { jsx } from '@emotion/react';
+import { css, jsx } from '@emotion/react';
 import { FunctionComponent, useCallback } from 'react';
 import { useRecoilState, useRecoilValue } from 'recoil';
 import * as fromApexState from './apex.state';
@@ -30,6 +30,9 @@ export const AnonymousApexHistory: FunctionComponent<AnonymousApexHistoryProps> 
     <div className={className}>
       {historyItems.length > 0 && (
         <select
+          css={css`
+            max-width: 200px;
+          `}
           className="slds-select"
           id="apex-history"
           // value={`${year}`}
