@@ -156,7 +156,7 @@
     "react-hooks/exhaustive-deps": [
       "warn",
       {
-        "additionalHooks": "useRecoilCallback"
+        "additionalHooks": "(useRecoilCallback|useNonInitialEffect)"
       }
     ],
     "require-yield": "warn",

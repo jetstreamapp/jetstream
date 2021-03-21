@@ -1,17 +1,17 @@
 /** @jsx jsx */
-import { jsx } from '@emotion/react';
+import { css, jsx } from '@emotion/react';
 import { FunctionComponent, useCallback } from 'react';
 import { useRecoilState, useRecoilValue } from 'recoil';
 import * as fromApexState from './apex.state';
 
 const PREV_APEX_KEY = '_prev_';
 
-export interface SalesforceApexHistoryProps {
+export interface AnonymousApexHistoryProps {
   className?: string;
   onHistorySelected: (apex: string) => void;
 }
 
-export const SalesforceApexHistory: FunctionComponent<SalesforceApexHistoryProps> = ({ className, onHistorySelected }) => {
+export const AnonymousApexHistory: FunctionComponent<AnonymousApexHistoryProps> = ({ className, onHistorySelected }) => {
   const historyItems = useRecoilValue(fromApexState.selectApexHistoryState);
   // TODO: allow showing across all orgs
   // const [whichOrg, setWhichOrg] = useRecoilState(fromApexState.apexHistoryWhichOrg);
@@ -30,6 +30,9 @@ export const SalesforceApexHistory: FunctionComponent<SalesforceApexHistoryProps
     <div className={className}>
       {historyItems.length > 0 && (
         <select
+          css={css`
+            max-width: 200px;
+          `}
           className="slds-select"
           id="apex-history"
           // value={`${year}`}
@@ -47,4 +50,4 @@ export const SalesforceApexHistory: FunctionComponent<SalesforceApexHistoryProps
   );
 };
 
-export default SalesforceApexHistory;
+export default AnonymousApexHistory;

@@ -73,6 +73,7 @@ export const INDEXED_DB = {
   KEYS: {
     queryHistory: 'HISTORY:QUERY',
     apexHistory: 'HISTORY:APEX',
+    salesforceApiHistory: 'HISTORY:SALESFORCE_API',
     httpCache: 'HTTP:CACHE',
     userPreferences: 'USER:PREFERENCES',
   },
@@ -125,4 +126,6 @@ export const ANALYTICS_KEYS = {
   load_Submitted: 'load_Submitted',
   /** ANON APEX */
   apex_Submitted: 'apex_Submitted',
+  /** SFDC API */
+  sfdcApi_Submitted: 'sfdcApi_Submitted',
 };

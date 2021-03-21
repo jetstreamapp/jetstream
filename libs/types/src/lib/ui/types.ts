@@ -3,7 +3,7 @@ import { MapOf } from '@jetstream/types';
 import { ChildRelationship, Field } from 'jsforce';
 import { ReactNode } from 'react';
 import { ListMetadataResult } from '../salesforce/types';
-import { SalesforceOrgUi } from '../types';
+import { HttpMethod, SalesforceOrgUi } from '../types';
 
 // generic useReducer actions/state for a basic fetch reducer function
 export type UseReducerFetchAction<T> =
@@ -425,6 +425,27 @@ export interface ApexHistoryItem {
   label: string;
   apex: string;
   lastRun: Date;
+}
+export interface SalesforceApiHistoryItem {
+  key: string; // org:method:url
+  org: string;
+  label: string;
+  request: SalesforceApiHistoryRequest;
+  response?: SalesforceApiHistoryResponse;
+  lastRun: Date;
+}
+
+export interface SalesforceApiHistoryRequest {
+  method: HttpMethod;
+  url: string;
+  headers: MapOf<string>;
+  body: string;
+  bodyType: 'JSON' | 'TEXT';
+}
+
+export interface SalesforceApiHistoryResponse {
+  status: number;
+  statusText: string;
 }
 
 export interface InputReadFileContent {

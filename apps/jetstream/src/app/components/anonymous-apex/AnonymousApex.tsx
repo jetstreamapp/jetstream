@@ -13,26 +13,14 @@ import { useRecoilState, useRecoilValue } from 'recoil';
 import { selectedOrgState, STORAGE_KEYS } from '../../app-state';
 import { useAmplitude } from '../core/analytics';
 import * as fromApexState from './apex.state';
-import SalesforceApexHistory from './SalesforceApexHistory';
+import AnonymousApexHistory from './AnonymousApexHistory';
 import { useApexCompletions } from './useApexCompletions';
-require('codemirror/mode/clike/clike');
-require('codemirror/addon/edit/closebrackets');
-require('codemirror/addon/edit/matchbrackets');
-require('codemirror/addon/hint/anyword-hint');
-require('codemirror/addon/hint/show-hint');
-require('codemirror/addon/hint/show-hint.css');
-require('codemirror/addon/search/match-highlighter');
-require('codemirror/addon/comment/comment');
-require('codemirror/addon/comment/continuecomment');
-require('codemirror/addon/fold/foldcode');
-require('codemirror/addon/fold/brace-fold');
-require('codemirror/addon/fold/foldgutter.css');
 require('codemirror/theme/monokai.css');
 
 // eslint-disable-next-line @typescript-eslint/no-empty-interface
-export interface SalesforceApexProps {}
+export interface AnonymousApexProps {}
 
-export const SalesforceApex: FunctionComponent<SalesforceApexProps> = () => {
+export const AnonymousApex: FunctionComponent<AnonymousApexProps> = () => {
   const isMounted = useRef(null);
   const { trackEvent } = useAmplitude();
   const selectedOrg = useRecoilValue<SalesforceOrgUi>(selectedOrgState);
@@ -62,7 +50,7 @@ export const SalesforceApex: FunctionComponent<SalesforceApexProps> = () => {
         }
       })();
     }
-  }, [historyItems]);
+  }, [apex, historyItems]);
 
   const onSubmit = useCallback(async () => {
     setLoading(true);
@@ -79,7 +67,7 @@ export const SalesforceApex: FunctionComponent<SalesforceApexProps> = () => {
       } else {
         setResults(results.debugLog);
         const newItem = fromApexState.getApexHistoryItem(selectedOrg, apex);
-        setHistoryItems({ [newItem.key]: newItem, ...historyItems });
+        setHistoryItems({ ...historyItems, [newItem.key]: newItem });
       }
       trackEvent(ANALYTICS_KEYS.apex_Submitted, { success: results.result.success });
     } catch (ex) {
@@ -107,7 +95,7 @@ export const SalesforceApex: FunctionComponent<SalesforceApexProps> = () => {
             title="Anonymous Apex"
             actions={
               <Grid>
-                <SalesforceApexHistory className="slds-col" onHistorySelected={setApex} />
+                <AnonymousApexHistory className="slds-col" onHistorySelected={setApex} />
                 <button className="slds-button slds-button_brand" onClick={onSubmit}>
                   <Icon type="utility" icon="apex" className="slds-button__icon slds-button__icon_left" omitContainer />
                   Submit
@@ -158,4 +146,4 @@ export const SalesforceApex: FunctionComponent<SalesforceApexProps> = () => {
   );
 };
 
-export default SalesforceApex;
+export default AnonymousApex;

@@ -6,7 +6,20 @@ import 'codemirror/lib/codemirror.css';
 import { FunctionComponent, useCallback, useEffect, useState } from 'react';
 import { Controlled as CodeMirror } from 'react-codemirror2';
 require('codemirror/mode/sql/sql');
+require('codemirror/mode/clike/clike');
+require('codemirror/mode/javascript/javascript');
+require('codemirror/addon/edit/closebrackets');
+require('codemirror/addon/edit/matchbrackets');
+require('codemirror/addon/hint/anyword-hint');
+require('codemirror/addon/hint/show-hint');
+require('codemirror/addon/hint/show-hint.css');
+require('codemirror/addon/search/match-highlighter');
+require('codemirror/addon/comment/comment');
+require('codemirror/addon/comment/continuecomment');
+require('codemirror/addon/fold/foldcode');
+require('codemirror/addon/fold/brace-fold');
 require('codemirror/keymap/sublime');
+require('codemirror/addon/fold/foldgutter.css');
 
 export interface CodeEditorProps {
   className?: string;
@@ -21,6 +34,7 @@ export interface CodeEditorProps {
   // addons can define additional options
   options?: EditorConfiguration & any;
   onChange?: (value: string) => void;
+  onInstance?: (value: Editor) => void;
 }
 
 export const CodeEditor: FunctionComponent<CodeEditorProps> = ({
@@ -32,6 +46,7 @@ export const CodeEditor: FunctionComponent<CodeEditorProps> = ({
   shouldRefresh,
   options: additionalOptions = {},
   onChange,
+  onInstance,
 }) => {
   const [currValue, setValue] = useState<string>(value || '');
   const [codeEditorInstance, setCodeEditorInstance] = useState<Editor>();
@@ -52,6 +67,12 @@ export const CodeEditor: FunctionComponent<CodeEditorProps> = ({
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [value]);
+
+  useEffect(() => {
+    if (onInstance && codeEditorInstance) {
+      onInstance(codeEditorInstance);
+    }
+  }, [codeEditorInstance, onInstance]);
 
   useEffect(() => {
     if (size && codeEditorInstance) {

@@ -14,6 +14,8 @@ import {
   GenericRequestPayload,
   ListMetadataResult,
   ListMetadataResultRaw,
+  ManualRequestPayload,
+  ManualRequestResponse,
   MapOf,
   RetrieveResult,
   SalesforceOrgUi,
@@ -306,6 +308,10 @@ export async function getPackageXml(
 
 export async function genericRequest<T = any>(org: SalesforceOrgUi, payload: GenericRequestPayload): Promise<T> {
   return handleRequest({ method: 'POST', url: `/api/request`, data: payload }, { org }).then(unwrapResponseIgnoreCache);
+}
+
+export async function manualRequest(org: SalesforceOrgUi, payload: ManualRequestPayload): Promise<ManualRequestResponse> {
+  return handleRequest({ method: 'POST', url: `/api/request-manual`, data: payload }, { org }).then(unwrapResponseIgnoreCache);
 }
 
 export async function bulkApiCreateJob(org: SalesforceOrgUi, payload: BulkApiCreateJobRequestPayload): Promise<BulkJobWithBatches> {
