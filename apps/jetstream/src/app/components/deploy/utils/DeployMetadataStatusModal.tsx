@@ -103,7 +103,7 @@ export const DeployMetadataStatusModal: FunctionComponent<DeployMetadataStatusMo
             </p>
             {lastChecked && (
               <p className="slds-text-body_small slds-text-color_weak slds-m-bottom_xx-small">
-                {formatDate(lastChecked, DATE_FORMATS.FULL)}
+                {formatDate(lastChecked, DATE_FORMATS.HH_MM_SS_a)}
               </p>
             )}
           </div>
