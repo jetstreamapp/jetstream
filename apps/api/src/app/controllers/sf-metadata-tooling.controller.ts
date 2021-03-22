@@ -1,5 +1,5 @@
 import { HTTP, MIME_TYPES } from '@jetstream/shared/constants';
-import { getValueOrSoapNull, splitArrayToMaxSize, toBoolean } from '@jetstream/shared/utils';
+import { ensureArray, getValueOrSoapNull, splitArrayToMaxSize, toBoolean } from '@jetstream/shared/utils';
 import { AnonymousApexResponse, AnonymousApexSoapResponse, ApexCompletionResponse, ListMetadataResult, MapOf } from '@jetstream/types';
 import { NextFunction, Request, Response } from 'express';
 import { body, param, query } from 'express-validator';
@@ -146,7 +146,49 @@ export async function checkMetadataResults(req: Request, res: Response, next: Ne
     const id = req.params.id;
     const includeDetails: boolean = req.query.includeDetails as any; // express validator conversion
 
-    const results = await conn.metadata.checkDeployStatus(id, includeDetails);
+    // JSForce has invalid types, and XML is poorly formatted
+    let results = (await conn.metadata.checkDeployStatus(id, includeDetails)) as any;
+
+    try {
+      if (results) {
+        results = correctInvalidXmlResponseTypes(results);
+      }
+      if (results.details) {
+        results.details.componentFailures = ensureArray(results.details.componentFailures).map((item) =>
+          correctInvalidXmlResponseTypes(item)
+        );
+        results.details.componentSuccesses = ensureArray(results.details.componentSuccesses).map((item) =>
+          correctInvalidXmlResponseTypes(item)
+        );
+
+        if (results.details.runTestResult) {
+          results.details.runTestResult.numFailures = Number.parseInt(results.details.runTestResult.numFailures);
+          results.details.runTestResult.numTestsRun = Number.parseInt(results.details.runTestResult.numFailures);
+          results.details.runTestResult.totalTime = Number.parseFloat(results.details.runTestResult.numFailures);
+
+          results.details.runTestResult.codeCoverage = ensureArray(results.details.runTestResult.codeCoverage).map((item) =>
+            correctInvalidXmlResponseTypes(item)
+          );
+          results.details.runTestResult.codeCoverageWarnings = ensureArray(results.details.runTestResult.codeCoverageWarnings).map((item) =>
+            correctInvalidXmlResponseTypes(item)
+          );
+          results.details.runTestResult.failures = ensureArray(results.details.runTestResult.failures).map((item) =>
+            correctInvalidXmlResponseTypes(item)
+          );
+          results.details.runTestResult.flowCoverage = ensureArray(results.details.runTestResult.flowCoverage).map((item) =>
+            correctInvalidXmlResponseTypes(item)
+          );
+          results.details.runTestResult.flowCoverageWarnings = ensureArray(results.details.runTestResult.flowCoverageWarnings).map((item) =>
+            correctInvalidXmlResponseTypes(item)
+          );
+          results.details.runTestResult.successes = ensureArray(results.details.runTestResult.successes).map((item) =>
+            correctInvalidXmlResponseTypes(item)
+          );
+        }
+      }
+    } catch (ex) {
+      logger.warn('Error converting checkDeployStatus results');
+    }
 
     sendJson(res, results);
   } catch (ex) {

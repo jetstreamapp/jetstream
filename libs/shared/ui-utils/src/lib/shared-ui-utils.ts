@@ -452,9 +452,9 @@ export function getOperatorFromWhereClause(operator: Operator, value: string, ha
       if (value.startsWith('%') && value.endsWith('%')) {
         return hasNegation ? 'contains' : 'doesNotContain';
       } else if (value.startsWith('%')) {
-        return hasNegation ? 'endsWith' : 'doesNotEndWith';
+        return hasNegation ? 'doesNotEndWith' : 'endsWith';
       } else {
-        return hasNegation ? 'startsWith' : 'doesNotStartWith';
+        return hasNegation ? 'doesNotStartWith' : 'startsWith';
       }
     case 'IN':
       return 'in';

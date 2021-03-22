@@ -14,4 +14,5 @@ export const REGEX = {
   SAFE_EXCEL_SHEET_CHARS: /[a-zA-Z0-9\ \_\.]/g,
   HAS_NAMESPACE: /__[a-z0-9]+__/i,
   START_END_SINGLE_QUOTE: /^'|'$/g,
+  START_END_PERCENTAGE: /^%|%$/g,
 };

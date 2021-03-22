@@ -30,6 +30,7 @@ import {
   isValueFunctionCondition,
   isValueQueryCondition,
   isWhereClauseWithRightCondition,
+  Operator,
   OrderByFieldClause,
   Query,
   WhereClause,
@@ -265,7 +266,7 @@ function flattenWhereClause(
             resourceMeta: fieldMetadata,
             resourceGroup: parentKey,
             operator,
-            value: ['isNull', 'isNotNull'].includes(operator) ? '' : removeQuotes(condition.value),
+            value: ['isNull', 'isNotNull'].includes(operator) ? '' : removeQuotesAndPercentage(condition.operator, condition.value),
           },
         };
       } else {
@@ -305,9 +306,13 @@ function flattenWhereClause(
   return rows;
 }
 
-function removeQuotes(values: string | string[] | DateLiteral[]): string | string[] | DateLiteral[] {
+function removeQuotesAndPercentage(operator: Operator, values: string | string[] | DateLiteral[]): string | string[] | DateLiteral[] {
   if (isString(values)) {
-    return values.replace(REGEX.START_END_SINGLE_QUOTE, '');
+    values = values.replace(REGEX.START_END_SINGLE_QUOTE, '');
+    if (operator === 'LIKE') {
+      values = values.replace(REGEX.START_END_PERCENTAGE, '');
+    }
+    return values;
   } else if (Array.isArray(values)) {
     return (values as any[]).map((value) => (isString(value) ? value.replace(REGEX.START_END_SINGLE_QUOTE, '') : value));
   }

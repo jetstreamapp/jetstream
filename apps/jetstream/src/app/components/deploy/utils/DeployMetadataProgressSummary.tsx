@@ -59,8 +59,8 @@ export const DeployMetadataProgressSummary: FunctionComponent<DeployMetadataProg
     if (total === 0) {
       total = 1;
     }
-    setFillPercent((totalProcessed + totalErrors) / total);
     setComponentSummary(`${totalProcessed + totalErrors} / ${total}`);
+    setFillPercent((totalProcessed + totalErrors) / total);
   }, [totalProcessed, totalErrors, totalItems]);
 
   return (

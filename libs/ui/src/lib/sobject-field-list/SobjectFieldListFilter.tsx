@@ -44,7 +44,7 @@ export const SobjectFieldListFilter: FunctionComponent<SobjectFieldListFilterPro
           />
           <Radio
             name="radio-filter-non-managed"
-            label="Custom and Non-Managed Fields"
+            label="Non-Managed Custom Fields"
             value="custom-non-managed"
             checked={active === 'custom-non-managed'}
             onChange={onChange}

@@ -1,13 +1,17 @@
+/** @jsx jsx */
+import { jsx } from '@emotion/react';
+import { SerializedStyles } from '@emotion/react';
 import { isEscapeKey } from '@jetstream/shared/ui-utils';
 import { SizeSmMdLg } from '@jetstream/types';
 import classNames from 'classnames';
 import uniqueId from 'lodash/uniqueId';
-import React, { Fragment, FunctionComponent, KeyboardEvent, useEffect, useRef, useState } from 'react';
+import { Component, Fragment, FunctionComponent, KeyboardEvent, useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import Icon from '../widgets/Icon';
 /* eslint-disable-next-line */
 export interface ModalProps {
   className?: string;
+  classStyles?: SerializedStyles;
   hide?: boolean; // used to hide the modal without destroying contents
   header?: string | JSX.Element;
   tagline?: string | JSX.Element;
@@ -37,7 +41,7 @@ function getSizeClass(size?: SizeSmMdLg) {
 
 // https://reactjs.org/docs/portals.html
 const modalRoot = document.getElementById('modal-root');
-export class Modal extends React.Component<ModalProps> {
+export class Modal extends Component<ModalProps> {
   el: HTMLDivElement;
   constructor(props) {
     super(props);
@@ -75,6 +79,7 @@ export class Modal extends React.Component<ModalProps> {
 
 export const ModalContent: FunctionComponent<ModalProps> = ({
   className,
+  classStyles,
   hide = false,
   header,
   tagline,
@@ -139,7 +144,7 @@ export const ModalContent: FunctionComponent<ModalProps> = ({
             </h2>
             {tagline && <div className="slds-m-top_x-small">{tagline}</div>}
           </header>
-          <div className={classNames('slds-modal__content', className || 'slds-p-around_medium')} id={modalId}>
+          <div className={classNames('slds-modal__content', className || 'slds-p-around_medium')} css={classStyles} id={modalId}>
             {children}
           </div>
           {footer && (
