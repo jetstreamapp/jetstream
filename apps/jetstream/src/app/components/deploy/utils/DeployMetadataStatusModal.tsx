@@ -2,13 +2,23 @@
 import { css, jsx } from '@emotion/react';
 import { DATE_FORMATS } from '@jetstream/shared/constants';
 import { DeployResult, SalesforceOrgUi } from '@jetstream/types';
-import { Grid, GridCol, Icon, Modal } from '@jetstream/ui';
+import { Grid, GridCol, Icon, Modal, TabsRef } from '@jetstream/ui';
 import formatDate from 'date-fns/format';
-import { Fragment, FunctionComponent } from 'react';
+import { Fragment, FunctionComponent, useEffect, useRef, useState } from 'react';
 import OrgLabelBadge from '../../core/OrgLabelBadge';
 import { DeployMetadataStatus } from '../deploy-metadata.types';
 import DeployMetadataProgressSummary from './DeployMetadataProgressSummary';
-import DeployMetadataFailureResultsTable from './DeployMetadataFailureResultsTable';
+import DeployMetadataResultsTables from './DeployMetadataResultsTables';
+
+const DivWithTopMargin: FunctionComponent = ({ children }) => (
+  <div
+    css={css`
+      margin-top: 0.6rem;
+    `}
+  >
+    {children}
+  </div>
+);
 
 export interface DeployMetadataStatusModalProps {
   destinationOrg: SalesforceOrgUi;
@@ -54,8 +64,22 @@ export const DeployMetadataStatusModal: FunctionComponent<DeployMetadataStatusMo
   onClose,
   onDownload,
 }) => {
+  const [hasErrors, setHasErrors] = useState(false);
+  const tabsRef = useRef<TabsRef>();
+  // when errors are encountered for the first time, focus the errors tab
+  useEffect(() => {
+    if (results?.details?.componentFailures?.length > 0 && !hasErrors && tabsRef.current) {
+      setHasErrors(true);
+      tabsRef.current.changeTab('component-errors');
+    }
+  }, [hasErrors, results]);
+
   return (
     <Modal
+      classStyles={css`
+        min-height: 50vh;
+        max-height: 50vh;
+      `}
       hide={hideModal}
       header="Deploy Metadata"
       closeDisabled={loading}
@@ -98,12 +122,14 @@ export const DeployMetadataStatusModal: FunctionComponent<DeployMetadataStatusMo
       >
         <Grid>
           <GridCol
+            growNone
+            className="slds-m-right_xx-small"
             css={css`
               min-width: 265px;
             `}
           >
             {status !== 'idle' && (
-              <div>
+              <DivWithTopMargin>
                 <div>{inProgressLabel}</div>
                 <p>
                   <strong>Status:</strong> {getStatusValue(status)}
@@ -113,13 +139,13 @@ export const DeployMetadataStatusModal: FunctionComponent<DeployMetadataStatusMo
                     {formatDate(lastChecked, DATE_FORMATS.HH_MM_SS_a)}
                   </p>
                 )}
-              </div>
+              </DivWithTopMargin>
             )}
             {status === 'idle' && results && (
               <Fragment>
                 {results.status === 'Succeeded' && (
-                  <div>
-                    <div>
+                  <DivWithTopMargin>
+                    <div className="slds-text-color_success">
                       {finishedSuccessfullyLabel}
                       <Icon
                         type="utility"
@@ -132,11 +158,11 @@ export const DeployMetadataStatusModal: FunctionComponent<DeployMetadataStatusMo
                     <p>
                       <strong>Status:</strong> {results.status}
                     </p>
-                  </div>
+                  </DivWithTopMargin>
                 )}
                 {results.status !== 'Succeeded' && (
-                  <div>
-                    <div>
+                  <DivWithTopMargin>
+                    <div className="slds-text-color_error">
                       {errorMessage || fallbackErrorMessageLabel}
                       <Icon
                         type="utility"
@@ -149,12 +175,12 @@ export const DeployMetadataStatusModal: FunctionComponent<DeployMetadataStatusMo
                     <p>
                       <strong>Status:</strong> {results.status}
                     </p>
-                  </div>
+                  </DivWithTopMargin>
                 )}
               </Fragment>
             )}
             {status === 'idle' && !results && hasError && (
-              <div>
+              <DivWithTopMargin>
                 <div className="slds-text-color_error">
                   {errorMessage || fallbackUnknownErrorMessageLabel}
                   <Icon
@@ -165,7 +191,7 @@ export const DeployMetadataStatusModal: FunctionComponent<DeployMetadataStatusMo
                     description="There was an error with the deployment"
                   />
                 </div>
-              </div>
+              </DivWithTopMargin>
             )}
             {statusUrls}
             {results && (
@@ -176,7 +202,7 @@ export const DeployMetadataStatusModal: FunctionComponent<DeployMetadataStatusMo
                     title={`${results.checkOnly ? 'Validate' : deployLabel} Results`}
                     status={results.status}
                     totalProcessed={results.numberComponentsDeployed}
-                    totalErrors={results.numberComponentErrors}
+                    totalErrors={results.numberComponentErrors || results.details?.componentFailures.length}
                     totalItems={results.numberComponentsTotal}
                   />
                   {results.runTestsEnabled && (
@@ -192,10 +218,8 @@ export const DeployMetadataStatusModal: FunctionComponent<DeployMetadataStatusMo
               </Fragment>
             )}
           </GridCol>
-          <GridCol className="slds-scrollable">
-            {Array.isArray(results?.details?.componentFailures) && (
-              <DeployMetadataFailureResultsTable componentFailures={results.details.componentFailures} />
-            )}
+          <GridCol grow className="slds-scrollable">
+            {results && <DeployMetadataResultsTables results={results} />}
           </GridCol>
         </Grid>
       </div>

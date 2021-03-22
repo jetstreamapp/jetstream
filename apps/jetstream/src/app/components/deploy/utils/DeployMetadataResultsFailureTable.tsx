@@ -4,14 +4,18 @@ import { DeployMessage } from '@jetstream/types';
 import { Grid } from '@jetstream/ui';
 import { FunctionComponent } from 'react';
 
-export interface DeployMetadataFailureResultsTableProps {
-  componentFailures: DeployMessage[];
+export interface DeployMetadataResultsFailureTableProps {
+  title: string;
+  componentDetails: DeployMessage[];
 }
 
-export const DeployMetadataFailureResultsTable: FunctionComponent<DeployMetadataFailureResultsTableProps> = ({ componentFailures }) => {
+export const DeployMetadataResultsFailureTable: FunctionComponent<DeployMetadataResultsFailureTableProps> = ({
+  title,
+  componentDetails,
+}) => {
   return (
     <Grid vertical>
-      <h2 className="slds-text-heading_small">slds-grid</h2>
+      <h2 className="slds-text-heading_small">{title}</h2>
       <table className="slds-table slds-table_cell-buffer slds-table_bordered slds-table_striped">
         <thead>
           <tr className="slds-line-height_reset">
@@ -23,7 +27,7 @@ export const DeployMetadataFailureResultsTable: FunctionComponent<DeployMetadata
           </tr>
         </thead>
         <tbody>
-          {componentFailures.map((row, i) => (
+          {componentDetails.map((row, i) => (
             <tr className="slds-hint-parent" key={`${row.id}-row-${i}`}>
               <th scope="row">
                 <div className="slds-truncate" title={row.fullName}>
@@ -58,4 +62,4 @@ export const DeployMetadataFailureResultsTable: FunctionComponent<DeployMetadata
   );
 };
 
-export default DeployMetadataFailureResultsTable;
+export default DeployMetadataResultsFailureTable;

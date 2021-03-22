@@ -498,6 +498,7 @@ export interface RunTestFailure {
   message: string;
   methodName: string;
   name: string;
+  packageName: string;
   namespace: string;
   seeAllData: boolean;
   stackTrace: string;
@@ -512,7 +513,36 @@ export interface FlowCoverageResult {
   flowNamespace: string;
   numElements: number;
   numElementsNotCovered: number;
-  processType: string;
+  processType:
+    | 'AutoLaunchedFlow'
+    | 'Flow'
+    | 'Workflow'
+    | 'CustomEvent'
+    | 'InvocableProcess'
+    | 'LoginFlow'
+    | 'ActionPlan'
+    | 'JourneyBuilderIntegration'
+    | 'UserProvisioningFlow'
+    | 'Survey'
+    | 'SurveyEnrich'
+    | 'Appointments'
+    | 'FSCLending'
+    | 'DigitalForm'
+    | 'FieldServiceMobile'
+    | 'OrchestrationFlow'
+    | 'FieldServiceWeb'
+    | 'TransactionSecurityFlow'
+    | 'ContactRequestFlow'
+    | 'ActionCadenceFlow'
+    | 'ManagedContentFlow'
+    | 'CheckoutFlow'
+    | 'CartAsyncFlow'
+    | 'SalesEntryExperienceFlow'
+    | 'CustomerLifecycle'
+    | 'Journey'
+    | 'RecommendationStrategy'
+    | 'AppProcess'
+    | 'RoutingFlow';
 }
 
 export interface FlowCoverageWarning {
