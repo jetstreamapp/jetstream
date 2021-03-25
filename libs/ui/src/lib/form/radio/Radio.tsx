@@ -14,7 +14,7 @@ export interface RadioProps {
 
 export const Radio: FunctionComponent<RadioProps> = ({
   id = uniqueId('radio'),
-  idPrefix,
+  idPrefix = uniqueId('pref'),
   name,
   label,
   value,

@@ -1,11 +1,85 @@
-// import React from 'react';
-// import { render } from '@testing-library/react';
+import React from 'react';
+import { render, fireEvent, waitFor, screen } from '@testing-library/react';
+import RadioGroup from './RadioGroup';
+import Radio from './Radio';
 
-// import Checkbox from './Radio';
+test('changing checkbox should change active item', async () => {
+  let activeValue = 'radio1';
 
-// // describe(' Checkbox', () => {
-// //   it('should render successfully', () => {
-// //     const { baseElement } = render(<Checkbox />);
-// //     expect(baseElement).toBeTruthy();
-// //   });
-// // });
+  const { rerender } = render(
+    <RadioGroup label="Group label" required={false} hasError={false} errorMessage={undefined}>
+      <Radio
+        name="test"
+        label="Radio 1"
+        value="radio1"
+        disabled={false}
+        checked={activeValue === 'radio1'}
+        onChange={(value) => (activeValue = value)}
+      />
+      <Radio
+        name="test"
+        label="Radio 2"
+        value="radio2"
+        disabled={false}
+        checked={activeValue === 'radio2'}
+        onChange={(value) => (activeValue = value)}
+      />
+    </RadioGroup>
+  );
+
+  expect(screen.getByRole('radio', { checked: true }).getAttribute('value')).toEqual('radio1');
+  expect(screen.getByRole('radio', { checked: false }).getAttribute('value')).toEqual('radio2');
+
+  fireEvent.click(screen.getByRole('radio', { checked: false }));
+  rerender(
+    <RadioGroup label="Group label" required={false} hasError={false} errorMessage={undefined}>
+      <Radio
+        name="test"
+        label="Radio 1"
+        value="radio1"
+        disabled={false}
+        checked={activeValue === 'radio1'}
+        onChange={(value) => (activeValue = value)}
+      />
+      <Radio
+        name="test"
+        label="Radio 2"
+        value="radio2"
+        disabled={false}
+        checked={activeValue === 'radio2'}
+        onChange={(value) => (activeValue = value)}
+      />
+    </RadioGroup>
+  );
+
+  expect(screen.getByRole('radio', { checked: true }).getAttribute('value')).toEqual('radio2');
+  expect(screen.getByRole('radio', { checked: false }).getAttribute('value')).toEqual('radio1');
+});
+
+// TODO:
+
+test('disabled should be honored', async () => {
+  // let activeValue = 'radio1';
+  // const { rerender } = render(
+  //   <RadioGroup label="Group label" required={false} hasError={false} errorMessage={undefined}>
+  //     <Radio
+  //       name="test"
+  //       label="Radio 1"
+  //       value="radio1"
+  //       disabled={false}
+  //       checked={activeValue === 'radio1'}
+  //       onChange={(value) => (activeValue = value)}
+  //     />
+  //     <Radio
+  //       name="test"
+  //       label="Radio 2"
+  //       value="radio2"
+  //       disabled={false}
+  //       checked={activeValue === 'radio2'}
+  //       onChange={(value) => (activeValue = value)}
+  //     />
+  //   </RadioGroup>
+  // );
+  // expect(screen.getByRole('radio', { checked: true }).getAttribute('value')).toEqual('radio1');
+  // expect(screen.getByRole('radio', { checked: false }).getAttribute('value')).toEqual('radio2');
+});
