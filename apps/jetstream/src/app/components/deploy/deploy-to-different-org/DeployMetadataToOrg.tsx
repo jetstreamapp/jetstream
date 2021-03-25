@@ -49,7 +49,12 @@ export const DeployMetadataToOrg: FunctionComponent<DeployMetadataToOrgProps> = 
 
   return (
     <Fragment>
-      <button className="slds-button slds-button_brand" disabled={loading || selectedRows.size === 0} onClick={handleClick}>
+      <button
+        className="slds-button slds-button_brand"
+        disabled={loading || selectedRows.size === 0}
+        onClick={handleClick}
+        title="Deploy the selected metadata to any other org."
+      >
         <Icon type="utility" icon="share" className="slds-button__icon slds-button__icon_left" omitContainer />
         Deploy to Different Org
       </button>

@@ -16,6 +16,7 @@ import {
   ToolbarItemGroup,
   FileDownloadModal,
 } from '@jetstream/ui';
+import DeployMetadataPackage from './deploy-metadata-package/DeployMetadataPackage';
 import copyToClipboard from 'copy-to-clipboard';
 import addMinutes from 'date-fns/addMinutes';
 import formatISODate from 'date-fns/formatISO';
@@ -147,8 +148,10 @@ export const DeployMetadataDeployment: FunctionComponent<DeployMetadataDeploymen
           </Link>
         </ToolbarItemGroup>
         <ToolbarItemActions>
+          <DeployMetadataPackage selectedOrg={selectedOrg} />
           <button
-            className="slds-button slds-button_brand"
+            title={`Download a Package.xml manifest file for all the selected metadata components. You can use this file to download this same set of metadata from any org at a later date.`}
+            className="slds-button slds-button_neutral"
             onClick={() => handleDownloadActive('manifest')}
             disabled={loading || selectedRows.size === 0}
           >
@@ -156,7 +159,8 @@ export const DeployMetadataDeployment: FunctionComponent<DeployMetadataDeploymen
             Download Manifest
           </button>
           <button
-            className="slds-button slds-button_brand"
+            title="Download a metadata package as a zip file so that you can view or modify the components locally and re-deploy to any org. You can also use this to keep a backup of the current state of the components."
+            className="slds-button slds-button_neutral"
             onClick={() => handleDownloadActive('package')}
             disabled={loading || selectedRows.size === 0}
           >

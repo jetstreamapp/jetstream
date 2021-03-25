@@ -42,9 +42,13 @@ export const DeployMetadataPackage: FunctionComponent<DeployMetadataPackageProps
 
   return (
     <Fragment>
-      <button className="slds-button slds-button_neutral" onClick={handleClick}>
+      <button
+        className="slds-button slds-button_neutral"
+        onClick={handleClick}
+        title="If you have an existing metadata package zip file, you can deploy that file to the currently selected org."
+      >
         <Icon type="utility" icon="upload" className="slds-button__icon slds-button__icon_left" omitContainer />
-        Upload Metadata Package
+        Upload Metadata Zip
       </button>
       {/* MODALS */}
       {configModalOpen && (
