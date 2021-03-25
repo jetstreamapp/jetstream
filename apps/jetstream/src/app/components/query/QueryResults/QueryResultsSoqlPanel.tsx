@@ -1,8 +1,8 @@
 /** @jsx jsx */
 import { jsx } from '@emotion/react';
 import { CheckboxToggle, CodeEditor, Icon, Panel, Textarea } from '@jetstream/ui';
-import { FunctionComponent, useEffect, useState } from 'react';
-import { useHotkeys } from 'react-hotkeys-hook';
+import { Editor } from 'codemirror';
+import { FunctionComponent, useEffect, useRef, useState } from 'react';
 
 // eslint-disable-next-line @typescript-eslint/no-empty-interface
 export interface QueryResultsSoqlPanelProps {
@@ -20,9 +20,9 @@ export const QueryResultsSoqlPanel: FunctionComponent<QueryResultsSoqlPanelProps
   onClosed,
   executeQuery,
 }) => {
+  const editorInstance = useRef<Editor>();
   const [userSoql, setUserSoql] = useState<string>(soql);
   const [userTooling, setUserTooling] = useState<boolean>(isTooling);
-  useHotkeys('ctrl+enter, cmd+enter', submitQuery, { enableOnTags: ['TEXTAREA'] }, [soql, userSoql]);
 
   useEffect(() => {
     setUserSoql(soql);
@@ -36,10 +36,30 @@ export const QueryResultsSoqlPanel: FunctionComponent<QueryResultsSoqlPanelProps
     executeQuery(userSoql, userTooling);
   }
 
+  // this appears to get called on every keypress :sob:
+  function handleOnEditorInstance(editor: Editor) {
+    editorInstance.current = editor;
+    if (!editorInstance.current.hasFocus()) {
+      editorInstance.current.focus();
+      editorInstance.current.setCursor(0, 0);
+    }
+  }
+
   return (
     <Panel heading="SOQL Query" isOpen={isOpen} size="lg" fullHeight={false} position="left" onClosed={onClosed}>
       <Textarea id="soql" label="SOQL Query">
-        <CodeEditor className="CodeMirror-textarea" value={userSoql} onChange={setUserSoql} />
+        <CodeEditor
+          className="CodeMirror-textarea"
+          options={{
+            extraKeys: {
+              'Alt-Enter': submitQuery,
+              'Meta-Enter': submitQuery,
+            },
+          }}
+          value={userSoql}
+          onChange={setUserSoql}
+          onInstance={handleOnEditorInstance}
+        />
       </Textarea>
       <div className="slds-grid slds-grid_align-spread slds-m-top--small">
         <CheckboxToggle

@@ -15,6 +15,7 @@ export const ExecuteQueryButton: FunctionComponent<ExecuteQueryButtonProps> = ({
     <Fragment>
       {soql && selectedSObject && (
         <Link
+          title="ctrl/command + enter"
           className="slds-button slds-button_brand"
           to={{
             pathname: `${match.url}/results`,

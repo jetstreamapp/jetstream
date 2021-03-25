@@ -3,12 +3,12 @@
 import { jsx } from '@emotion/react';
 import { logger } from '@jetstream/shared/client-logger';
 import { ANALYTICS_KEYS, INDEXED_DB } from '@jetstream/shared/constants';
-import { formatNumber, useNonInitialEffect } from '@jetstream/shared/ui-utils';
+import { formatNumber, hasModifierKey, isHKey, useGlobalEventHandler, useNonInitialEffect } from '@jetstream/shared/ui-utils';
 import { multiWordObjectFilter } from '@jetstream/shared/utils';
 import { MapOf, QueryHistoryItem, QueryHistorySelection, SalesforceOrgUi, UpDown } from '@jetstream/types';
 import { EmptyState, Grid, GridCol, Icon, List, Modal, SearchInput, Spinner } from '@jetstream/ui';
 import localforage from 'localforage';
-import { createRef, FunctionComponent, useEffect, useState } from 'react';
+import { createRef, FunctionComponent, useCallback, useEffect, useState } from 'react';
 import { ErrorBoundary } from 'react-error-boundary';
 import { useLocation } from 'react-router-dom';
 import { useRecoilState, useRecoilValue, useResetRecoilState } from 'recoil';
@@ -52,6 +52,19 @@ export const QueryHistory: FunctionComponent<QueryHistoryProps> = ({ selectedOrg
 
   const [showingUpTo, setShowingUpTo] = useState(SHOWING_STEP);
   const [visibleQueryHistory, setVisibleQueryHistory] = useState(filteredQueryHistory.slice(0, showingUpTo));
+
+  const onKeydown = useCallback(
+    (event: KeyboardEvent) => {
+      if (!isOpen && hasModifierKey(event as any) && isHKey(event as any)) {
+        event.stopPropagation();
+        event.preventDefault();
+        setIsOpen(true);
+      }
+    },
+    [isOpen]
+  );
+
+  useGlobalEventHandler('keydown', onKeydown);
 
   // Update store if queryHistory was modified
   useEffect(() => {
@@ -199,7 +212,12 @@ export const QueryHistory: FunctionComponent<QueryHistoryProps> = ({ selectedOrg
 
   return (
     <ErrorBoundary FallbackComponent={ErrorBoundaryFallback}>
-      <button className="slds-button slds-button_neutral" aria-haspopup="true" title="Favorites" onClick={() => setIsOpen(true)}>
+      <button
+        className="slds-button slds-button_neutral"
+        aria-haspopup="true"
+        title="View query history and saved queries (ctrl/command + h)"
+        onClick={() => setIsOpen(true)}
+      >
         <Icon type="utility" icon="date_time" className="slds-button__icon slds-button__icon_left" omitContainer />
         View History
       </button>
