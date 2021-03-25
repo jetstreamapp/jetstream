@@ -2,6 +2,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { jsx } from '@emotion/react';
 import {
+  hasMetaModifierKey,
   isArrowDownKey,
   isArrowUpKey,
   isEndKey,
@@ -93,12 +94,12 @@ export const List = forwardRef<HTMLUListElement, ListProps>(
     }
 
     function handleKeyDown(event: KeyboardEvent<HTMLUListElement>) {
-      event.stopPropagation();
       let newFocusedItem;
       let currFocusedItem = focusedItem;
 
       // see if there is a selected item and start there
       if (!isNumber(currFocusedItem) && (isArrowUpKey(event) || isArrowDownKey(event))) {
+        event.stopPropagation();
         event.preventDefault();
         const activeIndex = items.findIndex((item) => isActive(item));
         if (activeIndex >= 0) {
@@ -107,6 +108,7 @@ export const List = forwardRef<HTMLUListElement, ListProps>(
       }
 
       if (isArrowUpKey(event)) {
+        event.stopPropagation();
         event.preventDefault();
         if (!isNumber(currFocusedItem) || currFocusedItem === 0) {
           newFocusedItem = items.length - 1;
@@ -114,6 +116,7 @@ export const List = forwardRef<HTMLUListElement, ListProps>(
           newFocusedItem = currFocusedItem - 1;
         }
       } else if (isArrowDownKey(event)) {
+        event.stopPropagation();
         event.preventDefault();
         if (!isNumber(currFocusedItem) || currFocusedItem >= items.length - 1) {
           newFocusedItem = 0;
@@ -121,12 +124,15 @@ export const List = forwardRef<HTMLUListElement, ListProps>(
           newFocusedItem = currFocusedItem + 1;
         }
       } else if (isHomeKey(event)) {
+        event.stopPropagation();
         event.preventDefault();
         newFocusedItem = 0;
       } else if (isEndKey(event)) {
+        event.stopPropagation();
         event.preventDefault();
         newFocusedItem = items.length - 1;
-      } else if (!useCheckbox && isEnterOrSpace(event)) {
+      } else if (!useCheckbox && !hasMetaModifierKey(event) && isEnterOrSpace(event)) {
+        event.stopPropagation();
         event.preventDefault();
         if (items[currFocusedItem]) {
           const { key } = getContent(items[currFocusedItem]);
@@ -135,6 +141,7 @@ export const List = forwardRef<HTMLUListElement, ListProps>(
         return;
       }
       if (isNumber(newFocusedItem)) {
+        event.stopPropagation();
         setFocusedItem(newFocusedItem);
       }
     }

@@ -2,7 +2,8 @@
 /** @jsx jsx */
 import { css, jsx } from '@emotion/react';
 import { IconObj } from '@jetstream/icon-factory';
-import { useNonInitialEffect } from '@jetstream/shared/ui-utils';
+import { ANALYTICS_KEYS } from '@jetstream/shared/constants';
+import { hasModifierKey, isEnterKey, useGlobalEventHandler, useNonInitialEffect } from '@jetstream/shared/ui-utils';
 import { DropDownItem, QueryFieldWithPolymorphic, SalesforceOrgUi } from '@jetstream/types';
 import {
   Accordion,
@@ -18,14 +19,12 @@ import {
   Tabs,
 } from '@jetstream/ui';
 import { DescribeGlobalSObjectResult } from 'jsforce';
-import { Fragment, FunctionComponent, useEffect, useRef, useState } from 'react';
-import { useLocation, useRouteMatch } from 'react-router-dom';
+import { Fragment, FunctionComponent, useCallback, useEffect, useRef, useState } from 'react';
+import { useHistory, useLocation, useRouteMatch } from 'react-router-dom';
 import Split from 'react-split';
 import { useRecoilState, useRecoilValue, useResetRecoilState } from 'recoil';
 import { selectedOrgState, selectUserPreferenceState } from '../../../app-state';
 import { useAmplitude } from '../../core/analytics';
-import { ANALYTICS_KEYS } from '@jetstream/shared/constants';
-// import QueryWorker from '../../../workers/query.worker';
 import * as fromQueryState from '../query.state';
 import QueryHistory from '../QueryHistory/QueryHistory';
 import QueryFilterTitleSummary from '../QueryOptions/accordion-titles/QueryFilterTitleSummary';
@@ -67,6 +66,7 @@ export const QueryBuilder: FunctionComponent<QueryBuilderProps> = () => {
   const { trackEvent } = useAmplitude();
   const match = useRouteMatch();
   const location = useLocation<{ soql: string; sobject?: { name: string; label: string } }>();
+  const history = useHistory();
 
   const selectedOrg = useRecoilValue<SalesforceOrgUi>(selectedOrgState);
   const queryFieldsMap = useRecoilValue(fromQueryState.queryFieldsMapState);
@@ -102,21 +102,36 @@ export const QueryBuilder: FunctionComponent<QueryBuilderProps> = () => {
 
   const [showWalkthrough, setShowWalkthrough] = useState(!userPreferences.skipQueryWalkthrough);
 
+  const onKeydown = useCallback(
+    (event: KeyboardEvent) => {
+      if (selectedSObject && soql && hasModifierKey(event as any) && isEnterKey(event as any)) {
+        event.stopPropagation();
+        event.preventDefault();
+        history.push(`${match.url}/results`, {
+          soql,
+          isTooling,
+          sobject: {
+            label: selectedSObject.label,
+            name: selectedSObject.name,
+          },
+        });
+      }
+    },
+    [history, isTooling, match.url, selectedSObject, soql]
+  );
+
+  useGlobalEventHandler('keydown', onKeydown);
+
   useEffect(() => {
     isMounted.current = true;
     return () => (isMounted.current = false);
   }, []);
 
   useNonInitialEffect(() => {
-    setPageTitle(isTooling ? METADATA_QUERY_TITLE : SOBJECT_QUERY_TITLE);
-    resetState();
-  }, [isTooling]);
-
-  useNonInitialEffect(() => {
     if (showWalkthrough) {
       trackEvent(ANALYTICS_KEYS.query_HelpClicked, { isTooling });
     }
-  }, [showWalkthrough]);
+  }, [isTooling, showWalkthrough, trackEvent]);
 
   useNonInitialEffect(() => {
     if (queryFieldsMap && selectedSObject) {
@@ -159,24 +174,47 @@ export const QueryBuilder: FunctionComponent<QueryBuilderProps> = () => {
     trackEvent(ANALYTICS_KEYS.query_MetadataQueryToggled, { changedTo: id });
   }
 
-  function resetState(includeSobjectReset = true) {
-    if (includeSobjectReset) {
-      resetSelectedSObject();
-    }
-    resetQueryFieldsMapState();
-    resetQueryFieldsKey();
-    resetSelectedQueryFieldsState();
-    resetFilterQueryFieldsState();
-    resetOrderByQueryFieldsState();
-    resetSelectedSubqueryFieldsState();
-    resetQueryFiltersState();
-    resetQueryOrderByState();
-    resetQueryLimit();
-    resetQueryLimitSkip();
-    resetQuerySoqlState();
-    resetQueryChildRelationships();
-    resetQueryIncludeDeletedRecordsState();
-  }
+  const resetState = useCallback(
+    (includeSobjectReset = true) => {
+      if (includeSobjectReset) {
+        resetSelectedSObject();
+      }
+      resetQueryFieldsMapState();
+      resetQueryFieldsKey();
+      resetSelectedQueryFieldsState();
+      resetFilterQueryFieldsState();
+      resetOrderByQueryFieldsState();
+      resetSelectedSubqueryFieldsState();
+      resetQueryFiltersState();
+      resetQueryOrderByState();
+      resetQueryLimit();
+      resetQueryLimitSkip();
+      resetQuerySoqlState();
+      resetQueryChildRelationships();
+      resetQueryIncludeDeletedRecordsState();
+    },
+    [
+      resetFilterQueryFieldsState,
+      resetOrderByQueryFieldsState,
+      resetQueryChildRelationships,
+      resetQueryFieldsKey,
+      resetQueryFieldsMapState,
+      resetQueryFiltersState,
+      resetQueryIncludeDeletedRecordsState,
+      resetQueryLimit,
+      resetQueryLimitSkip,
+      resetQueryOrderByState,
+      resetQuerySoqlState,
+      resetSelectedQueryFieldsState,
+      resetSelectedSObject,
+      resetSelectedSubqueryFieldsState,
+    ]
+  );
+
+  useNonInitialEffect(() => {
+    setPageTitle(isTooling ? METADATA_QUERY_TITLE : SOBJECT_QUERY_TITLE);
+    resetState();
+  }, [isTooling, resetState]);
 
   return (
     <Fragment>

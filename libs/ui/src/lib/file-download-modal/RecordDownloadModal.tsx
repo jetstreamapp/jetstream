@@ -3,10 +3,10 @@
 /** @jsx jsx */
 import { jsx } from '@emotion/react';
 import { MIME_TYPES } from '@jetstream/shared/constants';
-import { formatNumber, getFilename, prepareCsvFile, prepareExcelFile, saveFile } from '@jetstream/shared/ui-utils';
+import { formatNumber, getFilename, isEnterKey, prepareCsvFile, prepareExcelFile, saveFile } from '@jetstream/shared/ui-utils';
 import { flattenRecords } from '@jetstream/shared/utils';
 import { FileExtCsv, FileExtCsvXLSXJson, FileExtJson, FileExtXLSX, MimeType, Record, SalesforceOrgUi } from '@jetstream/types';
-import { Fragment, FunctionComponent, useEffect, useRef, useState } from 'react';
+import { Fragment, FunctionComponent, KeyboardEvent, useEffect, useRef, useState } from 'react';
 import Input from '../form/input/Input';
 import Radio from '../form/radio/Radio';
 import RadioGroup from '../form/radio/RadioGroup';
@@ -54,6 +54,15 @@ export const RecordDownloadModal: FunctionComponent<RecordDownloadModalProps> = 
   // If the user changes the filename, we do not want to focus/select the text again or else the user cannot type
   const [doFocusInput, setDoFocusInput] = useState<boolean>(true);
   const inputEl = useRef<HTMLInputElement>();
+  const [filenameEmpty, setFilenameEmpty] = useState(false);
+
+  useEffect(() => {
+    if (!fileName && !filenameEmpty) {
+      setFilenameEmpty(true);
+    } else if (fileName && filenameEmpty) {
+      setFilenameEmpty(false);
+    }
+  }, [fileName, filenameEmpty]);
 
   useEffect(() => {
     if (downloadModalOpen) {
@@ -83,7 +92,7 @@ export const RecordDownloadModal: FunctionComponent<RecordDownloadModalProps> = 
     setDownloadRecordsValue(hasMoreRecordsTemp ? RADIO_ALL_SERVER : RADIO_ALL_BROWSER);
   }, [totalRecordCount, records]);
 
-  function downloadRecords() {
+  function handleDownload() {
     // open modal
     try {
       const fileNameWithExt = `${fileName}.${fileFormat}`;
@@ -142,6 +151,12 @@ export const RecordDownloadModal: FunctionComponent<RecordDownloadModalProps> = 
     return Array.isArray(selectedRecords) && selectedRecords.length && selectedRecords.length !== records.length ? true : false;
   }
 
+  function handleKeyUp(event: KeyboardEvent<HTMLElement>) {
+    if (isEnterKey(event) && !filenameEmpty) {
+      handleDownload();
+    }
+  }
+
   return (
     <Fragment>
       {downloadModalOpen && (
@@ -152,7 +167,7 @@ export const RecordDownloadModal: FunctionComponent<RecordDownloadModalProps> = 
               <button className="slds-button slds-button_neutral" onClick={() => onModalClose(true)}>
                 Cancel
               </button>
-              <button className="slds-button slds-button_brand" onClick={downloadRecords}>
+              <button className="slds-button slds-button_brand" onClick={handleDownload} disabled={filenameEmpty}>
                 Download
               </button>
             </Fragment>
@@ -231,13 +246,23 @@ export const RecordDownloadModal: FunctionComponent<RecordDownloadModalProps> = 
                 onChange={(value: FileExtJson) => setFileFormat(value)}
               />
             </RadioGroup>
-            <Input label="Filename" isRequired rightAddon={`.${fileFormat}`}>
+            <Input
+              label="Filename"
+              isRequired
+              rightAddon={`.${fileFormat}`}
+              hasError={filenameEmpty}
+              errorMessage="This field is required"
+              errorMessageId="filename-error"
+            >
               <input
                 ref={inputEl}
                 id="download-filename"
                 className="slds-input"
                 value={fileName}
+                minLength={1}
+                maxLength={250}
                 onChange={(event) => setFileName(event.target.value)}
+                onKeyUp={handleKeyUp}
               />
             </Input>
           </div>

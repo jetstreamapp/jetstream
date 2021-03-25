@@ -6,7 +6,14 @@ import { QueryResults as IQueryResults } from '@jetstream/api-interfaces';
 import { logger } from '@jetstream/shared/client-logger';
 import { ANALYTICS_KEYS } from '@jetstream/shared/constants';
 import { query } from '@jetstream/shared/data';
-import { transformTabularDataToExcelStr, useNonInitialEffect, useObservable } from '@jetstream/shared/ui-utils';
+import {
+  hasModifierKey,
+  isMKey,
+  transformTabularDataToExcelStr,
+  useGlobalEventHandler,
+  useNonInitialEffect,
+  useObservable,
+} from '@jetstream/shared/ui-utils';
 import {
   flattenRecords,
   getRecordIdFromAttributes,
@@ -31,7 +38,7 @@ import {
 } from '@jetstream/ui';
 import classNames from 'classnames';
 import copyToClipboard from 'copy-to-clipboard';
-import React, { Fragment, FunctionComponent, useEffect, useRef, useState } from 'react';
+import React, { Fragment, FunctionComponent, useCallback, useEffect, useRef, useState } from 'react';
 import { Link, NavLink, useHistory, useLocation } from 'react-router-dom';
 import { useRecoilState, useRecoilValue } from 'recoil';
 import { filter } from 'rxjs/operators';
@@ -99,6 +106,19 @@ export const QueryResults: FunctionComponent<QueryResultsProps> = React.memo(() 
 
   const { fieldMetadata, fieldMetadataSubquery } = useQueryResultsFetchMetadata(selectedOrg, queryResults?.parsedQuery, isTooling);
 
+  const onKeydown = useCallback(
+    (event: KeyboardEvent) => {
+      if (hasModifierKey(event as any) && isMKey(event as any)) {
+        event.stopPropagation();
+        event.preventDefault();
+        setSoqlPanelOpen(!soqlPanelOpen);
+      }
+    },
+    [soqlPanelOpen]
+  );
+
+  useGlobalEventHandler('keydown', onKeydown);
+
   useEffect(() => {
     isMounted.current = true;
     return () => (isMounted.current = false);
@@ -115,7 +135,7 @@ export const QueryResults: FunctionComponent<QueryResultsProps> = React.memo(() 
     if (soqlPanelOpen) {
       trackEvent(ANALYTICS_KEYS.query_ManualSoqlOpened, { isTooling });
     }
-  }, [soqlPanelOpen]);
+  }, [isTooling, soqlPanelOpen, trackEvent]);
 
   useEffect(() => {
     logger.log({ location });
@@ -352,7 +372,7 @@ export const QueryResults: FunctionComponent<QueryResultsProps> = React.memo(() 
           </Link>
           <button
             className={classNames('slds-button', { 'slds-button_neutral': !soqlPanelOpen, 'slds-button_brand': soqlPanelOpen })}
-            title="View or manually edit SOQL query"
+            title="View or manually edit SOQL query (ctrl/command + m)"
             onClick={() => setSoqlPanelOpen(!soqlPanelOpen)}
           >
             <Icon type="utility" icon="component_customization" className="slds-button__icon slds-button__icon_left" omitContainer />

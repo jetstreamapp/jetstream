@@ -2,10 +2,10 @@
 /** @jsx jsx */
 import { jsx } from '@emotion/react';
 import { MIME_TYPES } from '@jetstream/shared/constants';
-import { getFilename, prepareCsvFile, prepareExcelFile, saveFile } from '@jetstream/shared/ui-utils';
+import { getFilename, isEnterKey, prepareCsvFile, prepareExcelFile, saveFile } from '@jetstream/shared/ui-utils';
 import { FileExtAllTypes, FileExtCsv, FileExtXLSX, FileExtXml, FileExtZip, MapOf, MimeType, SalesforceOrgUi } from '@jetstream/types';
 import { isString } from 'lodash';
-import { Fragment, FunctionComponent, useEffect, useRef, useState } from 'react';
+import { Fragment, FunctionComponent, KeyboardEvent, useEffect, useRef, useState } from 'react';
 import Input from '../form/input/Input';
 import Radio from '../form/radio/Radio';
 import RadioGroup from '../form/radio/RadioGroup';
@@ -48,6 +48,15 @@ export const FileDownloadModal: FunctionComponent<FileDownloadModalProps> = ({
   // If the user changes the filename, we do not want to focus/select the text again or else the user cannot type
   const [doFocusInput, setDoFocusInput] = useState<boolean>(true);
   const inputEl = useRef<HTMLInputElement>();
+  const [filenameEmpty, setFilenameEmpty] = useState(false);
+
+  useEffect(() => {
+    if (!fileName && !filenameEmpty) {
+      setFilenameEmpty(true);
+    } else if (fileName && filenameEmpty) {
+      setFilenameEmpty(false);
+    }
+  }, [fileName, filenameEmpty]);
 
   // throw error if invalid data is passed in
   useEffect(() => {
@@ -82,7 +91,7 @@ export const FileDownloadModal: FunctionComponent<FileDownloadModalProps> = ({
     }
   }, [onChange, fileName, fileFormat]);
 
-  function downloadRecords() {
+  function handleDownload() {
     try {
       const fileNameWithExt = `${fileName}.${fileFormat}`;
       let mimeType: MimeType;
@@ -135,6 +144,12 @@ export const FileDownloadModal: FunctionComponent<FileDownloadModalProps> = ({
     }
   }
 
+  function handleKeyUp(event: KeyboardEvent<HTMLElement>) {
+    if (isEnterKey(event) && !filenameEmpty) {
+      handleDownload();
+    }
+  }
+
   return (
     <Fragment>
       <Modal
@@ -147,7 +162,7 @@ export const FileDownloadModal: FunctionComponent<FileDownloadModalProps> = ({
                 <button className="slds-button slds-button_neutral" onClick={() => onModalClose(true)}>
                   Cancel
                 </button>
-                <button className="slds-button slds-button_brand" onClick={downloadRecords}>
+                <button className="slds-button slds-button_brand" onClick={handleDownload} disabled={filenameEmpty}>
                   Download
                 </button>
               </Fragment>
@@ -206,13 +221,23 @@ export const FileDownloadModal: FunctionComponent<FileDownloadModalProps> = ({
               />
             )}
           </RadioGroup>
-          <Input label="Filename" isRequired rightAddon={`.${fileFormat}`}>
+          <Input
+            label="Filename"
+            isRequired
+            rightAddon={`.${fileFormat}`}
+            hasError={filenameEmpty}
+            errorMessage="This field is required"
+            errorMessageId="filename-error"
+          >
             <input
               ref={inputEl}
               id="download-filename"
               className="slds-input"
               value={fileName}
+              minLength={1}
+              maxLength={250}
               onChange={(event) => setFileName(event.target.value)}
+              onKeyUp={handleKeyUp}
             />
           </Input>
         </div>

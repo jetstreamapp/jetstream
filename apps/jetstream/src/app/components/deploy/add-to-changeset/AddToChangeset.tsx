@@ -51,7 +51,12 @@ export const AddToChangeset: FunctionComponent<AddToChangesetProps> = ({ selecte
 
   return (
     <Fragment>
-      <button className="slds-button slds-button_brand" disabled={loading || selectedRows.size === 0} onClick={handleClick}>
+      <button
+        className="slds-button slds-button_brand"
+        disabled={loading || selectedRows.size === 0}
+        onClick={handleClick}
+        title="You can deploy the selected components to an existing outbound changeset."
+      >
         <Icon type="utility" icon="upload" className="slds-button__icon slds-button__icon_left" omitContainer />
         Add To Outbound Changeset
       </button>

@@ -35,7 +35,11 @@ export const DownloadMetadataPackage: FunctionComponent<DownloadMetadataPackageP
 
   return (
     <Fragment>
-      <button className="slds-button slds-button_neutral" onClick={handleClick}>
+      <button
+        className="slds-button slds-button_neutral"
+        onClick={handleClick}
+        title="If you have a Package.xml file or your org has an outbound changeset or an unmanaged package, you can download the metadata as a zip file so that you can view or modify the components locally and re-deploy to any org."
+      >
         <Icon type="utility" icon="download" className="slds-button__icon slds-button__icon_left" omitContainer />
         Download Metadata Package
       </button>

@@ -79,7 +79,7 @@ export function getQueryForPackage(): string {
 
 export const dataTableDateFormatter = ({ value }: ValueFormatterParams | GetQuickFilterTextParams): string => {
   if (value instanceof Date) {
-    return formatDate(value, DATE_FORMATS.yyyy_MM_dd);
+    return formatDate(value, DATE_FORMATS.YYYY_MM_DD_HH_mm_ss_a);
   }
   return '';
 };
@@ -110,7 +110,7 @@ export function getColumnDefinitions(): ColDef[] {
       headerName: 'Last Modified',
       colId: 'lastModifiedDate',
       field: 'lastModifiedDate',
-      width: 145,
+      width: 202,
       valueFormatter: dataTableDateFormatter,
       getQuickFilterText: dataTableDateFormatter,
       filter: 'agDateColumnFilter',
@@ -128,7 +128,7 @@ export function getColumnDefinitions(): ColDef[] {
       headerName: 'Created',
       colId: 'createdDate',
       field: 'createdDate',
-      width: 120,
+      width: 202,
       valueFormatter: dataTableDateFormatter,
       getQuickFilterText: dataTableDateFormatter,
       filter: 'agDateColumnFilter',
