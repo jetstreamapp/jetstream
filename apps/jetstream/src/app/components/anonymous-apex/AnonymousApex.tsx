@@ -71,7 +71,7 @@ export const AnonymousApex: FunctionComponent<AnonymousApexProps> = () => {
       }
       trackEvent(ANALYTICS_KEYS.apex_Submitted, { success: results.result.success });
     } catch (ex) {
-      setResults('There was a problem submitting the request');
+      setResults(`There was a problem submitting the request\n${ex.message}`);
       trackEvent(ANALYTICS_KEYS.apex_Submitted, { success: false });
     } finally {
       setLoading(false);
