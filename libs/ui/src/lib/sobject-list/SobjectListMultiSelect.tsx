@@ -139,6 +139,8 @@ export const SobjectListMultiSelect: FunctionComponent<SobjectListMultiSelectPro
                   heading: item.label,
                   subheading: item.name,
                 })}
+                searchTerm={searchTerm}
+                highlightText
               />
               {!filteredSobjects.length && (
                 <EmptyState imageWidth={200}>

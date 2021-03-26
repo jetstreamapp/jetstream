@@ -188,6 +188,8 @@ export const ListWithFilterMultiSelect: FunctionComponent<ListWithFilterMultiSel
                   heading: item.label,
                   subheading: item.secondaryLabel,
                 })}
+                searchTerm={searchTerm}
+                highlightText
               />
               {!filteredItems.length && (
                 <EmptyState imageWidth={200}>

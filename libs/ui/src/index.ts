@@ -39,6 +39,7 @@ export * from './lib/form/select/Select';
 export * from './lib/form/textarea/Textarea';
 export * from './lib/grid/Grid';
 export * from './lib/grid/GridCol';
+export * from './lib/hooks/useHighlightedText';
 export * from './lib/illustrations/EmptyState';
 export * from './lib/layout/AutoFullHeightContainer';
 export * from './lib/layout/ColumnWithMinWidth';

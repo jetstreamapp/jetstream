@@ -71,6 +71,7 @@ export const AutomationControl: FunctionComponent<AutomationControlProps> = () =
   const [flowDefinitionsBySobject, setFlowDefinitionsBySobject] = useRecoilState(fromAutomationCtlState.flowDefinitionsBySobject);
   const dirtyItems = useRecoilValue(fromAutomationCtlState.selectDirtyItems);
   const modifiedChildAutomationItems = useRecoilValue(fromAutomationCtlState.selectModifiedChildAutomationItems);
+  const [filterValue, setFilterValue] = useState('');
 
   const resetSObjectsState = useResetRecoilState(fromAutomationCtlState.sObjectsState);
   const resetItemIds = useResetRecoilState(fromAutomationCtlState.itemIds);
@@ -133,7 +134,7 @@ export const AutomationControl: FunctionComponent<AutomationControlProps> = () =
         .map(
           (item): UiTabSection => ({
             id: item.key,
-            title: <AutomationControlTabTitle item={item} isActive={item.key === activeItemId} />,
+            title: <AutomationControlTabTitle item={item} searchTerm={filterValue} />,
             titleText: item.sobjectLabel,
             content: (
               <AutomationControlTabContent
@@ -152,7 +153,7 @@ export const AutomationControl: FunctionComponent<AutomationControlProps> = () =
           })
         )
     );
-  }, [itemIds, itemsById]);
+  }, [itemIds, itemsById, filterValue]);
 
   async function loadObjects() {
     const uniqueId = selectedOrg.uniqueId;
@@ -615,6 +616,7 @@ export const AutomationControl: FunctionComponent<AutomationControlProps> = () =
               overflowY: 'scroll',
               width: '25rem',
             }}
+            onFilterValueChange={setFilterValue}
             onChange={handleActiveTabIdChange}
           >
             <Grid>

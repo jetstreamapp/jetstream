@@ -23,6 +23,8 @@ export interface ListProps {
   autoScrollToFocus?: boolean;
   useCheckbox?: boolean;
   subheadingPlaceholder?: boolean;
+  searchTerm?: string;
+  highlightText?: boolean;
   isActive: (item: any) => boolean;
   // function used to extract
   getContent: (
@@ -38,7 +40,17 @@ export interface ListProps {
 
 export const List = forwardRef<HTMLUListElement, ListProps>(
   (
-    { items, autoScrollToFocus = false, useCheckbox = false, subheadingPlaceholder = false, isActive, getContent, onSelected },
+    {
+      items,
+      autoScrollToFocus = false,
+      useCheckbox = false,
+      subheadingPlaceholder = false,
+      searchTerm,
+      highlightText,
+      isActive,
+      getContent,
+      onSelected,
+    },
     ref: RefObject<HTMLUListElement>
   ) => {
     const [focusedItem, setFocusedItem] = useState<number>(null);
@@ -161,6 +173,8 @@ export const List = forwardRef<HTMLUListElement, ListProps>(
                   heading={heading}
                   subheading={subheading}
                   subheadingPlaceholder={subheadingPlaceholder}
+                  searchTerm={searchTerm}
+                  highlightText={highlightText}
                   onSelected={() => handleSelect(key, i)}
                 />
               ) : (
@@ -171,6 +185,8 @@ export const List = forwardRef<HTMLUListElement, ListProps>(
                   heading={heading}
                   subheading={subheading}
                   subheadingPlaceholder={subheadingPlaceholder}
+                  searchTerm={searchTerm}
+                  highlightText={highlightText}
                   onSelected={() => handleSelect(key, i)}
                 />
               );

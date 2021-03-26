@@ -1,17 +1,12 @@
 /** @jsx jsx */
 import { jsx } from '@emotion/react';
-import { Grid, GridCol } from '@jetstream/ui';
+import { Grid, GridCol, useHighlightedText } from '@jetstream/ui';
 import { Fragment, FunctionComponent } from 'react';
 import { AutomationControlMetadataType, AutomationControlParentSobject } from './automation-control-types';
 
-interface AutomationControlTabContentProps {
-  item: AutomationControlParentSobject;
-  isActive: boolean; // TODO: do I need this?
-}
-
 export interface AutomationControlTabTitleProps {
   item: AutomationControlParentSobject;
-  isActive: boolean; // TODO: do I need this?
+  searchTerm?: string;
 }
 
 function getModifiedItemsText(item: AutomationControlParentSobject) {
@@ -27,31 +22,24 @@ function getModifiedItemsText(item: AutomationControlParentSobject) {
   }
 }
 
-export const AutomationControlTabTitle: FunctionComponent<AutomationControlTabTitleProps> = ({ item, isActive }) => {
+export const AutomationControlTabTitle: FunctionComponent<AutomationControlTabTitleProps> = ({ item, searchTerm }) => {
+  const sobjectLabel = useHighlightedText(item.sobjectLabel, searchTerm);
+  const sobjectName = useHighlightedText(item.sobjectName, searchTerm);
   return (
     <Fragment>
       <span className="slds-vertical-tabs__left-icon"></span>
       <span className="slds-truncate" title={item.sobjectLabel}></span>
       <Grid vertical>
         <GridCol>
-          <span title={item.sobjectLabel}>{item.sobjectLabel}</span>
+          <span title={item.sobjectLabel}>{sobjectLabel}</span>
         </GridCol>
         <GridCol>
           <span className="slds-text-body_small slds-text-color_weak slds-truncate" title={item.sobjectName}>
-            {item.sobjectName}
+            {sobjectName}
           </span>
         </GridCol>
       </Grid>
-      <span className="slds-vertical-tabs__right-icon">
-        {/* TODO: loading / status / etc.. */}
-        {/* <Icon
-        type="standard"
-        icon="opportunity"
-        containerClassname="lds-icon_container slds-icon-standard-opportunity"
-        className="slds-icon slds-icon_small"
-      /> */}
-        {getModifiedItemsText(item)}
-      </span>
+      <span className="slds-vertical-tabs__right-icon">{getModifiedItemsText(item)}</span>
     </Fragment>
   );
 };
