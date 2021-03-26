@@ -1,5 +1,5 @@
 import { HTTP, MIME_TYPES } from '@jetstream/shared/constants';
-import { ensureArray, getValueOrSoapNull, splitArrayToMaxSize, toBoolean } from '@jetstream/shared/utils';
+import { ensureArray, getValueOrSoapNull, sanitizeForXml, splitArrayToMaxSize, toBoolean } from '@jetstream/shared/utils';
 import { AnonymousApexResponse, AnonymousApexSoapResponse, ApexCompletionResponse, ListMetadataResult, MapOf } from '@jetstream/types';
 import { NextFunction, Request, Response } from 'express';
 import { body, param, query } from 'express-validator';
@@ -348,7 +348,7 @@ export async function anonymousApex(req: Request, res: Response, next: NextFunct
   </soapenv:Header>
   <soapenv:Body>
       <apex:executeAnonymous>
-        <apex:String>${apex}</apex:String>
+        <apex:String>${sanitizeForXml(apex)}</apex:String>
       </apex:executeAnonymous>
   </soapenv:Body>
 </soapenv:Envelope>`,

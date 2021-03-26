@@ -167,6 +167,8 @@ export const DescribeMetadataList: FunctionComponent<DescribeMetadataListProps> 
                   heading: getMetadataLabelFromFullName(item),
                   subheading: item,
                 })}
+                searchTerm={searchTerm}
+                highlightText
               />
               {!filteredMetadataItems.length && (
                 <EmptyState imageWidth={200}>

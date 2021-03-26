@@ -70,6 +70,7 @@ export const SobjectFieldList: FunctionComponent<SobjectFieldListProps> = ({
   const [visibleFields, setVisibleFields] = useState<Set<string>>(null);
   const [selectAll, setSelectAll] = useState<boolean>(false);
   const [searchInputId] = useState(`object-field-${sobject}-filter-${Date.now()}`);
+  const [searchTerm, setSearchTerm] = useState<string>('');
   const ulRef = createRef<HTMLUListElement>();
 
   useEffect(() => {
@@ -149,6 +150,8 @@ export const SobjectFieldList: FunctionComponent<SobjectFieldListProps> = ({
           parentKey={itemKey}
           field={item}
           queryFieldsMap={queryFieldsMap}
+          searchTerm={searchTerm}
+          highlightText
           onToggleExpand={onToggleExpand}
           onSelectField={onSelectField}
           onSelectAll={onSelectAll}
@@ -167,6 +170,11 @@ export const SobjectFieldList: FunctionComponent<SobjectFieldListProps> = ({
 
   function handleFilterChange(active: FilterType) {
     setActiveFilter(active);
+  }
+
+  function handleSearchChange(value: string) {
+    setSearchTerm(value);
+    onFilterChanged(itemKey, value);
   }
 
   return (
@@ -194,7 +202,7 @@ export const SobjectFieldList: FunctionComponent<SobjectFieldListProps> = ({
                 <SearchInput
                   id={searchInputId}
                   placeholder={`Filter ${sobject} Fields`}
-                  onChange={(value) => onFilterChanged(itemKey, value)}
+                  onChange={handleSearchChange}
                   onArrowKeyUpDown={handleSearchKeyboard}
                 />
                 <div className="slds-text-body_small slds-text-color_weak slds-p-left--xx-small">

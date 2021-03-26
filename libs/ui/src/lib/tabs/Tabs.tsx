@@ -8,6 +8,7 @@ import classNames from 'classnames';
 import isNil from 'lodash/isNil';
 import React, { forwardRef, ReactNode, useEffect, useImperativeHandle, useState } from 'react';
 import SearchInput from '../form/search-input/SearchInput';
+import Tab from './Tab';
 
 export interface TabsRef {
   changeTab: (id: string) => void;
@@ -24,6 +25,7 @@ export interface TabsProps {
   style?: React.CSSProperties;
   ulStyle?: React.CSSProperties;
   emptyState?: React.ReactNode;
+  onFilterValueChange?: (value: string) => void;
   onChange?: (activeId: string) => void;
   children?: ReactNode;
 }
@@ -41,6 +43,7 @@ export const Tabs = forwardRef<unknown, TabsProps>(
       style,
       ulStyle,
       emptyState = <h3 className="slds-text-heading_medium slds-m-around_medium">Select an item to continue</h3>,
+      onFilterValueChange,
       onChange,
       children,
     },
@@ -126,6 +129,13 @@ export const Tabs = forwardRef<unknown, TabsProps>(
       }
     }
 
+    function handleFilterChange(value: string) {
+      setFilterValue(value);
+      if (onFilterValueChange) {
+        onFilterValueChange(value);
+      }
+    }
+
     return (
       <div className={classNames({ 'slds-tabs_default': isHorizontal, 'slds-vertical-tabs': !isHorizontal }, className)} style={style}>
         <ul
@@ -141,7 +151,7 @@ export const Tabs = forwardRef<unknown, TabsProps>(
                 id="accordion-input-filter"
                 placeholder={filterPlaceholder}
                 autoFocus
-                onChange={setFilterValue}
+                onChange={handleFilterChange}
                 // onArrowKeyUpDown={handleSearchKeyboard}
               />
               <div className="slds-text-body_small slds-text-color_weak slds-p-left--xx-small">
@@ -150,28 +160,15 @@ export const Tabs = forwardRef<unknown, TabsProps>(
             </div>
           )}
           {filteredTabs.map((tab) => (
-            <li
+            <Tab
               key={tab.id}
-              className={classNames(
-                { 'slds-tabs_default__item': isHorizontal, 'slds-vertical-tabs__nav-item': !isHorizontal },
-                tab.titleClassName,
-                { 'slds-is-active': activeId === tab.id }
-              )}
-              title={tab.titleText || (tab.title as string)}
-              role="presentation"
-            >
-              <a
-                className={classNames({ 'slds-tabs_default__link': isHorizontal, 'slds-vertical-tabs__link': !isHorizontal })}
-                role="tab"
-                tabIndex={0}
-                aria-selected={activeId === tab.id}
-                aria-controls={tab.id}
-                id={`tab-${tab.id}`}
-                onClick={(ev) => handleTabClick(ev, tab)}
-              >
-                {tab.title}
-              </a>
-            </li>
+              tab={tab}
+              isHorizontal={isHorizontal}
+              activeId={activeId}
+              searchTerm={filterValue}
+              highlightText
+              handleTabClick={handleTabClick}
+            />
           ))}
         </ul>
         {getContent()}

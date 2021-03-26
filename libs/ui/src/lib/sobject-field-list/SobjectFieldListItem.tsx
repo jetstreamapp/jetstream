@@ -2,6 +2,7 @@
 import { css, jsx } from '@emotion/react';
 import { getFieldKey } from '@jetstream/shared/ui-utils';
 import { FieldWrapper, MapOf, QueryFields } from '@jetstream/types';
+import { useHighlightedText } from 'libs/ui/src/lib/hooks/useHighlightedText';
 import Icon from 'libs/ui/src/lib/widgets/Icon';
 import Tooltip from 'libs/ui/src/lib/widgets/Tooltip';
 import { Fragment, FunctionComponent, useEffect, useState } from 'react';
@@ -17,6 +18,8 @@ export interface SobjectFieldListItemProps {
   parentKey: string;
   field: FieldWrapper;
   queryFieldsMap: MapOf<QueryFields>;
+  searchTerm?: string;
+  highlightText?: boolean;
   onToggleExpand: (key: string, field: FieldWrapper, relatedSobject: string) => void;
   onSelectField: (key: string, field: FieldWrapper) => void;
   onSelectAll: (key: string, value: boolean, impactedKeys: string[]) => void;
@@ -30,6 +33,8 @@ export const SobjectFieldListItem: FunctionComponent<SobjectFieldListItemProps> 
   parentKey,
   field,
   queryFieldsMap,
+  searchTerm,
+  highlightText,
   onToggleExpand,
   onSelectField,
   onSelectAll,
@@ -39,6 +44,8 @@ export const SobjectFieldListItem: FunctionComponent<SobjectFieldListItemProps> 
   const [relationshipKey, setRelationshipKey] = useState<string>(null);
   const [isExpanded, setIsExpanded] = useState<boolean>(false);
   const [selectedSObject, setSelectedSObject] = useState(queryFieldsMap[relationshipKey]?.sobject);
+  const fieldLabel = useHighlightedText(field.label, searchTerm, { ignoreHighlight: !highlightText });
+  const fieldName = useHighlightedText(field.name, searchTerm, { ignoreHighlight: !highlightText });
 
   const isSelected = queryFieldsMap[parentKey]?.selectedFields?.has(field.name);
 
@@ -65,7 +72,7 @@ export const SobjectFieldListItem: FunctionComponent<SobjectFieldListItemProps> 
     <Fragment>
       <Grid>
         <div className="slds-truncate" title={field.label} onClick={() => onSelectField(parentKey, field)}>
-          {field.label}
+          {fieldLabel}
           {field.metadata.inlineHelpText && (
             <Tooltip
               id={`${parentKey}-${relationshipKey}-${field.name}-helptext`}
@@ -88,7 +95,7 @@ export const SobjectFieldListItem: FunctionComponent<SobjectFieldListItemProps> 
           title={field.name}
           onClick={() => onSelectField(parentKey, field)}
         >
-          {field.name}
+          {fieldName}
         </div>
         <SobjectFieldListType field={field} />
       </div>
