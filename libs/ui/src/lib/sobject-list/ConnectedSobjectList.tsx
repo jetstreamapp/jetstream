@@ -29,9 +29,11 @@ export interface ConnectedSobjectListProps {
   sobjects: DescribeGlobalSObjectResult[];
   selectedSObject: DescribeGlobalSObjectResult;
   isTooling?: boolean;
+  initialSearchTerm?: string;
   filterFn?: (sobject: DescribeGlobalSObjectResult) => boolean;
   onSobjects: (sobjects: DescribeGlobalSObjectResult[]) => void;
   onSelectedSObject: (selectedSObject: DescribeGlobalSObjectResult) => void;
+  onSearchTermChange?: (searchTerm: string) => void;
 }
 
 export const ConnectedSobjectList: FunctionComponent<ConnectedSobjectListProps> = ({
@@ -40,9 +42,11 @@ export const ConnectedSobjectList: FunctionComponent<ConnectedSobjectListProps> 
   sobjects,
   selectedSObject,
   isTooling,
+  initialSearchTerm,
   filterFn = isTooling ? filterToolingSobjectFn : filterSobjectFn,
   onSobjects,
   onSelectedSObject,
+  onSearchTermChange,
 }) => {
   const isMounted = useRef(null);
   const [loading, setLoading] = useState<boolean>(false);
@@ -123,8 +127,10 @@ export const ConnectedSobjectList: FunctionComponent<ConnectedSobjectListProps> 
         selectedSObject={selectedSObject}
         loading={loading}
         errorMessage={errorMessage}
+        initialSearchTerm={initialSearchTerm}
         onSelected={onSelectedSObject}
         errorReattempt={() => setErrorMessage(null)}
+        onSearchTermChange={onSearchTermChange}
       />
     </Fragment>
   );

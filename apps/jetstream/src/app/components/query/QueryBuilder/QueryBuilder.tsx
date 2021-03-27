@@ -75,6 +75,7 @@ export const QueryBuilder: FunctionComponent<QueryBuilderProps> = () => {
   const soql = useRecoilValue(fromQueryState.querySoqlState);
 
   const [sobjects, setSobjects] = useRecoilState(fromQueryState.sObjectsState);
+  const [sObjectFilterTerm, setSObjectFilterTerm] = useRecoilState(fromQueryState.sObjectFilterTerm);
   const [selectedSObject, setSelectedSObject] = useRecoilState(fromQueryState.selectedSObjectState);
   const [isTooling, setIsTooling] = useRecoilState(fromQueryState.isTooling);
   const [selectedFields, setSelectedFields] = useRecoilState(fromQueryState.selectedQueryFieldsState);
@@ -86,6 +87,7 @@ export const QueryBuilder: FunctionComponent<QueryBuilderProps> = () => {
   const resetFilterQueryFieldsState = useResetRecoilState(fromQueryState.filterQueryFieldsState);
   const resetOrderByQueryFieldsState = useResetRecoilState(fromQueryState.orderByQueryFieldsState);
   const resetSelectedSObject = useResetRecoilState(fromQueryState.selectedSObjectState);
+  const resetSObjectFilterTerm = useResetRecoilState(fromQueryState.sObjectFilterTerm);
   const resetQueryFieldsMapState = useResetRecoilState(fromQueryState.queryFieldsMapState);
   const resetQueryFieldsKey = useResetRecoilState(fromQueryState.queryFieldsKey);
   const resetSelectedSubqueryFieldsState = useResetRecoilState(fromQueryState.selectedSubqueryFieldsState);
@@ -178,6 +180,7 @@ export const QueryBuilder: FunctionComponent<QueryBuilderProps> = () => {
     (includeSobjectReset = true) => {
       if (includeSobjectReset) {
         resetSelectedSObject();
+        resetSObjectFilterTerm();
       }
       resetQueryFieldsMapState();
       resetQueryFieldsKey();
@@ -207,6 +210,7 @@ export const QueryBuilder: FunctionComponent<QueryBuilderProps> = () => {
       resetQuerySoqlState,
       resetSelectedQueryFieldsState,
       resetSelectedSObject,
+      resetSObjectFilterTerm,
       resetSelectedSubqueryFieldsState,
     ]
   );
@@ -275,8 +279,10 @@ export const QueryBuilder: FunctionComponent<QueryBuilderProps> = () => {
                 sobjects={sobjects}
                 selectedSObject={selectedSObject}
                 isTooling={isTooling}
+                initialSearchTerm={sObjectFilterTerm}
                 onSobjects={handleSobjectsChange}
                 onSelectedSObject={handleSelectedSObject}
+                onSearchTermChange={setSObjectFilterTerm}
               />
             </div>
             <div className="slds-p-horizontal_x-small">

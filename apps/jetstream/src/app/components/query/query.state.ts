@@ -27,6 +27,11 @@ export const sObjectsState = atom<DescribeGlobalSObjectResult[]>({
   default: null,
 });
 
+export const sObjectFilterTerm = atom<string>({
+  key: 'query.sObjectFilterTerm',
+  default: '',
+});
+
 export const selectedSObjectState = atom<DescribeGlobalSObjectResult>({
   key: 'query.selectedSObjectState',
   default: null,
