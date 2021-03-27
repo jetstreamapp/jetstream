@@ -1,6 +1,6 @@
 /** @jsx jsx */
 import { css, jsx } from '@emotion/react';
-import { formatNumber } from '@jetstream/shared/ui-utils';
+import { formatNumber, useNonInitialEffect } from '@jetstream/shared/ui-utils';
 import { multiWordObjectFilter } from '@jetstream/shared/utils';
 import { UpDown } from '@jetstream/types';
 import { DescribeGlobalSObjectResult } from 'jsforce';
@@ -12,6 +12,7 @@ import List from '../list/List';
 import Spinner from '../widgets/Spinner';
 
 export interface SobjectListProps {
+  isTooling?: boolean;
   sobjects: DescribeGlobalSObjectResult[];
   selectedSObject: DescribeGlobalSObjectResult;
   loading: boolean;
@@ -23,6 +24,7 @@ export interface SobjectListProps {
 }
 
 export const SobjectList: FunctionComponent<SobjectListProps> = ({
+  isTooling,
   sobjects,
   selectedSObject,
   loading,
@@ -46,6 +48,10 @@ export const SobjectList: FunctionComponent<SobjectListProps> = ({
   }, [sobjects, searchTerm]);
 
   useEffect(() => onSearchTermChange && onSearchTermChange(searchTerm), [onSearchTermChange, searchTerm]);
+
+  useNonInitialEffect(() => {
+    setSearchTerm('');
+  }, [isTooling]);
 
   function handleSearchKeyboard(direction: UpDown) {
     if (ulRef && ulRef.current) {

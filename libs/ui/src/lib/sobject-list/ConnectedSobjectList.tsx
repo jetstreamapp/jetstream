@@ -123,6 +123,7 @@ export const ConnectedSobjectList: FunctionComponent<ConnectedSobjectListProps> 
         </div>
       </Grid>
       <SobjectList
+        isTooling={isTooling}
         sobjects={sobjects}
         selectedSObject={selectedSObject}
         loading={loading}

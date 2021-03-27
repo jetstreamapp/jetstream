@@ -180,8 +180,8 @@ export const QueryBuilder: FunctionComponent<QueryBuilderProps> = () => {
     (includeSobjectReset = true) => {
       if (includeSobjectReset) {
         resetSelectedSObject();
-        resetSObjectFilterTerm();
       }
+      resetSObjectFilterTerm();
       resetQueryFieldsMapState();
       resetQueryFieldsKey();
       resetSelectedQueryFieldsState();
