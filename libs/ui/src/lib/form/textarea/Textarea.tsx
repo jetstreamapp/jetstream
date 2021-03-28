@@ -5,6 +5,7 @@ import HelpText from '../../widgets/HelpText';
 export interface TextareaProps {
   id: string;
   className?: string;
+  labelClassName?: string;
   label?: string | ReactNode;
   labelHelp?: string;
   helpText?: React.ReactNode | string;
@@ -18,6 +19,7 @@ export interface TextareaProps {
 export const Textarea: FunctionComponent<TextareaProps> = ({
   id,
   className,
+  labelClassName,
   label,
   labelHelp,
   helpText,
@@ -32,7 +34,7 @@ export const Textarea: FunctionComponent<TextareaProps> = ({
     <div className={classNames('slds-form-element', className, { 'slds-has-error': hasError })}>
       {label && (
         <Fragment>
-          <label className="slds-form-element__label" htmlFor={id}>
+          <label className={classNames('slds-form-element__label', labelClassName)} htmlFor={id}>
             {isRequired && (
               <abbr className="slds-required" title="required">
                 *{' '}

@@ -13,7 +13,7 @@ export const SoqlTextarea: FunctionComponent<SoqlTextareaProps> = React.memo(({ 
   return (
     <Fragment>
       <Textarea id="soql-textarea" label="Generated SOQL">
-        <CodeEditor className="CodeMirror-textarea" value={soql} readOnly />
+        <CodeEditor className="CodeMirror-textarea" options={{ tabSize: 2 }} value={soql} readOnly />
       </Textarea>
       <Grid verticalAlign="center">
         <ManualSoql isTooling={isTooling} />

@@ -103,7 +103,7 @@ export const ManualSoql: FunctionComponent<ManualSoqlProps> = ({ className, isTo
           <Fragment>
             {isRestoring && <Spinner />}
             <Textarea id="soql-manual" label="SOQL Query">
-              <CodeEditor className="CodeMirror-textarea" value={soql} onChange={setSoql} />
+              <CodeEditor className="CodeMirror-textarea" value={soql} options={{ tabSize: 2 }} onChange={setSoql} />
             </Textarea>
             <Grid>
               <div>

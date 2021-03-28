@@ -14,6 +14,7 @@ export const base = () => (
     lineNumbers={boolean('lineNumbers', false)}
     readOnly={boolean('readOnly', false)}
     size={{
+      tabSize: 2,
       width: text('width', null),
       height: text('height', null),
     }}
