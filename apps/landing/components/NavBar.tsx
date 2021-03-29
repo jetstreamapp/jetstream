@@ -69,6 +69,20 @@ export function NavBar({ currPage, omitBlogPosts }: NavBarProps) {
                 </Link>
               </div>
             )}
+
+            <div className="hidden md:ml-6 md:flex md:space-x-8">
+              <a
+                className={classNames(
+                  'inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium',
+                  'border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700'
+                )}
+                href="mailto:support@getjetstream.com"
+                target="_blank"
+                rel="noreferrer"
+              >
+                Contact Us
+              </a>
+            </div>
           </div>
           <div className="flex items-center">
             <div className="flex-shrink-0">
@@ -92,15 +106,30 @@ export function NavBar({ currPage, omitBlogPosts }: NavBarProps) {
       {/* MOBILE - show hide based on state */}
       {isOpen && (
         <div className="md:hidden" id="mobile-menu">
-          {!omitBlogPosts && (
-            <div className="pt-2 pb-3 space-y-1">
+          <div className="pt-2 pb-3 space-y-1">
+            {!omitBlogPosts && (
               <Link href="/blog">
-                <a className="bg-indigo-50 border-indigo-500 text-indigo-700 block pl-3 pr-4 py-2 border-l-4 text-base font-medium sm:pl-5 sm:pr-6">
+                <a
+                  className={classNames('block pl-3 pr-4 py-2 border-l-4 text-base font-medium sm:pl-5 sm:pr-6', {
+                    'border-transparent text-gray-500 hover:bg-gray-50 hover:text-gray-900': currPage !== 'blog',
+                    'bg-gray-50 border-gray-500 text-gray-900': currPage === 'blog',
+                  })}
+                >
                   Blog
                 </a>
               </Link>
-            </div>
-          )}
+            )}
+            <a
+              className={classNames(
+                'block pl-3 pr-4 py-2 border-l-4 text-base font-medium sm:pl-5 sm:pr-6 border-transparent text-gray-500 hover:bg-gray-50 hover:text-gray-900'
+              )}
+              href="mailto:support@getjetstream.com"
+              target="_blank"
+              rel="noreferrer"
+            >
+              Contact Us
+            </a>
+          </div>
         </div>
       )}
     </nav>
