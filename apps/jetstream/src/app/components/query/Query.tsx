@@ -17,6 +17,7 @@ export const Query: FunctionComponent<QueryProps> = () => {
   const selectedOrg = useRecoilValue<SalesforceOrgUi>(selectedOrgState);
   const resetSobjects = useResetRecoilState(fromQueryState.sObjectsState);
   const resetSelectedSObject = useResetRecoilState(fromQueryState.selectedSObjectState);
+  const resetSObjectFilterTerm = useResetRecoilState(fromQueryState.sObjectFilterTerm);
   const resetQueryFieldsKey = useResetRecoilState(fromQueryState.queryFieldsKey);
   const resetQueryFieldsMapState = useResetRecoilState(fromQueryState.queryFieldsMapState);
   const resetSelectedQueryFieldsState = useResetRecoilState(fromQueryState.selectedQueryFieldsState);
@@ -35,6 +36,7 @@ export const Query: FunctionComponent<QueryProps> = () => {
       setPriorSelectedOrg(selectedOrg.uniqueId);
       resetSobjects();
       resetSelectedSObject();
+      resetSObjectFilterTerm();
       resetQueryFieldsKey();
       resetQueryFieldsMapState();
       resetSelectedQueryFieldsState();
@@ -46,6 +48,7 @@ export const Query: FunctionComponent<QueryProps> = () => {
     } else if (!selectedOrg) {
       resetSobjects();
       resetSelectedSObject();
+      resetSObjectFilterTerm();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedOrg, priorSelectedOrg]);

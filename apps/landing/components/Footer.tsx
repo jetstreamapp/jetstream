@@ -28,6 +28,16 @@ export const Footer = ({ currPage, omitBlogPosts }: FooterProps) => (
         {!omitBlogPosts && getLink('/blog', 'Blog', currPage === 'blog')}
         {getLink('/terms-of-service', 'Terms of Service', currPage === 'tos')}
         {getLink('/privacy', 'Privacy Policy', currPage === 'privacy')}
+        <div className="px-5 py-2 text-center sm:text-left">
+          <a
+            href="mailto:support@getjetstream.com"
+            target="_blank"
+            rel="noreferrer"
+            className="text-base leading-6 text-gray-500 hover:text-gray-900"
+          >
+            Contact Us
+          </a>
+        </div>
       </nav>
       <div className="mt-8">
         <p className="text-center text-base leading-6 text-gray-400">&copy; 2020 Jetstream, LLC. All rights reserved.</p>

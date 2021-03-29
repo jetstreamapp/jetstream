@@ -125,6 +125,7 @@ export const QueryHistoryItemCard: FunctionComponent<QueryHistoryItemCardProps> 
                       readOnly
                       size={{ height: 'auto' }}
                       shouldRefresh={readyToRenderCode}
+                      options={{ tabSize: 2 }}
                     />
                   </Textarea>
                 </div>

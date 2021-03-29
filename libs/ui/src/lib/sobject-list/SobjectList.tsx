@@ -1,6 +1,6 @@
 /** @jsx jsx */
 import { css, jsx } from '@emotion/react';
-import { formatNumber } from '@jetstream/shared/ui-utils';
+import { formatNumber, useNonInitialEffect } from '@jetstream/shared/ui-utils';
 import { multiWordObjectFilter } from '@jetstream/shared/utils';
 import { UpDown } from '@jetstream/types';
 import { DescribeGlobalSObjectResult } from 'jsforce';
@@ -12,24 +12,30 @@ import List from '../list/List';
 import Spinner from '../widgets/Spinner';
 
 export interface SobjectListProps {
+  isTooling?: boolean;
   sobjects: DescribeGlobalSObjectResult[];
   selectedSObject: DescribeGlobalSObjectResult;
   loading: boolean;
   errorMessage?: string; // TODO:
+  initialSearchTerm?: string;
   onSelected: (sobject: DescribeGlobalSObjectResult) => void;
   errorReattempt: () => void;
+  onSearchTermChange?: (searchTerm: string) => void;
 }
 
 export const SobjectList: FunctionComponent<SobjectListProps> = ({
+  isTooling,
   sobjects,
   selectedSObject,
   loading,
   errorMessage,
+  initialSearchTerm,
   onSelected,
   errorReattempt,
+  onSearchTermChange,
 }) => {
   const [filteredSobjects, setFilteredSobjects] = useState<DescribeGlobalSObjectResult[]>(null);
-  const [searchTerm, setSearchTerm] = useState('');
+  const [searchTerm, setSearchTerm] = useState(initialSearchTerm || '');
   const [searchInputId] = useState(`object-filter-${Date.now()}`);
   const ulRef = createRef<HTMLUListElement>();
 
@@ -40,6 +46,12 @@ export const SobjectList: FunctionComponent<SobjectListProps> = ({
       setFilteredSobjects(sobjects);
     }
   }, [sobjects, searchTerm]);
+
+  useEffect(() => onSearchTermChange && onSearchTermChange(searchTerm), [onSearchTermChange, searchTerm]);
+
+  useNonInitialEffect(() => {
+    setSearchTerm('');
+  }, [isTooling]);
 
   function handleSearchKeyboard(direction: UpDown) {
     if (ulRef && ulRef.current) {
@@ -74,6 +86,7 @@ export const SobjectList: FunctionComponent<SobjectListProps> = ({
               <SearchInput
                 id={searchInputId}
                 placeholder="Filter Objects"
+                value={searchTerm}
                 onChange={setSearchTerm}
                 onArrowKeyUpDown={handleSearchKeyboard}
               />

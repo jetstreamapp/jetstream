@@ -110,7 +110,7 @@ export const SobjectFieldList: FunctionComponent<SobjectFieldListProps> = ({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [visibleFields, activeFilter]);
 
-  // when filtered fields changes, see if all fields are selected and possibly update allSelected state
+  // when filtered fields changes, see if handleFieldFilterChanged fields are selected and possibly update allSelected state
   useEffect(() => {
     if (filteredFields?.length > 0) {
       const allSelected = filteredFields.every((field) => queryFields.selectedFields.has(field.name));
@@ -202,6 +202,7 @@ export const SobjectFieldList: FunctionComponent<SobjectFieldListProps> = ({
                 <SearchInput
                   id={searchInputId}
                   placeholder={`Filter ${sobject} Fields`}
+                  value={queryFields.filterTerm}
                   onChange={handleSearchChange}
                   onArrowKeyUpDown={handleSearchKeyboard}
                 />

@@ -52,6 +52,7 @@ export const SalesforceApiResponse: FunctionComponent<SalesforceApiResponseProps
         lineNumbers
         size={{ height: `150px` }}
         options={{
+          tabSize: 2,
           mode: { name: 'javascript', json: true },
           readOnly: true,
         }}
@@ -71,6 +72,7 @@ export const SalesforceApiResponse: FunctionComponent<SalesforceApiResponseProps
         lineNumbers
         size={{ height: '60vh' }}
         options={{
+          tabSize: 2,
           mode: { name: 'javascript', json: true },
           readOnly: true,
         }}
