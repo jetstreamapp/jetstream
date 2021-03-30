@@ -41,6 +41,7 @@ export interface SalesforceQueryColumnDefinition {
 export interface DataTableContextValue {
   serverUrl: string;
   org: SalesforceOrgUi;
+  isTooling: boolean;
   columnDefinitions: SalesforceQueryColumnDefinition;
 }
 
@@ -61,6 +62,7 @@ const newLineRegex = /\\n/g;
 export const DataTableContext = createContext<DataTableContextValue>({
   serverUrl: null,
   org: null,
+  isTooling: false,
   columnDefinitions: { parentColumns: [], subqueryColumns: {} },
 });
 
@@ -257,6 +259,7 @@ function getColDef(field: string, queryColumnsByPath: MapOf<QueryResultsColumn>,
       colDef.cellRenderer = 'complexDataRenderer';
     } else if (Array.isArray(col.childColumnPaths)) {
       colDef.cellRenderer = 'subqueryRenderer';
+      colDef.valueGetter = (params) => params.data[params.colDef.field]?.records;
     }
   } else {
     // we do not have any metadata from SFDC, so we will try to detect basic scenarios

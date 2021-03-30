@@ -203,6 +203,7 @@ export const SalesforceRecordDataTable: FunctionComponent<SalesforceRecordDataTa
           value={{
             org,
             serverUrl,
+            isTooling,
             columnDefinitions,
           }}
         >

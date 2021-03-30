@@ -1,10 +1,16 @@
 /** @jsx jsx */
 import { ICellRendererParams, IFilter, IFilterParams, IFloatingFilter, IFloatingFilterParams } from '@ag-grid-community/core';
 import { jsx } from '@emotion/react';
+import { queryMore } from '@jetstream/shared/data';
+import { formatNumber, transformTabularDataToExcelStr } from '@jetstream/shared/ui-utils';
 import { flattenRecords } from '@jetstream/shared/utils';
 import { SalesforceOrgUi } from '@jetstream/types';
-import { isFunction } from 'lodash';
-import { forwardRef, Fragment, FunctionComponent, MouseEvent, useEffect, useImperativeHandle, useState } from 'react';
+import copyToClipboard from 'copy-to-clipboard';
+import { QueryResult } from 'jsforce';
+import Grid from 'libs/ui/src/lib/grid/Grid';
+import Spinner from 'libs/ui/src/lib/widgets/Spinner';
+import { isFunction, uniqueId } from 'lodash';
+import { forwardRef, Fragment, FunctionComponent, MouseEvent, useEffect, useImperativeHandle, useRef, useState } from 'react';
 import RecordDownloadModal from '../file-download-modal/RecordDownloadModal';
 import CheckboxToggle from '../form/checkbox-toggle/CheckboxToggle';
 import Checkbox from '../form/checkbox/Checkbox';
@@ -23,8 +29,6 @@ import {
   TableContext,
 } from './data-table-utils';
 import DataTable from './DataTable';
-import copyToClipboard from 'copy-to-clipboard';
-import { transformTabularDataToExcelStr } from '@jetstream/shared/ui-utils';
 
 // CONFIGURATION
 
@@ -41,10 +45,18 @@ export function configIdLinkRenderer(serverUrl: string, org: SalesforceOrgUi) {
 }
 
 // CELL RENDERERS
-export const SubqueryRenderer: FunctionComponent<ICellRendererParams> = ({ value, colDef, data }) => {
+export const SubqueryRenderer: FunctionComponent<ICellRendererParams> = ({ colDef, data, value }) => {
+  const isMounted = useRef(null);
   const [isActive, setIsActive] = useState(false);
   const [modalTagline, setModalTagline] = useState<string>();
   const [downloadModalIsActive, setDownloadModalIsActive] = useState(false);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
+  const [{ records, done, nextRecordsUrl, totalSize }, setQueryResults] = useState<QueryResult<unknown>>(data[colDef.field] || {});
+
+  useEffect(() => {
+    isMounted.current = true;
+    return () => (isMounted.current = false);
+  }, []);
 
   // const {serverUrl, org, columnsDefinition} = context as DataTableContextValue;
 
@@ -69,11 +81,6 @@ export const SubqueryRenderer: FunctionComponent<ICellRendererParams> = ({ value
       .map((column) => column.field);
   }
 
-  function getRecords() {
-    return value;
-    // return (value as QueryResult<any>).records;
-  }
-
   function handleCloseModal(cancelled?: boolean) {
     if (typeof cancelled === 'boolean' && cancelled) {
       setIsActive(true);
@@ -91,8 +98,37 @@ export const SubqueryRenderer: FunctionComponent<ICellRendererParams> = ({ value
 
   function handleCopyToClipboard(columnDefinitions: SalesforceQueryColumnDefinition) {
     const fields = getFields(columnDefinitions);
-    const flattenedData = flattenRecords(value, fields);
+    const flattenedData = flattenRecords(records, fields);
     copyToClipboard(transformTabularDataToExcelStr(flattenedData, fields), { format: 'text/plain' });
+  }
+
+  async function loadMore(org: SalesforceOrgUi, isTooling: boolean) {
+    try {
+      setIsLoadingMore(true);
+      const results = await queryMore(org, nextRecordsUrl, isTooling);
+      if (!isMounted.current) {
+        return;
+      }
+      results.queryResults.records = records.concat(results.queryResults.records);
+      setQueryResults(results.queryResults);
+      setIsLoadingMore(false);
+    } catch (ex) {
+      if (!isMounted.current) {
+        return;
+      }
+      setIsLoadingMore(false);
+    }
+  }
+
+  function getRowNodeId(data: any): string {
+    if (data?.attributes?.type === 'AggregateResult') {
+      return uniqueId('query-results-node-id');
+    }
+    let nodeId = data?.attributes?.url || data.Id;
+    if (!nodeId) {
+      nodeId = uniqueId('query-results-node-id');
+    }
+    return nodeId;
   }
 
   if (!Array.isArray(value) || value.length === 0) {
@@ -101,7 +137,7 @@ export const SubqueryRenderer: FunctionComponent<ICellRendererParams> = ({ value
 
   return (
     <DataTableContext.Consumer>
-      {({ serverUrl, org, columnDefinitions }) => (
+      {({ serverUrl, org, columnDefinitions, isTooling }) => (
         <div>
           {isActive && (
             <Modal
@@ -110,21 +146,35 @@ export const SubqueryRenderer: FunctionComponent<ICellRendererParams> = ({ value
               tagline={modalTagline}
               closeOnBackdropClick
               onClose={handleCloseModal}
+              footerClassName="slds-is-relative"
               footer={
-                <Fragment>
-                  <button
-                    className="slds-button slds-button_neutral"
-                    onClick={() => handleCopyToClipboard(columnDefinitions)}
-                    title="Copy the queried records to the clipboard. The records can then be pasted into a spreadsheet."
-                  >
-                    <Icon type="utility" icon="copy_to_clipboard" className="slds-button__icon slds-button__icon_left" omitContainer />
-                    Copy to Clipboard
-                  </button>
-                  <button className="slds-button slds-button_brand" onClick={openDownloadModal}>
-                    <Icon type="utility" icon="download" className="slds-button__icon slds-button__icon_left" omitContainer />
-                    Download Records
-                  </button>
-                </Fragment>
+                <Grid align="spread" verticalAlign="end">
+                  <Grid verticalAlign="end">
+                    <span className="slds-m-right_small">
+                      Showing {formatNumber(records.length)} of {formatNumber(totalSize)} records
+                    </span>
+                    {!done && (
+                      <button className="slds-button slds-button_neutral" onClick={() => loadMore(org, isTooling)}>
+                        Load More
+                      </button>
+                    )}
+                    {isLoadingMore && <Spinner />}
+                  </Grid>
+                  <div>
+                    <button
+                      className="slds-button slds-button_neutral"
+                      onClick={() => handleCopyToClipboard(columnDefinitions)}
+                      title="Copy the queried records to the clipboard. The records can then be pasted into a spreadsheet."
+                    >
+                      <Icon type="utility" icon="copy_to_clipboard" className="slds-button__icon slds-button__icon_left" omitContainer />
+                      Copy to Clipboard
+                    </button>
+                    <button className="slds-button slds-button_brand" onClick={openDownloadModal}>
+                      <Icon type="utility" icon="download" className="slds-button__icon slds-button__icon_left" omitContainer />
+                      Download Records
+                    </button>
+                  </div>
+                </Grid>
               }
             >
               <div className="slds-scrollable_x">
@@ -133,11 +183,11 @@ export const SubqueryRenderer: FunctionComponent<ICellRendererParams> = ({ value
                     serverUrl={serverUrl}
                     org={org}
                     columns={getColumns(columnDefinitions)}
-                    data={getRecords()}
+                    data={records}
                     agGridProps={{
                       rowSelection: null,
                       immutableData: true,
-                      // getRowNodeId, // TODO: get attributes fom child record // return data?.attributes?.url || data.Id || Object.keys(data)[0];
+                      getRowNodeId: (data) => getRowNodeId(data),
                       suppressMenuHide: true,
                       headerHeight: 25,
                       gridOptions: {
@@ -158,7 +208,7 @@ export const SubqueryRenderer: FunctionComponent<ICellRendererParams> = ({ value
               org={org}
               downloadModalOpen
               fields={getFields(columnDefinitions)}
-              records={value}
+              records={records}
               onModalClose={handleCloseModal}
             />
           )}
