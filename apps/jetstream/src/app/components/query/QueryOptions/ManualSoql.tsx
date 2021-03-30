@@ -4,7 +4,7 @@ import { ANALYTICS_KEYS } from '@jetstream/shared/constants';
 import { CheckboxToggle, CodeEditor, Grid, GridCol, Icon, Popover, Spinner, Textarea } from '@jetstream/ui';
 import { Fragment, FunctionComponent, useEffect, useRef, useState } from 'react';
 import { Link, useRouteMatch } from 'react-router-dom';
-import { isQueryValid } from 'soql-parser-js';
+import { formatQuery, isQueryValid } from 'soql-parser-js';
 import { useAmplitude } from '../../core/analytics';
 import RestoreQuery from '../QueryBuilder/RestoreQuery';
 
@@ -95,6 +95,10 @@ export const ManualSoql: FunctionComponent<ManualSoqlProps> = ({ className, isTo
     }
   }
 
+  function handleFormat() {
+    setSoql(formatQuery(soql, { fieldMaxLineLength: 80 }));
+  }
+
   return (
     <div className={className}>
       <Popover
@@ -102,7 +106,26 @@ export const ManualSoql: FunctionComponent<ManualSoqlProps> = ({ className, isTo
         content={
           <Fragment>
             {isRestoring && <Spinner />}
-            <Textarea id="soql-manual" label="SOQL Query">
+            <Textarea
+              id="soql-manual"
+              label={
+                <Grid align="spread">
+                  <div className="slds-m-right_x-small">
+                    <span>SOQL Query</span>
+                  </div>
+                  <span>
+                    <button
+                      className="slds-button slds-text-link_reset slds-text-link"
+                      title="Format soql query"
+                      disabled={!queryIsValid}
+                      onClick={handleFormat}
+                    >
+                      format
+                    </button>
+                  </span>
+                </Grid>
+              }
+            >
               <CodeEditor className="CodeMirror-textarea" value={soql} options={{ tabSize: 2 }} onChange={setSoql} />
             </Textarea>
             <Grid>

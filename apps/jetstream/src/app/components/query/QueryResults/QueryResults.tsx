@@ -14,13 +14,7 @@ import {
   useNonInitialEffect,
   useObservable,
 } from '@jetstream/shared/ui-utils';
-import {
-  flattenRecords,
-  getRecordIdFromAttributes,
-  getSObjectNameFromAttributes,
-  pluralizeIfMultiple,
-  replaceSubqueryQueryResultsWithRecords,
-} from '@jetstream/shared/utils';
+import { flattenRecords, getRecordIdFromAttributes, getSObjectNameFromAttributes, pluralizeIfMultiple } from '@jetstream/shared/utils';
 import { AsyncJob, AsyncJobNew, BulkDownloadJob, CloneEditView, FileExtCsvXLSX, Record, SalesforceOrgUi } from '@jetstream/types';
 import {
   AutoFullHeightContainer,
@@ -204,9 +198,7 @@ export const QueryResults: FunctionComponent<QueryResultsProps> = React.memo(() 
       setRecords(null);
       setRecordCount(null);
       // setFields(null);
-      const results = await query(selectedOrg, soqlQuery, tooling, !tooling && includeDeletedRecords).then(
-        replaceSubqueryQueryResultsWithRecords
-      );
+      const results = await query(selectedOrg, soqlQuery, tooling, !tooling && includeDeletedRecords);
       if (!isMounted.current) {
         return;
       }

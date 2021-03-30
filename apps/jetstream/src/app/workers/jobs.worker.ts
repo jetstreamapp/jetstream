@@ -25,7 +25,6 @@ import {
   RetrievePackageFromListMetadataJob,
   RetrievePackageFromManifestJob,
   RetrievePackageFromPackageNamesJob,
-  RetrieveResult,
   WorkerMessage,
 } from '@jetstream/types';
 import queue from 'async/queue';
