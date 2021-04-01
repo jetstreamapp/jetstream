@@ -4,9 +4,9 @@ import { polyfillFieldDefinition } from '@jetstream/shared/ui-utils';
 import { ListItem, PicklistFieldValueItem } from '@jetstream/types';
 import { Checkbox, DatePicker, DateTime, Grid, Icon, Input, Picklist, ReadOnlyFormElement, Textarea } from '@jetstream/ui';
 import classNames from 'classnames';
-import formatDate from 'date-fns/format';
 import formatISO from 'date-fns/formatISO';
 import parseISO from 'date-fns/parseISO';
+import roundToNearestMinutes from 'date-fns/roundToNearestMinutes';
 import startOfDay from 'date-fns/startOfDay';
 import uniqueId from 'lodash/uniqueId';
 import { Fragment, FunctionComponent, ReactNode, SyntheticEvent, useEffect, useState } from 'react';
@@ -44,7 +44,7 @@ export const UiRecordFormField: FunctionComponent<UiRecordFormFieldProps> = ({
       if (metadata.type === 'date') {
         return formatISO(startOfDay(parseISO(_initialValue as string)));
       } else if (metadata.type === 'datetime') {
-        return formatISO(parseISO(_initialValue as string));
+        return formatISO(roundToNearestMinutes(parseISO(_initialValue as string)));
       } else if (metadata.type === 'picklist') {
         return [_initialValue];
       } else if (metadata.type === 'multipicklist') {
@@ -279,6 +279,7 @@ export const UiRecordFormField: FunctionComponent<UiRecordFormFieldProps> = ({
                 timeProps={{
                   label: 'Time',
                   className: 'slds-form-element_stacked slds-is-editing',
+                  stepInMinutes: 1,
                 }}
                 onChange={handleDateTimeChange}
               />

@@ -32,6 +32,44 @@ function generateTimeListItems(stepInMinutes: number) {
   return output;
 }
 
+/**
+ * Ensure initial time is a valid minute/seconds based on stepInMinutes
+ * Seconds are stripped and minutes are rounded to stepInMinutes
+ *
+ * stepInMinutes=15
+ * 20:18:38.000 --> 20:15:00.000
+ * 20:59:38.000 --> 21:00:00.000
+ *
+ * @param time
+ * @param stepInMinutes
+ * @returns
+ */
+function normalizeInitialTime(time: string, stepInMinutes: number) {
+  try {
+    // eslint-disable-next-line prefer-const
+    let [hour, min] = time.split(':').map((item) => Number(item));
+    const remainder = min % stepInMinutes;
+    if (remainder !== 0) {
+      if (remainder < stepInMinutes / 2) {
+        min = min - remainder;
+        if (min < 0) {
+          min = 0;
+        }
+      } else {
+        min = min + remainder;
+        if (min > 60) {
+          min = 0;
+          hour++;
+        }
+      }
+    }
+
+    return `${hour}:${min}:00.000`;
+  } catch (ex) {
+    return time;
+  }
+}
+
 export interface TimePickerProps extends PicklistPropsWithoutItems {
   stepInMinutes?: number;
   // Selected item is time formatted as "00:00:00.000"
@@ -43,7 +81,7 @@ export const TimePicker: FunctionComponent<TimePickerProps> = (props) => {
   const { stepInMinutes = 15, selectedItem: initSelectedItem, placeholder = 'Select a time', onChange } = props;
 
   const [items, setItems] = useState(() => generateTimeListItems(stepInMinutes));
-  const [initialSelectedItemIds] = useState(() => (initSelectedItem ? [initSelectedItem] : undefined));
+  const [initialSelectedItemIds] = useState(() => (initSelectedItem ? [normalizeInitialTime(initSelectedItem, stepInMinutes)] : undefined));
 
   useNonInitialEffect(() => setItems(generateTimeListItems(stepInMinutes)), [stepInMinutes]);
 

@@ -134,7 +134,7 @@ export const Picklist: FunctionComponent<PicklistProps> = ({
     }
   }, [disabled, isOpen]);
 
-  useEffect(() => {
+  useNonInitialEffect(() => {
     onChange(items.filter((item) => selectedItemsIdsSet.has(item.id)));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedItemsIdsSet]);
