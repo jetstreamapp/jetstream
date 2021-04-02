@@ -61,6 +61,7 @@ export interface LoadRecordsBulkApiResultsProps {
   externalId?: string;
   batchSize: number;
   insertNulls: boolean;
+  assignmentRuleId?: string;
   serialMode: boolean;
   dateFormat: string;
   onFinish: () => void;
@@ -76,6 +77,7 @@ export const LoadRecordsBulkApiResults: FunctionComponent<LoadRecordsBulkApiResu
   externalId,
   batchSize,
   insertNulls,
+  assignmentRuleId,
   serialMode,
   dateFormat,
   onFinish,
@@ -151,6 +153,7 @@ export const LoadRecordsBulkApiResults: FunctionComponent<LoadRecordsBulkApiResu
           apiMode,
           type: loadType,
           batchSize,
+          assignmentRuleId,
           serialMode,
           externalId,
         },

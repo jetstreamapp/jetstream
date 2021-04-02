@@ -10,13 +10,14 @@ import {
   BulkJobWithBatches,
 } from '@jetstream/types';
 import * as jsforce from 'jsforce';
+import { isString } from 'lodash';
 import * as request from 'superagent';
 import { create as xmlBuilder, convert as xmlConverter } from 'xmlbuilder2';
 
 const { HEADERS, CONTENT_TYPE } = HTTP;
 
 export async function SfBulkCreateJob(conn: jsforce.Connection, options: BulkApiCreateJobRequestPayload): Promise<BulkJob> {
-  const { type, sObject, serialMode, externalId } = options;
+  const { type, sObject, assignmentRuleId, serialMode, externalId } = options;
   // prettier-ignore
   const jobInfoNode = xmlBuilder({ version: '1.0', encoding: 'UTF-8' })
       .ele('jobInfo', { xmlns: 'http://www.force.com/2009/06/asyncapi/dataload' })
@@ -31,6 +32,11 @@ export async function SfBulkCreateJob(conn: jsforce.Connection, options: BulkApi
   // prettier-ignore
   jobInfoNode.ele('concurrencyMode').txt(serialMode ? 'Serial' : 'Parallel').up();
   jobInfoNode.ele('contentType').txt('CSV').up();
+
+  // If this does not come last, Salesforce explodes
+  if (isString(assignmentRuleId) && assignmentRuleId) {
+    jobInfoNode.ele('assignmentRuleId').txt(assignmentRuleId).up();
+  }
 
   const xml = jobInfoNode.end({ prettyPrint: true });
 

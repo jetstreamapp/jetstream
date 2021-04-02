@@ -69,6 +69,7 @@ export interface LoadDataPayload {
   batchSize: number;
   serialMode?: boolean;
   externalId?: string; // required for upsert, ignored for all others.
+  assignmentRuleId?: string; // only allowed for lead / case
 }
 
 export interface LoadDataBulkApi {
