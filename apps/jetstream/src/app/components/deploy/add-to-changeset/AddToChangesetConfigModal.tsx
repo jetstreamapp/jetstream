@@ -193,7 +193,12 @@ export const AddToChangesetConfigModal: FunctionComponent<AddToChangesetConfigMo
               />
             </Input>
           )}
-          <Textarea id="changeset-description" label="Changeset Description" className="slds-m-top_x-small">
+          <Textarea
+            id="changeset-description"
+            className="slds-m-top_x-small"
+            label="Changeset Description"
+            helpText="This value will overwrite the existing description."
+          >
             <textarea
               id="changeset-description"
               className="slds-textarea"
