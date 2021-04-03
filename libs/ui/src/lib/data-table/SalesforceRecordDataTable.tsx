@@ -24,12 +24,14 @@ import {
 } from './data-table-utils';
 import DataTable from './DataTable';
 
+const SFDC_EMPTY_ID = '000000000000000AAA';
+
 function getRowNodeId(data: any): string {
   if (data?.attributes?.type === 'AggregateResult') {
     return uniqueId('query-results-node-id');
   }
   let nodeId = data?.attributes?.url || data.Id;
-  if (!nodeId) {
+  if (!nodeId || data.Id === SFDC_EMPTY_ID) {
     nodeId = uniqueId('query-results-node-id');
   }
   return nodeId;
