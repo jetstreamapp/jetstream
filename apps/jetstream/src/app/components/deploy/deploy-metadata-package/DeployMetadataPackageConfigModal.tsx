@@ -2,7 +2,7 @@
 import { jsx } from '@emotion/react';
 import { logger } from '@jetstream/shared/client-logger';
 import { INPUT_ACCEPT_FILETYPES } from '@jetstream/shared/constants';
-import { useNonInitialEffect, useJsZip } from '@jetstream/shared/ui-utils';
+import { useNonInitialEffect } from '@jetstream/shared/ui-utils';
 import { DeployOptions, InputReadFileContent, SalesforceOrgUi } from '@jetstream/types';
 import { FileSelector, Modal } from '@jetstream/ui';
 import { Fragment, FunctionComponent, useState } from 'react';
