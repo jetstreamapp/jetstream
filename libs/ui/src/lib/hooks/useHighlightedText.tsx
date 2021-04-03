@@ -1,4 +1,5 @@
 import isString from 'lodash/isString';
+import escapeRegExp from 'lodash/escapeRegExp';
 import React, { ReactNode, useEffect, useState } from 'react';
 
 // inspired by: https://stackoverflow.com/questions/29652862/highlight-text-using-reactjs
@@ -25,7 +26,7 @@ export function useHighlightedText(
         setHighlightedText(text);
       }
     } else {
-      const terms = searchTerm.toLowerCase().trim().split(' ');
+      const terms = escapeRegExp(searchTerm.toLowerCase().trim()).split(' ');
       const highlightedText = (
         <span className={className}>
           {text
