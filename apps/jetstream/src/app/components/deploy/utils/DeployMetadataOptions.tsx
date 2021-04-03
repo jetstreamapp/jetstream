@@ -19,6 +19,7 @@ export interface DeployMetadataToOrgConfigOptionsProps {
   deployOptions?: DeployOptions;
   hiddenOptions?: Set<keyof DeployOptions>;
   disabledOptions?: Set<keyof DeployOptions>;
+  isSinglePackage?: boolean;
   onChange: (deployOptions: DeployOptions) => void;
 }
 
@@ -26,6 +27,7 @@ export const DeployMetadataToOrgConfigOptions: FunctionComponent<DeployMetadataT
   deployOptions,
   hiddenOptions = new Set(),
   disabledOptions = new Set(),
+  isSinglePackage,
   onChange,
 }) => {
   const [allowMissingFiles, setAllowMissingFiles] = useState(deployOptions.allowMissingFiles ?? false);
@@ -159,6 +161,12 @@ export const DeployMetadataToOrgConfigOptions: FunctionComponent<DeployMetadataT
         {!hiddenOptions.has('singlePackage') && (
           <Checkbox
             id="deploy-singlePackage"
+            hasError={(isSinglePackage && !singlePackage) || (!isSinglePackage && singlePackage)}
+            errorMessage={
+              isSinglePackage
+                ? 'It appears that you have a single package within your zip file.'
+                : 'It appears that you have multiple packages within your zip file.'
+            }
             checked={singlePackage}
             label="Single Package"
             labelHelp="singlePackage - Set to true if your package.xml is in the root of your zip file."
