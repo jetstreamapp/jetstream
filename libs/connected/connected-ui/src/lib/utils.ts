@@ -4,7 +4,7 @@ export const METADATA_TYPES_TO_OMIT = new Set([
   'EscalationRules', // use EscalationRule instead
   'ManagedTopic', // use ManagedTopics instead
   'MatchingRules', // use MatchingRule instead
-  'CustomLabel', // use CustomLabels instead
+  'CustomLabels', // use CustomLabel instead
   'Workflow', // use individual parts instead
   // 'Report', // these take FOREVER in real orgs, so maybe we should ignore them - tons of folders
 ]);
@@ -16,7 +16,7 @@ export const COMMON_METADATA_TYPES = [
   'ApexTrigger',
   'AuraDefinitionBundle',
   'CustomField',
-  'CustomLabels',
+  'CustomLabel',
   'CustomMetadata',
   'CustomObject',
   'CustomTab',
@@ -77,7 +77,7 @@ export const METADATA_LABEL_MAP = {
   CallCenter: 'Call Centers',
   CallCoachingMediaProvider: 'Call Coaching Media Providers',
   CampaignInfluenceModel: 'Campaign Influence Models',
-  CanvasMetadata: 'Canvas Metadatas',
+  CanvasMetadata: 'Canvas Metadata',
   CaseSubjectParticle: 'Case Subject Particles',
   Certificate: 'Certificates',
   ChannelLayout: 'Channel Layouts',
@@ -100,8 +100,8 @@ export const METADATA_LABEL_MAP = {
   CustomField: 'Custom Fields',
   CustomFieldTranslation: 'Custom Field Translations',
   CustomHelpMenuSection: 'Custom Help Menu Sections',
-  CustomLabels: 'Custom Labels',
-  CustomMetadata: 'Custom Metadatas',
+  CustomLabel: 'Custom Labels',
+  CustomMetadata: 'Custom Metadata',
   CustomNotificationType: 'Custom Notification Types',
   CustomObject: 'Custom Objects',
   CustomObjectTranslation: 'Custom Object Translations',
@@ -117,11 +117,11 @@ export const METADATA_LABEL_MAP = {
   Document: 'Documents',
   DocumentFolder: 'Document Folders',
   DuplicateRule: 'Duplicate Rules',
-  EclairGeoData: 'Eclair Geo Datas',
+  EclairGeoData: 'Eclair Geo Data',
   EmailFolder: 'Email Template Folders',
   EmailServicesFunction: 'Email Services Functions',
   EmailTemplate: 'Email Templates',
-  EmbeddedServiceBranding: 'Embedded Service Brandings',
+  EmbeddedServiceBranding: 'Embedded Service Branding',
   EmbeddedServiceConfig: 'Embedded Service Configs',
   EmbeddedServiceFieldService: 'Embedded Service Field Services',
   EmbeddedServiceFlowConfig: 'Embedded Service Flow Configs',
@@ -185,7 +185,7 @@ export const METADATA_LABEL_MAP = {
   MyDomainDiscoverableLogin: 'MyDomain Discoverable Login',
   NamedCredential: 'Named Credentials',
   Network: 'Networks',
-  NetworkBranding: 'Network Brandings',
+  NetworkBranding: 'Network Branding',
   NotificationTypeConfig: 'Notification Type Configs',
   OauthCustomScope: 'OAuth Custom Scopes',
   Orchestration: 'Orchestrations',
@@ -219,7 +219,7 @@ export const METADATA_LABEL_MAP = {
   ReportType: 'Report Types',
   Role: 'Roles',
   SamlSsoConfig: 'Saml Sso Configs',
-  Scontrol: 'Scontrols',
+  Scontrol: 'S-controls',
   ServiceChannel: 'Service Channels',
   ServicePresenceStatus: 'Service Presence Status',
   Settings: 'Settings',
@@ -245,7 +245,7 @@ export const METADATA_LABEL_MAP = {
   TransactionSecurityPolicy: 'Transaction Security Policies',
   Translations: 'Translations',
   UiPlugin: 'Ui Plugins',
-  UserCriteria: 'User Criterias',
+  UserCriteria: 'User Criteria',
   UserProvisioningConfig: 'User Provisioning Configs',
   ValidationRule: 'Validation Rules',
   VisualizationPlugin: 'Visualization Plugins',
@@ -256,7 +256,7 @@ export const METADATA_LABEL_MAP = {
   WaveLens: 'Wave Lenses',
   WaveRecipe: 'Wave Recipes',
   WaveTemplateBundle: 'Wave Template Bundles',
-  WaveXmd: 'Wave Xmds',
+  WaveXmd: 'Wave Xmd',
   WebLink: 'Web Links',
   Workflow: 'Workflows',
   WorkflowAlert: 'Workflow Alert',

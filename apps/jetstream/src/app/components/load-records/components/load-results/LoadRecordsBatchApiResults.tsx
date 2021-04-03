@@ -34,6 +34,7 @@ export interface LoadRecordsBatchApiResultsProps {
   externalId?: string;
   batchSize: number;
   insertNulls: boolean;
+  assignmentRuleId?: string;
   serialMode: boolean;
   dateFormat: string;
   onFinish: () => void; // TODO: add types
@@ -49,6 +50,7 @@ export const LoadRecordsBatchApiResults: FunctionComponent<LoadRecordsBatchApiRe
   externalId,
   batchSize,
   insertNulls,
+  assignmentRuleId,
   serialMode,
   dateFormat,
   onFinish,
@@ -104,6 +106,7 @@ export const LoadRecordsBatchApiResults: FunctionComponent<LoadRecordsBatchApiRe
           apiMode,
           type: loadType,
           batchSize,
+          assignmentRuleId,
           serialMode,
           externalId,
         },
@@ -176,7 +179,8 @@ export const LoadRecordsBatchApiResults: FunctionComponent<LoadRecordsBatchApiRe
   }, [loadWorker]);
 
   function handleDownloadRecords(type: 'results' | 'failures') {
-    let data: any[] = [];
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const data: any[] = [];
     // Use field mapping to determine headers in output data and account for relationship fields
     const fields = getFieldHeaderFromMapping(fieldMapping);
 

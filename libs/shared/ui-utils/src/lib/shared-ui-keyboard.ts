@@ -1,5 +1,5 @@
 import { ListItem } from '@jetstream/types';
-import { escapeRegExp } from 'lodash';
+import escapeRegExp from 'lodash/escapeRegExp';
 import { KeyboardEvent, SyntheticEvent } from 'react';
 
 export interface SelectMenuItemFromKeyboardOptions<T> {

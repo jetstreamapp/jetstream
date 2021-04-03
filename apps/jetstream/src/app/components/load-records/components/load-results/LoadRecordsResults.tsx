@@ -16,6 +16,7 @@ export interface LoadRecordsResultsProps {
   externalId?: string;
   batchSize: number;
   insertNulls: boolean;
+  assignmentRuleId?: string;
   serialMode: boolean;
   dateFormat: string;
   onFinish: () => void;
@@ -31,6 +32,7 @@ export const LoadRecordsResults: FunctionComponent<LoadRecordsResultsProps> = ({
   externalId,
   batchSize,
   insertNulls,
+  assignmentRuleId,
   serialMode,
   dateFormat,
   onFinish,
@@ -48,6 +50,7 @@ export const LoadRecordsResults: FunctionComponent<LoadRecordsResultsProps> = ({
           externalId={externalId}
           batchSize={batchSize}
           insertNulls={insertNulls}
+          assignmentRuleId={assignmentRuleId}
           serialMode={serialMode}
           dateFormat={dateFormat}
           onFinish={onFinish}
@@ -64,6 +67,7 @@ export const LoadRecordsResults: FunctionComponent<LoadRecordsResultsProps> = ({
           externalId={externalId}
           batchSize={batchSize}
           insertNulls={insertNulls}
+          assignmentRuleId={assignmentRuleId}
           serialMode={serialMode}
           dateFormat={dateFormat}
           onFinish={onFinish}

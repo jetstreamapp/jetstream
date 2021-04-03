@@ -17,6 +17,7 @@ export const routeValidators = {
     body('type').isIn(['INSERT', 'UPDATE', 'UPSERT', 'DELETE']),
     body('sObject').isString(),
     body('serialMode').optional().isBoolean(),
+    body('externalIdFieldName').optional().isString(),
     body('externalId')
       .if(body('type').isIn(['UPSERT']))
       .isString(),

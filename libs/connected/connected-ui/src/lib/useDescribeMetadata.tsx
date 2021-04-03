@@ -120,8 +120,8 @@ export function useDescribeMetadata(
         setErrorMessage(ex.message);
       }
       setLoading(false);
-      // eslint-disable-next-line react-hooks/exhaustive-deps
     },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     [selectedOrg]
   );
 

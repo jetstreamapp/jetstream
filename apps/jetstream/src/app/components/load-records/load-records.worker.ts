@@ -13,6 +13,7 @@ import {
   SobjectCollectionResponse,
   WorkerMessage,
 } from '@jetstream/types';
+import { isBoolean } from 'lodash';
 import isString from 'lodash/isString';
 import {
   LoadDataBulkApi,
@@ -65,10 +66,10 @@ async function handleMessage(name: MessageName, payloadData: any) {
   }
 }
 
-async function loadBulkApiData({ org, data, sObject, type, batchSize, externalId, serialMode }: LoadDataPayload) {
+async function loadBulkApiData({ org, data, sObject, type, batchSize, externalId, assignmentRuleId, serialMode }: LoadDataPayload) {
   const replyName = 'loadData';
   try {
-    const results = await bulkApiCreateJob(org, { type, sObject, serialMode, externalId });
+    const results = await bulkApiCreateJob(org, { type, sObject, serialMode, assignmentRuleId, externalId });
     const jobId = results.id;
     const batches: LoadDataBulkApi[] = splitArrayToMaxSize(data, batchSize)
       .map((batch) => generateCsv(batch))
@@ -117,7 +118,7 @@ async function loadBulkApiData({ org, data, sObject, type, batchSize, externalId
   }
 }
 
-async function loadBatchApiData({ org, data, sObject, type, batchSize, externalId, serialMode }: LoadDataPayload) {
+async function loadBatchApiData({ org, data, sObject, type, batchSize, externalId, assignmentRuleId }: LoadDataPayload) {
   const replyName = 'loadData';
   try {
     const batches = splitArrayToMaxSize(data, batchSize).map(
@@ -142,11 +143,18 @@ async function loadBatchApiData({ org, data, sObject, type, batchSize, externalI
       }
 
       try {
+        // https://developer.salesforce.com/docs/atlas.en-us.api_rest.meta/api_rest/headers_autoassign.htm
+        // default is true
+        const autoAssignHeader = { 'Sforce-Auto-Assign': assignmentRuleId || 'FALSE' };
+
         const response = await genericRequest<SobjectCollectionResponse>(org, {
           method,
           url: `${url}${queryParams}`,
           body: batch,
           isTooling: false,
+          headers: {
+            ...autoAssignHeader,
+          },
         });
         responseWithRecord = response.map((record, i): RecordResultWithRecord => ({ ...record, record: batch.records[i] }));
       } catch (ex) {

@@ -148,4 +148,5 @@ export interface BulkApiCreateJobRequestPayload {
   sObject: string;
   serialMode?: boolean;
   externalId?: string;
+  assignmentRuleId?: string;
 }

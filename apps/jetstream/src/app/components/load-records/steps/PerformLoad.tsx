@@ -9,6 +9,7 @@ import startCase from 'lodash/startCase';
 import { ChangeEvent, FunctionComponent, useEffect, useState } from 'react';
 import { useAmplitude } from '../../core/analytics';
 import LoadRecordsResults from '../components/load-results/LoadRecordsResults';
+import LoadRecordsAssignmentRules from '../components/LoadRecordsAssignmentRules';
 import { ApiMode, FieldMapping } from '../load-records-types';
 
 const MAX_BULK = 10000;
@@ -88,6 +89,7 @@ export const LoadRecordsPerformLoad: FunctionComponent<LoadRecordsPerformLoadPro
   const [hasLoadResults, setHasLoadResults] = useState<boolean>(false);
   const loadTypeLabel = startCase(loadType.toLowerCase());
   const numRecordsImpactedLabel = formatNumber(inputFileData.length);
+  const [assignmentRuleId, setAssignmentRuleId] = useState<string>();
 
   // ensure that the Batch API does not consume an huge amount of API calls
   useEffect(() => {
@@ -221,6 +223,13 @@ export const LoadRecordsPerformLoad: FunctionComponent<LoadRecordsPerformLoadPro
           onChange={setSerialMode}
         />
 
+        <LoadRecordsAssignmentRules
+          selectedOrg={selectedOrg}
+          apiMode={apiMode}
+          selectedSObject={selectedSObject}
+          onAssignmentRule={setAssignmentRuleId}
+        />
+
         <Input
           label="Batch Size"
           isRequired={true}
@@ -290,6 +299,7 @@ export const LoadRecordsPerformLoad: FunctionComponent<LoadRecordsPerformLoadPro
             insertNulls={insertNulls}
             serialMode={serialMode}
             dateFormat={dateFormat}
+            assignmentRuleId={assignmentRuleId}
             onFinish={handleFinishLoad}
           />
         )}
