@@ -1,7 +1,7 @@
 /* eslint-disable no-restricted-globals */
 import { logger } from '@jetstream/shared/client-logger';
 import { HTTP } from '@jetstream/shared/constants';
-import { registerMiddleware, checkHeartbeat } from '@jetstream/shared/data';
+import { checkHeartbeat, registerMiddleware } from '@jetstream/shared/data';
 import { useObservable, useRollbar } from '@jetstream/shared/ui-utils';
 import { ApplicationCookie, SalesforceOrgUi, UserProfileUi } from '@jetstream/types';
 import { AxiosResponse } from 'axios';
@@ -22,8 +22,10 @@ const orgConnectionError = new Subject<{ uniqueId: string; connectionError: stri
 const orgConnectionError$ = orgConnectionError.asObservable();
 
 registerMiddleware('Error', (response: AxiosResponse, org?: SalesforceOrgUi) => {
-  if (org && response.headers[HTTP.HEADERS.X_SFDC_ORG_CONNECTION_ERROR]) {
-    orgConnectionError.next({ uniqueId: org.uniqueId, connectionError: response.headers[HTTP.HEADERS.X_SFDC_ORG_CONNECTION_ERROR] });
+  const connectionError =
+    response.headers[HTTP.HEADERS.X_SFDC_ORG_CONNECTION_ERROR.toLowerCase()] || response.headers[HTTP.HEADERS.X_SFDC_ORG_CONNECTION_ERROR];
+  if (org && connectionError) {
+    orgConnectionError.next({ uniqueId: org.uniqueId, connectionError });
   }
 });
 

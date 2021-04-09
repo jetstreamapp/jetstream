@@ -81,7 +81,7 @@ export const HeaderNavbar: FunctionComponent<HeaderNavbarProps> = ({ userProfile
             { id: 'salesforce-api', path: '/salesforce-api', title: 'Salesforce API', label: 'Salesforce API' },
           ]}
         />
-        <NavbarItem path="/feedback" title="Feedback" label="Product Feedback" />
+        <NavbarItem path="/feedback" title="Feedback" label="Support / Feedback" />
       </Navbar>
     </Header>
   );
