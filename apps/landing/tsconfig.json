@@ -15,7 +15,10 @@
     "resolveJsonModule": true,
     "isolatedModules": true
   },
-  "include": [],
+  "include": [
+    "**/*.js",
+    "**/*.jsx"
+  ],
   "files": [],
   "references": [
     {

@@ -58,6 +58,7 @@ export const HTTP = {
 
 export const ERROR_MESSAGES = {
   SFDC_EXPIRED_TOKEN: 'expired access/refresh token',
+  SFDC_EXPIRED_TOKEN_VALIDITY: 'token validity expired',
 };
 
 export const MIME_TYPES: MapOf<MimeType> = {
