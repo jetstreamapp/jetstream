@@ -33,7 +33,10 @@ export async function uncaughtErrorHandler(err: any, req: express.Request, res: 
 
   // If org had a connection error, ensure that the database is updated
   // TODO: what about alternate org?
-  if (err.message === ERROR_MESSAGES.SFDC_EXPIRED_TOKEN && !!res.locals?.org) {
+  if (
+    (err.message === ERROR_MESSAGES.SFDC_EXPIRED_TOKEN || err.message === ERROR_MESSAGES.SFDC_EXPIRED_TOKEN_VALIDITY) &&
+    !!res.locals?.org
+  ) {
     try {
       res.set(HTTP.HEADERS.X_SFDC_ORG_CONNECTION_ERROR, ERROR_MESSAGES.SFDC_EXPIRED_TOKEN);
       const org = res.locals.org as SalesforceOrg;
