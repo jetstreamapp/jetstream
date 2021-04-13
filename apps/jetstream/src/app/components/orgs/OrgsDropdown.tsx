@@ -1,6 +1,7 @@
 /** @jsx jsx */
 import { jsx } from '@emotion/react';
-import { clearCacheForOrg, clearQueryHistoryForOrg, deleteOrg, getOrgs, query, updateOrg } from '@jetstream/shared/data';
+import { clearCacheForOrg, clearQueryHistoryForOrg, deleteOrg, getOrgs, updateOrg } from '@jetstream/shared/data';
+import { useObservable } from '@jetstream/shared/ui-utils';
 import { SalesforceOrgUi } from '@jetstream/types';
 import { Badge, Icon, Tooltip } from '@jetstream/ui';
 import classNames from 'classnames';
@@ -8,42 +9,37 @@ import orderBy from 'lodash/orderBy';
 import uniqBy from 'lodash/uniqBy';
 import { Fragment, FunctionComponent, useEffect, useState } from 'react';
 import { useRecoilState, useRecoilValue, useSetRecoilState } from 'recoil';
+import { Observable } from 'rxjs';
 import * as fromAppState from '../../app-state';
 import OrgsCombobox from '../../components/core/OrgsCombobox';
+import * as fromJetstreamEvents from '../core/jetstream-events';
 import AddOrg from './AddOrg';
 import OrgInfoPopover from './OrgInfoPopover';
 import OrgPersistence from './OrgPersistence';
-
-interface UserPermissionAccess {
-  Id: string;
-  PermissionsModifyAllData: boolean;
-  PermissionsModifyMetadata: boolean;
-}
+import { useOrgPermissions } from './useOrgPermissions';
 
 export const OrgsDropdown: FunctionComponent = () => {
-  // Recoil needs to fix this
   const [orgs, setOrgs] = useRecoilState<SalesforceOrgUi[]>(fromAppState.salesforceOrgsState);
   const setSelectedOrgId = useSetRecoilState<string>(fromAppState.selectedOrgIdState);
   const selectedOrg = useRecoilValue<SalesforceOrgUi>(fromAppState.selectedOrgState);
   const orgType = useRecoilValue(fromAppState.selectedOrgType);
   const [orgLoading, setOrgLoading] = useState(false);
-  const [hasMetadataAccess, setHasMetadataAccess] = useState(true);
+  const { hasMetadataAccess } = useOrgPermissions(selectedOrg);
+
+  // subscribe to org changes from other places in the application
+  const onAddOrgFromExternalSource = useObservable(
+    fromJetstreamEvents.getObservable('addOrg') as Observable<fromJetstreamEvents.JetstreamEventAddOrgPayload>
+  );
 
   useEffect(() => {
-    if (selectedOrg) {
-      query<UserPermissionAccess>(
-        selectedOrg,
-        'SELECT Id, PermissionsModifyAllData, PermissionsModifyMetadata FROM UserPermissionAccess'
-      ).then(({ queryResults }) => {
-        if (queryResults.records.length > 0) {
-          setHasMetadataAccess(queryResults.records[0].PermissionsModifyAllData || queryResults.records[0].PermissionsModifyMetadata);
-        }
-      });
+    if (onAddOrgFromExternalSource && onAddOrgFromExternalSource.org) {
+      handleAddOrg(onAddOrgFromExternalSource.org, onAddOrgFromExternalSource.replaceOrgUniqueId);
     }
-  });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [onAddOrgFromExternalSource]);
 
   /**
-   *
+   * This is not in a usecallback because it caused an infinite loop since orgs changes a lot and is a dependency
    * @param org Org to add
    * @param replaceOrgUniqueId Id of org that should be removed from list. Only applicable to fixing org where Id ends up being different
    */

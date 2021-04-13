@@ -1,6 +1,7 @@
 import { addOrg } from '@jetstream/shared/ui-utils';
 import { SalesforceOrgUi } from '@jetstream/types';
 import { Grid, GridCol, Icon, Input, Popover, Radio, RadioGroup } from '@jetstream/ui';
+import classNames from 'classnames';
 import React, { Fragment, FunctionComponent, useEffect, useState } from 'react';
 import { useRecoilState } from 'recoil';
 import { applicationCookieState } from '../../app-state';
@@ -22,10 +23,11 @@ function getFQDN(customUrl: string) {
 
 // eslint-disable-next-line @typescript-eslint/no-empty-interface
 export interface AddOrgProps {
+  className?: string;
   onAddOrg: (org: SalesforceOrgUi) => void;
 }
 
-export const AddOrg: FunctionComponent<AddOrgProps> = ({ onAddOrg }) => {
+export const AddOrg: FunctionComponent<AddOrgProps> = ({ className, onAddOrg }) => {
   const [orgType, setOrgType] = useState<OrgType>('prod');
   const [customUrl, setCustomUrl] = useState<string>('');
   const [loginUrl, setLoginUrl] = useState<string>(null);
@@ -120,7 +122,7 @@ export const AddOrg: FunctionComponent<AddOrgProps> = ({ onAddOrg }) => {
         </footer>
       }
     >
-      <button className="slds-button">
+      <button className={classNames('slds-button', className)}>
         <Icon type="utility" icon="add" className="slds-button__icon slds-button__icon_left" omitContainer />
         Add Org
       </button>
