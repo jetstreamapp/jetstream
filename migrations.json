@@ -1,81 +1,74 @@
 {
   "migrations": [
     {
-      "version": "11.0.0-beta.3",
-      "description": "Update the decoration script when using Angular CLI",
-      "factory": "./src/migrations/update-11-0-0/update-decorate-angular-cli",
-      "package": "@nrwl/workspace",
-      "name": "update-decorate-angular-cli"
+      "cli": "nx",
+      "version": "11.5.0-beta.0",
+      "description": "Update project .eslintrc.json files to always use project level tsconfigs",
+      "factory": "./src/migrations/update-11-5-0/always-use-project-level-tsconfigs-with-eslint",
+      "package": "@nrwl/linter",
+      "name": "always-use-project-level-tsconfigs-with-eslint"
     },
     {
-      "version": "11.0.0-beta.3",
-      "description": "Update the @types/node package",
-      "factory": "./src/migrations/update-11-0-0/update-node-types",
-      "package": "@nrwl/workspace",
-      "name": "update-node-types"
-    },
-    {
-      "version": "11.0.0-beta.3",
-      "description": "Rename tools/schematics into tools/generators",
-      "factory": "./src/migrations/update-11-0-0/rename-workspace-schematics",
-      "package": "@nrwl/workspace",
-      "name": "rename-workspace-schematics"
-    },
-    {
-      "version": "11.0.0-beta.15",
-      "description": "Adds `outputs` based on builders",
-      "factory": "./src/migrations/update-11-0-0/add-outputs-in-workspace",
-      "package": "@nrwl/workspace",
-      "name": "add-outputs-in-workspace"
-    },
-    {
-      "version": "11.0.0",
-      "description": "Check that the right update command is used",
-      "factory": "./src/migrations/update-11-0-0/update-command-check",
-      "package": "@nrwl/workspace",
-      "name": "update-command-check"
-    },
-    {
-      "version": "11.0.2",
-      "description": "Rename the workspace-schematic script into workspace-generator script",
-      "factory": "./src/migrations/update-11-0-0/rename-workspace-schematic-script",
-      "package": "@nrwl/workspace",
-      "name": "rename-workspace-schematic-script"
-    },
-    {
-      "version": "11.0.0-beta.0",
-      "description": "Rename emotion packages to match new 11.0.0 package names",
-      "factory": "./src/migrations/update-11-0-0/rename-emotion-packages-11-0-0",
+      "cli": "nx",
+      "version": "11.5.0-beta.1",
+      "description": "Update .babelrc to use '@nrwl/next/babel' instead of 'next/babel'",
+      "factory": "./src/migrations/update-11-5-0/update-babel-config",
       "package": "@nrwl/next",
-      "name": "rename-emotion-packages-11.0.0"
+      "name": "update-babel-config-11.5.0"
     },
     {
-      "version": "11.0.0-beta.0",
-      "description": "Update libraries",
-      "factory": "./src/migrations/update-11-0-0/update-11-0-0",
+      "cli": "nx",
+      "version": "11.5.0-beta.1",
+      "description": "Remove tsconfig.app.json",
+      "factory": "./src/migrations/update-11-5-0/remove-tsconfig-app-11-5-0",
       "package": "@nrwl/next",
-      "name": "update-11.0.0"
+      "name": "remove-tsconfig-app-11.5.0"
     },
     {
-      "version": "11.0.0-beta.0",
-      "description": "Rename emotion packages to match new 11.0.0 package names",
-      "factory": "./src/migrations/update-11-0-0/rename-emotion-packages-11-0-0",
+      "cli": "nx",
+      "version": "11.6.0-beta.0",
+      "description": "Add js patterns to tsconfig.json",
+      "factory": "./src/migrations/update-11-6-0/add-js-include-11-6-0",
+      "package": "@nrwl/next",
+      "name": "add-js-include-11.6.0"
+    },
+    {
+      "version": "11.2.0-beta.0",
+      "description": "Move react redux typings from dependencies to devDependencies in package.json",
+      "factory": "./src/migrations/update-11-2-0/move-react-redux-types-package-11-2-0",
       "package": "@nrwl/react",
-      "name": "rename-emotion-packages-11.0.0"
+      "name": "move-react-redux-types-package-11.2.0"
     },
     {
-      "version": "11.0.0-beta.0",
-      "description": "Update libraries",
-      "factory": "./src/migrations/update-11-0-0/update-11-0-0",
-      "package": "@nrwl/react",
-      "name": "update-11.0.0"
-    },
-    {
-      "version": "11.0.12",
-      "description": "Update storybook if installed and above 6",
-      "factory": "./src/migrations/update-11-0-12/update-storybook",
+      "version": "11.5.3-beta.1",
+      "description": "Update react storybook lint config",
+      "factory": "./src/migrations/update-11-5-3/update-lint-ignores",
       "package": "@nrwl/storybook",
-      "name": "update-11-0-12"
+      "name": "update-11-5-3"
+    },
+    {
+      "cli": "nx",
+      "version": "11.5.2-beta.1",
+      "description": "Remove presets from the root babel.config.json file to prevent conflicts with babel presets used in apps.",
+      "factory": "./src/migrations/update-11-5-2/update-root-babel-config",
+      "package": "@nrwl/web",
+      "name": "update-root-babel-config-11-5-2"
+    },
+    {
+      "cli": "nx",
+      "version": "11.5.2-beta.1",
+      "description": "Create .babelrc files for workspace libs to fix compatibility with the new babel.config.json setup.",
+      "factory": "./src/migrations/update-11-5-2/create-babelrc-for-workspace-libs",
+      "package": "@nrwl/web",
+      "name": "create-babelrc-for-workspace-libs-11-5-2"
+    },
+    {
+      "cli": "nx",
+      "version": "11.5.2-beta.1",
+      "description": "Update existing .babelrc files to add missing '@nrwl/web/babel' preset if necessary.",
+      "factory": "./src/migrations/update-11-5-2/update-existing-babelrc-files",
+      "package": "@nrwl/web",
+      "name": "update-existing-babelrc-files-11-5-2"
     }
   ]
 }

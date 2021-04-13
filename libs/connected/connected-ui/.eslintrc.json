@@ -1,1 +1,21 @@
-{ "extends": ["plugin:@nrwl/nx/react", "../../../.eslintrc.json"], "ignorePatterns": ["!**/*"] }
+{
+  "extends": ["plugin:@nrwl/nx/react", "../../../.eslintrc.json"],
+  "ignorePatterns": ["!**/*"],
+  "overrides": [
+    {
+      "files": ["*.ts", "*.tsx", "*.js", "*.jsx"],
+      "parserOptions": {
+        "project": ["libs/connected/connected-ui/tsconfig.*?.json"]
+      },
+      "rules": {}
+    },
+    {
+      "files": ["*.ts", "*.tsx"],
+      "rules": {}
+    },
+    {
+      "files": ["*.js", "*.jsx"],
+      "rules": {}
+    }
+  ]
+}
