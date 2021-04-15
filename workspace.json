@@ -14,9 +14,7 @@
             "outputPath": "dist/apps/api",
             "main": "apps/api/src/main.ts",
             "tsConfig": "apps/api/tsconfig.app.json",
-            "assets": [
-              "apps/api/src/assets"
-            ],
+            "assets": ["apps/api/src/assets"],
             "webpackConfig": "webpack-server.config.js"
           },
           "configurations": {
@@ -43,9 +41,7 @@
               ]
             }
           },
-          "outputs": [
-            "{options.outputPath}"
-          ]
+          "outputs": ["{options.outputPath}"]
         },
         "serve": {
           "builder": "@nrwl/node:execute",
@@ -58,11 +54,7 @@
         "lint": {
           "builder": "@nrwl/linter:eslint",
           "options": {
-            "lintFilePatterns": [
-              "apps/api/**/*.ts",
-              "apps/api/**/*.spec.ts",
-              "apps/api/**/*.d.ts"
-            ]
+            "lintFilePatterns": ["apps/api/**/*.ts", "apps/api/**/*.spec.ts", "apps/api/**/*.d.ts"]
           }
         },
         "test": {
@@ -71,9 +63,7 @@
             "jestConfig": "apps/api/jest.config.js",
             "passWithNoTests": true
           },
-          "outputs": [
-            "coverage/apps/api"
-          ]
+          "outputs": ["coverage/apps/api"]
         }
       }
     },
@@ -102,9 +92,7 @@
             "jestConfig": "libs/api-interfaces/jest.config.js",
             "passWithNoTests": true
           },
-          "outputs": [
-            "coverage/libs/api-interfaces"
-          ]
+          "outputs": ["coverage/libs/api-interfaces"]
         }
       }
     },
@@ -138,10 +126,7 @@
             "tsConfig": "libs/ui/tsconfig.lib.json",
             "project": "libs/ui/package.json",
             "entryFile": "libs/ui/src/index.ts",
-            "external": [
-              "react",
-              "react-dom"
-            ],
+            "external": ["react", "react-dom"],
             "babelConfig": "@nrwl/react/plugins/bundle-babel",
             "rollupConfig": "@nrwl/react/plugins/bundle-rollup",
             "assets": [
@@ -165,9 +150,7 @@
               "inspect": true
             }
           },
-          "outputs": [
-            "{options.outputPath}"
-          ]
+          "outputs": ["{options.outputPath}"]
         },
         "test": {
           "builder": "@nrwl/jest:jest",
@@ -175,9 +158,7 @@
             "jestConfig": "libs/ui/jest.config.js",
             "passWithNoTests": true
           },
-          "outputs": [
-            "coverage/libs/ui"
-          ]
+          "outputs": ["coverage/libs/ui"]
         },
         "storybook": {
           "builder": "@nrwl/storybook:storybook",
@@ -208,9 +189,7 @@
               "quiet": true
             }
           },
-          "outputs": [
-            "{options.outputPath}"
-          ]
+          "outputs": ["{options.outputPath}"]
         }
       }
     },
@@ -239,9 +218,7 @@
             "jestConfig": "libs/types/jest.config.js",
             "passWithNoTests": true
           },
-          "outputs": [
-            "coverage/libs/types"
-          ]
+          "outputs": ["coverage/libs/types"]
         }
       }
     },
@@ -270,9 +247,7 @@
             "jestConfig": "libs/shared/utils/jest.config.js",
             "passWithNoTests": true
           },
-          "outputs": [
-            "coverage/libs/shared/utils"
-          ]
+          "outputs": ["coverage/libs/shared/utils"]
         }
       }
     },
@@ -304,9 +279,7 @@
             "jestConfig": "libs/shared/data/jest.config.js",
             "passWithNoTests": true
           },
-          "outputs": [
-            "coverage/libs/shared/data"
-          ]
+          "outputs": ["coverage/libs/shared/data"]
         }
       }
     },
@@ -338,9 +311,7 @@
             "jestConfig": "libs/shared/ui-utils/jest.config.js",
             "passWithNoTests": true
           },
-          "outputs": [
-            "coverage/libs/shared/ui-utils"
-          ]
+          "outputs": ["coverage/libs/shared/ui-utils"]
         }
       }
     },
@@ -365,10 +336,7 @@
         "lint": {
           "builder": "@nrwl/linter:eslint",
           "options": {
-            "lintFilePatterns": [
-              "apps/ui-e2e/src/**/*.ts",
-              "apps/ui-e2e/src/**/*.js"
-            ]
+            "lintFilePatterns": ["apps/ui-e2e/src/**/*.ts", "apps/ui-e2e/src/**/*.js"]
           }
         }
       }
@@ -382,9 +350,7 @@
         "lint": {
           "builder": "@nrwl/linter:eslint",
           "options": {
-            "lintFilePatterns": [
-              "libs/shared/constants/**/*.ts"
-            ]
+            "lintFilePatterns": ["libs/shared/constants/**/*.ts"]
           }
         }
       }
@@ -403,10 +369,7 @@
             "main": "apps/jetstream/src/main.tsx",
             "polyfills": "apps/jetstream/src/polyfills.ts",
             "tsConfig": "apps/jetstream/tsconfig.app.json",
-            "assets": [
-              "apps/jetstream/src/favicon.ico",
-              "apps/jetstream/src/assets"
-            ],
+            "assets": ["apps/jetstream/src/favicon.ico", "apps/jetstream/src/assets"],
             "styles": [],
             "scripts": [],
             "webpackConfig": "webpack.config.js"
@@ -434,7 +397,7 @@
                 {
                   "type": "initial",
                   "maximumWarning": "2mb",
-                  "maximumError": "5mb"
+                  "maximumError": "10mb"
                 }
               ]
             },
@@ -459,15 +422,13 @@
               "budgets": [
                 {
                   "type": "initial",
-                  "maximumWarning": "5mb",
+                  "maximumWarning": "2mb",
                   "maximumError": "15mb"
                 }
               ]
             }
           },
-          "outputs": [
-            "{options.outputPath}"
-          ]
+          "outputs": ["{options.outputPath}"]
         },
         "serve": {
           "builder": "@nrwl/web:dev-server",
@@ -503,9 +464,7 @@
             "jestConfig": "apps/jetstream/jest.config.js",
             "passWithNoTests": true
           },
-          "outputs": [
-            "coverage/apps/jetstream"
-          ]
+          "outputs": ["coverage/apps/jetstream"]
         }
       }
     },
@@ -530,10 +489,7 @@
         "lint": {
           "builder": "@nrwl/linter:eslint",
           "options": {
-            "lintFilePatterns": [
-              "apps/jetstream-e2e/src/**/*.ts",
-              "apps/jetstream-e2e/src/**/*.js"
-            ]
+            "lintFilePatterns": ["apps/jetstream-e2e/src/**/*.ts", "apps/jetstream-e2e/src/**/*.js"]
           }
         }
       }
@@ -553,9 +509,7 @@
           "configurations": {
             "production": {}
           },
-          "outputs": [
-            "{options.outputPath}"
-          ]
+          "outputs": ["{options.outputPath}"]
         },
         "serve": {
           "builder": "@nrwl/next:server",
@@ -596,9 +550,7 @@
             "jestConfig": "apps/landing/jest.config.js",
             "passWithNoTests": true
           },
-          "outputs": [
-            "coverage/apps/landing"
-          ]
+          "outputs": ["coverage/apps/landing"]
         }
       }
     },
@@ -623,10 +575,7 @@
         "lint": {
           "builder": "@nrwl/linter:eslint",
           "options": {
-            "lintFilePatterns": [
-              "apps/landing-e2e/src/**/*.ts",
-              "apps/landing-e2e/src/**/*.js"
-            ]
+            "lintFilePatterns": ["apps/landing-e2e/src/**/*.ts", "apps/landing-e2e/src/**/*.js"]
           }
         }
       }
@@ -656,9 +605,7 @@
             "jestConfig": "libs/shared/node-utils/jest.config.js",
             "passWithNoTests": true
           },
-          "outputs": [
-            "coverage/libs/shared/node-utils"
-          ]
+          "outputs": ["coverage/libs/shared/node-utils"]
         }
       }
     },
@@ -687,9 +634,7 @@
             "jestConfig": "libs/shared/client-logger/jest.config.js",
             "passWithNoTests": true
           },
-          "outputs": [
-            "coverage/libs/shared/client-logger"
-          ]
+          "outputs": ["coverage/libs/shared/client-logger"]
         }
       }
     },
@@ -721,9 +666,7 @@
         "lint": {
           "builder": "@nrwl/linter:eslint",
           "options": {
-            "lintFilePatterns": [
-              "libs/shared/ui-record-form/**/*.{ts,tsx,js,jsx}"
-            ]
+            "lintFilePatterns": ["libs/shared/ui-record-form/**/*.{ts,tsx,js,jsx}"]
           }
         },
         "build": {
@@ -733,12 +676,7 @@
             "tsConfig": "libs/shared/ui-record-form/tsconfig.lib.json",
             "project": "libs/shared/ui-record-form/package.json",
             "entryFile": "libs/shared/ui-record-form/src/index.ts",
-            "external": [
-              "react",
-              "react-dom",
-              "@emotion/styled",
-              "@emotion/core"
-            ],
+            "external": ["react", "react-dom", "@emotion/styled", "@emotion/core"],
             "babelConfig": "@nrwl/react/plugins/bundle-babel",
             "rollupConfig": "@nrwl/react/plugins/bundle-rollup",
             "assets": [
@@ -749,9 +687,7 @@
               }
             ]
           },
-          "outputs": [
-            "{options.outputPath}"
-          ]
+          "outputs": ["{options.outputPath}"]
         },
         "test": {
           "builder": "@nrwl/jest:jest",
@@ -759,9 +695,7 @@
             "jestConfig": "libs/shared/ui-record-form/jest.config.js",
             "passWithNoTests": true
           },
-          "outputs": [
-            "coverage/libs/shared/ui-record-form"
-          ]
+          "outputs": ["coverage/libs/shared/ui-record-form"]
         },
         "storybook": {
           "builder": "@nrwl/storybook:storybook",
@@ -792,9 +726,7 @@
               "quiet": true
             }
           },
-          "outputs": [
-            "{options.outputPath}"
-          ]
+          "outputs": ["{options.outputPath}"]
         }
       }
     },
@@ -806,27 +738,18 @@
         "lint": {
           "builder": "@nrwl/linter:eslint",
           "options": {
-            "lintFilePatterns": [
-              "libs/connected/connected-ui/**/*.{ts,tsx,js,jsx}"
-            ]
+            "lintFilePatterns": ["libs/connected/connected-ui/**/*.{ts,tsx,js,jsx}"]
           }
         },
         "build": {
           "builder": "@nrwl/web:package",
-          "outputs": [
-            "{options.outputPath}"
-          ],
+          "outputs": ["{options.outputPath}"],
           "options": {
             "outputPath": "dist/libs/connected/connected-ui",
             "tsConfig": "libs/connected/connected-ui/tsconfig.lib.json",
             "project": "libs/connected/connected-ui/package.json",
             "entryFile": "libs/connected/connected-ui/src/index.ts",
-            "external": [
-              "react",
-              "react-dom",
-              "@emotion/styled",
-              "@emotion/react"
-            ],
+            "external": ["react", "react-dom", "@emotion/styled", "@emotion/react"],
             "babelConfig": "@nrwl/react/plugins/bundle-babel",
             "rollupConfig": "@nrwl/react/plugins/bundle-rollup",
             "assets": [
@@ -840,9 +763,7 @@
         },
         "test": {
           "builder": "@nrwl/jest:jest",
-          "outputs": [
-            "coverage/libs/connected/connected-ui"
-          ],
+          "outputs": ["coverage/libs/connected/connected-ui"],
           "options": {
             "jestConfig": "libs/connected/connected-ui/jest.config.js",
             "passWithNoTests": true

@@ -285,9 +285,12 @@ export function getLatestFlowDefinitionIds() {
         },
       },
     },
-    groupBy: {
-      field: ['ProcessType', 'DefinitionId'],
-    },
+    groupBy: [
+      {
+        field: 'ProcessType',
+      },
+      { field: 'DefinitionId' },
+    ],
   });
   logger.info('getLatestFlowDefinitionIds()', { soql });
   return soql;
