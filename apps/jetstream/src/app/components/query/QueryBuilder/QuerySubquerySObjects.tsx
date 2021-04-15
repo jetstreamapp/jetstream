@@ -74,11 +74,7 @@ export const QuerySubquerySObjects: FunctionComponent<QuerySubquerySObjectsProps
 
   return (
     <Fragment>
-      {childRelationships.length === 0 && (
-        <EmptyState imageWidth={200}>
-          <p>This object does not have any related objects</p>
-        </EmptyState>
-      )}
+      {childRelationships.length === 0 && <EmptyState headline="This object does not have any related objects"></EmptyState>}
       {childRelationships.length > 0 && (
         <Fragment>
           <SearchInput id="subquery-filter" placeholder="Filter child objects" onChange={setTextFilter} />

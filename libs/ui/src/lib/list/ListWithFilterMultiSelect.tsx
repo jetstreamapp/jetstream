@@ -192,10 +192,7 @@ export const ListWithFilterMultiSelect: FunctionComponent<ListWithFilterMultiSel
                 highlightText
               />
               {!filteredItems.length && (
-                <EmptyState imageWidth={200}>
-                  <p>There are no matching {labels.descriptorPlural}</p>
-                  <p>Adjust your selection.</p>
-                </EmptyState>
+                <EmptyState headline={`There are no matching ${labels.descriptorPlural}`} subHeading="Adjust your selection."></EmptyState>
               )}
             </AutoFullHeightContainer>
           </Fragment>

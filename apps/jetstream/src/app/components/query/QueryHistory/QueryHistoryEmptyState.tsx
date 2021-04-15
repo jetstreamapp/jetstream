@@ -32,10 +32,7 @@ export const QueryHistoryEmptyState: FunctionComponent<QueryHistoryEmptyStatePro
 
   return (
     <Fragment>
-      <EmptyState imageWidth={200}>
-        <p>{text1}</p>
-        <p>{text2}</p>
-      </EmptyState>
+      <EmptyState headline={text1} subHeading={text2}></EmptyState>
     </Fragment>
   );
 };

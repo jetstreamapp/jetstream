@@ -171,10 +171,7 @@ export const DescribeMetadataList: FunctionComponent<DescribeMetadataListProps> 
                 highlightText
               />
               {!filteredMetadataItems.length && (
-                <EmptyState imageWidth={200}>
-                  <p>There are no matching {inputLabelPlural}</p>
-                  <p>Adjust your selection.</p>
-                </EmptyState>
+                <EmptyState headline={`There are no matching ${inputLabelPlural}`} subHeading="Adjust your selection."></EmptyState>
               )}
             </AutoFullHeightContainer>
           </Fragment>

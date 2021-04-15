@@ -110,10 +110,7 @@ export const SobjectList: FunctionComponent<SobjectListProps> = ({
                 highlightText
               />
               {!filteredSobjects.length && (
-                <EmptyState imageWidth={200}>
-                  <p>There are no matching objects</p>
-                  <p>Adjust your selection.</p>
-                </EmptyState>
+                <EmptyState headline="There are no matching objects" subHeading="Adjust your selection."></EmptyState>
               )}
             </AutoFullHeightContainer>
           </Fragment>

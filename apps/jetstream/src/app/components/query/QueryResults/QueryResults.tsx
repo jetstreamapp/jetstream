@@ -454,23 +454,17 @@ export const QueryResults: FunctionComponent<QueryResultsProps> = React.memo(() 
                   <IncludeDeletedRecordsToggle />
                 </GridCol>
               </Grid>
-              <EmptyState
-                headline="Your query yielded no results!"
-                callToAction={
-                  <Link
-                    className="slds-button slds-button_brand"
-                    to={{
-                      pathname: `/query`,
-                      state: { soql },
-                    }}
-                  >
-                    <Icon type="utility" icon="back" className="slds-button__icon slds-button__icon_left" omitContainer />
-                    Go Back
-                  </Link>
-                }
-              >
-                <p>There are no records matching your query.</p>
-                <p>Better luck next time!</p>
+              <EmptyState headline="Your query yielded no results!" subHeading="There are no records matching your query.">
+                <Link
+                  className="slds-button slds-button_brand"
+                  to={{
+                    pathname: `/query`,
+                    state: { soql },
+                  }}
+                >
+                  <Icon type="utility" icon="back" className="slds-button__icon slds-button__icon_left" omitContainer />
+                  Go Back
+                </Link>
               </EmptyState>
             </Fragment>
           )}
