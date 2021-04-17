@@ -247,10 +247,11 @@ export const SobjectFieldList: FunctionComponent<SobjectFieldListProps> = ({
             getContent={getFieldContent}
           />
           {!filteredFields.length && (
-            <EmptyState imageWidth={200} showIllustration={level === 0}>
-              <p>There are no matching fields</p>
-              <p>Adjust your selection.</p>
-            </EmptyState>
+            <EmptyState
+              omitIllustration={level > 0}
+              headline="There are no matching fields"
+              subHeading="Adjust your selection."
+            ></EmptyState>
           )}
         </Fragment>
       )}

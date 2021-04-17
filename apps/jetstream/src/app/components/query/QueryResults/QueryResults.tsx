@@ -18,6 +18,7 @@ import { flattenRecords, getRecordIdFromAttributes, getSObjectNameFromAttributes
 import { AsyncJob, AsyncJobNew, BulkDownloadJob, CloneEditView, FileExtCsvXLSX, Record, SalesforceOrgUi } from '@jetstream/types';
 import {
   AutoFullHeightContainer,
+  CampingRainIllustration,
   EmptyState,
   Grid,
   GridCol,
@@ -455,22 +456,21 @@ export const QueryResults: FunctionComponent<QueryResultsProps> = React.memo(() 
                 </GridCol>
               </Grid>
               <EmptyState
+                size="large"
                 headline="Your query yielded no results!"
-                callToAction={
-                  <Link
-                    className="slds-button slds-button_brand"
-                    to={{
-                      pathname: `/query`,
-                      state: { soql },
-                    }}
-                  >
-                    <Icon type="utility" icon="back" className="slds-button__icon slds-button__icon_left" omitContainer />
-                    Go Back
-                  </Link>
-                }
+                subHeading="There are no records matching your query."
+                illustration={<CampingRainIllustration />}
               >
-                <p>There are no records matching your query.</p>
-                <p>Better luck next time!</p>
+                <Link
+                  className="slds-button slds-button_brand"
+                  to={{
+                    pathname: `/query`,
+                    state: { soql },
+                  }}
+                >
+                  <Icon type="utility" icon="back" className="slds-button__icon slds-button__icon_left" omitContainer />
+                  Go Back
+                </Link>
               </EmptyState>
             </Fragment>
           )}

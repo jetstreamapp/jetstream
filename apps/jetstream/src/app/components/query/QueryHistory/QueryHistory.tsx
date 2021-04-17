@@ -302,10 +302,7 @@ export const QueryHistory: FunctionComponent<QueryHistoryProps> = ({ selectedOrg
                   />
                 ))}
                 {visibleQueryHistory.length === 0 && (
-                  <EmptyState imageWidth={200}>
-                    <p>There are no matching queries.</p>
-                    <p>Adjust your selection.</p>
-                  </EmptyState>
+                  <EmptyState headline="There are no matching queries." subHeading="Adjust your selection."></EmptyState>
                 )}
                 {!!visibleQueryHistory.length && visibleQueryHistory.length < filteredQueryHistory.length && (
                   <div className="slds-grid slds-grid_align-center slds-m-around_small">

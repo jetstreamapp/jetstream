@@ -1,11 +1,13 @@
-import React, { FunctionComponent } from 'react';
-import image from '../../assets/empty-safe.svg';
+import React, { Fragment, FunctionComponent } from 'react';
+import classNames from 'classnames';
+import NoContentIllustration from 'libs/ui/src/lib/illustrations/NoContentIllustration';
 
 export interface EmptyStateProps {
-  showIllustration?: boolean;
-  imageWidth?: number;
+  omitIllustration?: boolean;
+  illustration?: JSX.Element;
+  size?: 'small' | 'large';
   headline?: string;
-  callToAction?: React.ReactNode; // could implement
+  subHeading?: string;
 }
 
 /**
@@ -13,18 +15,32 @@ export interface EmptyStateProps {
  * (e.x. ExpressionConditionRow)
  */
 export const EmptyState: FunctionComponent<EmptyStateProps> = ({
-  showIllustration = true,
-  imageWidth = 300,
+  omitIllustration,
+  illustration = <NoContentIllustration />,
+  size = 'small',
   headline,
-  callToAction,
+  subHeading,
   children,
 }) => {
   return (
     <div className="slds-grid slds-grid_vertical slds-grid_vertical-align-center slds-text-align_center slds-p-vertical--small">
-      {showIllustration && <img className="slds-col slds-p-bottom_medium" width={imageWidth} src={image} alt="Empty State" />}
-      {headline && <div className="slds-col slds-text-heading_medium slds-p-bottom_x-small">{headline}</div>}
-      <div className="slds-col slds-text-body_small">{children}</div>
-      {callToAction && <div className="slds-col slds-p-top_x-small">{callToAction}</div>}
+      {!omitIllustration && illustration && (
+        <div
+          className={classNames('slds-illustration w-100', {
+            'slds-illustration_small': size === 'small',
+            'slds-illustration_large': size === 'large',
+          })}
+        >
+          {illustration}
+          {headline && (
+            <div className="slds-text-longform">
+              <h3 className="slds-text-heading_medium slds-m-bottom_x-small">{headline}</h3>
+              {subHeading && <p className="slds-text-body_regular slds-m-bottom_x-small">{subHeading}</p>}
+            </div>
+          )}
+          <div>{children}</div>
+        </div>
+      )}
     </div>
   );
 };
