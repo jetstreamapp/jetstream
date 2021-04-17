@@ -230,7 +230,6 @@ export const QueryChildFields: FunctionComponent<QueryChildFieldsProps> = ({
 
   return (
     <Fragment>
-      {}
       {selectedSObject && queryFieldsMap[baseKey] && (
         <SobjectFieldList
           isTooling={isTooling}

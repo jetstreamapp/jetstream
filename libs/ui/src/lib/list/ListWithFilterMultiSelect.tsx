@@ -3,6 +3,7 @@ import { css, jsx } from '@emotion/react';
 import { formatNumber } from '@jetstream/shared/ui-utils';
 import { multiWordObjectFilter, NOOP, orderStringsBy, pluralizeIfMultiple } from '@jetstream/shared/utils';
 import { ListItem as ListItemType, UpDown } from '@jetstream/types';
+import { FishIllustration } from '@jetstream/ui';
 import { createRef, Fragment, FunctionComponent, useEffect, useState } from 'react';
 import Checkbox from '../form/checkbox/Checkbox';
 import SearchInput from '../form/search-input/SearchInput';
@@ -191,7 +192,10 @@ export const ListWithFilterMultiSelect: FunctionComponent<ListWithFilterMultiSel
                 searchTerm={searchTerm}
                 highlightText
               />
-              {!filteredItems.length && (
+              {!items.length && (
+                <EmptyState headline={`There are no ${labels.descriptorPlural}`} illustration={<FishIllustration />}></EmptyState>
+              )}
+              {!!items.length && !filteredItems.length && (
                 <EmptyState headline={`There are no matching ${labels.descriptorPlural}`} subHeading="Adjust your selection."></EmptyState>
               )}
             </AutoFullHeightContainer>

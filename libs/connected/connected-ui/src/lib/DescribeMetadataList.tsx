@@ -7,6 +7,7 @@ import {
   AutoFullHeightContainer,
   Checkbox,
   EmptyState,
+  FishIllustration,
   Grid,
   Icon,
   ItemSelectionText,
@@ -170,7 +171,10 @@ export const DescribeMetadataList: FunctionComponent<DescribeMetadataListProps> 
                 searchTerm={searchTerm}
                 highlightText
               />
-              {!filteredMetadataItems.length && (
+              {!metadataItems.length && (
+                <EmptyState headline={`There are no ${inputLabelPlural}`} illustration={<FishIllustration />}></EmptyState>
+              )}
+              {!!metadataItems.length && !filteredMetadataItems.length && (
                 <EmptyState headline={`There are no matching ${inputLabelPlural}`} subHeading="Adjust your selection."></EmptyState>
               )}
             </AutoFullHeightContainer>

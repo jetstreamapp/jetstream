@@ -18,6 +18,7 @@ import { flattenRecords, getRecordIdFromAttributes, getSObjectNameFromAttributes
 import { AsyncJob, AsyncJobNew, BulkDownloadJob, CloneEditView, FileExtCsvXLSX, Record, SalesforceOrgUi } from '@jetstream/types';
 import {
   AutoFullHeightContainer,
+  CampingRainIllustration,
   EmptyState,
   Grid,
   GridCol,
@@ -454,7 +455,12 @@ export const QueryResults: FunctionComponent<QueryResultsProps> = React.memo(() 
                   <IncludeDeletedRecordsToggle />
                 </GridCol>
               </Grid>
-              <EmptyState headline="Your query yielded no results!" subHeading="There are no records matching your query.">
+              <EmptyState
+                size="large"
+                headline="Your query yielded no results!"
+                subHeading="There are no records matching your query."
+                illustration={<CampingRainIllustration />}
+              >
                 <Link
                   className="slds-button slds-button_brand"
                   to={{

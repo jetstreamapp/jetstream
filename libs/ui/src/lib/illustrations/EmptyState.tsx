@@ -1,4 +1,4 @@
-import React, { FunctionComponent } from 'react';
+import React, { Fragment, FunctionComponent } from 'react';
 import classNames from 'classnames';
 import NoContentIllustration from 'libs/ui/src/lib/illustrations/NoContentIllustration';
 
@@ -26,21 +26,21 @@ export const EmptyState: FunctionComponent<EmptyStateProps> = ({
     <div className="slds-grid slds-grid_vertical slds-grid_vertical-align-center slds-text-align_center slds-p-vertical--small">
       {!omitIllustration && illustration && (
         <div
-          className={classNames('slds-illustration', {
+          className={classNames('slds-illustration w-100', {
             'slds-illustration_small': size === 'small',
             'slds-illustration_large': size === 'large',
           })}
         >
           {illustration}
+          {headline && (
+            <div className="slds-text-longform">
+              <h3 className="slds-text-heading_medium slds-m-bottom_x-small">{headline}</h3>
+              {subHeading && <p className="slds-text-body_regular slds-m-bottom_x-small">{subHeading}</p>}
+            </div>
+          )}
+          <div>{children}</div>
         </div>
       )}
-      {headline && (
-        <div className="slds-text-longform">
-          <h3 className="slds-text-heading_medium">{headline}</h3>
-          {subHeading && <p className="slds-text-body_regular">{subHeading}</p>}
-        </div>
-      )}
-      <div>{children}</div>
     </div>
   );
 };
