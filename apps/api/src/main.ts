@@ -140,6 +140,7 @@ if (!environment.production) {
 }
 
 app.use('/assets', express.static(join(__dirname, './assets')));
+app.use('/fonts', express.static(join(__dirname, './assets/fonts')));
 
 if (environment.production) {
   app.use(express.static(join(__dirname, '../landing/exported')));

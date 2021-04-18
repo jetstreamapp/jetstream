@@ -7,6 +7,14 @@
     "target": "http://localhost:3333",
     "secure": false
   },
+  "/assets": {
+    "target": "http://localhost:3333",
+    "secure": false
+  },
+  "/fonts": {
+    "target": "http://localhost:3333",
+    "secure": false
+  },
   "/landing": {
     "target": "http://localhost:3333",
     "secure": false
