@@ -166,13 +166,14 @@ export const QueryResults: FunctionComponent<QueryResultsProps> = React.memo(() 
     if (soql && sObject) {
       fromQueryHistory
         .getQueryHistoryItem(selectedOrg, soql, sObject, sObjectLabel, tooling)
-        .then((queryHistoryItem) => {
-          if (queryHistory && queryHistory[queryHistoryItem.key]) {
-            queryHistoryItem.runCount = queryHistory[queryHistoryItem.key].runCount + 1;
-            queryHistoryItem.created = queryHistory[queryHistoryItem.key].created;
-            queryHistoryItem.isFavorite = queryHistory[queryHistoryItem.key].isFavorite;
+        .then(({ queryHistoryItem, refreshedQueryHistory }) => {
+          refreshedQueryHistory = refreshedQueryHistory || queryHistory;
+          if (refreshedQueryHistory && refreshedQueryHistory[queryHistoryItem.key]) {
+            queryHistoryItem.runCount = refreshedQueryHistory[queryHistoryItem.key].runCount + 1;
+            queryHistoryItem.created = refreshedQueryHistory[queryHistoryItem.key].created;
+            queryHistoryItem.isFavorite = refreshedQueryHistory[queryHistoryItem.key].isFavorite;
           }
-          setQueryHistory({ ...queryHistory, [queryHistoryItem.key]: queryHistoryItem });
+          setQueryHistory({ ...refreshedQueryHistory, [queryHistoryItem.key]: queryHistoryItem });
         })
         .catch((ex) => logger.warn(ex));
     }
