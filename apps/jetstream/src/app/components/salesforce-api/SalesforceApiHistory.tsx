@@ -49,8 +49,8 @@ export const SalesforceApiHistory: FunctionComponent<SalesforceApiHistoryProps> 
           disabled={disabled}
         >
           <option value={_NO_SELECTION}>-- History --</option>
-          {historyItems.map(({ key, label, response, lastRun }) => (
-            <option key={key} value={key} title={lastRun.toLocaleString()}>
+          {historyItems.map(({ key, label, response, lastRun, request }) => (
+            <option key={key} value={key} title={`${lastRun.toLocaleString()} [${request.method}] ${request.url}`}>
               {response ? `(${response.status} ${response.statusText}) ` : ''} {label}
             </option>
           ))}

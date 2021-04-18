@@ -1,6 +1,6 @@
 import { logger } from '@jetstream/shared/client-logger';
 import { DATE_FORMATS, INDEXED_DB } from '@jetstream/shared/constants';
-import { getMapOf, hashString } from '@jetstream/shared/utils';
+import { getMapOf, hashString, pluralizeFromNumber, truncate } from '@jetstream/shared/utils';
 import { ApexHistoryItem, MapOf, SalesforceOrgUi } from '@jetstream/types';
 import addDays from 'date-fns/addDays';
 import formatDate from 'date-fns/format';
@@ -56,16 +56,31 @@ function initApexHistory(): Promise<MapOf<ApexHistoryItem>> {
  * Get new history item to save
  * If we do not know the label of the object, then we go fetch it
  */
-export function getApexHistoryItem(org: SalesforceOrgUi, apex: string): ApexHistoryItem {
+function getApexHistoryItem(org: SalesforceOrgUi, apex: string): ApexHistoryItem {
   const date = formatDate(new Date(), DATE_FORMATS.YYYY_MM_DD_HH_mm_ss_a);
+  const lineCount = apex.split('\n').length;
   const ApexHistoryItem: ApexHistoryItem = {
     key: `${org.uniqueId}:${hashString(apex)}`,
     org: org.uniqueId,
-    label: date,
+    label: `${date} [${lineCount} ${pluralizeFromNumber('line', lineCount)}] ${truncate(apex.trimLeft(), 50)} ...`,
     apex,
     lastRun: new Date(),
   };
   return ApexHistoryItem;
+}
+
+/**
+ * Initialize a new item and return a new item using current DB value
+ * This ensures that multiple browser tabs opened will not have contention
+ *
+ * @param org
+ * @param apex
+ * @returns
+ */
+export async function initNewApexHistoryItem(org: SalesforceOrgUi, apex: string) {
+  const historyItems = await initApexHistory();
+  const newItem = getApexHistoryItem(org, apex);
+  return { ...historyItems, [newItem.key]: newItem };
 }
 
 export const apexHistoryState = atom<MapOf<ApexHistoryItem>>({
