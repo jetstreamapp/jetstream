@@ -3,7 +3,7 @@ import { css, jsx } from '@emotion/react';
 import { logger } from '@jetstream/shared/client-logger';
 import { ANALYTICS_KEYS, INDEXED_DB } from '@jetstream/shared/constants';
 import { anonymousApex } from '@jetstream/shared/data';
-import { useDebounce, useNonInitialEffect } from '@jetstream/shared/ui-utils';
+import { useDebounce, useNonInitialEffect, useRollbar } from '@jetstream/shared/ui-utils';
 import { ApexHistoryItem, MapOf, SalesforceOrgUi } from '@jetstream/types';
 import { AutoFullHeightContainer, Card, CodeEditor, CopyToClipboard, Grid, Icon, Spinner } from '@jetstream/ui';
 import localforage from 'localforage';
@@ -12,8 +12,8 @@ import Split from 'react-split';
 import { useRecoilState, useRecoilValue } from 'recoil';
 import { selectedOrgState, STORAGE_KEYS } from '../../app-state';
 import { useAmplitude } from '../core/analytics';
-import * as fromApexState from './apex.state';
 import AnonymousApexHistory from './AnonymousApexHistory';
+import * as fromApexState from './apex.state';
 import { useApexCompletions } from './useApexCompletions';
 require('codemirror/theme/monokai.css');
 
@@ -23,6 +23,7 @@ export interface AnonymousApexProps {}
 export const AnonymousApex: FunctionComponent<AnonymousApexProps> = () => {
   const isMounted = useRef(null);
   const { trackEvent } = useAmplitude();
+  const rollbar = useRollbar();
   const selectedOrg = useRecoilValue<SalesforceOrgUi>(selectedOrgState);
   const [apex, setApex] = useState(() => localStorage.getItem(STORAGE_KEYS.ANONYMOUS_APEX_STORAGE_KEY) || '');
   const [results, setResults] = useState('');
@@ -50,7 +51,7 @@ export const AnonymousApex: FunctionComponent<AnonymousApexProps> = () => {
         }
       })();
     }
-  }, [apex, historyItems]);
+  }, [historyItems]);
 
   const onSubmit = useCallback(async () => {
     setLoading(true);
@@ -66,8 +67,15 @@ export const AnonymousApex: FunctionComponent<AnonymousApexProps> = () => {
         setResults(summary);
       } else {
         setResults(results.debugLog);
-        const newItem = fromApexState.getApexHistoryItem(selectedOrg, apex);
-        setHistoryItems({ ...historyItems, [newItem.key]: newItem });
+        fromApexState
+          .initNewApexHistoryItem(selectedOrg, apex)
+          .then((updatedHistoryItems) => {
+            setHistoryItems(updatedHistoryItems);
+          })
+          .catch((ex) => {
+            logger.warn('[ERROR] Could not save history', ex);
+            rollbar.error('Error saving apex history', ex);
+          });
       }
       trackEvent(ANALYTICS_KEYS.apex_Submitted, { success: results.result.success });
     } catch (ex) {

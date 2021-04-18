@@ -1,7 +1,7 @@
 import { useNonInitialEffect } from '@jetstream/shared/ui-utils';
 import { multiWordObjectFilter, pluralizeFromNumber } from '@jetstream/shared/utils';
 import { MapOf, QueryFieldWithPolymorphic } from '@jetstream/types';
-import { Accordion, Badge, EmptyState, Grid, GridCol, SearchInput } from '@jetstream/ui';
+import { Accordion, Badge, DesertIllustration, EmptyState, Grid, GridCol, SearchInput } from '@jetstream/ui';
 import { ChildRelationship } from 'jsforce';
 import React, { Fragment, FunctionComponent, useState } from 'react';
 import { useRecoilValue } from 'recoil';
@@ -75,13 +75,14 @@ export const QuerySubquerySObjects: FunctionComponent<QuerySubquerySObjectsProps
   return (
     <Fragment>
       {childRelationships.length === 0 && (
-        <EmptyState imageWidth={200}>
-          <p>This object does not have any related objects</p>
-        </EmptyState>
+        <EmptyState headline="There are no related objects" illustration={<DesertIllustration />}></EmptyState>
       )}
       {childRelationships.length > 0 && (
         <Fragment>
           <SearchInput id="subquery-filter" placeholder="Filter child objects" onChange={setTextFilter} />
+          {visibleChildRelationships.length === 0 && (
+            <EmptyState headline="There are no matching objects" subHeading="Adjust your selection."></EmptyState>
+          )}
           <Accordion
             initOpenIds={[]}
             allowMultiple={false}

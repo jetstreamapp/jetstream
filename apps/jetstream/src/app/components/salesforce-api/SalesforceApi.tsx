@@ -1,7 +1,9 @@
 /** @jsx jsx */
 import { css, jsx } from '@emotion/react';
+import { logger } from '@jetstream/shared/client-logger';
 import { ANALYTICS_KEYS } from '@jetstream/shared/constants';
 import { manualRequest } from '@jetstream/shared/data';
+import { useRollbar } from '@jetstream/shared/ui-utils';
 import { ManualRequestPayload, ManualRequestResponse, SalesforceApiHistoryRequest, SalesforceOrgUi } from '@jetstream/types';
 import { AutoFullHeightContainer } from '@jetstream/ui';
 import { FunctionComponent, useCallback, useEffect, useRef, useState } from 'react';
@@ -21,6 +23,7 @@ export const SalesforceApi: FunctionComponent<SalesforceApiProps> = () => {
   const isMounted = useRef(null);
   const [{ defaultApiVersion }] = useRecoilState(applicationCookieState);
   const { trackEvent } = useAmplitude();
+  const rollbar = useRollbar();
   const selectedOrg = useRecoilValue<SalesforceOrgUi>(selectedOrgState);
   const [results, setResults] = useState<ManualRequestResponse>(null);
   const [loading, setLoading] = useState(false);
@@ -49,12 +52,19 @@ export const SalesforceApi: FunctionComponent<SalesforceApiProps> = () => {
 
         const results = await manualRequest(selectedOrg, request);
         setResults(results);
-        const newItem = fromSalesforceApiHistory.getSalesforceApiHistoryItem(selectedOrg, requestData, {
-          status: results.status,
-          statusText: results.statusText,
-        });
-        setHistoryItems({ ...historyItems, [newItem.key]: newItem });
-        trackEvent(ANALYTICS_KEYS.sfdcApi_Submitted, { success: true });
+        fromSalesforceApiHistory
+          .initSalesforceApiHistoryItem(selectedOrg, requestData, {
+            status: results.status,
+            statusText: results.statusText,
+          })
+          .then((updatedHistoryItems) => {
+            setHistoryItems(updatedHistoryItems);
+            trackEvent(ANALYTICS_KEYS.sfdcApi_Submitted, { success: true });
+          })
+          .catch((ex) => {
+            logger.warn('[ERROR] Could not save history', ex);
+            rollbar.error('Error saving apex history', ex);
+          });
       } catch (ex) {
         setResults({
           error: true,
@@ -63,9 +73,16 @@ export const SalesforceApi: FunctionComponent<SalesforceApiProps> = () => {
           status: null,
           statusText: null,
         });
-        const newItem = fromSalesforceApiHistory.getSalesforceApiHistoryItem(selectedOrg, requestData);
-        setHistoryItems({ ...historyItems, [newItem.key]: newItem });
-        trackEvent(ANALYTICS_KEYS.sfdcApi_Submitted, { success: false, error: ex.message });
+        fromSalesforceApiHistory
+          .initSalesforceApiHistoryItem(selectedOrg, requestData)
+          .then((updatedHistoryItems) => {
+            setHistoryItems(updatedHistoryItems);
+            trackEvent(ANALYTICS_KEYS.sfdcApi_Submitted, { success: false, error: ex.message });
+          })
+          .catch((ex) => {
+            logger.warn('[ERROR] Could not save history', ex);
+            rollbar.error('Error saving apex history', ex);
+          });
       } finally {
         setLoading(false);
       }

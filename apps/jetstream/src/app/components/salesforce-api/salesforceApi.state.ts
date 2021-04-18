@@ -1,6 +1,6 @@
 import { logger } from '@jetstream/shared/client-logger';
 import { INDEXED_DB } from '@jetstream/shared/constants';
-import { getMapOf } from '@jetstream/shared/utils';
+import { getMapOf, truncate } from '@jetstream/shared/utils';
 import {
   MapOf,
   SalesforceApiHistoryItem,
@@ -61,7 +61,7 @@ function initSalesforceApiHistory(): Promise<MapOf<SalesforceApiHistoryItem>> {
  * Get new history item to save
  * If we do not know the label of the object, then we go fetch it
  */
-export function getSalesforceApiHistoryItem(
+function getSalesforceApiHistoryItem(
   org: SalesforceOrgUi,
   request: SalesforceApiHistoryRequest,
   response?: SalesforceApiHistoryResponse
@@ -69,12 +69,31 @@ export function getSalesforceApiHistoryItem(
   const SalesforceApiHistoryItem: SalesforceApiHistoryItem = {
     key: `${org.uniqueId}:${request.method}:${request.url}`,
     org: org.uniqueId,
-    label: `${request.method}: ${request.url}`,
+    label: `${request.method}: ${truncate(request.url, 50)}`,
     request,
     response,
     lastRun: new Date(),
   };
   return SalesforceApiHistoryItem;
+}
+
+/**
+ * Initialize a new item and return a new item using current DB value
+ * This ensures that multiple browser tabs opened will not have contention
+ *
+ * @param org
+ * @param request
+ * @param response
+ * @returns
+ */
+export async function initSalesforceApiHistoryItem(
+  org: SalesforceOrgUi,
+  request: SalesforceApiHistoryRequest,
+  response?: SalesforceApiHistoryResponse
+) {
+  const historyItems = await initSalesforceApiHistory();
+  const newItem = getSalesforceApiHistoryItem(org, request, response);
+  return { ...historyItems, [newItem.key]: newItem };
 }
 
 export const salesforceApiHistoryState = atom<MapOf<SalesforceApiHistoryItem>>({

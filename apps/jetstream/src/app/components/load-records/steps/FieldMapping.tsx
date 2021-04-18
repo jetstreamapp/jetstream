@@ -1,5 +1,6 @@
 /** @jsx jsx */
 import { css, jsx } from '@emotion/react';
+import { logger } from '@jetstream/shared/client-logger';
 import { ANALYTICS_KEYS } from '@jetstream/shared/constants';
 import { useDebounce, useNonInitialEffect } from '@jetstream/shared/ui-utils';
 import { InsertUpdateUpsertDelete } from '@jetstream/types';
@@ -8,6 +9,7 @@ import classNames from 'classnames';
 import { memo, useEffect, useRef, useState } from 'react';
 import { useAmplitude } from '../../core/analytics';
 import LoadRecordsFieldMappingRow from '../components/LoadRecordsFieldMappingRow';
+import LoadRecordsRefreshCachePopover from '../components/LoadRecordsRefreshCachePopover';
 import { FieldMapping, FieldMappingItem, FieldWithRelatedEntities } from '../load-records-types';
 import { autoMapFields, checkForDuplicateFieldMappings, resetFieldMapping } from '../utils/load-records-utils';
 
@@ -29,10 +31,11 @@ export interface LoadRecordsFieldMappingProps {
   loadType: InsertUpdateUpsertDelete;
   externalId?: string;
   onFieldMappingChange: (fieldMapping: FieldMapping) => void;
+  onRefreshFields: () => Promise<void>;
 }
 
 export const LoadRecordsFieldMapping = memo<LoadRecordsFieldMappingProps>(
-  ({ fields, inputHeader, fieldMapping: fieldMappingInit, fileData, loadType, externalId, onFieldMappingChange }) => {
+  ({ fields, inputHeader, fieldMapping: fieldMappingInit, fileData, loadType, externalId, onFieldMappingChange, onRefreshFields }) => {
     const { trackEvent } = useAmplitude();
     const hasInitialized = useRef(false);
     const [visibleHeaders, setVisibleHeaders] = useState(inputHeader);
@@ -43,6 +46,7 @@ export const LoadRecordsFieldMapping = memo<LoadRecordsFieldMappingProps>(
     const [fieldMapping, setFieldMapping] = useState<FieldMapping>(() => JSON.parse(JSON.stringify(fieldMappingInit)));
     const [warningMessage, setWarningMessage] = useState<string>(null);
     const [filter, setFilter] = useState<Filter>(FILTER_ALL);
+    const [refreshLoading, setRefreshLoading] = useState(false);
 
     const debouncedSelectedValue = useDebounce(activeRowIndex, 150);
 
@@ -118,6 +122,17 @@ export const LoadRecordsFieldMapping = memo<LoadRecordsFieldMappingProps>(
       trackEvent(ANALYTICS_KEYS.load_MappingRowPreviewChanged, { action, rowNumber: activeRowIndex });
     }
 
+    async function handleCacheRefresh() {
+      try {
+        setRefreshLoading(true);
+        await onRefreshFields();
+      } catch (ex) {
+        logger.warn('Error refreshing fields', ex);
+      } finally {
+        setRefreshLoading(false);
+      }
+    }
+
     return (
       <Grid vertical>
         <GridCol>
@@ -128,6 +143,9 @@ export const LoadRecordsFieldMapping = memo<LoadRecordsFieldMappingProps>(
           )}
         </GridCol>
         <GridCol grow>
+          <Grid align="end">
+            <LoadRecordsRefreshCachePopover loading={refreshLoading} onReload={handleCacheRefresh} />
+          </Grid>
           <table className="slds-table slds-table_cell-buffer slds-table_bordered slds-table_fixed-layout">
             <thead>
               <tr className="slds-line-height_reset">

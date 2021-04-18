@@ -62,7 +62,7 @@ export async function cleanUpHistoryState(): Promise<MapOf<QueryHistoryItem> | u
   }
 }
 
-function initQueryHistory(): Promise<MapOf<QueryHistoryItem>> {
+export function initQueryHistory(): Promise<MapOf<QueryHistoryItem>> {
   return localforage.getItem<MapOf<QueryHistoryItem>>(INDEXED_DB.KEYS.queryHistory);
 }
 
@@ -71,6 +71,8 @@ function initQueryHistory(): Promise<MapOf<QueryHistoryItem>> {
 /**
  * Get new history item to save
  * If we do not know the label of the object, then we go fetch it
+ *
+ * @returns an initialized query history item and a fresh copy of the history state from storage
  */
 export async function getQueryHistoryItem(
   org: SalesforceOrgUi,
@@ -78,7 +80,7 @@ export async function getQueryHistoryItem(
   sObject: string,
   sObjectLabel?: string,
   isTooling = false
-): Promise<QueryHistoryItem> {
+): Promise<{ queryHistoryItem: QueryHistoryItem; refreshedQueryHistory: MapOf<QueryHistoryItem> }> {
   if (!sObjectLabel) {
     const resultsWithCache = await describeSObject(org, sObject, isTooling);
     const results = resultsWithCache.data;
@@ -96,7 +98,9 @@ export async function getQueryHistoryItem(
     isTooling,
     isFavorite: false,
   };
-  return queryHistoryItem;
+  // ensure we have the most up-to-date version of the query history to avoid overwriting changes made elsewhere
+  const refreshedQueryHistory = await initQueryHistory();
+  return { queryHistoryItem, refreshedQueryHistory };
 }
 
 export const selectedObjectState = atom<string>({

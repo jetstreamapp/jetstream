@@ -1,7 +1,7 @@
 /** @jsx jsx */
-import { jsx } from '@emotion/react';
+import { css, jsx } from '@emotion/react';
 import { SalesforceOrgUi } from '@jetstream/types';
-import { Alert } from '@jetstream/ui';
+import { Alert, EmptyState, NoAccess2Illustration } from '@jetstream/ui';
 import { Fragment, FunctionComponent } from 'react';
 import { useRecoilValue } from 'recoil';
 import * as fromAppState from '../../app-state';
@@ -24,15 +24,21 @@ export const OrgSelectionRequired: FunctionComponent<OrgSelectionRequiredProps> 
     <Fragment>
       {selectedOrg && !selectedOrg.connectionError && children}
       {selectedOrg?.connectionError && (
-        <div>
+        <div
+          css={css`
+            background-color: white;
+          `}
+        >
           <Alert type="error" leadingIcon="error">
             <div>
               <p>There was a problem connecting your org, re-connect your org to fix it.</p>
               <p>If you recently did a sandbox refresh and have a new Organization Id, you will need to delete the old org.</p>
             </div>
           </Alert>
-          <div className="slds-align_absolute-center slds-m-top_x-small">
-            <AddOrg className="slds-button_brand" onAddOrg={handleAddOrg} />
+          <div>
+            <EmptyState size="large" headline={`Fix your org connection to continue`} illustration={<NoAccess2Illustration />}>
+              <AddOrg className="slds-button_brand" label="Reconnect Org" onAddOrg={handleAddOrg} />
+            </EmptyState>
           </div>
         </div>
       )}

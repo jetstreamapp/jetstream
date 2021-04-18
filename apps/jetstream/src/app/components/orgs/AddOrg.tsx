@@ -24,10 +24,11 @@ function getFQDN(customUrl: string) {
 // eslint-disable-next-line @typescript-eslint/no-empty-interface
 export interface AddOrgProps {
   className?: string;
+  label?: string;
   onAddOrg: (org: SalesforceOrgUi) => void;
 }
 
-export const AddOrg: FunctionComponent<AddOrgProps> = ({ className, onAddOrg }) => {
+export const AddOrg: FunctionComponent<AddOrgProps> = ({ className, label = 'Add Org', onAddOrg }) => {
   const [orgType, setOrgType] = useState<OrgType>('prod');
   const [customUrl, setCustomUrl] = useState<string>('');
   const [loginUrl, setLoginUrl] = useState<string>(null);
@@ -124,7 +125,7 @@ export const AddOrg: FunctionComponent<AddOrgProps> = ({ className, onAddOrg }) 
     >
       <button className={classNames('slds-button', className)}>
         <Icon type="utility" icon="add" className="slds-button__icon slds-button__icon_left" omitContainer />
-        Add Org
+        {label}
       </button>
     </Popover>
   );

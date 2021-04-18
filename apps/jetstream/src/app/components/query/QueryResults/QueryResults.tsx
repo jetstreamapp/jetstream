@@ -18,6 +18,7 @@ import { flattenRecords, getRecordIdFromAttributes, getSObjectNameFromAttributes
 import { AsyncJob, AsyncJobNew, BulkDownloadJob, CloneEditView, FileExtCsvXLSX, Record, SalesforceOrgUi } from '@jetstream/types';
 import {
   AutoFullHeightContainer,
+  CampingRainIllustration,
   EmptyState,
   Grid,
   GridCol,
@@ -165,13 +166,14 @@ export const QueryResults: FunctionComponent<QueryResultsProps> = React.memo(() 
     if (soql && sObject) {
       fromQueryHistory
         .getQueryHistoryItem(selectedOrg, soql, sObject, sObjectLabel, tooling)
-        .then((queryHistoryItem) => {
-          if (queryHistory && queryHistory[queryHistoryItem.key]) {
-            queryHistoryItem.runCount = queryHistory[queryHistoryItem.key].runCount + 1;
-            queryHistoryItem.created = queryHistory[queryHistoryItem.key].created;
-            queryHistoryItem.isFavorite = queryHistory[queryHistoryItem.key].isFavorite;
+        .then(({ queryHistoryItem, refreshedQueryHistory }) => {
+          refreshedQueryHistory = refreshedQueryHistory || queryHistory;
+          if (refreshedQueryHistory && refreshedQueryHistory[queryHistoryItem.key]) {
+            queryHistoryItem.runCount = refreshedQueryHistory[queryHistoryItem.key].runCount + 1;
+            queryHistoryItem.created = refreshedQueryHistory[queryHistoryItem.key].created;
+            queryHistoryItem.isFavorite = refreshedQueryHistory[queryHistoryItem.key].isFavorite;
           }
-          setQueryHistory({ ...queryHistory, [queryHistoryItem.key]: queryHistoryItem });
+          setQueryHistory({ ...refreshedQueryHistory, [queryHistoryItem.key]: queryHistoryItem });
         })
         .catch((ex) => logger.warn(ex));
     }
@@ -455,22 +457,21 @@ export const QueryResults: FunctionComponent<QueryResultsProps> = React.memo(() 
                 </GridCol>
               </Grid>
               <EmptyState
+                size="large"
                 headline="Your query yielded no results!"
-                callToAction={
-                  <Link
-                    className="slds-button slds-button_brand"
-                    to={{
-                      pathname: `/query`,
-                      state: { soql },
-                    }}
-                  >
-                    <Icon type="utility" icon="back" className="slds-button__icon slds-button__icon_left" omitContainer />
-                    Go Back
-                  </Link>
-                }
+                subHeading="There are no records matching your query."
+                illustration={<CampingRainIllustration />}
               >
-                <p>There are no records matching your query.</p>
-                <p>Better luck next time!</p>
+                <Link
+                  className="slds-button slds-button_brand"
+                  to={{
+                    pathname: `/query`,
+                    state: { soql },
+                  }}
+                >
+                  <Icon type="utility" icon="back" className="slds-button__icon slds-button__icon_left" omitContainer />
+                  Go Back
+                </Link>
               </EmptyState>
             </Fragment>
           )}

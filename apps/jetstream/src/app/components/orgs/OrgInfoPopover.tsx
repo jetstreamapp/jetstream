@@ -1,5 +1,6 @@
 /** @jsx jsx */
 import { jsx } from '@emotion/react';
+import { clearCacheForOrg } from '@jetstream/shared/data';
 import { addOrg, isEnterKey, isEscapeKey } from '@jetstream/shared/ui-utils';
 import { SalesforceOrgUi } from '@jetstream/types';
 import { ButtonGroupContainer, Checkbox, Grid, GridCol, Icon, Input, Popover, SalesforceLogin, Spinner } from '@jetstream/ui';
@@ -57,6 +58,7 @@ export const OrgInfoPopover: FunctionComponent<OrgInfoPopoverProps> = ({ org, lo
   const [orgLabel, setOrgLabel] = useState(org.label || org.username);
   const [removeOrgActive, setRemoveOrgActive] = useState(false);
   const [isDirty, setIsDirty] = useState(false);
+  const [didClearCache, setDidClearCache] = useState(false);
   const hasError = !!org.connectionError;
 
   useEffect(() => {
@@ -101,6 +103,15 @@ export const OrgInfoPopover: FunctionComponent<OrgInfoPopoverProps> = ({ org, lo
 
   function handleSave() {
     onSaveLabel(org, { label: orgLabel });
+  }
+
+  async function handleClearCache() {
+    try {
+      setDidClearCache(true);
+      await clearCacheForOrg(org);
+    } catch (ex) {
+      // error
+    }
   }
 
   function handlePopoverClose() {
@@ -220,6 +231,19 @@ export const OrgInfoPopover: FunctionComponent<OrgInfoPopoverProps> = ({ org, lo
               {getOrgProp(applicationState.serverUrl, org, 'email')}
             </tbody>
           </table>
+          <div className="slds-p-horizontal_xx-small slds-p-top_xx-small">
+            <ButtonGroupContainer className="slds-button_stretch">
+              <button
+                className="slds-button slds-button_neutral slds-button_stretch"
+                onClick={() => handleClearCache()}
+                disabled={didClearCache}
+                title="The list of objects and fields are cached in your browser to improve performance. If you do not see recent objects or fields you can clear the cache for the org."
+              >
+                <Icon type="utility" icon="refresh" className="slds-button__icon slds-button__icon_left" omitContainer />
+                Clear Org Cached Data
+              </button>
+            </ButtonGroupContainer>
+          </div>
           <div className="slds-p-around_xx-small">
             {!removeOrgActive && (
               <ButtonGroupContainer className="slds-button_stretch">
@@ -252,7 +276,7 @@ export const OrgInfoPopover: FunctionComponent<OrgInfoPopoverProps> = ({ org, lo
       }
     >
       <button className="slds-button slds-button_icon">
-        <Icon type="utility" icon="info" className="slds-button__icon slds-button__icon_left" omitContainer />
+        <Icon type="utility" icon="settings" className="slds-button__icon slds-button__icon_left" omitContainer />
       </button>
     </Popover>
   );

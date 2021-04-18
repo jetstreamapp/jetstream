@@ -162,6 +162,11 @@ export const QueryHistory: FunctionComponent<QueryHistoryProps> = ({ selectedOrg
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectObjectsList, filterValue]);
 
+  function handleOpenModal() {
+    setIsOpen(true);
+    fromQueryHistoryState.initQueryHistory().then((queryHistory) => setQueryHistorySateMap(queryHistory));
+  }
+
   function handleExecute({ created, lastRun, runCount, isTooling, isFavorite }: QueryHistoryItem) {
     trackEvent(ANALYTICS_KEYS.query_HistoryExecute, {
       created,
@@ -205,8 +210,15 @@ export const QueryHistory: FunctionComponent<QueryHistoryProps> = ({ selectedOrg
     trackEvent(ANALYTICS_KEYS.query_HistoryShowMore);
   }
 
-  function handleSaveFavorite(item: QueryHistoryItem, isFavorite: boolean) {
-    setQueryHistorySateMap({ ...queryHistoryStateMap, [item.key]: { ...item, isFavorite } });
+  async function handleSaveFavorite(item: QueryHistoryItem, isFavorite: boolean) {
+    let queryHistory = queryHistoryStateMap;
+    try {
+      // ensure that changes made in other browser tabs are not overwritten
+      queryHistory = await fromQueryHistoryState.initQueryHistory();
+    } catch (ex) {
+      logger.warn('[ERROR] Could not get updated query history', ex);
+    }
+    setQueryHistorySateMap({ ...queryHistory, [item.key]: { ...item, isFavorite } });
     trackEvent(ANALYTICS_KEYS.query_HistorySaveQueryToggled, { isFavorite });
   }
 
@@ -216,7 +228,7 @@ export const QueryHistory: FunctionComponent<QueryHistoryProps> = ({ selectedOrg
         className="slds-button slds-button_neutral"
         aria-haspopup="true"
         title="View query history and saved queries (ctrl/command + h)"
-        onClick={() => setIsOpen(true)}
+        onClick={() => handleOpenModal()}
       >
         <Icon type="utility" icon="date_time" className="slds-button__icon slds-button__icon_left" omitContainer />
         View History
@@ -302,10 +314,7 @@ export const QueryHistory: FunctionComponent<QueryHistoryProps> = ({ selectedOrg
                   />
                 ))}
                 {visibleQueryHistory.length === 0 && (
-                  <EmptyState imageWidth={200}>
-                    <p>There are no matching queries.</p>
-                    <p>Adjust your selection.</p>
-                  </EmptyState>
+                  <EmptyState headline="There are no matching queries." subHeading="Adjust your selection."></EmptyState>
                 )}
                 {!!visibleQueryHistory.length && visibleQueryHistory.length < filteredQueryHistory.length && (
                   <div className="slds-grid slds-grid_align-center slds-m-around_small">

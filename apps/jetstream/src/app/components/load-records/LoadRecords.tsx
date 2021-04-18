@@ -1,6 +1,8 @@
 /** @jsx jsx */
 import { css, jsx } from '@emotion/react';
+import { logger } from '@jetstream/shared/client-logger';
 import { ANALYTICS_KEYS } from '@jetstream/shared/constants';
+import { clearCacheForOrg } from '@jetstream/shared/data';
 import { formatNumber } from '@jetstream/shared/ui-utils';
 import { SalesforceOrgUi } from '@jetstream/types';
 import {
@@ -16,7 +18,7 @@ import {
   Spinner,
 } from '@jetstream/ui';
 import { startCase } from 'lodash';
-import { FunctionComponent, useEffect, useRef, useState } from 'react';
+import { FunctionComponent, useCallback, useEffect, useRef, useState } from 'react';
 import { useRecoilState, useRecoilValue, useResetRecoilState } from 'recoil';
 import { selectedOrgState, selectedOrgType } from '../../app-state';
 import { useAmplitude } from '../core/analytics';
@@ -126,19 +128,20 @@ export const LoadRecords: FunctionComponent<LoadRecordsProps> = () => {
     setCurrentStepIdx(enabledSteps.findIndex((step) => step.idx === currentStep.idx));
   }, [currentStep]);
 
+  const fetchFieldMetadata = useCallback(async () => {
+    setLoadingFields(true);
+    const fields = await getFieldMetadata(selectedOrg, selectedSObject.name);
+    // ensure object did not change and that component is still mounted
+    if (isMounted.current) {
+      setFields(fields);
+      setLoadingFields(false);
+    }
+  }, [selectedOrg, selectedSObject]);
+
   useEffect(() => {
     if (selectedSObject) {
-      // fetch all fields
-      setLoadingFields(true);
       resetLoadExistingRecordCount();
-      (async () => {
-        const fields = await getFieldMetadata(selectedOrg, selectedSObject.name);
-        // ensure object did not change and that component is still mounted
-        if (isMounted.current) {
-          setFields(fields);
-          setLoadingFields(false);
-        }
-      })();
+      fetchFieldMetadata();
     }
   }, [selectedSObject]);
 
@@ -272,6 +275,15 @@ export const LoadRecords: FunctionComponent<LoadRecordsProps> = () => {
     trackEvent(ANALYTICS_KEYS.load_StartOver, { page: currentStep.name });
   }
 
+  async function handleFieldRefresh() {
+    try {
+      await clearCacheForOrg(selectedOrg);
+      await fetchFieldMetadata();
+    } catch (ex) {
+      logger.warn('Error clearing cache and refreshing fields', ex);
+    }
+  }
+
   return (
     <Page>
       <PageHeader>
@@ -355,6 +367,7 @@ export const LoadRecords: FunctionComponent<LoadRecordsProps> = () => {
                   loadType={loadType}
                   externalId={externalId}
                   onFieldMappingChange={setFieldMapping}
+                  onRefreshFields={handleFieldRefresh}
                 />
               </span>
             )}
