@@ -7,6 +7,7 @@ import { logger } from '@jetstream/shared/client-logger';
 import { describeSObject, genericRequest, sobjectOperation } from '@jetstream/shared/data';
 import { isErrorResponse, useNonInitialEffect } from '@jetstream/shared/ui-utils';
 import {
+  ApiResponse,
   CloneEditView,
   PicklistFieldValues,
   PicklistFieldValuesResponse,
@@ -16,7 +17,7 @@ import {
   SobjectCollectionResponse,
 } from '@jetstream/types';
 import { Checkbox, FileDownloadModal, Grid, Icon, Modal, PopoverErrorButton, Spinner } from '@jetstream/ui';
-import { Field } from 'jsforce';
+import { DescribeSObjectResult, Field } from 'jsforce';
 import isUndefined from 'lodash/isUndefined';
 import { Fragment, FunctionComponent, useCallback, useEffect, useRef, useState } from 'react';
 import {
@@ -35,6 +36,27 @@ export interface QueryResultsActionsProps {
   recordId: string;
   onClose: (reloadRecords?: boolean) => void;
   onChangeAction: (action: CloneEditView) => void;
+}
+
+// UI API is not supported, artificially build picklist values
+function mockPicklistValues(sobjectMetadata: ApiResponse<DescribeSObjectResult>): PicklistFieldValues {
+  return sobjectMetadata.data.fields
+    .filter((field) => field.type === 'picklist' || field.type === 'multipicklist')
+    .reduce((output: PicklistFieldValues, field) => {
+      output[field.name] = {
+        eTag: '',
+        url: '',
+        controllerValues: {},
+        defaultValue: field.defaultValue,
+        values: field.picklistValues.map(({ label, value, validFor }) => ({
+          attributes: null,
+          label,
+          value,
+          validFor: [],
+        })),
+      };
+      return output;
+    }, {});
 }
 
 export const QueryResultsActions: FunctionComponent<QueryResultsActionsProps> = ({
@@ -121,27 +143,14 @@ export const QueryResultsActions: FunctionComponent<QueryResultsActionsProps> = 
           logger.warn('[RECORD-UI][ERROR]', ex);
           if (ex?.message?.endsWith('not supported in UI API')) {
             // UI API is not supported, artificially build picklist values
-            picklistValues = sobjectMetadata.data.fields
-              .filter((field) => field.type === 'picklist' || field.type === 'multipicklist')
-              .reduce((output: PicklistFieldValues, field) => {
-                output[field.name] = {
-                  eTag: '',
-                  url: '',
-                  controllerValues: {},
-                  defaultValue: field.defaultValue,
-                  values: field.picklistValues.map(({ label, value, validFor }) => ({
-                    attributes: null,
-                    label,
-                    value,
-                    validFor: [],
-                  })),
-                };
-                return output;
-              }, {});
+            picklistValues = mockPicklistValues(sobjectMetadata);
           } else {
             throw ex;
           }
         }
+      } else {
+        // UI API is not supported because there is no record type id, artificially build picklist values
+        picklistValues = mockPicklistValues(sobjectMetadata);
       }
 
       if (action === 'clone') {
