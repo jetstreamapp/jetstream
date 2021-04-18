@@ -1,4 +1,5 @@
 import { query } from '@jetstream/shared/data';
+import { useRollbar } from '@jetstream/shared/ui-utils';
 import { SalesforceOrgUi } from '@jetstream/types';
 import { useCallback, useEffect, useState } from 'react';
 
@@ -18,6 +19,7 @@ export function useOrgPermissions(selectedOrg: SalesforceOrgUi) {
   const uniqueId = selectedOrg?.uniqueId;
   const connectionError = !!selectedOrg?.connectionError;
   const [hasMetadataAccess, setHasMetadataAccess] = useState(true);
+  const rollbar = useRollbar();
 
   const fetchOrgPermissions = useCallback(async () => {
     if (selectedOrg && !selectedOrg.connectionError) {
@@ -31,7 +33,7 @@ export function useOrgPermissions(selectedOrg: SalesforceOrgUi) {
           setHasMetadataAccess(records[0].PermissionsModifyAllData || records[0].PermissionsModifyMetadata);
         }
       } catch (ex) {
-        setHasMetadataAccess(false);
+        rollbar.error(`Error checking for org access: ${ex.message}`, ex);
       }
     }
   }, [selectedOrg]);
