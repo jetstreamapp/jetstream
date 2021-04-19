@@ -5,7 +5,7 @@ import { ANALYTICS_KEYS, INDEXED_DB } from '@jetstream/shared/constants';
 import { anonymousApex } from '@jetstream/shared/data';
 import { useDebounce, useNonInitialEffect, useRollbar } from '@jetstream/shared/ui-utils';
 import { ApexHistoryItem, MapOf, SalesforceOrgUi } from '@jetstream/types';
-import { AutoFullHeightContainer, Card, CodeEditor, CopyToClipboard, Grid, Icon, Spinner } from '@jetstream/ui';
+import { AutoFullHeightContainer, Badge, Card, CodeEditor, CopyToClipboard, Grid, Icon, Spinner } from '@jetstream/ui';
 import localforage from 'localforage';
 import { FunctionComponent, useCallback, useEffect, useRef, useState } from 'react';
 import Split from 'react-split';
@@ -27,6 +27,7 @@ export const AnonymousApex: FunctionComponent<AnonymousApexProps> = () => {
   const selectedOrg = useRecoilValue<SalesforceOrgUi>(selectedOrgState);
   const [apex, setApex] = useState(() => localStorage.getItem(STORAGE_KEYS.ANONYMOUS_APEX_STORAGE_KEY) || '');
   const [results, setResults] = useState('');
+  const [resultsStatus, setResultsStatus] = useState({ hasResults: false, success: false, label: null });
   const [loading, setLoading] = useState(false);
   const [historyItems, setHistoryItems] = useRecoilState(fromApexState.apexHistoryState);
   const debouncedApex = useDebounce(apex, 1000);
@@ -56,17 +57,23 @@ export const AnonymousApex: FunctionComponent<AnonymousApexProps> = () => {
   const onSubmit = useCallback(async () => {
     setLoading(true);
     setResults('');
+    setResultsStatus({ hasResults: false, success: false, label: null });
     try {
-      const results = await anonymousApex(selectedOrg, apex);
-      if (!results.result.success) {
-        let summary = `There was a problem running your code.\n`;
-        summary += `line ${results.result.line} column ${results.result.column}\n`;
-        summary += results.result.compileProblem ? `${results.result.compileProblem}\n` : '';
-        summary += results.result.exceptionMessage ? `${results.result.exceptionMessage}\n` : '';
-        summary += results.result.exceptionStackTrace ? `${results.result.compileProblem}\n` : '';
+      const { result, debugLog } = await anonymousApex(selectedOrg, apex);
+      if (!result.success) {
+        let summary = '';
+        summary += `line ${result.line}, column ${result.column}\n`;
+        summary += result.compileProblem ? `${result.compileProblem}\n` : '';
+        summary += result.exceptionMessage ? `${result.exceptionMessage}\n` : '';
+        summary += result.exceptionStackTrace ? `${result.exceptionStackTrace}\n` : '';
+        if (debugLog) {
+          summary += `\n${debugLog}`;
+        }
         setResults(summary);
+        setResultsStatus({ hasResults: true, success: false, label: result.compileProblem ? 'Compile Error' : 'Runtime Error' });
       } else {
-        setResults(results.debugLog);
+        setResults(debugLog);
+        setResultsStatus({ hasResults: true, success: true, label: 'Success' });
         fromApexState
           .initNewApexHistoryItem(selectedOrg, apex)
           .then((updatedHistoryItems) => {
@@ -77,7 +84,7 @@ export const AnonymousApex: FunctionComponent<AnonymousApexProps> = () => {
             rollbar.error('Error saving apex history', ex);
           });
       }
-      trackEvent(ANALYTICS_KEYS.apex_Submitted, { success: results.result.success });
+      trackEvent(ANALYTICS_KEYS.apex_Submitted, { success: result.success });
     } catch (ex) {
       setResults(`There was a problem submitting the request\n${ex.message}`);
       trackEvent(ANALYTICS_KEYS.apex_Submitted, { success: false });
@@ -135,7 +142,29 @@ export const AnonymousApex: FunctionComponent<AnonymousApexProps> = () => {
           </Card>
         </div>
         <div className="slds-p-horizontal_x-small slds-is-relative">
-          <Card title="Results" actions={<CopyToClipboard type="button" content={results} disabled={!results} />}>
+          <Card
+            title={
+              <div>
+                Results
+                {resultsStatus.hasResults && (
+                  <span className="slds-m-left_small">
+                    <Badge type={resultsStatus.success ? 'success' : 'error'}>
+                      <span className="slds-badge__icon slds-badge__icon_left slds-badge__icon_inverse">
+                        <Icon
+                          type="utility"
+                          icon={resultsStatus.success ? 'success' : 'error'}
+                          containerClassname="slds-icon_container slds-current-color"
+                          className="slds-icon slds-icon_xx-small"
+                        />
+                      </span>
+                      {resultsStatus.label}
+                    </Badge>
+                  </span>
+                )}
+              </div>
+            }
+            actions={<CopyToClipboard type="button" content={results} disabled={!results} />}
+          >
             {loading && <Spinner />}
             <CodeEditor
               className="CodeMirror-full-height CodeMirror-textarea"
