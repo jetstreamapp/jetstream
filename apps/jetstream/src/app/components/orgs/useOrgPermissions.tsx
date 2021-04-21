@@ -33,7 +33,7 @@ export function useOrgPermissions(selectedOrg: SalesforceOrgUi) {
           setHasMetadataAccess(records[0].PermissionsModifyAllData || records[0].PermissionsModifyMetadata);
         }
       } catch (ex) {
-        rollbar.error(`Error checking for org access: ${ex.message}`, ex);
+        rollbar.warn(`Error checking for org access: ${ex.message}`, ex);
       }
     }
   }, [selectedOrg]);
