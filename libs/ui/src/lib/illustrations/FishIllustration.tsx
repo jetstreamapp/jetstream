@@ -3,7 +3,7 @@ import React from 'react';
 export function FishIllustration(props: React.SVGProps<SVGSVGElement>) {
   return (
     <svg className="slds-illustration__svg" viewBox="0 0 466 297" aria-hidden="true" xmlns="http://www.w3.org/2000/svg">
-      <g stroke="none" strokeWidth="1" fill="none" fill-rule="evenodd">
+      <g stroke="none" strokeWidth="1" fill="none" fillRule="evenodd">
         <g transform="translate(-69.000000, -68.000000)">
           <g>
             <g transform="translate(455.000000, 172.000000) scale(-1, 1) translate(-455.000000, -172.000000) translate(377.000000, 153.000000)">
