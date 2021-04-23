@@ -25,7 +25,7 @@ const ValueOrLoadingRenderer: FunctionComponent<ICellRendererParams> = ({ value,
   } else if (!fullName) {
     return <em className="slds-text-color_weak">No matching components</em>;
   }
-  return <div>{value}</div>;
+  return <div>{decodeURIComponent(value || '')}</div>;
 };
 
 export const DeployMetadataDeploymentTable: FunctionComponent<DeployMetadataDeploymentTableProps> = ({

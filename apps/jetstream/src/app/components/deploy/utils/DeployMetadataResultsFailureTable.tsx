@@ -31,7 +31,7 @@ export const DeployMetadataResultsFailureTable: FunctionComponent<DeployMetadata
             <tr className="slds-hint-parent" key={`${row.id}-row-${i}`}>
               <th scope="row">
                 <div className="slds-truncate" title={row.fullName}>
-                  {row.fullName}
+                  {decodeURIComponent(row.fullName)}
                 </div>
               </th>
               <td>

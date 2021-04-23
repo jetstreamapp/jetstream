@@ -292,7 +292,7 @@ export function getDeployResultsExcelData(deployResults: DeployResult, deploymen
         ?.filter((item) => item.componentType)
         .map((item) => ({
           Id: item.id,
-          'Api Name': item.fullName,
+          'Api Name': decodeURIComponent(item.fullName),
           Type: item.componentType,
           Success: item.success,
           Created: item.created,
@@ -303,7 +303,7 @@ export function getDeployResultsExcelData(deployResults: DeployResult, deploymen
     [`Failed Components`]:
       deployResults.details?.componentFailures?.map((item) => ({
         Id: item.id,
-        'Api Name': item.fullName,
+        'Api Name': decodeURIComponent(item.fullName),
         Type: item.componentType,
         'Error Type': item.problemType,
         'Error Message': item.problem,

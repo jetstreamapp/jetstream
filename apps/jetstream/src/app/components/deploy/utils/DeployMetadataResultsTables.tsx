@@ -2,7 +2,17 @@
 import { jsx } from '@emotion/react';
 import { orderObjectsBy } from '@jetstream/shared/utils';
 import { DeployResult, UiTabSection } from '@jetstream/types';
-import { Icon, Tabs, TabsRef } from '@jetstream/ui';
+import {
+  CampingRainIllustration,
+  DesertIllustration,
+  EmptyState,
+  Icon,
+  LakeMountainIllustration,
+  OpenRoadIllustration,
+  ResearchIllustration,
+  Tabs,
+  TabsRef,
+} from '@jetstream/ui';
 import { Fragment, FunctionComponent, useEffect, useRef, useState } from 'react';
 import DeployMetadataResultsFailureTable from './DeployMetadataResultsFailureTable';
 import DeployMetadataResultsSuccessTable from './DeployMetadataResultsSuccessTable';
@@ -29,7 +39,14 @@ const ErrorIcon = (
   />
 );
 
-const NoItemsPlaceholder = <div>There are not items to show.</div>;
+const NoItemsPlaceholder: FunctionComponent<{ done: boolean; isErrorOrWarning?: boolean }> = ({ done, isErrorOrWarning }) => {
+  if (done && isErrorOrWarning) {
+    return <EmptyState headline="There are no items to show" illustration={<OpenRoadIllustration />}></EmptyState>;
+  } else if (done) {
+    return <EmptyState headline="There are no items to show" illustration={<CampingRainIllustration />}></EmptyState>;
+  }
+  return <EmptyState headline="There are no items to show" illustration={<ResearchIllustration />}></EmptyState>;
+};
 
 export interface DeployMetadataResultsTablesProps {
   results: DeployResult;
@@ -81,7 +98,7 @@ export const DeployMetadataResultsTables: FunctionComponent<DeployMetadataResult
           {Array.isArray(componentSuccesses) && !!componentSuccesses.length ? (
             <DeployMetadataResultsSuccessTable title="Successful Components" componentDetails={componentSuccesses} />
           ) : (
-            NoItemsPlaceholder
+            <NoItemsPlaceholder done={results.done} />
           )}
         </Fragment>
       ),
@@ -100,7 +117,7 @@ export const DeployMetadataResultsTables: FunctionComponent<DeployMetadataResult
           {Array.isArray(componentFailures) && !!componentFailures.length ? (
             <DeployMetadataResultsFailureTable title="Component Errors" componentDetails={componentFailures} />
           ) : (
-            NoItemsPlaceholder
+            <NoItemsPlaceholder done={results.done} isErrorOrWarning />
           )}
         </Fragment>
       ),
@@ -122,7 +139,7 @@ export const DeployMetadataResultsTables: FunctionComponent<DeployMetadataResult
           {Array.isArray(unitTestFailures) && !!unitTestFailures.length ? (
             <DeployMetadataUnitTestFailuresTable failures={unitTestFailures} />
           ) : (
-            NoItemsPlaceholder
+            <NoItemsPlaceholder done={results.done} isErrorOrWarning />
           )}
         </Fragment>
       ),
@@ -141,7 +158,7 @@ export const DeployMetadataResultsTables: FunctionComponent<DeployMetadataResult
           {Array.isArray(codeCoverageWarnings) && !!codeCoverageWarnings.length ? (
             <DeployMetadataUnitTestCodeCoverageResultsTable codeCoverageWarnings={codeCoverageWarnings} />
           ) : (
-            NoItemsPlaceholder
+            <NoItemsPlaceholder done={results.done} isErrorOrWarning />
           )}
         </Fragment>
       ),
