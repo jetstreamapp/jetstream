@@ -327,8 +327,6 @@ export function transformListMetadataResponse(items: ListMetadataResultRaw[]): L
   }
   return items.map((item) => ({
     ...item,
-    fileName: decodeURIComponent(item.fileName),
-    fullName: decodeURIComponent(item.fullName),
     createdDate: parseISO(item.createdDate),
     lastModifiedDate: parseISO(item.lastModifiedDate),
     // Some items, such as Settings do not include the property manageableState

@@ -1,7 +1,7 @@
 /** @jsx jsx */
 import { css, jsx } from '@emotion/react';
 import { formatNumber, useNonInitialEffect } from '@jetstream/shared/ui-utils';
-import { multiWordStringFilter } from '@jetstream/shared/utils';
+import { multiWordObjectFilter } from '@jetstream/shared/utils';
 import { MapOf, SalesforceOrgUi, UpDown } from '@jetstream/types';
 import {
   AutoFullHeightContainer,
@@ -21,6 +21,11 @@ import { startCase } from 'lodash';
 import { createRef, Fragment, FunctionComponent, useEffect, useRef, useState } from 'react';
 import { useDescribeMetadata } from './useDescribeMetadata';
 import { getMetadataLabelFromFullName } from './utils';
+
+interface ItemWithLabel {
+  name: string;
+  label: string;
+}
 
 export interface DescribeMetadataListProps {
   inputLabelPlural: string;
@@ -45,7 +50,7 @@ export const DescribeMetadataList: FunctionComponent<DescribeMetadataListProps> 
 }) => {
   const isMounted = useRef(null);
 
-  const [filteredMetadataItems, setFilteredMetadataItems] = useState<string[]>(null);
+  const [filteredMetadataItems, setFilteredMetadataItems] = useState<ItemWithLabel[]>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [searchInputId] = useState(`${inputLabelPlural}-filter-${Date.now()}`);
   const ulRef = createRef<HTMLUListElement>();
@@ -61,6 +66,10 @@ export const DescribeMetadataList: FunctionComponent<DescribeMetadataListProps> 
     lastRefreshed,
   } = useDescribeMetadata(org, initialItems, initialItemMap);
 
+  const [itemsWithLabel, setItemsWithLabel] = useState<ItemWithLabel[]>(() =>
+    metadataItems ? metadataItems.map((name) => ({ name, label: getMetadataLabelFromFullName(name) })) : null
+  );
+
   useEffect(() => {
     isMounted.current = true;
     return () => (isMounted.current = false);
@@ -70,18 +79,19 @@ export const DescribeMetadataList: FunctionComponent<DescribeMetadataListProps> 
     if (metadataItems) {
       onItemsMap(metadataItemMap);
       onItems(metadataItems);
+      setItemsWithLabel(metadataItems.map((name) => ({ name, label: getMetadataLabelFromFullName(name) })));
     }
   }, [metadataItems]);
 
   useEffect(() => {
-    if (Array.isArray(metadataItems)) {
-      if (metadataItems.length > 0 && searchTerm) {
-        setFilteredMetadataItems(metadataItems.filter(multiWordStringFilter(searchTerm)));
-      } else if (metadataItems) {
-        setFilteredMetadataItems(metadataItems);
+    if (Array.isArray(itemsWithLabel)) {
+      if (itemsWithLabel.length > 0 && searchTerm) {
+        setFilteredMetadataItems(itemsWithLabel.filter(multiWordObjectFilter(['name', 'label'], searchTerm)));
+      } else if (itemsWithLabel) {
+        setFilteredMetadataItems(itemsWithLabel);
       }
     }
-  }, [metadataItems, searchTerm]);
+  }, [itemsWithLabel, searchTerm]);
 
   function handleSearchKeyboard(direction: UpDown) {
     if (ulRef && ulRef.current) {
@@ -147,11 +157,11 @@ export const DescribeMetadataList: FunctionComponent<DescribeMetadataListProps> 
                   checked={
                     filteredMetadataItems.length > 0 &&
                     selectedItems.size >= filteredMetadataItems.length &&
-                    filteredMetadataItems.every((item) => selectedItems.has(item))
+                    filteredMetadataItems.every((item) => selectedItems.has(item.name))
                   }
                   label={'Select All'}
                   disabled={filteredMetadataItems.length === 0}
-                  onChange={(value) => onSelected([...filteredMetadataItems], { selectAllValue: value })}
+                  onChange={(value) => onSelected([...filteredMetadataItems.map((item) => item.name)], { selectAllValue: value })}
                 />
                 <ItemSelectionText selected={selectedItems.size} onClick={() => onSelected([], { clearSelection: true })} />
               </div>
@@ -161,12 +171,12 @@ export const DescribeMetadataList: FunctionComponent<DescribeMetadataListProps> 
                 ref={ulRef}
                 autoScrollToFocus
                 items={filteredMetadataItems}
-                isActive={(item: string) => selectedItems.has(item)}
+                isActive={(item: ItemWithLabel) => selectedItems.has(item.name)}
                 onSelected={(item) => onSelected([item])}
-                getContent={(item: string) => ({
-                  key: item,
-                  heading: getMetadataLabelFromFullName(item),
-                  subheading: item,
+                getContent={(item: ItemWithLabel) => ({
+                  key: item.name,
+                  heading: item.label,
+                  subheading: item.name,
                 })}
                 searchTerm={searchTerm}
                 highlightText
