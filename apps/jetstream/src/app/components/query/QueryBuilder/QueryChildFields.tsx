@@ -60,7 +60,7 @@ export const QueryChildFields: FunctionComponent<QueryChildFieldsProps> = ({
         baseQueryFieldsMap = { ...baseQueryFieldsMap };
         try {
           // fetch fields
-          baseQueryFieldsMap = await fetchFields(selectedOrg, baseQueryFieldsMap, BASE_KEY);
+          baseQueryFieldsMap = await fetchFields(selectedOrg, baseQueryFieldsMap, BASE_KEY, isTooling);
           // clone and set to loading
           baseQueryFieldsMap = { ...baseQueryFieldsMap, loading: false };
           // update object on core state
@@ -123,7 +123,7 @@ export const QueryChildFields: FunctionComponent<QueryChildFieldsProps> = ({
       // fetch fields and update once resolved
       (async () => {
         try {
-          clonedQueryFieldsMap[key] = await fetchFields(selectedOrg, clonedQueryFieldsMap[key], key);
+          clonedQueryFieldsMap[key] = await fetchFields(selectedOrg, clonedQueryFieldsMap[key], key, isTooling);
           // ensure selected object did not change
           if (clonedQueryFieldsMap[key]) {
             clonedQueryFieldsMap[key] = { ...clonedQueryFieldsMap[key], loading: false };
@@ -147,7 +147,7 @@ export const QueryChildFields: FunctionComponent<QueryChildFieldsProps> = ({
 
     // This is a candidate to pull into shared function
     try {
-      clonedQueryFieldsMap[key] = await fetchFields(selectedOrg, clonedQueryFieldsMap[key], key);
+      clonedQueryFieldsMap[key] = await fetchFields(selectedOrg, clonedQueryFieldsMap[key], key, isTooling);
       // ensure selected object did not change
       if (clonedQueryFieldsMap[key]) {
         clonedQueryFieldsMap[key] = { ...clonedQueryFieldsMap[key], loading: false };
