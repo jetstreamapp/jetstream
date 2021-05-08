@@ -77,7 +77,11 @@ export const DeployMetadataDeployment: FunctionComponent<DeployMetadataDeploymen
 
   useEffect(() => {
     if (selectedOrg) {
-      loadListMetadata(listMetadataQueries, listMetadataFilterFn);
+      let skipCacheIfOlderThan: number;
+      if (dateRangeSelection === 'user') {
+        skipCacheIfOlderThan = startOfDay(dateRange || new Date()).getTime();
+      }
+      loadListMetadata(listMetadataQueries, listMetadataFilterFn, false, skipCacheIfOlderThan);
     }
   }, [
     selectedOrg,

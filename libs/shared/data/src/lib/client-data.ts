@@ -206,11 +206,12 @@ export async function describeMetadata(org: SalesforceOrgUi): Promise<ApiRespons
 export async function listMetadata(
   org: SalesforceOrgUi,
   types: ListMetadataQuery[],
-  skipRequestCache = false
+  skipRequestCache = false,
+  skipCacheIfOlderThan?: number // timestamp -> new Date().getTime()
 ): Promise<ApiResponse<ListMetadataResult[]>> {
   return handleRequest<ListMetadataResultRaw[]>(
     { method: 'POST', url: `/api/metadata/list`, data: { types } },
-    { org, useCache: true, skipRequestCache, useBodyInCacheKey: true }
+    { org, useCache: true, skipRequestCache, skipCacheIfOlderThan, useBodyInCacheKey: true }
   ).then(({ data, cache }) => ({
     data: transformListMetadataResponse(data),
     cache,

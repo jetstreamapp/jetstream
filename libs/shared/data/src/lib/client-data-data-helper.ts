@@ -40,6 +40,7 @@ export async function handleRequest<T = any>(
     mockHeaderKey?: string;
     useCache?: boolean;
     skipRequestCache?: boolean;
+    skipCacheIfOlderThan?: number;
     useQueryParamsInCacheKey?: boolean;
     useBodyInCacheKey?: boolean;
   } = {}
@@ -65,12 +66,13 @@ function requestInterceptor<T>(options: {
   targetOrg?: SalesforceOrgUi;
   useCache?: boolean;
   skipRequestCache?: boolean;
+  skipCacheIfOlderThan?: number;
   useQueryParamsInCacheKey?: boolean;
   useBodyInCacheKey?: boolean;
 }) {
   return async (config: AxiosRequestConfig) => {
     logger.info(`[HTTP][REQ][${config.method.toUpperCase()}]`, config.url, { request: config });
-    const { org, targetOrg, useCache, skipRequestCache, useQueryParamsInCacheKey, useBodyInCacheKey } = options;
+    const { org, targetOrg, useCache, skipRequestCache, skipCacheIfOlderThan, useQueryParamsInCacheKey, useBodyInCacheKey } = options;
     // add request headers
     config.headers = config.headers || {};
     if (!config.headers[HTTP.HEADERS.ACCEPT]) {
@@ -103,28 +105,31 @@ function requestInterceptor<T>(options: {
       // return cached response if available
       const cachedResults = await getCacheItem<T>(config, org, useQueryParamsInCacheKey, useBodyInCacheKey);
       if (cachedResults) {
-        config.adapter = async (config: AxiosRequestConfig) => {
-          return {
-            config,
-            data: {
-              data: cachedResults.data,
-              cache: {
-                age: cachedResults.age,
-                exp: cachedResults.exp,
-                key: cachedResults.key,
+        // if skipCacheIfOlderThan is provided, then see if cache is older than provided date and skip cache if so
+        if (!skipCacheIfOlderThan || (Number.isFinite(skipCacheIfOlderThan) && cachedResults.age >= skipCacheIfOlderThan)) {
+          config.adapter = async (config: AxiosRequestConfig) => {
+            return {
+              config,
+              data: {
+                data: cachedResults.data,
+                cache: {
+                  age: cachedResults.age,
+                  exp: cachedResults.exp,
+                  key: cachedResults.key,
+                },
               },
-            },
-            headers: {
-              [HTTP.HEADERS.X_CACHE_RESPONSE]: '1',
-              [HTTP.HEADERS.X_CACHE_KEY]: cachedResults.key,
-              [HTTP.HEADERS.X_CACHE_AGE]: cachedResults.age,
-              [HTTP.HEADERS.X_CACHE_EXP]: cachedResults.exp,
-            },
-            status: 200,
-            statusText: 'OK (CACHED)',
-            request: {},
+              headers: {
+                [HTTP.HEADERS.X_CACHE_RESPONSE]: '1',
+                [HTTP.HEADERS.X_CACHE_KEY]: cachedResults.key,
+                [HTTP.HEADERS.X_CACHE_AGE]: cachedResults.age,
+                [HTTP.HEADERS.X_CACHE_EXP]: cachedResults.exp,
+              },
+              status: 200,
+              statusText: 'OK (CACHED)',
+              request: {},
+            };
           };
-        };
+        }
       }
     }
 
