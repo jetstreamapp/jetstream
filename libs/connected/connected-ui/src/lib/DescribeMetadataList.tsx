@@ -10,7 +10,7 @@ import {
   FishIllustration,
   Grid,
   Icon,
-  ItemSelectionText,
+  ItemSelectionSummary,
   List,
   SearchInput,
   Spinner,
@@ -49,7 +49,7 @@ export const DescribeMetadataList: FunctionComponent<DescribeMetadataListProps> 
   onSelected,
 }) => {
   const isMounted = useRef(null);
-
+  const [selectedItemsSet, setSelectedItemsSet] = useState<Set<string>>(new Set<string>(selectedItems || []));
   const [filteredMetadataItems, setFilteredMetadataItems] = useState<ItemWithLabel[]>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [searchInputId] = useState(`${inputLabelPlural}-filter-${Date.now()}`);
@@ -74,6 +74,10 @@ export const DescribeMetadataList: FunctionComponent<DescribeMetadataListProps> 
     isMounted.current = true;
     return () => (isMounted.current = false);
   }, []);
+
+  useNonInitialEffect(() => {
+    setSelectedItemsSet(new Set<string>(selectedItems || []));
+  }, [selectedItems]);
 
   useNonInitialEffect(() => {
     if (metadataItems) {
@@ -163,7 +167,13 @@ export const DescribeMetadataList: FunctionComponent<DescribeMetadataListProps> 
                   disabled={filteredMetadataItems.length === 0}
                   onChange={(value) => onSelected([...filteredMetadataItems.map((item) => item.name)], { selectAllValue: value })}
                 />
-                <ItemSelectionText selected={selectedItems.size} onClick={() => onSelected([], { clearSelection: true })} />
+                <ItemSelectionSummary
+                  items={itemsWithLabel
+                    .filter((item) => selectedItemsSet.has(item.name))
+                    .map((item) => ({ label: item.label, value: item.name }))}
+                  onClearAll={() => onSelected([], { clearSelection: true })}
+                  onClearItem={(item) => onSelected([item])}
+                />
               </div>
             </div>
             <AutoFullHeightContainer bottomBuffer={20}>

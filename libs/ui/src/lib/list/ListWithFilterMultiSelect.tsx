@@ -11,7 +11,7 @@ import Grid from '../grid/Grid';
 import EmptyState from '../illustrations/EmptyState';
 import AutoFullHeightContainer from '../layout/AutoFullHeightContainer';
 import Icon from '../widgets/Icon';
-import ItemSelectionText from '../widgets/ItemSelectionText';
+import ItemSelectionSummary from '../widgets/ItemSelectionSummary';
 import Spinner from '../widgets/Spinner';
 import Tooltip from '../widgets/Tooltip';
 import List from './List';
@@ -174,7 +174,11 @@ export const ListWithFilterMultiSelect: FunctionComponent<ListWithFilterMultiSel
                     onChange={handleSelectAll}
                     disabled={filteredItems.length === 0}
                   />
-                  <ItemSelectionText selected={selectedItems.length} onClick={() => onSelected([])} />
+                  <ItemSelectionSummary
+                    items={items.filter((item) => selectedItemsSet.has(item.id)).map((item) => ({ label: item.label, value: item.id }))}
+                    onClearAll={() => onSelected([])}
+                    onClearItem={handleSelection}
+                  />
                 </div>
               )}
             </div>
