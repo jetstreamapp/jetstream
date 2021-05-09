@@ -10,7 +10,7 @@ import SearchInput from '../form/search-input/SearchInput';
 import EmptyState from '../illustrations/EmptyState';
 import AutoFullHeightContainer from '../layout/AutoFullHeightContainer';
 import List from '../list/List';
-import ItemSelectionText from '../widgets/ItemSelectionText';
+import ItemSelectionSummary from '../widgets/ItemSelectionSummary';
 import Spinner from '../widgets/Spinner';
 
 export interface SobjectListMultiSelectProps {
@@ -124,7 +124,12 @@ export const SobjectListMultiSelect: FunctionComponent<SobjectListMultiSelectPro
                     onChange={handleSelectAll}
                     disabled={filteredSobjects.length === 0}
                   />
-                  <ItemSelectionText selected={selectedSObjectSet.size} onClick={() => onSelected([])} />
+                  <ItemSelectionSummary
+                    label="object"
+                    items={Array.from(selectedSObjectSet).map((item) => ({ label: item, value: item }))}
+                    onClearAll={() => onSelected([])}
+                    onClearItem={handleSelection}
+                  />
                 </div>
               )}
             </div>

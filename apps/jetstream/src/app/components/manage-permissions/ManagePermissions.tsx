@@ -4,7 +4,7 @@ import { Redirect, Route, Switch, useRouteMatch } from 'react-router-dom';
 import { useRecoilValue, useResetRecoilState } from 'recoil';
 import { selectedOrgState } from '../../app-state';
 import StateDebugObserver from '../core/StateDebugObserver';
-import * as fromPermissionsStateState from './manage-permissions.state';
+import * as fromPermissionsState from './manage-permissions.state';
 import ManagePermissionsEditor from './ManagePermissionsEditor';
 import ManagePermissionsSelection from './ManagePermissionsSelection';
 
@@ -14,19 +14,19 @@ export interface ManagePermissionsProps {}
 export const ManagePermissions: FunctionComponent<ManagePermissionsProps> = () => {
   const match = useRouteMatch();
   const selectedOrg = useRecoilValue<SalesforceOrgUi>(selectedOrgState);
-  const resetProfilesState = useResetRecoilState(fromPermissionsStateState.profilesState);
-  const resetSelectedProfilesPermSetState = useResetRecoilState(fromPermissionsStateState.selectedProfilesPermSetState);
-  const resetPermissionSetsState = useResetRecoilState(fromPermissionsStateState.permissionSetsState);
-  const resetSelectedPermissionSetsState = useResetRecoilState(fromPermissionsStateState.selectedPermissionSetsState);
-  const resetSObjectsState = useResetRecoilState(fromPermissionsStateState.sObjectsState);
-  const resetSelectedSObjectsState = useResetRecoilState(fromPermissionsStateState.selectedSObjectsState);
-  const resetFieldsByObject = useResetRecoilState(fromPermissionsStateState.fieldsByObject);
-  const resetFieldsByKey = useResetRecoilState(fromPermissionsStateState.fieldsByKey);
-  const resetObjectPermissionMap = useResetRecoilState(fromPermissionsStateState.objectPermissionMap);
-  const resetFieldPermissionMap = useResetRecoilState(fromPermissionsStateState.fieldPermissionMap);
+  const resetProfilesState = useResetRecoilState(fromPermissionsState.profilesState);
+  const resetSelectedProfilesPermSetState = useResetRecoilState(fromPermissionsState.selectedProfilesPermSetState);
+  const resetPermissionSetsState = useResetRecoilState(fromPermissionsState.permissionSetsState);
+  const resetSelectedPermissionSetsState = useResetRecoilState(fromPermissionsState.selectedPermissionSetsState);
+  const resetSObjectsState = useResetRecoilState(fromPermissionsState.sObjectsState);
+  const resetSelectedSObjectsState = useResetRecoilState(fromPermissionsState.selectedSObjectsState);
+  const resetFieldsByObject = useResetRecoilState(fromPermissionsState.fieldsByObject);
+  const resetFieldsByKey = useResetRecoilState(fromPermissionsState.fieldsByKey);
+  const resetObjectPermissionMap = useResetRecoilState(fromPermissionsState.objectPermissionMap);
+  const resetFieldPermissionMap = useResetRecoilState(fromPermissionsState.fieldPermissionMap);
   const [priorSelectedOrg, setPriorSelectedOrg] = useState<string>(null);
 
-  const hasSelectionsMade = useRecoilValue(fromPermissionsStateState.hasSelectionsMade);
+  const hasSelectionsMade = useRecoilValue(fromPermissionsState.hasSelectionsMade);
 
   // reset everything if the selected org changes
   useEffect(() => {
@@ -64,16 +64,16 @@ export const ManagePermissions: FunctionComponent<ManagePermissionsProps> = () =
       <StateDebugObserver
         name="PERMISSION SNAPSHOT"
         atoms={[
-          ['sObjectsState', fromPermissionsStateState.sObjectsState],
-          ['selectedSObjectsState', fromPermissionsStateState.selectedSObjectsState],
-          ['profilesState', fromPermissionsStateState.profilesState],
-          ['selectedProfilesPermSetState', fromPermissionsStateState.selectedProfilesPermSetState],
-          ['permissionSetsState', fromPermissionsStateState.permissionSetsState],
-          ['selectedPermissionSetsState', fromPermissionsStateState.selectedPermissionSetsState],
-          ['fieldsByObject', fromPermissionsStateState.fieldsByObject],
-          ['fieldsByKey', fromPermissionsStateState.fieldsByKey],
-          ['objectPermissionMap', fromPermissionsStateState.objectPermissionMap],
-          ['fieldPermissionMap', fromPermissionsStateState.fieldPermissionMap],
+          ['sObjectsState', fromPermissionsState.sObjectsState],
+          ['selectedSObjectsState', fromPermissionsState.selectedSObjectsState],
+          ['profilesState', fromPermissionsState.profilesState],
+          ['selectedProfilesPermSetState', fromPermissionsState.selectedProfilesPermSetState],
+          ['permissionSetsState', fromPermissionsState.permissionSetsState],
+          ['selectedPermissionSetsState', fromPermissionsState.selectedPermissionSetsState],
+          ['fieldsByObject', fromPermissionsState.fieldsByObject],
+          ['fieldsByKey', fromPermissionsState.fieldsByKey],
+          ['objectPermissionMap', fromPermissionsState.objectPermissionMap],
+          ['fieldPermissionMap', fromPermissionsState.fieldPermissionMap],
         ]}
       />
       <Switch>

@@ -18,7 +18,7 @@ import { Link, useRouteMatch } from 'react-router-dom';
 import Split from 'react-split';
 import { useRecoilState, useRecoilValue, useResetRecoilState } from 'recoil';
 import { selectedOrgState } from '../../app-state';
-import * as fromPermissionsStateState from './manage-permissions.state';
+import * as fromPermissionsState from './manage-permissions.state';
 import { useProfilesAndPermSets } from './useProfilesAndPermSets';
 import { filterPermissionsSobjects } from './utils/permission-manager-utils';
 
@@ -32,25 +32,25 @@ export const ManagePermissionsSelection: FunctionComponent<ManagePermissionsSele
 
   const selectedOrg = useRecoilValue<SalesforceOrgUi>(selectedOrgState);
 
-  const [profiles, setProfiles] = useRecoilState(fromPermissionsStateState.profilesState);
-  const [selectedProfiles, setSelectedProfiles] = useRecoilState(fromPermissionsStateState.selectedProfilesPermSetState);
+  const [profiles, setProfiles] = useRecoilState(fromPermissionsState.profilesState);
+  const [selectedProfiles, setSelectedProfiles] = useRecoilState(fromPermissionsState.selectedProfilesPermSetState);
 
-  const [permissionSets, setPermissionSets] = useRecoilState(fromPermissionsStateState.permissionSetsState);
-  const [selectedPermissionSets, setSelectedPermissionSets] = useRecoilState(fromPermissionsStateState.selectedPermissionSetsState);
+  const [permissionSets, setPermissionSets] = useRecoilState(fromPermissionsState.permissionSetsState);
+  const [selectedPermissionSets, setSelectedPermissionSets] = useRecoilState(fromPermissionsState.selectedPermissionSetsState);
 
-  const [sobjects, setSobjects] = useRecoilState(fromPermissionsStateState.sObjectsState);
-  const [selectedSObjects, setSelectedSObjects] = useRecoilState(fromPermissionsStateState.selectedSObjectsState);
+  const [sobjects, setSobjects] = useRecoilState(fromPermissionsState.sObjectsState);
+  const [selectedSObjects, setSelectedSObjects] = useRecoilState(fromPermissionsState.selectedSObjectsState);
 
-  const resetFieldsByObject = useResetRecoilState(fromPermissionsStateState.fieldsByObject);
-  const resetFieldsByKey = useResetRecoilState(fromPermissionsStateState.fieldsByKey);
-  const resetObjectPermissionMap = useResetRecoilState(fromPermissionsStateState.objectPermissionMap);
-  const resetFieldPermissionMap = useResetRecoilState(fromPermissionsStateState.fieldPermissionMap);
+  const resetFieldsByObject = useResetRecoilState(fromPermissionsState.fieldsByObject);
+  const resetFieldsByKey = useResetRecoilState(fromPermissionsState.fieldsByKey);
+  const resetObjectPermissionMap = useResetRecoilState(fromPermissionsState.objectPermissionMap);
+  const resetFieldPermissionMap = useResetRecoilState(fromPermissionsState.fieldPermissionMap);
 
   // TODO: what about if we already have profiles and perm sets from state?
   // TODO: when loading, should we clear prior selections?
   const profilesAndPermSetsData = useProfilesAndPermSets(selectedOrg);
 
-  const hasSelectionsMade = useRecoilValue(fromPermissionsStateState.hasSelectionsMade);
+  const hasSelectionsMade = useRecoilValue(fromPermissionsState.hasSelectionsMade);
 
   useEffect(() => {
     setProfiles(profilesAndPermSetsData.profiles);

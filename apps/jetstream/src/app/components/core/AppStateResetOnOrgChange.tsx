@@ -3,9 +3,10 @@ import React, { Fragment, FunctionComponent, useEffect, useState } from 'react';
 import { Resetter, useRecoilValue, useResetRecoilState } from 'recoil';
 import * as fromAppState from '../../app-state';
 import * as fromAutomationControlState from '../automation-control/automation-control.state';
+import * as fromDeployMetadataState from '../deploy/deploy-metadata.state';
 import * as fromLoadState from '../load-records/load-records.state';
+import * as fromPermissionsState from '../manage-permissions/manage-permissions.state';
 import * as fromQueryState from '../query/query.state';
-import * as fromPermissionsStateState from '../manage-permissions/manage-permissions.state';
 
 // eslint-disable-next-line @typescript-eslint/no-empty-interface
 export interface AppStateResetOnOrgChangeProps {}
@@ -41,16 +42,29 @@ export const AppStateResetOnOrgChange: FunctionComponent<AppStateResetOnOrgChang
     useResetRecoilState(fromAutomationControlState.activeItemId),
     useResetRecoilState(fromAutomationControlState.tabs),
     // Manage Permissions
-    useResetRecoilState(fromPermissionsStateState.profilesState),
-    useResetRecoilState(fromPermissionsStateState.selectedProfilesPermSetState),
-    useResetRecoilState(fromPermissionsStateState.permissionSetsState),
-    useResetRecoilState(fromPermissionsStateState.selectedPermissionSetsState),
-    useResetRecoilState(fromPermissionsStateState.sObjectsState),
-    useResetRecoilState(fromPermissionsStateState.selectedSObjectsState),
-    useResetRecoilState(fromPermissionsStateState.fieldsByObject),
-    useResetRecoilState(fromPermissionsStateState.fieldsByKey),
-    useResetRecoilState(fromPermissionsStateState.objectPermissionMap),
-    useResetRecoilState(fromPermissionsStateState.fieldPermissionMap),
+    useResetRecoilState(fromPermissionsState.profilesState),
+    useResetRecoilState(fromPermissionsState.selectedProfilesPermSetState),
+    useResetRecoilState(fromPermissionsState.permissionSetsState),
+    useResetRecoilState(fromPermissionsState.selectedPermissionSetsState),
+    useResetRecoilState(fromPermissionsState.sObjectsState),
+    useResetRecoilState(fromPermissionsState.selectedSObjectsState),
+    useResetRecoilState(fromPermissionsState.fieldsByObject),
+    useResetRecoilState(fromPermissionsState.fieldsByKey),
+    useResetRecoilState(fromPermissionsState.objectPermissionMap),
+    useResetRecoilState(fromPermissionsState.fieldPermissionMap),
+    // Deploy
+    useResetRecoilState(fromDeployMetadataState.metadataItemsState),
+    useResetRecoilState(fromDeployMetadataState.metadataItemsMapState),
+    useResetRecoilState(fromDeployMetadataState.selectedMetadataItemsState),
+    useResetRecoilState(fromDeployMetadataState.usersList),
+    useResetRecoilState(fromDeployMetadataState.metadataSelectionTypeState),
+    useResetRecoilState(fromDeployMetadataState.userSelectionState),
+    useResetRecoilState(fromDeployMetadataState.dateRangeSelectionState),
+    useResetRecoilState(fromDeployMetadataState.includeManagedPackageItems),
+    useResetRecoilState(fromDeployMetadataState.dateRangeState),
+    useResetRecoilState(fromDeployMetadataState.selectedUsersState),
+    useResetRecoilState(fromDeployMetadataState.changesetPackage),
+    useResetRecoilState(fromDeployMetadataState.changesetPackages),
   ];
 
   useEffect(() => {

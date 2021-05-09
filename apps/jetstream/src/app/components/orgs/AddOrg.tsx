@@ -63,7 +63,7 @@ export const AddOrg: FunctionComponent<AddOrgProps> = ({ className, label = 'Add
         </header>
       }
       content={
-        <Fragment>
+        <div className="slds-text-align_left">
           <RadioGroup label="Salesforce Org Type">
             <Radio
               name="prod"
@@ -109,7 +109,7 @@ export const AddOrg: FunctionComponent<AddOrgProps> = ({ className, label = 'Add
               />
             </Input>
           )}
-        </Fragment>
+        </div>
       }
       footer={
         <footer className="slds-popover__footer">

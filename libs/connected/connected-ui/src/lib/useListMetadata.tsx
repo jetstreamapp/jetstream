@@ -32,10 +32,11 @@ async function fetchListMetadata(
   selectedOrg: SalesforceOrgUi,
   item: ListMetadataResultItem,
   filterFn: (item: ListMetadataResult) => boolean,
-  skipRequestCache = false
+  skipRequestCache = false,
+  skipCacheIfOlderThan?: number
 ): Promise<ListMetadataResultItem> {
   const { type, folder } = item;
-  const { data: items, cache } = await listMetadataApi(selectedOrg, [{ type, folder }], skipRequestCache);
+  const { data: items, cache } = await listMetadataApi(selectedOrg, [{ type, folder }], skipRequestCache, skipCacheIfOlderThan);
   return {
     ...item,
     items: orderObjectsBy(items.filter(filterFn), 'fullName'),
@@ -60,13 +61,19 @@ async function fetchListMetadataForItemsInFolder(
   selectedOrg: SalesforceOrgUi,
   item: ListMetadataResultItem,
   filterFn: (item: ListMetadataResult) => boolean,
-  skipRequestCache = false
+  skipRequestCache = false,
+  skipCacheIfOlderThan?: number
 ): Promise<ListMetadataResultItem> {
   const { type } = item;
   const typeWithFolder = type === 'EmailTemplate' ? 'EmailFolder' : `${type}Folder`;
   let outputItems: ListMetadataResult[] = [];
   // get list of folders
-  const { data, cache } = await listMetadataApi(selectedOrg, [{ type: typeWithFolder, folder: null }], skipRequestCache);
+  const { data, cache } = await listMetadataApi(
+    selectedOrg,
+    [{ type: typeWithFolder, folder: null }],
+    skipRequestCache,
+    skipCacheIfOlderThan
+  );
 
   // we need to fetch for each folder, split into sets of 3
   const folderItems = splitArrayToMaxSize(
@@ -123,7 +130,8 @@ export function useListMetadata(selectedOrg: SalesforceOrgUi) {
     async (
       types: ListMetadataQueryExtended[],
       filterFn: (item: ListMetadataResult) => boolean = defaultFilterFn,
-      skipRequestCache = false
+      skipRequestCache: boolean = false,
+      skipCacheIfOlderThan?: number
     ) => {
       if (!selectedOrg || !types?.length) {
         return;
@@ -155,9 +163,9 @@ export function useListMetadata(selectedOrg: SalesforceOrgUi) {
             let responseItem: ListMetadataResultItem;
             if (inFolder) {
               // handle additional fetches required if type is in folder
-              responseItem = await fetchListMetadataForItemsInFolder(selectedOrg, item, filterFn, skipRequestCache);
+              responseItem = await fetchListMetadataForItemsInFolder(selectedOrg, item, filterFn, skipRequestCache, skipCacheIfOlderThan);
             } else {
-              responseItem = await fetchListMetadata(selectedOrg, item, filterFn, skipRequestCache);
+              responseItem = await fetchListMetadata(selectedOrg, item, filterFn, skipRequestCache, skipCacheIfOlderThan);
             }
 
             if (!isMounted.current) {

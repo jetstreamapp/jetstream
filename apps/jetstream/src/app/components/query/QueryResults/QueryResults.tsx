@@ -6,15 +6,8 @@ import { QueryResults as IQueryResults } from '@jetstream/api-interfaces';
 import { logger } from '@jetstream/shared/client-logger';
 import { ANALYTICS_KEYS } from '@jetstream/shared/constants';
 import { query } from '@jetstream/shared/data';
-import {
-  hasModifierKey,
-  isMKey,
-  transformTabularDataToExcelStr,
-  useGlobalEventHandler,
-  useNonInitialEffect,
-  useObservable,
-} from '@jetstream/shared/ui-utils';
-import { flattenRecords, getRecordIdFromAttributes, getSObjectNameFromAttributes, pluralizeIfMultiple } from '@jetstream/shared/utils';
+import { hasModifierKey, isMKey, useGlobalEventHandler, useNonInitialEffect, useObservable } from '@jetstream/shared/ui-utils';
+import { getRecordIdFromAttributes, getSObjectNameFromAttributes, pluralizeIfMultiple } from '@jetstream/shared/utils';
 import { AsyncJob, AsyncJobNew, BulkDownloadJob, CloneEditView, FileExtCsvXLSX, Record, SalesforceOrgUi } from '@jetstream/types';
 import {
   AutoFullHeightContainer,
@@ -31,8 +24,8 @@ import {
   ToolbarItemGroup,
   useConfirmation,
 } from '@jetstream/ui';
+import QueryResultsCopyToClipboard from 'apps/jetstream/src/app/components/query/QueryResults/QueryResultsCopyToClipboard';
 import classNames from 'classnames';
-import copyToClipboard from 'copy-to-clipboard';
 import React, { Fragment, FunctionComponent, useCallback, useEffect, useRef, useState } from 'react';
 import { Link, NavLink, useHistory, useLocation } from 'react-router-dom';
 import { useRecoilState, useRecoilValue } from 'recoil';
@@ -294,13 +287,7 @@ export const QueryResults: FunctionComponent<QueryResultsProps> = React.memo(() 
   }
 
   function hasRecords() {
-    return !loading && !errorMessage && records?.length;
-  }
-
-  function handleCopyToClipboard() {
-    const flattenedData = flattenRecords(records, fields);
-    copyToClipboard(transformTabularDataToExcelStr(flattenedData, fields), { format: 'text/plain' });
-    trackEvent(ANALYTICS_KEYS.query_CopyToClipboard, { isTooling });
+    return !loading && !errorMessage && !!records?.length;
   }
 
   function handleCloneEditView(record: any, action: CloneEditView) {
@@ -393,15 +380,14 @@ export const QueryResults: FunctionComponent<QueryResultsProps> = React.memo(() 
             <Icon type="utility" icon="delete" className="slds-button__icon slds-button__icon_left" omitContainer />
             Delete Selected
           </button>
-          <button
-            className="slds-button slds-button_neutral"
-            onClick={() => handleCopyToClipboard()}
-            disabled={!hasRecords()}
-            title="Copy the queried records to the clipboard. The records can then be pasted into a spreadsheet."
-          >
-            <Icon type="utility" icon="copy_to_clipboard" className="slds-button__icon slds-button__icon_left" omitContainer />
-            Copy to Clipboard
-          </button>
+          <QueryResultsCopyToClipboard
+            hasRecords={hasRecords()}
+            fields={fields}
+            records={records}
+            filteredRows={filteredRows}
+            selectedRows={selectedRows}
+            isTooling={isTooling}
+          />
           <button className="slds-button slds-button_brand" onClick={() => setDownloadModalOpen(true)} disabled={!hasRecords()}>
             <Icon type="utility" icon="download" className="slds-button__icon slds-button__icon_left" omitContainer />
             Download Records
