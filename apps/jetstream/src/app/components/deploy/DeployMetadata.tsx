@@ -15,15 +15,18 @@ export const DeployMetadata: FunctionComponent<DeployMetadataProps> = () => {
   const match = useRouteMatch();
   const selectedOrg = useRecoilValue<SalesforceOrgUi>(selectedOrgState);
   const hasSelectionsMade = useRecoilValue<boolean>(fromDeployMetadataState.hasSelectionsMadeSelector);
-  const metadataItemsState = useResetRecoilState(fromDeployMetadataState.metadataItemsState);
-  const metadataItemsMapState = useResetRecoilState(fromDeployMetadataState.metadataItemsMapState);
-  const selectedMetadataItemsState = useResetRecoilState(fromDeployMetadataState.selectedMetadataItemsState);
-  const usersList = useResetRecoilState(fromDeployMetadataState.usersList);
-  const metadataSelectionTypeState = useResetRecoilState(fromDeployMetadataState.metadataSelectionTypeState);
-  const userSelectionState = useResetRecoilState(fromDeployMetadataState.userSelectionState);
-  const dateRangeSelectionState = useResetRecoilState(fromDeployMetadataState.dateRangeSelectionState);
-  const dateRangeState = useResetRecoilState(fromDeployMetadataState.dateRangeState);
-  const selectedUsersState = useResetRecoilState(fromDeployMetadataState.selectedUsersState);
+  const resetMetadataItemsState = useResetRecoilState(fromDeployMetadataState.metadataItemsState);
+  const resetMetadataItemsMapState = useResetRecoilState(fromDeployMetadataState.metadataItemsMapState);
+  const resetSelectedMetadataItemsState = useResetRecoilState(fromDeployMetadataState.selectedMetadataItemsState);
+  const resetUsersList = useResetRecoilState(fromDeployMetadataState.usersList);
+  const resetMetadataSelectionTypeState = useResetRecoilState(fromDeployMetadataState.metadataSelectionTypeState);
+  const resetUserSelectionState = useResetRecoilState(fromDeployMetadataState.userSelectionState);
+  const resetDateRangeSelectionState = useResetRecoilState(fromDeployMetadataState.dateRangeSelectionState);
+  const resetDateRangeState = useResetRecoilState(fromDeployMetadataState.dateRangeState);
+  const resetSelectedUsersState = useResetRecoilState(fromDeployMetadataState.selectedUsersState);
+  const resetIncludeManagedPackageItems = useResetRecoilState(fromDeployMetadataState.includeManagedPackageItems);
+  const resetChangesetPackage = useResetRecoilState(fromDeployMetadataState.changesetPackage);
+  const resetChangesetPackages = useResetRecoilState(fromDeployMetadataState.changesetPackages);
 
   const [priorSelectedOrg, setPriorSelectedOrg] = useState<string>(null);
 
@@ -33,15 +36,18 @@ export const DeployMetadata: FunctionComponent<DeployMetadataProps> = () => {
       setPriorSelectedOrg(selectedOrg.uniqueId);
     } else if (!selectedOrg || (selectedOrg && priorSelectedOrg !== selectedOrg.uniqueId)) {
       setPriorSelectedOrg(selectedOrg.uniqueId);
-      metadataItemsState();
-      metadataItemsMapState();
-      selectedMetadataItemsState();
-      usersList();
-      metadataSelectionTypeState();
-      userSelectionState();
-      dateRangeSelectionState();
-      dateRangeState();
-      selectedUsersState();
+      resetMetadataItemsState();
+      resetMetadataItemsMapState();
+      resetSelectedMetadataItemsState();
+      resetUsersList();
+      resetMetadataSelectionTypeState();
+      resetUserSelectionState();
+      resetDateRangeSelectionState();
+      resetDateRangeState();
+      resetSelectedUsersState();
+      resetIncludeManagedPackageItems();
+      resetChangesetPackage();
+      resetChangesetPackages();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedOrg, priorSelectedOrg]);

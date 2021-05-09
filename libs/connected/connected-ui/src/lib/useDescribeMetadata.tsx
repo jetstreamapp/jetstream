@@ -41,14 +41,13 @@ export function useDescribeMetadata(
     }
   }, [lastRefreshed]);
 
-  useEffect(() => {
-    // if org changes, re-initialize everything
-    if (selectedOrg && hasLoaded && selectedOrg.uniqueId !== orgIdUsedToFetch) {
-      setHasLoaded(false);
-      setMetadataItemMap({});
-      setMetadataItems(undefined);
-    }
-  }, [hasLoaded, orgIdUsedToFetch, selectedOrg]);
+  // if org changes, reset everything
+  // a different effect will handle re-loading data if loadOnInit
+  useNonInitialEffect(() => {
+    setHasLoaded(false);
+    setMetadataItemMap({});
+    setMetadataItems(undefined);
+  }, [selectedOrg.uniqueId]);
 
   const loadDescribeMetadata = useCallback(
     async (clearCache = false) => {

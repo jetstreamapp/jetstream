@@ -54,7 +54,7 @@ declare module 'react-table' {
       UsePaginationState<D>,
       UseResizeColumnsState<D>,
       UseRowSelectState<D>,
-      UseRowStateState<D>,
+      // UseRowState<D>,
       UseSortByState<D> {}
 
   interface ColumnInterface<D extends object = {}>

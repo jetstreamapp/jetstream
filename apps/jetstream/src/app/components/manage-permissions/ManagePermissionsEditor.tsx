@@ -20,7 +20,7 @@ import { Fragment, FunctionComponent, useEffect, useRef, useState } from 'react'
 import { Link } from 'react-router-dom';
 import { useRecoilState, useRecoilValue, useResetRecoilState } from 'recoil';
 import { selectedOrgState } from '../../app-state';
-import * as fromPermissionsStateState from './manage-permissions.state';
+import * as fromPermissionsState from './manage-permissions.state';
 import ManagePermissionsEditorFieldTable from './ManagePermissionsEditorFieldTable';
 import ManagePermissionsEditorObjectTable from './ManagePermissionsEditorObjectTable';
 import { usePermissionRecords } from './usePermissionRecords';
@@ -96,20 +96,20 @@ export const ManagePermissionsEditor: FunctionComponent<ManagePermissionsEditorP
   const [fileDownloadModalOpen, setFileDownloadModalOpen] = useState<boolean>(false);
   const [fileDownloadData, setFileDownloadData] = useState<ArrayBuffer>(null);
 
-  const selectedProfiles = useRecoilValue(fromPermissionsStateState.selectedProfilesPermSetState);
-  const selectedPermissionSets = useRecoilValue(fromPermissionsStateState.selectedPermissionSetsState);
-  const selectedSObjects = useRecoilValue(fromPermissionsStateState.selectedSObjectsState);
+  const selectedProfiles = useRecoilValue(fromPermissionsState.selectedProfilesPermSetState);
+  const selectedPermissionSets = useRecoilValue(fromPermissionsState.selectedPermissionSetsState);
+  const selectedSObjects = useRecoilValue(fromPermissionsState.selectedSObjectsState);
 
-  const profilesById = useRecoilValue(fromPermissionsStateState.profilesByIdSelector);
-  const permissionSetsById = useRecoilValue(fromPermissionsStateState.permissionSetsByIdSelector);
-  const [fieldsByObject, setFieldsByObject] = useRecoilState(fromPermissionsStateState.fieldsByObject);
-  const [fieldsByKey, setFieldsByKey] = useRecoilState(fromPermissionsStateState.fieldsByKey);
-  const [objectPermissionMap, setObjectPermissionMap] = useRecoilState(fromPermissionsStateState.objectPermissionMap);
-  const [fieldPermissionMap, setFieldPermissionMap] = useRecoilState(fromPermissionsStateState.fieldPermissionMap);
-  const resetFieldsByObject = useResetRecoilState(fromPermissionsStateState.fieldsByObject);
-  const resetFieldsByKey = useResetRecoilState(fromPermissionsStateState.fieldsByKey);
-  const resetObjectPermissionMap = useResetRecoilState(fromPermissionsStateState.objectPermissionMap);
-  const resetFieldPermissionMap = useResetRecoilState(fromPermissionsStateState.fieldPermissionMap);
+  const profilesById = useRecoilValue(fromPermissionsState.profilesByIdSelector);
+  const permissionSetsById = useRecoilValue(fromPermissionsState.permissionSetsByIdSelector);
+  const [fieldsByObject, setFieldsByObject] = useRecoilState(fromPermissionsState.fieldsByObject);
+  const [fieldsByKey, setFieldsByKey] = useRecoilState(fromPermissionsState.fieldsByKey);
+  const [objectPermissionMap, setObjectPermissionMap] = useRecoilState(fromPermissionsState.objectPermissionMap);
+  const [fieldPermissionMap, setFieldPermissionMap] = useRecoilState(fromPermissionsState.fieldPermissionMap);
+  const resetFieldsByObject = useResetRecoilState(fromPermissionsState.fieldsByObject);
+  const resetFieldsByKey = useResetRecoilState(fromPermissionsState.fieldsByKey);
+  const resetObjectPermissionMap = useResetRecoilState(fromPermissionsState.objectPermissionMap);
+  const resetFieldPermissionMap = useResetRecoilState(fromPermissionsState.fieldPermissionMap);
 
   // TODO: what about if we already have profiles and perm sets from state?
   // TODO: when loading, should we clear prior selections?
