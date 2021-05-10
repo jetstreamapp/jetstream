@@ -371,6 +371,7 @@ export interface AsyncJobWorkerMessageResponse<T = unknown, R = unknown> {
 
 export interface BulkDownloadJob {
   isTooling: boolean;
+  totalRecordCount: number;
   nextRecordsUrl: string;
   fields: string[];
   records: MapOf<string>[];

@@ -82,11 +82,21 @@ async function handleMessage(name: AsyncJobType, payloadData: AsyncJobWorkerMess
       try {
         const { org, job } = payloadData as AsyncJobWorkerMessagePayload<BulkDownloadJob>;
         const { isTooling, fields, records, fileFormat, fileName } = job.meta;
-        let { nextRecordsUrl } = job.meta;
+        let { nextRecordsUrl, totalRecordCount } = job.meta;
         let downloadedRecords = fileFormat === 'json' ? records : flattenRecords(records, fields);
         let done = false;
 
+        totalRecordCount;
+
         while (!done) {
+          // emit progress
+          const results = {
+            done: false,
+            progress: Math.floor((downloadedRecords.length / Math.max(totalRecordCount, records.length)) * 100),
+          };
+          const response: AsyncJobWorkerMessageResponse = { job, lastActivityUpdate: true, results };
+          replyToMessage(name, response);
+
           const { queryResults } = await queryMore(org, nextRecordsUrl, isTooling).then(replaceSubqueryQueryResultsWithRecords);
           done = queryResults.done;
           nextRecordsUrl = queryResults.nextRecordsUrl;
@@ -119,7 +129,7 @@ async function handleMessage(name: AsyncJobType, payloadData: AsyncJobWorkerMess
           default:
             throw new Error('A valid file type type has not been selected');
         }
-        const results = { fileData, mimeType, fileName };
+        const results = { done: true, progress: 100, fileData, mimeType, fileName };
 
         const response: AsyncJobWorkerMessageResponse = { job, results };
         replyToMessage(name, response);
