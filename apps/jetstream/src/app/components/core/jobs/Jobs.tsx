@@ -118,17 +118,32 @@ export const Jobs: FunctionComponent<JobsProps> = () => {
                   statusMessage: error || 'An unknown error ocurred',
                 };
               } else {
-                const { fileData, fileName, mimeType } = data.results as { fileData: any; mimeType: MimeType; fileName: string };
-
-                newJob = {
-                  ...newJob,
-                  finished: new Date(),
-                  lastActivity: new Date(),
-                  status: 'success',
-                  statusMessage: 'Records downloaded successfully',
+                const { done, progress, fileData, fileName, mimeType } = data.results as {
+                  done: boolean;
+                  progress: number;
+                  fileData: any;
+                  mimeType: MimeType;
+                  fileName: string;
                 };
 
-                saveFile(fileData, fileName, mimeType);
+                if (!done) {
+                  newJob = {
+                    ...newJob,
+                    lastActivity: new Date(),
+                    status: 'in-progress',
+                    statusMessage: `Download in progress ${progress}%`,
+                  };
+                } else {
+                  newJob = {
+                    ...newJob,
+                    finished: new Date(),
+                    lastActivity: new Date(),
+                    status: 'success',
+                    statusMessage: 'Records downloaded successfully',
+                  };
+
+                  saveFile(fileData, fileName, mimeType);
+                }
               }
               setJobs((prevJobs) => ({ ...prevJobs, [newJob.id]: newJob }));
             } catch (ex) {

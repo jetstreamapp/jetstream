@@ -262,6 +262,7 @@ export const QueryResults: FunctionComponent<QueryResultsProps> = React.memo(() 
           isTooling,
           fields,
           records: records,
+          totalRecordCount,
           nextRecordsUrl,
           fileFormat,
           fileName,
