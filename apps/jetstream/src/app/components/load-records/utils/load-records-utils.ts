@@ -37,14 +37,15 @@ export async function getFieldMetadata(org: SalesforceOrgUi, sobject: string): P
         type: field.type,
         externalId: field.externalId,
         typeLabel: field.typeLabel,
-        referenceTo: (field.type === 'reference' && field.referenceTo?.[0]) || undefined,
+        referenceTo:
+          (field.type === 'reference' && field.referenceTo.slice(0, 5 /** Limit number of related object to limit query */)) || undefined,
         relationshipName: field.relationshipName || undefined,
       })
     );
 
   // fetch all related external Id fields
-  const fieldsWithRelationships = fields.filter((field) => !!field.referenceTo);
-  const relatedObjects = new Set(fieldsWithRelationships.map((field) => field.referenceTo));
+  const fieldsWithRelationships = fields.filter((field) => Array.isArray(field.referenceTo) && field.referenceTo.length);
+  const relatedObjects = new Set(fieldsWithRelationships.flatMap((field) => field.referenceTo));
   // related records
   if (relatedObjects.size > 0) {
     const relatedEntities = (
@@ -52,15 +53,20 @@ export async function getFieldMetadata(org: SalesforceOrgUi, sobject: string): P
     ).data;
     const relatedEntitiesByObj = groupBy(relatedEntities.queryResults.records, 'EntityDefinition.QualifiedApiName');
     fieldsWithRelationships.forEach((field) => {
-      const relatedFields = relatedEntitiesByObj[field.referenceTo];
-      if (relatedFields) {
-        field.relatedFields = relatedFields.map(
-          (particle): FieldRelatedEntity => ({
-            name: particle.Name,
-            label: particle.Label,
-            type: particle.DataType,
-          })
-        );
+      if (Array.isArray(field.referenceTo)) {
+        field.referenceTo.forEach((referenceTo) => {
+          const relatedFields = relatedEntitiesByObj[referenceTo];
+          if (relatedFields) {
+            field.relatedFields = field.relatedFields || {};
+            field.relatedFields[referenceTo] = relatedFields.map(
+              (particle): FieldRelatedEntity => ({
+                name: particle.Name,
+                label: particle.Label,
+                type: particle.DataType,
+              })
+            );
+          }
+        });
       }
     });
   }
@@ -68,7 +74,7 @@ export async function getFieldMetadata(org: SalesforceOrgUi, sobject: string): P
 }
 
 /**
- * Attempt to automatch CSV fields to object fields
+ * Attempt to auto-match CSV fields to object fields
  * TODO: match against label as well
  * 1. exact API name match
  * 2. lowercase match
@@ -122,17 +128,34 @@ export function autoMapFields(inputHeader: string[], fields: FieldWithRelatedEnt
       fieldMetadata: matchedField,
     };
 
-    if (relatedField && matchedField && Array.isArray(matchedField.relatedFields)) {
-      const matchedRelatedField = matchedField.relatedFields.find(
-        (relatedEntityField) =>
-          relatedField === relatedEntityField.name || relatedField.toLowerCase() === relatedEntityField.name.toLowerCase()
+    if (relatedField && matchedField && matchedField.relatedFields) {
+      // search all related object fields to see if related field matches
+      const { relatedObject, matchedRelatedField } = Object.keys(matchedField.relatedFields).reduce(
+        (output: { relatedObject: string; matchedRelatedField: FieldRelatedEntity }, key) => {
+          // if we found a prior match, stop checking
+          if (output.matchedRelatedField) {
+            return output;
+          }
+          // find if current related object has field by same related name
+          const matchedRelatedField = matchedField.relatedFields[key].find(
+            (relatedEntityField) =>
+              relatedField === relatedEntityField.name || relatedField.toLowerCase() === relatedEntityField.name.toLowerCase()
+          );
+          if (matchedRelatedField) {
+            output = { relatedObject: key, matchedRelatedField };
+          }
+          return output;
+        },
+        { relatedObject: undefined, matchedRelatedField: undefined }
       );
+
       if (matchedRelatedField) {
         output[field].mappedToLookup = true;
         output[field].targetLookupField = matchedRelatedField.name;
         output[field].relationshipName = matchedField.relationshipName;
         output[field].fieldMetadata = matchedField;
         output[field].relatedFieldMetadata = matchedRelatedField;
+        output[field].selectedReferenceTo = relatedObject;
       } else {
         output[field].targetField = null;
         output[field].fieldMetadata = undefined;
@@ -150,6 +173,7 @@ export function resetFieldMapping(inputHeader: string[]): FieldMapping {
       targetField: null,
       mappedToLookup: false,
       fieldMetadata: undefined,
+      selectedReferenceTo: undefined,
     };
     return output;
   }, {});
@@ -207,6 +231,15 @@ function getExternalIdFieldsForSobjectsQuery(sobjects: string[]) {
           operator: '=',
           value: 'true',
           literalType: 'BOOLEAN',
+        },
+        operator: 'AND',
+        right: {
+          left: {
+            field: 'QualifiedApiName',
+            operator: '!=',
+            value: 'Id',
+            literalType: 'STRING',
+          },
         },
       },
     },
@@ -283,8 +316,23 @@ export function transformData({ data, fieldMapping, sObject, insertNulls, dateFo
         if (!skipField) {
           if (apiMode === 'BATCH' && fieldMappingItem.mappedToLookup && fieldMappingItem.targetLookupField) {
             output[fieldMappingItem.relationshipName] = { [fieldMappingItem.targetLookupField]: value };
+            // if polymorphic field, then add type attribute
+            if (fieldMappingItem.fieldMetadata?.referenceTo?.length > 1) {
+              output[fieldMappingItem.relationshipName] = {
+                attributes: { type: fieldMappingItem.selectedReferenceTo },
+                ...output[fieldMappingItem.relationshipName],
+              };
+            }
           } else if (fieldMappingItem.mappedToLookup && fieldMappingItem.targetLookupField) {
-            output[`${fieldMappingItem.relationshipName}.${fieldMappingItem.targetLookupField}`] = value;
+            if (fieldMappingItem.fieldMetadata?.referenceTo?.length > 1) {
+              // add in polymorphic field type
+              // https://developer.salesforce.com/docs/atlas.en-us.api_asynch.meta/api_asynch/datafiles_csv_rel_field_header_row.htm?search_text=Polymorphic
+              output[
+                `${fieldMappingItem.selectedReferenceTo}:${fieldMappingItem.relationshipName}.${fieldMappingItem.targetLookupField}`
+              ] = value;
+            } else {
+              output[`${fieldMappingItem.relationshipName}.${fieldMappingItem.targetLookupField}`] = value;
+            }
           } else {
             output[fieldMappingItem.targetField] = value;
           }

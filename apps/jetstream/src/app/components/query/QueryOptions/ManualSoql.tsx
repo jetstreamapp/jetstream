@@ -11,6 +11,7 @@ import RestoreQuery from '../QueryBuilder/RestoreQuery';
 export interface ManualSoqlProps {
   className?: string;
   isTooling: boolean;
+  generatedSoql: string;
 }
 
 const NoQuery = () => {
@@ -45,7 +46,7 @@ const InvalidQuery = () => {
   );
 };
 
-export const ManualSoql: FunctionComponent<ManualSoqlProps> = ({ className, isTooling = false }) => {
+export const ManualSoql: FunctionComponent<ManualSoqlProps> = ({ className, isTooling = false, generatedSoql }) => {
   const isMounted = useRef(null);
   const { trackEvent } = useAmplitude();
   const match = useRouteMatch();
@@ -81,6 +82,12 @@ export const ManualSoql: FunctionComponent<ManualSoqlProps> = ({ className, isTo
       trackEvent(ANALYTICS_KEYS.query_ManualQueryOpened, { isTooling });
     }
   }, [isOpen, isTooling, trackEvent]);
+
+  useEffect(() => {
+    if (isOpen && generatedSoql) {
+      setSoql(generatedSoql);
+    }
+  }, [isOpen, generatedSoql]);
 
   function handleStartRestore() {
     setIsRestoring(true);
@@ -128,7 +135,7 @@ export const ManualSoql: FunctionComponent<ManualSoqlProps> = ({ className, isTo
             >
               <CodeEditor className="CodeMirror-textarea" value={soql} options={{ tabSize: 2 }} onChange={setSoql} />
             </Textarea>
-            <Grid>
+            <Grid className="slds-m-top_xx-small">
               <div>
                 {!soql && <NoQuery />}
                 {queryIsValid && <ValidQuery />}

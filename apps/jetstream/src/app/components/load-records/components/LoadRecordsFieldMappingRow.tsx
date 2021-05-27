@@ -1,7 +1,7 @@
 /** @jsx jsx */
 import { jsx } from '@emotion/react';
 import { multiWordObjectFilter } from '@jetstream/shared/utils';
-import { Checkbox, Combobox, ComboboxListItem, Grid, Icon } from '@jetstream/ui';
+import { Checkbox, Combobox, ComboboxListItem, Grid, Icon, Select } from '@jetstream/ui';
 import classNames from 'classnames';
 import isNil from 'lodash/isNil';
 import { Fragment, FunctionComponent, useEffect, useState } from 'react';
@@ -57,6 +57,7 @@ export const LoadRecordsFieldMappingRow: FunctionComponent<LoadRecordsFieldMappi
   const [visibleFields, setVisibleFields] = useState(fields);
 
   const [relatedTextFilter, setRelatedTextFilter] = useState<string>('');
+  const [selectedRelatedObject, setSelectedRelatedObject] = useState<string>(fieldMappingItem.selectedReferenceTo);
   const [visibleRelatedFields, setVisibleRelatedFields] = useState<FieldRelatedEntity[]>([]);
 
   useEffect(() => {
@@ -70,19 +71,38 @@ export const LoadRecordsFieldMappingRow: FunctionComponent<LoadRecordsFieldMappi
   // EXTERNAL ID FILTER
   useEffect(() => {
     if (fieldMappingItem.fieldMetadata) {
-      if (
-        !relatedTextFilter &&
-        Array.isArray(fieldMappingItem.fieldMetadata.relatedFields) &&
-        fieldMappingItem.fieldMetadata.relatedFields.length !== visibleRelatedFields.length
-      ) {
-        setVisibleRelatedFields(fieldMappingItem.fieldMetadata.relatedFields);
-      } else if (relatedTextFilter) {
-        setVisibleRelatedFields(
-          fieldMappingItem.fieldMetadata.relatedFields.filter(multiWordObjectFilter(['name', 'label'], relatedTextFilter))
-        );
+      if (relatedTextFilter) {
+        // related object changed, reset filter and related fields
+        if (selectedRelatedObject !== fieldMappingItem.selectedReferenceTo) {
+          setSelectedRelatedObject(fieldMappingItem.selectedReferenceTo);
+          setRelatedTextFilter('');
+          setVisibleRelatedFields(fieldMappingItem.fieldMetadata.relatedFields?.[fieldMappingItem.selectedReferenceTo] || []);
+        } else {
+          // apply filter
+          setVisibleRelatedFields(
+            fieldMappingItem.fieldMetadata.relatedFields[fieldMappingItem.selectedReferenceTo].filter(
+              multiWordObjectFilter(['name', 'label'], relatedTextFilter)
+            )
+          );
+        }
+      } else {
+        // if reference changed, then reset state
+        if (selectedRelatedObject !== fieldMappingItem.selectedReferenceTo) {
+          setSelectedRelatedObject(fieldMappingItem.selectedReferenceTo);
+          if (fieldMappingItem.selectedReferenceTo) {
+            setVisibleRelatedFields(fieldMappingItem.fieldMetadata.relatedFields[fieldMappingItem.selectedReferenceTo]);
+          }
+          // ensure that all values are shown since there is no filter
+        } else if (
+          fieldMappingItem.selectedReferenceTo &&
+          Array.isArray(fieldMappingItem.fieldMetadata.relatedFields?.[fieldMappingItem.selectedReferenceTo]) &&
+          fieldMappingItem.fieldMetadata.relatedFields[fieldMappingItem.selectedReferenceTo].length !== visibleRelatedFields.length
+        ) {
+          setVisibleRelatedFields(fieldMappingItem.fieldMetadata.relatedFields[fieldMappingItem.selectedReferenceTo]);
+        }
       }
     }
-  }, [fieldMappingItem, relatedTextFilter]);
+  }, [fieldMappingItem, relatedTextFilter, selectedRelatedObject]);
 
   function handleSelectionChanged(field: FieldWithRelatedEntities) {
     if (!field) {
@@ -91,6 +111,7 @@ export const LoadRecordsFieldMappingRow: FunctionComponent<LoadRecordsFieldMappi
         targetField: null,
         mappedToLookup: false,
         fieldMetadata: undefined,
+        selectedReferenceTo: undefined,
       });
     } else if (field.name !== fieldMappingItem.targetField) {
       onSelectionChanged(csvField, {
@@ -102,6 +123,17 @@ export const LoadRecordsFieldMappingRow: FunctionComponent<LoadRecordsFieldMappi
         fieldMetadata: field,
       });
     }
+  }
+
+  function handleRelatedObjectSelectionChanged(field: string) {
+    onSelectionChanged(csvField, {
+      ...fieldMappingItem,
+      mappedToLookup: true,
+      selectedReferenceTo: field,
+      targetLookupField: undefined,
+      relatedFieldMetadata: undefined,
+      relationshipName: undefined,
+    });
   }
 
   function handleRelatedSelectionChanged(field: FieldRelatedEntity) {
@@ -118,6 +150,7 @@ export const LoadRecordsFieldMappingRow: FunctionComponent<LoadRecordsFieldMappi
     onSelectionChanged(csvField, {
       ...fieldMappingItem,
       mappedToLookup: value,
+      selectedReferenceTo: fieldMappingItem.selectedReferenceTo || fieldMappingItem.fieldMetadata.referenceTo?.[0],
     });
   }
 
@@ -188,47 +221,76 @@ export const LoadRecordsFieldMappingRow: FunctionComponent<LoadRecordsFieldMappi
             </ComboboxListItem>
           ))}
         </Combobox>
-        {fieldMappingItem.targetField && Array.isArray(fieldMappingItem.fieldMetadata.relatedFields) && (
+        {fieldMappingItem.targetField && Array.isArray(fieldMappingItem.fieldMetadata.referenceTo) && (
           <Fragment>
             <div>
               <Checkbox
                 id={`${csvField}-${fieldMappingItem.targetField}-map-to-related`}
                 checked={fieldMappingItem.mappedToLookup}
                 label={'Map to External Id'}
-                labelHelp="You can choose an external Id on the related record instead of the Id to indicate which related record should be associated"
+                labelHelp="You can choose an external Id on the related record instead of the Id to indicate which related record should be associated."
                 onChange={handleMapToRelatedChanged}
               />
             </div>
             {fieldMappingItem.mappedToLookup && (
-              <Combobox
-                label="Related External Id Fields"
-                selectedItemLabel={getComboboxRelatedFieldName(fieldMappingItem.relatedFieldMetadata)}
-                selectedItemTitle={getComboboxRelatedFieldName(fieldMappingItem.relatedFieldMetadata)}
-                hideLabel
-                onInputChange={setRelatedTextFilter}
-              >
-                {visibleRelatedFields.map((field) => (
-                  <ComboboxListItem
-                    key={field.name}
-                    id={`${csvField}-${field.name}-related`}
-                    selected={field.name === fieldMappingItem.targetLookupField}
-                    onSelection={(value) => handleRelatedSelectionChanged(field)}
+              <Grid>
+                <div className="slds-m-right_small">
+                  <Select
+                    id={`${fieldMappingItem.targetField}-related-to`}
+                    label="Related Object"
+                    isRequired
+                    labelHelp={
+                      fieldMappingItem.fieldMetadata.referenceTo.length <= 1
+                        ? 'This option is only enabled for fields that have more than one related object.'
+                        : 'This lookup can point to multiple objects, choose the related object that you are mapping to.'
+                    }
                   >
-                    <span className="slds-listbox__option-text slds-listbox__option-text_entity">
-                      <Grid align="spread">
-                        <span title={field.label} className="slds-truncate">
-                          {field.label}
+                    <select
+                      className="slds-select"
+                      id={`${fieldMappingItem.targetField}-related-to`}
+                      disabled={fieldMappingItem.fieldMetadata.referenceTo.length <= 1}
+                      value={fieldMappingItem.selectedReferenceTo}
+                      onChange={(event) => handleRelatedObjectSelectionChanged(event.target.value)}
+                    >
+                      {fieldMappingItem.fieldMetadata.referenceTo.map((relatedObject) => (
+                        <option key={relatedObject} value={relatedObject}>
+                          {relatedObject}
+                        </option>
+                      ))}
+                    </select>
+                  </Select>
+                </div>
+                <div className="slds-grow">
+                  <Combobox
+                    label="Related External Id Fields"
+                    selectedItemLabel={getComboboxRelatedFieldName(fieldMappingItem.relatedFieldMetadata)}
+                    selectedItemTitle={getComboboxRelatedFieldName(fieldMappingItem.relatedFieldMetadata)}
+                    onInputChange={setRelatedTextFilter}
+                  >
+                    {visibleRelatedFields.map((field) => (
+                      <ComboboxListItem
+                        key={field.name}
+                        id={`${csvField}-${field.name}-related`}
+                        selected={field.name === fieldMappingItem.targetLookupField}
+                        onSelection={(value) => handleRelatedSelectionChanged(field)}
+                      >
+                        <span className="slds-listbox__option-text slds-listbox__option-text_entity">
+                          <Grid align="spread">
+                            <span title={field.label} className="slds-truncate">
+                              {field.label}
+                            </span>
+                          </Grid>
                         </span>
-                      </Grid>
-                    </span>
-                    <span className="slds-listbox__option-meta slds-listbox__option-meta_entity">
-                      <span title={field.name} className="slds-truncate">
-                        {field.name}
-                      </span>
-                    </span>
-                  </ComboboxListItem>
-                ))}
-              </Combobox>
+                        <span className="slds-listbox__option-meta slds-listbox__option-meta_entity">
+                          <span title={field.name} className="slds-truncate">
+                            {field.name}
+                          </span>
+                        </span>
+                      </ComboboxListItem>
+                    ))}
+                  </Combobox>
+                </div>
+              </Grid>
             )}
           </Fragment>
         )}
