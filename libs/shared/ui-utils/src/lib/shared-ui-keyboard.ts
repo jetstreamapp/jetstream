@@ -194,6 +194,10 @@ export function hasShiftModifierKey(event: KeyboardEvent<unknown>): boolean {
   return event.shiftKey;
 }
 
+export function hasCtrlOrMeta(event: KeyboardEvent<unknown>) {
+  return hasMetaModifierKey(event) || hasCtrlModifierKey(event);
+}
+
 // excludes shift
 export function hasModifierKey(event: KeyboardEvent<unknown>) {
   return hasAltModifierKey(event) || hasMetaModifierKey(event) || hasCtrlModifierKey(event);

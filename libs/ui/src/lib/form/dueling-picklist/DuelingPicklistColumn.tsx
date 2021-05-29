@@ -1,10 +1,26 @@
 /** @jsx jsx */
 // https://www.lightningdesignsystem.com/components/input/#Fixed-Text
 import { css, jsx } from '@emotion/react';
-import { isAKey, hasMetaModifierKey, hasCtrlModifierKey, useNonInitialEffect } from '@jetstream/shared/ui-utils';
+import { logger } from '@jetstream/shared/client-logger';
+import {
+  hasCtrlModifierKey,
+  hasCtrlOrMeta,
+  hasMetaModifierKey,
+  hasShiftModifierKey,
+  isAKey,
+  isArrowDownKey,
+  isArrowLeftKey,
+  isArrowRightKey,
+  isArrowUpKey,
+  isSpaceKey,
+  menuItemSelectScroll,
+  trapEvent,
+  useNonInitialEffect,
+} from '@jetstream/shared/ui-utils';
 import { UpDown } from '@jetstream/types';
 import classNames from 'classnames';
-import React, { forwardRef, KeyboardEvent, useImperativeHandle, useState } from 'react';
+import { isNumber } from 'lodash';
+import React, { createRef, forwardRef, KeyboardEvent, RefObject, useImperativeHandle, useRef, useState } from 'react';
 import { DuelingPicklistColumnRef, DuelingPicklistItem } from './DuelingPicklistTypes';
 
 export interface DuelingPicklistColumnProps {
@@ -12,14 +28,42 @@ export interface DuelingPicklistColumnProps {
   label: string;
   items: DuelingPicklistItem[];
   disabled?: boolean;
+  allowMoveDirection: 'LEFT' | 'RIGHT';
   onMove: (items: DuelingPicklistItem[]) => void;
   onSelection: (items: DuelingPicklistItem[]) => void;
   onMoveWithinList?: (items: DuelingPicklistItem[], direction: UpDown) => void;
 }
 
 export const DuelingPicklistColumn = forwardRef<any, DuelingPicklistColumnProps>(
-  ({ id, label, items, disabled, onMove, onMoveWithinList, onSelection }, ref) => {
+  ({ id, label, items, disabled, allowMoveDirection, onMove, onMoveWithinList, onSelection }, ref) => {
     const [selectedItems, setSelectedItems] = useState<DuelingPicklistItem[]>([]);
+    const [cursor, setCursor] = useState(0);
+    const divElRef = useRef<HTMLDivElement>();
+    const elRefs = useRef<RefObject<HTMLLIElement>[]>([]);
+
+    // if length of items changes, re-calc refs
+    if (elRefs.current.length !== items.length) {
+      // add or remove refs
+      elRefs.current = Array(items.length)
+        .fill(null)
+        .map((_, i) => elRefs.current[i] || createRef<HTMLLIElement>());
+    }
+
+    // ensure the selected item is scrolled into view
+    useNonInitialEffect(() => {
+      try {
+        if (elRefs.current && isNumber(cursor) && elRefs.current[cursor] && elRefs.current[cursor]) {
+          elRefs.current[cursor].current?.focus();
+        }
+        menuItemSelectScroll({
+          container: divElRef.current,
+          focusedIndex: cursor,
+          scrollPadding: 30,
+        });
+      } catch (ex) {
+        logger.log('Error with keyboard navigation', ex);
+      }
+    }, [cursor]);
 
     // if items are removed from list, make sure they are not marked as selected
     useNonInitialEffect(() => {
@@ -49,7 +93,7 @@ export const DuelingPicklistColumn = forwardRef<any, DuelingPicklistColumnProps>
       },
     }));
 
-    function handleSelection(event: React.MouseEvent<HTMLLIElement>, item: DuelingPicklistItem) {
+    function handleSelection(event: React.MouseEvent<HTMLLIElement>, item: DuelingPicklistItem, idx: number) {
       event.preventDefault();
       let newSelectedItems = [item];
       if (event.shiftKey && selectedItems.length > 0) {
@@ -69,7 +113,7 @@ export const DuelingPicklistColumn = forwardRef<any, DuelingPicklistColumnProps>
           newSelectedItems = selectedItems.concat(item);
         }
       }
-
+      setCursor(idx);
       setSelectedItems(newSelectedItems);
       onSelection(newSelectedItems);
     }
@@ -83,12 +127,89 @@ export const DuelingPicklistColumn = forwardRef<any, DuelingPicklistColumnProps>
       }
     }
 
+    function handleListNavigation(event: KeyboardEvent<HTMLLIElement>) {
+      let newCursor: number;
+      if (isArrowUpKey(event)) {
+        trapEvent(event);
+        if (cursor === 0) {
+          newCursor = items.length - 1;
+        } else {
+          newCursor = cursor - 1;
+        }
+      } else if (isArrowDownKey(event)) {
+        trapEvent(event);
+        if (cursor === items.length - 1) {
+          newCursor = 0;
+        } else {
+          newCursor = cursor + 1;
+        }
+      }
+
+      // ctrl/cmd + left/right moves item between lists (focus is supposed to remain on item, but not implemented)
+      if (hasCtrlOrMeta(event)) {
+        if (isSpaceKey(event)) {
+          // toggles selection on the focused option, in addition to previous selections
+          const selectedItem = items[cursor];
+          if (selectedItems.includes(items[cursor])) {
+            setSelectedItems([...selectedItems, selectedItem]);
+          } else {
+            setSelectedItems(selectedItems.filter((item) => item !== selectedItem));
+          }
+          return;
+        } else if ((isArrowRightKey(event) && allowMoveDirection === 'RIGHT') || (isArrowLeftKey(event) && allowMoveDirection === 'LEFT')) {
+          trapEvent(event);
+          // FIXME: this does not really work - probably because new elements are created after the focus?
+          // find new item to focus - remove moved item and find next closest element
+          const remainingItems = elRefs.current.filter((_, i) => i !== cursor);
+          if (cursor > remainingItems.length - 1) {
+            newCursor = Math.max(0, remainingItems.length - 1);
+          } else {
+            newCursor = cursor;
+          }
+          onMove(selectedItems);
+          setSelectedItems([]);
+          onSelection([]);
+          setCursor(newCursor);
+          remainingItems[newCursor].current?.focus();
+          return;
+        }
+      }
+
+      if (isNumber(newCursor)) {
+        setCursor(newCursor);
+        if (hasCtrlModifierKey(event)) {
+          // don't change selection, just focus for ctrl key
+          return;
+        }
+        if (hasShiftModifierKey(event)) {
+          // if a non-selected item now has focus, then add it to selection
+          const selectedItem = items[newCursor];
+          if (!selectedItems.includes(items[newCursor])) {
+            setSelectedItems([...selectedItems, selectedItem]);
+            onSelection([...selectedItems, selectedItem]);
+          }
+        } else {
+          // no modifier key, replace selection with new selection
+          setSelectedItems([items[newCursor]]);
+          onSelection([items[newCursor]]);
+        }
+      }
+    }
+
+    logger.log({
+      items,
+      allowMoveDirection,
+      selectedItems,
+      cursor,
+      elRefs,
+    });
+
     return (
       <div className="slds-dueling-list__column" onKeyDown={handleKeyDown}>
         <span className="slds-form-element__label" id={id}>
           {label}
         </span>
-        <div className={classNames('slds-dueling-list__options', { 'slds-is-disabled': disabled })}>
+        <div ref={divElRef} className={classNames('slds-dueling-list__options', { 'slds-is-disabled': disabled })}>
           <ul
             // aria-describedby="option-drag-label"
             aria-labelledby={id}
@@ -97,17 +218,19 @@ export const DuelingPicklistColumn = forwardRef<any, DuelingPicklistColumnProps>
             className="slds-listbox slds-listbox_vertical"
             role="listbox"
           >
-            {items.map((item) => {
+            {items.map((item, i) => {
               const selected = selectedItems.includes(item);
               return (
                 <li
+                  ref={elRefs.current[i]}
                   css={css`
                     user-select: none;
                   `}
                   key={item.value}
                   role="presentation"
                   className="slds-listbox__item"
-                  onClick={(event) => handleSelection(event, item)}
+                  onClick={(event) => handleSelection(event, item, i)}
+                  onKeyDown={handleListNavigation}
                 >
                   {/* TODO: drag/drop */}
                   {/* TODO: aria-selected */}
@@ -118,7 +241,7 @@ export const DuelingPicklistColumn = forwardRef<any, DuelingPicklistColumnProps>
                     aria-selected={selected}
                     // draggable
                     role="option"
-                    tabIndex={selected ? 0 : -1}
+                    tabIndex={cursor === i ? 0 : -1}
                   >
                     <span className="slds-media__body">
                       <span className="slds-truncate" title={item.label}>

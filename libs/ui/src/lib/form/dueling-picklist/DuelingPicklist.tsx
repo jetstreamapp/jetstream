@@ -189,6 +189,7 @@ export const DuelingPicklist: FunctionComponent<DuelingPicklistProps> = ({
             items={itemsLeft}
             label={labelLeft}
             disabled={disabled}
+            allowMoveDirection="RIGHT"
             onMove={handleSelect}
             onSelection={(items) => handleSelection('LEFT', items)}
           />
@@ -224,6 +225,7 @@ export const DuelingPicklist: FunctionComponent<DuelingPicklistProps> = ({
             items={itemsRight}
             label={labelRight}
             disabled={disabled}
+            allowMoveDirection="LEFT"
             onMove={handleDeselect}
             onSelection={(items) => handleSelection('RIGHT', items)}
             onMoveWithinList={handleReorderSelection}
