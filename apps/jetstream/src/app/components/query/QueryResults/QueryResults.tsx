@@ -250,11 +250,11 @@ export const QueryResults: FunctionComponent<QueryResultsProps> = React.memo(() 
     }
   }
 
-  function handleDidDownload(fileFormat: FileExtCsvXLSX, fileName: string) {
-    trackEvent(ANALYTICS_KEYS.query_DownloadResults, { source: 'BROWSER', fileFormat, isTooling });
+  function handleDidDownload(fileFormat: FileExtCsvXLSX, fileName: string, userOverrideFields: boolean) {
+    trackEvent(ANALYTICS_KEYS.query_DownloadResults, { source: 'BROWSER', fileFormat, isTooling, userOverrideFields });
   }
 
-  function handleDownloadFromServer(fileFormat: FileExtCsvXLSX, fileName: string) {
+  function handleDownloadFromServer(fileFormat: FileExtCsvXLSX, fileName: string, fields: string[]) {
     const jobs: AsyncJobNew<BulkDownloadJob>[] = [
       {
         type: 'BulkDownload',

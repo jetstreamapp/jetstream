@@ -6,6 +6,9 @@ import { MIME_TYPES } from '@jetstream/shared/constants';
 import { formatNumber, getFilename, isEnterKey, prepareCsvFile, prepareExcelFile, saveFile } from '@jetstream/shared/ui-utils';
 import { flattenRecords } from '@jetstream/shared/utils';
 import { FileExtCsv, FileExtCsvXLSXJson, FileExtJson, FileExtXLSX, MimeType, Record, SalesforceOrgUi } from '@jetstream/types';
+import DuelingPicklist from 'libs/ui/src/lib/form/dueling-picklist/DuelingPicklist';
+import { DuelingPicklistItem } from 'libs/ui/src/lib/form/dueling-picklist/DuelingPicklistTypes';
+import RadioButton from 'libs/ui/src/lib/form/radio/RadioButton';
 import { Fragment, FunctionComponent, KeyboardEvent, useEffect, useRef, useState } from 'react';
 import Input from '../form/input/Input';
 import Radio from '../form/radio/Radio';
@@ -30,14 +33,14 @@ export interface RecordDownloadModalProps {
   selectedRecords?: Record[];
   totalRecordCount?: number;
   onModalClose: (cancelled?: boolean) => void;
-  onDownload?: (fileFormat: FileExtCsvXLSXJson, fileName: string) => void;
-  onDownloadFromServer?: (fileFormat: FileExtCsvXLSXJson, fileName: string) => void;
+  onDownload?: (fileFormat: FileExtCsvXLSXJson, fileName: string, userOverrideFields: boolean) => void;
+  onDownloadFromServer?: (fileFormat: FileExtCsvXLSXJson, fileName: string, fields: string[]) => void;
 }
 
 export const RecordDownloadModal: FunctionComponent<RecordDownloadModalProps> = ({
   org,
   downloadModalOpen,
-  fields,
+  fields = [],
   records,
   filteredRecords,
   selectedRecords,
@@ -55,6 +58,19 @@ export const RecordDownloadModal: FunctionComponent<RecordDownloadModalProps> = 
   const [doFocusInput, setDoFocusInput] = useState<boolean>(true);
   const inputEl = useRef<HTMLInputElement>();
   const [filenameEmpty, setFilenameEmpty] = useState(false);
+
+  const [whichFields, setWhichFields] = useState<'all' | 'specified'>('all');
+  const [fieldOverrideFields, setFieldOverrideFields] = useState<DuelingPicklistItem[]>([]);
+  const [fieldOverrideSelectedFields, setFieldOverrideSelectedFields] = useState<string[]>([]);
+
+  useEffect(() => {
+    if (fields) {
+      setFieldOverrideFields(fields.map((field) => ({ label: field, value: field })));
+      setFieldOverrideSelectedFields([...fields]);
+    } else {
+      setFieldOverrideFields([]);
+    }
+  }, [fields]);
 
   useEffect(() => {
     if (!fileName && !filenameEmpty) {
@@ -92,16 +108,29 @@ export const RecordDownloadModal: FunctionComponent<RecordDownloadModalProps> = 
     setDownloadRecordsValue(hasMoreRecordsTemp ? RADIO_ALL_SERVER : RADIO_ALL_BROWSER);
   }, [totalRecordCount, records]);
 
+  function handleModalClose(cancelled?: boolean) {
+    onModalClose(cancelled);
+    if (whichFields !== 'all') {
+      setWhichFields('all');
+    }
+    if (fields) {
+      setFieldOverrideSelectedFields([...fields]);
+    }
+  }
+
   function handleDownload() {
-    // open modal
+    const fieldsToUse = whichFields === 'all' ? fields : fieldOverrideSelectedFields;
+    if (fieldsToUse.length === 0) {
+      return;
+    }
     try {
       const fileNameWithExt = `${fileName}.${fileFormat}`;
       if (downloadRecordsValue === RADIO_ALL_SERVER) {
         // emit event, which starts job, which downloads in the background
         if (onDownloadFromServer) {
-          onDownloadFromServer(fileFormat, fileNameWithExt);
+          onDownloadFromServer(fileFormat, fileNameWithExt, fieldsToUse);
         }
-        onModalClose();
+        handleModalClose();
       } else {
         let activeRecords = records;
         if (downloadRecordsValue === RADIO_FILTERED) {
@@ -109,17 +138,17 @@ export const RecordDownloadModal: FunctionComponent<RecordDownloadModalProps> = 
         } else if (downloadRecordsValue === RADIO_SELECTED) {
           activeRecords = selectedRecords;
         }
-        const data = flattenRecords(activeRecords, fields);
+        const data = flattenRecords(activeRecords, fieldsToUse);
         let mimeType: MimeType;
         let fileData;
         switch (fileFormat) {
           case 'xlsx': {
-            fileData = prepareExcelFile(data, fields);
+            fileData = prepareExcelFile(data, fieldsToUse);
             mimeType = MIME_TYPES.XLSX;
             break;
           }
           case 'csv': {
-            fileData = prepareCsvFile(data, fields);
+            fileData = prepareCsvFile(data, fieldsToUse);
             mimeType = MIME_TYPES.CSV;
             break;
           }
@@ -134,9 +163,9 @@ export const RecordDownloadModal: FunctionComponent<RecordDownloadModalProps> = 
 
         saveFile(fileData, fileNameWithExt, mimeType);
         if (onDownload) {
-          onDownload(fileFormat, fileNameWithExt);
+          onDownload(fileFormat, fileNameWithExt, whichFields === 'specified');
         }
-        onModalClose();
+        handleModalClose();
       }
     } catch (ex) {
       // TODO: show error message somewhere
@@ -164,7 +193,7 @@ export const RecordDownloadModal: FunctionComponent<RecordDownloadModalProps> = 
           header="Download Records"
           footer={
             <Fragment>
-              <button className="slds-button slds-button_neutral" onClick={() => onModalClose(true)}>
+              <button className="slds-button slds-button_neutral" onClick={() => handleModalClose(true)}>
                 Cancel
               </button>
               <button className="slds-button slds-button_brand" onClick={handleDownload} disabled={filenameEmpty}>
@@ -173,7 +202,7 @@ export const RecordDownloadModal: FunctionComponent<RecordDownloadModalProps> = 
             </Fragment>
           }
           skipAutoFocus
-          onClose={() => onModalClose(true)}
+          onClose={() => handleModalClose(true)}
         >
           <div>
             <RadioGroup label="Which Records" required className="slds-m-bottom_small">
@@ -265,6 +294,42 @@ export const RecordDownloadModal: FunctionComponent<RecordDownloadModalProps> = 
                 onKeyUp={handleKeyUp}
               />
             </Input>
+            {fileFormat !== 'json' && (
+              <Fragment>
+                <RadioGroup
+                  label="Include Which Fields"
+                  isButtonGroup
+                  labelHelp="Use this to limit or change the order of the fields included in your downloaded file."
+                >
+                  <RadioButton
+                    name="which-fields"
+                    label="All Fields"
+                    value="all"
+                    checked={whichFields === 'all'}
+                    onChange={(value) => setWhichFields('all')}
+                  />
+                  <RadioButton
+                    name="which-fields"
+                    label="Selected Fields"
+                    value="specified"
+                    checked={whichFields === 'specified'}
+                    onChange={(value) => setWhichFields('specified')}
+                  />
+                </RadioGroup>
+                {whichFields === 'specified' && (
+                  <DuelingPicklist
+                    label="Fields to include in download"
+                    labelHelp="Use shift and ctrl/cmd to select multiple fields and ctrl/cmd + a to select all items."
+                    isRequired
+                    items={fieldOverrideFields}
+                    initialSelectedItems={fieldOverrideSelectedFields}
+                    labelLeft="Ignored Fields"
+                    labelRight="Included Fields"
+                    onChange={setFieldOverrideSelectedFields}
+                  ></DuelingPicklist>
+                )}
+              </Fragment>
+            )}
           </div>
         </Modal>
       )}

@@ -27,6 +27,8 @@ export * from './lib/form/combobox/ComboboxWithItems';
 export * from './lib/form/date-time/DateTime';
 export * from './lib/form/date/DatePicker';
 export * from './lib/form/dropdown/DropDown';
+export * from './lib/form/dueling-picklist/DuelingPicklist';
+export * from './lib/form/dueling-picklist/DuelingPicklistTypes';
 export * from './lib/form/file-selector/FileSelector';
 export * from './lib/form/input/Input';
 export * from './lib/form/picklist/Picklist';

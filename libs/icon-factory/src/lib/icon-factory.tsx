@@ -81,6 +81,7 @@ import UtilityIcon_Switch from './icons/utility/Switch';
 import UtilityIcon_Sync from './icons/utility/Sync';
 import UtilityIcon_Task from './icons/utility/Task';
 import UtilityIcon_Undo from './icons/utility/Undo';
+import UtilityIcon_Up from './icons/utility/Up';
 import UtilityIcon_Upload from './icons/utility/Upload';
 import UtilityIcon_Warning from './icons/utility/Warning';
 
@@ -107,8 +108,8 @@ const doctypeIcons: DoctypeIconObj = {
 
 const utilityIcons: UtilityIconObj = {
   add: UtilityIcon_Add,
-  apex: UtilityIcon_Apex,
   apex_plugin: UtilityIcon_ApexPlugin,
+  apex: UtilityIcon_Apex,
   arrowdown: UtilityIcon_Arrowdown,
   arrowup: UtilityIcon_Arrowup,
   back: UtilityIcon_Back,
@@ -121,8 +122,8 @@ const utilityIcons: UtilityIconObj = {
   clock: UtilityIcon_Clock,
   close: UtilityIcon_Close,
   collapse_all: UtilityIcon_CollapseAll,
-  copy_to_clipboard: UtilityIcon_CopyToClipboard,
   component_customization: UtilityIcon_ComponentCustomization,
+  copy_to_clipboard: UtilityIcon_CopyToClipboard,
   copy: UtilityIcon_Copy,
   dash: UtilityIcon_Dash,
   date_time: UtilityIcon_DateTime,
@@ -135,9 +136,9 @@ const utilityIcons: UtilityIconObj = {
   expand_all: UtilityIcon_ExpandAll,
   fallback: UtilityIcon_Fallback,
   favorite: UtilityIcon_Favorite,
+  file: UtilityIcon_File,
   filter: UtilityIcon_Filter,
   filterList: UtilityIcon_FilterList,
-  file: UtilityIcon_File,
   forward: UtilityIcon_Forward,
   help: UtilityIcon_Help,
   info: UtilityIcon_Info,
@@ -149,23 +150,24 @@ const utilityIcons: UtilityIconObj = {
   notification: UtilityIcon_Notification,
   page: UtilityIcon_Page,
   play: UtilityIcon_Play,
-  prompt_edit: UtilityIcon_PromptEdit,
   preview: UtilityIcon_Preview,
+  prompt_edit: UtilityIcon_PromptEdit,
   record_lookup: UtilityIcon_RecordLookup,
   refresh: UtilityIcon_Refresh,
   right: UtilityIcon_Right,
   salesforce1: UtilityIcon_Salesforce1,
   save: UtilityIcon_Save,
   search: UtilityIcon_Search,
-  share: UtilityIcon_Share,
   settings: UtilityIcon_Settings,
   setup: UtilityIcon_Setup,
+  share: UtilityIcon_Share,
   steps: UtilityIcon_Steps,
   success: UtilityIcon_Success,
   switch: UtilityIcon_Switch,
   sync: UtilityIcon_Sync,
   task: UtilityIcon_Task,
   undo: UtilityIcon_Undo,
+  up: UtilityIcon_Up,
   upload: UtilityIcon_Upload,
   warning: UtilityIcon_Warning,
 };
