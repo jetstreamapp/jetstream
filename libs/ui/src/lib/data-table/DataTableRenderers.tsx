@@ -289,6 +289,9 @@ export const ActionRenderer: FunctionComponent<ICellRendererParams> = ({ node, c
       <button className="slds-button slds-button_icon" title="Clone Record" onClick={() => actions.clone(node.data)}>
         <Icon type="utility" icon="copy" className="slds-button__icon " omitContainer />
       </button>
+      <button className="slds-button slds-button_icon" title="Turn Record Into Apex" onClick={() => actions.getAsApex(node.data)}>
+        <Icon type="utility" icon="apex" className="slds-button__icon " omitContainer />
+      </button>
     </Fragment>
   );
 };

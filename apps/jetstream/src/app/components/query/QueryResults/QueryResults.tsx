@@ -38,10 +38,11 @@ import * as fromQueryHistory from '../QueryHistory/query-history.state';
 import QueryHistory from '../QueryHistory/QueryHistory';
 import IncludeDeletedRecordsToggle from '../QueryOptions/IncludeDeletedRecords';
 import useQueryRestore from '../utils/useQueryRestore';
-import QueryResultsActions from './QueryResultsActions';
+import QueryResultsGetRecAsApexModal from './QueryResultsGetRecAsApexModal';
 import QueryResultsSoqlPanel from './QueryResultsSoqlPanel';
 import QueryResultsViewRecordFields from './QueryResultsViewRecordFields';
 import { useQueryResultsFetchMetadata } from './useQueryResultsFetchMetadata';
+import ViewEditCloneRecord from './ViewEditCloneRecord';
 
 type SourceAction = 'STANDARD' | 'ORG_CHANGE' | 'BULK_DELETE' | 'HISTORY' | 'RECORD_ACTION' | 'MANUAL' | 'RELOAD';
 
@@ -90,6 +91,7 @@ export const QueryResults: FunctionComponent<QueryResultsProps> = React.memo(() 
   const confirm = useConfirmation();
 
   const [cloneEditViewRecord, setCloneEditViewRecord] = useState<{ action: CloneEditView; sobjectName: string; recordId: string }>();
+  const [getRecordAsApex, setGetRecordAsApex] = useState<{ record: any; sobjectName: string }>();
   const [restore] = useQueryRestore(soql, isTooling, { silent: true });
 
   const { fieldMetadata, fieldMetadataSubquery } = useQueryResultsFetchMetadata(selectedOrg, queryResults?.parsedQuery, isTooling);
@@ -311,6 +313,17 @@ export const QueryResults: FunctionComponent<QueryResultsProps> = React.memo(() 
     }
   }
 
+  function handleGetAsApex(record: any) {
+    setGetRecordAsApex({
+      record: record,
+      sobjectName: getSObjectNameFromAttributes(record),
+    });
+  }
+
+  function handleGetAsApexClose() {
+    setGetRecordAsApex(null);
+  }
+
   function handleRestoreFromHistory(soql: string, tooling) {
     history.push(`/query`, { soql, isTooling: tooling, fromHistory: true });
   }
@@ -330,7 +343,7 @@ export const QueryResults: FunctionComponent<QueryResultsProps> = React.memo(() 
         onDownloadFromServer={handleDownloadFromServer}
       />
       {cloneEditViewRecord && (
-        <QueryResultsActions
+        <ViewEditCloneRecord
           apiVersion={defaultApiVersion}
           selectedOrg={selectedOrg}
           action={cloneEditViewRecord.action}
@@ -338,6 +351,14 @@ export const QueryResults: FunctionComponent<QueryResultsProps> = React.memo(() 
           recordId={cloneEditViewRecord.recordId}
           onClose={handleCloseEditCloneModal}
           onChangeAction={handleChangeAction}
+        />
+      )}
+      {getRecordAsApex && (
+        <QueryResultsGetRecAsApexModal
+          org={selectedOrg}
+          record={getRecordAsApex.record}
+          sobjectName={getRecordAsApex.sobjectName}
+          onClose={handleGetAsApexClose}
         />
       )}
       <Toolbar>
@@ -493,6 +514,9 @@ export const QueryResults: FunctionComponent<QueryResultsProps> = React.memo(() 
                 }}
                 onView={(record) => {
                   handleCloneEditView(record, 'view');
+                }}
+                onGetAsApex={(record) => {
+                  handleGetAsApex(record);
                 }}
               />
             </Fragment>

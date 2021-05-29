@@ -28,7 +28,7 @@ import {
   validateEditForm,
 } from '../utils/query-utils';
 
-export interface QueryResultsActionsProps {
+export interface ViewEditCloneRecordProps {
   apiVersion: string;
   selectedOrg: SalesforceOrgUi;
   action: CloneEditView;
@@ -59,7 +59,7 @@ function mockPicklistValues(sobjectMetadata: ApiResponse<DescribeSObjectResult>)
     }, {});
 }
 
-export const QueryResultsActions: FunctionComponent<QueryResultsActionsProps> = ({
+export const ViewEditCloneRecord: FunctionComponent<ViewEditCloneRecordProps> = ({
   apiVersion,
   selectedOrg,
   action,
@@ -366,4 +366,4 @@ export const QueryResultsActions: FunctionComponent<QueryResultsActionsProps> = 
   );
 };
 
-export default QueryResultsActions;
+export default ViewEditCloneRecord;
