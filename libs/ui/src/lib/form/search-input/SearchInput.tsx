@@ -13,6 +13,7 @@ export interface SearchInputProps {
   autoFocus?: boolean;
   // this can generally be omitted, but can be used to control the value
   value?: string;
+  disabled?: boolean;
   onChange: (value: string) => void;
   onArrowKeyUpDown?: (direction: UpDown) => void;
 }
@@ -23,6 +24,7 @@ export const SearchInput: FunctionComponent<SearchInputProps> = ({
   placeholder,
   autoFocus,
   value: incomingValue = '',
+  disabled,
   onChange,
   onArrowKeyUpDown,
   children,
@@ -75,6 +77,7 @@ export const SearchInput: FunctionComponent<SearchInputProps> = ({
         value={value}
         autoFocus={autoFocus}
         autoComplete="off"
+        disabled={disabled}
         onChange={(event) => setValue(event.currentTarget.value)}
         onKeyUp={handleKeyUp}
       />

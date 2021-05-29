@@ -5,7 +5,20 @@ import { ANALYTICS_KEYS, INDEXED_DB } from '@jetstream/shared/constants';
 import { anonymousApex } from '@jetstream/shared/data';
 import { useDebounce, useNonInitialEffect, useRollbar } from '@jetstream/shared/ui-utils';
 import { ApexHistoryItem, MapOf, SalesforceOrgUi } from '@jetstream/types';
-import { AutoFullHeightContainer, Badge, Card, CodeEditor, CopyToClipboard, Grid, Icon, Spinner } from '@jetstream/ui';
+import {
+  AutoFullHeightContainer,
+  Badge,
+  Card,
+  Checkbox,
+  CheckboxToggle,
+  CodeEditor,
+  CopyToClipboard,
+  Grid,
+  GridCol,
+  Icon,
+  SearchInput,
+  Spinner,
+} from '@jetstream/ui';
 import localforage from 'localforage';
 import { FunctionComponent, useCallback, useEffect, useRef, useState } from 'react';
 import Split from 'react-split';
@@ -16,6 +29,8 @@ import AnonymousApexHistory from './AnonymousApexHistory';
 import * as fromApexState from './apex.state';
 import { useApexCompletions } from './useApexCompletions';
 require('codemirror/theme/monokai.css');
+
+const USER_DEBUG_REGEX = /\|USER_DEBUG\|/;
 
 // eslint-disable-next-line @typescript-eslint/no-empty-interface
 export interface AnonymousApexProps {}
@@ -32,6 +47,10 @@ export const AnonymousApex: FunctionComponent<AnonymousApexProps> = () => {
   const [historyItems, setHistoryItems] = useRecoilState(fromApexState.apexHistoryState);
   const debouncedApex = useDebounce(apex, 1000);
   const { hint } = useApexCompletions(selectedOrg);
+
+  const [userDebug, setUserDebug] = useState(false);
+  const [textFilter, setTextFilter] = useState<string>('');
+  const [visibleResults, setVisibleResults] = useState<string>('');
 
   useEffect(() => {
     isMounted.current = true;
@@ -54,9 +73,29 @@ export const AnonymousApex: FunctionComponent<AnonymousApexProps> = () => {
     }
   }, [historyItems]);
 
+  useEffect(() => {
+    setVisibleResults(results || '');
+  }, [results]);
+
+  useEffect(() => {
+    let currResults = results.split('\n');
+    // remove non user-debug lines
+    if (userDebug && currResults) {
+      currResults = currResults.filter((line) => USER_DEBUG_REGEX.test(line));
+    }
+    // apply text filter
+    if (textFilter && results) {
+      const textFilterRegex = new RegExp(textFilter, 'i');
+      currResults = currResults.filter((line) => textFilterRegex.test(line));
+    }
+    setVisibleResults(currResults.join('\n'));
+  }, [results, userDebug, textFilter]);
+
   const onSubmit = useCallback(async () => {
     setLoading(true);
     setResults('');
+    setTextFilter('');
+    setUserDebug(false);
     setResultsStatus({ hasResults: false, success: false, label: null });
     try {
       const { result, debugLog } = await anonymousApex(selectedOrg, apex);
@@ -107,6 +146,7 @@ export const AnonymousApex: FunctionComponent<AnonymousApexProps> = () => {
       >
         <div className="slds-p-horizontal_x-small">
           <Card
+            className="h-100"
             title="Anonymous Apex"
             actions={
               <Grid>
@@ -143,6 +183,7 @@ export const AnonymousApex: FunctionComponent<AnonymousApexProps> = () => {
         </div>
         <div className="slds-p-horizontal_x-small slds-is-relative">
           <Card
+            className="h-100"
             title={
               <div>
                 Results
@@ -166,9 +207,21 @@ export const AnonymousApex: FunctionComponent<AnonymousApexProps> = () => {
             actions={<CopyToClipboard type="button" content={results} disabled={!results} />}
           >
             {loading && <Spinner />}
+            <Grid verticalAlign="center" className="slds-m-bottom_x-small" gutters={false}>
+              <div className="slds-grow slds-m-right_small">
+                <SearchInput id="log-filter" placeholder="Filter logs" disabled={!resultsStatus.hasResults} onChange={setTextFilter} />
+              </div>
+              <Checkbox
+                id={`anon-apex-user-debug`}
+                label="Limit to User Debug"
+                checked={userDebug}
+                disabled={!resultsStatus.hasResults}
+                onChange={setUserDebug}
+              />
+            </Grid>
             <CodeEditor
               className="CodeMirror-full-height CodeMirror-textarea"
-              value={results}
+              value={visibleResults}
               size={{ height: '80vh' }}
               options={{
                 mode: 'text',
