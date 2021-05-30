@@ -2,8 +2,10 @@ import { IconObj } from '@jetstream/icon-factory';
 import { DATE_FORMATS } from '@jetstream/shared/constants';
 import { pluralizeFromNumber } from '@jetstream/shared/utils';
 import { QueryHistoryItem } from '@jetstream/types';
-import { Card, CheckboxButton, CodeEditor, CopyToClipboard, Grid, GridCol, Icon, Textarea } from '@jetstream/ui';
+import { Card, CheckboxButton, CopyToClipboard, Grid, GridCol, Icon, Textarea } from '@jetstream/ui';
+import Editor from '@monaco-editor/react';
 import formatDate from 'date-fns/format';
+import clamp from 'lodash/clamp';
 import React, { Fragment, FunctionComponent, useEffect, useRef, useState } from 'react';
 import { Link, useRouteMatch } from 'react-router-dom';
 import RestoreQuery from '../QueryBuilder/RestoreQuery';
@@ -11,7 +13,8 @@ import RestoreQuery from '../QueryBuilder/RestoreQuery';
 const SOBJECT_QUERY_ICON: IconObj = { type: 'standard', icon: 'record_lookup', description: 'Object Query' };
 const METADATA_QUERY_ICON: IconObj = { type: 'standard', icon: 'settings', description: 'Metadata Query' };
 
-// eslint-disable-next-line @typescript-eslint/no-empty-interface
+const REM_PER_LINE = 1.1;
+
 export interface QueryHistoryItemCardProps {
   item: QueryHistoryItem;
   onExecute: (item: QueryHistoryItem) => void;
@@ -27,9 +30,11 @@ export const QueryHistoryItemCard: FunctionComponent<QueryHistoryItemCardProps> 
   startRestore,
   endRestore,
 }) => {
+  const { sObject, label, soql, isTooling, runCount, lastRun } = item;
   const isMounted = useRef(null);
   const match = useRouteMatch();
   const [readyToRenderCode, setReadyToRenderCode] = useState(false);
+  const [lineCount, setLineCount] = useState(Math.max(soql.split('\n').length, 2));
 
   useEffect(() => {
     isMounted.current = true;
@@ -44,7 +49,11 @@ export const QueryHistoryItemCard: FunctionComponent<QueryHistoryItemCardProps> 
     });
   }, []);
 
-  const { sObject, label, soql, isTooling, runCount, lastRun } = item;
+  useEffect(() => {
+    if (soql) {
+      setLineCount(Math.max(soql.split('\n').length, 2));
+    }
+  }, [soql]);
 
   return (
     <Fragment>
@@ -119,13 +128,23 @@ export const QueryHistoryItemCard: FunctionComponent<QueryHistoryItemCardProps> 
                       </span>
                     }
                   >
-                    <CodeEditor
-                      className="CodeMirror-full-height"
+                    <Editor
+                      height={`${clamp(lineCount * REM_PER_LINE, 2, 11)}rem`}
+                      language="sql"
                       value={soql}
-                      readOnly
-                      size={{ height: 'auto' }}
-                      shouldRefresh={readyToRenderCode}
-                      options={{ tabSize: 2 }}
+                      options={{
+                        readOnly: true,
+                        minimap: { enabled: false },
+                        contextmenu: false,
+                        lineNumbers: 'off',
+                        glyphMargin: false,
+                        folding: false,
+                        lineDecorationsWidth: 0,
+                        lineNumbersMinChars: 0,
+                        selectionHighlight: false,
+                        renderLineHighlight: 'none',
+                        scrollBeyondLastLine: false,
+                      }}
                     />
                   </Textarea>
                 </div>

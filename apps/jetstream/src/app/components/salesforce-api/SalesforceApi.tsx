@@ -14,7 +14,6 @@ import { useAmplitude } from '../core/analytics';
 import * as fromSalesforceApiHistory from './salesforceApi.state';
 import SalesforceApiRequest from './SalesforceApiRequest';
 import SalesforceApiResponse from './SalesforceApiResponse';
-require('codemirror/theme/monokai.css');
 
 // eslint-disable-next-line @typescript-eslint/no-empty-interface
 export interface SalesforceApiProps {}

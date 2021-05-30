@@ -4,14 +4,15 @@ import { logger } from '@jetstream/shared/client-logger';
 import { describeSObject } from '@jetstream/shared/data';
 import { useNonInitialEffect } from '@jetstream/shared/ui-utils';
 import { MapOf, SalesforceOrgUi } from '@jetstream/types';
-import { CodeEditor, Grid, GridCol, Icon, Modal, Spinner } from '@jetstream/ui';
+import { Grid, GridCol, Icon, Modal, Spinner } from '@jetstream/ui';
+import Editor from '@monaco-editor/react';
 import copyToClipboard from 'copy-to-clipboard';
 import { Field, FieldType } from 'jsforce';
-import { FunctionComponent, useCallback, useEffect, useState } from 'react';
+import { editor } from 'monaco-editor';
+import { FunctionComponent, useCallback, useEffect, useRef, useState } from 'react';
 import { recordToApex, RecordToApexOptionsInitialOptions } from '../utils/query-apex-utils';
 import QueryResultsGetRecAsApexFieldOptions from './QueryResultsGetRecAsApexFieldOptions';
 import QueryResultsGetRecAsApexGenerateOptions from './QueryResultsGetRecAsApexGenerateOptions';
-require('codemirror/theme/monokai.css');
 
 export interface QueryResultsGetRecAsApexModalProps {
   org: SalesforceOrgUi;
@@ -26,6 +27,7 @@ export const QueryResultsGetRecAsApexModal: FunctionComponent<QueryResultsGetRec
   sobjectName,
   onClose,
 }) => {
+  const editorRef = useRef<editor.IStandaloneCodeEditor>(null);
   const [loading, setLoading] = useState(false);
   const [hasError, setHasError] = useState(false);
   const [fieldMetadata, setFieldMetadata] = useState<Field[]>([]);
@@ -86,6 +88,10 @@ export const QueryResultsGetRecAsApexModal: FunctionComponent<QueryResultsGetRec
     copyToClipboard(apex, { format: 'text/plain' });
   }
 
+  function handleEditorChange(value, event) {
+    setApex(value);
+  }
+
   return (
     <Modal
       header="Turn Record Into Apex"
@@ -135,21 +141,13 @@ export const QueryResultsGetRecAsApexModal: FunctionComponent<QueryResultsGetRec
               `}
             >
               {fields.length > 0 && (
-                <CodeEditor
-                  css={css`
-                    height: 100%;
-                  `}
-                  className="CodeMirror-full-height CodeMirror-textarea"
-                  lineNumbers
+                <Editor
+                  height="100%"
+                  theme="vs-dark"
+                  defaultLanguage="apex"
                   value={apex}
-                  readOnly
-                  size={{ height: '100%' }}
-                  options={{
-                    mode: 'text/x-java',
-                    theme: 'monokai',
-                    tabSize: options.tabSize || 2,
-                    indentWithTabs: options.indentation === 'tabs',
-                  }}
+                  options={{ contextmenu: false }}
+                  onChange={handleEditorChange}
                 />
               )}
             </GridCol>

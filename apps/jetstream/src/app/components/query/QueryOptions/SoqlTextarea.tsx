@@ -1,9 +1,9 @@
-import { CodeEditor, Grid, GridCol, Textarea } from '@jetstream/ui';
+import { Grid, GridCol, Textarea } from '@jetstream/ui';
+import Editor from '@monaco-editor/react';
 import React, { Fragment, FunctionComponent } from 'react';
 import IncludeDeletedRecordsToggle from './IncludeDeletedRecords';
 import ManualSoql from './ManualSoql';
 
-// eslint-disable-next-line @typescript-eslint/no-empty-interface
 export interface SoqlTextareaProps {
   soql: string;
   isTooling: boolean;
@@ -13,7 +13,23 @@ export const SoqlTextarea: FunctionComponent<SoqlTextareaProps> = React.memo(({ 
   return (
     <Fragment>
       <Textarea id="soql-textarea" label="Generated SOQL">
-        <CodeEditor className="CodeMirror-textarea" options={{ tabSize: 2 }} value={soql} readOnly />
+        <Editor
+          className="slds-border_top slds-border_right slds-border_bottom slds-border_left"
+          height="300px"
+          language="sql"
+          value={soql}
+          options={{
+            readOnly: true,
+            minimap: { enabled: false },
+            contextmenu: false,
+            lineNumbers: 'off',
+            glyphMargin: false,
+            folding: false,
+            selectionHighlight: false,
+            renderLineHighlight: 'none',
+            scrollBeyondLastLine: false,
+          }}
+        />
       </Textarea>
       <Grid verticalAlign="center">
         <ManualSoql isTooling={isTooling} generatedSoql={soql} />

@@ -4,21 +4,15 @@ import { logger } from '@jetstream/shared/client-logger';
 import { HTTP, INDEXED_DB, MIME_TYPES } from '@jetstream/shared/constants';
 import { useDebounce, useNonInitialEffect } from '@jetstream/shared/ui-utils';
 import { HttpMethod, MapOf, SalesforceApiHistoryItem, SalesforceApiHistoryRequest, SalesforceOrgUi } from '@jetstream/types';
-import { Card, CodeEditor, Grid, HelpText, Icon, RadioButton, RadioGroup, Tooltip } from '@jetstream/ui';
-import { Editor } from 'codemirror';
+import { Card, Grid, HelpText, Icon, RadioButton, RadioGroup, Tooltip } from '@jetstream/ui';
+import Editor from '@monaco-editor/react';
 import localforage from 'localforage';
-import { FunctionComponent, useReducer, useState } from 'react';
+import { editor, KeyCode, KeyMod } from 'monaco-editor';
+import { FunctionComponent, useReducer, useRef, useState } from 'react';
 import { useRecoilValue } from 'recoil';
 import * as fromSalesforceApiHistory from './salesforceApi.state';
 import SalesforceApiHistory from './SalesforceApiHistory';
 import SalesforceApiUserInput from './SalesforceApiUserInput';
-import { useEditorErrorMessage } from './useEditorErrorMessage';
-import { useHeaderCompletions } from './useHeaderCompletions';
-// FIXME: need to install json-lint for this to work - we need to tell the user they have invalid JSON (but what about text body?paustint)
-// view-source:https://codemirror.net/demo/lint.html
-// require('codemirror/addon/lint/lint');
-// require('codemirror/addon/lint/json-lint');
-// require('codemirror/addon/lint/lint.css');
 
 type JsonText = 'JSON' | 'TEXT';
 type Action =
@@ -83,12 +77,12 @@ export const SalesforceApiRequest: FunctionComponent<SalesforceApiRequestProps> 
   selectedOrg,
   onSubmit,
 }) => {
+  const headerRef = useRef<editor.IStandaloneCodeEditor>(null);
+  const bodyRef = useRef<editor.IStandaloneCodeEditor>(null);
   const [url, setUrl] = useState(() => getDefaultUrl(selectedOrg, defaultApiVersion));
   const [method, setMethod] = useState<HttpMethod>(_priorRequest?.method || 'GET');
   const [headers, setHeaders] = useState(() => _priorRequest?.headers || JSON.stringify(DEFAULT_HEADERS, null, 2));
   const [body, setBody] = useState(() => _priorRequest?.body || DEFAULT_BODY);
-  const [headersCodeEditorInstance, setHeadersCodeEditorInstance] = useState<Editor>();
-  const [bodyCodeEditorInstance, setBodyCodeEditorInstance] = useState<Editor>();
   const [{ headersErrorMessage, bodyErrorMessage }, dispatch] = useReducer(errorMessageReducer, {});
   const [bodyType, setBodyType] = useState<JsonText>(_priorRequest?.bodyType || 'JSON');
   const historyItems = useRecoilValue(fromSalesforceApiHistory.salesforceApiHistoryState);
@@ -96,11 +90,6 @@ export const SalesforceApiRequest: FunctionComponent<SalesforceApiRequestProps> 
   const debouncedUrl = useDebounce(url, 300);
   const debouncedHeaders = useDebounce(headers, 300);
   const debouncedBody = useDebounce(body, 300);
-
-  // add/remove error message in editor
-  useEditorErrorMessage(headersCodeEditorInstance, headersErrorMessage);
-  useEditorErrorMessage(bodyCodeEditorInstance, bodyErrorMessage);
-  const { hint } = useHeaderCompletions();
 
   useNonInitialEffect(() => {
     (async () => {
@@ -130,10 +119,11 @@ export const SalesforceApiRequest: FunctionComponent<SalesforceApiRequestProps> 
     };
   }, [debouncedUrl, debouncedHeaders, debouncedBody, method, bodyType]);
 
-  function handleSubmit() {
+  function handleSubmit(values?: { headers: string; body: string }) {
     if (!loading && !headersErrorMessage && !bodyErrorMessage) {
+      values = values || { headers, body };
       try {
-        onSubmit({ url, method, headers: JSON.parse(headers) || {}, body: method === 'GET' ? '' : body, bodyType });
+        onSubmit({ url, method, headers: JSON.parse(values.headers) || {}, body: method === 'GET' ? '' : values.body, bodyType });
       } catch (ex) {
         // This should not happen as we check for valid headers prior to getting here
       }
@@ -148,6 +138,31 @@ export const SalesforceApiRequest: FunctionComponent<SalesforceApiRequestProps> 
     setBodyType(request.bodyType);
   }
 
+  function handleHeaderEditorMount(ed: editor.IStandaloneCodeEditor) {
+    headerRef.current = ed;
+    headerRef.current.addAction({
+      id: 'modifier-enter',
+      label: 'Submit',
+      keybindings: [KeyMod.CtrlCmd | KeyCode.Enter],
+      run: (ed) => {
+        handleSubmit({ headers: ed.getValue(), body });
+      },
+    });
+  }
+
+  function handleBodyEditorMount(ed: editor.IStandaloneCodeEditor) {
+    bodyRef.current = ed;
+    bodyRef.current.addAction({
+      id: 'modifier-enter',
+      label: 'Submit',
+      keybindings: [KeyMod.CtrlCmd | KeyCode.Enter],
+      run: (ed) => {
+        setBody(ed.getValue());
+        handleSubmit({ headers, body: ed.getValue() });
+      },
+    });
+  }
+
   return (
     <Card
       title="Salesforce API Request"
@@ -156,7 +171,7 @@ export const SalesforceApiRequest: FunctionComponent<SalesforceApiRequestProps> 
           <SalesforceApiHistory className="slds-col" disabled={loading} onHistorySelected={handleRestoreFromHistory} />
           <button
             className="slds-button slds-button_brand"
-            onClick={handleSubmit}
+            onClick={() => handleSubmit()}
             title="alt/cmd + enter"
             disabled={loading || !!headersErrorMessage || !!bodyErrorMessage}
           >
@@ -184,29 +199,14 @@ export const SalesforceApiRequest: FunctionComponent<SalesforceApiRequestProps> 
             </Tooltip>
           )}
         </Grid>
-        <CodeEditor
-          className="CodeMirror-full-height CodeMirror-textarea"
+        <Editor
+          height="150px"
+          theme="vs-dark"
+          language="json"
           value={headers}
-          lineNumbers
-          size={{ height: `150px` }}
-          options={{
-            mode: { name: 'javascript', json: true },
-            tabSize: 2,
-            gutters: ['CodeMirror-lint-markers'],
-            lint: true,
-            theme: 'monokai',
-            matchBrackets: true,
-            autoCloseBrackets: true,
-            showCursorWhenSelecting: true,
-            extraKeys: {
-              'Ctrl-Space': 'autocomplete',
-              'Alt-Enter': handleSubmit,
-              'Meta-Enter': handleSubmit,
-            },
-            hintOptions: { hint, completeSingle: false },
-          }}
-          onInstance={setHeadersCodeEditorInstance}
-          onChange={setHeaders}
+          options={{ minimap: { enabled: false }, scrollBeyondLastLine: false }}
+          onMount={handleHeaderEditorMount}
+          onChange={(value) => setHeaders(value)}
         />
         <Grid
           verticalAlign="end"
@@ -257,28 +257,16 @@ export const SalesforceApiRequest: FunctionComponent<SalesforceApiRequestProps> 
               background-color: green;
             `}
           />
-          <CodeEditor
-            className="CodeMirror-full-height CodeMirror-textarea"
+          <Editor
+            height="60vh"
+            theme="vs-dark"
+            language={bodyType === 'TEXT' ? 'plaintext' : 'json'}
             value={body}
-            lineNumbers
-            size={{ height: '60vh' }}
-            readOnly={method === 'GET' ? 'nocursor' : false}
             options={{
-              mode: bodyType === 'TEXT' ? 'null' : { name: 'javascript', json: true },
-              tabSize: 2,
-              gutters: ['CodeMirror-lint-markers'],
-              lint: true,
-              theme: 'monokai',
-              matchBrackets: true,
-              autoCloseBrackets: true,
-              showCursorWhenSelecting: true,
-              extraKeys: {
-                'Alt-Enter': handleSubmit,
-                'Meta-Enter': handleSubmit,
-              },
+              readOnly: method === 'GET',
             }}
-            onInstance={setBodyCodeEditorInstance}
-            onChange={setBody}
+            onMount={handleBodyEditorMount}
+            onChange={(value) => setBody(value)}
           />
         </div>
       </div>

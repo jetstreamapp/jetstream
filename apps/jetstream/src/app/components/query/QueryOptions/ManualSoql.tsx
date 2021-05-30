@@ -1,9 +1,11 @@
 /** @jsx jsx */
 import { jsx } from '@emotion/react';
 import { ANALYTICS_KEYS } from '@jetstream/shared/constants';
-import { CheckboxToggle, CodeEditor, Grid, GridCol, Icon, Popover, Spinner, Textarea } from '@jetstream/ui';
+import { CheckboxToggle, Grid, GridCol, Icon, Popover, Spinner, Textarea } from '@jetstream/ui';
+import Editor from '@monaco-editor/react';
+import { editor, KeyCode, KeyMod } from 'monaco-editor';
 import { Fragment, FunctionComponent, useEffect, useRef, useState } from 'react';
-import { Link, useRouteMatch } from 'react-router-dom';
+import { Link, useHistory, useLocation, useRouteMatch } from 'react-router-dom';
 import { formatQuery, isQueryValid } from 'soql-parser-js';
 import { useAmplitude } from '../../core/analytics';
 import RestoreQuery from '../QueryBuilder/RestoreQuery';
@@ -48,6 +50,8 @@ const InvalidQuery = () => {
 
 export const ManualSoql: FunctionComponent<ManualSoqlProps> = ({ className, isTooling = false, generatedSoql }) => {
   const isMounted = useRef(null);
+  const editorRef = useRef<editor.IStandaloneCodeEditor>(null);
+  const history = useHistory();
   const { trackEvent } = useAmplitude();
   const match = useRouteMatch();
   const [isOpen, setIsOpen] = useState<boolean>(false);
@@ -106,6 +110,33 @@ export const ManualSoql: FunctionComponent<ManualSoqlProps> = ({ className, isTo
     setSoql(formatQuery(soql, { fieldMaxLineLength: 80 }));
   }
 
+  function handleEditorMount(ed: editor.IStandaloneCodeEditor) {
+    editorRef.current = ed;
+    ed.focus();
+    ed.setSelection(ed.getModel().getFullModelRange());
+    editorRef.current.addAction({
+      id: 'modifier-enter',
+      label: 'Submit',
+      keybindings: [KeyMod.CtrlCmd | KeyCode.Enter],
+      run: (ed) => {
+        history.push(`${match.url}/results`, {
+          isTooling: userTooling,
+          soql: ed.getValue(),
+        });
+      },
+    });
+    editorRef.current.addAction({
+      id: 'format',
+      label: 'Format',
+      keybindings: [KeyMod.Shift | KeyMod.Alt | KeyCode.KEY_F],
+      contextMenuGroupId: '9_cutcopypaste',
+      run: (ed) => {
+        setSoql(formatQuery(ed.getValue(), { fieldMaxLineLength: 80 }));
+      },
+    });
+    editorRef.current.createContextKey;
+  }
+
   return (
     <div className={className}>
       <Popover
@@ -133,7 +164,22 @@ export const ManualSoql: FunctionComponent<ManualSoqlProps> = ({ className, isTo
                 </Grid>
               }
             >
-              <CodeEditor className="CodeMirror-textarea" value={soql} options={{ tabSize: 2 }} onChange={setSoql} />
+              {/* Cannot be dark as it changes all other editors on screen */}
+              <Editor
+                className="slds-border_top slds-border_right slds-border_bottom slds-border_left"
+                height="300px"
+                language="sql"
+                value={soql}
+                options={{
+                  minimap: { enabled: false },
+                  lineNumbers: 'off',
+                  glyphMargin: false,
+                  folding: false,
+                  scrollBeyondLastLine: false,
+                }}
+                onMount={handleEditorMount}
+                onChange={(value) => setSoql(value)}
+              />
             </Textarea>
             <Grid className="slds-m-top_xx-small">
               <div>
