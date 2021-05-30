@@ -5,38 +5,31 @@ import { ANALYTICS_KEYS, INDEXED_DB } from '@jetstream/shared/constants';
 import { anonymousApex } from '@jetstream/shared/data';
 import { useDebounce, useNonInitialEffect, useRollbar } from '@jetstream/shared/ui-utils';
 import { ApexHistoryItem, MapOf, SalesforceOrgUi } from '@jetstream/types';
-import {
-  AutoFullHeightContainer,
-  Badge,
-  Card,
-  Checkbox,
-  CheckboxToggle,
-  CodeEditor,
-  CopyToClipboard,
-  Grid,
-  GridCol,
-  Icon,
-  SearchInput,
-  Spinner,
-} from '@jetstream/ui';
+import { AutoFullHeightContainer, Badge, Card, CopyToClipboard, Grid, Icon, Spinner } from '@jetstream/ui';
+import Editor from '@monaco-editor/react';
+import AnonymousApexFilter from 'apps/jetstream/src/app/components/anonymous-apex/AnonymousApexFilter';
 import localforage from 'localforage';
-import { FunctionComponent, useCallback, useEffect, useRef, useState } from 'react';
+import { editor, KeyCode, KeyMod } from 'monaco-editor';
+import { Fragment, FunctionComponent, useCallback, useEffect, useRef, useState } from 'react';
 import Split from 'react-split';
 import { useRecoilState, useRecoilValue } from 'recoil';
 import { selectedOrgState, STORAGE_KEYS } from '../../app-state';
 import { useAmplitude } from '../core/analytics';
 import AnonymousApexHistory from './AnonymousApexHistory';
 import * as fromApexState from './apex.state';
-import { useApexCompletions } from './useApexCompletions';
-require('codemirror/theme/monokai.css');
+// import { useApexCompletions } from './useApexCompletions';
 
 const USER_DEBUG_REGEX = /\|USER_DEBUG\|/;
+
+// TODO: ADD COMPLETIONS - useApexCompletions() need to refactor for monaco
 
 // eslint-disable-next-line @typescript-eslint/no-empty-interface
 export interface AnonymousApexProps {}
 
 export const AnonymousApex: FunctionComponent<AnonymousApexProps> = () => {
   const isMounted = useRef(null);
+  const apexRef = useRef<editor.IStandaloneCodeEditor>(null);
+  const logRef = useRef<editor.IStandaloneCodeEditor>(null);
   const { trackEvent } = useAmplitude();
   const rollbar = useRollbar();
   const selectedOrg = useRecoilValue<SalesforceOrgUi>(selectedOrgState);
@@ -46,7 +39,7 @@ export const AnonymousApex: FunctionComponent<AnonymousApexProps> = () => {
   const [loading, setLoading] = useState(false);
   const [historyItems, setHistoryItems] = useRecoilState(fromApexState.apexHistoryState);
   const debouncedApex = useDebounce(apex, 1000);
-  const { hint } = useApexCompletions(selectedOrg);
+  // const { hint } = useApexCompletions(selectedOrg); // FIXME:
 
   const [userDebug, setUserDebug] = useState(false);
   const [textFilter, setTextFilter] = useState<string>('');
@@ -91,46 +84,70 @@ export const AnonymousApex: FunctionComponent<AnonymousApexProps> = () => {
     setVisibleResults(currResults.join('\n'));
   }, [results, userDebug, textFilter]);
 
-  const onSubmit = useCallback(async () => {
-    setLoading(true);
-    setResults('');
-    setTextFilter('');
-    setUserDebug(false);
-    setResultsStatus({ hasResults: false, success: false, label: null });
-    try {
-      const { result, debugLog } = await anonymousApex(selectedOrg, apex);
-      if (!result.success) {
-        let summary = '';
-        summary += `line ${result.line}, column ${result.column}\n`;
-        summary += result.compileProblem ? `${result.compileProblem}\n` : '';
-        summary += result.exceptionMessage ? `${result.exceptionMessage}\n` : '';
-        summary += result.exceptionStackTrace ? `${result.exceptionStackTrace}\n` : '';
-        if (debugLog) {
-          summary += `\n${debugLog}`;
+  const onSubmit = useCallback(
+    async (value: string) => {
+      setLoading(true);
+      setResults('');
+      setTextFilter('');
+      setUserDebug(false);
+      setResultsStatus({ hasResults: false, success: false, label: null });
+      try {
+        const { result, debugLog } = await anonymousApex(selectedOrg, value);
+        if (!result.success) {
+          let summary = '';
+          summary += `line ${result.line}, column ${result.column}\n`;
+          summary += result.compileProblem ? `${result.compileProblem}\n` : '';
+          summary += result.exceptionMessage ? `${result.exceptionMessage}\n` : '';
+          summary += result.exceptionStackTrace ? `${result.exceptionStackTrace}\n` : '';
+          if (debugLog) {
+            summary += `\n${debugLog}`;
+          }
+          setResults(summary);
+          setResultsStatus({ hasResults: true, success: false, label: result.compileProblem ? 'Compile Error' : 'Runtime Error' });
+        } else {
+          setResults(debugLog);
+          setResultsStatus({ hasResults: true, success: true, label: 'Success' });
+          fromApexState
+            .initNewApexHistoryItem(selectedOrg, value)
+            .then((updatedHistoryItems) => {
+              setHistoryItems(updatedHistoryItems);
+            })
+            .catch((ex) => {
+              logger.warn('[ERROR] Could not save history', ex);
+              rollbar.error('Error saving apex history', ex);
+            });
         }
-        setResults(summary);
-        setResultsStatus({ hasResults: true, success: false, label: result.compileProblem ? 'Compile Error' : 'Runtime Error' });
-      } else {
-        setResults(debugLog);
-        setResultsStatus({ hasResults: true, success: true, label: 'Success' });
-        fromApexState
-          .initNewApexHistoryItem(selectedOrg, apex)
-          .then((updatedHistoryItems) => {
-            setHistoryItems(updatedHistoryItems);
-          })
-          .catch((ex) => {
-            logger.warn('[ERROR] Could not save history', ex);
-            rollbar.error('Error saving apex history', ex);
-          });
+        trackEvent(ANALYTICS_KEYS.apex_Submitted, { success: result.success });
+      } catch (ex) {
+        setResults(`There was a problem submitting the request\n${ex.message}`);
+        trackEvent(ANALYTICS_KEYS.apex_Submitted, { success: false });
+      } finally {
+        setLoading(false);
       }
-      trackEvent(ANALYTICS_KEYS.apex_Submitted, { success: result.success });
-    } catch (ex) {
-      setResults(`There was a problem submitting the request\n${ex.message}`);
-      trackEvent(ANALYTICS_KEYS.apex_Submitted, { success: false });
-    } finally {
-      setLoading(false);
-    }
-  }, [apex, historyItems, selectedOrg, setHistoryItems, trackEvent]);
+    },
+    [historyItems, selectedOrg, setHistoryItems, trackEvent]
+  );
+
+  function handleEditorChange(value, event) {
+    setApex(value);
+  }
+
+  function handleApexEditorMount(ed: editor.IStandaloneCodeEditor) {
+    apexRef.current = ed;
+    // this did not run on initial render if used in useEffect
+    apexRef.current.addAction({
+      id: 'modifier-enter',
+      label: 'Submit',
+      keybindings: [KeyMod.CtrlCmd | KeyCode.Enter],
+      run: (ed) => {
+        onSubmit(ed.getValue());
+      },
+    });
+  }
+
+  function handleLogEditorMount(ed: editor.IStandaloneCodeEditor) {
+    logRef.current = ed;
+  }
 
   return (
     <AutoFullHeightContainer fillHeight bottomBuffer={10} setHeightAttr className="slds-p-horizontal_x-small slds-scrollable_none">
@@ -149,36 +166,26 @@ export const AnonymousApex: FunctionComponent<AnonymousApexProps> = () => {
             className="h-100"
             title="Anonymous Apex"
             actions={
-              <Grid>
-                <AnonymousApexHistory className="slds-col" onHistorySelected={setApex} />
-                <button className="slds-button slds-button_brand" onClick={onSubmit}>
-                  <Icon type="utility" icon="apex" className="slds-button__icon slds-button__icon_left" omitContainer />
-                  Submit
-                </button>
-              </Grid>
+              <button className="slds-button slds-button_brand" onClick={() => onSubmit(apex)}>
+                <Icon type="utility" icon="apex" className="slds-button__icon slds-button__icon_left" omitContainer />
+                Submit
+              </button>
             }
           >
-            <CodeEditor
-              className="CodeMirror-full-height CodeMirror-textarea"
-              value={apex}
-              lineNumbers
-              size={{ height: '80vh' }}
-              options={{
-                mode: 'text/x-java',
-                theme: 'monokai',
-                matchBrackets: true,
-                autoCloseBrackets: true,
-                showCursorWhenSelecting: true,
-                extraKeys: {
-                  'Ctrl-Space': 'autocomplete',
-                  'Alt-Enter': onSubmit,
-                  'Meta-Enter': onSubmit,
-                },
-                highlightSelectionMatches: { showToken: /\w/, annotateScrollbar: true },
-                hintOptions: { hint, completeSingle: false },
-              }}
-              onChange={setApex}
-            />
+            <Fragment>
+              <Grid>
+                <AnonymousApexHistory className="slds-grow slds-m-bottom_x-small" onHistorySelected={setApex} />
+              </Grid>
+              <Editor
+                height="80vh"
+                theme="vs-dark"
+                defaultLanguage="apex"
+                value={apex}
+                options={{ contextmenu: false }}
+                onMount={handleApexEditorMount}
+                onChange={handleEditorChange}
+              />
+            </Fragment>
           </Card>
         </div>
         <div className="slds-p-horizontal_x-small slds-is-relative">
@@ -207,27 +214,23 @@ export const AnonymousApex: FunctionComponent<AnonymousApexProps> = () => {
             actions={<CopyToClipboard type="button" content={results} disabled={!results} />}
           >
             {loading && <Spinner />}
-            <Grid verticalAlign="center" className="slds-m-bottom_x-small" gutters={false}>
-              <div className="slds-grow slds-m-right_small">
-                <SearchInput id="log-filter" placeholder="Filter logs" disabled={!resultsStatus.hasResults} onChange={setTextFilter} />
-              </div>
-              <Checkbox
-                id={`anon-apex-user-debug`}
-                label="Limit to User Debug"
-                checked={userDebug}
-                disabled={!resultsStatus.hasResults}
-                onChange={setUserDebug}
-              />
-            </Grid>
-            <CodeEditor
-              className="CodeMirror-full-height CodeMirror-textarea"
-              value={visibleResults}
-              size={{ height: '80vh' }}
+            <AnonymousApexFilter
+              textFilter={textFilter}
+              userDebug={userDebug}
+              hasResults={!!resultsStatus.hasResults}
+              onTextChange={setTextFilter}
+              onDebugChange={setUserDebug}
+            />
+            <Editor
+              height="80vh"
+              theme="vs-dark"
+              defaultLanguage="powershell"
               options={{
-                mode: 'text',
-                highlightSelectionMatches: { showToken: /\w/, annotateScrollbar: true },
-                readOnly: results ? true : 'nocursor',
+                readOnly: true,
+                contextmenu: false,
               }}
+              value={visibleResults}
+              onMount={handleLogEditorMount}
             />
           </Card>
         </div>

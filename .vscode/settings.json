@@ -19,5 +19,16 @@
   "typescript.preferences.importModuleSpecifier": "non-relative",
   "cSpell.words": [
     "unpackaged"
-  ]
+  ],
+  "search.exclude": {
+    "apps/api/src/assets/js": true,
+    "apps/authentication": true,
+    "dist": true,
+    "logs": true,
+    "tmp": true
+  },
+  "files.watcherExclude": {
+    "apps/api/src/assets/js": true,
+    "apps/authentication": true
+  }
 }

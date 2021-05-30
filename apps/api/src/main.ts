@@ -138,8 +138,10 @@ const server = app.listen(Number(ENV.PORT), () => {
 if (!environment.production) {
   app.use(cors({ origin: /http:\/\/localhost:[0-9]+$/ }));
 }
-
-app.use('/assets', express.static(join(__dirname, './assets')));
+app.use('/codicon.ttf', (req: express.Request, res: express.Response) => {
+  res.sendFile(join(__dirname, './assets/js/monaco/vs/base/browser/ui/codicons/codicon/codicon.ttf'), { maxAge: '1m' });
+});
+app.use('/assets', express.static(join(__dirname, './assets'), { maxAge: '1m' }));
 app.use('/fonts', express.static(join(__dirname, './assets/fonts')));
 
 if (environment.production) {
