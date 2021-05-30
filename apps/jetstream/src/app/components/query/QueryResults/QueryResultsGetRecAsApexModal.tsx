@@ -8,8 +8,7 @@ import { Grid, GridCol, Icon, Modal, Spinner } from '@jetstream/ui';
 import Editor from '@monaco-editor/react';
 import copyToClipboard from 'copy-to-clipboard';
 import { Field, FieldType } from 'jsforce';
-import { editor } from 'monaco-editor';
-import { FunctionComponent, useCallback, useEffect, useRef, useState } from 'react';
+import { FunctionComponent, useCallback, useEffect, useState } from 'react';
 import { recordToApex, RecordToApexOptionsInitialOptions } from '../utils/query-apex-utils';
 import QueryResultsGetRecAsApexFieldOptions from './QueryResultsGetRecAsApexFieldOptions';
 import QueryResultsGetRecAsApexGenerateOptions from './QueryResultsGetRecAsApexGenerateOptions';
@@ -27,7 +26,6 @@ export const QueryResultsGetRecAsApexModal: FunctionComponent<QueryResultsGetRec
   sobjectName,
   onClose,
 }) => {
-  const editorRef = useRef<editor.IStandaloneCodeEditor>(null);
   const [loading, setLoading] = useState(false);
   const [hasError, setHasError] = useState(false);
   const [fieldMetadata, setFieldMetadata] = useState<Field[]>([]);

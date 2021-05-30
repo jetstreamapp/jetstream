@@ -9,7 +9,7 @@ import { AutoFullHeightContainer, Badge, Card, CopyToClipboard, Grid, Icon, Spin
 import Editor from '@monaco-editor/react';
 import AnonymousApexFilter from 'apps/jetstream/src/app/components/anonymous-apex/AnonymousApexFilter';
 import localforage from 'localforage';
-import { editor, KeyCode, KeyMod } from 'monaco-editor';
+import { editor, KeyMod, KeyCode } from 'monaco-editor/esm/vs/editor/editor.api';
 import { Fragment, FunctionComponent, useCallback, useEffect, useRef, useState } from 'react';
 import Split from 'react-split';
 import { useRecoilState, useRecoilValue } from 'recoil';

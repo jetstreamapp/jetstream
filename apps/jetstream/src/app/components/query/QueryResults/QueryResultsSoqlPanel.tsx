@@ -3,7 +3,7 @@ import { jsx } from '@emotion/react';
 import { useDebounce } from '@jetstream/shared/ui-utils';
 import { CheckboxToggle, Grid, Icon, Panel, Textarea, Tooltip } from '@jetstream/ui';
 import Editor from '@monaco-editor/react';
-import { editor, KeyCode, KeyMod } from 'monaco-editor';
+import { editor, KeyCode, KeyMod } from 'monaco-editor/esm/vs/editor/editor.api';
 import { FunctionComponent, useEffect, useReducer, useRef, useState } from 'react';
 import { formatQuery, isQueryValid } from 'soql-parser-js';
 
