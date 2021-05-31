@@ -1,5 +1,13 @@
 /** @jsx jsx */
-import { CellEvent, CellKeyDownEvent, ColDef, ColumnEvent, GetQuickFilterTextParams, ValueFormatterParams } from '@ag-grid-community/core';
+import {
+  CellEvent,
+  CellKeyDownEvent,
+  ColDef,
+  ColumnEvent,
+  GetQuickFilterTextParams,
+  RowNode,
+  ValueFormatterParams,
+} from '@ag-grid-community/core';
 import { QueryResults, QueryResultsColumn } from '@jetstream/api-interfaces';
 import { DATE_FORMATS } from '@jetstream/shared/constants';
 import { isEnterKey, polyfillFieldDefinition } from '@jetstream/shared/ui-utils';
@@ -43,6 +51,14 @@ export interface DataTableContextValue {
   org: SalesforceOrgUi;
   isTooling: boolean;
   columnDefinitions: SalesforceQueryColumnDefinition;
+}
+
+export interface TableExecuteContext {
+  label: string;
+  title?: string;
+  className?: string;
+  disabled?: boolean;
+  onClick: (node: RowNode) => void;
 }
 
 export interface TableContext {

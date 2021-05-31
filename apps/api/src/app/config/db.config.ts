@@ -1,3 +1,4 @@
+import { SalesforceApi } from '../db/entites/SalesforceApi';
 import { Pool } from 'pg';
 import 'reflect-metadata';
 import { createConnection } from 'typeorm';
@@ -30,7 +31,7 @@ pgPool.on('error', (err, client) => {
 createConnection({
   type: 'postgres',
   url: ENV.JESTREAM_POSTGRES_DBURI,
-  entities: [SalesforceOrg],
+  entities: [SalesforceOrg, SalesforceApi],
   synchronize: true,
   logging: ['error', 'warn', 'schema'],
   maxQueryExecutionTime: 1000,

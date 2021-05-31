@@ -454,3 +454,16 @@ export interface InputReadFileContent {
   extension: string;
   content: string | ArrayBuffer;
 }
+
+export interface SalesforceApiRequest {
+  id: string;
+  groupName: string;
+  groupDescription: string;
+  name: string;
+  method: HttpMethod;
+  url: string;
+  header: string;
+  body: string;
+  createdAt: string;
+  updatedAt: string;
+}

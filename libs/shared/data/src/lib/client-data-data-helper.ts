@@ -250,12 +250,13 @@ export async function clearQueryHistoryForOrg(org: SalesforceOrgUi) {
  */
 async function getCacheItem<T>(
   config: AxiosRequestConfig,
-  org: SalesforceOrgUi,
+  org?: SalesforceOrgUi,
   useQueryParamsInCacheKey?: boolean,
   useBodyInCacheKey?: boolean
 ): Promise<CacheItemWithData<T> | null> {
+  const orgId = org?.uniqueId || 'unset';
   const cacheKey = getCacheKey(config, useQueryParamsInCacheKey, useBodyInCacheKey);
-  const cacheItem = await localforage.getItem<OrgCacheItem<T>>(`${INDEXED_DB.KEYS.httpCache}:${org.uniqueId}`);
+  const cacheItem = await localforage.getItem<OrgCacheItem<T>>(`${INDEXED_DB.KEYS.httpCache}:${orgId}`);
   const item = cacheItem && cacheItem[cacheKey];
   if (item && !isExpired(item.exp)) {
     return item;
@@ -273,12 +274,13 @@ async function getCacheItem<T>(
 async function saveCacheItem<T>(
   data: any,
   config: AxiosRequestConfig,
-  org: SalesforceOrgUi,
+  org?: SalesforceOrgUi,
   useQueryParamsInCacheKey?: boolean,
   useBodyInCacheKey?: boolean
 ): Promise<CacheItemWithData<T>> {
   try {
-    let cacheItem = await localforage.getItem<OrgCacheItem<T>>(`${INDEXED_DB.KEYS.httpCache}:${org.uniqueId}`);
+    const orgId = org?.uniqueId || 'unset';
+    let cacheItem = await localforage.getItem<OrgCacheItem<T>>(`${INDEXED_DB.KEYS.httpCache}:${orgId}`);
     const cacheKey = getCacheKey(config, useQueryParamsInCacheKey, useBodyInCacheKey);
 
     cacheItem = cacheItem || {};
@@ -291,7 +293,7 @@ async function saveCacheItem<T>(
 
     cacheItem[cacheKey] = cacheItemData;
 
-    await localforage.setItem(`${INDEXED_DB.KEYS.httpCache}:${org.uniqueId}`, cacheItem);
+    await localforage.setItem(`${INDEXED_DB.KEYS.httpCache}:${orgId}`, cacheItem);
     return cacheItemData;
   } catch (ex) {
     logger.log('[HTTP][CACHE][ERROR]', ex);

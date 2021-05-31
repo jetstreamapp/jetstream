@@ -129,4 +129,5 @@ export const ANALYTICS_KEYS = {
   apex_Submitted: 'apex_Submitted',
   /** SFDC API */
   sfdcApi_Submitted: 'sfdcApi_Submitted',
+  sfdcApi_Sample: 'sfdcApi_Sample',
 };
