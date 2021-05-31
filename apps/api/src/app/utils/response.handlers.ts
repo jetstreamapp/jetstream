@@ -25,8 +25,9 @@ export async function uncaughtErrorHandler(err: any, req: express.Request, res: 
     error: err.message || err,
     method: req.method,
     url: req.originalUrl,
-    ip: req.headers[HTTP.HEADERS.X_FORWARDED_FOR] || req.connection.remoteAddress,
-    userInfo,
+    ip: req.headers[HTTP.HEADERS.CF_Connecting_IP] || req.headers[HTTP.HEADERS.X_FORWARDED_FOR] || req.connection.remoteAddress,
+    country: req.headers[HTTP.HEADERS.CF_IPCountry],
+    ...userInfo,
   });
 
   const isJson = (req.get(HTTP.HEADERS.ACCEPT) || '').includes(HTTP.CONTENT_TYPE.JSON);

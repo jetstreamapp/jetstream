@@ -46,6 +46,8 @@ export const HTTP = {
     X_MOCK_KEY: 'X-MOCK-KEY',
     X_FORWARDED_FOR: 'X-FORWARDED-FOR',
     CONTENT_DISPOSITION: 'Content-Disposition',
+    CF_Connecting_IP: 'CF-Connecting-IP',
+    CF_IPCountry: 'CF-IPCountry',
   },
   CONTENT_TYPE: {
     JSON: 'application/json',
