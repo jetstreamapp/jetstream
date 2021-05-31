@@ -3,9 +3,17 @@ import { css, jsx } from '@emotion/react';
 import { logger } from '@jetstream/shared/client-logger';
 import { HTTP, INDEXED_DB, MIME_TYPES } from '@jetstream/shared/constants';
 import { useDebounce, useNonInitialEffect } from '@jetstream/shared/ui-utils';
-import { HttpMethod, MapOf, SalesforceApiHistoryItem, SalesforceApiHistoryRequest, SalesforceOrgUi } from '@jetstream/types';
+import {
+  HttpMethod,
+  MapOf,
+  SalesforceApiHistoryItem,
+  SalesforceApiHistoryRequest,
+  SalesforceApiRequest as SalesforceApiReqSample,
+  SalesforceOrgUi,
+} from '@jetstream/types';
 import { Card, Grid, HelpText, Icon, RadioButton, RadioGroup, Tooltip } from '@jetstream/ui';
 import Editor, { OnMount } from '@monaco-editor/react';
+import SalesforceApiExamplesModal from 'apps/jetstream/src/app/components/salesforce-api/SalesforceApiExamplesModal';
 import localforage from 'localforage';
 import type { editor } from 'monaco-editor';
 import { FunctionComponent, useReducer, useRef, useState } from 'react';
@@ -138,6 +146,14 @@ export const SalesforceApiRequest: FunctionComponent<SalesforceApiRequestProps> 
     setBodyType(request.bodyType);
   }
 
+  function handleRestoreFromExampleReq(request: SalesforceApiReqSample) {
+    setUrl(request.url);
+    setMethod(request.method);
+    setHeaders(JSON.stringify({ ...JSON.parse(request.header || '{}'), ['X-PrettyPrint']: '1' }, null, 2));
+    setBody(request.body);
+    setBodyType(request.header?.includes('application/json') ? 'JSON' : 'TEXT');
+  }
+
   const handleHeaderEditorMount: OnMount = (currEditor, monaco) => {
     headerRef.current = currEditor;
     headerRef.current.addAction({
@@ -168,6 +184,7 @@ export const SalesforceApiRequest: FunctionComponent<SalesforceApiRequestProps> 
       title="Salesforce API Request"
       actions={
         <Grid>
+          <SalesforceApiExamplesModal onExecute={handleRestoreFromExampleReq} />
           <SalesforceApiHistory className="slds-col" disabled={loading} onHistorySelected={handleRestoreFromHistory} />
           <button
             className="slds-button slds-button_brand"

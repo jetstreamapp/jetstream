@@ -14,10 +14,11 @@ export function logRoute(req: express.Request, res: express.Response, next: expr
   res.locals.path = req.path;
   // logger.info(req.method, req.originalUrl);
   const userInfo = req.user ? { username: (req.user as any)?.displayName, userId: (req.user as any)?.user_id } : undefined;
-  logger.debug('[REQ] %s %s %s', req.method, req.originalUrl, {
+  logger.debug('[REQ] %s %s', req.method, req.originalUrl, {
     method: req.method,
     url: req.originalUrl,
-    ip: req.headers[HTTP.HEADERS.X_FORWARDED_FOR] || req.connection.remoteAddress,
+    ip: req.headers[HTTP.HEADERS.CF_Connecting_IP] || req.headers[HTTP.HEADERS.X_FORWARDED_FOR] || req.connection.remoteAddress,
+    country: req.headers[HTTP.HEADERS.CF_IPCountry],
     ...userInfo,
   });
   next();

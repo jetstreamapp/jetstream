@@ -27,6 +27,7 @@ import {
   getSubqueryModalTagline,
   SalesforceQueryColumnDefinition,
   TableContext,
+  TableExecuteContext,
 } from './data-table-utils';
 import DataTable from './DataTable';
 
@@ -273,6 +274,20 @@ export const IdLinkRenderer: FunctionComponent<ICellRendererParams> = ({ value, 
         {value}
       </SalesforceLogin>
     </div>
+  );
+};
+
+export const ExecuteRenderer: FunctionComponent<ICellRendererParams> = ({ node, context }) => {
+  const { className, label, title, disabled, onClick } = context as TableExecuteContext;
+  return (
+    <button
+      className={className || 'slds-button slds-text-link_reset slds-text-link'}
+      title={title}
+      disabled={disabled}
+      onClick={() => onClick(node)}
+    >
+      {label}
+    </button>
   );
 };
 

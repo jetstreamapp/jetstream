@@ -6,6 +6,7 @@ import * as metadataToolingController from '../controllers/sf-metadata-tooling.c
 import * as sfMiscController from '../controllers/sf-misc.controller';
 import * as sfQueryController from '../controllers/sf-query.controller';
 import * as userController from '../controllers/user.controller';
+import * as salesforceApiReqController from '../controllers/salesforce-api-requests.controller';
 import { addOrgsToLocal, checkAuth, ensureOrgExists, ensureTargetOrgExists, validate } from './route.middleware';
 import { sendJson } from '../utils/response.handlers';
 
@@ -145,6 +146,12 @@ routes.get(
   ensureOrgExists,
   validate(metadataToolingController.routeValidators.apexCompletions),
   metadataToolingController.apexCompletions
+);
+
+routes.get(
+  '/salesforce-api/requests',
+  validate(salesforceApiReqController.routeValidators.getSalesforceApiRequests),
+  salesforceApiReqController.getSalesforceApiRequests
 );
 
 export default routes;

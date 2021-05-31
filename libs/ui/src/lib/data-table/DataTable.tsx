@@ -17,6 +17,7 @@ import {
   BooleanRenderer,
   ComplexDataRenderer,
   configIdLinkRenderer,
+  ExecuteRenderer,
   FullWidthRenderer,
   IdLinkRenderer,
   SubqueryRenderer,
@@ -60,6 +61,7 @@ export const DataTable: FunctionComponent<DataTableProps> = ({
         quickFilterText={quickFilterText}
         frameworkComponents={{
           // CELL RENDERERS
+          executeRenderer: ExecuteRenderer,
           actionRenderer: ActionRenderer,
           booleanRenderer: BooleanRenderer,
           idLinkRenderer: IdLinkRenderer,
