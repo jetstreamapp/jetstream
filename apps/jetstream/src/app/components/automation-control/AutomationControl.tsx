@@ -2,6 +2,7 @@
 import { jsx } from '@emotion/react';
 import { logger } from '@jetstream/shared/client-logger';
 import { clearCacheForOrg, queryWithCache } from '@jetstream/shared/data';
+import { useRollbar } from '@jetstream/shared/ui-utils';
 import { NOOP, orderObjectsBy } from '@jetstream/shared/utils';
 import { MapOf, SalesforceOrgUi, SalesforceOrgUiType, UiTabSection } from '@jetstream/types';
 import {
@@ -52,6 +53,7 @@ export interface AutomationControlProps {}
 
 export const AutomationControl: FunctionComponent<AutomationControlProps> = () => {
   const isMounted = useRef(null);
+  const rollbar = useRollbar();
   const [lastRefreshed, setLastRefreshed] = useState<string>(_lastRefreshed);
   const selectedOrg = useRecoilValue<SalesforceOrgUi>(selectedOrgState);
   const orgType = useRecoilValue<SalesforceOrgUiType>(selectedOrgType);
@@ -401,6 +403,7 @@ export const AutomationControl: FunctionComponent<AutomationControlProps> = () =
           })
           .catch((err) => {
             logger.error(err);
+            rollbar.error(err.message, { error: err, place: 'AutomationControl', type: 'ValidationRule' });
             setItemsById((priorItems) => {
               const currTab = { ...priorItems[tabId] };
               currTab.automationItems = {
@@ -409,7 +412,8 @@ export const AutomationControl: FunctionComponent<AutomationControlProps> = () =
                   ...currTab.automationItems.ValidationRule,
                   hasLoaded: true,
                   loading: false,
-                  errorMessage: 'There was an error loading these items',
+                  errorMessage:
+                    'There was an error loading these items. If the problem persists, submit a ticket or email support@getjetstream.app for assistance.',
                 },
               };
               return { ...priorItems, [tabId]: currTab };
@@ -432,6 +436,7 @@ export const AutomationControl: FunctionComponent<AutomationControlProps> = () =
           })
           .catch((err) => {
             logger.error(err);
+            rollbar.error(err.message, { error: err, place: 'AutomationControl', type: 'WorkflowRule' });
             setItemsById((priorItems) => {
               const currTab = { ...priorItems[tabId] };
               currTab.automationItems = {
@@ -440,7 +445,8 @@ export const AutomationControl: FunctionComponent<AutomationControlProps> = () =
                   ...currTab.automationItems.WorkflowRule,
                   hasLoaded: true,
                   loading: false,
-                  errorMessage: 'There was an error loading these items',
+                  errorMessage:
+                    'There was an error loading these items. If the problem persists, submit a ticket or email support@getjetstream.app for assistance.',
                 },
               };
               return { ...priorItems, [tabId]: currTab };
@@ -461,6 +467,7 @@ export const AutomationControl: FunctionComponent<AutomationControlProps> = () =
           })
           .catch((err) => {
             logger.error(err);
+            rollbar.error(err.message, { error: err, place: 'AutomationControl', type: 'Flow' });
             setItemsById((priorItems) => {
               const currTab = { ...priorItems[tabId] };
               currTab.automationItems = {
@@ -469,7 +476,8 @@ export const AutomationControl: FunctionComponent<AutomationControlProps> = () =
                   ...currTab.automationItems.Flow,
                   hasLoaded: true,
                   loading: false,
-                  errorMessage: 'There was an error loading these items. If the problem persists, submit a ticket for assistance.',
+                  errorMessage:
+                    'There was an error loading these items. If the problem persists, submit a ticket or email support@getjetstream.app for assistance.',
                 },
               };
               return { ...priorItems, [tabId]: currTab };
