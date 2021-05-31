@@ -6,7 +6,7 @@ import { anonymousApex } from '@jetstream/shared/data';
 import { useDebounce, useNonInitialEffect, useRollbar } from '@jetstream/shared/ui-utils';
 import { ApexHistoryItem, MapOf, SalesforceOrgUi } from '@jetstream/types';
 import { AutoFullHeightContainer, Badge, Card, CopyToClipboard, Grid, Icon, Spinner } from '@jetstream/ui';
-import Editor, { useMonaco } from '@monaco-editor/react';
+import Editor, { OnMount } from '@monaco-editor/react';
 import AnonymousApexFilter from 'apps/jetstream/src/app/components/anonymous-apex/AnonymousApexFilter';
 import localforage from 'localforage';
 import type { editor } from 'monaco-editor';
@@ -32,7 +32,6 @@ export const AnonymousApex: FunctionComponent<AnonymousApexProps> = () => {
   const logRef = useRef<editor.IStandaloneCodeEditor>(null);
   const { trackEvent } = useAmplitude();
   const rollbar = useRollbar();
-  const monaco = useMonaco();
   const selectedOrg = useRecoilValue<SalesforceOrgUi>(selectedOrgState);
   const [apex, setApex] = useState(() => localStorage.getItem(STORAGE_KEYS.ANONYMOUS_APEX_STORAGE_KEY) || '');
   const [results, setResults] = useState('');
@@ -133,18 +132,18 @@ export const AnonymousApex: FunctionComponent<AnonymousApexProps> = () => {
     setApex(value);
   }
 
-  function handleApexEditorMount(ed: editor.IStandaloneCodeEditor) {
-    apexRef.current = ed;
+  const handleApexEditorMount: OnMount = (currEditor, monaco) => {
+    apexRef.current = currEditor;
     // this did not run on initial render if used in useEffect
     apexRef.current.addAction({
       id: 'modifier-enter',
       label: 'Submit',
-      keybindings: [monaco?.KeyMod.CtrlCmd | monaco?.KeyCode.Enter],
-      run: (ed) => {
-        onSubmit(ed.getValue());
+      keybindings: [monaco.KeyMod.CtrlCmd | monaco.KeyCode.Enter],
+      run: (currEditor) => {
+        onSubmit(currEditor.getValue());
       },
     });
-  }
+  };
 
   function handleLogEditorMount(ed: editor.IStandaloneCodeEditor) {
     logRef.current = ed;

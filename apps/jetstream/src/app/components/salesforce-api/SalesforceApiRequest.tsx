@@ -5,7 +5,7 @@ import { HTTP, INDEXED_DB, MIME_TYPES } from '@jetstream/shared/constants';
 import { useDebounce, useNonInitialEffect } from '@jetstream/shared/ui-utils';
 import { HttpMethod, MapOf, SalesforceApiHistoryItem, SalesforceApiHistoryRequest, SalesforceOrgUi } from '@jetstream/types';
 import { Card, Grid, HelpText, Icon, RadioButton, RadioGroup, Tooltip } from '@jetstream/ui';
-import Editor, { useMonaco } from '@monaco-editor/react';
+import Editor, { OnMount } from '@monaco-editor/react';
 import localforage from 'localforage';
 import type { editor } from 'monaco-editor';
 import { FunctionComponent, useReducer, useRef, useState } from 'react';
@@ -77,7 +77,6 @@ export const SalesforceApiRequest: FunctionComponent<SalesforceApiRequestProps> 
   selectedOrg,
   onSubmit,
 }) => {
-  const monaco = useMonaco();
   const headerRef = useRef<editor.IStandaloneCodeEditor>(null);
   const bodyRef = useRef<editor.IStandaloneCodeEditor>(null);
   const [url, setUrl] = useState(() => getDefaultUrl(selectedOrg, defaultApiVersion));
@@ -139,30 +138,30 @@ export const SalesforceApiRequest: FunctionComponent<SalesforceApiRequestProps> 
     setBodyType(request.bodyType);
   }
 
-  function handleHeaderEditorMount(ed: editor.IStandaloneCodeEditor) {
-    headerRef.current = ed;
+  const handleHeaderEditorMount: OnMount = (currEditor, monaco) => {
+    headerRef.current = currEditor;
     headerRef.current.addAction({
       id: 'modifier-enter',
       label: 'Submit',
       keybindings: [monaco?.KeyMod.CtrlCmd | monaco?.KeyCode.Enter],
-      run: (ed) => {
-        handleSubmit({ headers: ed.getValue(), body });
+      run: (currEditor) => {
+        handleSubmit({ headers: currEditor.getValue(), body });
       },
     });
-  }
+  };
 
-  function handleBodyEditorMount(ed: editor.IStandaloneCodeEditor) {
-    bodyRef.current = ed;
+  const handleBodyEditorMount: OnMount = (currEditor, monaco) => {
+    bodyRef.current = currEditor;
     bodyRef.current.addAction({
       id: 'modifier-enter',
       label: 'Submit',
       keybindings: [monaco?.KeyMod.CtrlCmd | monaco?.KeyCode.Enter],
-      run: (ed) => {
-        setBody(ed.getValue());
-        handleSubmit({ headers, body: ed.getValue() });
+      run: (currEditor) => {
+        setBody(currEditor.getValue());
+        handleSubmit({ headers, body: currEditor.getValue() });
       },
     });
-  }
+  };
 
   return (
     <Card

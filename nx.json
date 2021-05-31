@@ -2,10 +2,7 @@
   "npmScope": "jetstream",
   "implicitDependencies": {
     "workspace.json": "*",
-    "package.json": {
-      "dependencies": "*",
-      "devDependencies": "*"
-    },
+    "package.json": { "dependencies": "*", "devDependencies": "*" },
     "tslint.json": "*",
     "nx.json": "*",
     "tsconfig.base.json": "*",
@@ -23,66 +20,25 @@
     }
   },
   "projects": {
-    "api": {
-      "tags": []
-    },
-    "api-interfaces": {
-      "tags": []
-    },
-    "ui": {
-      "tags": ["ui"]
-    },
-    "types": {
-      "tags": [],
-      "implicitDependencies": ["icon-factory"]
-    },
-    "shared-utils": {
-      "tags": []
-    },
-    "shared-data": {
-      "tags": []
-    },
-    "shared-ui-utils": {
-      "tags": []
-    },
-    "ui-e2e": {
-      "tags": [],
-      "implicitDependencies": ["ui"]
-    },
-    "shared-constants": {
-      "tags": []
-    },
-    "jetstream": {
-      "tags": []
-    },
-    "jetstream-e2e": {
-      "tags": [],
-      "implicitDependencies": ["jetstream"]
-    },
-    "landing": {
-      "tags": []
-    },
-    "landing-e2e": {
-      "tags": [],
-      "implicitDependencies": ["landing"]
-    },
-    "shared-node-utils": {
-      "tags": []
-    },
-    "shared-client-logger": {
-      "tags": []
-    },
-    "icon-factory": {
-      "tags": []
-    },
-    "shared-ui-record-form": {
-      "tags": []
-    },
-    "connected-connected-ui": {
-      "tags": []
-    }
+    "api": { "tags": [] },
+    "api-interfaces": { "tags": [] },
+    "ui": { "tags": ["ui"] },
+    "types": { "tags": [], "implicitDependencies": ["icon-factory"] },
+    "shared-utils": { "tags": [] },
+    "shared-data": { "tags": [] },
+    "shared-ui-utils": { "tags": [] },
+    "ui-e2e": { "tags": [], "implicitDependencies": ["ui"] },
+    "shared-constants": { "tags": [] },
+    "jetstream": { "tags": [] },
+    "jetstream-e2e": { "tags": [], "implicitDependencies": ["jetstream"] },
+    "landing": { "tags": [] },
+    "landing-e2e": { "tags": [], "implicitDependencies": ["landing"] },
+    "shared-node-utils": { "tags": [] },
+    "shared-client-logger": { "tags": [] },
+    "icon-factory": { "tags": [] },
+    "shared-ui-record-form": { "tags": [] },
+    "connected-connected-ui": { "tags": [] },
+    "monaco-configuration": { "tags": [] }
   },
-  "affected": {
-    "defaultBase": "master"
-  }
+  "affected": { "defaultBase": "master" }
 }

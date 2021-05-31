@@ -770,6 +770,27 @@
           }
         }
       }
+    },
+    "monaco-configuration": {
+      "root": "libs/monaco-configuration",
+      "sourceRoot": "libs/monaco-configuration/src",
+      "projectType": "library",
+      "architect": {
+        "lint": {
+          "builder": "@nrwl/linter:eslint",
+          "options": {
+            "lintFilePatterns": ["libs/monaco-configuration/**/*.ts"]
+          }
+        },
+        "test": {
+          "builder": "@nrwl/jest:jest",
+          "outputs": ["coverage/libs/monaco-configuration"],
+          "options": {
+            "jestConfig": "libs/monaco-configuration/jest.config.js",
+            "passWithNoTests": true
+          }
+        }
+      }
     }
   },
   "cli": {
