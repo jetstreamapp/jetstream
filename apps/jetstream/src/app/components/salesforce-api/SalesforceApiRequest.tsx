@@ -7,7 +7,7 @@ import { HttpMethod, MapOf, SalesforceApiHistoryItem, SalesforceApiHistoryReques
 import { Card, Grid, HelpText, Icon, RadioButton, RadioGroup, Tooltip } from '@jetstream/ui';
 import Editor from '@monaco-editor/react';
 import localforage from 'localforage';
-import { editor, KeyCode, KeyMod } from 'monaco-editor';
+import type { editor, KeyCode, KeyMod } from 'monaco-editor';
 import { FunctionComponent, useReducer, useRef, useState } from 'react';
 import { useRecoilValue } from 'recoil';
 import * as fromSalesforceApiHistory from './salesforceApi.state';

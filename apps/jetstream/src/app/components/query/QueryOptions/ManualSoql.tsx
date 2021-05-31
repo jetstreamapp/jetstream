@@ -3,7 +3,7 @@ import { jsx } from '@emotion/react';
 import { ANALYTICS_KEYS } from '@jetstream/shared/constants';
 import { CheckboxToggle, Grid, GridCol, Icon, Popover, Spinner, Textarea } from '@jetstream/ui';
 import Editor from '@monaco-editor/react';
-import { editor, KeyCode, KeyMod } from 'monaco-editor';
+import type { editor, KeyCode, KeyMod } from 'monaco-editor';
 import { Fragment, FunctionComponent, useEffect, useRef, useState } from 'react';
 import { Link, useHistory, useLocation, useRouteMatch } from 'react-router-dom';
 import { formatQuery, isQueryValid } from 'soql-parser-js';

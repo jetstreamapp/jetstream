@@ -26,11 +26,11 @@ module.exports = (config) => {
     })
   );
 
-  config.externals = config.externals || {};
-  config.externals = {
-    ...config.externals,
-    'monaco-editor': 'monaco-editor',
-  };
+  // config.externals = config.externals || {};
+  // config.externals = {
+  //   ...config.externals,
+  //   'monaco-editor': 'monaco',
+  // };
 
   return config;
 };
