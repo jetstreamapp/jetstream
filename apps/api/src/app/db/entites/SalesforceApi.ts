@@ -15,6 +15,9 @@ export class SalesforceApi extends BaseEntity {
   name: string;
 
   @Column({ nullable: true })
+  description: string;
+
+  @Column({ nullable: true })
   method: string;
 
   @Column({ nullable: true })

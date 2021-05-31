@@ -460,6 +460,7 @@ export interface SalesforceApiRequest {
   groupName: string;
   groupDescription: string;
   name: string;
+  description: string;
   method: HttpMethod;
   url: string;
   header: string;

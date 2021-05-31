@@ -14,8 +14,8 @@ import ErrorBoundaryFallback from '../core/ErrorBoundaryFallback';
 const COLUMNS: ColDef[] = [
   { headerName: '', colId: 'execute', field: 'id', cellRenderer: 'executeRenderer', width: 120 },
   { headerName: 'Group', colId: 'groupName', field: 'groupName', tooltipField: 'groupDescription', width: 150 },
-  { headerName: 'Name', colId: 'name', field: 'name', width: 250 },
-  { headerName: 'Method', colId: 'method', field: 'method', tooltipField: 'body', width: 110 },
+  { headerName: 'Name', colId: 'name', field: 'name', tooltipField: 'description', width: 250 },
+  { headerName: 'Method', colId: 'method', field: 'method', tooltipField: 'description', width: 110 },
   { headerName: 'url', colId: 'url', field: 'url', tooltipField: 'body', flex: 1 },
 ];
 
