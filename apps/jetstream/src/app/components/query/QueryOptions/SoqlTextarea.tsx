@@ -16,7 +16,7 @@ export const SoqlTextarea: FunctionComponent<SoqlTextareaProps> = React.memo(({ 
         <Editor
           className="slds-border_top slds-border_right slds-border_bottom slds-border_left"
           height="300px"
-          language="sql"
+          language="soql"
           value={soql}
           options={{
             readOnly: true,

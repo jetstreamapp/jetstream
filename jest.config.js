@@ -13,5 +13,6 @@ module.exports = {
     '<rootDir>/libs/shared/client-logger',
     '<rootDir>/libs/shared/ui-record-form',
     '<rootDir>/libs/connected/connected-ui',
+    '<rootDir>/libs/monaco-configuration',
   ],
 };

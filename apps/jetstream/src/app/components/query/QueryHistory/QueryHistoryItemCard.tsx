@@ -130,7 +130,7 @@ export const QueryHistoryItemCard: FunctionComponent<QueryHistoryItemCardProps> 
                   >
                     <Editor
                       height={`${clamp(lineCount * REM_PER_LINE, 2, 11)}rem`}
-                      language="sql"
+                      language="soql"
                       value={soql}
                       options={{
                         readOnly: true,

@@ -168,7 +168,7 @@ export const ManualSoql: FunctionComponent<ManualSoqlProps> = ({ className, isTo
               <Editor
                 className="slds-border_top slds-border_right slds-border_bottom slds-border_left"
                 height="300px"
-                language="sql"
+                language="soql"
                 value={soql}
                 options={{
                   minimap: { enabled: false },
