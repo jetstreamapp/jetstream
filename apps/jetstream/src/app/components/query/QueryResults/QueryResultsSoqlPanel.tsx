@@ -2,7 +2,7 @@
 import { jsx } from '@emotion/react';
 import { useDebounce } from '@jetstream/shared/ui-utils';
 import { CheckboxToggle, Grid, Icon, Panel, Textarea, Tooltip } from '@jetstream/ui';
-import Editor, { useMonaco } from '@monaco-editor/react';
+import Editor, { OnMount } from '@monaco-editor/react';
 import type { editor } from 'monaco-editor';
 import { FunctionComponent, useEffect, useReducer, useRef, useState } from 'react';
 import { formatQuery, isQueryValid } from 'soql-parser-js';
@@ -55,7 +55,6 @@ export const QueryResultsSoqlPanel: FunctionComponent<QueryResultsSoqlPanelProps
   onClosed,
   executeQuery,
 }) => {
-  const monaco = useMonaco();
   const editorRef = useRef<editor.IStandaloneCodeEditor>(null);
   const [userSoql, setUserSoql] = useState<string>(soql);
   const [userTooling, setUserTooling] = useState<boolean>(isTooling);
@@ -91,14 +90,14 @@ export const QueryResultsSoqlPanel: FunctionComponent<QueryResultsSoqlPanelProps
     executeQuery(currSoql, userTooling);
   }
 
-  function handleEditorMount(ed: editor.IStandaloneCodeEditor) {
-    editorRef.current = ed;
+  const handleEditorMount: OnMount = (currEditor, monaco) => {
+    editorRef.current = currEditor;
     editorRef.current.addAction({
       id: 'modifier-enter',
       label: 'Submit',
       keybindings: [monaco?.KeyMod.CtrlCmd | monaco?.KeyCode.Enter],
-      run: (ed) => {
-        submitQuery(ed.getValue());
+      run: (currEditor) => {
+        submitQuery(currEditor.getValue());
       },
     });
     editorRef.current.addAction({
@@ -106,12 +105,11 @@ export const QueryResultsSoqlPanel: FunctionComponent<QueryResultsSoqlPanelProps
       label: 'Format',
       keybindings: [monaco?.KeyMod.Shift | monaco?.KeyMod.Alt | monaco?.KeyCode.KEY_F],
       contextMenuGroupId: '9_cutcopypaste',
-      run: (ed) => {
-        setUserSoql(formatQuery(ed.getValue(), { fieldMaxLineLength: 80 }));
+      run: (currEditor) => {
+        setUserSoql(formatQuery(currEditor.getValue(), { fieldMaxLineLength: 80 }));
       },
     });
-    editorRef.current.createContextKey;
-  }
+  };
 
   return (
     <Panel heading="SOQL Query" isOpen={isOpen} size="lg" fullHeight={false} position="left" onClosed={onClosed}>

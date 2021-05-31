@@ -2,7 +2,7 @@
 import { jsx } from '@emotion/react';
 import { ANALYTICS_KEYS } from '@jetstream/shared/constants';
 import { CheckboxToggle, Grid, GridCol, Icon, Popover, Spinner, Textarea } from '@jetstream/ui';
-import Editor, { useMonaco } from '@monaco-editor/react';
+import Editor, { OnMount } from '@monaco-editor/react';
 import type { editor } from 'monaco-editor';
 import { Fragment, FunctionComponent, useEffect, useRef, useState } from 'react';
 import { Link, useHistory, useRouteMatch } from 'react-router-dom';
@@ -54,7 +54,6 @@ export const ManualSoql: FunctionComponent<ManualSoqlProps> = ({ className, isTo
   const history = useHistory();
   const { trackEvent } = useAmplitude();
   const match = useRouteMatch();
-  const monaco = useMonaco();
   const [isOpen, setIsOpen] = useState<boolean>(false);
   const [soql, setSoql] = useState<string>('');
   const [isRestoring, setIsRestoring] = useState(false);
@@ -111,18 +110,18 @@ export const ManualSoql: FunctionComponent<ManualSoqlProps> = ({ className, isTo
     setSoql(formatQuery(soql, { fieldMaxLineLength: 80 }));
   }
 
-  function handleEditorMount(ed: editor.IStandaloneCodeEditor) {
-    editorRef.current = ed;
-    ed.focus();
-    ed.setSelection(ed.getModel().getFullModelRange());
+  const handleEditorMount: OnMount = (currEditor, monaco) => {
+    editorRef.current = currEditor;
+    currEditor.focus();
+    currEditor.setSelection(currEditor.getModel().getFullModelRange());
     editorRef.current.addAction({
       id: 'modifier-enter',
       label: 'Submit',
       keybindings: [monaco?.KeyMod.CtrlCmd | monaco?.KeyCode.Enter],
-      run: (ed) => {
+      run: (currEditor) => {
         history.push(`${match.url}/results`, {
           isTooling: userTooling,
-          soql: ed.getValue(),
+          soql: currEditor.getValue(),
         });
       },
     });
@@ -131,12 +130,12 @@ export const ManualSoql: FunctionComponent<ManualSoqlProps> = ({ className, isTo
       label: 'Format',
       keybindings: [monaco?.KeyMod.Shift | monaco?.KeyMod.Alt | monaco?.KeyCode.KEY_F],
       contextMenuGroupId: '9_cutcopypaste',
-      run: (ed) => {
-        setSoql(formatQuery(ed.getValue(), { fieldMaxLineLength: 80 }));
+      run: (currEditor) => {
+        setSoql(formatQuery(currEditor.getValue(), { fieldMaxLineLength: 80 }));
       },
     });
     editorRef.current.createContextKey;
-  }
+  };
 
   return (
     <div className={className}>
