@@ -6,7 +6,8 @@ module.exports = withImages(
     // Set this to true if you use CSS modules.
     // See: https://github.com/css-modules/css-modules
     cssModules: false,
-    exportTrailingSlash: true,
+    // Warning: The "exportTrailingSlash" option has been renamed to "trailingSlash". Please update your next.config.js.
+    trailingSlash: true,
     // #LAME https://github.com/nrwl/nx/issues/4182
     webpack(config) {
       // Prevent nx from adding an svg handler - stick to what is provided by

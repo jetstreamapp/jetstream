@@ -6,14 +6,24 @@ import { ENV } from './env-config';
 import { logger } from './logger.config';
 
 export const pgPool = new Pool({
-  // Insert pool options here
   connectionString: ENV.JESTREAM_POSTGRES_DBURI,
   connectionTimeoutMillis: 2000,
   idleTimeoutMillis: 30000,
 });
 
+pgPool.on('connect', (client) => {
+  logger.info('[DB][POOL] Connected');
+  client.on('error', (err) => {
+    logger.error('[DB][CLIENT][ERROR] Unexpected error on client. %o', err);
+  });
+});
+
+pgPool.on('remove', (client) => {
+  logger.info('[DB][POOL] Connection removed');
+});
+
 pgPool.on('error', (err, client) => {
-  logger.error('[DB][ERROR] Unexpected error on idle client. %o', err);
+  logger.error('[DB][POOL][ERROR] Unexpected error on idle client. %o', err);
   process.exit(-1);
 });
 
@@ -22,7 +32,7 @@ createConnection({
   url: ENV.JESTREAM_POSTGRES_DBURI,
   entities: [SalesforceOrg],
   synchronize: true,
-  logging: ['error', 'schema'],
+  logging: ['error', 'warn', 'schema'],
   maxQueryExecutionTime: 1000,
 })
   .then((connection) => {

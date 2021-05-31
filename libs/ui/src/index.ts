@@ -1,7 +1,6 @@
 export * from './lib/accordion/Accordion';
 export * from './lib/alert/Alert';
 export * from './lib/card/Card';
-export * from './lib/code-editor/CodeEditor';
 export * from './lib/confirmation-dialog/ConfirmationDialog';
 export { DateFilterComparator, getCheckboxColumnDef } from './lib/data-table/data-table-utils';
 export * from './lib/data-table/DataTable';
@@ -27,6 +26,8 @@ export * from './lib/form/combobox/ComboboxWithItems';
 export * from './lib/form/date-time/DateTime';
 export * from './lib/form/date/DatePicker';
 export * from './lib/form/dropdown/DropDown';
+export * from './lib/form/dueling-picklist/DuelingPicklist';
+export * from './lib/form/dueling-picklist/DuelingPicklistTypes';
 export * from './lib/form/file-selector/FileSelector';
 export * from './lib/form/input/Input';
 export * from './lib/form/picklist/Picklist';

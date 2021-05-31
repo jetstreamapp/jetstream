@@ -50,6 +50,7 @@ export interface TableContext {
     edit: (row: any) => void;
     clone: (row: any) => void;
     view: (row: any) => void;
+    getAsApex: (row: any) => void;
   };
 }
 
@@ -72,7 +73,7 @@ export function getCheckboxColumnDef(includeActions?: boolean): ColDef {
     checkboxSelection: true,
     headerCheckboxSelection: true,
     headerCheckboxSelectionFilteredOnly: true,
-    width: includeActions ? 120 : 50,
+    width: includeActions ? 145 : 50,
     filter: false,
     sortable: false,
     resizable: false,

@@ -15,6 +15,7 @@ import AppToast from './components/core/AppToast';
 import ErrorBoundaryFallback from './components/core/ErrorBoundaryFallback';
 import HeaderNavbar from './components/core/HeaderNavbar';
 import LogInitializer from './components/core/LogInitializer';
+import './components/core/monaco-loader';
 import OrgSelectionRequired from './components/orgs/OrgSelectionRequired';
 
 const AutomationControl = lazy(() => import('./components/automation-control/AutomationControl'));

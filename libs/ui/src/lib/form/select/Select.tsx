@@ -4,6 +4,7 @@ import classNames from 'classnames';
 
 export interface SelectProps {
   id: string;
+  className?: string;
   label?: string | ReactNode;
   labelHelp?: string;
   helpText?: React.ReactNode | string;
@@ -15,6 +16,7 @@ export interface SelectProps {
 
 export const Select: FunctionComponent<SelectProps> = ({
   id,
+  className,
   label,
   labelHelp,
   helpText,
@@ -25,7 +27,7 @@ export const Select: FunctionComponent<SelectProps> = ({
   children,
 }) => {
   return (
-    <div className={classNames('slds-form-element', { 'slds-has-error': hasError })}>
+    <div className={classNames('slds-form-element', { 'slds-has-error': hasError }, className)}>
       {label && (
         <Fragment>
           <label className="slds-form-element__label" htmlFor={id}>

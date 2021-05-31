@@ -1,9 +1,10 @@
 /** @jsx jsx */
 import { css, jsx } from '@emotion/react';
 import { ManualRequestResponse } from '@jetstream/types';
-import { Card, CodeEditor, CopyToClipboard, Grid, Spinner } from '@jetstream/ui';
+import { Card, CopyToClipboard, Grid, Spinner } from '@jetstream/ui';
+import Editor from '@monaco-editor/react';
 import classNames from 'classnames';
-import { Fragment, FunctionComponent } from 'react';
+import { FunctionComponent } from 'react';
 
 export interface SalesforceApiResponseProps {
   loading: boolean;
@@ -46,15 +47,15 @@ export const SalesforceApiResponse: FunctionComponent<SalesforceApiResponseProps
         </div>
       </Grid>
       <h2 className="slds-text-heading_small slds-m-top_x-small">Response Headers</h2>
-      <CodeEditor
-        className="CodeMirror-full-height CodeMirror-textarea"
-        value={results?.headers}
-        lineNumbers
-        size={{ height: `150px` }}
+      <Editor
+        height="150px"
+        theme="vs-dark"
+        language="json"
+        value={results?.headers || ''}
         options={{
-          tabSize: 2,
-          mode: { name: 'javascript', json: true },
           readOnly: true,
+          minimap: { enabled: false },
+          scrollBeyondLastLine: false,
         }}
       />
       <Grid
@@ -66,15 +67,14 @@ export const SalesforceApiResponse: FunctionComponent<SalesforceApiResponseProps
       >
         <h2 className="slds-text-heading_small">Response Body</h2>
       </Grid>
-      <CodeEditor
-        className="CodeMirror-full-height CodeMirror-textarea"
-        value={results?.body}
-        lineNumbers
-        size={{ height: '60vh' }}
+      <Editor
+        height="60vh"
+        theme="vs-dark"
+        language="json"
+        value={results?.body || ''}
         options={{
-          tabSize: 2,
-          mode: { name: 'javascript', json: true },
           readOnly: true,
+          minimap: { enabled: false },
         }}
       />
     </Card>

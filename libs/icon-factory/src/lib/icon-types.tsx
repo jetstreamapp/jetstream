@@ -40,8 +40,8 @@ export interface DoctypeIconObj {
 
 export interface UtilityIconObj {
   add: IconEl;
-  apex: IconEl;
   apex_plugin: IconEl;
+  apex: IconEl;
   arrowdown: IconEl;
   arrowup: IconEl;
   back: IconEl;
@@ -55,8 +55,8 @@ export interface UtilityIconObj {
   close: IconEl;
   collapse_all: IconEl;
   component_customization: IconEl;
-  copy: IconEl;
   copy_to_clipboard: IconEl;
+  copy: IconEl;
   dash: IconEl;
   date_time: IconEl;
   delete: IconEl;
@@ -99,6 +99,7 @@ export interface UtilityIconObj {
   sync: IconEl;
   task: IconEl;
   undo: IconEl;
+  up: IconEl;
   upload: IconEl;
   warning: IconEl;
 }

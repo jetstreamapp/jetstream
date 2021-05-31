@@ -53,6 +53,7 @@ export interface SalesforceRecordDataTableProps {
   onEdit: (record: any) => void;
   onClone: (record: any) => void;
   onView: (record: any) => void;
+  onGetAsApex: (record: any) => void;
 }
 
 export const SalesforceRecordDataTable: FunctionComponent<SalesforceRecordDataTableProps> = memo<SalesforceRecordDataTableProps>(
@@ -71,6 +72,7 @@ export const SalesforceRecordDataTable: FunctionComponent<SalesforceRecordDataTa
     onEdit,
     onClone,
     onView,
+    onGetAsApex,
   }) => {
     const isMounted = useRef(null);
     const [gridApi, setGridApi] = useState<GridApi>(null);
@@ -234,6 +236,7 @@ export const SalesforceRecordDataTable: FunctionComponent<SalesforceRecordDataTa
                     edit: onEdit,
                     clone: onClone,
                     view: onView,
+                    getAsApex: onGetAsApex,
                   },
                 },
                 onGridReady: handleOnGridReady,

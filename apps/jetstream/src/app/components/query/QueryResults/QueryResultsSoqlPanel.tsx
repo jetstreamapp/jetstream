@@ -1,8 +1,9 @@
 /** @jsx jsx */
 import { jsx } from '@emotion/react';
 import { useDebounce } from '@jetstream/shared/ui-utils';
-import { CheckboxToggle, CodeEditor, Grid, Icon, Panel, Textarea, Tooltip } from '@jetstream/ui';
-import { Editor } from 'codemirror';
+import { CheckboxToggle, Grid, Icon, Panel, Textarea, Tooltip } from '@jetstream/ui';
+import Editor, { useMonaco } from '@monaco-editor/react';
+import type { editor } from 'monaco-editor';
 import { FunctionComponent, useEffect, useReducer, useRef, useState } from 'react';
 import { formatQuery, isQueryValid } from 'soql-parser-js';
 
@@ -39,7 +40,6 @@ function reducer(state: State, action: Action): State {
   }
 }
 
-// eslint-disable-next-line @typescript-eslint/no-empty-interface
 export interface QueryResultsSoqlPanelProps {
   soql: string;
   isTooling: boolean;
@@ -55,7 +55,8 @@ export const QueryResultsSoqlPanel: FunctionComponent<QueryResultsSoqlPanelProps
   onClosed,
   executeQuery,
 }) => {
-  const editorInstance = useRef<Editor>();
+  const monaco = useMonaco();
+  const editorRef = useRef<editor.IStandaloneCodeEditor>(null);
   const [userSoql, setUserSoql] = useState<string>(soql);
   const [userTooling, setUserTooling] = useState<boolean>(isTooling);
   const [{ formattedSoql, isValid }, dispatch] = useReducer(reducer, { formattedSoql: soql, isValid: true });
@@ -85,17 +86,31 @@ export const QueryResultsSoqlPanel: FunctionComponent<QueryResultsSoqlPanelProps
     dispatch({ type: 'FORMAT_SOQL', payload: { soql: userSoql } });
   }
 
-  function submitQuery() {
-    executeQuery(userSoql, userTooling);
+  function submitQuery(currSoql?: string) {
+    currSoql = currSoql || userSoql;
+    executeQuery(currSoql, userTooling);
   }
 
-  // this appears to get called on every keypress :sob:
-  function handleOnEditorInstance(editor: Editor) {
-    editorInstance.current = editor;
-    if (!editorInstance.current.hasFocus()) {
-      editorInstance.current.focus();
-      editorInstance.current.setCursor(0, 0);
-    }
+  function handleEditorMount(ed: editor.IStandaloneCodeEditor) {
+    editorRef.current = ed;
+    editorRef.current.addAction({
+      id: 'modifier-enter',
+      label: 'Submit',
+      keybindings: [monaco?.KeyMod.CtrlCmd | monaco?.KeyCode.Enter],
+      run: (ed) => {
+        submitQuery(ed.getValue());
+      },
+    });
+    editorRef.current.addAction({
+      id: 'format',
+      label: 'Format',
+      keybindings: [monaco?.KeyMod.Shift | monaco?.KeyMod.Alt | monaco?.KeyCode.KEY_F],
+      contextMenuGroupId: '9_cutcopypaste',
+      run: (ed) => {
+        setUserSoql(formatQuery(ed.getValue(), { fieldMaxLineLength: 80 }));
+      },
+    });
+    editorRef.current.createContextKey;
   }
 
   return (
@@ -126,18 +141,20 @@ export const QueryResultsSoqlPanel: FunctionComponent<QueryResultsSoqlPanelProps
           </Grid>
         }
       >
-        <CodeEditor
-          className="CodeMirror-textarea"
-          options={{
-            tabSize: 2,
-            extraKeys: {
-              'Alt-Enter': submitQuery,
-              'Meta-Enter': submitQuery,
-            },
-          }}
+        <Editor
+          className="slds-border_top slds-border_right slds-border_bottom slds-border_left"
+          height="50vh"
+          language="sql"
           value={userSoql}
-          onChange={setUserSoql}
-          onInstance={handleOnEditorInstance}
+          options={{
+            minimap: { enabled: false },
+            lineNumbers: 'off',
+            glyphMargin: false,
+            folding: false,
+            scrollBeyondLastLine: false,
+          }}
+          onMount={handleEditorMount}
+          onChange={(value) => setUserSoql(value)}
         />
       </Textarea>
       <div className="slds-grid slds-grid_align-spread slds-m-top--small">

@@ -20,7 +20,7 @@ import QueryHistoryItemCard from './QueryHistoryItemCard';
 import QueryHistoryWhichOrg from './QueryHistoryWhichOrg';
 import QueryHistoryWhichType from './QueryHistoryWhichType';
 
-const SHOWING_STEP = 10;
+const SHOWING_STEP = 25;
 
 export interface QueryHistoryProps {
   selectedOrg: SalesforceOrgUi;
