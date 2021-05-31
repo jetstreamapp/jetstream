@@ -29,7 +29,7 @@ module.exports = (config) => {
   config.externals = config.externals || {};
   config.externals = {
     ...config.externals,
-    'monaco-editor': 'monaco',
+    'monaco-editor': 'monaco-editor',
   };
 
   return config;
