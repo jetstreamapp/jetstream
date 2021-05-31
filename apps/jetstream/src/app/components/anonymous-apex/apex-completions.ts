@@ -1,5 +1,5 @@
 // I don't think I should do this - should use getMonaco
-// import { languages } from 'monaco-editor/esm/vs/editor/editor.api';
+// import { languages } from 'monaco-editor';
 
 // // TODO: this plus fetch completions
 // function createDependencyProposals(range) {

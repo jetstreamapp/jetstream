@@ -19,7 +19,7 @@ pgPool.on('connect', (client) => {
 });
 
 pgPool.on('remove', (client) => {
-  logger.error('[DB][POOL] Connection removed');
+  logger.info('[DB][POOL] Connection removed');
 });
 
 pgPool.on('error', (err, client) => {
