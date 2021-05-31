@@ -13,15 +13,15 @@ export const pgPool = new Pool({
 });
 
 pgPool.on('connect', (client) => {
-  logger.info('[DB][POOL] Connected');
+  // logger.info('[DB][POOL] Connected');
   client.on('error', (err) => {
     logger.error('[DB][CLIENT][ERROR] Unexpected error on client. %o', err);
   });
 });
 
-pgPool.on('remove', (client) => {
-  logger.info('[DB][POOL] Connection removed');
-});
+// pgPool.on('remove', (client) => {
+//   logger.info('[DB][POOL] Connection removed');
+// });
 
 pgPool.on('error', (err, client) => {
   logger.error('[DB][POOL][ERROR] Unexpected error on idle client. %o', err);
