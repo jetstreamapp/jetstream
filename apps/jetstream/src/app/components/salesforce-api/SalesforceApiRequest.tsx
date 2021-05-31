@@ -5,9 +5,9 @@ import { HTTP, INDEXED_DB, MIME_TYPES } from '@jetstream/shared/constants';
 import { useDebounce, useNonInitialEffect } from '@jetstream/shared/ui-utils';
 import { HttpMethod, MapOf, SalesforceApiHistoryItem, SalesforceApiHistoryRequest, SalesforceOrgUi } from '@jetstream/types';
 import { Card, Grid, HelpText, Icon, RadioButton, RadioGroup, Tooltip } from '@jetstream/ui';
-import Editor from '@monaco-editor/react';
+import Editor, { useMonaco } from '@monaco-editor/react';
 import localforage from 'localforage';
-import type { editor, KeyCode, KeyMod } from 'monaco-editor';
+import type { editor } from 'monaco-editor';
 import { FunctionComponent, useReducer, useRef, useState } from 'react';
 import { useRecoilValue } from 'recoil';
 import * as fromSalesforceApiHistory from './salesforceApi.state';
@@ -77,6 +77,7 @@ export const SalesforceApiRequest: FunctionComponent<SalesforceApiRequestProps> 
   selectedOrg,
   onSubmit,
 }) => {
+  const monaco = useMonaco();
   const headerRef = useRef<editor.IStandaloneCodeEditor>(null);
   const bodyRef = useRef<editor.IStandaloneCodeEditor>(null);
   const [url, setUrl] = useState(() => getDefaultUrl(selectedOrg, defaultApiVersion));
@@ -143,7 +144,7 @@ export const SalesforceApiRequest: FunctionComponent<SalesforceApiRequestProps> 
     headerRef.current.addAction({
       id: 'modifier-enter',
       label: 'Submit',
-      keybindings: [KeyMod.CtrlCmd | KeyCode.Enter],
+      keybindings: [monaco?.KeyMod.CtrlCmd | monaco?.KeyCode.Enter],
       run: (ed) => {
         handleSubmit({ headers: ed.getValue(), body });
       },
@@ -155,7 +156,7 @@ export const SalesforceApiRequest: FunctionComponent<SalesforceApiRequestProps> 
     bodyRef.current.addAction({
       id: 'modifier-enter',
       label: 'Submit',
-      keybindings: [KeyMod.CtrlCmd | KeyCode.Enter],
+      keybindings: [monaco?.KeyMod.CtrlCmd | monaco?.KeyCode.Enter],
       run: (ed) => {
         setBody(ed.getValue());
         handleSubmit({ headers, body: ed.getValue() });

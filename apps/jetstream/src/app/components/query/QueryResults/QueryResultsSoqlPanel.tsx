@@ -2,8 +2,8 @@
 import { jsx } from '@emotion/react';
 import { useDebounce } from '@jetstream/shared/ui-utils';
 import { CheckboxToggle, Grid, Icon, Panel, Textarea, Tooltip } from '@jetstream/ui';
-import Editor from '@monaco-editor/react';
-import type { editor, KeyCode, KeyMod } from 'monaco-editor';
+import Editor, { useMonaco } from '@monaco-editor/react';
+import type { editor } from 'monaco-editor';
 import { FunctionComponent, useEffect, useReducer, useRef, useState } from 'react';
 import { formatQuery, isQueryValid } from 'soql-parser-js';
 
@@ -55,6 +55,7 @@ export const QueryResultsSoqlPanel: FunctionComponent<QueryResultsSoqlPanelProps
   onClosed,
   executeQuery,
 }) => {
+  const monaco = useMonaco();
   const editorRef = useRef<editor.IStandaloneCodeEditor>(null);
   const [userSoql, setUserSoql] = useState<string>(soql);
   const [userTooling, setUserTooling] = useState<boolean>(isTooling);
@@ -95,7 +96,7 @@ export const QueryResultsSoqlPanel: FunctionComponent<QueryResultsSoqlPanelProps
     editorRef.current.addAction({
       id: 'modifier-enter',
       label: 'Submit',
-      keybindings: [KeyMod.CtrlCmd | KeyCode.Enter],
+      keybindings: [monaco?.KeyMod.CtrlCmd | monaco?.KeyCode.Enter],
       run: (ed) => {
         submitQuery(ed.getValue());
       },
@@ -103,7 +104,7 @@ export const QueryResultsSoqlPanel: FunctionComponent<QueryResultsSoqlPanelProps
     editorRef.current.addAction({
       id: 'format',
       label: 'Format',
-      keybindings: [KeyMod.Shift | KeyMod.Alt | KeyCode.KEY_F],
+      keybindings: [monaco?.KeyMod.Shift | monaco?.KeyMod.Alt | monaco?.KeyCode.KEY_F],
       contextMenuGroupId: '9_cutcopypaste',
       run: (ed) => {
         setUserSoql(formatQuery(ed.getValue(), { fieldMaxLineLength: 80 }));

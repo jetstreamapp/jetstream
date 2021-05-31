@@ -6,10 +6,10 @@ import { anonymousApex } from '@jetstream/shared/data';
 import { useDebounce, useNonInitialEffect, useRollbar } from '@jetstream/shared/ui-utils';
 import { ApexHistoryItem, MapOf, SalesforceOrgUi } from '@jetstream/types';
 import { AutoFullHeightContainer, Badge, Card, CopyToClipboard, Grid, Icon, Spinner } from '@jetstream/ui';
-import Editor from '@monaco-editor/react';
+import Editor, { useMonaco } from '@monaco-editor/react';
 import AnonymousApexFilter from 'apps/jetstream/src/app/components/anonymous-apex/AnonymousApexFilter';
 import localforage from 'localforage';
-import type { editor, KeyMod, KeyCode } from 'monaco-editor';
+import type { editor } from 'monaco-editor';
 import { Fragment, FunctionComponent, useCallback, useEffect, useRef, useState } from 'react';
 import Split from 'react-split';
 import { useRecoilState, useRecoilValue } from 'recoil';
@@ -32,6 +32,7 @@ export const AnonymousApex: FunctionComponent<AnonymousApexProps> = () => {
   const logRef = useRef<editor.IStandaloneCodeEditor>(null);
   const { trackEvent } = useAmplitude();
   const rollbar = useRollbar();
+  const monaco = useMonaco();
   const selectedOrg = useRecoilValue<SalesforceOrgUi>(selectedOrgState);
   const [apex, setApex] = useState(() => localStorage.getItem(STORAGE_KEYS.ANONYMOUS_APEX_STORAGE_KEY) || '');
   const [results, setResults] = useState('');
@@ -138,7 +139,7 @@ export const AnonymousApex: FunctionComponent<AnonymousApexProps> = () => {
     apexRef.current.addAction({
       id: 'modifier-enter',
       label: 'Submit',
-      keybindings: [KeyMod.CtrlCmd | KeyCode.Enter],
+      keybindings: [monaco?.KeyMod.CtrlCmd | monaco?.KeyCode.Enter],
       run: (ed) => {
         onSubmit(ed.getValue());
       },

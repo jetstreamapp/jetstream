@@ -2,10 +2,10 @@
 import { jsx } from '@emotion/react';
 import { ANALYTICS_KEYS } from '@jetstream/shared/constants';
 import { CheckboxToggle, Grid, GridCol, Icon, Popover, Spinner, Textarea } from '@jetstream/ui';
-import Editor from '@monaco-editor/react';
-import type { editor, KeyCode, KeyMod } from 'monaco-editor';
+import Editor, { useMonaco } from '@monaco-editor/react';
+import type { editor } from 'monaco-editor';
 import { Fragment, FunctionComponent, useEffect, useRef, useState } from 'react';
-import { Link, useHistory, useLocation, useRouteMatch } from 'react-router-dom';
+import { Link, useHistory, useRouteMatch } from 'react-router-dom';
 import { formatQuery, isQueryValid } from 'soql-parser-js';
 import { useAmplitude } from '../../core/analytics';
 import RestoreQuery from '../QueryBuilder/RestoreQuery';
@@ -54,6 +54,7 @@ export const ManualSoql: FunctionComponent<ManualSoqlProps> = ({ className, isTo
   const history = useHistory();
   const { trackEvent } = useAmplitude();
   const match = useRouteMatch();
+  const monaco = useMonaco();
   const [isOpen, setIsOpen] = useState<boolean>(false);
   const [soql, setSoql] = useState<string>('');
   const [isRestoring, setIsRestoring] = useState(false);
@@ -117,7 +118,7 @@ export const ManualSoql: FunctionComponent<ManualSoqlProps> = ({ className, isTo
     editorRef.current.addAction({
       id: 'modifier-enter',
       label: 'Submit',
-      keybindings: [KeyMod.CtrlCmd | KeyCode.Enter],
+      keybindings: [monaco?.KeyMod.CtrlCmd | monaco?.KeyCode.Enter],
       run: (ed) => {
         history.push(`${match.url}/results`, {
           isTooling: userTooling,
@@ -128,7 +129,7 @@ export const ManualSoql: FunctionComponent<ManualSoqlProps> = ({ className, isTo
     editorRef.current.addAction({
       id: 'format',
       label: 'Format',
-      keybindings: [KeyMod.Shift | KeyMod.Alt | KeyCode.KEY_F],
+      keybindings: [monaco?.KeyMod.Shift | monaco?.KeyMod.Alt | monaco?.KeyCode.KEY_F],
       contextMenuGroupId: '9_cutcopypaste',
       run: (ed) => {
         setSoql(formatQuery(ed.getValue(), { fieldMaxLineLength: 80 }));
