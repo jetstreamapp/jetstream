@@ -134,8 +134,8 @@ export async function getProcessBuilders(
       throw new Error('There were errors obtaining the process builder metadata from Salesforce');
     }
     flowDefinitionsBySobject = response.compositeResponse.reduce((output: MapOf<string[]>, record) => {
-      const [sobject] = record.body.Metadata.processMetadataValues
-        .filter((value) => value.name === 'ObjectType')
+      const [sobject] = record.body.Metadata?.processMetadataValues
+        ?.filter((value) => value.name === 'ObjectType')
         .map((value) => value.value.stringValue);
       if (sobject) {
         output[sobject] = output[sobject] || [];
