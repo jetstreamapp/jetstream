@@ -1,5 +1,5 @@
 import { Environment, UserProfileUi } from '@jetstream/types';
-import { logBuffer } from '@jetstream/shared/client-logger';
+import { logBuffer, logger } from '@jetstream/shared/client-logger';
 import { useState } from 'react';
 import Rollbar from 'rollbar';
 import { useNonInitialEffect } from './useNonInitialEffect';
@@ -98,4 +98,16 @@ export function useRollbar(options?: { accessToken?: string; environment?: Envir
   }, [options]);
 
   return rollbarConfig.rollbar;
+}
+
+// This should be used outside of a component (e.x. utility function)
+export function logErrorToRollbar(message: string, data: any) {
+  try {
+    if (RollbarConfig.getInstance().rollbarIsConfigured) {
+      RollbarConfig.getInstance().rollbar.error(message, data);
+    }
+  } catch (ex) {
+    // could not report to rollbar
+    logger.log('[ROLLBAR] Error logging to rollbar', ex);
+  }
 }

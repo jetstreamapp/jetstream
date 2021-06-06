@@ -403,7 +403,7 @@ export const AutomationControl: FunctionComponent<AutomationControlProps> = () =
           })
           .catch((err) => {
             logger.error(err);
-            rollbar.error(err.message, { error: err, place: 'AutomationControl', type: 'ValidationRule' });
+            rollbar.error(err.message, { stack: err.stack, place: 'AutomationControl', type: 'ValidationRule' });
             setItemsById((priorItems) => {
               const currTab = { ...priorItems[tabId] };
               currTab.automationItems = {
@@ -436,7 +436,7 @@ export const AutomationControl: FunctionComponent<AutomationControlProps> = () =
           })
           .catch((err) => {
             logger.error(err);
-            rollbar.error(err.message, { error: err, place: 'AutomationControl', type: 'WorkflowRule' });
+            rollbar.error(err.message, { stack: err.stack, place: 'AutomationControl', type: 'WorkflowRule' });
             setItemsById((priorItems) => {
               const currTab = { ...priorItems[tabId] };
               currTab.automationItems = {
@@ -467,7 +467,7 @@ export const AutomationControl: FunctionComponent<AutomationControlProps> = () =
           })
           .catch((err) => {
             logger.error(err);
-            rollbar.error(err.message, { error: err, place: 'AutomationControl', type: 'Flow' });
+            rollbar.error(err.message, { stack: err.stack, place: 'AutomationControl', type: 'Flow' });
             setItemsById((priorItems) => {
               const currTab = { ...priorItems[tabId] };
               currTab.automationItems = {
