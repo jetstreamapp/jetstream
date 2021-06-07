@@ -6,7 +6,7 @@ import { anonymousApex } from '@jetstream/shared/data';
 import { useDebounce, useNonInitialEffect, useRollbar } from '@jetstream/shared/ui-utils';
 import { ApexHistoryItem, MapOf, SalesforceOrgUi } from '@jetstream/types';
 import { AutoFullHeightContainer, Badge, Card, CopyToClipboard, Grid, Icon, Spinner } from '@jetstream/ui';
-import Editor, { OnMount } from '@monaco-editor/react';
+import Editor, { OnMount, useMonaco } from '@monaco-editor/react';
 import AnonymousApexFilter from 'apps/jetstream/src/app/components/anonymous-apex/AnonymousApexFilter';
 import localforage from 'localforage';
 import type { editor } from 'monaco-editor';
@@ -39,7 +39,7 @@ export const AnonymousApex: FunctionComponent<AnonymousApexProps> = () => {
   const [loading, setLoading] = useState(false);
   const [historyItems, setHistoryItems] = useRecoilState(fromApexState.apexHistoryState);
   const debouncedApex = useDebounce(apex, 1000);
-  // const { hint } = useApexCompletions(selectedOrg); // FIXME:
+  const monaco = useMonaco();
 
   const [userDebug, setUserDebug] = useState(false);
   const [textFilter, setTextFilter] = useState<string>('');
@@ -83,6 +83,20 @@ export const AnonymousApex: FunctionComponent<AnonymousApexProps> = () => {
     }
     setVisibleResults(currResults.join('\n'));
   }, [results, userDebug, textFilter]);
+
+  // this is required otherwise the action has stale variables in scope
+  useNonInitialEffect(() => {
+    if (monaco && apexRef.current) {
+      apexRef.current.addAction({
+        id: 'modifier-enter',
+        label: 'Submit',
+        keybindings: [monaco?.KeyMod.CtrlCmd | monaco?.KeyCode.Enter],
+        run: (currEditor) => {
+          onSubmit(currEditor.getValue());
+        },
+      });
+    }
+  }, [selectedOrg]);
 
   const onSubmit = useCallback(
     async (value: string) => {

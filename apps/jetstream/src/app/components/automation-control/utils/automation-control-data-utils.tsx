@@ -2,7 +2,7 @@
 
 import { logger } from '@jetstream/shared/client-logger';
 import { deployMetadata as deployMetadataZip, genericRequest, query } from '@jetstream/shared/data';
-import { getToolingRecords, pollMetadataResultsUntilDone } from '@jetstream/shared/ui-utils';
+import { getToolingRecords, logErrorToRollbar, pollMetadataResultsUntilDone } from '@jetstream/shared/ui-utils';
 import { getMapOf, splitArrayToMaxSize } from '@jetstream/shared/utils';
 import { CompositeRequest, CompositeRequestBody, CompositeResponse, MapOf, SalesforceOrgUi } from '@jetstream/types';
 import { Observable, Subject } from 'rxjs';
@@ -131,15 +131,31 @@ export async function getProcessBuilders(
 
     const invalidResponses = response.compositeResponse.filter((response) => response.httpStatusCode !== 200);
     if (invalidResponses.length > 0) {
+      logErrorToRollbar('Invalid process builder responses', {
+        place: 'AutomationControl',
+        type: 'getProcessBuilders()',
+        invalidResponses,
+      });
       throw new Error('There were errors obtaining the process builder metadata from Salesforce');
     }
     flowDefinitionsBySobject = response.compositeResponse.reduce((output: MapOf<string[]>, record) => {
-      const [sobject] = record.body.Metadata?.processMetadataValues
-        ?.filter((value) => value.name === 'ObjectType')
-        .map((value) => value.value.stringValue);
-      if (sobject) {
-        output[sobject] = output[sobject] || [];
-        output[sobject].push(record.body.DefinitionId);
+      try {
+        if (record.body.Metadata && record.body.Metadata.processMetadataValues) {
+          const [sobject] = record.body.Metadata.processMetadataValues
+            .filter((value) => value.name === 'ObjectType')
+            .map((value) => value.value.stringValue);
+          if (sobject) {
+            output[sobject] = output[sobject] || [];
+            output[sobject].push(record.body.DefinitionId);
+          }
+        }
+      } catch (ex) {
+        logErrorToRollbar(ex.message, {
+          stack: ex.stack,
+          place: 'AutomationControl',
+          type: 'getProcessBuilders()',
+          record,
+        });
       }
       return output;
     }, flowDefinitionsBySobject);

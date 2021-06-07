@@ -12,7 +12,7 @@ import {
   SalesforceOrgUi,
 } from '@jetstream/types';
 import { Card, Grid, HelpText, Icon, RadioButton, RadioGroup, Tooltip } from '@jetstream/ui';
-import Editor, { OnMount } from '@monaco-editor/react';
+import Editor, { OnMount, useMonaco } from '@monaco-editor/react';
 import SalesforceApiExamplesModal from 'apps/jetstream/src/app/components/salesforce-api/SalesforceApiExamplesModal';
 import localforage from 'localforage';
 import type { editor } from 'monaco-editor';
@@ -94,6 +94,7 @@ export const SalesforceApiRequest: FunctionComponent<SalesforceApiRequestProps> 
   const [{ headersErrorMessage, bodyErrorMessage }, dispatch] = useReducer(errorMessageReducer, {});
   const [bodyType, setBodyType] = useState<JsonText>(_priorRequest?.bodyType || 'JSON');
   const historyItems = useRecoilValue(fromSalesforceApiHistory.salesforceApiHistoryState);
+  const monaco = useMonaco();
 
   const debouncedUrl = useDebounce(url, 300);
   const debouncedHeaders = useDebounce(headers, 300);
@@ -127,9 +128,34 @@ export const SalesforceApiRequest: FunctionComponent<SalesforceApiRequestProps> 
     };
   }, [debouncedUrl, debouncedHeaders, debouncedBody, method, bodyType]);
 
-  function handleSubmit(values?: { headers: string; body: string }) {
+  // this is required otherwise the action has stale variables in scope
+  useNonInitialEffect(() => {
+    if (monaco && headerRef.current && bodyRef.current) {
+      headerRef.current.addAction({
+        id: 'modifier-enter',
+        label: 'Submit',
+        keybindings: [monaco?.KeyMod.CtrlCmd | monaco?.KeyCode.Enter],
+        run: (currEditor) => {
+          handleSubmit({ headers: currEditor.getValue() });
+        },
+      });
+      bodyRef.current.addAction({
+        id: 'modifier-enter',
+        label: 'Submit',
+        keybindings: [monaco?.KeyMod.CtrlCmd | monaco?.KeyCode.Enter],
+        run: (currEditor) => {
+          setBody(currEditor.getValue());
+          handleSubmit({ body: currEditor.getValue() });
+        },
+      });
+    }
+  }, [selectedOrg, url, headers, body, method, bodyType, headersErrorMessage, bodyErrorMessage]);
+
+  function handleSubmit(values?: { headers?: string; body?: string }) {
     if (!loading && !headersErrorMessage && !bodyErrorMessage) {
       values = values || { headers, body };
+      values.headers = values.headers || headers;
+      values.body = values.body || body;
       try {
         onSubmit({ url, method, headers: JSON.parse(values.headers) || {}, body: method === 'GET' ? '' : values.body, bodyType });
       } catch (ex) {
@@ -161,7 +187,7 @@ export const SalesforceApiRequest: FunctionComponent<SalesforceApiRequestProps> 
       label: 'Submit',
       keybindings: [monaco?.KeyMod.CtrlCmd | monaco?.KeyCode.Enter],
       run: (currEditor) => {
-        handleSubmit({ headers: currEditor.getValue(), body });
+        handleSubmit({ headers: currEditor.getValue() });
       },
     });
   };
@@ -174,7 +200,7 @@ export const SalesforceApiRequest: FunctionComponent<SalesforceApiRequestProps> 
       keybindings: [monaco?.KeyMod.CtrlCmd | monaco?.KeyCode.Enter],
       run: (currEditor) => {
         setBody(currEditor.getValue());
-        handleSubmit({ headers, body: currEditor.getValue() });
+        handleSubmit({ body: currEditor.getValue() });
       },
     });
   };
