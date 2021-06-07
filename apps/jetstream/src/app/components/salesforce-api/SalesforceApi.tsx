@@ -24,6 +24,7 @@ export const SalesforceApi: FunctionComponent<SalesforceApiProps> = () => {
   const { trackEvent } = useAmplitude();
   const rollbar = useRollbar();
   const selectedOrg = useRecoilValue<SalesforceOrgUi>(selectedOrgState);
+  const [request, setRequest] = useState<SalesforceApiHistoryRequest>();
   const [results, setResults] = useState<ManualRequestResponse>(null);
   const [loading, setLoading] = useState(false);
   const [historyItems, setHistoryItems] = useRecoilState(fromSalesforceApiHistory.salesforceApiHistoryState);
@@ -36,6 +37,7 @@ export const SalesforceApi: FunctionComponent<SalesforceApiProps> = () => {
   const onSubmit = useCallback(
     async (requestData: SalesforceApiHistoryRequest) => {
       const { url, method, headers, body } = requestData;
+      setRequest(requestData);
       setLoading(true);
       setResults(null);
       try {
@@ -105,7 +107,7 @@ export const SalesforceApi: FunctionComponent<SalesforceApiProps> = () => {
           <SalesforceApiRequest selectedOrg={selectedOrg} defaultApiVersion={defaultApiVersion} loading={loading} onSubmit={onSubmit} />
         </div>
         <div className="slds-p-horizontal_x-small slds-is-relative">
-          <SalesforceApiResponse loading={loading} results={results} />
+          <SalesforceApiResponse loading={loading} request={request} results={results} />
         </div>
       </Split>
     </AutoFullHeightContainer>
