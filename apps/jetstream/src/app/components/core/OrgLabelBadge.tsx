@@ -14,7 +14,7 @@ export const OrgLabelBadge: FunctionComponent<OrgLabelBadgeProps> = ({ className
   const [orgType, setOrgType] = useState<SalesforceOrgUiType>(getOrgType(org));
   const [badgeType, setBadgeType] = useState<BadgeTypes>('light');
 
-  useNonInitialEffect(() => {
+  useEffect(() => {
     if (orgType !== 'Production') {
       setBadgeType('light');
     } else {
