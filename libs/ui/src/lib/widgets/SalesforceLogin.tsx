@@ -1,8 +1,8 @@
 /** @jsx jsx */
 import { jsx } from '@emotion/react';
-import { PositionLeftRight, SalesforceOrgUi } from '@jetstream/types';
-import { FunctionComponent, useEffect, useState } from 'react';
 import { getOrgUrlParams } from '@jetstream/shared/ui-utils';
+import { PositionLeftRight, SalesforceOrgUi } from '@jetstream/types';
+import { FunctionComponent, MouseEvent, useEffect, useState } from 'react';
 import Icon from './Icon';
 
 export interface SalesforceLoginProps {
@@ -15,6 +15,7 @@ export interface SalesforceLoginProps {
   returnUrl?: string;
   iconPosition?: PositionLeftRight;
   omitIcon?: boolean;
+  onClick?: (event: MouseEvent<HTMLAnchorElement>, loginUrl: string) => void;
 }
 
 export const SalesforceLogin: FunctionComponent<SalesforceLoginProps> = ({
@@ -27,6 +28,7 @@ export const SalesforceLogin: FunctionComponent<SalesforceLoginProps> = ({
   iconPosition = 'left',
   omitIcon,
   children,
+  onClick,
 }) => {
   const [loginUrl, setLoginUrl] = useState<string>();
   useEffect(() => {
@@ -43,8 +45,14 @@ export const SalesforceLogin: FunctionComponent<SalesforceLoginProps> = ({
     }
   }, [serverUrl, org, returnUrl, loginUrl, skipFrontDoorAuth]);
 
+  function handleOnClick(event: MouseEvent<HTMLAnchorElement>) {
+    if (onClick) {
+      onClick(event, loginUrl);
+    }
+  }
+
   return (
-    <a className={className} href={loginUrl} target="_blank" rel="noopener noreferrer" title={title}>
+    <a className={className} href={loginUrl} target="_blank" rel="noopener noreferrer" title={title} onClick={handleOnClick}>
       {!omitIcon && iconPosition === 'left' && (
         <Icon
           type="utility"
