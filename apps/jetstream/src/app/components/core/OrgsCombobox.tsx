@@ -2,6 +2,7 @@
 import { css, jsx } from '@emotion/react';
 import { MapOf, SalesforceOrgUi } from '@jetstream/types';
 import { Combobox, ComboboxListItem, ComboboxListItemGroup } from '@jetstream/ui';
+import { sortBy } from 'lodash';
 import groupBy from 'lodash/groupBy';
 import { FunctionComponent, useEffect, useState } from 'react';
 
@@ -59,7 +60,7 @@ export const OrgsCombobox: FunctionComponent<OrgsComboboxProps> = ({
 
   useEffect(() => {
     if (Array.isArray(visibleOrgs)) {
-      setOrgsByOrganization(groupBy(visibleOrgs, 'orgName'));
+      setOrgsByOrganization(groupBy(sortBy(visibleOrgs, ['label']), 'orgName'));
     }
   }, [visibleOrgs]);
 

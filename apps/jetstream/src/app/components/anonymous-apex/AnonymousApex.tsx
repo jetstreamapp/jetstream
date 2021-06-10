@@ -5,15 +5,15 @@ import { ANALYTICS_KEYS, INDEXED_DB } from '@jetstream/shared/constants';
 import { anonymousApex } from '@jetstream/shared/data';
 import { useDebounce, useNonInitialEffect, useRollbar } from '@jetstream/shared/ui-utils';
 import { ApexHistoryItem, MapOf, SalesforceOrgUi } from '@jetstream/types';
-import { AutoFullHeightContainer, Badge, Card, CopyToClipboard, Grid, Icon, Spinner } from '@jetstream/ui';
+import { AutoFullHeightContainer, Badge, Card, CopyToClipboard, Grid, Icon, Spinner, SalesforceLogin } from '@jetstream/ui';
 import Editor, { OnMount, useMonaco } from '@monaco-editor/react';
 import AnonymousApexFilter from 'apps/jetstream/src/app/components/anonymous-apex/AnonymousApexFilter';
 import localforage from 'localforage';
 import type { editor } from 'monaco-editor';
-import { Fragment, FunctionComponent, useCallback, useEffect, useRef, useState } from 'react';
+import { Fragment, FunctionComponent, useCallback, useEffect, useRef, useState, MouseEvent } from 'react';
 import Split from 'react-split';
 import { useRecoilState, useRecoilValue } from 'recoil';
-import { selectedOrgState, STORAGE_KEYS } from '../../app-state';
+import { applicationCookieState, selectedOrgState, STORAGE_KEYS } from '../../app-state';
 import { useAmplitude } from '../core/analytics';
 import AnonymousApexHistory from './AnonymousApexHistory';
 import * as fromApexState from './apex.state';
@@ -32,6 +32,7 @@ export const AnonymousApex: FunctionComponent<AnonymousApexProps> = () => {
   const logRef = useRef<editor.IStandaloneCodeEditor>(null);
   const { trackEvent } = useAmplitude();
   const rollbar = useRollbar();
+  const [{ serverUrl }] = useRecoilState(applicationCookieState);
   const selectedOrg = useRecoilValue<SalesforceOrgUi>(selectedOrgState);
   const [apex, setApex] = useState(() => localStorage.getItem(STORAGE_KEYS.ANONYMOUS_APEX_STORAGE_KEY) || '');
   const [results, setResults] = useState('');
@@ -163,6 +164,12 @@ export const AnonymousApex: FunctionComponent<AnonymousApexProps> = () => {
     logRef.current = ed;
   }
 
+  function handleOpenDevConsole(event: MouseEvent<HTMLAnchorElement>, loginUrl: string) {
+    event.preventDefault();
+    event.stopPropagation();
+    window.open(loginUrl, 'Developer Console', 'height=600,width=600');
+  }
+
   return (
     <AutoFullHeightContainer fillHeight bottomBuffer={10} setHeightAttr className="slds-p-horizontal_x-small slds-scrollable_none">
       <Split
@@ -180,10 +187,22 @@ export const AnonymousApex: FunctionComponent<AnonymousApexProps> = () => {
             className="h-100"
             title="Anonymous Apex"
             actions={
-              <button className="slds-button slds-button_brand" onClick={() => onSubmit(apex)}>
-                <Icon type="utility" icon="apex" className="slds-button__icon slds-button__icon_left" omitContainer />
-                Submit
-              </button>
+              <Fragment>
+                <SalesforceLogin
+                  className="slds-m-right_x-small"
+                  serverUrl={serverUrl}
+                  org={selectedOrg}
+                  returnUrl={`/_ui/common/apex/debug/ApexCSIPage`}
+                  iconPosition="left"
+                  onClick={handleOpenDevConsole}
+                >
+                  Dev Console
+                </SalesforceLogin>
+                <button className="slds-button slds-button_brand" onClick={() => onSubmit(apex)}>
+                  <Icon type="utility" icon="apex" className="slds-button__icon slds-button__icon_left" omitContainer />
+                  Submit
+                </button>
+              </Fragment>
             }
           >
             <Fragment>
