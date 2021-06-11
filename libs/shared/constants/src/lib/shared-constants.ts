@@ -133,3 +133,5 @@ export const ANALYTICS_KEYS = {
   sfdcApi_Submitted: 'sfdcApi_Submitted',
   sfdcApi_Sample: 'sfdcApi_Sample',
 };
+
+export const LOG_LEVELS = ['NONE', 'ERROR', 'WARN', 'INFO', 'DEBUG', 'FINE', 'FINER', 'FINEST'];
