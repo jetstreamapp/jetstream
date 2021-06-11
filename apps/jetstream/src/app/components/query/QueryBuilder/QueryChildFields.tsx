@@ -1,7 +1,7 @@
 import { logger } from '@jetstream/shared/client-logger';
 import { fetchFields, getFieldKey, sortQueryFieldsStr } from '@jetstream/shared/ui-utils';
 import { multiWordObjectFilter } from '@jetstream/shared/utils';
-import { FieldWrapper, MapOf, QueryFields, QueryFieldWithPolymorphic } from '@jetstream/types';
+import { FieldWrapper, MapOf, QueryFields, QueryFieldWithPolymorphic, SalesforceOrgUi } from '@jetstream/types';
 import { SobjectFieldList } from '@jetstream/ui';
 import isEmpty from 'lodash/isEmpty';
 import React, { Fragment, FunctionComponent, useEffect, useState } from 'react';
@@ -11,14 +11,17 @@ import * as fromQueryState from '../query.state';
 import { getSubqueryFieldBaseKey } from '../utils/query-fields-utils';
 
 export interface QueryChildFieldsProps {
+  org: SalesforceOrgUi;
+  serverUrl: string;
   isTooling: boolean;
   selectedSObject: string;
   parentRelationshipName: string;
   onSelectionChanged: (fields: QueryFieldWithPolymorphic[]) => void;
-  // onFieldsFetched: (queryFields: MapOf<QueryFields>) => void;
 }
 
 export const QueryChildFields: FunctionComponent<QueryChildFieldsProps> = ({
+  org,
+  serverUrl,
   isTooling,
   selectedSObject,
   parentRelationshipName,
@@ -119,6 +122,7 @@ export const QueryChildFields: FunctionComponent<QueryChildFieldsProps> = ({
         fields: {},
         visibleFields: new Set(),
         selectedFields: new Set(),
+        metadata: clonedQueryFieldsMap[key].metadata,
       };
       // fetch fields and update once resolved
       (async () => {
@@ -232,6 +236,8 @@ export const QueryChildFields: FunctionComponent<QueryChildFieldsProps> = ({
     <Fragment>
       {selectedSObject && queryFieldsMap[baseKey] && (
         <SobjectFieldList
+          org={org}
+          serverUrl={serverUrl}
           isTooling={isTooling}
           level={0}
           itemKey={baseKey}

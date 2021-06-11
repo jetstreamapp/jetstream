@@ -110,7 +110,7 @@ export function fetchFieldsProcessResults(
     'name'
   );
 
-  return { ...queryFields, fields, visibleFields: new Set(Object.keys(fields)), childRelationships };
+  return { ...queryFields, fields, visibleFields: new Set(Object.keys(fields)), childRelationships, metadata: describeResults };
 }
 
 /**

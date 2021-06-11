@@ -1,8 +1,11 @@
 /** @jsx jsx */
 import { css, jsx } from '@emotion/react';
-import { formatNumber } from '@jetstream/shared/ui-utils';
+import { MIME_TYPES } from '@jetstream/shared/constants';
+import { formatNumber, saveFile } from '@jetstream/shared/ui-utils';
 import { REGEX } from '@jetstream/shared/utils';
-import { FieldWrapper, MapOf, QueryFields, UpDown } from '@jetstream/types';
+import { FieldWrapper, MapOf, QueryFields, SalesforceOrgUi, UpDown } from '@jetstream/types';
+import Icon from 'libs/ui/src/lib/widgets/Icon';
+import SalesforceLogin from 'libs/ui/src/lib/widgets/SalesforceLogin';
 import isString from 'lodash/isString';
 import { createRef, Fragment, FunctionComponent, useEffect, useState } from 'react';
 import Checkbox from '../form/checkbox/Checkbox';
@@ -37,6 +40,8 @@ function getBgColor(level: number): string {
 }
 
 export interface SobjectFieldListProps {
+  org: SalesforceOrgUi;
+  serverUrl: string;
   isTooling: boolean;
   level: number;
   itemKey: string;
@@ -51,6 +56,8 @@ export interface SobjectFieldListProps {
 }
 
 export const SobjectFieldList: FunctionComponent<SobjectFieldListProps> = ({
+  org,
+  serverUrl,
   isTooling,
   level,
   itemKey,
@@ -145,6 +152,8 @@ export const SobjectFieldList: FunctionComponent<SobjectFieldListProps> = ({
       id: `${itemKey}${item.name}`,
       heading: (
         <SobjectFieldListItem
+          org={org}
+          serverUrl={serverUrl}
           isTooling={isTooling}
           level={level}
           parentKey={itemKey}
@@ -175,6 +184,10 @@ export const SobjectFieldList: FunctionComponent<SobjectFieldListProps> = ({
   function handleSearchChange(value: string) {
     setSearchTerm(value);
     onFilterChanged(itemKey, value);
+  }
+
+  function handleDownloadMetadata() {
+    saveFile(JSON.stringify(queryFields.metadata, null, 2), `object-metadata-${sobject}.json`, MIME_TYPES.JSON);
   }
 
   return (
@@ -235,6 +248,34 @@ export const SobjectFieldList: FunctionComponent<SobjectFieldListProps> = ({
               />
             </div>
             <div>
+              {!isTooling && (
+                <SalesforceLogin
+                  serverUrl={serverUrl}
+                  org={org}
+                  returnUrl={`/lightning/setup/ObjectManager/${sobject}/Details/view`}
+                  omitIcon
+                  title={`View object in Salesforce setup`}
+                >
+                  <Icon
+                    css={css`
+                      &:hover {
+                        fill: #005fb2;
+                      }
+                    `}
+                    type="utility"
+                    icon="new_window"
+                    className="slds-icon slds-icon-text-default slds-icon_xx-small"
+                    omitContainer
+                  />
+                </SalesforceLogin>
+              )}
+              <button
+                className="slds-button slds-button_icon slds-button_icon-container"
+                title="Download metadata for object"
+                onClick={handleDownloadMetadata}
+              >
+                <Icon type="utility" icon="download" className="slds-button__icon" omitContainer />
+              </button>
               <SobjectFieldListFilter active={activeFilter} onChange={handleFilterChange} />
             </div>
           </Grid>

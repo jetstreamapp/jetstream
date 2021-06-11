@@ -3,7 +3,7 @@ import { css, jsx } from '@emotion/react';
 import { logger } from '@jetstream/shared/client-logger';
 import { ANALYTICS_KEYS } from '@jetstream/shared/constants';
 import { useDebounce, useNonInitialEffect } from '@jetstream/shared/ui-utils';
-import { InsertUpdateUpsertDelete } from '@jetstream/types';
+import { InsertUpdateUpsertDelete, SalesforceOrgUi } from '@jetstream/types';
 import { Alert, DropDown, Grid, GridCol, Icon } from '@jetstream/ui';
 import classNames from 'classnames';
 import { memo, useEffect, useRef, useState } from 'react';
@@ -24,6 +24,8 @@ const FILTER_MAPPED = 'MAPPED';
 const FILTER_UNMAPPED = 'UNMAPPED';
 
 export interface LoadRecordsFieldMappingProps {
+  org: SalesforceOrgUi;
+  sobject: string;
   fields: FieldWithRelatedEntities[];
   inputHeader: string[];
   fieldMapping: FieldMapping;
@@ -35,7 +37,18 @@ export interface LoadRecordsFieldMappingProps {
 }
 
 export const LoadRecordsFieldMapping = memo<LoadRecordsFieldMappingProps>(
-  ({ fields, inputHeader, fieldMapping: fieldMappingInit, fileData, loadType, externalId, onFieldMappingChange, onRefreshFields }) => {
+  ({
+    org,
+    sobject,
+    fields,
+    inputHeader,
+    fieldMapping: fieldMappingInit,
+    fileData,
+    loadType,
+    externalId,
+    onFieldMappingChange,
+    onRefreshFields,
+  }) => {
     const { trackEvent } = useAmplitude();
     const hasInitialized = useRef(false);
     const [visibleHeaders, setVisibleHeaders] = useState(inputHeader);
@@ -144,7 +157,7 @@ export const LoadRecordsFieldMapping = memo<LoadRecordsFieldMappingProps>(
         </GridCol>
         <GridCol grow>
           <Grid align="end">
-            <LoadRecordsRefreshCachePopover loading={refreshLoading} onReload={handleCacheRefresh} />
+            <LoadRecordsRefreshCachePopover org={org} sobject={sobject} loading={refreshLoading} onReload={handleCacheRefresh} />
           </Grid>
           <table className="slds-table slds-table_cell-buffer slds-table_bordered slds-table_fixed-layout">
             <thead>

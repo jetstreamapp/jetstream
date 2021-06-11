@@ -2,8 +2,8 @@
 /** @jsx jsx */
 import { css, jsx } from '@emotion/react';
 import { IconObj } from '@jetstream/icon-factory';
-import { ANALYTICS_KEYS } from '@jetstream/shared/constants';
-import { hasModifierKey, isEnterKey, useGlobalEventHandler, useNonInitialEffect } from '@jetstream/shared/ui-utils';
+import { ANALYTICS_KEYS, MIME_TYPES } from '@jetstream/shared/constants';
+import { hasModifierKey, isEnterKey, saveFile, useGlobalEventHandler, useNonInitialEffect } from '@jetstream/shared/ui-utils';
 import { DropDownItem, QueryFieldWithPolymorphic, SalesforceOrgUi } from '@jetstream/types';
 import {
   Accordion,
@@ -20,10 +20,10 @@ import {
 } from '@jetstream/ui';
 import { DescribeGlobalSObjectResult } from 'jsforce';
 import { Fragment, FunctionComponent, useCallback, useEffect, useRef, useState } from 'react';
-import { useHistory, useLocation, useRouteMatch } from 'react-router-dom';
+import { useHistory, useRouteMatch } from 'react-router-dom';
 import Split from 'react-split';
 import { useRecoilState, useRecoilValue, useResetRecoilState } from 'recoil';
-import { selectedOrgState, selectUserPreferenceState } from '../../../app-state';
+import { applicationCookieState, selectedOrgState, selectUserPreferenceState } from '../../../app-state';
 import { useAmplitude } from '../../core/analytics';
 import * as fromQueryState from '../query.state';
 import QueryHistory from '../QueryHistory/QueryHistory';
@@ -65,8 +65,8 @@ export const QueryBuilder: FunctionComponent<QueryBuilderProps> = () => {
   const isMounted = useRef(null);
   const { trackEvent } = useAmplitude();
   const match = useRouteMatch();
-  const location = useLocation<{ soql: string; sobject?: { name: string; label: string } }>();
   const history = useHistory();
+  const [{ serverUrl }] = useRecoilState(applicationCookieState);
 
   const selectedOrg = useRecoilValue<SalesforceOrgUi>(selectedOrgState);
   const queryFieldsMap = useRecoilValue(fromQueryState.queryFieldsMapState);
@@ -272,7 +272,6 @@ export const QueryBuilder: FunctionComponent<QueryBuilderProps> = () => {
             `}
           >
             <div className="slds-p-horizontal_x-small">
-              {/* <h2 className="slds-text-heading_medium slds-text-align_center">Objects</h2> */}
               <ConnectedSobjectList
                 label={isTooling ? 'Metadata' : 'Objects'}
                 selectedOrg={selectedOrg}
@@ -315,7 +314,7 @@ export const QueryBuilder: FunctionComponent<QueryBuilderProps> = () => {
                           onSelectionChanged={setSelectedFields}
                         />
                       ),
-                    }, // record
+                    },
                     {
                       id: 'RelatedLists',
                       titleClassName: 'slds-size_1-of-2',
@@ -336,6 +335,8 @@ export const QueryBuilder: FunctionComponent<QueryBuilderProps> = () => {
                       content: (
                         <AutoFullHeightContainer bottomBuffer={10}>
                           <QuerySubquerySObjects
+                            org={selectedOrg}
+                            serverUrl={serverUrl}
                             isTooling={isTooling}
                             childRelationships={childRelationships}
                             onSelectionChanged={handleSubquerySelectedField}

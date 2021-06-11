@@ -1,7 +1,7 @@
 /** @jsx jsx */
 import { css, jsx } from '@emotion/react';
 import { getFieldKey } from '@jetstream/shared/ui-utils';
-import { FieldWrapper, MapOf, QueryFields } from '@jetstream/types';
+import { FieldWrapper, MapOf, QueryFields, SalesforceOrgUi } from '@jetstream/types';
 import { useHighlightedText } from 'libs/ui/src/lib/hooks/useHighlightedText';
 import Icon from 'libs/ui/src/lib/widgets/Icon';
 import Tooltip from 'libs/ui/src/lib/widgets/Tooltip';
@@ -13,6 +13,8 @@ import SobjectFieldListMetadataWarning from './SobjectFieldListMetadataWarning';
 import SobjectFieldListType from './SobjectFieldListType';
 
 export interface SobjectFieldListItemProps {
+  org: SalesforceOrgUi;
+  serverUrl: string;
   isTooling: boolean;
   level: number;
   parentKey: string;
@@ -28,6 +30,8 @@ export interface SobjectFieldListItemProps {
 }
 
 export const SobjectFieldListItem: FunctionComponent<SobjectFieldListItemProps> = ({
+  org,
+  serverUrl,
   isTooling,
   level,
   parentKey,
@@ -117,6 +121,8 @@ export const SobjectFieldListItem: FunctionComponent<SobjectFieldListItemProps> 
           {isExpanded && (
             <div>
               <SobjectFieldList
+                org={org}
+                serverUrl={serverUrl}
                 isTooling={isTooling}
                 level={level + 1}
                 itemKey={relationshipKey}

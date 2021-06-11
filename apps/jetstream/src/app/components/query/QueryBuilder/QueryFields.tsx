@@ -6,7 +6,7 @@ import { AutoFullHeightContainer, SobjectFieldList } from '@jetstream/ui';
 import isEmpty from 'lodash/isEmpty';
 import React, { Fragment, FunctionComponent, useCallback, useEffect, useRef, useState } from 'react';
 import { useRecoilState, useRecoilValue, useSetRecoilState } from 'recoil';
-import { selectedOrgState } from '../../../app-state';
+import { applicationCookieState, selectedOrgState } from '../../../app-state';
 import * as fromQueryState from '../query.state';
 import {
   getQueryFieldBaseKey,
@@ -22,6 +22,7 @@ export interface QueryFieldsProps {
 }
 
 export const QueryFieldsComponent: FunctionComponent<QueryFieldsProps> = ({ selectedSObject, isTooling, onSelectionChanged }) => {
+  const [{ serverUrl }] = useRecoilState(applicationCookieState);
   const isMounted = useRef(null);
   const [queryFieldsMap, setQueryFieldsMap] = useRecoilState(fromQueryState.queryFieldsMapState);
   const [queryFieldsKey, setQueryFieldsKey] = useRecoilState(fromQueryState.queryFieldsKey);
@@ -216,6 +217,8 @@ export const QueryFieldsComponent: FunctionComponent<QueryFieldsProps> = ({ sele
       {selectedSObject && queryFieldsMap[baseKey] && (
         <AutoFullHeightContainer bottomBuffer={10}>
           <SobjectFieldList
+            serverUrl={serverUrl}
+            org={selectedOrg}
             isTooling={isTooling}
             level={0}
             itemKey={baseKey}
