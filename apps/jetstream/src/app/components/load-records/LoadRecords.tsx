@@ -360,6 +360,8 @@ export const LoadRecords: FunctionComponent<LoadRecordsProps> = () => {
             {currentStep.name === 'fieldMapping' && (
               <span>
                 <LoadRecordsFieldMapping
+                  org={selectedOrg}
+                  sobject={selectedSObject?.name}
                   fields={mappableFields}
                   inputHeader={inputFileHeader}
                   fieldMapping={fieldMapping}

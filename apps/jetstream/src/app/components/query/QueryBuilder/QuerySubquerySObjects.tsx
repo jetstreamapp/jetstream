@@ -1,6 +1,6 @@
 import { useNonInitialEffect } from '@jetstream/shared/ui-utils';
 import { multiWordObjectFilter, pluralizeFromNumber } from '@jetstream/shared/utils';
-import { MapOf, QueryFieldWithPolymorphic } from '@jetstream/types';
+import { MapOf, QueryFieldWithPolymorphic, SalesforceOrgUi } from '@jetstream/types';
 import { Accordion, Badge, DesertIllustration, EmptyState, Grid, GridCol, SearchInput } from '@jetstream/ui';
 import { ChildRelationship } from 'jsforce';
 import React, { Fragment, FunctionComponent, useState } from 'react';
@@ -8,14 +8,17 @@ import { useRecoilValue } from 'recoil';
 import * as fromQueryState from '../query.state';
 import QueryChildFields from './QueryChildFields';
 
-// eslint-disable-next-line @typescript-eslint/no-empty-interface
 export interface QuerySubquerySObjectsProps {
+  org: SalesforceOrgUi;
+  serverUrl: string;
   isTooling: boolean;
   childRelationships: ChildRelationship[];
   onSelectionChanged: (relationshipName: string, fields: QueryFieldWithPolymorphic[]) => void;
 }
 
 export const QuerySubquerySObjects: FunctionComponent<QuerySubquerySObjectsProps> = ({
+  org,
+  serverUrl,
   isTooling,
   childRelationships,
   onSelectionChanged,
@@ -48,6 +51,8 @@ export const QuerySubquerySObjects: FunctionComponent<QuerySubquerySObjectsProps
       } else {
         content = (
           <QueryChildFields
+            org={org}
+            serverUrl={serverUrl}
             isTooling={isTooling}
             selectedSObject={childRelationship.childSObject}
             parentRelationshipName={childRelationship.relationshipName}
@@ -87,7 +92,7 @@ export const QuerySubquerySObjects: FunctionComponent<QuerySubquerySObjectsProps
             initOpenIds={[]}
             allowMultiple={false}
             sections={visibleChildRelationships.map((childRelationship) => ({
-              id: childRelationship.relationshipName,
+              id: `${childRelationship.relationshipName}-${childRelationship.childSObject}.${childRelationship.field}`,
               titleText: `${childRelationship.relationshipName} (${childRelationship.childSObject}.${childRelationship.field})`,
               title: (
                 <Grid align="spread" gutters>
@@ -101,7 +106,6 @@ export const QuerySubquerySObjects: FunctionComponent<QuerySubquerySObjectsProps
                   </GridCol>
                 </Grid>
               ),
-
               titleSummaryIfCollapsed: getCollapsedSummary(childRelationship),
               content: getContent(childRelationship),
             }))}

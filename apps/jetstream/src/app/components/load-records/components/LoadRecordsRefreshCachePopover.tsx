@@ -1,15 +1,26 @@
 /** @jsx jsx */
 import { css, jsx } from '@emotion/react';
-import { Icon, Popover, Spinner } from '@jetstream/ui';
+import { SalesforceOrgUi } from '@jetstream/types';
+import { Icon, Popover, SalesforceLogin, Spinner } from '@jetstream/ui';
+import { applicationCookieState } from 'apps/jetstream/src/app/app-state';
 import { FunctionComponent, useState } from 'react';
+import { useRecoilState } from 'recoil';
 
 export interface LoadRecordsRefreshCachePopoverProps {
+  org: SalesforceOrgUi;
+  sobject: string;
   loading: boolean;
   onReload: () => void;
 }
 
-export const LoadRecordsRefreshCachePopover: FunctionComponent<LoadRecordsRefreshCachePopoverProps> = ({ loading, onReload }) => {
+export const LoadRecordsRefreshCachePopover: FunctionComponent<LoadRecordsRefreshCachePopoverProps> = ({
+  org,
+  sobject,
+  loading,
+  onReload,
+}) => {
   const [isOpen, setIsOpen] = useState(false);
+  const [{ serverUrl }] = useRecoilState(applicationCookieState);
 
   function toggleOpen() {
     setIsOpen(true);
@@ -38,6 +49,15 @@ export const LoadRecordsRefreshCachePopover: FunctionComponent<LoadRecordsRefres
           `}
         >
           {loading && <Spinner />}
+          <SalesforceLogin
+            serverUrl={serverUrl}
+            org={org}
+            returnUrl={`/lightning/setup/ObjectManager/${sobject}/Details/view`}
+            title={`View object in Salesforce setup`}
+            iconPosition="right"
+          >
+            View object in Salesforce setup
+          </SalesforceLogin>
           <p className="slds-m-bottom_x-small">
             If there are fields that are not showing up in the list for mapping, make sure the field is not read-only and that your user has
             access to the field.

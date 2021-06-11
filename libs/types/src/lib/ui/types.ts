@@ -1,6 +1,6 @@
 import { QueryResultsColumn } from '@jetstream/api-interfaces';
 import { MapOf } from '@jetstream/types';
-import { ChildRelationship, Field } from 'jsforce';
+import { ChildRelationship, DescribeSObjectResult, Field } from 'jsforce';
 import { ReactNode } from 'react';
 import { ListMetadataResult } from '../salesforce/types';
 import { HttpMethod, SalesforceOrgUi } from '../types';
@@ -59,6 +59,7 @@ export interface QueryFields {
   childRelationships?: ChildRelationship[];
   visibleFields: Set<string>;
   selectedFields: Set<string>;
+  metadata?: DescribeSObjectResult;
 }
 
 export interface FieldWrapper {
