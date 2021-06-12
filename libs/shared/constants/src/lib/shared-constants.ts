@@ -1,5 +1,7 @@
 import { InputAcceptTypeCsv, InputAcceptTypeExcel, InputAcceptTypeXml, InputAcceptTypeZip, MapOf, MimeType } from '@jetstream/types';
 
+export const ORG_VERSION_PLACEHOLDER = '_DEFAULT_VERSION_';
+
 export const SESSION_EXP_DAYS = 5;
 export const SFDC_BULK_API_NULL_VALUE = '#N/A';
 

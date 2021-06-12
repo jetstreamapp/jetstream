@@ -1,6 +1,8 @@
 # connected-connected-ui
 
-This library was generated with [Nx](https://nx.dev).
+This library contains hooks or other functionality the manages the connection with Salesforce.
+
+These are highly context specific and not generic UI components
 
 ## Running unit tests
 

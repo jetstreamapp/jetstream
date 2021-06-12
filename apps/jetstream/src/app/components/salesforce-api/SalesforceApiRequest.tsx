@@ -13,12 +13,12 @@ import {
 } from '@jetstream/types';
 import { Card, Grid, HelpText, Icon, RadioButton, RadioGroup, Tooltip } from '@jetstream/ui';
 import Editor, { OnMount, useMonaco } from '@monaco-editor/react';
-import SalesforceApiExamplesModal from 'apps/jetstream/src/app/components/salesforce-api/SalesforceApiExamplesModal';
 import localforage from 'localforage';
 import type { editor } from 'monaco-editor';
 import { FunctionComponent, useReducer, useRef, useState } from 'react';
 import { useRecoilValue } from 'recoil';
 import * as fromSalesforceApiHistory from './salesforceApi.state';
+import SalesforceApiExamplesModal from './SalesforceApiExamplesModal';
 import SalesforceApiHistory from './SalesforceApiHistory';
 import SalesforceApiUserInput from './SalesforceApiUserInput';
 

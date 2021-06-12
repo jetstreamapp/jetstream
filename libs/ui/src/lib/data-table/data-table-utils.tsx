@@ -18,12 +18,12 @@ import formatDate from 'date-fns/format';
 import parseDate from 'date-fns/parse';
 import parseISO from 'date-fns/parseISO';
 import startOfDay from 'date-fns/startOfDay';
+import fileSizeFormatter from 'filesize';
 import { Field } from 'jsforce';
 import isObject from 'lodash/isObject';
 import { createContext } from 'react';
 import { FieldSubquery, getFlattenedFields, isFieldSubquery } from 'soql-parser-js';
 import './data-table-styles.scss';
-
 export interface SalesforceAddressField {
   city?: string;
   country?: string;
@@ -151,6 +151,14 @@ export const dataTableTimeFormatter = ({ value }: ValueFormatterParams | GetQuic
   } else {
     return time;
   }
+};
+
+export const dataTableFileSizeFormatter = ({ value }: ValueFormatterParams | GetQuickFilterTextParams): string => {
+  const dateOrDateTime: string = value;
+  if (!dateOrDateTime) {
+    return '';
+  }
+  return fileSizeFormatter(value);
 };
 
 export function getCurrentColumnOrder(event: ColumnEvent): string[] {

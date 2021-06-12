@@ -1,6 +1,8 @@
 /** @jsx jsx */
 import { css, jsx } from '@emotion/react';
+import { Grid } from '@jetstream/ui';
 import { FunctionComponent, useCallback } from 'react';
+import { Link } from 'react-router-dom';
 import { useRecoilState, useRecoilValue } from 'recoil';
 import * as fromApexState from './apex.state';
 
@@ -13,8 +15,6 @@ export interface AnonymousApexHistoryProps {
 
 export const AnonymousApexHistory: FunctionComponent<AnonymousApexHistoryProps> = ({ className, onHistorySelected }) => {
   const historyItems = useRecoilValue(fromApexState.selectApexHistoryState);
-  // TODO: allow showing across all orgs
-  // const [whichOrg, setWhichOrg] = useRecoilState(fromApexState.apexHistoryWhichOrg);
 
   const handleChange = useCallback(
     (event: React.ChangeEvent<HTMLSelectElement>) => {
@@ -27,23 +27,37 @@ export const AnonymousApexHistory: FunctionComponent<AnonymousApexHistoryProps> 
   );
 
   return (
-    <div className={className}>
+    <Grid className={className} verticalAlign="center">
       {historyItems.length > 0 && (
-        <select
-          className="slds-select"
-          id="apex-history"
-          // value={`${year}`}
-          onChange={handleChange}
-        >
-          <option value={PREV_APEX_KEY}>-- History --</option>
-          {historyItems.map(({ key, label, apex }) => (
-            <option key={key} value={key} title={apex}>
-              {label}
-            </option>
-          ))}
-        </select>
+        <div className="slds-m-right_x-small">
+          <select
+            className="slds-select"
+            id="apex-history"
+            // value={`${year}`}
+            onChange={handleChange}
+          >
+            <option value={PREV_APEX_KEY}>-- History --</option>
+            {historyItems.map(({ key, label, apex }) => (
+              <option key={key} value={key} title={apex}>
+                {label}
+              </option>
+            ))}
+          </select>
+        </div>
       )}
-    </div>
+      <div
+        css={css`
+          min-width: 120px;
+        `}
+      >
+        <Link
+          to="/debug-logs"
+          title="View debugs logs - If your anonymous apex initiated a background process, such as a batch job, you can view the logs on the debug log page."
+        >
+          View Debug Logs
+        </Link>
+      </div>
+    </Grid>
   );
 };
 

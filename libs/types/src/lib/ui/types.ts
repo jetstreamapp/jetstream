@@ -469,3 +469,60 @@ export interface SalesforceApiRequest {
   createdAt: string;
   updatedAt: string;
 }
+
+export interface ApexLog {
+  Id: string;
+  LogUser: {
+    Id: string;
+    Name: string;
+    Username: string;
+  };
+  Application: string;
+  Operation: string;
+  Status: string;
+  Location: string;
+  LogLength: number;
+  Request: string;
+  RequestIdentifier: string;
+  DurationMilliseconds: number;
+  StartTime: string;
+  LastModifiedDate: string;
+  SystemModstamp: string;
+}
+
+export type ApexLogWithViewed = ApexLog & { viewed?: boolean };
+
+export interface UserTrace {
+  Id: string;
+  LogType: string;
+  TracedEntityId: string;
+  StartDate: string;
+  ExpirationDate: string;
+  DebugLevelId: string;
+}
+
+export interface DebugLevel {
+  Id: string;
+  DeveloperName: string;
+  ApexCode: string;
+  ApexProfiling: string;
+  Callout: string;
+  Database: string;
+  System: string;
+  Validation: string;
+  Visualforce: string;
+  Wave: string;
+  Workflow: string;
+}
+
+export interface UseDebugLogsOptions {
+  limit?: number;
+  pollInterval?: number;
+  userId?: string;
+}
+
+export interface FetchDebugLogOptions {
+  asOfId?: string;
+  limit?: number;
+  userId?: string;
+}

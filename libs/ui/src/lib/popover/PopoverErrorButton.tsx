@@ -8,7 +8,7 @@ export interface PopoverErrorButtonProps {
   initOpenState?: boolean;
   header?: string;
   listHeader?: string;
-  errors: string[];
+  errors: string | string[];
 }
 
 export const PopoverErrorButton: FunctionComponent<PopoverErrorButtonProps> = ({
@@ -17,7 +17,7 @@ export const PopoverErrorButton: FunctionComponent<PopoverErrorButtonProps> = ({
   listHeader = 'Review the following errors',
   errors,
 }) => {
-  const [isOpen, setIsOpen] = useState(initOpenState || true);
+  const [isOpen, setIsOpen] = useState(initOpenState ?? true);
 
   return (
     <div
@@ -53,11 +53,15 @@ export const PopoverErrorButton: FunctionComponent<PopoverErrorButtonProps> = ({
             <div>
               <strong>{listHeader}</strong>
             </div>
-            <ul className="slds-list_dotted slds-m-left_medium">
-              {errors.map((error, i) => (
-                <li key={i}>{error}</li>
-              ))}
-            </ul>
+            {Array.isArray(errors) ? (
+              <ul className="slds-list_dotted slds-m-left_medium">
+                {errors.map((error, i) => (
+                  <li key={i}>{error}</li>
+                ))}
+              </ul>
+            ) : (
+              <div>{errors}</div>
+            )}
           </div>
         }
       >
