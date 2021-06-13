@@ -3,7 +3,7 @@ import { jsx } from '@emotion/react';
 import { useNonInitialEffect } from '@jetstream/shared/ui-utils';
 import { DeployOptions, SalesforceOrgUi } from '@jetstream/types';
 import { Icon, Modal } from '@jetstream/ui';
-import { Fragment, FunctionComponent, useState } from 'react';
+import { Fragment, FunctionComponent, useEffect, useState } from 'react';
 import { useRecoilValue } from 'recoil';
 import { salesforceOrgsOmitSelectedState } from '../../../app-state';
 import OrgsCombobox from '../../../components/core/OrgsCombobox';
@@ -29,6 +29,7 @@ export const DeployMetadataToOrgConfigModal: FunctionComponent<DeployMetadataToO
 }) => {
   const orgs = useRecoilValue<SalesforceOrgUi[]>(salesforceOrgsOmitSelectedState);
   const [destinationOrg, setDestinationOrg] = useState<SalesforceOrgUi>(null);
+  const [isConfigValid, setIsConfigValid] = useState(true);
   const [deployOptions, setDeployOptions] = useState<DeployOptions>(
     initialOptions || {
       allowMissingFiles: false,
@@ -46,6 +47,16 @@ export const DeployMetadataToOrgConfigModal: FunctionComponent<DeployMetadataToO
   useNonInitialEffect(() => {
     onSelection?.(deployOptions);
   }, [deployOptions, onSelection]);
+
+  useEffect(() => {
+    if (!destinationOrg) {
+      setIsConfigValid(false);
+    } else if (deployOptions.testLevel === 'RunSpecifiedTests' && deployOptions.runTests.length === 0) {
+      setIsConfigValid(false);
+    } else {
+      setIsConfigValid(true);
+    }
+  }, [destinationOrg, deployOptions]);
 
   return (
     <Modal
@@ -66,7 +77,7 @@ export const DeployMetadataToOrgConfigModal: FunctionComponent<DeployMetadataToO
           <button
             className="slds-button slds-button_brand"
             onClick={() => onDeploy(destinationOrg, deployOptions)}
-            disabled={!destinationOrg}
+            disabled={!isConfigValid}
           >
             Deploy
           </button>

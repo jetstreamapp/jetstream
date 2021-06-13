@@ -5,7 +5,7 @@ import { INPUT_ACCEPT_FILETYPES } from '@jetstream/shared/constants';
 import { useNonInitialEffect } from '@jetstream/shared/ui-utils';
 import { DeployOptions, InputReadFileContent, SalesforceOrgUi } from '@jetstream/types';
 import { FileSelector, Modal } from '@jetstream/ui';
-import { Fragment, FunctionComponent, useState } from 'react';
+import { Fragment, FunctionComponent, useEffect, useState } from 'react';
 import OrgLabelBadge from '../../core/OrgLabelBadge';
 import DeployMetadataOptions from '../utils/DeployMetadataOptions';
 import JSZip from 'jszip';
@@ -32,6 +32,7 @@ export const DeployMetadataPackageConfigModal: FunctionComponent<DeployMetadataP
   const rollbar = useRollbar();
   const [file, setFile] = useState<ArrayBuffer>();
   const [filename, setFileName] = useState<string>();
+  const [isConfigValid, setIsConfigValid] = useState(true);
   const [{ isSinglePackage, missingPackageXml }, setPackageDetection] = useState({ isSinglePackage: true, missingPackageXml: false });
   const [deployOptions, setDeployOptions] = useState<DeployOptions>(
     initialOptions || {
@@ -50,6 +51,16 @@ export const DeployMetadataPackageConfigModal: FunctionComponent<DeployMetadataP
   useNonInitialEffect(() => {
     onSelection?.(deployOptions);
   }, [deployOptions, onSelection]);
+
+  useEffect(() => {
+    if (!file) {
+      setIsConfigValid(false);
+    } else if (deployOptions.testLevel === 'RunSpecifiedTests' && deployOptions.runTests.length === 0) {
+      setIsConfigValid(false);
+    } else {
+      setIsConfigValid(true);
+    }
+  }, [file, deployOptions]);
 
   async function handleFile({ content, filename }: InputReadFileContent) {
     setFileName(filename);
@@ -88,7 +99,7 @@ export const DeployMetadataPackageConfigModal: FunctionComponent<DeployMetadataP
           <button className="slds-button slds-button_neutral" onClick={() => onClose()}>
             Cancel
           </button>
-          <button className="slds-button slds-button_brand" onClick={() => onDeploy(file, deployOptions)} disabled={!file}>
+          <button className="slds-button slds-button_brand" onClick={() => onDeploy(file, deployOptions)} disabled={!isConfigValid}>
             Deploy
           </button>
         </Fragment>
