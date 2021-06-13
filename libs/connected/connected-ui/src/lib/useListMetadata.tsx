@@ -31,7 +31,6 @@ export interface ListMetadataResultItem {
 async function fetchListMetadata(
   selectedOrg: SalesforceOrgUi,
   item: ListMetadataResultItem,
-  filterFn: (item: ListMetadataResult) => boolean,
   skipRequestCache = false,
   skipCacheIfOlderThan?: number
 ): Promise<ListMetadataResultItem> {
@@ -39,7 +38,7 @@ async function fetchListMetadata(
   const { data: items, cache } = await listMetadataApi(selectedOrg, [{ type, folder }], skipRequestCache, skipCacheIfOlderThan);
   return {
     ...item,
-    items: orderObjectsBy(items.filter(filterFn), 'fullName'),
+    items: orderObjectsBy(items, 'fullName'),
     loading: false,
     lastRefreshed: cache ? `Last updated ${formatRelative(cache.age, new Date())}` : null,
   };
@@ -60,7 +59,6 @@ async function fetchListMetadata(
 async function fetchListMetadataForItemsInFolder(
   selectedOrg: SalesforceOrgUi,
   item: ListMetadataResultItem,
-  filterFn: (item: ListMetadataResult) => boolean,
   skipRequestCache = false,
   skipCacheIfOlderThan?: number
 ): Promise<ListMetadataResultItem> {
@@ -94,7 +92,7 @@ async function fetchListMetadataForItemsInFolder(
 
   return {
     ...item,
-    items: orderObjectsBy(outputItems.filter(filterFn), 'fullName'),
+    items: orderObjectsBy(outputItems, 'fullName'),
     loading: false,
     lastRefreshed: cache ? `Last updated ${formatRelative(cache.age, new Date())}` : null,
   };
@@ -120,29 +118,46 @@ export function useListMetadata(selectedOrg: SalesforceOrgUi) {
   const [listMetadataItems, setListMetadataItems] = useState<MapOf<ListMetadataResultItem>>();
   const [loading, setLoading] = useState(true);
   const [hasError, setHasError] = useState(false);
+  const [initialLoadFinished, setInitialLoadFinished] = useState(false);
 
   useEffect(() => {
     isMounted.current = true;
     return () => (isMounted.current = false);
   }, []);
 
+  /**
+   * Load metadata metadata for items
+   *
+   * @param options.metadataToRetain - If provided, these items will not be re-fetched
+   * @param options.skipRequestCache - If true, then the items will be re-fetched without using the cache
+   * @param options.skipCacheIfOlderThan - If provided (ms), then skip the cache if the cache is older than this date
+   *
+   */
   const loadListMetadata = useCallback(
     async (
       types: ListMetadataQueryExtended[],
-      filterFn: (item: ListMetadataResult) => boolean = defaultFilterFn,
-      skipRequestCache: boolean = false,
-      skipCacheIfOlderThan?: number
+      options: {
+        metadataToRetain?: MapOf<ListMetadataResultItem>;
+        skipRequestCache?: boolean;
+        skipCacheIfOlderThan?: number;
+      } = {}
     ) => {
       if (!selectedOrg || !types?.length) {
         return;
       }
+
+      options = options || {};
+      const metadataToRetain = options.metadataToRetain;
+      const skipRequestCache = options.skipRequestCache ?? false;
+      const skipCacheIfOlderThan = options.skipCacheIfOlderThan;
+
       try {
         setLoading(true);
         if (hasError) {
           setHasError(false);
         }
 
-        const itemsToProcess = types.map(
+        let itemsToProcess = types.map(
           ({ type, folder, inFolder }): ListMetadataResultItem => ({
             type,
             folder,
@@ -154,7 +169,28 @@ export function useListMetadata(selectedOrg: SalesforceOrgUi) {
           })
         );
 
-        setListMetadataItems(getMapOf(itemsToProcess, 'type'));
+        const newMetadataItems = getMapOf(itemsToProcess, 'type');
+
+        /**
+         * If keep if existing flag is set
+         * then do not re-fetch metadata for existing types
+         * types[] still determines which items are retained, so existing items may be omitted
+         * (e.x. user unchecked)
+         */
+        if (metadataToRetain) {
+          const existingMetadataTypes = new Set();
+          Object.keys(metadataToRetain).forEach((existingItemKey) => {
+            if (newMetadataItems[existingItemKey]) {
+              existingMetadataTypes.add(existingItemKey);
+              // replace new item with existing item
+              newMetadataItems[existingItemKey] = metadataToRetain[existingItemKey];
+            }
+          });
+          // if exists, do not re-fetch
+          itemsToProcess = itemsToProcess.filter(({ type }) => !existingMetadataTypes.has(type));
+        }
+
+        setListMetadataItems(newMetadataItems);
 
         // tried queue, but hit a stupid error - we may want a queue in the future for parallel requests
         for (const item of itemsToProcess) {
@@ -163,9 +199,9 @@ export function useListMetadata(selectedOrg: SalesforceOrgUi) {
             let responseItem: ListMetadataResultItem;
             if (inFolder) {
               // handle additional fetches required if type is in folder
-              responseItem = await fetchListMetadataForItemsInFolder(selectedOrg, item, filterFn, skipRequestCache, skipCacheIfOlderThan);
+              responseItem = await fetchListMetadataForItemsInFolder(selectedOrg, item, skipRequestCache, skipCacheIfOlderThan);
             } else {
-              responseItem = await fetchListMetadata(selectedOrg, item, filterFn, skipRequestCache, skipCacheIfOlderThan);
+              responseItem = await fetchListMetadata(selectedOrg, item, skipRequestCache, skipCacheIfOlderThan);
             }
 
             if (!isMounted.current) {
@@ -188,6 +224,7 @@ export function useListMetadata(selectedOrg: SalesforceOrgUi) {
         if (!isMounted.current) {
           return;
         }
+        setInitialLoadFinished(true);
       } catch (ex) {
         logger.error(ex);
         rollbar.error('List Metadata Failed', ex);
@@ -208,14 +245,14 @@ export function useListMetadata(selectedOrg: SalesforceOrgUi) {
    * or retry if there was an error
    */
   const loadListMetadataItem = useCallback(
-    async (item: ListMetadataResultItem, filterFn: (item: ListMetadataResult) => boolean = defaultFilterFn) => {
+    async (item: ListMetadataResultItem) => {
       const { type } = item;
       try {
         setListMetadataItems((previousItems) => ({
           ...previousItems,
           [type]: { ...previousItems[type], loading: true, error: false, items: [], lastRefreshed: null },
         }));
-        const responseItem = await fetchListMetadata(selectedOrg, item, filterFn, true);
+        const responseItem = await fetchListMetadata(selectedOrg, item, true);
         if (!isMounted.current) {
           return;
         }
@@ -238,6 +275,7 @@ export function useListMetadata(selectedOrg: SalesforceOrgUi) {
     loadListMetadataItem,
     loading,
     listMetadataItems,
+    initialLoadFinished,
     hasError,
   };
 }

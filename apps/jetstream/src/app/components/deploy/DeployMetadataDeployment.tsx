@@ -1,6 +1,6 @@
 /** @jsx jsx */
 import { css, jsx } from '@emotion/react';
-import { useListMetadata } from '@jetstream/connected-ui';
+import { ListMetadataResultItem, useListMetadata } from '@jetstream/connected-ui';
 import { ANALYTICS_KEYS } from '@jetstream/shared/constants';
 import { formatNumber, transformTabularDataToExcelStr } from '@jetstream/shared/ui-utils';
 import { pluralizeFromNumber, pluralizeIfMultiple } from '@jetstream/shared/utils';
@@ -48,7 +48,16 @@ export interface DeployMetadataDeploymentProps {
 
 export const DeployMetadataDeployment: FunctionComponent<DeployMetadataDeploymentProps> = ({ selectedOrg }) => {
   const { trackEvent } = useAmplitude();
-  const { loadListMetadata, loadListMetadataItem, loading, listMetadataItems, hasError } = useListMetadata(selectedOrg);
+  const {
+    loadListMetadata,
+    loadListMetadataItem,
+    loading,
+    listMetadataItems: listMetadataItemsUnfiltered,
+    initialLoadFinished,
+    hasError,
+  } = useListMetadata(selectedOrg);
+  const [listMetadataItems, setListMetadataItems] = useState<MapOf<ListMetadataResultItem>>(listMetadataItemsUnfiltered);
+
   // used for manifest or package download
   const [activeDownloadType, setActiveDownloadType] = useState<'manifest' | 'package' | null>(null);
 
@@ -94,8 +103,20 @@ export const DeployMetadataDeployment: FunctionComponent<DeployMetadataDeploymen
       }
       return true;
     },
-    [selectedUsers, dateRangeStartState, dateRangeEndState, includeManagedPackageItems, userSelection, dateRangeSelection]
+    [userSelection, selectedUsers, dateRangeSelection, dateRangeStartState, dateRangeEndState, includeManagedPackageItems]
   );
+
+  useEffect(() => {
+    if (listMetadataFilterFn && listMetadataItemsUnfiltered) {
+      setListMetadataItems(
+        Object.keys(listMetadataItemsUnfiltered).reduce((output, key) => {
+          const item = listMetadataItemsUnfiltered[key];
+          output[key] = { ...item, items: item.items.filter(listMetadataFilterFn) };
+          return output;
+        }, {})
+      );
+    }
+  }, [listMetadataFilterFn, listMetadataItemsUnfiltered]);
 
   useEffect(() => {
     if (selectedOrg) {
@@ -103,7 +124,11 @@ export const DeployMetadataDeployment: FunctionComponent<DeployMetadataDeploymen
       if (dateRangeSelection === 'user' && dateRangeStartState) {
         skipCacheIfOlderThan = startOfDay(dateRangeStartState || new Date()).getTime();
       }
-      loadListMetadata(listMetadataQueries, listMetadataFilterFn, false, skipCacheIfOlderThan);
+      loadListMetadata(listMetadataQueries, {
+        metadataToRetain: initialLoadFinished ? listMetadataItemsUnfiltered : undefined,
+        skipRequestCache: false,
+        skipCacheIfOlderThan,
+      });
     }
   }, [
     selectedOrg,
@@ -114,7 +139,6 @@ export const DeployMetadataDeployment: FunctionComponent<DeployMetadataDeploymen
     dateRangeEndState,
     userSelection,
     dateRangeSelection,
-    listMetadataFilterFn,
   ]);
 
   useEffect(() => {
@@ -135,12 +159,13 @@ export const DeployMetadataDeployment: FunctionComponent<DeployMetadataDeploymen
 
   async function handleRefreshItem(type: string) {
     if (listMetadataItems[type]) {
-      loadListMetadataItem(listMetadataItems[type], listMetadataFilterFn);
+      loadListMetadataItem(listMetadataItems[type]);
     }
   }
 
   async function handleRefreshAll() {
-    loadListMetadata(listMetadataQueries, listMetadataFilterFn, true);
+    // this will clear all user selections
+    loadListMetadata(listMetadataQueries, { skipRequestCache: true });
   }
 
   async function handleDownloadActive(type: 'manifest' | 'package') {
@@ -266,7 +291,7 @@ export const DeployMetadataDeployment: FunctionComponent<DeployMetadataDeploymen
               onClick={() => handleOpenSidePanel('include-managed-selection')}
               title="Click to change if managed items are shown"
             >
-              {includeManagedPackageItems === 'Yes' ? 'Exclude Managed' : `Include Managed`}
+              {includeManagedPackageItems === 'Yes' ? `Include Managed` : 'Exclude Managed'}
             </button>
           </div>
           <div className="slds-m-right_xx-small">

@@ -2,17 +2,7 @@
 import { jsx } from '@emotion/react';
 import { orderObjectsBy } from '@jetstream/shared/utils';
 import { DeployResult, UiTabSection } from '@jetstream/types';
-import {
-  CampingRainIllustration,
-  DesertIllustration,
-  EmptyState,
-  Icon,
-  LakeMountainIllustration,
-  OpenRoadIllustration,
-  ResearchIllustration,
-  Tabs,
-  TabsRef,
-} from '@jetstream/ui';
+import { CampingRainIllustration, EmptyState, Icon, OpenRoadIllustration, ResearchIllustration, Tabs, TabsRef } from '@jetstream/ui';
 import { Fragment, FunctionComponent, useEffect, useRef, useState } from 'react';
 import DeployMetadataResultsFailureTable from './DeployMetadataResultsFailureTable';
 import DeployMetadataResultsSuccessTable from './DeployMetadataResultsSuccessTable';
