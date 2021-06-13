@@ -3,8 +3,8 @@ import { ColDef, GridApi, GridReadyEvent, ICellRendererParams, SelectionChangedE
 import { jsx } from '@emotion/react';
 import { ListMetadataResultItem } from '@jetstream/connected-ui';
 import { MapOf } from '@jetstream/types';
-import { AutoFullHeightContainer, DataTable, Spinner } from '@jetstream/ui';
-import { FunctionComponent, useEffect, useState } from 'react';
+import { AutoFullHeightContainer, DataTable, Grid, SearchInput, Spinner } from '@jetstream/ui';
+import { Fragment, FunctionComponent, useEffect, useState } from 'react';
 import { DeployMetadataTableRow } from './deploy-metadata.types';
 import { getColumnDefinitions, getRows } from './utils/deploy-metadata.utils';
 
@@ -81,32 +81,37 @@ export const DeployMetadataDeploymentTable: FunctionComponent<DeployMetadataDepl
   }
 
   return (
-    <AutoFullHeightContainer fillHeight setHeightAttr bottomBuffer={15}>
-      <DataTable
-        columns={columns}
-        data={rows}
-        quickFilterText={globalFilter}
-        agGridProps={{
-          immutableData: true,
-          getRowNodeId,
-          suppressMenuHide: true,
-          suppressRowClickSelection: true,
-          headerHeight: 25,
-          frameworkComponents: {
-            valueOrLoading: ValueOrLoadingRenderer,
-          },
-          gridOptions: {
-            defaultColDef: {
-              filter: true,
-              sortable: true,
-              resizable: true,
+    <Fragment>
+      <Grid align="center" className="slds-m-bottom_x-small">
+        <SearchInput id="metadata-filter" placeholder="Search metadata..." onChange={setGlobalFilter} />
+      </Grid>
+      <AutoFullHeightContainer fillHeight setHeightAttr bottomBuffer={15}>
+        <DataTable
+          columns={columns}
+          data={rows}
+          quickFilterText={globalFilter}
+          agGridProps={{
+            immutableData: true,
+            getRowNodeId,
+            suppressMenuHide: true,
+            suppressRowClickSelection: true,
+            headerHeight: 25,
+            frameworkComponents: {
+              valueOrLoading: ValueOrLoadingRenderer,
             },
-          },
-          onGridReady: handleOnGridReady,
-          onSelectionChanged: handleSelectionChanged,
-        }}
-      />
-    </AutoFullHeightContainer>
+            gridOptions: {
+              defaultColDef: {
+                filter: true,
+                sortable: true,
+                resizable: true,
+              },
+            },
+            onGridReady: handleOnGridReady,
+            onSelectionChanged: handleSelectionChanged,
+          }}
+        />
+      </AutoFullHeightContainer>
+    </Fragment>
   );
 };
 

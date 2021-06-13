@@ -8,6 +8,8 @@ type All = 'all';
 type Yes = 'Yes';
 type No = 'No';
 
+export type SidePanelType = 'type-selection' | 'user-selection' | 'date-range-selection' | 'include-managed-selection';
+
 export type CommonUser = Common | User;
 export type AllUser = All | User;
 export type YesNo = Yes | No;

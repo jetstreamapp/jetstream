@@ -1,5 +1,7 @@
 import { COMMON_METADATA_TYPES, ListMetadataQueryExtended } from '@jetstream/connected-ui';
 import { ListItem, MapOf } from '@jetstream/types';
+import isAfter from 'date-fns/isAfter';
+import isSameDay from 'date-fns/isSameDay';
 import { MetadataObject } from 'jsforce';
 import { atom, selector } from 'recoil';
 import { AllUser, ChangeSetPackage, CommonUser, SalesforceUser, YesNo } from './deploy-metadata.types';
@@ -44,8 +46,13 @@ export const includeManagedPackageItems = atom<YesNo>({
   default: 'No',
 });
 
-export const dateRangeState = atom<Date>({
-  key: 'deploy-metadata.dateRangeState',
+export const dateRangeStartState = atom<Date>({
+  key: 'deploy-metadata.dateRangeStartState',
+  default: null,
+});
+
+export const dateRangeEndState = atom<Date>({
+  key: 'deploy-metadata.dateRangeEndState',
   default: null,
 });
 
@@ -70,7 +77,8 @@ export const hasSelectionsMadeSelector = selector<boolean>({
     const metadataSelectionType = get(metadataSelectionTypeState);
     const userSelection = get(userSelectionState);
     const dateRangeSelection = get(dateRangeSelectionState);
-    const dateRange = get(dateRangeState);
+    const dateStartRange = get(dateRangeStartState);
+    const dateEndRange = get(dateRangeEndState);
     const selectedMetadataItems = get(selectedMetadataItemsState);
     const selectedUsers = get(selectedUsersState);
 
@@ -78,10 +86,16 @@ export const hasSelectionsMadeSelector = selector<boolean>({
       return false;
     } else if (userSelection === 'user' && selectedUsers.length === 0) {
       return false;
-    } else if (dateRangeSelection === 'user' && !dateRange) {
+    } else if (dateRangeSelection === 'user' && !dateStartRange && !dateEndRange) {
+      return false;
+    } else if (
+      dateRangeSelection === 'user' &&
+      dateStartRange &&
+      dateEndRange &&
+      (isSameDay(dateStartRange, dateEndRange) || isAfter(dateStartRange, dateEndRange))
+    ) {
       return false;
     }
-
     return true;
   },
 });
@@ -92,7 +106,8 @@ export const hasSelectionsMadeMessageSelector = selector<string | null>({
     const metadataSelectionType = get(metadataSelectionTypeState);
     const userSelection = get(userSelectionState);
     const dateRangeSelection = get(dateRangeSelectionState);
-    const dateRange = get(dateRangeState);
+    const dateStartRange = get(dateRangeStartState);
+    const dateEndRange = get(dateRangeEndState);
     const selectedMetadataItems = get(selectedMetadataItemsState);
     const selectedUsers = get(selectedUsersState);
 
@@ -100,8 +115,15 @@ export const hasSelectionsMadeMessageSelector = selector<string | null>({
       return 'Choose one or more metadata types';
     } else if (userSelection === 'user' && selectedUsers.length === 0) {
       return 'Choose one or more users or select All Users';
-    } else if (dateRangeSelection === 'user' && !dateRange) {
-      return 'Choose a last modified date or select Any Date';
+    } else if (dateRangeSelection === 'user' && !dateStartRange && !dateEndRange) {
+      return 'Choose a last modified start and/or end date or select Any Date';
+    } else if (
+      dateRangeSelection === 'user' &&
+      dateStartRange &&
+      dateEndRange &&
+      (isSameDay(dateStartRange, dateEndRange) || isAfter(dateStartRange, dateEndRange))
+    ) {
+      return 'The start date must be before the end date';
     } else {
       return 'Continue to select the metadata components to deploy';
     }
@@ -126,5 +148,30 @@ export const listMetadataQueriesSelector = selector<ListMetadataQueryExtended[]>
           };
         }
       );
+  },
+});
+
+export const amplitudeSubmissionSelector = selector({
+  key: 'deploy-metadata.amplitudeSubmissionSelector',
+  get: ({ get }) => {
+    const metadataSelectionType = get(metadataSelectionTypeState);
+    const userSelection = get(userSelectionState);
+    const dateRangeSelection = get(dateRangeSelectionState);
+    const dateStartRange = get(dateRangeStartState);
+    const dateEndRange = get(dateRangeEndState);
+    const selectedMetadataItems = get(selectedMetadataItemsState);
+    const selectedUsers = get(selectedUsersState);
+    const includeManaged = get(includeManagedPackageItems);
+
+    return {
+      metadataCount: selectedMetadataItems.size,
+      metadataSelectionType: metadataSelectionType,
+      userSelection: userSelection,
+      selectedUserCount: selectedUsers.length,
+      dateRangeSelection: dateRangeSelection,
+      dateStartRange: dateStartRange,
+      dateEndRange: dateEndRange,
+      includeManaged: includeManaged === 'Yes',
+    };
   },
 });

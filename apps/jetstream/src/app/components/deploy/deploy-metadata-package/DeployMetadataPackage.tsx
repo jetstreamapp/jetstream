@@ -1,7 +1,9 @@
 /** @jsx jsx */
 import { jsx } from '@emotion/react';
+import { ANALYTICS_KEYS } from '@jetstream/shared/constants';
 import { DeployOptions, DeployResult, MapOf, SalesforceOrgUi } from '@jetstream/types';
 import { FileDownloadModal, Icon } from '@jetstream/ui';
+import { useAmplitude } from 'apps/jetstream/src/app/components/core/analytics';
 import { Fragment, FunctionComponent, useState } from 'react';
 import { getDeployResultsExcelData } from '../utils/deploy-metadata.utils';
 import DeployMetadataPackageConfigModal from './DeployMetadataPackageConfigModal';
@@ -12,6 +14,7 @@ export interface DeployMetadataPackageProps {
 }
 
 export const DeployMetadataPackage: FunctionComponent<DeployMetadataPackageProps> = ({ selectedOrg }) => {
+  const { trackEvent } = useAmplitude();
   const [configModalOpen, setConfigModalOpen] = useState<boolean>(false);
   const [deployStatusModalOpen, setDeployStatusModalOpen] = useState<boolean>(false);
   const [downloadResultsModalOpen, setDownloadResultsModalOpen] = useState<boolean>(false);
@@ -28,6 +31,7 @@ export const DeployMetadataPackage: FunctionComponent<DeployMetadataPackageProps
     setDeployOptions(deployOptions);
     setConfigModalOpen(false);
     setDeployStatusModalOpen(true);
+    trackEvent(ANALYTICS_KEYS.deploy_deployMetadata, { type: 'package-to-org', deployOptions });
   }
 
   function handleCloseDeploymentModal() {

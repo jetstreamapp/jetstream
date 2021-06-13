@@ -1,7 +1,9 @@
 /** @jsx jsx */
 import { jsx } from '@emotion/react';
+import { ANALYTICS_KEYS } from '@jetstream/shared/constants';
 import { DeployResult, ListMetadataResult, MapOf, SalesforceOrgUi } from '@jetstream/types';
 import { FileDownloadModal, Icon } from '@jetstream/ui';
+import { useAmplitude } from 'apps/jetstream/src/app/components/core/analytics';
 import { Fragment, FunctionComponent, useState } from 'react';
 import { useRecoilState } from 'recoil';
 import * as fromDeployMetadataState from '../deploy-metadata.state';
@@ -17,6 +19,7 @@ export interface AddToChangesetProps {
 }
 
 export const AddToChangeset: FunctionComponent<AddToChangesetProps> = ({ selectedOrg, loading, selectedRows }) => {
+  const { trackEvent } = useAmplitude();
   const [configModalOpen, setConfigModalOpen] = useState(false);
   const [deployStatusModalOpen, setDeployStatusModalOpen] = useState(false);
   const [downloadResultsModalOpen, setDownloadResultsModalOpen] = useState<boolean>(false);
@@ -42,6 +45,10 @@ export const AddToChangeset: FunctionComponent<AddToChangesetProps> = ({ selecte
     setSelectedMetadata(convertRowsToMapOfListMetadataResults(Array.from(selectedRows)));
     setConfigModalOpen(false);
     setDeployStatusModalOpen(true);
+    trackEvent(ANALYTICS_KEYS.deploy_addToChangeset, {
+      hasDescription: !!changesetDescription,
+      itemCount: selectedRows.size,
+    });
   }
 
   function handleDeployResultsDownload(deployResults: DeployResult, deploymentUrl: string) {

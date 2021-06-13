@@ -111,7 +111,7 @@ export const DatePicker: FunctionComponent<DatePickerProps> = ({
         setSelectedDate(currDate);
       } // else invalid date
     } catch (ex) {
-      // invlaid date
+      // invalid date
     }
     if (value === '') {
       onChange(null);
@@ -123,6 +123,13 @@ export const DatePicker: FunctionComponent<DatePickerProps> = ({
       setIsOpen(false);
     }
     setSelectedDate(startOfDay(date));
+  }
+
+  function handleClear() {
+    setSelectedDate(undefined);
+    setValue('');
+    setIsOpen(false);
+    onChange(null);
   }
 
   function handleToggleOpen(value) {
@@ -194,6 +201,7 @@ export const DatePicker: FunctionComponent<DatePickerProps> = ({
             dropDownPosition={dropDownPosition}
             onClose={() => handleToggleOpen(false)}
             onSelection={handleDateSelection}
+            onClear={handleClear}
           />
         )}
         {helpText && <div className="slds-form-element__help">{helpText}</div>}

@@ -33,6 +33,7 @@ export interface DescribeMetadataListProps {
   initialItems: string[];
   initialItemMap: MapOf<MetadataObject>;
   selectedItems: Set<string>;
+  omitRefresh?: boolean;
   onItems: (items: string[]) => void;
   onItemsMap: (itemMap: MapOf<MetadataObject>) => void;
   onSelected: (items: string[], options?: { selectAllValue?: boolean; clearSelection?: boolean }) => void;
@@ -44,6 +45,7 @@ export const DescribeMetadataList: FunctionComponent<DescribeMetadataListProps> 
   initialItems,
   initialItemMap,
   selectedItems,
+  omitRefresh,
   onItems,
   onItemsMap,
   onSelected,
@@ -116,13 +118,21 @@ export const DescribeMetadataList: FunctionComponent<DescribeMetadataListProps> 
     <Fragment>
       <Grid>
         <h2 className="slds-text-heading_medium slds-grow slds-text-align_center">{startCase(inputLabelPlural)}</h2>
-        <div>
-          <Tooltip id={`sobject-list-refresh-tooltip`} content={lastRefreshed}>
-            <button className="slds-button slds-button_icon slds-button_icon-container" disabled={loading} onClick={handleRefresh}>
-              <Icon type="utility" icon="refresh" description={`Reload ${inputLabelPlural}`} className="slds-button__icon" omitContainer />
-            </button>
-          </Tooltip>
-        </div>
+        {!omitRefresh && (
+          <div>
+            <Tooltip id={`sobject-list-refresh-tooltip`} content={lastRefreshed}>
+              <button className="slds-button slds-button_icon slds-button_icon-container" disabled={loading} onClick={handleRefresh}>
+                <Icon
+                  type="utility"
+                  icon="refresh"
+                  description={`Reload ${inputLabelPlural}`}
+                  className="slds-button__icon"
+                  omitContainer
+                />
+              </button>
+            </Tooltip>
+          </div>
+        )}
       </Grid>
       {loading && (
         <div

@@ -134,6 +134,13 @@ export const ANALYTICS_KEYS = {
   /** SFDC API */
   sfdcApi_Submitted: 'sfdcApi_Submitted',
   sfdcApi_Sample: 'sfdcApi_Sample',
+  /** DEPLOY */
+  deploy_addToChangeset: 'deploy_addToChangeset',
+  deploy_configuration: 'deploy_configuration',
+  deploy_deployMetadata: 'deploy_deployMetadata',
+  deploy_download: 'deploy_download',
+  deploy_downloadMetadataPkg: 'deploy_downloadMetadataPkg',
+  deploy_finished: 'deploy_finished',
 };
 
 export const LOG_LEVELS = ['NONE', 'ERROR', 'WARN', 'INFO', 'DEBUG', 'FINE', 'FINER', 'FINEST'];
