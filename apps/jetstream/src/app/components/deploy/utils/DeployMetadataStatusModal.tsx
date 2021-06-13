@@ -65,6 +65,7 @@ export const DeployMetadataStatusModal: FunctionComponent<DeployMetadataStatusMo
   onClose,
   onDownload,
 }) => {
+  const isDone = results?.done;
   const { trackEvent } = useAmplitude();
   const [hasErrors, setHasErrors] = useState(false);
   const tabsRef = useRef<TabsRef>();
@@ -77,7 +78,7 @@ export const DeployMetadataStatusModal: FunctionComponent<DeployMetadataStatusMo
   }, [hasErrors, results]);
 
   useEffect(() => {
-    if (results.done) {
+    if (isDone) {
       trackEvent(ANALYTICS_KEYS.deploy_finished, {
         checkOnly: results.checkOnly,
         completedDate: results.completedDate,
@@ -93,7 +94,7 @@ export const DeployMetadataStatusModal: FunctionComponent<DeployMetadataStatusMo
         success: results.success,
       });
     }
-  }, [results.done]);
+  }, [isDone]);
 
   return (
     <Modal
