@@ -175,34 +175,3 @@ export const withHeaderAndFooter = () => (
     </button>
   </Popover>
 );
-
-// <PopoverContainer
-// nubbinPosition={select(
-//   'nubbinPosition',
-//   {
-//     Left: 'left',
-//     LeftTop: 'left-top',
-//     LeftBottom: 'left-bottom',
-//     Top: 'top',
-//     TopLeft: 'top-left',
-//     TopRight: 'top-right',
-//     Right: 'right',
-//     RightTop: 'right-top',
-//     RightBottom: 'right-bottom',
-//     Bottom: 'bottom',
-//     BottomLeft: 'bottom-left',
-//     BottomRight: 'bottom-right',
-//     None: undefined,
-//   },
-//   'bottom'
-// )}
-// containerClassName={text('containerClassName', '')}
-// inverseIcons={boolean('inverseIcons', false)}
-// >
-// <p>
-//   Lorem ipsum dolor sit amet, consectetur adipisicing elit, sed do eiusmod tempor incididunt ut labore et dolore.
-//   <a href="javascript:void(0);" title="Learn More">
-//     Learn More
-//   </a>
-// </p>
-// </PopoverContainer>

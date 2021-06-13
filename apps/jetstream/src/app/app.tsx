@@ -26,6 +26,7 @@ const ManagePermissions = lazy(() => import('./components/manage-permissions/Man
 const DeployMetadata = lazy(() => import('./components/deploy/DeployMetadata'));
 const AnonymousApex = lazy(() => import('./components/anonymous-apex/AnonymousApex'));
 const SalesforceApi = lazy(() => import('./components/salesforce-api/SalesforceApi'));
+const DebugLogViewer = lazy(() => import('./components/debug-log-viewer/DebugLogViewer'));
 
 interface RouteItem {
   path: string;
@@ -83,6 +84,7 @@ const ROUTES: RouteItem[] = [
   },
   { path: '/apex', render: () => <AnonymousApex /> },
   { path: '/salesforce-api', render: () => <SalesforceApi /> },
+  { path: '/debug-logs', render: () => <DebugLogViewer /> },
   { path: '/feedback', render: () => <Feedback userProfile={_userProfile} /> },
   { path: '*', render: () => <Redirect to="/query" /> },
 ];

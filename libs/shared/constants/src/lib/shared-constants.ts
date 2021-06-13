@@ -1,5 +1,7 @@
 import { InputAcceptTypeCsv, InputAcceptTypeExcel, InputAcceptTypeXml, InputAcceptTypeZip, MapOf, MimeType } from '@jetstream/types';
 
+export const ORG_VERSION_PLACEHOLDER = '_DEFAULT_VERSION_';
+
 export const SESSION_EXP_DAYS = 5;
 export const SFDC_BULK_API_NULL_VALUE = '#N/A';
 
@@ -132,4 +134,13 @@ export const ANALYTICS_KEYS = {
   /** SFDC API */
   sfdcApi_Submitted: 'sfdcApi_Submitted',
   sfdcApi_Sample: 'sfdcApi_Sample',
+  /** DEPLOY */
+  deploy_addToChangeset: 'deploy_addToChangeset',
+  deploy_configuration: 'deploy_configuration',
+  deploy_deployMetadata: 'deploy_deployMetadata',
+  deploy_download: 'deploy_download',
+  deploy_downloadMetadataPkg: 'deploy_downloadMetadataPkg',
+  deploy_finished: 'deploy_finished',
 };
+
+export const LOG_LEVELS = ['NONE', 'ERROR', 'WARN', 'INFO', 'DEBUG', 'FINE', 'FINER', 'FINEST'];

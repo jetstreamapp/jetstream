@@ -2,9 +2,9 @@
 import { css, jsx } from '@emotion/react';
 import { SalesforceOrgUi } from '@jetstream/types';
 import { Icon, Popover, SalesforceLogin, Spinner } from '@jetstream/ui';
-import { applicationCookieState } from 'apps/jetstream/src/app/app-state';
 import { FunctionComponent, useState } from 'react';
 import { useRecoilState } from 'recoil';
+import { applicationCookieState } from '../../../app-state';
 
 export interface LoadRecordsRefreshCachePopoverProps {
   org: SalesforceOrgUi;

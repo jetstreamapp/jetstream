@@ -1,4 +1,4 @@
-import { HTTP, MIME_TYPES } from '@jetstream/shared/constants';
+import { HTTP, LOG_LEVELS, MIME_TYPES } from '@jetstream/shared/constants';
 import { ensureArray, getValueOrSoapNull, sanitizeForXml, splitArrayToMaxSize, toBoolean } from '@jetstream/shared/utils';
 import { AnonymousApexResponse, AnonymousApexSoapResponse, ApexCompletionResponse, ListMetadataResult, MapOf } from '@jetstream/types';
 import { NextFunction, Request, Response } from 'express';
@@ -36,7 +36,7 @@ export const routeValidators = {
     body('otherFields').optional().not().isArray(),
     body('otherFields').optional().not().isString(),
   ],
-  anonymousApex: [body('apex').isString().isLength({ min: 1 })],
+  anonymousApex: [body('apex').isString().isLength({ min: 1 }), body('logLevel').optional().isString().isIn(LOG_LEVELS)],
   apexCompletions: [param('type').isIn(['apex', 'visualforce'])],
 };
 
@@ -320,7 +320,8 @@ export async function getPackageXml(req: Request, res: Response, next: NextFunct
  */
 export async function anonymousApex(req: Request, res: Response, next: NextFunction) {
   try {
-    const apex: string = req.body.apex;
+    let { apex, logLevel }: { apex: string; logLevel?: string } = req.body;
+    logLevel = logLevel || 'FINEST';
     const conn: jsforce.Connection = res.locals.jsforceConn;
     const requestOptions: jsforce.RequestInfo = {
       method: 'POST',
@@ -337,10 +338,41 @@ export async function anonymousApex(req: Request, res: Response, next: NextFunct
       </apex:CallOptions>
       <apex:DebuggingHeader>
         <apex:categories>
-            <apex:category>Apex_code</apex:category>
-            <apex:level>FINEST</apex:level>
+          <apex:category>Db</apex:category>
+          <apex:level>${logLevel}</apex:level>
         </apex:categories>
-        <apex:debugLevel>DETAIL</apex:debugLevel>
+        <apex:categories>
+          <apex:category>Workflow</apex:category>
+          <apex:level>${logLevel}</apex:level>
+        </apex:categories>
+        <apex:categories>
+          <apex:category>Validation</apex:category>
+          <apex:level>${logLevel}</apex:level>
+        </apex:categories>
+        <apex:categories>
+          <apex:category>Callout</apex:category>
+          <apex:level>${logLevel}</apex:level>
+        </apex:categories>
+        <apex:categories>
+          <apex:category>Apex_code</apex:category>
+          <apex:level>${logLevel}</apex:level>
+        </apex:categories>
+        <apex:categories>
+          <apex:category>Apex_profiling</apex:category>
+          <apex:level>${logLevel}</apex:level>
+        </apex:categories>
+        <apex:categories>
+          <apex:category>Visualforce</apex:category>
+          <apex:level>${logLevel}</apex:level>
+        </apex:categories>
+        <apex:categories>
+          <apex:category>System</apex:category>
+          <apex:level>${logLevel}</apex:level>
+        </apex:categories>
+        <apex:categories>
+          <apex:category>All</apex:category>
+          <apex:level>${logLevel}</apex:level>
+        </apex:categories>
       </apex:DebuggingHeader>
       <apex:SessionHeader>
         <apex:sessionId>${conn.accessToken}</apex:sessionId>

@@ -5,9 +5,9 @@ import { transformTabularDataToExcelStr } from '@jetstream/shared/ui-utils';
 import { flattenRecords } from '@jetstream/shared/utils';
 import { Record } from '@jetstream/types';
 import { Icon, Modal, Radio, RadioGroup } from '@jetstream/ui';
-import { useAmplitude } from 'apps/jetstream/src/app/components/core/analytics';
 import copyToClipboard from 'copy-to-clipboard';
 import { Fragment, FunctionComponent, useEffect, useState } from 'react';
+import { useAmplitude } from '../../core/analytics';
 
 type WhichRecords = 'all' | 'filtered' | 'selected';
 

@@ -22,7 +22,8 @@ export const DeployMetadata: FunctionComponent<DeployMetadataProps> = () => {
   const resetMetadataSelectionTypeState = useResetRecoilState(fromDeployMetadataState.metadataSelectionTypeState);
   const resetUserSelectionState = useResetRecoilState(fromDeployMetadataState.userSelectionState);
   const resetDateRangeSelectionState = useResetRecoilState(fromDeployMetadataState.dateRangeSelectionState);
-  const resetDateRangeState = useResetRecoilState(fromDeployMetadataState.dateRangeState);
+  const resetDateRangeStartState = useResetRecoilState(fromDeployMetadataState.dateRangeStartState);
+  const resetDateRangeEndState = useResetRecoilState(fromDeployMetadataState.dateRangeEndState);
   const resetSelectedUsersState = useResetRecoilState(fromDeployMetadataState.selectedUsersState);
   const resetIncludeManagedPackageItems = useResetRecoilState(fromDeployMetadataState.includeManagedPackageItems);
   const resetChangesetPackage = useResetRecoilState(fromDeployMetadataState.changesetPackage);
@@ -43,7 +44,8 @@ export const DeployMetadata: FunctionComponent<DeployMetadataProps> = () => {
       resetMetadataSelectionTypeState();
       resetUserSelectionState();
       resetDateRangeSelectionState();
-      resetDateRangeState();
+      resetDateRangeStartState();
+      resetDateRangeEndState();
       resetSelectedUsersState();
       resetIncludeManagedPackageItems();
       resetChangesetPackage();
@@ -64,7 +66,8 @@ export const DeployMetadata: FunctionComponent<DeployMetadataProps> = () => {
           ['metadataSelectionTypeState', fromDeployMetadataState.metadataSelectionTypeState],
           ['userSelectionState', fromDeployMetadataState.userSelectionState],
           ['dateRangeSelectionState', fromDeployMetadataState.dateRangeSelectionState],
-          ['dateRangeState', fromDeployMetadataState.dateRangeState],
+          ['dateRangeStartState', fromDeployMetadataState.dateRangeStartState],
+          ['dateRangeEndState', fromDeployMetadataState.dateRangeEndState],
           ['selectedUsersState', fromDeployMetadataState.selectedUsersState],
           ['hasSelectionsMadeSelector', fromDeployMetadataState.hasSelectionsMadeSelector],
           ['listMetadataQueriesSelector', fromDeployMetadataState.listMetadataQueriesSelector],

@@ -8,6 +8,8 @@ import formatDate from 'date-fns/format';
 import startOfDay from 'date-fns/startOfDay';
 import startOfMonth from 'date-fns/startOfMonth';
 import cloneDate from 'date-fns/toDate';
+import Grid from 'libs/ui/src/lib/grid/Grid';
+import GridCol from 'libs/ui/src/lib/grid/GridCol';
 import { FunctionComponent, useEffect, useState } from 'react';
 import DateGrid from './DateGrid';
 import DateGridPrevNextSelector from './DateGridPrevNextSelector';
@@ -21,6 +23,7 @@ export interface DatePickerPopupProps {
   maxAvailableDate: Date;
   onClose: () => void;
   onSelection: (date: Date) => void;
+  onClear: () => void;
 }
 
 export const DatePickerPopup: FunctionComponent<DatePickerPopupProps> = ({
@@ -32,6 +35,7 @@ export const DatePickerPopup: FunctionComponent<DatePickerPopupProps> = ({
   dropDownPosition = 'left',
   onClose,
   onSelection,
+  onClear,
 }) => {
   const [selectedDate, setSelectedDate] = useState(() => initialSelectedDate);
   const [visibleMonth, setVisibleMonth] = useState(initialVisibleDate);
@@ -61,6 +65,11 @@ export const DatePickerPopup: FunctionComponent<DatePickerPopupProps> = ({
     setVisibleMonth(startOfMonth(date));
     setSelectedDate(cloneDate(date));
     onSelection(cloneDate(date));
+  }
+
+  function handleClear() {
+    setSelectedDate(undefined);
+    onClear();
   }
 
   function handleOnPrevOnNext(numMonths: -1 | 1) {
@@ -110,10 +119,18 @@ export const DatePickerPopup: FunctionComponent<DatePickerPopupProps> = ({
         onPrevYear={() => setCurrYear(currYear - 1)}
         onNextYear={() => setCurrYear(currYear + 1)}
       />
-
-      <button className="slds-button slds-align_absolute-center slds-text-link" onClick={() => handleSelection(startOfDay(new Date()))}>
-        Today
-      </button>
+      <Grid align="spread">
+        <GridCol>
+          <button className="slds-button slds-align_absolute-center slds-text-link" onClick={() => handleClear()} disabled={!selectedDate}>
+            Clear
+          </button>
+        </GridCol>
+        <GridCol>
+          <button className="slds-button slds-align_absolute-center slds-text-link" onClick={() => handleSelection(startOfDay(new Date()))}>
+            Today
+          </button>
+        </GridCol>
+      </Grid>
     </div>
   );
 };

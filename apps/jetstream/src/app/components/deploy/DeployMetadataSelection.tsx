@@ -1,93 +1,23 @@
 /** @jsx jsx */
 import { css, jsx } from '@emotion/react';
-import { COMMON_METADATA_TYPES, DescribeMetadataList, getMetadataLabelFromFullName } from '@jetstream/connected-ui';
+import { ANALYTICS_KEYS } from '@jetstream/shared/constants';
 import { SalesforceOrgUi } from '@jetstream/types';
-import {
-  AutoFullHeightContainer,
-  DatePicker,
-  Icon,
-  Page,
-  PageHeader,
-  PageHeaderActions,
-  PageHeaderRow,
-  PageHeaderTitle,
-  RadioButton,
-  RadioGroup,
-  ReadonlyList,
-} from '@jetstream/ui';
-import DeployMetadataPackage from './deploy-metadata-package/DeployMetadataPackage';
-import addDays from 'date-fns/addDays';
-import isBoolean from 'lodash/isBoolean';
-import { Fragment, FunctionComponent, useState } from 'react';
+import { AutoFullHeightContainer, Icon, Page, PageHeader, PageHeaderActions, PageHeaderRow, PageHeaderTitle } from '@jetstream/ui';
+import { useAmplitude } from 'apps/jetstream/src/app/components/core/analytics';
+import { FunctionComponent } from 'react';
 import { Link, useRouteMatch } from 'react-router-dom';
 import Split from 'react-split';
-import { CSSTransition } from 'react-transition-group';
-import { useRecoilState, useRecoilValue } from 'recoil';
+import { useRecoilValue } from 'recoil';
+import DeployMetadataPackage from './deploy-metadata-package/DeployMetadataPackage';
 import * as fromDeployMetadataState from './deploy-metadata.state';
-import { AllUser, CommonUser, YesNo } from './deploy-metadata.types';
 import './DeployMetadataSelection.scss';
-import DeployMetadataUserList from './DeployMetadataUserList';
 import DownloadMetadataPackage from './download-metadata-package/DownloadMetadataPackage';
-
-interface RadioButtonItem<T = string> {
-  name: T;
-  label: string;
-  value: T;
-}
+import DateSelection from './selection-components/DateSelection';
+import ManagedPackageSelection from './selection-components/ManagedPackageSelection';
+import MetadataSelection from './selection-components/MetadataSelection';
+import UserSelection from './selection-components/UserSelection';
 
 const HEIGHT_BUFFER = 170;
-
-const METADATA_TYPES_RADIO_BUTTONS: RadioButtonItem<CommonUser>[] = [
-  {
-    name: 'user',
-    label: 'Let Me Choose',
-    value: 'user',
-  },
-  {
-    name: 'common',
-    label: 'Common Types',
-    value: 'common',
-  },
-];
-
-const DATE_RANGE_RADIO_BUTTONS: RadioButtonItem<AllUser>[] = [
-  {
-    name: 'all',
-    label: 'Any Date',
-    value: 'all',
-  },
-  {
-    name: 'user',
-    label: 'Specific Date',
-    value: 'user',
-  },
-];
-
-const INCL_MANAGED_PACKAGE_RADIO_BUTTONS: RadioButtonItem<YesNo>[] = [
-  {
-    name: 'No',
-    label: 'Unmanaged Only',
-    value: 'No',
-  },
-  {
-    name: 'Yes',
-    label: 'Include Managed',
-    value: 'Yes',
-  },
-];
-
-const USER_SELECTION_RADIO_BUTTONS: RadioButtonItem<AllUser>[] = [
-  {
-    name: 'all',
-    label: 'All Users',
-    value: 'all',
-  },
-  {
-    name: 'user',
-    label: 'Specific Users',
-    value: 'user',
-  },
-];
 
 export interface DeployMetadataSelectionProps {
   selectedOrg: SalesforceOrgUi;
@@ -95,54 +25,15 @@ export interface DeployMetadataSelectionProps {
 
 export const DeployMetadataSelection: FunctionComponent<DeployMetadataSelectionProps> = ({ selectedOrg }) => {
   const match = useRouteMatch();
+  const { trackEvent } = useAmplitude();
 
-  const [maxDate] = useState(() => addDays(new Date(), 1));
-
-  const [metadataSelectionType, setMetadataSelectionType] = useRecoilState<CommonUser>(fromDeployMetadataState.metadataSelectionTypeState);
-  const [userSelection, setUserSelection] = useRecoilState<AllUser>(fromDeployMetadataState.userSelectionState);
-  const [dateRangeSelection, setDateRangeSelection] = useRecoilState<AllUser>(fromDeployMetadataState.dateRangeSelectionState);
-  const [includeManagedPackageItems, setIncludeManagedPackageItems] = useRecoilState<YesNo>(
-    fromDeployMetadataState.includeManagedPackageItems
-  );
-  const [dateRange, setDateRange] = useRecoilState<Date>(fromDeployMetadataState.dateRangeState);
-
-  const [metadataItems, setMetadataItems] = useRecoilState(fromDeployMetadataState.metadataItemsState);
-  const [metadataItemsMap, setMetadataItemsMap] = useRecoilState(fromDeployMetadataState.metadataItemsMapState);
-  const [selectedMetadataItems, setSelectedMetadataItems] = useRecoilState(fromDeployMetadataState.selectedMetadataItemsState);
-  // const [configuration, setConfiguration] = useRecoilState(fromDeployMetadataState.selectedConfiguration);
-  // const resetConfiguration = useResetRecoilState(fromDeployMetadataState.selectedConfiguration);
-
-  const [usersList, setUsersList] = useRecoilState(fromDeployMetadataState.usersList);
-  const [selectedUsers, setSelectedUsers] = useRecoilState(fromDeployMetadataState.selectedUsersState);
+  const amplitudeSubmissionSelector = useRecoilValue(fromDeployMetadataState.amplitudeSubmissionSelector);
+  const metadataItems = useRecoilValue(fromDeployMetadataState.metadataItemsState);
   const hasSelectionsMade = useRecoilValue(fromDeployMetadataState.hasSelectionsMadeSelector);
   const hasSelectionsMadeMessage = useRecoilValue(fromDeployMetadataState.hasSelectionsMadeMessageSelector);
 
-  function handleSelection(items: string[], options: { selectAllValue?: boolean; clearSelection?: boolean } = {}) {
-    const { selectAllValue, clearSelection } = options;
-    if (clearSelection) {
-      setSelectedMetadataItems(new Set());
-    } else {
-      // add or remove all
-      if (isBoolean(selectAllValue)) {
-        if (selectAllValue) {
-          setSelectedMetadataItems(new Set(Array.from(selectedMetadataItems).concat(items)));
-        } else {
-          const itemsToRemove = new Set(items);
-          setSelectedMetadataItems(new Set(Array.from(selectedMetadataItems).filter((item) => !itemsToRemove.has(item))));
-        }
-      } else {
-        // toggle each item - there should only be one item in items[]
-        const existingItems = new Set(selectedMetadataItems);
-        items.forEach((item) => {
-          if (existingItems.has(item)) {
-            existingItems.delete(item);
-          } else {
-            existingItems.add(item);
-          }
-        });
-        setSelectedMetadataItems(existingItems);
-      }
-    }
+  function trackContinue() {
+    trackEvent(ANALYTICS_KEYS.deploy_configuration, { page: 'initial-selection', ...amplitudeSubmissionSelector });
   }
 
   return (
@@ -155,6 +46,7 @@ export const DeployMetadataSelection: FunctionComponent<DeployMetadataSelectionP
             <DeployMetadataPackage selectedOrg={selectedOrg} />
             {hasSelectionsMade && (
               <Link
+                onClick={trackContinue}
                 className="slds-button slds-button_brand"
                 to={{
                   pathname: `${match.url}/deploy`,
@@ -199,110 +91,15 @@ export const DeployMetadataSelection: FunctionComponent<DeployMetadataSelectionP
           `}
         >
           <div className="slds-p-horizontal_x-small">
-            <div className="slds-align_absolute-center">
-              <RadioButtonSelection
-                label={'Which Metadata types do you want to include?'}
-                items={METADATA_TYPES_RADIO_BUTTONS}
-                checkedValue={metadataSelectionType}
-                disabled={false}
-                onChange={(value: CommonUser) => setMetadataSelectionType(value)}
-              />
-            </div>
-            <hr className="slds-m-vertical_small" />
-            {metadataSelectionType === 'common' && (
-              <AutoFullHeightContainer bottomBuffer={10}>
-                <h2 className="slds-text-heading_medium slds-grow slds-text-align_center">Metadata Types</h2>
-                <ReadonlyList
-                  items={COMMON_METADATA_TYPES}
-                  getContent={(item: string) => ({
-                    key: item,
-                    heading: getMetadataLabelFromFullName(item),
-                    subheading: item,
-                  })}
-                />
-              </AutoFullHeightContainer>
-            )}
-            {metadataSelectionType === 'user' && (
-              <DescribeMetadataList
-                inputLabelPlural="Metadata Types"
-                org={selectedOrg}
-                initialItems={metadataItems}
-                initialItemMap={metadataItemsMap}
-                selectedItems={selectedMetadataItems}
-                onItems={setMetadataItems}
-                onItemsMap={setMetadataItemsMap}
-                onSelected={handleSelection}
-              />
-            )}
+            <MetadataSelection selectedOrg={selectedOrg} />
           </div>
           <div className="slds-p-horizontal_x-small">
-            <div className="slds-align_absolute-center">
-              <RadioButtonSelection
-                label={'Show metadata modified by which users'}
-                items={USER_SELECTION_RADIO_BUTTONS}
-                checkedValue={userSelection}
-                onChange={(value: AllUser) => setUserSelection(value)}
-              />
-            </div>
-            {userSelection === 'user' && (
-              <Fragment>
-                <hr className="slds-m-vertical_small" />
-                <DeployMetadataUserList
-                  selectedOrg={selectedOrg}
-                  initialUsers={usersList}
-                  selectedUsers={selectedUsers}
-                  onUsers={setUsersList}
-                  onSelection={setSelectedUsers}
-                />
-              </Fragment>
-            )}
+            <UserSelection selectedOrg={selectedOrg} />
           </div>
           <div className="slds-p-horizontal_x-small">
-            <div className="slds-align_absolute-center">
-              <RadioButtonSelection
-                label={'Show metadata created or changed since'}
-                items={DATE_RANGE_RADIO_BUTTONS}
-                checkedValue={dateRangeSelection}
-                onChange={(value: AllUser) => setDateRangeSelection(value)}
-              />
-            </div>
-            <CSSTransition in={dateRangeSelection === 'user'} timeout={300} classNames="animation-item">
-              <div
-                key="modified-since"
-                css={css`
-                  min-height: 80px;
-                `}
-              >
-                {dateRangeSelection === 'user' && (
-                  <Fragment>
-                    <DatePicker
-                      id="modified-since"
-                      label="Modified Since"
-                      className="slds-m-top_small slds-form-element_stacked slds-is-editing"
-                      maxAvailableDate={maxDate}
-                      // containerDisplay="contents"
-                      errorMessage="Choose a valid date in the past"
-                      labelHelp="All metadata items that were created or modified since this date will be shown"
-                      isRequired
-                      hasError={false}
-                      errorMessageId={`modified-since-error`}
-                      initialSelectedDate={dateRange}
-                      onChange={setDateRange}
-                    />
-                  </Fragment>
-                )}
-              </div>
-            </CSSTransition>
+            <DateSelection />
             <hr className="slds-m-vertical_small" />
-            <div className="slds-align_absolute-center">
-              <RadioButtonSelection
-                label={'Include Managed Package Metadata'}
-                items={INCL_MANAGED_PACKAGE_RADIO_BUTTONS}
-                checkedValue={includeManagedPackageItems}
-                helpText={<em className="slds-text-color_weak">Managed components may not allow deployment or modification</em>}
-                onChange={(value: YesNo) => setIncludeManagedPackageItems(value)}
-              />
-            </div>
+            <ManagedPackageSelection />
           </div>
         </Split>
       </AutoFullHeightContainer>
@@ -311,37 +108,3 @@ export const DeployMetadataSelection: FunctionComponent<DeployMetadataSelectionP
 };
 
 export default DeployMetadataSelection;
-
-interface RadioButtonSelectionProps {
-  label: string;
-  items: RadioButtonItem[];
-  checkedValue: string;
-  disabled?: boolean;
-  helpText?: string | JSX.Element;
-  onChange: (value: string) => void;
-}
-
-const RadioButtonSelection: FunctionComponent<RadioButtonSelectionProps> = ({
-  label,
-  items,
-  checkedValue,
-  disabled,
-  helpText,
-  onChange,
-}) => {
-  return (
-    <RadioGroup label={label} isButtonGroup formControlClassName="slds-align_absolute-center" helpText={helpText}>
-      {items.map((item) => (
-        <RadioButton
-          key={item.value}
-          name={label}
-          label={item.label}
-          value={item.value}
-          disabled={disabled}
-          checked={item.value === checkedValue}
-          onChange={onChange}
-        />
-      ))}
-    </RadioGroup>
-  );
-};

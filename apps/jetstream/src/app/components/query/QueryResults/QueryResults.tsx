@@ -24,7 +24,6 @@ import {
   ToolbarItemGroup,
   useConfirmation,
 } from '@jetstream/ui';
-import QueryResultsCopyToClipboard from 'apps/jetstream/src/app/components/query/QueryResults/QueryResultsCopyToClipboard';
 import classNames from 'classnames';
 import React, { Fragment, FunctionComponent, useCallback, useEffect, useRef, useState } from 'react';
 import { Link, NavLink, useHistory, useLocation } from 'react-router-dom';
@@ -38,6 +37,7 @@ import * as fromQueryHistory from '../QueryHistory/query-history.state';
 import QueryHistory from '../QueryHistory/QueryHistory';
 import IncludeDeletedRecordsToggle from '../QueryOptions/IncludeDeletedRecords';
 import useQueryRestore from '../utils/useQueryRestore';
+import QueryResultsCopyToClipboard from './QueryResultsCopyToClipboard';
 import QueryResultsGetRecAsApexModal from './QueryResultsGetRecAsApexModal';
 import QueryResultsSoqlPanel from './QueryResultsSoqlPanel';
 import QueryResultsViewRecordFields from './QueryResultsViewRecordFields';

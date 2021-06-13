@@ -1,8 +1,9 @@
 /** @jsx jsx */
 import { css, jsx } from '@emotion/react';
-import { DATE_FORMATS } from '@jetstream/shared/constants';
+import { ANALYTICS_KEYS, DATE_FORMATS } from '@jetstream/shared/constants';
 import { DeployResult, SalesforceOrgUi } from '@jetstream/types';
 import { Grid, GridCol, Icon, Modal, TabsRef } from '@jetstream/ui';
+import { useAmplitude } from 'apps/jetstream/src/app/components/core/analytics';
 import formatDate from 'date-fns/format';
 import { Fragment, FunctionComponent, useEffect, useRef, useState } from 'react';
 import OrgLabelBadge from '../../core/OrgLabelBadge';
@@ -64,6 +65,7 @@ export const DeployMetadataStatusModal: FunctionComponent<DeployMetadataStatusMo
   onClose,
   onDownload,
 }) => {
+  const { trackEvent } = useAmplitude();
   const [hasErrors, setHasErrors] = useState(false);
   const tabsRef = useRef<TabsRef>();
   // when errors are encountered for the first time, focus the errors tab
@@ -73,6 +75,25 @@ export const DeployMetadataStatusModal: FunctionComponent<DeployMetadataStatusMo
       tabsRef.current.changeTab('component-errors');
     }
   }, [hasErrors, results]);
+
+  useEffect(() => {
+    if (results.done) {
+      trackEvent(ANALYTICS_KEYS.deploy_finished, {
+        checkOnly: results.checkOnly,
+        completedDate: results.completedDate,
+        numberComponentErrors: results.numberComponentErrors,
+        numberComponentsDeployed: results.numberComponentsDeployed,
+        numberComponentsTotal: results.numberComponentsTotal,
+        numberTestErrors: results.numberTestErrors,
+        numberTestsCompleted: results.numberTestsCompleted,
+        numberTestsTotal: results.numberTestsTotal,
+        rollbackOnError: results.rollbackOnError,
+        runTestsEnabled: results.runTestsEnabled,
+        startDate: results.startDate,
+        success: results.success,
+      });
+    }
+  }, [results.done]);
 
   return (
     <Modal

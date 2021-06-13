@@ -1,12 +1,15 @@
 /** @jsx jsx */
-import { jsx } from '@emotion/react';
+import { css, jsx } from '@emotion/react';
 import { useListMetadata } from '@jetstream/connected-ui';
+import { ANALYTICS_KEYS } from '@jetstream/shared/constants';
 import { formatNumber, transformTabularDataToExcelStr } from '@jetstream/shared/ui-utils';
 import { pluralizeFromNumber, pluralizeIfMultiple } from '@jetstream/shared/utils';
 import { ListMetadataResult, MapOf, SalesforceOrgUi } from '@jetstream/types';
 import {
+  AutoFullHeightContainer,
   Badge,
   DropDown,
+  FileDownloadModal,
   Grid,
   Icon,
   Spinner,
@@ -14,20 +17,22 @@ import {
   Toolbar,
   ToolbarItemActions,
   ToolbarItemGroup,
-  FileDownloadModal,
 } from '@jetstream/ui';
-import DeployMetadataPackage from './deploy-metadata-package/DeployMetadataPackage';
+import { useAmplitude } from 'apps/jetstream/src/app/components/core/analytics';
+import DeployMetadataDeploymentSidePanel from 'apps/jetstream/src/app/components/deploy/DeployMetadataDeploymentSidePanel';
 import copyToClipboard from 'copy-to-clipboard';
 import addMinutes from 'date-fns/addMinutes';
 import formatISODate from 'date-fns/formatISO';
+import isAfter from 'date-fns/isAfter';
 import isBefore from 'date-fns/isBefore';
 import startOfDay from 'date-fns/startOfDay';
 import { FunctionComponent, useCallback, useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useRecoilValue } from 'recoil';
 import AddToChangeset from './add-to-changeset/AddToChangeset';
+import DeployMetadataPackage from './deploy-metadata-package/DeployMetadataPackage';
 import * as fromDeployMetadataState from './deploy-metadata.state';
-import { AllUser, DeployMetadataTableRow, YesNo } from './deploy-metadata.types';
+import { AllUser, DeployMetadataTableRow, SidePanelType, YesNo } from './deploy-metadata.types';
 import DeployMetadataToOrg from './deploy-to-different-org/DeployMetadataToOrg';
 import DeployMetadataDeploymentTable from './DeployMetadataDeploymentTable';
 import DeployMetadataLastRefreshedPopover from './DeployMetadataLastRefreshedPopover';
@@ -42,6 +47,7 @@ export interface DeployMetadataDeploymentProps {
 }
 
 export const DeployMetadataDeployment: FunctionComponent<DeployMetadataDeploymentProps> = ({ selectedOrg }) => {
+  const { trackEvent } = useAmplitude();
   const { loadListMetadata, loadListMetadataItem, loading, listMetadataItems, hasError } = useListMetadata(selectedOrg);
   // used for manifest or package download
   const [activeDownloadType, setActiveDownloadType] = useState<'manifest' | 'package' | null>(null);
@@ -50,36 +56,52 @@ export const DeployMetadataDeployment: FunctionComponent<DeployMetadataDeploymen
   const userSelection = useRecoilValue<AllUser>(fromDeployMetadataState.userSelectionState);
   const selectedUsers = useRecoilValue(fromDeployMetadataState.selectedUsersState);
   const dateRangeSelection = useRecoilValue<AllUser>(fromDeployMetadataState.dateRangeSelectionState);
-  const dateRange = useRecoilValue<Date>(fromDeployMetadataState.dateRangeState);
+  const dateRangeStartState = useRecoilValue<Date>(fromDeployMetadataState.dateRangeStartState);
+  const dateRangeEndState = useRecoilValue<Date>(fromDeployMetadataState.dateRangeEndState);
   const includeManagedPackageItems = useRecoilValue<YesNo>(fromDeployMetadataState.includeManagedPackageItems);
+  const amplitudeSubmissionSelector = useRecoilValue(fromDeployMetadataState.amplitudeSubmissionSelector);
 
   const [exportData, setExportData] = useState<MapOf<any>>();
   const [rows, setRows] = useState<DeployMetadataTableRow[]>();
   const [selectedRows, setSelectedRows] = useState<Set<DeployMetadataTableRow>>(new Set());
 
+  const [sidePanelType, setSidePanelType] = useState<SidePanelType>('type-selection');
+  const [isSidePanelOpen, setIsSidePanelOpen] = useState(false);
+  const [modifiedLabel, setModifiedLabel] = useState('');
+
   const listMetadataFilterFn = useCallback(
     (item: ListMetadataResult) => {
       const selectedUserSet = new Set(selectedUsers);
-      const dateToCompare = startOfDay(addMinutes(dateRange || new Date(), -1));
       if (includeManagedPackageItems === 'No' && item.manageableState !== 'unmanaged') {
         return false;
       }
       if (userSelection === 'user' && !selectedUserSet.has(item.lastModifiedById)) {
         return false;
       }
-      if (dateRangeSelection === 'user' && !isBefore(dateToCompare, item.lastModifiedDate)) {
+      if (
+        dateRangeSelection === 'user' &&
+        dateRangeStartState &&
+        !isBefore(startOfDay(addMinutes(dateRangeStartState || new Date(), -1)), item.lastModifiedDate)
+      ) {
+        return false;
+      }
+      if (
+        dateRangeSelection === 'user' &&
+        dateRangeEndState &&
+        !isAfter(startOfDay(addMinutes(dateRangeEndState || new Date(), +1)), item.lastModifiedDate)
+      ) {
         return false;
       }
       return true;
     },
-    [selectedUsers, dateRange, includeManagedPackageItems, userSelection, dateRangeSelection]
+    [selectedUsers, dateRangeStartState, dateRangeEndState, includeManagedPackageItems, userSelection, dateRangeSelection]
   );
 
   useEffect(() => {
     if (selectedOrg) {
       let skipCacheIfOlderThan: number;
-      if (dateRangeSelection === 'user') {
-        skipCacheIfOlderThan = startOfDay(dateRange || new Date()).getTime();
+      if (dateRangeSelection === 'user' && dateRangeStartState) {
+        skipCacheIfOlderThan = startOfDay(dateRangeStartState || new Date()).getTime();
       }
       loadListMetadata(listMetadataQueries, listMetadataFilterFn, false, skipCacheIfOlderThan);
     }
@@ -88,11 +110,28 @@ export const DeployMetadataDeployment: FunctionComponent<DeployMetadataDeploymen
     listMetadataQueries,
     loadListMetadata,
     selectedUsers,
-    dateRange,
+    dateRangeStartState,
+    dateRangeEndState,
     userSelection,
     dateRangeSelection,
     listMetadataFilterFn,
   ]);
+
+  useEffect(() => {
+    if (dateRangeStartState || dateRangeEndState) {
+      if (dateRangeStartState && dateRangeEndState) {
+        setModifiedLabel(
+          `Modified between ${formatISODate(dateRangeStartState, { representation: 'date' })} ${formatISODate(dateRangeEndState, {
+            representation: 'date',
+          })}`
+        );
+      } else if (dateRangeStartState) {
+        setModifiedLabel(`Modified since ${formatISODate(dateRangeStartState, { representation: 'date' })}`);
+      } else {
+        setModifiedLabel(`Modified before ${formatISODate(dateRangeEndState, { representation: 'date' })}`);
+      }
+    }
+  }, [dateRangeStartState, dateRangeEndState]);
 
   async function handleRefreshItem(type: string) {
     if (listMetadataItems[type]) {
@@ -106,6 +145,7 @@ export const DeployMetadataDeployment: FunctionComponent<DeployMetadataDeploymen
 
   async function handleDownloadActive(type: 'manifest' | 'package') {
     setActiveDownloadType(type);
+    trackEvent(ANALYTICS_KEYS.deploy_download, { type, itemCount: selectedRows.size });
   }
 
   async function handleFileModalClose() {
@@ -119,6 +159,20 @@ export const DeployMetadataDeployment: FunctionComponent<DeployMetadataDeploymen
     } else if (TABLE_ACTION_DOWNLOAD) {
       setExportData(exportDataTemp);
     }
+  }
+
+  function handleOpenSidePanel(activeItem: SidePanelType) {
+    if (activeItem === sidePanelType && isSidePanelOpen) {
+      setIsSidePanelOpen(false);
+    } else {
+      setSidePanelType(activeItem);
+      setIsSidePanelOpen(true);
+    }
+  }
+
+  function handleCloseSidePanel() {
+    setIsSidePanelOpen(false);
+    trackEvent(ANALYTICS_KEYS.deploy_configuration, { page: 'deploy-table', ...amplitudeSubmissionSelector });
   }
 
   return (
@@ -176,26 +230,46 @@ export const DeployMetadataDeployment: FunctionComponent<DeployMetadataDeploymen
         </ToolbarItemActions>
       </Toolbar>
       <div>
-        <Grid className="slds-box_small slds-theme_default slds-is-relative">
+        <Grid className="slds-box_small slds-theme_default slds-is-relative" verticalAlign="center" wrap>
           {loading && <Spinner size="small"></Spinner>}
-          <div className="slds-m-horizontal_x-small">
-            <Badge>
+          {/* TODO: on a small screen, we need to change to icon buttons or something */}
+          <div className="slds-m-right_xx-small">
+            <button
+              className="slds-button slds-button_neutral"
+              onClick={() => handleOpenSidePanel('type-selection')}
+              title="Click to adjust which types to include"
+            >
               {formatNumber(listMetadataQueries.length)} Metadata {pluralizeIfMultiple('Type', listMetadataQueries)}
-            </Badge>
+            </button>
           </div>
-          <div className="slds-m-horizontal_x-small">
-            <Badge>
+          <div className="slds-m-right_xx-small">
+            <button
+              className="slds-button slds-button_neutral"
+              onClick={() => handleOpenSidePanel('user-selection')}
+              title="Click to adjust which users are used to filter"
+            >
               {userSelection === 'all' ? 'From All Users' : `Across ${selectedUsers.length} ${pluralizeIfMultiple('user', selectedUsers)}`}
-            </Badge>
+            </button>
           </div>
-          <div className="slds-m-horizontal_x-small">
-            <Badge>
-              {dateRangeSelection === 'all'
-                ? 'Modified Any Time'
-                : `Modified since ${formatISODate(dateRange, { representation: 'date' })}`}
-            </Badge>
+          <div className="slds-m-right_xx-small">
+            <button
+              className="slds-button slds-button_neutral"
+              onClick={() => handleOpenSidePanel('date-range-selection')}
+              title="Click to adjust the date range"
+            >
+              {dateRangeSelection === 'all' ? 'Modified Any Time' : modifiedLabel}
+            </button>
           </div>
-          <div className="slds-m-horizontal_x-small">
+          <div className="slds-m-right_x-small">
+            <button
+              className="slds-button slds-button_neutral"
+              onClick={() => handleOpenSidePanel('include-managed-selection')}
+              title="Click to change if managed items are shown"
+            >
+              {includeManagedPackageItems === 'Yes' ? 'Exclude Managed' : `Include Managed`}
+            </button>
+          </div>
+          <div className="slds-m-right_xx-small">
             <Badge>
               {formatNumber(selectedRows.size)} {pluralizeFromNumber('Component', selectedRows.size)} Selected
             </Badge>
@@ -234,7 +308,23 @@ export const DeployMetadataDeployment: FunctionComponent<DeployMetadataDeploymen
         </Grid>
         {hasError && <Toast type="error">Uh Oh. There was a problem getting the permission data from Salesforce.</Toast>}
         {!hasError && listMetadataItems && (
-          <DeployMetadataDeploymentTable listMetadataItems={listMetadataItems} onRows={setRows} onSelectedRows={setSelectedRows} />
+          <Grid>
+            <DeployMetadataDeploymentSidePanel
+              selectedOrg={selectedOrg}
+              activeItem={sidePanelType}
+              isOpen={isSidePanelOpen}
+              onClosed={handleCloseSidePanel}
+            />
+            <AutoFullHeightContainer
+              className="slds-scrollable bg-white"
+              bottomBuffer={10}
+              css={css`
+                width: 100%;
+              `}
+            >
+              <DeployMetadataDeploymentTable listMetadataItems={listMetadataItems} onRows={setRows} onSelectedRows={setSelectedRows} />
+            </AutoFullHeightContainer>
+          </Grid>
         )}
       </div>
     </div>

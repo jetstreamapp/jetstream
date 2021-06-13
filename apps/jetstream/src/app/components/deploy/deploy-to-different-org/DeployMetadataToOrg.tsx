@@ -1,7 +1,9 @@
 /** @jsx jsx */
 import { jsx } from '@emotion/react';
+import { ANALYTICS_KEYS } from '@jetstream/shared/constants';
 import { DeployOptions, DeployResult, ListMetadataResult, MapOf, SalesforceOrgUi } from '@jetstream/types';
 import { FileDownloadModal, Icon } from '@jetstream/ui';
+import { useAmplitude } from 'apps/jetstream/src/app/components/core/analytics';
 import { Fragment, FunctionComponent, useState } from 'react';
 import { DeployMetadataTableRow } from '../deploy-metadata.types';
 import { convertRowsToMapOfListMetadataResults, getDeployResultsExcelData } from '../utils/deploy-metadata.utils';
@@ -15,6 +17,7 @@ export interface DeployMetadataToOrgProps {
 }
 
 export const DeployMetadataToOrg: FunctionComponent<DeployMetadataToOrgProps> = ({ selectedOrg, loading, selectedRows }) => {
+  const { trackEvent } = useAmplitude();
   const [configModalOpen, setConfigModalOpen] = useState(false);
   const [deployStatusModalOpen, setDeployStatusModalOpen] = useState(false);
   const [downloadResultsModalOpen, setDownloadResultsModalOpen] = useState<boolean>(false);
@@ -40,6 +43,7 @@ export const DeployMetadataToOrg: FunctionComponent<DeployMetadataToOrgProps> = 
     setSelectedMetadata(convertRowsToMapOfListMetadataResults(Array.from(selectedRows)));
     setConfigModalOpen(false);
     setDeployStatusModalOpen(true);
+    trackEvent(ANALYTICS_KEYS.deploy_deployMetadata, { type: 'org-to-org', deployOptions });
   }
 
   function handleDeployResultsDownload(deployResults: DeployResult, deploymentUrl: string) {

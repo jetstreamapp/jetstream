@@ -1,7 +1,9 @@
 /** @jsx jsx */
 import { jsx } from '@emotion/react';
+import { ANALYTICS_KEYS } from '@jetstream/shared/constants';
 import { SalesforceOrgUi } from '@jetstream/types';
 import { Icon } from '@jetstream/ui';
+import { useAmplitude } from 'apps/jetstream/src/app/components/core/analytics';
 import { Fragment, FunctionComponent, useState } from 'react';
 import DownloadPackageWithFileSelector from '../utils/DownloadPackageWithFileSelector';
 import DownloadMetadataPackageConfigModal from './DownloadMetadataPackageConfigModal';
@@ -11,6 +13,7 @@ export interface DownloadMetadataPackageProps {
 }
 
 export const DownloadMetadataPackage: FunctionComponent<DownloadMetadataPackageProps> = ({ selectedOrg }) => {
+  const { trackEvent } = useAmplitude();
   const [configModalOpen, setConfigModalOpen] = useState<boolean>(false);
   const [downloadResultsModalOpen, setDownloadResultsModalOpen] = useState<boolean>(false);
   const [packageManifest, setPackageManifest] = useState<string>();
@@ -18,19 +21,23 @@ export const DownloadMetadataPackage: FunctionComponent<DownloadMetadataPackageP
 
   function handleClick() {
     setConfigModalOpen(true);
+    trackEvent(ANALYTICS_KEYS.deploy_downloadMetadataPkg);
   }
 
   function handleDownloadFromManifest(packageManifest: string) {
     handleDownload(packageManifest, null);
+    trackEvent(ANALYTICS_KEYS.deploy_downloadMetadataPkg, { type: 'from-manifest' });
   }
   function handleDownloadFromPackageNames(packageNames: string[]) {
     handleDownload(null, packageNames);
+    trackEvent(ANALYTICS_KEYS.deploy_downloadMetadataPkg, { type: 'from-package-names' });
   }
   function handleDownload(packageManifest: string, packageNames: string[]) {
     setPackageManifest(packageManifest);
     setPackageNames(packageNames);
     setConfigModalOpen(false);
     setDownloadResultsModalOpen(true);
+    trackEvent(ANALYTICS_KEYS.deploy_downloadMetadataPkg);
   }
 
   return (

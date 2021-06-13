@@ -1,12 +1,13 @@
+import { ORG_VERSION_PLACEHOLDER } from '@jetstream/shared/constants';
 import { toBoolean } from '@jetstream/shared/utils';
 import { GenericRequestPayload, ManualRequestPayload, ManualRequestResponse } from '@jetstream/types';
+import axios, { AxiosError, AxiosRequestConfig } from 'axios';
 import { NextFunction, Request, Response } from 'express';
 import { body } from 'express-validator';
 import * as jsforce from 'jsforce';
 import { isObject, isString } from 'lodash';
 import { UserFacingError } from '../utils/error-handler';
 import { sendJson } from '../utils/response.handlers';
-import axios, { AxiosError, AxiosRequestConfig, AxiosResponse } from 'axios';
 
 const SESSION_ID_RGX = /\{sessionId\}/i;
 
@@ -80,9 +81,12 @@ export async function makeJsforceRequest(req: Request, res: Response, next: Next
 
 export async function makeJsforceRequestViaAxios(req: Request, res: Response, next: NextFunction) {
   try {
-    const { url, method, headers } = req.body as ManualRequestPayload;
+    const { method, headers } = req.body as ManualRequestPayload;
+    let { url } = req.body as ManualRequestPayload;
     let { body } = req.body as ManualRequestPayload;
     const conn: jsforce.Connection = res.locals.jsforceConn;
+
+    url = url.replace(ORG_VERSION_PLACEHOLDER, conn.version);
 
     const config: AxiosRequestConfig = {
       url,

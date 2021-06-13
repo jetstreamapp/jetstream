@@ -1,20 +1,21 @@
 /** @jsx jsx */
 import { css, jsx } from '@emotion/react';
+import { useSetTraceFlag } from '@jetstream/connected-ui';
 import { logger } from '@jetstream/shared/client-logger';
-import { ANALYTICS_KEYS, INDEXED_DB } from '@jetstream/shared/constants';
+import { ANALYTICS_KEYS, INDEXED_DB, LOG_LEVELS } from '@jetstream/shared/constants';
 import { anonymousApex } from '@jetstream/shared/data';
 import { useDebounce, useNonInitialEffect, useRollbar } from '@jetstream/shared/ui-utils';
 import { ApexHistoryItem, MapOf, SalesforceOrgUi } from '@jetstream/types';
-import { AutoFullHeightContainer, Badge, Card, CopyToClipboard, Grid, Icon, Spinner, SalesforceLogin } from '@jetstream/ui';
+import { AutoFullHeightContainer, Badge, Card, CopyToClipboard, Grid, Icon, SalesforceLogin, Spinner } from '@jetstream/ui';
 import Editor, { OnMount, useMonaco } from '@monaco-editor/react';
-import AnonymousApexFilter from 'apps/jetstream/src/app/components/anonymous-apex/AnonymousApexFilter';
 import localforage from 'localforage';
 import type { editor } from 'monaco-editor';
-import { Fragment, FunctionComponent, useCallback, useEffect, useRef, useState, MouseEvent } from 'react';
+import { Fragment, FunctionComponent, MouseEvent, useCallback, useEffect, useRef, useState } from 'react';
 import Split from 'react-split';
 import { useRecoilState, useRecoilValue } from 'recoil';
 import { applicationCookieState, selectedOrgState, STORAGE_KEYS } from '../../app-state';
 import { useAmplitude } from '../core/analytics';
+import AnonymousApexFilter from './AnonymousApexFilter';
 import AnonymousApexHistory from './AnonymousApexHistory';
 import * as fromApexState from './apex.state';
 // import { useApexCompletions } from './useApexCompletions';
@@ -42,6 +43,10 @@ export const AnonymousApex: FunctionComponent<AnonymousApexProps> = () => {
   const debouncedApex = useDebounce(apex, 1000);
   const monaco = useMonaco();
 
+  /** Add trace for 1 hour so that any background jobs are logged even if dev console is not open */
+  useSetTraceFlag(selectedOrg, 1);
+
+  const [logLevel, setLogLevel] = useState<string>('FINEST');
   const [userDebug, setUserDebug] = useState(false);
   const [textFilter, setTextFilter] = useState<string>('');
   const [visibleResults, setVisibleResults] = useState<string>('');
@@ -107,7 +112,7 @@ export const AnonymousApex: FunctionComponent<AnonymousApexProps> = () => {
       setUserDebug(false);
       setResultsStatus({ hasResults: false, success: false, label: null });
       try {
-        const { result, debugLog } = await anonymousApex(selectedOrg, value);
+        const { result, debugLog } = await anonymousApex(selectedOrg, value, logLevel);
         if (!result.success) {
           let summary = '';
           summary += `line ${result.line}, column ${result.column}\n`;
@@ -140,7 +145,7 @@ export const AnonymousApex: FunctionComponent<AnonymousApexProps> = () => {
         setLoading(false);
       }
     },
-    [historyItems, selectedOrg, setHistoryItems, trackEvent]
+    [historyItems, selectedOrg, logLevel, setHistoryItems, trackEvent]
   );
 
   function handleEditorChange(value, event) {
@@ -170,6 +175,10 @@ export const AnonymousApex: FunctionComponent<AnonymousApexProps> = () => {
     window.open(loginUrl, 'Developer Console', 'height=600,width=600');
   }
 
+  function handleLogLevelChange(event: React.ChangeEvent<HTMLSelectElement>) {
+    setLogLevel(event.target.value);
+  }
+
   return (
     <AutoFullHeightContainer fillHeight bottomBuffer={10} setHeightAttr className="slds-p-horizontal_x-small slds-scrollable_none">
       <Split
@@ -185,19 +194,31 @@ export const AnonymousApex: FunctionComponent<AnonymousApexProps> = () => {
         <div className="slds-p-horizontal_x-small">
           <Card
             className="h-100"
-            title="Anonymous Apex"
-            actions={
+            title={
               <Fragment>
+                Anonymous Apex
                 <SalesforceLogin
                   className="slds-m-right_x-small"
                   serverUrl={serverUrl}
                   org={selectedOrg}
-                  returnUrl={`/_ui/common/apex/debug/ApexCSIPage`}
-                  iconPosition="left"
+                  returnUrl="/_ui/common/apex/debug/ApexCSIPage"
+                  iconPosition="right"
+                  title="Open developer console"
                   onClick={handleOpenDevConsole}
-                >
-                  Dev Console
-                </SalesforceLogin>
+                ></SalesforceLogin>
+              </Fragment>
+            }
+            actions={
+              <Fragment>
+                <div className="slds-m-horizontal_x-small">
+                  <select className="slds-select" onChange={handleLogLevelChange} value={logLevel}>
+                    {LOG_LEVELS.map((item) => (
+                      <option key={item} value={item}>
+                        Log Level: {item}
+                      </option>
+                    ))}
+                  </select>
+                </div>
                 <button className="slds-button slds-button_brand" onClick={() => onSubmit(apex)}>
                   <Icon type="utility" icon="apex" className="slds-button__icon slds-button__icon_left" omitContainer />
                   Submit

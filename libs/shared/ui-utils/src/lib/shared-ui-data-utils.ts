@@ -3,13 +3,17 @@ import { getMapOf, REGEX, splitArrayToMaxSize } from '@jetstream/shared/utils';
 import {
   CompositeRequestBody,
   CompositeResponse,
+  DebugLevel,
   DescribeSObjectResultWithExtendedField,
   FieldWithExtendedType,
   FieldWrapper,
   MapOf,
   QueryFields,
   SalesforceOrgUi,
+  UserTrace,
 } from '@jetstream/types';
+import addHours from 'date-fns/addHours';
+import formatISO from 'date-fns/formatISO';
 import { DescribeSObjectResult, Field } from 'jsforce';
 import { composeQuery, getField } from 'soql-parser-js';
 import { polyfillFieldDefinition, sortQueryFields } from './shared-ui-utils';
@@ -173,4 +177,109 @@ export async function makeToolingRequests<T>(
     }
   }
   return results;
+}
+
+/**
+ * Create or extend trace flag
+ * @param org
+ * @param DebugLevelId
+ * @param trace
+ * @returns
+ */
+export async function createOrExtendDebugTrace(
+  org: SalesforceOrgUi,
+  numHours: number,
+  DebugLevelId: string,
+  trace?: UserTrace
+): Promise<{
+  trace: UserTrace;
+  expirationDate: Date;
+}> {
+  const newExpDate = addHours(new Date(), numHours);
+  if (trace?.Id) {
+    // update existing trace
+    await genericRequest(org, {
+      isTooling: true,
+      method: 'PATCH',
+      url: `/tooling/sobjects/TraceFlag/${trace.Id}`,
+      body: {
+        StartDate: null,
+        ExpirationDate: formatISO(newExpDate),
+        DebugLevelId: DebugLevelId,
+      },
+    });
+  } else {
+    // create new trace
+    const results = await genericRequest<UserTrace>(org, {
+      isTooling: true,
+      method: 'POST',
+      url: `/tooling/sobjects/TraceFlag`,
+      body: {
+        TracedEntityId: org.userId,
+        LogType: 'DEVELOPER_LOG',
+        StartDate: null,
+        ExpirationDate: formatISO(newExpDate),
+        DebugLevelId: DebugLevelId,
+      },
+    });
+    return {
+      trace: results,
+      expirationDate: newExpDate,
+    };
+  }
+  return {
+    trace: { ...trace, ExpirationDate: formatISO(newExpDate) },
+    expirationDate: newExpDate,
+  };
+}
+
+/**
+ * Create debug level, then fetch and return
+ * @param org
+ * @returns
+ */
+export async function createDebugLevel(org: SalesforceOrgUi): Promise<DebugLevel> {
+  const results = await genericRequest<{ id: string }>(org, {
+    isTooling: true,
+    method: 'POST',
+    url: `/tooling/sobjects/DebugLevel`,
+    body: {
+      DeveloperName: 'USER_DEBUG_FINEST',
+      Language: 'en_US',
+      MasterLabel: 'FINEST',
+      ApexCode: 'FINEST',
+      ApexProfiling: 'FINEST',
+      Callout: 'FINEST',
+      Database: 'FINEST',
+      Nba: 'FINEST',
+      System: 'FINEST',
+      Validation: 'FINEST',
+      Visualforce: 'FINEST',
+      Wave: 'FINEST',
+      Workflow: 'FINEST',
+    },
+  });
+
+  const fetchResults = await genericRequest(org, {
+    isTooling: false,
+    method: 'GET',
+    url: `/tooling/sobjects/DebugLevel/${results.id}`,
+  });
+  return fetchResults;
+}
+
+/**
+ * Get log raw content
+ * @param org
+ * @param id
+ * @returns
+ */
+export async function fetchActiveLog(org: SalesforceOrgUi, id: string): Promise<string> {
+  const fetchResults = await genericRequest<string>(org, {
+    isTooling: false,
+    method: 'GET',
+    url: `/sobjects/ApexLog/${id}/Body`,
+    options: { responseType: 'text' },
+  });
+  return fetchResults;
 }
