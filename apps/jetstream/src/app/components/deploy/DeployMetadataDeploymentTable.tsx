@@ -60,7 +60,10 @@ export const DeployMetadataDeploymentTable: FunctionComponent<DeployMetadataDepl
   // Hack to ensure that spinners are removed for rows that do not have any child items
   useEffect(() => {
     if (gridApi) {
-      const rowsToRefresh = rows.filter((row) => !row.loading && !row.fullName).map((row) => gridApi.getRowNode(row.key));
+      const rowsToRefresh = rows
+        .filter((row) => !row.loading && !row.fullName)
+        .map((row) => gridApi.getRowNode(row.key))
+        .filter((row) => !!row); // ensure that we remove undefined items
       if (rowsToRefresh.length) {
         gridApi.refreshCells({ force: true, columns: ['fullName'], rowNodes: rowsToRefresh });
       }

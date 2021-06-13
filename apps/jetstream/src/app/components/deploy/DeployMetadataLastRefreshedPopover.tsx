@@ -32,8 +32,9 @@ export const DeployMetadataLastRefreshedPopover: FunctionComponent<DeployMetadat
             max-height: 80vh;
           `}
         >
+          <p>Metadata is cached in your browser to keep your experience fast, but you can manually refresh the items below.</p>
           <p className="slds-m-bottom_x-small">
-            Metadata is cached in your browser to keep your experience fast, but you can manually refresh the items below.
+            <em>Refreshing will clear any selections you have made for that type.</em>
           </p>
           <ul className="slds-has-dividers_top-space slds-dropdown_length-10">
             {Object.keys(listMetadataItems).map((key) => (

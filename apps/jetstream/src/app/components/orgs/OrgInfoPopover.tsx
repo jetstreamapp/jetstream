@@ -21,22 +21,26 @@ export interface OrgInfoPopoverProps {
 function getOrgProp(serverUrl: string, org: SalesforceOrgUi, prop: keyof SalesforceOrgUi, label?: string) {
   label = label || startCase(prop);
   let value: string | number | boolean | ReactNode = org[prop];
+  let tooltip: string;
   if (!value && prop !== 'orgIsSandbox') {
     return undefined;
   }
   if (prop === 'organizationId') {
+    tooltip = String(value);
     value = (
       <SalesforceLogin serverUrl={serverUrl} org={org} returnUrl="/lightning/setup/CompanyProfileInfo/home" omitIcon>
         {value}
       </SalesforceLogin>
     );
   } else if (prop === 'userId') {
+    tooltip = String(value);
     value = (
       <SalesforceLogin serverUrl={serverUrl} org={org} returnUrl={`/${value}`} omitIcon>
         {value}
       </SalesforceLogin>
     );
   } else if (prop === 'orgIsSandbox') {
+    tooltip = String(value);
     value = <Checkbox id="is-org-sandbox" label="is-sandbox" checked={!!value} hideLabel disabled />;
   }
   return (
@@ -45,7 +49,7 @@ function getOrgProp(serverUrl: string, org: SalesforceOrgUi, prop: keyof Salesfo
         <div title={label}>{label}</div>
       </td>
       <td>
-        <div title={value as string} className="slds-truncate">
+        <div title={tooltip || (value as string)} className="slds-truncate">
           {value}
         </div>
       </td>

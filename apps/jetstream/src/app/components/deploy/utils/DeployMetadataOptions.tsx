@@ -15,7 +15,7 @@ const testLevelOptions: { label: string; value: DeployOptionsTestLevel }[] = [
   { label: 'Run all tests in org', value: 'RunAllTestsInOrg' },
 ];
 
-export interface DeployMetadataToOrgConfigOptionsProps {
+export interface DeployMetadataOptionsProps {
   deployOptions?: DeployOptions;
   hiddenOptions?: Set<keyof DeployOptions>;
   disabledOptions?: Set<keyof DeployOptions>;
@@ -23,7 +23,7 @@ export interface DeployMetadataToOrgConfigOptionsProps {
   onChange: (deployOptions: DeployOptions) => void;
 }
 
-export const DeployMetadataToOrgConfigOptions: FunctionComponent<DeployMetadataToOrgConfigOptionsProps> = ({
+export const DeployMetadataOptions: FunctionComponent<DeployMetadataOptionsProps> = ({
   deployOptions,
   hiddenOptions = new Set(),
   disabledOptions = new Set(),
@@ -205,6 +205,7 @@ export const DeployMetadataToOrgConfigOptions: FunctionComponent<DeployMetadataT
                 label="Specified Tests"
                 labelHelp="runTests - One test per line or comma delimited."
                 helpText="One test per line or comma delimited"
+                isRequired
               >
                 <textarea
                   id="deploy-runTests"
@@ -223,4 +224,4 @@ export const DeployMetadataToOrgConfigOptions: FunctionComponent<DeployMetadataT
   );
 };
 
-export default DeployMetadataToOrgConfigOptions;
+export default DeployMetadataOptions;
