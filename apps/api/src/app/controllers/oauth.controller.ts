@@ -66,35 +66,21 @@ export async function salesforceOauthCallback(req: express.Request, res: express
       }
     } catch (ex) {
       logger.warn(ex);
-      // TODO: do some basic things here to default as much of this as possible
-      //   companyInfo = {
-      //     name: companyInfoRecord.Name,
-      //     country: companyInfoRecord.Country,
-      //     organizationType: companyInfoRecord.OrganizationType,
-      //     instanceName: companyInfoRecord.InstanceName,
-      //     isSandbox: companyInfoRecord.IsSandbox,
-      //     languageLocaleKey: companyInfoRecord.LanguageLocaleKey,
-      //     namespacePrefix: companyInfoRecord.NamespacePrefix,
-      //     trialExpirationDate: companyInfoRecord.TrialExpirationDate,
-      // }
     }
 
     const orgName = companyInfoRecord?.Name || 'Unknown Organization';
 
-    const salesforceOrgUi: SalesforceOrgUi = {
+    const salesforceOrgUi: Partial<SalesforceOrgUi> = {
       uniqueId: `${userInfo.organizationId}-${userInfo.id}`,
-      label: identity.username,
-      filterText: `${identity.username}${orgName}`.toLowerCase(),
       accessToken: encryptString(`${conn.accessToken} ${conn.refreshToken}`, hexToBase64(ENV.SFDC_CONSUMER_SECRET)),
       instanceUrl: conn.instanceUrl,
-      loginUrl: state.loginUrl as string, // might also have conn.loginUrl
+      loginUrl: state.loginUrl as string,
       userId: identity.user_id,
       email: identity.email,
       organizationId: identity.organization_id,
       username: identity.username,
       displayName: identity.display_name,
       thumbnail: identity.photos?.thumbnail,
-      // TODO: default as much data as possible if undefined
       orgName,
       orgCountry: companyInfoRecord?.Country,
       orgOrganizationType: companyInfoRecord?.OrganizationType,

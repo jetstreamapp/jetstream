@@ -1,4 +1,13 @@
-import { Entity, Column, PrimaryGeneratedColumn, BaseEntity, CreateDateColumn, UpdateDateColumn } from 'typeorm';
+import {
+  Entity,
+  Column,
+  PrimaryGeneratedColumn,
+  BaseEntity,
+  CreateDateColumn,
+  UpdateDateColumn,
+  BeforeUpdate,
+  BeforeInsert,
+} from 'typeorm';
 import { SalesforceOrgEdition, SalesforceOrgLocaleKey } from '@jetstream/types';
 import { SalesforceOrgUi } from '@jetstream/types';
 import { Exclude, classToPlain } from 'class-transformer';
@@ -6,7 +15,7 @@ import { ENV } from '../../config/env-config';
 
 @Entity()
 export class SalesforceOrg extends BaseEntity {
-  constructor(jetstreamUserId: string, uiOrg?: SalesforceOrgUi) {
+  constructor(jetstreamUserId: string, uiOrg?: Partial<SalesforceOrgUi>) {
     super();
     this.jetstreamUserId = jetstreamUserId;
     this.jetstreamUrl = ENV.JETSTREAM_SERVER_URL;
@@ -15,10 +24,8 @@ export class SalesforceOrg extends BaseEntity {
     }
   }
 
-  initFromUiOrg(uiOrg: SalesforceOrgUi) {
+  initFromUiOrg(uiOrg: Partial<SalesforceOrgUi>) {
     this.uniqueId = uiOrg.uniqueId ?? this.uniqueId;
-    this.label = uiOrg.label ?? this.username;
-    this.filterText = uiOrg.filterText ?? this.filterText;
     this.accessToken = uiOrg.accessToken ?? this.accessToken;
     this.instanceUrl = uiOrg.instanceUrl ?? this.instanceUrl;
     this.loginUrl = uiOrg.loginUrl ?? this.loginUrl;
@@ -55,7 +62,7 @@ export class SalesforceOrg extends BaseEntity {
   @Column()
   uniqueId: string;
 
-  @Column({ nullable: true })
+  @Column({ nullable: true, length: 100 })
   label: string;
 
   @Column()
@@ -139,6 +146,29 @@ export class SalesforceOrg extends BaseEntity {
 
   @UpdateDateColumn()
   updatedAt?: Date;
+
+  /**
+   * TRIGGERS
+   */
+  @BeforeInsert()
+  updateFilterTextOnInsert() {
+    this.updateFilterText();
+    if (!this.label) {
+      this.label = this.username;
+    }
+  }
+
+  @BeforeUpdate()
+  updateFilterTextOnUpdate() {
+    this.updateFilterText();
+    if (!this.label) {
+      this.label = this.username;
+    }
+  }
+
+  private updateFilterText() {
+    this.filterText = `${this.username}${this.orgName}${this.label}`.toLowerCase();
+  }
 
   /**
    * This ensures that specific properties will be omitted when serialized
