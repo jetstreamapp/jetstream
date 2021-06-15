@@ -113,7 +113,9 @@ export const DownloadMetadataPackageConfigModal: FunctionComponent<DownloadMetad
           <GridCol className="slds-p-around_medium slds-is-relative" size={12} sizeMedium={8}>
             {loading && <Spinner />}
             <h1 className="slds-text-heading_medium slds-m-bottom_small">Download from outbound changeset or unmanaged package</h1>
-            <p>Choose packages from the list and/or manually enter the package names</p>
+
+            {/* @deprecated - Note supported by Salesforce - still wired up and ready to be used if there is ever a way */}
+            {/* <p>Choose packages from the list and/or manually enter the package names</p>
             <Picklist
               className="slds-m-top_x-small"
               allowDeselection
@@ -127,7 +129,7 @@ export const DownloadMetadataPackageConfigModal: FunctionComponent<DownloadMetad
               hasError={hasError}
               errorMessage="There was a problem loading packages for this org"
               errorMessageId="packages-fetch-error"
-            ></Picklist>
+            ></Picklist> */}
 
             <Textarea
               id="package-names"

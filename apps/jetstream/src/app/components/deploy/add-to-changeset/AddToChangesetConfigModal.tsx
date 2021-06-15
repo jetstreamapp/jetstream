@@ -1,9 +1,9 @@
 /** @jsx jsx */
 import { css, jsx } from '@emotion/react';
 import { useNonInitialEffect } from '@jetstream/shared/ui-utils';
-import { ListItem, SalesforceOrgUi } from '@jetstream/types';
-import { Grid, Input, Modal, Picklist, Radio, RadioGroup, SalesforceLogin, Spinner, Textarea } from '@jetstream/ui';
-import { Fragment, FunctionComponent, useEffect, useState } from 'react';
+import { ListItem, ListMetadataResult, MapOf, SalesforceOrgUi } from '@jetstream/types';
+import { Grid, GridCol, Input, Modal, Picklist, Radio, RadioGroup, SalesforceLogin, Spinner, Textarea } from '@jetstream/ui';
+import { Fragment, FunctionComponent, useEffect, useRef, useState } from 'react';
 import { useRecoilState } from 'recoil';
 import { applicationCookieState } from '../../../app-state';
 import OrgLabelBadge from '../../core/OrgLabelBadge';
@@ -12,6 +12,7 @@ import { useChangesetList } from '../utils/useChangesetList';
 
 export interface AddToChangesetConfigModalProps {
   selectedOrg: SalesforceOrgUi;
+  selectedMetadata: MapOf<ListMetadataResult[]>;
   initialPackages?: ListItem<string, ChangeSetPackage>[];
   initialPackage?: string;
   initialDescription?: string;
@@ -23,6 +24,7 @@ export interface AddToChangesetConfigModalProps {
 
 export const AddToChangesetConfigModal: FunctionComponent<AddToChangesetConfigModalProps> = ({
   selectedOrg,
+  selectedMetadata,
   initialPackages,
   initialPackage,
   initialDescription,
@@ -31,13 +33,15 @@ export const AddToChangesetConfigModal: FunctionComponent<AddToChangesetConfigMo
   onClose,
   onDeploy,
 }) => {
+  const modalBodyRef = useRef<HTMLDivElement>();
   const [{ serverUrl }] = useRecoilState(applicationCookieState);
-  const [changesetEntryType, setChangesetEntryType] = useState<'list' | 'manual'>('list');
+  const [changesetEntryType, setChangesetEntryType] = useState<'list' | 'manual'>('manual');
   const [changesetPackage, setChangesetPackage] = useState<string>(initialPackage || '');
   const [changesetDescription, setChangesetDescription] = useState<string>(initialDescription || '');
   const [changesetId, setChangesetId] = useState<string>(null);
   const [loading, setLoading] = useState(false);
   const { loadPackages, loading: loadingChangesetPackages, changesetPackages, hasError } = useChangesetList(selectedOrg, initialPackages);
+  const [selectedMetadataList, setSelectedMetadataList] = useState<string[]>();
 
   useEffect(() => {
     if (changesetPackages && changesetPackages.length) {
@@ -48,6 +52,17 @@ export const AddToChangesetConfigModal: FunctionComponent<AddToChangesetConfigMo
   useNonInitialEffect(() => {
     onSelection(changesetPackage);
   }, [changesetPackage, onSelection]);
+
+  useEffect(() => {
+    if (selectedMetadata) {
+      setSelectedMetadataList(
+        Object.keys(selectedMetadata).reduce((output, key) => {
+          selectedMetadata[key].forEach((item) => output.push(`${key}: ${decodeURIComponent(item.fullName)}`));
+          return output;
+        }, [])
+      );
+    }
+  }, [selectedMetadata]);
 
   function handleSelection(selectedItems: ListItem<string, ChangeSetPackage>[]) {
     if (selectedItems?.length) {
@@ -86,26 +101,29 @@ export const AddToChangesetConfigModal: FunctionComponent<AddToChangesetConfigMo
       size="lg"
       onClose={onClose}
     >
-      <div className="slds-is-relative">
-        {loadingChangesetPackages && <Spinner />}
+      <div className="slds-is-relative" ref={modalBodyRef}>
+        <Grid>
+          <GridCol className="slds-border_right slds-p-right_x-small">
+            {loadingChangesetPackages && <Spinner />}
 
-        <ul className="slds-list_dotted">
-          <li>
-            An Outbound Changeset with a <strong>unique name</strong> must already exist.{' '}
-            <SalesforceLogin
-              serverUrl={serverUrl}
-              org={selectedOrg}
-              returnUrl={`/lightning/setup/OutboundChangeSet/home`}
-              iconPosition="right"
-            >
-              Create one here.
-            </SalesforceLogin>
-          </li>
-          <li>This process can be used for outbound changeset or unmanaged packages.</li>
-          <li>The last modified user and date will get updated on all the items you are adding to the changeset.</li>
-        </ul>
+            <ul className="slds-list_dotted">
+              <li>
+                An Outbound Changeset with a <strong>unique name</strong> must already exist.{' '}
+                <SalesforceLogin
+                  serverUrl={serverUrl}
+                  org={selectedOrg}
+                  returnUrl={`/lightning/setup/OutboundChangeSet/home`}
+                  iconPosition="right"
+                >
+                  Create one here.
+                </SalesforceLogin>
+              </li>
+              <li>This process can be used for outbound changeset or unmanaged packages.</li>
+              <li>The last modified user and date will get updated on all the items you are adding to the changeset.</li>
+            </ul>
 
-        <RadioGroup
+            {/* @deprecated - Note supported by Salesforce - still wired up and ready to be used if there is ever a way */}
+            {/* <RadioGroup
           className="slds-m-top_small slds-m-bottom_x-small"
           idPrefix="package"
           label="Choose changeset from list"
@@ -132,14 +150,15 @@ export const AddToChangesetConfigModal: FunctionComponent<AddToChangesetConfigMo
             disabled={loading}
             onChange={(value) => setChangesetEntryType(value as 'list' | 'manual')}
           />
-        </RadioGroup>
+        </RadioGroup> */}
 
-        <div
-          css={css`
-            margin-bottom: 200px;
-          `}
-        >
-          {changesetEntryType === 'list' && (
+            <div
+              css={css`
+                margin-bottom: 200px;
+              `}
+            >
+              {/* @deprecated - Note supported by Salesforce - still wired up and ready to be used if there is ever a way */}
+              {/* {changesetEntryType === 'list' && (
             <Grid verticalAlign="end">
               <div className="slds-grow">
                 <Picklist
@@ -176,39 +195,62 @@ export const AddToChangesetConfigModal: FunctionComponent<AddToChangesetConfigMo
                 </button>
               </div>
             </Grid>
-          )}
-          {changesetEntryType === 'manual' && (
-            <Input
-              label="Changesets"
-              isRequired
-              labelHelp="This is case-sensitive and must match the exact name of the outbound changeset in Salesforce"
-            >
-              <input
-                id="changeset-name"
-                className="slds-input"
-                placeholder="Changeset name"
-                value={changesetPackage}
-                disabled={loadingChangesetPackages || loading}
-                onChange={(event) => setChangesetPackage(event.target.value)}
-              />
-            </Input>
-          )}
-          <Textarea
-            id="changeset-description"
-            className="slds-m-top_x-small"
-            label="Changeset Description"
-            helpText="This value will overwrite the existing description."
-          >
-            <textarea
-              id="changeset-description"
-              className="slds-textarea"
-              disabled={loadingChangesetPackages || loading}
-              value={changesetDescription}
-              onChange={(event) => setChangesetDescription(event.target.value)}
-              maxLength={255}
-            />
-          </Textarea>
-        </div>
+          )} */}
+              {changesetEntryType === 'manual' && (
+                <Input
+                  label="Changesets"
+                  isRequired
+                  labelHelp="This is case-sensitive and must match the exact name of the outbound changeset in Salesforce"
+                >
+                  <input
+                    id="changeset-name"
+                    className="slds-input"
+                    placeholder="Changeset name"
+                    value={changesetPackage}
+                    disabled={loadingChangesetPackages || loading}
+                    onChange={(event) => setChangesetPackage(event.target.value)}
+                  />
+                </Input>
+              )}
+              <Textarea
+                id="changeset-description"
+                className="slds-m-top_x-small"
+                label="Changeset Description"
+                helpText="This value will overwrite the existing description."
+              >
+                <textarea
+                  id="changeset-description"
+                  className="slds-textarea"
+                  disabled={loadingChangesetPackages || loading}
+                  value={changesetDescription}
+                  onChange={(event) => setChangesetDescription(event.target.value)}
+                  maxLength={255}
+                />
+              </Textarea>
+            </div>
+          </GridCol>
+          <GridCol className="slds-p-left_x-small" size={6} sizeLarge={4}>
+            {Array.isArray(selectedMetadataList) && (
+              <div>
+                <h3 className="slds-text-heading_small slds-p-left_small">Selected Items ({selectedMetadataList.length})</h3>
+                <ul
+                  className="slds-has-dividers_bottom-space"
+                  css={css`
+                    max-height: ${modalBodyRef.current.clientHeight - 50}px;
+                    overflow-y: scroll;
+                    overflow-x: auto;
+                  `}
+                >
+                  {selectedMetadataList.map((item) => (
+                    <li key={item} className="slds-item">
+                      {item}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+          </GridCol>
+        </Grid>
       </div>
     </Modal>
   );
