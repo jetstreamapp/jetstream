@@ -15,4 +15,7 @@ export const REGEX = {
   HAS_NAMESPACE: /__[a-z0-9]+__/i,
   START_END_SINGLE_QUOTE: /^'|'$/g,
   START_END_PERCENTAGE: /^%|%$/g,
+  ESCAPED_SINGLE_QUOTE: /\\'/g,
+  ESCAPED_PERCENT_QUOTE: /\%/g,
+  ESCAPED_BACKSLASH_QUOTE: /\\\\/g,
 };

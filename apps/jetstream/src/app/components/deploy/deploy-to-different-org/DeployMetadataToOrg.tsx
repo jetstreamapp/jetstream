@@ -30,6 +30,7 @@ export const DeployMetadataToOrg: FunctionComponent<DeployMetadataToOrgProps> = 
 
   function handleClick() {
     setConfigModalOpen(true);
+    setSelectedMetadata(convertRowsToMapOfListMetadataResults(Array.from(selectedRows)));
   }
 
   function handleCloseConfigModal() {
@@ -40,7 +41,6 @@ export const DeployMetadataToOrg: FunctionComponent<DeployMetadataToOrgProps> = 
   function handleDeployMetadata(destinationOrg: SalesforceOrgUi, deployOptions: DeployOptions) {
     setDestinationOrg(destinationOrg);
     setDeployMetadataOptions(deployOptions);
-    setSelectedMetadata(convertRowsToMapOfListMetadataResults(Array.from(selectedRows)));
     setConfigModalOpen(false);
     setDeployStatusModalOpen(true);
     trackEvent(ANALYTICS_KEYS.deploy_deployMetadata, { type: 'org-to-org', deployOptions });
@@ -64,7 +64,12 @@ export const DeployMetadataToOrg: FunctionComponent<DeployMetadataToOrgProps> = 
       </button>
       {/* MODALS */}
       {configModalOpen && (
-        <DeployMetadataToOrgConfigModal sourceOrg={selectedOrg} onClose={handleCloseConfigModal} onDeploy={handleDeployMetadata} />
+        <DeployMetadataToOrgConfigModal
+          sourceOrg={selectedOrg}
+          selectedMetadata={selectedMetadata}
+          onClose={handleCloseConfigModal}
+          onDeploy={handleDeployMetadata}
+        />
       )}
       {deployStatusModalOpen && (
         <DeployMetadataToOrgStatusModal

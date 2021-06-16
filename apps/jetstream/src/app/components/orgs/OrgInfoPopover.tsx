@@ -146,10 +146,6 @@ export const OrgInfoPopover: FunctionComponent<OrgInfoPopoverProps> = ({ org, lo
           {hasError && (
             <div className="slds-p-around_xx-small">
               <ButtonGroupContainer className="slds-button_stretch">
-                <button className="slds-button slds-button_text-destructive slds-button_stretch">
-                  <Icon type="utility" icon="delete" className="slds-button__icon slds-button__icon_left" omitContainer />
-                  Remove Org
-                </button>
                 <button className="slds-button slds-button_success slds-button_stretch" onClick={handleFixOrg}>
                   <Icon type="utility" icon="apex_plugin" className="slds-button__icon slds-button__icon_left" omitContainer />
                   Fix Org
@@ -208,7 +204,7 @@ export const OrgInfoPopover: FunctionComponent<OrgInfoPopoverProps> = ({ org, lo
                       onChange={handleLabelChange}
                       value={orgLabel}
                       onKeyDown={handleLabelKeyDown}
-                      maxLength={255}
+                      maxLength={100}
                     />
                   </Input>
                   {isDirty && (
@@ -251,7 +247,13 @@ export const OrgInfoPopover: FunctionComponent<OrgInfoPopoverProps> = ({ org, lo
           <div className="slds-p-around_xx-small">
             {!removeOrgActive && (
               <ButtonGroupContainer className="slds-button_stretch">
-                <button className="slds-button slds-button_text-destructive slds-button_stretch" onClick={() => setRemoveOrgActive(true)}>
+                <button
+                  className={classNames('slds-button slds-button_stretch', {
+                    'slds-button_text-destructive': !hasError,
+                    'slds-button_destructive': hasError,
+                  })}
+                  onClick={() => setRemoveOrgActive(true)}
+                >
                   <Icon type="utility" icon="delete" className="slds-button__icon slds-button__icon_left" omitContainer />
                   Remove Org
                 </button>

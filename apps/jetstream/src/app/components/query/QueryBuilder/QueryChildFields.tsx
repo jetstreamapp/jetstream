@@ -122,7 +122,6 @@ export const QueryChildFields: FunctionComponent<QueryChildFieldsProps> = ({
         fields: {},
         visibleFields: new Set(),
         selectedFields: new Set(),
-        metadata: clonedQueryFieldsMap[key].metadata,
       };
       // fetch fields and update once resolved
       (async () => {

@@ -36,13 +36,13 @@ export const AddToChangeset: FunctionComponent<AddToChangesetProps> = ({ selecte
 
   function handleClick() {
     setConfigModalOpen(true);
+    setSelectedMetadata(convertRowsToMapOfListMetadataResults(Array.from(selectedRows)));
   }
 
   function handleDeployToChangeset(packageName: string, changesetDescription: string, changesetId?: string) {
     setChangesetPackageName(packageName);
     setChangesetPackageDescription(changesetDescription);
     setChangesetId(changesetId);
-    setSelectedMetadata(convertRowsToMapOfListMetadataResults(Array.from(selectedRows)));
     setConfigModalOpen(false);
     setDeployStatusModalOpen(true);
     trackEvent(ANALYTICS_KEYS.deploy_addToChangeset, {
@@ -71,6 +71,7 @@ export const AddToChangeset: FunctionComponent<AddToChangesetProps> = ({ selecte
       {configModalOpen && (
         <AddToChangesetConfigModal
           selectedOrg={selectedOrg}
+          selectedMetadata={selectedMetadata}
           initialPackages={changesetPackages}
           initialPackage={changesetPackage}
           onChangesetPackages={setChangesetPackages}

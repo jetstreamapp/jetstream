@@ -113,7 +113,7 @@ export const DeployMetadataPackageConfigModal: FunctionComponent<DeployMetadataP
     >
       <div className="slds-is-relative" ref={modalBodyRef}>
         <Grid>
-          <GridCol>
+          <GridCol className="slds-border_right slds-p-right_x-small">
             <div>
               <p>If you have previously downloaded a package, you can deploy it to the same or a different org.</p>
               <div className="slds-m-vertical_x-small">
@@ -141,7 +141,7 @@ export const DeployMetadataPackageConfigModal: FunctionComponent<DeployMetadataP
               </div>
             </div>
           </GridCol>
-          <GridCol size={4} sizeSmall={6} sizeLarge={8}>
+          <GridCol className="slds-p-left_x-small" size={6} sizeLarge={4}>
             {Array.isArray(fileContents) && (
               <div>
                 <h3 className="slds-text-heading_small slds-p-left_small">File Contents</h3>

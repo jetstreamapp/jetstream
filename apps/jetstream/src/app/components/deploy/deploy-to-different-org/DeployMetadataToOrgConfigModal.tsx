@@ -1,9 +1,9 @@
 /** @jsx jsx */
-import { jsx } from '@emotion/react';
+import { css, jsx } from '@emotion/react';
 import { useNonInitialEffect } from '@jetstream/shared/ui-utils';
-import { DeployOptions, SalesforceOrgUi } from '@jetstream/types';
-import { Icon, Modal } from '@jetstream/ui';
-import { Fragment, FunctionComponent, useEffect, useState } from 'react';
+import { DeployOptions, ListMetadataResult, MapOf, SalesforceOrgUi } from '@jetstream/types';
+import { Grid, GridCol, Icon, Modal } from '@jetstream/ui';
+import { Fragment, FunctionComponent, useEffect, useRef, useState } from 'react';
 import { useRecoilValue } from 'recoil';
 import { salesforceOrgsOmitSelectedState } from '../../../app-state';
 import OrgsCombobox from '../../../components/core/OrgsCombobox';
@@ -15,6 +15,7 @@ const DISABLED_OPTIONS = new Set<keyof DeployOptions>(['allowMissingFiles', 'aut
 export interface DeployMetadataToOrgConfigModalProps {
   initialOptions?: DeployOptions;
   sourceOrg: SalesforceOrgUi;
+  selectedMetadata: MapOf<ListMetadataResult[]>;
   onSelection?: (deployOptions: DeployOptions) => void;
   onClose: () => void;
   onDeploy: (destinationOrg: SalesforceOrgUi, deployOptions: DeployOptions) => void;
@@ -23,10 +24,13 @@ export interface DeployMetadataToOrgConfigModalProps {
 export const DeployMetadataToOrgConfigModal: FunctionComponent<DeployMetadataToOrgConfigModalProps> = ({
   initialOptions,
   sourceOrg,
+  selectedMetadata,
   onSelection,
   onClose,
   onDeploy,
 }) => {
+  const modalBodyRef = useRef<HTMLDivElement>();
+  const [selectedMetadataList, setSelectedMetadataList] = useState<string[]>();
   const orgs = useRecoilValue<SalesforceOrgUi[]>(salesforceOrgsOmitSelectedState);
   const [destinationOrg, setDestinationOrg] = useState<SalesforceOrgUi>(null);
   const [isConfigValid, setIsConfigValid] = useState(true);
@@ -47,6 +51,17 @@ export const DeployMetadataToOrgConfigModal: FunctionComponent<DeployMetadataToO
   useNonInitialEffect(() => {
     onSelection?.(deployOptions);
   }, [deployOptions, onSelection]);
+
+  useEffect(() => {
+    if (selectedMetadata) {
+      setSelectedMetadataList(
+        Object.keys(selectedMetadata).reduce((output, key) => {
+          selectedMetadata[key].forEach((item) => output.push(`${key}: ${decodeURIComponent(item.fullName)}`));
+          return output;
+        }, [])
+      );
+    }
+  }, [selectedMetadata]);
 
   useEffect(() => {
     if (!destinationOrg) {
@@ -86,21 +101,48 @@ export const DeployMetadataToOrgConfigModal: FunctionComponent<DeployMetadataToO
       size="lg"
       onClose={onClose}
     >
-      <div className="slds-is-relative">
-        {/* ORG LIST */}
-        <OrgsCombobox
-          isRequired
-          label="Deploy change to"
-          hideLabel={false}
-          placeholder="Select an org"
-          orgs={orgs}
-          selectedOrg={destinationOrg}
-          onSelected={setDestinationOrg}
-        />
-        <div>
-          {/* OPTIONS */}
-          <DeployMetadataOptions deployOptions={deployOptions} hiddenOptions={DISABLED_OPTIONS} onChange={setDeployOptions} />
-        </div>
+      <div className="slds-is-relative" ref={modalBodyRef}>
+        <Grid>
+          <GridCol className="slds-border_right slds-p-right_x-small">
+            <div className="slds-is-relative">
+              {/* ORG LIST */}
+              <OrgsCombobox
+                isRequired
+                label="Deploy change to"
+                hideLabel={false}
+                placeholder="Select an org"
+                orgs={orgs}
+                selectedOrg={destinationOrg}
+                onSelected={setDestinationOrg}
+              />
+              <div>
+                {/* OPTIONS */}
+                <DeployMetadataOptions deployOptions={deployOptions} hiddenOptions={DISABLED_OPTIONS} onChange={setDeployOptions} />
+              </div>
+            </div>
+          </GridCol>
+          <GridCol className="slds-p-left_x-small" size={6} sizeLarge={4}>
+            {Array.isArray(selectedMetadataList) && (
+              <div>
+                <h3 className="slds-text-heading_small slds-p-left_small">Selected Items ({selectedMetadataList.length})</h3>
+                <ul
+                  className="slds-has-dividers_bottom-space"
+                  css={css`
+                    max-height: ${modalBodyRef.current.clientHeight - 50}px;
+                    overflow-y: scroll;
+                    overflow-x: auto;
+                  `}
+                >
+                  {selectedMetadataList.map((item) => (
+                    <li key={item} className="slds-item">
+                      {item}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+          </GridCol>
+        </Grid>
       </div>
     </Modal>
   );
