@@ -4,6 +4,7 @@ import {
   fetchFieldsProcessResults,
   getOperatorFromWhereClause,
   isNegationOperator,
+  unescapeSoqlString,
 } from '@jetstream/shared/ui-utils';
 import { REGEX } from '@jetstream/shared/utils';
 import {
@@ -312,9 +313,11 @@ function removeQuotesAndPercentage(operator: Operator, values: string | string[]
     if (operator === 'LIKE') {
       values = values.replace(REGEX.START_END_PERCENTAGE, '');
     }
-    return values;
+    return unescapeSoqlString(values);
   } else if (Array.isArray(values)) {
-    return (values as any[]).map((value) => (isString(value) ? value.replace(REGEX.START_END_SINGLE_QUOTE, '') : value));
+    return (values as any[])
+      .map((value) => (isString(value) ? unescapeSoqlString(value.replace(REGEX.START_END_SINGLE_QUOTE, '')) : value))
+      .join('\n');
   }
   return values;
 }

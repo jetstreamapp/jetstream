@@ -564,6 +564,7 @@ export function isNegationOperator(operator: QueryFilterOperator): boolean {
 
 function getValue(operator: QueryFilterOperator, value: string | string[]): string | string[] {
   value = value || '';
+  value = Array.isArray(value) ? value.map(escapeSoqlString) : escapeSoqlString(value);
   switch (operator) {
     case 'contains':
     case 'doesNotContain':
@@ -585,6 +586,29 @@ function getValue(operator: QueryFilterOperator, value: string | string[]): stri
     default:
       return value;
   }
+}
+
+export function escapeSoqlString(value: string) {
+  if (!value) {
+    return value;
+  }
+  // https://github.com/packagestats/sql-escape/blob/master/index.js
+  // return value.replace(/[\0\x08\x09\x1a\n\r"'\\\%]/g, (char) => {
+  return value.replace(/['\\\%]/g, (char) => {
+    // prepends a backslash to backslash, percent, and double/single quotes
+    return '\\' + char;
+  });
+}
+
+export function unescapeSoqlString(value: string) {
+  if (!value) {
+    return value;
+  }
+
+  return value
+    .replace(REGEX.ESCAPED_SINGLE_QUOTE, `'`)
+    .replace(REGEX.ESCAPED_PERCENT_QUOTE, `%`)
+    .replace(REGEX.ESCAPED_BACKSLASH_QUOTE, `\\`);
 }
 
 function getLiteralType(selected: ExpressionConditionRowSelectedItems): LiteralType {
