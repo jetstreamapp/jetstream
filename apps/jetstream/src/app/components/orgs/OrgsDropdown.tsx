@@ -21,6 +21,7 @@ import { useOrgPermissions } from './useOrgPermissions';
 export const OrgsDropdown: FunctionComponent = () => {
   const [orgs, setOrgs] = useRecoilState<SalesforceOrgUi[]>(fromAppState.salesforceOrgsState);
   const setSelectedOrgId = useSetRecoilState<string>(fromAppState.selectedOrgIdState);
+  const actionInProgress = useRecoilValue<boolean>(fromAppState.actionInProgressState);
   const selectedOrg = useRecoilValue<SalesforceOrgUi>(fromAppState.selectedOrgState);
   const orgType = useRecoilValue(fromAppState.selectedOrgType);
   const [orgLoading, setOrgLoading] = useState(false);
@@ -99,12 +100,18 @@ export const OrgsDropdown: FunctionComponent = () => {
             {orgType}
           </Badge>
         </div>
-        <OrgsCombobox orgs={orgs} selectedOrg={selectedOrg} onSelected={(org: SalesforceOrgUi) => setSelectedOrgId(org.uniqueId)} />
+        <OrgsCombobox
+          orgs={orgs}
+          selectedOrg={selectedOrg}
+          disabled={actionInProgress}
+          onSelected={(org: SalesforceOrgUi) => setSelectedOrgId(org.uniqueId)}
+        />
         {selectedOrg && (
           <div className="slds-col slds-m-left--xx-small slds-p-top--xx-small">
             <OrgInfoPopover
               org={selectedOrg}
               loading={orgLoading}
+              disableOrgActions={actionInProgress}
               onAddOrg={handleAddOrg}
               onRemoveOrg={handleRemoveOrg}
               onSaveLabel={handleUpdateOrg}
@@ -112,7 +119,7 @@ export const OrgsDropdown: FunctionComponent = () => {
           </div>
         )}
         <div className="slds-col">
-          <AddOrg onAddOrg={handleAddOrg} />
+          <AddOrg onAddOrg={handleAddOrg} disabled={actionInProgress} />
         </div>
       </div>
     </Fragment>

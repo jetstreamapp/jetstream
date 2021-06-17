@@ -25,10 +25,11 @@ function getFQDN(customUrl: string) {
 export interface AddOrgProps {
   className?: string;
   label?: string;
+  disabled?: boolean;
   onAddOrg: (org: SalesforceOrgUi) => void;
 }
 
-export const AddOrg: FunctionComponent<AddOrgProps> = ({ className, label = 'Add Org', onAddOrg }) => {
+export const AddOrg: FunctionComponent<AddOrgProps> = ({ className, label = 'Add Org', disabled, onAddOrg }) => {
   const [orgType, setOrgType] = useState<OrgType>('prod');
   const [customUrl, setCustomUrl] = useState<string>('');
   const [loginUrl, setLoginUrl] = useState<string>(null);
@@ -123,7 +124,7 @@ export const AddOrg: FunctionComponent<AddOrgProps> = ({ className, label = 'Add
         </footer>
       }
     >
-      <button className={classNames('slds-button', className)}>
+      <button className={classNames('slds-button', className)} disabled={disabled}>
         <Icon type="utility" icon="add" className="slds-button__icon slds-button__icon_left" omitContainer />
         {label}
       </button>

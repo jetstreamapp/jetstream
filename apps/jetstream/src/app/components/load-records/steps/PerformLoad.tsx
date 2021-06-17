@@ -8,6 +8,7 @@ import { isNumber } from 'lodash';
 import startCase from 'lodash/startCase';
 import { ChangeEvent, FunctionComponent, useEffect, useState } from 'react';
 import { useAmplitude } from '../../core/analytics';
+import ConfirmPageChange from '../../core/ConfirmPageChange';
 import LoadRecordsResults from '../components/load-results/LoadRecordsResults';
 import LoadRecordsAssignmentRules from '../components/LoadRecordsAssignmentRules';
 import { ApiMode, FieldMapping } from '../load-records-types';
@@ -175,6 +176,7 @@ export const LoadRecordsPerformLoad: FunctionComponent<LoadRecordsPerformLoadPro
 
   return (
     <div>
+      <ConfirmPageChange actionInProgress={loadInProgress} />
       <h1 className="slds-text-heading_medium">Options</h1>
       <div className="slds-p-around_small">
         <RadioGroup

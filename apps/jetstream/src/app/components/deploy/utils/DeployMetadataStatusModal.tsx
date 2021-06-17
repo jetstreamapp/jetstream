@@ -4,6 +4,7 @@ import { ANALYTICS_KEYS, DATE_FORMATS } from '@jetstream/shared/constants';
 import { DeployResult, SalesforceOrgUi } from '@jetstream/types';
 import { Grid, GridCol, Icon, Modal, TabsRef } from '@jetstream/ui';
 import { useAmplitude } from 'apps/jetstream/src/app/components/core/analytics';
+import ConfirmPageChange from '../../core/ConfirmPageChange';
 import formatDate from 'date-fns/format';
 import { Fragment, FunctionComponent, useEffect, useRef, useState } from 'react';
 import OrgLabelBadge from '../../core/OrgLabelBadge';
@@ -142,6 +143,7 @@ export const DeployMetadataStatusModal: FunctionComponent<DeployMetadataStatusMo
           min-height: 225px;
         `}
       >
+        <ConfirmPageChange actionInProgress={loading} />
         <Grid>
           <GridCol
             growNone

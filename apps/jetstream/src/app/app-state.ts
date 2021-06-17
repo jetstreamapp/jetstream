@@ -73,6 +73,11 @@ const userPreferenceState = atom<UserProfilePreferences>({
   default: getUserPreferences(),
 });
 
+export const actionInProgressState = atom<boolean>({
+  key: 'actionInProgressState',
+  default: false,
+});
+
 export const applicationCookieState = atom<ApplicationCookie>({
   key: 'applicationCookieState',
   default: getAppCookie(),

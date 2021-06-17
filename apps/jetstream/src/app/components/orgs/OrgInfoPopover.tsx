@@ -13,6 +13,7 @@ import { applicationCookieState } from '../../app-state';
 export interface OrgInfoPopoverProps {
   org: SalesforceOrgUi;
   loading?: boolean;
+  disableOrgActions?: boolean;
   onAddOrg: (org: SalesforceOrgUi, replaceOrgUniqueId?: string) => void;
   onRemoveOrg: (org: SalesforceOrgUi) => void;
   onSaveLabel: (org: SalesforceOrgUi, updatedOrg: Partial<SalesforceOrgUi>) => void;
@@ -57,7 +58,14 @@ function getOrgProp(serverUrl: string, org: SalesforceOrgUi, prop: keyof Salesfo
   );
 }
 
-export const OrgInfoPopover: FunctionComponent<OrgInfoPopoverProps> = ({ org, loading, onAddOrg, onRemoveOrg, onSaveLabel }) => {
+export const OrgInfoPopover: FunctionComponent<OrgInfoPopoverProps> = ({
+  org,
+  loading,
+  disableOrgActions,
+  onAddOrg,
+  onRemoveOrg,
+  onSaveLabel,
+}) => {
   const [applicationState] = useRecoilState(applicationCookieState);
   const [orgLabel, setOrgLabel] = useState(org.label || org.username);
   const [removeOrgActive, setRemoveOrgActive] = useState(false);
@@ -146,7 +154,7 @@ export const OrgInfoPopover: FunctionComponent<OrgInfoPopoverProps> = ({ org, lo
           {hasError && (
             <div className="slds-p-around_xx-small">
               <ButtonGroupContainer className="slds-button_stretch">
-                <button className="slds-button slds-button_success slds-button_stretch" onClick={handleFixOrg}>
+                <button className="slds-button slds-button_success slds-button_stretch" onClick={handleFixOrg} disabled={disableOrgActions}>
                   <Icon type="utility" icon="apex_plugin" className="slds-button__icon slds-button__icon_left" omitContainer />
                   Fix Org
                 </button>
@@ -236,7 +244,7 @@ export const OrgInfoPopover: FunctionComponent<OrgInfoPopoverProps> = ({ org, lo
               <button
                 className="slds-button slds-button_neutral slds-button_stretch"
                 onClick={() => handleClearCache()}
-                disabled={didClearCache}
+                disabled={disableOrgActions || didClearCache}
                 title="The list of objects and fields are cached in your browser to improve performance. If you do not see recent objects or fields you can clear the cache for the org."
               >
                 <Icon type="utility" icon="refresh" className="slds-button__icon slds-button__icon_left" omitContainer />
@@ -253,6 +261,7 @@ export const OrgInfoPopover: FunctionComponent<OrgInfoPopoverProps> = ({ org, lo
                     'slds-button_destructive': hasError,
                   })}
                   onClick={() => setRemoveOrgActive(true)}
+                  disabled={disableOrgActions}
                 >
                   <Icon type="utility" icon="delete" className="slds-button__icon slds-button__icon_left" omitContainer />
                   Remove Org

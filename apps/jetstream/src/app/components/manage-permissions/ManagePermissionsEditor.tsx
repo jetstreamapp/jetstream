@@ -16,6 +16,7 @@ import {
   ToolbarItemGroup,
   Tooltip,
 } from '@jetstream/ui';
+import ConfirmPageChange from '../core/ConfirmPageChange';
 import { Fragment, FunctionComponent, useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useRecoilState, useRecoilValue, useResetRecoilState } from 'recoil';
@@ -353,6 +354,7 @@ export const ManagePermissionsEditor: FunctionComponent<ManagePermissionsEditorP
 
   return (
     <div>
+      <ConfirmPageChange actionInProgress={loading} />
       {fileDownloadData && fileDownloadModalOpen && (
         <FileDownloadModal
           org={selectedOrg}
