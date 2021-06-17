@@ -42,6 +42,7 @@ export interface OrgsComboboxProps {
   hideLabel?: boolean;
   placeholder?: string;
   isRequired?: boolean;
+  disabled?: boolean;
   onSelected: (org: SalesforceOrgUi) => void;
 }
 
@@ -52,6 +53,7 @@ export const OrgsCombobox: FunctionComponent<OrgsComboboxProps> = ({
   hideLabel = true,
   placeholder = 'Select an Org',
   isRequired,
+  disabled,
   onSelected,
 }) => {
   const [visibleOrgs, setVisibleOrgs] = useState<SalesforceOrgUi[]>([]);
@@ -86,6 +88,7 @@ export const OrgsCombobox: FunctionComponent<OrgsComboboxProps> = ({
         placeholder={placeholder}
         itemLength={7}
         hasError={orgHasError(selectedOrg)}
+        disabled={disabled}
         onInputChange={(filter) => setFilterText(filter)}
         selectedItemLabel={getSelectedItemLabel(selectedOrg)}
         selectedItemTitle={getSelectedItemTitle(selectedOrg)}

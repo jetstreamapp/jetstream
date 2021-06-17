@@ -3,6 +3,7 @@ import { jsx } from '@emotion/react';
 import { logger } from '@jetstream/shared/client-logger';
 import { MapOf, SalesforceOrgUi } from '@jetstream/types';
 import { Icon, Modal } from '@jetstream/ui';
+import ConfirmPageChange from '../../core/ConfirmPageChange';
 import { Fragment, FunctionComponent, useEffect, useState } from 'react';
 import { AutomationControlDeploymentItem, AutomationItemsChildren, DeploymentItemMap } from '../automation-control-types';
 import { deployMetadata, preparePayloads } from '../utils/automation-control-data-utils';
@@ -280,38 +281,41 @@ export const AutomationControlDeployModal: FunctionComponent<AutomationControlDe
   }
 
   return (
-    <Modal
-      header={modalLabel}
-      footer={
-        <Fragment>
-          {!didDeploy && (
-            <button className="slds-button slds-button_neutral" onClick={() => onClose()} disabled={inProgress}>
-              Cancel
+    <Fragment>
+      <ConfirmPageChange actionInProgress={inProgress} />
+      <Modal
+        header={modalLabel}
+        footer={
+          <Fragment>
+            {!didDeploy && (
+              <button className="slds-button slds-button_neutral" onClick={() => onClose()} disabled={inProgress}>
+                Cancel
+              </button>
+            )}
+            {didDeploy && !didRollback && (
+              <button
+                className="slds-button slds-button_neutral"
+                onClick={() => handleRollbackMetadata()}
+                title="Revert all successfully deployed items"
+                disabled={inProgress}
+              >
+                <Icon type="utility" icon="undo" className="slds-button__icon slds-button__icon_left" omitContainer />
+                Rollback
+              </button>
+            )}
+            <button className="slds-button slds-button_brand" onClick={() => setCurrentStep(currentStep + 1)} disabled={inProgress}>
+              {nextButtonLabel}
             </button>
-          )}
-          {didDeploy && !didRollback && (
-            <button
-              className="slds-button slds-button_neutral"
-              onClick={() => handleRollbackMetadata()}
-              title="Revert all successfully deployed items"
-              disabled={inProgress}
-            >
-              <Icon type="utility" icon="undo" className="slds-button__icon slds-button__icon_left" omitContainer />
-              Rollback
-            </button>
-          )}
-          <button className="slds-button slds-button_brand" onClick={() => setCurrentStep(currentStep + 1)} disabled={inProgress}>
-            {nextButtonLabel}
-          </button>
-        </Fragment>
-      }
-      size="lg"
-      onClose={handleCloseModal}
-    >
-      <div>
-        <AutomationControlPreDeploymentTable itemsById={itemsById} deploymentItemMap={deploymentItemMap} />
-      </div>
-    </Modal>
+          </Fragment>
+        }
+        size="lg"
+        onClose={handleCloseModal}
+      >
+        <div>
+          <AutomationControlPreDeploymentTable itemsById={itemsById} deploymentItemMap={deploymentItemMap} />
+        </div>
+      </Modal>
+    </Fragment>
   );
 };
 
