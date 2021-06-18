@@ -1,8 +1,8 @@
 /** @jsx jsx */
 import { jsx } from '@emotion/react';
-import { useDebounce } from '@jetstream/shared/ui-utils';
+import { useDebounce, useNonInitialEffect } from '@jetstream/shared/ui-utils';
 import { CheckboxToggle, Grid, Icon, Panel, Textarea, Tooltip } from '@jetstream/ui';
-import Editor, { OnMount } from '@monaco-editor/react';
+import Editor, { OnMount, useMonaco } from '@monaco-editor/react';
 import type { editor } from 'monaco-editor';
 import { FunctionComponent, useEffect, useReducer, useRef, useState } from 'react';
 import { formatQuery, isQueryValid } from 'soql-parser-js';
@@ -60,6 +60,7 @@ export const QueryResultsSoqlPanel: FunctionComponent<QueryResultsSoqlPanelProps
   const [userTooling, setUserTooling] = useState<boolean>(isTooling);
   const [{ formattedSoql, isValid }, dispatch] = useReducer(reducer, { formattedSoql: soql, isValid: true });
 
+  const monaco = useMonaco();
   const debouncedSoql = useDebounce(userSoql);
 
   useEffect(() => {
@@ -80,6 +81,20 @@ export const QueryResultsSoqlPanel: FunctionComponent<QueryResultsSoqlPanelProps
   useEffect(() => {
     setUserTooling(isTooling);
   }, [isTooling]);
+
+  // this is required otherwise the action has stale variables in scope
+  useNonInitialEffect(() => {
+    if (monaco && editorRef.current) {
+      editorRef.current.addAction({
+        id: 'modifier-enter',
+        label: 'Submit',
+        keybindings: [monaco?.KeyMod.CtrlCmd | monaco?.KeyCode.Enter],
+        run: (currEditor) => {
+          submitQuery(currEditor.getValue());
+        },
+      });
+    }
+  }, [executeQuery]);
 
   function handleFormat() {
     dispatch({ type: 'FORMAT_SOQL', payload: { soql: userSoql } });
