@@ -136,7 +136,7 @@
     "reflect-metadata": "^0.1.13",
     "rollbar": "^2.21.0",
     "rxjs": "^6.6.0",
-    "soql-parser-js": "^4.0.0",
+    "soql-parser-js": "^4.2.1",
     "superagent": "^5.2.2",
     "typeorm": "^0.2.25",
     "validator": "^13.0.0",
