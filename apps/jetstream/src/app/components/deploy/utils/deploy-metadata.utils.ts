@@ -2,7 +2,7 @@ import { ColDef, GetQuickFilterTextParams, ValueFormatterParams } from '@ag-grid
 import { getMetadataLabelFromFullName, ListMetadataResultItem } from '@jetstream/connected-ui';
 import { logger } from '@jetstream/shared/client-logger';
 import { DATE_FORMATS } from '@jetstream/shared/constants';
-import { ensureArray, orderStringsBy } from '@jetstream/shared/utils';
+import { ensureArray, orderStringsBy, pluralizeFromNumber } from '@jetstream/shared/utils';
 import { DeployResult, ListMetadataResult, MapOf } from '@jetstream/types';
 import { DateFilterComparator, getCheckboxColumnDef } from '@jetstream/ui';
 import parseISO from 'date-fns/parseISO';
@@ -357,4 +357,11 @@ function getFriendlyTimestamp(value?: string) {
     return value;
   }
   return formatISO(parseISO(value));
+}
+
+export function getNotificationMessageBody(numSuccess: number, numFailure: number) {
+  return `✅ ${numSuccess.toLocaleString()} ${pluralizeFromNumber(
+    'item',
+    numSuccess
+  )} deployed successfully - ❌ ${numFailure.toLocaleString()} ${pluralizeFromNumber('item', numFailure)} failed to deploy`;
 }

@@ -1,5 +1,5 @@
 import { logger } from '@jetstream/shared/client-logger';
-import { saveFile, useObservable } from '@jetstream/shared/ui-utils';
+import { saveFile, useBrowserNotifications, useObservable } from '@jetstream/shared/ui-utils';
 import { pluralizeIfMultiple } from '@jetstream/shared/utils';
 import {
   AsyncJob,
@@ -18,16 +18,15 @@ import uniqueId from 'lodash/uniqueId';
 import React, { FunctionComponent, useEffect, useState } from 'react';
 import { useRecoilState, useRecoilValue, useSetRecoilState } from 'recoil';
 import { filter } from 'rxjs/operators';
-import { selectedOrgState } from '../../../app-state';
+import { applicationCookieState, selectedOrgState } from '../../../app-state';
 import JobsWorker from '../../../workers/jobs.worker';
 import * as fromJetstreamEvents from '../jetstream-events';
 import Job from './Job';
 import JobPlaceholder from './JobPlaceholder';
 import { jobsState, jobsUnreadState, selectActiveJobCount, selectJobs } from './jobs.state';
-// eslint-disable-next-line @typescript-eslint/no-empty-interface
-export interface JobsProps {}
 
-export const Jobs: FunctionComponent<JobsProps> = () => {
+export const Jobs: FunctionComponent = () => {
+  const [{ serverUrl }] = useRecoilState(applicationCookieState);
   const setJobs = useSetRecoilState(jobsState);
   const [jobsUnread, setJobsUnread] = useRecoilState(jobsUnreadState);
   const [jobs, setJobsArr] = useRecoilState(selectJobs);
@@ -35,7 +34,7 @@ export const Jobs: FunctionComponent<JobsProps> = () => {
   const [isPopoverOpen, setIsPopoverOpen] = useState(false);
   const selectedOrg = useRecoilValue<SalesforceOrgUi>(selectedOrgState);
   const newJobsToProcess = useObservable(fromJetstreamEvents.getObservable('newJob').pipe(filter((ev: AsyncJobNew[]) => ev.length > 0)));
-
+  const { notifyUser } = useBrowserNotifications(serverUrl);
   const [jobsWorker] = useState(() => new JobsWorker());
 
   useEffect(() => {
@@ -82,6 +81,7 @@ export const Jobs: FunctionComponent<JobsProps> = () => {
                   status: 'failed',
                   statusMessage: error || 'An unknown error ocurred',
                 };
+                notifyUser(`Delete records failed`, { body: newJob.statusMessage, tag: 'BulkDelete' });
               } else {
                 const results: RecordResult[] = Array.isArray(data.results) ? data.results : [data.results];
                 const firstErrorRec = results.filter((record) => !record.success) as ErrorResult[];
@@ -96,8 +96,9 @@ export const Jobs: FunctionComponent<JobsProps> = () => {
                     ? `${firstErrorRec.length} ${pluralizeIfMultiple('Error', firstErrorRec)} - ${
                         firstErrorRec[0]?.errors[0]?.message || 'An unknown error ocurred'
                       }`
-                    : 'Record was deleted successfully',
+                    : `${results.length.toLocaleString()} ${pluralizeIfMultiple('record', results)} deleted successfully`,
                 };
+                notifyUser(`Delete records finished`, { body: newJob.statusMessage, tag: 'BulkDelete' });
               }
               setJobs((prevJobs) => ({ ...prevJobs, [newJob.id]: newJob }));
             } catch (ex) {
@@ -117,6 +118,7 @@ export const Jobs: FunctionComponent<JobsProps> = () => {
                   status: 'failed',
                   statusMessage: error || 'An unknown error ocurred',
                 };
+                notifyUser(`Download records failed`, { body: newJob.statusMessage, tag: 'BulkDownload' });
               } else {
                 const { done, progress, fileData, fileName, mimeType } = data.results as {
                   done: boolean;
@@ -143,6 +145,7 @@ export const Jobs: FunctionComponent<JobsProps> = () => {
                   };
 
                   saveFile(fileData, fileName, mimeType);
+                  notifyUser(`Download records finished`, { tag: 'BulkDownload' });
                 }
               }
               setJobs((prevJobs) => ({ ...prevJobs, [newJob.id]: newJob }));
@@ -163,6 +166,7 @@ export const Jobs: FunctionComponent<JobsProps> = () => {
                   status: 'failed',
                   statusMessage: error || 'An unknown error ocurred',
                 };
+                notifyUser(`Package download failed`, { body: newJob.statusMessage, tag: 'RetrievePackageZip' });
               } else if (data.lastActivityUpdate) {
                 newJob = {
                   ...newJob,
@@ -180,6 +184,7 @@ export const Jobs: FunctionComponent<JobsProps> = () => {
                 };
 
                 saveFile(fileData, fileName, mimeType);
+                notifyUser(`Package download finished`, { tag: 'RetrievePackageZip' });
               }
               setJobs((prevJobs) => ({ ...prevJobs, [newJob.id]: newJob }));
             } catch (ex) {

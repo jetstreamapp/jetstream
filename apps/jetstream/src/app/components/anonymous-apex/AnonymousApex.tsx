@@ -4,7 +4,7 @@ import { useSetTraceFlag } from '@jetstream/connected-ui';
 import { logger } from '@jetstream/shared/client-logger';
 import { ANALYTICS_KEYS, INDEXED_DB, LOG_LEVELS } from '@jetstream/shared/constants';
 import { anonymousApex } from '@jetstream/shared/data';
-import { useDebounce, useNonInitialEffect, useRollbar } from '@jetstream/shared/ui-utils';
+import { useBrowserNotifications, useDebounce, useNonInitialEffect, useRollbar } from '@jetstream/shared/ui-utils';
 import { ApexHistoryItem, MapOf, SalesforceOrgUi } from '@jetstream/types';
 import { AutoFullHeightContainer, Badge, Card, CopyToClipboard, Grid, Icon, SalesforceLogin, Spinner } from '@jetstream/ui';
 import Editor, { OnMount, useMonaco } from '@monaco-editor/react';
@@ -46,6 +46,7 @@ export const AnonymousApex: FunctionComponent<AnonymousApexProps> = () => {
   /** Add trace for 1 hour so that any background jobs are logged even if dev console is not open */
   useSetTraceFlag(selectedOrg, 1);
 
+  const { notifyUser } = useBrowserNotifications(serverUrl);
   const [logLevel, setLogLevel] = useState<string>('FINEST');
   const [userDebug, setUserDebug] = useState(false);
   const [textFilter, setTextFilter] = useState<string>('');
@@ -124,9 +125,11 @@ export const AnonymousApex: FunctionComponent<AnonymousApexProps> = () => {
           }
           setResults(summary);
           setResultsStatus({ hasResults: true, success: false, label: result.compileProblem ? 'Compile Error' : 'Runtime Error' });
+          notifyUser(`Anonymous Apex failed`, { body: summary, tag: 'anon-apex' });
         } else {
           setResults(debugLog);
           setResultsStatus({ hasResults: true, success: true, label: 'Success' });
+          notifyUser(`Anonymous Apex finished`, { tag: 'anon-apex' });
           fromApexState
             .initNewApexHistoryItem(selectedOrg, value)
             .then((updatedHistoryItems) => {

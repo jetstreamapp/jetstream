@@ -1,14 +1,17 @@
 /** @jsx jsx */
 import { jsx } from '@emotion/react';
 import { logger } from '@jetstream/shared/client-logger';
+import { useBrowserNotifications } from '@jetstream/shared/ui-utils';
+import { flattenRecord, pluralizeFromNumber } from '@jetstream/shared/utils';
 import { InsertUpdateUpsertDelete, RecordResultWithRecord, SalesforceOrgUi, WorkerMessage } from '@jetstream/types';
-import { flattenRecord } from '@jetstream/shared/utils';
-import { FunctionComponent, useEffect, useRef, useState } from 'react';
-import LoadWorker from '../../load-records.worker';
-import { ApiMode, FieldMapping, LoadDataBatchApiProgress } from '../../load-records-types';
-import LoadRecordsBatchApiResultsTable from './LoadRecordsBatchApiResultsTable';
 import { FileDownloadModal } from '@jetstream/ui';
+import { FunctionComponent, useEffect, useRef, useState } from 'react';
+import { useRecoilState } from 'recoil';
+import { applicationCookieState } from '../../../../app-state';
+import { ApiMode, FieldMapping, LoadDataBatchApiProgress } from '../../load-records-types';
+import LoadWorker from '../../load-records.worker';
 import { getFieldHeaderFromMapping } from '../../utils/load-records-utils';
+import LoadRecordsBatchApiResultsTable from './LoadRecordsBatchApiResultsTable';
 
 type Status = 'Preparing Data' | 'Processing Data' | 'Finished' | 'Error';
 
@@ -69,6 +72,8 @@ export const LoadRecordsBatchApiResults: FunctionComponent<LoadRecordsBatchApiRe
     failure: 0,
   });
   const [downloadModalData, setDownloadModalData] = useState({ open: false, data: [], header: [], fileNameParts: [] });
+  const [{ serverUrl }] = useRecoilState(applicationCookieState);
+  const { notifyUser } = useBrowserNotifications(serverUrl);
 
   useEffect(() => {
     isMounted.current = true;
@@ -147,6 +152,10 @@ export const LoadRecordsBatchApiResults: FunctionComponent<LoadRecordsBatchApiRe
               setStatus(STATUSES.ERROR);
               setFatalError(payload.error.message);
               onFinish();
+              notifyUser(`⚠️ Your ${loadType} data load failed`, {
+                body: `Error: ${payload.error?.message || payload.error}`,
+                tag: 'load-records',
+              });
             } else {
               setStatus(STATUSES.PROCESSING);
               setPreparedData(payload.data.preparedData);
@@ -163,11 +172,25 @@ export const LoadRecordsBatchApiResults: FunctionComponent<LoadRecordsBatchApiRe
               logger.error('ERROR', payload.error);
               setStatus(STATUSES.ERROR);
               onFinish();
+              notifyUser(`⚠️ Your ${loadType} data load failed`, {
+                body: `Error: ${payload.error?.message || payload.error}`,
+                tag: 'load-records',
+              });
             } else {
               setStatus(STATUSES.FINISHED);
               setEndTime(new Date().toLocaleString());
             }
             onFinish();
+            notifyUser(`Your ${loadType} data load is finished`, {
+              body: `✅ ${processingStatus.success.toLocaleString()} ${pluralizeFromNumber(
+                'record',
+                processingStatus.success
+              )} loaded successfully ❌ ${processingStatus.failure.toLocaleString()} ${pluralizeFromNumber(
+                'record',
+                processingStatus.failure
+              )} failed`,
+              tag: 'load-records',
+            });
             setEndTime(new Date().toLocaleString());
             break;
           }

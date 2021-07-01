@@ -1,8 +1,8 @@
 import { useEffect } from 'react';
 
-export function useGlobalEventHandler<K extends keyof WindowEventMap>(
+export function useGlobalEventHandler<K extends keyof (WindowEventMap & DocumentEventMap)>(
   event: K,
-  handler: (event: WindowEventMap[K]) => void,
+  handler: (event: (WindowEventMap & DocumentEventMap)[K]) => void,
   passive = false
 ) {
   useEffect(() => {

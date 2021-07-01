@@ -22,8 +22,9 @@ function init(appCookie: ApplicationCookie) {
 }
 
 export function useAmplitude() {
-  const appCookie = useRecoilValue<ApplicationCookie>(fromAppState.applicationCookieState);
-  const userProfile = useRecoilValue<UserProfileUi>(fromAppState.userProfileState);
+  const appCookie = useRecoilValue(fromAppState.applicationCookieState);
+  const userProfile = useRecoilValue(fromAppState.userProfileState);
+  const userPreferences = useRecoilValue(fromAppState.selectUserPreferenceState);
 
   useEffect(() => {
     if (!hasInit && appCookie) {
@@ -40,12 +41,13 @@ export function useAmplitude() {
         .set('email-verified', userProfile.email_verified)
         .set('feature-flags', userProfile['http://getjetstream.app/app_metadata']?.featureFlags)
         .set('environment', appCookie.environment)
+        .set('denied-notifications', userPreferences.deniedNotifications)
         .add('app-init-count', 1);
 
       amplitude.getInstance().identify(identify);
       amplitude.getInstance().setUserId(userProfile.email);
     }
-  }, [userProfile, appCookie]);
+  }, [userProfile, appCookie, userPreferences]);
 
   return {
     trackEvent: track,
