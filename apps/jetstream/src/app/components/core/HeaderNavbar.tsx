@@ -5,7 +5,7 @@ import { hasFeatureFlagAccess } from '@jetstream/shared/ui-utils';
 import { DropDownItem, UserProfileUi } from '@jetstream/types';
 import { Header, Icon, Navbar, NavbarItem, NavbarMenuItems } from '@jetstream/ui';
 import NotificationsRequestModal from 'apps/jetstream/src/app/components/core/NotificationsRequestModal';
-import { Fragment, FunctionComponent, useState } from 'react';
+import { Fragment, FunctionComponent, useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useRecoilState, useRecoilValue } from 'recoil';
 import Logo from '../../../assets/images/jetstream-logo-v1-200w.png';
@@ -24,11 +24,16 @@ function logout(serverUrl: string) {
   location.href = logoutUrl;
 }
 
-function getMenuItems(userProfile: UserProfileUi, deniedNotifications?: boolean) {
+function getMenuItems(userProfile: UserProfileUi, featureFlags: Set<string>, deniedNotifications?: boolean) {
   const menu: DropDownItem[] = [
     { id: 'nav-user-logout', value: 'Logout', subheader: userProfile?.email, icon: { type: 'utility', icon: 'logout' } },
   ];
-  if (deniedNotifications && window.Notification && window.Notification.permission === 'default') {
+  if (
+    hasFeatureFlagAccess(featureFlags, FEATURE_FLAGS.NOTIFICATIONS) &&
+    deniedNotifications &&
+    window.Notification &&
+    window.Notification.permission === 'default'
+  ) {
     menu.unshift({
       id: 'enable-notifications',
       value: 'Enable Notifications',
@@ -43,7 +48,7 @@ export const HeaderNavbar: FunctionComponent<HeaderNavbarProps> = ({ userProfile
   const [applicationState] = useRecoilState(applicationCookieState);
   const { deniedNotifications } = useRecoilValue(selectUserPreferenceState);
   const [enableNotifications, setEnableNotifications] = useState(false);
-  const [userMenuItems, setUserMenuItems] = useState<DropDownItem[]>(getMenuItems(userProfile, deniedNotifications));
+  const [userMenuItems, setUserMenuItems] = useState<DropDownItem[]>([]);
 
   function handleUserMenuSelection(id: string) {
     switch (id) {
@@ -60,12 +65,18 @@ export const HeaderNavbar: FunctionComponent<HeaderNavbarProps> = ({ userProfile
 
   function handleNotificationMenuClosed(isEnabled: boolean) {
     setEnableNotifications(false);
-    setUserMenuItems(getMenuItems(userProfile, !isEnabled));
+    setUserMenuItems(getMenuItems(userProfile, featureFlags, !isEnabled));
   }
+
+  useEffect(() => {
+    setUserMenuItems(getMenuItems(userProfile, featureFlags, deniedNotifications));
+  }, [userProfile, featureFlags, deniedNotifications]);
 
   return (
     <Fragment>
-      {enableNotifications && <NotificationsRequestModal userInitiated onClose={handleNotificationMenuClosed} />}
+      {enableNotifications && (
+        <NotificationsRequestModal featureFlags={featureFlags} userInitiated onClose={handleNotificationMenuClosed} />
+      )}
       <Header
         logo={Logo}
         orgs={<OrgsDropdown />}

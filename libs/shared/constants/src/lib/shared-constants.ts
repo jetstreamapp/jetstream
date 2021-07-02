@@ -12,6 +12,7 @@ export const FEATURE_FLAGS = Object.freeze({
   LOAD: 'load',
   PERMISSION_MANAGER: 'permission-manager',
   DEPLOYMENT: 'deployment',
+  NOTIFICATIONS: 'notifications',
 });
 
 export const INPUT_ACCEPT_FILETYPES: {

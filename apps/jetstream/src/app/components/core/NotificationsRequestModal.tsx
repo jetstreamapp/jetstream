@@ -4,8 +4,11 @@ import { Modal } from '@jetstream/ui';
 import { selectUserPreferenceState } from 'apps/jetstream/src/app/app-state';
 import { Fragment, FunctionComponent, useEffect, useState } from 'react';
 import { useRecoilState } from 'recoil';
+import { hasFeatureFlagAccess } from '@jetstream/shared/ui-utils';
+import { FEATURE_FLAGS } from '@jetstream/shared/constants';
 
 export interface NotificationsRequestModalProps {
+  featureFlags: Set<string>;
   loadDelay?: number;
   /** Allow permission modal to be opened even if initially denied */
   userInitiated?: boolean;
@@ -18,6 +21,7 @@ export interface NotificationsRequestModalProps {
  * to choose the filename upfront, then we can use it later
  */
 export const NotificationsRequestModal: FunctionComponent<NotificationsRequestModalProps> = ({
+  featureFlags,
   loadDelay = 0,
   userInitiated = false,
   onClose,
@@ -29,10 +33,12 @@ export const NotificationsRequestModal: FunctionComponent<NotificationsRequestMo
   useEffect(() => {
     if (window.Notification) {
       if (userInitiated || (!userPreferences.deniedNotifications && window.Notification.permission === 'default')) {
-        setTimeout(() => setIsOpen(true), loadDelay);
+        if (hasFeatureFlagAccess(featureFlags, FEATURE_FLAGS.NOTIFICATIONS)) {
+          setTimeout(() => setIsOpen(true), loadDelay);
+        }
       }
     }
-  }, [loadDelay]);
+  }, [loadDelay, featureFlags]);
 
   async function handlePermissionRequest(permission: NotificationPermission) {
     setIsOpen(false);
@@ -85,11 +91,12 @@ export const NotificationsRequestModal: FunctionComponent<NotificationsRequestMo
             <p className="slds-m-bottom_x-small">
               Jetstream can let you know when long running processes finish if the Jetstream browser tab is not focused.
             </p>
-            <strong>Jetstream can notify you when</strong>
+            <strong>Jetstream will notify you when</strong>
             <ul className="slds-list_dotted">
               <li>Your data load is finished</li>
               <li>Your deployment is finished</li>
-              <li>Your anonymous apex is finished</li>
+              <li>Your query results are ready to view</li>
+              <li>Your anonymous apex has finished executing</li>
             </ul>
           </div>
         </Modal>
