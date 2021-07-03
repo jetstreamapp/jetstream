@@ -7,8 +7,16 @@ import {
   RecordResult,
 } from '@jetstream/types';
 
+export type PermissionType = 'object' | 'field';
 export type ObjectPermissionTypes = 'create' | 'read' | 'edit' | 'delete' | 'viewAll' | 'modifyAll';
 export type FieldPermissionTypes = 'read' | 'edit';
+
+export type BulkActionCheckbox = {
+  id: ObjectPermissionTypes;
+  label: string;
+  value: boolean;
+  disabled: boolean;
+};
 
 export interface ObjectPermissionDefinitionMap {
   apiName: string;

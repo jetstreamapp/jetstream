@@ -1,10 +1,13 @@
 /** @jsx jsx */
 import { logger } from '@jetstream/shared/client-logger';
 import { deployMetadataZip } from '@jetstream/shared/data';
-import { pollMetadataResultsUntilDone } from '@jetstream/shared/ui-utils';
+import { pollMetadataResultsUntilDone, useBrowserNotifications } from '@jetstream/shared/ui-utils';
 import { DeployOptions, DeployResult, SalesforceOrgUi } from '@jetstream/types';
 import { useCallback, useEffect, useReducer, useRef, useState } from 'react';
+import { useRecoilState } from 'recoil';
+import { applicationCookieState } from '../../../app-state';
 import { DeployMetadataStatus } from '../deploy-metadata.types';
+import { getNotificationMessageBody } from './deploy-metadata.utils';
 
 export function getStatusValue(value: DeployMetadataStatus) {
   switch (value) {
@@ -76,6 +79,8 @@ export function useDeployMetadataPackage(destinationOrg: SalesforceOrgUi, deploy
     results: null,
   });
 
+  const [{ serverUrl }] = useRecoilState(applicationCookieState);
+  const { notifyUser } = useBrowserNotifications(serverUrl);
   const [lastChecked, setLastChecked] = useState<Date>(null);
 
   useEffect(() => {
@@ -98,6 +103,17 @@ export function useDeployMetadataPackage(destinationOrg: SalesforceOrgUi, deploy
           },
         });
         dispatch({ type: 'SUCCESS', payload: { results } });
+        if (results.success) {
+          notifyUser(`Deployment finished successfully`, {
+            body: getNotificationMessageBody(results.numberComponentsDeployed, results.numberComponentErrors),
+            tag: 'deploy-package',
+          });
+        } else {
+          notifyUser(`Deployment failed`, {
+            body: getNotificationMessageBody(results.numberComponentsDeployed, results.numberComponentErrors),
+            tag: 'deploy-package',
+          });
+        }
       }
     } catch (ex) {
       logger.warn('[useDeployMetadataPackage][ERROR]', ex.message);

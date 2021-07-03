@@ -1,3 +1,4 @@
+export * from './lib/hooks/useBrowserNotifications';
 export * from './lib/hooks/useDebounce';
 export * from './lib/hooks/useGlobalEventHandler';
 export * from './lib/hooks/useInterval';

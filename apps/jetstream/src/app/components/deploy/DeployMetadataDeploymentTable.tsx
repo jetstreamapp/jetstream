@@ -1,9 +1,11 @@
 /** @jsx jsx */
-import { ColDef, GridApi, GridReadyEvent, ICellRendererParams, SelectionChangedEvent } from '@ag-grid-community/core';
+import { ColDef, ColumnEvent, GridApi, GridReadyEvent, ICellRendererParams, SelectionChangedEvent } from '@ag-grid-community/core';
 import { jsx } from '@emotion/react';
 import { ListMetadataResultItem } from '@jetstream/connected-ui';
+import { formatNumber } from '@jetstream/shared/ui-utils';
 import { MapOf } from '@jetstream/types';
 import { AutoFullHeightContainer, DataTable, Grid, SearchInput, Spinner } from '@jetstream/ui';
+import { getFilteredRows } from 'libs/ui/src/lib/data-table/data-table-utils';
 import { Fragment, FunctionComponent, useEffect, useState } from 'react';
 import { DeployMetadataTableRow } from './deploy-metadata.types';
 import { getColumnDefinitions, getRows } from './utils/deploy-metadata.utils';
@@ -36,6 +38,7 @@ export const DeployMetadataDeploymentTable: FunctionComponent<DeployMetadataDepl
   const [gridApi, setGridApi] = useState<GridApi>(null);
   const [columns, setColumns] = useState<ColDef[]>();
   const [rows, setRows] = useState<DeployMetadataTableRow[]>();
+  const [visibleRows, setVisibleRows] = useState<DeployMetadataTableRow[]>();
   const [globalFilter, setGlobalFilter] = useState<string>(null);
   const [selectedRows, setSelectedRow] = useState<Set<DeployMetadataTableRow>>(new Set());
 
@@ -44,7 +47,9 @@ export const DeployMetadataDeploymentTable: FunctionComponent<DeployMetadataDepl
   }, []);
 
   useEffect(() => {
-    setRows(getRows(listMetadataItems));
+    const currRows = getRows(listMetadataItems);
+    setRows(currRows);
+    setVisibleRows(currRows);
   }, [listMetadataItems]);
 
   useEffect(() => {
@@ -83,11 +88,20 @@ export const DeployMetadataDeploymentTable: FunctionComponent<DeployMetadataDepl
     setGridApi(api);
   }
 
+  function handleFilterChangeOrRowDataUpdated(event: ColumnEvent) {
+    setVisibleRows(getFilteredRows(event));
+  }
+
   return (
     <Fragment>
-      <Grid align="center" className="slds-m-bottom_x-small">
-        <SearchInput id="metadata-filter" placeholder="Search metadata..." onChange={setGlobalFilter} />
-      </Grid>
+      {rows && visibleRows && (
+        <Grid align="spread" verticalAlign="end" className="slds-m-bottom_x-small slds-m-horizontal_small">
+          <SearchInput id="metadata-filter" placeholder="Search metadata..." onChange={setGlobalFilter} />
+          <div>
+            Showing {formatNumber(visibleRows.length)} of {formatNumber(rows.length)} objects
+          </div>
+        </Grid>
+      )}
       <AutoFullHeightContainer fillHeight setHeightAttr bottomBuffer={15}>
         <DataTable
           columns={columns}
@@ -111,6 +125,7 @@ export const DeployMetadataDeploymentTable: FunctionComponent<DeployMetadataDepl
             },
             onGridReady: handleOnGridReady,
             onSelectionChanged: handleSelectionChanged,
+            onFilterChanged: handleFilterChangeOrRowDataUpdated,
           }}
         />
       </AutoFullHeightContainer>

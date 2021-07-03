@@ -2,7 +2,8 @@
 import { jsx } from '@emotion/react';
 import { logger } from '@jetstream/shared/client-logger';
 import { bulkApiGetJob, bulkApiGetRecords } from '@jetstream/shared/data';
-import { convertDateToLocale } from '@jetstream/shared/ui-utils';
+import { convertDateToLocale, useBrowserNotifications } from '@jetstream/shared/ui-utils';
+import { pluralizeFromNumber } from '@jetstream/shared/utils';
 import {
   BulkJobBatchInfo,
   BulkJobResultRecord,
@@ -102,6 +103,7 @@ export const LoadRecordsBulkApiResults: FunctionComponent<LoadRecordsBulkApiResu
     url: '',
     filename: '',
   });
+  const { notifyUser } = useBrowserNotifications(serverUrl);
 
   useEffect(() => {
     isMounted.current = true;
@@ -172,6 +174,15 @@ export const LoadRecordsBulkApiResults: FunctionComponent<LoadRecordsBulkApiResu
       if (isDone) {
         setStatus(STATUSES.FINISHED);
         onFinish();
+        const numSuccess = jobInfo.numberRecordsProcessed - jobInfo.numberRecordsFailed;
+        const numFailure = jobInfo.numberRecordsFailed;
+        notifyUser(`Your ${jobInfo.operation} data load is finished`, {
+          body: `✅ ${numSuccess.toLocaleString()} ${pluralizeFromNumber(
+            'record',
+            numSuccess
+          )} loaded successfully - ❌ ${numFailure.toLocaleString()} ${pluralizeFromNumber('record', numFailure)} failed`,
+          tag: 'load-records',
+        });
       } else if (status === STATUSES.PROCESSING && intervalCount < MAX_INTERVAL_CHECK_COUNT) {
         // we need to wait until all data is uploaded?
         setTimeout(async () => {
@@ -217,6 +228,7 @@ export const LoadRecordsBulkApiResults: FunctionComponent<LoadRecordsBulkApiResu
               setStatus(STATUSES.ERROR);
               setFatalError(payload.error.message);
               onFinish();
+              notifyUser(`⚠️ Your ${jobInfo.operation} data load failed`, { body: `Error: ${payload.error.message}`, tag: 'load-records' });
             } else {
               setStatus(STATUSES.UPLOADING);
               setPreparedData(payload.data.preparedData);
@@ -235,6 +247,10 @@ export const LoadRecordsBulkApiResults: FunctionComponent<LoadRecordsBulkApiResu
               logger.error('ERROR', payload.error);
               setStatus(STATUSES.ERROR);
               onFinish();
+              notifyUser(`⚠️ Your ${jobInfo.operation} data load failed`, {
+                body: `Error: ${payload.error?.message || payload.error}`,
+                tag: 'load-records',
+              });
             } else {
               setJobInfo(payload.data.jobInfo);
               setStatus(STATUSES.PROCESSING);

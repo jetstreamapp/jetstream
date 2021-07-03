@@ -5,8 +5,10 @@ import { getMapOf, orderObjectsBy, REGEX } from '@jetstream/shared/utils';
 import { MapOf, QueryHistoryItem, QueryHistorySelection, SalesforceOrgUi } from '@jetstream/types';
 import addDays from 'date-fns/addDays';
 import isBefore from 'date-fns/isBefore';
+import parseISO from 'date-fns/parseISO';
 import startOfDay from 'date-fns/startOfDay';
 import localforage from 'localforage';
+import isString from 'lodash/isString';
 import orderBy from 'lodash/orderBy';
 import { atom, selector } from 'recoil';
 import * as fromAppState from '../../../app-state';
@@ -156,13 +158,16 @@ export const selectQueryHistoryState = selector({
   get: ({ get }) => {
     const queryHistoryItems = get(selectQueryHistoryItems);
     const selectedObject = get(selectedObjectState);
+    /** For some reason, locally, all the values were strings for lastRun?!?! */
     return orderBy(
-      queryHistoryItems.filter((item) => {
-        if (selectedObject === 'all') {
-          return true;
-        }
-        return item.sObject === selectedObject;
-      }),
+      queryHistoryItems
+        .map((item) => ({ ...item, lastRun: isString(item.lastRun) ? parseISO(item.lastRun as any) : item.lastRun }))
+        .filter((item) => {
+          if (selectedObject === 'all') {
+            return true;
+          }
+          return item.sObject === selectedObject;
+        }),
       ['lastRun'],
       ['desc']
     );

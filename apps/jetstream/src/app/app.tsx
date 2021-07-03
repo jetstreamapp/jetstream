@@ -4,6 +4,7 @@ import { FEATURE_FLAGS } from '@jetstream/shared/constants';
 import { hasFeatureFlagAccess } from '@jetstream/shared/ui-utils';
 import { UserProfileUi } from '@jetstream/types';
 import { ConfirmationServiceProvider } from '@jetstream/ui';
+import NotificationsRequestModal from './components/core/NotificationsRequestModal';
 import { Fragment, lazy, Suspense, useEffect, useState } from 'react';
 import { ErrorBoundary } from 'react-error-boundary';
 import ModalContainer from 'react-modal-promise';
@@ -114,6 +115,7 @@ export const App = () => {
               <AppStateResetOnOrgChange />
               <AppToast />
               <LogInitializer />
+              <NotificationsRequestModal featureFlags={featureFlags} loadDelay={15000} />
               <div>
                 <div>
                   <HeaderNavbar userProfile={userProfile} featureFlags={featureFlags} />

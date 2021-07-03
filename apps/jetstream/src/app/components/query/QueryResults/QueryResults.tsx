@@ -6,7 +6,14 @@ import { QueryResults as IQueryResults } from '@jetstream/api-interfaces';
 import { logger } from '@jetstream/shared/client-logger';
 import { ANALYTICS_KEYS } from '@jetstream/shared/constants';
 import { query } from '@jetstream/shared/data';
-import { hasModifierKey, isMKey, useGlobalEventHandler, useNonInitialEffect, useObservable } from '@jetstream/shared/ui-utils';
+import {
+  hasModifierKey,
+  isMKey,
+  useBrowserNotifications,
+  useGlobalEventHandler,
+  useNonInitialEffect,
+  useObservable,
+} from '@jetstream/shared/ui-utils';
 import { getRecordIdFromAttributes, getSObjectNameFromAttributes, pluralizeIfMultiple } from '@jetstream/shared/utils';
 import { AsyncJob, AsyncJobNew, BulkDownloadJob, CloneEditView, FileExtCsvXLSX, Record, SalesforceOrgUi } from '@jetstream/types';
 import {
@@ -89,6 +96,7 @@ export const QueryResults: FunctionComponent<QueryResultsProps> = React.memo(() 
     fromJetstreamEvents.getObservable('jobFinished').pipe(filter((ev: AsyncJob) => ev.type === 'BulkDelete'))
   );
   const confirm = useConfirmation();
+  const { notifyUser } = useBrowserNotifications(serverUrl);
 
   const [cloneEditViewRecord, setCloneEditViewRecord] = useState<{ action: CloneEditView; sobjectName: string; recordId: string }>();
   const [getRecordAsApex, setGetRecordAsApex] = useState<{ record: any; sobjectName: string }>();
@@ -207,6 +215,11 @@ export const QueryResults: FunctionComponent<QueryResultsProps> = React.memo(() 
       setTotalRecordCount(results.queryResults.totalSize);
       setErrorMessage(null);
 
+      notifyUser(`Your query is finished`, {
+        body: `${results.queryResults.totalSize.toLocaleString()} total records`,
+        tag: 'query',
+      });
+
       if (forceRestore || previousSoql !== soqlQuery) {
         restore(soqlQuery, tooling);
       }
@@ -219,6 +232,10 @@ export const QueryResults: FunctionComponent<QueryResultsProps> = React.memo(() 
       setErrorMessage(ex.message);
       setSoqlPanelOpen(true);
       trackEvent(ANALYTICS_KEYS.query_ExecuteQuery, { source, success: false, isTooling: tooling, includeDeletedRecords });
+      notifyUser(`Your query failed`, {
+        body: ex.message,
+        tag: 'query',
+      });
     } finally {
       setLoading(false);
     }

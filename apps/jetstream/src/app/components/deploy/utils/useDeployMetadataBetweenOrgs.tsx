@@ -1,10 +1,13 @@
 /** @jsx jsx */
 import { logger } from '@jetstream/shared/client-logger';
 import { retrieveMetadataFromListMetadata } from '@jetstream/shared/data';
-import { pollAndDeployMetadataResultsWhenReady, pollMetadataResultsUntilDone } from '@jetstream/shared/ui-utils';
+import { pollAndDeployMetadataResultsWhenReady, pollMetadataResultsUntilDone, useBrowserNotifications } from '@jetstream/shared/ui-utils';
 import { DeployOptions, DeployResult, ListMetadataResult, MapOf, SalesforceOrgUi } from '@jetstream/types';
-import { DeployMetadataStatus } from '../deploy-metadata.types';
 import { useCallback, useEffect, useReducer, useRef, useState } from 'react';
+import { useRecoilState } from 'recoil';
+import { applicationCookieState } from '../../../app-state';
+import { DeployMetadataStatus } from '../deploy-metadata.types';
+import { getNotificationMessageBody } from './deploy-metadata.utils';
 
 export function getStatusValue(value: DeployMetadataStatus) {
   switch (value) {
@@ -86,6 +89,8 @@ export function useDeployMetadataBetweenOrgs(
     results: null,
   });
 
+  const [{ serverUrl }] = useRecoilState(applicationCookieState);
+  const { notifyUser } = useBrowserNotifications(serverUrl);
   const [lastChecked, setLastChecked] = useState<Date>(null);
 
   useEffect(() => {
@@ -114,6 +119,17 @@ export function useDeployMetadataBetweenOrgs(
             },
           });
           dispatch({ type: 'SUCCESS', payload: { results } });
+          if (results.success) {
+            notifyUser(`Deployment finished successfully`, {
+              body: getNotificationMessageBody(results.numberComponentsDeployed, results.numberComponentErrors),
+              tag: 'deploy-org-to-org',
+            });
+          } else {
+            notifyUser(`Deployment failed`, {
+              body: getNotificationMessageBody(results.numberComponentsDeployed, results.numberComponentErrors),
+              tag: 'deploy-org-to-org',
+            });
+          }
         }
       }
     } catch (ex) {
