@@ -3,6 +3,7 @@ import { boolean, number, select, text } from '@storybook/addon-knobs';
 import Icon from '../widgets/Icon';
 import React from 'react';
 import ProgressRing from './ProgressRing';
+import Spinner from 'libs/ui/src/lib/widgets/Spinner';
 
 export default {
   component: ProgressRing,
@@ -91,5 +92,34 @@ export const withText = () => (
     )}
   >
     <small>45%</small>
+  </ProgressRing>
+);
+
+export const withSpinner = () => (
+  <ProgressRing
+    className={text('className', undefined)}
+    fillPercent={number('current', 0.45)}
+    size={select(
+      'size',
+      {
+        Medium: 'medium',
+        Large: 'large',
+        XLarge: 'x-large',
+      },
+      'x-large'
+    )}
+    theme={select(
+      'theme',
+      {
+        None: undefined,
+        ActiveStep: 'active-step',
+        Warning: 'warning',
+        Expired: 'expired',
+        Complete: 'complete',
+      },
+      'warning'
+    )}
+  >
+    <Spinner size="small" inline />
   </ProgressRing>
 );
