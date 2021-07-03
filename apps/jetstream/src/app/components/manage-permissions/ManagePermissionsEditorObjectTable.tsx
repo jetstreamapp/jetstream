@@ -6,12 +6,14 @@ import { MapOf } from '@jetstream/types';
 import { AutoFullHeightContainer, DataTable } from '@jetstream/ui';
 import { forwardRef, useImperativeHandle, useState } from 'react';
 import {
+  BulkActionRenderer,
   ErrorTooltipRenderer,
   handleOnCellPressed,
   isFullWidthCell,
   PinnedLabelInputFilter,
   PinnedSelectAllRendererWrapper,
   resetGridChanges,
+  RowActionRenderer,
 } from './utils/permission-manager-table-utils';
 import { DirtyRow, ManagePermissionsEditorTableRef, PermissionTableObjectCell } from './utils/permission-manager-types';
 
@@ -76,6 +78,8 @@ export const ManagePermissionsEditorObjectTable = forwardRef<any, ManagePermissi
               pinnedInputFilter: PinnedLabelInputFilter,
               pinnedSelectAllRenderer: PinnedSelectAllRendererWrapper('object'),
               errorTooltipRenderer: ErrorTooltipRenderer,
+              rowActionRenderer: RowActionRenderer,
+              bulkActionRenderer: BulkActionRenderer,
             }}
             agGridProps={{
               pinnedTopRowData: [pinnedSelectAllRow],
@@ -93,6 +97,7 @@ export const ManagePermissionsEditorObjectTable = forwardRef<any, ManagePermissi
                   },
                   additionalComponent: ErrorTooltipRenderer,
                   onBulkUpdate: onBulkUpdate,
+                  type: 'object',
                 },
                 immutableData: true,
                 onCellKeyPress: handleOnCellPressed,

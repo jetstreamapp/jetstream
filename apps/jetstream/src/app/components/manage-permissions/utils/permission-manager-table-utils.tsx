@@ -13,13 +13,14 @@ import {
 } from '@ag-grid-community/core';
 import { jsx } from '@emotion/react';
 import { logger } from '@jetstream/shared/client-logger';
-import { isArrowKey, isEnterOrSpace, isTabKey } from '@jetstream/shared/ui-utils';
-import { orderStringsBy, pluralizeFromNumber } from '@jetstream/shared/utils';
+import { formatNumber, isArrowKey, isEnterOrSpace, isTabKey } from '@jetstream/shared/ui-utils';
+import { getMapOf, orderStringsBy, pluralizeFromNumber } from '@jetstream/shared/utils';
 import { MapOf, PermissionSetNoProfileRecord, PermissionSetWithProfileRecord } from '@jetstream/types';
-import { Icon, Input, Tooltip } from '@jetstream/ui';
+import { Checkbox, Grid, Icon, Input, Modal, Tooltip } from '@jetstream/ui';
 import { isFunction } from 'lodash';
 import { Fragment, FunctionComponent, useEffect, useState } from 'react';
 import {
+  BulkActionCheckbox,
   DirtyRow,
   FieldPermissionDefinitionMap,
   FieldPermissionItem,
@@ -32,6 +33,7 @@ import {
   PermissionTableFieldCellPermission,
   PermissionTableObjectCell,
   PermissionTableObjectCellPermission,
+  PermissionType,
 } from './permission-manager-types';
 
 function suppressKeyboardEventOnPinnedInput({ node, event }: SuppressKeyboardEventParams) {
@@ -190,7 +192,7 @@ export function isFullWidthCell(rowNode: RowNode) {
   return rowNode.data.fullWidthRow;
 }
 
-export function resetGridChanges(gridApi: GridApi, type: 'object' | 'field') {
+export function resetGridChanges(gridApi: GridApi, type: PermissionType) {
   const itemsToUpdate = [];
   gridApi.forEachNodeAfterFilterAndSort((rowNode, index) => {
     if (type === 'object') {
@@ -349,6 +351,14 @@ export function getObjectColumns(
         return `${data.label} (${data.apiName})`;
       },
     },
+    {
+      cellRendererSelector: ({ node }) => ({ component: node.isRowPinned() ? 'bulkActionRenderer' : 'rowActionRenderer' }),
+      width: 100,
+      filter: false,
+      sortable: false,
+      resizable: false,
+      pinned: true,
+    },
   ];
   // Create column groups for profiles
   selectedProfiles.forEach((profileId) => {
@@ -487,6 +497,14 @@ export function getFieldColumns(
       },
       suppressKeyboardEvent: suppressKeyboardEventOnPinnedInput,
     },
+    {
+      cellRendererSelector: ({ node }) => ({ component: node.isRowPinned() ? 'bulkActionRenderer' : 'rowActionRenderer' }),
+      width: 100,
+      filter: false,
+      sortable: false,
+      resizable: false,
+      pinned: true,
+    },
   ];
   // Create column groups for profiles
   selectedProfiles.forEach((profileId) => {
@@ -590,21 +608,22 @@ export function updateFieldRowsAfterSave(
   rows: PermissionTableFieldCell[],
   fieldPermissionsMap: MapOf<FieldPermissionDefinitionMap>
 ): PermissionTableFieldCell[] {
-  return rows
-    .filter((row) => !row.fullWidthRow)
-    .map((oldRow) => {
-      const row = { ...oldRow };
-      fieldPermissionsMap[row.key].permissionKeys.forEach((key) => {
-        row.permissions = { ...row.permissions };
-        const objectPermission = fieldPermissionsMap[row.key].permissions[key];
-        if (objectPermission.errorMessage) {
-          row.permissions[key] = { ...row.permissions[key], errorMessage: objectPermission.errorMessage };
-        } else {
-          row.permissions[key] = getRowFieldPermissionFromFieldPermissionItem(key, row.sobject, row.apiName, objectPermission);
-        }
-      });
+  return rows.map((oldRow) => {
+    const row = { ...oldRow };
+    if (row.fullWidthRow) {
       return row;
+    }
+    fieldPermissionsMap[row.key].permissionKeys.forEach((key) => {
+      row.permissions = { ...row.permissions };
+      const objectPermission = fieldPermissionsMap[row.key].permissions[key];
+      if (objectPermission.errorMessage) {
+        row.permissions[key] = { ...row.permissions[key], errorMessage: objectPermission.errorMessage };
+      } else {
+        row.permissions[key] = getRowFieldPermissionFromFieldPermissionItem(key, row.sobject, row.apiName, objectPermission);
+      }
     });
+    return row;
+  });
 }
 
 /**
@@ -669,7 +688,7 @@ export const PinnedLabelInputFilter: FunctionComponent<ICellRendererParams> = ({
 /**
  * Pinned row selection rendere
  */
-export const PinnedSelectAllRendererWrapper = (type: 'object' | 'field'): FunctionComponent<ICellRendererParams> => ({
+export const PinnedSelectAllRendererWrapper = (type: PermissionType): FunctionComponent<ICellRendererParams> => ({
   api,
   node,
   column,
@@ -791,3 +810,351 @@ export function ErrorTooltipRenderer({ node, column, colDef, context }: ICellRen
     </Tooltip>
   );
 }
+
+function defaultRowActionCheckboxes(type: PermissionType, allowEditPermission: boolean): BulkActionCheckbox[] {
+  if (type === 'object') {
+    return [
+      { id: 'create', label: 'Create', value: false, disabled: false },
+      { id: 'read', label: 'Read', value: false, disabled: false },
+      { id: 'edit', label: 'Edit', value: false, disabled: !allowEditPermission },
+      { id: 'delete', label: 'Delete', value: false, disabled: false },
+      { id: 'viewAll', label: 'View All', value: false, disabled: false },
+      { id: 'modifyAll', label: 'Modify All', value: false, disabled: false },
+    ];
+  } else {
+    return [
+      { id: 'read', label: 'Read', value: false, disabled: false },
+      { id: 'edit', label: 'Edit', value: false, disabled: !allowEditPermission },
+    ];
+  }
+}
+
+function updateCheckboxDependencies(
+  which: ObjectPermissionTypes,
+  type: PermissionType,
+  checkboxesById: MapOf<BulkActionCheckbox>,
+  value: boolean
+) {
+  if (type === 'object') {
+    if (which === 'create') {
+      checkboxesById['create'] = { ...checkboxesById['create'], value: value };
+      if (checkboxesById['create'].value) {
+        checkboxesById['read'].value = true;
+      }
+    } else if (which === 'read') {
+      checkboxesById['read'] = { ...checkboxesById['read'], value: value };
+      if (!checkboxesById['read'].value) {
+        checkboxesById['create'].value = false;
+        checkboxesById['edit'].value = false;
+        checkboxesById['delete'].value = false;
+        checkboxesById['viewAll'].value = false;
+        checkboxesById['modifyAll'].value = false;
+      }
+    } else if (which === 'edit') {
+      checkboxesById['edit'] = { ...checkboxesById['edit'], value: value };
+      if (checkboxesById['edit'].value) {
+        checkboxesById['read'].value = true;
+      } else {
+        checkboxesById['delete'].value = false;
+        checkboxesById['modifyAll'].value = false;
+      }
+    } else if (which === 'delete') {
+      checkboxesById['delete'] = { ...checkboxesById['delete'], value: value };
+      if (checkboxesById['delete'].value) {
+        checkboxesById['read'].value = true;
+        checkboxesById['edit'].value = true;
+      } else {
+        checkboxesById['modifyAll'].value = false;
+      }
+    } else if (which === 'viewAll') {
+      checkboxesById['viewAll'] = { ...checkboxesById['viewAll'], value: value };
+      if (checkboxesById['viewAll'].value) {
+        checkboxesById['read'].value = true;
+      } else {
+        checkboxesById['modifyAll'].value = false;
+      }
+    } else if (which === 'modifyAll') {
+      checkboxesById['modifyAll'] = { ...checkboxesById['modifyAll'], value: value };
+      if (checkboxesById['modifyAll'].value) {
+        checkboxesById['read'].value = true;
+        checkboxesById['edit'].value = true;
+        checkboxesById['delete'].value = true;
+        checkboxesById['viewAll'].value = true;
+      }
+    }
+  } else {
+    if (which === 'read') {
+      checkboxesById['read'] = { ...checkboxesById['read'], value: value };
+      if (!checkboxesById['read'].value) {
+        checkboxesById['edit'].value = false;
+      }
+    } else if (which === 'edit') {
+      checkboxesById['edit'] = { ...checkboxesById['edit'], value: value };
+      if (checkboxesById['edit'].value) {
+        checkboxesById['read'].value = true;
+      }
+    }
+  }
+}
+
+function handleRowPermissionUpdate(
+  rowNode: RowNode,
+  type: PermissionType,
+  checkboxesById: MapOf<BulkActionCheckbox>,
+  arrayToUpdate: any[]
+) {
+  if (type === 'object') {
+    const data: PermissionTableObjectCell = rowNode.data;
+    if (!data.fullWidthRow && !rowNode.isRowPinned()) {
+      Object.values(data.permissions).forEach((permission) => {
+        permission.create = checkboxesById['create'].value;
+        permission.read = checkboxesById['read'].value;
+        if (data.allowEditPermission) {
+          permission.edit = checkboxesById['edit'].value;
+        }
+        permission.delete = checkboxesById['delete'].value;
+        permission.viewAll = checkboxesById['viewAll'].value;
+        permission.modifyAll = checkboxesById['modifyAll'].value;
+        permission.createIsDirty = permission.create !== permission.record.create;
+        permission.readIsDirty = permission.read !== permission.record.read;
+        permission.editIsDirty = permission.edit !== permission.record.edit;
+        permission.deleteIsDirty = permission.delete !== permission.record.delete;
+        permission.viewAllIsDirty = permission.viewAll !== permission.record.viewAll;
+        permission.modifyAllIsDirty = permission.modifyAll !== permission.record.modifyAll;
+      });
+      arrayToUpdate.push(data);
+    }
+  } else {
+    const data: PermissionTableFieldCell = rowNode.data;
+    if (!data.fullWidthRow && !rowNode.isRowPinned()) {
+      Object.values(data.permissions).forEach((permission) => {
+        permission.read = checkboxesById['read'].value;
+        if (data.allowEditPermission) {
+          permission.edit = checkboxesById['edit'].value;
+        }
+        permission.readIsDirty = permission.read !== permission.record.read;
+        permission.editIsDirty = permission.edit !== permission.record.edit;
+      });
+      arrayToUpdate.push(data);
+    }
+  }
+}
+
+/**
+ * Row action renderer
+ *
+ * This component provides a modal that the user can open to make changes that apply to an entire row
+ */
+export const RowActionRenderer: FunctionComponent<ICellRendererParams> = ({ node, context, api }) => {
+  const [isOpen, setIsOpen] = useState(false);
+
+  const [checkboxes, setCheckboxes] = useState<BulkActionCheckbox[]>(
+    defaultRowActionCheckboxes(context.type, node.data.allowEditPermission)
+  );
+
+  /**
+   * Set all dependencies when fields change
+   */
+  function handleChange(which: ObjectPermissionTypes, value: boolean) {
+    const checkboxesById = getMapOf(checkboxes, 'id');
+    updateCheckboxDependencies(which, context.type, checkboxesById, value);
+    if (context.type === 'object') {
+      setCheckboxes([
+        checkboxesById['create'],
+        checkboxesById['read'],
+        checkboxesById['edit'],
+        checkboxesById['delete'],
+        checkboxesById['viewAll'],
+        checkboxesById['modifyAll'],
+      ]);
+    } else {
+      setCheckboxes([checkboxesById['read'], checkboxesById['edit']]);
+    }
+  }
+
+  function handleSave() {
+    const checkboxesById = getMapOf(checkboxes, 'id');
+    const itemsToUpdate = [];
+
+    handleRowPermissionUpdate(node, context.type, checkboxesById, itemsToUpdate);
+
+    const transactionResult = api.applyTransaction({ update: itemsToUpdate });
+    logger.log({ transactionResult });
+    if (isFunction(context.onBulkUpdate)) {
+      context.onBulkUpdate(itemsToUpdate);
+    }
+
+    handleClose();
+  }
+
+  function handleClose() {
+    setCheckboxes(defaultRowActionCheckboxes(context.type, node.data.allowEditPermission));
+    setIsOpen(false);
+  }
+
+  if (node.isFullWidthCell()) {
+    return null;
+  }
+
+  return (
+    <Fragment>
+      {isOpen && (
+        <Modal
+          header="Apply change to row"
+          tagline={`${node.data.label} (${node.data.apiName})`}
+          footer={
+            <Fragment>
+              <button className="slds-button slds-button_neutral" onClick={() => handleClose()}>
+                Cancel
+              </button>
+              <button className="slds-button slds-button_brand" onClick={handleSave}>
+                Apply to All
+              </button>
+            </Fragment>
+          }
+          closeOnEsc
+          closeOnBackdropClick
+          onClose={() => handleClose()}
+        >
+          <div>
+            <p className="slds-text-align_center slds-m-bottom_small">
+              This change will apply to all selected profiles and permission sets
+            </p>
+            <Grid align="center" wrap>
+              {checkboxes.map((item) => (
+                <Checkbox
+                  key={item.id}
+                  id={item.id}
+                  checked={item.value}
+                  label={item.label}
+                  disabled={item.disabled}
+                  onChange={(value) => handleChange(item.id, value)}
+                />
+              ))}
+            </Grid>
+          </div>
+        </Modal>
+      )}
+      <button className="slds-button" onClick={() => setIsOpen(true)}>
+        Edit Row
+      </button>
+    </Fragment>
+  );
+};
+
+/**
+ * Row action renderer
+ *
+ * This component provides a modal that the user can open to make changes that apply to an entire visible table
+ */
+export const BulkActionRenderer: FunctionComponent<ICellRendererParams> = ({ node, context, api }) => {
+  const [isOpen, setIsOpen] = useState(false);
+
+  const [checkboxes, setCheckboxes] = useState(defaultRowActionCheckboxes(context.type, true));
+  const [visibleRows, setVisibleRows] = useState(getNumRows);
+
+  function getNumRows() {
+    let counter = 0;
+    api.forEachNodeAfterFilterAndSort((rowNode) => {
+      if (!rowNode.isFullWidthCell() && !rowNode.isRowPinned()) {
+        counter++;
+      }
+    });
+    return counter;
+  }
+
+  /**
+   * Set all dependencies when fields change
+   */
+  function handleChange(which: ObjectPermissionTypes, value: boolean) {
+    const checkboxesById = getMapOf(checkboxes, 'id');
+    updateCheckboxDependencies(which, context.type, checkboxesById, value);
+    if (context.type === 'object') {
+      setCheckboxes([
+        checkboxesById['create'],
+        checkboxesById['read'],
+        checkboxesById['edit'],
+        checkboxesById['delete'],
+        checkboxesById['viewAll'],
+        checkboxesById['modifyAll'],
+      ]);
+    } else {
+      setCheckboxes([checkboxesById['read'], checkboxesById['edit']]);
+    }
+  }
+
+  function handleSave() {
+    const checkboxesById = getMapOf(checkboxes, 'id');
+    const itemsToUpdate = [];
+    api.forEachNodeAfterFilterAndSort((rowNode, index) => {
+      handleRowPermissionUpdate(rowNode, context.type, checkboxesById, itemsToUpdate);
+    });
+
+    const transactionResult = api.applyTransaction({ update: itemsToUpdate });
+    logger.log({ transactionResult });
+    if (isFunction(context.onBulkUpdate)) {
+      context.onBulkUpdate(itemsToUpdate);
+    }
+
+    handleClose();
+  }
+
+  function handleOpen() {
+    setVisibleRows(getNumRows());
+    setCheckboxes(defaultRowActionCheckboxes(context.type, true));
+    setIsOpen(true);
+  }
+
+  function handleClose() {
+    setIsOpen(false);
+  }
+
+  if (node.isFullWidthCell()) {
+    return null;
+  }
+
+  return (
+    <Fragment>
+      {isOpen && (
+        <Modal
+          header="Apply bulk change"
+          footer={
+            <Fragment>
+              <button className="slds-button slds-button_neutral" onClick={() => handleClose()}>
+                Cancel
+              </button>
+              <button className="slds-button slds-button_brand" onClick={handleSave} disabled={visibleRows === 0}>
+                Apply to All Visible Rows
+              </button>
+            </Fragment>
+          }
+          closeOnEsc
+          closeOnBackdropClick
+          onClose={() => handleClose()}
+        >
+          <div>
+            <p className="slds-text-align_center slds-m-bottom_small">
+              This change will apply to <strong> {formatNumber(visibleRows)} visible rows</strong> and all selected profiles and permission
+              sets
+            </p>
+            <Grid align="center" wrap>
+              {checkboxes.map((item) => (
+                <Checkbox
+                  key={item.id}
+                  id={item.id}
+                  checked={item.value}
+                  label={item.label}
+                  disabled={item.disabled}
+                  onChange={(value) => handleChange(item.id, value)}
+                />
+              ))}
+            </Grid>
+          </div>
+        </Modal>
+      )}
+      <button className="slds-button" onClick={() => handleOpen()}>
+        Edit All
+      </button>
+    </Fragment>
+  );
+};
