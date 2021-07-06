@@ -1,8 +1,79 @@
 import { pluralizeFromNumber } from '@jetstream/shared/utils';
 import { DeployResultStatus } from '@jetstream/types';
-import { Grid, ProgressRing } from '@jetstream/ui';
-import React, { FunctionComponent, useEffect, useState } from 'react';
+import { Grid, ProgressRing, Spinner } from '@jetstream/ui';
+import React, { FunctionComponent, useEffect, useReducer, useState } from 'react';
 import classNames from 'classnames';
+
+type Action = { type: 'CHANGE'; payload: { status: DeployResultStatus; totalProcessed: number; totalErrors: number; totalItems: number } };
+
+interface State {
+  fillPercent: number;
+  componentSummary: string;
+  theme: 'warning' | 'expired' | 'complete' | null;
+  showPercentage: boolean;
+  showSpinner: boolean;
+}
+
+function reducer(state: State, action: Action): State {
+  switch (action.type) {
+    case 'CHANGE': {
+      const { status } = action.payload;
+      const totalProcessed = Number(action.payload.totalProcessed || 0);
+      const totalErrors = Number(action.payload.totalErrors || 0);
+      const totalItems = Number(action.payload.totalItems || 0);
+      let newState = { ...state };
+
+      /**
+       * HANDLE STATUS CHANGE
+       */
+      if (status === 'Pending') {
+        if (newState.theme != null) {
+          newState.theme = null;
+        }
+      } else if (status === 'InProgress') {
+        if (!totalErrors && newState.theme !== null) {
+          // set to normal green progress
+          newState.theme = null;
+        } else if (totalErrors && newState.theme !== 'warning') {
+          newState.theme = 'warning';
+        }
+      } else if (status === 'Succeeded' || status === 'SucceededPartial' || status === 'Failed') {
+        if (totalErrors) {
+          newState.theme = 'warning';
+        } else {
+          newState.theme = 'complete';
+        }
+        newState.fillPercent = 1;
+      }
+
+      /**
+       * HANDLE PERCENTAGE CALCULATION
+       */
+      let total = totalItems;
+      if (totalProcessed > totalItems) {
+        total = totalProcessed;
+      }
+      if (total === 0) {
+        total = 1;
+      }
+      newState.componentSummary = `${totalProcessed + totalErrors} / ${total}`;
+      newState.fillPercent = (totalProcessed + totalErrors) / total;
+
+      if (newState.fillPercent === 1 && newState.theme !== 'complete' && newState.theme !== 'warning') {
+        // we are at 100% but we are not done yet, show spinner
+        newState.showPercentage = false;
+        newState.showSpinner = true;
+      } else {
+        newState.showPercentage = true;
+        newState.showSpinner = false;
+      }
+
+      return newState;
+    }
+    default:
+      throw new Error('Invalid action');
+  }
+}
 
 export interface DeployMetadataProgressSummaryProps {
   className?: string;
@@ -21,53 +92,32 @@ export const DeployMetadataProgressSummary: FunctionComponent<DeployMetadataProg
   totalErrors,
   totalItems,
 }) => {
-  const [fillPercent, setFillPercent] = useState(0);
-  const [componentSummary, setComponentSummary] = useState('');
-  const [theme, setTheme] = useState<'warning' | 'expired' | 'complete'>();
-
-  // ensure numbers just in case SFDC returns strings
-  totalProcessed = Number(totalProcessed || 0);
-  totalErrors = Number(totalErrors || 0);
-  totalItems = Number(totalItems || 0);
-
-  useEffect(() => {
-    if (status === 'Pending') {
-      if (theme !== null) {
-        setTheme(null);
-      }
-    } else if (status === 'InProgress') {
-      if (!totalErrors && theme !== null) {
-        setTheme(null);
-      } else if (totalErrors && theme !== 'warning') {
-        setTheme('warning');
-      }
-    } else if (status === 'Succeeded' || status === 'SucceededPartial' || status === 'Failed') {
-      if (totalErrors) {
-        setTheme('warning');
-      } else {
-        setTheme('complete');
-      }
-      setFillPercent(1);
-    }
-  }, [status, theme, totalErrors]);
+  const [{ fillPercent, componentSummary, theme, showPercentage, showSpinner }, dispatch] = useReducer(reducer, {
+    fillPercent: 0,
+    componentSummary: '',
+    theme: null,
+    showPercentage: true,
+    showSpinner: false,
+  });
 
   useEffect(() => {
-    let total = totalItems;
-    if (totalProcessed > totalItems) {
-      total = totalProcessed;
-    }
-    if (total === 0) {
-      total = 1;
-    }
-    setComponentSummary(`${totalProcessed + totalErrors} / ${total}`);
-    setFillPercent((totalProcessed + totalErrors) / total);
-  }, [totalProcessed, totalErrors, totalItems]);
+    dispatch({
+      type: 'CHANGE',
+      payload: {
+        status,
+        totalProcessed,
+        totalErrors,
+        totalItems,
+      },
+    });
+  }, [status, totalProcessed, totalErrors, totalItems]);
 
   return (
     <Grid vertical className={className}>
       <span className="slds-align-middle slds-text-title_caps">{title}</span>
       <ProgressRing className="slds-m-vertical_x-small slds-align-middle" fillPercent={fillPercent} size="x-large" theme={theme}>
-        <small>{Math.round(fillPercent * 100)}%</small>
+        {showPercentage && <small>{Math.round(fillPercent * 100)}%</small>}
+        {showSpinner && <Spinner size="small" inline />}
       </ProgressRing>
       <span className="slds-align-middle">{componentSummary}</span>
       <span
