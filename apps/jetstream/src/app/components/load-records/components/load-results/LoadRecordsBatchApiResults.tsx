@@ -120,10 +120,6 @@ export const LoadRecordsBatchApiResults: FunctionComponent<LoadRecordsBatchApiRe
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [preparedData]);
 
-  /**
-   * When jobInfo is modified, check to see if everything is done
-   * If not done and status is processing, then continue polling
-   */
   useEffect(() => {
     if (Array.isArray(processedRecords) && processedRecords.length > 0) {
       setProcessingStatus({
@@ -132,7 +128,22 @@ export const LoadRecordsBatchApiResults: FunctionComponent<LoadRecordsBatchApiRe
         failure: processedRecords.filter((record) => !record.success).length,
       });
     }
-  }, [preparedData, processedRecords, status]);
+  }, [preparedData, processedRecords]);
+
+  useEffect(() => {
+    if (status === STATUSES.FINISHED) {
+      notifyUser(`Your ${loadType.toLowerCase()} data load is finished`, {
+        body: `✅ ${processingStatus.success.toLocaleString()} ${pluralizeFromNumber(
+          'record',
+          processingStatus.success
+        )} loaded successfully ❌ ${processingStatus.failure.toLocaleString()} ${pluralizeFromNumber(
+          'record',
+          processingStatus.failure
+        )} failed`,
+        tag: 'load-records',
+      });
+    }
+  }, [status, processingStatus]);
 
   useEffect(() => {
     if (loadWorker) {
@@ -152,7 +163,7 @@ export const LoadRecordsBatchApiResults: FunctionComponent<LoadRecordsBatchApiRe
               setStatus(STATUSES.ERROR);
               setFatalError(payload.error.message);
               onFinish();
-              notifyUser(`⚠️ Your ${loadType} data load failed`, {
+              notifyUser(`⚠️ Your ${loadType.toLowerCase()} data load failed`, {
                 body: `Error: ${payload.error?.message || payload.error}`,
                 tag: 'load-records',
               });
@@ -172,26 +183,16 @@ export const LoadRecordsBatchApiResults: FunctionComponent<LoadRecordsBatchApiRe
               logger.error('ERROR', payload.error);
               setStatus(STATUSES.ERROR);
               onFinish();
-              notifyUser(`⚠️ Your ${loadType} data load failed`, {
+              setEndTime(new Date().toLocaleString());
+              notifyUser(`⚠️ Your ${loadType.toLowerCase()} data load failed`, {
                 body: `Error: ${payload.error?.message || payload.error}`,
                 tag: 'load-records',
               });
             } else {
               setStatus(STATUSES.FINISHED);
+              onFinish();
               setEndTime(new Date().toLocaleString());
             }
-            onFinish();
-            notifyUser(`Your ${loadType} data load is finished`, {
-              body: `✅ ${processingStatus.success.toLocaleString()} ${pluralizeFromNumber(
-                'record',
-                processingStatus.success
-              )} loaded successfully ❌ ${processingStatus.failure.toLocaleString()} ${pluralizeFromNumber(
-                'record',
-                processingStatus.failure
-              )} failed`,
-              tag: 'load-records',
-            });
-            setEndTime(new Date().toLocaleString());
             break;
           }
           default:
