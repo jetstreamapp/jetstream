@@ -78,6 +78,10 @@ export const DataTable: FunctionComponent<DataTableProps> = ({
         }}
         columnDefs={columns}
         rowData={data}
+        enableCellTextSelection
+        ensureDomOrder
+        // suppressColumnVirtualisation
+        // rowBuffer={600}
         onCellDoubleClicked={handleCellDoubleClicked}
         onCellKeyDown={handleCellKeydown}
         {...agGridProps}

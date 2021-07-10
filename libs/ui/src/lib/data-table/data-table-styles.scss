@@ -4,6 +4,24 @@
 
 @import '~@salesforce-ux/design-system/scss/_design-tokens';
 
+/**
+* Allow popover to function correctly
+* https://stackoverflow.com/questions/51389069/ag-grid-cell-containing-bootstrap-dropdown-menu-clips-menu/67939111#67939111
+*/
+.ag-row {
+  z-index: 0;
+}
+
+.ag-row.ag-row-focus {
+  z-index: 1;
+}
+
+// .ag-root,
+// .ag-body-viewport,
+// .ag-body-viewport-wrapper {
+//   overflow: visible !important;
+// }
+
 .ag-theme-custom-react {
   @include ag-theme-alpine(
     (

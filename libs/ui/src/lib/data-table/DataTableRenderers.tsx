@@ -452,7 +452,7 @@ export const BooleanFilterRenderer = forwardRef<any, IFilterParams>(({ filterCha
       },
 
       doesFilterPass(params) {
-        return valueGetter(params.node) === value;
+        return params.node.isFullWidthCell() || valueGetter(params.node) === value;
       },
 
       getModel() {
@@ -477,7 +477,13 @@ export const BooleanFilterRenderer = forwardRef<any, IFilterParams>(({ filterCha
         checked={isEnabled}
         onChange={setIsEnabled}
       />
-      <Checkbox id={`filter-${colDef.field}`} checked={value} label="Filter by Values" disabled={!isEnabled} onChange={setValue} />
+      <Checkbox
+        id={`filter-${colDef.field}`}
+        checked={value}
+        label={`Show ${value ? 'Checked' : 'Unchecked'} Items`}
+        disabled={!isEnabled}
+        onChange={setValue}
+      />
     </div>
   );
 });

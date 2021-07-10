@@ -11,12 +11,12 @@ import {
   ValueGetterParams,
   ValueSetterParams,
 } from '@ag-grid-community/core';
-import { jsx } from '@emotion/react';
+import { css, jsx } from '@emotion/react';
 import { logger } from '@jetstream/shared/client-logger';
 import { formatNumber, isArrowKey, isEnterOrSpace, isTabKey } from '@jetstream/shared/ui-utils';
 import { getMapOf, orderStringsBy, pluralizeFromNumber } from '@jetstream/shared/utils';
 import { MapOf, PermissionSetNoProfileRecord, PermissionSetWithProfileRecord } from '@jetstream/types';
-import { Checkbox, Grid, Icon, Input, Modal, Tooltip } from '@jetstream/ui';
+import { Checkbox, Grid, Icon, Input, Modal, Popover, Tooltip } from '@jetstream/ui';
 import { isFunction } from 'lodash';
 import { Fragment, FunctionComponent, useEffect, useState } from 'react';
 import {
@@ -358,6 +358,8 @@ export function getObjectColumns(
       sortable: false,
       resizable: false,
       pinned: true,
+      lockPosition: true,
+      cellStyle: { overflow: 'visible' },
     },
   ];
   // Create column groups for profiles
@@ -489,7 +491,7 @@ export function getFieldColumns(
       suppressMenu: true,
       filterValueGetter: (params) => {
         const data: PermissionTableFieldCell = params.data;
-        return `${data.label} (${data.apiName})`;
+        return `${data.sobject} ${data.label} (${data.apiName})`;
       },
       valueFormatter: (params) => {
         const data: PermissionTableFieldCell = params.data;
@@ -504,6 +506,8 @@ export function getFieldColumns(
       sortable: false,
       resizable: false,
       pinned: true,
+      lockPosition: true,
+      cellStyle: { overflow: 'visible' },
     },
   ];
   // Create column groups for profiles
@@ -940,13 +944,121 @@ function handleRowPermissionUpdate(
   }
 }
 
+function handleRowPermissionReset(rowNode: RowNode, type: PermissionType, arrayToUpdate: any[]) {
+  if (type === 'object') {
+    const data: PermissionTableObjectCell = rowNode.data;
+    if (!data.fullWidthRow && !rowNode.isRowPinned()) {
+      Object.values(data.permissions).forEach((permission) => {
+        if (permission.createIsDirty) {
+          permission.create = !permission.create;
+          permission.createIsDirty = false;
+        }
+        if (permission.readIsDirty) {
+          permission.read = !permission.read;
+          permission.readIsDirty = false;
+        }
+        if (permission.editIsDirty) {
+          permission.edit = !permission.edit;
+          permission.editIsDirty = false;
+        }
+        if (permission.deleteIsDirty) {
+          permission.delete = !permission.delete;
+          permission.deleteIsDirty = false;
+        }
+        if (permission.viewAllIsDirty) {
+          permission.viewAll = !permission.viewAll;
+          permission.viewAllIsDirty = false;
+        }
+        if (permission.modifyAllIsDirty) {
+          permission.modifyAll = !permission.modifyAll;
+          permission.modifyAllIsDirty = false;
+        }
+      });
+      arrayToUpdate.push(data);
+    }
+  } else {
+    const data: PermissionTableFieldCell = rowNode.data;
+    if (!data.fullWidthRow && !rowNode.isRowPinned()) {
+      Object.values(data.permissions).forEach((permission) => {
+        if (permission.readIsDirty) {
+          permission.read = !permission.read;
+          permission.readIsDirty = false;
+        }
+        if (permission.editIsDirty) {
+          permission.edit = !permission.edit;
+          permission.editIsDirty = false;
+        }
+      });
+      arrayToUpdate.push(data);
+    }
+  }
+}
+
+function getDirtyCount(rowNode: RowNode, type: PermissionType): number {
+  let dirtyCount = 0;
+  if (type === 'object') {
+    const data: PermissionTableObjectCell = rowNode.data;
+    if (!data.fullWidthRow && !rowNode.isRowPinned()) {
+      dirtyCount = Object.values(data.permissions).reduce((output, permission) => {
+        output += permission.createIsDirty ? 1 : 0;
+        output += permission.readIsDirty ? 1 : 0;
+        output += permission.editIsDirty ? 1 : 0;
+        output += permission.deleteIsDirty ? 1 : 0;
+        output += permission.viewAllIsDirty ? 1 : 0;
+        output += permission.modifyAllIsDirty ? 1 : 0;
+        return output;
+      }, 0);
+    }
+  } else {
+    const data: PermissionTableFieldCell = rowNode.data;
+    if (!data.fullWidthRow && !rowNode.isRowPinned()) {
+      dirtyCount = Object.values(data.permissions).reduce((output, permission) => {
+        output += permission.readIsDirty ? 1 : 0;
+        output += permission.editIsDirty ? 1 : 0;
+        return output;
+      }, 0);
+    }
+  }
+  return dirtyCount;
+}
+
 /**
  * Row action renderer
  *
- * This component provides a modal that the user can open to make changes that apply to an entire row
+ * This component provides a popover that the user can open to make changes that apply to an entire row
  */
 export const RowActionRenderer: FunctionComponent<ICellRendererParams> = ({ node, context, api }) => {
   const [isOpen, setIsOpen] = useState(false);
+  const [dirtyItemCount, setDirtyItemCount] = useState(0);
+
+  const [description] = useState(() => {
+    const { profiles, permissionSets } = api
+      .getColumnDefs()
+      .filter((item) => !!item.headerName)
+      .reduce(
+        (output, item: ColGroupDef) => {
+          const name = item.headerName?.toLowerCase() || '';
+          if (name.endsWith('(profile)')) {
+            output.profiles++;
+          } else if (name.endsWith('(permission set)')) {
+            output.permissionSets++;
+          }
+          return output;
+        },
+        { profiles: 0, permissionSets: 0 }
+      );
+    if (profiles && permissionSets) {
+      return `This change will apply to ${formatNumber(profiles)} ${pluralizeFromNumber('profile', profiles)} and ${formatNumber(
+        permissionSets
+      )} ${pluralizeFromNumber('permission set', permissionSets)}`;
+    } else if (profiles) {
+      return `This change will apply to ${formatNumber(profiles)} ${pluralizeFromNumber('profile', profiles)}`;
+    } else if (permissionSets) {
+      return `This change will apply to ${formatNumber(permissionSets)} ${pluralizeFromNumber('permission set', permissionSets)}`;
+    } else {
+      return `This change will apply to all selected profiles and permission sets`;
+    }
+  });
 
   const [checkboxes, setCheckboxes] = useState<BulkActionCheckbox[]>(
     defaultRowActionCheckboxes(context.type, node.data.allowEditPermission)
@@ -983,8 +1095,23 @@ export const RowActionRenderer: FunctionComponent<ICellRendererParams> = ({ node
     if (isFunction(context.onBulkUpdate)) {
       context.onBulkUpdate(itemsToUpdate);
     }
+    setDirtyItemCount(getDirtyCount(node, context.type));
+  }
 
-    handleClose();
+  function handleReset() {
+    const itemsToUpdate = [];
+    handleRowPermissionReset(node, context.type, itemsToUpdate);
+    const transactionResult = api.applyTransaction({ update: itemsToUpdate });
+    logger.log({ transactionResult });
+    if (isFunction(context.onBulkUpdate)) {
+      context.onBulkUpdate(itemsToUpdate);
+    }
+    setDirtyItemCount(getDirtyCount(node, context.type));
+  }
+
+  function handleOpen() {
+    setIsOpen(true);
+    setDirtyItemCount(getDirtyCount(node, context.type));
   }
 
   function handleClose() {
@@ -997,29 +1124,40 @@ export const RowActionRenderer: FunctionComponent<ICellRendererParams> = ({ node
   }
 
   return (
-    <Fragment>
-      {isOpen && (
-        <Modal
-          header="Apply change to row"
-          tagline={`${node.data.label} (${node.data.apiName})`}
-          footer={
-            <Fragment>
-              <button className="slds-button slds-button_neutral" onClick={() => handleClose()}>
-                Cancel
-              </button>
-              <button className="slds-button slds-button_brand" onClick={handleSave}>
-                Apply to All
-              </button>
-            </Fragment>
-          }
-          closeOnEsc
-          closeOnBackdropClick
-          onClose={() => handleClose()}
-        >
+    <div
+      css={css`
+        /* Ensure that ag-grid's CSS does not get inherited in popover */
+        white-space: normal;
+        cursor: initial;
+        -webkit-font-smoothing: initial;
+      `}
+    >
+      <Popover
+        size={context.type === 'object' ? 'large' : 'medium'}
+        isOpen={isOpen}
+        onOpen={handleOpen}
+        onClose={handleClose}
+        placement="top"
+        header={
+          <header className="slds-popover__header">
+            <h2 className="slds-text-heading_small" id="background-jobs" title="Background Jobs">
+              Apply change to row
+            </h2>
+          </header>
+        }
+        footer={
+          <footer className="slds-popover__footer slds-grid slds-grid_align-center">
+            <button className="slds-button slds-button_neutral" onClick={handleReset} disabled={dirtyItemCount === 0}>
+              Reset Row
+            </button>
+            <button className="slds-button slds-button_brand" onClick={handleSave}>
+              Apply to Row
+            </button>
+          </footer>
+        }
+        content={
           <div>
-            <p className="slds-text-align_center slds-m-bottom_small">
-              This change will apply to all selected profiles and permission sets
-            </p>
+            <p className="slds-text-align_center slds-m-bottom_small">{description}</p>
             <Grid align="center" wrap>
               {checkboxes.map((item) => (
                 <Checkbox
@@ -1033,17 +1171,16 @@ export const RowActionRenderer: FunctionComponent<ICellRendererParams> = ({ node
               ))}
             </Grid>
           </div>
-        </Modal>
-      )}
-      <button className="slds-button" onClick={() => setIsOpen(true)}>
-        Edit Row
-      </button>
-    </Fragment>
+        }
+      >
+        <button className="slds-button">Edit Row</button>
+      </Popover>
+    </div>
   );
 };
 
 /**
- * Row action renderer
+ * Bulk Row action renderer
  *
  * This component provides a modal that the user can open to make changes that apply to an entire visible table
  */
