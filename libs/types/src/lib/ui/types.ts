@@ -199,12 +199,14 @@ export type Offline = 'offline';
 export type Default = 'default';
 export type Inverse = 'inverse';
 export type Light = 'light';
+export type Dark = 'dark';
 
 export type InfoSuccessWarningError = Info | Success | Warning | Error;
 export type SuccessWarningError = Success | Warning | Error;
 export type InfoWarningErrorOffline = Info | Warning | Error | Offline;
 export type DefaultInverseLight = Default | Inverse | Light;
 export type BadgeTypes = SuccessWarningError | DefaultInverseLight;
+export type ScopedNotificationTypes = Info | Success | Warning | Error | Light | Dark;
 
 export interface ListItemGroup {
   id: string;

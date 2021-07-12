@@ -99,7 +99,23 @@ export const HeaderNavbar: FunctionComponent<HeaderNavbarProps> = ({ userProfile
           {hasFeatureFlagAccess(featureFlags, FEATURE_FLAGS.QUERY) && (
             <NavbarItem path="/query" title="Query Records" label="Query Records" />
           )}
-          {hasFeatureFlagAccess(featureFlags, FEATURE_FLAGS.LOAD) && <NavbarItem path="/load" title="Load Records" label="Load Records" />}
+          <NavbarMenuItems
+            label="Load Records"
+            items={[
+              hasFeatureFlagAccess(featureFlags, FEATURE_FLAGS.LOAD)
+                ? { id: 'load', path: '/load', title: 'Load records to a single object', label: 'Load Records to Single Object' }
+                : undefined,
+              hasFeatureFlagAccess(featureFlags, FEATURE_FLAGS.LOAD_MULTI_OBJ)
+                ? {
+                    id: 'load-with-relationships',
+                    path: '/load-multiple-objects',
+                    title: 'Load records from multiple objects at once',
+                    label: 'Load Records to Multiple Objects',
+                  }
+                : undefined,
+            ].filter((item) => !!item)}
+          />
+
           {hasFeatureFlagAccess(featureFlags, FEATURE_FLAGS.AUTOMATION_CONTROL) && (
             <Fragment>
               <NavbarItem path="/automation-control" title="Automation Control" label="Automation Control" />

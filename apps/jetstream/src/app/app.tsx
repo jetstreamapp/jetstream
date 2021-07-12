@@ -22,6 +22,7 @@ import OrgSelectionRequired from './components/orgs/OrgSelectionRequired';
 const AutomationControl = lazy(() => import('./components/automation-control/AutomationControl'));
 const Feedback = lazy(() => import('./components/feedback/Feedback'));
 const LoadRecords = lazy(() => import('./components/load-records/LoadRecords'));
+const LoadRecordsMultiObject = lazy(() => import('./components/load-records-multi-object/LoadRecordsMultiObject'));
 const Query = lazy(() => import('./components/query/Query'));
 const ManagePermissions = lazy(() => import('./components/manage-permissions/ManagePermissions'));
 const DeployMetadata = lazy(() => import('./components/deploy/DeployMetadata'));
@@ -53,6 +54,15 @@ const ROUTES: RouteItem[] = [
     render: () => (
       <OrgSelectionRequired>
         <LoadRecords />
+      </OrgSelectionRequired>
+    ),
+  },
+  {
+    path: '/load-multiple-objects',
+    flag: FEATURE_FLAGS.LOAD_MULTI_OBJ,
+    render: () => (
+      <OrgSelectionRequired>
+        <LoadRecordsMultiObject />
       </OrgSelectionRequired>
     ),
   },

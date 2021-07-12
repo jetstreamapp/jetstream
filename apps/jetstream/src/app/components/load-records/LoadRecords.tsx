@@ -92,7 +92,7 @@ export const LoadRecords: FunctionComponent<LoadRecordsProps> = () => {
     return () => (isMounted.current = false);
   }, []);
 
-  // reset start when user leaves page
+  // reset state when user leaves page
   useEffect(() => {
     return () => {
       if (didPerformDataLoad) {

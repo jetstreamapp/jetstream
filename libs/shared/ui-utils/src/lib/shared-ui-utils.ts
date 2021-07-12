@@ -968,6 +968,7 @@ export async function parseFile(
   headers: string[];
   errors: string[];
 }> {
+  options = options || {};
   if (isString(content)) {
     // csv - read from papaparse
     const csvResult = parseCsv(content, {
@@ -990,7 +991,7 @@ export async function parseFile(
         selectedSheet = workbook.Sheets[sheetName];
       }
     }
-    // TODO: ask user what worksheet to use!
+
     const data = XLSX.utils.sheet_to_json(selectedSheet, {
       dateNF: 'yyyy"-"mm"-"dd"T"hh:mm:ss',
       defval: '',
@@ -1001,7 +1002,7 @@ export async function parseFile(
     return {
       data,
       headers: headers.filter((field) => !field.startsWith('__empty')),
-      errors: [], // TODO:
+      errors: [],
     };
   }
 }
