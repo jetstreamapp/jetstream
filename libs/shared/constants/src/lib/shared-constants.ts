@@ -10,6 +10,7 @@ export const FEATURE_FLAGS = Object.freeze({
   AUTOMATION_CONTROL: 'automation-control',
   QUERY: 'query',
   LOAD: 'load',
+  LOAD_MULTI_OBJ: 'load-multi-object',
   PERMISSION_MANAGER: 'permission-manager',
   DEPLOYMENT: 'deployment',
   NOTIFICATIONS: 'notifications',

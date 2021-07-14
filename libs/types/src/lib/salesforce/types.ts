@@ -82,6 +82,7 @@ export type Insert = 'INSERT';
 export type Update = 'UPDATE';
 export type Upsert = 'UPSERT';
 export type Delete = 'DELETE';
+export type InsertUpdateUpsert = Insert | Update | Upsert;
 export type InsertUpdateUpsertDelete = Insert | Update | Upsert | Delete;
 
 export interface ErrorResult {
@@ -111,10 +112,21 @@ export type SobjectCollectionRequestRecord<T = { [field: string]: any }> = T & {
 
 export type SobjectCollectionResponse = RecordResult[];
 
-export interface CompositeRequest {
-  allOrNone?: boolean;
+export interface CompositeGraphRequestBody {
+  graphs: CompositeGraphRequest[];
+}
+
+export interface CompositeGraphRequest {
+  graphId: string;
   compositeRequest?: CompositeRequestBody[];
 }
+
+export interface CompositeRequest {
+  allOrNone?: boolean;
+  collateSubrequests?: boolean;
+  compositeRequest?: CompositeRequestBody[];
+}
+
 export interface CompositeRequestBody {
   method: HttpMethod;
   url: string;
@@ -124,12 +136,35 @@ export interface CompositeRequestBody {
 }
 
 export interface CompositeResponse<T = unknown> {
-  compositeResponse: {
-    body: T;
-    httpHeaders: any;
-    httpStatusCode: number;
-    referenceId: string;
-  }[];
+  compositeResponse: CompositeResponseItem<T>[];
+}
+
+export interface CompositeResponseItem<T = CompositeGraphResponseBodyData> {
+  body: T;
+  httpHeaders: any;
+  httpStatusCode: number;
+  referenceId: string;
+}
+
+export interface CompositeGraphResponseBody<T = unknown> {
+  graphs: CompositeGraphResponse<T>[];
+}
+
+export interface CompositeGraphResponse<T = CompositeGraphResponseBodyData> {
+  graphId: string;
+  graphResponse: CompositeResponse<T>;
+  isSuccessful: boolean;
+}
+
+// This may not cover all use-cases, but covered the tested cases pretty well
+// some fields may be undefined depending on the type of error
+export interface CompositeGraphResponseBodyData {
+  id?: string;
+  success?: boolean;
+  message?: string;
+  errorCode?: string;
+  fields?: string[];
+  errors?: unknown[];
 }
 
 /**

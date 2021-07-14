@@ -1,4 +1,5 @@
 import { QueryResults, QueryResultsColumn } from '@jetstream/api-interfaces';
+import { DATE_FORMATS } from '@jetstream/shared/constants';
 import {
   BulkJob,
   BulkJobBatchInfo,
@@ -11,9 +12,10 @@ import {
   Record,
   SoapNil,
 } from '@jetstream/types';
+import { formatISO as formatISODate, parse as parseDate, parseISO as parseISODate, startOfDay as startOfDayDate } from 'date-fns';
 import fromUnixTime from 'date-fns/fromUnixTime';
-import { QueryResult } from 'jsforce';
-import { get as lodashGet, isBoolean, isNil, isObject, isString, orderBy } from 'lodash';
+import { FieldType as jsforceFieldType, QueryResult } from 'jsforce';
+import { get as lodashGet, isBoolean, isNil, isNumber, isObject, isString, orderBy } from 'lodash';
 import { ComposeFieldTypeof, FieldSubquery, FieldType, getField } from 'soql-parser-js';
 import { REGEX } from './regex';
 
@@ -400,4 +402,137 @@ export function hashString(value: string = ''): number {
 
 export function sanitizeForXml(value: string) {
   return String(value).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&apos;');
+}
+
+/**
+ * Given a value from a record, ensure it is in a proper format for a data load.
+ * Handles boolean, data, datetime
+ * @param value
+ * @param options
+ *
+ * VALID DATE FORMATS: DATE_FORMATS.MM_DD_YYYY, DATE_FORMATS.DD_MM_YYYY, DATE_FORMATS.YYYY_MM_DD
+ */
+export function transformRecordForDataLoad(value: any, fieldType: jsforceFieldType, dateFormat?: string) {
+  dateFormat = dateFormat || DATE_FORMATS.MM_DD_YYYY;
+
+  if (isNil(value) || (isString(value) && !value)) {
+    return null;
+  } else if (fieldType === 'boolean') {
+    if (isString(value) || isNumber(value)) {
+      // any string that starts with "t" or number that starts with "1" is set to true
+      // all other values to false (case-insensitive)
+      return REGEX.BOOLEAN_STR_TRUE.test(`${value}`);
+    }
+  } else if (fieldType === 'date') {
+    return transformDate(value, dateFormat);
+  } else if (fieldType === 'datetime') {
+    return transformDateTime(value, dateFormat);
+  } else if (fieldType === 'time') {
+    // time format is specific
+    // TODO: detect if times should be corrected
+    // 10 PM
+    // 10:10 PM
+    // 10:10:00 PM
+    // 10:10
+    // -->expected
+    // 13:15:00.000Z
+  }
+  return value;
+}
+
+const DATE_ERR_MESSAGE =
+  'There was an error reading one or more date fields in your file. Ensure date fields are properly formatted with a four character year.';
+
+function transformDate(value: any, dateFormat: string): string | null {
+  if (!value) {
+    return null;
+  }
+  if (value instanceof Date) {
+    if (!isNaN(value.getTime())) {
+      try {
+        return formatISODate(value, { representation: 'date' });
+      } catch (ex) {
+        throw new Error(DATE_ERR_MESSAGE);
+      }
+    } else {
+      // date is invalid
+      return null;
+    }
+  } else if (isString(value)) {
+    if (REGEX.ISO_DATE.test(value)) {
+      try {
+        return formatISODate(parseISODate(value), { representation: 'date' });
+      } catch (ex) {
+        throw new Error(DATE_ERR_MESSAGE);
+      }
+    }
+    try {
+      return buildDateFromString(value, dateFormat, 'date');
+    } catch (ex) {
+      throw new Error(DATE_ERR_MESSAGE);
+    }
+  }
+  return null;
+}
+
+function buildDateFromString(value: string, dateFormat: string, representation: 'date' | 'complete') {
+  const refDate = startOfDayDate(new Date());
+  const tempValue = value.replace(REGEX.NOT_NUMERIC, '-'); // FIXME: some date formats are 'd. m. yyyy' like 'sk-SK'
+  const [first, middle, end] = tempValue.split('-');
+  if (!first || !middle || !end) {
+    return null;
+  }
+  switch (dateFormat) {
+    case DATE_FORMATS.MM_DD_YYYY: {
+      first.padStart(2, '0');
+      middle.padStart(2, '0');
+      end.padStart(4, '19');
+      return formatISODate(parseDate(`${first}-${middle}-${end}`, 'MM-dd-yyyy', refDate), { representation });
+    }
+    case DATE_FORMATS.DD_MM_YYYY: {
+      first.padStart(2, '0');
+      middle.padStart(2, '0');
+      end.padStart(4, '19');
+      return formatISODate(parseDate(`${first}-${middle}-${end}`, 'dd-MM-yyyy', refDate), { representation });
+    }
+    case DATE_FORMATS.YYYY_MM_DD: {
+      end.padStart(2, '0');
+      first.padStart(2, '0');
+      middle.padStart(4, '19');
+      return formatISODate(parseDate(`${first}-${middle}-${end}`, 'yyyy-MM-dd', refDate), { representation });
+    }
+    default:
+      break;
+  }
+}
+
+function transformDateTime(value: string | null | Date, dateFormat: string): string | null {
+  if (!value) {
+    return null;
+  }
+  if (value instanceof Date) {
+    if (!isNaN(value.getTime())) {
+      return formatISODate(value, { representation: 'complete' });
+    } else {
+      // date is invalid
+      return null;
+    }
+  } else if (isString(value)) {
+    if (REGEX.ISO_DATE.test(value)) {
+      return formatISODate(parseISODate(value), { representation: 'complete' });
+    }
+
+    value = value.replace('T', ' ');
+    const [date, time] = value.split(' ', 2);
+    if (!time) {
+      return buildDateFromString(date.trim(), dateFormat, 'complete');
+    }
+
+    // TODO:
+    // based on locale, we need to parse the date and the time
+    // could be 12 hour time, or 24 hour time
+    // date will vary depending on locale
+    return null; // FIXME:
+  }
+  return null;
 }

@@ -22,6 +22,7 @@ import OrgSelectionRequired from './components/orgs/OrgSelectionRequired';
 const AutomationControl = lazy(() => import('./components/automation-control/AutomationControl'));
 const Feedback = lazy(() => import('./components/feedback/Feedback'));
 const LoadRecords = lazy(() => import('./components/load-records/LoadRecords'));
+const LoadRecordsMultiObject = lazy(() => import('./components/load-records-multi-object/LoadRecordsMultiObject'));
 const Query = lazy(() => import('./components/query/Query'));
 const ManagePermissions = lazy(() => import('./components/manage-permissions/ManagePermissions'));
 const DeployMetadata = lazy(() => import('./components/deploy/DeployMetadata'));
@@ -40,7 +41,7 @@ let _userProfile: UserProfileUi;
 const ROUTES: RouteItem[] = [
   {
     path: '/query',
-    flag: FEATURE_FLAGS.QUERY,
+    // flag: FEATURE_FLAGS.QUERY,
     render: () => (
       <OrgSelectionRequired>
         <Query />
@@ -49,7 +50,7 @@ const ROUTES: RouteItem[] = [
   },
   {
     path: '/load',
-    flag: FEATURE_FLAGS.LOAD,
+    // flag: FEATURE_FLAGS.LOAD,
     render: () => (
       <OrgSelectionRequired>
         <LoadRecords />
@@ -57,8 +58,17 @@ const ROUTES: RouteItem[] = [
     ),
   },
   {
+    path: '/load-multiple-objects',
+    flag: FEATURE_FLAGS.LOAD_MULTI_OBJ,
+    render: () => (
+      <OrgSelectionRequired>
+        <LoadRecordsMultiObject />
+      </OrgSelectionRequired>
+    ),
+  },
+  {
     path: '/automation-control',
-    flag: FEATURE_FLAGS.AUTOMATION_CONTROL,
+    // flag: FEATURE_FLAGS.AUTOMATION_CONTROL,
     render: () => (
       <OrgSelectionRequired>
         <AutomationControl />
@@ -67,7 +77,7 @@ const ROUTES: RouteItem[] = [
   },
   {
     path: '/permissions-manager',
-    flag: FEATURE_FLAGS.PERMISSION_MANAGER,
+    // flag: FEATURE_FLAGS.PERMISSION_MANAGER,
     render: () => (
       <OrgSelectionRequired>
         <ManagePermissions />
@@ -76,7 +86,7 @@ const ROUTES: RouteItem[] = [
   },
   {
     path: '/deploy-metadata',
-    flag: FEATURE_FLAGS.DEPLOYMENT,
+    // flag: FEATURE_FLAGS.DEPLOYMENT,
     render: () => (
       <OrgSelectionRequired>
         <DeployMetadata />
