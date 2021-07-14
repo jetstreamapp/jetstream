@@ -2,11 +2,11 @@
 import { jsx } from '@emotion/react';
 import Avatar from '@salesforce-ux/design-system/assets/images/profile_avatar_96.png';
 import { FunctionComponent, ReactNode, Suspense, ReactNodeArray } from 'react';
-import { DropDownItem } from '@jetstream/types';
+import { DropDownItem, UserProfileUi } from '@jetstream/types';
 import DropDown from '../form/dropdown/DropDown';
 
-// eslint-disable-next-line @typescript-eslint/no-empty-interface
 export interface HeaderProps {
+  userProfile: UserProfileUi;
   logo: string;
   orgs?: ReactNode;
   userMenuItems: DropDownItem[];
@@ -16,6 +16,7 @@ export interface HeaderProps {
 }
 
 export const Header: FunctionComponent<HeaderProps> = ({
+  userProfile,
   logo,
   orgs,
   rightHandMenuItems,
@@ -54,7 +55,7 @@ export const Header: FunctionComponent<HeaderProps> = ({
                   buttonClassName="slds-button slds-global-actions__avatar slds-global-actions__item-action"
                   buttonContent={
                     <span className="slds-avatar slds-avatar_circle slds-avatar_medium">
-                      <img alt="Avatar" src={Avatar} />
+                      <img alt="Avatar" src={userProfile?.picture || Avatar} />
                     </span>
                   }
                   position="right"

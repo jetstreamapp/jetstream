@@ -58,6 +58,12 @@ export const AnonymousApex: FunctionComponent<AnonymousApexProps> = () => {
   }, []);
 
   useNonInitialEffect(() => {
+    if (logRef.current) {
+      logRef.current.revealLine(1);
+    }
+  }, [textFilter, logRef.current]);
+
+  useNonInitialEffect(() => {
     localStorage.setItem(STORAGE_KEYS.ANONYMOUS_APEX_STORAGE_KEY, debouncedApex);
   }, [debouncedApex]);
 
@@ -111,6 +117,7 @@ export const AnonymousApex: FunctionComponent<AnonymousApexProps> = () => {
       setResults('');
       setTextFilter('');
       setUserDebug(false);
+      logRef.current.revealLine(1);
       setResultsStatus({ hasResults: false, success: false, label: null });
       try {
         const { result, debugLog } = await anonymousApex(selectedOrg, value, logLevel);

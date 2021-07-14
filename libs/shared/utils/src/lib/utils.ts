@@ -47,7 +47,15 @@ export function multiWordObjectFilter<T>(
   value: string,
   optionalExtraCondition?: (item: T) => boolean
 ): (value: T, index: number, array: T[]) => boolean {
-  const search = (value || '').toLocaleLowerCase().split(' ');
+  value = value || '';
+  let search: string[];
+  // If value is surrounded in quotes, treat as literal value
+  if (value.startsWith('"') && value.endsWith('"')) {
+    search = [value.toLocaleLowerCase().replace(REGEX.START_OR_END_QUOTE, '')];
+  } else {
+    search = value.toLocaleLowerCase().split(' ');
+  }
+
   const hasValue = search.length > 0;
   return (item: T) => {
     if (!hasValue || !item) {
