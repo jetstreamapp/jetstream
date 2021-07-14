@@ -108,7 +108,7 @@ function getListItemFromQueryResults(records: PermissionSetRecord[]) {
 
       if (isPermissionSetWithProfile(record)) {
         listItem.label = record.Profile.Name;
-        listItem.secondaryLabel = undefined;
+        listItem.secondaryLabel = record.IsCustom ? 'Custom Profile' : 'Standard Profile';
         output.profiles.push(listItem);
       } else {
         output.permissionSets.push(listItem);

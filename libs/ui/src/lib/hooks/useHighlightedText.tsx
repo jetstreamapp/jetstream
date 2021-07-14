@@ -1,6 +1,7 @@
 import isString from 'lodash/isString';
 import escapeRegExp from 'lodash/escapeRegExp';
 import React, { ReactNode, useEffect, useState } from 'react';
+import { REGEX } from '@jetstream/shared/utils';
 
 // inspired by: https://stackoverflow.com/questions/29652862/highlight-text-using-reactjs
 /**
@@ -26,7 +27,13 @@ export function useHighlightedText(
         setHighlightedText(text);
       }
     } else {
-      const terms = escapeRegExp(searchTerm.toLowerCase().trim()).split(' ');
+      let terms: string[];
+      // If value is surrounded in quotes, treat as literal value
+      if (searchTerm.startsWith('"') && searchTerm.endsWith('"')) {
+        terms = [escapeRegExp(searchTerm.toLocaleLowerCase().trim().replace(REGEX.START_OR_END_QUOTE, ''))];
+      } else {
+        terms = escapeRegExp(searchTerm.toLocaleLowerCase().trim()).split(' ');
+      }
       const highlightedText = (
         <span className={className}>
           {text
