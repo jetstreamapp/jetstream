@@ -94,42 +94,29 @@ export const HeaderNavbar: FunctionComponent<HeaderNavbarProps> = ({ userProfile
         onUserMenuItemSelected={handleUserMenuSelection}
       >
         <Navbar>
-          {/* TODO: home page - also pass this in from app instead if possible */}
-          {/* <NavbarItem path="/" title="Home" label="Home" /> */}
-          {hasFeatureFlagAccess(featureFlags, FEATURE_FLAGS.QUERY) && (
-            <NavbarItem path="/query" title="Query Records" label="Query Records" />
-          )}
-          <NavbarMenuItems
-            label="Load Records"
-            items={[
-              hasFeatureFlagAccess(featureFlags, FEATURE_FLAGS.LOAD)
-                ? { id: 'load', path: '/load', title: 'Load records to a single object', label: 'Load Records to Single Object' }
-                : undefined,
-              hasFeatureFlagAccess(featureFlags, FEATURE_FLAGS.LOAD_MULTI_OBJ)
-                ? {
-                    id: 'load-with-relationships',
-                    path: '/load-multiple-objects',
-                    title: 'Load records from multiple objects at once',
-                    label: 'Load Records to Multiple Objects',
-                  }
-                : undefined,
-            ].filter((item) => !!item)}
-          />
+          <NavbarItem path="/query" title="Query Records" label="Query Records" />
 
-          {hasFeatureFlagAccess(featureFlags, FEATURE_FLAGS.AUTOMATION_CONTROL) && (
-            <Fragment>
-              <NavbarItem path="/automation-control" title="Automation Control" label="Automation Control" />
-            </Fragment>
+          {hasFeatureFlagAccess(featureFlags, FEATURE_FLAGS.LOAD_MULTI_OBJ) ? (
+            <NavbarMenuItems
+              label="Load Records"
+              items={[
+                { id: 'load', path: '/load', title: 'Load records to a single object', label: 'Load Records to Single Object' },
+                {
+                  id: 'load-with-relationships',
+                  path: '/load-multiple-objects',
+                  title: 'Load records from multiple objects at once',
+                  label: 'Load Records to Multiple Objects',
+                },
+              ]}
+            />
+          ) : (
+            <NavbarItem path="/load" title="Load Records" label="Load Records" />
           )}
-          {hasFeatureFlagAccess(featureFlags, FEATURE_FLAGS.PERMISSION_MANAGER) && (
-            <NavbarItem path="/permissions-manager" title="Manage Permissions" label="Manage Permissions" />
-          )}
-          {hasFeatureFlagAccess(featureFlags, FEATURE_FLAGS.DEPLOYMENT) && (
-            <Fragment>
-              <NavbarItem path="/deploy-metadata" title="Deploy Metadata" label="Deploy Metadata" />
-              {/* <NavbarItem path="/apex" title="Anonymous Apex" label="Anonymous Apex" /> */}
-            </Fragment>
-          )}
+
+          <NavbarItem path="/automation-control" title="Automation Control" label="Automation Control" />
+          <NavbarItem path="/permissions-manager" title="Manage Permissions" label="Manage Permissions" />
+          <NavbarItem path="/deploy-metadata" title="Deploy Metadata" label="Deploy Metadata" />
+
           <NavbarMenuItems
             label="Developer Tools"
             items={[

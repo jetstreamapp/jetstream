@@ -2,12 +2,84 @@
 import { jsx } from '@emotion/react';
 import { formatNumber } from '@jetstream/shared/ui-utils';
 import { pluralizeIfMultiple } from '@jetstream/shared/utils';
-import { Modal, Tree, TreeItems } from '@jetstream/ui';
+import { CompositeGraphRequest, CompositeRequestBody } from '@jetstream/types';
+import { Icon, Modal, Tooltip, Tree, TreeItems } from '@jetstream/ui';
 import { Fragment, FunctionComponent, useEffect, useState } from 'react';
-import { LoadMultiObjectRequestWithResult } from './load-records-multi-object-types';
+import { LoadMultiObjectRequestWithResult, RecordWithResponse } from './load-records-multi-object-types';
+import classNames from 'classnames';
+import { isBoolean } from 'lodash';
 
 export interface LoadRecordsMultiObjectRecordModalProps {
   data: LoadMultiObjectRequestWithResult;
+}
+
+function getIcon(isSuccess?: boolean) {
+  return !!isSuccess ? (
+    <Icon type="utility" icon="success" className="slds-icon slds-icon-text-success slds-icon_xx-small" />
+  ) : (
+    <Icon type="utility" icon="error" className="slds-icon slds-icon-text-error slds-icon_xx-small" />
+  );
+}
+
+function getParentTreeItem(item: CompositeGraphRequest, data: LoadMultiObjectRequestWithResult): TreeItems {
+  /**
+   * Item is finished, show icon and add text color
+   */
+  if (isBoolean(data.dataWithResultsByGraphId[item.graphId].isSuccess)) {
+    const graphResults = data.dataWithResultsByGraphId[item.graphId];
+    return {
+      id: `parent-${item.graphId}`,
+      label: (
+        <div
+          className={classNames({
+            'slds-text-color_success': !!graphResults.isSuccess,
+            'slds-text-color_error': !graphResults.isSuccess,
+          })}
+        >
+          {getIcon(graphResults.isSuccess)} Record Group - {formatNumber(item.compositeRequest.length)} related records
+        </div>
+      ),
+      treeItems: item.compositeRequest.map((item) => getTreeItem(data.recordWithResponseByRefId[item.referenceId], item)),
+    };
+  }
+  /**
+   * Item is not yet processed
+   */
+  return {
+    id: `parent-${item.graphId}`,
+    label: `Record Group - ${formatNumber(item.compositeRequest.length)} records`,
+    treeItems: item.compositeRequest.map((item) => getTreeItem(data.recordWithResponseByRefId[item.referenceId], item)),
+  };
+}
+
+function getTreeItem(record: RecordWithResponse, item?: CompositeRequestBody): TreeItems {
+  if (record.response) {
+    const extraContent = (
+      <Tooltip id={`tooltip-${record.referenceId}`} content={record.request.body ? JSON.stringify(item.body, null, 2) : undefined}>
+        {getIcon(record.response.body.success)}
+      </Tooltip>
+    );
+
+    return {
+      id: record.referenceId,
+      label: (
+        <div
+          className={classNames({
+            'slds-text-color_success': !!record.response.body.success,
+            'slds-text-color_error': !record.response.body.success,
+          })}
+        >
+          {extraContent} {record.referenceId} ({record.sobject} - {record.operation})
+          {record.response.body.id ? <div>Record Id: {record.response.body.id}</div> : undefined}
+          {record.response.body.message ? <div>{record.response.body.message}</div> : undefined}
+        </div>
+      ),
+    };
+  }
+  return {
+    id: record.referenceId,
+    label: `${record.referenceId} (${record.sobject} - ${record.operation})`,
+  };
 }
 
 export const LoadRecordsMultiObjectRecordModal: FunctionComponent<LoadRecordsMultiObjectRecordModalProps> = ({ data }) => {
@@ -15,39 +87,18 @@ export const LoadRecordsMultiObjectRecordModal: FunctionComponent<LoadRecordsMul
   const [items, setItems] = useState<TreeItems[]>([]);
 
   useEffect(() => {
-    if (data) {
+    if (isOpen && data) {
       setItems(
-        data.data.map(
-          (item, i): TreeItems => {
-            if (item.compositeRequest.length <= 1) {
-              const record = data.recordWithResponseByRefId[item.compositeRequest[0].referenceId];
-              return {
-                id: record.referenceId,
-                label: `${record.referenceId} (${record.sobject} - ${record.operation})`,
-              };
-            } else {
-              return {
-                id: `parent-${item.graphId}`,
-                label: `Record Group - ${formatNumber(item.compositeRequest.length)} related records`,
-                treeItems: item.compositeRequest.map(
-                  (item): TreeItems => {
-                    const record = data.recordWithResponseByRefId[item.referenceId];
-                    return {
-                      id: record.referenceId,
-                      label: `${record.referenceId} (${record.sobject} - ${record.operation})`,
-                      title: JSON.stringify(item.body, null, 2),
-                    };
-                  }
-                ),
-              };
-            }
-          }
+        data.data.map((item, i) =>
+          item.compositeRequest.length <= 1
+            ? getTreeItem(data.recordWithResponseByRefId[item.compositeRequest[0].referenceId])
+            : getParentTreeItem(item, data)
         )
       );
     } else {
       setItems([]);
     }
-  }, [data]);
+  }, [isOpen, data]);
 
   return (
     <Fragment>

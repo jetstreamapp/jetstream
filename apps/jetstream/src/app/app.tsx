@@ -41,7 +41,7 @@ let _userProfile: UserProfileUi;
 const ROUTES: RouteItem[] = [
   {
     path: '/query',
-    flag: FEATURE_FLAGS.QUERY,
+    // flag: FEATURE_FLAGS.QUERY,
     render: () => (
       <OrgSelectionRequired>
         <Query />
@@ -50,7 +50,7 @@ const ROUTES: RouteItem[] = [
   },
   {
     path: '/load',
-    flag: FEATURE_FLAGS.LOAD,
+    // flag: FEATURE_FLAGS.LOAD,
     render: () => (
       <OrgSelectionRequired>
         <LoadRecords />
@@ -68,7 +68,7 @@ const ROUTES: RouteItem[] = [
   },
   {
     path: '/automation-control',
-    flag: FEATURE_FLAGS.AUTOMATION_CONTROL,
+    // flag: FEATURE_FLAGS.AUTOMATION_CONTROL,
     render: () => (
       <OrgSelectionRequired>
         <AutomationControl />
@@ -77,7 +77,7 @@ const ROUTES: RouteItem[] = [
   },
   {
     path: '/permissions-manager',
-    flag: FEATURE_FLAGS.PERMISSION_MANAGER,
+    // flag: FEATURE_FLAGS.PERMISSION_MANAGER,
     render: () => (
       <OrgSelectionRequired>
         <ManagePermissions />
@@ -86,7 +86,7 @@ const ROUTES: RouteItem[] = [
   },
   {
     path: '/deploy-metadata',
-    flag: FEATURE_FLAGS.DEPLOYMENT,
+    // flag: FEATURE_FLAGS.DEPLOYMENT,
     render: () => (
       <OrgSelectionRequired>
         <DeployMetadata />

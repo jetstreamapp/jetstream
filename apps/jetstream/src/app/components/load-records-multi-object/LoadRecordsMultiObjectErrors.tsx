@@ -1,7 +1,9 @@
 /** @jsx jsx */
 import { jsx } from '@emotion/react';
+import { MapOf } from '@jetstream/types';
 import { ScopedNotification } from '@jetstream/ui';
-import { Fragment, FunctionComponent } from 'react';
+import { groupBy } from 'lodash';
+import { Fragment, FunctionComponent, useEffect, useState } from 'react';
 import { LoadMultiObjectDataError } from './load-records-multi-object-types';
 
 export interface LoadRecordsMultiObjectErrorsProps {
@@ -9,31 +11,34 @@ export interface LoadRecordsMultiObjectErrorsProps {
 }
 
 export const LoadRecordsMultiObjectErrors: FunctionComponent<LoadRecordsMultiObjectErrorsProps> = ({ errors }) => {
+  const [errorsByWorksheet, setErrorsByWorksheet] = useState<MapOf<LoadMultiObjectDataError[]>>();
+
+  useEffect(() => {
+    setErrorsByWorksheet(groupBy(errors, 'worksheet'));
+  }, [errors]);
+
   return (
     <Fragment>
-      {!!errors?.length && (
+      {!!errors?.length && errorsByWorksheet && (
         <ScopedNotification theme="error" className="slds-m-top_medium">
-          {errors.length && (
-            <div className="slds-text-heading_small slds-m-bottom_x-small">
-              There are problems with your data that must be corrected to continue:
-            </div>
-          )}
-          {errors.length === 1 ? (
-            <div>
-              {errors[0].message}
-              <div>
-                <strong>Worksheet</strong>: {errors[0].worksheet}, <strong>Location</strong>: {errors[0].location}
+          <div className="slds-text-heading_small">There are problems with your data that must be corrected to continue:</div>
+          {Object.keys(errorsByWorksheet).map((worksheet) => {
+            const currErrors = errorsByWorksheet[worksheet];
+            return (
+              <div key={worksheet} className="slds-m-left_small slds-m-top_x-small">
+                <div>{worksheet} worksheet</div>
+
+                <ul className="slds-list_dotted">
+                  {currErrors.map((error, i) => (
+                    <li key={i}>
+                      {error.message} (<strong>Cell {error.location}</strong>)
+                    </li>
+                  ))}
+                </ul>
               </div>
-            </div>
-          ) : (
-            <ul className="slds-list_dotted">
-              {errors.map((error, i) => (
-                <li key={i}>
-                  {error.message} (<strong>Worksheet</strong>: {error.worksheet}, <strong>Location</strong>: {error.location})
-                </li>
-              ))}
-            </ul>
-          )}
+            );
+          })}
+          <div></div>
         </ScopedNotification>
       )}
     </Fragment>

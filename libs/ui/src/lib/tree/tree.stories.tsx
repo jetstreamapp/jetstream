@@ -1,5 +1,7 @@
 /* eslint-disable jsx-a11y/anchor-is-valid */
 import { text } from '@storybook/addon-knobs';
+import Icon from 'libs/ui/src/lib/widgets/Icon';
+import { cloneDeep } from 'lodash';
 import React from 'react';
 import Tree, { TreeItems } from './Tree';
 
@@ -60,3 +62,13 @@ const tree: TreeItems[] = [
 ];
 
 export const base = () => <Tree header={text('header', 'My Tree')} items={tree} />;
+
+const tree2 = cloneDeep(tree);
+
+tree2[1].label = (
+  <div className="">
+    <Icon type="utility" icon="error" className="slds-icon slds-icon-text-error slds-icon_xx-small" /> This is my custom Component
+  </div>
+);
+
+export const customContent = () => <Tree header={text('header', 'My Tree')} items={tree2} />;

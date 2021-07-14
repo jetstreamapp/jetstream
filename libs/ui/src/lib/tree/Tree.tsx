@@ -1,5 +1,6 @@
 /* eslint-disable jsx-a11y/anchor-is-valid */
 /** @jsx jsx */
+import { ReactComponent } from '@ag-grid-community/react/lib/reactComponent';
 import { jsx } from '@emotion/react';
 import classNames from 'classnames';
 import TreeItem from 'libs/ui/src/lib/tree/TreeItem';
@@ -7,7 +8,7 @@ import { useState } from 'react';
 
 export interface TreeItems {
   id: string;
-  label: string;
+  label: string | React.ReactNode | JSX.Element;
   title?: string;
   meta?: any;
   treeItems?: TreeItems[];

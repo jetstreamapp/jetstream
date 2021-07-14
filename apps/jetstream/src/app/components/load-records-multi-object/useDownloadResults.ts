@@ -28,14 +28,7 @@ export const useDownloadResults = () => {
           graphResponse.compositeResponse.map((response) => {
             const { referenceId } = response;
             const { operation, sobject, externalId } = recordWithResponseByRefId[referenceId];
-            const { id, success, message, errorCode } = response.body as {
-              id?: string;
-              success?: boolean;
-              message?: string;
-              errorCode?: string;
-              fields?: string[];
-              errors?: unknown[];
-            };
+            const { id, success, message, errorCode } = response.body;
             return {
               Group: graphId,
               Object: sobject,

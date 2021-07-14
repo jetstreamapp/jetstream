@@ -61,7 +61,7 @@ export const Panel: FunctionComponent<PanelProps> = ({
         <div
           className={containerClassName}
           css={css`
-            z-index: 9000;
+            z-index: 2;
             ${fullHeight ? 'position: absolute; height: 100vh; top: 0;' : ''}
             ${position === 'left' ? 'left: 0' : 'right: 0'};
           `}

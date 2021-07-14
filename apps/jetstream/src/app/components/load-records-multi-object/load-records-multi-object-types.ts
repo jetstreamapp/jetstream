@@ -1,6 +1,7 @@
 import {
   CompositeGraphRequest,
   CompositeGraphResponse,
+  CompositeGraphResponseBodyData,
   CompositeRequestBody,
   CompositeResponseItem,
   InsertUpdateUpsert,
@@ -29,6 +30,7 @@ export interface LoadMultiObjectData {
   referenceHeaders: Set<string>;
   metadata: DescribeSObjectResult;
   fieldsByName: MapOf<Field>;
+  fieldsByRelationshipName?: MapOf<Field>;
   errors: LoadMultiObjectDataError[];
 }
 
@@ -42,6 +44,22 @@ export interface LoadMultiObjectRecord {
   dependsOn: string[];
 }
 
+export interface RecordWithResponse {
+  referenceId: string;
+  sobject: string;
+  operation: InsertUpdateUpsert;
+  externalId?: string;
+  request: CompositeRequestBody;
+  response: CompositeResponseItem | null;
+}
+
+export interface LoadMultiObjectRequestGraphResults {
+  graphId: string;
+  isSuccess: boolean | null;
+  compositeRequest: CompositeRequestBody[];
+  compositeResponse: CompositeResponseItem[] | null;
+}
+
 export interface LoadMultiObjectRequestWithResult {
   key: string;
   loading: boolean;
@@ -52,19 +70,7 @@ export interface LoadMultiObjectRequestWithResult {
   data: CompositeGraphRequest[];
   results: CompositeGraphResponse[] | null;
   // Same data as above, just grouped together by graph id
-  dataWithResultsByGraphId: MapOf<{
-    graphId: string;
-    isSuccess: boolean | null;
-    compositeRequest: CompositeRequestBody[];
-    compositeResponse: CompositeResponseItem[] | null;
-  }>;
+  dataWithResultsByGraphId: MapOf<LoadMultiObjectRequestGraphResults>;
   // Same data as above, just grouped together by record reference id
-  recordWithResponseByRefId: MapOf<{
-    referenceId: string;
-    sobject: string;
-    operation: InsertUpdateUpsert;
-    externalId?: string;
-    request: CompositeRequestBody;
-    response: CompositeResponseItem | null;
-  }>;
+  recordWithResponseByRefId: MapOf<RecordWithResponse>;
 }

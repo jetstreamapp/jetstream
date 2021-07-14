@@ -63,6 +63,10 @@ function reducer(state: State, action: Action): State {
 
       // Update dataWithResultsByGraphId and recordWithResponseByRefId with response data
       action.payload.results.forEach((result) => {
+        // in some random cases the response is an array, but in all or most other cases the object is an object
+        result.graphResponse.compositeResponse.forEach((response) => {
+          response.body = Array.isArray(response.body) ? response.body[0] : response.body;
+        });
         currItem.dataWithResultsByGraphId[result.graphId] = {
           ...currItem.dataWithResultsByGraphId[result.graphId],
           isSuccess: result.isSuccessful,

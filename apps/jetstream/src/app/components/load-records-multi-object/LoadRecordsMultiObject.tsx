@@ -31,6 +31,7 @@ import LoadRecordsMultiObjectResults from './LoadRecordsMultiObjectResults';
 import useLoadFile from './useLoadFile';
 import useProcessLoadFile from './useProcessLoadFile';
 
+const TEMPLATE_DOWNLOAD_LINK = 'https://drive.google.com/u/0/uc?id=1pOCPCoX4SxQWfdGc5IFa0wjXX_BKrBcV&export=download';
 const HEIGHT_BUFFER = 170;
 
 // eslint-disable-next-line @typescript-eslint/no-empty-interface
@@ -44,7 +45,8 @@ export const LoadRecordsMultiObject: FunctionComponent<LoadRecordsMultiObjectPro
 
   const [inputFilename, setInputFilename] = useState<string>();
   const [inputFileData, setInputFileData] = useState<XLSX.WorkBook>();
-  const [{ serverUrl, defaultApiVersion }] = useRecoilState(applicationCookieState);
+  const [{ defaultApiVersion }] = useRecoilState(applicationCookieState);
+  const [templateUrl] = useState(`${TEMPLATE_DOWNLOAD_LINK}`);
   const [insertNulls, setInsertNulls] = useState(false);
   const [dateFormat, setDateFormat] = useState<string>(DATE_FORMATS.MM_DD_YYYY);
   const [loadStarted, setLoadStarted] = useState(false);
@@ -130,9 +132,11 @@ export const LoadRecordsMultiObject: FunctionComponent<LoadRecordsMultiObjectPro
         {fileProcessingLoading && <Spinner />}
         <ScopedNotification theme="light" className="slds-m-top_x-small">
           <p>
-            <a href={`${serverUrl}/assets/content/Jetstream - Load With Relationships - Template.xlsx`}>
-              Download Excel template with instructions
-            </a>
+            Download the{' '}
+            <a href={`${templateUrl}`} target="_blank">
+              Excel template
+            </a>{' '}
+            to get started.
           </p>
         </ScopedNotification>
 
@@ -183,7 +187,16 @@ export const LoadRecordsMultiObject: FunctionComponent<LoadRecordsMultiObjectPro
 
         {!data && !fileProcessingErrors?.length && (
           <div>
-            <EmptyState headline="Load a file to get started" illustration={<OpenRoadIllustration />}></EmptyState>;
+            <EmptyState headline="Load a file to continue" illustration={<OpenRoadIllustration />}>
+              <p>
+                Download the{' '}
+                <a href={`${templateUrl}`} target="_blank">
+                  Excel template
+                </a>{' '}
+                to get started.
+              </p>
+            </EmptyState>
+            ;
           </div>
         )}
         {/* TODO: what if there are no rows in any of the loaded data? */}

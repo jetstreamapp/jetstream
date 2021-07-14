@@ -136,10 +136,10 @@ export interface CompositeRequestBody {
 }
 
 export interface CompositeResponse<T = unknown> {
-  compositeResponse: CompositeResponseItem[];
+  compositeResponse: CompositeResponseItem<T>[];
 }
 
-export interface CompositeResponseItem<T = unknown> {
+export interface CompositeResponseItem<T = CompositeGraphResponseBodyData> {
   body: T;
   httpHeaders: any;
   httpStatusCode: number;
@@ -150,10 +150,21 @@ export interface CompositeGraphResponseBody<T = unknown> {
   graphs: CompositeGraphResponse<T>[];
 }
 
-export interface CompositeGraphResponse<T = unknown> {
+export interface CompositeGraphResponse<T = CompositeGraphResponseBodyData> {
   graphId: string;
   graphResponse: CompositeResponse<T>;
   isSuccessful: boolean;
+}
+
+// This may not cover all use-cases, but covered the tested cases pretty well
+// some fields may be undefined depending on the type of error
+export interface CompositeGraphResponseBodyData {
+  id?: string;
+  success?: boolean;
+  message?: string;
+  errorCode?: string;
+  fields?: string[];
+  errors?: unknown[];
 }
 
 /**

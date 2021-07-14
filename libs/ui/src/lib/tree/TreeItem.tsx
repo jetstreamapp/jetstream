@@ -1,13 +1,14 @@
 /** @jsx jsx */
 import { jsx } from '@emotion/react';
 import classNames from 'classnames';
+import { isString } from 'lodash';
 import { SyntheticEvent } from 'react';
 import Icon from '../widgets/Icon';
 import { TreeItems } from './Tree';
 
 export interface TreeItemProps {
   id: string;
-  label: string;
+  label: string | React.ReactNode | JSX.Element;
   title?: string;
   treeItems?: TreeItems[];
   level: number;
@@ -52,9 +53,13 @@ export const TreeItem = ({ id, label, title, expandedItems, treeItems, level, se
           />
         </button>
         <span className="slds-has-flexi-truncate">
-          <span className="slds-tree__item-label slds-truncate" title={title || label}>
-            {label}
-          </span>
+          {isString(label) ? (
+            <span className="slds-tree__item-label slds-truncate" title={title || label}>
+              {label}
+            </span>
+          ) : (
+            label
+          )}
         </span>
       </div>
       {expanded &&

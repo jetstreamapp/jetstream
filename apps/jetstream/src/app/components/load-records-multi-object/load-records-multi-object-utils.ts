@@ -116,8 +116,17 @@ export async function parseWorkbook(workbook: XLSX.WorkBook, org: SalesforceOrgU
       dataset.referenceHeaders = new Set(
         headers.filter((header) => SURROUNDING_BRACKETS_RGX.test(header)).map((header) => header.replace(SURROUNDING_BRACKETS_RGX, ''))
       );
-      dataset.dataById = dataset.data.reduce((output: MapOf<any>, row) => {
-        output[row[dataset.referenceColumnHeader] || uniqueId('reference_')] = row;
+      dataset.dataById = dataset.data.reduce((output: MapOf<any>, row, i) => {
+        const referenceId = row[dataset.referenceColumnHeader] || uniqueId('reference_');
+        if (output[referenceId]) {
+          dataset.errors.push({
+            property: 'data',
+            worksheet: sheetName,
+            location: `A${WORKSHEET_LOCATIONS.dataStartRow + 2 + i}`,
+            message: `The Reference Id "${referenceId}" is used for multiple records. Every record across all worksheets must have a unique Reference Id.`,
+          });
+        }
+        output[referenceId] = row;
         return output;
       }, {});
     } catch (ex) {
@@ -146,6 +155,7 @@ export async function parseWorkbook(workbook: XLSX.WorkBook, org: SalesforceOrgU
  * @param datasets
  */
 async function validateObjectData(org: SalesforceOrgUi, datasets: LoadMultiObjectData[]) {
+  const referenceIds = new Set<string>();
   for (const dataset of datasets) {
     const { worksheet, operation, externalId, headers, errors, referenceColumnHeader } = dataset;
     const errorsByProperty = getMapOf(errors, 'property');
@@ -158,6 +168,43 @@ async function validateObjectData(org: SalesforceOrgUi, datasets: LoadMultiObjec
           output[item.name.toLowerCase()] = item;
           return output;
         }, {});
+
+        /**
+         * If there are fields with external relationships, attempt to fetch the metadata for any related object
+         * If none are found that match, then it will be found during the missing fields step
+         */
+        try {
+          const fieldsWithRelationships = headers.filter((header) => header.includes('.'));
+          if (fieldsWithRelationships.length) {
+            dataset.fieldsByRelationshipName = dataset.metadata.fields
+              .filter((field) => field.relationshipName)
+              .reduce((output: MapOf<Field>, item) => {
+                output[item.relationshipName.toLowerCase()] = item;
+                return output;
+              }, {});
+
+            for (let relationshipField of fieldsWithRelationships) {
+              try {
+                const [relationship] = relationshipField.split('.');
+                const foundField = dataset.fieldsByRelationshipName[relationship.toLowerCase()];
+                if (foundField?.referenceTo?.[0]) {
+                  // Add all external id fields to dataset.fieldsByName with the full path to the field
+                  (await describeSObject(org, foundField.referenceTo[0])).data.fields
+                    .filter((field) => !!field.externalId)
+                    .forEach((relatedField) => {
+                      dataset.fieldsByName[`${relationship}.${relatedField.name}`.toLowerCase()] = relatedField;
+                    });
+                }
+              } catch (ex) {
+                // failed to fetch related object metadata or something
+                logger.warn('Error parsing record record metadata', ex);
+              }
+            }
+          }
+        } catch (ex) {
+          // failed to process related fields metadata
+          logger.warn('Error parsing record record metadata', ex);
+        }
       } catch (ex) {
         errors.push({
           property: 'sobject',
@@ -220,7 +267,6 @@ async function validateObjectData(org: SalesforceOrgUi, datasets: LoadMultiObjec
         });
       }
 
-      // FIXME: we need to support related external Ids (e.x. __r: {ext_d__c: 'foo'})
       const missingFields = headers.filter((header) => !dataset.fieldsByName?.[header.toLowerCase()]);
       if (missingFields.length) {
         errors.push({
@@ -246,6 +292,19 @@ async function validateObjectData(org: SalesforceOrgUi, datasets: LoadMultiObjec
         });
       }
     }
+
+    /** REFERENCE ID */
+    Object.keys(dataset.dataById).forEach((referenceId, i) => {
+      if (referenceIds.has(referenceId)) {
+        errors.push({
+          property: 'data',
+          worksheet: worksheet,
+          location: `A${WORKSHEET_LOCATIONS.dataStartRow + 2 + i}`,
+          message: `The Reference Id "${referenceId}" is used for multiple records. Every record across all worksheets must have a unique Reference Id.`,
+        });
+      }
+      referenceIds.add(referenceId);
+    });
   }
 }
 
@@ -278,7 +337,7 @@ export function getDataGraph(
       const { transformedRecord, dependencies } = dataset.headers.reduce(
         ({ transformedRecord, dependencies }, header) => {
           const field = dataset.fieldsByName[header.toLowerCase()];
-          const value = record[header];
+          let value = record[header];
           const valueIsNull = isNil(value) || (isString(value) && !value);
           let isDependentField = false;
           if (dataset.referenceHeaders.has(header)) {
@@ -297,9 +356,19 @@ export function getDataGraph(
               transformedRecord[field.name] = null;
             }
           } else if (insertNulls || !valueIsNull) {
-            // FIXME: we need to support related external Ids (e.x. __r: {ext_d__c: 'foo'})
-            // TODO: I could do all record transformation later, since we may want to do things like "insert nulls" or allow user to choose date format
-            transformedRecord[field.name] = transformRecordForDataLoad(record[header], field.type, dateFormat);
+            value = transformRecordForDataLoad(record[header], field.type, dateFormat);
+            if (header.includes('.')) {
+              const [relationshipName] = header.toLowerCase().split('.');
+              const relationshipField = dataset.fieldsByRelationshipName?.[relationshipName];
+              if (relationshipField) {
+                transformedRecord[relationshipField.relationshipName] = {
+                  attributes: { type: relationshipField.referenceTo[0] },
+                  [field.name]: value,
+                };
+              }
+            } else {
+              transformedRecord[field.name] = value;
+            }
           }
 
           return { transformedRecord, dependencies };
