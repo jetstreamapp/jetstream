@@ -78,6 +78,7 @@ export const HeaderNavbar: FunctionComponent<HeaderNavbarProps> = ({ userProfile
         <NotificationsRequestModal featureFlags={featureFlags} userInitiated onClose={handleNotificationMenuClosed} />
       )}
       <Header
+        userProfile={userProfile}
         logo={Logo}
         orgs={<OrgsDropdown />}
         userMenuItems={userMenuItems}
