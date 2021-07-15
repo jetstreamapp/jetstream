@@ -1,6 +1,7 @@
 import { logger } from '@jetstream/shared/client-logger';
 import { genericRequest } from '@jetstream/shared/data';
-import { getMapOf } from '@jetstream/shared/utils';
+import { useBrowserNotifications } from '@jetstream/shared/ui-utils';
+import { getMapOf, pluralizeFromNumber } from '@jetstream/shared/utils';
 import { CompositeGraphResponse, CompositeGraphResponseBody, MapOf, SalesforceOrgUi } from '@jetstream/types';
 import { useCallback, useEffect, useReducer, useRef } from 'react';
 import { LoadMultiObjectRequestWithResult } from './load-records-multi-object-types';
@@ -16,6 +17,7 @@ interface State {
   loading: boolean;
   data: MapOf<LoadMultiObjectRequestWithResult>;
   dataArray: LoadMultiObjectRequestWithResult[];
+  finished: boolean;
 }
 
 function reducer(state: State, action: Action): State {
@@ -25,6 +27,7 @@ function reducer(state: State, action: Action): State {
         loading: action.payload.loading,
         data: action.payload.data,
         dataArray: action.payload.data ? Object.values(action.payload.data) : null,
+        finished: false,
       };
     case 'ITEM_STARTED': {
       const { key } = action.payload;
@@ -84,17 +87,43 @@ function reducer(state: State, action: Action): State {
       return { ...state, data, dataArray: Object.values(data) };
     }
     case 'FINISHED':
-      return { ...state, loading: false };
+      return { ...state, loading: false, finished: true };
     default:
       throw new Error('Invalid action');
   }
 }
 
-export const useLoadFile = (org: SalesforceOrgUi, apiVersion: string) => {
-  const [{ loading, dataArray: data }, dispatch] = useReducer(reducer, {
+function getNotification(dataToProcess: LoadMultiObjectRequestWithResult[]) {
+  const { success, failure } = dataToProcess.reduce(
+    (output, item) => {
+      if (item.errorMessage) {
+        output.failure += item.data.length;
+      } else {
+        item.results.forEach((result) => {
+          if (result.isSuccessful) {
+            output.success += result.graphResponse.compositeResponse.length;
+          } else {
+            output.failure += result.graphResponse.compositeResponse.length;
+          }
+        });
+      }
+      return output;
+    },
+    { success: 0, failure: 0 }
+  );
+
+  return `✅ ${success.toLocaleString()} ${pluralizeFromNumber('record', success)} loaded successfully ${
+    failure > 0 ? '❌' : '✅'
+  } ${failure.toLocaleString()} ${pluralizeFromNumber('record', failure)} failed`;
+}
+
+export const useLoadFile = (org: SalesforceOrgUi, serverUrl: string, apiVersion: string) => {
+  const { notifyUser } = useBrowserNotifications(serverUrl);
+  const [{ loading, dataArray: data, finished }, dispatch] = useReducer(reducer, {
     loading: false,
     data: null,
     dataArray: null,
+    finished: false,
   });
 
   const isMounted = useRef<boolean>(null);
@@ -105,6 +134,12 @@ export const useLoadFile = (org: SalesforceOrgUi, apiVersion: string) => {
       isMounted.current = false;
     };
   }, []);
+
+  useEffect(() => {
+    if (finished) {
+      notifyUser(`Your data load is finished`, { body: getNotification(data), tag: 'load-multi-object' });
+    }
+  }, [finished]);
 
   function reset() {
     dispatch({ type: 'INIT', payload: { loading: false, data: null } });

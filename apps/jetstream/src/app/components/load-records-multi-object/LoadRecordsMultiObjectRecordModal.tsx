@@ -1,7 +1,7 @@
 /** @jsx jsx */
 import { jsx } from '@emotion/react';
 import { formatNumber } from '@jetstream/shared/ui-utils';
-import { pluralizeIfMultiple } from '@jetstream/shared/utils';
+import { pluralizeFromNumber, pluralizeIfMultiple } from '@jetstream/shared/utils';
 import { CompositeGraphRequest, CompositeRequestBody } from '@jetstream/types';
 import { Icon, Modal, Tooltip, Tree, TreeItems } from '@jetstream/ui';
 import { Fragment, FunctionComponent, useEffect, useState } from 'react';
@@ -36,7 +36,8 @@ function getParentTreeItem(item: CompositeGraphRequest, data: LoadMultiObjectReq
             'slds-text-color_error': !graphResults.isSuccess,
           })}
         >
-          {getIcon(graphResults.isSuccess)} Record Group - {formatNumber(item.compositeRequest.length)} related records
+          {getIcon(graphResults.isSuccess)} Record Group - {formatNumber(item.compositeRequest.length)}{' '}
+          {pluralizeFromNumber('record', item.compositeRequest.length)}
         </div>
       ),
       treeItems: item.compositeRequest.map((item) => getTreeItem(data.recordWithResponseByRefId[item.referenceId], item)),
@@ -47,7 +48,7 @@ function getParentTreeItem(item: CompositeGraphRequest, data: LoadMultiObjectReq
    */
   return {
     id: `parent-${item.graphId}`,
-    label: `Record Group - ${formatNumber(item.compositeRequest.length)} records`,
+    label: `Record Group - ${formatNumber(item.compositeRequest.length)} ${pluralizeFromNumber('record', item.compositeRequest.length)}`,
     treeItems: item.compositeRequest.map((item) => getTreeItem(data.recordWithResponseByRefId[item.referenceId], item)),
   };
 }
@@ -55,7 +56,19 @@ function getParentTreeItem(item: CompositeGraphRequest, data: LoadMultiObjectReq
 function getTreeItem(record: RecordWithResponse, item?: CompositeRequestBody): TreeItems {
   if (record.response) {
     const extraContent = (
-      <Tooltip id={`tooltip-${record.referenceId}`} content={record.request.body ? JSON.stringify(item.body, null, 2) : undefined}>
+      <Tooltip
+        id={`tooltip-${record.referenceId}`}
+        content={
+          <div>
+            {record.request?.body && (
+              <div>
+                <div>Request:</div>
+                {JSON.stringify(record.request.body).slice(0, 1000)}
+              </div>
+            )}
+          </div>
+        }
+      >
         {getIcon(record.response.body.success)}
       </Tooltip>
     );
@@ -89,10 +102,11 @@ export const LoadRecordsMultiObjectRecordModal: FunctionComponent<LoadRecordsMul
   useEffect(() => {
     if (isOpen && data) {
       setItems(
-        data.data.map((item, i) =>
-          item.compositeRequest.length <= 1
-            ? getTreeItem(data.recordWithResponseByRefId[item.compositeRequest[0].referenceId])
-            : getParentTreeItem(item, data)
+        data.data.map(
+          (item, i) => getParentTreeItem(item, data)
+          // item.compositeRequest.length <= 1
+          // ? getTreeItem(data.recordWithResponseByRefId[item.compositeRequest[0].referenceId])
+          // : getParentTreeItem(item, data)
         )
       );
     } else {

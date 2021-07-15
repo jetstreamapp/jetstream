@@ -157,154 +157,164 @@ export async function parseWorkbook(workbook: XLSX.WorkBook, org: SalesforceOrgU
 async function validateObjectData(org: SalesforceOrgUi, datasets: LoadMultiObjectData[]) {
   const referenceIds = new Set<string>();
   for (const dataset of datasets) {
-    const { worksheet, operation, externalId, headers, errors, referenceColumnHeader } = dataset;
-    const errorsByProperty = getMapOf(errors, 'property');
+    try {
+      const { worksheet, operation, externalId, headers, errors, referenceColumnHeader } = dataset;
+      const errorsByProperty = getMapOf(errors, 'property');
 
-    /** SOBJECT */
-    if (!errorsByProperty.sobject) {
-      try {
-        dataset.metadata = (await describeSObject(org, dataset.sobject)).data;
-        dataset.fieldsByName = dataset.metadata.fields.reduce((output: MapOf<Field>, item) => {
-          output[item.name.toLowerCase()] = item;
-          return output;
-        }, {});
-
-        /**
-         * If there are fields with external relationships, attempt to fetch the metadata for any related object
-         * If none are found that match, then it will be found during the missing fields step
-         */
+      /** SOBJECT */
+      if (!errorsByProperty.sobject) {
         try {
-          const fieldsWithRelationships = headers.filter((header) => header.includes('.'));
-          if (fieldsWithRelationships.length) {
-            dataset.fieldsByRelationshipName = dataset.metadata.fields
-              .filter((field) => field.relationshipName)
-              .reduce((output: MapOf<Field>, item) => {
-                output[item.relationshipName.toLowerCase()] = item;
-                return output;
-              }, {});
+          dataset.metadata = (await describeSObject(org, dataset.sobject)).data;
+          dataset.fieldsByName = dataset.metadata.fields.reduce((output: MapOf<Field>, item) => {
+            output[item.name.toLowerCase()] = item;
+            return output;
+          }, {});
 
-            for (let relationshipField of fieldsWithRelationships) {
-              try {
-                const [relationship] = relationshipField.split('.');
-                const foundField = dataset.fieldsByRelationshipName[relationship.toLowerCase()];
-                if (foundField?.referenceTo?.[0]) {
-                  // Add all external id fields to dataset.fieldsByName with the full path to the field
-                  (await describeSObject(org, foundField.referenceTo[0])).data.fields
-                    .filter((field) => !!field.externalId)
-                    .forEach((relatedField) => {
-                      dataset.fieldsByName[`${relationship}.${relatedField.name}`.toLowerCase()] = relatedField;
-                    });
+          /**
+           * If there are fields with external relationships, attempt to fetch the metadata for any related object
+           * If none are found that match, then it will be found during the missing fields step
+           */
+          try {
+            const fieldsWithRelationships = headers.filter((header) => header.includes('.'));
+            if (fieldsWithRelationships.length) {
+              dataset.fieldsByRelationshipName = dataset.metadata.fields
+                .filter((field) => field.relationshipName)
+                .reduce((output: MapOf<Field>, item) => {
+                  output[item.relationshipName.toLowerCase()] = item;
+                  return output;
+                }, {});
+
+              for (let relationshipField of fieldsWithRelationships) {
+                try {
+                  const [relationship] = relationshipField.split('.');
+                  const foundField = dataset.fieldsByRelationshipName[relationship.toLowerCase()];
+                  if (foundField?.referenceTo?.[0]) {
+                    // Add all external id fields to dataset.fieldsByName with the full path to the field
+                    (await describeSObject(org, foundField.referenceTo[0])).data.fields
+                      .filter((field) => !!field.externalId)
+                      .forEach((relatedField) => {
+                        dataset.fieldsByName[`${relationship}.${relatedField.name}`.toLowerCase()] = relatedField;
+                      });
+                  }
+                } catch (ex) {
+                  // failed to fetch related object metadata or something
+                  logger.warn('Error parsing record record metadata', ex);
                 }
-              } catch (ex) {
-                // failed to fetch related object metadata or something
-                logger.warn('Error parsing record record metadata', ex);
               }
             }
+          } catch (ex) {
+            // failed to process related fields metadata
+            logger.warn('Error parsing record record metadata', ex);
           }
         } catch (ex) {
-          // failed to process related fields metadata
-          logger.warn('Error parsing record record metadata', ex);
+          errors.push({
+            property: 'sobject',
+            worksheet: worksheet,
+            location: WORKSHEET_LOCATIONS.sobject,
+            message: `${ex.message} - "${dataset.sobject}".`,
+          });
         }
-      } catch (ex) {
+      }
+
+      /** OPERATION */
+      if (!errorsByProperty.operation && (!operation || !VALID_OPERATIONS.includes(operation))) {
         errors.push({
-          property: 'sobject',
+          property: 'operation',
           worksheet: worksheet,
-          location: WORKSHEET_LOCATIONS.sobject,
-          message: `${ex.message} - "${dataset.sobject}".`,
+          location: WORKSHEET_LOCATIONS.operation,
+          message: `The operation is not valid: "${operation}". Valid operations are "${VALID_OPERATIONS.map((operation) =>
+            operation.toLowerCase()
+          ).join('", "')}"`,
         });
       }
-    }
 
-    /** OPERATION */
-    if (!errorsByProperty.operation && (!operation || !VALID_OPERATIONS.includes(operation))) {
-      errors.push({
-        property: 'operation',
-        worksheet: worksheet,
-        location: WORKSHEET_LOCATIONS.operation,
-        message: `The operation is not valid: "${operation}". Valid operations are "${VALID_OPERATIONS.map((operation) =>
-          operation.toLowerCase()
-        ).join('", "')}"`,
+      /** EXTERNAL ID */
+      if (!errorsByProperty.externalId && operation === 'UPSERT') {
+        if (!externalId) {
+          errors.push({
+            property: 'externalId',
+            worksheet: worksheet,
+            location: WORKSHEET_LOCATIONS.externalId,
+            message: `An external Id is required for upsert.`,
+          });
+        } else {
+          if (!headers.find((header) => header === externalId)) {
+            errors.push({
+              property: 'externalId',
+              worksheet: worksheet,
+              location: WORKSHEET_LOCATIONS.externalId,
+              message: `The external Id "${externalId}" must be included as a field in the dataset.`,
+            });
+          }
+          if (!dataset.fieldsByName?.[externalId] || !dataset.fieldsByName[externalId].externalId) {
+            errors.push({
+              property: 'externalId',
+              worksheet: worksheet,
+              location: WORKSHEET_LOCATIONS.externalId,
+              message: `The external Id "${externalId}" must exist and must be marked as an external id in Salesforce.`,
+            });
+          }
+        }
+      }
+
+      /** FIELDS */
+      if (!errorsByProperty.data) {
+        if (!referenceColumnHeader) {
+          errors.push({
+            property: 'data',
+            worksheet: worksheet,
+            location: WORKSHEET_LOCATIONS.referenceId,
+            message: `The column header for the Reference Id is blank and must have a unique value.`,
+          });
+        }
+
+        const missingFields = headers.filter((header) => !dataset.fieldsByName?.[header.toLowerCase()]);
+        if (missingFields.length) {
+          errors.push({
+            property: 'data',
+            worksheet: worksheet,
+            location: WORKSHEET_LOCATIONS.dataStartCell,
+            message: `The following fields do not exist on the object "${
+              dataset.sobject
+            }" or you do not have permissions configured correctly: "${missingFields.join('", "')}".`,
+          });
+        }
+
+        const invalidRefIds = dataset.data.filter((row) => !VALID_REF_ID_RGX.test(row[dataset.referenceColumnHeader]));
+        if (invalidRefIds.length) {
+          errors.push({
+            property: 'data',
+            worksheet: worksheet,
+            location: WORKSHEET_LOCATIONS.dataStartCell,
+            message: `The following Reference ${pluralizeFromNumber(
+              'Id',
+              invalidRefIds.length
+            )} have invalid characters: ${invalidRefIds.slice(0, 10)}.`,
+          });
+        }
+      }
+
+      /** REFERENCE ID */
+      Object.keys(dataset.dataById).forEach((referenceId, i) => {
+        if (referenceIds.has(referenceId)) {
+          errors.push({
+            property: 'data',
+            worksheet: worksheet,
+            location: `A${WORKSHEET_LOCATIONS.dataStartRow + 2 + i}`,
+            message: `The Reference Id "${referenceId}" is used for multiple records. Every record across all worksheets must have a unique Reference Id.`,
+          });
+        }
+        referenceIds.add(referenceId);
+      });
+    } catch (ex) {
+      logger.warn('Error validating record data', ex);
+      dataset.errors.push({
+        property: 'data',
+        worksheet: dataset.worksheet,
+        location: WORKSHEET_LOCATIONS.dataStartCell,
+        message: `There was an unexpected error processing your file. Make sure that your file is in the correct format based on the provided template.`,
       });
     }
-
-    /** EXTERNAL ID */
-    if (!errorsByProperty.externalId && operation === 'UPSERT') {
-      if (!externalId) {
-        errors.push({
-          property: 'externalId',
-          worksheet: worksheet,
-          location: WORKSHEET_LOCATIONS.externalId,
-          message: `An external Id is required for upsert.`,
-        });
-      } else {
-        if (!headers.find((header) => header === externalId)) {
-          errors.push({
-            property: 'externalId',
-            worksheet: worksheet,
-            location: WORKSHEET_LOCATIONS.externalId,
-            message: `The external Id "${externalId}" must be included as a field in the dataset.`,
-          });
-        }
-        if (!dataset.fieldsByName?.[externalId] || !dataset.fieldsByName[externalId].externalId) {
-          errors.push({
-            property: 'externalId',
-            worksheet: worksheet,
-            location: WORKSHEET_LOCATIONS.externalId,
-            message: `The external Id "${externalId}" must exist and must be marked as an external id in Salesforce.`,
-          });
-        }
-      }
-    }
-
-    /** FIELDS */
-    if (!errorsByProperty.data) {
-      if (!referenceColumnHeader) {
-        errors.push({
-          property: 'data',
-          worksheet: worksheet,
-          location: WORKSHEET_LOCATIONS.referenceId,
-          message: `The column header for the Reference Id is blank and must have a unique value.`,
-        });
-      }
-
-      const missingFields = headers.filter((header) => !dataset.fieldsByName?.[header.toLowerCase()]);
-      if (missingFields.length) {
-        errors.push({
-          property: 'data',
-          worksheet: worksheet,
-          location: WORKSHEET_LOCATIONS.dataStartCell,
-          message: `The following fields do not exist on the object "${
-            dataset.sobject
-          }" or you do not have permissions configured correctly: "${missingFields.join('", "')}".`,
-        });
-      }
-
-      const invalidRefIds = dataset.data.filter((row) => !VALID_REF_ID_RGX.test(row[dataset.referenceColumnHeader]));
-      if (invalidRefIds.length) {
-        errors.push({
-          property: 'data',
-          worksheet: worksheet,
-          location: WORKSHEET_LOCATIONS.dataStartCell,
-          message: `The following Reference ${pluralizeFromNumber(
-            'Id',
-            invalidRefIds.length
-          )} have invalid characters: ${invalidRefIds.slice(0, 10)}.`,
-        });
-      }
-    }
-
-    /** REFERENCE ID */
-    Object.keys(dataset.dataById).forEach((referenceId, i) => {
-      if (referenceIds.has(referenceId)) {
-        errors.push({
-          property: 'data',
-          worksheet: worksheet,
-          location: `A${WORKSHEET_LOCATIONS.dataStartRow + 2 + i}`,
-          message: `The Reference Id "${referenceId}" is used for multiple records. Every record across all worksheets must have a unique Reference Id.`,
-        });
-      }
-      referenceIds.add(referenceId);
-    });
   }
 }
 

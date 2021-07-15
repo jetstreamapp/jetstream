@@ -56,7 +56,7 @@ app.use(
         blockAllMixedContent: [],
         fontSrc: ["'self'", 'https:', "'unsafe-inline'", 'data:'],
         frameAncestors: ["'self'"],
-        imgSrc: ["'self'", 'data:', '*.gravatar.com'],
+        imgSrc: ["'self'", 'data:', '*.gravatar.com', '*.wp.com'],
         objectSrc: ["'none'"],
         scriptSrc: ["'self'"],
         scriptSrcAttr: ["'none'"],
