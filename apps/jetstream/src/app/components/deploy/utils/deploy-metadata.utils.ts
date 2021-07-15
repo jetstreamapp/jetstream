@@ -360,8 +360,7 @@ function getFriendlyTimestamp(value?: string) {
 }
 
 export function getNotificationMessageBody(numSuccess: number, numFailure: number) {
-  return `✅ ${numSuccess.toLocaleString()} ${pluralizeFromNumber(
-    'item',
-    numSuccess
-  )} deployed successfully - ❌ ${numFailure.toLocaleString()} ${pluralizeFromNumber('item', numFailure)} failed to deploy`;
+  return `✅ ${numSuccess.toLocaleString()} ${pluralizeFromNumber('item', numSuccess)} deployed successfully - ${
+    numFailure > 0 ? '❌' : '✅'
+  } ${numFailure.toLocaleString()} ${pluralizeFromNumber('item', numFailure)} failed to deploy`;
 }

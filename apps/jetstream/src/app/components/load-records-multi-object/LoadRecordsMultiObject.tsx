@@ -6,6 +6,7 @@ import { InputReadFileContent, SalesforceOrgUi } from '@jetstream/types';
 import {
   AutoFullHeightContainer,
   Checkbox,
+  ConfirmationModalPromise,
   EmptyState,
   FileSelector,
   Grid,
@@ -45,7 +46,7 @@ export const LoadRecordsMultiObject: FunctionComponent<LoadRecordsMultiObjectPro
 
   const [inputFilename, setInputFilename] = useState<string>();
   const [inputFileData, setInputFileData] = useState<XLSX.WorkBook>();
-  const [{ defaultApiVersion }] = useRecoilState(applicationCookieState);
+  const [{ serverUrl, defaultApiVersion }] = useRecoilState(applicationCookieState);
   const [templateUrl] = useState(`${TEMPLATE_DOWNLOAD_LINK}`);
   const [insertNulls, setInsertNulls] = useState(false);
   const [dateFormat, setDateFormat] = useState<string>(DATE_FORMATS.MM_DD_YYYY);
@@ -59,10 +60,13 @@ export const LoadRecordsMultiObject: FunctionComponent<LoadRecordsMultiObjectPro
   } = useProcessLoadFile(selectedOrg, defaultApiVersion, { dateFormat, insertNulls });
   const { loadFile, reset: loadResultsReset, data: loadResultsData, loading: dataLoadLoading } = useLoadFile(
     selectedOrg,
+    serverUrl,
     defaultApiVersion
   );
 
   const [data, setData] = useState<LoadMultiObjectRequestWithResult[]>();
+  /** This only stores the data provided from the init file read process, so if the user loads again this has the pre-load state */
+  const [initialData, setInitialData] = useState<LoadMultiObjectRequestWithResult[]>();
 
   useEffect(() => {
     isMounted.current = true;
@@ -78,6 +82,10 @@ export const LoadRecordsMultiObject: FunctionComponent<LoadRecordsMultiObjectPro
   useEffect(() => {
     setData(loadResultsData || fileProcessingData);
   }, [fileProcessingData, loadResultsData]);
+
+  useEffect(() => {
+    setInitialData(JSON.parse(JSON.stringify(fileProcessingData)));
+  }, [fileProcessingData]);
 
   useNonInitialEffect(() => {
     if (inputFileData) {
@@ -98,9 +106,16 @@ export const LoadRecordsMultiObject: FunctionComponent<LoadRecordsMultiObjectPro
     loadResultsReset();
   }
 
-  function handleLoadStarted() {
-    setLoadStarted(true);
-    loadFile(data);
+  async function handleLoadStarted() {
+    if (
+      !loadStarted ||
+      (await ConfirmationModalPromise({
+        content: 'This file has already been loaded, are you sure you want to load it again?',
+      }))
+    ) {
+      setLoadStarted(true);
+      loadFile(initialData);
+    }
   }
 
   function handleStartOver() {

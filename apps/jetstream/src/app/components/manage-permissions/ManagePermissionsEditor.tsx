@@ -380,7 +380,7 @@ export const ManagePermissionsEditor: FunctionComponent<ManagePermissionsEditorP
             <Icon type="utility" icon="refresh" className="slds-button__icon slds-button__icon_left" />
             Reset Changes
           </button>
-          <button className="slds-button slds-button_neutral" onClick={exportChanges} disabled={hasError}>
+          <button className="slds-button slds-button_neutral" onClick={exportChanges} disabled={loading || hasError}>
             <Icon type="utility" icon="download" className="slds-button__icon slds-button__icon_left" />
             Export
           </button>

@@ -41,9 +41,9 @@ export const DownloadMetadataPackageConfigModal: FunctionComponent<DownloadMetad
     setFile(content as string);
   }
 
-  function handleSelectPackage(selectedItems: ListItem<string, ChangeSetPackage>[]) {
-    setPackageNames(selectedItems.map((item) => item.value));
-  }
+  // function handleSelectPackage(selectedItems: ListItem<string, ChangeSetPackage>[]) {
+  //   setPackageNames(selectedItems.map((item) => item.value));
+  // }
 
   function handleDownloadFromPackageNames() {
     // combine selected packages with manually entered packages

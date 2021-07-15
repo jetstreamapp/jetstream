@@ -36,6 +36,12 @@ export const LoadRecordsMultiObjectResultsTableRow: FunctionComponent<LoadRecord
   const finishedPartialSuccess = finished && successCount > 0 && failureCount > 0;
 
   useEffect(() => {
+    if ((!finished && successCount) || failureCount) {
+      setSuccessFailureCount({ successCount: 0, failureCount: 0 });
+    }
+  }, [finished]);
+
+  useEffect(() => {
     if (results) {
       setSuccessFailureCount(
         results.reduce(
@@ -59,14 +65,18 @@ export const LoadRecordsMultiObjectResultsTableRow: FunctionComponent<LoadRecord
   useEffect(() => {
     if (started) {
       setStartTime(started.toLocaleString());
+    } else if (startTime) {
+      setStartTime(null);
     }
-  }, [started]);
+  }, [started, startTime]);
 
   useEffect(() => {
     if (finished) {
       setEndTime(finished.toLocaleString());
+    } else if (endTime) {
+      setEndTime(null);
     }
-  }, [finished]);
+  }, [finished, endTime]);
 
   useEffect(() => {
     if (!started && !loading) {

@@ -16,9 +16,11 @@ export function buildPackageXml(types: MapOf<ListMetadataResult[]>, version: str
     const typesNode = packageNode.ele('types');
     if (types[metadataType].length) {
       orderObjectsBy(types[metadataType], 'fullName').forEach(({ fullName }) => {
-        typesNode.ele('members').txt(encodeURIComponent(fullName));
+        // typesNode.ele('members').txt(encodeURIComponent(fullName));
+        typesNode.ele('members').txt(fullName);
       });
-      typesNode.ele('name').txt(encodeURIComponent(metadataType));
+      // typesNode.ele('name').txt(encodeURIComponent(metadataType));
+      typesNode.ele('name').txt(metadataType);
     }
   });
 

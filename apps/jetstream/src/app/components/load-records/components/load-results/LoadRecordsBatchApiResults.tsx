@@ -136,10 +136,9 @@ export const LoadRecordsBatchApiResults: FunctionComponent<LoadRecordsBatchApiRe
         body: `✅ ${processingStatus.success.toLocaleString()} ${pluralizeFromNumber(
           'record',
           processingStatus.success
-        )} loaded successfully ❌ ${processingStatus.failure.toLocaleString()} ${pluralizeFromNumber(
-          'record',
-          processingStatus.failure
-        )} failed`,
+        )} loaded successfully ${
+          processingStatus.failure > 0 ? '❌' : '✅'
+        } ${processingStatus.failure.toLocaleString()} ${pluralizeFromNumber('record', processingStatus.failure)} failed`,
         tag: 'load-records',
       });
     }

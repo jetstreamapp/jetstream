@@ -177,10 +177,9 @@ export const LoadRecordsBulkApiResults: FunctionComponent<LoadRecordsBulkApiResu
         const numSuccess = jobInfo.numberRecordsProcessed - jobInfo.numberRecordsFailed;
         const numFailure = jobInfo.numberRecordsFailed;
         notifyUser(`Your ${jobInfo.operation} data load is finished`, {
-          body: `✅ ${numSuccess.toLocaleString()} ${pluralizeFromNumber(
-            'record',
-            numSuccess
-          )} loaded successfully - ❌ ${numFailure.toLocaleString()} ${pluralizeFromNumber('record', numFailure)} failed`,
+          body: `✅ ${numSuccess.toLocaleString()} ${pluralizeFromNumber('record', numSuccess)} loaded successfully - ${
+            numFailure > 0 ? '❌' : '✅'
+          } ${numFailure.toLocaleString()} ${pluralizeFromNumber('record', numFailure)} failed`,
           tag: 'load-records',
         });
       } else if (status === STATUSES.PROCESSING && intervalCount < MAX_INTERVAL_CHECK_COUNT) {
