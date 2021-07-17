@@ -75,7 +75,6 @@ export async function getFieldMetadata(org: SalesforceOrgUi, sobject: string): P
 
 /**
  * Attempt to auto-match CSV fields to object fields
- * TODO: match against label as well
  * 1. exact API name match
  * 2. lowercase match
  * 3. match without any special characters

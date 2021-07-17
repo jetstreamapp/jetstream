@@ -44,6 +44,7 @@ export async function parseWorkbook(workbook: XLSX.WorkBook, org: SalesforceOrgU
         property: 'sobject',
         worksheet: sheetName,
         location: WORKSHEET_LOCATIONS.sobject,
+        locationType: 'CELL',
         message: `Error getting the object name.`,
       });
     }
@@ -55,6 +56,7 @@ export async function parseWorkbook(workbook: XLSX.WorkBook, org: SalesforceOrgU
         property: 'operation',
         worksheet: sheetName,
         location: WORKSHEET_LOCATIONS.operation,
+        locationType: 'CELL',
         message: `Error getting the operation.`,
       });
     }
@@ -68,6 +70,7 @@ export async function parseWorkbook(workbook: XLSX.WorkBook, org: SalesforceOrgU
           property: 'externalId',
           worksheet: sheetName,
           location: WORKSHEET_LOCATIONS.sobject,
+          locationType: 'CELL',
           message: `Error getting the external Id`,
         });
       }
@@ -89,7 +92,8 @@ export async function parseWorkbook(workbook: XLSX.WorkBook, org: SalesforceOrgU
         dataset.errors.push({
           property: 'data',
           worksheet: sheetName,
-          location: WORKSHEET_LOCATIONS.dataStartCell,
+          location: `${WORKSHEET_LOCATIONS.dataStartRow + 1}`,
+          locationType: 'ROW',
           message: `There are duplicate values in your header, every value must be unique. "${dataHeaders.join('", "')}".`,
         });
       }
@@ -123,6 +127,7 @@ export async function parseWorkbook(workbook: XLSX.WorkBook, org: SalesforceOrgU
             property: 'data',
             worksheet: sheetName,
             location: `A${WORKSHEET_LOCATIONS.dataStartRow + 2 + i}`,
+            locationType: 'CELL',
             message: `The Reference Id "${referenceId}" is used for multiple records. Every record across all worksheets must have a unique Reference Id.`,
           });
         }
@@ -135,6 +140,7 @@ export async function parseWorkbook(workbook: XLSX.WorkBook, org: SalesforceOrgU
         property: 'data',
         worksheet: sheetName,
         location: WORKSHEET_LOCATIONS.dataStartCell,
+        locationType: 'CELL',
         message: `Error getting the record data.`,
       });
     }
@@ -212,6 +218,7 @@ async function validateObjectData(org: SalesforceOrgUi, datasets: LoadMultiObjec
             property: 'sobject',
             worksheet: worksheet,
             location: WORKSHEET_LOCATIONS.sobject,
+            locationType: 'CELL',
             message: `${ex.message} - "${dataset.sobject}".`,
           });
         }
@@ -223,6 +230,7 @@ async function validateObjectData(org: SalesforceOrgUi, datasets: LoadMultiObjec
           property: 'operation',
           worksheet: worksheet,
           location: WORKSHEET_LOCATIONS.operation,
+          locationType: 'CELL',
           message: `The operation is not valid: "${operation}". Valid operations are "${VALID_OPERATIONS.map((operation) =>
             operation.toLowerCase()
           ).join('", "')}"`,
@@ -236,6 +244,7 @@ async function validateObjectData(org: SalesforceOrgUi, datasets: LoadMultiObjec
             property: 'externalId',
             worksheet: worksheet,
             location: WORKSHEET_LOCATIONS.externalId,
+            locationType: 'CELL',
             message: `An external Id is required for upsert.`,
           });
         } else {
@@ -245,6 +254,7 @@ async function validateObjectData(org: SalesforceOrgUi, datasets: LoadMultiObjec
               property: 'externalId',
               worksheet: worksheet,
               location: WORKSHEET_LOCATIONS.externalId,
+              locationType: 'CELL',
               message: `The external Id "${externalId}" must be included as a field in the dataset.`,
             });
           }
@@ -253,6 +263,7 @@ async function validateObjectData(org: SalesforceOrgUi, datasets: LoadMultiObjec
               property: 'externalId',
               worksheet: worksheet,
               location: WORKSHEET_LOCATIONS.externalId,
+              locationType: 'CELL',
               message: `The external Id "${externalId}" must exist and must be marked as an external id in Salesforce.`,
             });
           } else {
@@ -269,6 +280,7 @@ async function validateObjectData(org: SalesforceOrgUi, datasets: LoadMultiObjec
             property: 'data',
             worksheet: worksheet,
             location: WORKSHEET_LOCATIONS.referenceId,
+            locationType: 'CELL',
             message: `The column header for the Reference Id is blank and must have a unique value.`,
           });
         }
@@ -278,7 +290,8 @@ async function validateObjectData(org: SalesforceOrgUi, datasets: LoadMultiObjec
           errors.push({
             property: 'data',
             worksheet: worksheet,
-            location: WORKSHEET_LOCATIONS.dataStartCell,
+            location: `${WORKSHEET_LOCATIONS.dataStartRow + 1}`,
+            locationType: 'ROW',
             message: `The following fields do not exist on the object "${
               dataset.sobject
             }" or you do not have permissions configured correctly: "${missingFields.join('", "')}".`,
@@ -291,6 +304,7 @@ async function validateObjectData(org: SalesforceOrgUi, datasets: LoadMultiObjec
             property: 'data',
             worksheet: worksheet,
             location: WORKSHEET_LOCATIONS.dataStartCell,
+            locationType: 'CELL',
             message: `The following Reference ${pluralizeFromNumber(
               'Id',
               invalidRefIds.length
@@ -306,6 +320,7 @@ async function validateObjectData(org: SalesforceOrgUi, datasets: LoadMultiObjec
             property: 'data',
             worksheet: worksheet,
             location: `A${WORKSHEET_LOCATIONS.dataStartRow + 2 + i}`,
+            locationType: 'CELL',
             message: `The Reference Id "${referenceId}" is used for multiple records. Every record across all worksheets must have a unique Reference Id.`,
           });
         }
@@ -317,6 +332,7 @@ async function validateObjectData(org: SalesforceOrgUi, datasets: LoadMultiObjec
         property: 'data',
         worksheet: dataset.worksheet,
         location: WORKSHEET_LOCATIONS.dataStartCell,
+        locationType: 'CELL',
         message: `There was an unexpected error processing your file. Make sure that your file is in the correct format based on the provided template.`,
       });
     }
@@ -429,7 +445,8 @@ export function getDataGraph(
         dataset.errors.push({
           property: 'data',
           worksheet: dataset.worksheet,
-          location: `Row ${value.recordIdx + 1}`,
+          location: `${WORKSHEET_LOCATIONS.dataStartRow + 1 + value.recordIdx + 1}`,
+          locationType: 'ROW',
           message: `The Reference Id "${dependency}" is invalid, there is not a row in your file that has this Reference Id.`,
         });
       }
@@ -442,8 +459,19 @@ export function getDataGraph(
 
   const topLevelNodes = overallGraph.overallOrder(true);
   const unprocessedTopLevelNodes = new Set<string>(topLevelNodes);
+  const nodeToTopLevelNodes: MapOf<string[]> = {};
 
   // rebuild dependency graphs for each top level node to split them out into multiple graphs
+
+  // map all nodes to a top level node so we can lookup and pull in a related graph if required
+  topLevelNodes.forEach((topLevelNode) => {
+    nodeToTopLevelNodes[topLevelNode] = [topLevelNode];
+    overallGraph.dependentsOf(topLevelNode).forEach((node) => {
+      nodeToTopLevelNodes[node] = nodeToTopLevelNodes[node] || [];
+      nodeToTopLevelNodes[node].push(topLevelNode);
+    });
+  });
+
   topLevelNodes.forEach((topLevelNode) => {
     // Top level node may have gotten pulled into another graph based on dependencies
     if (!unprocessedTopLevelNodes.has(topLevelNode)) {
@@ -458,7 +486,7 @@ export function getDataGraph(
     graph.addNode(topLevelNode);
     const dependents = overallGraph.dependentsOf(topLevelNode);
 
-    processGraphDependency(recordsByRefId, unprocessedTopLevelNodes, graph, overallGraph)(dependents);
+    processGraphDependency(recordsByRefId, unprocessedTopLevelNodes, graph, overallGraph, nodeToTopLevelNodes)(dependents);
 
     graphs[topLevelNode].compositeRequest = graph.overallOrder().map((node) => {
       let url = `/services/data/${apiVersion}/sobjects/${recordsByRefId[node].sobject}`;
@@ -479,7 +507,8 @@ export function getDataGraph(
       dataset.errors.push({
         property: 'data',
         worksheet: dataset.worksheet,
-        location: `Row ${record.recordIdx + 1}`,
+        location: `${WORKSHEET_LOCATIONS.dataStartRow + 1 + record.recordIdx + 1}`,
+        locationType: 'ROW',
         message: `The Reference Id "${topLevelNode}" has ${formatNumber(
           graphs[topLevelNode].compositeRequest.length
         )} dependent records. A maximum of ${MAX_REQ_SIZE} records can be related to each other in one data load`,
@@ -495,7 +524,8 @@ function processGraphDependency(
   recordsByRefId: MapOf<LoadMultiObjectRecord>,
   unprocessedTopLevelNodes: Set<string>,
   graph: DepGraph<unknown>,
-  overallGraph: DepGraph<unknown>
+  overallGraph: DepGraph<unknown>,
+  nodeToTopLevelNodes: MapOf<string[]>
 ) {
   return function processDependents(dependents: string[]) {
     // add all child nodes to graph
@@ -504,14 +534,18 @@ function processGraphDependency(
     // add dependencies for each node
     dependents.forEach((node) => {
       Object.values(recordsByRefId[node].dependsOn).forEach((dependency) => {
-        /**
-         * determine if another top-level node has dependencies with this graph
-         * If so, bring in and process top-level node into current graph
-         */
-        if (unprocessedTopLevelNodes.has(dependency)) {
-          unprocessedTopLevelNodes.delete(dependency);
+        // if a node has a dependency that does not exist in this graph, we need to combine additional graphs into this one
+        if (!graph.hasNode(dependency)) {
+          // Pull in related graph and process all nodes in that graph
           graph.addNode(dependency);
-          processDependents(overallGraph.dependentsOf(dependency));
+          nodeToTopLevelNodes[dependency].forEach((relatedTopLevelNode) => {
+            // unprocessedTopLevelNodes.delete(relatedTopLevelNode);
+            if (unprocessedTopLevelNodes.has(relatedTopLevelNode)) {
+              unprocessedTopLevelNodes.delete(relatedTopLevelNode);
+              graph.addNode(relatedTopLevelNode);
+              processDependents(overallGraph.dependentsOf(relatedTopLevelNode));
+            }
+          });
         }
 
         graph.addDependency(node, dependency);

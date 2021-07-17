@@ -12,6 +12,7 @@ export interface LoadMultiObjectDataError {
   property: Omit<keyof LoadMultiObjectData, 'errors'>;
   worksheet: string;
   location: string;
+  locationType: 'CELL' | 'ROW';
   message: string;
 }
 
