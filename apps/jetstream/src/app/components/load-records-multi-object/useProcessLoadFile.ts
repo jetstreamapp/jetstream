@@ -74,9 +74,9 @@ export const useValidateLoadFile = (org: SalesforceOrgUi, apiVersion: string, op
           payload: {
             errors: [
               {
-                property: '',
-                worksheet: '',
-                location: '',
+                property: null,
+                worksheet: 'Unknown',
+                location: null,
                 message: ex.message,
               },
             ],
@@ -107,15 +107,6 @@ export const useValidateLoadFile = (org: SalesforceOrgUi, apiVersion: string, op
           } else {
             // this will automatically initiate the next part in the process
             dispatch({ type: 'PROCESSED_DATASET', payload: { data: datasets } });
-            // try {
-            //   const data = getDataGraph(datasets, apiVersion);
-            //   logger.info('[LOAD MULTI OBJ] Data', { data });
-            //   dispatch({ type: 'SUCCESS', payload: { data } });
-            // } catch (ex) {
-            //   errors = datasets.flatMap((dataset) => dataset.errors);
-            //   logger.error('[LOAD MULTI OBJ] Errors', { errors });
-            //   dispatch({ type: 'FAILURE', payload: { errors } });
-            // }
           }
         }
       } catch (ex) {
@@ -127,9 +118,9 @@ export const useValidateLoadFile = (org: SalesforceOrgUi, apiVersion: string, op
             payload: {
               errors: [
                 {
-                  property: '',
-                  worksheet: '',
-                  location: '',
+                  property: null,
+                  worksheet: 'Unknown',
+                  location: null,
                   message: ex.message,
                 },
               ],
