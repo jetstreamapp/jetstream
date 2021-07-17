@@ -1,6 +1,6 @@
 import { logger } from '@jetstream/shared/client-logger';
 import { SFDC_BULK_API_NULL_VALUE } from '@jetstream/shared/constants';
-import { queryWithCache } from '@jetstream/shared/data';
+import { queryAll, queryWithCache } from '@jetstream/shared/data';
 import { describeSObjectWithExtendedTypes } from '@jetstream/shared/ui-utils';
 import { REGEX, transformRecordForDataLoad } from '@jetstream/shared/utils';
 import { EntityParticleRecord, MapOf, SalesforceOrgUi } from '@jetstream/types';
@@ -46,6 +46,7 @@ export async function getFieldMetadata(org: SalesforceOrgUi, sobject: string): P
   const relatedObjects = new Set(fieldsWithRelationships.flatMap((field) => field.referenceTo));
   // related records
   if (relatedObjects.size > 0) {
+    // FIXME: This needs to include a broader set of fields
     const relatedEntities = (
       await queryWithCache<EntityParticleRecord>(org, getExternalIdFieldsForSobjectsQuery(Array.from(relatedObjects)), true)
     ).data;
@@ -61,6 +62,7 @@ export async function getFieldMetadata(org: SalesforceOrgUi, sobject: string): P
                 name: particle.Name,
                 label: particle.Label,
                 type: particle.DataType,
+                isExternalId: particle.IsIdLookup,
               })
             );
           }
@@ -318,6 +320,93 @@ export function transformData({ data, fieldMapping, sObject, insertNulls, dateFo
         return output;
       }, {});
   });
+}
+
+// TODO: we need to return some data structure that has success / error indicators for records
+// TODO: figure out how we are matching success/error record
+
+// TODO: IDEA: maybe return two sets of records - {prepared: [], failed: []}
+// show the failed records in a section at the top of the table that looks similar to other rows, but could be a little different
+
+export async function fetchMappedRelatedRecords(org: SalesforceOrgUi, { data, fieldMapping, apiMode }: PrepareDataPayload): any[] {
+  const nonExternalIdFieldMappings = Object.values(fieldMapping).filter(
+    (item) => item.mappedToLookup && item.relatedFieldMetadata && !item.relatedFieldMetadata.isExternalId
+  );
+
+  if (nonExternalIdFieldMappings.length) {
+    for (let {
+      lookupOptionUseFirstMatch,
+      lookupOptionNullIfNoMatch,
+      selectedReferenceTo,
+      targetLookupField,
+      relationshipName,
+    } of nonExternalIdFieldMappings) {
+      const fieldRelationshipName = `${relationshipName}.${targetLookupField}`;
+      const relatedValues = new Set(data.map((row) => row[fieldRelationshipName]).filter(Boolean));
+
+      if (relatedValues.size) {
+        const relatedRecordsByRelatedField: MapOf<string[]> = {};
+        const queries = getRelatedFieldsQueries(selectedReferenceTo, targetLookupField, Array.from(relatedValues));
+        for (let query of queries) {
+          try {
+            (await queryAll(org, query)).queryResults.records.forEach((record) => {
+              relatedRecordsByRelatedField[targetLookupField] = relatedRecordsByRelatedField[targetLookupField] || [];
+              relatedRecordsByRelatedField[targetLookupField].push(record.Id);
+            });
+          } catch (ex) {
+            // TODO: do something - we would want to return some additional information about errors
+          }
+        }
+
+        data.forEach((record) => {
+          const relatedRecords = relatedRecordsByRelatedField[record[targetLookupField]];
+          if (!relatedRecords) {
+            if (lookupOptionNullIfNoMatch) {
+              record[targetLookupField] = apiMode === 'BATCH' ? null : SFDC_BULK_API_NULL_VALUE;
+            } else {
+              // TODO: ERROR - no match, and not mark as null
+            }
+          } else if (relatedRecords.length > 1 && !lookupOptionUseFirstMatch) {
+            // TODO: ERROR
+          } else {
+            record[targetLookupField] = relatedRecords[0];
+          }
+        });
+      }
+    }
+  }
+
+  return data;
+}
+
+/**
+ * Get as many queries as required to fetch all the related values based on the length of the query
+ *
+ * @param relatedObject
+ * @param relatedField
+ * @param relatedValues
+ * @returns
+ */
+function getRelatedFieldsQueries(relatedObject: string, relatedField: string, relatedValues: string[]): string[] {
+  const BASE_QUERY = `SELECT Id, ${relatedField} FROM ${relatedObject} WHERE ${relatedField} IN ('`;
+  const BASE_QUERY_LENGTH = BASE_QUERY.length;
+  const MAX_QUERY_LENGTH = 15000; // 16K is maximum
+  const queries = [];
+  let tempRelatedValues = [];
+  let currLength = BASE_QUERY_LENGTH;
+  relatedValues.forEach((value) => {
+    tempRelatedValues.push(value);
+    currLength += value.length;
+    if (currLength >= MAX_QUERY_LENGTH) {
+      queries.push(`${BASE_QUERY}${tempRelatedValues.join(`','`)}')`);
+      tempRelatedValues = [];
+      currLength = BASE_QUERY_LENGTH;
+    }
+  });
+  if (tempRelatedValues.length) {
+    queries.push(`${BASE_QUERY}${tempRelatedValues.join(`','`)}')`);
+  }
+  return queries;
 }
 
 // function transformDate(value: any, dateFormat: string): string | null {
