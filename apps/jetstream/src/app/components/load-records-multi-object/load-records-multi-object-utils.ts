@@ -59,7 +59,7 @@ export async function parseWorkbook(workbook: XLSX.WorkBook, org: SalesforceOrgU
       });
     }
     try {
-      dataset.externalId = worksheet[WORKSHEET_LOCATIONS.externalId]?.v?.toLowerCase();
+      dataset.externalId = worksheet[WORKSHEET_LOCATIONS.externalId]?.v;
     } catch (ex) {
       logger.warn('Error parsing external Id', ex);
       // only return error if this is an upsert operation
@@ -165,6 +165,7 @@ async function validateObjectData(org: SalesforceOrgUi, datasets: LoadMultiObjec
       if (!errorsByProperty.sobject) {
         try {
           dataset.metadata = (await describeSObject(org, dataset.sobject)).data;
+          dataset.sobject = dataset.metadata.name;
           dataset.fieldsByName = dataset.metadata.fields.reduce((output: MapOf<Field>, item) => {
             output[item.name.toLowerCase()] = item;
             return output;
@@ -238,7 +239,8 @@ async function validateObjectData(org: SalesforceOrgUi, datasets: LoadMultiObjec
             message: `An external Id is required for upsert.`,
           });
         } else {
-          if (!headers.find((header) => header === externalId)) {
+          const externalIdLowercase = externalId.toLowerCase();
+          if (!headers.find((header) => header.toLowerCase() === externalIdLowercase)) {
             errors.push({
               property: 'externalId',
               worksheet: worksheet,
@@ -246,13 +248,16 @@ async function validateObjectData(org: SalesforceOrgUi, datasets: LoadMultiObjec
               message: `The external Id "${externalId}" must be included as a field in the dataset.`,
             });
           }
-          if (!dataset.fieldsByName?.[externalId] || !dataset.fieldsByName[externalId].externalId) {
+          if (!dataset.fieldsByName?.[externalIdLowercase] || !dataset.fieldsByName[externalIdLowercase].externalId) {
             errors.push({
               property: 'externalId',
               worksheet: worksheet,
               location: WORKSHEET_LOCATIONS.externalId,
               message: `The external Id "${externalId}" must exist and must be marked as an external id in Salesforce.`,
             });
+          } else {
+            // change External Id to properly cased value
+            dataset.externalId = dataset.fieldsByName[externalIdLowercase].name;
           }
         }
       }
@@ -343,9 +348,11 @@ export function getDataGraph(
 
   const recordsByRefId = datasets.reduce((output: MapOf<LoadMultiObjectRecord>, dataset) => {
     dataset.data.forEach((record, recordIdx) => {
+      const lowercaseExternalId = dataset.externalId?.toLowerCase();
       /** Transform record values and flag which fields have references to other records */
-      const { transformedRecord, dependencies } = dataset.headers.reduce(
+      const { transformedRecord, externalIdValue, dependencies } = dataset.headers.reduce(
         ({ transformedRecord, dependencies }, header) => {
+          let externalIdValue: any = null;
           const field = dataset.fieldsByName[header.toLowerCase()];
           let value = record[header];
           const valueIsNull = isNil(value) || (isString(value) && !value);
@@ -365,6 +372,9 @@ export function getDataGraph(
             } else if (insertNulls) {
               transformedRecord[field.name] = null;
             }
+          } else if (dataset.operation === 'UPSERT' && lowercaseExternalId === field.name.toLowerCase()) {
+            // External id used for upsert, this needs to be omitted from the record as the value is included in the URL
+            externalIdValue = value;
           } else if (insertNulls || !valueIsNull) {
             value = transformRecordForDataLoad(record[header], field.type, dateFormat);
             if (header.includes('.')) {
@@ -381,15 +391,16 @@ export function getDataGraph(
             }
           }
 
-          return { transformedRecord, dependencies };
+          return { transformedRecord, externalIdValue, dependencies };
         },
-        { transformedRecord: {}, dependencies: [] }
+        { transformedRecord: {}, externalIdValue: null, dependencies: [] }
       );
 
       const tempData: LoadMultiObjectRecord = {
         sobject: dataset.sobject,
         operation: dataset.operation,
         externalId: dataset.externalId,
+        externalIdValue,
         referenceId: record[dataset.referenceColumnHeader],
         record: transformedRecord,
         recordIdx: recordIdx,
@@ -430,9 +441,15 @@ export function getDataGraph(
   }
 
   const topLevelNodes = overallGraph.overallOrder(true);
+  const unprocessedTopLevelNodes = new Set<string>(topLevelNodes);
 
   // rebuild dependency graphs for each top level node to split them out into multiple graphs
   topLevelNodes.forEach((topLevelNode) => {
+    // Top level node may have gotten pulled into another graph based on dependencies
+    if (!unprocessedTopLevelNodes.has(topLevelNode)) {
+      return;
+    }
+    unprocessedTopLevelNodes.delete(topLevelNode);
     graphs[topLevelNode] = {
       graphId: topLevelNode,
       compositeRequest: [],
@@ -441,33 +458,12 @@ export function getDataGraph(
     graph.addNode(topLevelNode);
     const dependents = overallGraph.dependentsOf(topLevelNode);
 
-    if (dependents.length >= MAX_REQ_SIZE) {
-      const dataset = refIdToDataset[topLevelNode];
-      const record = recordsByRefId[topLevelNode];
-      dataset.errors.push({
-        property: 'data',
-        worksheet: dataset.worksheet,
-        location: `Row ${record.recordIdx + 1}`,
-        message: `The Reference Id "${topLevelNode}" has ${formatNumber(
-          dependents.length
-        )} dependent records. A maximum of ${MAX_REQ_SIZE} records can be related to each other in one data load`,
-      });
-      throw new Error('There was an error parsing the record dependencies');
-    }
+    processGraphDependency(recordsByRefId, unprocessedTopLevelNodes, graph, overallGraph)(dependents);
 
-    dependents.forEach((node) => {
-      graph.addNode(node);
-    });
-
-    dependents.forEach((node) => {
-      Object.values(recordsByRefId[node].dependsOn).forEach((dependency) => {
-        overallGraph.addDependency(node, dependency);
-      });
-    });
     graphs[topLevelNode].compositeRequest = graph.overallOrder().map((node) => {
       let url = `/services/data/${apiVersion}/sobjects/${recordsByRefId[node].sobject}`;
       if (recordsByRefId[node].operation === 'UPSERT' && recordsByRefId[node].externalId) {
-        url += `/${recordsByRefId[node].externalId}`;
+        url += `/${recordsByRefId[node].externalId}/${recordsByRefId[node].externalIdValue}`;
       }
       return {
         method: getHttpMethod(recordsByRefId[node].operation),
@@ -476,9 +472,52 @@ export function getDataGraph(
         body: recordsByRefId[node].record,
       };
     });
+
+    if (graphs[topLevelNode].compositeRequest.length >= MAX_REQ_SIZE) {
+      const dataset = refIdToDataset[topLevelNode];
+      const record = recordsByRefId[topLevelNode];
+      dataset.errors.push({
+        property: 'data',
+        worksheet: dataset.worksheet,
+        location: `Row ${record.recordIdx + 1}`,
+        message: `The Reference Id "${topLevelNode}" has ${formatNumber(
+          graphs[topLevelNode].compositeRequest.length
+        )} dependent records. A maximum of ${MAX_REQ_SIZE} records can be related to each other in one data load`,
+      });
+      throw new Error('There was an error parsing the record dependencies');
+    }
   });
 
   return transformGraphRequestsToRequestWithResults(Object.values(graphs), recordsByRefId);
+}
+
+function processGraphDependency(
+  recordsByRefId: MapOf<LoadMultiObjectRecord>,
+  unprocessedTopLevelNodes: Set<string>,
+  graph: DepGraph<unknown>,
+  overallGraph: DepGraph<unknown>
+) {
+  return function processDependents(dependents: string[]) {
+    // add all child nodes to graph
+    dependents.forEach((node) => graph.addNode(node));
+
+    // add dependencies for each node
+    dependents.forEach((node) => {
+      Object.values(recordsByRefId[node].dependsOn).forEach((dependency) => {
+        /**
+         * determine if another top-level node has dependencies with this graph
+         * If so, bring in and process top-level node into current graph
+         */
+        if (unprocessedTopLevelNodes.has(dependency)) {
+          unprocessedTopLevelNodes.delete(dependency);
+          graph.addNode(dependency);
+          processDependents(overallGraph.dependentsOf(dependency));
+        }
+
+        graph.addDependency(node, dependency);
+      });
+    });
+  };
 }
 
 function transformGraphRequestsToRequestWithResults(
@@ -528,15 +567,25 @@ function splitRequestsToMaxSize(items: CompositeGraphRequest[], maxSize: number)
   }
   let output = [];
   let currSet = [];
+  let currPayloadNodes = new Set<string>();
   let currCount = 0;
   items.forEach((item) => {
-    if (currCount + item.compositeRequest.length < maxSize) {
+    // get all variations of nodes
+    item.compositeRequest.forEach((req) => currPayloadNodes.add(req.url.split('/')[5]));
+    /**
+     * 75 graphs allowed per payload
+     * 500 records per payload
+     * 14 nodes per payload (node is determined by sobject endpoint + api version)
+     * -> if there are more than 15 nodes in first dataset, then ignore this restriction (but it will likely fail to load)
+     */
+    if (!currSet.length || (currSet.length < 75 && currCount + item.compositeRequest.length < maxSize && currPayloadNodes.size < 15)) {
       currSet.push(item);
       currCount += item.compositeRequest.length;
     } else {
       output.push(currSet);
       currSet = [item];
-      currCount = 0;
+      currCount = item.compositeRequest.length;
+      currPayloadNodes = new Set();
     }
   });
   if (currSet.length > 0) {

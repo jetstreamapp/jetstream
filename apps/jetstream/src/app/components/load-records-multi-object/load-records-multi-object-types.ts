@@ -1,7 +1,6 @@
 import {
   CompositeGraphRequest,
   CompositeGraphResponse,
-  CompositeGraphResponseBodyData,
   CompositeRequestBody,
   CompositeResponseItem,
   InsertUpdateUpsert,
@@ -38,6 +37,7 @@ export interface LoadMultiObjectRecord {
   sobject: string;
   operation: InsertUpdateUpsert;
   externalId?: string;
+  externalIdValue?: string;
   referenceId: string;
   record: any;
   recordIdx: number;
