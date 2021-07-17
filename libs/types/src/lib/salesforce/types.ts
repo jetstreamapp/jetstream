@@ -161,6 +161,7 @@ export interface CompositeGraphResponse<T = CompositeGraphResponseBodyData> {
 export interface CompositeGraphResponseBodyData {
   id?: string;
   success?: boolean;
+  created?: boolean;
   message?: string;
   errorCode?: string;
   fields?: string[];

@@ -30,7 +30,8 @@ export const LoadRecordsMultiObjectResultsTableRow: FunctionComponent<LoadRecord
   const [endTime, setEndTime] = useState<string>();
   const [status, setStatus] = useState<string>();
 
-  const total = formatNumber(Object.keys(recordWithResponseByRefId).length);
+  const totalCount = Object.keys(recordWithResponseByRefId).length;
+  const total = formatNumber(totalCount);
   const finishedSuccessfully = finished && successCount > 0 && failureCount === 0;
   const finishedAllFailed = finished && successCount === 0;
   const finishedPartialSuccess = finished && successCount > 0 && failureCount > 0;
@@ -43,22 +44,27 @@ export const LoadRecordsMultiObjectResultsTableRow: FunctionComponent<LoadRecord
 
   useEffect(() => {
     if (results) {
-      setSuccessFailureCount(
-        results.reduce(
-          (output, result) => {
-            if (result.isSuccessful) {
-              output.successCount += result.graphResponse.compositeResponse.length;
-            } else {
-              output.failureCount += result.graphResponse.compositeResponse.length;
-            }
-            return output;
-          },
-          {
-            successCount: 0,
-            failureCount: 0,
+      const counts = results.reduce(
+        (output, result) => {
+          if (result.isSuccessful) {
+            output.successCount += result.graphResponse.compositeResponse.length;
+          } else {
+            output.failureCount += result.graphResponse.compositeResponse.length;
           }
-        )
+          return output;
+        },
+        {
+          successCount: 0,
+          failureCount: 0,
+        }
       );
+
+      // if there is a bonkers failure, then there might only be one returned record
+      if (finished && counts.successCount + counts.failureCount !== totalCount) {
+        counts.failureCount = totalCount - counts.successCount;
+      }
+
+      setSuccessFailureCount(counts);
     }
   }, [results]);
 

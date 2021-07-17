@@ -13,7 +13,7 @@ export const useDownloadResults = () => {
   const downloadRequests = useCallback((data: LoadMultiObjectRequestWithResult[]) => {
     setDownloadModalData({
       open: true,
-      data: data.flatMap((item) => item.data),
+      data: data.map((item) => ({ groupId: item.key, data: Object.values(item.dataWithResultsByGraphId) })),
       header: [],
       fileNameParts: ['load-to-multiple-objects', 'request'],
       allowedTypes: ['json'],
@@ -27,8 +27,8 @@ export const useDownloadResults = () => {
         .flatMap(({ graphResponse, graphId }) =>
           graphResponse.compositeResponse.map((response) => {
             const { referenceId } = response;
-            const { operation, sobject, externalId } = recordWithResponseByRefId[referenceId];
-            const { id, success, message, errorCode } = response.body;
+            const { operation, sobject, externalId } = recordWithResponseByRefId[referenceId] || {};
+            const { id, success, message, created, errorCode } = response.body;
             return {
               Group: graphId,
               Object: sobject,
@@ -37,6 +37,7 @@ export const useDownloadResults = () => {
               'Reference Id': referenceId,
               Id: id || '',
               Success: !!success,
+              Created: !!created || (operation === 'INSERT' && !!success),
               Error: errorCode ? `${errorCode}: ${message}` : '',
             };
           })
@@ -46,7 +47,7 @@ export const useDownloadResults = () => {
     setDownloadModalData({
       open: true,
       data: outputData,
-      header: ['Group', 'Object', 'Operation', 'External Id', 'Reference Id', 'Id', 'Success', 'Error'],
+      header: ['Group', 'Object', 'Operation', 'External Id', 'Reference Id', 'Id', 'Success', 'Created', 'Error'],
       fileNameParts: ['load-to-multiple-objects', which],
       allowedTypes: ['xlsx', 'csv', 'json'],
     });

@@ -52,24 +52,25 @@ function reducer(state: State, action: Action): State {
       return { ...state, data, dataArray: Object.values(data) };
     }
     case 'ITEM_FINISHED': {
-      const { key } = action.payload;
+      const { key, results } = action.payload;
       const data: MapOf<LoadMultiObjectRequestWithResult> = { ...state.data };
       data[key] = {
         ...data[key],
         finished: new Date(),
         loading: false,
-        results: action.payload.results,
+        results,
         dataWithResultsByGraphId: { ...data[key].dataWithResultsByGraphId },
         recordWithResponseByRefId: { ...data[key].recordWithResponseByRefId },
       };
       const currItem = data[key];
 
       // Update dataWithResultsByGraphId and recordWithResponseByRefId with response data
-      action.payload.results.forEach((result) => {
+      results.forEach((result) => {
         // in some random cases the response is an array, but in all or most other cases the object is an object
         result.graphResponse.compositeResponse.forEach((response) => {
           response.body = Array.isArray(response.body) ? response.body[0] : response.body;
         });
+
         currItem.dataWithResultsByGraphId[result.graphId] = {
           ...currItem.dataWithResultsByGraphId[result.graphId],
           isSuccess: result.isSuccessful,
