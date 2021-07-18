@@ -6,6 +6,7 @@ import classNames from 'classnames';
 import isNil from 'lodash/isNil';
 import { Fragment, FunctionComponent, useEffect, useState } from 'react';
 import { FieldMappingItem, FieldRelatedEntity, FieldWithRelatedEntities } from '../load-records-types';
+import LoadRecordsFieldMappingRowLookupOption from './LoadRecordsFieldMappingRowLookupOption';
 
 function getPreviewData(csvRowData: string | Date | boolean | number | null): string {
   if (isNil(csvRowData)) {
@@ -112,6 +113,8 @@ export const LoadRecordsFieldMappingRow: FunctionComponent<LoadRecordsFieldMappi
         mappedToLookup: false,
         fieldMetadata: undefined,
         selectedReferenceTo: undefined,
+        lookupOptionUseFirstMatch: 'ERROR_IF_MULTIPLE',
+        lookupOptionNullIfNoMatch: false,
       });
     } else if (field.name !== fieldMappingItem.targetField) {
       onSelectionChanged(csvField, {
@@ -137,13 +140,20 @@ export const LoadRecordsFieldMappingRow: FunctionComponent<LoadRecordsFieldMappi
   }
 
   function handleRelatedSelectionChanged(field: FieldRelatedEntity) {
-    onSelectionChanged(csvField, {
+    const newFieldMappingItem: FieldMappingItem = {
       ...fieldMappingItem,
       mappedToLookup: true,
       targetLookupField: field.name,
       relatedFieldMetadata: field,
       relationshipName: fieldMappingItem.fieldMetadata.relationshipName,
-    });
+    };
+
+    if (newFieldMappingItem.targetLookupField && newFieldMappingItem.relatedFieldMetadata.isExternalId) {
+      newFieldMappingItem.lookupOptionNullIfNoMatch = false;
+      newFieldMappingItem.lookupOptionUseFirstMatch = 'ERROR_IF_MULTIPLE';
+    }
+
+    onSelectionChanged(csvField, newFieldMappingItem);
   }
 
   function handleMapToRelatedChanged(value: boolean) {
@@ -227,70 +237,95 @@ export const LoadRecordsFieldMappingRow: FunctionComponent<LoadRecordsFieldMappi
               <Checkbox
                 id={`${csvField}-${fieldMappingItem.targetField}-map-to-related`}
                 checked={fieldMappingItem.mappedToLookup}
-                label={'Map to External Id'}
-                labelHelp="You can choose an external Id on the related record instead of the Id to indicate which related record should be associated."
+                label={'Map using related field'}
+                labelHelp={
+                  <div>
+                    <p>You can choose certain fields on the related record instead of the Id to set this lookup.</p>
+                    <p className="slds-m-top_x-small">
+                      If the field is an External Id then Salesforce will find the related records, otherwise Jetstream will find the
+                      related records before loading your file into Salesforce.
+                    </p>
+                  </div>
+                }
                 onChange={handleMapToRelatedChanged}
               />
             </div>
             {fieldMappingItem.mappedToLookup && (
-              <Grid>
-                <div className="slds-m-right_small">
-                  <Select
-                    id={`${fieldMappingItem.targetField}-related-to`}
-                    label="Related Object"
-                    isRequired
-                    labelHelp={
-                      fieldMappingItem.fieldMetadata.referenceTo.length <= 1
-                        ? 'This option is only enabled for fields that have more than one related object.'
-                        : 'This lookup can point to multiple objects, choose the related object that you are mapping to.'
-                    }
-                  >
-                    <select
-                      className="slds-select"
+              <Fragment>
+                <Grid>
+                  <div className="slds-m-right_small">
+                    <Select
                       id={`${fieldMappingItem.targetField}-related-to`}
-                      disabled={fieldMappingItem.fieldMetadata.referenceTo.length <= 1}
-                      value={fieldMappingItem.selectedReferenceTo}
-                      onChange={(event) => handleRelatedObjectSelectionChanged(event.target.value)}
+                      label="Related Object"
+                      isRequired
+                      labelHelp={
+                        fieldMappingItem.fieldMetadata.referenceTo.length <= 1
+                          ? 'This option is only enabled for fields that have more than one related object.'
+                          : 'This lookup can point to multiple objects, choose the related object that you are mapping to.'
+                      }
                     >
-                      {fieldMappingItem.fieldMetadata.referenceTo.map((relatedObject) => (
-                        <option key={relatedObject} value={relatedObject}>
-                          {relatedObject}
-                        </option>
-                      ))}
-                    </select>
-                  </Select>
-                </div>
-                <div className="slds-grow">
-                  <Combobox
-                    label="Related External Id Fields"
-                    selectedItemLabel={getComboboxRelatedFieldName(fieldMappingItem.relatedFieldMetadata)}
-                    selectedItemTitle={getComboboxRelatedFieldName(fieldMappingItem.relatedFieldMetadata)}
-                    onInputChange={setRelatedTextFilter}
-                  >
-                    {visibleRelatedFields.map((field) => (
-                      <ComboboxListItem
-                        key={field.name}
-                        id={`${csvField}-${field.name}-related`}
-                        selected={field.name === fieldMappingItem.targetLookupField}
-                        onSelection={(value) => handleRelatedSelectionChanged(field)}
+                      <select
+                        className="slds-select"
+                        id={`${fieldMappingItem.targetField}-related-to`}
+                        disabled={fieldMappingItem.fieldMetadata.referenceTo.length <= 1}
+                        value={fieldMappingItem.selectedReferenceTo}
+                        onChange={(event) => handleRelatedObjectSelectionChanged(event.target.value)}
                       >
-                        <span className="slds-listbox__option-text slds-listbox__option-text_entity">
-                          <Grid align="spread">
-                            <span title={field.label} className="slds-truncate">
-                              {field.label}
-                            </span>
-                          </Grid>
-                        </span>
-                        <span className="slds-listbox__option-meta slds-listbox__option-meta_entity">
-                          <span title={field.name} className="slds-truncate">
-                            {field.name}
+                        {fieldMappingItem.fieldMetadata.referenceTo.map((relatedObject) => (
+                          <option key={relatedObject} value={relatedObject}>
+                            {relatedObject}
+                          </option>
+                        ))}
+                      </select>
+                    </Select>
+                  </div>
+                  <div className="slds-grow">
+                    <Combobox
+                      label="Related Mappable Fields"
+                      selectedItemLabel={getComboboxRelatedFieldName(fieldMappingItem.relatedFieldMetadata)}
+                      selectedItemTitle={getComboboxRelatedFieldName(fieldMappingItem.relatedFieldMetadata)}
+                      onInputChange={setRelatedTextFilter}
+                    >
+                      {visibleRelatedFields.map((field) => (
+                        <ComboboxListItem
+                          key={field.name}
+                          id={`${csvField}-${field.name}-related`}
+                          selected={field.name === fieldMappingItem.targetLookupField}
+                          onSelection={(value) => handleRelatedSelectionChanged(field)}
+                        >
+                          <span className="slds-listbox__option-text slds-listbox__option-text_entity">
+                            <Grid align="spread">
+                              <span title={field.label} className="slds-truncate">
+                                {field.label}
+                              </span>
+                            </Grid>
                           </span>
-                        </span>
-                      </ComboboxListItem>
-                    ))}
-                  </Combobox>
-                </div>
-              </Grid>
+                          <span className="slds-listbox__option-meta slds-listbox__option-meta_entity">
+                            <span title={field.name} className="slds-truncate">
+                              {field.name}
+                            </span>
+                          </span>
+                          {field.isExternalId && (
+                            <span className="slds-listbox__option-meta slds-listbox__option-meta_entity">
+                              <div title="External Id field" className="slds-truncate">
+                                <strong>External Id</strong>
+                              </div>
+                            </span>
+                          )}
+                        </ComboboxListItem>
+                      ))}
+                    </Combobox>
+                  </div>
+                </Grid>
+                {fieldMappingItem.targetLookupField && (
+                  <LoadRecordsFieldMappingRowLookupOption
+                    csvField={csvField}
+                    fieldMappingItem={fieldMappingItem}
+                    disabled={fieldMappingItem.relatedFieldMetadata.isExternalId}
+                    onSelectionChanged={onSelectionChanged}
+                  />
+                )}
+              </Fragment>
             )}
           </Fragment>
         )}

@@ -16,7 +16,7 @@ export const AnonymousApexFilter = forwardRef<any, AnonymousApexFilterProps>(
     return (
       <div ref={ref} className="slds-grid slds-grid_vertical-align-center slds-m-bottom_x-small">
         <div className="slds-grow slds-m-right_small">
-          <SearchInput id="log-filter" value={textFilter} placeholder="Filter logs" disabled={!hasResults} onChange={onTextChange} />
+          <SearchInput id="apex-filter" value={textFilter} placeholder="Filter logs" disabled={!hasResults} onChange={onTextChange} />
         </div>
         <Checkbox
           id={`anon-apex-user-debug`}

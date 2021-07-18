@@ -544,3 +544,33 @@ function transformDateTime(value: string | null | Date, dateFormat: string): str
   }
   return null;
 }
+
+/**
+ * Based on the number of successes or failures, provide an appropriate character for notification
+ * This is used when success and error are shown separately
+ * @param type
+ * @param itemCount
+ * @returns
+ */
+export function getSuccessOrFailureChar(type: 'success' | 'failure', itemCount: number) {
+  if (type === 'success') {
+    return itemCount > 0 ? '✅' : '❌';
+  }
+  return itemCount === 0 ? '✅' : '❌';
+}
+
+/**
+ * Based on the number of successes and failures, provide an appropriate character for notification
+ * This is used for a summary (e.x. title)
+ * @param type
+ * @param itemCount
+ * @returns
+ */
+export function getSuccessOrFailureOrWarningChar(itemSuccessCount: number, itemFailedCount: number) {
+  if (itemFailedCount === 0) {
+    return '✅';
+  } else if (itemSuccessCount === 0) {
+    return '❌';
+  }
+  return '⚠️';
+}

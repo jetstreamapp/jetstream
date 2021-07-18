@@ -13,7 +13,6 @@ import {
   SobjectCollectionResponse,
   WorkerMessage,
 } from '@jetstream/types';
-import { isBoolean } from 'lodash';
 import isString from 'lodash/isString';
 import {
   LoadDataBulkApi,
@@ -21,7 +20,7 @@ import {
   LoadDataPayload,
   PrepareDataPayload,
 } from '../../components/load-records/load-records-types';
-import { transformData } from '../../components/load-records/utils/load-records-utils';
+import { fetchMappedRelatedRecords, transformData } from '../../components/load-records/utils/load-records-utils';
 
 type MessageName = 'prepareData' | 'loadData' | 'loadDataStatus';
 // eslint-disable-next-line no-restricted-globals
@@ -43,8 +42,10 @@ async function handleMessage(name: MessageName, payloadData: any) {
         if (!Array.isArray(data) || !fieldMapping || !isString(sObject) || !isString(dateFormat) || !isString(apiMode)) {
           throw new Error('The required parameters were not included in the request');
         }
-        const results = transformData(payloadData);
-        replyToMessage(name, { preparedData: results });
+
+        const preparedData = await fetchMappedRelatedRecords(transformData(payloadData), payloadData);
+
+        replyToMessage(name, { preparedData });
         break;
       }
       case 'loadData': {

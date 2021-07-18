@@ -59,17 +59,30 @@ export interface FieldMappingItem {
   fieldMetadata: FieldWithRelatedEntities;
   relatedFieldMetadata?: FieldRelatedEntity;
   isDuplicateMappedField?: boolean;
-  lookupOptionUseFirstMatch?: NonExtIdLookupOption;
-  lookupOptionNullIfNoMatch?: boolean;
+  lookupOptionUseFirstMatch: NonExtIdLookupOption;
+  lookupOptionNullIfNoMatch: boolean;
 }
 
 export interface PrepareDataPayload {
+  org: SalesforceOrgUi;
   data: any[];
   fieldMapping: FieldMapping;
   sObject: string;
   insertNulls?: boolean; // defaults to false
   dateFormat: string;
   apiMode: ApiMode;
+}
+
+export interface PrepareDataResponse {
+  data: any[];
+  errors: PrepareDataResponseError[];
+  queryErrors: string[];
+}
+
+export interface PrepareDataResponseError {
+  row: number;
+  record: any;
+  errors: string[];
 }
 
 export interface LoadDataPayload {

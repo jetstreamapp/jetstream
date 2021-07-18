@@ -7,8 +7,9 @@ export interface RadioGroupProps {
   idPrefix?: string;
   className?: string;
   formControlClassName?: string;
+  helpTextClassName?: string;
   label?: string;
-  labelHelp?: string;
+  labelHelp?: string | JSX.Element;
   helpText?: string | JSX.Element;
   required?: boolean;
   hasError?: boolean;
@@ -20,6 +21,7 @@ export const RadioGroup: FunctionComponent<RadioGroupProps> = ({
   idPrefix,
   className,
   formControlClassName,
+  helpTextClassName,
   label,
   labelHelp,
   helpText,
@@ -51,7 +53,7 @@ export const RadioGroup: FunctionComponent<RadioGroupProps> = ({
         {!isButtonGroup && children}
       </div>
       {helpText && (
-        <div id={helpTextId} className="slds-form-element__help">
+        <div id={helpTextId} className={classNames('slds-form-element__help', helpTextClassName)}>
           {helpText}
         </div>
       )}

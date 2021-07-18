@@ -10,7 +10,7 @@ export interface CheckboxProps {
   checked: boolean;
   label: string;
   hideLabel?: boolean;
-  labelHelp?: string;
+  labelHelp?: string | JSX.Element;
   helpText?: React.ReactNode | string;
   disabled?: boolean;
   readOnly?: boolean;
