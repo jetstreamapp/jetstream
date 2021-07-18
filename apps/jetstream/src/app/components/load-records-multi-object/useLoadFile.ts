@@ -1,7 +1,7 @@
 import { logger } from '@jetstream/shared/client-logger';
 import { genericRequest } from '@jetstream/shared/data';
 import { useBrowserNotifications } from '@jetstream/shared/ui-utils';
-import { getMapOf, pluralizeFromNumber } from '@jetstream/shared/utils';
+import { getMapOf, getSuccessOrFailureChar, pluralizeFromNumber } from '@jetstream/shared/utils';
 import { CompositeGraphResponse, CompositeGraphResponseBody, MapOf, SalesforceOrgUi } from '@jetstream/types';
 import { useCallback, useEffect, useReducer, useRef } from 'react';
 import { LoadMultiObjectRequestWithResult } from './load-records-multi-object-types';
@@ -113,9 +113,13 @@ function getNotification(dataToProcess: LoadMultiObjectRequestWithResult[]) {
     { success: 0, failure: 0 }
   );
 
-  return `✅ ${success.toLocaleString()} ${pluralizeFromNumber('record', success)} loaded successfully ${
-    failure > 0 ? '❌' : '✅'
-  } ${failure.toLocaleString()} ${pluralizeFromNumber('record', failure)} failed`;
+  return `${getSuccessOrFailureChar('success', success)} ${success.toLocaleString()} ${pluralizeFromNumber(
+    'record',
+    success
+  )} loaded successfully ${getSuccessOrFailureChar('failure', failure)} ${failure.toLocaleString()} ${pluralizeFromNumber(
+    'record',
+    failure
+  )} failed`;
 }
 
 export const useLoadFile = (org: SalesforceOrgUi, serverUrl: string, apiVersion: string) => {

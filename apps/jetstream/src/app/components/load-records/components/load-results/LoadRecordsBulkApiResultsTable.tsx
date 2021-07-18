@@ -3,19 +3,27 @@ import { css, jsx } from '@emotion/react';
 import { getFilename, getOrgUrlParams } from '@jetstream/shared/ui-utils';
 import { BulkJobBatchInfo, BulkJobWithBatches, SalesforceOrgUi } from '@jetstream/types';
 import { FunctionComponent, useEffect, useState } from 'react';
+import { PrepareDataResponseError } from '../../load-records-types';
 import LoadRecordsBulkApiResultsTableRow from './LoadRecordsBulkApiResultsTableRow';
+import LoadRecordsResultsTableProcessingErrRow from './LoadRecordsResultsTableProcessingErrRow';
 export interface LoadRecordsBulkApiResultsTableProps {
   selectedOrg: SalesforceOrgUi;
-  serverUrl: string;
   jobInfo: BulkJobWithBatches;
+  processingErrors: PrepareDataResponseError[];
+  processingStartTime: string;
+  processingEndTime: string;
   onDownload: (type: 'results' | 'failures', batch: BulkJobBatchInfo, batchIndex: number) => Promise<void>;
+  onDownloadProcessingErrors: () => void;
 }
 
 export const LoadRecordsBulkApiResultsTable: FunctionComponent<LoadRecordsBulkApiResultsTableProps> = ({
   selectedOrg,
-  serverUrl,
   jobInfo,
+  processingErrors,
+  processingStartTime,
+  processingEndTime,
   onDownload,
+  onDownloadProcessingErrors,
 }) => {
   const [orgUrlParams, setOrgUrlParams] = useState<string>(null);
   const [filenamePrefix, setFilenamePrefix] = useState<string>(null);
@@ -86,6 +94,14 @@ export const LoadRecordsBulkApiResultsTable: FunctionComponent<LoadRecordsBulkAp
         </tr>
       </thead>
       <tbody>
+        {!!processingErrors?.length && (
+          <LoadRecordsResultsTableProcessingErrRow
+            processingErrors={processingErrors}
+            processingStartTime={processingStartTime}
+            processingEndTime={processingEndTime}
+            onDownload={onDownloadProcessingErrors}
+          />
+        )}
         {jobInfo.batches.map((batch, i) => (
           <LoadRecordsBulkApiResultsTableRow
             key={batch.id}

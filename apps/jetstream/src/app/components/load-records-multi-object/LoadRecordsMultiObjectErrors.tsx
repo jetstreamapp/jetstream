@@ -10,6 +10,13 @@ export interface LoadRecordsMultiObjectErrorsProps {
   errors: LoadMultiObjectDataError[];
 }
 
+function getErrorLocation(error: LoadMultiObjectDataError) {
+  if (!error.location) {
+    return null;
+  }
+  return error.locationType === 'ROW' ? <span>(Row {error.location})</span> : <span>(Cell {error.location})</span>;
+}
+
 export const LoadRecordsMultiObjectErrors: FunctionComponent<LoadRecordsMultiObjectErrorsProps> = ({ errors }) => {
   const [errorsByWorksheet, setErrorsByWorksheet] = useState<MapOf<LoadMultiObjectDataError[]>>();
 
@@ -31,7 +38,7 @@ export const LoadRecordsMultiObjectErrors: FunctionComponent<LoadRecordsMultiObj
                 <ul className="slds-list_dotted">
                   {currErrors.map((error, i) => (
                     <li key={i}>
-                      {error.message} (<strong>Cell {error.location}</strong>)
+                      {error.message} {getErrorLocation(error)}
                     </li>
                   ))}
                 </ul>

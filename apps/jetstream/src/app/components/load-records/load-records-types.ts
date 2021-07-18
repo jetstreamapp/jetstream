@@ -23,6 +23,7 @@ export interface FieldRelatedEntity {
   name: string;
   label: string;
   type: string;
+  isExternalId: boolean;
 }
 
 export interface Step {
@@ -42,6 +43,7 @@ export type ApiModeBatch = 'BATCH';
 export type ApiMode = ApiModeBulk | ApiModeBatch;
 
 export type EntityParticleRecordWithRelatedExtIds = EntityParticleRecord & { attributes: RecordAttributesWithRelatedRecords };
+export type NonExtIdLookupOption = 'FIRST' | 'ERROR_IF_MULTIPLE';
 
 export interface FieldMapping {
   [field: string]: FieldMappingItem;
@@ -57,15 +59,30 @@ export interface FieldMappingItem {
   fieldMetadata: FieldWithRelatedEntities;
   relatedFieldMetadata?: FieldRelatedEntity;
   isDuplicateMappedField?: boolean;
+  lookupOptionUseFirstMatch: NonExtIdLookupOption;
+  lookupOptionNullIfNoMatch: boolean;
 }
 
 export interface PrepareDataPayload {
+  org: SalesforceOrgUi;
   data: any[];
   fieldMapping: FieldMapping;
   sObject: string;
   insertNulls?: boolean; // defaults to false
   dateFormat: string;
   apiMode: ApiMode;
+}
+
+export interface PrepareDataResponse {
+  data: any[];
+  errors: PrepareDataResponseError[];
+  queryErrors: string[];
+}
+
+export interface PrepareDataResponseError {
+  row: number;
+  record: any;
+  errors: string[];
 }
 
 export interface LoadDataPayload {
