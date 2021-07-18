@@ -2,13 +2,20 @@
 import { jsx } from '@emotion/react';
 import { logger } from '@jetstream/shared/client-logger';
 import { useBrowserNotifications } from '@jetstream/shared/ui-utils';
-import { flattenRecord, pluralizeFromNumber } from '@jetstream/shared/utils';
+import { flattenRecord, getSuccessOrFailureChar, pluralizeFromNumber } from '@jetstream/shared/utils';
 import { InsertUpdateUpsertDelete, RecordResultWithRecord, SalesforceOrgUi, WorkerMessage } from '@jetstream/types';
-import { FileDownloadModal } from '@jetstream/ui';
+import { FileDownloadModal, Spinner } from '@jetstream/ui';
 import { FunctionComponent, useEffect, useRef, useState } from 'react';
 import { useRecoilState } from 'recoil';
 import { applicationCookieState } from '../../../../app-state';
-import { ApiMode, FieldMapping, LoadDataBatchApiProgress } from '../../load-records-types';
+import {
+  ApiMode,
+  FieldMapping,
+  LoadDataBatchApiProgress,
+  LoadDataPayload,
+  PrepareDataPayload,
+  PrepareDataResponse,
+} from '../../load-records-types';
 import LoadWorker from '../../load-records.worker';
 import { getFieldHeaderFromMapping } from '../../utils/load-records-utils';
 import LoadRecordsBatchApiResultsTable from './LoadRecordsBatchApiResultsTable';
@@ -59,10 +66,12 @@ export const LoadRecordsBatchApiResults: FunctionComponent<LoadRecordsBatchApiRe
   onFinish,
 }) => {
   const isMounted = useRef(null);
-  const [preparedData, setPreparedData] = useState<any[]>();
+  const [preparedData, setPreparedData] = useState<PrepareDataResponse>();
   const [loadWorker] = useState(() => new LoadWorker());
   const [status, setStatus] = useState<Status>(STATUSES.PREPARING);
   const [fatalError, setFatalError] = useState<string>(null);
+  const [processingStartTime, setProcessingStartTime] = useState<string>(null);
+  const [processingEndTime, setProcessingEndTime] = useState<string>(null);
   const [startTime, setStartTime] = useState<string>(null);
   const [endTime, setEndTime] = useState<string>(null);
   const [processedRecords, setProcessedRecords] = useState<RecordResultWithRecord[]>([]);
@@ -83,39 +92,36 @@ export const LoadRecordsBatchApiResults: FunctionComponent<LoadRecordsBatchApiRe
   useEffect(() => {
     if (loadWorker) {
       setStatus(STATUSES.PREPARING);
+      setProcessingStartTime(new Date().toLocaleString());
       setFatalError(null);
-      loadWorker.postMessage({
-        name: 'prepareData',
-        data: {
-          data: inputFileData,
-          fieldMapping,
-          sObject: selectedSObject,
-          insertNulls,
-          dateFormat,
-          apiMode,
-        },
-      });
+      const data: PrepareDataPayload = {
+        org: selectedOrg,
+        data: inputFileData,
+        fieldMapping,
+        sObject: selectedSObject,
+        insertNulls,
+        dateFormat,
+        apiMode,
+      };
+      loadWorker.postMessage({ name: 'prepareData', data: data });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [loadWorker]);
 
   useEffect(() => {
-    if (preparedData) {
-      // transform data on init
-      loadWorker.postMessage({
-        name: 'loadData',
-        data: {
-          org: selectedOrg,
-          data: preparedData,
-          sObject: selectedSObject,
-          apiMode,
-          type: loadType,
-          batchSize,
-          assignmentRuleId,
-          serialMode,
-          externalId,
-        },
-      });
+    if (preparedData && preparedData.data.length) {
+      const data: LoadDataPayload = {
+        org: selectedOrg,
+        data: preparedData.data,
+        sObject: selectedSObject,
+        apiMode,
+        type: loadType,
+        batchSize,
+        assignmentRuleId,
+        serialMode,
+        externalId,
+      };
+      loadWorker.postMessage({ name: 'loadData', data });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [preparedData]);
@@ -123,7 +129,7 @@ export const LoadRecordsBatchApiResults: FunctionComponent<LoadRecordsBatchApiRe
   useEffect(() => {
     if (Array.isArray(processedRecords) && processedRecords.length > 0) {
       setProcessingStatus({
-        total: preparedData.length,
+        total: preparedData.data.length,
         success: processedRecords.filter((record) => record.success).length,
         failure: processedRecords.filter((record) => !record.success).length,
       });
@@ -131,18 +137,21 @@ export const LoadRecordsBatchApiResults: FunctionComponent<LoadRecordsBatchApiRe
   }, [preparedData, processedRecords]);
 
   useEffect(() => {
-    if (status === STATUSES.FINISHED) {
+    if (status === STATUSES.FINISHED && preparedData) {
+      const numSuccess = processingStatus.success;
+      const numFailure = processingStatus.failure + preparedData.errors.length;
       notifyUser(`Your ${loadType.toLowerCase()} data load is finished`, {
-        body: `✅ ${processingStatus.success.toLocaleString()} ${pluralizeFromNumber(
+        body: `${getSuccessOrFailureChar('success', numSuccess)} ${numSuccess.toLocaleString()} ${pluralizeFromNumber(
           'record',
-          processingStatus.success
-        )} loaded successfully ${
-          processingStatus.failure > 0 ? '❌' : '✅'
-        } ${processingStatus.failure.toLocaleString()} ${pluralizeFromNumber('record', processingStatus.failure)} failed`,
+          numSuccess
+        )} loaded successfully ${getSuccessOrFailureChar('failure', numFailure)} ${numFailure.toLocaleString()} ${pluralizeFromNumber(
+          'record',
+          numFailure
+        )} failed`,
         tag: 'load-records',
       });
     }
-  }, [status, processingStatus]);
+  }, [status, processingStatus, preparedData]);
 
   useEffect(() => {
     if (loadWorker) {
@@ -152,9 +161,10 @@ export const LoadRecordsBatchApiResults: FunctionComponent<LoadRecordsBatchApiRe
         }
         const payload: WorkerMessage<
           'prepareData' | 'loadDataStatus' | 'loadData',
-          { preparedData?: any[]; records?: RecordResultWithRecord[] }
+          { preparedData?: PrepareDataResponse; records?: RecordResultWithRecord[] }
         > = event.data;
         logger.log('[LOAD DATA]', payload.name, { payload });
+        const dateString = new Date().toLocaleString();
         switch (payload.name) {
           case 'prepareData': {
             if (payload.error) {
@@ -162,14 +172,29 @@ export const LoadRecordsBatchApiResults: FunctionComponent<LoadRecordsBatchApiRe
               setStatus(STATUSES.ERROR);
               setFatalError(payload.error.message);
               onFinish();
-              notifyUser(`⚠️ Your ${loadType.toLowerCase()} data load failed`, {
-                body: `Error: ${payload.error?.message || payload.error}`,
+              notifyUser(`Your ${loadType.toLowerCase()} data load failed`, {
+                body: `❌ ${payload.error?.message || payload.error}`,
+                tag: 'load-records',
+              });
+            } else if (!payload.data.preparedData.data.length) {
+              if (payload.data.preparedData.queryErrors?.length) {
+                setFatalError(payload.data.preparedData.queryErrors.join('\n'));
+              }
+              setStatus(STATUSES.ERROR);
+              setPreparedData(payload.data.preparedData);
+              setProcessingEndTime(dateString);
+              setStartTime(dateString);
+              setEndTime(dateString);
+              onFinish();
+              notifyUser(`Your ${loadType.toLowerCase()} data load failed`, {
+                body: `❌ Pre-processing records failed.`,
                 tag: 'load-records',
               });
             } else {
               setStatus(STATUSES.PROCESSING);
               setPreparedData(payload.data.preparedData);
-              setStartTime(new Date().toLocaleString());
+              setStartTime(dateString);
+              setProcessingEndTime(dateString);
             }
             break;
           }
@@ -182,15 +207,15 @@ export const LoadRecordsBatchApiResults: FunctionComponent<LoadRecordsBatchApiRe
               logger.error('ERROR', payload.error);
               setStatus(STATUSES.ERROR);
               onFinish();
-              setEndTime(new Date().toLocaleString());
-              notifyUser(`⚠️ Your ${loadType.toLowerCase()} data load failed`, {
-                body: `Error: ${payload.error?.message || payload.error}`,
+              setEndTime(dateString);
+              notifyUser(`Your ${loadType.toLowerCase()} data load failed`, {
+                body: `❌ ${payload.error?.message || payload.error}`,
                 tag: 'load-records',
               });
             } else {
               setStatus(STATUSES.FINISHED);
               onFinish();
-              setEndTime(new Date().toLocaleString());
+              setEndTime(dateString);
             }
             break;
           }
@@ -203,14 +228,14 @@ export const LoadRecordsBatchApiResults: FunctionComponent<LoadRecordsBatchApiRe
 
   function handleDownloadRecords(type: 'results' | 'failures') {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const data: any[] = [];
+    const combinedResults: any[] = [];
     // Use field mapping to determine headers in output data and account for relationship fields
     const fields = getFieldHeaderFromMapping(fieldMapping);
 
     processedRecords.forEach((record) => {
       if (type === 'results' ? true : !record.success) {
         // for failure records, if the Id field is present, then include in _id field
-        data.push({
+        combinedResults.push({
           _id: record.success ? record.id : record['Id'] || '',
           _success: record.success,
           _errors: record.success === false ? record.errors.map((error) => `${error.statusCode}: ${error.message}`).join('\n') : '',
@@ -222,9 +247,26 @@ export const LoadRecordsBatchApiResults: FunctionComponent<LoadRecordsBatchApiRe
     const header = ['_id', '_success', '_errors'].concat(fields);
     setDownloadModalData({
       open: true,
-      data,
+      data: combinedResults,
       header,
       fileNameParts: [loadType.toLocaleLowerCase(), selectedSObject.toLocaleLowerCase(), type],
+    });
+  }
+
+  function handleDownloadProcessingErrors() {
+    const fields = getFieldHeaderFromMapping(fieldMapping);
+    const header = ['_id', '_success', '_errors'].concat(fields);
+    setDownloadModalData({
+      ...downloadModalData,
+      open: true,
+      fileNameParts: [loadType.toLocaleLowerCase(), selectedSObject.toLocaleLowerCase(), 'processing-failures'],
+      header,
+      data: preparedData.errors.map((error) => ({
+        _id: null,
+        _success: false,
+        _errors: error.errors.join('\n'),
+        ...flattenRecord(error.record, fields),
+      })),
     });
   }
 
@@ -243,7 +285,10 @@ export const LoadRecordsBatchApiResults: FunctionComponent<LoadRecordsBatchApiRe
           onModalClose={handleModalClose}
         />
       )}
-      <h3 className="slds-text-heading_small">{status}</h3>
+      <h3 className="slds-text-heading_small slds-grid">
+        <span>{status}</span>
+        {status === STATUSES.PREPARING && <Spinner inline containerClassName="slds-m-left_small" size="x-small" />}
+      </h3>
       {fatalError && (
         <div className="slds-text-color_error">
           <strong>Fatal Error</strong>: {fatalError}
@@ -252,12 +297,17 @@ export const LoadRecordsBatchApiResults: FunctionComponent<LoadRecordsBatchApiRe
       {/* Data is being processed */}
       {startTime && (
         <LoadRecordsBatchApiResultsTable
+          processingErrors={preparedData.errors}
           processingStatus={processingStatus}
+          failedProcessingStage={!preparedData?.data.length && !!preparedData?.errors.length}
           inProgress={status === STATUSES.PROCESSING}
           failed={status === STATUSES.ERROR}
           startTime={startTime}
           endTime={endTime}
+          processingStartTime={processingStartTime}
+          processingEndTime={processingEndTime}
           onDownload={handleDownloadRecords}
+          onDownloadProcessingErrors={handleDownloadProcessingErrors}
         />
       )}
     </div>

@@ -3,8 +3,9 @@ import { css, jsx } from '@emotion/react';
 import { logger } from '@jetstream/shared/client-logger';
 import { ANALYTICS_KEYS } from '@jetstream/shared/constants';
 import { useDebounce, useNonInitialEffect } from '@jetstream/shared/ui-utils';
+import { multiWordStringFilter } from '@jetstream/shared/utils';
 import { InsertUpdateUpsertDelete, SalesforceOrgUi } from '@jetstream/types';
-import { Alert, DropDown, Grid, GridCol, Icon } from '@jetstream/ui';
+import { Alert, DropDown, Grid, GridCol, Icon, SearchInput } from '@jetstream/ui';
 import classNames from 'classnames';
 import { memo, useEffect, useRef, useState } from 'react';
 import { useAmplitude } from '../../core/analytics';
@@ -60,6 +61,7 @@ export const LoadRecordsFieldMapping = memo<LoadRecordsFieldMappingProps>(
     const [warningMessage, setWarningMessage] = useState<string>(null);
     const [filter, setFilter] = useState<Filter>(FILTER_ALL);
     const [refreshLoading, setRefreshLoading] = useState(false);
+    const [searchTerm, setSearchTerm] = useState('');
 
     const debouncedSelectedValue = useDebounce(activeRowIndex, 150);
 
@@ -84,14 +86,19 @@ export const LoadRecordsFieldMapping = memo<LoadRecordsFieldMappingProps>(
     }, [externalId, fieldMapping, loadType]);
 
     useNonInitialEffect(() => {
-      if (filter === FILTER_ALL) {
-        setVisibleHeaders(inputHeader);
-      } else if (filter === FILTER_MAPPED) {
-        setVisibleHeaders(inputHeader.filter((header) => !!fieldMapping[header]?.targetField));
-      } else {
-        setVisibleHeaders(inputHeader.filter((header) => !fieldMapping[header]?.targetField));
+      let tempVisibleHeaders = inputHeader;
+      if (filter === FILTER_MAPPED) {
+        tempVisibleHeaders = tempVisibleHeaders.filter((header) => !!fieldMapping[header]?.targetField);
+      } else if (filter === FILTER_UNMAPPED) {
+        tempVisibleHeaders = tempVisibleHeaders.filter((header) => !fieldMapping[header]?.targetField);
       }
-    }, [filter]);
+
+      if (searchTerm) {
+        tempVisibleHeaders = tempVisibleHeaders.filter(multiWordStringFilter(searchTerm));
+      }
+
+      setVisibleHeaders(tempVisibleHeaders);
+    }, [searchTerm, filter]);
 
     /**
      * This is purposefully mutating this state data to avoid re-rendering each child which makes the app seem slow
@@ -156,7 +163,8 @@ export const LoadRecordsFieldMapping = memo<LoadRecordsFieldMappingProps>(
           )}
         </GridCol>
         <GridCol grow>
-          <Grid align="end">
+          <Grid align="spread" className="slds-p-vertical_xx-small">
+            <SearchInput id="field-filter" className="slds-size_1-of-2" placeholder="Filter fields from file" onChange={setSearchTerm} />
             <LoadRecordsRefreshCachePopover org={org} sobject={sobject} loading={refreshLoading} onReload={handleCacheRefresh} />
           </Grid>
           <table className="slds-table slds-table_cell-buffer slds-table_bordered slds-table_fixed-layout">

@@ -1,7 +1,7 @@
 import { logger } from '@jetstream/shared/client-logger';
 import { SFDC_BULK_API_NULL_VALUE } from '@jetstream/shared/constants';
-import { queryWithCache } from '@jetstream/shared/data';
-import { describeSObjectWithExtendedTypes } from '@jetstream/shared/ui-utils';
+import { queryAll, queryWithCache } from '@jetstream/shared/data';
+import { describeSObjectWithExtendedTypes, formatNumber } from '@jetstream/shared/ui-utils';
 import { REGEX, transformRecordForDataLoad } from '@jetstream/shared/utils';
 import { EntityParticleRecord, MapOf, SalesforceOrgUi } from '@jetstream/types';
 import { DescribeGlobalSObjectResult } from 'jsforce';
@@ -9,10 +9,17 @@ import groupBy from 'lodash/groupBy';
 import isNil from 'lodash/isNil';
 import isString from 'lodash/isString';
 import { composeQuery, getField } from 'soql-parser-js';
-import { FieldMapping, FieldRelatedEntity, FieldWithRelatedEntities, PrepareDataPayload } from '../load-records-types';
+import {
+  FieldMapping,
+  FieldRelatedEntity,
+  FieldWithRelatedEntities,
+  NonExtIdLookupOption,
+  PrepareDataPayload,
+  PrepareDataResponse,
+} from '../load-records-types';
 
-const DATE_ERR_MESSAGE =
-  'There was an error reading one or more date fields in your file. Ensure date fields are properly formatted with a four character year.';
+const DEFAULT_NON_EXT_ID_MAPPING_OPT: NonExtIdLookupOption = 'ERROR_IF_MULTIPLE';
+const DEFAULT_NULL_IF_NO_MATCH_MAPPING_OPT = false;
 
 export function filterLoadSobjects(sobject: DescribeGlobalSObjectResult) {
   return (
@@ -41,7 +48,7 @@ export async function getFieldMetadata(org: SalesforceOrgUi, sobject: string): P
       })
     );
 
-  // fetch all related external Id fields
+  // fetch all related fields
   const fieldsWithRelationships = fields.filter((field) => Array.isArray(field.referenceTo) && field.referenceTo.length);
   const relatedObjects = new Set(fieldsWithRelationships.flatMap((field) => field.referenceTo));
   // related records
@@ -61,6 +68,7 @@ export async function getFieldMetadata(org: SalesforceOrgUi, sobject: string): P
                 name: particle.Name,
                 label: particle.Label,
                 type: particle.DataType,
+                isExternalId: particle.IsIdLookup,
               })
             );
           }
@@ -123,6 +131,8 @@ export function autoMapFields(inputHeader: string[], fields: FieldWithRelatedEnt
       targetField: matchedField?.name || null,
       mappedToLookup: false,
       fieldMetadata: matchedField,
+      lookupOptionUseFirstMatch: DEFAULT_NON_EXT_ID_MAPPING_OPT,
+      lookupOptionNullIfNoMatch: DEFAULT_NULL_IF_NO_MATCH_MAPPING_OPT,
     };
 
     if (relatedField && matchedField && matchedField.relatedFields) {
@@ -171,6 +181,8 @@ export function resetFieldMapping(inputHeader: string[]): FieldMapping {
       mappedToLookup: false,
       fieldMetadata: undefined,
       selectedReferenceTo: undefined,
+      lookupOptionUseFirstMatch: DEFAULT_NON_EXT_ID_MAPPING_OPT,
+      lookupOptionNullIfNoMatch: DEFAULT_NULL_IF_NO_MATCH_MAPPING_OPT,
     };
     return output;
   }, {});
@@ -224,17 +236,17 @@ function getExternalIdFieldsForSobjectsQuery(sobjects: string[]) {
       operator: 'AND',
       right: {
         left: {
-          field: 'IsIdLookup',
-          operator: '=',
-          value: 'true',
-          literalType: 'BOOLEAN',
+          field: 'QualifiedApiName',
+          operator: '!=',
+          value: 'Id',
+          literalType: 'STRING',
         },
         operator: 'AND',
         right: {
           left: {
-            field: 'QualifiedApiName',
-            operator: '!=',
-            value: 'Id',
+            field: 'DataType',
+            operator: 'IN',
+            value: ['string', 'phone', 'url', 'email'],
             literalType: 'STRING',
           },
         },
@@ -256,7 +268,7 @@ export function getFieldHeaderFromMapping(fieldMapping: FieldMapping) {
     .filter((item) => !!item.targetField)
     .map((item) => {
       let output = item.targetField;
-      if (item.mappedToLookup && item.targetLookupField) {
+      if (item.mappedToLookup && item.targetLookupField && item.relatedFieldMetadata?.isExternalId) {
         output = `${item.relationshipName}.${item.targetLookupField}`;
       }
       return output;
@@ -290,7 +302,14 @@ export function transformData({ data, fieldMapping, sObject, insertNulls, dateFo
         }
 
         if (!skipField) {
-          if (apiMode === 'BATCH' && fieldMappingItem.mappedToLookup && fieldMappingItem.targetLookupField) {
+          // Handle external Id related fields
+          // Non-external Id lookups are handled separately in `fetchMappedRelatedRecords()` and are mapped normally to the target field initially
+          if (
+            apiMode === 'BATCH' &&
+            fieldMappingItem.mappedToLookup &&
+            fieldMappingItem.relatedFieldMetadata?.isExternalId &&
+            fieldMappingItem.targetLookupField
+          ) {
             output[fieldMappingItem.relationshipName] = { [fieldMappingItem.targetLookupField]: value };
             // if polymorphic field, then add type attribute
             if (fieldMappingItem.fieldMetadata?.referenceTo?.length > 1) {
@@ -299,7 +318,11 @@ export function transformData({ data, fieldMapping, sObject, insertNulls, dateFo
                 ...output[fieldMappingItem.relationshipName],
               };
             }
-          } else if (fieldMappingItem.mappedToLookup && fieldMappingItem.targetLookupField) {
+          } else if (
+            fieldMappingItem.mappedToLookup &&
+            fieldMappingItem.relatedFieldMetadata?.isExternalId &&
+            fieldMappingItem.targetLookupField
+          ) {
             if (fieldMappingItem.fieldMetadata?.referenceTo?.length > 1) {
               // add in polymorphic field type
               // https://developer.salesforce.com/docs/atlas.en-us.api_asynch.meta/api_asynch/datafiles_csv_rel_field_header_row.htm?search_text=Polymorphic
@@ -319,96 +342,136 @@ export function transformData({ data, fieldMapping, sObject, insertNulls, dateFo
   });
 }
 
-// function transformDate(value: any, dateFormat: string): string | null {
-//   if (!value) {
-//     return null;
-//   }
-//   if (value instanceof Date) {
-//     if (!isNaN(value.getTime())) {
-//       try {
-//         return formatISODate(value, { representation: 'date' });
-//       } catch (ex) {
-//         throw new Error(DATE_ERR_MESSAGE);
-//       }
-//     } else {
-//       // date is invalid
-//       return null;
-//     }
-//   } else if (isString(value)) {
-//     if (REGEX.ISO_DATE.test(value)) {
-//       try {
-//         return formatISODate(parseISODate(value), { representation: 'date' });
-//       } catch (ex) {
-//         throw new Error(DATE_ERR_MESSAGE);
-//       }
-//     }
-//     try {
-//       return buildDateFromString(value, dateFormat, 'date');
-//     } catch (ex) {
-//       throw new Error(DATE_ERR_MESSAGE);
-//     }
-//   }
-//   return null;
-// }
+/**
+ * For any lookup fields that are not mapped to an external Id, fetch related records and populate related record Id for each field
+ * The fieldMapping option contains the options the user selected on how to handle cases where 0 or multiple related records are found for a given value
+ *
+ * @param data records
+ * @param param1
+ * @returns
+ */
+export async function fetchMappedRelatedRecords(
+  data: any,
+  { org, sObject, fieldMapping, apiMode }: PrepareDataPayload
+): Promise<PrepareDataResponse> {
+  const nonExternalIdFieldMappings = Object.values(fieldMapping).filter(
+    (item) => item.mappedToLookup && item.relatedFieldMetadata && !item.relatedFieldMetadata.isExternalId
+  );
 
-// function buildDateFromString(value: string, dateFormat: string, representation: 'date' | 'complete') {
-//   const refDate = startOfDayDate(new Date());
-//   const tempValue = value.replace(REGEX.NOT_NUMERIC, '-'); // FIXME: some date formats are 'd. m. yyyy' like 'sk-SK'
-//   const [first, middle, end] = tempValue.split('-');
-//   if (!first || !middle || !end) {
-//     return null;
-//   }
-//   switch (dateFormat) {
-//     case DATE_FORMATS.MM_DD_YYYY: {
-//       first.padStart(2, '0');
-//       middle.padStart(2, '0');
-//       end.padStart(4, '19');
-//       return formatISODate(parseDate(`${first}-${middle}-${end}`, 'MM-dd-yyyy', refDate), { representation });
-//     }
-//     case DATE_FORMATS.DD_MM_YYYY: {
-//       first.padStart(2, '0');
-//       middle.padStart(2, '0');
-//       end.padStart(4, '19');
-//       return formatISODate(parseDate(`${first}-${middle}-${end}`, 'dd-MM-yyyy', refDate), { representation });
-//     }
-//     case DATE_FORMATS.YYYY_MM_DD: {
-//       end.padStart(2, '0');
-//       first.padStart(2, '0');
-//       middle.padStart(4, '19');
-//       return formatISODate(parseDate(`${first}-${middle}-${end}`, 'yyyy-MM-dd', refDate), { representation });
-//     }
-//     default:
-//       break;
-//   }
-// }
+  const queryErrors: string[] = [];
+  const errorsByRowIndex = new Map<number, { row: number; record: any; errors: string[] }>();
+  const addError = addErrors(errorsByRowIndex);
 
-// function transformDateTime(value: string | null | Date, dateFormat: string): string | null {
-//   if (!value) {
-//     return null;
-//   }
-//   if (value instanceof Date) {
-//     if (!isNaN(value.getTime())) {
-//       return formatISODate(value, { representation: 'complete' });
-//     } else {
-//       // date is invalid
-//       return null;
-//     }
-//   } else if (isString(value)) {
-//     if (REGEX.ISO_DATE.test(value)) {
-//       return formatISODate(parseISODate(value), { representation: 'complete' });
-//     }
+  if (nonExternalIdFieldMappings.length) {
+    for (let {
+      lookupOptionNullIfNoMatch,
+      lookupOptionUseFirstMatch,
+      relationshipName,
+      selectedReferenceTo,
+      targetField,
+      targetLookupField,
+    } of nonExternalIdFieldMappings) {
+      const fieldRelationshipName = `${relationshipName}.${targetLookupField}`;
+      // remove any falsy values, related fields cannot be booleans or numbers, so this should not cause issues
+      const relatedValues = new Set<string>(data.map((row) => row[targetField]).filter(Boolean));
 
-//     value = value.replace('T', ' ');
-//     const [date, time] = value.split(' ', 2);
-//     if (!time) {
-//       return buildDateFromString(date.trim(), dateFormat, 'complete');
-//     }
+      if (relatedValues.size) {
+        const relatedRecordsByRelatedField: MapOf<string[]> = {};
+        // Get as many queries as required based on the size of the related fields
+        const queries = getRelatedFieldsQueries(sObject, selectedReferenceTo, targetLookupField, Array.from(relatedValues));
+        for (let query of queries) {
+          try {
+            (await queryAll(org, query)).queryResults.records.forEach((record) => {
+              relatedRecordsByRelatedField[record[targetLookupField]] = relatedRecordsByRelatedField[record[targetLookupField]] || [];
+              relatedRecordsByRelatedField[record[targetLookupField]].push(record.Id);
+            });
+          } catch (ex) {
+            queryErrors.push(ex.message);
+          }
+        }
 
-//     // TODO:
-//     // based on locale, we need to parse the date and the time
-//     // could be 12 hour time, or 24 hour time
-//     // date will vary depending on locale
-//     return null; // FIXME:
-//   }
-//   return null;
-// }
+        data.forEach((record, i) => {
+          if (isNil(record[targetField]) || record[targetField] == '') {
+            return;
+          }
+          const relatedRecords = relatedRecordsByRelatedField[record[targetField]];
+          /** NO RELATED RECORD FOUND */
+          if (!relatedRecords) {
+            if (lookupOptionNullIfNoMatch) {
+              record[targetField] = apiMode === 'BATCH' ? null : SFDC_BULK_API_NULL_VALUE;
+            } else {
+              // No match, and not mark as null
+              addError(
+                i,
+                record,
+                `Related record not found for relationship "${fieldRelationshipName}" with a value of "${record[targetField]}".`
+              );
+            }
+          } else if (relatedRecords.length > 1 && lookupOptionUseFirstMatch !== 'FIRST') {
+            addError(
+              i,
+              record,
+              `Found ${formatNumber(relatedRecords.length)} related records for relationship "${fieldRelationshipName}" with a value of "${
+                record[targetField]
+              }".`
+            );
+          } else {
+            /** FOUND 1 MATCH, OR OPTION TO USE FIRST MATCH */
+            record[targetField] = relatedRecords[0];
+          }
+        });
+      }
+    }
+  }
+  // remove failed records from dataset
+  data = data.filter((_, i: number) => !errorsByRowIndex.has(i));
+
+  return { data, errors: Array.from(errorsByRowIndex.values()), queryErrors };
+}
+
+function addErrors(errorsByRowIndex: Map<number, { row: number; record: any; errors: string[] }>) {
+  return function addError(row: number, record: any, error: string) {
+    if (!errorsByRowIndex.has(row)) {
+      errorsByRowIndex.set(row, { row, record, errors: [] });
+    }
+    errorsByRowIndex.get(row).errors.push(error);
+  };
+}
+
+/**
+ * Get as many queries as required to fetch all the related values based on the length of the query
+ *
+ * @param baseObject Parent object, not the one being queried - used for additional filter special cases (e.x. RecordType)
+ * @param relatedObject
+ * @param relatedField
+ * @param relatedValues
+ * @returns
+ */
+function getRelatedFieldsQueries(baseObject: string, relatedObject: string, relatedField: string, relatedValues: string[]): string[] {
+  let extraWhereClause = '';
+  /** SPECIAL CASES */
+  if (relatedObject.toLowerCase() === 'recordtype') {
+    extraWhereClause = `SobjectType = '${baseObject}' AND `;
+  }
+  const BASE_QUERY = `SELECT Id, ${relatedField} FROM ${relatedObject} WHERE ${extraWhereClause}${relatedField} IN ('`;
+  const QUERY_ITEM_BUFFER_LENGTH = 3;
+  const BASE_QUERY_LENGTH = BASE_QUERY.length + QUERY_ITEM_BUFFER_LENGTH;
+  const MAX_QUERY_LENGTH = 9500; // somewhere just over 10K was giving an error
+
+  const queries = [];
+  let tempRelatedValues = [];
+  let currLength = BASE_QUERY_LENGTH;
+  relatedValues.forEach((value) => {
+    tempRelatedValues.push(value);
+    currLength += value.length + QUERY_ITEM_BUFFER_LENGTH;
+    if (currLength >= MAX_QUERY_LENGTH) {
+      queries.push(`${BASE_QUERY}${tempRelatedValues.join(`','`)}')`);
+      tempRelatedValues = [];
+      currLength = BASE_QUERY_LENGTH;
+    }
+  });
+  if (tempRelatedValues.length) {
+    queries.push(`${BASE_QUERY}${tempRelatedValues.join(`','`)}')`);
+  }
+  return queries;
+}
