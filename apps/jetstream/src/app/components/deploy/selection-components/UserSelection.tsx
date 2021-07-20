@@ -1,5 +1,6 @@
 /** @jsx jsx */
 import { jsx } from '@emotion/react';
+import { useNonInitialEffect } from '@jetstream/shared/ui-utils';
 import { SalesforceOrgUi } from '@jetstream/types';
 import { Grid } from '@jetstream/ui';
 import DeployMetadataUserList from 'apps/jetstream/src/app/components/deploy/DeployMetadataUserList';
@@ -51,16 +52,23 @@ export const UserSelection: FunctionComponent<UserSelectionProps | UserSelection
       _setUserSelection(userSelection);
     }
   }, [userSelection]);
+
   useEffect(() => {
     if (!requireConfirmSelection) {
       _setUsersList(usersList);
     }
   }, [usersList]);
+
   useEffect(() => {
     if (!requireConfirmSelection) {
       _setSelectedUsers(selectedUsers);
     }
   }, [selectedUsers]);
+
+  useNonInitialEffect(() => {
+    setUsersList(null);
+    setSelectedUsers([]);
+  }, [selectedOrg]);
 
   function handleSubmit() {
     _setUserSelection(userSelection);

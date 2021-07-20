@@ -1,5 +1,6 @@
 /** @jsx jsx */
 import { jsx } from '@emotion/react';
+import { useNonInitialEffect } from '@jetstream/shared/ui-utils';
 import { ListItem, SalesforceOrgUi } from '@jetstream/types';
 import { ListWithFilterMultiSelect } from '@jetstream/ui';
 import { FunctionComponent, useEffect } from 'react';
@@ -28,6 +29,10 @@ export const DeployMetadataUserList: FunctionComponent<DeployMetadataUserListPro
       onUsers(users);
     }
   }, [users, onUsers]);
+
+  useNonInitialEffect(() => {
+    loadUsers();
+  }, [selectedOrg]);
 
   return (
     <ListWithFilterMultiSelect

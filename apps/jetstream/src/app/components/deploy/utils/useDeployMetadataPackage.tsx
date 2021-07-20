@@ -105,12 +105,12 @@ export function useDeployMetadataPackage(destinationOrg: SalesforceOrgUi, deploy
         dispatch({ type: 'SUCCESS', payload: { results } });
         if (results.success) {
           notifyUser(`Deployment finished successfully`, {
-            body: getNotificationMessageBody(results.numberComponentsDeployed, results.numberComponentErrors),
+            body: getNotificationMessageBody(results),
             tag: 'deploy-package',
           });
         } else {
           notifyUser(`Deployment failed`, {
-            body: getNotificationMessageBody(results.numberComponentsDeployed, results.numberComponentErrors),
+            body: getNotificationMessageBody(results),
             tag: 'deploy-package',
           });
         }

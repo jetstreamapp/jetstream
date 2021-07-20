@@ -39,8 +39,8 @@ export function useBrowserNotifications(serverUrl: string) {
     options.icon = `${serverUrl}${ICON_URL}`;
     options.badge = `${serverUrl}${ICON_URL}`;
 
+    logger.info('[NOTIFICATION]', options);
     if (window.Notification && Notification.permission === 'granted' && document.hidden) {
-      logger.info('[NOTIFICATION][SENT]', options);
       notification.current = new Notification(title, options);
       notification.current.onclick = (event: Event) => window.focus();
       notification.current.onerror = (event: Event) => logger.info('[NOTIFICATION][ERROR]', event);

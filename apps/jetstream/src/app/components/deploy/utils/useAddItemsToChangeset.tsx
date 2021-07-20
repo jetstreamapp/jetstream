@@ -132,12 +132,12 @@ export function useAddItemsToChangeset(
           dispatch({ type: 'SUCCESS', payload: { results } });
           if (results.success) {
             notifyUser(`Deployment finished successfully`, {
-              body: getNotificationMessageBody(results.numberComponentsDeployed, results.numberComponentErrors),
+              body: getNotificationMessageBody(results),
               tag: 'add-to-changeset',
             });
           } else {
             notifyUser(`Deployment failed`, {
-              body: getNotificationMessageBody(results.numberComponentsDeployed, results.numberComponentErrors),
+              body: getNotificationMessageBody(results),
               tag: 'add-to-changeset',
             });
           }

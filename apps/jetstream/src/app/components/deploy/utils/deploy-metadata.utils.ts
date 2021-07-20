@@ -2,7 +2,7 @@ import { ColDef, GetQuickFilterTextParams, ValueFormatterParams } from '@ag-grid
 import { getMetadataLabelFromFullName, ListMetadataResultItem } from '@jetstream/connected-ui';
 import { logger } from '@jetstream/shared/client-logger';
 import { DATE_FORMATS } from '@jetstream/shared/constants';
-import { ensureArray, orderStringsBy, pluralizeFromNumber } from '@jetstream/shared/utils';
+import { ensureArray, getSuccessOrFailureChar, orderStringsBy, pluralizeFromNumber } from '@jetstream/shared/utils';
 import { DeployResult, ListMetadataResult, MapOf } from '@jetstream/types';
 import { DateFilterComparator, getCheckboxColumnDef } from '@jetstream/ui';
 import parseISO from 'date-fns/parseISO';
@@ -359,8 +359,40 @@ function getFriendlyTimestamp(value?: string) {
   return formatISO(parseISO(value));
 }
 
-export function getNotificationMessageBody(numSuccess: number, numFailure: number) {
-  return `✅ ${numSuccess.toLocaleString()} ${pluralizeFromNumber('item', numSuccess)} deployed successfully - ${
-    numFailure > 0 ? '❌' : '✅'
-  } ${numFailure.toLocaleString()} ${pluralizeFromNumber('item', numFailure)} failed to deploy`;
+export function getNotificationMessageBody(deployResults: DeployResult) {
+  const {
+    numberComponentErrors,
+    numberComponentsDeployed,
+    numberTestErrors,
+    numberTestsCompleted,
+    runTestsEnabled,
+    success,
+  } = deployResults;
+  let output = '';
+  if (success) {
+    output += `${getSuccessOrFailureChar(
+      'success',
+      numberComponentsDeployed
+    )} ${numberComponentsDeployed.toLocaleString()} ${pluralizeFromNumber('item', numberComponentsDeployed)} deployed successfully.`;
+    if (runTestsEnabled) {
+      output += ` ${getSuccessOrFailureChar(
+        'success',
+        numberTestsCompleted
+      )} ${numberTestsCompleted.toLocaleString()} unit tests succeeded.`;
+    }
+  } else {
+    if (numberComponentErrors > 0) {
+      output += `${getSuccessOrFailureChar(
+        'failure',
+        numberComponentErrors
+      )} ${numberComponentErrors.toLocaleString()} of ${numberComponentsDeployed.toLocaleString()} items failed to deploy.`;
+    }
+    if (runTestsEnabled) {
+      output += ` ${getSuccessOrFailureChar(
+        'failure',
+        numberTestErrors
+      )} ${numberTestErrors.toLocaleString()} of ${numberTestsCompleted.toLocaleString()} unit tests failed.`;
+    }
+  }
+  return output;
 }

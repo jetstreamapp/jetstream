@@ -20,12 +20,7 @@ export const DeployMetadata: FunctionComponent<DeployMetadataProps> = () => {
   const resetSelectedMetadataItemsState = useResetRecoilState(fromDeployMetadataState.selectedMetadataItemsState);
   const resetUsersList = useResetRecoilState(fromDeployMetadataState.usersList);
   const resetMetadataSelectionTypeState = useResetRecoilState(fromDeployMetadataState.metadataSelectionTypeState);
-  const resetUserSelectionState = useResetRecoilState(fromDeployMetadataState.userSelectionState);
-  const resetDateRangeSelectionState = useResetRecoilState(fromDeployMetadataState.dateRangeSelectionState);
-  const resetDateRangeStartState = useResetRecoilState(fromDeployMetadataState.dateRangeStartState);
-  const resetDateRangeEndState = useResetRecoilState(fromDeployMetadataState.dateRangeEndState);
   const resetSelectedUsersState = useResetRecoilState(fromDeployMetadataState.selectedUsersState);
-  const resetIncludeManagedPackageItems = useResetRecoilState(fromDeployMetadataState.includeManagedPackageItems);
   const resetChangesetPackage = useResetRecoilState(fromDeployMetadataState.changesetPackage);
   const resetChangesetPackages = useResetRecoilState(fromDeployMetadataState.changesetPackages);
 
@@ -42,12 +37,7 @@ export const DeployMetadata: FunctionComponent<DeployMetadataProps> = () => {
       resetSelectedMetadataItemsState();
       resetUsersList();
       resetMetadataSelectionTypeState();
-      resetUserSelectionState();
-      resetDateRangeSelectionState();
-      resetDateRangeStartState();
-      resetDateRangeEndState();
       resetSelectedUsersState();
-      resetIncludeManagedPackageItems();
       resetChangesetPackage();
       resetChangesetPackages();
     }
