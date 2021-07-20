@@ -1,6 +1,7 @@
 /** @jsx jsx */
 import { jsx } from '@emotion/react';
 import { COMMON_METADATA_TYPES, DescribeMetadataList, getMetadataLabelFromFullName } from '@jetstream/connected-ui';
+import { useNonInitialEffect } from '@jetstream/shared/ui-utils';
 import { SalesforceOrgUi } from '@jetstream/types';
 import { AutoFullHeightContainer, Grid, ReadonlyList } from '@jetstream/ui';
 import isBoolean from 'lodash/isBoolean';
@@ -59,21 +60,30 @@ export const MetadataSelection: FunctionComponent<MetadataSelectionProps | Metad
       _setMetadataSelectionType(metadataSelectionType);
     }
   }, [metadataSelectionType]);
+
   useEffect(() => {
     if (!requireConfirmSelection) {
       _setMetadataItems(metadataItems);
     }
   }, [metadataItems]);
+
   useEffect(() => {
     if (!requireConfirmSelection) {
       _setMetadataItemsMap(metadataItemsMap);
     }
   }, [metadataItemsMap]);
+
   useEffect(() => {
     if (!requireConfirmSelection) {
       _setSelectedMetadataItems(selectedMetadataItems);
     }
   }, [selectedMetadataItems]);
+
+  useNonInitialEffect(() => {
+    setMetadataItems(null);
+    setMetadataItemsMap({});
+    setSelectedMetadataItems(new Set());
+  }, [selectedOrg]);
 
   function handleMetadataSelection(items: string[], options: { selectAllValue?: boolean; clearSelection?: boolean } = {}) {
     const { selectAllValue, clearSelection } = options;

@@ -58,12 +58,6 @@ export const AppStateResetOnOrgChange: FunctionComponent<AppStateResetOnOrgChang
     useResetRecoilState(fromDeployMetadataState.selectedMetadataItemsState),
     useResetRecoilState(fromDeployMetadataState.usersList),
     useResetRecoilState(fromDeployMetadataState.metadataSelectionTypeState),
-    useResetRecoilState(fromDeployMetadataState.userSelectionState),
-    useResetRecoilState(fromDeployMetadataState.dateRangeSelectionState),
-    useResetRecoilState(fromDeployMetadataState.includeManagedPackageItems),
-    useResetRecoilState(fromDeployMetadataState.dateRangeStartState),
-    useResetRecoilState(fromDeployMetadataState.dateRangeEndState),
-    useResetRecoilState(fromDeployMetadataState.selectedUsersState),
     useResetRecoilState(fromDeployMetadataState.changesetPackage),
     useResetRecoilState(fromDeployMetadataState.changesetPackages),
   ];
