@@ -44,7 +44,12 @@ import {
   getSubqueryFieldBaseKey,
   initQueryFieldStateItem,
 } from './query-fields-utils';
-import { getFieldResourceTypes, getFieldSelectItems, getTypeFromMetadata } from './query-filter.utils';
+import {
+  ensureFieldSelectItemsIncludesSelectionsFromRestore,
+  getFieldResourceTypes,
+  getFieldSelectItems,
+  getTypeFromMetadata,
+} from './query-filter.utils';
 import { fetchMetadataFromSoql, SoqlFetchMetadataOutput, SoqlMetadataTree } from './query-soql-utils';
 import { calculateFilterAndOrderByListGroupFields } from './query-utils';
 
@@ -255,21 +260,33 @@ function flattenWhereClause(
       const operator = getOperatorFromWhereClause(condition.operator, condition.value as string, priorConditionIsNegation);
 
       if (field) {
+        const value = ['isNull', 'isNotNull'].includes(operator) ? '' : removeQuotesAndPercentage(condition.operator, condition.value);
         expressionCondition = {
           key: currKey,
-          resourceSelectItems: getFieldSelectItems(field),
+          resourceSelectItems: ensureFieldSelectItemsIncludesSelectionsFromRestore(field, getFieldSelectItems(field), value),
           // FIXME: for picklist restore, what if one or more values are not valid in metadata?
           // we could turn into text/area instead
-          resourceType: getTypeFromMetadata(field.type, operator),
+          // ABOVE SHOULD BE FIXED, BUT NEEDS MORE TESTING
+          // TODO:
+          resourceType: getTypeFromMetadata(field.type, operator, value),
           resourceTypes: getFieldResourceTypes(field, operator),
           selected: {
             resource: fieldKey,
             resourceMeta: fieldMetadata,
             resourceGroup: parentKey,
             operator,
-            value: ['isNull', 'isNotNull'].includes(operator) ? '' : removeQuotesAndPercentage(condition.operator, condition.value),
+            value,
           },
         };
+        // for non-list resourceTypes, ensure that value is always a string
+        if (
+          Array.isArray(value) &&
+          (expressionCondition.resourceType === 'TEXT' ||
+            expressionCondition.resourceType === 'TEXTAREA' ||
+            expressionCondition.resourceType === 'NUMBER')
+        ) {
+          expressionCondition.selected.value = (expressionCondition.selected.value as string[]).join('\n');
+        }
       } else {
         missingMisc.push(`Filter ${condition.field} was not found`);
       }
@@ -315,9 +332,9 @@ function removeQuotesAndPercentage(operator: Operator, values: string | string[]
     }
     return unescapeSoqlString(values);
   } else if (Array.isArray(values)) {
-    return (values as any[])
-      .map((value) => (isString(value) ? unescapeSoqlString(value.replace(REGEX.START_END_SINGLE_QUOTE, '')) : value))
-      .join('\n');
+    values = (values as any[]).map((value) =>
+      isString(value) ? unescapeSoqlString(value.replace(REGEX.START_END_SINGLE_QUOTE, '')) : value
+    );
   }
   return values;
 }

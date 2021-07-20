@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
-import { getBooleanListItems, getDateLiteralListItems, getPicklistListItems } from '@jetstream/shared/ui-utils';
+import { DATE_LITERALS_SET, getBooleanListItems, getDateLiteralListItems, getPicklistListItems } from '@jetstream/shared/ui-utils';
 import {
   ExpressionConditionHelpText,
   ExpressionConditionRowSelectedItems,
@@ -104,6 +104,21 @@ export function getDateResourceTypes(): ListItem<ExpressionRowValueType>[] {
   ];
 }
 
+export function getDateMultiResourceTypes(): ListItem<ExpressionRowValueType>[] {
+  return [
+    {
+      id: 'date',
+      label: 'Date Picker',
+      value: 'DATE',
+    },
+    {
+      id: 'literal',
+      label: 'Relative Value',
+      value: 'SELECT-MULTI',
+    },
+  ];
+}
+
 export function getDateTimeResourceTypes(): ListItem<ExpressionRowValueType>[] {
   return [
     {
@@ -119,35 +134,55 @@ export function getDateTimeResourceTypes(): ListItem<ExpressionRowValueType>[] {
   ];
 }
 
-export function getTypeFromMetadata(type: FieldType, operator: QueryFilterOperator) {
+export function getDateTimeMultiResourceTypes(): ListItem<ExpressionRowValueType>[] {
+  return [
+    {
+      id: 'date',
+      label: 'Date Picker',
+      value: 'DATETIME',
+    },
+    {
+      id: 'literal',
+      label: 'Relative Value',
+      value: 'SELECT-MULTI',
+    },
+  ];
+}
+
+export function getTypeFromMetadata(type: FieldType, operator: QueryFilterOperator, value?: string | string[]) {
   /**
    * TODO:
    * int / double / currency / percent
    * reference
    * time
    */
+
   switch (type) {
-    case 'date':
+    case 'date': {
+      // default to SELECT if value is a date literal (query restore would have a value)
+      if (Array.isArray(value) || DATE_LITERALS_SET.has(value)) {
+        return isListOperator(operator) ? 'SELECT-MULTI' : 'SELECT';
+      }
       return 'DATE';
-    case 'datetime':
-      return 'DATETIME';
-    case 'boolean':
-    case 'picklist':
-    case 'multipicklist': {
-      if (isListOperator(operator)) {
-        return 'SELECT-MULTI';
+    }
+    case 'datetime': {
+      // default to SELECT (Relative Value) if no value or value is a date literal (query restore would have a value)
+      if (!value || Array.isArray(value) || DATE_LITERALS_SET.has(value)) {
+        return isListOperator(operator) ? 'SELECT-MULTI' : 'SELECT';
       }
       return 'SELECT';
     }
+    case 'boolean':
+    case 'picklist':
+    case 'multipicklist': {
+      return isListOperator(operator) ? 'SELECT-MULTI' : 'SELECT';
+    }
     default:
-      if (isListOperator(operator)) {
-        return 'TEXTAREA';
-      }
-      return 'TEXT';
+      return isListOperator(operator) ? 'TEXTAREA' : 'TEXT';
   }
 }
 
-export function getFieldSelectItems(field: Field) {
+export function getFieldSelectItems(field: Field): ListItem<string, any>[] {
   switch (field.type) {
     case 'date':
     case 'datetime':
@@ -162,16 +197,32 @@ export function getFieldSelectItems(field: Field) {
   }
 }
 
+export function ensureFieldSelectItemsIncludesSelectionsFromRestore(
+  field: Field,
+  listItems: ListItem<string, any>[],
+  value: string | string[]
+) {
+  switch (field.type) {
+    case 'picklist':
+    case 'multipicklist': {
+      // determine if the query included values that are not in the list, and add them if so
+      const selectedValues = new Set(Array.isArray(value) ? value : [value]);
+      listItems.forEach((item) => selectedValues.delete(item.value));
+      selectedValues.forEach((item) => listItems.push({ id: item, label: item, value: item }));
+      return listItems;
+    }
+    default:
+      return listItems;
+  }
+}
+
 export function getFieldResourceTypes(field: Field, operator: QueryFilterOperator): ListItem<ExpressionRowValueType, any>[] {
   if (field.type === 'picklist' || field.type === 'multipicklist') {
-    if (isListOperator(operator)) {
-      return getPicklistMultiResourceTypes();
-    }
-    return getPicklistSingleResourceTypes();
+    return isListOperator(operator) ? getPicklistMultiResourceTypes() : getPicklistSingleResourceTypes();
   } else if (field.type === 'date') {
-    return getDateResourceTypes();
+    return isListOperator(operator) ? getDateMultiResourceTypes() : getDateResourceTypes();
   } else if (field.type === 'datetime') {
-    return getDateTimeResourceTypes();
+    return isListOperator(operator) ? getDateTimeMultiResourceTypes() : getDateTimeResourceTypes();
   }
   return undefined;
 }
@@ -235,7 +286,7 @@ export function getResourceTypeFnsFromFields(fields: ListItemGroup[]): Expressio
       if (!fieldMeta) {
         return [];
       }
-      return getFieldSelectItems(fieldMeta);
+      return ensureFieldSelectItemsIncludesSelectionsFromRestore(fieldMeta, getFieldSelectItems(fieldMeta), selected.value);
     },
   };
   return getResourceTypeFns;

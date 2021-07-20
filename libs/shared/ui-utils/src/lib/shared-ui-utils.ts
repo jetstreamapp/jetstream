@@ -724,6 +724,8 @@ export function getDateLiteralListItems(): ListItem[] {
   ];
 }
 
+export const DATE_LITERALS_SET = new Set(getDateLiteralListItems().map((item) => item.value));
+
 export function getBooleanListItems(): ListItem[] {
   return [
     { id: 'TRUE', label: 'True', value: 'True' },
