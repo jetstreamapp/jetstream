@@ -8,12 +8,6 @@ import { composeQuery, getField } from 'soql-parser-js';
 export function getEntityDefinitionQuery(): string {
   const soql = composeQuery({
     fields: [
-      getField(
-        `(SELECT Id, Name, ApiVersion, EntityDefinitionId, Status, FORMAT(CreatedDate), CreatedBy.Name, FORMAT(LastModifiedDate), LastModifiedBy.Name FROM ApexTriggers WHERE ManageableState = 'unmanaged' ORDER BY NAme)`
-      ),
-      getField(
-        `(SELECT Id, EntityDefinitionId, ValidationName, Active, Description, ErrorMessage, FORMAT(CreatedDate), CreatedBy.Name, FORMAT(LastModifiedDate), LastModifiedBy.Name FROM ValidationRules WHERE ManageableState = 'unmanaged' ORDER BY ValidationName)`
-      ),
       getField('DeploymentStatus'),
       getField('Description'),
       getField('DetailUrl'),
@@ -30,6 +24,12 @@ export function getEntityDefinitionQuery(): string {
       getField('PublisherId'),
       getField('QualifiedApiName'),
       getField('LastModifiedById'),
+      getField(
+        `(SELECT Id, Name, ApiVersion, EntityDefinitionId, Status, FORMAT(CreatedDate), CreatedBy.Name, FORMAT(LastModifiedDate), LastModifiedBy.Name FROM ApexTriggers WHERE ManageableState = 'unmanaged' ORDER BY NAme)`
+      ),
+      getField(
+        `(SELECT Id, EntityDefinitionId, ValidationName, Active, Description, ErrorMessage, FORMAT(CreatedDate), CreatedBy.Name, FORMAT(LastModifiedDate), LastModifiedBy.Name FROM ValidationRules WHERE ManageableState = 'unmanaged' ORDER BY ValidationName)`
+      ),
     ],
     sObject: 'EntityDefinition',
     where: {
