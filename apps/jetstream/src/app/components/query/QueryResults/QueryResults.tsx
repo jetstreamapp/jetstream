@@ -247,7 +247,17 @@ export const QueryResults: FunctionComponent<QueryResultsProps> = React.memo(() 
       case 'delete record': {
         const recordCountText = `${rows.length} ${pluralizeIfMultiple('Record', rows)}`;
         confirm({
-          content: <div className="slds-m-around_medium">Are you sure you want to delete {recordCountText}?</div>,
+          content: (
+            <div className="slds-m-around_medium">
+              <p className="slds-align_absolute-center slds-m-bottom_small">
+                Are you sure you want to <span className="slds-text-color_destructive slds-p-left_xx-small">delete {recordCountText}</span>?
+              </p>
+              <p>
+                <strong>These records will be deleted from Salesforce.</strong> If you want to recover deleted records you can use the
+                Salesforce recycle bin.
+              </p>
+            </div>
+          ),
         }).then(() => {
           const jobs: AsyncJobNew[] = [
             {
