@@ -64,9 +64,9 @@ export const FileDownloadModal: FunctionComponent<FileDownloadModalProps> = ({
       if (!Array.isArray(data)) {
         if (allowedTypes.length !== 1) {
           throw new Error('An improper configuration of data was provided');
-        } else if (!isString(data) && allowedTypes[0] !== 'xlsx') {
+        } else if (!isString(data) && allowedTypes[0] !== 'xlsx' && allowedTypes[0] !== 'zip') {
           throw new Error('An improper configuration of data was provided');
-        } else if (isString(data) && allowedTypes[0] !== 'xml') {
+        } else if (isString(data) && allowedTypes[0] !== 'xml' && allowedTypes[0] !== 'zip') {
           throw new Error('An improper configuration of data was provided');
         }
       }
@@ -127,7 +127,7 @@ export const FileDownloadModal: FunctionComponent<FileDownloadModalProps> = ({
           break;
         }
         case 'zip': {
-          fileData = data as string;
+          fileData = data as string | ArrayBuffer;
           mimeType = MIME_TYPES.ZIP;
           fileData = data;
           break;

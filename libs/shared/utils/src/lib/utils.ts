@@ -333,7 +333,7 @@ export function ensureArray<T = unknown>(value: T): T {
   if (isNil(value)) {
     return [] as any;
   }
-  return (Array.isArray(value) ? value : [value]) as any;
+  return (Array.isArray(value) ? value : [value]) as T;
 }
 
 /**

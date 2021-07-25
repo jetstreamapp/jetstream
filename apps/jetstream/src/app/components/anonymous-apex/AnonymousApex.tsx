@@ -59,7 +59,7 @@ export const AnonymousApex: FunctionComponent<AnonymousApexProps> = () => {
 
   useNonInitialEffect(() => {
     if (logRef.current) {
-      logRef.current.revealLine(1);
+      logRef.current.revealPosition({ column: 0, lineNumber: 0 });
     }
   }, [textFilter, logRef.current]);
 

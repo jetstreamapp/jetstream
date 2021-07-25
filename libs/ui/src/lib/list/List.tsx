@@ -35,7 +35,7 @@ export interface ListProps {
     heading?: string | JSX.Element;
     subheading?: string;
   };
-  onSelected: (item: any) => void;
+  onSelected: (key: string) => void;
 }
 
 export const List = forwardRef<HTMLUListElement, ListProps>(

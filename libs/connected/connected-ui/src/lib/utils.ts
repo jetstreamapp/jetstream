@@ -164,7 +164,7 @@ export const METADATA_LABEL_MAP = {
   Letterhead: 'Letterheads',
   LicenseDefinition: 'License Definitions',
   LightningBolt: 'Lightning Bolts',
-  LightningComponentBundle: 'Lightning Web Components',
+  LightningComponentBundle: 'Lightning Web Components (LWC)',
   LightningExperienceTheme: 'Lightning Experience Themes',
   LightningMessageChannel: 'Lightning Message Channels',
   LightningOnboardingConfig: 'Lightning Onboarding Configs',

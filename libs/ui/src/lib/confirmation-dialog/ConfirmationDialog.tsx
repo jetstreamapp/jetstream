@@ -41,7 +41,7 @@ export const ConfirmationDialog: FunctionComponent<ConfirmationDialogProps> = ({
           closeOnBackdropClick={false}
           footer={
             <Fragment>
-              <button className="slds-button slds-button_text-neutral" onClick={onCancel}>
+              <button className="slds-button slds-button_neutral" onClick={onCancel}>
                 {cancelText}
               </button>
               <button className="slds-button slds-button_brand" onClick={onConfirm}>

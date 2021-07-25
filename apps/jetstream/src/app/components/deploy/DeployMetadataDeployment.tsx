@@ -38,6 +38,7 @@ import DeployMetadataDeploymentTable from './DeployMetadataDeploymentTable';
 import DeployMetadataLastRefreshedPopover from './DeployMetadataLastRefreshedPopover';
 import { convertRowsForExport, convertRowsToMapOfListMetadataResults } from './utils/deploy-metadata.utils';
 import DownloadPackageWithFileSelector from './utils/DownloadPackageWithFileSelector';
+import ViewOrCompareMetadataModal from './view-or-compare-metadata/ViewOrCompareMetadataModal';
 
 const TABLE_ACTION_CLIPBOARD = 'table-copy-to-clipboard';
 const TABLE_ACTION_DOWNLOAD = 'table-download';
@@ -77,6 +78,8 @@ export const DeployMetadataDeployment: FunctionComponent<DeployMetadataDeploymen
   const [sidePanelType, setSidePanelType] = useState<SidePanelType>('type-selection');
   const [isSidePanelOpen, setIsSidePanelOpen] = useState(false);
   const [modifiedLabel, setModifiedLabel] = useState('');
+
+  const [viewOrCompareModalOpen, setViewOrCompareModalOpen] = useState(false);
 
   const listMetadataFilterFn = useCallback(
     (item: ListMetadataResult) => {
@@ -223,6 +226,14 @@ export const DeployMetadataDeployment: FunctionComponent<DeployMetadataDeploymen
         />
       )}
 
+      {viewOrCompareModalOpen && (
+        <ViewOrCompareMetadataModal
+          sourceOrg={selectedOrg}
+          selectedMetadata={convertRowsToMapOfListMetadataResults(Array.from(selectedRows))}
+          onClose={() => setViewOrCompareModalOpen(false)}
+        />
+      )}
+
       <Toolbar>
         <ToolbarItemGroup>
           <Link className="slds-button slds-button_brand" to={{ pathname: `/deploy-metadata` }}>
@@ -343,11 +354,18 @@ export const DeployMetadataDeployment: FunctionComponent<DeployMetadataDeploymen
             <AutoFullHeightContainer
               className="slds-scrollable bg-white"
               bottomBuffer={10}
+              delayForSecondTopCalc
               css={css`
                 width: 100%;
               `}
             >
-              <DeployMetadataDeploymentTable listMetadataItems={listMetadataItems} onRows={setRows} onSelectedRows={setSelectedRows} />
+              <DeployMetadataDeploymentTable
+                listMetadataItems={listMetadataItems}
+                hasSelectedRows={selectedRows.size > 0}
+                onRows={setRows}
+                onSelectedRows={setSelectedRows}
+                onViewOrCompareOpen={() => setViewOrCompareModalOpen(true)}
+              />
             </AutoFullHeightContainer>
           </Grid>
         )}

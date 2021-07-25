@@ -4,7 +4,7 @@ import { jsx } from '@emotion/react';
 import { ListMetadataResultItem } from '@jetstream/connected-ui';
 import { formatNumber } from '@jetstream/shared/ui-utils';
 import { MapOf } from '@jetstream/types';
-import { AutoFullHeightContainer, DataTable, Grid, SearchInput, Spinner } from '@jetstream/ui';
+import { AutoFullHeightContainer, DataTable, Grid, Icon, SearchInput, Spinner } from '@jetstream/ui';
 import { getFilteredRows } from 'libs/ui/src/lib/data-table/data-table-utils';
 import { Fragment, FunctionComponent, useEffect, useState } from 'react';
 import { DeployMetadataTableRow } from './deploy-metadata.types';
@@ -12,8 +12,10 @@ import { getColumnDefinitions, getRows } from './utils/deploy-metadata.utils';
 
 export interface DeployMetadataDeploymentTableProps {
   listMetadataItems: MapOf<ListMetadataResultItem>;
+  hasSelectedRows: boolean;
   onRows?: (rows: DeployMetadataTableRow[]) => void;
   onSelectedRows: (selectedRows: Set<DeployMetadataTableRow>) => void;
+  onViewOrCompareOpen: () => void;
 }
 
 function getRowNodeId({ key }: DeployMetadataTableRow): string {
@@ -32,8 +34,10 @@ const ValueOrLoadingRenderer: FunctionComponent<ICellRendererParams> = ({ value,
 
 export const DeployMetadataDeploymentTable: FunctionComponent<DeployMetadataDeploymentTableProps> = ({
   listMetadataItems,
+  hasSelectedRows,
   onRows,
   onSelectedRows,
+  onViewOrCompareOpen,
 }) => {
   const [gridApi, setGridApi] = useState<GridApi>(null);
   const [columns, setColumns] = useState<ColDef[]>();
@@ -95,14 +99,20 @@ export const DeployMetadataDeploymentTable: FunctionComponent<DeployMetadataDepl
   return (
     <Fragment>
       {rows && visibleRows && (
-        <Grid align="spread" verticalAlign="end" className="slds-m-bottom_x-small slds-m-horizontal_small">
-          <SearchInput id="metadata-filter" placeholder="Search metadata..." onChange={setGlobalFilter} />
+        <Grid align="spread" verticalAlign="end" className="slds-p-top_xx-small slds-p-bottom_x-small slds-m-horizontal_small">
+          <Grid>
+            <SearchInput id="metadata-filter" className="slds-m-right_small" placeholder="Search metadata..." onChange={setGlobalFilter} />
+            <button className="slds-button slds-button_neutral" disabled={!hasSelectedRows} onClick={onViewOrCompareOpen}>
+              <Icon type="utility" icon="preview" className="slds-button__icon slds-button__icon_left" omitContainer />
+              View or Compare Selected Items
+            </button>
+          </Grid>
           <div>
             Showing {formatNumber(visibleRows.length)} of {formatNumber(rows.length)} objects
           </div>
         </Grid>
       )}
-      <AutoFullHeightContainer fillHeight setHeightAttr bottomBuffer={15}>
+      <AutoFullHeightContainer fillHeight setHeightAttr delayForSecondTopCalc bottomBuffer={15}>
         <DataTable
           columns={columns}
           data={rows}
