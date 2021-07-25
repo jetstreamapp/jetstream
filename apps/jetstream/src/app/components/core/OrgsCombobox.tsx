@@ -43,6 +43,7 @@ export interface OrgsComboboxProps {
   placeholder?: string;
   isRequired?: boolean;
   disabled?: boolean;
+  minWidth?: number;
   onSelected: (org: SalesforceOrgUi) => void;
 }
 
@@ -54,6 +55,7 @@ export const OrgsCombobox: FunctionComponent<OrgsComboboxProps> = ({
   placeholder = 'Select an Org',
   isRequired,
   disabled,
+  minWidth = 300,
   onSelected,
 }) => {
   const [visibleOrgs, setVisibleOrgs] = useState<SalesforceOrgUi[]>([]);
@@ -78,7 +80,7 @@ export const OrgsCombobox: FunctionComponent<OrgsComboboxProps> = ({
     <div
       className="slds-col"
       css={css`
-        min-width: 300px;
+        ${minWidth ? `min-width: ${minWidth}px;` : undefined}
       `}
     >
       <Combobox
