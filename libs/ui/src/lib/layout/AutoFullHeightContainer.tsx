@@ -1,6 +1,6 @@
 /** @jsx jsx */
 import { css, jsx, SerializedStyles } from '@emotion/react';
-import { Component, createRef, LegacyRef, RefObject } from 'react';
+import { Component } from 'react';
 
 export interface AutoFullHeightContainerProps {
   className?: string;
@@ -11,6 +11,8 @@ export interface AutoFullHeightContainerProps {
   fillHeight?: boolean;
   // sets `height:` if true
   setHeightAttr?: boolean;
+  /** Set to true if used in a modal where the dom is not updated on the initial render */
+  delayForSecondTopCalc?: boolean;
 }
 
 export interface AutoFullHeightContainerState {
@@ -33,6 +35,13 @@ export class AutoFullHeightContainer extends Component<AutoFullHeightContainerPr
         topPosition: this.getElementTopPosition(),
         hasRefCalculated: true,
       });
+      if (this.props.delayForSecondTopCalc) {
+        setTimeout(() => {
+          this.setState({
+            topPosition: this.getElementTopPosition(),
+          });
+        }, 10);
+      }
     }
   };
 

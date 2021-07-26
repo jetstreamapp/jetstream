@@ -7,24 +7,22 @@ import Icon from '../widgets/Icon';
 import { TreeItems } from './Tree';
 
 export interface TreeItemProps {
-  id: string;
-  label: string | React.ReactNode | JSX.Element;
-  title?: string;
-  treeItems?: TreeItems[];
+  item: TreeItems;
   level: number;
   selectedItem: string;
   expandedItems: Set<string>;
-  onSelected: (id: string) => void;
+  onSelected: (item: TreeItems) => void;
 }
 
-export const TreeItem = ({ id, label, title, expandedItems, treeItems, level, selectedItem, onSelected }: TreeItemProps) => {
+export const TreeItem = ({ item, expandedItems, level, selectedItem, onSelected }: TreeItemProps) => {
+  const { id, label, title, treeItems } = item;
   const selected = id === selectedItem;
   const expanded = expandedItems.has(id);
 
   function handleSelection(event: SyntheticEvent<HTMLLIElement | HTMLButtonElement>) {
     event.preventDefault();
     event.stopPropagation();
-    onSelected(id);
+    onSelected(item);
   }
 
   return (
@@ -63,13 +61,10 @@ export const TreeItem = ({ id, label, title, expandedItems, treeItems, level, se
         </span>
       </div>
       {expanded &&
-        treeItems?.map((item) => (
-          <ul role="group" key={`${level}-${item.id}`}>
+        treeItems?.map((childItem) => (
+          <ul role="group" key={`${level}-${childItem.id}`}>
             <TreeItem
-              id={item.id}
-              label={item.label}
-              title={item.title}
-              treeItems={item.treeItems}
+              item={childItem}
               level={level + 1}
               selectedItem={selectedItem}
               expandedItems={expandedItems}

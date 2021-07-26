@@ -247,7 +247,8 @@ export async function checkRetrieveStatus(req: Request, res: Response, next: Nex
     const conn: jsforce.Connection = res.locals.jsforceConn;
 
     const results = await conn.metadata.checkRetrieveStatus(id);
-
+    results.fileProperties = ensureArray(results.fileProperties);
+    results.messages = ensureArray(results.messages);
     sendJson(res, correctInvalidXmlResponseTypes(results));
   } catch (ex) {
     next(ex);
