@@ -15,6 +15,7 @@ import {
   PageHeaderActions,
   PageHeaderRow,
   PageHeaderTitle,
+  ScopedNotification,
   Spinner,
   Tabs,
   Tooltip,
@@ -180,6 +181,7 @@ export const AutomationControl: FunctionComponent<AutomationControlProps> = () =
         return;
       }
       setErrorMessage(ex.message);
+      rollbar.error(`${ex.message}`, { stack: ex.stack, place: 'AutomationControl', type: 'Loading Data' });
     }
     setLoading(false);
   }
@@ -612,6 +614,14 @@ export const AutomationControl: FunctionComponent<AutomationControlProps> = () =
       </PageHeader>
       <AutoFullHeightContainer className="slds-p-horizontal_x-small slds-scrollable_none" bufferIfNotRendered={HEIGHT_BUFFER}>
         {loading && <Spinner />}
+        {errorMessage && (
+          <div className="slds-m-around-medium">
+            <ScopedNotification theme="error" className="slds-m-top_medium">
+              There was a problem loading this page:
+              <p>{errorMessage}</p>
+            </ScopedNotification>
+          </div>
+        )}
         {sobjects && sobjects.length > 0 && (
           <Tabs
             position="vertical"
