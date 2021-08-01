@@ -8,12 +8,15 @@ import {
   hasMetaModifierKey,
   hasShiftModifierKey,
   isAKey,
+  isAlphaNumericKey,
   isArrowDownKey,
   isArrowLeftKey,
   isArrowRightKey,
   isArrowUpKey,
   isSpaceKey,
+  KeyBuffer,
   menuItemSelectScroll,
+  selectMenuItemFromKeyboard,
   trapEvent,
   useNonInitialEffect,
 } from '@jetstream/shared/ui-utils';
@@ -36,6 +39,7 @@ export interface DuelingPicklistColumnProps {
 
 export const DuelingPicklistColumn = forwardRef<any, DuelingPicklistColumnProps>(
   ({ id, label, items, disabled, allowMoveDirection, onMove, onMoveWithinList, onSelection }, ref) => {
+    const keyBuffer = useRef(new KeyBuffer());
     const [selectedItems, setSelectedItems] = useState<DuelingPicklistItem[]>([]);
     const [cursor, setCursor] = useState(0);
     const divElRef = useRef<HTMLDivElement>();
@@ -173,6 +177,17 @@ export const DuelingPicklistColumn = forwardRef<any, DuelingPicklistColumnProps>
           remainingItems[newCursor].current?.focus();
           return;
         }
+      }
+
+      // allow user to type out word and select item
+      if (!isNumber(newCursor) && isAlphaNumericKey(event)) {
+        newCursor = selectMenuItemFromKeyboard({
+          key: event.key,
+          keyCode: event.keyCode,
+          keyBuffer: keyBuffer.current,
+          items: items,
+          labelProp: 'label',
+        });
       }
 
       if (isNumber(newCursor)) {

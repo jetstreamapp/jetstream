@@ -284,6 +284,7 @@ export function getDeployResultsExcelData(deployResults: DeployResult, deploymen
       ['Components Deployed', deployResults.numberComponentsDeployed],
       ['Components Total', deployResults.numberComponentsTotal],
       ['Test Errors', deployResults.numberTestErrors],
+      ['Code Coverage Warnings', deployResults.details?.runTestResult?.codeCoverageWarnings?.length || 0],
       ['Tests Completed', deployResults.numberTestsCompleted],
       ['Tests Total', deployResults.numberTestsTotal],
     ],
@@ -360,14 +361,10 @@ function getFriendlyTimestamp(value?: string) {
 }
 
 export function getNotificationMessageBody(deployResults: DeployResult) {
-  const {
-    numberComponentErrors,
-    numberComponentsDeployed,
-    numberTestErrors,
-    numberTestsCompleted,
-    runTestsEnabled,
-    success,
-  } = deployResults;
+  const { numberComponentErrors, numberComponentsDeployed, numberTestsCompleted, runTestsEnabled, details, success } = deployResults;
+  let { numberTestErrors } = deployResults;
+  numberTestErrors = numberTestErrors ?? 0;
+  numberTestErrors = numberTestErrors + details?.runTestResult?.codeCoverageWarnings?.length || 0;
   let output = '';
   if (success) {
     output += `${getSuccessOrFailureChar(
