@@ -234,8 +234,8 @@ export const DeployMetadataStatusModal: FunctionComponent<DeployMetadataStatusMo
                       title="Unit Test Results"
                       status={results.status}
                       totalProcessed={results.numberTestsCompleted}
-                      totalErrors={results.numberTestErrors}
-                      totalItems={results.numberTestsTotal}
+                      totalErrors={results.numberTestErrors + results.details?.runTestResult?.codeCoverageWarnings?.length || 0}
+                      totalItems={results.numberTestsTotal + results.details?.runTestResult?.codeCoverageWarnings?.length || 0}
                     />
                   )}
                 </Grid>
