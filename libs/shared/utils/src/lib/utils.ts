@@ -486,27 +486,27 @@ function transformDate(value: any, dateFormat: string): string | null {
 function buildDateFromString(value: string, dateFormat: string, representation: 'date' | 'complete') {
   const refDate = startOfDayDate(new Date());
   const tempValue = value.replace(REGEX.NOT_NUMERIC, '-'); // FIXME: some date formats are 'd. m. yyyy' like 'sk-SK'
-  const [first, middle, end] = tempValue.split('-');
+  let [first, middle, end] = tempValue.split('-');
   if (!first || !middle || !end) {
     return null;
   }
   switch (dateFormat) {
     case DATE_FORMATS.MM_DD_YYYY: {
-      first.padStart(2, '0');
-      middle.padStart(2, '0');
-      end.padStart(4, '19');
+      first = first.padStart(2, '0');
+      middle = middle.padStart(2, '0');
+      end = end.padStart(4, '20');
       return formatISODate(parseDate(`${first}-${middle}-${end}`, 'MM-dd-yyyy', refDate), { representation });
     }
     case DATE_FORMATS.DD_MM_YYYY: {
-      first.padStart(2, '0');
-      middle.padStart(2, '0');
-      end.padStart(4, '19');
+      first = first.padStart(2, '0');
+      middle = middle.padStart(2, '0');
+      end = end.padStart(4, '20');
       return formatISODate(parseDate(`${first}-${middle}-${end}`, 'dd-MM-yyyy', refDate), { representation });
     }
     case DATE_FORMATS.YYYY_MM_DD: {
-      end.padStart(2, '0');
-      first.padStart(2, '0');
-      middle.padStart(4, '19');
+      first = first.padStart(4, '20');
+      middle = middle.padStart(2, '0');
+      end = end.padStart(2, '0');
       return formatISODate(parseDate(`${first}-${middle}-${end}`, 'yyyy-MM-dd', refDate), { representation });
     }
     default:

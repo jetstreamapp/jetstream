@@ -20,6 +20,7 @@ import parseISO from 'date-fns/parseISO';
 import startOfDay from 'date-fns/startOfDay';
 import fileSizeFormatter from 'filesize';
 import { Field } from 'jsforce';
+import isDate from 'lodash/isDate';
 import isObject from 'lodash/isObject';
 import { createContext } from 'react';
 import { FieldSubquery, getFlattenedFields, isFieldSubquery } from 'soql-parser-js';
@@ -97,11 +98,11 @@ export function getCheckboxColumnDef(includeActions?: boolean): ColDef {
   };
 }
 
-export function DateFilterComparator(filterDate: Date, cellValue: string): number {
+export function DateFilterComparator(filterDate: Date, cellValue: string | Date): number {
   if (!cellValue) {
     return 0;
   }
-  const cellDate = startOfDay(parseISO(cellValue));
+  const cellDate = startOfDay(isDate(cellValue) ? cellValue : parseISO(cellValue));
   if (cellDate < filterDate) {
     return -1;
   } else if (cellDate > filterDate) {
