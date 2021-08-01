@@ -109,6 +109,11 @@ export function selectMenuItemFromKeyboard<T = ListItem>({
   return focusedIndex;
 }
 
+export function isAlphaNumericKey(event: KeyboardEvent<unknown>): boolean {
+  const keyCode = event.keyCode ?? 0;
+  return keyCode >= 48 && keyCode <= 90;
+}
+
 export function isAKey(event: KeyboardEvent<unknown>): boolean {
   return event.key === 'a' || event.key === 'A' || event.keyCode === 65;
 }
