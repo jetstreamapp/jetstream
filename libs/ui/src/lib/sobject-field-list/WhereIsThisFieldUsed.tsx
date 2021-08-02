@@ -1,8 +1,9 @@
-import { css } from '@emotion/react';
+/** @jsx jsx */
+import { css, jsx } from '@emotion/react';
 import { transformTabularDataToExcelStr, useNonInitialEffect } from '@jetstream/shared/ui-utils';
 import { ListItem, SalesforceOrgUi } from '@jetstream/types';
 import copyToClipboard from 'copy-to-clipboard';
-import React, { Fragment, FunctionComponent, useState } from 'react';
+import { Fragment, FunctionComponent, useState } from 'react';
 import FileDownloadModal from '../file-download-modal/FileDownloadModal';
 import EmptyState from '../illustrations/EmptyState';
 import ReadonlyList from '../list/ReadonlyList';
