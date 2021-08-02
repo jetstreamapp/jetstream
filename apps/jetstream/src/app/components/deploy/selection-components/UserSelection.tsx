@@ -3,11 +3,11 @@ import { jsx } from '@emotion/react';
 import { useNonInitialEffect } from '@jetstream/shared/ui-utils';
 import { SalesforceOrgUi } from '@jetstream/types';
 import { Grid } from '@jetstream/ui';
-import DeployMetadataUserList from 'apps/jetstream/src/app/components/deploy/DeployMetadataUserList';
 import { Fragment, FunctionComponent, useEffect, useState } from 'react';
 import { useRecoilState } from 'recoil';
 import * as fromDeployMetadataState from '../deploy-metadata.state';
 import { AllUser } from '../deploy-metadata.types';
+import DeployMetadataUserList from '../DeployMetadataUserList';
 import { RadioButtonItem, RadioButtonSelection } from './RadioButtonSelection';
 
 const USER_SELECTION_RADIO_BUTTONS: RadioButtonItem<AllUser>[] = [

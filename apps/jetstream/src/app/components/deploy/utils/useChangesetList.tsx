@@ -36,7 +36,7 @@ export function useChangesetList(selectedOrg: SalesforceOrgUi, initialPackages?:
     } catch (ex) {
       logger.warn('[useChangesetList][ERROR]', ex.message);
       if (isMounted.current) {
-        dispatch({ type: 'ERROR', payload: ex.message });
+        dispatch({ type: 'ERROR', payload: { errorMessage: ex.message } });
       }
     }
   }, [selectedOrg]);

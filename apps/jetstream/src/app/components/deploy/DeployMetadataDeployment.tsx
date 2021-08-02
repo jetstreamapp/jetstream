@@ -18,8 +18,6 @@ import {
   ToolbarItemActions,
   ToolbarItemGroup,
 } from '@jetstream/ui';
-import { useAmplitude } from 'apps/jetstream/src/app/components/core/analytics';
-import DeployMetadataDeploymentSidePanel from 'apps/jetstream/src/app/components/deploy/DeployMetadataDeploymentSidePanel';
 import copyToClipboard from 'copy-to-clipboard';
 import addMinutes from 'date-fns/addMinutes';
 import formatISODate from 'date-fns/formatISO';
@@ -29,11 +27,13 @@ import startOfDay from 'date-fns/startOfDay';
 import { FunctionComponent, useCallback, useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useRecoilValue } from 'recoil';
+import { useAmplitude } from '../core/analytics';
 import AddToChangeset from './add-to-changeset/AddToChangeset';
 import DeployMetadataPackage from './deploy-metadata-package/DeployMetadataPackage';
 import * as fromDeployMetadataState from './deploy-metadata.state';
 import { AllUser, DeployMetadataTableRow, SidePanelType, YesNo } from './deploy-metadata.types';
 import DeployMetadataToOrg from './deploy-to-different-org/DeployMetadataToOrg';
+import DeployMetadataDeploymentSidePanel from './DeployMetadataDeploymentSidePanel';
 import DeployMetadataDeploymentTable from './DeployMetadataDeploymentTable';
 import DeployMetadataLastRefreshedPopover from './DeployMetadataLastRefreshedPopover';
 import { convertRowsForExport, convertRowsToMapOfListMetadataResults } from './utils/deploy-metadata.utils';

@@ -84,7 +84,12 @@ export const QuerySubquerySObjects: FunctionComponent<QuerySubquerySObjectsProps
       )}
       {childRelationships.length > 0 && (
         <Fragment>
-          <SearchInput id="subquery-filter" placeholder="Filter child objects" onChange={setTextFilter} />
+          <SearchInput
+            id="subquery-filter"
+            className="slds-p-around_xx-small"
+            placeholder="Filter child objects"
+            onChange={setTextFilter}
+          />
           {visibleChildRelationships.length === 0 && (
             <EmptyState headline="There are no matching objects" subHeading="Adjust your selection."></EmptyState>
           )}

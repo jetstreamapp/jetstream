@@ -95,6 +95,7 @@ export interface UtilityIconObj {
   setup: IconEl;
   share: IconEl;
   steps: IconEl;
+  strategy: IconEl;
   success: IconEl;
   switch: IconEl;
   sync: IconEl;

@@ -77,6 +77,7 @@ import UtilityIcon_Settings from './icons/utility/Settings';
 import UtilityIcon_Setup from './icons/utility/Setup';
 import UtilityIcon_Share from './icons/utility/Share';
 import UtilityIcon_Steps from './icons/utility/Steps';
+import UtilityIcon_Strategy from './icons/utility/Strategy';
 import UtilityIcon_Success from './icons/utility/Success';
 import UtilityIcon_Switch from './icons/utility/Switch';
 import UtilityIcon_Sync from './icons/utility/Sync';
@@ -164,6 +165,7 @@ const utilityIcons: UtilityIconObj = {
   setup: UtilityIcon_Setup,
   share: UtilityIcon_Share,
   steps: UtilityIcon_Steps,
+  strategy: UtilityIcon_Strategy,
   success: UtilityIcon_Success,
   switch: UtilityIcon_Switch,
   sync: UtilityIcon_Sync,

@@ -1145,7 +1145,13 @@ export function useReducerFetchFn<T>() {
       case 'SUCCESS':
         return { ...state, loading: false, data: action.payload };
       case 'ERROR':
-        return { ...state, loading: false, hasError: true, errorMessage: action.payload.errorMessage, data: action.payload.data };
+        return {
+          ...state,
+          loading: false,
+          hasError: true,
+          errorMessage: action.payload.errorMessage,
+          data: action.payload.data ?? state.data,
+        };
       default:
         throw new Error('Invalid action');
     }

@@ -209,8 +209,8 @@ export const SobjectFieldList: FunctionComponent<SobjectFieldListProps> = ({
       )}
       {queryFields && !queryFields.loading && !queryFields.hasError && filteredFields && (
         <Fragment>
-          <div className="slds-p-bottom--xx-small">
-            <Grid>
+          <div className="slds-p-bottom_xx-small">
+            <Grid className="slds-p-top_xx-small slds-p-left_xx-small">
               <div className="slds-grow">
                 <SearchInput
                   id={searchInputId}

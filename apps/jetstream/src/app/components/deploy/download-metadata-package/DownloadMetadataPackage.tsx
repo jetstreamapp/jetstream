@@ -3,8 +3,8 @@ import { jsx } from '@emotion/react';
 import { ANALYTICS_KEYS } from '@jetstream/shared/constants';
 import { SalesforceOrgUi } from '@jetstream/types';
 import { Icon } from '@jetstream/ui';
-import { useAmplitude } from 'apps/jetstream/src/app/components/core/analytics';
 import { Fragment, FunctionComponent, useState } from 'react';
+import { useAmplitude } from '../../core/analytics';
 import DownloadPackageWithFileSelector from '../utils/DownloadPackageWithFileSelector';
 import DownloadMetadataPackageConfigModal from './DownloadMetadataPackageConfigModal';
 

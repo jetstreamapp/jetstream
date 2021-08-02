@@ -1,11 +1,11 @@
 /** @jsx jsx */
 import { jsx } from '@emotion/react';
+import { FEATURE_FLAGS } from '@jetstream/shared/constants';
+import { hasFeatureFlagAccess } from '@jetstream/shared/ui-utils';
 import { Modal } from '@jetstream/ui';
-import { selectUserPreferenceState } from 'apps/jetstream/src/app/app-state';
 import { Fragment, FunctionComponent, useEffect, useState } from 'react';
 import { useRecoilState } from 'recoil';
-import { hasFeatureFlagAccess } from '@jetstream/shared/ui-utils';
-import { FEATURE_FLAGS } from '@jetstream/shared/constants';
+import { selectUserPreferenceState } from '../../app-state';
 
 export interface NotificationsRequestModalProps {
   featureFlags: Set<string>;

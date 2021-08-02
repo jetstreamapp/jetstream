@@ -31,7 +31,7 @@ function getRowNodeId(data: any): string {
     return uniqueId('query-results-node-id');
   }
   let nodeId = data?.attributes?.url || data.Id;
-  if (!nodeId || data.Id === SFDC_EMPTY_ID) {
+  if (!nodeId || nodeId.endsWith(SFDC_EMPTY_ID) || data.Id === SFDC_EMPTY_ID) {
     nodeId = uniqueId('query-results-node-id');
   }
   return nodeId;

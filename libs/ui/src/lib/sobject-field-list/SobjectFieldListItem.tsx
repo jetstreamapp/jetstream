@@ -11,6 +11,7 @@ import SobjectExpandChildrenBtn from './SobjectExpandChildrenBtn';
 import SobjectFieldList from './SobjectFieldList';
 import SobjectFieldListMetadataWarning from './SobjectFieldListMetadataWarning';
 import SobjectFieldListType from './SobjectFieldListType';
+import WhereIsThisFieldUsed from './WhereIsThisFieldUsed';
 
 export interface SobjectFieldListItemProps {
   org: SalesforceOrgUi;
@@ -89,6 +90,11 @@ export const SobjectFieldListItem: FunctionComponent<SobjectFieldListItemProps> 
           )}
         </div>
         {isTooling && isSelected && <SobjectFieldListMetadataWarning apiName={field.name} />}
+        {!isTooling && (
+          <div className="slds-col_bump-left slds-m-bottom_xx-small">
+            <WhereIsThisFieldUsed org={org} sobject={field.sobject} field={field.metadata.name} />
+          </div>
+        )}
       </Grid>
       <div className="slds-text-body_small slds-grid slds-grid_align-spread">
         <div
