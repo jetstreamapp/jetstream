@@ -4,7 +4,6 @@ import { FEATURE_FLAGS } from '@jetstream/shared/constants';
 import { hasFeatureFlagAccess } from '@jetstream/shared/ui-utils';
 import { DropDownItem, UserProfileUi } from '@jetstream/types';
 import { Header, Icon, Navbar, NavbarItem, NavbarMenuItems } from '@jetstream/ui';
-import NotificationsRequestModal from 'apps/jetstream/src/app/components/core/NotificationsRequestModal';
 import { Fragment, FunctionComponent, useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useRecoilState, useRecoilValue } from 'recoil';
@@ -12,6 +11,7 @@ import Logo from '../../../assets/images/jetstream-logo-v1-200w.png';
 import { applicationCookieState, selectUserPreferenceState } from '../../app-state';
 import OrgsDropdown from '../orgs/OrgsDropdown';
 import Jobs from './jobs/Jobs';
+import NotificationsRequestModal from './NotificationsRequestModal';
 
 export interface HeaderNavbarProps {
   userProfile: UserProfileUi;

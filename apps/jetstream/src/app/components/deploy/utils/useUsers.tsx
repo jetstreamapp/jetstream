@@ -53,7 +53,7 @@ export function useUsers(selectedOrg: SalesforceOrgUi, initialUsers?: ListItem<s
       } catch (ex) {
         logger.warn('[useUsers][ERROR]', ex.message);
         if (isMounted.current) {
-          dispatch({ type: 'ERROR', payload: ex.message });
+          dispatch({ type: 'ERROR', payload: { errorMessage: ex.message } });
         }
       }
     },
