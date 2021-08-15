@@ -84,9 +84,7 @@ async function handleMessage(name: AsyncJobType, payloadData: AsyncJobWorkerMess
         const { isTooling, fields, records, fileFormat, fileName, googleFolder } = job.meta;
         let { nextRecordsUrl, totalRecordCount } = job.meta;
         let downloadedRecords = fileFormat === 'json' ? records : flattenRecords(records, fields);
-        let done = false;
-
-        totalRecordCount;
+        let done = !nextRecordsUrl;
 
         while (!done) {
           // emit progress

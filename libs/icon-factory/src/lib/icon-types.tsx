@@ -82,7 +82,7 @@ export interface UtilityIconObj {
   multi_select_checkbox: IconEl;
   new_window: IconEl;
   notification: IconEl;
-  opened_folder: IconEl;
+  open_folder: IconEl;
   page: IconEl;
   play: IconEl;
   preview: IconEl;

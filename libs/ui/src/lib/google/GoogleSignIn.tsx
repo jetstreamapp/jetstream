@@ -101,7 +101,7 @@ export const GoogleSignIn: FunctionComponent<GoogleSignInProps> = ({
       {profile && (
         <Grid verticalAlign="center" wrap>
           <div className="slds-m-right_x-small">
-            <Tooltip id={`sobject-list-refresh-tooltip`} content={`Logged in as ${profile.email}, Click to sign out.`}>
+            <Tooltip id={`sobject-list-refresh-tooltip`} content={`Logged in as ${profile.email}`}>
               <button className="slds-button" onClick={handleSignOut} disabled={disabled}>
                 <span className="slds-avatar slds-avatar_circle slds-avatar_medium">
                   <img alt="Avatar" src={profile.imageUrl || Avatar} />

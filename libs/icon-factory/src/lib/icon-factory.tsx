@@ -154,7 +154,7 @@ const utilityIcons: UtilityIconObj = {
   multi_select_checkbox: UtilityIcon_MultiSelectCheckbox,
   new_window: UtilityIcon_NewWindow,
   notification: UtilityIcon_Notification,
-  opened_folder: UtilityIcon_OpenFolder,
+  open_folder: UtilityIcon_OpenFolder,
   page: UtilityIcon_Page,
   play: UtilityIcon_Play,
   preview: UtilityIcon_Preview,

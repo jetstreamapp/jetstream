@@ -123,16 +123,15 @@ export const Jobs: FunctionComponent = () => {
                 };
                 notifyUser(`Download records failed`, { body: newJob.statusMessage, tag: 'BulkDownload' });
               } else {
-                const { done, progress, fileData, fileName, fileFormat, googleFolder } = data.results as {
+                const { done, progress, fileData, fileFormat, googleFolder } = data.results as {
                   done: boolean;
                   progress: number;
                   fileData: any;
                   mimeType: MimeType;
-                  fileName: string;
                   fileFormat: string;
                   googleFolder?: string;
                 };
-                let { mimeType } = data.results as { mimeType: MimeType };
+                let { fileName, mimeType } = data.results as { fileName: string; mimeType: MimeType };
 
                 if (!done) {
                   newJob = {
@@ -152,7 +151,24 @@ export const Jobs: FunctionComponent = () => {
                   };
                   // If user requested to save to gsheet
                   if (fileFormat === 'gsheet' && gapi?.client?.getToken()?.access_token) {
-                    googleUploadFile(gapi?.client?.getToken()?.access_token, {
+                    // show status of uploading to Google
+                    setJobs((prevJobs) => ({
+                      ...prevJobs,
+                      [newJob.id]: {
+                        ...newJob,
+                        lastActivity: new Date(),
+                        status: 'in-progress',
+                        statusMessage: 'Uploading file to Google',
+                      },
+                    }));
+
+                    newJob = {
+                      ...newJob,
+                      status: 'success',
+                      statusMessage: 'Records downloaded and saved to Google successfully',
+                    };
+
+                    googleUploadFile(gapi.client.getToken().access_token, {
                       fileType: MIME_TYPES.CSV,
                       filename: fileName,
                       folderId: googleFolder,
@@ -162,19 +178,26 @@ export const Jobs: FunctionComponent = () => {
                         newJob.results = webViewLink;
                       })
                       .catch((err) => {
-                        newJob.statusMessage += ' (save to Google failed)';
+                        // Failed to upload to google, save locally
+                        newJob.statusMessage = 'Records downloaded and saved to computer, saving to Google failed.';
+                        newJob.status = 'finished-warning';
                         mimeType = MIME_TYPES.CSV;
-                        saveFile(fileData, fileName, mimeType);
-                        notifyUser(`Download records finished (save to Google failed)`, { tag: 'BulkDownload' });
+                        saveFile(fileData, `${fileName}.csv`, mimeType);
+                        notifyUser(newJob.statusMessage, { tag: 'BulkDownload' });
                         rollbar.error('Error saving to Google Drive', { err, message: err?.message });
                       })
                       .finally(() => {
+                        newJob.finished = new Date();
+                        newJob.lastActivity = new Date();
                         setJobs((prevJobs) => ({ ...prevJobs, [newJob.id]: newJob }));
                       });
                   } else {
                     if (fileFormat === 'gsheet') {
-                      newJob.statusMessage += ' (save to Google failed)';
+                      // Failed to upload to google, save locally
+                      newJob.statusMessage = 'Records downloaded and saved to computer, saving to Google failed.';
+                      newJob.status = 'finished-warning';
                       mimeType = MIME_TYPES.CSV;
+                      fileName = `${fileName}.csv`;
                     }
                     saveFile(fileData, fileName, mimeType);
                     notifyUser(`Download records finished`, { tag: 'BulkDownload' });

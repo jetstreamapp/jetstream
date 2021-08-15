@@ -144,16 +144,38 @@ export function useLoadGoogleApi({
           gapiAuthInstance = gapi.auth2.getAuthInstance();
           setHasInitialized(true);
           logger.log('Google initialized');
+          // if user previously signed in, then they are signed in upon init
+          if (gapiAuthInstance.isSignedIn.get()) {
+            initSignIn(gapiAuthInstance.currentUser.get());
+          }
         }
       }
     } catch (ex) {
       if (isMounted.current) {
+        let errorMessage = 'There was an error initializing Google';
+        const details: string = ex?.details || '';
         logger.error('Error loading API client', ex);
-        setError('There was an error initializing Google');
-        rollbar?.critical('Error loading Google API', { message: ex.message, stack: ex.stack });
+        rollbar?.critical('Error loading Google API', { message: ex.message || ex.error, stack: ex.stack, details: ex.details, error: ex });
+        if (ex.error === 'idpiframe_initialization_failed') {
+          if (details.startsWith('Not a valid origin for the client')) {
+            // this is a misconfiguration, keep default error message
+          } else if (details.startsWith(`Failed to read the 'localStorage' property`)) {
+            errorMessage = 'Loading Google failed. Website data storage must be enabled.';
+          } else if (details.startsWith('Cookies are not enabled')) {
+            errorMessage = 'Loading Google failed. Logging in with Google is not supported in Incognito or private browsing mode.';
+          }
+        }
+        setError(errorMessage);
       }
     }
   }, []);
+
+  function initSignIn(user: gapi.auth2.GoogleUser) {
+    logger.log('Signed in with Google');
+    setSignedIn(true);
+    setAuthResponse(user.getAuthResponse(true));
+    setAuthorized(user.hasGrantedScopes(apiConfig.DEFAULT_SCOPE));
+  }
 
   const signIn = useCallback(
     async (options?: gapi.auth2.SigninOptions) => {
@@ -167,18 +189,20 @@ export function useLoadGoogleApi({
 
           const user = await gapiAuthInstance.signIn(options);
           if (isMounted.current) {
-            logger.log('Signed in with Google');
-            setSignedIn(true);
-            setAuthResponse(user.getAuthResponse(true));
-            // Could be false if the user did not click the checkbox
-            setAuthorized(user.hasGrantedScopes(apiConfig.DEFAULT_SCOPE));
+            initSignIn(user);
           }
         }
       } catch (ex) {
         if (isMounted.current) {
           logger.error('Error Signing in', ex);
-          setError('There was a problem signing in');
-          rollbar?.critical('Google Sign In error (could be user initiated)', { message: ex.message || ex.error, stack: ex.stack });
+          if (ex.error === 'popup_closed_by_user') {
+            return;
+          } else if (ex.error === 'access_denied') {
+            setError('You did not provide the required access, sign in again and choose the necessary permissions.');
+          } else {
+            setError('There was a problem signing in');
+            rollbar?.critical('Google Sign In error', { message: ex.message || ex.error, stack: ex.stack, ex: ex });
+          }
         }
       }
     },

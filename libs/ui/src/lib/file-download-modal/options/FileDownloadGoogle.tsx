@@ -4,7 +4,7 @@ import { GoogleApiData, useNonInitialEffect } from '@jetstream/shared/ui-utils';
 import RadioButton from 'libs/ui/src/lib/form/radio/RadioButton';
 import RadioGroup from 'libs/ui/src/lib/form/radio/RadioGroup';
 import GridCol from 'libs/ui/src/lib/grid/GridCol';
-import { FunctionComponent, useEffect, useState } from 'react';
+import { FunctionComponent, useState } from 'react';
 import GoogleFolderSelector from '../../form/file-selector/GoogleFolderSelector';
 import GoogleSignIn from '../../google/GoogleSignIn';
 
@@ -12,7 +12,7 @@ export interface FileDownloadGoogleProps {
   google_apiKey: string;
   google_appId: string;
   google_clientId: string;
-  disabled: boolean;
+  disabled?: boolean;
   onFolderSelected: (folderId: string) => void;
   onGoogleApiData: (apiData: GoogleApiData) => void;
 }
@@ -38,7 +38,10 @@ export const FileDownloadGoogle: FunctionComponent<FileDownloadGoogleProps> = ({
 
   return (
     <div className="slds-p-horizontal_medium slds-p-bottom_medium">
-      <GoogleSignIn apiConfig={{ apiKey: google_apiKey, appId: google_appId, clientId: google_clientId }}>
+      <GoogleSignIn
+        apiConfig={{ apiKey: google_apiKey, appId: google_appId, clientId: google_clientId }}
+        onSignInChanged={(apiData, profile) => onGoogleApiData(apiData)}
+      >
         <GridCol size={12}>
           <RadioGroup label="Which Google Drive folder would you like to save to?" isButtonGroup>
             <RadioButton
@@ -67,7 +70,6 @@ export const FileDownloadGoogle: FunctionComponent<FileDownloadGoogleProps> = ({
             folderName={googleFolder?.name}
             disabled={disabled}
             onSelected={handleGoogleFolderSelected}
-            onLoaded={onGoogleApiData}
           />
         )}
       </GoogleSignIn>

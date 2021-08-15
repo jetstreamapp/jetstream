@@ -8,6 +8,7 @@ export interface UseDrivePickerOptions {
 }
 
 export interface PickerConfiguration {
+  title?: string;
   viewGroups?: google.picker.ViewGroup[];
   views: (google.picker.DocsView | google.picker.DocsUploadView | google.picker.ViewId)[];
   features?: google.picker.Feature[];
@@ -26,7 +27,7 @@ export const DEFAULT_CONFIGURATION: PickerConfiguration = {
 export function useDrivePicker(
   apiConfig: GoogleApiClientConfig
 ): [
-  (config: PickerConfiguration) => void,
+  (config: PickerConfiguration) => google.picker.PickerBuilder | undefined,
   {
     apiLoaded: boolean;
     auth: gapi.auth2.AuthResponse | undefined;
@@ -60,22 +61,28 @@ export function useDrivePicker(
     } else {
       createPicker(config);
     }
+    return picker.current;
   };
 
-  const createPicker = ({ views, viewGroups, features, locale = 'en', skipBuild }: PickerConfiguration) => {
+  const createPicker = ({ views, viewGroups, features, locale = 'en', title, skipBuild }: PickerConfiguration) => {
     picker.current = new google.picker.PickerBuilder()
       .setAppId(apiConfig.appId)
       .setDeveloperKey(apiConfig.apiKey)
       .setCallback(pickerCallback)
       .setOAuthToken(apiData.authResponse?.access_token)
-      .setLocale(locale);
+      .setLocale(locale)
+      .setSize(window.innerWidth * 0.9, window.innerHeight * 0.9);
 
-    if (Array.isArray(views)) {
-      views.forEach((view) => picker.current.addView(view));
+    if (title) {
+      picker.current.setTitle(title);
     }
 
     if (Array.isArray(viewGroups)) {
       viewGroups.forEach((viewGroup) => picker.current.addViewGroup(viewGroup));
+    }
+
+    if (Array.isArray(views)) {
+      views.forEach((view) => picker.current.addView(view));
     }
 
     if (Array.isArray(features)) {

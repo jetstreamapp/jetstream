@@ -37,7 +37,7 @@ export const GoogleFileSelector: FunctionComponent<GoogleFileSelectorProps> = ({
   className,
   filename,
   label,
-  buttonLabel = 'Google Sheet',
+  buttonLabel = 'Choose Google Sheet',
   hideLabel,
   labelHelp,
   helpText,
@@ -134,9 +134,9 @@ export const GoogleFileSelector: FunctionComponent<GoogleFileSelectorProps> = ({
   const handleOpenPicker = () => {
     openPicker({
       views: [
-        new google.picker.DocsView(window.google.picker.ViewId.SPREADSHEETS).setEnableDrives(false).setIncludeFolders(true),
+        new google.picker.DocsView(window.google.picker.ViewId.SPREADSHEETS).setParent('root').setIncludeFolders(true),
         new google.picker.DocsView().setMimeTypes('application/vnd.google-apps.spreadsheet'),
-        new google.picker.DocsView(window.google.picker.ViewId.SPREADSHEETS).setEnableDrives(true),
+        new google.picker.DocsView(window.google.picker.ViewId.SPREADSHEETS).setEnableDrives(true).setIncludeFolders(true),
       ],
       features: [window.google.picker.Feature.SUPPORT_DRIVES],
     });

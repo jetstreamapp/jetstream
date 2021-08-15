@@ -347,7 +347,7 @@ export interface FormGroupDropdownItem {
 }
 
 export type AsyncJobType = 'BulkDelete' | 'BulkDownload' | 'RetrievePackageZip';
-export type AsyncJobStatus = 'pending' | 'in-progress' | 'success' | 'failed' | 'aborted';
+export type AsyncJobStatus = 'pending' | 'in-progress' | 'success' | 'finished-warning' | 'failed' | 'aborted';
 
 export type AsyncJobNew<T = unknown> = Omit<AsyncJob<T>, 'id' | 'started' | 'finished' | 'lastActivity' | 'status' | 'statusMessage'>;
 

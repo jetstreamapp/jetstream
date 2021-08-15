@@ -60,7 +60,7 @@ export const GoogleFolderSelector: FunctionComponent<GoogleFolderSelectorProps> 
     if (onLoaded && apiLoaded && apiData.hasApisLoaded) {
       onLoaded(apiData);
     }
-  }, [apiLoaded, apiData.hasApisLoaded]);
+  }, [apiLoaded, apiData.hasApisLoaded, apiData.signedIn]);
 
   useEffect(() => {
     if (data) {
@@ -93,9 +93,10 @@ export const GoogleFolderSelector: FunctionComponent<GoogleFolderSelectorProps> 
 
   const handleOpenPicker = () => {
     openPicker({
+      title: 'Select a folder',
       views: [
-        new google.picker.DocsView(window.google.picker.ViewId.FOLDERS).setSelectFolderEnabled(true),
-        new google.picker.DocsView(window.google.picker.ViewId.FOLDERS).setEnableDrives(true).setSelectFolderEnabled(true),
+        new google.picker.DocsView(window.google.picker.ViewId.FOLDERS).setSelectFolderEnabled(true).setParent('root'),
+        new google.picker.DocsView(window.google.picker.ViewId.FOLDERS).setSelectFolderEnabled(true).setEnableDrives(true),
       ],
       features: [window.google.picker.Feature.SUPPORT_DRIVES],
     });
@@ -119,6 +120,7 @@ export const GoogleFolderSelector: FunctionComponent<GoogleFolderSelectorProps> 
             onClick={handleOpenPicker}
             disabled={!apiLoaded || disabled}
             aria-labelledby={`${labelId}`}
+            aria-describedby="folder-input-help"
             title={apiData?.signedIn ? `Signed in as ${apiData.gapiAuthInstance.currentUser.get().getBasicProfile().getEmail()}` : ''}
           >
             <Icon type="doctype" icon="gdrive" className="slds-button__icon slds-button__icon_left" omitContainer />
@@ -128,12 +130,18 @@ export const GoogleFolderSelector: FunctionComponent<GoogleFolderSelectorProps> 
         </label>
       </div>
       {helpText && !selectedFolder?.name && (
-        <div className="slds-form-element__help slds-truncate" id="file-input-help" title={helpText}>
+        <div className="slds-form-element__help slds-truncate" id="folder-input-help" title={helpText}>
           {helpText}
         </div>
       )}
       {managedName && (
-        <div className="slds-form-element__help slds-truncate" id="file-input-help" title={managedName}>
+        <div className="slds-form-element__help" id="folder-input-help" title={managedName}>
+          <Icon
+            type="utility"
+            icon="open_folder"
+            containerClassname="slds-icon-utility-open-folder slds-m-right_xx-small"
+            className="slds-icon slds-icon-text-default slds-icon_xx-small"
+          />
           {filenameTruncated}
         </div>
       )}
