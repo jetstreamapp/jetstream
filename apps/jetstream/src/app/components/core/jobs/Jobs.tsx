@@ -1,5 +1,7 @@
 import { logger } from '@jetstream/shared/client-logger';
-import { saveFile, useBrowserNotifications, useObservable } from '@jetstream/shared/ui-utils';
+import { MIME_TYPES } from '@jetstream/shared/constants';
+import { googleUploadFile } from '@jetstream/shared/data';
+import { saveFile, useBrowserNotifications, useObservable, useRollbar } from '@jetstream/shared/ui-utils';
 import { pluralizeIfMultiple } from '@jetstream/shared/utils';
 import {
   AsyncJob,
@@ -27,6 +29,7 @@ import { jobsState, jobsUnreadState, selectActiveJobCount, selectJobs } from './
 
 export const Jobs: FunctionComponent = () => {
   const [{ serverUrl }] = useRecoilState(applicationCookieState);
+  const rollbar = useRollbar();
   const setJobs = useSetRecoilState(jobsState);
   const [jobsUnread, setJobsUnread] = useRecoilState(jobsUnreadState);
   const [jobs, setJobsArr] = useRecoilState(selectJobs);
@@ -120,13 +123,16 @@ export const Jobs: FunctionComponent = () => {
                 };
                 notifyUser(`Download records failed`, { body: newJob.statusMessage, tag: 'BulkDownload' });
               } else {
-                const { done, progress, fileData, fileName, mimeType } = data.results as {
+                const { done, progress, fileData, fileName, fileFormat, googleFolder } = data.results as {
                   done: boolean;
                   progress: number;
                   fileData: any;
                   mimeType: MimeType;
                   fileName: string;
+                  fileFormat: string;
+                  googleFolder?: string;
                 };
+                let { mimeType } = data.results as { mimeType: MimeType };
 
                 if (!done) {
                   newJob = {
@@ -135,6 +141,7 @@ export const Jobs: FunctionComponent = () => {
                     status: 'in-progress',
                     statusMessage: `Download in progress ${progress}%`,
                   };
+                  setJobs((prevJobs) => ({ ...prevJobs, [newJob.id]: newJob }));
                 } else {
                   newJob = {
                     ...newJob,
@@ -143,12 +150,38 @@ export const Jobs: FunctionComponent = () => {
                     status: 'success',
                     statusMessage: 'Records downloaded successfully',
                   };
-
-                  saveFile(fileData, fileName, mimeType);
-                  notifyUser(`Download records finished`, { tag: 'BulkDownload' });
+                  // If user requested to save to gsheet
+                  if (fileFormat === 'gsheet' && gapi?.client?.getToken()?.access_token) {
+                    googleUploadFile(gapi?.client?.getToken()?.access_token, {
+                      fileType: MIME_TYPES.CSV,
+                      filename: fileName,
+                      folderId: googleFolder,
+                      fileData,
+                    })
+                      .then(({ id, webViewLink }) => {
+                        newJob.results = webViewLink;
+                      })
+                      .catch((err) => {
+                        newJob.statusMessage += ' (save to Google failed)';
+                        mimeType = MIME_TYPES.CSV;
+                        saveFile(fileData, fileName, mimeType);
+                        notifyUser(`Download records finished (save to Google failed)`, { tag: 'BulkDownload' });
+                        rollbar.error('Error saving to Google Drive', { err, message: err?.message });
+                      })
+                      .finally(() => {
+                        setJobs((prevJobs) => ({ ...prevJobs, [newJob.id]: newJob }));
+                      });
+                  } else {
+                    if (fileFormat === 'gsheet') {
+                      newJob.statusMessage += ' (save to Google failed)';
+                      mimeType = MIME_TYPES.CSV;
+                    }
+                    saveFile(fileData, fileName, mimeType);
+                    notifyUser(`Download records finished`, { tag: 'BulkDownload' });
+                    setJobs((prevJobs) => ({ ...prevJobs, [newJob.id]: newJob }));
+                  }
                 }
               }
-              setJobs((prevJobs) => ({ ...prevJobs, [newJob.id]: newJob }));
             } catch (ex) {
               // TODO:
               logger.error('[ERROR][JOB] Error processing job results', ex);

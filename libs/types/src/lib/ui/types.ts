@@ -4,6 +4,7 @@ import { ChildRelationship, DescribeSObjectResult, Field } from 'jsforce';
 import { ReactNode } from 'react';
 import { ListMetadataResult } from '../salesforce/types';
 import { HttpMethod, SalesforceOrgUi } from '../types';
+import type * as XLSX from 'xlsx';
 
 // generic useReducer actions/state for a basic fetch reducer function
 export type UseReducerFetchAction<T> =
@@ -24,9 +25,11 @@ export type FileExtXLSX = 'xlsx';
 export type FileExtJson = 'json';
 export type FileExtXml = 'xml';
 export type FileExtZip = 'zip';
+export type FileExtGSheet = 'gsheet';
 export type FileExtCsvXLSX = FileExtCsv | FileExtXLSX;
 export type FileExtCsvXLSXJson = FileExtCsvXLSX | FileExtJson;
-export type FileExtAllTypes = FileExtCsv | FileExtXLSX | FileExtJson | FileExtXml | FileExtZip;
+export type FileExtCsvXLSXJsonGSheet = FileExtCsvXLSXJson | FileExtGSheet;
+export type FileExtAllTypes = FileExtCsv | FileExtXLSX | FileExtJson | FileExtXml | FileExtZip | FileExtGSheet;
 
 export type Edit = 'edit';
 export type Clone = 'clone';
@@ -175,13 +178,14 @@ export type PositionBottom = 'bottom';
 export type PositionBottomLeft = 'bottom-left';
 export type PositionBottomRight = 'bottom-right';
 
-export type MimeType = MimeTypePlainText | MimeTypeCsv | MimeTypeOctetStream | MimeTypeZip | MimeTypeJson | MimeTypeXML;
+export type MimeType = MimeTypePlainText | MimeTypeCsv | MimeTypeOctetStream | MimeTypeZip | MimeTypeJson | MimeTypeXML | MimeTypeGSheet;
 export type MimeTypePlainText = 'text/plain;charset=utf-8';
 export type MimeTypeCsv = 'text/csv;charset=utf-8';
 export type MimeTypeOctetStream = 'application/octet-stream;charset=utf-8';
 export type MimeTypeZip = 'application/zip;charset=utf-8';
 export type MimeTypeJson = 'application/json;charset=utf-8';
 export type MimeTypeXML = 'text/xml;charset=utf-8';
+export type MimeTypeGSheet = 'application/vnd.google-apps.spreadsheet';
 
 export type InputAcceptType = InputAcceptTypeZip | InputAcceptTypeCsv | InputAcceptTypeExcel | InputAcceptTypeXml;
 export type InputAcceptTypeZip = '.zip';
@@ -380,6 +384,7 @@ export interface BulkDownloadJob {
   records: MapOf<string>[];
   fileFormat: FileExtAllTypes;
   fileName: string;
+  googleFolder: string;
 }
 
 export interface RetrievePackageJob {
@@ -456,6 +461,18 @@ export interface InputReadFileContent {
   filename: string;
   extension: string;
   content: string | ArrayBuffer;
+}
+
+export interface InputReadGoogleSheet {
+  workbook: XLSX.WorkBook;
+  selectedFile: google.picker.DocumentObject;
+}
+
+export interface GoogleFileApiResponse {
+  id: string;
+  kind: string;
+  mimeType: string;
+  name: string;
 }
 
 export interface SalesforceApiRequest {

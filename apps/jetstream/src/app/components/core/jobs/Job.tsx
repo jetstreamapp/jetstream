@@ -5,8 +5,11 @@ import React, { FunctionComponent } from 'react';
 import classNames from 'classnames';
 import { downloadJob } from './job-utils';
 import formatDate from 'date-fns/format';
+import { Link } from 'react-router-dom';
+import { isString } from 'lodash';
 
 const JOBS_WITH_DOWNLOAD = new Set<AsyncJobType>(['BulkDelete']);
+const JOBS_WITH_LINK = new Set<AsyncJobType>(['BulkDownload']);
 const JOBS_WITH_TIMESTAMP_UPDATE = new Set<AsyncJobType>(['RetrievePackageZip']);
 
 export interface JobProps {
@@ -106,6 +109,11 @@ export const Job: FunctionComponent<JobProps> = ({ job, dismiss }) => {
                   <Icon type="utility" icon="download" className="slds-button__icon slds-button__icon_left" omitContainer />
                   Download Results
                 </button>
+              )}
+              {JOBS_WITH_LINK.has(job.type) && isString(job.results) && (
+                <a href={job.results} className="slds-button slds-button_neutral" target="_blank" rel="noopener noreferrer">
+                  View Results
+                </a>
               )}
             </div>
             <div className=" slds-col">

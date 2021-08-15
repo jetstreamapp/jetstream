@@ -32,6 +32,30 @@ function getHeader(headers: MapOf<string>, header: string) {
   return headers[header] || headers[header.toLowerCase()];
 }
 
+/** Use for API calls going to external locations */
+export async function handleExternalRequest<T = any>(config: AxiosRequestConfig): Promise<AxiosResponse<T>> {
+  const axiosInstance = axios.create(config);
+  axiosInstance.interceptors.request.use(requestInterceptor({}));
+  axiosInstance.interceptors.response.use(
+    (response) => {
+      logger.info(`[HTTP][RES][${response.config.method.toUpperCase()}][${response.status}]`, response.config.url, {
+        response: response.data,
+      });
+      return response;
+    },
+    (error: AxiosError) => {
+      logger.info('[HTTP][RESPONSE][ERROR]', error.name, error.message);
+      let message = 'An unknown error has occurred';
+      if (error.isAxiosError && error.response) {
+        message = error.message || 'An unknown error has occurred';
+      }
+      throw new Error(error.message);
+    }
+  );
+  const response = await axiosInstance.request<T>(config);
+  return response;
+}
+
 export async function handleRequest<T = any>(
   config: AxiosRequestConfig,
   options: {

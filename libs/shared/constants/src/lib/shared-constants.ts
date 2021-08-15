@@ -14,6 +14,7 @@ export const FEATURE_FLAGS = Object.freeze({
   PERMISSION_MANAGER: 'permission-manager',
   DEPLOYMENT: 'deployment',
   NOTIFICATIONS: 'notifications',
+  ALLOW_GOOGLE_UPLOAD: 'allow-google-upload',
 });
 
 export const INPUT_ACCEPT_FILETYPES: {
@@ -74,6 +75,7 @@ export const MIME_TYPES: MapOf<MimeType> = {
   JSON: 'application/json;charset=utf-8',
   XML: 'text/xml;charset=utf-8',
   ZIP: 'application/zip;charset=utf-8',
+  GSHEET: 'application/vnd.google-apps.spreadsheet',
 };
 
 export const INDEXED_DB = {

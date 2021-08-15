@@ -36,6 +36,8 @@ export interface DoctypeIconObj {
   excel: IconEl;
   pack: IconEl;
   zip: IconEl;
+  gsheet: IconEl;
+  gdrive: IconEl;
 }
 
 export interface UtilityIconObj {

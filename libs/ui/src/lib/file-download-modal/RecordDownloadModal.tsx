@@ -2,16 +2,39 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 /** @jsx jsx */
 import { jsx } from '@emotion/react';
+import { logger } from '@jetstream/shared/client-logger';
 import { MIME_TYPES } from '@jetstream/shared/constants';
-import { formatNumber, getFilename, isEnterKey, prepareCsvFile, prepareExcelFile, saveFile } from '@jetstream/shared/ui-utils';
+import { googleUploadFile } from '@jetstream/shared/data';
+import {
+  formatNumber,
+  getFilename,
+  GoogleApiData,
+  isEnterKey,
+  prepareCsvFile,
+  prepareExcelFile,
+  saveFile,
+  useRollbar,
+} from '@jetstream/shared/ui-utils';
 import { flattenRecords } from '@jetstream/shared/utils';
-import { FileExtCsv, FileExtCsvXLSXJson, FileExtJson, FileExtXLSX, MimeType, Record, SalesforceOrgUi } from '@jetstream/types';
-import DuelingPicklist from 'libs/ui/src/lib/form/dueling-picklist/DuelingPicklist';
-import { DuelingPicklistItem } from 'libs/ui/src/lib/form/dueling-picklist/DuelingPicklistTypes';
-import RadioButton from 'libs/ui/src/lib/form/radio/RadioButton';
+import {
+  FileExtCsv,
+  FileExtCsvXLSXJsonGSheet,
+  FileExtGSheet,
+  FileExtJson,
+  FileExtXLSX,
+  MimeType,
+  Record,
+  SalesforceOrgUi,
+} from '@jetstream/types';
+import Grid from 'libs/ui/src/lib/grid/Grid';
+import Spinner from 'libs/ui/src/lib/widgets/Spinner';
 import { Fragment, FunctionComponent, KeyboardEvent, useEffect, useRef, useState } from 'react';
+import FileDownloadGoogle from '../file-download-modal/options/FileDownloadGoogle';
+import DuelingPicklist from '../form/dueling-picklist/DuelingPicklist';
+import { DuelingPicklistItem } from '../form/dueling-picklist/DuelingPicklistTypes';
 import Input from '../form/input/Input';
 import Radio from '../form/radio/Radio';
+import RadioButton from '../form/radio/RadioButton';
 import RadioGroup from '../form/radio/RadioGroup';
 import Modal from '../modal/Modal';
 import {
@@ -19,6 +42,7 @@ import {
   RADIO_ALL_SERVER,
   RADIO_FILTERED,
   RADIO_FORMAT_CSV,
+  RADIO_FORMAT_GSHEET,
   RADIO_FORMAT_JSON,
   RADIO_FORMAT_XLSX,
   RADIO_SELECTED,
@@ -26,6 +50,9 @@ import {
 
 export interface RecordDownloadModalProps {
   org: SalesforceOrgUi;
+  google_apiKey: string;
+  google_appId: string;
+  google_clientId: string;
   downloadModalOpen: boolean;
   fields: string[];
   records: Record[];
@@ -33,12 +60,15 @@ export interface RecordDownloadModalProps {
   selectedRecords?: Record[];
   totalRecordCount?: number;
   onModalClose: (cancelled?: boolean) => void;
-  onDownload?: (fileFormat: FileExtCsvXLSXJson, fileName: string, userOverrideFields: boolean) => void;
-  onDownloadFromServer?: (fileFormat: FileExtCsvXLSXJson, fileName: string, fields: string[]) => void;
+  onDownload?: (fileFormat: FileExtCsvXLSXJsonGSheet, fileName: string, userOverrideFields: boolean, googleFolderId?: string) => void;
+  onDownloadFromServer?: (fileFormat: FileExtCsvXLSXJsonGSheet, fileName: string, fields: string[], googleFolderId?: string) => void;
 }
 
 export const RecordDownloadModal: FunctionComponent<RecordDownloadModalProps> = ({
   org,
+  google_apiKey,
+  google_appId,
+  google_clientId,
   downloadModalOpen,
   fields = [],
   records,
@@ -50,18 +80,33 @@ export const RecordDownloadModal: FunctionComponent<RecordDownloadModalProps> = 
   onDownloadFromServer,
   children,
 }) => {
+  const rollbar = useRollbar();
   const [hasMoreRecords, setHasMoreRecords] = useState<boolean>(false);
   const [downloadRecordsValue, setDownloadRecordsValue] = useState<string>(hasMoreRecords ? RADIO_ALL_SERVER : RADIO_ALL_BROWSER);
-  const [fileFormat, setFileFormat] = useState<FileExtCsvXLSXJson>(RADIO_FORMAT_XLSX);
+  const [fileFormat, setFileFormat] = useState<FileExtCsvXLSXJsonGSheet>(RADIO_FORMAT_XLSX);
   const [fileName, setFileName] = useState<string>(getFilename(org, ['records']));
   // If the user changes the filename, we do not want to focus/select the text again or else the user cannot type
   const [doFocusInput, setDoFocusInput] = useState<boolean>(true);
   const inputEl = useRef<HTMLInputElement>();
-  const [filenameEmpty, setFilenameEmpty] = useState(false);
+
+  const [googleApiData, setGoogleApiData] = useState<GoogleApiData>();
+  const [googleFolder, setGoogleFolder] = useState<string>();
+  const [googleFileUploadStatus, setGoogleFileUploadStatus] = useState({ loading: false, error: false });
 
   const [whichFields, setWhichFields] = useState<'all' | 'specified'>('all');
   const [fieldOverrideFields, setFieldOverrideFields] = useState<DuelingPicklistItem[]>([]);
   const [fieldOverrideSelectedFields, setFieldOverrideSelectedFields] = useState<string[]>([]);
+
+  const [invalidConfig, setInvalidConfig] = useState(false);
+  const googleAuthorized = !!googleApiData?.authorized;
+
+  useEffect(() => {
+    if (!fileName || (fileFormat === 'gsheet' && !googleAuthorized)) {
+      setInvalidConfig(true);
+    } else {
+      setInvalidConfig(false);
+    }
+  }, [fileName, fileFormat, googleAuthorized, googleFolder]);
 
   useEffect(() => {
     if (fields) {
@@ -71,14 +116,6 @@ export const RecordDownloadModal: FunctionComponent<RecordDownloadModalProps> = 
       setFieldOverrideFields([]);
     }
   }, [fields]);
-
-  useEffect(() => {
-    if (!fileName && !filenameEmpty) {
-      setFilenameEmpty(true);
-    } else if (fileName && filenameEmpty) {
-      setFilenameEmpty(false);
-    }
-  }, [fileName, filenameEmpty]);
 
   useEffect(() => {
     if (downloadModalOpen) {
@@ -109,6 +146,9 @@ export const RecordDownloadModal: FunctionComponent<RecordDownloadModalProps> = 
   }, [totalRecordCount, records]);
 
   function handleModalClose(cancelled?: boolean) {
+    if (googleFileUploadStatus.loading) {
+      return;
+    }
     onModalClose(cancelled);
     if (whichFields !== 'all') {
       setWhichFields('all');
@@ -118,7 +158,7 @@ export const RecordDownloadModal: FunctionComponent<RecordDownloadModalProps> = 
     }
   }
 
-  function handleDownload() {
+  async function handleDownload() {
     const fieldsToUse = whichFields === 'all' ? fields : fieldOverrideSelectedFields;
     if (fieldsToUse.length === 0) {
       return;
@@ -128,7 +168,7 @@ export const RecordDownloadModal: FunctionComponent<RecordDownloadModalProps> = 
       if (downloadRecordsValue === RADIO_ALL_SERVER) {
         // emit event, which starts job, which downloads in the background
         if (onDownloadFromServer) {
-          onDownloadFromServer(fileFormat, fileNameWithExt, fieldsToUse);
+          onDownloadFromServer(fileFormat, fileNameWithExt, fieldsToUse, googleFolder);
         }
         handleModalClose();
       } else {
@@ -157,13 +197,45 @@ export const RecordDownloadModal: FunctionComponent<RecordDownloadModalProps> = 
             mimeType = MIME_TYPES.JSON;
             break;
           }
+          case 'gsheet': {
+            fileData = prepareCsvFile(data, fieldsToUse);
+            mimeType = MIME_TYPES.GSHEET;
+            break;
+          }
           default:
             throw new Error('A valid file type type has not been selected');
         }
 
-        saveFile(fileData, fileNameWithExt, mimeType);
+        if (fileFormat !== 'gsheet') {
+          saveFile(fileData, fileNameWithExt, mimeType);
+        } else {
+          // TODO: show loading indicator, disable everything (OR save as background job!?!?!!)
+          // TODO: should auth be a different step? do we require folder selection? (we do if auth is combined in)
+          // create file on Google
+          if (!googleApiData?.signedIn || !googleApiData?.hasInitialized || !googleApiData?.authorized) {
+            // TODO: how do we handle this?
+            return;
+          } else {
+            try {
+              setGoogleFileUploadStatus({ loading: true, error: false });
+              const results = await googleUploadFile(googleApiData.authResponse.access_token, {
+                fileType: MIME_TYPES.CSV,
+                filename: fileName,
+                folderId: googleFolder,
+                fileData,
+              });
+              logger.log('Uploaded to Google', { results });
+              setGoogleFileUploadStatus({ loading: false, error: false });
+            } catch (ex) {
+              logger.error('Filed saving to google drive', ex);
+              rollbar.error('Error saving to Google Drive', { error: ex, message: ex?.message });
+              setGoogleFileUploadStatus({ loading: false, error: true });
+              return;
+            }
+          }
+        }
         if (onDownload) {
-          onDownload(fileFormat, fileNameWithExt, whichFields === 'specified');
+          onDownload(fileFormat, fileNameWithExt, whichFields === 'specified', googleFolder);
         }
         handleModalClose();
       }
@@ -181,9 +253,17 @@ export const RecordDownloadModal: FunctionComponent<RecordDownloadModalProps> = 
   }
 
   function handleKeyUp(event: KeyboardEvent<HTMLElement>) {
-    if (isEnterKey(event) && !filenameEmpty) {
+    if (isEnterKey(event) && !invalidConfig) {
       handleDownload();
     }
+  }
+
+  function handleFolderSelected(folderId: string) {
+    setGoogleFolder(folderId);
+  }
+
+  function handleGoogleApiData(apiData: GoogleApiData) {
+    setGoogleApiData(apiData);
   }
 
   return (
@@ -192,16 +272,37 @@ export const RecordDownloadModal: FunctionComponent<RecordDownloadModalProps> = 
         <Modal
           header="Download Records"
           footer={
-            <Fragment>
-              <button className="slds-button slds-button_neutral" onClick={() => handleModalClose(true)}>
-                Cancel
-              </button>
-              <button className="slds-button slds-button_brand" onClick={handleDownload} disabled={filenameEmpty}>
-                Download
-              </button>
-            </Fragment>
+            <div className="slds-is-relative">
+              {googleFileUploadStatus.loading && <Spinner />}
+              <Grid align="spread">
+                <div>
+                  {googleFileUploadStatus.error && (
+                    <span className="slds-text-color_error">
+                      There was a problem saving to Google Drive. Try again or save to your computer.
+                    </span>
+                  )}
+                </div>
+                <div>
+                  <button
+                    className="slds-button slds-button_neutral"
+                    onClick={() => handleModalClose(true)}
+                    disabled={googleFileUploadStatus.loading}
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    className="slds-button slds-button_brand"
+                    onClick={handleDownload}
+                    disabled={invalidConfig || googleFileUploadStatus.loading}
+                  >
+                    Download
+                  </button>
+                </div>
+              </Grid>
+            </div>
           }
           skipAutoFocus
+          overrideZIndex={1001}
           onClose={() => handleModalClose(true)}
         >
           <div>
@@ -214,6 +315,7 @@ export const RecordDownloadModal: FunctionComponent<RecordDownloadModalProps> = 
                     value={RADIO_ALL_SERVER}
                     checked={downloadRecordsValue === RADIO_ALL_SERVER}
                     onChange={setDownloadRecordsValue}
+                    disabled={googleFileUploadStatus.loading}
                   />
                   <Radio
                     name="radio-download"
@@ -221,6 +323,7 @@ export const RecordDownloadModal: FunctionComponent<RecordDownloadModalProps> = 
                     value={RADIO_ALL_BROWSER}
                     checked={downloadRecordsValue === RADIO_ALL_BROWSER}
                     onChange={setDownloadRecordsValue}
+                    disabled={googleFileUploadStatus.loading}
                   />
                 </Fragment>
               )}
@@ -231,6 +334,7 @@ export const RecordDownloadModal: FunctionComponent<RecordDownloadModalProps> = 
                   value={RADIO_ALL_BROWSER}
                   checked={downloadRecordsValue === RADIO_ALL_BROWSER}
                   onChange={setDownloadRecordsValue}
+                  disabled={googleFileUploadStatus.loading}
                 />
               )}
               {hasFilteredRecords() && (
@@ -240,6 +344,7 @@ export const RecordDownloadModal: FunctionComponent<RecordDownloadModalProps> = 
                   value={RADIO_FILTERED}
                   checked={downloadRecordsValue === RADIO_FILTERED}
                   onChange={setDownloadRecordsValue}
+                  disabled={googleFileUploadStatus.loading}
                 />
               )}
               {hasSelectedRecords() && (
@@ -249,6 +354,7 @@ export const RecordDownloadModal: FunctionComponent<RecordDownloadModalProps> = 
                   value={RADIO_SELECTED}
                   checked={downloadRecordsValue === RADIO_SELECTED}
                   onChange={setDownloadRecordsValue}
+                  disabled={googleFileUploadStatus.loading}
                 />
               )}
             </RadioGroup>
@@ -259,6 +365,7 @@ export const RecordDownloadModal: FunctionComponent<RecordDownloadModalProps> = 
                 value={RADIO_FORMAT_XLSX}
                 checked={fileFormat === RADIO_FORMAT_XLSX}
                 onChange={(value: FileExtXLSX) => setFileFormat(value)}
+                disabled={googleFileUploadStatus.loading}
               />
               <Radio
                 name="radio-download-file-format"
@@ -266,6 +373,7 @@ export const RecordDownloadModal: FunctionComponent<RecordDownloadModalProps> = 
                 value={RADIO_FORMAT_CSV}
                 checked={fileFormat === RADIO_FORMAT_CSV}
                 onChange={(value: FileExtCsv) => setFileFormat(value)}
+                disabled={googleFileUploadStatus.loading}
               />
               <Radio
                 name="radio-download-file-format"
@@ -273,13 +381,31 @@ export const RecordDownloadModal: FunctionComponent<RecordDownloadModalProps> = 
                 value={RADIO_FORMAT_JSON}
                 checked={fileFormat === RADIO_FORMAT_JSON}
                 onChange={(value: FileExtJson) => setFileFormat(value)}
+                disabled={googleFileUploadStatus.loading}
+              />
+              <Radio
+                name="radio-download-file-format"
+                label="Google Sheet"
+                value={RADIO_FORMAT_GSHEET}
+                checked={fileFormat === RADIO_FORMAT_GSHEET}
+                onChange={(value: FileExtGSheet) => setFileFormat(value)}
+                disabled={googleFileUploadStatus.loading}
               />
             </RadioGroup>
+            {fileFormat === 'gsheet' && (
+              <FileDownloadGoogle
+                google_apiKey={google_apiKey}
+                google_appId={google_appId}
+                google_clientId={google_clientId}
+                disabled={googleFileUploadStatus.loading}
+                onFolderSelected={handleFolderSelected}
+                onGoogleApiData={handleGoogleApiData}
+              />
+            )}
             <Input
               label="Filename"
               isRequired
               rightAddon={`.${fileFormat}`}
-              hasError={filenameEmpty}
               errorMessage="This field is required"
               errorMessageId="filename-error"
             >
@@ -292,6 +418,7 @@ export const RecordDownloadModal: FunctionComponent<RecordDownloadModalProps> = 
                 maxLength={250}
                 onChange={(event) => setFileName(event.target.value)}
                 onKeyUp={handleKeyUp}
+                disabled={googleFileUploadStatus.loading}
               />
             </Input>
             {fileFormat !== 'json' && (
@@ -307,6 +434,7 @@ export const RecordDownloadModal: FunctionComponent<RecordDownloadModalProps> = 
                     value="all"
                     checked={whichFields === 'all'}
                     onChange={(value) => setWhichFields('all')}
+                    disabled={googleFileUploadStatus.loading}
                   />
                   <RadioButton
                     name="which-fields"
@@ -314,6 +442,7 @@ export const RecordDownloadModal: FunctionComponent<RecordDownloadModalProps> = 
                     value="specified"
                     checked={whichFields === 'specified'}
                     onChange={(value) => setWhichFields('specified')}
+                    disabled={googleFileUploadStatus.loading}
                   />
                 </RadioGroup>
                 {whichFields === 'specified' && (
@@ -326,6 +455,7 @@ export const RecordDownloadModal: FunctionComponent<RecordDownloadModalProps> = 
                     labelLeft="Ignored Fields"
                     labelRight="Included Fields"
                     onChange={setFieldOverrideSelectedFields}
+                    disabled={googleFileUploadStatus.loading}
                   ></DuelingPicklist>
                 )}
               </Fragment>

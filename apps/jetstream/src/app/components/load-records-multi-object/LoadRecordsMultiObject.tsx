@@ -1,13 +1,14 @@
 /** @jsx jsx */
 import { jsx } from '@emotion/react';
-import { ANALYTICS_KEYS, DATE_FORMATS, INPUT_ACCEPT_FILETYPES } from '@jetstream/shared/constants';
-import { useNonInitialEffect } from '@jetstream/shared/ui-utils';
-import { InputReadFileContent, SalesforceOrgUi } from '@jetstream/types';
+import { ANALYTICS_KEYS, DATE_FORMATS, FEATURE_FLAGS, INPUT_ACCEPT_FILETYPES } from '@jetstream/shared/constants';
+import { hasFeatureFlagAccess, useNonInitialEffect } from '@jetstream/shared/ui-utils';
+import { InputReadFileContent, InputReadGoogleSheet, SalesforceOrgUi } from '@jetstream/types';
 import {
   AutoFullHeightContainer,
   Checkbox,
   ConfirmationModalPromise,
   EmptyState,
+  FileOrGoogleSelector,
   FileSelector,
   Grid,
   Icon,
@@ -21,6 +22,7 @@ import {
   Select,
   Spinner,
 } from '@jetstream/ui';
+import { LocalOrGoogle } from '../load-records/load-records-types';
 import { ChangeEvent, FunctionComponent, useEffect, useRef, useState } from 'react';
 import { useRecoilState, useRecoilValue } from 'recoil';
 import * as XLSX from 'xlsx';
@@ -35,18 +37,20 @@ import useProcessLoadFile from './useProcessLoadFile';
 const TEMPLATE_DOWNLOAD_LINK = 'https://drive.google.com/u/0/uc?id=1pOCPCoX4SxQWfdGc5IFa0wjXX_BKrBcV&export=download';
 const HEIGHT_BUFFER = 170;
 
-// eslint-disable-next-line @typescript-eslint/no-empty-interface
-export interface LoadRecordsMultiObjectProps {}
+export interface LoadRecordsMultiObjectProps {
+  featureFlags: Set<string>;
+}
 
-export const LoadRecordsMultiObject: FunctionComponent<LoadRecordsMultiObjectProps> = () => {
+export const LoadRecordsMultiObject: FunctionComponent<LoadRecordsMultiObjectProps> = ({ featureFlags }) => {
   const isMounted = useRef(null);
   const { trackEvent } = useAmplitude();
   const selectedOrg = useRecoilValue<SalesforceOrgUi>(selectedOrgState);
   const orgType = useRecoilValue(selectedOrgType);
 
   const [inputFilename, setInputFilename] = useState<string>();
+  const [inputFileType, setInputFileType] = useState<LocalOrGoogle>();
   const [inputFileData, setInputFileData] = useState<XLSX.WorkBook>();
-  const [{ serverUrl, defaultApiVersion }] = useRecoilState(applicationCookieState);
+  const [{ serverUrl, defaultApiVersion, google_apiKey, google_appId, google_clientId }] = useRecoilState(applicationCookieState);
   const [templateUrl] = useState(`${TEMPLATE_DOWNLOAD_LINK}`);
   const [insertNulls, setInsertNulls] = useState(false);
   const [dateFormat, setDateFormat] = useState<string>(DATE_FORMATS.MM_DD_YYYY);
@@ -101,6 +105,16 @@ export const LoadRecordsMultiObject: FunctionComponent<LoadRecordsMultiObjectPro
     setLoadStarted(false);
     const workbook = XLSX.read(content, { cellText: false, cellDates: true, type: 'array' });
     setInputFilename(filename);
+    setInputFileType('local');
+    setInputFileData(workbook);
+    fileProcessingReset();
+    loadResultsReset();
+  }
+
+  function handleGoogleFile({ workbook, selectedFile }: InputReadGoogleSheet) {
+    setLoadStarted(false);
+    setInputFilename(selectedFile.name);
+    setInputFileType('google');
     setInputFileData(workbook);
     fileProcessingReset();
     loadResultsReset();
@@ -187,16 +201,28 @@ export const LoadRecordsMultiObject: FunctionComponent<LoadRecordsMultiObjectPro
                 <option value={DATE_FORMATS.YYYY_MM_DD}>{DATE_FORMATS.YYYY_MM_DD}</option>
               </select>
             </Select>
-            <FileSelector
-              id="upload-load-template"
-              className="slds-m-top_small"
-              label="Data File (Excel File)"
-              filename={inputFilename}
-              accept={[INPUT_ACCEPT_FILETYPES.EXCEL]}
-              userHelpText="Choose an Excel file that is in the correct format from the provided template."
-              disabled={fileProcessingLoading || dataLoadLoading}
-              onReadFile={handleFile}
-            ></FileSelector>
+            <FileOrGoogleSelector
+              omitGoogle={!hasFeatureFlagAccess(featureFlags, FEATURE_FLAGS.ALLOW_GOOGLE_UPLOAD)}
+              fileSelectorProps={{
+                id: 'upload-load-template',
+                label: 'Data File (Excel File)',
+                filename: inputFileType === 'local' ? inputFilename : undefined,
+                accept: [INPUT_ACCEPT_FILETYPES.EXCEL],
+                disabled: fileProcessingLoading || dataLoadLoading,
+                onReadFile: handleFile,
+              }}
+              googleSelectorProps={{
+                apiConfig: { apiKey: google_apiKey, appId: google_appId, clientId: google_clientId },
+                id: 'load-google-drive-file',
+                label: 'Google Drive',
+                filename: inputFileType === 'google' ? inputFilename : undefined,
+                disabled: fileProcessingLoading || dataLoadLoading,
+                onReadFile: handleGoogleFile,
+              }}
+            />
+            <div className="slds-form-element__help slds-truncate">
+              Choose an Excel file that is in the correct format from the provided template.
+            </div>
           </fieldset>
         </Grid>
 

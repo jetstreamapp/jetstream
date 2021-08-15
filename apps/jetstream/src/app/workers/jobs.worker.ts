@@ -81,7 +81,7 @@ async function handleMessage(name: AsyncJobType, payloadData: AsyncJobWorkerMess
     case 'BulkDownload': {
       try {
         const { org, job } = payloadData as AsyncJobWorkerMessagePayload<BulkDownloadJob>;
-        const { isTooling, fields, records, fileFormat, fileName } = job.meta;
+        const { isTooling, fields, records, fileFormat, fileName, googleFolder } = job.meta;
         let { nextRecordsUrl, totalRecordCount } = job.meta;
         let downloadedRecords = fileFormat === 'json' ? records : flattenRecords(records, fields);
         let done = false;
@@ -126,10 +126,15 @@ async function handleMessage(name: AsyncJobType, payloadData: AsyncJobWorkerMess
             mimeType = MIME_TYPES.JSON;
             break;
           }
+          case 'gsheet': {
+            fileData = prepareCsvFile(data, fields);
+            mimeType = MIME_TYPES.GSHEET;
+            break;
+          }
           default:
             throw new Error('A valid file type type has not been selected');
         }
-        const results = { done: true, progress: 100, fileData, mimeType, fileName };
+        const results = { done: true, progress: 100, fileData, mimeType, fileName, fileFormat, googleFolder };
 
         const response: AsyncJobWorkerMessageResponse = { job, results };
         replyToMessage(name, response);

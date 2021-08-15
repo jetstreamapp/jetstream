@@ -20,11 +20,11 @@ import {
 import { startCase } from 'lodash';
 import { FunctionComponent, useCallback, useEffect, useRef, useState } from 'react';
 import { useRecoilState, useRecoilValue, useResetRecoilState } from 'recoil';
-import { selectedOrgState, selectedOrgType } from '../../app-state';
+import { applicationCookieState, selectedOrgState, selectedOrgType } from '../../app-state';
 import { useAmplitude } from '../core/analytics';
 import LoadRecordsDataPreview from './components/LoadRecordsDataPreview';
 import LoadRecordsProgress from './components/LoadRecordsProgress';
-import { FieldWithRelatedEntities, Step } from './load-records-types';
+import { FieldWithRelatedEntities, LocalOrGoogle, Step } from './load-records-types';
 import * as fromLoadRecordsState from './load-records.state';
 import LoadRecordsFieldMapping from './steps/FieldMapping';
 import LoadRecordsLoadAutomationDeploy from './steps/LoadRecordsAutomationDeploy';
@@ -46,12 +46,14 @@ const steps: Step[] = [
 const enabledSteps: Step[] = steps.filter((step) => step.enabled);
 const finalStep: Step = enabledSteps[enabledSteps.length - 1];
 
-// eslint-disable-next-line @typescript-eslint/no-empty-interface
-export interface LoadRecordsProps {}
+export interface LoadRecordsProps {
+  featureFlags: Set<string>;
+}
 
-export const LoadRecords: FunctionComponent<LoadRecordsProps> = () => {
+export const LoadRecords: FunctionComponent<LoadRecordsProps> = ({ featureFlags }) => {
   const isMounted = useRef(null);
   const { trackEvent } = useAmplitude();
+  const [{ google_apiKey, google_appId, google_clientId }] = useRecoilState(applicationCookieState);
   const selectedOrg = useRecoilValue<SalesforceOrgUi>(selectedOrgState);
   const orgType = useRecoilValue(selectedOrgType);
   // TODO: probably need this to know when to reset state
@@ -66,6 +68,7 @@ export const LoadRecords: FunctionComponent<LoadRecordsProps> = () => {
   const [inputFileData, setInputFileData] = useRecoilState(fromLoadRecordsState.inputFileDataState);
   const [inputFileHeader, setInputFileHeader] = useRecoilState(fromLoadRecordsState.inputFileHeaderState);
   const [inputFilename, setInputFilename] = useRecoilState(fromLoadRecordsState.inputFilenameState);
+  const [inputFilenameType, setInputFilenameType] = useRecoilState(fromLoadRecordsState.inputFilenameTypeState);
   const [fieldMapping, setFieldMapping] = useRecoilState(fromLoadRecordsState.fieldMappingState);
 
   const [loading, setLoading] = useState<boolean>(false);
@@ -86,6 +89,7 @@ export const LoadRecords: FunctionComponent<LoadRecordsProps> = () => {
   const resetInputFileHeaderState = useResetRecoilState(fromLoadRecordsState.inputFileHeaderState);
   const resetInputFilenameState = useResetRecoilState(fromLoadRecordsState.inputFilenameState);
   const resetFieldMappingState = useResetRecoilState(fromLoadRecordsState.fieldMappingState);
+  const resetFieldMappingTypeState = useResetRecoilState(fromLoadRecordsState.inputFilenameTypeState);
 
   useEffect(() => {
     isMounted.current = true;
@@ -102,6 +106,7 @@ export const LoadRecords: FunctionComponent<LoadRecordsProps> = () => {
         resetInputFileHeaderState();
         resetInputFilenameState();
         resetFieldMappingState();
+        resetFieldMappingTypeState();
       }
     };
   }, [
@@ -112,6 +117,7 @@ export const LoadRecords: FunctionComponent<LoadRecordsProps> = () => {
     resetInputFilenameState,
     resetLoadTypeState,
     resetSelectedSObjectState,
+    resetFieldMappingTypeState,
   ]);
 
   useEffect(() => {
@@ -243,10 +249,11 @@ export const LoadRecords: FunctionComponent<LoadRecordsProps> = () => {
     setLoadSummaryText(text.join(' • '));
   }, [selectedSObject, loadType, fieldMapping, inputFileHeader, externalId]);
 
-  function handleFileChange(data: any[], headers: string[], filename: string) {
+  function handleFileChange(data: any[], headers: string[], filename: string, type: LocalOrGoogle) {
     setInputFileData(data);
     setInputFileHeader(headers);
     setInputFilename(filename);
+    setInputFilenameType(type);
   }
 
   function handleGoBackToPrev() {
@@ -334,6 +341,8 @@ export const LoadRecords: FunctionComponent<LoadRecordsProps> = () => {
           <GridCol>
             {currentStep.name === 'sobjectAndFile' && (
               <LoadRecordsSelectObjectAndFile
+                googleApiConfig={{ apiKey: google_apiKey, appId: google_appId, clientId: google_clientId }}
+                featureFlags={featureFlags}
                 selectedOrg={selectedOrg}
                 sobjects={sobjects}
                 selectedSObject={selectedSObject}
@@ -342,6 +351,7 @@ export const LoadRecords: FunctionComponent<LoadRecordsProps> = () => {
                 loadingFields={loadingFields}
                 externalId={externalId}
                 inputFilename={inputFilename}
+                inputFileType={inputFilenameType}
                 onSobjects={setSobjects}
                 onSelectedSobject={setSelectedSObject}
                 onFileChange={handleFileChange}

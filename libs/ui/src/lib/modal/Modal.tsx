@@ -1,5 +1,5 @@
 /** @jsx jsx */
-import { jsx } from '@emotion/react';
+import { css, jsx } from '@emotion/react';
 import { SerializedStyles } from '@emotion/react';
 import { isEscapeKey } from '@jetstream/shared/ui-utils';
 import { SizeSmMdLg } from '@jetstream/types';
@@ -23,6 +23,7 @@ export interface ModalProps {
   closeOnEsc?: boolean;
   closeOnBackdropClick?: boolean;
   skipAutoFocus?: boolean;
+  overrideZIndex?: number;
   onClose: () => void;
 }
 
@@ -91,6 +92,7 @@ export const ModalContent: FunctionComponent<ModalProps> = ({
   closeOnEsc = true,
   closeOnBackdropClick,
   skipAutoFocus,
+  overrideZIndex,
   children,
   onClose,
 }) => {
@@ -126,6 +128,9 @@ export const ModalContent: FunctionComponent<ModalProps> = ({
         aria-modal="true"
         aria-describedby={modalId}
         onKeyUp={handleKeyUp}
+        css={css`
+          ${overrideZIndex ? `z-index: ${overrideZIndex}` : ''}
+        `}
       >
         <div className="slds-modal__container">
           <header className={classNames('slds-modal__header', { 'slds-modal__header_empty': !header })}>
@@ -155,7 +160,14 @@ export const ModalContent: FunctionComponent<ModalProps> = ({
         </div>
       </section>
       {
-        <button aria-hidden="true" className="slds-backdrop slds-backdrop_open" onClick={handleBackdropClick}>
+        <button
+          aria-hidden="true"
+          className="slds-backdrop slds-backdrop_open"
+          css={css`
+            ${overrideZIndex ? `z-index: ${overrideZIndex - 1}` : ''}
+          `}
+          onClick={handleBackdropClick}
+        >
           <span className="sr-only">Close Modal</span>
         </button>
       }
