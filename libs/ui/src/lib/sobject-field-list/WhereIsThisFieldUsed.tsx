@@ -119,9 +119,14 @@ export const QueryWhereIsThisUsed: FunctionComponent<QueryWhereIsThisUsedProps> 
                 {loading && <Spinner />}
                 {hasError && <ScopedNotification theme="error">{errorMessage}</ScopedNotification>}
                 {hasLoaded && !loading && !hasError && (
-                  <p className="slds-text-color_weak slds-align_absolute-center">
-                    Up to the first 2,000 dependencies are shown and Reports are not included.
-                  </p>
+                  <Fragment>
+                    <p className="slds-text-color_weak slds-align_absolute-center">
+                      Up to the first 2,000 dependencies are shown and Reports are not included.
+                    </p>
+                    <p className="slds-text-color_weak slds-align_absolute-center">
+                      Dependencies may not be shown for standard objects, this is a Salesforce limitation.
+                    </p>
+                  </Fragment>
                 )}
                 {hasLoaded && !loading && !items.length && !hasError && <EmptyState headline="No dependencies were found"></EmptyState>}
                 <ReadonlyList
