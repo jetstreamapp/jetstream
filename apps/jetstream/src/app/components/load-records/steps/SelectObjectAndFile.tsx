@@ -53,6 +53,7 @@ export const LoadRecordsSelectObjectAndFile: FunctionComponent<LoadRecordsSelect
   onExternalIdChange,
   children,
 }) => {
+  const hasGoogleInputConfigured = !!googleApiConfig?.apiKey && !!googleApiConfig?.appId && !!googleApiConfig?.clientId;
   async function handleFile({ content, filename }: InputReadFileContent) {
     const { data, headers } = await parseFile(content, { onParsedMultipleWorkbooks });
     onFileChange(data, headers, filename, 'local');
@@ -95,7 +96,7 @@ export const LoadRecordsSelectObjectAndFile: FunctionComponent<LoadRecordsSelect
             <Grid verticalAlign="center">
               <GridCol>
                 <FileOrGoogleSelector
-                  omitGoogle={!hasFeatureFlagAccess(featureFlags, FEATURE_FLAGS.ALLOW_GOOGLE_UPLOAD)}
+                  omitGoogle={!hasGoogleInputConfigured || !hasFeatureFlagAccess(featureFlags, FEATURE_FLAGS.ALLOW_GOOGLE_UPLOAD)}
                   fileSelectorProps={{
                     id: 'load-record-file',
                     label: 'File to Load',

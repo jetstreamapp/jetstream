@@ -1,5 +1,5 @@
 import { logger } from '@jetstream/shared/client-logger';
-import { MIME_TYPES } from '@jetstream/shared/constants';
+import { fileExtToGoogleDriveMimeType, fileExtToMimeType, MIME_TYPES } from '@jetstream/shared/constants';
 import { googleUploadFile } from '@jetstream/shared/data';
 import { saveFile, useBrowserNotifications, useObservable, useRollbar } from '@jetstream/shared/ui-utils';
 import { pluralizeIfMultiple } from '@jetstream/shared/utils';
@@ -9,9 +9,11 @@ import {
   AsyncJobType,
   AsyncJobWorkerMessageResponse,
   ErrorResult,
+  FileExtAllTypes,
   MimeType,
   RecordResult,
   SalesforceOrgUi,
+  UploadToGoogleJob,
   WorkerMessage,
 } from '@jetstream/types';
 import { Icon, Popover } from '@jetstream/ui';
@@ -150,7 +152,7 @@ export const Jobs: FunctionComponent = () => {
                     statusMessage: 'Records downloaded successfully',
                   };
                   // If user requested to save to gsheet
-                  if (fileFormat === 'gsheet' && gapi?.client?.getToken()?.access_token) {
+                  if (fileFormat === 'gdrive' && gapi?.client?.getToken()?.access_token) {
                     // show status of uploading to Google
                     setJobs((prevJobs) => ({
                       ...prevJobs,
@@ -169,7 +171,7 @@ export const Jobs: FunctionComponent = () => {
                     };
 
                     googleUploadFile(gapi.client.getToken().access_token, {
-                      fileType: MIME_TYPES.CSV,
+                      fileMimeType: MIME_TYPES.CSV,
                       filename: fileName,
                       folderId: googleFolder,
                       fileData,
@@ -187,23 +189,101 @@ export const Jobs: FunctionComponent = () => {
                         rollbar.error('Error saving to Google Drive', { err, message: err?.message });
                       })
                       .finally(() => {
-                        newJob.finished = new Date();
-                        newJob.lastActivity = new Date();
-                        setJobs((prevJobs) => ({ ...prevJobs, [newJob.id]: newJob }));
+                        setJobs((prevJobs) => ({
+                          ...prevJobs,
+                          [newJob.id]: {
+                            ...newJob,
+                            finished: new Date(),
+                            lastActivity: new Date(),
+                          },
+                        }));
                       });
                   } else {
-                    if (fileFormat === 'gsheet') {
+                    if (fileFormat === 'gdrive') {
                       // Failed to upload to google, save locally
-                      newJob.statusMessage = 'Records downloaded and saved to computer, saving to Google failed.';
-                      newJob.status = 'finished-warning';
                       mimeType = MIME_TYPES.CSV;
                       fileName = `${fileName}.csv`;
                     }
                     saveFile(fileData, fileName, mimeType);
                     notifyUser(`Download records finished`, { tag: 'BulkDownload' });
-                    setJobs((prevJobs) => ({ ...prevJobs, [newJob.id]: newJob }));
+                    setJobs((prevJobs) => ({
+                      ...prevJobs,
+                      [newJob.id]: {
+                        ...newJob,
+                        statusMessage: 'Records downloaded and saved to computer, saving to Google failed.',
+                        status: 'finished-warning',
+                        finished: new Date(),
+                        lastActivity: new Date(),
+                      },
+                    }));
                   }
                 }
+              }
+            } catch (ex) {
+              // TODO:
+              logger.error('[ERROR][JOB] Error processing job results', ex);
+            }
+            break;
+          }
+          case 'UploadToGoogle': {
+            try {
+              // TODO: can we share code with bulk download?
+              let newJob = { ...data.job };
+              const { fileName, fileData, fileType, googleFolder } = data.results as UploadToGoogleJob;
+              newJob = {
+                ...newJob,
+                lastActivity: new Date(),
+                status: 'in-progress',
+                statusMessage: 'Uploading file to Google',
+              };
+              setJobs((prevJobs) => ({ ...prevJobs, [newJob.id]: newJob }));
+
+              newJob = {
+                ...newJob,
+                status: 'success',
+                statusMessage: 'Records downloaded and saved to Google successfully',
+              };
+
+              if (gapi?.client?.getToken()?.access_token) {
+                googleUploadFile(
+                  gapi.client.getToken().access_token,
+                  {
+                    fileMimeType:
+                      fileType === 'xlsx' ? MIME_TYPES.XLSX_OPEN_OFFICE : fileExtToMimeType[fileType].replace(';charset=utf-8', ''),
+                    filename: fileName,
+                    folderId: googleFolder,
+                    fileData,
+                  },
+                  fileExtToGoogleDriveMimeType[fileType]
+                )
+                  .then(({ id, webViewLink }) => {
+                    newJob.results = webViewLink;
+                  })
+                  .catch((err) => {
+                    // Failed to upload to google, save locally
+                    handleGoogleUploadFailure({ fileData, fileName, fileType }, newJob);
+                    rollbar.error('Error saving to Google Drive', { err, message: err?.message });
+                  })
+                  .finally(() => {
+                    setJobs((prevJobs) => ({
+                      ...prevJobs,
+                      [newJob.id]: {
+                        ...newJob,
+                        finished: new Date(),
+                        lastActivity: new Date(),
+                      },
+                    }));
+                  });
+              } else {
+                handleGoogleUploadFailure({ fileData, fileName, fileType }, newJob);
+                setJobs((prevJobs) => ({
+                  ...prevJobs,
+                  [newJob.id]: {
+                    ...newJob,
+                    finished: new Date(),
+                    lastActivity: new Date(),
+                  },
+                }));
               }
             } catch (ex) {
               // TODO:
@@ -223,26 +303,93 @@ export const Jobs: FunctionComponent = () => {
                   statusMessage: error || 'An unknown error ocurred',
                 };
                 notifyUser(`Package download failed`, { body: newJob.statusMessage, tag: 'RetrievePackageZip' });
+                setJobs((prevJobs) => ({ ...prevJobs, [newJob.id]: newJob }));
               } else if (data.lastActivityUpdate) {
                 newJob = {
                   ...newJob,
                   lastActivity: new Date(),
                 };
+                setJobs((prevJobs) => ({ ...prevJobs, [newJob.id]: newJob }));
               } else {
-                const { fileData, mimeType, fileName } = data.results as { fileData: ArrayBuffer; mimeType: MimeType; fileName: string };
-
-                newJob = {
-                  ...newJob,
-                  finished: new Date(),
-                  lastActivity: new Date(),
-                  status: 'success',
-                  statusMessage: 'Package downloaded successfully',
+                const { fileData, mimeType, fileName, fileFormat, uploadToGoogle, googleFolder } = data.results as {
+                  fileData: ArrayBuffer;
+                  mimeType: MimeType;
+                  fileName: string;
+                  fileFormat: FileExtAllTypes;
+                  uploadToGoogle: boolean;
+                  googleFolder?: string;
                 };
 
-                saveFile(fileData, fileName, mimeType);
-                notifyUser(`Package download finished`, { tag: 'RetrievePackageZip' });
+                if (!uploadToGoogle) {
+                  newJob = {
+                    ...newJob,
+                    finished: new Date(),
+                    lastActivity: new Date(),
+                    status: 'success',
+                    statusMessage: 'Package downloaded successfully',
+                  };
+
+                  saveFile(fileData, `${fileName}.${fileFormat}`, mimeType);
+                  notifyUser(`Package download finished`, { tag: 'RetrievePackageZip' });
+                  setJobs((prevJobs) => ({ ...prevJobs, [newJob.id]: newJob }));
+                } else {
+                  newJob = {
+                    ...newJob,
+                    lastActivity: new Date(),
+                    status: 'in-progress',
+                    statusMessage: 'Uploading file to Google',
+                  };
+                  setJobs((prevJobs) => ({ ...prevJobs, [newJob.id]: newJob }));
+
+                  newJob = {
+                    ...newJob,
+                    status: 'success',
+                    statusMessage: 'Package saved to Google successfully',
+                  };
+
+                  if (gapi?.client?.getToken()?.access_token) {
+                    const targetMimeType = fileExtToGoogleDriveMimeType[fileFormat];
+                    googleUploadFile(
+                      gapi.client.getToken().access_token,
+                      {
+                        fileMimeType: mimeType,
+                        filename: targetMimeType === MIME_TYPES.GSHEET ? fileName : `${fileName}.${fileFormat}`,
+                        folderId: googleFolder,
+                        fileData,
+                      },
+                      targetMimeType
+                    )
+                      .then(({ id, webViewLink }) => {
+                        newJob.results = webViewLink;
+                      })
+                      .catch((err) => {
+                        // Failed to upload to google, save locally
+                        handleGoogleUploadFailure({ fileData, fileName, fileType: 'zip' }, newJob);
+                        rollbar.error('Error saving to Google Drive', { err, message: err?.message });
+                      })
+                      .finally(() => {
+                        setJobs((prevJobs) => ({
+                          ...prevJobs,
+                          [newJob.id]: {
+                            ...newJob,
+                            finished: new Date(),
+                            lastActivity: new Date(),
+                          },
+                        }));
+                      });
+                  } else {
+                    handleGoogleUploadFailure({ fileData, fileName, fileType: 'zip' }, newJob);
+                    setJobs((prevJobs) => ({
+                      ...prevJobs,
+                      [newJob.id]: {
+                        ...newJob,
+                        finished: new Date(),
+                        lastActivity: new Date(),
+                      },
+                    }));
+                  }
+                }
               }
-              setJobs((prevJobs) => ({ ...prevJobs, [newJob.id]: newJob }));
             } catch (ex) {
               // TODO:
               logger.error('[ERROR][JOB] Error processing job results', ex);
@@ -261,6 +408,28 @@ export const Jobs: FunctionComponent = () => {
       };
     }
   }, [jobsWorker, setJobs]);
+
+  function handleGoogleUploadFailure(
+    {
+      fileData,
+      fileName,
+      fileType,
+    }: {
+      fileData: any;
+      fileName: string;
+      fileType: FileExtAllTypes;
+    },
+    newJob: AsyncJob<unknown, unknown>,
+    statusMessage = 'Records downloaded and saved to computer, saving to Google failed.',
+    tag = 'UploadToGoogle'
+  ) {
+    fileName = `${fileName}.${fileType}`;
+    // Failed to upload to google, save locally
+    newJob.statusMessage = statusMessage;
+    newJob.status = 'finished-warning';
+    saveFile(fileData, fileName, fileExtToMimeType[fileType]);
+    notifyUser(newJob.statusMessage, { tag });
+  }
 
   function handleDismiss(job: AsyncJob) {
     setJobsArr(jobs.filter(({ id }) => id !== job.id));

@@ -4,7 +4,10 @@ import { ANALYTICS_KEYS } from '@jetstream/shared/constants';
 import { DeployOptions, DeployResult, ListMetadataResult, MapOf, SalesforceOrgUi } from '@jetstream/types';
 import { FileDownloadModal, Icon } from '@jetstream/ui';
 import { Fragment, FunctionComponent, useState } from 'react';
+import { useRecoilState } from 'recoil';
+import { applicationCookieState } from '../../../app-state';
 import { useAmplitude } from '../../core/analytics';
+import * as fromJetstreamEvents from '../../core/jetstream-events';
 import { DeployMetadataTableRow } from '../deploy-metadata.types';
 import { convertRowsToMapOfListMetadataResults, getDeployResultsExcelData } from '../utils/deploy-metadata.utils';
 import DeployMetadataToOrgConfigModal from './DeployMetadataToOrgConfigModal';
@@ -18,6 +21,7 @@ export interface DeployMetadataToOrgProps {
 
 export const DeployMetadataToOrg: FunctionComponent<DeployMetadataToOrgProps> = ({ selectedOrg, loading, selectedRows }) => {
   const { trackEvent } = useAmplitude();
+  const [{ google_apiKey, google_appId, google_clientId }] = useRecoilState(applicationCookieState);
   const [configModalOpen, setConfigModalOpen] = useState(false);
   const [deployStatusModalOpen, setDeployStatusModalOpen] = useState(false);
   const [downloadResultsModalOpen, setDownloadResultsModalOpen] = useState<boolean>(false);
@@ -86,10 +90,14 @@ export const DeployMetadataToOrg: FunctionComponent<DeployMetadataToOrgProps> = 
         <FileDownloadModal
           modalHeader="Download Deploy Results"
           org={selectedOrg}
+          google_apiKey={google_apiKey}
+          google_appId={google_appId}
+          google_clientId={google_clientId}
           fileNameParts={['deploy-results']}
           allowedTypes={['xlsx']}
           data={deployResultsData}
           onModalClose={() => setDownloadResultsModalOpen(false)}
+          emitUploadToGoogleEvent={fromJetstreamEvents.emit}
         />
       )}
     </Fragment>

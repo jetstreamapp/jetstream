@@ -24,6 +24,7 @@ import formatRelative from 'date-fns/formatRelative';
 import { FunctionComponent, useEffect, useRef, useState } from 'react';
 import { useRecoilState, useRecoilValue, useResetRecoilState } from 'recoil';
 import { applicationCookieState, selectedOrgState, selectedOrgType } from '../../app-state';
+import * as fromJetstreamEvents from '../core/jetstream-events';
 import {
   AutomationControlMetadataType,
   AutomationControlMetadataTypeItem,
@@ -66,7 +67,7 @@ export const AutomationControl: FunctionComponent<AutomationControlProps> = () =
   const [exportDataModalOpen, setExportDataModalOpen] = useState<boolean>(false);
   const [exportDataModalData, setExportDataModalData] = useState<MapOf<any[]>>({});
 
-  const [{ serverUrl, defaultApiVersion }] = useRecoilState(applicationCookieState);
+  const [{ serverUrl, defaultApiVersion, google_apiKey, google_appId, google_clientId }] = useRecoilState(applicationCookieState);
   const [itemIds, setItemIds] = useRecoilState(fromAutomationCtlState.itemIds);
   const [itemsById, setItemsById] = useRecoilState(fromAutomationCtlState.itemsById);
   const [activeItemId, setActiveItemId] = useRecoilState(fromAutomationCtlState.activeItemId);
@@ -666,12 +667,16 @@ export const AutomationControl: FunctionComponent<AutomationControlProps> = () =
       {exportDataModalOpen && (
         <FileDownloadModal
           org={selectedOrg}
+          google_apiKey={google_apiKey}
+          google_appId={google_appId}
+          google_clientId={google_clientId}
           modalHeader="Export Automation"
           modalTagline="Exported data will reflect what is in Salesforce, not unsaved changes"
           data={exportDataModalData}
           fileNameParts={['automation', itemsById[activeItemId].sobjectName]}
           allowedTypes={['xlsx']}
           onModalClose={() => toggleExportModal(false)}
+          emitUploadToGoogleEvent={fromJetstreamEvents.emit}
         />
       )}
     </Page>

@@ -26,8 +26,10 @@ import isBefore from 'date-fns/isBefore';
 import startOfDay from 'date-fns/startOfDay';
 import { FunctionComponent, useCallback, useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { useRecoilValue } from 'recoil';
+import { useRecoilState, useRecoilValue } from 'recoil';
+import { applicationCookieState } from '../../app-state';
 import { useAmplitude } from '../core/analytics';
+import * as fromJetstreamEvents from '../core/jetstream-events';
 import AddToChangeset from './add-to-changeset/AddToChangeset';
 import DeployMetadataPackage from './deploy-metadata-package/DeployMetadataPackage';
 import * as fromDeployMetadataState from './deploy-metadata.state';
@@ -49,6 +51,7 @@ export interface DeployMetadataDeploymentProps {
 
 export const DeployMetadataDeployment: FunctionComponent<DeployMetadataDeploymentProps> = ({ selectedOrg }) => {
   const { trackEvent } = useAmplitude();
+  const [{ google_apiKey, google_appId, google_clientId }] = useRecoilState(applicationCookieState);
   const {
     loadListMetadata,
     loadListMetadataItem,
@@ -218,11 +221,15 @@ export const DeployMetadataDeployment: FunctionComponent<DeployMetadataDeploymen
       {exportData && (
         <FileDownloadModal
           org={selectedOrg}
+          google_apiKey={google_apiKey}
+          google_appId={google_appId}
+          google_clientId={google_clientId}
           modalHeader="Export Metadata"
           data={exportData}
           fileNameParts={['metadata']}
           allowedTypes={['xlsx', 'csv', 'json']}
           onModalClose={() => setExportData(null)}
+          emitUploadToGoogleEvent={fromJetstreamEvents.emit}
         />
       )}
 

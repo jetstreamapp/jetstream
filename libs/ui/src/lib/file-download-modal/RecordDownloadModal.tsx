@@ -16,14 +16,13 @@ import { flattenRecords } from '@jetstream/shared/utils';
 import {
   FileExtCsv,
   FileExtCsvXLSXJsonGSheet,
-  FileExtGSheet,
+  FileExtGDrive,
   FileExtJson,
   FileExtXLSX,
   MimeType,
   Record,
   SalesforceOrgUi,
 } from '@jetstream/types';
-import Grid from 'libs/ui/src/lib/grid/Grid';
 import { Fragment, FunctionComponent, KeyboardEvent, useEffect, useRef, useState } from 'react';
 import FileDownloadGoogle from '../file-download-modal/options/FileDownloadGoogle';
 import DuelingPicklist from '../form/dueling-picklist/DuelingPicklist';
@@ -38,7 +37,7 @@ import {
   RADIO_ALL_SERVER,
   RADIO_FILTERED,
   RADIO_FORMAT_CSV,
-  RADIO_FORMAT_GSHEET,
+  RADIO_FORMAT_GDRIVE,
   RADIO_FORMAT_JSON,
   RADIO_FORMAT_XLSX,
   RADIO_SELECTED,
@@ -76,6 +75,7 @@ export const RecordDownloadModal: FunctionComponent<RecordDownloadModalProps> = 
   onDownloadFromServer,
   children,
 }) => {
+  const hasGoogleInputConfigured = !!google_apiKey && !!google_appId && !!google_clientId;
   const [hasMoreRecords, setHasMoreRecords] = useState<boolean>(false);
   const [downloadRecordsValue, setDownloadRecordsValue] = useState<string>(hasMoreRecords ? RADIO_ALL_SERVER : RADIO_ALL_BROWSER);
   const [fileFormat, setFileFormat] = useState<FileExtCsvXLSXJsonGSheet>(RADIO_FORMAT_XLSX);
@@ -95,7 +95,7 @@ export const RecordDownloadModal: FunctionComponent<RecordDownloadModalProps> = 
   const googleAuthorized = !!googleApiData?.authorized;
 
   useEffect(() => {
-    if (!fileName || (fileFormat === 'gsheet' && !googleAuthorized)) {
+    if (!fileName || (fileFormat === 'gdrive' && !googleAuthorized)) {
       setInvalidConfig(true);
     } else {
       setInvalidConfig(false);
@@ -155,9 +155,9 @@ export const RecordDownloadModal: FunctionComponent<RecordDownloadModalProps> = 
       return;
     }
     try {
-      const fileNameWithExt = `${fileName}${fileFormat !== 'gsheet' ? `.${fileFormat}` : ''}`;
+      const fileNameWithExt = `${fileName}${fileFormat !== 'gdrive' ? `.${fileFormat}` : ''}`;
       /** Google will always load in the background to account for upload to Google */
-      if (fileFormat === 'gsheet' || downloadRecordsValue === RADIO_ALL_SERVER) {
+      if (fileFormat === 'gdrive' || downloadRecordsValue === RADIO_ALL_SERVER) {
         // emit event, which starts job, which downloads in the background
         if (onDownloadFromServer) {
           onDownloadFromServer(fileFormat, fileNameWithExt, fieldsToUse, googleFolder);
@@ -316,15 +316,17 @@ export const RecordDownloadModal: FunctionComponent<RecordDownloadModalProps> = 
                 checked={fileFormat === RADIO_FORMAT_JSON}
                 onChange={(value: FileExtJson) => setFileFormat(value)}
               />
-              <Radio
-                name="radio-download-file-format"
-                label="Google Sheet"
-                value={RADIO_FORMAT_GSHEET}
-                checked={fileFormat === RADIO_FORMAT_GSHEET}
-                onChange={(value: FileExtGSheet) => setFileFormat(value)}
-              />
+              {hasGoogleInputConfigured && (
+                <Radio
+                  name="radio-download-file-format"
+                  label="Google Drive"
+                  value={RADIO_FORMAT_GDRIVE}
+                  checked={fileFormat === RADIO_FORMAT_GDRIVE}
+                  onChange={(value: FileExtGDrive) => setFileFormat(value)}
+                />
+              )}
             </RadioGroup>
-            {fileFormat === 'gsheet' && (
+            {fileFormat === 'gdrive' && (
               <FileDownloadGoogle
                 google_apiKey={google_apiKey}
                 google_appId={google_appId}
@@ -336,7 +338,7 @@ export const RecordDownloadModal: FunctionComponent<RecordDownloadModalProps> = 
             <Input
               label="Filename"
               isRequired
-              rightAddon={`.${fileFormat}`}
+              rightAddon={fileFormat !== RADIO_FORMAT_GDRIVE ? `.${fileFormat}` : undefined}
               errorMessage="This field is required"
               errorMessageId="filename-error"
             >

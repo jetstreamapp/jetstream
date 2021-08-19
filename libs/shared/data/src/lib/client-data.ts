@@ -364,13 +364,14 @@ export async function salesforceApiReq(): Promise<SalesforceApiRequest[]> {
 
 export async function googleUploadFile(
   accessToken: string,
-  { fileType, filename, folderId, fileData }: { fileType: string; filename: string; folderId: string; fileData: any }
+  { fileMimeType, filename, folderId, fileData }: { fileMimeType: string; filename: string; folderId: string; fileData: any },
+  targetMimeType = MIME_TYPES.GSHEET
 ): Promise<GoogleFileApiResponse & { webViewLink: string }> {
   return await handleExternalRequest({
     method: 'POST',
     url: `https://www.googleapis.com/upload/drive/v3/files`,
     headers: {
-      'X-Upload-Content-Type': fileType,
+      'X-Upload-Content-Type': fileMimeType,
       'Content-Type': HTTP.CONTENT_TYPE.JSON,
       Authorization: `Bearer ${accessToken}`,
     },
@@ -380,7 +381,7 @@ export async function googleUploadFile(
     },
     data: {
       name: filename,
-      mimeType: MIME_TYPES.GSHEET,
+      mimeType: targetMimeType.replace(';charset=utf-8', ''),
       parents: [folderId].filter(Boolean),
     },
   })

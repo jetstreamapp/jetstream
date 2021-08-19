@@ -4,6 +4,9 @@ import { formatNumber } from '@jetstream/shared/ui-utils';
 import { FileExtAllTypes, SalesforceOrgUi, SalesforceOrgUiType } from '@jetstream/types';
 import { Badge, FileDownloadModal, Grid, Icon } from '@jetstream/ui';
 import { FunctionComponent, useEffect, useState } from 'react';
+import { useRecoilState } from 'recoil';
+import { applicationCookieState } from '../../app-state';
+import * as fromJetstreamEvents from '../core/jetstream-events';
 import { LoadMultiObjectRequestWithResult } from './load-records-multi-object-types';
 import LoadRecordsMultiObjectResultsTable from './LoadRecordsMultiObjectResultsTable';
 import useDownloadResults from './useDownloadResults';
@@ -25,6 +28,7 @@ export const LoadRecordsMultiObjectResults: FunctionComponent<LoadRecordsMultiOb
   loadFinished,
   onLoadStarted,
 }) => {
+  const [{ google_apiKey, google_appId, google_clientId }] = useRecoilState(applicationCookieState);
   const { downloadRequests, downloadResults, handleCloseDownloadModal, downloadModalData } = useDownloadResults();
   const [numGroups, setNumGroups] = useState(0);
   const [totalRecordCount, setTotalRecordCount] = useState(0);
@@ -39,11 +43,15 @@ export const LoadRecordsMultiObjectResults: FunctionComponent<LoadRecordsMultiOb
       {downloadModalData.open && (
         <FileDownloadModal
           org={selectedOrg}
+          google_apiKey={google_apiKey}
+          google_appId={google_appId}
+          google_clientId={google_clientId}
           data={downloadModalData.data}
           header={downloadModalData.header}
           fileNameParts={downloadModalData.fileNameParts}
           allowedTypes={downloadModalData.allowedTypes as FileExtAllTypes[]}
           onModalClose={handleCloseDownloadModal}
+          emitUploadToGoogleEvent={fromJetstreamEvents.emit}
         />
       )}
       {/* Summary and load button */}

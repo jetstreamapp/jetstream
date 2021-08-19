@@ -5,7 +5,9 @@ import { DeployResult, ListMetadataResult, MapOf, SalesforceOrgUi } from '@jetst
 import { FileDownloadModal, Icon } from '@jetstream/ui';
 import { Fragment, FunctionComponent, useState } from 'react';
 import { useRecoilState } from 'recoil';
+import { applicationCookieState } from '../../../app-state';
 import { useAmplitude } from '../../core/analytics';
+import * as fromJetstreamEvents from '../../core/jetstream-events';
 import * as fromDeployMetadataState from '../deploy-metadata.state';
 import { DeployMetadataTableRow } from '../deploy-metadata.types';
 import { convertRowsToMapOfListMetadataResults, getDeployResultsExcelData } from '../utils/deploy-metadata.utils';
@@ -20,6 +22,7 @@ export interface AddToChangesetProps {
 
 export const AddToChangeset: FunctionComponent<AddToChangesetProps> = ({ selectedOrg, loading, selectedRows }) => {
   const { trackEvent } = useAmplitude();
+  const [{ google_apiKey, google_appId, google_clientId }] = useRecoilState(applicationCookieState);
   const [configModalOpen, setConfigModalOpen] = useState(false);
   const [deployStatusModalOpen, setDeployStatusModalOpen] = useState(false);
   const [downloadResultsModalOpen, setDownloadResultsModalOpen] = useState<boolean>(false);
@@ -96,10 +99,14 @@ export const AddToChangeset: FunctionComponent<AddToChangesetProps> = ({ selecte
         <FileDownloadModal
           modalHeader="Download Deploy Results"
           org={selectedOrg}
+          google_apiKey={google_apiKey}
+          google_appId={google_appId}
+          google_clientId={google_clientId}
           fileNameParts={['deploy-results']}
           allowedTypes={['xlsx']}
           data={deployResultsData}
           onModalClose={() => setDownloadResultsModalOpen(false)}
+          emitUploadToGoogleEvent={fromJetstreamEvents.emit}
         />
       )}
     </Fragment>

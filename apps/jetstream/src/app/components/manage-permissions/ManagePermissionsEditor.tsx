@@ -16,11 +16,12 @@ import {
   ToolbarItemGroup,
   Tooltip,
 } from '@jetstream/ui';
-import ConfirmPageChange from '../core/ConfirmPageChange';
 import { Fragment, FunctionComponent, useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useRecoilState, useRecoilValue, useResetRecoilState } from 'recoil';
-import { selectedOrgState } from '../../app-state';
+import { applicationCookieState, selectedOrgState } from '../../app-state';
+import ConfirmPageChange from '../core/ConfirmPageChange';
+import * as fromJetstreamEvents from '../core/jetstream-events';
 import * as fromPermissionsState from './manage-permissions.state';
 import ManagePermissionsEditorFieldTable from './ManagePermissionsEditorFieldTable';
 import ManagePermissionsEditorObjectTable from './ManagePermissionsEditorObjectTable';
@@ -87,6 +88,7 @@ export interface ManagePermissionsEditorProps {}
 
 export const ManagePermissionsEditor: FunctionComponent<ManagePermissionsEditorProps> = () => {
   const isMounted = useRef(null);
+  const [{ google_apiKey, google_appId, google_clientId }] = useRecoilState(applicationCookieState);
   const managePermissionsEditorObjectTableRef = useRef<ManagePermissionsEditorTableRef>();
   const managePermissionsEditorFieldTableRef = useRef<ManagePermissionsEditorTableRef>();
   const selectedOrg = useRecoilValue<SalesforceOrgUi>(selectedOrgState);
@@ -358,10 +360,14 @@ export const ManagePermissionsEditor: FunctionComponent<ManagePermissionsEditorP
       {fileDownloadData && fileDownloadModalOpen && (
         <FileDownloadModal
           org={selectedOrg}
+          google_apiKey={google_apiKey}
+          google_appId={google_appId}
+          google_clientId={google_clientId}
           data={fileDownloadData}
           fileNameParts={['permissions', 'export']}
           allowedTypes={['xlsx']}
           onModalClose={() => setFileDownloadModalOpen(false)}
+          emitUploadToGoogleEvent={fromJetstreamEvents.emit}
         />
       )}
       <Toolbar>

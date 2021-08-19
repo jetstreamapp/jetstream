@@ -159,7 +159,7 @@ export const ModalContent: FunctionComponent<ModalProps> = ({
           )}
         </div>
       </section>
-      {
+      {!hide && (
         <button
           aria-hidden="true"
           className="slds-backdrop slds-backdrop_open"
@@ -170,7 +170,7 @@ export const ModalContent: FunctionComponent<ModalProps> = ({
         >
           <span className="sr-only">Close Modal</span>
         </button>
-      }
+      )}
     </Fragment>
   );
 };
