@@ -25,6 +25,7 @@ import {
   RetrievePackageFromListMetadataJob,
   RetrievePackageFromManifestJob,
   RetrievePackageFromPackageNamesJob,
+  UploadToGoogleJob,
   WorkerMessage,
 } from '@jetstream/types';
 import queue from 'async/queue';
@@ -81,12 +82,10 @@ async function handleMessage(name: AsyncJobType, payloadData: AsyncJobWorkerMess
     case 'BulkDownload': {
       try {
         const { org, job } = payloadData as AsyncJobWorkerMessagePayload<BulkDownloadJob>;
-        const { isTooling, fields, records, fileFormat, fileName } = job.meta;
+        const { isTooling, fields, records, fileFormat, fileName, googleFolder } = job.meta;
         let { nextRecordsUrl, totalRecordCount } = job.meta;
         let downloadedRecords = fileFormat === 'json' ? records : flattenRecords(records, fields);
-        let done = false;
-
-        totalRecordCount;
+        let done = !nextRecordsUrl;
 
         while (!done) {
           // emit progress
@@ -126,12 +125,29 @@ async function handleMessage(name: AsyncJobType, payloadData: AsyncJobWorkerMess
             mimeType = MIME_TYPES.JSON;
             break;
           }
+          case 'gdrive': {
+            fileData = prepareCsvFile(data, fields);
+            mimeType = MIME_TYPES.GSHEET;
+            break;
+          }
           default:
             throw new Error('A valid file type type has not been selected');
         }
-        const results = { done: true, progress: 100, fileData, mimeType, fileName };
+        const results = { done: true, progress: 100, fileData, mimeType, fileName, fileFormat, googleFolder };
 
         const response: AsyncJobWorkerMessageResponse = { job, results };
+        replyToMessage(name, response);
+      } catch (ex) {
+        const response: AsyncJobWorkerMessageResponse = { job };
+        replyToMessage(name, response, ex.message);
+      }
+      break;
+    }
+    case 'UploadToGoogle': {
+      // Message is passed through to jobs.tsx for upload
+      try {
+        const { job } = payloadData as AsyncJobWorkerMessagePayload<UploadToGoogleJob>;
+        const response: AsyncJobWorkerMessageResponse = { job, results: job.meta };
         replyToMessage(name, response);
       } catch (ex) {
         const response: AsyncJobWorkerMessageResponse = { job };
@@ -144,7 +160,7 @@ async function handleMessage(name: AsyncJobType, payloadData: AsyncJobWorkerMess
         const { org, job } = payloadData as AsyncJobWorkerMessagePayload<
           RetrievePackageFromListMetadataJob | RetrievePackageFromManifestJob | RetrievePackageFromPackageNamesJob
         >;
-        const { fileName, mimeType } = job.meta;
+        const { fileName, fileFormat, mimeType, uploadToGoogle, googleFolder } = job.meta;
 
         let id: string;
         switch (job.meta.type) {
@@ -176,7 +192,10 @@ async function handleMessage(name: AsyncJobType, payloadData: AsyncJobWorkerMess
 
         if (isString(results.zipFile)) {
           const fileData = base64ToArrayBuffer(results.zipFile);
-          const response: AsyncJobWorkerMessageResponse = { job, results: { fileData, mimeType, fileName } };
+          const response: AsyncJobWorkerMessageResponse = {
+            job,
+            results: { fileData, mimeType, fileName, fileFormat, uploadToGoogle, googleFolder },
+          };
           replyToMessage(name, response, undefined, fileData);
         } else {
           const response: AsyncJobWorkerMessageResponse = { job };

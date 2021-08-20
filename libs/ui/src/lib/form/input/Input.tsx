@@ -10,6 +10,7 @@ import { IconType, IconName } from '@jetstream/icon-factory';
 export interface InputProps {
   id?: string;
   className?: string;
+  formControlClassName?: string;
   label?: string;
   labelHelp?: string;
   helpText?: React.ReactNode | string;
@@ -30,6 +31,7 @@ export interface InputProps {
 export const Input: FunctionComponent<InputProps> = ({
   id,
   className,
+  formControlClassName,
   label,
   labelHelp,
   helpText,
@@ -69,13 +71,17 @@ export const Input: FunctionComponent<InputProps> = ({
         </Fragment>
       )}
       <div
-        className={classNames('slds-form-element__control', {
-          'slds-input-has-icon': iconLeft || iconRight || clearButton,
-          'slds-input-has-icon_left': !leftAddon && iconLeft && !iconRight && !clearButton,
-          'slds-input-has-icon_right': !leftAddon && !iconLeft && (iconRight || clearButton),
-          'slds-input-has-icon_left-right': (!leftAddon && !rightAddon && iconLeft && iconRight) || (iconLeft && clearButton),
-          'slds-input-has-fixed-addon': leftAddon || rightAddon,
-        })}
+        className={classNames(
+          'slds-form-element__control',
+          {
+            'slds-input-has-icon': iconLeft || iconRight || clearButton,
+            'slds-input-has-icon_left': !leftAddon && iconLeft && !iconRight && !clearButton,
+            'slds-input-has-icon_right': !leftAddon && !iconLeft && (iconRight || clearButton),
+            'slds-input-has-icon_left-right': (!leftAddon && !rightAddon && iconLeft && iconRight) || (iconLeft && clearButton),
+            'slds-input-has-fixed-addon': leftAddon || rightAddon,
+          },
+          formControlClassName
+        )}
       >
         {!leftAddon && iconLeft && iconLeftType && (
           <Icon

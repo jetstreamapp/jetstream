@@ -10,6 +10,8 @@ import DoctypeIcon_Excel from './icons/doctype/Excel';
 import DoctypeIcon_Pack from './icons/doctype/Pack';
 import DoctypeIcon_Xml from './icons/doctype/Xml';
 import DoctypeIcon_Zip from './icons/doctype/Zip';
+import DoctypeIcon_Gsheet from './icons/doctype/Gsheet';
+import DoctypeIcon_Gdrive from './icons/doctype/Gdrive';
 import StandardIcon_Activations from './icons/standard/Activations';
 import StandardIcon_AssetRelationship from './icons/standard/AssetRelationship';
 import StandardIcon_DataStreams from './icons/standard/DataStreams';
@@ -106,6 +108,8 @@ const doctypeIcons: DoctypeIconObj = {
   excel: DoctypeIcon_Excel,
   pack: DoctypeIcon_Pack,
   zip: DoctypeIcon_Zip,
+  gsheet: DoctypeIcon_Gsheet,
+  gdrive: DoctypeIcon_Gdrive,
 };
 
 const utilityIcons: UtilityIconObj = {
@@ -150,7 +154,7 @@ const utilityIcons: UtilityIconObj = {
   multi_select_checkbox: UtilityIcon_MultiSelectCheckbox,
   new_window: UtilityIcon_NewWindow,
   notification: UtilityIcon_Notification,
-  opened_folder: UtilityIcon_OpenFolder,
+  open_folder: UtilityIcon_OpenFolder,
   page: UtilityIcon_Page,
   play: UtilityIcon_Play,
   preview: UtilityIcon_Preview,

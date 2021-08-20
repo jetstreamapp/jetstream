@@ -964,6 +964,7 @@ export async function parseFile(
   content: string | ArrayBuffer,
   options?: {
     onParsedMultipleWorkbooks?: (worksheets: string[]) => Promise<string>;
+    isBinaryString?: boolean;
   }
 ): Promise<{
   data: any[];
@@ -971,7 +972,7 @@ export async function parseFile(
   errors: string[];
 }> {
   options = options || {};
-  if (isString(content)) {
+  if (!options.isBinaryString && isString(content)) {
     // csv - read from papaparse
     const csvResult = parseCsv(content, {
       delimiter: detectDelimiter(),
@@ -984,29 +985,44 @@ export async function parseFile(
       errors: csvResult.errors.map((error) => `Row ${error.row}: ${error.message}`),
     };
   } else {
-    // ArrayBuffer - xlsx file
-    const workbook = XLSX.read(content, { cellText: false, cellDates: true, type: 'array' });
-    let selectedSheet = workbook.Sheets[workbook.SheetNames[0]];
-    if (workbook.SheetNames.length > 1 && typeof options.onParsedMultipleWorkbooks === 'function') {
-      const sheetName = await options.onParsedMultipleWorkbooks(workbook.SheetNames);
-      if (workbook.Sheets[sheetName]) {
-        selectedSheet = workbook.Sheets[sheetName];
-      }
-    }
-
-    const data = XLSX.utils.sheet_to_json(selectedSheet, {
-      dateNF: 'yyyy"-"mm"-"dd"T"hh:mm:ss',
-      defval: '',
-      blankrows: false,
-      rawNumbers: true,
-    });
-    const headers = data.length > 0 ? Object.keys(data[0]) : [];
-    return {
-      data,
-      headers: headers.filter((field) => !field.startsWith('__empty')),
-      errors: [],
-    };
+    // ArrayBuffer / binary string - xlsx file
+    const workbook = options.isBinaryString
+      ? XLSX.read(content, { cellText: false, cellDates: true, type: 'binary' })
+      : XLSX.read(content, { cellText: false, cellDates: true, type: 'array' });
+    return parseWorkbook(workbook, options);
   }
+}
+
+export async function parseWorkbook(
+  workbook: XLSX.WorkBook,
+  options?: {
+    onParsedMultipleWorkbooks?: (worksheets: string[]) => Promise<string>;
+  }
+): Promise<{
+  data: any[];
+  headers: string[];
+  errors: string[];
+}> {
+  let selectedSheet = workbook.Sheets[workbook.SheetNames[0]];
+  if (workbook.SheetNames.length > 1 && typeof options.onParsedMultipleWorkbooks === 'function') {
+    const sheetName = await options.onParsedMultipleWorkbooks(workbook.SheetNames);
+    if (workbook.Sheets[sheetName]) {
+      selectedSheet = workbook.Sheets[sheetName];
+    }
+  }
+
+  const data = XLSX.utils.sheet_to_json(selectedSheet, {
+    dateNF: 'yyyy"-"mm"-"dd"T"hh:mm:ss',
+    defval: '',
+    blankrows: false,
+    rawNumbers: true,
+  });
+  const headers = data.length > 0 ? Object.keys(data[0]) : [];
+  return {
+    data,
+    headers: headers.filter((field) => !field.startsWith('__empty')),
+    errors: [],
+  };
 }
 
 export function generateCsv(data: object[], options: UnparseConfig = {}): string {

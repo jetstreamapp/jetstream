@@ -2,17 +2,42 @@
 /** @jsx jsx */
 import { jsx } from '@emotion/react';
 import { MIME_TYPES } from '@jetstream/shared/constants';
-import { getFilename, isEnterKey, prepareCsvFile, prepareExcelFile, saveFile } from '@jetstream/shared/ui-utils';
-import { FileExtAllTypes, FileExtCsv, FileExtXLSX, FileExtXml, FileExtZip, MapOf, MimeType, SalesforceOrgUi } from '@jetstream/types';
+import { getFilename, GoogleApiData, isEnterKey, prepareCsvFile, prepareExcelFile, saveFile } from '@jetstream/shared/ui-utils';
+import {
+  AsyncJobNew,
+  FileExtAllTypes,
+  FileExtCsv,
+  FileExtCsvXLSX,
+  FileExtGDrive,
+  FileExtXLSX,
+  FileExtXml,
+  FileExtZip,
+  JetstreamEvents,
+  MapOf,
+  MimeType,
+  SalesforceOrgUi,
+  UploadToGoogleJob,
+} from '@jetstream/types';
+import FileDownloadGoogle from './options/FileDownloadGoogle';
 import { isString } from 'lodash';
 import { Fragment, FunctionComponent, KeyboardEvent, useEffect, useRef, useState } from 'react';
 import Input from '../form/input/Input';
 import Radio from '../form/radio/Radio';
 import RadioGroup from '../form/radio/RadioGroup';
 import Modal from '../modal/Modal';
-import { RADIO_FORMAT_CSV, RADIO_FORMAT_JSON, RADIO_FORMAT_XLSX, RADIO_FORMAT_XML, RADIO_FORMAT_ZIP } from './download-modal-utils';
+import {
+  RADIO_FORMAT_CSV,
+  RADIO_FORMAT_GDRIVE,
+  RADIO_FORMAT_JSON,
+  RADIO_FORMAT_XLSX,
+  RADIO_FORMAT_XML,
+  RADIO_FORMAT_ZIP,
+} from './download-modal-utils';
 
 export interface FileDownloadModalProps {
+  google_apiKey?: string;
+  google_appId?: string;
+  google_clientId?: string;
   modalHeader?: string;
   modalTagline?: string;
   allowedTypes?: FileExtAllTypes[]; // defaults to all types
@@ -26,11 +51,15 @@ export interface FileDownloadModalProps {
   // TODO: we may want to provide a hook "onPrepareDownload" to override default file generation process
   // this may be useful if alternateDownloadButton is provided, otherwise this usually is not required
   onChange?: (data: { fileName: string; fileFormat: FileExtAllTypes }) => void;
+  emitUploadToGoogleEvent?: (event: JetstreamEvents) => void;
 }
 
 const defaultAllowedTypes = [RADIO_FORMAT_XLSX, RADIO_FORMAT_CSV, RADIO_FORMAT_JSON];
 
 export const FileDownloadModal: FunctionComponent<FileDownloadModalProps> = ({
+  google_apiKey,
+  google_appId,
+  google_clientId,
   modalHeader = 'Download Records',
   modalTagline,
   allowedTypes = defaultAllowedTypes,
@@ -41,7 +70,9 @@ export const FileDownloadModal: FunctionComponent<FileDownloadModalProps> = ({
   alternateDownloadButton,
   onModalClose,
   onChange,
+  emitUploadToGoogleEvent,
 }) => {
+  const hasGoogleInputConfigured = !!google_apiKey && !!google_appId && !!google_clientId && !!emitUploadToGoogleEvent;
   const [allowedTypesSet, setAllowedTypesSet] = useState<Set<string>>(() => new Set(allowedTypes));
   const [fileFormat, setFileFormat] = useState<FileExtAllTypes>(allowedTypes[0]);
   const [fileName, setFileName] = useState<string>(getFilename(org, fileNameParts));
@@ -49,6 +80,9 @@ export const FileDownloadModal: FunctionComponent<FileDownloadModalProps> = ({
   const [doFocusInput, setDoFocusInput] = useState<boolean>(true);
   const inputEl = useRef<HTMLInputElement>();
   const [filenameEmpty, setFilenameEmpty] = useState(false);
+
+  const [googleApiData, setGoogleApiData] = useState<GoogleApiData>();
+  const [googleFolder, setGoogleFolder] = useState<string>();
 
   useEffect(() => {
     if (!fileName && !filenameEmpty) {
@@ -96,52 +130,90 @@ export const FileDownloadModal: FunctionComponent<FileDownloadModalProps> = ({
       const fileNameWithExt = `${fileName}.${fileFormat}`;
       let mimeType: MimeType;
       let fileData;
-      switch (fileFormat) {
-        case 'xlsx': {
-          if (data instanceof ArrayBuffer) {
-            fileData = data;
-          } else if (Array.isArray(data)) {
-            const headerFields = (header ? header : Object.keys(data[0])) as string[];
-            fileData = prepareExcelFile(data, headerFields);
-          } else {
-            fileData = prepareExcelFile(data as any, header as MapOf<string[]>);
+      if (fileFormat === 'gdrive') {
+        handleUploadToGoogle();
+      } else {
+        switch (fileFormat) {
+          case 'xlsx': {
+            if (data instanceof ArrayBuffer) {
+              fileData = data;
+            } else if (Array.isArray(data)) {
+              const headerFields = (header ? header : Object.keys(data[0])) as string[];
+              fileData = prepareExcelFile(data, headerFields);
+            } else {
+              fileData = prepareExcelFile(data as any, header as MapOf<string[]>);
+            }
+            mimeType = MIME_TYPES.XLSX;
+            break;
           }
-          mimeType = MIME_TYPES.XLSX;
-          break;
+          case 'csv': {
+            const headerFields = (header ? header : Object.keys(data[0])) as string[];
+            fileData = prepareCsvFile(data as any[], headerFields);
+            mimeType = MIME_TYPES.CSV;
+            break;
+          }
+          case 'json': {
+            fileData = JSON.stringify(data, null, 2);
+            mimeType = MIME_TYPES.JSON;
+            break;
+          }
+          case 'xml': {
+            fileData = data as string;
+            mimeType = MIME_TYPES.XML;
+            fileData = data;
+            break;
+          }
+          case 'zip': {
+            fileData = data as string | ArrayBuffer;
+            mimeType = MIME_TYPES.ZIP;
+            fileData = data;
+            break;
+          }
+          default:
+            throw new Error('A valid file type type has not been selected');
         }
-        case 'csv': {
-          const headerFields = (header ? header : Object.keys(data[0])) as string[];
-          fileData = prepareCsvFile(data as any[], headerFields);
-          mimeType = MIME_TYPES.CSV;
-          break;
-        }
-        case 'json': {
-          fileData = JSON.stringify(data, null, 2);
-          mimeType = MIME_TYPES.JSON;
-          break;
-        }
-        case 'xml': {
-          fileData = data as string;
-          mimeType = MIME_TYPES.XML;
-          fileData = data;
-          break;
-        }
-        case 'zip': {
-          fileData = data as string | ArrayBuffer;
-          mimeType = MIME_TYPES.ZIP;
-          fileData = data;
-          break;
-        }
-        default:
-          throw new Error('A valid file type type has not been selected');
+
+        saveFile(fileData, fileNameWithExt, mimeType);
+
+        onModalClose();
       }
-
-      saveFile(fileData, fileNameWithExt, mimeType);
-
-      onModalClose();
     } catch (ex) {
       // TODO: show error message somewhere
     }
+  }
+
+  function handleUploadToGoogle() {
+    let fileData: any;
+    let fileType: FileExtCsvXLSX | FileExtZip;
+    // Get fileData based on allowable formats.
+    if (allowedTypesSet.has('csv')) {
+      fileType = 'csv';
+      const headerFields = (header ? header : Object.keys(data[0])) as string[];
+      fileData = prepareCsvFile(data as any[], headerFields);
+    } else if (allowedTypesSet.has('xlsx')) {
+      fileType = 'xlsx';
+      if (data instanceof ArrayBuffer) {
+        fileData = data;
+      } else if (Array.isArray(data)) {
+        const headerFields = (header ? header : Object.keys(data[0])) as string[];
+        fileData = prepareExcelFile(data, headerFields);
+      } else {
+        fileData = prepareExcelFile(data as any, header as MapOf<string[]>);
+      }
+    } else {
+      fileType = 'zip';
+      fileData = data;
+    }
+    const jobs: AsyncJobNew<UploadToGoogleJob>[] = [
+      {
+        type: 'UploadToGoogle',
+        title: `Upload to Google`,
+        org,
+        meta: { fileName, fileData, fileType, googleFolder: googleFolder },
+      },
+    ];
+    emitUploadToGoogleEvent({ type: 'newJob', payload: jobs });
+    onModalClose();
   }
 
   function handleKeyUp(event: KeyboardEvent<HTMLElement>) {
@@ -150,11 +222,20 @@ export const FileDownloadModal: FunctionComponent<FileDownloadModalProps> = ({
     }
   }
 
+  function handleFolderSelected(folderId: string) {
+    setGoogleFolder(folderId);
+  }
+
+  function handleGoogleApiData(apiData: GoogleApiData) {
+    setGoogleApiData(apiData);
+  }
+
   return (
     <Fragment>
       <Modal
         header={modalHeader}
         tagline={modalTagline}
+        overrideZIndex={1001}
         footer={
           <Fragment>
             {!alternateDownloadButton && (
@@ -220,11 +301,29 @@ export const FileDownloadModal: FunctionComponent<FileDownloadModalProps> = ({
                 onChange={(value: FileExtZip) => setFileFormat(value)}
               />
             )}
+            {hasGoogleInputConfigured && (allowedTypesSet.has('csv') || allowedTypesSet.has('xlsx') || allowedTypesSet.has('zip')) && (
+              <Radio
+                name="radio-download-file-format"
+                label="Google Drive"
+                value={RADIO_FORMAT_GDRIVE}
+                checked={fileFormat === RADIO_FORMAT_GDRIVE}
+                onChange={(value: FileExtGDrive) => setFileFormat(value)}
+              />
+            )}
           </RadioGroup>
+          {fileFormat === 'gdrive' && (
+            <FileDownloadGoogle
+              google_apiKey={google_apiKey}
+              google_appId={google_appId}
+              google_clientId={google_clientId}
+              onFolderSelected={handleFolderSelected}
+              onGoogleApiData={handleGoogleApiData}
+            />
+          )}
           <Input
             label="Filename"
             isRequired
-            rightAddon={`.${fileFormat}`}
+            rightAddon={fileFormat !== RADIO_FORMAT_GDRIVE ? `.${fileFormat}` : undefined}
             hasError={filenameEmpty}
             errorMessage="This field is required"
             errorMessageId="filename-error"

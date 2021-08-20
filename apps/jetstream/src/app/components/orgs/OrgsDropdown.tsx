@@ -2,7 +2,7 @@
 import { jsx } from '@emotion/react';
 import { clearCacheForOrg, clearQueryHistoryForOrg, deleteOrg, getOrgs, updateOrg } from '@jetstream/shared/data';
 import { useObservable } from '@jetstream/shared/ui-utils';
-import { SalesforceOrgUi } from '@jetstream/types';
+import { JetstreamEventAddOrgPayload, SalesforceOrgUi } from '@jetstream/types';
 import { Badge, Icon, Tooltip } from '@jetstream/ui';
 import classNames from 'classnames';
 import orderBy from 'lodash/orderBy';
@@ -28,9 +28,7 @@ export const OrgsDropdown: FunctionComponent = () => {
   const { hasMetadataAccess } = useOrgPermissions(selectedOrg);
 
   // subscribe to org changes from other places in the application
-  const onAddOrgFromExternalSource = useObservable(
-    fromJetstreamEvents.getObservable('addOrg') as Observable<fromJetstreamEvents.JetstreamEventAddOrgPayload>
-  );
+  const onAddOrgFromExternalSource = useObservable(fromJetstreamEvents.getObservable('addOrg') as Observable<JetstreamEventAddOrgPayload>);
 
   useEffect(() => {
     if (onAddOrgFromExternalSource && onAddOrgFromExternalSource.org) {

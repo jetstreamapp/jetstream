@@ -37,6 +37,7 @@ interface RouteItem {
 }
 
 let _userProfile: UserProfileUi;
+let _featureFlags: Set<string> = new Set();
 
 const ROUTES: RouteItem[] = [
   {
@@ -53,16 +54,16 @@ const ROUTES: RouteItem[] = [
     // flag: FEATURE_FLAGS.LOAD,
     render: () => (
       <OrgSelectionRequired>
-        <LoadRecords />
+        <LoadRecords featureFlags={_featureFlags} />
       </OrgSelectionRequired>
     ),
   },
   {
     path: '/load-multiple-objects',
-    flag: FEATURE_FLAGS.LOAD_MULTI_OBJ,
+    // flag: FEATURE_FLAGS.LOAD_MULTI_OBJ,
     render: () => (
       <OrgSelectionRequired>
-        <LoadRecordsMultiObject />
+        <LoadRecordsMultiObject featureFlags={_featureFlags} />
       </OrgSelectionRequired>
     ),
   },
@@ -113,6 +114,12 @@ export const App = () => {
       setFeatureFlags(flags);
     }
   }, [userProfile]);
+
+  useEffect(() => {
+    if (featureFlags) {
+      featureFlags.forEach((flag) => _featureFlags.add(flag));
+    }
+  }, [featureFlags]);
 
   return (
     <ConfirmationServiceProvider>

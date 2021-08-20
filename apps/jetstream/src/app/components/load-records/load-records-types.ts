@@ -8,6 +8,8 @@ import {
 } from '@jetstream/types';
 import { FieldType } from 'jsforce';
 
+export type LocalOrGoogle = 'local' | 'google';
+
 export interface FieldWithRelatedEntities {
   label: string;
   name: string;

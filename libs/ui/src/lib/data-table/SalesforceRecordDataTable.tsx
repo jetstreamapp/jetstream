@@ -41,6 +41,9 @@ export interface SalesforceRecordDataTableProps {
   org: SalesforceOrgUi;
   isTooling: boolean;
   serverUrl: string;
+  google_apiKey: string;
+  google_appId: string;
+  google_clientId: string;
   queryResults: QueryResults<any>;
   fieldMetadata: MapOf<Field>;
   fieldMetadataSubquery: MapOf<MapOf<Field>>;
@@ -59,6 +62,9 @@ export interface SalesforceRecordDataTableProps {
 export const SalesforceRecordDataTable: FunctionComponent<SalesforceRecordDataTableProps> = memo<SalesforceRecordDataTableProps>(
   ({
     org,
+    google_apiKey,
+    google_appId,
+    google_clientId,
     isTooling,
     serverUrl,
     queryResults,
@@ -209,6 +215,9 @@ export const SalesforceRecordDataTable: FunctionComponent<SalesforceRecordDataTa
             serverUrl,
             isTooling,
             columnDefinitions,
+            google_apiKey,
+            google_appId,
+            google_clientId,
           }}
         >
           <AutoFullHeightContainer fillHeight setHeightAttr bottomBuffer={10}>

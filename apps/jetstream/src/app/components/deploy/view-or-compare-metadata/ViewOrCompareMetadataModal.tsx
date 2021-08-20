@@ -8,6 +8,9 @@ import Editor, { DiffEditor, useMonaco } from '@monaco-editor/react';
 import type { editor } from 'monaco-editor';
 import { Fragment, FunctionComponent, useCallback, useEffect, useRef, useState } from 'react';
 import Split from 'react-split';
+import { useRecoilState } from 'recoil';
+import { applicationCookieState } from '../../../app-state';
+import * as fromJetstreamEvents from '../../core/jetstream-events';
 import { useViewOrCompareMetadata } from './useViewOrCompareMetadata';
 import ViewOrCompareMetadataEditorSummary from './ViewOrCompareMetadataEditorSummary';
 import ViewOrCompareMetadataModalFooter from './ViewOrCompareMetadataModalFooter';
@@ -26,6 +29,7 @@ export const ViewOrCompareMetadataModal: FunctionComponent<ViewOrCompareMetadata
   selectedMetadata,
   onClose,
 }) => {
+  const [{ google_apiKey, google_appId, google_clientId }] = useRecoilState(applicationCookieState);
   const editorRef = useRef<editor.IStandaloneCodeEditor>(null);
   const diffEditorRef = useRef<editor.IStandaloneDiffEditor>(null);
   const [targetOrg, setTargetOrg] = useState<SalesforceOrgUi>(null);
@@ -196,12 +200,16 @@ export const ViewOrCompareMetadataModal: FunctionComponent<ViewOrCompareMetadata
       {downloadFileModalConfig.open && (
         <FileDownloadModal
           org={downloadFileModalConfig.org}
+          google_apiKey={google_apiKey}
+          google_appId={google_appId}
+          google_clientId={google_clientId}
           modalHeader="Export Automation"
           modalTagline="Exported data will reflect what is in Salesforce, not unsaved changes"
           data={downloadFileModalConfig.data}
           fileNameParts={downloadFileModalConfig.fileNameParts}
           allowedTypes={downloadFileModalConfig.allowedTypes}
           onModalClose={handleFileDownloadModalClose}
+          emitUploadToGoogleEvent={fromJetstreamEvents.emit}
         />
       )}
       {!downloadFileModalConfig.open && (

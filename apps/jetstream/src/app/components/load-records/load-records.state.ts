@@ -1,7 +1,7 @@
 import { InsertUpdateUpsertDelete } from '@jetstream/types';
 import { DescribeGlobalSObjectResult } from 'jsforce';
 import { atom } from 'recoil';
-import { FieldMapping } from './load-records-types';
+import { FieldMapping, LocalOrGoogle } from './load-records-types';
 
 export const priorSelectedOrg = atom<string>({
   key: 'load.priorSelectedOrg',
@@ -40,6 +40,11 @@ export const inputFileHeaderState = atom<string[]>({
 
 export const inputFilenameState = atom<string>({
   key: 'load.inputFilenameState',
+  default: null,
+});
+
+export const inputFilenameTypeState = atom<LocalOrGoogle>({
+  key: 'load.inputFilenameTypeState',
   default: null,
 });
 

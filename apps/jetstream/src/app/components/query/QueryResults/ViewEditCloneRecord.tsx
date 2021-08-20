@@ -20,6 +20,9 @@ import { Checkbox, FileDownloadModal, Grid, Icon, Modal, PopoverErrorButton, Spi
 import { DescribeSObjectResult, Field } from 'jsforce';
 import isUndefined from 'lodash/isUndefined';
 import { Fragment, FunctionComponent, useCallback, useEffect, useRef, useState } from 'react';
+import { useRecoilState } from 'recoil';
+import { applicationCookieState } from '../../../app-state';
+import * as fromJetstreamEvents from '../../core/jetstream-events';
 import {
   combineRecordsForClone,
   EditFromErrors,
@@ -69,6 +72,7 @@ export const ViewEditCloneRecord: FunctionComponent<ViewEditCloneRecordProps> = 
   onChangeAction,
 }) => {
   const isMounted = useRef(null);
+  const [{ google_apiKey, google_appId, google_clientId }] = useRecoilState(applicationCookieState);
   const [sobjectFields, setSobjectFields] = useState<Field[]>();
   const [picklistValues, setPicklistValues] = useState<PicklistFieldValues>();
   const [initialRecord, setInitialRecord] = useState<Record>();
@@ -248,11 +252,15 @@ export const ViewEditCloneRecord: FunctionComponent<ViewEditCloneRecordProps> = 
       {downloadModalOpen && (
         <FileDownloadModal
           org={selectedOrg}
+          google_apiKey={google_apiKey}
+          google_appId={google_appId}
+          google_clientId={google_clientId}
           modalHeader="Download Record"
           data={[initialRecord]}
           fileNameParts={['record', recordId]}
           allowedTypes={['xlsx', 'csv', 'json']}
           onModalClose={handleDownloadModalClose}
+          emitUploadToGoogleEvent={fromJetstreamEvents.emit}
         />
       )}
       {!downloadModalOpen && (

@@ -52,6 +52,9 @@ export interface DataTableContextValue {
   org: SalesforceOrgUi;
   isTooling: boolean;
   columnDefinitions: SalesforceQueryColumnDefinition;
+  google_apiKey: string;
+  google_appId: string;
+  google_clientId: string;
 }
 
 export interface TableExecuteContext {
@@ -82,6 +85,9 @@ export const DataTableContext = createContext<DataTableContextValue>({
   org: null,
   isTooling: false,
   columnDefinitions: { parentColumns: [], subqueryColumns: {} },
+  google_apiKey: null,
+  google_appId: null,
+  google_clientId: null,
 });
 
 export function getCheckboxColumnDef(includeActions?: boolean): ColDef {

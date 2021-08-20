@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import * as API from '@jetstream/api-interfaces';
-import { HTTP } from '@jetstream/shared/constants';
+import { HTTP, MIME_TYPES } from '@jetstream/shared/constants';
 import {
   AnonymousApexResponse,
   ApexCompletionResponse,
@@ -12,6 +12,7 @@ import {
   BulkJobWithBatches,
   DeployResult,
   GenericRequestPayload,
+  GoogleFileApiResponse,
   ListMetadataResult,
   ListMetadataResultRaw,
   ManualRequestPayload,
@@ -31,7 +32,7 @@ import {
   DescribeSObjectResult,
   ListMetadataQuery,
 } from 'jsforce';
-import { handleRequest, transformListMetadataResponse } from './client-data-data-helper';
+import { handleExternalRequest, handleRequest, transformListMetadataResponse } from './client-data-data-helper';
 //// LANDING PAGE ROUTES
 
 function unwrapResponseIgnoreCache<T>(response: ApiResponse<T>) {
@@ -359,4 +360,48 @@ export async function apexCompletions(org: SalesforceOrgUi, type: 'apex' | 'visu
 
 export async function salesforceApiReq(): Promise<SalesforceApiRequest[]> {
   return handleRequest({ method: 'GET', url: `/api/salesforce-api/requests` }, { useCache: true }).then(unwrapResponseIgnoreCache);
+}
+
+export async function googleUploadFile(
+  accessToken: string,
+  { fileMimeType, filename, folderId, fileData }: { fileMimeType: string; filename: string; folderId: string; fileData: any },
+  targetMimeType = MIME_TYPES.GSHEET
+): Promise<GoogleFileApiResponse & { webViewLink: string }> {
+  return await handleExternalRequest({
+    method: 'POST',
+    url: `https://www.googleapis.com/upload/drive/v3/files`,
+    headers: {
+      'X-Upload-Content-Type': fileMimeType,
+      'Content-Type': HTTP.CONTENT_TYPE.JSON,
+      Authorization: `Bearer ${accessToken}`,
+    },
+    params: {
+      uploadType: 'resumable',
+      supportsAllDrives: true,
+    },
+    data: {
+      name: filename,
+      mimeType: targetMimeType.replace(';charset=utf-8', ''),
+      parents: [folderId].filter(Boolean),
+    },
+  })
+    .then((response) => ({ url: response.headers.location, fileId: response.headers['x-guploader-uploadid'] }))
+    .then(({ url }) =>
+      handleExternalRequest<GoogleFileApiResponse>({
+        method: 'PUT',
+        url,
+        headers: { Authorization: `Bearer ${accessToken}` },
+        data: fileData,
+      })
+    )
+    .then((response) =>
+      // Re-fetch metadata to include `webViewLink` property
+      handleExternalRequest<GoogleFileApiResponse & { webViewLink: string }>({
+        method: 'GET',
+        url: `https://www.googleapis.com/drive/v3/files/${response.data.id}`,
+        headers: { Authorization: `Bearer ${accessToken}` },
+        params: { fields: 'id, kind, mimeType, name, webViewLink', supportsAllDrives: true },
+      })
+    )
+    .then((response) => response.data);
 }
