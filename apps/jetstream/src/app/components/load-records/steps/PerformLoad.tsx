@@ -1,6 +1,6 @@
 /** @jsx jsx */
 import { jsx } from '@emotion/react';
-import { ANALYTICS_KEYS, DATE_FORMATS } from '@jetstream/shared/constants';
+import { ANALYTICS_KEYS, DATE_FORMATS, TITLES } from '@jetstream/shared/constants';
 import { formatNumber } from '@jetstream/shared/ui-utils';
 import { InsertUpdateUpsertDelete, SalesforceOrgUi, SalesforceOrgUiType } from '@jetstream/types';
 import { Badge, Checkbox, ConfirmationModalPromise, Input, Radio, RadioGroup, Select } from '@jetstream/ui';
@@ -155,14 +155,16 @@ export const LoadRecordsPerformLoad: FunctionComponent<LoadRecordsPerformLoadPro
         dateFormat,
         timesSameDataSubmitted: loadNumber + 1,
       });
+      document.title = `Loading Records | ${TITLES.BAR_JETSTREAM}`;
     }
   }
 
-  function handleFinishLoad() {
+  function handleFinishLoad({ success, failure }: { success: number; failure: number }) {
     setLoading(false);
     setHasLoadResults(true);
     setLoadInProgress(false);
     onIsLoading(false);
+    document.title = `${formatNumber(success)} Success - ${formatNumber(failure)} Failed ${TITLES.BAR_JETSTREAM}`;
   }
 
   function hasDataInputError(): boolean {

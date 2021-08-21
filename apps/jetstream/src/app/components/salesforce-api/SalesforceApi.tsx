@@ -1,13 +1,14 @@
 /** @jsx jsx */
 import { css, jsx } from '@emotion/react';
 import { logger } from '@jetstream/shared/client-logger';
-import { ANALYTICS_KEYS } from '@jetstream/shared/constants';
+import { ANALYTICS_KEYS, TITLES } from '@jetstream/shared/constants';
 import { manualRequest } from '@jetstream/shared/data';
 import { useRollbar } from '@jetstream/shared/ui-utils';
 import { ManualRequestPayload, ManualRequestResponse, SalesforceApiHistoryRequest, SalesforceOrgUi } from '@jetstream/types';
 import { AutoFullHeightContainer } from '@jetstream/ui';
 import { FunctionComponent, useCallback, useEffect, useRef, useState } from 'react';
 import Split from 'react-split';
+import { useTitle } from 'react-use';
 import { useRecoilState, useRecoilValue } from 'recoil';
 import { applicationCookieState, selectedOrgState } from '../../app-state';
 import { useAmplitude } from '../core/analytics';
@@ -19,6 +20,7 @@ import SalesforceApiResponse from './SalesforceApiResponse';
 export interface SalesforceApiProps {}
 
 export const SalesforceApi: FunctionComponent<SalesforceApiProps> = () => {
+  useTitle(TITLES.API_EXPLORER);
   const isMounted = useRef(null);
   const [{ defaultApiVersion }] = useRecoilState(applicationCookieState);
   const { trackEvent } = useAmplitude();

@@ -1,5 +1,7 @@
 import { UserProfileUi } from '@jetstream/types';
 import React, { FunctionComponent } from 'react';
+import { TITLES } from '@jetstream/shared/constants';
+import { useTitle } from 'react-use';
 
 const FORM_BASE_URL = 'https://docs.google.com/forms/d/e/1FAIpQLSeCJWLz8H2KwaV5YAbTkeiInvxE2Or-RUUxNW7UCaYdWgUIFg/viewform';
 
@@ -9,6 +11,7 @@ export interface FeedbackProps {
 }
 
 export const Feedback: FunctionComponent<FeedbackProps> = ({ userProfile }) => {
+  useTitle(TITLES.FEEDBACK);
   return (
     <div className="slds-align_absolute-center">
       <iframe

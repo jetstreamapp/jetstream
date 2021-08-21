@@ -1,6 +1,6 @@
 /** @jsx jsx */
 import { css, jsx } from '@emotion/react';
-import { MIME_TYPES } from '@jetstream/shared/constants';
+import { MIME_TYPES, TITLES } from '@jetstream/shared/constants';
 import { fetchActiveLog, saveFile, useNonInitialEffect } from '@jetstream/shared/ui-utils';
 import { ApexLog, ApexLogWithViewed, MapOf, SalesforceOrgUi } from '@jetstream/types';
 import { AutoFullHeightContainer, Card, Checkbox, CopyToClipboard, Grid, Icon, SalesforceLogin, Spinner } from '@jetstream/ui';
@@ -9,6 +9,7 @@ import formatDate from 'date-fns/format';
 import type { editor } from 'monaco-editor';
 import { Fragment, FunctionComponent, useCallback, useEffect, useRef, useState } from 'react';
 import Split from 'react-split';
+import { useTitle } from 'react-use';
 import { useRecoilState, useRecoilValue } from 'recoil';
 import { applicationCookieState, selectedOrgState } from '../../app-state';
 import DebugLogViewerFilter from './DebugLogViewerFilter';
@@ -22,6 +23,7 @@ const USER_DEBUG_REGEX = /\|USER_DEBUG\|/;
 export interface DebugLogViewerProps {}
 
 export const DebugLogViewer: FunctionComponent<DebugLogViewerProps> = () => {
+  useTitle(TITLES.DEBUG_LOGS);
   const isMounted = useRef(null);
   const logCache = useRef<MapOf<string>>({});
   const logRef = useRef<editor.IStandaloneCodeEditor>(null);

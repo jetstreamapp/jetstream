@@ -1,7 +1,7 @@
 /** @jsx jsx */
 import { css, jsx } from '@emotion/react';
 import { logger } from '@jetstream/shared/client-logger';
-import { ANALYTICS_KEYS } from '@jetstream/shared/constants';
+import { ANALYTICS_KEYS, TITLES } from '@jetstream/shared/constants';
 import { clearCacheForOrg } from '@jetstream/shared/data';
 import { formatNumber } from '@jetstream/shared/ui-utils';
 import { SalesforceOrgUi } from '@jetstream/types';
@@ -19,6 +19,7 @@ import {
 } from '@jetstream/ui';
 import { startCase } from 'lodash';
 import { FunctionComponent, useCallback, useEffect, useRef, useState } from 'react';
+import { useTitle } from 'react-use';
 import { useRecoilState, useRecoilValue, useResetRecoilState } from 'recoil';
 import { applicationCookieState, selectedOrgState, selectedOrgType } from '../../app-state';
 import { useAmplitude } from '../core/analytics';
@@ -51,6 +52,7 @@ export interface LoadRecordsProps {
 }
 
 export const LoadRecords: FunctionComponent<LoadRecordsProps> = ({ featureFlags }) => {
+  useTitle(TITLES.LOAD);
   const isMounted = useRef(null);
   const { trackEvent } = useAmplitude();
   const [{ google_apiKey, google_appId, google_clientId }] = useRecoilState(applicationCookieState);

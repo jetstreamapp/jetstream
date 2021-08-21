@@ -7,11 +7,14 @@ import StateDebugObserver from '../core/StateDebugObserver';
 import * as fromDeployMetadataState from './deploy-metadata.state';
 import DeployMetadataDeployment from './DeployMetadataDeployment';
 import DeployMetadataSelection from './DeployMetadataSelection';
+import { TITLES } from '@jetstream/shared/constants';
+import { useTitle } from 'react-use';
 
 // eslint-disable-next-line @typescript-eslint/no-empty-interface
 export interface DeployMetadataProps {}
 
 export const DeployMetadata: FunctionComponent<DeployMetadataProps> = () => {
+  useTitle(TITLES.DEPLOY_METADATA);
   const match = useRouteMatch();
   const selectedOrg = useRecoilValue<SalesforceOrgUi>(selectedOrgState);
   const hasSelectionsMade = useRecoilValue<boolean>(fromDeployMetadataState.hasSelectionsMadeSelector);

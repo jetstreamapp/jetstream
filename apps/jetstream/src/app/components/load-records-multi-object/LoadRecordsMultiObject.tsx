@@ -1,7 +1,7 @@
 /** @jsx jsx */
 import { jsx } from '@emotion/react';
-import { ANALYTICS_KEYS, DATE_FORMATS, FEATURE_FLAGS, INPUT_ACCEPT_FILETYPES } from '@jetstream/shared/constants';
-import { hasFeatureFlagAccess, useNonInitialEffect } from '@jetstream/shared/ui-utils';
+import { ANALYTICS_KEYS, DATE_FORMATS, FEATURE_FLAGS, INPUT_ACCEPT_FILETYPES, TITLES } from '@jetstream/shared/constants';
+import { formatNumber, hasFeatureFlagAccess, useNonInitialEffect } from '@jetstream/shared/ui-utils';
 import { InputReadFileContent, InputReadGoogleSheet, SalesforceOrgUi } from '@jetstream/types';
 import {
   AutoFullHeightContainer,
@@ -9,7 +9,6 @@ import {
   ConfirmationModalPromise,
   EmptyState,
   FileOrGoogleSelector,
-  FileSelector,
   Grid,
   Icon,
   OpenRoadIllustration,
@@ -22,12 +21,13 @@ import {
   Select,
   Spinner,
 } from '@jetstream/ui';
-import { LocalOrGoogle } from '../load-records/load-records-types';
 import { ChangeEvent, FunctionComponent, useEffect, useRef, useState } from 'react';
+import { useTitle } from 'react-use';
 import { useRecoilState, useRecoilValue } from 'recoil';
 import * as XLSX from 'xlsx';
 import { applicationCookieState, selectedOrgState, selectedOrgType } from '../../app-state';
 import { useAmplitude } from '../core/analytics';
+import { LocalOrGoogle } from '../load-records/load-records-types';
 import { LoadMultiObjectRequestWithResult } from './load-records-multi-object-types';
 import LoadRecordsMultiObjectErrors from './LoadRecordsMultiObjectErrors';
 import LoadRecordsMultiObjectResults from './LoadRecordsMultiObjectResults';
@@ -42,6 +42,7 @@ export interface LoadRecordsMultiObjectProps {
 }
 
 export const LoadRecordsMultiObject: FunctionComponent<LoadRecordsMultiObjectProps> = ({ featureFlags }) => {
+  useTitle(TITLES.LOAD);
   const isMounted = useRef(null);
   const { trackEvent } = useAmplitude();
   const selectedOrg = useRecoilValue<SalesforceOrgUi>(selectedOrgState);
@@ -80,6 +81,18 @@ export const LoadRecordsMultiObject: FunctionComponent<LoadRecordsMultiObjectPro
   useNonInitialEffect(() => {
     handleStartOver();
   }, [selectedOrg]);
+
+  useNonInitialEffect(() => {
+    if (dataLoadLoading) {
+      document.title = `Loading Records | ${TITLES.BAR_JETSTREAM}`;
+    } else if (loadStarted && data) {
+      const success = data.flatMap((row) => row.results.filter((row) => row.isSuccessful)).length;
+      const failures = data.flatMap((row) => row.results.filter((row) => !row.isSuccessful)).length;
+      document.title = `${formatNumber(success)} Success - ${formatNumber(failures)} Failed ${TITLES.BAR_JETSTREAM}`;
+    } else {
+      document.title = TITLES.LOAD;
+    }
+  }, [data, dataLoadLoading]);
 
   // prefer loadResultsData if it is set, otherwise use fileProcessingData
   // It is all the same data, but loadResultsData clones the data as it is being processed and adds results

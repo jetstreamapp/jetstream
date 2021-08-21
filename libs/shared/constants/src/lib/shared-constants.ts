@@ -174,3 +174,16 @@ export const ANALYTICS_KEYS = {
 };
 
 export const LOG_LEVELS = ['NONE', 'ERROR', 'WARN', 'INFO', 'DEBUG', 'FINE', 'FINER', 'FINEST'];
+
+export const TITLES = {
+  BAR_JETSTREAM: '| Jetstream',
+  QUERY: 'Query | Jetstream',
+  LOAD: 'Load | Jetstream',
+  AUTOMATION_CONTROL: 'Automation Control | Jetstream',
+  MANAGE_PERMISSIONS: 'Manage Permissions | Jetstream',
+  DEPLOY_METADATA: 'Deploy Metadata | Jetstream',
+  ANON_APEX: 'Anonymous Apex | Jetstream',
+  DEBUG_LOGS: 'Debug Logs | Jetstream',
+  API_EXPLORER: 'Salesforce Api | Jetstream',
+  FEEDBACK: 'Support & Feedback | Jetstream',
+};

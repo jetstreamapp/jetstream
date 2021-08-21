@@ -1,6 +1,8 @@
+import { TITLES } from '@jetstream/shared/constants';
 import { SalesforceOrgUi } from '@jetstream/types';
 import React, { Fragment, FunctionComponent, useEffect, useState } from 'react';
 import { Redirect, Route, Switch, useRouteMatch } from 'react-router-dom';
+import { useTitle } from 'react-use';
 import { useRecoilValue, useResetRecoilState } from 'recoil';
 import { selectedOrgState } from '../../app-state';
 import StateDebugObserver from '../core/StateDebugObserver';
@@ -12,6 +14,7 @@ import ManagePermissionsSelection from './ManagePermissionsSelection';
 export interface ManagePermissionsProps {}
 
 export const ManagePermissions: FunctionComponent<ManagePermissionsProps> = () => {
+  useTitle(TITLES.MANAGE_PERMISSIONS);
   const match = useRouteMatch();
   const selectedOrg = useRecoilValue<SalesforceOrgUi>(selectedOrgState);
   const resetProfilesState = useResetRecoilState(fromPermissionsState.profilesState);

@@ -48,7 +48,7 @@ export interface LoadRecordsBatchApiResultsProps {
   assignmentRuleId?: string;
   serialMode: boolean;
   dateFormat: string;
-  onFinish: () => void; // TODO: add types
+  onFinish: (results: { success: number; failure: number }) => void;
 }
 
 export const LoadRecordsBatchApiResults: FunctionComponent<LoadRecordsBatchApiResultsProps> = ({
@@ -67,6 +67,8 @@ export const LoadRecordsBatchApiResults: FunctionComponent<LoadRecordsBatchApiRe
   onFinish,
 }) => {
   const isMounted = useRef(null);
+  // used to ensure that data in the onworker callback gets a reference to the results
+  const processingStatusRef = useRef<{ success: number; failure: number }>({ success: 0, failure: 0 });
   const [preparedData, setPreparedData] = useState<PrepareDataResponse>();
   const [loadWorker] = useState(() => new LoadWorker());
   const [status, setStatus] = useState<Status>(STATUSES.PREPARING);
@@ -129,10 +131,12 @@ export const LoadRecordsBatchApiResults: FunctionComponent<LoadRecordsBatchApiRe
 
   useEffect(() => {
     if (Array.isArray(processedRecords) && processedRecords.length > 0) {
+      processingStatusRef.current.success = processedRecords.filter((record) => record.success).length;
+      processingStatusRef.current.failure = processedRecords.filter((record) => !record.success).length;
       setProcessingStatus({
         total: preparedData.data.length,
-        success: processedRecords.filter((record) => record.success).length,
-        failure: processedRecords.filter((record) => !record.success).length,
+        success: processingStatusRef.current.success,
+        failure: processingStatusRef.current.failure,
       });
     }
   }, [preparedData, processedRecords]);
@@ -172,7 +176,7 @@ export const LoadRecordsBatchApiResults: FunctionComponent<LoadRecordsBatchApiRe
               logger.error('ERROR', payload.error);
               setStatus(STATUSES.ERROR);
               setFatalError(payload.error.message);
-              onFinish();
+              onFinish({ success: 0, failure: inputFileData.length });
               notifyUser(`Your ${loadType.toLowerCase()} data load failed`, {
                 body: `❌ ${payload.error?.message || payload.error}`,
                 tag: 'load-records',
@@ -186,7 +190,7 @@ export const LoadRecordsBatchApiResults: FunctionComponent<LoadRecordsBatchApiRe
               setProcessingEndTime(dateString);
               setStartTime(dateString);
               setEndTime(dateString);
-              onFinish();
+              onFinish({ success: 0, failure: inputFileData.length });
               notifyUser(`Your ${loadType.toLowerCase()} data load failed`, {
                 body: `❌ Pre-processing records failed.`,
                 tag: 'load-records',
@@ -207,7 +211,7 @@ export const LoadRecordsBatchApiResults: FunctionComponent<LoadRecordsBatchApiRe
             if (payload.error) {
               logger.error('ERROR', payload.error);
               setStatus(STATUSES.ERROR);
-              onFinish();
+              onFinish({ success: 0, failure: inputFileData.length });
               setEndTime(dateString);
               notifyUser(`Your ${loadType.toLowerCase()} data load failed`, {
                 body: `❌ ${payload.error?.message || payload.error}`,
@@ -215,7 +219,7 @@ export const LoadRecordsBatchApiResults: FunctionComponent<LoadRecordsBatchApiRe
               });
             } else {
               setStatus(STATUSES.FINISHED);
-              onFinish();
+              onFinish({ success: processingStatusRef.current.success, failure: processingStatusRef.current.failure });
               setEndTime(dateString);
             }
             break;
@@ -225,7 +229,7 @@ export const LoadRecordsBatchApiResults: FunctionComponent<LoadRecordsBatchApiRe
         }
       };
     }
-  }, [loadWorker]);
+  }, [loadWorker, processingStatusRef.current]);
 
   function handleDownloadRecords(type: 'results' | 'failures') {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
