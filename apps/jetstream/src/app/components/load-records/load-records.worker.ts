@@ -138,9 +138,20 @@ async function loadBatchApiData({ org, data, sObject, type, batchSize, externalI
     for (const batch of batches) {
       let responseWithRecord: RecordResultWithRecord[];
       let queryParams = '';
+      /** if deleting records, and some records are null for the id, then those records are not loaded and the response will have incorrect indexes */
+      let records = batch.records;
+      let recordIndexesWithMissingIds: Set<number> = new Set();
 
       if (type === 'DELETE') {
-        queryParams = `?ids=${batch.records.map((record) => record.Id).join(',')}&allOrNone=false`;
+        queryParams = `?ids=${batch.records
+          .map((record) => record.Id)
+          .filter(Boolean)
+          .join(',')}&allOrNone=false`;
+        /** Account for records with no mapped id - these records cannot be submitted with the batch API */
+        recordIndexesWithMissingIds = new Set(
+          batch.records.map((record, i) => (!record.Id ? i : undefined)).filter((idx) => Number.isFinite(idx))
+        );
+        records = records.filter((record) => record.Id);
       }
 
       try {
@@ -157,7 +168,31 @@ async function loadBatchApiData({ org, data, sObject, type, batchSize, externalI
             ...autoAssignHeader,
           },
         });
-        responseWithRecord = response.map((record, i): RecordResultWithRecord => ({ ...record, record: batch.records[i] }));
+        responseWithRecord = response.reduce((output: RecordResultWithRecord[], response, i) => {
+          // If record was skipped, add it to the list
+          if (recordIndexesWithMissingIds.has(i)) {
+            // remove so that we can determine if any records are remaining after processing results
+            recordIndexesWithMissingIds.delete(i);
+            output.push({
+              success: false,
+              errors: [{ fields: [], message: `This record did not have a mapped value for the Id`, statusCode: 'MISSING_ID' }],
+              record: batch.records[i],
+            });
+          }
+          output.push({ ...response, record: records[i] });
+          return output;
+        }, []);
+
+        // Ensure that any remaining skipped records are accounted for
+        if (recordIndexesWithMissingIds.size) {
+          Array.from(recordIndexesWithMissingIds).forEach((i) => {
+            responseWithRecord.push({
+              success: false,
+              errors: [{ fields: [], message: `This record did not have a mapped value for the Id`, statusCode: 'MISSING_ID' }],
+              record: batch.records[i],
+            });
+          });
+        }
       } catch (ex) {
         responseWithRecord = batch.records.map(
           (record, i): RecordResultWithRecord => ({

@@ -1,7 +1,7 @@
 /** @jsx jsx */
 import { jsx } from '@emotion/react';
 import { logger } from '@jetstream/shared/client-logger';
-import { bulkApiGetJob, bulkApiGetRecords } from '@jetstream/shared/data';
+import { bulkApiGetJob, bulkApiGetRecords, sobjectOperation } from '@jetstream/shared/data';
 import { convertDateToLocale, useBrowserNotifications } from '@jetstream/shared/ui-utils';
 import { getSuccessOrFailureChar, pluralizeFromNumber } from '@jetstream/shared/utils';
 import {
@@ -339,7 +339,10 @@ export const LoadRecordsBulkApiResults: FunctionComponent<LoadRecordsBulkApiResu
       // this should match, but will fallback to batchIndex if for some reason we cannot find the batch
       const batchSummaryItem = batchSummary.batchSummary.find((item) => item.id === batch.id);
       const startIdx = (batchSummaryItem?.batchNumber ?? batchIndex) * batchSize;
-      const records: any[] = preparedData.data.slice(startIdx, startIdx + batchSize);
+      /** For delete, only records with a mapped Id will be included in response from SFDC */
+      const records: any[] = preparedData.data
+        .slice(startIdx, startIdx + batchSize)
+        .filter((record) => (loadType !== 'DELETE' ? true : !!record.Id));
       const combinedResults = [];
 
       results.forEach((resultRecord, i) => {

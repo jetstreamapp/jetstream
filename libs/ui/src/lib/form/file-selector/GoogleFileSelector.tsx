@@ -134,9 +134,10 @@ export const GoogleFileSelector: FunctionComponent<GoogleFileSelectorProps> = ({
   const handleOpenPicker = () => {
     openPicker({
       views: [
-        new google.picker.DocsView(window.google.picker.ViewId.SPREADSHEETS).setParent('root').setIncludeFolders(true),
-        new google.picker.DocsView().setMimeTypes('application/vnd.google-apps.spreadsheet'),
-        new google.picker.DocsView(window.google.picker.ViewId.SPREADSHEETS).setEnableDrives(true).setIncludeFolders(true),
+        { view: new google.picker.DocsView(window.google.picker.ViewId.SPREADSHEETS).setParent('root').setIncludeFolders(true) },
+        { view: new google.picker.DocsView(window.google.picker.ViewId.SPREADSHEETS), label: 'All spreadsheets' },
+        { view: new google.picker.DocsView(window.google.picker.ViewId.SPREADSHEETS).setStarred(true), label: 'Starred spreadsheets' },
+        { view: new google.picker.DocsView(window.google.picker.ViewId.SPREADSHEETS).setEnableDrives(true).setIncludeFolders(true) },
       ],
       features: [window.google.picker.Feature.SUPPORT_DRIVES],
     });
