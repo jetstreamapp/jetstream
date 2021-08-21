@@ -2,7 +2,7 @@
 import { css, jsx } from '@emotion/react';
 import { useSetTraceFlag } from '@jetstream/connected-ui';
 import { logger } from '@jetstream/shared/client-logger';
-import { ANALYTICS_KEYS, INDEXED_DB, LOG_LEVELS } from '@jetstream/shared/constants';
+import { ANALYTICS_KEYS, INDEXED_DB, LOG_LEVELS, TITLES } from '@jetstream/shared/constants';
 import { anonymousApex } from '@jetstream/shared/data';
 import { useBrowserNotifications, useDebounce, useNonInitialEffect, useRollbar } from '@jetstream/shared/ui-utils';
 import { ApexHistoryItem, MapOf, SalesforceOrgUi } from '@jetstream/types';
@@ -12,12 +12,14 @@ import localforage from 'localforage';
 import type { editor } from 'monaco-editor';
 import { Fragment, FunctionComponent, MouseEvent, useCallback, useEffect, useRef, useState } from 'react';
 import Split from 'react-split';
+import { useTitle } from 'react-use';
 import { useRecoilState, useRecoilValue } from 'recoil';
 import { applicationCookieState, selectedOrgState, STORAGE_KEYS } from '../../app-state';
 import { useAmplitude } from '../core/analytics';
 import AnonymousApexFilter from './AnonymousApexFilter';
 import AnonymousApexHistory from './AnonymousApexHistory';
 import * as fromApexState from './apex.state';
+
 // import { useApexCompletions } from './useApexCompletions';
 
 const USER_DEBUG_REGEX = /\|USER_DEBUG\|/;
@@ -28,6 +30,7 @@ const USER_DEBUG_REGEX = /\|USER_DEBUG\|/;
 export interface AnonymousApexProps {}
 
 export const AnonymousApex: FunctionComponent<AnonymousApexProps> = () => {
+  useTitle(TITLES.ANON_APEX);
   const isMounted = useRef(null);
   const apexRef = useRef<editor.IStandaloneCodeEditor>(null);
   const logRef = useRef<editor.IStandaloneCodeEditor>(null);

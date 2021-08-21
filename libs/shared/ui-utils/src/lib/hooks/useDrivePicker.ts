@@ -1,5 +1,6 @@
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 declare let window: any;
+import { logger } from '@jetstream/shared/client-logger';
 import { useEffect, useRef, useState } from 'react';
 import { GoogleApiClientConfig, GoogleApiData, useLoadGoogleApi } from './useLoadGoogleApi';
 
@@ -10,7 +11,7 @@ export interface UseDrivePickerOptions {
 export interface PickerConfiguration {
   title?: string;
   viewGroups?: google.picker.ViewGroup[];
-  views: (google.picker.DocsView | google.picker.DocsUploadView | google.picker.ViewId)[];
+  views: { view: google.picker.DocsView | google.picker.DocsUploadView | google.picker.ViewId; label?: string }[];
   features?: google.picker.Feature[];
   locale?: string;
   /** If true, then the picker will not build itself, allowing the user to perform any desired actions */
@@ -23,6 +24,28 @@ export const DEFAULT_CONFIGURATION: PickerConfiguration = {
   features: [],
   locale: 'en',
 };
+
+/**
+ * https://stackoverflow.com/questions/48459402/change-google-picker-docsview-title
+ * setLabel is not documented and not included in typescript definition, but it works
+ *
+ *
+ * @param view
+ * @param label
+ * @returns
+ */
+function setViewLabel(view: google.picker.DocsView | google.picker.DocsUploadView | google.picker.ViewId, label: string) {
+  try {
+    const _view: any = view;
+    if (_view && typeof _view.setLabel === 'function') {
+      _view.setLabel(label);
+    }
+  } catch (ex) {
+    logger.warn('Unable to set view label');
+  } finally {
+    return view;
+  }
+}
 
 export function useDrivePicker(
   apiConfig: GoogleApiClientConfig
@@ -82,7 +105,12 @@ export function useDrivePicker(
     }
 
     if (Array.isArray(views)) {
-      views.forEach((view) => picker.current.addView(view));
+      views.forEach(({ view, label }) => {
+        if (label) {
+          setViewLabel(view, label);
+        }
+        picker.current.addView(view);
+      });
     }
 
     if (Array.isArray(features)) {

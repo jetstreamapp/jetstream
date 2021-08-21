@@ -1,6 +1,7 @@
 /** @jsx jsx */
 import { jsx } from '@emotion/react';
 import { logger } from '@jetstream/shared/client-logger';
+import { TITLES } from '@jetstream/shared/constants';
 import { clearCacheForOrg, queryWithCache } from '@jetstream/shared/data';
 import { useRollbar } from '@jetstream/shared/ui-utils';
 import { NOOP, orderObjectsBy } from '@jetstream/shared/utils';
@@ -22,6 +23,7 @@ import {
 } from '@jetstream/ui';
 import formatRelative from 'date-fns/formatRelative';
 import { FunctionComponent, useEffect, useRef, useState } from 'react';
+import { useTitle } from 'react-use';
 import { useRecoilState, useRecoilValue, useResetRecoilState } from 'recoil';
 import { applicationCookieState, selectedOrgState, selectedOrgType } from '../../app-state';
 import * as fromJetstreamEvents from '../core/jetstream-events';
@@ -54,6 +56,7 @@ const HEIGHT_BUFFER = 170;
 export interface AutomationControlProps {}
 
 export const AutomationControl: FunctionComponent<AutomationControlProps> = () => {
+  useTitle(TITLES.AUTOMATION_CONTROL);
   const isMounted = useRef(null);
   const rollbar = useRollbar();
   const [lastRefreshed, setLastRefreshed] = useState<string>(_lastRefreshed);

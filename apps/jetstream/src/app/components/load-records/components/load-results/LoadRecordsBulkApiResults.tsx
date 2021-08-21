@@ -73,7 +73,7 @@ export interface LoadRecordsBulkApiResultsProps {
   assignmentRuleId?: string;
   serialMode: boolean;
   dateFormat: string;
-  onFinish: () => void;
+  onFinish: (results: { success: number; failure: number }) => void;
 }
 
 export const LoadRecordsBulkApiResults: FunctionComponent<LoadRecordsBulkApiResultsProps> = ({
@@ -176,13 +176,13 @@ export const LoadRecordsBulkApiResults: FunctionComponent<LoadRecordsBulkApiResu
    * If not done and status is processing, then continue polling
    */
   useEffect(() => {
-    if (jobInfo && status !== STATUSES.ERROR) {
+    if (jobInfo && status !== STATUSES.ERROR && status !== STATUSES.FINISHED) {
       const isDone = checkIfJobIsDone(jobInfo, batchSummary);
       if (isDone) {
         setStatus(STATUSES.FINISHED);
-        onFinish();
         const numSuccess = jobInfo.numberRecordsProcessed - jobInfo.numberRecordsFailed;
         const numFailure = jobInfo.numberRecordsFailed + preparedData.errors.length;
+        onFinish({ success: numSuccess, failure: numFailure });
         notifyUser(`Your ${jobInfo.operation} data load is finished`, {
           body: `${getSuccessOrFailureChar('success', numSuccess)} ${numSuccess.toLocaleString()} ${pluralizeFromNumber(
             'record',
@@ -238,7 +238,7 @@ export const LoadRecordsBulkApiResults: FunctionComponent<LoadRecordsBulkApiResu
               logger.error('ERROR', payload.error);
               setStatus(STATUSES.ERROR);
               setFatalError(payload.error.message);
-              onFinish();
+              onFinish({ success: 0, failure: inputFileData.length });
               notifyUser(`Your ${loadType.toLowerCase()} data load failed`, {
                 body: `❌ ${payload.error.message}`,
                 tag: 'load-records',
@@ -276,7 +276,7 @@ export const LoadRecordsBulkApiResults: FunctionComponent<LoadRecordsBulkApiResu
                 totalProcessingTime: 0,
                 batches: [],
               });
-              onFinish();
+              onFinish({ success: 0, failure: inputFileData.length });
               notifyUser(`Your ${loadType.toLowerCase()} data load failed`, {
                 body: `❌ Pre-processing records failed.`,
                 tag: 'load-records',
@@ -300,7 +300,7 @@ export const LoadRecordsBulkApiResults: FunctionComponent<LoadRecordsBulkApiResu
             if (payload.error) {
               logger.error('ERROR', payload.error);
               setStatus(STATUSES.ERROR);
-              onFinish();
+              onFinish({ success: 0, failure: inputFileData.length });
               notifyUser(`Your ${jobInfo.operation} data load failed`, {
                 body: `❌ ${payload.error?.message || payload.error}`,
                 tag: 'load-records',
@@ -339,7 +339,10 @@ export const LoadRecordsBulkApiResults: FunctionComponent<LoadRecordsBulkApiResu
       // this should match, but will fallback to batchIndex if for some reason we cannot find the batch
       const batchSummaryItem = batchSummary.batchSummary.find((item) => item.id === batch.id);
       const startIdx = (batchSummaryItem?.batchNumber ?? batchIndex) * batchSize;
-      const records: any[] = preparedData.data.slice(startIdx, startIdx + batchSize);
+      /** For delete, only records with a mapped Id will be included in response from SFDC */
+      const records: any[] = preparedData.data
+        .slice(startIdx, startIdx + batchSize)
+        .filter((record) => (loadType !== 'DELETE' ? true : !!record.Id));
       const combinedResults = [];
 
       results.forEach((resultRecord, i) => {

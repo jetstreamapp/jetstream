@@ -1,6 +1,8 @@
+import { TITLES } from '@jetstream/shared/constants';
 import { SalesforceOrgUi } from '@jetstream/types';
 import React, { Fragment, FunctionComponent, useEffect, useState } from 'react';
 import { Redirect, Route, Switch, useLocation, useRouteMatch } from 'react-router-dom';
+import { useTitle } from 'react-use';
 import { useRecoilValue, useResetRecoilState } from 'recoil';
 import { selectedOrgState } from '../../app-state';
 import StateDebugObserver from '../core/StateDebugObserver';
@@ -12,6 +14,7 @@ import QueryResults from './QueryResults/QueryResults';
 export interface QueryProps {}
 
 export const Query: FunctionComponent<QueryProps> = () => {
+  useTitle(TITLES.QUERY);
   const match = useRouteMatch();
   const location = useLocation<{ soql: string }>();
   const selectedOrg = useRecoilValue<SalesforceOrgUi>(selectedOrgState);

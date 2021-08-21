@@ -95,8 +95,12 @@ export const GoogleFolderSelector: FunctionComponent<GoogleFolderSelectorProps> 
     openPicker({
       title: 'Select a folder',
       views: [
-        new google.picker.DocsView(window.google.picker.ViewId.FOLDERS).setSelectFolderEnabled(true).setParent('root'),
-        new google.picker.DocsView(window.google.picker.ViewId.FOLDERS).setSelectFolderEnabled(true).setEnableDrives(true),
+        { view: new google.picker.DocsView(window.google.picker.ViewId.FOLDERS).setSelectFolderEnabled(true).setParent('root') },
+        {
+          view: new google.picker.DocsView(window.google.picker.ViewId.FOLDERS).setSelectFolderEnabled(true).setStarred(true),
+          label: 'Starred folders',
+        },
+        { view: new google.picker.DocsView(window.google.picker.ViewId.FOLDERS).setSelectFolderEnabled(true).setEnableDrives(true) },
       ],
       features: [window.google.picker.Feature.SUPPORT_DRIVES],
     });

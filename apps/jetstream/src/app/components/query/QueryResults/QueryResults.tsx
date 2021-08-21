@@ -4,9 +4,10 @@
 import { css, jsx } from '@emotion/react';
 import { QueryResults as IQueryResults } from '@jetstream/api-interfaces';
 import { logger } from '@jetstream/shared/client-logger';
-import { ANALYTICS_KEYS } from '@jetstream/shared/constants';
+import { ANALYTICS_KEYS, TITLES } from '@jetstream/shared/constants';
 import { query } from '@jetstream/shared/data';
 import {
+  formatNumber,
   hasModifierKey,
   isMKey,
   useBrowserNotifications,
@@ -130,6 +131,14 @@ export const QueryResults: FunctionComponent<QueryResultsProps> = React.memo(() 
     isMounted.current = true;
     return () => (isMounted.current = false);
   }, []);
+
+  useEffect(() => {
+    if (queryResults?.queryResults?.records) {
+      document.title = `${formatNumber(queryResults.queryResults.records.length)} Records ${TITLES.BAR_JETSTREAM}`;
+    } else {
+      document.title = TITLES.QUERY;
+    }
+  }, [queryResults]);
 
   useEffect(() => {
     if (bulkDeleteJob && executeQuery) {

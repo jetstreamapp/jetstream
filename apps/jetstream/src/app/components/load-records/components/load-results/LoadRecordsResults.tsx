@@ -19,7 +19,7 @@ export interface LoadRecordsResultsProps {
   assignmentRuleId?: string;
   serialMode: boolean;
   dateFormat: string;
-  onFinish: () => void;
+  onFinish: (results: { success: number; failure: number }) => void;
 }
 
 export const LoadRecordsResults: FunctionComponent<LoadRecordsResultsProps> = ({

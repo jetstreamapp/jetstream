@@ -46,13 +46,13 @@ export const QueryResultsGetRecAsApexModal: FunctionComponent<QueryResultsGetRec
       setFieldMetadata([]);
       setFieldTypesByName({});
       const metadata = await describeSObject(org, sobjectName);
-      const fieldTypeByApiNAme = metadata.data.fields.reduce((output: MapOf<FieldType>, field) => {
+      const fieldTypeByApiName = metadata.data.fields.reduce((output: MapOf<FieldType>, field) => {
         output[field.name] = field.type;
         return output;
       }, {});
       setLoading(false);
       setFieldMetadata(metadata.data.fields);
-      setFieldTypesByName(fieldTypeByApiNAme);
+      setFieldTypesByName(fieldTypeByApiName);
     } catch (ex) {
       logger.warn('[FETCH METADATA ERROR]', ex);
       setLoading(true);
