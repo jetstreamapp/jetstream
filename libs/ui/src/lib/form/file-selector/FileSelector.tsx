@@ -1,18 +1,22 @@
 /** @jsx jsx */
 import { css, jsx } from '@emotion/react';
 import { logger } from '@jetstream/shared/client-logger';
-import { readFile, useNonInitialEffect } from '@jetstream/shared/ui-utils';
+import { readFile } from '@jetstream/shared/ui-utils';
 import { InputAcceptType, InputReadFileContent } from '@jetstream/types';
 import classNames from 'classnames';
-import { FunctionComponent, useEffect, useRef, useState } from 'react';
+import HelpText from 'libs/ui/src/lib/widgets/HelpText';
+import { FunctionComponent, useRef, useState } from 'react';
 import Icon from '../../widgets/Icon';
+import { useFilename } from './useFilename';
 
 export interface FileSelectorProps {
   className?: string;
   id: string;
   label: string;
+  buttonLabel?: string;
   labelHelp?: string;
-  helpText?: React.ReactNode | string;
+  helpText?: React.ReactNode | string; // FIXME: does not appear to be used, userHelpText is used
+  isRequired?: boolean;
   filename?: string; // optional, will be managed if not provided
   hideLabel?: boolean;
   disabled?: boolean;
@@ -27,7 +31,11 @@ export const FileSelector: FunctionComponent<FileSelectorProps> = ({
   className,
   id,
   label,
+  buttonLabel = 'Upload File',
+  helpText,
+  labelHelp,
   filename,
+  isRequired,
   hideLabel,
   disabled,
   accept,
@@ -39,26 +47,9 @@ export const FileSelector: FunctionComponent<FileSelectorProps> = ({
   const [labelPrimaryId] = useState(() => `${id}-label-primary`);
   const [labelSecondaryId] = useState(() => `${id}-label`);
   const [systemErrorMessage, setSystemErrorMessage] = useState<string>(null);
-  const [managedFilename, setManagedFilename] = useState<string>(filename);
-  const [filenameTruncated, setFilenameTruncated] = useState<string>(null);
   const [isDraggingOver, setIsDraggingOver] = useState(false);
   const inputRef = useRef<HTMLInputElement>();
-
-  useEffect(() => {
-    if (!filename) {
-      setFilenameTruncated(null);
-    } else {
-      if (filename.length > 40) {
-        setFilenameTruncated(`${filename.substring(0, 25)}...${filename.substring(filename.length - 10)}`);
-      } else {
-        setFilenameTruncated(filename);
-      }
-    }
-  }, [filename]);
-
-  useNonInitialEffect(() => {
-    setManagedFilename(filename);
-  }, [filename]);
+  const [{ managedFilename, filenameTruncated }, setManagedFilename] = useFilename(filename);
 
   function preventEventDefaults(event: React.DragEvent<HTMLDivElement> | React.ChangeEvent<HTMLInputElement>) {
     event.preventDefault();
@@ -125,10 +116,16 @@ export const FileSelector: FunctionComponent<FileSelectorProps> = ({
   }
 
   return (
-    <div className={classNames('"slds-form-element"', { 'slds-has-error': hasErrorState() }, className)}>
+    <div className={classNames('slds-form-element', { 'slds-has-error': hasErrorState() }, className)}>
       <span className={classNames('slds-form-element__label', { 'slds-assistive-text': hideLabel })} id={labelPrimaryId}>
+        {isRequired && (
+          <abbr className="slds-required" title="required">
+            *{' '}
+          </abbr>
+        )}
         {label}
       </span>
+      {labelHelp && label && !hideLabel && <HelpText id={`${id}-label-help-text`} content={labelHelp} />}
       <div className="slds-form-element__control">
         <div className="slds-file-selector slds-file-selector_files">
           <div
@@ -144,7 +141,7 @@ export const FileSelector: FunctionComponent<FileSelectorProps> = ({
               className="slds-file-selector__input slds-assistive-text"
               accept={accept ? accept.join(', ') : undefined}
               id={id}
-              aria-describedby="file-input-help file-input-system-error file-input-error file-input-name"
+              aria-describedby={`${id}-file-input-help ${id}-file-input-system-error ${id}-file-input-error ${id}-file-input-name`}
               aria-labelledby={`${labelPrimaryId} ${labelSecondaryId}`}
               disabled={disabled}
               onChange={handleInputChange}
@@ -152,9 +149,9 @@ export const FileSelector: FunctionComponent<FileSelectorProps> = ({
             <label className="slds-file-selector__body" htmlFor={id} id={labelSecondaryId}>
               <span className="slds-file-selector__button slds-button slds-button_neutral">
                 <Icon type="utility" icon="upload" className="slds-button__icon slds-button__icon_left" omitContainer />
-                Upload Files
+                {buttonLabel}
               </span>
-              <span className="slds-file-selector__text slds-medium-show">or Drop Files</span>
+              <span className="slds-file-selector__text slds-medium-show">or Drop File</span>
             </label>
           </div>
         </div>
@@ -165,22 +162,22 @@ export const FileSelector: FunctionComponent<FileSelectorProps> = ({
         `}
       >
         {userHelpText && !managedFilename && (
-          <div className="slds-form-element__help slds-truncate" id="file-input-help" title={userHelpText}>
+          <div className="slds-form-element__help slds-truncate" id={`${id}-file-input-help`} title={userHelpText}>
             {userHelpText}
           </div>
         )}
         {managedFilename && (
-          <div className="slds-form-element__help slds-truncate" id="file-input-name" title={managedFilename}>
+          <div className="slds-form-element__help slds-truncate" id={`${id}-file-input-name`} title={managedFilename}>
             {filenameTruncated}
           </div>
         )}
         {systemErrorMessage && (
-          <div className="slds-form-element__help slds-truncate" id="file-input-system-error">
+          <div className="slds-form-element__help slds-truncate" id={`${id}-file-input-system-error`}>
             {systemErrorMessage}
           </div>
         )}
         {hasError && errorMessage && (
-          <div className="slds-form-element__help slds-truncate" id="file-input-error">
+          <div className="slds-form-element__help slds-truncate" id={`${id}-file-input-error`}>
             {systemErrorMessage}
           </div>
         )}

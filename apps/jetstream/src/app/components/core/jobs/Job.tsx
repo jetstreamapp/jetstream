@@ -1,12 +1,14 @@
 import { AsyncJob, AsyncJobType } from '@jetstream/types';
 import { Icon } from '@jetstream/ui';
-import formatDistanceToNow from 'date-fns/formatDistanceToNow';
-import React, { FunctionComponent } from 'react';
 import classNames from 'classnames';
-import { downloadJob } from './job-utils';
 import formatDate from 'date-fns/format';
+import formatDistanceToNow from 'date-fns/formatDistanceToNow';
+import { isString } from 'lodash';
+import React, { FunctionComponent } from 'react';
+import { downloadJob } from './job-utils';
 
 const JOBS_WITH_DOWNLOAD = new Set<AsyncJobType>(['BulkDelete']);
+const JOBS_WITH_LINK = new Set<AsyncJobType>(['BulkDownload', 'UploadToGoogle', 'RetrievePackageZip']);
 const JOBS_WITH_TIMESTAMP_UPDATE = new Set<AsyncJobType>(['RetrievePackageZip']);
 
 export interface JobProps {
@@ -17,6 +19,10 @@ export interface JobProps {
 export const Job: FunctionComponent<JobProps> = ({ job, dismiss }) => {
   const status = job.statusMessage || job.status;
   let message;
+  let timestamp;
+  if (job.lastActivity) {
+    timestamp = formatDate(job.lastActivity, 'h:mm:ss');
+  }
   const inProgress = job.status === 'pending' || job.status === 'in-progress';
   if (inProgress) {
     message = 'Job started ' + formatDistanceToNow(job.started, { addSuffix: true });
@@ -33,12 +39,12 @@ export const Job: FunctionComponent<JobProps> = ({ job, dismiss }) => {
             </h3>
             <p
               className="slds-truncate slds-text-color_weak slds-text-body_small"
-              title={`${job.org.instanceUrl} - ${job.org.orgOrganizationType}`}
+              title={`${job.org.username} - ${job.org.instanceUrl} - ${job.org.orgOrganizationType}`}
             >
               Org: {job.org.username}
             </p>
             <p
-              className={classNames('slds-truncate', {
+              className={classNames('slds-line-clamp_small', {
                 'slds-text-color_success': job.status === 'success',
                 'slds-text-color_error': job.status === 'failed',
               })}
@@ -47,7 +53,9 @@ export const Job: FunctionComponent<JobProps> = ({ job, dismiss }) => {
               {status}
             </p>
             {inProgress && JOBS_WITH_TIMESTAMP_UPDATE.has(job.type) && (
-              <p className="slds-text-color_weak slds-truncate">Last Checked {formatDate(job.lastActivity, 'h:mm:ss')}</p>
+              <p className="slds-text-color_weak slds-line-clamp_x-small" title={`Last Checked ${timestamp}`}>
+                Last Checked {timestamp}
+              </p>
             )}
             <p className="slds-text-color_weak">
               {inProgress && (
@@ -68,6 +76,17 @@ export const Job: FunctionComponent<JobProps> = ({ job, dismiss }) => {
                     icon="success"
                     className="slds-icon slds-icon-text-success slds-icon_xx-small"
                     containerClassname="slds-icon_container slds-icon-utility-success"
+                    description="job success"
+                  />
+                </abbr>
+              )}
+              {job.status === 'finished-warning' && (
+                <abbr className="slds-m-horizontal_xx-small">
+                  <Icon
+                    type="utility"
+                    icon="warning"
+                    className="slds-icon slds-icon-text-warning slds-icon_xx-small"
+                    containerClassname="slds-icon_container slds-icon-utility-warning"
                     description="job success"
                   />
                 </abbr>
@@ -106,6 +125,17 @@ export const Job: FunctionComponent<JobProps> = ({ job, dismiss }) => {
                   <Icon type="utility" icon="download" className="slds-button__icon slds-button__icon_left" omitContainer />
                   Download Results
                 </button>
+              )}
+              {JOBS_WITH_LINK.has(job.type) && isString(job.results) && (
+                <a href={job.results} className="slds-button" target="_blank" rel="noopener noreferrer">
+                  View Results
+                  <Icon
+                    type="utility"
+                    icon="new_window"
+                    className="slds-icon slds-text-link slds-icon_xx-small cursor-pointer slds-m-left_xx-small"
+                    omitContainer
+                  />
+                </a>
               )}
             </div>
             <div className=" slds-col">

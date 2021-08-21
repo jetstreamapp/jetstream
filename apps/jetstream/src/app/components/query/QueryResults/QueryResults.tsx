@@ -15,7 +15,16 @@ import {
   useObservable,
 } from '@jetstream/shared/ui-utils';
 import { getRecordIdFromAttributes, getSObjectNameFromAttributes, pluralizeIfMultiple } from '@jetstream/shared/utils';
-import { AsyncJob, AsyncJobNew, BulkDownloadJob, CloneEditView, FileExtCsvXLSX, Record, SalesforceOrgUi } from '@jetstream/types';
+import {
+  AsyncJob,
+  AsyncJobNew,
+  BulkDownloadJob,
+  CloneEditView,
+  FileExtCsvXLSX,
+  FileExtCsvXLSXJsonGSheet,
+  Record,
+  SalesforceOrgUi,
+} from '@jetstream/types';
 import {
   AutoFullHeightContainer,
   CampingRainIllustration,
@@ -89,7 +98,7 @@ export const QueryResults: FunctionComponent<QueryResultsProps> = React.memo(() 
   const [errorMessage, setErrorMessage] = useState<string>(null);
   const [downloadModalOpen, setDownloadModalOpen] = useState<boolean>(false);
   const selectedOrg = useRecoilValue<SalesforceOrgUi>(selectedOrgState);
-  const [{ serverUrl, defaultApiVersion }] = useRecoilState(applicationCookieState);
+  const [{ serverUrl, defaultApiVersion, google_apiKey, google_appId, google_clientId }] = useRecoilState(applicationCookieState);
   const [totalRecordCount, setTotalRecordCount] = useState<number>(null);
   const [queryHistory, setQueryHistory] = useRecoilState(fromQueryHistory.queryHistoryState);
   const bulkDeleteJob = useObservable(
@@ -277,11 +286,11 @@ export const QueryResults: FunctionComponent<QueryResultsProps> = React.memo(() 
     }
   }
 
-  function handleDidDownload(fileFormat: FileExtCsvXLSX, fileName: string, userOverrideFields: boolean) {
+  function handleDidDownload(fileFormat: FileExtCsvXLSXJsonGSheet, fileName: string, userOverrideFields: boolean) {
     trackEvent(ANALYTICS_KEYS.query_DownloadResults, { source: 'BROWSER', fileFormat, isTooling, userOverrideFields });
   }
 
-  function handleDownloadFromServer(fileFormat: FileExtCsvXLSX, fileName: string, fields: string[]) {
+  function handleDownloadFromServer(fileFormat: FileExtCsvXLSXJsonGSheet, fileName: string, fields: string[], googleFolder?: string) {
     const jobs: AsyncJobNew<BulkDownloadJob>[] = [
       {
         type: 'BulkDownload',
@@ -295,6 +304,7 @@ export const QueryResults: FunctionComponent<QueryResultsProps> = React.memo(() 
           nextRecordsUrl,
           fileFormat,
           fileName,
+          googleFolder,
         },
       },
     ];
@@ -359,6 +369,9 @@ export const QueryResults: FunctionComponent<QueryResultsProps> = React.memo(() 
     <div>
       <RecordDownloadModal
         org={selectedOrg}
+        google_apiKey={google_apiKey}
+        google_appId={google_appId}
+        google_clientId={google_clientId}
         downloadModalOpen={downloadModalOpen}
         fields={fields}
         records={records}
@@ -519,6 +532,9 @@ export const QueryResults: FunctionComponent<QueryResultsProps> = React.memo(() 
             <Fragment>
               <SalesforceRecordDataTable
                 org={selectedOrg}
+                google_apiKey={google_apiKey}
+                google_appId={google_appId}
+                google_clientId={google_clientId}
                 isTooling={isTooling}
                 serverUrl={serverUrl}
                 queryResults={queryResults}

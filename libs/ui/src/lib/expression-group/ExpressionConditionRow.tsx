@@ -87,7 +87,7 @@ export const ExpressionConditionRow: FunctionComponent<ExpressionConditionRowPro
         const group = resources.find((currResource) => currResource.id === selected.resourceGroup);
         if (group) {
           const item = group.items.find((item) => item.id === selected.resource);
-          return getSelectionLabel(group.label, item);
+          return item ? getSelectionLabel(group.label, item) : null;
         }
       }
       return null;

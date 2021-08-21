@@ -17,6 +17,7 @@ import { FileDownloadModal, SalesforceLogin, Spinner } from '@jetstream/ui';
 import { Fragment, FunctionComponent, useEffect, useRef, useState } from 'react';
 import { useRecoilState } from 'recoil';
 import { applicationCookieState } from '../../../../app-state';
+import * as fromJetstreamEvents from '../../../core/jetstream-events';
 import {
   ApiMode,
   FieldMapping,
@@ -91,7 +92,7 @@ export const LoadRecordsBulkApiResults: FunctionComponent<LoadRecordsBulkApiResu
   onFinish,
 }) => {
   const isMounted = useRef(null);
-  const [{ serverUrl }] = useRecoilState(applicationCookieState);
+  const [{ serverUrl, google_apiKey, google_appId, google_clientId }] = useRecoilState(applicationCookieState);
   const [preparedData, setPreparedData] = useState<PrepareDataResponse>();
   const [loadWorker] = useState(() => new LoadWorker());
   const [status, setStatus] = useState<Status>(STATUSES.PREPARING);
@@ -392,10 +393,14 @@ export const LoadRecordsBulkApiResults: FunctionComponent<LoadRecordsBulkApiResu
       {downloadModalData.open && (
         <FileDownloadModal
           org={selectedOrg}
+          google_apiKey={google_apiKey}
+          google_appId={google_appId}
+          google_clientId={google_clientId}
           data={downloadModalData.data}
           header={downloadModalData.header}
           fileNameParts={downloadModalData.fileNameParts}
           onModalClose={handleModalClose}
+          emitUploadToGoogleEvent={fromJetstreamEvents.emit}
         />
       )}
       <h3 className="slds-text-heading_small slds-grid">

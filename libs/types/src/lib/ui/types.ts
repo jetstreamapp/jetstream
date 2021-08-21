@@ -4,6 +4,7 @@ import { ChildRelationship, DescribeSObjectResult, Field } from 'jsforce';
 import { ReactNode } from 'react';
 import { ListMetadataResult } from '../salesforce/types';
 import { HttpMethod, SalesforceOrgUi } from '../types';
+import type * as XLSX from 'xlsx';
 
 // generic useReducer actions/state for a basic fetch reducer function
 export type UseReducerFetchAction<T> =
@@ -24,9 +25,11 @@ export type FileExtXLSX = 'xlsx';
 export type FileExtJson = 'json';
 export type FileExtXml = 'xml';
 export type FileExtZip = 'zip';
+export type FileExtGDrive = 'gdrive';
 export type FileExtCsvXLSX = FileExtCsv | FileExtXLSX;
 export type FileExtCsvXLSXJson = FileExtCsvXLSX | FileExtJson;
-export type FileExtAllTypes = FileExtCsv | FileExtXLSX | FileExtJson | FileExtXml | FileExtZip;
+export type FileExtCsvXLSXJsonGSheet = FileExtCsvXLSXJson | FileExtGDrive;
+export type FileExtAllTypes = FileExtCsv | FileExtXLSX | FileExtJson | FileExtXml | FileExtZip | FileExtGDrive;
 
 export type Edit = 'edit';
 export type Clone = 'clone';
@@ -175,13 +178,23 @@ export type PositionBottom = 'bottom';
 export type PositionBottomLeft = 'bottom-left';
 export type PositionBottomRight = 'bottom-right';
 
-export type MimeType = MimeTypePlainText | MimeTypeCsv | MimeTypeOctetStream | MimeTypeZip | MimeTypeJson | MimeTypeXML;
+export type MimeType =
+  | MimeTypePlainText
+  | MimeTypeCsv
+  | MimeTypeOctetStream
+  | MimeTypeOpenOffice
+  | MimeTypeZip
+  | MimeTypeJson
+  | MimeTypeXML
+  | MimeTypeGSheet;
 export type MimeTypePlainText = 'text/plain;charset=utf-8';
 export type MimeTypeCsv = 'text/csv;charset=utf-8';
 export type MimeTypeOctetStream = 'application/octet-stream;charset=utf-8';
+export type MimeTypeOpenOffice = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
 export type MimeTypeZip = 'application/zip;charset=utf-8';
 export type MimeTypeJson = 'application/json;charset=utf-8';
 export type MimeTypeXML = 'text/xml;charset=utf-8';
+export type MimeTypeGSheet = 'application/vnd.google-apps.spreadsheet';
 
 export type InputAcceptType = InputAcceptTypeZip | InputAcceptTypeCsv | InputAcceptTypeExcel | InputAcceptTypeXml;
 export type InputAcceptTypeZip = '.zip';
@@ -342,8 +355,8 @@ export interface FormGroupDropdownItem {
   icon: any; // FIXME:
 }
 
-export type AsyncJobType = 'BulkDelete' | 'BulkDownload' | 'RetrievePackageZip';
-export type AsyncJobStatus = 'pending' | 'in-progress' | 'success' | 'failed' | 'aborted';
+export type AsyncJobType = 'BulkDelete' | 'BulkDownload' | 'RetrievePackageZip' | 'UploadToGoogle';
+export type AsyncJobStatus = 'pending' | 'in-progress' | 'success' | 'finished-warning' | 'failed' | 'aborted';
 
 export type AsyncJobNew<T = unknown> = Omit<AsyncJob<T>, 'id' | 'started' | 'finished' | 'lastActivity' | 'status' | 'statusMessage'>;
 
@@ -372,6 +385,46 @@ export interface AsyncJobWorkerMessageResponse<T = unknown, R = unknown> {
   results?: R;
 }
 
+export type JetstreamEventType = 'newJob' | 'jobFinished' | 'lastActivityUpdate' | 'addOrg';
+export type JetstreamEvents = JetstreamEventJobFinished | JetstreamEventLastActivityUpdate | JetstreamEventNewJob | JetstreamEventAddOrg;
+export interface JetstreamEventAddOrgPayload {
+  org: SalesforceOrgUi;
+  replaceOrgUniqueId?: string;
+}
+export type JetstreamEventPayloads = AsyncJob | AsyncJobNew[] | JetstreamEventAddOrgPayload;
+
+export interface JetstreamEvent<T> {
+  type: JetstreamEventType;
+  payload: T;
+}
+
+export interface JetstreamEventNewJob extends JetstreamEvent<JetstreamEventPayloads> {
+  type: 'newJob';
+  payload: AsyncJobNew[];
+}
+
+export interface JetstreamEventLastActivityUpdate extends JetstreamEvent<JetstreamEventPayloads> {
+  type: 'lastActivityUpdate';
+  payload: AsyncJob;
+}
+
+export interface JetstreamEventJobFinished extends JetstreamEvent<JetstreamEventPayloads> {
+  type: 'jobFinished';
+  payload: AsyncJob;
+}
+
+export interface JetstreamEventAddOrg extends JetstreamEvent<JetstreamEventPayloads> {
+  type: 'addOrg';
+  payload: JetstreamEventAddOrgPayload;
+}
+
+export interface UploadToGoogleJob {
+  fileName: string;
+  fileData: any;
+  fileType: FileExtCsvXLSX | FileExtZip;
+  googleFolder?: string;
+}
+
 export interface BulkDownloadJob {
   isTooling: boolean;
   totalRecordCount: number;
@@ -380,12 +433,16 @@ export interface BulkDownloadJob {
   records: MapOf<string>[];
   fileFormat: FileExtAllTypes;
   fileName: string;
+  googleFolder: string;
 }
 
 export interface RetrievePackageJob {
   type: 'listMetadata' | 'packageManifest' | 'packageNames';
   fileName: string;
+  fileFormat: FileExtAllTypes;
   mimeType: MimeType;
+  uploadToGoogle: boolean;
+  googleFolder?: string;
 }
 
 export interface RetrievePackageFromListMetadataJob extends RetrievePackageJob {
@@ -456,6 +513,18 @@ export interface InputReadFileContent {
   filename: string;
   extension: string;
   content: string | ArrayBuffer;
+}
+
+export interface InputReadGoogleSheet {
+  workbook: XLSX.WorkBook;
+  selectedFile: google.picker.DocumentObject;
+}
+
+export interface GoogleFileApiResponse {
+  id: string;
+  kind: string;
+  mimeType: string;
+  name: string;
 }
 
 export interface SalesforceApiRequest {

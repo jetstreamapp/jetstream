@@ -221,12 +221,12 @@ function flattenWhereClause(
   let needsGroupOperator = false;
 
   let condition = where.left as Condition;
-  const isNegation = condition == null || isNegationCondition(condition);
+  let isNegation = condition == null || isNegationCondition(condition);
   let priorConditionIsNegation = false;
 
   if (!isValueQueryCondition(condition)) {
     // init group if there are open parens
-    const requiredOpeningParens = isNegationCondition(where) ? 2 : 1;
+    const requiredOpeningParens = isNegation ? 2 : 1;
     if (where.left?.openParen >= requiredOpeningParens && !expressionGroup) {
       expressionGroup = {
         key: currKey,
@@ -242,6 +242,8 @@ function flattenWhereClause(
       // only item supported: NOT foo LIKE -> isNegationOperator()
       if (isWhereClauseWithRightCondition(where)) {
         condition = where.right.left as Condition;
+        where = where.right;
+        isNegation = false;
         priorConditionIsNegation = true;
       }
     }
@@ -291,7 +293,7 @@ function flattenWhereClause(
         missingMisc.push(`Filter ${condition.field} was not found`);
       }
 
-      const requiredClosingParens = isNegationOperator(previousCondition?.selected?.operator) ? 2 : 1;
+      const requiredClosingParens = priorConditionIsNegation ? 2 : 1;
       closeGroup = condition?.closeParen >= requiredClosingParens;
     } else if (!isNegation) {
       // skip - we cannot process a value condition

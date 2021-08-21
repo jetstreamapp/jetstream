@@ -4,7 +4,7 @@
     "module": "commonjs",
     "outDir": "../../dist/out-tsc",
     "declaration": true,
-    "types": ["node"]
+    "types": ["node", "google.picker", "gapi.client.drive"]
   },
   "exclude": ["**/*.spec.ts"],
   "include": ["**/*.ts"]

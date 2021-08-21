@@ -39,6 +39,9 @@ export interface ApplicationCookie {
   serverUrl: string;
   environment: Environment;
   defaultApiVersion: string;
+  google_appId: string;
+  google_apiKey: string;
+  google_clientId: string;
 }
 
 export interface AuthenticationToken {

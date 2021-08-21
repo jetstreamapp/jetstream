@@ -79,7 +79,7 @@ export const SalesforceApiExamplesModal: FunctionComponent<SalesforceApiExamples
         title="View samples API requests"
         onClick={() => setIsOpen(true)}
       >
-        <Icon type="utility" icon="opened_folder" className="slds-button__icon slds-button__icon_left" omitContainer />
+        <Icon type="utility" icon="open_folder" className="slds-button__icon slds-button__icon_left" omitContainer />
         <span className="slds-assistive-text">View samples API requests modal</span>
       </button>
       {isOpen && (

@@ -3,15 +3,33 @@
 /** @jsx jsx */
 import { jsx } from '@emotion/react';
 import { MIME_TYPES } from '@jetstream/shared/constants';
-import { formatNumber, getFilename, isEnterKey, prepareCsvFile, prepareExcelFile, saveFile } from '@jetstream/shared/ui-utils';
+import {
+  formatNumber,
+  getFilename,
+  GoogleApiData,
+  isEnterKey,
+  prepareCsvFile,
+  prepareExcelFile,
+  saveFile,
+} from '@jetstream/shared/ui-utils';
 import { flattenRecords } from '@jetstream/shared/utils';
-import { FileExtCsv, FileExtCsvXLSXJson, FileExtJson, FileExtXLSX, MimeType, Record, SalesforceOrgUi } from '@jetstream/types';
-import DuelingPicklist from 'libs/ui/src/lib/form/dueling-picklist/DuelingPicklist';
-import { DuelingPicklistItem } from 'libs/ui/src/lib/form/dueling-picklist/DuelingPicklistTypes';
-import RadioButton from 'libs/ui/src/lib/form/radio/RadioButton';
+import {
+  FileExtCsv,
+  FileExtCsvXLSXJsonGSheet,
+  FileExtGDrive,
+  FileExtJson,
+  FileExtXLSX,
+  MimeType,
+  Record,
+  SalesforceOrgUi,
+} from '@jetstream/types';
 import { Fragment, FunctionComponent, KeyboardEvent, useEffect, useRef, useState } from 'react';
+import FileDownloadGoogle from '../file-download-modal/options/FileDownloadGoogle';
+import DuelingPicklist from '../form/dueling-picklist/DuelingPicklist';
+import { DuelingPicklistItem } from '../form/dueling-picklist/DuelingPicklistTypes';
 import Input from '../form/input/Input';
 import Radio from '../form/radio/Radio';
+import RadioButton from '../form/radio/RadioButton';
 import RadioGroup from '../form/radio/RadioGroup';
 import Modal from '../modal/Modal';
 import {
@@ -19,6 +37,7 @@ import {
   RADIO_ALL_SERVER,
   RADIO_FILTERED,
   RADIO_FORMAT_CSV,
+  RADIO_FORMAT_GDRIVE,
   RADIO_FORMAT_JSON,
   RADIO_FORMAT_XLSX,
   RADIO_SELECTED,
@@ -26,6 +45,9 @@ import {
 
 export interface RecordDownloadModalProps {
   org: SalesforceOrgUi;
+  google_apiKey: string;
+  google_appId: string;
+  google_clientId: string;
   downloadModalOpen: boolean;
   fields: string[];
   records: Record[];
@@ -33,12 +55,15 @@ export interface RecordDownloadModalProps {
   selectedRecords?: Record[];
   totalRecordCount?: number;
   onModalClose: (cancelled?: boolean) => void;
-  onDownload?: (fileFormat: FileExtCsvXLSXJson, fileName: string, userOverrideFields: boolean) => void;
-  onDownloadFromServer?: (fileFormat: FileExtCsvXLSXJson, fileName: string, fields: string[]) => void;
+  onDownload?: (fileFormat: FileExtCsvXLSXJsonGSheet, fileName: string, userOverrideFields: boolean, googleFolderId?: string) => void;
+  onDownloadFromServer?: (fileFormat: FileExtCsvXLSXJsonGSheet, fileName: string, fields: string[], googleFolderId?: string) => void;
 }
 
 export const RecordDownloadModal: FunctionComponent<RecordDownloadModalProps> = ({
   org,
+  google_apiKey,
+  google_appId,
+  google_clientId,
   downloadModalOpen,
   fields = [],
   records,
@@ -50,18 +75,32 @@ export const RecordDownloadModal: FunctionComponent<RecordDownloadModalProps> = 
   onDownloadFromServer,
   children,
 }) => {
+  const hasGoogleInputConfigured = !!google_apiKey && !!google_appId && !!google_clientId;
   const [hasMoreRecords, setHasMoreRecords] = useState<boolean>(false);
   const [downloadRecordsValue, setDownloadRecordsValue] = useState<string>(hasMoreRecords ? RADIO_ALL_SERVER : RADIO_ALL_BROWSER);
-  const [fileFormat, setFileFormat] = useState<FileExtCsvXLSXJson>(RADIO_FORMAT_XLSX);
+  const [fileFormat, setFileFormat] = useState<FileExtCsvXLSXJsonGSheet>(RADIO_FORMAT_XLSX);
   const [fileName, setFileName] = useState<string>(getFilename(org, ['records']));
   // If the user changes the filename, we do not want to focus/select the text again or else the user cannot type
   const [doFocusInput, setDoFocusInput] = useState<boolean>(true);
   const inputEl = useRef<HTMLInputElement>();
-  const [filenameEmpty, setFilenameEmpty] = useState(false);
+
+  const [googleApiData, setGoogleApiData] = useState<GoogleApiData>();
+  const [googleFolder, setGoogleFolder] = useState<string>();
 
   const [whichFields, setWhichFields] = useState<'all' | 'specified'>('all');
   const [fieldOverrideFields, setFieldOverrideFields] = useState<DuelingPicklistItem[]>([]);
   const [fieldOverrideSelectedFields, setFieldOverrideSelectedFields] = useState<string[]>([]);
+
+  const [invalidConfig, setInvalidConfig] = useState(false);
+  const googleAuthorized = !!googleApiData?.authorized;
+
+  useEffect(() => {
+    if (!fileName || (fileFormat === 'gdrive' && !googleAuthorized)) {
+      setInvalidConfig(true);
+    } else {
+      setInvalidConfig(false);
+    }
+  }, [fileName, fileFormat, googleAuthorized, googleFolder]);
 
   useEffect(() => {
     if (fields) {
@@ -71,14 +110,6 @@ export const RecordDownloadModal: FunctionComponent<RecordDownloadModalProps> = 
       setFieldOverrideFields([]);
     }
   }, [fields]);
-
-  useEffect(() => {
-    if (!fileName && !filenameEmpty) {
-      setFilenameEmpty(true);
-    } else if (fileName && filenameEmpty) {
-      setFilenameEmpty(false);
-    }
-  }, [fileName, filenameEmpty]);
 
   useEffect(() => {
     if (downloadModalOpen) {
@@ -118,17 +149,18 @@ export const RecordDownloadModal: FunctionComponent<RecordDownloadModalProps> = 
     }
   }
 
-  function handleDownload() {
+  async function handleDownload() {
     const fieldsToUse = whichFields === 'all' ? fields : fieldOverrideSelectedFields;
     if (fieldsToUse.length === 0) {
       return;
     }
     try {
-      const fileNameWithExt = `${fileName}.${fileFormat}`;
-      if (downloadRecordsValue === RADIO_ALL_SERVER) {
+      const fileNameWithExt = `${fileName}${fileFormat !== 'gdrive' ? `.${fileFormat}` : ''}`;
+      /** Google will always load in the background to account for upload to Google */
+      if (fileFormat === 'gdrive' || downloadRecordsValue === RADIO_ALL_SERVER) {
         // emit event, which starts job, which downloads in the background
         if (onDownloadFromServer) {
-          onDownloadFromServer(fileFormat, fileNameWithExt, fieldsToUse);
+          onDownloadFromServer(fileFormat, fileNameWithExt, fieldsToUse, googleFolder);
         }
         handleModalClose();
       } else {
@@ -162,8 +194,9 @@ export const RecordDownloadModal: FunctionComponent<RecordDownloadModalProps> = 
         }
 
         saveFile(fileData, fileNameWithExt, mimeType);
+
         if (onDownload) {
-          onDownload(fileFormat, fileNameWithExt, whichFields === 'specified');
+          onDownload(fileFormat, fileNameWithExt, whichFields === 'specified', googleFolder);
         }
         handleModalClose();
       }
@@ -181,9 +214,17 @@ export const RecordDownloadModal: FunctionComponent<RecordDownloadModalProps> = 
   }
 
   function handleKeyUp(event: KeyboardEvent<HTMLElement>) {
-    if (isEnterKey(event) && !filenameEmpty) {
+    if (isEnterKey(event) && !invalidConfig) {
       handleDownload();
     }
+  }
+
+  function handleFolderSelected(folderId: string) {
+    setGoogleFolder(folderId);
+  }
+
+  function handleGoogleApiData(apiData: GoogleApiData) {
+    setGoogleApiData(apiData);
   }
 
   return (
@@ -196,12 +237,13 @@ export const RecordDownloadModal: FunctionComponent<RecordDownloadModalProps> = 
               <button className="slds-button slds-button_neutral" onClick={() => handleModalClose(true)}>
                 Cancel
               </button>
-              <button className="slds-button slds-button_brand" onClick={handleDownload} disabled={filenameEmpty}>
+              <button className="slds-button slds-button_brand" onClick={handleDownload} disabled={invalidConfig}>
                 Download
               </button>
             </Fragment>
           }
           skipAutoFocus
+          overrideZIndex={1001}
           onClose={() => handleModalClose(true)}
         >
           <div>
@@ -274,12 +316,29 @@ export const RecordDownloadModal: FunctionComponent<RecordDownloadModalProps> = 
                 checked={fileFormat === RADIO_FORMAT_JSON}
                 onChange={(value: FileExtJson) => setFileFormat(value)}
               />
+              {hasGoogleInputConfigured && (
+                <Radio
+                  name="radio-download-file-format"
+                  label="Google Drive"
+                  value={RADIO_FORMAT_GDRIVE}
+                  checked={fileFormat === RADIO_FORMAT_GDRIVE}
+                  onChange={(value: FileExtGDrive) => setFileFormat(value)}
+                />
+              )}
             </RadioGroup>
+            {fileFormat === 'gdrive' && (
+              <FileDownloadGoogle
+                google_apiKey={google_apiKey}
+                google_appId={google_appId}
+                google_clientId={google_clientId}
+                onFolderSelected={handleFolderSelected}
+                onGoogleApiData={handleGoogleApiData}
+              />
+            )}
             <Input
               label="Filename"
               isRequired
-              rightAddon={`.${fileFormat}`}
-              hasError={filenameEmpty}
+              rightAddon={fileFormat !== RADIO_FORMAT_GDRIVE ? `.${fileFormat}` : undefined}
               errorMessage="This field is required"
               errorMessageId="filename-error"
             >

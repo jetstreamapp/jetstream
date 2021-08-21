@@ -14,6 +14,7 @@ export const FEATURE_FLAGS = Object.freeze({
   PERMISSION_MANAGER: 'permission-manager',
   DEPLOYMENT: 'deployment',
   NOTIFICATIONS: 'notifications',
+  ALLOW_GOOGLE_UPLOAD: 'allow-google-upload',
 });
 
 export const INPUT_ACCEPT_FILETYPES: {
@@ -67,13 +68,40 @@ export const ERROR_MESSAGES = {
   SFDC_EXPIRED_TOKEN_VALIDITY: 'token validity expired',
 };
 
-export const MIME_TYPES: MapOf<MimeType> = {
+export const MIME_TYPES: {
+  PLAN_TEXT: MimeType;
+  CSV: MimeType;
+  XLSX: MimeType;
+  XLSX_OPEN_OFFICE: MimeType;
+  JSON: MimeType;
+  XML: MimeType;
+  ZIP: MimeType;
+  GSHEET: MimeType;
+} = {
   PLAN_TEXT: 'text/plain;charset=utf-8',
   CSV: 'text/csv;charset=utf-8',
   XLSX: 'application/octet-stream;charset=utf-8',
+  XLSX_OPEN_OFFICE: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
   JSON: 'application/json;charset=utf-8',
   XML: 'text/xml;charset=utf-8',
   ZIP: 'application/zip;charset=utf-8',
+  GSHEET: 'application/vnd.google-apps.spreadsheet',
+};
+
+export const fileExtToMimeType = {
+  csv: MIME_TYPES.CSV,
+  xlsx: MIME_TYPES.XLSX,
+  json: MIME_TYPES.JSON,
+  xml: MIME_TYPES.XML,
+  zip: MIME_TYPES.ZIP,
+};
+
+export const fileExtToGoogleDriveMimeType = {
+  csv: MIME_TYPES.GSHEET,
+  xlsx: MIME_TYPES.GSHEET,
+  json: MIME_TYPES.PLAN_TEXT,
+  xml: MIME_TYPES.PLAN_TEXT,
+  zip: MIME_TYPES.ZIP,
 };
 
 export const INDEXED_DB = {

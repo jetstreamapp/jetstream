@@ -51,14 +51,14 @@ app.use(
   helmet({
     contentSecurityPolicy: {
       directives: {
-        defaultSrc: ["'self'", '*.rollbar.com', '*.google.com', 'api.amplitude.com'],
+        defaultSrc: ["'self'", '*.rollbar.com', '*.google.com', '*.gstatic.com', 'api.amplitude.com', '*.googleapis.com'],
         baseUri: ["'self'"],
         blockAllMixedContent: [],
         fontSrc: ["'self'", 'https:', "'unsafe-inline'", 'data:'],
-        frameAncestors: ["'self'"],
-        imgSrc: ["'self'", 'data:', '*.gravatar.com', '*.wp.com'],
+        frameAncestors: ["'self'", '*.google.com'],
+        imgSrc: ["'self'", 'data:', '*.gravatar.com', '*.wp.com', '*.googleusercontent.com'],
         objectSrc: ["'none'"],
-        scriptSrc: ["'self'"],
+        scriptSrc: ["'self'", '*.google.com', '*.gstatic.com'],
         scriptSrcAttr: ["'none'"],
         styleSrc: ["'self'", 'https:', "'unsafe-inline'"],
         upgradeInsecureRequests: [],
@@ -87,6 +87,9 @@ app.use((req: express.Request, res: express.Response, next: express.NextFunction
     serverUrl: ENV.JETSTREAM_SERVER_URL,
     environment: ENV.ENVIRONMENT as any,
     defaultApiVersion: `v${ENV.SFDC_FALLBACK_API_VERSION}`,
+    google_appId: ENV.GOOGLE_APP_ID,
+    google_apiKey: ENV.GOOGLE_API_KEY,
+    google_clientId: ENV.GOOGLE_CLIENT_ID,
   };
   res.cookie(HTTP.COOKIE.JETSTREAM, appCookie, { httpOnly: false, sameSite: 'strict' });
   next();

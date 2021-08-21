@@ -8,6 +8,7 @@ import { FileDownloadModal, Spinner } from '@jetstream/ui';
 import { FunctionComponent, useEffect, useRef, useState } from 'react';
 import { useRecoilState } from 'recoil';
 import { applicationCookieState } from '../../../../app-state';
+import * as fromJetstreamEvents from '../../../core/jetstream-events';
 import {
   ApiMode,
   FieldMapping,
@@ -81,7 +82,7 @@ export const LoadRecordsBatchApiResults: FunctionComponent<LoadRecordsBatchApiRe
     failure: 0,
   });
   const [downloadModalData, setDownloadModalData] = useState({ open: false, data: [], header: [], fileNameParts: [] });
-  const [{ serverUrl }] = useRecoilState(applicationCookieState);
+  const [{ serverUrl, google_apiKey, google_appId, google_clientId }] = useRecoilState(applicationCookieState);
   const { notifyUser } = useBrowserNotifications(serverUrl);
 
   useEffect(() => {
@@ -279,10 +280,14 @@ export const LoadRecordsBatchApiResults: FunctionComponent<LoadRecordsBatchApiRe
       {downloadModalData.open && (
         <FileDownloadModal
           org={selectedOrg}
+          google_apiKey={google_apiKey}
+          google_appId={google_appId}
+          google_clientId={google_clientId}
           data={downloadModalData.data}
           header={downloadModalData.header}
           fileNameParts={downloadModalData.fileNameParts}
           onModalClose={handleModalClose}
+          emitUploadToGoogleEvent={fromJetstreamEvents.emit}
         />
       )}
       <h3 className="slds-text-heading_small slds-grid">

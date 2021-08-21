@@ -20,10 +20,20 @@ export interface MetadataDependency {
   MetadataComponentType: string;
 }
 
+const HAS_NAMESPACE = /__/;
+
 function getEntityDefinitionQuery(sobject: string, field: string) {
+  let namespace: string;
+  if (field.includes('__')) {
+    let [_namespace, fieldWithoutNamespace] = field.split('__');
+    namespace = _namespace;
+    field = fieldWithoutNamespace;
+  }
   return `SELECT Id, DeveloperName, EntityDefinitionId, TableEnumOrId
   FROM CustomField
-  WHERE EntityDefinitionId = '${sobject}' AND DeveloperName = '${field}'
+  WHERE EntityDefinition.QualifiedApiName = '${sobject}'
+  AND DeveloperName = '${field}'
+  ${namespace ? `AND NamespacePrefix = '${namespace}'` : ''}
   LIMIT 1`;
 }
 

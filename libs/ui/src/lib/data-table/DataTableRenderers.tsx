@@ -138,7 +138,7 @@ export const SubqueryRenderer: FunctionComponent<ICellRendererParams> = ({ colDe
 
   return (
     <DataTableContext.Consumer>
-      {({ serverUrl, org, columnDefinitions, isTooling }) => (
+      {({ serverUrl, org, columnDefinitions, isTooling, google_apiKey, google_appId, google_clientId }) => (
         <div>
           {isActive && (
             <Modal
@@ -207,6 +207,9 @@ export const SubqueryRenderer: FunctionComponent<ICellRendererParams> = ({ colDe
           {downloadModalIsActive && (
             <RecordDownloadModal
               org={org}
+              google_apiKey={google_apiKey}
+              google_appId={google_appId}
+              google_clientId={google_clientId}
               downloadModalOpen
               fields={getFields(columnDefinitions)}
               records={records}
