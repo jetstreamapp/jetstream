@@ -58,7 +58,7 @@ async function handleMessage(name: AsyncJobType, payloadData: AsyncJobWorkerMess
 
         const results: any[] = [];
         const q = queue(async function ({ ids, results }: { ids: string[]; results: any[] }, callback) {
-          const tempResults = await sobjectOperation(org, sobject, 'delete', { ids });
+          const tempResults = await sobjectOperation(org, sobject, 'delete', { ids }, { allOrNone: false });
           (Array.isArray(tempResults) ? tempResults : [tempResults]).forEach((result) => results.push(result));
           callback();
         }, CONCURRENCY);
