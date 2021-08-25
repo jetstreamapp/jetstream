@@ -48,14 +48,18 @@ type Action =
   | { type: 'ADD_GROUP' }
   | {
       type: 'ROW_CHANGED';
-      payload: { selected: ExpressionConditionRowSelectedItems; row: ExpressionConditionType; group?: ExpressionGroupType };
+      payload: {
+        selected: ExpressionConditionRowSelectedItems;
+        row: ExpressionConditionType;
+        group?: ExpressionGroupType;
+        getResourceTypeFns?: ExpressionGetResourceTypeFns;
+      };
     }
   | { type: 'DELETE_ROW'; payload: { row: ExpressionConditionType; group?: ExpressionGroupType } };
 
 interface State {
   expression: ExpressionType;
   nextConditionNumber: number;
-  getResourceTypeFns?: ExpressionGetResourceTypeFns;
 }
 
 function reducer(state: State, action: Action): State {
@@ -111,7 +115,7 @@ function reducer(state: State, action: Action): State {
     }
 
     case 'ROW_CHANGED': {
-      const { selected, row, group } = action.payload;
+      const { selected, row, group, getResourceTypeFns } = action.payload;
       const expression = { ...state.expression };
       if (group) {
         const groupIdx = expression.rows.findIndex((item) => item.key === group.key);
@@ -130,8 +134,8 @@ function reducer(state: State, action: Action): State {
 
             currRow.rows[rowIdx] = { ...currRow.rows[rowIdx], selected };
 
-            if (resourceChanged && state.getResourceTypeFns) {
-              updateResourcesOnRow(currRow.rows[rowIdx], selected, state.getResourceTypeFns);
+            if (resourceChanged && getResourceTypeFns) {
+              updateResourcesOnRow(currRow.rows[rowIdx], selected, getResourceTypeFns);
             }
           }
         }
@@ -147,8 +151,8 @@ function reducer(state: State, action: Action): State {
           expression.rows = [...expression.rows];
           expression.rows[rowIdx] = { ...expression.rows[rowIdx], selected };
 
-          if (resourceChanged && state.getResourceTypeFns) {
-            updateResourcesOnRow(expression.rows[rowIdx] as ExpressionConditionType, selected, state.getResourceTypeFns);
+          if (resourceChanged && getResourceTypeFns) {
+            updateResourcesOnRow(expression.rows[rowIdx] as ExpressionConditionType, selected, getResourceTypeFns);
           }
         }
       }
@@ -273,7 +277,6 @@ export const ExpressionContainer: FunctionComponent<ExpressionContainerProps> = 
     const [{ expression }, dispatch] = useReducer(reducer, {
       expression: initExpression(expressionInitValue),
       nextConditionNumber: initConditionNumber(),
-      getResourceTypeFns,
     });
 
     useNonInitialEffect(() => {
@@ -305,6 +308,7 @@ export const ExpressionContainer: FunctionComponent<ExpressionContainerProps> = 
           selected,
           row,
           group,
+          getResourceTypeFns,
         },
       });
     }
