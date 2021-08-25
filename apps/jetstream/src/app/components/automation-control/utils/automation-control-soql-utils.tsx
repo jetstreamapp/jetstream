@@ -272,7 +272,7 @@ export function getLatestFlowDefinitionIds() {
       left: {
         field: 'ProcessType',
         operator: 'IN',
-        value: ["'Workflow'", "'InvocableProcess'"],
+        value: ["'AutoLaunchedFlow'", "'Workflow'", "'InvocableProcess'"],
         literalType: 'STRING',
       },
       operator: 'AND',

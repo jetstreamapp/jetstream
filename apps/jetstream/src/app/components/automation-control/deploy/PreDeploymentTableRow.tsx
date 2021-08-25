@@ -26,7 +26,7 @@ export const AutomationControlPreDeploymentTableRow: FunctionComponent<Automatio
         <Grid vertical>
           <GridCol>
             <CheckboxToggle
-              id={`ValidationRule-${item.fullName}`}
+              id={`prior-value-${item.fullName}`}
               label="Is Active"
               onText="Active"
               offText="Inactive"
@@ -41,7 +41,7 @@ export const AutomationControlPreDeploymentTableRow: FunctionComponent<Automatio
         <Grid vertical>
           <GridCol>
             <CheckboxToggle
-              id={`ValidationRule-${item.fullName}`}
+              id={`new-value-${item.fullName}`}
               label="Is Active"
               onText="Active"
               offText="Inactive"

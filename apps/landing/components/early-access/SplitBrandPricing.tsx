@@ -42,7 +42,8 @@ export const SplitBrandPricing = () => (
               you load your data and enable them once the data load is finished.
             </FeatureWithIcon>
             <FeatureWithIcon title="Automation Control" icon={<StandardActivationsIcon />} bgColorClass="bg-standard-activations">
-              Quickly toggle automation such as Workflow Rules, Validation Rules, Process Builders, and Apex Triggers in your org.
+              Quickly toggle automation such as Workflow Rules, Validation Rules, Process Builders, Record Triggered Flows, and Apex
+              Triggers in your org.
             </FeatureWithIcon>
             <FeatureWithIcon title="Manage Permissions" icon={<StandardPortalIcon />} bgColorClass="bg-standard-portal">
               Easily update object and field level security across many objects for multiple profiles or permission sets.

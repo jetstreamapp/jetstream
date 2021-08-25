@@ -40,7 +40,7 @@ import * as fromAutomationCtlState from './automation-control.state';
 import { AutomationControlTabTitle } from './AutomationControlTitle';
 import { AutomationControlTabContent } from './content/Content';
 import AutomationControlDeployModal from './deploy/DeployModal';
-import { getProcessBuilders, getValidationRulesMetadata, getWorkflowRulesMetadata } from './utils/automation-control-data-utils';
+import { getFlows, getValidationRulesMetadata, getWorkflowRulesMetadata } from './utils/automation-control-data-utils';
 import { getEntityDefinitionQuery } from './utils/automation-control-soql-utils';
 import {
   convertFlowRecordsToAutomationControlItem,
@@ -239,7 +239,7 @@ export const AutomationControl: FunctionComponent<AutomationControlProps> = () =
    * @param parentItemKey Sobject key (what tab to operate on)
    * @param type  {AutomationMetadataType} Key in automationItems
    * @param value Boolean - new value of item
-   * @param item Item that was checked, or parent item that was checked for process builders
+   * @param item Item that was checked, or parent item that was checked for flows
    * @param grandChildItem FlowVersion that was checked - only considered if Type === 'Flow'
    */
   function handleItemChange(
@@ -265,7 +265,7 @@ export const AutomationControl: FunctionComponent<AutomationControlProps> = () =
           childItem.fullName === item.fullName ? { ...item, currentValue: value } : childItem
         );
       } else {
-        // For process builders, we need to set the parent item based on the child items
+        // For flows, we need to set the parent item based on the child items
         // and only one items can be active at a time
         const currItem = itemsByIdTemp[parentItemKey].automationItems[type];
 
@@ -460,7 +460,7 @@ export const AutomationControl: FunctionComponent<AutomationControlProps> = () =
           });
       }
       if (needToLoad.Flow) {
-        loadProcessBuildersNew(currTab.sobjectName, currTab.automationItems.Flow)
+        loadFlows(currTab.sobjectName, currTab.automationItems.Flow)
           .then((flows) => {
             setItemsById((priorItems) => {
               const currTab = { ...priorItems[tabId] };
@@ -520,11 +520,11 @@ export const AutomationControl: FunctionComponent<AutomationControlProps> = () =
     };
   }
 
-  async function loadProcessBuildersNew(
+  async function loadFlows(
     sobject: string,
     currentFlowMeta: AutomationControlMetadataType<ToolingFlowDefinitionWithVersions>
   ): Promise<AutomationControlMetadataType<ToolingFlowDefinitionWithVersions>> {
-    const response = await getProcessBuilders(selectedOrg, defaultApiVersion, sobject, flowDefinitionsBySobject);
+    const response = await getFlows(selectedOrg, defaultApiVersion, sobject, flowDefinitionsBySobject);
 
     // this is only set once, so if not already set then set it. If not null, it is the same object passed in
     if (flowDefinitionsBySobject == null) {
@@ -564,7 +564,7 @@ export const AutomationControl: FunctionComponent<AutomationControlProps> = () =
           'Last Modified By': item.LastModifiedByName,
           'Last Modified Date': item.LastModifiedDate,
         })),
-        [`Process Builders`]: automationControl.automationItems.Flow.items.map((item) => ({
+        [`Process Builders & Record Flows`]: automationControl.automationItems.Flow.items.map((item) => ({
           Object: automationControl.sobjectLabel,
           Name: item.label,
           'Is Active': item.initialValue,

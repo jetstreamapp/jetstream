@@ -114,9 +114,14 @@ export const AutomationControlContentFlow: FunctionComponent<AutomationControlCo
                   <Icon type="utility" icon="chevronright" className="slds-button__icon slds-button__icon_small" omitContainer />
                   <span className="slds-assistive-text">Toggle Versions</span>
                 </button>
-                <div className="slds-cell-wrap slds-line-clamp slds-text-link" title={item.label}>
-                  {item.label}
-                </div>
+                <Grid vertical>
+                  <div>
+                    {item.children?.[0]?.metadata?.ProcessType === 'AutoLaunchedFlow' ? 'Record Triggered Flow' : 'Process Builder'}
+                  </div>
+                  <div className="slds-cell-wrap slds-line-clamp slds-text-link" title={item.label}>
+                    {item.label}
+                  </div>
+                </Grid>
               </th>
               <td role="gridcell">
                 <div className="slds-cell-wrap slds-line-clamp" title={item.description}>

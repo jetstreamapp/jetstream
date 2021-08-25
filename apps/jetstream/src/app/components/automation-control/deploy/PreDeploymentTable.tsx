@@ -106,7 +106,11 @@ export const AutomationControlPreDeploymentTable: FunctionComponent<AutomationCo
                 <AutomationControlPreDeploymentTableRow
                   key={currRowItem.fullName}
                   type="Flow"
-                  typeLabel="Process Builder"
+                  typeLabel={
+                    (currRowItem.children?.[0]?.metadata?.ProcessType === 'AutoLaunchedFlow'
+                      ? 'Record Triggered Flow'
+                      : 'Process Builder') || 'Process Builder / Record Flow'
+                  }
                   item={currRowItem}
                   deploymentItem={deploymentItemMap[currRowItem.key]}
                 />
