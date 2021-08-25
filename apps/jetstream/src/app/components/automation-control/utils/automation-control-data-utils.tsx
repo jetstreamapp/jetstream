@@ -100,9 +100,9 @@ export async function getWorkflowRulesMetadata(
  * @param selectedOrg
  * @param sobject
  * @param flowDefinitionsBySobject
- * @returns process builders
+ * @returns process builders / record triggered flows
  */
-export async function getProcessBuilders(
+export async function getFlows(
   selectedOrg: SalesforceOrgUi,
   apiVersion: string,
   sobject: string,
@@ -131,19 +131,25 @@ export async function getProcessBuilders(
 
     const invalidResponses = response.compositeResponse.filter((response) => response.httpStatusCode !== 200);
     if (invalidResponses.length > 0) {
-      logErrorToRollbar('Invalid process builder responses', {
+      logErrorToRollbar('Invalid flow responses', {
         place: 'AutomationControl',
-        type: 'getProcessBuilders()',
+        type: 'getFlows()',
         invalidResponses,
       });
-      throw new Error('There were errors obtaining the process builder metadata from Salesforce');
+      throw new Error('There were errors obtaining the flow metadata from Salesforce');
     }
     flowDefinitionsBySobject = response.compositeResponse.reduce((output: MapOf<string[]>, record) => {
       try {
-        if (record.body.Metadata && record.body.Metadata.processMetadataValues) {
-          const [sobject] = record.body.Metadata.processMetadataValues
-            .filter((value) => value.name === 'ObjectType')
-            .map((value) => value.value.stringValue);
+        if (record.body.Metadata) {
+          let sobject: string;
+          if (record.body.Metadata.processType === 'AutoLaunchedFlow') {
+            sobject = record.body.Metadata.start?.object;
+          } else if (record.body.Metadata.processMetadataValues) {
+            const data = record.body.Metadata.processMetadataValues
+              .filter((value) => value.name === 'ObjectType')
+              .map((value) => value.value.stringValue);
+            sobject = data[0];
+          }
           if (sobject) {
             output[sobject] = output[sobject] || [];
             output[sobject].push(record.body.DefinitionId);
@@ -153,7 +159,7 @@ export async function getProcessBuilders(
         logErrorToRollbar(ex.message, {
           stack: ex.stack,
           place: 'AutomationControl',
-          type: 'getProcessBuilders()',
+          type: 'getFlows()',
           record,
         });
       }

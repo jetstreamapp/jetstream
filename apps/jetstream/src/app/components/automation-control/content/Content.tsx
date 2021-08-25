@@ -119,7 +119,7 @@ export const AutomationControlTabContent: FunctionComponent<AutomationControlTab
           },
           {
             id: 'Flow',
-            title: `Process Builders ${getModifiedItemsText(item.automationItems.Flow.items)}`,
+            title: `Process Builders & Record Triggered Flows ${getModifiedItemsText(item.automationItems.Flow.items)}`,
             className: classNames({ 'opacity-6': hasNoItems(item.automationItems.Flow) }),
             content: (
               <AutomationControlContentContainer parentItem={item.automationItems.Flow} items={item.automationItems.Flow.items}>

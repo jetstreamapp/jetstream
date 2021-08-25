@@ -58,7 +58,7 @@ export interface MetadataCompositeResponseError {
 export interface AutomationControlDeploymentItem {
   type: AutomationMetadataDeployType;
   id: string;
-  activeVersion?: number; // only applies to process builders
+  activeVersion?: number; // only applies to flows
   value: boolean;
   requireMetadataApi: boolean;
   metadataRetrieve?: MetadataCompositeResponseSuccess;
@@ -72,7 +72,7 @@ export interface DeploymentItemByType {
   validationRules: AutomationControlDeploymentItem[];
   workflowRules: AutomationControlDeploymentItem[];
   apexTriggers: AutomationControlDeploymentItem[];
-  processBuilders: AutomationControlDeploymentItem[];
+  flows: AutomationControlDeploymentItem[];
 }
 
 export interface AutomationItems {
@@ -126,7 +126,7 @@ export interface AutomationControlMetadataTypeItem<T = AutomationControlMetadata
   initialActiveVersion?: number; // only applies to item with versions (Flow)
   currentActiveVersion?: number; // only applies to item with versions (Flow)
   expanded?: boolean; // only applies to items with children
-  children?: AutomationControlMetadataTypeItem<K>[]; // Process Builder is the only type with children
+  children?: AutomationControlMetadataTypeItem<K>[]; // flows is the only type with children
   LastModifiedDate: string;
   LastModifiedByName: string;
   metadata: T;
@@ -217,7 +217,7 @@ export interface ToolingFlowRecord extends SystemFields {
   MasterLabel: string;
   DefinitionId: string;
   ManageableState: string;
-  ProcessType: 'Workflow' | 'InvocableProcess';
+  ProcessType: 'AutoLaunchedFlow' | 'Workflow' | 'InvocableProcess';
   Status: 'Active' | 'Draft' | 'Obsolete' | 'InvalidDraft';
   VersionNumber: number;
 }
@@ -332,7 +332,29 @@ export interface FlowMetadata {
   recordUpdates: any[];
   runInMode?: any;
   screens: any[];
-  start?: any;
+  start?: {
+    connector: {
+      processMetadataValues: [];
+      targetReference: string;
+    };
+    description: any;
+    doesRequireRecordChangedToMeetCriteria: any;
+    elementSubtype: any;
+    filterLogic: any;
+    filters: [];
+    label: any;
+    locationX: number;
+    locationY: number;
+    name: any;
+    /** Record triggered flows have an object populated */
+    object: string | null;
+    objectContainer: any;
+    processMetadataValues: any[];
+    recordTriggerType: string;
+    schedule: any;
+    scheduledPaths: [];
+    triggerType: string;
+  };
   startElementReference: string;
   status: string;
   steps: any[];
