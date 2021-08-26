@@ -84,12 +84,22 @@ export function convertMetadataToEditableFields(
           const picklist = picklistValues[field.name];
           const picklistOutput = output as EditableFieldPicklist;
           picklistOutput.defaultValue = picklist.defaultValue;
-          picklistOutput.values = picklist.values.map((item) => ({
-            id: item.value,
-            label: item.label,
-            value: item.value,
-            meta: item,
-          }));
+          picklistOutput.values = [
+            // Empty value to allow clearing picklist
+            {
+              id: 'none',
+              label: '--None--',
+              value: '',
+              meta: { attributes: null, validFor: null, label: '--None--', value: '' },
+            },
+          ].concat(
+            picklist.values.map((item) => ({
+              id: item.value,
+              label: item.label,
+              value: item.value,
+              meta: item,
+            }))
+          );
           // if record has an inactive value, this will show the field as dirty - so instead we add the inactive value to the list
           if (isString(record[field.name]) && !picklistOutput.values.find((item) => item.value === record[field.name])) {
             picklistOutput.values.push({

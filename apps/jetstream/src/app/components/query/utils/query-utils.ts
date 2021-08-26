@@ -104,6 +104,9 @@ export function transformEditForm(sobjectFields: Field[], record: Record): Recor
     const value = record[fieldName];
     if (NUMBER_TYPES.has(field.type) && !isNumber(value) && value) {
       record[fieldName] = Number.parseFloat(value);
+    } else if (NUMBER_TYPES.has(field.type) && !isNumber(value) && !value) {
+      // ensure value is not empty string, as that ends up being coerced to 0
+      record[fieldName] = null;
     } else if (DATE_FIELD_TYPES.has(field.type) && isString(value) && value) {
       if (field.type === 'date') {
         record[fieldName] = formatISO(parseISO(value), { representation: 'date' });
