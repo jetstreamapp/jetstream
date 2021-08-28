@@ -1,11 +1,9 @@
-import { encryptString, hexToBase64 } from '@jetstream/shared/node-utils';
 import { SalesforceOrgUi, SObjectOrganization, UserProfileServer } from '@jetstream/types';
 import * as express from 'express';
 import * as jsforce from 'jsforce';
 import * as querystring from 'querystring';
-import { ENV } from '../config/env-config';
 import { logger } from '../config/logger.config';
-import { SalesforceOrg } from '../db/entites/SalesforceOrg';
+import * as salesforceOrgsDb from '../db/salesforce-org.db';
 import { getJsforceOauth2 } from '../utils/auth-utils';
 
 /**
@@ -16,7 +14,7 @@ import { getJsforceOauth2 } from '../utils/auth-utils';
 export function salesforceOauthInitAuth(req: express.Request, res: express.Response) {
   const loginUrl = req.query.loginUrl as string;
   const clientUrl = req.query.clientUrl as string;
-  const replaceOrgUniqueId = req.query.clientUrl as string | undefined;
+  const replaceOrgUniqueId = req.query.replaceOrgUniqueId as string | undefined;
   const state = querystring.stringify({ loginUrl, clientUrl, replaceOrgUniqueId });
 
   let options = {
@@ -72,7 +70,7 @@ export async function salesforceOauthCallback(req: express.Request, res: express
 
     const salesforceOrgUi: Partial<SalesforceOrgUi> = {
       uniqueId: `${userInfo.organizationId}-${userInfo.id}`,
-      accessToken: encryptString(`${conn.accessToken} ${conn.refreshToken}`, hexToBase64(ENV.SFDC_CONSUMER_SECRET)),
+      accessToken: salesforceOrgsDb.encryptAccessToken(conn.accessToken, conn.refreshToken),
       instanceUrl: conn.instanceUrl,
       loginUrl: state.loginUrl as string,
       userId: identity.user_id,
@@ -91,28 +89,7 @@ export async function salesforceOauthCallback(req: express.Request, res: express
       orgTrialExpirationDate: companyInfoRecord?.TrialExpirationDate,
     };
 
-    let salesforceOrg = await SalesforceOrg.findByUniqueId(user.id, salesforceOrgUi.uniqueId);
-
-    if (salesforceOrg) {
-      salesforceOrg.initFromUiOrg(salesforceOrgUi);
-    } else {
-      salesforceOrg = new SalesforceOrg(user.id, salesforceOrgUi);
-    }
-
-    // If org was being fixed but the id is different, delete the old org
-    // This is useful for sandbox refreshes
-    try {
-      if (replaceOrgUniqueId && replaceOrgUniqueId !== salesforceOrg.uniqueId) {
-        const oldSalesforceOrg = await SalesforceOrg.findByUniqueId(user.id, replaceOrgUniqueId);
-        if (oldSalesforceOrg) {
-          await oldSalesforceOrg.remove();
-        }
-      }
-    } catch (ex) {
-      logger.warn(ex);
-    }
-
-    await salesforceOrg.save();
+    const salesforceOrg = await salesforceOrgsDb.createOrUpdateSalesforceOrg(user.id, salesforceOrgUi, replaceOrgUniqueId);
 
     // TODO: figure out what other data we need
     // try {
