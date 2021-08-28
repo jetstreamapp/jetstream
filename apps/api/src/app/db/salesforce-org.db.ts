@@ -144,7 +144,7 @@ export async function createOrUpdateSalesforceOrg(
       orgTrialExpirationDate: salesforceOrgUi.orgTrialExpirationDate || existingOrg.orgTrialExpirationDate,
       connectionError: null,
     };
-    data.label = data.label ?? data.email;
+    data.label = data.label || data.username;
     data.filterText = `${data.username}${data.orgName}${data.label}`;
     // update existing
     const org = await prisma.salesforceOrg.update({
