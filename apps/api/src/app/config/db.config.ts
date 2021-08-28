@@ -1,7 +1,6 @@
 import { Prisma, PrismaClient } from '@prisma/client';
 import { logger } from 'apps/api/src/app/config/logger.config';
 import { Pool } from 'pg';
-import 'reflect-metadata';
 import { ENV } from './env-config';
 
 const log: Array<Prisma.LogLevel | Prisma.LogDefinition> = ['info'];
