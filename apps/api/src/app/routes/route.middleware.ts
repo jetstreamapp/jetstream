@@ -1,12 +1,11 @@
 import { HTTP } from '@jetstream/shared/constants';
-import { decryptString, encryptString, hexToBase64 } from '@jetstream/shared/node-utils';
 import { UserProfileServer } from '@jetstream/types';
 import * as express from 'express';
 import { ValidationChain, validationResult } from 'express-validator';
 import * as jsforce from 'jsforce';
 import { ENV } from '../config/env-config';
 import { logger } from '../config/logger.config';
-import { SalesforceOrg } from '../db/entites/SalesforceOrg';
+import * as salesforceOrgsDb from '../db/salesforce-org.db';
 import { getJsforceOauth2 } from '../utils/auth-utils';
 import { AuthenticationError, NotFoundError, UserFacingError } from '../utils/error-handler';
 
@@ -114,13 +113,13 @@ async function getOrgFromHeaderOrQuery(req: express.Request, headerKey: string, 
     return;
   }
 
-  const org = await SalesforceOrg.findByUniqueId(user.id, uniqueId);
+  const org = await salesforceOrgsDb.findByUniqueId_UNSAFE(user.id, uniqueId);
   if (!org) {
     throw new UserFacingError('An org was not found with the provided id');
   }
 
   const { accessToken: encryptedAccessToken, loginUrl, instanceUrl, orgNamespacePrefix } = org;
-  const [accessToken, refreshToken] = decryptString(encryptedAccessToken, hexToBase64(ENV.SFDC_CONSUMER_SECRET)).split(' ');
+  const [accessToken, refreshToken] = salesforceOrgsDb.decryptAccessToken(encryptedAccessToken);
 
   const connData: jsforce.ConnectionOptions = {
     oauth2: getJsforceOauth2(loginUrl),
@@ -148,8 +147,7 @@ async function getOrgFromHeaderOrQuery(req: express.Request, headerKey: string, 
     // Refresh event will be fired when renewed access token
     // to store it in your storage for next request
     try {
-      org.accessToken = encryptString(`${accessToken} ${conn.refreshToken}`, hexToBase64(ENV.SFDC_CONSUMER_SECRET));
-      await org.save();
+      await salesforceOrgsDb.updateAccessToken_UNSAFE(org, accessToken, conn.refreshToken);
       logger.info('[ORG][REFRESH] Org refreshed successfully');
     } catch (ex) {
       logger.error('[ORG][REFRESH] Error saving refresh token', ex);
