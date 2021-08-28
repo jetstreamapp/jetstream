@@ -1,10 +1,11 @@
 import { ERROR_MESSAGES, HTTP } from '@jetstream/shared/constants';
+import { SalesforceOrg } from '@prisma/client';
 import * as express from 'express';
-import { logger } from '../config/logger.config';
-import { SalesforceOrg } from '../db/entites/SalesforceOrg';
-import { AuthenticationError, NotFoundError, UserFacingError } from './error-handler';
 import * as querystring from 'querystring';
 import { ENV } from '../config/env-config';
+import { logger } from '../config/logger.config';
+import * as salesforceOrgsDb from '../db/salesforce-org.db';
+import { AuthenticationError, NotFoundError, UserFacingError } from './error-handler';
 
 export function healthCheck(req: express.Request, res: express.Response) {
   return res.status(200).end();
@@ -41,8 +42,7 @@ export async function uncaughtErrorHandler(err: any, req: express.Request, res: 
     try {
       res.set(HTTP.HEADERS.X_SFDC_ORG_CONNECTION_ERROR, ERROR_MESSAGES.SFDC_EXPIRED_TOKEN);
       const org = res.locals.org as SalesforceOrg;
-      org.connectionError = ERROR_MESSAGES.SFDC_EXPIRED_TOKEN;
-      await org.save();
+      await salesforceOrgsDb.updateOrg_UNSAFE(org, { connectionError: ERROR_MESSAGES.SFDC_EXPIRED_TOKEN });
     } catch (ex) {
       logger.warn('[RESPONSE][ERROR UPDATING INVALID ORG] %s', ex.message, { error: ex.message, userInfo });
     }

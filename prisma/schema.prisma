@@ -1,0 +1,86 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("JESTREAM_POSTGRES_DBURI")
+}
+
+model SalesforceApi {
+  id               String   @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  groupName        String?  @db.VarChar
+  groupDescription String?  @db.VarChar
+  name             String?  @db.VarChar
+  description      String?  @db.VarChar
+  method           String?  @db.VarChar
+  url              String?  @db.VarChar
+  header           String?  @db.VarChar
+  body             String?  @db.VarChar
+  createdAt        DateTime @default(now()) @db.Timestamp(6)
+  updatedAt        DateTime @updatedAt
+
+  @@map("salesforce_api")
+}
+
+model SalesforceOrg {
+  id                     Int                                       @id @default(autoincrement())
+  jetstreamUserId        String                                    @db.VarChar
+  uniqueId               String                                    @db.VarChar
+  filterText             String                                    @db.VarChar
+  accessToken            String                                    @db.VarChar
+  instanceUrl            String                                    @db.VarChar
+  loginUrl               String                                    @db.VarChar
+  userId                 String                                    @db.VarChar(18)
+  email                  String                                    @db.VarChar
+  organizationId         String                                    @db.VarChar(18)
+  username               String                                    @db.VarChar
+  displayName            String                                    @db.VarChar
+  thumbnail              String?                                   @db.VarChar
+  apiVersion             String?                                   @db.VarChar
+  orgName                String?                                   @db.VarChar
+  orgCountry             String?                                   @db.VarChar
+  orgInstanceName        String?                                   @db.VarChar
+  orgIsSandbox           Boolean?
+  orgLanguageLocaleKey   salesforce_org_orglanguagelocalekey_enum?
+  orgNamespacePrefix     String?                                   @db.VarChar
+  orgTrialExpirationDate DateTime?                                 @db.Date
+  createdAt              DateTime                                  @default(now()) @db.Timestamp(6)
+  updatedAt              DateTime                                  @updatedAt
+  connectionError        String?                                   @db.VarChar
+  jetstreamUrl           String?                                   @db.VarChar
+  label                  String?                                   @db.VarChar(100)
+  orgOrganizationType    String?                                   @db.VarChar
+
+  @@map("salesforce_org")
+  @@unique([jetstreamUserId, jetstreamUrl, uniqueId], name: "uniqueOrg")
+}
+
+model sessions {
+  sid    String   @id @db.VarChar
+  sess   Json     @db.Json
+  expire DateTime @db.Timestamp(6)
+
+  @@index([expire], name: "IDX_session_expire")
+}
+
+enum salesforce_org_orglanguagelocalekey_enum {
+  en_US
+  de
+  es
+  fr
+  it
+  ja
+  sv
+  ko
+  zh_TW
+  zh_CN
+  pt_BR
+  nl_NL
+  da
+  th
+  fi
+  ru
+  es_MX
+  no
+}
