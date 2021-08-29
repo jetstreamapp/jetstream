@@ -929,11 +929,15 @@ export async function pollAndDeployMetadataResultsWhenReady(
  * @param file
  * @param readAsArrayBuffer
  */
-export function readFile(file: File, readAsArrayBuffer = false): Promise<string | ArrayBuffer> {
+export function readFile(file: File, type: 'array_buffer'): Promise<ArrayBuffer>;
+export function readFile(file: File, type: 'text' | 'data_url'): Promise<string>;
+export function readFile(file: File, type: 'text' | 'array_buffer' | 'data_url' = 'text'): Promise<string | ArrayBuffer> {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
-    if (readAsArrayBuffer) {
+    if (type === 'array_buffer') {
       reader.readAsArrayBuffer(file);
+    } else if (type === 'data_url') {
+      reader.readAsDataURL(file);
     } else {
       reader.readAsText(file);
     }

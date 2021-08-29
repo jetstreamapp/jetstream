@@ -51,12 +51,20 @@ app.use(
   helmet({
     contentSecurityPolicy: {
       directives: {
-        defaultSrc: ["'self'", '*.rollbar.com', '*.google.com', '*.gstatic.com', 'api.amplitude.com', '*.googleapis.com'],
+        defaultSrc: [
+          "'self'",
+          '*.rollbar.com',
+          '*.google.com',
+          '*.gstatic.com',
+          'api.amplitude.com',
+          '*.googleapis.com',
+          'api.cloudinary.com',
+        ],
         baseUri: ["'self'"],
         blockAllMixedContent: [],
         fontSrc: ["'self'", 'https:', "'unsafe-inline'", 'data:'],
         frameAncestors: ["'self'", '*.google.com'],
-        imgSrc: ["'self'", 'data:', '*.gravatar.com', '*.wp.com', '*.googleusercontent.com'],
+        imgSrc: ["'self'", 'data:', '*.gravatar.com', '*.wp.com', '*.cloudinary.com', '*.googleusercontent.com'],
         objectSrc: ["'none'"],
         scriptSrc: ["'self'", '*.google.com', '*.gstatic.com'],
         scriptSrcAttr: ["'none'"],

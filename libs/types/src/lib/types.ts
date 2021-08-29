@@ -91,6 +91,37 @@ export interface UserProfileServer {
   user_id: string;
 }
 
+export interface CloudinarySignature {
+  signature: string;
+  timestamp: number;
+  cloudName: string;
+  apiKey: string;
+  context: string;
+}
+
+export interface CloudinaryUploadResponse {
+  access_mode: string;
+  api_key: string;
+  asset_id: string;
+  bytes: number;
+  created_at: string;
+  delete_token: string;
+  etag: string;
+  format: string;
+  height: number;
+  placeholder: boolean;
+  public_id: string;
+  resource_type: string;
+  secure_url: string;
+  signature: string;
+  tags: string[];
+  type: string;
+  url: string;
+  version_id: string;
+  version: number;
+  width: number;
+}
+
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export type Record<T = any> = { attributes?: RecordAttributes; Id?: SalesforceId } & T;
 

@@ -1,14 +1,16 @@
 import * as express from 'express';
 import Router from 'express-promise-router';
+import * as feedbackController from '../controllers/feedback.controller';
+import * as imageController from '../controllers/image.controller';
 import * as orgsController from '../controllers/orgs.controller';
+import * as salesforceApiReqController from '../controllers/salesforce-api-requests.controller';
 import * as bulkApiController from '../controllers/sf-bulk-api.controller';
 import * as metadataToolingController from '../controllers/sf-metadata-tooling.controller';
 import * as sfMiscController from '../controllers/sf-misc.controller';
 import * as sfQueryController from '../controllers/sf-query.controller';
 import * as userController from '../controllers/user.controller';
-import * as salesforceApiReqController from '../controllers/salesforce-api-requests.controller';
-import { addOrgsToLocal, checkAuth, ensureOrgExists, ensureTargetOrgExists, validate } from './route.middleware';
 import { sendJson } from '../utils/response.handlers';
+import { addOrgsToLocal, checkAuth, ensureOrgExists, ensureTargetOrgExists, validate } from './route.middleware';
 
 const routes: express.Router = Router();
 
@@ -25,6 +27,10 @@ routes.get('/me', userController.getUserProfile);
 routes.get('/orgs', orgsController.getOrgs);
 routes.patch('/orgs/:uniqueId', orgsController.updateOrg);
 routes.delete('/orgs/:uniqueId', orgsController.deleteOrg);
+
+routes.get('/images/upload-signature', validate(imageController.routeValidators.getUploadSignature), imageController.getUploadSignature);
+
+routes.post('/feedback/submit', validate(feedbackController.routeValidators.submit), feedbackController.submit);
 
 routes.get('/describe', ensureOrgExists, sfQueryController.describe);
 routes.get('/describe/:sobject', ensureOrgExists, sfQueryController.describeSObject);
