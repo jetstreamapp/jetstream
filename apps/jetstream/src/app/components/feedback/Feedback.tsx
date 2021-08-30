@@ -99,7 +99,7 @@ export const Feedback: FunctionComponent<FeedbackProps> = ({ userProfile }) => {
           <ScopedNotification theme="success" className="slds-m-vertical_medium">
             We have received your feedback, your ticket number is #{submittedTicketId}.
             <p>
-              You can always our support team at{' '}
+              You can always reach our support team at{' '}
               <a href="mailto:support@getjetstream.app" target="_blank" rel="noreferrer">
                 support@getjetstream.app
               </a>
