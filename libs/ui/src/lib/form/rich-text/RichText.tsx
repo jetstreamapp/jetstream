@@ -1,9 +1,11 @@
 /** @jsx jsx */
 import { css, jsx } from '@emotion/react';
 import { useDebounce, useNonInitialEffect } from '@jetstream/shared/ui-utils';
+import classNames from 'classnames';
 import RichTextToolbar from 'libs/ui/src/lib/form/rich-text/RichTextToolbar';
 import HelpText from 'libs/ui/src/lib/widgets/HelpText';
-import { uniqueId } from 'lodash';
+import isBoolean from 'lodash/isBoolean';
+import uniqueId from 'lodash/uniqueId';
 import Quill, { DeltaOperation, DeltaStatic, QuillOptionsStatic, Sources } from 'quill';
 import { Fragment, FunctionComponent, useCallback, useEffect, useRef, useState } from 'react';
 
@@ -37,6 +39,7 @@ export interface RichTextProps {
   options?: QuillOptionsStatic;
   labelHelp?: string | JSX.Element;
   debounceTimeMs?: number;
+  disabled?: boolean;
   onChange: (contents: DeltaOperation[]) => void;
 }
 
@@ -46,6 +49,7 @@ export const RichText: FunctionComponent<RichTextProps> = ({
   labelHelp,
   options = {},
   debounceTimeMs = 300,
+  disabled,
   onChange,
 }) => {
   const [id] = useState(uniqueId('rich-text-'));
@@ -53,6 +57,7 @@ export const RichText: FunctionComponent<RichTextProps> = ({
   const editorRef = useRef<Quill>();
   const [contents, setContents] = useState<DeltaOperation[]>();
   const debouncedContents = useDebounce(contents, debounceTimeMs);
+  const [hasFocus, setHasFocus] = useState(false);
 
   const handleTextChange = useCallback(
     (delta: DeltaStatic, oldDelta: DeltaStatic, source: Sources) => {
@@ -63,14 +68,29 @@ export const RichText: FunctionComponent<RichTextProps> = ({
 
   useEffect(() => {
     if (editorContainerRef.current && !editorRef.current) {
-      editorRef.current = new Quill(editorContainerRef.current, { ...DEFAULT_OPTIONS, scrollingContainer: `${id}-container`, ...options });
+      editorRef.current = new Quill(editorContainerRef.current, {
+        ...DEFAULT_OPTIONS,
+        scrollingContainer: `${id}-container`,
+        readOnly: !!disabled,
+        ...options,
+      });
       editorRef.current.on('text-change', handleTextChange);
     }
   }, [editorContainerRef.current]);
 
   useNonInitialEffect(() => {
+    if (isBoolean(disabled) && editorRef.current) {
+      editorRef.current.enable(!disabled);
+    }
+  }, [disabled]);
+
+  useNonInitialEffect(() => {
     onChange(debouncedContents);
   }, [debouncedContents]);
+
+  function handleFocus(focus: boolean) {
+    setHasFocus(focus);
+  }
 
   return (
     <div className="slds-form-element">
@@ -88,16 +108,25 @@ export const RichText: FunctionComponent<RichTextProps> = ({
         </Fragment>
       )}
       <div className="slds-form-element__control">
-        <div className="slds-rich-text-editor slds-grid slds-grid_vertical slds-nowrap">
-          <RichTextToolbar />
+        <div className={classNames('slds-rich-text-editor slds-grid slds-grid_vertical slds-nowrap', { 'slds-has-focus': hasFocus })}>
+          <RichTextToolbar disabled={disabled} />
           <div
             id={`${id}-container`}
-            className="slds-rich-text-editor__textarea slds-grid"
+            className={classNames('slds-grid', {
+              'slds-rich-text-editor__textarea': disabled,
+              'slds-rich-text-editor__output': !disabled,
+            })}
             css={css`
               min-height: 250px;
             `}
           >
-            <div id={id} ref={editorContainerRef} className="slds-rich-text-area__content slds-text-color_weak slds-grow"></div>
+            <div
+              id={id}
+              ref={editorContainerRef}
+              className="slds-rich-text-area__content slds-text-color_weak slds-grow"
+              onFocus={() => handleFocus(true)}
+              onBlur={() => handleFocus(false)}
+            ></div>
           </div>
         </div>
       </div>

@@ -82,9 +82,15 @@ export const FeedbackForm: FunctionComponent<FeedbackFormProps> = ({ loading, ha
             onChange={(event) => setTitle(event.target.value)}
           />
         </Input>
-        <RichText label="Description" isRequired options={{ placeholder: `Tell us what's going on...` }} onChange={setContent} />
+        <RichText
+          label="Description"
+          isRequired
+          options={{ placeholder: `Tell us what's going on...` }}
+          disabled={loading}
+          onChange={setContent}
+        />
 
-        <ImageSelector draggableRef={cardRef.current} onImages={setImages}></ImageSelector>
+        <ImageSelector draggableRef={cardRef.current} disabled={loading} onImages={setImages}></ImageSelector>
       </Grid>
     </Card>
   );
