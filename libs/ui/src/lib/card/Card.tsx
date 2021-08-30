@@ -1,4 +1,4 @@
-import React, { FunctionComponent, ReactNode } from 'react';
+import React, { forwardRef, FunctionComponent, ReactNode } from 'react';
 import Icon from '../widgets/Icon';
 import { IconObj } from '@jetstream/icon-factory';
 import classNames from 'classnames';
@@ -10,16 +10,17 @@ export interface CardProps {
   icon?: IconObj;
   actions?: ReactNode;
   footer?: ReactNode;
+  children?: ReactNode;
 }
 
 /**
  * This is used when a button is inline on a form where there needs to be top-margin to align with the inputs
  * (e.x. ExpressionConditionRow)
  */
-export const Card: FunctionComponent<CardProps> = ({ className, title, icon, actions, footer, children }) => {
+export const Card = forwardRef<HTMLElement, CardProps>(({ className, title, icon, actions, footer, children }, ref) => {
   const titleContent = isString(title) ? <span className="slds-truncate">{title}</span> : title;
   return (
-    <article className={classNames('slds-card', className)}>
+    <article className={classNames('slds-card', className)} ref={ref}>
       {title && (
         <div className="slds-card__header slds-grid">
           <header className={classNames('slds-media slds-media_center slds-has-flexi-truncate')}>
@@ -46,6 +47,6 @@ export const Card: FunctionComponent<CardProps> = ({ className, title, icon, act
       {footer && <footer className="slds-card__footer">{footer}</footer>}
     </article>
   );
-};
+});
 
 export default Card;

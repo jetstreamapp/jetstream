@@ -29,4 +29,6 @@ export const ENV = {
   GOOGLE_APP_ID: process.env.GOOGLE_APP_ID,
   GOOGLE_API_KEY: process.env.GOOGLE_API_KEY,
   GOOGLE_CLIENT_ID: process.env.GOOGLE_CLIENT_ID,
+  // GITHUB
+  GITHUB_TOKEN: process.env.GITHUB_TOKEN,
 };

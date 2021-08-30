@@ -509,10 +509,18 @@ export interface SalesforceApiHistoryResponse {
   statusText: string;
 }
 
-export interface InputReadFileContent {
+export interface InputReadFileContent<T = string | ArrayBuffer> {
   filename: string;
   extension: string;
-  content: string | ArrayBuffer;
+  content: T;
+}
+
+export interface ImageWithUpload extends InputReadFileContent<string> {
+  id: string;
+  uploading: boolean;
+  url?: string;
+  error?: string;
+  deleteToken?: string;
 }
 
 export interface InputReadGoogleSheet {

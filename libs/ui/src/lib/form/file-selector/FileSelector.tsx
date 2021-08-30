@@ -4,8 +4,8 @@ import { logger } from '@jetstream/shared/client-logger';
 import { readFile } from '@jetstream/shared/ui-utils';
 import { InputAcceptType, InputReadFileContent } from '@jetstream/types';
 import classNames from 'classnames';
-import HelpText from 'libs/ui/src/lib/widgets/HelpText';
 import { FunctionComponent, useRef, useState } from 'react';
+import HelpText from '../../widgets/HelpText';
 import Icon from '../../widgets/Icon';
 import { useFilename } from './useFilename';
 
@@ -98,7 +98,7 @@ export const FileSelector: FunctionComponent<FileSelectorProps> = ({
 
       // TODO: we might want to do something else here in the future
       const readAsArrayBuffer = extension !== '.csv' && extension !== '.xml';
-      const content = await readFile(file, readAsArrayBuffer);
+      const content = await readFile(file, 'array_buffer');
 
       onReadFile({ filename: file.name, extension, content });
     } catch (ex) {

@@ -22,6 +22,7 @@ export interface StandardIconObj {
   asset_relationship: IconEl;
   data_streams: IconEl;
   entity: IconEl;
+  feedback: IconEl;
   multi_picklist: IconEl;
   opportunity: IconEl;
   portal: IconEl;
@@ -32,12 +33,13 @@ export interface StandardIconObj {
 }
 
 export interface DoctypeIconObj {
-  xml: IconEl;
   excel: IconEl;
-  pack: IconEl;
-  zip: IconEl;
-  gsheet: IconEl;
   gdrive: IconEl;
+  gsheet: IconEl;
+  image: IconEl;
+  pack: IconEl;
+  xml: IconEl;
+  zip: IconEl;
 }
 
 export interface UtilityIconObj {
@@ -47,6 +49,7 @@ export interface UtilityIconObj {
   arrowdown: IconEl;
   arrowup: IconEl;
   back: IconEl;
+  bold: IconEl;
   change_record_type: IconEl;
   chart: IconEl;
   check: IconEl;
@@ -75,8 +78,12 @@ export interface UtilityIconObj {
   filterList: IconEl;
   forward: IconEl;
   help: IconEl;
+  image: IconEl;
   info: IconEl;
+  insert_tag_field: IconEl;
+  italic: IconEl;
   left: IconEl;
+  link: IconEl;
   logout: IconEl;
   moneybag: IconEl;
   multi_select_checkbox: IconEl;
@@ -87,8 +94,14 @@ export interface UtilityIconObj {
   play: IconEl;
   preview: IconEl;
   prompt_edit: IconEl;
+  quotation_marks: IconEl;
   record_lookup: IconEl;
   refresh: IconEl;
+  remove_formatting: IconEl;
+  richtextbulletedlist: IconEl;
+  richtextindent: IconEl;
+  richtextnumberedlist: IconEl;
+  richtextoutdent: IconEl;
   right: IconEl;
   salesforce1: IconEl;
   save: IconEl;
@@ -98,10 +111,12 @@ export interface UtilityIconObj {
   share: IconEl;
   steps: IconEl;
   strategy: IconEl;
+  strikethrough: IconEl;
   success: IconEl;
   switch: IconEl;
   sync: IconEl;
   task: IconEl;
+  underline: IconEl;
   undo: IconEl;
   up: IconEl;
   upload: IconEl;

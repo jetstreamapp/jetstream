@@ -7,15 +7,17 @@ import classNames from 'classnames';
 import React from 'react';
 import { DoctypeIconObj, StandardIconObj, UtilityIconObj } from './icon-types';
 import DoctypeIcon_Excel from './icons/doctype/Excel';
+import DoctypeIcon_Gdrive from './icons/doctype/Gdrive';
+import DoctypeIcon_Gsheet from './icons/doctype/Gsheet';
+import DoctypeIcon_Image from './icons/doctype/Image';
 import DoctypeIcon_Pack from './icons/doctype/Pack';
 import DoctypeIcon_Xml from './icons/doctype/Xml';
 import DoctypeIcon_Zip from './icons/doctype/Zip';
-import DoctypeIcon_Gsheet from './icons/doctype/Gsheet';
-import DoctypeIcon_Gdrive from './icons/doctype/Gdrive';
 import StandardIcon_Activations from './icons/standard/Activations';
 import StandardIcon_AssetRelationship from './icons/standard/AssetRelationship';
 import StandardIcon_DataStreams from './icons/standard/DataStreams';
 import StandardIcon_Entity from './icons/standard/Entity';
+import StandardIcon_Feedback from './icons/standard/Feedback';
 import StandardIcon_MultiPicklist from './icons/standard/MultiPicklist';
 import StandardIcon_Opportunity from './icons/standard/Opportunity';
 import StandardIcon_Portal from './icons/standard/Portal';
@@ -29,6 +31,7 @@ import UtilityIcon_ApexPlugin from './icons/utility/ApexPlugin';
 import UtilityIcon_Arrowdown from './icons/utility/Arrowdown';
 import UtilityIcon_Arrowup from './icons/utility/Arrowup';
 import UtilityIcon_Back from './icons/utility/Back';
+import UtilityIcon_Bold from './icons/utility/Bold';
 import UtilityIcon_ChangeRecordType from './icons/utility/ChangeRecordType';
 import UtilityIcon_Chart from './icons/utility/Chart';
 import UtilityIcon_Check from './icons/utility/Check';
@@ -57,8 +60,12 @@ import UtilityIcon_Filter from './icons/utility/Filter';
 import UtilityIcon_FilterList from './icons/utility/FilterList';
 import UtilityIcon_Forward from './icons/utility/Forward';
 import UtilityIcon_Help from './icons/utility/Help';
+import UtilityIcon_Image from './icons/utility/Image';
 import UtilityIcon_Info from './icons/utility/Info';
+import UtilityIcon_InsertTagField from './icons/utility/InsertTagField';
+import UtilityIcon_Italic from './icons/utility/Italic';
 import UtilityIcon_Left from './icons/utility/Left';
+import UtilityIcon_Link from './icons/utility/Link';
 import UtilityIcon_Logout from './icons/utility/Logout';
 import UtilityIcon_Moneybag from './icons/utility/Moneybag';
 import UtilityIcon_MultiSelectCheckbox from './icons/utility/MultiSelectCheckbox';
@@ -69,8 +76,14 @@ import UtilityIcon_Page from './icons/utility/Page';
 import UtilityIcon_Play from './icons/utility/Play';
 import UtilityIcon_Preview from './icons/utility/Preview';
 import UtilityIcon_PromptEdit from './icons/utility/PromptEdit';
+import UtilityIcon_QuotationMarks from './icons/utility/QuotationMarks';
 import UtilityIcon_RecordLookup from './icons/utility/RecordLookup';
 import UtilityIcon_Refresh from './icons/utility/Refresh';
+import UtilityIcon_RemoveFormatting from './icons/utility/RemoveFormatting';
+import UtilityIcon_Richtextbulletedlist from './icons/utility/Richtextbulletedlist';
+import UtilityIcon_Richtextindent from './icons/utility/Richtextindent';
+import UtilityIcon_Richtextnumberedlist from './icons/utility/Richtextnumberedlist';
+import UtilityIcon_Richtextoutdent from './icons/utility/Richtextoutdent';
 import UtilityIcon_Right from './icons/utility/Right';
 import UtilityIcon_Salesforce1 from './icons/utility/Salesforce1';
 import UtilityIcon_Save from './icons/utility/Save';
@@ -80,10 +93,12 @@ import UtilityIcon_Setup from './icons/utility/Setup';
 import UtilityIcon_Share from './icons/utility/Share';
 import UtilityIcon_Steps from './icons/utility/Steps';
 import UtilityIcon_Strategy from './icons/utility/Strategy';
+import UtilityIcon_Strikethrough from './icons/utility/Strikethrough';
 import UtilityIcon_Success from './icons/utility/Success';
 import UtilityIcon_Switch from './icons/utility/Switch';
 import UtilityIcon_Sync from './icons/utility/Sync';
 import UtilityIcon_Task from './icons/utility/Task';
+import UtilityIcon_Underline from './icons/utility/Underline';
 import UtilityIcon_Undo from './icons/utility/Undo';
 import UtilityIcon_Up from './icons/utility/Up';
 import UtilityIcon_Upload from './icons/utility/Upload';
@@ -94,6 +109,7 @@ const standardIcons: StandardIconObj = {
   asset_relationship: StandardIcon_AssetRelationship,
   data_streams: StandardIcon_DataStreams,
   entity: StandardIcon_Entity,
+  feedback: StandardIcon_Feedback,
   multi_picklist: StandardIcon_MultiPicklist,
   opportunity: StandardIcon_Opportunity,
   portal: StandardIcon_Portal,
@@ -104,12 +120,13 @@ const standardIcons: StandardIconObj = {
 };
 
 const doctypeIcons: DoctypeIconObj = {
-  xml: DoctypeIcon_Xml,
   excel: DoctypeIcon_Excel,
-  pack: DoctypeIcon_Pack,
-  zip: DoctypeIcon_Zip,
-  gsheet: DoctypeIcon_Gsheet,
   gdrive: DoctypeIcon_Gdrive,
+  gsheet: DoctypeIcon_Gsheet,
+  image: DoctypeIcon_Image,
+  pack: DoctypeIcon_Pack,
+  xml: DoctypeIcon_Xml,
+  zip: DoctypeIcon_Zip,
 };
 
 const utilityIcons: UtilityIconObj = {
@@ -119,6 +136,7 @@ const utilityIcons: UtilityIconObj = {
   arrowdown: UtilityIcon_Arrowdown,
   arrowup: UtilityIcon_Arrowup,
   back: UtilityIcon_Back,
+  bold: UtilityIcon_Bold,
   change_record_type: UtilityIcon_ChangeRecordType,
   chart: UtilityIcon_Chart,
   check: UtilityIcon_Check,
@@ -147,8 +165,12 @@ const utilityIcons: UtilityIconObj = {
   filterList: UtilityIcon_FilterList,
   forward: UtilityIcon_Forward,
   help: UtilityIcon_Help,
+  image: UtilityIcon_Image,
   info: UtilityIcon_Info,
+  insert_tag_field: UtilityIcon_InsertTagField,
+  italic: UtilityIcon_Italic,
   left: UtilityIcon_Left,
+  link: UtilityIcon_Link,
   logout: UtilityIcon_Logout,
   moneybag: UtilityIcon_Moneybag,
   multi_select_checkbox: UtilityIcon_MultiSelectCheckbox,
@@ -159,8 +181,14 @@ const utilityIcons: UtilityIconObj = {
   play: UtilityIcon_Play,
   preview: UtilityIcon_Preview,
   prompt_edit: UtilityIcon_PromptEdit,
+  quotation_marks: UtilityIcon_QuotationMarks,
   record_lookup: UtilityIcon_RecordLookup,
   refresh: UtilityIcon_Refresh,
+  remove_formatting: UtilityIcon_RemoveFormatting,
+  richtextbulletedlist: UtilityIcon_Richtextbulletedlist,
+  richtextindent: UtilityIcon_Richtextindent,
+  richtextnumberedlist: UtilityIcon_Richtextnumberedlist,
+  richtextoutdent: UtilityIcon_Richtextoutdent,
   right: UtilityIcon_Right,
   salesforce1: UtilityIcon_Salesforce1,
   save: UtilityIcon_Save,
@@ -170,10 +198,12 @@ const utilityIcons: UtilityIconObj = {
   share: UtilityIcon_Share,
   steps: UtilityIcon_Steps,
   strategy: UtilityIcon_Strategy,
+  strikethrough: UtilityIcon_Strikethrough,
   success: UtilityIcon_Success,
   switch: UtilityIcon_Switch,
   sync: UtilityIcon_Sync,
   task: UtilityIcon_Task,
+  underline: UtilityIcon_Underline,
   undo: UtilityIcon_Undo,
   up: UtilityIcon_Up,
   upload: UtilityIcon_Upload,

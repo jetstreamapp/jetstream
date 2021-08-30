@@ -212,3 +212,55 @@
 .h-25 {
   height: 100%;
 }
+
+.ql-editor {
+  height: 100%;
+}
+
+button.ql-active {
+  background-color: #0176d3;
+  border-color: #0176d3;
+  color: #fff;
+  &:focus,
+  &:active,
+  &:hover {
+    background-color: #014486;
+    border-color: #014486;
+    color: #fff;
+  }
+}
+
+.ql-editor blockquote {
+  border-left: 4px solid $color-gray-6;
+  padding-left: 4px;
+  margin: 1rem !important;
+}
+
+.ql-editor pre.ql-syntax {
+  background-color: $color-background-inverse;
+  color: $color-text-inverse;
+  overflow: visible;
+  white-space: pre-wrap;
+  margin-bottom: 5px;
+  margin-top: 5px;
+  padding: 5px 10px;
+  border-radius: $border-radius-medium;
+}
+
+.ql-editor pre {
+  white-space: pre-wrap;
+  margin-bottom: 5px;
+  margin-top: 5px;
+  padding: 5px 10px;
+}
+
+.ql-editor code,
+.ql-editor pre {
+  background-color: $color-gray-2;
+  border-radius: $border-radius-medium;
+}
+
+.ql-editor code {
+  font-size: $input-static-font-size;
+  padding: 2px 4px;
+}

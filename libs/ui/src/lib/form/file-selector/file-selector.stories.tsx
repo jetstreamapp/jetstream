@@ -1,18 +1,19 @@
+import { INPUT_ACCEPT_FILETYPES } from '@jetstream/shared/constants';
 import { action } from '@storybook/addon-actions';
 import { array, boolean, text } from '@storybook/addon-knobs';
 import React from 'react';
-import { INPUT_ACCEPT_FILETYPES } from '@jetstream/shared/constants';
+import FileOrGoogleSelector from './FileOrGoogleSelector';
 import FileSelector from './FileSelector';
 import GoogleFileSelector from './GoogleFileSelector';
-import FileOrGoogleSelector from './FileOrGoogleSelector';
 import GoogleFolderSelector from './GoogleFolderSelector';
+import ImageSelector from './ImageSelector';
 
 export default {
   component: FileSelector,
   title: 'FileSelector',
 };
 
-export const base = () => (
+export const fileSelector = () => (
   <FileSelector
     id={text('id', 'input-file-selector')}
     label={text('label', 'Attachment')}
@@ -90,4 +91,19 @@ export const fileInputAndGoogleDrive = () => (
       onReadFile: action('googleOnReadFile'),
     }}
   />
+);
+
+export const imageSelector = () => (
+  <ImageSelector
+    label={text('label', undefined)}
+    hideLabel={boolean('hideLabel', false)}
+    disabled={boolean('disabled', false)}
+    onReadImages={action('onReadFile')}
+    showPreview={boolean('showPreview', true)}
+    buttonLabel={text('buttonLabel', undefined)}
+    errorMessage={text('errorMessage', undefined)}
+    hasError={boolean('hasError', false)}
+    labelHelp={text('labelHelp', undefined)}
+    autoUploadImages={false}
+  ></ImageSelector>
 );
