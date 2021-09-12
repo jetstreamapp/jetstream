@@ -33,7 +33,7 @@ export async function callback(req: Request, res: Response, next: NextFunction) 
         }
         const returnTo = req.session.returnTo;
         delete req.session.returnTo;
-        logger.info('[AUTH][SUCCESS] Logged in %s', user.email);
+        logger.info('[AUTH][SUCCESS] Logged in %s', user.email, { userId: user.id });
         res.redirect(returnTo || ENV.JETSTREAM_CLIENT_URL);
       });
     }

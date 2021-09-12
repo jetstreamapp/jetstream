@@ -82,6 +82,7 @@ export const UiRecordForm: FunctionComponent<UiRecordFormProps> = ({
                       disabled={disabled}
                       initialValue={record[field.name]}
                       showFieldTypes={showFieldTypes}
+                      omitUndoIndicator={action === 'create'}
                       onChange={handleRecordUpdate}
                     />
                   </div>

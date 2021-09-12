@@ -7,6 +7,14 @@
     "target": "http://localhost:3333",
     "secure": false
   },
+  "/socket.io": {
+    "target": "http://localhost:3333",
+    "secure": false
+  },
+  "/platform-event": {
+    "target": "http://localhost:3333",
+    "secure": false
+  },
   "/assets": {
     "target": "http://localhost:3333",
     "secure": false

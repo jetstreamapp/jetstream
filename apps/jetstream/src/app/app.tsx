@@ -18,6 +18,8 @@ import HeaderNavbar from './components/core/HeaderNavbar';
 import LogInitializer from './components/core/LogInitializer';
 import './components/core/monaco-loader';
 import OrgSelectionRequired from './components/orgs/OrgSelectionRequired';
+import PlatformEventMonitor from 'apps/jetstream/src/app/components/platform-event-monitor/PlatformEventMonitor';
+import { initSocket } from '@jetstream/shared/data';
 
 const AutomationControl = lazy(() => import('./components/automation-control/AutomationControl'));
 const Feedback = lazy(() => import('./components/feedback/Feedback'));
@@ -94,12 +96,43 @@ const ROUTES: RouteItem[] = [
       </OrgSelectionRequired>
     ),
   },
-  { path: '/apex', render: () => <AnonymousApex /> },
-  { path: '/salesforce-api', render: () => <SalesforceApi /> },
-  { path: '/debug-logs', render: () => <DebugLogViewer /> },
+  {
+    path: '/apex',
+    render: () => (
+      <OrgSelectionRequired>
+        <AnonymousApex />
+      </OrgSelectionRequired>
+    ),
+  },
+  {
+    path: '/salesforce-api',
+    render: () => (
+      <OrgSelectionRequired>
+        <SalesforceApi />
+      </OrgSelectionRequired>
+    ),
+  },
+  {
+    path: '/debug-logs',
+    render: () => (
+      <OrgSelectionRequired>
+        <DebugLogViewer />
+      </OrgSelectionRequired>
+    ),
+  },
+  {
+    path: '/platform-event-monitor',
+    render: () => (
+      <OrgSelectionRequired>
+        <PlatformEventMonitor />
+      </OrgSelectionRequired>
+    ),
+  },
   { path: '/feedback', render: () => <Feedback userProfile={_userProfile} /> },
   { path: '*', render: () => <Redirect to="/query" /> },
 ];
+
+initSocket();
 
 export const App = () => {
   const [userProfile, setUserProfile] = useState<UserProfileUi>();

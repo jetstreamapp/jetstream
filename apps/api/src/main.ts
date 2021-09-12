@@ -17,35 +17,49 @@ import * as Auth0Strategy from 'passport-auth0';
 import { ENV } from './app/config/env-config';
 import * as helmet from 'helmet';
 import proxy from 'express-http-proxy';
+import { initSocketServer } from './app/controllers/socket.controller';
 
 const pgSession = pgSimple(session);
 
+const sessionMiddleware = session({
+  store: new pgSession({
+    pool: pgPool,
+    tableName: 'sessions',
+  }),
+  cookie: {
+    path: '/',
+    // httpOnly: true,
+    secure: environment.production,
+    maxAge: 1000 * 60 * 60 * 24 * SESSION_EXP_DAYS,
+    // sameSite: 'strict',
+  },
+  secret: ENV.JESTREAM_SESSION_SECRET,
+  resave: false,
+  saveUninitialized: false,
+  name: 'sessionid',
+});
+
+passport.serializeUser(function (user, done) {
+  done(null, user);
+});
+
+passport.deserializeUser(function (user, done) {
+  done(null, user);
+});
+
+const passportInitMiddleware = passport.initialize();
+const passportMiddleware = passport.session();
+
 const app = express();
+const httpServer = initSocketServer(app, [sessionMiddleware, passportInitMiddleware, passportMiddleware]);
 
 if (environment.production) {
   app.set('trust proxy', 1); // required for environments such as heroku / {render?}
 }
 
 // Setup session
-app.use(
-  session({
-    store: new pgSession({
-      pool: pgPool,
-      tableName: 'sessions',
-    }),
-    cookie: {
-      path: '/',
-      // httpOnly: true,
-      secure: environment.production,
-      maxAge: 1000 * 60 * 60 * 24 * SESSION_EXP_DAYS,
-      // sameSite: 'strict',
-    },
-    secret: ENV.JESTREAM_SESSION_SECRET,
-    resave: false,
-    saveUninitialized: false,
-    name: 'sessionid',
-  })
-);
+app.use(sessionMiddleware);
+
 // app.use(compression());
 app.use(
   helmet({
@@ -120,16 +134,8 @@ passport.use(
   )
 );
 
-passport.serializeUser(function (user, done) {
-  done(null, user);
-});
-
-passport.deserializeUser(function (user, done) {
-  done(null, user);
-});
-
-app.use(passport.initialize());
-app.use(passport.session());
+app.use(passportInitMiddleware);
+app.use(passportMiddleware);
 
 app.use(raw({ limit: '30mb', type: ['text/csv'] }));
 app.use(raw({ limit: '30mb', type: ['application/zip'] }));
@@ -142,7 +148,11 @@ app.use('/static', logRoute, staticAuthenticatedRoutes); // these are routes tha
 app.use('/landing', logRoute, landingRoutes);
 app.use('/oauth', logRoute, oauthRoutes); // NOTE: there are also static files with same path
 
-const server = app.listen(Number(ENV.PORT), () => {
+// const server = app.listen(Number(ENV.PORT), () => {
+//   logger.info('Listening at http://localhost:' + ENV.PORT);
+// });
+
+const server = httpServer.listen(Number(ENV.PORT), () => {
   logger.info('Listening at http://localhost:' + ENV.PORT);
 });
 

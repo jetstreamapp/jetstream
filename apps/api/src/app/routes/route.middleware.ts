@@ -77,6 +77,30 @@ export async function addOrgsToLocal(req: express.Request, res: express.Response
   next();
 }
 
+/**
+ * Add locals to request object
+ */
+export async function monkeyPatchOrgsToRequest(req: express.Request, res: express.Response, next: express.NextFunction) {
+  try {
+    if (req.get(HTTP.HEADERS.X_SFDC_ID) || req.query[HTTP.HEADERS.X_SFDC_ID]) {
+      const results = await getOrgFromHeaderOrQuery(req, HTTP.HEADERS.X_SFDC_ID, HTTP.HEADERS.X_SFDC_API_VERSION);
+      if (results) {
+        const { org, connection } = results;
+        res.locals = { org, jsforceConn: connection };
+        (req as any).locals = res.locals;
+      } else {
+        logger.info('[INIT-ORG][ERROR] An org did not exist on locals - Monkey Patch');
+        return next(new UserFacingError('An org is required for this action'));
+      }
+    }
+  } catch (ex) {
+    logger.warn('[INIT-ORG][ERROR] %o', ex);
+    return next(new UserFacingError('There was an error initializing the connection to Salesforce'));
+  }
+
+  next();
+}
+
 export function ensureOrgExists(req: express.Request, res: express.Response, next: express.NextFunction) {
   if (!res.locals?.jsforceConn) {
     logger.info('[INIT-ORG][ERROR] An org did not exist on locals');
@@ -103,7 +127,7 @@ export function ensureTargetOrgExists(req: express.Request, res: express.Respons
  * @param headerKey
  * @param versionHeaderKey
  */
-async function getOrgFromHeaderOrQuery(req: express.Request, headerKey: string, versionHeaderKey: string) {
+export async function getOrgFromHeaderOrQuery(req: express.Request, headerKey: string, versionHeaderKey: string) {
   const uniqueId = (req.get(headerKey) || req.query[headerKey]) as string;
   // TODO: not yet implemented on the front-end
   const apiVersion = (req.get(versionHeaderKey) || req.query[versionHeaderKey]) as string | undefined;
@@ -113,6 +137,10 @@ async function getOrgFromHeaderOrQuery(req: express.Request, headerKey: string, 
     return;
   }
 
+  return getOrgForRequest(user, uniqueId, apiVersion);
+}
+
+export async function getOrgForRequest(user: UserProfileServer, uniqueId: string, apiVersion?: string) {
   const org = await salesforceOrgsDb.findByUniqueId_UNSAFE(user.id, uniqueId);
   if (!org) {
     throw new UserFacingError('An org was not found with the provided id');

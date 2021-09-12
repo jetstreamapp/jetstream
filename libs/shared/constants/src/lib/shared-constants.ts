@@ -187,3 +187,10 @@ export const TITLES = {
   API_EXPLORER: 'Salesforce Api | Jetstream',
   FEEDBACK: 'Support & Feedback | Jetstream',
 };
+
+export const SOCKET_EVENTS = {
+  // PLATFORM EVENT
+  PLATFORM_EVENT_MESSAGE: 'platform-event:message',
+  PLATFORM_EVENT_SUBSCRIBE: 'platform-event:subscribe',
+  PLATFORM_EVENT_UNSUBSCRIBE: 'platform-event:unsubscribe',
+};
