@@ -1,23 +1,23 @@
-import { json, urlencoded, raw } from 'body-parser';
+import { HTTP, SESSION_EXP_DAYS } from '@jetstream/shared/constants';
+import { ApplicationCookie } from '@jetstream/types';
+import { json, raw, urlencoded } from 'body-parser';
+import * as pgSimple from 'connect-pg-simple';
 import * as cors from 'cors';
 import * as express from 'express';
-import { join } from 'path';
-import { apiRoutes, landingRoutes, oauthRoutes, staticAuthenticatedRoutes } from './app/routes';
-import { logRoute, notFoundMiddleware } from './app/routes/route.middleware';
-import { uncaughtErrorHandler, healthCheck } from './app/utils/response.handlers';
-import { environment } from './environments/environment';
+import proxy from 'express-http-proxy';
 import * as session from 'express-session';
-import * as pgSimple from 'connect-pg-simple';
-import { pgPool } from './app/config/db.config';
-import { SESSION_EXP_DAYS, HTTP } from '@jetstream/shared/constants';
-import { ApplicationCookie } from '@jetstream/types';
-import { logger } from './app/config/logger.config';
+import * as helmet from 'helmet';
 import * as passport from 'passport';
 import * as Auth0Strategy from 'passport-auth0';
+import { join } from 'path';
+import { pgPool } from './app/config/db.config';
 import { ENV } from './app/config/env-config';
-import * as helmet from 'helmet';
-import proxy from 'express-http-proxy';
+import { logger } from './app/config/logger.config';
 import { initSocketServer } from './app/controllers/socket.controller';
+import { apiRoutes, landingRoutes, oauthRoutes, platformEventRoutes, staticAuthenticatedRoutes } from './app/routes';
+import { logRoute, notFoundMiddleware } from './app/routes/route.middleware';
+import { healthCheck, uncaughtErrorHandler } from './app/utils/response.handlers';
+import { environment } from './environments/environment';
 
 const pgSession = pgSimple(session);
 
@@ -137,6 +137,22 @@ passport.use(
 app.use(passportInitMiddleware);
 app.use(passportMiddleware);
 
+// proxy must be provided prior to body parser to ensure streaming response
+if (ENV.ENVIRONMENT === 'development') {
+  app.options(
+    '*',
+    logRoute,
+    (req: express.Request, res: express.Response, next: express.NextFunction) => {
+      res.setHeader('Access-Control-Allow-Credentials', 'true');
+      next();
+    },
+    cors({ origin: true })
+  );
+  app.use('/platform-event', logRoute, cors({ origin: /http:\/\/localhost:[0-9]+$/ }), platformEventRoutes);
+} else {
+  app.use('/platform-event', logRoute, platformEventRoutes);
+}
+
 app.use(raw({ limit: '30mb', type: ['text/csv'] }));
 app.use(raw({ limit: '30mb', type: ['application/zip'] }));
 app.use(json({ limit: '20mb', type: ['json', 'application/csp-report'] }));
@@ -159,6 +175,7 @@ const server = httpServer.listen(Number(ENV.PORT), () => {
 if (!environment.production) {
   app.use(cors({ origin: /http:\/\/localhost:[0-9]+$/ }));
 }
+
 app.use('/codicon.ttf', (req: express.Request, res: express.Response) => {
   res.sendFile(join(__dirname, './assets/js/monaco/vs/base/browser/ui/codicons/codicon/codicon.ttf'), { maxAge: '1m' });
 });

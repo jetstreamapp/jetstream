@@ -1,4 +1,3 @@
-import { SOCKET_EVENTS } from '@jetstream/shared/constants';
 import { UserProfileServer } from '@jetstream/types';
 import * as cometdClient from 'cometd-nodejs-client';
 import * as express from 'express';
@@ -10,7 +9,6 @@ import * as uuid from 'uuid';
 import { environment } from '../../environments/environment';
 import { ENV } from '../config/env-config';
 import { logger } from '../config/logger.config';
-import * as platformEvService from '../services/platform-event';
 import * as socketUtils from '../utils/socket-utils';
 
 const serverUrl = ENV.JETSTREAM_SERVER_URL;
@@ -116,8 +114,11 @@ export function initSocketServer(app: express.Express, middlewareFns: express.Re
       logger.warn('[SOCKET][ERROR] %s', err.message, { socketId: socket.id, userId: user?.id || 'unknown' });
     });
 
-    socket.on(SOCKET_EVENTS.PLATFORM_EVENT_SUBSCRIBE, platformEvService.subscribeToPlatformEvent(userSocketState));
-    socket.on(SOCKET_EVENTS.PLATFORM_EVENT_UNSUBSCRIBE, platformEvService.unsubscribeFromPlatformEvent(userSocketState));
+    /**
+     * TODO: add socket handlers here - these were removed since not actually needed but are good reference
+     */
+    // socket.on(SOCKET_EVENTS.PLATFORM_EVENT_SUBSCRIBE, platformEvService.subscribeToPlatformEvent(userSocketState));
+    // socket.on(SOCKET_EVENTS.PLATFORM_EVENT_UNSUBSCRIBE, platformEvService.unsubscribeFromPlatformEvent(userSocketState));
   });
 
   return httpServer;

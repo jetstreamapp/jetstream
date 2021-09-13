@@ -1,3 +1,6 @@
+/**
+ * ENDED UP NOT USING THIS STUFF
+ */
 import { MapOf } from '@jetstream/types';
 import { CometD, Message, Extension } from 'cometd';
 import { isNumber } from 'lodash';

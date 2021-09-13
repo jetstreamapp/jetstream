@@ -1,10 +1,8 @@
 /** @jsx jsx */
 import { css, jsx } from '@emotion/react';
-import { FEATURE_FLAGS } from '@jetstream/shared/constants';
 import { hasFeatureFlagAccess } from '@jetstream/shared/ui-utils';
 import { UserProfileUi } from '@jetstream/types';
 import { ConfirmationServiceProvider } from '@jetstream/ui';
-import NotificationsRequestModal from './components/core/NotificationsRequestModal';
 import { Fragment, lazy, Suspense, useEffect, useState } from 'react';
 import { ErrorBoundary } from 'react-error-boundary';
 import ModalContainer from 'react-modal-promise';
@@ -17,9 +15,10 @@ import ErrorBoundaryFallback from './components/core/ErrorBoundaryFallback';
 import HeaderNavbar from './components/core/HeaderNavbar';
 import LogInitializer from './components/core/LogInitializer';
 import './components/core/monaco-loader';
+import NotificationsRequestModal from './components/core/NotificationsRequestModal';
 import OrgSelectionRequired from './components/orgs/OrgSelectionRequired';
-import PlatformEventMonitor from 'apps/jetstream/src/app/components/platform-event-monitor/PlatformEventMonitor';
-import { initSocket } from '@jetstream/shared/data';
+import PlatformEventMonitor from './components/platform-event-monitor/PlatformEventMonitor';
+// import { initSocket } from '@jetstream/shared/data';
 
 const AutomationControl = lazy(() => import('./components/automation-control/AutomationControl'));
 const Feedback = lazy(() => import('./components/feedback/Feedback'));
@@ -132,7 +131,11 @@ const ROUTES: RouteItem[] = [
   { path: '*', render: () => <Redirect to="/query" /> },
 ];
 
-initSocket();
+/**
+ * TODO: disabled socket from browser until we have a solid use-case for it
+ * previously this was used for platform events, but that was moved to browser
+ */
+// initSocket();
 
 export const App = () => {
   const [userProfile, setUserProfile] = useState<UserProfileUi>();

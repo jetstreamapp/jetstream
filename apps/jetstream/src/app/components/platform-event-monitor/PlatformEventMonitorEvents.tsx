@@ -1,7 +1,7 @@
 /** @jsx jsx */
 import { jsx } from '@emotion/react';
 import { formatNumber } from '@jetstream/shared/ui-utils';
-import { pluralizeIfMultiple } from '@jetstream/shared/utils';
+import { orderStringsBy, pluralizeIfMultiple } from '@jetstream/shared/utils';
 import { Accordion, CopyToClipboard, EmptyState, NoContentIllustration, OpenRoadIllustration } from '@jetstream/ui';
 import { Fragment, FunctionComponent } from 'react';
 import PlatformEventMonitorEvent from './PlatformEventMonitorEvent';
@@ -12,7 +12,7 @@ export interface PlatformEventMonitorEventsProps {
 }
 
 export const PlatformEventMonitorEvents: FunctionComponent<PlatformEventMonitorEventsProps> = ({ messagesByChannel }) => {
-  const channels = Object.keys(messagesByChannel);
+  const channels = orderStringsBy(Object.keys(messagesByChannel));
   return (
     <Fragment>
       {channels.length === 0 && (

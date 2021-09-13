@@ -5,13 +5,13 @@ import { describeSObject } from '@jetstream/shared/data';
 import { useReducerFetchFn } from '@jetstream/shared/ui-utils';
 import { ListItem, PicklistFieldValues, Record, SalesforceOrgUi } from '@jetstream/types';
 import { AutoFullHeightContainer, Card, Grid, Picklist, ScopedNotification, Spinner } from '@jetstream/ui';
-import PlatformEventMonitorListenerCard from 'apps/jetstream/src/app/components/platform-event-monitor/PlatformEventMonitorListenerCard';
-import { usePlatformEvent } from 'apps/jetstream/src/app/components/platform-event-monitor/usePlatformEvent';
 import { DescribeGlobalSObjectResult, DescribeSObjectResult } from 'jsforce';
 import { Fragment, FunctionComponent, useCallback, useEffect, useReducer, useRef, useState } from 'react';
 import Split from 'react-split';
 import { useRecoilValue } from 'recoil';
 import { selectedOrgState } from '../../app-state';
+import PlatformEventMonitorListenerCard from './PlatformEventMonitorListenerCard';
+import { usePlatformEvent } from './usePlatformEvent';
 
 // eslint-disable-next-line @typescript-eslint/no-empty-interface
 export interface PlatformEventMonitorProps {}
@@ -19,7 +19,6 @@ export interface PlatformEventMonitorProps {}
 export const PlatformEventMonitor: FunctionComponent<PlatformEventMonitorProps> = ({}) => {
   const isMounted = useRef(null);
   const selectedOrg = useRecoilValue<SalesforceOrgUi>(selectedOrgState);
-  // TODO: include callback function of event data
   const { platformEvents, messagesByChannel, loadingPlatformEvents, publish, subscribe, unsubscribe } = usePlatformEvent({ selectedOrg });
 
   const [
@@ -103,6 +102,7 @@ export const PlatformEventMonitor: FunctionComponent<PlatformEventMonitorProps> 
 
   return (
     <AutoFullHeightContainer className="slds-p-horizontal_x-small slds-scrollable_none">
+      {/* <PlatformEventMonitorTestCometDBrowser org={selectedOrg} /> */}
       <Split
         sizes={[66, 33]}
         minSize={[300, 300]}
