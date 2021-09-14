@@ -7,6 +7,7 @@ import Icon from './Icon';
 
 export interface CopyToClipboardProps {
   className?: string;
+  buttonText?: string;
   type?: 'icon' | 'button';
   iconClassName?: string;
   icon?: IconObj;
@@ -21,6 +22,7 @@ export interface CopyToClipboardProps {
 
 export const CopyToClipboard: FunctionComponent<CopyToClipboardProps> = ({
   className,
+  buttonText = 'Copy to Clipboard',
   type = 'icon',
   icon = { type: 'utility', icon: 'copy', description: 'copy to clipboard' },
   size,
@@ -72,7 +74,7 @@ export const CopyToClipboard: FunctionComponent<CopyToClipboardProps> = ({
         icon={currentIcon.icon}
         description={currentIcon.description}
       />
-      {type === 'button' ? 'Copy to Clipboard' : null}
+      {type === 'button' ? buttonText : null}
     </button>
   );
 };

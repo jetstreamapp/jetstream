@@ -5,7 +5,7 @@ import { ENV } from './env-config';
 
 const log: Array<Prisma.LogLevel | Prisma.LogDefinition> = ['info'];
 
-if (ENV.ENVIRONMENT === 'development' || ENV.ENVIRONMENT === 'test') {
+if (ENV.PRISMA_DEBUG) {
   log.push('query');
 }
 

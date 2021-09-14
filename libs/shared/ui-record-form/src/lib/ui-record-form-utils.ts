@@ -1,6 +1,6 @@
 import { sortQueryFields } from '@jetstream/shared/ui-utils';
 import { CloneEditView, PicklistFieldValues, Record } from '@jetstream/types';
-import { Field, FieldType } from 'jsforce';
+import { DescribeSObjectResult, Field, FieldType } from 'jsforce';
 import isString from 'lodash/isString';
 import {
   EditableFieldCheckbox,
@@ -129,4 +129,25 @@ export function convertMetadataToEditableFields(
       return output as EditableFields;
     }
   );
+}
+
+// UI API is not supported, artificially build picklist values
+export function mockPicklistValuesFromSobjectDescribe(sobjectMetadata: DescribeSObjectResult): PicklistFieldValues {
+  return sobjectMetadata.fields
+    .filter((field) => field.type === 'picklist' || field.type === 'multipicklist')
+    .reduce((output: PicklistFieldValues, field) => {
+      output[field.name] = {
+        eTag: '',
+        url: '',
+        controllerValues: {},
+        defaultValue: field.defaultValue,
+        values: field.picklistValues.map(({ label, value, validFor }) => ({
+          attributes: null,
+          label,
+          value,
+          validFor: [],
+        })),
+      };
+      return output;
+    }, {});
 }
