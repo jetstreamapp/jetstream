@@ -1,11 +1,12 @@
 /** @jsx jsx */
 import { jsx } from '@emotion/react';
-import { FEATURE_FLAGS } from '@jetstream/shared/constants';
+import { ANALYTICS_KEYS, FEATURE_FLAGS } from '@jetstream/shared/constants';
 import { hasFeatureFlagAccess } from '@jetstream/shared/ui-utils';
 import { Modal } from '@jetstream/ui';
 import { Fragment, FunctionComponent, useEffect, useState } from 'react';
 import { useRecoilState } from 'recoil';
 import { selectUserPreferenceState } from '../../app-state';
+import { useAmplitude } from '../core/analytics';
 
 export interface NotificationsRequestModalProps {
   featureFlags: Set<string>;
@@ -28,6 +29,7 @@ export const NotificationsRequestModal: FunctionComponent<NotificationsRequestMo
 }) => {
   const [userPreferences, setUserPreferences] = useRecoilState(selectUserPreferenceState);
   const [isOpen, setIsOpen] = useState(false);
+  const { trackEvent } = useAmplitude();
 
   // ask user for notification permissions on load
   useEffect(() => {
@@ -35,6 +37,7 @@ export const NotificationsRequestModal: FunctionComponent<NotificationsRequestMo
       if (userInitiated || (!userPreferences.deniedNotifications && window.Notification.permission === 'default')) {
         if (hasFeatureFlagAccess(featureFlags, FEATURE_FLAGS.NOTIFICATIONS)) {
           setTimeout(() => setIsOpen(true), loadDelay);
+          trackEvent(ANALYTICS_KEYS.notifications_modal_opened, { userInitiated, currentPermission: window.Notification.permission });
         }
       }
     }
@@ -50,6 +53,7 @@ export const NotificationsRequestModal: FunctionComponent<NotificationsRequestMo
     if (onClose) {
       onClose(permission === 'granted');
     }
+    trackEvent(ANALYTICS_KEYS.notifications_permission_requested, { permission });
   }
 
   async function handleEnable() {

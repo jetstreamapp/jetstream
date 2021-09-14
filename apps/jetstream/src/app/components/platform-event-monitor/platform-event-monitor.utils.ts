@@ -31,7 +31,7 @@ export function init({
         [HTTP.HEADERS.X_SFDC_API_VERSION]: defaultApiVersion,
       },
       appendMessageTypeToURL: false,
-      logLevel: 'debug',
+      // logLevel: 'debug',
     });
 
     cometd.registerExtension(CometdReplayExtension.EXT_NAME, new CometdReplayExtension());
@@ -41,19 +41,19 @@ export function init({
         logger.log('[COMETD][HANDSHAKE][SUCCESS]');
         resolve(cometd);
       } else {
-        logger.warn('[COMETD][HANDSHAKE][ERROR] -', shake.error);
+        logger.warn('[COMETD][HANDSHAKE][ERROR]', shake.error);
         reject(shake);
       }
     });
 
     cometd.addListener('/meta/connect', (message) => {
-      logger.log('[COMETD] connect -', message);
+      logger.log('[COMETD] connect', message);
     });
     cometd.addListener('/meta/disconnect', (message) => {
-      logger.log('[COMETD] disconnect -', message);
+      logger.log('[COMETD] disconnect', message);
     });
     cometd.addListener('/meta/unsuccessful', (message) => {
-      logger.log('[COMETD] unsuccessful -', message);
+      logger.log('[COMETD] unsuccessful', message);
     });
     cometd.onListenerException = (exception, subscriptionHandle, isListener, message) => {
       logger.warn('[COMETD][LISTENER][ERROR]', exception?.message, message, subscriptionHandle);
