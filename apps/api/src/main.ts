@@ -80,7 +80,7 @@ app.use(
         frameAncestors: ["'self'", '*.google.com'],
         imgSrc: ["'self'", 'data:', '*.gravatar.com', '*.wp.com', '*.cloudinary.com', '*.googleusercontent.com'],
         objectSrc: ["'none'"],
-        scriptSrc: ["'self'", '*.google.com', '*.gstatic.com'],
+        scriptSrc: ["'self'", 'blob:', '*.google.com', '*.gstatic.com'],
         scriptSrcAttr: ["'none'"],
         styleSrc: ["'self'", 'https:', "'unsafe-inline'"],
         upgradeInsecureRequests: [],
