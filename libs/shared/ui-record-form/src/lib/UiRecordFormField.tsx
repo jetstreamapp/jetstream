@@ -13,13 +13,15 @@ import { Fragment, FunctionComponent, ReactNode, SyntheticEvent, useEffect, useS
 import { EditableFields } from './ui-record-form-types';
 import { isCheckbox, isDate, isDateTime, isInput, isPicklist, isTextarea } from './ui-record-form-utils';
 
-/* eslint-disable-next-line */
+const REPLACE_NON_NUMERIC = /[^\d.-]/g;
+
 export interface UiRecordFormFieldProps {
   field: EditableFields;
   saveError?: string;
   disabled?: boolean;
   initialValue: string | boolean | null;
   showFieldTypes: boolean;
+  omitUndoIndicator?: boolean;
   // picklist values are converted to strings prior to emitting
   onChange: (field: EditableFields, value: string | boolean | null, isDirty: boolean) => void;
 }
@@ -33,6 +35,7 @@ export const UiRecordFormField: FunctionComponent<UiRecordFormFieldProps> = ({
   disabled,
   initialValue: _initialValue,
   showFieldTypes,
+  omitUndoIndicator,
   onChange,
 }) => {
   const { label, name, labelHelpText, readOnly, metadata } = field;
@@ -63,6 +66,13 @@ export const UiRecordFormField: FunctionComponent<UiRecordFormFieldProps> = ({
     if (initialValue && (isDate(field) || isDateTime(field))) {
       return parseISO(initialValue as string);
     }
+  });
+
+  const [formatter] = useState(() => {
+    if (metadata.type === 'currency' || metadata.type === 'double' || metadata.type === 'int' || metadata.type === 'percent') {
+      return (value: string) => (value ? value.replace(REPLACE_NON_NUMERIC, '') : value);
+    }
+    return (value: string) => value;
   });
 
   useEffect(() => {
@@ -111,7 +121,7 @@ export const UiRecordFormField: FunctionComponent<UiRecordFormFieldProps> = ({
   }
 
   function handleInputChange(event: SyntheticEvent<HTMLInputElement | HTMLTextAreaElement>) {
-    setValue(event.currentTarget.value);
+    setValue(formatter(event.currentTarget.value));
   }
 
   function handleInputBlur(event: SyntheticEvent<HTMLInputElement | HTMLTextAreaElement>) {
@@ -157,9 +167,11 @@ export const UiRecordFormField: FunctionComponent<UiRecordFormFieldProps> = ({
     checkIfDirtyAndEmit(initialValue as any);
   }
 
+  const showAsDirty = isDirty && !omitUndoIndicator;
+
   return (
-    <Grid className={classNames('slds-size_1-of-1 slds-p-horizontal--x-small', { 'active-item-yellow-bg': isDirty })} vertical>
-      {isDirty && (
+    <Grid className={classNames('slds-size_1-of-1 slds-p-horizontal--x-small', { 'active-item-yellow-bg': showAsDirty })} vertical>
+      {showAsDirty && (
         <div
           css={css`
             margin-left: auto;

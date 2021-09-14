@@ -1,51 +1,65 @@
-import { json, urlencoded, raw } from 'body-parser';
+import { HTTP, SESSION_EXP_DAYS } from '@jetstream/shared/constants';
+import { ApplicationCookie } from '@jetstream/types';
+import { json, raw, urlencoded } from 'body-parser';
+import * as pgSimple from 'connect-pg-simple';
 import * as cors from 'cors';
 import * as express from 'express';
-import { join } from 'path';
-import { apiRoutes, landingRoutes, oauthRoutes, staticAuthenticatedRoutes } from './app/routes';
-import { logRoute, notFoundMiddleware } from './app/routes/route.middleware';
-import { uncaughtErrorHandler, healthCheck } from './app/utils/response.handlers';
-import { environment } from './environments/environment';
+import proxy from 'express-http-proxy';
 import * as session from 'express-session';
-import * as pgSimple from 'connect-pg-simple';
-import { pgPool } from './app/config/db.config';
-import { SESSION_EXP_DAYS, HTTP } from '@jetstream/shared/constants';
-import { ApplicationCookie } from '@jetstream/types';
-import { logger } from './app/config/logger.config';
+import * as helmet from 'helmet';
 import * as passport from 'passport';
 import * as Auth0Strategy from 'passport-auth0';
+import { join } from 'path';
+import { pgPool } from './app/config/db.config';
 import { ENV } from './app/config/env-config';
-import * as helmet from 'helmet';
-import proxy from 'express-http-proxy';
+import { logger } from './app/config/logger.config';
+import { initSocketServer } from './app/controllers/socket.controller';
+import { apiRoutes, landingRoutes, oauthRoutes, platformEventRoutes, staticAuthenticatedRoutes } from './app/routes';
+import { logRoute, notFoundMiddleware } from './app/routes/route.middleware';
+import { healthCheck, uncaughtErrorHandler } from './app/utils/response.handlers';
+import { environment } from './environments/environment';
 
 const pgSession = pgSimple(session);
 
+const sessionMiddleware = session({
+  store: new pgSession({
+    pool: pgPool,
+    tableName: 'sessions',
+  }),
+  cookie: {
+    path: '/',
+    // httpOnly: true,
+    secure: environment.production,
+    maxAge: 1000 * 60 * 60 * 24 * SESSION_EXP_DAYS,
+    // sameSite: 'strict',
+  },
+  secret: ENV.JESTREAM_SESSION_SECRET,
+  resave: false,
+  saveUninitialized: false,
+  name: 'sessionid',
+});
+
+passport.serializeUser(function (user, done) {
+  done(null, user);
+});
+
+passport.deserializeUser(function (user, done) {
+  done(null, user);
+});
+
+const passportInitMiddleware = passport.initialize();
+const passportMiddleware = passport.session();
+
 const app = express();
+const httpServer = initSocketServer(app, [sessionMiddleware, passportInitMiddleware, passportMiddleware]);
 
 if (environment.production) {
   app.set('trust proxy', 1); // required for environments such as heroku / {render?}
 }
 
 // Setup session
-app.use(
-  session({
-    store: new pgSession({
-      pool: pgPool,
-      tableName: 'sessions',
-    }),
-    cookie: {
-      path: '/',
-      // httpOnly: true,
-      secure: environment.production,
-      maxAge: 1000 * 60 * 60 * 24 * SESSION_EXP_DAYS,
-      // sameSite: 'strict',
-    },
-    secret: ENV.JESTREAM_SESSION_SECRET,
-    resave: false,
-    saveUninitialized: false,
-    name: 'sessionid',
-  })
-);
+app.use(sessionMiddleware);
+
 // app.use(compression());
 app.use(
   helmet({
@@ -66,7 +80,7 @@ app.use(
         frameAncestors: ["'self'", '*.google.com'],
         imgSrc: ["'self'", 'data:', '*.gravatar.com', '*.wp.com', '*.cloudinary.com', '*.googleusercontent.com'],
         objectSrc: ["'none'"],
-        scriptSrc: ["'self'", '*.google.com', '*.gstatic.com'],
+        scriptSrc: ["'self'", 'blob:', '*.google.com', '*.gstatic.com'],
         scriptSrcAttr: ["'none'"],
         styleSrc: ["'self'", 'https:', "'unsafe-inline'"],
         upgradeInsecureRequests: [],
@@ -120,16 +134,24 @@ passport.use(
   )
 );
 
-passport.serializeUser(function (user, done) {
-  done(null, user);
-});
+app.use(passportInitMiddleware);
+app.use(passportMiddleware);
 
-passport.deserializeUser(function (user, done) {
-  done(null, user);
-});
-
-app.use(passport.initialize());
-app.use(passport.session());
+// proxy must be provided prior to body parser to ensure streaming response
+if (ENV.ENVIRONMENT === 'development') {
+  app.options(
+    '*',
+    logRoute,
+    (req: express.Request, res: express.Response, next: express.NextFunction) => {
+      res.setHeader('Access-Control-Allow-Credentials', 'true');
+      next();
+    },
+    cors({ origin: true })
+  );
+  app.use('/platform-event', logRoute, cors({ origin: /http:\/\/localhost:[0-9]+$/ }), platformEventRoutes);
+} else {
+  app.use('/platform-event', logRoute, platformEventRoutes);
+}
 
 app.use(raw({ limit: '30mb', type: ['text/csv'] }));
 app.use(raw({ limit: '30mb', type: ['application/zip'] }));
@@ -142,13 +164,18 @@ app.use('/static', logRoute, staticAuthenticatedRoutes); // these are routes tha
 app.use('/landing', logRoute, landingRoutes);
 app.use('/oauth', logRoute, oauthRoutes); // NOTE: there are also static files with same path
 
-const server = app.listen(Number(ENV.PORT), () => {
+// const server = app.listen(Number(ENV.PORT), () => {
+//   logger.info('Listening at http://localhost:' + ENV.PORT);
+// });
+
+const server = httpServer.listen(Number(ENV.PORT), () => {
   logger.info('Listening at http://localhost:' + ENV.PORT);
 });
 
 if (!environment.production) {
   app.use(cors({ origin: /http:\/\/localhost:[0-9]+$/ }));
 }
+
 app.use('/codicon.ttf', (req: express.Request, res: express.Response) => {
   res.sendFile(join(__dirname, './assets/js/monaco/vs/base/browser/ui/codicons/codicon/codicon.ttf'), { maxAge: '1m' });
 });

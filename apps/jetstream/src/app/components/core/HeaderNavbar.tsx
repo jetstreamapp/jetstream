@@ -124,6 +124,12 @@ export const HeaderNavbar: FunctionComponent<HeaderNavbarProps> = ({ userProfile
               { id: 'apex', path: '/apex', title: 'Anonymous Apex', label: 'Anonymous Apex' },
               { id: 'debug-logs', path: '/debug-logs', title: 'View Debug Logs', label: 'View Debug Logs' },
               { id: 'salesforce-api', path: '/salesforce-api', title: 'Salesforce API', label: 'Salesforce API' },
+              {
+                id: 'platform-event-monitor',
+                path: '/platform-event-monitor',
+                title: 'Platform Events',
+                label: 'Platform Events',
+              },
             ]}
           />
           <NavbarItem path="/feedback" title="Feedback" label="Support / Feedback" />

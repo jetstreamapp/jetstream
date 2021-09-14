@@ -98,6 +98,16 @@ export interface SuccessResult {
   id: string;
   success: true;
 }
+
+export interface PlatformEventResult {
+  errors: {
+    fields: string[];
+    message: string;
+    statusCode: string;
+  }[];
+  id?: string;
+  success: boolean;
+}
 // NOTE: this type is returned for composite API if an array of data is passed to SFDC
 // if one record, then the source in the jsforce type library is used
 export type RecordResult = SuccessResult | ErrorResult;
@@ -111,6 +121,8 @@ export interface SobjectCollectionRequest {
 export type SobjectCollectionRequestRecord<T = { [field: string]: any }> = T & { attributes: { type: string } };
 
 export type SobjectCollectionResponse = RecordResult[];
+
+export type PlatformEventCollectionResponse = PlatformEventResult[];
 
 export interface CompositeGraphRequestBody {
   graphs: CompositeGraphRequest[];

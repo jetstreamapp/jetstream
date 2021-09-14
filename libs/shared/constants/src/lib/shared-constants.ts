@@ -133,6 +133,9 @@ export const DATE_FORMATS = {
 };
 
 export const ANALYTICS_KEYS = {
+  /** Browser Notifications */
+  notifications_modal_opened: 'notifications_modal_opened',
+  notifications_permission_requested: 'notifications_permission_requested',
   /** QUERY */
   query_BulkDelete: 'query_BulkDelete',
   query_CopyToClipboard: 'query_CopyToClipboard',
@@ -171,6 +174,10 @@ export const ANALYTICS_KEYS = {
   deploy_download: 'deploy_download',
   deploy_downloadMetadataPkg: 'deploy_downloadMetadataPkg',
   deploy_finished: 'deploy_finished',
+  /** Platform Event */
+  platform_event_subscribed: 'platform_event_subscribed',
+  platform_event_unsubscribe: 'platform_event_unsubscribe',
+  platform_event_publish: 'platform_event_publish',
 };
 
 export const LOG_LEVELS = ['NONE', 'ERROR', 'WARN', 'INFO', 'DEBUG', 'FINE', 'FINER', 'FINEST'];
@@ -185,5 +192,13 @@ export const TITLES = {
   ANON_APEX: 'Anonymous Apex | Jetstream',
   DEBUG_LOGS: 'Debug Logs | Jetstream',
   API_EXPLORER: 'Salesforce Api | Jetstream',
+  PLATFORM_EVENTS: 'Platform Events | Jetstream',
   FEEDBACK: 'Support & Feedback | Jetstream',
+};
+
+export const SOCKET_EVENTS = {
+  // PLATFORM EVENT
+  PLATFORM_EVENT_MESSAGE: 'platform-event:message',
+  PLATFORM_EVENT_SUBSCRIBE: 'platform-event:subscribe',
+  PLATFORM_EVENT_UNSUBSCRIBE: 'platform-event:unsubscribe',
 };

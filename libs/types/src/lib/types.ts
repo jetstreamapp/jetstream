@@ -185,3 +185,25 @@ export interface BulkApiCreateJobRequestPayload {
   externalId?: string;
   assignmentRuleId?: string;
 }
+
+export interface SocketAck<T = any> {
+  success: boolean;
+  error?: string;
+  data?: T;
+}
+
+export interface PlatformEventMessage<T = any> {
+  channel: string;
+  data: PlatformEventMessagePayload<T>;
+}
+
+export interface PlatformEventMessagePayload<T = any> {
+  schema: string;
+  payload: T;
+  event: PlatformEventMessageData;
+}
+
+export interface PlatformEventMessageData {
+  EventUuid: string;
+  replayId: number;
+}

@@ -53,6 +53,10 @@ export async function signUpNotify(email: string): Promise<DescribeGlobalResult>
 }
 
 //// APPLICATION ROUTES
+export async function platformEventProxyTest(org: SalesforceOrgUi): Promise<{ version: string }> {
+  return handleRequest({ method: 'GET', url: '/platform-event' }, { org }).then(unwrapResponseIgnoreCache);
+}
+
 export async function checkHeartbeat(): Promise<{ version: string }> {
   return handleRequest({ method: 'GET', url: '/api/heartbeat' }).then(unwrapResponseIgnoreCache);
 }

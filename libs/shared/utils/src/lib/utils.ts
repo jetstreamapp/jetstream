@@ -336,6 +336,13 @@ export function ensureArray<T = unknown>(value: T): T {
   return (Array.isArray(value) ? value : [value]) as T;
 }
 
+export function ensureStringValue(value: string, allowedValues: string[], fallback?: string): string | undefined {
+  if (isNil(value)) {
+    return fallback;
+  }
+  return allowedValues.find((v) => value.toLowerCase() === v.toLowerCase()) || fallback;
+}
+
 /**
  * Returns a promise that is delayed by {milliseconds}
  * @param milliseconds

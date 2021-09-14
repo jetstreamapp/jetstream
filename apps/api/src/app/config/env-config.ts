@@ -1,3 +1,4 @@
+import { ensureBoolean, ensureStringValue } from '@jetstream/shared/utils';
 import * as dotenv from 'dotenv';
 dotenv.config();
 
@@ -12,6 +13,8 @@ export const ENV = {
   JETSTREAM_SERVER_URL: process.env.JETSTREAM_SERVER_URL,
   JESTREAM_POSTGRES_DBURI: process.env.JESTREAM_POSTGRES_DBURI,
   JETSTREAM_CLIENT_URL: process.env.JETSTREAM_CLIENT_URL,
+  PRISMA_DEBUG: ensureBoolean(process.env.PRISMA_DEBUG),
+  COMETD_DEBUG: ensureStringValue(process.env.COMETD_DEBUG, ['error', 'warn', 'info', 'debug']) as 'error' | 'warn' | 'info' | 'debug',
   // AUTH
   AUTH0_DOMAIN: process.env.AUTH0_DOMAIN,
   AUTH0_CLIENT_ID: process.env.AUTH0_CLIENT_ID,
