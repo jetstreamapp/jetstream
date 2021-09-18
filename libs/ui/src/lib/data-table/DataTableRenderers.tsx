@@ -20,7 +20,7 @@ import Modal from '../modal/Modal';
 import CopyToClipboard from '../widgets/CopyToClipboard';
 import Icon from '../widgets/Icon';
 import SalesforceLogin from '../widgets/SalesforceLogin';
-import './data-table-styles.scss';
+import './data-table-styles.css';
 import {
   DataTableContext,
   getSfdcRetUrl,

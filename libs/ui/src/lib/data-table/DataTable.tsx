@@ -14,7 +14,7 @@ import { SetFilterModule } from '@ag-grid-enterprise/set-filter';
 import { jsx } from '@emotion/react';
 import { SalesforceOrgUi } from '@jetstream/types';
 import { CSSProperties, FunctionComponent } from 'react';
-import './data-table-styles.scss';
+import './data-table-styles.css';
 import { getContextMenuItems, handleCellDoubleClicked, handleCellKeydown, processCellForClipboard } from './data-table-utils';
 import {
   ActionRenderer,

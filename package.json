@@ -24,6 +24,7 @@
     "build:api:test": "nx build api --configuration=test",
     "build:landing": "NODE_ENV=production nx run landing:export",
     "build:storybook": "build-storybook -c libs/ui/.storybook -o dist/storybook -s node_modules/@salesforce-ux/design-system/assets/styles",
+    "build:data-table-css": "node tools/process-sass.js",
     "db:generate": "prisma generate",
     "db:migrate": "prisma migrate deploy",
     "icons:build": "npm-run-all icons:build:*",
