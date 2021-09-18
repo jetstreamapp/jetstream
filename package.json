@@ -53,6 +53,9 @@
     "workspace-generator": "nx workspace-generator"
   },
   "private": true,
+  "prisma": {
+    "seed": "prisma/seed.sh"
+  },
   "dependencies": {
     "@ag-grid-community/client-side-row-model": "^26.0.0",
     "@ag-grid-community/core": "^26.0.0",
@@ -75,7 +78,7 @@
     "@octokit/graphql": "^4.7.0",
     "@octokit/rest": "^18.9.1",
     "@popperjs/core": "^2.4.0",
-    "@prisma/client": "^2.30.0",
+    "@prisma/client": "^3.0.2",
     "@salesforce-ux/design-system": "^2.13.7",
     "@tailwindcss/aspect-ratio": "^0.2.0",
     "@tailwindcss/forms": "^0.2.1",
@@ -102,7 +105,7 @@
     "ag-grid-react": "^26.0.0",
     "amplitude-js": "^7.4.0",
     "async": "^3.2.0",
-    "axios": "^0.21.1",
+    "axios": "^0.21.4",
     "classnames": "^2.2.6",
     "cloudinary": "^1.26.3",
     "cometd": "^7.0.4",
@@ -234,7 +237,7 @@
     "postcss": "^7.0.35",
     "postcss-preset-env": "^6.7.0",
     "prettier": "2.2.1",
-    "prisma": "^2.30.0",
+    "prisma": "^3.0.2",
     "sass": "^1.41.1",
     "sass-loader": "^10.0.4",
     "storybook-react-router": "^1.0.8",
