@@ -118,16 +118,11 @@ export const SalesforceApiExamplesModal: FunctionComponent<SalesforceApiExamples
                     label: 'Use Request',
                     onClick: handleExecute,
                   },
-                  suppressRowClickSelection: true,
                   rowSelection: null,
-                  headerHeight: 25,
-                  gridOptions: {
-                    immutableData: true,
-                    getRowNodeId: (data: SalesforceApiRequest) => data.id,
-                    defaultColDef: { filter: true, sortable: true, resizable: true },
-                    tooltipMouseTrack: true,
-                    tooltipShowDelay: 0,
-                  },
+                  immutableData: true,
+                  getRowNodeId: (data: SalesforceApiRequest) => data.id,
+                  tooltipMouseTrack: true,
+                  tooltipShowDelay: 0,
                 }}
               />
             </AutoFullHeightContainer>

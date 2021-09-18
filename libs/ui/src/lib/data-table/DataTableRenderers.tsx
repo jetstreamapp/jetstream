@@ -189,15 +189,6 @@ export const SubqueryRenderer: FunctionComponent<ICellRendererParams> = ({ colDe
                       rowSelection: null,
                       immutableData: true,
                       getRowNodeId: (data) => getRowNodeId(data),
-                      suppressMenuHide: true,
-                      headerHeight: 25,
-                      gridOptions: {
-                        defaultColDef: {
-                          filter: true,
-                          sortable: true,
-                          resizable: true,
-                        },
-                      },
                     }}
                   />
                 </AutoFullHeightContainer>

@@ -2,7 +2,7 @@ export * from './lib/accordion/Accordion';
 export * from './lib/alert/Alert';
 export * from './lib/card/Card';
 export * from './lib/confirmation-dialog/ConfirmationDialog';
-export { DateFilterComparator, getCheckboxColumnDef } from './lib/data-table/data-table-utils';
+export * from './lib/data-table/data-table-utils';
 export * from './lib/data-table/DataTable';
 export * from './lib/data-table/SalesforceRecordDataTable';
 export * from './lib/expression-group/expression-utils';

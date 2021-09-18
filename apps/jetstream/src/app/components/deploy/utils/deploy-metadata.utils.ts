@@ -92,6 +92,8 @@ export function getColumnDefinitions(): ColDef[] {
       colId: 'typeLabel',
       field: 'typeLabel',
       width: 200,
+      rowGroup: true,
+      hide: true,
     },
     {
       headerName: 'Name',
@@ -113,9 +115,9 @@ export function getColumnDefinitions(): ColDef[] {
       width: 202,
       valueFormatter: dataTableDateFormatter,
       getQuickFilterText: dataTableDateFormatter,
-      filter: 'agDateColumnFilter',
       filterParams: {
         comparator: DateFilterComparator,
+        filters: [{ filter: 'agDateColumnFilter', filterParams: { defaultOption: 'greaterThan' } }, { filter: 'agSetColumnFilter' }],
       },
     },
     {
@@ -131,9 +133,9 @@ export function getColumnDefinitions(): ColDef[] {
       width: 202,
       valueFormatter: dataTableDateFormatter,
       getQuickFilterText: dataTableDateFormatter,
-      filter: 'agDateColumnFilter',
       filterParams: {
         comparator: DateFilterComparator,
+        filters: [{ filter: 'agDateColumnFilter', filterParams: { defaultOption: 'greaterThan' } }, { filter: 'agSetColumnFilter' }],
       },
     },
     {

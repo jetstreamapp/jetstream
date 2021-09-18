@@ -118,6 +118,10 @@ export function isAKey(event: KeyboardEvent<unknown>): boolean {
   return event.key === 'a' || event.key === 'A' || event.keyCode === 65;
 }
 
+export function isCKey(event: KeyboardEvent<unknown>): boolean {
+  return event.key === 'c' || event.key === 'c' || event.keyCode === 67;
+}
+
 export function isHKey(event: KeyboardEvent<unknown>): boolean {
   return event.key === 'h' || event.key === 'H' || event.keyCode === 72;
 }

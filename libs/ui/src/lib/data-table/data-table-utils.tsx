@@ -3,15 +3,20 @@ import {
   CellEvent,
   CellKeyDownEvent,
   ColDef,
+  ColGroupDef,
   ColumnEvent,
+  GetContextMenuItemsParams,
   GetQuickFilterTextParams,
+  MenuItemDef,
+  ProcessCellForExportParams,
   RowNode,
   ValueFormatterParams,
+  ValueGetterParams,
 } from '@ag-grid-community/core';
 import { QueryResults, QueryResultsColumn } from '@jetstream/api-interfaces';
 import { DATE_FORMATS } from '@jetstream/shared/constants';
-import { isEnterKey, polyfillFieldDefinition } from '@jetstream/shared/ui-utils';
-import { queryResultColumnToTypeLabel } from '@jetstream/shared/utils';
+import { getValueForExcel, isEnterKey, polyfillFieldDefinition } from '@jetstream/shared/ui-utils';
+import { queryResultColumnToTypeLabel, REGEX } from '@jetstream/shared/utils';
 import { MapOf, SalesforceOrgUi } from '@jetstream/types';
 import copy from 'copy-to-clipboard';
 import formatDate from 'date-fns/format';
@@ -25,6 +30,9 @@ import isObject from 'lodash/isObject';
 import { createContext } from 'react';
 import { FieldSubquery, getFlattenedFields, isFieldSubquery } from 'soql-parser-js';
 import './data-table-styles.scss';
+
+const copyShortcut = navigator.userAgent.indexOf('Mac OS X') == -1 ? 'Cmd+C' : 'Ctrl+C';
+
 export interface SalesforceAddressField {
   city?: string;
   country?: string;
@@ -90,6 +98,18 @@ export const DataTableContext = createContext<DataTableContextValue>({
   google_clientId: null,
 });
 
+export function getDefaultColumnDef() {
+  return {
+    filter: true,
+    filterParams: {
+      buttons: ['reset'],
+    },
+    menuTabs: ['filterMenuTab', 'generalMenuTab', 'columnsMenuTab'],
+    sortable: true,
+    resizable: true,
+  };
+}
+
 export function getCheckboxColumnDef(includeActions?: boolean): ColDef {
   return {
     cellRenderer: includeActions ? 'actionRenderer' : undefined,
@@ -101,6 +121,9 @@ export function getCheckboxColumnDef(includeActions?: boolean): ColDef {
     sortable: false,
     resizable: false,
     pinned: true,
+    lockPinned: true,
+    lockPosition: true,
+    lockVisible: true,
   };
 }
 
@@ -118,7 +141,7 @@ export function DateFilterComparator(filterDate: Date, cellValue: string | Date)
   }
 }
 
-export const dataTableAddressFormatter = ({ value }: ValueFormatterParams | GetQuickFilterTextParams): string => {
+export const dataTableAddressValueFormatter = (value: any): string => {
   if (!isObject(value)) {
     return '';
   }
@@ -127,6 +150,13 @@ export const dataTableAddressFormatter = ({ value }: ValueFormatterParams | GetQ
   const remainingParts = [address.city, address.state, address.postalCode, address.country].filter((part) => !!part).join(', ');
   return [street, remainingParts].join('\n');
 };
+
+export const dataTableAddressFormatter = ({ value }: ValueFormatterParams | GetQuickFilterTextParams): string => {
+  return dataTableAddressValueFormatter(value);
+};
+
+export const dataTableAddressValueGetter = (header: string) => ({ data }: ValueGetterParams) =>
+  dataTableAddressValueFormatter(data[header]);
 
 export const dataTableLocationFormatter = ({ value }: ValueFormatterParams | GetQuickFilterTextParams): string => {
   if (!isObject(value)) {
@@ -251,9 +281,6 @@ function getColDef(field: string, queryColumnsByPath: MapOf<QueryResultsColumn>,
     headerName: field,
     field: field,
     headerTooltip: field,
-    filterParams: {
-      buttons: ['reset'],
-    },
   };
   const fieldLowercase = field.toLowerCase();
 
@@ -265,15 +292,21 @@ function getColDef(field: string, queryColumnsByPath: MapOf<QueryResultsColumn>,
     colDef.headerTooltip = `${col.columnFullPath} (${queryResultColumnToTypeLabel(col)})`;
     if (col.booleanType) {
       colDef.cellRenderer = 'booleanRenderer';
-      colDef.filter = 'booleanFilterRenderer';
+      colDef.filterParams = {
+        filters: [{ filter: 'agSetColumnFilter' }],
+      };
     } else if (col.numberType) {
-      colDef.filter = 'agNumberColumnFilter';
+      colDef.filterParams = {
+        filters: [{ filter: 'agNumberColumnFilter' }, { filter: 'agSetColumnFilter' }],
+      };
     } else if (col.apexType === 'Id') {
       colDef.cellRenderer = 'idLinkRenderer';
     } else if (col.apexType === 'Date' || col.apexType === 'Datetime') {
       colDef.valueFormatter = dataTableDateFormatter;
       colDef.getQuickFilterText = dataTableDateFormatter;
-      colDef.filter = 'agDateColumnFilter';
+      colDef.filterParams = {
+        filters: [{ filter: 'agDateColumnFilter' }, { filter: 'agSetColumnFilter' }],
+      };
       colDef.filterParams.comparator = DateFilterComparator;
     } else if (col.apexType === 'Time') {
       colDef.valueFormatter = dataTableTimeFormatter;
@@ -282,8 +315,20 @@ function getColDef(field: string, queryColumnsByPath: MapOf<QueryResultsColumn>,
       // colDef.filter = 'agDateColumnFilter';
       // colDef.filterParams.comparator = DateFilterComparator;
     } else if (col.apexType === 'Address') {
-      colDef.valueFormatter = dataTableAddressFormatter;
-      colDef.getQuickFilterText = dataTableAddressFormatter;
+      colDef.valueGetter = dataTableAddressValueGetter(col.columnFullPath);
+      colDef.filterParams = {
+        filters: [
+          {
+            filter: 'agTextColumnFilter',
+          },
+          {
+            filter: 'agSetColumnFilter',
+            filterParams: {
+              valueFormatter: ({ value }: ValueFormatterParams) => (value ? value.replace(REGEX.NEW_LINE, ' ') : value),
+            },
+          },
+        ],
+      };
     } else if (col.apexType === 'Location') {
       colDef.valueFormatter = dataTableLocationFormatter;
       colDef.getQuickFilterText = dataTableLocationFormatter;
@@ -292,6 +337,16 @@ function getColDef(field: string, queryColumnsByPath: MapOf<QueryResultsColumn>,
     } else if (Array.isArray(col.childColumnPaths)) {
       colDef.cellRenderer = 'subqueryRenderer';
       colDef.valueGetter = (params) => params.data[params.colDef.field]?.records;
+      colDef.filterParams = {
+        filters: [
+          {
+            filter: 'agSetColumnFilter',
+            filterParams: {
+              valueFormatter: ({ value }: ValueFormatterParams) => (value ? `Has Child Records` : 'No Child Records'),
+            },
+          },
+        ],
+      };
     }
   } else {
     // we do not have any metadata from SFDC, so we will try to detect basic scenarios
@@ -366,6 +421,11 @@ export function handleCellKeydown(props: CellKeyDownEvent) {
   if (event && isEnterKey(event as any)) {
     handleCellDoubleClicked(props);
   }
+  props.event.preventDefault();
+}
+
+export function processCellForClipboard({ value }: ProcessCellForExportParams) {
+  return getValueForExcel(value);
 }
 
 export function handleCellDoubleClicked(props: CellEvent) {
@@ -393,6 +453,21 @@ export function handleCellDoubleClicked(props: CellEvent) {
   }
 }
 
+export function getContextMenuItems({ api }: GetContextMenuItemsParams): (string | MenuItemDef)[] {
+  return [
+    'autoSizeAll',
+    {
+      name: 'Copy',
+      action: () => api.copySelectedRangeToClipboard(false),
+    },
+    {
+      name: 'Copy with Headers',
+      shortcut: copyShortcut,
+      action: () => api.copySelectedRangeToClipboard(true),
+    },
+  ];
+}
+
 /**
  * Some URLS from salesforce do not allow accessing from id, but have varying URL structures
  * Also, some url paths are not allowed as redirect urls and are flagged to be skipped
@@ -412,4 +487,12 @@ export function getSfdcRetUrl(id: string, record: any): { skipFrontDoorAuth: boo
     default:
       return { skipFrontDoorAuth: false, url: `/${id}` };
   }
+}
+
+export function isColumnGroupDef(val: any): val is ColGroupDef {
+  return Array.isArray(val.children);
+}
+
+export function isColumnDef(val: any): val is ColGroupDef {
+  return !Array.isArray(val.children);
 }

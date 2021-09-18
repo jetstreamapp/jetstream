@@ -1064,6 +1064,21 @@ export function convertArrayOfObjectToArrayOfArray(data: any[], headers?: string
   return [headers].concat(data.map((row) => headers.map((header) => row[header])));
 }
 
+export function getValueForExcel(value: any) {
+  if (isNil(value)) {
+    value = '';
+  } else if (isString(value)) {
+    if (value.includes('\n') || value.includes('\t') || value.includes('"')) {
+      value = `"${value.replace(REGEX.QUOTE, '""')}"`;
+    } else if (value.startsWith('+')) {
+      value = `'${value}`;
+    }
+  } else if (typeof value === 'object') {
+    value = JSON.stringify(value);
+  }
+  return value;
+}
+
 /**
  * Copy an object into a string that is spreadsheet compatible for pasting
  *
@@ -1077,36 +1092,20 @@ export function transformTabularDataToExcelStr<T = unknown>(data: T[], fields?: 
   if (!fields) {
     fields = Object.keys(data[0]);
   }
-  const replaceQuoteRegex = /"/g;
-
-  function getValue(value: any) {
-    if (isNil(value)) {
-      value = '';
-    } else if (isString(value)) {
-      if (value.includes('\n') || value.includes('\t') || value.includes('"')) {
-        value = `"${value.replace(replaceQuoteRegex, '""')}"`;
-      } else if (value.startsWith('+')) {
-        value = `'${value}`;
-      }
-    } else if (typeof value === 'object') {
-      value = JSON.stringify(value);
-    }
-    return value;
-  }
 
   // turn each row into \t delimited string, then combine each row into a string delimited by \n
   let output: string = data
     .map((row) =>
       fields
         .map((field) => {
-          return getValue(row[field]);
+          return getValueForExcel(row[field]);
         })
         .join('\t')
     )
     .join('\n');
 
   if (includeHeader) {
-    output = `${fields.map(getValue).join('\t')}\n${output}`;
+    output = `${fields.map(getValueForExcel).join('\t')}\n${output}`;
   }
 
   return output;

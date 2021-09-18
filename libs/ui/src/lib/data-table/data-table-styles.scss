@@ -16,11 +16,10 @@
   z-index: 1;
 }
 
-// .ag-root,
-// .ag-body-viewport,
-// .ag-body-viewport-wrapper {
-//   overflow: visible !important;
-// }
+.ag-row-group.row-group {
+  font-weight: bold !important;
+  background-color: $color-background-selection !important;
+}
 
 .ag-theme-custom-react {
   @include ag-theme-alpine(

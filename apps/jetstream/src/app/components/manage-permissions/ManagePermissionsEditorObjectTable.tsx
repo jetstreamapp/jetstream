@@ -83,33 +83,51 @@ export const ManagePermissionsEditorObjectTable = forwardRef<any, ManagePermissi
             }}
             agGridProps={{
               pinnedTopRowData: [pinnedSelectAllRow],
-              suppressRowClickSelection: true,
               rowSelection: null,
-              headerHeight: 25,
-              gridOptions: {
-                context: {
-                  isReadOnly: ({ node, column, colDef, context }: ICellRendererParams) => {
-                    if (colDef.colId.endsWith('edit')) {
-                      const data = node.data as PermissionTableObjectCell;
-                      return !data.allowEditPermission;
-                    }
-                    return false;
-                  },
-                  additionalComponent: ErrorTooltipRenderer,
-                  onBulkUpdate: onBulkUpdate,
-                  type: 'object',
+              context: {
+                isReadOnly: ({ node, colDef }: ICellRendererParams) => {
+                  if (colDef.colId.endsWith('edit')) {
+                    const data = node.data as PermissionTableObjectCell;
+                    return !data?.allowEditPermission;
+                  }
+                  return false;
                 },
-                immutableData: true,
-                onCellKeyPress: handleOnCellPressed,
-                getRowNodeId: (data: PermissionTableObjectCell) => data.key,
-                isFullWidthCell: isFullWidthCell,
-                fullWidthCellRenderer: 'fullWidthRenderer',
-                defaultColDef: {
-                  filter: true,
-                  sortable: false,
-                  resizable: true,
-                },
+                additionalComponent: ErrorTooltipRenderer,
+                onBulkUpdate: onBulkUpdate,
+                type: 'object',
               },
+              sideBar: {
+                toolPanels: [
+                  {
+                    id: 'filters',
+                    labelDefault: 'Filters',
+                    labelKey: 'filters',
+                    iconKey: 'filter',
+                    toolPanel: 'agFiltersToolPanel',
+                    toolPanelParams: {
+                      suppressFilterSearch: true,
+                    },
+                  },
+                  {
+                    id: 'columns',
+                    labelDefault: 'Columns',
+                    labelKey: 'columns',
+                    iconKey: 'columns',
+                    toolPanel: 'agColumnsToolPanel',
+                    toolPanelParams: {
+                      suppressRowGroups: true,
+                      suppressValues: true,
+                      suppressPivots: true,
+                      suppressPivotMode: true,
+                    },
+                  },
+                ],
+              },
+              immutableData: true,
+              onCellKeyPress: handleOnCellPressed,
+              getRowNodeId: (data: PermissionTableObjectCell) => data.key,
+              isFullWidthCell: isFullWidthCell,
+              fullWidthCellRenderer: 'fullWidthRenderer',
               getRowHeight: ({ node }) => {
                 if (node.rowPinned) {
                   return 35;

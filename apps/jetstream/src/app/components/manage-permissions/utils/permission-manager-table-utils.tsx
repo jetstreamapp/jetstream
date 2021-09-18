@@ -2,8 +2,10 @@
 import {
   CellClassParams,
   CellKeyPressEvent,
+  CellRendererSelectorResult,
   ColDef,
   ColGroupDef,
+  Column,
   GridApi,
   ICellRendererParams,
   RowNode,
@@ -16,7 +18,7 @@ import { logger } from '@jetstream/shared/client-logger';
 import { formatNumber, isArrowKey, isEnterOrSpace, isTabKey } from '@jetstream/shared/ui-utils';
 import { getMapOf, orderStringsBy, pluralizeFromNumber } from '@jetstream/shared/utils';
 import { MapOf, PermissionSetNoProfileRecord, PermissionSetWithProfileRecord } from '@jetstream/types';
-import { Checkbox, Grid, Icon, Input, Modal, Popover, Tooltip } from '@jetstream/ui';
+import { Checkbox, CheckboxToggle, Grid, Icon, Input, isColumnGroupDef, Modal, Popover, Tooltip } from '@jetstream/ui';
 import { isFunction } from 'lodash';
 import { Fragment, FunctionComponent, useEffect, useState } from 'react';
 import {
@@ -42,7 +44,7 @@ function suppressKeyboardEventOnPinnedInput({ node, event }: SuppressKeyboardEve
 
 export function getObjectValue(which: ObjectPermissionTypes) {
   return ({ node, data, colDef }: ValueGetterParams) => {
-    if (node.isRowPinned()) {
+    if (node.isRowPinned() || !data) {
       return;
     }
     return (data as PermissionTableObjectCell).permissions?.[colDef.field]?.[which] || false;
@@ -64,7 +66,7 @@ export function handleOnCellPressed({ event, node, column, colDef, value, contex
 
 export function setObjectValue(which: ObjectPermissionTypes) {
   return ({ node, colDef, newValue }: ValueSetterParams) => {
-    if (node.isRowPinned()) {
+    if (node.isRowPinned() || !node.data) {
       return;
     }
     const data: PermissionTableObjectCell = node.data;
@@ -94,7 +96,7 @@ export function setObjectValue(which: ObjectPermissionTypes) {
 
 export function getFieldValue(which: ObjectPermissionTypes | FieldPermissionTypes) {
   return ({ node, data, colDef }: ValueGetterParams) => {
-    if (node.isRowPinned()) {
+    if (node.isRowPinned() || !data) {
       return;
     }
     return (data as PermissionTableFieldCell).permissions?.[colDef.field]?.[which] || false;
@@ -103,7 +105,7 @@ export function getFieldValue(which: ObjectPermissionTypes | FieldPermissionType
 
 export function setFieldValue(which: FieldPermissionTypes) {
   return ({ node, colDef, newValue }: ValueSetterParams) => {
-    if (node.isRowPinned()) {
+    if (node.isRowPinned() || !node.data) {
       return;
     }
     const data: PermissionTableFieldCell = node.data;
@@ -161,7 +163,7 @@ function setFieldDependencies(
 
 export function getObjectDirtyValue(which: ObjectPermissionTypes) {
   return ({ node, colDef }: CellClassParams) => {
-    if (node.isRowPinned()) {
+    if (node.isRowPinned() || !node.data) {
       return;
     }
     const data: PermissionTableObjectCell = node.data;
@@ -179,7 +181,7 @@ export function getObjectDirtyValue(which: ObjectPermissionTypes) {
 
 export function getFieldDirtyValue(which: FieldPermissionTypes) {
   return ({ node, colDef }: CellClassParams) => {
-    if (node.isRowPinned()) {
+    if (node.isRowPinned() || !node.data) {
       return;
     }
     const data: PermissionTableFieldCell = node.data;
@@ -189,7 +191,7 @@ export function getFieldDirtyValue(which: FieldPermissionTypes) {
 }
 
 export function isFullWidthCell(rowNode: RowNode) {
-  return rowNode.data.fullWidthRow;
+  return rowNode.data?.fullWidthRow || false;
 }
 
 export function resetGridChanges(gridApi: GridApi, type: PermissionType) {
@@ -267,6 +269,28 @@ export function getDirtyFieldPermissions(dirtyRows: MapOf<DirtyRow<PermissionTab
   );
 }
 
+function getCellRenderer(customNonPinnedRenderer: string, pinnedRenderer?: string, groupedRenderer?: string) {
+  return (params: ICellRendererParams): CellRendererSelectorResult => {
+    const { node } = params;
+    if (node.rowPinned && pinnedRenderer) {
+      return {
+        component: pinnedRenderer,
+      };
+    }
+    if (node.group && groupedRenderer) {
+      return {
+        component: groupedRenderer,
+      };
+    }
+    if (customNonPinnedRenderer) {
+      return {
+        component: customNonPinnedRenderer,
+      };
+    }
+    return null;
+  };
+}
+
 export function getObjectPermissionsColumn(which: ObjectPermissionTypes, id) {
   let headerName = 'Create';
   switch (which) {
@@ -295,15 +319,14 @@ export function getObjectPermissionsColumn(which: ObjectPermissionTypes, id) {
     headerName,
     colId: `${id}-${which}`,
     field: id,
-    filter: 'booleanFilterRenderer',
+    filter: 'agSetColumnFilter',
     valueGetter: getObjectValue(which),
     valueSetter: setObjectValue(which),
     initialWidth: 125,
     cellClassRules: {
       'active-item-yellow-bg': getObjectDirtyValue(which),
     },
-    cellRenderer: 'booleanEditableRenderer',
-    pinnedRowCellRenderer: 'pinnedSelectAllRenderer',
+    cellRendererSelector: getCellRenderer('booleanEditableRenderer', 'pinnedSelectAllRenderer'),
   };
   return colDef;
 }
@@ -313,15 +336,14 @@ export function getFieldPermissionsColumn(which: FieldPermissionTypes, id) {
     headerName: which === 'read' ? 'Read Access' : 'Edit Access',
     colId: `${id}-${which}`,
     field: id,
-    filter: 'booleanFilterRenderer',
+    filter: 'agSetColumnFilter',
     valueGetter: getFieldValue(which),
     valueSetter: setFieldValue(which),
     initialWidth: 135,
     cellClassRules: {
       'active-item-yellow-bg': getFieldDirtyValue(which),
     },
-    cellRenderer: 'booleanEditableRenderer',
-    pinnedRowCellRenderer: 'pinnedSelectAllRenderer',
+    cellRendererSelector: getCellRenderer('booleanEditableRenderer', 'pinnedSelectAllRenderer'),
   };
   return colDef;
 }
@@ -336,29 +358,39 @@ export function getObjectColumns(
     {
       headerName: 'Object',
       field: 'label',
-      lockPosition: true,
       pinned: true,
+      lockPinned: true,
+      lockPosition: true,
+      lockVisible: true,
       filter: 'basicTextFilterRenderer',
-      pinnedRowCellRenderer: 'pinnedInputFilter',
+      cellRendererSelector: getCellRenderer(null, 'pinnedInputFilter'),
       suppressMenu: true,
       suppressKeyboardEvent: suppressKeyboardEventOnPinnedInput,
       filterValueGetter: (params) => {
         const data: PermissionTableFieldCell = params.data;
-        return `${data.label} (${data.apiName})`;
+        return data && `${data.label} (${data.apiName})`;
       },
       valueFormatter: (params) => {
         const data: PermissionTableObjectCell = params.data;
-        return `${data.label} (${data.apiName})`;
+        return data && `${data.label} (${data.apiName})`;
       },
     },
     {
-      cellRendererSelector: ({ node }) => ({ component: node.isRowPinned() ? 'bulkActionRenderer' : 'rowActionRenderer' }),
+      cellRendererSelector: ({ node }: ICellRendererParams) => {
+        if (node.group) {
+          return null;
+        }
+        return { component: node.isRowPinned() ? 'bulkActionRenderer' : 'rowActionRenderer' };
+      },
       width: 100,
       filter: false,
       sortable: false,
+      suppressMenu: true,
       resizable: false,
       pinned: true,
+      lockPinned: true,
       lockPosition: true,
+      lockVisible: true,
       cellStyle: { overflow: 'visible' },
     },
   ];
@@ -482,31 +514,38 @@ export function getFieldColumns(
 ) {
   const newColumns: (ColDef | ColGroupDef)[] = [
     {
+      field: 'sobject',
+      rowGroup: true,
+      hide: true,
+      lockVisible: true,
+    },
+    {
       headerName: 'Field',
       field: 'label',
-      lockPosition: true,
       pinned: true,
-      filter: 'basicTextFilterRenderer',
-      pinnedRowCellRenderer: 'pinnedInputFilter',
-      suppressMenu: true,
+      lockPinned: true,
+      lockPosition: true,
+      lockVisible: true,
       filterValueGetter: (params) => {
         const data: PermissionTableFieldCell = params.data;
         return `${data.sobject} ${data.label} (${data.apiName})`;
       },
       valueFormatter: (params) => {
         const data: PermissionTableFieldCell = params.data;
-        return `${data.label} (${data.apiName})`;
+        return data?.label && `${data.label} (${data.apiName})`;
       },
-      suppressKeyboardEvent: suppressKeyboardEventOnPinnedInput,
     },
     {
       cellRendererSelector: ({ node }) => ({ component: node.isRowPinned() ? 'bulkActionRenderer' : 'rowActionRenderer' }),
       width: 100,
       filter: false,
       sortable: false,
+      suppressMenu: true,
       resizable: false,
       pinned: true,
+      lockPinned: true,
       lockPosition: true,
+      lockVisible: true,
       cellStyle: { overflow: 'visible' },
     },
   ];
@@ -518,7 +557,6 @@ export function getFieldColumns(
       groupId: profileId,
       openByDefault: true,
       marryChildren: true,
-      // headerGroupComponent // TODO: show header name on two rows and add bg color
       children: [getFieldPermissionsColumn('read', profileId), getFieldPermissionsColumn('edit', profileId)],
     };
     newColumns.push(currColumn);
@@ -545,18 +583,6 @@ export function getFieldRows(
 ) {
   const rows: PermissionTableFieldCell[] = [];
   orderStringsBy(selectedSObjects).forEach((sobject) => {
-    // full width row
-    rows.push({
-      key: `${sobject}-fullWidth`,
-      fullWidthRow: true,
-      sobject: sobject,
-      apiName: '',
-      label: sobject,
-      type: null,
-      allowEditPermission: false,
-      permissions: {},
-    });
-
     fieldsByObject[sobject]?.forEach((fieldKey) => {
       const fieldPermission = fieldPermissionMap[fieldKey];
 
@@ -703,7 +729,7 @@ export const PinnedSelectAllRendererWrapper = (type: PermissionType): FunctionCo
     const [id, which] = colDef.colId.split('-');
     const itemsToUpdate: any[] = [];
     api.forEachNodeAfterFilter((rowNode, index) => {
-      if (!rowNode.isRowPinned() && !rowNode.isFullWidthCell()) {
+      if (!rowNode.isRowPinned() && !rowNode.isFullWidthCell() && !rowNode.group) {
         let newValue = action === 'selectAll';
 
         if (type === 'object') {
@@ -797,8 +823,8 @@ export const PinnedSelectAllRendererWrapper = (type: PermissionType): FunctionCo
 export function ErrorTooltipRenderer({ node, column, colDef, context }: ICellRendererParams) {
   const colId = column.getColId();
   const data: PermissionTableCell = node.data;
-  const permission = data.permissions[colDef.field];
-  if (node.isRowPinned() || node.isFullWidthCell() || !permission.errorMessage) {
+  const permission = data?.permissions[colDef.field];
+  if (node.isRowPinned() || !data || node.isFullWidthCell() || !permission?.errorMessage) {
     return undefined;
   }
   return (
@@ -901,24 +927,50 @@ function updateCheckboxDependencies(
   }
 }
 
+function getColumnToApplyTo(columns: Column[], applyTo: 'visible' | 'all') {
+  // Example: {0PS6g000004QCYjGAO: {read: true, edit: true}, 0PS6g000004QCYkGAO: {read: false, edit: false}}
+  return columns.reduce((columnsById: MapOf<MapOf<boolean>>, column) => {
+    const [id, permissionType] = column.getColId().split('-');
+    columnsById[id] = columnsById[id] || {};
+    columnsById[id][permissionType] = applyTo === 'all' ? true : column.isVisible();
+    return columnsById;
+  }, {});
+}
+
 function handleRowPermissionUpdate(
+  columns: Column[],
   rowNode: RowNode,
   type: PermissionType,
   checkboxesById: MapOf<BulkActionCheckbox>,
+  applyTo: 'visible' | 'all',
   arrayToUpdate: any[]
 ) {
+  const columnsToApplyToById = getColumnToApplyTo(columns, applyTo);
   if (type === 'object') {
     const data: PermissionTableObjectCell = rowNode.data;
     if (!data.fullWidthRow && !rowNode.isRowPinned()) {
       Object.values(data.permissions).forEach((permission) => {
-        permission.create = checkboxesById['create'].value;
-        permission.read = checkboxesById['read'].value;
-        if (data.allowEditPermission) {
+        const applyTo = columnsToApplyToById[permission.parentId];
+
+        if (applyTo['create']) {
+          permission.create = checkboxesById['create'].value;
+        }
+        if (applyTo['read']) {
+          permission.read = checkboxesById['read'].value;
+        }
+        if (data.allowEditPermission && applyTo['edit']) {
           permission.edit = checkboxesById['edit'].value;
         }
-        permission.delete = checkboxesById['delete'].value;
-        permission.viewAll = checkboxesById['viewAll'].value;
-        permission.modifyAll = checkboxesById['modifyAll'].value;
+        if (applyTo['delete']) {
+          permission.delete = checkboxesById['delete'].value;
+        }
+        if (applyTo['viewAll']) {
+          permission.viewAll = checkboxesById['viewAll'].value;
+        }
+        if (applyTo['modifyAll']) {
+          permission.modifyAll = checkboxesById['modifyAll'].value;
+        }
+
         permission.createIsDirty = permission.create !== permission.record.create;
         permission.readIsDirty = permission.read !== permission.record.read;
         permission.editIsDirty = permission.edit !== permission.record.edit;
@@ -932,8 +984,11 @@ function handleRowPermissionUpdate(
     const data: PermissionTableFieldCell = rowNode.data;
     if (!data.fullWidthRow && !rowNode.isRowPinned()) {
       Object.values(data.permissions).forEach((permission) => {
-        permission.read = checkboxesById['read'].value;
-        if (data.allowEditPermission) {
+        const applyTo = columnsToApplyToById[permission.parentId];
+        if (applyTo['read']) {
+          permission.read = checkboxesById['read'].value;
+        }
+        if (data.allowEditPermission && applyTo['edit']) {
           permission.edit = checkboxesById['edit'].value;
         }
         permission.readIsDirty = permission.read !== permission.record.read;
@@ -944,32 +999,41 @@ function handleRowPermissionUpdate(
   }
 }
 
-function handleRowPermissionReset(rowNode: RowNode, type: PermissionType, arrayToUpdate: any[]) {
+function handleRowPermissionReset(
+  columns: Column[],
+  rowNode: RowNode,
+  type: PermissionType,
+  applyTo: 'visible' | 'all',
+  arrayToUpdate: any[]
+) {
+  const columnsToApplyToById = getColumnToApplyTo(columns, applyTo);
   if (type === 'object') {
     const data: PermissionTableObjectCell = rowNode.data;
     if (!data.fullWidthRow && !rowNode.isRowPinned()) {
       Object.values(data.permissions).forEach((permission) => {
-        if (permission.createIsDirty) {
+        const applyTo = columnsToApplyToById[permission.parentId];
+
+        if (permission.createIsDirty && applyTo['create']) {
           permission.create = !permission.create;
           permission.createIsDirty = false;
         }
-        if (permission.readIsDirty) {
+        if (permission.readIsDirty && applyTo['read']) {
           permission.read = !permission.read;
           permission.readIsDirty = false;
         }
-        if (permission.editIsDirty) {
+        if (permission.editIsDirty && applyTo['edit']) {
           permission.edit = !permission.edit;
           permission.editIsDirty = false;
         }
-        if (permission.deleteIsDirty) {
+        if (permission.deleteIsDirty && applyTo['delete']) {
           permission.delete = !permission.delete;
           permission.deleteIsDirty = false;
         }
-        if (permission.viewAllIsDirty) {
+        if (permission.viewAllIsDirty && applyTo['viewAll']) {
           permission.viewAll = !permission.viewAll;
           permission.viewAllIsDirty = false;
         }
-        if (permission.modifyAllIsDirty) {
+        if (permission.modifyAllIsDirty && applyTo['modifyAll']) {
           permission.modifyAll = !permission.modifyAll;
           permission.modifyAllIsDirty = false;
         }
@@ -980,11 +1044,13 @@ function handleRowPermissionReset(rowNode: RowNode, type: PermissionType, arrayT
     const data: PermissionTableFieldCell = rowNode.data;
     if (!data.fullWidthRow && !rowNode.isRowPinned()) {
       Object.values(data.permissions).forEach((permission) => {
-        if (permission.readIsDirty) {
+        const applyTo = columnsToApplyToById[permission.parentId];
+
+        if (permission.readIsDirty && applyTo['read']) {
           permission.read = !permission.read;
           permission.readIsDirty = false;
         }
-        if (permission.editIsDirty) {
+        if (permission.editIsDirty && applyTo['edit']) {
           permission.edit = !permission.edit;
           permission.editIsDirty = false;
         }
@@ -1027,16 +1093,33 @@ function getDirtyCount(rowNode: RowNode, type: PermissionType): number {
  *
  * This component provides a popover that the user can open to make changes that apply to an entire row
  */
-export const RowActionRenderer: FunctionComponent<ICellRendererParams> = ({ node, context, api }) => {
+export const RowActionRenderer: FunctionComponent<ICellRendererParams> = ({ node, context, api, columnApi }) => {
   const [isOpen, setIsOpen] = useState(false);
+  const [applyToAll, setApplyToAll] = useState(true);
+  const [allColumnsVisible, setAllColumnsVisible] = useState(true);
   const [dirtyItemCount, setDirtyItemCount] = useState(0);
+  const [description, setDescription] = useState(getDescriptionText);
+  const [checkboxes, setCheckboxes] = useState<BulkActionCheckbox[]>(
+    defaultRowActionCheckboxes(context.type, node.data?.allowEditPermission)
+  );
 
-  const [description] = useState(() => {
+  useEffect(() => {
+    setDescription(getDescriptionText());
+  }, [applyToAll]);
+
+  function getDescriptionText() {
     const { profiles, permissionSets } = api
       .getColumnDefs()
       .filter((item) => !!item.headerName)
       .reduce(
-        (output, item: ColGroupDef) => {
+        (output, item) => {
+          if (!isColumnGroupDef(item)) {
+            return output;
+          }
+          // if we are only applying to visible columns, only aggregate if column is visible
+          if (!applyToAll && !item.children.every((child: ColDef) => columnApi.getColumn(child.colId).isVisible())) {
+            return output;
+          }
           const name = item.headerName?.toLowerCase() || '';
           if (name.endsWith('(profile)')) {
             output.profiles++;
@@ -1058,11 +1141,7 @@ export const RowActionRenderer: FunctionComponent<ICellRendererParams> = ({ node
     } else {
       return `This change will apply to all selected profiles and permission sets`;
     }
-  });
-
-  const [checkboxes, setCheckboxes] = useState<BulkActionCheckbox[]>(
-    defaultRowActionCheckboxes(context.type, node.data.allowEditPermission)
-  );
+  }
 
   /**
    * Set all dependencies when fields change
@@ -1088,7 +1167,9 @@ export const RowActionRenderer: FunctionComponent<ICellRendererParams> = ({ node
     const checkboxesById = getMapOf(checkboxes, 'id');
     const itemsToUpdate = [];
 
-    handleRowPermissionUpdate(node, context.type, checkboxesById, itemsToUpdate);
+    // remove sobject, label, edit columns from list
+    const columns = columnApi.getAllColumns().slice(3);
+    handleRowPermissionUpdate(columns, node, context.type, checkboxesById, applyToAll ? 'all' : 'visible', itemsToUpdate);
 
     const transactionResult = api.applyTransaction({ update: itemsToUpdate });
     logger.log({ transactionResult });
@@ -1098,9 +1179,12 @@ export const RowActionRenderer: FunctionComponent<ICellRendererParams> = ({ node
     setDirtyItemCount(getDirtyCount(node, context.type));
   }
 
+  // TODO: honor which rows to apply to
   function handleReset() {
     const itemsToUpdate = [];
-    handleRowPermissionReset(node, context.type, itemsToUpdate);
+
+    const columns = columnApi.getAllColumns().slice(3);
+    handleRowPermissionReset(columns, node, context.type, applyToAll ? 'all' : 'visible', itemsToUpdate);
     const transactionResult = api.applyTransaction({ update: itemsToUpdate });
     logger.log({ transactionResult });
     if (isFunction(context.onBulkUpdate)) {
@@ -1110,12 +1194,21 @@ export const RowActionRenderer: FunctionComponent<ICellRendererParams> = ({ node
   }
 
   function handleOpen() {
+    setApplyToAll(true);
+    setAllColumnsVisible(
+      columnApi
+        .getAllColumns()
+        .slice(3)
+        .every((col) => col.isVisible())
+    );
     setIsOpen(true);
     setDirtyItemCount(getDirtyCount(node, context.type));
   }
 
   function handleClose() {
-    setCheckboxes(defaultRowActionCheckboxes(context.type, node.data.allowEditPermission));
+    if (node.data) {
+      setCheckboxes(defaultRowActionCheckboxes(context.type, node.data.allowEditPermission));
+    }
     setIsOpen(false);
   }
 
@@ -1158,6 +1251,7 @@ export const RowActionRenderer: FunctionComponent<ICellRendererParams> = ({ node
         content={
           <div>
             <p className="slds-text-align_center slds-m-bottom_small">{description}</p>
+
             <Grid align="center" wrap>
               {checkboxes.map((item) => (
                 <Checkbox
@@ -1170,6 +1264,20 @@ export const RowActionRenderer: FunctionComponent<ICellRendererParams> = ({ node
                 />
               ))}
             </Grid>
+
+            {!allColumnsVisible && (
+              <Grid align="center">
+                <CheckboxToggle
+                  id={`apply-to-all-${node.id}`}
+                  label="Apply to which columns"
+                  onText="All columns, even if hidden"
+                  offText="Only non-hidden columns"
+                  labelPosition="left"
+                  checked={applyToAll}
+                  onChange={setApplyToAll}
+                />
+              </Grid>
+            )}
           </div>
         }
       >
@@ -1184,9 +1292,10 @@ export const RowActionRenderer: FunctionComponent<ICellRendererParams> = ({ node
  *
  * This component provides a modal that the user can open to make changes that apply to an entire visible table
  */
-export const BulkActionRenderer: FunctionComponent<ICellRendererParams> = ({ node, context, api }) => {
+export const BulkActionRenderer: FunctionComponent<ICellRendererParams> = ({ node, context, api, columnApi }) => {
   const [isOpen, setIsOpen] = useState(false);
-
+  const [applyToAll, setApplyToAll] = useState(true);
+  const [allColumnsVisible, setAllColumnsVisible] = useState(true);
   const [checkboxes, setCheckboxes] = useState(defaultRowActionCheckboxes(context.type, true));
   const [visibleRows, setVisibleRows] = useState(getNumRows);
 
@@ -1223,8 +1332,10 @@ export const BulkActionRenderer: FunctionComponent<ICellRendererParams> = ({ nod
   function handleSave() {
     const checkboxesById = getMapOf(checkboxes, 'id');
     const itemsToUpdate = [];
+    // remove sobject, label, edit columns from list
+    const columns = columnApi.getAllColumns().slice(2);
     api.forEachNodeAfterFilterAndSort((rowNode, index) => {
-      handleRowPermissionUpdate(rowNode, context.type, checkboxesById, itemsToUpdate);
+      handleRowPermissionUpdate(columns, rowNode, context.type, checkboxesById, applyToAll ? 'all' : 'visible', itemsToUpdate);
     });
 
     const transactionResult = api.applyTransaction({ update: itemsToUpdate });
@@ -1237,6 +1348,13 @@ export const BulkActionRenderer: FunctionComponent<ICellRendererParams> = ({ nod
   }
 
   function handleOpen() {
+    setApplyToAll(true);
+    setAllColumnsVisible(
+      columnApi
+        .getAllColumns()
+        .slice(2)
+        .every((col) => col.isVisible())
+    );
     setVisibleRows(getNumRows());
     setCheckboxes(defaultRowActionCheckboxes(context.type, true));
     setIsOpen(true);
@@ -1274,6 +1392,7 @@ export const BulkActionRenderer: FunctionComponent<ICellRendererParams> = ({ nod
               This change will apply to <strong> {formatNumber(visibleRows)} visible rows</strong> and all selected profiles and permission
               sets
             </p>
+
             <Grid align="center" wrap>
               {checkboxes.map((item) => (
                 <Checkbox
@@ -1286,6 +1405,20 @@ export const BulkActionRenderer: FunctionComponent<ICellRendererParams> = ({ nod
                 />
               ))}
             </Grid>
+
+            {!allColumnsVisible && (
+              <Grid align="center">
+                <CheckboxToggle
+                  id={`apply-to-all-${node.id}`}
+                  label="Apply to which columns"
+                  onText="All columns, even if hidden"
+                  offText="Only non-hidden columns"
+                  labelPosition="left"
+                  checked={applyToAll}
+                  onChange={setApplyToAll}
+                />
+              </Grid>
+            )}
           </div>
         </Modal>
       )}
@@ -1293,5 +1426,13 @@ export const BulkActionRenderer: FunctionComponent<ICellRendererParams> = ({ nod
         Edit All
       </button>
     </Fragment>
+  );
+};
+
+export const GroupRowInnerRenderer: FunctionComponent<ICellRendererParams> = (params) => {
+  return (
+    <strong className="slds-truncate slds-text-heading_small slds-m-right_x-small" title={`${params.value}`}>
+      {params.value}
+    </strong>
   );
 };
