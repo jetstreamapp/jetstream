@@ -29,7 +29,7 @@ import isDate from 'lodash/isDate';
 import isObject from 'lodash/isObject';
 import { createContext } from 'react';
 import { FieldSubquery, getFlattenedFields, isFieldSubquery } from 'soql-parser-js';
-import './data-table-styles.scss';
+import './data-table-styles.css';
 
 const copyShortcut = navigator.userAgent.indexOf('Mac OS X') == -1 ? 'Cmd+C' : 'Ctrl+C';
 

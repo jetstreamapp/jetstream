@@ -13,7 +13,7 @@ import SearchInput from '../form/search-input/SearchInput';
 import Grid from '../grid/Grid';
 import AutoFullHeightContainer from '../layout/AutoFullHeightContainer';
 import Spinner from '../widgets/Spinner';
-import './data-table-styles.scss';
+import './data-table-styles.css';
 import {
   addFieldLabelToColumn,
   DataTableContext,
