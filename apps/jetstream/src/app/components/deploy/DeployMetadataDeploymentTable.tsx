@@ -4,8 +4,7 @@ import { jsx } from '@emotion/react';
 import { ListMetadataResultItem } from '@jetstream/connected-ui';
 import { formatNumber } from '@jetstream/shared/ui-utils';
 import { MapOf } from '@jetstream/types';
-import { AutoFullHeightContainer, DataTable, Grid, Icon, SearchInput, Spinner } from '@jetstream/ui';
-import { getFilteredRows } from 'libs/ui/src/lib/data-table/data-table-utils';
+import { AutoFullHeightContainer, DataTable, getFilteredRows, Grid, Icon, SearchInput, Spinner } from '@jetstream/ui';
 import { Fragment, FunctionComponent, useEffect, useState } from 'react';
 import { DeployMetadataTableRow } from './deploy-metadata.types';
 import { getColumnDefinitions, getRows } from './utils/deploy-metadata.utils';
@@ -18,12 +17,15 @@ export interface DeployMetadataDeploymentTableProps {
   onViewOrCompareOpen: () => void;
 }
 
-function getRowNodeId({ key }: DeployMetadataTableRow): string {
-  return key;
-}
+// function getRowNodeId(data: DeployMetadataTableRow): string {
+//   return data.key;
+// }
 
 const ValueOrLoadingRenderer: FunctionComponent<ICellRendererParams> = ({ value, node }) => {
-  const { loading, fullName }: DeployMetadataTableRow = node.data;
+  if (node.group) {
+    return <div />;
+  }
+  const { loading, fullName }: DeployMetadataTableRow = node.data || {};
   if (loading) {
     return <Spinner size={'x-small'} />;
   } else if (!fullName) {
@@ -76,8 +78,9 @@ export const DeployMetadataDeploymentTable: FunctionComponent<DeployMetadataDepl
       if (rowsToRefresh.length) {
         gridApi.refreshCells({ force: true, columns: ['fullName'], rowNodes: rowsToRefresh });
       }
+
       gridApi.forEachNode((row) => {
-        if (!row.data.metadata) {
+        if (!row.data?.metadata) {
           row.selectable = false;
         }
       });
@@ -101,12 +104,12 @@ export const DeployMetadataDeploymentTable: FunctionComponent<DeployMetadataDepl
       {rows && visibleRows && (
         <Grid align="spread" verticalAlign="end" className="slds-p-top_xx-small slds-p-bottom_x-small slds-m-horizontal_small">
           <Grid>
-            <SearchInput id="metadata-filter" className="slds-m-right_small" placeholder="Search metadata..." onChange={setGlobalFilter} />
-            <button className="slds-button slds-button_neutral" disabled={!hasSelectedRows} onClick={onViewOrCompareOpen}>
+            <button className="slds-button slds-button_brand" disabled={!hasSelectedRows} onClick={onViewOrCompareOpen}>
               <Icon type="utility" icon="preview" className="slds-button__icon slds-button__icon_left" omitContainer />
               View or Compare Selected Items
             </button>
           </Grid>
+          <SearchInput id="metadata-filter" placeholder="Search metadata..." onChange={setGlobalFilter} />
           <div>
             Showing {formatNumber(visibleRows.length)} of {formatNumber(rows.length)} objects
           </div>
@@ -117,22 +120,28 @@ export const DeployMetadataDeploymentTable: FunctionComponent<DeployMetadataDepl
           columns={columns}
           data={rows}
           quickFilterText={globalFilter}
+          defaultMenuTabs={['filterMenuTab', 'generalMenuTab']}
           agGridProps={{
-            immutableData: true,
-            getRowNodeId,
-            suppressMenuHide: true,
-            suppressRowClickSelection: true,
-            headerHeight: 25,
+            // Setting this makes it so the grouped rows do not allow selection
+            // immutableData: true,
+            // getRowNodeId,
             frameworkComponents: {
               valueOrLoading: ValueOrLoadingRenderer,
             },
-            gridOptions: {
-              defaultColDef: {
-                filter: true,
-                sortable: true,
-                resizable: true,
-              },
+            autoGroupColumnDef: {
+              headerName: 'Metadata Type',
+              width: 200,
+              cellRenderer: 'agGroupCellRenderer',
+              filter: 'agMultiColumnFilter',
+              menuTabs: ['filterMenuTab'],
+              filterValueGetter: ({ data }) => data.typeLabel,
+              sortable: true,
+              resizable: true,
             },
+            showOpenedGroup: true,
+            groupDefaultExpanded: 1,
+            groupSelectsChildren: true,
+            groupSelectsFiltered: true,
             onGridReady: handleOnGridReady,
             onSelectionChanged: handleSelectionChanged,
             onFilterChanged: handleFilterChangeOrRowDataUpdated,

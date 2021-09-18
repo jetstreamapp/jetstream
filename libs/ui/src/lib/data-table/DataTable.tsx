@@ -1,13 +1,21 @@
 /** @jsx jsx */
+import { ClientSideRowModelModule } from '@ag-grid-community/client-side-row-model';
+import { ColDef, GridOptions, ModuleRegistry } from '@ag-grid-community/core';
+import { InfiniteRowModelModule } from '@ag-grid-community/infinite-row-model';
+import { AgGridReact } from '@ag-grid-community/react';
+import { ClipboardModule } from '@ag-grid-enterprise/clipboard';
+import { ColumnsToolPanelModule } from '@ag-grid-enterprise/column-tool-panel';
+import { FiltersToolPanelModule } from '@ag-grid-enterprise/filter-tool-panel';
+import { MenuModule } from '@ag-grid-enterprise/menu';
+import { MultiFilterModule } from '@ag-grid-enterprise/multi-filter';
+import { RangeSelectionModule } from '@ag-grid-enterprise/range-selection';
+import { RowGroupingModule } from '@ag-grid-enterprise/row-grouping';
+import { SetFilterModule } from '@ag-grid-enterprise/set-filter';
 import { jsx } from '@emotion/react';
 import { SalesforceOrgUi } from '@jetstream/types';
-import { ModuleRegistry, ColDef } from '@ag-grid-community/core';
-import { ClientSideRowModelModule } from '@ag-grid-community/client-side-row-model';
-import { InfiniteRowModelModule } from '@ag-grid-community/infinite-row-model';
-import { AgGridReact, AgGridReactProps } from '@ag-grid-community/react';
 import { CSSProperties, FunctionComponent } from 'react';
 import './data-table-styles.scss';
-import { handleCellDoubleClicked, handleCellKeydown } from './data-table-utils';
+import { getContextMenuItems, handleCellDoubleClicked, handleCellKeydown, processCellForClipboard } from './data-table-utils';
 import {
   ActionRenderer,
   BasicTextFilterRenderer,
@@ -23,17 +31,31 @@ import {
   SubqueryRenderer,
 } from './DataTableRenderers';
 
-ModuleRegistry.registerModules([ClientSideRowModelModule, InfiniteRowModelModule]);
+ModuleRegistry.registerModules([
+  ClientSideRowModelModule,
+  ClipboardModule,
+  ColumnsToolPanelModule,
+  FiltersToolPanelModule,
+  InfiniteRowModelModule,
+  MenuModule,
+  MultiFilterModule,
+  RangeSelectionModule,
+  RowGroupingModule,
+  SetFilterModule,
+]);
+
+const DEFAULT_MENU_TABS = ['filterMenuTab', 'generalMenuTab', 'columnsMenuTab'];
 
 export interface DataTableProps {
   style?: CSSProperties;
   columns: ColDef[];
   data: any[];
-  agGridProps?: AgGridReactProps;
+  agGridProps?: GridOptions;
   frameworkComponents?: any;
   quickFilterText?: string;
   serverUrl?: string;
   org?: SalesforceOrgUi;
+  defaultMenuTabs?: string[];
 }
 
 export const DataTable: FunctionComponent<DataTableProps> = ({
@@ -43,11 +65,14 @@ export const DataTable: FunctionComponent<DataTableProps> = ({
   },
   columns,
   data,
-  agGridProps = {},
+  agGridProps = {
+    defaultColDef: {},
+  },
   frameworkComponents = {},
   quickFilterText,
   serverUrl,
   org,
+  defaultMenuTabs = DEFAULT_MENU_TABS,
 }) => {
   if (serverUrl && org) {
     configIdLinkRenderer(serverUrl, org);
@@ -56,9 +81,17 @@ export const DataTable: FunctionComponent<DataTableProps> = ({
   return (
     <div className="ag-theme-custom-react" style={style}>
       <AgGridReact
+        // reactUi // TODO: enable at some point - seemed kinda sketchy
         rowSelection="multiple"
         suppressDragLeaveHidesColumns
         quickFilterText={quickFilterText}
+        headerHeight={25}
+        defaultColDef={{
+          filter: 'agMultiColumnFilter',
+          menuTabs: defaultMenuTabs,
+          sortable: true,
+          resizable: true,
+        }}
         frameworkComponents={{
           // CELL RENDERERS
           executeRenderer: ExecuteRenderer,
@@ -78,10 +111,14 @@ export const DataTable: FunctionComponent<DataTableProps> = ({
         }}
         columnDefs={columns}
         rowData={data}
-        enableCellTextSelection
+        enableRangeSelection
+        suppressRowClickSelection
+        suppressMultiRangeSelection
+        suppressMenuHide
         ensureDomOrder
-        // suppressColumnVirtualisation
-        // rowBuffer={600}
+        copyHeadersToClipboard
+        processCellForClipboard={processCellForClipboard}
+        getContextMenuItems={getContextMenuItems}
         onCellDoubleClicked={handleCellDoubleClicked}
         onCellKeyDown={handleCellKeydown}
         {...agGridProps}

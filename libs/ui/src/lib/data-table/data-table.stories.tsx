@@ -71,19 +71,6 @@ const columns: ColDef[] = [
 
 export const base = () => (
   <div style={{ height: 700 }}>
-    <DataTable
-      columns={columns}
-      data={data}
-      agGridProps={{
-        headerHeight: 25,
-        gridOptions: {
-          defaultColDef: {
-            filter: true,
-            sortable: true,
-            resizable: true,
-          },
-        },
-      }}
-    />
+    <DataTable columns={columns} data={data} />
   </div>
 );

@@ -150,20 +150,7 @@ export const LoadRecordsDataPreview: FunctionComponent<LoadRecordsDataPreviewPro
             <Fragment>
               <div className="slds-text-heading_small">File Preview</div>
               <AutoFullHeightContainer fillHeight setHeightAttr bottomBuffer={25}>
-                <DataTable
-                  columns={columns}
-                  data={rows}
-                  agGridProps={{
-                    suppressMenuHide: true,
-                    suppressRowClickSelection: true,
-                    headerHeight: 25,
-                    gridOptions: {
-                      defaultColDef: {
-                        resizable: true,
-                      },
-                    },
-                  }}
-                />
+                <DataTable columns={columns} data={rows} />
               </AutoFullHeightContainer>
             </Fragment>
           )}

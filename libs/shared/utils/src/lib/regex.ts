@@ -19,4 +19,6 @@ export const REGEX = {
   ESCAPED_PERCENT_QUOTE: /\%/g,
   ESCAPED_BACKSLASH_QUOTE: /\\\\/g,
   START_OR_END_QUOTE: /^"|"$/g,
+  QUOTE: /"/g,
+  NEW_LINE: /\n/g,
 };

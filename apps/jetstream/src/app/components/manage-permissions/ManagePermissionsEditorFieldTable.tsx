@@ -1,5 +1,13 @@
 /** @jsx jsx */
-import { ColDef, ColGroupDef, GridApi, GridReadyEvent, ICellRendererParams } from '@ag-grid-community/core';
+import {
+  ColDef,
+  ColGroupDef,
+  GridApi,
+  GridReadyEvent,
+  ICellRendererParams,
+  RowClassParams,
+  RowGroupingDisplayType,
+} from '@ag-grid-community/core';
 import { jsx } from '@emotion/react';
 import { useNonInitialEffect } from '@jetstream/shared/ui-utils';
 import { MapOf } from '@jetstream/types';
@@ -8,6 +16,7 @@ import { forwardRef, useImperativeHandle, useState } from 'react';
 import {
   BulkActionRenderer,
   ErrorTooltipRenderer,
+  GroupRowInnerRenderer,
   handleOnCellPressed,
   isFullWidthCell,
   PinnedLabelInputFilter,
@@ -73,35 +82,80 @@ export const ManagePermissionsEditorFieldTable = forwardRef<any, ManagePermissio
               errorTooltipRenderer: ErrorTooltipRenderer,
               rowActionRenderer: RowActionRenderer,
               bulkActionRenderer: BulkActionRenderer,
+              groupRowInnerRenderer: GroupRowInnerRenderer,
             }}
             agGridProps={{
               pinnedTopRowData: [pinnedSelectAllRow],
-              suppressRowClickSelection: true,
               rowSelection: null,
-              headerHeight: 25,
-              gridOptions: {
-                context: {
-                  isReadOnly: ({ node, column, colDef, context }: ICellRendererParams) => {
-                    if (colDef.colId.endsWith('edit')) {
-                      const data = node.data as PermissionTableFieldCell;
-                      return !data.allowEditPermission;
-                    }
-                    return false;
+              autoGroupColumnDef: {
+                headerName: 'Field',
+                pinned: true,
+                lockPosition: true,
+                lockVisible: true,
+                filter: 'agMultiColumnFilter',
+                cellRenderer: 'agGroupCellRenderer',
+                menuTabs: ['filterMenuTab'],
+                filterValueGetter: (params) => {
+                  const data: PermissionTableFieldCell = params.data;
+                  return data && `${data.label} (${data.apiName})`;
+                },
+                sortable: true,
+                resizable: true,
+              },
+              showOpenedGroup: true,
+              groupDefaultExpanded: 1,
+              groupDisplayType: RowGroupingDisplayType.GROUP_ROWS,
+              groupRowRendererParams: {
+                innerRenderer: 'groupRowInnerRenderer',
+              },
+              sideBar: {
+                toolPanels: [
+                  {
+                    id: 'filters',
+                    labelDefault: 'Filters',
+                    labelKey: 'filters',
+                    iconKey: 'filter',
+                    toolPanel: 'agFiltersToolPanel',
+                    toolPanelParams: {
+                      suppressFilterSearch: true,
+                    },
                   },
-                  additionalComponent: ErrorTooltipRenderer,
-                  onBulkUpdate: onBulkUpdate,
-                  type: 'field',
+                  {
+                    id: 'columns',
+                    labelDefault: 'Columns',
+                    labelKey: 'columns',
+                    iconKey: 'columns',
+                    toolPanel: 'agColumnsToolPanel',
+                    toolPanelParams: {
+                      suppressRowGroups: true,
+                      suppressValues: true,
+                      suppressPivots: true,
+                      suppressPivotMode: true,
+                    },
+                  },
+                ],
+              },
+              context: {
+                isReadOnly: ({ node, colDef }: ICellRendererParams) => {
+                  if (colDef.colId.endsWith('edit')) {
+                    const data = node.data as PermissionTableFieldCell;
+                    return !data?.allowEditPermission;
+                  }
+                  return false;
                 },
-                immutableData: true,
-                onCellKeyPress: handleOnCellPressed,
-                getRowNodeId: (data: PermissionTableFieldCell) => data.key,
-                isFullWidthCell: isFullWidthCell,
-                fullWidthCellRenderer: 'fullWidthRenderer',
-                defaultColDef: {
-                  filter: true,
-                  sortable: false,
-                  resizable: true,
-                },
+                additionalComponent: ErrorTooltipRenderer,
+                onBulkUpdate: onBulkUpdate,
+                type: 'field',
+              },
+              immutableData: true,
+              onCellKeyPress: handleOnCellPressed,
+              getRowNodeId: (data: PermissionTableFieldCell) => data.key,
+              isFullWidthCell: isFullWidthCell,
+              fullWidthCellRenderer: 'fullWidthRenderer',
+              getRowClass: ({ node }: RowClassParams) => {
+                if (node.group) {
+                  return 'row-group';
+                }
               },
               getRowHeight: ({ node }) => {
                 if (node.rowPinned) {

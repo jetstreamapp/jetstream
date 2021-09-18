@@ -2,8 +2,14 @@
 import { ColDef, ICellRendererParams, SelectionChangedEvent } from '@ag-grid-community/core';
 import { css, jsx } from '@emotion/react';
 import { ApexLog, ApexLogWithViewed } from '@jetstream/types';
-import { AutoFullHeightContainer, DataTable, Icon } from '@jetstream/ui';
-import { dataTableDateFormatter, dataTableFileSizeFormatter, DateFilterComparator } from 'libs/ui/src/lib/data-table/data-table-utils';
+import {
+  AutoFullHeightContainer,
+  DataTable,
+  dataTableDateFormatter,
+  dataTableFileSizeFormatter,
+  DateFilterComparator,
+  Icon,
+} from '@jetstream/ui';
 import { FunctionComponent, useEffect, useRef } from 'react';
 
 export const LogViewedRenderer: FunctionComponent<ICellRendererParams> = ({ node }) => {
@@ -73,6 +79,7 @@ const COLUMNS: ColDef[] = [
     getQuickFilterText: dataTableDateFormatter,
     filter: 'agDateColumnFilter',
     filterParams: {
+      defaultOption: 'greaterThan',
       comparator: DateFilterComparator,
     },
   },
@@ -111,16 +118,9 @@ export const DebugLogViewerTable: FunctionComponent<DebugLogViewerTableProps> = 
           immutableData: true,
           getRowNodeId,
           suppressCellSelection: true,
-          headerHeight: 25,
+
           frameworkComponents: { logViewedRenderer: LogViewedRenderer },
-          gridOptions: {
-            rowSelection: 'single',
-            defaultColDef: {
-              filter: true,
-              sortable: true,
-              resizable: true,
-            },
-          },
+          rowSelection: 'single',
           onSelectionChanged: handleSelectionChanged,
         }}
       />

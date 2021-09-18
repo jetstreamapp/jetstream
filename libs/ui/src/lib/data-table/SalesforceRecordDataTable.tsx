@@ -1,5 +1,5 @@
 /** @jsx jsx */
-import { ColDef, ColumnEvent, GridApi, GridReadyEvent, SelectionChangedEvent } from '@ag-grid-community/core';
+import { ColDef, ColumnEvent, GridApi, GridReadyEvent, ProcessHeaderForExportParams, SelectionChangedEvent } from '@ag-grid-community/core';
 import { jsx } from '@emotion/react';
 import { QueryResults } from '@jetstream/api-interfaces';
 import { logger } from '@jetstream/shared/client-logger';
@@ -188,6 +188,11 @@ export const SalesforceRecordDataTable: FunctionComponent<SalesforceRecordDataTa
       setGridApi(api);
     }
 
+    /** Ensure that the header is the true api name and does not include (type) */
+    function processHeaderForClipboard({ column }: ProcessHeaderForExportParams) {
+      return column.getColDef().field;
+    }
+
     return records ? (
       <Fragment>
         <Grid className="slds-p-around_xx-small" align="spread">
@@ -230,16 +235,6 @@ export const SalesforceRecordDataTable: FunctionComponent<SalesforceRecordDataTa
               agGridProps={{
                 immutableData: true,
                 getRowNodeId,
-                suppressMenuHide: true,
-                suppressRowClickSelection: true,
-                headerHeight: 25,
-                gridOptions: {
-                  defaultColDef: {
-                    filter: true,
-                    sortable: true,
-                    resizable: true,
-                  },
-                },
                 context: {
                   actions: {
                     edit: onEdit,
@@ -248,6 +243,31 @@ export const SalesforceRecordDataTable: FunctionComponent<SalesforceRecordDataTa
                     getAsApex: onGetAsApex,
                   },
                 },
+                sideBar: {
+                  toolPanels: [
+                    {
+                      id: 'filters',
+                      labelDefault: 'Filters',
+                      labelKey: 'filters',
+                      iconKey: 'filter',
+                      toolPanel: 'agFiltersToolPanel',
+                    },
+                    {
+                      id: 'columns',
+                      labelDefault: 'Columns',
+                      labelKey: 'columns',
+                      iconKey: 'columns',
+                      toolPanel: 'agColumnsToolPanel',
+                      toolPanelParams: {
+                        suppressRowGroups: true,
+                        suppressValues: true,
+                        suppressPivots: true,
+                        suppressPivotMode: true,
+                      },
+                    },
+                  ],
+                },
+                processHeaderForClipboard: processHeaderForClipboard,
                 onGridReady: handleOnGridReady,
                 onSelectionChanged: handleSelectionChanged,
                 onColumnMoved: handleColumnMoved,
