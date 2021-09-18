@@ -9,17 +9,20 @@
  */
 const sass = require('sass');
 const path = require('path');
+const fs = require('fs');
 
 const filename = path.join(__dirname, 'data-table-styles.scss');
 const outputFilePath = path.join(__dirname, '..', 'libs/ui/src/lib/data-table/data-table-styles.css');
 
 console.log('Compiling sass to css', filename);
 
-sass.renderSync({
+const result = sass.renderSync({
   file: filename,
   includePaths: [path.join(__dirname, '..', 'node_modules')],
   outputStyle: 'compressed',
   outFile: outputFilePath,
 });
+
+fs.writeFileSync(outputFilePath, result.css, 'utf-8');
 
 console.log('Finished compiling sass to css', outputFilePath);
