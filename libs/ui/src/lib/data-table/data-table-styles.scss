@@ -4,6 +4,21 @@
 
 @import '~@salesforce-ux/design-system/scss/_design-tokens';
 
+// SassError: Invalid CSS after "    @return math": expected expression (e.g. 1px, bold), was ".div($lhs, $rhs);
+// https://github.com/ag-grid/ag-grid/issues/4642
+// Moved to css variables to avoid sass issues
+:root {
+  --custom-color-gray-5: #dddbda;
+  --custom-color-gray-10: #514f4d;
+  --custom-table-color-background-header: #fafaf9;
+  --custom-table-color-background-header-hover: #ffffff;
+  --custom-color-background-row-hover: #f3f2f2;
+  --custom-color-background-row-new: #cdefc4;
+  --custom-color-background-highlight: #faffbd;
+  --custom-color-background-alt: #ffffff;
+  --custom-color-brand-dark: #014486;
+}
+
 /**
 * Allow popover to function correctly
 * https://stackoverflow.com/questions/51389069/ag-grid-cell-containing-bootstrap-dropdown-menu-clips-menu/67939111#67939111
@@ -24,36 +39,53 @@
 .ag-theme-custom-react {
   @include ag-theme-alpine(
     (
+      suppress-css-var-overrides: false,
       font-family: (
         'Salesforce Sans',
         Arial,
         sans-serif,
       ),
       font-size: 13px,
-      border-color: $color-gray-5,
-      secondary-border-color: $color-gray-5,
+           // border-color:
+           // secondary-border-color:
       border-radius: 0 0 0.25rem 0.25rem,
       row-height: 27px,
       header-height: ag-derived(row-height),
-      header-background-color: $table-color-background-header,
-      header-cell-hover-background-color: $table-color-background-header-hover,
-      header-foreground-color: $color-gray-10,
+           // header-background-color: $table-color-bac
+           // header-cell-hover-background-color: $table-color-backgroun
+           // header-foreground-color:
       header-column-separator: true,
-      header-column-separator-color: $color-gray-5,
-      odd-row-background-color: $color-background-row-hover,
-      row-border-color: $color-gray-5,
-      row-hover-color: $color-background-row-hover,
-      value-change-value-highlight-background-color: $color-background-row-new,
-      selected-row-background-color: $color-background-highlight,
+           // header-column-separator-color:
+           // odd-row-background-color: $color-backgr
+           // row-border-color:
+           // row-hover-color: $color-backgr
+           // value-change-value-highlight-background-color: $color-back
+           // selected-row-background-color: $color-backgr
       cell-horizontal-border: solid $color-gray-5,
       suppress-native-widget-styling: false,
       checkbox-border-radius: 0.125rem,
-      checkbox-background-color: $color-background-alt,
-      checkbox-checked-color: $color-brand-dark,
-      checkbox-unchecked-color: $color-gray-5,
-      checkbox-indeterminate-color: $color-brand-dark,
+           // checkbox-background-color: $color-
+           // checkbox-checked-color: $co
+           // checkbox-unchecked-color:
+           // checkbox-indeterminate-color: $colo,
     )
   );
+
+  --ag-border-color: var(--custom-color-gray-5);
+  --ag-secondary-border-color: var(--custom-color-gray-5);
+  --ag-header-background-color: var(--custom-table-color-background-header);
+  --ag-header-cell-hover-background-color: var(--custom-table-color-background-header-hover);
+  --ag-header-foreground-color: var(--custom-color-gray-10);
+  --ag-header-column-separator-color: var(--custom-color-gray-5);
+  --ag-odd-row-background-color: var(--custom-color-background-row-hover);
+  --ag-row-border-color: var(--custom-color-gray-5);
+  --ag-row-hover-color: var(--custom-color-background-row-hover);
+  --ag-value-change-value-highlight-background-color: var(--custom-color-background-row-new);
+  --ag-selected-row-background-color: var(--custom-color-background-highlight);
+  --ag-checkbox-background-color: var(--custom-color-background-alt);
+  --ag-checkbox-checked-color: var(--custom-color-brand-dark);
+  --ag-checkbox-unchecked-color: var(--custom-color-gray-5);
+  --ag-checkbox-indeterminate-color: var(--custom-color-brand-dark);
 
   %ag-text-input {
     background-color: #fff;
