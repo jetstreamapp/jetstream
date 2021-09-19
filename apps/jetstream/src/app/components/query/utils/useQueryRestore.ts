@@ -64,7 +64,9 @@ export const useQueryRestore = (
 
   useEffect(() => {
     isMounted.current = true;
-    return () => (isMounted.current = false);
+    return () => {
+      isMounted.current = false;
+    };
   }, []);
 
   async function restore(soqlOverride?: string, toolingOverride = false) {

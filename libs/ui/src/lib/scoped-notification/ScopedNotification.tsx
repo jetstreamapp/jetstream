@@ -1,5 +1,3 @@
-/** @jsx jsx */
-import { jsx } from '@emotion/react';
 import { ScopedNotificationTypes } from '@jetstream/types';
 import classNames from 'classnames';
 import Icon from 'libs/ui/src/lib/widgets/Icon';

@@ -1,5 +1,4 @@
-/** @jsx jsx */
-import { css, jsx } from '@emotion/react';
+import { css } from '@emotion/react';
 import { polyfillFieldDefinition } from '@jetstream/shared/ui-utils';
 import { ListItem, PicklistFieldValueItem } from '@jetstream/types';
 import { Checkbox, DatePicker, DateTime, Grid, Icon, Input, Picklist, ReadOnlyFormElement, Textarea } from '@jetstream/ui';

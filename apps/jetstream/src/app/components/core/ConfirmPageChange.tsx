@@ -1,5 +1,3 @@
-/** @jsx jsx */
-import { jsx } from '@emotion/react';
 import { useGlobalEventHandler } from '@jetstream/shared/ui-utils';
 import { FunctionComponent, useCallback, useEffect } from 'react';
 import { Prompt } from 'react-router-dom';

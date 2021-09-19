@@ -1,6 +1,5 @@
-/** @jsx jsx */
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { jsx } from '@emotion/react';
+
 import { isArrowDownKey, isArrowUpKey, useDebounce } from '@jetstream/shared/ui-utils';
 import { UpDown } from '@jetstream/types';
 import { FunctionComponent, KeyboardEvent, useEffect, useRef, useState } from 'react';

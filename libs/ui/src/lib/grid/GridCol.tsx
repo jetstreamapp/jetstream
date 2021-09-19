@@ -1,5 +1,3 @@
-/** @jsx jsx */
-import { jsx } from '@emotion/react';
 import { FunctionComponent, HTMLAttributes } from 'react';
 import classNames from 'classnames';
 import { TopRightBottomLeft } from '@jetstream/types';

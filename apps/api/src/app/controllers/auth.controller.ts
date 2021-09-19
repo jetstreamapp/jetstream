@@ -31,8 +31,9 @@ export async function callback(req: Request, res: Response, next: NextFunction) 
           logger.warn('[AUTH][ERROR] Error logging in %o', err);
           return next(new AuthenticationError(err));
         }
-        const returnTo = req.session.returnTo;
-        delete req.session.returnTo;
+        // TODO: confirm returnTo 0 it suddenly was reported as bad
+        const returnTo = (req.session as any).returnTo;
+        delete (req.session as any).returnTo;
         logger.info('[AUTH][SUCCESS] Logged in %s', user.email, { userId: user.id });
         res.redirect(returnTo || ENV.JETSTREAM_CLIENT_URL);
       });

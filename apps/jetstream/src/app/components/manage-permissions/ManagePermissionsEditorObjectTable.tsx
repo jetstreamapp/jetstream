@@ -1,6 +1,5 @@
-/** @jsx jsx */
 import { ColDef, ColGroupDef, GridApi, GridReadyEvent, ICellRendererParams } from '@ag-grid-community/core';
-import { jsx } from '@emotion/react';
+
 import { useNonInitialEffect } from '@jetstream/shared/ui-utils';
 import { MapOf } from '@jetstream/types';
 import { AutoFullHeightContainer, DataTable } from '@jetstream/ui';

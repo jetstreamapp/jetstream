@@ -1,5 +1,3 @@
-/** @jsx jsx */
-import { jsx } from '@emotion/react';
 import { Grid, Icon } from '@jetstream/ui';
 import { FunctionComponent } from 'react';
 import { OrgType } from './viewOrCompareMetadataTypes';

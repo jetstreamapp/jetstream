@@ -1,5 +1,4 @@
-/** @jsx jsx */
-import { css, jsx } from '@emotion/react';
+import { css } from '@emotion/react';
 import { Grid, GridCol, Textarea } from '@jetstream/ui';
 import Editor, { OnMount } from '@monaco-editor/react';
 import { Fragment, FunctionComponent, memo, RefObject, useCallback, useRef } from 'react';

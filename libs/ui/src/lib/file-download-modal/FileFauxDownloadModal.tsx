@@ -1,6 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-/** @jsx jsx */
-import { jsx } from '@emotion/react';
+
 import { MIME_TYPES } from '@jetstream/shared/constants';
 import { getFilename, GoogleApiData, isEnterKey } from '@jetstream/shared/ui-utils';
 import {

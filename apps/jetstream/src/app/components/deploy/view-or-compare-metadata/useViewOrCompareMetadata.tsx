@@ -1,4 +1,3 @@
-/** @jsx jsx */
 import { retrieveMetadataFromListMetadata } from '@jetstream/shared/data';
 import { pollRetrieveMetadataResultsUntilDone, useBrowserNotifications, useRollbar } from '@jetstream/shared/ui-utils';
 import { ListMetadataResult, MapOf, SalesforceOrgUi } from '@jetstream/types';
@@ -186,7 +185,9 @@ export function useViewOrCompareMetadata({ selectedMetadata }: { selectedMetadat
 
   useEffect(() => {
     isMounted.current = true;
-    return () => (isMounted.current = false);
+    return () => {
+      isMounted.current = false;
+    };
   }, []);
 
   const fetchMetadata = useCallback(

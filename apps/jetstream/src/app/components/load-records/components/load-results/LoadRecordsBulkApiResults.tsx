@@ -1,5 +1,3 @@
-/** @jsx jsx */
-import { jsx } from '@emotion/react';
 import { logger } from '@jetstream/shared/client-logger';
 import { bulkApiGetJob, bulkApiGetRecords } from '@jetstream/shared/data';
 import { convertDateToLocale, useBrowserNotifications } from '@jetstream/shared/ui-utils';
@@ -117,7 +115,9 @@ export const LoadRecordsBulkApiResults: FunctionComponent<LoadRecordsBulkApiResu
 
   useEffect(() => {
     isMounted.current = true;
-    return () => (isMounted.current = false);
+    return () => {
+      isMounted.current = false;
+    };
   }, []);
 
   useEffect(() => {

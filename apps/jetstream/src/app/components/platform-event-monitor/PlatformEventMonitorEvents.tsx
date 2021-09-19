@@ -1,5 +1,3 @@
-/** @jsx jsx */
-import { jsx } from '@emotion/react';
 import { formatNumber } from '@jetstream/shared/ui-utils';
 import { orderStringsBy, pluralizeIfMultiple } from '@jetstream/shared/utils';
 import { Accordion, CopyToClipboard, EmptyState, NoContentIllustration, OpenRoadIllustration } from '@jetstream/ui';

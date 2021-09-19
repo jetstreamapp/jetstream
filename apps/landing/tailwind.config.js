@@ -1,0 +1,18 @@
+const defaultTheme = require('tailwindcss/defaultTheme');
+const { createGlobPatternsForDependencies } = require('@nrwl/next/tailwind');
+const { join } = require('path');
+
+module.exports = {
+  purge: [join(__dirname, 'pages/**/*.{js,ts,jsx,tsx}'), ...createGlobPatternsForDependencies(__dirname)],
+  theme: {
+    extend: {
+      fontFamily: {
+        sans: ['Salesforce Sans', ...defaultTheme.fontFamily.sans],
+      },
+    },
+  },
+  variants: {
+    extend: {},
+  },
+  plugins: [require('@tailwindcss/forms'), require('@tailwindcss/typography'), require('@tailwindcss/aspect-ratio')],
+};

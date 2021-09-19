@@ -1,5 +1,4 @@
-/** @jsx jsx */
-import { css, jsx } from '@emotion/react';
+import { css } from '@emotion/react';
 import { MapOf, SalesforceOrgUi } from '@jetstream/types';
 import { Combobox, ComboboxListItem, ComboboxListItemGroup } from '@jetstream/ui';
 import { sortBy } from 'lodash';

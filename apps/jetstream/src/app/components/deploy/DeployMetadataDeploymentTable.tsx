@@ -1,6 +1,5 @@
-/** @jsx jsx */
 import { ColDef, ColumnEvent, GridApi, GridReadyEvent, ICellRendererParams, SelectionChangedEvent } from '@ag-grid-community/core';
-import { jsx } from '@emotion/react';
+
 import { ListMetadataResultItem } from '@jetstream/connected-ui';
 import { formatNumber } from '@jetstream/shared/ui-utils';
 import { MapOf } from '@jetstream/types';

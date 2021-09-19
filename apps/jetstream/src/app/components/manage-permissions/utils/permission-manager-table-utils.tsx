@@ -1,4 +1,3 @@
-/** @jsx jsx */
 import {
   CellClassParams,
   CellKeyPressEvent,
@@ -13,7 +12,7 @@ import {
   ValueGetterParams,
   ValueSetterParams,
 } from '@ag-grid-community/core';
-import { css, jsx } from '@emotion/react';
+import { css } from '@emotion/react';
 import { logger } from '@jetstream/shared/client-logger';
 import { formatNumber, isArrowKey, isEnterOrSpace, isTabKey } from '@jetstream/shared/ui-utils';
 import { getMapOf, orderStringsBy, pluralizeFromNumber } from '@jetstream/shared/utils';
@@ -718,107 +717,103 @@ export const PinnedLabelInputFilter: FunctionComponent<ICellRendererParams> = ({
 /**
  * Pinned row selection rendere
  */
-export const PinnedSelectAllRendererWrapper = (type: PermissionType): FunctionComponent<ICellRendererParams> => ({
-  api,
-  node,
-  column,
-  colDef,
-  context,
-}) => {
-  function handleSelection(action: 'selectAll' | 'unselectAll' | 'reset') {
-    const [id, which] = colDef.colId.split('-');
-    const itemsToUpdate: any[] = [];
-    api.forEachNodeAfterFilter((rowNode, index) => {
-      if (!rowNode.isRowPinned() && !rowNode.isFullWidthCell() && !rowNode.group) {
-        let newValue = action === 'selectAll';
+export const PinnedSelectAllRendererWrapper =
+  (type: PermissionType): FunctionComponent<ICellRendererParams> =>
+  ({ api, node, column, colDef, context }) => {
+    function handleSelection(action: 'selectAll' | 'unselectAll' | 'reset') {
+      const [id, which] = colDef.colId.split('-');
+      const itemsToUpdate: any[] = [];
+      api.forEachNodeAfterFilter((rowNode, index) => {
+        if (!rowNode.isRowPinned() && !rowNode.isFullWidthCell() && !rowNode.group) {
+          let newValue = action === 'selectAll';
 
-        if (type === 'object') {
-          const data: PermissionTableObjectCell = rowNode.data;
-          const permission = data.permissions[id];
-          if (which === 'create') {
-            newValue = action === 'reset' ? permission.record.create : newValue;
-            permission.create = newValue;
-            setObjectDependencies(permission, newValue, ['read'], []);
-          } else if (which === 'read') {
-            newValue = action === 'reset' ? permission.record.read : newValue;
-            permission.read = newValue;
-            setObjectDependencies(permission, newValue, [], ['create', 'edit', 'delete', 'viewAll', 'modifyAll']);
-          } else if (which === 'edit') {
-            newValue = action === 'reset' ? permission.record.edit : newValue;
-            permission.edit = newValue;
-            setObjectDependencies(permission, newValue, ['read'], ['delete', 'modifyAll']);
-          } else if (which === 'delete') {
-            newValue = action === 'reset' ? permission.record.delete : newValue;
-            permission.delete = newValue;
-            setObjectDependencies(permission, newValue, ['read', 'edit'], ['modifyAll']);
-          } else if (which === 'viewAll') {
-            newValue = action === 'reset' ? permission.record.viewAll : newValue;
-            permission.viewAll = newValue;
-            setObjectDependencies(permission, newValue, ['read'], ['modifyAll']);
-          } else if (which === 'modifyAll') {
-            newValue = action === 'reset' ? permission.record.modifyAll : newValue;
-            permission.modifyAll = newValue;
-            setObjectDependencies(permission, newValue, ['read', 'edit', 'delete', 'viewAll'], []);
+          if (type === 'object') {
+            const data: PermissionTableObjectCell = rowNode.data;
+            const permission = data.permissions[id];
+            if (which === 'create') {
+              newValue = action === 'reset' ? permission.record.create : newValue;
+              permission.create = newValue;
+              setObjectDependencies(permission, newValue, ['read'], []);
+            } else if (which === 'read') {
+              newValue = action === 'reset' ? permission.record.read : newValue;
+              permission.read = newValue;
+              setObjectDependencies(permission, newValue, [], ['create', 'edit', 'delete', 'viewAll', 'modifyAll']);
+            } else if (which === 'edit') {
+              newValue = action === 'reset' ? permission.record.edit : newValue;
+              permission.edit = newValue;
+              setObjectDependencies(permission, newValue, ['read'], ['delete', 'modifyAll']);
+            } else if (which === 'delete') {
+              newValue = action === 'reset' ? permission.record.delete : newValue;
+              permission.delete = newValue;
+              setObjectDependencies(permission, newValue, ['read', 'edit'], ['modifyAll']);
+            } else if (which === 'viewAll') {
+              newValue = action === 'reset' ? permission.record.viewAll : newValue;
+              permission.viewAll = newValue;
+              setObjectDependencies(permission, newValue, ['read'], ['modifyAll']);
+            } else if (which === 'modifyAll') {
+              newValue = action === 'reset' ? permission.record.modifyAll : newValue;
+              permission.modifyAll = newValue;
+              setObjectDependencies(permission, newValue, ['read', 'edit', 'delete', 'viewAll'], []);
+            }
+            itemsToUpdate.push(data);
+          } else {
+            const data: PermissionTableFieldCell = rowNode.data;
+            const permission = data.permissions[id];
+            if (which === 'read') {
+              newValue = action === 'reset' ? permission.record.read : newValue;
+              permission.read = newValue;
+              setFieldDependencies(permission, newValue, [], ['edit']);
+            } else if (data.allowEditPermission) {
+              newValue = action === 'reset' ? permission.record.edit : newValue;
+              permission.edit = newValue;
+              setFieldDependencies(permission, newValue, ['read'], []);
+            }
+            itemsToUpdate.push(data);
           }
-          itemsToUpdate.push(data);
-        } else {
-          const data: PermissionTableFieldCell = rowNode.data;
-          const permission = data.permissions[id];
-          if (which === 'read') {
-            newValue = action === 'reset' ? permission.record.read : newValue;
-            permission.read = newValue;
-            setFieldDependencies(permission, newValue, [], ['edit']);
-          } else if (data.allowEditPermission) {
-            newValue = action === 'reset' ? permission.record.edit : newValue;
-            permission.edit = newValue;
-            setFieldDependencies(permission, newValue, ['read'], []);
-          }
-          itemsToUpdate.push(data);
         }
+      });
+      const transactionResult = api.applyTransaction({ update: itemsToUpdate });
+      logger.log({ transactionResult });
+      if (isFunction(context.onBulkUpdate)) {
+        context.onBulkUpdate(itemsToUpdate);
       }
-    });
-    const transactionResult = api.applyTransaction({ update: itemsToUpdate });
-    logger.log({ transactionResult });
-    if (isFunction(context.onBulkUpdate)) {
-      context.onBulkUpdate(itemsToUpdate);
     }
-  }
 
-  return (
-    <div className="slds-grid slds-grid_gutter slds-grid_align-center">
-      <button
-        className="slds-button slds-button_icon slds-button_icon-border"
-        aria-hidden="true"
-        tabIndex={-1}
-        title={`Select all visible rows`}
-        onClick={() => handleSelection('selectAll')}
-      >
-        <Icon type="utility" icon="multi_select_checkbox" className="slds-button__icon slds-button__icon_small" omitContainer />
-        <span className="slds-assistive-text">Select all visible rows</span>
-      </button>
-      <button
-        className="slds-button slds-button_icon slds-button_icon-border"
-        aria-hidden="true"
-        tabIndex={-1}
-        title={`Unselect all visible rows`}
-        onClick={() => handleSelection('unselectAll')}
-      >
-        <Icon type="utility" icon="steps" className="slds-button__icon slds-button__icon_small" omitContainer />
-        <span className="slds-assistive-text">Unselect all visible rows</span>
-      </button>
-      <button
-        className="slds-button slds-button_icon slds-button_icon-border"
-        aria-hidden="true"
-        tabIndex={-1}
-        title={`Reset visible rows to previous selection`}
-        onClick={() => handleSelection('reset')}
-      >
-        <Icon type="utility" icon="refresh" className="slds-button__icon slds-button__icon_small" omitContainer />
-        <span className="slds-assistive-text">Reset visible rows to previous selection</span>
-      </button>
-    </div>
-  );
-};
+    return (
+      <div className="slds-grid slds-grid_gutter slds-grid_align-center">
+        <button
+          className="slds-button slds-button_icon slds-button_icon-border"
+          aria-hidden="true"
+          tabIndex={-1}
+          title={`Select all visible rows`}
+          onClick={() => handleSelection('selectAll')}
+        >
+          <Icon type="utility" icon="multi_select_checkbox" className="slds-button__icon slds-button__icon_small" omitContainer />
+          <span className="slds-assistive-text">Select all visible rows</span>
+        </button>
+        <button
+          className="slds-button slds-button_icon slds-button_icon-border"
+          aria-hidden="true"
+          tabIndex={-1}
+          title={`Unselect all visible rows`}
+          onClick={() => handleSelection('unselectAll')}
+        >
+          <Icon type="utility" icon="steps" className="slds-button__icon slds-button__icon_small" omitContainer />
+          <span className="slds-assistive-text">Unselect all visible rows</span>
+        </button>
+        <button
+          className="slds-button slds-button_icon slds-button_icon-border"
+          aria-hidden="true"
+          tabIndex={-1}
+          title={`Reset visible rows to previous selection`}
+          onClick={() => handleSelection('reset')}
+        >
+          <Icon type="utility" icon="refresh" className="slds-button__icon slds-button__icon_small" omitContainer />
+          <span className="slds-assistive-text">Reset visible rows to previous selection</span>
+        </button>
+      </div>
+    );
+  };
 
 export function ErrorTooltipRenderer({ node, column, colDef, context }: ICellRendererParams) {
   const colId = column.getColId();

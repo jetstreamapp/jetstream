@@ -1,5 +1,3 @@
-/** @jsx jsx */
-import { jsx } from '@emotion/react';
 import { SalesforceOrgUi } from '@jetstream/types';
 import { Panel } from '@jetstream/ui';
 import { FunctionComponent, useEffect, useState } from 'react';

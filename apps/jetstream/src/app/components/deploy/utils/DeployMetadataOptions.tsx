@@ -1,5 +1,4 @@
-/** @jsx jsx */
-import { css, jsx } from '@emotion/react';
+import { css } from '@emotion/react';
 import { useNonInitialEffect } from '@jetstream/shared/ui-utils';
 import { DeployOptions, DeployOptionsTestLevel } from '@jetstream/types';
 import { Checkbox, Icon, Radio, RadioGroup, Textarea, Tooltip } from '@jetstream/ui';

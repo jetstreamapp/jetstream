@@ -1,13 +1,12 @@
-/** @jsx jsx */
-import { jsx } from '@emotion/react';
 import { Fragment, FunctionComponent } from 'react';
-import { createModal } from 'react-modal-promise';
+import { create, InstanceProps } from 'react-modal-promise';
 import Modal, { ModalProps } from './Modal';
 
-type CommonModalProps = Pick<ModalProps, 'header' | 'tagline' | 'closeOnEsc' | 'closeOnBackdropClick'>;
+type CommonModalProps = Pick<ModalProps, 'header' | 'tagline' | 'closeOnEsc' | 'closeOnBackdropClick'> & InstanceProps<boolean, never>;
 
 export interface ConfirmationModalProps extends CommonModalProps {
   isOpen: boolean;
+  instanceId: any;
   content: string | JSX.Element;
   confirm?: string | JSX.Element;
   cancel?: string | JSX.Element;
@@ -51,4 +50,4 @@ const ConfirmationModal: FunctionComponent<ConfirmationModalProps> = ({
   );
 };
 
-export const ConfirmationModalPromise = createModal<ConfirmationModalProps, boolean>(ConfirmationModal);
+export const ConfirmationModalPromise = create<ConfirmationModalProps, boolean>(ConfirmationModal);

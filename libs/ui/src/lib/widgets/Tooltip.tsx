@@ -1,5 +1,3 @@
-/** @jsx jsx */
-import { jsx } from '@emotion/react';
 import { PositionAll } from '@jetstream/types';
 import Tippy from '@tippyjs/react';
 import { FunctionComponent, MouseEvent, useState } from 'react';

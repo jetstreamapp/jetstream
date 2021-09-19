@@ -1,5 +1,4 @@
-/** @jsx jsx */
-import { css, jsx } from '@emotion/react';
+import { css } from '@emotion/react';
 import { formatNumber } from '@jetstream/shared/ui-utils';
 import { Grid, Icon, Spinner } from '@jetstream/ui';
 import classNames from 'classnames';

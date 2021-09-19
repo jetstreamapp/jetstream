@@ -1,5 +1,3 @@
-/** @jsx jsx */
-import { jsx } from '@emotion/react';
 import { useNonInitialEffect } from '@jetstream/shared/ui-utils';
 import classNames from 'classnames';
 import { Fragment, FunctionComponent, useState } from 'react';

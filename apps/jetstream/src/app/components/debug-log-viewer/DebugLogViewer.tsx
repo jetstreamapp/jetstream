@@ -1,5 +1,4 @@
-/** @jsx jsx */
-import { css, jsx } from '@emotion/react';
+import { css } from '@emotion/react';
 import { MIME_TYPES, TITLES } from '@jetstream/shared/constants';
 import { fetchActiveLog, saveFile, useNonInitialEffect } from '@jetstream/shared/ui-utils';
 import { ApexLog, ApexLogWithViewed, MapOf, SalesforceOrgUi } from '@jetstream/types';
@@ -49,7 +48,9 @@ export const DebugLogViewer: FunctionComponent<DebugLogViewerProps> = () => {
 
   useEffect(() => {
     isMounted.current = true;
-    return () => (isMounted.current = false);
+    return () => {
+      isMounted.current = false;
+    };
   }, []);
 
   useNonInitialEffect(() => {

@@ -1,5 +1,3 @@
-/** @jsx jsx */
-import { jsx } from '@emotion/react';
 import { orderObjectsBy } from '@jetstream/shared/utils';
 import { DeployResult, UiTabSection } from '@jetstream/types';
 import { CampingRainIllustration, EmptyState, Icon, OpenRoadIllustration, ResearchIllustration, Tabs, TabsRef } from '@jetstream/ui';

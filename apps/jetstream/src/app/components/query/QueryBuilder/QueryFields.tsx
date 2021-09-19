@@ -32,7 +32,9 @@ export const QueryFieldsComponent: FunctionComponent<QueryFieldsProps> = ({ sele
 
   useEffect(() => {
     isMounted.current = true;
-    return () => (isMounted.current = false);
+    return () => {
+      isMounted.current = false;
+    };
   }, []);
 
   // Fetch fields for base object if the selected object changes

@@ -1,5 +1,3 @@
-/** @jsx jsx */
-import { jsx } from '@emotion/react';
 import { useNonInitialEffect } from '@jetstream/shared/ui-utils';
 import { splitArrayToMaxSize } from '@jetstream/shared/utils';
 import { CloneEditView, MapOf, PicklistFieldValues, Record } from '@jetstream/types';

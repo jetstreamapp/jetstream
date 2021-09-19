@@ -1,5 +1,4 @@
-/** @jsx jsx */
-import { css, jsx } from '@emotion/react';
+import { css } from '@emotion/react';
 import { MapOf } from '@jetstream/types';
 import { FunctionComponent } from 'react';
 import { AutomationItemsChildren, DeploymentItemMap } from '../automation-control-types';

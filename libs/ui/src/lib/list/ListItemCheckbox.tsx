@@ -1,5 +1,4 @@
-/** @jsx jsx */
-import { css, jsx } from '@emotion/react';
+import { css } from '@emotion/react';
 import classNames from 'classnames';
 import isString from 'lodash/isString';
 import { memo, RefObject } from 'react';

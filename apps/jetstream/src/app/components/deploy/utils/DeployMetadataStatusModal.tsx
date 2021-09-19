@@ -1,5 +1,4 @@
-/** @jsx jsx */
-import { css, jsx } from '@emotion/react';
+import { css } from '@emotion/react';
 import { ANALYTICS_KEYS, DATE_FORMATS } from '@jetstream/shared/constants';
 import { DeployResult, SalesforceOrgUi } from '@jetstream/types';
 import { Grid, GridCol, Icon, Modal, TabsRef } from '@jetstream/ui';

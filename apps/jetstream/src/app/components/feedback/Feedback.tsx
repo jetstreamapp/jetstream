@@ -1,5 +1,4 @@
-/** @jsx jsx */
-import { css, jsx } from '@emotion/react';
+import { css } from '@emotion/react';
 import { logger } from '@jetstream/shared/client-logger';
 import { TITLES } from '@jetstream/shared/constants';
 import { submitFeedback } from '@jetstream/shared/data';
@@ -40,7 +39,9 @@ export const Feedback: FunctionComponent<FeedbackProps> = ({ userProfile }) => {
 
   useEffect(() => {
     isMounted.current = true;
-    return () => (isMounted.current = false);
+    return () => {
+      isMounted.current = false;
+    };
   }, []);
 
   async function handleSubmit({ title, content, images }: { title: string; content: DeltaOperation[]; images: ImageWithUpload[] }) {

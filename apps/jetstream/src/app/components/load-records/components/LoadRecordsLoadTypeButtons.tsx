@@ -1,5 +1,3 @@
-/** @jsx jsx */
-import { jsx } from '@emotion/react';
 import { multiWordObjectFilter } from '@jetstream/shared/utils';
 import { InsertUpdateUpsertDelete } from '@jetstream/types';
 import { Combobox, ComboboxListItem, Grid, GridCol, RadioButton, RadioGroup, Spinner } from '@jetstream/ui';

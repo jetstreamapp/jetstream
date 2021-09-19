@@ -1,6 +1,5 @@
-/** @jsx jsx */
 // https://www.lightningdesignsystem.com/components/Accordion/#Fixed-Text
-import { jsx } from '@emotion/react';
+
 import { UiSection } from '@jetstream/types';
 import classNames from 'classnames';
 import isFunction from 'lodash/isFunction';

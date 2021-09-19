@@ -1,4 +1,3 @@
-/** @jsx jsx */
 import { jsx, css } from '@emotion/react';
 import { ListMetadataResultItem } from '@jetstream/connected-ui';
 import { MapOf } from '@jetstream/types';

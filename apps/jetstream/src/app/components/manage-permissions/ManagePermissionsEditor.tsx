@@ -1,6 +1,5 @@
-/** @jsx jsx */
 import { ColDef, ColGroupDef } from '@ag-grid-community/core';
-import { jsx } from '@emotion/react';
+
 import { logger } from '@jetstream/shared/client-logger';
 import { MapOf, SalesforceOrgUi } from '@jetstream/types';
 import {
@@ -134,7 +133,9 @@ export const ManagePermissionsEditor: FunctionComponent<ManagePermissionsEditorP
 
   useEffect(() => {
     isMounted.current = true;
-    return () => (isMounted.current = false);
+    return () => {
+      isMounted.current = false;
+    };
   }, []);
 
   useEffect(() => {

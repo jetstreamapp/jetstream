@@ -1,5 +1,4 @@
-/** @jsx jsx */
-import { css, jsx } from '@emotion/react';
+import { css } from '@emotion/react';
 import classNames from 'classnames';
 import { FunctionComponent, MouseEvent } from 'react';
 import Icon from '../../widgets/Icon';

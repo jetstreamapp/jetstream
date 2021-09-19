@@ -3,7 +3,7 @@ import Head from 'next/head';
 import LandingPage from '../components/early-access/LandingPage';
 import Footer from '../components/Footer';
 import NavBar from '../components/NavBar';
-import favicon from '../assets/images/favicon.ico';
+// import favicon from '../assets/images/favicon.ico';
 import { fetchBlogPosts } from '../utils/data';
 
 export const Index = ({ omitBlogPosts }: { omitBlogPosts: boolean }) => {
@@ -15,7 +15,7 @@ export const Index = ({ omitBlogPosts }: { omitBlogPosts: boolean }) => {
           name="description"
           content="Jetstream is a set of tools that supercharge your administration of Salesforce.com. Jetstream is build for administrators, developers, quality assurance, or power users that want to speed up your management of Salesforce. Jetstream comes with an advanced query builder for viewing records, a powerful data loader for making changes to your record data, and many more features!"
         />
-        <link rel="icon" type="image/png" href={favicon}></link>
+        <link rel="icon" type="image/png" href="/images/favicon.ico"></link>
         <meta charSet="UTF-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 

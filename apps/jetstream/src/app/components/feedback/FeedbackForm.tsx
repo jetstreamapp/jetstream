@@ -1,5 +1,4 @@
-/** @jsx jsx */
-import { css, jsx } from '@emotion/react';
+import { css } from '@emotion/react';
 import { TITLES } from '@jetstream/shared/constants';
 import { ImageWithUpload } from '@jetstream/types';
 import { Card, Grid, ImageSelector, Input, RichText, ScopedNotification, Spinner } from '@jetstream/ui';

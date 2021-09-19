@@ -1,5 +1,4 @@
-/** @jsx jsx */
-import { css, jsx } from '@emotion/react';
+import { css } from '@emotion/react';
 import { ListMetadataResultItem, useListMetadata } from '@jetstream/connected-ui';
 import { ANALYTICS_KEYS } from '@jetstream/shared/constants';
 import { formatNumber, transformTabularDataToExcelStr } from '@jetstream/shared/ui-utils';

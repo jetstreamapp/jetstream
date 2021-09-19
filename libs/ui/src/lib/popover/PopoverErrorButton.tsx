@@ -1,5 +1,4 @@
-/** @jsx jsx */
-import { css, jsx } from '@emotion/react';
+import { css } from '@emotion/react';
 import { FunctionComponent, useState } from 'react';
 import Icon from '../widgets/Icon';
 import Popover from './Popover';

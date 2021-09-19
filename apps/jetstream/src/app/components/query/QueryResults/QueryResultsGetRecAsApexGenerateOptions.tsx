@@ -1,5 +1,4 @@
-/** @jsx jsx */
-import { css, jsx } from '@emotion/react';
+import { css } from '@emotion/react';
 import { Checkbox, Grid, RadioButton, RadioGroup, Select } from '@jetstream/ui';
 import { FunctionComponent, useEffect, useState } from 'react';
 import { RecordToApexOptionsInitialOptions } from '../utils/query-apex-utils';

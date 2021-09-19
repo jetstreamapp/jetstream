@@ -38,7 +38,9 @@ export const QueryHistoryItemCard: FunctionComponent<QueryHistoryItemCardProps> 
 
   useEffect(() => {
     isMounted.current = true;
-    return () => (isMounted.current = false);
+    return () => {
+      isMounted.current = false;
+    };
   }, []);
 
   useEffect(() => {

@@ -1,4 +1,3 @@
-/** @jsx jsx */
 import { logger } from '@jetstream/shared/client-logger';
 import { listMetadata as listMetadataApi } from '@jetstream/shared/data';
 import { useRollbar } from '@jetstream/shared/ui-utils';
@@ -122,7 +121,9 @@ export function useListMetadata(selectedOrg: SalesforceOrgUi) {
 
   useEffect(() => {
     isMounted.current = true;
-    return () => (isMounted.current = false);
+    return () => {
+      isMounted.current = false;
+    };
   }, []);
 
   /**

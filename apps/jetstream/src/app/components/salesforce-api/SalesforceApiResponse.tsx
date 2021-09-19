@@ -1,5 +1,4 @@
-/** @jsx jsx */
-import { css, jsx } from '@emotion/react';
+import { css } from '@emotion/react';
 import { ManualRequestResponse, SalesforceApiHistoryRequest } from '@jetstream/types';
 import { Card, CopyToClipboard, Grid, Spinner } from '@jetstream/ui';
 import Editor from '@monaco-editor/react';

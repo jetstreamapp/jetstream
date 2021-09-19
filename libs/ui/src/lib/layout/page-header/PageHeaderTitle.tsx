@@ -1,5 +1,3 @@
-/** @jsx jsx */
-import { jsx } from '@emotion/react';
 import { IconObj } from '@jetstream/icon-factory';
 import classNames from 'classnames';
 import { FunctionComponent } from 'react';

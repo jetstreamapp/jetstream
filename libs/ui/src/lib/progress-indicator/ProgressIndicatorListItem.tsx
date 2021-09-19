@@ -1,5 +1,3 @@
-/** @jsx jsx */
-import { jsx } from '@emotion/react';
 import classNames from 'classnames';
 import { Fragment, FunctionComponent } from 'react';
 import Icon from '../widgets/Icon';

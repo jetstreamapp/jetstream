@@ -1,6 +1,5 @@
-/** @jsx jsx */
 import { ICellRendererParams, IFilter, IFilterParams, IFloatingFilter, IFloatingFilterParams } from '@ag-grid-community/core';
-import { jsx } from '@emotion/react';
+
 import { queryMore } from '@jetstream/shared/data';
 import { formatNumber, transformTabularDataToExcelStr } from '@jetstream/shared/ui-utils';
 import { flattenRecords } from '@jetstream/shared/utils';
@@ -56,7 +55,9 @@ export const SubqueryRenderer: FunctionComponent<ICellRendererParams> = ({ colDe
 
   useEffect(() => {
     isMounted.current = true;
-    return () => (isMounted.current = false);
+    return () => {
+      isMounted.current = false;
+    };
   }, []);
 
   // const {serverUrl, org, columnsDefinition} = context as DataTableContextValue;
