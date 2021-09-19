@@ -4,7 +4,7 @@ module.exports = {
   plugins: {
     'postcss-import': {},
     tailwindcss: {
-      config: join(__dirname, 'tailwind.config.js'),
+      config: './apps/landing/tailwind.config.js',
     },
     autoprefixer: {},
     'postcss-preset-env': { stage: 2 },
