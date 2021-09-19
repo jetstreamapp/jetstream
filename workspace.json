@@ -297,8 +297,7 @@
           "options": {
             "buildTarget": "landing:build",
             "port": 4300,
-            "dev": true,
-            "proxyConfig": "proxy.conf.json"
+            "dev": true
           },
           "configurations": {
             "production": {
