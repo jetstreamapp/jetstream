@@ -98,7 +98,7 @@ export const imageSelector = () => (
     label={text('label', undefined)}
     hideLabel={boolean('hideLabel', false)}
     disabled={boolean('disabled', false)}
-    onReadImages={action('onReadFile')}
+    onImages={action('onReadFile')}
     showPreview={boolean('showPreview', true)}
     buttonLabel={text('buttonLabel', undefined)}
     errorMessage={text('errorMessage', undefined)}

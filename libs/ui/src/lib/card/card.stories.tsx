@@ -1,4 +1,3 @@
-import { boolean, number, select } from '@storybook/addon-knobs';
 import React from 'react';
 import Card from './Card';
 
@@ -10,7 +9,7 @@ export default {
 export const card = () => (
   <Card
     title="my card title"
-    icon={{ type: 'standard', icon: 'account', description: 'Account' }}
+    icon={{ type: 'standard', icon: 'opportunity', description: 'Account' }}
     actions={<button className="slds-button slds-button_neutral">New</button>}
     footer="This is a footer"
   >
@@ -25,7 +24,7 @@ export const cardWithCustomContent = () => (
         My <strong>Strong</strong> Title
       </span>
     }
-    icon={{ type: 'standard', icon: 'account', description: 'Account' }}
+    icon={{ type: 'standard', icon: 'opportunity', description: 'Account' }}
     actions={<button className="slds-button slds-button_neutral">New</button>}
     footer={
       <span>

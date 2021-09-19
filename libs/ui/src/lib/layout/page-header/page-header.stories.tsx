@@ -17,7 +17,7 @@ export const base = () => (
   <PageHeader>
     <PageHeaderRow>
       <PageHeaderTitle
-        icon={{ type: text('icon.Type', 'standard') as IconType, icon: text('icon.icon', 'opportunity') }}
+        icon={{ type: text('icon.Type', 'standard') as IconType, icon: text('icon.icon', 'opportunity') as any }}
         label="Query"
         metaLabel="Do a really fancy query"
       />
@@ -64,7 +64,10 @@ export const base = () => (
 export const withNoTitleMeta = () => (
   <PageHeader>
     <PageHeaderRow>
-      <PageHeaderTitle icon={{ type: text('icon.Type', 'standard') as IconType, icon: text('icon.icon', 'opportunity') }} label="Query" />
+      <PageHeaderTitle
+        icon={{ type: text('icon.Type', 'standard') as IconType, icon: text('icon.icon', 'opportunity') as any }}
+        label="Query"
+      />
       <PageHeaderActions
         colType="actions"
         buttonType={select(
@@ -108,7 +111,10 @@ export const withNoTitleMeta = () => (
 export const withNoMeta = () => (
   <PageHeader>
     <PageHeaderRow>
-      <PageHeaderTitle icon={{ type: text('icon.Type', 'standard') as IconType, icon: text('icon.icon', 'opportunity') }} label="Query" />
+      <PageHeaderTitle
+        icon={{ type: text('icon.Type', 'standard') as IconType, icon: text('icon.icon', 'opportunity') as any }}
+        label="Query"
+      />
       <PageHeaderActions
         colType="actions"
         buttonType={select(
@@ -153,7 +159,7 @@ export const singleRow = () => (
   <PageHeader>
     <PageHeaderRow>
       <PageHeaderTitle
-        icon={{ type: text('icon.Type', 'standard') as IconType, icon: text('icon.icon', 'opportunity') }}
+        icon={{ type: text('icon.Type', 'standard') as IconType, icon: text('icon.icon', 'opportunity') as any }}
         label="Query"
         metaLabel="Do a really fancy query"
       />

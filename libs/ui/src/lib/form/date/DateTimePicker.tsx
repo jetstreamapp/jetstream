@@ -80,7 +80,7 @@ export const Input: FunctionComponent<InputProps> = ({
           <Icon
             omitContainer
             type={iconLeftType}
-            icon={iconLeft}
+            icon={iconLeft as any}
             className="slds-icon slds-input__icon slds-icon-text-default slds-input__icon_left"
           />
         )}
@@ -88,7 +88,7 @@ export const Input: FunctionComponent<InputProps> = ({
           <Icon
             omitContainer
             type={iconRightType}
-            icon={iconLeft}
+            icon={iconLeft as any}
             className="slds-icon slds-input__icon slds-icon-text-default slds-input__icon_right"
           />
         )}

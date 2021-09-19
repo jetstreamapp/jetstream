@@ -7,7 +7,7 @@ export default {
 };
 
 export const info = () => (
-  <Alert type="info" leadingIcon="user">
+  <Alert type="info" leadingIcon="add">
     Logged in as John Smith (johnsmith@acme.com).
   </Alert>
 );
@@ -25,7 +25,7 @@ export const error = () => (
 );
 
 export const offline = () => (
-  <Alert type="offline" leadingIcon="offline">
+  <Alert type="offline" leadingIcon="add">
     You are in offline mode.
   </Alert>
 );
