@@ -1,7 +1,7 @@
 import { IconObj } from '@jetstream/icon-factory';
 import { SizeXSmallSmallLarge, SizeXXSmallXSmallSmall } from '@jetstream/types';
 import classNames from 'classnames';
-import React, { FunctionComponent, useEffect, useState } from 'react';
+import React, { FunctionComponent, ReactNode, useEffect, useState } from 'react';
 import useClipboard from 'react-use-clipboard';
 import Icon from './Icon';
 
@@ -18,6 +18,7 @@ export interface CopyToClipboardProps {
   skipTransitionIcon?: boolean;
   disabled?: boolean;
   copied?: (isActive: boolean) => void;
+  children: ReactNode;
 }
 
 export const CopyToClipboard: FunctionComponent<CopyToClipboardProps> = ({

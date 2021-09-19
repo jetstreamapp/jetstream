@@ -9,7 +9,7 @@ import { ComboboxListItemGroup } from './ComboboxListItemGroup';
 
 export default {
   component: Combobox,
-  title: 'Combobox',
+  title: 'forms/Combobox',
 };
 
 export const base = () => (

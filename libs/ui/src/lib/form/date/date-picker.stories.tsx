@@ -6,7 +6,7 @@ import DatePicker from './DatePicker';
 
 export default {
   component: DatePicker,
-  title: 'DatePicker',
+  title: 'forms/DatePicker',
 };
 
 export const datePicker = () => <DatePicker label="Date" onChange={action('onChange')} />;

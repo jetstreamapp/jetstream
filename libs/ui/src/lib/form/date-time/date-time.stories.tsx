@@ -5,7 +5,7 @@ import DateTime from './DateTime';
 
 export default {
   component: DateTime,
-  title: 'DateTime',
+  title: 'forms/DateTime',
 };
 
 export const base = () => (

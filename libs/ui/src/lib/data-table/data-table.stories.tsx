@@ -1,14 +1,22 @@
-import { action } from '@storybook/addon-actions';
 import { ColDef } from '@ag-grid-community/core';
+import { Meta, Story } from '@storybook/react';
 import React from 'react';
 import { dataTableAddressFormatter, getCheckboxColumnDef } from './data-table-utils';
-import DataTable from './DataTable';
+import DataTable, { DataTableProps } from './DataTable';
 import { data } from './example-data';
 
 export default {
   component: DataTable,
   title: 'DataTable',
-};
+  argTypes: {
+    columns: {
+      control: false,
+    },
+    data: {
+      control: false,
+    },
+  },
+} as Meta;
 
 const columns: ColDef[] = [
   getCheckboxColumnDef(),
@@ -69,8 +77,10 @@ const columns: ColDef[] = [
   },
 ];
 
-export const base = () => (
+const Template: Story<DataTableProps> = (args) => (
   <div style={{ height: 700 }}>
-    <DataTable columns={columns} data={data} />
+    <DataTable columns={columns} data={data} {...args} />
   </div>
 );
+
+export const Base = Template.bind({});

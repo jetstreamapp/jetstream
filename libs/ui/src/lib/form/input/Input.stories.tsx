@@ -7,7 +7,7 @@ import uniqueId from 'lodash/uniqueId';
 
 export default {
   component: Input,
-  title: 'Input',
+  title: 'forms/Input',
 };
 
 export const base = () => (

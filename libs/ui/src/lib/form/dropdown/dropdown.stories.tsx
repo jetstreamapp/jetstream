@@ -8,7 +8,7 @@ import DropDown from './DropDown';
 
 export default {
   component: DropDown,
-  title: 'DropDown',
+  title: 'forms/DropDown',
 };
 
 const values = array('items', [

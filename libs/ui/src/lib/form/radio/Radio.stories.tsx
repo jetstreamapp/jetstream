@@ -7,7 +7,7 @@ import RadioGroup from './RadioGroup';
 
 export default {
   component: RadioGroup,
-  title: 'Radio',
+  title: 'forms/Radio',
 };
 
 const name = text('Radio 1/2 name', 'Label');

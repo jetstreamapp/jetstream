@@ -10,7 +10,7 @@ import ImageSelector from './ImageSelector';
 
 export default {
   component: FileSelector,
-  title: 'FileSelector',
+  title: 'forms/FileSelector',
 };
 
 export const fileSelector = () => (

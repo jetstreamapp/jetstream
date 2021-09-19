@@ -7,7 +7,7 @@ import uniqueId from 'lodash/uniqueId';
 
 export default {
   component: Checkbox,
-  title: 'Checkbox',
+  title: 'forms/Checkbox',
 };
 
 export const Base = (args) => <Checkbox id={uniqueId('checkbox')} {...args} />;
