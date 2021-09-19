@@ -1,5 +1,3 @@
-/** @jsx jsx */
-import { jsx } from '@emotion/react';
 import { formatNumber } from '@jetstream/shared/ui-utils';
 import { BulkJobBatchInfo } from '@jetstream/types';
 import { Grid, Icon, Spinner } from '@jetstream/ui';
@@ -22,7 +20,9 @@ export const LoadRecordsBulkApiResultsTableRow: FunctionComponent<LoadRecordsBul
 
   useEffect(() => {
     isMounted.current = true;
-    return () => (isMounted.current = false);
+    return () => {
+      isMounted.current = false;
+    };
   }, []);
 
   const total = formatNumber(batch.numberRecordsProcessed);

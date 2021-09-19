@@ -1,5 +1,3 @@
-/** @jsx jsx */
-import { jsx } from '@emotion/react';
 import { PlatformEventMessagePayload } from '@jetstream/types';
 import { CopyToClipboard } from '@jetstream/ui';
 import { Fragment, FunctionComponent } from 'react';

@@ -1,5 +1,3 @@
-/** @jsx jsx */
-import { jsx } from '@emotion/react';
 import { InsertUpdateUpsertDelete, SalesforceOrgUi } from '@jetstream/types';
 import { FunctionComponent } from 'react';
 import { ApiMode, FieldMapping } from '../../load-records-types';

@@ -1,5 +1,4 @@
-/** @jsx jsx */
-import { css, jsx } from '@emotion/react';
+import { css } from '@emotion/react';
 import { logger } from '@jetstream/shared/client-logger';
 import { readFile } from '@jetstream/shared/ui-utils';
 import { InputAcceptType, InputReadFileContent } from '@jetstream/types';

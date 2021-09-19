@@ -1,5 +1,4 @@
-/** @jsx jsx */
-import { css, jsx } from '@emotion/react';
+import { css } from '@emotion/react';
 import { SalesforceOrgUi } from '@jetstream/types';
 import {
   AutoFullHeightContainer,

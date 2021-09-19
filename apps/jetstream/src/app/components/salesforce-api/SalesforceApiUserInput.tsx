@@ -1,5 +1,3 @@
-/** @jsx jsx */
-import { jsx } from '@emotion/react';
 import { hasModifierKey, isEnterKey } from '@jetstream/shared/ui-utils';
 import { HttpMethod, SalesforceOrgUi } from '@jetstream/types';
 import { Grid, GridCol, Input, Select } from '@jetstream/ui';

@@ -1,5 +1,3 @@
-/** @jsx jsx */
-import { jsx } from '@emotion/react';
 import { IconName } from '@jetstream/icon-factory';
 import Select from 'libs/ui/src/lib/form/select/Select';
 import Icon from 'libs/ui/src/lib/widgets/Icon';

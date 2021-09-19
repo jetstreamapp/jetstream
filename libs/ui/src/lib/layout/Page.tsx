@@ -1,4 +1,3 @@
-/** @jsx jsx */
 import { jsx, css } from '@emotion/react';
 import { FunctionComponent } from 'react';
 

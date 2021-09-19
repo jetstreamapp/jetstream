@@ -1,4 +1,3 @@
-/** @jsx jsx */
 import { logger } from '@jetstream/shared/client-logger';
 import { FunctionComponent } from 'react';
 import { RecoilValue, useRecoilTransactionObserver_UNSTABLE } from 'recoil';

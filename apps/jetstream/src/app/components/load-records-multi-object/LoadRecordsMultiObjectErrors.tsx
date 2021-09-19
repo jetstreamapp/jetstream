@@ -1,5 +1,3 @@
-/** @jsx jsx */
-import { jsx } from '@emotion/react';
 import { MapOf } from '@jetstream/types';
 import { ScopedNotification } from '@jetstream/ui';
 import { groupBy } from 'lodash';

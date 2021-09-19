@@ -1,5 +1,3 @@
-/** @jsx jsx */
-import { jsx } from '@emotion/react';
 import { FEATURE_FLAGS } from '@jetstream/shared/constants';
 import { hasFeatureFlagAccess } from '@jetstream/shared/ui-utils';
 import { DropDownItem, UserProfileUi } from '@jetstream/types';

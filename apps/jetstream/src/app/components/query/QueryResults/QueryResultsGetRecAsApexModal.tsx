@@ -1,5 +1,4 @@
-/** @jsx jsx */
-import { css, jsx } from '@emotion/react';
+import { css } from '@emotion/react';
 import { logger } from '@jetstream/shared/client-logger';
 import { describeSObject } from '@jetstream/shared/data';
 import { useNonInitialEffect } from '@jetstream/shared/ui-utils';

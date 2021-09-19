@@ -1,26 +1,23 @@
-/** @jsx jsx */
-import { css, jsx } from '@emotion/react';
-import FeatureWithIcon from './FeatureWithIcon';
-import PricingTable from './PricingTable';
+import React from 'react';
+import RecordLookupIcon from '../icons/RecordLookupIcon';
 import StandardActivationsIcon from '../icons/StandardActivationsIcon';
 import StandardAnnouncementIcon from '../icons/StandardAnnouncementIcon';
-import RecordLookupIcon from '../icons/RecordLookupIcon';
-import StandardPortalIcon from '../icons/StandardPortalIcon';
 import StandardDataStreamsIcon from '../icons/StandardDataStreamsIcon';
-import BackgroundImage from '../../assets/images/einstein-header-background.svg';
+import StandardPortalIcon from '../icons/StandardPortalIcon';
+import FeatureWithIcon from './FeatureWithIcon';
+import PricingTable from './PricingTable';
 
 export const SplitBrandPricing = () => (
   <div className="relative bg-white">
     <div
-      css={css`
-        z-index: 100;
-        opacity: 0.7;
-        position: absolute;
-        /* background: url(${BackgroundImage}) repeat-x bottom; */
-        width: 100%;
-        height: 100%;
-        pointer-events: none;
-      `}
+      style={{
+        zIndex: 100,
+        opacity: 0.7,
+        position: 'absolute',
+        width: 100,
+        height: 100,
+        pointerEvents: 'none',
+      }}
     ></div>
     <div className="absolute inset-0" aria-hidden="true">
       <div className="absolute inset-y-0 right-0 w-1/2 bg-blue-700" />

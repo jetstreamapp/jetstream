@@ -1,5 +1,3 @@
-/** @jsx jsx */
-import { jsx } from '@emotion/react';
 import { GoogleApiClientConfig, GoogleApiData, useLoadGoogleApi } from '@jetstream/shared/ui-utils';
 import Avatar from '@salesforce-ux/design-system/assets/images/profile_avatar_96.png';
 import Grid from '../grid/Grid';

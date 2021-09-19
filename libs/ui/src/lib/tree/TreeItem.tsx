@@ -1,5 +1,3 @@
-/** @jsx jsx */
-import { jsx } from '@emotion/react';
 import classNames from 'classnames';
 import { isString } from 'lodash';
 import { SyntheticEvent } from 'react';

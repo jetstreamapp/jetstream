@@ -1,5 +1,3 @@
-/** @jsx jsx */
-import { jsx } from '@emotion/react';
 import { logger } from '@jetstream/shared/client-logger';
 import { deleteImage, uploadImage } from '@jetstream/shared/data';
 import { readFile, useNonInitialEffect } from '@jetstream/shared/ui-utils';
@@ -55,7 +53,9 @@ export const ImageSelector: FunctionComponent<ImageSelectorProps> = ({
 
   useEffect(() => {
     isMounted.current = true;
-    return () => (isMounted.current = false);
+    return () => {
+      isMounted.current = false;
+    };
   }, []);
 
   useEffect(() => {

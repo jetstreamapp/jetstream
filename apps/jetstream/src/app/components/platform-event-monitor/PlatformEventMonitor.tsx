@@ -1,5 +1,4 @@
-/** @jsx jsx */
-import { css, jsx } from '@emotion/react';
+import { css } from '@emotion/react';
 import { TITLES } from '@jetstream/shared/constants';
 import { ListItem, SalesforceOrgUi } from '@jetstream/types';
 import { AutoFullHeightContainer } from '@jetstream/ui';
@@ -40,7 +39,9 @@ export const PlatformEventMonitor: FunctionComponent<PlatformEventMonitorProps> 
 
   useEffect(() => {
     isMounted.current = true;
-    return () => (isMounted.current = false);
+    return () => {
+      isMounted.current = false;
+    };
   }, []);
 
   useEffect(() => {

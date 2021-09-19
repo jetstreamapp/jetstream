@@ -1,5 +1,4 @@
-/** @jsx jsx */
-import { css, jsx } from '@emotion/react';
+import { css } from '@emotion/react';
 import { logger } from '@jetstream/shared/client-logger';
 import { ANALYTICS_KEYS, TITLES } from '@jetstream/shared/constants';
 import { manualRequest } from '@jetstream/shared/data';
@@ -33,7 +32,9 @@ export const SalesforceApi: FunctionComponent<SalesforceApiProps> = () => {
 
   useEffect(() => {
     isMounted.current = true;
-    return () => (isMounted.current = false);
+    return () => {
+      isMounted.current = false;
+    };
   }, []);
 
   const onSubmit = useCallback(

@@ -1,5 +1,3 @@
-/** @jsx jsx */
-import { jsx } from '@emotion/react';
 import { RadioButton, RadioGroup } from '@jetstream/ui';
 import { FunctionComponent } from 'react';
 

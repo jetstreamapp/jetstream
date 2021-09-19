@@ -1,5 +1,4 @@
-/** @jsx jsx */
-import { css, jsx } from '@emotion/react';
+import { css } from '@emotion/react';
 import { INPUT_ACCEPT_FILETYPES } from '@jetstream/shared/constants';
 import { InputReadFileContent, ListItem, SalesforceOrgUi } from '@jetstream/types';
 import { FileSelector, Grid, GridCol, Modal, Picklist, Spinner, Textarea } from '@jetstream/ui';

@@ -1,5 +1,3 @@
-/** @jsx jsx */
-import { jsx } from '@emotion/react';
 import Avatar from '@salesforce-ux/design-system/assets/images/profile_avatar_96.png';
 import { FunctionComponent, ReactNode, Suspense, ReactNodeArray } from 'react';
 import { DropDownItem, UserProfileUi } from '@jetstream/types';

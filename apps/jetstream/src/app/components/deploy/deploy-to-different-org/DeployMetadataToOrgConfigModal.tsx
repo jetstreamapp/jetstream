@@ -1,5 +1,4 @@
-/** @jsx jsx */
-import { css, jsx } from '@emotion/react';
+import { css } from '@emotion/react';
 import { useNonInitialEffect } from '@jetstream/shared/ui-utils';
 import { DeployOptions, ListMetadataResult, MapOf, SalesforceOrgUi } from '@jetstream/types';
 import { Grid, GridCol, Icon, Modal } from '@jetstream/ui';

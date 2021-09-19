@@ -1,5 +1,3 @@
-/** @jsx jsx */
-import { jsx } from '@emotion/react';
 import { Fragment, FunctionComponent, useEffect } from 'react';
 import { FallbackProps } from 'react-error-boundary';
 import { logger } from '@jetstream/shared/client-logger';
@@ -10,7 +8,8 @@ import { Icon } from '@jetstream/ui';
 // Check if error message was from a failed loading of chunk
 const chunkLoadingRegex = /Loading chunk [\d]+ failed/i;
 
-export const ErrorBoundaryFallback: FunctionComponent<FallbackProps> = ({ error, componentStack, resetErrorBoundary }) => {
+// componentStack is depreacted in version 3.0 and must be added as a listener to every place ErrorBoundary is used
+export const ErrorBoundaryFallback: FunctionComponent<FallbackProps> = ({ error, /** componentStack, */ resetErrorBoundary }) => {
   const rollbar = useRollbar();
 
   useEffect(() => {
@@ -22,10 +21,10 @@ export const ErrorBoundaryFallback: FunctionComponent<FallbackProps> = ({ error,
           return;
         }
         logger.error(error);
-        logger.error(componentStack);
+        // logger.error(componentStack);
         rollbar.error(error.message, {
           error,
-          componentStack,
+          // componentStack,
         });
       } catch (ex) {
         try {
@@ -36,7 +35,7 @@ export const ErrorBoundaryFallback: FunctionComponent<FallbackProps> = ({ error,
         }
       }
     }
-  }, [componentStack, error, rollbar]);
+  }, [/** componentStack, */ error, rollbar]);
 
   function resetPage() {
     window.location.reload();

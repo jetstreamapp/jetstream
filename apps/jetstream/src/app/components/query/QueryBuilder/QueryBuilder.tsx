@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
-/** @jsx jsx */
-import { css, jsx } from '@emotion/react';
+
+import { css } from '@emotion/react';
 import { IconObj } from '@jetstream/icon-factory';
 import { ANALYTICS_KEYS, MIME_TYPES } from '@jetstream/shared/constants';
 import { hasModifierKey, isEnterKey, saveFile, useGlobalEventHandler, useNonInitialEffect } from '@jetstream/shared/ui-utils';
@@ -126,7 +126,9 @@ export const QueryBuilder: FunctionComponent<QueryBuilderProps> = () => {
 
   useEffect(() => {
     isMounted.current = true;
-    return () => (isMounted.current = false);
+    return () => {
+      isMounted.current = false;
+    };
   }, []);
 
   useNonInitialEffect(() => {

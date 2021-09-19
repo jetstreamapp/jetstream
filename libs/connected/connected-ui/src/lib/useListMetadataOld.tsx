@@ -1,4 +1,3 @@
-/** @jsx jsx */
 import { logger } from '@jetstream/shared/client-logger';
 import { clearCacheForOrg, listMetadata as listMetadataApi } from '@jetstream/shared/data';
 import { useNonInitialEffect, useRollbar } from '@jetstream/shared/ui-utils';
@@ -36,7 +35,9 @@ export function useListMetadata(
 
   useEffect(() => {
     isMounted.current = true;
-    return () => (isMounted.current = false);
+    return () => {
+      isMounted.current = false;
+    };
   }, []);
 
   useNonInitialEffect(() => {

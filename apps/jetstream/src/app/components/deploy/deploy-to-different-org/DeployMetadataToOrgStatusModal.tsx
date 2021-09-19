@@ -1,5 +1,3 @@
-/** @jsx jsx */
-import { jsx } from '@emotion/react';
 import { useNonInitialEffect } from '@jetstream/shared/ui-utils';
 import { DeployOptions, DeployResult, ListMetadataResult, MapOf, SalesforceOrgUi } from '@jetstream/types';
 import { SalesforceLogin } from '@jetstream/ui';

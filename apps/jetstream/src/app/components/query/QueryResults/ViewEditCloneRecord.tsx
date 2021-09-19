@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 /* eslint-disable @typescript-eslint/no-explicit-any */
-/** @jsx jsx */
-import { css, jsx } from '@emotion/react';
+
+import { css } from '@emotion/react';
 import { mockPicklistValuesFromSobjectDescribe, UiRecordForm } from '@jetstream/record-form';
 import { logger } from '@jetstream/shared/client-logger';
 import { describeSObject, genericRequest, sobjectOperation } from '@jetstream/shared/data';
@@ -67,7 +67,9 @@ export const ViewEditCloneRecord: FunctionComponent<ViewEditCloneRecordProps> = 
 
   useEffect(() => {
     isMounted.current = true;
-    return () => (isMounted.current = false);
+    return () => {
+      isMounted.current = false;
+    };
   }, []);
 
   useNonInitialEffect(() => {

@@ -1,4 +1,3 @@
-/** @jsx jsx */
 import { logger } from '@jetstream/shared/client-logger';
 import { clearCacheForOrg, queryWithCache } from '@jetstream/shared/data';
 import { useReducerFetchFn } from '@jetstream/shared/ui-utils';
@@ -26,7 +25,9 @@ export function useUsers(selectedOrg: SalesforceOrgUi, initialUsers?: ListItem<s
 
   useEffect(() => {
     isMounted.current = true;
-    return () => (isMounted.current = false);
+    return () => {
+      isMounted.current = false;
+    };
   }, []);
 
   useEffect(() => {
@@ -75,15 +76,13 @@ export function useUsers(selectedOrg: SalesforceOrgUi, initialUsers?: ListItem<s
  * @param records
  */
 function getListItemFromQueryResults(records: SalesforceUser[]) {
-  return records.map(
-    (user): ListItem<string, SalesforceUser> => {
-      return {
-        id: user.Id,
-        label: user.Name,
-        value: user.Id,
-        meta: user,
-        secondaryLabel: user.IsActive ? `${user.Username}` : `${user.Username} (Inactive)`,
-      };
-    }
-  );
+  return records.map((user): ListItem<string, SalesforceUser> => {
+    return {
+      id: user.Id,
+      label: user.Name,
+      value: user.Id,
+      meta: user,
+      secondaryLabel: user.IsActive ? `${user.Username}` : `${user.Username} (Inactive)`,
+    };
+  });
 }

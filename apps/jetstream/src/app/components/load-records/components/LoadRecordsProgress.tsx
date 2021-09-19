@@ -1,5 +1,3 @@
-/** @jsx jsx */
-import { jsx } from '@emotion/react';
 import { ProgressIndicator, ProgressIndicatorListItem } from '@jetstream/ui';
 import { FunctionComponent } from 'react';
 import { Step } from '../load-records-types';

@@ -1,6 +1,4 @@
-/** @jsx jsx */
-import { css, jsx } from '@emotion/react';
-import EinsteinFigure from '../../assets/images/einstein-figure.svg';
+import React from 'react';
 
 export const CallToActionHeader = () => (
   <div className="bg-gradient-to-b from-gray-100 from-gray-50">
@@ -13,14 +11,7 @@ export const CallToActionHeader = () => (
           Get early access for <strong>free</strong>.
         </p>
       </div>
-      <img
-        src={EinsteinFigure}
-        alt="einstein"
-        className="flex-wrap flex-shrink "
-        css={css`
-          max-width: 250px;
-        `}
-      />
+      <img src="/images/einstein-figure.svg" alt="einstein" className="flex-wrap flex-shrink" style={{ maxWidth: 250 }} />
     </div>
   </div>
 );

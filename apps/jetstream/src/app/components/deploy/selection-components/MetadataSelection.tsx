@@ -1,5 +1,3 @@
-/** @jsx jsx */
-import { jsx } from '@emotion/react';
 import { COMMON_METADATA_TYPES, DescribeMetadataList, getMetadataLabelFromFullName } from '@jetstream/connected-ui';
 import { useNonInitialEffect } from '@jetstream/shared/ui-utils';
 import { SalesforceOrgUi } from '@jetstream/types';

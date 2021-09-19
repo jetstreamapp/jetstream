@@ -6,7 +6,7 @@ import Textarea from './Textarea';
 
 export default {
   component: Textarea,
-  title: 'Textarea',
+  title: 'forms/Textarea',
 };
 
 export const base = () => (

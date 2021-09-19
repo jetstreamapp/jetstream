@@ -8,7 +8,7 @@ import DropDown from './DropDown';
 
 export default {
   component: DropDown,
-  title: 'DropDown',
+  title: 'forms/DropDown',
 };
 
 const values = array('items', [
@@ -110,7 +110,7 @@ export const withLeadingIcon = () => (
     dropDownClassName={text('dropDownClassName', undefined)}
     position="left"
     actionText={text('actionText', undefined)}
-    leadingIcon={object('Leading Icon', { type: 'utility', icon: 'help_center' } as IconObj)}
+    leadingIcon={object('Leading Icon', { type: 'utility', icon: 'add' } as IconObj)}
     scrollLength={number('scrollLength', 5) as 5 | 7 | 10}
     description={text('description', undefined)}
     items={[

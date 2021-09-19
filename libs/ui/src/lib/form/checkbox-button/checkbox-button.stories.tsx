@@ -7,7 +7,7 @@ import CheckboxButton from './CheckboxButton';
 
 export default {
   component: CheckboxButton,
-  title: 'CheckboxButton',
+  title: 'forms/CheckboxButton',
 };
 
 export const base = () => (

@@ -6,7 +6,7 @@ import { text } from '@storybook/addon-knobs';
 
 export default {
   component: ButtonGroupContainer,
-  title: 'Buttons',
+  title: 'forms/Buttons',
 };
 
 export const buttonGroupContainer = () => (

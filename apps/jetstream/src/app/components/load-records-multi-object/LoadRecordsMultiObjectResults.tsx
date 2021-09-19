@@ -1,5 +1,3 @@
-/** @jsx jsx */
-import { jsx } from '@emotion/react';
 import { formatNumber } from '@jetstream/shared/ui-utils';
 import { FileExtAllTypes, SalesforceOrgUi, SalesforceOrgUiType } from '@jetstream/types';
 import { Badge, FileDownloadModal, Grid, Icon } from '@jetstream/ui';

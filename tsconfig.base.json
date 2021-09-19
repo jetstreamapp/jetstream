@@ -17,18 +17,18 @@
     "baseUrl": ".",
     "paths": {
       "@jetstream/api-interfaces": ["libs/api-interfaces/src/index.ts"],
-      "@jetstream/ui": ["libs/ui/src/index.ts"],
-      "@jetstream/types": ["libs/types/src/index.ts"],
-      "@jetstream/shared/utils": ["libs/shared/utils/src/index.ts"],
-      "@jetstream/shared/data": ["libs/shared/data/src/index.ts"],
-      "@jetstream/shared/ui-utils": ["libs/shared/ui-utils/src/index.ts"],
-      "@jetstream/shared/constants": ["libs/shared/constants/src/index.ts"],
-      "@jetstream/shared/node-utils": ["libs/shared/node-utils/src/index.ts"],
-      "@jetstream/shared/client-logger": ["libs/shared/client-logger/src/index.ts"],
-      "@jetstream/icon-factory": ["libs/icon-factory/src/index.ts"],
-      "@jetstream/record-form": ["libs/shared/ui-record-form/src/index.ts"],
       "@jetstream/connected-ui": ["libs/connected/connected-ui/src/index.ts"],
-      "@jetstream/monaco": ["libs/monaco-configuration/src/index.ts"]
+      "@jetstream/icon-factory": ["libs/icon-factory/src/index.ts"],
+      "@jetstream/monaco": ["libs/monaco-configuration/src/index.ts"],
+      "@jetstream/record-form": ["libs/shared/ui-record-form/src/index.ts"],
+      "@jetstream/shared/client-logger": ["libs/shared/client-logger/src/index.ts"],
+      "@jetstream/shared/constants": ["libs/shared/constants/src/index.ts"],
+      "@jetstream/shared/data": ["libs/shared/data/src/index.ts"],
+      "@jetstream/shared/node-utils": ["libs/shared/node-utils/src/index.ts"],
+      "@jetstream/shared/ui-utils": ["libs/shared/ui-utils/src/index.ts"],
+      "@jetstream/shared/utils": ["libs/shared/utils/src/index.ts"],
+      "@jetstream/types": ["libs/types/src/index.ts"],
+      "@jetstream/ui": ["libs/ui/src/index.ts"]
     }
   },
   "exclude": ["node_modules", "tmp"]

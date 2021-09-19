@@ -5,7 +5,7 @@ import Picklist from './Picklist';
 
 export default {
   component: Picklist,
-  title: 'Picklist',
+  title: 'forms/Picklist',
 };
 
 export const singleSelection = () => (

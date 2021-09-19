@@ -1,5 +1,4 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-/** @jsx jsx */
 
 /**
  *
@@ -9,7 +8,6 @@
  *
  */
 
-import { jsx } from '@emotion/react';
 import { QueryFieldHeader, SalesforceOrgUi } from '@jetstream/types';
 import { Fragment, FunctionComponent, memo, useMemo } from 'react';
 import TableBase from '../table/TableBase';
@@ -36,12 +34,15 @@ function areEqual(prevProps: TableSortableResizableProps, nextProps: TableSortab
 export const TableSortableResizable: FunctionComponent<TableSortableResizableProps> = memo(
   ({ headers, data, serverUrl, org, onRowSelection, onRowAction }) => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    const memoizedColumns = useMemo(() => getSortableResizableColumns(headers, serverUrl, org, onRowAction), [
-      headers,
-      serverUrl,
-      org,
-      // onRowAction,
-    ]);
+    const memoizedColumns = useMemo(
+      () => getSortableResizableColumns(headers, serverUrl, org, onRowAction),
+      [
+        headers,
+        serverUrl,
+        org,
+        // onRowAction,
+      ]
+    );
     const memoizedData = useMemo(() => [...data], [data]);
 
     return (

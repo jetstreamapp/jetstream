@@ -1,5 +1,3 @@
-/** @jsx jsx */
-import { jsx } from '@emotion/react';
 import Tabs from '../../tabs/Tabs';
 import { Fragment, FunctionComponent } from 'react';
 import GoogleSignIn from '../../google/GoogleSignIn';

@@ -1,5 +1,3 @@
-/** @jsx jsx */
-import { jsx } from '@emotion/react';
 import { Checkbox, Radio, RadioGroup } from '@jetstream/ui';
 import { FunctionComponent } from 'react';
 import { FieldMappingItem, NonExtIdLookupOption } from '../load-records-types';

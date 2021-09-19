@@ -55,7 +55,9 @@ export const ConnectedSobjectList: FunctionComponent<ConnectedSobjectListProps> 
 
   useEffect(() => {
     isMounted.current = true;
-    return () => (isMounted.current = false);
+    return () => {
+      isMounted.current = false;
+    };
   }, []);
 
   useEffect(() => {

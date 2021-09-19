@@ -1,5 +1,3 @@
-/** @jsx jsx */
-import { jsx } from '@emotion/react';
 import { Checkbox, SearchInput } from '@jetstream/ui';
 import { forwardRef } from 'react';
 

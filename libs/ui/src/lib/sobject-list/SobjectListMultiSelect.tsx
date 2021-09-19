@@ -1,5 +1,4 @@
-/** @jsx jsx */
-import { css, jsx } from '@emotion/react';
+import { css } from '@emotion/react';
 import { formatNumber } from '@jetstream/shared/ui-utils';
 import { multiWordObjectFilter, orderStringsBy } from '@jetstream/shared/utils';
 import { UpDown } from '@jetstream/types';

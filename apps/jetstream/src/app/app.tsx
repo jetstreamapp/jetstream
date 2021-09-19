@@ -1,5 +1,4 @@
-/** @jsx jsx */
-import { css, jsx } from '@emotion/react';
+import { css } from '@emotion/react';
 import { hasFeatureFlagAccess } from '@jetstream/shared/ui-utils';
 import { UserProfileUi } from '@jetstream/types';
 import { ConfirmationServiceProvider } from '@jetstream/ui';

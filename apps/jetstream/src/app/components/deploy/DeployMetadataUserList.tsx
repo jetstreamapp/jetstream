@@ -1,5 +1,3 @@
-/** @jsx jsx */
-import { jsx } from '@emotion/react';
 import { useNonInitialEffect } from '@jetstream/shared/ui-utils';
 import { ListItem, SalesforceOrgUi } from '@jetstream/types';
 import { ListWithFilterMultiSelect } from '@jetstream/ui';

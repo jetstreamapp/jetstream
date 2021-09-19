@@ -1,5 +1,3 @@
-/** @jsx jsx */
-import { jsx } from '@emotion/react';
 import { ANALYTICS_KEYS } from '@jetstream/shared/constants';
 import { DeployOptions, DeployResult, MapOf, SalesforceOrgUi } from '@jetstream/types';
 import { FileDownloadModal, Icon } from '@jetstream/ui';

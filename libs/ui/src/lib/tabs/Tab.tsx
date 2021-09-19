@@ -1,6 +1,5 @@
 /* eslint-disable jsx-a11y/anchor-is-valid */
-/** @jsx jsx */
-import { jsx } from '@emotion/react';
+
 import { UiTabSection } from '@jetstream/types';
 import classNames from 'classnames';
 import React from 'react';

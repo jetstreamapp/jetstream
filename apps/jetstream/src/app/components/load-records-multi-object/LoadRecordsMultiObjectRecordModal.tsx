@@ -1,5 +1,3 @@
-/** @jsx jsx */
-import { jsx } from '@emotion/react';
 import { formatNumber } from '@jetstream/shared/ui-utils';
 import { pluralizeFromNumber, pluralizeIfMultiple } from '@jetstream/shared/utils';
 import { CompositeGraphRequest, CompositeRequestBody } from '@jetstream/types';

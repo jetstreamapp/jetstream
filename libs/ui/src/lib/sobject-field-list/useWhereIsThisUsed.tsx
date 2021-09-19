@@ -1,4 +1,3 @@
-/** @jsx jsx */
 import { logger } from '@jetstream/shared/client-logger';
 import { clearCacheForOrg, queryWithCache } from '@jetstream/shared/data';
 import { useReducerFetchFn } from '@jetstream/shared/ui-utils';
@@ -59,7 +58,9 @@ export function useWhereIsThisUsed(org: SalesforceOrgUi, sobject: string, field:
 
   useEffect(() => {
     isMounted.current = true;
-    return () => (isMounted.current = false);
+    return () => {
+      isMounted.current = false;
+    };
   }, []);
 
   const load = useCallback(
@@ -102,20 +103,18 @@ export function useWhereIsThisUsed(org: SalesforceOrgUi, sobject: string, field:
  * @param records
  */
 function getListItemFromQueryResults(records: MetadataDependency[]) {
-  return orderBy(records, ['MetadataComponentType', 'MetadataComponentName']).map(
-    (record): ListItem<string, MetadataDependency> => {
-      let label = record.MetadataComponentName;
-      if (record.MetadataComponentNamespace) {
-        label += ` (${record.MetadataComponentNamespace})`;
-      }
-      return {
-        id: record.MetadataComponentId,
-        label,
-        secondaryLabel: record.MetadataComponentType,
-        value: record.MetadataComponentId,
-        meta: record,
-        title: label,
-      };
+  return orderBy(records, ['MetadataComponentType', 'MetadataComponentName']).map((record): ListItem<string, MetadataDependency> => {
+    let label = record.MetadataComponentName;
+    if (record.MetadataComponentNamespace) {
+      label += ` (${record.MetadataComponentNamespace})`;
     }
-  );
+    return {
+      id: record.MetadataComponentId,
+      label,
+      secondaryLabel: record.MetadataComponentType,
+      value: record.MetadataComponentId,
+      meta: record,
+      title: label,
+    };
+  });
 }

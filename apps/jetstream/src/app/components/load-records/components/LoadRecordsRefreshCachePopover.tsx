@@ -1,5 +1,4 @@
-/** @jsx jsx */
-import { css, jsx } from '@emotion/react';
+import { css } from '@emotion/react';
 import { SalesforceOrgUi } from '@jetstream/types';
 import { Icon, Popover, SalesforceLogin, Spinner } from '@jetstream/ui';
 import { FunctionComponent, useState } from 'react';

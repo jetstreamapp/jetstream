@@ -1,5 +1,3 @@
-/** @jsx jsx */
-import { jsx } from '@emotion/react';
 import { mockPicklistValuesFromSobjectDescribe, UiRecordForm } from '@jetstream/record-form';
 import { clearCacheForOrg, describeSObject } from '@jetstream/shared/data';
 import { useReducerFetchFn } from '@jetstream/shared/ui-utils';
@@ -54,7 +52,9 @@ export const PlatformEventMonitorPublisherCard: FunctionComponent<PlatformEventM
 
   useEffect(() => {
     isMounted.current = true;
-    return () => (isMounted.current = false);
+    return () => {
+      isMounted.current = false;
+    };
   }, []);
 
   useEffect(() => {

@@ -1,6 +1,5 @@
-/** @jsx jsx */
 // https://www.lightningdesignsystem.com/components/input/#Fixed-Text
-import { jsx } from '@emotion/react';
+
 import classNames from 'classnames';
 import { Fragment, FunctionComponent } from 'react';
 import HelpText from '../../widgets/HelpText';
@@ -81,7 +80,7 @@ export const Input: FunctionComponent<InputProps> = ({
           <Icon
             omitContainer
             type={iconLeftType}
-            icon={iconLeft}
+            icon={iconLeft as any}
             className="slds-icon slds-input__icon slds-icon-text-default slds-input__icon_left"
           />
         )}
@@ -89,7 +88,7 @@ export const Input: FunctionComponent<InputProps> = ({
           <Icon
             omitContainer
             type={iconRightType}
-            icon={iconLeft}
+            icon={iconLeft as any}
             className="slds-icon slds-input__icon slds-icon-text-default slds-input__icon_right"
           />
         )}

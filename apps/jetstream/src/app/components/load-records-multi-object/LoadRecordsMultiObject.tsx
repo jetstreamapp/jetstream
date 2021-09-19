@@ -1,5 +1,3 @@
-/** @jsx jsx */
-import { jsx } from '@emotion/react';
 import { ANALYTICS_KEYS, DATE_FORMATS, FEATURE_FLAGS, INPUT_ACCEPT_FILETYPES, TITLES } from '@jetstream/shared/constants';
 import { formatNumber, hasFeatureFlagAccess, useNonInitialEffect } from '@jetstream/shared/ui-utils';
 import { InputReadFileContent, InputReadGoogleSheet, SalesforceOrgUi } from '@jetstream/types';
@@ -63,11 +61,12 @@ export const LoadRecordsMultiObject: FunctionComponent<LoadRecordsMultiObjectPro
     errors: fileProcessingErrors,
     loading: fileProcessingLoading,
   } = useProcessLoadFile(selectedOrg, defaultApiVersion, { dateFormat, insertNulls });
-  const { loadFile, reset: loadResultsReset, data: loadResultsData, loading: dataLoadLoading } = useLoadFile(
-    selectedOrg,
-    serverUrl,
-    defaultApiVersion
-  );
+  const {
+    loadFile,
+    reset: loadResultsReset,
+    data: loadResultsData,
+    loading: dataLoadLoading,
+  } = useLoadFile(selectedOrg, serverUrl, defaultApiVersion);
 
   const [data, setData] = useState<LoadMultiObjectRequestWithResult[]>();
   /** This only stores the data provided from the init file read process, so if the user loads again this has the pre-load state */
@@ -75,7 +74,9 @@ export const LoadRecordsMultiObject: FunctionComponent<LoadRecordsMultiObjectPro
 
   useEffect(() => {
     isMounted.current = true;
-    return () => (isMounted.current = false);
+    return () => {
+      isMounted.current = false;
+    };
   }, []);
 
   useNonInitialEffect(() => {

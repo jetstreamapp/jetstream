@@ -1,4 +1,3 @@
-/** @jsx jsx */
 import { logger } from '@jetstream/shared/client-logger';
 import { query } from '@jetstream/shared/data';
 import { useReducerFetchFn } from '@jetstream/shared/ui-utils';
@@ -22,7 +21,9 @@ export function useChangesetList(selectedOrg: SalesforceOrgUi, initialPackages?:
 
   useEffect(() => {
     isMounted.current = true;
-    return () => (isMounted.current = false);
+    return () => {
+      isMounted.current = false;
+    };
   }, []);
 
   const loadPackages = useCallback(async () => {
@@ -56,15 +57,13 @@ export function useChangesetList(selectedOrg: SalesforceOrgUi, initialPackages?:
  * @param records
  */
 function getListItemFromQueryResults(records: ChangeSetPackage[]) {
-  return records.map(
-    (changesetPackage): ListItem<string, ChangeSetPackage> => {
-      return {
-        id: changesetPackage.Name,
-        label: changesetPackage.Name,
-        value: changesetPackage.Name,
-        meta: changesetPackage,
-        title: changesetPackage.Description,
-      };
-    }
-  );
+  return records.map((changesetPackage): ListItem<string, ChangeSetPackage> => {
+    return {
+      id: changesetPackage.Name,
+      label: changesetPackage.Name,
+      value: changesetPackage.Name,
+      meta: changesetPackage,
+      title: changesetPackage.Description,
+    };
+  });
 }

@@ -1,5 +1,3 @@
-/** @jsx jsx */
-import { jsx } from '@emotion/react';
 import { ANALYTICS_KEYS } from '@jetstream/shared/constants';
 import { transformTabularDataToExcelStr } from '@jetstream/shared/ui-utils';
 import { flattenRecords } from '@jetstream/shared/utils';

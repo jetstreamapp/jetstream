@@ -1,5 +1,3 @@
-/** @jsx jsx */
-import { jsx } from '@emotion/react';
 import { clearCacheForOrg, clearQueryHistoryForOrg, deleteOrg, getOrgs, updateOrg } from '@jetstream/shared/data';
 import { useObservable } from '@jetstream/shared/ui-utils';
 import { JetstreamEventAddOrgPayload, SalesforceOrgUi } from '@jetstream/types';
