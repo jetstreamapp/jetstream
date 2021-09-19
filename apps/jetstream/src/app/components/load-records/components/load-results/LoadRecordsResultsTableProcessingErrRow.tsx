@@ -1,5 +1,3 @@
-/** @jsx jsx */
-import { jsx } from '@emotion/react';
 import { formatNumber } from '@jetstream/shared/ui-utils';
 import { Icon } from '@jetstream/ui';
 import { FunctionComponent, useEffect, useRef } from 'react';
@@ -22,7 +20,9 @@ export const LoadRecordsResultsTableProcessingErrRow: FunctionComponent<LoadReco
 
   useEffect(() => {
     isMounted.current = true;
-    return () => (isMounted.current = false);
+    return () => {
+      isMounted.current = false;
+    };
   }, []);
 
   const total = formatNumber(processingErrors.length);

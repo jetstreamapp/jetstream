@@ -1,5 +1,3 @@
-/** @jsx jsx */
-import { jsx } from '@emotion/react';
 import { logger } from '@jetstream/shared/client-logger';
 import { GoogleApiClientConfig, GoogleApiData, useDrivePicker } from '@jetstream/shared/ui-utils';
 import { InputReadGoogleSheet } from '@jetstream/types';

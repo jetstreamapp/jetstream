@@ -1,5 +1,4 @@
-/** @jsx jsx */
-import { css, jsx } from '@emotion/react';
+import { css } from '@emotion/react';
 import { SerializedStyles } from '@emotion/react';
 import { isEscapeKey } from '@jetstream/shared/ui-utils';
 import { SizeSmMdLg } from '@jetstream/types';

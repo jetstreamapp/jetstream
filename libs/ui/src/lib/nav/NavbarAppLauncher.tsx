@@ -1,5 +1,3 @@
-/** @jsx jsx */
-import { jsx } from '@emotion/react';
 import { FunctionComponent } from 'react';
 
 export interface NavbarAppLauncherProps {

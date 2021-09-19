@@ -1,5 +1,3 @@
-/** @jsx jsx */
-import { jsx } from '@emotion/react';
 import { logger } from '@jetstream/shared/client-logger';
 import { getMapOf, orderObjectsBy } from '@jetstream/shared/utils';
 import { MapOf } from '@jetstream/types';

@@ -72,7 +72,9 @@ export function useLoadGoogleApi({
 
   useEffect(() => {
     isMounted.current = true;
-    return () => (isMounted.current = false);
+    return () => {
+      isMounted.current = false;
+    };
   }, []);
 
   // get the apis from googleapis

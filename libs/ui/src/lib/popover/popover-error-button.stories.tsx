@@ -1,7 +1,6 @@
 /* eslint-disable jsx-a11y/anchor-is-valid */
 /* eslint-disable no-script-url */
-/** @jsx jsx */
-import { jsx } from '@emotion/react';
+
 import { array, boolean, text } from '@storybook/addon-knobs';
 import PopoverErrorButton from './PopoverErrorButton';
 

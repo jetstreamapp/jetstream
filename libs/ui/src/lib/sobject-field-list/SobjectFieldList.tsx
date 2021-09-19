@@ -1,5 +1,4 @@
-/** @jsx jsx */
-import { css, jsx } from '@emotion/react';
+import { css } from '@emotion/react';
 import { MIME_TYPES } from '@jetstream/shared/constants';
 import { formatNumber, saveFile } from '@jetstream/shared/ui-utils';
 import { REGEX } from '@jetstream/shared/utils';

@@ -1,6 +1,5 @@
-/** @jsx jsx */
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { jsx } from '@emotion/react';
+
 import {
   hasMetaModifierKey,
   isArrowDownKey,
@@ -27,9 +26,7 @@ export interface ListProps {
   highlightText?: boolean;
   isActive: (item: any) => boolean;
   // function used to extract
-  getContent: (
-    item: any
-  ) => {
+  getContent: (item: any) => {
     key: string;
     id?: string;
     heading?: string | JSX.Element;

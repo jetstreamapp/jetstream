@@ -1,5 +1,3 @@
-/** @jsx jsx */
-import { jsx } from '@emotion/react';
 import { EmptyState } from '@jetstream/ui';
 import { Fragment, FunctionComponent, useEffect, useState } from 'react';
 

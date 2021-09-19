@@ -1,5 +1,3 @@
-/** @jsx jsx */
-import { jsx } from '@emotion/react';
 import { Grid, GridCol, useHighlightedText } from '@jetstream/ui';
 import { Fragment, FunctionComponent } from 'react';
 import { AutomationControlMetadataType, AutomationControlParentSobject } from './automation-control-types';

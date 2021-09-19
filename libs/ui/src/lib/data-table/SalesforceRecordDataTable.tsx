@@ -1,6 +1,5 @@
-/** @jsx jsx */
 import { ColDef, ColumnEvent, GridApi, GridReadyEvent, ProcessHeaderForExportParams, SelectionChangedEvent } from '@ag-grid-community/core';
-import { jsx } from '@emotion/react';
+
 import { QueryResults } from '@jetstream/api-interfaces';
 import { logger } from '@jetstream/shared/client-logger';
 import { queryMore } from '@jetstream/shared/data';
@@ -93,7 +92,9 @@ export const SalesforceRecordDataTable: FunctionComponent<SalesforceRecordDataTa
 
     useEffect(() => {
       isMounted.current = true;
-      return () => (isMounted.current = false);
+      return () => {
+        isMounted.current = false;
+      };
     }, []);
 
     useEffect(() => {

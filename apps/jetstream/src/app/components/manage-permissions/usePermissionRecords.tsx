@@ -1,4 +1,3 @@
-/** @jsx jsx */
 import { query, queryAll, queryAllUsingOffset } from '@jetstream/shared/data';
 import { EntityParticlePermissionsRecord, FieldPermissionRecord, MapOf, ObjectPermissionRecord, SalesforceOrgUi } from '@jetstream/types';
 import { useCallback, useEffect, useRef, useState } from 'react';
@@ -26,7 +25,9 @@ export function usePermissionRecords(selectedOrg: SalesforceOrgUi, sobjects: str
 
   useEffect(() => {
     isMounted.current = true;
-    return () => (isMounted.current = false);
+    return () => {
+      isMounted.current = false;
+    };
   }, []);
 
   useEffect(() => {

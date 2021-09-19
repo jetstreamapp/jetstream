@@ -1,5 +1,3 @@
-/** @jsx jsx */
-import { jsx } from '@emotion/react';
 import { getOrgType, useNonInitialEffect } from '@jetstream/shared/ui-utils';
 import { BadgeTypes, SalesforceOrgUi, SalesforceOrgUiType } from '@jetstream/types';
 import { Badge, Icon } from '@jetstream/ui';

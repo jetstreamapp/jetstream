@@ -1,5 +1,4 @@
-/** @jsx jsx */
-import { css, jsx } from '@emotion/react';
+import { css } from '@emotion/react';
 import Tippy from '@tippyjs/react';
 import uniqueId from 'lodash/uniqueId';
 import { FunctionComponent, useState, useEffect } from 'react';

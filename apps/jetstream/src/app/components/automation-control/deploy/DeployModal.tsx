@@ -1,5 +1,3 @@
-/** @jsx jsx */
-import { jsx } from '@emotion/react';
 import { logger } from '@jetstream/shared/client-logger';
 import { MapOf, SalesforceOrgUi } from '@jetstream/types';
 import { Icon, Modal } from '@jetstream/ui';

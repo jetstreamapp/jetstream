@@ -1,6 +1,5 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
-/** @jsx jsx */
-import { jsx } from '@emotion/react';
+
 import { Icon } from '@jetstream/ui';
 import classNames from 'classnames';
 import { FunctionComponent } from 'react';

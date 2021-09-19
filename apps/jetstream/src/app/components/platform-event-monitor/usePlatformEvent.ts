@@ -20,11 +20,7 @@ import * as platformEventUtils from './platform-event-monitor.utils';
 
 export type MessagesByChannel = MapOf<{ replayId?: number; messages: PlatformEventMessagePayload[] }>;
 
-export function usePlatformEvent({
-  selectedOrg,
-}: {
-  selectedOrg: SalesforceOrgUi;
-}): {
+export function usePlatformEvent({ selectedOrg }: { selectedOrg: SalesforceOrgUi }): {
   hasPlatformEvents: boolean;
   platformEventFetchError?: string;
   platformEvents: DescribeGlobalSObjectResult[];
@@ -49,7 +45,9 @@ export function usePlatformEvent({
 
   useEffect(() => {
     isMounted.current = true;
-    return () => (isMounted.current = false);
+    return () => {
+      isMounted.current = false;
+    };
   }, []);
 
   useEffect(() => {

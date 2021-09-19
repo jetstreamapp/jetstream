@@ -1,13 +1,13 @@
-/** @jsx jsx */
-import { css, jsx } from '@emotion/react';
+import { css } from '@emotion/react';
 import { Fragment, FunctionComponent, useState } from 'react';
-import { createModal } from 'react-modal-promise';
+import { create, InstanceProps } from 'react-modal-promise';
 import Picklist from '../form/picklist/Picklist';
 import Modal from './Modal';
 
-export interface XlsxSheetSelectionModalPromiseProps /** extends ModalProps */ {
+export interface XlsxSheetSelectionModalPromiseProps extends InstanceProps<string, never> {
   isOpen: boolean;
   worksheets: string[];
+  instanceId: any;
   onResolve: (params?: string) => void;
 }
 
@@ -51,4 +51,4 @@ const XlsxSheetSelectionModalPromiseModal: FunctionComponent<XlsxSheetSelectionM
   );
 };
 
-export const XlsxSheetSelectionModalPromise = createModal<XlsxSheetSelectionModalPromiseProps, string>(XlsxSheetSelectionModalPromiseModal);
+export const XlsxSheetSelectionModalPromise = create<XlsxSheetSelectionModalPromiseProps, string>(XlsxSheetSelectionModalPromiseModal);

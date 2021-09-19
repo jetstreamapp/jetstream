@@ -1,4 +1,3 @@
-/** @jsx jsx */
 import {
   CellEvent,
   CellKeyDownEvent,
@@ -155,8 +154,10 @@ export const dataTableAddressFormatter = ({ value }: ValueFormatterParams | GetQ
   return dataTableAddressValueFormatter(value);
 };
 
-export const dataTableAddressValueGetter = (header: string) => ({ data }: ValueGetterParams) =>
-  dataTableAddressValueFormatter(data[header]);
+export const dataTableAddressValueGetter =
+  (header: string) =>
+  ({ data }: ValueGetterParams) =>
+    dataTableAddressValueFormatter(data[header]);
 
 export const dataTableLocationFormatter = ({ value }: ValueFormatterParams | GetQuickFilterTextParams): string => {
   if (!isObject(value)) {

@@ -1,11 +1,12 @@
 import { BadgeTypes } from '@jetstream/types';
-import React, { FunctionComponent, HTMLAttributes } from 'react';
+import React, { FunctionComponent, HTMLAttributes, ReactNode } from 'react';
 
 export interface BadgeProps {
   className?: string;
   title?: string;
   type?: BadgeTypes;
   spanProps?: HTMLAttributes<HTMLSpanElement>;
+  children?: ReactNode;
 }
 
 function getCssClass(type: BadgeTypes) {

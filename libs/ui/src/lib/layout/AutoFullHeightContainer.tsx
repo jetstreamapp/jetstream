@@ -1,4 +1,3 @@
-/** @jsx jsx */
 import { css, jsx, SerializedStyles } from '@emotion/react';
 import { Component } from 'react';
 

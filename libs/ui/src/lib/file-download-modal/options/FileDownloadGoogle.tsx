@@ -1,5 +1,3 @@
-/** @jsx jsx */
-import { jsx } from '@emotion/react';
 import { GoogleApiData, useNonInitialEffect } from '@jetstream/shared/ui-utils';
 import RadioButton from 'libs/ui/src/lib/form/radio/RadioButton';
 import RadioGroup from 'libs/ui/src/lib/form/radio/RadioGroup';

@@ -5,7 +5,7 @@ import Select from './Select';
 
 export default {
   component: Select,
-  title: 'Select',
+  title: 'forms/Select',
 };
 
 export const base = () => {

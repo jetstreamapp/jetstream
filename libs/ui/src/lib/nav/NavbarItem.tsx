@@ -1,5 +1,3 @@
-/** @jsx jsx */
-import { jsx } from '@emotion/react';
 import classNames from 'classnames';
 import { FunctionComponent } from 'react';
 import { Link, useLocation } from 'react-router-dom';

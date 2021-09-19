@@ -1,5 +1,3 @@
-/** @jsx jsx */
-import { jsx } from '@emotion/react';
 import { SalesforceOrgUi } from '@jetstream/types';
 import { Fragment, FunctionComponent } from 'react';
 import OrgLabelBadge from '../../core/OrgLabelBadge';

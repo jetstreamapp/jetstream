@@ -1,6 +1,5 @@
-/** @jsx jsx */
 // https://www.lightningdesignsystem.com/components/input/#Fixed-Text
-import { jsx } from '@emotion/react';
+
 import { PositionLeftRight, PreviousNext } from '@jetstream/types';
 import { isAfter, isBefore, setYear } from 'date-fns';
 import addMonths from 'date-fns/addMonths';

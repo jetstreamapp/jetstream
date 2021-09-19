@@ -1,5 +1,3 @@
-/** @jsx jsx */
-import { jsx } from '@emotion/react';
 import { useDebounce, useNonInitialEffect } from '@jetstream/shared/ui-utils';
 import { CheckboxToggle, Grid, Icon, Panel, Textarea, Tooltip } from '@jetstream/ui';
 import Editor, { OnMount, useMonaco } from '@monaco-editor/react';

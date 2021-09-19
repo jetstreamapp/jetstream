@@ -7,7 +7,7 @@ import uniqueId from 'lodash/uniqueId';
 
 export default {
   component: CheckboxToggle,
-  title: 'CheckboxToggle',
+  title: 'forms/CheckboxToggle',
 };
 
 export const base = () => (

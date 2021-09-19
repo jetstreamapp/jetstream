@@ -1,14 +1,13 @@
-/** @jsx jsx */
-import { jsx } from '@emotion/react';
 import { PositionAll } from '@jetstream/types';
 import Tippy from '@tippyjs/react';
-import { FunctionComponent, MouseEvent, useState } from 'react';
+import { FunctionComponent, MouseEvent, ReactNode, useState } from 'react';
 
 export interface TooltipProps {
   id?: string;
   className?: string;
   content: string | JSX.Element;
   onClick?: (event: MouseEvent<HTMLElement>) => void;
+  children?: ReactNode;
 }
 
 export const Tooltip: FunctionComponent<TooltipProps> = ({ id = 'tooltip', className, content, onClick, children }) => {

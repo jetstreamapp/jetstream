@@ -1,6 +1,5 @@
-/** @jsx jsx */
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { jsx } from '@emotion/react';
+
 import { logger } from '@jetstream/shared/client-logger';
 import { ANALYTICS_KEYS, INDEXED_DB } from '@jetstream/shared/constants';
 import { formatNumber, hasModifierKey, isHKey, useGlobalEventHandler, useNonInitialEffect } from '@jetstream/shared/ui-utils';

@@ -1,4 +1,4 @@
-import React, { FunctionComponent } from 'react';
+import React, { FunctionComponent, ReactNode } from 'react';
 import Icon from './Icon';
 import classNames from 'classnames';
 
@@ -6,6 +6,7 @@ export interface PillProps {
   className?: string;
   title?: string;
   onRemove?: () => void;
+  children?: ReactNode;
 }
 
 export const Pill: FunctionComponent<PillProps> = ({ title, className, onRemove, children }) => {

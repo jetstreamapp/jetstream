@@ -1,5 +1,4 @@
-/** @jsx jsx */
-import { css, jsx } from '@emotion/react';
+import { css } from '@emotion/react';
 import { FunctionComponent } from 'react';
 import { LoadMultiObjectRequestWithResult } from './load-records-multi-object-types';
 import LoadRecordsMultiObjectResultsTableRow from './LoadRecordsMultiObjectResultsTableRow';

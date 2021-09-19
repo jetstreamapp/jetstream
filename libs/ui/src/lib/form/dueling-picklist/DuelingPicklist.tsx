@@ -1,6 +1,5 @@
-/** @jsx jsx */
 // https://www.lightningdesignsystem.com/components/input/#Fixed-Text
-import { jsx } from '@emotion/react';
+
 import classNames from 'classnames';
 import { DuelingPicklistItem, DuelingPicklistColumnRef } from './DuelingPicklistTypes';
 import { Fragment, FunctionComponent, useEffect, useRef, useState } from 'react';

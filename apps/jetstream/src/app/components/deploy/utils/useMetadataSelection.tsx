@@ -1,4 +1,3 @@
-/** @jsx jsx */
 import isBoolean from 'lodash/isBoolean';
 import { useRecoilState } from 'recoil';
 import * as fromDeployMetadataState from '../deploy-metadata.state';

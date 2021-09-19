@@ -1,5 +1,3 @@
-/** @jsx jsx */
-import { jsx } from '@emotion/react';
 import { clearCacheForOrg } from '@jetstream/shared/data';
 import { addOrg, isEnterKey, isEscapeKey } from '@jetstream/shared/ui-utils';
 import { SalesforceOrgUi } from '@jetstream/types';

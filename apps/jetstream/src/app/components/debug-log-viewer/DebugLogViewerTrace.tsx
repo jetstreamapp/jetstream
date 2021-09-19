@@ -1,5 +1,4 @@
-/** @jsx jsx */
-import { css, jsx } from '@emotion/react';
+import { css } from '@emotion/react';
 import { useSetTraceFlag } from '@jetstream/connected-ui';
 import { DebugLevel, SalesforceOrgUi } from '@jetstream/types';
 import { Grid, Popover, PopoverErrorButton, Spinner } from '@jetstream/ui';
@@ -16,7 +15,9 @@ export const DebugLogViewerTrace: FunctionComponent<DebugLogViewerTraceProps> = 
 
   useEffect(() => {
     isMounted.current = true;
-    return () => (isMounted.current = false);
+    return () => {
+      isMounted.current = false;
+    };
   }, []);
 
   function toggleOpen() {

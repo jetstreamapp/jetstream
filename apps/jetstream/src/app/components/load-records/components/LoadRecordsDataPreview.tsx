@@ -1,6 +1,5 @@
-/** @jsx jsx */
 import { ColDef } from '@ag-grid-community/core';
-import { css, jsx } from '@emotion/react';
+import { css } from '@emotion/react';
 import { query } from '@jetstream/shared/data';
 import { formatNumber } from '@jetstream/shared/ui-utils';
 import { InsertUpdateUpsertDelete, SalesforceOrgUi } from '@jetstream/types';
@@ -87,7 +86,9 @@ export const LoadRecordsDataPreview: FunctionComponent<LoadRecordsDataPreviewPro
 
   useEffect(() => {
     isMounted.current = true;
-    return () => (isMounted.current = false);
+    return () => {
+      isMounted.current = false;
+    };
   }, []);
 
   useEffect(() => {

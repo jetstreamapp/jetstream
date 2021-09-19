@@ -1,5 +1,3 @@
-/** @jsx jsx */
-import { jsx } from '@emotion/react';
 import { ANALYTICS_KEYS } from '@jetstream/shared/constants';
 import { CheckboxToggle, Grid, GridCol, Icon, Popover, Spinner, Textarea } from '@jetstream/ui';
 import Editor, { OnMount } from '@monaco-editor/react';
@@ -62,7 +60,9 @@ export const ManualSoql: FunctionComponent<ManualSoqlProps> = ({ className, isTo
 
   useEffect(() => {
     isMounted.current = true;
-    return () => (isMounted.current = false);
+    return () => {
+      isMounted.current = false;
+    };
   }, []);
 
   useEffect(() => {

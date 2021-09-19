@@ -1,6 +1,5 @@
-/** @jsx jsx */
 import { ColDef, RowNode } from '@ag-grid-community/core';
-import { css, jsx } from '@emotion/react';
+import { css } from '@emotion/react';
 import { logger } from '@jetstream/shared/client-logger';
 import { ANALYTICS_KEYS } from '@jetstream/shared/constants';
 import { salesforceApiReq } from '@jetstream/shared/data';
@@ -32,7 +31,9 @@ export const SalesforceApiExamplesModal: FunctionComponent<SalesforceApiExamples
 
   useEffect(() => {
     isMounted.current = true;
-    return () => (isMounted.current = false);
+    return () => {
+      isMounted.current = false;
+    };
   }, []);
 
   const fetchRequests = useCallback(async () => {

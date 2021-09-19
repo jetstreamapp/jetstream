@@ -6,7 +6,7 @@ import { DuelingPicklistItem } from './DuelingPicklistTypes';
 
 export default {
   component: DuelingPicklist,
-  title: 'DuelingPicklist',
+  title: 'forms/DuelingPicklist',
 };
 
 const ITEMS: DuelingPicklistItem[] = [

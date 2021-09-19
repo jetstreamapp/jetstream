@@ -1,5 +1,4 @@
-/** @jsx jsx */
-import { css, jsx } from '@emotion/react';
+import { css } from '@emotion/react';
 import { getFieldKey } from '@jetstream/shared/ui-utils';
 import { FieldWrapper, MapOf, QueryFields, SalesforceOrgUi } from '@jetstream/types';
 import { useHighlightedText } from 'libs/ui/src/lib/hooks/useHighlightedText';

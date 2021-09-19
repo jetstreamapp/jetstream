@@ -1,5 +1,4 @@
-/** @jsx jsx */
-import { css, jsx } from '@emotion/react';
+import { css } from '@emotion/react';
 import { Grid, Icon, Spinner } from '@jetstream/ui';
 import { FunctionComponent } from 'react';
 import { ErrorBoundary } from 'react-error-boundary';

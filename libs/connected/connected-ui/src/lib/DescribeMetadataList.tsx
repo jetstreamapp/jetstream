@@ -1,5 +1,4 @@
-/** @jsx jsx */
-import { css, jsx } from '@emotion/react';
+import { css } from '@emotion/react';
 import { formatNumber, useNonInitialEffect } from '@jetstream/shared/ui-utils';
 import { multiWordObjectFilter } from '@jetstream/shared/utils';
 import { MapOf, SalesforceOrgUi, UpDown } from '@jetstream/types';
@@ -57,16 +56,8 @@ export const DescribeMetadataList: FunctionComponent<DescribeMetadataListProps> 
   const [searchInputId] = useState(`${inputLabelPlural}-filter-${Date.now()}`);
   const ulRef = createRef<HTMLUListElement>();
 
-  const {
-    loadDescribeMetadata,
-    loading,
-    hasError,
-    errorMessage,
-    metadataItemMap,
-    metadataItems,
-    orgInformation,
-    lastRefreshed,
-  } = useDescribeMetadata(org, initialItems, initialItemMap);
+  const { loadDescribeMetadata, loading, hasError, errorMessage, metadataItemMap, metadataItems, orgInformation, lastRefreshed } =
+    useDescribeMetadata(org, initialItems, initialItemMap);
 
   const [itemsWithLabel, setItemsWithLabel] = useState<ItemWithLabel[]>(() =>
     metadataItems ? metadataItems.map((name) => ({ name, label: getMetadataLabelFromFullName(name) })) : null
@@ -74,7 +65,9 @@ export const DescribeMetadataList: FunctionComponent<DescribeMetadataListProps> 
 
   useEffect(() => {
     isMounted.current = true;
-    return () => (isMounted.current = false);
+    return () => {
+      isMounted.current = false;
+    };
   }, []);
 
   useNonInitialEffect(() => {

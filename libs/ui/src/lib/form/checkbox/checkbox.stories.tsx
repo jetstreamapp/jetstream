@@ -7,55 +7,22 @@ import uniqueId from 'lodash/uniqueId';
 
 export default {
   component: Checkbox,
-  title: 'Checkbox',
+  title: 'forms/Checkbox',
 };
 
-export const base = () => (
-  <Checkbox
-    id={uniqueId('checkbox')}
-    checked={boolean('checked', true)}
-    labelHelp={text('labelHelp', 'This is label help text')}
-    label={text('label', 'My Label')}
-    hideLabel={boolean('hideLabel', false)}
-    helpText={text('helpText', 'This is help text')}
-    isRequired={boolean('isRequired', true)}
-    hasError={boolean('hasError', false)}
-    errorMessageId={text('errorMessageId', undefined)}
-    errorMessage={text('errorMessage', undefined)}
-    disabled={boolean('disabled', false)}
-    onChange={action('on-selected')}
-  />
-);
+export const Base = (args) => <Checkbox id={uniqueId('checkbox')} {...args} />;
+Base.args = {
+  label: 'My Checkbox',
+};
 
-export const hiddenLabel = () => (
-  <Checkbox
-    id={uniqueId('checkbox')}
-    checked={boolean('checked', true)}
-    label={text('label', 'My Label')}
-    hideLabel={boolean('hideLabel', true)}
-    disabled={boolean('disabled', false)}
-    onChange={action('on-selected')}
-  />
-);
-
-export const disabledChecked = () => (
-  <Checkbox
-    id={uniqueId('checkbox')}
-    checked={boolean('checked', false)}
-    label={text('label', 'My Label')}
-    hideLabel={boolean('hideLabel', false)}
-    disabled={boolean('disabled', true)}
-    onChange={action('on-selected')}
-  />
-);
-
-export const disabledUnchecked = () => (
-  <Checkbox
-    id={uniqueId('checkbox')}
-    checked={boolean('checked', true)}
-    label={text('label', 'My Label')}
-    hideLabel={boolean('hideLabel', false)}
-    disabled={boolean('disabled', true)}
-    onChange={action('on-selected')}
-  />
-);
+export const BellsAndWhistles = (args) => <Checkbox id={uniqueId('checkbox')} {...args} />;
+BellsAndWhistles.args = {
+  checked: true,
+  labelHelp: 'This is label help text',
+  label: 'My Label',
+  hideLabel: false,
+  helpText: 'This is help text',
+  isRequired: true,
+  hasError: false,
+  disabled: false,
+};

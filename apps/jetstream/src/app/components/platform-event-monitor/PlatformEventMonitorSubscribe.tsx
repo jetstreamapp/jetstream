@@ -1,5 +1,4 @@
-/** @jsx jsx */
-import { css, jsx } from '@emotion/react';
+import { css } from '@emotion/react';
 import { isEnterKey } from '@jetstream/shared/ui-utils';
 import { ListItem } from '@jetstream/types';
 import { Grid, Input, Picklist } from '@jetstream/ui';

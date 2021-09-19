@@ -1,4 +1,3 @@
-/** @jsx jsx */
 import { logger } from '@jetstream/shared/client-logger';
 import { clearCacheForOrg, queryWithCache } from '@jetstream/shared/data';
 import { isPermissionSetWithProfile } from '@jetstream/shared/ui-utils';
@@ -25,7 +24,9 @@ export function useProfilesAndPermSets(selectedOrg: SalesforceOrgUi) {
 
   useEffect(() => {
     isMounted.current = true;
-    return () => (isMounted.current = false);
+    return () => {
+      isMounted.current = false;
+    };
   }, []);
 
   useEffect(() => {

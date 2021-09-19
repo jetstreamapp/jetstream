@@ -1,7 +1,7 @@
 /* eslint-disable jsx-a11y/anchor-is-valid */
 /* eslint-disable no-script-url */
-/** @jsx jsx */
-import { css, jsx } from '@emotion/react';
+
+import { css } from '@emotion/react';
 import { action } from '@storybook/addon-actions';
 import { boolean, text } from '@storybook/addon-knobs';
 import { Fragment } from 'react';

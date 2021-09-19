@@ -6,7 +6,7 @@ import SearchInput from './SearchInput';
 
 export default {
   component: SearchInput,
-  title: 'SearchInput',
+  title: 'forms/SearchInput',
 };
 
 export const base = () => (

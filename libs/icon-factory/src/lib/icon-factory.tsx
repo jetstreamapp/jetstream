@@ -1,7 +1,7 @@
 /**
  * Every icon used in the application must be individually imported
  */
-import { IconType } from '@jetstream/icon-factory';
+import { DoctypeIcon, IconName, IconType, StandardIcon, UtilityIcon } from '@jetstream/icon-factory';
 import { logger } from '@jetstream/shared/client-logger';
 import classNames from 'classnames';
 import React from 'react';
@@ -239,4 +239,16 @@ export function getIcon(type: IconType, icon: string, className?: string) {
     logger.warn('[ICON NOT FOUND]', `icon ${type}-${icon} not found, providing fallback`);
   }
   return <IconOrFallback className={classNames(className || 'slds-icon')} />;
+}
+
+export function getIconTypes(type: Omit<IconType, 'action' | 'custom'>): IconName[] {
+  switch (type) {
+    case 'doctype':
+      return Object.keys(doctypeIcons) as StandardIcon[];
+    case 'standard':
+      return Object.keys(standardIcons) as DoctypeIcon[];
+    case 'utility':
+    default:
+      return Object.keys(utilityIcons) as UtilityIcon[];
+  }
 }

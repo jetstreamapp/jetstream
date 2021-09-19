@@ -1,6 +1,5 @@
-/** @jsx jsx */
 import { ColDef, ICellRendererParams, SelectionChangedEvent } from '@ag-grid-community/core';
-import { css, jsx } from '@emotion/react';
+import { css } from '@emotion/react';
 import { ApexLog, ApexLogWithViewed } from '@jetstream/types';
 import {
   AutoFullHeightContainer,
@@ -99,7 +98,9 @@ export const DebugLogViewerTable: FunctionComponent<DebugLogViewerTableProps> = 
 
   useEffect(() => {
     isMounted.current = true;
-    return () => (isMounted.current = false);
+    return () => {
+      isMounted.current = false;
+    };
   }, []);
 
   function handleSelectionChanged(event: SelectionChangedEvent) {

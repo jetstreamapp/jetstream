@@ -1,5 +1,4 @@
-/** @jsx jsx */
-import { css, jsx } from '@emotion/react';
+import { css } from '@emotion/react';
 import { useDebounce, useNonInitialEffect } from '@jetstream/shared/ui-utils';
 import classNames from 'classnames';
 import RichTextToolbar from 'libs/ui/src/lib/form/rich-text/RichTextToolbar';

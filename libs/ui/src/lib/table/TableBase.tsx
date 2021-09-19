@@ -1,6 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 /* eslint-disable @typescript-eslint/no-unused-vars */
-/** @jsx jsx */
 
 /**
  *
@@ -10,7 +9,6 @@
  *
  */
 
-import { jsx } from '@emotion/react';
 import { Fragment, FunctionComponent, useEffect, useMemo, useState } from 'react';
 import { useBlockLayout, useResizeColumns, useRowSelect, useSortBy, useTable } from 'react-table';
 import { alphanumeric } from './table-sort';

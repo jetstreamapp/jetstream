@@ -1,5 +1,3 @@
-/** @jsx jsx */
-import { jsx } from '@emotion/react';
 import { GoogleApiClientConfig, GoogleApiData, useDrivePicker } from '@jetstream/shared/ui-utils';
 import classNames from 'classnames';
 import { SCRIPT_LOAD_ERR_MESSAGE } from 'libs/ui/src/lib/form/file-selector/file-selector-utils';

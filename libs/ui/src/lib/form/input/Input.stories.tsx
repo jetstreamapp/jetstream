@@ -7,7 +7,7 @@ import uniqueId from 'lodash/uniqueId';
 
 export default {
   component: Input,
-  title: 'Input',
+  title: 'forms/Input',
 };
 
 export const base = () => (
@@ -19,9 +19,9 @@ export const base = () => (
     hasError={boolean('hasError', false)}
     errorMessageId={text('errorMessageId', undefined)}
     errorMessage={text('errorMessage', undefined)}
-    iconLeft={text('iconLeft', 'search')}
+    iconLeft={text('iconLeft', 'search') as any}
     iconLeftType={text('iconLeftType', 'utility') as IconType}
-    iconRight={text('iconRight', undefined)}
+    iconRight={text('iconRight', undefined) as any}
     iconRightType={text('iconRightType', undefined) as IconType}
     leftAddon={text('leftAddon', undefined)}
     rightAddon={text('rightAddon', undefined)}
@@ -46,9 +46,9 @@ export const requiredWithHelpText = () => (
     hasError={boolean('hasError', false)}
     errorMessageId={text('errorMessageId', undefined)}
     errorMessage={text('errorMessage', undefined)}
-    iconLeft={text('iconLeft', undefined)}
+    iconLeft={text('iconLeft', undefined) as any}
     iconLeftType={text('iconLeftType', undefined) as IconType}
-    iconRight={text('iconRight', 'search')}
+    iconRight={text('iconRight', 'search') as any}
     iconRightType={text('iconRightType', 'utility') as IconType}
     leftAddon={text('leftAddon', undefined)}
     rightAddon={text('rightAddon', undefined)}
@@ -73,9 +73,9 @@ export const withError = () => (
     hasError={boolean('hasError', true)}
     errorMessageId={text('errorMessageId', 'error-1')}
     errorMessage={text('errorMessage', 'This is a really basic error message')}
-    iconLeft={text('iconLeft', undefined)}
+    iconLeft={text('iconLeft', undefined) as any}
     iconLeftType={text('iconLeftType', undefined) as IconType}
-    iconRight={text('iconRight', undefined)}
+    iconRight={text('iconRight', undefined) as any}
     iconRightType={text('iconRightType', undefined) as IconType}
     leftAddon={text('leftAddon', undefined)}
     rightAddon={text('rightAddon', undefined)}
@@ -104,9 +104,9 @@ export const withErrorJsx = () => (
         This Error is <strong>custom</strong> JSX!
       </span>
     }
-    iconLeft={text('iconLeft', undefined)}
+    iconLeft={text('iconLeft', undefined) as any}
     iconLeftType={text('iconLeftType', undefined) as IconType}
-    iconRight={text('iconRight', undefined)}
+    iconRight={text('iconRight', undefined) as any}
     iconRightType={text('iconRightType', undefined) as IconType}
     leftAddon={text('leftAddon', undefined)}
     rightAddon={text('rightAddon', undefined)}
@@ -131,9 +131,9 @@ export const withAddons = () => (
     hasError={boolean('hasError', false)}
     errorMessageId={text('errorMessageId', undefined)}
     errorMessage={text('errorMessage', undefined)}
-    iconLeft={text('iconLeft', undefined)}
+    iconLeft={text('iconLeft', undefined) as any}
     iconLeftType={text('iconLeftType', undefined) as IconType}
-    iconRight={text('iconRight', undefined)}
+    iconRight={text('iconRight', undefined) as any}
     iconRightType={text('iconRightType', undefined) as IconType}
     leftAddon={text('leftAddon', 'USD')}
     rightAddon={

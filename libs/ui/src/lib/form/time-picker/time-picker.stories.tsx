@@ -5,7 +5,7 @@ import TimePicker from './TimePicker';
 
 export default {
   component: TimePicker,
-  title: 'TimePicker',
+  title: 'forms/TimePicker',
 };
 
 export const base = () => (

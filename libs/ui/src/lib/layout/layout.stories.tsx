@@ -34,6 +34,16 @@ export const autoFullHeightContainer = () => (
 export const header = () => (
   <Header
     logo={Logo}
+    userProfile={{
+      sub: 'auth0|5fa5e9b82156490068cdc895',
+      nickname: 'paustint',
+      name: 'paustint@gmail.com',
+      picture: 'https://s.gravatar.com/avatar/12934373e0c15784753954301a361050?s=480&r=pg&d=https%3A%2F%2Fcdn.auth0.com%2Favatars%2Fpa.png',
+      updated_at: '2021-09-13T22:35:01.152Z',
+      email: 'paustint@gmail.com',
+      email_verified: 'false',
+      'http://getjetstream.app/app_metadata': { featureFlags: { isDefault: false, flagVersion: 'V1.1', flags: ['all'] } },
+    }}
     userMenuItems={[
       { id: uniqueId('icon'), value: 'item 1', icon: { type: 'utility', icon: 'help' } },
       { id: uniqueId('icon'), value: 'item 2', icon: { type: 'custom', icon: 'custom34' } },
@@ -81,7 +91,7 @@ export const page = () => (
     <PageHeader>
       <PageHeaderRow>
         <PageHeaderTitle
-          icon={{ type: text('icon.Type', 'standard') as IconType, icon: text('icon.icon', 'opportunity') }}
+          icon={{ type: text('icon.Type', 'standard') as IconType, icon: text('icon.icon', 'opportunity') as any }}
           label="Query"
           metaLabel="Do a really fancy query"
         />

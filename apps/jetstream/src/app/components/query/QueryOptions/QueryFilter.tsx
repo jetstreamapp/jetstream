@@ -22,7 +22,9 @@ export const QueryFilter: FunctionComponent<QueryFilterProps> = ({ fields }) => 
 
   useEffect(() => {
     isMounted.current = true;
-    return () => (isMounted.current = false);
+    return () => {
+      isMounted.current = false;
+    };
   }, []);
 
   // ensure that we have fields in scope

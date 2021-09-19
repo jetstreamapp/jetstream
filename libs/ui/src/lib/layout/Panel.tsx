@@ -1,5 +1,4 @@
-/** @jsx jsx */
-import { css, jsx } from '@emotion/react';
+import { css } from '@emotion/react';
 import { FunctionComponent, Fragment } from 'react';
 import classNames from 'classnames';
 import Icon from '../widgets/Icon';

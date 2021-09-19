@@ -93,7 +93,6 @@ export const preSelected = () => (
           },
         },
       ],
-      groups: [],
     }}
     onChange={action('onChange')}
   />

@@ -6,7 +6,7 @@ import RichText from './RichText';
 
 export default {
   component: RichText,
-  title: 'RichText',
+  title: 'forms/RichText',
 };
 
 export const base = () => {

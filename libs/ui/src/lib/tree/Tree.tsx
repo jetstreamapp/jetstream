@@ -1,6 +1,5 @@
 /* eslint-disable jsx-a11y/anchor-is-valid */
-/** @jsx jsx */
-import { jsx } from '@emotion/react';
+
 import { useNonInitialEffect } from '@jetstream/shared/ui-utils';
 import { MapOf } from '@jetstream/types';
 import classNames from 'classnames';

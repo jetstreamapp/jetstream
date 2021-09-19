@@ -1,5 +1,3 @@
-/** @jsx jsx */
-import { jsx } from '@emotion/react';
 import { SalesforceOrgUi } from '@jetstream/types';
 import { Card, EmptyState, Icon, SalesforceLogin, ScopedNotification, SetupIllustration, Spinner } from '@jetstream/ui';
 import { FunctionComponent } from 'react';

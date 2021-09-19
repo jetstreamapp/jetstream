@@ -1,5 +1,3 @@
-/** @jsx jsx */
-import { jsx } from '@emotion/react';
 import { getPackageXml } from '@jetstream/shared/data';
 import { saveFile } from '@jetstream/shared/ui-utils';
 import {
