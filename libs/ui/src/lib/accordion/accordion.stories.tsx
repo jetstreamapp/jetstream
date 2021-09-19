@@ -1,4 +1,3 @@
-import { boolean } from '@storybook/addon-knobs';
 import Accordion, { AccordionProps } from './Accordion';
 import { Story, Meta } from '@storybook/react';
 

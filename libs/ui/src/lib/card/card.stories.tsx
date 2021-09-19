@@ -1,7 +1,6 @@
-import React, { Fragment } from 'react';
+import { Meta, Story } from '@storybook/react';
+import React from 'react';
 import Card, { CardProps } from './Card';
-import { Story, Meta } from '@storybook/react';
-import { FileOrGoogleSelector } from '@jetstream/ui';
 
 export default {
   title: 'Card',

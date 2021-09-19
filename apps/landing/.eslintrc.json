@@ -273,7 +273,7 @@
     }
   },
   "plugins": ["import", "jsx-a11y", "react", "react-hooks"],
-  "extends": ["plugin:@nrwl/nx/react-typescript", "../../.eslintrc", "next", "next/core-web-vitals"],
+  "extends": ["plugin:@nrwl/nx/react-typescript", "../../.eslintrc.json", "next", "next/core-web-vitals"],
   "ignorePatterns": ["!**/*"],
   "overrides": [
     {

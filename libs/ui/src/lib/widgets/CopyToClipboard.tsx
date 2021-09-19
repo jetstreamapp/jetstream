@@ -18,7 +18,7 @@ export interface CopyToClipboardProps {
   skipTransitionIcon?: boolean;
   disabled?: boolean;
   copied?: (isActive: boolean) => void;
-  children: ReactNode;
+  children?: ReactNode;
 }
 
 export const CopyToClipboard: FunctionComponent<CopyToClipboardProps> = ({
