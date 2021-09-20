@@ -1,6 +1,5 @@
-import { css } from '@emotion/react';
-import { FunctionComponent } from 'react';
 import classNames from 'classnames';
+import { FunctionComponent, ReactNode } from 'react';
 
 /**
  * Common classes:
@@ -12,6 +11,7 @@ export interface ProgressRingProps {
   size?: 'medium' | 'large' | 'x-large';
   fillPercent: number;
   theme?: 'active-step' | 'warning' | 'expired' | 'complete';
+  children?: ReactNode;
 }
 
 const calculateD = (fillPercent) => {
@@ -51,7 +51,7 @@ export const ProgressRing: FunctionComponent<ProgressRingProps> = ({ className, 
           <path className="slds-progress-ring__path" d={calculateD(fillPercent)}></path>
         </svg>
       </div>
-      <div className="slds-progress-ring__content">{children}</div>
+      <div className={classNames('slds-progress-ring__content', { 'slds-text-color_inverse': theme === 'complete' })}>{children}</div>
     </div>
   );
 };

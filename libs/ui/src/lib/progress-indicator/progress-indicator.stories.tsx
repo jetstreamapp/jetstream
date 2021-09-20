@@ -6,7 +6,7 @@ import ProgressIndicatorListItem from './ProgressIndicatorListItem';
 
 export default {
   component: ProgressIndicator,
-  title: 'ProgressIndicator',
+  title: 'progress/ProgressIndicator',
 };
 
 const currentStep: number = 2;

@@ -218,27 +218,25 @@ export const DeployMetadataStatusModal: FunctionComponent<DeployMetadataStatusMo
             )}
             {statusUrls}
             {results && (
-              <Fragment>
-                <Grid className="slds-m-top_large">
+              <Grid className="slds-m-top_large">
+                <DeployMetadataProgressSummary
+                  className="slds-m-right_large"
+                  title={`${results.checkOnly ? 'Validate' : deployLabel} Results`}
+                  status={results.status}
+                  totalProcessed={results.numberComponentsDeployed}
+                  totalErrors={results.numberComponentErrors || results.details?.componentFailures.length}
+                  totalItems={results.numberComponentsTotal}
+                />
+                {results.runTestsEnabled && (
                   <DeployMetadataProgressSummary
-                    className="slds-m-right_large"
-                    title={`${results.checkOnly ? 'Validate' : deployLabel} Results`}
+                    title="Unit Test Results"
                     status={results.status}
-                    totalProcessed={results.numberComponentsDeployed}
-                    totalErrors={results.numberComponentErrors || results.details?.componentFailures.length}
-                    totalItems={results.numberComponentsTotal}
+                    totalProcessed={results.numberTestsCompleted}
+                    totalErrors={results.numberTestErrors + results.details?.runTestResult?.codeCoverageWarnings?.length || 0}
+                    totalItems={results.numberTestsTotal + results.details?.runTestResult?.codeCoverageWarnings?.length || 0}
                   />
-                  {results.runTestsEnabled && (
-                    <DeployMetadataProgressSummary
-                      title="Unit Test Results"
-                      status={results.status}
-                      totalProcessed={results.numberTestsCompleted}
-                      totalErrors={results.numberTestErrors + results.details?.runTestResult?.codeCoverageWarnings?.length || 0}
-                      totalItems={results.numberTestsTotal + results.details?.runTestResult?.codeCoverageWarnings?.length || 0}
-                    />
-                  )}
-                </Grid>
-              </Fragment>
+                )}
+              </Grid>
             )}
           </GridCol>
           <GridCol grow className="slds-scrollable">

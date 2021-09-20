@@ -1,8 +1,8 @@
 import { pluralizeFromNumber } from '@jetstream/shared/utils';
 import { DeployResultStatus } from '@jetstream/types';
 import { Grid, ProgressRing, Spinner } from '@jetstream/ui';
-import React, { FunctionComponent, useEffect, useReducer, useState } from 'react';
 import classNames from 'classnames';
+import React, { FunctionComponent, useEffect, useReducer } from 'react';
 
 type Action = { type: 'CHANGE'; payload: { status: DeployResultStatus; totalProcessed: number; totalErrors: number; totalItems: number } };
 
@@ -21,7 +21,7 @@ function reducer(state: State, action: Action): State {
       const totalProcessed = Number(action.payload.totalProcessed || 0);
       const totalErrors = Number(action.payload.totalErrors || 0);
       const totalItems = Number(action.payload.totalItems || 0);
-      let newState = { ...state };
+      const newState = { ...state };
 
       /**
        * HANDLE STATUS CHANGE
