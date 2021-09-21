@@ -1,125 +1,68 @@
-import { action } from '@storybook/addon-actions';
-import { boolean, number, select, text } from '@storybook/addon-knobs';
-import Icon from '../widgets/Icon';
+import { Meta, Story } from '@storybook/react';
 import React from 'react';
-import ProgressRing from './ProgressRing';
-import Spinner from 'libs/ui/src/lib/widgets/Spinner';
+import Icon from '../widgets/Icon';
+import Spinner from '../widgets/Spinner';
+import ProgressRing, { ProgressRingProps } from './ProgressRing';
 
 export default {
   component: ProgressRing,
-  title: 'ProgressRing',
+  title: 'progress/ProgressRing',
+  argTypes: {
+    children: {
+      control: false,
+    },
+    fillPercent: {
+      control: { type: 'range', min: 0, max: 1, step: 0.05 },
+    },
+    size: {
+      options: ['medium', 'large', 'x-large'],
+    },
+    theme: {
+      options: ['none', 'active-step', 'warning', 'expired', 'complete'],
+      mapping: {
+        none: null,
+        ['active-step']: 'active-step',
+        warning: 'warning',
+        expired: 'expired',
+        complete: 'complete',
+      },
+    },
+  },
+  args: {
+    fillPercent: 0.25,
+    size: 'medium',
+    theme: null,
+  },
+} as Meta;
+
+const Template: Story<ProgressRingProps> = ({ children, ...args }) => <ProgressRing {...args}>{children}</ProgressRing>;
+
+export const Base = Template.bind({});
+
+export const WithIcon = Template.bind({});
+WithIcon.args = {
+  fillPercent: 0.75,
+  children: <Icon type="utility" icon="warning" />,
 };
 
-export const base = () => (
-  <ProgressRing
-    className={text('className', undefined)}
-    fillPercent={number('current', 0.25)}
-    size={select(
-      'size',
-      {
-        Medium: 'medium',
-        Large: 'large',
-        XLarge: 'x-large',
-      },
-      'medium'
-    )}
-    theme={select(
-      'theme',
-      {
-        None: undefined,
-        ActiveStep: 'active-step',
-        Warning: 'warning',
-        Expired: 'expired',
-        Complete: 'complete',
-      },
-      undefined
-    )}
-  ></ProgressRing>
-);
+export const WithText = Template.bind({});
+WithText.args = {
+  fillPercent: 0.45,
+  children: <small>45%</small>,
+};
 
-export const withIcon = () => (
-  <ProgressRing
-    className={text('className', undefined)}
-    fillPercent={number('current', 0.75)}
-    size={select(
-      'size',
-      {
-        Medium: 'medium',
-        Large: 'large',
-        XLarge: 'x-large',
-      },
-      'large'
-    )}
-    theme={select(
-      'theme',
-      {
-        None: undefined,
-        ActiveStep: 'active-step',
-        Warning: 'warning',
-        Expired: 'expired',
-        Complete: 'complete',
-      },
-      'warning'
-    )}
-  >
-    <Icon type="utility" icon="warning" />
-  </ProgressRing>
-);
+export const WithTextComplete = Template.bind({});
+WithTextComplete.args = {
+  fillPercent: 1,
+  theme: 'complete',
+  size: 'x-large',
+  children: <small>100%</small>,
+};
 
-export const withText = () => (
-  <ProgressRing
-    className={text('className', undefined)}
-    fillPercent={number('current', 0.45)}
-    size={select(
-      'size',
-      {
-        Medium: 'medium',
-        Large: 'large',
-        XLarge: 'x-large',
-      },
-      'x-large'
-    )}
-    theme={select(
-      'theme',
-      {
-        None: undefined,
-        ActiveStep: 'active-step',
-        Warning: 'warning',
-        Expired: 'expired',
-        Complete: 'complete',
-      },
-      'warning'
-    )}
-  >
-    <small>45%</small>
-  </ProgressRing>
-);
-
-export const withSpinner = () => (
-  <ProgressRing
-    className={text('className', undefined)}
-    fillPercent={number('current', 0.45)}
-    size={select(
-      'size',
-      {
-        Medium: 'medium',
-        Large: 'large',
-        XLarge: 'x-large',
-      },
-      'x-large'
-    )}
-    theme={select(
-      'theme',
-      {
-        None: undefined,
-        ActiveStep: 'active-step',
-        Warning: 'warning',
-        Expired: 'expired',
-        Complete: 'complete',
-      },
-      'warning'
-    )}
-  >
-    <Spinner size="small" inline />
-  </ProgressRing>
-);
+export const WithSpinner = Template.bind({});
+WithSpinner.args = {
+  fillPercent: 0.45,
+  size: 'x-large',
+  theme: 'warning',
+  children: <Spinner size="small" inline />,
+};

@@ -101,6 +101,15 @@ export function getColumnDefinitions(): ColDef[] {
       field: 'fullName',
       cellRenderer: 'valueOrLoading',
       width: 250,
+      filterParams: {
+        filters: [
+          { filter: 'agTextColumnFilter' },
+          {
+            filter: 'agSetColumnFilter',
+            filterParams: { valueFormatter: ({ value }: ValueFormatterParams) => decodeURIComponent(value || '') },
+          },
+        ],
+      },
     },
     {
       headerName: 'Last Modified By',

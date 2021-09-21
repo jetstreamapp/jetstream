@@ -199,13 +199,13 @@
         "ignore": []
       }
     ],
-    "react/jsx-uses-react": "warn",
+    "react/jsx-uses-react": "off",
     "react/jsx-uses-vars": "warn",
     "react/no-danger-with-children": "warn",
     "react/no-direct-mutation-state": "warn",
     "react/no-is-mounted": "warn",
     "react/no-typos": "error",
-    "react/react-in-jsx-scope": "error",
+    "react/react-in-jsx-scope": "off",
     "react/require-render-return": "error",
     "react/style-prop-object": "warn",
     "jsx-a11y/accessible-emoji": "warn",

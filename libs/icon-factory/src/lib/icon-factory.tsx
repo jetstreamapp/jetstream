@@ -1,11 +1,10 @@
 /**
  * Every icon used in the application must be individually imported
  */
-import { DoctypeIcon, IconName, IconType, StandardIcon, UtilityIcon } from '@jetstream/icon-factory';
 import { logger } from '@jetstream/shared/client-logger';
 import classNames from 'classnames';
 import React from 'react';
-import { DoctypeIconObj, StandardIconObj, UtilityIconObj } from './icon-types';
+import { DoctypeIcon, DoctypeIconObj, IconName, IconType, StandardIcon, StandardIconObj, UtilityIcon, UtilityIconObj } from './icon-types';
 import DoctypeIcon_Excel from './icons/doctype/Excel';
 import DoctypeIcon_Gdrive from './icons/doctype/Gdrive';
 import DoctypeIcon_Gsheet from './icons/doctype/Gsheet';
@@ -85,6 +84,7 @@ import UtilityIcon_Richtextindent from './icons/utility/Richtextindent';
 import UtilityIcon_Richtextnumberedlist from './icons/utility/Richtextnumberedlist';
 import UtilityIcon_Richtextoutdent from './icons/utility/Richtextoutdent';
 import UtilityIcon_Right from './icons/utility/Right';
+import UtilityIcon_Rotate from './icons/utility/Rotate';
 import UtilityIcon_Salesforce1 from './icons/utility/Salesforce1';
 import UtilityIcon_Save from './icons/utility/Save';
 import UtilityIcon_Search from './icons/utility/Search';
@@ -190,6 +190,7 @@ const utilityIcons: UtilityIconObj = {
   richtextnumberedlist: UtilityIcon_Richtextnumberedlist,
   richtextoutdent: UtilityIcon_Richtextoutdent,
   right: UtilityIcon_Right,
+  rotate: UtilityIcon_Rotate,
   salesforce1: UtilityIcon_Salesforce1,
   save: UtilityIcon_Save,
   search: UtilityIcon_Search,

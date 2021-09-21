@@ -38,6 +38,7 @@ export const ViewOrCompareMetadataModal: FunctionComponent<ViewOrCompareMetadata
   const [activeSourceContent, setActiveSourceContent] = useState<string>(null);
   const [activeTargetContent, setActiveTargetContent] = useState<string>(null);
   const [editorType, setEditorType] = useState<EditorType>('SOURCE');
+  const [swapped, setSwapped] = useState(false);
 
   const [downloadFileModalConfig, setDownloadFileModalConfig] = useState<{
     open: boolean;
@@ -71,12 +72,11 @@ export const ViewOrCompareMetadataModal: FunctionComponent<ViewOrCompareMetadata
     targetError,
     files,
   } = useViewOrCompareMetadata({ selectedMetadata });
-  const monaco = useMonaco();
 
   // fetch source metadata on load
   useEffect(() => {
     fetchMetadata(sourceOrg, 'SOURCE');
-  }, []);
+  }, [fetchMetadata, sourceOrg]);
 
   const setActiveFileContent = useCallback(
     async (currentActiveFile: TreeItems<FileItemMetadata>) => {
@@ -107,7 +107,7 @@ export const ViewOrCompareMetadataModal: FunctionComponent<ViewOrCompareMetadata
     if (activeFile) {
       setActiveFileContent(activeFile);
     }
-  }, [activeFile, sourceResults, targetResults]);
+  }, [activeFile, setActiveFileContent, sourceResults, targetResults]);
 
   useEffect(() => {
     if (sourceResults && targetResults) {
@@ -128,6 +128,12 @@ export const ViewOrCompareMetadataModal: FunctionComponent<ViewOrCompareMetadata
       editorRef.current.revealPosition({ column: 0, lineNumber: 0 });
     }
   }, [editorType, activeTargetContent]);
+
+  useNonInitialEffect(() => {
+    if (editorType !== 'DIFF') {
+      setSwapped(false);
+    }
+  }, [editorType]);
 
   function handleEditorMount(ed: editor.IStandaloneCodeEditor) {
     editorRef.current = ed;
@@ -192,6 +198,10 @@ export const ViewOrCompareMetadataModal: FunctionComponent<ViewOrCompareMetadata
       fileNameParts: [],
       allowedTypes: [],
     });
+  }
+
+  function handleSwap() {
+    setSwapped(!swapped);
   }
 
   return (
@@ -277,6 +287,8 @@ export const ViewOrCompareMetadataModal: FunctionComponent<ViewOrCompareMetadata
                     sourceOrg={sourceOrg}
                     targetOrg={targetOrg}
                     editorType={editorType}
+                    swapped={swapped}
+                    onSwap={handleSwap}
                   />
 
                   <div
@@ -307,8 +319,8 @@ export const ViewOrCompareMetadataModal: FunctionComponent<ViewOrCompareMetadata
                           readOnly: true,
                           contextmenu: false,
                         }}
-                        original={activeSourceContent || ''}
-                        modified={activeTargetContent || ''}
+                        original={!swapped ? activeSourceContent || '' : activeTargetContent || ''}
+                        modified={!swapped ? activeTargetContent || '' : activeSourceContent || ''}
                         onMount={handleDiffEditorMount}
                       />
                     )}
