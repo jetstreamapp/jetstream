@@ -195,7 +195,7 @@ export function useViewOrCompareMetadata({ selectedMetadata }: { selectedMetadat
       dispatch({ type: 'FETCH', payload: { which } });
 
       try {
-        let id = (await retrieveMetadataFromListMetadata(org, selectedMetadata)).id;
+        const id = (await retrieveMetadataFromListMetadata(org, selectedMetadata)).id;
 
         const results = await pollRetrieveMetadataResultsUntilDone(org, id, {
           onChecked: () => {
@@ -222,7 +222,7 @@ export function useViewOrCompareMetadata({ selectedMetadata }: { selectedMetadat
         rollbar.error('Error fetching/comparing metadata', { whichOrg: which, message: ex.message, stack: ex.stack });
       }
     },
-    [selectedMetadata]
+    [notifyUser, rollbar, selectedMetadata]
   );
 
   return {

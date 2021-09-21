@@ -103,6 +103,7 @@ export interface UtilityIconObj {
   richtextnumberedlist: IconEl;
   richtextoutdent: IconEl;
   right: IconEl;
+  rotate: IconEl;
   salesforce1: IconEl;
   save: IconEl;
   search: IconEl;
