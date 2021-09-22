@@ -1,3 +1,4 @@
+/** @type {import('@docusaurus/types').DocusaurusConfig} */
 module.exports = {
   title: 'Jetstream',
   tagline: 'Documentation',
@@ -9,8 +10,8 @@ module.exports = {
   organizationName: 'jetstream', // Usually your GitHub org/user name.
   projectName: 'jetstream', // Usually your repo name.
   themeConfig: {
+    /** @type {import('@docusaurus/preset-classic').ThemeConfig} */
     navbar: {
-      // title: 'Home',
       logo: {
         alt: 'Jetstream logo',
         src: 'img/jetstream-icon.png',
@@ -18,79 +19,33 @@ module.exports = {
       },
       items: [
         {
-          to: 'docs/',
-          activeBasePath: 'docs',
-          label: 'Docs',
-          position: 'left',
-        },
-        // { to: 'blog', label: 'Blog', position: 'left' },
-        {
           href: 'https://getjetstream.app',
           label: 'Jetstream',
           position: 'right',
         },
       ],
     },
+    /** @type {import('@docusaurus/theme-common').Footer} */
     footer: {
       style: 'dark',
-      links: [
-        // {
-        //   title: 'Docs',
-        //   items: [
-        //     {
-        //       label: 'Style Guide',
-        //       to: 'docs/',
-        //     },
-        //   ],
-        // },
-        // {
-        //   title: 'Community',
-        //   items: [
-        //     {
-        //       label: 'Stack Overflow',
-        //       href: 'https://stackoverflow.com/questions/tagged/docusaurus',
-        //     },
-        //     {
-        //       label: 'Discord',
-        //       href: 'https://discordapp.com/invite/docusaurus',
-        //     },
-        //     {
-        //       label: 'Twitter',
-        //       href: 'https://twitter.com/docusaurus',
-        //     },
-        //   ],
-        // },
-        // {
-        //   title: 'More',
-        //   items: [
-        //     {
-        //       label: 'Blog',
-        //       to: 'blog',
-        //     },
-        //   ],
-        // },
-      ],
+      links: [],
       copyright: `Copyright © ${new Date().getFullYear()} Jetstream.`,
     },
   },
   presets: [
     [
       '@docusaurus/preset-classic',
-      {
+      /** @type {import('@docusaurus/preset-classic').Options} */
+      ({
         docs: {
           sidebarPath: require.resolve('./sidebars.js'),
-          // Please change this to your repo.
-          editUrl: 'https://github.com/facebook/docusaurus/edit/master/website/',
+          sidebarCollapsed: false,
+          routeBasePath: '/',
         },
-        // blog: {
-        //   showReadingTime: true,
-        //   // Please change this to your repo.
-        //   editUrl: 'https://github.com/facebook/docusaurus/edit/master/website/blog/',
-        // },
         theme: {
           customCss: require.resolve('./src/css/custom.css'),
         },
-      },
+      }),
     ],
   ],
 };

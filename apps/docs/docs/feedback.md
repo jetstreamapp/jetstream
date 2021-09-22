@@ -1,6 +1,8 @@
 ---
-id: mdx
-title: Powered by MDX
+id: feedback
+title: Help & Feedback
+sidebar_label: Getting Help or Providing Feedback
+slug: /feedback
 ---
 
 You can write JSX and use React components within your Markdown thanks to [MDX](https://mdxjs.com/).
