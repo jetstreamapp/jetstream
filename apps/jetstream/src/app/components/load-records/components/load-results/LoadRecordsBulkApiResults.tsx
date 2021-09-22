@@ -24,7 +24,6 @@ import {
   PrepareDataPayload,
   PrepareDataResponse,
 } from '../../load-records-types';
-import LoadWorker from '../../load-records.worker';
 import { getFieldHeaderFromMapping } from '../../utils/load-records-utils';
 import LoadRecordsBulkApiResultsTable from './LoadRecordsBulkApiResultsTable';
 
@@ -92,7 +91,7 @@ export const LoadRecordsBulkApiResults: FunctionComponent<LoadRecordsBulkApiResu
   const isMounted = useRef(null);
   const [{ serverUrl, google_apiKey, google_appId, google_clientId }] = useRecoilState(applicationCookieState);
   const [preparedData, setPreparedData] = useState<PrepareDataResponse>();
-  const [loadWorker] = useState(() => new LoadWorker());
+  const [loadWorker] = useState(() => new Worker(new URL('../../load-records.worker', import.meta.url)));
   const [status, setStatus] = useState<Status>(STATUSES.PREPARING);
   const [fatalError, setFatalError] = useState<string>(null);
   const [downloadError, setDownloadError] = useState<string>(null);

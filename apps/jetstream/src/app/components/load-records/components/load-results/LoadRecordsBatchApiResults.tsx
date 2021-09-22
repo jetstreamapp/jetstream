@@ -15,7 +15,6 @@ import {
   PrepareDataPayload,
   PrepareDataResponse,
 } from '../../load-records-types';
-import LoadWorker from '../../load-records.worker';
 import { getFieldHeaderFromMapping } from '../../utils/load-records-utils';
 import LoadRecordsBatchApiResultsTable from './LoadRecordsBatchApiResultsTable';
 
@@ -68,7 +67,7 @@ export const LoadRecordsBatchApiResults: FunctionComponent<LoadRecordsBatchApiRe
   // used to ensure that data in the onworker callback gets a reference to the results
   const processingStatusRef = useRef<{ success: number; failure: number }>({ success: 0, failure: 0 });
   const [preparedData, setPreparedData] = useState<PrepareDataResponse>();
-  const [loadWorker] = useState(() => new LoadWorker());
+  const [loadWorker] = useState(() => new Worker(new URL('../../load-records.worker', import.meta.url)));
   const [status, setStatus] = useState<Status>(STATUSES.PREPARING);
   const [fatalError, setFatalError] = useState<string>(null);
   const [processingStartTime, setProcessingStartTime] = useState<string>(null);

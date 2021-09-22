@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/camelcase */
 import * as winston from 'winston';
 
 import { YYYY_MM_DD__HH_mm_ss } from '@jetstream/shared/constants';

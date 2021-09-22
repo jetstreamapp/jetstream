@@ -1,12 +1,8 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
-
-import { logger } from '@jetstream/shared/client-logger';
 import { useDebounce } from '@jetstream/shared/ui-utils';
-import { WorkerMessage } from '@jetstream/types';
-import { Fragment, FunctionComponent, useEffect, useState } from 'react';
+import { Fragment, FunctionComponent, useEffect } from 'react';
 import { useRecoilState, useRecoilValue } from 'recoil';
 import { Query } from 'soql-parser-js';
-// import QueryWorker from '../../../workers/query.worker';
 import * as fromQueryState from '../query.state';
 import { composeSoqlQuery } from '../utils/query-utils';
 
@@ -27,7 +23,7 @@ export const QueryBuilderSoqlUpdater: FunctionComponent = () => {
 
   const debouncedFilters = useDebounce(filters);
 
-  // const [queryWorker] = useState(() => new QueryWorker());
+  // const [queryWorker] = useState(() => new Worker(new URL('../../../workers/query.worker', import.meta.url)));
 
   useEffect(() => {
     if (!!selectedSObject && selectedFields?.length > 0) {
