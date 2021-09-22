@@ -1,8 +1,3 @@
-// module.exports = {
-//   stories: ['../src/lib/**/*.stories.@(ts|js)x'],
-//   addons: ['@storybook/preset-scss', '@storybook/addon-essentials'],
-// };
-
 const rootMain = require('../../../.storybook/main');
 
 module.exports = {

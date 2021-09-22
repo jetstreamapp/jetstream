@@ -19,11 +19,10 @@ import {
 import { Icon, Popover } from '@jetstream/ui';
 import classNames from 'classnames';
 import uniqueId from 'lodash/uniqueId';
-import React, { FunctionComponent, useEffect, useState } from 'react';
+import { FunctionComponent, useEffect, useState } from 'react';
 import { useRecoilState, useRecoilValue, useSetRecoilState } from 'recoil';
 import { filter } from 'rxjs/operators';
 import { applicationCookieState, selectedOrgState } from '../../../app-state';
-import JobsWorker from '../../../workers/jobs.worker';
 import * as fromJetstreamEvents from '../jetstream-events';
 import Job from './Job';
 import JobPlaceholder from './JobPlaceholder';
@@ -40,7 +39,7 @@ export const Jobs: FunctionComponent = () => {
   const selectedOrg = useRecoilValue<SalesforceOrgUi>(selectedOrgState);
   const newJobsToProcess = useObservable(fromJetstreamEvents.getObservable('newJob').pipe(filter((ev: AsyncJobNew[]) => ev.length > 0)));
   const { notifyUser } = useBrowserNotifications(serverUrl);
-  const [jobsWorker] = useState(() => new JobsWorker());
+  const [jobsWorker] = useState(() => new Worker(new URL('../../../workers/jobs.worker', import.meta.url)));
 
   useEffect(() => {
     if (!!jobsWorker && newJobsToProcess && newJobsToProcess.length > 0) {
