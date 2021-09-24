@@ -195,7 +195,11 @@ export const AutomationControlContentFlow: FunctionComponent<AutomationControlCo
                           <SalesforceLogin
                             serverUrl={serverUrl}
                             org={selectedOrg}
-                            returnUrl={`/lightning/setup/ProcessAutomation/home`}
+                            returnUrl={
+                              childItem.metadata?.ProcessType === 'AutoLaunchedFlow'
+                                ? `/builder_platform_interaction/flowBuilder.app?flowId=${childItem.metadata.Id}`
+                                : `/lightning/setup/ProcessAutomation/home`
+                            }
                             omitIcon
                           >
                             {childItem.label}
