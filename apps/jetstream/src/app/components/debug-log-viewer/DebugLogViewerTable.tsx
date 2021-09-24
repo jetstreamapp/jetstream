@@ -36,6 +36,8 @@ const COLUMNS: ColDef[] = [
     field: 'viewed',
     width: 24,
     cellRenderer: 'logViewedRenderer',
+    lockPosition: true,
+    lockVisible: true,
   },
   {
     headerName: 'User',
@@ -118,8 +120,9 @@ export const DebugLogViewerTable: FunctionComponent<DebugLogViewerTableProps> = 
         agGridProps={{
           immutableData: true,
           getRowNodeId,
+          enableRangeSelection: false,
           suppressCellSelection: true,
-
+          suppressRowClickSelection: false,
           frameworkComponents: { logViewedRenderer: LogViewedRenderer },
           rowSelection: 'single',
           onSelectionChanged: handleSelectionChanged,

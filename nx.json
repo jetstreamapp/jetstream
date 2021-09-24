@@ -83,6 +83,9 @@
     "ui-e2e": {
       "tags": [],
       "implicitDependencies": ["ui"]
+    },
+    "docs": {
+      "tags": []
     }
   },
   "affected": {
