@@ -140,6 +140,30 @@ export const DeployMetadataDeploymentTable: FunctionComponent<DeployMetadataDepl
             groupDefaultExpanded: 1,
             groupSelectsChildren: true,
             groupSelectsFiltered: true,
+            sideBar: {
+              toolPanels: [
+                {
+                  id: 'filters',
+                  labelDefault: 'Filters',
+                  labelKey: 'filters',
+                  iconKey: 'filter',
+                  toolPanel: 'agFiltersToolPanel',
+                },
+                {
+                  id: 'columns',
+                  labelDefault: 'Columns',
+                  labelKey: 'columns',
+                  iconKey: 'columns',
+                  toolPanel: 'agColumnsToolPanel',
+                  toolPanelParams: {
+                    suppressRowGroups: true,
+                    suppressValues: true,
+                    suppressPivots: true,
+                    suppressPivotMode: true,
+                  },
+                },
+              ],
+            },
             onGridReady: handleOnGridReady,
             onSelectionChanged: handleSelectionChanged,
             onFilterChanged: handleFilterChangeOrRowDataUpdated,

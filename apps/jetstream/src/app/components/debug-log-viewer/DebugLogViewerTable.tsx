@@ -36,6 +36,8 @@ const COLUMNS: ColDef[] = [
     field: 'viewed',
     width: 24,
     cellRenderer: 'logViewedRenderer',
+    lockPosition: true,
+    lockVisible: true,
   },
   {
     headerName: 'User',
