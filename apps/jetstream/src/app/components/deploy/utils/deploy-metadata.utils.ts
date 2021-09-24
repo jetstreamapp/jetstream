@@ -94,6 +94,8 @@ export function getColumnDefinitions(): ColDef[] {
       width: 200,
       rowGroup: true,
       hide: true,
+      lockVisible: true,
+      lockPosition: true,
     },
     {
       headerName: 'Name',
@@ -101,6 +103,7 @@ export function getColumnDefinitions(): ColDef[] {
       field: 'fullName',
       cellRenderer: 'valueOrLoading',
       width: 250,
+      lockVisible: true,
       filterParams: {
         filters: [
           { filter: 'agTextColumnFilter' },
