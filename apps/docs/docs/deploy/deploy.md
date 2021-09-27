@@ -11,18 +11,18 @@ The **Deploy Metadata** feature provides the ability to work with metadata in yo
 
 1. Deploy metadata from one org to another org
 2. Add metadata to an outbound changeset
-3. View the contents of any metadata
-4. Compare metadata between two different orgs
-5. Download a metadata package to your computer
+3. View the contents of metadata
+4. Compare metadata between two orgs
+5. Download a metadata package
 6. Deploy a metadata package
 
 :::tip
 
-The Deploy Metadata tools provide a ton of cool benefits outside of deploying metadata from one org to another.
+The Deploy Metadata tools provide many useful features in addition to deploying metadata from one org to another.
 
 For example, here are some example use-cases:
 
-1. Search across lots of metadata for a specific term or field.
+1. Search across lots of metadata at once.
 2. Make changes to lots of metadata at once, for example adding help-text or descriptions to many fields.
 3. Backing up metadata at a point in time to allow restoring metadata to a prior state.
 4. Viewing a list of all the metadata that was recently modified and by whom was it modified.
@@ -37,7 +37,7 @@ For most actions, you will usually start by choosing one or more metadata types.
 **Optionally, you can also configure additional options**:
 
 1. Only show metadata from specific users
-2. Only show metadata that was modified since a specific date range or between a certain time-period
+2. Only show metadata that was modified since a specific date or between a certain date range
 3. Include managed packaged metadata
 
 Click **Continue** to view all the metadata
@@ -46,11 +46,13 @@ Click **Continue** to view all the metadata
 
 ## Working with metadata
 
-Once the metadata is all loaded, you will be shown a table with a list of all the metadata.
+Once the metadata is loaded, you will be shown a table with a list of all the metadata.
 
 To change the filters that were on the initial metadata page, click the buttons along the top.
 
-Jetstream caches data in your browser to keep the experience fast, so if there was recent changes to metadata then Jetstream may be showing out-dated information. Click the **Not seeing recent metadata?** link to show you how old each type of metadata is, with the option to refresh some or all of the items.
+Jetstream caches data in your browser to keep the experience fast and recent metadata changes may not show up in Jetstream. Click the **Not seeing recent metadata?** link to show you how old each type of metadata is, with the option to refresh some or all of the items.
+
+When doing a deployment, Jetstream will never use cached data, so even if it shows stale last modified by information, the current state of the metadata is used when performing any action.
 
 <div className="container">
   <div className="row">
@@ -68,7 +70,7 @@ Jetstream caches data in your browser to keep the experience fast, so if there w
 Many of the deployment features share a set of deployment options, as described below.
 
 - **Validate Only**
-  - This will not make any changes, but will go through a deployment option. After validation, the results will show in the Deployment Status area in Salesforce setup and can be quick deployed from Salesforce.
+  - This performs a dry-run of the validation without making any changes to the org. After validation, the results will show in the Deployment Status area in Salesforce setup and can be quick deployed.
 - **Ignore Warnings**
   - Allow deployment to succeed even if there are warnings.
 - **Rollback on Error**
@@ -87,7 +89,7 @@ Many of the deployment features share a set of deployment options, as described 
 
 :::tip
 
-Prior to submitting the deployment, make sure to carefully review all the selected items and the source and target org.
+Prior to submitting the deployment, carefully review all the selected items and the source and target org.
 
 :::
 
@@ -95,7 +97,7 @@ Choose the metadata items that you would like to deploy and click **Deploy to Di
 
 Choose the destination org that you would like to deploy to, and configure the deployment options.
 
-Once the deployment starts, you can view the progress in Salesforce under the **Deployment Status** option in Setup.
+Once the deployment starts, you can view the progress in Salesforce under the **Deployment Status** option in Setup. You can also attempt to abort the deployment on the Deployment Status page in Salesforce, but this is not always possible.
 
 If unit tests were configured to run, the test results will be shown as well.
 
@@ -111,15 +113,15 @@ Because of the way Salesforce works, all metadata items added to a changeset wil
 
 You can use Jetstream to add metadata to your outbound changeset as long as the changeset is open and has not been uploaded to another org.
 
-You can only upload metadata to an outbound changeset that has a unique name. **Make sure that the changeset name is not used on more than one changeset**.
+You can only upload metadata to an outbound changeset if the Changeset name is unique. **Make sure that the changeset name is not used on more than one changeset**.
 
 Choose the metadata items that you would like to deploy and click **Add to Outbound Changeset**.
 
-Enter in the name of the Changeset, this is case-sensitive and must be entered exactly the same as the name of the changeset and click **deploy** to add all of the selected items to the outbound changeset.
+Provide the name of the Changeset, this is case-sensitive and must be entered exactly the same as the name of the changeset. Click **deploy** to add all of the selected items to the outbound changeset.
 
 :::important
 
-The changeset description will always be overridden when you add items to the changeset, so if you don't want the description to be removed, copy and paste the description.
+The changeset description will always be overridden when you add items to the changeset. If you don't want the description to be removed, copy and paste the description from Salesforce before submitting the deployment.
 
 :::
 
@@ -131,7 +133,7 @@ This will open a modal with all of the metadata that you can view without having
 
 To compare all the selected metadata components with another org, choose the org in the dropdown.
 
-This will show a line-by-line diff of the content. You can click the swap <Refresh className="icon inline" /> icon to change which is on the left and which is on the right to make sure it is easy to understand the diff.
+This will show a line-by-line diff of the content. You can click the swap <Refresh className="icon inline" /> icon to change which is on the left and which is on the right.
 
 <img src={require('./view-or-compare-metadata.png').default} alt="View and compare metadata" />
 
@@ -143,9 +145,7 @@ Now that you have a metadata package downloaded, you can do the following:
 
 1. Make changes to the files on your computer, then re-zip the files and upload them back into your org.
 2. Deploy the metadata to a different org.
-3. Save as a backup of the metadata as of right now, which you can deploy at a future date to restore.
-
-If you are planning to make changes to the metadata on your computer,
+3. Save a backup of the metadata as of right now, which you can deploy at a future date to restore.
 
 :::tip
 
@@ -155,7 +155,7 @@ After unzipping, open the entire unzipped folder with [Visual Studio Code](https
 
 :::tip
 
-You can click **Download Manifest** to get a file with a list of all the selected metadata items. Then you can use the XML manifest to download that exact set of metadata from any org at any point in the future.
+You can click **Download Manifest** to get a file with a list of all the selected metadata items. Then you can use this manifest to download that exact same set of metadata from any org at any point in the future.
 
 :::
 
@@ -172,7 +172,7 @@ If you have a `Package.xml` manifest file, which you can obtain on the metadata 
 
 :::tip
 
-If you download a package as a zip file, there will be a file named `Package.xml` in the root of the unzipped folder. You can use this to re-download that metadata at any point in time.
+If you download a package as a zip file, there will be a manifest file named `Package.xml` in the root of the unzipped folder. You can use this to re-download that same set of metadata at any point in time.
 
 :::
 
@@ -184,7 +184,7 @@ Enter the name(s) of an outbound changeset or an unmanaged package that was buil
 
 :::info
 
-If you have zipped a metadata package by hand, it is usually best to make sure `Package.xml` is at the root of the folder. If you zipped the surrounding folder, then make sure to uncheck **Single Package** for the load to be processed successfully by Salesforce. Jetstream will warn you if the Single Package checkbox does not appear to match the structure of the zip file.
+If you have zipped a metadata package by hand, it is usually best to make sure `Package.xml` is at the root of the folder. If you zipped the surrounding folder, then make sure to uncheck **Single Package**. Jetstream will warn you if the Single Package checkbox does not appear to match the structure of the zip file.
 
 :::
 
@@ -193,7 +193,7 @@ If you have a metadata package zip file, you can deploy it to any org in the sam
 There are two additional options compared to a regular deployment:
 
 1. Skip Recycle Bin on Delete
-   1. You can delete changes using a [destructive package](https://developer.salesforce.com/docs/atlas.en-us.daas.meta/daas/daas_destructive_changes.htm), and this setting will be ignored if you are not including a destructive package in your deployment.
+   1. You can delete metadata using a [destructive package](https://developer.salesforce.com/docs/atlas.en-us.daas.meta/daas/daas_destructive_changes.htm). This setting will be ignored if you are not including destructive changes in your deployment.
 2. Single Package
    1. Uncheck this if you are uploading more than one package or if your zip file has a surrounding sub-folder.
 

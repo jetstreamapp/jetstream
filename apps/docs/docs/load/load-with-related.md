@@ -7,7 +7,7 @@ slug: /load/with-related
 
 Jetstream allows you to load records to multiple objects with automatic relationships.
 
-**Example**: You want to insert new accounts and new contacts and you want to set the lookup field on the Contacts to the Account.
+**Example**: You want to insert new accounts and new contacts and you want to set the lookup field on the Contacts to the newly inserted Accounts.
 
 Normally this would require two data loads and you would need to use External Ids or Excel vlookups to prepare the Contact file.
 
@@ -19,13 +19,13 @@ Download the example Excel template from the top of the page to get started. The
 
 :::
 
-The data load template has a section at the top where you will enter the **Object Api Name**, the **Operation**, and optionally the **External Id**.
+The data load template has a section at the top where you will enter the **Object Api Name**, **Operation**, and optionally the **External Id**.
 
-Your record data starts on Row 5, and the first column is required to be a unique identifier of your choosing for each record. If you are exporting data as a starting point, it is easiest to set the **Reference Id** as the Id of the org where you exported the data. This Id is only used for the load process.
+Your record data starts on Row 5, and the first column is required to be a temporary unique identifier of your choosing for each record. If you are exporting data as a starting point, set the **Reference Id** as the record id of the org where you exported the data. This Id is only used for the load process.
 
 Create a new worksheet and repeat the process for any related records.
 
-For any relationship fields, like the **AccountId** from the example above, wrap the column header in curly brackets, like this `{AccountId}`. All the values in that column must map to a value in the **Reference Id** column this or another worksheet.
+For any relationship fields, like the **AccountId** from the example above, wrap the column header in curly brackets, like this `{AccountId}`, to indicate that the values in this column are reference Ids from other records in the file. All the values in that column must map to a value in the **Reference Id** column in the current or another worksheet.
 
 <img src={require('./load-related-example-1.png').default} alt="Load results" />
 
@@ -33,8 +33,8 @@ For any relationship fields, like the **AccountId** from the example above, wrap
 
 Prepare data sheets quickly using the Query page to download records
 
-- Use the **Record Id** as the **Reference Id** (See example template for an example)
-- For related records, the lookup field will already contain the parent Record Id, which is the **Reference Id**
+- Use the **Record Id** as the **Reference Id**. (See example template for an example)
+- For related records, the lookup field will already contain the parent Record Id, which is the **Reference Id**, so you don't need to change anything in your data.
 
 :::
 
@@ -54,6 +54,6 @@ If you have errors with your file, you will be presented with detailed informati
 
 ## Loading into Salesforce
 
-When you load your data, if any record in a given group fails, the entire group will be rolled back. This will ensure that you don't have any partial loads.
+When you load your data, if any record in a given group fails, the entire group will be rolled back.
 
-After the load is finished, you will be able to download the results.
+After the load is finished, you will be able to view and download the results.

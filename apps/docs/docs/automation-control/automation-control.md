@@ -5,7 +5,9 @@ sidebar_label: Automation Control
 slug: /automation-control
 ---
 
-Automation Control allows you to quickly disable or enable automation in your org with the option to easily roll-back your changes.
+import SearchIcon from '../assets/icons/Search.svg';
+
+Automation Control allows you to quickly disable or enable automation in your org with the option to easily rollback your changes.
 
 **The following automation is supported**:
 
@@ -24,27 +26,27 @@ You can easily toggle your automation on and off prior to making in Changes in S
 
 For Process Builders and Record Triggered Flows, you will need to choose the version that you want to activate or deactivate. Only one version can be active at any given time.
 
-For Validation Rules and Workflow Rules, you can hover over the magnifying glass to see additional information about the rule.
+For Validation Rules and Workflow Rules, you can hover over the magnifying glass icon <SearchIcon className="icon inline" /> to see additional information about the rule.
 
 :::tip
 
-Before you make any changes, click **export** to download the current state of your automation in case you need to refer back to the current state.
+Before you make any changes, click **export** to download the current state of your automation in case you need to refer back to the current state of your automation.
 
 :::
 
-You will see that pending changes show up with a yellow highlight.
+Pending changes are highlighted in yellow.
 
 <img src={require('./automation-control-pending-changes-1.png').default} alt="Automation control pending changes" />
 
 ## Rolling back automation
 
-After you click preview changes, you will again see a summary of the pending changes. After you deploy changes, you are shown the results and any error messages if the toggle failed.
+After you click **Preview Changes**, you will again see a summary of the pending changes. After you deploy changes, you are shown the results and any error messages if the toggle failed for any individual items.
 
-Once the rollback is processed, you have the option to rollback your changes. If you close the modal, you will no longer have the option to roll back.
+Once the deployment is processed, you have the option to rollback your changes. If you close the modal, you will no longer have the option to rollback.
 
 :::tip
 
-After toggle automation on or off, stay on this page and leave the browser tab open so you can easily roll back your changes.
+After deploying your automation, leave the browser tab and the modal window open so you can easily rollback your changes.
 
 :::
 

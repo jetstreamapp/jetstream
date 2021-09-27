@@ -7,7 +7,7 @@ slug: /
 
 import OrgTroubleshootingTable from './\_org-troubleshooting-table.mdx';
 
-Jetstream is the **swiss army knife** of working with and administering Salesforce. We know that once you start using Jetstream, you'll wonder how you ever got on without it.
+Jetstream is the most advanced toolkit for working with and administering Salesforce. We know that once you start using Jetstream, you'll wonder how you ever got on without it!
 
 If you have questions or want to talk with a human, you can reach support by emailing [support@getjetstream.app](mailto:support@getjetstream.app).
 
@@ -19,20 +19,22 @@ If you haven't created a Jetstream account, you can [sign-up here](https://getje
 
 ## Adding your first org
 
-After logging in to Jetstream for the first time, the first thing you need to do is connect Jetstream to one or more of your Salesforce orgs.
+After logging in to Jetstream for the first time, you need to connect Jetstream to one or more of your Salesforce orgs.
 
-Jetstream uses OAuth2 for org connections, which means that Jetstream never gains access directly to your password,
+Jetstream uses OAuth2 for org connections, which means that Jetstream never gains access directly to your password.
 
 To add an org, click the <button className="button button--link">+ Add Org</button> button at the top of the page.
 
-You will be asked to choose an org type, this determines which Salesforce login url you will be redirected
+You will be asked to choose an org type which is used to determine the which Salesforce login page to redirect you to for authorization.
 
 - **Production / Developer**
+  - `https://login.salesforce.com`
 - **Sandbox**
+  - `https://test.salesforce.com`
 - **Pre-release**
+  - `https://prerellogin.pre.salesforce.com`
 - **Custom Login URL**
-
-You will be redirected to Salesforce to login, then will be redirected back to Jetstream and your org will be connected.
+  - `https://my--domain.my.salesforce.com`
 
 ### Troubleshooting Tips
 
