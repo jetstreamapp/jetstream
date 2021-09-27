@@ -1,13 +1,13 @@
 import { FEATURE_FLAGS } from '@jetstream/shared/constants';
 import { hasFeatureFlagAccess } from '@jetstream/shared/ui-utils';
 import { DropDownItem, UserProfileUi } from '@jetstream/types';
-import { Header, Icon, Navbar, NavbarItem, NavbarMenuItems } from '@jetstream/ui';
+import { Header, Navbar, NavbarItem, NavbarMenuItems } from '@jetstream/ui';
 import { Fragment, FunctionComponent, useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
 import { useRecoilState, useRecoilValue } from 'recoil';
 import Logo from '../../../assets/images/jetstream-logo-v1-200w.png';
 import { applicationCookieState, selectUserPreferenceState } from '../../app-state';
 import OrgsDropdown from '../orgs/OrgsDropdown';
+import HeaderHelpPopover from './HeaderHelpPopover';
 import Jobs from './jobs/Jobs';
 import NotificationsRequestModal from './NotificationsRequestModal';
 
@@ -80,16 +80,7 @@ export const HeaderNavbar: FunctionComponent<HeaderNavbarProps> = ({ userProfile
         logo={Logo}
         orgs={<OrgsDropdown />}
         userMenuItems={userMenuItems}
-        rightHandMenuItems={[
-          <Link
-            className="slds-button slds-button_icon slds-button_icon slds-button_icon-container slds-button_icon-small slds-global-actions__help slds-global-actions__item-action"
-            to="/feedback"
-            target="_blank"
-          >
-            <Icon type="utility" icon="help" className="slds-button__icon slds-global-header__icon" omitContainer />
-          </Link>,
-          <Jobs />,
-        ]}
+        rightHandMenuItems={[<HeaderHelpPopover />, <Jobs />]}
         onUserMenuItemSelected={handleUserMenuSelection}
       >
         <Navbar>
@@ -130,7 +121,19 @@ export const HeaderNavbar: FunctionComponent<HeaderNavbarProps> = ({ userProfile
               },
             ]}
           />
-          <NavbarItem path="/feedback" title="Feedback" label="Support / Feedback" />
+          <NavbarMenuItems
+            label="Documentation &amp; Support"
+            items={[
+              { id: 'feedback', path: '/feedback', title: 'File a support ticket', label: 'File a support ticket' },
+              {
+                id: 'documentation',
+                path: 'https://docs.getjetstream.app',
+                isExternal: true,
+                title: 'Documentation',
+                label: 'Documentation',
+              },
+            ]}
+          />
         </Navbar>
       </Header>
     </Fragment>
