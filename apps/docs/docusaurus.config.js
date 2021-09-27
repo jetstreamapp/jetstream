@@ -9,6 +9,7 @@ module.exports = {
   favicon: 'img/favicon-inverse.ico',
   organizationName: 'jetstream', // Usually your GitHub org/user name.
   projectName: 'jetstream', // Usually your repo name.
+  trailingSlash: false,
   themeConfig: {
     algolia: {
       appId: '21D7I5RB7N',
@@ -86,7 +87,6 @@ module.exports = {
         sitemap: {
           changefreq: 'weekly',
           priority: 0.5,
-          trailingSlash: false,
         },
       }),
     ],
