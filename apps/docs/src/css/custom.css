@@ -22,3 +22,20 @@
   margin: 0 calc(-1 * var(--ifm-pre-padding));
   padding: 0 var(--ifm-pre-padding);
 }
+
+.icon {
+  width: 1.5rem;
+  height: 1.5rem;
+}
+
+.icon.inline {
+  margin-bottom: -0.5rem;
+}
+
+html[data-theme='light'] .icon {
+  fill: #706e6b;
+}
+
+html[data-theme='dark'] .icon {
+  fill: #ffff;
+}

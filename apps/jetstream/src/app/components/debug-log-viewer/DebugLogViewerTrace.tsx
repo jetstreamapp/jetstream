@@ -44,7 +44,7 @@ export const DebugLogViewerTrace: FunctionComponent<DebugLogViewerTraceProps> = 
           isOpen={isOpen}
           header={
             <header className="slds-popover__header">
-              <h2 className="slds-text-heading_small" title="Refresh Metadata">
+              <h2 className="slds-text-heading_small" title="Debug Levels">
                 Debug Levels
               </h2>
             </header>
