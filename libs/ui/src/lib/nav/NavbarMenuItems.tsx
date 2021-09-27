@@ -16,6 +16,7 @@ interface NabarMenuItemBase {
 
 export interface NabarMenuItemLink extends NabarMenuItemBase {
   path: string;
+  isExternal?: boolean;
 }
 
 export interface NabarMenuItemAction extends NabarMenuItemBase {
@@ -108,19 +109,37 @@ export const NavbarMenuItems: FunctionComponent<NavbarMenuItemsProps> = ({ label
                   })}
                   role="presentation"
                 >
-                  {isLink(item) && (
-                    <Link tabIndex={i === 0 ? 0 : -1} role="menuitemcheckbox" to={{ pathname: item.path }} onClick={() => setIsOpen(false)}>
-                      <span className="slds-truncate" title={item.title}>
-                        <Icon
-                          type="utility"
-                          icon="check"
-                          className="slds-icon slds-icon_selected slds-icon_x-small slds-icon-text-default slds-m-right_x-small"
-                          omitContainer
-                        />
-                        {item.label}
-                      </span>
-                    </Link>
-                  )}
+                  {isLink(item) &&
+                    (item.isExternal ? (
+                      <a href={item.path} target="_blank" rel="noreferrer">
+                        <span className="slds-truncate" title={item.title}>
+                          <Icon
+                            type="utility"
+                            icon="new_window"
+                            className="slds-icon slds-icon_x-small slds-icon-text-default slds-m-right_x-small"
+                            omitContainer
+                          />
+                          {item.label}
+                        </span>
+                      </a>
+                    ) : (
+                      <Link
+                        tabIndex={i === 0 ? 0 : -1}
+                        role="menuitemcheckbox"
+                        to={{ pathname: item.path }}
+                        onClick={() => setIsOpen(false)}
+                      >
+                        <span className="slds-truncate" title={item.title}>
+                          <Icon
+                            type="utility"
+                            icon="check"
+                            className="slds-icon slds-icon_selected slds-icon_x-small slds-icon-text-default slds-m-right_x-small"
+                            omitContainer
+                          />
+                          {item.label}
+                        </span>
+                      </Link>
+                    ))}
                   {!isLink(item) && (
                     // eslint-disable-next-line jsx-a11y/anchor-is-valid
                     <a
