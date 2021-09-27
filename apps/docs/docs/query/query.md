@@ -1,11 +1,11 @@
 ---
 id: query
-title: Query
-sidebar_label: Query
+title: Query Builder
+sidebar_label: Query Builder
 slug: /query
 ---
 
-import FilterIcon from './assets/icons/Filter.svg';
+import FilterIcon from '../assets/icons/Filter.svg';
 
 Jetstream's query functionality provides an easy and powerful way to view your record data and even metadata records, like Validation Rules.
 
@@ -40,7 +40,7 @@ To include related fields, find a related field, such as Created By Id, and clic
 
 #### Field quick filters
 
-Click the filter icon <FilterIcon class="icon" /> to open up the quick filter.
+Click the filter icon <FilterIcon className="icon inline" /> to open up the quick filter.
 
 From here, you can quickly change which fields are visible to select using one of the following options:
 
@@ -96,22 +96,28 @@ If there are any parts of the query that could not be restored, you will be noti
 
 Executing the query will run it and show the results.
 
+:::tip
+
+Query history is stored locally in your browser, so if you change browsers or computers, your query history will not follow you.
+
+:::
+
 ## Manual query
 
 If you have a SOQL query and you want to use that on the Query builder, then you click the **Manual Query** button at the top of the page and paste in your query and **restore** or **execute**.
 
 ## Querying metadata records
 
-:::danger
+In addition to regular metadata, you can also query metadata records. Click the **change object** icon to switch between object and metadata query.
 
-TODO:
+<img src={require('./switch-query-type.png').default} alt="Switch metadata type" />
 
-:::
+After changing to a metadata object, everything else about the query builder is identical to regular record queries.
 
-## Query results
+Your query history will be saved for Metadata queries and will have a different icon to make it easy to see which items in your history are regular records or metadata.
 
-:::danger
+:::tip
 
-TODO: Should this be a stand-aline page?
+When querying metadata records, if you include the **FullName** or **Metadata** fields, Salesforce only allows one record to be returned. It is better to leave these off initially unless you want to see the detailed information for just one record.
 
 :::

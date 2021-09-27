@@ -12,7 +12,6 @@ routes.get(
   '/signup',
   passport.authenticate('auth0', {
     scope: 'openid email profile',
-    // eslint-disable-next-line @typescript-eslint/camelcase
     screen_hint: 'signup',
   } as any),
   authController.login
