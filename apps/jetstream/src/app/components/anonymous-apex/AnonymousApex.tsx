@@ -65,6 +65,7 @@ export const AnonymousApex: FunctionComponent<AnonymousApexProps> = () => {
     if (logRef.current) {
       logRef.current.revealPosition({ column: 0, lineNumber: 0 });
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [textFilter, logRef.current]);
 
   useNonInitialEffect(() => {
@@ -81,6 +82,7 @@ export const AnonymousApex: FunctionComponent<AnonymousApexProps> = () => {
         }
       })();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [historyItems]);
 
   useEffect(() => {

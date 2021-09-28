@@ -37,7 +37,7 @@ interface RouteItem {
 }
 
 let _userProfile: UserProfileUi;
-let _featureFlags: Set<string> = new Set();
+const _featureFlags: Set<string> = new Set();
 
 const ROUTES: RouteItem[] = [
   {

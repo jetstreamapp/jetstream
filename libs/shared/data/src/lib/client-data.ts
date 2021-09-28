@@ -86,7 +86,7 @@ export async function deleteOrg(org: SalesforceOrgUi): Promise<void> {
  * @param files
  * @returns
  */
-export async function uploadImage(image: ImageWithUpload): Promise<CloudinaryUploadResponse> {
+export async function uploadImage(image: { content: string }): Promise<CloudinaryUploadResponse> {
   // signatures are available for 1 hour, using a 5 minute buffer
   const earliestValidTimestamp = Math.round(new Date().getTime() / 1000) - 60 * 55;
   if (!cloudinarySignature || cloudinarySignature.timestamp >= earliestValidTimestamp) {
