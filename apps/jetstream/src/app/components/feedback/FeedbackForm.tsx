@@ -53,7 +53,13 @@ export const FeedbackForm: FunctionComponent<FeedbackFormProps> = ({ loading, ha
     >
       {loading && <Spinner />}
       <Grid vertical>
-        <p>Ask your questions, report issues, request new features, or just tell us how much you love 😍 Jetstream.</p>
+        <p>
+          Ask your questions, report issues, request new features, or just tell us how much you love{' '}
+          <span role="img" aria-label="heart eyes">
+            😍
+          </span>{' '}
+          Jetstream.
+        </p>
         <p className="slds-m-bottom_small">
           You can always email us at{' '}
           <a href="mailto:support@getjetstream.app" target="_blank" rel="noreferrer">

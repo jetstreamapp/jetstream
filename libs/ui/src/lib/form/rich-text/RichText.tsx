@@ -1,8 +1,8 @@
 import { css } from '@emotion/react';
 import { useDebounce, useNonInitialEffect } from '@jetstream/shared/ui-utils';
 import classNames from 'classnames';
-import RichTextToolbar from 'libs/ui/src/lib/form/rich-text/RichTextToolbar';
-import HelpText from 'libs/ui/src/lib/widgets/HelpText';
+import RichTextToolbar from './RichTextToolbar';
+import HelpText from '../../widgets/HelpText';
 import isBoolean from 'lodash/isBoolean';
 import uniqueId from 'lodash/uniqueId';
 import Quill, { DeltaOperation, DeltaStatic, QuillOptionsStatic, Sources } from 'quill';
@@ -62,6 +62,7 @@ export const RichText: FunctionComponent<RichTextProps> = ({
     (delta: DeltaStatic, oldDelta: DeltaStatic, source: Sources) => {
       setContents(editorRef.current.getContents().ops);
     },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     [editorContainerRef.current, setContents]
   );
 
@@ -75,6 +76,7 @@ export const RichText: FunctionComponent<RichTextProps> = ({
       });
       editorRef.current.on('text-change', handleTextChange);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [editorContainerRef.current]);
 
   useNonInitialEffect(() => {
@@ -85,7 +87,7 @@ export const RichText: FunctionComponent<RichTextProps> = ({
 
   useNonInitialEffect(() => {
     onChange(debouncedContents);
-  }, [debouncedContents]);
+  }, [debouncedContents, onChange]);
 
   function handleFocus(focus: boolean) {
     setHasFocus(focus);

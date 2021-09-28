@@ -76,7 +76,7 @@ export const ImageSelector: FunctionComponent<ImageSelectorProps> = ({
 
   useNonInitialEffect(() => {
     onImages(loadedImages);
-  }, [loadedImages]);
+  }, [loadedImages, onImages]);
 
   function preventEventDefaults(event: React.DragEvent<HTMLElement> | React.ChangeEvent<HTMLInputElement>) {
     event.preventDefault();
@@ -113,9 +113,9 @@ export const ImageSelector: FunctionComponent<ImageSelectorProps> = ({
         return;
       }
 
-      let images: ImageWithUpload[] = [];
+      const images: ImageWithUpload[] = [];
 
-      for (let file of Array.from(files)) {
+      for (const file of Array.from(files)) {
         logger.info(file);
         const extension = (file.name.substring(file.name.lastIndexOf('.')) || '').toLowerCase() as InputAcceptType;
 
@@ -138,7 +138,7 @@ export const ImageSelector: FunctionComponent<ImageSelectorProps> = ({
         // upload images
         setLoadedImages((priorImages) => priorImages.concat(images));
         if (autoUploadImages) {
-          for (let image of images) {
+          for (const image of images) {
             try {
               // see if we have valid signature, else get one
               const response = await uploadImage(image);

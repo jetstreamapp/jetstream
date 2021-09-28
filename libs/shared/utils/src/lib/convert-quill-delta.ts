@@ -212,7 +212,7 @@ const fromDeltaConverters = {
       this.append('$$' + src + '$$');
     },
     image: function (src) {
-      this.append(`![](${encodeLink(src)})`);
+      this.append(`![image](${encodeLink(src)})`);
     },
     // Not a default Quill feature, converts custom divider embed blot added when
     // creating quill editor instance.

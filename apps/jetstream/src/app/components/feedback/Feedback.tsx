@@ -1,7 +1,7 @@
 import { css } from '@emotion/react';
 import { logger } from '@jetstream/shared/client-logger';
 import { TITLES } from '@jetstream/shared/constants';
-import { submitFeedback } from '@jetstream/shared/data';
+import { submitFeedback, uploadImage } from '@jetstream/shared/data';
 import { useRollbar } from '@jetstream/shared/ui-utils';
 import { convertDeltaToMarkdown } from '@jetstream/shared/utils';
 import { ImageWithUpload, UserProfileUi } from '@jetstream/types';
@@ -62,6 +62,8 @@ export const Feedback: FunctionComponent<FeedbackProps> = ({ userProfile }) => {
         logger.warn('[FEEDBACK] Error adding feature flags');
       }
 
+      await uploadInlineImagesAndReplaceWithUrl(content);
+
       body += convertDeltaToMarkdown(content);
 
       if (images?.length) {
@@ -84,6 +86,17 @@ export const Feedback: FunctionComponent<FeedbackProps> = ({ userProfile }) => {
       });
     } finally {
       setLoading(false);
+    }
+  }
+
+  /**
+   * Upload Base64 images to cloudinary and replace with actual URL
+   */
+  async function uploadInlineImagesAndReplaceWithUrl(content: DeltaOperation[]) {
+    const contentWithImages = content.filter((content) => content.insert?.image);
+    for (const { insert } of contentWithImages) {
+      const { url } = await uploadImage({ content: insert.image });
+      insert.image = url;
     }
   }
 

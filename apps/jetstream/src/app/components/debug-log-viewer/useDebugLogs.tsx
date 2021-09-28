@@ -64,7 +64,7 @@ export function useDebugLogs(org: SalesforceOrgUi, { limit, pollInterval, userId
         setLogs(queryResults.records);
         setLoading(false);
         setLastChecked(new Date());
-        if (pollInterval != intervalDelay) {
+        if (pollInterval !== intervalDelay) {
           setIntervalDelay(pollInterval);
         }
       } else if (fetchToken !== currentFetchToken.current) {
