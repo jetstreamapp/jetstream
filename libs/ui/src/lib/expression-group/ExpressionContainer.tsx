@@ -276,14 +276,14 @@ export const ExpressionContainer: FunctionComponent<ExpressionContainerProps> = 
     const [displayOption, setDisplayOption] = useState(DISPLAY_OPT_ROW);
     const [{ expression }, dispatch] = useReducer(reducer, {
       expression: initExpression(expressionInitValue),
-      nextConditionNumber: initConditionNumber(),
+      nextConditionNumber: initConditionNumber(expressionInitValue),
     });
 
     useNonInitialEffect(() => {
       if (expression) {
         onChange(expression);
       }
-    }, [expression]);
+    }, [expression, onChange]);
 
     function handleExpressionActionChange(action: AndOr) {
       dispatch({ type: 'ACTION_CHANGED', payload: { action } });

@@ -1,5 +1,5 @@
 import { AndOr } from '@jetstream/types';
-import React, { FunctionComponent } from 'react';
+import { FunctionComponent } from 'react';
 import Icon from '../widgets/Icon';
 import ExpressionActionDropDown from './ExpressionActionDropDown';
 
