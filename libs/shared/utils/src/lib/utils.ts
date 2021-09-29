@@ -33,6 +33,28 @@ export async function alwaysResolve<T = any>(promise: Promise<T>, valueIfError: 
   }
 }
 
+export class Stack<T = any> {
+  items: T[];
+
+  constructor(items: T[] = []) {
+    this.items = items;
+  }
+
+  push(item: T) {
+    if (item) {
+      this.items.push(item);
+    }
+  }
+
+  pop() {
+    return this.items.pop();
+  }
+
+  peek() {
+    return this.items.length ? this.items[this.items.length - 1] : null;
+  }
+}
+
 /**
  * For a list of objects, return a predicate function to search across multiple fields
  * If the search term is multiple words, then each word will be matched individually and all must match to return a value

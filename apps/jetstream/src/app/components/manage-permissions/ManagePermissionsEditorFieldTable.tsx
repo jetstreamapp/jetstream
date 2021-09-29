@@ -17,7 +17,6 @@ import {
   ErrorTooltipRenderer,
   GroupRowInnerRenderer,
   handleOnCellPressed,
-  isFullWidthCell,
   PinnedLabelInputFilter,
   PinnedSelectAllRendererWrapper,
   resetGridChanges,
@@ -149,7 +148,6 @@ export const ManagePermissionsEditorFieldTable = forwardRef<any, ManagePermissio
               immutableData: true,
               onCellKeyPress: handleOnCellPressed,
               getRowNodeId: (data: PermissionTableFieldCell) => data.key,
-              isFullWidthCell: isFullWidthCell,
               fullWidthCellRenderer: 'fullWidthRenderer',
               getRowClass: ({ node }: RowClassParams) => {
                 if (node.group) {

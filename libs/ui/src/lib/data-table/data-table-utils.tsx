@@ -458,11 +458,11 @@ export function getContextMenuItems({ api }: GetContextMenuItemsParams): (string
   return [
     'autoSizeAll',
     {
-      name: 'Copy',
+      name: 'Copy without headers',
       action: () => api.copySelectedRangeToClipboard(false),
     },
     {
-      name: 'Copy with Headers',
+      name: 'Copy',
       shortcut: copyShortcut,
       action: () => api.copySelectedRangeToClipboard(true),
     },

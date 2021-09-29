@@ -57,19 +57,17 @@ function generateObjectWorksheet(columns: (ColDef | ColGroupDef)[], rows: Permis
   });
 
   rows.forEach((row, i) => {
-    if (!row.fullWidthRow) {
-      const currRow = [row.sobject];
-      permissionKeys.forEach((key) => {
-        const permission = row.permissions[key];
-        currRow.push(permission.read ? 'TRUE' : 'FALSE');
-        currRow.push(permission.create ? 'TRUE' : 'FALSE');
-        currRow.push(permission.edit ? 'TRUE' : 'FALSE');
-        currRow.push(permission.delete ? 'TRUE' : 'FALSE');
-        currRow.push(permission.viewAll ? 'TRUE' : 'FALSE');
-        currRow.push(permission.modifyAll ? 'TRUE' : 'FALSE');
-      });
-      excelRows.push(currRow);
-    }
+    const currRow = [row.sobject];
+    permissionKeys.forEach((key) => {
+      const permission = row.permissions[key];
+      currRow.push(permission.read ? 'TRUE' : 'FALSE');
+      currRow.push(permission.create ? 'TRUE' : 'FALSE');
+      currRow.push(permission.edit ? 'TRUE' : 'FALSE');
+      currRow.push(permission.delete ? 'TRUE' : 'FALSE');
+      currRow.push(permission.viewAll ? 'TRUE' : 'FALSE');
+      currRow.push(permission.modifyAll ? 'TRUE' : 'FALSE');
+    });
+    excelRows.push(currRow);
   });
 
   const worksheet = XLSX.utils.aoa_to_sheet(excelRows);
@@ -105,15 +103,13 @@ function generateFieldWorksheet(columns: (ColDef | ColGroupDef)[], rows: Permiss
   });
 
   rows.forEach((row, i) => {
-    if (!row.fullWidthRow) {
-      const currRow = [row.sobject, row.apiName, row.label];
-      permissionKeys.forEach((key) => {
-        const permission = row.permissions[key];
-        currRow.push(permission.read ? 'TRUE' : 'FALSE');
-        currRow.push(permission.edit ? 'TRUE' : 'FALSE');
-      });
-      excelRows.push(currRow);
-    }
+    const currRow = [row.sobject, row.apiName, row.label];
+    permissionKeys.forEach((key) => {
+      const permission = row.permissions[key];
+      currRow.push(permission.read ? 'TRUE' : 'FALSE');
+      currRow.push(permission.edit ? 'TRUE' : 'FALSE');
+    });
+    excelRows.push(currRow);
   });
 
   const worksheet = XLSX.utils.aoa_to_sheet(excelRows);

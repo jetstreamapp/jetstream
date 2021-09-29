@@ -1,7 +1,8 @@
 // Used SQL as a starting point
 // https://github.com/microsoft/monaco-languages/blob/main/src/sql/sql.ts
-// TODO: consider open sourcing
+// TODO: consider open sourcing the apex part
 import type * as monaco from 'monaco-editor';
+import { getApexLogFoldableRegions } from './monaco-utils';
 // lazy load to ensure not in main bundle
 const soqlParserJs = import('soql-parser-js');
 
@@ -11,6 +12,11 @@ export function configure(monaco: Monaco) {
   monaco.languages.register({ id: 'soql' });
   monaco.languages.setLanguageConfiguration('soql', languageConfiguration);
   monaco.languages.setMonarchTokensProvider('soql', language);
+
+  monaco.languages.registerFoldingRangeProvider('powershell', {
+    provideFoldingRanges: (model, context, token) => getApexLogFoldableRegions(model.getValue()),
+  });
+
   monaco.languages.registerDocumentFormattingEditProvider('soql', {
     provideDocumentFormattingEdits: async (model, options, token) => {
       return [
@@ -207,7 +213,7 @@ export const language = <monaco.languages.IMonarchLanguage>{
     numbers: [
       [/0[xX][0-9a-fA-F]*/, 'number'],
       [/[$][+-]*\d*(\.\d*)?/, 'number'],
-      [/((\d+(\.\d*)?)|(\.\d+))([eE][\-+]?\d+)?/, 'number'],
+      [/((\d+(\.\d*)?)|(\.\d+))([eE][-+]?\d+)?/, 'number'],
     ],
     strings: [
       [/N'/, { token: 'string', next: '@string' }],
