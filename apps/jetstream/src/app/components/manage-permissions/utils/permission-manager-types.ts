@@ -75,7 +75,6 @@ export interface PermissionSaveResults<RecordType, DirtyPermType> {
 
 export interface PermissionTableCell<T = PermissionTableFieldCellPermission | PermissionTableObjectCellPermission> {
   key: string;
-  fullWidthRow?: boolean;
   sobject: string;
   apiName: string;
   label: string;

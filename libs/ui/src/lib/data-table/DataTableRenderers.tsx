@@ -368,13 +368,10 @@ export const BasicTextFilterRenderer = forwardRef<any, IFilterParams>(({ filterC
       },
 
       doesFilterPass({ node }) {
-        return (
-          node.isFullWidthCell() ||
-          value
-            .toLowerCase()
-            .split(' ')
-            .every((word) => `${valueGetter(node)}`.toLowerCase().includes(word))
-        );
+        return value
+          .toLowerCase()
+          .split(' ')
+          .every((word) => `${valueGetter(node)}`.toLowerCase().includes(word));
       },
 
       getModel() {
@@ -447,7 +444,7 @@ export const BooleanFilterRenderer = forwardRef<any, IFilterParams>(({ filterCha
       },
 
       doesFilterPass(params) {
-        return params.node.isFullWidthCell() || valueGetter(params.node) === value;
+        return valueGetter(params.node) === value;
       },
 
       getModel() {

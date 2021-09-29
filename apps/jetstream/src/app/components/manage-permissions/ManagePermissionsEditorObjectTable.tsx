@@ -8,7 +8,6 @@ import {
   BulkActionRenderer,
   ErrorTooltipRenderer,
   handleOnCellPressed,
-  isFullWidthCell,
   PinnedLabelInputFilter,
   PinnedSelectAllRendererWrapper,
   resetGridChanges,
@@ -125,7 +124,6 @@ export const ManagePermissionsEditorObjectTable = forwardRef<any, ManagePermissi
               immutableData: true,
               onCellKeyPress: handleOnCellPressed,
               getRowNodeId: (data: PermissionTableObjectCell) => data.key,
-              isFullWidthCell: isFullWidthCell,
               fullWidthCellRenderer: 'fullWidthRenderer',
               getRowHeight: ({ node }) => {
                 if (node.rowPinned) {

@@ -189,16 +189,12 @@ export function getFieldDirtyValue(which: FieldPermissionTypes) {
   };
 }
 
-export function isFullWidthCell(rowNode: RowNode) {
-  return rowNode.data?.fullWidthRow || false;
-}
-
 export function resetGridChanges(gridApi: GridApi, type: PermissionType) {
   const itemsToUpdate = [];
   gridApi.forEachNodeAfterFilterAndSort((rowNode, index) => {
     if (type === 'object') {
       const data: PermissionTableObjectCell = rowNode.data;
-      if (!data.fullWidthRow && !rowNode.isRowPinned()) {
+      if (!rowNode.isRowPinned()) {
         const dirtyPermissions = Object.values(data.permissions).filter(
           (permission) =>
             permission.createIsDirty ||
@@ -228,7 +224,7 @@ export function resetGridChanges(gridApi: GridApi, type: PermissionType) {
       }
     } else {
       const data: PermissionTableFieldCell = rowNode.data;
-      if (!data.fullWidthRow && !rowNode.isRowPinned()) {
+      if (!rowNode.isRowPinned()) {
         const dirtyPermissions = Object.values(data.permissions).filter((permission) => permission.readIsDirty || permission.editIsDirty);
         if (dirtyPermissions.length) {
           dirtyPermissions.forEach((row) => {
@@ -639,9 +635,6 @@ export function updateFieldRowsAfterSave(
 ): PermissionTableFieldCell[] {
   return rows.map((oldRow) => {
     const row = { ...oldRow };
-    if (row.fullWidthRow) {
-      return row;
-    }
     fieldPermissionsMap[row.key].permissionKeys.forEach((key) => {
       row.permissions = { ...row.permissions };
       const objectPermission = fieldPermissionsMap[row.key].permissions[key];
@@ -724,7 +717,7 @@ export const PinnedSelectAllRendererWrapper =
       const [id, which] = colDef.colId.split('-');
       const itemsToUpdate: any[] = [];
       api.forEachNodeAfterFilter((rowNode, index) => {
-        if (!rowNode.isRowPinned() && !rowNode.isFullWidthCell() && !rowNode.group) {
+        if (!rowNode.isRowPinned() && !rowNode.group) {
           let newValue = action === 'selectAll';
 
           if (type === 'object') {
@@ -819,7 +812,7 @@ export function ErrorTooltipRenderer({ node, column, colDef, context }: ICellRen
   const colId = column.getColId();
   const data: PermissionTableCell = node.data;
   const permission = data?.permissions[colDef.field];
-  if (node.isRowPinned() || !data || node.isFullWidthCell() || !permission?.errorMessage) {
+  if (node.isRowPinned() || !data || !permission?.errorMessage) {
     return undefined;
   }
   return (
@@ -943,7 +936,7 @@ function handleRowPermissionUpdate(
   const columnsToApplyToById = getColumnToApplyTo(columns, applyTo);
   if (type === 'object') {
     const data: PermissionTableObjectCell = rowNode.data;
-    if (!data.fullWidthRow && !rowNode.isRowPinned()) {
+    if (!rowNode.isRowPinned() && data) {
       Object.values(data.permissions).forEach((permission) => {
         const applyTo = columnsToApplyToById[permission.parentId];
 
@@ -977,7 +970,7 @@ function handleRowPermissionUpdate(
     }
   } else {
     const data: PermissionTableFieldCell = rowNode.data;
-    if (!data.fullWidthRow && !rowNode.isRowPinned()) {
+    if (!rowNode.isRowPinned() && data) {
       Object.values(data.permissions).forEach((permission) => {
         const applyTo = columnsToApplyToById[permission.parentId];
         if (applyTo['read']) {
@@ -1004,7 +997,7 @@ function handleRowPermissionReset(
   const columnsToApplyToById = getColumnToApplyTo(columns, applyTo);
   if (type === 'object') {
     const data: PermissionTableObjectCell = rowNode.data;
-    if (!data.fullWidthRow && !rowNode.isRowPinned()) {
+    if (!rowNode.isRowPinned() && data) {
       Object.values(data.permissions).forEach((permission) => {
         const applyTo = columnsToApplyToById[permission.parentId];
 
@@ -1037,7 +1030,7 @@ function handleRowPermissionReset(
     }
   } else {
     const data: PermissionTableFieldCell = rowNode.data;
-    if (!data.fullWidthRow && !rowNode.isRowPinned()) {
+    if (!rowNode.isRowPinned() && data) {
       Object.values(data.permissions).forEach((permission) => {
         const applyTo = columnsToApplyToById[permission.parentId];
 
@@ -1059,7 +1052,7 @@ function getDirtyCount(rowNode: RowNode, type: PermissionType): number {
   let dirtyCount = 0;
   if (type === 'object') {
     const data: PermissionTableObjectCell = rowNode.data;
-    if (!data.fullWidthRow && !rowNode.isRowPinned()) {
+    if (!rowNode.isRowPinned()) {
       dirtyCount = Object.values(data.permissions).reduce((output, permission) => {
         output += permission.createIsDirty ? 1 : 0;
         output += permission.readIsDirty ? 1 : 0;
@@ -1072,7 +1065,7 @@ function getDirtyCount(rowNode: RowNode, type: PermissionType): number {
     }
   } else {
     const data: PermissionTableFieldCell = rowNode.data;
-    if (!data.fullWidthRow && !rowNode.isRowPinned()) {
+    if (!rowNode.isRowPinned()) {
       dirtyCount = Object.values(data.permissions).reduce((output, permission) => {
         output += permission.readIsDirty ? 1 : 0;
         output += permission.editIsDirty ? 1 : 0;
@@ -1207,7 +1200,7 @@ export const RowActionRenderer: FunctionComponent<ICellRendererParams> = ({ node
     setIsOpen(false);
   }
 
-  if (node.isFullWidthCell()) {
+  if (node.isRowPinned()) {
     return null;
   }
 
@@ -1297,7 +1290,7 @@ export const BulkActionRenderer: FunctionComponent<ICellRendererParams> = ({ nod
   function getNumRows() {
     let counter = 0;
     api.forEachNodeAfterFilterAndSort((rowNode) => {
-      if (!rowNode.isFullWidthCell() && !rowNode.isRowPinned()) {
+      if (!rowNode.isRowPinned()) {
         counter++;
       }
     });
@@ -1357,10 +1350,6 @@ export const BulkActionRenderer: FunctionComponent<ICellRendererParams> = ({ nod
 
   function handleClose() {
     setIsOpen(false);
-  }
-
-  if (node.isFullWidthCell()) {
-    return null;
   }
 
   return (
