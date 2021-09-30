@@ -1,7 +1,7 @@
 import { orderObjectsBy } from '@jetstream/shared/utils';
 import { DeployResult, UiTabSection } from '@jetstream/types';
 import { CampingRainIllustration, EmptyState, Icon, OpenRoadIllustration, ResearchIllustration, Tabs, TabsRef } from '@jetstream/ui';
-import { Fragment, FunctionComponent, useEffect, useRef, useState } from 'react';
+import { FunctionComponent, useEffect, useRef, useState } from 'react';
 import DeployMetadataResultsFailureTable from './DeployMetadataResultsFailureTable';
 import DeployMetadataResultsSuccessTable from './DeployMetadataResultsSuccessTable';
 import DeployMetadataUnitTestCodeCoverageResultsTable from './DeployMetadataUnitTestCodeCoverageResultsTable';
@@ -81,15 +81,12 @@ export const DeployMetadataResultsTables: FunctionComponent<DeployMetadataResult
         </span>
       ),
       titleText: 'Successful Components',
-      content: (
-        <Fragment>
-          {Array.isArray(componentSuccesses) && !!componentSuccesses.length ? (
-            <DeployMetadataResultsSuccessTable title="Successful Components" componentDetails={componentSuccesses} />
-          ) : (
-            <NoItemsPlaceholder done={results.done} />
-          )}
-        </Fragment>
-      ),
+      content:
+        Array.isArray(componentSuccesses) && !!componentSuccesses.length ? (
+          <DeployMetadataResultsSuccessTable title="Successful Components" componentDetails={componentSuccesses} />
+        ) : (
+          <NoItemsPlaceholder done={results.done} />
+        ),
     },
     {
       id: 'component-errors',
@@ -100,15 +97,12 @@ export const DeployMetadataResultsTables: FunctionComponent<DeployMetadataResult
         </span>
       ),
       titleText: 'Failed Components',
-      content: (
-        <Fragment>
-          {Array.isArray(componentFailures) && !!componentFailures.length ? (
-            <DeployMetadataResultsFailureTable title="Component Errors" componentDetails={componentFailures} />
-          ) : (
-            <NoItemsPlaceholder done={results.done} isErrorOrWarning />
-          )}
-        </Fragment>
-      ),
+      content:
+        Array.isArray(componentFailures) && !!componentFailures.length ? (
+          <DeployMetadataResultsFailureTable title="Component Errors" componentDetails={componentFailures} />
+        ) : (
+          <NoItemsPlaceholder done={results.done} isErrorOrWarning />
+        ),
     },
   ];
 
@@ -122,15 +116,12 @@ export const DeployMetadataResultsTables: FunctionComponent<DeployMetadataResult
         </span>
       ),
       titleText: 'Unit Test Failures',
-      content: (
-        <Fragment>
-          {Array.isArray(unitTestFailures) && !!unitTestFailures.length ? (
-            <DeployMetadataUnitTestFailuresTable failures={unitTestFailures} />
-          ) : (
-            <NoItemsPlaceholder done={results.done} isErrorOrWarning />
-          )}
-        </Fragment>
-      ),
+      content:
+        Array.isArray(unitTestFailures) && !!unitTestFailures.length ? (
+          <DeployMetadataUnitTestFailuresTable failures={unitTestFailures} />
+        ) : (
+          <NoItemsPlaceholder done={results.done} isErrorOrWarning />
+        ),
     });
     tabs.push({
       id: 'code-coverage-warnings',
@@ -141,19 +132,16 @@ export const DeployMetadataResultsTables: FunctionComponent<DeployMetadataResult
         </span>
       ),
       titleText: 'Code Coverage Warnings',
-      content: (
-        <Fragment>
-          {Array.isArray(codeCoverageWarnings) && !!codeCoverageWarnings.length ? (
-            <DeployMetadataUnitTestCodeCoverageResultsTable codeCoverageWarnings={codeCoverageWarnings} />
-          ) : (
-            <NoItemsPlaceholder done={results.done} isErrorOrWarning />
-          )}
-        </Fragment>
-      ),
+      content:
+        Array.isArray(codeCoverageWarnings) && !!codeCoverageWarnings.length ? (
+          <DeployMetadataUnitTestCodeCoverageResultsTable codeCoverageWarnings={codeCoverageWarnings} />
+        ) : (
+          <NoItemsPlaceholder done={results.done} isErrorOrWarning />
+        ),
     });
   }
 
-  return <Fragment>{results?.details && <Tabs ref={tabsRef} initialActiveId="component-successes" tabs={tabs} />}</Fragment>;
+  return (results?.details && <Tabs ref={tabsRef} initialActiveId="component-successes" tabs={tabs} />) || null;
 };
 
 export default DeployMetadataResultsTables;

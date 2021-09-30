@@ -1,9 +1,19 @@
-import { ColDef, ColumnEvent, GridApi, GridReadyEvent, ICellRendererParams, SelectionChangedEvent } from '@ag-grid-community/core';
+import {
+  ColDef,
+  ColumnEvent,
+  GridApi,
+  GridReadyEvent,
+  ICellRendererParams,
+  IFilter,
+  IFilterParams,
+  RowNode,
+  SelectionChangedEvent,
+} from '@ag-grid-community/core';
 import { ListMetadataResultItem } from '@jetstream/connected-ui';
-import { formatNumber } from '@jetstream/shared/ui-utils';
+import { formatNumber, useNonInitialEffect } from '@jetstream/shared/ui-utils';
 import { MapOf } from '@jetstream/types';
-import { AutoFullHeightContainer, DataTable, getFilteredRows, Grid, Icon, SearchInput, Spinner } from '@jetstream/ui';
-import { Fragment, FunctionComponent, useEffect, useState } from 'react';
+import { AutoFullHeightContainer, Checkbox, DataTable, getFilteredRows, Grid, Icon, SearchInput, Spinner } from '@jetstream/ui';
+import { forwardRef, Fragment, FunctionComponent, useEffect, useImperativeHandle, useState } from 'react';
 import { DeployMetadataTableRow } from './deploy-metadata.types';
 import { getColumnDefinitions, getRows } from './utils/deploy-metadata.utils';
 
@@ -15,9 +25,9 @@ export interface DeployMetadataDeploymentTableProps {
   onViewOrCompareOpen: () => void;
 }
 
-// function getRowNodeId(data: DeployMetadataTableRow): string {
-//   return data.key;
-// }
+function getRowNodeId(data: DeployMetadataTableRow): string {
+  return data.key;
+}
 
 const ValueOrLoadingRenderer: FunctionComponent<ICellRendererParams> = ({ value, node }) => {
   if (node.group) {
@@ -70,18 +80,12 @@ export const DeployMetadataDeploymentTable: FunctionComponent<DeployMetadataDepl
   useEffect(() => {
     if (gridApi) {
       const rowsToRefresh = rows
-        .filter((row) => !row.loading && !row.fullName)
+        .filter((row) => (!row.loading && !row.fullName) || row.loading)
         .map((row) => gridApi.getRowNode(row.key))
-        .filter((row) => !!row); // ensure that we remove undefined items
+        .filter((row) => !!row);
       if (rowsToRefresh.length) {
         gridApi.refreshCells({ force: true, columns: ['fullName'], rowNodes: rowsToRefresh });
       }
-
-      gridApi.forEachNode((row) => {
-        if (!row.data?.metadata) {
-          row.selectable = false;
-        }
-      });
     }
   }, [gridApi, rows]);
 
@@ -95,6 +99,13 @@ export const DeployMetadataDeploymentTable: FunctionComponent<DeployMetadataDepl
 
   function handleFilterChangeOrRowDataUpdated(event: ColumnEvent) {
     setVisibleRows(getFilteredRows(event));
+  }
+
+  function handleIsRowSelectable(node: RowNode) {
+    if ((node.group && node.allChildrenCount === 1 && !node.allLeafChildren[0].data?.metadata) || (!node.group && !node.data?.metadata)) {
+      return false;
+    }
+    return true;
   }
 
   return (
@@ -120,21 +131,29 @@ export const DeployMetadataDeploymentTable: FunctionComponent<DeployMetadataDepl
           quickFilterText={globalFilter}
           defaultMenuTabs={['filterMenuTab', 'generalMenuTab']}
           agGridProps={{
-            // Setting this makes it so the grouped rows do not allow selection
-            // immutableData: true,
-            // getRowNodeId,
+            immutableData: true,
+            getRowNodeId,
             frameworkComponents: {
               valueOrLoading: ValueOrLoadingRenderer,
+              metadataFilterItemsWithNoChildren: MetadataFilterItemsWithNoChildren,
             },
             autoGroupColumnDef: {
               headerName: 'Metadata Type',
               width: 200,
               cellRenderer: 'agGroupCellRenderer',
-              filter: 'agMultiColumnFilter',
+              // filter: 'agMultiColumnFilter',
+              filterParams: {
+                filters: [
+                  { filter: 'metadataFilterItemsWithNoChildren' },
+                  { filter: 'agTextColumnFilter' },
+                  { filter: 'agSetColumnFilter' },
+                ],
+              },
               menuTabs: ['filterMenuTab'],
               filterValueGetter: ({ data }) => data.typeLabel,
               sortable: true,
               resizable: true,
+              sort: 'asc',
             },
             showOpenedGroup: true,
             groupDefaultExpanded: 1,
@@ -164,6 +183,7 @@ export const DeployMetadataDeploymentTable: FunctionComponent<DeployMetadataDepl
                 },
               ],
             },
+            isRowSelectable: handleIsRowSelectable,
             onGridReady: handleOnGridReady,
             onSelectionChanged: handleSelectionChanged,
             onFilterChanged: handleFilterChangeOrRowDataUpdated,
@@ -175,3 +195,36 @@ export const DeployMetadataDeploymentTable: FunctionComponent<DeployMetadataDepl
 };
 
 export default DeployMetadataDeploymentTable;
+
+export const MetadataFilterItemsWithNoChildren = forwardRef<any, IFilterParams>(({ filterChangedCallback, colDef, context }, ref) => {
+  const [value, setValue] = useState(true);
+
+  useNonInitialEffect(() => {
+    filterChangedCallback();
+  }, [filterChangedCallback, value]);
+
+  function nodeHasData(node: RowNode) {
+    return node.data?.loading || node.data?.metadata;
+  }
+
+  useImperativeHandle(ref, () => {
+    const filterComp: IFilter = {
+      isFilterActive: () => !value,
+      doesFilterPass: ({ node }) => {
+        if ((node.group && node.allChildrenCount === 1 && !nodeHasData(node.allLeafChildren[0])) || (!node.group && !nodeHasData(node))) {
+          return false;
+        }
+        return true;
+      },
+      getModel: () => ({ value }),
+      setModel: (model) => setValue(model ? model.value : true),
+    };
+    return filterComp;
+  });
+
+  return (
+    <div className="slds-p-around_small">
+      <Checkbox id={`metadata-filter-${colDef.field}`} checked={value} label="Show metadata types with no items" onChange={setValue} />
+    </div>
+  );
+});

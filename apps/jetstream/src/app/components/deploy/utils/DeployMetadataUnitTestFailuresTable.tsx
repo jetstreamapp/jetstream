@@ -1,4 +1,3 @@
-import { css } from '@emotion/react';
 import { RunTestFailure } from '@jetstream/types';
 import { Grid } from '@jetstream/ui';
 import { FunctionComponent } from 'react';
