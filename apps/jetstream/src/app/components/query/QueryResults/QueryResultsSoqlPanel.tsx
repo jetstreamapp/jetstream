@@ -178,10 +178,12 @@ export const QueryResultsSoqlPanel: FunctionComponent<QueryResultsSoqlPanelProps
           checked={userTooling}
           onChange={setUserTooling}
         />
-        <button type="submit" className="slds-button slds-button_brand" onClick={() => submitQuery()}>
-          <Icon type="utility" icon="play" className="slds-button__icon slds-button__icon_left" omitContainer />
-          Execute Query
-        </button>
+        <div>
+          <button type="submit" className="slds-button slds-button_brand" onClick={() => submitQuery()}>
+            <Icon type="utility" icon="play" className="slds-button__icon slds-button__icon_left" omitContainer />
+            Execute Query
+          </button>
+        </div>
       </div>
     </Panel>
   );
