@@ -93,7 +93,7 @@ export const DeployMetadataToOrgConfigModal: FunctionComponent<DeployMetadataToO
             onClick={() => onDeploy(destinationOrg, deployOptions)}
             disabled={!isConfigValid}
           >
-            Deploy
+            {deployOptions.checkOnly ? 'Validate' : 'Deploy'}
           </button>
         </Fragment>
       }

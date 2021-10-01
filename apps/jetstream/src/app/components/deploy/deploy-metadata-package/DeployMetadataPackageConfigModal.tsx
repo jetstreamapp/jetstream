@@ -103,7 +103,7 @@ export const DeployMetadataPackageConfigModal: FunctionComponent<DeployMetadataP
             Cancel
           </button>
           <button className="slds-button slds-button_brand" onClick={() => onDeploy(file, deployOptions)} disabled={!isConfigValid}>
-            Deploy
+            {deployOptions.checkOnly ? 'Validate' : 'Deploy'}
           </button>
         </Fragment>
       }
