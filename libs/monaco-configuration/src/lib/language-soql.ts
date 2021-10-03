@@ -2,20 +2,16 @@
 // https://github.com/microsoft/monaco-languages/blob/main/src/sql/sql.ts
 // TODO: consider open sourcing the apex part
 import type * as monaco from 'monaco-editor';
-import { getApexLogFoldableRegions } from './monaco-utils';
+
 // lazy load to ensure not in main bundle
 const soqlParserJs = import('soql-parser-js');
 
 type Monaco = typeof monaco;
 
-export function configure(monaco: Monaco) {
+export function configureSoqlLanguage(monaco: Monaco) {
   monaco.languages.register({ id: 'soql' });
   monaco.languages.setLanguageConfiguration('soql', languageConfiguration);
   monaco.languages.setMonarchTokensProvider('soql', language);
-
-  monaco.languages.registerFoldingRangeProvider('powershell', {
-    provideFoldingRanges: (model, context, token) => getApexLogFoldableRegions(model.getValue()),
-  });
 
   monaco.languages.registerDocumentFormattingEditProvider('soql', {
     provideDocumentFormattingEdits: async (model, options, token) => {
