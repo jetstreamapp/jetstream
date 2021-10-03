@@ -21,8 +21,8 @@ import {
   AsyncJobNew,
   BulkDownloadJob,
   CloneEditView,
-  FileExtCsvXLSX,
   FileExtCsvXLSXJsonGSheet,
+  MapOf,
   Record,
   SalesforceOrgUi,
 } from '@jetstream/types';
@@ -53,6 +53,7 @@ import * as fromQueryState from '../query.state';
 import * as fromQueryHistory from '../QueryHistory/query-history.state';
 import QueryHistory from '../QueryHistory/QueryHistory';
 import IncludeDeletedRecordsToggle from '../QueryOptions/IncludeDeletedRecords';
+import { getFlattenSubqueryFlattenedFieldMap } from '../utils/query-utils';
 import useQueryRestore from '../utils/useQueryRestore';
 import QueryResultsCopyToClipboard from './QueryResultsCopyToClipboard';
 import QueryResultsGetRecAsApexModal from './QueryResultsGetRecAsApexModal';
@@ -93,6 +94,7 @@ export const QueryResults: FunctionComponent<QueryResultsProps> = React.memo(() 
   const [records, setRecords] = useState<Record[]>(null);
   const [nextRecordsUrl, setNextRecordsUrl] = useState<string>(null);
   const [fields, setFields] = useState<string[]>(null);
+  const [subqueryFields, setSubqueryFields] = useState<MapOf<string[]>>(null);
   const [filteredRows, setFilteredRows] = useState<Record[]>([]);
   const [selectedRows, setSelectedRows] = useState<Record[]>([]);
   const [loading, setLoading] = useState<boolean>(false);
@@ -223,6 +225,7 @@ export const QueryResults: FunctionComponent<QueryResultsProps> = React.memo(() 
       setRecords(null);
       setRecordCount(null);
       // setFields(null);
+      setSubqueryFields(null);
       const results = await query(selectedOrg, soqlQuery, tooling, !tooling && includeDeletedRecords);
       if (!isMounted.current) {
         return;
@@ -232,6 +235,8 @@ export const QueryResults: FunctionComponent<QueryResultsProps> = React.memo(() 
       saveQueryHistory(soqlQuery, results.parsedQuery?.sObject || results.columns?.entityName, tooling);
       setRecordCount(results.queryResults.totalSize);
       setRecords(results.queryResults.records);
+      setSubqueryFields(getFlattenSubqueryFlattenedFieldMap(results.parsedQuery));
+
       setTotalRecordCount(results.queryResults.totalSize);
       setErrorMessage(null);
 
@@ -297,11 +302,27 @@ export const QueryResults: FunctionComponent<QueryResultsProps> = React.memo(() 
     }
   }
 
-  function handleDidDownload(fileFormat: FileExtCsvXLSXJsonGSheet, fileName: string, userOverrideFields: boolean) {
-    trackEvent(ANALYTICS_KEYS.query_DownloadResults, { source: 'BROWSER', fileFormat, isTooling, userOverrideFields });
+  function handleDidDownload(fileFormat: FileExtCsvXLSXJsonGSheet, whichFields: 'all' | 'specified', includeSubquery: boolean) {
+    trackEvent(ANALYTICS_KEYS.query_DownloadResults, {
+      source: 'BROWSER',
+      fileFormat,
+      isTooling,
+      userOverrideFields: whichFields === 'specified',
+      whichFields,
+      includeSubquery,
+    });
   }
 
-  function handleDownloadFromServer(fileFormat: FileExtCsvXLSXJsonGSheet, fileName: string, fields: string[], googleFolder?: string) {
+  function handleDownloadFromServer(options: {
+    fileFormat: FileExtCsvXLSXJsonGSheet;
+    fileName: string;
+    fields: string[];
+    subqueryFields: MapOf<string[]>;
+    whichFields: 'all' | 'specified';
+    includeSubquery: boolean;
+    googleFolder?: string;
+  }) {
+    const { fileFormat, fileName, fields, includeSubquery, whichFields, googleFolder } = options;
     const jobs: AsyncJobNew<BulkDownloadJob>[] = [
       {
         type: 'BulkDownload',
@@ -310,17 +331,25 @@ export const QueryResults: FunctionComponent<QueryResultsProps> = React.memo(() 
         meta: {
           isTooling,
           fields,
+          subqueryFields,
           records: records,
           totalRecordCount,
           nextRecordsUrl,
           fileFormat,
           fileName,
+          includeSubquery,
           googleFolder,
         },
       },
     ];
     fromJetstreamEvents.emit({ type: 'newJob', payload: jobs });
-    trackEvent(ANALYTICS_KEYS.query_DownloadResults, { source: 'SERVER', fileFormat, isTooling });
+    trackEvent(ANALYTICS_KEYS.query_DownloadResults, {
+      source: 'SERVER',
+      fileFormat,
+      isTooling,
+      userOverrideFields: whichFields === 'specified',
+      includeSubquery,
+    });
   }
 
   function handleLoadMore(results: IQueryResults<any>) {
@@ -385,6 +414,7 @@ export const QueryResults: FunctionComponent<QueryResultsProps> = React.memo(() 
         google_clientId={google_clientId}
         downloadModalOpen={downloadModalOpen}
         fields={fields}
+        subqueryFields={subqueryFields}
         records={records}
         filteredRecords={filteredRows}
         selectedRecords={selectedRows}
@@ -540,40 +570,38 @@ export const QueryResults: FunctionComponent<QueryResultsProps> = React.memo(() 
             </div>
           )}
           {!!(records && !!records.length) && (
-            <Fragment>
-              <SalesforceRecordDataTable
-                org={selectedOrg}
-                google_apiKey={google_apiKey}
-                google_appId={google_appId}
-                google_clientId={google_clientId}
-                isTooling={isTooling}
-                serverUrl={serverUrl}
-                queryResults={queryResults}
-                fieldMetadata={fieldMetadata}
-                fieldMetadataSubquery={fieldMetadataSubquery}
-                summaryHeaderRightContent={
-                  <div dir="rtl">
-                    <IncludeDeletedRecordsToggle />
-                  </div>
-                }
-                onSelectionChanged={setSelectedRows}
-                onFields={setFields}
-                onFilteredRowsChanged={setFilteredRows}
-                onLoadMoreRecords={handleLoadMore}
-                onEdit={(record) => {
-                  handleCloneEditView(record, 'edit');
-                }}
-                onClone={(record) => {
-                  handleCloneEditView(record, 'clone');
-                }}
-                onView={(record) => {
-                  handleCloneEditView(record, 'view');
-                }}
-                onGetAsApex={(record) => {
-                  handleGetAsApex(record);
-                }}
-              />
-            </Fragment>
+            <SalesforceRecordDataTable
+              org={selectedOrg}
+              google_apiKey={google_apiKey}
+              google_appId={google_appId}
+              google_clientId={google_clientId}
+              isTooling={isTooling}
+              serverUrl={serverUrl}
+              queryResults={queryResults}
+              fieldMetadata={fieldMetadata}
+              fieldMetadataSubquery={fieldMetadataSubquery}
+              summaryHeaderRightContent={
+                <div dir="rtl">
+                  <IncludeDeletedRecordsToggle />
+                </div>
+              }
+              onSelectionChanged={setSelectedRows}
+              onFields={setFields}
+              onFilteredRowsChanged={setFilteredRows}
+              onLoadMoreRecords={handleLoadMore}
+              onEdit={(record) => {
+                handleCloneEditView(record, 'edit');
+              }}
+              onClone={(record) => {
+                handleCloneEditView(record, 'clone');
+              }}
+              onView={(record) => {
+                handleCloneEditView(record, 'view');
+              }}
+              onGetAsApex={(record) => {
+                handleGetAsApex(record);
+              }}
+            />
           )}
         </AutoFullHeightContainer>
       </div>

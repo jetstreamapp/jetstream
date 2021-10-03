@@ -13,6 +13,7 @@ import { base64ToArrayBuffer, pollRetrieveMetadataResultsUntilDone, prepareCsvFi
 import {
   flattenRecords,
   getIdFromRecordUrl,
+  getMapOfBaseAndSubqueryRecords,
   getSObjectFromRecordUrl,
   replaceSubqueryQueryResultsWithRecords,
   splitArrayToMaxSize,
@@ -82,9 +83,10 @@ async function handleMessage(name: AsyncJobType, payloadData: AsyncJobWorkerMess
     case 'BulkDownload': {
       try {
         const { org, job } = payloadData as AsyncJobWorkerMessagePayload<BulkDownloadJob>;
-        const { isTooling, fields, records, fileFormat, fileName, googleFolder } = job.meta;
+        const { isTooling, fields, records, fileFormat, fileName, subqueryFields, includeSubquery, googleFolder } = job.meta;
+        // eslint-disable-next-line prefer-const
         let { nextRecordsUrl, totalRecordCount } = job.meta;
-        let downloadedRecords = fileFormat === 'json' ? records : flattenRecords(records, fields);
+        let downloadedRecords = records;
         let done = !nextRecordsUrl;
 
         while (!done) {
@@ -99,24 +101,24 @@ async function handleMessage(name: AsyncJobType, payloadData: AsyncJobWorkerMess
           const { queryResults } = await queryMore(org, nextRecordsUrl, isTooling).then(replaceSubqueryQueryResultsWithRecords);
           done = queryResults.done;
           nextRecordsUrl = queryResults.nextRecordsUrl;
-          downloadedRecords =
-            fileFormat === 'json'
-              ? downloadedRecords.concat(queryResults.records)
-              : downloadedRecords.concat(flattenRecords(queryResults.records, fields));
+          downloadedRecords = downloadedRecords.concat(queryResults.records);
         }
 
-        const data = flattenRecords(downloadedRecords, fields);
         let mimeType: string;
         let fileData;
 
         switch (fileFormat) {
           case 'xlsx': {
-            fileData = prepareExcelFile(data, fields);
+            if (includeSubquery && subqueryFields) {
+              fileData = prepareExcelFile(getMapOfBaseAndSubqueryRecords(downloadedRecords, fields, subqueryFields));
+            } else {
+              fileData = prepareExcelFile(flattenRecords(downloadedRecords, fields), fields);
+            }
             mimeType = MIME_TYPES.XLSX;
             break;
           }
           case 'csv': {
-            fileData = prepareCsvFile(data, fields);
+            fileData = prepareCsvFile(flattenRecords(downloadedRecords, fields), fields);
             mimeType = MIME_TYPES.CSV;
             break;
           }
@@ -126,7 +128,11 @@ async function handleMessage(name: AsyncJobType, payloadData: AsyncJobWorkerMess
             break;
           }
           case 'gdrive': {
-            fileData = prepareCsvFile(data, fields);
+            if (includeSubquery && subqueryFields) {
+              fileData = prepareExcelFile(getMapOfBaseAndSubqueryRecords(downloadedRecords, fields, subqueryFields));
+            } else {
+              fileData = prepareExcelFile(flattenRecords(downloadedRecords, fields), fields);
+            }
             mimeType = MIME_TYPES.GSHEET;
             break;
           }

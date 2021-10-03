@@ -431,10 +431,12 @@ export interface BulkDownloadJob {
   totalRecordCount: number;
   nextRecordsUrl: string;
   fields: string[];
+  subqueryFields: MapOf<string[]>;
   records: MapOf<string>[];
   fileFormat: FileExtAllTypes;
   fileName: string;
   googleFolder: string;
+  includeSubquery: boolean;
 }
 
 export interface RetrievePackageJob {

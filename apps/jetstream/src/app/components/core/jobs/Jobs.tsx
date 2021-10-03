@@ -170,7 +170,7 @@ export const Jobs: FunctionComponent = () => {
                     };
 
                     googleUploadFile(gapi.client.getToken().access_token, {
-                      fileMimeType: MIME_TYPES.CSV,
+                      fileMimeType: MIME_TYPES.XLSX_OPEN_OFFICE,
                       filename: fileName,
                       folderId: googleFolder,
                       fileData,
@@ -182,8 +182,8 @@ export const Jobs: FunctionComponent = () => {
                         // Failed to upload to google, save locally
                         newJob.statusMessage = 'Records downloaded and saved to computer, saving to Google failed.';
                         newJob.status = 'finished-warning';
-                        mimeType = MIME_TYPES.CSV;
-                        saveFile(fileData, `${fileName}.csv`, mimeType);
+                        mimeType = MIME_TYPES.XLSX;
+                        saveFile(fileData, `${fileName}.xlsx`, mimeType);
                         notifyUser(newJob.statusMessage, { tag: 'BulkDownload' });
                         rollbar.error('Error saving to Google Drive', { err, message: err?.message });
                       })
@@ -200,8 +200,10 @@ export const Jobs: FunctionComponent = () => {
                   } else {
                     if (fileFormat === 'gdrive') {
                       // Failed to upload to google, save locally
-                      mimeType = MIME_TYPES.CSV;
-                      fileName = `${fileName}.csv`;
+                      mimeType = MIME_TYPES.XLSX;
+                      fileName = `${fileName}.xlsx`;
+                      newJob.statusMessage = 'Records downloaded and saved to computer, saving to Google failed.';
+                      newJob.status = 'finished-warning';
                     }
                     saveFile(fileData, fileName, mimeType);
                     notifyUser(`Download records finished`, { tag: 'BulkDownload' });
@@ -209,8 +211,6 @@ export const Jobs: FunctionComponent = () => {
                       ...prevJobs,
                       [newJob.id]: {
                         ...newJob,
-                        statusMessage: 'Records downloaded and saved to computer, saving to Google failed.',
-                        status: 'finished-warning',
                         finished: new Date(),
                         lastActivity: new Date(),
                       },

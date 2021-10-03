@@ -7,7 +7,7 @@ import { Field, FieldType } from 'jsforce';
 import isNil from 'lodash/isNil';
 import isNumber from 'lodash/isNumber';
 import isString from 'lodash/isString';
-import { composeQuery, Query } from 'soql-parser-js';
+import { composeQuery, FieldSubquery, getFlattenedFields, Query } from 'soql-parser-js';
 
 export interface EditFromErrors {
   hasErrors: boolean;
@@ -177,4 +177,19 @@ export function handleEditFormErrorResponse(result: ErrorResult): EditFromErrors
     output.generalErrors.push(error.message);
   });
   return output;
+}
+
+/**
+ * Get an object with the subquery relationship field as the key and the parsed query for each child part
+ *
+ * @param query
+ * @returns
+ */
+export function getFlattenSubqueryFlattenedFieldMap(query: Query): MapOf<string[]> {
+  return query?.fields
+    .filter((field) => field.type === 'FieldSubquery')
+    .reduce((output: MapOf<string[]>, field: FieldSubquery) => {
+      output[field.subquery.relationshipName] = getFlattenedFields(field.subquery);
+      return output;
+    }, {});
 }
