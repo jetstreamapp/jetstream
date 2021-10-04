@@ -1,9 +1,10 @@
 import { css } from '@emotion/react';
 import { MIME_TYPES, TITLES } from '@jetstream/shared/constants';
-import { fetchActiveLog, saveFile, useNonInitialEffect } from '@jetstream/shared/ui-utils';
-import { ApexLog, ApexLogWithViewed, MapOf, SalesforceOrgUi } from '@jetstream/types';
+import { fetchActiveLog, saveFile, useNonInitialEffect, useObservable } from '@jetstream/shared/ui-utils';
+import { ApexLog, ApexLogWithViewed, AsyncJob, MapOf, SalesforceOrgUi } from '@jetstream/types';
 import { AutoFullHeightContainer, Card, Checkbox, CopyToClipboard, Grid, Icon, SalesforceLogin, Spinner } from '@jetstream/ui';
 import Editor from '@monaco-editor/react';
+import PurgeLogsModal from './PurgeLogsModal';
 import formatDate from 'date-fns/format';
 import type { editor } from 'monaco-editor';
 import { Fragment, FunctionComponent, useCallback, useEffect, useRef, useState } from 'react';
@@ -15,6 +16,8 @@ import DebugLogViewerFilter from './DebugLogViewerFilter';
 import DebugLogViewerTable from './DebugLogViewerTable';
 import DebugLogViewerTrace from './DebugLogViewerTrace';
 import { useDebugLogs } from './useDebugLogs';
+import * as fromJetstreamEvents from '../core/jetstream-events';
+import { filter } from 'rxjs/operators';
 
 const USER_DEBUG_REGEX = /\|USER_DEBUG\|/;
 
@@ -36,6 +39,10 @@ export const DebugLogViewer: FunctionComponent<DebugLogViewerProps> = () => {
   const [textFilter, setTextFilter] = useState<string>('');
   const [visibleResults, setVisibleResults] = useState<string>('');
   const activeOrgId = useRef(selectedOrg.uniqueId);
+  const [purgeModalOpen, setPurgeModalOpen] = useState(false);
+  const bulkDeleteJob = useObservable(
+    fromJetstreamEvents.getObservable('jobFinished').pipe(filter((ev: AsyncJob) => ev.type === 'BulkDelete'))
+  );
 
   const { fetchLogs, loading, lastChecked, logs, errorMessage, pollInterval } = useDebugLogs(selectedOrg, {
     limit: showLogsFromAllUsers ? 200 : 100,
@@ -52,6 +59,13 @@ export const DebugLogViewer: FunctionComponent<DebugLogViewerProps> = () => {
       isMounted.current = false;
     };
   }, []);
+
+  useEffect(() => {
+    if (bulkDeleteJob) {
+      fetchLogs(true);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [bulkDeleteJob]);
 
   useNonInitialEffect(() => {
     logCache.current = {};
@@ -144,6 +158,7 @@ export const DebugLogViewer: FunctionComponent<DebugLogViewerProps> = () => {
 
   return (
     <AutoFullHeightContainer fillHeight bottomBuffer={10} setHeightAttr className="slds-p-horizontal_x-small slds-scrollable_none">
+      {purgeModalOpen && <PurgeLogsModal selectedOrg={selectedOrg} onModalClose={() => setPurgeModalOpen(false)} />}
       <Split
         sizes={[66, 33]}
         minSize={[300, 300]}
@@ -170,7 +185,14 @@ export const DebugLogViewer: FunctionComponent<DebugLogViewerProps> = () => {
                 ></SalesforceLogin>
               </Fragment>
             }
-            actions={<DebugLogViewerTrace org={selectedOrg} />}
+            actions={
+              <Fragment>
+                <DebugLogViewerTrace org={selectedOrg} />
+                <button className="slds-button slds-button_neutral slds-m-left_x-small" onClick={() => setPurgeModalOpen(true)}>
+                  Delete Logs
+                </button>
+              </Fragment>
+            }
           >
             <Fragment>
               <Grid align="spread" verticalAlign="center">
@@ -186,7 +208,7 @@ export const DebugLogViewer: FunctionComponent<DebugLogViewerProps> = () => {
                 <div>
                   {lastChecked && (
                     <p title={pollTitle} className="slds-text-color_weak slds-truncate">
-                      <button className="slds-button slds-button_icon slds-button_icon-container" onClick={fetchLogs}>
+                      <button className="slds-button slds-button_icon slds-button_icon-container" onClick={() => fetchLogs()}>
                         <Icon type="utility" icon="refresh" className="slds-button__icon" omitContainer />
                       </button>
                       Last Checked {formatDate(lastChecked, 'h:mm:ss')}

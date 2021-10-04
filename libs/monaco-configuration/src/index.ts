@@ -1,1 +1,1 @@
-export * from './lib/language-soql';
+export * from './lib/monaco-config';

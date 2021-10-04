@@ -132,7 +132,16 @@ export function flattenRecords(records: Record[], fields: string[]): MapOf<strin
 export function flattenRecord(record: Record, fields: string[]): MapOf<string> {
   return fields.reduce((obj, field) => {
     const value = lodashGet(record, field);
-    obj[field] = isObject(value) ? JSON.stringify(value).replace(REGEX.LEADING_TRAILING_QUOTES, '') : value;
+    if (isObject(value)) {
+      // Subquery records have nested "records" values
+      if (Array.isArray(value['records'])) {
+        obj[field] = JSON.stringify(value['records']).replace(REGEX.LEADING_TRAILING_QUOTES, '');
+      } else {
+        obj[field] = JSON.stringify(value).replace(REGEX.LEADING_TRAILING_QUOTES, '');
+      }
+    } else {
+      obj[field] = value;
+    }
     return obj;
   }, {});
 }
@@ -602,4 +611,51 @@ export function getSuccessOrFailureOrWarningChar(itemSuccessCount: number, itemF
     return '❌';
   }
   return '⚠️';
+}
+
+/**
+ * Returns a map of records
+ * {
+ *   records: [] // all base records (excludes subquery fields)
+ *   // each subquery with records gets split out
+ *   accounts__r: []
+ *   contacts__r: []
+ *   ...: []
+ * }
+ *
+ * @param records
+ * @param fields
+ * @param subqueryFields
+ */
+export function getMapOfBaseAndSubqueryRecords(records: any[], fields: string[], subqueryFields: MapOf<string[]>) {
+  const output: MapOf<any[]> = {};
+  // output['records'] = flattenRecords(records, fields);
+
+  const subqueryFieldsSet = new Set(Object.keys(subqueryFields));
+  // split fields into regular fields and subquery fields to partition record
+  const [baseFieldsToUse, subqueryFieldsToUse] = fields.reduce(
+    (output: [string[], string[]], field) => {
+      if (subqueryFieldsSet.has(field)) {
+        output[1].push(field);
+      } else {
+        output[0].push(field);
+      }
+      return output;
+    },
+    [[], []]
+  );
+
+  // records
+  output['records'] = flattenRecords(records, baseFieldsToUse);
+
+  // add key in output for subquery records
+  if (subqueryFieldsToUse.length) {
+    subqueryFieldsToUse.forEach((field) => {
+      const childRecords = records.flatMap((record) => record[field]?.records || []).filter(Boolean);
+      if (childRecords.length) {
+        output[field] = flattenRecords(childRecords, subqueryFields[field]);
+      }
+    });
+  }
+  return output;
 }

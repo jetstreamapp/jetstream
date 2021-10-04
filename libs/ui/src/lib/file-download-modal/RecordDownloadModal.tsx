@@ -11,17 +11,19 @@ import {
   prepareExcelFile,
   saveFile,
 } from '@jetstream/shared/ui-utils';
-import { flattenRecords } from '@jetstream/shared/utils';
+import { flattenRecords, getMapOfBaseAndSubqueryRecords } from '@jetstream/shared/utils';
 import {
   FileExtCsv,
   FileExtCsvXLSXJsonGSheet,
   FileExtGDrive,
   FileExtJson,
   FileExtXLSX,
+  MapOf,
   MimeType,
   Record,
   SalesforceOrgUi,
 } from '@jetstream/types';
+import Checkbox from '../form/checkbox/Checkbox';
 import { Fragment, FunctionComponent, KeyboardEvent, useEffect, useRef, useState } from 'react';
 import FileDownloadGoogle from '../file-download-modal/options/FileDownloadGoogle';
 import DuelingPicklist from '../form/dueling-picklist/DuelingPicklist';
@@ -49,13 +51,22 @@ export interface RecordDownloadModalProps {
   google_clientId: string;
   downloadModalOpen: boolean;
   fields: string[];
+  subqueryFields?: MapOf<string[]>;
   records: Record[];
   filteredRecords?: Record[];
   selectedRecords?: Record[];
   totalRecordCount?: number;
   onModalClose: (cancelled?: boolean) => void;
-  onDownload?: (fileFormat: FileExtCsvXLSXJsonGSheet, fileName: string, userOverrideFields: boolean, googleFolderId?: string) => void;
-  onDownloadFromServer?: (fileFormat: FileExtCsvXLSXJsonGSheet, fileName: string, fields: string[], googleFolderId?: string) => void;
+  onDownload?: (fileFormat: FileExtCsvXLSXJsonGSheet, whichFields: 'all' | 'specified', includeSubquery: boolean) => void;
+  onDownloadFromServer?: (options: {
+    fileFormat: FileExtCsvXLSXJsonGSheet;
+    fileName: string;
+    fields: string[];
+    subqueryFields: MapOf<string[]>;
+    whichFields: 'all' | 'specified';
+    includeSubquery: boolean;
+    googleFolder?: string;
+  }) => void;
 }
 
 export const RecordDownloadModal: FunctionComponent<RecordDownloadModalProps> = ({
@@ -65,6 +76,7 @@ export const RecordDownloadModal: FunctionComponent<RecordDownloadModalProps> = 
   google_clientId,
   downloadModalOpen,
   fields = [],
+  subqueryFields = {},
   records,
   filteredRecords,
   selectedRecords,
@@ -78,6 +90,7 @@ export const RecordDownloadModal: FunctionComponent<RecordDownloadModalProps> = 
   const [hasMoreRecords, setHasMoreRecords] = useState<boolean>(false);
   const [downloadRecordsValue, setDownloadRecordsValue] = useState<string>(hasMoreRecords ? RADIO_ALL_SERVER : RADIO_ALL_BROWSER);
   const [fileFormat, setFileFormat] = useState<FileExtCsvXLSXJsonGSheet>(RADIO_FORMAT_XLSX);
+  const [includeSubquery, setIncludeSubquery] = useState(true);
   const [fileName, setFileName] = useState<string>(getFilename(org, ['records']));
   // If the user changes the filename, we do not want to focus/select the text again or else the user cannot type
   const [doFocusInput, setDoFocusInput] = useState<boolean>(true);
@@ -92,6 +105,8 @@ export const RecordDownloadModal: FunctionComponent<RecordDownloadModalProps> = 
 
   const [invalidConfig, setInvalidConfig] = useState(false);
   const googleAuthorized = !!googleApiData?.authorized;
+
+  const hasSubqueryFields = subqueryFields && !!Object.keys(subqueryFields).length && (fileFormat === 'xlsx' || fileFormat === 'gdrive');
 
   useEffect(() => {
     if (!fileName || (fileFormat === 'gdrive' && !googleAuthorized)) {
@@ -121,8 +136,9 @@ export const RecordDownloadModal: FunctionComponent<RecordDownloadModalProps> = 
     } else {
       setDownloadRecordsValue(hasMoreRecords ? RADIO_ALL_SERVER : RADIO_ALL_BROWSER);
       setFileFormat(RADIO_FORMAT_XLSX);
+      setIncludeSubquery(true);
     }
-  }, [downloadModalOpen, records]);
+  }, [downloadModalOpen, hasMoreRecords, org, records]);
 
   useEffect(() => {
     if (doFocusInput && fileName && downloadModalOpen && inputEl.current) {
@@ -130,6 +146,7 @@ export const RecordDownloadModal: FunctionComponent<RecordDownloadModalProps> = 
       inputEl.current.select();
       setDoFocusInput(false);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [fileName]);
 
   useEffect(() => {
@@ -159,7 +176,15 @@ export const RecordDownloadModal: FunctionComponent<RecordDownloadModalProps> = 
       if (fileFormat === 'gdrive' || downloadRecordsValue === RADIO_ALL_SERVER) {
         // emit event, which starts job, which downloads in the background
         if (onDownloadFromServer) {
-          onDownloadFromServer(fileFormat, fileNameWithExt, fieldsToUse, googleFolder);
+          onDownloadFromServer({
+            fileFormat,
+            fileName: fileNameWithExt,
+            fields: fieldsToUse,
+            subqueryFields,
+            whichFields,
+            includeSubquery: includeSubquery && hasSubqueryFields,
+            googleFolder,
+          });
         }
         handleModalClose();
       } else {
@@ -169,16 +194,25 @@ export const RecordDownloadModal: FunctionComponent<RecordDownloadModalProps> = 
         } else if (downloadRecordsValue === RADIO_SELECTED) {
           activeRecords = selectedRecords;
         }
-        const data = flattenRecords(activeRecords, fieldsToUse);
+
         let mimeType: MimeType;
         let fileData;
         switch (fileFormat) {
           case 'xlsx': {
-            fileData = prepareExcelFile(data, fieldsToUse);
+            let data: MapOf<any[]> = {};
+
+            if (includeSubquery && hasSubqueryFields) {
+              data = getMapOfBaseAndSubqueryRecords(activeRecords, fieldsToUse, subqueryFields);
+            } else {
+              data['records'] = flattenRecords(activeRecords, fieldsToUse);
+            }
+
+            fileData = prepareExcelFile(data);
             mimeType = MIME_TYPES.XLSX;
             break;
           }
           case 'csv': {
+            const data = flattenRecords(activeRecords, fieldsToUse);
             fileData = prepareCsvFile(data, fieldsToUse);
             mimeType = MIME_TYPES.CSV;
             break;
@@ -195,7 +229,7 @@ export const RecordDownloadModal: FunctionComponent<RecordDownloadModalProps> = 
         saveFile(fileData, fileNameWithExt, mimeType);
 
         if (onDownload) {
-          onDownload(fileFormat, fileNameWithExt, whichFields === 'specified', googleFolder);
+          onDownload(fileFormat, whichFields, includeSubquery && hasSubqueryFields);
         }
         handleModalClose();
       }
@@ -324,14 +358,23 @@ export const RecordDownloadModal: FunctionComponent<RecordDownloadModalProps> = 
                   onChange={(value: FileExtGDrive) => setFileFormat(value)}
                 />
               )}
+              {fileFormat === 'gdrive' && (
+                <FileDownloadGoogle
+                  google_apiKey={google_apiKey}
+                  google_appId={google_appId}
+                  google_clientId={google_clientId}
+                  onFolderSelected={handleFolderSelected}
+                  onGoogleApiData={handleGoogleApiData}
+                />
+              )}
             </RadioGroup>
-            {fileFormat === 'gdrive' && (
-              <FileDownloadGoogle
-                google_apiKey={google_apiKey}
-                google_appId={google_appId}
-                google_clientId={google_clientId}
-                onFolderSelected={handleFolderSelected}
-                onGoogleApiData={handleGoogleApiData}
+            {hasSubqueryFields && (
+              <Checkbox
+                id="subquery-checkbox"
+                className="slds-m-vertical_x-small"
+                label="Create a worksheet for each subquery"
+                checked={includeSubquery}
+                onChange={setIncludeSubquery}
               />
             )}
             <Input

@@ -1,7 +1,9 @@
 import { logger } from '@jetstream/shared/client-logger';
 import { query } from '@jetstream/shared/data';
 import { getApexLogsQuery, useInterval, useNonInitialEffect } from '@jetstream/shared/ui-utils';
+import { getMapOf } from '@jetstream/shared/utils';
 import { ApexLog, SalesforceOrgUi, UseDebugLogsOptions } from '@jetstream/types';
+import orderBy from 'lodash/orderBy';
 import { useCallback, useEffect, useRef, useState } from 'react';
 
 const DEFAULT_POLL_INTERVAL = 10000; // 10 seconds
@@ -28,59 +30,67 @@ export function useDebugLogs(org: SalesforceOrgUi, { limit, pollInterval, userId
     };
   }, []);
 
+  const fetchLogs = useCallback(
+    async (clearPrevious?: boolean) => {
+      const fetchToken = new Date().getTime();
+      try {
+        setLoading(true);
+        setErrorMessage(null);
+        currentFetchToken.current = fetchToken;
+        const { queryResults } = await query<ApexLog>(
+          org,
+          getApexLogsQuery({
+            asOfId,
+            limit,
+            userId,
+          })
+        );
+        if (isMounted.current && fetchToken === currentFetchToken.current) {
+          if (clearPrevious) {
+            setLogs(queryResults.records);
+          } else {
+            setLogs((logs) =>
+              orderBy(Object.values({ ...getMapOf(logs, 'Id'), ...getMapOf(queryResults.records, 'Id') }), ['Id'], ['asc'])
+            );
+          }
+          setLoading(false);
+          setLastChecked(new Date());
+          if (pollInterval !== intervalDelay) {
+            setIntervalDelay(pollInterval);
+          }
+        } else if (fetchToken !== currentFetchToken.current) {
+          logger.info('[APEX LOGS][LOG RESULTS] ignoring results, currentFetchToken is not valid');
+        }
+      } catch (ex) {
+        if (isMounted.current) {
+          numPollErrors.current++;
+          if (fetchToken === currentFetchToken.current) {
+            // TODO: what should we do if we cannot fetch logs?
+            setErrorMessage(ex.message);
+            setLoading(false);
+          }
+        }
+      }
+    },
+    [org, asOfId, limit, userId, pollInterval, intervalDelay]
+  );
+
   const handlePoll = useCallback(() => {
     fetchLogs();
-  }, [org, userId]);
+  }, [fetchLogs]);
 
   useInterval(handlePoll, numPollErrors.current > MAX_POLL_ATTEMPTS ? null : intervalDelay);
 
   useNonInitialEffect(() => {
-    setAsOfId(null);
-  }, [userId]);
-
-  useNonInitialEffect(() => {
     setLogs([]);
     setAsOfId(null);
+  }, [org]);
+
+  useNonInitialEffect(() => {
     fetchLogs();
     setErrorMessage(null);
     numPollErrors.current = 0;
-  }, [org]);
-
-  const fetchLogs = useCallback(async () => {
-    const fetchToken = new Date().getTime();
-    try {
-      setLoading(true);
-      setErrorMessage(null);
-      currentFetchToken.current = fetchToken;
-      const { queryResults } = await query<ApexLog>(
-        org,
-        getApexLogsQuery({
-          asOfId,
-          limit,
-          userId,
-        })
-      );
-      if (isMounted.current && fetchToken === currentFetchToken.current) {
-        setLogs(queryResults.records);
-        setLoading(false);
-        setLastChecked(new Date());
-        if (pollInterval !== intervalDelay) {
-          setIntervalDelay(pollInterval);
-        }
-      } else if (fetchToken !== currentFetchToken.current) {
-        logger.info('[APEX LOGS][LOG RESULTS] ignoring results, currentFetchToken is not valid');
-      }
-    } catch (ex) {
-      if (isMounted.current) {
-        numPollErrors.current++;
-        if (fetchToken === currentFetchToken.current) {
-          // TODO: what should we do if we cannot fetch logs?
-          setErrorMessage(ex.message);
-          setLoading(false);
-        }
-      }
-    }
-  }, [org, limit, userId, pollInterval, intervalDelay]);
+  }, [fetchLogs, org]);
 
   return { fetchLogs, loading, lastChecked, logs, pollInterval, errorMessage };
 }

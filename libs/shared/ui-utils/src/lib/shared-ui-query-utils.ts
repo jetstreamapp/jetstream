@@ -25,7 +25,7 @@ export function getApexLogsQuery({ userId, limit, asOfId }: FetchDebugLogOptions
     ],
     sObject: 'ApexLog',
     orderBy: [{ field: 'LastModifiedDate', order: 'DESC' }],
-    limit: 50,
+    limit,
   };
 
   if (userId) {
@@ -55,6 +55,25 @@ export function getApexLogsQuery({ userId, limit, asOfId }: FetchDebugLogOptions
 
   const soql = composeQuery(query);
   logger.info('getApexLogsQuery()', { soql });
+  return soql;
+}
+
+export function getApexLogsToDeleteQuery(userId?: string) {
+  const query: Query = { fields: [getField('Id')], sObject: 'ApexLog', orderBy: [{ field: 'LastModifiedDate', order: 'DESC' }] };
+
+  if (userId) {
+    query.where = {
+      left: {
+        field: 'LogUserId',
+        operator: '=',
+        value: userId,
+        literalType: 'STRING',
+      },
+    };
+  }
+
+  const soql = composeQuery(query);
+  logger.info('getApexLogsToDeleteQuery()', { soql });
   return soql;
 }
 

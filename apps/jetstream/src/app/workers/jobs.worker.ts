@@ -13,6 +13,7 @@ import { base64ToArrayBuffer, pollRetrieveMetadataResultsUntilDone, prepareCsvFi
 import {
   flattenRecords,
   getIdFromRecordUrl,
+  getMapOfBaseAndSubqueryRecords,
   getSObjectFromRecordUrl,
   replaceSubqueryQueryResultsWithRecords,
   splitArrayToMaxSize,
@@ -28,7 +29,6 @@ import {
   UploadToGoogleJob,
   WorkerMessage,
 } from '@jetstream/types';
-import queue from 'async/queue';
 import { Record } from 'jsforce';
 import isString from 'lodash/isString';
 
@@ -50,26 +50,21 @@ async function handleMessage(name: AsyncJobType, payloadData: AsyncJobWorkerMess
         // TODO: add validation to ensure that we have at least one record
         // also, we are assuming that all records are same SObject
         const MAX_DELETE_RECORDS = 200;
-        const CONCURRENCY = 1;
         let records: Record | Record[] = job.meta; // TODO: add strong type
         records = Array.isArray(records) ? records : [records];
         const sobject = getSObjectFromRecordUrl(records[0].attributes.url);
         const allIds: string[] = records.map((record) => getIdFromRecordUrl(record.attributes.url));
 
         const results: any[] = [];
-        const q = queue(async function ({ ids, results }: { ids: string[]; results: any[] }, callback) {
-          const tempResults = await sobjectOperation(org, sobject, 'delete', { ids }, { allOrNone: false });
-          (Array.isArray(tempResults) ? tempResults : [tempResults]).forEach((result) => results.push(result));
-          callback();
-        }, CONCURRENCY);
-
-        q.push(splitArrayToMaxSize(allIds, MAX_DELETE_RECORDS).map((ids) => ({ ids, results })));
-
-        q.error((err, task) => {
-          logger.error('There was an error processing this task', { err, task });
-        });
-
-        await q.drain();
+        for (const ids of splitArrayToMaxSize(allIds, MAX_DELETE_RECORDS)) {
+          try {
+            let tempResults = await sobjectOperation(org, sobject, 'delete', { ids }, { allOrNone: false });
+            tempResults = Array.isArray(tempResults) ? tempResults : [tempResults];
+            tempResults.forEach((result) => results.push(result));
+          } catch (ex) {
+            logger.error('There was a problem deleting these records');
+          }
+        }
 
         const response: AsyncJobWorkerMessageResponse = { job, results };
         replyToMessage(name, response);
@@ -82,9 +77,10 @@ async function handleMessage(name: AsyncJobType, payloadData: AsyncJobWorkerMess
     case 'BulkDownload': {
       try {
         const { org, job } = payloadData as AsyncJobWorkerMessagePayload<BulkDownloadJob>;
-        const { isTooling, fields, records, fileFormat, fileName, googleFolder } = job.meta;
+        const { isTooling, fields, records, fileFormat, fileName, subqueryFields, includeSubquery, googleFolder } = job.meta;
+        // eslint-disable-next-line prefer-const
         let { nextRecordsUrl, totalRecordCount } = job.meta;
-        let downloadedRecords = fileFormat === 'json' ? records : flattenRecords(records, fields);
+        let downloadedRecords = records;
         let done = !nextRecordsUrl;
 
         while (!done) {
@@ -99,24 +95,24 @@ async function handleMessage(name: AsyncJobType, payloadData: AsyncJobWorkerMess
           const { queryResults } = await queryMore(org, nextRecordsUrl, isTooling).then(replaceSubqueryQueryResultsWithRecords);
           done = queryResults.done;
           nextRecordsUrl = queryResults.nextRecordsUrl;
-          downloadedRecords =
-            fileFormat === 'json'
-              ? downloadedRecords.concat(queryResults.records)
-              : downloadedRecords.concat(flattenRecords(queryResults.records, fields));
+          downloadedRecords = downloadedRecords.concat(queryResults.records);
         }
 
-        const data = flattenRecords(downloadedRecords, fields);
         let mimeType: string;
         let fileData;
 
         switch (fileFormat) {
           case 'xlsx': {
-            fileData = prepareExcelFile(data, fields);
+            if (includeSubquery && subqueryFields) {
+              fileData = prepareExcelFile(getMapOfBaseAndSubqueryRecords(downloadedRecords, fields, subqueryFields));
+            } else {
+              fileData = prepareExcelFile(flattenRecords(downloadedRecords, fields), fields);
+            }
             mimeType = MIME_TYPES.XLSX;
             break;
           }
           case 'csv': {
-            fileData = prepareCsvFile(data, fields);
+            fileData = prepareCsvFile(flattenRecords(downloadedRecords, fields), fields);
             mimeType = MIME_TYPES.CSV;
             break;
           }
@@ -126,7 +122,11 @@ async function handleMessage(name: AsyncJobType, payloadData: AsyncJobWorkerMess
             break;
           }
           case 'gdrive': {
-            fileData = prepareCsvFile(data, fields);
+            if (includeSubquery && subqueryFields) {
+              fileData = prepareExcelFile(getMapOfBaseAndSubqueryRecords(downloadedRecords, fields, subqueryFields));
+            } else {
+              fileData = prepareExcelFile(flattenRecords(downloadedRecords, fields), fields);
+            }
             mimeType = MIME_TYPES.GSHEET;
             break;
           }
