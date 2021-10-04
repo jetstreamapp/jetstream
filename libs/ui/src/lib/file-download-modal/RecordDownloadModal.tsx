@@ -106,6 +106,8 @@ export const RecordDownloadModal: FunctionComponent<RecordDownloadModalProps> = 
   const [invalidConfig, setInvalidConfig] = useState(false);
   const googleAuthorized = !!googleApiData?.authorized;
 
+  const hasSubqueryFields = subqueryFields && !!Object.keys(subqueryFields).length && (fileFormat === 'xlsx' || fileFormat === 'gdrive');
+
   useEffect(() => {
     if (!fileName || (fileFormat === 'gdrive' && !googleAuthorized)) {
       setInvalidConfig(true);
@@ -180,7 +182,7 @@ export const RecordDownloadModal: FunctionComponent<RecordDownloadModalProps> = 
             fields: fieldsToUse,
             subqueryFields,
             whichFields,
-            includeSubquery,
+            includeSubquery: includeSubquery && hasSubqueryFields,
             googleFolder,
           });
         }
@@ -199,7 +201,7 @@ export const RecordDownloadModal: FunctionComponent<RecordDownloadModalProps> = 
           case 'xlsx': {
             let data: MapOf<any[]> = {};
 
-            if (includeSubquery) {
+            if (includeSubquery && hasSubqueryFields) {
               data = getMapOfBaseAndSubqueryRecords(activeRecords, fieldsToUse, subqueryFields);
             } else {
               data['records'] = flattenRecords(activeRecords, fieldsToUse);
@@ -227,7 +229,7 @@ export const RecordDownloadModal: FunctionComponent<RecordDownloadModalProps> = 
         saveFile(fileData, fileNameWithExt, mimeType);
 
         if (onDownload) {
-          onDownload(fileFormat, whichFields, includeSubquery);
+          onDownload(fileFormat, whichFields, includeSubquery && hasSubqueryFields);
         }
         handleModalClose();
       }
@@ -366,7 +368,7 @@ export const RecordDownloadModal: FunctionComponent<RecordDownloadModalProps> = 
                 />
               )}
             </RadioGroup>
-            {subqueryFields && Object.keys(subqueryFields).length && (fileFormat === 'xlsx' || fileFormat === 'gdrive') && (
+            {hasSubqueryFields && (
               <Checkbox
                 id="subquery-checkbox"
                 className="slds-m-vertical_x-small"
