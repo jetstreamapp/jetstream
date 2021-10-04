@@ -29,7 +29,6 @@ import {
   UploadToGoogleJob,
   WorkerMessage,
 } from '@jetstream/types';
-import queue from 'async/queue';
 import { Record } from 'jsforce';
 import isString from 'lodash/isString';
 
@@ -51,26 +50,21 @@ async function handleMessage(name: AsyncJobType, payloadData: AsyncJobWorkerMess
         // TODO: add validation to ensure that we have at least one record
         // also, we are assuming that all records are same SObject
         const MAX_DELETE_RECORDS = 200;
-        const CONCURRENCY = 1;
         let records: Record | Record[] = job.meta; // TODO: add strong type
         records = Array.isArray(records) ? records : [records];
         const sobject = getSObjectFromRecordUrl(records[0].attributes.url);
         const allIds: string[] = records.map((record) => getIdFromRecordUrl(record.attributes.url));
 
         const results: any[] = [];
-        const q = queue(async function ({ ids, results }: { ids: string[]; results: any[] }, callback) {
-          const tempResults = await sobjectOperation(org, sobject, 'delete', { ids }, { allOrNone: false });
-          (Array.isArray(tempResults) ? tempResults : [tempResults]).forEach((result) => results.push(result));
-          callback();
-        }, CONCURRENCY);
-
-        q.push(splitArrayToMaxSize(allIds, MAX_DELETE_RECORDS).map((ids) => ({ ids, results })));
-
-        q.error((err, task) => {
-          logger.error('There was an error processing this task', { err, task });
-        });
-
-        await q.drain();
+        for (const ids of splitArrayToMaxSize(allIds, MAX_DELETE_RECORDS)) {
+          try {
+            let tempResults = await sobjectOperation(org, sobject, 'delete', { ids }, { allOrNone: false });
+            tempResults = Array.isArray(tempResults) ? tempResults : [tempResults];
+            tempResults.forEach((result) => results.push(result));
+          } catch (ex) {
+            logger.error('There was a problem deleting these records');
+          }
+        }
 
         const response: AsyncJobWorkerMessageResponse = { job, results };
         replyToMessage(name, response);
