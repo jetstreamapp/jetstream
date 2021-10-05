@@ -112,6 +112,7 @@ export * from './lib/toolbar/ToolbarItemActions';
 export * from './lib/toolbar/ToolbarItemGroup';
 export * from './lib/tree/Tree';
 export * from './lib/widgets/Badge';
+export * from './lib/widgets/BadgeNotification';
 export * from './lib/widgets/CopyToClipboard';
 export * from './lib/widgets/HelpText';
 export * from './lib/widgets/Icon';

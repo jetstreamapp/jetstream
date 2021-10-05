@@ -26,3 +26,18 @@ BellsAndWhistles.args = {
   hasError: false,
   disabled: false,
 };
+
+export const CheckboxGroup = (args) => (
+  <fieldset className="slds-form-element">
+    <legend className="slds-form-element__legend slds-form-element__label">Checkbox Group Label</legend>
+    <Checkbox id={uniqueId('checkbox')} label="Checkbox 1" {...args} />
+    <Checkbox id={uniqueId('checkbox')} label="Checkbox 2" {...args} />
+  </fieldset>
+);
+CheckboxGroup.args = {
+  checked: true,
+  hideLabel: false,
+  isRequired: false,
+  hasError: false,
+  disabled: false,
+};

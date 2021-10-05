@@ -1,10 +1,7 @@
 import { css } from '@emotion/react';
 import { MIME_TYPES } from '@jetstream/shared/constants';
 import { formatNumber, saveFile } from '@jetstream/shared/ui-utils';
-import { REGEX } from '@jetstream/shared/utils';
 import { FieldWrapper, MapOf, QueryFields, SalesforceOrgUi, UpDown } from '@jetstream/types';
-import Icon from 'libs/ui/src/lib/widgets/Icon';
-import SalesforceLogin from 'libs/ui/src/lib/widgets/SalesforceLogin';
 import isString from 'lodash/isString';
 import { createRef, Fragment, FunctionComponent, useEffect, useState } from 'react';
 import Checkbox from '../form/checkbox/Checkbox';
@@ -13,30 +10,12 @@ import SearchInput from '../form/search-input/SearchInput';
 import Grid from '../grid/Grid';
 import EmptyState from '../illustrations/EmptyState';
 import List from '../list/List';
+import Icon from '../widgets/Icon';
+import SalesforceLogin from '../widgets/SalesforceLogin';
 import Spinner from '../widgets/Spinner';
-import SobjectFieldListFilter from './SobjectFieldListFilter';
+import { filterFieldsFn, getBgColor } from './sobject-field-list-utils';
+import { DEFAULT_FILTER_TYPES, FilterTypes, SobjectFieldListFilter } from './SobjectFieldListFilterNew';
 import SobjectFieldListItem from './SobjectFieldListItem';
-import { FilterType } from './SobjectFieldListTypes';
-
-function getBgColor(level: number): string {
-  switch (level) {
-    case 1: {
-      return '#eef1f6';
-    }
-    case 2: {
-      return '#c5d5ea';
-    }
-    case 3: {
-      return '#a9d3ff';
-    }
-    case 4: {
-      return '#96c5f7';
-    }
-    case 5: {
-      return '#758ecd';
-    }
-  }
-}
 
 export interface SobjectFieldListProps {
   org: SalesforceOrgUi;
@@ -71,7 +50,7 @@ export const SobjectFieldList: FunctionComponent<SobjectFieldListProps> = ({
 }) => {
   const [queryFields, setQueryFields] = useState<QueryFields>(null);
   const [fieldLength, setFieldLength] = useState<number>(0);
-  const [activeFilter, setActiveFilter] = useState<FilterType>('all');
+  const [activeFilters, setActiveFilters] = useState<FilterTypes>({ ...DEFAULT_FILTER_TYPES });
   const [filteredFields, setFilteredFields] = useState<FieldWrapper[]>(null);
   const [visibleFields, setVisibleFields] = useState<Set<string>>(null);
   const [selectAll, setSelectAll] = useState<boolean>(false);
@@ -93,28 +72,11 @@ export const SobjectFieldList: FunctionComponent<SobjectFieldListProps> = ({
       setFilteredFields(
         Array.from(visibleFields)
           .map((key) => queryFields.fields[key])
-          .filter((field) => {
-            switch (activeFilter) {
-              case 'creatable':
-                return field.metadata.createable;
-              case 'updateable':
-                return field.metadata.updateable;
-              case 'custom':
-                return field.metadata.custom;
-              case 'non-managed':
-                return !REGEX.HAS_NAMESPACE.test(field.metadata.name);
-              case 'custom-non-managed':
-                return field.metadata.custom && !REGEX.HAS_NAMESPACE.test(field.metadata.name);
-              case 'selected':
-                return queryFields.selectedFields.has(field.name);
-              default:
-                return true;
-            }
-          })
+          .filter(filterFieldsFn(activeFilters))
       );
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [visibleFields, activeFilter]);
+    // TODO: make sure that queryFields.fields does not jack anything
+  }, [visibleFields, activeFilters, queryFields?.fields]);
 
   // when filtered fields changes, see if handleFieldFilterChanged fields are selected and possibly update allSelected state
   useEffect(() => {
@@ -176,8 +138,8 @@ export const SobjectFieldList: FunctionComponent<SobjectFieldListProps> = ({
     }
   }
 
-  function handleFilterChange(active: FilterType) {
-    setActiveFilter(active);
+  function handleFilterChange(selectedItems: FilterTypes) {
+    setActiveFilters(selectedItems);
   }
 
   function handleSearchChange(value: string) {
@@ -275,7 +237,7 @@ export const SobjectFieldList: FunctionComponent<SobjectFieldListProps> = ({
               >
                 <Icon type="utility" icon="download" className="slds-button__icon" omitContainer />
               </button>
-              <SobjectFieldListFilter active={activeFilter} onChange={handleFilterChange} />
+              <SobjectFieldListFilter selectedItems={activeFilters} onChange={handleFilterChange} />
             </div>
           </Grid>
           <List
