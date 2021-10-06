@@ -5,7 +5,46 @@ import { FunctionComponent, useState, useEffect } from 'react';
 import PopoverContent from './PopoverContent';
 import { Placement } from 'tippy.js';
 import isBoolean from 'lodash/isBoolean';
-import { SmallMediumLargeFullWidth } from '@jetstream/types';
+import { PositionAll, SmallMediumLargeFullWidth } from '@jetstream/types';
+
+function placementToNubbin(placement: Placement): PositionAll {
+  switch (placement) {
+    case 'top':
+      return 'bottom';
+    case 'bottom':
+      return 'top';
+    case 'right':
+      return 'left';
+    case 'left':
+      return 'right';
+    case 'top-start':
+      return 'bottom-left';
+    case 'top-end':
+      return 'bottom-right';
+    case 'bottom-start':
+      return 'top-left';
+    case 'bottom-end':
+      return 'top-right';
+    case 'right-start':
+      return 'left-top';
+    case 'right-end':
+      return 'left-bottom';
+    case 'left-start':
+      return 'right-top';
+    case 'left-end':
+      return 'right-bottom';
+    default:
+      break;
+  }
+}
+
+function placementToOffset(placement: Placement) {
+  /**
+   * TODO:
+   * we need to set left/right/top/bottom CSS style offset
+   * but only for some (mostly bottom) because the arrow overlaps in these cases
+   */
+}
 
 // TODO: use popper to detect nubbin position
 // TODO: add PopoverHeader and PopoverFooter components
@@ -70,19 +109,21 @@ export const Popover: FunctionComponent<PopoverProps> = ({
       allowHTML
       onShow={() => onOpen && onOpen()}
       onHide={() => onClose && onClose()}
-      render={(attrs) => {
+      render={(attrs, foo, tippy) => {
+        console.log(tippy);
+        console.log(attrs['data-placement']);
         return (
           visible && (
             <PopoverContent
               id={id}
-              // nubbinPosition={nubbinPosition}
+              nubbinPosition={placementToNubbin(attrs['data-placement'])}
               inverseIcons={inverseIcons}
               size={size}
               containerClassName={containerClassName}
               bodyClassName={bodyClassName}
               // arrow={
               //   <span
-              //     className={`slds-nubbin_${nubbinPosition}`}
+              //     className={`slds-nubbin_${attrs['data-placement']}`}
               //     css={css`
               //       background-color: inherit;
               //     `}

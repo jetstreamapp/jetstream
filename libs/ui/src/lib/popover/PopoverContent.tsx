@@ -43,7 +43,9 @@ export const PopoverContent: FunctionComponent<PopoverContentProps> = ({
       aria-label="Dialog Title"
       className={classNames(
         'slds-popover',
-        /** nubbinPosition ? `slds-nubbin_${nubbinPosition}` : '',*/ containerClassName,
+        /** nubbinPosition ? `slds-nubbin_${nubbinPosition}` : '',*/
+        nubbinPosition ? `slds-nubbin_${nubbinPosition}` : '',
+        containerClassName,
         size ? `slds-popover_${size}` : undefined
       )}
       role="dialog"
