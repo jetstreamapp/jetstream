@@ -1,17 +1,24 @@
 import { css } from '@emotion/react';
 import Tippy, { TippyProps } from '@tippyjs/react';
 import uniqueId from 'lodash/uniqueId';
-import { FunctionComponent, useState, useEffect } from 'react';
+import { FunctionComponent, useState, useEffect, Fragment } from 'react';
 import PopoverContent from './PopoverContent';
-import { Placement } from 'tippy.js';
+import { Placement, Instance as TippyInstance } from 'tippy.js';
 import isBoolean from 'lodash/isBoolean';
 import { PositionAll, SmallMediumLargeFullWidth } from '@jetstream/types';
+import './popover-arrow.css';
+import { Instance as PopperInstance } from '@popperjs/core';
 
-function placementToNubbin(placement: Placement): PositionAll {
+function placementToNubbin(placement: Placement, popperInstance: PopperInstance): PositionAll {
   switch (placement) {
     case 'top':
       return 'bottom';
     case 'bottom':
+      // TODO: this is example of they type of thing we need to d0
+      // TODO: but we need to figure out offsets / positions instead of just worrying about width
+      if (popperInstance?.state?.rects && popperInstance?.state?.rects.popper.width > popperInstance?.state?.rects.reference.width) {
+        return 'top-left';
+      }
       return 'top';
     case 'right':
       return 'left';
@@ -38,13 +45,14 @@ function placementToNubbin(placement: Placement): PositionAll {
   }
 }
 
-function placementToOffset(placement: Placement) {
-  /**
-   * TODO:
-   * we need to set left/right/top/bottom CSS style offset
-   * but only for some (mostly bottom) because the arrow overlaps in these cases
-   */
-}
+// function placementToOffset({ rects }: PopperState) {
+//   /**
+//    * TODO:
+//    * just testing this out, still need to figure shit out
+//    */
+//   if (rects.popper.width > rects.reference.width) {
+//   }
+// }
 
 // TODO: use popper to detect nubbin position
 // TODO: add PopoverHeader and PopoverFooter components
@@ -81,6 +89,7 @@ export const Popover: FunctionComponent<PopoverProps> = ({
 }) => {
   const [id] = useState<string>(uniqueId('popover'));
   const [visible, setVisible] = useState(isOpen || false);
+  const [nubbinPosition, setNubbinPosition] = useState<PositionAll>();
 
   useEffect(() => {
     if (isBoolean(isOpen) && visible !== isOpen) {
@@ -98,6 +107,13 @@ export const Popover: FunctionComponent<PopoverProps> = ({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [visible]);
 
+  function handleMount(tippyInstance: TippyInstance) {
+    if (tippyInstance) {
+      console.log(tippyInstance);
+      setNubbinPosition(placementToNubbin(tippyInstance.popperInstance.state.placement, tippyInstance.popperInstance));
+    }
+  }
+
   // convertTippyPlacementToSlds
   return (
     <Tippy
@@ -109,14 +125,19 @@ export const Popover: FunctionComponent<PopoverProps> = ({
       allowHTML
       onShow={() => onOpen && onOpen()}
       onHide={() => onClose && onClose()}
+      // onAfterUpdate={(props) => console.log('onAfterUpdate', props)}
+      onMount={handleMount}
       render={(attrs, foo, tippy) => {
-        console.log(tippy);
-        console.log(attrs['data-placement']);
+        // console.log(foo);
+        // console.log(tippy.popperInstance);
+        // console.log(attrs['data-placement']);
         return (
           visible && (
             <PopoverContent
+              {...attrs}
               id={id}
-              nubbinPosition={placementToNubbin(attrs['data-placement'])}
+              // nubbinPosition={placementToNubbin(attrs['data-placement'], tippy.popperInstance)}
+              nubbinPosition={nubbinPosition}
               inverseIcons={inverseIcons}
               size={size}
               containerClassName={containerClassName}

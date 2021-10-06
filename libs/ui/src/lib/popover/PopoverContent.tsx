@@ -1,9 +1,10 @@
 import { PositionAll, SmallMediumLargeFullWidth } from '@jetstream/types';
 import classNames from 'classnames';
 import uniqueId from 'lodash/uniqueId';
-import React, { FunctionComponent, KeyboardEvent } from 'react';
+import React, { FunctionComponent, KeyboardEvent, useEffect, useRef, useState } from 'react';
 import { isEscapeKey } from '@jetstream/shared/ui-utils';
 import Icon from '../widgets/Icon';
+import { Instance as PopperInstance } from '@popperjs/core';
 
 export interface PopoverContentProps {
   id?: string;
@@ -31,6 +32,27 @@ export const PopoverContent: FunctionComponent<PopoverContentProps> = ({
   children,
   onClose,
 }) => {
+  const modalRef = useRef<HTMLDivElement>();
+  // const [nubbin, setNubbin] = useState(nubbinPosition);
+
+  // useEffect(() => {
+  //   setNubbin(nubbinPosition);
+  // }, [nubbinPosition]);
+
+  // useEffect(() => {
+  //   if (nubbinPosition && modalRef.current) {
+  //     // TODO: this does not work because it depends on the position of the ref item compared to the base item
+  //     if (
+  //       nubbinPosition === 'top' &&
+  //       popperInstance?.state?.rects &&
+  //       modalRef.current.clientWidth > popperInstance?.state?.rects.reference.width
+  //     ) {
+  //       // 'top-left';
+  //       setNubbin('top-left');
+  //     }
+  //   }
+  // }, [nubbinPosition, popperInstance, modalRef]);
+
   function handleKeyUp(event: KeyboardEvent<HTMLInputElement>) {
     if (isEscapeKey(event)) {
       onClose();
@@ -39,6 +61,7 @@ export const PopoverContent: FunctionComponent<PopoverContentProps> = ({
 
   return (
     <section
+      ref={modalRef}
       aria-describedby={id}
       aria-label="Dialog Title"
       className={classNames(
