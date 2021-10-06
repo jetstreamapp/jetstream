@@ -232,6 +232,7 @@ export const QueryChildFields: FunctionComponent<QueryChildFieldsProps> = ({
   }
 
   return (
+    // eslint-disable-next-line react/jsx-no-useless-fragment
     <Fragment>
       {selectedSObject && queryFieldsMap[baseKey] && (
         <SobjectFieldList

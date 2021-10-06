@@ -1,5 +1,5 @@
 import { css } from '@emotion/react';
-import Tippy from '@tippyjs/react';
+import Tippy, { TippyProps } from '@tippyjs/react';
 import uniqueId from 'lodash/uniqueId';
 import { FunctionComponent, useState, useEffect } from 'react';
 import PopoverContent from './PopoverContent';
@@ -20,6 +20,7 @@ export interface PopoverProps {
   footer?: JSX.Element;
   isOpen?: boolean; // only used if parent wants to have control over this state
   size?: SmallMediumLargeFullWidth;
+  tippyProps?: TippyProps;
   onOpen?: () => void;
   onClose?: () => void;
 }
@@ -35,6 +36,7 @@ export const Popover: FunctionComponent<PopoverProps> = ({
   children,
   isOpen,
   size,
+  tippyProps = {},
   onOpen,
   onClose,
 }) => {
@@ -63,6 +65,7 @@ export const Popover: FunctionComponent<PopoverProps> = ({
       visible={visible}
       placement={placement}
       onClickOutside={() => setVisible(false)}
+      appendTo="parent"
       interactive
       allowHTML
       onShow={() => onOpen && onOpen()}
@@ -95,6 +98,7 @@ export const Popover: FunctionComponent<PopoverProps> = ({
           )
         );
       }}
+      {...tippyProps}
     >
       <span
         tabIndex={0}
