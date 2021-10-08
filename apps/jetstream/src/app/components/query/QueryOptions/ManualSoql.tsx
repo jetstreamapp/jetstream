@@ -134,7 +134,6 @@ export const ManualSoql: FunctionComponent<ManualSoqlProps> = ({ className, isTo
         setSoql(formatQuery(currEditor.getValue(), { fieldMaxLineLength: 80 }));
       },
     });
-    editorRef.current.createContextKey;
   };
 
   return (
