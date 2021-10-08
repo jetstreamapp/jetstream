@@ -1,6 +1,7 @@
 import { multiWordObjectFilter } from '@jetstream/shared/utils';
 import { ListItem } from '@jetstream/types';
-import { Combobox, ComboboxListItem } from '@jetstream/ui';
+import { Combobox } from './Combobox';
+import { ComboboxListItem } from './ComboboxListItem';
 import { FunctionComponent, useCallback, useEffect, useState } from 'react';
 import { ComboboxProps } from './Combobox';
 

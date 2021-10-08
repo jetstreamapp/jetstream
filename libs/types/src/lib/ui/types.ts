@@ -1,10 +1,12 @@
 import { QueryResultsColumn } from '@jetstream/api-interfaces';
-import { MapOf } from '@jetstream/types';
 import { ChildRelationship, DescribeSObjectResult, Field } from 'jsforce';
 import { ReactNode } from 'react';
 import { ListMetadataResult } from '../salesforce/types';
 import { HttpMethod, SalesforceOrgUi } from '../types';
 import type * as XLSX from 'xlsx';
+import { MapOf } from '../types';
+
+export type DropDownItemLength = 5 | 7 | 10;
 
 // generic useReducer actions/state for a basic fetch reducer function
 export type UseReducerFetchAction<T> =
@@ -85,6 +87,7 @@ export interface UiSection {
   title: string | ReactNode;
   titleSummaryIfCollapsed?: string | ReactNode; // extra title content to show if collapsed
   titleText?: string; // use if title is not a string
+  // eslint-disable-next-line @typescript-eslint/ban-types
   content: React.ReactNode | Function; // => React.ReactNode
   disabled?: boolean;
   className?: string;
