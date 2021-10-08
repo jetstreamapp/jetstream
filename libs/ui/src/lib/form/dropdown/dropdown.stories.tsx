@@ -1,4 +1,5 @@
 import { IconObj } from '@jetstream/icon-factory';
+import { DropDownItemLength } from '@jetstream/types';
 import Avatar from '@salesforce-ux/design-system/assets/images/profile_avatar_96.png';
 import { action } from '@storybook/addon-actions';
 import { array, number, object, text } from '@storybook/addon-knobs';
@@ -36,7 +37,7 @@ export const left = () => (
     dropDownClassName={text('dropDownClassName', undefined)}
     position="left"
     leadingIcon={object('Leading Icon', undefined)}
-    scrollLength={number('scrollLength', 5) as 5 | 7 | 10}
+    scrollLength={number('scrollLength', 5) as DropDownItemLength}
     description={text('description', undefined)}
     items={values.map((item) => ({ id: uniqueId(item), value: item }))}
     onSelected={action('on-selected')}
@@ -50,7 +51,7 @@ export const right = () => (
     position="right"
     actionText={text('actionText', undefined)}
     leadingIcon={object('Leading Icon', undefined)}
-    scrollLength={number('scrollLength', 5) as 5 | 7 | 10}
+    scrollLength={number('scrollLength', 5) as DropDownItemLength}
     description={text('description', undefined)}
     items={values.map((item) => ({ id: uniqueId(item), value: item }))}
     onSelected={action('on-selected')}
@@ -64,7 +65,7 @@ export const LargeScroll = () => (
     position="right"
     actionText={text('actionText', undefined)}
     leadingIcon={object('Leading Icon', undefined)}
-    scrollLength={number('scrollLength', 10) as 5 | 7 | 10}
+    scrollLength={number('scrollLength', 10) as DropDownItemLength}
     description={text('description', undefined)}
     items={values.map((item) => ({ id: uniqueId(item), value: item }))}
     onSelected={action('on-selected')}
@@ -78,7 +79,7 @@ export const customClass = () => (
     position="left"
     actionText={text('actionText', undefined)}
     leadingIcon={object('Leading Icon', undefined)}
-    scrollLength={number('scrollLength', 5) as 5 | 7 | 10}
+    scrollLength={number('scrollLength', 5) as DropDownItemLength}
     description={text('description', undefined)}
     items={values.map((item) => ({ id: uniqueId(item), value: item }))}
     onSelected={action('on-selected')}
@@ -92,7 +93,7 @@ export const withDropdownIcons = () => (
     position="left"
     actionText={text('actionText', undefined)}
     leadingIcon={object('Leading Icon', undefined)}
-    scrollLength={number('scrollLength', 5) as 5 | 7 | 10}
+    scrollLength={number('scrollLength', 5) as DropDownItemLength}
     description={text('description', undefined)}
     items={[
       { id: uniqueId('icon'), value: 'item 1', icon: { type: 'utility', icon: 'help' } },
@@ -111,7 +112,7 @@ export const withLeadingIcon = () => (
     position="left"
     actionText={text('actionText', undefined)}
     leadingIcon={object('Leading Icon', { type: 'utility', icon: 'add' } as IconObj)}
-    scrollLength={number('scrollLength', 5) as 5 | 7 | 10}
+    scrollLength={number('scrollLength', 5) as DropDownItemLength}
     description={text('description', undefined)}
     items={[
       { id: uniqueId('icon'), value: 'item 1', icon: { type: 'utility', icon: 'help' } },
@@ -134,7 +135,7 @@ export const withCustomButtonContent = () => (
     }
     position="left"
     actionText={text('actionText', undefined)}
-    scrollLength={number('scrollLength', 5) as 5 | 7 | 10}
+    scrollLength={number('scrollLength', 5) as DropDownItemLength}
     description={text('description', undefined)}
     items={[
       { id: uniqueId('icon'), value: 'item 1', icon: { type: 'utility', icon: 'help' } },

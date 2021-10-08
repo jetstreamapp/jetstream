@@ -17,7 +17,7 @@ import {
   trapEventImmediate,
   useNonInitialEffect,
 } from '@jetstream/shared/ui-utils';
-import { ListItem, ListItemGroup } from '@jetstream/types';
+import { DropDownItemLength, ListItem, ListItemGroup } from '@jetstream/types';
 import classNames from 'classnames';
 import isNumber from 'lodash/isNumber';
 import uniqueId from 'lodash/uniqueId';
@@ -50,7 +50,7 @@ export interface PicklistProps {
   multiSelection?: boolean;
   omitMultiSelectPills?: boolean;
   allowDeselection?: boolean;
-  scrollLength?: 5 | 7 | 10;
+  scrollLength?: DropDownItemLength;
   disabled?: boolean;
   onChange: (selectedItems: ListItem[]) => void;
 }

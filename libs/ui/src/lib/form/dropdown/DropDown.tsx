@@ -8,7 +8,7 @@ import {
   menuItemSelectScroll,
   selectMenuItemFromKeyboard,
 } from '@jetstream/shared/ui-utils';
-import { DropDownItem } from '@jetstream/types';
+import { DropDownItem, DropDownItemLength } from '@jetstream/types';
 import classNames from 'classnames';
 import isNumber from 'lodash/isNumber';
 import isString from 'lodash/isString';
@@ -34,7 +34,7 @@ export interface DropDownProps {
   buttonContent?: ReactNode; // if omitted, then a regular dropdown icon will be shown
   dropDownClassName?: string;
   actionText?: string;
-  scrollLength?: 5 | 7 | 10;
+  scrollLength?: DropDownItemLength;
   description?: string; // assistive text, ignored if buttonContent is provided
   initialSelectedId?: string;
   items: DropDownItem[];
@@ -57,9 +57,10 @@ export const DropDown: FunctionComponent<DropDownProps> = ({
 }) => {
   const keyBuffer = useRef(new KeyBuffer());
   const [isOpen, setIsOpen] = useState<boolean>(false);
-  const scrollLengthClass = useMemo<string | undefined>(() => (scrollLength ? `slds-dropdown_length-${scrollLength}` : undefined), [
-    scrollLength,
-  ]);
+  const scrollLengthClass = useMemo<string | undefined>(
+    () => (scrollLength ? `slds-dropdown_length-${scrollLength}` : undefined),
+    [scrollLength]
+  );
   const [focusedItem, setFocusedItem] = useState<number>(null);
   const [selectedItem, setSelectedItem] = useState<string>(initialSelectedId);
   const ulContainerEl = useRef<HTMLUListElement>(null);

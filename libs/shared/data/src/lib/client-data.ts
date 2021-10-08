@@ -204,6 +204,29 @@ export async function queryAll<T = any>(
   includeDeletedRecords = false
 ): Promise<API.QueryResults<T>> {
   const results = await query(org, soqlQuery, isTooling, includeDeletedRecords);
+  if (!results.queryResults.done) {
+    const currentResults = queryRemaining(org, results.queryResults.nextRecordsUrl, isTooling);
+    results.queryResults.records = results.queryResults.records.concat(currentResults);
+    results.queryResults.nextRecordsUrl = null;
+    results.queryResults.done = true;
+  }
+  return results;
+}
+
+/**
+ * Query all remaining records starting with a query locator
+ *
+ * @param org
+ * @param soqlQuery
+ * @param isTooling
+ * @param includeDeletedRecords
+ */
+export async function queryRemaining<T = any>(
+  org: SalesforceOrgUi,
+  nextRecordsUrl: string,
+  isTooling = false
+): Promise<API.QueryResults<T>> {
+  const results = await queryMore(org, nextRecordsUrl, isTooling);
   while (!results.queryResults.done) {
     const currentResults = await queryMore(org, results.queryResults.nextRecordsUrl, isTooling);
     // update initial object with current results

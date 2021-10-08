@@ -81,7 +81,6 @@ export const ExpressionConditionRow: FunctionComponent<ExpressionConditionRowPro
     const [selectedResourceType, setSelectedResourceType] = useState<ListItem<ExpressionRowValueType>[]>();
     const [resourcesFilter, setResourcesFilter] = useState<string>(null);
     const [selectedValue, setSelectValue] = useState(selected.value);
-    const [initialSelectedOperator] = useState(() => operators.find((item) => item.id === selected.operator) || operators[0]);
     const [selectedResourceComboboxLabel, setSelectedResourceComboboxLabel] = useState<string>(() => {
       if (selected.resource) {
         const group = resources.find((currResource) => currResource.id === selected.resourceGroup);
@@ -196,6 +195,7 @@ export const ExpressionConditionRow: FunctionComponent<ExpressionConditionRowPro
                 onInputChange={(filter) => setResourcesFilter(filter)}
                 selectedItemLabel={selectedResourceComboboxLabel}
                 selectedItemTitle={selectedResourceTitle}
+                itemLength={10}
                 onInputEnter={() => {
                   const groupWithItems = visibleResources.findIndex((group) => group.items.length > 0);
                   if (groupWithItems >= 0) {
@@ -233,6 +233,7 @@ export const ExpressionConditionRow: FunctionComponent<ExpressionConditionRowPro
                 comboboxProps={{
                   label: operatorLabel,
                   labelHelp: operatorHelpText,
+                  itemLength: 10,
                 }}
                 items={operators}
                 selectedItemId={selected.operator}
@@ -310,6 +311,7 @@ export const ExpressionConditionRow: FunctionComponent<ExpressionConditionRowPro
                   items={resourceSelectItems || []}
                   selectedItemIds={selectedValue ? [selectedValue as string] : []}
                   allowDeselection
+                  scrollLength={10}
                   onChange={(item) => {
                     if (item && item[0]) {
                       setSelectValue(item[0].id);
@@ -326,6 +328,7 @@ export const ExpressionConditionRow: FunctionComponent<ExpressionConditionRowPro
                   selectedItemIds={isString(selectedValue) ? [selectedValue] : (selectedValue as string[]) || []}
                   multiSelection
                   omitMultiSelectPills
+                  scrollLength={10}
                   onChange={(items) => {
                     if (items) {
                       setSelectValue(items.map((item) => item.id));

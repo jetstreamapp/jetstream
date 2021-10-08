@@ -1,8 +1,9 @@
 import { decryptString, encryptString, hexToBase64 } from '@jetstream/shared/node-utils';
 import { SalesforceOrgUi } from '@jetstream/types';
 import { Prisma, SalesforceOrg } from '@prisma/client';
-import { prisma } from 'apps/api/src/app/config/db.config';
-import { ENV } from 'apps/api/src/app/config/env-config';
+import { prisma } from '../config/db.config';
+import { ENV } from '../config/env-config';
+import parseISO from 'date-fns/parseISO';
 
 const SELECT = Prisma.validator<Prisma.SalesforceOrgSelect>()({
   uniqueId: true,
@@ -141,7 +142,9 @@ export async function createOrUpdateSalesforceOrg(
       orgIsSandbox: salesforceOrgUi.orgIsSandbox ?? existingOrg.orgIsSandbox,
       orgLanguageLocaleKey: salesforceOrgUi.orgLanguageLocaleKey ?? existingOrg.orgLanguageLocaleKey,
       orgNamespacePrefix: salesforceOrgUi.orgNamespacePrefix ?? existingOrg.orgNamespacePrefix,
-      orgTrialExpirationDate: salesforceOrgUi.orgTrialExpirationDate || existingOrg.orgTrialExpirationDate,
+      orgTrialExpirationDate: salesforceOrgUi.orgTrialExpirationDate
+        ? parseISO(salesforceOrgUi.orgTrialExpirationDate)
+        : existingOrg.orgTrialExpirationDate,
       connectionError: null,
     };
     data.label = data.label || data.username;
@@ -182,7 +185,7 @@ export async function createOrUpdateSalesforceOrg(
         orgIsSandbox: salesforceOrgUi.orgIsSandbox,
         orgLanguageLocaleKey: salesforceOrgUi.orgLanguageLocaleKey,
         orgNamespacePrefix: salesforceOrgUi.orgNamespacePrefix,
-        orgTrialExpirationDate: salesforceOrgUi.orgTrialExpirationDate,
+        orgTrialExpirationDate: salesforceOrgUi.orgTrialExpirationDate && parseISO(salesforceOrgUi.orgTrialExpirationDate),
         connectionError: null,
         filterText: `${salesforceOrgUi.username}${salesforceOrgUi.orgName}${salesforceOrgUi.label}`,
       },

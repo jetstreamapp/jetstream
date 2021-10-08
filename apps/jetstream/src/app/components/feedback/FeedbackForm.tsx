@@ -7,7 +7,16 @@ import { FunctionComponent, useEffect, useRef, useState } from 'react';
 import { useTitle } from 'react-use';
 
 function hasContent(content: DeltaOperation[]) {
-  return content && content.some(({ insert }) => (insert || '').trim());
+  return (
+    content &&
+    content.some(({ insert }) => {
+      try {
+        return (insert || '').trim();
+      } catch (ex) {
+        return false;
+      }
+    })
+  );
 }
 
 export interface FeedbackFormProps {
