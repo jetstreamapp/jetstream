@@ -3,7 +3,7 @@ import Tippy, { TippyProps } from '@tippyjs/react';
 import uniqueId from 'lodash/uniqueId';
 import { FunctionComponent, useState, useEffect, Fragment } from 'react';
 import PopoverContent from './PopoverContent';
-import { Placement, Instance as TippyInstance } from 'tippy.js';
+import { Placement, Instance as TippyInstance, Props as TProps } from 'tippy.js';
 import isBoolean from 'lodash/isBoolean';
 import { PositionAll, SmallMediumLargeFullWidth } from '@jetstream/types';
 import './popover-arrow.css';
@@ -90,6 +90,7 @@ export const Popover: FunctionComponent<PopoverProps> = ({
   const [id] = useState<string>(uniqueId('popover'));
   const [visible, setVisible] = useState(isOpen || false);
   const [nubbinPosition, setNubbinPosition] = useState<PositionAll>();
+  const [arrow, setArrow] = useState(null);
 
   useEffect(() => {
     if (isBoolean(isOpen) && visible !== isOpen) {
@@ -109,8 +110,22 @@ export const Popover: FunctionComponent<PopoverProps> = ({
 
   function handleMount(tippyInstance: TippyInstance) {
     if (tippyInstance) {
-      console.log(tippyInstance);
+      console.log('handleMount', tippyInstance);
       setNubbinPosition(placementToNubbin(tippyInstance.popperInstance.state.placement, tippyInstance.popperInstance));
+    }
+  }
+
+  /**
+   *
+   * TODO: I think that I need to figure out things here
+   * tippyInstance.popperInstance.state.records.popper/reference
+   * bottom/top -> based on width and offset I need to figure out if nubbin should be left/center/right
+   *
+   */
+  function handleUpdate(tippyInstance: TippyInstance) {
+    if (tippyInstance && visible) {
+      console.log('handleUpdate', tippyInstance);
+      // setNubbinPosition(placementToNubbin(tippyInstance.popperInstance.state.placement, tippyInstance.popperInstance));
     }
   }
 
@@ -120,6 +135,7 @@ export const Popover: FunctionComponent<PopoverProps> = ({
       visible={visible}
       placement={placement}
       onClickOutside={() => setVisible(false)}
+      animation={false}
       appendTo="parent"
       interactive
       allowHTML
@@ -127,14 +143,24 @@ export const Popover: FunctionComponent<PopoverProps> = ({
       onHide={() => onClose && onClose()}
       // onAfterUpdate={(props) => console.log('onAfterUpdate', props)}
       onMount={handleMount}
+      onAfterUpdate={handleUpdate}
+      popperOptions={{
+        modifiers: [
+          {
+            name: 'arrow',
+            options: {
+              element: arrow, // can be a CSS selector too
+            },
+          },
+        ],
+      }}
       render={(attrs, foo, tippy) => {
         // console.log(foo);
         // console.log(tippy.popperInstance);
         // console.log(attrs['data-placement']);
         return (
-          visible && (
+          <div {...attrs}>
             <PopoverContent
-              {...attrs}
               id={id}
               // nubbinPosition={placementToNubbin(attrs['data-placement'], tippy.popperInstance)}
               nubbinPosition={nubbinPosition}
@@ -157,7 +183,8 @@ export const Popover: FunctionComponent<PopoverProps> = ({
             >
               {content}
             </PopoverContent>
-          )
+            <div id="popover-arrow" ref={setArrow} />
+          </div>
         );
       }}
       {...tippyProps}

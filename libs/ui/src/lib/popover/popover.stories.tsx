@@ -24,9 +24,9 @@ export const base = () => (
         content={
           <p>
             Lorem ipsum dolor sit amet, consectetur adipisicing elit, sed do eiusmod tempor incididunt ut labore et dolore.
-            <a href="javascript:void(0);" title="Learn More">
+            <button className="slds-button" title="Learn More">
               Learn More
-            </a>
+            </button>
           </p>
         }
         onClose={action('onClose')}
@@ -46,9 +46,9 @@ export const base = () => (
         content={
           <p>
             Lorem ipsum dolor sit amet, consectetur adipisicing elit, sed do eiusmod tempor incididunt ut labore et dolore.
-            <a href="javascript:void(0);" title="Learn More">
+            <button className="slds-button" title="Learn More">
               Learn More
-            </a>
+            </button>
           </p>
         }
         onClose={action('onClose')}
@@ -68,9 +68,9 @@ export const base = () => (
         content={
           <p>
             Lorem ipsum dolor sit amet, consectetur adipisicing elit, sed do eiusmod tempor incididunt ut labore et dolore.
-            <a href="javascript:void(0);" title="Learn More">
+            <button className="slds-button" title="Learn More">
               Learn More
-            </a>
+            </button>
           </p>
         }
         onClose={action('onClose')}
@@ -91,9 +91,9 @@ export const base = () => (
         content={
           <p>
             Lorem ipsum dolor sit amet, consectetur adipisicing elit, sed do eiusmod tempor incididunt ut labore et dolore.
-            <a href="javascript:void(0);" title="Learn More">
+            <button className="slds-button" title="Learn More">
               Learn More
-            </a>
+            </button>
           </p>
         }
         onClose={action('onClose')}
@@ -130,9 +130,9 @@ export const withHeader = () => (
     content={
       <p>
         Lorem ipsum dolor sit amet, consectetur adipisicing elit, sed do eiusmod tempor incididunt ut labore et dolore.
-        <a href="javascript:void(0);" title="Learn More">
+        <button className="slds-button" title="Learn More">
           Learn More
-        </a>
+        </button>
       </p>
     }
   >
@@ -164,9 +164,9 @@ export const withHeaderAndFooter = () => (
     content={
       <p>
         Lorem ipsum dolor sit amet, consectetur adipisicing elit, sed do eiusmod tempor incididunt ut labore et dolore.
-        <a href="javascript:void(0);" title="Learn More">
+        <button className="slds-button" title="Learn More">
           Learn More
-        </a>
+        </button>
       </p>
     }
   >
