@@ -2,7 +2,7 @@ import { addOrg } from '@jetstream/shared/ui-utils';
 import { SalesforceOrgUi } from '@jetstream/types';
 import { Grid, GridCol, Icon, Input, Popover, Radio, RadioGroup } from '@jetstream/ui';
 import classNames from 'classnames';
-import React, { Fragment, FunctionComponent, useEffect, useState } from 'react';
+import { FunctionComponent, useEffect, useState } from 'react';
 import { useRecoilState } from 'recoil';
 import { applicationCookieState } from '../../app-state';
 
