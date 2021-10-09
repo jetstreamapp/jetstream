@@ -31,6 +31,7 @@
       "statusBarItem.remoteForeground": "#e7e7e7"
     },
     "peacock.color": "#215732",
-    "liveServer.settings.multiRootWorkspaceName": "jetstream"
+    "liveServer.settings.multiRootWorkspaceName": "jetstream",
+    "typescript.preferences.importModuleSpecifier": "project-relative"
   }
 }
