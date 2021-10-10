@@ -265,7 +265,7 @@ export const ViewEditCloneRecord: FunctionComponent<ViewEditCloneRecordProps> = 
                   <div>
                     {formErrors.hasErrors && formErrors.generalErrors.length > 0 && (
                       <span className="slds-text-align_left d-inline-block">
-                        <PopoverErrorButton errors={formErrors.generalErrors} />
+                        <PopoverErrorButton errors={formErrors.generalErrors} omitPortal />
                       </span>
                     )}
                     <button className="slds-button slds-button_neutral" onClick={() => onChangeAction('edit')} disabled={loading}>
@@ -307,7 +307,7 @@ export const ViewEditCloneRecord: FunctionComponent<ViewEditCloneRecordProps> = 
                   <div>
                     {formErrors.hasErrors && formErrors.generalErrors.length > 0 && (
                       <span className="slds-text-align_left d-inline-block">
-                        <PopoverErrorButton errors={formErrors.generalErrors} />
+                        <PopoverErrorButton errors={formErrors.generalErrors} omitPortal />
                       </span>
                     )}
                     <button className="slds-button slds-button_neutral" onClick={() => onClose()} disabled={loading}>

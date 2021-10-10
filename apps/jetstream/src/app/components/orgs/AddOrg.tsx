@@ -55,7 +55,7 @@ export const AddOrg: FunctionComponent<AddOrgProps> = ({ className, label = 'Add
   return (
     // TODO: figure out way to close this once an org is added - this was fixed, but it caused the component to fully re-render each time!
     <Popover
-      placement="bottom-end"
+      // placement="bottom-end"
       header={
         <header className="slds-popover__header">
           <h2 className="slds-truncate slds-text-heading_small" title="Add New Org">
@@ -123,11 +123,13 @@ export const AddOrg: FunctionComponent<AddOrgProps> = ({ className, label = 'Add
           </Grid>
         </footer>
       }
+      buttonProps={{
+        className: classNames('slds-button', className),
+        disabled: disabled,
+      }}
     >
-      <button className={classNames('slds-button', className)} disabled={disabled}>
-        <Icon type="utility" icon="add" className="slds-button__icon slds-button__icon_left" omitContainer />
-        {label}
-      </button>
+      <Icon type="utility" icon="add" className="slds-button__icon slds-button__icon_left" omitContainer />
+      {label}
     </Popover>
   );
 };

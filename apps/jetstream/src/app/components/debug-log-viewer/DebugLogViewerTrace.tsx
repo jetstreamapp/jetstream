@@ -1,8 +1,8 @@
 import { css } from '@emotion/react';
 import { useSetTraceFlag } from '@jetstream/connected-ui';
 import { DebugLevel, SalesforceOrgUi } from '@jetstream/types';
-import { Grid, Popover, PopoverErrorButton, Spinner } from '@jetstream/ui';
-import { Fragment, FunctionComponent, useEffect, useRef, useState } from 'react';
+import { Grid, PopoverErrorButton, Popover, PopoverRef, Spinner } from '@jetstream/ui';
+import { Fragment, FunctionComponent, useEffect, useRef } from 'react';
 
 export interface DebugLogViewerTraceProps {
   org: SalesforceOrgUi;
@@ -10,7 +10,7 @@ export interface DebugLogViewerTraceProps {
 
 export const DebugLogViewerTrace: FunctionComponent<DebugLogViewerTraceProps> = ({ org }) => {
   const isMounted = useRef(null);
-  const [isOpen, setIsOpen] = useState(false);
+  const popoverRef = useRef<PopoverRef>(null);
   const { changeLogLevel, loading, errorMessage, activeDebugLevel, debugLevels } = useSetTraceFlag(org);
 
   useEffect(() => {
@@ -20,12 +20,8 @@ export const DebugLogViewerTrace: FunctionComponent<DebugLogViewerTraceProps> = 
     };
   }, []);
 
-  function toggleOpen() {
-    setIsOpen(!isOpen);
-  }
-
   function handleChangeLogLevel(debugLevel: DebugLevel) {
-    setIsOpen(false);
+    popoverRef.current.close();
     changeLogLevel(debugLevel);
   }
 
@@ -40,8 +36,7 @@ export const DebugLogViewerTrace: FunctionComponent<DebugLogViewerTraceProps> = 
       {errorMessage && <PopoverErrorButton listHeader={null} errors={errorMessage} />}
       <div>
         <Popover
-          placement="bottom-end"
-          isOpen={isOpen}
+          ref={popoverRef}
           header={
             <header className="slds-popover__header">
               <h2 className="slds-text-heading_small" title="Debug Levels">
@@ -75,12 +70,11 @@ export const DebugLogViewerTrace: FunctionComponent<DebugLogViewerTraceProps> = 
               )}
             </div>
           }
+          buttonProps={{
+            className: 'slds-button slds-button_neutral',
+          }}
         >
-          <div className="slds-is-relative">
-            <button className="slds-button slds-button_neutral" onClick={toggleOpen} disabled={!activeDebugLevel}>
-              {activeDebugLevel ? `Active Log Level - ${activeDebugLevel?.DeveloperName}` : 'Loading log levels'}
-            </button>
-          </div>
+          {activeDebugLevel ? `Active Log Level - ${activeDebugLevel?.DeveloperName}` : 'Loading log levels'}
         </Popover>
       </div>
     </Grid>

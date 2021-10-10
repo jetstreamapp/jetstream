@@ -57,19 +57,18 @@ export const SobjectFieldListFilter: FunctionComponent<SobjectFieldListFilterPro
           />
         </RadioGroup>
       }
+      buttonProps={{
+        className: classNames('slds-button slds-button_icon', { 'slds-text-color_brand': active !== 'all' }),
+        title: 'open filters menu',
+      }}
     >
-      <button
-        className={classNames('slds-button slds-button_icon', { 'slds-text-color_brand': active !== 'all' })}
-        title="open filters menu"
-      >
-        <Icon
-          type="utility"
-          icon="filter"
-          description="Open filters menu"
-          className="slds-button__icon slds-button__icon_large"
-          omitContainer
-        />
-      </button>
+      <Icon
+        type="utility"
+        icon="filter"
+        description="Open filters menu"
+        className="slds-button__icon slds-button__icon_large"
+        omitContainer
+      />
     </Popover>
   );
 };
