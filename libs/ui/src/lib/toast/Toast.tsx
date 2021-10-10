@@ -1,7 +1,7 @@
 /* eslint-disable jsx-a11y/anchor-is-valid */
 import { InfoSuccessWarningError } from '@jetstream/types';
 import classNames from 'classnames';
-import React, { FunctionComponent } from 'react';
+import { FunctionComponent, ReactNode } from 'react';
 import Icon from '../widgets/Icon';
 
 export interface ToastProps {
@@ -9,6 +9,7 @@ export interface ToastProps {
   showIcon?: boolean;
   className?: string;
   headingClassName?: string;
+  children?: ReactNode;
   onClose?: () => void;
 }
 

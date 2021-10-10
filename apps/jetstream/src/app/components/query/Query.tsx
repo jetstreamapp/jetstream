@@ -1,6 +1,7 @@
 import { TITLES } from '@jetstream/shared/constants';
 import { SalesforceOrgUi } from '@jetstream/types';
-import React, { Fragment, FunctionComponent, useEffect, useState } from 'react';
+import { Spinner } from '@jetstream/ui';
+import { Fragment, FunctionComponent, useCallback, useEffect, useState } from 'react';
 import { Redirect, Route, Switch, useLocation, useRouteMatch } from 'react-router-dom';
 import { useTitle } from 'react-use';
 import { useRecoilValue, useResetRecoilState } from 'recoil';
@@ -9,6 +10,7 @@ import StateDebugObserver from '../core/StateDebugObserver';
 import * as fromQueryState from './query.state';
 import QueryBuilder from './QueryBuilder/QueryBuilder';
 import QueryResults from './QueryResults/QueryResults';
+import useQueryRestore from './utils/useQueryRestore';
 
 // eslint-disable-next-line @typescript-eslint/no-empty-interface
 export interface QueryProps {}
@@ -18,6 +20,8 @@ export const Query: FunctionComponent<QueryProps> = () => {
   const match = useRouteMatch();
   const location = useLocation<{ soql: string }>();
   const selectedOrg = useRecoilValue<SalesforceOrgUi>(selectedOrgState);
+  const querySoqlState = useRecoilValue(fromQueryState.querySoqlState);
+  const isTooling = useRecoilValue(fromQueryState.isTooling);
   const resetSobjects = useResetRecoilState(fromQueryState.sObjectsState);
   const resetSelectedSObject = useResetRecoilState(fromQueryState.selectedSObjectState);
   const resetSObjectFilterTerm = useResetRecoilState(fromQueryState.sObjectFilterTerm);
@@ -31,11 +35,18 @@ export const Query: FunctionComponent<QueryProps> = () => {
   const resetQuerySoqlState = useResetRecoilState(fromQueryState.querySoqlState);
   const [priorSelectedOrg, setPriorSelectedOrg] = useState<string>(null);
 
+  const [isRestoring, setIsRestoring] = useState(false);
+  const startRestore = useCallback(() => setIsRestoring(true), []);
+  const endRestore = useCallback(() => setIsRestoring(false), []);
+  const [restore, errorMessage] = useQueryRestore(null, null, { startRestore: startRestore, endRestore: endRestore });
+
   // reset everything if the selected org changes
   useEffect(() => {
     if (selectedOrg && !priorSelectedOrg) {
       setPriorSelectedOrg(selectedOrg.uniqueId);
     } else if (selectedOrg && priorSelectedOrg !== selectedOrg.uniqueId) {
+      const soql = querySoqlState;
+      const tooling = isTooling;
       setPriorSelectedOrg(selectedOrg.uniqueId);
       resetSobjects();
       resetSelectedSObject();
@@ -48,6 +59,10 @@ export const Query: FunctionComponent<QueryProps> = () => {
       resetQueryLimitSkip();
       resetQueryOrderByState();
       resetQuerySoqlState();
+
+      if (match.url === '/query') {
+        restore(soql, tooling);
+      }
     } else if (!selectedOrg) {
       resetSobjects();
       resetSelectedSObject();
@@ -55,6 +70,13 @@ export const Query: FunctionComponent<QueryProps> = () => {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedOrg, priorSelectedOrg]);
+
+  // safeguard to ensure that loading does not stay forever
+  useEffect(() => {
+    if (errorMessage && isRestoring) {
+      setIsRestoring(false);
+    }
+  }, [errorMessage, isRestoring]);
 
   return (
     <Fragment>
@@ -74,6 +96,7 @@ export const Query: FunctionComponent<QueryProps> = () => {
       />
       <Switch>
         <Route path={`${match.url}`} exact>
+          {isRestoring && <Spinner />}
           <QueryBuilder />
         </Route>
         <Route path={`${match.url}/results`}>{!location.state?.soql ? <Redirect to={match.url} /> : <QueryResults />}</Route>

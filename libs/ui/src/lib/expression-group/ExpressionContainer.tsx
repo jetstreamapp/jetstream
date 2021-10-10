@@ -11,10 +11,13 @@ import {
   ListItemGroup,
   QueryFilterOperator,
 } from '@jetstream/types';
-import React, { FunctionComponent, useReducer, useState } from 'react';
+import React, { FunctionComponent, useCallback, useReducer, useState } from 'react';
+import { DndProvider } from 'react-dnd';
+import { HTML5Backend } from 'react-dnd-html5-backend';
 import DropDown from '../form/dropdown/DropDown';
 import Expression from './Expression';
-import { isExpressionConditionType } from './expression-utils';
+import { DraggableRow } from './expression-types';
+import { isExpressionConditionType, isExpressionGroupType } from './expression-utils';
 import ExpressionConditionRow from './ExpressionConditionRow';
 import ExpressionGroup from './ExpressionGroup';
 
@@ -55,11 +58,21 @@ type Action =
         getResourceTypeFns?: ExpressionGetResourceTypeFns;
       };
     }
+  | {
+      type: 'ROW_MOVED';
+      payload: { row: DraggableRow; targetGroupKey?: number };
+    }
   | { type: 'DELETE_ROW'; payload: { row: ExpressionConditionType; group?: ExpressionGroupType } };
 
 interface State {
   expression: ExpressionType;
   nextConditionNumber: number;
+  showDragHandles: boolean;
+}
+
+// if at least one resource and at least one group is visible, allow dragging
+function shouldShowDragHandles(expression: ExpressionType) {
+  return expression.rows.some(isExpressionGroupType);
 }
 
 function reducer(state: State, action: Action): State {
@@ -102,6 +115,7 @@ function reducer(state: State, action: Action): State {
         ...state,
         nextConditionNumber: state.nextConditionNumber + 1,
         expression,
+        showDragHandles: shouldShowDragHandles(expression),
       };
     }
     case 'ADD_GROUP': {
@@ -111,6 +125,7 @@ function reducer(state: State, action: Action): State {
         ...state,
         nextConditionNumber: state.nextConditionNumber + 2,
         expression,
+        showDragHandles: shouldShowDragHandles(expression),
       };
     }
 
@@ -161,6 +176,69 @@ function reducer(state: State, action: Action): State {
         expression,
       };
     }
+    case 'ROW_MOVED': {
+      const { targetGroupKey } = action.payload;
+      const { rowKey, groupKey } = action.payload.row;
+      const expression = { ...state.expression };
+
+      let rowToMove: ExpressionConditionType;
+
+      expression.rows = [...expression.rows];
+
+      /** remove item from group or base set of items if not in group */
+      if (groupKey) {
+        const groupIdx = expression.rows.findIndex((item) => item.key === groupKey);
+        if (groupIdx >= 0) {
+          rowToMove = (expression.rows[groupIdx] as ExpressionGroupType).rows.find((item) => item.key === rowKey);
+
+          // clone all items that are modified
+          expression.rows[groupIdx] = { ...expression.rows[groupIdx] };
+          const currRow = expression.rows[groupIdx] as ExpressionGroupType;
+
+          // remove item from group
+          currRow.rows = (expression.rows[groupIdx] as ExpressionGroupType).rows.filter((item) => item.key !== rowKey);
+          // remove empty group
+          if (!currRow.rows.length) {
+            expression.rows = expression.rows.filter((item) => item.key !== groupKey);
+          }
+        }
+      } else {
+        rowToMove = expression.rows.find((item) => item.key === rowKey) as ExpressionConditionType;
+        // remove row
+        expression.rows = expression.rows.filter((item) => item.key !== rowKey);
+      }
+
+      /** Add item to group */
+      if (rowToMove) {
+        if (targetGroupKey) {
+          const groupIdx = expression.rows.findIndex((item) => item.key === targetGroupKey);
+          if (groupIdx >= 0) {
+            expression.rows[groupIdx] = { ...expression.rows[groupIdx] };
+            const currRow = expression.rows[groupIdx] as ExpressionGroupType;
+            currRow.rows = currRow.rows.concat(rowToMove);
+          }
+        } else {
+          // add item to base
+          const firstGroupIdx = expression.rows.findIndex((row) => isExpressionGroupType(row));
+          if (firstGroupIdx < 0) {
+            // concat to end
+            expression.rows.push(rowToMove);
+          } else if (firstGroupIdx === 0) {
+            // unshift
+            expression.rows.unshift(rowToMove);
+          } else {
+            // insert item at index that first group is located at
+            expression.rows.splice(firstGroupIdx, 0, rowToMove);
+          }
+        }
+      }
+
+      return {
+        ...state,
+        expression,
+        showDragHandles: shouldShowDragHandles(expression),
+      };
+    }
     case 'DELETE_ROW': {
       const { row, group } = action.payload;
       const expression = { ...state.expression };
@@ -190,6 +268,7 @@ function reducer(state: State, action: Action): State {
         ...state,
         nextConditionNumber,
         expression,
+        showDragHandles: shouldShowDragHandles(expression),
       };
     }
     default:
@@ -274,16 +353,28 @@ export const ExpressionContainer: FunctionComponent<ExpressionContainerProps> = 
     onChange,
   }) => {
     const [displayOption, setDisplayOption] = useState(DISPLAY_OPT_ROW);
-    const [{ expression }, dispatch] = useReducer(reducer, {
-      expression: initExpression(expressionInitValue),
-      nextConditionNumber: initConditionNumber(expressionInitValue),
-    });
+    const [{ expression, showDragHandles }, dispatch] = useReducer(
+      reducer,
+      {
+        expression: initExpression(expressionInitValue),
+        nextConditionNumber: initConditionNumber(expressionInitValue),
+        showDragHandles: false,
+      },
+      (initialState) => ({
+        ...initialState,
+        showDragHandles: shouldShowDragHandles(initialState.expression),
+      })
+    );
 
     useNonInitialEffect(() => {
       if (expression) {
         onChange(expression);
       }
     }, [expression, onChange]);
+
+    const moveRowToGroup = useCallback((row: DraggableRow, targetGroupKey?: number) => {
+      dispatch({ type: 'ROW_MOVED', payload: { row, targetGroupKey } });
+    }, []);
 
     function handleExpressionActionChange(action: AndOr) {
       dispatch({ type: 'ACTION_CHANGED', payload: { action } });
@@ -318,93 +409,103 @@ export const ExpressionContainer: FunctionComponent<ExpressionContainerProps> = 
     }
 
     return (
-      <Expression
-        actionLabel={actionLabel}
-        title={title}
-        value={expression.action}
-        ancillaryOptions={
-          <div className="slds-m-top_large slds-m-left_xx-small">
-            <DropDown
-              position="left"
-              description="Display options"
-              initialSelectedId={displayOption}
-              items={[
-                { id: DISPLAY_OPT_ROW, value: 'Display filters on one row' },
-                { id: DISPLAY_OPT_WRAP, value: 'Wrap filters if limited space' },
-              ]}
-              onSelected={(id) => setDisplayOption(id)}
-            />
-          </div>
-        }
-        onActionChange={handleExpressionActionChange}
-        onAddCondition={handleAddCondition}
-        onAddGroup={handleAddGroup}
-      >
-        {expression.rows.map((row, i) => {
-          if (isExpressionConditionType(row)) {
-            return (
-              <ExpressionConditionRow
-                key={row.key}
-                row={i + 1}
-                wrap={displayOption === DISPLAY_OPT_WRAP}
-                resourceTypes={row.resourceTypes}
-                resourceType={row.resourceType}
-                resourceSelectItems={row.resourceSelectItems}
-                resourceLabel={resourceLabel}
-                resourceHelpText={resourceHelpText}
-                operatorLabel={operatorLabel}
-                operatorHelpText={operatorHelpText}
-                valueLabel={valueLabel}
-                valueLabelHelpText={valueLabelHelpText}
-                rowHelpText={row.helpText}
-                AndOr={expression.action}
-                resources={resources}
-                operators={operators}
-                selected={row.selected}
-                disableValueForOperators={disableValueForOperators}
-                onChange={(selected) => handleRowChange(selected, row)}
-                onDelete={() => handleDeleteRow(row)}
-              ></ExpressionConditionRow>
-            );
-          } else {
-            return (
-              <ExpressionGroup
-                key={row.key}
-                group={i + 1}
-                parentAction={expression.action}
-                onActionChange={(andOr) => handleGroupActionChange(andOr, row)}
-                onAddCondition={() => handleAddCondition(row)}
-              >
-                {row.rows.map((childRow: ExpressionConditionType, k) => (
-                  <ExpressionConditionRow
-                    key={childRow.key}
-                    group={i + 1}
-                    row={k + 1}
-                    wrap={displayOption === DISPLAY_OPT_WRAP}
-                    resourceTypes={childRow.resourceTypes}
-                    resourceType={childRow.resourceType}
-                    resourceSelectItems={childRow.resourceSelectItems}
-                    AndOr={row.action}
-                    resourceLabel={resourceLabel}
-                    resourceHelpText={resourceHelpText}
-                    operatorLabel={operatorLabel}
-                    operatorHelpText={operatorHelpText}
-                    valueLabel={valueLabel}
-                    valueLabelHelpText={valueLabelHelpText}
-                    rowHelpText={childRow.helpText}
-                    resources={resources}
-                    operators={operators}
-                    selected={childRow.selected}
-                    disableValueForOperators={disableValueForOperators}
-                    onChange={(selected) => handleRowChange(selected, childRow, row)}
-                    onDelete={() => handleDeleteRow(childRow, row)}
-                  ></ExpressionConditionRow>
-                ))}
-              </ExpressionGroup>
-            );
+      <DndProvider backend={HTML5Backend}>
+        <Expression
+          actionLabel={actionLabel}
+          title={title}
+          value={expression.action}
+          ancillaryOptions={
+            <div className="slds-m-top_large slds-m-left_xx-small">
+              <DropDown
+                position="left"
+                description="Display options"
+                initialSelectedId={displayOption}
+                items={[
+                  { id: DISPLAY_OPT_ROW, value: 'Display filters on one row' },
+                  { id: DISPLAY_OPT_WRAP, value: 'Wrap filters if limited space' },
+                ]}
+                onSelected={(id) => setDisplayOption(id)}
+              />
+            </div>
           }
-        })}
-      </Expression>
+          onActionChange={handleExpressionActionChange}
+          onAddCondition={handleAddCondition}
+          onAddGroup={handleAddGroup}
+          moveRowToGroup={moveRowToGroup}
+        >
+          {expression.rows.map((row, i) => {
+            if (isExpressionConditionType(row)) {
+              return (
+                <ExpressionConditionRow
+                  key={row.key}
+                  rowKey={row.key}
+                  row={i + 1}
+                  AndOr={expression.action}
+                  showDragHandles={showDragHandles}
+                  wrap={displayOption === DISPLAY_OPT_WRAP}
+                  resourceTypes={row.resourceTypes}
+                  resourceType={row.resourceType}
+                  resourceSelectItems={row.resourceSelectItems}
+                  resourceLabel={resourceLabel}
+                  resourceHelpText={resourceHelpText}
+                  operatorLabel={operatorLabel}
+                  operatorHelpText={operatorHelpText}
+                  valueLabel={valueLabel}
+                  valueLabelHelpText={valueLabelHelpText}
+                  rowHelpText={row.helpText}
+                  resources={resources}
+                  operators={operators}
+                  selected={row.selected}
+                  disableValueForOperators={disableValueForOperators}
+                  onChange={(selected) => handleRowChange(selected, row)}
+                  onDelete={() => handleDeleteRow(row)}
+                ></ExpressionConditionRow>
+              );
+            } else {
+              return (
+                <ExpressionGroup
+                  key={row.key}
+                  groupKey={row.key}
+                  group={i + 1}
+                  parentAction={expression.action}
+                  onActionChange={(andOr) => handleGroupActionChange(andOr, row)}
+                  onAddCondition={() => handleAddCondition(row)}
+                  moveRowToGroup={moveRowToGroup}
+                >
+                  {row.rows.map((childRow: ExpressionConditionType, k) => (
+                    <ExpressionConditionRow
+                      key={childRow.key}
+                      rowKey={childRow.key}
+                      groupKey={row.key}
+                      group={i + 1}
+                      row={k + 1}
+                      AndOr={row.action}
+                      showDragHandles={showDragHandles}
+                      wrap={displayOption === DISPLAY_OPT_WRAP}
+                      resourceTypes={childRow.resourceTypes}
+                      resourceType={childRow.resourceType}
+                      resourceSelectItems={childRow.resourceSelectItems}
+                      resourceLabel={resourceLabel}
+                      resourceHelpText={resourceHelpText}
+                      operatorLabel={operatorLabel}
+                      operatorHelpText={operatorHelpText}
+                      valueLabel={valueLabel}
+                      valueLabelHelpText={valueLabelHelpText}
+                      rowHelpText={childRow.helpText}
+                      resources={resources}
+                      operators={operators}
+                      selected={childRow.selected}
+                      disableValueForOperators={disableValueForOperators}
+                      onChange={(selected) => handleRowChange(selected, childRow, row)}
+                      onDelete={() => handleDeleteRow(childRow, row)}
+                    ></ExpressionConditionRow>
+                  ))}
+                </ExpressionGroup>
+              );
+            }
+          })}
+        </Expression>
+      </DndProvider>
     );
   }
 );

@@ -9,7 +9,7 @@ import {
   useNonInitialEffect,
 } from '@jetstream/shared/ui-utils';
 import { NOOP } from '@jetstream/shared/utils';
-import { FormGroupDropdownItem } from '@jetstream/types';
+import { DropDownItemLength, FormGroupDropdownItem } from '@jetstream/types';
 import classNames from 'classnames';
 import isNumber from 'lodash/isNumber';
 import uniqueId from 'lodash/uniqueId';
@@ -54,7 +54,7 @@ export interface ComboboxProps {
     items: FormGroupDropdownItem[];
     initialSelectedItem?: FormGroupDropdownItem;
   };
-  itemLength?: 5 | 7;
+  itemLength?: DropDownItemLength;
   hasError?: boolean;
   errorMessageId?: string;
   errorMessage?: React.ReactNode | string;
@@ -112,7 +112,7 @@ const ComboboxElement: FunctionComponent<ComboboxProps & { icon: JSX.Element }> 
   selectedItemLabel,
   selectedItemTitle,
   leadingDropdown,
-  itemLength = 5,
+  itemLength = 7,
   hasError,
   errorMessageId,
   errorMessage,

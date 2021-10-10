@@ -1,3 +1,4 @@
+import { css } from '@emotion/react';
 import { useDebounce } from '@jetstream/shared/ui-utils';
 import { multiWordObjectFilter } from '@jetstream/shared/utils';
 import {
@@ -16,6 +17,8 @@ import parseISO from 'date-fns/parseISO';
 import isNumber from 'lodash/isNumber';
 import isString from 'lodash/isString';
 import React, { FunctionComponent, useEffect, useState } from 'react';
+import { useDrag } from 'react-dnd';
+import { Icon } from '../widgets/Icon';
 import FormRowButton from '../form/button/FormRowButton';
 import Combobox from '../form/combobox/Combobox';
 import { ComboboxListItem } from '../form/combobox/ComboboxListItem';
@@ -25,11 +28,15 @@ import DatePicker from '../form/date/DatePicker';
 import Input from '../form/input/Input';
 import Picklist from '../form/picklist/Picklist';
 import Textarea from '../form/textarea/Textarea';
+import { DraggableRow } from './expression-types';
 
 export interface ExpressionConditionRowProps {
+  rowKey: number;
+  groupKey?: number;
   row: number;
   group?: number;
   AndOr?: AndOr;
+  showDragHandles?: boolean;
   wrap?: boolean;
   resourceLabel?: string;
   resourceHelpText?: string;
@@ -55,9 +62,12 @@ function getSelectionLabel(groupLabel: string, item: ListItem<string, unknown>) 
 
 export const ExpressionConditionRow: FunctionComponent<ExpressionConditionRowProps> = React.memo(
   ({
+    rowKey,
+    groupKey,
     row,
     group,
     AndOr,
+    showDragHandles,
     wrap,
     resourceLabel = 'Resource',
     resourceHelpText,
@@ -81,7 +91,6 @@ export const ExpressionConditionRow: FunctionComponent<ExpressionConditionRowPro
     const [selectedResourceType, setSelectedResourceType] = useState<ListItem<ExpressionRowValueType>[]>();
     const [resourcesFilter, setResourcesFilter] = useState<string>(null);
     const [selectedValue, setSelectValue] = useState(selected.value);
-    const [initialSelectedOperator] = useState(() => operators.find((item) => item.id === selected.operator) || operators[0]);
     const [selectedResourceComboboxLabel, setSelectedResourceComboboxLabel] = useState<string>(() => {
       if (selected.resource) {
         const group = resources.find((currResource) => currResource.id === selected.resourceGroup);
@@ -97,6 +106,17 @@ export const ExpressionConditionRow: FunctionComponent<ExpressionConditionRowPro
     // the default picklist value does not get picked up in time - so this forces the picklist to re-render
     const [picklistKey, setPicklistKey] = useState<string>(`${new Date().getTime()}`);
     const debouncedSelectedValue = useDebounce(selectedValue, 150);
+
+    const [{ isDragging }, drag, preview] = useDrag(
+      () => ({
+        type: 'row',
+        item: (): DraggableRow => ({ rowKey, groupKey }),
+        collect: (monitor) => ({
+          isDragging: !!monitor.isDragging(),
+        }),
+      }),
+      [row]
+    );
 
     useEffect(() => {
       onChange({ ...selected, value: debouncedSelectedValue });
@@ -177,17 +197,33 @@ export const ExpressionConditionRow: FunctionComponent<ExpressionConditionRowPro
 
     return (
       <li
+        ref={preview}
         className={classNames('slds-expression__row', {
           'slds-expression__row_group': isNumber(group),
           'slds-border_top': row > 1 && wrap,
         })}
+        css={css`
+          opacity: ${isDragging ? '.4' : '1'};
+        `}
       >
         <fieldset>
-          <legend className="slds-expression__legend">
+          <legend className="slds-expression__legend slds-grid">
             {row !== 1 && AndOr && <span>{AndOr}</span>}
             <span className="slds-assistive-text">{`Condition ${row} ${group ? `Of Group ${group}` : ''}`}</span>
           </legend>
           <div className={classNames('slds-grid slds-gutters_xx-small', { 'slds-wrap': wrap })}>
+            {showDragHandles && (
+              <button
+                ref={drag}
+                css={css`
+                  cursor: grab;
+                `}
+                className="slds-button slds-button_icon"
+                title="Drag row between groups or out of the group"
+              >
+                <Icon icon="drag_and_drop" type="utility" className="slds-button__icon" omitContainer description="Drag filter row" />
+              </button>
+            )}
             {/* Resource */}
             <div className="slds-col">
               <Combobox
@@ -196,6 +232,7 @@ export const ExpressionConditionRow: FunctionComponent<ExpressionConditionRowPro
                 onInputChange={(filter) => setResourcesFilter(filter)}
                 selectedItemLabel={selectedResourceComboboxLabel}
                 selectedItemTitle={selectedResourceTitle}
+                itemLength={10}
                 onInputEnter={() => {
                   const groupWithItems = visibleResources.findIndex((group) => group.items.length > 0);
                   if (groupWithItems >= 0) {
@@ -233,6 +270,7 @@ export const ExpressionConditionRow: FunctionComponent<ExpressionConditionRowPro
                 comboboxProps={{
                   label: operatorLabel,
                   labelHelp: operatorHelpText,
+                  itemLength: 10,
                 }}
                 items={operators}
                 selectedItemId={selected.operator}
@@ -310,6 +348,7 @@ export const ExpressionConditionRow: FunctionComponent<ExpressionConditionRowPro
                   items={resourceSelectItems || []}
                   selectedItemIds={selectedValue ? [selectedValue as string] : []}
                   allowDeselection
+                  scrollLength={10}
                   onChange={(item) => {
                     if (item && item[0]) {
                       setSelectValue(item[0].id);
@@ -326,6 +365,7 @@ export const ExpressionConditionRow: FunctionComponent<ExpressionConditionRowPro
                   selectedItemIds={isString(selectedValue) ? [selectedValue] : (selectedValue as string[]) || []}
                   multiSelection
                   omitMultiSelectPills
+                  scrollLength={10}
                   onChange={(items) => {
                     if (items) {
                       setSelectValue(items.map((item) => item.id));

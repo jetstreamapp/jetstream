@@ -48,6 +48,7 @@ import UtilityIcon_DateTime from './icons/utility/DateTime';
 import UtilityIcon_Delete from './icons/utility/Delete';
 import UtilityIcon_Down from './icons/utility/Down';
 import UtilityIcon_Download from './icons/utility/Download';
+import UtilityIcon_DragAndDrop from './icons/utility/DragAndDrop';
 import UtilityIcon_Edit from './icons/utility/Edit';
 import UtilityIcon_Error from './icons/utility/Error';
 import UtilityIcon_Event from './icons/utility/Event';
@@ -154,6 +155,7 @@ const utilityIcons: UtilityIconObj = {
   delete: UtilityIcon_Delete,
   down: UtilityIcon_Down,
   download: UtilityIcon_Download,
+  drag_and_drop: UtilityIcon_DragAndDrop,
   edit: UtilityIcon_Edit,
   error: UtilityIcon_Error,
   event: UtilityIcon_Event,

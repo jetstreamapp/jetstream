@@ -1,9 +1,8 @@
 import { ColDef, ColumnEvent, GridApi, GridReadyEvent, ProcessHeaderForExportParams, SelectionChangedEvent } from '@ag-grid-community/core';
-
 import { QueryResults } from '@jetstream/api-interfaces';
 import { logger } from '@jetstream/shared/client-logger';
-import { queryMore } from '@jetstream/shared/data';
-import { formatNumber } from '@jetstream/shared/ui-utils';
+import { queryRemaining } from '@jetstream/shared/data';
+import { formatNumber, useRollbar } from '@jetstream/shared/ui-utils';
 import { MapOf, SalesforceOrgUi } from '@jetstream/types';
 import { Field } from 'jsforce';
 import uniqueId from 'lodash/uniqueId';
@@ -11,6 +10,7 @@ import { Fragment, FunctionComponent, memo, ReactNode, useEffect, useRef, useSta
 import SearchInput from '../form/search-input/SearchInput';
 import Grid from '../grid/Grid';
 import AutoFullHeightContainer from '../layout/AutoFullHeightContainer';
+import { PopoverErrorButton } from '../popover/PopoverErrorButton';
 import Spinner from '../widgets/Spinner';
 import './data-table-styles.css';
 import {
@@ -80,12 +80,14 @@ export const SalesforceRecordDataTable: FunctionComponent<SalesforceRecordDataTa
     onGetAsApex,
   }) => {
     const isMounted = useRef(null);
+    const rollbar = useRollbar();
     const [gridApi, setGridApi] = useState<GridApi>(null);
     const [columns, setColumns] = useState<ColDef[]>();
     const [columnDefinitions, setColumnDefinitions] = useState<SalesforceQueryColumnDefinition>();
     const [records, setRecords] = useState<any[]>();
     const [totalRecordCount, setTotalRecordCount] = useState<number>();
     const [isLoadingMore, setIsLoadingMore] = useState<boolean>(false);
+    const [loadMoreErrorMessage, setLoadMoreErrorMessage] = useState<string>();
     const [hasMoreRecords, setHasMoreRecords] = useState<boolean>(false);
     const [nextRecordsUrl, setNextRecordsUrl] = useState<string>();
     const [globalFilter, setGlobalFilter] = useState<string>(null);
@@ -160,10 +162,11 @@ export const SalesforceRecordDataTable: FunctionComponent<SalesforceRecordDataTa
       }
     }
 
-    async function loadMore() {
+    async function loadRemaining() {
       try {
         setIsLoadingMore(true);
-        const results = await queryMore(org, nextRecordsUrl, isTooling);
+        setLoadMoreErrorMessage(null);
+        const results = await queryRemaining(org, nextRecordsUrl, isTooling);
         if (!isMounted.current) {
           return;
         }
@@ -182,6 +185,8 @@ export const SalesforceRecordDataTable: FunctionComponent<SalesforceRecordDataTa
         }
         // oops. show the user an error
         setIsLoadingMore(false);
+        setLoadMoreErrorMessage('There was a problem loading the rest of the records.');
+        rollbar.error('Load Remaining Records failed', { message: ex.message, stack: ex.stack });
       }
     }
 
@@ -203,10 +208,15 @@ export const SalesforceRecordDataTable: FunctionComponent<SalesforceRecordDataTa
             </div>
             {hasMoreRecords && (
               <div>
-                <button className="slds-button slds-button_neutral slds-is-relative" onClick={loadMore} disabled={isLoadingMore}>
-                  Load More
+                <button
+                  className="slds-button slds-button_brand slds-m-left_x-small slds-is-relative"
+                  onClick={loadRemaining}
+                  disabled={isLoadingMore}
+                >
+                  Load All Records
                   {isLoadingMore && <Spinner size="small" />}
                 </button>
+                {loadMoreErrorMessage && <PopoverErrorButton listHeader={null} errors={loadMoreErrorMessage} />}
               </div>
             )}
           </div>
