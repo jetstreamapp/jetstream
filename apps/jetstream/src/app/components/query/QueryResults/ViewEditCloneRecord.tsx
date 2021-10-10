@@ -30,6 +30,26 @@ import {
   validateEditForm,
 } from '../utils/query-utils';
 
+function getModalTitle(action: CloneEditView) {
+  if (action === 'view') {
+    return 'View Record';
+  } else if (action === 'edit') {
+    return 'Edit Record';
+  } else if (action === 'clone') {
+    return 'Clone Record';
+  }
+  return 'Create Record';
+}
+
+function getTagline(sobjectName: string, initialRecord?: Record, recordId?: string) {
+  if (initialRecord && recordId) {
+    return `${sobjectName} - ${initialRecord.Name} - ${recordId}`;
+  } else if (recordId) {
+    return `${sobjectName} - ${recordId}`;
+  }
+  return sobjectName;
+}
+
 export interface ViewEditCloneRecordProps {
   apiVersion: string;
   selectedOrg: SalesforceOrgUi;
@@ -58,10 +78,9 @@ export const ViewEditCloneRecord: FunctionComponent<ViewEditCloneRecordProps> = 
   const [formIsDirty, setIsFormDirty] = useState<boolean>(false);
   const [loading, setLoading] = useState<boolean>(false);
   const [saving, setSaving] = useState<boolean>(false);
-  const [showReadOnlyFields, setShowReadOnlyFields] = useState<boolean>(true);
   const [showFieldTypes, setShowFieldTypes] = useState<boolean>(false);
   const [formErrors, setFormErrors] = useState<EditFromErrors>({ hasErrors: false, fieldErrors: {}, generalErrors: [] });
-  const [modalTitle, setModalTitle] = useState(getModalTitle);
+  const [modalTitle, setModalTitle] = useState(() => getModalTitle(action));
 
   const [downloadModalOpen, setDownloadModalOpen] = useState(false);
 
@@ -73,7 +92,7 @@ export const ViewEditCloneRecord: FunctionComponent<ViewEditCloneRecordProps> = 
   }, []);
 
   useNonInitialEffect(() => {
-    setModalTitle(getModalTitle);
+    setModalTitle(getModalTitle(action));
   }, [action]);
 
   useNonInitialEffect(() => {
@@ -100,10 +119,15 @@ export const ViewEditCloneRecord: FunctionComponent<ViewEditCloneRecordProps> = 
   const fetchMetadata = useCallback(async () => {
     try {
       let picklistValues: PicklistFieldValues = {};
-      const record = await sobjectOperation<Record>(selectedOrg, sobjectName, 'retrieve', { ids: recordId });
+      let record: Record = {};
+
+      if (action !== 'create') {
+        record = await sobjectOperation<Record>(selectedOrg, sobjectName, 'retrieve', { ids: recordId });
+      }
+
       const sobjectMetadata = await describeSObject(selectedOrg, sobjectName);
 
-      let recordTypeId = record.RecordTypeId;
+      let recordTypeId = record?.RecordTypeId;
       if (!recordTypeId) {
         const recordTypeInfos = sobjectMetadata.data.recordTypeInfos;
         if (recordTypeInfos.length === 1) {
@@ -161,15 +185,6 @@ export const ViewEditCloneRecord: FunctionComponent<ViewEditCloneRecordProps> = 
     setLoading(true);
     fetchMetadata();
   }, [fetchMetadata]);
-
-  function getModalTitle() {
-    if (action === 'view') {
-      return 'View Record';
-    } else if (action === 'edit') {
-      return 'Edit Record';
-    }
-    return 'Clone Record';
-  }
 
   async function handleRecordChange(record: Record) {
     setModifiedRecord(record);
@@ -246,9 +261,10 @@ export const ViewEditCloneRecord: FunctionComponent<ViewEditCloneRecordProps> = 
       {!downloadModalOpen && (
         <Modal
           header={modalTitle}
-          tagline={`${sobjectName} - ${recordId}`}
+          tagline={getTagline(sobjectName, initialRecord, recordId)}
           size="lg"
           closeOnEsc={!loading && !formIsDirty}
+          className="h-100 slds-is-relative"
           footer={
             <Fragment>
               {action === 'view' && (
@@ -287,23 +303,7 @@ export const ViewEditCloneRecord: FunctionComponent<ViewEditCloneRecordProps> = 
                 </Grid>
               )}
               {action !== 'view' && (
-                <Grid align="spread">
-                  <div className="slds-size--1-of-3 slds-text-align_left">
-                    <Checkbox
-                      id={`record-actions-show-read-only`}
-                      checked={showReadOnlyFields}
-                      onChange={setShowReadOnlyFields}
-                      label="Show Read Ony Fields"
-                      disabled={loading || saving || !initialRecord}
-                    />
-                    <Checkbox
-                      id={`record-actions-show-field-types`}
-                      checked={showFieldTypes}
-                      onChange={setShowFieldTypes}
-                      label="Show Field Types"
-                      disabled={loading || saving || !initialRecord}
-                    />
-                  </div>
+                <Grid align="center">
                   <div>
                     {formErrors.hasErrors && formErrors.generalErrors.length > 0 && (
                       <span className="slds-text-align_left d-inline-block">
@@ -321,19 +321,13 @@ export const ViewEditCloneRecord: FunctionComponent<ViewEditCloneRecordProps> = 
                       Save
                     </button>
                   </div>
-                  <div className="slds-size--1-of-3" />
                 </Grid>
               )}
             </Fragment>
           }
           onClose={() => onClose()}
         >
-          <div
-            className="slds-is-relative"
-            css={css`
-              min-height: 250px;
-            `}
-          >
+          <div>
             {(loading || saving) && <Spinner />}
             {!loading && initialRecord && (
               <UiRecordForm
@@ -341,8 +335,6 @@ export const ViewEditCloneRecord: FunctionComponent<ViewEditCloneRecordProps> = 
                 sobjectFields={sobjectFields}
                 picklistValues={picklistValues}
                 record={initialRecord}
-                showReadOnlyFields={showReadOnlyFields}
-                showFieldTypes={showFieldTypes}
                 saveErrors={formErrors.fieldErrors}
                 onChange={handleRecordChange}
               />

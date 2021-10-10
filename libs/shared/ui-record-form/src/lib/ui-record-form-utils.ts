@@ -17,6 +17,7 @@ const IGNORED_FIELD_TYPES = new Set<FieldType>(['address', 'location', 'complexv
 const CHECKBOX_FIELD_TYPES = new Set<FieldType>(['boolean']);
 const DATE_FIELD_TYPES = new Set<FieldType>(['date']);
 const DATE_TIME_FIELD_TYPES = new Set<FieldType>(['datetime']);
+const TIME_FIELD_TYPES = new Set<FieldType>(['time']);
 const PICKLIST_FIELD_TYPES = new Set<FieldType>(['combobox', 'picklist', 'multipicklist']);
 const TEXTAREA_FIELD_TYPES = new Set<FieldType>(['textarea']);
 const NUMBER_TYPES = new Set<FieldType>(['int', 'double', 'currency', 'percent']);
@@ -41,6 +42,10 @@ export function isDateTime(value: any): value is EditableFieldDateTime {
   return value && value.type === 'datetime';
 }
 
+export function isTime(value: any): value is EditableFieldDate {
+  return value && value.type === 'time';
+}
+
 export function isPicklist(value: any): value is EditableFieldPicklist {
   return value && value.type === 'picklist';
 }
@@ -51,84 +56,84 @@ export function convertMetadataToEditableFields(
   action: CloneEditView,
   record: Record
 ): EditableFields[] {
-  return sortQueryFields(fields.filter((field) => !IGNORED_FIELD_TYPES.has(field.type))).map(
-    (field): EditableFields => {
-      let readOnly = action === 'view';
-      if (!readOnly) {
-        readOnly = action === 'edit' ? !field.updateable : !field.createable;
-      }
-      const output: Partial<EditableFields> = {
-        label: `${field.label} (${field.name})`,
-        name: field.name,
-        labelHelpText: field.inlineHelpText,
-        inputHelpText: `${field.name}`,
-        required: !field.nillable && field.type !== 'boolean',
-        readOnly,
-        metadata: field,
-      };
-      if (CHECKBOX_FIELD_TYPES.has(field.type)) {
-        output.type = 'checkbox';
-        (output as EditableFieldTextarea).isRichTextarea = field.extraTypeInfo === 'richtextarea';
-      } else if (DATE_FIELD_TYPES.has(field.type)) {
-        output.type = 'date';
-      } else if (DATE_TIME_FIELD_TYPES.has(field.type)) {
-        output.type = 'datetime';
-      } else if (TEXTAREA_FIELD_TYPES.has(field.type)) {
-        output.type = 'textarea';
-        (output as EditableFieldTextarea).maxLength = field.length || undefined;
-      } else if (PICKLIST_FIELD_TYPES.has(field.type)) {
-        output.type = 'picklist';
-        (output as EditableFieldPicklist).defaultValue = null;
-        (output as EditableFieldPicklist).values = [];
-        if (picklistValues[field.name]) {
-          const picklist = picklistValues[field.name];
-          const picklistOutput = output as EditableFieldPicklist;
-          picklistOutput.defaultValue = picklist.defaultValue;
-          picklistOutput.values = [
-            // Empty value to allow clearing picklist
-            {
-              id: 'none',
-              label: '--None--',
-              value: '',
-              meta: { attributes: null, validFor: null, label: '--None--', value: '' },
-            },
-          ].concat(
-            picklist.values.map((item) => ({
-              id: item.value,
-              label: item.label,
-              value: item.value,
-              meta: item,
-            }))
-          );
-          // if record has an inactive value, this will show the field as dirty - so instead we add the inactive value to the list
-          if (isString(record[field.name]) && !picklistOutput.values.find((item) => item.value === record[field.name])) {
-            picklistOutput.values.push({
-              id: record[field.name],
+  return sortQueryFields(fields.filter((field) => !IGNORED_FIELD_TYPES.has(field.type))).map((field): EditableFields => {
+    let readOnly = action === 'view';
+    if (!readOnly) {
+      readOnly = action === 'edit' ? !field.updateable : !field.createable;
+    }
+    const output: Partial<EditableFields> = {
+      label: `${field.label} (${field.name})`,
+      name: field.name,
+      labelHelpText: field.inlineHelpText,
+      inputHelpText: `${field.name}`,
+      required: !field.nillable && field.type !== 'boolean',
+      readOnly,
+      metadata: field,
+    };
+    if (CHECKBOX_FIELD_TYPES.has(field.type)) {
+      output.type = 'checkbox';
+      (output as EditableFieldTextarea).isRichTextarea = field.extraTypeInfo === 'richtextarea';
+    } else if (DATE_FIELD_TYPES.has(field.type)) {
+      output.type = 'date';
+    } else if (DATE_TIME_FIELD_TYPES.has(field.type)) {
+      output.type = 'datetime';
+    } else if (TIME_FIELD_TYPES.has(field.type)) {
+      output.type = 'time';
+    } else if (TEXTAREA_FIELD_TYPES.has(field.type)) {
+      output.type = 'textarea';
+      (output as EditableFieldTextarea).maxLength = field.length || undefined;
+    } else if (PICKLIST_FIELD_TYPES.has(field.type)) {
+      output.type = 'picklist';
+      (output as EditableFieldPicklist).defaultValue = null;
+      (output as EditableFieldPicklist).values = [];
+      if (picklistValues[field.name]) {
+        const picklist = picklistValues[field.name];
+        const picklistOutput = output as EditableFieldPicklist;
+        picklistOutput.defaultValue = picklist.defaultValue;
+        picklistOutput.values = [
+          // Empty value to allow clearing picklist
+          {
+            id: '',
+            label: '--None--',
+            value: '',
+            meta: { attributes: null, validFor: null, label: '--None--', value: '' },
+          },
+        ].concat(
+          picklist.values.map((item) => ({
+            id: item.value,
+            label: item.label,
+            value: item.value,
+            meta: item,
+          }))
+        );
+        // if record has an inactive value, this will show the field as dirty - so instead we add the inactive value to the list
+        if (isString(record[field.name]) && !picklistOutput.values.find((item) => item.value === record[field.name])) {
+          picklistOutput.values.push({
+            id: record[field.name],
+            label: `${record[field.name]} (Inactive)`,
+            value: record[field.name],
+            meta: {
+              attributes: null,
+              validFor: null,
               label: `${record[field.name]} (Inactive)`,
               value: record[field.name],
-              meta: {
-                attributes: null,
-                validFor: null,
-                label: `${record[field.name]} (Inactive)`,
-                value: record[field.name],
-              },
-            });
-          }
-        }
-      } else {
-        output.type = 'input';
-        if (NUMBER_TYPES.has(field.type)) {
-          (output as EditableFieldInput).maxLength = undefined;
-          (output as EditableFieldInput).inputMode = 'decimal';
-          (output as EditableFieldInput).step = 'any';
-        } else {
-          // this will ensure that 0 length will not get specified
-          (output as EditableFieldInput).maxLength = field.length || undefined;
+            },
+          });
         }
       }
-      return output as EditableFields;
+    } else {
+      output.type = 'input';
+      if (NUMBER_TYPES.has(field.type)) {
+        (output as EditableFieldInput).maxLength = undefined;
+        (output as EditableFieldInput).inputMode = 'decimal';
+        (output as EditableFieldInput).step = 'any';
+      } else {
+        // this will ensure that 0 length will not get specified
+        (output as EditableFieldInput).maxLength = field.length || undefined;
+      }
     }
-  );
+    return output as EditableFields;
+  });
 }
 
 // UI API is not supported, artificially build picklist values

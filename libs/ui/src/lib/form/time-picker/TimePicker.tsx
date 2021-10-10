@@ -1,4 +1,3 @@
-/* eslint-disable jsx-a11y/anchor-is-valid */
 import { useNonInitialEffect } from '@jetstream/shared/ui-utils';
 import { ListItem } from '@jetstream/types';
 import addMinutes from 'date-fns/addMinutes';
@@ -8,7 +7,7 @@ import parseDate from 'date-fns/parse';
 import React, { FunctionComponent, useState } from 'react';
 import Picklist, { PicklistProps } from '../picklist/Picklist';
 
-export type PicklistPropsWithoutItems = Omit<
+type PicklistPropsWithoutItems = Omit<
   PicklistProps,
   'items' | 'groups' | 'selectedItems' | 'selectedItemIds' | 'multiSelection' | 'omitMultiSelectPills' | 'onChange'
 >;
@@ -64,7 +63,7 @@ function normalizeInitialTime(time: string, stepInMinutes: number) {
       }
     }
 
-    return `${hour}:${min}:00.000`;
+    return `${String(hour).padStart(2, '0')}:${String(min).padStart(2, '0')}:00.000`;
   } catch (ex) {
     return time;
   }

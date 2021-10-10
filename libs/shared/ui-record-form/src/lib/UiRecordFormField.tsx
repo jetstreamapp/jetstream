@@ -1,7 +1,7 @@
 import { css } from '@emotion/react';
 import { polyfillFieldDefinition } from '@jetstream/shared/ui-utils';
 import { ListItem, PicklistFieldValueItem } from '@jetstream/types';
-import { Checkbox, DatePicker, DateTime, Grid, Icon, Input, Picklist, ReadOnlyFormElement, Textarea } from '@jetstream/ui';
+import { Checkbox, DatePicker, DateTime, Grid, Icon, Input, Picklist, ReadOnlyFormElement, Textarea, TimePicker } from '@jetstream/ui';
 import classNames from 'classnames';
 import formatISO from 'date-fns/formatISO';
 import parseISO from 'date-fns/parseISO';
@@ -10,15 +10,41 @@ import startOfDay from 'date-fns/startOfDay';
 import uniqueId from 'lodash/uniqueId';
 import { Fragment, FunctionComponent, ReactNode, SyntheticEvent, useEffect, useState } from 'react';
 import { EditableFields } from './ui-record-form-types';
-import { isCheckbox, isDate, isDateTime, isInput, isPicklist, isTextarea } from './ui-record-form-utils';
+import { isCheckbox, isDate, isDateTime, isInput, isPicklist, isTextarea, isTime } from './ui-record-form-utils';
 
 const REPLACE_NON_NUMERIC = /[^\d.-]/g;
+
+function getInitialValue(initialValue: string | boolean | null, field: EditableFields): string | string[] | boolean {
+  if (initialValue) {
+    const { metadata } = field;
+    if (metadata.type === 'date') {
+      return formatISO(startOfDay(parseISO(initialValue as string)));
+    } else if (metadata.type === 'datetime') {
+      return formatISO(roundToNearestMinutes(parseISO(initialValue as string)));
+    } else if (metadata.type === 'picklist') {
+      return [initialValue as string];
+    } else if (metadata.type === 'multipicklist') {
+      return (initialValue as string).split(';').sort();
+    }
+  } else if (initialValue == null && (isInput(field) || isTextarea(field))) {
+    return '';
+  }
+  return initialValue;
+}
+
+function getInitialModifiedValue(modifiedValue: string | boolean | null, initialValue: string | boolean | string[], field: EditableFields) {
+  if (modifiedValue !== null && modifiedValue !== undefined) {
+    return getInitialValue(modifiedValue, field);
+  }
+  return initialValue;
+}
 
 export interface UiRecordFormFieldProps {
   field: EditableFields;
   saveError?: string;
   disabled?: boolean;
   initialValue: string | boolean | null;
+  modifiedValue: string | boolean | null;
   showFieldTypes: boolean;
   omitUndoIndicator?: boolean;
   // picklist values are converted to strings prior to emitting
@@ -33,6 +59,7 @@ export const UiRecordFormField: FunctionComponent<UiRecordFormFieldProps> = ({
   saveError,
   disabled,
   initialValue: _initialValue,
+  modifiedValue,
   showFieldTypes,
   omitUndoIndicator,
   onChange,
@@ -41,29 +68,14 @@ export const UiRecordFormField: FunctionComponent<UiRecordFormFieldProps> = ({
   const required = !readOnly && field.required;
   const [id] = useState(uniqueId(name));
   const [key, setKey] = useState(getUndoKey(name));
-  const [initialValue] = useState(() => {
-    if (_initialValue) {
-      if (metadata.type === 'date') {
-        return formatISO(startOfDay(parseISO(_initialValue as string)));
-      } else if (metadata.type === 'datetime') {
-        return formatISO(roundToNearestMinutes(parseISO(_initialValue as string)));
-      } else if (metadata.type === 'picklist') {
-        return [_initialValue];
-      } else if (metadata.type === 'multipicklist') {
-        return (_initialValue as string).split(';').sort();
-      }
-    } else if ((_initialValue == null && isInput(field)) || isTextarea(field)) {
-      return '';
-    }
-    return _initialValue;
-  });
-  const [value, setValue] = useState(initialValue);
-  const [isDirty, setIsDirty] = useState(false);
+  const [initialValue] = useState(() => getInitialValue(_initialValue, field));
+  const [value, setValue] = useState(() => getInitialModifiedValue(modifiedValue, initialValue, field));
+  const [isDirty, setIsDirty] = useState(readOnly ? false : checkIfDirty(false, modifiedValue).isDirty);
   const [helpText, setHelpText] = useState<ReactNode>();
 
   const [initialSelectedDate] = useState(() => {
-    if (initialValue && (isDate(field) || isDateTime(field))) {
-      return parseISO(initialValue as string);
+    if (value && (isDate(field) || isDateTime(field))) {
+      return parseISO(value as string);
     }
   });
 
@@ -90,32 +102,46 @@ export const UiRecordFormField: FunctionComponent<UiRecordFormFieldProps> = ({
     }
   }, [readOnly, showFieldTypes, metadata, helpText]);
 
-  function checkIfDirtyAndEmit(valueOverride?: string | string[] | boolean) {
+  function checkIfDirty(
+    isDirty: boolean,
+    valueOverride?: string | string[] | boolean
+  ): { value: string | boolean | null; isDirty: boolean } {
     const priorDirtyValue = isDirty;
     let newDirtyValue = isDirty;
+    let tempValue = valueOverride !== undefined ? valueOverride : value;
+    let tempInitialValue = initialValue;
+
+    // transform to string for accurate comparison
+    if (metadata.type === 'picklist') {
+      if (typeof valueOverride === 'string' && valueOverride.length) {
+        tempValue = [valueOverride];
+      }
+      tempValue = Array.isArray(tempValue) && tempValue.length ? tempValue[0] : '';
+      tempInitialValue = Array.isArray(tempInitialValue) && tempInitialValue.length ? tempInitialValue[0] : '';
+    } else if (metadata.type === 'multipicklist') {
+      tempValue = Array.isArray(tempValue) ? tempValue.sort().join(';') : '';
+      tempInitialValue = Array.isArray(tempInitialValue) ? tempInitialValue.join(';') : '';
+    }
+
+    if (priorDirtyValue && tempValue === tempInitialValue) {
+      newDirtyValue = false;
+    } else if (!priorDirtyValue && tempValue !== tempInitialValue) {
+      newDirtyValue = true;
+    }
+
+    return {
+      value: tempValue as string | boolean | null,
+      isDirty: newDirtyValue,
+    };
+  }
+
+  function checkIfDirtyAndEmit(valueOverride?: string | string[] | boolean) {
     if (!readOnly) {
-      let tempValue = valueOverride !== undefined ? valueOverride : value;
-      let tempInitialValue = initialValue;
-
-      // transform to string for accurate comparison
-      if (metadata.type === 'picklist') {
-        tempValue = Array.isArray(tempValue) && tempValue.length ? tempValue[0] : '';
-        tempInitialValue = Array.isArray(tempInitialValue) && tempInitialValue.length ? tempInitialValue[0] : '';
-      } else if (metadata.type === 'multipicklist') {
-        tempValue = Array.isArray(tempValue) ? tempValue.sort().join(';') : '';
-        tempInitialValue = Array.isArray(tempInitialValue) ? tempInitialValue.join(';') : '';
+      const dirtyValue = checkIfDirty(isDirty, valueOverride);
+      if (isDirty !== dirtyValue.isDirty) {
+        setIsDirty(dirtyValue.isDirty);
       }
-
-      if (isDirty && tempValue === tempInitialValue) {
-        newDirtyValue = false;
-      } else if (!isDirty && tempValue !== tempInitialValue) {
-        newDirtyValue = true;
-      }
-
-      if (priorDirtyValue !== newDirtyValue) {
-        setIsDirty(newDirtyValue);
-      }
-      onChange(field, tempValue as string | boolean | null, newDirtyValue);
+      onChange(field, dirtyValue.value, dirtyValue.isDirty);
     }
   }
 
@@ -145,6 +171,11 @@ export const UiRecordFormField: FunctionComponent<UiRecordFormFieldProps> = ({
   }
 
   function handleDateTimeChange(currValue: string) {
+    setValue(currValue);
+    checkIfDirtyAndEmit(currValue || null);
+  }
+
+  function handleTimeChange(currValue: string) {
     setValue(currValue);
     checkIfDirtyAndEmit(currValue || null);
   }
@@ -267,6 +298,7 @@ export const UiRecordFormField: FunctionComponent<UiRecordFormFieldProps> = ({
                 hasError={!!saveError}
                 errorMessageId={`${id}-error`}
                 initialSelectedDate={initialSelectedDate}
+                disabled={disabled}
                 onChange={handleDateChange}
               />
             )}
@@ -286,13 +318,33 @@ export const UiRecordFormField: FunctionComponent<UiRecordFormFieldProps> = ({
                   isRequired: !readOnly && required,
                   hasError: !!saveError,
                   errorMessageId: `${id}-error`,
+                  disabled: disabled,
                 }}
                 timeProps={{
                   label: 'Time',
                   className: 'slds-form-element_stacked slds-is-editing',
                   stepInMinutes: 1,
+                  disabled: disabled,
                 }}
                 onChange={handleDateTimeChange}
+              />
+            )}
+
+            {isTime(field) && (
+              <TimePicker
+                id={id}
+                label={label}
+                className="slds-form-element_stacked slds-is-editing"
+                errorMessage={saveError}
+                labelHelp={labelHelpText}
+                helpText={helpText}
+                isRequired={required}
+                hasError={!!saveError}
+                errorMessageId={`${id}-error`}
+                selectedItem={value as string}
+                disabled={disabled}
+                stepInMinutes={1}
+                onChange={handleTimeChange}
               />
             )}
 
@@ -339,7 +391,8 @@ export const UiRecordFormField: FunctionComponent<UiRecordFormFieldProps> = ({
                 multiSelection={field.metadata.type === 'multipicklist'}
                 allowDeselection
                 items={field.values}
-                selectedItemIds={initialValue as string[]}
+                selectedItemIds={(value as string[]) || ['']}
+                disabled={disabled}
                 onChange={handlePicklistValueChange}
               ></Picklist>
             )}

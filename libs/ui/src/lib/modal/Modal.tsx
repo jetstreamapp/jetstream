@@ -16,6 +16,7 @@ export interface ModalProps {
   tagline?: string | JSX.Element;
   footer?: JSX.Element;
   directionalFooter?: boolean;
+  containerClassName?: string;
   footerClassName?: string;
   size?: SizeSmMdLg;
   closeDisabled?: boolean;
@@ -85,6 +86,7 @@ export const ModalContent: FunctionComponent<ModalProps> = ({
   tagline,
   footer,
   directionalFooter,
+  containerClassName,
   footerClassName,
   size,
   closeDisabled,
@@ -131,7 +133,7 @@ export const ModalContent: FunctionComponent<ModalProps> = ({
           ${overrideZIndex ? `z-index: ${overrideZIndex}` : ''}
         `}
       >
-        <div className="slds-modal__container">
+        <div className={classNames('slds-modal__container', containerClassName)}>
           <header className={classNames('slds-modal__header', { 'slds-modal__header_empty': !header })}>
             <button
               className="slds-button slds-button_icon slds-modal__close slds-button_icon-inverse"

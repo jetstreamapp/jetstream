@@ -1,16 +1,9 @@
-/* eslint-disable jsx-a11y/anchor-is-valid */
 import { useNonInitialEffect } from '@jetstream/shared/ui-utils';
 import { formatISO, parse as parseDate, parseISO } from 'date-fns';
+import formatDate from 'date-fns/format';
 import React, { FunctionComponent, useState } from 'react';
 import DatePicker, { DatePickerProps } from '../date/DatePicker';
-import { PicklistProps } from '../picklist/Picklist';
 import TimePicker, { TimePickerProps } from '../time-picker/TimePicker';
-import formatDate from 'date-fns/format';
-
-export type PicklistPropsWithoutItems = Omit<
-  PicklistProps,
-  'items' | 'groups' | 'selectedItems' | 'selectedItemIds' | 'multiSelection' | 'omitMultiSelectPills' | 'onChange'
->;
 
 export interface DateTimeProps {
   legendLabel?: string;
