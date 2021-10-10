@@ -128,7 +128,8 @@ export type FullWidth = 'full-width';
 export type sizeXXXSmallToXXLarge = sizeXXXSmall | sizeXXSmall | sizeXSmall | sizeSmall | sizeMedium | sizeLarge | sizeXLarge | sizeXXLarge;
 // 'center' | 'space' | 'spread' | 'end'
 
-export type SmallMediumLargeFullWidth = sizeSmall | sizeMedium | sizeLarge | FullWidth;
+export type SmallMediumLarge = sizeSmall | sizeMedium | sizeLarge;
+export type SmallMediumLargeFullWidth = SmallMediumLarge | FullWidth;
 
 export type Center = 'center';
 export type Space = 'space';

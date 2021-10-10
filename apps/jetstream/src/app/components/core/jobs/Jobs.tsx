@@ -16,10 +16,10 @@ import {
   UploadToGoogleJob,
   WorkerMessage,
 } from '@jetstream/types';
-import { Icon, Popover } from '@jetstream/ui';
+import { Icon, Popover, PopoverRef } from '@jetstream/ui';
 import classNames from 'classnames';
 import uniqueId from 'lodash/uniqueId';
-import { FunctionComponent, useEffect, useState } from 'react';
+import { FunctionComponent, useEffect, useRef, useState } from 'react';
 import { useRecoilState, useRecoilValue, useSetRecoilState } from 'recoil';
 import { filter } from 'rxjs/operators';
 import { applicationCookieState, selectedOrgState } from '../../../app-state';
@@ -29,13 +29,13 @@ import JobPlaceholder from './JobPlaceholder';
 import { jobsState, jobsUnreadState, selectActiveJobCount, selectJobs } from './jobs.state';
 
 export const Jobs: FunctionComponent = () => {
+  const popoverRef = useRef<PopoverRef>();
   const [{ serverUrl }] = useRecoilState(applicationCookieState);
   const rollbar = useRollbar();
   const setJobs = useSetRecoilState(jobsState);
   const [jobsUnread, setJobsUnread] = useRecoilState(jobsUnreadState);
   const [jobs, setJobsArr] = useRecoilState(selectJobs);
   const activeJobCount = useRecoilValue(selectActiveJobCount);
-  const [isPopoverOpen, setIsPopoverOpen] = useState(false);
   const selectedOrg = useRecoilValue<SalesforceOrgUi>(selectedOrgState);
   const newJobsToProcess = useObservable(fromJetstreamEvents.getObservable('newJob').pipe(filter((ev: AsyncJobNew[]) => ev.length > 0)));
   const { notifyUser } = useBrowserNotifications(serverUrl);
@@ -62,7 +62,7 @@ export const Jobs: FunctionComponent = () => {
           },
         });
       });
-      setIsPopoverOpen(true);
+      popoverRef.current?.open();
       setJobsArr(newJobs.concat(jobs));
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -436,9 +436,7 @@ export const Jobs: FunctionComponent = () => {
 
   return (
     <Popover
-      isOpen={isPopoverOpen}
-      onOpen={() => setIsPopoverOpen(true)}
-      onClose={() => setIsPopoverOpen(false)}
+      ref={popoverRef}
       header={
         <header className="slds-popover__header">
           <h2 className="slds-text-heading_small" id="background-jobs" title="Background Jobs">
@@ -456,27 +454,30 @@ export const Jobs: FunctionComponent = () => {
           </ul>
         </div>
       }
+      // NOTE: this is non-standard because we require the extra container
+      buttonProps={{
+        className: 'slds-dropdown-trigger slds-dropdown-trigger_click',
+        as: 'div',
+      }}
     >
-      <div className="slds-dropdown-trigger slds-dropdown-trigger_click">
-        <button
-          className={classNames(
-            'slds-button slds-button_icon slds-button_icon-container slds-button_icon-small slds-global-actions__notifications slds-global-actions__item-action',
-            { 'slds-incoming-notification': activeJobCount || jobsUnread }
-          )}
-          title={`${activeJobCount} active job(s)`}
-          aria-live="assertive"
-          aria-atomic="true"
-        >
-          <Icon type="utility" icon="notification" className="slds-button__icon slds-global-header__icon" omitContainer />
-          <span className="slds-assistive-text">{`${activeJobCount} active job(s)`}</span>
-        </button>
-        {/* Show number of in progress jobs or just an indication that there are finished jobs that have not been viewed */}
-        {(activeJobCount || jobsUnread) && (
-          <span aria-hidden="true" className="slds-notification-badge slds-incoming-notification slds-show-notification">
-            {activeJobCount ? activeJobCount : ' '}
-          </span>
+      <button
+        className={classNames(
+          'slds-dropdown-trigger slds-dropdown-trigger_click slds-button slds-button_icon slds-button_icon-container slds-button_icon-small slds-global-actions__notifications slds-global-actions__item-action',
+          { 'slds-incoming-notification': activeJobCount || jobsUnread }
         )}
-      </div>
+        title={`${activeJobCount} active job(s)`}
+        aria-live="assertive"
+        aria-atomic="true"
+      >
+        <Icon type="utility" icon="notification" className="slds-button__icon slds-global-header__icon" omitContainer />
+        <span className="slds-assistive-text">{`${activeJobCount} active job(s)`}</span>
+      </button>
+      {/* Show number of in progress jobs or just an indication that there are finished jobs that have not been viewed */}
+      {(activeJobCount || jobsUnread) && (
+        <span aria-hidden="true" className="slds-notification-badge slds-incoming-notification slds-show-notification">
+          {activeJobCount ? activeJobCount : ' '}
+        </span>
+      )}
     </Popover>
   );
 };

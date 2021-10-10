@@ -1,7 +1,8 @@
-import { BadgeNotification, RadioButton, RadioGroup } from '@jetstream/ui';
 import classNames from 'classnames';
 import { uniqueId } from 'lodash';
 import { Fragment, FunctionComponent, useEffect, useState } from 'react';
+import RadioButton from '../form/radio/RadioButton';
+import RadioGroup from '../form/radio/RadioGroup';
 import Popover from '../popover/Popover';
 import Icon from '../widgets/Icon';
 
@@ -84,9 +85,10 @@ export const SobjectFieldListFilter: FunctionComponent<SobjectFieldListFilterPro
     <Popover
       // placement="bottom"
       size="large"
-      tippyProps={{
-        appendTo: () => document.body,
-      }}
+      //FIXME: figure out append to!
+      // tippyProps={{
+      //   appendTo: () => document.body,
+      // }}
       content={
         <Fragment>
           <SobjectFieldListFilterSection
@@ -138,22 +140,20 @@ export const SobjectFieldListFilter: FunctionComponent<SobjectFieldListFilterPro
           </button>
         </Fragment>
       }
-    >
-      <button
-        className={classNames('slds-button slds-button_icon', {
+      buttonProps={{
+        className: classNames('slds-button slds-button_icon', {
           'slds-text-color_brand': filterSelected,
-        })}
-        title="open filters menu"
-      >
-        {filterSelected && <BadgeNotification />}
-        <Icon
-          type="utility"
-          icon="filter"
-          description="Open filters menu"
-          className="slds-button__icon slds-button__icon_large"
-          omitContainer
-        />
-      </button>
+        }),
+        title: 'open filters menu',
+      }}
+    >
+      <Icon
+        type="utility"
+        icon="filter"
+        description="Open filters menu"
+        className="slds-button__icon slds-button__icon_large"
+        omitContainer
+      />
     </Popover>
   );
 };
