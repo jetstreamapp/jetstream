@@ -72,15 +72,15 @@ export const UiRecordForm: FunctionComponent<UiRecordFormProps> = ({
     setFieldMetadata(convertMetadataToEditableFields(sobjectFields, picklistValues, action, record));
   }, [sobjectFields, picklistValues, action, record]);
 
-  useNonInitialEffect(() => {
-    onChange(modifiedRecord);
-  }, [modifiedRecord, onChange]);
-
   function handleRecordUpdate(field: EditableFields, value: string | boolean | null, isDirty: boolean) {
     if (isDirty) {
       setModifiedRecord({ ...modifiedRecord, [field.name]: value });
+      onChange(modifiedRecord);
+      console.log('CHANGED');
     } else if (!isDirty && modifiedRecord[field.name] !== undefined) {
       setModifiedRecord({ ...modifiedRecord, [field.name]: undefined });
+      onChange(modifiedRecord);
+      console.log('CHANGED');
     }
   }
 
