@@ -1,6 +1,7 @@
 import { Fragment, FunctionComponent } from 'react';
 import { create, InstanceProps } from 'react-modal-promise';
 import Modal, { ModalProps } from './Modal';
+import { OverlayProvider } from '@react-aria/overlays';
 
 type CommonModalProps = Pick<ModalProps, 'header' | 'tagline' | 'closeOnEsc' | 'closeOnBackdropClick'> & InstanceProps<boolean, never>;
 
@@ -24,7 +25,7 @@ const ConfirmationModal: FunctionComponent<ConfirmationModalProps> = ({
   onResolve,
 }) => {
   return (
-    <Fragment>
+    <OverlayProvider>
       {isOpen && (
         <Modal
           header={header}
@@ -46,7 +47,7 @@ const ConfirmationModal: FunctionComponent<ConfirmationModalProps> = ({
           <div>{content}</div>
         </Modal>
       )}
-    </Fragment>
+    </OverlayProvider>
   );
 };
 

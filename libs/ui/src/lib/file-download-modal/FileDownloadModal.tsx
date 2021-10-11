@@ -230,117 +230,115 @@ export const FileDownloadModal: FunctionComponent<FileDownloadModalProps> = ({
   }
 
   return (
-    <Fragment>
-      <Modal
-        header={modalHeader}
-        tagline={modalTagline}
-        overrideZIndex={1001}
-        footer={
-          <Fragment>
-            {!alternateDownloadButton && (
-              <Fragment>
-                <button className="slds-button slds-button_neutral" onClick={() => onModalClose(true)}>
-                  Cancel
-                </button>
-                <button className="slds-button slds-button_brand" onClick={handleDownload} disabled={filenameEmpty}>
-                  Download
-                </button>
-              </Fragment>
-            )}
-            {alternateDownloadButton}
-          </Fragment>
-        }
-        skipAutoFocus
-        onClose={() => onModalClose(true)}
-      >
-        <div>
-          <RadioGroup label="File Format" required className="slds-m-bottom_small">
-            {allowedTypesSet.has('xlsx') && (
-              <Radio
-                name="radio-download-file-format"
-                label="Excel"
-                value={RADIO_FORMAT_XLSX}
-                checked={fileFormat === RADIO_FORMAT_XLSX}
-                onChange={(value: FileExtXLSX) => setFileFormat(value)}
-              />
-            )}
-            {allowedTypesSet.has('csv') && (
-              <Radio
-                name="radio-download-file-format"
-                label="CSV"
-                value={RADIO_FORMAT_CSV}
-                checked={fileFormat === RADIO_FORMAT_CSV}
-                onChange={(value: FileExtCsv) => setFileFormat(value)}
-              />
-            )}
-            {allowedTypesSet.has('json') && (
-              <Radio
-                name="radio-download-file-format"
-                label="JSON"
-                value={RADIO_FORMAT_JSON}
-                checked={fileFormat === RADIO_FORMAT_JSON}
-                onChange={(value: FileExtCsv) => setFileFormat(value)}
-              />
-            )}
-            {allowedTypesSet.has('xml') && (
-              <Radio
-                name="radio-download-file-format"
-                label="XML"
-                value={RADIO_FORMAT_XML}
-                checked={fileFormat === RADIO_FORMAT_XML}
-                onChange={(value: FileExtXml) => setFileFormat(value)}
-              />
-            )}
-            {allowedTypesSet.has('zip') && (
-              <Radio
-                name="radio-download-file-format"
-                label="ZIP"
-                value={RADIO_FORMAT_ZIP}
-                checked={fileFormat === RADIO_FORMAT_ZIP}
-                onChange={(value: FileExtZip) => setFileFormat(value)}
-              />
-            )}
-            {hasGoogleInputConfigured && (allowedTypesSet.has('csv') || allowedTypesSet.has('xlsx') || allowedTypesSet.has('zip')) && (
-              <Radio
-                name="radio-download-file-format"
-                label="Google Drive"
-                value={RADIO_FORMAT_GDRIVE}
-                checked={fileFormat === RADIO_FORMAT_GDRIVE}
-                onChange={(value: FileExtGDrive) => setFileFormat(value)}
-              />
-            )}
-          </RadioGroup>
-          {fileFormat === 'gdrive' && (
-            <FileDownloadGoogle
-              google_apiKey={google_apiKey}
-              google_appId={google_appId}
-              google_clientId={google_clientId}
-              onFolderSelected={handleFolderSelected}
-              onGoogleApiData={handleGoogleApiData}
+    <Modal
+      header={modalHeader}
+      tagline={modalTagline}
+      overrideZIndex={1001}
+      footer={
+        <Fragment>
+          {!alternateDownloadButton && (
+            <Fragment>
+              <button className="slds-button slds-button_neutral" onClick={() => onModalClose(true)}>
+                Cancel
+              </button>
+              <button className="slds-button slds-button_brand" onClick={handleDownload} disabled={filenameEmpty}>
+                Download
+              </button>
+            </Fragment>
+          )}
+          {alternateDownloadButton}
+        </Fragment>
+      }
+      skipAutoFocus
+      onClose={() => onModalClose(true)}
+    >
+      <div>
+        <RadioGroup label="File Format" required className="slds-m-bottom_small">
+          {allowedTypesSet.has('xlsx') && (
+            <Radio
+              name="radio-download-file-format"
+              label="Excel"
+              value={RADIO_FORMAT_XLSX}
+              checked={fileFormat === RADIO_FORMAT_XLSX}
+              onChange={(value: FileExtXLSX) => setFileFormat(value)}
             />
           )}
-          <Input
-            label="Filename"
-            isRequired
-            rightAddon={fileFormat !== RADIO_FORMAT_GDRIVE ? `.${fileFormat}` : undefined}
-            hasError={filenameEmpty}
-            errorMessage="This field is required"
-            errorMessageId="filename-error"
-          >
-            <input
-              ref={inputEl}
-              id="download-filename"
-              className="slds-input"
-              value={fileName}
-              minLength={1}
-              maxLength={250}
-              onChange={(event) => setFileName(event.target.value)}
-              onKeyUp={handleKeyUp}
+          {allowedTypesSet.has('csv') && (
+            <Radio
+              name="radio-download-file-format"
+              label="CSV"
+              value={RADIO_FORMAT_CSV}
+              checked={fileFormat === RADIO_FORMAT_CSV}
+              onChange={(value: FileExtCsv) => setFileFormat(value)}
             />
-          </Input>
-        </div>
-      </Modal>
-    </Fragment>
+          )}
+          {allowedTypesSet.has('json') && (
+            <Radio
+              name="radio-download-file-format"
+              label="JSON"
+              value={RADIO_FORMAT_JSON}
+              checked={fileFormat === RADIO_FORMAT_JSON}
+              onChange={(value: FileExtCsv) => setFileFormat(value)}
+            />
+          )}
+          {allowedTypesSet.has('xml') && (
+            <Radio
+              name="radio-download-file-format"
+              label="XML"
+              value={RADIO_FORMAT_XML}
+              checked={fileFormat === RADIO_FORMAT_XML}
+              onChange={(value: FileExtXml) => setFileFormat(value)}
+            />
+          )}
+          {allowedTypesSet.has('zip') && (
+            <Radio
+              name="radio-download-file-format"
+              label="ZIP"
+              value={RADIO_FORMAT_ZIP}
+              checked={fileFormat === RADIO_FORMAT_ZIP}
+              onChange={(value: FileExtZip) => setFileFormat(value)}
+            />
+          )}
+          {hasGoogleInputConfigured && (allowedTypesSet.has('csv') || allowedTypesSet.has('xlsx') || allowedTypesSet.has('zip')) && (
+            <Radio
+              name="radio-download-file-format"
+              label="Google Drive"
+              value={RADIO_FORMAT_GDRIVE}
+              checked={fileFormat === RADIO_FORMAT_GDRIVE}
+              onChange={(value: FileExtGDrive) => setFileFormat(value)}
+            />
+          )}
+        </RadioGroup>
+        {fileFormat === 'gdrive' && (
+          <FileDownloadGoogle
+            google_apiKey={google_apiKey}
+            google_appId={google_appId}
+            google_clientId={google_clientId}
+            onFolderSelected={handleFolderSelected}
+            onGoogleApiData={handleGoogleApiData}
+          />
+        )}
+        <Input
+          label="Filename"
+          isRequired
+          rightAddon={fileFormat !== RADIO_FORMAT_GDRIVE ? `.${fileFormat}` : undefined}
+          hasError={filenameEmpty}
+          errorMessage="This field is required"
+          errorMessageId="filename-error"
+        >
+          <input
+            ref={inputEl}
+            id="download-filename"
+            className="slds-input"
+            value={fileName}
+            minLength={1}
+            maxLength={250}
+            onChange={(event) => setFileName(event.target.value)}
+            onKeyUp={handleKeyUp}
+          />
+        </Input>
+      </div>
+    </Modal>
   );
 };
 
