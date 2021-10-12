@@ -17,7 +17,8 @@ export const DeployMetadataLastRefreshedPopover: FunctionComponent<DeployMetadat
 }) => {
   return (
     <Popover
-      placement="bottom-end"
+      // placement="left"
+      omitPortal
       header={
         <header className="slds-popover__header">
           <h2 className="slds-text-heading_small" title="Refresh Metadata">
@@ -56,8 +57,9 @@ export const DeployMetadataLastRefreshedPopover: FunctionComponent<DeployMetadat
           </button>
         </footer>
       }
+      buttonProps={{ className: 'slds-button' }}
     >
-      <button className="slds-button">Not seeing recent metadata?</button>
+      Not seeing recent metadata?
     </Popover>
   );
 };

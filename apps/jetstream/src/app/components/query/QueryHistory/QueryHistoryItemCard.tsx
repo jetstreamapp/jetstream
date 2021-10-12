@@ -33,7 +33,6 @@ export const QueryHistoryItemCard: FunctionComponent<QueryHistoryItemCardProps> 
   const { sObject, label, soql, isTooling, runCount, lastRun } = item;
   const isMounted = useRef(null);
   const match = useRouteMatch();
-  const [readyToRenderCode, setReadyToRenderCode] = useState(false);
   const [lineCount, setLineCount] = useState(Math.max(soql.split('\n').length, 2));
 
   useEffect(() => {
@@ -44,118 +43,104 @@ export const QueryHistoryItemCard: FunctionComponent<QueryHistoryItemCardProps> 
   }, []);
 
   useEffect(() => {
-    setTimeout(() => {
-      if (isMounted.current) {
-        setReadyToRenderCode(true);
-      }
-    });
-  }, []);
-
-  useEffect(() => {
     if (soql) {
       setLineCount(Math.max(soql.split('\n').length, 2));
     }
   }, [soql]);
 
   return (
-    <Fragment>
-      <Card
-        className="modal-card-override"
-        icon={isTooling ? METADATA_QUERY_ICON : SOBJECT_QUERY_ICON}
-        title={
-          <Fragment>
-            <Grid wrap>
-              <GridCol size={12}>
-                <span>{label}</span>
-              </GridCol>
-              <GridCol className="slds-text-body_small slds-text-color_weak">{sObject}</GridCol>
-            </Grid>
-          </Fragment>
-        }
-        // icon={{ type: 'standard', icon: 'account', description: 'Account' }}
-        actions={
-          <Fragment>
-            <CheckboxButton
-              id={item.key}
-              className="slds-m-right_x-small"
-              checked={!!item.isFavorite}
-              label="Save Query"
-              checkedLabel="Query is saved"
-              icon="add"
-              iconChecked="check"
-              onChange={(value) => onSave(item, value)}
-            />
-            <RestoreQuery
-              soql={soql}
-              isTooling={isTooling}
-              className="slds-button_neutral slds-m-right_x-small"
-              startRestore={startRestore}
-              endRestore={endRestore}
-            />
-            <Link
-              className="slds-button slds-button_neutral"
-              onClick={() => onExecute(item)}
-              to={{
-                pathname: `${match.url}/results`,
-                state: {
-                  soql,
-                  isTooling,
-                  sobject: {
-                    label,
-                    name: sObject,
-                  },
-                },
-              }}
-            >
-              <Icon type="utility" icon="right" className="slds-button__icon slds-button__icon_left" />
-              Execute
-            </Link>
-          </Fragment>
-        }
-      >
+    <Card
+      className="modal-card-override"
+      icon={isTooling ? METADATA_QUERY_ICON : SOBJECT_QUERY_ICON}
+      title={
+        <Grid wrap>
+          <GridCol size={12}>
+            <span>{label}</span>
+          </GridCol>
+          <GridCol className="slds-text-body_small slds-text-color_weak">{sObject}</GridCol>
+        </Grid>
+      }
+      // icon={{ type: 'standard', icon: 'account', description: 'Account' }}
+      actions={
         <Fragment>
-          <Grid wrap className="slds-m-bottom_x-small slds-scrollable_x">
-            <GridCol size={12} className="slds-text-body_small slds-text-color_weak slds-m-bottom_xx-small">
-              Last Run: {formatDate(lastRun, DATE_FORMATS.FULL)} - Run: {runCount} {pluralizeFromNumber('time', runCount)}
-            </GridCol>
-            <GridCol>
-              {soql && (
-                <div>
-                  <Textarea
-                    id="soql"
-                    label={
-                      <span>
-                        SOQL Query
-                        <CopyToClipboard className="slds-m-left--xx-small" content={soql} />
-                      </span>
-                    }
-                  >
-                    <Editor
-                      height={`${clamp(lineCount * REM_PER_LINE, 2, 11)}rem`}
-                      language="soql"
-                      value={soql}
-                      options={{
-                        readOnly: true,
-                        minimap: { enabled: false },
-                        contextmenu: false,
-                        lineNumbers: 'off',
-                        glyphMargin: false,
-                        folding: false,
-                        lineDecorationsWidth: 0,
-                        lineNumbersMinChars: 0,
-                        selectionHighlight: false,
-                        renderLineHighlight: 'none',
-                        scrollBeyondLastLine: false,
-                      }}
-                    />
-                  </Textarea>
-                </div>
-              )}
-            </GridCol>
-          </Grid>
+          <CheckboxButton
+            id={item.key}
+            className="slds-m-right_x-small"
+            checked={!!item.isFavorite}
+            label="Save Query"
+            checkedLabel="Query is saved"
+            icon="add"
+            iconChecked="check"
+            onChange={(value) => onSave(item, value)}
+          />
+          <RestoreQuery
+            soql={soql}
+            isTooling={isTooling}
+            className="slds-button_neutral slds-m-right_x-small"
+            startRestore={startRestore}
+            endRestore={endRestore}
+          />
+          <Link
+            className="slds-button slds-button_neutral"
+            onClick={() => onExecute(item)}
+            to={{
+              pathname: `${match.url}/results`,
+              state: {
+                soql,
+                isTooling,
+                sobject: {
+                  label,
+                  name: sObject,
+                },
+              },
+            }}
+          >
+            <Icon type="utility" icon="right" className="slds-button__icon slds-button__icon_left" />
+            Execute
+          </Link>
         </Fragment>
-      </Card>
-    </Fragment>
+      }
+    >
+      <Grid wrap className="slds-m-bottom_x-small slds-scrollable_x">
+        <GridCol size={12} className="slds-text-body_small slds-text-color_weak slds-m-bottom_xx-small">
+          Last Run: {formatDate(lastRun, DATE_FORMATS.FULL)} - Run: {runCount} {pluralizeFromNumber('time', runCount)}
+        </GridCol>
+        <GridCol>
+          {soql && (
+            <div>
+              <Textarea
+                id="soql"
+                label={
+                  <span>
+                    SOQL Query
+                    <CopyToClipboard className="slds-m-left--xx-small" content={soql} />
+                  </span>
+                }
+              >
+                <Editor
+                  height={`${clamp(lineCount * REM_PER_LINE, 2, 11)}rem`}
+                  language="soql"
+                  value={soql}
+                  options={{
+                    readOnly: true,
+                    minimap: { enabled: false },
+                    contextmenu: false,
+                    lineNumbers: 'off',
+                    glyphMargin: false,
+                    folding: false,
+                    lineDecorationsWidth: 0,
+                    lineNumbersMinChars: 0,
+                    selectionHighlight: false,
+                    renderLineHighlight: 'none',
+                    scrollBeyondLastLine: false,
+                  }}
+                />
+              </Textarea>
+            </div>
+          )}
+        </GridCol>
+      </Grid>
+    </Card>
   );
 };
 

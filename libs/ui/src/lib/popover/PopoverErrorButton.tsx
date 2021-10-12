@@ -1,13 +1,15 @@
 import { css } from '@emotion/react';
-import { FunctionComponent, useState } from 'react';
+import { FunctionComponent, useEffect, useRef } from 'react';
 import Icon from '../widgets/Icon';
-import Popover from './Popover';
+import Popover, { PopoverRef } from './Popover';
 
 export interface PopoverErrorButtonProps {
   initOpenState?: boolean;
   header?: string;
   listHeader?: string;
   errors: string | string[];
+  omitPortal?: boolean;
+  portalRef?: Element;
 }
 
 export const PopoverErrorButton: FunctionComponent<PopoverErrorButtonProps> = ({
@@ -15,8 +17,20 @@ export const PopoverErrorButton: FunctionComponent<PopoverErrorButtonProps> = ({
   header = 'We hit a snag.',
   listHeader = 'Review the following errors',
   errors,
+  omitPortal,
+  portalRef,
 }) => {
-  const [isOpen, setIsOpen] = useState(initOpenState ?? true);
+  const popoverRef = useRef<PopoverRef>();
+
+  useEffect(() => {
+    if (initOpenState) {
+      setTimeout(() => {
+        if (popoverRef.current) {
+          popoverRef.current?.open();
+        }
+      });
+    }
+  }, []);
 
   return (
     <div
@@ -25,11 +39,17 @@ export const PopoverErrorButton: FunctionComponent<PopoverErrorButtonProps> = ({
       `}
     >
       <Popover
+        ref={popoverRef}
+        // ref={(ref) => {
+        //   popoverRef.current = ref;
+        //   if ((popoverRef.current && initOpenState) ?? true) {
+        //     popoverRef.current?.open();
+        //   }
+        // }}
         containerClassName="slds-popover_error"
         inverseIcons
-        isOpen={isOpen}
-        onClose={() => setIsOpen(false)}
-        onOpen={() => setIsOpen(true)}
+        omitPortal={omitPortal}
+        portalRef={portalRef}
         header={
           <header className="slds-popover__header">
             <div className="slds-media slds-media_center slds-has-flexi-truncate">
@@ -63,16 +83,17 @@ export const PopoverErrorButton: FunctionComponent<PopoverErrorButtonProps> = ({
             )}
           </div>
         }
+        buttonProps={{
+          className: 'slds-button slds-button_icon slds-button-icon-error slds-m-right_small',
+        }}
       >
-        <button className="slds-button slds-button_icon slds-button-icon-error slds-m-right_small" onClick={() => setIsOpen(!isOpen)}>
-          <Icon
-            type="utility"
-            icon="error"
-            description="Review errors"
-            className="slds-icon slds-icon-text-error slds-icon_small"
-            containerClassname="slds-icon-utility-error slds-icon_container"
-          />
-        </button>
+        <Icon
+          type="utility"
+          icon="error"
+          description="Review errors"
+          className="slds-icon slds-icon-text-error slds-icon_small"
+          containerClassname="slds-icon-utility-error slds-icon_container"
+        />
       </Popover>
     </div>
   );

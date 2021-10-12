@@ -1,5 +1,5 @@
 import { ANALYTICS_KEYS } from '@jetstream/shared/constants';
-import { CheckboxToggle, Grid, GridCol, Icon, Popover, Spinner, Textarea } from '@jetstream/ui';
+import { CheckboxToggle, Grid, GridCol, Icon, Popover, PopoverRef, Spinner, Textarea } from '@jetstream/ui';
 import Editor, { OnMount } from '@monaco-editor/react';
 import type { editor } from 'monaco-editor';
 import { Fragment, FunctionComponent, useEffect, useRef, useState } from 'react';
@@ -48,11 +48,11 @@ const InvalidQuery = () => {
 
 export const ManualSoql: FunctionComponent<ManualSoqlProps> = ({ className, isTooling = false, generatedSoql }) => {
   const isMounted = useRef(null);
+  const popoverRef = useRef<PopoverRef>(null);
   const editorRef = useRef<editor.IStandaloneCodeEditor>(null);
   const history = useHistory();
   const { trackEvent } = useAmplitude();
   const match = useRouteMatch();
-  const [isOpen, setIsOpen] = useState<boolean>(false);
   const [soql, setSoql] = useState<string>('');
   const [isRestoring, setIsRestoring] = useState(false);
   const [queryIsValid, setQueryIsValid] = useState(false);
@@ -81,18 +81,6 @@ export const ManualSoql: FunctionComponent<ManualSoqlProps> = ({ className, isTo
     }
   }, [soql]);
 
-  useEffect(() => {
-    if (isOpen) {
-      trackEvent(ANALYTICS_KEYS.query_ManualQueryOpened, { isTooling });
-    }
-  }, [isOpen, isTooling, trackEvent]);
-
-  useEffect(() => {
-    if (isOpen && generatedSoql) {
-      setSoql(generatedSoql);
-    }
-  }, [isOpen, generatedSoql]);
-
   function handleStartRestore() {
     setIsRestoring(true);
   }
@@ -101,7 +89,9 @@ export const ManualSoql: FunctionComponent<ManualSoqlProps> = ({ className, isTo
     if (isMounted.current) {
       setIsRestoring(false);
       if (!fatalError) {
-        setIsOpen(false);
+        if (popoverRef.current) {
+          popoverRef.current.close();
+        }
       }
     }
   }
@@ -134,13 +124,21 @@ export const ManualSoql: FunctionComponent<ManualSoqlProps> = ({ className, isTo
         setSoql(formatQuery(currEditor.getValue(), { fieldMaxLineLength: 80 }));
       },
     });
-    editorRef.current.createContextKey;
   };
+
+  function handlePopoverChange(isOpen: boolean) {
+    if (isOpen) {
+      if (generatedSoql) {
+        setSoql(generatedSoql);
+      }
+      trackEvent(ANALYTICS_KEYS.query_ManualQueryOpened, { isTooling });
+    }
+  }
 
   return (
     <div className={className}>
       <Popover
-        isOpen={isOpen}
+        onChange={handlePopoverChange}
         content={
           <Fragment>
             {isRestoring && <Spinner />}
@@ -243,11 +241,12 @@ export const ManualSoql: FunctionComponent<ManualSoqlProps> = ({ className, isTo
             </Grid>
           </footer>
         }
+        buttonProps={{
+          className: 'slds-button slds-button_neutral',
+        }}
       >
-        <button className="slds-button slds-button_neutral" onClick={() => setIsOpen(true)}>
-          <Icon type="utility" icon="prompt_edit" description="Manually enter query" className="slds-button__icon slds-button__icon_left" />
-          Manual Query
-        </button>
+        <Icon type="utility" icon="prompt_edit" description="Manually enter query" className="slds-button__icon slds-button__icon_left" />
+        Manual Query
       </Popover>
     </div>
   );

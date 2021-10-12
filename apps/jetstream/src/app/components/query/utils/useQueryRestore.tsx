@@ -5,11 +5,10 @@ import { isString } from 'lodash';
 import { useEffect, useRef, useState } from 'react';
 import { useRecoilState, useRecoilValue, useResetRecoilState, useSetRecoilState } from 'recoil';
 import { parseQuery, Query } from 'soql-parser-js';
-import { environment } from '../../../../environments/environment.prod';
 import { selectedOrgState } from '../../../app-state';
 import { fireToast } from '../../core/AppToast';
 import * as fromQueryState from '../query.state';
-import { QueryRestoreErrors, restoreQuery, UserFacingRestoreError } from '../utils/query-restore-utils';
+import { QueryRestoreErrors, restoreQuery, UserFacingRestoreError } from './query-restore-utils';
 
 const ERROR_MESSAGES = {
   PARSE_ERROR: 'There was an error parsing your query, please try again or submit a support request if the problem continues.',
@@ -124,23 +123,19 @@ export const useQueryRestore = (
         }
 
         if (!silent) {
+          let doFireToast = false;
+
           if (results.missingFields.length) {
-            fireToast({
-              message: 'Some fields could not be restored',
-              type: 'warning',
-            });
+            doFireToast = true;
           }
           if (Object.values(results.missingSubqueryFields).reduce((numFields, items) => numFields + items.length, 0)) {
-            fireToast({
-              message: 'Some subquery fields could not be restored',
-              type: 'warning',
-            });
+            doFireToast = true;
           }
           if (Object.keys(results.missingMisc).length) {
-            fireToast({
-              message: 'Some parts of the query could not be restored',
-              type: 'warning',
-            });
+            doFireToast = true;
+          }
+          if (doFireToast) {
+            fireToast({ message: 'Some parts of your query could not be restored.', type: 'info' });
           }
         }
       }

@@ -1,7 +1,7 @@
 import { css } from '@emotion/react';
 import { SalesforceOrgUi } from '@jetstream/types';
-import { Icon, Popover, SalesforceLogin, Spinner } from '@jetstream/ui';
-import { FunctionComponent, useState } from 'react';
+import { Icon, Popover, PopoverRef, SalesforceLogin, Spinner } from '@jetstream/ui';
+import { FunctionComponent, useRef } from 'react';
 import { useRecoilState } from 'recoil';
 import { applicationCookieState } from '../../../app-state';
 
@@ -18,22 +18,18 @@ export const LoadRecordsRefreshCachePopover: FunctionComponent<LoadRecordsRefres
   loading,
   onReload,
 }) => {
-  const [isOpen, setIsOpen] = useState(false);
+  const popoverRef = useRef<PopoverRef>();
   const [{ serverUrl }] = useRecoilState(applicationCookieState);
 
-  function toggleOpen() {
-    setIsOpen(true);
-  }
-
   function handleReload() {
-    setIsOpen(false);
+    popoverRef.current.close();
     onReload();
   }
 
   return (
     <Popover
+      ref={popoverRef}
       placement="bottom-end"
-      isOpen={isOpen}
       header={
         <header className="slds-popover__header">
           <h2 className="slds-text-heading_small" title="Refresh Metadata">
@@ -74,13 +70,12 @@ export const LoadRecordsRefreshCachePopover: FunctionComponent<LoadRecordsRefres
           </button>
         </footer>
       }
+      buttonProps={{
+        className: 'slds-button',
+      }}
     >
-      <div className="slds-is-relative">
-        {loading && <Spinner size="x-small" />}
-        <button className="slds-button" onClick={toggleOpen}>
-          Not seeing all fields?
-        </button>
-      </div>
+      {loading && <Spinner size="x-small" />}
+      Not seeing all fields?
     </Popover>
   );
 };

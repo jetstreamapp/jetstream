@@ -1,9 +1,9 @@
 import { css } from '@emotion/react';
 import { formatNumber } from '@jetstream/shared/ui-utils';
 import { pluralizeIfMultiple } from '@jetstream/shared/utils';
-import Popover from 'libs/ui/src/lib/popover/Popover';
-import Icon from 'libs/ui/src/lib/widgets/Icon';
-import { FunctionComponent, useState } from 'react';
+import { FunctionComponent, useRef } from 'react';
+import Popover, { PopoverRef } from '../popover/Popover';
+import Icon from '../widgets/Icon';
 
 export interface ItemSelectionSummaryProps {
   label?: string;
@@ -18,17 +18,17 @@ export const ItemSelectionSummary: FunctionComponent<ItemSelectionSummaryProps> 
   onClearItem,
   onClearAll,
 }) => {
-  const [isOpen, setIsOpen] = useState(false);
+  const popoverRef = useRef<PopoverRef>();
 
   function handleClearAll() {
     onClearAll();
-    setIsOpen(false);
+    popoverRef.current.close();
   }
 
   function handleClearItem(item: string) {
     onClearItem(item);
     if (items.length === 1) {
-      setIsOpen(false);
+      popoverRef.current.close();
     }
   }
 
@@ -39,8 +39,7 @@ export const ItemSelectionSummary: FunctionComponent<ItemSelectionSummaryProps> 
       `}
     >
       <Popover
-        isOpen={isOpen}
-        onClose={() => setIsOpen(false)}
+        ref={popoverRef}
         placement="bottom-end"
         header={
           <header className="slds-popover__header">
@@ -70,11 +69,13 @@ export const ItemSelectionSummary: FunctionComponent<ItemSelectionSummaryProps> 
             </button>
           </footer>
         }
+        buttonProps={{
+          className: 'slds-button',
+          disabled: !items.length,
+        }}
       >
-        <button className="slds-button" onClick={() => setIsOpen(true)} disabled={!items.length}>
-          {formatNumber(items.length)} {pluralizeIfMultiple(label, items)} selected
-          {!!items.length && <Icon type="utility" icon="chevrondown" omitContainer className="slds-button__icon slds-button__icon_right" />}
-        </button>
+        {formatNumber(items.length)} {pluralizeIfMultiple(label, items)} selected
+        {!!items.length && <Icon type="utility" icon="chevrondown" omitContainer className="slds-button__icon slds-button__icon_right" />}
       </Popover>
     </div>
   );

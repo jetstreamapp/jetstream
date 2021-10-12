@@ -67,6 +67,7 @@ export interface UtilityIconObj {
   delete: IconEl;
   down: IconEl;
   download: IconEl;
+  drag_and_drop: IconEl;
   edit: IconEl;
   error: IconEl;
   event: IconEl;

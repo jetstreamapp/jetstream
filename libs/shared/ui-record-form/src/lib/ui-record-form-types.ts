@@ -6,11 +6,12 @@ export type EditableFields =
   | EditableFieldCheckbox
   | EditableFieldDate
   | EditableFieldDateTime
+  | EditableFieldTime
   | EditableFieldTextarea
   | EditableFieldPicklist;
 
 export interface EditableField {
-  type: 'input' | 'textarea' | 'picklist' | 'date' | 'datetime' | 'checkbox';
+  type: 'input' | 'textarea' | 'picklist' | 'date' | 'datetime' | 'time' | 'checkbox';
   label: string;
   name: string;
   labelHelpText?: string;
@@ -41,6 +42,10 @@ export interface EditableFieldDate extends EditableField {
 }
 export interface EditableFieldDateTime extends EditableField {
   type: 'datetime';
+}
+
+export interface EditableFieldTime extends EditableField {
+  type: 'time';
 }
 
 export interface EditableFieldPicklist extends EditableField {

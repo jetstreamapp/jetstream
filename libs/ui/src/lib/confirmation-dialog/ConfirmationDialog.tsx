@@ -1,7 +1,7 @@
 import React, { Fragment, FunctionComponent } from 'react';
 import Modal from '../modal/Modal';
+import { OverlayProvider } from '@react-aria/overlays';
 
-/* eslint-disable-next-line */
 export interface ConfirmationDialogProps {
   isOpen: boolean;
   header?: string | JSX.Element;
@@ -32,7 +32,7 @@ export const ConfirmationDialog: FunctionComponent<ConfirmationDialogProps> = ({
   children,
 }) => {
   return (
-    <Fragment>
+    <OverlayProvider>
       {isOpen && (
         <Modal
           className="slds-modal_prompt"
@@ -54,7 +54,7 @@ export const ConfirmationDialog: FunctionComponent<ConfirmationDialogProps> = ({
           {children}
         </Modal>
       )}
-    </Fragment>
+    </OverlayProvider>
   );
 };
 

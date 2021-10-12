@@ -5,7 +5,7 @@ import ConfirmationDialog, { ConfirmationDialogProps } from './ConfirmationDialo
 import { Story, Meta } from '@storybook/react';
 
 export default {
-  title: 'modals/ConfirmationDialog',
+  title: 'overlays/ConfirmationDialog',
   component: ConfirmationDialog,
   argTypes: {
     isOpen: {

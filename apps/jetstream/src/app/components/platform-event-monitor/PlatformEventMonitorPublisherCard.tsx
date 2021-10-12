@@ -168,8 +168,6 @@ export const PlatformEventMonitorPublisherCard: FunctionComponent<PlatformEventM
                   sobjectFields={sobjectDescribeData.describe.fields}
                   picklistValues={sobjectDescribeData.picklistValues}
                   record={publishEventRecord}
-                  showReadOnlyFields
-                  showFieldTypes={true}
                   onChange={setPublishEventRecord}
                 />
               )}

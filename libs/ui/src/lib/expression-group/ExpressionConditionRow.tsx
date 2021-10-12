@@ -1,3 +1,4 @@
+import { css } from '@emotion/react';
 import { useDebounce } from '@jetstream/shared/ui-utils';
 import { multiWordObjectFilter } from '@jetstream/shared/utils';
 import {
@@ -16,6 +17,8 @@ import parseISO from 'date-fns/parseISO';
 import isNumber from 'lodash/isNumber';
 import isString from 'lodash/isString';
 import React, { FunctionComponent, useEffect, useState } from 'react';
+import { useDrag } from 'react-dnd';
+import { Icon } from '../widgets/Icon';
 import FormRowButton from '../form/button/FormRowButton';
 import Combobox from '../form/combobox/Combobox';
 import { ComboboxListItem } from '../form/combobox/ComboboxListItem';
@@ -25,11 +28,15 @@ import DatePicker from '../form/date/DatePicker';
 import Input from '../form/input/Input';
 import Picklist from '../form/picklist/Picklist';
 import Textarea from '../form/textarea/Textarea';
+import { DraggableRow } from './expression-types';
 
 export interface ExpressionConditionRowProps {
+  rowKey: number;
+  groupKey?: number;
   row: number;
   group?: number;
   AndOr?: AndOr;
+  showDragHandles?: boolean;
   wrap?: boolean;
   resourceLabel?: string;
   resourceHelpText?: string;
@@ -55,9 +62,12 @@ function getSelectionLabel(groupLabel: string, item: ListItem<string, unknown>) 
 
 export const ExpressionConditionRow: FunctionComponent<ExpressionConditionRowProps> = React.memo(
   ({
+    rowKey,
+    groupKey,
     row,
     group,
     AndOr,
+    showDragHandles,
     wrap,
     resourceLabel = 'Resource',
     resourceHelpText,
@@ -96,6 +106,17 @@ export const ExpressionConditionRow: FunctionComponent<ExpressionConditionRowPro
     // the default picklist value does not get picked up in time - so this forces the picklist to re-render
     const [picklistKey, setPicklistKey] = useState<string>(`${new Date().getTime()}`);
     const debouncedSelectedValue = useDebounce(selectedValue, 150);
+
+    const [{ isDragging }, drag, preview] = useDrag(
+      () => ({
+        type: 'row',
+        item: (): DraggableRow => ({ rowKey, groupKey }),
+        collect: (monitor) => ({
+          isDragging: !!monitor.isDragging(),
+        }),
+      }),
+      [row]
+    );
 
     useEffect(() => {
       onChange({ ...selected, value: debouncedSelectedValue });
@@ -176,17 +197,33 @@ export const ExpressionConditionRow: FunctionComponent<ExpressionConditionRowPro
 
     return (
       <li
+        ref={preview}
         className={classNames('slds-expression__row', {
           'slds-expression__row_group': isNumber(group),
           'slds-border_top': row > 1 && wrap,
         })}
+        css={css`
+          opacity: ${isDragging ? '.4' : '1'};
+        `}
       >
         <fieldset>
-          <legend className="slds-expression__legend">
+          <legend className="slds-expression__legend slds-grid">
             {row !== 1 && AndOr && <span>{AndOr}</span>}
             <span className="slds-assistive-text">{`Condition ${row} ${group ? `Of Group ${group}` : ''}`}</span>
           </legend>
           <div className={classNames('slds-grid slds-gutters_xx-small', { 'slds-wrap': wrap })}>
+            {showDragHandles && (
+              <button
+                ref={drag}
+                css={css`
+                  cursor: grab;
+                `}
+                className="slds-button slds-button_icon"
+                title="Drag row between groups or out of the group"
+              >
+                <Icon icon="drag_and_drop" type="utility" className="slds-button__icon" omitContainer description="Drag filter row" />
+              </button>
+            )}
             {/* Resource */}
             <div className="slds-col">
               <Combobox

@@ -1,98 +1,53 @@
-import { action } from '@storybook/addon-actions';
-import { boolean, select, text } from '@storybook/addon-knobs';
+import { OverlayProvider } from '@react-aria/overlays';
+import { Meta, Story } from '@storybook/react';
 import React, { Fragment } from 'react';
-import Modal from './Modal';
+import ModalComponent, { ModalProps } from './Modal';
 
 export default {
-  title: 'Modal',
-};
-
-const content = (
-  <Fragment>
-    <p>
-      Sit nulla est ex deserunt exercitation anim occaecat. Nostrud ullamco deserunt aute id consequat veniam incididunt duis in sint irure
-      nisi. Mollit officia cillum Lorem ullamco minim nostrud elit officia tempor esse quis. Cillum sunt ad dolore quis aute consequat ipsum
-      magna exercitation reprehenderit magna. Tempor cupidatat consequat elit dolor adipisicing.
-    </p>
-    <p>
-      Dolor eiusmod sunt ex incididunt cillum quis nostrud velit duis sit officia. Lorem aliqua enim laboris do dolor eiusmod officia.
-      Mollit incididunt nisi consectetur esse laborum eiusmod pariatur proident. Eiusmod et adipisicing culpa deserunt nostrud ad veniam
-      nulla aute est. Labore esse esse cupidatat amet velit id elit consequat minim ullamco mollit enim excepteur ea.
-    </p>
-  </Fragment>
-);
-
-export const modal = () => (
-  <Modal
-    header={text('header', 'This is the modal header')}
-    tagline={text('tagline', undefined)}
-    footer={
+  title: 'overlays/modal',
+  component: ModalComponent,
+  argTypes: {
+    type: {
+      options: ['info', 'success', 'warning', 'error', 'offline'],
+      defaultValue: 'info',
+    },
+    onClose: { action: 'onClose' },
+  },
+  args: {
+    hide: false,
+    header: 'My Fancy Modal',
+    tagline: 'My Fancy Tagline',
+    closeDisabled: false,
+    closeOnEsc: true,
+    closeOnBackdropClick: true,
+    skipAutoFocus: false,
+    children: (
+      <Fragment>
+        <p>
+          Sit nulla est ex deserunt exercitation anim occaecat. Nostrud ullamco deserunt aute id consequat veniam incididunt duis in sint
+          irure nisi. Mollit officia cillum Lorem ullamco minim nostrud elit officia tempor esse quis. Cillum sunt ad dolore quis aute
+          consequat ipsum magna exercitation reprehenderit magna. Tempor cupidatat consequat elit dolor adipisicing.
+        </p>
+        <p>
+          Dolor eiusmod sunt ex incididunt cillum quis nostrud velit duis sit officia. Lorem aliqua enim laboris do dolor eiusmod officia.
+          Mollit incididunt nisi consectetur esse laborum eiusmod pariatur proident. Eiusmod et adipisicing culpa deserunt nostrud ad veniam
+          nulla aute est. Labore esse esse cupidatat amet velit id elit consequat minim ullamco mollit enim excepteur ea.
+        </p>
+      </Fragment>
+    ),
+    footer: (
       <Fragment>
         <button className="slds-button slds-button_neutral">Cancel</button>
         <button className="slds-button slds-button_brand">Save</button>
       </Fragment>
-    }
-    directionalFooter={boolean('directionalFooter', false)}
-    size={select(
-      'size',
-      {
-        Small: 'sm',
-        Medium: 'md',
-        Large: 'lg',
-        NotSpecified: undefined,
-      },
-      undefined
-    )}
-    onClose={action('onclose')}
-  >
-    {content}
-  </Modal>
+    ),
+  },
+} as Meta;
+
+const Template: Story<ModalProps> = ({ children, ...args }) => (
+  <OverlayProvider>
+    <ModalComponent {...args}>{children}</ModalComponent>
+  </OverlayProvider>
 );
 
-export const modalWithoutHeaderOrFooter = () => (
-  <Modal
-    header={text('header', undefined)}
-    tagline={text('tagline', undefined)}
-    directionalFooter={boolean('directionalFooter', false)}
-    size={select(
-      'size',
-      {
-        Small: 'sm',
-        Medium: 'md',
-        Large: 'lg',
-        NotSpecified: undefined,
-      },
-      undefined
-    )}
-    onClose={action('onclose')}
-  >
-    {content}
-  </Modal>
-);
-
-export const modalWizard = () => (
-  <Modal
-    header={text('header', 'This is the modal header')}
-    tagline={text('tagline', undefined)}
-    footer={
-      <Fragment>
-        <button className="slds-button slds-button_neutral">Go Back</button>
-        <button className="slds-button slds-button_brand">Save and Continue</button>
-      </Fragment>
-    }
-    directionalFooter={boolean('directionalFooter', true)}
-    size={select(
-      'size',
-      {
-        Small: 'sm',
-        Medium: 'md',
-        Large: 'lg',
-        NotSpecified: undefined,
-      },
-      undefined
-    )}
-    onClose={action('onclose')}
-  >
-    {content}
-  </Modal>
-);
+export const Modal = Template.bind({});

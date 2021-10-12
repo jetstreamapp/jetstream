@@ -1,13 +1,14 @@
-import { css } from '@emotion/react';
-import { SerializedStyles } from '@emotion/react';
+import { css, SerializedStyles } from '@emotion/react';
 import { isEscapeKey } from '@jetstream/shared/ui-utils';
 import { SizeSmMdLg } from '@jetstream/types';
+import { useDialog } from '@react-aria/dialog';
+import { FocusScope } from '@react-aria/focus';
+import { OverlayContainer, useModal, useOverlay, usePreventScroll } from '@react-aria/overlays';
 import classNames from 'classnames';
 import uniqueId from 'lodash/uniqueId';
-import { Component, Fragment, FunctionComponent, KeyboardEvent, useEffect, useRef, useState } from 'react';
-import { createPortal } from 'react-dom';
+import { KeyboardEvent, ReactNode, useRef, useState } from 'react';
 import Icon from '../widgets/Icon';
-/* eslint-disable-next-line */
+
 export interface ModalProps {
   className?: string;
   classStyles?: SerializedStyles;
@@ -16,13 +17,16 @@ export interface ModalProps {
   tagline?: string | JSX.Element;
   footer?: JSX.Element;
   directionalFooter?: boolean;
+  containerClassName?: string;
   footerClassName?: string;
   size?: SizeSmMdLg;
   closeDisabled?: boolean;
   closeOnEsc?: boolean;
   closeOnBackdropClick?: boolean;
+  /** @deprecated This no longer does anything */
   skipAutoFocus?: boolean;
   overrideZIndex?: number;
+  children: ReactNode;
   onClose: () => void;
 }
 
@@ -39,70 +43,47 @@ function getSizeClass(size?: SizeSmMdLg) {
   }
 }
 
-// https://reactjs.org/docs/portals.html
-const modalRoot = document.getElementById('modal-root');
-export class Modal extends Component<ModalProps> {
-  el: HTMLDivElement;
-  constructor(props) {
-    super(props);
-    this.el = document.createElement('div');
-  }
-
-  componentDidMount() {
-    // The portal element is inserted in the DOM tree after
-    // the Modal's children are mounted, meaning that children
-    // will be mounted on a detached DOM node. If a child
-    // component requires to be attached to the DOM tree
-    // immediately when mounted, for example to measure a
-    // DOM node, or uses 'autoFocus' in a descendant, add
-    // state to Modal and only render the children when Modal
-    // is inserted in the DOM tree.
-    if (modalRoot) {
-      modalRoot.appendChild(this.el);
-    }
-  }
-
-  componentWillUnmount() {
-    if (modalRoot) {
-      modalRoot.removeChild(this.el);
-    }
-  }
-
-  render() {
-    if (modalRoot) {
-      return createPortal(<ModalContent {...this.props} />, this.el);
-    } else {
-      return <ModalContent {...this.props} />;
-    }
-  }
-}
-
-export const ModalContent: FunctionComponent<ModalProps> = ({
+export const Modal = ({
   className,
   classStyles,
-  hide = false,
+  hide,
   header,
   tagline,
   footer,
   directionalFooter,
+  containerClassName,
   footerClassName,
   size,
   closeDisabled,
   closeOnEsc = true,
-  closeOnBackdropClick,
+  closeOnBackdropClick = true,
   skipAutoFocus,
   overrideZIndex,
   children,
   onClose,
-}) => {
-  const closeButtonRef = useRef(null);
+}: ModalProps) => {
+  const ref = useRef();
   const [modalId] = useState(uniqueId('modal-content'));
+  const { overlayProps, underlayProps } = useOverlay(
+    {
+      isOpen: true,
+      // TODO: I could not get these to work, had to implement these manually
+      isDismissable: closeOnBackdropClick,
+      isKeyboardDismissDisabled: closeOnEsc,
+      onClose: () => {
+        onClose();
+      },
+    },
+    ref
+  );
 
-  useEffect(() => {
-    if (!skipAutoFocus) {
-      closeButtonRef.current.focus();
-    }
-  }, []);
+  // Prevent scrolling while the modal is open, and hide content
+  // outside the modal from screen readers.
+  usePreventScroll();
+  const { modalProps } = useModal();
+
+  // Get props for the dialog and its title
+  const { dialogProps, titleProps } = useDialog({ role: 'dialog' }, ref);
 
   function handleKeyUp(event: KeyboardEvent<HTMLInputElement>) {
     if (!closeDisabled && closeOnEsc && isEscapeKey(event)) {
@@ -110,67 +91,65 @@ export const ModalContent: FunctionComponent<ModalProps> = ({
     }
   }
 
-  // THIS DOES NOT WORK: the modal content is in front of this button ;(
-  function handleBackdropClick() {
-    if (!closeDisabled && closeOnBackdropClick) {
-      onClose();
-    }
-  }
-
   return (
-    <Fragment>
-      <section
-        role="dialog"
-        tabIndex={-1}
-        className={classNames('slds-modal', { 'slds-slide-up-open': !hide }, getSizeClass(size))}
-        aria-labelledby="modal"
-        aria-modal="true"
-        aria-describedby={modalId}
-        onKeyUp={handleKeyUp}
-        css={css`
-          ${overrideZIndex ? `z-index: ${overrideZIndex}` : ''}
-        `}
-      >
-        <div className="slds-modal__container">
-          <header className={classNames('slds-modal__header', { 'slds-modal__header_empty': !header })}>
-            <button
-              className="slds-button slds-button_icon slds-modal__close slds-button_icon-inverse"
-              title="Close"
-              ref={closeButtonRef}
-              disabled={closeDisabled}
-              onClick={() => onClose()}
-            >
-              <Icon type="utility" icon="close" className="slds-button__icon slds-button__icon_large" omitContainer />
-              <span className="slds-assistive-text">Close</span>
-            </button>
-            <h2 id="modal" className="slds-modal__title slds-hyphenate">
-              {header}
-            </h2>
-            {tagline && <div className="slds-m-top_x-small">{tagline}</div>}
-          </header>
-          <div className={classNames('slds-modal__content', className || 'slds-p-around_medium')} css={classStyles} id={modalId}>
-            {children}
+    <OverlayContainer>
+      <FocusScope contain restoreFocus autoFocus>
+        <section
+          {...overlayProps}
+          {...dialogProps}
+          {...modalProps}
+          ref={ref}
+          role="dialog"
+          tabIndex={-1}
+          className={classNames('slds-modal', { 'slds-slide-up-open': !hide }, getSizeClass(size))}
+          aria-modal="true"
+          aria-describedby={modalId}
+          onKeyUp={handleKeyUp}
+          css={css`
+            ${overrideZIndex ? `z-index: ${overrideZIndex}` : ''}
+          `}
+        >
+          <div className={classNames('slds-modal__container', containerClassName)}>
+            <header className={classNames('slds-modal__header', { 'slds-modal__header_empty': !header })}>
+              <button
+                className="slds-button slds-button_icon slds-modal__close slds-button_icon-inverse"
+                title="Close"
+                disabled={closeDisabled}
+                onClick={() => onClose()}
+              >
+                <Icon type="utility" icon="close" className="slds-button__icon slds-button__icon_large" omitContainer />
+                <span className="slds-assistive-text">Close</span>
+              </button>
+              <h2 className="slds-modal__title slds-hyphenate" {...titleProps}>
+                {header}
+              </h2>
+              {tagline && <div className="slds-m-top_x-small">{tagline}</div>}
+            </header>
+            <div id={modalId} className={classNames('slds-modal__content', className || 'slds-p-around_medium')} css={classStyles}>
+              {children}
+            </div>
+            {footer && (
+              <footer
+                className={classNames('slds-modal__footer', { 'slds-modal__footer_directional': directionalFooter }, footerClassName)}
+              >
+                {footer}
+              </footer>
+            )}
           </div>
-          {footer && (
-            <footer className={classNames('slds-modal__footer', { 'slds-modal__footer_directional': directionalFooter }, footerClassName)}>
-              {footer}
-            </footer>
-          )}
-        </div>
-      </section>
+        </section>
+      </FocusScope>
       {!hide && (
         <button
-          aria-hidden="true"
           className="slds-backdrop slds-backdrop_open"
           css={css`
             ${overrideZIndex ? `z-index: ${overrideZIndex - 1}` : ''}
           `}
-          onClick={handleBackdropClick}
+          {...underlayProps}
         >
           <span className="sr-only">Close Modal</span>
         </button>
       )}
-    </Fragment>
+    </OverlayContainer>
   );
 };
 

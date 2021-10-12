@@ -2,7 +2,9 @@ import { css } from '@emotion/react';
 import { hasFeatureFlagAccess } from '@jetstream/shared/ui-utils';
 import { UserProfileUi } from '@jetstream/types';
 import { ConfirmationServiceProvider } from '@jetstream/ui';
-import { Fragment, lazy, Suspense, useEffect, useState } from 'react';
+// import { initSocket } from '@jetstream/shared/data';
+import { OverlayProvider } from '@react-aria/overlays';
+import { lazy, Suspense, useEffect, useState } from 'react';
 import { ErrorBoundary } from 'react-error-boundary';
 import ModalContainer from 'react-modal-promise';
 import { Redirect, Route, RouteComponentProps, Switch } from 'react-router-dom';
@@ -17,7 +19,6 @@ import './components/core/monaco-loader';
 import NotificationsRequestModal from './components/core/NotificationsRequestModal';
 import OrgSelectionRequired from './components/orgs/OrgSelectionRequired';
 import PlatformEventMonitor from './components/platform-event-monitor/PlatformEventMonitor';
-// import { initSocket } from '@jetstream/shared/data';
 
 const AutomationControl = lazy(() => import('./components/automation-control/AutomationControl'));
 const Feedback = lazy(() => import('./components/feedback/Feedback'));
@@ -162,7 +163,7 @@ export const App = () => {
         {/* TODO: make better loading indicators for suspense (both global and localized versions - maybe SVG placeholders) */}
         <Suspense fallback={<div>Loading...</div>}>
           <AppInitializer onUserProfile={setUserProfile}>
-            <Fragment>
+            <OverlayProvider>
               <ModalContainer />
               <AppStateResetOnOrgChange />
               <AppToast />
@@ -189,7 +190,7 @@ export const App = () => {
                   </Suspense>
                 </div>
               </div>
-            </Fragment>
+            </OverlayProvider>
           </AppInitializer>
         </Suspense>
       </RecoilRoot>

@@ -124,8 +124,8 @@ export const OrgInfoPopover: FunctionComponent<OrgInfoPopoverProps> = ({
     }
   }
 
-  function handlePopoverClose() {
-    if (isDirty) {
+  function handlePopoverClose(isOpen: boolean) {
+    if (!isOpen && isDirty) {
       setOrgLabel(org.username);
     }
   }
@@ -133,11 +133,13 @@ export const OrgInfoPopover: FunctionComponent<OrgInfoPopoverProps> = ({
   return (
     <Popover
       placement="bottom-end"
-      size="full-width"
+      // size="full-width"
+      // size="large"
+      panelStyle={{ minWidth: '26.5rem', overflow: 'hidden' }}
       bodyClassName="slds-popover__body slds-p-around_none"
       containerClassName={hasError ? 'slds-popover_error' : undefined}
       inverseIcons={hasError}
-      onClose={handlePopoverClose}
+      onChange={handlePopoverClose}
       header={
         <header className="slds-popover__header">
           <h2 className="slds-truncate slds-text-heading_small" title="Org Info">
@@ -287,10 +289,11 @@ export const OrgInfoPopover: FunctionComponent<OrgInfoPopoverProps> = ({
           </div>
         </div>
       }
+      buttonProps={{
+        className: 'slds-button slds-button_icon',
+      }}
     >
-      <button className="slds-button slds-button_icon">
-        <Icon type="utility" icon="settings" className="slds-button__icon slds-button__icon_left" omitContainer />
-      </button>
+      <Icon type="utility" icon="settings" className="slds-button__icon slds-button__icon_left" omitContainer />
     </Popover>
   );
 };

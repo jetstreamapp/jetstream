@@ -1,6 +1,6 @@
-import React, { Fragment, FunctionComponent } from 'react';
 import classNames from 'classnames';
-import NoContentIllustration from 'libs/ui/src/lib/illustrations/NoContentIllustration';
+import React, { FunctionComponent } from 'react';
+import NoContentIllustration from '../illustrations/NoContentIllustration';
 
 export interface EmptyStateProps {
   omitIllustration?: boolean;

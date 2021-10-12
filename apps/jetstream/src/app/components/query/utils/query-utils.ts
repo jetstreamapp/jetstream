@@ -17,6 +17,7 @@ export interface EditFromErrors {
 
 const CHILD_FIELD_SEPARATOR = `~`;
 const DATE_FIELD_TYPES = new Set<FieldType>(['date', 'datetime']);
+const TIME_FIELD_TYPES = new Set<FieldType>(['time']);
 const NUMBER_TYPES = new Set<FieldType>(['int', 'double', 'currency', 'percent']);
 
 export function composeSoqlQuery(query: Query, whereExpression: ExpressionType) {
@@ -114,6 +115,9 @@ export function transformEditForm(sobjectFields: Field[], record: Record): Recor
         // this converts to UTC
         record[fieldName] = parseISO(value).toISOString();
       }
+    } else if (TIME_FIELD_TYPES.has(field.type) && isString(value) && value) {
+      // Without Z, salesforce will modify the timezone
+      record[fieldName] = `${value}Z`;
     }
   });
   return record;

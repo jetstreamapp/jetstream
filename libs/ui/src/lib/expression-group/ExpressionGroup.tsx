@@ -1,19 +1,41 @@
 import { AndOr } from '@jetstream/types';
+import classNames from 'classnames';
 import React, { FunctionComponent } from 'react';
-import ExpressionActionDropDown from './ExpressionActionDropDown';
+import { useDrop } from 'react-dnd';
 import Icon from '../widgets/Icon';
+import { DraggableRow } from './expression-types';
+import ExpressionActionDropDown from './ExpressionActionDropDown';
 
 export interface ExpressionGroupProps {
+  groupKey: number;
   group: number;
   parentAction: AndOr;
   onActionChange: (value: AndOr) => void;
   onAddCondition: () => void;
+  moveRowToGroup: (item: DraggableRow, targetGroup: number) => void;
 }
 
 export const ExpressionGroup: FunctionComponent<ExpressionGroupProps> = React.memo(
-  ({ parentAction, group, children, onActionChange, onAddCondition }) => {
+  ({ parentAction, groupKey, group, children, onActionChange, onAddCondition, moveRowToGroup }) => {
+    const [{ isOver, canDrop }, drop] = useDrop({
+      accept: 'row',
+      collect: (monitor) => ({
+        isOver: monitor.isOver({ shallow: true }),
+        canDrop: monitor.getItem<DraggableRow>()?.groupKey !== groupKey,
+      }),
+      canDrop: (item: DraggableRow, monitor) => item?.groupKey !== groupKey,
+      drop: (item: DraggableRow, monitor) => {
+        moveRowToGroup(item, groupKey);
+      },
+    });
+
     return (
-      <li className="slds-expression__group">
+      <li
+        ref={drop}
+        className={classNames('slds-expression__group', {
+          'drop-zone-border': isOver && canDrop,
+        })}
+      >
         <fieldset>
           <legend className="slds-expression__legend slds-expression__legend_group">
             <span>{parentAction}</span>

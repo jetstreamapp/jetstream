@@ -17,9 +17,9 @@ import { logger } from '@jetstream/shared/client-logger';
 import { formatNumber, isArrowKey, isEnterOrSpace, isTabKey } from '@jetstream/shared/ui-utils';
 import { getMapOf, orderStringsBy, pluralizeFromNumber } from '@jetstream/shared/utils';
 import { MapOf, PermissionSetNoProfileRecord, PermissionSetWithProfileRecord } from '@jetstream/types';
-import { Checkbox, CheckboxToggle, Grid, Icon, Input, isColumnGroupDef, Modal, Popover, Tooltip } from '@jetstream/ui';
+import { Checkbox, CheckboxToggle, Grid, Icon, Input, isColumnGroupDef, Modal, Popover, PopoverRef, Tooltip } from '@jetstream/ui';
 import { isFunction } from 'lodash';
-import { Fragment, FunctionComponent, useEffect, useState } from 'react';
+import { Fragment, FunctionComponent, useEffect, useRef, useState, useCallback } from 'react';
 import {
   BulkActionCheckbox,
   DirtyRow,
@@ -1082,20 +1082,15 @@ function getDirtyCount(rowNode: RowNode, type: PermissionType): number {
  * This component provides a popover that the user can open to make changes that apply to an entire row
  */
 export const RowActionRenderer: FunctionComponent<ICellRendererParams> = ({ node, context, api, columnApi }) => {
-  const [isOpen, setIsOpen] = useState(false);
+  const popoverRef = useRef<PopoverRef>();
   const [applyToAll, setApplyToAll] = useState(true);
   const [allColumnsVisible, setAllColumnsVisible] = useState(true);
   const [dirtyItemCount, setDirtyItemCount] = useState(0);
-  const [description, setDescription] = useState(getDescriptionText);
   const [checkboxes, setCheckboxes] = useState<BulkActionCheckbox[]>(
     defaultRowActionCheckboxes(context.type, node.data?.allowEditPermission)
   );
 
-  useEffect(() => {
-    setDescription(getDescriptionText());
-  }, [applyToAll]);
-
-  function getDescriptionText() {
+  const getDescriptionText = useCallback(() => {
     const { profiles, permissionSets } = api
       .getColumnDefs()
       .filter((item) => !!item.headerName)
@@ -1129,7 +1124,12 @@ export const RowActionRenderer: FunctionComponent<ICellRendererParams> = ({ node
     } else {
       return `This change will apply to all selected profiles and permission sets`;
     }
-  }
+  }, [api, applyToAll, columnApi]);
+
+  const [description, setDescription] = useState(getDescriptionText);
+  useEffect(() => {
+    setDescription(getDescriptionText());
+  }, [applyToAll, getDescriptionText]);
 
   /**
    * Set all dependencies when fields change
@@ -1181,28 +1181,32 @@ export const RowActionRenderer: FunctionComponent<ICellRendererParams> = ({ node
     setDirtyItemCount(getDirtyCount(node, context.type));
   }
 
-  function handleOpen() {
-    setApplyToAll(true);
-    setAllColumnsVisible(
-      columnApi
-        .getAllColumns()
-        .slice(3)
-        .every((col) => col.isVisible())
-    );
-    setIsOpen(true);
-    setDirtyItemCount(getDirtyCount(node, context.type));
-  }
-
-  function handleClose() {
-    if (node.data) {
-      setCheckboxes(defaultRowActionCheckboxes(context.type, node.data.allowEditPermission));
-    }
-    setIsOpen(false);
-  }
-
   if (node.isRowPinned()) {
     return null;
   }
+
+  function handlePopoverChange(isOpen: boolean) {
+    if (isOpen) {
+      setApplyToAll(true);
+      setAllColumnsVisible(
+        columnApi
+          .getAllColumns()
+          .slice(3)
+          .every((col) => col.isVisible())
+      );
+      setDirtyItemCount(getDirtyCount(node, context.type));
+    } else {
+      if (node.data) {
+        setCheckboxes(defaultRowActionCheckboxes(context.type, node.data.allowEditPermission));
+      }
+    }
+  }
+
+  /**
+   * FIXME:
+   * this is broken - any click on popover closes it (maybe because it is in the table and super janked?)
+   * might need to keep old one here temporarily
+   */
 
   return (
     <div
@@ -1214,11 +1218,13 @@ export const RowActionRenderer: FunctionComponent<ICellRendererParams> = ({ node
       `}
     >
       <Popover
+        ref={popoverRef}
         size={context.type === 'object' ? 'large' : 'medium'}
-        isOpen={isOpen}
-        onOpen={handleOpen}
-        onClose={handleClose}
-        placement="top"
+        // isOpen={isOpen}
+        // onOpen={handleOpen}
+        // onClose={handleClose}
+        placement="bottom"
+        onChange={handlePopoverChange}
         header={
           <header className="slds-popover__header">
             <h2 className="slds-text-heading_small" id="background-jobs" title="Background Jobs">
@@ -1268,8 +1274,11 @@ export const RowActionRenderer: FunctionComponent<ICellRendererParams> = ({ node
             )}
           </div>
         }
+        buttonProps={{
+          className: 'slds-button',
+        }}
       >
-        <button className="slds-button">Edit Row</button>
+        Edit Row
       </Popover>
     </div>
   );

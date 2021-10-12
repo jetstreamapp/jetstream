@@ -405,6 +405,17 @@ export const QueryResults: FunctionComponent<QueryResultsProps> = React.memo(() 
     history.push(`/query`, { soql, isTooling: tooling, fromHistory: true });
   }
 
+  function handleCreateNewRecord() {
+    if (queryResults.parsedQuery.sObject) {
+      setCloneEditViewRecord({
+        action: 'create',
+        recordId: null,
+        sobjectName: queryResults?.parsedQuery?.sObject,
+      });
+      trackEvent(ANALYTICS_KEYS.query_RecordAction, { action: 'create' });
+    }
+  }
+
   return (
     <div>
       <RecordDownloadModal
@@ -547,8 +558,8 @@ export const QueryResults: FunctionComponent<QueryResultsProps> = React.memo(() 
               </Grid>
               <EmptyState
                 size="large"
-                headline="Your query yielded no results!"
-                subHeading="There are no records matching your query."
+                headline="There are no records matching your query"
+                subHeading="Go back and adjust your query or create a new record."
                 illustration={<CampingRainIllustration />}
               >
                 <Link
@@ -561,6 +572,11 @@ export const QueryResults: FunctionComponent<QueryResultsProps> = React.memo(() 
                   <Icon type="utility" icon="back" className="slds-button__icon slds-button__icon_left" omitContainer />
                   Go Back
                 </Link>
+                {queryResults?.parsedQuery?.sObject && (
+                  <button className="slds-button slds-button_neutral slds-m-left_small" onClick={handleCreateNewRecord}>
+                    Create a new record
+                  </button>
+                )}
               </EmptyState>
             </Fragment>
           )}

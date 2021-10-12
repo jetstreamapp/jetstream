@@ -1,4 +1,3 @@
-/* eslint-disable jsx-a11y/anchor-is-valid */
 import { useNonInitialEffect } from '@jetstream/shared/ui-utils';
 import { ListItem } from '@jetstream/types';
 import addMinutes from 'date-fns/addMinutes';
@@ -8,13 +7,19 @@ import parseDate from 'date-fns/parse';
 import React, { FunctionComponent, useState } from 'react';
 import Picklist, { PicklistProps } from '../picklist/Picklist';
 
-export type PicklistPropsWithoutItems = Omit<
+type PicklistPropsWithoutItems = Omit<
   PicklistProps,
   'items' | 'groups' | 'selectedItems' | 'selectedItemIds' | 'multiSelection' | 'omitMultiSelectPills' | 'onChange'
 >;
 
+// cache to improve costly re-calculations
+const GENERATED_TIME = new Map<number, ListItem[]>();
+
 // attribution: https://github.com/salesforce/design-system-react/blob/master/components/time-picker/index.jsx
-function generateTimeListItems(stepInMinutes: number) {
+function generateTimeListItems(stepInMinutes: number): ListItem[] {
+  if (GENERATED_TIME.has(stepInMinutes)) {
+    return GENERATED_TIME.get(stepInMinutes);
+  }
   const output: ListItem[] = [];
   const baseDate = parseDate('00', 'HH', new Date());
   let currDate = new Date(baseDate);
@@ -28,7 +33,7 @@ function generateTimeListItems(stepInMinutes: number) {
     });
     currDate = addMinutes(currDate, stepInMinutes);
   }
-
+  GENERATED_TIME.set(stepInMinutes, output);
   return output;
 }
 
@@ -64,7 +69,7 @@ function normalizeInitialTime(time: string, stepInMinutes: number) {
       }
     }
 
-    return `${hour}:${min}:00.000`;
+    return `${String(hour).padStart(2, '0')}:${String(min).padStart(2, '0')}:00.000`;
   } catch (ex) {
     return time;
   }
