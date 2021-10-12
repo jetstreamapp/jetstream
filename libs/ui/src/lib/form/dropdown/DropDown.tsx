@@ -178,56 +178,58 @@ export const DropDown: FunctionComponent<DropDownProps> = ({
             </Fragment>
           )}
         </button>
-        <div
-          className={classNames(
-            'slds-dropdown',
-            {
-              'slds-dropdown_left': position === 'left',
-              'slds-dropdown_right': position === 'right',
-            },
-            scrollLengthClass,
-            dropDownClassName
-          )}
-        >
-          <ul className="slds-dropdown__list" role="menu" aria-label={actionText} ref={ulContainerEl}>
-            {items.map(({ id, subheader, value, icon, trailingDivider, metadata }, i) => (
-              <Fragment key={id}>
-                {subheader && (
-                  <li className="slds-dropdown__header slds-truncate" title={subheader} role="separator">
-                    <span>{subheader}</span>
+        {isOpen && (
+          <div
+            className={classNames(
+              'slds-dropdown',
+              {
+                'slds-dropdown_left': position === 'left',
+                'slds-dropdown_right': position === 'right',
+              },
+              scrollLengthClass,
+              dropDownClassName
+            )}
+          >
+            <ul className="slds-dropdown__list" role="menu" aria-label={actionText} ref={ulContainerEl}>
+              {items.map(({ id, subheader, value, icon, trailingDivider, metadata }, i) => (
+                <Fragment key={id}>
+                  {subheader && (
+                    <li className="slds-dropdown__header slds-truncate" title={subheader} role="separator">
+                      <span>{subheader}</span>
+                    </li>
+                  )}
+                  <li className="slds-dropdown__item" role="presentation">
+                    <a
+                      ref={elRefs.current[i]}
+                      role="menuitem"
+                      tabIndex={0}
+                      onKeyDown={handleKeyDown}
+                      onClick={(event) => handleSelection(event, id, metadata)}
+                    >
+                      {isString(value) ? (
+                        <span className="slds-truncate" title={value}>
+                          {icon && (
+                            <Icon
+                              type={icon.type}
+                              icon={icon.icon}
+                              description={icon.description}
+                              omitContainer
+                              className="slds-icon slds-icon_x-small slds-icon-text-default slds-m-right_x-small"
+                            />
+                          )}
+                          {value}
+                        </span>
+                      ) : (
+                        value
+                      )}
+                    </a>
                   </li>
-                )}
-                <li className="slds-dropdown__item" role="presentation">
-                  <a
-                    ref={elRefs.current[i]}
-                    role="menuitem"
-                    tabIndex={0}
-                    onKeyDown={handleKeyDown}
-                    onClick={(event) => handleSelection(event, id, metadata)}
-                  >
-                    {isString(value) ? (
-                      <span className="slds-truncate" title={value}>
-                        {icon && (
-                          <Icon
-                            type={icon.type}
-                            icon={icon.icon}
-                            description={icon.description}
-                            omitContainer
-                            className="slds-icon slds-icon_x-small slds-icon-text-default slds-m-right_x-small"
-                          />
-                        )}
-                        {value}
-                      </span>
-                    ) : (
-                      value
-                    )}
-                  </a>
-                </li>
-                {trailingDivider && <li className="slds-has-divider_top-space" role="separator"></li>}
-              </Fragment>
-            ))}
-          </ul>
-        </div>
+                  {trailingDivider && <li className="slds-has-divider_top-space" role="separator"></li>}
+                </Fragment>
+              ))}
+            </ul>
+          </div>
+        )}
       </div>
     </OutsideClickHandler>
   );

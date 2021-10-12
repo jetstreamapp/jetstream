@@ -12,8 +12,14 @@ type PicklistPropsWithoutItems = Omit<
   'items' | 'groups' | 'selectedItems' | 'selectedItemIds' | 'multiSelection' | 'omitMultiSelectPills' | 'onChange'
 >;
 
+// cache to improve costly re-calculations
+const GENERATED_TIME = new Map<number, ListItem[]>();
+
 // attribution: https://github.com/salesforce/design-system-react/blob/master/components/time-picker/index.jsx
-function generateTimeListItems(stepInMinutes: number) {
+function generateTimeListItems(stepInMinutes: number): ListItem[] {
+  if (GENERATED_TIME.has(stepInMinutes)) {
+    return GENERATED_TIME.get(stepInMinutes);
+  }
   const output: ListItem[] = [];
   const baseDate = parseDate('00', 'HH', new Date());
   let currDate = new Date(baseDate);
@@ -27,7 +33,7 @@ function generateTimeListItems(stepInMinutes: number) {
     });
     currDate = addMinutes(currDate, stepInMinutes);
   }
-
+  GENERATED_TIME.set(stepInMinutes, output);
   return output;
 }
 

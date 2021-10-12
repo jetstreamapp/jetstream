@@ -388,25 +388,27 @@ const ComboboxElement: FunctionComponent<ComboboxProps & { icon: JSX.Element }> 
                   />
                   {icon}
                 </div>
-                <div
-                  id={listId}
-                  className={classNames(`slds-dropdown slds-dropdown_length-${itemLength} slds-dropdown_fluid`)}
-                  role="listbox"
-                  onKeyDown={handleListKeyDown}
-                  ref={divContainerEl}
-                >
-                  {Children.count(children) === 0 && (
-                    <ul className="slds-listbox slds-listbox_vertical" role="presentation">
-                      <ComboboxListItem id="placeholder" label={noItemsPlaceholder} selected={false} onSelection={NOOP} />
-                    </ul>
-                  )}
-                  {hasGroups && childrenWithRef}
-                  {!hasGroups && (
-                    <ul className="slds-listbox slds-listbox_vertical" role="presentation">
-                      {childrenWithRef}
-                    </ul>
-                  )}
-                </div>
+                {isOpen && (
+                  <div
+                    id={listId}
+                    className={classNames(`slds-dropdown slds-dropdown_length-${itemLength} slds-dropdown_fluid`)}
+                    role="listbox"
+                    onKeyDown={handleListKeyDown}
+                    ref={divContainerEl}
+                  >
+                    {Children.count(children) === 0 && (
+                      <ul className="slds-listbox slds-listbox_vertical" role="presentation">
+                        <ComboboxListItem id="placeholder" label={noItemsPlaceholder} selected={false} onSelection={NOOP} />
+                      </ul>
+                    )}
+                    {hasGroups && childrenWithRef}
+                    {!hasGroups && (
+                      <ul className="slds-listbox slds-listbox_vertical" role="presentation">
+                        {childrenWithRef}
+                      </ul>
+                    )}
+                  </div>
+                )}
               </div>
             </OutsideClickHandler>
           </Fragment>

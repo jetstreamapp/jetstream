@@ -71,7 +71,6 @@ export const Modal = ({
       isDismissable: closeOnBackdropClick,
       isKeyboardDismissDisabled: closeOnEsc,
       onClose: () => {
-        console.log('close');
         onClose();
       },
     },
@@ -146,7 +145,6 @@ export const Modal = ({
             ${overrideZIndex ? `z-index: ${overrideZIndex - 1}` : ''}
           `}
           {...underlayProps}
-          onClick={() => console.log('onPointerDown')}
         >
           <span className="sr-only">Close Modal</span>
         </button>

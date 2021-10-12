@@ -81,8 +81,8 @@ export const Picklist: FunctionComponent<PicklistProps> = ({
   onChange,
 }) => {
   const keyBuffer = useRef(new KeyBuffer());
-  const [comboboxId] = useState<string>(uniqueId(id || 'picklist'));
-  const [listboxId] = useState<string>(uniqueId('listbox'));
+  const [comboboxId] = useState<string>(() => uniqueId(id || 'picklist'));
+  const [listboxId] = useState<string>(() => uniqueId('listbox'));
   const [isOpen, setIsOpen] = useState<boolean>(false);
   const [selectedItemText, setSelectedItemText] = useState<string>();
   const [selectedItemsIdsSet, setSelectedItemsIdsSet] = useState<Set<unknown>>(() => {
@@ -159,7 +159,14 @@ export const Picklist: FunctionComponent<PicklistProps> = ({
     if (hasItem && (selectedItemsIdsSet.size > 1 || allowDeselection)) {
       selectedItemsIdsSet.delete(item.id);
     } else {
-      if (!multiSelection) {
+      if (multiSelection) {
+        // Handle empty item (e.x. --None--) - should not be selected with other items
+        if (item.id === '') {
+          selectedItemsIdsSet.clear();
+        } else if (selectedItemsIdsSet.has('')) {
+          selectedItemsIdsSet.delete('');
+        }
+      } else {
         selectedItemsIdsSet.clear();
         // if user clicked on new item in list, close
         if (!hasItem) {
@@ -267,6 +274,12 @@ export const Picklist: FunctionComponent<PicklistProps> = ({
     }
   }
 
+  function handleInputClick() {
+    if (!disabled) {
+      setIsOpen(!isOpen);
+    }
+  }
+
   return (
     <OutsideClickHandler display={containerDisplay} onOutsideClick={() => setIsOpen(false)}>
       <div className={classNames('slds-form-element', className, { 'slds-has-error': hasError })}>
@@ -287,7 +300,7 @@ export const Picklist: FunctionComponent<PicklistProps> = ({
               aria-controls={comboboxId}
               aria-haspopup="listbox"
               role="combobox"
-              onClick={() => !disabled && setIsOpen(true)}
+              onClick={handleInputClick}
             >
               <div className="slds-combobox__form-element slds-input-has-icon slds-input-has-icon_right" role="none">
                 <input
@@ -313,53 +326,55 @@ export const Picklist: FunctionComponent<PicklistProps> = ({
                   />
                 </span>
               </div>
-              <div
-                id={listboxId}
-                className={classNames('slds-dropdown slds-dropdown_fluid', scrollLengthClass)}
-                role="listbox"
-                onKeyDown={handleKeyDown}
-              >
-                {Array.isArray(items) && (
-                  <ul className="slds-listbox slds-listbox_vertical" role="presentation">
-                    {items.map((item, i) => (
-                      <PicklistItem
-                        ref={elRefs.current[i]}
-                        key={item.id}
-                        id={item.id}
-                        label={item.label}
-                        secondaryLabel={item.secondaryLabel}
-                        title={item.title}
-                        value={item.value}
-                        isSelected={selectedItemsIdsSet.has(item.id)}
-                        onClick={() => handleSelection(item)}
-                      />
-                    ))}
-                  </ul>
-                )}
-                {Array.isArray(groups) &&
-                  groups.map((group) => (
-                    <ul key={group.id} className="slds-listbox slds-listbox_vertical" role="group" aria-label={group.label}>
-                      <li role="presentation" className="slds-listbox__item slds-item">
-                        <div className="slds-media slds-listbox__option slds-listbox__option_plain slds-media_small" role="presentation">
-                          <h3 className="slds-listbox__option-header" role="presentation">
-                            {group.label}
-                          </h3>
-                        </div>
-                      </li>
-                      {group.items.map((item, i) => (
+              {isOpen && (
+                <div
+                  id={listboxId}
+                  className={classNames('slds-dropdown slds-dropdown_fluid', scrollLengthClass)}
+                  role="listbox"
+                  onKeyDown={handleKeyDown}
+                >
+                  {Array.isArray(items) && (
+                    <ul className="slds-listbox slds-listbox_vertical" role="presentation">
+                      {items.map((item, i) => (
                         <PicklistItem
                           ref={elRefs.current[i]}
                           key={item.id}
                           id={item.id}
                           label={item.label}
+                          secondaryLabel={item.secondaryLabel}
+                          title={item.title}
                           value={item.value}
                           isSelected={selectedItemsIdsSet.has(item.id)}
                           onClick={() => handleSelection(item)}
                         />
                       ))}
                     </ul>
-                  ))}
-              </div>
+                  )}
+                  {Array.isArray(groups) &&
+                    groups.map((group) => (
+                      <ul key={group.id} className="slds-listbox slds-listbox_vertical" role="group" aria-label={group.label}>
+                        <li role="presentation" className="slds-listbox__item slds-item">
+                          <div className="slds-media slds-listbox__option slds-listbox__option_plain slds-media_small" role="presentation">
+                            <h3 className="slds-listbox__option-header" role="presentation">
+                              {group.label}
+                            </h3>
+                          </div>
+                        </li>
+                        {group.items.map((item, i) => (
+                          <PicklistItem
+                            ref={elRefs.current[i]}
+                            key={item.id}
+                            id={item.id}
+                            label={item.label}
+                            value={item.value}
+                            isSelected={selectedItemsIdsSet.has(item.id)}
+                            onClick={() => handleSelection(item)}
+                          />
+                        ))}
+                      </ul>
+                    ))}
+                </div>
+              )}
             </div>
           </div>
           {multiSelection && !omitMultiSelectPills && selectedItemsIdsSet.size > 0 && (

@@ -73,14 +73,14 @@ export const UiRecordForm: FunctionComponent<UiRecordFormProps> = ({
   }, [sobjectFields, picklistValues, action, record]);
 
   function handleRecordUpdate(field: EditableFields, value: string | boolean | null, isDirty: boolean) {
+    const tempModifiedRecord = { ...modifiedRecord, [field.name]: value };
     if (isDirty) {
-      setModifiedRecord({ ...modifiedRecord, [field.name]: value });
-      onChange(modifiedRecord);
-      console.log('CHANGED');
+      setModifiedRecord(tempModifiedRecord);
+      onChange(tempModifiedRecord);
     } else if (!isDirty && modifiedRecord[field.name] !== undefined) {
-      setModifiedRecord({ ...modifiedRecord, [field.name]: undefined });
-      onChange(modifiedRecord);
-      console.log('CHANGED');
+      tempModifiedRecord[field.name] = undefined;
+      setModifiedRecord(tempModifiedRecord);
+      onChange(tempModifiedRecord);
     }
   }
 

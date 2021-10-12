@@ -1243,11 +1243,7 @@ export const RowActionRenderer: FunctionComponent<ICellRendererParams> = ({ node
           </footer>
         }
         content={
-          <div
-            onClick={(event) => {
-              console.log('clicked', event);
-            }}
-          >
+          <div>
             <p className="slds-text-align_center slds-m-bottom_small">{description}</p>
 
             <Grid align="center" wrap>

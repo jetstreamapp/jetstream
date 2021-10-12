@@ -1,3 +1,4 @@
+import { logger } from '@jetstream/shared/client-logger';
 import { useEffect, useState } from 'react';
 
 type stateTypes = {
@@ -49,7 +50,7 @@ export const getUseInjectScript = (url: string) => {
       const onScriptEvent = (error: boolean) => {
         // Get all error or load functions and call them
         if (error) {
-          console.log('error loading the script');
+          logger.error('error loading the script', error);
         }
         queue.forEach((job) => job());
 
