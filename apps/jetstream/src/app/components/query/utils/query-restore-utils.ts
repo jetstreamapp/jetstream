@@ -3,7 +3,6 @@ import {
   convertDescribeToDescribeSObjectWithExtendedTypes,
   fetchFieldsProcessResults,
   getOperatorFromWhereClause,
-  isNegationOperator,
   unescapeSoqlString,
 } from '@jetstream/shared/ui-utils';
 import { REGEX } from '@jetstream/shared/utils';
@@ -327,6 +326,7 @@ function flattenWhereClause(
 }
 
 function removeQuotesAndPercentage(operator: Operator, values: string | string[] | DateLiteral[]): string | string[] | DateLiteral[] {
+  operator = (operator?.toUpperCase() as Operator) || operator;
   if (isString(values)) {
     values = values.replace(REGEX.START_END_SINGLE_QUOTE, '');
     if (operator === 'LIKE') {
