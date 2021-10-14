@@ -2,8 +2,8 @@
 
 import { css } from '@emotion/react';
 import { IconObj } from '@jetstream/icon-factory';
-import { ANALYTICS_KEYS, MIME_TYPES } from '@jetstream/shared/constants';
-import { hasModifierKey, isEnterKey, saveFile, useGlobalEventHandler, useNonInitialEffect } from '@jetstream/shared/ui-utils';
+import { ANALYTICS_KEYS } from '@jetstream/shared/constants';
+import { hasModifierKey, isEnterKey, useGlobalEventHandler, useNonInitialEffect } from '@jetstream/shared/ui-utils';
 import { DropDownItem, QueryFieldWithPolymorphic, SalesforceOrgUi } from '@jetstream/types';
 import {
   Accordion,
