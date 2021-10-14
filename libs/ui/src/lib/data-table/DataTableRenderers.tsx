@@ -1,27 +1,36 @@
-import { ICellRendererParams, IFilter, IFilterParams, IFloatingFilter, IFloatingFilterParams } from '@ag-grid-community/core';
-
+import {
+  ColumnApi,
+  GridReadyEvent,
+  ICellRendererParams,
+  IFilter,
+  IFilterParams,
+  IFloatingFilter,
+  IFloatingFilterParams,
+} from '@ag-grid-community/core';
 import { queryMore } from '@jetstream/shared/data';
 import { formatNumber, transformTabularDataToExcelStr } from '@jetstream/shared/ui-utils';
 import { flattenRecords } from '@jetstream/shared/utils';
 import { SalesforceOrgUi } from '@jetstream/types';
 import copyToClipboard from 'copy-to-clipboard';
 import { QueryResult } from 'jsforce';
-import Grid from 'libs/ui/src/lib/grid/Grid';
-import Spinner from 'libs/ui/src/lib/widgets/Spinner';
 import { isFunction, uniqueId } from 'lodash';
 import { forwardRef, Fragment, FunctionComponent, MouseEvent, useEffect, useImperativeHandle, useRef, useState } from 'react';
 import RecordDownloadModal from '../file-download-modal/RecordDownloadModal';
 import CheckboxToggle from '../form/checkbox-toggle/CheckboxToggle';
 import Checkbox from '../form/checkbox/Checkbox';
 import Input from '../form/input/Input';
+import Grid from '../grid/Grid';
 import AutoFullHeightContainer from '../layout/AutoFullHeightContainer';
 import Modal from '../modal/Modal';
 import CopyToClipboard from '../widgets/CopyToClipboard';
 import Icon from '../widgets/Icon';
 import SalesforceLogin from '../widgets/SalesforceLogin';
+import Spinner from '../widgets/Spinner';
 import './data-table-styles.css';
 import {
   DataTableContext,
+  getAllColumns,
+  getCurrentColumns,
   getSfdcRetUrl,
   getSubqueryModalTagline,
   SalesforceQueryColumnDefinition,
@@ -46,6 +55,7 @@ export function configIdLinkRenderer(serverUrl: string, org: SalesforceOrgUi) {
 
 // CELL RENDERERS
 export const SubqueryRenderer: FunctionComponent<ICellRendererParams> = ({ colDef, data, value }) => {
+  const [columnApi, setColumnApi] = useState<ColumnApi>(null);
   const isMounted = useRef(null);
   const [isActive, setIsActive] = useState(false);
   const [modalTagline, setModalTagline] = useState<string>();
@@ -60,7 +70,9 @@ export const SubqueryRenderer: FunctionComponent<ICellRendererParams> = ({ colDe
     };
   }, []);
 
-  // const {serverUrl, org, columnsDefinition} = context as DataTableContextValue;
+  function handleOnGridReady({ columnApi }: GridReadyEvent) {
+    setColumnApi(columnApi);
+  }
 
   function handleViewData() {
     if (isActive) {
@@ -75,12 +87,6 @@ export const SubqueryRenderer: FunctionComponent<ICellRendererParams> = ({ colDe
 
   function getColumns(columnDefinitions: SalesforceQueryColumnDefinition) {
     return columnDefinitions.subqueryColumns[colDef.field];
-  }
-
-  function getFields(columnDefinitions: SalesforceQueryColumnDefinition) {
-    return getColumns(columnDefinitions)
-      .filter((column) => column.field)
-      .map((column) => column.field);
   }
 
   function handleCloseModal(cancelled?: boolean) {
@@ -98,8 +104,8 @@ export const SubqueryRenderer: FunctionComponent<ICellRendererParams> = ({ colDe
     setDownloadModalIsActive(true);
   }
 
-  function handleCopyToClipboard(columnDefinitions: SalesforceQueryColumnDefinition) {
-    const fields = getFields(columnDefinitions);
+  function handleCopyToClipboard() {
+    const fields = getCurrentColumns(columnApi);
     const flattenedData = flattenRecords(records, fields);
     copyToClipboard(transformTabularDataToExcelStr(flattenedData, fields), { format: 'text/plain' });
   }
@@ -165,7 +171,7 @@ export const SubqueryRenderer: FunctionComponent<ICellRendererParams> = ({ colDe
                   <div>
                     <button
                       className="slds-button slds-button_neutral"
-                      onClick={() => handleCopyToClipboard(columnDefinitions)}
+                      onClick={() => handleCopyToClipboard()}
                       title="Copy the queried records to the clipboard. The records can then be pasted into a spreadsheet."
                     >
                       <Icon type="utility" icon="copy_to_clipboard" className="slds-button__icon slds-button__icon_left" omitContainer />
@@ -190,6 +196,7 @@ export const SubqueryRenderer: FunctionComponent<ICellRendererParams> = ({ colDe
                       rowSelection: null,
                       immutableData: true,
                       getRowNodeId: (data) => getRowNodeId(data),
+                      onGridReady: handleOnGridReady,
                     }}
                   />
                 </AutoFullHeightContainer>
@@ -203,7 +210,8 @@ export const SubqueryRenderer: FunctionComponent<ICellRendererParams> = ({ colDe
               google_appId={google_appId}
               google_clientId={google_clientId}
               downloadModalOpen
-              fields={getFields(columnDefinitions)}
+              fields={getAllColumns(columnApi)}
+              modifiedFields={getCurrentColumns(columnApi)}
               records={records}
               onModalClose={handleCloseModal}
             />

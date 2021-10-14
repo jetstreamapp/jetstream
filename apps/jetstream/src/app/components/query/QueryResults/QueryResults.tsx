@@ -94,6 +94,7 @@ export const QueryResults: FunctionComponent<QueryResultsProps> = React.memo(() 
   const [records, setRecords] = useState<Record[]>(null);
   const [nextRecordsUrl, setNextRecordsUrl] = useState<string>(null);
   const [fields, setFields] = useState<string[]>(null);
+  const [modifiedFields, setModifiedFields] = useState<string[]>(null);
   const [subqueryFields, setSubqueryFields] = useState<MapOf<string[]>>(null);
   const [filteredRows, setFilteredRows] = useState<Record[]>([]);
   const [selectedRows, setSelectedRows] = useState<Record[]>([]);
@@ -416,6 +417,11 @@ export const QueryResults: FunctionComponent<QueryResultsProps> = React.memo(() 
     }
   }
 
+  function handleFieldsChanged({ allFields, visibleFields }: { allFields: string[]; visibleFields: string[] }) {
+    setFields(allFields);
+    setModifiedFields(visibleFields);
+  }
+
   return (
     <div>
       <RecordDownloadModal
@@ -425,6 +431,7 @@ export const QueryResults: FunctionComponent<QueryResultsProps> = React.memo(() 
         google_clientId={google_clientId}
         downloadModalOpen={downloadModalOpen}
         fields={fields}
+        modifiedFields={modifiedFields}
         subqueryFields={subqueryFields}
         records={records}
         filteredRecords={filteredRows}
@@ -496,7 +503,7 @@ export const QueryResults: FunctionComponent<QueryResultsProps> = React.memo(() 
           </button>
           <QueryResultsCopyToClipboard
             hasRecords={hasRecords()}
-            fields={fields}
+            fields={modifiedFields}
             records={records}
             filteredRows={filteredRows}
             selectedRows={selectedRows}
@@ -602,7 +609,7 @@ export const QueryResults: FunctionComponent<QueryResultsProps> = React.memo(() 
                 </div>
               }
               onSelectionChanged={setSelectedRows}
-              onFields={setFields}
+              onFields={handleFieldsChanged}
               onFilteredRowsChanged={setFilteredRows}
               onLoadMoreRecords={handleLoadMore}
               onEdit={(record) => {
