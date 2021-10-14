@@ -1,6 +1,5 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 /* eslint-disable @typescript-eslint/no-explicit-any */
-
 import { MIME_TYPES } from '@jetstream/shared/constants';
 import {
   formatNumber,
@@ -23,11 +22,9 @@ import {
   Record,
   SalesforceOrgUi,
 } from '@jetstream/types';
-import Checkbox from '../form/checkbox/Checkbox';
 import { Fragment, FunctionComponent, KeyboardEvent, useEffect, useRef, useState } from 'react';
 import FileDownloadGoogle from '../file-download-modal/options/FileDownloadGoogle';
-import DuelingPicklist from '../form/dueling-picklist/DuelingPicklist';
-import { DuelingPicklistItem } from '../form/dueling-picklist/DuelingPicklistTypes';
+import Checkbox from '../form/checkbox/Checkbox';
 import Input from '../form/input/Input';
 import Radio from '../form/radio/Radio';
 import RadioButton from '../form/radio/RadioButton';
@@ -51,6 +48,7 @@ export interface RecordDownloadModalProps {
   google_clientId: string;
   downloadModalOpen: boolean;
   fields: string[];
+  modifiedFields: string[];
   subqueryFields?: MapOf<string[]>;
   records: Record[];
   filteredRecords?: Record[];
@@ -76,6 +74,7 @@ export const RecordDownloadModal: FunctionComponent<RecordDownloadModalProps> = 
   google_clientId,
   downloadModalOpen,
   fields = [],
+  modifiedFields = [],
   subqueryFields = {},
   records,
   filteredRecords,
@@ -92,6 +91,7 @@ export const RecordDownloadModal: FunctionComponent<RecordDownloadModalProps> = 
   const [fileFormat, setFileFormat] = useState<FileExtCsvXLSXJsonGSheet>(RADIO_FORMAT_XLSX);
   const [includeSubquery, setIncludeSubquery] = useState(true);
   const [fileName, setFileName] = useState<string>(getFilename(org, ['records']));
+  const [columnAreModified, setColumnsAreModified] = useState(false);
   // If the user changes the filename, we do not want to focus/select the text again or else the user cannot type
   const [doFocusInput, setDoFocusInput] = useState<boolean>(true);
   const inputEl = useRef<HTMLInputElement>();
@@ -99,14 +99,18 @@ export const RecordDownloadModal: FunctionComponent<RecordDownloadModalProps> = 
   const [googleApiData, setGoogleApiData] = useState<GoogleApiData>();
   const [googleFolder, setGoogleFolder] = useState<string>();
 
-  const [whichFields, setWhichFields] = useState<'all' | 'specified'>('all');
-  const [fieldOverrideFields, setFieldOverrideFields] = useState<DuelingPicklistItem[]>([]);
-  const [fieldOverrideSelectedFields, setFieldOverrideSelectedFields] = useState<string[]>([]);
+  const [whichFields, setWhichFields] = useState<'all' | 'specified'>('specified');
 
   const [invalidConfig, setInvalidConfig] = useState(false);
   const googleAuthorized = !!googleApiData?.authorized;
 
   const hasSubqueryFields = subqueryFields && !!Object.keys(subqueryFields).length && (fileFormat === 'xlsx' || fileFormat === 'gdrive');
+
+  useEffect(() => {
+    if (fields !== modifiedFields && fields && modifiedFields) {
+      setColumnsAreModified(fields.some((field, i) => field !== modifiedFields[i]));
+    }
+  }, [fields, modifiedFields]);
 
   useEffect(() => {
     if (!fileName || (fileFormat === 'gdrive' && !googleAuthorized)) {
@@ -115,15 +119,6 @@ export const RecordDownloadModal: FunctionComponent<RecordDownloadModalProps> = 
       setInvalidConfig(false);
     }
   }, [fileName, fileFormat, googleAuthorized, googleFolder]);
-
-  useEffect(() => {
-    if (fields) {
-      setFieldOverrideFields(fields.map((field) => ({ label: field, value: field })));
-      setFieldOverrideSelectedFields([...fields]);
-    } else {
-      setFieldOverrideFields([]);
-    }
-  }, [fields]);
 
   useEffect(() => {
     if (downloadModalOpen) {
@@ -157,16 +152,13 @@ export const RecordDownloadModal: FunctionComponent<RecordDownloadModalProps> = 
 
   function handleModalClose(cancelled?: boolean) {
     onModalClose(cancelled);
-    if (whichFields !== 'all') {
-      setWhichFields('all');
-    }
-    if (fields) {
-      setFieldOverrideSelectedFields([...fields]);
+    if (whichFields !== 'specified') {
+      setWhichFields('specified');
     }
   }
 
   async function handleDownload() {
-    const fieldsToUse = whichFields === 'all' ? fields : fieldOverrideSelectedFields;
+    const fieldsToUse = whichFields === 'specified' ? modifiedFields : fields;
     if (fieldsToUse.length === 0) {
       return;
     }
@@ -377,6 +369,28 @@ export const RecordDownloadModal: FunctionComponent<RecordDownloadModalProps> = 
                 onChange={setIncludeSubquery}
               />
             )}
+            {fileFormat !== 'json' && columnAreModified && (
+              <RadioGroup
+                label="Include Which Fields"
+                isButtonGroup
+                labelHelp="With Current table view, the downloaded file will match the modifications you made to the table columns."
+              >
+                <RadioButton
+                  name="which-fields"
+                  label="Current table view"
+                  value="specified"
+                  checked={whichFields === 'specified'}
+                  onChange={(value) => setWhichFields('specified')}
+                />
+                <RadioButton
+                  name="which-fields"
+                  label="Original table view"
+                  value="all"
+                  checked={whichFields === 'all'}
+                  onChange={(value) => setWhichFields('all')}
+                />
+              </RadioGroup>
+            )}
             <Input
               label="Filename"
               isRequired
@@ -395,42 +409,6 @@ export const RecordDownloadModal: FunctionComponent<RecordDownloadModalProps> = 
                 onKeyUp={handleKeyUp}
               />
             </Input>
-            {fileFormat !== 'json' && (
-              <Fragment>
-                <RadioGroup
-                  label="Include Which Fields"
-                  isButtonGroup
-                  labelHelp="Use this to limit or change the order of the fields included in your downloaded file."
-                >
-                  <RadioButton
-                    name="which-fields"
-                    label="All Fields"
-                    value="all"
-                    checked={whichFields === 'all'}
-                    onChange={(value) => setWhichFields('all')}
-                  />
-                  <RadioButton
-                    name="which-fields"
-                    label="Selected Fields"
-                    value="specified"
-                    checked={whichFields === 'specified'}
-                    onChange={(value) => setWhichFields('specified')}
-                  />
-                </RadioGroup>
-                {whichFields === 'specified' && (
-                  <DuelingPicklist
-                    label="Fields to include in download"
-                    labelHelp="Use shift and ctrl/cmd to select multiple fields and ctrl/cmd + a to select all items."
-                    isRequired
-                    items={fieldOverrideFields}
-                    initialSelectedItems={fieldOverrideSelectedFields}
-                    labelLeft="Ignored Fields"
-                    labelRight="Included Fields"
-                    onChange={setFieldOverrideSelectedFields}
-                  ></DuelingPicklist>
-                )}
-              </Fragment>
-            )}
           </div>
         </Modal>
       )}

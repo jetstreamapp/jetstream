@@ -3,6 +3,7 @@ import {
   CellKeyDownEvent,
   ColDef,
   ColGroupDef,
+  ColumnApi,
   ColumnEvent,
   GetContextMenuItemsParams,
   GetQuickFilterTextParams,
@@ -199,9 +200,21 @@ export const dataTableFileSizeFormatter = ({ value }: ValueFormatterParams | Get
   return fileSizeFormatter(value);
 };
 
-export function getCurrentColumnOrder(event: ColumnEvent): string[] {
-  return event.columnApi
+/**
+ * Returns columns exactly as shown in the UI
+ * The same order and the same visible columns
+ */
+export function getCurrentColumns(columnApi: ColumnApi): string[] {
+  return columnApi
     .getAllDisplayedColumns()
+    .map((col) => col.getColDef())
+    .filter((col) => col.field)
+    .map((col) => col.field);
+}
+
+export function getAllColumns(columnApi: ColumnApi): string[] {
+  return columnApi
+    .getAllColumns()
     .map((col) => col.getColDef())
     .filter((col) => col.field)
     .map((col) => col.field);

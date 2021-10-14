@@ -21,10 +21,6 @@ export const QueryBuilderSoqlUpdater: FunctionComponent = () => {
   const selectedSubqueryFields = useRecoilValue(fromQueryState.selectedSubqueryFieldsState);
   const [soql, setSoql] = useRecoilState(fromQueryState.querySoqlState);
 
-  const debouncedFilters = useDebounce(filters);
-
-  // const [queryWorker] = useState(() => new Worker(new URL('../../../workers/query.worker', import.meta.url)));
-
   useEffect(() => {
     if (!!selectedSObject && selectedFields?.length > 0) {
       const query: Query = {
@@ -34,7 +30,7 @@ export const QueryBuilderSoqlUpdater: FunctionComponent = () => {
         limit: queryLimit,
         offset: queryLimitSkip,
       };
-      setSoql(composeSoqlQuery(query, debouncedFilters));
+      setSoql(composeSoqlQuery(query, filters));
       // if (queryWorker) {
       //   queryWorker.postMessage({
       //     name: 'composeQuery',
@@ -48,30 +44,9 @@ export const QueryBuilderSoqlUpdater: FunctionComponent = () => {
       setSoql('');
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedSObject, selectedFields, debouncedFilters, orderByClauses, queryLimit, queryLimitSkip]);
+  }, [selectedSObject, selectedFields, filters, orderByClauses, queryLimit, queryLimitSkip]);
 
-  // useEffect(() => {
-  //   if (queryWorker) {
-  //     queryWorker.onmessage = (event: MessageEvent) => {
-  //       const payload: WorkerMessage<'composeQuery', string> = event.data;
-  //       logger.log({ payload });
-  //       switch (payload.name) {
-  //         case 'composeQuery': {
-  //           if (payload.error) {
-  //             // TODO:
-  //           } else {
-  //             setSoql(payload.data);
-  //           }
-  //           break;
-  //         }
-  //         default:
-  //           break;
-  //       }
-  //     };
-  //   }
-  // }, [queryWorker, setSoql]);
-
-  return <Fragment />;
+  return null;
 };
 
 export default QueryBuilderSoqlUpdater;

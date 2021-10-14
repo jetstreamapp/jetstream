@@ -16,8 +16,9 @@ import './data-table-styles.css';
 import {
   addFieldLabelToColumn,
   DataTableContext,
+  getAllColumns,
   getColumnDefinitions,
-  getCurrentColumnOrder,
+  getCurrentColumns,
   getFilteredRows,
   SalesforceQueryColumnDefinition,
 } from './data-table-utils';
@@ -50,7 +51,7 @@ export interface SalesforceRecordDataTableProps {
   onSelectionChanged: (rows: any[]) => void;
   onFilteredRowsChanged: (rows: any[]) => void;
   /** Fired when query is loaded OR user changes column order */
-  onFields: (fields: string[]) => void;
+  onFields: (fields: { allFields: string[]; visibleFields: string[] }) => void;
   onLoadMoreRecords?: (queryResults: QueryResults<any>) => void;
   onEdit: (record: any) => void;
   onClone: (record: any) => void;
@@ -102,8 +103,9 @@ export const SalesforceRecordDataTable: FunctionComponent<SalesforceRecordDataTa
     useEffect(() => {
       if (queryResults) {
         const columnDefinitions = getColumnDefinitions(queryResults, isTooling);
+        const fields = columnDefinitions.parentColumns.filter((column) => column.field).map((column) => column.field);
         setColumns(columnDefinitions.parentColumns);
-        onFields(columnDefinitions.parentColumns.filter((column) => column.field).map((column) => column.field));
+        onFields({ allFields: fields, visibleFields: fields });
         setColumnDefinitions(columnDefinitions);
         setRecords(queryResults.queryResults.records);
         onFilteredRowsChanged(queryResults.queryResults.records);
@@ -147,9 +149,9 @@ export const SalesforceRecordDataTable: FunctionComponent<SalesforceRecordDataTa
       }
     }
 
-    function handleColumnMoved(event: ColumnEvent) {
+    function handleColumnChanged(event: ColumnEvent) {
       logger.log('handleColumnMoved', { event });
-      onFields(getCurrentColumnOrder(event));
+      onFields({ allFields: getAllColumns(event.columnApi), visibleFields: getCurrentColumns(event.columnApi) });
     }
 
     /**
@@ -281,7 +283,8 @@ export const SalesforceRecordDataTable: FunctionComponent<SalesforceRecordDataTa
                 processHeaderForClipboard: processHeaderForClipboard,
                 onGridReady: handleOnGridReady,
                 onSelectionChanged: handleSelectionChanged,
-                onColumnMoved: handleColumnMoved,
+                onColumnMoved: handleColumnChanged,
+                onColumnVisible: handleColumnChanged,
                 onFilterChanged: handleFilterChangeOrRowDataUpdated,
                 onRowDataUpdated: handleFilterChangeOrRowDataUpdated,
               }}

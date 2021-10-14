@@ -429,6 +429,7 @@ export function convertFiltersToWhereClause(filters: ExpressionType): WhereClaus
 }
 
 export function getOperatorFromWhereClause(operator: Operator, value: string, hasNegation = false): QueryFilterOperator {
+  operator = (operator?.toUpperCase() as Operator) || operator;
   switch (operator) {
     case '=':
       if (value?.toLowerCase() === 'null') {

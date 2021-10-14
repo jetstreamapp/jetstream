@@ -1,7 +1,6 @@
 import { css } from '@emotion/react';
 import { Popover as HeadlessPopover } from '@headlessui/react';
 import { SmallMediumLarge } from '@jetstream/types';
-import { Rect } from '@popperjs/core';
 import classNames from 'classnames';
 import { nextTick } from 'process';
 import { CSSProperties, forwardRef, Fragment, ReactNode, useCallback, useImperativeHandle, useRef, useState } from 'react';
@@ -68,30 +67,11 @@ export const Popover = forwardRef<PopoverRef, PopoverProps>(
     const [arrowElement, setArrowElement] = useState<HTMLElement>(null);
     const [closeElement, setCloseElement] = useState<HTMLElement>(null);
 
-    const offsetModifier = useCallback(
-      ({ popper, reference, placement }: { popper: Rect; reference: Rect; placement: Placement }): [number, number] => {
-        // for some reason storybook works correctly, but everything else is janky
-        // ideally I would have a way to detect if janky or not, but not sure how
-        if (placement === 'left') {
-          return [0, reference.width + 15];
-          // return [0, 12];
-        } else if (placement === 'top') {
-          // TODO: we need to dial this in
-          // return [0, reference.height * 0.75];
-          return [0, 12];
-        } else {
-          return [0, 12];
-        }
-      },
-      []
-    );
-
     const { styles, attributes } = usePopper(referenceElement, popperElement, {
       placement: placement,
       modifiers: [
         { name: 'arrow', options: { element: arrowElement } },
-        { name: 'offset', options: { offset: offsetModifier } },
-        // { name: 'offset', options: { offset: [0, 15] } },
+        { name: 'offset', options: { offset: [0, 12] } },
       ],
     });
 

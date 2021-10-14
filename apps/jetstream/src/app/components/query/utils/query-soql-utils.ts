@@ -200,7 +200,7 @@ function getParsableFieldsFromFilter(where: WhereClause, fields: string[] = []):
     return fields;
   }
   if (isValueCondition(where.left)) {
-    fields.push(where.left.field);
+    fields.push(where.left.field?.toLowerCase());
   }
   if (isWhereOrHavingClauseWithRightCondition(where)) {
     getParsableFieldsFromFilter(where.right, fields);

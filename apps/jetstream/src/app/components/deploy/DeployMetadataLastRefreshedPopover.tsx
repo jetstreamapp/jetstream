@@ -17,8 +17,6 @@ export const DeployMetadataLastRefreshedPopover: FunctionComponent<DeployMetadat
 }) => {
   return (
     <Popover
-      // placement="left"
-      omitPortal
       header={
         <header className="slds-popover__header">
           <h2 className="slds-text-heading_small" title="Refresh Metadata">

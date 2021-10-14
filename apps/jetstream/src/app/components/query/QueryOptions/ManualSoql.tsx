@@ -27,7 +27,7 @@ const ValidQuery = () => {
         description="Valid query"
         className="slds-icon-text-success slds-icon_xx-small slds-m-right_xx-small"
       />
-      <span className="slds-text-color_weak"></span>Query is valid
+      <span className="slds-text-color_weak">Query is valid</span>
     </span>
   );
 };
