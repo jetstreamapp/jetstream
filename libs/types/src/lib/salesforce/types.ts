@@ -427,7 +427,7 @@ export interface RetrieveResult extends Omit<RetrieveResultSfdc, 'zipFile'> {
   done: boolean;
   errorMessage?: string;
   errorStatusCode?: string;
-  status: 'Pending' | 'InProgress' | 'Succeeded' | 'Failed';
+  status: 'Pending' | 'InProgress' | 'Succeeded' | 'Failed' | 'Canceling' | 'Canceled';
   success: boolean;
   zipFile?: string;
 }

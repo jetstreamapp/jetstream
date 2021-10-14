@@ -44,6 +44,9 @@ function reducer(state: State, action: Action): State {
           newState.theme = 'complete';
         }
         newState.fillPercent = 1;
+      } else if (status === 'Canceled') {
+        newState.theme = 'expired';
+        newState.fillPercent = 1;
       }
 
       /**
@@ -128,6 +131,7 @@ export const DeployMetadataProgressSummary: FunctionComponent<DeployMetadataProg
       >
         {totalErrors} {pluralizeFromNumber('Error', totalErrors)}
       </span>
+      {status === 'Canceled' && <span className="slds-text-color_error">Deployment was cancelled</span>}
     </Grid>
   );
 };
