@@ -97,7 +97,7 @@ export const FileSelector: FunctionComponent<FileSelectorProps> = ({
 
       // TODO: we might want to do something else here in the future
       const readAsArrayBuffer = extension !== '.csv' && extension !== '.xml';
-      const content = await readFile(file, 'array_buffer');
+      const content = await (readAsArrayBuffer ? readFile(file, 'array_buffer') : readFile(file, 'text'));
 
       onReadFile({ filename: file.name, extension, content });
     } catch (ex) {
