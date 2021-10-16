@@ -1,5 +1,5 @@
 import { Prisma, PrismaClient } from '@prisma/client';
-import { logger } from 'apps/api/src/app/config/logger.config';
+import { logger } from './logger.config';
 import { Pool } from 'pg';
 import { ENV } from './env-config';
 
