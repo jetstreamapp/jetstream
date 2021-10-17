@@ -117,6 +117,26 @@
         }
       }
     },
+    "docs": {
+      "projectType": "application",
+      "root": "apps/docs",
+      "sourceRoot": "apps/docs/src",
+      "architect": {
+        "build": {
+          "builder": "@nx-plus/docusaurus:browser",
+          "options": {
+            "outputPath": "dist/apps/docs"
+          }
+        },
+        "serve": {
+          "builder": "@nx-plus/docusaurus:dev-server",
+          "options": {
+            "port": 3000,
+            "open": true
+          }
+        }
+      }
+    },
     "icon-factory": {
       "root": "libs/icon-factory",
       "sourceRoot": "libs/icon-factory/src",
@@ -271,6 +291,59 @@
           "builder": "@nrwl/linter:eslint",
           "options": {
             "lintFilePatterns": ["apps/jetstream-e2e/src/**/*.ts", "apps/jetstream-e2e/src/**/*.js"]
+          }
+        }
+      }
+    },
+    "jetstream-worker": {
+      "root": "apps/jetstream-worker",
+      "sourceRoot": "apps/jetstream-worker/src",
+      "projectType": "application",
+      "architect": {
+        "build": {
+          "builder": "@nrwl/node:build",
+          "outputs": ["{options.outputPath}"],
+          "options": {
+            "outputPath": "dist/apps/jetstream-worker",
+            "main": "apps/jetstream-worker/src/main.ts",
+            "tsConfig": "apps/jetstream-worker/tsconfig.app.json",
+            "assets": ["apps/jetstream-worker/src/assets"]
+          },
+          "configurations": {
+            "production": {
+              "optimization": true,
+              "extractLicenses": true,
+              "inspect": false,
+              "fileReplacements": [
+                {
+                  "replace": "apps/jetstream-worker/src/environments/environment.ts",
+                  "with": "apps/jetstream-worker/src/environments/environment.prod.ts"
+                }
+              ]
+            }
+          }
+        },
+        "serve": {
+          "builder": "@nrwl/node:execute",
+          "options": {
+            "buildTarget": "jetstream-worker:build",
+            "inspect": true,
+            "port": 7778
+          }
+        },
+        "lint": {
+          "builder": "@nrwl/linter:eslint",
+          "outputs": ["{options.outputFile}"],
+          "options": {
+            "lintFilePatterns": ["apps/jetstream-worker/**/*.ts"]
+          }
+        },
+        "test": {
+          "builder": "@nrwl/jest:jest",
+          "outputs": ["coverage/apps/jetstream-worker"],
+          "options": {
+            "jestConfig": "apps/jetstream-worker/jest.config.js",
+            "passWithNoTests": true
           }
         }
       }
@@ -714,26 +787,6 @@
           "builder": "@nrwl/linter:eslint",
           "options": {
             "lintFilePatterns": ["apps/ui-e2e/src/**/*.ts", "apps/ui-e2e/src/**/*.js"]
-          }
-        }
-      }
-    },
-    "docs": {
-      "projectType": "application",
-      "root": "apps/docs",
-      "sourceRoot": "apps/docs/src",
-      "architect": {
-        "build": {
-          "builder": "@nx-plus/docusaurus:browser",
-          "options": {
-            "outputPath": "dist/apps/docs"
-          }
-        },
-        "serve": {
-          "builder": "@nx-plus/docusaurus:dev-server",
-          "options": {
-            "port": 3000,
-            "open": true
           }
         }
       }

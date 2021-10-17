@@ -5,6 +5,8 @@ import * as querystring from 'querystring';
 import { AuthenticationError } from '../utils/error-handler';
 import { ENV } from '../config/env-config';
 import { logger } from '../config/logger.config';
+import { createOrUpdateUser } from '../db/user.db';
+import { sendWelcomeEmail } from '../services/worker-jobs';
 
 export async function login(req: Request, res: Response) {
   res.redirect('/');
@@ -26,11 +28,25 @@ export async function callback(req: Request, res: Response, next: NextFunction) 
         logger.warn('[AUTH][ERROR] no info %o', info);
         return res.redirect('/oauth/login');
       }
-      req.logIn(user, (err) => {
+      req.logIn(user, async (err) => {
         if (err) {
           logger.warn('[AUTH][ERROR] Error logging in %o', err);
           return next(new AuthenticationError(err));
         }
+
+        // Create or update user, then optionally enqueue email send job
+        createOrUpdateUser(user)
+          .then(async ({ created, user: _user }) => {
+            // TODO: this is sent from Auth0 - so I guess we can/should ignore this job?!?
+            // if (created) {
+            //   // SEND WELCOME EMAIL
+            //   await sendWelcomeEmail(_user);
+            // }
+          })
+          .catch((err) => {
+            logger.error('[AUTH][DB][ERROR] Error creating or sending welcome email %o', err);
+          });
+
         // TODO: confirm returnTo 0 it suddenly was reported as bad
         const returnTo = (req.session as any).returnTo;
         delete (req.session as any).returnTo;

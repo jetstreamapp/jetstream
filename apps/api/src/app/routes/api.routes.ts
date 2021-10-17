@@ -1,5 +1,6 @@
 import * as express from 'express';
 import Router from 'express-promise-router';
+import { ENV } from '../config/env-config';
 import * as feedbackController from '../controllers/feedback.controller';
 import * as imageController from '../controllers/image.controller';
 import * as orgsController from '../controllers/orgs.controller';
@@ -19,7 +20,7 @@ routes.use(addOrgsToLocal);
 
 // used to make sure the user is authenticated and can communicate with the server
 routes.get('/heartbeat', (req: express.Request, res: express.Response) => {
-  sendJson(res, { version: process.env.GIT_VERSION || null });
+  sendJson(res, { version: ENV.GIT_VERSION || null });
 });
 
 routes.get('/me', userController.getUserProfile);

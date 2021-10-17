@@ -32,6 +32,7 @@
     },
     "peacock.color": "#215732",
     "liveServer.settings.multiRootWorkspaceName": "jetstream",
-    "typescript.preferences.importModuleSpecifier": "project-relative"
+    "typescript.preferences.importModuleSpecifier": "project-relative",
+    "cSpell.words": ["Fastify"]
   }
 }
