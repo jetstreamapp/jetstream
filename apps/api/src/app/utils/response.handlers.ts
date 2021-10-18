@@ -6,6 +6,7 @@ import { ENV } from '../config/env-config';
 import { logger } from '../config/logger.config';
 import * as salesforceOrgsDb from '../db/salesforce-org.db';
 import { AuthenticationError, NotFoundError, UserFacingError } from './error-handler';
+import { rollbarServer } from '../config/rollbar.config';
 
 export function healthCheck(req: express.Request, res: express.Response) {
   return res.status(200).end();
@@ -90,8 +91,14 @@ export async function uncaughtErrorHandler(err: any, req: express.Request, res: 
 
   // TODO: clean up everything below this
 
-  logger.warn(err.message, { userInfo });
+  logger.error(err.message, { userInfo });
   logger.error(err.stack, { userInfo });
+
+  try {
+    rollbarServer.warn('Error not handled by error handler', req, userInfo, err);
+  } catch (ex) {
+    logger.error('Error sending to Rollbar', ex);
+  }
 
   const errorMessage = 'There was an error processing the request';
   let status = err.status || 500;
