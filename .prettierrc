@@ -1,4 +1,7 @@
 {
   "singleQuote": true,
-  "printWidth": 140
+  "printWidth": 140,
+  "[prisma]": {
+    "editor.defaultFormatter": "Prisma.prisma"
+  }
 }

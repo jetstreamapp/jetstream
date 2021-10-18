@@ -13,6 +13,15 @@
       "sourceMaps": true,
       "restart": true,
       "skipFiles": ["<node_internals>/**"]
+    },
+    {
+      "name": "Attach to Job Worker",
+      "type": "node",
+      "request": "attach",
+      "port": 7778,
+      "sourceMaps": true,
+      "restart": true,
+      "skipFiles": ["<node_internals>/**"]
     }
   ]
 }
