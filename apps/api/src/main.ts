@@ -13,7 +13,6 @@ import { join } from 'path';
 import { pgPool } from './app/config/db.config';
 import { ENV } from './app/config/env-config';
 import { logger } from './app/config/logger.config';
-import { rollbarServer } from './app/config/rollbar.config';
 import { initSocketServer } from './app/controllers/socket.controller';
 import { apiRoutes, landingRoutes, oauthRoutes, platformEventRoutes, staticAuthenticatedRoutes } from './app/routes';
 import { logRoute, notFoundMiddleware } from './app/routes/route.middleware';
@@ -195,7 +194,6 @@ if (environment.production) {
 }
 
 app.use('*', notFoundMiddleware);
-app.use(rollbarServer.errorHandler());
 app.use(uncaughtErrorHandler);
 
 server.on('error', logger.error);
