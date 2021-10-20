@@ -80,6 +80,7 @@
     "@emotion/styled": "11.1.5",
     "@fullhuman/postcss-purgecss": "^2.2.0",
     "@headlessui/react": "^1.4.1",
+    "@heroicons/react": "^1.0.4",
     "@mdx-js/react": "^1.6.21",
     "@monaco-editor/react": "^4.2.2",
     "@nrwl/nx-cloud": "12.3.10",
