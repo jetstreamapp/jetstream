@@ -1,33 +1,64 @@
+import Head from 'next/head';
 import Link from 'next/link';
 import React, { Fragment } from 'react';
-import Breadcrumbs from '../../components/Breadcrumbs';
 import Footer from '../../components/Footer';
-import NavBar from '../../components/NavBar';
+import Navigation from '../../components/Navigation';
 
 function TermsOfService() {
   const email = 'support@getjetstream.app';
   return (
     <Fragment>
-      <NavBar currPage="privacy" omitBlogPosts />
-      <Breadcrumbs items={[{ label: 'Terms of service', path: '/terms-of-service' }]} />
+      <Head>
+        <title>Terms of Service | Jetstream</title>
+        <meta
+          name="description"
+          content="Jetstream is a set of tools that supercharge your administration of Salesforce.com. Jetstream is build for administrators, developers, quality assurance, or power users that want to speed up your management of Salesforce. Jetstream comes with an advanced query builder for viewing records, a powerful data loader for making changes to your record data, and many more features!"
+        />
+        <link rel="icon" type="image/png" href="/images/favicon.ico"></link>
+        <meta charSet="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+        <meta name="theme-color" content="#ffffff" />
+
+        <link rel="apple-touch-icon" sizes="57x57" href="/assets/images/apple-icon-57x57.png" />
+        <link rel="apple-touch-icon" sizes="60x60" href="/assets/images/apple-icon-60x60.png" />
+        <link rel="apple-touch-icon" sizes="72x72" href="/assets/images/apple-icon-72x72.png" />
+        <link rel="apple-touch-icon" sizes="76x76" href="/assets/images/apple-icon-76x76.png" />
+        <link rel="apple-touch-icon" sizes="114x114" href="/assets/images/apple-icon-114x114.png" />
+        <link rel="apple-touch-icon" sizes="120x120" href="/assets/images/apple-icon-120x120.png" />
+        <link rel="apple-touch-icon" sizes="144x144" href="/assets/images/apple-icon-144x144.png" />
+        <link rel="apple-touch-icon" sizes="152x152" href="/assets/images/apple-icon-152x152.png" />
+        <link rel="apple-touch-icon" sizes="180x180" href="/assets/images/apple-icon-180x180.png" />
+        <link rel="icon" type="image/png" sizes="192x192" href="/assets/images/android-icon-192x192.png" />
+
+        <link rel="manifest" href="/assets/images/manifest.json" />
+
+        <meta name="msapplication-TileColor" content="#ffffff" />
+        <meta name="msapplication-TileImage" content="/images/ms-icon-144x144.png" />
+
+        <link rel="icon" type="image/png" sizes="32x32" href="/assets/images/favicon-32x32.png" />
+        <link rel="icon" type="image/png" sizes="96x96" href="/assets/images/favicon-96x96.png" />
+        <link rel="icon" type="image/png" sizes="16x16" href="/assets/images/favicon-16x16.png" />
+      </Head>
+      <Navigation />
       <div className="m-8">
         <h1>TERMS OF SERVICE</h1>
         <h2>OVERVIEW</h2>
         <p className="mb-2 pl-2">
           This website is operated by Jetstream. Throughout the site, the terms “we”, “us” and “our” refer to Jetstream. Jetstream offers
           this website, including all information, tools and services available from this site to you, the user, conditioned upon your
-          acceptance of all terms, conditions, policies and notices stated here. By visiting our site and/ or purchasing something from us,
+          acceptance of all terms, conditions, policies and notices stated here. By visiting our site and / or purchasing something from us,
           you engage in our “Service” and agree to be bound by the following terms and conditions (“Terms of Service”, “Terms”), including
           those additional terms and conditions and policies referenced herein and/or available by hyperlink. These Terms of Service apply
-          to all users of the site, including without limitation users who are browsers, vendors, customers, merchants, and/ or contributors
-          of content. Please read these Terms of Service carefully before accessing or using our website. By accessing or using any part of
-          the site, you agree to be bound by these Terms of Service. If you do not agree to all the terms and conditions of this agreement,
-          then you may not access the website or use any services. If these Terms of Service are considered an offer, acceptance is
-          expressly limited to these Terms of Service. Any new features or tools which are added to the current store shall also be subject
-          to the Terms of Service. You can review the most current version of the Terms of Service at any time on this page. We reserve the
-          right to update, change or replace any part of these Terms of Service by posting updates and/or changes to our website. It is your
-          responsibility to check this page periodically for changes. Your continued use of or access to the website following the posting
-          of any changes constitutes acceptance of those changes.
+          to all users of the site, including without limitation users who are browsers, vendors, customers, merchants, and / or
+          contributors of content. Please read these Terms of Service carefully before accessing or using our website. By accessing or using
+          any part of the site, you agree to be bound by these Terms of Service. If you do not agree to all the terms and conditions of this
+          agreement, then you may not access the website or use any services. If these Terms of Service are considered an offer, acceptance
+          is expressly limited to these Terms of Service. Any new features or tools which are added to the current store shall also be
+          subject to the Terms of Service. You can review the most current version of the Terms of Service at any time on this page. We
+          reserve the right to update, change or replace any part of these Terms of Service by posting updates and/or changes to our
+          website. It is your responsibility to check this page periodically for changes. Your continued use of or access to the website
+          following the posting of any changes constitutes acceptance of those changes.
         </p>
         <h2>SECTION 1 - ONLINE TERMS</h2>
         <p className="mb-2 pl-2">
@@ -233,8 +264,8 @@ function TermsOfService() {
         <p className="mb-2 pl-2">https://github.com/salesforce-ux/design-system/blob/master/LICENSE-font.txt</p>
         <p className="mb-2 pl-2">https://github.com/salesforce-ux/design-system/blob/master/LICENSE-icons-images.txt</p>
         <p className="mb-2 pl-2">https://github.com/salesforce-ux/design-system/blob/master/LICENSE.txt</p>
-        <Footer currPage="tos" />
       </div>
+      <Footer />
     </Fragment>
   );
 }

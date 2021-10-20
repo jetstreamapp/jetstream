@@ -1,9 +1,8 @@
-import React from 'react';
 import Head from 'next/head';
-import LandingPage from '../components/early-access/LandingPage';
+import React from 'react';
 import Footer from '../components/Footer';
-import NavBar from '../components/NavBar';
-// import favicon from '../assets/images/favicon.ico';
+import Navigation from '../components/Navigation';
+import LandingPage from '../components/new/LandingPage';
 import { fetchBlogPosts } from '../utils/data';
 
 export const Index = ({ omitBlogPosts }: { omitBlogPosts: boolean }) => {
@@ -41,13 +40,13 @@ export const Index = ({ omitBlogPosts }: { omitBlogPosts: boolean }) => {
         <link rel="icon" type="image/png" sizes="96x96" href="/assets/images/favicon-96x96.png" />
         <link rel="icon" type="image/png" sizes="16x16" href="/assets/images/favicon-16x16.png" />
       </Head>
-
-      <div>
-        <NavBar currPage="home" omitBlogPosts={omitBlogPosts} />
-        <LandingPage />
+      <div className="bg-white">
+        <div className="relative overflow-hidden">
+          <Navigation inverse />
+          <LandingPage />
+          <Footer />
+        </div>
       </div>
-
-      <Footer currPage="home" omitBlogPosts={omitBlogPosts} />
     </div>
   );
 };

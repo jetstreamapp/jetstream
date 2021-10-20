@@ -1,12 +1,11 @@
+import { format, parseISO } from 'date-fns';
 import Head from 'next/head';
 import React, { Fragment } from 'react';
 import { renderBlogPostRichText } from '../../../components/blog-post-renderers';
 import Footer from '../../../components/Footer';
+import Navigation from '../../../components/Navigation';
 import { fetchBlogPosts } from '../../../utils/data';
 import { BlogPost } from '../../../utils/types';
-import { parseISO, format } from 'date-fns';
-import NavBar from '../../../components/NavBar';
-import Breadcrumbs from '../../../components/Breadcrumbs';
 
 interface PostProps {
   post: BlogPost;
@@ -19,7 +18,7 @@ function Post({ post }: PostProps) {
       <Head>
         <title>Jetstream Blog - {post.title}</title>
         <meta name="description" content={`Jetstream blog - ${post.summary}.`} />
-        <link rel="icon" type="image/png" href="/assets/images/favicon-32x32.png"></link>
+        <link rel="icon" type="image/png" href="/images/favicon.ico"></link>
         <meta charSet="UTF-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 
@@ -47,13 +46,7 @@ function Post({ post }: PostProps) {
       </Head>
 
       <div>
-        <NavBar currPage="blog" />
-        <Breadcrumbs
-          items={[
-            { label: 'Blog', path: '/blog' },
-            { label: post.title, path: `/blog/post/${post.slug}` },
-          ]}
-        />
+        <Navigation />
         <div className="relative py-16 bg-white overflow-hidden">
           <div className="relative px-4 sm:px-6 lg:px-8">
             <div className="text-lg max-w-prose mx-auto text-center">
@@ -66,7 +59,7 @@ function Post({ post }: PostProps) {
           </div>
         </div>
 
-        <Footer currPage="blog" />
+        <Footer />
       </div>
     </Fragment>
   );
