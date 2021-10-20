@@ -1,6 +1,6 @@
-import React from 'react';
+import React, { FunctionComponent } from 'react';
 
-export const RecordLookupIcon = () => (
+export const RecordLookupIcon: FunctionComponent<React.SVGProps<SVGSVGElement>> = (props) => (
   <svg
     version="1.1"
     id="Layer_1"
@@ -13,6 +13,7 @@ export const RecordLookupIcon = () => (
     viewBox="0 0 100 100"
     enableBackground="new 0 0 100 100"
     xmlSpace="preserve"
+    {...props}
   >
     <title></title>
     <desc></desc>

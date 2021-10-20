@@ -1,6 +1,6 @@
 import React, { FunctionComponent } from 'react';
 
-export const StandardPortalIcon: FunctionComponent<React.SVGProps<SVGSVGElement>> = (props) => (
+export const StandardApexIcon: FunctionComponent<React.SVGProps<SVGSVGElement>> = (props) => (
   <svg
     version="1.1"
     id="Layer_1"
@@ -19,9 +19,9 @@ export const StandardPortalIcon: FunctionComponent<React.SVGProps<SVGSVGElement>
     <desc></desc>
     <path
       fill="#fff"
-      d="M72 22H28c-3.3 0-6 2.7-6 6v44c0 3.3 2.7 6 6 6h44c3.3 0 6-2.7 6-6V28c0-3.3-2.7-6-6-6zM59 62.6c.3 1.2-.7 2.4-1.9 2.4H43c-1.3 0-2.2-1.2-1.9-2.4l3.2-11c-3.1-2.2-4.9-6.1-4.1-10.4.8-4 3.9-7.2 7.9-7.9C54.4 32 60 36.9 60 43.2c0 3.5-1.7 6.5-4.3 8.3L59 62.6z"
+      d="M78 67.5H44.4c-1 0-1.9.9-1.9 1.9v3.7c0 1 .9 1.9 1.9 1.9H78c1 0 1.9-.9 1.9-1.9v-3.7c0-1.1-.9-1.9-1.9-1.9zM49.2 44.8L25.1 25.4c-.7-.6-1.9-.5-2.5.4l-2.1 3c-.6.9-.4 2 .4 2.6L38 45.1c.6.5.6 1.5 0 2L20.8 60.9c-.7.6-1 1.9-.4 2.6l2.1 3.2c.6.9 1.7 1 2.5.4l24.2-19.3c1-.8 1-2.3 0-3z"
     />
   </svg>
 );
 
-export default StandardPortalIcon;
+export default StandardApexIcon;

@@ -14,10 +14,5 @@
   },
   "include": ["**/*.js", "**/*.jsx"],
   "files": [],
-  "references": [
-    {
-      "path": "./tsconfig.spec.json"
-    }
-  ],
   "exclude": ["node_modules"]
 }

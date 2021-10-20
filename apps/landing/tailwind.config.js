@@ -1,3 +1,4 @@
+const colors = require('tailwindcss/colors');
 const defaultTheme = require('tailwindcss/defaultTheme');
 const { createGlobPatternsForDependencies } = require('@nrwl/next/tailwind');
 const { join } = require('path');
@@ -10,6 +11,10 @@ module.exports = {
   ],
   theme: {
     extend: {
+      colors: {
+        teal: colors.teal,
+        cyan: colors.cyan,
+      },
       fontFamily: {
         sans: ['Salesforce Sans', ...defaultTheme.fontFamily.sans],
       },
