@@ -1,6 +1,6 @@
-import React from 'react';
+import React, { FunctionComponent } from 'react';
 
-export const StandardAnnouncementIcon = () => (
+export const StandardAnnouncementIcon: FunctionComponent<React.SVGProps<SVGSVGElement>> = (props) => (
   <svg
     version="1.1"
     id="Layer_1"
@@ -13,6 +13,7 @@ export const StandardAnnouncementIcon = () => (
     viewBox="0 0 100 100"
     enableBackground="new 0 0 100 100"
     xmlSpace="preserve"
+    {...props}
   >
     <g>
       <path

@@ -1,9 +1,8 @@
 import { format, parseISO } from 'date-fns';
 import Head from 'next/head';
 import React, { Fragment } from 'react';
-import Breadcrumbs from '../../components/Breadcrumbs';
 import Footer from '../../components/Footer';
-import NavBar from '../../components/NavBar';
+import Navigation from '../../components/Navigation';
 import { fetchBlogPosts } from '../../utils/data';
 import { BlogPost } from '../../utils/types';
 
@@ -21,7 +20,7 @@ function BlogPosts({ blogPosts }: PostProps) {
           name="description"
           content="Jetstream is a set of tools that supercharge your administration of Salesforce.com. Jetstream is build for administrators, developers, quality assurance, or power users that want to speed up your management of Salesforce. Jetstream comes with an advanced query builder for viewing records, a powerful data loader for making changes to your record data, and many more features!"
         />
-        <link rel="icon" type="image/png" href="/assets/images/favicon-32x32.png"></link>
+        <link rel="icon" type="image/png" href="/images/favicon.ico"></link>
         <meta charSet="UTF-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 
@@ -48,8 +47,7 @@ function BlogPosts({ blogPosts }: PostProps) {
         <link rel="icon" type="image/png" sizes="16x16" href="/assets/images/favicon-16x16.png" />
       </Head>
       <div>
-        <NavBar currPage="blog" />
-        <Breadcrumbs items={[{ label: 'Blog', path: '/blog' }]} />
+        <Navigation />
         <div className="relative py-16 bg-white overflow-hidden">
           <div className="relative px-4 sm:px-6 lg:px-8">
             <div className="text-lg max-w-prose mx-auto">
@@ -81,7 +79,7 @@ function BlogPosts({ blogPosts }: PostProps) {
             </div>
           ))}
         </div>
-        <Footer currPage="blog" />
+        <Footer />
       </div>
     </Fragment>
   );

@@ -1,14 +1,45 @@
+import Head from 'next/head';
 import React, { Fragment } from 'react';
-import Breadcrumbs from '../../components/Breadcrumbs';
 import Footer from '../../components/Footer';
-import NavBar from '../../components/NavBar';
+import Navigation from '../../components/Navigation';
 
 function Privacy() {
   const email = 'support@getjetstream.app';
   return (
     <Fragment>
-      <NavBar currPage="privacy" omitBlogPosts />
-      <Breadcrumbs items={[{ label: 'Privacy policy', path: '/privacy' }]} />
+      <Head>
+        <title>Privacy | Jetstream</title>
+        <meta
+          name="description"
+          content="Jetstream is a set of tools that supercharge your administration of Salesforce.com. Jetstream is build for administrators, developers, quality assurance, or power users that want to speed up your management of Salesforce. Jetstream comes with an advanced query builder for viewing records, a powerful data loader for making changes to your record data, and many more features!"
+        />
+        <link rel="icon" type="image/png" href="/images/favicon.ico"></link>
+        <meta charSet="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+        <meta name="theme-color" content="#ffffff" />
+
+        <link rel="apple-touch-icon" sizes="57x57" href="/assets/images/apple-icon-57x57.png" />
+        <link rel="apple-touch-icon" sizes="60x60" href="/assets/images/apple-icon-60x60.png" />
+        <link rel="apple-touch-icon" sizes="72x72" href="/assets/images/apple-icon-72x72.png" />
+        <link rel="apple-touch-icon" sizes="76x76" href="/assets/images/apple-icon-76x76.png" />
+        <link rel="apple-touch-icon" sizes="114x114" href="/assets/images/apple-icon-114x114.png" />
+        <link rel="apple-touch-icon" sizes="120x120" href="/assets/images/apple-icon-120x120.png" />
+        <link rel="apple-touch-icon" sizes="144x144" href="/assets/images/apple-icon-144x144.png" />
+        <link rel="apple-touch-icon" sizes="152x152" href="/assets/images/apple-icon-152x152.png" />
+        <link rel="apple-touch-icon" sizes="180x180" href="/assets/images/apple-icon-180x180.png" />
+        <link rel="icon" type="image/png" sizes="192x192" href="/assets/images/android-icon-192x192.png" />
+
+        <link rel="manifest" href="/assets/images/manifest.json" />
+
+        <meta name="msapplication-TileColor" content="#ffffff" />
+        <meta name="msapplication-TileImage" content="/images/ms-icon-144x144.png" />
+
+        <link rel="icon" type="image/png" sizes="32x32" href="/assets/images/favicon-32x32.png" />
+        <link rel="icon" type="image/png" sizes="96x96" href="/assets/images/favicon-96x96.png" />
+        <link rel="icon" type="image/png" sizes="16x16" href="/assets/images/favicon-16x16.png" />
+      </Head>
+      <Navigation />
       <div className="m-8">
         <h1>Privacy Policy</h1>
         <p className="mb-2 pl-2">
@@ -119,8 +150,8 @@ function Privacy() {
           For more information about our privacy practices, if you have questions, or if you would like to make a complaint, please contact
           us by e-mail at {email}.
         </p>
-        <Footer currPage="privacy" />
       </div>
+      <Footer />
     </Fragment>
   );
 }
