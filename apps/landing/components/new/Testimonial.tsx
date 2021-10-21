@@ -22,7 +22,8 @@ export const Testimonial = () => (
             </div>
             <footer className="mt-6">
               <p className="text-base font-medium text-white">Logan Ganieany</p>
-              <p className="text-base font-medium text-cyan-100">Senior Salesforce Architect at Reddit</p>
+              {/* <p className="text-base font-medium text-cyan-100">Senior Salesforce Architect at Reddit</p> */}
+              <p className="text-base font-medium text-cyan-100">Senior Salesforce Architect</p>
             </footer>
           </blockquote>
         </div>

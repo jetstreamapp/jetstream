@@ -119,7 +119,11 @@ export const DeployMetadataProgressSummary: FunctionComponent<DeployMetadataProg
     <Grid vertical className={className}>
       <span className="slds-align-middle slds-text-title_caps">{title}</span>
       <ProgressRing className="slds-m-vertical_x-small slds-align-middle" fillPercent={fillPercent} size="x-large" theme={theme}>
-        {showPercentage && <small>{Math.round(fillPercent * 100)}%</small>}
+        {showPercentage && (
+          <small>
+            <strong>{Math.round(fillPercent * 100)}%</strong>
+          </small>
+        )}
         {showSpinner && <Spinner size="small" inline />}
       </ProgressRing>
       <span className="slds-align-middle">{componentSummary}</span>
