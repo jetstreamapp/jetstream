@@ -1,4 +1,5 @@
 import { css } from '@emotion/react';
+import { multiWordObjectFilter } from '@jetstream/shared/utils';
 import { MapOf, SalesforceOrgUi } from '@jetstream/types';
 import { Combobox, ComboboxListItem, ComboboxListItemGroup } from '@jetstream/ui';
 import { sortBy } from 'lodash';
@@ -71,7 +72,7 @@ export const OrgsCombobox: FunctionComponent<OrgsComboboxProps> = ({
     if (!filterText) {
       setVisibleOrgs(orgs);
     } else {
-      setVisibleOrgs(orgs.filter((org) => org.filterText.includes(filterText)));
+      setVisibleOrgs(orgs.filter(multiWordObjectFilter(['username', 'label'], filterText)));
     }
   }, [orgs, filterText]);
 
