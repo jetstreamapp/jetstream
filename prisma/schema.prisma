@@ -63,6 +63,7 @@ model SalesforceOrg {
   jetstreamUrl           String?                                   @db.VarChar
   label                  String?                                   @db.VarChar(100)
   orgOrganizationType    String?                                   @db.VarChar
+  color                  String?                                   @db.VarChar(10)
 
   @@unique([jetstreamUserId, jetstreamUrl, uniqueId], name: "uniqueOrg", map: "uniqueOrg")
   @@map("salesforce_org")

@@ -110,7 +110,7 @@ export const OrgsDropdown: FunctionComponent = () => {
               disableOrgActions={actionInProgress}
               onAddOrg={handleAddOrg}
               onRemoveOrg={handleRemoveOrg}
-              onSaveLabel={handleUpdateOrg}
+              onUpdateOrg={handleUpdateOrg}
             />
           </div>
         )}

@@ -19,7 +19,7 @@ export async function updateOrg(req: Request, res: Response, next: NextFunction)
   try {
     const user = req.user as UserProfileServer;
 
-    const data = { label: req.body.label };
+    const data = { label: req.body.label, color: req.body.color };
     const salesforceOrg = await salesforceOrgsDb.updateSalesforceOrg(user.id, req.params.uniqueId, data);
 
     sendJson(res, salesforceOrg, 201);

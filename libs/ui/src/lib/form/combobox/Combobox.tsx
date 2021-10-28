@@ -1,3 +1,4 @@
+import { SerializedStyles } from '@emotion/react';
 import { logger } from '@jetstream/shared/client-logger';
 import {
   isArrowDownKey,
@@ -38,6 +39,7 @@ type ChildListItem = ComboboxListItemProps & React.RefAttributes<HTMLLIElement>;
 type ChildListGroup = ComboboxListItemGroupProps & { children: React.ReactNode };
 
 export interface ComboboxProps {
+  inputCss?: SerializedStyles;
   label: string;
   labelHelp?: string;
   helpText?: React.ReactNode | string;
@@ -99,6 +101,7 @@ export const Combobox: FunctionComponent<ComboboxProps> = (props) => (
 );
 
 const ComboboxElement: FunctionComponent<ComboboxProps & { icon: JSX.Element }> = ({
+  inputCss,
   label,
   labelHelp,
   helpText,
@@ -376,6 +379,7 @@ const ComboboxElement: FunctionComponent<ComboboxProps & { icon: JSX.Element }> 
                     type="text"
                     className={classNames('slds-input slds-combobox__input', { 'slds-text-color_error': hasError })}
                     id={id}
+                    css={inputCss}
                     aria-controls={listId}
                     aria-describedby={errorMessageId}
                     autoComplete="off"
