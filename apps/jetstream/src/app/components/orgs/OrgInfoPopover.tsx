@@ -1,12 +1,44 @@
 import { clearCacheForOrg } from '@jetstream/shared/data';
 import { addOrg, isEnterKey, isEscapeKey } from '@jetstream/shared/ui-utils';
 import { SalesforceOrgUi } from '@jetstream/types';
-import { ButtonGroupContainer, Checkbox, Grid, GridCol, Icon, Input, Popover, SalesforceLogin, Spinner } from '@jetstream/ui';
+import {
+  ButtonGroupContainer,
+  Checkbox,
+  ColorSwatches,
+  ColorSwatchItem,
+  Grid,
+  GridCol,
+  Icon,
+  Input,
+  Popover,
+  SalesforceLogin,
+  Spinner,
+} from '@jetstream/ui';
 import classNames from 'classnames';
 import startCase from 'lodash/startCase';
 import { Fragment, FunctionComponent, ReactNode, useEffect, useState } from 'react';
 import { useRecoilState } from 'recoil';
 import { applicationCookieState } from '../../app-state';
+
+const EMPTY_COLOR = '_none_';
+
+const ORG_COLORS: ColorSwatchItem[] = [
+  { id: EMPTY_COLOR, color: '#fff' },
+  { id: '#D1D5DB', color: '#D1D5DB' },
+  { id: '#6B7280', color: '#6B7280' },
+  { id: '#EF4444', color: '#EF4444' },
+  { id: '#FDE68A', color: '#FDE68A' },
+  { id: '#F59E0B', color: '#F59E0B' },
+  { id: '#10B981', color: '#10B981' },
+  { id: '#60A5FA', color: '#60A5FA' },
+  { id: '#1D4ED8', color: '#1D4ED8' },
+  { id: '#8B5CF6', color: '#8B5CF6' },
+  { id: '#DB2777', color: '#DB2777' },
+];
+
+function getColor(color: string) {
+  return !color || color === EMPTY_COLOR ? null : color;
+}
 
 export interface OrgInfoPopoverProps {
   org: SalesforceOrgUi;
@@ -14,7 +46,7 @@ export interface OrgInfoPopoverProps {
   disableOrgActions?: boolean;
   onAddOrg: (org: SalesforceOrgUi, replaceOrgUniqueId?: string) => void;
   onRemoveOrg: (org: SalesforceOrgUi) => void;
-  onSaveLabel: (org: SalesforceOrgUi, updatedOrg: Partial<SalesforceOrgUi>) => void;
+  onUpdateOrg: (org: SalesforceOrgUi, updatedOrg: Partial<SalesforceOrgUi>) => void;
 }
 
 function getOrgProp(serverUrl: string, org: SalesforceOrgUi, prop: keyof SalesforceOrgUi, label?: string) {
@@ -62,10 +94,11 @@ export const OrgInfoPopover: FunctionComponent<OrgInfoPopoverProps> = ({
   disableOrgActions,
   onAddOrg,
   onRemoveOrg,
-  onSaveLabel,
+  onUpdateOrg,
 }) => {
   const [applicationState] = useRecoilState(applicationCookieState);
   const [orgLabel, setOrgLabel] = useState(org.label || org.username);
+  const [orgColor, setOrgColor] = useState(org.color || EMPTY_COLOR);
   const [removeOrgActive, setRemoveOrgActive] = useState(false);
   const [isDirty, setIsDirty] = useState(false);
   const [didClearCache, setDidClearCache] = useState(false);
@@ -80,6 +113,7 @@ export const OrgInfoPopover: FunctionComponent<OrgInfoPopoverProps> = ({
 
   useEffect(() => {
     setOrgLabel(org.label);
+    setOrgColor(org.color || EMPTY_COLOR);
   }, [org]);
 
   function handleFixOrg() {
@@ -112,7 +146,12 @@ export const OrgInfoPopover: FunctionComponent<OrgInfoPopoverProps> = ({
   }
 
   function handleSave() {
-    onSaveLabel(org, { label: orgLabel });
+    onUpdateOrg(org, { label: orgLabel, color: getColor(orgColor) });
+  }
+
+  function handleColorSelection(color: ColorSwatchItem) {
+    setOrgColor(color.id);
+    onUpdateOrg(org, { label: org.label, color: getColor(color.id) });
   }
 
   async function handleClearCache() {
@@ -225,6 +264,12 @@ export const OrgInfoPopover: FunctionComponent<OrgInfoPopoverProps> = ({
                       </button>
                     </Grid>
                   )}
+                </td>
+              </tr>
+              <tr>
+                <td>Color</td>
+                <td>
+                  <ColorSwatches items={ORG_COLORS} selectedItem={orgColor} onSelection={handleColorSelection} />
                 </td>
               </tr>
               {getOrgProp(applicationState.serverUrl, org, 'orgName', 'Org Name')}

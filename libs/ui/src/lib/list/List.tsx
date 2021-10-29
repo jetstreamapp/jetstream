@@ -26,7 +26,9 @@ export interface ListProps {
   highlightText?: boolean;
   isActive: (item: any) => boolean;
   // function used to extract
-  getContent: (item: any) => {
+  getContent: (
+    item: any
+  ) => {
     key: string;
     id?: string;
     heading?: string | JSX.Element;
@@ -156,6 +158,7 @@ export const List = forwardRef<HTMLUListElement, ListProps>(
     }
 
     return (
+      // eslint-disable-next-line react/jsx-no-useless-fragment
       <Fragment>
         {Array.isArray(items) && items.length > 0 && (
           <ul ref={ref} className="slds-has-dividers_bottom-space" tabIndex={0} onKeyDown={handleKeyDown}>

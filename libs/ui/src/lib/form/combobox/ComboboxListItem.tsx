@@ -1,9 +1,15 @@
+import { SerializedStyles } from '@emotion/react';
 import classNames from 'classnames';
 import React, { forwardRef } from 'react';
 import Icon from '../../widgets/Icon';
 
 export interface ComboboxListItemProps {
   id: string;
+  className?: string;
+  textContainerClassName?: string;
+  textClassName?: string;
+  textBodyCss?: SerializedStyles;
+  textCss?: SerializedStyles;
   label?: string; // can pass in children instead to override the complete media body
   secondaryLabel?: string;
   title?: string; // fallback to label is label is a string
@@ -15,18 +21,46 @@ export interface ComboboxListItemProps {
 }
 
 export const ComboboxListItem = forwardRef<HTMLLIElement, ComboboxListItemProps>(
-  ({ id, label, secondaryLabel, title, selected, disabled, hasError, onSelection, children }, ref) => {
+  (
+    {
+      id,
+      className,
+      textContainerClassName,
+      textClassName,
+      textBodyCss,
+      textCss,
+      label,
+      secondaryLabel,
+      title,
+      selected,
+      disabled,
+      hasError,
+      onSelection,
+      children,
+    },
+    ref
+  ) => {
     const backupTitle = `${label || ''} ${secondaryLabel || ''}`;
     title = title || backupTitle;
     return (
-      <li ref={ref} role="presentation" className="slds-listbox__item slds-item" onClick={() => onSelection(id)} tabIndex={-1}>
+      <li
+        ref={ref}
+        role="presentation"
+        className={classNames('slds-listbox__item slds-item', className)}
+        onClick={() => onSelection(id)}
+        tabIndex={-1}
+      >
         <div
           id={id}
           aria-disabled={disabled}
-          className={classNames('slds-media slds-listbox__option slds-listbox__option_plain slds-media_small', {
-            'slds-is-selected': selected,
-            'slds-text-color_error': hasError,
-          })}
+          className={classNames(
+            'slds-media slds-listbox__option slds-listbox__option_plain slds-media_small',
+            {
+              'slds-is-selected': selected,
+              'slds-text-color_error': hasError,
+            },
+            textContainerClassName
+          )}
           role="option"
           aria-selected={selected}
         >
@@ -42,9 +76,9 @@ export const ComboboxListItem = forwardRef<HTMLLIElement, ComboboxListItemProps>
               />
             )}
           </span>
-          <span className="slds-media__body">
+          <span className="slds-media__body" css={textBodyCss}>
             {label && (
-              <span className="slds-truncate" title={title}>
+              <span className={classNames('slds-truncate', textClassName)} title={title} css={textCss}>
                 {label}
                 {secondaryLabel && <span className="slds-text-color_weak slds-m-left_xx-small">{secondaryLabel}</span>}
               </span>

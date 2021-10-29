@@ -1,9 +1,10 @@
 import { decryptString, encryptString, hexToBase64 } from '@jetstream/shared/node-utils';
 import { SalesforceOrgUi } from '@jetstream/types';
 import { Prisma, SalesforceOrg } from '@prisma/client';
+import parseISO from 'date-fns/parseISO';
+import { isUndefined } from 'lodash';
 import { prisma } from '../config/db.config';
 import { ENV } from '../config/env-config';
-import parseISO from 'date-fns/parseISO';
 
 const SELECT = Prisma.validator<Prisma.SalesforceOrgSelect>()({
   uniqueId: true,
@@ -26,6 +27,7 @@ const SELECT = Prisma.validator<Prisma.SalesforceOrgSelect>()({
   orgLanguageLocaleKey: true,
   orgNamespacePrefix: true,
   orgTrialExpirationDate: true,
+  color: true,
   connectionError: true,
   createdAt: true,
   updatedAt: true,
@@ -197,9 +199,9 @@ export async function createOrUpdateSalesforceOrg(
   }
 }
 
-export async function updateSalesforceOrg(jetstreamUserId: string, uniqueId: string, data: { label: string }) {
+export async function updateSalesforceOrg(jetstreamUserId: string, uniqueId: string, data: { label: string; color?: string | null }) {
   const existingOrg = await prisma.salesforceOrg.findUnique({
-    select: { id: true, username: true, label: true, orgName: true },
+    select: { id: true, username: true, label: true, orgName: true, color: true },
     where: findUniqueOrg({ jetstreamUserId, uniqueId }),
   });
 
@@ -208,12 +210,14 @@ export async function updateSalesforceOrg(jetstreamUserId: string, uniqueId: str
   }
 
   const label = data.label || existingOrg.username;
+  const color = isUndefined(data.color) ? existingOrg.color : data.color;
 
   return await prisma.salesforceOrg.update({
     select: SELECT,
     where: { id: existingOrg.id },
     data: {
       label,
+      color,
       filterText: `${existingOrg.username}${existingOrg.orgName}${label}`,
     },
   });

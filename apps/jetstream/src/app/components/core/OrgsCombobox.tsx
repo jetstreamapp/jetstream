@@ -1,4 +1,5 @@
-import { css } from '@emotion/react';
+import { css, SerializedStyles } from '@emotion/react';
+import { multiWordObjectFilter } from '@jetstream/shared/utils';
 import { MapOf, SalesforceOrgUi } from '@jetstream/types';
 import { Combobox, ComboboxListItem, ComboboxListItemGroup } from '@jetstream/ui';
 import { sortBy } from 'lodash';
@@ -25,6 +26,28 @@ function getSelectedItemTitle(org?: SalesforceOrgUi) {
     subtext += ` (${org.username})`;
   }
   return `${org.orgInstanceName} - ${org.label}${subtext}`;
+}
+
+function getSelectedItemStyle(org?: SalesforceOrgUi): SerializedStyles | undefined {
+  if (!org || !org.color || !!org.connectionError) {
+    return;
+  }
+  return css({
+    borderColor: org.color,
+    boxShadow: `inset 0 0 0 1px ${org.color}`,
+    backgroundClip: 'padding-box',
+  });
+}
+
+function getDropdownOrgStyle(org: SalesforceOrgUi): SerializedStyles | undefined {
+  if (!org || !org.color) {
+    return css({
+      borderLeft: `solid 0.3rem transparent`,
+    });
+  }
+  return css({
+    borderLeft: `solid 0.3rem ${org.color}`,
+  });
 }
 
 function orgHasError(org?: SalesforceOrgUi): boolean {
@@ -71,7 +94,7 @@ export const OrgsCombobox: FunctionComponent<OrgsComboboxProps> = ({
     if (!filterText) {
       setVisibleOrgs(orgs);
     } else {
-      setVisibleOrgs(orgs.filter((org) => org.filterText.includes(filterText)));
+      setVisibleOrgs(orgs.filter(multiWordObjectFilter(['username', 'label'], filterText)));
     }
   }, [orgs, filterText]);
 
@@ -93,6 +116,7 @@ export const OrgsCombobox: FunctionComponent<OrgsComboboxProps> = ({
         onInputChange={(filter) => setFilterText(filter)}
         selectedItemLabel={getSelectedItemLabel(selectedOrg)}
         selectedItemTitle={getSelectedItemTitle(selectedOrg)}
+        inputCss={getSelectedItemStyle(selectedOrg)}
       >
         {Object.keys(orgsByOrganization).map((groupKey) => (
           <ComboboxListItemGroup key={groupKey} label={groupKey}>
@@ -104,6 +128,7 @@ export const OrgsCombobox: FunctionComponent<OrgsComboboxProps> = ({
                 secondaryLabel={org.username !== org.label ? org.username : undefined}
                 hasError={orgHasError(org)}
                 selected={selectedOrg && selectedOrg.uniqueId === org.uniqueId}
+                textBodyCss={getDropdownOrgStyle(org)}
                 onSelection={(id) => onSelected(org)}
               />
             ))}

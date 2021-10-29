@@ -85,6 +85,7 @@ export const LoadRecordsAssignmentRules: FunctionComponent<LoadRecordsAssignment
   }, [selectedOrg, selectedSObject, fetchAssignmentRules]);
 
   return (
+    // eslint-disable-next-line react/jsx-no-useless-fragment
     <Fragment>
       {allowedObjects.has(selectedSObject.toLowerCase()) && (
         <div
@@ -97,7 +98,7 @@ export const LoadRecordsAssignmentRules: FunctionComponent<LoadRecordsAssignment
           <Grid vertical>
             <Checkbox
               id={`assignment-rule-toggle`}
-              labelHelp="If you want to apply assignment rules to this data load, choose the assignment rules you would like to use. This option is only available for Leads and Contacts."
+              labelHelp="If you want to apply assignment rules to this data load, choose the assignment rules you would like to use. This option is only available for Leads, Cases, and Contacts."
               label="Use Assignment Rules"
               checked={useAssignmentRules}
               disabled={!assignmentRules.length}

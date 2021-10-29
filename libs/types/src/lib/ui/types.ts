@@ -124,6 +124,7 @@ export type sizeXLarge = 'x-large';
 export type sizeXXLarge = 'xx-large';
 
 export type SizeXSmallSmallLarge = sizeXSmall | sizeSmall | sizeLarge;
+export type SizeXSmallSmallMediumLarge = SizeXSmallSmallLarge | sizeMedium;
 export type SizeXXSmallXSmallSmall = sizeXXXSmall | sizeXSmall | sizeSmall;
 
 export type FullWidth = 'full-width';
