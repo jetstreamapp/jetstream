@@ -21,7 +21,7 @@ const WORKSHEET_LOCATIONS = {
 };
 
 const SURROUNDING_BRACKETS_RGX = /^{|}$/g;
-const VALID_REF_ID_RGX = /[0-9A-Za-z][0-9A-Za-z_]+$/;
+const VALID_REF_ID_RGX = /^[0-9A-Za-z][0-9A-Za-z_]+$/;
 const VALID_OPERATIONS = ['INSERT', 'UPDATE', 'UPSERT'];
 const MAX_REQ_SIZE = 500;
 
@@ -191,7 +191,7 @@ async function validateObjectData(org: SalesforceOrgUi, datasets: LoadMultiObjec
                   return output;
                 }, {});
 
-              for (let relationshipField of fieldsWithRelationships) {
+              for (const relationshipField of fieldsWithRelationships) {
                 try {
                   const [relationship] = relationshipField.split('.');
                   const foundField = dataset.fieldsByRelationshipName[relationship.toLowerCase()];
@@ -298,17 +298,34 @@ async function validateObjectData(org: SalesforceOrgUi, datasets: LoadMultiObjec
           });
         }
 
-        const invalidRefIds = dataset.data.filter((row) => !VALID_REF_ID_RGX.test(row[dataset.referenceColumnHeader]));
+        const missingRefIds = dataset.data.filter((row) => !row[dataset.referenceColumnHeader]);
+        if (missingRefIds.length) {
+          errors.push({
+            property: 'data',
+            worksheet: worksheet,
+            location: 'A',
+            locationType: 'COLUMN',
+            message: `${formatNumber(missingRefIds.length)} ${pluralizeFromNumber('row', missingRefIds.length)} ${
+              missingRefIds.length === 1 ? 'is' : 'are'
+            } missing a Reference Id. Make sure you do not have any accidental data in your spreadsheet and clear the contents of any unused rows/columns in your spreadsheet.`,
+          });
+        }
+
+        const invalidRefIds = dataset.data.filter(
+          (row) => !!row[dataset.referenceColumnHeader] && !VALID_REF_ID_RGX.test(row[dataset.referenceColumnHeader])
+        );
         if (invalidRefIds.length) {
           errors.push({
             property: 'data',
             worksheet: worksheet,
-            location: WORKSHEET_LOCATIONS.dataStartCell,
-            locationType: 'CELL',
-            message: `The following Reference ${pluralizeFromNumber(
-              'Id',
-              invalidRefIds.length
-            )} have invalid characters: ${invalidRefIds.slice(0, 10)}.`,
+            location: 'A',
+            locationType: 'COLUMN',
+            message: `The following Reference ${pluralizeFromNumber('Id', invalidRefIds.length)} have invalid characters: ${invalidRefIds
+              .slice(0, 25)
+              .map((row) => `"${row[dataset.referenceColumnHeader]}"`)
+              .join(
+                ', '
+              )}. The referenceId must start with a letter or a number and must not contain anything besides letters, numbers, or underscores.`,
           });
         }
       }
@@ -599,7 +616,7 @@ function splitRequestsToMaxSize(items: CompositeGraphRequest[], maxSize: number)
   if (!items || items.length === 0) {
     return [[]];
   }
-  let output = [];
+  const output = [];
   let currSet = [];
   let currPayloadNodes = new Set<string>();
   let currCount = 0;

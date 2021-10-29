@@ -12,7 +12,24 @@ function getErrorLocation(error: LoadMultiObjectDataError) {
   if (!error.location) {
     return null;
   }
-  return error.locationType === 'ROW' ? <span>(Row {error.location})</span> : <span>(Cell {error.location})</span>;
+  let descriptor = '';
+  switch (error.locationType) {
+    case 'ROW':
+      descriptor = 'Row';
+      break;
+    case 'COLUMN':
+      descriptor = 'Column';
+      break;
+    case 'CELL':
+    default:
+      descriptor = 'Cell';
+      break;
+  }
+  return (
+    <span>
+      ({descriptor} {error.location})
+    </span>
+  );
 }
 
 export const LoadRecordsMultiObjectErrors: FunctionComponent<LoadRecordsMultiObjectErrorsProps> = ({ errors }) => {
@@ -23,6 +40,7 @@ export const LoadRecordsMultiObjectErrors: FunctionComponent<LoadRecordsMultiObj
   }, [errors]);
 
   return (
+    // eslint-disable-next-line react/jsx-no-useless-fragment
     <Fragment>
       {!!errors?.length && errorsByWorksheet && (
         <ScopedNotification theme="error" className="slds-m-top_medium">
