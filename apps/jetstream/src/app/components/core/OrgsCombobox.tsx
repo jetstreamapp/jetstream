@@ -41,10 +41,12 @@ function getSelectedItemStyle(org?: SalesforceOrgUi): SerializedStyles | undefin
 
 function getDropdownOrgStyle(org: SalesforceOrgUi): SerializedStyles | undefined {
   if (!org || !org.color) {
-    return;
+    return css({
+      borderLeft: `solid 0.3rem transparent`,
+    });
   }
   return css({
-    borderBottom: `solid 0.3rem ${org.color}`,
+    borderLeft: `solid 0.3rem ${org.color}`,
   });
 }
 
@@ -126,7 +128,7 @@ export const OrgsCombobox: FunctionComponent<OrgsComboboxProps> = ({
                 secondaryLabel={org.username !== org.label ? org.username : undefined}
                 hasError={orgHasError(org)}
                 selected={selectedOrg && selectedOrg.uniqueId === org.uniqueId}
-                textBodyCss={org.color ? getDropdownOrgStyle(org) : undefined}
+                textBodyCss={getDropdownOrgStyle(org)}
                 onSelection={(id) => onSelected(org)}
               />
             ))}
