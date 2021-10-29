@@ -1,7 +1,18 @@
-import { getOrgType, useNonInitialEffect } from '@jetstream/shared/ui-utils';
+import { css } from '@emotion/react';
+import { SerializedStyles } from '@emotion/utils';
+import { getOrgType } from '@jetstream/shared/ui-utils';
 import { BadgeTypes, SalesforceOrgUi, SalesforceOrgUiType } from '@jetstream/types';
 import { Badge, Icon } from '@jetstream/ui';
 import { Fragment, FunctionComponent, useEffect, useState } from 'react';
+
+function getOrgBorderStyle(org: SalesforceOrgUi): SerializedStyles | undefined {
+  if (!org || !org.color) {
+    return;
+  }
+  return css({
+    borderColor: org.color,
+  });
+}
 
 export interface OrgLabelBadgeProps {
   className?: string;
@@ -25,14 +36,21 @@ export const OrgLabelBadge: FunctionComponent<OrgLabelBadgeProps> = ({ className
   }, [org]);
 
   return (
+    // eslint-disable-next-line react/jsx-no-useless-fragment
     <Fragment>
       {org && (
         <Badge
           className={className}
           type={badgeType}
           spanProps={{ title: `${org.orgName} - ${org.username} - ${orgType} - ${org.instanceUrl}` }}
+          css={getOrgBorderStyle(org)}
         >
-          <span className="slds-badge__icon slds-badge__icon_left">
+          <span
+            className="slds-badge__icon slds-badge__icon_left"
+            css={css`
+              ${org.color ? `color: ${org.color}` : ''}
+            `}
+          >
             <Icon
               type="utility"
               icon="salesforce1"

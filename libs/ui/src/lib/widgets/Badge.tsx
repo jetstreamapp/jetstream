@@ -1,3 +1,4 @@
+import { SerializedStyles } from '@emotion/react';
 import { BadgeTypes } from '@jetstream/types';
 import React, { FunctionComponent, HTMLAttributes, ReactNode } from 'react';
 
@@ -6,6 +7,7 @@ export interface BadgeProps {
   title?: string;
   type?: BadgeTypes;
   spanProps?: HTMLAttributes<HTMLSpanElement>;
+  css?: SerializedStyles;
   children?: ReactNode;
 }
 
@@ -33,9 +35,9 @@ function getCssClass(type: BadgeTypes) {
   return cssClass;
 }
 
-export const Badge: FunctionComponent<BadgeProps> = ({ className, title, type = 'default', spanProps, children }) => {
+export const Badge: FunctionComponent<BadgeProps> = ({ className, title, type = 'default', spanProps, css, children }) => {
   return (
-    <span className={`${className || ''} ${getCssClass(type)}`} title={title} {...spanProps}>
+    <span className={`${className || ''} ${getCssClass(type)}`} title={title} css={css} {...spanProps}>
       {children}
     </span>
   );
