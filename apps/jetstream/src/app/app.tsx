@@ -30,6 +30,7 @@ const DeployMetadata = lazy(() => import('./components/deploy/DeployMetadata'));
 const AnonymousApex = lazy(() => import('./components/anonymous-apex/AnonymousApex'));
 const SalesforceApi = lazy(() => import('./components/salesforce-api/SalesforceApi'));
 const DebugLogViewer = lazy(() => import('./components/debug-log-viewer/DebugLogViewer'));
+const Settings = lazy(() => import('./components/settings/Settings'));
 
 interface RouteItem {
   path: string;
@@ -128,6 +129,7 @@ const ROUTES: RouteItem[] = [
     ),
   },
   { path: '/feedback', render: () => <Feedback userProfile={_userProfile} /> },
+  { path: '/settings', render: () => <Settings featureFlags={_featureFlags} userProfile={_userProfile} /> },
   { path: '*', render: () => <Redirect to="/query" /> },
 ];
 

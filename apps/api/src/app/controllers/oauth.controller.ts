@@ -2,9 +2,11 @@ import { SalesforceOrgUi, SObjectOrganization, UserProfileServer } from '@jetstr
 import * as express from 'express';
 import * as jsforce from 'jsforce';
 import * as querystring from 'querystring';
+import { ENV } from '../config/env-config';
 import { logger } from '../config/logger.config';
 import * as salesforceOrgsDb from '../db/salesforce-org.db';
 import { getJsforceOauth2 } from '../utils/auth-utils';
+import { OauthLinkParams } from './auth.controller';
 
 /**
  * Prepare SFDC auth and redirect to Salesforce
@@ -36,18 +38,25 @@ export function salesforceOauthInitAuth(req: express.Request, res: express.Respo
  * @param res
  */
 export async function salesforceOauthCallback(req: express.Request, res: express.Response) {
-  try {
-    const user = req.user as UserProfileServer;
-    const state = querystring.parse(req.query.state as string);
-    const loginUrl = state.loginUrl as string;
-    const clientUrl = state.clientUrl as string;
-    const replaceOrgUniqueId = state.replaceOrgUniqueId as string | undefined;
+  const user = req.user as UserProfileServer;
+  const state = querystring.parse(req.query.state as string);
+  const loginUrl = state.loginUrl as string;
+  const clientUrl = (state.clientUrl as string) || new URL(ENV.JETSTREAM_CLIENT_URL).origin;
+  const replaceOrgUniqueId = state.replaceOrgUniqueId as string | undefined;
+  const returnParams: OauthLinkParams = {
+    type: 'salesforce',
+    clientUrl,
+  };
 
+  try {
     // ERROR PATH
     if (req.query.error) {
-      const errorMsg = req.query.error_description ? req.query.error_description : 'There was an error authenticating Salesforce.';
-      const errorObj = { message: errorMsg, error: req.query.error };
-      return res.redirect(`/assets/oauth?${querystring.stringify(errorObj as any)}`);
+      returnParams.error = (req.query.error as string) || 'Unexpected Error';
+      returnParams.message = req.query.error_description
+        ? (req.query.error_description as string)
+        : 'There was an error authenticating with Salesforce.';
+      logger.info('[OAUTH][ERROR] %s', req.query.error, { ...req.query });
+      return res.redirect(`/oauth-link/?${querystring.stringify(returnParams as any)}`);
     }
 
     const conn = new jsforce.Connection({ oauth2: getJsforceOauth2(loginUrl as string) });
@@ -100,15 +109,15 @@ export async function salesforceOauthCallback(req: express.Request, res: express
     //   logger.log('Error adding extended org data');
     // }
 
-    // TODO: we need to return a web-page that will use something to send org details back to core app
-    // https://stackoverflow.com/questions/28230845/communication-between-tabs-or-windows
-
-    return res.redirect(`/assets/oauth?${querystring.stringify(salesforceOrg as any)}&clientUrl=${clientUrl}`);
+    returnParams.data = JSON.stringify(salesforceOrg);
+    return res.redirect(`/oauth-link/?${querystring.stringify(returnParams as any)}`);
   } catch (ex) {
     const userInfo = req.user ? { username: (req.user as any)?.displayName, userId: (req.user as any)?.user_id } : undefined;
     logger.info('[OAUTH][ERROR] %o', ex.message, { userInfo });
-    const errorMsg = req.query.error_description ? req.query.error_description : 'There was an error authenticating Salesforce.';
-    const errorObj = { message: errorMsg, error: ex.message };
-    return res.redirect(`/assets/oauth?${querystring.stringify(errorObj as any)}`);
+    returnParams.error = ex.message || 'Unexpected Error';
+    returnParams.message = req.query.error_description
+      ? (req.query.error_description as string)
+      : 'There was an error authenticating with Salesforce.';
+    return res.redirect(`/oauth-link/?${querystring.stringify(returnParams as any)}`);
   }
 }

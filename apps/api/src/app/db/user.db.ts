@@ -1,4 +1,4 @@
-import { Prisma, User } from '.prisma/client';
+import { User } from '.prisma/client';
 import { UserProfileServer } from '@jetstream/types';
 import { prisma } from '../config/db.config';
 import { logger } from '../config/logger.config';
@@ -10,6 +10,19 @@ async function findByUserId(userId: string) {
   return await prisma.user.findUnique({
     where: { userId: userId },
   });
+}
+
+export async function updateUser(user: UserProfileServer, data: { name: string }): Promise<User> {
+  try {
+    const updatedUser = await prisma.user.update({
+      where: { userId: user.id },
+      data: { name: data.name },
+    });
+    return updatedUser;
+  } catch (ex) {
+    logger.error('[DB][USER][UPDATE][ERROR] %o', ex, { user });
+    throw ex;
+  }
 }
 
 /**
@@ -44,7 +57,6 @@ export async function createOrUpdateUser(user: UserProfileServer): Promise<{ cre
     }
   } catch (ex) {
     logger.error('[DB][USER][CREATE][ERROR] %o', ex, { user });
-    // TODO: should I fail or not?
     throw ex;
   }
 }

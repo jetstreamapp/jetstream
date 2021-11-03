@@ -60,11 +60,56 @@ export interface UserProfilePreferences {
 
 export type UserProfileUsernameStatus = 'ACTIVE' | 'PENDING' | 'REJECTED';
 
+export type Auth0ConnectionName = 'google-oauth2' | 'salesforce' | 'github';
+
 export interface FeatureFlag {
   flagVersion: string; // V1.0
   flags: string[]; // all | query
   isDefault: boolean;
 }
+
+export interface UserProfileAuth0Identity {
+  profileData?: UserProfileAuth0IdentityProfileData;
+  provider: string;
+  access_token: string;
+  expires_in: 3599;
+  user_id: string;
+  connection: string;
+  isSocial: boolean;
+}
+
+export interface UserProfileAuth0IdentityProfileData {
+  email: string;
+  email_verified: boolean;
+  name: string;
+  given_name: string;
+  family_name: string;
+  picture: string;
+  locale: string;
+}
+export interface UserProfileAuth0 {
+  user_id: string;
+  created_at: string;
+  updated_at: string;
+  email: string;
+  email_verified: boolean;
+  identities: UserProfileAuth0Identity[];
+  name: string;
+  nickname: string;
+  picture: string;
+  user_metadata: any;
+  app_metadata: {
+    featureFlags: FeatureFlag;
+  };
+  last_ip: string;
+  last_login: string;
+  logins_count: number;
+}
+
+export type UserProfileAuth0Ui = Pick<
+  UserProfileAuth0,
+  'user_id' | 'email' | 'email_verified' | 'identities' | 'name' | 'nickname' | 'picture' | 'app_metadata'
+>;
 
 export interface UserProfileUi {
   email: string;
