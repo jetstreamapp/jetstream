@@ -178,6 +178,12 @@ export const ANALYTICS_KEYS = {
   platform_event_subscribed: 'platform_event_subscribed',
   platform_event_unsubscribe: 'platform_event_unsubscribe',
   platform_event_publish: 'platform_event_publish',
+  /** Settings */
+  settings_update_user: 'settings_update_user',
+  settings_link_account: 'settings_link_account',
+  settings_unlink_account: 'settings_unlink_account',
+  settings_resend_email_verification: 'settings_resend_email_verification',
+  settings_delete_account: 'settings_delete_account',
 };
 
 export const LOG_LEVELS = ['NONE', 'ERROR', 'WARN', 'INFO', 'DEBUG', 'FINE', 'FINER', 'FINEST'];
@@ -194,6 +200,7 @@ export const TITLES = {
   API_EXPLORER: 'Salesforce Api | Jetstream',
   PLATFORM_EVENTS: 'Platform Events | Jetstream',
   FEEDBACK: 'Support & Feedback | Jetstream',
+  SETTINGS: 'Account Settings | Jetstream',
 };
 
 export const SOCKET_EVENTS = {

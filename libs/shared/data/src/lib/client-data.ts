@@ -25,6 +25,7 @@ import {
   SalesforceApiRequest,
   SalesforceOrgUi,
   SobjectOperation,
+  UserProfileAuth0Ui,
   UserProfileUi,
 } from '@jetstream/types';
 import {
@@ -63,6 +64,26 @@ export async function checkHeartbeat(): Promise<{ version: string }> {
 
 export async function getUserProfile(): Promise<UserProfileUi> {
   return handleRequest({ method: 'GET', url: '/api/me' }).then(unwrapResponseIgnoreCache);
+}
+
+export async function deleteUserProfile(reason?: string): Promise<void> {
+  return handleRequest({ method: 'DELETE', url: '/api/me', data: { reason } }).then(unwrapResponseIgnoreCache);
+}
+
+export async function getFullUserProfile(): Promise<UserProfileAuth0Ui> {
+  return handleRequest({ method: 'GET', url: '/api/me/profile' }).then(unwrapResponseIgnoreCache);
+}
+
+export async function updateUserProfile(userProfile: { name: string }): Promise<UserProfileAuth0Ui> {
+  return handleRequest({ method: 'POST', url: '/api/me/profile', data: userProfile }).then(unwrapResponseIgnoreCache);
+}
+
+export async function unlinkIdentityFromProfile(identity: { provider: string; userId: string }): Promise<UserProfileAuth0Ui> {
+  return handleRequest({ method: 'DELETE', url: '/api/me/profile/identity', params: identity }).then(unwrapResponseIgnoreCache);
+}
+
+export async function resendVerificationEmail(identity: { provider: string; userId: string }): Promise<UserProfileAuth0Ui> {
+  return handleRequest({ method: 'POST', url: '/api/me/profile/identity/verify-email', params: identity }).then(unwrapResponseIgnoreCache);
 }
 
 export async function getOrgs(): Promise<SalesforceOrgUi[]> {

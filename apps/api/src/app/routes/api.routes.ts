@@ -24,6 +24,15 @@ routes.get('/heartbeat', (req: express.Request, res: express.Response) => {
 });
 
 routes.get('/me', userController.getUserProfile);
+routes.delete('/me', validate(userController.routeValidators.deleteAccount), userController.deleteAccount);
+routes.get('/me/profile', userController.getFullUserProfile);
+routes.post('/me/profile', validate(userController.routeValidators.updateProfile), userController.updateProfile);
+routes.delete('/me/profile/identity', validate(userController.routeValidators.unlinkIdentity), userController.unlinkIdentity);
+routes.post(
+  '/me/profile/identity/verify-email',
+  validate(userController.routeValidators.resendVerificationEmail),
+  userController.resendVerificationEmail
+);
 
 routes.get('/orgs', orgsController.getOrgs);
 routes.patch('/orgs/:uniqueId', orgsController.updateOrg);

@@ -8,15 +8,16 @@ datasource db {
 }
 
 model User {
-  id          String   @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
-  userId      String   @unique @db.VarChar
-  email       String   @db.VarChar
-  name        String?  @db.VarChar
-  nickname    String?  @db.VarChar
-  picture     String?  @db.VarChar
-  appMetadata Json?    @db.Json
-  createdAt   DateTime @default(now()) @db.Timestamp(6)
-  updatedAt   DateTime @updatedAt
+  id          String    @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  userId      String    @unique @db.VarChar
+  email       String    @db.VarChar
+  name        String?   @db.VarChar
+  nickname    String?   @db.VarChar
+  picture     String?   @db.VarChar
+  appMetadata Json?     @db.Json
+  deletedAt   DateTime?
+  createdAt   DateTime  @default(now()) @db.Timestamp(6)
+  updatedAt   DateTime  @updatedAt
 }
 
 model SalesforceApi {
