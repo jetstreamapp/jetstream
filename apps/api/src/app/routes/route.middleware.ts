@@ -1,11 +1,15 @@
 import { HTTP } from '@jetstream/shared/constants';
+import { NOOP } from '@jetstream/shared/utils';
 import { UserProfileServer } from '@jetstream/types';
+import { addDays, getUnixTime } from 'date-fns';
 import * as express from 'express';
 import { ValidationChain, validationResult } from 'express-validator';
 import * as jsforce from 'jsforce';
 import { ENV } from '../config/env-config';
 import { logger } from '../config/logger.config';
+import { rollbarServer } from '../config/rollbar.config';
 import * as salesforceOrgsDb from '../db/salesforce-org.db';
+import { updateUserLastActivity } from '../services/auth0';
 import { getJsforceOauth2 } from '../utils/auth-utils';
 import { AuthenticationError, NotFoundError, UserFacingError } from '../utils/error-handler';
 
@@ -39,8 +43,30 @@ export function notFoundMiddleware(req: express.Request, res: express.Response, 
   next(error);
 }
 
+function getMaxActivityExp() {
+  return getUnixTime(addDays(new Date(), 1));
+}
+
 export async function checkAuth(req: express.Request, res: express.Response, next: express.NextFunction) {
   if (req.user) {
+    try {
+      if (!req.session.maxActivityExp) {
+        req.session.maxActivityExp = getMaxActivityExp();
+      } else if (req.session.maxActivityExp < getUnixTime(new Date())) {
+        req.session.maxActivityExp = getMaxActivityExp();
+        // Update auth0 with expiration date
+        logger.debug('[REQ][LAST-ACTIVITY][UPDATED]', { userId: (req.user as any)?.user_id });
+        updateUserLastActivity(req.user as UserProfileServer, req.session.maxActivityExp)
+          .then(NOOP)
+          .catch((err) => {
+            // send error to rollbar
+            logger.debug('[REQ][LAST-ACTIVITY][ERROR] %s', err.message, { userId: (req.user as any)?.user_id });
+            rollbarServer.error('Error updating Auth0 maxActivityExp', { message: err.message, stack: err.stack });
+          });
+      }
+    } catch (ex) {
+      // TODO:
+    }
     return next();
   }
   logger.error('[AUTH][UNAUTHORIZED]');

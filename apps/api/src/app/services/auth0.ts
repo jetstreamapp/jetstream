@@ -68,6 +68,10 @@ export async function getUser(user: UserProfileServer): Promise<UserProfileAuth0
   return response.data;
 }
 
+export async function updateUserLastActivity(user: UserProfileServer, lastActivity: number): Promise<UserProfileAuth0Ui> {
+  return (await axiosAuth0.patch<UserProfileAuth0Ui>(`/api/v2/users/${user.id}`, { app_metadata: { lastActivity } })).data;
+}
+
 export async function updateUser(user: UserProfileServer, userProfile: { name: string }): Promise<UserProfileAuth0Ui> {
   await initAuthorizationToken(user);
   // update on Auth0
