@@ -1,6 +1,6 @@
 import { UserProfileAuth0Identity, UserProfileAuth0Ui, UserProfileServer } from '@jetstream/types';
 import axios, { AxiosError } from 'axios';
-import { addHours, addSeconds, isBefore } from 'date-fns';
+import { addHours, addSeconds, formatISO, isBefore } from 'date-fns';
 import { ENV } from '../config/env-config';
 import { logger } from '../config/logger.config';
 import * as userDb from '../db/user.db';
@@ -68,8 +68,13 @@ export async function getUser(user: UserProfileServer): Promise<UserProfileAuth0
   return response.data;
 }
 
-export async function updateUserLastActivity(user: UserProfileServer, lastActivity: number): Promise<UserProfileAuth0Ui> {
-  return (await axiosAuth0.patch<UserProfileAuth0Ui>(`/api/v2/users/${user.id}`, { app_metadata: { lastActivity } })).data;
+export async function updateUserLastActivity(user: UserProfileServer, lastActivity: Date): Promise<UserProfileAuth0Ui> {
+  await initAuthorizationToken(user);
+  return (
+    await axiosAuth0.patch<UserProfileAuth0Ui>(`/api/v2/users/${user.id}`, {
+      app_metadata: { lastActivity: formatISO(lastActivity, { representation: 'date' }) },
+    })
+  ).data;
 }
 
 export async function updateUser(user: UserProfileServer, userProfile: { name: string }): Promise<UserProfileAuth0Ui> {

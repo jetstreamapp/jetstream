@@ -1,10 +1,11 @@
 import { HTTP } from '@jetstream/shared/constants';
-import { NOOP } from '@jetstream/shared/utils';
 import { UserProfileServer } from '@jetstream/types';
-import { addDays, getUnixTime } from 'date-fns';
+import { AxiosError } from 'axios';
+import { addDays, fromUnixTime, getUnixTime } from 'date-fns';
 import * as express from 'express';
 import { ValidationChain, validationResult } from 'express-validator';
 import * as jsforce from 'jsforce';
+import { isNumber } from 'lodash';
 import { ENV } from '../config/env-config';
 import { logger } from '../config/logger.config';
 import { rollbarServer } from '../config/rollbar.config';
@@ -43,25 +44,33 @@ export function notFoundMiddleware(req: express.Request, res: express.Response, 
   next(error);
 }
 
-function getMaxActivityExp() {
+function getActivityExp() {
   return getUnixTime(addDays(new Date(), 1));
 }
 
 export async function checkAuth(req: express.Request, res: express.Response, next: express.NextFunction) {
   if (req.user) {
     try {
-      if (!req.session.maxActivityExp) {
-        req.session.maxActivityExp = getMaxActivityExp();
-      } else if (req.session.maxActivityExp < getUnixTime(new Date())) {
-        req.session.maxActivityExp = getMaxActivityExp();
+      if (!isNumber(req.session.activityExp)) {
+        req.session.activityExp = getActivityExp();
+      } else if (req.session.activityExp < getUnixTime(new Date())) {
+        req.session.activityExp = getActivityExp();
         // Update auth0 with expiration date
-        logger.debug('[REQ][LAST-ACTIVITY][UPDATED]', { userId: (req.user as any)?.user_id });
-        updateUserLastActivity(req.user as UserProfileServer, req.session.maxActivityExp)
-          .then(NOOP)
+        updateUserLastActivity(req.user as UserProfileServer, fromUnixTime(req.session.activityExp))
+          .then((response) => {
+            logger.debug('[REQ][LAST-ACTIVITY][UPDATED] %s', req.session.activityExp, { userId: (req.user as any)?.user_id });
+          })
           .catch((err) => {
             // send error to rollbar
-            logger.debug('[REQ][LAST-ACTIVITY][ERROR] %s', err.message, { userId: (req.user as any)?.user_id });
-            rollbarServer.error('Error updating Auth0 maxActivityExp', { message: err.message, stack: err.stack });
+            const error: AxiosError = err;
+            if (error.response) {
+              logger.error('[REQ][LAST-ACTIVITY][ERROR] %o', error.response.data, { userId: (req.user as any)?.user_id });
+            } else if (error.request) {
+              logger.error('[REQ][LAST-ACTIVITY][ERROR] %s', error.message || 'An unknown error has occurred.', {
+                userId: (req.user as any)?.user_id,
+              });
+            }
+            rollbarServer.error('Error updating Auth0 activityExp', { message: err.message, stack: err.stack });
           });
       }
     } catch (ex) {

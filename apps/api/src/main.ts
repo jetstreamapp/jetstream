@@ -21,7 +21,7 @@ import { environment } from './environments/environment';
 
 declare module 'express-session' {
   interface SessionData {
-    maxActivityExp: number;
+    activityExp: number;
   }
 }
 
