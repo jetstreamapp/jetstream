@@ -19,6 +19,12 @@ import { logRoute, notFoundMiddleware } from './app/routes/route.middleware';
 import { healthCheck, uncaughtErrorHandler } from './app/utils/response.handlers';
 import { environment } from './environments/environment';
 
+declare module 'express-session' {
+  interface SessionData {
+    activityExp: number;
+  }
+}
+
 const pgSession = pgSimple(session);
 
 const sessionMiddleware = session({
@@ -36,6 +42,8 @@ const sessionMiddleware = session({
   secret: ENV.JESTREAM_SESSION_SECRET,
   resave: false,
   saveUninitialized: false,
+  // This will extend the cookie expiration date if there is a request of any kind to a logged in user
+  rolling: true,
   name: 'sessionid',
 });
 
