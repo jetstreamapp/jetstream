@@ -3,7 +3,7 @@
   "version": "0.0.0",
   "license": "PRIVATE",
   "engines": {
-    "node": ">=15 <16"
+    "node": ">=16 <17"
   },
   "scripts": {
     "nx": "nx",
