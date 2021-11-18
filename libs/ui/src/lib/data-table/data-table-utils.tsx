@@ -444,7 +444,7 @@ export function processCellForClipboard({ value }: ProcessCellForExportParams) {
 
 export function handleCellDoubleClicked(props: CellEvent) {
   const { api, column, colDef, value, node } = props;
-  if (typeof value === 'undefined' || value === null) {
+  if (typeof value === 'undefined' || value === null || colDef.cellRenderer === 'agGroupCellRenderer') {
     return;
   }
   let copiedValue = value;

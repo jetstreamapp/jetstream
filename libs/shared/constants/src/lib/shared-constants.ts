@@ -8,6 +8,7 @@ export const SFDC_BULK_API_NULL_VALUE = '#N/A';
 export const FEATURE_FLAGS = Object.freeze({
   ALL: 'all',
   AUTOMATION_CONTROL: 'automation-control',
+  AUTOMATION_CONTROL_NEW: 'automation-control-new',
   QUERY: 'query',
   LOAD: 'load',
   LOAD_MULTI_OBJ: 'load-multi-object',
@@ -106,6 +107,7 @@ export const fileExtToGoogleDriveMimeType = {
 
 export const INDEXED_DB = {
   KEYS: {
+    automationControlHistory: 'AUTOMATION:QUERY',
     queryHistory: 'HISTORY:QUERY',
     apexHistory: 'HISTORY:APEX',
     salesforceApiHistory: 'HISTORY:SALESFORCE_API',

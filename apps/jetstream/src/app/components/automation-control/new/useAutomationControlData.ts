@@ -1,0 +1,564 @@
+import { logger } from '@jetstream/shared/client-logger';
+import { MapOf, SalesforceOrgUi } from '@jetstream/types';
+import { useCallback, useEffect, useReducer, useRef } from 'react';
+import {
+  fetchAutomationData,
+  getAutomationTypeLabel,
+  getProcessBuildersMetadata,
+  isFetchSuccess,
+  isTableRow,
+  isTableRowChild,
+  isTableRowItem,
+} from './automation-control-data-utils';
+import {
+  AutomationMetadataType,
+  DeploymentItem,
+  FetchErrorPayload,
+  FetchSuccessPayload,
+  FlowViewRecord,
+  StateData,
+  TableRow,
+  TableRowItem,
+  TableRowItemChild,
+  TableRowItemSnapshot,
+  TableRowOrItemOrChild,
+  ToolingApexTriggerRecord,
+  ToolingValidationRuleRecord,
+  ToolingWorkflowRuleRecord,
+} from './automation-control-types';
+
+type Action =
+  | { type: 'FETCH_START'; payload: { selectedTypes: Set<string> } }
+  | { type: 'FETCH_REFRESH'; payload: { selectedTypes: (keyof StateData)[] } }
+  | { type: 'FETCH_SUCCESS'; payload: FetchSuccessPayload }
+  | { type: 'FETCH_ERROR'; payload: FetchErrorPayload }
+  | { type: 'FETCH_FINISH' }
+  | { type: 'UPDATE_IS_ACTIVE_FLAG'; payload: { row: TableRowOrItemOrChild; value: boolean } }
+  | { type: 'UPDATE_FROM_DEPLOYMENT'; payload: { items: DeploymentItem[] } }
+  | { type: 'RESTORE_SNAPSHOT'; payload: { snapshot: TableRowItemSnapshot[] } }
+  | { type: 'RESET' }
+  | { type: 'ERROR'; payload?: { errorMessage: string } };
+
+interface State {
+  loading: boolean;
+  hasError: boolean;
+  errorMessage?: string | null;
+  data: StateData;
+  /** These are the only data points that are updated over time */
+  rows: (TableRow | TableRowItem | TableRowItemChild)[];
+  /** allows accessing and changing data without iteration */
+  rowsByKey: MapOf<TableRow | TableRowItem | TableRowItemChild>;
+  /** Used to know order to rebuild rows from rowsByKey */
+  keys: string[];
+  isDirty: boolean;
+}
+
+type MetadataRecordType =
+  | { type: 'ApexTrigger'; records: ToolingApexTriggerRecord[] }
+  | { type: 'ValidationRule'; records: ToolingValidationRuleRecord[] }
+  | { type: 'WorkflowRule'; records: ToolingWorkflowRuleRecord[] }
+  | { type: 'FlowRecordTriggered'; records: FlowViewRecord[] }
+  | { type: 'FlowProcessBuilder'; records: FlowViewRecord[] };
+
+function reducer(state: State, action: Action): State {
+  switch (action.type) {
+    case 'FETCH_START': {
+      const { selectedTypes } = action.payload;
+      const output: State = {
+        ...state,
+        hasError: false,
+        errorMessage: null,
+        loading: true,
+        data: { ...state.data },
+      };
+      (['ApexTrigger', 'ValidationRule', 'WorkflowRule', 'FlowRecordTriggered', 'FlowProcessBuilder'] as AutomationMetadataType[]).forEach(
+        (type) => {
+          output.data[type] = {
+            loading: selectedTypes.has(type),
+            skip: !selectedTypes.has(type),
+            records: [],
+            tableRow: getRowsForItems({ type, records: [] }, true),
+          };
+        }
+      );
+
+      const { keys, rows, rowsByKey } = flattenTableRows(output.data, {});
+      output.keys = keys;
+      output.rows = rows;
+      output.rowsByKey = rowsByKey;
+      output.isDirty = rows.some((row) => !isTableRow(row) && row.isActive !== row.isActiveInitialState);
+      return output;
+    }
+    case 'FETCH_REFRESH': {
+      const { selectedTypes } = action.payload;
+      const output: State = {
+        ...state,
+        hasError: false,
+        errorMessage: null,
+        loading: true,
+        data: { ...state.data },
+      };
+      selectedTypes.forEach((type) => {
+        output.data[type] = {
+          ...output.data[type],
+          loading: true,
+          records: [],
+          tableRow: getRowsForItems({ type, records: [] }, true),
+        };
+      });
+
+      const { keys, rows, rowsByKey } = flattenTableRows(output.data, {});
+      output.keys = keys;
+      output.rows = rows;
+      output.rowsByKey = rowsByKey;
+      output.isDirty = rows.some((row) => !isTableRow(row) && row.isActive !== row.isActiveInitialState);
+      return output;
+    }
+    case 'FETCH_SUCCESS': {
+      const output: State = {
+        ...state,
+        data: {
+          ...state.data,
+          [action.payload.type]: {
+            loading: false,
+            records: action.payload.records,
+            tableRow: getRowsForItems({ type: action.payload.type, records: action.payload.records as any }, false),
+          },
+        },
+      };
+      const { keys, rows, rowsByKey } = flattenTableRows(output.data, state.rowsByKey);
+      output.keys = keys;
+      output.rows = rows;
+      output.rowsByKey = rowsByKey;
+      output.isDirty = rows.some((row) => !isTableRow(row) && row.isActive !== row.isActiveInitialState);
+      return output;
+    }
+    case 'FETCH_ERROR': {
+      const output: State = {
+        ...state,
+        data: {
+          ...state.data,
+          [action.payload.type]: {
+            ...state.data[action.payload.type],
+            loading: false,
+            error: action.payload.error,
+          },
+        },
+      };
+      const { keys, rows, rowsByKey } = flattenTableRows(output.data, state.rowsByKey);
+      output.keys = keys;
+      output.rows = rows;
+      output.rowsByKey = rowsByKey;
+      output.isDirty = rows.some((row) => !isTableRow(row) && row.isActive !== row.isActiveInitialState);
+      return output;
+    }
+    case 'FETCH_FINISH':
+      logger.log('FETCH_FINISH', { state });
+      return { ...state, loading: false };
+    case 'UPDATE_IS_ACTIVE_FLAG': {
+      const key = action.payload.row.key;
+
+      // updateIsActiveFlag
+
+      const rowsByKey = { ...state.rowsByKey };
+
+      if (isTableRowItem(action.payload.row)) {
+        rowsByKey[key] = { ...rowsByKey[key], isActive: action.payload.value };
+      } else if (isTableRowChild(action.payload.row)) {
+        const row = { ...rowsByKey[key], isActive: action.payload.value } as TableRowItemChild;
+        const parentRow = { ...rowsByKey[row.parentKey], isActive: action.payload.value } as TableRowItem;
+        // no matter what all sibling rows should be false
+        const siblingRows = state.rows
+          .filter((row) => isTableRowChild(row) && row.parentKey === parentRow.key && row.key !== key)
+          .map((row) => ({ ...row, isActive: false }));
+
+        [row, parentRow, ...siblingRows].forEach((row) => (rowsByKey[row.key] = row));
+        // identify active version as it is used for deployment
+        if (parentRow.isActive) {
+          const activeVersion = [row, ...siblingRows].find((row) => row.isActive) as TableRowItemChild | undefined;
+          if (activeVersion) {
+            parentRow.activeVersionNumber = activeVersion.record.VersionNumber;
+          } else {
+            parentRow.activeVersionNumber = null;
+          }
+        } else {
+          parentRow.activeVersionNumber = null;
+        }
+      }
+      const output: State = {
+        ...state,
+        rows: state.keys.map((rowKey) => rowsByKey[rowKey]),
+        rowsByKey,
+      };
+      output.isDirty = output.rows.some((row) => !isTableRow(row) && row.isActive !== row.isActiveInitialState);
+      return output;
+    }
+    case 'UPDATE_FROM_DEPLOYMENT': {
+      // TODO: finish implementing me - OR we can more easily just refresh all the data
+      const { items } = action.payload;
+      const rowsByKey = { ...state.rowsByKey };
+
+      items.forEach(({ deploy, metadata, status }) => {
+        // if deployed success and not rolled back change
+        // if not deployed ignore
+        // if error ignore (what if rollback was the error part)
+        // for flows, we need to update their versions
+      });
+
+      return { ...state };
+    }
+    case 'RESTORE_SNAPSHOT': {
+      const { snapshot } = action.payload;
+      const rowsByKey = { ...state.rowsByKey };
+
+      snapshot.forEach(({ key, isActive, activeVersionNumber }) => {
+        if (rowsByKey[key]) {
+          (rowsByKey[key] as TableRowItem).isActive = isActive;
+          (rowsByKey[key] as TableRowItem).activeVersionNumber = activeVersionNumber;
+        }
+      });
+
+      const output: State = {
+        ...state,
+        rows: state.keys.map((rowKey) => rowsByKey[rowKey]),
+        rowsByKey,
+      };
+      return output;
+    }
+    case 'RESET': {
+      const rowsByKey = { ...state.rowsByKey };
+      Object.keys(rowsByKey)
+        .filter((key) => !isTableRow(rowsByKey[key]))
+        .forEach((key) => {
+          rowsByKey[key] = { ...rowsByKey[key], isActive: (rowsByKey[key] as TableRowItem | TableRowItemChild).isActiveInitialState };
+        });
+      const output: State = {
+        ...state,
+        rows: state.keys.map((rowKey) => rowsByKey[rowKey]),
+        rowsByKey,
+        isDirty: false,
+      };
+      return output;
+    }
+    case 'ERROR':
+      logger.log('ERROR', action.payload.errorMessage, { state });
+      return { ...state, loading: false, hasError: true, errorMessage: action.payload.errorMessage };
+    default:
+      throw new Error('Invalid action');
+  }
+}
+
+// TODO: figure out if this should be part of reducer or somewhere else
+function getRowsForItems({ type, records }: MetadataRecordType, loading: boolean, errorMessage?: string): TableRow {
+  const typeLabel = getAutomationTypeLabel(type);
+  const output: TableRow = {
+    path: [typeLabel],
+    key: type,
+    label: getAutomationTypeLabel(type),
+    type,
+    loading: false,
+    hasError: false,
+    items: [],
+  };
+
+  if (errorMessage) {
+    output.hasError = true;
+    output.errorMessage = errorMessage;
+    return output;
+  } else if (loading) {
+    output.loading = true;
+    return output;
+  } else if (!records || records.length === 0) {
+    return output;
+  }
+
+  switch (type) {
+    case 'ApexTrigger': {
+      output.items = (records as ToolingApexTriggerRecord[]).map((record) => ({
+        path: [typeLabel, record.Name],
+        key: `${type}_${record.Id}`,
+        parentKey: type,
+        type,
+        record,
+        sobject: record.EntityDefinition.QualifiedApiName,
+        readOnly: false,
+        isActive: record.Status === 'Active',
+        isActiveInitialState: record.Status === 'Active',
+        label: record.Name,
+        lastModifiedBy: `${record.LastModifiedBy.Name} ${record.LastModifiedDate}`,
+        description: '',
+        additionalData: [],
+      }));
+      break;
+    }
+    case 'ValidationRule': {
+      output.items = (records as ToolingValidationRuleRecord[]).map((record) => ({
+        path: [typeLabel, record.ValidationName],
+        key: `${type}_${record.Id}`,
+        parentKey: type,
+        type,
+        record,
+        sobject: record.EntityDefinition.QualifiedApiName,
+        readOnly: false,
+        isActive: record.Active,
+        isActiveInitialState: record.Metadata.active,
+        label: record.ValidationName,
+        lastModifiedBy: `${record.LastModifiedBy.Name} ${record.LastModifiedDate}`,
+        description: record.Description,
+        additionalData: [
+          { label: 'Condition', value: record.Metadata.errorConditionFormula },
+          { label: 'Message', value: record.ErrorMessage },
+        ],
+      }));
+      break;
+    }
+    case 'WorkflowRule': {
+      output.items = (records as ToolingWorkflowRuleRecord[]).map((record) => ({
+        path: [typeLabel, record.Name],
+        key: `${type}_${record.Id}`,
+        parentKey: type,
+        type,
+        record,
+        sobject: record.TableEnumOrId,
+        readOnly: false,
+        isActive: record.Metadata.active,
+        isActiveInitialState: record.Metadata.active,
+        label: record.Name,
+        lastModifiedBy: `${record.LastModifiedBy.Name} ${record.LastModifiedDate}`,
+        description: record.Metadata.description,
+        additionalData: [
+          { label: 'Criteria', value: record.Metadata.formula },
+          // TODO: this is a lot more complex
+          // {label: 'Actions', value: record.Metadata.errorConditionFormula},
+        ],
+      }));
+      break;
+    }
+    case 'FlowRecordTriggered':
+    case 'FlowProcessBuilder': {
+      output.items = (records as FlowViewRecord[]).map((record) => {
+        const activeVersionNumber =
+          record.Versions.records.find(({ DurableId }) => record.ActiveVersionId === DurableId)?.VersionNumber || null;
+        return {
+          path: [typeLabel, record.ApiName],
+          key: `${type}_${record.DurableId}`,
+          parentKey: type,
+          type,
+          record,
+          sobject: record.TriggerObjectOrEvent.QualifiedApiName,
+          readOnly: true,
+          isActive: record.ActiveVersionId != null,
+          isActiveInitialState: record.ActiveVersionId != null,
+          activeVersionNumber,
+          activeVersionNumberInitialState: activeVersionNumber,
+          label: record.Label,
+          lastModifiedBy: `${record.LastModifiedBy}`,
+          description: record.Description,
+          additionalData: [
+            {
+              label: 'Active Version',
+              value: record.ActiveVersionId ? `${activeVersionNumber || ''}` : null,
+            },
+            {
+              label: 'Latest Version',
+              value: record.LatestVersionId
+                ? `${record.Versions.records.find(({ DurableId }) => record.LatestVersionId === DurableId)?.VersionNumber || ''}`
+                : null,
+            },
+          ].filter(({ value }) => !!value),
+          children: record.Versions.records.map(
+            (version): TableRowItemChild => ({
+              path: [typeLabel, record.ApiName, `Version ${version.VersionNumber}: ${version.Label}`],
+              key: `${type}_${record.DurableId}_${version.DurableId}`,
+              parentKey: `${type}_${record.DurableId}`,
+              type,
+              record: version,
+              sobject: record.TriggerObjectOrEvent.QualifiedApiName,
+              isActive: version.DurableId === record.ActiveVersionId,
+              isActiveInitialState: version.DurableId === record.ActiveVersionId,
+              label: `${record.Label} (V${version.VersionNumber})`,
+              description: version.Description,
+              additionalData: [
+                { label: 'Version', value: `${version.VersionNumber}` },
+                { label: 'API Version', value: version.ApiVersionRuntime },
+              ],
+            })
+          ),
+        };
+      });
+      break;
+    }
+    default:
+      break;
+  }
+  return output;
+}
+
+function flattenTableRows(
+  stateData: StateData,
+  rowsByKeyInit: MapOf<TableRow | TableRowItem | TableRowItemChild>
+): {
+  rows: (TableRow | TableRowItem | TableRowItemChild)[];
+  rowsByKey: MapOf<TableRow | TableRowItem | TableRowItemChild>;
+  keys: string[];
+} {
+  const rows: (TableRow | TableRowItem | TableRowItemChild)[] = [];
+  const rowsByKey: MapOf<TableRow | TableRowItem | TableRowItemChild> = {};
+  const keys: string[] = [];
+  Object.keys(stateData)
+    .filter((type) => {
+      const tableRow = stateData[type].tableRow as TableRow;
+      // if not selected, or loading is done and there are no items, skip
+      return !stateData[type].skip && (tableRow.loading || tableRow.items.length);
+    })
+    .forEach((type) => {
+      const row = stateData[type].tableRow;
+      rows.push(row);
+      rowsByKey[row.key] = row;
+      keys.push(row.key);
+      if (row.items && row.items.length > 0) {
+        row.items.forEach((item) => {
+          // keep existing item if it already exists
+          item = (rowsByKeyInit[item.key] as TableRowItem) || item;
+          rows.push(item);
+          rowsByKey[item.key] = item;
+          keys.push(item.key);
+          if (item.children) {
+            item.children.forEach((child) => {
+              // keep existing child if it exists
+              child = (rowsByKeyInit[child.key] as TableRowItemChild) || child;
+              rows.push(child);
+              rowsByKey[child.key] = child;
+              keys.push(child.key);
+            });
+          }
+        });
+      }
+    });
+  return { rows, rowsByKey, keys };
+}
+
+export function useAutomationControlData({
+  selectedOrg,
+  defaultApiVersion,
+  selectedSObjects,
+  selectedAutomationTypes,
+}: {
+  selectedOrg: SalesforceOrgUi;
+  defaultApiVersion: string;
+  selectedSObjects: string[];
+  selectedAutomationTypes: AutomationMetadataType[];
+}) {
+  const isMounted = useRef(null);
+
+  const [{ loading, hasError, errorMessage, data, rows, isDirty }, dispatch] = useReducer(reducer, {
+    loading: false,
+    hasError: false,
+    data: {
+      ApexTrigger: { loading: true, skip: false, records: [], tableRow: getRowsForItems({ type: 'ApexTrigger', records: [] }, false) },
+      ValidationRule: {
+        loading: true,
+        skip: false,
+        records: [],
+        tableRow: getRowsForItems({ type: 'ValidationRule', records: [] }, false),
+      },
+      WorkflowRule: { loading: true, skip: false, records: [], tableRow: getRowsForItems({ type: 'WorkflowRule', records: [] }, false) },
+      FlowRecordTriggered: {
+        loading: true,
+        skip: false,
+        records: [],
+        tableRow: getRowsForItems({ type: 'FlowRecordTriggered', records: [] }, false),
+      },
+      FlowProcessBuilder: {
+        loading: true,
+        skip: false,
+        records: [],
+        tableRow: getRowsForItems({ type: 'FlowProcessBuilder', records: [] }, false),
+      },
+    },
+    rows: [],
+    rowsByKey: {},
+    keys: [],
+    isDirty: false,
+  });
+
+  useEffect(() => {
+    isMounted.current = true;
+    return () => {
+      isMounted.current = false;
+    };
+  }, []);
+
+  const updateIsActiveFlag = useCallback((row: TableRowOrItemOrChild, value: boolean) => {
+    dispatch({ type: 'UPDATE_IS_ACTIVE_FLAG', payload: { row, value } });
+  }, []);
+
+  const resetChanges = useCallback(() => {
+    dispatch({ type: 'RESET' });
+  }, []);
+
+  // TODO: allow passing in the keys to refresh and only refresh the specific items and retain everything else
+  const fetchData = useCallback(async () => {
+    try {
+      const selectedTypes = new Set(selectedAutomationTypes);
+      dispatch({ type: 'FETCH_START', payload: { selectedTypes } });
+
+      const obs = fetchAutomationData(selectedOrg, defaultApiVersion, selectedAutomationTypes, selectedSObjects).subscribe({
+        next: (item) => {
+          if (isFetchSuccess(item)) {
+            dispatch({ type: 'FETCH_SUCCESS', payload: item });
+          } else {
+            dispatch({ type: 'FETCH_ERROR', payload: item });
+          }
+        },
+        error: (err) => {
+          dispatch({ type: 'ERROR', payload: { errorMessage: err.message } });
+          logger.error('[AUTOMATION][FETCH][ERROR]', err);
+        },
+        complete: () => {
+          dispatch({ type: 'FETCH_FINISH' });
+          logger.info('[AUTOMATION][FETCH][FINISH]');
+        },
+      });
+      return () => {
+        obs.unsubscribe();
+      };
+    } catch (ex) {
+      dispatch({ type: 'ERROR', payload: { errorMessage: ex.message } });
+    }
+  }, [defaultApiVersion, selectedOrg, selectedSObjects, selectedAutomationTypes]);
+
+  const refreshProcessBuilders = useCallback(async () => {
+    dispatch({ type: 'FETCH_REFRESH', payload: { selectedTypes: ['FlowProcessBuilder'] } });
+    try {
+      const records = await getProcessBuildersMetadata(selectedOrg, defaultApiVersion, selectedSObjects, true);
+      dispatch({ type: 'FETCH_SUCCESS', payload: { type: 'FlowProcessBuilder', records } });
+    } catch (ex) {
+      dispatch({ type: 'FETCH_ERROR', payload: { type: 'FlowProcessBuilder', error: ex.message } });
+    } finally {
+      dispatch({ type: 'FETCH_FINISH' });
+    }
+  }, [defaultApiVersion, selectedOrg, selectedSObjects]);
+
+  const restoreSnapshot = useCallback((snapshot: TableRowItemSnapshot[]) => {
+    dispatch({ type: 'RESTORE_SNAPSHOT', payload: { snapshot } });
+  }, []);
+
+  useEffect(() => {
+    fetchData();
+  }, [defaultApiVersion, fetchData, selectedOrg, selectedSObjects]);
+
+  return {
+    loading,
+    hasError,
+    errorMessage,
+    data,
+    rows,
+    fetchData,
+    refreshProcessBuilders,
+    updateIsActiveFlag,
+    resetChanges,
+    restoreSnapshot,
+    isDirty,
+  };
+}

@@ -1,0 +1,582 @@
+import { logger } from '@jetstream/shared/client-logger';
+import {
+  deployMetadata as deployMetadataZip,
+  genericRequest,
+  getCacheItemNonHttp,
+  query,
+  saveCacheItemNonHttp,
+} from '@jetstream/shared/data';
+import { getToolingRecords, logErrorToRollbar, pollMetadataResultsUntilDone } from '@jetstream/shared/ui-utils';
+import { dateFromTimestamp, getMapOf, splitArrayToMaxSize } from '@jetstream/shared/utils';
+import { CompositeRequest, CompositeRequestBody, CompositeResponse, MapOf, SalesforceOrgUi } from '@jetstream/types';
+import { from, Observable, of, Subject } from 'rxjs';
+import { catchError, mergeMap } from 'rxjs/operators';
+import {
+  getApexTriggersQuery,
+  getFlowsQuery,
+  getProcessBuildersQuery,
+  getValidationRulesQuery,
+  getWorkflowRulesQuery,
+} from './automation-control-soql-utils';
+import {
+  AutomationControlDeploymentItem,
+  AutomationMetadataType,
+  DeploymentItemMap,
+  FetchErrorPayload,
+  FetchSuccessPayload,
+  FlowMetadata,
+  FlowViewRecord,
+  MetadataCompositeResponseError,
+  MetadataCompositeResponseSuccess,
+  MetadataCompositeResponseSuccessOrError,
+  TableRow,
+  TableRowItem,
+  TableRowItemChild,
+  TableRowOrItemOrChild,
+  ToolingApexTriggerRecord,
+  ToolingValidationRuleRecord,
+  ToolingWorkflowRuleRecord,
+} from './automation-control-types';
+import formatRelative from 'date-fns/formatRelative';
+
+// Example: {[orgId]: {[durableId]: sobject}}
+// FIXME: we should persist this in durable cache and let user know the last time refreshed and allow refresh
+// const processBuilderCacheByOrgId = new Map<string, Map<string, string>>();
+const PROCESS_BUILDER_CACHE_ID = 'automation-control-process-builders';
+let processBuilderCachedSince: number;
+
+export function isFetchSuccess(item: any): item is FetchSuccessPayload {
+  return !!item.records;
+}
+
+export function isTableRow(item: TableRowOrItemOrChild): item is TableRow {
+  return item.path.length === 1;
+}
+
+export function isTableRowItem(item: TableRowOrItemOrChild): item is TableRowItem {
+  return item.path.length === 2;
+}
+
+export function isTableRowChild(item: TableRowOrItemOrChild): item is TableRowItemChild {
+  return item.path.length === 3;
+}
+
+export function getAutomationTypeLabel(type: AutomationMetadataType) {
+  switch (type) {
+    case 'ApexTrigger':
+      return 'Apex Class';
+    case 'ValidationRule':
+      return 'Validation Rule';
+    case 'WorkflowRule':
+      return 'Workflow Rule';
+    case 'FlowRecordTriggered':
+      return 'Flow';
+    case 'FlowProcessBuilder':
+      return 'Process Builder';
+    default:
+      return type;
+  }
+}
+
+export function getAutomationDeployType(type: AutomationMetadataType) {
+  switch (type) {
+    case 'FlowRecordTriggered':
+    case 'FlowProcessBuilder':
+      return 'FlowDefinition';
+    default:
+      return type;
+  }
+}
+
+export function getProcessBuilderCachedSince(): string | null {
+  if (processBuilderCachedSince) {
+    return `Last Updated ${formatRelative(new Date(processBuilderCachedSince), new Date())}`;
+  }
+  return null;
+}
+
+/**
+ * Fetch specified metadata types as an observable and request all in parallel and emit as results come in
+ * @param selectedOrg
+ * @param defaultApiVersion
+ * @param selectedAutomationTypes
+ * @param selectedSObjects
+ * @returns
+ */
+export function fetchAutomationData(
+  selectedOrg: SalesforceOrgUi,
+  defaultApiVersion: string,
+  selectedAutomationTypes: AutomationMetadataType[],
+  selectedSObjects: string[]
+): Observable<FetchSuccessPayload | FetchErrorPayload> {
+  const selectedTypes = new Set(selectedAutomationTypes);
+  const requests: Observable<FetchSuccessPayload | FetchErrorPayload>[] = [];
+
+  if (selectedTypes.has('ApexTrigger')) {
+    requests.push(
+      from(
+        getApexTriggersMetadata(selectedOrg, selectedSObjects).then((records) => ({ type: 'ApexTrigger', records } as FetchSuccessPayload))
+      ).pipe(catchError((error) => of({ type: 'ApexTrigger', error } as FetchErrorPayload)))
+    );
+  }
+  if (selectedTypes.has('ValidationRule')) {
+    requests.push(
+      from(
+        getValidationRulesMetadata(selectedOrg, defaultApiVersion, selectedSObjects).then(
+          (records) => ({ type: 'ValidationRule', records } as FetchSuccessPayload)
+        )
+      ).pipe(catchError((error) => of({ type: 'ValidationRule', error } as FetchErrorPayload)))
+    );
+  }
+  if (selectedTypes.has('WorkflowRule')) {
+    requests.push(
+      from(
+        getWorkflowRulesMetadata(selectedOrg, defaultApiVersion, selectedSObjects).then(
+          (records) => ({ type: 'WorkflowRule', records } as FetchSuccessPayload)
+        )
+      ).pipe(catchError((error) => of({ type: 'WorkflowRule', error } as FetchErrorPayload)))
+    );
+  }
+  if (selectedTypes.has('FlowRecordTriggered')) {
+    requests.push(
+      from(
+        getFlowsMetadata(selectedOrg, selectedSObjects).then((records) => ({ type: 'FlowRecordTriggered', records } as FetchSuccessPayload))
+      ).pipe(catchError((error) => of({ type: 'FlowRecordTriggered', error } as FetchErrorPayload)))
+    );
+  }
+  if (selectedTypes.has('FlowProcessBuilder')) {
+    requests.push(
+      from(
+        getProcessBuildersMetadata(selectedOrg, defaultApiVersion, selectedSObjects).then(
+          (records) => ({ type: 'FlowProcessBuilder', records } as FetchSuccessPayload)
+        )
+      ).pipe(catchError((error) => of({ type: 'FlowProcessBuilder', error } as FetchErrorPayload)))
+    );
+  }
+
+  return from(requests).pipe(mergeMap((item) => item));
+}
+
+/** Query ApexTriggers */
+export async function getApexTriggersMetadata(selectedOrg: SalesforceOrgUi, sobjects: string[]): Promise<ToolingApexTriggerRecord[]> {
+  const validationRuleRecords = (await query<ToolingApexTriggerRecord>(selectedOrg, getApexTriggersQuery(sobjects), true)).queryResults
+    .records;
+  return validationRuleRecords;
+}
+
+/**
+ * Query initial records, then query each record and add FullName and Metadata fields
+ *
+ * @param selectedOrg
+ * @param validationRuleRecords
+ */
+export async function getValidationRulesMetadata(
+  selectedOrg: SalesforceOrgUi,
+  apiVersion: string,
+  sobjects: string[]
+): Promise<ToolingValidationRuleRecord[]> {
+  const validationRuleRecords = (await query<ToolingValidationRuleRecord>(selectedOrg, getValidationRulesQuery(sobjects), true))
+    .queryResults.records;
+
+  if (validationRuleRecords.length === 0) {
+    return [];
+  }
+
+  const validationRules = await getToolingRecords<ToolingValidationRuleRecord>(
+    selectedOrg,
+    'ValidationRule',
+    validationRuleRecords.map((record) => record.Id),
+    apiVersion
+  );
+  const validationRuleMetaById = getMapOf(
+    validationRules.compositeResponse.map((item) => item.body),
+    'Id'
+  );
+
+  return validationRuleRecords.map((validationRule) => ({
+    ...validationRule,
+    ...validationRuleMetaById[validationRule.Id],
+  }));
+}
+
+/**
+ * Gets workflow rules with FullName and Metadata fields populated
+ *
+ * @param selectedOrg
+ * @param sobject
+ */
+export async function getWorkflowRulesMetadata(
+  selectedOrg: SalesforceOrgUi,
+  apiVersion: string,
+  sobjects: string[]
+): Promise<ToolingWorkflowRuleRecord[]> {
+  const workflowRuleRecords = (await query<ToolingWorkflowRuleRecord>(selectedOrg, getWorkflowRulesQuery(sobjects), true)).queryResults
+    .records;
+
+  if (workflowRuleRecords.length === 0) {
+    return [];
+  }
+
+  const workflowRules = await getToolingRecords<ToolingWorkflowRuleRecord>(
+    selectedOrg,
+    'WorkflowRule',
+    workflowRuleRecords.map((record) => record.Id),
+    apiVersion
+  );
+
+  const workflowRuleMetaById = getMapOf(
+    workflowRules.compositeResponse.map((item) => item.body),
+    'Id'
+  );
+
+  return workflowRuleRecords.map((workflowRule) => ({
+    ...workflowRule,
+    ...workflowRuleMetaById[workflowRule.Id],
+  }));
+}
+
+export async function getFlowsMetadata(selectedOrg: SalesforceOrgUi, sobjects: string[]): Promise<FlowViewRecord[]> {
+  // NOTE: this is NOT tooling
+  const workflowRuleRecords = (await query<FlowViewRecord>(selectedOrg, getFlowsQuery(sobjects), false)).queryResults.records;
+  return workflowRuleRecords;
+}
+
+/**
+ * *SPECIAL CASE*
+ *
+ * Fetch all process builder flows
+ * Get latest version of each flow and fetch record metadata
+ * Cache the results
+ * Update the process builder FlowViewRecord to add the object
+ *
+ * @param selectedOrg
+ * @param apiVersion
+ * @param sobjects
+ * @returns
+ */
+export async function getProcessBuildersMetadata(
+  selectedOrg: SalesforceOrgUi,
+  apiVersion: string,
+  sobjects: string[],
+  skipCache?: boolean
+) {
+  // this list will be filtered based on the sobject and will artificially have TriggerObjectOrEvent.QualifiedApiName added
+  const sobjectSet = new Set(sobjects);
+  let workflowRuleRecords = (await query<FlowViewRecord>(selectedOrg, getProcessBuildersQuery(), false)).queryResults.records;
+
+  let flowIdToSobject: MapOf<string>;
+  const flowIdToSobjectCache = skipCache ? null : await getCacheItemNonHttp<MapOf<string>>(selectedOrg, PROCESS_BUILDER_CACHE_ID);
+
+  if (flowIdToSobjectCache) {
+    flowIdToSobject = flowIdToSobjectCache.data;
+    processBuilderCachedSince = flowIdToSobjectCache.age;
+  } else {
+    // Fetch detailed metadata for process builders to figure out which objects they all belong to
+    const latestVersions = workflowRuleRecords.map((record) => record.LatestVersionId).filter(Boolean);
+    const flowVersionWithMetadata = await getToolingRecords<{ Id: string; FullName: string; DefinitionId: string; Metadata: FlowMetadata }>(
+      selectedOrg,
+      'Flow',
+      latestVersions,
+      apiVersion,
+      ['Id', 'DefinitionId', 'FullName', 'Metadata']
+    );
+
+    const definitionIdsBySObject = flowVersionWithMetadata.compositeResponse
+      .map((item) => item.body)
+      .reduce((output: MapOf<string>, { Id, DefinitionId, Metadata }) => {
+        try {
+          if (Metadata) {
+            let sobject: string;
+            if (Metadata.processMetadataValues) {
+              const data = Metadata.processMetadataValues
+                .filter((value) => value.name === 'ObjectType')
+                .map((value) => value.value.stringValue);
+              sobject = data[0];
+            }
+            if (sobject) {
+              output[DefinitionId] = sobject;
+            }
+          }
+        } catch (ex) {
+          logger.warn('Error processing flow metadata', ex);
+          logErrorToRollbar(ex.message, {
+            stack: ex.stack,
+            place: 'AutomationControl',
+            type: 'getProcessBuildersMetadata()',
+          });
+        }
+        return output;
+      }, {});
+
+    // save cache for org
+    flowIdToSobject = definitionIdsBySObject;
+    const cachedItem = await saveCacheItemNonHttp(flowIdToSobject, selectedOrg, PROCESS_BUILDER_CACHE_ID);
+    processBuilderCachedSince = cachedItem.age;
+  }
+
+  if (!flowIdToSobject) {
+    logger.warn('Process Builder metadata cache is missing, this is unexpected');
+    return [];
+  }
+
+  workflowRuleRecords = workflowRuleRecords
+    .filter((record) => flowIdToSobject[record.DurableId] && sobjectSet.has(flowIdToSobject[record.DurableId]))
+    .map((record) => ({ ...record, TriggerObjectOrEvent: { QualifiedApiName: flowIdToSobject[record.DurableId] } }));
+
+  return workflowRuleRecords;
+}
+
+/**
+ * Prepare payload for items and emit data as it comes in
+ *
+ * @param selectedOrg
+ * @param itemsByKey
+ */
+export function preparePayloads(
+  apiVersion: string,
+  selectedOrg: SalesforceOrgUi,
+  itemsByKey: DeploymentItemMap
+): Observable<{ key: string; deploymentItem: AutomationControlDeploymentItem }[]> {
+  const payloadEvent = new Subject<{ key: string; deploymentItem: AutomationControlDeploymentItem }[]>();
+  const payloadEvent$ = payloadEvent.asObservable();
+
+  Promise.resolve().then(() => {
+    preparePayloadsForDeployment(apiVersion, selectedOrg, itemsByKey, payloadEvent)
+      .then(() => {
+        payloadEvent.complete();
+      })
+      .catch((err) => {
+        payloadEvent.error(err);
+      });
+  });
+
+  return payloadEvent$;
+}
+
+export async function preparePayloadsForDeployment(
+  apiVersion: string,
+  selectedOrg: SalesforceOrgUi,
+  itemsByKey: DeploymentItemMap,
+  payloadEvent: Subject<{ key: string; deploymentItem: AutomationControlDeploymentItem }[]>
+) {
+  const baseFields = ['Id', 'FullName', 'Metadata'];
+  // Prepare composite requests
+  const metadataFetchRequests: CompositeRequestBody[][] = splitArrayToMaxSize(
+    Object.keys(itemsByKey)
+      .filter((key) => !itemsByKey[key].deploy.metadataRetrieve)
+      .map((key): CompositeRequestBody => {
+        const item = itemsByKey[key].deploy;
+        const fields: string[] = item.type === 'ApexTrigger' ? baseFields.concat(['Body', 'ApiVersion']) : baseFields;
+
+        return {
+          method: 'GET',
+          url: `/services/data/${apiVersion}/tooling/sobjects/${getAutomationDeployType(item.type)}/${item.id}?fields=${fields.join(',')}`,
+          referenceId: key,
+        };
+      }),
+    25
+  );
+
+  // fetch metadata required for deployment
+  for (const compositeRequest of metadataFetchRequests) {
+    const requestBody: CompositeRequest = {
+      allOrNone: false,
+      compositeRequest,
+    };
+    const response = await genericRequest<CompositeResponse<MetadataCompositeResponseSuccessOrError>>(selectedOrg, {
+      isTooling: true,
+      method: 'POST',
+      url: `/services/data/${apiVersion}/tooling/composite`,
+      body: requestBody,
+    });
+    const items = response.compositeResponse.map((item): { key: string; deploymentItem: AutomationControlDeploymentItem } => {
+      const deploymentItem = { ...itemsByKey[item.referenceId].deploy };
+      if (item.httpStatusCode === 200) {
+        deploymentItem.metadataRetrieve = item.body as MetadataCompositeResponseSuccess;
+        deploymentItem.metadataDeployRollback = JSON.parse(JSON.stringify({ ...item.body, Id: undefined })) as any;
+        deploymentItem.metadataDeploy = JSON.parse(JSON.stringify({ ...item.body, Id: undefined })) as any;
+      } else {
+        deploymentItem.retrieveError = item.body as MetadataCompositeResponseError[];
+      }
+
+      switch (deploymentItem.type) {
+        case 'ApexTrigger': {
+          deploymentItem.metadataDeploy.Metadata.status = deploymentItem.value ? 'Active' : 'Inactive';
+          break;
+        }
+        case 'FlowRecordTriggered':
+        case 'FlowProcessBuilder': {
+          deploymentItem.metadataDeploy.Metadata.activeVersionNumber = deploymentItem.activeVersionNumber;
+          break;
+        }
+        case 'WorkflowRule':
+        case 'ValidationRule': {
+          deploymentItem.metadataDeploy.Metadata.active = deploymentItem.value;
+          break;
+        }
+        default:
+          break;
+      }
+
+      return { key: item.referenceId, deploymentItem };
+    });
+    payloadEvent.next(items);
+  }
+}
+
+export function deployMetadata(
+  apiVersion: string,
+  selectedOrg: SalesforceOrgUi,
+  itemsByKey: DeploymentItemMap
+): Observable<{ key: string; deploymentItem: AutomationControlDeploymentItem }[]> {
+  const payloadEvent = new Subject<{ key: string; deploymentItem: AutomationControlDeploymentItem }[]>();
+  const payloadEvent$ = payloadEvent.asObservable();
+
+  // ensure next tick so that events do not emit prior to observable subscription
+  Promise.resolve().then(async () => {
+    try {
+      const idToKeyMap: MapOf<string> = Object.keys(itemsByKey).reduce((output, key) => {
+        output[itemsByKey[key].deploy.id] = key;
+        return output;
+      }, {});
+
+      const metadataUpdateRequests: CompositeRequestBody[][] = splitArrayToMaxSize(
+        Object.keys(itemsByKey)
+          .filter((key) => !itemsByKey[key].deploy.retrieveError && !itemsByKey[key].deploy.requireMetadataApi)
+          .map((key): CompositeRequestBody => {
+            const item = itemsByKey[key].deploy;
+            return {
+              method: 'PATCH',
+              url: `/services/data/${apiVersion}/tooling/sobjects/${getAutomationDeployType(item.type)}/${item.id}`,
+              referenceId: item.id,
+              body: item.metadataDeploy,
+            };
+          }),
+        25
+      );
+
+      for (const compositeRequest of metadataUpdateRequests) {
+        const requestBody: CompositeRequest = {
+          allOrNone: false,
+          compositeRequest,
+        };
+
+        const response = await genericRequest<CompositeResponse<MetadataCompositeResponseSuccessOrError>>(selectedOrg, {
+          isTooling: true,
+          method: 'POST',
+          url: `/services/data/${apiVersion}/tooling/composite`,
+          body: requestBody,
+        });
+        const items = response.compositeResponse.map((item): { key: string; deploymentItem: AutomationControlDeploymentItem } => {
+          const key = idToKeyMap[item.referenceId];
+          const deploymentItem: AutomationControlDeploymentItem = { ...itemsByKey[key].deploy };
+          if (item.httpStatusCode > 299) {
+            deploymentItem.deployError = item.body as MetadataCompositeResponseError[];
+          }
+          return { key, deploymentItem };
+        });
+        payloadEvent.next(items);
+      }
+
+      // perform deployments that are not supported using tooling api
+      const metadataDeployResults = await deployMetadataFileBased(selectedOrg, itemsByKey, Number(apiVersion));
+
+      if (metadataDeployResults) {
+        const deployResults = await pollMetadataResultsUntilDone(selectedOrg, metadataDeployResults.deployResultsId);
+        payloadEvent.next(metadataDeployResults.metadataItems.map((key) => ({ key, deploymentItem: { ...itemsByKey[key].deploy } })));
+      }
+
+      payloadEvent.complete();
+    } catch (ex) {
+      payloadEvent.error(ex);
+    }
+  });
+
+  return payloadEvent$;
+}
+
+export async function deployMetadataFileBased(
+  selectedOrg: SalesforceOrgUi,
+  itemsByKey: DeploymentItemMap,
+  apiVersion: number
+): Promise<{ deployResultsId: string; metadataItems: string[] } | null> {
+  const fileBasedMetadataItems = Object.keys(itemsByKey).filter(
+    (key) => !itemsByKey[key].deploy.retrieveError && itemsByKey[key].deploy.requireMetadataApi
+  );
+
+  if (fileBasedMetadataItems.length === 0) {
+    return null;
+  }
+
+  const deployItems: MapOf<
+    {
+      fullName: string;
+      dirPath: string;
+      files: {
+        name: string;
+        content: string;
+      }[];
+    }[]
+  > = {};
+
+  // prepare data to build XML
+  fileBasedMetadataItems.forEach((key) => {
+    const item = itemsByKey[key];
+    switch (item.deploy.type) {
+      case 'ApexTrigger':
+        deployItems['ApexTrigger'] = deployItems['ApexTrigger'] || [];
+        deployItems['ApexTrigger'].push({
+          fullName: (item.metadata.record as ToolingApexTriggerRecord).Name,
+          dirPath: 'triggers',
+          files: [
+            {
+              name: `${(item.metadata.record as ToolingApexTriggerRecord).Name}.trigger`,
+              content: item.deploy.metadataDeploy.Body,
+            },
+            {
+              name: `${(item.metadata.record as ToolingApexTriggerRecord).Name}.trigger-meta.xml`,
+              content: [
+                `<?xml version="1.0" encoding="UTF-8"?>`,
+                `<ApexTrigger xmlns="http://soap.sforce.com/2006/04/metadata">`,
+                `\t<apiVersion>${item.deploy.metadataRetrieve.ApiVersion || Number(apiVersion)}.0</apiVersion>`,
+                `\t<status>${item.deploy.metadataDeploy.Metadata.status}</status>`,
+                `</ApexTrigger>`,
+              ].join('\n'),
+            },
+          ],
+        });
+        break;
+      default:
+        break;
+    }
+  });
+
+  const packageXml = [`<?xml version="1.0" encoding="UTF-8"?>`, `<Package xmlns="http://soap.sforce.com/2006/04/metadata">`];
+
+  Object.keys(deployItems).forEach((key) => {
+    packageXml.push('\t<types>');
+    deployItems[key].forEach((item) => packageXml.push(`\t\t<members>${item.fullName}</members>`));
+    packageXml.push(`\t\t<name>${key}</name>`);
+    packageXml.push('\t</types>');
+  });
+
+  packageXml.push(`\t<version>${apiVersion}.0</version>`);
+  packageXml.push('</Package>');
+
+  const files: { fullFilename: string; content: string }[] = [{ fullFilename: 'package.xml', content: packageXml.join('\n') }];
+
+  Object.keys(deployItems).forEach((key) => {
+    deployItems[key].forEach((item) => {
+      item.files.forEach(({ content, name }) => {
+        files.push({ fullFilename: `${item.dirPath}/${name}`, content });
+      });
+    });
+  });
+
+  // deploy file
+  const deployResults = await deployMetadataZip(selectedOrg, files, { singlePackage: true, rollbackOnError: true });
+  // id is only field not deprecated
+  // https://developer.salesforce.com/docs/atlas.en-us.api_meta.meta/api_meta/meta_asyncresult.htm
+  logger.info('deployResults', deployResults);
+  return { deployResultsId: deployResults.id, metadataItems: fileBasedMetadataItems };
+}

@@ -21,9 +21,7 @@ import { isEmpty, isObject } from 'lodash';
 import isString from 'lodash/isString';
 import { SOBJECT_DESCRIBE_CACHED_RESPONSES } from './client-data-data-cached-responses';
 import { errorMiddleware } from './middleware';
-
-// 3 days
-const CACHE_TTL = 1000 * 60 * 60 * 24 * 3;
+import { getCacheItemHttp, saveCacheItemHttp } from './client-data-cache';
 
 function getHeader(headers: MapOf<string>, header: string) {
   if (!headers || !header) {
@@ -127,7 +125,7 @@ function requestInterceptor<T>(options: {
       };
     } else if (useCache && org && !skipRequestCache) {
       // return cached response if available
-      const cachedResults = await getCacheItem<T>(config, org, useQueryParamsInCacheKey, useBodyInCacheKey);
+      const cachedResults = await getCacheItemHttp<T>(config, org, useQueryParamsInCacheKey, useBodyInCacheKey);
       if (cachedResults) {
         // if skipCacheIfOlderThan is provided, then see if cache is older than provided date and skip cache if so
         if (!skipCacheIfOlderThan || (Number.isFinite(skipCacheIfOlderThan) && cachedResults.age >= skipCacheIfOlderThan)) {
@@ -187,7 +185,7 @@ function responseInterceptor<T>(options: {
     // if response should be cached and response came from server, save
     if (useCache && responseData && !cachedResponse) {
       // promise results are ignored from critical path
-      const cacheItem = await saveCacheItem<T>(responseData, response.config, org, useQueryParamsInCacheKey, useBodyInCacheKey);
+      const cacheItem = await saveCacheItemHttp<T>(responseData, response.config, org, useQueryParamsInCacheKey, useBodyInCacheKey);
       if (cacheItem) {
         body.cache = {
           age: new Date().getTime(),
@@ -231,124 +229,6 @@ function responseErrorInterceptor<T>(options: {
     }
     throw new Error(message);
   };
-}
-
-/**
- *
- * CACHE HELPERS
- * TODO: MOVE TO SOME OTHER FILE?
- *
- */
-
-export async function clearCacheForOrg(org: SalesforceOrgUi) {
-  try {
-    const key = `${INDEXED_DB.KEYS.httpCache}:${org.uniqueId}`;
-    await localforage.removeItem(key);
-    logger.log('[HTTP][CACHE][REMOVED]', key);
-  } catch (ex) {
-    logger.log('[HTTP][CACHE][ERROR]', ex);
-  }
-}
-
-export async function clearQueryHistoryForOrg(org: SalesforceOrgUi) {
-  try {
-    const queryHistory = await localforage.getItem<MapOf<QueryHistoryItem>>(INDEXED_DB.KEYS.queryHistory);
-    for (const [key] of Object.entries(queryHistory)) {
-      if (key.startsWith(org.uniqueId)) {
-        queryHistory[key] = undefined;
-      }
-    }
-    await localforage.setItem(INDEXED_DB.KEYS.queryHistory, JSON.parse(JSON.stringify(queryHistory)));
-    logger.log('[QUERY-HISTORY][REMOVED]', queryHistory);
-  } catch (ex) {
-    logger.log('[QUERY-HISTORY][ERROR]', ex);
-  }
-}
-
-/**
- * GET ITEM FROM CACHE OR RETURN NULL
- * @param data
- * @param config
- * @param org
- * @param useQueryParamsInCacheKey
- */
-async function getCacheItem<T>(
-  config: AxiosRequestConfig,
-  org?: SalesforceOrgUi,
-  useQueryParamsInCacheKey?: boolean,
-  useBodyInCacheKey?: boolean
-): Promise<CacheItemWithData<T> | null> {
-  const orgId = org?.uniqueId || 'unset';
-  const cacheKey = getCacheKey(config, useQueryParamsInCacheKey, useBodyInCacheKey);
-  const cacheItem = await localforage.getItem<OrgCacheItem<T>>(`${INDEXED_DB.KEYS.httpCache}:${orgId}`);
-  const item = cacheItem && cacheItem[cacheKey];
-  if (item && !isExpired(item.exp)) {
-    return item;
-  }
-  return null;
-}
-
-/**
- * SAVE ITEM TO CACHE
- * @param data
- * @param config
- * @param org
- * @param useQueryParamsInCacheKey
- */
-async function saveCacheItem<T>(
-  data: any,
-  config: AxiosRequestConfig,
-  org?: SalesforceOrgUi,
-  useQueryParamsInCacheKey?: boolean,
-  useBodyInCacheKey?: boolean
-): Promise<CacheItemWithData<T>> {
-  try {
-    const orgId = org?.uniqueId || 'unset';
-    let cacheItem = await localforage.getItem<OrgCacheItem<T>>(`${INDEXED_DB.KEYS.httpCache}:${orgId}`);
-    const cacheKey = getCacheKey(config, useQueryParamsInCacheKey, useBodyInCacheKey);
-
-    cacheItem = cacheItem || {};
-    const cacheItemData: CacheItemWithData<T> = {
-      age: new Date().getTime(),
-      exp: new Date().getTime() + CACHE_TTL,
-      key: cacheKey,
-      data,
-    };
-
-    cacheItem[cacheKey] = cacheItemData;
-
-    await localforage.setItem(`${INDEXED_DB.KEYS.httpCache}:${orgId}`, cacheItem);
-    return cacheItemData;
-  } catch (ex) {
-    logger.log('[HTTP][CACHE][ERROR]', ex);
-    return undefined;
-  }
-}
-
-function isExpired(priorCacheTime: number): boolean {
-  return new Date().getTime() > priorCacheTime;
-}
-
-function getCacheKey(config: AxiosRequestConfig, useQueryParamsInCacheKey?: boolean, useBodyInCacheKey?: boolean) {
-  const cacheKeys = [config.method, config.url];
-  if (useQueryParamsInCacheKey && config.params) {
-    cacheKeys.push(
-      Object.keys(config.params)
-        .sort()
-        .map((key) => `${key}=${config.params[key]}`)
-        .join('|')
-    );
-  }
-  if (useBodyInCacheKey && config.data) {
-    let data = config.data;
-    if (!isString(data)) {
-      data = JSON.stringify(data);
-    }
-    data = data.replace(REGEX.NOT_ALPHANUMERIC_OR_UNDERSCORE, '');
-    cacheKeys.push(data);
-  }
-  const cacheKey = `${cacheKeys.join('|')}`;
-  return cacheKey;
 }
 
 export function transformListMetadataResponse(items: ListMetadataResultRaw[]): ListMetadataResult[] {

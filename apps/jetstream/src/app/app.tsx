@@ -1,4 +1,5 @@
 import { css } from '@emotion/react';
+import { FEATURE_FLAGS } from '@jetstream/shared/constants';
 import { hasFeatureFlagAccess } from '@jetstream/shared/ui-utils';
 import { UserProfileUi } from '@jetstream/types';
 import { ConfirmationServiceProvider } from '@jetstream/ui';
@@ -21,6 +22,7 @@ import OrgSelectionRequired from './components/orgs/OrgSelectionRequired';
 import PlatformEventMonitor from './components/platform-event-monitor/PlatformEventMonitor';
 
 const AutomationControl = lazy(() => import('./components/automation-control/AutomationControl'));
+const AutomationControlNew = lazy(() => import('./components/automation-control/new/AutomationControl'));
 const Feedback = lazy(() => import('./components/feedback/Feedback'));
 const LoadRecords = lazy(() => import('./components/load-records/LoadRecords'));
 const LoadRecordsMultiObject = lazy(() => import('./components/load-records-multi-object/LoadRecordsMultiObject'));
@@ -75,6 +77,15 @@ const ROUTES: RouteItem[] = [
     render: () => (
       <OrgSelectionRequired>
         <AutomationControl />
+      </OrgSelectionRequired>
+    ),
+  },
+  {
+    path: '/automation-control-new',
+    flag: FEATURE_FLAGS.AUTOMATION_CONTROL_NEW,
+    render: () => (
+      <OrgSelectionRequired>
+        <AutomationControlNew />
       </OrgSelectionRequired>
     ),
   },
