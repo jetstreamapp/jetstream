@@ -18,7 +18,23 @@ export const LoadingAndActiveRenderer: FunctionComponent<ICellRendererParams> = 
   }
 
   if (isTableRow(data)) {
-    return data.loading ? <Spinner size="x-small" /> : null;
+    if (data.loading) {
+      return <Spinner size="x-small" />;
+    } else if (data.hasError) {
+      return (
+        <Tooltip
+          id={`tooltip-error-${data.key}`}
+          content={
+            <div>
+              <strong>There was an error fetching metadata. {data.errorMessage || 'An unknown error has occured.'}</strong>
+            </div>
+          }
+        >
+          <Icon type="utility" icon="error" className="slds-icon slds-icon-text-error slds-icon_xx-small slds-m-left_small" />
+        </Tooltip>
+      );
+    }
+    return null;
   } else if (isTableRowItem(data)) {
     return (
       <div className="slds-p-left_x-small">

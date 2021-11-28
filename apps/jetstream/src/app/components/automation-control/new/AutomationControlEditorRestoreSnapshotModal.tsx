@@ -1,6 +1,6 @@
 import { INDEXED_DB } from '@jetstream/shared/constants';
 import { MapOf, SalesforceOrgUi } from '@jetstream/types';
-import { Modal, Select, Tooltip } from '@jetstream/ui';
+import { EmptyState, FishIllustration, Modal, Select, Tooltip } from '@jetstream/ui';
 import localforage from 'localforage';
 import { Fragment, FunctionComponent, useCallback, useEffect, useState } from 'react';
 import { TableRowItemSnapshot } from './automation-control-types';
@@ -51,7 +51,7 @@ export const AutomationControlEditorReviewModal: FunctionComponent<AutomationCon
     <div>
       {isOpen && (
         <Modal
-          header="Save Snapshot"
+          header="Restore Snapshot"
           className="slds-is-relative"
           onClose={handleClose}
           footer={
@@ -70,22 +70,31 @@ export const AutomationControlEditorReviewModal: FunctionComponent<AutomationCon
               Recalling a saved snapshot will update the table based on what was configured at the time of the snapshot. If any items no
               longer exist, then they will be ignored when restored.
             </p>
-            <Select id={'restore'} label={'Snapshots'}>
-              <select
-                aria-describedby="restore"
-                className="slds-select"
-                id="restore-select"
-                required
-                value={selectedSnapshot}
-                onChange={(event) => setSelectedSnapshot(event.target.value)}
-              >
-                {snapshotsItems.map((item, i) => (
-                  <option key={`${i}-${item}`} value={item}>
-                    {item}
-                  </option>
-                ))}
-              </select>
-            </Select>
+            {!!snapshotsItems?.length && (
+              <Select id={'restore'} label={'Snapshots'}>
+                <select
+                  aria-describedby="restore"
+                  className="slds-select"
+                  id="restore-select"
+                  required
+                  value={selectedSnapshot}
+                  onChange={(event) => setSelectedSnapshot(event.target.value)}
+                >
+                  {snapshotsItems.map((item, i) => (
+                    <option key={`${i}-${item}`} value={item}>
+                      {item}
+                    </option>
+                  ))}
+                </select>
+              </Select>
+            )}
+            {/* TODO: should we allow uploading something? */}
+            {/* TODO: how would a user delete a snapshot? */}
+            {/* TODO: should restore be on initial page and include selected objects?  */}
+            {/* TODO: should snapshot be a v2 enhancement? */}
+            {!snapshotsItems?.length && (
+              <EmptyState headline="There are no saved snapshots" illustration={<FishIllustration />}></EmptyState>
+            )}
           </div>
         </Modal>
       )}

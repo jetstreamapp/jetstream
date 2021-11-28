@@ -110,8 +110,6 @@ export const AutomationControlEditorReviewModal: FunctionComponent<AutomationCon
   const [didRollback, setDidRollback] = useState(false);
   const [didDeployMetadata, setDidDeployMetadata] = useState(false);
 
-  const [isSaving, setIsSaving] = useState<boolean>(false);
-
   useEffect(() => {
     setDeploymentItems(Object.values(deploymentItemMap));
   }, [deploymentItemMap]);
@@ -296,7 +294,7 @@ export const AutomationControlEditorReviewModal: FunctionComponent<AutomationCon
                 Cancel
               </button>
             )}
-            <button className="slds-button slds-button_neutral" disabled={isSaving} onClick={handleCloseModal}>
+            <button className="slds-button slds-button_neutral" disabled={inProgress} onClick={handleCloseModal}>
               Rollback
             </button>
             {didDeploy && !didRollback && (
@@ -322,7 +320,7 @@ export const AutomationControlEditorReviewModal: FunctionComponent<AutomationCon
             min-height: 50vh;
           `}
         >
-          {isSaving && <Spinner />}
+          {inProgress && <Spinner />}
           <AutoFullHeightContainer fillHeight setHeightAttr bottomBuffer={250}>
             <DataTable
               columns={COLUMNS}

@@ -1,10 +1,11 @@
 import { css } from '@emotion/react';
 import { TITLES } from '@jetstream/shared/constants';
 import { useRollbar } from '@jetstream/shared/ui-utils';
-import { SalesforceOrgUi } from '@jetstream/types';
+import { MapOf, SalesforceOrgUi } from '@jetstream/types';
 import {
   AutoFullHeightContainer,
   ConnectedSobjectListMultiSelect,
+  FileDownloadModal,
   Grid,
   Icon,
   Input,
@@ -23,6 +24,7 @@ import {
   Tooltip,
 } from '@jetstream/ui';
 import { DescribeGlobalSObjectResult } from 'jsforce';
+import * as fromJetstreamEvents from '../../core/jetstream-events';
 import { FunctionComponent, useRef, useState } from 'react';
 import { useRouteMatch } from 'react-router';
 import { Link } from 'react-router-dom';
@@ -39,7 +41,8 @@ import AutomationControlEditorSaveSnapshotModal from './AutomationControlEditorS
 import AutomationControlEditorRestoreSnapshotModal from './AutomationControlEditorRestoreSnapshotModal';
 import DeployMetadataLastRefreshedPopover from './AutomationControlLastRefreshedPopover';
 import { useAutomationControlData } from './useAutomationControlData';
-import { isTableRow, isTableRowChild } from './automation-control-data-utils';
+import { isTableRow, isTableRowChild, isTableRowItem } from './automation-control-data-utils';
+import classNames from 'classnames';
 
 const HEIGHT_BUFFER = 170;
 
@@ -55,7 +58,7 @@ export const AutomationControlEditor: FunctionComponent<AutomationControlEditorP
   const rollbar = useRollbar();
 
   const selectedOrg = useRecoilValue<SalesforceOrgUi>(selectedOrgState);
-  const [{ defaultApiVersion }] = useRecoilState(applicationCookieState);
+  const [{ defaultApiVersion, google_apiKey, google_appId, google_clientId }] = useRecoilState(applicationCookieState);
   const selectedSObjects = useRecoilValue(fromAutomationCtlState.selectedSObjectsState);
   const selectedAutomationTypes = useRecoilValue(fromAutomationCtlState.selectedAutomationTypes);
 
@@ -65,6 +68,9 @@ export const AutomationControlEditor: FunctionComponent<AutomationControlEditorP
   const [saveModalOpen, setSaveModalOpen] = useState(false);
   const [quickFilterText, setQuickFilterText] = useState<string>(null);
 
+  const [exportDataModalOpen, setExportDataModalOpen] = useState<boolean>(false);
+  const [exportDataModalData, setExportDataModalData] = useState<any[]>([]);
+
   const {
     rows,
     hasError,
@@ -73,6 +79,7 @@ export const AutomationControlEditor: FunctionComponent<AutomationControlEditorP
     fetchData,
     refreshProcessBuilders,
     updateIsActiveFlag,
+    toggleAll,
     resetChanges,
     restoreSnapshot,
     isDirty,
@@ -100,7 +107,9 @@ export const AutomationControlEditor: FunctionComponent<AutomationControlEditorP
   }
 
   function handleDeployModalClose(refreshData?: boolean) {
-    fetchData();
+    if (refreshData) {
+      fetchData();
+    }
     setSaveModalOpen(false);
   }
 
@@ -108,12 +117,45 @@ export const AutomationControlEditor: FunctionComponent<AutomationControlEditorP
     refreshProcessBuilders();
   }
 
-  function handleRestoreSnapshot(snapshot: TableRowItemSnapshot[]) {
-    restoreSnapshot(snapshot);
+  // function handleRestoreSnapshot(snapshot: TableRowItemSnapshot[]) {
+  //   restoreSnapshot(snapshot);
+  // }
+
+  function exportChanges() {
+    const exportData = rows
+      .filter((row) => isTableRowItem(row))
+      .map((row: TableRowItem) => {
+        return {
+          Type: row.type,
+          Object: row.sobject,
+          Name: row.label,
+          'Is Active': row.isActiveInitialState,
+          'Active Version': row.activeVersionNumber,
+          'Last Modified': row.lastModifiedBy,
+          Description: row.description,
+        };
+      });
+    setExportDataModalData(exportData);
+    setExportDataModalOpen(true);
   }
 
   return (
     <div>
+      {exportDataModalOpen && (
+        <FileDownloadModal
+          org={selectedOrg}
+          google_apiKey={google_apiKey}
+          google_appId={google_appId}
+          google_clientId={google_clientId}
+          modalHeader="Export Automation"
+          modalTagline="Exported data will reflect what is in Salesforce, not unsaved changes"
+          data={exportDataModalData}
+          header={['Type', 'Object', 'Name', 'Is Active', 'Active Version', 'Last Modified', 'Description']}
+          fileNameParts={['automation']}
+          onModalClose={() => setExportDataModalOpen(false)}
+          emitUploadToGoogleEvent={fromJetstreamEvents.emit}
+        />
+      )}
       <Toolbar>
         <ToolbarItemGroup>
           <Link
@@ -142,11 +184,7 @@ export const AutomationControlEditor: FunctionComponent<AutomationControlEditorP
           </button>
           {/* TODO: EXPORT should allow downloading spreadsheet or metadata package (for future rollback) */}
           {/* We probably also want to allow saving the current state somehow and recalling it in the future (just dirty state) */}
-          <button
-            className="slds-button slds-button_neutral"
-            disabled={loading}
-            // onClick={exportChanges} disabled={loading || hasError}
-          >
+          <button className="slds-button slds-button_neutral" disabled={loading} onClick={exportChanges}>
             <Icon type="utility" icon="download" className="slds-button__icon slds-button__icon_left" />
             Export
           </button>
@@ -160,8 +198,27 @@ export const AutomationControlEditor: FunctionComponent<AutomationControlEditorP
         <Grid>
           <Grid className="slds-grow slds-box_small slds-theme_default slds-is-relative" verticalAlign="center" wrap>
             {loading && <Spinner size="small"></Spinner>}
-            <AutomationControlEditorSaveSnapshotModal selectedOrg={selectedOrg} rows={rows} />
-            <AutomationControlEditorRestoreSnapshotModal selectedOrg={selectedOrg} onRestore={handleRestoreSnapshot} />
+            {/* TODO: */}
+            {/* <AutomationControlEditorSaveSnapshotModal selectedOrg={selectedOrg} rows={rows} /> */}
+            {/* <AutomationControlEditorRestoreSnapshotModal selectedOrg={selectedOrg} onRestore={handleRestoreSnapshot} /> */}
+            <button
+              className={classNames('slds-button slds-button_neutral')}
+              title="Enable All"
+              onClick={() => toggleAll(true)}
+              disabled={loading}
+            >
+              <Icon type="utility" icon="add" className="slds-button__icon slds-button__icon_left" omitContainer />
+              Enable All
+            </button>
+            <button
+              className={classNames('slds-button slds-button_neutral')}
+              title="Disable All"
+              onClick={() => toggleAll(false)}
+              disabled={loading}
+            >
+              <Icon type="utility" icon="dash" className="slds-button__icon slds-button__icon_left" omitContainer />
+              Disable All
+            </button>
             <div className="slds-col_bump-left">
               <DeployMetadataLastRefreshedPopover onRefresh={handleRefreshProcessBuilders} />
             </div>

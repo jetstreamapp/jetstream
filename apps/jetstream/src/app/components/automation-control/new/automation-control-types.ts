@@ -491,6 +491,7 @@ export interface TableRowItemChild {
   isActive: boolean;
   isActiveInitialState: boolean;
   label: string;
+  lastModifiedBy: string;
   description: string | null;
   additionalData: TableItemAdditionalData[];
 }

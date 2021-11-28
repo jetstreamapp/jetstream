@@ -1,4 +1,5 @@
 import { logger } from '@jetstream/shared/client-logger';
+import { useRollbar } from '@jetstream/shared/ui-utils';
 import { MapOf, SalesforceOrgUi } from '@jetstream/types';
 import { useCallback, useEffect, useReducer, useRef } from 'react';
 import {
@@ -34,6 +35,7 @@ type Action =
   | { type: 'FETCH_ERROR'; payload: FetchErrorPayload }
   | { type: 'FETCH_FINISH' }
   | { type: 'UPDATE_IS_ACTIVE_FLAG'; payload: { row: TableRowOrItemOrChild; value: boolean } }
+  | { type: 'TOGGLE_ALL'; payload: { value: boolean } }
   | { type: 'UPDATE_FROM_DEPLOYMENT'; payload: { items: DeploymentItem[] } }
   | { type: 'RESTORE_SNAPSHOT'; payload: { snapshot: TableRowItemSnapshot[] } }
   | { type: 'RESET' }
@@ -142,6 +144,12 @@ function reducer(state: State, action: Action): State {
             ...state.data[action.payload.type],
             loading: false,
             error: action.payload.error,
+            tableRow: {
+              ...state.data[action.payload.type].tableRow,
+              loading: false,
+              hasError: true,
+              errorMessage: action.payload.error,
+            },
           },
         },
       };
@@ -185,6 +193,46 @@ function reducer(state: State, action: Action): State {
           parentRow.activeVersionNumber = null;
         }
       }
+      const output: State = {
+        ...state,
+        rows: state.keys.map((rowKey) => rowsByKey[rowKey]),
+        rowsByKey,
+      };
+      output.isDirty = output.rows.some((row) => !isTableRow(row) && row.isActive !== row.isActiveInitialState);
+      return output;
+    }
+    case 'TOGGLE_ALL': {
+      const rowsByKey = { ...state.rowsByKey };
+      state.keys
+        .map((key) => rowsByKey[key])
+        .forEach((row) => {
+          const key = row.key;
+          if (isTableRowItem(row)) {
+            rowsByKey[key] = { ...rowsByKey[key], isActive: action.payload.value };
+            // see if flow or process builder (only ones with grandchildren)
+            if (Array.isArray(row.children)) {
+              // set all children to false initially
+              row.children.forEach((child) => {
+                rowsByKey[child.key] = { ...rowsByKey[child.key], isActive: false };
+              });
+              // if disable, then remove active version and set all children to disabled
+              if (action.payload.value) {
+                // set all versions to false, then latest version to true
+                const latestVersion = row.children.reduce((maxRow, child) => {
+                  if (!maxRow) {
+                    return child;
+                  }
+                  return maxRow.record.VersionNumber > child.record.VersionNumber ? maxRow : child;
+                }, null);
+                // set latest version to true and set active version number on parent
+                rowsByKey[latestVersion.key] = { ...rowsByKey[latestVersion.key], isActive: true };
+                (rowsByKey[key] as TableRowItem).activeVersionNumber = latestVersion.record.VersionNumber;
+              } else {
+                (rowsByKey[key] as TableRowItem).activeVersionNumber = null;
+              }
+            }
+          }
+        });
       const output: State = {
         ...state,
         rows: state.keys.map((rowKey) => rowsByKey[rowKey]),
@@ -352,7 +400,7 @@ function getRowsForItems({ type, records }: MetadataRecordType, loading: boolean
           activeVersionNumber,
           activeVersionNumberInitialState: activeVersionNumber,
           label: record.Label,
-          lastModifiedBy: `${record.LastModifiedBy}`,
+          lastModifiedBy: `${record.LastModifiedBy} ${record.LastModifiedDate}`,
           description: record.Description,
           additionalData: [
             {
@@ -377,6 +425,7 @@ function getRowsForItems({ type, records }: MetadataRecordType, loading: boolean
               isActive: version.DurableId === record.ActiveVersionId,
               isActiveInitialState: version.DurableId === record.ActiveVersionId,
               label: `${record.Label} (V${version.VersionNumber})`,
+              lastModifiedBy: `${version.LastModifiedDate}`,
               description: version.Description,
               additionalData: [
                 { label: 'Version', value: `${version.VersionNumber}` },
@@ -409,10 +458,10 @@ function flattenTableRows(
     .filter((type) => {
       const tableRow = stateData[type].tableRow as TableRow;
       // if not selected, or loading is done and there are no items, skip
-      return !stateData[type].skip && (tableRow.loading || tableRow.items.length);
+      return !stateData[type].skip && (tableRow.loading || tableRow.hasError || tableRow.items.length);
     })
     .forEach((type) => {
-      const row = stateData[type].tableRow;
+      const row = stateData[type].tableRow as TableRow;
       rows.push(row);
       rowsByKey[row.key] = row;
       keys.push(row.key);
@@ -450,6 +499,7 @@ export function useAutomationControlData({
   selectedAutomationTypes: AutomationMetadataType[];
 }) {
   const isMounted = useRef(null);
+  const rollbar = useRollbar();
 
   const [{ loading, hasError, errorMessage, data, rows, isDirty }, dispatch] = useReducer(reducer, {
     loading: false,
@@ -497,6 +547,10 @@ export function useAutomationControlData({
     dispatch({ type: 'RESET' });
   }, []);
 
+  const toggleAll = useCallback((value: boolean) => {
+    dispatch({ type: 'TOGGLE_ALL', payload: { value } });
+  }, []);
+
   // TODO: allow passing in the keys to refresh and only refresh the specific items and retain everything else
   const fetchData = useCallback(async () => {
     try {
@@ -509,11 +563,13 @@ export function useAutomationControlData({
             dispatch({ type: 'FETCH_SUCCESS', payload: item });
           } else {
             dispatch({ type: 'FETCH_ERROR', payload: item });
+            rollbar.error('Automation Control Fetch Error', { item });
           }
         },
         error: (err) => {
           dispatch({ type: 'ERROR', payload: { errorMessage: err.message } });
           logger.error('[AUTOMATION][FETCH][ERROR]', err);
+          rollbar.error('Automation Control Fatal Error', { message: err.message, stack: err.stack });
         },
         complete: () => {
           dispatch({ type: 'FETCH_FINISH' });
@@ -526,7 +582,7 @@ export function useAutomationControlData({
     } catch (ex) {
       dispatch({ type: 'ERROR', payload: { errorMessage: ex.message } });
     }
-  }, [defaultApiVersion, selectedOrg, selectedSObjects, selectedAutomationTypes]);
+  }, [selectedAutomationTypes, selectedOrg, defaultApiVersion, selectedSObjects, rollbar]);
 
   const refreshProcessBuilders = useCallback(async () => {
     dispatch({ type: 'FETCH_REFRESH', payload: { selectedTypes: ['FlowProcessBuilder'] } });
@@ -557,6 +613,7 @@ export function useAutomationControlData({
     fetchData,
     refreshProcessBuilders,
     updateIsActiveFlag,
+    toggleAll,
     resetChanges,
     restoreSnapshot,
     isDirty,

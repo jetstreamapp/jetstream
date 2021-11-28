@@ -77,8 +77,8 @@ export const AutomationControlEditorReviewModal: FunctionComponent<AutomationCon
         >
           <div className="slds-is-relative slds-p-around_x-large">
             <p>
-              You can save a snapshot of all items in their current state. When you recall, the table with all the metadata will be updated
-              to match what it is now and allow you to make changes before deploying.
+              You can save a snapshot of all items in their current state. When you recall a snapshot, the table with all the metadata will
+              be updated to match the snapshot and allow you to make changes before deploying.
             </p>
             <Input label="Snapshot Name" isRequired className="slds-p-vertical_medium">
               <input

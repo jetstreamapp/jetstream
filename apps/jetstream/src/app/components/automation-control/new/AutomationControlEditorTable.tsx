@@ -25,12 +25,20 @@ const COLUMNS: ColDef[] = [
     },
     filterValueGetter: ({ data }) => (!isTableRow(data) ? data.isActive : null),
   },
+  // TODO: use custom renderer and clamp to two lines to see if this provides room for more content.
   {
     headerName: 'Description',
     colId: 'description',
     field: 'description',
     tooltipField: 'description',
     width: 400,
+  },
+  {
+    headerName: 'Last Modified',
+    colId: 'lastModifiedBy',
+    field: 'lastModifiedBy',
+    tooltipField: 'lastModifiedBy',
+    width: 250,
   },
   {
     headerName: 'Additional Information',

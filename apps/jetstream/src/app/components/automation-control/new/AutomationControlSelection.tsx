@@ -110,8 +110,8 @@ export const AutomationControlSelection: FunctionComponent<AutomationControlSele
         bufferIfNotRendered={HEIGHT_BUFFER}
       >
         <Split
-          sizes={[33, 33, 33]}
-          minSize={[300, 300, 100]}
+          sizes={[50, 50]}
+          minSize={[300, 300]}
           className="slds-gutters"
           css={css`
             display: flex;
@@ -142,9 +142,6 @@ export const AutomationControlSelection: FunctionComponent<AutomationControlSele
               loading={false}
               onSelected={(items) => setSelectedAutomationTypes(items as AutomationMetadataType[])}
             />
-          </div>
-          <div className="slds-p-horizontal_x-small">
-            give summary of what's selected - maybe there are some additional options as well?
           </div>
         </Split>
       </AutoFullHeightContainer>
