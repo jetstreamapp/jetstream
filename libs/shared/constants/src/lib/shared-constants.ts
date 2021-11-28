@@ -195,6 +195,7 @@ export const TITLES = {
   AUTOMATION_CONTROL: 'Automation Control | Jetstream',
   MANAGE_PERMISSIONS: 'Manage Permissions | Jetstream',
   DEPLOY_METADATA: 'Deploy Metadata | Jetstream',
+  CREATE_OBJ_FIELD: 'Create Object & Fields | Jetstream',
   ANON_APEX: 'Anonymous Apex | Jetstream',
   DEBUG_LOGS: 'Debug Logs | Jetstream',
   API_EXPLORER: 'Salesforce Api | Jetstream',
