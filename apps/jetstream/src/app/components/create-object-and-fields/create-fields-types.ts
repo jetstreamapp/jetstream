@@ -1,5 +1,7 @@
 import { ListItem, SalesforceOrgUi } from '@jetstream/types';
 
+export type FieldDefinitionMetadata = Partial<Record<FieldDefinitionType, any>>;
+
 export type FieldDefinitions = Record<FieldDefinitionType, FieldDefinition>;
 interface FieldValueExtension {
   _key: number;
@@ -21,6 +23,7 @@ export type FieldDefinitionType =
   | 'deleteConstraint'
   | 'length'
   | 'scale'
+  | 'precision'
   | 'required'
   | 'unique'
   | 'externalId'
@@ -37,28 +40,30 @@ export type FieldDefinitionType =
   | 'writeRequiresMasterRead'
   | 'secondaryType'
   | 'writeRequiresMasterRead'
-  | 'reparentableMasterDetail';
+  | 'reparentableMasterDetail'
+  | 'relationshipName';
 
 export type SalesforceFieldType =
-  | 'autoNumber'
-  | 'formula'
-  | 'checkbox'
-  | 'currency'
-  | 'date'
-  | 'dateTime'
-  | 'time'
-  | 'number'
-  | 'percent'
-  | 'phone'
-  | 'email'
-  | 'masterDetail'
-  | 'lookup'
-  | 'picklist'
-  | 'multiselectPicklist'
-  | 'url'
-  | 'text'
-  | 'textArea'
-  | 'longTextArea';
+  | 'AutoNumber'
+  | 'Formula'
+  | 'Checkbox'
+  | 'Currency'
+  | 'Date'
+  | 'DateTime'
+  | 'Time'
+  | 'Number'
+  | 'Percent'
+  | 'Phone'
+  | 'Email'
+  | 'MasterDetail'
+  | 'Lookup'
+  | 'Picklist'
+  | 'MultiselectPicklist'
+  | 'Url'
+  | 'Text'
+  | 'TextArea'
+  | 'LongTextArea'
+  | 'Html';
 
 export type FieldDefinitionUiType = 'picklist' | 'text' | 'textarea' | 'radio' | 'checkbox';
 
@@ -71,12 +76,12 @@ export interface FieldValueState {
 
 export interface FieldDefinition {
   label: string;
-  type: FieldDefinitionUiType;
+  type: FieldDefinitionUiType | ((type: SalesforceFieldType) => FieldDefinitionUiType);
   values?: ListItem[] | ((org: SalesforceOrgUi) => Promise<ListItem[]>);
-  helpText?: string;
-  labelHelp?: string;
+  helpText?: string | ((type: SalesforceFieldType) => string);
+  labelHelp?: string | ((type: SalesforceFieldType) => string);
   // TODO: add a "failed validation error message"
-  validate?: (value: FieldValue) => boolean;
+  validate?: (value: FieldValue, type?: SalesforceFieldType) => boolean;
   placeholder?: string;
   required?: boolean;
   disabled?: (fieldValues: FieldValues) => boolean;
@@ -85,6 +90,38 @@ export interface FieldDefinition {
 export interface GlobalPicklistRecord {
   Id: string;
   DeveloperName: string;
-  ManageableState: string;
   MasterLabel: string;
+  NamespacePrefix: string | null;
+}
+
+// extremely truncated
+export interface LayoutRecord {
+  attributes: {
+    type: string;
+    url?: string;
+  };
+  Id: string;
+  FullName: string;
+  Metadata: {
+    layoutSections: {
+      layoutColumns: {
+        layoutItems: {
+          behavior: 'Readonly' | 'Edit' | 'Required';
+          field: string;
+          analyticsCloudComponent: null;
+          canvas: null;
+          component: null;
+          customLink: null;
+          emptySpace: null;
+          height: null;
+          page: null;
+          reportChartComponent: null;
+          scontrol: null;
+          showLabel: null;
+          showScrollbars: null;
+          width: null;
+        }[];
+      }[];
+    }[];
+  };
 }

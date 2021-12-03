@@ -7,6 +7,7 @@ export * from './lib/hooks/useInterval';
 export * from './lib/hooks/useLoadGoogleApi';
 export * from './lib/hooks/useNonInitialEffect';
 export * from './lib/hooks/useObservable';
+export * from './lib/hooks/useProfilesAndPermSets';
 export * from './lib/hooks/useRollbar';
 export * from './lib/queries';
 export * from './lib/shared-ui-data-utils';

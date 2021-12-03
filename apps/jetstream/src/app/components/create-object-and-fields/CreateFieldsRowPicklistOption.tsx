@@ -5,6 +5,7 @@ import { FieldDefinition, FieldDefinitions, FieldDefinitionType, FieldValue, Fie
 import CreateFieldsRowField from './CreateFieldsRowField';
 
 export interface CreateFieldsRowPicklistOptionProps {
+  rowIdx: number;
   selectedOrg: SalesforceOrgUi;
   values: FieldValues;
   fieldDefinitions: FieldDefinitions;
@@ -15,6 +16,7 @@ export interface CreateFieldsRowPicklistOptionProps {
 }
 
 export const CreateFieldsRowPicklistOption: FunctionComponent<CreateFieldsRowPicklistOptionProps> = ({
+  rowIdx,
   selectedOrg,
   values,
   fieldDefinitions,
@@ -27,7 +29,7 @@ export const CreateFieldsRowPicklistOption: FunctionComponent<CreateFieldsRowPic
     <Grid>
       <div className="slds-m-right_medium slds-is-relative">
         <Checkbox
-          id="fields-picklist-option"
+          id={`fields-${rowIdx}-picklist-option`}
           checked={values._picklistGlobalValueSet}
           label="Use Global Picklist"
           isStandAlone
@@ -38,11 +40,11 @@ export const CreateFieldsRowPicklistOption: FunctionComponent<CreateFieldsRowPic
       {values._picklistGlobalValueSet && (
         <CreateFieldsRowField
           selectedOrg={selectedOrg}
-          id="field-globalValueSet"
+          id={`field-${rowIdx}-globalValueSet`}
           fieldDefinitions={fieldDefinitions}
           field={fieldDefinitions.globalValueSet}
           allValues={values}
-          valueState={values.valueSet}
+          valueState={values.globalValueSet}
           disabled={disabled}
           onChange={(value) => onChange('globalValueSet', value)}
           onBlur={() => onBlur('globalValueSet')}
@@ -50,7 +52,7 @@ export const CreateFieldsRowPicklistOption: FunctionComponent<CreateFieldsRowPic
       )}
       <CreateFieldsRowField
         selectedOrg={selectedOrg}
-        id="field-valueSet"
+        id={`field-${rowIdx}-valueSet`}
         fieldDefinitions={fieldDefinitions}
         field={fieldDefinitions.valueSet}
         allValues={values}

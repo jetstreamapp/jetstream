@@ -15,7 +15,7 @@ import { baseFields, fieldDefinitions, fieldTypeDependencies } from './create-fi
 import { FieldDefinitionType, FieldValue, FieldValues, SalesforceFieldType } from './create-fields-types';
 import CreateFieldsRowPicklistOption from './CreateFieldsRowPicklistOption';
 
-const TYPE_PICKLIST = new Set<SalesforceFieldType>(['picklist', 'multiselectPicklist']);
+const TYPE_PICKLIST = new Set<SalesforceFieldType>(['Picklist', 'MultiselectPicklist']);
 
 /**
  * TODO:
@@ -24,6 +24,8 @@ const TYPE_PICKLIST = new Set<SalesforceFieldType>(['picklist', 'multiselectPick
  */
 
 export interface CreateFieldsRowProps {
+  rowIdx: number;
+  enableDelete?: boolean;
   selectedOrg: SalesforceOrgUi;
   values: FieldValues;
   allValid: boolean;
@@ -35,6 +37,8 @@ export interface CreateFieldsRowProps {
 }
 
 export const CreateFieldsRow: FunctionComponent<CreateFieldsRowProps> = ({
+  rowIdx,
+  enableDelete,
   selectedOrg,
   values,
   allValid,
@@ -55,7 +59,7 @@ export const CreateFieldsRow: FunctionComponent<CreateFieldsRowProps> = ({
           <CreateFieldsRowField
             key={field}
             selectedOrg={selectedOrg}
-            id={`field-${field}`}
+            id={`field-${rowIdx}-${field}`}
             fieldDefinitions={fieldDefinitions}
             field={fieldDefinitions[field]}
             allValues={values}
@@ -67,6 +71,7 @@ export const CreateFieldsRow: FunctionComponent<CreateFieldsRowProps> = ({
         ))}
         {values.type && TYPE_PICKLIST.has(values.type.value as SalesforceFieldType) && (
           <CreateFieldsRowPicklistOption
+            rowIdx={rowIdx}
             selectedOrg={selectedOrg}
             values={values}
             fieldDefinitions={fieldDefinitions}
@@ -81,7 +86,7 @@ export const CreateFieldsRow: FunctionComponent<CreateFieldsRowProps> = ({
             <CreateFieldsRowField
               key={field}
               selectedOrg={selectedOrg}
-              id={`field-${field}`}
+              id={`field-${rowIdx}-${field}`}
               fieldDefinitions={fieldDefinitions}
               field={fieldDefinitions[field]}
               allValues={values}
@@ -108,7 +113,7 @@ export const CreateFieldsRow: FunctionComponent<CreateFieldsRowProps> = ({
                 <Icon
                   type="utility"
                   icon="error"
-                  className="slds-icon slds-icon-text-light slds-icon_xx-small"
+                  className="slds-icon slds-icon-text-error slds-icon_xx-small"
                   containerClassname="slds-icon_container slds-icon-utility-error"
                   description="Field is not yet configured"
                 />
@@ -128,10 +133,12 @@ export const CreateFieldsRow: FunctionComponent<CreateFieldsRowProps> = ({
           )}
         </div>
         <div>
-          <button className="slds-button slds-button_text-destructive" onClick={() => onDelete()}>
-            <Icon type="utility" icon="delete" className="slds-button__icon slds-button__icon_left" omitContainer />
-            Delete
-          </button>
+          {enableDelete && (
+            <button className="slds-button slds-button_text-destructive" onClick={() => onDelete()}>
+              <Icon type="utility" icon="delete" className="slds-button__icon slds-button__icon_left" omitContainer />
+              Delete
+            </button>
+          )}
         </div>
       </Grid>
     </div>

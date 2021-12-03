@@ -115,10 +115,16 @@ export function orderStringsBy(items: string[], order: 'asc' | 'desc' = 'asc'): 
 
 export function getMapOf<T>(items: T[], prop: keyof T): MapOf<T> {
   return items.reduce((output: MapOf<T>, item) => {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     output[item[prop] as any] = item;
     return output;
   }, {});
+}
+
+export function getMapFromObj<T>(items: T[], prop: keyof T): Map<string, T> {
+  return items.reduce((output: Map<string, T>, item) => {
+    output.set(item[prop] as any, item);
+    return output;
+  }, new Map());
 }
 
 export function populateFromMapOf<T>(mapOf: MapOf<T>, items: string[]): T[] {

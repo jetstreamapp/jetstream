@@ -1,8 +1,9 @@
+import { css } from '@emotion/react';
 import { useNonInitialEffect } from '@jetstream/shared/ui-utils';
 import { ListItem, SalesforceOrgUi } from '@jetstream/types';
-import { Checkbox, Input, Picklist, PicklistRef, Radio, RadioGroup, Spinner, Textarea } from '@jetstream/ui';
+import { Checkbox, ComboboxWithItems, Input, Picklist, PicklistRef, Radio, RadioGroup, Spinner, Textarea } from '@jetstream/ui';
 import React, { Fragment, FunctionComponent, useEffect, useRef, useState } from 'react';
-import { FieldDefinition, FieldDefinitions, FieldValueState, FieldValue, FieldValues } from './create-fields-types';
+import { FieldDefinition, FieldDefinitions, FieldValueState, FieldValue, FieldValues, SalesforceFieldType } from './create-fields-types';
 
 // eslint-disable-next-line @typescript-eslint/no-empty-interface
 export interface CreateFieldsRowFieldProps {
@@ -47,7 +48,8 @@ export const CreateFieldsRowField: FunctionComponent<CreateFieldsRowFieldProps> 
           if (!value && _values.length > 0) {
             onChange(_values[0].value);
             if (picklistRef.current) {
-              picklistRef.current.selectItem(_values[0].value);
+              // picklistRef.current.selectItem(_values[0].value);
+              onChange(_values[0].value);
             }
           }
         })
@@ -61,42 +63,47 @@ export const CreateFieldsRowField: FunctionComponent<CreateFieldsRowFieldProps> 
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [field.values]);
 
-  switch (field.type) {
+  const type = typeof field.type === 'function' ? field.type(allValues.type.value as SalesforceFieldType) : field.type;
+
+  switch (type) {
     case 'picklist':
       return (
         <div className="slds-m-right_medium slds-is-relative">
           {loadingValues && <Spinner size="small" />}
-          <Picklist
-            ref={picklistRef}
-            label={field.label}
-            isRequired={field.required}
-            helpText={field.helpText}
-            labelHelp={field.labelHelp}
+          <ComboboxWithItems
+            comboboxProps={{
+              label: field.label,
+              helpText: typeof field.helpText === 'function' ? field.helpText(allValues.type.value as SalesforceFieldType) : field.helpText,
+              labelHelp:
+                typeof field.labelHelp === 'function' ? field.labelHelp(allValues.type.value as SalesforceFieldType) : field.labelHelp,
+              isRequired: field.required,
+              disabled: disabled,
+              itemLength: 10,
+            }}
             items={values}
-            selectedItemIds={value ? [value as string] : undefined}
-            allowDeselection={false}
-            disabled={disabled}
-            scrollLength={10}
-            hasError={touched && !!errorMessage}
-            errorMessage={errorMessage}
-            errorMessageId={`${id}-${field.label}-error`}
-            // TODO: do we want the value or the
-            onChange={(items) => onChange(items[0].id)}
-            onBlur={onBlur}
+            selectedItemId={value as string}
+            onSelected={(item) => onChange(item.id)}
           />
         </div>
       );
     case 'checkbox':
       return (
-        <div className="slds-m-right_medium slds-is-relative">
+        <div
+          className="slds-m-right_medium slds-is-relative"
+          css={css`
+            max-width: 175px;
+          `}
+        >
           {loadingValues && <Spinner size="small" />}
           <Checkbox
             id={`${id}-${field.label}`}
             checked={value as boolean}
             label={field.label}
             isRequired={field.required}
-            helpText={field.helpText}
-            labelHelp={field.labelHelp}
+            helpText={typeof field.helpText === 'function' ? field.helpText(allValues.type.value as SalesforceFieldType) : field.helpText}
+            labelHelp={
+              typeof field.labelHelp === 'function' ? field.labelHelp(allValues.type.value as SalesforceFieldType) : field.labelHelp
+            }
             isStandAlone
             hasError={touched && !!errorMessage}
             errorMessage={errorMessage}
@@ -108,14 +115,21 @@ export const CreateFieldsRowField: FunctionComponent<CreateFieldsRowFieldProps> 
       );
     case 'radio':
       return (
-        <div className="slds-m-right_medium slds-is-relative">
+        <div
+          className="slds-m-right_medium slds-is-relative"
+          css={css`
+            max-width: 175px;
+          `}
+        >
           {loadingValues && <Spinner size="small" />}
           <RadioGroup
             idPrefix={id}
             label={field.label}
             required={field.required}
-            helpText={field.helpText}
-            labelHelp={field.labelHelp}
+            helpText={typeof field.helpText === 'function' ? field.helpText(allValues.type.value as SalesforceFieldType) : field.helpText}
+            labelHelp={
+              typeof field.labelHelp === 'function' ? field.labelHelp(allValues.type.value as SalesforceFieldType) : field.labelHelp
+            }
             hasError={touched && !!errorMessage}
             errorMessage={errorMessage}
           >
@@ -136,14 +150,21 @@ export const CreateFieldsRowField: FunctionComponent<CreateFieldsRowFieldProps> 
       );
     case 'textarea':
       return (
-        <div className="slds-m-right_medium slds-is-relative">
+        <div
+          className="slds-m-right_medium slds-is-relative"
+          css={css`
+            max-width: 250px;
+          `}
+        >
           {loadingValues && <Spinner size="small" />}
           <Textarea
             id={`${id}-${field.label}`}
             label={field.label}
             isRequired={field.required}
-            helpText={field.helpText}
-            labelHelp={field.labelHelp}
+            helpText={typeof field.helpText === 'function' ? field.helpText(allValues.type.value as SalesforceFieldType) : field.helpText}
+            labelHelp={
+              typeof field.labelHelp === 'function' ? field.labelHelp(allValues.type.value as SalesforceFieldType) : field.labelHelp
+            }
             hasError={touched && !!errorMessage}
             errorMessage={errorMessage}
           >
@@ -163,13 +184,20 @@ export const CreateFieldsRowField: FunctionComponent<CreateFieldsRowFieldProps> 
     case 'text':
     default:
       return (
-        <div className="slds-m-right_medium slds-is-relative">
+        <div
+          className="slds-m-right_medium slds-is-relative"
+          css={css`
+            max-width: 175px;
+          `}
+        >
           {loadingValues && <Spinner size="small" />}
           <Input
             label={field.label}
             isRequired={field.required}
-            helpText={field.helpText}
-            labelHelp={field.labelHelp}
+            helpText={typeof field.helpText === 'function' ? field.helpText(allValues.type.value as SalesforceFieldType) : field.helpText}
+            labelHelp={
+              typeof field.labelHelp === 'function' ? field.labelHelp(allValues.type.value as SalesforceFieldType) : field.labelHelp
+            }
             hasError={touched && !!errorMessage}
             errorMessage={errorMessage}
           >

@@ -1,39 +1,59 @@
-import { describeGlobal, queryAll, queryWithCache } from '@jetstream/shared/data';
-import { ListItem } from '@jetstream/types';
+import { describeGlobal, genericRequest, queryWithCache } from '@jetstream/shared/data';
+import { ensureBoolean, REGEX, splitArrayToMaxSize } from '@jetstream/shared/utils';
+import { CompositeResponse, SalesforceOrgUi } from '@jetstream/types';
+import { DescribeGlobalSObjectResult } from 'jsforce';
+import isBoolean from 'lodash/isBoolean';
 import isNil from 'lodash/isNil';
+import isString from 'lodash/isString';
 import {
+  FieldDefinitionMetadata,
   FieldDefinitions,
   FieldDefinitionType,
   FieldValueDependencies,
   FieldValues,
   GlobalPicklistRecord,
+  LayoutRecord,
   SalesforceFieldType,
 } from './create-fields-types';
+
+const READ_ONLY_TYPES = new Set<SalesforceFieldType>(['AutoNumber', 'Formula']);
+const NUMBER_TYPES = new Set<SalesforceFieldType>(['Number', 'Currency', 'Percent']);
+
+export function filterCreateFieldsSobjects(sobject: DescribeGlobalSObjectResult) {
+  return (
+    sobject.createable &&
+    sobject.updateable &&
+    !sobject.name.endsWith('__History') &&
+    !sobject.name.endsWith('__Tag') &&
+    !sobject.name.endsWith('__Share')
+  );
+}
 
 export const fieldDefinitions: FieldDefinitions = {
   type: {
     label: 'Type',
     type: 'picklist',
     values: [
-      { id: 'autoNumber', value: 'autoNumber', label: 'Auto-Number' },
-      { id: 'checkbox', value: 'checkbox', label: 'Checkbox' },
-      { id: 'currency', value: 'currency', label: 'Currency' },
-      { id: 'date', value: 'date', label: 'Date' },
-      { id: 'dateTime', value: 'dateTime', label: 'Date Time' },
-      { id: 'email', value: 'email', label: 'Email' },
-      { id: 'formula', value: 'formula', label: 'Formula' },
-      { id: 'longTextArea', value: 'longTextArea', label: 'Text Area (Long)' },
-      { id: 'lookup', value: 'lookup', label: 'Lookup' },
-      { id: 'masterDetail', value: 'masterDetail', label: 'Master-Detail' },
-      { id: 'multiselectPicklist', value: 'multiselectPicklist', label: 'Multi-select Picklist' },
-      { id: 'number', value: 'number', label: 'Number' },
-      { id: 'percent', value: 'percent', label: 'Percent' },
-      { id: 'phone', value: 'phone', label: 'Phone' },
-      { id: 'picklist', value: 'picklist', label: 'Picklist' },
-      { id: 'text', value: 'text', label: 'Text' },
-      { id: 'textArea', value: 'textArea', label: 'Text Area' },
-      { id: 'time', value: 'time', label: 'Time' },
-      { id: 'url', value: 'url', label: 'Url' },
+      { id: 'AutoNumber', value: 'AutoNumber', label: 'Auto-Number' },
+      { id: 'Checkbox', value: 'Checkbox', label: 'Checkbox' },
+      { id: 'Currency', value: 'Currency', label: 'Currency' },
+      { id: 'Date', value: 'Date', label: 'Date' },
+      { id: 'DateTime', value: 'DateTime', label: 'Date Time' },
+      { id: 'Email', value: 'Email', label: 'Email' },
+      { id: 'Formula', value: 'Formula', label: 'Formula' },
+      { id: 'Lookup', value: 'Lookup', label: 'Lookup' },
+      { id: 'MasterDetail', value: 'MasterDetail', label: 'Master-Detail' },
+      { id: 'MultiselectPicklist', value: 'MultiselectPicklist', label: 'Multi-select Picklist' },
+      { id: 'Number', value: 'Number', label: 'Number' },
+      { id: 'Percent', value: 'Percent', label: 'Percent' },
+      { id: 'Phone', value: 'Phone', label: 'Phone' },
+      { id: 'Picklist', value: 'Picklist', label: 'Picklist' },
+      { id: 'Text', value: 'Text', label: 'Text' },
+      { id: 'TextArea', value: 'TextArea', label: 'Text Area' },
+      { id: 'LongTextArea', value: 'LongTextArea', label: 'Text Area (Long)' },
+      { id: 'Html', value: 'Html', label: 'Text Area (Rich)' },
+      { id: 'Time', value: 'Time', label: 'Time' },
+      { id: 'Url', value: 'Url', label: 'Url' },
     ],
     required: true,
   },
@@ -46,7 +66,13 @@ export const fieldDefinitions: FieldDefinitions = {
     label: 'Name',
     type: 'text',
     required: true,
-    // TODO: pattern for max length
+    labelHelp: 'API name of field, cannot include more than one underscore. Do not add __c at the end.',
+    validate: (value: string) => {
+      if (!value || !/(^[a-zA-Z]+$)|(^[a-zA-Z]+[0-9a-zA-Z_]*[0-9a-zA-Z]$)/.test(value) || value.includes('__') || value.length > 40) {
+        return false;
+      }
+      return true;
+    },
   },
   inlineHelpText: {
     label: 'Help Text',
@@ -58,7 +84,7 @@ export const fieldDefinitions: FieldDefinitions = {
   },
   defaultValue: {
     label: 'Default Value',
-    type: 'text',
+    type: (type: SalesforceFieldType) => (type === 'Checkbox' ? 'checkbox' : 'text'),
   },
   referenceTo: {
     label: 'Reference To',
@@ -71,31 +97,54 @@ export const fieldDefinitions: FieldDefinitions = {
     required: true,
   },
   deleteConstraint: {
-    label: 'Delete Constraint',
-    type: 'radio',
-    values: [{ id: 'autoNumber', value: 'autoNumber', label: 'Auto-Number' }],
+    label: 'Related Record Deletion',
+    type: 'picklist',
+    values: [
+      { id: 'Allow', value: 'Allow', label: 'Clear Value' },
+      { id: 'Restrict', value: 'Restrict', label: 'Prevent Deletion' },
+    ],
   },
   length: {
     label: 'Length',
     type: 'text', // number
-    validate: (value: string) => {
+    helpText: (type: SalesforceFieldType) => {
+      if (type === 'LongTextArea' || type === 'Html') {
+        return 'Max value 131072';
+      }
+    },
+    validate: (value: string, type: SalesforceFieldType) => {
       if (!value || !/^[0-9]+$/.test(value)) {
         return false;
       }
       const numValue = Number(value);
+      if (type === 'LongTextArea' || type === 'Html') {
+        return isFinite(numValue) && numValue > 0 && numValue <= 131072;
+      }
       return isFinite(numValue) && numValue > 0 && numValue <= 255;
     },
     required: true,
   },
+  precision: {
+    label: 'Length',
+    type: 'text', // number
+    validate: (value: string, type: SalesforceFieldType) => {
+      if (!value || !/^[0-9]+$/.test(value)) {
+        return false;
+      }
+      const numValue = Number(value);
+      return isFinite(numValue) && numValue >= 0 && numValue <= 18;
+    },
+    required: true,
+  },
   scale: {
-    label: 'Scale', // TODO:
+    label: 'Decimal Places',
     type: 'text',
     validate: (value: string) => {
       if (!value || !/^[0-9]+$/.test(value)) {
         return false;
       }
       const numValue = Number(value);
-      return isFinite(numValue) && numValue >= 0 && numValue <= 255;
+      return isFinite(numValue) && numValue >= 0 && numValue <= 18;
     },
     required: true,
   },
@@ -123,15 +172,18 @@ export const fieldDefinitions: FieldDefinitions = {
     values: async (org) => {
       const results = await queryWithCache<GlobalPicklistRecord>(
         org,
-        `SELECT Id, DeveloperName, ManageableState, MasterLabel FROM GlobalValueSet WHERE ManageableState = 'unmanaged' ORDER BY DeveloperName ASC`,
+        `SELECT Id, DeveloperName, NamespacePrefix, MasterLabel FROM GlobalValueSet ORDER BY DeveloperName ASC`,
         true
       );
-      return results.data.queryResults.records.map((record) => ({
-        id: record.DeveloperName,
-        value: record.DeveloperName,
-        label: record.MasterLabel,
-        meta: record,
-      }));
+      return results.data.queryResults.records.map((record) => {
+        const value = `${record.NamespacePrefix ? `${record.NamespacePrefix}__` : ''}${record.DeveloperName}`;
+        return {
+          id: value,
+          value,
+          label: `${record.MasterLabel}${record.NamespacePrefix ? ` (${record.NamespacePrefix})` : ''}`,
+          meta: record,
+        };
+      });
     },
   },
   firstAsDefault: {
@@ -148,11 +200,23 @@ export const fieldDefinitions: FieldDefinitions = {
     label: 'Visible Lines',
     type: 'text',
     required: true,
-    validate: (value: string) => {
+    helpText: (type: SalesforceFieldType) => {
+      if (type === 'LongTextArea') {
+        return '2 through 50';
+      } else if (type === 'Html') {
+        return '10 through 50';
+      }
+    },
+    validate: (value: string, type: SalesforceFieldType) => {
       if (!value || !/^[0-9]+$/.test(value)) {
         return false;
       }
       const numValue = Number(value);
+      if (type === 'LongTextArea') {
+        return isFinite(numValue) && numValue >= 2 && numValue <= 50;
+      } else if (type === 'Html') {
+        return isFinite(numValue) && numValue >= 10 && numValue <= 50;
+      }
       return isFinite(numValue) && numValue >= 0 && numValue <= 10;
     },
   },
@@ -174,7 +238,7 @@ export const fieldDefinitions: FieldDefinitions = {
     required: true,
   },
   populateExistingRows: {
-    label: 'Populate Existing Rows', // ?
+    label: 'Generate for existing records',
     type: 'checkbox',
   },
   formula: {
@@ -187,22 +251,22 @@ export const fieldDefinitions: FieldDefinitions = {
     label: 'Treat Blanks As',
     type: 'picklist',
     values: [
-      { id: 'blanks', value: 'blanks', label: 'Blanks' },
-      { id: 'zeros', value: 'zeros', label: 'Zeros' },
+      { id: 'Blanks', value: 'Blanks', label: 'Blanks' },
+      { id: 'BlankAsZero', value: 'BlankAsZero', label: 'Zeros' },
     ],
   },
   secondaryType: {
     label: 'Formula Type',
     type: 'picklist',
     values: [
-      { id: 'checkbox', value: 'checkbox', label: 'Checkbox' },
-      { id: 'currency', value: 'currency', label: 'Currency' },
-      { id: 'date', value: 'date', label: 'Date' },
-      { id: 'dateTime', value: 'dateTime', label: 'DateTime' },
-      { id: 'number', value: 'number', label: 'Number' },
-      { id: 'percent', value: 'percent', label: 'Percent' },
-      { id: 'text', value: 'text', label: 'Text' },
-      { id: 'time', value: 'time', label: 'Time' },
+      { id: 'Checkbox', value: 'Checkbox', label: 'Checkbox' },
+      { id: 'Currency', value: 'Currency', label: 'Currency' },
+      { id: 'Date', value: 'Date', label: 'Date' },
+      { id: 'DateTime', value: 'DateTime', label: 'DateTime' },
+      { id: 'Number', value: 'Number', label: 'Number' },
+      { id: 'Percent', value: 'Percent', label: 'Percent' },
+      { id: 'Text', value: 'Text', label: 'Text' },
+      { id: 'Time', value: 'Time', label: 'Time' },
     ],
     required: true,
   },
@@ -219,73 +283,102 @@ export const fieldDefinitions: FieldDefinitions = {
     label: 'Allow Reparenting',
     type: 'checkbox',
   },
+  relationshipName: {
+    label: 'Child Relationship Name',
+    type: 'text',
+    labelHelp: 'This is relationship name for subqueries.',
+    required: true,
+  },
 };
 
 export const baseFields: FieldDefinitionType[] = ['type', 'label', 'fullName', 'inlineHelpText', 'description'];
+export const allFields: FieldDefinitionType[] = [
+  'type',
+  'label',
+  'fullName',
+  'inlineHelpText',
+  'description',
+  'length',
+  'defaultValue',
+  'precision',
+  'scale',
+  'required',
+  'unique',
+  'externalId',
+  'formula',
+  'formulaTreatBlanksAs',
+  'secondaryType',
+  'displayFormat',
+  'populateExistingRows',
+  'startingNumber',
+  'valueSet',
+  'globalValueSet',
+  'referenceTo',
+  'deleteConstraint',
+  'writeRequiresMasterRead',
+  'reparentableMasterDetail',
+  'firstAsDefault',
+  'restricted',
+  'visibleLines',
+  'relationshipName',
+];
 
 // The thought here is to know which fields to show when
 export const fieldTypeDependencies: FieldValueDependencies = {
-  autoNumber: ['displayFormat', 'startingNumber'],
-  formula: [
+  AutoNumber: ['displayFormat', 'startingNumber', 'populateExistingRows'],
+  Formula: [
     'formula',
     'formulaTreatBlanksAs', // zeros | blanks
     // Checkbox, Currency, Date, DateTime, Number, Percent, Text, Time
     'secondaryType',
   ],
-  checkbox: [
+  Checkbox: [
     'defaultValue', // checked / unchecked
   ],
-  currency: [
-    'defaultValue',
-    'length',
+  Currency: [
+    'precision',
     'scale', // AKA decimal places, precision
+    'defaultValue',
     'required',
   ],
-  date: ['defaultValue', 'required'],
-  dateTime: ['defaultValue', 'required'],
-  time: [
+  Date: ['defaultValue', 'required'],
+  DateTime: ['defaultValue', 'required'],
+  Time: [
     'defaultValue', // as time values
     'required',
   ],
-  number: [
-    'defaultValue',
-    'length',
+  Number: [
+    'precision',
     'scale', // AKA decimal places, precision
+    'defaultValue',
     'required',
     'unique',
     'externalId',
   ],
-  percent: [
-    'defaultValue',
-    'length',
+  Percent: [
+    'precision',
     'scale', // AKA decimal places, precision
-    'required',
-  ],
-  phone: ['defaultValue', 'required'],
-  email: ['defaultValue', 'required', 'unique', 'externalId'],
-  masterDetail: ['referenceTo', 'writeRequiresMasterRead', 'reparentableMasterDetail'],
-  lookup: ['referenceTo', 'required'],
-  picklist: [
     'defaultValue',
-    // 'globalValueSet', // or valueSet
-    // 'valueSet', // or globalValueSet
     'required',
-    'firstAsDefault',
-    'restricted',
   ],
-  multiselectPicklist: [
-    'defaultValue',
-    // 'globalValueSet', // or valueSet
-    // 'valueSet', // or globalValueSet
-    'required',
-    'firstAsDefault',
-    'restricted',
-    'visibleLines',
-  ],
-  url: ['defaultValue', 'required'],
-  text: ['defaultValue', 'length', 'required', 'unique', 'externalId'],
-  textArea: ['required'],
-  longTextArea: ['length', 'visibleLines'],
+  Phone: ['defaultValue', 'required'],
+  Email: ['defaultValue', 'required', 'unique', 'externalId'],
+  MasterDetail: ['referenceTo', 'relationshipName', 'writeRequiresMasterRead', 'reparentableMasterDetail'],
+  Lookup: ['referenceTo', 'relationshipName', 'deleteConstraint', 'required'],
+  Picklist: ['defaultValue', 'required', 'firstAsDefault', 'restricted'],
+  MultiselectPicklist: ['defaultValue', 'required', 'firstAsDefault', 'restricted', 'visibleLines'],
+  Url: ['defaultValue', 'required'],
+  Text: ['defaultValue', 'length', 'required', 'unique', 'externalId'],
+  TextArea: ['required'],
+  LongTextArea: ['length', 'visibleLines'],
+  Html: ['length', 'visibleLines'],
+};
+
+// Some dependencies are missing in normal array but are required for exporting
+export const fieldTypeDependenciesExport: FieldValueDependencies = {
+  ...fieldTypeDependencies,
+  Picklist: [...fieldTypeDependencies.Picklist, 'valueSet', 'globalValueSet'],
+  MultiselectPicklist: [...fieldTypeDependencies.MultiselectPicklist, 'valueSet', 'globalValueSet'],
 };
 
 export function getInitialValues(key: number): FieldValues {
@@ -294,7 +387,7 @@ export function getInitialValues(key: number): FieldValues {
     _allValid: false,
     _picklistGlobalValueSet: true,
     type: {
-      value: 'text',
+      value: 'Text',
       touched: false,
       isValid: true,
       errorMessage: null,
@@ -336,19 +429,25 @@ export function getInitialValues(key: number): FieldValues {
       errorMessage: null,
     },
     deleteConstraint: {
-      value: '',
+      value: 'Allow',
       touched: false,
       isValid: true,
       errorMessage: null,
     },
     length: {
-      value: 255,
+      value: '255',
+      touched: false,
+      isValid: true,
+      errorMessage: null,
+    },
+    precision: {
+      value: '18',
       touched: false,
       isValid: true,
       errorMessage: null,
     },
     scale: {
-      value: 0,
+      value: '0',
       touched: false,
       isValid: true,
       errorMessage: null,
@@ -396,13 +495,13 @@ export function getInitialValues(key: number): FieldValues {
       errorMessage: null,
     },
     visibleLines: {
-      value: 3,
+      value: '3',
       touched: false,
       isValid: true,
       errorMessage: null,
     },
     startingNumber: {
-      value: 0,
+      value: '0',
       touched: false,
       isValid: true,
       errorMessage: null,
@@ -426,13 +525,13 @@ export function getInitialValues(key: number): FieldValues {
       errorMessage: null,
     },
     formulaTreatBlanksAs: {
-      value: '', // TODO,
+      value: 'Blanks',
       touched: false,
       isValid: true,
       errorMessage: null,
     },
     secondaryType: {
-      value: '',
+      value: 'Text',
       touched: false,
       isValid: true,
       errorMessage: null,
@@ -449,6 +548,12 @@ export function getInitialValues(key: number): FieldValues {
       isValid: true,
       errorMessage: null,
     },
+    relationshipName: {
+      value: false,
+      touched: false,
+      isValid: true,
+      errorMessage: null,
+    },
   };
 }
 
@@ -459,10 +564,28 @@ export function calculateFieldValidity(rows: FieldValues[]): { rows: FieldValues
     let allRowValid = true;
     const outputFieldValues: FieldValues = { ...fieldValues };
     allOutputFieldValues.push(outputFieldValues);
+
+    // ensure that default value is set correctly based on type of field
+    if (fieldValues.type.value === 'Checkbox' && isString(fieldValues.defaultValue.value)) {
+      outputFieldValues.defaultValue = {
+        ...outputFieldValues.defaultValue,
+        value: ensureBoolean(fieldValues.defaultValue.value),
+      };
+    } else if (fieldValues.type.value !== 'Checkbox' && isBoolean(fieldValues.defaultValue.value)) {
+      outputFieldValues.defaultValue = {
+        ...outputFieldValues.defaultValue,
+        value: '',
+      };
+    }
+
     [...baseFields, ...fieldTypeDependencies[fieldValues.type.value as FieldDefinitionType]].forEach((fieldName: FieldDefinitionType) => {
       const currField = fieldValues[fieldName];
+      if (!currField) {
+        return;
+      }
       const { isValid, value } = currField;
       const { validate, required } = fieldDefinitions[fieldName];
+
       if ((isNil(value) || value === '') && required) {
         if (isValid) {
           outputFieldValues[fieldName] = {
@@ -473,7 +596,7 @@ export function calculateFieldValidity(rows: FieldValues[]): { rows: FieldValues
         } else {
           outputFieldValues[fieldName] = currField;
         }
-      } else if (!isNil(value) && typeof validate === 'function' && !validate(value)) {
+      } else if (!isNil(value) && typeof validate === 'function' && !validate(value, fieldValues.type.value as SalesforceFieldType)) {
         if (isValid) {
           outputFieldValues[fieldName] = {
             ...currField,
@@ -497,7 +620,31 @@ export function calculateFieldValidity(rows: FieldValues[]): { rows: FieldValues
         allValid = false;
       }
     });
-    if (fieldValues.type.value === 'picklist' || fieldValues.type.value === 'multiselectPicklist') {
+    // Number validation
+
+    if (
+      NUMBER_TYPES.has(fieldValues.type.value as SalesforceFieldType) &&
+      outputFieldValues.precision.isValid &&
+      outputFieldValues.scale.isValid &&
+      Number(fieldValues.precision.value) + Number(fieldValues.scale.value) > 18
+    ) {
+      outputFieldValues.precision = {
+        ...outputFieldValues.precision,
+        isValid: false,
+        touched: true,
+        errorMessage: 'The sum of length and decimal places must not exceed 18.',
+      };
+      outputFieldValues.scale = {
+        ...outputFieldValues.scale,
+        isValid: false,
+        touched: true,
+        errorMessage: 'The sum of length and decimal places must not exceed 18.',
+      };
+      allRowValid = false;
+      allValid = false;
+    }
+    // Picklist validation
+    if (fieldValues.type.value === 'Picklist' || fieldValues.type.value === 'MultiselectPicklist') {
       const isValid = validatePicklist(fieldValues, outputFieldValues);
       if (!isValid) {
         allRowValid = false;
@@ -507,6 +654,24 @@ export function calculateFieldValidity(rows: FieldValues[]): { rows: FieldValues
     outputFieldValues._allValid = allRowValid;
   });
   return { rows: allOutputFieldValues, allValid };
+}
+
+export function generateApiNameFromLabel(value: string) {
+  let fullNameValue = value;
+  if (fullNameValue) {
+    fullNameValue = fullNameValue
+      .replace(REGEX.NOT_ALPHANUMERIC_OR_UNDERSCORE, '_')
+      .replace(REGEX.STARTS_WITH_UNDERSCORE, '')
+      .replace(REGEX.CONSECUTIVE_UNDERSCORES, '_')
+      .replace(REGEX.ENDS_WITH_NON_ALPHANUMERIC, '');
+    if (REGEX.STARTS_WITH_NUMBER.test(fullNameValue)) {
+      fullNameValue = `X${fullNameValue}`;
+    }
+    if (fullNameValue.length > 40) {
+      fullNameValue = fullNameValue.substring(0, 40);
+    }
+  }
+  return fullNameValue;
 }
 
 /**
@@ -550,36 +715,47 @@ function validatePicklist(fieldValues: FieldValues, outputFieldValues: FieldValu
   return allValid;
 }
 
-export function preparePayload(sobjects: string[], rows: FieldValues[]) {
-  return sobjects.map((sobject) => rows.map((row) => prepareFieldPayload(sobject, row)));
+export function preparePayload(sobjects: string[], rows: FieldValues[]): FieldDefinitionMetadata[] {
+  return rows.flatMap((row) => sobjects.map((sobject) => prepareFieldPayload(sobject, row)));
 }
 
-function prepareFieldPayload(sobject: string, fieldValues: FieldValues) {
-  const fieldMetadata = [...baseFields, ...fieldTypeDependencies[fieldValues.type.value as FieldDefinitionType]].reduce(
-    (output, field: FieldDefinitionType) => {
-      if (!isNil(fieldValues[field].value) && fieldValues[field].value !== '') {
-        output[field] = fieldValues[field].value;
-      }
-      return output;
-    },
-    {}
-  );
+function prepareFieldPayload(sobject: string, fieldValues: FieldValues): FieldDefinitionMetadata {
+  const fieldMetadata: FieldDefinitionMetadata = [
+    ...baseFields,
+    ...fieldTypeDependencies[fieldValues.type.value as FieldDefinitionType],
+  ].reduce((output: FieldDefinitionMetadata, field: FieldDefinitionType) => {
+    if (!isNil(fieldValues[field].value) && fieldValues[field].value !== '') {
+      output[field] = fieldValues[field].value;
+    }
+    return output;
+  }, {});
   // prefix with object
-  fieldMetadata.fullName = `${sobject}.${fieldMetadata.fullName}`;
+  fieldMetadata.fullName = `${sobject}.${fieldMetadata.fullName}__c`;
 
-  if (fieldValues.type.value === 'picklist' || fieldValues.type.value === 'multiselectPicklist') {
+  if (fieldValues.type.value === 'Formula') {
+    fieldMetadata.type = fieldValues.secondaryType.value;
+    fieldMetadata.secondaryType = undefined;
+
+    if (fieldValues.formulaTreatBlanksAs.value === 'Blanks') {
+      fieldMetadata.formulaTreatBlanksAs = undefined;
+    }
+  }
+
+  if (fieldValues.type.value === 'Picklist' || fieldValues.type.value === 'MultiselectPicklist') {
     // TODO:
     // restricted, firstAsDefault, sorted, data structure for valueSet (if exists)
     fieldMetadata.restricted = undefined;
     fieldMetadata.firstAsDefault = undefined;
     // fieldMetadata.sorted = undefined; // TODO:
     if (fieldValues._picklistGlobalValueSet) {
-      fieldMetadata.globalValueSet = fieldValues.globalValueSet.value;
+      fieldMetadata.valueSet = {
+        valueSetName: fieldValues.globalValueSet.value,
+      };
     } else {
       fieldMetadata.valueSet = {
         restricted: fieldValues.restricted.value,
         valueSetDefinition: {
-          sorted: false, // TODO: need to add field for this
+          sorted: false, // TODO: need to add field for this (maybe?)
           // sorted: fieldValues.sorted.value,
           value: (fieldValues.valueSet.value as string).split('\n').map((value, i) => ({
             fullName: value,
@@ -590,5 +766,124 @@ function prepareFieldPayload(sobject: string, fieldValues: FieldValues) {
       };
     }
   }
+
   return fieldMetadata;
+}
+
+export function getFieldPermissionRecords(fullName: string, type: SalesforceFieldType, profiles: string[], permissionSets: string[]) {
+  const [SobjectType] = fullName.split('.');
+  return [...profiles, ...permissionSets].map((ParentId) => ({
+    attributes: {
+      type: 'FieldPermissions',
+    },
+    Field: fullName,
+    ParentId,
+    PermissionsEdit: READ_ONLY_TYPES.has(type) ? false : true,
+    PermissionsRead: true,
+    SobjectType,
+  }));
+}
+
+export function addFieldToLayout(fields: FieldDefinitionMetadata[], layout: LayoutRecord) {
+  const fieldFullNames = Array.from(new Set(fields.map(({ fullName }) => fullName.split('.')[1]).filter(Boolean)));
+  fieldFullNames.forEach((field) => {
+    let behavior: 'Edit' | 'Readonly' | 'Required' = 'Edit';
+    if (READ_ONLY_TYPES.has(field.type)) {
+      behavior = 'Readonly';
+    } else if (field.required) {
+      behavior = 'Required';
+    }
+    layout.Metadata.layoutSections[0].layoutColumns[0].layoutItems.push({
+      field,
+      behavior,
+      analyticsCloudComponent: null,
+      canvas: null,
+      component: null,
+      customLink: null,
+      emptySpace: null,
+      height: null,
+      page: null,
+      reportChartComponent: null,
+      scontrol: null,
+      showLabel: null,
+      showScrollbars: null,
+      width: null,
+    });
+  });
+}
+
+export async function deployLayouts(
+  apiVersion: string,
+  selectedOrg: SalesforceOrgUi,
+  layoutIds: string[],
+  fields: FieldDefinitionMetadata[]
+) {
+  const layoutsWithFullMetadata = splitArrayToMaxSize(Object.values(layoutIds), 25).map((_layoutIds) => ({
+    allOrNone: false,
+    compositeRequest: _layoutIds.map((layoutId) => ({
+      method: 'GET',
+      url: `/services/data/${apiVersion}/tooling/sobjects/Layout/${layoutId}?fields=Id,FullName,Metadata`,
+      referenceId: layoutId,
+    })),
+  }));
+
+  const layoutsToUpdate: LayoutRecord[] = [];
+  const updatedLayoutIds: string[] = [];
+  const errors: string[] = [];
+
+  for (const compositeRequest of layoutsWithFullMetadata) {
+    const response = await genericRequest<CompositeResponse<LayoutRecord | { errorCode: string; message: string }[]>>(selectedOrg, {
+      isTooling: true,
+      method: 'POST',
+      url: `/services/data/${apiVersion}/tooling/composite`,
+      body: compositeRequest,
+    });
+
+    response.compositeResponse.forEach(({ body, httpStatusCode, referenceId }) => {
+      if (httpStatusCode < 200 || httpStatusCode > 299) {
+        if (Array.isArray(body)) {
+          // ERROR getting full layout metadata
+          if (Array.isArray(body)) {
+            errors.push(body.map(({ message }) => message).join('. '));
+          }
+        }
+      } else {
+        addFieldToLayout(fields, body as LayoutRecord);
+        layoutsToUpdate.push(body as LayoutRecord);
+      }
+    });
+  }
+
+  const layoutsToUpdateWithFullMetadata = splitArrayToMaxSize(layoutsToUpdate, 25).map((_layoutsToUpdate) => ({
+    allOrNone: false,
+    compositeRequest: _layoutsToUpdate.map((layout) => ({
+      method: 'PATCH',
+      url: `/services/data/${apiVersion}/tooling/sobjects/Layout/${layout.Id}`,
+      referenceId: layout.Id,
+      body: { ...layout, Id: null },
+    })),
+  }));
+
+  for (const compositeRequest of layoutsToUpdateWithFullMetadata) {
+    const response = await genericRequest<CompositeResponse<null | { errorCode: string; message: string }[]>>(selectedOrg, {
+      isTooling: true,
+      method: 'POST',
+      url: `/services/data/${apiVersion}/tooling/composite`,
+      body: compositeRequest,
+    });
+    response.compositeResponse.forEach(({ body, httpStatusCode, referenceId }) => {
+      if (httpStatusCode < 200 || httpStatusCode > 299) {
+        if (Array.isArray(body)) {
+          errors.push(body.map(({ message }) => message).join('. '));
+        }
+      } else {
+        updatedLayoutIds.push(referenceId);
+      }
+    });
+  }
+
+  return {
+    updatedLayoutIds,
+    errors,
+  };
 }

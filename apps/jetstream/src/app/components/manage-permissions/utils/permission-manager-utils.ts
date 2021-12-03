@@ -379,54 +379,6 @@ export function permissionsHaveError<T extends ObjectPermissionDefinitionMap | F
   return Object.values(permissionMap).some((item) => Object.values(item.permissions).some((permission) => permission.errorMessage));
 }
 
-export function getQueryForPermissionSetsWithProfiles(includeManaged = false): string {
-  const query: Query = {
-    fields: [
-      getField('Id'),
-      getField('Name'),
-      getField('Label'),
-      getField('Type'), // this field does not support filtering by
-      getField('IsCustom'),
-      getField('IsOwnedByProfile'),
-      getField('NamespacePrefix'),
-      getField('ProfileId'),
-      getField('Profile.Id'),
-      getField('Profile.Name'),
-      getField('Profile.UserType'),
-    ],
-    sObject: 'PermissionSet',
-    orderBy: [
-      {
-        field: 'IsOwnedByProfile',
-        order: 'DESC',
-      },
-      {
-        field: 'Profile.Name',
-        order: 'ASC',
-      },
-      {
-        field: 'Name',
-        order: 'ASC',
-      },
-    ],
-  };
-  // TODO: we should omit profiles that do not allow editing (not sure how to identify)
-  // maybe user access query?
-  if (!includeManaged) {
-    query.where = {
-      left: {
-        field: 'NamespacePrefix',
-        operator: '=',
-        value: 'null',
-        literalType: 'NULL',
-      },
-    };
-  }
-  const soql = composeQuery(query);
-  logger.log('getQueryForPermissionSetsWithProfiles()', soql);
-  return soql;
-}
-
 /**
  * Gets query for all permissionable fields
  * EntityParticle
