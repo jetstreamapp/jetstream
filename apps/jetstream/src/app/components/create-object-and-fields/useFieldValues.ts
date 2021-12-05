@@ -1,5 +1,4 @@
 import { useNonInitialEffect } from '@jetstream/shared/ui-utils';
-import { REGEX } from '@jetstream/shared/utils';
 import { ConfirmationModalPromise } from '@jetstream/ui';
 import { useCallback, useEffect, useReducer } from 'react';
 import { useRecoilState } from 'recoil';
@@ -40,16 +39,19 @@ function reducer(state: State, action: Action): State {
     }
     case 'IMPORT_ROWS': {
       let currRowKey = state.currRowKey + 1;
-      const importedRows = action.payload.rows.map((row, i) => ({
-        ...row,
-        _key: currRowKey + i,
-        _picklistGlobalValueSet: !!row.globalValueSet.value,
-      }));
-      currRowKey = currRowKey + action.payload.rows.length + 1;
-      const { rows, allValid } = calculateFieldValidity(importedRows);
+      const newRows = [
+        ...state.rows,
+        ...action.payload.rows.map((row, i) => ({
+          ...row,
+          _key: currRowKey + i,
+          _picklistGlobalValueSet: !!row.globalValueSet.value,
+        })),
+      ];
+      currRowKey = Math.max(...newRows.map((row) => row._key)) + 1;
+      const { rows, allValid } = calculateFieldValidity(newRows);
       return {
         ...state,
-        rows: [...state.rows, ...rows],
+        rows,
         currRowKey,
         allValid,
       };
@@ -131,7 +133,6 @@ function reducer(state: State, action: Action): State {
         _rows[rowIdx] = { ..._rows[rowIdx] };
         _rows[rowIdx]._picklistGlobalValueSet = value;
       }
-      // TODO: do I need this?
       const { rows, allValid } = calculateFieldValidity(_rows);
       return { ...state, rows, allValid };
     }

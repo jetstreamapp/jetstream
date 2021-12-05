@@ -1,3 +1,4 @@
+/* eslint-disable react/jsx-no-useless-fragment */
 import { css } from '@emotion/react';
 import { Fragment, FunctionComponent, useState } from 'react';
 import { create, InstanceProps } from 'react-modal-promise';
@@ -52,3 +53,7 @@ const XlsxSheetSelectionModalPromiseModal: FunctionComponent<XlsxSheetSelectionM
 };
 
 export const XlsxSheetSelectionModalPromise = create<XlsxSheetSelectionModalPromiseProps, string>(XlsxSheetSelectionModalPromiseModal);
+
+export const onParsedMultipleWorkbooks = async (worksheets: string[]): Promise<string> => {
+  return await XlsxSheetSelectionModalPromise({ worksheets });
+};

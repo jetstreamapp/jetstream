@@ -39,7 +39,7 @@ export const DeployMetadataSelection: FunctionComponent<DeployMetadataSelectionP
     <Page>
       <PageHeader>
         <PageHeaderRow>
-          <PageHeaderTitle icon={{ type: 'standard', icon: 'asset_relationship' }} label="Deploy Metadata Between Orgs" />
+          <PageHeaderTitle icon={{ type: 'standard', icon: 'asset_relationship' }} label="Deploy and Compare Metadata" />
           <PageHeaderActions colType="actions" buttonType="separate">
             <DownloadMetadataPackage selectedOrg={selectedOrg} />
             <DeployMetadataPackage selectedOrg={selectedOrg} />

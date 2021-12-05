@@ -2,35 +2,31 @@ import { logger } from '@jetstream/shared/client-logger';
 import { genericRequest, sobjectOperation } from '@jetstream/shared/data';
 import { useRollbar } from '@jetstream/shared/ui-utils';
 import { getMapOf, REGEX, splitArrayToMaxSize } from '@jetstream/shared/utils';
-import { CompositeGraphResponseBodyData, CompositeResponse, MapOf, RecordResult, SalesforceOrgUi } from '@jetstream/types';
+import { CompositeGraphResponseBodyData, CompositeResponse, ErrorResult, MapOf, RecordResult, SalesforceOrgUi } from '@jetstream/types';
+import { isString } from 'lodash';
 import { useCallback, useEffect, useState } from 'react';
-import { FieldDefinitionMetadata, FieldValues, SalesforceFieldType } from './create-fields-types';
+import { FieldDefinitionMetadata, FieldPermissionRecord, FieldValues, SalesforceFieldType } from './create-fields-types';
 import { deployLayouts, getFieldPermissionRecords, preparePayload } from './create-fields-utils';
 
-interface FieldPermissionRecord {
-  attributes: {
-    type: string;
-  };
-  Field: string;
-  ParentId: string;
-  PermissionsEdit: boolean;
-  PermissionsRead: boolean;
-  SobjectType: string;
-}
-
-interface CreateFieldsResults {
+export interface CreateFieldsResults {
   key: string;
   label: string;
   field: FieldDefinitionMetadata;
   state: CreateFieldsResultsStatus;
+  operation: 'INSERT' | 'UPSERT';
   errorMessage?: string;
   flsErrorMessage?: string;
   flsWarning?: boolean;
-  deployResult?: any; // TODO: not sure what to store yet - could fail on any object
-  flsResult?: RecordResult[]; // TODO: not sure what to store yet
+  deployResult?: any;
+  flsRecords?: FieldPermissionRecord[];
+  flsResult?: RecordResult[];
+  flsErrors?: string[];
+  pageLayoutStatus?: 'SKIPPED' | 'SUCCESS' | 'PARTIAL' | 'FAILED';
+  layoutErrors?: string[];
+  updatedLayoutIds?: string[];
 }
 
-type CreateFieldsResultsStatus = 'NOT_STARTED' | 'LOADING' | 'SUCCESS' | 'FAILED';
+export type CreateFieldsResultsStatus = 'NOT_STARTED' | 'LOADING' | 'SUCCESS' | 'FAILED';
 
 export function getFriendlyStatus(status: CreateFieldsResultsStatus) {
   switch (status) {
@@ -73,17 +69,15 @@ export default function useCreateFields({
 
   useEffect(() => {
     if (rows) {
-      setResultsById(
-        getMapOf(
-          preparePayload(sObjects, rows).map((field) => ({
-            key: `${(field.fullName as string).replace('.', '_').replace(REGEX.CONSECUTIVE_UNDERSCORES, '_')}`,
-            label: field.fullName,
-            field,
-            state: 'NOT_STARTED',
-          })),
-          'key'
-        )
-      );
+      const payload: CreateFieldsResults[] = preparePayload(sObjects, rows).map((field) => ({
+        key: `${(field.fullName as string).replace('.', '_').replace(REGEX.CONSECUTIVE_UNDERSCORES, '_')}`,
+        label: field.fullName,
+        field,
+        state: 'NOT_STARTED',
+        operation: 'INSERT',
+      }));
+      setResultsById(getMapOf(payload, 'key'));
+      logger.log('[DEPLOY FIELDS][PAYLOADS]', payload);
     }
   }, [rows, sObjects]);
 
@@ -104,15 +98,24 @@ export default function useCreateFields({
       setFatalError(false);
       const createFieldsPayloads = splitArrayToMaxSize(Object.values(_resultsById), 25).map((fields) => ({
         allOrNone: false,
-        compositeRequest: fields.map(({ field, key }) => ({
-          method: 'POST',
-          url: `/services/data/${apiVersion}/tooling/sobjects/CustomField`,
-          body: {
-            FullName: field.fullName,
-            Metadata: { ...field, fullName: undefined },
-          },
-          referenceId: key,
-        })),
+        compositeRequest: fields.map(({ field, key, deployResult }) => {
+          let url = `/services/data/${apiVersion}/tooling/sobjects/CustomField`;
+          let method = 'POST';
+          // Perform upsert if field was previously created
+          if (isString(deployResult) && deployResult.length === 18) {
+            url += `/${deployResult}`;
+            method = 'PATCH';
+          }
+          return {
+            method,
+            url,
+            body: {
+              FullName: field.fullName,
+              Metadata: { ...field, fullName: undefined },
+            },
+            referenceId: key,
+          };
+        }),
       }));
 
       for (const compositeRequest of createFieldsPayloads) {
@@ -128,7 +131,9 @@ export default function useCreateFields({
 
         response.compositeResponse.forEach(({ body, httpStatusCode, referenceId }) => {
           _resultsById[referenceId] = { ..._resultsById[referenceId] };
-          _resultsById[referenceId].deployResult = body;
+          if (body) {
+            _resultsById[referenceId].deployResult = body;
+          }
           if (httpStatusCode < 200 || httpStatusCode > 299) {
             let errorMessage: string;
             // errors seem to be returned as an array, success is returned as an object
@@ -140,14 +145,22 @@ export default function useCreateFields({
             _resultsById[referenceId].errorMessage = errorMessage || 'An unknown error has occurred.';
             _resultsById[referenceId].state = 'FAILED';
           } else {
-            _resultsById[referenceId].deployResult = (body as CompositeGraphResponseBodyData).id;
+            // If UPSERT, there is no body to store and we do not want to re-create the permissions as it will fail
+            if (httpStatusCode === 204) {
+              _resultsById[referenceId].operation = 'UPSERT';
+            } else {
+              _resultsById[referenceId].deployResult = (body as CompositeGraphResponseBodyData).id;
 
-            getFieldPermissionRecords(
-              _resultsById[referenceId].field.fullName,
-              _resultsById[referenceId].field.type as SalesforceFieldType,
-              profiles,
-              permissionSets
-            ).forEach((record) => permissionRecords.push(record));
+              // required fields and master detail cannot have FLS set
+              if (!_resultsById[referenceId].field.required && _resultsById[referenceId].field.type !== 'MasterDetail') {
+                getFieldPermissionRecords(
+                  _resultsById[referenceId].field.fullName,
+                  _resultsById[referenceId].field.formula ? 'Formula' : (_resultsById[referenceId].field.type as SalesforceFieldType),
+                  profiles,
+                  permissionSets
+                ).forEach((record) => permissionRecords.push(record));
+              }
+            }
           }
         });
       }
@@ -175,12 +188,22 @@ export default function useCreateFields({
         }, {});
         permissionResults.forEach((record, i) => {
           const originalRecord = permissionRecords[i];
+          originalRecord.Success = record.success;
           if (resultsByFullName[originalRecord?.Field]) {
             const result = resultsByFullName[originalRecord?.Field];
+            result.flsRecords = permissionRecords;
             result.flsResult = result.flsResult || [];
             result.flsResult.push(record);
             if (!record.success) {
               result.flsWarning = true;
+              try {
+                result.flsErrors = (record as ErrorResult).errors.map((error) => error.message);
+                originalRecord.Errors = result.flsErrors.join('\n');
+              } catch (ex) {
+                logger.warn('Error getting FLS errors');
+              }
+            } else {
+              originalRecord.Id = record.id;
             }
           }
         });
@@ -212,9 +235,15 @@ export default function useCreateFields({
 
         _resultsById = { ..._resultsById };
 
+        /** DEPLOY FIELD METADATA */
+
         await deployFieldMetadata(_resultsById, permissionRecords);
 
         setResultsById(_resultsById);
+
+        _resultsById = { ..._resultsById };
+
+        /** PERMISSIONS (Profiles/Permission Sets) */
 
         if (permissionRecords.length) {
           await deployFieldPermissions(_resultsById, permissionRecords);
@@ -224,11 +253,10 @@ export default function useCreateFields({
           .filter(({ state }) => state === 'LOADING')
           .map(({ field }) => field);
 
-        /**
-         * TODO: this includes that same field multiple times,
-         * I need to include each field exactly once and I need to know which
-         * fields were successful on which objects and only deploy those particular layouts
-         */
+        /** PAGE LAYOUTS */
+        let pageLayoutStatus: 'SKIPPED' | 'SUCCESS' | 'PARTIAL' | 'FAILED' = 'SKIPPED';
+        let _layoutErrors: string[] = [];
+        let _updatedLayoutIds: string[] = [];
         if (deployedFields.length && selectedLayoutIds.length) {
           try {
             const { updatedLayoutIds, errors: layoutErrors } = await deployLayouts(
@@ -240,20 +268,39 @@ export default function useCreateFields({
             if (layoutErrors.length) {
               setLayoutErrorMessage(layoutErrors.join('. '));
             }
+            if (layoutErrors.length && !updatedLayoutIds.length) {
+              pageLayoutStatus = 'FAILED';
+            } else if (layoutErrors.length) {
+              pageLayoutStatus = 'PARTIAL';
+            } else {
+              pageLayoutStatus = 'SUCCESS';
+            }
+            _layoutErrors = layoutErrors;
+            _updatedLayoutIds = updatedLayoutIds;
           } catch (ex) {
-            // TODO: rollbar
             setLayoutErrorMessage('There was an unexpected error updating page layouts');
+            pageLayoutStatus = 'FAILED';
+            rollbar.critical('Create fields - page layouts - error', {
+              message: ex.message,
+              stack: ex.stack,
+            });
           }
         }
 
         Object.values(_resultsById).forEach((result) => {
           if (result.state === 'LOADING') {
             result.state = 'SUCCESS';
+            result.pageLayoutStatus = pageLayoutStatus;
+            result.layoutErrors = _layoutErrors;
+            result.updatedLayoutIds = _updatedLayoutIds;
           }
         });
 
+        logger.log('[DEPLOY FINISHED]', _resultsById);
         setResultsById(_resultsById);
+        setDeployed(true);
       } catch (ex) {
+        logger.log('[DEPLOY FAILED]', ex);
         setFatalError(true);
         setFatalErrorMessage(`An unexpected error has occurred. ${ex.message}`);
         setResultsById(

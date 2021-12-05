@@ -98,8 +98,7 @@ const ROUTES: RouteItem[] = [
     ),
   },
   {
-    path: '/create-objects-and-fields',
-    // flag: FEATURE_FLAGS.DEPLOYMENT,
+    path: '/deploy-sobject-metadata',
     render: () => (
       <OrgSelectionRequired>
         <CreateObjectAndFields />

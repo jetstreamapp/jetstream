@@ -111,7 +111,24 @@ export const HeaderNavbar: FunctionComponent<HeaderNavbarProps> = ({ userProfile
 
           <NavbarItem path="/automation-control" title="Automation Control" label="Automation Control" />
           <NavbarItem path="/permissions-manager" title="Manage Permissions" label="Manage Permissions" />
-          <NavbarItem path="/deploy-metadata" title="Deploy Metadata" label="Deploy Metadata" />
+
+          <NavbarMenuItems
+            label="Deploy Metadata"
+            items={[
+              {
+                id: 'deploy-sobject-metadata',
+                path: '/deploy-sobject-metadata',
+                title: 'Create Fields',
+                label: 'Create Fields',
+              },
+              {
+                id: 'deploy-metadata',
+                path: '/deploy-metadata',
+                title: 'Deploy and Compare Metadata',
+                label: 'Deploy and Compare Metadata',
+              },
+            ]}
+          />
 
           <NavbarMenuItems
             label="Developer Tools"

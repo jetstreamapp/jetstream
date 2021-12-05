@@ -1,27 +1,12 @@
 import { SalesforceOrgUi } from '@jetstream/types';
-import React, { Fragment, FunctionComponent, useEffect, useState } from 'react';
-import { Redirect, Route, Switch, useRouteMatch } from 'react-router-dom';
-import { useRecoilValue, useResetRecoilState } from 'recoil';
-import { selectedOrgState } from '../../app-state';
-import StateDebugObserver from '../core/StateDebugObserver';
-// import * as fromDeployMetadataState from './deploy-metadata.state';
-// import DeployMetadataDeployment from './DeployMetadataDeployment';
-// import DeployMetadataSelection from './DeployMetadataSelection';
-import { TITLES } from '@jetstream/shared/constants';
-import { useTitle } from 'react-use';
 import { Grid, Icon, Tooltip } from '@jetstream/ui';
-import CreateFieldsRowField from './CreateFieldsRowField';
-import { baseFields, fieldDefinitions, fieldTypeDependencies } from './create-fields-utils';
+import React, { FunctionComponent } from 'react';
 import { FieldDefinitionType, FieldValue, FieldValues, SalesforceFieldType } from './create-fields-types';
+import { baseFields, fieldDefinitions, fieldTypeDependencies, getAdditionalFieldDependencies } from './create-fields-utils';
+import CreateFieldsRowField from './CreateFieldsRowField';
 import CreateFieldsRowPicklistOption from './CreateFieldsRowPicklistOption';
 
 const TYPE_PICKLIST = new Set<SalesforceFieldType>(['Picklist', 'MultiselectPicklist']);
-
-/**
- * TODO:
- * allow for custom built "variable" wrappers around groups of fields (e.x. picklists)
- * data model should have some stuff mentioned threre
- */
 
 export interface CreateFieldsRowProps {
   rowIdx: number;
@@ -96,6 +81,20 @@ export const CreateFieldsRow: FunctionComponent<CreateFieldsRowProps> = ({
               onBlur={() => onBlur(field)}
             />
           ))}
+        {getAdditionalFieldDependencies(values).map((field) => (
+          <CreateFieldsRowField
+            key={field}
+            selectedOrg={selectedOrg}
+            id={`field-${rowIdx}-${field}`}
+            fieldDefinitions={fieldDefinitions}
+            field={fieldDefinitions[field]}
+            allValues={values}
+            valueState={values[field]}
+            disabled={false}
+            onChange={(value) => handleChange(field, value)}
+            onBlur={() => onBlur(field)}
+          />
+        ))}
       </Grid>
       <Grid className="slds-m-top_small" align="spread" verticalAlign="end">
         <div>
@@ -105,8 +104,6 @@ export const CreateFieldsRow: FunctionComponent<CreateFieldsRowProps> = ({
           </button>
         </div>
         <div>
-          {/* TODO: replace with some UI element */}
-          {/* maybe show as super muted when not valid and green with checkbox when all valid */}
           {!allValid && (
             <Grid className="slds-text-color_weak">
               <Tooltip content="Field is not yet configured">

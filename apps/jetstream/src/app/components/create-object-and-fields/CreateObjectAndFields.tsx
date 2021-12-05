@@ -4,7 +4,7 @@ import React, { Fragment, FunctionComponent, useEffect, useState } from 'react';
 import { Redirect, Route, Switch, useRouteMatch } from 'react-router-dom';
 import { useTitle } from 'react-use';
 import { useRecoilState, useRecoilValue, useResetRecoilState } from 'recoil';
-import { selectedOrgState, applicationCookieState } from '../../app-state';
+import { applicationCookieState, selectedOrgState } from '../../app-state';
 import StateDebugObserver from '../core/StateDebugObserver';
 import * as fromCreateFieldsState from './create-fields.state';
 import CreateFields from './CreateFields';

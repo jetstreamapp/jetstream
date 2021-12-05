@@ -1,11 +1,9 @@
 import { css } from '@emotion/react';
-import { useNonInitialEffect } from '@jetstream/shared/ui-utils';
 import { ListItem, SalesforceOrgUi } from '@jetstream/types';
-import { Checkbox, ComboboxWithItems, Input, Picklist, PicklistRef, Radio, RadioGroup, Spinner, Textarea } from '@jetstream/ui';
-import React, { Fragment, FunctionComponent, useEffect, useRef, useState } from 'react';
-import { FieldDefinition, FieldDefinitions, FieldValueState, FieldValue, FieldValues, SalesforceFieldType } from './create-fields-types';
+import { Checkbox, ComboboxWithItems, Input, PicklistRef, Radio, RadioGroup, Spinner, Textarea } from '@jetstream/ui';
+import React, { FunctionComponent, useEffect, useRef, useState } from 'react';
+import { FieldDefinition, FieldDefinitions, FieldValue, FieldValues, FieldValueState, SalesforceFieldType } from './create-fields-types';
 
-// eslint-disable-next-line @typescript-eslint/no-empty-interface
 export interface CreateFieldsRowFieldProps {
   selectedOrg: SalesforceOrgUi;
   id: string;
@@ -33,13 +31,10 @@ export const CreateFieldsRowField: FunctionComponent<CreateFieldsRowFieldProps> 
   const disabled = _disabled || field?.disabled?.(allValues);
   const [values, setValues] = useState<ListItem[]>([]);
   const picklistRef = useRef<PicklistRef>();
-  // TODO: use this
   const [loadingValues, setLoadingValues] = useState<boolean>(false);
 
   useEffect(() => {
     if (typeof field.values === 'function') {
-      // TODO: handle errors
-      // TODO: figure out what other stuff I need to pass in
       setLoadingValues(true);
       field
         .values(selectedOrg)

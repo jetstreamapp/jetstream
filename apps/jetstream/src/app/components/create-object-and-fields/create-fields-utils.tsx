@@ -15,6 +15,7 @@ import {
   LayoutRecord,
   SalesforceFieldType,
 } from './create-fields-types';
+import { CreateFieldsResults } from './useCreateFields';
 
 const READ_ONLY_TYPES = new Set<SalesforceFieldType>(['AutoNumber', 'Formula']);
 const NUMBER_TYPES = new Set<SalesforceFieldType>(['Number', 'Currency', 'Percent']);
@@ -100,7 +101,7 @@ export const fieldDefinitions: FieldDefinitions = {
     label: 'Related Record Deletion',
     type: 'picklist',
     values: [
-      { id: 'Allow', value: 'Allow', label: 'Clear Value' },
+      { id: 'SetNull', value: 'SetNull', label: 'Clear Value' },
       { id: 'Restrict', value: 'Restrict', label: 'Prevent Deletion' },
     ],
   },
@@ -118,7 +119,7 @@ export const fieldDefinitions: FieldDefinitions = {
       }
       const numValue = Number(value);
       if (type === 'LongTextArea' || type === 'Html') {
-        return isFinite(numValue) && numValue > 0 && numValue <= 131072;
+        return isFinite(numValue) && numValue > 255 && numValue <= 131072;
       }
       return isFinite(numValue) && numValue > 0 && numValue <= 255;
     },
@@ -288,6 +289,12 @@ export const fieldDefinitions: FieldDefinitions = {
     type: 'text',
     labelHelp: 'This is relationship name for subqueries.',
     required: true,
+    validate: (value: string) => {
+      if (!value || !/(^[a-zA-Z]+$)|(^[a-zA-Z]+[0-9a-zA-Z_]*[0-9a-zA-Z]$)/.test(value) || value.includes('__') || value.length > 40) {
+        return false;
+      }
+      return true;
+    },
   },
 };
 
@@ -374,6 +381,13 @@ export const fieldTypeDependencies: FieldValueDependencies = {
   Html: ['length', 'visibleLines'],
 };
 
+export function getAdditionalFieldDependencies(fieldValues: FieldValues): FieldDefinitionType[] {
+  if (fieldValues.type.value === 'Formula' && NUMBER_TYPES.has(fieldValues.secondaryType?.value as SalesforceFieldType)) {
+    return ['precision', 'scale'];
+  }
+  return [];
+}
+
 // Some dependencies are missing in normal array but are required for exporting
 export const fieldTypeDependenciesExport: FieldValueDependencies = {
   ...fieldTypeDependencies,
@@ -429,7 +443,7 @@ export function getInitialValues(key: number): FieldValues {
       errorMessage: null,
     },
     deleteConstraint: {
-      value: 'Allow',
+      value: 'SetNull',
       touched: false,
       isValid: true,
       errorMessage: null,
@@ -549,7 +563,7 @@ export function getInitialValues(key: number): FieldValues {
       errorMessage: null,
     },
     relationshipName: {
-      value: false,
+      value: '',
       touched: false,
       isValid: true,
       errorMessage: null,
@@ -577,8 +591,12 @@ export function calculateFieldValidity(rows: FieldValues[]): { rows: FieldValues
         value: '',
       };
     }
-
-    [...baseFields, ...fieldTypeDependencies[fieldValues.type.value as FieldDefinitionType]].forEach((fieldName: FieldDefinitionType) => {
+    // const
+    [
+      ...baseFields,
+      ...fieldTypeDependencies[fieldValues.type.value as FieldDefinitionType],
+      ...getAdditionalFieldDependencies(fieldValues),
+    ].forEach((fieldName: FieldDefinitionType) => {
       const currField = fieldValues[fieldName];
       if (!currField) {
         return;
@@ -620,8 +638,8 @@ export function calculateFieldValidity(rows: FieldValues[]): { rows: FieldValues
         allValid = false;
       }
     });
-    // Number validation
 
+    // Number validation
     if (
       NUMBER_TYPES.has(fieldValues.type.value as SalesforceFieldType) &&
       outputFieldValues.precision.isValid &&
@@ -723,6 +741,7 @@ function prepareFieldPayload(sobject: string, fieldValues: FieldValues): FieldDe
   const fieldMetadata: FieldDefinitionMetadata = [
     ...baseFields,
     ...fieldTypeDependencies[fieldValues.type.value as FieldDefinitionType],
+    ...getAdditionalFieldDependencies(fieldValues),
   ].reduce((output: FieldDefinitionMetadata, field: FieldDefinitionType) => {
     if (!isNil(fieldValues[field].value) && fieldValues[field].value !== '') {
       output[field] = fieldValues[field].value;
@@ -741,12 +760,15 @@ function prepareFieldPayload(sobject: string, fieldValues: FieldValues): FieldDe
     }
   }
 
+  if (fieldValues.type.value === 'Checkbox') {
+    fieldMetadata.defaultValue = fieldMetadata.defaultValue ?? false;
+  }
+
   if (fieldValues.type.value === 'Picklist' || fieldValues.type.value === 'MultiselectPicklist') {
-    // TODO:
     // restricted, firstAsDefault, sorted, data structure for valueSet (if exists)
     fieldMetadata.restricted = undefined;
     fieldMetadata.firstAsDefault = undefined;
-    // fieldMetadata.sorted = undefined; // TODO:
+    // fieldMetadata.sorted = undefined; // TODO: do we need to set this one?
     if (fieldValues._picklistGlobalValueSet) {
       fieldMetadata.valueSet = {
         valueSetName: fieldValues.globalValueSet.value,
@@ -755,7 +777,7 @@ function prepareFieldPayload(sobject: string, fieldValues: FieldValues): FieldDe
       fieldMetadata.valueSet = {
         restricted: fieldValues.restricted.value,
         valueSetDefinition: {
-          sorted: false, // TODO: need to add field for this (maybe?)
+          sorted: false,
           // sorted: fieldValues.sorted.value,
           value: (fieldValues.valueSet.value as string).split('\n').map((value, i) => ({
             fullName: value,
@@ -784,13 +806,24 @@ export function getFieldPermissionRecords(fullName: string, type: SalesforceFiel
   }));
 }
 
-export function addFieldToLayout(fields: FieldDefinitionMetadata[], layout: LayoutRecord) {
-  const fieldFullNames = Array.from(new Set(fields.map(({ fullName }) => fullName.split('.')[1]).filter(Boolean)));
-  fieldFullNames.forEach((field) => {
+export function addFieldToLayout(fields: FieldDefinitionMetadata[], layout: LayoutRecord): boolean {
+  // need to see if field should be readonly on the layout
+  const fieldsByApiName = fields.reduce((output, field) => {
+    const fieldApiName = field.fullName.split('.')[1];
+    if (fieldApiName && !output[fieldApiName]) {
+      output[fieldApiName] = field;
+    }
+    return output;
+  }, {});
+
+  const layoutSectionsJson = JSON.stringify(layout.Metadata.layoutSections);
+  // ensure field does not already exist on layout
+  const fieldsToAdd = Object.keys(fieldsByApiName).filter((field) => !layoutSectionsJson.includes(`"field":"${field}"`));
+  fieldsToAdd.forEach((field) => {
     let behavior: 'Edit' | 'Readonly' | 'Required' = 'Edit';
-    if (READ_ONLY_TYPES.has(field.type)) {
+    if (READ_ONLY_TYPES.has(fieldsByApiName[field].type) || fieldsByApiName[field].formula) {
       behavior = 'Readonly';
-    } else if (field.required) {
+    } else if (fieldsByApiName[field].required) {
       behavior = 'Required';
     }
     layout.Metadata.layoutSections[0].layoutColumns[0].layoutItems.push({
@@ -809,7 +842,13 @@ export function addFieldToLayout(fields: FieldDefinitionMetadata[], layout: Layo
       showScrollbars: null,
       width: null,
     });
+    // Random SFDC error for this ENUM
+    // Cannot deserialize instance of complexvalue from VALUE_STRING value DEFAULT or request may be missing a required field at [line:843, column:31]
+    if (isString(layout.Metadata?.summaryLayout?.summaryLayoutStyle)) {
+      layout.Metadata.summaryLayout = undefined;
+    }
   });
+  return fieldsToAdd.length > 0;
 }
 
 export async function deployLayouts(
@@ -818,6 +857,7 @@ export async function deployLayouts(
   layoutIds: string[],
   fields: FieldDefinitionMetadata[]
 ) {
+  /** FETCH LAYOUTS */
   const layoutsWithFullMetadata = splitArrayToMaxSize(Object.values(layoutIds), 25).map((_layoutIds) => ({
     allOrNone: false,
     compositeRequest: _layoutIds.map((layoutId) => ({
@@ -848,12 +888,15 @@ export async function deployLayouts(
           }
         }
       } else {
-        addFieldToLayout(fields, body as LayoutRecord);
-        layoutsToUpdate.push(body as LayoutRecord);
+        const didAddFields = addFieldToLayout(fields, body as LayoutRecord);
+        if (didAddFields) {
+          layoutsToUpdate.push(body as LayoutRecord);
+        }
       }
     });
   }
 
+  /** UPDATE LAYOUTS */
   const layoutsToUpdateWithFullMetadata = splitArrayToMaxSize(layoutsToUpdate, 25).map((_layoutsToUpdate) => ({
     allOrNone: false,
     compositeRequest: _layoutsToUpdate.map((layout) => ({
@@ -885,5 +928,57 @@ export async function deployLayouts(
   return {
     updatedLayoutIds,
     errors,
+  };
+}
+
+export function getRowsForExport(fieldValues: FieldValues[]) {
+  const BASE_FIELDS = new Set(baseFields);
+  return fieldValues.map((row) =>
+    allFields.reduce((output, field) => {
+      if (BASE_FIELDS.has(field) || fieldTypeDependenciesExport[row.type.value as SalesforceFieldType].includes(field)) {
+        if (field === 'globalValueSet' && row._picklistGlobalValueSet) {
+          output[field] = row[field].value;
+        } else if (field === 'valueSet' && !row._picklistGlobalValueSet) {
+          output[field] = row[field].value;
+        } else if (field !== 'globalValueSet' && field !== 'valueSet') {
+          output[field] = row[field].value;
+        }
+      }
+      return output;
+    }, {})
+  );
+}
+
+export function prepareDownloadResultsFile(fieldResults: CreateFieldsResults[], fieldValues: FieldValues[]) {
+  let permissionRecords = [];
+  const resultsWorksheet = fieldResults.map(
+    ({ label, state, deployResult, flsResult, flsErrors, flsRecords, layoutErrors, updatedLayoutIds }) => {
+      permissionRecords = permissionRecords.concat(flsRecords);
+      let _flsResult = 'N/A';
+      if (flsResult && flsResult.length) {
+        _flsResult = flsResult?.every?.((result) => result.success) ? 'SUCCESS' : 'PARTIAL SUCCESS';
+      }
+      return {
+        Field: label,
+        'Field Status': state,
+        'Field Id': isString(deployResult) ? deployResult : '',
+        'FLS Result': _flsResult,
+        'FLS Errors': flsErrors?.join?.('\n') || '',
+        'Page Layouts Updated': updatedLayoutIds?.join('\n') || '',
+        'Page Layouts Errors': layoutErrors?.join('\n') || '',
+      };
+    }
+  );
+  return {
+    worksheetData: {
+      Results: resultsWorksheet,
+      'Import Template': getRowsForExport(fieldValues),
+      'Permission Records': permissionRecords.filter(Boolean) || [],
+    },
+    headerData: {
+      Results: ['Field', 'Field Status', 'Field Id', 'FLS Result', 'FLS Errors', 'Page Layouts Updated', 'Page Layouts Errors'],
+      'Import Template': allFields,
+      'Permission Records': ['Success', 'Id', 'Errors', 'SobjectType', 'Field', 'ParentId', 'PermissionsEdit', 'PermissionsRead'],
+    },
   };
 }

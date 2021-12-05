@@ -1,7 +1,7 @@
 import { SalesforceOrgUi } from '@jetstream/types';
 import { Checkbox, Grid } from '@jetstream/ui';
 import React, { FunctionComponent } from 'react';
-import { FieldDefinition, FieldDefinitions, FieldDefinitionType, FieldValue, FieldValues } from './create-fields-types';
+import { FieldDefinitions, FieldDefinitionType, FieldValue, FieldValues } from './create-fields-types';
 import CreateFieldsRowField from './CreateFieldsRowField';
 
 export interface CreateFieldsRowPicklistOptionProps {

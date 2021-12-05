@@ -123,5 +123,20 @@ export interface LayoutRecord {
         }[];
       }[];
     }[];
+    summaryLayout?: any;
   };
+}
+
+export interface FieldPermissionRecord {
+  Success?: boolean;
+  Id?: string;
+  Errors?: string;
+  attributes: {
+    type: string;
+  };
+  Field: string;
+  ParentId: string;
+  PermissionsEdit: boolean;
+  PermissionsRead: boolean;
+  SobjectType: string;
 }

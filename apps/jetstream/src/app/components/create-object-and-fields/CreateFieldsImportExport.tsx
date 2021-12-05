@@ -2,14 +2,23 @@ import { INPUT_ACCEPT_FILETYPES } from '@jetstream/shared/constants';
 import { parseFile } from '@jetstream/shared/ui-utils';
 import { ensureBoolean } from '@jetstream/shared/utils';
 import { InputReadFileContent, SalesforceOrgUi } from '@jetstream/types';
-import { ButtonGroupContainer, DropDown, FileDownloadModal, FileSelector, Icon, Popover, PopoverRef } from '@jetstream/ui';
+import {
+  ButtonGroupContainer,
+  DropDown,
+  FileDownloadModal,
+  FileSelector,
+  Icon,
+  onParsedMultipleWorkbooks,
+  Popover,
+  PopoverRef,
+} from '@jetstream/ui';
 import React, { Fragment, FunctionComponent, useRef, useState } from 'react';
 import { useRecoilState } from 'recoil';
 import { applicationCookieState } from '../../app-state';
 import * as fromJetstreamEvents from '../core/jetstream-events';
 import { CREATE_FIELDS_EXAMPLE_TEMPLATE } from './create-fields-import-example';
-import { FieldValues, SalesforceFieldType } from './create-fields-types';
-import { allFields, baseFields, fieldDefinitions, fieldTypeDependencies, fieldTypeDependenciesExport } from './create-fields-utils';
+import { FieldValues } from './create-fields-types';
+import { allFields, fieldDefinitions, getRowsForExport } from './create-fields-utils';
 
 export interface CreateFieldsImportExportProps {
   selectedOrg: SalesforceOrgUi;
@@ -28,29 +37,13 @@ export const CreateFieldsImportExport: FunctionComponent<CreateFieldsImportExpor
   }
 
   function handleExport() {
-    const BASE_FIELDS = new Set(baseFields);
-    setExportData(
-      rows.map((row) =>
-        allFields.reduce((output, field) => {
-          if (BASE_FIELDS.has(field) || fieldTypeDependenciesExport[row.type.value as SalesforceFieldType].includes(field)) {
-            if (field === 'globalValueSet' && row._picklistGlobalValueSet) {
-              output[field] = row[field].value;
-            } else if (field === 'valueSet' && !row._picklistGlobalValueSet) {
-              output[field] = row[field].value;
-            } else if (field !== 'globalValueSet' && field !== 'valueSet') {
-              output[field] = row[field].value;
-            }
-          }
-          return output;
-        }, {})
-      )
-    );
+    setExportData(getRowsForExport(rows));
     setExportModalOpen(true);
   }
 
   async function handleImport({ content }: InputReadFileContent) {
     // TODO: error messaging
-    const { data, errors } = await parseFile(content);
+    const { data, errors } = await parseFile(content, { onParsedMultipleWorkbooks });
     onImportRows(
       data.map(
         (row): FieldValues =>
