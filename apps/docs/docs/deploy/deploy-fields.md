@@ -7,7 +7,7 @@ slug: /deploy-fields
 
 import Success from '../assets/icons/Success.svg';
 
-Mass creating fields in Salesforce is an extremely slow and painful process. Use Jetstream to quickly create fields one one or more objects at the same time! 🎉
+Mass creating fields in Salesforce is an extremely slow and painful process. Use Jetstream to quickly create fields on one or more objects at the same time! 🎉
 
 ## Selecting objects, profiles and permission sets
 
