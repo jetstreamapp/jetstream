@@ -3,7 +3,7 @@ import { genericRequest, sobjectOperation } from '@jetstream/shared/data';
 import { useRollbar } from '@jetstream/shared/ui-utils';
 import { getMapOf, REGEX, splitArrayToMaxSize } from '@jetstream/shared/utils';
 import { CompositeGraphResponseBodyData, CompositeResponse, ErrorResult, MapOf, RecordResult, SalesforceOrgUi } from '@jetstream/types';
-import { isString } from 'lodash';
+import isString from 'lodash/isString';
 import { useCallback, useEffect, useState } from 'react';
 import { FieldDefinitionMetadata, FieldPermissionRecord, FieldValues, SalesforceFieldType } from './create-fields-types';
 import { deployLayouts, getFieldPermissionRecords, preparePayload } from './create-fields-utils';
@@ -69,17 +69,26 @@ export default function useCreateFields({
 
   useEffect(() => {
     if (rows) {
-      const payload: CreateFieldsResults[] = preparePayload(sObjects, rows).map((field) => ({
-        key: `${(field.fullName as string).replace('.', '_').replace(REGEX.CONSECUTIVE_UNDERSCORES, '_')}`,
-        label: field.fullName,
-        field,
-        state: 'NOT_STARTED',
-        operation: 'INSERT',
-      }));
-      setResultsById(getMapOf(payload, 'key'));
-      logger.log('[DEPLOY FIELDS][PAYLOADS]', payload);
+      try {
+        const payload: CreateFieldsResults[] = preparePayload(sObjects, rows).map((field) => ({
+          key: `${(field.fullName as string).replace('.', '_').replace(REGEX.CONSECUTIVE_UNDERSCORES, '_')}`,
+          label: field.fullName,
+          field,
+          state: 'NOT_STARTED',
+          operation: 'INSERT',
+        }));
+        setResultsById(getMapOf(payload, 'key'));
+        logger.log('[DEPLOY FIELDS][PAYLOADS]', payload);
+      } catch (ex) {
+        setFatalError(true);
+        setFatalErrorMessage('There was a problem preparing the data for deployment');
+        rollbar.critical('Create fields - prepare payload error', {
+          message: ex.message,
+          stack: ex.stack,
+        });
+      }
     }
-  }, [rows, sObjects]);
+  }, [rollbar, rows, sObjects]);
 
   useEffect(() => {
     if (resultsById) {
@@ -138,7 +147,7 @@ export default function useCreateFields({
             let errorMessage: string;
             // errors seem to be returned as an array, success is returned as an object
             if (Array.isArray(body)) {
-              errorMessage = body.map(({ message }) => message).join('. ');
+              errorMessage = body.map(({ message }) => message).join(' ');
             } else {
               errorMessage = body.message;
             }
@@ -201,6 +210,10 @@ export default function useCreateFields({
                 originalRecord.Errors = result.flsErrors.join('\n');
               } catch (ex) {
                 logger.warn('Error getting FLS errors');
+                rollbar.error('Create fields - error getting FLS results', {
+                  message: ex.message,
+                  stack: ex.stack,
+                });
               }
             } else {
               originalRecord.Id = record.id;
@@ -213,7 +226,7 @@ export default function useCreateFields({
         });
       }
     },
-    [selectedOrg]
+    [rollbar, selectedOrg]
   );
 
   /**
@@ -266,7 +279,7 @@ export default function useCreateFields({
               deployedFields
             );
             if (layoutErrors.length) {
-              setLayoutErrorMessage(layoutErrors.join('. '));
+              setLayoutErrorMessage(layoutErrors.join(' '));
             }
             if (layoutErrors.length && !updatedLayoutIds.length) {
               pageLayoutStatus = 'FAILED';
@@ -280,7 +293,7 @@ export default function useCreateFields({
           } catch (ex) {
             setLayoutErrorMessage('There was an unexpected error updating page layouts');
             pageLayoutStatus = 'FAILED';
-            rollbar.critical('Create fields - page layouts - error', {
+            rollbar.error('Create fields - page layouts - error', {
               message: ex.message,
               stack: ex.stack,
             });
@@ -309,7 +322,7 @@ export default function useCreateFields({
             'key'
           )
         );
-        rollbar.critical('Create fields error', {
+        rollbar.error('Create fields error', {
           message: ex.message,
           stack: ex.stack,
         });

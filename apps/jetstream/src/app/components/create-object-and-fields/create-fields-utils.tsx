@@ -591,7 +591,6 @@ export function calculateFieldValidity(rows: FieldValues[]): { rows: FieldValues
         value: '',
       };
     }
-    // const
     [
       ...baseFields,
       ...fieldTypeDependencies[fieldValues.type.value as FieldDefinitionType],
@@ -884,7 +883,7 @@ export async function deployLayouts(
         if (Array.isArray(body)) {
           // ERROR getting full layout metadata
           if (Array.isArray(body)) {
-            errors.push(body.map(({ message }) => message).join('. '));
+            errors.push(body.map(({ message }) => message).join(' '));
           }
         }
       } else {
@@ -917,7 +916,7 @@ export async function deployLayouts(
     response.compositeResponse.forEach(({ body, httpStatusCode, referenceId }) => {
       if (httpStatusCode < 200 || httpStatusCode > 299) {
         if (Array.isArray(body)) {
-          errors.push(body.map(({ message }) => message).join('. '));
+          errors.push(body.map(({ message }) => message).join(' '));
         }
       } else {
         updatedLayoutIds.push(referenceId);

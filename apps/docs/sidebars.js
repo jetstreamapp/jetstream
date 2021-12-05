@@ -61,7 +61,11 @@ module.exports = {
     },
     'automation-control/automation-control',
     'permissions/permissions',
-    'deploy/deploy',
+    {
+      type: 'category',
+      label: 'Deploy Metadata',
+      items: ['deploy/deploy-metadata', 'deploy/deploy-fields'],
+    },
     {
       type: 'category',
       label: 'Developer Tools',

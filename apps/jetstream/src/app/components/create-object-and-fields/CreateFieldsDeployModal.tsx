@@ -1,9 +1,11 @@
 import { css } from '@emotion/react';
+import { ANALYTICS_KEYS } from '@jetstream/shared/constants';
 import { MapOf, SalesforceOrgUi } from '@jetstream/types';
 import { Checkbox, ConfirmationModalPromise, FileDownloadModal, Grid, Icon, Modal, ScopedNotification, Spinner } from '@jetstream/ui';
 import React, { Fragment, FunctionComponent, useState } from 'react';
 import { useRecoilState } from 'recoil';
 import { applicationCookieState } from '../../app-state';
+import { useAmplitude } from '../core/analytics';
 import ConfirmPageChange from '../core/ConfirmPageChange';
 import * as fromJetstreamEvents from '../core/jetstream-events';
 import { FieldValues } from './create-fields-types';
@@ -29,6 +31,7 @@ export const CreateFieldsDeployModal: FunctionComponent<CreateFieldsDeployModalP
   rows,
   onClose,
 }) => {
+  const { trackEvent } = useAmplitude();
   const [{ defaultApiVersion, google_apiKey, google_appId, google_clientId }] = useRecoilState(applicationCookieState);
   const {
     loading: loadingLayouts,
@@ -53,6 +56,11 @@ export const CreateFieldsDeployModal: FunctionComponent<CreateFieldsDeployModalP
   }>();
 
   async function handleDeploy() {
+    trackEvent(ANALYTICS_KEYS.sobj_create_field_deploy, {
+      numFields: rows.length,
+      nulLayouts: selectedLayoutIds.size,
+      previousDeploy: deployed,
+    });
     if (deployed) {
       setConfirmModalOpen(true);
       if (
@@ -77,6 +85,10 @@ export const CreateFieldsDeployModal: FunctionComponent<CreateFieldsDeployModalP
   function downloadResults() {
     setExportModalData(prepareDownloadResultsFile(results, rows));
     setExportModalOpen(true);
+    trackEvent(ANALYTICS_KEYS.sobj_create_field_export_results, {
+      numFields: rows.length,
+      numResults: results.length,
+    });
   }
 
   function handleDownloadResultsModalClosed() {

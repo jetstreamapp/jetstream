@@ -14,7 +14,7 @@ export const CreateFieldsDeployModalRow: FunctionComponent<CreateFieldsDeployMod
 
   useEffect(() => {
     if (Array.isArray(result.flsErrors) && result.flsErrors.length) {
-      setFlsErrors(result.flsErrors.join('. ') || 'An unknown error has occurred');
+      setFlsErrors(result.flsErrors.join(' ') || 'An unknown error has occurred.');
     } else if (flsErrors) {
       setFlsErrors(null);
     }
@@ -22,7 +22,7 @@ export const CreateFieldsDeployModalRow: FunctionComponent<CreateFieldsDeployMod
 
   useEffect(() => {
     if (Array.isArray(result.layoutErrors) && result.layoutErrors.length) {
-      setLayoutErrors(result.layoutErrors.join('. ') || 'An unknown error has occurred');
+      setLayoutErrors(result.layoutErrors.join(' ') || 'An unknown error has occurred.');
     } else if (layoutErrors) {
       setLayoutErrors(null);
     }

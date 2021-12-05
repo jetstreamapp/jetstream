@@ -1,3 +1,4 @@
+import { ANALYTICS_KEYS } from '@jetstream/shared/constants';
 import { formatNumber } from '@jetstream/shared/ui-utils';
 import { pluralizeIfMultiple } from '@jetstream/shared/utils';
 import { SalesforceOrgUi } from '@jetstream/types';
@@ -6,6 +7,7 @@ import React, { FunctionComponent, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useRecoilValue } from 'recoil';
 import { selectedOrgState } from '../../app-state';
+import { useAmplitude } from '../core/analytics';
 import * as fromCreateFieldsState from './create-fields.state';
 import CreateFieldsDeployModal from './CreateFieldsDeployModal';
 import CreateFieldsImportExport from './CreateFieldsImportExport';
@@ -25,6 +27,7 @@ export interface CreateFieldsProps {
 }
 
 export const CreateFields: FunctionComponent<CreateFieldsProps> = ({ apiVersion }) => {
+  const { trackEvent } = useAmplitude();
   const selectedOrg = useRecoilValue<SalesforceOrgUi>(selectedOrgState);
 
   const selectedProfiles = useRecoilValue(fromCreateFieldsState.selectedProfilesPermSetState);
@@ -36,8 +39,19 @@ export const CreateFields: FunctionComponent<CreateFieldsProps> = ({ apiVersion 
 
   const [deployModalOpen, setDeployModalOpen] = useState(false);
 
+  function handleReset() {
+    resetRows();
+    trackEvent(ANALYTICS_KEYS.sobj_create_field_reset_rows, { numFields: rows.length });
+  }
+
   function handleSubmit() {
     setDeployModalOpen(true);
+    trackEvent(ANALYTICS_KEYS.sobj_create_field_submit_modal_opened, {
+      numFields: rows.length,
+      selectedProfiles: selectedProfiles.length,
+      selectedPermissionSets: selectedPermissionSets.length,
+      selectedSObjects: selectedSObjects.length,
+    });
   }
 
   function handleCloseModal() {
@@ -65,7 +79,7 @@ export const CreateFields: FunctionComponent<CreateFieldsProps> = ({ apiVersion 
           <CreateFieldsImportExport selectedOrg={selectedOrg} rows={rows} onImportRows={importRows} />
         </ToolbarItemGroup>
         <ToolbarItemActions>
-          <button className="slds-button slds-button_neutral slds-m-right_x-small" onClick={() => resetRows()}>
+          <button className="slds-button slds-button_neutral slds-m-right_x-small" onClick={() => handleReset()}>
             <Icon type="utility" icon="refresh" className="slds-button__icon slds-button__icon_left" omitContainer />
             Reset Changes
           </button>
@@ -82,6 +96,12 @@ export const CreateFields: FunctionComponent<CreateFieldsProps> = ({ apiVersion 
           {SelectedItemsBadge(selectedSObjects, 'Object')}
           {SelectedItemsBadge(selectedProfiles, 'Profile')}
           {SelectedItemsBadge(selectedPermissionSets, 'Permission Set')}
+          <div className="slds-col_bump-left">
+            <button className="slds-button slds-button_neutral" onClick={() => addRow()}>
+              <Icon type="utility" icon="add" className="slds-button__icon slds-button__icon_left" omitContainer />
+              New Field
+            </button>
+          </div>
         </Grid>
         <AutoFullHeightContainer className="slds-box_small slds-theme_default slds-is-relative">
           {rows.map((row, i) => (

@@ -1,8 +1,9 @@
 import { logger } from '@jetstream/shared/client-logger';
 import { queryWithCache } from '@jetstream/shared/data';
+import { useRollbar } from '@jetstream/shared/ui-utils';
 import { splitArrayToMaxSize } from '@jetstream/shared/utils';
 import { MapOf, SalesforceOrgUi } from '@jetstream/types';
-import { groupBy } from 'lodash';
+import groupBy from 'lodash/groupBy';
 import { useCallback, useEffect, useState } from 'react';
 import { composeQuery, getField, Query } from 'soql-parser-js';
 
@@ -54,6 +55,7 @@ function getPageLayoutQueries(sObjects: string[]): string[] {
 }
 
 export function useFetchPageLayouts(selectedOrg: SalesforceOrgUi, sObjects: string[]) {
+  const rollbar = useRollbar();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string>();
   const [layouts, setLayouts] = useState<MapOf<PageLayout[]>>({});
@@ -71,10 +73,14 @@ export function useFetchPageLayouts(selectedOrg: SalesforceOrgUi, sObjects: stri
     } catch (ex) {
       logger.warn('[LAYOUT][FETCH][ERROR]', ex);
       setError('There was a problem getting page layouts');
+      rollbar.error('Create fields - fetch layouts error', {
+        message: ex.message,
+        stack: ex.stack,
+      });
     } finally {
       setLoading(false);
     }
-  }, [sObjects, selectedOrg]);
+  }, [rollbar, sObjects, selectedOrg]);
 
   useEffect(() => {
     fetchLayouts();
