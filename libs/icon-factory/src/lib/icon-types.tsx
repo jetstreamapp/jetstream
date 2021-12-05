@@ -23,6 +23,7 @@ export interface StandardIconObj {
   data_streams: IconEl;
   entity: IconEl;
   feedback: IconEl;
+  form: IconEl;
   multi_picklist: IconEl;
   opportunity: IconEl;
   portal: IconEl;

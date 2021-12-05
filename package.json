@@ -3,7 +3,7 @@
   "version": "0.0.0",
   "license": "PRIVATE",
   "engines": {
-    "node": ">=15 <16"
+    "node": ">=16 <17"
   },
   "scripts": {
     "nx": "nx",
@@ -27,9 +27,11 @@
     "build:landing": "NODE_ENV=production nx run landing:export",
     "build:docs": "nx build docs",
     "build:storybook": "build-storybook -c libs/ui/.storybook -o dist/storybook -s node_modules/@salesforce-ux/design-system/assets/styles",
+    "docs:index": "docker run -it -e APPLICATION_ID=21D7I5RB7N -e API_KEY=5a8e69d756ddc4a3067c7d9e7aecfc3b -e \"CONFIG=$(cat ./apps/docs/algolia-config.json | jq -r tostring)\" algolia/docsearch-scraper",
     "generate:data-table-css": "nx workspace-generator convert-sass-to-css ui --filename /src/lib/data-table/data-table-styles.scss",
     "db:generate": "prisma generate",
     "db:migrate": "prisma migrate deploy",
+    "db:seed": "chmod +x prisma/seed.sh && prisma db seed",
     "icons:build": "npm-run-all icons:build:*",
     "icons:build:action": "npx @svgr/cli --config-file .svgo-config.json -d ./libs/icon-factory/src/lib/icons/action ./node_modules/@salesforce-ux/design-system/assets/icons/action",
     "icons:build:custom": "npx @svgr/cli --config-file .svgo-config.json -d ./libs/icon-factory/src/lib/icons/custom ./node_modules/@salesforce-ux/design-system/assets/icons/custom",
@@ -87,7 +89,7 @@
     "@octokit/graphql": "^4.7.0",
     "@octokit/rest": "^18.9.1",
     "@popperjs/core": "^2.4.0",
-    "@prisma/client": "^3.2.1",
+    "@prisma/client": "^3.4.0",
     "@react-aria/dialog": "^3.1.4",
     "@react-aria/focus": "^3.5.0",
     "@react-aria/overlays": "^3.7.2",
@@ -266,7 +268,7 @@
     "postcss": "^8.3.6",
     "postcss-preset-env": "^6.7.0",
     "prettier": "2.4.1",
-    "prisma": "^3.2.1",
+    "prisma": "^3.4.0",
     "react-refresh": "^0.10.0",
     "sass": "^1.41.1",
     "sass-loader": "^10.0.4",

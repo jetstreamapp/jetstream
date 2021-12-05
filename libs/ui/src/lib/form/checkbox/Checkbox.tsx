@@ -20,6 +20,7 @@ export interface CheckboxProps {
   errorMessageId?: string;
   errorMessage?: React.ReactNode | string;
   onChange?: (value: boolean) => void;
+  onBlur?: () => void;
 }
 
 export const Checkbox: FunctionComponent<CheckboxProps> = ({
@@ -40,6 +41,7 @@ export const Checkbox: FunctionComponent<CheckboxProps> = ({
   hideLabel = false,
   isStandAlone = false,
   onChange,
+  onBlur,
 }) => {
   return (
     <div className={classNames('slds-form-element', className, { 'slds-has-error': hasError })}>
@@ -73,6 +75,7 @@ export const Checkbox: FunctionComponent<CheckboxProps> = ({
             readOnly={readOnly}
             aria-describedby={errorMessageId}
             onChange={(event) => onChange && onChange(event.target.checked)}
+            onBlur={onBlur}
           />
           {isStandAlone && <span className="slds-checkbox_faux"></span>}
           {!isStandAlone && (

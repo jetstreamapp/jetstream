@@ -19,6 +19,12 @@ import { logRoute, notFoundMiddleware } from './app/routes/route.middleware';
 import { healthCheck, uncaughtErrorHandler } from './app/utils/response.handlers';
 import { environment } from './environments/environment';
 
+declare module 'express-session' {
+  interface SessionData {
+    activityExp: number;
+  }
+}
+
 const pgSession = pgSimple(session);
 
 const sessionMiddleware = session({
@@ -36,6 +42,8 @@ const sessionMiddleware = session({
   secret: ENV.JESTREAM_SESSION_SECRET,
   resave: false,
   saveUninitialized: false,
+  // This will extend the cookie expiration date if there is a request of any kind to a logged in user
+  rolling: true,
   name: 'sessionid',
 });
 
@@ -78,7 +86,18 @@ app.use(
         blockAllMixedContent: [],
         fontSrc: ["'self'", 'https:', "'unsafe-inline'", 'data:'],
         frameAncestors: ["'self'", '*.google.com'],
-        imgSrc: ["'self'", 'data:', '*.gravatar.com', '*.wp.com', '*.cloudinary.com', '*.googleusercontent.com'],
+        imgSrc: [
+          "'self'",
+          'data:',
+          '*.cloudinary.com',
+          '*.documentforce.com',
+          '*.force.com',
+          '*.githubusercontent.com',
+          '*.googleusercontent.com',
+          '*.gravatar.com',
+          '*.salesforce.com',
+          '*.wp.com',
+        ],
         objectSrc: ["'none'"],
         scriptSrc: ["'self'", 'blob:', '*.google.com', '*.gstatic.com'],
         scriptSrcAttr: ["'none'"],
@@ -118,12 +137,32 @@ app.use((req: express.Request, res: express.Response, next: express.NextFunction
 });
 
 passport.use(
+  'auth0',
   new Auth0Strategy(
     {
       domain: ENV.AUTH0_DOMAIN,
       clientID: ENV.AUTH0_CLIENT_ID,
       clientSecret: ENV.AUTH0_CLIENT_SECRET,
       callbackURL: `${ENV.JETSTREAM_SERVER_URL}/oauth/callback`,
+    },
+    (accessToken, refreshToken, extraParams, profile, done) => {
+      // accessToken is the token to call Auth0 API (not needed in the most cases)
+      // extraParams.id_token has the JSON Web Token
+      // profile has all the information from the user
+      return done(null, profile);
+    }
+  )
+);
+
+/** This configuration is used for authorization, not authentication (e.x. link second identity to user) */
+passport.use(
+  'auth0-authz',
+  new Auth0Strategy(
+    {
+      domain: ENV.AUTH0_DOMAIN,
+      clientID: ENV.AUTH0_CLIENT_ID,
+      clientSecret: ENV.AUTH0_CLIENT_SECRET,
+      callbackURL: `${ENV.JETSTREAM_SERVER_URL}/oauth/identity/link/callback`,
     },
     (accessToken, refreshToken, extraParams, profile, done) => {
       // accessToken is the token to call Auth0 API (not needed in the most cases)

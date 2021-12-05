@@ -27,6 +27,20 @@ routes.get(
 routes.get('/callback', authController.callback);
 routes.get('/logout', authController.logout);
 
+// Link additional accounts
+routes.get('/identity/link', (req: express.Request, res: express.Response, next: express.NextFunction) => {
+  const options: passport.AuthenticateOptions & { connection?: string } = {
+    scope: 'openid email profile',
+    prompt: 'select_account',
+  };
+
+  if (req.query.connection) {
+    options.connection = req.query.connection as string;
+  }
+  passport.authorize('auth0-authz', options as any)(req, res, next);
+});
+routes.get('/identity/link/callback', authController.linkCallback);
+
 // salesforce org authentication
 routes.get('/sfdc/auth', checkAuth, salesforceOauthInitAuth);
 routes.get('/sfdc/callback', checkAuth, salesforceOauthCallback);

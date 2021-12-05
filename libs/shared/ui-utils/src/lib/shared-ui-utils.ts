@@ -71,6 +71,13 @@ export function parseCookie<T>(cookieName: string): T | null {
   return null;
 }
 
+export function eraseCookies() {
+  document.cookie.split(';').forEach((cookie) => {
+    const [name] = cookie.trim().split('=');
+    document.cookie = `${name}=; expires=${Number(new Date())}; domain=${document.domain}; path=/`;
+  });
+}
+
 export function sortQueryFields(fields: Field[]): Field[] {
   // partition name and id field out, then append to front
   const reducedFields = orderObjectsBy(fields, 'label').reduce(
@@ -757,6 +764,7 @@ function handleWindowEvent(event: MessageEvent) {
       }
       if (windowRef) {
         windowRef.close();
+        window.removeEventListener('message', handleWindowEvent);
       }
     } catch (ex) {
       // TODO: tell user there was a problem

@@ -1,12 +1,24 @@
-import { Request, Response, NextFunction } from 'express';
+import { UserProfileServer } from '@jetstream/types';
+import { NextFunction, Request, Response } from 'express';
+import { isString } from 'lodash';
 import * as passport from 'passport';
-import { URL } from 'url';
 import * as querystring from 'querystring';
-import { AuthenticationError } from '../utils/error-handler';
+import { URL } from 'url';
 import { ENV } from '../config/env-config';
 import { logger } from '../config/logger.config';
+import { hardDeleteUserAndOrgs } from '../db/transactions.db';
 import { createOrUpdateUser } from '../db/user.db';
-import { sendWelcomeEmail } from '../services/worker-jobs';
+// import { sendWelcomeEmail } from '../services/worker-jobs';
+import { linkIdentity } from '../services/auth0';
+import { AuthenticationError } from '../utils/error-handler';
+
+export interface OauthLinkParams {
+  type: 'auth' | 'salesforce';
+  error?: string;
+  message?: string;
+  clientUrl: string;
+  data?: string;
+}
 
 export async function login(req: Request, res: Response) {
   res.redirect('/');
@@ -63,10 +75,60 @@ export async function logout(req: Request, res: Response) {
   const logoutURL = new URL(`https://${ENV.AUTH0_DOMAIN}/v2/logout`);
 
   logoutURL.search = querystring.stringify({
-    // eslint-disable-next-line @typescript-eslint/camelcase
     client_id: ENV.AUTH0_CLIENT_ID,
     returnTo: ENV.JETSTREAM_SERVER_URL,
   });
 
   res.redirect(logoutURL.toString());
+}
+
+/** Callback for linking accounts */
+export async function linkCallback(req: Request, res: Response, next: NextFunction) {
+  passport.authorize(
+    'auth0-authz',
+    {
+      failureRedirect: `/oauth-link/?error=${querystring.stringify({ error: 'Unknown Error' as any })}`,
+    } as any,
+    async (err, userProfile, info) => {
+      const params: OauthLinkParams = {
+        type: 'auth',
+        clientUrl: new URL(ENV.JETSTREAM_CLIENT_URL).origin,
+      };
+      if (err) {
+        logger.warn('[AUTH][LINK][ERROR] Error with authentication %o', err);
+        params.error = isString(err) ? err : err.message || 'Unknown Error';
+        params.message = (req.query.error_description as string) || undefined;
+        return res.redirect(`/oauth-link/?${querystring.stringify(params as any)}`);
+      }
+      if (!userProfile) {
+        logger.warn('[AUTH][LINK][ERROR] no user');
+        logger.warn('[AUTH][LINK][ERROR] no info %o', info);
+        params.error = 'Authentication Error';
+        params.message = (req.query.error_description as string) || undefined;
+        return res.redirect(`/oauth-link/?${querystring.stringify(params as any)}`);
+      }
+      try {
+        const user = req.user as UserProfileServer;
+        await linkIdentity(user, userProfile.user_id);
+        params.data = JSON.stringify({ userId: userProfile.user_id });
+
+        // If prior user existed with orgs and a user, then remove them
+        // If user linked account for very first time, then this may not apply
+        try {
+          await hardDeleteUserAndOrgs(userProfile.user_id);
+        } catch (ex) {
+          logger.warn('[AUTH0][IDENTITY][LINK][ERROR] Failed to delete the secondary user orgs %s', userProfile.user_id, {
+            userId: user.id,
+            secondaryUserId: userProfile.user_id,
+          });
+        }
+
+        return res.redirect(`/oauth-link/?${querystring.stringify(params as any)}`);
+      } catch (ex) {
+        logger.warn('[AUTH][LINK][ERROR] Error linking account %o', err);
+        params.error = 'Unexpected Error';
+        return res.redirect(`/oauth-link/?${querystring.stringify(params as any)}&clientUrl=${ENV.JETSTREAM_CLIENT_URL}`);
+      }
+    }
+  )(req, res, next);
 }

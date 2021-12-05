@@ -27,9 +27,11 @@ const LoadRecordsMultiObject = lazy(() => import('./components/load-records-mult
 const Query = lazy(() => import('./components/query/Query'));
 const ManagePermissions = lazy(() => import('./components/manage-permissions/ManagePermissions'));
 const DeployMetadata = lazy(() => import('./components/deploy/DeployMetadata'));
+const CreateObjectAndFields = lazy(() => import('./components/create-object-and-fields/CreateObjectAndFields'));
 const AnonymousApex = lazy(() => import('./components/anonymous-apex/AnonymousApex'));
 const SalesforceApi = lazy(() => import('./components/salesforce-api/SalesforceApi'));
 const DebugLogViewer = lazy(() => import('./components/debug-log-viewer/DebugLogViewer'));
+const Settings = lazy(() => import('./components/settings/Settings'));
 
 interface RouteItem {
   path: string;
@@ -96,6 +98,14 @@ const ROUTES: RouteItem[] = [
     ),
   },
   {
+    path: '/deploy-sobject-metadata',
+    render: () => (
+      <OrgSelectionRequired>
+        <CreateObjectAndFields />
+      </OrgSelectionRequired>
+    ),
+  },
+  {
     path: '/apex',
     render: () => (
       <OrgSelectionRequired>
@@ -128,6 +138,7 @@ const ROUTES: RouteItem[] = [
     ),
   },
   { path: '/feedback', render: () => <Feedback userProfile={_userProfile} /> },
+  { path: '/settings', render: () => <Settings featureFlags={_featureFlags} userProfile={_userProfile} /> },
   { path: '*', render: () => <Redirect to="/query" /> },
 ];
 

@@ -10,10 +10,16 @@ import {
 } from '@jetstream/types';
 import formatRelative from 'date-fns/formatRelative';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { getQueryForPermissionSetsWithProfiles } from './utils/permission-manager-utils';
+import { composeQuery, getField, Query } from 'soql-parser-js';
 
 let _lastRefreshed: string;
 
+/**
+ * Gets profile and permission set ListItems
+ *
+ * @param selectedOrg
+ * @returns
+ */
 export function useProfilesAndPermSets(selectedOrg: SalesforceOrgUi) {
   const isMounted = useRef(null);
   const [lastRefreshed, setLastRefreshed] = useState<string>(_lastRefreshed);
@@ -78,8 +84,8 @@ export function useProfilesAndPermSets(selectedOrg: SalesforceOrgUi) {
           setLoading(false);
         }
       }
-      // eslint-disable-next-line react-hooks/exhaustive-deps
     },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     [selectedOrg]
   );
 
@@ -121,4 +127,52 @@ function getListItemFromQueryResults(records: PermissionSetRecord[]) {
       permissionSets: [],
     }
   );
+}
+
+function getQueryForPermissionSetsWithProfiles(includeManaged = false): string {
+  const query: Query = {
+    fields: [
+      getField('Id'),
+      getField('Name'),
+      getField('Label'),
+      getField('Type'), // this field does not support filtering by
+      getField('IsCustom'),
+      getField('IsOwnedByProfile'),
+      getField('NamespacePrefix'),
+      getField('ProfileId'),
+      getField('Profile.Id'),
+      getField('Profile.Name'),
+      getField('Profile.UserType'),
+    ],
+    sObject: 'PermissionSet',
+    orderBy: [
+      {
+        field: 'IsOwnedByProfile',
+        order: 'DESC',
+      },
+      {
+        field: 'Profile.Name',
+        order: 'ASC',
+      },
+      {
+        field: 'Name',
+        order: 'ASC',
+      },
+    ],
+  };
+  // TODO: we should omit profiles that do not allow editing (not sure how to identify)
+  // maybe user access query?
+  if (!includeManaged) {
+    query.where = {
+      left: {
+        field: 'NamespacePrefix',
+        operator: '=',
+        value: 'null',
+        literalType: 'NULL',
+      },
+    };
+  }
+  const soql = composeQuery(query);
+  logger.log('getQueryForPermissionSetsWithProfiles()', soql);
+  return soql;
 }

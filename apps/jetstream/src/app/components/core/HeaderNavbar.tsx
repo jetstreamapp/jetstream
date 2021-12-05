@@ -3,6 +3,7 @@ import { hasFeatureFlagAccess } from '@jetstream/shared/ui-utils';
 import { DropDownItem, UserProfileUi } from '@jetstream/types';
 import { Header, Navbar, NavbarItem, NavbarMenuItems } from '@jetstream/ui';
 import { Fragment, FunctionComponent, useEffect, useState } from 'react';
+import { useHistory } from 'react-router';
 import { useRecoilState, useRecoilValue } from 'recoil';
 import Logo from '../../../assets/images/jetstream-logo-v1-200w.png';
 import { applicationCookieState, selectUserPreferenceState } from '../../app-state';
@@ -24,7 +25,8 @@ function logout(serverUrl: string) {
 
 function getMenuItems(userProfile: UserProfileUi, featureFlags: Set<string>, deniedNotifications?: boolean) {
   const menu: DropDownItem[] = [
-    { id: 'nav-user-logout', value: 'Logout', subheader: userProfile?.email, icon: { type: 'utility', icon: 'logout' } },
+    { id: 'settings', value: 'Settings', subheader: userProfile?.email, icon: { type: 'utility', icon: 'settings' } },
+    { id: 'nav-user-logout', value: 'Logout', icon: { type: 'utility', icon: 'logout' } },
   ];
   if (
     hasFeatureFlagAccess(featureFlags, FEATURE_FLAGS.NOTIFICATIONS) &&
@@ -43,6 +45,7 @@ function getMenuItems(userProfile: UserProfileUi, featureFlags: Set<string>, den
 }
 
 export const HeaderNavbar: FunctionComponent<HeaderNavbarProps> = ({ userProfile, featureFlags }) => {
+  const history = useHistory();
   const [applicationState] = useRecoilState(applicationCookieState);
   const { deniedNotifications } = useRecoilValue(selectUserPreferenceState);
   const [enableNotifications, setEnableNotifications] = useState(false);
@@ -50,6 +53,9 @@ export const HeaderNavbar: FunctionComponent<HeaderNavbarProps> = ({ userProfile
 
   function handleUserMenuSelection(id: string) {
     switch (id) {
+      case 'settings':
+        history.push('/settings');
+        break;
       case 'nav-user-logout':
         logout(applicationState.serverUrl);
         break;
@@ -105,7 +111,24 @@ export const HeaderNavbar: FunctionComponent<HeaderNavbarProps> = ({ userProfile
 
           <NavbarItem path="/automation-control" title="Automation Control" label="Automation Control" />
           <NavbarItem path="/permissions-manager" title="Manage Permissions" label="Manage Permissions" />
-          <NavbarItem path="/deploy-metadata" title="Deploy Metadata" label="Deploy Metadata" />
+
+          <NavbarMenuItems
+            label="Deploy Metadata"
+            items={[
+              {
+                id: 'deploy-sobject-metadata',
+                path: '/deploy-sobject-metadata',
+                title: 'Create Fields',
+                label: 'Create Fields',
+              },
+              {
+                id: 'deploy-metadata',
+                path: '/deploy-metadata',
+                title: 'Deploy and Compare Metadata',
+                label: 'Deploy and Compare Metadata',
+              },
+            ]}
+          />
 
           <NavbarMenuItems
             label="Developer Tools"

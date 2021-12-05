@@ -1,4 +1,5 @@
 import { css } from '@emotion/react';
+import { useProfilesAndPermSets } from '@jetstream/shared/ui-utils';
 import { SalesforceOrgUi } from '@jetstream/types';
 import {
   AutoFullHeightContainer,
@@ -18,7 +19,6 @@ import Split from 'react-split';
 import { useRecoilState, useRecoilValue, useResetRecoilState } from 'recoil';
 import { selectedOrgState } from '../../app-state';
 import * as fromPermissionsState from './manage-permissions.state';
-import { useProfilesAndPermSets } from './useProfilesAndPermSets';
 import { filterPermissionsSobjects } from './utils/permission-manager-utils';
 
 const HEIGHT_BUFFER = 170;

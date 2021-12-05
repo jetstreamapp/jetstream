@@ -174,10 +174,24 @@ export const ANALYTICS_KEYS = {
   deploy_download: 'deploy_download',
   deploy_downloadMetadataPkg: 'deploy_downloadMetadataPkg',
   deploy_finished: 'deploy_finished',
+  /** CREATE FIELDS */
+  sobj_create_field_export_fields: 'sobj_create_field_export_fields',
+  sobj_create_field_export_example: 'sobj_create_field_export_example',
+  sobj_create_field_import_fields: 'sobj_create_field_import_fields',
+  sobj_create_field_reset_rows: 'sobj_create_field_reset_rows',
+  sobj_create_field_submit_modal_opened: 'sobj_create_field_submit_modal_opened',
+  sobj_create_field_deploy: 'sobj_create_field_deploy',
+  sobj_create_field_export_results: 'sobj_create_field_export_results',
   /** Platform Event */
   platform_event_subscribed: 'platform_event_subscribed',
   platform_event_unsubscribe: 'platform_event_unsubscribe',
   platform_event_publish: 'platform_event_publish',
+  /** Settings */
+  settings_update_user: 'settings_update_user',
+  settings_link_account: 'settings_link_account',
+  settings_unlink_account: 'settings_unlink_account',
+  settings_resend_email_verification: 'settings_resend_email_verification',
+  settings_delete_account: 'settings_delete_account',
 };
 
 export const LOG_LEVELS = ['NONE', 'ERROR', 'WARN', 'INFO', 'DEBUG', 'FINE', 'FINER', 'FINEST'];
@@ -189,11 +203,13 @@ export const TITLES = {
   AUTOMATION_CONTROL: 'Automation Control | Jetstream',
   MANAGE_PERMISSIONS: 'Manage Permissions | Jetstream',
   DEPLOY_METADATA: 'Deploy Metadata | Jetstream',
+  CREATE_OBJ_FIELD: 'Create Object & Fields | Jetstream',
   ANON_APEX: 'Anonymous Apex | Jetstream',
   DEBUG_LOGS: 'Debug Logs | Jetstream',
   API_EXPLORER: 'Salesforce Api | Jetstream',
   PLATFORM_EVENTS: 'Platform Events | Jetstream',
   FEEDBACK: 'Support & Feedback | Jetstream',
+  SETTINGS: 'Account Settings | Jetstream',
 };
 
 export const SOCKET_EVENTS = {

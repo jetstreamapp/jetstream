@@ -3,6 +3,7 @@ import { logger } from '@jetstream/shared/client-logger';
 import { readFile } from '@jetstream/shared/ui-utils';
 import { InputAcceptType, InputReadFileContent } from '@jetstream/types';
 import classNames from 'classnames';
+import isString from 'lodash/isString';
 import { FunctionComponent, useRef, useState } from 'react';
 import HelpText from '../../widgets/HelpText';
 import Icon from '../../widgets/Icon';
@@ -14,13 +15,14 @@ export interface FileSelectorProps {
   label: string;
   buttonLabel?: string;
   labelHelp?: string;
+  /** @deprecated I guess? is not used in code, use `userHelpText` instead */
   helpText?: React.ReactNode | string; // FIXME: does not appear to be used, userHelpText is used
   isRequired?: boolean;
   filename?: string; // optional, will be managed if not provided
   hideLabel?: boolean;
   disabled?: boolean;
   accept?: InputAcceptType[];
-  userHelpText?: string;
+  userHelpText?: React.ReactNode | string;
   hasError?: boolean;
   errorMessage?: React.ReactNode | string;
   onReadFile: (fileContent: InputReadFileContent) => void;
@@ -31,7 +33,6 @@ export const FileSelector: FunctionComponent<FileSelectorProps> = ({
   id,
   label,
   buttonLabel = 'Upload File',
-  helpText,
   labelHelp,
   filename,
   isRequired,
@@ -161,7 +162,11 @@ export const FileSelector: FunctionComponent<FileSelectorProps> = ({
         `}
       >
         {userHelpText && !managedFilename && (
-          <div className="slds-form-element__help slds-truncate" id={`${id}-file-input-help`} title={userHelpText}>
+          <div
+            className="slds-form-element__help slds-truncate"
+            id={`${id}-file-input-help`}
+            title={isString(userHelpText) ? userHelpText : ''}
+          >
             {userHelpText}
           </div>
         )}

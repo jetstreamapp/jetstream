@@ -32,6 +32,7 @@ import {
   RADIO_FORMAT_XML,
   RADIO_FORMAT_ZIP,
 } from './download-modal-utils';
+import { logger } from '@jetstream/shared/client-logger';
 
 export interface FileDownloadModalProps {
   google_apiKey?: string;
@@ -51,6 +52,7 @@ export interface FileDownloadModalProps {
   // this may be useful if alternateDownloadButton is provided, otherwise this usually is not required
   onChange?: (data: { fileName: string; fileFormat: FileExtAllTypes }) => void;
   emitUploadToGoogleEvent?: (event: JetstreamEvents) => void;
+  onError?: (error: Error) => void;
 }
 
 const defaultAllowedTypes = [RADIO_FORMAT_XLSX, RADIO_FORMAT_CSV, RADIO_FORMAT_JSON];
@@ -70,6 +72,7 @@ export const FileDownloadModal: FunctionComponent<FileDownloadModalProps> = ({
   onModalClose,
   onChange,
   emitUploadToGoogleEvent,
+  onError,
 }) => {
   const hasGoogleInputConfigured = !!google_apiKey && !!google_appId && !!google_clientId && !!emitUploadToGoogleEvent;
   const [allowedTypesSet, setAllowedTypesSet] = useState<Set<string>>(() => new Set(allowedTypes));
@@ -177,7 +180,8 @@ export const FileDownloadModal: FunctionComponent<FileDownloadModalProps> = ({
         onModalClose();
       }
     } catch (ex) {
-      // TODO: show error message somewhere
+      logger.error('[FILE DOWNLOAD][ERROR]', ex);
+      onError && onError(ex);
     }
   }
 

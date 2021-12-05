@@ -328,7 +328,12 @@ function updateResourcesOnRow(
 function initConditionNumber(expression?: ExpressionType) {
   let nextConditionNumber = 1;
   if (expression) {
-    nextConditionNumber = Math.max(...expression.rows.map((row) => row.key));
+    nextConditionNumber = expression.rows.reduce((max, row) => {
+      if (isExpressionGroupType(row)) {
+        return Math.max(max, row.key, ...row.rows.map((groupRow) => groupRow.key));
+      }
+      return Math.max(max, row.key);
+    }, 0);
     nextConditionNumber++;
   }
   return nextConditionNumber;
