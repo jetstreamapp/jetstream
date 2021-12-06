@@ -13,57 +13,42 @@ import {
   PageHeaderTitle,
 } from '@jetstream/ui';
 import { DescribeGlobalSObjectResult } from 'jsforce';
-import { FunctionComponent, useEffect } from 'react';
+import React, { FunctionComponent, useEffect } from 'react';
 import { Link, useRouteMatch } from 'react-router-dom';
 import Split from 'react-split';
-import { useRecoilState, useRecoilValue, useResetRecoilState } from 'recoil';
+import { useRecoilState, useRecoilValue } from 'recoil';
 import { selectedOrgState } from '../../app-state';
-import * as fromPermissionsState from './manage-permissions.state';
-import { filterPermissionsSobjects } from './utils/permission-manager-utils';
+import { filterCreateFieldsSobjects } from './create-fields-utils';
+import * as fromCreateFieldsState from './create-fields.state';
 
 const HEIGHT_BUFFER = 170;
 
 // eslint-disable-next-line @typescript-eslint/no-empty-interface
-export interface ManagePermissionsSelectionProps {}
+export interface CreateFieldsSelectionProps {}
 
-export const ManagePermissionsSelection: FunctionComponent<ManagePermissionsSelectionProps> = () => {
+export const CreateFieldsSelection: FunctionComponent<CreateFieldsSelectionProps> = () => {
   const match = useRouteMatch();
 
   const selectedOrg = useRecoilValue<SalesforceOrgUi>(selectedOrgState);
 
-  const [profiles, setProfiles] = useRecoilState(fromPermissionsState.profilesState);
-  const [selectedProfiles, setSelectedProfiles] = useRecoilState(fromPermissionsState.selectedProfilesPermSetState);
+  const [profiles, setProfiles] = useRecoilState(fromCreateFieldsState.profilesState);
+  const [selectedProfiles, setSelectedProfiles] = useRecoilState(fromCreateFieldsState.selectedProfilesPermSetState);
 
-  const [permissionSets, setPermissionSets] = useRecoilState(fromPermissionsState.permissionSetsState);
-  const [selectedPermissionSets, setSelectedPermissionSets] = useRecoilState(fromPermissionsState.selectedPermissionSetsState);
+  const [permissionSets, setPermissionSets] = useRecoilState(fromCreateFieldsState.permissionSetsState);
+  const [selectedPermissionSets, setSelectedPermissionSets] = useRecoilState(fromCreateFieldsState.selectedPermissionSetsState);
 
-  const [sobjects, setSobjects] = useRecoilState(fromPermissionsState.sObjectsState);
-  const [selectedSObjects, setSelectedSObjects] = useRecoilState(fromPermissionsState.selectedSObjectsState);
+  const [sobjects, setSobjects] = useRecoilState(fromCreateFieldsState.sObjectsState);
+  const [selectedSObjects, setSelectedSObjects] = useRecoilState(fromCreateFieldsState.selectedSObjectsState);
 
-  const resetFieldsByObject = useResetRecoilState(fromPermissionsState.fieldsByObject);
-  const resetFieldsByKey = useResetRecoilState(fromPermissionsState.fieldsByKey);
-  const resetObjectPermissionMap = useResetRecoilState(fromPermissionsState.objectPermissionMap);
-  const resetFieldPermissionMap = useResetRecoilState(fromPermissionsState.fieldPermissionMap);
-
-  // TODO: what about if we already have profiles and perm sets from state?
-  // TODO: when loading, should we clear prior selections?
   const profilesAndPermSetsData = useProfilesAndPermSets(selectedOrg);
 
-  const hasSelectionsMade = useRecoilValue(fromPermissionsState.hasSelectionsMade);
+  const hasSelectionsMade = useRecoilValue(fromCreateFieldsState.hasSelectionsMade);
 
   useEffect(() => {
     setProfiles(profilesAndPermSetsData.profiles);
     setPermissionSets(profilesAndPermSetsData.permissionSets);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [profilesAndPermSetsData.profiles, profilesAndPermSetsData.permissionSets]);
-
-  useEffect(() => {
-    resetFieldsByObject();
-    resetFieldsByKey();
-    resetObjectPermissionMap();
-    resetFieldPermissionMap();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedProfiles, selectedPermissionSets, selectedSObjects]);
 
   function handleSobjectChange(sobjects: DescribeGlobalSObjectResult[]) {
     setSobjects(sobjects);
@@ -73,13 +58,13 @@ export const ManagePermissionsSelection: FunctionComponent<ManagePermissionsSele
     <Page>
       <PageHeader>
         <PageHeaderRow>
-          <PageHeaderTitle icon={{ type: 'standard', icon: 'portal' }} label="Manage Permissions" />
+          <PageHeaderTitle icon={{ type: 'standard', icon: 'form' }} label="Create Fields" />
           <PageHeaderActions colType="actions" buttonType="separate">
             {hasSelectionsMade && (
               <Link
                 className="slds-button slds-button_brand"
                 to={{
-                  pathname: `${match.url}/editor`,
+                  pathname: `${match.url}/configurator`,
                 }}
               >
                 Continue
@@ -101,7 +86,7 @@ export const ManagePermissionsSelection: FunctionComponent<ManagePermissionsSele
               min-height: 19px;
             `}
           >
-            {!hasSelectionsMade && <span>Select one or more profiles or permission sets and one or more objects</span>}
+            {!hasSelectionsMade && <span>Choose at least one object and optionally profiles and permission sets.</span>}
           </div>
         </PageHeaderRow>
       </PageHeader>
@@ -121,9 +106,20 @@ export const ManagePermissionsSelection: FunctionComponent<ManagePermissionsSele
           `}
         >
           <div className="slds-p-horizontal_x-small">
+            <ConnectedSobjectListMultiSelect
+              label="Object(s) to create fields on"
+              selectedOrg={selectedOrg}
+              sobjects={sobjects}
+              selectedSObjects={selectedSObjects}
+              filterFn={filterCreateFieldsSobjects}
+              onSobjects={handleSobjectChange}
+              onSelectedSObjects={setSelectedSObjects}
+            />
+          </div>
+          <div className="slds-p-horizontal_x-small">
             <ListWithFilterMultiSelect
               labels={{
-                listHeading: 'Profiles',
+                listHeading: 'Add FLS to Profiles',
                 filter: 'Filter Profiles',
                 descriptorSingular: 'profile',
                 descriptorPlural: 'profiles',
@@ -141,7 +137,7 @@ export const ManagePermissionsSelection: FunctionComponent<ManagePermissionsSele
           <div className="slds-p-horizontal_x-small">
             <ListWithFilterMultiSelect
               labels={{
-                listHeading: 'Permission Sets',
+                listHeading: 'Add FLS to Permission Sets',
                 filter: 'Filter Permission Sets',
                 descriptorSingular: 'permission set',
                 descriptorPlural: 'permission sets',
@@ -156,20 +152,10 @@ export const ManagePermissionsSelection: FunctionComponent<ManagePermissionsSele
               onRefresh={() => profilesAndPermSetsData.fetchMetadata(true)}
             />
           </div>
-          <div className="slds-p-horizontal_x-small">
-            <ConnectedSobjectListMultiSelect
-              selectedOrg={selectedOrg}
-              sobjects={sobjects}
-              selectedSObjects={selectedSObjects}
-              filterFn={filterPermissionsSobjects}
-              onSobjects={handleSobjectChange}
-              onSelectedSObjects={setSelectedSObjects}
-            />
-          </div>
         </Split>
       </AutoFullHeightContainer>
     </Page>
   );
 };
 
-export default ManagePermissionsSelection;
+export default CreateFieldsSelection;

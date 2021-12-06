@@ -29,6 +29,7 @@ const LoadRecordsMultiObject = lazy(() => import('./components/load-records-mult
 const Query = lazy(() => import('./components/query/Query'));
 const ManagePermissions = lazy(() => import('./components/manage-permissions/ManagePermissions'));
 const DeployMetadata = lazy(() => import('./components/deploy/DeployMetadata'));
+const CreateObjectAndFields = lazy(() => import('./components/create-object-and-fields/CreateObjectAndFields'));
 const AnonymousApex = lazy(() => import('./components/anonymous-apex/AnonymousApex'));
 const SalesforceApi = lazy(() => import('./components/salesforce-api/SalesforceApi'));
 const DebugLogViewer = lazy(() => import('./components/debug-log-viewer/DebugLogViewer'));
@@ -104,6 +105,14 @@ const ROUTES: RouteItem[] = [
     render: () => (
       <OrgSelectionRequired>
         <DeployMetadata />
+      </OrgSelectionRequired>
+    ),
+  },
+  {
+    path: '/deploy-sobject-metadata',
+    render: () => (
+      <OrgSelectionRequired>
+        <CreateObjectAndFields />
       </OrgSelectionRequired>
     ),
   },

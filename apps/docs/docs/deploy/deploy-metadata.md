@@ -1,20 +1,20 @@
 ---
-id: deploy
-title: Deploy or Change Metadata
-sidebar_label: Deploy or Change Metadata
-slug: /deploy
+id: deploy-metadata
+title: Deploy or Compare Metadata
+sidebar_label: Deploy or Compare Metadata
+slug: /deploy-metadata
 ---
 
 import Refresh from '../assets/icons/Refresh.svg';
 
 The **Deploy Metadata** feature provides the ability to work with metadata in your org and includes the following capabilities:
 
-1. Deploy metadata from one org to another org
-2. Add metadata to an outbound changeset
-3. View the contents of metadata
-4. Compare metadata between two orgs
-5. Download a metadata package
-6. Deploy a metadata package
+1. Deploy metadata from **one org to another org**
+2. Add metadata to an **outbound changeset**
+3. **View** the contents of metadata
+4. **Compare** metadata between two orgs
+5. **Download** a metadata package
+6. **Deploy** a metadata package
 
 :::tip
 

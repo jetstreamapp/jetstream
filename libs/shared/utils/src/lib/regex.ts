@@ -4,12 +4,14 @@ export const REGEX = {
   NOT_ALPHA: /[^A-Za-z]/g,
   NOT_ALPHANUMERIC: /[^A-Za-z0-9]/g,
   NOT_ALPHANUMERIC_OR_UNDERSCORE: /[^A-Za-z0-9_]/g,
-  VALID_EMAIL: /^(([^<>()\[\]\\.,;:\s@"]+(\.[^<>()\[\]\\.,;:\s@"]+)*)|(".+"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$/,
+  VALID_EMAIL:
+    /^(([^<>()\[\]\\.,;:\s@"]+(\.[^<>()\[\]\\.,;:\s@"]+)*)|(".+"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$/,
   SALESFORCE_ID: /[a-zA-Z0-9]{18}/,
   NOT_UNSIGNED_NUMERIC: /[^0-9]/g,
   // SAFE_FILENAME: /[^a-zA-Z0-9-\.]/g,
   SAFE_FILENAME: /[\/\?<>\\:\*\|"]/g,
-  ISO_DATE: /[0-9]{4}-[0-9]{2}-[0-9]{2}($|T[0-9]{2}| [0-9]{2}(\+[0-9]{2}:[0-9]{2}|z|-[0-9]{4}|:[0-9]{2}:[0-9]{2}\.[0-9]{3}\+[0-9]{2}($|:[0-9]{2})|$|:[0-9]{2}($|:[0-9]{2}($|.[0-9]{3}))))/,
+  ISO_DATE:
+    /[0-9]{4}-[0-9]{2}-[0-9]{2}($|T[0-9]{2}| [0-9]{2}(\+[0-9]{2}:[0-9]{2}|z|-[0-9]{4}|:[0-9]{2}:[0-9]{2}\.[0-9]{3}\+[0-9]{2}($|:[0-9]{2})|$|:[0-9]{2}($|:[0-9]{2}($|.[0-9]{3}))))/,
   BOOLEAN_STR_TRUE: /^t|^1/i,
   SAFE_EXCEL_SHEET_CHARS: /[a-zA-Z0-9\ \_\.]/g,
   HAS_NAMESPACE: /__[a-z0-9]+__/i,
@@ -21,4 +23,8 @@ export const REGEX = {
   START_OR_END_QUOTE: /^"|"$/g,
   QUOTE: /"/g,
   NEW_LINE: /\n/g,
+  STARTS_WITH_UNDERSCORE: /^_+/,
+  ENDS_WITH_NON_ALPHANUMERIC: /[^0-9a-zA-Z]+$/,
+  CONSECUTIVE_UNDERSCORES: /_+/g,
+  STARTS_WITH_NUMBER: /^[0-9]/,
 };

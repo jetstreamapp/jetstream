@@ -17,6 +17,7 @@ import StandardIcon_AssetRelationship from './icons/standard/AssetRelationship';
 import StandardIcon_DataStreams from './icons/standard/DataStreams';
 import StandardIcon_Entity from './icons/standard/Entity';
 import StandardIcon_Feedback from './icons/standard/Feedback';
+import StandardIcon_Form from './icons/standard/Form';
 import StandardIcon_MultiPicklist from './icons/standard/MultiPicklist';
 import StandardIcon_Opportunity from './icons/standard/Opportunity';
 import StandardIcon_Portal from './icons/standard/Portal';
@@ -111,6 +112,7 @@ const standardIcons: StandardIconObj = {
   data_streams: StandardIcon_DataStreams,
   entity: StandardIcon_Entity,
   feedback: StandardIcon_Feedback,
+  form: StandardIcon_Form,
   multi_picklist: StandardIcon_MultiPicklist,
   opportunity: StandardIcon_Opportunity,
   portal: StandardIcon_Portal,

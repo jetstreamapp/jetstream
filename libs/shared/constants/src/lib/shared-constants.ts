@@ -176,6 +176,14 @@ export const ANALYTICS_KEYS = {
   deploy_download: 'deploy_download',
   deploy_downloadMetadataPkg: 'deploy_downloadMetadataPkg',
   deploy_finished: 'deploy_finished',
+  /** CREATE FIELDS */
+  sobj_create_field_export_fields: 'sobj_create_field_export_fields',
+  sobj_create_field_export_example: 'sobj_create_field_export_example',
+  sobj_create_field_import_fields: 'sobj_create_field_import_fields',
+  sobj_create_field_reset_rows: 'sobj_create_field_reset_rows',
+  sobj_create_field_submit_modal_opened: 'sobj_create_field_submit_modal_opened',
+  sobj_create_field_deploy: 'sobj_create_field_deploy',
+  sobj_create_field_export_results: 'sobj_create_field_export_results',
   /** Platform Event */
   platform_event_subscribed: 'platform_event_subscribed',
   platform_event_unsubscribe: 'platform_event_unsubscribe',
@@ -197,6 +205,7 @@ export const TITLES = {
   AUTOMATION_CONTROL: 'Automation Control | Jetstream',
   MANAGE_PERMISSIONS: 'Manage Permissions | Jetstream',
   DEPLOY_METADATA: 'Deploy Metadata | Jetstream',
+  CREATE_OBJ_FIELD: 'Create Object & Fields | Jetstream',
   ANON_APEX: 'Anonymous Apex | Jetstream',
   DEBUG_LOGS: 'Debug Logs | Jetstream',
   API_EXPLORER: 'Salesforce Api | Jetstream',
