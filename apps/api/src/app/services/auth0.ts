@@ -15,10 +15,10 @@ interface TokenResponse {
 
 const USER_FIELDS = ['user_id', 'email', 'email_verified', 'identities', 'name', 'nickname', 'picture', 'app_metadata'];
 
-const BASE_URL = `https://${ENV.AUTH0_DOMAIN}`;
+const BASE_URL = `https://${ENV.AUTH0_M2M_DOMAIN}`;
 
 const axiosAuth0 = axios.create({
-  baseURL: `https://${ENV.AUTH0_DOMAIN}/`,
+  baseURL: `https://${ENV.AUTH0_M2M_DOMAIN}/`,
 });
 
 let _accessToken: string;
