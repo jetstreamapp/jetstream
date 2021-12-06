@@ -20,6 +20,8 @@ export const ENV = {
   COMETD_DEBUG: ensureStringValue(process.env.COMETD_DEBUG, ['error', 'warn', 'info', 'debug']) as 'error' | 'warn' | 'info' | 'debug',
   // AUTH
   AUTH0_DOMAIN: process.env.AUTH0_DOMAIN,
+  /** use for M2M tokens - in DEV this is the same, but different in production */
+  AUTH0_M2M_DOMAIN: process.env.AUTH0_M2M_DOMAIN,
   AUTH0_CLIENT_ID: process.env.AUTH0_CLIENT_ID,
   AUTH0_MGMT_CLIENT_ID: process.env.AUTH0_MGMT_CLIENT_ID,
   AUTH0_MGMT_CLIENT_SECRET: process.env.AUTH0_MGMT_CLIENT_SECRET,
