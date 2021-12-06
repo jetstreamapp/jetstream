@@ -1,6 +1,6 @@
 import { ICellRendererParams } from '@ag-grid-community/core';
 import { css } from '@emotion/react';
-import { Checkbox, CopyToClipboard, Grid, GridCol, Icon, Spinner, Tooltip } from '@jetstream/ui';
+import { Checkbox, CopyToClipboard, Grid, GridCol, Icon, SalesforceLogin, Spinner, Tooltip } from '@jetstream/ui';
 import classNames from 'classnames';
 import { isNumber, uniqueId } from 'lodash';
 import { Fragment, FunctionComponent } from 'react';
@@ -48,6 +48,19 @@ export const LoadingAndActiveRenderer: FunctionComponent<ICellRendererParams> = 
       </div>
     );
   }
+};
+
+export const TreeItemWithLinkRenderer: FunctionComponent<ICellRendererParams> = ({ value, node, context }) => {
+  const data = node.data as TableRowOrItemOrChild;
+
+  if (!isTableRow(data) && data.link && context?.serverUrl && context?.selectedOrg) {
+    return (
+      <SalesforceLogin serverUrl={context.serverUrl} org={context.selectedOrg} returnUrl={data.link} iconPosition="right">
+        {value}
+      </SalesforceLogin>
+    );
+  }
+  return value;
 };
 
 export const AdditionalDetailRenderer: FunctionComponent<ICellRendererParams> = ({ value, node }) => {

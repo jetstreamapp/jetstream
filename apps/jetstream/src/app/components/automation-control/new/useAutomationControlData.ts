@@ -328,6 +328,7 @@ function getRowsForItems({ type, records }: MetadataRecordType, loading: boolean
         parentKey: type,
         type,
         record,
+        link: `/lightning/setup/ObjectManager/${record.EntityDefinitionId}/ApexTriggers/${record.Id}/view`,
         sobject: record.EntityDefinition.QualifiedApiName,
         readOnly: false,
         isActive: record.Status === 'Active',
@@ -346,6 +347,7 @@ function getRowsForItems({ type, records }: MetadataRecordType, loading: boolean
         parentKey: type,
         type,
         record,
+        link: `/lightning/setup/ObjectManager/${record.EntityDefinitionId}/ValidationRules/${record.Id}/view`,
         sobject: record.EntityDefinition.QualifiedApiName,
         readOnly: false,
         isActive: record.Active,
@@ -367,6 +369,7 @@ function getRowsForItems({ type, records }: MetadataRecordType, loading: boolean
         parentKey: type,
         type,
         record,
+        link: `/lightning/setup/WorkflowRules/page?address=%2F${record.Id}&nodeId=WorkflowRules`,
         sobject: record.TableEnumOrId,
         readOnly: false,
         isActive: record.Metadata.active,
@@ -393,6 +396,13 @@ function getRowsForItems({ type, records }: MetadataRecordType, loading: boolean
           parentKey: type,
           type,
           record,
+          link:
+            type === 'FlowProcessBuilder'
+              ? `/lightning/setup/ProcessAutomation/home`
+              : // For some reason this only works if it is double encoded, as SFDC seems like they do an extra decode during front-door process
+                `/lightning/setup/Flows/page?address=${encodeURIComponent(
+                  encodeURIComponent(`/${record.DurableId}?retUrl=/lightning/setup/Flows/home`)
+                )}`,
           sobject: record.TriggerObjectOrEvent.QualifiedApiName,
           readOnly: true,
           isActive: record.ActiveVersionId != null,
@@ -421,6 +431,7 @@ function getRowsForItems({ type, records }: MetadataRecordType, loading: boolean
               parentKey: `${type}_${record.DurableId}`,
               type,
               record: version,
+              link: type === 'FlowProcessBuilder' ? null : `/builder_platform_interaction/flowBuilder.app?flowId=${version.DurableId}`,
               sobject: record.TriggerObjectOrEvent.QualifiedApiName,
               isActive: version.DurableId === record.ActiveVersionId,
               isActiveInitialState: version.DurableId === record.ActiveVersionId,

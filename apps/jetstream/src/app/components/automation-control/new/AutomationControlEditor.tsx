@@ -58,7 +58,7 @@ export const AutomationControlEditor: FunctionComponent<AutomationControlEditorP
   const rollbar = useRollbar();
 
   const selectedOrg = useRecoilValue<SalesforceOrgUi>(selectedOrgState);
-  const [{ defaultApiVersion, google_apiKey, google_appId, google_clientId }] = useRecoilState(applicationCookieState);
+  const [{ serverUrl, defaultApiVersion, google_apiKey, google_appId, google_clientId }] = useRecoilState(applicationCookieState);
   const selectedSObjects = useRecoilValue(fromAutomationCtlState.selectedSObjectsState);
   const selectedAutomationTypes = useRecoilValue(fromAutomationCtlState.selectedAutomationTypes);
 
@@ -249,16 +249,11 @@ export const AutomationControlEditor: FunctionComponent<AutomationControlEditorP
               `}
             >
               <AutomationControlEditorTable
-                // ref={automationControlEditorTableRef}
-                // defaultApiVersion={defaultApiVersion}
-                // selectedOrg={selectedOrg}
-                // selectedSObjects={selectedSObjects}
-                // selectedAutomationTypes={selectedAutomationTypes}
+                serverUrl={serverUrl}
+                selectedOrg={selectedOrg}
                 rows={rows}
                 quickFilterText={quickFilterText}
                 updateIsActiveFlag={updateIsActiveFlag}
-                // onLoading={setLoading}
-                // onDirtyChanged={setIsDirty}
               />
             </AutoFullHeightContainer>
           </Grid>

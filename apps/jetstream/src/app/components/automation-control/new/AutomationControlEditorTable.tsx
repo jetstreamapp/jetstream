@@ -4,7 +4,7 @@ import { SalesforceOrgUi } from '@jetstream/types';
 import { DataTable } from '@jetstream/ui';
 import { forwardRef, useEffect, useImperativeHandle, useState } from 'react';
 import { isTableRow, isTableRowChild } from './automation-control-data-utils';
-import { AdditionalDetailRenderer, LoadingAndActiveRenderer } from './automation-control-table-renderers';
+import { AdditionalDetailRenderer, LoadingAndActiveRenderer, TreeItemWithLinkRenderer } from './automation-control-table-renderers';
 import { AutomationMetadataType, TableEditorImperativeHandle, TableRowItem, TableRowOrItemOrChild } from './automation-control-types';
 import { useAutomationControlData } from './useAutomationControlData';
 
@@ -54,78 +54,17 @@ const getRowHeight = (params: RowHeightParams) => {
 const getRowNodeId = ({ key }: TableRowOrItemOrChild) => key;
 
 export interface AutomationControlEditorTableProps {
-  // defaultApiVersion: string;
-  // selectedOrg: SalesforceOrgUi;
-  // selectedSObjects: string[];
-  // selectedAutomationTypes: AutomationMetadataType[];
+  serverUrl: string;
+  selectedOrg: SalesforceOrgUi;
   rows: TableRowOrItemOrChild[];
   quickFilterText: string;
-  // onDirtyChanged: (isDirty: boolean) => void;
-  // onLoading: (loading: boolean) => void;
-  // loading: boolean;
-  // fetchData: ;
-  // refreshProcessBuilders: ;
   updateIsActiveFlag: (row: TableRowOrItemOrChild, value: boolean) => void;
-  // resetChanges: ;
-  // isDirty: ;
 }
 
 export const AutomationControlEditorTable = forwardRef<any, AutomationControlEditorTableProps>(
-  ({ rows, quickFilterText, updateIsActiveFlag }, ref) => {
+  ({ serverUrl, selectedOrg, rows, quickFilterText, updateIsActiveFlag }, ref) => {
     const [gridApi, setGridApi] = useState<GridApi>();
     const [gridColumnApi, setGridColumnApi] = useState<ColumnApi>();
-    // const { rows, loading, fetchData, refreshProcessBuilders, updateIsActiveFlag, resetChanges, isDirty } =
-    //   useAutomationControlData({
-    //     selectedOrg,
-    //     defaultApiVersion,
-    //     selectedSObjects,
-    //     selectedAutomationTypes,
-    //   });
-
-    // useEffect(() => {
-    //   onLoading(loading);
-    // }, [loading, onLoading]);
-
-    // useNonInitialEffect(() => {
-    //   if (gridColumnApi && rows.length) {
-    //     gridColumnApi.autoSizeColumns(['additionalInfo']);
-    //   }
-    // }, [rows, loading, gridColumnApi]);
-
-    // useNonInitialEffect(() => {
-    //   onDirtyChanged(isDirty);
-    // }, [isDirty, onDirtyChanged]);
-
-    // useImperativeHandle(
-    //   ref,
-    //   () => {
-    //     const filterComp: TableEditorImperativeHandle = {
-    //       resetChanges: () => {
-    //         resetChanges();
-    //       },
-    //       getDirtyRows: () => {
-    //         return rows.filter((row) => {
-    //           if (isTableRow(row) || isTableRowChild(row)) {
-    //             return false;
-    //           }
-    //           return row.isActive !== row.isActiveInitialState || row.activeVersionNumber !== row.activeVersionNumberInitialState;
-    //         }) as TableRowItem[];
-    //       },
-    //       refreshAfterDeploy: () => {
-    //         // items: DeploymentItem[]
-    //         // TODO: update rows based on deployment results
-    //         // return rows;
-    //         // TODO: can we pass in Ids and just refresh those limited items?
-    //         fetchData();
-    //       },
-    //       refreshProcessBuilders: () => {
-    //         refreshProcessBuilders();
-    //       },
-    //     };
-    //     return filterComp;
-    //   },
-    //   [fetchData, refreshProcessBuilders, resetChanges, rows]
-    // );
 
     function handleGridReady(event: GridReadyEvent) {
       setGridApi(event.api);
@@ -139,6 +78,8 @@ export const AutomationControlEditorTable = forwardRef<any, AutomationControlEdi
           data={rows}
           agGridProps={{
             context: {
+              serverUrl,
+              selectedOrg,
               updateIsActiveFlag,
             },
             immutableData: true,
@@ -149,6 +90,7 @@ export const AutomationControlEditorTable = forwardRef<any, AutomationControlEdi
               filterValueGetter: ({ data }) => (!isTableRow(data) ? data.key : null),
               cellRendererParams: {
                 suppressCount: true,
+                innerRenderer: 'treeItemWithLinkRenderer',
               },
             },
             treeData: true,
@@ -164,6 +106,7 @@ export const AutomationControlEditorTable = forwardRef<any, AutomationControlEdi
             frameworkComponents: {
               loadingAndActiveRenderer: LoadingAndActiveRenderer,
               additionalDetailRenderer: AdditionalDetailRenderer,
+              treeItemWithLinkRenderer: TreeItemWithLinkRenderer,
             },
             getRowHeight,
             // rowSelection: '',

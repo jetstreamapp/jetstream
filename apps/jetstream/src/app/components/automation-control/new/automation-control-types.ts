@@ -467,6 +467,7 @@ export interface TableRowItem {
   type: AutomationMetadataType;
   sobject: string;
   record: ToolingApexTriggerRecord | ToolingValidationRuleRecord | ToolingWorkflowRuleRecord | FlowViewRecord;
+  link: string;
   /** True for Flow and PB as this is controlled from children */
   readOnly: boolean;
   isActive: boolean;
@@ -488,6 +489,7 @@ export interface TableRowItemChild {
   type: AutomationMetadataType;
   sobject: string;
   record: ToolingFlowVersionRecord;
+  link?: string;
   isActive: boolean;
   isActiveInitialState: boolean;
   label: string;
