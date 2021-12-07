@@ -1,12 +1,10 @@
-import { ColDef, ColumnApi, GridApi, GridReadyEvent, RowHeightParams } from '@ag-grid-community/core';
-import { useNonInitialEffect } from '@jetstream/shared/ui-utils';
+import { ColDef, RowHeightParams } from '@ag-grid-community/core';
 import { SalesforceOrgUi } from '@jetstream/types';
 import { DataTable } from '@jetstream/ui';
-import { forwardRef, useEffect, useImperativeHandle, useState } from 'react';
-import { isTableRow, isTableRowChild } from './automation-control-data-utils';
+import { forwardRef } from 'react';
+import { isTableRow } from './automation-control-data-utils';
 import { AdditionalDetailRenderer, LoadingAndActiveRenderer, TreeItemWithLinkRenderer } from './automation-control-table-renderers';
-import { AutomationMetadataType, TableEditorImperativeHandle, TableRowItem, TableRowOrItemOrChild } from './automation-control-types';
-import { useAutomationControlData } from './useAutomationControlData';
+import { TableRowOrItemOrChild } from './automation-control-types';
 
 const COLUMNS: ColDef[] = [
   {
@@ -63,14 +61,6 @@ export interface AutomationControlEditorTableProps {
 
 export const AutomationControlEditorTable = forwardRef<any, AutomationControlEditorTableProps>(
   ({ serverUrl, selectedOrg, rows, quickFilterText, updateIsActiveFlag }, ref) => {
-    const [gridApi, setGridApi] = useState<GridApi>();
-    const [gridColumnApi, setGridColumnApi] = useState<ColumnApi>();
-
-    function handleGridReady(event: GridReadyEvent) {
-      setGridApi(event.api);
-      setGridColumnApi(event.columnApi);
-    }
-
     return (
       <div className="h-100">
         <DataTable
@@ -109,9 +99,6 @@ export const AutomationControlEditorTable = forwardRef<any, AutomationControlEdi
               treeItemWithLinkRenderer: TreeItemWithLinkRenderer,
             },
             getRowHeight,
-            // rowSelection: '',
-            // onSelectionChanged: handleSelectionChanged,
-            onGridReady: handleGridReady,
           }}
         />
       </div>

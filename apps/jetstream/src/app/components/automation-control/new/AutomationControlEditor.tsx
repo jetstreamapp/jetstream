@@ -1,48 +1,35 @@
 import { css } from '@emotion/react';
 import { TITLES } from '@jetstream/shared/constants';
-import { useRollbar } from '@jetstream/shared/ui-utils';
-import { MapOf, SalesforceOrgUi } from '@jetstream/types';
+import { formatNumber, useRollbar } from '@jetstream/shared/ui-utils';
+import { pluralizeFromNumber } from '@jetstream/shared/utils';
+import { SalesforceOrgUi } from '@jetstream/types';
 import {
   AutoFullHeightContainer,
-  ConnectedSobjectListMultiSelect,
+  Badge,
   FileDownloadModal,
   Grid,
   Icon,
-  Input,
-  ListWithFilterMultiSelect,
-  Page,
-  PageHeader,
-  PageHeaderActions,
-  PageHeaderRow,
-  PageHeaderTitle,
   SearchInput,
   Spinner,
   Toast,
   Toolbar,
   ToolbarItemActions,
   ToolbarItemGroup,
-  Tooltip,
 } from '@jetstream/ui';
-import { DescribeGlobalSObjectResult } from 'jsforce';
-import * as fromJetstreamEvents from '../../core/jetstream-events';
+import classNames from 'classnames';
 import { FunctionComponent, useRef, useState } from 'react';
-import { useRouteMatch } from 'react-router';
 import { Link } from 'react-router-dom';
-import Split from 'react-split';
 import { useTitle } from 'react-use';
 import { useRecoilState, useRecoilValue } from 'recoil';
-import { selectedOrgState } from '../../../app-state';
+import { applicationCookieState, selectedOrgState } from '../../../app-state';
+import * as fromJetstreamEvents from '../../core/jetstream-events';
+import { isTableRow, isTableRowChild, isTableRowItem } from './automation-control-data-utils';
+import { TableRowItem } from './automation-control-types';
 import * as fromAutomationCtlState from './automation-control.state';
-import AutomationControlEditorTable from './AutomationControlEditorTable';
-import { applicationCookieState, selectedOrgType } from '../../../app-state';
-import { TableEditorImperativeHandle, TableRowItem, TableRowItemOrChild, TableRowItemSnapshot } from './automation-control-types';
 import AutomationControlEditorReviewModal from './AutomationControlEditorReviewModal';
-import AutomationControlEditorSaveSnapshotModal from './AutomationControlEditorSaveSnapshotModal';
-import AutomationControlEditorRestoreSnapshotModal from './AutomationControlEditorRestoreSnapshotModal';
+import AutomationControlEditorTable from './AutomationControlEditorTable';
 import DeployMetadataLastRefreshedPopover from './AutomationControlLastRefreshedPopover';
 import { useAutomationControlData } from './useAutomationControlData';
-import { isTableRow, isTableRowChild, isTableRowItem } from './automation-control-data-utils';
-import classNames from 'classnames';
 
 const HEIGHT_BUFFER = 170;
 
@@ -82,7 +69,7 @@ export const AutomationControlEditor: FunctionComponent<AutomationControlEditorP
     toggleAll,
     resetChanges,
     restoreSnapshot,
-    isDirty,
+    dirtyCount,
   } = useAutomationControlData({
     selectedOrg,
     defaultApiVersion,
@@ -178,17 +165,16 @@ export const AutomationControlEditor: FunctionComponent<AutomationControlEditorP
           <SearchInput id="quick-filter" placeholder="Filter items..." className="slds-m-left_small" onChange={setQuickFilterText} />
         </ToolbarItemGroup>
         <ToolbarItemActions>
-          <button className="slds-button slds-button_neutral" onClick={handleResetChanges} disabled={loading || !isDirty}>
+          <button className="slds-button slds-button_neutral" onClick={handleResetChanges} disabled={loading || !dirtyCount}>
             <Icon type="utility" icon="refresh" className="slds-button__icon slds-button__icon_left" />
             Reset Changes
           </button>
-          {/* TODO: EXPORT should allow downloading spreadsheet or metadata package (for future rollback) */}
           {/* We probably also want to allow saving the current state somehow and recalling it in the future (just dirty state) */}
           <button className="slds-button slds-button_neutral" disabled={loading} onClick={exportChanges}>
             <Icon type="utility" icon="download" className="slds-button__icon slds-button__icon_left" />
             Export
           </button>
-          <button className="slds-button slds-button_brand" disabled={loading || !isDirty} onClick={handleReviewChanges}>
+          <button className="slds-button slds-button_brand" disabled={loading || !dirtyCount} onClick={handleReviewChanges}>
             <Icon type="utility" icon="upload" className="slds-button__icon slds-button__icon_left" />
             Review Changes
           </button>
@@ -198,9 +184,6 @@ export const AutomationControlEditor: FunctionComponent<AutomationControlEditorP
         <Grid>
           <Grid className="slds-grow slds-box_small slds-theme_default slds-is-relative" verticalAlign="center" wrap>
             {loading && <Spinner size="small"></Spinner>}
-            {/* TODO: */}
-            {/* <AutomationControlEditorSaveSnapshotModal selectedOrg={selectedOrg} rows={rows} /> */}
-            {/* <AutomationControlEditorRestoreSnapshotModal selectedOrg={selectedOrg} onRestore={handleRestoreSnapshot} /> */}
             <button
               className={classNames('slds-button slds-button_neutral')}
               title="Enable All"
@@ -219,6 +202,9 @@ export const AutomationControlEditor: FunctionComponent<AutomationControlEditorP
               <Icon type="utility" icon="dash" className="slds-button__icon slds-button__icon_left" omitContainer />
               Disable All
             </button>
+            <Badge className="slds-m-left_x-small">
+              {formatNumber(dirtyCount)} {pluralizeFromNumber('item', dirtyCount)} modified
+            </Badge>
             <div className="slds-col_bump-left">
               <DeployMetadataLastRefreshedPopover onRefresh={handleRefreshProcessBuilders} />
             </div>

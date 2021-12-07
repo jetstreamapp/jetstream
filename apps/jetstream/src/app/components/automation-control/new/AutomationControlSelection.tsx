@@ -14,15 +14,15 @@ import {
   PageHeaderTitle,
 } from '@jetstream/ui';
 import { DescribeGlobalSObjectResult } from 'jsforce';
-import { FunctionComponent, useRef } from 'react';
+import { FunctionComponent } from 'react';
 import { useRouteMatch } from 'react-router';
 import { Link } from 'react-router-dom';
 import Split from 'react-split';
 import { useTitle } from 'react-use';
 import { useRecoilState, useRecoilValue } from 'recoil';
 import { selectedOrgState } from '../../../app-state';
-import * as fromAutomationCtlState from './automation-control.state';
 import { AutomationMetadataType } from './automation-control-types';
+import * as fromAutomationCtlState from './automation-control.state';
 
 const HEIGHT_BUFFER = 170;
 
@@ -55,14 +55,6 @@ export const AutomationControlSelection: FunctionComponent<AutomationControlSele
 
   const automationTypes = useRecoilValue(fromAutomationCtlState.automationTypes);
   const [selectedAutomationTypes, setSelectedAutomationTypes] = useRecoilState(fromAutomationCtlState.selectedAutomationTypes);
-
-  // useEffect(() => {
-  //   resetFieldsByObject();
-  //   resetFieldsByKey();
-  //   resetObjectPermissionMap();
-  //   resetFieldPermissionMap();
-  //   // eslint-disable-next-line react-hooks/exhaustive-deps
-  // }, [selectedProfiles, selectedPermissionSets, selectedSObjects]);
 
   function handleSobjectChange(sobjects: DescribeGlobalSObjectResult[]) {
     setSobjects(sobjects);

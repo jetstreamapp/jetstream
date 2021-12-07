@@ -40,31 +40,6 @@ export const selectedAutomationTypes = atom<AutomationMetadataType[]>({
   default: ['ApexTrigger', 'ValidationRule', 'WorkflowRule', 'FlowProcessBuilder', 'FlowRecordTriggered'],
 });
 
-// export const itemIds = atom<string[]>({
-//   key: 'automation-control.itemIds',
-//   default: [],
-// });
-
-// export const itemsById = atom<MapOf<AutomationControlParentSobject>>({
-//   key: 'automation-control.itemsById',
-//   default: {},
-// });
-
-// export const activeItemId = atom<string>({
-//   key: 'automation-control.activeItemId',
-//   default: null,
-// });
-
-// export const tabs = atom<UiTabSection[]>({
-//   key: 'automation-control.tabs',
-//   default: [],
-// });
-
-// export const flowDefinitionsBySobject = atom<MapOf<string[]>>({
-//   key: 'automation-control.flowDefinitionsBySobject',
-//   default: null,
-// });
-
 export const hasSelectionsMade = selector({
   key: 'automation-control.hasSelectionsMade',
   get: ({ get }) => {

@@ -4,7 +4,7 @@ import { Checkbox, CopyToClipboard, Grid, GridCol, Icon, SalesforceLogin, Spinne
 import classNames from 'classnames';
 import { isNumber, uniqueId } from 'lodash';
 import { Fragment, FunctionComponent } from 'react';
-import { DeploymentItemStatus, DeploymentItem } from '../automation-control-types';
+import { DeploymentItem, DeploymentItemStatus } from '../automation-control-types';
 import { isTableRow, isTableRowItem } from './automation-control-data-utils';
 import { MetadataCompositeResponseError, TableContext, TableRowOrItemOrChild } from './automation-control-types';
 

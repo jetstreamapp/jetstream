@@ -4,7 +4,11 @@ import { EmptyState, FishIllustration, Modal, Select, Tooltip } from '@jetstream
 import localforage from 'localforage';
 import { Fragment, FunctionComponent, useCallback, useEffect, useState } from 'react';
 import { TableRowItemSnapshot } from './automation-control-types';
-
+/**
+ * TODO:
+ * Started implementing this but turned out to be a ton of work
+ * this is here for future use, but is not complete
+ */
 export interface AutomationControlEditorReviewModalProps {
   selectedOrg: SalesforceOrgUi;
   onRestore: (snapshot: TableRowItemSnapshot[]) => void;
@@ -88,10 +92,6 @@ export const AutomationControlEditorReviewModal: FunctionComponent<AutomationCon
                 </select>
               </Select>
             )}
-            {/* TODO: should we allow uploading something? */}
-            {/* TODO: how would a user delete a snapshot? */}
-            {/* TODO: should restore be on initial page and include selected objects?  */}
-            {/* TODO: should snapshot be a v2 enhancement? */}
             {!snapshotsItems?.length && (
               <EmptyState headline="There are no saved snapshots" illustration={<FishIllustration />}></EmptyState>
             )}

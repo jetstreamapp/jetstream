@@ -7,8 +7,9 @@ import {
   saveCacheItemNonHttp,
 } from '@jetstream/shared/data';
 import { getToolingRecords, logErrorToRollbar, pollMetadataResultsUntilDone } from '@jetstream/shared/ui-utils';
-import { dateFromTimestamp, getMapOf, splitArrayToMaxSize } from '@jetstream/shared/utils';
+import { getMapOf, splitArrayToMaxSize } from '@jetstream/shared/utils';
 import { CompositeRequest, CompositeRequestBody, CompositeResponse, MapOf, SalesforceOrgUi } from '@jetstream/types';
+import formatRelative from 'date-fns/formatRelative';
 import { from, Observable, of, Subject } from 'rxjs';
 import { catchError, mergeMap } from 'rxjs/operators';
 import {
@@ -37,7 +38,6 @@ import {
   ToolingValidationRuleRecord,
   ToolingWorkflowRuleRecord,
 } from './automation-control-types';
-import formatRelative from 'date-fns/formatRelative';
 
 // Example: {[orgId]: {[durableId]: sobject}}
 // FIXME: we should persist this in durable cache and let user know the last time refreshed and allow refresh

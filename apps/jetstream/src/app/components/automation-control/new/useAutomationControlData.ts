@@ -13,7 +13,6 @@ import {
 } from './automation-control-data-utils';
 import {
   AutomationMetadataType,
-  DeploymentItem,
   FetchErrorPayload,
   FetchSuccessPayload,
   FlowViewRecord,
@@ -36,7 +35,6 @@ type Action =
   | { type: 'FETCH_FINISH' }
   | { type: 'UPDATE_IS_ACTIVE_FLAG'; payload: { row: TableRowOrItemOrChild; value: boolean } }
   | { type: 'TOGGLE_ALL'; payload: { value: boolean } }
-  | { type: 'UPDATE_FROM_DEPLOYMENT'; payload: { items: DeploymentItem[] } }
   | { type: 'RESTORE_SNAPSHOT'; payload: { snapshot: TableRowItemSnapshot[] } }
   | { type: 'RESET' }
   | { type: 'ERROR'; payload?: { errorMessage: string } };
@@ -52,7 +50,16 @@ interface State {
   rowsByKey: MapOf<TableRow | TableRowItem | TableRowItemChild>;
   /** Used to know order to rebuild rows from rowsByKey */
   keys: string[];
-  isDirty: boolean;
+  dirtyCount: number;
+}
+
+function isDirty(row: TableRow | TableRowItem | TableRowItemChild) {
+  if (isTableRowItem(row) && (!row.children || !row.children.length)) {
+    return row.isActive !== row.isActiveInitialState;
+  } else if (isTableRowChild(row)) {
+    return row.isActive !== row.isActiveInitialState;
+  }
+  return false;
 }
 
 type MetadataRecordType =
@@ -88,7 +95,7 @@ function reducer(state: State, action: Action): State {
       output.keys = keys;
       output.rows = rows;
       output.rowsByKey = rowsByKey;
-      output.isDirty = rows.some((row) => !isTableRow(row) && row.isActive !== row.isActiveInitialState);
+      output.dirtyCount = rows.reduce((output, row) => output + (isDirty(row) ? 1 : 0), 0);
       return output;
     }
     case 'FETCH_REFRESH': {
@@ -113,7 +120,7 @@ function reducer(state: State, action: Action): State {
       output.keys = keys;
       output.rows = rows;
       output.rowsByKey = rowsByKey;
-      output.isDirty = rows.some((row) => !isTableRow(row) && row.isActive !== row.isActiveInitialState);
+      output.dirtyCount = rows.reduce((output, row) => output + (isDirty(row) ? 1 : 0), 0);
       return output;
     }
     case 'FETCH_SUCCESS': {
@@ -132,7 +139,7 @@ function reducer(state: State, action: Action): State {
       output.keys = keys;
       output.rows = rows;
       output.rowsByKey = rowsByKey;
-      output.isDirty = rows.some((row) => !isTableRow(row) && row.isActive !== row.isActiveInitialState);
+      output.dirtyCount = rows.reduce((output, row) => output + (isDirty(row) ? 1 : 0), 0);
       return output;
     }
     case 'FETCH_ERROR': {
@@ -157,7 +164,7 @@ function reducer(state: State, action: Action): State {
       output.keys = keys;
       output.rows = rows;
       output.rowsByKey = rowsByKey;
-      output.isDirty = rows.some((row) => !isTableRow(row) && row.isActive !== row.isActiveInitialState);
+      output.dirtyCount = rows.reduce((output, row) => output + (isDirty(row) ? 1 : 0), 0);
       return output;
     }
     case 'FETCH_FINISH':
@@ -198,7 +205,7 @@ function reducer(state: State, action: Action): State {
         rows: state.keys.map((rowKey) => rowsByKey[rowKey]),
         rowsByKey,
       };
-      output.isDirty = output.rows.some((row) => !isTableRow(row) && row.isActive !== row.isActiveInitialState);
+      output.dirtyCount = output.rows.reduce((output, row) => output + (isDirty(row) ? 1 : 0), 0);
       return output;
     }
     case 'TOGGLE_ALL': {
@@ -238,22 +245,8 @@ function reducer(state: State, action: Action): State {
         rows: state.keys.map((rowKey) => rowsByKey[rowKey]),
         rowsByKey,
       };
-      output.isDirty = output.rows.some((row) => !isTableRow(row) && row.isActive !== row.isActiveInitialState);
+      output.dirtyCount = output.rows.reduce((output, row) => output + (isDirty(row) ? 1 : 0), 0);
       return output;
-    }
-    case 'UPDATE_FROM_DEPLOYMENT': {
-      // TODO: finish implementing me - OR we can more easily just refresh all the data
-      const { items } = action.payload;
-      const rowsByKey = { ...state.rowsByKey };
-
-      items.forEach(({ deploy, metadata, status }) => {
-        // if deployed success and not rolled back change
-        // if not deployed ignore
-        // if error ignore (what if rollback was the error part)
-        // for flows, we need to update their versions
-      });
-
-      return { ...state };
     }
     case 'RESTORE_SNAPSHOT': {
       const { snapshot } = action.payload;
@@ -284,7 +277,7 @@ function reducer(state: State, action: Action): State {
         ...state,
         rows: state.keys.map((rowKey) => rowsByKey[rowKey]),
         rowsByKey,
-        isDirty: false,
+        dirtyCount: 0,
       };
       return output;
     }
@@ -512,7 +505,7 @@ export function useAutomationControlData({
   const isMounted = useRef(null);
   const rollbar = useRollbar();
 
-  const [{ loading, hasError, errorMessage, data, rows, isDirty }, dispatch] = useReducer(reducer, {
+  const [{ loading, hasError, errorMessage, data, rows, dirtyCount }, dispatch] = useReducer(reducer, {
     loading: false,
     hasError: false,
     data: {
@@ -540,7 +533,7 @@ export function useAutomationControlData({
     rows: [],
     rowsByKey: {},
     keys: [],
-    isDirty: false,
+    dirtyCount: 0,
   });
 
   useEffect(() => {
@@ -562,7 +555,6 @@ export function useAutomationControlData({
     dispatch({ type: 'TOGGLE_ALL', payload: { value } });
   }, []);
 
-  // TODO: allow passing in the keys to refresh and only refresh the specific items and retain everything else
   const fetchData = useCallback(async () => {
     try {
       const selectedTypes = new Set(selectedAutomationTypes);
@@ -627,6 +619,6 @@ export function useAutomationControlData({
     toggleAll,
     resetChanges,
     restoreSnapshot,
-    isDirty,
+    dirtyCount,
   };
 }

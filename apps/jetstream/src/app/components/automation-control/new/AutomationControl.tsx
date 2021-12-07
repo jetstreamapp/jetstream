@@ -1,11 +1,9 @@
 import { TITLES } from '@jetstream/shared/constants';
-import { SalesforceOrgUi } from '@jetstream/types';
-import React, { Fragment, FunctionComponent, useEffect, useState } from 'react';
-import { Redirect, Route, Switch, useRouteMatch, useHistory } from 'react-router-dom';
+import React, { FunctionComponent, useEffect } from 'react';
+import { Redirect, Route, Switch, useHistory, useRouteMatch } from 'react-router-dom';
 import { useTitle } from 'react-use';
 import { useRecoilState, useRecoilValue, useResetRecoilState } from 'recoil';
 import { selectedOrgState } from '../../../app-state';
-import StateDebugObserver from '../../core/StateDebugObserver';
 import * as fromAutomationCtlState from './automation-control.state';
 import AutomationControlEditor from './AutomationControlEditor';
 import AutomationControlSelection from './AutomationControlSelection';
@@ -18,7 +16,6 @@ export const ManagePermissions: FunctionComponent<ManagePermissionsProps> = () =
   const match = useRouteMatch();
   const history = useHistory();
   const goBackUrl = match.url.replace('/editor', '');
-  // FIXME: this needs to be re-enabled after refactor
   const selectedOrg = useRecoilValue(selectedOrgState);
   const [priorSelectedOrg, setPriorSelectedOrg] = useRecoilState(fromAutomationCtlState.priorSelectedOrg);
   const resetSObjectsState = useResetRecoilState(fromAutomationCtlState.sObjectsState);

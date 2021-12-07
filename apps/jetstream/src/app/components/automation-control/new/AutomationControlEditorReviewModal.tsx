@@ -1,20 +1,19 @@
-import { ColDef, RowHeightParams } from '@ag-grid-community/core';
+import { ColDef } from '@ag-grid-community/core';
 import { css } from '@emotion/react';
 import { logger } from '@jetstream/shared/client-logger';
 import { SalesforceOrgUi } from '@jetstream/types';
-import { AutoFullHeightContainer, DataTable, Icon, Modal, Spinner, Tooltip } from '@jetstream/ui';
+import { AutoFullHeightContainer, DataTable, Icon, Modal, Spinner } from '@jetstream/ui';
 import { Fragment, FunctionComponent, useCallback, useEffect, useState } from 'react';
-import { deployMetadata, getAutomationTypeLabel, isTableRowItem, preparePayloads } from './automation-control-data-utils';
+import ConfirmPageChange from '../../core/ConfirmPageChange';
+import { deployMetadata, getAutomationTypeLabel, preparePayloads } from './automation-control-data-utils';
+import { AutomationDeployStatusRenderer, BooleanAndVersionRenderer } from './automation-control-table-renderers';
 import {
   AutomationControlDeploymentItem,
   DeploymentItem,
   DeploymentItemMap,
   FlowViewRecord,
   TableRowItem,
-  TableRowItemOrChild,
 } from './automation-control-types';
-import ConfirmPageChange from '../../core/ConfirmPageChange';
-import { AutomationDeployStatusRenderer, BooleanAndVersionRenderer } from './automation-control-table-renderers';
 
 const COLUMNS: ColDef[] = [
   {

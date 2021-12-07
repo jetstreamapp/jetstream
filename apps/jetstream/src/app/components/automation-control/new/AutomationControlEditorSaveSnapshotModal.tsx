@@ -4,7 +4,7 @@ import { Input, Modal, Tooltip } from '@jetstream/ui';
 import localforage from 'localforage';
 import { Fragment, FunctionComponent, useState } from 'react';
 import { isTableRowItem } from './automation-control-data-utils';
-import { TableRowItem, TableRowItemSnapshot, TableRowOrItemOrChild, FlowViewRecord } from './automation-control-types';
+import { FlowViewRecord, TableRowItem, TableRowItemSnapshot, TableRowOrItemOrChild } from './automation-control-types';
 
 export interface AutomationControlEditorReviewModalProps {
   selectedOrg: SalesforceOrgUi;
