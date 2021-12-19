@@ -8,12 +8,14 @@ export interface LoadRecordsBulkApiResultsTableRowProps {
   batch: BulkJobBatchInfo;
   hasErrors: boolean;
   onDownload: (type: 'results' | 'failures', batch: BulkJobBatchInfo) => Promise<void>;
+  onView: (type: 'results' | 'failures', batch: BulkJobBatchInfo) => Promise<void>;
 }
 
 export const LoadRecordsBulkApiResultsTableRow: FunctionComponent<LoadRecordsBulkApiResultsTableRowProps> = ({
   batch,
   hasErrors,
   onDownload,
+  onView,
 }) => {
   const isMounted = useRef(null);
   const [downloadResultsRecordsLoading, setDownloadResultsRecordsLoading] = useState(false);
@@ -35,6 +37,23 @@ export const LoadRecordsBulkApiResultsTableRow: FunctionComponent<LoadRecordsBul
       // this is a promise to control loading indicators
       setDownloadResultsRecordsLoading(true);
       await onDownload(type, batch);
+      if (isMounted.current) {
+        setDownloadResultsRecordsLoading(false);
+      }
+    } catch (ex) {
+      if (isMounted.current && downloadResultsRecordsLoading) {
+        setDownloadResultsRecordsLoading(false);
+      }
+      // TODO: show error message
+    }
+  }
+
+  async function viewResults(type: 'results' | 'failures') {
+    try {
+      // Emit to parent that the user would like to download records
+      // this is a promise to control loading indicators
+      setDownloadResultsRecordsLoading(true);
+      await onView(type, batch);
       if (isMounted.current) {
         setDownloadResultsRecordsLoading(false);
       }
@@ -79,22 +98,34 @@ export const LoadRecordsBulkApiResultsTableRow: FunctionComponent<LoadRecordsBul
       </th>
       <td>
         {batch.state === 'Completed' && (
-          <Grid vertical>
+          <Grid vertical className="slds-text-align_right">
             <div className="slds-is-relative">
               {downloadResultsRecordsLoading && <Spinner size="small" />}
               {/* All Results */}
               {batch.numberRecordsProcessed > batch.numberRecordsFailed && (
-                <button className="slds-button" onClick={() => downloadResults('results')}>
-                  <Icon type="utility" icon="download" className="slds-button__icon slds-button__icon_left" omitContainer />
-                  Download Results
-                </button>
+                <div>
+                  <span className="slds-m-right_small text-bold">All Results</span>
+                  <button className="slds-button" onClick={() => downloadResults('results')}>
+                    <Icon type="utility" icon="download" className="slds-button__icon slds-button__icon_left" omitContainer />
+                    Download
+                  </button>
+                  <button className="slds-button slds-m-left_x-small" onClick={() => viewResults('results')}>
+                    <Icon type="utility" icon="preview" className="slds-button__icon slds-button__icon_left" omitContainer />
+                    View
+                  </button>
+                </div>
               )}
               {/* Failure Results */}
               {batch.numberRecordsFailed > 0 && (
                 <div>
+                  <span className="slds-m-right_small text-bold">Failures</span>
                   <button className="slds-button" onClick={() => downloadResults('failures')}>
                     <Icon type="utility" icon="download" className="slds-button__icon slds-button__icon_left" omitContainer />
-                    Download Failures
+                    Download
+                  </button>
+                  <button className="slds-button slds-m-left_x-small" onClick={() => viewResults('failures')}>
+                    <Icon type="utility" icon="preview" className="slds-button__icon slds-button__icon_left" omitContainer />
+                    View
                   </button>
                 </div>
               )}

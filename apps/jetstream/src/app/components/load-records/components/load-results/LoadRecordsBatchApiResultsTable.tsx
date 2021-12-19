@@ -3,7 +3,7 @@ import { formatNumber } from '@jetstream/shared/ui-utils';
 import { Grid, Icon, Spinner } from '@jetstream/ui';
 import classNames from 'classnames';
 import { FunctionComponent } from 'react';
-import { LoadDataBatchApiProgress, PrepareDataResponseError } from '../../load-records-types';
+import { DownloadType, LoadDataBatchApiProgress, PrepareDataResponseError } from '../../load-records-types';
 import LoadRecordsResultsTableProcessingErrRow from './LoadRecordsResultsTableProcessingErrRow';
 
 export interface LoadRecordsBatchApiResultsTableProps {
@@ -16,7 +16,8 @@ export interface LoadRecordsBatchApiResultsTableProps {
   endTime: string;
   processingStartTime: string;
   processingEndTime: string;
-  onDownload: (type: 'results' | 'failures') => void;
+  onDownload: (type: DownloadType) => void;
+  onViewResults: (type: DownloadType) => void;
   onDownloadProcessingErrors: () => void;
 }
 
@@ -31,6 +32,7 @@ export const LoadRecordsBatchApiResultsTable: FunctionComponent<LoadRecordsBatch
   processingStartTime,
   processingEndTime,
   onDownload,
+  onViewResults,
   onDownloadProcessingErrors,
 }) => {
   const status = inProgress ? 'Processing' : 'Finished';
@@ -51,7 +53,7 @@ export const LoadRecordsBatchApiResultsTable: FunctionComponent<LoadRecordsBatch
           <th
             scope="col"
             css={css`
-              width: 220px;
+              width: 260px;
             `}
           >
             <div className="slds-truncate" title="State">
@@ -128,22 +130,32 @@ export const LoadRecordsBatchApiResultsTable: FunctionComponent<LoadRecordsBatch
             </th>
             <td>
               {!inProgress && (
-                <Grid vertical>
+                <Grid vertical className="slds-text-align_right">
                   {/* All Results */}
                   {processingStatus.success > 0 && (
                     <div>
+                      <span className="slds-m-right_small text-bold">All Results</span>
                       <button className="slds-button" onClick={() => onDownload('results')}>
                         <Icon type="utility" icon="download" className="slds-button__icon slds-button__icon_left" omitContainer />
-                        Download Results
+                        Download
+                      </button>
+                      <button className="slds-button slds-m-left_x-small" onClick={() => onViewResults('results')}>
+                        <Icon type="utility" icon="preview" className="slds-button__icon slds-button__icon_left" omitContainer />
+                        View
                       </button>
                     </div>
                   )}
                   {/* Failure Results */}
                   {processingStatus.failure > 0 && (
                     <div>
+                      <span className="slds-m-right_small text-bold">Failures</span>
                       <button className="slds-button" onClick={() => onDownload('failures')}>
                         <Icon type="utility" icon="download" className="slds-button__icon slds-button__icon_left" omitContainer />
-                        Download Failures
+                        Download
+                      </button>
+                      <button className="slds-button slds-m-left_x-small" onClick={() => onViewResults('failures')}>
+                        <Icon type="utility" icon="preview" className="slds-button__icon slds-button__icon_left" omitContainer />
+                        View
                       </button>
                     </div>
                   )}

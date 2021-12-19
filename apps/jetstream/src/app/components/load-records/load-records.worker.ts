@@ -81,8 +81,8 @@ async function loadBulkApiData({ org, data, sObject, type, batchSize, externalId
     for (const batch of batches) {
       try {
         const batchResult = await bulkApiAddBatchToJob(org, jobId, batch.data, currItem === batches.length);
-        batchResult.createdDate = convertDateToLocale(batchResult.createdDate);
-        batchResult.systemModstamp = convertDateToLocale(batchResult.systemModstamp);
+        batchResult.createdDate = convertDateToLocale(batchResult.createdDate, { timeStyle: 'medium' });
+        batchResult.systemModstamp = convertDateToLocale(batchResult.systemModstamp, { timeStyle: 'medium' });
         results.batches = results.batches || [];
         results.batches.push(batchResult);
         batch.id = batchResult.id;
@@ -99,8 +99,8 @@ async function loadBulkApiData({ org, data, sObject, type, batchSize, externalId
     const jobInfoWithBatches = await bulkApiGetJob(org, jobId);
 
     jobInfoWithBatches.batches.forEach((batch) => {
-      batch.createdDate = convertDateToLocale(batch.createdDate);
-      batch.systemModstamp = convertDateToLocale(batch.systemModstamp);
+      batch.createdDate = convertDateToLocale(batch.createdDate, { timeStyle: 'medium' });
+      batch.systemModstamp = convertDateToLocale(batch.systemModstamp, { timeStyle: 'medium' });
     });
 
     replyToMessage(replyName, { jobInfo: jobInfoWithBatches });

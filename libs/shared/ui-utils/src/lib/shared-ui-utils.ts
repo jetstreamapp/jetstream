@@ -1061,8 +1061,25 @@ function detectDelimiter(): string {
   return delimiter;
 }
 
-export function convertDateToLocale(isoDateStr: string) {
-  return parseISO(isoDateStr).toLocaleString();
+/**
+ * Convert a date or ISO date string to a string in the users locale
+ * If options (Intl.DateTimeFormatOptions) is provided, that will be used
+ * otherwise `toLocaleString()` is used as a fallback
+ *
+ * @param dateOrIsoDateString
+ * @param options
+ * @returns
+ */
+export function convertDateToLocale(dateOrIsoDateString: string | Date, options?: Intl.DateTimeFormatOptions): string {
+  if (!dateOrIsoDateString) {
+    return dateOrIsoDateString as undefined;
+  }
+  const date = dateOrIsoDateString instanceof Date ? dateOrIsoDateString : parseISO(dateOrIsoDateString);
+  if (!options) {
+    return date.toLocaleString();
+  } else {
+    return new Intl.DateTimeFormat(navigator.language, options).format(date);
+  }
 }
 
 export function convertArrayOfObjectToArrayOfArray(data: any[], headers?: string[]): any[][] {
