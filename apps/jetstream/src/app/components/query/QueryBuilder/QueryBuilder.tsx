@@ -4,12 +4,12 @@ import { css } from '@emotion/react';
 import { IconObj } from '@jetstream/icon-factory';
 import { ANALYTICS_KEYS } from '@jetstream/shared/constants';
 import { hasModifierKey, isEnterKey, useGlobalEventHandler, useNonInitialEffect } from '@jetstream/shared/ui-utils';
-import { DropDownItem, QueryFieldWithPolymorphic, SalesforceOrgUi } from '@jetstream/types';
+import { QueryFieldWithPolymorphic, SalesforceOrgUi } from '@jetstream/types';
 import {
   Accordion,
   AutoFullHeightContainer,
+  CheckboxToggle,
   ConnectedSobjectList,
-  DropDown,
   Icon,
   Page,
   PageHeader,
@@ -45,18 +45,12 @@ import QuerySubquerySObjects from './QuerySubquerySObjects';
 
 const HEIGHT_BUFFER = 175;
 
-const SOBJECT_QUERY_ID = 'sobjects';
 const SOBJECT_QUERY_TITLE = 'Query Object Records';
 const SOBJECT_QUERY_ICON: IconObj = { type: 'standard', icon: 'record_lookup', description: 'Object Query' };
 
 const METADATA_QUERY_ID = 'metadata';
 const METADATA_QUERY_TITLE = 'Query Metadata Records';
 const METADATA_QUERY_ICON: IconObj = { type: 'standard', icon: 'settings', description: 'Metadata Query' };
-
-const LIST_VIEW_ITEMS: DropDownItem[] = [
-  { id: SOBJECT_QUERY_ID, value: SOBJECT_QUERY_TITLE, icon: { type: 'utility', icon: 'record_lookup' } },
-  { id: METADATA_QUERY_ID, value: METADATA_QUERY_TITLE, icon: { type: 'utility', icon: 'setup' } },
-];
 
 // eslint-disable-next-line @typescript-eslint/no-empty-interface
 export interface QueryBuilderProps {}
@@ -235,14 +229,15 @@ export const QueryBuilder: FunctionComponent<QueryBuilderProps> = () => {
               // label={pageTitle}
               label="Query Records"
               titleDropDown={
-                <DropDown
-                  buttonClassName="slds-button slds-button_icon slds-m-left_small"
-                  actionText="Switch Query Type"
-                  description="Switch Query Type"
-                  leadingIcon={{ icon: 'change_record_type', type: 'utility' }}
-                  items={LIST_VIEW_ITEMS}
-                  initialSelectedId={isTooling ? METADATA_QUERY_ID : SOBJECT_QUERY_ID}
-                  onSelected={handleQueryTypeChange}
+                <CheckboxToggle
+                  id={`query-type-toggle`}
+                  containerClassname="slds-m-left_x-small"
+                  label="Query Type"
+                  offText="Object Query"
+                  onText="Metadata Query"
+                  hideLabel
+                  checked={isTooling}
+                  onChange={setIsTooling}
                 />
               }
             />
