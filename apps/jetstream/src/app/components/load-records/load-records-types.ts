@@ -118,3 +118,17 @@ export interface LoadDataBatchApiProgress {
   success: number;
   failure: number;
 }
+
+export type DownloadType = 'results' | 'failures';
+export type DownloadAction = 'view' | 'download';
+
+export interface DownloadModalData {
+  open: boolean;
+  data: any[];
+  header: string[];
+  fileNameParts: string[];
+}
+
+export interface ViewModalData extends Omit<DownloadModalData, 'fileNameParts'> {
+  type: DownloadType;
+}
