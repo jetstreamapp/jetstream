@@ -71,7 +71,9 @@ export const QueryHistory: FunctionComponent<QueryHistoryProps> = ({ selectedOrg
       // load history and put into store
       (async () => {
         try {
-          await localforage.setItem<MapOf<QueryHistoryItem>>(INDEXED_DB.KEYS.queryHistory, queryHistoryStateMap);
+          // re-fetch store to ensure that other browser tabs storage is not over-written
+          const storedHistory = await localforage.getItem<MapOf<QueryHistoryItem>>(INDEXED_DB.KEYS.queryHistory);
+          await localforage.setItem<MapOf<QueryHistoryItem>>(INDEXED_DB.KEYS.queryHistory, { ...storedHistory, ...queryHistoryStateMap });
         } catch (ex) {
           logger.warn(ex);
         }
@@ -98,11 +100,11 @@ export const QueryHistory: FunctionComponent<QueryHistoryProps> = ({ selectedOrg
 
   useNonInitialEffect(() => {
     trackEvent(ANALYTICS_KEYS.query_HistoryChangeOrgs, { whichOrg });
-  }, [whichOrg]);
+  }, [trackEvent, whichOrg]);
 
   useNonInitialEffect(() => {
     trackEvent(ANALYTICS_KEYS.query_HistoryTypeChanged, { whichType });
-  }, [whichType]);
+  }, [trackEvent, whichType]);
 
   useNonInitialEffect(() => {
     if (!isOpen) {
@@ -112,6 +114,7 @@ export const QueryHistory: FunctionComponent<QueryHistoryProps> = ({ selectedOrg
       resetWhichType();
       resetWhichOrg();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isOpen, resetSelectedObject, showingUpTo]);
 
   useEffect(() => {
