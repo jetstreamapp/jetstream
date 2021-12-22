@@ -31,6 +31,7 @@ const CreateObjectAndFields = lazy(() => import('./components/create-object-and-
 const AnonymousApex = lazy(() => import('./components/anonymous-apex/AnonymousApex'));
 const SalesforceApi = lazy(() => import('./components/salesforce-api/SalesforceApi'));
 const DebugLogViewer = lazy(() => import('./components/debug-log-viewer/DebugLogViewer'));
+const SObjectExport = lazy(() => import('./components/sobject-export/SObjectExport'));
 const Settings = lazy(() => import('./components/settings/Settings'));
 
 interface RouteItem {
@@ -134,6 +135,14 @@ const ROUTES: RouteItem[] = [
     render: () => (
       <OrgSelectionRequired>
         <PlatformEventMonitor />
+      </OrgSelectionRequired>
+    ),
+  },
+  {
+    path: '/object-export',
+    render: () => (
+      <OrgSelectionRequired>
+        <SObjectExport />
       </OrgSelectionRequired>
     ),
   },

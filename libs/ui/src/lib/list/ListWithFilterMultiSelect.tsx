@@ -2,7 +2,7 @@ import { css } from '@emotion/react';
 import { formatNumber } from '@jetstream/shared/ui-utils';
 import { multiWordObjectFilter, NOOP, orderStringsBy, pluralizeIfMultiple } from '@jetstream/shared/utils';
 import { ListItem as ListItemType, UpDown } from '@jetstream/types';
-import { FishIllustration } from '@jetstream/ui';
+import { FishIllustration } from '../illustrations/FishIllustration';
 import { createRef, Fragment, FunctionComponent, useEffect, useState } from 'react';
 import Checkbox from '../form/checkbox/Checkbox';
 import SearchInput from '../form/search-input/SearchInput';
@@ -26,7 +26,7 @@ export interface ListWithFilterMultiSelectProps {
   selectedItems: string[];
   allowSelectAll?: boolean;
   // disabled?: boolean;
-  loading: boolean;
+  loading?: boolean;
   hasError?: boolean;
   allowRefresh?: boolean;
   lastRefreshed?: string;
@@ -45,7 +45,7 @@ export const ListWithFilterMultiSelect: FunctionComponent<ListWithFilterMultiSel
   selectedItems = [],
   allowSelectAll = true,
   // disabled = false, // TODO:
-  loading,
+  loading = false,
   hasError,
   allowRefresh,
   lastRefreshed,

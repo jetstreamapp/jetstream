@@ -135,6 +135,7 @@ export const HeaderNavbar: FunctionComponent<HeaderNavbarProps> = ({ userProfile
             items={[
               { id: 'apex', path: '/apex', title: 'Anonymous Apex', label: 'Anonymous Apex' },
               { id: 'debug-logs', path: '/debug-logs', title: 'View Debug Logs', label: 'View Debug Logs' },
+              { id: 'sobject-export', path: '/object-export', title: 'Export Object Metadata', label: 'Export Object Metadata' },
               { id: 'salesforce-api', path: '/salesforce-api', title: 'Salesforce API', label: 'Salesforce API' },
               {
                 id: 'platform-event-monitor',
