@@ -4,7 +4,7 @@ import { NOOP, orderObjectsBy } from '@jetstream/shared/utils';
 import { SalesforceOrgUi } from '@jetstream/types';
 import formatRelative from 'date-fns/formatRelative';
 import { DescribeGlobalSObjectResult } from 'jsforce';
-import React, { Fragment, FunctionComponent, useEffect, useRef, useState } from 'react';
+import React, { Fragment, FunctionComponent, useCallback, useEffect, useRef, useState } from 'react';
 import Grid from '../grid/Grid';
 import Icon from '../widgets/Icon';
 import Tooltip from '../widgets/Tooltip';
@@ -23,6 +23,7 @@ export interface ConnectedSobjectListMultiSelectProps {
   selectedOrg: SalesforceOrgUi;
   sobjects: DescribeGlobalSObjectResult[];
   selectedSObjects: string[];
+  allowSelectAll?: boolean;
   filterFn?: (sobject: DescribeGlobalSObjectResult) => boolean;
   onSobjects: (sobjects: DescribeGlobalSObjectResult[]) => void;
   onSelectedSObjects: (selectedSObjects: string[]) => void;
@@ -33,6 +34,7 @@ export const ConnectedSobjectListMultiSelect: FunctionComponent<ConnectedSobject
   selectedOrg,
   sobjects,
   selectedSObjects,
+  allowSelectAll,
   filterFn = filterSobjectFn,
   onSobjects,
   onSelectedSObjects,
@@ -53,13 +55,7 @@ export const ConnectedSobjectListMultiSelect: FunctionComponent<ConnectedSobject
     _lastRefreshed = lastRefreshed;
   }, [lastRefreshed]);
 
-  useEffect(() => {
-    if (selectedOrg && !loading && !errorMessage && !sobjects) {
-      loadObjects().then(NOOP);
-    }
-  }, [selectedOrg, loading, errorMessage, sobjects, onSobjects]);
-
-  async function loadObjects() {
+  const loadObjects = useCallback(async () => {
     const uniqueId = selectedOrg.uniqueId;
     try {
       setLoading(true);
@@ -81,7 +77,13 @@ export const ConnectedSobjectListMultiSelect: FunctionComponent<ConnectedSobject
       setErrorMessage(ex.message);
     }
     setLoading(false);
-  }
+  }, [filterFn, onSobjects, selectedOrg]);
+
+  useEffect(() => {
+    if (selectedOrg && !loading && !errorMessage && !sobjects) {
+      loadObjects().then(NOOP);
+    }
+  }, [selectedOrg, loading, errorMessage, sobjects, onSobjects, loadObjects]);
 
   async function handleRefresh() {
     try {
@@ -111,6 +113,7 @@ export const ConnectedSobjectListMultiSelect: FunctionComponent<ConnectedSobject
         selectedSObjects={selectedSObjects}
         loading={loading}
         errorMessage={errorMessage}
+        allowSelectAll={allowSelectAll}
         onSelected={onSelectedSObjects}
         errorReattempt={() => setErrorMessage(null)}
       />
