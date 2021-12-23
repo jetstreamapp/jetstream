@@ -69,7 +69,13 @@ module.exports = {
     {
       type: 'category',
       label: 'Developer Tools',
-      items: ['developer/anonymous-apex', 'developer/debug-logs', 'developer/salesforce-api', 'developer/platform-events'],
+      items: [
+        'developer/anonymous-apex',
+        'developer/debug-logs',
+        'developer/export-object-metadata',
+        'developer/salesforce-api',
+        'developer/platform-events',
+      ],
     },
   ],
 };
