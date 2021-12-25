@@ -34,6 +34,14 @@ routes.post(
   userController.resendVerificationEmail
 );
 
+/** Download file or attachment */
+routes.get(
+  '/file/stream-download',
+  ensureOrgExists,
+  validate(sfMiscController.routeValidators.streamFileDownload),
+  sfMiscController.streamFileDownload
+);
+
 routes.get('/orgs', orgsController.getOrgs);
 routes.patch('/orgs/:uniqueId', orgsController.updateOrg);
 routes.delete('/orgs/:uniqueId', orgsController.deleteOrg);

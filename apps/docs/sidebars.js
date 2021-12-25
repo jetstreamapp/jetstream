@@ -52,7 +52,7 @@ module.exports = {
     {
       type: 'category',
       label: 'Query',
-      items: ['query/query', 'query/query-results'],
+      items: ['query/query', 'query/query-results', 'query/download-attachments'],
     },
     {
       type: 'category',

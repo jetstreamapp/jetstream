@@ -35,6 +35,7 @@ export interface StandardIconObj {
 }
 
 export interface DoctypeIconObj {
+  attachment: IconEl;
   excel: IconEl;
   gdrive: IconEl;
   gsheet: IconEl;

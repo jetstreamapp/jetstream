@@ -5,6 +5,7 @@ import { logger } from '@jetstream/shared/client-logger';
 import classNames from 'classnames';
 import React from 'react';
 import { DoctypeIcon, DoctypeIconObj, IconName, IconType, StandardIcon, StandardIconObj, UtilityIcon, UtilityIconObj } from './icon-types';
+import DoctypeIcon_Attachment from './icons/doctype/Attachment';
 import DoctypeIcon_Excel from './icons/doctype/Excel';
 import DoctypeIcon_Gdrive from './icons/doctype/Gdrive';
 import DoctypeIcon_Gsheet from './icons/doctype/Gsheet';
@@ -125,6 +126,7 @@ const standardIcons: StandardIconObj = {
 };
 
 const doctypeIcons: DoctypeIconObj = {
+  attachment: DoctypeIcon_Attachment,
   excel: DoctypeIcon_Excel,
   gdrive: DoctypeIcon_Gdrive,
   gsheet: DoctypeIcon_Gsheet,

@@ -35,6 +35,9 @@
     "docs": {
       "tags": []
     },
+    "download-zip-sw": {
+      "tags": ["sw"]
+    },
     "icon-factory": {
       "tags": []
     },

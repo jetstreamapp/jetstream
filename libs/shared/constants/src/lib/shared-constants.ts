@@ -156,6 +156,12 @@ export const ANALYTICS_KEYS = {
   query_MetadataQueryToggled: 'query_MetadataQueryToggled',
   query_RecordAction: 'query_RecordAction',
   query_ResetPage: 'query_ResetPage',
+  /** DOWNLOAD FILES */
+  attachment_QueriedEligibleObject: 'attachment_QueriedEligibleObject',
+  attachment_ModalOpened: 'attachment_ModalOpened',
+  attachment_Cancelled: 'attachment_Cancelled',
+  attachment_Downloaded: 'attachment_Downloaded',
+  attachment_Error: 'attachment_Error',
   /** LOAD */
   load_GoBackToPrevStep: 'load_GoBackToPrevStep',
   load_MappingAutomationChanged: 'load_MappingAutomationChanged',

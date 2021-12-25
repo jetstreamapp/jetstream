@@ -233,7 +233,7 @@ export const QueryHistory: FunctionComponent<QueryHistoryProps> = ({ selectedOrg
         onClick={() => handleOpenModal()}
       >
         <Icon type="utility" icon="date_time" className="slds-button__icon slds-button__icon_left" omitContainer />
-        View History
+        History
       </button>
       {isOpen && (
         <Modal

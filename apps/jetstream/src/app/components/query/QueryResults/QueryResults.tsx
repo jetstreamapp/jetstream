@@ -55,6 +55,7 @@ import QueryHistory from '../QueryHistory/QueryHistory';
 import IncludeDeletedRecordsToggle from '../QueryOptions/IncludeDeletedRecords';
 import { getFlattenSubqueryFlattenedFieldMap } from '../utils/query-utils';
 import useQueryRestore from '../utils/useQueryRestore';
+import QueryResultsAttachmentDownload, { FILE_DOWNLOAD_FIELD_MAP } from './QueryResultsAttachmentDownload';
 import QueryResultsCopyToClipboard from './QueryResultsCopyToClipboard';
 import QueryResultsGetRecAsApexModal from './QueryResultsGetRecAsApexModal';
 import QueryResultsSoqlPanel from './QueryResultsSoqlPanel';
@@ -114,6 +115,16 @@ export const QueryResults: FunctionComponent<QueryResultsProps> = React.memo(() 
   const [cloneEditViewRecord, setCloneEditViewRecord] = useState<{ action: CloneEditView; sobjectName: string; recordId: string }>();
   const [getRecordAsApex, setGetRecordAsApex] = useState<{ record: any; sobjectName: string }>();
   const [restore] = useQueryRestore(soql, isTooling, { silent: true });
+
+  const [allowContentDownload, setAllowContentDownload] = useState<{
+    enabled: boolean;
+    sobjectName: string;
+    missingFields: string[];
+  }>({
+    enabled: false,
+    missingFields: [],
+    sobjectName: null,
+  });
 
   const { fieldMetadata, fieldMetadataSubquery } = useQueryResultsFetchMetadata(selectedOrg, queryResults?.parsedQuery, isTooling);
 
@@ -246,6 +257,8 @@ export const QueryResults: FunctionComponent<QueryResultsProps> = React.memo(() 
         tag: 'query',
       });
 
+      handleDownloadContentConfig(results);
+
       if (forceRestore || previousSoql !== soqlQuery) {
         restore(soqlQuery, tooling);
       }
@@ -264,6 +277,35 @@ export const QueryResults: FunctionComponent<QueryResultsProps> = React.memo(() 
       });
     } finally {
       setLoading(false);
+    }
+  }
+
+  /**
+   * Enable content downloads for allowed objects
+   * This is evaluated after each query
+   */
+  function handleDownloadContentConfig(results: IQueryResults<any>) {
+    // Configure file download content
+    if (results.parsedQuery?.sObject && FILE_DOWNLOAD_FIELD_MAP.has(results.parsedQuery.sObject.toLowerCase())) {
+      const { bodyField, nameField, sizeField } = FILE_DOWNLOAD_FIELD_MAP.get(results.parsedQuery.sObject.toLowerCase());
+      const missingFields = [];
+      const fields = new Set(
+        results.parsedQuery.fields.map((field) => field.type === 'Field' && field.field.toLowerCase()).filter(Boolean)
+      );
+      if (!fields.has(bodyField.toLowerCase())) {
+        missingFields.push(bodyField);
+      }
+      if (!fields.has(nameField.toLowerCase())) {
+        missingFields.push(nameField);
+      }
+      if (!fields.has(sizeField.toLowerCase())) {
+        missingFields.push(sizeField);
+      }
+      setAllowContentDownload({ enabled: true, missingFields, sobjectName: results.parsedQuery.sObject });
+    } else {
+      if (allowContentDownload.enabled) {
+        setAllowContentDownload({ enabled: false, missingFields: [], sobjectName: null });
+      }
     }
   }
 
@@ -478,7 +520,7 @@ export const QueryResults: FunctionComponent<QueryResultsProps> = React.memo(() 
             onClick={() => setSoqlPanelOpen(!soqlPanelOpen)}
           >
             <Icon type="utility" icon="component_customization" className="slds-button__icon slds-button__icon_left" omitContainer />
-            Manage SOQL Query
+            SOQL Query
           </button>
           <button
             className="slds-button slds-button_neutral"
@@ -487,7 +529,7 @@ export const QueryResults: FunctionComponent<QueryResultsProps> = React.memo(() 
             title="Re-run the current query"
           >
             <Icon type="utility" icon="refresh" className="slds-button__icon slds-button__icon_left" omitContainer />
-            Re-load
+            Reload
           </button>
           <QueryHistory selectedOrg={selectedOrg} onRestore={handleRestoreFromHistory} />
         </ToolbarItemGroup>
@@ -537,6 +579,16 @@ export const QueryResults: FunctionComponent<QueryResultsProps> = React.memo(() 
           `}
         >
           {loading && <Spinner />}
+          {/* this only shows content if allowContentDownload.enabled is true  */}
+          <Grid className="slds-m-left_small">
+            <QueryResultsAttachmentDownload
+              selectedOrg={selectedOrg}
+              enabled={allowContentDownload.enabled}
+              sobjectName={allowContentDownload.sobjectName}
+              missingFields={allowContentDownload.missingFields}
+              selectedRecords={selectedRows}
+            />
+          </Grid>
           {errorMessage && (
             <div className="slds-m-around_medium slds-box slds-text-color_error">
               <div className="slds-inline_icon_text slds-grid">
