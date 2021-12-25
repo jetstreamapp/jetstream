@@ -149,7 +149,6 @@
             "outputPath": "dist/apps/download-zip-sw",
             "index": "apps/download-zip-sw/src/index.html",
             "main": "apps/download-zip-sw/src/main.sw.ts",
-
             "polyfills": "apps/download-zip-sw/src/polyfills.ts",
             "tsConfig": "apps/download-zip-sw/tsconfig.app.json",
             "webpackConfig": "webpack-sw.config.js",
@@ -159,11 +158,11 @@
             "extractLicenses": false,
             "generateIndexHtml": false,
             "namedChunks": false,
-            "optimization": false,
+            "optimization": true,
             "outputHashing": "none",
             "runtimeChunk": false,
             "scripts": [],
-            "sourceMap": false,
+            "sourceMap": true,
             "styles": [],
             "vendorChunk": false
           },
