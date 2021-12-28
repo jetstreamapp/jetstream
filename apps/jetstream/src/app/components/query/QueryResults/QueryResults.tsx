@@ -237,6 +237,8 @@ export const QueryResults: FunctionComponent<QueryResultsProps> = React.memo(() 
       setRecordCount(results.queryResults.totalSize);
       setRecords(results.queryResults.records);
       setSubqueryFields(getFlattenSubqueryFlattenedFieldMap(results.parsedQuery));
+      // Matching ReactRouter state format
+      window.history.replaceState({ state: { soql: soqlQuery, isTooling: tooling } }, '');
 
       setTotalRecordCount(results.queryResults.totalSize);
       setErrorMessage(null);
