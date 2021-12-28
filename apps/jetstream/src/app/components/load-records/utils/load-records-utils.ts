@@ -333,8 +333,6 @@ export function transformData({ data, fieldMapping, sObject, insertNulls, dateFo
             } else {
               output[`${fieldMappingItem.relationshipName}.${fieldMappingItem.targetLookupField}`] = value;
             }
-          } else if (fieldMappingItem.isBinaryBodyField && isString(value) && !value.startsWith('#')) {
-            output[fieldMappingItem.targetField] = `#${value}`;
           } else {
             output[fieldMappingItem.targetField] = value;
           }

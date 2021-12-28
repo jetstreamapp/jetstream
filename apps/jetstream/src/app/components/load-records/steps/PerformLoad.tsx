@@ -43,7 +43,7 @@ function getLabelWithOptionalRecommended(label: string, recommended: boolean, re
 }
 
 function getRecommendedApiMode(numRecords: number, hasBinaryAttachment: boolean): ApiMode {
-  return hasBinaryAttachment || numRecords > BATCH_RECOMMENDED_THRESHOLD ? 'BULK' : 'BATCH';
+  return !hasBinaryAttachment && numRecords > BATCH_RECOMMENDED_THRESHOLD ? 'BULK' : 'BATCH';
 }
 
 function getBatchSizeExceededError(numApiCalls: number): string {
@@ -82,10 +82,10 @@ export const LoadRecordsPerformLoad: FunctionComponent<LoadRecordsPerformLoadPro
   const [loadNumber, setLoadNumber] = useState<number>(0);
   const [apiMode, setApiMode] = useState<ApiMode>(() => getRecommendedApiMode(inputFileData.length, hasZipAttachment));
   const [bulkApiModeLabel] = useState<string | JSX.Element>(() =>
-    getLabelWithOptionalRecommended('Bulk API', inputFileData.length > BATCH_RECOMMENDED_THRESHOLD, hasZipAttachment)
+    getLabelWithOptionalRecommended('Bulk API', inputFileData.length > BATCH_RECOMMENDED_THRESHOLD, false)
   );
   const [batchApiModeLabel] = useState<string | JSX.Element>(() =>
-    getLabelWithOptionalRecommended('Batch API', !hasZipAttachment && inputFileData.length <= BATCH_RECOMMENDED_THRESHOLD, false)
+    getLabelWithOptionalRecommended('Batch API', inputFileData.length <= BATCH_RECOMMENDED_THRESHOLD, hasZipAttachment)
   );
   const [batchSize, setBatchSize] = useState<number>(MAX_BULK);
   const [batchSizeError, setBatchSizeError] = useState<string>(null);
@@ -104,10 +104,6 @@ export const LoadRecordsPerformLoad: FunctionComponent<LoadRecordsPerformLoadPro
   useEffect(() => {
     if (inputFileData.length && batchSize && inputFileData.length / batchSize > MAX_API_CALLS) {
       setBatchApiLimitError(getBatchSizeExceededError(Math.round(inputFileData.length / batchSize)));
-    } else if (inputFileData.length && inputZipFileData && inputFileData.length > batchSize) {
-      setBatchApiLimitError(
-        'When loading a ZIP file you can only load 1 batch at a time. Increase your batch size or reduce the number of records in your file.'
-      );
     } else if (batchApiLimitError) {
       setBatchApiLimitError(null);
     }
@@ -254,6 +250,7 @@ export const LoadRecordsPerformLoad: FunctionComponent<LoadRecordsPerformLoadPro
           errorMessageId="batch-size-error"
           errorMessage={batchSizeError || batchApiLimitError}
           labelHelp="The batch size determines how many records will be processed together."
+          helpText={hasZipAttachment ? 'The batch size will be auto-calculated based on the size of the attachments.' : null}
         >
           <input
             id="batch-size"
@@ -261,7 +258,7 @@ export const LoadRecordsPerformLoad: FunctionComponent<LoadRecordsPerformLoadPro
             placeholder="Set batch size"
             value={batchSize || ''}
             aria-describedby={batchSizeError}
-            disabled={loading}
+            disabled={loading || hasZipAttachment}
             onChange={handleBatchSize}
           />
         </Input>

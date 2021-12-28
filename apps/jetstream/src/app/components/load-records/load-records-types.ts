@@ -99,6 +99,7 @@ export interface LoadDataPayload {
   serialMode?: boolean;
   externalId?: string; // required for upsert, ignored for all others.
   assignmentRuleId?: string; // only allowed for lead / case
+  binaryBodyField?: string;
 }
 
 export interface LoadDataBulkApi {

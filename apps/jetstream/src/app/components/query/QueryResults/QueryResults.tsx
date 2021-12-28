@@ -587,6 +587,7 @@ export const QueryResults: FunctionComponent<QueryResultsProps> = React.memo(() 
               sobjectName={allowContentDownload.sobjectName}
               missingFields={allowContentDownload.missingFields}
               selectedRecords={selectedRows}
+              hasRecords={!loading && !errorMessage && !!records?.length && !!recordCount}
             />
           </Grid>
           {errorMessage && (

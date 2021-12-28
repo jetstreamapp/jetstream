@@ -10,7 +10,7 @@ import {
   genericRequest,
 } from '@jetstream/shared/data';
 import { convertDateToLocale, generateCsv } from '@jetstream/shared/ui-utils';
-import { getHttpMethod, splitArrayToMaxSize } from '@jetstream/shared/utils';
+import { getHttpMethod, getSizeInMbFromBase64, splitArrayToMaxSize } from '@jetstream/shared/utils';
 import {
   BulkJobWithBatches,
   HttpMethod,
@@ -77,41 +77,22 @@ async function handleMessage(name: MessageName, payloadData: any) {
   }
 }
 
-async function loadBulkApiData({
-  org,
-  data,
-  zipData,
-  sObject,
-  type,
-  batchSize,
-  externalId,
-  assignmentRuleId,
-  serialMode,
-}: LoadDataPayload) {
+async function loadBulkApiData({ org, data, sObject, type, batchSize, externalId, assignmentRuleId, serialMode }: LoadDataPayload) {
   const replyName = 'loadData';
   try {
-    const results = await bulkApiCreateJob(org, { type, sObject, serialMode, assignmentRuleId, externalId, hasZipAttachment: !!zipData });
+    const results = await bulkApiCreateJob(org, { type, sObject, serialMode, assignmentRuleId, externalId });
     const jobId = results.id;
     let batches: LoadDataBulkApi[] = [];
-    if (zipData) {
-      const csv = generateCsv(data);
-      const zip = await JSZip.loadAsync(zipData);
-      zip.file('request.txt', csv);
-      batches = [{ data: await zip.generateAsync({ type: 'arraybuffer' }), batchNumber: 0, completed: false, success: false }];
-    } else {
-      batches = splitArrayToMaxSize(data, batchSize)
-        .map((batch) => generateCsv(batch))
-        .map((data, i) => ({ data, batchNumber: i, completed: false, success: false }));
-    }
+    batches = splitArrayToMaxSize(data, batchSize)
+      .map((batch) => generateCsv(batch))
+      .map((data, i) => ({ data, batchNumber: i, completed: false, success: false }));
 
     replyToMessage('loadDataStatus', { resultsSummary: getBatchSummary(results, batches) });
     let currItem = 1;
     let fatalError = false;
     for (const batch of batches) {
       try {
-        const batchResult = await (zipData
-          ? bulkApiAddBatchToJobWithAttachment(org, jobId, batch.data)
-          : bulkApiAddBatchToJob(org, jobId, batch.data, currItem === batches.length));
+        const batchResult = await bulkApiAddBatchToJob(org, jobId, batch.data, currItem === batches.length);
         batchResult.createdDate = convertDateToLocale(batchResult.createdDate, { timeStyle: 'medium' });
         batchResult.systemModstamp = convertDateToLocale(batchResult.systemModstamp, { timeStyle: 'medium' });
         results.batches = results.batches || [];
@@ -158,15 +139,11 @@ async function loadBulkApiData({
   }
 }
 
-async function loadBatchApiData({ org, data, sObject, type, batchSize, externalId, assignmentRuleId }: LoadDataPayload) {
+async function loadBatchApiData(payload: LoadDataPayload) {
+  const { org, sObject, type, externalId, assignmentRuleId } = payload;
   const replyName = 'loadData';
   try {
-    const batches = splitArrayToMaxSize(data, batchSize).map(
-      (records): SobjectCollectionRequest => ({
-        allOrNone: false,
-        records: records.map((record): SobjectCollectionRequestRecord => ({ attributes: { type: sObject }, ...record })),
-      })
-    );
+    const { batchRecordMap, batches, failedRecords } = await getBatchApiBatches(payload);
 
     let url = `/composite/sobjects`;
     if (type === 'UPSERT' && externalId) {
@@ -174,11 +151,14 @@ async function loadBatchApiData({ org, data, sObject, type, batchSize, externalI
     }
     const method: HttpMethod = getHttpMethod(type);
 
-    for (const batch of batches) {
+    for (let batchIndex = 0; batchIndex < batches.length; batchIndex++) {
+      const batch = batches[batchIndex];
       let responseWithRecord: RecordResultWithRecord[];
       let queryParams = '';
       /** if deleting records, and some records are null for the id, then those records are not loaded and the response will have incorrect indexes */
       let records = batch.records;
+      /** This stores the original record before adding {attribute} tag and before adding base64 zip */
+      const originalBatchRecords = batchRecordMap.get(batchIndex);
       let recordIndexesWithMissingIds: Set<number> = new Set();
 
       if (type === 'DELETE') {
@@ -215,10 +195,10 @@ async function loadBatchApiData({ org, data, sObject, type, batchSize, externalI
             output.push({
               success: false,
               errors: [{ fields: [], message: `This record did not have a mapped value for the Id`, statusCode: 'MISSING_ID' }],
-              record: batch.records[i],
+              record: originalBatchRecords[i],
             });
           }
-          output.push({ ...response, record: records[i] });
+          output.push({ ...response, record: originalBatchRecords[i] });
           return output;
         }, []);
 
@@ -228,7 +208,7 @@ async function loadBatchApiData({ org, data, sObject, type, batchSize, externalI
             responseWithRecord.push({
               success: false,
               errors: [{ fields: [], message: `This record did not have a mapped value for the Id`, statusCode: 'MISSING_ID' }],
-              record: batch.records[i],
+              record: originalBatchRecords[i],
             });
           });
         }
@@ -243,17 +223,114 @@ async function loadBatchApiData({ org, data, sObject, type, batchSize, externalI
                 statusCode: 'UNKNOWN',
               },
             ],
-            record: batch.records[i],
+            record: originalBatchRecords[i],
           })
         );
       } finally {
         replyToMessage('loadDataStatus', { records: responseWithRecord });
       }
     }
+    // Handle and processing failures (these happen when processing binary data)
+    if (failedRecords.length) {
+      replyToMessage('loadDataStatus', {
+        records: failedRecords.map(
+          (record): RecordResultWithRecord => ({
+            success: false,
+            errors: [
+              {
+                fields: [],
+                message: `An unknown error has occurred while processing this record.`,
+                statusCode: 'UNKNOWN',
+              },
+            ],
+            record,
+          })
+        ),
+      });
+    }
     replyToMessage(replyName, {});
   } catch (ex) {
-    return replyToMessage(replyName, null, new Error(ex.message));
+    return replyToMessage(replyName, null, ex);
   }
+}
+
+/**
+ * Handles preparing batches for the Batch API
+ * If required, prepares zip attachments as base64 and calculates the batch size
+ *
+ * @param {LoadDataPayload} payload
+ * @returns
+ */
+async function getBatchApiBatches({
+  data,
+  sObject,
+  batchSize,
+  zipData,
+  binaryBodyField,
+}: LoadDataPayload): Promise<{ batches: SobjectCollectionRequest[]; batchRecordMap: Map<number, any[]>; failedRecords: any[] }> {
+  let batches: SobjectCollectionRequest[] = [];
+  // used to ensure we don't send base64 (huge) back to browser
+  const batchRecordMap: Map<number, any[]> = new Map();
+  const failedRecords: any[] = [];
+
+  /** Batch size is auto-detected when there are attachments to ensure that the load is not too large */
+  if (zipData && binaryBodyField) {
+    // Get file from zip and convert to base64
+    const zip = await JSZip.loadAsync(zipData);
+    const THRESHOLD_SIZE_MB = 5;
+    const THRESHOLD_RECORDS = 200;
+    let i = 0;
+    let currentSize = 0;
+    let request: SobjectCollectionRequest = {
+      allOrNone: false,
+      records: [],
+    };
+    // auto-detect batch size based on size of attachments
+    for (const _record of data) {
+      try {
+        const record: SobjectCollectionRequestRecord = { attributes: { type: sObject }, ..._record };
+        if (_record[binaryBodyField]) {
+          const foundFile = zip.file(record[binaryBodyField]);
+          if (foundFile) {
+            record[binaryBodyField] = await foundFile.async('base64');
+            currentSize += getSizeInMbFromBase64(record[binaryBodyField]);
+          } else {
+            record[binaryBodyField] = null;
+          }
+        }
+        request.records.push(record);
+        if (!Array.isArray(batchRecordMap.get(i))) {
+          batchRecordMap.set(i, []);
+        }
+        batchRecordMap.get(i).push(_record);
+      } catch (ex) {
+        failedRecords.push(_record);
+      }
+
+      if (currentSize >= THRESHOLD_SIZE_MB || request.records.length >= THRESHOLD_RECORDS) {
+        batches.push(request);
+        request = {
+          allOrNone: false,
+          records: [],
+        };
+        i++;
+        currentSize = 0;
+      }
+    }
+    // make sure to pick up final batch
+    if (request.records.length) {
+      batches.push(request);
+    }
+  } else {
+    batches = splitArrayToMaxSize(data, batchSize).map((records, i): SobjectCollectionRequest => {
+      batchRecordMap.set(i, records);
+      return {
+        allOrNone: false,
+        records: records.map((record): SobjectCollectionRequestRecord => ({ attributes: { type: sObject }, ...record })),
+      };
+    });
+  }
+  return { batches, batchRecordMap, failedRecords };
 }
 
 function getBatchSummary(results: BulkJobWithBatches, batches: LoadDataBulkApi[]): LoadDataBulkApiStatusPayload {

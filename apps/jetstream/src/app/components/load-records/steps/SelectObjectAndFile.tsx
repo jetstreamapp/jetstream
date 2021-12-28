@@ -139,7 +139,7 @@ export const LoadRecordsSelectObjectAndFile: FunctionComponent<LoadRecordsSelect
                     filename={inputZipFilename}
                     accept={[INPUT_ACCEPT_FILETYPES.ZIP]}
                     userHelpText="Choose a zip file with attachments to upload"
-                    maxAllowedSizeMB={10}
+                    maxAllowedSizeMB={100}
                     onReadFile={handleZip}
                   ></FileSelector>
                 </GridCol>

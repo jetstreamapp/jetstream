@@ -62,6 +62,7 @@ export const LoadRecordsResults: FunctionComponent<LoadRecordsResultsProps> = ({
           selectedOrg={selectedOrg}
           selectedSObject={selectedSObject}
           fieldMapping={fieldMapping}
+          inputZipFileData={inputZipFileData}
           inputFileData={inputFileData}
           apiMode={apiMode}
           loadType={loadType}

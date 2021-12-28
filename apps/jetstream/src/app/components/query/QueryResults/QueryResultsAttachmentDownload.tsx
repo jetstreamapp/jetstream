@@ -20,6 +20,7 @@ export interface QueryResultsAttachmentDownloadProps {
   sobjectName: string;
   missingFields: string[];
   selectedRecords: Record[];
+  hasRecords: boolean;
 }
 
 interface EnabledObjectFiledMapping {
@@ -55,6 +56,7 @@ export const QueryResultsAttachmentDownload: FunctionComponent<QueryResultsAttac
   sobjectName,
   missingFields,
   selectedRecords,
+  hasRecords,
 }) => {
   sobjectName = sobjectName?.toLowerCase() || null;
   const rollbar = useRollbar();
@@ -67,7 +69,7 @@ export const QueryResultsAttachmentDownload: FunctionComponent<QueryResultsAttac
   const [errorMessage, setErrorMessage] = useState<string>(null);
 
   useEffect(() => {
-    setVisible(FILE_DOWNLOAD_FIELD_MAP.has(sobjectName));
+    setVisible(FILE_DOWNLOAD_FIELD_MAP.has(sobjectName) && hasRecords);
     if (selectedRecords.length && !missingFields?.length) {
       setDisabled(false);
       setDisabledReason(null);
@@ -78,7 +80,7 @@ export const QueryResultsAttachmentDownload: FunctionComponent<QueryResultsAttac
       setDisabled(true);
       setDisabledReason('Select one or more records');
     }
-  }, [sobjectName, selectedRecords, missingFields, trackEvent]);
+  }, [sobjectName, selectedRecords, missingFields, trackEvent, hasRecords]);
 
   useEffect(() => {
     if (visible) {
