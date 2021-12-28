@@ -1,7 +1,5 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 /* eslint-disable @typescript-eslint/no-explicit-any */
-
-import { css } from '@emotion/react';
 import { mockPicklistValuesFromSobjectDescribe, UiRecordForm } from '@jetstream/record-form';
 import { logger } from '@jetstream/shared/client-logger';
 import { describeSObject, genericRequest, sobjectOperation } from '@jetstream/shared/data';
@@ -122,7 +120,7 @@ export const ViewEditCloneRecord: FunctionComponent<ViewEditCloneRecordProps> = 
       let record: Record = {};
 
       if (action !== 'create') {
-        record = await sobjectOperation<Record>(selectedOrg, sobjectName, 'retrieve', { ids: recordId });
+        record = await sobjectOperation<Record>(selectedOrg, sobjectName, 'retrieve', { ids: recordId }, { skipCallOptions: true });
       }
 
       const sobjectMetadata = await describeSObject(selectedOrg, sobjectName);
