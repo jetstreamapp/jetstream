@@ -1,4 +1,5 @@
 import { HTTP } from '@jetstream/shared/constants';
+import { ensureBoolean } from '@jetstream/shared/utils';
 import { UserProfileServer } from '@jetstream/types';
 import { AxiosError } from 'axios';
 import { addDays, fromUnixTime, getUnixTime } from 'date-fns';
@@ -166,16 +167,17 @@ export async function getOrgFromHeaderOrQuery(req: express.Request, headerKey: s
   const uniqueId = (req.get(headerKey) || req.query[headerKey]) as string;
   // TODO: not yet implemented on the front-end
   const apiVersion = (req.get(versionHeaderKey) || req.query[versionHeaderKey]) as string | undefined;
+  const skipCallOptions = ensureBoolean(req.get(HTTP.HEADERS.X_SKIP_CALL_OPTIONS) || (req.query.skipCallOptions as string | undefined));
   const user = req.user as UserProfileServer;
 
   if (!uniqueId) {
     return;
   }
 
-  return getOrgForRequest(user, uniqueId, apiVersion);
+  return getOrgForRequest(user, uniqueId, apiVersion, skipCallOptions);
 }
 
-export async function getOrgForRequest(user: UserProfileServer, uniqueId: string, apiVersion?: string) {
+export async function getOrgForRequest(user: UserProfileServer, uniqueId: string, apiVersion?: string, skipCallOptions?: boolean) {
   const org = await salesforceOrgsDb.findByUniqueId_UNSAFE(user.id, uniqueId);
   if (!org) {
     throw new UserFacingError('An org was not found with the provided id');
@@ -199,7 +201,7 @@ export async function getOrgForRequest(user: UserProfileServer, uniqueId: string
     },
   };
 
-  if (orgNamespacePrefix) {
+  if (orgNamespacePrefix && !skipCallOptions) {
     connData.callOptions = { ...connData.callOptions, defaultNamespace: orgNamespacePrefix };
   }
 

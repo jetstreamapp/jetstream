@@ -180,7 +180,7 @@ function getVariableName(sobjectName: string) {
 function getFieldValues(record: any, options: RecordToApexOptions): [string, FieldValue][] {
   const { fields, fieldMetadata, replaceDateWithToday } = options;
   return fields
-    .filter((field) => record.hasOwnProperty(field) && !isObject(record[field]))
+    .filter((field) => Object.hasOwnProperty.call(record, field) && !isObject(record[field]))
     .map((field): [string, FieldValue] => {
       if (isString(record[field])) {
         if (fieldMetadata[field] === 'date' || fieldMetadata[field] === 'datetime') {
@@ -201,7 +201,6 @@ function getFieldValues(record: any, options: RecordToApexOptions): [string, Fie
  * @returns
  */
 function getDateOrDatetimeValue(value: string, isDatetime: boolean, replaceDateWithToday: boolean): string {
-  let [date, time] = value.split('T');
   if (isDatetime && replaceDateWithToday) {
     return `Datetime.now()`;
   } else if (isDatetime) {
@@ -214,6 +213,9 @@ function getDateOrDatetimeValue(value: string, isDatetime: boolean, replaceDateW
 
 function getFieldAsApex([field, value]: [string, FieldValue], variableName: string, options: RecordToApexOptions): string {
   const { inline } = options;
+  if (isString(value)) {
+    value = value.replaceAll('\n', '\\n');
+  }
   if (inline) {
     return `${getIndentation(options)}${field}${EQ_SPACE}${value}`;
   } else {

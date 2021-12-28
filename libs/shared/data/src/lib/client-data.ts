@@ -15,7 +15,6 @@ import {
   DeployResult,
   GenericRequestPayload,
   GoogleFileApiResponse,
-  ImageWithUpload,
   ListMetadataResult,
   ListMetadataResultRaw,
   ManualRequestPayload,
@@ -303,6 +302,7 @@ export async function sobjectOperation<T = any>(
   query: {
     externalId?: string;
     allOrNone?: boolean;
+    skipCallOptions?: boolean;
   } = {}
 ): Promise<T> {
   return handleRequest({ method: 'POST', url: `/api/record/${operation}/${sobject}`, params: { ...query }, data: body }, { org }).then(
