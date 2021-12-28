@@ -1038,7 +1038,7 @@ export async function parseWorkbook(
   };
 }
 
-export function generateCsv(data: object[], options: UnparseConfig = {}): string {
+export function generateCsv(data: any[], options: UnparseConfig = {}): string {
   options = options || {};
   options.newline = options.newline || '\n';
   if (!options.delimiter) {

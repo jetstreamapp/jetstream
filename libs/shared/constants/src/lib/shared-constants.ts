@@ -59,6 +59,7 @@ export const HTTP = {
     XML: 'application/xml',
     XML_UTF8: 'application/xml; charset=UTF-8',
     CSV: 'text/csv; charset=UTF-8',
+    ZIP_CSV: 'zip/csv',
     ZIP: 'application/zip',
   },
 };

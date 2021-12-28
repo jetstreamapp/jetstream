@@ -9,6 +9,7 @@ export interface LoadRecordsResultsProps {
   selectedSObject: string;
   fieldMapping: FieldMapping;
   inputFileData: any[];
+  inputZipFileData: ArrayBuffer;
   apiMode: ApiMode;
   loadType: InsertUpdateUpsertDelete;
   externalId?: string;
@@ -25,6 +26,7 @@ export const LoadRecordsResults: FunctionComponent<LoadRecordsResultsProps> = ({
   selectedSObject,
   fieldMapping,
   inputFileData,
+  inputZipFileData,
   apiMode,
   loadType,
   externalId,
@@ -43,6 +45,7 @@ export const LoadRecordsResults: FunctionComponent<LoadRecordsResultsProps> = ({
           selectedSObject={selectedSObject}
           fieldMapping={fieldMapping}
           inputFileData={inputFileData}
+          inputZipFileData={inputZipFileData}
           apiMode={apiMode}
           loadType={loadType}
           externalId={externalId}

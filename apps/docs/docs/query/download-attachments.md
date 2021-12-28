@@ -23,7 +23,7 @@ The exact fields vary per object, but Jetstream will let you know if you are mis
 
 <img src={require('./download-attachments-missing-fields.png').default} alt="Missing fields tooltip" />
 
-### Supported Objects
+## Supported Objects
 
 The following objects allow downloading files:
 

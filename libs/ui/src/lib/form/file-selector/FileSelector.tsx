@@ -25,6 +25,7 @@ export interface FileSelectorProps {
   userHelpText?: React.ReactNode | string;
   hasError?: boolean;
   errorMessage?: React.ReactNode | string;
+  maxAllowedSizeMB?: number;
   onReadFile: (fileContent: InputReadFileContent) => void;
 }
 
@@ -42,6 +43,7 @@ export const FileSelector: FunctionComponent<FileSelectorProps> = ({
   userHelpText,
   hasError,
   errorMessage,
+  maxAllowedSizeMB,
   onReadFile,
 }) => {
   const [labelPrimaryId] = useState(() => `${id}-label-primary`);
@@ -87,11 +89,16 @@ export const FileSelector: FunctionComponent<FileSelectorProps> = ({
       }
       const file = files.item(0);
       logger.info(file);
+      const fileSizeMb = file.size / 1000 / 1000;
 
       const extension = (file.name.substring(file.name.lastIndexOf('.')) || '').toLowerCase() as InputAcceptType;
 
       if (accept && !accept.includes(extension)) {
         throw new Error(`File type ${extension} is not supported`);
+      }
+
+      if (maxAllowedSizeMB && fileSizeMb > maxAllowedSizeMB) {
+        throw new Error(`Maximum allowed file size is ${maxAllowedSizeMB}MB`);
       }
 
       setManagedFilename(file.name);

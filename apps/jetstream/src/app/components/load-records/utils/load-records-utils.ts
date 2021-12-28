@@ -90,7 +90,7 @@ export async function getFieldMetadata(org: SalesforceOrgUi, sobject: string): P
  * @param inputHeader
  * @param fields
  */
-export function autoMapFields(inputHeader: string[], fields: FieldWithRelatedEntities[]): FieldMapping {
+export function autoMapFields(inputHeader: string[], fields: FieldWithRelatedEntities[], binaryBodyField: string): FieldMapping {
   const output: FieldMapping = {};
   const fieldVariations: MapOf<FieldWithRelatedEntities> = {};
   const fieldLabelVariations: MapOf<FieldWithRelatedEntities> = {};
@@ -133,6 +133,7 @@ export function autoMapFields(inputHeader: string[], fields: FieldWithRelatedEnt
       fieldMetadata: matchedField,
       lookupOptionUseFirstMatch: DEFAULT_NON_EXT_ID_MAPPING_OPT,
       lookupOptionNullIfNoMatch: DEFAULT_NULL_IF_NO_MATCH_MAPPING_OPT,
+      isBinaryBodyField: !!binaryBodyField && matchedField?.name === binaryBodyField,
     };
 
     if (relatedField && matchedField && matchedField.relatedFields) {
@@ -183,6 +184,7 @@ export function resetFieldMapping(inputHeader: string[]): FieldMapping {
       selectedReferenceTo: undefined,
       lookupOptionUseFirstMatch: DEFAULT_NON_EXT_ID_MAPPING_OPT,
       lookupOptionNullIfNoMatch: DEFAULT_NULL_IF_NO_MATCH_MAPPING_OPT,
+      isBinaryBodyField: false,
     };
     return output;
   }, {});
@@ -326,12 +328,13 @@ export function transformData({ data, fieldMapping, sObject, insertNulls, dateFo
             if (fieldMappingItem.fieldMetadata?.referenceTo?.length > 1) {
               // add in polymorphic field type
               // https://developer.salesforce.com/docs/atlas.en-us.api_asynch.meta/api_asynch/datafiles_csv_rel_field_header_row.htm?search_text=Polymorphic
-              output[
-                `${fieldMappingItem.selectedReferenceTo}:${fieldMappingItem.relationshipName}.${fieldMappingItem.targetLookupField}`
-              ] = value;
+              output[`${fieldMappingItem.selectedReferenceTo}:${fieldMappingItem.relationshipName}.${fieldMappingItem.targetLookupField}`] =
+                value;
             } else {
               output[`${fieldMappingItem.relationshipName}.${fieldMappingItem.targetLookupField}`] = value;
             }
+          } else if (fieldMappingItem.isBinaryBodyField && isString(value) && !value.startsWith('#')) {
+            output[fieldMappingItem.targetField] = `#${value}`;
           } else {
             output[fieldMappingItem.targetField] = value;
           }
@@ -363,7 +366,7 @@ export async function fetchMappedRelatedRecords(
   const addError = addErrors(errorsByRowIndex);
 
   if (nonExternalIdFieldMappings.length) {
-    for (let {
+    for (const {
       lookupOptionNullIfNoMatch,
       lookupOptionUseFirstMatch,
       relationshipName,
@@ -379,7 +382,7 @@ export async function fetchMappedRelatedRecords(
         const relatedRecordsByRelatedField: MapOf<string[]> = {};
         // Get as many queries as required based on the size of the related fields
         const queries = getRelatedFieldsQueries(sObject, selectedReferenceTo, targetLookupField, Array.from(relatedValues));
-        for (let query of queries) {
+        for (const query of queries) {
           try {
             (await queryAll(org, query)).queryResults.records.forEach((record) => {
               relatedRecordsByRelatedField[record[targetLookupField]] = relatedRecordsByRelatedField[record[targetLookupField]] || [];

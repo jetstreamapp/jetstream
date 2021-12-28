@@ -1,7 +1,14 @@
 /// <reference lib="webworker" />
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { logger } from '@jetstream/shared/client-logger';
-import { bulkApiAddBatchToJob, bulkApiCloseJob, bulkApiCreateJob, bulkApiGetJob, genericRequest } from '@jetstream/shared/data';
+import {
+  bulkApiAddBatchToJob,
+  bulkApiAddBatchToJobWithAttachment,
+  bulkApiCloseJob,
+  bulkApiCreateJob,
+  bulkApiGetJob,
+  genericRequest,
+} from '@jetstream/shared/data';
 import { convertDateToLocale, generateCsv } from '@jetstream/shared/ui-utils';
 import { getHttpMethod, splitArrayToMaxSize } from '@jetstream/shared/utils';
 import {
@@ -13,6 +20,7 @@ import {
   SobjectCollectionResponse,
   WorkerMessage,
 } from '@jetstream/types';
+import JSZip from 'jszip';
 import isString from 'lodash/isString';
 import {
   LoadDataBulkApi,
@@ -43,6 +51,8 @@ async function handleMessage(name: MessageName, payloadData: any) {
           throw new Error('The required parameters were not included in the request');
         }
 
+        // TODO: I am here, I need to add csv to zip and rename to request.txt after data transform
+        // also need to change file to add `#` at the beginning each data point
         const preparedData = await fetchMappedRelatedRecords(transformData(payloadData), payloadData);
 
         replyToMessage(name, { preparedData });
@@ -67,20 +77,41 @@ async function handleMessage(name: MessageName, payloadData: any) {
   }
 }
 
-async function loadBulkApiData({ org, data, sObject, type, batchSize, externalId, assignmentRuleId, serialMode }: LoadDataPayload) {
+async function loadBulkApiData({
+  org,
+  data,
+  zipData,
+  sObject,
+  type,
+  batchSize,
+  externalId,
+  assignmentRuleId,
+  serialMode,
+}: LoadDataPayload) {
   const replyName = 'loadData';
   try {
-    const results = await bulkApiCreateJob(org, { type, sObject, serialMode, assignmentRuleId, externalId });
+    const results = await bulkApiCreateJob(org, { type, sObject, serialMode, assignmentRuleId, externalId, hasZipAttachment: !!zipData });
     const jobId = results.id;
-    const batches: LoadDataBulkApi[] = splitArrayToMaxSize(data, batchSize)
-      .map((batch) => generateCsv(batch))
-      .map((data, i) => ({ data, batchNumber: i, completed: false, success: false }));
+    let batches: LoadDataBulkApi[] = [];
+    if (zipData) {
+      const csv = generateCsv(data);
+      const zip = await JSZip.loadAsync(zipData);
+      zip.file('request.txt', csv);
+      batches = [{ data: await zip.generateAsync({ type: 'arraybuffer' }), batchNumber: 0, completed: false, success: false }];
+    } else {
+      batches = splitArrayToMaxSize(data, batchSize)
+        .map((batch) => generateCsv(batch))
+        .map((data, i) => ({ data, batchNumber: i, completed: false, success: false }));
+    }
 
     replyToMessage('loadDataStatus', { resultsSummary: getBatchSummary(results, batches) });
     let currItem = 1;
+    let fatalError = false;
     for (const batch of batches) {
       try {
-        const batchResult = await bulkApiAddBatchToJob(org, jobId, batch.data, currItem === batches.length);
+        const batchResult = await (zipData
+          ? bulkApiAddBatchToJobWithAttachment(org, jobId, batch.data)
+          : bulkApiAddBatchToJob(org, jobId, batch.data, currItem === batches.length));
         batchResult.createdDate = convertDateToLocale(batchResult.createdDate, { timeStyle: 'medium' });
         batchResult.systemModstamp = convertDateToLocale(batchResult.systemModstamp, { timeStyle: 'medium' });
         results.batches = results.batches || [];
@@ -92,7 +123,11 @@ async function loadBulkApiData({ org, data, sObject, type, batchSize, externalId
         batch.completed = true;
         batch.success = false;
       } finally {
-        replyToMessage('loadDataStatus', { resultsSummary: getBatchSummary(results, batches) });
+        let transfer: Transferable[];
+        if (batch.data instanceof ArrayBuffer) {
+          transfer = [batch.data];
+        }
+        replyToMessage('loadDataStatus', { resultsSummary: getBatchSummary(results, batches) }, null, transfer);
       }
       currItem++;
     }
@@ -103,9 +138,13 @@ async function loadBulkApiData({ org, data, sObject, type, batchSize, externalId
       batch.systemModstamp = convertDateToLocale(batch.systemModstamp, { timeStyle: 'medium' });
     });
 
-    replyToMessage(replyName, { jobInfo: jobInfoWithBatches });
+    if (jobInfoWithBatches.batches.length !== batches.length) {
+      // we know that at least one batch failed!
+      fatalError = true;
+    }
 
-    // if final batch failed, close job manually
+    replyToMessage(replyName, { jobInfo: jobInfoWithBatches }, (fatalError && 'One or more batches failed to load.') || null);
+
     if (jobInfoWithBatches.state === 'Open') {
       // close job last so user does not have to wait for this since it does not matter
       try {
@@ -225,8 +264,8 @@ function getBatchSummary(results: BulkJobWithBatches, batches: LoadDataBulkApi[]
   };
 }
 
-function replyToMessage(name: string, data: any, error?: any) {
-  ctx.postMessage({ name, data, error });
+function replyToMessage(name: string, data: any, error?: any, transfer?: Transferable[]) {
+  ctx.postMessage({ name, data, error }, transfer);
 }
 
 export default null as any;
