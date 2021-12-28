@@ -24,7 +24,7 @@ const HAS_NAMESPACE = /__/;
 function getEntityDefinitionQuery(sobject: string, field: string) {
   let namespace: string;
   if (field.includes('__')) {
-    let [_namespace, fieldWithoutNamespace] = field.split('__');
+    const [_namespace, fieldWithoutNamespace] = field.split('__');
     namespace = _namespace;
     field = fieldWithoutNamespace;
   }
