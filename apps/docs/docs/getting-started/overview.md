@@ -2,7 +2,7 @@
 id: overview
 title: Overview
 sidebar_label: Overview
-slug: /overview
+slug: /
 ---
 
 import OrgTroubleshootingTable from './\_org-troubleshooting-table.mdx';
