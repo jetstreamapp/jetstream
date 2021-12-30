@@ -18,15 +18,15 @@ import { Field } from 'jsforce';
 import isUndefined from 'lodash/isUndefined';
 import { Fragment, FunctionComponent, useCallback, useEffect, useRef, useState } from 'react';
 import { useRecoilState } from 'recoil';
-import { applicationCookieState } from '../../../app-state';
-import * as fromJetstreamEvents from '../../core/jetstream-events';
+import { applicationCookieState } from '../../app-state';
 import {
   combineRecordsForClone,
   EditFromErrors,
   handleEditFormErrorResponse,
   transformEditForm,
   validateEditForm,
-} from '../utils/query-utils';
+} from '../query/utils/query-utils';
+import * as fromJetstreamEvents from './jetstream-events';
 
 function getModalTitle(action: CloneEditView) {
   if (action === 'view') {
@@ -56,8 +56,13 @@ export interface ViewEditCloneRecordProps {
   recordId: string;
   onClose: (reloadRecords?: boolean) => void;
   onChangeAction: (action: CloneEditView) => void;
+  onFetch?: (recordId: string, record: any) => void;
+  onFetchError?: (recordId: string, sobjectName: string) => void;
 }
 
+/**
+ * TODO: convert some use-effects to useReducer and maybe a custom hook to manage the interactions
+ */
 export const ViewEditCloneRecord: FunctionComponent<ViewEditCloneRecordProps> = ({
   apiVersion,
   selectedOrg,
@@ -66,6 +71,8 @@ export const ViewEditCloneRecord: FunctionComponent<ViewEditCloneRecordProps> = 
   recordId,
   onClose,
   onChangeAction,
+  onFetch,
+  onFetchError,
 }) => {
   const isMounted = useRef(null);
   const [{ google_apiKey, google_appId, google_clientId }] = useRecoilState(applicationCookieState);
@@ -169,14 +176,17 @@ export const ViewEditCloneRecord: FunctionComponent<ViewEditCloneRecordProps> = 
         setPicklistValues(picklistValues);
         setInitialRecord(record);
         setLoading(false);
+        onFetch && onFetch(recordId, record);
       }
     } catch (ex) {
       // TODO: error handling
       if (isMounted.current) {
         setFormErrors({ hasErrors: true, fieldErrors: {}, generalErrors: ['Oops. There was a problem loading the record information.'] });
         setLoading(false);
+        onFetchError && onFetchError(recordId, sobjectName);
       }
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [action, apiVersion, recordId, selectedOrg, sobjectName]);
 
   useEffect(() => {
@@ -266,39 +276,28 @@ export const ViewEditCloneRecord: FunctionComponent<ViewEditCloneRecordProps> = 
           footer={
             <Fragment>
               {action === 'view' && (
-                <Grid align="spread">
-                  <div>
-                    <Checkbox
-                      id={`record-actions-show-field-types`}
-                      checked={showFieldTypes}
-                      onChange={setShowFieldTypes}
-                      label="Show Field Types"
-                      disabled={loading || saving || !initialRecord}
-                    />
-                  </div>
-                  <div>
-                    {formErrors.hasErrors && formErrors.generalErrors.length > 0 && (
-                      <span className="slds-text-align_left d-inline-block">
-                        <PopoverErrorButton errors={formErrors.generalErrors} omitPortal />
-                      </span>
-                    )}
-                    <button className="slds-button slds-button_neutral" onClick={() => onChangeAction('edit')} disabled={loading}>
-                      <Icon type="utility" icon="edit" className="slds-button__icon slds-button__icon_left" omitContainer />
-                      Edit Record
-                    </button>
-                    <button className="slds-button slds-button_neutral" onClick={() => onChangeAction('clone')} disabled={loading}>
-                      <Icon type="utility" icon="copy" className="slds-button__icon slds-button__icon_left" omitContainer />
-                      Clone Record
-                    </button>
-                    <button className="slds-button slds-button_neutral" onClick={() => setDownloadModalOpen(true)} disabled={loading}>
-                      <Icon type="utility" icon="download" className="slds-button__icon slds-button__icon_left" omitContainer />
-                      Download
-                    </button>
-                    <button className="slds-button slds-button_brand" onClick={() => onClose()} disabled={loading}>
-                      Close
-                    </button>
-                  </div>
-                </Grid>
+                <div>
+                  {formErrors.hasErrors && formErrors.generalErrors.length > 0 && (
+                    <span className="slds-text-align_left d-inline-block">
+                      <PopoverErrorButton errors={formErrors.generalErrors} omitPortal />
+                    </span>
+                  )}
+                  <button className="slds-button slds-button_neutral" onClick={() => onChangeAction('edit')} disabled={loading}>
+                    <Icon type="utility" icon="edit" className="slds-button__icon slds-button__icon_left" omitContainer />
+                    Edit Record
+                  </button>
+                  <button className="slds-button slds-button_neutral" onClick={() => onChangeAction('clone')} disabled={loading}>
+                    <Icon type="utility" icon="copy" className="slds-button__icon slds-button__icon_left" omitContainer />
+                    Clone Record
+                  </button>
+                  <button className="slds-button slds-button_neutral" onClick={() => setDownloadModalOpen(true)} disabled={loading}>
+                    <Icon type="utility" icon="download" className="slds-button__icon slds-button__icon_left" omitContainer />
+                    Download
+                  </button>
+                  <button className="slds-button slds-button_brand" onClick={() => onClose()} disabled={loading}>
+                    Close
+                  </button>
+                </div>
               )}
               {action !== 'view' && (
                 <Grid align="center">

@@ -11,6 +11,7 @@ import OrgsDropdown from '../orgs/OrgsDropdown';
 import HeaderHelpPopover from './HeaderHelpPopover';
 import Jobs from './jobs/Jobs';
 import NotificationsRequestModal from './NotificationsRequestModal';
+import RecordLookupPopover from './record-lookup/RecordLookupPopover';
 
 export interface HeaderNavbarProps {
   userProfile: UserProfileUi;
@@ -86,7 +87,7 @@ export const HeaderNavbar: FunctionComponent<HeaderNavbarProps> = ({ userProfile
         logo={Logo}
         orgs={<OrgsDropdown />}
         userMenuItems={userMenuItems}
-        rightHandMenuItems={[<HeaderHelpPopover />, <Jobs />]}
+        rightHandMenuItems={[<RecordLookupPopover />, <HeaderHelpPopover />, <Jobs />]}
         onUserMenuItemSelected={handleUserMenuSelection}
       >
         <Navbar>

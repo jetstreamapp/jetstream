@@ -47,8 +47,11 @@
 module.exports = {
   /** @type {import('@docusaurus/preset-classic').Si} */
   sidebar: [
-    'getting-started/getting-started',
-    'feedback/feedback',
+    {
+      type: 'category',
+      label: 'Getting Started',
+      items: ['getting-started/overview', 'getting-started/feedback'],
+    },
     {
       type: 'category',
       label: 'Query',
@@ -77,5 +80,6 @@ module.exports = {
         'developer/platform-events',
       ],
     },
+    'other/other-useful-features',
   ],
 };

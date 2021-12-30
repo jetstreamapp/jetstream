@@ -1,8 +1,8 @@
 ---
-id: getting-started
-title: Getting Started
-sidebar_label: Getting Started
-slug: /
+id: overview
+title: Overview
+sidebar_label: Overview
+slug: /overview
 ---
 
 import OrgTroubleshootingTable from './\_org-troubleshooting-table.mdx';
