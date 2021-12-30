@@ -110,6 +110,7 @@ export const INDEXED_DB = {
     queryHistory: 'HISTORY:QUERY',
     apexHistory: 'HISTORY:APEX',
     salesforceApiHistory: 'HISTORY:SALESFORCE_API',
+    recordHistory: 'HISTORY:RECORDS',
     httpCache: 'HTTP:CACHE',
     userPreferences: 'USER:PREFERENCES',
     sobjectExportSelection: 'USER:SOBJECT_EXPORT_OPTIONS',
