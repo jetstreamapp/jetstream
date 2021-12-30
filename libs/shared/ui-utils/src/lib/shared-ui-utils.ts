@@ -1203,3 +1203,36 @@ export function useReducerFetchFn<T>() {
   }
   return reducer;
 }
+
+/**
+ * Convert Salesforce 15 digit id to 18 digit id
+ * If value is not in correct format, return original value
+ * https://github.com/mslabina/sf15to18/blob/master/sf15to18.js
+ */
+export function convertId15To18(id: string): string {
+  if (!id || !isString(id) || id.length !== 15) {
+    return id;
+  }
+
+  // Generate three last digits of the id
+  for (let i = 0; i < 3; i++) {
+    let f = 0;
+
+    // For every 5-digit block of the given id
+    for (let j = 0; j < 5; j++) {
+      // Assign the j-th chracter of the i-th 5-digit block to c
+      const char = id.charAt(i * 5 + j);
+
+      // Check if c is an uppercase letter
+      if (char >= 'A' && char <= 'Z') {
+        // Set a 1 at the character's position in the reversed segment
+        f += 1 << j;
+      }
+    }
+
+    // Add the calculated character for the current block to the id
+    id += 'ABCDEFGHIJKLMNOPQRSTUVWXYZ012345'.charAt(f);
+  }
+
+  return id;
+}

@@ -49,6 +49,7 @@ import { filter } from 'rxjs/operators';
 import { applicationCookieState, selectedOrgState } from '../../../app-state';
 import { useAmplitude } from '../../core/analytics';
 import * as fromJetstreamEvents from '../../core/jetstream-events';
+import ViewEditCloneRecord from '../../core/ViewEditCloneRecord';
 import * as fromQueryState from '../query.state';
 import * as fromQueryHistory from '../QueryHistory/query-history.state';
 import QueryHistory from '../QueryHistory/QueryHistory';
@@ -60,7 +61,6 @@ import QueryResultsGetRecAsApexModal from './QueryResultsGetRecAsApexModal';
 import QueryResultsSoqlPanel from './QueryResultsSoqlPanel';
 import QueryResultsViewRecordFields from './QueryResultsViewRecordFields';
 import { useQueryResultsFetchMetadata } from './useQueryResultsFetchMetadata';
-import ViewEditCloneRecord from './ViewEditCloneRecord';
 
 type SourceAction = 'STANDARD' | 'ORG_CHANGE' | 'BULK_DELETE' | 'HISTORY' | 'RECORD_ACTION' | 'MANUAL' | 'RELOAD';
 

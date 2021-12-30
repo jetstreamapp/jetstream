@@ -113,7 +113,7 @@ export const UiRecordForm: FunctionComponent<UiRecordFormProps> = ({
           />
         </Grid>
         <Grid>
-          {!(action === 'create' || action === 'clone') && (
+          {(action === 'create' || action === 'clone') && (
             <Checkbox
               id={`record-form-show-readonly`}
               label="Include read-only fields"
