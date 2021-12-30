@@ -66,3 +66,30 @@ The following objects allow loading files:
 - Attachment
 - Document
 - ContentVersion
+
+## Creating Content Versions
+
+Refer to the Salesforce ContentVersion documentation for full details.
+
+When you create a `ContentVersion`, a `ContentDocument` is automatically created, so you don't need to create the `ContentDocument` in Advance.
+If you want to associate a file to a record, you will need to create a `ContentDocumentLink` record to link the `ContentDocument` with the desired record.
+
+**Here are the key fields that you may need to consider when loading to attachments**
+
+| Name         | Description                                                                                                          |
+| ------------ | -------------------------------------------------------------------------------------------------------------------- |
+| Title        | The label for the file                                                                                               |
+| PathOnClient | Set this to the filename with the extension (e.x. `image1.png`)                                                      |
+| VersionData  | Set this to the full path of the file within the zip file with the extension (e.x. `pdf/ABC-corp-service-order.pdf`) |
+| Origin       | Set this to `C` to add to your personal library or `H` to add to your My Files (Chatter)                             |
+
+**Linking a ContentDocument to a record**
+
+After loading your `ContentVersion`, you will need to re-query the records and get the ids for the `ContentDocument` record that was automatically created so that you can create the `ContentDocumentLink` record.
+
+| Name                 | Description                                                                       |
+| -------------------- | --------------------------------------------------------------------------------- |
+| ContentDocumentId    | Id of the `ContentDocument`. This will always use the latest version              |
+| LinkedEntityId       | The related record (e.x. the Account Id)                                          |
+| ShareType (optional) | `V` (Viewer permission), `C` (Collaborator permission), `I` (Inferred permission) |
+| Visibility           | `AllUsers`, `InternalUsers`, `SharedUsers`                                        |

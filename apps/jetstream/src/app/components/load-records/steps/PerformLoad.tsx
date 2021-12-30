@@ -158,10 +158,12 @@ export const LoadRecordsPerformLoad: FunctionComponent<LoadRecordsPerformLoadPro
       trackEvent(ANALYTICS_KEYS.load_Submitted, {
         loadType,
         apiMode,
+        numRecords: inputFileData.length,
         batchSize,
         insertNulls,
         serialMode,
         dateFormat,
+        hasZipAttachment: !!hasZipAttachment,
         timesSameDataSubmitted: loadNumber + 1,
       });
       document.title = `Loading Records | ${TITLES.BAR_JETSTREAM}`;
