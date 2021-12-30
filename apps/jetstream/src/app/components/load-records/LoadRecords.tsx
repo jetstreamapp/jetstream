@@ -70,6 +70,12 @@ export const LoadRecords: FunctionComponent<LoadRecordsProps> = ({ featureFlags 
   const [inputFileHeader, setInputFileHeader] = useRecoilState(fromLoadRecordsState.inputFileHeaderState);
   const [inputFilename, setInputFilename] = useRecoilState(fromLoadRecordsState.inputFilenameState);
   const [inputFilenameType, setInputFilenameType] = useRecoilState(fromLoadRecordsState.inputFilenameTypeState);
+
+  const [inputZipFileData, setInputZipFileData] = useRecoilState(fromLoadRecordsState.inputZipFileDataState);
+  const [inputZipFilename, setInputZipFilename] = useRecoilState(fromLoadRecordsState.inputZipFilenameState);
+  const allowBinaryAttachment = useRecoilValue(fromLoadRecordsState.selectAllowBinaryAttachment);
+  const binaryAttachmentBodyField = useRecoilValue(fromLoadRecordsState.selectBinaryAttachmentBodyField);
+
   const [fieldMapping, setFieldMapping] = useRecoilState(fromLoadRecordsState.fieldMappingState);
 
   const [loading, setLoading] = useState<boolean>(false);
@@ -91,6 +97,8 @@ export const LoadRecords: FunctionComponent<LoadRecordsProps> = ({ featureFlags 
   const resetInputFilenameState = useResetRecoilState(fromLoadRecordsState.inputFilenameState);
   const resetFieldMappingState = useResetRecoilState(fromLoadRecordsState.fieldMappingState);
   const resetFieldMappingTypeState = useResetRecoilState(fromLoadRecordsState.inputFilenameTypeState);
+  const resetInputZipFileData = useResetRecoilState(fromLoadRecordsState.inputZipFileDataState);
+  const resetInputZipFilename = useResetRecoilState(fromLoadRecordsState.inputZipFilenameState);
 
   useEffect(() => {
     isMounted.current = true;
@@ -110,6 +118,8 @@ export const LoadRecords: FunctionComponent<LoadRecordsProps> = ({ featureFlags 
         resetInputFilenameState();
         resetFieldMappingState();
         resetFieldMappingTypeState();
+        resetInputZipFileData();
+        resetInputZipFilename();
       }
     };
   }, [
@@ -121,6 +131,8 @@ export const LoadRecords: FunctionComponent<LoadRecordsProps> = ({ featureFlags 
     resetLoadTypeState,
     resetSelectedSObjectState,
     resetFieldMappingTypeState,
+    resetInputZipFileData,
+    resetInputZipFilename,
   ]);
 
   useEffect(() => {
@@ -131,6 +143,7 @@ export const LoadRecords: FunctionComponent<LoadRecordsProps> = ({ featureFlags 
     } else {
       setPriorSelectedOrg(selectedOrg.uniqueId);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedOrg]);
 
   useEffect(() => {
@@ -168,7 +181,7 @@ export const LoadRecords: FunctionComponent<LoadRecordsProps> = ({ featureFlags 
 
   useEffect(() => {
     if (mappableFields && inputFileHeader) {
-      setFieldMapping(autoMapFields(inputFileHeader, mappableFields));
+      setFieldMapping(autoMapFields(inputFileHeader, mappableFields, binaryAttachmentBodyField));
     }
   }, [mappableFields, inputFileHeader, loadType, setFieldMapping]);
 
@@ -196,6 +209,10 @@ export const LoadRecords: FunctionComponent<LoadRecordsProps> = ({ featureFlags 
         // currStepButtonText = 'Continue to Disable Automation';
         currStepButtonText = 'Continue to Load Records';
         isNextStepDisabled = !fieldMapping || Object.values(fieldMapping).filter((field) => field.targetField).length === 0;
+        // ensure body field for binary attachments is mapped
+        if (isNextStepDisabled && allowBinaryAttachment && inputZipFilename) {
+          isNextStepDisabled = !Object.values(fieldMapping).find((field) => field.targetField === binaryAttachmentBodyField);
+        }
         hasNextStep = true;
         break;
       case 'automationDeploy':
@@ -257,6 +274,11 @@ export const LoadRecords: FunctionComponent<LoadRecordsProps> = ({ featureFlags 
     setInputFileHeader(headers);
     setInputFilename(filename);
     setInputFilenameType(type);
+  }
+
+  function handleZipFileChange(data: ArrayBuffer, filename: string) {
+    setInputZipFileData(data);
+    setInputZipFilename(filename);
   }
 
   function handleGoBackToPrev() {
@@ -355,9 +377,13 @@ export const LoadRecords: FunctionComponent<LoadRecordsProps> = ({ featureFlags 
                 externalId={externalId}
                 inputFilename={inputFilename}
                 inputFileType={inputFilenameType}
+                allowBinaryAttachment={allowBinaryAttachment}
+                binaryAttachmentBodyField={binaryAttachmentBodyField}
+                inputZipFilename={inputZipFilename}
                 onSobjects={setSobjects}
                 onSelectedSobject={setSelectedSObject}
                 onFileChange={handleFileChange}
+                onZipFileChange={handleZipFileChange}
                 onLoadTypeChange={setLoadType}
                 onExternalIdChange={setExternalId}
               >
@@ -381,6 +407,7 @@ export const LoadRecords: FunctionComponent<LoadRecordsProps> = ({ featureFlags 
                   fileData={inputFileData}
                   loadType={loadType}
                   externalId={externalId}
+                  binaryAttachmentBodyField={binaryAttachmentBodyField}
                   onFieldMappingChange={setFieldMapping}
                   onRefreshFields={handleFieldRefresh}
                 />
@@ -400,6 +427,7 @@ export const LoadRecords: FunctionComponent<LoadRecordsProps> = ({ featureFlags 
                   loadType={loadType}
                   fieldMapping={fieldMapping}
                   inputFileData={inputFileData}
+                  inputZipFileData={inputZipFileData}
                   externalId={externalId}
                   onIsLoading={handleIsLoading}
                 />

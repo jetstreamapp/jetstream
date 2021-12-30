@@ -40,6 +40,7 @@ export interface LoadRecordsBatchApiResultsProps {
   selectedSObject: string;
   fieldMapping: FieldMapping;
   inputFileData: any[];
+  inputZipFileData: ArrayBuffer;
   apiMode: ApiMode;
   loadType: InsertUpdateUpsertDelete;
   externalId?: string;
@@ -56,6 +57,7 @@ export const LoadRecordsBatchApiResults: FunctionComponent<LoadRecordsBatchApiRe
   selectedSObject,
   fieldMapping,
   inputFileData,
+  inputZipFileData,
   apiMode,
   loadType,
   externalId,
@@ -126,6 +128,8 @@ export const LoadRecordsBatchApiResults: FunctionComponent<LoadRecordsBatchApiRe
         assignmentRuleId,
         serialMode,
         externalId,
+        binaryBodyField: Object.values(fieldMapping).find((field) => field.isBinaryBodyField)?.targetField,
+        zipData: inputZipFileData,
       };
       loadWorker.postMessage({ name: 'loadData', data });
     }

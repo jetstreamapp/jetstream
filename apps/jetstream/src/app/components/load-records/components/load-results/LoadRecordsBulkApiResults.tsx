@@ -67,6 +67,7 @@ export interface LoadRecordsBulkApiResultsProps {
   selectedSObject: string;
   fieldMapping: FieldMapping;
   inputFileData: any[];
+  inputZipFileData: ArrayBuffer;
   apiMode: ApiMode;
   loadType: InsertUpdateUpsertDelete;
   externalId?: string;
@@ -83,6 +84,7 @@ export const LoadRecordsBulkApiResults: FunctionComponent<LoadRecordsBulkApiResu
   selectedSObject,
   fieldMapping,
   inputFileData,
+  inputZipFileData,
   apiMode,
   loadType,
   externalId,
@@ -145,6 +147,7 @@ export const LoadRecordsBulkApiResults: FunctionComponent<LoadRecordsBulkApiResu
       const data: PrepareDataPayload = {
         org: selectedOrg,
         data: inputFileData,
+        // zipData: inputZipFileData,
         fieldMapping,
         sObject: selectedSObject,
         insertNulls,
@@ -161,6 +164,7 @@ export const LoadRecordsBulkApiResults: FunctionComponent<LoadRecordsBulkApiResu
       const data: LoadDataPayload = {
         org: selectedOrg,
         data: preparedData.data,
+        zipData: inputZipFileData,
         sObject: selectedSObject,
         apiMode,
         type: loadType,
@@ -304,7 +308,7 @@ export const LoadRecordsBulkApiResults: FunctionComponent<LoadRecordsBulkApiResu
               logger.error('ERROR', payload.error);
               setStatus(STATUSES.ERROR);
               onFinish({ success: 0, failure: inputFileData.length });
-              notifyUser(`Your ${jobInfo.operation} data load failed`, {
+              notifyUser(`Your data load failed`, {
                 body: `❌ ${payload.error?.message || payload.error}`,
                 tag: 'load-records',
               });
