@@ -55,12 +55,12 @@ module.exports = {
     {
       type: 'category',
       label: 'Query',
-      items: ['query/query', 'query/query-results'],
+      items: ['query/query', 'query/query-results', 'query/download-attachments'],
     },
     {
       type: 'category',
       label: 'Load',
-      items: ['load/load', 'load/load-with-related'],
+      items: ['load/load', 'load/load-attachments', 'load/load-with-related'],
     },
     'automation-control/automation-control',
     'permissions/permissions',

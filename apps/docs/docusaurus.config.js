@@ -4,7 +4,7 @@ module.exports = {
   tagline: 'Documentation',
   url: 'https://docs.getjetstream.app',
   baseUrl: '/',
-  onBrokenLinks: 'warn',
+  onBrokenLinks: 'throw',
   onBrokenMarkdownLinks: 'throw',
   favicon: 'img/favicon-inverse.ico',
   organizationName: 'jetstream', // Usually your GitHub org/user name.

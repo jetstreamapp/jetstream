@@ -137,6 +137,75 @@
         }
       }
     },
+    "download-zip-sw": {
+      "projectType": "application",
+      "root": "apps/download-zip-sw",
+      "sourceRoot": "apps/download-zip-sw/src",
+      "architect": {
+        "build": {
+          "builder": "@nrwl/web:build",
+          "outputs": ["{options.outputPath}"],
+          "options": {
+            "outputPath": "dist/apps/download-zip-sw",
+            "index": "apps/download-zip-sw/src/index.html",
+            "main": "apps/download-zip-sw/src/main.sw.ts",
+            "polyfills": "apps/download-zip-sw/src/polyfills.ts",
+            "tsConfig": "apps/download-zip-sw/tsconfig.app.json",
+            "webpackConfig": "webpack-sw.config.js",
+            "assets": [],
+            "commonChunk": false,
+            "extractCss": false,
+            "extractLicenses": false,
+            "generateIndexHtml": false,
+            "namedChunks": false,
+            "optimization": true,
+            "outputHashing": "none",
+            "runtimeChunk": false,
+            "scripts": [],
+            "sourceMap": true,
+            "styles": [],
+            "vendorChunk": false
+          },
+          "configurations": {
+            "production": {
+              "budgets": [
+                {
+                  "type": "initial",
+                  "maximumWarning": "2mb",
+                  "maximumError": "5mb"
+                }
+              ]
+            }
+          }
+        },
+        "serve": {
+          "builder": "@nrwl/web:dev-server",
+          "options": {
+            "buildTarget": "download-zip-sw:build"
+          },
+          "configurations": {
+            "production": {
+              "buildTarget": "download-zip-sw:build:production"
+            }
+          }
+        },
+        "lint": {
+          "builder": "@nrwl/linter:eslint",
+          "outputs": ["{options.outputFile}"],
+          "options": {
+            "lintFilePatterns": ["apps/download-zip-sw/**/*.ts"]
+          }
+        },
+        "test": {
+          "builder": "@nrwl/jest:jest",
+          "outputs": ["coverage/apps/download-zip-sw"],
+          "options": {
+            "jestConfig": "apps/download-zip-sw/jest.config.js",
+            "passWithNoTests": true
+          }
+        }
+      }
+    },
     "icon-factory": {
       "root": "libs/icon-factory",
       "sourceRoot": "libs/icon-factory/src",
@@ -859,6 +928,17 @@
       "library": {
         "linter": "eslint"
       }
+    },
+    "@nrwl/web:application": {
+      "style": "css",
+      "linter": "eslint",
+      "unitTestRunner": "jest",
+      "e2eTestRunner": "none"
+    },
+    "@nrwl/web:library": {
+      "style": "css",
+      "linter": "eslint",
+      "unitTestRunner": "jest"
     }
   },
   "defaultProject": "jetstream"

@@ -1,0 +1,10 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "outDir": "../../dist/out-tsc",
+    "lib": ["es2020", "webworker"],
+    "types": []
+  },
+  "exclude": ["**/*.spec.ts"],
+  "include": ["**/*.ts", "../jetstream/src/app/service-workers/zip/Crc32.ts"]
+}

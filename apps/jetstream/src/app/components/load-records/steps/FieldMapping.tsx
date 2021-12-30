@@ -32,6 +32,7 @@ export interface LoadRecordsFieldMappingProps {
   fileData: any[]; // first row will be used to obtain header
   loadType: InsertUpdateUpsertDelete;
   externalId?: string;
+  binaryAttachmentBodyField?: string;
   onFieldMappingChange: (fieldMapping: FieldMapping) => void;
   onRefreshFields: () => Promise<void>;
 }
@@ -46,6 +47,7 @@ export const LoadRecordsFieldMapping = memo<LoadRecordsFieldMappingProps>(
     fileData,
     loadType,
     externalId,
+    binaryAttachmentBodyField,
     onFieldMappingChange,
     onRefreshFields,
   }) => {
@@ -116,7 +118,7 @@ export const LoadRecordsFieldMapping = memo<LoadRecordsFieldMappingProps>(
           trackEvent(ANALYTICS_KEYS.load_MappingAutomationChanged, { action: id });
           break;
         case MAPPING_RESET:
-          setFieldMapping(autoMapFields(inputHeader, fields));
+          setFieldMapping(autoMapFields(inputHeader, fields, binaryAttachmentBodyField));
           setFilter(FILTER_ALL);
           trackEvent(ANALYTICS_KEYS.load_MappingAutomationChanged, { action: id });
           break;

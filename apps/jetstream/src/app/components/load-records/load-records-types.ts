@@ -63,6 +63,7 @@ export interface FieldMappingItem {
   isDuplicateMappedField?: boolean;
   lookupOptionUseFirstMatch: NonExtIdLookupOption;
   lookupOptionNullIfNoMatch: boolean;
+  isBinaryBodyField: boolean;
 }
 
 export interface PrepareDataPayload {
@@ -90,6 +91,7 @@ export interface PrepareDataResponseError {
 export interface LoadDataPayload {
   org: SalesforceOrgUi;
   data: any[];
+  zipData?: ArrayBuffer;
   sObject: string;
   apiMode: ApiMode;
   type: InsertUpdateUpsertDelete;
@@ -97,6 +99,7 @@ export interface LoadDataPayload {
   serialMode?: boolean;
   externalId?: string; // required for upsert, ignored for all others.
   assignmentRuleId?: string; // only allowed for lead / case
+  binaryBodyField?: string;
 }
 
 export interface LoadDataBulkApi {

@@ -449,6 +449,17 @@ export async function bulkApiAddBatchToJob(
   ).then(unwrapResponseIgnoreCache);
 }
 
+export async function bulkApiAddBatchToJobWithAttachment(
+  org: SalesforceOrgUi,
+  jobId: string,
+  data: ArrayBuffer
+): Promise<BulkJobBatchInfo> {
+  return handleRequest(
+    { method: 'POST', url: `/api/bulk/zip/${jobId}`, data, headers: { [HTTP.HEADERS.CONTENT_TYPE]: HTTP.CONTENT_TYPE.ZIP } },
+    { org }
+  ).then(unwrapResponseIgnoreCache);
+}
+
 export async function bulkApiGetRecords<T = any>(
   org: SalesforceOrgUi,
   jobId: string,

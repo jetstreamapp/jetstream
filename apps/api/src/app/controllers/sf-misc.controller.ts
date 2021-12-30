@@ -3,16 +3,18 @@ import { toBoolean } from '@jetstream/shared/utils';
 import { GenericRequestPayload, ManualRequestPayload, ManualRequestResponse } from '@jetstream/types';
 import axios, { AxiosError, AxiosRequestConfig } from 'axios';
 import { NextFunction, Request, Response } from 'express';
-import { body } from 'express-validator';
+import { body, query } from 'express-validator';
 import * as jsforce from 'jsforce';
 import { isObject, isString } from 'lodash';
 import { UserFacingError } from '../utils/error-handler';
 import { sendJson } from '../utils/response.handlers';
+import * as request from 'superagent';
 
 const SESSION_ID_RGX = /\{sessionId\}/i;
 
 export const routeValidators = {
   getFrontdoorLoginUrl: [],
+  streamFileDownload: [query('url').isString()],
   makeJsforceRequest: [
     body('url').isString(),
     body('method').isIn(['GET', 'POST', 'PUT', 'PATCH', 'DELETE']),
@@ -49,6 +51,27 @@ export async function getFrontdoorLoginUrl(req: Request, res: Response, next: Ne
       url += `&retURL=${returnUrl}`;
     }
     res.redirect(url);
+  } catch (ex) {
+    next(ex);
+  }
+}
+
+/**
+ * Stream a file download from Salesforce
+ * Query parameter of url is required (e.x. `/services/data/v53.0/sobjects/Attachment/00P6g000007BzmTEAS/Body`)
+ * @returns
+ */
+export async function streamFileDownload(req: Request, res: Response, next: NextFunction) {
+  try {
+    const { url } = req.query;
+    const conn: jsforce.Connection = res.locals.jsforceConn;
+    // ensure that our token is valid and not expired
+    await conn.identity();
+    return request
+      .get(`${conn.instanceUrl}${url}`)
+      .set({ ['Authorization']: `Bearer ${conn.accessToken}`, ['X-SFDC-Session']: conn.accessToken })
+      .buffer(false)
+      .pipe(res);
   } catch (ex) {
     next(ex);
   }

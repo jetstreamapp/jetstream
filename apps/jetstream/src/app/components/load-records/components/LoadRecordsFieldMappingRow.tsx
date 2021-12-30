@@ -42,6 +42,7 @@ export interface LoadRecordsFieldMappingRowProps {
   fieldMappingItem: FieldMappingItem;
   csvField: string;
   csvRowData: string;
+  binaryAttachmentBodyField?: string;
   onSelectionChanged: (csvField: string, fieldMappingItem: FieldMappingItem) => void;
 }
 
@@ -50,6 +51,7 @@ export const LoadRecordsFieldMappingRow: FunctionComponent<LoadRecordsFieldMappi
   fieldMappingItem,
   csvField,
   csvRowData,
+  binaryAttachmentBodyField,
   onSelectionChanged,
 }) => {
   const [textFilter, setTextFilter] = useState<string>('');
@@ -113,6 +115,7 @@ export const LoadRecordsFieldMappingRow: FunctionComponent<LoadRecordsFieldMappi
         selectedReferenceTo: undefined,
         lookupOptionUseFirstMatch: 'ERROR_IF_MULTIPLE',
         lookupOptionNullIfNoMatch: false,
+        isBinaryBodyField: false,
       });
     } else if (field.name !== fieldMappingItem.targetField) {
       onSelectionChanged(csvField, {
@@ -122,6 +125,7 @@ export const LoadRecordsFieldMappingRow: FunctionComponent<LoadRecordsFieldMappi
         targetLookupField: undefined,
         relationshipName: field.relationshipName,
         fieldMetadata: field,
+        isBinaryBodyField: !!binaryAttachmentBodyField && field.name === binaryAttachmentBodyField,
       });
     }
   }

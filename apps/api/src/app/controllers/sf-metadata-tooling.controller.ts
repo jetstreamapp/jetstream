@@ -321,6 +321,7 @@ export async function getPackageXml(req: Request, res: Response, next: NextFunct
  */
 export async function anonymousApex(req: Request, res: Response, next: NextFunction) {
   try {
+    // eslint-disable-next-line prefer-const
     let { apex, logLevel }: { apex: string; logLevel?: string } = req.body;
     logLevel = logLevel || 'FINEST';
     const conn: jsforce.Connection = res.locals.jsforceConn;
