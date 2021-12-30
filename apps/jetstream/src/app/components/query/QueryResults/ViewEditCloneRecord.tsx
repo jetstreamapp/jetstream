@@ -120,7 +120,7 @@ export const ViewEditCloneRecord: FunctionComponent<ViewEditCloneRecordProps> = 
       let record: Record = {};
 
       if (action !== 'create') {
-        record = await sobjectOperation<Record>(selectedOrg, sobjectName, 'retrieve', { ids: recordId }, { skipCallOptions: true });
+        record = await sobjectOperation<Record>(selectedOrg, sobjectName, 'retrieve', { ids: recordId });
       }
 
       const sobjectMetadata = await describeSObject(selectedOrg, sobjectName);
