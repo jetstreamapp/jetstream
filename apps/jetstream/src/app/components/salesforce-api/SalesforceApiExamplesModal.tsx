@@ -1,4 +1,4 @@
-import { ColDef, RowGroupingDisplayType, RowNode } from '@ag-grid-community/core';
+import { ColDef, RowNode } from '@ag-grid-community/core';
 import { css } from '@emotion/react';
 import { logger } from '@jetstream/shared/client-logger';
 import { ANALYTICS_KEYS } from '@jetstream/shared/constants';
@@ -179,7 +179,7 @@ export const SalesforceApiExamplesModal: FunctionComponent<SalesforceApiExamples
                   },
                   showOpenedGroup: true,
                   groupDefaultExpanded: 1,
-                  groupDisplayType: RowGroupingDisplayType.GROUP_ROWS,
+                  groupDisplayType: 'groupRows',
                   rowSelection: null,
                   immutableData: true,
                   getRowNodeId: (data: SalesforceApiRequest) => data.id,

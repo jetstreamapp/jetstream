@@ -80,7 +80,7 @@ export const DataTable: FunctionComponent<DataTableProps> = ({
   return (
     <div className="ag-theme-custom-react" style={style}>
       <AgGridReact
-        // reactUi // TODO: enable at some point - seemed kinda sketchy
+        // reactUi // TODO: enable at some point - makes deployment page blow up
         rowSelection="multiple"
         suppressDragLeaveHidesColumns
         quickFilterText={quickFilterText}
