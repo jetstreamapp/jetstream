@@ -14,7 +14,7 @@
     "start:api": "nx serve api",
     "start:worker": "nx serve jetstream-worker",
     "start:landing": "nx serve landing",
-    "start:docs": "nx serve docs",
+    "start:docs": "USE_SIMPLE_CSS_MINIFIER=true nx serve docs",
     "start:ui:storybook": "nx run ui:storybook",
     "start:auth": "cd apps/authentication && docker-compose up",
     "start:prod": "pm2-runtime start ecosystem.config.js --env production",
