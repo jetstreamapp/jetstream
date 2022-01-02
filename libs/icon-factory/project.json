@@ -1,0 +1,20 @@
+{
+  "root": "libs/icon-factory",
+  "sourceRoot": "libs/icon-factory/src",
+  "projectType": "library",
+  "generators": {},
+  "targets": {
+    "lint": {
+      "executor": "@nrwl/linter:eslint",
+      "options": {
+        "lintFilePatterns": [
+          "libs/icon-factory/**/*.js",
+          "libs/icon-factory/**/*.jsx",
+          "libs/icon-factory/**/*.ts",
+          "libs/icon-factory/**/*.tsx"
+        ]
+      }
+    }
+  },
+  "tags": []
+}

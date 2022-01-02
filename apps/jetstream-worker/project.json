@@ -1,0 +1,54 @@
+{
+  "root": "apps/jetstream-worker",
+  "sourceRoot": "apps/jetstream-worker/src",
+  "projectType": "application",
+  "targets": {
+    "build": {
+      "executor": "@nrwl/node:build",
+      "outputs": ["{options.outputPath}"],
+      "options": {
+        "outputPath": "dist/apps/jetstream-worker",
+        "main": "apps/jetstream-worker/src/main.ts",
+        "tsConfig": "apps/jetstream-worker/tsconfig.app.json",
+        "assets": ["apps/jetstream-worker/src/assets"]
+      },
+      "configurations": {
+        "production": {
+          "optimization": true,
+          "extractLicenses": true,
+          "inspect": false,
+          "fileReplacements": [
+            {
+              "replace": "apps/jetstream-worker/src/environments/environment.ts",
+              "with": "apps/jetstream-worker/src/environments/environment.prod.ts"
+            }
+          ]
+        }
+      }
+    },
+    "serve": {
+      "executor": "@nrwl/node:execute",
+      "options": {
+        "buildTarget": "jetstream-worker:build",
+        "inspect": true,
+        "port": 7778
+      }
+    },
+    "lint": {
+      "executor": "@nrwl/linter:eslint",
+      "outputs": ["{options.outputFile}"],
+      "options": {
+        "lintFilePatterns": ["apps/jetstream-worker/**/*.ts"]
+      }
+    },
+    "test": {
+      "executor": "@nrwl/jest:jest",
+      "outputs": ["coverage/apps/jetstream-worker"],
+      "options": {
+        "jestConfig": "apps/jetstream-worker/jest.config.js",
+        "passWithNoTests": true
+      }
+    }
+  },
+  "tags": []
+}

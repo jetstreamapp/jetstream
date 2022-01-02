@@ -5,6 +5,15 @@
     "types": ["node"]
   },
   "files": ["../../../node_modules/@nrwl/react/typings/cssmodule.d.ts", "../../../node_modules/@nrwl/react/typings/image.d.ts"],
-  "exclude": ["**/*.spec.ts", "**/*.spec.tsx", "**/*.stories.ts", "**/*.stories.js", "**/*.stories.jsx", "**/*.stories.tsx"],
+  "exclude": [
+    "**/*.spec.ts",
+    "**/*.test.ts",
+    "**/*.spec.tsx",
+    "**/*.test.tsx",
+    "**/*.stories.ts",
+    "**/*.stories.js",
+    "**/*.stories.jsx",
+    "**/*.stories.tsx"
+  ],
   "include": ["**/*.js", "**/*.jsx", "**/*.ts", "**/*.tsx"]
 }

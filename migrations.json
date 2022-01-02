@@ -1,156 +1,132 @@
 {
   "migrations": [
     {
-      "version": "12.5.0-beta.1",
-      "description": "Rename the workspace-schematic script into workspace-generator script",
-      "factory": "./src/migrations/update-12-5-0/add-target-dependencies",
+      "version": "13.0.0-beta.1",
+      "description": "Add default base to nx.json if its not currently set",
+      "factory": "./src/migrations/update-13-0-0/set-default-base-if-not-set",
       "cli": "nx",
       "package": "@nrwl/workspace",
-      "name": "add-target-dependencies"
+      "name": "set-default-base-if-not-set"
     },
     {
+      "version": "13.0.0-beta.4",
+      "description": "Move global settings into nx.json, and project specific settings into workspace.json",
       "cli": "nx",
-      "version": "12.8.0-beta.0",
-      "description": "Remove Typescript Preprocessor Plugin",
-      "factory": "./src/migrations/update-12-8-0/remove-typescript-plugin",
-      "package": "@nrwl/cypress",
-      "name": "remove-typescript-plugin"
+      "implementation": "./src/migrations/update-13-0-0/config-locations/config-locations",
+      "package": "@nrwl/workspace",
+      "name": "13-0-0-config-locations"
     },
     {
-      "version": "12.1.0-beta.1",
+      "version": "13.2.0",
+      "description": "Set --parallel=1 for existing repos to preserve the existing behavior",
       "cli": "nx",
-      "description": "Update jest-preset-angular to version 8.4.0",
-      "factory": "./src/migrations/update-12-1-2/update-jest-preset-angular",
+      "implementation": "./src/migrations/update-13-2-0/set-parallel-default",
+      "package": "@nrwl/workspace",
+      "name": "set-parallel-default"
+    },
+    {
+      "version": "13.3.0-beta.0",
+      "description": "@nrwl/workspace:tsc is now @nrwl/js:tsc",
+      "cli": "nx",
+      "implementation": "./src/migrations/update-13-3-0/update-tsc-executor-location",
+      "package": "@nrwl/workspace",
+      "name": "13-3-0-tsc-location"
+    },
+    {
+      "version": "13.1.2-beta.0",
+      "cli": "nx",
+      "description": "Support .test. file names in tsconfigs",
+      "factory": "./src/migrations/update-13-1-2/update-tsconfigs-for-tests",
       "package": "@nrwl/jest",
-      "name": "update-jest-preset-angular-8-4-0"
-    },
-    {
-      "version": "12.1.2-beta.1",
-      "cli": "nx",
-      "description": "Replace tsConfig with tsconfig for ts-jest in jest.config.js",
-      "factory": "./src/migrations/update-12-1-2/update-ts-jest",
-      "package": "@nrwl/jest",
-      "name": "update-ts-jest-6-5-5"
-    },
-    {
-      "version": "12.4.0-beta.1",
-      "cli": "nx",
-      "description": "Add testEnvironment: 'jsdom' in web apps + libraries",
-      "factory": "./src/migrations/update-12-4-0/add-test-environment-for-node",
-      "package": "@nrwl/jest",
-      "name": "support-jest-27"
-    },
-    {
-      "version": "12.4.0-beta.1",
-      "cli": "nx",
-      "description": "Support for Jest 27 via updating ts-jest + jest-preset-angular",
-      "factory": "./src/migrations/update-12-4-0/update-jest-preset-angular",
-      "package": "@nrwl/jest",
-      "name": "update-ts-jest-and-jest-preset-angular"
-    },
-    {
-      "version": "12.6.0-beta.0",
-      "cli": "nx",
-      "description": "Uses `getJestProjects()` to populate projects array in root level `jest.config.js` file.",
-      "factory": "./src/migrations/update-12-6-0/update-base-jest-config",
-      "package": "@nrwl/jest",
-      "name": "update-jest-config-to-use-util"
+      "name": "update-ts-config-for-test-filenames"
     },
     {
       "cli": "nx",
-      "version": "12.6.0-beta.0",
-      "description": "Add 'next' eslint config",
-      "factory": "./src/migrations/update-12-6-0/add-next-eslint",
+      "version": "12.10.0-beta.1",
+      "description": "Updates .eslintrc.json file to use the correct pages directory for '@next/next/no-html-link-for-pages'.",
+      "factory": "./src/migrations/update-12-10-0/fix-page-dir-for-eslint",
       "package": "@nrwl/next",
-      "name": "add-next-eslint-12.6.0"
+      "name": "fix-page-dir-for-eslint"
     },
     {
       "cli": "nx",
-      "version": "12.8.0-beta.11",
-      "description": "Adjust the Next.js lib babel configuration for styled-jsx",
-      "factory": "./src/migrations/update-12-8-0/remove-styled-jsx-babel-plugin",
+      "version": "13.0.0-beta.0",
+      "description": "Update tsconfig.json to use `jsxImportSource` to support css prop",
+      "factory": "./src/migrations/update-13-0-0/update-emotion-setup",
       "package": "@nrwl/next",
-      "name": "fix-nextjs-lib-babel-config-12.8.0"
+      "name": "update-emotion-setup-13.0.0"
     },
     {
       "cli": "nx",
-      "version": "12.0.0-beta.0",
-      "description": "Migrate tsconfig.json to allow new jsx transform to be used. Removes the need for `import React from 'react'`",
-      "factory": "./src/migrations/update-12-0-0/use-react-jsx-in-tsconfig",
+      "version": "13.0.0-beta.1",
+      "description": "Set `webpack5: true` for all next.js projects.",
+      "factory": "./src/migrations/update-13-0-0/update-to-webpack-5",
+      "package": "@nrwl/next",
+      "name": "update-to-webpack-5"
+    },
+    {
+      "cli": "nx",
+      "version": "13.0.3-beta.1",
+      "description": "Fix setup for less stylesheets",
+      "factory": "./src/migrations/update-13-0-3/fix-less",
+      "package": "@nrwl/next",
+      "name": "fix-less"
+    },
+    {
+      "cli": "nx",
+      "version": "13.0.0-beta.1",
+      "description": "Remove packages installed by Nx 12's `@nrwl/node:webpack5` generator.",
+      "factory": "./src/migrations/update-13-0-0/remove-webpack-5-packages-13-0-0",
+      "package": "@nrwl/node",
+      "name": "remove-webpack-5-packages"
+    },
+    {
+      "cli": "nx",
+      "version": "13.0.0-beta.0",
+      "description": "Update tsconfig.json to use `jsxImportSource` to support css prop",
+      "factory": "./src/migrations/update-13-0-0/update-emotion-setup",
       "package": "@nrwl/react",
-      "name": "use-react-jsx-in-tsconfig-12.0.0"
+      "name": "update-emotion-setup-13.0.0"
     },
     {
       "cli": "nx",
-      "version": "12.0.0-beta.0",
-      "description": "Update workspace to use `@emotion/babel-plugin` instead of `@emotion/babel-preset-css-prop` to support new jsx transform",
-      "factory": "./src/migrations/update-12-0-0/update-emotion-setup",
+      "version": "13.0.0-beta.0",
+      "description": "Migrate Storybook to use webpack 5",
+      "factory": "./src/migrations/update-13-0-0/migrate-storybook-to-webpack-5",
       "package": "@nrwl/react",
-      "name": "update-emotion-setup-12.0.0"
+      "name": "migrate-storybook-to-webpack-5-13.0.0"
     },
     {
       "cli": "nx",
-      "version": "12.0.0-beta.0",
-      "description": "Remove @types/react-redux from package.json since react-redux installs the package automatically now",
-      "factory": "./src/migrations/update-12-0-0/remove-react-redux-types-package",
-      "package": "@nrwl/react",
-      "name": "remove-react-redux-types-package-12.0.0"
+      "version": "13.0.0-beta.1",
+      "description": "Removes deprecated node-sass package (sass is already a dependency of @nrwl/web).",
+      "factory": "./src/migrations/update-13-0-0/remove-node-sass-13-0-0",
+      "package": "@nrwl/web",
+      "name": "remove-node-sass-13-0-0"
     },
     {
-      "version": "11.6.4",
       "cli": "nx",
-      "description": "Update storybook if installed and above 6 but below 6.2.9",
-      "factory": "./src/migrations/update-11-6-0/update-storybook",
-      "package": "@nrwl/storybook",
-      "name": "update-11-6-0"
+      "version": "13.0.0-beta.1",
+      "description": "Remove packages installed by Nx 12's `@nrwl/web:webpack5` generator.",
+      "factory": "./src/migrations/update-13-0-0/remove-webpack-5-packages-13-0-0",
+      "package": "@nrwl/web",
+      "name": "remove-webpack-5-packages"
     },
     {
-      "version": "12.1.0-beta.7",
       "cli": "nx",
-      "description": "Update react storybook tsconfig to avoid VSCode errors",
-      "factory": "./src/migrations/update-12-1-0/fix-storybook-tsconfig",
-      "package": "@nrwl/storybook",
-      "name": "update-12-1-0"
+      "version": "13.3.0-beta.1",
+      "description": "Rename the 'build' executor to 'webpack'",
+      "factory": "./src/migrations/update-13-3-0/rename-build-to-webpack",
+      "package": "@nrwl/web",
+      "name": "rename-build-to-webpack"
     },
     {
-      "version": "12.3.0-rc.1",
       "cli": "nx",
-      "description": "Update storybook if installed and above 6 but below 6.2.9",
-      "factory": "./src/migrations/update-11-6-0/update-storybook",
-      "package": "@nrwl/storybook",
-      "name": "update-12-3-0"
-    },
-    {
-      "version": "12.5.0-beta.5",
-      "cli": "nx",
-      "description": "Upgrade Storybook to v6.3",
-      "factory": "./src/migrations/update-12-5-0/migrate-storybook-6-3",
-      "package": "@nrwl/storybook",
-      "name": "update-12-5-0"
-    },
-    {
-      "version": "12.5.0-beta.5",
-      "cli": "nx",
-      "description": "Install the @storybook/addon-essentials package",
-      "factory": "./src/migrations/update-12-5-0/install-addon-essentials",
-      "package": "@nrwl/storybook",
-      "name": "install-addon-essentials"
-    },
-    {
-      "version": "12.5.9-beta.1",
-      "cli": "nx",
-      "description": "Update Storybook React typings in tsconfig files",
-      "factory": "./src/migrations/update-12-5-9/update-storybook-react-typings",
-      "package": "@nrwl/storybook",
-      "name": "update-12-5-9-beta.1"
-    },
-    {
-      "version": "12.8.0-beta.11",
-      "cli": "nx",
-      "description": "Adjust Storybook tsconfig to add styled-jsx typings",
-      "factory": "./src/migrations/update-12-8-0/update-storybook-styled-jsx-typings",
-      "package": "@nrwl/storybook",
-      "name": "update-12-8.0"
+      "version": "13.3.0-beta.1",
+      "description": "Rename the 'package' executor to 'rollup'",
+      "factory": "./src/migrations/update-13-3-0/rename-package-to-rollup",
+      "package": "@nrwl/web",
+      "name": "rename-package-to-rollup"
     }
   ]
 }
