@@ -1,0 +1,70 @@
+{
+  "projectType": "application",
+  "root": "apps/download-zip-sw",
+  "sourceRoot": "apps/download-zip-sw/src",
+  "targets": {
+    "build": {
+      "executor": "@nrwl/web:webpack",
+      "outputs": ["{options.outputPath}"],
+      "options": {
+        "outputPath": "dist/apps/download-zip-sw",
+        "index": "apps/download-zip-sw/src/index.html",
+        "main": "apps/download-zip-sw/src/main.sw.ts",
+        "polyfills": "apps/download-zip-sw/src/polyfills.ts",
+        "tsConfig": "apps/download-zip-sw/tsconfig.app.json",
+        "webpackConfig": "webpack-sw.config.js",
+        "assets": [],
+        "commonChunk": false,
+        "extractCss": false,
+        "extractLicenses": false,
+        "generateIndexHtml": false,
+        "namedChunks": false,
+        "optimization": true,
+        "outputHashing": "none",
+        "runtimeChunk": false,
+        "scripts": [],
+        "sourceMap": true,
+        "styles": [],
+        "vendorChunk": false
+      },
+      "configurations": {
+        "production": {
+          "budgets": [
+            {
+              "type": "initial",
+              "maximumWarning": "2mb",
+              "maximumError": "5mb"
+            }
+          ]
+        }
+      }
+    },
+    "serve": {
+      "executor": "@nrwl/web:dev-server",
+      "options": {
+        "buildTarget": "download-zip-sw:build"
+      },
+      "configurations": {
+        "production": {
+          "buildTarget": "download-zip-sw:build:production"
+        }
+      }
+    },
+    "lint": {
+      "executor": "@nrwl/linter:eslint",
+      "outputs": ["{options.outputFile}"],
+      "options": {
+        "lintFilePatterns": ["apps/download-zip-sw/**/*.ts"]
+      }
+    },
+    "test": {
+      "executor": "@nrwl/jest:jest",
+      "outputs": ["coverage/apps/download-zip-sw"],
+      "options": {
+        "jestConfig": "apps/download-zip-sw/jest.config.js",
+        "passWithNoTests": true
+      }
+    }
+  },
+  "tags": ["sw"]
+}
