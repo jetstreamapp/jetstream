@@ -14,6 +14,7 @@ export interface FieldWithRelatedEntities {
   label: string;
   name: string;
   type: FieldType;
+  soapType: string;
   typeLabel: string;
   externalId: boolean;
   referenceTo?: string[];
@@ -134,4 +135,12 @@ export interface DownloadModalData {
 
 export interface ViewModalData extends Omit<DownloadModalData, 'fileNameParts'> {
   type: DownloadType;
+}
+
+export type MapOfCustomMetadataRecord = MapOf<CustomMetadataRecord>;
+
+export interface CustomMetadataRecord {
+  metadata: string;
+  fullName: string;
+  record: any;
 }

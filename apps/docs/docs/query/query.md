@@ -1,6 +1,7 @@
 ---
 id: query
 title: Query Builder
+description: Jetstream has the most advanced query builder for Salesforce on the planet. See how easy it is to view records and explore your data model.
 sidebar_label: Query Builder
 slug: /query
 ---

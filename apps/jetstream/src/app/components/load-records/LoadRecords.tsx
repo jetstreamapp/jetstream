@@ -30,6 +30,7 @@ import LoadRecordsFieldMapping from './steps/FieldMapping';
 import LoadRecordsLoadAutomationDeploy from './steps/LoadRecordsAutomationDeploy';
 import LoadRecordsLoadAutomationRollback from './steps/LoadRecordsAutomationRollback';
 import LoadRecordsPerformLoad from './steps/PerformLoad';
+import PerformLoadCustomMetadata from './steps/PerformLoadCustomMetadata';
 import LoadRecordsSelectObjectAndFile from './steps/SelectObjectAndFile';
 import { autoMapFields, getFieldMetadata } from './utils/load-records-utils';
 
@@ -54,13 +55,14 @@ export const LoadRecords: FunctionComponent<LoadRecordsProps> = ({ featureFlags 
   useTitle(TITLES.LOAD);
   const isMounted = useRef(null);
   const { trackEvent } = useAmplitude();
-  const [{ google_apiKey, google_appId, google_clientId }] = useRecoilState(applicationCookieState);
+  const [{ defaultApiVersion, serverUrl, google_apiKey, google_appId, google_clientId }] = useRecoilState(applicationCookieState);
   const selectedOrg = useRecoilValue<SalesforceOrgUi>(selectedOrgState);
   const orgType = useRecoilValue(selectedOrgType);
   // TODO: probably need this to know when to reset state
   const [priorSelectedOrg, setPriorSelectedOrg] = useRecoilState(fromLoadRecordsState.priorSelectedOrg);
   const [sobjects, setSobjects] = useRecoilState(fromLoadRecordsState.sObjectsState);
   const [selectedSObject, setSelectedSObject] = useRecoilState(fromLoadRecordsState.selectedSObjectState);
+  const isCustomMetadataObject = useRecoilValue(fromLoadRecordsState.isCustomMetadataObject);
   const [loadType, setLoadType] = useRecoilState(fromLoadRecordsState.loadTypeState);
   const [fields, setFields] = useState<FieldWithRelatedEntities[]>([]);
   const [mappableFields, setMappableFields] = useState<FieldWithRelatedEntities[]>([]);
@@ -106,6 +108,13 @@ export const LoadRecords: FunctionComponent<LoadRecordsProps> = ({ featureFlags 
       isMounted.current = false;
     };
   }, []);
+
+  useEffect(() => {
+    if (isCustomMetadataObject) {
+      setLoadType('UPSERT');
+      setExternalId('DeveloperName');
+    }
+  }, [isCustomMetadataObject, setLoadType]);
 
   // reset state when user leaves page
   useEffect(() => {
@@ -209,8 +218,17 @@ export const LoadRecords: FunctionComponent<LoadRecordsProps> = ({ featureFlags 
         // currStepButtonText = 'Continue to Disable Automation';
         currStepButtonText = 'Continue to Load Records';
         isNextStepDisabled = !fieldMapping || Object.values(fieldMapping).filter((field) => field.targetField).length === 0;
+        if (!isNextStepDisabled && isCustomMetadataObject) {
+          isNextStepDisabled =
+            !fieldMapping ||
+            Object.values(fieldMapping).filter((field) => field.targetField === 'DeveloperName' || field.targetField === 'Label').length !==
+              2;
+        }
+        if (!isNextStepDisabled && loadType === 'UPSERT') {
+          isNextStepDisabled = !fieldMapping || !Object.values(fieldMapping).find((field) => field.targetField === externalId);
+        }
         // ensure body field for binary attachments is mapped
-        if (isNextStepDisabled && allowBinaryAttachment && inputZipFilename) {
+        if (!isNextStepDisabled && allowBinaryAttachment && inputZipFilename) {
           isNextStepDisabled = !Object.values(fieldMapping).find((field) => field.targetField === binaryAttachmentBodyField);
         }
         hasNextStep = true;
@@ -290,10 +308,10 @@ export const LoadRecords: FunctionComponent<LoadRecordsProps> = ({ featureFlags 
     setCurrentStep(enabledSteps[currentStepIdx + changeBy]);
   }
 
-  function handleIsLoading(isLoading: boolean) {
+  const handleIsLoading = useCallback((isLoading: boolean) => {
     setLoading(isLoading);
     setDidPerformDataLoad(true);
-  }
+  }, []);
 
   function handleStartOver() {
     setCurrentStep(enabledSteps[0]);
@@ -371,6 +389,7 @@ export const LoadRecords: FunctionComponent<LoadRecordsProps> = ({ featureFlags 
                 selectedOrg={selectedOrg}
                 sobjects={sobjects}
                 selectedSObject={selectedSObject}
+                isCustomMetadataObject={isCustomMetadataObject}
                 loadType={loadType}
                 externalIdFields={externalIdFields}
                 loadingFields={loadingFields}
@@ -401,6 +420,7 @@ export const LoadRecords: FunctionComponent<LoadRecordsProps> = ({ featureFlags 
                 <LoadRecordsFieldMapping
                   org={selectedOrg}
                   sobject={selectedSObject?.name}
+                  isCustomMetadataObject={isCustomMetadataObject}
                   fields={mappableFields}
                   inputHeader={inputFileHeader}
                   fieldMapping={fieldMapping}
@@ -420,17 +440,31 @@ export const LoadRecords: FunctionComponent<LoadRecordsProps> = ({ featureFlags 
             )}
             {currentStep.name === 'loadRecords' && (
               <span>
-                <LoadRecordsPerformLoad
-                  selectedOrg={selectedOrg}
-                  orgType={orgType}
-                  selectedSObject={selectedSObject.name}
-                  loadType={loadType}
-                  fieldMapping={fieldMapping}
-                  inputFileData={inputFileData}
-                  inputZipFileData={inputZipFileData}
-                  externalId={externalId}
-                  onIsLoading={handleIsLoading}
-                />
+                {!isCustomMetadataObject ? (
+                  <LoadRecordsPerformLoad
+                    selectedOrg={selectedOrg}
+                    orgType={orgType}
+                    selectedSObject={selectedSObject.name}
+                    loadType={loadType}
+                    fieldMapping={fieldMapping}
+                    inputFileData={inputFileData}
+                    inputZipFileData={inputZipFileData}
+                    externalId={externalId}
+                    onIsLoading={handleIsLoading}
+                  />
+                ) : (
+                  <PerformLoadCustomMetadata
+                    apiVersion={defaultApiVersion}
+                    serverUrl={serverUrl}
+                    selectedOrg={selectedOrg}
+                    orgType={orgType}
+                    selectedSObject={selectedSObject.name}
+                    fields={mappableFields}
+                    fieldMapping={fieldMapping}
+                    inputFileData={inputFileData}
+                    onIsLoading={handleIsLoading}
+                  />
+                )}
               </span>
             )}
             {currentStep.name === 'automationRollback' && (

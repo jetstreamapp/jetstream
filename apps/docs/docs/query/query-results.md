@@ -1,11 +1,12 @@
 ---
 id: query-results
 title: Query Results
+description: Jetstream's Query Results page allows you to view, download, or work with your records in your Salesforce org.
 sidebar_label: Query Results
 slug: /query/results
 ---
 
-Jetstream offers some really great functionality on the Query Results page.
+Jetstream offers a lot of advanced functionality on the Query Results page.
 
 ## Working with records
 

@@ -10,6 +10,7 @@ module.exports = {
   organizationName: 'jetstream', // Usually your GitHub org/user name.
   projectName: 'jetstream', // Usually your repo name.
   trailingSlash: false,
+  /** @type {import('@docusaurus/preset-classic').ThemeConfig} */
   themeConfig: {
     algolia: {
       appId: '21D7I5RB7N',
@@ -21,7 +22,7 @@ module.exports = {
       searchParameters: {},
       //... other Algolia params
     },
-    /** @type {import('@docusaurus/preset-classic').ThemeConfig} */
+    metadata: [{ name: 'keywords', content: 'Salesforce, data load, Salesforce api, metadata api, tooling api, query builder' }],
     navbar: {
       logo: {
         alt: 'Jetstream logo',

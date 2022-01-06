@@ -1,6 +1,7 @@
 ---
 id: load-with-related
 title: Load Related Records
+description: Load records to multiple objects at the same time while setting relationships between records.
 sidebar_label: Load Related Records
 slug: /load/with-related
 ---

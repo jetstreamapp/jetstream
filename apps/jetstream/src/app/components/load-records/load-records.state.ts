@@ -88,3 +88,11 @@ export const selectBinaryAttachmentBodyField = selector<string | null>({
     );
   },
 });
+
+export const isCustomMetadataObject = selector<boolean>({
+  key: 'load.isCustomMetadataObject',
+  get: ({ get }) => {
+    const selectedObject = get(selectedSObjectState);
+    return selectedObject && selectedObject.name.endsWith('__mdt');
+  },
+});

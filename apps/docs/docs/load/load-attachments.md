@@ -1,11 +1,12 @@
 ---
 id: load-attachments
 title: Load Files and Attachments
+description: Load files and attachments to Salesforce.
 sidebar_label: Load Files and Attachments
-slug: /load-attachments
+slug: /load/load-attachments
 ---
 
-You can load in files for objects that support file attachments.
+Upload attachments and files to Salesforce.
 
 :::tip
 

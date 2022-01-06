@@ -1,4 +1,5 @@
 import { logger } from '@jetstream/shared/client-logger';
+import { ANALYTICS_KEYS } from '@jetstream/shared/constants';
 import { convertDateToLocale, useBrowserNotifications } from '@jetstream/shared/ui-utils';
 import { flattenRecord, getSuccessOrFailureChar, pluralizeFromNumber } from '@jetstream/shared/utils';
 import { InsertUpdateUpsertDelete, RecordResultWithRecord, SalesforceOrgUi, WorkerMessage } from '@jetstream/types';
@@ -6,6 +7,7 @@ import { FileDownloadModal, Spinner } from '@jetstream/ui';
 import { FunctionComponent, useEffect, useRef, useState } from 'react';
 import { useRecoilState } from 'recoil';
 import { applicationCookieState } from '../../../../app-state';
+import { useAmplitude } from '../../../core/analytics';
 import * as fromJetstreamEvents from '../../../core/jetstream-events';
 import {
   ApiMode,
@@ -69,6 +71,7 @@ export const LoadRecordsBatchApiResults: FunctionComponent<LoadRecordsBatchApiRe
   onFinish,
 }) => {
   const isMounted = useRef(null);
+  const { trackEvent } = useAmplitude();
   // used to ensure that data in the onworker callback gets a reference to the results
   const processingStatusRef = useRef<{ success: number; failure: number }>({ success: 0, failure: 0 });
   const [preparedData, setPreparedData] = useState<PrepareDataResponse>();
@@ -264,6 +267,7 @@ export const LoadRecordsBatchApiResults: FunctionComponent<LoadRecordsBatchApiRe
       header,
       fileNameParts: [loadType.toLocaleLowerCase(), selectedSObject.toLocaleLowerCase(), type],
     });
+    trackEvent(ANALYTICS_KEYS.load_DownloadRecords, { loadType, type, numRows: combinedResults.length });
   }
 
   function handleViewRecords(type: 'results' | 'failures') {
@@ -289,6 +293,7 @@ export const LoadRecordsBatchApiResults: FunctionComponent<LoadRecordsBatchApiRe
       header,
       type,
     });
+    trackEvent(ANALYTICS_KEYS.load_ViewRecords, { loadType, type, numRows: combinedResults.length });
   }
 
   function handleDownloadRecordsFromModal(type: 'results' | 'failures', rows: any[]) {
@@ -301,6 +306,7 @@ export const LoadRecordsBatchApiResults: FunctionComponent<LoadRecordsBatchApiRe
       header,
       fileNameParts: [loadType.toLocaleLowerCase(), selectedSObject.toLocaleLowerCase(), type],
     });
+    trackEvent(ANALYTICS_KEYS.load_DownloadRecords, { loadType, type, numRows: rows.length, location: 'fromViewModal' });
   }
 
   function handleDownloadProcessingErrors() {

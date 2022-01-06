@@ -172,6 +172,8 @@ export const ANALYTICS_KEYS = {
   load_MappingRowPreviewChanged: 'load_MappingRowPreviewChanged',
   load_StartOver: 'load_StartOver',
   load_Submitted: 'load_Submitted',
+  load_ViewRecords: 'load_ViewRecords',
+  load_DownloadRecords: 'load_DownloadRecords',
   /** ANON APEX */
   apex_Submitted: 'apex_Submitted',
   /** SFDC API */

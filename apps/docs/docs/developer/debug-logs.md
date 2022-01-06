@@ -1,6 +1,7 @@
 ---
 id: debug-logs
 title: View Debug Logs
+description: Subscribe to Salesforce debug logs directly from Jetstream without needing to use the Developer Console.
 sidebar_label: View Debug Logs
 slug: /developer/debug-logs
 ---
