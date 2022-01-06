@@ -2,7 +2,15 @@ import { css } from '@emotion/react';
 import { FEATURE_FLAGS, INPUT_ACCEPT_FILETYPES } from '@jetstream/shared/constants';
 import { GoogleApiClientConfig, hasFeatureFlagAccess, parseFile, parseWorkbook } from '@jetstream/shared/ui-utils';
 import { InputReadFileContent, InputReadGoogleSheet, InsertUpdateUpsertDelete, SalesforceOrgUi } from '@jetstream/types';
-import { ConnectedSobjectList, FileOrGoogleSelector, FileSelector, Grid, GridCol, XlsxSheetSelectionModalPromise } from '@jetstream/ui';
+import {
+  Alert,
+  ConnectedSobjectList,
+  FileOrGoogleSelector,
+  FileSelector,
+  Grid,
+  GridCol,
+  XlsxSheetSelectionModalPromise,
+} from '@jetstream/ui';
 import { DescribeGlobalSObjectResult } from 'jsforce';
 import { FunctionComponent } from 'react';
 import Split from 'react-split';
@@ -16,6 +24,7 @@ export interface LoadRecordsSelectObjectAndFileProps {
   selectedOrg: SalesforceOrgUi;
   sobjects: DescribeGlobalSObjectResult[];
   selectedSObject: DescribeGlobalSObjectResult;
+  isCustomMetadataObject: boolean;
   loadType: InsertUpdateUpsertDelete;
   externalIdFields: FieldWithRelatedEntities[];
   externalId: string;
@@ -42,6 +51,7 @@ export const LoadRecordsSelectObjectAndFile: FunctionComponent<LoadRecordsSelect
   featureFlags,
   selectedOrg,
   selectedSObject,
+  isCustomMetadataObject,
   sobjects,
   loadType,
   externalIdFields,
@@ -164,9 +174,17 @@ export const LoadRecordsSelectObjectAndFile: FunctionComponent<LoadRecordsSelect
               externalIdFields={externalIdFields}
               externalId={externalId}
               loadingFields={loadingFields}
+              isCustomMetadataObject={isCustomMetadataObject}
               onChange={handleLoadTypeChange}
             />
           </GridCol>
+          {isCustomMetadataObject && (
+            <GridCol className="slds-m-top_small slds-m-horizontal_small">
+              <Alert type="info" leadingIcon="info">
+                Custom metadata will always perform an upsert based on the <strong>DeveloperName</strong>.
+              </Alert>
+            </GridCol>
+          )}
           <GridCol className="slds-m-top_large">{children}</GridCol>
         </Grid>
       </div>

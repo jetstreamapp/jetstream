@@ -1,11 +1,12 @@
 ---
 id: feedback
 title: Help & Feedback
+description: We 😍 love 😍 to hear from our customers and make it easy to get support and provide feedback.
 sidebar_label: Getting Help or Providing Feedback
 slug: /feedback
 ---
 
-We **love** to hear our customers and make it easy to get support and provide feedback.
+We **love** to hear from our customers and make it easy to get support and provide feedback.
 
 File a support ticket for any of the following topics:
 

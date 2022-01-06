@@ -3,16 +3,19 @@ import { SFDC_BULK_API_NULL_VALUE } from '@jetstream/shared/constants';
 import { queryAll, queryWithCache } from '@jetstream/shared/data';
 import { describeSObjectWithExtendedTypes, formatNumber } from '@jetstream/shared/ui-utils';
 import { REGEX, transformRecordForDataLoad } from '@jetstream/shared/utils';
-import { EntityParticleRecord, MapOf, SalesforceOrgUi } from '@jetstream/types';
+import { EntityParticleRecord, FieldWithExtendedType, MapOf, SalesforceOrgUi } from '@jetstream/types';
 import { DescribeGlobalSObjectResult } from 'jsforce';
+import JSZip from 'jszip';
 import groupBy from 'lodash/groupBy';
 import isNil from 'lodash/isNil';
 import isString from 'lodash/isString';
 import { composeQuery, getField } from 'soql-parser-js';
 import {
   FieldMapping,
+  FieldMappingItem,
   FieldRelatedEntity,
   FieldWithRelatedEntities,
+  MapOfCustomMetadataRecord,
   NonExtIdLookupOption,
   PrepareDataPayload,
   PrepareDataResponse,
@@ -23,8 +26,7 @@ const DEFAULT_NULL_IF_NO_MATCH_MAPPING_OPT = false;
 
 export function filterLoadSobjects(sobject: DescribeGlobalSObjectResult) {
   return (
-    (sobject.createable || sobject.updateable) &&
-    !sobject.name.endsWith('__mdt') &&
+    (sobject.createable || sobject.updateable || sobject.name.endsWith('__mdt')) &&
     !sobject.name.endsWith('__History') &&
     !sobject.name.endsWith('__Tag') &&
     !sobject.name.endsWith('__Feed') &&
@@ -32,14 +34,20 @@ export function filterLoadSobjects(sobject: DescribeGlobalSObjectResult) {
   );
 }
 
+export const getFieldMetadataFilter = (field: FieldWithExtendedType) => field.createable || field.updateable || field.name === 'Id';
+// Custom metadata shows all fields as read-only, but we want to be able to update them
+export const getFieldMetadataCustomMetadataFilter = (field: FieldWithExtendedType) =>
+  field.custom || field.name === 'DeveloperName' || field.name === 'Label';
+
 export async function getFieldMetadata(org: SalesforceOrgUi, sobject: string): Promise<FieldWithRelatedEntities[]> {
   const fields = (await describeSObjectWithExtendedTypes(org, sobject)).fields
-    .filter((field) => field.createable || field.updateable || field.name === 'Id')
+    .filter(sobject.endsWith('__mdt') ? getFieldMetadataCustomMetadataFilter : getFieldMetadataFilter)
     .map(
       (field): FieldWithRelatedEntities => ({
         label: field.label,
         name: field.name,
         type: field.type,
+        soapType: field.soapType,
         externalId: field.externalId,
         typeLabel: field.typeLabel,
         referenceTo:
@@ -475,4 +483,92 @@ function getRelatedFieldsQueries(baseObject: string, relatedObject: string, rela
     queries.push(`${BASE_QUERY}${tempRelatedValues.join(`','`)}')`);
   }
   return queries;
+}
+
+/**
+ * Used for loading custom metadata records
+ */
+export function convertCsvToCustomMetadata(
+  selectedSObject: string,
+  inputFileData: any[],
+  fields: FieldWithRelatedEntities[],
+  fieldMapping: FieldMapping,
+  dateFormat?: string
+): MapOfCustomMetadataRecord {
+  const metadataByFullName: MapOfCustomMetadataRecord = {};
+
+  selectedSObject = selectedSObject.replace('__mdt', '');
+  const fieldMappingByTargetField: MapOf<FieldMappingItem> = Object.values(fieldMapping)
+    .filter((field) => field.targetField)
+    .reduce((output, field) => {
+      output[field.targetField] = field;
+      return output;
+    }, {});
+
+  inputFileData.forEach((row) => {
+    const fullName = `${selectedSObject}.${row[fieldMappingByTargetField.DeveloperName.csvField]}`;
+    const label = fieldMappingByTargetField.Label ? row[fieldMappingByTargetField.Label.csvField] : null;
+    const record: any = {
+      DeveloperName: fullName,
+      Label: label,
+    };
+    let metadata = `<?xml version="1.0" encoding="UTF-8"?>\n`;
+    metadata += `<CustomMetadata xmlns="http://soap.sforce.com/2006/04/metadata" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema">\n`;
+    if (label) {
+      metadata += `\t<label>${label}</label>\n`;
+    }
+    metadata += `\t<protected>false</protected>\n`;
+    fields
+      .filter((field) => field.name.endsWith('__c'))
+      .forEach((field) => {
+        const fieldMappingItem = fieldMappingByTargetField[field.name];
+        let fieldValue = fieldMappingItem ? row[fieldMappingItem.csvField] : null;
+        // ensure that field is in correct data type (mostly for dates)
+        fieldValue = transformRecordForDataLoad(fieldValue, field.type, dateFormat);
+        // Custom metadata lookups always use name to relate records
+        const soapType = field.soapType === 'tns:ID' ? 'xsd:string' : field.soapType;
+        if (fieldMappingItem && !isNil(fieldValue) && fieldValue !== '') {
+          metadata += `\t<values>\n`;
+          metadata += `\t\t<field>${field.name}</field>\n`;
+          metadata += `\t\t<value xsi:type="${soapType}">${fieldValue}</value>\n`;
+          metadata += `\t</values>\n`;
+          record[field.name] = fieldValue;
+        } else {
+          metadata += `\t<values>\n`;
+          metadata += `\t\t<field>${field.name}</field>\n`;
+          metadata += `\t\t<value xsi:nil="true"/>\n`;
+          metadata += `\t</values>\n`;
+          record[field.name] = null;
+        }
+      });
+    metadata += `</CustomMetadata>`;
+
+    metadataByFullName[fullName] = {
+      record,
+      fullName,
+      metadata,
+    };
+  });
+  logger.log({ metadataByFullName });
+  return metadataByFullName;
+}
+export function prepareCustomMetadata(apiVersion, metadata: MapOfCustomMetadataRecord): Promise<ArrayBuffer> {
+  const zip = new JSZip();
+  zip.file(
+    'package.xml',
+    [
+      `<?xml version="1.0" encoding="UTF-8"?>`,
+      `<Package xmlns="http://soap.sforce.com/2006/04/metadata">`,
+      `\t<types>`,
+      ...Object.keys(metadata).map((fullName) => `\t\t<members>${fullName}</members>`),
+      `\t\t<name>CustomMetadata</name>`,
+      `\t</types>`,
+      `\t<version>${apiVersion.replace('v', '')}</version>`,
+      `</Package>`,
+    ].join('\n')
+  );
+  Object.keys(metadata).forEach((fullName) => {
+    zip.file(`customMetadata/${fullName}.md`, metadata[fullName].metadata);
+  });
+  return zip.generateAsync({ type: 'arraybuffer' });
 }

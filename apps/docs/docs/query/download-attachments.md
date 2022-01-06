@@ -1,6 +1,7 @@
 ---
 id: download-attachments
 title: Download Files and Attachments
+description: Jetstream allows you easily to download files and attachments from your org across many records.
 sidebar_label: Download Files and Attachments
 slug: /query/download-attachments
 ---

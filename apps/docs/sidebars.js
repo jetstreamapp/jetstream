@@ -60,7 +60,7 @@ module.exports = {
     {
       type: 'category',
       label: 'Load',
-      items: ['load/load', 'load/load-attachments', 'load/load-with-related'],
+      items: ['load/load', 'load/load-custom-metadata', 'load/load-attachments', 'load/load-with-related'],
     },
     'automation-control/automation-control',
     'permissions/permissions',

@@ -1,5 +1,4 @@
 const { DefinePlugin } = require('webpack');
-const getConfig = require('@nrwl/react/plugins/bundle-babel');
 const getWebpackConfig = require('@nrwl/react/plugins/webpack');
 const { GitRevisionPlugin } = require('git-revision-webpack-plugin');
 const gitRevisionPlugin = new GitRevisionPlugin();

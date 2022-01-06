@@ -4,6 +4,6 @@
     "outDir": "../../dist/out-tsc",
     "types": ["node", "google.picker", "gapi.auth2", "gapi.client.drive"]
   },
-  "exclude": ["**/*.spec.ts"],
+  "exclude": ["**/*.spec.ts", "**/*.test.ts"],
   "include": ["**/*.ts"]
 }

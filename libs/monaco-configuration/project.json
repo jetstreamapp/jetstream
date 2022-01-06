@@ -1,0 +1,22 @@
+{
+  "root": "libs/monaco-configuration",
+  "sourceRoot": "libs/monaco-configuration/src",
+  "projectType": "library",
+  "targets": {
+    "lint": {
+      "executor": "@nrwl/linter:eslint",
+      "options": {
+        "lintFilePatterns": ["libs/monaco-configuration/**/*.ts"]
+      }
+    },
+    "test": {
+      "executor": "@nrwl/jest:jest",
+      "outputs": ["coverage/libs/monaco-configuration"],
+      "options": {
+        "jestConfig": "libs/monaco-configuration/jest.config.js",
+        "passWithNoTests": true
+      }
+    }
+  },
+  "tags": []
+}

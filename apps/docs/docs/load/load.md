@@ -1,6 +1,7 @@
 ---
 id: load
 title: Load Records
+description: Load records into Salesforce to create or change existing records using Jetstream's advanced and easy to use data loader.
 sidebar_label: Load Records
 slug: /load
 ---

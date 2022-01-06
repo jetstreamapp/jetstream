@@ -1,6 +1,7 @@
 ---
 id: export-object-metadata
 title: Export Object Metadata
+description: Download Custom Object and Custom Field metadata from Salesforce. This is great to document or map Salesforce to other systems.
 sidebar_label: Export Object Metadata
 slug: /developer/export-object-metadata
 ---

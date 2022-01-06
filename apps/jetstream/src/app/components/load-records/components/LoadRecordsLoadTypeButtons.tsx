@@ -9,6 +9,7 @@ export interface LoadRecordsLoadTypeButtonsProps {
   loadingFields: boolean;
   externalIdFields: FieldWithRelatedEntities[];
   externalId: string;
+  isCustomMetadataObject: boolean;
   onChange: (type: InsertUpdateUpsertDelete, externalId: string) => void;
 }
 
@@ -17,6 +18,7 @@ export const LoadRecordsLoadTypeButtons: FunctionComponent<LoadRecordsLoadTypeBu
   loadingFields,
   externalIdFields,
   externalId: externalIdInit,
+  isCustomMetadataObject,
   onChange,
 }) => {
   const [textFilter, setTextFilter] = useState<string>('');
@@ -67,7 +69,7 @@ export const LoadRecordsLoadTypeButtons: FunctionComponent<LoadRecordsLoadTypeBu
             label="Insert"
             value="INSERT"
             checked={selectedType === 'INSERT'}
-            disabled={false}
+            disabled={isCustomMetadataObject}
             onChange={handleChange}
           />
           <RadioButton
@@ -75,7 +77,7 @@ export const LoadRecordsLoadTypeButtons: FunctionComponent<LoadRecordsLoadTypeBu
             label="Update"
             value="UPDATE"
             checked={selectedType === 'UPDATE'}
-            disabled={false}
+            disabled={isCustomMetadataObject}
             onChange={handleChange}
           />
           <RadioButton
@@ -83,7 +85,7 @@ export const LoadRecordsLoadTypeButtons: FunctionComponent<LoadRecordsLoadTypeBu
             label="Upsert"
             value="UPSERT"
             checked={selectedType === 'UPSERT'}
-            disabled={false}
+            disabled={isCustomMetadataObject}
             onChange={handleChange}
           />
           <RadioButton
@@ -91,12 +93,12 @@ export const LoadRecordsLoadTypeButtons: FunctionComponent<LoadRecordsLoadTypeBu
             label="Delete"
             value="DELETE"
             checked={selectedType === 'DELETE'}
-            disabled={false}
+            disabled={isCustomMetadataObject}
             onChange={handleChange}
           />
         </RadioGroup>
       </GridCol>
-      {selectedType === 'UPSERT' && (
+      {selectedType === 'UPSERT' && !isCustomMetadataObject && (
         <GridCol>
           <div className="slds-is-relative">
             {loadingFields && <Spinner size="small" />}

@@ -281,7 +281,9 @@
       "parserOptions": {
         "project": ["apps/landing/tsconfig(.*)?.json"]
       },
-      "rules": {}
+      "rules": {
+        "@next/next/no-html-link-for-pages": ["error", "apps/landing/pages"]
+      }
     },
     {
       "files": ["*.ts", "*.tsx"],

@@ -1,6 +1,7 @@
 ---
 id: permissions
 title: Manage Permissions
+description: Jetstream makes it easy to view and modify permissions across many objects and many Profiles or Permission Sets at the same time.
 sidebar_label: Manage Permissions
 slug: /permissions
 ---

@@ -1,0 +1,33 @@
+{
+  "root": "libs/shared/data",
+  "sourceRoot": "libs/shared/data/src",
+  "projectType": "library",
+  "generators": {},
+  "targets": {
+    "lint": {
+      "executor": "@nrwl/linter:eslint",
+      "options": {
+        "lintFilePatterns": [
+          "libs/shared/data/**/*.js",
+          "libs/shared/data/**/*.jsx",
+          "libs/shared/data/**/*.ts",
+          "libs/shared/data/**/*.tsx",
+          "libs/shared/data/**/*.spec.ts",
+          "libs/shared/data/**/*.spec.tsx",
+          "libs/shared/data/**/*.spec.js",
+          "libs/shared/data/**/*.spec.jsx",
+          "libs/shared/data/**/*.d.ts"
+        ]
+      }
+    },
+    "test": {
+      "executor": "@nrwl/jest:jest",
+      "options": {
+        "jestConfig": "libs/shared/data/jest.config.js",
+        "passWithNoTests": true
+      },
+      "outputs": ["coverage/libs/shared/data"]
+    }
+  },
+  "tags": []
+}

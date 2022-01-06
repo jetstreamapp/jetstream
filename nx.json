@@ -17,81 +17,11 @@
       "options": {
         "accessToken": "NDE4Njg3NzMtZmViOC00ZTljLTk1YzUtNDkzZWRkMzg5MDU3fHJlYWQtd3JpdGU=",
         "cacheableOperations": ["build", "test", "lint", "e2e"],
-        "canTrackAnalytics": false,
-        "showUsageWarnings": true
+        "canTrackAnalytics": true,
+        "showUsageWarnings": true,
+        "useDaemonProcess": true,
+        "parallel": 1
       }
-    }
-  },
-  "projects": {
-    "api": {
-      "tags": []
-    },
-    "api-interfaces": {
-      "tags": []
-    },
-    "connected-connected-ui": {
-      "tags": []
-    },
-    "docs": {
-      "tags": []
-    },
-    "download-zip-sw": {
-      "tags": ["sw"]
-    },
-    "icon-factory": {
-      "tags": []
-    },
-    "jetstream": {
-      "tags": []
-    },
-    "jetstream-e2e": {
-      "tags": [],
-      "implicitDependencies": ["jetstream"]
-    },
-    "jetstream-worker": {
-      "tags": []
-    },
-    "landing": {
-      "tags": []
-    },
-    "landing-e2e": {
-      "tags": [],
-      "implicitDependencies": ["landing"]
-    },
-    "monaco-configuration": {
-      "tags": []
-    },
-    "shared-client-logger": {
-      "tags": []
-    },
-    "shared-constants": {
-      "tags": []
-    },
-    "shared-data": {
-      "tags": []
-    },
-    "shared-node-utils": {
-      "tags": []
-    },
-    "shared-ui-record-form": {
-      "tags": []
-    },
-    "shared-ui-utils": {
-      "tags": []
-    },
-    "shared-utils": {
-      "tags": []
-    },
-    "types": {
-      "tags": [],
-      "implicitDependencies": ["icon-factory"]
-    },
-    "ui": {
-      "tags": ["ui"]
-    },
-    "ui-e2e": {
-      "tags": [],
-      "implicitDependencies": ["ui"]
     }
   },
   "affected": {
@@ -104,5 +34,86 @@
         "projects": "dependencies"
       }
     ]
+  },
+  "cli": {
+    "defaultCollection": "@nrwl/react"
+  },
+  "defaultProject": "jetstream",
+  "generators": {
+    "@nrwl/workspace": {
+      "library": {
+        "linter": "eslint"
+      }
+    },
+    "@nrwl/cypress": {
+      "cypress-project": {
+        "linter": "eslint"
+      }
+    },
+    "@nrwl/react": {
+      "application": {
+        "style": "@emotion/styled",
+        "linter": "eslint",
+        "babel": true
+      },
+      "library": {
+        "style": "@emotion/styled",
+        "linter": "eslint"
+      },
+      "storybook-configuration": {
+        "linter": "eslint"
+      },
+      "component": {
+        "style": "@emotion/styled"
+      }
+    },
+    "@nrwl/next": {
+      "application": {
+        "style": "scss",
+        "linter": "eslint"
+      }
+    },
+    "@nrwl/web": {
+      "application": {
+        "linter": "eslint"
+      }
+    },
+    "@nrwl/node": {
+      "application": {
+        "linter": "eslint"
+      },
+      "library": {
+        "linter": "eslint"
+      }
+    },
+    "@nrwl/nx-plugin": {
+      "plugin": {
+        "linter": "eslint"
+      }
+    },
+    "@nrwl/nest": {
+      "application": {
+        "linter": "eslint"
+      }
+    },
+    "@nrwl/express": {
+      "application": {
+        "linter": "eslint"
+      },
+      "library": {
+        "linter": "eslint"
+      }
+    },
+    "@nrwl/web:application": {
+      "style": "css",
+      "linter": "eslint",
+      "unitTestRunner": "jest",
+      "e2eTestRunner": "none"
+    },
+    "@nrwl/web:library": {
+      "style": "css",
+      "linter": "eslint",
+      "unitTestRunner": "jest"
+    }
   }
 }

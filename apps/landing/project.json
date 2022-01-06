@@ -1,0 +1,60 @@
+{
+  "root": "apps/landing",
+  "sourceRoot": "apps/landing",
+  "projectType": "application",
+  "generators": {},
+  "targets": {
+    "build": {
+      "executor": "@nrwl/next:build",
+      "options": {
+        "root": "apps/landing",
+        "outputPath": "dist/apps/landing"
+      },
+      "configurations": {
+        "production": {}
+      },
+      "outputs": ["{options.outputPath}"]
+    },
+    "serve": {
+      "executor": "@nrwl/next:server",
+      "options": {
+        "buildTarget": "landing:build",
+        "port": 4300,
+        "dev": true
+      },
+      "configurations": {
+        "production": {
+          "buildTarget": "landing:build:production",
+          "dev": false
+        }
+      }
+    },
+    "export": {
+      "executor": "@nrwl/next:export",
+      "options": {
+        "buildTarget": "landing:build:production"
+      }
+    },
+    "lint": {
+      "executor": "@nrwl/linter:eslint",
+      "options": {
+        "lintFilePatterns": [
+          "apps/landing/**/*.spec.ts",
+          "apps/landing/**/*.spec.tsx",
+          "apps/landing/**/*.spec.js",
+          "apps/landing/**/*.spec.jsx",
+          "apps/landing/**/*.d.ts"
+        ]
+      }
+    },
+    "test": {
+      "executor": "@nrwl/jest:jest",
+      "options": {
+        "jestConfig": "apps/landing/jest.config.js",
+        "passWithNoTests": true
+      },
+      "outputs": ["coverage/apps/landing"]
+    }
+  },
+  "tags": []
+}

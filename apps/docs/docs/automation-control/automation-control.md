@@ -1,6 +1,7 @@
 ---
 id: automation-control
 title: Automation Control
+description: Jetstream makes it easy to view and mass-disable/enable automation across many objects at the same time.
 sidebar_label: Automation Control
 slug: /automation-control
 ---

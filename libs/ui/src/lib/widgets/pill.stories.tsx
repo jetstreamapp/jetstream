@@ -18,6 +18,7 @@ const Template: Story<PillProps> = ({ children, ...args }) => <PillComponent {..
 export const Pill = Template.bind({});
 
 export const PillCantRemove = Template.bind({});
+// FIXME: blows up when setting to null or undefined, which is required to remove the prop
 PillCantRemove.argTypes = {
-  onRemove: null,
+  onRemove: {},
 };

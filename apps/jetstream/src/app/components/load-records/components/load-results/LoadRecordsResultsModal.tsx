@@ -15,7 +15,7 @@ export interface LoadRecordsResultsModalProps {
   loading?: boolean;
   header: string[];
   rows: any[];
-  onDownload: (type: 'results' | 'failures', rows: any[]) => void;
+  onDownload: (type: 'results' | 'failures', rows: any[], header: string[]) => void;
   onClose: () => void;
 }
 
@@ -49,7 +49,7 @@ export const LoadRecordsResultsModal: FunctionComponent<LoadRecordsResultsModalP
 
   function handleDownload() {
     // TODO: allow user to choose filtered records to download
-    onDownload(type, rows);
+    onDownload(type, rows, header);
   }
 
   return (

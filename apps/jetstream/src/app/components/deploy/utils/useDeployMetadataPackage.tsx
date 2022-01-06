@@ -8,6 +8,14 @@ import { applicationCookieState } from '../../../app-state';
 import { DeployMetadataStatus } from '../deploy-metadata.types';
 import { getNotificationMessageBody } from './deploy-metadata.utils';
 
+/**
+ *
+ * NOTICE
+ * THIS SAME FILE WAS COPIED AND PLACED IN THE LOAD SECTION with some modifications
+ * THESE COULD BE MOVED SOMEWHERE SHARED if the abstractions are the same
+ *
+ */
+
 export function getStatusValue(value: DeployMetadataStatus) {
   switch (value) {
     case 'preparing':

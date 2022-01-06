@@ -475,5 +475,5 @@ const EntityDefinition = {
  * These are returned instead of real responses
  */
 export const SOBJECT_DESCRIBE_CACHED_RESPONSES: MapOf<any> = {
-  '@EntityDefinition': EntityDefinition,
+  // '@EntityDefinition': EntityDefinition,
 };

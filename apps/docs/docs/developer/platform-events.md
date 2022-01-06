@@ -1,6 +1,7 @@
 ---
 id: platform-events
 title: Platform Events
+description: Subscribe to and publish Salesforce Platform Events using Jetstream.
 sidebar_label: Platform Events
 slug: /developer/platform-events
 ---

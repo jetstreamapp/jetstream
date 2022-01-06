@@ -44,10 +44,20 @@ export async function describeSObjectWithExtendedTypes(
 export function convertDescribeToDescribeSObjectWithExtendedTypes(
   describeResults: DescribeSObjectResult
 ): DescribeSObjectResultWithExtendedField {
-  const fields: FieldWithExtendedType[] = sortQueryFields(describeResults.fields).map((field: Field) => ({
-    ...field,
-    typeLabel: polyfillFieldDefinition(field),
-  }));
+  const isCustomMetadata = describeResults.name.endsWith('__mdt');
+  const fields: FieldWithExtendedType[] = sortQueryFields(describeResults.fields).map((field: Field) => {
+    const output = {
+      ...field,
+      typeLabel: polyfillFieldDefinition(field),
+    };
+    // Polyfill custom metadata relationship
+    if (isCustomMetadata && field.extraTypeInfo === 'externallookup') {
+      output.type = 'reference';
+      output.referenceTo = ['EntityDefinition'];
+      output.relationshipName = field.name.replace('__c', '__r');
+    }
+    return output;
+  });
   return { ...describeResults, fields };
 }
 
@@ -90,13 +100,6 @@ export function fetchFieldsProcessResults(
             relatedSobject = field.referenceTo;
           }
         }
-      }
-
-      // setup custom metadata lookup fields to pull mocked lookup data for relationship
-      if (isCustomMetadata && field.extraTypeInfo === 'externallookup') {
-        field.type = 'reference';
-        field.referenceTo = ['@EntityDefinition'];
-        field.relationshipName = field.name.replace('__c', '__r');
       }
 
       return {

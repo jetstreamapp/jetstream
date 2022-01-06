@@ -1,6 +1,7 @@
 ---
 id: anonymous-apex
 title: Anonymous Apex
+description: Execute anonymous Apex from Jetstream using an advanced and powerful code editor.
 sidebar_label: Anonymous Apex
 slug: /developer/anonymous-apex
 ---

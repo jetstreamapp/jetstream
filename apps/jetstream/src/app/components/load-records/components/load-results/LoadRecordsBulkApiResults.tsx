@@ -1,4 +1,5 @@
 import { logger } from '@jetstream/shared/client-logger';
+import { ANALYTICS_KEYS } from '@jetstream/shared/constants';
 import { bulkApiGetJob, bulkApiGetRecords } from '@jetstream/shared/data';
 import { convertDateToLocale, useBrowserNotifications } from '@jetstream/shared/ui-utils';
 import { getSuccessOrFailureChar, pluralizeFromNumber } from '@jetstream/shared/utils';
@@ -15,6 +16,7 @@ import { FileDownloadModal, SalesforceLogin, Spinner } from '@jetstream/ui';
 import { FunctionComponent, useEffect, useRef, useState } from 'react';
 import { useRecoilState } from 'recoil';
 import { applicationCookieState } from '../../../../app-state';
+import { useAmplitude } from '../../../core/analytics';
 import * as fromJetstreamEvents from '../../../core/jetstream-events';
 import {
   ApiMode,
@@ -96,6 +98,7 @@ export const LoadRecordsBulkApiResults: FunctionComponent<LoadRecordsBulkApiResu
   onFinish,
 }) => {
   const isMounted = useRef(null);
+  const { trackEvent } = useAmplitude();
   const [{ serverUrl, google_apiKey, google_appId, google_clientId }] = useRecoilState(applicationCookieState);
   const [preparedData, setPreparedData] = useState<PrepareDataResponse>();
   const [loadWorker] = useState(() => new Worker(new URL('../../load-records.worker', import.meta.url)));
@@ -373,6 +376,7 @@ export const LoadRecordsBulkApiResults: FunctionComponent<LoadRecordsBulkApiResu
       const header = ['_id', '_success', '_errors'].concat(getFieldHeaderFromMapping(fieldMapping));
       if (action === 'view') {
         setResultsModalData({ ...downloadModalData, open: true, header, data: combinedResults, type });
+        trackEvent(ANALYTICS_KEYS.load_DownloadRecords, { loadType, type, numRows: combinedResults.length });
       } else {
         setDownloadModalData({
           ...downloadModalData,
@@ -381,6 +385,7 @@ export const LoadRecordsBulkApiResults: FunctionComponent<LoadRecordsBulkApiResu
           header,
           data: combinedResults,
         });
+        trackEvent(ANALYTICS_KEYS.load_ViewRecords, { loadType, type, numRows: combinedResults.length });
       }
     } catch (ex) {
       logger.warn(ex);
@@ -414,6 +419,7 @@ export const LoadRecordsBulkApiResults: FunctionComponent<LoadRecordsBulkApiResu
       header,
       fileNameParts: [loadType.toLocaleLowerCase(), selectedSObject.toLocaleLowerCase(), type],
     });
+    trackEvent(ANALYTICS_KEYS.load_DownloadRecords, { loadType, type, numRows: rows.length, location: 'fromViewModal' });
   }
 
   function handleModalClose() {

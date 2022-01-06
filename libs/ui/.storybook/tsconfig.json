@@ -4,7 +4,17 @@
     "emitDecoratorMetadata": true,
     "outDir": ""
   },
-  "exclude": ["../src/test.ts", "../**/*.spec.ts", "../**/*.spec.js", "../**/*.spec.tsx", "../**/*.spec.jsx"],
+  "exclude": [
+    "../src/test.ts",
+    "../**/*.spec.ts",
+    "../**/*.test.ts",
+    "../**/*.spec.js",
+    "../**/*.test.js",
+    "../**/*.spec.tsx",
+    "../**/*.test.tsx",
+    "../**/*.spec.jsx",
+    "../**/*.test.jsx"
+  ],
   "include": ["../src/**/*", "./*.js"],
   "files": [
     "../../../node_modules/@nrwl/react/typings/cssmodule.d.ts",
