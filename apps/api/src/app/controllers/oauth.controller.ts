@@ -20,7 +20,7 @@ export function salesforceOauthInitAuth(req: express.Request, res: express.Respo
   const state = querystring.stringify({ loginUrl, clientUrl, replaceOrgUniqueId });
 
   let options = {
-    scope: 'full refresh_token',
+    scope: 'api web refresh_token',
     state,
     prompt: 'login',
   };
