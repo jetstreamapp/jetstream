@@ -294,7 +294,7 @@ export const AnonymousApex: FunctionComponent<AnonymousApexProps> = () => {
             <Editor
               height="80vh"
               theme="vs-dark"
-              defaultLanguage="powershell"
+              defaultLanguage="apex-log"
               options={{
                 readOnly: true,
                 contextmenu: false,
