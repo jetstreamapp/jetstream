@@ -137,6 +137,7 @@
     "document.contains": "^1.0.1",
     "express": "4.17.1",
     "express-http-proxy": "^1.6.2",
+    "express-jwt": "^6.1.0",
     "express-promise-router": "^3.0.3",
     "express-session": "^1.17.1",
     "express-validator": "^6.5.0",
