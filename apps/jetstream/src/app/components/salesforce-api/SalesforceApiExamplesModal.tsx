@@ -97,14 +97,9 @@ export const SalesforceApiExamplesModal: FunctionComponent<SalesforceApiExamples
 
   return (
     <ErrorBoundary FallbackComponent={ErrorBoundaryFallback}>
-      <button
-        className="slds-button slds-button_icon slds-button_icon-bare"
-        aria-hidden="true"
-        tabIndex={-1}
-        title="View samples API requests"
-        onClick={() => setIsOpen(true)}
-      >
+      <button className="slds-button" aria-hidden="true" tabIndex={-1} title="View samples API requests" onClick={() => setIsOpen(true)}>
         <Icon type="utility" icon="open_folder" className="slds-button__icon slds-button__icon_left" omitContainer />
+        Library
         <span className="slds-assistive-text">View samples API requests modal</span>
       </button>
       {isOpen && (
