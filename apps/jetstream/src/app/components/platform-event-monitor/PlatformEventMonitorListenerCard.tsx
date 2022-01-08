@@ -1,5 +1,5 @@
 import { ListItem } from '@jetstream/types';
-import { Card, Grid, Spinner } from '@jetstream/ui';
+import { Card, Grid, Pill, Spinner } from '@jetstream/ui';
 import { DescribeGlobalSObjectResult } from 'jsforce';
 import { FunctionComponent } from 'react';
 import PlatformEventMonitorEvents from './PlatformEventMonitorEvents';
@@ -10,6 +10,7 @@ export interface PlatformEventMonitorListenerCardListenerCard {
   loading: boolean;
   picklistKey: string | number;
   platformEventsList: ListItem<string, DescribeGlobalSObjectResult>[];
+  subscribedPlatformEventsList: ListItem<string, DescribeGlobalSObjectResult>[];
   selectedSubscribeEvent: string;
   messagesByChannel: MessagesByChannel;
   fetchPlatformEvents: (clearCache?: boolean) => void;
@@ -22,6 +23,7 @@ export const PlatformEventMonitorListenerCard: FunctionComponent<PlatformEventMo
   loading,
   picklistKey,
   platformEventsList,
+  subscribedPlatformEventsList,
   selectedSubscribeEvent,
   messagesByChannel,
   fetchPlatformEvents,
@@ -51,6 +53,18 @@ export const PlatformEventMonitorListenerCard: FunctionComponent<PlatformEventMo
           unsubscribe={unsubscribe}
           onSelectedSubscribeEvent={onSelectedSubscribeEvent}
         />
+        <div className="slds-m-vertical_small">
+          {subscribedPlatformEventsList.map((item) => (
+            <Pill
+              key={item.id}
+              className="slds-m-right-xx-small"
+              title={`${item.label} - ${item.secondaryLabel}`}
+              onRemove={() => unsubscribe(item.value)}
+            >
+              {item.label}
+            </Pill>
+          ))}
+        </div>
         <div>
           <PlatformEventMonitorEvents messagesByChannel={messagesByChannel} />
         </div>

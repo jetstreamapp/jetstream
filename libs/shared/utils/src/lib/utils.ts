@@ -456,6 +456,15 @@ export function sanitizeForXml(value: string) {
   return String(value).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&apos;');
 }
 
+export function unSanitizeXml(value: string) {
+  return String(value)
+    .replace(/&amp;/g, '&')
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&quot;/g, '"')
+    .replace(/&apos;/g, `'`);
+}
+
 /**
  * Given a value from a record, ensure it is in a proper format for a data load.
  * Handles boolean, data, datetime

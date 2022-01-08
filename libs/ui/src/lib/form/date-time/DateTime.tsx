@@ -86,7 +86,7 @@ export const DateTime: FunctionComponent<DateTimeProps> = ({
       {legendLabel && <legend className="slds-form-element__label slds-form-element__legend">{legendLabel}</legend>}
       <div className="slds-form-element__control">
         <div className="slds-form-element__group">
-          <div className="slds-form-element__row">
+          <div className="slds-form-element__row slds-grid_vertical-align-end">
             {/* FIXME: when moment is deprecated we should refactor */}
             <DatePicker {...dateProps} initialSelectedDate={initialDateValue} onChange={handleDatePickerChange} />
             <TimePicker {...timeProps} selectedItem={timeValue} onChange={handleTimePickerChange} />

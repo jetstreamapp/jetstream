@@ -17,4 +17,6 @@ module.exports = (on, config) => {
   // `on` is used to hook into various events Cypress emits
   // `config` is the resolved Cypress config
   // Preprocess Typescript file using Nx helper
+  config.env.auth0_username = 'paustint+cypress-test@gmail.com'; // process.env.AUTH0_USERNAME
+  config.env.auth0_password = 'Password123'; // process.env.AUTH0_PASSWORD
 };

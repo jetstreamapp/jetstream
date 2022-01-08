@@ -32,12 +32,12 @@ export const PlatformEventMonitorSubscribe: FunctionComponent<PlatformEventMonit
   const [currentEventSubscribed, setCurrentEventSubscribed] = useState(false);
 
   useEffect(() => {
-    setCurrentEventSubscribed(selectedSubscribeEvent && !!messagesByChannel[`/event/${selectedSubscribeEvent}`]);
+    setCurrentEventSubscribed(selectedSubscribeEvent && !!messagesByChannel[selectedSubscribeEvent]);
   }, [selectedSubscribeEvent, messagesByChannel]);
 
   useEffect(() => {
-    if (selectedSubscribeEvent && !!messagesByChannel[`/event/${selectedSubscribeEvent}`]) {
-      setReplayId(`${messagesByChannel[`/event/${selectedSubscribeEvent}`].replayId || -1}`);
+    if (selectedSubscribeEvent && !!messagesByChannel[selectedSubscribeEvent]) {
+      setReplayId(`${messagesByChannel[selectedSubscribeEvent].replayId || -1}`);
     } else {
       setReplayId('-1');
     }

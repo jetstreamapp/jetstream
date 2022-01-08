@@ -590,7 +590,12 @@ function getValue(operator: QueryFilterOperator, value: string | string[]): stri
     case 'notIn':
     case 'includes':
     case 'excludes':
-      return Array.isArray(value) ? value : value.split('\n');
+      return Array.isArray(value)
+        ? value
+        : value
+            .split('\n')
+            .map((value) => value.trim())
+            .filter((item) => item !== '');
     default:
       return value;
   }
@@ -712,23 +717,46 @@ export function getOrgType(org: SalesforceOrgUi): SalesforceOrgUiType | undefine
   }
   return undefined;
 }
-
-export function getDateLiteralListItems(): ListItem[] {
+// TODO: add support for N date literals
+export function getDateLiteralListItems(): ListItem<string, { hasUserInput: boolean }>[] {
   return [
-    { id: 'YESTERDAY', label: 'YESTERDAY', value: 'YESTERDAY' },
-    { id: 'TODAY', label: 'TODAY', value: 'TODAY' },
-    { id: 'TOMORROW', label: 'TOMORROW', value: 'TOMORROW' },
-    { id: 'LAST_WEEK', label: 'LAST_WEEK', value: 'LAST_WEEK' },
-    { id: 'THIS_WEEK', label: 'THIS_WEEK', value: 'THIS_WEEK' },
-    { id: 'NEXT_WEEK', label: 'NEXT_WEEK', value: 'NEXT_WEEK' },
-    { id: 'LAST_MONTH', label: 'LAST_MONTH', value: 'LAST_MONTH' },
-    { id: 'THIS_MONTH', label: 'THIS_MONTH', value: 'THIS_MONTH' },
-    { id: 'NEXT_MONTH', label: 'NEXT_MONTH', value: 'NEXT_MONTH' },
-    { id: 'LAST_90_DAYS', label: 'LAST_90_DAYS', value: 'LAST_90_DAYS' },
-    { id: 'NEXT_90_DAYS', label: 'NEXT_90_DAYS', value: 'NEXT_90_DAYS' },
-    { id: 'THIS_YEAR', label: 'THIS_YEAR', value: 'THIS_YEAR' },
-    { id: 'LAST_YEAR', label: 'LAST_YEAR', value: 'LAST_YEAR' },
-    { id: 'NEXT_YEAR', label: 'NEXT_YEAR', value: 'NEXT_YEAR' },
+    { id: 'YESTERDAY', label: 'YESTERDAY', value: 'YESTERDAY', meta: { hasUserInput: false } },
+    { id: 'TODAY', label: 'TODAY', value: 'TODAY', meta: { hasUserInput: false } },
+    { id: 'TOMORROW', label: 'TOMORROW', value: 'TOMORROW', meta: { hasUserInput: false } },
+    { id: 'LAST_WEEK', label: 'LAST_WEEK', value: 'LAST_WEEK', meta: { hasUserInput: false } },
+    { id: 'THIS_WEEK', label: 'THIS_WEEK', value: 'THIS_WEEK', meta: { hasUserInput: false } },
+    { id: 'NEXT_WEEK', label: 'NEXT_WEEK', value: 'NEXT_WEEK', meta: { hasUserInput: false } },
+    { id: 'LAST_MONTH', label: 'LAST_MONTH', value: 'LAST_MONTH', meta: { hasUserInput: false } },
+    { id: 'THIS_MONTH', label: 'THIS_MONTH', value: 'THIS_MONTH', meta: { hasUserInput: false } },
+    { id: 'NEXT_MONTH', label: 'NEXT_MONTH', value: 'NEXT_MONTH', meta: { hasUserInput: false } },
+    { id: 'LAST_90_DAYS', label: 'LAST_90_DAYS', value: 'LAST_90_DAYS', meta: { hasUserInput: false } },
+    { id: 'NEXT_90_DAYS', label: 'NEXT_90_DAYS', value: 'NEXT_90_DAYS', meta: { hasUserInput: false } },
+    // { id: 'LAST_N_DAYS:n', label: 'LAST_N_DAYS:n', value: 'LAST_N_DAYS:n', meta: { hasUserInput: true } },
+    // { id: 'NEXT_N_DAYS:n', label: 'NEXT_N_DAYS:n', value: 'NEXT_N_DAYS:n', meta: { hasUserInput: true } },
+    // { id: 'NEXT_N_WEEKS:n', label: 'NEXT_N_WEEKS:n', value: 'NEXT_N_WEEKS:n', meta: { hasUserInput: true } },
+    // { id: 'LAST_N_WEEKS:n', label: 'LAST_N_WEEKS:n', value: 'LAST_N_WEEKS:n', meta: { hasUserInput: true } },
+    // { id: 'NEXT_N_MONTHS:n', label: 'NEXT_N_MONTHS:n', value: 'NEXT_N_MONTHS:n', meta: { hasUserInput: true } },
+    // { id: 'LAST_N_MONTHS:n', label: 'LAST_N_MONTHS:n', value: 'LAST_N_MONTHS:n', meta: { hasUserInput: true } },
+    { id: 'THIS_QUARTER', label: 'THIS_QUARTER', value: 'THIS_QUARTER', meta: { hasUserInput: false } },
+    { id: 'LAST_QUARTER', label: 'LAST_QUARTER', value: 'LAST_QUARTER', meta: { hasUserInput: false } },
+    { id: 'NEXT_QUARTER', label: 'NEXT_QUARTER', value: 'NEXT_QUARTER', meta: { hasUserInput: false } },
+    // { id: 'NEXT_N_QUARTERS:n', label: 'NEXT_N_QUARTERS:n', value: 'NEXT_N_QUARTERS:n', meta: { hasUserInput: true } },
+    // { id: 'LAST_N_QUARTERS:n', label: 'LAST_N_QUARTERS:n', value: 'LAST_N_QUARTERS:n', meta: { hasUserInput: true } },
+    { id: 'THIS_YEAR', label: 'THIS_YEAR', value: 'THIS_YEAR', meta: { hasUserInput: false } },
+    { id: 'LAST_YEAR', label: 'LAST_YEAR', value: 'LAST_YEAR', meta: { hasUserInput: false } },
+    { id: 'NEXT_YEAR', label: 'NEXT_YEAR', value: 'NEXT_YEAR', meta: { hasUserInput: false } },
+    // { id: 'NEXT_N_YEARS:n', label: 'NEXT_N_YEARS:n', value: 'NEXT_N_YEARS:n', meta: { hasUserInput: true } },
+    // { id: 'LAST_N_YEARS:n', label: 'LAST_N_YEARS:n', value: 'LAST_N_YEARS:n', meta: { hasUserInput: true } },
+    { id: 'THIS_FISCAL_QUARTER', label: 'THIS_FISCAL_QUARTER', value: 'THIS_FISCAL_QUARTER', meta: { hasUserInput: false } },
+    { id: 'LAST_FISCAL_QUARTER', label: 'LAST_FISCAL_QUARTER', value: 'LAST_FISCAL_QUARTER', meta: { hasUserInput: false } },
+    { id: 'NEXT_FISCAL_QUARTER', label: 'NEXT_FISCAL_QUARTER', value: 'NEXT_FISCAL_QUARTER', meta: { hasUserInput: false } },
+    // { id: 'NEXT_N_FISCAL_QUARTERS:n', label: 'NEXT_N_FISCAL_QUARTERS:n', value: 'NEXT_N_FISCAL_QUARTERS:n', meta: { hasUserInput: true } },
+    // { id: 'LAST_N_FISCAL_QUARTERS:n', label: 'LAST_N_FISCAL_QUARTERS:n', value: 'LAST_N_FISCAL_QUARTERS:n', meta: { hasUserInput: true } },
+    { id: 'THIS_FISCAL_YEAR', label: 'THIS_FISCAL_YEAR', value: 'THIS_FISCAL_YEAR', meta: { hasUserInput: false } },
+    { id: 'LAST_FISCAL_YEAR', label: 'LAST_FISCAL_YEAR', value: 'LAST_FISCAL_YEAR', meta: { hasUserInput: false } },
+    { id: 'NEXT_FISCAL_YEAR', label: 'NEXT_FISCAL_YEAR', value: 'NEXT_FISCAL_YEAR', meta: { hasUserInput: false } },
+    // { id: 'NEXT_N_FISCAL_YEARS:n', label: 'NEXT_N_FISCAL_YEARS:n', value: 'NEXT_N_FISCAL_YEARS:n', meta: { hasUserInput: true } },
+    // { id: 'LAST_N_FISCAL_YEARS:n', label: 'LAST_N_FISCAL_YEARS:n', value: 'LAST_N_FISCAL_YEARS:n', meta: { hasUserInput: true } },
   ];
 }
 

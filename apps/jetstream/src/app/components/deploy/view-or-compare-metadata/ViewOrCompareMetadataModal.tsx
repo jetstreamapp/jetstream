@@ -1,9 +1,10 @@
 import { css } from '@emotion/react';
 import { logger } from '@jetstream/shared/client-logger';
 import { useNonInitialEffect } from '@jetstream/shared/ui-utils';
+import { unSanitizeXml } from '@jetstream/shared/utils';
 import { FileExtAllTypes, ListMetadataResult, MapOf, SalesforceOrgUi } from '@jetstream/types';
 import { AutoFullHeightContainer, FileDownloadModal, Modal, Spinner, TreeItems } from '@jetstream/ui';
-import Editor, { DiffEditor, useMonaco } from '@monaco-editor/react';
+import Editor, { DiffEditor } from '@monaco-editor/react';
 import type { editor } from 'monaco-editor';
 import { Fragment, FunctionComponent, useCallback, useEffect, useRef, useState } from 'react';
 import Split from 'react-split';
@@ -306,7 +307,9 @@ export const ViewOrCompareMetadataModal: FunctionComponent<ViewOrCompareMetadata
                           readOnly: true,
                           contextmenu: false,
                         }}
-                        value={editorType === 'SOURCE' ? activeSourceContent || '' : activeTargetContent || ''}
+                        value={
+                          editorType === 'SOURCE' ? unSanitizeXml(activeSourceContent || '') : unSanitizeXml(activeTargetContent || '')
+                        }
                         onMount={handleEditorMount}
                       />
                     )}
@@ -319,8 +322,8 @@ export const ViewOrCompareMetadataModal: FunctionComponent<ViewOrCompareMetadata
                           readOnly: true,
                           contextmenu: false,
                         }}
-                        original={!swapped ? activeSourceContent || '' : activeTargetContent || ''}
-                        modified={!swapped ? activeTargetContent || '' : activeSourceContent || ''}
+                        original={!swapped ? unSanitizeXml(activeSourceContent || '') : unSanitizeXml(activeTargetContent || '')}
+                        modified={!swapped ? unSanitizeXml(activeTargetContent || '') : unSanitizeXml(activeSourceContent || '')}
                         onMount={handleDiffEditorMount}
                       />
                     )}

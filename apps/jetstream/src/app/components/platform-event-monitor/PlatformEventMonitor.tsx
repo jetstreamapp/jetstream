@@ -33,6 +33,7 @@ export const PlatformEventMonitor: FunctionComponent<PlatformEventMonitorProps> 
     unsubscribe,
   } = usePlatformEvent({ selectedOrg });
   const [platformEventsList, setPlatformEventsList] = useState<ListItem<string, DescribeGlobalSObjectResult>[]>([]);
+  const [subscribedPlatformEventsList, setSubscribedPlatformEventsList] = useState<ListItem<string, DescribeGlobalSObjectResult>[]>([]);
   const [picklistKey, setPicklistKey] = useState<number>(1);
   const [selectedSubscribeEvent, setSelectedSubscribeEvent] = useState<string>();
   const [selectedPublishEvent, setSelectedPublishEvent] = useState<string>();
@@ -59,6 +60,10 @@ export const PlatformEventMonitor: FunctionComponent<PlatformEventMonitorProps> 
       setPicklistKey((prevKey) => prevKey + 1);
     }
   }, [platformEvents]);
+
+  useEffect(() => {
+    setSubscribedPlatformEventsList(platformEventsList.filter((item) => !!messagesByChannel[item.value]));
+  }, [messagesByChannel]);
 
   const hasErrorOrNoEvents = !hasPlatformEvents || platformEventFetchError;
 
@@ -90,6 +95,7 @@ export const PlatformEventMonitor: FunctionComponent<PlatformEventMonitorProps> 
               loading={loadingPlatformEvents}
               picklistKey={picklistKey}
               platformEventsList={platformEventsList}
+              subscribedPlatformEventsList={subscribedPlatformEventsList}
               selectedSubscribeEvent={selectedSubscribeEvent}
               messagesByChannel={messagesByChannel}
               fetchPlatformEvents={fetchPlatformEvents}

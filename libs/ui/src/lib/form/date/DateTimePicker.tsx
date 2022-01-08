@@ -53,7 +53,7 @@ export const Input: FunctionComponent<InputProps> = ({
   }
 
   return (
-    <div className={classNames('slds-form-element', className, { 'slds-has-error': hasError })}>
+    <div className={classNames('slds-form-element slds-grid_vertical-align-end', className, { 'slds-has-error': hasError })}>
       {label && (
         <Fragment>
           <label className="slds-form-element__label" htmlFor={id}>
