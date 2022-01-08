@@ -88,9 +88,6 @@ export const PlatformEventMonitorPublisherCard: FunctionComponent<PlatformEventM
         setPublishLoading(true);
         const results = await publish(selectedPublishEvent, record);
         if (isMounted.current) {
-          // clear record and reset form
-          setPublishEventRecord({});
-          setPublishKey((key) => key + 1);
           setPublishEventResponse({ success: true, eventId: results });
         }
       } catch (ex) {
@@ -105,6 +102,11 @@ export const PlatformEventMonitorPublisherCard: FunctionComponent<PlatformEventM
     },
     [selectedOrg, selectedPublishEvent]
   );
+
+  function clearForm() {
+    setPublishEventRecord({});
+    setPublishKey((key) => key + 1);
+  }
 
   return (
     <Card
@@ -162,14 +164,22 @@ export const PlatformEventMonitorPublisherCard: FunctionComponent<PlatformEventM
           {sobjectDescribeLoaded && sobjectDescribeData && (
             <Fragment>
               {!!sobjectDescribeData.describe.fields.length && (
-                <UiRecordForm
-                  key={publishKey}
-                  action="create"
-                  sobjectFields={sobjectDescribeData.describe.fields}
-                  picklistValues={sobjectDescribeData.picklistValues}
-                  record={publishEventRecord}
-                  onChange={setPublishEventRecord}
-                />
+                <Fragment>
+                  <UiRecordForm
+                    key={publishKey}
+                    action="create"
+                    sobjectFields={sobjectDescribeData.describe.fields}
+                    picklistValues={sobjectDescribeData.picklistValues}
+                    record={publishEventRecord}
+                    onChange={setPublishEventRecord}
+                  />
+                  <Grid align="end" className="slds-m-right_xx-small">
+                    <button className="slds-button slds-button_neutral" onClick={clearForm}>
+                      <Icon type="utility" icon="clear" className="slds-button__icon slds-button__icon_left" omitContainer />
+                      Clear Form
+                    </button>
+                  </Grid>
+                </Fragment>
               )}
               {!sobjectDescribeData.describe.fields.length && (
                 <div className="slds-m-top_medium">
