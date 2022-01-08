@@ -590,7 +590,12 @@ function getValue(operator: QueryFilterOperator, value: string | string[]): stri
     case 'notIn':
     case 'includes':
     case 'excludes':
-      return Array.isArray(value) ? value : value.split('\n');
+      return Array.isArray(value)
+        ? value
+        : value
+            .split('\n')
+            .map((value) => value.trim())
+            .filter((item) => item !== '');
     default:
       return value;
   }
