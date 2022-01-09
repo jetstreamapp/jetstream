@@ -20,7 +20,7 @@
         "canTrackAnalytics": true,
         "showUsageWarnings": true,
         "useDaemonProcess": true,
-        "parallel": 1
+        "parallel": 3
       }
     }
   },
