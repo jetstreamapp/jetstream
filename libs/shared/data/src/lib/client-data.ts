@@ -225,8 +225,8 @@ export async function queryAll<T = any>(
 ): Promise<API.QueryResults<T>> {
   const results = await query(org, soqlQuery, isTooling, includeDeletedRecords);
   if (!results.queryResults.done) {
-    const currentResults = queryRemaining(org, results.queryResults.nextRecordsUrl, isTooling);
-    results.queryResults.records = results.queryResults.records.concat(currentResults);
+    const currentResults = await queryRemaining(org, results.queryResults.nextRecordsUrl, isTooling);
+    results.queryResults.records = results.queryResults.records.concat(currentResults.queryResults.records);
     results.queryResults.nextRecordsUrl = null;
     results.queryResults.done = true;
   }
