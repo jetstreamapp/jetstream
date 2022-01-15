@@ -101,7 +101,7 @@ export function useRollbar(options?: { accessToken?: string; environment?: Envir
 }
 
 // This should be used outside of a component (e.x. utility function)
-export function logErrorToRollbar(message: string, data: any) {
+export function logErrorToRollbar(message: string, data?: any) {
   try {
     if (RollbarConfig.getInstance().rollbarIsConfigured) {
       RollbarConfig.getInstance().rollbar.error(message, data);

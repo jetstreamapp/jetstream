@@ -98,10 +98,11 @@ export function usePlatformEvent({ selectedOrg }: { selectedOrg: SalesforceOrgUi
     (replayId?: number) => (message: PlatformEventMessage) => {
       logger.log('[PLATFORM EVENT][RECEIVED]', message);
       if (isMounted.current) {
-        const { data, channel } = message;
+        const { data } = message;
+        const channel = message.channel.replace('/event/', '');
         setMessagesByChannel((item) => {
           item = { ...item };
-          item[channel] = { ...(item[channel] || { messages: [], replayId }) };
+          item[channel] = { ...(item[channel] || { messages: [], replayId, channel: message.channel }) };
           item[channel].messages = [data].concat(item[channel].messages);
           return item;
         });
@@ -124,7 +125,7 @@ export function usePlatformEvent({ selectedOrg }: { selectedOrg: SalesforceOrgUi
 
         setMessagesByChannel((item) => {
           item = { ...item };
-          item[`/event/${platformEventName}`] = { messages: [], replayId };
+          item[platformEventName] = { messages: [], replayId };
           return item;
         });
         trackEvent(ANALYTICS_KEYS.platform_event_subscribed, { requiredInit });
@@ -141,7 +142,7 @@ export function usePlatformEvent({ selectedOrg }: { selectedOrg: SalesforceOrgUi
 
         setMessagesByChannel((item) => {
           return Object.keys(item)
-            .filter((key) => key !== `/event/${platformEventName}`)
+            .filter((key) => key !== platformEventName)
             .reduce((output: MessagesByChannel, key) => {
               output[key] = item[key];
               return output;

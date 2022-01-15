@@ -1,0 +1,15 @@
+{
+  "root": "libs/shared/constants",
+  "sourceRoot": "libs/shared/constants/src",
+  "projectType": "library",
+  "generators": {},
+  "targets": {
+    "lint": {
+      "executor": "@nrwl/linter:eslint",
+      "options": {
+        "lintFilePatterns": ["libs/shared/constants/**/*.ts"]
+      }
+    }
+  },
+  "tags": []
+}

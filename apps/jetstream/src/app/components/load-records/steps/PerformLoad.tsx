@@ -16,7 +16,7 @@ const MAX_BATCH = 200;
 const MAX_API_CALLS = 250;
 const BATCH_RECOMMENDED_THRESHOLD = 2000;
 
-function getMaxBatchSize(apiMode: ApiMode) {
+function getMaxBatchSize(apiMode: ApiMode): number {
   if (apiMode === 'BATCH') {
     return MAX_BATCH;
   } else {
@@ -24,9 +24,16 @@ function getMaxBatchSize(apiMode: ApiMode) {
   }
 }
 
-function getLabelWithOptionalRecommended(label: string, recommended: boolean): string | JSX.Element {
-  if (!recommended) {
+function getLabelWithOptionalRecommended(label: string, recommended: boolean, required: boolean): string | JSX.Element {
+  if (!recommended && !required) {
     return label;
+  }
+  if (required) {
+    return (
+      <span>
+        {label} <span className="slds-text-body_small slds-text-color_weak">(Required based on the load configuration)</span>
+      </span>
+    );
   }
   return (
     <span>
@@ -35,8 +42,8 @@ function getLabelWithOptionalRecommended(label: string, recommended: boolean): s
   );
 }
 
-function getRecommendedApiMode(numRecords: number): ApiMode {
-  return numRecords > BATCH_RECOMMENDED_THRESHOLD ? 'BULK' : 'BATCH';
+function getRecommendedApiMode(numRecords: number, hasBinaryAttachment: boolean): ApiMode {
+  return !hasBinaryAttachment && numRecords > BATCH_RECOMMENDED_THRESHOLD ? 'BULK' : 'BATCH';
 }
 
 function getBatchSizeExceededError(numApiCalls: number): string {
@@ -54,6 +61,7 @@ export interface LoadRecordsPerformLoadProps {
   loadType: InsertUpdateUpsertDelete;
   fieldMapping: FieldMapping;
   inputFileData: any[];
+  inputZipFileData: ArrayBuffer;
   externalId?: string;
   onIsLoading: (isLoading: boolean) => void;
 }
@@ -65,17 +73,19 @@ export const LoadRecordsPerformLoad: FunctionComponent<LoadRecordsPerformLoadPro
   loadType,
   fieldMapping,
   inputFileData,
+  inputZipFileData,
   externalId,
   onIsLoading,
 }) => {
+  const hasZipAttachment = !!inputZipFileData;
   const { trackEvent } = useAmplitude();
   const [loadNumber, setLoadNumber] = useState<number>(0);
-  const [apiMode, setApiMode] = useState<ApiMode>(() => getRecommendedApiMode(inputFileData.length));
+  const [apiMode, setApiMode] = useState<ApiMode>(() => getRecommendedApiMode(inputFileData.length, hasZipAttachment));
   const [bulkApiModeLabel] = useState<string | JSX.Element>(() =>
-    getLabelWithOptionalRecommended('Bulk API', inputFileData.length > BATCH_RECOMMENDED_THRESHOLD)
+    getLabelWithOptionalRecommended('Bulk API', inputFileData.length > BATCH_RECOMMENDED_THRESHOLD, false)
   );
   const [batchApiModeLabel] = useState<string | JSX.Element>(() =>
-    getLabelWithOptionalRecommended('Batch API', inputFileData.length <= BATCH_RECOMMENDED_THRESHOLD)
+    getLabelWithOptionalRecommended('Batch API', inputFileData.length <= BATCH_RECOMMENDED_THRESHOLD, hasZipAttachment)
   );
   const [batchSize, setBatchSize] = useState<number>(MAX_BULK);
   const [batchSizeError, setBatchSizeError] = useState<string>(null);
@@ -97,7 +107,7 @@ export const LoadRecordsPerformLoad: FunctionComponent<LoadRecordsPerformLoadPro
     } else if (batchApiLimitError) {
       setBatchApiLimitError(null);
     }
-  }, [batchSize, inputFileData.length, batchApiLimitError]);
+  }, [batchSize, inputFileData.length, batchApiLimitError, inputZipFileData]);
 
   useEffect(() => {
     setBatchSize(getMaxBatchSize(apiMode));
@@ -109,6 +119,7 @@ export const LoadRecordsPerformLoad: FunctionComponent<LoadRecordsPerformLoadPro
     } else if (apiMode === 'BULK' && serialMode) {
       setSerialMode(false);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [apiMode]);
 
   useEffect(() => {
@@ -147,10 +158,12 @@ export const LoadRecordsPerformLoad: FunctionComponent<LoadRecordsPerformLoadPro
       trackEvent(ANALYTICS_KEYS.load_Submitted, {
         loadType,
         apiMode,
+        numRecords: inputFileData.length,
         batchSize,
         insertNulls,
         serialMode,
         dateFormat,
+        hasZipAttachment: !!hasZipAttachment,
         timesSameDataSubmitted: loadNumber + 1,
       });
       document.title = `Loading Records | ${TITLES.BAR_JETSTREAM}`;
@@ -193,7 +206,7 @@ export const LoadRecordsPerformLoad: FunctionComponent<LoadRecordsPerformLoadPro
             label={bulkApiModeLabel}
             value="BULK"
             checked={apiMode === 'BULK'}
-            disabled={loading}
+            disabled={loading || !!inputZipFileData}
             onChange={setApiMode as (value: string) => void}
           />
           <Radio
@@ -203,7 +216,7 @@ export const LoadRecordsPerformLoad: FunctionComponent<LoadRecordsPerformLoadPro
             label={batchApiModeLabel}
             value="BATCH"
             checked={apiMode === 'BATCH'}
-            disabled={loading}
+            disabled={loading || !!inputZipFileData}
             onChange={setApiMode as (value: string) => void}
           />
         </RadioGroup>
@@ -239,6 +252,7 @@ export const LoadRecordsPerformLoad: FunctionComponent<LoadRecordsPerformLoadPro
           errorMessageId="batch-size-error"
           errorMessage={batchSizeError || batchApiLimitError}
           labelHelp="The batch size determines how many records will be processed together."
+          helpText={hasZipAttachment ? 'The batch size will be auto-calculated based on the size of the attachments.' : null}
         >
           <input
             id="batch-size"
@@ -246,7 +260,7 @@ export const LoadRecordsPerformLoad: FunctionComponent<LoadRecordsPerformLoadPro
             placeholder="Set batch size"
             value={batchSize || ''}
             aria-describedby={batchSizeError}
-            disabled={loading}
+            disabled={loading || hasZipAttachment}
             onChange={handleBatchSize}
           />
         </Input>
@@ -294,6 +308,7 @@ export const LoadRecordsPerformLoad: FunctionComponent<LoadRecordsPerformLoadPro
             selectedSObject={selectedSObject}
             fieldMapping={fieldMapping}
             inputFileData={inputFileData}
+            inputZipFileData={inputZipFileData}
             apiMode={apiMode}
             loadType={loadType}
             externalId={externalId}

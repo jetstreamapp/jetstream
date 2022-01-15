@@ -1,4 +1,5 @@
 import { logger } from '@jetstream/shared/client-logger';
+import { ANALYTICS_KEYS } from '@jetstream/shared/constants';
 import { bulkApiGetJob, bulkApiGetRecords } from '@jetstream/shared/data';
 import { convertDateToLocale, useBrowserNotifications } from '@jetstream/shared/ui-utils';
 import { getSuccessOrFailureChar, pluralizeFromNumber } from '@jetstream/shared/utils';
@@ -12,20 +13,26 @@ import {
   WorkerMessage,
 } from '@jetstream/types';
 import { FileDownloadModal, SalesforceLogin, Spinner } from '@jetstream/ui';
-import { Fragment, FunctionComponent, useEffect, useRef, useState } from 'react';
+import { FunctionComponent, useEffect, useRef, useState } from 'react';
 import { useRecoilState } from 'recoil';
 import { applicationCookieState } from '../../../../app-state';
+import { useAmplitude } from '../../../core/analytics';
 import * as fromJetstreamEvents from '../../../core/jetstream-events';
 import {
   ApiMode,
+  DownloadAction,
+  DownloadModalData,
+  DownloadType,
   FieldMapping,
   LoadDataBulkApiStatusPayload,
   LoadDataPayload,
   PrepareDataPayload,
   PrepareDataResponse,
+  ViewModalData,
 } from '../../load-records-types';
 import { getFieldHeaderFromMapping } from '../../utils/load-records-utils';
 import LoadRecordsBulkApiResultsTable from './LoadRecordsBulkApiResultsTable';
+import LoadRecordsResultsModal from './LoadRecordsResultsModal';
 
 type Status = 'Preparing Data' | 'Uploading Data' | 'Processing Data' | 'Finished' | 'Error';
 
@@ -62,6 +69,7 @@ export interface LoadRecordsBulkApiResultsProps {
   selectedSObject: string;
   fieldMapping: FieldMapping;
   inputFileData: any[];
+  inputZipFileData: ArrayBuffer;
   apiMode: ApiMode;
   loadType: InsertUpdateUpsertDelete;
   externalId?: string;
@@ -78,6 +86,7 @@ export const LoadRecordsBulkApiResults: FunctionComponent<LoadRecordsBulkApiResu
   selectedSObject,
   fieldMapping,
   inputFileData,
+  inputZipFileData,
   apiMode,
   loadType,
   externalId,
@@ -89,6 +98,7 @@ export const LoadRecordsBulkApiResults: FunctionComponent<LoadRecordsBulkApiResu
   onFinish,
 }) => {
   const isMounted = useRef(null);
+  const { trackEvent } = useAmplitude();
   const [{ serverUrl, google_apiKey, google_appId, google_clientId }] = useRecoilState(applicationCookieState);
   const [preparedData, setPreparedData] = useState<PrepareDataResponse>();
   const [loadWorker] = useState(() => new Worker(new URL('../../load-records.worker', import.meta.url)));
@@ -102,14 +112,13 @@ export const LoadRecordsBulkApiResults: FunctionComponent<LoadRecordsBulkApiResu
   // Salesforce changes order of batches, so we want to ensure order is retained based on the input file
   const [batchIdByIndex, setBatchIdByIndex] = useState<MapOf<number>>();
   const [intervalCount, setIntervalCount] = useState<number>(0);
-  const [downloadModalData, setDownloadModalData] = useState({
+  const [downloadModalData, setDownloadModalData] = useState<DownloadModalData>({
     open: false,
     data: [],
     header: [],
     fileNameParts: [],
-    url: '',
-    filename: '',
   });
+  const [resultsModalData, setResultsModalData] = useState<ViewModalData>({ open: false, data: [], header: [], type: 'results' });
   const { notifyUser } = useBrowserNotifications(serverUrl);
 
   useEffect(() => {
@@ -136,11 +145,12 @@ export const LoadRecordsBulkApiResults: FunctionComponent<LoadRecordsBulkApiResu
   useEffect(() => {
     if (loadWorker) {
       setStatus(STATUSES.PREPARING);
-      setProcessingStartTime(new Date().toLocaleString());
+      setProcessingStartTime(convertDateToLocale(new Date(), { timeStyle: 'medium' }));
       setFatalError(null);
       const data: PrepareDataPayload = {
         org: selectedOrg,
         data: inputFileData,
+        // zipData: inputZipFileData,
         fieldMapping,
         sObject: selectedSObject,
         insertNulls,
@@ -157,6 +167,7 @@ export const LoadRecordsBulkApiResults: FunctionComponent<LoadRecordsBulkApiResu
       const data: LoadDataPayload = {
         org: selectedOrg,
         data: preparedData.data,
+        zipData: inputZipFileData,
         sObject: selectedSObject,
         apiMode,
         type: loadType,
@@ -206,8 +217,8 @@ export const LoadRecordsBulkApiResults: FunctionComponent<LoadRecordsBulkApiResu
           const batches: BulkJobBatchInfo[] = [];
           // re-order (if needed) and enrich data
           jobInfoWithBatches.batches.forEach((batch) => {
-            batch.createdDate = convertDateToLocale(batch.createdDate);
-            batch.systemModstamp = convertDateToLocale(batch.systemModstamp);
+            batch.createdDate = convertDateToLocale(batch.createdDate, { timeStyle: 'medium' });
+            batch.systemModstamp = convertDateToLocale(batch.systemModstamp, { timeStyle: 'medium' });
             batches[batchIdByIndex[batch.id]] = batch;
           });
           jobInfoWithBatches.batches = batches;
@@ -230,7 +241,7 @@ export const LoadRecordsBulkApiResults: FunctionComponent<LoadRecordsBulkApiResu
           { preparedData?: PrepareDataResponse; jobInfo?: BulkJobWithBatches; resultsSummary?: LoadDataBulkApiStatusPayload }
         > = event.data;
         logger.log('[LOAD DATA]', payload.name, { payload });
-        const dateString = new Date().toLocaleString();
+        const dateString = convertDateToLocale(new Date(), { timeStyle: 'medium' });
         switch (payload.name) {
           case 'prepareData': {
             if (payload.error) {
@@ -300,7 +311,7 @@ export const LoadRecordsBulkApiResults: FunctionComponent<LoadRecordsBulkApiResu
               logger.error('ERROR', payload.error);
               setStatus(STATUSES.ERROR);
               onFinish({ success: 0, failure: inputFileData.length });
-              notifyUser(`Your ${jobInfo.operation} data load failed`, {
+              notifyUser(`Your data load failed`, {
                 body: `❌ ${payload.error?.message || payload.error}`,
                 tag: 'load-records',
               });
@@ -315,6 +326,7 @@ export const LoadRecordsBulkApiResults: FunctionComponent<LoadRecordsBulkApiResu
         }
       };
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [loadWorker]);
 
   function getUploadingText() {
@@ -328,7 +340,12 @@ export const LoadRecordsBulkApiResults: FunctionComponent<LoadRecordsBulkApiResu
     return `Uploading batch ${batchSummary.batchSummary.filter((item) => item.completed).length + 1} of ${batchSummary.totalBatches}`;
   }
 
-  async function handleDownloadRecords(type: 'results' | 'failures', batch: BulkJobBatchInfo, batchIndex: number): Promise<void> {
+  async function handleDownloadOrViewRecords(
+    action: DownloadAction,
+    type: DownloadType,
+    batch: BulkJobBatchInfo,
+    batchIndex: number
+  ): Promise<void> {
     try {
       if (downloadError) {
         setDownloadError(null);
@@ -357,16 +374,22 @@ export const LoadRecordsBulkApiResults: FunctionComponent<LoadRecordsBulkApiResu
       });
       logger.log({ combinedResults });
       const header = ['_id', '_success', '_errors'].concat(getFieldHeaderFromMapping(fieldMapping));
-      setDownloadModalData({
-        ...downloadModalData,
-        open: true,
-        fileNameParts: [loadType.toLocaleLowerCase(), selectedSObject.toLocaleLowerCase(), type],
-        header,
-        data: combinedResults,
-      });
+      if (action === 'view') {
+        setResultsModalData({ ...downloadModalData, open: true, header, data: combinedResults, type });
+        trackEvent(ANALYTICS_KEYS.load_DownloadRecords, { loadType, type, numRows: combinedResults.length });
+      } else {
+        setDownloadModalData({
+          ...downloadModalData,
+          open: true,
+          fileNameParts: [loadType.toLocaleLowerCase(), selectedSObject.toLocaleLowerCase(), type],
+          header,
+          data: combinedResults,
+        });
+        trackEvent(ANALYTICS_KEYS.load_ViewRecords, { loadType, type, numRows: combinedResults.length });
+      }
     } catch (ex) {
       logger.warn(ex);
-      setDownloadError('ex.message');
+      setDownloadError(ex.message);
     }
   }
 
@@ -386,10 +409,26 @@ export const LoadRecordsBulkApiResults: FunctionComponent<LoadRecordsBulkApiResu
     });
   }
 
-  function handleModalClose() {
-    setDownloadModalData({ ...downloadModalData, open: false, fileNameParts: [], url: '', filename: '' });
+  function handleDownloadRecordsFromModal(type: 'results' | 'failures', rows: any[]) {
+    const fields = getFieldHeaderFromMapping(fieldMapping);
+    const header = ['_id', '_success', '_errors'].concat(fields);
+    setResultsModalData({ ...resultsModalData, open: false });
+    setDownloadModalData({
+      open: true,
+      data: rows,
+      header,
+      fileNameParts: [loadType.toLocaleLowerCase(), selectedSObject.toLocaleLowerCase(), type],
+    });
+    trackEvent(ANALYTICS_KEYS.load_DownloadRecords, { loadType, type, numRows: rows.length, location: 'fromViewModal' });
   }
 
+  function handleModalClose() {
+    setDownloadModalData({ ...downloadModalData, open: false, fileNameParts: [] });
+  }
+
+  function handleViewModalClose() {
+    setResultsModalData({ open: false, data: [], header: [], type: 'results' });
+  }
   return (
     <div>
       {downloadModalData.open && (
@@ -403,6 +442,15 @@ export const LoadRecordsBulkApiResults: FunctionComponent<LoadRecordsBulkApiResu
           fileNameParts={downloadModalData.fileNameParts}
           onModalClose={handleModalClose}
           emitUploadToGoogleEvent={fromJetstreamEvents.emit}
+        />
+      )}
+      {resultsModalData.open && (
+        <LoadRecordsResultsModal
+          type={resultsModalData.type}
+          header={resultsModalData.header}
+          rows={resultsModalData.data}
+          onDownload={handleDownloadRecordsFromModal}
+          onClose={handleViewModalClose}
         />
       )}
       <h3 className="slds-text-heading_small slds-grid">
@@ -422,16 +470,14 @@ export const LoadRecordsBulkApiResults: FunctionComponent<LoadRecordsBulkApiResu
         </div>
       )}
       {batchSummary && (
-        <Fragment>
-          <SalesforceLogin
-            serverUrl={serverUrl}
-            org={selectedOrg}
-            returnUrl={`/lightning/setup/AsyncApiJobStatus/page?address=%2F${batchSummary.jobInfo.id}`}
-            iconPosition="right"
-          >
-            View job in Salesforce
-          </SalesforceLogin>
-        </Fragment>
+        <SalesforceLogin
+          serverUrl={serverUrl}
+          org={selectedOrg}
+          returnUrl={`/lightning/setup/AsyncApiJobStatus/page?address=%2F${batchSummary.jobInfo.id}`}
+          iconPosition="right"
+        >
+          View job in Salesforce
+        </SalesforceLogin>
       )}
       {/* Data is being processed */}
       {jobInfo && (
@@ -441,7 +487,7 @@ export const LoadRecordsBulkApiResults: FunctionComponent<LoadRecordsBulkApiResu
           processingErrors={preparedData.errors}
           processingStartTime={processingStartTime}
           processingEndTime={processingEndTime}
-          onDownload={handleDownloadRecords}
+          onDownloadOrView={handleDownloadOrViewRecords}
           onDownloadProcessingErrors={handleDownloadProcessingErrors}
         />
       )}

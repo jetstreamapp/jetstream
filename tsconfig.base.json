@@ -11,7 +11,7 @@
     "target": "es2015",
     "module": "esnext",
     "typeRoots": ["node_modules/@types", "custom-typings"],
-    "lib": ["es2019", "dom"],
+    "lib": ["es2021", "dom"],
     "skipLibCheck": true,
     "skipDefaultLibCheck": true,
     "baseUrl": ".",

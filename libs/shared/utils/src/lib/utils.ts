@@ -15,7 +15,7 @@ import {
 import { formatISO as formatISODate, parse as parseDate, parseISO as parseISODate, startOfDay as startOfDayDate } from 'date-fns';
 import fromUnixTime from 'date-fns/fromUnixTime';
 import { FieldType as jsforceFieldType, QueryResult } from 'jsforce';
-import { get as lodashGet, isBoolean, isNil, isNumber, isObject, isString, orderBy } from 'lodash';
+import { get as lodashGet, inRange, isBoolean, isNil, isNumber, isObject, isString, orderBy } from 'lodash';
 import { ComposeFieldTypeof, FieldSubquery, FieldType, getField } from 'soql-parser-js';
 import { REGEX } from './regex';
 
@@ -456,6 +456,15 @@ export function sanitizeForXml(value: string) {
   return String(value).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&apos;');
 }
 
+export function unSanitizeXml(value: string) {
+  return String(value)
+    .replace(/&amp;/g, '&')
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&quot;/g, '"')
+    .replace(/&apos;/g, `'`);
+}
+
 /**
  * Given a value from a record, ensure it is in a proper format for a data load.
  * Handles boolean, data, datetime
@@ -664,4 +673,13 @@ export function getMapOfBaseAndSubqueryRecords(records: any[], fields: string[],
     });
   }
   return output;
+}
+
+// https://stackoverflow.com/questions/53228948/how-to-get-image-file-size-from-base-64-string-in-javascript
+export function getSizeInMbFromBase64(data: string) {
+  if (!data) {
+    return 0;
+  }
+  const padding = data.endsWith('==') ? 2 : 1;
+  return (data.length * 0.75 - padding) / 1e6;
 }

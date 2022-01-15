@@ -5,6 +5,7 @@ import { logger } from '@jetstream/shared/client-logger';
 import classNames from 'classnames';
 import React from 'react';
 import { DoctypeIcon, DoctypeIconObj, IconName, IconType, StandardIcon, StandardIconObj, UtilityIcon, UtilityIconObj } from './icon-types';
+import DoctypeIcon_Attachment from './icons/doctype/Attachment';
 import DoctypeIcon_Excel from './icons/doctype/Excel';
 import DoctypeIcon_Gdrive from './icons/doctype/Gdrive';
 import DoctypeIcon_Gsheet from './icons/doctype/Gsheet';
@@ -21,6 +22,7 @@ import StandardIcon_Form from './icons/standard/Form';
 import StandardIcon_MultiPicklist from './icons/standard/MultiPicklist';
 import StandardIcon_Opportunity from './icons/standard/Opportunity';
 import StandardIcon_Portal from './icons/standard/Portal';
+import StandardIcon_ProductConsumed from './icons/standard/ProductConsumed';
 import StandardIcon_Record from './icons/standard/Record';
 import StandardIcon_RecordLookup from './icons/standard/RecordLookup';
 import StandardIcon_RelatedList from './icons/standard/RelatedList';
@@ -116,6 +118,7 @@ const standardIcons: StandardIconObj = {
   multi_picklist: StandardIcon_MultiPicklist,
   opportunity: StandardIcon_Opportunity,
   portal: StandardIcon_Portal,
+  product_consumed: StandardIcon_ProductConsumed,
   record: StandardIcon_Record,
   related_list: StandardIcon_RelatedList,
   record_lookup: StandardIcon_RecordLookup,
@@ -123,6 +126,7 @@ const standardIcons: StandardIconObj = {
 };
 
 const doctypeIcons: DoctypeIconObj = {
+  attachment: DoctypeIcon_Attachment,
   excel: DoctypeIcon_Excel,
   gdrive: DoctypeIcon_Gdrive,
   gsheet: DoctypeIcon_Gsheet,

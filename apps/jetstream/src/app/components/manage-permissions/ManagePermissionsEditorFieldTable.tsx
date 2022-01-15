@@ -1,12 +1,4 @@
-import {
-  ColDef,
-  ColGroupDef,
-  GridApi,
-  GridReadyEvent,
-  ICellRendererParams,
-  RowClassParams,
-  RowGroupingDisplayType,
-} from '@ag-grid-community/core';
+import { ColDef, ColGroupDef, GridApi, GridReadyEvent, ICellRendererParams, RowClassParams } from '@ag-grid-community/core';
 
 import { useNonInitialEffect } from '@jetstream/shared/ui-utils';
 import { MapOf } from '@jetstream/types';
@@ -102,7 +94,7 @@ export const ManagePermissionsEditorFieldTable = forwardRef<any, ManagePermissio
               },
               showOpenedGroup: true,
               groupDefaultExpanded: 1,
-              groupDisplayType: RowGroupingDisplayType.GROUP_ROWS,
+              groupDisplayType: 'groupRows',
               groupRowRendererParams: {
                 innerRenderer: 'groupRowInnerRenderer',
               },

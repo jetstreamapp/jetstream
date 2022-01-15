@@ -1,0 +1,30 @@
+{
+  "root": "libs/shared/node-utils",
+  "sourceRoot": "libs/shared/node-utils/src",
+  "projectType": "library",
+  "generators": {},
+  "targets": {
+    "lint": {
+      "executor": "@nrwl/linter:eslint",
+      "options": {
+        "lintFilePatterns": [
+          "libs/shared/node-utils/**/*.ts",
+          "libs/shared/node-utils/**/*.spec.ts",
+          "libs/shared/node-utils/**/*.spec.tsx",
+          "libs/shared/node-utils/**/*.spec.js",
+          "libs/shared/node-utils/**/*.spec.jsx",
+          "libs/shared/node-utils/**/*.d.ts"
+        ]
+      }
+    },
+    "test": {
+      "executor": "@nrwl/jest:jest",
+      "options": {
+        "jestConfig": "libs/shared/node-utils/jest.config.js",
+        "passWithNoTests": true
+      },
+      "outputs": ["coverage/libs/shared/node-utils"]
+    }
+  },
+  "tags": []
+}

@@ -27,6 +27,7 @@ export interface StandardIconObj {
   multi_picklist: IconEl;
   opportunity: IconEl;
   portal: IconEl;
+  product_consumed: IconEl;
   record: IconEl;
   related_list: IconEl;
   record_lookup: IconEl;
@@ -34,6 +35,7 @@ export interface StandardIconObj {
 }
 
 export interface DoctypeIconObj {
+  attachment: IconEl;
   excel: IconEl;
   gdrive: IconEl;
   gsheet: IconEl;

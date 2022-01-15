@@ -230,6 +230,7 @@ export interface BulkApiCreateJobRequestPayload {
   serialMode?: boolean;
   externalId?: string;
   assignmentRuleId?: string;
+  hasZipAttachment?: boolean;
 }
 
 export interface SocketAck<T = any> {

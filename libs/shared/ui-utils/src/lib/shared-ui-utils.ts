@@ -590,7 +590,12 @@ function getValue(operator: QueryFilterOperator, value: string | string[]): stri
     case 'notIn':
     case 'includes':
     case 'excludes':
-      return Array.isArray(value) ? value : value.split('\n');
+      return Array.isArray(value)
+        ? value
+        : value
+            .split('\n')
+            .map((value) => value.trim())
+            .filter((item) => item !== '');
     default:
       return value;
   }
@@ -712,23 +717,46 @@ export function getOrgType(org: SalesforceOrgUi): SalesforceOrgUiType | undefine
   }
   return undefined;
 }
-
-export function getDateLiteralListItems(): ListItem[] {
+// TODO: add support for N date literals
+export function getDateLiteralListItems(): ListItem<string, { hasUserInput: boolean }>[] {
   return [
-    { id: 'YESTERDAY', label: 'YESTERDAY', value: 'YESTERDAY' },
-    { id: 'TODAY', label: 'TODAY', value: 'TODAY' },
-    { id: 'TOMORROW', label: 'TOMORROW', value: 'TOMORROW' },
-    { id: 'LAST_WEEK', label: 'LAST_WEEK', value: 'LAST_WEEK' },
-    { id: 'THIS_WEEK', label: 'THIS_WEEK', value: 'THIS_WEEK' },
-    { id: 'NEXT_WEEK', label: 'NEXT_WEEK', value: 'NEXT_WEEK' },
-    { id: 'LAST_MONTH', label: 'LAST_MONTH', value: 'LAST_MONTH' },
-    { id: 'THIS_MONTH', label: 'THIS_MONTH', value: 'THIS_MONTH' },
-    { id: 'NEXT_MONTH', label: 'NEXT_MONTH', value: 'NEXT_MONTH' },
-    { id: 'LAST_90_DAYS', label: 'LAST_90_DAYS', value: 'LAST_90_DAYS' },
-    { id: 'NEXT_90_DAYS', label: 'NEXT_90_DAYS', value: 'NEXT_90_DAYS' },
-    { id: 'THIS_YEAR', label: 'THIS_YEAR', value: 'THIS_YEAR' },
-    { id: 'LAST_YEAR', label: 'LAST_YEAR', value: 'LAST_YEAR' },
-    { id: 'NEXT_YEAR', label: 'NEXT_YEAR', value: 'NEXT_YEAR' },
+    { id: 'YESTERDAY', label: 'YESTERDAY', value: 'YESTERDAY', meta: { hasUserInput: false } },
+    { id: 'TODAY', label: 'TODAY', value: 'TODAY', meta: { hasUserInput: false } },
+    { id: 'TOMORROW', label: 'TOMORROW', value: 'TOMORROW', meta: { hasUserInput: false } },
+    { id: 'LAST_WEEK', label: 'LAST_WEEK', value: 'LAST_WEEK', meta: { hasUserInput: false } },
+    { id: 'THIS_WEEK', label: 'THIS_WEEK', value: 'THIS_WEEK', meta: { hasUserInput: false } },
+    { id: 'NEXT_WEEK', label: 'NEXT_WEEK', value: 'NEXT_WEEK', meta: { hasUserInput: false } },
+    { id: 'LAST_MONTH', label: 'LAST_MONTH', value: 'LAST_MONTH', meta: { hasUserInput: false } },
+    { id: 'THIS_MONTH', label: 'THIS_MONTH', value: 'THIS_MONTH', meta: { hasUserInput: false } },
+    { id: 'NEXT_MONTH', label: 'NEXT_MONTH', value: 'NEXT_MONTH', meta: { hasUserInput: false } },
+    { id: 'LAST_90_DAYS', label: 'LAST_90_DAYS', value: 'LAST_90_DAYS', meta: { hasUserInput: false } },
+    { id: 'NEXT_90_DAYS', label: 'NEXT_90_DAYS', value: 'NEXT_90_DAYS', meta: { hasUserInput: false } },
+    // { id: 'LAST_N_DAYS:n', label: 'LAST_N_DAYS:n', value: 'LAST_N_DAYS:n', meta: { hasUserInput: true } },
+    // { id: 'NEXT_N_DAYS:n', label: 'NEXT_N_DAYS:n', value: 'NEXT_N_DAYS:n', meta: { hasUserInput: true } },
+    // { id: 'NEXT_N_WEEKS:n', label: 'NEXT_N_WEEKS:n', value: 'NEXT_N_WEEKS:n', meta: { hasUserInput: true } },
+    // { id: 'LAST_N_WEEKS:n', label: 'LAST_N_WEEKS:n', value: 'LAST_N_WEEKS:n', meta: { hasUserInput: true } },
+    // { id: 'NEXT_N_MONTHS:n', label: 'NEXT_N_MONTHS:n', value: 'NEXT_N_MONTHS:n', meta: { hasUserInput: true } },
+    // { id: 'LAST_N_MONTHS:n', label: 'LAST_N_MONTHS:n', value: 'LAST_N_MONTHS:n', meta: { hasUserInput: true } },
+    { id: 'THIS_QUARTER', label: 'THIS_QUARTER', value: 'THIS_QUARTER', meta: { hasUserInput: false } },
+    { id: 'LAST_QUARTER', label: 'LAST_QUARTER', value: 'LAST_QUARTER', meta: { hasUserInput: false } },
+    { id: 'NEXT_QUARTER', label: 'NEXT_QUARTER', value: 'NEXT_QUARTER', meta: { hasUserInput: false } },
+    // { id: 'NEXT_N_QUARTERS:n', label: 'NEXT_N_QUARTERS:n', value: 'NEXT_N_QUARTERS:n', meta: { hasUserInput: true } },
+    // { id: 'LAST_N_QUARTERS:n', label: 'LAST_N_QUARTERS:n', value: 'LAST_N_QUARTERS:n', meta: { hasUserInput: true } },
+    { id: 'THIS_YEAR', label: 'THIS_YEAR', value: 'THIS_YEAR', meta: { hasUserInput: false } },
+    { id: 'LAST_YEAR', label: 'LAST_YEAR', value: 'LAST_YEAR', meta: { hasUserInput: false } },
+    { id: 'NEXT_YEAR', label: 'NEXT_YEAR', value: 'NEXT_YEAR', meta: { hasUserInput: false } },
+    // { id: 'NEXT_N_YEARS:n', label: 'NEXT_N_YEARS:n', value: 'NEXT_N_YEARS:n', meta: { hasUserInput: true } },
+    // { id: 'LAST_N_YEARS:n', label: 'LAST_N_YEARS:n', value: 'LAST_N_YEARS:n', meta: { hasUserInput: true } },
+    { id: 'THIS_FISCAL_QUARTER', label: 'THIS_FISCAL_QUARTER', value: 'THIS_FISCAL_QUARTER', meta: { hasUserInput: false } },
+    { id: 'LAST_FISCAL_QUARTER', label: 'LAST_FISCAL_QUARTER', value: 'LAST_FISCAL_QUARTER', meta: { hasUserInput: false } },
+    { id: 'NEXT_FISCAL_QUARTER', label: 'NEXT_FISCAL_QUARTER', value: 'NEXT_FISCAL_QUARTER', meta: { hasUserInput: false } },
+    // { id: 'NEXT_N_FISCAL_QUARTERS:n', label: 'NEXT_N_FISCAL_QUARTERS:n', value: 'NEXT_N_FISCAL_QUARTERS:n', meta: { hasUserInput: true } },
+    // { id: 'LAST_N_FISCAL_QUARTERS:n', label: 'LAST_N_FISCAL_QUARTERS:n', value: 'LAST_N_FISCAL_QUARTERS:n', meta: { hasUserInput: true } },
+    { id: 'THIS_FISCAL_YEAR', label: 'THIS_FISCAL_YEAR', value: 'THIS_FISCAL_YEAR', meta: { hasUserInput: false } },
+    { id: 'LAST_FISCAL_YEAR', label: 'LAST_FISCAL_YEAR', value: 'LAST_FISCAL_YEAR', meta: { hasUserInput: false } },
+    { id: 'NEXT_FISCAL_YEAR', label: 'NEXT_FISCAL_YEAR', value: 'NEXT_FISCAL_YEAR', meta: { hasUserInput: false } },
+    // { id: 'NEXT_N_FISCAL_YEARS:n', label: 'NEXT_N_FISCAL_YEARS:n', value: 'NEXT_N_FISCAL_YEARS:n', meta: { hasUserInput: true } },
+    // { id: 'LAST_N_FISCAL_YEARS:n', label: 'LAST_N_FISCAL_YEARS:n', value: 'LAST_N_FISCAL_YEARS:n', meta: { hasUserInput: true } },
   ];
 }
 
@@ -1038,7 +1066,7 @@ export async function parseWorkbook(
   };
 }
 
-export function generateCsv(data: object[], options: UnparseConfig = {}): string {
+export function generateCsv(data: any[], options: UnparseConfig = {}): string {
   options = options || {};
   options.newline = options.newline || '\n';
   if (!options.delimiter) {
@@ -1061,8 +1089,25 @@ function detectDelimiter(): string {
   return delimiter;
 }
 
-export function convertDateToLocale(isoDateStr: string) {
-  return parseISO(isoDateStr).toLocaleString();
+/**
+ * Convert a date or ISO date string to a string in the users locale
+ * If options (Intl.DateTimeFormatOptions) is provided, that will be used
+ * otherwise `toLocaleString()` is used as a fallback
+ *
+ * @param dateOrIsoDateString
+ * @param options
+ * @returns
+ */
+export function convertDateToLocale(dateOrIsoDateString: string | Date, options?: Intl.DateTimeFormatOptions): string {
+  if (!dateOrIsoDateString) {
+    return dateOrIsoDateString as undefined;
+  }
+  const date = dateOrIsoDateString instanceof Date ? dateOrIsoDateString : parseISO(dateOrIsoDateString);
+  if (!options) {
+    return date.toLocaleString();
+  } else {
+    return new Intl.DateTimeFormat(navigator.language, options).format(date);
+  }
 }
 
 export function convertArrayOfObjectToArrayOfArray(data: any[], headers?: string[]): any[][] {
@@ -1185,4 +1230,37 @@ export function useReducerFetchFn<T>() {
     }
   }
   return reducer;
+}
+
+/**
+ * Convert Salesforce 15 digit id to 18 digit id
+ * If value is not in correct format, return original value
+ * https://github.com/mslabina/sf15to18/blob/master/sf15to18.js
+ */
+export function convertId15To18(id: string): string {
+  if (!id || !isString(id) || id.length !== 15) {
+    return id;
+  }
+
+  // Generate three last digits of the id
+  for (let i = 0; i < 3; i++) {
+    let f = 0;
+
+    // For every 5-digit block of the given id
+    for (let j = 0; j < 5; j++) {
+      // Assign the j-th chracter of the i-th 5-digit block to c
+      const char = id.charAt(i * 5 + j);
+
+      // Check if c is an uppercase letter
+      if (char >= 'A' && char <= 'Z') {
+        // Set a 1 at the character's position in the reversed segment
+        f += 1 << j;
+      }
+    }
+
+    // Add the calculated character for the current block to the id
+    id += 'ABCDEFGHIJKLMNOPQRSTUVWXYZ012345'.charAt(f);
+  }
+
+  return id;
 }

@@ -1,6 +1,7 @@
 ---
 id: salesforce-api
 title: Salesforce API
+description: Jetstream makes it easy to test and explore the Salesforce API.
 sidebar_label: Salesforce API
 slug: /developer/salesforce-api
 ---

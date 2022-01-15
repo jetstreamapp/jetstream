@@ -1,6 +1,6 @@
 import { logger } from '@jetstream/shared/client-logger';
 import { clearCacheForOrg, queryWithCache } from '@jetstream/shared/data';
-import { isPermissionSetWithProfile } from '@jetstream/shared/ui-utils';
+import { isPermissionSetWithProfile } from '../shared-ui-utils';
 import {
   ListItem,
   PermissionSetNoProfileRecord,
@@ -64,7 +64,10 @@ export function useProfilesAndPermSets(selectedOrg: SalesforceOrgUi) {
           clearCacheForOrg(selectedOrg);
         }
 
-        const { data, cache } = await queryWithCache<PermissionSetRecord>(selectedOrg, getQueryForPermissionSetsWithProfiles());
+        const { data, cache } = await queryWithCache<PermissionSetRecord>(
+          selectedOrg,
+          getQueryForPermissionSetsWithProfiles(selectedOrg.orgNamespacePrefix)
+        );
         if (isMounted.current) {
           if (cache) {
             setLastRefreshed(`Last updated ${formatRelative(cache.age, new Date())}`);
@@ -129,7 +132,7 @@ function getListItemFromQueryResults(records: PermissionSetRecord[]) {
   );
 }
 
-function getQueryForPermissionSetsWithProfiles(includeManaged = false): string {
+function getQueryForPermissionSetsWithProfiles(orgNamespace?: string): string {
   const query: Query = {
     fields: [
       getField('Id'),
@@ -162,13 +165,31 @@ function getQueryForPermissionSetsWithProfiles(includeManaged = false): string {
   };
   // TODO: we should omit profiles that do not allow editing (not sure how to identify)
   // maybe user access query?
-  if (!includeManaged) {
+  if (!orgNamespace) {
     query.where = {
       left: {
         field: 'NamespacePrefix',
         operator: '=',
         value: 'null',
         literalType: 'NULL',
+      },
+    };
+  } else {
+    query.where = {
+      left: {
+        field: 'NamespacePrefix',
+        operator: '=',
+        value: 'null',
+        literalType: 'NULL',
+      },
+      operator: 'OR',
+      right: {
+        left: {
+          field: 'NamespacePrefix',
+          operator: '=',
+          value: orgNamespace,
+          literalType: 'STRING',
+        },
       },
     };
   }

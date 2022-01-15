@@ -1,8 +1,7 @@
 import { css } from '@emotion/react';
-import { getFilename, getOrgUrlParams } from '@jetstream/shared/ui-utils';
 import { BulkJobBatchInfo, BulkJobWithBatches, SalesforceOrgUi } from '@jetstream/types';
 import { FunctionComponent, useEffect, useState } from 'react';
-import { PrepareDataResponseError } from '../../load-records-types';
+import { DownloadAction, DownloadType, PrepareDataResponseError } from '../../load-records-types';
 import LoadRecordsBulkApiResultsTableRow from './LoadRecordsBulkApiResultsTableRow';
 import LoadRecordsResultsTableProcessingErrRow from './LoadRecordsResultsTableProcessingErrRow';
 export interface LoadRecordsBulkApiResultsTableProps {
@@ -11,7 +10,7 @@ export interface LoadRecordsBulkApiResultsTableProps {
   processingErrors: PrepareDataResponseError[];
   processingStartTime: string;
   processingEndTime: string;
-  onDownload: (type: 'results' | 'failures', batch: BulkJobBatchInfo, batchIndex: number) => Promise<void>;
+  onDownloadOrView: (action: DownloadAction, type: DownloadType, batch: BulkJobBatchInfo, batchIndex: number) => Promise<void>;
   onDownloadProcessingErrors: () => void;
 }
 
@@ -21,21 +20,10 @@ export const LoadRecordsBulkApiResultsTable: FunctionComponent<LoadRecordsBulkAp
   processingErrors,
   processingStartTime,
   processingEndTime,
-  onDownload,
+  onDownloadOrView,
   onDownloadProcessingErrors,
 }) => {
-  const [orgUrlParams, setOrgUrlParams] = useState<string>(null);
-  const [filenamePrefix, setFilenamePrefix] = useState<string>(null);
   const [hasErrors, setHasErrors] = useState<boolean>(false);
-
-  useEffect(() => {
-    if (selectedOrg) {
-      setOrgUrlParams(getOrgUrlParams(selectedOrg));
-      setFilenamePrefix(getFilename(selectedOrg, ['load']));
-    } else {
-      setOrgUrlParams('');
-    }
-  }, [selectedOrg]);
 
   useEffect(() => {
     if (!hasErrors) {
@@ -58,7 +46,7 @@ export const LoadRecordsBulkApiResultsTable: FunctionComponent<LoadRecordsBulkAp
           <th
             scope="col"
             css={css`
-              width: 220px;
+              width: 260px;
             `}
           >
             <div className="slds-truncate" title="State">
@@ -106,7 +94,8 @@ export const LoadRecordsBulkApiResultsTable: FunctionComponent<LoadRecordsBulkAp
             key={batch.id}
             batch={batch}
             hasErrors={hasErrors}
-            onDownload={(type, batch) => onDownload(type, batch, i)}
+            onDownload={(type, batch) => onDownloadOrView('download', type, batch, i)}
+            onView={(type, batch) => onDownloadOrView('view', type, batch, i)}
           />
         ))}
       </tbody>

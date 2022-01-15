@@ -1,11 +1,11 @@
+import { FormGroupDropdownItem } from '@jetstream/types';
 import { action } from '@storybook/addon-actions';
 import { boolean, text } from '@storybook/addon-knobs';
 import React from 'react';
 import Combobox from './Combobox';
 import { ComboboxListItem } from './ComboboxListItem';
-import { ComboboxListItemLoadMore } from './ComboboxListItemLoadMore';
-import { FormGroupDropdownItem } from '@jetstream/types';
 import { ComboboxListItemGroup } from './ComboboxListItemGroup';
+import { ComboboxListItemLoadMore } from './ComboboxListItemLoadMore';
 
 export default {
   component: Combobox,

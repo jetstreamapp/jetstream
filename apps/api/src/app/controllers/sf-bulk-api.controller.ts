@@ -6,7 +6,14 @@ import { body, param, query } from 'express-validator';
 import * as jsforce from 'jsforce';
 import { NODE_STREAM_INPUT, parse as parseCsv } from 'papaparse';
 import { logger } from '../config/logger.config';
-import { SfBulkAddBatchToJob, SfBulkCloseJob, SfBulkCreateJob, sfBulkDownloadRecords, SfBulkGetJobInfo } from '../services/sf-bulk';
+import {
+  SfBulkAddBatchToJob,
+  SfBulkAddBatchWithZipAttachmentToJob,
+  SfBulkCloseJob,
+  SfBulkCreateJob,
+  sfBulkDownloadRecords,
+  SfBulkGetJobInfo,
+} from '../services/sf-bulk';
 import { UserFacingError } from '../utils/error-handler';
 import { sendJson } from '../utils/response.handlers';
 
@@ -32,6 +39,11 @@ export const routeValidators = {
     query('filename').optional().isString(),
   ],
   addBatchToJob: [param('jobId').isString(), body().exists({ checkNull: true }), query('closeJob').optional().toBoolean()],
+  addBatchToJobWithBinaryAttachment: [
+    param('jobId').isString(),
+    body().exists({ checkNull: true }),
+    query('closeJob').optional().toBoolean(),
+  ],
 };
 
 // https://github.com/jsforce/jsforce/issues/934
@@ -88,6 +100,21 @@ export async function addBatchToJob(req: Request, res: Response, next: NextFunct
     // } catch (ex) {
     //   // ignore error
     // }
+
+    sendJson(res, results);
+  } catch (ex) {
+    next(new UserFacingError(ex.message));
+  }
+}
+
+export async function addBatchToJobWithBinaryAttachment(req: Request, res: Response, next: NextFunction) {
+  try {
+    const jobId = req.params.jobId;
+    const zip = req.body;
+    const closeJob = req.query.closeJob as any;
+    const conn: jsforce.Connection = res.locals.jsforceConn;
+
+    const results: BulkJobBatchInfo = await SfBulkAddBatchWithZipAttachmentToJob(conn, zip, jobId, closeJob);
 
     sendJson(res, results);
   } catch (ex) {

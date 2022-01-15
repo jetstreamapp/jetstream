@@ -14,6 +14,7 @@ export interface FieldWithRelatedEntities {
   label: string;
   name: string;
   type: FieldType;
+  soapType: string;
   typeLabel: string;
   externalId: boolean;
   referenceTo?: string[];
@@ -63,6 +64,7 @@ export interface FieldMappingItem {
   isDuplicateMappedField?: boolean;
   lookupOptionUseFirstMatch: NonExtIdLookupOption;
   lookupOptionNullIfNoMatch: boolean;
+  isBinaryBodyField: boolean;
 }
 
 export interface PrepareDataPayload {
@@ -90,6 +92,7 @@ export interface PrepareDataResponseError {
 export interface LoadDataPayload {
   org: SalesforceOrgUi;
   data: any[];
+  zipData?: ArrayBuffer;
   sObject: string;
   apiMode: ApiMode;
   type: InsertUpdateUpsertDelete;
@@ -97,6 +100,7 @@ export interface LoadDataPayload {
   serialMode?: boolean;
   externalId?: string; // required for upsert, ignored for all others.
   assignmentRuleId?: string; // only allowed for lead / case
+  binaryBodyField?: string;
 }
 
 export interface LoadDataBulkApi {
@@ -117,4 +121,26 @@ export interface LoadDataBatchApiProgress {
   total: number;
   success: number;
   failure: number;
+}
+
+export type DownloadType = 'results' | 'failures';
+export type DownloadAction = 'view' | 'download';
+
+export interface DownloadModalData {
+  open: boolean;
+  data: any[];
+  header: string[];
+  fileNameParts: string[];
+}
+
+export interface ViewModalData extends Omit<DownloadModalData, 'fileNameParts'> {
+  type: DownloadType;
+}
+
+export type MapOfCustomMetadataRecord = MapOf<CustomMetadataRecord>;
+
+export interface CustomMetadataRecord {
+  metadata: string;
+  fullName: string;
+  record: any;
 }

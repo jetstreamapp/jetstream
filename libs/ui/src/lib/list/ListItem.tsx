@@ -32,8 +32,18 @@ export const ListItem = memo<ListItemProps>(
           onSelected && onSelected();
         }}
       >
-        {isString(heading) ? <div className="slds-truncate">{highlightedHeading}</div> : heading}
-        {subheading && <div className="slds-text-body_small slds-text-color_weak slds-truncate">{highlightedSubHeading}</div>}
+        {isString(heading) ? (
+          <div className="slds-truncate" title={heading}>
+            {highlightedHeading}
+          </div>
+        ) : (
+          heading
+        )}
+        {subheading && (
+          <div className="slds-text-body_small slds-text-color_weak slds-truncate" title={subheading}>
+            {highlightedSubHeading}
+          </div>
+        )}
         {!subheading && subheadingPlaceholder && (
           <div
             css={css`

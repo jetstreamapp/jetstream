@@ -126,6 +126,10 @@ export function isHKey(event: KeyboardEvent<unknown>): boolean {
   return event.key === 'h' || event.key === 'H' || event.keyCode === 72;
 }
 
+export function isKKey(event: KeyboardEvent<unknown>): boolean {
+  return event.key === 'k' || event.key === 'K' || event.code === 'KeyK';
+}
+
 export function isMKey(event: KeyboardEvent<unknown>): boolean {
   return event.key === 'm' || event.key === 'M' || event.keyCode === 77;
 }

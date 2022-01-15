@@ -7,6 +7,7 @@ import * as jsforce from 'jsforce';
 import { DeployOptions, RetrieveRequest } from 'jsforce';
 import * as JSZip from 'jszip';
 import { isObject, isString, toNumber } from 'lodash';
+import { ENV } from '../config/env-config';
 import { logger } from '../config/logger.config';
 import { buildPackageXml, getRetrieveRequestFromListMetadata, getRetrieveRequestFromManifest } from '../services/sf-misc';
 import { UserFacingError } from '../utils/error-handler';
@@ -276,7 +277,9 @@ export async function checkRetrieveStatusAndRedeploy(req: Request, res: Response
           .folder('unpackaged')
           .file(
             'package.xml',
-            `<?xml version="1.0" encoding="UTF-8"?>\n<Package xmlns="http://soap.sforce.com/2006/04/metadata">\n\t<version>50.0</version>\n</Package>`
+            `<?xml version="1.0" encoding="UTF-8"?>\n<Package xmlns="http://soap.sforce.com/2006/04/metadata">\n\t<version>${
+              conn.version || ENV.SFDC_FALLBACK_API_VERSION
+            }</version>\n</Package>`
           );
 
         oldPackage.forEach((relativePath, file) => {
@@ -321,6 +324,7 @@ export async function getPackageXml(req: Request, res: Response, next: NextFunct
  */
 export async function anonymousApex(req: Request, res: Response, next: NextFunction) {
   try {
+    // eslint-disable-next-line prefer-const
     let { apex, logLevel }: { apex: string; logLevel?: string } = req.body;
     logLevel = logLevel || 'FINEST';
     const conn: jsforce.Connection = res.locals.jsforceConn;

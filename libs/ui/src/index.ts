@@ -109,8 +109,6 @@ export * from './lib/sobject-list/ConnectedSobjectList';
 export * from './lib/sobject-list/ConnectedSobjectListMultiSelect';
 export * from './lib/sobject-list/SobjectList';
 export * from './lib/sobject-list/SobjectListMultiSelect';
-export * from './lib/table/TableBase';
-export * from './lib/table/TableSortableResizable';
 export * from './lib/tabs/Tabs';
 export * from './lib/toast/Toast';
 export * from './lib/toolbar/Toolbar';

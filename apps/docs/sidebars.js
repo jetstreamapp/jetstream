@@ -47,17 +47,20 @@
 module.exports = {
   /** @type {import('@docusaurus/preset-classic').Si} */
   sidebar: [
-    'getting-started/getting-started',
-    'feedback/feedback',
+    {
+      type: 'category',
+      label: 'Getting Started',
+      items: ['getting-started/overview', 'getting-started/feedback'],
+    },
     {
       type: 'category',
       label: 'Query',
-      items: ['query/query', 'query/query-results'],
+      items: ['query/query', 'query/query-results', 'query/download-attachments'],
     },
     {
       type: 'category',
       label: 'Load',
-      items: ['load/load', 'load/load-with-related'],
+      items: ['load/load', 'load/load-custom-metadata', 'load/load-attachments', 'load/load-with-related'],
     },
     'automation-control/automation-control',
     'permissions/permissions',
@@ -69,7 +72,14 @@ module.exports = {
     {
       type: 'category',
       label: 'Developer Tools',
-      items: ['developer/anonymous-apex', 'developer/debug-logs', 'developer/salesforce-api', 'developer/platform-events'],
+      items: [
+        'developer/anonymous-apex',
+        'developer/debug-logs',
+        'developer/export-object-metadata',
+        'developer/salesforce-api',
+        'developer/platform-events',
+      ],
     },
+    'other/other-useful-features',
   ],
 };

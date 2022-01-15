@@ -19,6 +19,10 @@
     "target": "http://localhost:3333",
     "secure": false
   },
+  "/sw": {
+    "target": "http://localhost:3333",
+    "secure": false
+  },
   "/fonts": {
     "target": "http://localhost:3333",
     "secure": false

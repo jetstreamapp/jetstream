@@ -1,22 +1,27 @@
 import { logger } from '@jetstream/shared/client-logger';
-import { useBrowserNotifications } from '@jetstream/shared/ui-utils';
+import { ANALYTICS_KEYS } from '@jetstream/shared/constants';
+import { convertDateToLocale, useBrowserNotifications } from '@jetstream/shared/ui-utils';
 import { flattenRecord, getSuccessOrFailureChar, pluralizeFromNumber } from '@jetstream/shared/utils';
 import { InsertUpdateUpsertDelete, RecordResultWithRecord, SalesforceOrgUi, WorkerMessage } from '@jetstream/types';
 import { FileDownloadModal, Spinner } from '@jetstream/ui';
 import { FunctionComponent, useEffect, useRef, useState } from 'react';
 import { useRecoilState } from 'recoil';
 import { applicationCookieState } from '../../../../app-state';
+import { useAmplitude } from '../../../core/analytics';
 import * as fromJetstreamEvents from '../../../core/jetstream-events';
 import {
   ApiMode,
+  DownloadModalData,
   FieldMapping,
   LoadDataBatchApiProgress,
   LoadDataPayload,
   PrepareDataPayload,
   PrepareDataResponse,
+  ViewModalData,
 } from '../../load-records-types';
 import { getFieldHeaderFromMapping } from '../../utils/load-records-utils';
 import LoadRecordsBatchApiResultsTable from './LoadRecordsBatchApiResultsTable';
+import LoadRecordsResultsModal from './LoadRecordsResultsModal';
 
 type Status = 'Preparing Data' | 'Processing Data' | 'Finished' | 'Error';
 
@@ -37,6 +42,7 @@ export interface LoadRecordsBatchApiResultsProps {
   selectedSObject: string;
   fieldMapping: FieldMapping;
   inputFileData: any[];
+  inputZipFileData: ArrayBuffer;
   apiMode: ApiMode;
   loadType: InsertUpdateUpsertDelete;
   externalId?: string;
@@ -53,6 +59,7 @@ export const LoadRecordsBatchApiResults: FunctionComponent<LoadRecordsBatchApiRe
   selectedSObject,
   fieldMapping,
   inputFileData,
+  inputZipFileData,
   apiMode,
   loadType,
   externalId,
@@ -64,6 +71,7 @@ export const LoadRecordsBatchApiResults: FunctionComponent<LoadRecordsBatchApiRe
   onFinish,
 }) => {
   const isMounted = useRef(null);
+  const { trackEvent } = useAmplitude();
   // used to ensure that data in the onworker callback gets a reference to the results
   const processingStatusRef = useRef<{ success: number; failure: number }>({ success: 0, failure: 0 });
   const [preparedData, setPreparedData] = useState<PrepareDataResponse>();
@@ -80,7 +88,8 @@ export const LoadRecordsBatchApiResults: FunctionComponent<LoadRecordsBatchApiRe
     success: 0,
     failure: 0,
   });
-  const [downloadModalData, setDownloadModalData] = useState({ open: false, data: [], header: [], fileNameParts: [] });
+  const [downloadModalData, setDownloadModalData] = useState<DownloadModalData>({ open: false, data: [], header: [], fileNameParts: [] });
+  const [resultsModalData, setResultsModalData] = useState<ViewModalData>({ open: false, data: [], header: [], type: 'results' });
   const [{ serverUrl, google_apiKey, google_appId, google_clientId }] = useRecoilState(applicationCookieState);
   const { notifyUser } = useBrowserNotifications(serverUrl);
 
@@ -94,7 +103,7 @@ export const LoadRecordsBatchApiResults: FunctionComponent<LoadRecordsBatchApiRe
   useEffect(() => {
     if (loadWorker) {
       setStatus(STATUSES.PREPARING);
-      setProcessingStartTime(new Date().toLocaleString());
+      setProcessingStartTime(convertDateToLocale(new Date(), { timeStyle: 'medium' }));
       setFatalError(null);
       const data: PrepareDataPayload = {
         org: selectedOrg,
@@ -122,6 +131,8 @@ export const LoadRecordsBatchApiResults: FunctionComponent<LoadRecordsBatchApiRe
         assignmentRuleId,
         serialMode,
         externalId,
+        binaryBodyField: Object.values(fieldMapping).find((field) => field.isBinaryBodyField)?.targetField,
+        zipData: inputZipFileData,
       };
       loadWorker.postMessage({ name: 'loadData', data });
     }
@@ -155,6 +166,7 @@ export const LoadRecordsBatchApiResults: FunctionComponent<LoadRecordsBatchApiRe
         tag: 'load-records',
       });
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [status, processingStatus, preparedData]);
 
   useEffect(() => {
@@ -168,7 +180,7 @@ export const LoadRecordsBatchApiResults: FunctionComponent<LoadRecordsBatchApiRe
           { preparedData?: PrepareDataResponse; records?: RecordResultWithRecord[] }
         > = event.data;
         logger.log('[LOAD DATA]', payload.name, { payload });
-        const dateString = new Date().toLocaleString();
+        const dateString = convertDateToLocale(new Date(), { timeStyle: 'medium' });
         switch (payload.name) {
           case 'prepareData': {
             if (payload.error) {
@@ -228,6 +240,7 @@ export const LoadRecordsBatchApiResults: FunctionComponent<LoadRecordsBatchApiRe
         }
       };
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [loadWorker, processingStatusRef.current]);
 
   function handleDownloadRecords(type: 'results' | 'failures') {
@@ -238,7 +251,6 @@ export const LoadRecordsBatchApiResults: FunctionComponent<LoadRecordsBatchApiRe
 
     processedRecords.forEach((record) => {
       if (type === 'results' ? true : !record.success) {
-        // for failure records, if the Id field is present, then include in _id field
         combinedResults.push({
           _id: record.success ? record.id : record['Id'] || '',
           _success: record.success,
@@ -255,6 +267,46 @@ export const LoadRecordsBatchApiResults: FunctionComponent<LoadRecordsBatchApiRe
       header,
       fileNameParts: [loadType.toLocaleLowerCase(), selectedSObject.toLocaleLowerCase(), type],
     });
+    trackEvent(ANALYTICS_KEYS.load_DownloadRecords, { loadType, type, numRows: combinedResults.length });
+  }
+
+  function handleViewRecords(type: 'results' | 'failures') {
+    const combinedResults: any[] = [];
+    // Use field mapping to determine headers in output data and account for relationship fields
+    const fields = getFieldHeaderFromMapping(fieldMapping);
+
+    processedRecords.forEach((record) => {
+      if (type === 'results' ? true : !record.success) {
+        combinedResults.push({
+          _id: record.success ? record.id : record['Id'] || '',
+          _success: record.success,
+          _errors: record.success === false ? record.errors.map((error) => `${error.statusCode}: ${error.message}`).join('\n') : '',
+          ...flattenRecord(record.record, fields),
+        });
+      }
+    });
+
+    const header = ['_id', '_success', '_errors'].concat(fields);
+    setResultsModalData({
+      open: true,
+      data: combinedResults,
+      header,
+      type,
+    });
+    trackEvent(ANALYTICS_KEYS.load_ViewRecords, { loadType, type, numRows: combinedResults.length });
+  }
+
+  function handleDownloadRecordsFromModal(type: 'results' | 'failures', rows: any[]) {
+    const fields = getFieldHeaderFromMapping(fieldMapping);
+    const header = ['_id', '_success', '_errors'].concat(fields);
+    setResultsModalData({ ...resultsModalData, open: false });
+    setDownloadModalData({
+      open: true,
+      data: rows,
+      header,
+      fileNameParts: [loadType.toLocaleLowerCase(), selectedSObject.toLocaleLowerCase(), type],
+    });
+    trackEvent(ANALYTICS_KEYS.load_DownloadRecords, { loadType, type, numRows: rows.length, location: 'fromViewModal' });
   }
 
   function handleDownloadProcessingErrors() {
@@ -274,8 +326,12 @@ export const LoadRecordsBatchApiResults: FunctionComponent<LoadRecordsBatchApiRe
     });
   }
 
-  function handleModalClose() {
+  function handleDownloadModalClose() {
     setDownloadModalData({ open: false, data: [], header: [], fileNameParts: [] });
+  }
+
+  function handleViewModalClose() {
+    setResultsModalData({ open: false, data: [], header: [], type: 'results' });
   }
 
   return (
@@ -289,8 +345,17 @@ export const LoadRecordsBatchApiResults: FunctionComponent<LoadRecordsBatchApiRe
           data={downloadModalData.data}
           header={downloadModalData.header}
           fileNameParts={downloadModalData.fileNameParts}
-          onModalClose={handleModalClose}
+          onModalClose={handleDownloadModalClose}
           emitUploadToGoogleEvent={fromJetstreamEvents.emit}
+        />
+      )}
+      {resultsModalData.open && (
+        <LoadRecordsResultsModal
+          type={resultsModalData.type}
+          header={resultsModalData.header}
+          rows={resultsModalData.data}
+          onDownload={handleDownloadRecordsFromModal}
+          onClose={handleViewModalClose}
         />
       )}
       <h3 className="slds-text-heading_small slds-grid">
@@ -315,6 +380,7 @@ export const LoadRecordsBatchApiResults: FunctionComponent<LoadRecordsBatchApiRe
           processingStartTime={processingStartTime}
           processingEndTime={processingEndTime}
           onDownload={handleDownloadRecords}
+          onViewResults={handleViewRecords}
           onDownloadProcessingErrors={handleDownloadProcessingErrors}
         />
       )}

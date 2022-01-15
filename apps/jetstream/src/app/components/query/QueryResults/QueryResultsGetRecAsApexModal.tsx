@@ -3,7 +3,7 @@ import { logger } from '@jetstream/shared/client-logger';
 import { describeSObject } from '@jetstream/shared/data';
 import { useNonInitialEffect } from '@jetstream/shared/ui-utils';
 import { MapOf, SalesforceOrgUi } from '@jetstream/types';
-import { Grid, GridCol, Icon, Modal, Spinner } from '@jetstream/ui';
+import { AxeIllustration, EmptyState, Grid, GridCol, Icon, Modal, Spinner } from '@jetstream/ui';
 import Editor from '@monaco-editor/react';
 import copyToClipboard from 'copy-to-clipboard';
 import { Field, FieldType } from 'jsforce';
@@ -45,8 +45,16 @@ export const QueryResultsGetRecAsApexModal: FunctionComponent<QueryResultsGetRec
       setFieldMetadata([]);
       setFieldTypesByName({});
       const metadata = await describeSObject(org, sobjectName);
+      // metadata will include namespace, but when we get the record from Salesforce it will not include the namespace
+      if (org.orgNamespacePrefix) {
+        const replaceRegex = new RegExp(`^${org.orgNamespacePrefix}__`);
+        metadata.data.fields = metadata.data.fields.map((field) => {
+          return { ...field, name: field.name.replace(replaceRegex, '') };
+        });
+      }
       const fieldTypeByApiName = metadata.data.fields.reduce((output: MapOf<FieldType>, field) => {
-        output[field.name] = field.type;
+        const replaceNamespace = org.orgNamespacePrefix ? `${org.orgNamespacePrefix}__` : '';
+        output[field.name.replace(replaceNamespace, '')] = field.type;
         return output;
       }, {});
       setLoading(false);
@@ -61,7 +69,7 @@ export const QueryResultsGetRecAsApexModal: FunctionComponent<QueryResultsGetRec
 
   useEffect(() => {
     fetchFieldMetadata();
-  }, [org, record, sobjectName]);
+  }, [fetchFieldMetadata, org, record, sobjectName]);
 
   useEffect(() => {
     setOptions((options) => ({ ...options, fieldMetadata: fieldTypesByName }));
@@ -75,7 +83,7 @@ export const QueryResultsGetRecAsApexModal: FunctionComponent<QueryResultsGetRec
     if (!loading && !hasError && setFieldMetadata) {
       setApex(recordToApex(record, options));
     }
-  }, [options]);
+  }, [hasError, loading, options, record]);
 
   function handleOptionsChange(partialOptions: Partial<RecordToApexOptionsInitialOptions>) {
     setOptions((options) => ({ ...options, ...partialOptions }));
@@ -146,6 +154,13 @@ export const QueryResultsGetRecAsApexModal: FunctionComponent<QueryResultsGetRec
                   options={{ contextmenu: false }}
                   onChange={handleEditorChange}
                 />
+              )}
+              {fields.length === 0 && (
+                <EmptyState
+                  headline="There are no fields matching your selected options"
+                  subHeading="Adjust your field options or your query to include additional fields."
+                  illustration={<AxeIllustration />}
+                ></EmptyState>
               )}
             </GridCol>
           </Grid>

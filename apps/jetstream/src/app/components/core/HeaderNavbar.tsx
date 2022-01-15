@@ -11,6 +11,7 @@ import OrgsDropdown from '../orgs/OrgsDropdown';
 import HeaderHelpPopover from './HeaderHelpPopover';
 import Jobs from './jobs/Jobs';
 import NotificationsRequestModal from './NotificationsRequestModal';
+import RecordLookupPopover from './record-lookup/RecordLookupPopover';
 
 export interface HeaderNavbarProps {
   userProfile: UserProfileUi;
@@ -86,7 +87,7 @@ export const HeaderNavbar: FunctionComponent<HeaderNavbarProps> = ({ userProfile
         logo={Logo}
         orgs={<OrgsDropdown />}
         userMenuItems={userMenuItems}
-        rightHandMenuItems={[<HeaderHelpPopover />, <Jobs />]}
+        rightHandMenuItems={[<RecordLookupPopover />, <HeaderHelpPopover />, <Jobs />]}
         onUserMenuItemSelected={handleUserMenuSelection}
       >
         <Navbar>
@@ -135,6 +136,7 @@ export const HeaderNavbar: FunctionComponent<HeaderNavbarProps> = ({ userProfile
             items={[
               { id: 'apex', path: '/apex', title: 'Anonymous Apex', label: 'Anonymous Apex' },
               { id: 'debug-logs', path: '/debug-logs', title: 'View Debug Logs', label: 'View Debug Logs' },
+              { id: 'sobject-export', path: '/object-export', title: 'Export Object Metadata', label: 'Export Object Metadata' },
               { id: 'salesforce-api', path: '/salesforce-api', title: 'Salesforce API', label: 'Salesforce API' },
               {
                 id: 'platform-event-monitor',

@@ -1,3 +1,4 @@
+import { css } from '@emotion/react';
 import { multiWordObjectFilter } from '@jetstream/shared/utils';
 import { Checkbox, Combobox, ComboboxListItem, Grid, Icon, Select } from '@jetstream/ui';
 import classNames from 'classnames';
@@ -38,18 +39,22 @@ function getComboboxRelatedFieldName(relatedFieldMetadata: FieldRelatedEntity) {
 }
 
 export interface LoadRecordsFieldMappingRowProps {
+  isCustomMetadataObject: boolean;
   fields: FieldWithRelatedEntities[];
   fieldMappingItem: FieldMappingItem;
   csvField: string;
   csvRowData: string;
+  binaryAttachmentBodyField?: string;
   onSelectionChanged: (csvField: string, fieldMappingItem: FieldMappingItem) => void;
 }
 
 export const LoadRecordsFieldMappingRow: FunctionComponent<LoadRecordsFieldMappingRowProps> = ({
+  isCustomMetadataObject,
   fields,
   fieldMappingItem,
   csvField,
   csvRowData,
+  binaryAttachmentBodyField,
   onSelectionChanged,
 }) => {
   const [textFilter, setTextFilter] = useState<string>('');
@@ -113,6 +118,7 @@ export const LoadRecordsFieldMappingRow: FunctionComponent<LoadRecordsFieldMappi
         selectedReferenceTo: undefined,
         lookupOptionUseFirstMatch: 'ERROR_IF_MULTIPLE',
         lookupOptionNullIfNoMatch: false,
+        isBinaryBodyField: false,
       });
     } else if (field.name !== fieldMappingItem.targetField) {
       onSelectionChanged(csvField, {
@@ -122,6 +128,7 @@ export const LoadRecordsFieldMappingRow: FunctionComponent<LoadRecordsFieldMappi
         targetLookupField: undefined,
         relationshipName: field.relationshipName,
         fieldMetadata: field,
+        isBinaryBodyField: !!binaryAttachmentBodyField && field.name === binaryAttachmentBodyField,
       });
     }
   }
@@ -169,6 +176,8 @@ export const LoadRecordsFieldMappingRow: FunctionComponent<LoadRecordsFieldMappi
       setTextFilter(value);
     }
   }
+
+  const isLookup = fieldMappingItem.targetField && Array.isArray(fieldMappingItem.fieldMetadata.referenceTo);
 
   return (
     <tr>
@@ -229,7 +238,19 @@ export const LoadRecordsFieldMappingRow: FunctionComponent<LoadRecordsFieldMappi
             </ComboboxListItem>
           ))}
         </Combobox>
-        {fieldMappingItem.targetField && Array.isArray(fieldMappingItem.fieldMetadata.referenceTo) && (
+        {isLookup && isCustomMetadataObject && (
+          <div
+            css={css`
+              white-space: pre-wrap;
+            `}
+          >
+            <Icon type="utility" icon="info" className="slds-icon slds-icon-text-default slds-icon_xx-small cursor-pointer" />
+            <span className="slds-m-left_x-small text-color_warning">
+              Custom Metadata lookup fields use the related record DeveloperName, not Id.
+            </span>
+          </div>
+        )}
+        {isLookup && !isCustomMetadataObject && (
           <Fragment>
             <div>
               <Checkbox

@@ -15,7 +15,6 @@ import {
   DeployResult,
   GenericRequestPayload,
   GoogleFileApiResponse,
-  ImageWithUpload,
   ListMetadataResult,
   ListMetadataResultRaw,
   ManualRequestPayload,
@@ -226,8 +225,8 @@ export async function queryAll<T = any>(
 ): Promise<API.QueryResults<T>> {
   const results = await query(org, soqlQuery, isTooling, includeDeletedRecords);
   if (!results.queryResults.done) {
-    const currentResults = queryRemaining(org, results.queryResults.nextRecordsUrl, isTooling);
-    results.queryResults.records = results.queryResults.records.concat(currentResults);
+    const currentResults = await queryRemaining(org, results.queryResults.nextRecordsUrl, isTooling);
+    results.queryResults.records = results.queryResults.records.concat(currentResults.queryResults.records);
     results.queryResults.nextRecordsUrl = null;
     results.queryResults.done = true;
   }
@@ -446,6 +445,17 @@ export async function bulkApiAddBatchToJob(
 ): Promise<BulkJobBatchInfo> {
   return handleRequest(
     { method: 'POST', url: `/api/bulk/${jobId}`, data: csv, headers: { [HTTP.HEADERS.CONTENT_TYPE]: HTTP.CONTENT_TYPE.CSV } },
+    { org }
+  ).then(unwrapResponseIgnoreCache);
+}
+
+export async function bulkApiAddBatchToJobWithAttachment(
+  org: SalesforceOrgUi,
+  jobId: string,
+  data: ArrayBuffer
+): Promise<BulkJobBatchInfo> {
+  return handleRequest(
+    { method: 'POST', url: `/api/bulk/zip/${jobId}`, data, headers: { [HTTP.HEADERS.CONTENT_TYPE]: HTTP.CONTENT_TYPE.ZIP } },
     { org }
   ).then(unwrapResponseIgnoreCache);
 }

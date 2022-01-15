@@ -1,57 +1,106 @@
-import { formatNumber } from '@jetstream/shared/ui-utils';
-import { orderStringsBy, pluralizeIfMultiple } from '@jetstream/shared/utils';
-import { Accordion, CopyToClipboard, EmptyState, NoContentIllustration, OpenRoadIllustration } from '@jetstream/ui';
-import { Fragment, FunctionComponent } from 'react';
-import PlatformEventMonitorEvent from './PlatformEventMonitorEvent';
+import { ColDef } from '@ag-grid-community/core';
+import { orderStringsBy } from '@jetstream/shared/utils';
+import { AutoFullHeightContainer, DataTable } from '@jetstream/ui';
+import { FunctionComponent, useEffect, useState } from 'react';
 import { MessagesByChannel } from './usePlatformEvent';
+
+const columns: ColDef[] = [
+  {
+    headerName: 'Event',
+    colId: 'event',
+    field: 'event',
+    width: 230,
+    rowGroup: true,
+    hide: true,
+    lockVisible: true,
+    lockPosition: true,
+    tooltipField: 'event',
+  },
+  {
+    headerName: 'Payload',
+    colId: 'payload',
+    field: 'payload',
+    width: 450,
+    wrapText: true,
+    autoHeight: true,
+  },
+  {
+    headerName: 'UUID',
+    colId: 'uuid',
+    field: 'uuid',
+    width: 160,
+    tooltipField: 'uuid',
+  },
+  {
+    headerName: 'Replay Id',
+    colId: 'replayId',
+    field: 'replayId',
+    width: 120,
+    tooltipField: 'replayId',
+  },
+];
+
+function getRowNodeId(data: PlatformEvenRow): string {
+  return data.uuid;
+}
+
+interface PlatformEvenRow {
+  event: string;
+  payload: string;
+  uuid: string;
+  replayId: number;
+}
 
 export interface PlatformEventMonitorEventsProps {
   messagesByChannel: MessagesByChannel;
 }
 
 export const PlatformEventMonitorEvents: FunctionComponent<PlatformEventMonitorEventsProps> = ({ messagesByChannel }) => {
-  const channels = orderStringsBy(Object.keys(messagesByChannel));
+  const [rows, setRows] = useState<PlatformEvenRow[]>([]);
+
+  useEffect(() => {
+    setRows(
+      orderStringsBy(Object.keys(messagesByChannel)).flatMap((channel) =>
+        messagesByChannel[channel].messages.map(
+          (message): PlatformEvenRow => ({
+            event: channel,
+            payload: JSON.stringify(message.payload),
+            uuid: message.event.EventUuid,
+            replayId: message.event.replayId,
+          })
+        )
+      )
+    );
+  }, [messagesByChannel]);
+
   return (
-    <Fragment>
-      {channels.length === 0 && (
-        <EmptyState headline="Subscribe to an event to see messages" illustration={<OpenRoadIllustration />}></EmptyState>
-      )}
-      {channels.length > 0 && (
-        <Accordion
-          initOpenIds={[]}
-          showExpandCollapseAll
-          allowMultiple
-          sections={channels.map((channel) => ({
-            id: channel,
-            title: (
-              <span>
-                {channel} ({formatNumber(messagesByChannel[channel].messages.length)}{' '}
-                {pluralizeIfMultiple('event', messagesByChannel[channel].messages)})
-              </span>
-            ), // TODO: make dynamic with num events etc.. maybe a little thing that blinks on new event?
-            className: '',
-            titleText: channel,
-            content:
-              messagesByChannel[channel].messages.length === 0 ? (
-                <EmptyState headline="There are no messages" illustration={<NoContentIllustration />}></EmptyState>
-              ) : (
-                <div>
-                  <CopyToClipboard
-                    className="slds-button_neutral"
-                    size="small"
-                    type="button"
-                    buttonText="Copy All Events to Clipboard"
-                    content={JSON.stringify(messagesByChannel[channel].messages, null, 2)}
-                  />
-                  {messagesByChannel[channel].messages.map((event) => (
-                    <PlatformEventMonitorEvent key={event.event.EventUuid} event={event} />
-                  ))}
-                </div>
-              ),
-          }))}
-        ></Accordion>
-      )}
-    </Fragment>
+    <AutoFullHeightContainer fillHeight setHeightAttr delayForSecondTopCalc>
+      <DataTable
+        columns={columns}
+        data={rows}
+        defaultMenuTabs={['filterMenuTab', 'generalMenuTab']}
+        agGridProps={{
+          immutableData: true,
+          getRowNodeId,
+          enableCellTextSelection: true,
+          enableRangeSelection: false,
+          autoGroupColumnDef: {
+            headerName: 'Event',
+            width: 200,
+            cellRenderer: 'agGroupCellRenderer',
+            filterParams: {
+              filters: [{ filter: 'agTextColumnFilter' }, { filter: 'agSetColumnFilter' }],
+            },
+            menuTabs: ['filterMenuTab'],
+            sortable: true,
+            resizable: true,
+            sort: 'asc',
+          },
+          showOpenedGroup: true,
+          groupDefaultExpanded: 1,
+        }}
+      />
+    </AutoFullHeightContainer>
   );
 };
 

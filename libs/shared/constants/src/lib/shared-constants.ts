@@ -44,6 +44,7 @@ export const HTTP = {
     X_SFDC_API_TARGET_VERSION: 'X-SFDC-API-TARGET-VERSION',
     X_SFDC_ORG_CONNECTION_ERROR: 'X-SFDC-ORG-CONNECTION-ERROR',
     X_SFDC_Session: 'X-SFDC-SESSION',
+    X_INCLUDE_CALL_OPTIONS: 'X_INCLUDE_CALL_OPTIONS',
     X_CACHE_RESPONSE: 'X-CACHE-RESPONSE',
     X_CACHE_KEY: 'X-CACHE-KEY',
     X_CACHE_AGE: 'X-CACHE-AGE',
@@ -60,6 +61,7 @@ export const HTTP = {
     XML: 'application/xml',
     XML_UTF8: 'application/xml; charset=UTF-8',
     CSV: 'text/csv; charset=UTF-8',
+    ZIP_CSV: 'zip/csv',
     ZIP: 'application/zip',
   },
 };
@@ -111,8 +113,10 @@ export const INDEXED_DB = {
     queryHistory: 'HISTORY:QUERY',
     apexHistory: 'HISTORY:APEX',
     salesforceApiHistory: 'HISTORY:SALESFORCE_API',
+    recordHistory: 'HISTORY:RECORDS',
     httpCache: 'HTTP:CACHE',
     userPreferences: 'USER:PREFERENCES',
+    sobjectExportSelection: 'USER:SOBJECT_EXPORT_OPTIONS',
   },
 };
 
@@ -157,6 +161,12 @@ export const ANALYTICS_KEYS = {
   query_MetadataQueryToggled: 'query_MetadataQueryToggled',
   query_RecordAction: 'query_RecordAction',
   query_ResetPage: 'query_ResetPage',
+  /** DOWNLOAD FILES */
+  attachment_QueriedEligibleObject: 'attachment_QueriedEligibleObject',
+  attachment_ModalOpened: 'attachment_ModalOpened',
+  attachment_Cancelled: 'attachment_Cancelled',
+  attachment_Downloaded: 'attachment_Downloaded',
+  attachment_Error: 'attachment_Error',
   /** LOAD */
   load_GoBackToPrevStep: 'load_GoBackToPrevStep',
   load_MappingAutomationChanged: 'load_MappingAutomationChanged',
@@ -164,6 +174,8 @@ export const ANALYTICS_KEYS = {
   load_MappingRowPreviewChanged: 'load_MappingRowPreviewChanged',
   load_StartOver: 'load_StartOver',
   load_Submitted: 'load_Submitted',
+  load_ViewRecords: 'load_ViewRecords',
+  load_DownloadRecords: 'load_DownloadRecords',
   /** ANON APEX */
   apex_Submitted: 'apex_Submitted',
   /** SFDC API */

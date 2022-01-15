@@ -26,12 +26,14 @@ const FILTER_UNMAPPED = 'UNMAPPED';
 export interface LoadRecordsFieldMappingProps {
   org: SalesforceOrgUi;
   sobject: string;
+  isCustomMetadataObject: boolean;
   fields: FieldWithRelatedEntities[];
   inputHeader: string[];
   fieldMapping: FieldMapping;
   fileData: any[]; // first row will be used to obtain header
   loadType: InsertUpdateUpsertDelete;
   externalId?: string;
+  binaryAttachmentBodyField?: string;
   onFieldMappingChange: (fieldMapping: FieldMapping) => void;
   onRefreshFields: () => Promise<void>;
 }
@@ -40,12 +42,14 @@ export const LoadRecordsFieldMapping = memo<LoadRecordsFieldMappingProps>(
   ({
     org,
     sobject,
+    isCustomMetadataObject,
     fields,
     inputHeader,
     fieldMapping: fieldMappingInit,
     fileData,
     loadType,
     externalId,
+    binaryAttachmentBodyField,
     onFieldMappingChange,
     onRefreshFields,
   }) => {
@@ -76,12 +80,32 @@ export const LoadRecordsFieldMapping = memo<LoadRecordsFieldMappingProps>(
       }
     }, [fieldMapping, onFieldMappingChange]);
 
+    /** Determine if we should show a warning message */
     useEffect(() => {
-      if (loadType === 'UPSERT' && !fieldMapping[externalId]?.targetField) {
-        setWarningMessage(`You must map the External Id field ${externalId}.`);
-      } else {
-        setWarningMessage(null);
+      if (loadType === 'UPSERT' || isCustomMetadataObject) {
+        const { labelMapped, developerNameMapped, externalIdMapped } = Object.values(fieldMapping).reduce(
+          (output, fieldMappingItem) => {
+            if (fieldMappingItem.targetField === 'Label') {
+              output.labelMapped = true;
+            } else if (fieldMappingItem.targetField === 'DeveloperName') {
+              output.developerNameMapped = true;
+            } else if (fieldMappingItem.targetField === externalId) {
+              output.externalIdMapped = true;
+            }
+            return output;
+          },
+          { labelMapped: false, developerNameMapped: false, externalIdMapped: false }
+        );
+
+        if (isCustomMetadataObject && (!labelMapped || !developerNameMapped)) {
+          setWarningMessage('Custom Metadata Objects must have Label and DeveloperName mapped.');
+          return;
+        } else if (!isCustomMetadataObject && !externalIdMapped) {
+          setWarningMessage(`Upsert requires the ExternalId filed ${externalId} to be mapped.`);
+          return;
+        }
       }
+      setWarningMessage(null);
     }, [externalId, fieldMapping, loadType]);
 
     useNonInitialEffect(() => {
@@ -116,7 +140,7 @@ export const LoadRecordsFieldMapping = memo<LoadRecordsFieldMappingProps>(
           trackEvent(ANALYTICS_KEYS.load_MappingAutomationChanged, { action: id });
           break;
         case MAPPING_RESET:
-          setFieldMapping(autoMapFields(inputHeader, fields));
+          setFieldMapping(autoMapFields(inputHeader, fields, binaryAttachmentBodyField));
           setFilter(FILTER_ALL);
           trackEvent(ANALYTICS_KEYS.load_MappingAutomationChanged, { action: id });
           break;
@@ -158,6 +182,11 @@ export const LoadRecordsFieldMapping = memo<LoadRecordsFieldMappingProps>(
           {warningMessage && (
             <Alert type="warning" leadingIcon="info">
               <strong>{warningMessage}</strong>
+            </Alert>
+          )}
+          {isCustomMetadataObject && !warningMessage && (
+            <Alert type="info" leadingIcon="info">
+              Custom metadata will always perform an upsert based on the <strong>DeveloperName</strong>.
             </Alert>
           )}
         </GridCol>
@@ -261,6 +290,7 @@ export const LoadRecordsFieldMapping = memo<LoadRecordsFieldMappingProps>(
               {visibleHeaders.map((header, i) => (
                 <LoadRecordsFieldMappingRow
                   key={`${keyPrefix}-${i}`}
+                  isCustomMetadataObject={isCustomMetadataObject}
                   fields={fields}
                   fieldMappingItem={fieldMapping[header]}
                   csvField={header}
