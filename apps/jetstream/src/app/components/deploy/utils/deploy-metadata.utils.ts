@@ -109,7 +109,7 @@ export function getColumnDefinitions(): ColDef[] {
           { filter: 'agTextColumnFilter' },
           {
             filter: 'agSetColumnFilter',
-            filterParams: { valueFormatter: ({ value }: ValueFormatterParams) => decodeURIComponent(value || '') },
+            filterParams: { valueFormatter: ({ value }: ValueFormatterParams) => decodeURIComponent(value || ''), showTooltip: true },
           },
         ],
       },
@@ -129,7 +129,10 @@ export function getColumnDefinitions(): ColDef[] {
       getQuickFilterText: dataTableDateFormatter,
       filterParams: {
         comparator: DateFilterComparator,
-        filters: [{ filter: 'agDateColumnFilter', filterParams: { defaultOption: 'greaterThan' } }, { filter: 'agSetColumnFilter' }],
+        filters: [
+          { filter: 'agDateColumnFilter', filterParams: { defaultOption: 'greaterThan' } },
+          { filter: 'agSetColumnFilter', filterParams: { showTooltips: true } },
+        ],
       },
     },
     {
@@ -147,7 +150,10 @@ export function getColumnDefinitions(): ColDef[] {
       getQuickFilterText: dataTableDateFormatter,
       filterParams: {
         comparator: DateFilterComparator,
-        filters: [{ filter: 'agDateColumnFilter', filterParams: { defaultOption: 'greaterThan' } }, { filter: 'agSetColumnFilter' }],
+        filters: [
+          { filter: 'agDateColumnFilter', filterParams: { defaultOption: 'greaterThan' } },
+          { filter: 'agSetColumnFilter', filterParams: { showTooltips: true } },
+        ],
       },
     },
     {

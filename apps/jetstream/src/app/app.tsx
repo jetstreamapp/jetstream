@@ -1,4 +1,5 @@
 import { css } from '@emotion/react';
+import { FEATURE_FLAGS } from '@jetstream/shared/constants';
 import { hasFeatureFlagAccess } from '@jetstream/shared/ui-utils';
 import { UserProfileUi } from '@jetstream/types';
 import { ConfirmationServiceProvider } from '@jetstream/ui';

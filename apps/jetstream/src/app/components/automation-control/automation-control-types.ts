@@ -1,25 +1,60 @@
-import { QueryResult } from 'jsforce';
 import { MapOf } from '@jetstream/types';
+import { QueryResult } from 'jsforce';
 
 export type ValidationRule = 'ValidationRule';
 export type WorkflowRule = 'WorkflowRule';
-export type Flow = 'Flow';
-export type FlowDefinition = 'FlowDefinition';
+export type FlowProcessBuilder = 'FlowProcessBuilder';
+export type FlowRecordTriggered = 'FlowRecordTriggered';
 export type ApexTrigger = 'ApexTrigger';
 
-export type AutomationMetadataType = ValidationRule | WorkflowRule | Flow | ApexTrigger;
-export type AutomationMetadataDeployType = ValidationRule | WorkflowRule | FlowDefinition | ApexTrigger;
+export type AutomationMetadataType = ValidationRule | WorkflowRule | FlowProcessBuilder | FlowRecordTriggered | ApexTrigger;
 
-type AutomationControlMetadataTypeGeneric =
-  | ToolingValidationRuleRecord
-  | ToolingWorkflowRuleRecord
-  | ToolingFlowDefinitionWithVersions
-  | ToolingApexTriggerRecord
-  | ToolingFlowRecord;
+export interface FetchSuccessPayload {
+  type: keyof StateData;
+  records: ToolingApexTriggerRecord[] | ToolingValidationRuleRecord[] | ToolingWorkflowRuleRecord[] | FlowViewRecord[];
+}
 
-export interface DirtyAutomationItems {
-  anyDirty: boolean;
-  itemsById: MapOf<boolean>;
+export interface FetchErrorPayload {
+  type: keyof StateData;
+  error: string;
+}
+
+export interface StateData {
+  ApexTrigger: {
+    loading: boolean;
+    skip: boolean;
+    error?: string;
+    records: ToolingApexTriggerRecord[];
+    tableRow: TableRow;
+  };
+  ValidationRule: {
+    loading: boolean;
+    skip: boolean;
+    error?: string;
+    records: ToolingValidationRuleRecord[];
+    tableRow: TableRow;
+  };
+  WorkflowRule: {
+    loading: boolean;
+    skip: boolean;
+    error?: string;
+    records: ToolingWorkflowRuleRecord[];
+    tableRow: TableRow;
+  };
+  FlowRecordTriggered: {
+    loading: boolean;
+    skip: boolean;
+    error?: string;
+    records: FlowViewRecord[];
+    tableRow: TableRow;
+  };
+  FlowProcessBuilder: {
+    loading: boolean;
+    skip: boolean;
+    error?: string;
+    records: FlowViewRecord[];
+    tableRow: TableRow;
+  };
 }
 
 export type DeploymentItemStatus =
@@ -35,7 +70,7 @@ export type DeploymentItemStatus =
 export type DeploymentItemMap = MapOf<DeploymentItem>;
 export interface DeploymentItem {
   status: DeploymentItemStatus;
-  metadata: AutomationControlMetadataTypeItem;
+  metadata: TableRowItem;
   deploy: AutomationControlDeploymentItem;
 }
 
@@ -56,9 +91,9 @@ export interface MetadataCompositeResponseError {
 }
 
 export interface AutomationControlDeploymentItem {
-  type: AutomationMetadataDeployType;
+  type: AutomationMetadataType;
   id: string;
-  activeVersion?: number; // only applies to flows
+  activeVersionNumber?: number; // only applies to flows
   value: boolean;
   requireMetadataApi: boolean;
   metadataRetrieve?: MetadataCompositeResponseSuccess;
@@ -75,63 +110,6 @@ export interface DeploymentItemByType {
   flows: AutomationControlDeploymentItem[];
 }
 
-export interface AutomationItems {
-  ValidationRule: AutomationControlMetadataType<ToolingValidationRuleRecord, null>;
-  WorkflowRule: AutomationControlMetadataType<ToolingWorkflowRuleRecord, null>;
-  Flow: AutomationControlMetadataType<ToolingFlowDefinitionWithVersions, ToolingFlowRecord>;
-  ApexTrigger: AutomationControlMetadataType<ToolingApexTriggerRecord, null>;
-}
-
-export interface AutomationItemsChildren {
-  key: string;
-  sobjectName: string;
-  sobjectLabel: string;
-  automationItems: {
-    ValidationRule: AutomationControlMetadataTypeItem<ToolingValidationRuleRecord, null>[];
-    WorkflowRule: AutomationControlMetadataTypeItem<ToolingWorkflowRuleRecord, null>[];
-    Flow: AutomationControlMetadataTypeItem<ToolingFlowDefinitionWithVersions, ToolingFlowRecord>[];
-    ApexTrigger: AutomationControlMetadataTypeItem<ToolingApexTriggerRecord, null>[];
-  };
-}
-
-export interface AutomationControlParentSobject {
-  key: string;
-  entityDefinitionId: string;
-  entityDefinitionRecord: ToolingEntityDefinitionRecord;
-  sobjectName: string;
-  sobjectLabel: string;
-  loading: boolean;
-  hasLoaded: boolean;
-  inProgress: boolean;
-  error: boolean;
-  automationItems: AutomationItems;
-}
-
-export interface AutomationControlMetadataType<T = AutomationControlMetadataTypeGeneric, K = void | ToolingFlowRecord> {
-  metadataType: string;
-  loading: boolean;
-  hasLoaded: boolean;
-  errorMessage?: string;
-  expanded: boolean;
-  items: AutomationControlMetadataTypeItem<T, K>[];
-}
-
-export interface AutomationControlMetadataTypeItem<T = AutomationControlMetadataTypeGeneric, K = void | ToolingFlowRecord> {
-  key: string;
-  fullName: string;
-  label: string;
-  description: string;
-  initialValue: boolean;
-  currentValue: boolean;
-  initialActiveVersion?: number; // only applies to item with versions (Flow)
-  currentActiveVersion?: number; // only applies to item with versions (Flow)
-  expanded?: boolean; // only applies to items with children
-  children?: AutomationControlMetadataTypeItem<K>[]; // flows is the only type with children
-  LastModifiedDate: string;
-  LastModifiedByName: string;
-  metadata: T;
-}
-
 // TODO: move to salesforce types
 interface RecordAttributes {
   type: string;
@@ -141,24 +119,14 @@ interface SystemFields {
   attributes: RecordAttributes;
   Id: string;
   CreatedDate: string;
-  CreatedBy: { attributes: RecordAttributes; Name: string };
+  CreatedBy: { attributes: RecordAttributes; Id: string; Name: string; Username: string };
   LastModifiedDate: string;
-  LastModifiedBy: { attributes: RecordAttributes; Name: string };
-}
-
-export interface ToolingMetadataComponentDependencyRecord {
-  Id: string;
-  RefMetadataComponentId: string;
-  RefMetadataComponentType: string;
-  RefMetadataComponentName: string;
-  MetadataComponentId: string;
-  MetadataComponentType: string;
-  MetadataComponentName: string;
-  MetadataComponentNamespace: string;
+  LastModifiedBy: { attributes: RecordAttributes; Id: string; Name: string; Username: string };
 }
 
 export interface ToolingValidationRuleRecord extends SystemFields {
   EntityDefinitionId: string;
+  EntityDefinition: { QualifiedApiName: string };
   ValidationName: string;
   Active: boolean;
   Description: string;
@@ -172,30 +140,8 @@ export interface ToolingApexTriggerRecord extends SystemFields {
   Name: string;
   ApiVersion: string;
   EntityDefinitionId: string;
+  EntityDefinition: { QualifiedApiName: string };
   Status: 'Inactive' | 'Active' | 'Deleted';
-}
-
-export interface ToolingEntityDefinitionRecord {
-  attributes: {};
-  Id: string;
-  QualifiedApiName: string;
-  MasterLabel: string;
-  Label: string;
-  PluralLabel: string;
-  Description: string;
-  DetailUrl: string;
-  DeveloperName: string;
-  DurableId: string;
-  EditDefinitionUrl: string;
-  EditUrl: string;
-  KeyPrefix: string;
-  LastModifiedDate: string;
-  NamespacePrefix: string;
-  NewUrl: string;
-  PublisherId: string | '<local>' | 'System';
-  LastModifiedById: string;
-  ApexTriggers: QueryResult<ToolingApexTriggerRecord>;
-  ValidationRules: QueryResult<ToolingValidationRuleRecord>;
 }
 
 export interface ToolingWorkflowRuleRecord extends SystemFields {
@@ -212,41 +158,39 @@ export interface ToolingFlowAggregateRecord {
   DefinitionId: string;
 }
 
-export interface ToolingFlowRecord extends SystemFields {
-  Description: string;
-  MasterLabel: string;
-  DefinitionId: string;
-  ManageableState: string;
-  ProcessType: 'AutoLaunchedFlow' | 'Workflow' | 'InvocableProcess';
-  Status: 'Active' | 'Draft' | 'Obsolete' | 'InvalidDraft';
-  VersionNumber: number;
-}
-
-export interface ToolingFlowRecordWithDefinition extends ToolingFlowRecord {
-  Definition: ToolingFlowDefinition;
-}
-
-export interface ToolingFlowDefinition extends SystemFields {
-  Id: string;
-  Description: string;
-  DeveloperName: string;
-  MasterLabel: string;
+export interface FlowViewRecord extends Omit<SystemFields, 'CreatedDate' | 'CreatedBy' | 'LastModifiedBy'> {
   ActiveVersionId: string;
-  ActiveVersion?: { VersionNumber: number };
+  Label: string;
+  ApiName: string;
+  Description: string;
+  DurableId: string;
+  IsActive: boolean;
   LatestVersionId: string;
-  LatestVersion?: { VersionNumber: number };
-  ManageableState: string;
-  NamespacePrefix: string;
+  LastModifiedBy: string;
+  ProcessType: 'AutoLaunchedFlow' | 'Workflow' | 'InvocableProcess';
+  // ID of the object or platform event that triggers this flow. This field is available in API version 53.0 and later.
+  TriggerObjectOrEventId?: string;
+  TriggerObjectOrEvent?: { QualifiedApiName: string };
+  // The label of the object or platform event that triggers this flow. This field is available in API version 53.0 and later.
+  TriggerObjectOrEventLabel?: string;
+  // Available only when processType is AutoLaunchedFlow. This field is available in API version 47.0 and later.
+  TriggerType?: 'PlatformEvent' | 'RecordAfterSave' | 'RecordBeforeSave' | 'Scheduled';
+  Versions: QueryResult<ToolingFlowVersionRecord>;
 }
 
-export interface ToolingFlowDefinitionWithVersions extends ToolingFlowDefinition {
-  Versions: ToolingFlowRecord[];
+export interface ToolingFlowVersionRecord {
+  Id: string;
+  ApiVersion: string;
+  ApiVersionRuntime: string;
+  DurableId: string;
+  LastModifiedDate: string;
+  ProcessType: string;
+  RunInMode: string;
+  Description: string;
+  Label: string;
+  VersionNumber: number;
+  Status: 'Active' | 'Draft' | 'Obsolete' | 'InvalidDraft';
 }
-
-// export interface ToolingWorkflowRuleRecordWithMetadata {
-//   tooling: ToolingWorkflowRuleRecord;
-//   metadata: MetadataWorkflowRuleRecord;
-// }
 
 export interface MetadataValidationRuleRecord {
   description: string;
@@ -363,4 +307,76 @@ export interface FlowMetadata {
   urls?: any;
   variables: any[];
   waits: any[];
+}
+
+export interface TableContext {
+  updateIsActiveFlag: (row: TableRowOrItemOrChild, value: boolean) => void;
+}
+
+export type TableRowOrItemOrChild = TableRow | TableRowItem | TableRowItemChild;
+export type TableRowItemOrChild = TableRowItem | TableRowItemChild;
+
+export type TableRowItemSnapshot = Pick<TableRowItem, 'key' | 'type' | 'sobject' | 'isActive' | 'activeVersionNumber'>;
+
+export interface TableRow {
+  path: [string];
+  key: string;
+  type: AutomationMetadataType;
+  label: string;
+  loading: boolean;
+  hasError: boolean;
+  errorMessage?: string;
+  items: TableRowItem[];
+}
+
+export interface TableRowItem {
+  path: [string, string];
+  key: string;
+  parentKey: string;
+  type: AutomationMetadataType;
+  sobject: string;
+  record: ToolingApexTriggerRecord | ToolingValidationRuleRecord | ToolingWorkflowRuleRecord | FlowViewRecord;
+  link: string;
+  /** True for Flow and PB as this is controlled from children */
+  readOnly: boolean;
+  isActive: boolean;
+  isActiveInitialState: boolean;
+  /** only applies to activeVersionId and PB */
+  activeVersionNumber?: number;
+  activeVersionNumberInitialState?: number;
+  label: string;
+  lastModifiedBy: string;
+  description: string | null;
+  additionalData: TableItemAdditionalData[];
+  children?: TableRowItemChild[];
+}
+
+export interface TableRowItemChild {
+  path: [string, string, string];
+  key: string;
+  parentKey: string;
+  type: AutomationMetadataType;
+  sobject: string;
+  record: ToolingFlowVersionRecord;
+  link?: string;
+  isActive: boolean;
+  isActiveInitialState: boolean;
+  label: string;
+  lastModifiedBy: string;
+  description: string | null;
+  additionalData: TableItemAdditionalData[];
+}
+
+export interface TableItemAdditionalData {
+  label: string;
+  value: string;
+}
+
+export interface TableEditorImperativeHandle {
+  resetChanges: () => void;
+  // Select all does not work well for flows/process builders since there is a version that needs to be selected
+  // selectAll: (value: boolean) => void;
+  getDirtyRows: () => TableRowItem[];
+  refreshProcessBuilders: () => void;
+  refreshAfterDeploy: () => void;
 }

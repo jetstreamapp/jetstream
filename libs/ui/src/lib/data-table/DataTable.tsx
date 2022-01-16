@@ -87,6 +87,9 @@ export const DataTable: FunctionComponent<DataTableProps> = ({
         headerHeight={25}
         defaultColDef={{
           filter: 'agMultiColumnFilter',
+          filterParams: {
+            filters: [{ filter: 'agTextColumnFilter' }, { filter: 'agSetColumnFilter', filterParams: { showTooltips: true } }],
+          },
           menuTabs: defaultMenuTabs,
           sortable: true,
           resizable: true,
