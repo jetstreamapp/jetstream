@@ -8,6 +8,7 @@ export const SFDC_BULK_API_NULL_VALUE = '#N/A';
 export const FEATURE_FLAGS = Object.freeze({
   ALL: 'all',
   AUTOMATION_CONTROL: 'automation-control',
+  AUTOMATION_CONTROL_NEW: 'automation-control-new',
   QUERY: 'query',
   LOAD: 'load',
   LOAD_MULTI_OBJ: 'load-multi-object',
@@ -108,6 +109,7 @@ export const fileExtToGoogleDriveMimeType = {
 
 export const INDEXED_DB = {
   KEYS: {
+    automationControlHistory: 'AUTOMATION:QUERY',
     queryHistory: 'HISTORY:QUERY',
     apexHistory: 'HISTORY:APEX',
     salesforceApiHistory: 'HISTORY:SALESFORCE_API',
@@ -140,6 +142,14 @@ export const ANALYTICS_KEYS = {
   /** Browser Notifications */
   notifications_modal_opened: 'notifications_modal_opened',
   notifications_permission_requested: 'notifications_permission_requested',
+  /** AUTOMATION CONTROL */
+  automation_selection: 'automation_selection',
+  automation_review: 'automation_review',
+  automation_deploy: 'automation_deploy',
+  automation_rollback: 'automation_rollback',
+  automation_toggle_all: 'automation_toggle_all',
+  automation_process_builder_refresh: 'automation_process_builder_refresh',
+  automation_export: 'automation_export',
   /** QUERY */
   query_BulkDelete: 'query_BulkDelete',
   query_CopyToClipboard: 'query_CopyToClipboard',

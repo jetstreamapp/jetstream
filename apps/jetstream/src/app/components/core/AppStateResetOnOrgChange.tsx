@@ -37,10 +37,6 @@ export const AppStateResetOnOrgChange: FunctionComponent<AppStateResetOnOrgChang
     useResetRecoilState(fromLoadState.fieldMappingState),
     // AUTOMATION-CONTROL
     useResetRecoilState(fromAutomationControlState.sObjectsState),
-    useResetRecoilState(fromAutomationControlState.itemIds),
-    useResetRecoilState(fromAutomationControlState.itemsById),
-    useResetRecoilState(fromAutomationControlState.activeItemId),
-    useResetRecoilState(fromAutomationControlState.tabs),
     // Manage Permissions
     useResetRecoilState(fromPermissionsState.profilesState),
     useResetRecoilState(fromPermissionsState.selectedProfilesPermSetState),

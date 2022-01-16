@@ -30,6 +30,7 @@ import StandardIcon_Settings from './icons/standard/Settings';
 import UtilityIcon_Add from './icons/utility/Add';
 import UtilityIcon_Apex from './icons/utility/Apex';
 import UtilityIcon_ApexPlugin from './icons/utility/ApexPlugin';
+import UtilityIcon_Archive from './icons/utility/Archive';
 import UtilityIcon_Arrowdown from './icons/utility/Arrowdown';
 import UtilityIcon_Arrowup from './icons/utility/Arrowup';
 import UtilityIcon_Back from './icons/utility/Back';
@@ -140,6 +141,7 @@ const utilityIcons: UtilityIconObj = {
   add: UtilityIcon_Add,
   apex_plugin: UtilityIcon_ApexPlugin,
   apex: UtilityIcon_Apex,
+  archive: UtilityIcon_Archive,
   arrowdown: UtilityIcon_Arrowdown,
   arrowup: UtilityIcon_Arrowup,
   back: UtilityIcon_Back,
