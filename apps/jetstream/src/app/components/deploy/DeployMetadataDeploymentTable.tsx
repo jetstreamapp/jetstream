@@ -146,7 +146,7 @@ export const DeployMetadataDeploymentTable: FunctionComponent<DeployMetadataDepl
                 filters: [
                   { filter: 'metadataFilterItemsWithNoChildren' },
                   { filter: 'agTextColumnFilter' },
-                  { filter: 'agSetColumnFilter' },
+                  { filter: 'agSetColumnFilter', filterParams: { showTooltips: true } },
                 ],
               },
               menuTabs: ['filterMenuTab'],

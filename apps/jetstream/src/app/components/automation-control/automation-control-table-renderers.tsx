@@ -1,12 +1,17 @@
 import { ICellRendererParams } from '@ag-grid-community/core';
 import { css } from '@emotion/react';
-import { Checkbox, CopyToClipboard, Grid, GridCol, Icon, SalesforceLogin, Spinner, Tooltip } from '@jetstream/ui';
+import { Checkbox, CopyToClipboard, Grid, GridCol, Icon, Spinner, Tooltip } from '@jetstream/ui';
 import classNames from 'classnames';
 import { isNumber, uniqueId } from 'lodash';
 import { Fragment, FunctionComponent } from 'react';
-import { DeploymentItem, DeploymentItemStatus } from '../automation-control-types';
 import { isTableRow, isTableRowItem } from './automation-control-data-utils';
-import { MetadataCompositeResponseError, TableContext, TableRowOrItemOrChild } from './automation-control-types';
+import {
+  DeploymentItem,
+  DeploymentItemStatus,
+  MetadataCompositeResponseError,
+  TableContext,
+  TableRowOrItemOrChild,
+} from './automation-control-types';
 
 export const LoadingAndActiveRenderer: FunctionComponent<ICellRendererParams> = ({ value, node, context }) => {
   const data = node.data as TableRowOrItemOrChild;
@@ -50,18 +55,19 @@ export const LoadingAndActiveRenderer: FunctionComponent<ICellRendererParams> = 
   }
 };
 
-export const TreeItemWithLinkRenderer: FunctionComponent<ICellRendererParams> = ({ value, node, context }) => {
-  const data = node.data as TableRowOrItemOrChild;
+// Adding this caused the value to "flash" each time the component is re-rendered
+// export const TreeItemWithLinkRenderer: FunctionComponent<ICellRendererParams> = ({ value, node, context }) => {
+//   const data = node.data as TableRowOrItemOrChild;
 
-  if (!isTableRow(data) && data.link && context?.serverUrl && context?.selectedOrg) {
-    return (
-      <SalesforceLogin serverUrl={context.serverUrl} org={context.selectedOrg} returnUrl={data.link} iconPosition="right">
-        {value}
-      </SalesforceLogin>
-    );
-  }
-  return value;
-};
+//   if (!isTableRow(data) && data.link && context?.serverUrl && context?.selectedOrg) {
+//     return (
+//       <SalesforceLogin serverUrl={context.serverUrl} org={context.selectedOrg} returnUrl={data.link} iconPosition="right">
+//         {value}
+//       </SalesforceLogin>
+//     );
+//   }
+//   return value;
+// };
 
 export const AdditionalDetailRenderer: FunctionComponent<ICellRendererParams> = ({ value, node }) => {
   const data = node.data as TableRowOrItemOrChild;
@@ -69,14 +75,24 @@ export const AdditionalDetailRenderer: FunctionComponent<ICellRendererParams> = 
   if (!isTableRow(data) && Array.isArray(data.additionalData) && data.additionalData.length > 0) {
     return (
       <Fragment>
-        {data.additionalData.map(({ label, value }) => (
-          <div key={label} className="slds-text-body_regular">
-            <span className="slds-m-right_x-small">
-              <strong>{label}</strong>
-            </span>
-            <span title={value}>{value}</span>
-          </div>
-        ))}
+        {data.additionalData.map(({ label, value }, i) => {
+          // Treat as heading
+          if (value === null) {
+            return (
+              <div key={`${label}-${i}`} className="slds-text-body_regular">
+                <span className="slds-text-title_caps">{label}</span>
+              </div>
+            );
+          }
+          return (
+            <div key={`${label}-${i}`} className="slds-text-body_regular">
+              <span className="slds-m-right_x-small">
+                <strong>{label}</strong>
+              </span>
+              <span title={value}>{value}</span>
+            </div>
+          );
+        })}
       </Fragment>
     );
   }

@@ -20,7 +20,7 @@ import { Link } from 'react-router-dom';
 import Split from 'react-split';
 import { useTitle } from 'react-use';
 import { useRecoilState, useRecoilValue } from 'recoil';
-import { selectedOrgState } from '../../../app-state';
+import { selectedOrgState } from '../../app-state';
 import { AutomationMetadataType } from './automation-control-types';
 import * as fromAutomationCtlState from './automation-control.state';
 

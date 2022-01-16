@@ -1,9 +1,12 @@
 import { logger } from '@jetstream/shared/client-logger';
+import { ANALYTICS_KEYS } from '@jetstream/shared/constants';
 import { useRollbar } from '@jetstream/shared/ui-utils';
 import { MapOf, SalesforceOrgUi } from '@jetstream/types';
 import { useCallback, useEffect, useReducer, useRef } from 'react';
+import { useAmplitude } from '../core/analytics';
 import {
   fetchAutomationData,
+  getAdditionalItemsWorkflowRuleText,
   getAutomationTypeLabel,
   getProcessBuildersMetadata,
   isFetchSuccess,
@@ -315,72 +318,74 @@ function getRowsForItems({ type, records }: MetadataRecordType, loading: boolean
 
   switch (type) {
     case 'ApexTrigger': {
-      output.items = (records as ToolingApexTriggerRecord[]).map((record) => ({
-        path: [typeLabel, record.Name],
-        key: `${type}_${record.Id}`,
-        parentKey: type,
-        type,
-        record,
-        link: `/lightning/setup/ObjectManager/${record.EntityDefinitionId}/ApexTriggers/${record.Id}/view`,
-        sobject: record.EntityDefinition.QualifiedApiName,
-        readOnly: false,
-        isActive: record.Status === 'Active',
-        isActiveInitialState: record.Status === 'Active',
-        label: record.Name,
-        lastModifiedBy: `${record.LastModifiedBy.Name} ${record.LastModifiedDate}`,
-        description: '',
-        additionalData: [],
-      }));
+      output.items = (records as ToolingApexTriggerRecord[]).map(
+        (record): TableRowItem => ({
+          path: [typeLabel, record.Name],
+          key: `${type}_${record.Id}`,
+          parentKey: type,
+          type,
+          record,
+          link: `/lightning/setup/ObjectManager/${record.EntityDefinitionId}/ApexTriggers/${record.Id}/view`,
+          sobject: record.EntityDefinition.QualifiedApiName,
+          readOnly: false,
+          isActive: record.Status === 'Active',
+          isActiveInitialState: record.Status === 'Active',
+          label: record.Name,
+          lastModifiedBy: `${record.LastModifiedBy.Name} ${record.LastModifiedDate}`,
+          description: '',
+          additionalData: [],
+        })
+      );
       break;
     }
     case 'ValidationRule': {
-      output.items = (records as ToolingValidationRuleRecord[]).map((record) => ({
-        path: [typeLabel, record.ValidationName],
-        key: `${type}_${record.Id}`,
-        parentKey: type,
-        type,
-        record,
-        link: `/lightning/setup/ObjectManager/${record.EntityDefinitionId}/ValidationRules/${record.Id}/view`,
-        sobject: record.EntityDefinition.QualifiedApiName,
-        readOnly: false,
-        isActive: record.Active,
-        isActiveInitialState: record.Metadata.active,
-        label: record.ValidationName,
-        lastModifiedBy: `${record.LastModifiedBy.Name} ${record.LastModifiedDate}`,
-        description: record.Description,
-        additionalData: [
-          { label: 'Condition', value: record.Metadata.errorConditionFormula },
-          { label: 'Message', value: record.ErrorMessage },
-        ],
-      }));
+      output.items = (records as ToolingValidationRuleRecord[]).map(
+        (record): TableRowItem => ({
+          path: [typeLabel, record.ValidationName],
+          key: `${type}_${record.Id}`,
+          parentKey: type,
+          type,
+          record,
+          link: `/lightning/setup/ObjectManager/${record.EntityDefinitionId}/ValidationRules/${record.Id}/view`,
+          sobject: record.EntityDefinition.QualifiedApiName,
+          readOnly: false,
+          isActive: record.Active,
+          isActiveInitialState: record.Metadata.active,
+          label: record.ValidationName,
+          lastModifiedBy: `${record.LastModifiedBy.Name} ${record.LastModifiedDate}`,
+          description: record.Description,
+          additionalData: [
+            { label: 'Condition', value: record.Metadata.errorConditionFormula },
+            { label: 'Message', value: record.ErrorMessage },
+          ],
+        })
+      );
       break;
     }
     case 'WorkflowRule': {
-      output.items = (records as ToolingWorkflowRuleRecord[]).map((record) => ({
-        path: [typeLabel, record.Name],
-        key: `${type}_${record.Id}`,
-        parentKey: type,
-        type,
-        record,
-        link: `/lightning/setup/WorkflowRules/page?address=%2F${record.Id}&nodeId=WorkflowRules`,
-        sobject: record.TableEnumOrId,
-        readOnly: false,
-        isActive: record.Metadata.active,
-        isActiveInitialState: record.Metadata.active,
-        label: record.Name,
-        lastModifiedBy: `${record.LastModifiedBy.Name} ${record.LastModifiedDate}`,
-        description: record.Metadata.description,
-        additionalData: [
-          { label: 'Criteria', value: record.Metadata.formula },
-          // TODO: this is a lot more complex
-          // {label: 'Actions', value: record.Metadata.errorConditionFormula},
-        ],
-      }));
+      output.items = (records as ToolingWorkflowRuleRecord[]).map(
+        (record): TableRowItem => ({
+          path: [typeLabel, record.Name],
+          key: `${type}_${record.Id}`,
+          parentKey: type,
+          type,
+          record,
+          link: `/lightning/setup/WorkflowRules/page?address=%2F${record.Id}&nodeId=WorkflowRules`,
+          sobject: record.TableEnumOrId,
+          readOnly: false,
+          isActive: record.Metadata.active,
+          isActiveInitialState: record.Metadata.active,
+          label: record.Name,
+          lastModifiedBy: `${record.LastModifiedBy.Name} ${record.LastModifiedDate}`,
+          description: record.Metadata.description,
+          additionalData: getAdditionalItemsWorkflowRuleText(record.Metadata),
+        })
+      );
       break;
     }
     case 'FlowRecordTriggered':
     case 'FlowProcessBuilder': {
-      output.items = (records as FlowViewRecord[]).map((record) => {
+      output.items = (records as FlowViewRecord[]).map((record): TableRowItem => {
         const activeVersionNumber =
           record.Versions.records.find(({ DurableId }) => record.ActiveVersionId === DurableId)?.VersionNumber || null;
         return {
@@ -503,6 +508,7 @@ export function useAutomationControlData({
   selectedAutomationTypes: AutomationMetadataType[];
 }) {
   const isMounted = useRef(null);
+  const { trackEvent } = useAmplitude();
   const rollbar = useRollbar();
 
   const [{ loading, hasError, errorMessage, data, rows, dirtyCount }, dispatch] = useReducer(reducer, {
@@ -538,6 +544,7 @@ export function useAutomationControlData({
 
   useEffect(() => {
     isMounted.current = true;
+    trackEvent(ANALYTICS_KEYS.automation_selection, { selectedSObjects: selectedSObjects.length, types: selectedAutomationTypes });
     return () => {
       isMounted.current = false;
     };
@@ -549,10 +556,12 @@ export function useAutomationControlData({
 
   const resetChanges = useCallback(() => {
     dispatch({ type: 'RESET' });
+    trackEvent(ANALYTICS_KEYS.automation_toggle_all, { type: 'reset' });
   }, []);
 
   const toggleAll = useCallback((value: boolean) => {
     dispatch({ type: 'TOGGLE_ALL', payload: { value } });
+    trackEvent(ANALYTICS_KEYS.automation_toggle_all, { type: value ? 'all' : 'none' });
   }, []);
 
   const fetchData = useCallback(async () => {
@@ -589,6 +598,7 @@ export function useAutomationControlData({
 
   const refreshProcessBuilders = useCallback(async () => {
     dispatch({ type: 'FETCH_REFRESH', payload: { selectedTypes: ['FlowProcessBuilder'] } });
+    trackEvent(ANALYTICS_KEYS.automation_process_builder_refresh);
     try {
       const records = await getProcessBuildersMetadata(selectedOrg, defaultApiVersion, selectedSObjects, true);
       dispatch({ type: 'FETCH_SUCCESS', payload: { type: 'FlowProcessBuilder', records } });
@@ -599,9 +609,9 @@ export function useAutomationControlData({
     }
   }, [defaultApiVersion, selectedOrg, selectedSObjects]);
 
-  const restoreSnapshot = useCallback((snapshot: TableRowItemSnapshot[]) => {
-    dispatch({ type: 'RESTORE_SNAPSHOT', payload: { snapshot } });
-  }, []);
+  // const restoreSnapshot = useCallback((snapshot: TableRowItemSnapshot[]) => {
+  //   dispatch({ type: 'RESTORE_SNAPSHOT', payload: { snapshot } });
+  // }, []);
 
   useEffect(() => {
     fetchData();
@@ -618,7 +628,7 @@ export function useAutomationControlData({
     updateIsActiveFlag,
     toggleAll,
     resetChanges,
-    restoreSnapshot,
+    // restoreSnapshot,
     dirtyCount,
   };
 }

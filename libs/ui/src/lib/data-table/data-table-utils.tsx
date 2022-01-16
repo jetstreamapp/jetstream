@@ -319,7 +319,7 @@ function getColDef(field: string, queryColumnsByPath: MapOf<QueryResultsColumn>,
       colDef.valueFormatter = dataTableDateFormatter;
       colDef.getQuickFilterText = dataTableDateFormatter;
       colDef.filterParams = {
-        filters: [{ filter: 'agDateColumnFilter' }, { filter: 'agSetColumnFilter' }],
+        filters: [{ filter: 'agDateColumnFilter' }, { filter: 'agSetColumnFilter', filterParams: { showTooltips: true } }],
       };
       colDef.filterParams.comparator = DateFilterComparator;
     } else if (col.apexType === 'Time') {
@@ -339,6 +339,7 @@ function getColDef(field: string, queryColumnsByPath: MapOf<QueryResultsColumn>,
             filter: 'agSetColumnFilter',
             filterParams: {
               valueFormatter: ({ value }: ValueFormatterParams) => (value ? value.replace(REGEX.NEW_LINE, ' ') : value),
+              showTooltips: true,
             },
           },
         ],

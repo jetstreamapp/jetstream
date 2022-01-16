@@ -89,7 +89,7 @@ export const PlatformEventMonitorEvents: FunctionComponent<PlatformEventMonitorE
             width: 200,
             cellRenderer: 'agGroupCellRenderer',
             filterParams: {
-              filters: [{ filter: 'agTextColumnFilter' }, { filter: 'agSetColumnFilter' }],
+              filters: [{ filter: 'agTextColumnFilter' }, { filter: 'agSetColumnFilter', filterParams: { showTooltips: true } }],
             },
             menuTabs: ['filterMenuTab'],
             sortable: true,

@@ -1,10 +1,12 @@
 import { ColDef } from '@ag-grid-community/core';
 import { css } from '@emotion/react';
 import { logger } from '@jetstream/shared/client-logger';
+import { ANALYTICS_KEYS } from '@jetstream/shared/constants';
 import { SalesforceOrgUi } from '@jetstream/types';
 import { AutoFullHeightContainer, DataTable, Icon, Modal, Spinner } from '@jetstream/ui';
 import { Fragment, FunctionComponent, useCallback, useEffect, useState } from 'react';
-import ConfirmPageChange from '../../core/ConfirmPageChange';
+import { useAmplitude } from '../core/analytics';
+import ConfirmPageChange from '../core/ConfirmPageChange';
 import { deployMetadata, getAutomationTypeLabel, preparePayloads } from './automation-control-data-utils';
 import { AutomationDeployStatusRenderer, BooleanAndVersionRenderer } from './automation-control-table-renderers';
 import {
@@ -99,6 +101,7 @@ export const AutomationControlEditorReviewModal: FunctionComponent<AutomationCon
   rows,
   onClose,
 }) => {
+  const { trackEvent } = useAmplitude();
   const [currentStep, setCurrentStep] = useState<number>(0);
   const [deploymentItemMap, setDeploymentItemMap] = useState<DeploymentItemMap>(() => getDeploymentItemMap(rows));
   const [deploymentItems, setDeploymentItems] = useState<DeploymentItem[]>([]);
@@ -193,8 +196,9 @@ export const AutomationControlEditorReviewModal: FunctionComponent<AutomationCon
   }, [currentStep]);
 
   function handleDeployMetadata(currDeploymentItemMap: DeploymentItemMap, isRollback?: boolean) {
-    return deployMetadata(defaultApiVersion, selectedOrg, currDeploymentItemMap).subscribe(
-      (items: { key: string; deploymentItem: AutomationControlDeploymentItem }[]) => {
+    trackEvent(ANALYTICS_KEYS.automation_deploy, { type: isRollback ? 'rollback' : 'deploy', items: deploymentItems.length });
+    return deployMetadata(defaultApiVersion, selectedOrg, currDeploymentItemMap).subscribe({
+      next: (items: { key: string; deploymentItem: AutomationControlDeploymentItem }[]) => {
         logger.log('handleDeployMetadata - emitted()', items);
         const tempDeploymentItemMap = items.reduce((output: DeploymentItemMap, item) => {
           const successStatus = isRollback ? 'Rolled Back' : 'Deployed';
@@ -208,7 +212,7 @@ export const AutomationControlEditorReviewModal: FunctionComponent<AutomationCon
         // use callback notation to ensure that we have the correct previous state variable
         setDeploymentItemMap((prevState) => ({ ...prevState, ...tempDeploymentItemMap }));
       },
-      (err) => {
+      error: (err) => {
         logger.warn('handleDeployMetadata - error()', err);
         // Set all items not already prepared as error since observable is cancelled on error
         setDeploymentItemMap((prevState) => ({
@@ -228,12 +232,11 @@ export const AutomationControlEditorReviewModal: FunctionComponent<AutomationCon
           setModalLabel('Deploy Complete');
         }
       },
-      () => {
+      complete: () => {
         logger.log('handleDeployMetadata - complete()');
         setInProgress(false);
         setDidDeployMetadata(true);
         setNextButtonLabel('Close');
-
         setDidDeploy(true);
         if (isRollback) {
           setModalLabel('Rollback Complete');
@@ -241,8 +244,8 @@ export const AutomationControlEditorReviewModal: FunctionComponent<AutomationCon
         } else {
           setModalLabel('Deploy Complete');
         }
-      }
-    );
+      },
+    });
   }
 
   function handleRollbackMetadata() {
@@ -293,9 +296,6 @@ export const AutomationControlEditorReviewModal: FunctionComponent<AutomationCon
                 Cancel
               </button>
             )}
-            <button className="slds-button slds-button_neutral" disabled={inProgress} onClick={handleCloseModal}>
-              Rollback
-            </button>
             {didDeploy && !didRollback && (
               <button
                 className="slds-button slds-button_neutral"
@@ -323,7 +323,6 @@ export const AutomationControlEditorReviewModal: FunctionComponent<AutomationCon
           <AutoFullHeightContainer fillHeight setHeightAttr bottomBuffer={250}>
             <DataTable
               columns={COLUMNS}
-              // data={rows}
               data={deploymentItems}
               agGridProps={{
                 immutableData: true,

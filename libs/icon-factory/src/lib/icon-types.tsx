@@ -49,6 +49,7 @@ export interface UtilityIconObj {
   add: IconEl;
   apex_plugin: IconEl;
   apex: IconEl;
+  archive: IconEl;
   arrowdown: IconEl;
   arrowup: IconEl;
   back: IconEl;

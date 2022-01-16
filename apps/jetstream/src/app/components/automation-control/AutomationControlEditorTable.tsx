@@ -2,8 +2,8 @@ import { ColDef, RowHeightParams } from '@ag-grid-community/core';
 import { SalesforceOrgUi } from '@jetstream/types';
 import { DataTable } from '@jetstream/ui';
 import { forwardRef } from 'react';
-import { isTableRow } from './automation-control-data-utils';
-import { AdditionalDetailRenderer, LoadingAndActiveRenderer, TreeItemWithLinkRenderer } from './automation-control-table-renderers';
+import { getAutomationTypeLabel, isTableRow, isTableRowChild, isTableRowItem } from './automation-control-data-utils';
+import { AdditionalDetailRenderer, LoadingAndActiveRenderer } from './automation-control-table-renderers';
 import { TableRowOrItemOrChild } from './automation-control-types';
 
 const COLUMNS: ColDef[] = [
@@ -23,7 +23,6 @@ const COLUMNS: ColDef[] = [
     },
     filterValueGetter: ({ data }) => (!isTableRow(data) ? data.isActive : null),
   },
-  // TODO: use custom renderer and clamp to two lines to see if this provides room for more content.
   {
     headerName: 'Description',
     colId: 'description',
@@ -43,11 +42,20 @@ const COLUMNS: ColDef[] = [
     colId: 'additionalInfo',
     cellRenderer: 'additionalDetailRenderer',
     width: 400,
+    filter: null,
+    menuTabs: [],
+    sortable: false,
   },
 ];
 
 const getRowHeight = (params: RowHeightParams) => {
-  return !isTableRow(params.data) && (params.data.description || params.data.additionalData.length > 1) ? 60 : null;
+  if (isTableRow(params.data)) {
+    return null;
+  }
+  if (params.data.additionalData.length > 1) {
+    return params.data.additionalData.length * 27.5;
+  }
+  return null;
 };
 const getRowNodeId = ({ key }: TableRowOrItemOrChild) => key;
 
@@ -77,10 +85,17 @@ export const AutomationControlEditorTable = forwardRef<any, AutomationControlEdi
             autoGroupColumnDef: {
               headerName: 'Automation Item',
               width: 400,
-              filterValueGetter: ({ data }) => (!isTableRow(data) ? data.key : null),
+              filterValueGetter: ({ data }) => {
+                if (isTableRowItem(data) || isTableRowChild(data)) {
+                  return `${getAutomationTypeLabel(data.type)} ${data.label}`;
+                }
+                return null;
+              },
               cellRendererParams: {
                 suppressCount: true,
-                innerRenderer: 'treeItemWithLinkRenderer',
+                // This causes the table to "blink" each time a row is selected.
+                // TODO: once reactUi is fixed (AG-6233) This might be solved
+                // innerRenderer: 'treeItemWithLinkRenderer',
               },
             },
             treeData: true,
@@ -96,7 +111,7 @@ export const AutomationControlEditorTable = forwardRef<any, AutomationControlEdi
             frameworkComponents: {
               loadingAndActiveRenderer: LoadingAndActiveRenderer,
               additionalDetailRenderer: AdditionalDetailRenderer,
-              treeItemWithLinkRenderer: TreeItemWithLinkRenderer,
+              // treeItemWithLinkRenderer: TreeItemWithLinkRenderer,
             },
             getRowHeight,
           }}

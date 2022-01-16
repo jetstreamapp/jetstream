@@ -30,6 +30,8 @@ import {
   MetadataCompositeResponseError,
   MetadataCompositeResponseSuccess,
   MetadataCompositeResponseSuccessOrError,
+  MetadataWorkflowRuleRecord,
+  TableItemAdditionalData,
   TableRow,
   TableRowItem,
   TableRowItemChild,
@@ -59,6 +61,22 @@ export function isTableRowItem(item: TableRowOrItemOrChild): item is TableRowIte
 
 export function isTableRowChild(item: TableRowOrItemOrChild): item is TableRowItemChild {
   return item.path.length === 3;
+}
+
+export function isToolingApexRecord(type: AutomationMetadataType, record: any): record is ToolingApexTriggerRecord {
+  return type === 'ApexTrigger';
+}
+
+export function isValidationRecord(type: AutomationMetadataType, record: any): record is ToolingValidationRuleRecord {
+  return type === 'ValidationRule';
+}
+
+export function isWorkflowRuleRecord(type: AutomationMetadataType, record: any): record is ToolingWorkflowRuleRecord {
+  return type === 'WorkflowRule';
+}
+
+export function isFlowRecord(type: AutomationMetadataType, record: any): record is FlowViewRecord {
+  return type === 'FlowRecordTriggered' || type === 'FlowProcessBuilder';
 }
 
 export function getAutomationTypeLabel(type: AutomationMetadataType) {
@@ -451,10 +469,13 @@ export function deployMetadata(
   // ensure next tick so that events do not emit prior to observable subscription
   Promise.resolve().then(async () => {
     try {
-      const idToKeyMap: MapOf<string> = Object.keys(itemsByKey).reduce((output, key) => {
-        output[itemsByKey[key].deploy.id] = key;
-        return output;
-      }, {});
+      // items with prior errors are not deployed
+      const idToKeyMap: MapOf<string> = Object.keys(itemsByKey)
+        .filter((key) => !itemsByKey[key].deploy.deployError)
+        .reduce((output, key) => {
+          output[itemsByKey[key].deploy.id] = key;
+          return output;
+        }, {});
 
       const metadataUpdateRequests: CompositeRequestBody[][] = splitArrayToMaxSize(
         Object.keys(itemsByKey)
@@ -595,4 +616,60 @@ export async function deployMetadataFileBased(
   // https://developer.salesforce.com/docs/atlas.en-us.api_meta.meta/api_meta/meta_asyncresult.htm
   logger.info('deployResults', deployResults);
   return { deployResultsId: deployResults.id, metadataItems: fileBasedMetadataItems };
+}
+
+export function getAdditionalItemsWorkflowRuleText(recordMetadata: MetadataWorkflowRuleRecord): TableItemAdditionalData[] {
+  const output: TableItemAdditionalData[] = [];
+  const { actions, formula, booleanFilter, criteriaItems, workflowTimeTriggers } = recordMetadata;
+
+  if (formula || (Array.isArray(criteriaItems) && criteriaItems.length > 0)) {
+    output.push({
+      label: 'Criteria',
+      value: null,
+    });
+    if (formula) {
+      output.push({
+        label: 'Formula',
+        value: formula,
+      });
+    } else if (Array.isArray(criteriaItems) && criteriaItems.length > 0) {
+      if (booleanFilter) {
+        output.push({
+          label: 'Filter',
+          value: booleanFilter,
+        });
+      }
+      criteriaItems.forEach(({ field, operation, value }, i) => {
+        output.push({
+          label: `${i + 1}.`,
+          value: `${field} ${operation} ${value || ''}`,
+        });
+      });
+    }
+  }
+
+  if (Array.isArray(actions) && actions.length > 0) {
+    output.push({
+      label: 'Immediate Actions',
+      value: null,
+    });
+    actions.forEach((action) => output.push({ label: action.type, value: action.name }));
+  }
+
+  if (Array.isArray(workflowTimeTriggers) && workflowTimeTriggers.length > 0) {
+    output.push({
+      label: 'Time-based Actions',
+      value: null,
+    });
+
+    workflowTimeTriggers.forEach((timeTrigger) => {
+      output.push({
+        label: `${timeTrigger.timeLength} ${timeTrigger.workflowTimeTriggerUnit} ${timeTrigger.offsetFromField || ''}`,
+        value: null,
+      });
+      timeTrigger.actions.forEach((action) => output.push({ label: action.type, value: action.name }));
+    });
+  }
+
+  return output;
 }

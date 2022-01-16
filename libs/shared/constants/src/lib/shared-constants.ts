@@ -142,6 +142,14 @@ export const ANALYTICS_KEYS = {
   /** Browser Notifications */
   notifications_modal_opened: 'notifications_modal_opened',
   notifications_permission_requested: 'notifications_permission_requested',
+  /** AUTOMATION CONTROL */
+  automation_selection: 'automation_selection',
+  automation_review: 'automation_review',
+  automation_deploy: 'automation_deploy',
+  automation_rollback: 'automation_rollback',
+  automation_toggle_all: 'automation_toggle_all',
+  automation_process_builder_refresh: 'automation_process_builder_refresh',
+  automation_export: 'automation_export',
   /** QUERY */
   query_BulkDelete: 'query_BulkDelete',
   query_CopyToClipboard: 'query_CopyToClipboard',
