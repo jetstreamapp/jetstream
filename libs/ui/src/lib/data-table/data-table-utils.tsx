@@ -306,6 +306,7 @@ function getColDef(field: string, queryColumnsByPath: MapOf<QueryResultsColumn>,
     colDef.headerTooltip = `${col.columnFullPath} (${queryResultColumnToTypeLabel(col)})`;
     if (col.booleanType) {
       colDef.cellRenderer = 'booleanRenderer';
+      colDef.keyCreator = (params) => (params.value ? `true` : 'false');
       colDef.filterParams = {
         filters: [{ filter: 'agSetColumnFilter' }],
       };
@@ -349,15 +350,17 @@ function getColDef(field: string, queryColumnsByPath: MapOf<QueryResultsColumn>,
       colDef.getQuickFilterText = dataTableLocationFormatter;
     } else if (col.apexType === 'complexvaluetype' || col.columnName === 'Metadata') {
       colDef.cellRenderer = 'complexDataRenderer';
+      colDef.filter = null;
     } else if (Array.isArray(col.childColumnPaths)) {
       colDef.cellRenderer = 'subqueryRenderer';
       colDef.valueGetter = (params) => params.data[params.colDef.field]?.records;
+      colDef.keyCreator = (params) => (params.value?.length ? `Has Child Records` : 'No Child Records');
       colDef.filterParams = {
         filters: [
           {
             filter: 'agSetColumnFilter',
             filterParams: {
-              valueFormatter: ({ value }: ValueFormatterParams) => (value ? `Has Child Records` : 'No Child Records'),
+              values: ['Has Child Records', 'No Child Records'],
             },
           },
         ],

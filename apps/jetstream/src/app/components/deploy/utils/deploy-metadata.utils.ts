@@ -109,7 +109,7 @@ export function getColumnDefinitions(): ColDef[] {
           { filter: 'agTextColumnFilter' },
           {
             filter: 'agSetColumnFilter',
-            filterParams: { valueFormatter: ({ value }: ValueFormatterParams) => decodeURIComponent(value || ''), showTooltip: true },
+            filterParams: { valueFormatter: ({ value }: ValueFormatterParams) => decodeURIComponent(value || ''), showTooltips: true },
           },
         ],
       },
