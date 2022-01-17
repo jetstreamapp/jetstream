@@ -117,8 +117,8 @@ export const AutomationControlEditorReviewModal: FunctionComponent<AutomationCon
   }, [deploymentItemMap]);
 
   const handlePreparePayloads = useCallback(() => {
-    return preparePayloads(defaultApiVersion, selectedOrg, deploymentItemMap).subscribe(
-      (items: { key: string; deploymentItem: AutomationControlDeploymentItem }[]) => {
+    return preparePayloads(defaultApiVersion, selectedOrg, deploymentItemMap).subscribe({
+      next: (items: { key: string; deploymentItem: AutomationControlDeploymentItem }[]) => {
         logger.log('preparePayloads - emitted()', items);
         const tempDeploymentItemMap = items.reduce((output: DeploymentItemMap, item) => {
           output[item.key] = {
@@ -131,7 +131,7 @@ export const AutomationControlEditorReviewModal: FunctionComponent<AutomationCon
         // use callback notation to ensure that we have the correct previous state variable
         setDeploymentItemMap((prevState) => ({ ...prevState, ...tempDeploymentItemMap }));
       },
-      (err) => {
+      error: (err) => {
         logger.warn('preparePayloads - error()', err);
         // Set all items not already prepared as error since observable is cancelled on error
         setDeploymentItemMap((prevState) => ({
@@ -145,11 +145,11 @@ export const AutomationControlEditorReviewModal: FunctionComponent<AutomationCon
         }));
         setInProgress(false);
       },
-      () => {
+      complete: () => {
         logger.log('preparePayloads - complete()');
         setInProgress(false);
-      }
-    );
+      },
+    });
   }, [defaultApiVersion, deploymentItemMap, selectedOrg]);
 
   useEffect(() => {
