@@ -668,11 +668,36 @@ export function getMapOfBaseAndSubqueryRecords(records: any[], fields: string[],
     subqueryFieldsToUse.forEach((field) => {
       const childRecords = records.flatMap((record) => record[field]?.records || []).filter(Boolean);
       if (childRecords.length) {
-        output[field] = flattenRecords(childRecords, subqueryFields[field]);
+        output[getExcelSafeSheetName(field)] = flattenRecords(childRecords, subqueryFields[field]);
       }
     });
   }
   return output;
+}
+
+/**
+ * Sheet names must be unique and have a maximum length of 31 characters.
+ * @param name
+ * @param existingNames
+ * @returns
+ */
+export function getExcelSafeSheetName(name: string, existingNames: string[] = []) {
+  const existingNamesSet = new Set(existingNames);
+  let suffixNum = existingNames.length;
+  if (!name) {
+    name = `Sheet${suffixNum}`;
+  } else if (name.length > 31) {
+    name = name.substring(0, 31);
+  }
+
+  while (existingNamesSet.has(name)) {
+    if (name.length + `${suffixNum}`.length > 31) {
+      name = `${name.substring(0, 31 - `${suffixNum}`.length)}`;
+    }
+    name = `${name}${suffixNum}`;
+    suffixNum++;
+  }
+  return name;
 }
 
 // https://stackoverflow.com/questions/53228948/how-to-get-image-file-size-from-base-64-string-in-javascript

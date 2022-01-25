@@ -9,6 +9,7 @@ import {
   prepareCsvFile,
   prepareExcelFile,
   saveFile,
+  useRollbar,
 } from '@jetstream/shared/ui-utils';
 import { flattenRecords, getMapOfBaseAndSubqueryRecords } from '@jetstream/shared/utils';
 import {
@@ -23,6 +24,7 @@ import {
   SalesforceOrgUi,
 } from '@jetstream/types';
 import { Fragment, FunctionComponent, KeyboardEvent, useEffect, useRef, useState } from 'react';
+import { PopoverErrorButton } from '../popover/PopoverErrorButton';
 import FileDownloadGoogle from '../file-download-modal/options/FileDownloadGoogle';
 import Checkbox from '../form/checkbox/Checkbox';
 import Input from '../form/input/Input';
@@ -40,6 +42,7 @@ import {
   RADIO_FORMAT_XLSX,
   RADIO_SELECTED,
 } from './download-modal-utils';
+import { logger } from '@jetstream/shared/client-logger';
 
 export interface RecordDownloadModalProps {
   org: SalesforceOrgUi;
@@ -85,6 +88,7 @@ export const RecordDownloadModal: FunctionComponent<RecordDownloadModalProps> = 
   onDownloadFromServer,
   children,
 }) => {
+  const rollbar = useRollbar();
   const hasGoogleInputConfigured = !!google_apiKey && !!google_appId && !!google_clientId;
   const [hasMoreRecords, setHasMoreRecords] = useState<boolean>(false);
   const [downloadRecordsValue, setDownloadRecordsValue] = useState<string>(hasMoreRecords ? RADIO_ALL_SERVER : RADIO_ALL_BROWSER);
@@ -102,6 +106,7 @@ export const RecordDownloadModal: FunctionComponent<RecordDownloadModalProps> = 
   const [whichFields, setWhichFields] = useState<'all' | 'specified'>('specified');
 
   const [invalidConfig, setInvalidConfig] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string>(null);
   const googleAuthorized = !!googleApiData?.authorized;
 
   const hasSubqueryFields = subqueryFields && !!Object.keys(subqueryFields).length && (fileFormat === 'xlsx' || fileFormat === 'gdrive');
@@ -158,6 +163,9 @@ export const RecordDownloadModal: FunctionComponent<RecordDownloadModalProps> = 
   }
 
   async function handleDownload() {
+    if (errorMessage) {
+      setErrorMessage(null);
+    }
     const fieldsToUse = whichFields === 'specified' ? modifiedFields : fields;
     if (fieldsToUse.length === 0) {
       return;
@@ -227,6 +235,9 @@ export const RecordDownloadModal: FunctionComponent<RecordDownloadModalProps> = 
       }
     } catch (ex) {
       // TODO: show error message somewhere
+      logger.error('Error downloading file', ex);
+      rollbar.error('Record download error', { message: ex.message, stack: ex.stack });
+      setErrorMessage('There was a problem preparing your file download.');
     }
   }
 
@@ -259,6 +270,11 @@ export const RecordDownloadModal: FunctionComponent<RecordDownloadModalProps> = 
           header="Download Records"
           footer={
             <Fragment>
+              {errorMessage && (
+                <span className="slds-text-align_left d-inline-block">
+                  <PopoverErrorButton errors={errorMessage} omitPortal />
+                </span>
+              )}
               <button className="slds-button slds-button_neutral" onClick={() => handleModalClose(true)}>
                 Cancel
               </button>
