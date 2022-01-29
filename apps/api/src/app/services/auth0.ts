@@ -13,7 +13,7 @@ interface TokenResponse {
   token_type: 'Bearer';
 }
 
-const USER_FIELDS = ['user_id', 'email', 'email_verified', 'identities', 'name', 'nickname', 'picture', 'app_metadata'];
+const USER_FIELDS = ['user_id', 'email', 'email_verified', 'identities', 'name', 'nickname', 'picture', 'app_metadata', 'username'];
 
 const BASE_URL = `https://${ENV.AUTH0_M2M_DOMAIN}`;
 

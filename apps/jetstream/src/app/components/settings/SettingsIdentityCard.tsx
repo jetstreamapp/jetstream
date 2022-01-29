@@ -19,6 +19,27 @@ function getProviderName(identity: UserProfileAuth0Identity) {
   }
 }
 
+function getUsername(identity: UserProfileAuth0Identity, fallback: UserProfileAuth0Ui) {
+  if (!identity.isSocial) {
+    return null;
+  }
+  // The first profile has root-level properties set and does not have profileData property set
+  switch (identity.connection) {
+    case 'salesforce':
+      if (!identity.profileData) {
+        return fallback.username;
+      }
+      return identity.profileData.username;
+    case 'github':
+      if (!identity.profileData) {
+        return fallback.nickname;
+      }
+      return identity.profileData.nickname;
+    default:
+      return null;
+  }
+}
+
 export interface SettingsIdentityCardProps {
   identity: UserProfileAuth0Identity;
   fallback: UserProfileAuth0Ui;
@@ -35,6 +56,7 @@ export const SettingsIdentityCard: FunctionComponent<SettingsIdentityCardProps> 
   onUnlink,
 }) => {
   const [providerName] = useState<string>(() => getProviderName(identity));
+  const [username] = useState<string>(() => getUsername(identity, fallback));
 
   const { profileData, user_id } = identity;
   const name = profileData?.name || fallback.name;
@@ -79,6 +101,11 @@ export const SettingsIdentityCard: FunctionComponent<SettingsIdentityCardProps> 
         <div className="slds-tile__detail">
           <p className="slds-truncate" title={name}>
             {name}
+            {username && (
+              <span className="slds-m-left_xx-small slds-truncate" title={`Username: ${username}`}>
+                - {username}
+              </span>
+            )}
           </p>
           <p className="slds-truncate" title={email}>
             {email}

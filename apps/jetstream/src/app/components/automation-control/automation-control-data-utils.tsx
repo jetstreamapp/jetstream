@@ -193,9 +193,14 @@ export function fetchAutomationData(
 
 /** Query ApexTriggers */
 export async function getApexTriggersMetadata(selectedOrg: SalesforceOrgUi, sobjects: string[]): Promise<ToolingApexTriggerRecord[]> {
-  const validationRuleRecords = (await query<ToolingApexTriggerRecord>(selectedOrg, getApexTriggersQuery(sobjects), true)).queryResults
-    .records;
-  return validationRuleRecords;
+  const apexClassRecords = (
+    await Promise.all(
+      splitArrayToMaxSize(sobjects, 300).map((currSobjects) =>
+        query<ToolingApexTriggerRecord>(selectedOrg, getApexTriggersQuery(currSobjects), true)
+      )
+    )
+  ).flatMap(({ queryResults }) => queryResults.records);
+  return apexClassRecords;
 }
 
 /**
@@ -209,8 +214,13 @@ export async function getValidationRulesMetadata(
   apiVersion: string,
   sobjects: string[]
 ): Promise<ToolingValidationRuleRecord[]> {
-  const validationRuleRecords = (await query<ToolingValidationRuleRecord>(selectedOrg, getValidationRulesQuery(sobjects), true))
-    .queryResults.records;
+  const validationRuleRecords = (
+    await Promise.all(
+      splitArrayToMaxSize(sobjects, 300).map((currSobjects) =>
+        query<ToolingValidationRuleRecord>(selectedOrg, getValidationRulesQuery(currSobjects), true)
+      )
+    )
+  ).flatMap(({ queryResults }) => queryResults.records);
 
   if (validationRuleRecords.length === 0) {
     return [];
@@ -244,8 +254,13 @@ export async function getWorkflowRulesMetadata(
   apiVersion: string,
   sobjects: string[]
 ): Promise<ToolingWorkflowRuleRecord[]> {
-  const workflowRuleRecords = (await query<ToolingWorkflowRuleRecord>(selectedOrg, getWorkflowRulesQuery(sobjects), true)).queryResults
-    .records;
+  const workflowRuleRecords = (
+    await Promise.all(
+      splitArrayToMaxSize(sobjects, 300).map((currSobjects) =>
+        query<ToolingWorkflowRuleRecord>(selectedOrg, getWorkflowRulesQuery(currSobjects), true)
+      )
+    )
+  ).flatMap(({ queryResults }) => queryResults.records);
 
   if (workflowRuleRecords.length === 0) {
     return [];
@@ -271,8 +286,12 @@ export async function getWorkflowRulesMetadata(
 
 export async function getFlowsMetadata(selectedOrg: SalesforceOrgUi, sobjects: string[]): Promise<FlowViewRecord[]> {
   // NOTE: this is NOT tooling
-  const workflowRuleRecords = (await query<FlowViewRecord>(selectedOrg, getFlowsQuery(sobjects), false)).queryResults.records;
-  return workflowRuleRecords;
+  const flowMetadataRecords = (
+    await Promise.all(
+      splitArrayToMaxSize(sobjects, 300).map((currSobjects) => query<FlowViewRecord>(selectedOrg, getFlowsQuery(currSobjects), false))
+    )
+  ).flatMap(({ queryResults }) => queryResults.records);
+  return flowMetadataRecords;
 }
 
 /**

@@ -86,6 +86,8 @@ export interface UserProfileAuth0IdentityProfileData {
   family_name: string;
   picture: string;
   locale: string;
+  username?: string;
+  nickname?: string;
 }
 export interface UserProfileAuth0 {
   user_id: string;
@@ -104,11 +106,12 @@ export interface UserProfileAuth0 {
   last_ip: string;
   last_login: string;
   logins_count: number;
+  username?: string;
 }
 
 export type UserProfileAuth0Ui = Pick<
   UserProfileAuth0,
-  'user_id' | 'email' | 'email_verified' | 'identities' | 'name' | 'nickname' | 'picture' | 'app_metadata'
+  'user_id' | 'email' | 'email_verified' | 'identities' | 'name' | 'nickname' | 'picture' | 'app_metadata' | 'username'
 >;
 
 export interface UserProfileUi {
