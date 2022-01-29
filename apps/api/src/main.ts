@@ -15,7 +15,7 @@ import { ENV } from './app/config/env-config';
 import { logger } from './app/config/logger.config';
 import { initSocketServer } from './app/controllers/socket.controller';
 import { apiRoutes, landingRoutes, oauthRoutes, platformEventRoutes, staticAuthenticatedRoutes } from './app/routes';
-import { logRoute, notFoundMiddleware } from './app/routes/route.middleware';
+import { blockBotMiddleware, logRoute, notFoundMiddleware } from './app/routes/route.middleware';
 import { healthCheck, uncaughtErrorHandler } from './app/utils/response.handlers';
 import { environment } from './environments/environment';
 
@@ -257,6 +257,30 @@ if (environment.production) {
     })
   );
 }
+
+/**
+ * SEND 418 FOR BLOCKED ROUTES THAT ARE PRODUCED BY BOTS
+ */
+
+const BOT_ROUTES = [
+  '/*.aspx',
+  '/*.env*',
+  '/*.php',
+  '/*.txt',
+  '/*.xml',
+  '/*magento_version',
+  '/*phpinfo*',
+  '/*wp-content*',
+  '/*wp-includes*',
+  '/%20',
+  '/cgi-bin*',
+  '/humans.txt',
+  '/tmp*',
+  '/view-source*',
+  '/wp*',
+];
+
+BOT_ROUTES.forEach((route) => app.use(route, blockBotMiddleware));
 
 app.use('*', notFoundMiddleware);
 app.use(uncaughtErrorHandler);

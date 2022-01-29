@@ -85,7 +85,7 @@ export async function uncaughtErrorHandler(err: any, req: express.Request, res: 
       if (req.hostname === 'localhost') {
         return res.send('404');
       }
-      return res.redirect('/404.html');
+      return res.redirect('/404/');
     }
   }
 
