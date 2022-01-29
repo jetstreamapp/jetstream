@@ -22,6 +22,7 @@ export function logRoute(req: express.Request, res: express.Response, next: expr
   logger.debug('[REQ] %s %s', req.method, req.originalUrl, {
     method: req.method,
     url: req.originalUrl,
+    agent: req.header('User-Agent'),
     ip: req.headers[HTTP.HEADERS.CF_Connecting_IP] || req.headers[HTTP.HEADERS.X_FORWARDED_FOR] || req.connection.remoteAddress,
     country: req.headers[HTTP.HEADERS.CF_IPCountry],
     ...userInfo,
@@ -43,6 +44,18 @@ export function validate(validations: ValidationChain[]) {
 export function notFoundMiddleware(req: express.Request, res: express.Response, next: express.NextFunction) {
   const error = new NotFoundError('Route not found');
   next(error);
+}
+
+export function blockBotMiddleware(req: express.Request, res: express.Response) {
+  logger.debug('[BLOCKED REQUEST] %s %s', req.method, req.originalUrl, {
+    blocked: true,
+    method: req.method,
+    url: req.originalUrl,
+    agent: req.header('User-Agent'),
+    ip: req.headers[HTTP.HEADERS.CF_Connecting_IP] || req.headers[HTTP.HEADERS.X_FORWARDED_FOR] || req.connection.remoteAddress,
+    country: req.headers[HTTP.HEADERS.CF_IPCountry],
+  });
+  res.status(418).send(`I'm a teapot`);
 }
 
 function getActivityExp() {
