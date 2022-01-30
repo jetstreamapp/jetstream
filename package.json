@@ -19,6 +19,8 @@
     "start:auth": "cd apps/authentication && docker-compose up",
     "start:prod": "pm2-runtime start ecosystem.config.js --env production",
     "start:prod:debug": "pm2-runtime start ecosystem.config.js --env production --node-args=\"--inspect\"",
+    "start:cron:inactive-account-warning": "node dist/apps/cron-tasks/inactive-account-warning.js",
+    "start:cron:inactive-account-deletion": "node dist/apps/cron-tasks/inactive-account-deletion.js",
     "build": "cross-env NODE_ENV=production npm-run-all db:generate build:client build:api build:sw build:landing build:docs",
     "build:test": "npm-run-all db:generate build:client:test build:api:test build:sw build:landing build:docs",
     "build:client": "nx build jetstream --prod",
@@ -27,6 +29,7 @@
     "build:ui": "nx build ui --prod",
     "build:ui:test": "nx build ui --configuration=test",
     "build:api": "nx build api --prod",
+    "build:cron": "nx build cron-tasks --prod",
     "build:api:test": "nx build api --configuration=test",
     "build:sw": "nx build download-zip-sw --prod",
     "build:landing": "NODE_ENV=production nx run landing:export && npm run build:landing:sitemap",
@@ -190,6 +193,7 @@
     "regenerator-runtime": "0.13.7",
     "rollbar": "^2.21.0",
     "rxjs": "^7.4.0",
+    "slack-notify": "^0.1.7",
     "socket.io": "^4.2.0",
     "socket.io-client": "^4.2.0",
     "soql-parser-js": "^4.2.2",
@@ -198,7 +202,8 @@
     "validator": "^13.7.0",
     "winston": "^3.2.1",
     "xlsx": "^0.17.4",
-    "xmlbuilder2": "^2.4.0"
+    "xmlbuilder2": "^2.4.0",
+    "zx": "^4.3.0"
   },
   "devDependencies": {
     "@babel/core": "7.12.13",

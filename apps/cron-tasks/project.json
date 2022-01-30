@@ -1,0 +1,60 @@
+{
+  "root": "apps/cron-tasks",
+  "sourceRoot": "apps/cron-tasks/src",
+  "projectType": "application",
+  "targets": {
+    "build": {
+      "executor": "@nrwl/node:build",
+      "outputs": ["{options.outputPath}"],
+      "options": {
+        "outputPath": "dist/apps/cron-tasks",
+        "outputFileName": "inactive-account-deletion.js",
+        "main": "apps/cron-tasks/src/inactive-account-deletion.ts",
+        "additionalEntryPoints": [
+          {
+            "entryName": "inactive-account-warning",
+            "entryPath": "apps/cron-tasks/src/inactive-account-warning.ts"
+          }
+        ],
+        "tsConfig": "apps/cron-tasks/tsconfig.app.json",
+        "assets": []
+      },
+      "configurations": {
+        "production": {
+          "optimization": false,
+          "extractLicenses": false,
+          "inspect": false,
+          "fileReplacements": [
+            {
+              "replace": "apps/cron-tasks/src/environments/environment.ts",
+              "with": "apps/cron-tasks/src/environments/environment.prod.ts"
+            }
+          ]
+        }
+      }
+    },
+    "serve": {
+      "executor": "@nrwl/node:execute",
+      "options": {
+        "buildTarget": "cron-tasks:build",
+        "inspect": true
+      }
+    },
+    "lint": {
+      "executor": "@nrwl/linter:eslint",
+      "outputs": ["{options.outputFile}"],
+      "options": {
+        "lintFilePatterns": ["apps/cron-tasks/**/*.ts"]
+      }
+    },
+    "test": {
+      "executor": "@nrwl/jest:jest",
+      "outputs": ["coverage/apps/cron-tasks"],
+      "options": {
+        "jestConfig": "apps/cron-tasks/jest.config.js",
+        "passWithNoTests": true
+      }
+    }
+  },
+  "tags": []
+}
