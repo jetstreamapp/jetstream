@@ -4,6 +4,7 @@
     "api": "apps/api",
     "api-interfaces": "libs/api-interfaces",
     "connected-connected-ui": "libs/connected/connected-ui",
+    "cron-tasks": "apps/cron-tasks",
     "docs": "apps/docs",
     "download-zip-sw": "apps/download-zip-sw",
     "icon-factory": "libs/icon-factory",
