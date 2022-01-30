@@ -72,15 +72,15 @@ export async function checkAuth(req: express.Request, res: express.Response, nex
         // Update auth0 with expiration date
         updateUserLastActivity(req.user as UserProfileServer, fromUnixTime(req.session.activityExp))
           .then((response) => {
-            logger.debug('[REQ][LAST-ACTIVITY][UPDATED] %s', req.session.activityExp, { userId: (req.user as any)?.user_id });
+            logger.debug('[AUTH][LAST-ACTIVITY][UPDATED] %s', req.session.activityExp, { userId: (req.user as any)?.user_id });
           })
           .catch((err) => {
             // send error to rollbar
             const error: AxiosError = err;
             if (error.response) {
-              logger.error('[REQ][LAST-ACTIVITY][ERROR] %o', error.response.data, { userId: (req.user as any)?.user_id });
+              logger.error('[AUTH][LAST-ACTIVITY][ERROR] %o', error.response.data, { userId: (req.user as any)?.user_id });
             } else if (error.request) {
-              logger.error('[REQ][LAST-ACTIVITY][ERROR] %s', error.message || 'An unknown error has occurred.', {
+              logger.error('[AUTH][LAST-ACTIVITY][ERROR] %s', error.message || 'An unknown error has occurred.', {
                 userId: (req.user as any)?.user_id,
               });
             }
@@ -88,7 +88,7 @@ export async function checkAuth(req: express.Request, res: express.Response, nex
           });
       }
     } catch (ex) {
-      // TODO:
+      logger.warn('[AUTH][LAST-ACTIVITY][ERROR] Exception: %s', ex.message, { userId: (req.user as any)?.user_id });
     }
     return next();
   }
