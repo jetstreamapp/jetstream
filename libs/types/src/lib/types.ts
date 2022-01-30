@@ -68,6 +68,13 @@ export interface FeatureFlag {
   isDefault: boolean;
 }
 
+export type Auth0PaginatedResponse<PropertyName extends string, T> = {
+  start: number;
+  limit: number;
+  length: number;
+  total: number;
+} & { [P in PropertyName]: T[] };
+
 export interface UserProfileAuth0Identity {
   profileData?: UserProfileAuth0IdentityProfileData;
   provider: string;
@@ -102,6 +109,7 @@ export interface UserProfileAuth0 {
   user_metadata: any;
   app_metadata: {
     featureFlags: FeatureFlag;
+    accountDeletionDate?: string;
   };
   last_ip: string;
   last_login: string;
