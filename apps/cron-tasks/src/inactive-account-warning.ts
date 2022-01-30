@@ -2,7 +2,6 @@ import { addMonths, endOfDay, format, startOfMonth } from 'date-fns';
 import { mailgun } from './config/email.config';
 import { logger } from './config/logger.config';
 import { searchUsersPaginateAll, updateUser } from './utils/auth0';
-import { getTemplate, TEXT_EMAIL_CONTENT } from './utils/email-templates';
 import { sendInactiveUserWarning } from './utils/slack';
 // import * as userDb from '../db/user.db';
 
@@ -48,8 +47,21 @@ const MONTHS_UNTIL_DELETE = 1;
         from: 'Jetstream Support <support@getjetstream.app>',
         to: `${user.email}`,
         subject: 'Jetstream - Account deletion warning',
-        html: getTemplate('Jetstream account deletion warning', 'Your Jetstream account will be deleted', 'ACCOUNT_DEACTIVATION_WARNING'),
-        text: TEXT_EMAIL_CONTENT.ACCOUNT_DEACTIVATION_WARNING,
+        template: 'generic_notification',
+        'h:X-Mailgun-Variables': {
+          title: 'Jetstream account deletion warning',
+          previewText: 'Your Jetstream account will be deleted',
+          headline: `We haven't seen you login to Jetstream recently.`,
+          bodySegments: [
+            {
+              text: 'If you do not login to Jetstream in the next 30 days, your account and all of your data will be deleted. If you want to continue using Jetstream, login to your account within the next 30 days.',
+            },
+            {
+              text: 'If you have been actively using Jetstream, you may have more than one account with the same email address. If you signed up using your email and password and later signed in using Google or Salesforce without combining accounts, you may have two separate accounts in which case you can disregard this email.',
+            },
+          ],
+          // cta: {} // if this had a link to do something, it would be here (maybe a login now link?)
+        },
         'h:Reply-To': 'support@getjetstream.app',
         // ['o:tracking']: '',
       });
