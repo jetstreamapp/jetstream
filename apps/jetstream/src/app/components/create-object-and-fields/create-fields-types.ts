@@ -123,6 +123,7 @@ export interface LayoutRecord {
         }[];
       }[];
     }[];
+    platformActionList?: any;
     summaryLayout?: any;
   };
 }
