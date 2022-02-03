@@ -171,7 +171,7 @@ export const dataTableLocationFormatter = ({ value }: ValueFormatterParams | Get
 export const dataTableDateFormatter = ({ value }: ValueFormatterParams | GetQuickFilterTextParams): string => {
   const dateOrDateTime: string = value;
   if (!dateOrDateTime) {
-    return '';
+    return null;
   } else if (dateOrDateTime.length === 28) {
     return formatDate(parseISO(dateOrDateTime), DATE_FORMATS.YYYY_MM_DD_HH_mm_ss_a);
   } else if (dateOrDateTime.length === 10) {
@@ -320,9 +320,24 @@ function getColDef(field: string, queryColumnsByPath: MapOf<QueryResultsColumn>,
       colDef.valueFormatter = dataTableDateFormatter;
       colDef.getQuickFilterText = dataTableDateFormatter;
       colDef.filterParams = {
-        filters: [{ filter: 'agDateColumnFilter' }, { filter: 'agSetColumnFilter', filterParams: { showTooltips: true } }],
+        filters: [
+          {
+            filter: 'agDateColumnFilter',
+            filterParams: {
+              defaultOption: 'greaterThan',
+              comparator: DateFilterComparator,
+              buttons: ['clear'],
+            },
+          },
+          {
+            filter: 'agSetColumnFilter',
+            filterParams: {
+              valueFormatter: dataTableDateFormatter,
+              showTooltips: true,
+            },
+          },
+        ],
       };
-      colDef.filterParams.comparator = DateFilterComparator;
     } else if (col.apexType === 'Time') {
       colDef.valueFormatter = dataTableTimeFormatter;
       colDef.getQuickFilterText = dataTableTimeFormatter;
