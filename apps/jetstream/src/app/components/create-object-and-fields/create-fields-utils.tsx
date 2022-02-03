@@ -842,6 +842,10 @@ export function addFieldToLayout(fields: FieldDefinitionMetadata[], layout: Layo
       width: null,
     });
     // Random SFDC error for this ENUM
+    // Cannot deserialize instance of complexvalue from VALUE_STRING value Record or request may be missing a required field at [line:1, column:35066]
+    if (isString(layout.Metadata?.platformActionList?.actionListContext)) {
+      layout.Metadata.platformActionList = undefined;
+    }
     // Cannot deserialize instance of complexvalue from VALUE_STRING value DEFAULT or request may be missing a required field at [line:843, column:31]
     if (isString(layout.Metadata?.summaryLayout?.summaryLayoutStyle)) {
       layout.Metadata.summaryLayout = undefined;
