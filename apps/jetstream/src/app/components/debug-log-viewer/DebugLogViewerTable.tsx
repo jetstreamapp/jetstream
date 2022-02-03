@@ -82,6 +82,7 @@ const COLUMNS: ColDef[] = [
     filterParams: {
       defaultOption: 'greaterThan',
       comparator: DateFilterComparator,
+      buttons: ['clear'],
     },
   },
 ];

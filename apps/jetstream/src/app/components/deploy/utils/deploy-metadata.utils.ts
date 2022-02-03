@@ -130,7 +130,7 @@ export function getColumnDefinitions(): ColDef[] {
       filterParams: {
         comparator: DateFilterComparator,
         filters: [
-          { filter: 'agDateColumnFilter', filterParams: { defaultOption: 'greaterThan' } },
+          { filter: 'agDateColumnFilter', filterParams: { defaultOption: 'greaterThan', buttons: ['clear'] } },
           { filter: 'agSetColumnFilter', filterParams: { showTooltips: true } },
         ],
       },
@@ -151,7 +151,7 @@ export function getColumnDefinitions(): ColDef[] {
       filterParams: {
         comparator: DateFilterComparator,
         filters: [
-          { filter: 'agDateColumnFilter', filterParams: { defaultOption: 'greaterThan' } },
+          { filter: 'agDateColumnFilter', filterParams: { defaultOption: 'greaterThan', buttons: ['clear'] } },
           { filter: 'agSetColumnFilter', filterParams: { showTooltips: true } },
         ],
       },

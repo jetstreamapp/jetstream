@@ -1,5 +1,5 @@
 import { ClientSideRowModelModule } from '@ag-grid-community/client-side-row-model';
-import { ColDef, GridOptions, ModuleRegistry } from '@ag-grid-community/core';
+import { ColDef, GridOptions, ModuleRegistry, ValueFormatterParams } from '@ag-grid-community/core';
 import { InfiniteRowModelModule } from '@ag-grid-community/infinite-row-model';
 import { AgGridReact } from '@ag-grid-community/react';
 import { ClipboardModule } from '@ag-grid-enterprise/clipboard';
@@ -10,7 +10,7 @@ import { MultiFilterModule } from '@ag-grid-enterprise/multi-filter';
 import { RangeSelectionModule } from '@ag-grid-enterprise/range-selection';
 import { RowGroupingModule } from '@ag-grid-enterprise/row-grouping';
 import { SetFilterModule } from '@ag-grid-enterprise/set-filter';
-
+import { REGEX } from '@jetstream/shared/utils';
 import { SalesforceOrgUi } from '@jetstream/types';
 import { CSSProperties, FunctionComponent } from 'react';
 import './data-table-styles.css';
@@ -88,7 +88,16 @@ export const DataTable: FunctionComponent<DataTableProps> = ({
         defaultColDef={{
           filter: 'agMultiColumnFilter',
           filterParams: {
-            filters: [{ filter: 'agTextColumnFilter' }, { filter: 'agSetColumnFilter', filterParams: { showTooltips: true } }],
+            filters: [
+              { filter: 'agTextColumnFilter' },
+              {
+                filter: 'agSetColumnFilter',
+                filterParams: {
+                  valueFormatter: ({ value }: ValueFormatterParams) => (value ? value.replace(REGEX.NEW_LINE, ' ') : value),
+                  showTooltips: true,
+                },
+              },
+            ],
           },
           menuTabs: defaultMenuTabs,
           sortable: true,
