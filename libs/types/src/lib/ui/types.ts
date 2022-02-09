@@ -358,7 +358,7 @@ export interface QueryFieldHeader {
 export interface FormGroupDropdownItem {
   id: string;
   label: string;
-  icon: any; // FIXME:
+  icon?: any; // FIXME:
 }
 
 export type AsyncJobType = 'BulkDelete' | 'BulkDownload' | 'RetrievePackageZip' | 'UploadToGoogle';

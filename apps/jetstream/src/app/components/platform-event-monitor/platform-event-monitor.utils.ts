@@ -1,14 +1,14 @@
 import { logger } from '@jetstream/shared/client-logger';
 import { HTTP } from '@jetstream/shared/constants';
 import { MapOf, SalesforceOrgUi } from '@jetstream/types';
-import { CometD, Extension, Message } from 'cometd';
+import { CometD, Extension, Message, SubscriptionHandle } from 'cometd';
 import isNumber from 'lodash/isNumber';
 
 /**
  * TODO: a worker might be the best solution here to ensure events are received from background
  */
 
-const subscriptions = new Map();
+const subscriptions = new Map<string, SubscriptionHandle>();
 
 /**
  * Init cometD for org, must be called per org

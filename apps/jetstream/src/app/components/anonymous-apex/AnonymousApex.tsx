@@ -4,8 +4,18 @@ import { logger } from '@jetstream/shared/client-logger';
 import { ANALYTICS_KEYS, INDEXED_DB, LOG_LEVELS, TITLES } from '@jetstream/shared/constants';
 import { anonymousApex } from '@jetstream/shared/data';
 import { useBrowserNotifications, useDebounce, useNonInitialEffect, useRollbar } from '@jetstream/shared/ui-utils';
-import { ApexHistoryItem, MapOf, SalesforceOrgUi } from '@jetstream/types';
-import { AutoFullHeightContainer, Badge, Card, CopyToClipboard, Grid, Icon, SalesforceLogin, Spinner } from '@jetstream/ui';
+import { ApexHistoryItem, ListItem, MapOf, SalesforceOrgUi } from '@jetstream/types';
+import {
+  AutoFullHeightContainer,
+  Badge,
+  Card,
+  ComboboxWithItems,
+  CopyToClipboard,
+  Grid,
+  Icon,
+  SalesforceLogin,
+  Spinner,
+} from '@jetstream/ui';
 import Editor, { OnMount, useMonaco } from '@monaco-editor/react';
 import localforage from 'localforage';
 import type { editor } from 'monaco-editor';
@@ -22,6 +32,12 @@ import * as fromApexState from './apex.state';
 // import { useApexCompletions } from './useApexCompletions';
 
 const USER_DEBUG_REGEX = /\|USER_DEBUG\|/;
+
+const LogLevelItems: ListItem<string, typeof LOG_LEVELS>[] = LOG_LEVELS.map((item) => ({
+  id: item,
+  label: item,
+  value: item,
+}));
 
 // TODO: ADD COMPLETIONS - useApexCompletions() need to refactor for monaco
 
@@ -227,13 +243,17 @@ export const AnonymousApex: FunctionComponent<AnonymousApexProps> = () => {
             actions={
               <Fragment>
                 <div className="slds-m-horizontal_x-small">
-                  <select className="slds-select" onChange={handleLogLevelChange} value={logLevel}>
-                    {LOG_LEVELS.map((item) => (
-                      <option key={item} value={item}>
-                        Log Level: {item}
-                      </option>
-                    ))}
-                  </select>
+                  <ComboboxWithItems
+                    comboboxProps={{
+                      label: 'Anonymous Apex',
+                      hideLabel: true,
+                      itemLength: 10,
+                    }}
+                    items={LogLevelItems}
+                    selectedItemId={logLevel}
+                    selectedItemLabelFn={(item) => `Log Level: ${item.label}`}
+                    onSelected={(item) => setLogLevel(item.id)}
+                  />
                 </div>
                 <button className="slds-button slds-button_brand" onClick={() => onSubmit(apex)}>
                   <Icon type="utility" icon="apex" className="slds-button__icon slds-button__icon_left" omitContainer />

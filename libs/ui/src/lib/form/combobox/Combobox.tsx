@@ -354,7 +354,7 @@ const ComboboxElement: FunctionComponent<ComboboxProps & { icon: JSX.Element }> 
               <FormGroupDropdown
                 comboboxId={id}
                 label={leadingDropdown.label}
-                initialSelectedItem={leadingDropdown.initialSelectedItem}
+                initialSelectedItemId={leadingDropdown.initialSelectedItem?.id}
                 items={leadingDropdown.items}
                 onSelected={onLeadingDropdownChange}
               />
