@@ -203,10 +203,11 @@ export function polyfillFieldDefinition(field: Field): string {
   let value = '';
 
   if (calculated && calculatedFormula) {
-    prefix = 'Formula (';
+    prefix = 'Formula(';
     suffix = ')';
   } else if (calculated) {
-    prefix = 'Roll-Up Summary';
+    prefix = 'Roll-Up Summary(';
+    suffix = ')';
   } else if (externalId) {
     suffix = ' (External Id)';
   }

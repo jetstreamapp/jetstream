@@ -1,11 +1,13 @@
-import React, { Fragment, FunctionComponent } from 'react';
-import { FieldWrapper } from '@jetstream/types';
-import Tooltip from '../widgets/Tooltip';
+import { FieldWrapper, SalesforceOrgUi } from '@jetstream/types';
+import copyToClipboard from 'copy-to-clipboard';
+import React, { FunctionComponent } from 'react';
 import Badge from '../widgets/Badge';
 import Icon from '../widgets/Icon';
-import copyToClipboard from 'copy-to-clipboard';
+import Tooltip from '../widgets/Tooltip';
+import SobjectFieldListTypeRollupSummaryDetails from './SobjectFieldListTypeRollupSummaryDetails';
 
 export interface SobjectFieldListTypeProps {
+  org: SalesforceOrgUi;
   field: FieldWrapper;
 }
 
@@ -19,7 +21,7 @@ const copyToClipboardMsg = (
   </em>
 );
 
-function getContent(field: FieldWrapper) {
+function getContent(field: FieldWrapper, org: SalesforceOrgUi) {
   let copyToClipboardValue: string = undefined;
   if (field.metadata.type === 'picklist' || field.metadata.type === 'multipicklist') {
     let tooltipContent: JSX.Element = undefined;
@@ -74,15 +76,18 @@ function getContent(field: FieldWrapper) {
         {field.type}
       </Tooltip>
     );
+  } else if (field.metadata.calculated && !field.metadata.calculatedFormula && !field.metadata.autoNumber) {
+    /** This requires fetching content via API */
+    return <SobjectFieldListTypeRollupSummaryDetails field={field} org={org} />;
   } else {
     return field.type;
   }
 }
 
-export const SobjectFieldListType: FunctionComponent<SobjectFieldListTypeProps> = ({ field }) => {
+export const SobjectFieldListType: FunctionComponent<SobjectFieldListTypeProps> = ({ field, org }) => {
   return (
     <Badge className="slds-truncate" title={field.type}>
-      {getContent(field)}
+      {getContent(field, org)}
     </Badge>
   );
 };
