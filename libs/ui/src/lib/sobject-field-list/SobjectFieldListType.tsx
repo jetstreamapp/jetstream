@@ -77,7 +77,7 @@ function getContent(field: FieldWrapper, org: SalesforceOrgUi) {
       </Tooltip>
     );
     // there is a type in the field definition for Field
-  } else if (field.metadata.calculated && !field.metadata.calculatedFormula && !field.metadata['autoNumber']) {
+  } else if (field.metadata.calculated && !field.metadata.calculatedFormula && !field.metadata.autoNumber) {
     /** This requires fetching content via API */
     return <SobjectFieldListTypeRollupSummaryDetails field={field} org={org} />;
   } else {
