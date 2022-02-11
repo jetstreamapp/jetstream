@@ -24,7 +24,7 @@ export async function deleteUserAndOrgs(user: UserProfileServer) {
 
     await prisma.$transaction([deleteOrgs, deleteUser]);
   } catch (ex) {
-    logger.error('[DB][TX][DEL_ORGS_AND_USER][ERROR] %o', ex, { userId: user.id });
+    logger.error('[DB][TX][DEL_ORGS_AND_USER][ERROR] %o', ex, { userId: user?.id });
     throw ex;
   }
 }
