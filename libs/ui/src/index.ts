@@ -115,6 +115,7 @@ export * from './lib/toolbar/Toolbar';
 export * from './lib/toolbar/ToolbarItemActions';
 export * from './lib/toolbar/ToolbarItemGroup';
 export * from './lib/tree/Tree';
+export * from './lib/utils/ErrorBoundaryWithoutContent';
 export * from './lib/widgets/Badge';
 export * from './lib/widgets/BadgeNotification';
 export * from './lib/widgets/CopyToClipboard';

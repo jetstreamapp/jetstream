@@ -1,7 +1,7 @@
 import { css } from '@emotion/react';
 import { isEnterKey } from '@jetstream/shared/ui-utils';
 import { ListItem } from '@jetstream/types';
-import { Grid, Input, Picklist } from '@jetstream/ui';
+import { ComboboxWithItems, Grid, Input } from '@jetstream/ui';
 import type { DescribeGlobalSObjectResult } from 'jsforce';
 import React, { FunctionComponent, KeyboardEvent, useEffect, useState } from 'react';
 import { MessagesByChannel } from './usePlatformEvent';
@@ -62,13 +62,14 @@ export const PlatformEventMonitorSubscribe: FunctionComponent<PlatformEventMonit
   return (
     <Grid verticalAlign="end">
       <div className="slds-grow">
-        <Picklist
-          key={picklistKey}
-          label="Platform Events"
+        <ComboboxWithItems
+          comboboxProps={{
+            label: 'Platform Events',
+            itemLength: 10,
+          }}
           items={platformEventsList}
-          allowDeselection={false}
-          selectedItemIds={selectedSubscribeEvent ? [selectedSubscribeEvent] : undefined}
-          onChange={(items) => onSelectedSubscribeEvent(items[0].id)}
+          selectedItemId={selectedSubscribeEvent}
+          onSelected={(item) => onSelectedSubscribeEvent(item.id)}
         />
       </div>
       <div className="slds-m-horizontal_x-small">

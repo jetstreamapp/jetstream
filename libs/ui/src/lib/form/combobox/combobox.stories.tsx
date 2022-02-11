@@ -78,6 +78,37 @@ export const withGroup = () => (
   </Combobox>
 );
 
+export const withDropdownGroup = () => (
+  <Combobox
+    label={text('label', 'My Combobox')}
+    onInputChange={action('onInputChange')}
+    leadingDropdown={{
+      label: 'Leading Group',
+      items: [
+        { id: '1', label: 'Item 1' },
+        { id: '2', label: 'Item 2' },
+      ],
+    }}
+  >
+    <ComboboxListItemGroup label="Group 1">
+      <ComboboxListItem id="item1" label="Item 1" selected={false} onSelection={action('selected')} />
+      <ComboboxListItem id="item2" label="Item 2" selected={false} onSelection={action('selected')} />
+      <ComboboxListItem id="item3" label="Item 3" selected={false} onSelection={action('selected')} />
+      <ComboboxListItem id="item4" label="Item 4" selected={false} onSelection={action('selected')} />
+    </ComboboxListItemGroup>
+    <ComboboxListItemGroup label="Group 2">
+      <ComboboxListItem id="item5" label="Item 5" selected={false} onSelection={action('selected')} />
+      <ComboboxListItem id="item6" label="Item 6" selected={false} onSelection={action('selected')} />
+      <ComboboxListItem id="item7" label="Item 7" selected={false} onSelection={action('selected')} />
+    </ComboboxListItemGroup>
+    <ComboboxListItemGroup label="Group 3">
+      <ComboboxListItem id="item8" label="Item 8" selected={false} onSelection={action('selected')} />
+      <ComboboxListItem id="item9" label="Item 9" selected={false} onSelection={action('selected')} />
+      <ComboboxListItem id="item10" label="Item 10" selected={false} onSelection={action('selected')} />
+    </ComboboxListItemGroup>
+  </Combobox>
+);
+
 export const selectedItem = () => (
   <Combobox label={text('label', 'My Combobox')} selectedItemLabel="Item 2" onInputChange={action('onInputChange')}>
     <ComboboxListItem id="item1" label="Item 1" selected={false} onSelection={action('selected')} />

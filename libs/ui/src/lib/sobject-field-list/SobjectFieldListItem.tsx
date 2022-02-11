@@ -106,7 +106,7 @@ export const SobjectFieldListItem: FunctionComponent<SobjectFieldListItemProps> 
         >
           {fieldName}
         </div>
-        <SobjectFieldListType field={field} />
+        <SobjectFieldListType org={org} field={field} />
       </div>
       {field.relatedSobject && level < 5 && (
         <div

@@ -1,6 +1,6 @@
 import { hasModifierKey, isEnterKey } from '@jetstream/shared/ui-utils';
-import { HttpMethod, SalesforceOrgUi } from '@jetstream/types';
-import { Grid, GridCol, Input, Select } from '@jetstream/ui';
+import { HttpMethod, ListItem, SalesforceOrgUi } from '@jetstream/types';
+import { ComboboxWithItems, Grid, GridCol, Input } from '@jetstream/ui';
 import { FunctionComponent, KeyboardEvent } from 'react';
 import { useRecoilState } from 'recoil';
 import { applicationCookieState } from '../../app-state';
@@ -8,6 +8,14 @@ import { applicationCookieState } from '../../app-state';
 function getDefaultUrl(defaultApiVersion: string) {
   return `/services/${defaultApiVersion}`;
 }
+
+const MethodListItems: ListItem<string, HttpMethod>[] = [
+  { id: 'GET', value: 'GET', label: 'GET' },
+  { id: 'POST', value: 'POST', label: 'POST' },
+  { id: 'PUT', value: 'PUT', label: 'PUT' },
+  { id: 'PATCH', value: 'PATCH', label: 'PATCH' },
+  { id: 'DELETE', value: 'DELETE', label: 'DELETE' },
+];
 
 export interface SalesforceApiUserInputProps {
   selectedOrg: SalesforceOrgUi;
@@ -38,23 +46,16 @@ export const SalesforceApiUserInput: FunctionComponent<SalesforceApiUserInputPro
 
   return (
     <Grid guttersDirect>
-      <GridCol growNone>
-        <Select id="salesforce-api-method" label="Method" isRequired>
-          <select
-            className="slds-select"
-            id="salesforce-api-http-method"
-            value={method}
-            disabled={loading}
-            onKeyDown={handleKeyUp}
-            onChange={(event) => onMethodChange(event.target.value as HttpMethod)}
-          >
-            <option value={'GET'}>GET</option>
-            <option value={'POST'}>POST</option>
-            <option value={'PUT'}>PUT</option>
-            <option value={'PATCH'}>PATCH</option>
-            <option value={'DELETE'}>DELETE</option>
-          </select>
-        </Select>
+      <GridCol growNone size={3}>
+        <ComboboxWithItems
+          comboboxProps={{
+            label: 'Method',
+            itemLength: 5,
+          }}
+          items={MethodListItems}
+          selectedItemId={method}
+          onSelected={(item) => onMethodChange(item.value as HttpMethod)}
+        />
       </GridCol>
       <GridCol grow>
         <Input

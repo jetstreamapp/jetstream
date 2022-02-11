@@ -2,7 +2,7 @@ import { mockPicklistValuesFromSobjectDescribe, UiRecordForm } from '@jetstream/
 import { clearCacheForOrg, describeSObject } from '@jetstream/shared/data';
 import { useReducerFetchFn } from '@jetstream/shared/ui-utils';
 import { ListItem, PicklistFieldValues, Record, SalesforceOrgUi } from '@jetstream/types';
-import { Card, Grid, Icon, Picklist, ScopedNotification, Spinner, Tooltip } from '@jetstream/ui';
+import { Card, ComboboxWithItems, Grid, Icon, Picklist, ScopedNotification, Spinner, Tooltip } from '@jetstream/ui';
 import { formatRelative } from 'date-fns';
 import type { DescribeGlobalSObjectResult, DescribeSObjectResult } from 'jsforce';
 import { Fragment, FunctionComponent, useCallback, useEffect, useReducer, useRef, useState } from 'react';
@@ -127,15 +127,15 @@ export const PlatformEventMonitorPublisherCard: FunctionComponent<PlatformEventM
       <Grid vertical>
         <Grid verticalAlign="end">
           <div className="slds-grow">
-            <Picklist
+            <ComboboxWithItems
               key={picklistKey}
-              label="Platform Events"
-              items={platformEventsList}
-              allowDeselection={false}
-              selectedItemIds={selectedPublishEvent ? [selectedPublishEvent] : undefined}
-              onChange={(items) => {
-                onSelectedPublishEvent(items[0].id);
+              comboboxProps={{
+                label: 'Platform Events',
+                itemLength: 10,
               }}
+              items={platformEventsList}
+              selectedItemId={selectedPublishEvent}
+              onSelected={(item) => onSelectedPublishEvent(item.id)}
             />
           </div>
         </Grid>
