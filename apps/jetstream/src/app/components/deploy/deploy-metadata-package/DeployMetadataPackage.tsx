@@ -20,7 +20,9 @@ export const DeployMetadataPackage: FunctionComponent<DeployMetadataPackageProps
   const [configModalOpen, setConfigModalOpen] = useState<boolean>(false);
   const [deployStatusModalOpen, setDeployStatusModalOpen] = useState<boolean>(false);
   const [downloadResultsModalOpen, setDownloadResultsModalOpen] = useState<boolean>(false);
-  const [file, setFile] = useState<ArrayBuffer>();
+  const [fileInfo, setFileInfo] = useState<{ file?: ArrayBuffer; filename?: string; fileContents?: string[]; isSinglePackage?: boolean }>(
+    {}
+  );
   const [deployOptions, setDeployOptions] = useState<DeployOptions>();
   const [deployResultsData, setDeployResultsData] = useState<MapOf<any[]>>();
 
@@ -28,12 +30,17 @@ export const DeployMetadataPackage: FunctionComponent<DeployMetadataPackageProps
     setConfigModalOpen(true);
   }
 
-  function handleDeploy(file: ArrayBuffer, deployOptions: DeployOptions) {
-    setFile(file);
+  function handleDeploy(fileInfo, deployOptions: DeployOptions) {
+    setFileInfo(fileInfo);
     setDeployOptions(deployOptions);
     setConfigModalOpen(false);
     setDeployStatusModalOpen(true);
     trackEvent(ANALYTICS_KEYS.deploy_deployMetadata, { type: 'package-to-org', deployOptions });
+  }
+
+  function handleGoBackFromDeploy() {
+    setDeployStatusModalOpen(false);
+    setConfigModalOpen(true);
   }
 
   function handleCloseDeploymentModal() {
@@ -58,14 +65,24 @@ export const DeployMetadataPackage: FunctionComponent<DeployMetadataPackageProps
       </button>
       {/* MODALS */}
       {configModalOpen && (
-        <DeployMetadataPackageConfigModal selectedOrg={selectedOrg} onClose={() => setConfigModalOpen(false)} onDeploy={handleDeploy} />
+        <DeployMetadataPackageConfigModal
+          selectedOrg={selectedOrg}
+          initialOptions={deployOptions}
+          initialFile={fileInfo.file}
+          initialFilename={fileInfo.filename}
+          initialFileContents={fileInfo.fileContents}
+          initialIsSinglePackage={fileInfo.isSinglePackage}
+          onClose={() => setConfigModalOpen(false)}
+          onDeploy={handleDeploy}
+        />
       )}
       {deployStatusModalOpen && (
         <DeployMetadataPackageStatusModal
           destinationOrg={selectedOrg}
           deployOptions={deployOptions}
-          file={file}
+          file={fileInfo.file}
           hideModal={downloadResultsModalOpen}
+          onGoBack={handleGoBackFromDeploy}
           onClose={handleCloseDeploymentModal}
           onDownload={handleDeployResultsDownload}
         />

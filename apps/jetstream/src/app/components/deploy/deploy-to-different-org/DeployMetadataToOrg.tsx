@@ -48,6 +48,11 @@ export const DeployMetadataToOrg: FunctionComponent<DeployMetadataToOrgProps> = 
     trackEvent(ANALYTICS_KEYS.deploy_deployMetadata, { type: 'org-to-org', deployOptions });
   }
 
+  function handleGoBackFromDeploy() {
+    setDeployStatusModalOpen(false);
+    setConfigModalOpen(true);
+  }
+
   function handleDeployResultsDownload(deployResults: DeployResult, deploymentUrl: string) {
     setDeployResultsData(getDeployResultsExcelData(deployResults, deploymentUrl));
     setDownloadResultsModalOpen(true);
@@ -68,6 +73,8 @@ export const DeployMetadataToOrg: FunctionComponent<DeployMetadataToOrgProps> = 
       {configModalOpen && (
         <DeployMetadataToOrgConfigModal
           sourceOrg={selectedOrg}
+          initialOptions={deployMetadataOptions}
+          initialSelectedDestinationOrg={destinationOrg}
           selectedMetadata={selectedMetadata}
           onClose={handleCloseConfigModal}
           onDeploy={handleDeployMetadata}
@@ -80,6 +87,7 @@ export const DeployMetadataToOrg: FunctionComponent<DeployMetadataToOrgProps> = 
           destinationOrg={destinationOrg}
           selectedMetadata={selectedMetadata}
           deployOptions={deployMetadataOptions}
+          onGoBack={handleGoBackFromDeploy}
           onClose={() => setDeployStatusModalOpen(false)}
           onDownload={handleDeployResultsDownload}
         />

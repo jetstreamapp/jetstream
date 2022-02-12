@@ -15,6 +15,7 @@ export interface DeployMetadataToOrgStatusModalProps {
   deployOptions: DeployOptions;
   // used to hide while download window is open
   hideModal: boolean;
+  onGoBack: () => void;
   onClose: () => void;
   onDownload: (deployResults: DeployResult, deploymentUrl: string) => void;
 }
@@ -25,6 +26,7 @@ export const DeployMetadataToOrgStatusModal: FunctionComponent<DeployMetadataToO
   selectedMetadata,
   deployOptions,
   hideModal,
+  onGoBack,
   onClose,
   onDownload,
 }) => {
@@ -71,6 +73,7 @@ export const DeployMetadataToOrgStatusModal: FunctionComponent<DeployMetadataToO
       }
       hideModal={hideModal}
       getStatusValue={getStatusValue}
+      onGoBack={onGoBack}
       onClose={onClose}
       onDownload={onDownload}
     />
