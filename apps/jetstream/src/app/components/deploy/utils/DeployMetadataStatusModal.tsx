@@ -41,6 +41,7 @@ export interface DeployMetadataStatusModalProps {
   hideModal?: boolean;
   // return a string to translate statuses into values
   getStatusValue: (value: DeployMetadataStatus) => string;
+  onGoBack?: () => void;
   onClose: () => void;
   onDownload?: (deployResults: DeployResult, deploymentUrl: string) => void;
 }
@@ -62,6 +63,7 @@ export const DeployMetadataStatusModal: FunctionComponent<DeployMetadataStatusMo
   statusUrls,
   hideModal,
   getStatusValue,
+  onGoBack,
   onClose,
   onDownload,
 }) => {
@@ -96,6 +98,24 @@ export const DeployMetadataStatusModal: FunctionComponent<DeployMetadataStatusMo
     }
   }, [isDone]);
 
+  function handleGoBack() {
+    trackEvent(ANALYTICS_KEYS.deploy_go_back, {
+      checkOnly: results.checkOnly,
+      completedDate: results.completedDate,
+      numberComponentErrors: results.numberComponentErrors,
+      numberComponentsDeployed: results.numberComponentsDeployed,
+      numberComponentsTotal: results.numberComponentsTotal,
+      numberTestErrors: results.numberTestErrors,
+      numberTestsCompleted: results.numberTestsCompleted,
+      numberTestsTotal: results.numberTestsTotal,
+      rollbackOnError: results.rollbackOnError,
+      runTestsEnabled: results.runTestsEnabled,
+      startDate: results.startDate,
+      success: results.success,
+    });
+    onGoBack();
+  }
+
   return (
     <Modal
       classStyles={css`
@@ -128,9 +148,17 @@ export const DeployMetadataStatusModal: FunctionComponent<DeployMetadataStatusMo
               </button>
             )}
           </div>
-          <button className="slds-button slds-button_brand" onClick={() => onClose()} disabled={loading}>
-            Close
-          </button>
+          <div>
+            {onGoBack && (
+              <button className="slds-button slds-button_neutral" onClick={() => handleGoBack()} disabled={loading}>
+                <Icon type="utility" icon="back" className="slds-button__icon slds-button__icon_left" omitContainer />
+                Go Back
+              </button>
+            )}
+            <button className="slds-button slds-button_brand" onClick={() => onClose()} disabled={loading}>
+              Close
+            </button>
+          </div>
         </Grid>
       }
       size="lg"

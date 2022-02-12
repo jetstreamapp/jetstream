@@ -196,6 +196,7 @@ export const ANALYTICS_KEYS = {
   deploy_download: 'deploy_download',
   deploy_downloadMetadataPkg: 'deploy_downloadMetadataPkg',
   deploy_finished: 'deploy_finished',
+  deploy_go_back: 'deploy_go_back',
   /** CREATE FIELDS */
   sobj_create_field_export_fields: 'sobj_create_field_export_fields',
   sobj_create_field_export_example: 'sobj_create_field_export_example',

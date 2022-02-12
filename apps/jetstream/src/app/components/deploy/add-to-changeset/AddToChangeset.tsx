@@ -52,6 +52,11 @@ export const AddToChangeset: FunctionComponent<AddToChangesetProps> = ({ selecte
     });
   }
 
+  function handleGoBackFromDeploy() {
+    setDeployStatusModalOpen(false);
+    setConfigModalOpen(true);
+  }
+
   function handleDeployResultsDownload(deployResults: DeployResult, deploymentUrl: string) {
     setDeployResultsData(getDeployResultsExcelData(deployResults, deploymentUrl));
     setDownloadResultsModalOpen(true);
@@ -60,7 +65,7 @@ export const AddToChangeset: FunctionComponent<AddToChangesetProps> = ({ selecte
   return (
     <Fragment>
       <button
-        className="slds-button slds-button_brand"
+        className="slds-button slds-button_neutral"
         disabled={loading || selectedRows.size === 0}
         onClick={handleClick}
         title="You can deploy the selected components to an existing outbound changeset."
@@ -75,6 +80,7 @@ export const AddToChangeset: FunctionComponent<AddToChangesetProps> = ({ selecte
           selectedMetadata={selectedMetadata}
           initialPackages={changesetPackages}
           initialPackage={changesetPackage}
+          initialDescription={changesetPackageDescription}
           onChangesetPackages={setChangesetPackages}
           onSelection={setChangesetPackage}
           onClose={() => setConfigModalOpen(false)}
@@ -89,6 +95,7 @@ export const AddToChangeset: FunctionComponent<AddToChangesetProps> = ({ selecte
           changesetDescription={changesetPackageDescription}
           changesetId={changesetId}
           selectedMetadata={selectedMetadata}
+          onGoBack={handleGoBackFromDeploy}
           onClose={() => setDeployStatusModalOpen(false)}
           onDownload={handleDeployResultsDownload}
         />

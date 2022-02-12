@@ -235,7 +235,7 @@ export const AddToChangesetConfigModal: FunctionComponent<AddToChangesetConfigMo
                 <ul
                   className="slds-has-dividers_bottom-space"
                   css={css`
-                    max-height: ${modalBodyRef.current.clientHeight - 50}px;
+                    max-height: ${(modalBodyRef.current?.clientHeight || 300) - 50}px;
                     overflow-y: scroll;
                     overflow-x: auto;
                   `}
