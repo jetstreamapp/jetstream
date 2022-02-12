@@ -101,7 +101,7 @@ export async function updateUser(userId: string, userProfile: { app_metadata: { 
   // return await getUser(user);
 }
 
-// export async function deleteUser(user: UserProfileServer): Promise<void> {
-//   await initAuthorizationToken(user);
-//   await axiosAuth0.delete<void>(`/api/v2/users/${user.id}`);
-// }
+export async function deleteUser(userId: string): Promise<void> {
+  await initAuthorizationToken();
+  await axiosAuth0.delete<void>(`/api/v2/users/${userId}`);
+}

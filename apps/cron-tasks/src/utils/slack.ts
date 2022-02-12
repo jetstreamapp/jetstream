@@ -42,7 +42,7 @@ export async function accountDeletionInitialNotification(results: DeleteResult[]
       type: 'header',
       text: {
         type: 'plain_text',
-        text: `:skull_and_crossbones: Inactive users deleted :skull_and_crossbones:`,
+        text: `:skull_and_crossbones: ${results.length} Inactive users deleted :skull_and_crossbones:`,
         emoji: true,
       },
     },
@@ -84,7 +84,7 @@ export async function accountDeletionInitialNotification(results: DeleteResult[]
 
   return await slack.alert({
     channel,
-    text: `${results.length} users have been deleted.`,
+    text: `${results.length} inactive users have been deleted.`,
     blocks,
   });
 }

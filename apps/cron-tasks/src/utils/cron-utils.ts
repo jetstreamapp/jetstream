@@ -24,7 +24,11 @@ export async function deleteUserAndOrgs(user: UserProfileAuth0) {
       userId: results[1].id,
     };
   } catch (ex) {
-    logger.error('[DB][TX][DEL_ORGS_AND_USER][ERROR] %o', ex, { userId: user?.user_id });
+    logger.error(
+      '[DB][TX][DEL_ORGS_AND_USER][ERROR] %o',
+      { message: ex.message, stack: ex.stack },
+      { userId: user?.user_id, cronTask: true }
+    );
     throw ex;
   }
 }

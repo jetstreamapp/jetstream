@@ -1,4 +1,4 @@
-import { format, startOfDay } from 'date-fns';
+import { endOfDay, format, isBefore, parseISO, startOfDay } from 'date-fns';
 import { logger } from './config/logger.config';
 import { deleteUser, searchUsersPaginateAll } from './utils/auth0';
 import { deleteUserAndOrgs } from './utils/cron-utils';
@@ -18,14 +18,18 @@ import { DeleteResult } from './utils/types';
 
   const params = {
     sort: 'email:1',
-    fields: 'created_at,email,email_verified,name,updated_at,user_id,last_login,logins_count',
+    fields: 'created_at,email,email_verified,name,updated_at,user_id,last_login,logins_count,app_metadata',
     include_fields: 'true',
-    q: `(_exists_:app_metadata.accountDeletionDate AND app_metadata.accountDeletionDate:[* TO ${accountDeletionDate}])`,
+    // Range filters are not allowed for app_metadata, so we are filtering results after
+    q: `_exists_:app_metadata.accountDeletionDate`,
   };
 
   logger.debug('[inactive-account-deletion][FETCHING USERS] %o', { accountDeletionDate, params }, { cronTask: true });
 
-  const usersToDelete = await searchUsersPaginateAll(params);
+  const cutoff = endOfDay(new Date());
+  const usersToDelete = (await searchUsersPaginateAll(params)).filter((user) =>
+    isBefore(parseISO(user.app_metadata.accountDeletionDate), cutoff)
+  );
 
   const results: DeleteResult[] = [];
 
@@ -68,8 +72,8 @@ import { DeleteResult } from './utils/types';
   // Slack message
   try {
     await accountDeletionInitialNotification(results);
-    logger.debug('[inactive-account-deletion][Slack messages sent successfully] %o', { cronTask: true });
+    logger.debug('[inactive-account-deletion][Slack messages sent successfully]', { cronTask: true });
   } catch (ex) {
-    logger.debug('[inactive-account-deletion][Slack messages error] %o', { cronTask: true });
+    logger.debug('[inactive-account-deletion][Slack messages error]', { cronTask: true });
   }
 })();
