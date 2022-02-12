@@ -2,11 +2,11 @@ import { css } from '@emotion/react';
 import { ListMetadataResultItem, useListMetadata } from '@jetstream/connected-ui';
 import { ANALYTICS_KEYS } from '@jetstream/shared/constants';
 import { formatNumber, transformTabularDataToExcelStr } from '@jetstream/shared/ui-utils';
-import { pluralizeFromNumber, pluralizeIfMultiple } from '@jetstream/shared/utils';
+import { pluralizeIfMultiple } from '@jetstream/shared/utils';
 import { ListMetadataResult, MapOf, SalesforceOrgUi } from '@jetstream/types';
 import {
   AutoFullHeightContainer,
-  Badge,
+  ButtonGroupContainer,
   DropDown,
   FileDownloadModal,
   Grid,
@@ -30,6 +30,7 @@ import { applicationCookieState } from '../../app-state';
 import { useAmplitude } from '../core/analytics';
 import * as fromJetstreamEvents from '../core/jetstream-events';
 import AddToChangeset from './add-to-changeset/AddToChangeset';
+import DeleteMetadataModal from './delete-metadata/DeleteMetadataModal';
 import DeployMetadataPackage from './deploy-metadata-package/DeployMetadataPackage';
 import * as fromDeployMetadataState from './deploy-metadata.state';
 import { AllUser, DeployMetadataTableRow, SidePanelType, YesNo } from './deploy-metadata.types';
@@ -38,12 +39,14 @@ import DeployMetadataDeploymentSidePanel from './DeployMetadataDeploymentSidePan
 import DeployMetadataDeploymentTable from './DeployMetadataDeploymentTable';
 import DeployMetadataLastRefreshedPopover from './DeployMetadataLastRefreshedPopover';
 import { convertRowsForExport, convertRowsToMapOfListMetadataResults } from './utils/deploy-metadata.utils';
+import DeployMetadataSelectedItemsBadge from './utils/DeployMetadataSelectedItemsBadge';
 import DownloadPackageWithFileSelector from './utils/DownloadPackageWithFileSelector';
 import ViewOrCompareMetadataModal from './view-or-compare-metadata/ViewOrCompareMetadataModal';
 
 const TABLE_ACTION_CLIPBOARD = 'table-copy-to-clipboard';
 const TABLE_ACTION_DOWNLOAD = 'table-download';
-
+const TABLE_ACTION_DOWNLOAD_MANIFEST = 'download-manifest';
+const TABLE_ACTION_DELETE_METADATA = 'delete-manifest';
 export interface DeployMetadataDeploymentProps {
   selectedOrg: SalesforceOrgUi;
 }
@@ -82,6 +85,7 @@ export const DeployMetadataDeployment: FunctionComponent<DeployMetadataDeploymen
   const [modifiedLabel, setModifiedLabel] = useState('');
 
   const [viewOrCompareModalOpen, setViewOrCompareModalOpen] = useState(false);
+  const [deleteMetadataModalOpen, setDeleteMetadataModalOpen] = useState(false);
 
   const listMetadataFilterFn = useCallback(
     (item: ListMetadataResult) => {
@@ -182,15 +186,6 @@ export const DeployMetadataDeployment: FunctionComponent<DeployMetadataDeploymen
     setActiveDownloadType(null);
   }
 
-  function handleTableAction(id: string) {
-    const exportDataTemp = convertRowsForExport(rows);
-    if (id === TABLE_ACTION_CLIPBOARD) {
-      copyToClipboard(transformTabularDataToExcelStr(exportDataTemp), { format: 'text/plain' });
-    } else if (TABLE_ACTION_DOWNLOAD) {
-      setExportData(exportDataTemp);
-    }
-  }
-
   function handleOpenSidePanel(activeItem: SidePanelType) {
     if (activeItem === sidePanelType && isSidePanelOpen) {
       setIsSidePanelOpen(false);
@@ -203,6 +198,18 @@ export const DeployMetadataDeployment: FunctionComponent<DeployMetadataDeploymen
   function handleCloseSidePanel() {
     setIsSidePanelOpen(false);
     trackEvent(ANALYTICS_KEYS.deploy_configuration, { page: 'deploy-table', ...amplitudeSubmissionSelector });
+  }
+
+  function handleDropdownMenuSelect(id: string) {
+    if (id === TABLE_ACTION_DOWNLOAD_MANIFEST) {
+      handleDownloadActive('manifest');
+    } else if (id === TABLE_ACTION_CLIPBOARD) {
+      copyToClipboard(transformTabularDataToExcelStr(convertRowsForExport(rows)), { format: 'text/plain' });
+    } else if (id === TABLE_ACTION_DOWNLOAD) {
+      setExportData(convertRowsForExport(rows));
+    } else if (id === TABLE_ACTION_DELETE_METADATA) {
+      setDeleteMetadataModalOpen(true);
+    }
   }
 
   return (
@@ -240,6 +247,14 @@ export const DeployMetadataDeployment: FunctionComponent<DeployMetadataDeploymen
         />
       )}
 
+      {deleteMetadataModalOpen && (
+        <DeleteMetadataModal
+          selectedOrg={selectedOrg}
+          selectedMetadata={convertRowsToMapOfListMetadataResults(Array.from(selectedRows))}
+          onClose={() => setDeleteMetadataModalOpen(false)}
+        />
+      )}
+
       <Toolbar>
         <ToolbarItemGroup>
           <Link className="slds-button slds-button_brand" to={{ pathname: `/deploy-metadata` }}>
@@ -248,27 +263,49 @@ export const DeployMetadataDeployment: FunctionComponent<DeployMetadataDeploymen
           </Link>
         </ToolbarItemGroup>
         <ToolbarItemActions>
-          <DeployMetadataPackage selectedOrg={selectedOrg} />
-          <button
-            title={`Download a Package.xml manifest file for all the selected metadata components. You can use this file to download this same set of metadata from any org at a later date.`}
-            className="slds-button slds-button_neutral"
-            onClick={() => handleDownloadActive('manifest')}
-            disabled={loading || selectedRows.size === 0}
-          >
-            <Icon type="utility" icon="page" className="slds-button__icon slds-button__icon_left" omitContainer />
-            Download Manifest
-          </button>
-          <button
-            title="Download a metadata package as a zip file so that you can view or modify the components locally and re-deploy to any org. You can also use this to keep a backup of the current state of the components."
-            className="slds-button slds-button_neutral"
-            onClick={() => handleDownloadActive('package')}
-            disabled={loading || selectedRows.size === 0}
-          >
-            <Icon type="utility" icon="download" className="slds-button__icon slds-button__icon_left" omitContainer />
-            Download Metadata
-          </button>
-          <AddToChangeset selectedOrg={selectedOrg} loading={loading} selectedRows={selectedRows} />
-          <DeployMetadataToOrg selectedOrg={selectedOrg} loading={loading} selectedRows={selectedRows} />
+          <ButtonGroupContainer>
+            <DeployMetadataPackage selectedOrg={selectedOrg} />
+            <button
+              title="Download a metadata package as a zip file so that you can view or modify the components locally and re-deploy to any org. You can also use this to keep a backup of the current state of the components."
+              className="slds-button slds-button_neutral"
+              onClick={() => handleDownloadActive('package')}
+              disabled={loading || selectedRows.size === 0}
+            >
+              <Icon type="utility" icon="download" className="slds-button__icon slds-button__icon_left" omitContainer />
+              Download Metadata
+            </button>
+            <AddToChangeset selectedOrg={selectedOrg} loading={loading} selectedRows={selectedRows} />
+            <DeployMetadataToOrg selectedOrg={selectedOrg} loading={loading} selectedRows={selectedRows} />
+            <DropDown
+              position="right"
+              items={[
+                {
+                  id: TABLE_ACTION_DOWNLOAD_MANIFEST,
+                  value: 'Download package.xml manifest',
+                  icon: { icon: 'page', type: 'utility' },
+                  trailingDivider: true,
+                },
+                {
+                  id: TABLE_ACTION_CLIPBOARD,
+                  icon: { type: 'utility', icon: 'copy_to_clipboard', description: 'Copy table to Clipboard' },
+                  value: 'Copy metadata table to Clipboard',
+                },
+                {
+                  id: TABLE_ACTION_DOWNLOAD,
+                  icon: { type: 'utility', icon: 'download', description: 'Download table' },
+                  value: 'Download metadata table',
+                  trailingDivider: true,
+                },
+                {
+                  id: TABLE_ACTION_DELETE_METADATA,
+                  icon: { type: 'utility', icon: 'delete', description: 'Delete selected metadata' },
+                  value: 'Delete selected metadata',
+                },
+              ]}
+              disabled={loading || selectedRows.size === 0}
+              onSelected={handleDropdownMenuSelect}
+            />
+          </ButtonGroupContainer>
         </ToolbarItemActions>
       </Toolbar>
       <div>
@@ -312,32 +349,8 @@ export const DeployMetadataDeployment: FunctionComponent<DeployMetadataDeploymen
             </button>
           </div>
           <div className="slds-m-right_xx-small">
-            <Badge>
-              {formatNumber(selectedRows.size)} {pluralizeFromNumber('Component', selectedRows.size)} Selected
-            </Badge>
+            <DeployMetadataSelectedItemsBadge selectedRows={selectedRows} />
           </div>
-          {!loading && rows && (
-            <div className="slds-p-top_xxx-small">
-              <DropDown
-                buttonClassName="slds-button slds-button_icon slds-button_icon-border-filled slds-button_icon-small"
-                actionText="Table Actions"
-                description="Table Actions"
-                items={[
-                  {
-                    id: TABLE_ACTION_CLIPBOARD,
-                    icon: { type: 'utility', icon: 'copy_to_clipboard', description: 'Copy table to Clipboard' },
-                    value: 'Copy metadata table to Clipboard',
-                  },
-                  {
-                    id: TABLE_ACTION_DOWNLOAD,
-                    icon: { type: 'utility', icon: 'download', description: 'Download table' },
-                    value: 'Download metadata table',
-                  },
-                ]}
-                onSelected={handleTableAction}
-              />
-            </div>
-          )}
           {!loading && listMetadataItems && (
             <div className="slds-col_bump-left">
               <DeployMetadataLastRefreshedPopover

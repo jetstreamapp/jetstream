@@ -1,5 +1,6 @@
+import { css } from '@emotion/react';
 import { DeployMessage } from '@jetstream/types';
-import { Grid } from '@jetstream/ui';
+import { Checkbox, Grid } from '@jetstream/ui';
 import { FunctionComponent } from 'react';
 
 export interface DeployMetadataResultsSuccessTableProps {
@@ -19,6 +20,30 @@ export const DeployMetadataResultsSuccessTable: FunctionComponent<DeployMetadata
           <tr className="slds-line-height_reset">
             <th scope="col">Name</th>
             <th scope="col">Type</th>
+            <th
+              scope="col"
+              css={css`
+                width: 80px;
+              `}
+            >
+              Changed
+            </th>
+            <th
+              scope="col"
+              css={css`
+                width: 80px;
+              `}
+            >
+              Created
+            </th>
+            <th
+              scope="col"
+              css={css`
+                width: 80px;
+              `}
+            >
+              Deleted
+            </th>
           </tr>
         </thead>
         <tbody>
@@ -32,6 +57,21 @@ export const DeployMetadataResultsSuccessTable: FunctionComponent<DeployMetadata
               <td>
                 <div className="slds-truncate" title={row.componentType}>
                   {row.componentType}
+                </div>
+              </td>
+              <td>
+                <div className="slds-truncate">
+                  <Checkbox id={`${row.componentType}-${row.fullName}-changed`} label="changed" hideLabel checked={row.changed} disabled />
+                </div>
+              </td>
+              <td>
+                <div className="slds-truncate">
+                  <Checkbox id={`${row.componentType}-${row.fullName}-created`} label="created" hideLabel checked={row.created} disabled />
+                </div>
+              </td>
+              <td>
+                <div className="slds-truncate">
+                  <Checkbox id={`${row.componentType}-${row.fullName}-deleted`} label="deleted" hideLabel checked={row.deleted} disabled />
                 </div>
               </td>
             </tr>

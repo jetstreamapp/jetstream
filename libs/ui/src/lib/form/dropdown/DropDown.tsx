@@ -29,6 +29,7 @@ import Icon from '../../widgets/Icon';
 
 export interface DropDownProps {
   className?: string;
+  disabled?: boolean;
   position?: 'left' | 'right';
   leadingIcon?: IconObj; // ignored if buttonContent is provided
   buttonClassName?: string;
@@ -45,6 +46,7 @@ export interface DropDownProps {
 
 export const DropDown: FunctionComponent<DropDownProps> = ({
   className,
+  disabled,
   position = 'left',
   leadingIcon,
   buttonClassName,
@@ -160,6 +162,7 @@ export const DropDown: FunctionComponent<DropDownProps> = ({
           aria-haspopup="true"
           title={actionText}
           onClick={() => setIsOpen(!isOpen)}
+          disabled={disabled}
         >
           {buttonContent ? (
             buttonContent

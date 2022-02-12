@@ -1,7 +1,16 @@
 import { css } from '@emotion/react';
 import { ANALYTICS_KEYS } from '@jetstream/shared/constants';
 import { SalesforceOrgUi } from '@jetstream/types';
-import { AutoFullHeightContainer, Icon, Page, PageHeader, PageHeaderActions, PageHeaderRow, PageHeaderTitle } from '@jetstream/ui';
+import {
+  AutoFullHeightContainer,
+  ButtonGroupContainer,
+  Icon,
+  Page,
+  PageHeader,
+  PageHeaderActions,
+  PageHeaderRow,
+  PageHeaderTitle,
+} from '@jetstream/ui';
 import { FunctionComponent } from 'react';
 import { Link, useRouteMatch } from 'react-router-dom';
 import Split from 'react-split';
@@ -41,8 +50,10 @@ export const DeployMetadataSelection: FunctionComponent<DeployMetadataSelectionP
         <PageHeaderRow>
           <PageHeaderTitle icon={{ type: 'standard', icon: 'asset_relationship' }} label="Deploy and Compare Metadata" />
           <PageHeaderActions colType="actions" buttonType="separate">
-            <DownloadMetadataPackage selectedOrg={selectedOrg} />
-            <DeployMetadataPackage selectedOrg={selectedOrg} />
+            <ButtonGroupContainer>
+              <DownloadMetadataPackage selectedOrg={selectedOrg} />
+              <DeployMetadataPackage selectedOrg={selectedOrg} />
+            </ButtonGroupContainer>
             {hasSelectionsMade && (
               <Link
                 onClick={trackContinue}
