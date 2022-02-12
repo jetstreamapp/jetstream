@@ -16,6 +16,7 @@ export interface AddToChangesetStatusModalProps {
   changesetId?: string;
   // used to hide while download window is open
   hideModal: boolean;
+  onGoBack: () => void;
   onClose: () => void;
   onDownload: (deployResults: DeployResult, deploymentUrl: string) => void;
 }
@@ -27,6 +28,7 @@ export const AddToChangesetStatusModal: FunctionComponent<AddToChangesetStatusMo
   changesetId,
   selectedMetadata,
   hideModal,
+  onGoBack,
   onClose,
   onDownload,
 }) => {
@@ -93,6 +95,7 @@ export const AddToChangesetStatusModal: FunctionComponent<AddToChangesetStatusMo
       }
       hideModal={hideModal}
       getStatusValue={getStatusValue}
+      onGoBack={onGoBack}
       onClose={onClose}
       onDownload={onDownload}
     />

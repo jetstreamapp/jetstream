@@ -15,25 +15,39 @@ const NESTED_PACKAGE_XML_REGEX = /^[^\\/?%*:|"<>\.]+\/package\.xml$/;
 export interface DeployMetadataPackageConfigModalProps {
   selectedOrg: SalesforceOrgUi;
   initialOptions?: DeployOptions;
+  initialFile?: ArrayBuffer;
+  initialFilename?: string;
+  initialFileContents?: string[];
+  initialIsSinglePackage?: boolean;
   onSelection?: (deployOptions: DeployOptions) => void;
   onClose: () => void;
-  onDeploy: (file: ArrayBuffer, deployOptions: DeployOptions) => void;
+  onDeploy: (
+    fileInfo: { file: ArrayBuffer; filename: string; fileContents: string[]; isSinglePackage: boolean },
+    deployOptions: DeployOptions
+  ) => void;
 }
 
 export const DeployMetadataPackageConfigModal: FunctionComponent<DeployMetadataPackageConfigModalProps> = ({
   selectedOrg,
   initialOptions,
+  initialFile,
+  initialFilename,
+  initialFileContents,
+  initialIsSinglePackage,
   onSelection,
   onClose,
   onDeploy,
 }) => {
   const rollbar = useRollbar();
-  const [file, setFile] = useState<ArrayBuffer>();
+  const [file, setFile] = useState<ArrayBuffer>(initialFile);
   const modalBodyRef = useRef<HTMLDivElement>();
-  const [filename, setFileName] = useState<string>();
-  const [fileContents, setFileContents] = useState<string[]>();
+  const [filename, setFileName] = useState<string>(initialFilename);
+  const [fileContents, setFileContents] = useState<string[]>(initialFileContents);
   const [isConfigValid, setIsConfigValid] = useState(true);
-  const [{ isSinglePackage, missingPackageXml }, setPackageDetection] = useState({ isSinglePackage: true, missingPackageXml: false });
+  const [{ isSinglePackage, missingPackageXml }, setPackageDetection] = useState({
+    isSinglePackage: initialIsSinglePackage ?? true,
+    missingPackageXml: false,
+  });
   const [deployOptions, setDeployOptions] = useState<DeployOptions>(
     initialOptions || {
       allowMissingFiles: false,
@@ -89,6 +103,10 @@ export const DeployMetadataPackageConfigModal: FunctionComponent<DeployMetadataP
     setFile(_content);
   }
 
+  function handleDeploy() {
+    onDeploy({ file, filename, fileContents, isSinglePackage }, deployOptions);
+  }
+
   return (
     <Modal
       header="Upload metadata from package"
@@ -102,7 +120,7 @@ export const DeployMetadataPackageConfigModal: FunctionComponent<DeployMetadataP
           <button className="slds-button slds-button_neutral" onClick={() => onClose()}>
             Cancel
           </button>
-          <button className="slds-button slds-button_brand" onClick={() => onDeploy(file, deployOptions)} disabled={!isConfigValid}>
+          <button className="slds-button slds-button_brand" onClick={() => handleDeploy()} disabled={!isConfigValid}>
             {deployOptions.checkOnly ? 'Validate' : 'Deploy'}
           </button>
         </Fragment>
@@ -147,7 +165,7 @@ export const DeployMetadataPackageConfigModal: FunctionComponent<DeployMetadataP
                 <ul
                   className="slds-has-dividers_bottom-space"
                   css={css`
-                    max-height: ${modalBodyRef.current.clientHeight - 50}px;
+                    max-height: ${(modalBodyRef.current?.clientHeight || 300) - 50}px;
                     overflow-y: scroll;
                     overflow-x: auto;
                   `}

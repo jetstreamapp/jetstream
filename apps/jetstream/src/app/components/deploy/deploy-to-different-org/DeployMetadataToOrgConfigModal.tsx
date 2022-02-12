@@ -12,8 +12,9 @@ import DeployMetadataOptions from '../utils/DeployMetadataOptions';
 const DISABLED_OPTIONS = new Set<keyof DeployOptions>(['allowMissingFiles', 'autoUpdatePackage', 'purgeOnDelete', 'singlePackage']);
 
 export interface DeployMetadataToOrgConfigModalProps {
-  initialOptions?: DeployOptions;
   sourceOrg: SalesforceOrgUi;
+  initialOptions?: DeployOptions;
+  initialSelectedDestinationOrg?: SalesforceOrgUi;
   selectedMetadata: MapOf<ListMetadataResult[]>;
   onSelection?: (deployOptions: DeployOptions) => void;
   onClose: () => void;
@@ -21,8 +22,9 @@ export interface DeployMetadataToOrgConfigModalProps {
 }
 
 export const DeployMetadataToOrgConfigModal: FunctionComponent<DeployMetadataToOrgConfigModalProps> = ({
-  initialOptions,
   sourceOrg,
+  initialOptions,
+  initialSelectedDestinationOrg,
   selectedMetadata,
   onSelection,
   onClose,
@@ -31,7 +33,7 @@ export const DeployMetadataToOrgConfigModal: FunctionComponent<DeployMetadataToO
   const modalBodyRef = useRef<HTMLDivElement>();
   const [selectedMetadataList, setSelectedMetadataList] = useState<string[]>();
   const orgs = useRecoilValue<SalesforceOrgUi[]>(salesforceOrgsOmitSelectedState);
-  const [destinationOrg, setDestinationOrg] = useState<SalesforceOrgUi>(null);
+  const [destinationOrg, setDestinationOrg] = useState<SalesforceOrgUi>(initialSelectedDestinationOrg);
   const [isConfigValid, setIsConfigValid] = useState(true);
   const [deployOptions, setDeployOptions] = useState<DeployOptions>(
     initialOptions || {
@@ -127,7 +129,7 @@ export const DeployMetadataToOrgConfigModal: FunctionComponent<DeployMetadataToO
                 <ul
                   className="slds-has-dividers_bottom-space"
                   css={css`
-                    max-height: ${modalBodyRef.current.clientHeight - 50}px;
+                    max-height: ${(modalBodyRef.current?.clientHeight || 300) - 50}px;
                     overflow-y: scroll;
                     overflow-x: auto;
                   `}
