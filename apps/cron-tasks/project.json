@@ -8,12 +8,15 @@
       "outputs": ["{options.outputPath}"],
       "options": {
         "outputPath": "dist/apps/cron-tasks",
-        "outputFileName": "inactive-account-deletion.js",
-        "main": "apps/cron-tasks/src/inactive-account-deletion.ts",
+        "main": "apps/cron-tasks/main.ts",
         "additionalEntryPoints": [
           {
             "entryName": "inactive-account-warning",
             "entryPath": "apps/cron-tasks/src/inactive-account-warning.ts"
+          },
+          {
+            "entryName": "inactive-account-deletion",
+            "entryPath": "apps/cron-tasks/src/inactive-account-deletion.ts"
           }
         ],
         "tsConfig": "apps/cron-tasks/tsconfig.app.json",
