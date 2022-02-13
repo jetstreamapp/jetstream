@@ -222,9 +222,13 @@ export function getRows(listMetadataItems: MapOf<ListMetadataResultItem>): Deplo
   return output;
 }
 
-export function convertRowsForExport(rows: DeployMetadataTableRow[]): MapOf<any>[] {
+export function convertRowsForExport(
+  rows: DeployMetadataTableRow[],
+  selectedRows: Set<DeployMetadataTableRow>,
+  limitToSelected = false
+): MapOf<any>[] {
   return rows
-    .filter((row) => row.fullName && row.metadata)
+    .filter((row) => row.fullName && row.metadata && (!limitToSelected || selectedRows.has(row)))
     .map((row) => ({
       Id: row.metadata.id,
       Type: row.metadata.type,

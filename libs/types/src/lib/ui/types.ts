@@ -345,6 +345,8 @@ export interface DropDownItem<T = any> {
   value: string | ReactNode;
   icon?: any; // FIXME:
   trailingDivider?: boolean;
+  disabled?: boolean;
+  title?: string;
   metadata?: T;
 }
 

@@ -14,14 +14,15 @@ The **Deploy Metadata** feature provides the ability to work with metadata in yo
 2. Add metadata to an **outbound changeset**
 3. **View** the contents of metadata
 4. **Compare** metadata between two orgs
-5. **Download** a metadata package
-6. **Deploy** a metadata package
+5. **Delete** metadata from an org
+6. **Download** a metadata package
+7. **Deploy** a metadata package
 
 :::tip
 
 The Deploy Metadata tools provide many useful features in addition to deploying metadata from one org to another.
 
-For example, here are some example use-cases:
+For example, here are some example use-cases you can solve by downloading metadata and working with it locally, then re-deploying it:
 
 1. Search across lots of metadata at once.
 2. Make changes to lots of metadata at once, for example adding help-text or descriptions to many fields.
@@ -33,7 +34,7 @@ For example, here are some example use-cases:
 
 ## Metadata selection
 
-For most actions, you will usually start by choosing one or more metadata types.
+For most actions, you will start by choosing one or more metadata types.
 
 **Optionally, you can also configure additional options**:
 
@@ -49,11 +50,19 @@ Click **Continue** to view all the metadata
 
 Once the metadata is loaded, you will be shown a table with a list of all the metadata.
 
-To change the filters that were on the initial metadata page, click the buttons along the top.
+To change the filters that were on the initial metadata page, click the buttons above the table.
+
+If you want to export the list of metadata from the table, click the dropdown menu at the top right section of the page to open the menu with export options.
+
+<img src={require('./deploy-overflow-menu.png').default} alt="Deploy overflow menu" />
 
 Jetstream caches data in your browser to keep the experience fast and recent metadata changes may not show up in Jetstream. Click the **Not seeing recent metadata?** link to show you how old each type of metadata is, with the option to refresh some or all of the items.
 
-When doing a deployment, Jetstream will never use cached data, so even if it shows stale last modified by information, the current state of the metadata is used when performing any action.
+:::info
+
+When doing a deployment, Jetstream will never use cached data. Even if the table shows outdated last modified by information, the current state of the metadata will always be used when performing any action.
+
+:::
 
 <div className="container">
   <div className="row">
@@ -138,6 +147,27 @@ This will show a line-by-line diff of the content. You can click the swap <Refre
 
 <img src={require('./view-or-compare-metadata.png').default} alt="View and compare metadata" />
 
+## Deleting metadata
+
+:::caution
+
+After you delete metadata from your org, you may not be able to recover it. You should download the metadata to your computer before deleting to use as a back-up in case you need to re-deploy it to your org.
+
+:::
+
+To delete metadata from one of your orgs, select the metadata components you would like to delete and then open the dropdown menu at the top right part of the page, and choose **Delete selected metadata**.
+
+<img src={require('./deploy-overflow-menu.png').default} alt="Deploy overflow menu" />
+
+Choose your deployment options just like any other deployment and continue to deploy or validate your package.
+
+- If you choose **Validate Only**, then nothing will be changed in your org, but you will be able to find out if deleting the metadata will be successful.
+- If you choose **Skip Recycle Bin on Delete**, then the metadata will not be recoverable.
+  - Not all types of metadata can be recovered - some items, like Custom Fields, can be restored directly in Salesforce.
+- If you are deleting metadata from production and the items you are deleting require code coverage, you may need to run all non-managed tests for the deployment to be successful.
+
+In order to delete metadata, there cannot be any references to the metadata elsewhere in Salesforce. If there are, then Salesforce will return an error and metadata in your org will not be removed.
+
 ## Downloading metadata
 
 Choose the metadata items that you would like to download and click **Download Metadata**, which will open a dialog to save the metadata as a zip file.
@@ -156,7 +186,7 @@ After unzipping, open the entire unzipped folder with [Visual Studio Code](https
 
 :::tip
 
-You can click **Download Manifest** to get a file with a list of all the selected metadata items. Then you can use this manifest to download that exact same set of metadata from any org at any point in the future.
+You can open the menu dropdown and choose **Download package.xml manifest** to get a file with a list of all the selected metadata items. Then you can use this manifest to download that exact same set of metadata from any org in the future.
 
 :::
 

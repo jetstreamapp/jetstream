@@ -44,7 +44,9 @@ import DownloadPackageWithFileSelector from './utils/DownloadPackageWithFileSele
 import ViewOrCompareMetadataModal from './view-or-compare-metadata/ViewOrCompareMetadataModal';
 
 const TABLE_ACTION_CLIPBOARD = 'table-copy-to-clipboard';
+const TABLE_ACTION_CLIPBOARD_SELECTED = 'table-copy-to-clipboard-selected';
 const TABLE_ACTION_DOWNLOAD = 'table-download';
+const TABLE_ACTION_DOWNLOAD_SELECTED = 'table-download-selected';
 const TABLE_ACTION_DOWNLOAD_MANIFEST = 'download-manifest';
 const TABLE_ACTION_DELETE_METADATA = 'delete-manifest';
 export interface DeployMetadataDeploymentProps {
@@ -204,9 +206,13 @@ export const DeployMetadataDeployment: FunctionComponent<DeployMetadataDeploymen
     if (id === TABLE_ACTION_DOWNLOAD_MANIFEST) {
       handleDownloadActive('manifest');
     } else if (id === TABLE_ACTION_CLIPBOARD) {
-      copyToClipboard(transformTabularDataToExcelStr(convertRowsForExport(rows)), { format: 'text/plain' });
+      copyToClipboard(transformTabularDataToExcelStr(convertRowsForExport(rows, selectedRows)), { format: 'text/plain' });
+    } else if (id === TABLE_ACTION_CLIPBOARD_SELECTED) {
+      copyToClipboard(transformTabularDataToExcelStr(convertRowsForExport(rows, selectedRows, true)), { format: 'text/plain' });
     } else if (id === TABLE_ACTION_DOWNLOAD) {
-      setExportData(convertRowsForExport(rows));
+      setExportData(convertRowsForExport(rows, selectedRows));
+    } else if (id === TABLE_ACTION_DOWNLOAD_SELECTED) {
+      setExportData(convertRowsForExport(rows, selectedRows, true));
     } else if (id === TABLE_ACTION_DELETE_METADATA) {
       setDeleteMetadataModalOpen(true);
     }
@@ -280,13 +286,8 @@ export const DeployMetadataDeployment: FunctionComponent<DeployMetadataDeploymen
               position="right"
               items={[
                 {
-                  id: TABLE_ACTION_DOWNLOAD_MANIFEST,
-                  value: 'Download package.xml manifest',
-                  icon: { icon: 'page', type: 'utility' },
-                  trailingDivider: true,
-                },
-                {
                   id: TABLE_ACTION_CLIPBOARD,
+                  subheader: 'Export All Table Data',
                   icon: { type: 'utility', icon: 'copy_to_clipboard', description: 'Copy table to Clipboard' },
                   value: 'Copy metadata table to Clipboard',
                 },
@@ -297,12 +298,38 @@ export const DeployMetadataDeployment: FunctionComponent<DeployMetadataDeploymen
                   trailingDivider: true,
                 },
                 {
+                  id: TABLE_ACTION_CLIPBOARD_SELECTED,
+                  subheader: 'Export Selected Table Data',
+                  icon: { type: 'utility', icon: 'copy_to_clipboard', description: 'Copy table to Clipboard' },
+                  value: 'Copy selected metadata table to Clipboard',
+                  disabled: selectedRows.size === 0,
+                  title: selectedRows.size === 0 ? 'Select at least one item from the table to enable this option' : '',
+                },
+                {
+                  id: TABLE_ACTION_DOWNLOAD_SELECTED,
+                  icon: { type: 'utility', icon: 'download', description: 'Download table' },
+                  value: 'Download selected metadata table',
+                  disabled: selectedRows.size === 0,
+                  title: selectedRows.size === 0 ? 'Select at least one item from the table to enable this option' : '',
+                  trailingDivider: true,
+                },
+                {
+                  id: TABLE_ACTION_DOWNLOAD_MANIFEST,
+                  subheader: 'Metadata Actions',
+                  value: 'Download package.xml manifest',
+                  icon: { icon: 'page', type: 'utility' },
+                  disabled: selectedRows.size === 0,
+                  title: selectedRows.size === 0 ? 'Select at least one item from the table to enable this option' : '',
+                },
+                {
                   id: TABLE_ACTION_DELETE_METADATA,
                   icon: { type: 'utility', icon: 'delete', description: 'Delete selected metadata' },
                   value: 'Delete selected metadata',
+                  disabled: selectedRows.size === 0,
+                  title: selectedRows.size === 0 ? 'Select at least one item from the table to enable this option' : '',
                 },
               ]}
-              disabled={loading || selectedRows.size === 0}
+              disabled={loading}
               onSelected={handleDropdownMenuSelect}
             />
           </ButtonGroupContainer>

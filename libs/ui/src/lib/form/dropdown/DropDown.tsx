@@ -128,9 +128,11 @@ export const DropDown: FunctionComponent<DropDownProps> = ({
       }
     } else if (isEnterKey(event) && isNumber(focusedItem)) {
       const item = items[focusedItem];
-      setSelectedItem(item.id);
-      onSelected(item.id, item.metadata);
-      setIsOpen(false);
+      if (!item.disabled) {
+        setSelectedItem(item.id);
+        onSelected(item.id, item.metadata);
+        setIsOpen(false);
+      }
     } else {
       // allow user to use keyboard to navigate to a specific item in the list by typing words
       newFocusedItem = selectMenuItemFromKeyboard<DropDownItem>({
@@ -196,7 +198,7 @@ export const DropDown: FunctionComponent<DropDownProps> = ({
             )}
           >
             <ul className="slds-dropdown__list" role="menu" aria-label={actionText} ref={ulContainerEl}>
-              {items.map(({ id, subheader, value, icon, trailingDivider, metadata }, i) => (
+              {items.map(({ id, subheader, value, icon, disabled, title, trailingDivider, metadata }, i) => (
                 <Fragment key={id}>
                   {subheader && (
                     <li className="slds-dropdown__header slds-truncate" title={subheader} role="separator">
@@ -209,10 +211,11 @@ export const DropDown: FunctionComponent<DropDownProps> = ({
                       role="menuitem"
                       tabIndex={0}
                       onKeyDown={handleKeyDown}
-                      onClick={(event) => handleSelection(event, id, metadata)}
+                      onClick={(event) => !disabled && handleSelection(event, id, metadata)}
+                      aria-disabled={disabled}
                     >
                       {isString(value) ? (
-                        <span className="slds-truncate" title={value}>
+                        <span className="slds-truncate" title={title || value}>
                           {icon && (
                             <Icon
                               type={icon.type}
