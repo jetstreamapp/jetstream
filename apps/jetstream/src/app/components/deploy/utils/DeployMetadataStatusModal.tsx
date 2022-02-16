@@ -100,18 +100,22 @@ export const DeployMetadataStatusModal: FunctionComponent<DeployMetadataStatusMo
 
   function handleGoBack() {
     trackEvent(ANALYTICS_KEYS.deploy_go_back, {
-      checkOnly: results.checkOnly,
-      completedDate: results.completedDate,
-      numberComponentErrors: results.numberComponentErrors,
-      numberComponentsDeployed: results.numberComponentsDeployed,
-      numberComponentsTotal: results.numberComponentsTotal,
-      numberTestErrors: results.numberTestErrors,
-      numberTestsCompleted: results.numberTestsCompleted,
-      numberTestsTotal: results.numberTestsTotal,
-      rollbackOnError: results.rollbackOnError,
-      runTestsEnabled: results.runTestsEnabled,
-      startDate: results.startDate,
-      success: results.success,
+      ...(results
+        ? {
+            checkOnly: results.checkOnly,
+            completedDate: results.completedDate,
+            numberComponentErrors: results.numberComponentErrors,
+            numberComponentsDeployed: results.numberComponentsDeployed,
+            numberComponentsTotal: results.numberComponentsTotal,
+            numberTestErrors: results.numberTestErrors,
+            numberTestsCompleted: results.numberTestsCompleted,
+            numberTestsTotal: results.numberTestsTotal,
+            rollbackOnError: results.rollbackOnError,
+            runTestsEnabled: results.runTestsEnabled,
+            startDate: results.startDate,
+            success: results.success,
+          }
+        : { results: 'none' }),
     });
     onGoBack();
   }
