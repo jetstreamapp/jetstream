@@ -3,13 +3,19 @@ import { clearCacheForOrg, queryWithCache } from '@jetstream/shared/data';
 import { useReducerFetchFn } from '@jetstream/shared/ui-utils';
 import { ListItem, SalesforceOrgUi } from '@jetstream/types';
 import formatRelative from 'date-fns/formatRelative';
+import partition from 'lodash/partition';
 import { useCallback, useEffect, useReducer, useRef, useState } from 'react';
 import { SalesforceUser } from '../deploy-metadata.types';
 import { getQueryForUsers } from './deploy-metadata.utils';
 
 let _lastRefreshed: string;
 
-export function useUsers(selectedOrg: SalesforceOrgUi, initialUsers?: ListItem<string, SalesforceUser>[], loadOnInit = true) {
+export function useUsers(
+  selectedOrg: SalesforceOrgUi,
+  initialUsers?: ListItem<string, SalesforceUser>[],
+  sortCurrentUserFirst = true,
+  loadOnInit = true
+) {
   const isMounted = useRef(null);
   const [lastRefreshed, setLastRefreshed] = useState<string>(_lastRefreshed);
 
@@ -49,7 +55,7 @@ export function useUsers(selectedOrg: SalesforceOrgUi, initialUsers?: ListItem<s
           if (cache) {
             setLastRefreshed(`Last updated ${formatRelative(cache.age, new Date())}`);
           }
-          dispatch({ type: 'SUCCESS', payload: getListItemFromQueryResults(data.queryResults.records) });
+          dispatch({ type: 'SUCCESS', payload: getListItemFromQueryResults(selectedOrg, data.queryResults.records, sortCurrentUserFirst) });
         }
       } catch (ex) {
         logger.warn('[useUsers][ERROR]', ex.message);
@@ -75,11 +81,12 @@ export function useUsers(selectedOrg: SalesforceOrgUi, initialUsers?: ListItem<s
  * Convert records into ListItem
  * @param records
  */
-function getListItemFromQueryResults(records: SalesforceUser[]) {
+function getListItemFromQueryResults(selectedOrg: SalesforceOrgUi, records: SalesforceUser[], sortCurrentUserFirst) {
+  records = sortCurrentUserFirst ? partition(records, (record) => record.Id === selectedOrg.userId).flat() : records;
   return records.map((user): ListItem<string, SalesforceUser> => {
     return {
       id: user.Id,
-      label: user.Name,
+      label: selectedOrg.userId === user.Id ? `${user.Name} (Me)` : user.Name,
       value: user.Id,
       meta: user,
       secondaryLabel: user.IsActive ? `${user.Username}` : `${user.Username} (Inactive)`,
