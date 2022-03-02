@@ -6,7 +6,7 @@ import { useCallback, useEffect, useReducer, useRef, useState } from 'react';
 import { useRecoilState } from 'recoil';
 import { applicationCookieState } from '../../../app-state';
 import { DeployMetadataStatus } from '../deploy-metadata.types';
-import { getNotificationMessageBody } from './deploy-metadata.utils';
+import { getNotificationMessageBody, saveHistory } from './deploy-metadata.utils';
 
 export function getStatusValue(value: DeployMetadataStatus) {
   switch (value) {
@@ -101,11 +101,12 @@ export function useDeployMetadataBetweenOrgs(
 
   const deployMetadata = useCallback(async () => {
     try {
+      const start = new Date();
       dispatch({ type: 'REQUEST' });
       const { id } = await retrieveMetadataFromListMetadata(sourceOrg, selectedMetadata);
       if (isMounted.current) {
         dispatch({ type: 'RETRIEVE_SUCCESS' });
-        const { results: deployResults } = await pollAndDeployMetadataResultsWhenReady(sourceOrg, destinationOrg, id, {
+        const { results: deployResults, zipFile } = await pollAndDeployMetadataResultsWhenReady(sourceOrg, destinationOrg, id, {
           deployOptions,
           onChecked: () => setLastChecked(new Date()),
         });
@@ -120,6 +121,16 @@ export function useDeployMetadataBetweenOrgs(
             },
           });
           dispatch({ type: 'SUCCESS', payload: { results } });
+          saveHistory({
+            sourceOrg,
+            destinationOrg,
+            type: 'orgToOrg',
+            start,
+            metadata: selectedMetadata,
+            deployOptions,
+            results,
+            file: zipFile,
+          });
           if (results.success) {
             notifyUser(`Deployment finished successfully`, {
               body: getNotificationMessageBody(results),

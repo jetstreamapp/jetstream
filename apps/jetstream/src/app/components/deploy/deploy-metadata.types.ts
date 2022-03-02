@@ -1,4 +1,4 @@
-import { ListMetadataResult } from '@jetstream/types';
+import { ListMetadataResult, MapOf, SalesforceDeployHistoryItem, SalesforceOrgUi } from '@jetstream/types';
 
 export type DeployMetadataStatus = 'idle' | 'submitting' | 'preparing' | 'adding';
 
@@ -47,4 +47,10 @@ export interface DeployMetadataTableRow {
   loading: boolean;
   error: boolean;
   metadata?: ListMetadataResult;
+}
+
+export interface DeployHistoryTableContext {
+  orgsById: MapOf<SalesforceOrgUi>;
+  onView: (item: SalesforceDeployHistoryItem) => void;
+  onDownload: (item: SalesforceDeployHistoryItem) => void;
 }

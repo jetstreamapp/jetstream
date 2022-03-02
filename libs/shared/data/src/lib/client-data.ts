@@ -395,7 +395,7 @@ export async function checkMetadataRetrieveResultsAndDeployToTarget(
     replacementPackageXml,
     changesetName,
   }: { id: string; deployOptions: DeployOptions; replacementPackageXml?: string; changesetName?: string }
-): Promise<{ type: 'deploy' | 'retrieve'; results: RetrieveResult }> {
+): Promise<{ type: 'deploy' | 'retrieve'; results: RetrieveResult; zipFile?: string }> {
   return handleRequest(
     {
       method: 'POST',

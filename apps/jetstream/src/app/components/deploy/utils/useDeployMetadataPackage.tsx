@@ -6,7 +6,7 @@ import { useCallback, useEffect, useReducer, useRef, useState } from 'react';
 import { useRecoilState } from 'recoil';
 import { applicationCookieState } from '../../../app-state';
 import { DeployMetadataStatus } from '../deploy-metadata.types';
-import { getNotificationMessageBody } from './deploy-metadata.utils';
+import { getNotificationMessageBody, saveHistory } from './deploy-metadata.utils';
 
 /**
  *
@@ -99,6 +99,7 @@ export function useDeployMetadataPackage(destinationOrg: SalesforceOrgUi, deploy
 
   const deployMetadata = useCallback(async () => {
     try {
+      const start = new Date();
       dispatch({ type: 'UPLOAD' });
       const { id } = await deployMetadataZip(destinationOrg, file, deployOptions);
 
@@ -112,6 +113,7 @@ export function useDeployMetadataPackage(destinationOrg: SalesforceOrgUi, deploy
           },
         });
         dispatch({ type: 'SUCCESS', payload: { results } });
+        saveHistory({ destinationOrg, type: 'package', start, deployOptions, results, file });
         if (results.success) {
           notifyUser(`Deployment finished successfully`, {
             body: getNotificationMessageBody(results),

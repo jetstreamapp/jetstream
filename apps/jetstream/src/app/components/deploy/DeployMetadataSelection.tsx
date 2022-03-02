@@ -24,6 +24,7 @@ import DateSelection from './selection-components/DateSelection';
 import ManagedPackageSelection from './selection-components/ManagedPackageSelection';
 import MetadataSelection from './selection-components/MetadataSelection';
 import UserSelection from './selection-components/UserSelection';
+import DeployMetadataHistoryModal from './deploy-metadata-history/DeployMetadataHistoryModal';
 
 const HEIGHT_BUFFER = 170;
 
@@ -50,6 +51,7 @@ export const DeployMetadataSelection: FunctionComponent<DeployMetadataSelectionP
         <PageHeaderRow>
           <PageHeaderTitle icon={{ type: 'standard', icon: 'asset_relationship' }} label="Deploy and Compare Metadata" />
           <PageHeaderActions colType="actions" buttonType="separate">
+            <DeployMetadataHistoryModal />
             <ButtonGroupContainer>
               <DownloadMetadataPackage selectedOrg={selectedOrg} />
               <DeployMetadataPackage selectedOrg={selectedOrg} />

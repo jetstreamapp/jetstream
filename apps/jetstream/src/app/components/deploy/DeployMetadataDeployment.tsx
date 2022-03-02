@@ -31,6 +31,7 @@ import { useAmplitude } from '../core/analytics';
 import * as fromJetstreamEvents from '../core/jetstream-events';
 import AddToChangeset from './add-to-changeset/AddToChangeset';
 import DeleteMetadataModal from './delete-metadata/DeleteMetadataModal';
+import DeployMetadataHistoryModal from './deploy-metadata-history/DeployMetadataHistoryModal';
 import DeployMetadataPackage from './deploy-metadata-package/DeployMetadataPackage';
 import * as fromDeployMetadataState from './deploy-metadata.state';
 import { AllUser, DeployMetadataTableRow, SidePanelType, YesNo } from './deploy-metadata.types';
@@ -269,6 +270,7 @@ export const DeployMetadataDeployment: FunctionComponent<DeployMetadataDeploymen
           </Link>
         </ToolbarItemGroup>
         <ToolbarItemActions>
+          <DeployMetadataHistoryModal />
           <ButtonGroupContainer>
             <DeployMetadataPackage selectedOrg={selectedOrg} />
             <button

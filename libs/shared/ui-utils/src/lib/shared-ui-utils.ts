@@ -928,7 +928,7 @@ export async function pollAndDeployMetadataResultsWhenReady(
     deployOptions: DeployOptions;
     changesetName?: string;
     replacementPackageXml?: string;
-    onChecked?: (retrieveResults: { type: 'deploy' | 'retrieve'; results: RetrieveResult }) => void;
+    onChecked?: (retrieveResults: { type: 'deploy' | 'retrieve'; results: RetrieveResult; zipFile?: string }) => void;
   }
 ) {
   // eslint-disable-next-line prefer-const
@@ -939,7 +939,7 @@ export async function pollAndDeployMetadataResultsWhenReady(
 
   let attempts = 0;
   let done = false;
-  let retrieveResults: { type: 'deploy' | 'retrieve'; results: RetrieveResult };
+  let retrieveResults: { type: 'deploy' | 'retrieve'; results: RetrieveResult; zipFile?: string };
   while (!done && attempts <= maxAttempts) {
     await delay(interval);
     retrieveResults = await checkMetadataRetrieveResultsAndDeployToTarget(selectedOrg, targetOrg, {

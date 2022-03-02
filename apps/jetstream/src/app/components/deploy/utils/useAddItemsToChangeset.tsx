@@ -1,12 +1,12 @@
 import { logger } from '@jetstream/shared/client-logger';
 import { getPackageXml, retrieveMetadataFromListMetadata } from '@jetstream/shared/data';
 import { pollAndDeployMetadataResultsWhenReady, pollMetadataResultsUntilDone, useBrowserNotifications } from '@jetstream/shared/ui-utils';
-import { DeployResult, ListMetadataResult, MapOf, SalesforceOrgUi } from '@jetstream/types';
+import { DeployOptions, DeployResult, ListMetadataResult, MapOf, SalesforceOrgUi } from '@jetstream/types';
 import { useCallback, useEffect, useReducer, useRef, useState } from 'react';
 import { useRecoilState } from 'recoil';
 import { applicationCookieState } from '../../../app-state';
 import { DeployMetadataStatus } from '../deploy-metadata.types';
-import { getNotificationMessageBody } from './deploy-metadata.utils';
+import { getNotificationMessageBody, saveHistory } from './deploy-metadata.utils';
 
 export function getStatusValue(value: DeployMetadataStatus) {
   switch (value) {
@@ -102,6 +102,7 @@ export function useAddItemsToChangeset(
 
   const deployMetadata = useCallback(async () => {
     try {
+      const start = new Date();
       dispatch({ type: 'REQUEST' });
       const { id } = await retrieveMetadataFromListMetadata(selectedOrg, selectedMetadata);
       if (isMounted.current) {
@@ -110,15 +111,16 @@ export function useAddItemsToChangeset(
           fullName: changesetName,
           description: changesetDescription,
         });
-        const { results: deployResults } = await pollAndDeployMetadataResultsWhenReady(selectedOrg, selectedOrg, id, {
-          deployOptions: {
-            autoUpdatePackage: true,
-            checkOnly: false,
-            allowMissingFiles: true,
-            runAllTests: false,
-            singlePackage: false,
-            testLevel: 'NoTestRun',
-          },
+        const deployOptions: DeployOptions = {
+          autoUpdatePackage: true,
+          checkOnly: false,
+          allowMissingFiles: true,
+          runAllTests: false,
+          singlePackage: false,
+          testLevel: 'NoTestRun',
+        };
+        const { results: deployResults, zipFile } = await pollAndDeployMetadataResultsWhenReady(selectedOrg, selectedOrg, id, {
+          deployOptions,
           replacementPackageXml,
           changesetName,
           onChecked: () => setLastChecked(new Date()),
@@ -131,6 +133,15 @@ export function useAddItemsToChangeset(
             onChecked: () => setLastChecked(new Date()),
           });
           dispatch({ type: 'SUCCESS', payload: { results } });
+          saveHistory({
+            destinationOrg: selectedOrg,
+            type: 'changeset',
+            start,
+            metadata: selectedMetadata,
+            deployOptions,
+            results,
+            file: zipFile,
+          });
           if (results.success) {
             notifyUser(`Deployment finished successfully`, {
               body: getNotificationMessageBody(results),

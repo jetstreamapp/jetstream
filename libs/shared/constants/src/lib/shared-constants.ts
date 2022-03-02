@@ -112,6 +112,7 @@ export const INDEXED_DB = {
     automationControlHistory: 'AUTOMATION:QUERY',
     queryHistory: 'HISTORY:QUERY',
     apexHistory: 'HISTORY:APEX',
+    deployHistory: 'HISTORY:DEPLOY',
     salesforceApiHistory: 'HISTORY:SALESFORCE_API',
     recordHistory: 'HISTORY:RECORDS',
     httpCache: 'HTTP:CACHE',

@@ -133,7 +133,7 @@ export const DeployMetadataStatusModal: FunctionComponent<DeployMetadataStatusMo
       closeOnEsc={false}
       tagline={
         <div className="slds-align_absolute-center">
-          Deploying changes to <OrgLabelBadge org={destinationOrg} />
+          Destination Org <OrgLabelBadge org={destinationOrg} />
         </div>
       }
       footer={
