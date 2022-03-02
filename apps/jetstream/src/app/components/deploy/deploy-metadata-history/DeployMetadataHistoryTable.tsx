@@ -4,7 +4,7 @@ import { DataTable, DateFilterComparator } from '@jetstream/ui';
 import { FunctionComponent } from 'react';
 import { DeployHistoryTableContext } from '../deploy-metadata.types';
 import { dataTableDateFormatter } from '../utils/deploy-metadata.utils';
-import { ActionRenderer, OrgRenderer } from './DeployMetadataHistoryTableRenderers';
+import { ActionRenderer, OrgRenderer, StatusRenderer } from './DeployMetadataHistoryTableRenderers';
 
 const TYPE_MAP = {
   package: 'Uploaded package',
@@ -14,12 +14,13 @@ const TYPE_MAP = {
 
 const COLUMNS: ColDef[] = [
   {
-    headerName: 'Date',
+    headerName: 'Started',
     colId: 'date',
     field: 'start',
     width: 200,
     valueFormatter: dataTableDateFormatter,
     getQuickFilterText: dataTableDateFormatter,
+    tooltipField: 'start',
     filter: 'agDateColumnFilter',
     filterParams: {
       defaultOption: 'greaterThan',
@@ -32,20 +33,25 @@ const COLUMNS: ColDef[] = [
     colId: 'type',
     field: 'type',
     valueGetter: ({ data }) => TYPE_MAP[data.type],
-    width: 140,
+    width: 165,
   },
   {
     headerName: 'Deployed To Org',
     colId: 'org',
-    field: 'destinationOrgLabel',
+    field: 'destinationOrg.label',
     cellRenderer: 'orgRenderer',
-    width: 325,
+    width: 350,
   },
   {
     headerName: 'Status',
     colId: 'status',
     field: 'status',
-    width: 120,
+    cellRenderer: 'statusRenderer',
+    width: 150,
+    filterValueGetter: ({ data }) => {
+      const item = data as SalesforceDeployHistoryItem;
+      return item.status === 'SucceededPartial' ? 'Partial Success' : item.status;
+    },
   },
   {
     headerName: 'Actions',
@@ -61,11 +67,16 @@ const COLUMNS: ColDef[] = [
 const getRowHeight = ({ data, context }: RowHeightParams) => {
   const item = data as SalesforceDeployHistoryItem;
   const { orgsById } = context as DeployHistoryTableContext;
-  if (item.fileKey || (item.sourceOrgId && orgsById[item.sourceOrgId])) {
-    /** 27.5 is normal row height - we need 3 rows */
+  const rowHeight = 27.5;
+  let numberOfRows = 3;
+  if (item.type === 'orgToOrg') {
+    /** we need 3 rows plus a little buffer */
+    numberOfRows = 3.5;
+  } else if (item.fileKey || (item.sourceOrg && orgsById[item.sourceOrg.uniqueId])) {
+    /** we need 3 rows */
     return 27.5 * 3;
   }
-  return 40; // slightly larger because our action row button is taller
+  return rowHeight * numberOfRows;
 };
 const getRowNodeId = ({ key }: SalesforceDeployHistoryItem) => key;
 
@@ -98,6 +109,7 @@ export const DeployMetadataHistoryTable: FunctionComponent<DeployMetadataHistory
         frameworkComponents: {
           orgRenderer: OrgRenderer,
           actionRenderer: ActionRenderer,
+          statusRenderer: StatusRenderer,
         },
       }}
     />

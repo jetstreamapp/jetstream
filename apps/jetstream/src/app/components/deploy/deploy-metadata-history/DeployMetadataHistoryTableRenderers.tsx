@@ -1,5 +1,6 @@
 import { ICellRendererParams } from '@ag-grid-community/core';
 import { css } from '@emotion/react';
+import { IconName } from '@jetstream/icon-factory';
 import { SalesforceDeployHistoryItem } from '@jetstream/types';
 import { Grid, Icon } from '@jetstream/ui';
 import { Fragment, FunctionComponent } from 'react';
@@ -10,23 +11,29 @@ export const OrgRenderer: FunctionComponent<ICellRendererParams> = ({ data, cont
   const item = data as SalesforceDeployHistoryItem;
   const { orgsById } = context as DeployHistoryTableContext;
 
-  const sourceOrg = item.sourceOrgId ? orgsById[item.sourceOrgId] : null;
-  const destinationOrg = orgsById[item.destinationOrgId];
+  const sourceOrg = item.sourceOrg ? orgsById[item.sourceOrg.uniqueId] : null;
+  const destinationOrg = orgsById[item.destinationOrg.uniqueId];
   const sourceOrgBadge = sourceOrg ? <OrgLabelBadge org={sourceOrg} /> : null;
-  const destinationOrgBadge = destinationOrg ? <OrgLabelBadge org={destinationOrg} /> : item.destinationOrgLabel;
+  const destinationOrgBadge = destinationOrg ? <OrgLabelBadge org={destinationOrg} /> : item.destinationOrg.label;
 
   return (
     <Fragment>
       {sourceOrgBadge && (
         <Grid
           vertical
-          verticalAlign="center"
           divProps={{
-            title: `${item.sourceOrgLabel} to ${item.destinationOrgLabel}`,
+            title: `${item.sourceOrg.label} to ${item.destinationOrg.label}`,
           }}
         >
           <div>{sourceOrgBadge}</div>
-          <div>
+          <div className="slds-m-left_xx-large">
+            <Icon
+              type="utility"
+              icon="arrowdown"
+              className="slds-icon slds-icon_x-small slds-icon-text-default"
+              description="Deployed to"
+            />
+            Deployed To
             <Icon
               type="utility"
               icon="arrowdown"
@@ -37,12 +44,41 @@ export const OrgRenderer: FunctionComponent<ICellRendererParams> = ({ data, cont
           <div>{destinationOrgBadge}</div>
         </Grid>
       )}
-      {!item.sourceOrgId && (
-        <Grid vertical verticalAlign="center" className="slds-truncate" divProps={{ title: item.destinationOrgLabel }}>
+      {!item.sourceOrg && (
+        <Grid vertical className="slds-truncate" divProps={{ title: item.destinationOrg.label }}>
           {destinationOrgBadge}
         </Grid>
       )}
     </Fragment>
+  );
+};
+
+export const StatusRenderer: FunctionComponent<ICellRendererParams> = ({ data, context }) => {
+  const item = data as SalesforceDeployHistoryItem;
+  let status: string = item.status;
+  let icon: IconName = 'success';
+  let iconClassName = 'slds-icon slds-icon_x-small slds-icon-text-success';
+  let className = 'slds-text-color_success';
+  if (item.status === 'Failed') {
+    icon = 'error';
+    iconClassName = 'slds-icon slds-icon_x-small slds-icon-text-error';
+    className = 'slds-text-color_error';
+  } else if (item.status === 'Canceled') {
+    icon = 'warning';
+    iconClassName = 'slds-icon slds-icon_x-small slds-icon-text-default';
+    className = 'slds-text-color_default';
+  } else if (item.status === 'SucceededPartial') {
+    status = 'Partial Success';
+    icon = 'warning';
+    iconClassName = 'slds-icon slds-icon_x-small slds-icon-text-warning';
+    className = 'text-color_warning';
+  }
+
+  return (
+    <div className={className}>
+      <Icon type="utility" icon={icon} className={iconClassName} />
+      {status}
+    </div>
   );
 };
 

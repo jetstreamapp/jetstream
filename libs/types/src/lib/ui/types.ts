@@ -510,10 +510,8 @@ export type SalesforceDeployHistoryType = 'package' | 'changeset' | 'orgToOrg';
 export interface SalesforceDeployHistoryItem {
   key: string; // org:type:timestamp
   fileKey?: string;
-  sourceOrgId?: string | null;
-  sourceOrgLabel?: string | null;
-  destinationOrgId: string;
-  destinationOrgLabel: string;
+  destinationOrg: SalesforceDeploymentHistoryOrg;
+  sourceOrg?: SalesforceDeploymentHistoryOrg;
   start: Date;
   finish: Date;
   url?: string;
@@ -523,6 +521,12 @@ export interface SalesforceDeployHistoryItem {
   metadata?: MapOf<ListMetadataResult[]>; // TODO: are there other types of metadata?
   deployOptions?: DeployOptions;
   results?: DeployResult;
+}
+
+export interface SalesforceDeploymentHistoryOrg {
+  uniqueId: string;
+  label: string;
+  orgName: string;
 }
 
 export interface SalesforceApiHistoryRequest {

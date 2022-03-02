@@ -26,6 +26,7 @@ export interface DeployMetadataStatusModalProps {
   deployLabel?: string;
   inProgressLabel?: string;
   finishedSuccessfullyLabel?: string;
+  finishedPartialSuccessfullyLabel?: string;
   fallbackErrorMessageLabel?: string;
   fallbackUnknownErrorMessageLabel?: string;
   deployStatusUrl: string;
@@ -51,6 +52,7 @@ export const DeployMetadataStatusModal: FunctionComponent<DeployMetadataStatusMo
   deployLabel = 'Deploy',
   inProgressLabel = 'Your items are being deployed, this may take a few minutes.',
   finishedSuccessfullyLabel = 'Your deployment has finished successfully',
+  finishedPartialSuccessfullyLabel = 'Your deployment was partially successful',
   fallbackErrorMessageLabel = 'There was a problem deploying your metadata.',
   fallbackUnknownErrorMessageLabel = 'There was a problem deploying your metadata.',
   deployStatusUrl,
@@ -133,7 +135,7 @@ export const DeployMetadataStatusModal: FunctionComponent<DeployMetadataStatusMo
       closeOnEsc={false}
       tagline={
         <div className="slds-align_absolute-center">
-          Destination Org <OrgLabelBadge org={destinationOrg} />
+          Deployed to <OrgLabelBadge org={destinationOrg} />
         </div>
       }
       footer={
@@ -215,7 +217,24 @@ export const DeployMetadataStatusModal: FunctionComponent<DeployMetadataStatusMo
                     </p>
                   </DivWithTopMargin>
                 )}
-                {results.status !== 'Succeeded' && (
+                {results.status === 'SucceededPartial' && (
+                  <DivWithTopMargin>
+                    <div>
+                      {finishedPartialSuccessfullyLabel}
+                      <Icon
+                        type="utility"
+                        icon="warning"
+                        className="slds-icon slds-icon-text-warning slds-icon_x-small slds-m-left_xx-small"
+                        containerClassname="slds-icon_container slds-icon-utility-success"
+                        description="deployed with partial success"
+                      />
+                    </div>
+                    <p>
+                      <strong>Status:</strong> {results.status}
+                    </p>
+                  </DivWithTopMargin>
+                )}
+                {results.status !== 'Succeeded' && results.status !== 'SucceededPartial' && (
                   <DivWithTopMargin>
                     <div className="slds-text-color_error">
                       {errorMessage || fallbackErrorMessageLabel}

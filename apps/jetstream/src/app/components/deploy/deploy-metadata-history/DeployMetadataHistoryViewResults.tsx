@@ -24,6 +24,7 @@ export const DeployMetadataHistoryViewResults: FunctionComponent<DeployMetadataH
     <DeployMetadataStatusModal
       destinationOrg={destinationOrg}
       finishedSuccessfullyLabel="This deployment was successful"
+      finishedPartialSuccessfullyLabel="This deployment was partially successful"
       fallbackErrorMessageLabel="This deployment was not successful."
       fallbackUnknownErrorMessageLabel="This deployment was not successful."
       deployStatusUrl={null}

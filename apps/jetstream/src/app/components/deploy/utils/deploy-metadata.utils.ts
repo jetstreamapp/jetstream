@@ -73,7 +73,9 @@ export async function saveHistory({
   try {
     if (file && isString(file)) {
       try {
-        file = await (await JSZip.loadAsync(file, { base64: true })).generateAsync({ type: 'arraybuffer' });
+        file = await (
+          await JSZip.loadAsync(file, { base64: true })
+        ).generateAsync({ type: 'arraybuffer', compression: 'DEFLATE', compressionOptions: { level: 1 } });
       } catch (ex) {
         logger.warn('[DEPLOY][HISTORY][ZIP PROCESSING ERROR]', ex);
         file = null;
@@ -82,8 +84,11 @@ export async function saveHistory({
 
     const newItem: SalesforceDeployHistoryItem = {
       key: `${destinationOrg.uniqueId}:${type}:${start.toISOString()}`,
-      destinationOrgId: destinationOrg.uniqueId,
-      destinationOrgLabel: `${destinationOrg.label} (${destinationOrg.orgName})`,
+      destinationOrg: {
+        uniqueId: destinationOrg.uniqueId,
+        label: destinationOrg.label,
+        orgName: destinationOrg.orgName,
+      },
       start,
       finish: new Date(),
       url: results?.id ? getDeploymentStatusUrl(results.id) : null,
@@ -95,8 +100,11 @@ export async function saveHistory({
       results,
     };
     if (sourceOrg) {
-      newItem.sourceOrgId = sourceOrg.uniqueId;
-      newItem.sourceOrgLabel = `${sourceOrg.label} (${sourceOrg.orgName})`;
+      newItem.sourceOrg = {
+        uniqueId: sourceOrg.uniqueId,
+        label: sourceOrg.label,
+        orgName: sourceOrg.orgName,
+      };
     }
     if (file && localforage.driver() === localforage.INDEXEDDB) {
       newItem.fileKey = `${INDEXED_DB.KEYS.deployHistory}:FILE:${newItem.key}`;

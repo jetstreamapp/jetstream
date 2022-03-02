@@ -86,7 +86,7 @@ export const DeployMetadataHistoryModal: FunctionComponent = () => {
       const file = await getHistoryItemFile(item);
       setDownloadPackageModalState({
         open: true,
-        org: orgsById[item.destinationOrgId],
+        org: orgsById[item.destinationOrg.uniqueId],
         data: file,
       });
     } catch (ex) {
@@ -104,7 +104,7 @@ export const DeployMetadataHistoryModal: FunctionComponent = () => {
       logger.log('[DEPLOY HISTORY] Selected Item', { item });
       setViewItemModalState({
         open: true,
-        org: orgsById[item.destinationOrgId],
+        org: orgsById[item.destinationOrg.uniqueId],
         item,
       });
     } catch (ex) {
@@ -211,7 +211,7 @@ export const DeployMetadataHistoryModal: FunctionComponent = () => {
             <ConfirmPageChange actionInProgress={false} />
             {isLoading && <Spinner />}
             {historyItems?.length === 0 && !isLoading && (
-              <EmptyState headline="No history found" illustration={<OpenRoadIllustration />}></EmptyState>
+              <EmptyState headline="You don't have any deployment history" illustration={<OpenRoadIllustration />}></EmptyState>
             )}
             {!!historyItems?.length && (
               <AutoFullHeightContainer fillHeight setHeightAttr bottomBuffer={250}>

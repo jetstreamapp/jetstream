@@ -66,6 +66,7 @@ export const AddToChangesetStatusModal: FunctionComponent<AddToChangesetStatusMo
       deployLabel="Add to Changeset"
       inProgressLabel="Your items are being added, this may take a few minutes."
       finishedSuccessfullyLabel="Your changeset has been updated successfully"
+      finishedPartialSuccessfullyLabel="Your changeset has been partially updated"
       fallbackErrorMessageLabel="There was a problem updating your changeset."
       fallbackUnknownErrorMessageLabel="There was a problem updating your changeset."
       deployStatusUrl={deployStatusUrl}
