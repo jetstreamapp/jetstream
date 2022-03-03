@@ -1,9 +1,16 @@
 import { ColDef, GetQuickFilterTextParams, ValueFormatterParams } from '@ag-grid-community/core';
 import { getMetadataLabelFromFullName, ListMetadataResultItem } from '@jetstream/connected-ui';
 import { logger } from '@jetstream/shared/client-logger';
-import { DATE_FORMATS } from '@jetstream/shared/constants';
+import { DATE_FORMATS, INDEXED_DB } from '@jetstream/shared/constants';
 import { ensureArray, getSuccessOrFailureChar, orderStringsBy, pluralizeFromNumber } from '@jetstream/shared/utils';
-import { DeployResult, ListMetadataResult, MapOf } from '@jetstream/types';
+import {
+  DeployResult,
+  ListMetadataResult,
+  MapOf,
+  SalesforceDeployHistoryItem,
+  SalesforceDeployHistoryType,
+  SalesforceOrgUi,
+} from '@jetstream/types';
 import { DateFilterComparator, getCheckboxColumnDef } from '@jetstream/ui';
 import parseISO from 'date-fns/parseISO';
 import formatISO from 'date-fns/formatISO';
@@ -11,6 +18,12 @@ import formatDate from 'date-fns/format';
 import isString from 'lodash/isString';
 import { composeQuery, getField, Query } from 'soql-parser-js';
 import { DeployMetadataTableRow } from '../deploy-metadata.types';
+import localforage from 'localforage';
+import { DeployOptions } from 'jsforce';
+import JSZip from 'jszip';
+import { logErrorToRollbar } from '@jetstream/shared/ui-utils';
+
+const MAX_HISTORY_ITEMS = 500;
 
 export function getDeploymentStatusUrl(id: string) {
   // double encode retUrl
@@ -26,6 +39,117 @@ export function getChangesetUrl(id: string) {
   }
   const address = encodeURIComponent(`/changemgmt/outboundChangeSetDetailPage.apexp?id=${id}`);
   return `/lightning/setup/OutboundChangeSet/page?address=${address}`;
+}
+
+export async function getHistory() {
+  return (await localforage.getItem<SalesforceDeployHistoryItem[]>(INDEXED_DB.KEYS.deployHistory)) || [];
+}
+
+export async function getHistoryItemFile(item: SalesforceDeployHistoryItem) {
+  let file: ArrayBuffer;
+  if (item.fileKey) {
+    file = await localforage.getItem<ArrayBuffer>(item.fileKey);
+  }
+  if (!file) {
+    throw new Error('The package file is not available');
+  }
+  return file;
+}
+
+export async function saveHistory({
+  sourceOrg,
+  destinationOrg,
+  type,
+  start,
+  metadata,
+  deployOptions,
+  results,
+  file,
+}: {
+  sourceOrg?: SalesforceOrgUi;
+  destinationOrg: SalesforceOrgUi;
+  type: SalesforceDeployHistoryType;
+  start: Date;
+  metadata?: MapOf<ListMetadataResult[]>;
+  deployOptions: DeployOptions;
+  results?: DeployResult;
+  file?: ArrayBuffer | string;
+}) {
+  try {
+    if (file && isString(file)) {
+      try {
+        file = await (
+          await JSZip.loadAsync(file, { base64: true })
+        ).generateAsync({ type: 'arraybuffer', compression: 'DEFLATE', compressionOptions: { level: 1 } });
+      } catch (ex) {
+        logger.warn('[DEPLOY][HISTORY][ZIP PROCESSING ERROR]', ex);
+        file = null;
+        logErrorToRollbar(ex.message, {
+          stack: ex.stack,
+          place: 'DeployMetadataHistory',
+          type: 'error generating zip from base64',
+        });
+      }
+    }
+
+    const newItem: SalesforceDeployHistoryItem = {
+      key: `${destinationOrg.uniqueId}:${type}:${start.toISOString()}`,
+      destinationOrg: {
+        uniqueId: destinationOrg.uniqueId,
+        label: destinationOrg.label,
+        orgName: destinationOrg.orgName,
+      },
+      start,
+      finish: new Date(),
+      url: results?.id ? getDeploymentStatusUrl(results.id) : null,
+      status: results?.status || 'Failed',
+      type,
+      errorMessage: results?.errorMessage,
+      metadata,
+      deployOptions,
+      results,
+    };
+    if (sourceOrg) {
+      newItem.sourceOrg = {
+        uniqueId: sourceOrg.uniqueId,
+        label: sourceOrg.label,
+        orgName: sourceOrg.orgName,
+      };
+    }
+    if (file && localforage.driver() === localforage.INDEXEDDB) {
+      newItem.fileKey = `${INDEXED_DB.KEYS.deployHistory}:FILE:${newItem.key}`;
+    }
+    const existingItems = await getHistory();
+    existingItems.unshift(newItem);
+    await localforage.setItem<SalesforceDeployHistoryItem[]>(INDEXED_DB.KEYS.deployHistory, existingItems.slice(0, MAX_HISTORY_ITEMS));
+    logger.log('[DEPLOY][HISTORY][SAVE]', { newItem });
+
+    if (file && newItem.fileKey && localforage.driver() === localforage.INDEXEDDB) {
+      await localforage.setItem(newItem.fileKey, file);
+    }
+    // delete files, if exists, for history items that were evicted from cache
+    try {
+      if (existingItems.length > MAX_HISTORY_ITEMS) {
+        for (const item of existingItems.slice(MAX_HISTORY_ITEMS).filter((item) => item.fileKey)) {
+          await localforage.removeItem(item.fileKey);
+        }
+      }
+    } catch (ex) {
+      logger.warn('[DEPLOY][HISTORY][CLEANUP ERROR] Error cleaning up files', ex);
+      logErrorToRollbar(ex.message, {
+        stack: ex.stack,
+        place: 'DeployMetadataHistory',
+        type: 'error cleaning up metadata history',
+      });
+    }
+  } catch (ex) {
+    logger.warn('[DEPLOY][HISTORY][SAVE ERROR]', ex);
+    logErrorToRollbar(ex.message, {
+      stack: ex.stack,
+      place: 'DeployMetadataHistory',
+      type: 'error saving metadata history',
+    });
+  }
 }
 
 export function getQueryForUsers(): string {

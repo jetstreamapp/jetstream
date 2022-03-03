@@ -37,7 +37,7 @@ export const DeployMetadataPackageStatusModal: FunctionComponent<DeployMetadataP
   );
 
   useEffect(() => {
-    deployMetadata();
+    deployMetadata('delete');
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -59,6 +59,7 @@ export const DeployMetadataPackageStatusModal: FunctionComponent<DeployMetadataP
       hasError={hasError}
       inProgressLabel="Your items are being deleted, this may take a few minutes."
       finishedSuccessfullyLabel="Your destructive deployment has finished successfully"
+      finishedPartialSuccessfullyLabel="Your destructive deployment has finished partially"
       fallbackErrorMessageLabel="There was a problem deleting your metadata."
       fallbackUnknownErrorMessageLabel="There was a problem deleting your metadata."
       statusUrls={

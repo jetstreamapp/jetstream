@@ -1,12 +1,12 @@
 import { logger } from '@jetstream/shared/client-logger';
 import { deployMetadataZip } from '@jetstream/shared/data';
 import { pollMetadataResultsUntilDone, useBrowserNotifications } from '@jetstream/shared/ui-utils';
-import { DeployOptions, DeployResult, SalesforceOrgUi } from '@jetstream/types';
+import { DeployOptions, DeployResult, SalesforceDeployHistoryType, SalesforceOrgUi } from '@jetstream/types';
 import { useCallback, useEffect, useReducer, useRef, useState } from 'react';
 import { useRecoilState } from 'recoil';
 import { applicationCookieState } from '../../../app-state';
 import { DeployMetadataStatus } from '../deploy-metadata.types';
-import { getNotificationMessageBody } from './deploy-metadata.utils';
+import { getNotificationMessageBody, saveHistory } from './deploy-metadata.utils';
 
 /**
  *
@@ -97,40 +97,45 @@ export function useDeployMetadataPackage(destinationOrg: SalesforceOrgUi, deploy
     };
   }, []);
 
-  const deployMetadata = useCallback(async () => {
-    try {
-      dispatch({ type: 'UPLOAD' });
-      const { id } = await deployMetadataZip(destinationOrg, file, deployOptions);
+  const deployMetadata = useCallback(
+    async (deployType: SalesforceDeployHistoryType = 'package') => {
+      try {
+        const start = new Date();
+        dispatch({ type: 'UPLOAD' });
+        const { id } = await deployMetadataZip(destinationOrg, file, deployOptions);
 
-      if (isMounted.current) {
-        dispatch({ type: 'DEPLOY_IN_PROG', payload: { deployId: id } });
-        const results = await pollMetadataResultsUntilDone(destinationOrg, id, {
-          includeDetails: true,
-          onChecked: (results) => {
-            dispatch({ type: 'DEPLOY_IN_PROG', payload: { deployId: id, results } });
-            setLastChecked(new Date());
-          },
-        });
-        dispatch({ type: 'SUCCESS', payload: { results } });
-        if (results.success) {
-          notifyUser(`Deployment finished successfully`, {
-            body: getNotificationMessageBody(results),
-            tag: 'deploy-package',
+        if (isMounted.current) {
+          dispatch({ type: 'DEPLOY_IN_PROG', payload: { deployId: id } });
+          const results = await pollMetadataResultsUntilDone(destinationOrg, id, {
+            includeDetails: true,
+            onChecked: (results) => {
+              dispatch({ type: 'DEPLOY_IN_PROG', payload: { deployId: id, results } });
+              setLastChecked(new Date());
+            },
           });
-        } else {
-          notifyUser(`Deployment failed`, {
-            body: getNotificationMessageBody(results),
-            tag: 'deploy-package',
-          });
+          dispatch({ type: 'SUCCESS', payload: { results } });
+          saveHistory({ destinationOrg, type: deployType, start, deployOptions, results, file });
+          if (results.success) {
+            notifyUser(`Deployment finished successfully`, {
+              body: getNotificationMessageBody(results),
+              tag: 'deploy-package',
+            });
+          } else {
+            notifyUser(`Deployment failed`, {
+              body: getNotificationMessageBody(results),
+              tag: 'deploy-package',
+            });
+          }
+        }
+      } catch (ex) {
+        logger.warn('[useDeployMetadataPackage][ERROR]', ex.message);
+        if (isMounted.current) {
+          dispatch({ type: 'ERROR', payload: { errorMessage: ex.message } });
         }
       }
-    } catch (ex) {
-      logger.warn('[useDeployMetadataPackage][ERROR]', ex.message);
-      if (isMounted.current) {
-        dispatch({ type: 'ERROR', payload: { errorMessage: ex.message } });
-      }
-    }
-  }, [deployOptions, destinationOrg, file]);
+    },
+    [deployOptions, destinationOrg, file]
+  );
 
   return { deployMetadata, results, deployId, hasLoaded, loading, status, lastChecked, hasError, errorMessage };
 }

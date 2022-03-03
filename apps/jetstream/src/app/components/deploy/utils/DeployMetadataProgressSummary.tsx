@@ -80,6 +80,7 @@ function reducer(state: State, action: Action): State {
 
 export interface DeployMetadataProgressSummaryProps {
   className?: string;
+  size?: 'medium' | 'large' | 'x-large';
   title: string;
   status: DeployResultStatus;
   totalProcessed: number;
@@ -89,6 +90,7 @@ export interface DeployMetadataProgressSummaryProps {
 
 export const DeployMetadataProgressSummary: FunctionComponent<DeployMetadataProgressSummaryProps> = ({
   className,
+  size = 'x-large',
   title,
   status,
   totalProcessed,
@@ -118,7 +120,7 @@ export const DeployMetadataProgressSummary: FunctionComponent<DeployMetadataProg
   return (
     <Grid vertical className={className}>
       <span className="slds-align-middle slds-text-title_caps">{title}</span>
-      <ProgressRing className="slds-m-vertical_x-small slds-align-middle" fillPercent={fillPercent} size="x-large" theme={theme}>
+      <ProgressRing className="slds-m-vertical_x-small slds-align-middle" fillPercent={fillPercent} size={size} theme={theme}>
         {showPercentage && (
           <small>
             <strong>{Math.round(fillPercent * 100)}%</strong>

@@ -18,6 +18,7 @@ export interface GridProps {
   wrap?: boolean;
   noWrap?: boolean;
   flexiTruncate?: boolean;
+  divProps?: React.HTMLAttributes<HTMLDivElement>;
 }
 
 function getClassWithModifier(base: string, modifier?: CenterSpaceSpreadEnd | StartCenterEnd | sizeXXXSmallToXXLarge) {
@@ -42,6 +43,7 @@ export const Grid: FunctionComponent<GridProps> = ({
   wrap,
   noWrap,
   flexiTruncate,
+  divProps,
   children,
 }) => {
   return (
@@ -67,6 +69,7 @@ export const Grid: FunctionComponent<GridProps> = ({
         verticalAlign ? getClassWithModifier('slds-grid_vertical-align-', verticalAlign) : undefined,
         className
       )}
+      {...divProps}
     >
       {children}
     </div>

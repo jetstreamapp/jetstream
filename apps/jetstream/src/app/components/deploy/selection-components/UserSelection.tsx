@@ -55,12 +55,14 @@ export const UserSelection: FunctionComponent<UserSelectionProps | UserSelection
     if (!requireConfirmSelection) {
       _setUsersList(usersList);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [usersList]);
 
   useEffect(() => {
     if (!requireConfirmSelection) {
       _setSelectedUsers(selectedUsers);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedUsers]);
 
   useNonInitialEffect(() => {

@@ -469,6 +469,7 @@ export interface DeployResult {
   details?: {
     componentFailures: DeployMessage[];
     componentSuccesses: DeployMessage[];
+    retrieveResult?: RetrieveDetailResult;
     runTestResult: RunTestsResult;
   };
   done: boolean;
@@ -505,6 +506,17 @@ export interface DeployMessage {
   problem: string;
   problemType: 'Warning' | 'Error';
   success: boolean;
+}
+
+export interface RetrieveDetailResult {
+  done: 'true' | 'false';
+  fileProperties: ListMetadataResult[];
+  id: string;
+  status: 'Pending' | 'InProgress' | 'Succeeded' | 'Failed';
+  errorMessage?: string;
+  errorStatusCode?: string;
+  messages?: { fileName: string; problem: string }[];
+  zipFile: string;
 }
 
 // https://developer.salesforce.com/docs/atlas.en-us.api_meta.meta/api_meta/meta_deployresult.htm

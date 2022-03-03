@@ -293,11 +293,11 @@ export async function checkRetrieveStatusAndRedeploy(req: Request, res: Response
           await newPackage.generateAsync({ type: 'base64', compression: 'STORE', mimeType: 'application/zip', platform: 'UNIX' }),
           deployOptions
         );
-        sendJson(res, { type: 'deploy', results: correctInvalidXmlResponseTypes(deployResults) });
+        sendJson(res, { type: 'deploy', results: correctInvalidXmlResponseTypes(deployResults), zipFile: results.zipFile });
       } else {
         // Deploy package as-is
         const deployResults = await targetConn.metadata.deploy(oldPackage.generateNodeStream(), deployOptions);
-        sendJson(res, { type: 'deploy', results: correctInvalidXmlResponseTypes(deployResults) });
+        sendJson(res, { type: 'deploy', results: correctInvalidXmlResponseTypes(deployResults), zipFile: results.zipFile });
       }
     } else {
       sendJson(res, { type: 'retrieve', results });

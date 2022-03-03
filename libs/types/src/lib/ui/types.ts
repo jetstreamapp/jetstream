@@ -1,10 +1,9 @@
 import { QueryResultsColumn } from '@jetstream/api-interfaces';
 import { ChildRelationship, DescribeSObjectResult, Field } from 'jsforce';
 import { ReactNode } from 'react';
-import { ListMetadataResult } from '../salesforce/types';
-import { HttpMethod, SalesforceOrgUi } from '../types';
 import type * as XLSX from 'xlsx';
-import { MapOf } from '../types';
+import { DeployOptions, DeployResult, DeployResultStatus, ListMetadataResult } from '../salesforce/types';
+import { HttpMethod, MapOf, SalesforceOrgUi } from '../types';
 
 export type DropDownItemLength = 5 | 7 | 10;
 
@@ -504,6 +503,30 @@ export interface SalesforceApiHistoryItem {
   request: SalesforceApiHistoryRequest;
   response?: SalesforceApiHistoryResponse;
   lastRun: Date;
+}
+
+export type SalesforceDeployHistoryType = 'package' | 'delete' | 'changeset' | 'orgToOrg';
+
+export interface SalesforceDeployHistoryItem {
+  key: string; // org:type:timestamp
+  fileKey?: string;
+  destinationOrg: SalesforceDeploymentHistoryOrg;
+  sourceOrg?: SalesforceDeploymentHistoryOrg;
+  start: Date;
+  finish: Date;
+  url?: string;
+  status: DeployResultStatus;
+  type: SalesforceDeployHistoryType;
+  errorMessage?: string | null;
+  metadata?: MapOf<ListMetadataResult[]>; // TODO: are there other types of metadata?
+  deployOptions?: DeployOptions;
+  results?: DeployResult;
+}
+
+export interface SalesforceDeploymentHistoryOrg {
+  uniqueId: string;
+  label: string;
+  orgName: string;
 }
 
 export interface SalesforceApiHistoryRequest {

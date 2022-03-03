@@ -1,6 +1,7 @@
 import { HTTP, INDEXED_DB } from '@jetstream/shared/constants';
 import { getOrgs, getUserProfile } from '@jetstream/shared/data';
 import { getOrgType, parseCookie } from '@jetstream/shared/ui-utils';
+import { getMapOf } from '@jetstream/shared/utils';
 import { ApplicationCookie, SalesforceOrgUi, SalesforceOrgUiType, UserProfilePreferences, UserProfileUi } from '@jetstream/types';
 import localforage from 'localforage';
 import isString from 'lodash/isString';
@@ -129,6 +130,14 @@ export const salesforceOrgsOmitSelectedState = selector({
       return salesforceOrgs.filter((org) => org.uniqueId !== selectedOrgId);
     }
     return salesforceOrgs;
+  },
+});
+
+export const salesforceOrgsById = selector({
+  key: 'salesforceOrgsById',
+  get: ({ get }) => {
+    const salesforceOrgs = get(salesforceOrgsState) || [];
+    return getMapOf(salesforceOrgs, 'uniqueId');
   },
 });
 
