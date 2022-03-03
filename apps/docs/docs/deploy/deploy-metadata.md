@@ -135,7 +135,7 @@ The changeset description will always be overridden when you add items to the ch
 
 :::
 
-## Metadata history
+## Deployment history
 
 After you deploy metadata, your deployment results will be saved. Access your history by clicking on the History button.
 
