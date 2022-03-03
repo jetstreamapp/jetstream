@@ -21,6 +21,7 @@ import { DeployMetadataTableRow } from '../deploy-metadata.types';
 import localforage from 'localforage';
 import { DeployOptions } from 'jsforce';
 import JSZip from 'jszip';
+import { logErrorToRollbar } from '@jetstream/shared/ui-utils';
 
 const MAX_HISTORY_ITEMS = 500;
 
@@ -45,10 +46,14 @@ export async function getHistory() {
 }
 
 export async function getHistoryItemFile(item: SalesforceDeployHistoryItem) {
+  let file: ArrayBuffer;
   if (item.fileKey) {
-    return await localforage.getItem<ArrayBuffer>(item.fileKey);
+    file = await localforage.getItem<ArrayBuffer>(item.fileKey);
   }
-  return null;
+  if (!file) {
+    throw new Error('The package file is not available');
+  }
+  return file;
 }
 
 export async function saveHistory({
@@ -79,6 +84,11 @@ export async function saveHistory({
       } catch (ex) {
         logger.warn('[DEPLOY][HISTORY][ZIP PROCESSING ERROR]', ex);
         file = null;
+        logErrorToRollbar(ex.message, {
+          stack: ex.stack,
+          place: 'DeployMetadataHistory',
+          type: 'error generating zip from base64',
+        });
       }
     }
 
@@ -113,7 +123,7 @@ export async function saveHistory({
     existingItems.unshift(newItem);
     await localforage.setItem<SalesforceDeployHistoryItem[]>(INDEXED_DB.KEYS.deployHistory, existingItems.slice(0, MAX_HISTORY_ITEMS));
     logger.log('[DEPLOY][HISTORY][SAVE]', { newItem });
-    //
+
     if (file && newItem.fileKey && localforage.driver() === localforage.INDEXEDDB) {
       await localforage.setItem(newItem.fileKey, file);
     }
@@ -126,9 +136,19 @@ export async function saveHistory({
       }
     } catch (ex) {
       logger.warn('[DEPLOY][HISTORY][CLEANUP ERROR] Error cleaning up files', ex);
+      logErrorToRollbar(ex.message, {
+        stack: ex.stack,
+        place: 'DeployMetadataHistory',
+        type: 'error cleaning up metadata history',
+      });
     }
   } catch (ex) {
     logger.warn('[DEPLOY][HISTORY][SAVE ERROR]', ex);
+    logErrorToRollbar(ex.message, {
+      stack: ex.stack,
+      place: 'DeployMetadataHistory',
+      type: 'error saving metadata history',
+    });
   }
 }
 

@@ -1,11 +1,14 @@
 import { css } from '@emotion/react';
 import { logger } from '@jetstream/shared/client-logger';
+import { ANALYTICS_KEYS } from '@jetstream/shared/constants';
+import { useRollbar } from '@jetstream/shared/ui-utils';
 import { MapOf, SalesforceDeployHistoryItem, SalesforceOrgUi } from '@jetstream/types';
-import { AutoFullHeightContainer, EmptyState, FileDownloadModal, Icon, Modal, OpenRoadIllustration, Spinner } from '@jetstream/ui';
+import { EmptyState, FileDownloadModal, Icon, Modal, OpenRoadIllustration, ScopedNotification, Spinner } from '@jetstream/ui';
 import { Fragment, FunctionComponent, useEffect, useState } from 'react';
 import { useRecoilState, useRecoilValue } from 'recoil';
 import * as fromAppState from '../../../app-state';
 import { useAmplitude } from '../../core/analytics';
+import { fireToast } from '../../core/AppToast';
 import ConfirmPageChange from '../../core/ConfirmPageChange';
 import * as fromJetstreamEvents from '../../core/jetstream-events';
 import { getDeployResultsExcelData, getHistory, getHistoryItemFile } from '../utils/deploy-metadata.utils';
@@ -14,6 +17,7 @@ import DeployMetadataHistoryViewResults from './DeployMetadataHistoryViewResults
 
 export const DeployMetadataHistoryModal: FunctionComponent = () => {
   const { trackEvent } = useAmplitude();
+  const rollbar = useRollbar();
   const [{ serverUrl, google_apiKey, google_appId, google_clientId }] = useRecoilState(fromAppState.applicationCookieState);
   const [isOpen, setIsOpen] = useState(false);
   const [downloadPackageModalState, setDownloadPackageModalState] = useState<{ open: boolean; org: SalesforceOrgUi; data: ArrayBuffer }>({
@@ -33,8 +37,7 @@ export const DeployMetadataHistoryModal: FunctionComponent = () => {
   });
   const [historyItems, setHistoryItems] = useState<SalesforceDeployHistoryItem[]>([]);
   const [isLoading, setIsLoading] = useState(false);
-  // TODO: if we cannot load history, we need to show an error
-  const [error, setError] = useState<string>(null);
+  const [errorMessage, setError] = useState<string>(null);
   const orgsById = useRecoilValue(fromAppState.salesforceOrgsById);
 
   useEffect(() => {
@@ -47,9 +50,9 @@ export const DeployMetadataHistoryModal: FunctionComponent = () => {
           logger.log('[DEPLOY HISTORY]', { items });
           setHistoryItems(items);
         } catch (ex) {
-          // TODO: add rollbar
           logger.warn('Failed to get deploy history', ex);
           setError('There was an error retrieving your history.');
+          rollbar.error('Failed to get deploy history', { message: ex.message, stack: ex.stack });
         } finally {
           setIsLoading(false);
         }
@@ -57,27 +60,11 @@ export const DeployMetadataHistoryModal: FunctionComponent = () => {
     }
   }, [isOpen]);
 
-  // useEffect(() => {
-  //   if (isDone) {
-  //     trackEvent(ANALYTICS_KEYS.deploy_finished, {
-  //       checkOnly: results.checkOnly,
-  //       completedDate: results.completedDate,
-  //       numberComponentErrors: results.numberComponentErrors,
-  //       numberComponentsDeployed: results.numberComponentsDeployed,
-  //       numberComponentsTotal: results.numberComponentsTotal,
-  //       numberTestErrors: results.numberTestErrors,
-  //       numberTestsCompleted: results.numberTestsCompleted,
-  //       numberTestsTotal: results.numberTestsTotal,
-  //       rollbackOnError: results.rollbackOnError,
-  //       runTestsEnabled: results.runTestsEnabled,
-  //       startDate: results.startDate,
-  //       success: results.success,
-  //     });
-  //   }
-  // }, [isDone]);
-
   function handleToggleOpen(open: boolean) {
     setIsOpen(open);
+    if (open) {
+      trackEvent(ANALYTICS_KEYS.deploy_history_opened);
+    }
   }
 
   async function handleDownload(item: SalesforceDeployHistoryItem) {
@@ -89,9 +76,14 @@ export const DeployMetadataHistoryModal: FunctionComponent = () => {
         org: orgsById[item.destinationOrg.uniqueId],
         data: file,
       });
+      trackEvent(ANALYTICS_KEYS.deploy_history_download_package, { type: item.type, status: item.status });
     } catch (ex) {
       logger.warn('Failed to download deploy history item', ex);
-      // TODO: rollbar, show error to user (maybe toast?)
+      rollbar.error('Failed to download deploy history item', { message: ex.message, stack: ex.stack });
+      fireToast({
+        message: 'There was an error downloading your file.',
+        type: 'error',
+      });
     }
   }
 
@@ -101,15 +93,20 @@ export const DeployMetadataHistoryModal: FunctionComponent = () => {
 
   async function handleViewModalOpen(item: SalesforceDeployHistoryItem) {
     try {
-      logger.log('[DEPLOY HISTORY] Selected Item', { item });
+      logger.log('[DEPLOY HISTORY] Selected Item to view', { item });
       setViewItemModalState({
         open: true,
         org: orgsById[item.destinationOrg.uniqueId],
         item,
       });
+      trackEvent(ANALYTICS_KEYS.deploy_history_view_details, { type: item.type, status: item.status });
     } catch (ex) {
-      logger.warn('Failed to download deploy history item', ex);
-      // TODO: rollbar, show error to user (maybe toast?)
+      logger.warn('Failed to view history', ex);
+      rollbar.error('Failed to view history', { message: ex.message, stack: ex.stack });
+      fireToast({
+        message: 'Oops. There was a problem opening your history',
+        type: 'error',
+      });
     }
   }
 
@@ -133,6 +130,10 @@ export const DeployMetadataHistoryModal: FunctionComponent = () => {
       ),
     });
     setViewItemModalState({ open: false, org: null, item: null });
+    trackEvent(ANALYTICS_KEYS.deploy_history_download_results, {
+      type: viewItemModalState.item.type,
+      status: viewItemModalState.item.status,
+    });
   }
 
   function handleDownloadResultsModalClose() {
@@ -210,18 +211,29 @@ export const DeployMetadataHistoryModal: FunctionComponent = () => {
           <div className="slds-is-relative slds-scrollable_x">
             <ConfirmPageChange actionInProgress={false} />
             {isLoading && <Spinner />}
-            {historyItems?.length === 0 && !isLoading && (
+            {historyItems?.length === 0 && !isLoading && !errorMessage && (
               <EmptyState headline="You don't have any deployment history" illustration={<OpenRoadIllustration />}></EmptyState>
             )}
+            {errorMessage && (
+              <div className="slds-m-around-medium">
+                <ScopedNotification theme="error" className="slds-m-top_medium">
+                  {errorMessage}
+                </ScopedNotification>
+              </div>
+            )}
             {!!historyItems?.length && (
-              <AutoFullHeightContainer fillHeight setHeightAttr bottomBuffer={250}>
+              <div
+                css={css`
+                  height: calc(70vh - 2rem);
+                `}
+              >
                 <DeployMetadataHistoryTable
                   items={historyItems}
                   orgsById={orgsById}
                   onDownload={handleDownload}
                   onView={handleViewModalOpen}
                 />
-              </AutoFullHeightContainer>
+              </div>
             )}
           </div>
         </Modal>

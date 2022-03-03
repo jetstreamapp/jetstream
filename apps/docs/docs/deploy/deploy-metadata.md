@@ -135,6 +135,20 @@ The changeset description will always be overridden when you add items to the ch
 
 :::
 
+## Metadata history
+
+After you deploy metadata, your deployment results will be saved. Access your history by clicking on the History button.
+
+Your history will show a summary of each deployment and you can view the detailed results, or download the metadata package which can easily be re-deployed again.
+
+:::note
+
+All history data is stored in your browser, not on the Jetstream server.
+
+:::
+
+<img src={require('./deploy-history-table.png').default} alt="Deploy history table" />
+
 ## Viewing and comparing metadata
 
 Choose the metadata items that you would like to view or compare and click **View or Compare Selected Items**.

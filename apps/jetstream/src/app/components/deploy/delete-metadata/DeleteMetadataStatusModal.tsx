@@ -37,7 +37,7 @@ export const DeployMetadataPackageStatusModal: FunctionComponent<DeployMetadataP
   );
 
   useEffect(() => {
-    deployMetadata();
+    deployMetadata('delete');
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 

@@ -7,7 +7,8 @@ import { dataTableDateFormatter } from '../utils/deploy-metadata.utils';
 import { ActionRenderer, OrgRenderer, StatusRenderer } from './DeployMetadataHistoryTableRenderers';
 
 const TYPE_MAP = {
-  package: 'Uploaded package',
+  package: 'Package upload',
+  delete: 'Delete metadata',
   changeset: 'Add to changeset',
   orgToOrg: 'Org to org',
 };

@@ -505,7 +505,7 @@ export interface SalesforceApiHistoryItem {
   lastRun: Date;
 }
 
-export type SalesforceDeployHistoryType = 'package' | 'changeset' | 'orgToOrg';
+export type SalesforceDeployHistoryType = 'package' | 'delete' | 'changeset' | 'orgToOrg';
 
 export interface SalesforceDeployHistoryItem {
   key: string; // org:type:timestamp
