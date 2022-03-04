@@ -1,8 +1,9 @@
-import { css } from '@emotion/react';
-import { FunctionComponent, Fragment, useState, useEffect } from 'react';
-import { FieldWrapper } from '@jetstream/types';
-import Icon from '../widgets/Icon';
+import { formatNumber } from '@jetstream/shared/ui-utils';
+import { pluralizeFromNumber } from '@jetstream/shared/utils';
+import { FieldWrapper, MapOf, QueryFields } from '@jetstream/types';
+import { Fragment, FunctionComponent, useEffect, useState } from 'react';
 import Select from '../form/select/Select';
+import Icon from '../widgets/Icon';
 
 const relationshipHelpText =
   'This relationship can be associated to a different object for each record. ' +
@@ -12,6 +13,8 @@ const relationshipHelpText =
 export interface SobjectExpandChildrenBtnProps {
   initialSelectedSObject: string;
   parentKey: string;
+  itemKey: string;
+  queryFieldsMap: MapOf<QueryFields>;
   field: FieldWrapper;
   isExpanded: boolean;
   allowMultiple: boolean;
@@ -21,11 +24,17 @@ export interface SobjectExpandChildrenBtnProps {
 export const SobjectExpandChildrenBtn: FunctionComponent<SobjectExpandChildrenBtnProps> = ({
   initialSelectedSObject,
   parentKey,
+  itemKey,
+  queryFieldsMap,
   field,
   isExpanded,
   allowMultiple,
   onToggleExpand,
 }) => {
+  const selectedChildFields = queryFieldsMap?.[itemKey]?.selectedFields?.size;
+  const selectedChildFieldsTitle = selectedChildFields
+    ? `${formatNumber(selectedChildFields)} ${pluralizeFromNumber('field', selectedChildFields)} selected`
+    : null;
   const hasMultiple = Array.isArray(field.relatedSobject);
   const showWhich = hasMultiple && allowMultiple ? 'multiple' : 'single';
   const [selectedSObject, setSelectedSObject] = useState<string>(
@@ -68,13 +77,23 @@ export const SobjectExpandChildrenBtn: FunctionComponent<SobjectExpandChildrenBt
           <button className="slds-button" onClick={handleExpand}>
             <Icon type="utility" icon={isExpanded ? 'dash' : 'add'} className="slds-button__icon slds-button__icon_left" />
             {isExpanded ? 'Hide' : 'View'} {selectedSObject} Fields
+            {selectedChildFields ? (
+              <span className="slds-m-left_xxx-small" title={selectedChildFieldsTitle}>
+                ({selectedChildFields})
+              </span>
+            ) : null}
           </button>
         </Fragment>
       )}
       {showWhich === 'single' && (
         <button className="slds-button" onClick={handleExpand}>
           <Icon type="utility" icon={isExpanded ? 'dash' : 'add'} className="slds-button__icon slds-button__icon_left" />
-          {isExpanded ? 'Hide' : 'View'} {selectedSObject} Fields
+          {isExpanded ? 'Hide' : 'View'} {selectedSObject} Fields{' '}
+          {selectedChildFields ? (
+            <span className="slds-m-left_xxx-small" title={selectedChildFieldsTitle}>
+              ({selectedChildFields})
+            </span>
+          ) : null}
         </button>
       )}
     </Fragment>

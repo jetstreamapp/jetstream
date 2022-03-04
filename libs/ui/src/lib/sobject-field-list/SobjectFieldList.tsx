@@ -1,6 +1,6 @@
 import { css } from '@emotion/react';
 import { MIME_TYPES } from '@jetstream/shared/constants';
-import { formatNumber, saveFile } from '@jetstream/shared/ui-utils';
+import { formatNumber, saveFile, useNonInitialEffect } from '@jetstream/shared/ui-utils';
 import { FieldWrapper, MapOf, QueryFields, SalesforceOrgUi, UpDown } from '@jetstream/types';
 import isString from 'lodash/isString';
 import { createRef, Fragment, FunctionComponent, useEffect, useState } from 'react';
@@ -48,17 +48,39 @@ export const SobjectFieldList: FunctionComponent<SobjectFieldListProps> = ({
   onUnselectAll,
   errorReattempt,
 }) => {
-  const [queryFields, setQueryFields] = useState<QueryFields>(null);
-  const [fieldLength, setFieldLength] = useState<number>(0);
+  const [queryFields, setQueryFields] = useState<QueryFields>(() => {
+    if (isString(itemKey) && queryFieldsMap[itemKey]) {
+      return queryFieldsMap[itemKey];
+    }
+    return null;
+  });
+  const [fieldLength, setFieldLength] = useState<number>(() => {
+    if (isString(itemKey) && queryFieldsMap[itemKey]) {
+      return Object.keys(queryFieldsMap[itemKey]).length;
+    }
+    return 0;
+  });
   const [activeFilters, setActiveFilters] = useState<FilterTypes>({ ...DEFAULT_FILTER_TYPES });
-  const [filteredFields, setFilteredFields] = useState<FieldWrapper[]>(null);
-  const [visibleFields, setVisibleFields] = useState<Set<string>>(null);
+  const [filteredFields, setFilteredFields] = useState<FieldWrapper[]>(() => {
+    if (isString(itemKey) && queryFieldsMap[itemKey] && queryFieldsMap[itemKey].visibleFields) {
+      return Array.from(queryFieldsMap[itemKey].visibleFields)
+        .map((key) => queryFieldsMap[itemKey].fields[key])
+        .filter(filterFieldsFn(activeFilters));
+    }
+    return null;
+  });
+  const [visibleFields, setVisibleFields] = useState<Set<string>>(() => {
+    if (isString(itemKey) && queryFieldsMap[itemKey]) {
+      return queryFieldsMap[itemKey].visibleFields;
+    }
+    return null;
+  });
   const [selectAll, setSelectAll] = useState<boolean>(false);
   const [searchInputId] = useState(`object-field-${sobject}-filter-${Date.now()}`);
   const [searchTerm, setSearchTerm] = useState<string>('');
   const ulRef = createRef<HTMLUListElement>();
 
-  useEffect(() => {
+  useNonInitialEffect(() => {
     if (isString(itemKey) && queryFieldsMap[itemKey]) {
       const queryFields = queryFieldsMap[itemKey];
       setQueryFields(queryFields);
@@ -67,7 +89,7 @@ export const SobjectFieldList: FunctionComponent<SobjectFieldListProps> = ({
     }
   }, [itemKey, queryFieldsMap]);
 
-  useEffect(() => {
+  useNonInitialEffect(() => {
     if (visibleFields) {
       setFilteredFields(
         Array.from(visibleFields)
@@ -75,7 +97,6 @@ export const SobjectFieldList: FunctionComponent<SobjectFieldListProps> = ({
           .filter(filterFieldsFn(activeFilters))
       );
     }
-    // TODO: make sure that queryFields.fields does not jack anything
   }, [visibleFields, activeFilters, queryFields?.fields]);
 
   // when filtered fields changes, see if handleFieldFilterChanged fields are selected and possibly update allSelected state
