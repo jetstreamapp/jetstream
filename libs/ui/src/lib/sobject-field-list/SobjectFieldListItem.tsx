@@ -120,6 +120,8 @@ export const SobjectFieldListItem: FunctionComponent<SobjectFieldListItemProps> 
             parentKey={parentKey}
             field={field}
             isExpanded={isExpanded}
+            itemKey={relationshipKey}
+            queryFieldsMap={queryFieldsMap}
             allowMultiple={level === 0}
             onToggleExpand={handleExpand}
           />

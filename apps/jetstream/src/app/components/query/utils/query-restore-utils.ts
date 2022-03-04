@@ -477,7 +477,7 @@ function setSelectedFields(
 function updateQueryFieldsMapForRelatedFields(queryFieldsMap: MapOf<QueryFields>, baseKey: string, metadataTree: MapOf<SoqlMetadataTree>) {
   function traverseChildren(children: SoqlMetadataTree[], parentKey: string) {
     children.forEach((currNode) => {
-      const fieldMapItem = initQueryFieldStateItem(currNode.fieldKey, currNode.metadata.name);
+      const fieldMapItem = initQueryFieldStateItem(currNode.fieldKey, currNode.metadata.name, { expanded: false });
       const sobjectResults = convertDescribeToDescribeSObjectWithExtendedTypes(currNode.metadata);
       queryFieldsMap[currNode.fieldKey] = fetchFieldsProcessResults(sobjectResults, fieldMapItem, currNode.fieldKey);
       traverseChildren(currNode.children, currNode.fieldKey);
@@ -486,7 +486,7 @@ function updateQueryFieldsMapForRelatedFields(queryFieldsMap: MapOf<QueryFields>
 
   Object.keys(metadataTree).forEach((key) => {
     const currNode = metadataTree[key];
-    const fieldMapItem = initQueryFieldStateItem(currNode.fieldKey, currNode.metadata.name);
+    const fieldMapItem = initQueryFieldStateItem(currNode.fieldKey, currNode.metadata.name, { expanded: false });
     const sobjectResults = convertDescribeToDescribeSObjectWithExtendedTypes(currNode.metadata);
     queryFieldsMap[currNode.fieldKey] = fetchFieldsProcessResults(sobjectResults, fieldMapItem, currNode.fieldKey);
     traverseChildren(currNode.children, currNode.fieldKey);
