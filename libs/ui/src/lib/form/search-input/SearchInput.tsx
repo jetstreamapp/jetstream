@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
-import { isArrowDownKey, isArrowUpKey, useDebounce } from '@jetstream/shared/ui-utils';
+import { isArrowDownKey, isArrowUpKey, useDebounce, useNonInitialEffect } from '@jetstream/shared/ui-utils';
 import { UpDown } from '@jetstream/types';
 import { FunctionComponent, KeyboardEvent, useEffect, useRef, useState } from 'react';
 import Input from '../input/Input';
@@ -45,7 +45,7 @@ export const SearchInput: FunctionComponent<SearchInputProps> = ({
     }
   }, [inputEl]);
 
-  useEffect(() => {
+  useNonInitialEffect(() => {
     onChange(debouncedFilters || '');
   }, [onChange, debouncedFilters]);
 

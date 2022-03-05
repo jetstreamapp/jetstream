@@ -5,6 +5,14 @@ import Rollbar from 'rollbar';
 import { useNonInitialEffect } from './useNonInitialEffect';
 
 const VERSION = process.env.GIT_VERSION;
+const REPLACE_HOST_REGEX = /[a-zA-Z0-9._-]*?getjetstream.app/;
+
+interface RollbarProperties {
+  accessToken?: string;
+  environment?: Environment;
+  userProfile?: UserProfileUi;
+  // serverUrl?: string; // could not get proxy config working
+}
 
 const getRecentLogs = () => {
   try {
@@ -20,15 +28,17 @@ class RollbarConfig {
   private accessToken: string;
   private environment: string;
   private userProfile: UserProfileUi;
+  // private serverUrl: string;
   public rollbar: Rollbar;
   public rollbarIsConfigured: boolean;
 
   // init if not already initialized
-  private init(options?: { accessToken?: string; environment?: Environment; userProfile?: UserProfileUi }) {
+  private init(options?: RollbarProperties) {
     options = options || {};
     this.accessToken = options.accessToken || this.accessToken;
     this.environment = options.environment || this.environment;
     this.userProfile = options.userProfile || this.userProfile;
+    // this.serverUrl = options.serverUrl || this.serverUrl;
 
     if (this.rollbarIsConfigured || !this.accessToken || !this.environment) {
       return;
@@ -41,6 +51,8 @@ class RollbarConfig {
         captureUncaught: true,
         captureUnhandledRejections: true,
         environment: this.environment,
+        // Unable to get proxy config working
+        // endpoint: this.serverUrl ? `${this.serverUrl}/rollbar` : 'https://api.rollbar.com/api/1/item',
         autoInstrument: {
           // eslint-disable-next-line no-restricted-globals
           log: location.hostname !== 'localhost',
@@ -50,6 +62,19 @@ class RollbarConfig {
         onSendCallback: (_isUncaught: boolean, _args: Rollbar.LogArgument[], payload: any) => {
           payload = payload || {};
           payload.recentLogs = getRecentLogs();
+        },
+        // https://docs.rollbar.com/docs/source-maps#using-source-maps-on-many-domains
+        transform: (payload: any) => {
+          const trace = payload.body.trace;
+          if (trace?.frames) {
+            for (let i = 0; i < trace.frames.length; i++) {
+              const filename = trace.frames[i].filename;
+              if (filename) {
+                // Use dynamichost so that sourcemaps only need to be uploaded once and can be shared across all environments
+                trace.frames[i].filename = trace.frames[i].filename.replace(REPLACE_HOST_REGEX, 'dynamichost');
+              }
+            }
+          }
         },
       });
     this.rollbar.global({ itemsPerMinute: 10, maxItems: 20 });
@@ -73,7 +98,7 @@ class RollbarConfig {
     }
   }
 
-  static getInstance(options?: { accessToken?: string; environment?: Environment; userProfile?: UserProfileUi }): RollbarConfig {
+  static getInstance(options?: RollbarProperties): RollbarConfig {
     if (!this.instance) {
       this.instance = new this();
     }
@@ -90,7 +115,7 @@ class RollbarConfig {
  * @param environment
  * @param userProfile
  */
-export function useRollbar(options?: { accessToken?: string; environment?: Environment; userProfile?: UserProfileUi }): Rollbar {
+export function useRollbar(options?: RollbarProperties): Rollbar {
   const [rollbarConfig, setRollbarConfig] = useState(() => RollbarConfig.getInstance(options));
 
   useNonInitialEffect(() => {

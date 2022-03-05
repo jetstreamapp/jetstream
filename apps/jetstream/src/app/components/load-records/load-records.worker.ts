@@ -1,14 +1,7 @@
 /// <reference lib="webworker" />
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { logger } from '@jetstream/shared/client-logger';
-import {
-  bulkApiAddBatchToJob,
-  bulkApiAddBatchToJobWithAttachment,
-  bulkApiCloseJob,
-  bulkApiCreateJob,
-  bulkApiGetJob,
-  genericRequest,
-} from '@jetstream/shared/data';
+import { bulkApiAddBatchToJob, bulkApiCloseJob, bulkApiCreateJob, bulkApiGetJob, genericRequest } from '@jetstream/shared/data';
 import { convertDateToLocale, generateCsv } from '@jetstream/shared/ui-utils';
 import { getHttpMethod, getSizeInMbFromBase64, splitArrayToMaxSize } from '@jetstream/shared/utils';
 import {
@@ -28,7 +21,7 @@ import {
   LoadDataPayload,
   PrepareDataPayload,
 } from '../../components/load-records/load-records-types';
-import { fetchMappedRelatedRecords, transformData } from '../../components/load-records/utils/load-records-utils';
+import { fetchMappedRelatedRecords, LoadRecordsBatchError, transformData } from './utils/load-records-utils';
 
 type MessageName = 'prepareData' | 'loadData' | 'loadDataStatus';
 // eslint-disable-next-line no-restricted-globals
@@ -51,7 +44,6 @@ async function handleMessage(name: MessageName, payloadData: any) {
           throw new Error('The required parameters were not included in the request');
         }
 
-        // TODO: I am here, I need to add csv to zip and rename to request.txt after data transform
         // also need to change file to add `#` at the beginning each data point
         const preparedData = await fetchMappedRelatedRecords(transformData(payloadData), payloadData);
 
@@ -90,6 +82,7 @@ async function loadBulkApiData({ org, data, sObject, type, batchSize, externalId
     replyToMessage('loadDataStatus', { resultsSummary: getBatchSummary(results, batches) });
     let currItem = 1;
     let fatalError = false;
+    const loadErrors: Error[] = [];
     for (const batch of batches) {
       try {
         const batchResult = await bulkApiAddBatchToJob(org, jobId, batch.data, currItem === batches.length);
@@ -103,6 +96,8 @@ async function loadBulkApiData({ org, data, sObject, type, batchSize, externalId
       } catch (ex) {
         batch.completed = true;
         batch.success = false;
+        batch.errorMessage = ex.message;
+        loadErrors.push(ex);
       } finally {
         let transfer: Transferable[];
         if (batch.data instanceof ArrayBuffer) {
@@ -124,7 +119,11 @@ async function loadBulkApiData({ org, data, sObject, type, batchSize, externalId
       fatalError = true;
     }
 
-    replyToMessage(replyName, { jobInfo: jobInfoWithBatches }, (fatalError && 'One or more batches failed to load.') || null);
+    replyToMessage(
+      replyName,
+      { jobInfo: jobInfoWithBatches },
+      (fatalError && new LoadRecordsBatchError(`One or more batches failed to load`, loadErrors)) || null
+    );
 
     if (jobInfoWithBatches.state === 'Open') {
       // close job last so user does not have to wait for this since it does not matter
@@ -161,19 +160,19 @@ async function loadBatchApiData(payload: LoadDataPayload) {
       const originalBatchRecords = batchRecordMap.get(batchIndex);
       let recordIndexesWithMissingIds: Set<number> = new Set();
 
-      if (type === 'DELETE') {
-        queryParams = `?ids=${batch.records
-          .map((record) => record.Id)
-          .filter(Boolean)
-          .join(',')}&allOrNone=false`;
-        /** Account for records with no mapped id - these records cannot be submitted with the batch API */
-        recordIndexesWithMissingIds = new Set(
-          batch.records.map((record, i) => (!record.Id ? i : undefined)).filter((idx) => Number.isFinite(idx))
-        );
-        records = records.filter((record) => record.Id);
-      }
-
       try {
+        if (type === 'DELETE') {
+          queryParams = `?ids=${batch.records
+            .map((record) => record.Id)
+            .filter(Boolean)
+            .join(',')}&allOrNone=false`;
+          /** Account for records with no mapped id - these records cannot be submitted with the batch API */
+          recordIndexesWithMissingIds = new Set(
+            batch.records.map((record, i) => (!record.Id ? i : undefined)).filter((idx) => Number.isFinite(idx))
+          );
+          records = records.filter((record) => record.Id);
+        }
+
         // https://developer.salesforce.com/docs/atlas.en-us.api_rest.meta/api_rest/headers_autoassign.htm
         // default is true
         const autoAssignHeader = { 'Sforce-Auto-Assign': assignmentRuleId || 'FALSE' };

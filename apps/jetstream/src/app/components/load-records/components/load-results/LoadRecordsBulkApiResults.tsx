@@ -1,7 +1,7 @@
 import { logger } from '@jetstream/shared/client-logger';
 import { ANALYTICS_KEYS } from '@jetstream/shared/constants';
 import { bulkApiGetJob, bulkApiGetRecords } from '@jetstream/shared/data';
-import { convertDateToLocale, useBrowserNotifications } from '@jetstream/shared/ui-utils';
+import { convertDateToLocale, useBrowserNotifications, useRollbar } from '@jetstream/shared/ui-utils';
 import { getSuccessOrFailureChar, pluralizeFromNumber } from '@jetstream/shared/utils';
 import {
   BulkJobBatchInfo,
@@ -30,7 +30,7 @@ import {
   PrepareDataResponse,
   ViewModalData,
 } from '../../load-records-types';
-import { getFieldHeaderFromMapping } from '../../utils/load-records-utils';
+import { getFieldHeaderFromMapping, LoadRecordsBatchError } from '../../utils/load-records-utils';
 import LoadRecordsBulkApiResultsTable from './LoadRecordsBulkApiResultsTable';
 import LoadRecordsResultsModal from './LoadRecordsResultsModal';
 
@@ -99,6 +99,7 @@ export const LoadRecordsBulkApiResults: FunctionComponent<LoadRecordsBulkApiResu
 }) => {
   const isMounted = useRef(null);
   const { trackEvent } = useAmplitude();
+  const rollbar = useRollbar();
   const [{ serverUrl, google_apiKey, google_appId, google_clientId }] = useRecoilState(applicationCookieState);
   const [preparedData, setPreparedData] = useState<PrepareDataResponse>();
   const [loadWorker] = useState(() => new Worker(new URL('../../load-records.worker', import.meta.url)));
@@ -238,7 +239,8 @@ export const LoadRecordsBulkApiResults: FunctionComponent<LoadRecordsBulkApiResu
         }
         const payload: WorkerMessage<
           'prepareData' | 'loadDataStatus' | 'loadData',
-          { preparedData?: PrepareDataResponse; jobInfo?: BulkJobWithBatches; resultsSummary?: LoadDataBulkApiStatusPayload }
+          { preparedData?: PrepareDataResponse; jobInfo?: BulkJobWithBatches; resultsSummary?: LoadDataBulkApiStatusPayload },
+          Error | LoadRecordsBatchError
         > = event.data;
         logger.log('[LOAD DATA]', payload.name, { payload });
         const dateString = convertDateToLocale(new Date(), { timeStyle: 'medium' });
@@ -253,9 +255,12 @@ export const LoadRecordsBulkApiResults: FunctionComponent<LoadRecordsBulkApiResu
                 body: `❌ ${payload.error.message}`,
                 tag: 'load-records',
               });
+              rollbar.error('Error preparing bulk api data', { message: payload.error.message, stack: payload.error.stack });
             } else if (!payload.data.preparedData.data.length) {
               if (payload.data.preparedData.queryErrors?.length) {
                 setFatalError(payload.data.preparedData.queryErrors.join('\n'));
+              } else if (payload.error) {
+                setFatalError(payload.error.message);
               }
               // processing failed on every record
               setStatus(STATUSES.ERROR);
@@ -291,7 +296,11 @@ export const LoadRecordsBulkApiResults: FunctionComponent<LoadRecordsBulkApiResu
                 body: `❌ Pre-processing records failed.`,
                 tag: 'load-records',
               });
-              // TODO: track an event so that I know how often this is happening
+              rollbar.error('Error preparing bulk api data', {
+                queryErrors: payload.data.preparedData.queryErrors,
+                message: payload.error?.message,
+                stack: payload.error?.stack,
+              });
             } else {
               setStatus(STATUSES.UPLOADING);
               setPreparedData(payload.data.preparedData);
@@ -309,12 +318,30 @@ export const LoadRecordsBulkApiResults: FunctionComponent<LoadRecordsBulkApiResu
           case 'loadData': {
             if (payload.error) {
               logger.error('ERROR', payload.error);
-              setStatus(STATUSES.ERROR);
-              onFinish({ success: 0, failure: inputFileData.length });
-              notifyUser(`Your data load failed`, {
-                body: `❌ ${payload.error?.message || payload.error}`,
-                tag: 'load-records',
-              });
+              setFatalError(payload.error.message);
+              if (payload.data?.jobInfo && payload.data.jobInfo.batches.length) {
+                setJobInfo(payload.data.jobInfo);
+                setStatus(STATUSES.PROCESSING);
+              } else {
+                setStatus(STATUSES.ERROR);
+                onFinish({ success: 0, failure: inputFileData.length });
+                notifyUser(`Your data load failed`, {
+                  body: `❌ ${payload.error?.message || payload.error}`,
+                  tag: 'load-records',
+                });
+              }
+              if (payload.error instanceof LoadRecordsBatchError) {
+                rollbar.error('Error loading batches', {
+                  message: payload.error.message,
+                  stack: payload.error.stack,
+                  specificErrors: payload.error.additionalErrors.map((error) => ({
+                    message: error.message,
+                    stack: error.stack,
+                  })),
+                });
+              } else {
+                rollbar.error('Error loading batches', { message: payload.error.message, stack: payload.error.stack });
+              }
             } else {
               setJobInfo(payload.data.jobInfo);
               setStatus(STATUSES.PROCESSING);
