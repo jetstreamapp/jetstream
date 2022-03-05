@@ -21,7 +21,7 @@
     "start:prod:debug": "pm2-runtime start ecosystem.config.js --env production --node-args=\"--inspect\"",
     "start:cron:inactive-account-warning": "node dist/apps/cron-tasks/inactive-account-warning.js",
     "start:cron:inactive-account-deletion": "node dist/apps/cron-tasks/inactive-account-deletion.js",
-    "build": "cross-env NODE_ENV=production npm-run-all db:generate build:client build:api build:sw build:landing build:docs",
+    "build": "cross-env NODE_ENV=production npm-run-all db:generate build:client build:api build:sw build:landing build:docs rollbar:upload-sourcemaps",
     "build:test": "npm-run-all db:generate build:client:test build:api:test build:sw build:landing build:docs",
     "build:client": "nx build jetstream --prod",
     "build:client:stats": "nx build jetstream --prod --statsJson",
@@ -38,6 +38,7 @@
     "build:storybook": "build-storybook -c libs/ui/.storybook -o dist/storybook -s node_modules/@salesforce-ux/design-system/assets/styles",
     "bundle-analyzer:client": "npx webpack-bundle-analyzer dist/apps/jetstream/stats.json",
     "docs:index": "docker run -it -e APPLICATION_ID=21D7I5RB7N -e API_KEY=5a8e69d756ddc4a3067c7d9e7aecfc3b -e \"CONFIG=$(cat ./apps/docs/algolia-config.json | jq -r tostring)\" algolia/docsearch-scraper",
+    "rollbar:upload-sourcemaps": "ts-node ./scripts/upload-source-maps.ts",
     "generate:data-table-css": "nx workspace-generator convert-sass-to-css ui --filename /src/lib/data-table/data-table-styles.scss",
     "db:generate": "prisma generate",
     "db:migrate": "prisma migrate deploy",
@@ -202,8 +203,7 @@
     "validator": "^13.7.0",
     "winston": "^3.2.1",
     "xlsx": "^0.17.4",
-    "xmlbuilder2": "^2.4.0",
-    "zx": "^4.3.0"
+    "xmlbuilder2": "^2.4.0"
   },
   "devDependencies": {
     "@babel/core": "7.12.13",
@@ -286,6 +286,7 @@
     "ts-node": "9.1.1",
     "typescript": "4.3.5",
     "url-loader": "^3.0.0",
-    "worker-loader": "^2.0.0"
+    "worker-loader": "^2.0.0",
+    "zx": "^4.3.0"
   }
 }

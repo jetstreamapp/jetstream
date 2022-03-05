@@ -5,6 +5,7 @@ import Rollbar from 'rollbar';
 import { useNonInitialEffect } from './useNonInitialEffect';
 
 const VERSION = process.env.GIT_VERSION;
+const REPLACE_HOST_REGEX = /[a-zA-Z0-9._-]*?getjetstream.app/;
 
 interface RollbarProperties {
   accessToken?: string;
@@ -61,6 +62,19 @@ class RollbarConfig {
         onSendCallback: (_isUncaught: boolean, _args: Rollbar.LogArgument[], payload: any) => {
           payload = payload || {};
           payload.recentLogs = getRecentLogs();
+        },
+        // https://docs.rollbar.com/docs/source-maps#using-source-maps-on-many-domains
+        transform: (payload: any) => {
+          const trace = payload.body.trace;
+          if (trace?.frames) {
+            for (let i = 0; i < trace.frames.length; i++) {
+              const filename = trace.frames[i].filename;
+              if (filename) {
+                // Use dynamichost so that sourcemaps only need to be uploaded once and can be shared across all environments
+                trace.frames[i].filename = trace.frames[i].filename.replace(REPLACE_HOST_REGEX, 'dynamichost');
+              }
+            }
+          }
         },
       });
     this.rollbar.global({ itemsPerMinute: 10, maxItems: 20 });
