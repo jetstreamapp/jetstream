@@ -36,6 +36,8 @@
     "build:landing:sitemap": "next-sitemap",
     "build:docs": "USE_SIMPLE_CSS_MINIFIER=true nx build docs",
     "build:storybook": "build-storybook -c libs/ui/.storybook -o dist/storybook -s node_modules/@salesforce-ux/design-system/assets/styles",
+    "pm2:link": "pm2-runtime link quhsrndp43edp7v urfb6rbocz587wt",
+    "pm2:monitor": "pm2 monit",
     "bundle-analyzer:client": "npx webpack-bundle-analyzer dist/apps/jetstream/stats.json",
     "docs:index": "docker run -it -e APPLICATION_ID=21D7I5RB7N -e API_KEY=5a8e69d756ddc4a3067c7d9e7aecfc3b -e \"CONFIG=$(cat ./apps/docs/algolia-config.json | jq -r tostring)\" algolia/docsearch-scraper",
     "generate:data-table-css": "nx workspace-generator convert-sass-to-css ui --filename /src/lib/data-table/data-table-styles.scss",
