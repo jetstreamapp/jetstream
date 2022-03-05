@@ -11,7 +11,7 @@ const gitRevisionPlugin = new GitRevisionPlugin();
  */
 
 void (async function () {
-  console.log(chalk.blue('Uploading sourcemaps to Rollbar'));
+  const version = gitRevisionPlugin.version();
   const url = 'https://api.rollbar.com/api/1/sourcemap';
   const accessToken = process.env.ROLLBAR_SERVER_TOKEN;
   const distPath = path.join(__dirname, '../dist/apps/jetstream');
@@ -20,6 +20,8 @@ void (async function () {
     console.error(chalk.redBright('🚫 COULD NOT UPLOAD SOURCEMAPS - ACCESS TOKEN NOT SET 🚫'));
     return;
   }
+
+  console.log(chalk.blue('Uploading sourcemaps to Rollbar', version));
 
   $.verbose = false;
   console.time();
@@ -32,7 +34,7 @@ void (async function () {
 
       console.log(chalk.blue(`- ${file}`));
 
-      await $`curl ${url} -F access_token=${accessToken} -F version=${gitRevisionPlugin.version()} -F minified_url=${minifiedUrl} -F source_map=@${filePath}`;
+      await $`curl ${url} -F access_token=${accessToken} -F version=${version} -F minified_url=${minifiedUrl} -F source_map=@${filePath}`;
     } catch (ex) {
       console.error(chalk.redBright('🚫 Error uploading sourcemap', ex.message));
     }
