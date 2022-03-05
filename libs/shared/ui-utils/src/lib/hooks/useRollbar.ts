@@ -6,6 +6,13 @@ import { useNonInitialEffect } from './useNonInitialEffect';
 
 const VERSION = process.env.GIT_VERSION;
 
+interface RollbarProperties {
+  accessToken?: string;
+  environment?: Environment;
+  userProfile?: UserProfileUi;
+  // serverUrl?: string; // could not get proxy config working
+}
+
 const getRecentLogs = () => {
   try {
     return JSON.stringify(logBuffer);
@@ -20,15 +27,17 @@ class RollbarConfig {
   private accessToken: string;
   private environment: string;
   private userProfile: UserProfileUi;
+  // private serverUrl: string;
   public rollbar: Rollbar;
   public rollbarIsConfigured: boolean;
 
   // init if not already initialized
-  private init(options?: { accessToken?: string; environment?: Environment; userProfile?: UserProfileUi }) {
+  private init(options?: RollbarProperties) {
     options = options || {};
     this.accessToken = options.accessToken || this.accessToken;
     this.environment = options.environment || this.environment;
     this.userProfile = options.userProfile || this.userProfile;
+    // this.serverUrl = options.serverUrl || this.serverUrl;
 
     if (this.rollbarIsConfigured || !this.accessToken || !this.environment) {
       return;
@@ -41,6 +50,8 @@ class RollbarConfig {
         captureUncaught: true,
         captureUnhandledRejections: true,
         environment: this.environment,
+        // Unable to get proxy config working
+        // endpoint: this.serverUrl ? `${this.serverUrl}/rollbar` : 'https://api.rollbar.com/api/1/item',
         autoInstrument: {
           // eslint-disable-next-line no-restricted-globals
           log: location.hostname !== 'localhost',
@@ -73,7 +84,7 @@ class RollbarConfig {
     }
   }
 
-  static getInstance(options?: { accessToken?: string; environment?: Environment; userProfile?: UserProfileUi }): RollbarConfig {
+  static getInstance(options?: RollbarProperties): RollbarConfig {
     if (!this.instance) {
       this.instance = new this();
     }
@@ -90,7 +101,7 @@ class RollbarConfig {
  * @param environment
  * @param userProfile
  */
-export function useRollbar(options?: { accessToken?: string; environment?: Environment; userProfile?: UserProfileUi }): Rollbar {
+export function useRollbar(options?: RollbarProperties): Rollbar {
   const [rollbarConfig, setRollbarConfig] = useState(() => RollbarConfig.getInstance(options));
 
   useNonInitialEffect(() => {

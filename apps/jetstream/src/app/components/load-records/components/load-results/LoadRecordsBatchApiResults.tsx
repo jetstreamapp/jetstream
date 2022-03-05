@@ -1,6 +1,6 @@
 import { logger } from '@jetstream/shared/client-logger';
 import { ANALYTICS_KEYS } from '@jetstream/shared/constants';
-import { convertDateToLocale, useBrowserNotifications } from '@jetstream/shared/ui-utils';
+import { convertDateToLocale, useBrowserNotifications, useRollbar } from '@jetstream/shared/ui-utils';
 import { flattenRecord, getSuccessOrFailureChar, pluralizeFromNumber } from '@jetstream/shared/utils';
 import { InsertUpdateUpsertDelete, RecordResultWithRecord, SalesforceOrgUi, WorkerMessage } from '@jetstream/types';
 import { FileDownloadModal, Spinner } from '@jetstream/ui';
@@ -72,6 +72,7 @@ export const LoadRecordsBatchApiResults: FunctionComponent<LoadRecordsBatchApiRe
 }) => {
   const isMounted = useRef(null);
   const { trackEvent } = useAmplitude();
+  const rollbar = useRollbar();
   // used to ensure that data in the onworker callback gets a reference to the results
   const processingStatusRef = useRef<{ success: number; failure: number }>({ success: 0, failure: 0 });
   const [preparedData, setPreparedData] = useState<PrepareDataResponse>();
@@ -192,9 +193,12 @@ export const LoadRecordsBatchApiResults: FunctionComponent<LoadRecordsBatchApiRe
                 body: `❌ ${payload.error?.message || payload.error}`,
                 tag: 'load-records',
               });
+              rollbar.error('Error preparing batch api data', { message: payload.error.message, stack: payload.error.stack });
             } else if (!payload.data.preparedData.data.length) {
               if (payload.data.preparedData.queryErrors?.length) {
                 setFatalError(payload.data.preparedData.queryErrors.join('\n'));
+              } else if (payload.error) {
+                setFatalError(payload.error.message);
               }
               setStatus(STATUSES.ERROR);
               setPreparedData(payload.data.preparedData);
@@ -205,6 +209,11 @@ export const LoadRecordsBatchApiResults: FunctionComponent<LoadRecordsBatchApiRe
               notifyUser(`Your ${loadType.toLowerCase()} data load failed`, {
                 body: `❌ Pre-processing records failed.`,
                 tag: 'load-records',
+              });
+              rollbar.error('Error preparing batch api data', {
+                queryErrors: payload.data.preparedData.queryErrors,
+                message: payload.error?.message,
+                stack: payload.error?.stack,
               });
             } else {
               setStatus(STATUSES.PROCESSING);
@@ -228,6 +237,7 @@ export const LoadRecordsBatchApiResults: FunctionComponent<LoadRecordsBatchApiRe
                 body: `❌ ${payload.error?.message || payload.error}`,
                 tag: 'load-records',
               });
+              rollbar.error('Error loading batches', { message: payload.error.message, stack: payload.error.stack });
             } else {
               setStatus(STATUSES.FINISHED);
               onFinish({ success: processingStatusRef.current.success, failure: processingStatusRef.current.failure });

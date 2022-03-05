@@ -109,6 +109,7 @@ export interface LoadDataBulkApi {
   batchNumber: number;
   completed: boolean;
   success: boolean;
+  errorMessage?: string;
 }
 
 export interface LoadDataBulkApiStatusPayload {

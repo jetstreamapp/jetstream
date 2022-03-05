@@ -24,6 +24,14 @@ import {
 const DEFAULT_NON_EXT_ID_MAPPING_OPT: NonExtIdLookupOption = 'ERROR_IF_MULTIPLE';
 const DEFAULT_NULL_IF_NO_MATCH_MAPPING_OPT = false;
 
+export class LoadRecordsBatchError extends Error {
+  additionalErrors: Error[];
+  constructor(message: string, additionalErrors?: Error[]) {
+    super(`${message}. ${additionalErrors ? additionalErrors.map((ex) => ex.message).join(', ') : ''}`.trim());
+    this.additionalErrors = additionalErrors || [];
+  }
+}
+
 export function filterLoadSobjects(sobject: DescribeGlobalSObjectResult) {
   return (
     (sobject.createable || sobject.updateable || sobject.name.endsWith('__mdt')) &&
