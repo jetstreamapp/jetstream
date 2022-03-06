@@ -6,7 +6,10 @@ import { DeployOptions, InputReadFileContent, SalesforceOrgUi } from '@jetstream
 import { FileSelector, Grid, GridCol, Modal } from '@jetstream/ui';
 import JSZip from 'jszip';
 import { Fragment, FunctionComponent, useEffect, useRef, useState } from 'react';
+import { useRecoilValue } from 'recoil';
+import { salesforceOrgsState } from '../../../app-state';
 import OrgLabelBadge from '../../core/OrgLabelBadge';
+import OrgsCombobox from '../../core/OrgsCombobox';
 import DeployMetadataOptions from '../utils/DeployMetadataOptions';
 
 const PACKAGE_XML = /^package\.xml$/;
@@ -23,12 +26,13 @@ export interface DeployMetadataPackageConfigModalProps {
   onClose: () => void;
   onDeploy: (
     fileInfo: { file: ArrayBuffer; filename: string; fileContents: string[]; isSinglePackage: boolean },
+    destinationOrg: SalesforceOrgUi,
     deployOptions: DeployOptions
   ) => void;
 }
 
 export const DeployMetadataPackageConfigModal: FunctionComponent<DeployMetadataPackageConfigModalProps> = ({
-  selectedOrg,
+  selectedOrg: initiallySelectedOrg,
   initialOptions,
   initialFile,
   initialFilename,
@@ -39,11 +43,14 @@ export const DeployMetadataPackageConfigModal: FunctionComponent<DeployMetadataP
   onDeploy,
 }) => {
   const rollbar = useRollbar();
+  const orgs = useRecoilValue<SalesforceOrgUi[]>(salesforceOrgsState);
+  const [destinationOrg, setDestinationOrg] = useState<SalesforceOrgUi>(initiallySelectedOrg);
   const [file, setFile] = useState<ArrayBuffer>(initialFile);
   const modalBodyRef = useRef<HTMLDivElement>();
   const [filename, setFileName] = useState<string>(initialFilename);
   const [fileContents, setFileContents] = useState<string[]>(initialFileContents);
   const [isConfigValid, setIsConfigValid] = useState(true);
+  const [zipFileError, setZipFileError] = useState<string>(null);
   const [{ isSinglePackage, missingPackageXml }, setPackageDetection] = useState({
     isSinglePackage: initialIsSinglePackage ?? true,
     missingPackageXml: false,
@@ -95,16 +102,19 @@ export const DeployMetadataPackageConfigModal: FunctionComponent<DeployMetadataP
       }
 
       setFileContents(Object.keys(zip.files));
+      setFile(_content);
+      setZipFileError(null);
     } catch (ex) {
       logger.warn('[ZIP][ERROR]', ex);
       rollbar.error(`JSZip Error: ${ex.message}`, { ex });
+      setZipFileError('There was an error reading the zip file. Make sure the file is a valid zip file and try again.');
+      setFileName(undefined);
       setFileContents(undefined);
     }
-    setFile(_content);
   }
 
   function handleDeploy() {
-    onDeploy({ file, filename, fileContents, isSinglePackage }, deployOptions);
+    onDeploy({ file, filename, fileContents, isSinglePackage }, destinationOrg, deployOptions);
   }
 
   return (
@@ -112,7 +122,7 @@ export const DeployMetadataPackageConfigModal: FunctionComponent<DeployMetadataP
       header="Upload metadata from package"
       tagline={
         <div className="slds-align_absolute-center">
-          Your metadata will be uploaded to <OrgLabelBadge org={selectedOrg} />
+          Your metadata will be uploaded to <OrgLabelBadge org={destinationOrg} />
         </div>
       }
       footer={
@@ -133,9 +143,19 @@ export const DeployMetadataPackageConfigModal: FunctionComponent<DeployMetadataP
           <GridCol className="slds-border_right slds-p-right_x-small">
             <div>
               <p>If you have previously downloaded a package, you can deploy it to the same or a different org.</p>
-              <div className="slds-m-vertical_x-small">
-                The package will be deployed to <strong>{selectedOrg.label}</strong>.
-              </div>
+              <Grid>
+                <GridCol size={12} sizeLarge={6}>
+                  <OrgsCombobox
+                    isRequired
+                    label="Deploy package to"
+                    hideLabel={false}
+                    placeholder="Select an org"
+                    orgs={orgs}
+                    selectedOrg={destinationOrg}
+                    onSelected={setDestinationOrg}
+                  />
+                </GridCol>
+              </Grid>
               <div className="slds-m-bottom_x-small">
                 <FileSelector
                   id="upload-package"
@@ -151,6 +171,7 @@ export const DeployMetadataPackageConfigModal: FunctionComponent<DeployMetadataP
                     directory in your zip file.
                   </div>
                 )}
+                {zipFileError && <div className="slds-form-element__help slds-text-color_error">{zipFileError}</div>}
               </div>
               <div>
                 {/* OPTIONS */}

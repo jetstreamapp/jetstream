@@ -14,9 +14,10 @@ export interface DeployMetadataPackageProps {
   selectedOrg: SalesforceOrgUi;
 }
 
-export const DeployMetadataPackage: FunctionComponent<DeployMetadataPackageProps> = ({ selectedOrg }) => {
+export const DeployMetadataPackage: FunctionComponent<DeployMetadataPackageProps> = ({ selectedOrg: initialSelectedOrg }) => {
   const { trackEvent } = useAmplitude();
   const [{ google_apiKey, google_appId, google_clientId }] = useRecoilState(applicationCookieState);
+  const [destinationOrg, setDestinationOrg] = useState<SalesforceOrgUi>(initialSelectedOrg);
   const [configModalOpen, setConfigModalOpen] = useState<boolean>(false);
   const [deployStatusModalOpen, setDeployStatusModalOpen] = useState<boolean>(false);
   const [downloadResultsModalOpen, setDownloadResultsModalOpen] = useState<boolean>(false);
@@ -27,11 +28,13 @@ export const DeployMetadataPackage: FunctionComponent<DeployMetadataPackageProps
   const [deployResultsData, setDeployResultsData] = useState<MapOf<any[]>>();
 
   function handleClick() {
+    setDestinationOrg(initialSelectedOrg);
     setConfigModalOpen(true);
   }
 
-  function handleDeploy(fileInfo, deployOptions: DeployOptions) {
+  function handleDeploy(fileInfo, org: SalesforceOrgUi, deployOptions: DeployOptions) {
     setFileInfo(fileInfo);
+    setDestinationOrg(org);
     setDeployOptions(deployOptions);
     setConfigModalOpen(false);
     setDeployStatusModalOpen(true);
@@ -66,7 +69,7 @@ export const DeployMetadataPackage: FunctionComponent<DeployMetadataPackageProps
       {/* MODALS */}
       {configModalOpen && (
         <DeployMetadataPackageConfigModal
-          selectedOrg={selectedOrg}
+          selectedOrg={destinationOrg}
           initialOptions={deployOptions}
           initialFile={fileInfo.file}
           initialFilename={fileInfo.filename}
@@ -78,7 +81,7 @@ export const DeployMetadataPackage: FunctionComponent<DeployMetadataPackageProps
       )}
       {deployStatusModalOpen && (
         <DeployMetadataPackageStatusModal
-          destinationOrg={selectedOrg}
+          destinationOrg={destinationOrg}
           deployOptions={deployOptions}
           file={fileInfo.file}
           hideModal={downloadResultsModalOpen}
@@ -90,7 +93,7 @@ export const DeployMetadataPackage: FunctionComponent<DeployMetadataPackageProps
       {downloadResultsModalOpen && (
         <FileDownloadModal
           modalHeader="Download Deploy Results"
-          org={selectedOrg}
+          org={destinationOrg}
           google_apiKey={google_apiKey}
           google_appId={google_appId}
           google_clientId={google_clientId}
