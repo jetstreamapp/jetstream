@@ -36,8 +36,6 @@ function getAppCookie() {
 
 function ensureUserProfileInit(pref?: UserProfilePreferences): UserProfilePreferences {
   return {
-    // DEFAULTS
-    skipQueryWalkthrough: false,
     // CURRENT
     ...pref,
   };

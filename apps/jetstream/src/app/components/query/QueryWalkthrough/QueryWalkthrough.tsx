@@ -1,16 +1,14 @@
-/* eslint-disable @typescript-eslint/no-unused-vars */
-import { Checkbox, Grid, Modal } from '@jetstream/ui';
+import { Grid, Modal } from '@jetstream/ui';
 import React, { Fragment, FunctionComponent, useState } from 'react';
 import QueryWalkthroughStep1 from './QueryWalkthroughStep1';
 import QueryWalkthroughStep2 from './QueryWalkthroughStep2';
 
 export interface QueryWalkthroughProps {
-  onClose: (skipInFuture: boolean) => void;
+  onClose: () => void;
 }
 
 export const QueryWalkthrough: FunctionComponent<QueryWalkthroughProps> = React.memo(({ onClose }) => {
   const [currentStep, setCurrentStep] = useState(1);
-  const [skipInFuture, setSkipInFuture] = useState(true);
 
   function handlePrevStep() {
     setCurrentStep(Math.max(currentStep - 1, 0));
@@ -18,22 +16,20 @@ export const QueryWalkthrough: FunctionComponent<QueryWalkthroughProps> = React.
 
   function handleNextStep() {
     if (currentStep === 2) {
-      onClose(skipInFuture);
+      onClose();
     } else {
       setCurrentStep(Math.min(currentStep + 1, 2));
     }
   }
 
   return (
+    // eslint-disable-next-line react/jsx-no-useless-fragment
     <Fragment>
       <Modal
         closeOnBackdropClick={false}
         closeOnEsc={false}
         footer={
-          <Grid align="spread">
-            <div className="slds-p-top_xx-small">
-              <Checkbox id={`skip-in-future`} checked={skipInFuture} label={`Don't show this tutorial again`} onChange={setSkipInFuture} />
-            </div>
+          <Grid align="end">
             <div>
               <button className="slds-button slds-button_neutral" onClick={handlePrevStep} disabled={currentStep === 1}>
                 Previous
@@ -44,7 +40,7 @@ export const QueryWalkthrough: FunctionComponent<QueryWalkthroughProps> = React.
             </div>
           </Grid>
         }
-        onClose={() => onClose(skipInFuture)}
+        onClose={() => onClose()}
       >
         {currentStep === 1 && <QueryWalkthroughStep1 />}
         {currentStep === 2 && <QueryWalkthroughStep2 />}

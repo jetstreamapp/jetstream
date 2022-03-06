@@ -1,5 +1,5 @@
 import { logger } from '@jetstream/shared/client-logger';
-import { ApplicationCookie, UserProfileUi } from '@jetstream/types';
+import { ApplicationCookie } from '@jetstream/types';
 import amplitude from 'amplitude-js';
 import React, { useEffect } from 'react';
 import { useLocation } from 'react-router-dom';
