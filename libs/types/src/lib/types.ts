@@ -54,7 +54,6 @@ export interface AuthenticationToken {
 }
 
 export interface UserProfilePreferences {
-  skipQueryWalkthrough: boolean;
   deniedNotifications: boolean;
 }
 

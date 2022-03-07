@@ -10,23 +10,27 @@ export interface DownloadMetadataPackageProps {
   selectedOrg: SalesforceOrgUi;
 }
 
-export const DownloadMetadataPackage: FunctionComponent<DownloadMetadataPackageProps> = ({ selectedOrg }) => {
+export const DownloadMetadataPackage: FunctionComponent<DownloadMetadataPackageProps> = ({ selectedOrg: initiallySelectedOrg }) => {
   const { trackEvent } = useAmplitude();
+  const [destinationOrg, setDestinationOrg] = useState<SalesforceOrgUi>(initiallySelectedOrg);
   const [configModalOpen, setConfigModalOpen] = useState<boolean>(false);
   const [downloadResultsModalOpen, setDownloadResultsModalOpen] = useState<boolean>(false);
   const [packageManifest, setPackageManifest] = useState<string>();
   const [packageNames, setPackageNames] = useState<string[]>();
 
   function handleClick() {
+    setDestinationOrg(initiallySelectedOrg);
     setConfigModalOpen(true);
     trackEvent(ANALYTICS_KEYS.deploy_downloadMetadataPkg);
   }
 
-  function handleDownloadFromManifest(packageManifest: string) {
+  function handleDownloadFromManifest(destinationOrg: SalesforceOrgUi, packageManifest: string) {
+    setDestinationOrg(destinationOrg);
     handleDownload(packageManifest, null);
     trackEvent(ANALYTICS_KEYS.deploy_downloadMetadataPkg, { type: 'from-manifest' });
   }
-  function handleDownloadFromPackageNames(packageNames: string[]) {
+  function handleDownloadFromPackageNames(destinationOrg: SalesforceOrgUi, packageNames: string[]) {
+    setDestinationOrg(destinationOrg);
     handleDownload(null, packageNames);
     trackEvent(ANALYTICS_KEYS.deploy_downloadMetadataPkg, { type: 'from-package-names' });
   }
@@ -51,7 +55,7 @@ export const DownloadMetadataPackage: FunctionComponent<DownloadMetadataPackageP
       {/* MODALS */}
       {configModalOpen && (
         <DownloadMetadataPackageConfigModal
-          selectedOrg={selectedOrg}
+          selectedOrg={destinationOrg}
           onClose={() => setConfigModalOpen(false)}
           onDownloadFromManifest={handleDownloadFromManifest}
           onDownloadFromPackageNames={handleDownloadFromPackageNames}
@@ -60,7 +64,7 @@ export const DownloadMetadataPackage: FunctionComponent<DownloadMetadataPackageP
       {downloadResultsModalOpen && (
         <DownloadPackageWithFileSelector
           type="package"
-          selectedOrg={selectedOrg}
+          selectedOrg={destinationOrg}
           packageManifest={packageManifest}
           packageNames={packageNames}
           onClose={() => setDownloadResultsModalOpen(false)}

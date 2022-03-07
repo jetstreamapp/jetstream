@@ -1,16 +1,13 @@
-import React, { FunctionComponent } from 'react';
+import { FunctionComponent } from 'react';
 
-// eslint-disable-next-line @typescript-eslint/no-empty-interface
-export interface JobPlaceholderProps {}
-
-export const JobPlaceholder: FunctionComponent<JobPlaceholderProps> = () => {
+export const JobPlaceholder: FunctionComponent = () => {
   return (
     <li className="slds-global-header__notification">
       <div className="slds-has-flexi-truncate slds-p-around_x-small">
         <div className="slds-grid slds-grid_align-spread">
           <div className="slds-has-flexi-truncate">
             <p className="slds-truncate" title="There are no active jobs">
-              There are no background jobs to show.
+              You don't have any background jobs.
             </p>
           </div>
         </div>

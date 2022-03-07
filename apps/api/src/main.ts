@@ -1,5 +1,4 @@
-import { HTTP, SESSION_EXP_DAYS } from '@jetstream/shared/constants';
-import { ApplicationCookie } from '@jetstream/types';
+import { SESSION_EXP_DAYS } from '@jetstream/shared/constants';
 import { json, raw, urlencoded } from 'body-parser';
 import * as pgSimple from 'connect-pg-simple';
 import * as cors from 'cors';
@@ -15,8 +14,8 @@ import { ENV } from './app/config/env-config';
 import { logger } from './app/config/logger.config';
 import { initSocketServer } from './app/controllers/socket.controller';
 import { apiRoutes, landingRoutes, oauthRoutes, platformEventRoutes, staticAuthenticatedRoutes } from './app/routes';
-import { blockBotMiddleware, logRoute, notFoundMiddleware } from './app/routes/route.middleware';
-import { healthCheck, uncaughtErrorHandler } from './app/utils/response.handlers';
+import { blockBotByUserAgentMiddleware, logRoute, notFoundMiddleware, setApplicationCookieMiddleware } from './app/routes/route.middleware';
+import { healthCheck, uncaughtErrorHandler, blockBotHandler } from './app/utils/response.handlers';
 import { environment } from './environments/environment';
 
 declare module 'express-session' {
@@ -122,19 +121,8 @@ if (ENV.ENVIRONMENT === 'development') {
   app.use('/analytics', proxy('https://api.amplitude.com'));
 }
 
-// Setup application cookie
-app.use((req: express.Request, res: express.Response, next: express.NextFunction) => {
-  const appCookie: ApplicationCookie = {
-    serverUrl: ENV.JETSTREAM_SERVER_URL,
-    environment: ENV.ENVIRONMENT as any,
-    defaultApiVersion: `v${ENV.SFDC_FALLBACK_API_VERSION}`,
-    google_appId: ENV.GOOGLE_APP_ID,
-    google_apiKey: ENV.GOOGLE_API_KEY,
-    google_clientId: ENV.GOOGLE_CLIENT_ID,
-  };
-  res.cookie(HTTP.COOKIE.JETSTREAM, appCookie, { httpOnly: false, sameSite: 'strict' });
-  next();
-});
+app.use(blockBotByUserAgentMiddleware);
+app.use(setApplicationCookieMiddleware);
 
 passport.use(
   'auth0',
@@ -263,6 +251,7 @@ if (environment.production) {
  */
 
 const BOT_ROUTES = [
+  '/_ignition*',
   '/*.aspx',
   '/*.env*',
   '/*.php',
@@ -272,7 +261,9 @@ const BOT_ROUTES = [
   '/*phpinfo*',
   '/*wp-content*',
   '/*wp-includes*',
+  '//feed*',
   '/%20',
+  '/ALFA_DATA*',
   '/cgi-bin*',
   '/humans.txt',
   '/tmp*',
@@ -280,7 +271,7 @@ const BOT_ROUTES = [
   '/wp*',
 ];
 
-BOT_ROUTES.forEach((route) => app.use(route, blockBotMiddleware));
+BOT_ROUTES.forEach((route) => app.use(route, blockBotHandler));
 
 app.use('*', notFoundMiddleware);
 app.use(uncaughtErrorHandler);

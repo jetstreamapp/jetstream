@@ -1,6 +1,6 @@
 import { HTTP } from '@jetstream/shared/constants';
 import { ensureBoolean } from '@jetstream/shared/utils';
-import { UserProfileServer } from '@jetstream/types';
+import { ApplicationCookie, UserProfileServer } from '@jetstream/types';
 import { AxiosError } from 'axios';
 import { addDays, fromUnixTime, getUnixTime } from 'date-fns';
 import * as express from 'express';
@@ -14,6 +14,25 @@ import * as salesforceOrgsDb from '../db/salesforce-org.db';
 import { updateUserLastActivity } from '../services/auth0';
 import { getJsforceOauth2 } from '../utils/auth-utils';
 import { AuthenticationError, NotFoundError, UserFacingError } from '../utils/error-handler';
+
+/**
+ * Set's cookie that is used by front-end application
+ * @param req
+ * @param res
+ * @param next
+ */
+export function setApplicationCookieMiddleware(req: express.Request, res: express.Response, next: express.NextFunction) {
+  const appCookie: ApplicationCookie = {
+    serverUrl: ENV.JETSTREAM_SERVER_URL,
+    environment: ENV.ENVIRONMENT as any,
+    defaultApiVersion: `v${ENV.SFDC_FALLBACK_API_VERSION}`,
+    google_appId: ENV.GOOGLE_APP_ID,
+    google_apiKey: ENV.GOOGLE_API_KEY,
+    google_clientId: ENV.GOOGLE_CLIENT_ID,
+  };
+  res.cookie(HTTP.COOKIE.JETSTREAM, appCookie, { httpOnly: false, sameSite: 'strict' });
+  next();
+}
 
 export function logRoute(req: express.Request, res: express.Response, next: express.NextFunction) {
   res.locals.path = req.path;
@@ -46,16 +65,28 @@ export function notFoundMiddleware(req: express.Request, res: express.Response, 
   next(error);
 }
 
-export function blockBotMiddleware(req: express.Request, res: express.Response) {
-  logger.debug('[BLOCKED REQUEST] %s %s', req.method, req.originalUrl, {
-    blocked: true,
-    method: req.method,
-    url: req.originalUrl,
-    agent: req.header('User-Agent'),
-    ip: req.headers[HTTP.HEADERS.CF_Connecting_IP] || req.headers[HTTP.HEADERS.X_FORWARDED_FOR] || req.connection.remoteAddress,
-    country: req.headers[HTTP.HEADERS.CF_IPCountry],
-  });
-  res.status(418).send(`I'm a teapot`);
+/**
+ * Check user agent and block if it does not appear to be a browser
+ * @param req
+ * @param res
+ * @param next
+ * @returns
+ */
+export function blockBotByUserAgentMiddleware(req: express.Request, res: express.Response, next: express.NextFunction) {
+  const userAgent = req.header('User-Agent');
+  if (userAgent.toLocaleLowerCase().includes('python')) {
+    logger.debug('[BLOCKED REQUEST][USER AGENT] %s %s', req.method, req.originalUrl, {
+      blocked: true,
+      method: req.method,
+      url: req.originalUrl,
+      agent: req.header('User-Agent'),
+      referrer: req.get('Referrer'),
+      ip: req.headers[HTTP.HEADERS.CF_Connecting_IP] || req.headers[HTTP.HEADERS.X_FORWARDED_FOR] || req.connection.remoteAddress,
+      country: req.headers[HTTP.HEADERS.CF_IPCountry],
+    });
+    return res.status(403).send('Forbidden');
+  }
+  next();
 }
 
 function getActivityExp() {
@@ -92,7 +123,14 @@ export async function checkAuth(req: express.Request, res: express.Response, nex
     }
     return next();
   }
-  logger.error('[AUTH][UNAUTHORIZED]');
+  logger.error('[AUTH][UNAUTHORIZED] %s %s', req.method, req.originalUrl, {
+    blocked: true,
+    method: req.method,
+    url: req.originalUrl,
+    agent: req.header('User-Agent'),
+    ip: req.headers[HTTP.HEADERS.CF_Connecting_IP] || req.headers[HTTP.HEADERS.X_FORWARDED_FOR] || req.connection.remoteAddress,
+    country: req.headers[HTTP.HEADERS.CF_IPCountry],
+  });
   next(new AuthenticationError('Unauthorized'));
 }
 

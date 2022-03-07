@@ -12,7 +12,6 @@ import {
   FileExtAllTypes,
   MimeType,
   RecordResult,
-  SalesforceOrgUi,
   UploadToGoogleJob,
   WorkerMessage,
 } from '@jetstream/types';
@@ -22,7 +21,7 @@ import uniqueId from 'lodash/uniqueId';
 import { FunctionComponent, useEffect, useRef, useState } from 'react';
 import { useRecoilState, useRecoilValue, useSetRecoilState } from 'recoil';
 import { filter } from 'rxjs/operators';
-import { applicationCookieState, selectedOrgState } from '../../../app-state';
+import { applicationCookieState } from '../../../app-state';
 import * as fromJetstreamEvents from '../jetstream-events';
 import Job from './Job';
 import JobPlaceholder from './JobPlaceholder';
@@ -36,7 +35,6 @@ export const Jobs: FunctionComponent = () => {
   const [jobsUnread, setJobsUnread] = useRecoilState(jobsUnreadState);
   const [jobs, setJobsArr] = useRecoilState(selectJobs);
   const activeJobCount = useRecoilValue(selectActiveJobCount);
-  const selectedOrg = useRecoilValue<SalesforceOrgUi>(selectedOrgState);
   const newJobsToProcess = useObservable(fromJetstreamEvents.getObservable('newJob').pipe(filter((ev: AsyncJobNew[]) => ev.length > 0)));
   const { notifyUser } = useBrowserNotifications(serverUrl);
   const [jobsWorker] = useState(() => new Worker(new URL('../../../workers/jobs.worker', import.meta.url)));
@@ -58,7 +56,7 @@ export const Jobs: FunctionComponent = () => {
           name: job.type,
           data: {
             job: { ...job },
-            org: selectedOrg,
+            org: job.org,
           },
         });
       });

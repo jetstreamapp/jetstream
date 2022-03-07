@@ -23,7 +23,7 @@ import { Fragment, FunctionComponent, useCallback, useEffect, useRef, useState }
 import { useHistory, useRouteMatch } from 'react-router-dom';
 import Split from 'react-split';
 import { useRecoilState, useRecoilValue, useResetRecoilState } from 'recoil';
-import { applicationCookieState, selectedOrgState, selectUserPreferenceState } from '../../../app-state';
+import { applicationCookieState, selectedOrgState } from '../../../app-state';
 import { useAmplitude } from '../../core/analytics';
 import * as fromQueryState from '../query.state';
 import QueryHistory from '../QueryHistory/QueryHistory';
@@ -92,11 +92,10 @@ export const QueryBuilder: FunctionComponent<QueryBuilderProps> = () => {
   const resetQuerySoqlState = useResetRecoilState(fromQueryState.querySoqlState);
   const resetQueryChildRelationships = useResetRecoilState(fromQueryState.queryChildRelationships);
   const resetQueryIncludeDeletedRecordsState = useResetRecoilState(fromQueryState.queryIncludeDeletedRecordsState);
-  const [userPreferences, setUserPreferences] = useRecoilState(selectUserPreferenceState);
 
   const [pageTitle, setPageTitle] = useState(isTooling ? METADATA_QUERY_TITLE : SOBJECT_QUERY_TITLE);
 
-  const [showWalkthrough, setShowWalkthrough] = useState(!userPreferences.skipQueryWalkthrough);
+  const [showWalkthrough, setShowWalkthrough] = useState(false);
 
   const onKeydown = useCallback(
     (event: KeyboardEvent) => {
@@ -148,9 +147,8 @@ export const QueryBuilder: FunctionComponent<QueryBuilderProps> = () => {
     setSelectedSubqueryFieldsState(tempSelectedSubqueryFieldsState);
   }
 
-  function handleQueryWalkthroughClose(skipInFuture: boolean) {
+  function handleQueryWalkthroughClose() {
     setShowWalkthrough(false);
-    setUserPreferences({ ...userPreferences, skipQueryWalkthrough: skipInFuture });
   }
 
   function handleSobjectsChange(sobjects: DescribeGlobalSObjectResult[]) {

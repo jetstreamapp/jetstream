@@ -1,6 +1,7 @@
 import { ColDef } from '@ag-grid-community/core';
 import { css } from '@emotion/react';
 import { query } from '@jetstream/shared/data';
+import { logger } from '@jetstream/shared/client-logger';
 import { formatNumber } from '@jetstream/shared/ui-utils';
 import { InsertUpdateUpsertDelete, SalesforceOrgUi } from '@jetstream/types';
 import { Alert, AutoFullHeightContainer, DataTable, Grid, GridCol, Spinner } from '@jetstream/ui';
@@ -22,7 +23,7 @@ export interface LoadRecordsDataPreviewProps {
 
 // function valueGetter: ((params: ValueGetterParams) => any) | string;
 
-function getLoadDescription(loadType: InsertUpdateUpsertDelete, totalRecordCount: number, data: any[]) {
+function getLoadDescription(loadType: InsertUpdateUpsertDelete, totalRecordCount: number, omitTotalRecordCount: boolean, data: any[]) {
   let action: string;
   switch (loadType) {
     case 'INSERT':
@@ -48,7 +49,9 @@ function getLoadDescription(loadType: InsertUpdateUpsertDelete, totalRecordCount
         </strong>{' '}
         records.{' '}
       </span>
-      <span className="slds-text-color_weak">There are currently {formatNumber(totalRecordCount)} records in Salesforce.</span>
+      {!omitTotalRecordCount && (
+        <span className="slds-text-color_weak">There are currently {formatNumber(totalRecordCount)} records in Salesforce.</span>
+      )}
     </span>
   );
 }
@@ -80,6 +83,7 @@ export const LoadRecordsDataPreview: FunctionComponent<LoadRecordsDataPreviewPro
 }) => {
   const isMounted = useRef(null);
   const [totalRecordCount, setTotalRecordCount] = useRecoilState(fromLoadRecordsState.loadExistingRecordCount);
+  const [omitTotalRecordCount, setOmitTotalRecordCount] = useState(true);
   const [columns, setColumns] = useState<ColDef[]>(null);
   const [rows, setRows] = useState<any[]>(null);
   const [loading, setLoading] = useState(false);
@@ -94,16 +98,25 @@ export const LoadRecordsDataPreview: FunctionComponent<LoadRecordsDataPreviewPro
   useEffect(() => {
     if (selectedOrg && selectedSObject && isNil(totalRecordCount)) {
       (async () => {
-        setLoading(true);
         const sobjectName = selectedSObject.name;
-        // TODO: we could use recordCount API: {{_endpoint}}/services/data/v{{version}}/limits/recordCount?sObjects=Account,Contact
-        // TODO: this could be moved into a custom hook
-        const results = await query(selectedOrg, `SELECT COUNT() FROM ${sobjectName}`);
-        if (!isMounted.current || selectedSObject?.name !== sobjectName) {
-          return;
+        try {
+          setLoading(true);
+          // TODO: we could use recordCount API: {{_endpoint}}/services/data/v{{version}}/limits/recordCount?sObjects=Account,Contact
+          // TODO: this could be moved into a custom hook
+          const results = await query(selectedOrg, `SELECT COUNT() FROM ${sobjectName}`);
+          if (!isMounted.current || selectedSObject?.name !== sobjectName) {
+            return;
+          }
+          setTotalRecordCount(results.queryResults.totalSize);
+          setOmitTotalRecordCount(false);
+        } catch (ex) {
+          logger.warn('[ERROR] Unable to get total record count', ex);
+        } finally {
+          if (!isMounted.current || selectedSObject?.name !== sobjectName) {
+            return;
+          }
+          setLoading(false);
         }
-        setTotalRecordCount(results.queryResults.totalSize);
-        setLoading(false);
       })();
     }
   }, [selectedOrg, selectedSObject, totalRecordCount]);
@@ -138,7 +151,7 @@ export const LoadRecordsDataPreview: FunctionComponent<LoadRecordsDataPreviewPro
               <div>
                 Object: <strong>{selectedSObject.name}</strong>
               </div>
-              <div>{getLoadDescription(loadType, totalRecordCount, data)}</div>
+              <div>{getLoadDescription(loadType, totalRecordCount, omitTotalRecordCount, data)}</div>
             </div>
           )}
         </GridCol>

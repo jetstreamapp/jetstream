@@ -109,7 +109,7 @@ export const DeployMetadataToOrgConfigModal: FunctionComponent<DeployMetadataToO
               {/* ORG LIST */}
               <OrgsCombobox
                 isRequired
-                label="Deploy change to"
+                label="Deploy components to"
                 hideLabel={false}
                 placeholder="Select an org"
                 orgs={orgs}

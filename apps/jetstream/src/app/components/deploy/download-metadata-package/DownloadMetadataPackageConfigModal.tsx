@@ -1,10 +1,12 @@
 import { css } from '@emotion/react';
 import { INPUT_ACCEPT_FILETYPES } from '@jetstream/shared/constants';
-import { InputReadFileContent, ListItem, SalesforceOrgUi } from '@jetstream/types';
-import { FileSelector, Grid, GridCol, Modal, Picklist, Spinner, Textarea } from '@jetstream/ui';
+import { InputReadFileContent, SalesforceOrgUi } from '@jetstream/types';
+import { FileSelector, Grid, GridCol, Modal, Spinner, Textarea } from '@jetstream/ui';
+import { FunctionComponent, useState } from 'react';
+import { useRecoilValue } from 'recoil';
+import { salesforceOrgsState } from '../../../app-state';
 import OrgLabelBadge from '../../../components/core/OrgLabelBadge';
-import { FunctionComponent, useEffect, useState } from 'react';
-import { ChangeSetPackage } from '../deploy-metadata.types';
+import OrgsCombobox from '../../core/OrgsCombobox';
 import { useChangesetList } from '../utils/useChangesetList';
 
 // TODO: this is used in two places, move to constants
@@ -13,27 +15,30 @@ const SPLIT_LINE_COMMA = /(\n|, |,)/g;
 export interface DownloadMetadataPackageConfigModalProps {
   selectedOrg: SalesforceOrgUi;
   onClose: () => void;
-  onDownloadFromManifest: (packageManifest: string) => void;
-  onDownloadFromPackageNames: (packageNames: string[]) => void;
+  onDownloadFromManifest: (destinationOrg: SalesforceOrgUi, packageManifest: string) => void;
+  onDownloadFromPackageNames: (destinationOrg: SalesforceOrgUi, packageNames: string[]) => void;
 }
 
 export const DownloadMetadataPackageConfigModal: FunctionComponent<DownloadMetadataPackageConfigModalProps> = ({
-  selectedOrg,
+  selectedOrg: initiallySelectedOrg,
   onClose,
   onDownloadFromManifest,
   onDownloadFromPackageNames,
 }) => {
+  const orgs = useRecoilValue<SalesforceOrgUi[]>(salesforceOrgsState);
+  const [destinationOrg, setDestinationOrg] = useState<SalesforceOrgUi>(initiallySelectedOrg);
   const [file, setFile] = useState<string>();
   const [filename, setFileName] = useState<string>();
   // const [changesetEntryType, setChangesetEntryType] = useState<'list' | 'manual'>('list');
   const [packageNames, setPackageNames] = useState<string[]>([]);
   const [packageNamesStr, setPackageNamesStr] = useState<string>('');
 
-  const { loadPackages, loading, changesetPackages, hasError } = useChangesetList(selectedOrg);
+  const { loadPackages, loading, changesetPackages, hasError } = useChangesetList(destinationOrg);
 
-  useEffect(() => {
-    loadPackages();
-  }, [loadPackages, selectedOrg]);
+  // Disabled since we do not show a list of packages
+  // useEffect(() => {
+  //   loadPackages();
+  // }, [loadPackages, destinationOrg]);
 
   function handleFile({ content, filename }: InputReadFileContent) {
     setFileName(filename);
@@ -47,6 +52,7 @@ export const DownloadMetadataPackageConfigModal: FunctionComponent<DownloadMetad
   function handleDownloadFromPackageNames() {
     // combine selected packages with manually entered packages
     onDownloadFromPackageNames(
+      destinationOrg,
       Array.from(
         new Set(
           packageNames
@@ -72,16 +78,37 @@ export const DownloadMetadataPackageConfigModal: FunctionComponent<DownloadMetad
       onClose={onClose}
       tagline={
         <div className="slds-align_absolute-center">
-          Your metadata will be downloaded from from <OrgLabelBadge org={selectedOrg} />
+          Your metadata will be downloaded from from <OrgLabelBadge org={destinationOrg} />
         </div>
       }
     >
-      <div className="slds-is-relative slds-p-around_large">
+      <div
+        className="slds-is-relative"
+        // Ensure that the org dropdown does not cause the modal body to scroll
+        css={css`
+          min-height: 380px;
+        `}
+      >
+        <div className="slds-p-around_medium">
+          <Grid align="center">
+            <GridCol size={12} sizeMedium={6}>
+              <OrgsCombobox
+                isRequired
+                label="Download package from"
+                hideLabel={false}
+                placeholder="Select an org"
+                orgs={orgs}
+                selectedOrg={destinationOrg}
+                onSelected={setDestinationOrg}
+              />
+            </GridCol>
+          </Grid>
+        </div>
         <Grid wrap verticalStretch>
           <GridCol
             className="slds-p-around_medium"
             size={12}
-            sizeMedium={4}
+            sizeMedium={6}
             css={css`
               border-bottom: 1px solid #dddbda;
               @media (min-width: 48em) {
@@ -103,13 +130,13 @@ export const DownloadMetadataPackageConfigModal: FunctionComponent<DownloadMetad
             ></FileSelector>
             <button
               className="slds-button slds-button_brand slds-m-top_medium"
-              onClick={() => onDownloadFromManifest(file)}
+              onClick={() => onDownloadFromManifest(destinationOrg, file)}
               disabled={!file}
             >
               Download
             </button>
           </GridCol>
-          <GridCol className="slds-p-around_medium slds-is-relative" size={12} sizeMedium={8}>
+          <GridCol className="slds-p-around_medium slds-is-relative" size={12} sizeMedium={6}>
             {loading && <Spinner />}
             <h1 className="slds-text-heading_medium slds-m-bottom_small">Download from outbound changeset or unmanaged package</h1>
 

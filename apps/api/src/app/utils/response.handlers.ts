@@ -17,6 +17,19 @@ export function sendJson<ResponseType = any>(res: express.Response, content?: Re
   return res.json({ data: content || {} });
 }
 
+export function blockBotHandler(req: express.Request, res: express.Response) {
+  logger.debug('[BLOCKED REQUEST] %s %s', req.method, req.originalUrl, {
+    blocked: true,
+    method: req.method,
+    url: req.originalUrl,
+    agent: req.header('User-Agent'),
+    referrer: req.get('Referrer'),
+    ip: req.headers[HTTP.HEADERS.CF_Connecting_IP] || req.headers[HTTP.HEADERS.X_FORWARDED_FOR] || req.connection.remoteAddress,
+    country: req.headers[HTTP.HEADERS.CF_IPCountry],
+  });
+  res.status(403).send('Forbidden');
+}
+
 // TODO: implement user facing errors and system facing errors and separate them
 // TODO: this should handle ALL errors, and controllers need to throw proper errors!
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -27,6 +40,7 @@ export async function uncaughtErrorHandler(err: any, req: express.Request, res: 
     error: err.message || err,
     method: req.method,
     url: req.originalUrl,
+    agent: req.header('User-Agent'),
     ip: req.headers[HTTP.HEADERS.CF_Connecting_IP] || req.headers[HTTP.HEADERS.X_FORWARDED_FOR] || req.connection.remoteAddress,
     country: req.headers[HTTP.HEADERS.CF_IPCountry],
     ...userInfo,
