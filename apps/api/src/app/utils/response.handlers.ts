@@ -27,7 +27,7 @@ export function blockBotHandler(req: express.Request, res: express.Response) {
     ip: req.headers[HTTP.HEADERS.CF_Connecting_IP] || req.headers[HTTP.HEADERS.X_FORWARDED_FOR] || req.connection.remoteAddress,
     country: req.headers[HTTP.HEADERS.CF_IPCountry],
   });
-  res.status(403).send('Unauthorized');
+  res.status(403).send('Forbidden');
 }
 
 // TODO: implement user facing errors and system facing errors and separate them

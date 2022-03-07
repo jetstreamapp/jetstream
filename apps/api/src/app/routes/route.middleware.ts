@@ -84,7 +84,7 @@ export function blockBotByUserAgentMiddleware(req: express.Request, res: express
       ip: req.headers[HTTP.HEADERS.CF_Connecting_IP] || req.headers[HTTP.HEADERS.X_FORWARDED_FOR] || req.connection.remoteAddress,
       country: req.headers[HTTP.HEADERS.CF_IPCountry],
     });
-    return res.status(403).send('Unauthorized');
+    return res.status(403).send('Forbidden');
   }
   next();
 }
