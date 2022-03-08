@@ -1,7 +1,7 @@
 import { logger } from '@jetstream/shared/client-logger';
 import { genericRequest, sobjectOperation } from '@jetstream/shared/data';
-import { useRollbar } from '@jetstream/shared/ui-utils';
-import { getMapOf, REGEX, splitArrayToMaxSize } from '@jetstream/shared/utils';
+import { useBrowserNotifications, useRollbar } from '@jetstream/shared/ui-utils';
+import { getMapOf, getSuccessOrFailureChar, pluralizeFromNumber, REGEX, splitArrayToMaxSize } from '@jetstream/shared/utils';
 import { CompositeGraphResponseBodyData, CompositeResponse, ErrorResult, MapOf, RecordResult, SalesforceOrgUi } from '@jetstream/types';
 import isString from 'lodash/isString';
 import { useCallback, useEffect, useState } from 'react';
@@ -45,6 +45,7 @@ export function getFriendlyStatus(status: CreateFieldsResultsStatus) {
 
 export default function useCreateFields({
   apiVersion,
+  serverUrl,
   selectedOrg,
   profiles,
   permissionSets,
@@ -52,6 +53,7 @@ export default function useCreateFields({
   rows,
 }: {
   apiVersion: string;
+  serverUrl: string;
   selectedOrg: SalesforceOrgUi;
   profiles: string[];
   permissionSets: string[];
@@ -59,6 +61,7 @@ export default function useCreateFields({
   rows: FieldValues[];
 }) {
   const rollbar = useRollbar();
+  const { notifyUser } = useBrowserNotifications(serverUrl);
   const [loading, setLoading] = useState(false);
   const [_results, setResults] = useState<CreateFieldsResults[]>([]);
   const [resultsById, setResultsById] = useState<MapOf<CreateFieldsResults>>({});
@@ -312,6 +315,7 @@ export default function useCreateFields({
         logger.log('[DEPLOY FINISHED]', _resultsById);
         setResultsById(_resultsById);
         setDeployed(true);
+        sendBrowserNotification(_resultsById);
       } catch (ex) {
         logger.log('[DEPLOY FAILED]', ex);
         setFatalError(true);
@@ -326,12 +330,74 @@ export default function useCreateFields({
           message: ex.message,
           stack: ex.stack,
         });
+        notifyUser(`There was an error deploying your fields`, {
+          body: `An unexpected error has occurred. ${ex.message}`,
+          tag: 'create-fields',
+        });
       } finally {
         setLoading(false);
       }
     },
     [apiVersion, deployFieldMetadata, deployFieldPermissions, rollbar, selectedOrg]
   );
+
+  function sendBrowserNotification(resultsById: MapOf<CreateFieldsResults>) {
+    const { fieldErrors, fieldSuccess, deployedFls, flsErrors, deployedLayouts, layoutErrors } = Object.values(resultsById).reduce(
+      (output, field) => {
+        if (field.state === 'SUCCESS') {
+          output.fieldSuccess += 1;
+        } else {
+          output.fieldErrors += 1;
+        }
+        if (field.flsErrors?.length) {
+          output.flsErrors = true;
+        } else if (field.flsResult?.length) {
+          output.deployedFls = true;
+        }
+        if (field.layoutErrors?.length) {
+          output.layoutErrors = true;
+        } else if (field.flsResult?.length) {
+          output.deployedLayouts = true;
+        }
+        return output;
+      },
+      {
+        fieldSuccess: 0,
+        fieldErrors: 0,
+        flsErrors: false,
+        deployedFls: false,
+        layoutErrors: false,
+        deployedLayouts: false,
+      }
+    );
+
+    let body = '';
+    body += `${getSuccessOrFailureChar('success', fieldSuccess)} ${fieldSuccess.toLocaleString()} ${pluralizeFromNumber(
+      'field',
+      fieldSuccess
+    )} deployed successfully.\n`;
+
+    if (fieldErrors) {
+      body += `${getSuccessOrFailureChar('failure', fieldErrors)} ${fieldErrors.toLocaleString()} ${pluralizeFromNumber(
+        'field',
+        fieldErrors
+      )} failed to deploy.\n`;
+    }
+
+    if (flsErrors) {
+      body += `${getSuccessOrFailureChar('failure', 1)} There were problems updating field level security.\n`;
+    } else if (deployedFls) {
+      body += `${getSuccessOrFailureChar('success', 1)} Field level security updated successfully.\n`;
+    }
+
+    if (layoutErrors) {
+      body += `${getSuccessOrFailureChar('failure', 1)} There were problems updating page layouts.`;
+    } else if (deployedLayouts) {
+      body += `${getSuccessOrFailureChar('success', 1)} Page layouts updated successfully.`;
+    }
+
+    notifyUser(`Your field deployment has finished`, { body, tag: 'create-fields' });
+  }
 
   return { results: _results, loading, deployed, fatalError, fatalErrorMessage, layoutErrorMessage, deployFields };
 }

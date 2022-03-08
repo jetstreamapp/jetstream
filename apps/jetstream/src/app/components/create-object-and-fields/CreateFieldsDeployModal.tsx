@@ -32,7 +32,7 @@ export const CreateFieldsDeployModal: FunctionComponent<CreateFieldsDeployModalP
   onClose,
 }) => {
   const { trackEvent } = useAmplitude();
-  const [{ defaultApiVersion, google_apiKey, google_appId, google_clientId }] = useRecoilState(applicationCookieState);
+  const [{ defaultApiVersion, serverUrl, google_apiKey, google_appId, google_clientId }] = useRecoilState(applicationCookieState);
   const {
     loading: loadingLayouts,
     error: loadingLayoutsError,
@@ -42,6 +42,7 @@ export const CreateFieldsDeployModal: FunctionComponent<CreateFieldsDeployModalP
   } = useFetchPageLayouts(selectedOrg, sObjects);
   const { results, loading, deployed, fatalError, fatalErrorMessage, layoutErrorMessage, deployFields } = useCreateFields({
     apiVersion: defaultApiVersion,
+    serverUrl,
     selectedOrg,
     profiles,
     permissionSets,
