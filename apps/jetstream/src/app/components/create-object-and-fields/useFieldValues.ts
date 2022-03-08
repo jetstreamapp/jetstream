@@ -18,7 +18,6 @@ type Action =
   | { type: 'RESET' };
 
 interface State {
-  currRowKey: number;
   rows: FieldValues[];
   allValid: boolean;
 }
@@ -30,29 +29,26 @@ function reducer(state: State, action: Action): State {
       return { ...state, rows, allValid };
     }
     case 'ADD_ROW': {
+      const nextKey = fromCreateFieldsState.getNextKey();
       return {
         ...state,
-        rows: [...state.rows, getInitialValues(state.currRowKey + 1)],
-        currRowKey: state.currRowKey + 1,
+        rows: [...state.rows, getInitialValues(nextKey)],
         allValid: false,
       };
     }
     case 'IMPORT_ROWS': {
-      let currRowKey = state.currRowKey + 1;
       const newRows = [
         ...state.rows,
         ...action.payload.rows.map((row, i) => ({
           ...row,
-          _key: currRowKey + i,
+          _key: fromCreateFieldsState.getNextKey(),
           _picklistGlobalValueSet: !!row.globalValueSet.value,
         })),
       ];
-      currRowKey = Math.max(...newRows.map((row) => row._key)) + 1;
       const { rows, allValid } = calculateFieldValidity(newRows);
       return {
         ...state,
         rows,
-        currRowKey,
         allValid,
       };
     }
@@ -69,11 +65,10 @@ function reducer(state: State, action: Action): State {
       const { rowKey } = action.payload;
       const _rows = [...state.rows];
       const rowIdx = state.rows.findIndex((row) => row._key === rowKey);
-      let currRowKey = state.currRowKey;
       if (rowIdx >= 0) {
         const newRow: FieldValues = {
           ...JSON.parse(JSON.stringify(_rows[rowIdx])),
-          _key: currRowKey + 1,
+          _key: fromCreateFieldsState.getNextKey(),
         };
 
         if (newRow.label.value) {
@@ -89,10 +84,9 @@ function reducer(state: State, action: Action): State {
         });
 
         _rows.push(newRow);
-        currRowKey += 1;
       }
       const { rows, allValid } = calculateFieldValidity(_rows);
-      return { ...state, rows, currRowKey, allValid };
+      return { ...state, rows, allValid };
     }
     case 'CHANGE_ROW': {
       const { rowKey, field, value } = action.payload;
@@ -137,7 +131,7 @@ function reducer(state: State, action: Action): State {
       return { ...state, rows, allValid };
     }
     case 'RESET': {
-      return { ...state, rows: [getInitialValues(state.currRowKey)], currRowKey: state.currRowKey + 1, allValid: false };
+      return { ...state, rows: [getInitialValues(fromCreateFieldsState.getNextKey())], allValid: false };
     }
     default:
       throw new Error('Invalid action');
@@ -147,7 +141,6 @@ function reducer(state: State, action: Action): State {
 export function useFieldValues() {
   const [rowsState, setRowsState] = useRecoilState(fromCreateFieldsState.fieldRowsState);
   const [{ allValid, rows }, dispatch] = useReducer(reducer, {
-    currRowKey: rowsState.length - 1,
     rows: rowsState,
     allValid: false,
   });
