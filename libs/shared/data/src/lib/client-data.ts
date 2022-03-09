@@ -153,10 +153,14 @@ export async function submitFeedback(data: { title: string; body: string }): Pro
   return handleRequest({ method: 'POST', url: '/api/feedback/submit', data }).then(unwrapResponseIgnoreCache);
 }
 
-export async function describeGlobal(org: SalesforceOrgUi, isTooling = false): Promise<ApiResponse<DescribeGlobalResult>> {
+export async function describeGlobal(
+  org: SalesforceOrgUi,
+  isTooling = false,
+  skipRequestCache = false
+): Promise<ApiResponse<DescribeGlobalResult>> {
   return handleRequest(
     { method: 'GET', url: '/api/describe', params: { isTooling } },
-    { org, useCache: true, useQueryParamsInCacheKey: true }
+    { org, useCache: true, skipRequestCache, useQueryParamsInCacheKey: true }
   ).then((response: ApiResponse<DescribeGlobalResult>) => {
     if (response.data && Array.isArray(response.data.sobjects)) {
       response.data.sobjects.forEach((sobject) => {
@@ -195,11 +199,12 @@ export async function query<T = any>(
 export async function queryWithCache<T = any>(
   org: SalesforceOrgUi,
   query: string,
-  isTooling = false
+  isTooling = false,
+  skipRequestCache = false
 ): Promise<ApiResponse<API.QueryResults<T>>> {
   return handleRequest(
     { method: 'POST', url: `/api/query`, params: { isTooling }, data: { query } },
-    { org, useCache: true, useQueryParamsInCacheKey: true, useBodyInCacheKey: true }
+    { org, useCache: true, skipRequestCache, useQueryParamsInCacheKey: true, useBodyInCacheKey: true }
   );
 }
 

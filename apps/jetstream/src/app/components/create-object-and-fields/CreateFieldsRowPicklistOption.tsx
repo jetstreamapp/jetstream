@@ -26,7 +26,7 @@ export const CreateFieldsRowPicklistOption: FunctionComponent<CreateFieldsRowPic
   onBlur,
 }) => {
   return (
-    <Grid>
+    <Grid wrap>
       <div className="slds-m-right_medium slds-is-relative">
         <Checkbox
           id={`fields-${rowIdx}-picklist-option`}
@@ -50,17 +50,19 @@ export const CreateFieldsRowPicklistOption: FunctionComponent<CreateFieldsRowPic
           onBlur={() => onBlur('globalValueSet')}
         />
       )}
-      <CreateFieldsRowField
-        selectedOrg={selectedOrg}
-        id={`field-${rowIdx}-valueSet`}
-        fieldDefinitions={fieldDefinitions}
-        field={fieldDefinitions.valueSet}
-        allValues={values}
-        valueState={values.valueSet}
-        disabled={disabled || values._picklistGlobalValueSet}
-        onChange={(value) => onChange('valueSet', value)}
-        onBlur={() => onBlur('valueSet')}
-      />
+      {!values._picklistGlobalValueSet && (
+        <CreateFieldsRowField
+          selectedOrg={selectedOrg}
+          id={`field-${rowIdx}-valueSet`}
+          fieldDefinitions={fieldDefinitions}
+          field={fieldDefinitions.valueSet}
+          allValues={values}
+          valueState={values.valueSet}
+          disabled={disabled || values._picklistGlobalValueSet}
+          onChange={(value) => onChange('valueSet', value)}
+          onBlur={() => onBlur('valueSet')}
+        />
+      )}
     </Grid>
   );
 };

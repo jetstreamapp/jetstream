@@ -90,8 +90,9 @@ export const fieldDefinitions: FieldDefinitions = {
   referenceTo: {
     label: 'Reference To',
     type: 'picklist',
-    values: async (org) => {
-      return (await describeGlobal(org)).data.sobjects
+    allowRefreshValues: true,
+    values: async (org, skipRequestCache) => {
+      return (await describeGlobal(org, false, skipRequestCache)).data.sobjects
         .filter((obj) => !(obj as any).associateEntityType && obj.triggerable && obj.queryable)
         .map(({ name, label }) => ({ id: name, value: name, label: label, secondaryLabel: name }));
     },
@@ -170,11 +171,13 @@ export const fieldDefinitions: FieldDefinitions = {
     label: 'Global Picklist',
     type: 'picklist',
     required: true,
-    values: async (org) => {
+    allowRefreshValues: true,
+    values: async (org, skipRequestCache) => {
       const results = await queryWithCache<GlobalPicklistRecord>(
         org,
         `SELECT Id, DeveloperName, NamespacePrefix, MasterLabel FROM GlobalValueSet ORDER BY DeveloperName ASC`,
-        true
+        true,
+        skipRequestCache || false
       );
       return results.data.queryResults.records.map((record) => {
         const value = `${record.NamespacePrefix ? `${record.NamespacePrefix}__` : ''}${record.DeveloperName}`;
