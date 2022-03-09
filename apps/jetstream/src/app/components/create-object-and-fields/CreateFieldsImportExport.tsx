@@ -127,7 +127,7 @@ export const CreateFieldsImportExport: FunctionComponent<CreateFieldsImportExpor
                 <button className="slds-button" onClick={() => handleMenuSelection('export-example')}>
                   example template
                 </button>{' '}
-                for example usage.
+                for an example.
               </div>
             </div>
           }

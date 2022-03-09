@@ -1,10 +1,10 @@
 import { Meta, Story } from '@storybook/react';
 import React from 'react';
 import BadgeComponent, { BadgeProps } from './Badge';
-import Icon from './Icon';
+import Icon from '../widgets/Icon';
 
 export default {
-  title: 'widgets/badge',
+  title: 'badge/badge',
   component: BadgeComponent,
   argTypes: {
     children: {
