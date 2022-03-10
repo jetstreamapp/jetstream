@@ -4,6 +4,12 @@ import { atom, selector } from 'recoil';
 import { FieldValues } from './create-fields-types';
 import { getInitialValues } from './create-fields-utils';
 
+let key = 0;
+
+export function getNextKey() {
+  return key++;
+}
+
 export const sObjectsState = atom<DescribeGlobalSObjectResult[]>({
   key: 'create-fields.sObjectsState',
   default: null,
@@ -37,7 +43,7 @@ export const selectedPermissionSetsState = atom<string[]>({
 
 export const fieldRowsState = atom<FieldValues[]>({
   key: 'create-fields.fieldRowsState',
-  default: [getInitialValues(0)],
+  default: [getInitialValues(getNextKey())],
 });
 
 /**

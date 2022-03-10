@@ -4,7 +4,7 @@ import React from 'react';
 import BadgeNotificationComponent, { BadgeNotificationProps } from './BadgeNotification';
 
 export default {
-  title: 'widgets/badgeNotification',
+  title: 'badge/badgeNotification',
   component: BadgeNotificationComponent,
   args: {
     animate: true,

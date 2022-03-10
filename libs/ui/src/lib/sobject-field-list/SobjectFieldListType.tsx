@@ -1,7 +1,7 @@
 import { FieldWrapper, SalesforceOrgUi } from '@jetstream/types';
 import copyToClipboard from 'copy-to-clipboard';
 import React, { FunctionComponent } from 'react';
-import Badge from '../widgets/Badge';
+import Badge from '../badge/Badge';
 import Icon from '../widgets/Icon';
 import Tooltip from '../widgets/Tooltip';
 import SobjectFieldListTypeRollupSummaryDetails from './SobjectFieldListTypeRollupSummaryDetails';

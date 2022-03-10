@@ -77,7 +77,8 @@ export interface FieldValueState {
 export interface FieldDefinition {
   label: string;
   type: FieldDefinitionUiType | ((type: SalesforceFieldType) => FieldDefinitionUiType);
-  values?: ListItem[] | ((org: SalesforceOrgUi) => Promise<ListItem[]>);
+  values?: ListItem[] | ((org: SalesforceOrgUi, skipRequestCache?: boolean) => Promise<ListItem[]>);
+  allowRefreshValues?: boolean;
   helpText?: string | ((type: SalesforceFieldType) => string);
   labelHelp?: string | ((type: SalesforceFieldType) => string);
   // TODO: add a "failed validation error message"
