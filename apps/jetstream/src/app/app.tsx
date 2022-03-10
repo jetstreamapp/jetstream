@@ -161,7 +161,7 @@ const ROUTES: RouteItem[] = [
 export const App = () => {
   const [userProfile, setUserProfile] = useState<UserProfileUi>();
   const [featureFlags, setFeatureFlags] = useState<Set<string>>(new Set());
-  const [routes, setRoutes] = useState<RouteItem[]>([]);
+  const [routes, setRoutes] = useState<RouteItem[]>(() => ROUTES.filter((route) => !route.flag));
 
   useEffect(() => {
     _userProfile = userProfile;
