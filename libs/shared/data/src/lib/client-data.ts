@@ -215,6 +215,33 @@ export async function queryMore<T = any>(org: SalesforceOrgUi, nextRecordsUrl: s
 }
 
 /**
+ * If a query needs to be split up because it is too long, this function will query multiple SOQL queries
+ * and combine all the results.
+ * @param org
+ * @param soqlQueries
+ * @param isTooling
+ * @param includeDeletedRecords
+ * @returns
+ */
+export async function queryAllFromList<T = any>(
+  org: SalesforceOrgUi,
+  soqlQueries: string[],
+  isTooling = false,
+  includeDeletedRecords = false
+): Promise<API.QueryResults<T>> {
+  let results;
+  for (const soqlQuery of soqlQueries) {
+    const _results = await queryAll(org, soqlQuery, isTooling, includeDeletedRecords);
+    if (!results) {
+      results = _results;
+    } else {
+      results.queryResults.records = results.queryResults.records.concat(_results.queryResults.records);
+    }
+  }
+  return results;
+}
+
+/**
  * Query all records using a query locator to fetch all records
  *
  * @param org

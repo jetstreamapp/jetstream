@@ -1,6 +1,6 @@
 import { Badge, Icon, Spinner, Tooltip } from '@jetstream/ui';
 import classNames from 'classnames';
-import React, { FunctionComponent, useEffect, useState } from 'react';
+import { FunctionComponent, useEffect, useState } from 'react';
 import { CreateFieldsResults, getFriendlyStatus } from './useCreateFields';
 
 export interface CreateFieldsDeployModalRowProps {
@@ -31,11 +31,9 @@ export const CreateFieldsDeployModalRow: FunctionComponent<CreateFieldsDeployMod
   return (
     <tr key={result.key} className="slds-hint-parent">
       <th scope="row">
-        <Tooltip content={fieldJson}>
-          <div className="slds-truncate" title={result.label}>
-            {result.label}
-          </div>
-        </Tooltip>
+        <div className="slds-truncate" title={result.label}>
+          <Tooltip content={fieldJson}>{result.label}</Tooltip>
+        </div>
         <Badge>
           {result.field.secondaryType ? `${result.field.secondaryType}: ` : ''}
           {result.field.type}
@@ -43,13 +41,13 @@ export const CreateFieldsDeployModalRow: FunctionComponent<CreateFieldsDeployMod
       </th>
       <td className="slds-is-relative">
         {result.state === 'LOADING' && <Spinner size="x-small" />}
-        <div className="slds-truncate" title={getFriendlyStatus(result.state)}>
+        <div className="slds-truncate" title={getFriendlyStatus(result)}>
           <span
             className={classNames({
               'slds-text-color_error': result.state === 'FAILED',
             })}
           >
-            {getFriendlyStatus(result.state)}
+            {getFriendlyStatus(result)}
           </span>
         </div>
       </td>
