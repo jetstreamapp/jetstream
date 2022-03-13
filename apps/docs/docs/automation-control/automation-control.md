@@ -2,6 +2,18 @@
 id: automation-control
 title: Automation Control
 description: Jetstream makes it easy to view and mass-disable/enable automation across many objects at the same time.
+keywords: [
+    salesforce,
+    salesforce admin,
+    salesforce developer,
+    salesforce automation,
+    salesforce workbench
+    automation control,
+    triggers,
+    process builder,
+    flow,
+    workflow rule,
+  ]
 sidebar_label: Automation Control
 slug: /automation-control
 ---

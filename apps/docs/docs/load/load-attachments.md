@@ -2,6 +2,27 @@
 id: load-attachments
 title: Load Files and Attachments
 description: Load files and attachments to Salesforce.
+keywords:
+  [
+    salesforce,
+    salesforce admin,
+    salesforce developer,
+    salesforce automation,
+    salesforce workbench,
+    salesforce metadata,
+    soql,
+    apex,
+    salesforce api,
+    data load,
+    load attachment,
+    upload attachment,
+    salesforce files,
+    files and attachments,
+    notes and attachments,
+    salesforce documents,
+    bulk api,
+    batch api,
+  ]
 sidebar_label: Load Files and Attachments
 slug: /load/load-attachments
 ---

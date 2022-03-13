@@ -2,6 +2,17 @@
 id: anonymous-apex
 title: Anonymous Apex
 description: Execute anonymous Apex from Jetstream using an advanced and powerful code editor.
+keywords:
+  [
+    salesforce,
+    salesforce admin,
+    salesforce developer,
+    salesforce automation,
+    salesforce workbench apex,
+    anonymous apex,
+    salesforce code,
+    developer console,
+  ]
 sidebar_label: Anonymous Apex
 slug: /developer/anonymous-apex
 ---

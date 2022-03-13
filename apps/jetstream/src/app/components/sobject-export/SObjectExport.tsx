@@ -185,7 +185,11 @@ export const SObjectExport: FunctionComponent<SObjectExportProps> = () => {
       <Page>
         <PageHeader>
           <PageHeaderRow>
-            <PageHeaderTitle icon={{ type: 'standard', icon: 'product_consumed' }} label="Export Object Metadata" />
+            <PageHeaderTitle
+              icon={{ type: 'standard', icon: 'product_consumed' }}
+              label="Export Object Metadata"
+              docsPath="/developer/export-object-metadata"
+            />
             <PageHeaderActions colType="actions" buttonType="separate">
               <button className="slds-button slds-button_brand" disabled={!hasSelectionsMade || loading} onClick={handleExport}>
                 Download

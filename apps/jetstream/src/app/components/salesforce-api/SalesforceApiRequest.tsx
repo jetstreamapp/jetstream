@@ -10,11 +10,11 @@ import {
   SalesforceApiRequest as SalesforceApiReqSample,
   SalesforceOrgUi,
 } from '@jetstream/types';
-import { Card, Grid, HelpText, Icon, RadioButton, RadioGroup, Tooltip } from '@jetstream/ui';
+import { Card, Grid, HelpText, Icon, RadioButton, RadioGroup, Tooltip, ViewDocsLink } from '@jetstream/ui';
 import Editor, { OnMount, useMonaco } from '@monaco-editor/react';
 import localforage from 'localforage';
 import type { editor } from 'monaco-editor';
-import { FunctionComponent, useReducer, useRef, useState } from 'react';
+import { Fragment, FunctionComponent, useReducer, useRef, useState } from 'react';
 import { useRecoilValue } from 'recoil';
 import * as fromSalesforceApiHistory from './salesforceApi.state';
 import SalesforceApiExamplesModal from './SalesforceApiExamplesModal';
@@ -206,10 +206,14 @@ export const SalesforceApiRequest: FunctionComponent<SalesforceApiRequestProps> 
 
   return (
     <Card
-      title="Salesforce API Request"
+      title={
+        <Grid vertical>
+          <div>Salesforce API Request</div>
+          <ViewDocsLink textReset path="/developer/salesforce-api" />
+        </Grid>
+      }
       actions={
         <Grid>
-          <SalesforceApiExamplesModal onExecute={handleRestoreFromExampleReq} />
           <SalesforceApiHistory className="slds-col" disabled={loading} onHistorySelected={handleRestoreFromHistory} />
           <button
             className="slds-button slds-button_brand"
@@ -224,6 +228,7 @@ export const SalesforceApiRequest: FunctionComponent<SalesforceApiRequestProps> 
       }
     >
       <div>
+        <SalesforceApiExamplesModal onExecute={handleRestoreFromExampleReq} />
         <SalesforceApiUserInput
           selectedOrg={selectedOrg}
           url={url}

@@ -2,6 +2,24 @@
 id: other-useful-features
 title: Other Useful Features
 description: Jetstream allows you to easily view, edit, or clone records in Salesforce.
+keywords:
+  [
+    salesforce,
+    salesforce admin,
+    salesforce developer,
+    salesforce automation,
+    salesforce workbench,
+    salesforce metadata,
+    soql,
+    apex,
+    salesforce api,
+    view record,
+    salesforce record,
+    18 digit id,
+    18 character id,
+    15 digit id,
+    15 character id,
+  ]
 sidebar_label: Other Useful Features
 slug: /other-useful-features
 ---

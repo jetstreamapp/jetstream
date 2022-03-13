@@ -88,6 +88,7 @@ export * from './lib/layout/page-header/PageHeaderMetadataCol';
 export * from './lib/layout/page-header/PageHeaderRow';
 export * from './lib/layout/page-header/PageHeaderTitle';
 export * from './lib/layout/Panel';
+export * from './lib/layout/ViewDocsLink';
 export * from './lib/list/List';
 export * from './lib/list/ListItem';
 export * from './lib/list/ListItemCheckbox';

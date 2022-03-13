@@ -2,6 +2,21 @@
 id: deploy-metadata
 title: Deploy or Compare Metadata
 description: Working with Salesforce metadata has never been easier. With Jetstream, you can Download, upload, deploy to another org, add metadata to a changeset, or compare metadata between orgs.
+keywords: [
+    salesforce,
+    salesforce admin,
+    salesforce developer,
+    salesforce automation,
+    salesforce workbench
+    metadata,
+    package.xml,
+    package manifest,
+    compare metadata,
+    download metadata,
+    changeset,
+    deploy metadata,
+    delete metadata,
+  ]
 sidebar_label: Deploy or Compare Metadata
 slug: /deploy-metadata
 ---

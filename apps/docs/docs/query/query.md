@@ -2,6 +2,24 @@
 id: query
 title: Query Builder
 description: Jetstream has the most advanced query builder for Salesforce on the planet. See how easy it is to view records and explore your data model.
+keywords:
+  [
+    salesforce,
+    salesforce admin,
+    salesforce developer,
+    salesforce automation,
+    salesforce workbench,
+    salesforce metadata,
+    soql,
+    apex,
+    salesforce api,
+    query,
+    query builder,
+    related list,
+    subquery,
+    field relationship,
+    api name,
+  ]
 sidebar_label: Query Builder
 slug: /query
 ---
@@ -28,7 +46,7 @@ Not only is the query builder great for viewing record data, but is also a great
 
 You have run your first query! 🎉
 
-Jetstream is designed to be fast and easy to run queries without having to schedule tasks and wait for things to finish. Click to Go Back to run another query.
+Jetstream is designed to be fast and easy to run queries without having to schedule tasks and wait for things to finish. Click to **Go Back** to run another query.
 
 ## Query configuration
 
@@ -37,9 +55,14 @@ Jetstream is designed to be fast and easy to run queries without having to sched
 #### Selecting related fields
 
 Jetstream allows you to include related records through up to 6 relationships.
-To include related fields, find a related field, such as Created By Id, and click **View User Fields**.
 
-#### Field quick filters
+To include related fields, find a related field, such as the Account lookup on a Contact, and click **View Account Fields**.
+
+Once expanded, you will see the button changes from **View** to **Hide** and as you select fields, the number of selected fields will show so you can easily see which fields are selected even if the lookup is collapsed.
+
+<img src={require('./query-related-fields.png').default} alt="Query related fields" />
+
+#### Field filters
 
 Click the filter icon <FilterIcon className="icon inline" /> to open up the quick filter.
 
@@ -53,18 +76,18 @@ From here, you can quickly change which fields are visible to select using one o
 - Non-Managed Custom Fields
 - Selected Fields
 
+When you have an active filter applied, you will notice the icon changes color and the number of active filters is shown.
+
+<img src={require('./query-quick-filters.png').default} alt="Query filters" />
+
 #### Selecting children objects (Related Lists)
 
 Click the **Related Objects (Subquery)** tab to show all the child objects.
-Any object that has a lookup field to the current object will show up in this list, just like Related Lists show up in Salesfroce.
+Any object that has a lookup field to the current object will show up in this list, just like Related Lists show up in Salesforce.
+
+<img src={require('./subquery-fields.png').default} alt="Selecting subquery fields" />
 
 ### Filters
-
-:::tip
-
-Related fields only show up in the fields if you have checked the field to be included in the query.
-
-:::
 
 Filters allow you to limit which records are returned from Salesforce.
 
@@ -78,11 +101,32 @@ Depending on which field you select, the value may change to give additional con
 
 :::tip
 
+- Use **contains**, **starts with**, or **ends with** to perform partial matches.
 - If you want to find records from a specific date range, use **Relative Values** to keep things simple, or use greater than or less than with the date picker.
 - If you want to filter against a list of values, such as a list of Ids or Product Codes, use the **IN** or **NOT IN** operator.
-- To see if specific values in a multi-select picklist are checked, use the **Includes** or **Excludes** filters.
+- To see if specific values in a multi-select picklist are selected, use the **Includes** or **Excludes** filters.
 
 :::
+
+#### Example
+
+Here is an example that will find all the products that have a product code matching one of three products codes that are also active.
+
+If you have a list of values, like Ids or picklist values, utilize the **IN** operator.
+
+:::tip
+
+If you want to look up just one record by Id, use the **View Record Details** button at the top of the page (or press `cmd+k` or `ctrl+k`) to view full record details by id.
+
+:::
+
+<img src={require('./query-filter-example.png').default} alt="Query filter example" />
+
+#### Filtering related fields
+
+Related fields only show up in the list of fields if you have selected the related field to be included in the query.
+
+<img src={require('./query-filter-related-fields.png').default} alt="Filtering related fields" />
 
 ## Query history
 

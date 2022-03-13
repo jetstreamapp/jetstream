@@ -104,6 +104,12 @@ export const HeaderNavbar: FunctionComponent<HeaderNavbarProps> = ({ userProfile
                   title: 'Load records from multiple objects at once',
                   label: 'Load Records to Multiple Objects',
                 },
+                {
+                  id: 'update-records',
+                  path: '/update-records',
+                  title: 'Update Records without File',
+                  label: 'Update Records without File',
+                },
               ]}
             />
           ) : (
@@ -117,16 +123,16 @@ export const HeaderNavbar: FunctionComponent<HeaderNavbarProps> = ({ userProfile
             label="Deploy Metadata"
             items={[
               {
-                id: 'deploy-sobject-metadata',
-                path: '/deploy-sobject-metadata',
-                title: 'Create Fields',
-                label: 'Create Fields',
-              },
-              {
                 id: 'deploy-metadata',
                 path: '/deploy-metadata',
                 title: 'Deploy and Compare Metadata',
                 label: 'Deploy and Compare Metadata',
+              },
+              {
+                id: 'deploy-sobject-metadata',
+                path: '/deploy-sobject-metadata',
+                title: 'Create Fields',
+                label: 'Create Fields',
               },
             ]}
           />

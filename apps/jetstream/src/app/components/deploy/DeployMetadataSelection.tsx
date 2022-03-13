@@ -49,7 +49,11 @@ export const DeployMetadataSelection: FunctionComponent<DeployMetadataSelectionP
     <Page>
       <PageHeader>
         <PageHeaderRow>
-          <PageHeaderTitle icon={{ type: 'standard', icon: 'asset_relationship' }} label="Deploy and Compare Metadata" />
+          <PageHeaderTitle
+            icon={{ type: 'standard', icon: 'asset_relationship' }}
+            label="Deploy and Compare Metadata"
+            docsPath="/deploy-metadata"
+          />
           <PageHeaderActions colType="actions" buttonType="separate">
             <DeployMetadataHistoryModal />
             <ButtonGroupContainer>

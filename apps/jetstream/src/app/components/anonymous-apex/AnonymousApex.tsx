@@ -15,6 +15,7 @@ import {
   Icon,
   SalesforceLogin,
   Spinner,
+  ViewDocsLink,
 } from '@jetstream/ui';
 import Editor, { OnMount, useMonaco } from '@monaco-editor/react';
 import localforage from 'localforage';
@@ -227,18 +228,10 @@ export const AnonymousApex: FunctionComponent<AnonymousApexProps> = () => {
           <Card
             className="h-100"
             title={
-              <Fragment>
-                Anonymous Apex
-                <SalesforceLogin
-                  className="slds-m-right_x-small"
-                  serverUrl={serverUrl}
-                  org={selectedOrg}
-                  returnUrl="/_ui/common/apex/debug/ApexCSIPage"
-                  iconPosition="right"
-                  title="Open developer console"
-                  onClick={handleOpenDevConsole}
-                ></SalesforceLogin>
-              </Fragment>
+              <Grid vertical>
+                <div>Anonymous Apex</div>
+                <ViewDocsLink textReset path="/developer/anonymous-apex" />
+              </Grid>
             }
             actions={
               <Fragment>
@@ -263,8 +256,19 @@ export const AnonymousApex: FunctionComponent<AnonymousApexProps> = () => {
             }
           >
             <Fragment>
-              <Grid>
-                <AnonymousApexHistory className="slds-grow slds-m-bottom_x-small" onHistorySelected={setApex} />
+              <Grid align="spread" className="slds-m-bottom_x-small">
+                <SalesforceLogin
+                  className="slds-m-right_x-small"
+                  serverUrl={serverUrl}
+                  org={selectedOrg}
+                  returnUrl="/_ui/common/apex/debug/ApexCSIPage"
+                  omitIcon
+                  title="Open developer console"
+                  onClick={handleOpenDevConsole}
+                >
+                  Open developer console
+                </SalesforceLogin>
+                <AnonymousApexHistory onHistorySelected={setApex} />
               </Grid>
               <Editor
                 height="80vh"

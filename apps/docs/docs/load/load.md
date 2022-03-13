@@ -2,6 +2,28 @@
 id: load
 title: Load Records
 description: Load records into Salesforce to create or change existing records using Jetstream's advanced and easy to use data loader.
+keywords:
+  [
+    salesforce,
+    salesforce admin,
+    salesforce developer,
+    salesforce automation,
+    salesforce workbench,
+    salesforce metadata,
+    soql,
+    apex,
+    salesforce api,
+    data loader,
+    data load,
+    insert,
+    insert records,
+    update,
+    update records,
+    upsert,
+    upsert records,
+    delete,
+    delete records,
+  ]
 sidebar_label: Load Records
 slug: /load
 ---

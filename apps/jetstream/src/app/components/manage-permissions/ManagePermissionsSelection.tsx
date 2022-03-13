@@ -73,7 +73,7 @@ export const ManagePermissionsSelection: FunctionComponent<ManagePermissionsSele
     <Page>
       <PageHeader>
         <PageHeaderRow>
-          <PageHeaderTitle icon={{ type: 'standard', icon: 'portal' }} label="Manage Permissions" />
+          <PageHeaderTitle icon={{ type: 'standard', icon: 'portal' }} label="Manage Permissions" docsPath="/permissions" />
           <PageHeaderActions colType="actions" buttonType="separate">
             {hasSelectionsMade && (
               <Link
