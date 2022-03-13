@@ -2,12 +2,14 @@ import { IconObj } from '@jetstream/icon-factory';
 import classNames from 'classnames';
 import { FunctionComponent } from 'react';
 import Icon from '../../widgets/Icon';
+import ViewDocsLink from '../ViewDocsLink';
 
 // eslint-disable-next-line @typescript-eslint/no-empty-interface
 export interface PageHeaderTitleProps {
   icon: IconObj;
   labelHeading?: string;
   label: string;
+  docsPath?: string;
   metaLabel?: string;
   titleDropDown?: JSX.Element;
 }
@@ -16,6 +18,7 @@ export const PageHeaderTitle: FunctionComponent<PageHeaderTitleProps> = ({
   icon,
   labelHeading,
   label,
+  docsPath,
   metaLabel,
   titleDropDown,
   children,
@@ -40,6 +43,7 @@ export const PageHeaderTitle: FunctionComponent<PageHeaderTitleProps> = ({
                   {label}
                 </span>
               </h1>
+              {docsPath && <ViewDocsLink path={docsPath} />}
             </div>
             {titleDropDown && <div className="slds-page-header__name-switcher">{titleDropDown}</div>}
           </div>

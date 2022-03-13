@@ -2,6 +2,17 @@
 id: platform-events
 title: Platform Events
 description: Subscribe to and publish Salesforce Platform Events using Jetstream.
+keywords: [
+    salesforce,
+    salesforce admin,
+    salesforce developer,
+    salesforce automation,
+    salesforce workbench
+    platform events,
+    subscribe,
+    publish platform event,
+    publish event,
+  ]
 sidebar_label: Platform Events
 slug: /developer/platform-events
 ---

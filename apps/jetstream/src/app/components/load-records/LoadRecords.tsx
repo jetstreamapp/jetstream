@@ -338,7 +338,7 @@ export const LoadRecords: FunctionComponent<LoadRecordsProps> = ({ featureFlags 
     <Page>
       <PageHeader>
         <PageHeaderRow>
-          <PageHeaderTitle icon={{ type: 'standard', icon: 'data_streams' }} label="Load Records" />
+          <PageHeaderTitle icon={{ type: 'standard', icon: 'data_streams' }} label="Load Records" docsPath="/load" />
           <PageHeaderActions colType="actions" buttonType="separate">
             {/* TODO: move to component since there is a bit of logic. */}
             <button

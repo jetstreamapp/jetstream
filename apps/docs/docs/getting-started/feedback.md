@@ -2,6 +2,7 @@
 id: feedback
 title: Help & Feedback
 description: We 😍 love 😍 to hear from our customers and make it easy to get support and provide feedback.
+keywords: [salesforce, salesforce admin, salesforce developer, salesforce automation, salesforce workbench]
 sidebar_label: Getting Help or Providing Feedback
 slug: /feedback
 ---

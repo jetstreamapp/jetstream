@@ -2,6 +2,21 @@
 id: load-with-related
 title: Load Related Records
 description: Load records to multiple objects at the same time while setting relationships between records.
+keywords:
+  [
+    salesforce,
+    salesforce admin,
+    salesforce developer,
+    salesforce automation,
+    salesforce workbench,
+    salesforce metadata,
+    soql,
+    apex,
+    salesforce api,
+    data load,
+    related records,
+    update records,
+  ]
 sidebar_label: Load Related Records
 slug: /load/with-related
 ---

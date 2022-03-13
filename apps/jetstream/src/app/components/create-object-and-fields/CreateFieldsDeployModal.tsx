@@ -2,7 +2,7 @@ import { css } from '@emotion/react';
 import { ANALYTICS_KEYS } from '@jetstream/shared/constants';
 import { MapOf, SalesforceOrgUi } from '@jetstream/types';
 import { Checkbox, ConfirmationModalPromise, FileDownloadModal, Grid, Icon, Modal, ScopedNotification, Spinner } from '@jetstream/ui';
-import React, { Fragment, FunctionComponent, useState } from 'react';
+import { Fragment, FunctionComponent, useState } from 'react';
 import { useRecoilState } from 'recoil';
 import { applicationCookieState } from '../../app-state';
 import { useAmplitude } from '../core/analytics';
@@ -120,6 +120,12 @@ export const CreateFieldsDeployModal: FunctionComponent<CreateFieldsDeployModalP
           closeOnEsc={false}
           closeOnBackdropClick={false}
           header="Create Fields"
+          tagline={
+            <Fragment>
+              <Icon type="utility" icon="info" className="slds-icon slds-icon-text-default slds-icon_xx-small cursor-pointer" />
+              <span className="slds-m-left_xx-small">New fields will be created and existing fields will be updated.</span>
+            </Fragment>
+          }
           footer={
             <Grid align="spread">
               <div>
@@ -130,7 +136,7 @@ export const CreateFieldsDeployModal: FunctionComponent<CreateFieldsDeployModalP
               </div>
               <div>
                 <button className="slds-button slds-button_neutral" onClick={() => handleCloseModal()} disabled={loading}>
-                  Cancel
+                  Close
                 </button>
                 <button className="slds-button slds-button_brand" onClick={handleDeploy} disabled={loading}>
                   Create Fields

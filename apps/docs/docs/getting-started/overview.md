@@ -2,6 +2,7 @@
 id: overview
 title: Overview
 description: Jetstream is the most advanced toolkit for working with and administering Salesforce. We know that once you start using Jetstream, you'll wonder how you ever got on without it!
+keywords: [salesforce, salesforce admin, salesforce developer, salesforce automation, salesforce workbench]
 sidebar_label: Overview
 slug: /
 ---

@@ -2,6 +2,27 @@
 id: download-attachments
 title: Download Files and Attachments
 description: Jetstream allows you easily to download files and attachments from your org across many records.
+keywords:
+  [
+    salesforce,
+    salesforce admin,
+    salesforce developer,
+    salesforce automation,
+    salesforce workbench,
+    salesforce metadata,
+    soql,
+    apex,
+    salesforce api,
+    query records,
+    query attachments,
+    download attachments,
+    download files,
+    query files,
+    salesforce files,
+    files and attachments,
+    notes and attachments,
+    salesforce documents,
+  ]
 sidebar_label: Download Files and Attachments
 slug: /query/download-attachments
 ---

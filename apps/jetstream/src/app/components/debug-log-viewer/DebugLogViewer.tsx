@@ -2,7 +2,17 @@ import { css } from '@emotion/react';
 import { MIME_TYPES, TITLES } from '@jetstream/shared/constants';
 import { fetchActiveLog, saveFile, useNonInitialEffect, useObservable } from '@jetstream/shared/ui-utils';
 import { ApexLog, ApexLogWithViewed, AsyncJob, MapOf, SalesforceOrgUi } from '@jetstream/types';
-import { AutoFullHeightContainer, Card, Checkbox, CopyToClipboard, Grid, Icon, SalesforceLogin, Spinner } from '@jetstream/ui';
+import {
+  AutoFullHeightContainer,
+  Card,
+  Checkbox,
+  CopyToClipboard,
+  Grid,
+  Icon,
+  SalesforceLogin,
+  Spinner,
+  ViewDocsLink,
+} from '@jetstream/ui';
 import Editor from '@monaco-editor/react';
 import PurgeLogsModal from './PurgeLogsModal';
 import formatDate from 'date-fns/format';
@@ -173,17 +183,10 @@ export const DebugLogViewer: FunctionComponent<DebugLogViewerProps> = () => {
           <Card
             className="h-100"
             title={
-              <Fragment>
-                Debug Logs
-                <SalesforceLogin
-                  className="slds-m-right_x-small"
-                  serverUrl={serverUrl}
-                  org={selectedOrg}
-                  returnUrl="/lightning/setup/ApexDebugLogs/home"
-                  iconPosition="right"
-                  title="View debug logs in Salesforce"
-                ></SalesforceLogin>
-              </Fragment>
+              <Grid vertical>
+                <div>Debug Logs</div>
+                <ViewDocsLink textReset path="/developer/debug-logs" />
+              </Grid>
             }
             actions={
               <Fragment>
@@ -195,6 +198,16 @@ export const DebugLogViewer: FunctionComponent<DebugLogViewerProps> = () => {
             }
           >
             <Fragment>
+              <SalesforceLogin
+                className="slds-m-right_x-small"
+                serverUrl={serverUrl}
+                org={selectedOrg}
+                returnUrl="/lightning/setup/ApexDebugLogs/home"
+                omitIcon
+                title="View debug logs in Salesforce"
+              >
+                View debug logs in Salesforce
+              </SalesforceLogin>
               <Grid align="spread" verticalAlign="center">
                 <div>
                   <Checkbox

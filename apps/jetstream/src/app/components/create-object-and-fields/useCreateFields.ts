@@ -3,10 +3,9 @@ import { genericRequest, sobjectOperation } from '@jetstream/shared/data';
 import { useBrowserNotifications, useRollbar } from '@jetstream/shared/ui-utils';
 import { getMapOf, getSuccessOrFailureChar, pluralizeFromNumber, REGEX, splitArrayToMaxSize } from '@jetstream/shared/utils';
 import { CompositeGraphResponseBodyData, CompositeResponse, ErrorResult, MapOf, RecordResult, SalesforceOrgUi } from '@jetstream/types';
-import isString from 'lodash/isString';
 import { useCallback, useEffect, useState } from 'react';
 import { FieldDefinitionMetadata, FieldPermissionRecord, FieldValues, SalesforceFieldType } from './create-fields-types';
-import { deployLayouts, getFieldPermissionRecords, preparePayload } from './create-fields-utils';
+import { deployLayouts, getFieldPermissionRecords, prepareCreateFieldsCompositeRequests, preparePayload } from './create-fields-utils';
 
 export interface CreateFieldsResults {
   key: string;
@@ -28,14 +27,18 @@ export interface CreateFieldsResults {
 
 export type CreateFieldsResultsStatus = 'NOT_STARTED' | 'LOADING' | 'SUCCESS' | 'FAILED';
 
-export function getFriendlyStatus(status: CreateFieldsResultsStatus) {
-  switch (status) {
+export function getFriendlyStatus(result: CreateFieldsResults) {
+  switch (result.state) {
     case 'NOT_STARTED':
       return 'Not Deployed';
     case 'LOADING':
       return 'In Progress';
-    case 'SUCCESS':
+    case 'SUCCESS': {
+      if (result.operation === 'UPSERT') {
+        return 'Updated Successfully';
+      }
       return 'Created Successfully';
+    }
     case 'FAILED':
       return 'Error';
     default:
@@ -108,27 +111,13 @@ export default function useCreateFields({
       setFatalErrorMessage(null);
       setLayoutErrorMessage(null);
       setFatalError(false);
-      const createFieldsPayloads = splitArrayToMaxSize(Object.values(_resultsById), 25).map((fields) => ({
-        allOrNone: false,
-        compositeRequest: fields.map(({ field, key, deployResult }) => {
-          let url = `/services/data/${apiVersion}/tooling/sobjects/CustomField`;
-          let method = 'POST';
-          // Perform upsert if field was previously created
-          if (isString(deployResult) && deployResult.length === 18) {
-            url += `/${deployResult}`;
-            method = 'PATCH';
-          }
-          return {
-            method,
-            url,
-            body: {
-              FullName: field.fullName,
-              Metadata: { ...field, fullName: undefined },
-            },
-            referenceId: key,
-          };
-        }),
-      }));
+
+      const createFieldsPayloads = await prepareCreateFieldsCompositeRequests(
+        selectedOrg,
+        sObjects,
+        apiVersion,
+        Object.values(_resultsById)
+      );
 
       for (const compositeRequest of createFieldsPayloads) {
         const response = await genericRequest<CompositeResponse<CompositeGraphResponseBodyData | CompositeGraphResponseBodyData[]>>(
@@ -143,6 +132,7 @@ export default function useCreateFields({
 
         response.compositeResponse.forEach(({ body, httpStatusCode, referenceId }) => {
           _resultsById[referenceId] = { ..._resultsById[referenceId] };
+          _resultsById[referenceId].errorMessage = null;
           if (body) {
             _resultsById[referenceId].deployResult = body;
           }

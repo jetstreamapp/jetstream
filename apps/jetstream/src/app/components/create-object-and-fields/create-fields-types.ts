@@ -142,3 +142,11 @@ export interface FieldPermissionRecord {
   PermissionsRead: boolean;
   SobjectType: string;
 }
+
+export interface EntityParticleRecord {
+  EntityDefinition: {
+    QualifiedApiName: string;
+  };
+  DurableId: string;
+  QualifiedApiName: string;
+}

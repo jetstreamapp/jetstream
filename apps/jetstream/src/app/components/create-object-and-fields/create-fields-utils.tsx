@@ -1,11 +1,14 @@
-import { describeGlobal, genericRequest, queryWithCache } from '@jetstream/shared/data';
+import { logger } from '@jetstream/shared/client-logger';
+import { describeGlobal, genericRequest, queryAllFromList, queryWithCache } from '@jetstream/shared/data';
 import { ensureBoolean, REGEX, splitArrayToMaxSize } from '@jetstream/shared/utils';
-import { CompositeResponse, SalesforceOrgUi } from '@jetstream/types';
+import { CompositeResponse, MapOf, SalesforceOrgUi } from '@jetstream/types';
 import { DescribeGlobalSObjectResult } from 'jsforce';
 import isBoolean from 'lodash/isBoolean';
 import isNil from 'lodash/isNil';
 import isString from 'lodash/isString';
+import { composeQuery, getField } from 'soql-parser-js';
 import {
+  EntityParticleRecord,
   FieldDefinitionMetadata,
   FieldDefinitions,
   FieldDefinitionType,
@@ -19,6 +22,7 @@ import { CreateFieldsResults } from './useCreateFields';
 
 const READ_ONLY_TYPES = new Set<SalesforceFieldType>(['AutoNumber', 'Formula']);
 const NUMBER_TYPES = new Set<SalesforceFieldType>(['Number', 'Currency', 'Percent']);
+const MAX_OBJ_IN_QUERY = 100;
 
 export function filterCreateFieldsSobjects(sobject: DescribeGlobalSObjectResult) {
   return (
@@ -794,6 +798,58 @@ function prepareFieldPayload(sobject: string, fieldValues: FieldValues): FieldDe
   return fieldMetadata;
 }
 
+/**
+ * Get composite requests for fields
+ * Existing field definitions are queried to determine if any fields exist, in which case will be upserted
+ *
+ * @param org
+ * @param sobjects
+ * @param apiVersion
+ * @param allFields
+ * @returns
+ */
+export async function prepareCreateFieldsCompositeRequests(
+  org: SalesforceOrgUi,
+  sobjects: string[],
+  apiVersion: string,
+  allFields: CreateFieldsResults[]
+) {
+  const existingFields = await queryAllFromList<EntityParticleRecord>(org, getQueriesForAllCustomFieldsForObjects(sobjects), true);
+
+  const existingFieldsByFullName = existingFields.queryResults.records.reduce((output: MapOf<string>, record) => {
+    const [_, fieldId] = record.DurableId.split('.');
+    output[`${record.EntityDefinition.QualifiedApiName}.${record.QualifiedApiName}`.toLowerCase()] = fieldId;
+    return output;
+  }, {});
+
+  const createFieldsPayloads = splitArrayToMaxSize(allFields, 25).map((fields) => ({
+    allOrNone: false,
+    compositeRequest: fields.map(({ field, key, deployResult }) => {
+      let url = `/services/data/${apiVersion}/tooling/sobjects/CustomField`;
+      let method = 'POST';
+      // Perform upsert if field was previously deployed or already exists
+      if (isString(deployResult) && deployResult.length === 18) {
+        url += `/${deployResult}`;
+        method = 'PATCH';
+      } else if (existingFieldsByFullName[field.fullName.toLowerCase()]) {
+        url += `/${existingFieldsByFullName[field.fullName.toLowerCase()]}`;
+        method = 'PATCH';
+      }
+      return {
+        method,
+        url,
+        body: {
+          FullName: field.fullName,
+          Metadata: { ...field, fullName: undefined },
+        },
+        referenceId: key,
+      };
+    }),
+  }));
+
+  return createFieldsPayloads;
+}
+
 export function getFieldPermissionRecords(fullName: string, type: SalesforceFieldType, profiles: string[], permissionSets: string[]) {
   const [SobjectType] = fullName.split('.');
   return [...profiles, ...permissionSets].map((ParentId) => ({
@@ -987,4 +1043,43 @@ export function prepareDownloadResultsFile(fieldResults: CreateFieldsResults[], 
       'Permission Records': ['Success', 'Id', 'Errors', 'SobjectType', 'Field', 'ParentId', 'PermissionsEdit', 'PermissionsRead'],
     },
   };
+}
+
+export function getQueriesForAllCustomFieldsForObjects(allSobjects: string[]): string[] {
+  const queries = splitArrayToMaxSize(allSobjects, MAX_OBJ_IN_QUERY).map((sobjects) => {
+    return composeQuery({
+      fields: [getField('EntityDefinition.QualifiedApiName'), getField('DurableId'), getField('QualifiedApiName')],
+      sObject: 'EntityParticle',
+      where: {
+        left: {
+          field: 'EntityDefinition.QualifiedApiName',
+          operator: 'IN',
+          value: sobjects,
+          literalType: 'STRING',
+        },
+        operator: 'AND',
+        right: {
+          left: {
+            field: 'QualifiedApiName',
+            operator: 'LIKE',
+            value: '%__c',
+            literalType: 'STRING',
+          },
+        },
+      },
+      orderBy: [
+        {
+          // EntityDefinition.QualifiedApiName is not supported in order by
+          field: 'EntityDefinitionId',
+          order: 'ASC',
+        },
+        {
+          field: 'QualifiedApiName',
+          order: 'ASC',
+        },
+      ],
+    });
+  });
+  logger.log('getQueriesForAllCustomFieldsForObjects()', queries);
+  return queries;
 }

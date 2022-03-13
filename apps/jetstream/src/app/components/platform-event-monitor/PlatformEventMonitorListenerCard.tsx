@@ -1,5 +1,5 @@
 import { ListItem } from '@jetstream/types';
-import { Card, Grid, Pill, Spinner } from '@jetstream/ui';
+import { Card, Grid, Pill, Spinner, ViewDocsLink } from '@jetstream/ui';
 import { DescribeGlobalSObjectResult } from 'jsforce';
 import { FunctionComponent } from 'react';
 import PlatformEventMonitorEvents from './PlatformEventMonitorEvents';
@@ -34,7 +34,12 @@ export const PlatformEventMonitorListenerCard: FunctionComponent<PlatformEventMo
   return (
     <Card
       className="slds-grow"
-      title="Subscribe to Event"
+      title={
+        <Grid vertical>
+          <div>Subscribe to Events</div>
+          <ViewDocsLink textReset path="/developer/platform-events" />
+        </Grid>
+      }
       actions={
         <button className="slds-button" onClick={() => fetchPlatformEvents(true)}>
           Just added a new event?

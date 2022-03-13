@@ -64,7 +64,7 @@ export const AutomationControlSelection: FunctionComponent<AutomationControlSele
     <Page>
       <PageHeader>
         <PageHeaderRow>
-          <PageHeaderTitle icon={{ type: 'standard', icon: 'activations' }} label="Automation Control" />
+          <PageHeaderTitle icon={{ type: 'standard', icon: 'activations' }} label="Automation Control" docsPath="/automation-control" />
           <PageHeaderActions colType="actions" buttonType="separate">
             {hasSelectionsMade && (
               <Link

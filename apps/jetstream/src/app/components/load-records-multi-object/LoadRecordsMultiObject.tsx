@@ -158,7 +158,11 @@ export const LoadRecordsMultiObject: FunctionComponent<LoadRecordsMultiObjectPro
     <Page>
       <PageHeader>
         <PageHeaderRow>
-          <PageHeaderTitle icon={{ type: 'standard', icon: 'data_streams' }} label="Load Records to Multiple Objects" />
+          <PageHeaderTitle
+            icon={{ type: 'standard', icon: 'data_streams' }}
+            label="Load Records to Multiple Objects"
+            docsPath="/load/with-related"
+          />
           <PageHeaderActions colType="actions" buttonType="separate">
             <button
               className="slds-button slds-button_neutral"

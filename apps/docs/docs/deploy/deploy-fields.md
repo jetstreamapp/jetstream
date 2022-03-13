@@ -2,6 +2,18 @@
 id: deploy-fields
 title: Create Custom Fields
 description: Jetstream makes it easy to mass-create fields in Salesforce. You can even download our example template and use excel to define the field structure.
+keywords: [
+    salesforce,
+    salesforce admin,
+    salesforce developer,
+    salesforce automation,
+    salesforce workbench
+    create field,
+    update field,
+    field level security,
+    page layout,
+    fls,
+  ]
 sidebar_label: Create Custom Fields
 slug: /deploy-fields
 ---

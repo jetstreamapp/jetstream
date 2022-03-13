@@ -22,7 +22,10 @@ module.exports = {
       searchParameters: {},
       //... other Algolia params
     },
-    metadata: [{ name: 'keywords', content: 'Salesforce, data load, Salesforce api, metadata api, tooling api, query builder' }],
+    metadata: [
+      { name: 'keywords', content: 'TEST123' },
+      { name: 'image', content: 'img/jetstream-logo.svg' },
+    ],
     navbar: {
       logo: {
         alt: 'Jetstream logo',

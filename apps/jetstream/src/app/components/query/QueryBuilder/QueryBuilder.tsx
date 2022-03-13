@@ -226,6 +226,7 @@ export const QueryBuilder: FunctionComponent<QueryBuilderProps> = () => {
               labelHeading={isTooling ? 'Metadata' : 'Objects'}
               // label={pageTitle}
               label="Query Records"
+              docsPath="/query"
               titleDropDown={
                 <CheckboxToggle
                   id={`query-type-toggle`}

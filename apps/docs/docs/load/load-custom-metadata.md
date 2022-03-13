@@ -2,6 +2,21 @@
 id: load-custom-metadata
 title: Load Custom Metadata Records
 description: Load Custom Metadata records to Salesforce using a csv or excel file.
+keywords:
+  [
+    salesforce,
+    salesforce admin,
+    salesforce developer,
+    salesforce automation,
+    salesforce workbench,
+    salesforce metadata,
+    soql,
+    apex,
+    salesforce api,
+    custom metadata,
+    data load,
+    update records,
+  ]
 sidebar_label: Load Custom Metadata Records
 slug: /load/custom-metadata
 ---

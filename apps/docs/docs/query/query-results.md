@@ -2,11 +2,42 @@
 id: query-results
 title: Query Results
 description: Jetstream's Query Results page allows you to view, download, or work with your records in your Salesforce org.
+keywords:
+  [
+    salesforce,
+    salesforce admin,
+    salesforce developer,
+    salesforce automation,
+    salesforce workbench,
+    salesforce metadata,
+    soql,
+    apex,
+    salesforce api,
+    query,
+    view records,
+    edit records,
+    update records,
+    apex,
+    export records,
+    download records,
+    clone record,
+    view record,
+  ]
 sidebar_label: Query Results
 slug: /query/results
 ---
 
-Jetstream offers a lot of advanced functionality on the Query Results page.
+After running a query, you will see the list of records that matched your criteria.
+
+Here are some examples of things you can do from the Query Results page:
+
+- See what records exist in your org.
+- Click on an Id to navigate to that record in Salesforce.
+- Download records so you can make changes to records, then load the data back in to Salesforce.
+- Copy records to your clipboard and paste into a spreadsheet.
+- Modify records (view, edit, clone, delete).
+
+<img src={require('./query-results-records.png').default} alt="Query results table" />
 
 ## Working with records
 

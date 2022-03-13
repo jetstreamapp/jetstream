@@ -1,6 +1,7 @@
 import classNames from 'classnames';
 import { uniqueId } from 'lodash';
 import { Fragment, FunctionComponent, useEffect, useState } from 'react';
+import BadgeNotification from '../badge/BadgeNotification';
 import RadioButton from '../form/radio/RadioButton';
 import RadioGroup from '../form/radio/RadioGroup';
 import Popover from '../popover/Popover';
@@ -67,10 +68,12 @@ export interface SobjectFieldListFilterProps {
 
 export const SobjectFieldListFilter: FunctionComponent<SobjectFieldListFilterProps> = ({ selectedItems, onChange }) => {
   const [idPrefix] = useState(uniqueId('sobject-filter-list'));
-  const [filterSelected, setFilterSelected] = useState(() => !Object.values(selectedItems).every((item) => item === 'all'));
+  const [filterSelectedCount, setFilterSelectedCount] = useState<number>(
+    () => Object.values(selectedItems).filter((item) => item !== 'all').length
+  );
 
   useEffect(() => {
-    setFilterSelected(!Object.values(selectedItems).every((item) => item === 'all'));
+    setFilterSelectedCount(Object.values(selectedItems).filter((item) => item !== 'all').length);
   }, [selectedItems]);
 
   function handleChange(field: keyof FilterTypes, value: string) {
@@ -135,14 +138,14 @@ export const SobjectFieldListFilter: FunctionComponent<SobjectFieldListFilterPro
             onChange={handleChange}
           />
           <hr className="slds-m-vertical_small" />
-          <button className="slds-button slds-button_neutral" onClick={handleReset} disabled={!filterSelected}>
+          <button className="slds-button slds-button_neutral" onClick={handleReset} disabled={!filterSelectedCount}>
             Reset Filters
           </button>
         </Fragment>
       }
       buttonProps={{
         className: classNames('slds-button slds-button_icon', {
-          'slds-text-color_brand': filterSelected,
+          'slds-text-color_brand': !!filterSelectedCount,
         }),
         title: 'open filters menu',
       }}
@@ -154,6 +157,7 @@ export const SobjectFieldListFilter: FunctionComponent<SobjectFieldListFilterPro
         className="slds-button__icon slds-button__icon_large"
         omitContainer
       />
+      {!!filterSelectedCount && <BadgeNotification>{filterSelectedCount}</BadgeNotification>}
     </Popover>
   );
 };

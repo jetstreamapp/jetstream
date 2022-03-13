@@ -58,7 +58,7 @@ export const CreateFieldsSelection: FunctionComponent<CreateFieldsSelectionProps
     <Page>
       <PageHeader>
         <PageHeaderRow>
-          <PageHeaderTitle icon={{ type: 'standard', icon: 'form' }} label="Create Fields" />
+          <PageHeaderTitle icon={{ type: 'standard', icon: 'form' }} label="Create Fields" docsPath="/deploy-fields" />
           <PageHeaderActions colType="actions" buttonType="separate">
             {hasSelectionsMade && (
               <Link

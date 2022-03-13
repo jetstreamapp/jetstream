@@ -2,6 +2,26 @@
 id: permissions
 title: Manage Permissions
 description: Jetstream makes it easy to view and modify permissions across many objects and many Profiles or Permission Sets at the same time.
+keywords:
+  [
+    salesforce,
+    salesforce admin,
+    salesforce developer,
+    salesforce automation,
+    salesforce workbench,
+    salesforce metadata,
+    soql,
+    apex,
+    salesforce api,
+    fl,
+    field level security,
+    permissions,
+    profile,
+    permission set,
+    update permissions,
+    update fls,
+    object permissions,
+  ]
 sidebar_label: Manage Permissions
 slug: /permissions
 ---
