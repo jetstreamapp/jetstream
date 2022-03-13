@@ -16,6 +16,7 @@ export const FEATURE_FLAGS = Object.freeze({
   DEPLOYMENT: 'deployment',
   NOTIFICATIONS: 'notifications',
   ALLOW_GOOGLE_UPLOAD: 'allow-google-upload',
+  UPDATE_RECORDS: 'update-records',
 });
 
 export const INPUT_ACCEPT_FILETYPES: {
@@ -185,6 +186,11 @@ export const ANALYTICS_KEYS = {
   load_Submitted: 'load_Submitted',
   load_ViewRecords: 'load_ViewRecords',
   load_DownloadRecords: 'load_DownloadRecords',
+  /** MASS UPDATE */
+  mass_update_Submitted: 'mass_update_Submitted',
+  mass_update_ApplyAll: 'mass_update_ApplyAll',
+  mass_update_DownloadRecords: 'mass_update_DownloadRecords',
+  mass_update_ViewRecords: 'mass_update_ViewRecords',
   /** ANON APEX */
   apex_Submitted: 'apex_Submitted',
   /** SFDC API */
@@ -232,6 +238,7 @@ export const TITLES = {
   MANAGE_PERMISSIONS: 'Manage Permissions | Jetstream',
   DEPLOY_METADATA: 'Deploy Metadata | Jetstream',
   CREATE_OBJ_FIELD: 'Create Fields | Jetstream',
+  MASS_UPDATE_RECORDS: 'Update Records | Jetstream',
   ANON_APEX: 'Anonymous Apex | Jetstream',
   DEBUG_LOGS: 'Debug Logs | Jetstream',
   API_EXPLORER: 'Salesforce Api | Jetstream',

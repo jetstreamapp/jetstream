@@ -20,6 +20,7 @@ type IconEl = (props: React.SVGProps<SVGSVGElement>) => JSX.Element;
 export interface StandardIconObj {
   activations: IconEl;
   asset_relationship: IconEl;
+  bundle_config: IconEl;
   data_streams: IconEl;
   entity: IconEl;
   feedback: IconEl;
