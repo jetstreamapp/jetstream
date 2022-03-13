@@ -24,9 +24,11 @@ export interface ConnectedSobjectListMultiSelectProps {
   sobjects: DescribeGlobalSObjectResult[];
   selectedSObjects: string[];
   allowSelectAll?: boolean;
+  retainSelectionOnRefresh?: boolean;
   filterFn?: (sobject: DescribeGlobalSObjectResult) => boolean;
   onSobjects: (sobjects: DescribeGlobalSObjectResult[]) => void;
   onSelectedSObjects: (selectedSObjects: string[]) => void;
+  onRefresh?: () => void;
 }
 
 export const ConnectedSobjectListMultiSelect: FunctionComponent<ConnectedSobjectListMultiSelectProps> = ({
@@ -35,9 +37,11 @@ export const ConnectedSobjectListMultiSelect: FunctionComponent<ConnectedSobject
   sobjects,
   selectedSObjects,
   allowSelectAll,
+  retainSelectionOnRefresh,
   filterFn = filterSobjectFn,
   onSobjects,
   onSelectedSObjects,
+  onRefresh,
 }) => {
   const isMounted = useRef(null);
   const [loading, setLoading] = useState<boolean>(false);
@@ -89,8 +93,13 @@ export const ConnectedSobjectListMultiSelect: FunctionComponent<ConnectedSobject
     try {
       await clearCacheForOrg(selectedOrg);
       onSobjects(null);
-      onSelectedSObjects(null);
+      if (!retainSelectionOnRefresh) {
+        onSelectedSObjects(null);
+      }
       await loadObjects();
+      if (isMounted.current) {
+        onRefresh && onRefresh();
+      }
     } catch (ex) {
       // error
     }

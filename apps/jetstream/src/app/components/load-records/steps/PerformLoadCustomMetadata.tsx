@@ -9,16 +9,10 @@ import { applicationCookieState } from '../../../app-state';
 import { useAmplitude } from '../../core/analytics';
 import ConfirmPageChange from '../../core/ConfirmPageChange';
 import * as fromJetstreamEvents from '../../core/jetstream-events';
+import { DownloadType } from '../../shared/load-records-results/load-records-results-types';
 import LoadRecordsCustomMetadataResultsTable from '../components/load-results/LoadRecordsCustomMetadataResultsTable';
 import LoadRecordsResultsModal from '../components/load-results/LoadRecordsResultsModal';
-import {
-  DownloadModalData,
-  DownloadType,
-  FieldMapping,
-  FieldWithRelatedEntities,
-  MapOfCustomMetadataRecord,
-  ViewModalData,
-} from '../load-records-types';
+import { DownloadModalData, FieldMapping, FieldWithRelatedEntities, MapOfCustomMetadataRecord, ViewModalData } from '../load-records-types';
 import { useDeployMetadataPackage } from '../useDeployMetadataPackage';
 import { convertCsvToCustomMetadata, prepareCustomMetadata } from '../utils/load-records-utils';
 

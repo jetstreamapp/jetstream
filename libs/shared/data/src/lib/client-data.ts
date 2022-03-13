@@ -27,6 +27,7 @@ import {
   UserProfileAuth0Ui,
   UserProfileUi,
 } from '@jetstream/types';
+import parseISO from 'date-fns/parseISO';
 import {
   AsyncResult,
   DeployOptions,
@@ -42,6 +43,19 @@ let cloudinarySignature: CloudinarySignature;
 
 function unwrapResponseIgnoreCache<T>(response: ApiResponse<T>) {
   return response.data;
+}
+
+// duplicated here to avoid circular dependency :shrug:
+function convertDateToLocale(dateOrIsoDateString: string | Date, options?: Intl.DateTimeFormatOptions): string {
+  if (!dateOrIsoDateString) {
+    return dateOrIsoDateString as undefined;
+  }
+  const date = dateOrIsoDateString instanceof Date ? dateOrIsoDateString : parseISO(dateOrIsoDateString);
+  if (!options) {
+    return date.toLocaleString();
+  } else {
+    return new Intl.DateTimeFormat(navigator.language, options).format(date);
+  }
 }
 
 export async function signUpNotify(email: string): Promise<DescribeGlobalResult> {
@@ -462,7 +476,15 @@ export async function bulkApiCreateJob(org: SalesforceOrgUi, payload: BulkApiCre
 }
 
 export async function bulkApiGetJob(org: SalesforceOrgUi, jobId: string): Promise<BulkJobWithBatches> {
-  return handleRequest({ method: 'GET', url: `/api/bulk/${jobId}` }, { org }).then(unwrapResponseIgnoreCache);
+  return handleRequest<BulkJobWithBatches>({ method: 'GET', url: `/api/bulk/${jobId}` }, { org })
+    .then(unwrapResponseIgnoreCache)
+    .then((results) => {
+      results.batches.forEach((batch) => {
+        batch.createdDate = convertDateToLocale(batch.createdDate, { timeStyle: 'medium' });
+        batch.systemModstamp = convertDateToLocale(batch.systemModstamp, { timeStyle: 'medium' });
+      });
+      return results;
+    });
 }
 
 export async function bulkApiCloseJob(org: SalesforceOrgUi, jobId: string): Promise<BulkJob> {
@@ -475,10 +497,16 @@ export async function bulkApiAddBatchToJob(
   csv: string,
   closeJob?: boolean
 ): Promise<BulkJobBatchInfo> {
-  return handleRequest(
+  return handleRequest<BulkJobBatchInfo>(
     { method: 'POST', url: `/api/bulk/${jobId}`, data: csv, headers: { [HTTP.HEADERS.CONTENT_TYPE]: HTTP.CONTENT_TYPE.CSV } },
     { org }
-  ).then(unwrapResponseIgnoreCache);
+  )
+    .then(unwrapResponseIgnoreCache)
+    .then((result) => {
+      result.createdDate = convertDateToLocale(result.createdDate, { timeStyle: 'medium' });
+      result.systemModstamp = convertDateToLocale(result.systemModstamp, { timeStyle: 'medium' });
+      return result;
+    });
 }
 
 export async function bulkApiAddBatchToJobWithAttachment(

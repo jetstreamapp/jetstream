@@ -2,11 +2,12 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { logger } from '@jetstream/shared/client-logger';
 import { bulkApiAddBatchToJob, bulkApiCloseJob, bulkApiCreateJob, bulkApiGetJob, genericRequest } from '@jetstream/shared/data';
-import { convertDateToLocale, generateCsv } from '@jetstream/shared/ui-utils';
+import { generateCsv } from '@jetstream/shared/ui-utils';
 import { getHttpMethod, getSizeInMbFromBase64, splitArrayToMaxSize } from '@jetstream/shared/utils';
 import {
   BulkJobWithBatches,
   HttpMethod,
+  MapOf,
   RecordResultWithRecord,
   SobjectCollectionRequest,
   SobjectCollectionRequestRecord,
@@ -83,11 +84,11 @@ async function loadBulkApiData({ org, data, sObject, type, batchSize, externalId
     let currItem = 1;
     let fatalError = false;
     const loadErrors: Error[] = [];
+    const batchOrderMap: MapOf<number> = {};
     for (const batch of batches) {
       try {
         const batchResult = await bulkApiAddBatchToJob(org, jobId, batch.data, currItem === batches.length);
-        batchResult.createdDate = convertDateToLocale(batchResult.createdDate, { timeStyle: 'medium' });
-        batchResult.systemModstamp = convertDateToLocale(batchResult.systemModstamp, { timeStyle: 'medium' });
+        batchOrderMap[batchResult.id] = currItem - 1;
         results.batches = results.batches || [];
         results.batches.push(batchResult);
         batch.id = batchResult.id;
@@ -109,10 +110,12 @@ async function loadBulkApiData({ org, data, sObject, type, batchSize, externalId
     }
     const jobInfoWithBatches = await bulkApiGetJob(org, jobId);
 
+    const sortedBatches = [];
     jobInfoWithBatches.batches.forEach((batch) => {
-      batch.createdDate = convertDateToLocale(batch.createdDate, { timeStyle: 'medium' });
-      batch.systemModstamp = convertDateToLocale(batch.systemModstamp, { timeStyle: 'medium' });
+      sortedBatches[batchOrderMap[batch.id]] = batch;
     });
+    // just in case a batch failed and the is a gap in the array
+    jobInfoWithBatches.batches = sortedBatches.filter(Boolean);
 
     if (jobInfoWithBatches.batches.length !== batches.length) {
       // we know that at least one batch failed!
