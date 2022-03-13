@@ -1,7 +1,7 @@
 import { logger } from '@jetstream/shared/client-logger';
 import { ANALYTICS_KEYS } from '@jetstream/shared/constants';
 import { bulkApiGetJob, bulkApiGetRecords } from '@jetstream/shared/data';
-import { convertDateToLocale, useBrowserNotifications, useRollbar } from '@jetstream/shared/ui-utils';
+import { checkIfBulkApiJobIsDone, convertDateToLocale, useBrowserNotifications, useRollbar } from '@jetstream/shared/ui-utils';
 import { getSuccessOrFailureChar, pluralizeFromNumber } from '@jetstream/shared/utils';
 import {
   BulkJobBatchInfo,
@@ -18,11 +18,11 @@ import { useRecoilState } from 'recoil';
 import { applicationCookieState } from '../../../../app-state';
 import { useAmplitude } from '../../../core/analytics';
 import * as fromJetstreamEvents from '../../../core/jetstream-events';
+import { DownloadAction, DownloadType } from '../../../shared/load-records-results/load-records-results-types';
+import LoadRecordsBulkApiResultsTable from '../../../shared/load-records-results/LoadRecordsBulkApiResultsTable';
 import {
   ApiMode,
-  DownloadAction,
   DownloadModalData,
-  DownloadType,
   FieldMapping,
   LoadDataBulkApiStatusPayload,
   LoadDataPayload,
@@ -31,7 +31,6 @@ import {
   ViewModalData,
 } from '../../load-records-types';
 import { getFieldHeaderFromMapping, LoadRecordsBatchError } from '../../utils/load-records-utils';
-import LoadRecordsBulkApiResultsTable from './LoadRecordsBulkApiResultsTable';
 import LoadRecordsResultsModal from './LoadRecordsResultsModal';
 
 type Status = 'Preparing Data' | 'Uploading Data' | 'Processing Data' | 'Finished' | 'Error';
@@ -52,17 +51,6 @@ const STATUSES: {
 
 const CHECK_INTERVAL = 3000;
 const MAX_INTERVAL_CHECK_COUNT = 200; // 3000*200/60=10 minutes
-
-function checkIfJobIsDone(jobInfo: BulkJobWithBatches, batchSummary: LoadDataBulkApiStatusPayload) {
-  if (jobInfo.state === 'Failed' || jobInfo.state === 'Aborted') {
-    return true;
-  }
-  return (
-    jobInfo.batches.length > 0 &&
-    jobInfo.batches.length === batchSummary.totalBatches &&
-    jobInfo.batches.every((batch) => batch.state === 'Completed' || batch.state === 'Failed' || batch.state === 'NotProcessed')
-  );
-}
 
 export interface LoadRecordsBulkApiResultsProps {
   selectedOrg: SalesforceOrgUi;
@@ -188,7 +176,7 @@ export const LoadRecordsBulkApiResults: FunctionComponent<LoadRecordsBulkApiResu
    */
   useEffect(() => {
     if (jobInfo && status !== STATUSES.ERROR && status !== STATUSES.FINISHED) {
-      const isDone = checkIfJobIsDone(jobInfo, batchSummary);
+      const isDone = checkIfBulkApiJobIsDone(jobInfo, batchSummary.totalBatches);
       if (isDone) {
         setStatus(STATUSES.FINISHED);
         const numSuccess = jobInfo.numberRecordsProcessed - jobInfo.numberRecordsFailed;
@@ -216,10 +204,8 @@ export const LoadRecordsBulkApiResults: FunctionComponent<LoadRecordsBulkApiResu
           }
           // jobInfoWithBatches.batches = orderBy(jobInfoWithBatches.batches, ['createdDate']);
           const batches: BulkJobBatchInfo[] = [];
-          // re-order (if needed) and enrich data
+          // re-order (if needed)
           jobInfoWithBatches.batches.forEach((batch) => {
-            batch.createdDate = convertDateToLocale(batch.createdDate, { timeStyle: 'medium' });
-            batch.systemModstamp = convertDateToLocale(batch.systemModstamp, { timeStyle: 'medium' });
             batches[batchIdByIndex[batch.id]] = batch;
           });
           jobInfoWithBatches.batches = batches;
@@ -509,7 +495,6 @@ export const LoadRecordsBulkApiResults: FunctionComponent<LoadRecordsBulkApiResu
       {/* Data is being processed */}
       {jobInfo && (
         <LoadRecordsBulkApiResultsTable
-          selectedOrg={selectedOrg}
           jobInfo={jobInfo}
           processingErrors={preparedData.errors}
           processingStartTime={processingStartTime}

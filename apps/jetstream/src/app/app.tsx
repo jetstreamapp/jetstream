@@ -29,6 +29,7 @@ const Query = lazy(() => import('./components/query/Query'));
 const ManagePermissions = lazy(() => import('./components/manage-permissions/ManagePermissions'));
 const DeployMetadata = lazy(() => import('./components/deploy/DeployMetadata'));
 const CreateObjectAndFields = lazy(() => import('./components/create-object-and-fields/CreateObjectAndFields'));
+const MassUpdateRecords = lazy(() => import('./components/update-records/MassUpdateRecords'));
 const AnonymousApex = lazy(() => import('./components/anonymous-apex/AnonymousApex'));
 const SalesforceApi = lazy(() => import('./components/salesforce-api/SalesforceApi'));
 const DebugLogViewer = lazy(() => import('./components/debug-log-viewer/DebugLogViewer'));
@@ -108,6 +109,15 @@ const ROUTES: RouteItem[] = [
     ),
   },
   {
+    path: '/update-records',
+    // flag: FEATURE_FLAGS.UPDATE_RECORDS,
+    render: () => (
+      <OrgSelectionRequired>
+        <MassUpdateRecords />
+      </OrgSelectionRequired>
+    ),
+  },
+  {
     path: '/apex',
     render: () => (
       <OrgSelectionRequired>
@@ -161,7 +171,9 @@ const ROUTES: RouteItem[] = [
 export const App = () => {
   const [userProfile, setUserProfile] = useState<UserProfileUi>();
   const [featureFlags, setFeatureFlags] = useState<Set<string>>(new Set());
-  const [routes, setRoutes] = useState<RouteItem[]>(() => ROUTES.filter((route) => !route.flag));
+  // This was causing feature flag blocked routes to change on reload in local dev
+  // const [routes, setRoutes] = useState<RouteItem[]>(() => ROUTES.filter((route) => !route.flag));
+  const [routes, setRoutes] = useState<RouteItem[]>([]);
 
   useEffect(() => {
     _userProfile = userProfile;

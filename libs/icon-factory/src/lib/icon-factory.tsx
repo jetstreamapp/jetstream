@@ -15,6 +15,7 @@ import DoctypeIcon_Xml from './icons/doctype/Xml';
 import DoctypeIcon_Zip from './icons/doctype/Zip';
 import StandardIcon_Activations from './icons/standard/Activations';
 import StandardIcon_AssetRelationship from './icons/standard/AssetRelationship';
+import StandardIcon_BundleConfig from './icons/standard/BundleConfig';
 import StandardIcon_DataStreams from './icons/standard/DataStreams';
 import StandardIcon_Entity from './icons/standard/Entity';
 import StandardIcon_Feedback from './icons/standard/Feedback';
@@ -112,6 +113,7 @@ import UtilityIcon_Warning from './icons/utility/Warning';
 const standardIcons: StandardIconObj = {
   activations: StandardIcon_Activations,
   asset_relationship: StandardIcon_AssetRelationship,
+  bundle_config: StandardIcon_BundleConfig,
   data_streams: StandardIcon_DataStreams,
   entity: StandardIcon_Entity,
   feedback: StandardIcon_Feedback,

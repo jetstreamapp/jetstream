@@ -22,10 +22,17 @@ module.exports = {
       searchParameters: {},
       //... other Algolia params
     },
-    metadata: [
-      { name: 'keywords', content: 'TEST123' },
-      { name: 'image', content: 'img/jetstream-logo.svg' },
-    ],
+    // Example announcement banner
+    // https://docusaurus.io/docs/api/themes/configuration#announcement-bar
+    // announcementBar: {
+    //   id: 'support_us',
+    //   content: 'We are looking to revamp our docs, please fill <a target="_blank" rel="noopener noreferrer" href="#">this survey</a>',
+    //   backgroundColor: '#fafbfc',
+    //   textColor: '#091E42',
+    //   isCloseable: false,
+    // },
+    image:
+      'https://res.cloudinary.com/getjetstream/image/upload/b_rgb:ffffff,bo_3px_solid_rgb:ffffff,pg_1/v1634516631/public/jetstream-logo-1200w.png',
     navbar: {
       logo: {
         alt: 'Jetstream logo',

@@ -7,6 +7,7 @@ import {
   SalesforceOrgUi,
 } from '@jetstream/types';
 import { FieldType } from 'jsforce';
+import { DownloadType, PrepareDataResponseError } from '../shared/load-records-results/load-records-results-types';
 
 export type LocalOrGoogle = 'local' | 'google';
 
@@ -83,11 +84,11 @@ export interface PrepareDataResponse {
   queryErrors: string[];
 }
 
-export interface PrepareDataResponseError {
-  row: number;
-  record: any;
-  errors: string[];
-}
+// export interface PrepareDataResponseError {
+//   row: number;
+//   record: any;
+//   errors: string[];
+// }
 
 export interface LoadDataPayload {
   org: SalesforceOrgUi;
@@ -124,8 +125,8 @@ export interface LoadDataBatchApiProgress {
   failure: number;
 }
 
-export type DownloadType = 'results' | 'failures';
-export type DownloadAction = 'view' | 'download';
+// export type DownloadType = 'results' | 'failures';
+// export type DownloadAction = 'view' | 'download';
 
 export interface DownloadModalData {
   open: boolean;
