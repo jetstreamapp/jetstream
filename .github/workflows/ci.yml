@@ -7,6 +7,8 @@ on:
 
 env:
   NX_CLOUD_DISTRIBUTED_EXECUTION: true
+  CONTENTFUL_HOST: cdn.contentful.com
+  CONTENTFUL_SPACE: wuv9tl5d77ll
 
 jobs:
   master:
