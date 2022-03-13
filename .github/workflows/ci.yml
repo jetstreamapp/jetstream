@@ -26,6 +26,7 @@ jobs:
       - uses: actions/setup-node@v2
         with:
           node-version: '16'
+          cache: 'npm'
       - run: npm install
       - run: npx nx-cloud start-ci-run
       - run: npx nx affected --target=build --parallel --max-parallel=2 --configuration=production
@@ -46,6 +47,7 @@ jobs:
   #     - uses: actions/setup-node@v2
   #       with:
   #         node-version: '16'
+  #         cache: 'npm'
   #     - run: npm install
   #     - run: npx nx-cloud start-ci-run
   #     - run: npx nx affected --target=build --parallel --max-parallel=2
@@ -63,6 +65,7 @@ jobs:
       - uses: actions/setup-node@v2
         with:
           node-version: '16'
+          cache: 'npm'
       - run: npm install
       - name: Start Nx Agent ${{ matrix.agent }}
         run: npx nx-cloud start-agent
