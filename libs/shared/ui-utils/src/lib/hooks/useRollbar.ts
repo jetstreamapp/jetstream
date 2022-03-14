@@ -58,6 +58,15 @@ class RollbarConfig {
           log: location.hostname !== 'localhost',
         },
         hostBlockList: ['localhost'],
+        payload: {
+          client: {
+            javascript: {
+              source_map_enabled: true,
+              environment: this.environment,
+              codeVersion: VERSION,
+            },
+          },
+        },
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         onSendCallback: (_isUncaught: boolean, _args: Rollbar.LogArgument[], payload: any) => {
           payload = payload || {};
@@ -89,6 +98,13 @@ class RollbarConfig {
       this.rollbar.configure({
         code_version: VERSION,
         payload: {
+          client: {
+            javascript: {
+              source_map_enabled: true,
+              environment: this.environment,
+              codeVersion: VERSION,
+            },
+          },
           person: {
             id: sub,
             email,
