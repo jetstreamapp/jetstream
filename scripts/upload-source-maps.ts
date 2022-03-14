@@ -11,17 +11,19 @@ const gitRevisionPlugin = new GitRevisionPlugin();
  */
 
 void (async function () {
-  const version = gitRevisionPlugin.version();
+  console.log(chalk.blue(`Uploading sourcemaps to Rollbar`));
+  const distPath = path.join(__dirname, '../dist/apps/jetstream');
+  let version = fs.readFileSync(path.join(distPath, 'VERSION'), 'utf8');
+  version = version || process.env.GIT_VERSION || gitRevisionPlugin.version();
   const url = 'https://api.rollbar.com/api/1/sourcemap';
   const accessToken = process.env.ROLLBAR_SERVER_TOKEN;
-  const distPath = path.join(__dirname, '../dist/apps/jetstream');
+
+  console.log(chalk.blue(`Version: ${version}`));
 
   if (!accessToken) {
     console.error(chalk.redBright('🚫 COULD NOT UPLOAD SOURCEMAPS - ACCESS TOKEN NOT SET 🚫'));
     return;
   }
-
-  console.log(chalk.blue('Uploading sourcemaps to Rollbar', version));
 
   $.verbose = false;
   console.time();
