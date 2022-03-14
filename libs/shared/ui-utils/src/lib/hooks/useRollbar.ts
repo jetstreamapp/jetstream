@@ -59,6 +59,9 @@ class RollbarConfig {
         },
         hostBlockList: ['localhost'],
         payload: {
+          server: {
+            root: 'webpack:///./',
+          },
           client: {
             javascript: {
               source_map_enabled: true,
@@ -98,6 +101,9 @@ class RollbarConfig {
       this.rollbar.configure({
         code_version: VERSION,
         payload: {
+          server: {
+            root: 'webpack:///./',
+          },
           client: {
             javascript: {
               source_map_enabled: true,
