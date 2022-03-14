@@ -47,6 +47,7 @@ class RollbarConfig {
       this.rollbar ||
       new Rollbar({
         codeVersion: VERSION,
+        code_version: VERSION,
         accessToken: this.accessToken,
         captureUncaught: true,
         captureUnhandledRejections: true,
@@ -66,7 +67,7 @@ class RollbarConfig {
             javascript: {
               source_map_enabled: true,
               environment: this.environment,
-              codeVersion: VERSION,
+              code_version: VERSION,
             },
           },
         },
@@ -99,6 +100,7 @@ class RollbarConfig {
       this.rollbarIsConfigured = true;
       const { sub, email } = this.userProfile;
       this.rollbar.configure({
+        codeVersion: VERSION,
         code_version: VERSION,
         payload: {
           server: {
@@ -108,7 +110,7 @@ class RollbarConfig {
             javascript: {
               source_map_enabled: true,
               environment: this.environment,
-              codeVersion: VERSION,
+              code_version: VERSION,
             },
           },
           person: {
