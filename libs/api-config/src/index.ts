@@ -9,4 +9,5 @@ export * from './lib/api-db-config';
 export * from './lib/api-logger';
 export * from './lib/api-rollbar-config';
 export * from './lib/api-telemetry';
+export * from './lib/email.config';
 export * from './lib/env-config';

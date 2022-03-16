@@ -3,7 +3,6 @@
   "compilerOptions": {
     "outDir": "../../dist/out-tsc",
     "module": "commonjs",
-    "esModuleInterop": true,
     "allowSyntheticDefaultImports": true,
     "types": ["node", "google.picker", "gapi.auth2", "gapi.client.drive"]
   },
