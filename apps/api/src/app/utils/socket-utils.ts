@@ -1,11 +1,10 @@
+import { logger } from '@jetstream/api-config';
 import { MapOf, UserProfileServer } from '@jetstream/types';
-import { getOrgForRequest } from 'apps/api/src/app/routes/route.middleware';
-import { UserFacingError } from 'apps/api/src/app/utils/error-handler';
 import { CometD, SubscriptionHandle } from 'cometd';
-import { Socket } from 'socket.io';
+import { Server, Socket } from 'socket.io';
 import { DefaultEventsMap } from 'socket.io/dist/typed-events';
-import { Server } from 'socket.io';
-import { logger } from 'apps/api/src/app/config/logger.config';
+import { getOrgForRequest } from '../routes/route.middleware';
+import { UserFacingError } from '../utils/error-handler';
 
 export interface SocketConnectionState {
   io: Server<DefaultEventsMap, DefaultEventsMap, DefaultEventsMap>;

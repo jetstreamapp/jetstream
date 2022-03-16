@@ -1,5 +1,5 @@
 import { UserProfileAuth0 } from '@jetstream/types';
-import { prisma } from '../config/db.config';
+import { logger, prisma } from '@jetstream/api-config';
 import { logger } from '../config/logger.config';
 
 export async function deleteUserAndOrgs(user: UserProfileAuth0) {

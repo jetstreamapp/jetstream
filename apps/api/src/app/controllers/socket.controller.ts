@@ -1,3 +1,4 @@
+import { ENV, logger } from '@jetstream/api-config';
 import { UserProfileServer } from '@jetstream/types';
 import * as cometdClient from 'cometd-nodejs-client';
 import * as express from 'express';
@@ -7,8 +8,6 @@ import { ExtendedError } from 'socket.io/dist/namespace';
 import { DefaultEventsMap } from 'socket.io/dist/typed-events';
 import * as uuid from 'uuid';
 import { environment } from '../../environments/environment';
-import { ENV } from '../config/env-config';
-import { logger } from '../config/logger.config';
 import * as socketUtils from '../utils/socket-utils';
 
 const serverUrl = ENV.JETSTREAM_SERVER_URL;
@@ -21,10 +20,9 @@ cometdClient.adapt();
 
 let io: Server<DefaultEventsMap, DefaultEventsMap, DefaultEventsMap>;
 
-const wrapMiddleware = (middleware) => (
-  socket: Socket<DefaultEventsMap, DefaultEventsMap, DefaultEventsMap>,
-  next: (err?: ExtendedError) => void
-) => middleware(socket.request, {}, next);
+const wrapMiddleware =
+  (middleware) => (socket: Socket<DefaultEventsMap, DefaultEventsMap, DefaultEventsMap>, next: (err?: ExtendedError) => void) =>
+    middleware(socket.request, {}, next);
 
 function getUser(socket: Socket<DefaultEventsMap, DefaultEventsMap, DefaultEventsMap>) {
   const user = (socket.request as any).user as UserProfileServer;

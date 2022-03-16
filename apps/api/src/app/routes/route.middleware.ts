@@ -1,3 +1,4 @@
+import { ENV, logger, rollbarServer, telemetryAddUserToAttributes } from '@jetstream/api-config';
 import { HTTP } from '@jetstream/shared/constants';
 import { ensureBoolean } from '@jetstream/shared/utils';
 import { ApplicationCookie, UserProfileServer } from '@jetstream/types';
@@ -7,9 +8,6 @@ import * as express from 'express';
 import { ValidationChain, validationResult } from 'express-validator';
 import * as jsforce from 'jsforce';
 import { isNumber } from 'lodash';
-import { ENV } from '../config/env-config';
-import { logger } from '../config/logger.config';
-import { rollbarServer } from '../config/rollbar.config';
 import * as salesforceOrgsDb from '../db/salesforce-org.db';
 import { updateUserLastActivity } from '../services/auth0';
 import { getJsforceOauth2 } from '../utils/auth-utils';
@@ -95,6 +93,7 @@ function getActivityExp() {
 
 export async function checkAuth(req: express.Request, res: express.Response, next: express.NextFunction) {
   if (req.user) {
+    telemetryAddUserToAttributes(req.user as UserProfileServer);
     try {
       if (!isNumber(req.session.activityExp)) {
         req.session.activityExp = getActivityExp();

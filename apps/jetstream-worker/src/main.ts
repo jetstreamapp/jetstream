@@ -1,7 +1,7 @@
 import Fastify from 'fastify';
 import PgBoss from 'pg-boss';
-import { ENV } from './app/config/env-config';
-import { logger } from './app/config/logger.config';
+import { ENV } from '@jetstream/api-config';
+import { logger } from '@jetstream/api-config';
 import emailJob, { EMAIL_JOB_TYPE } from './app/jobs/email.job';
 import { POST_JOB_SCHEMA } from './app/schemas';
 import { JobRequestEmail } from './app/types';

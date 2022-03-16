@@ -1,10 +1,9 @@
+import { ENV, prisma } from '@jetstream/api-config';
 import { decryptString, encryptString, hexToBase64 } from '@jetstream/shared/node-utils';
 import { SalesforceOrgUi } from '@jetstream/types';
 import { Prisma, SalesforceOrg } from '@prisma/client';
 import parseISO from 'date-fns/parseISO';
 import { isUndefined } from 'lodash';
-import { prisma } from '../config/db.config';
-import { ENV } from '../config/env-config';
 
 const SELECT = Prisma.validator<Prisma.SalesforceOrgSelect>()({
   uniqueId: true,

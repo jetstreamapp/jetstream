@@ -1,4 +1,4 @@
-import { logger } from '../config/logger.config';
+import { logger } from '@jetstream/api-config';
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 export class UserFacingError extends Error {

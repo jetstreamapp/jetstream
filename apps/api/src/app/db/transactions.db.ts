@@ -1,6 +1,5 @@
+import { logger, prisma } from '@jetstream/api-config';
 import { UserProfileServer } from '@jetstream/types';
-import { prisma } from '../config/db.config';
-import { logger } from '../config/logger.config';
 
 /**
  * This file manages db operations as transactions that span multiple tables
