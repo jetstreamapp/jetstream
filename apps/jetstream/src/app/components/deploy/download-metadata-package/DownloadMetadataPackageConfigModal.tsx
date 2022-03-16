@@ -1,8 +1,8 @@
 import { css } from '@emotion/react';
 import { INPUT_ACCEPT_FILETYPES } from '@jetstream/shared/constants';
-import { InputReadFileContent, SalesforceOrgUi } from '@jetstream/types';
-import { FileSelector, Grid, GridCol, Modal, Spinner, Textarea } from '@jetstream/ui';
-import { FunctionComponent, useState } from 'react';
+import { ChangeSet, InputReadFileContent, ListItem, SalesforceOrgUi } from '@jetstream/types';
+import { FileSelector, Grid, GridCol, Modal, Picklist, Spinner, Textarea } from '@jetstream/ui';
+import { FunctionComponent, useEffect, useState } from 'react';
 import { useRecoilValue } from 'recoil';
 import { salesforceOrgsState } from '../../../app-state';
 import OrgLabelBadge from '../../../components/core/OrgLabelBadge';
@@ -29,25 +29,23 @@ export const DownloadMetadataPackageConfigModal: FunctionComponent<DownloadMetad
   const [destinationOrg, setDestinationOrg] = useState<SalesforceOrgUi>(initiallySelectedOrg);
   const [file, setFile] = useState<string>();
   const [filename, setFileName] = useState<string>();
-  // const [changesetEntryType, setChangesetEntryType] = useState<'list' | 'manual'>('list');
   const [packageNames, setPackageNames] = useState<string[]>([]);
   const [packageNamesStr, setPackageNamesStr] = useState<string>('');
 
   const { loadPackages, loading, changesetPackages, hasError } = useChangesetList(destinationOrg);
 
-  // Disabled since we do not show a list of packages
-  // useEffect(() => {
-  //   loadPackages();
-  // }, [loadPackages, destinationOrg]);
+  useEffect(() => {
+    loadPackages();
+  }, [loadPackages, destinationOrg]);
 
   function handleFile({ content, filename }: InputReadFileContent) {
     setFileName(filename);
     setFile(content as string);
   }
 
-  // function handleSelectPackage(selectedItems: ListItem<string, ChangeSetPackage>[]) {
-  //   setPackageNames(selectedItems.map((item) => item.value));
-  // }
+  function handleSelectPackage(selectedItems: ListItem<string, ChangeSet>[]) {
+    setPackageNames(selectedItems.map((item) => item.value));
+  }
 
   function handleDownloadFromPackageNames() {
     // combine selected packages with manually entered packages
@@ -86,7 +84,7 @@ export const DownloadMetadataPackageConfigModal: FunctionComponent<DownloadMetad
         className="slds-is-relative"
         // Ensure that the org dropdown does not cause the modal body to scroll
         css={css`
-          min-height: 380px;
+          min-height: 475px;
         `}
       >
         <div className="slds-p-around_medium">
@@ -140,13 +138,12 @@ export const DownloadMetadataPackageConfigModal: FunctionComponent<DownloadMetad
             {loading && <Spinner />}
             <h1 className="slds-text-heading_medium slds-m-bottom_small">Download from outbound changeset or unmanaged package</h1>
 
-            {/* @deprecated - Note supported by Salesforce - still wired up and ready to be used if there is ever a way */}
-            {/* <p>Choose packages from the list and/or manually enter the package names</p>
+            <p>Choose packages from the list and/or manually enter the package names</p>
             <Picklist
               className="slds-m-top_x-small"
               allowDeselection
               multiSelection
-              label="Outbound Changesets / Unmanaged Packages"
+              label="Outbound Changesets"
               placeholder="Select a Package"
               items={changesetPackages || []}
               selectedItemIds={packageNames}
@@ -155,7 +152,7 @@ export const DownloadMetadataPackageConfigModal: FunctionComponent<DownloadMetad
               hasError={hasError}
               errorMessage="There was a problem loading packages for this org"
               errorMessageId="packages-fetch-error"
-            ></Picklist> */}
+            ></Picklist>
 
             <Textarea
               id="package-names"

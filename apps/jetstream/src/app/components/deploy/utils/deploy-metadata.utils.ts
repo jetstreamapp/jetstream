@@ -4,6 +4,7 @@ import { logger } from '@jetstream/shared/client-logger';
 import { DATE_FORMATS, INDEXED_DB } from '@jetstream/shared/constants';
 import { ensureArray, getSuccessOrFailureChar, orderStringsBy, pluralizeFromNumber } from '@jetstream/shared/utils';
 import {
+  ChangeSet,
   DeployResult,
   ListMetadataResult,
   MapOf,
@@ -33,11 +34,11 @@ export function getDeploymentStatusUrl(id: string) {
   return `/lightning/setup/DeployStatus/page?address=${address}`;
 }
 
-export function getChangesetUrl(id: string) {
-  if (!id) {
+export function getLightningChangesetUrl(changeset: ChangeSet) {
+  if (!changeset) {
     return null;
   }
-  const address = encodeURIComponent(`/changemgmt/outboundChangeSetDetailPage.apexp?id=${id}`);
+  const address = encodeURIComponent(changeset.link);
   return `/lightning/setup/OutboundChangeSet/page?address=${address}`;
 }
 
