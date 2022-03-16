@@ -1,6 +1,7 @@
 import { logger } from '@jetstream/shared/client-logger';
 import { HTTP } from '@jetstream/shared/constants';
 import {
+  anonymousApex,
   bulkApiGetJob,
   checkMetadataResults,
   checkMetadataRetrieveResults,
@@ -10,6 +11,7 @@ import { delay, ensureBoolean, NOOP, orderObjectsBy, REGEX } from '@jetstream/sh
 import {
   AndOr,
   BulkJobWithBatches,
+  ChangeSet,
   DeployOptions,
   DeployResult,
   ErrorResult,
@@ -1316,4 +1318,39 @@ export function convertId15To18(id: string): string {
   }
 
   return id;
+}
+
+/**
+ * Parse changesets from changeset page in Salesforce, use anonymous apex to parse the page
+ *
+ * This is pretty sketchy, but Salesforce has not updated their changeset page in forever, so should generally be mostly safe
+ *
+ * Inspired by {@link https://salesforce.stackexchange.com/questions/253434/how-can-i-get-a-list-of-the-current-changeset-names}
+ *
+ * @param org
+ * @returns
+ */
+export async function getChangesetsFromDomParse(org: SalesforceOrgUi) {
+  const apex = `
+    System.debug(new PageReference('/changemgmt/listOutboundChangeSet.apexp').getContent().toString());
+  `;
+  const { result, debugLog } = await anonymousApex(org, apex, 'DEBUG');
+
+  const htmlDocument = debugLog.substring(debugLog.indexOf('<html'), debugLog.indexOf('</html>') + '</html>'.length);
+
+  const dom = new DOMParser().parseFromString(htmlDocument, 'text/html');
+  const changesetTable = dom.querySelectorAll('.pbBody table table tbody > tr');
+
+  const changesets: ChangeSet[] = Array.from(changesetTable)
+    .map((row) => ({
+      link: row.children[1].children[0].getAttribute('href'),
+      name: row.children[1].textContent.replace('\n', '').trim(),
+      description: row.children[2].textContent.replace('\n', '').trim() || null,
+      status: row.children[3].textContent.replace('\n', '').trim() as 'Open' | 'Closed',
+      modifiedBy: row.children[4].textContent.replace('\n', '').trim(),
+      modifiedDate: row.children[5].textContent.replace('\n', '').trim(),
+    }))
+    .filter((item) => item.status === 'Open');
+
+  return changesets;
 }

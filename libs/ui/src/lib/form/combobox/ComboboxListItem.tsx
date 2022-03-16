@@ -1,6 +1,6 @@
 import { SerializedStyles } from '@emotion/react';
 import classNames from 'classnames';
-import React, { forwardRef } from 'react';
+import React, { forwardRef, Fragment } from 'react';
 import Icon from '../../widgets/Icon';
 
 export interface ComboboxListItemProps {
@@ -12,6 +12,7 @@ export interface ComboboxListItemProps {
   textCss?: SerializedStyles;
   label?: string; // can pass in children instead to override the complete media body
   secondaryLabel?: string;
+  secondaryLabelOnNewLine?: boolean;
   title?: string; // fallback to label is label is a string
   selected: boolean;
   disabled?: boolean;
@@ -31,6 +32,7 @@ export const ComboboxListItem = forwardRef<HTMLLIElement, ComboboxListItemProps>
       textCss,
       label,
       secondaryLabel,
+      secondaryLabelOnNewLine,
       title,
       selected,
       disabled,
@@ -77,11 +79,17 @@ export const ComboboxListItem = forwardRef<HTMLLIElement, ComboboxListItemProps>
             )}
           </span>
           <span className="slds-media__body" css={textBodyCss}>
-            {label && (
+            {label && (!secondaryLabel || !secondaryLabelOnNewLine) && (
               <span className={classNames('slds-truncate', textClassName)} title={title} css={textCss}>
                 {label}
                 {secondaryLabel && <span className="slds-text-color_weak slds-m-left_xx-small">{secondaryLabel}</span>}
               </span>
+            )}
+            {label && secondaryLabel && secondaryLabelOnNewLine && (
+              <Fragment>
+                <span className="slds-listbox__option-text slds-listbox__option-text_entity">{label}</span>
+                <span className="slds-listbox__option-meta slds-listbox__option-meta_entity">{secondaryLabel}</span>
+              </Fragment>
             )}
             {children}
           </span>

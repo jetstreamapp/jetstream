@@ -90,6 +90,7 @@ export const ComboboxWithItems: FunctionComponent<ComboboxWithItemsProps> = ({
           id={item.id}
           label={item.label}
           secondaryLabel={item.secondaryLabel}
+          secondaryLabelOnNewLine={item.secondaryLabelOnNewLine}
           selected={item === selectedItem}
           onSelection={(id) => onSelected(item)}
         />

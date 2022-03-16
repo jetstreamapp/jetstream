@@ -39,6 +39,7 @@ type ChildListItem = ComboboxListItemProps & React.RefAttributes<HTMLLIElement>;
 type ChildListGroup = ComboboxListItemGroupProps & { children: React.ReactNode };
 
 export interface ComboboxProps {
+  className?: string;
   inputCss?: SerializedStyles;
   label: string;
   labelHelp?: string;
@@ -101,6 +102,7 @@ export const Combobox: FunctionComponent<ComboboxProps> = (props) => (
 );
 
 const ComboboxElement: FunctionComponent<ComboboxProps & { icon: JSX.Element }> = ({
+  className,
   inputCss,
   label,
   labelHelp,
@@ -336,7 +338,7 @@ const ComboboxElement: FunctionComponent<ComboboxProps & { icon: JSX.Element }> 
   }
 
   return (
-    <div className={classNames('slds-form-element', { 'slds-has-error': hasError })}>
+    <div className={classNames('slds-form-element', { 'slds-has-error': hasError }, className)}>
       <label className={classNames('slds-form-element__label', { 'slds-assistive-text': hideLabel })} htmlFor={id}>
         {isRequired && (
           <abbr className="slds-required" title="required">

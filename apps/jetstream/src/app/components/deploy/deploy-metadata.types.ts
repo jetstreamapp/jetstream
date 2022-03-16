@@ -23,15 +23,6 @@ export interface SalesforceUser {
   IsActive: boolean;
 }
 
-export interface ChangeSetPackage {
-  Id: string;
-  Name: string;
-  Description: string;
-  IsManaged: boolean;
-  Source: string;
-  Status: 'ACTIVE' | 'PUBLISHED' | 'LOCKED' | 'DELETED' | 'INSTALLED';
-}
-
 export interface DeployMetadataTableRow {
   key: string;
   type: string;

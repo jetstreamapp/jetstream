@@ -237,6 +237,8 @@ export interface ListItem<V = string, M = any> {
   id: string;
   label: string;
   secondaryLabel?: string;
+  secondaryLabelOnNewLine?: boolean;
+  metaLabel?: string;
   value: V;
   title?: string;
   meta?: M;
@@ -637,4 +639,13 @@ export interface FetchDebugLogOptions {
   asOfId?: string;
   limit?: number;
   userId?: string;
+}
+
+export interface ChangeSet {
+  name: string;
+  description: string;
+  link: string;
+  status: 'Open' | 'Closed'; // not sure exact types
+  modifiedBy: string;
+  modifiedDate: string;
 }
