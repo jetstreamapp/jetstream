@@ -88,6 +88,7 @@ app.use(
           "'self'",
           'data:',
           '*.cloudinary.com',
+          '*.ctfassets.net',
           '*.documentforce.com',
           '*.force.com',
           '*.githubusercontent.com',
