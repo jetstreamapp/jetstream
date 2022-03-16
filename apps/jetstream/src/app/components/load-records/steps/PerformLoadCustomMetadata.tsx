@@ -48,6 +48,7 @@ export const PerformLoadCustomMetadata: FunctionComponent<PerformLoadCustomMetad
   const { trackEvent } = useAmplitude();
   const [{ serverUrl, defaultApiVersion, google_apiKey, google_appId, google_clientId }] = useRecoilState(applicationCookieState);
   const [loadNumber, setLoadNumber] = useState<number>(0);
+  const [rollbackOnError, setRollbackOnError] = useState<boolean>(false);
   const [dateFormat, setDateFormat] = useState<string>(DATE_FORMATS.MM_DD_YYYY);
   const [metadata, setMetadata] = useState<MapOfCustomMetadataRecord>();
   const [deployStatusUrl, setDeployStatusUrl] = useState<string>();
@@ -94,7 +95,7 @@ export const PerformLoadCustomMetadata: FunctionComponent<PerformLoadCustomMetad
           singlePackage: true,
           checkOnly: false,
           ignoreWarnings: true,
-          rollbackOnError: false,
+          rollbackOnError,
         });
         onIsLoading(true);
         trackEvent(ANALYTICS_KEYS.load_Submitted, {
@@ -212,6 +213,14 @@ export const PerformLoadCustomMetadata: FunctionComponent<PerformLoadCustomMetad
             </span>
           }
           disabled
+        />
+        <Checkbox
+          id={'rollback-on-error'}
+          label={'Rollback on Error'}
+          labelHelp="Rollback all records if any record fails to load. This must be enabled for production orgs."
+          checked={rollbackOnError}
+          onChange={setRollbackOnError}
+          helpText="If this is checked, valid records will still show as successful even if they were rolled back."
         />
         <Select
           id={'date-format'}

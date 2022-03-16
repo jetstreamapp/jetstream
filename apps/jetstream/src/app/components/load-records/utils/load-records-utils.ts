@@ -37,8 +37,7 @@ export function filterLoadSobjects(sobject: DescribeGlobalSObjectResult) {
     (sobject.createable || sobject.updateable || sobject.name.endsWith('__mdt')) &&
     !sobject.name.endsWith('__History') &&
     !sobject.name.endsWith('__Tag') &&
-    !sobject.name.endsWith('__Feed') &&
-    !sobject.name.endsWith('__Share')
+    !sobject.name.endsWith('__Feed')
   );
 }
 
