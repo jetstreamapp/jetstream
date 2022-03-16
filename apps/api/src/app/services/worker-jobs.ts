@@ -1,7 +1,6 @@
 import { User } from '.prisma/client';
+import { ENV, logger } from '@jetstream/api-config';
 import axios, { AxiosError } from 'axios';
-import { ENV } from '../config/env-config';
-import { logger } from '../config/logger.config';
 
 export async function sendWelcomeEmail(user: User) {
   try {

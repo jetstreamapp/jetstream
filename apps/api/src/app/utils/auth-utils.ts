@@ -1,7 +1,6 @@
-/* eslint-disable @typescript-eslint/camelcase */
-import * as Auth0Strategy from 'passport-auth0';
+import { ENV } from '@jetstream/api-config';
 import * as jsforce from 'jsforce';
-import { ENV } from '../config/env-config';
+import * as Auth0Strategy from 'passport-auth0';
 
 interface AuthorizationParamsOptions {
   audience?: string;

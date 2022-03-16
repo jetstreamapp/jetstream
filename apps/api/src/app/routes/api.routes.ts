@@ -1,6 +1,6 @@
+import { ENV } from '@jetstream/api-config';
 import * as express from 'express';
 import Router from 'express-promise-router';
-import { ENV } from '../config/env-config';
 import * as feedbackController from '../controllers/feedback.controller';
 import * as imageController from '../controllers/image.controller';
 import * as orgsController from '../controllers/orgs.controller';

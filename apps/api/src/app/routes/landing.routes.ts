@@ -1,10 +1,9 @@
+import { ENV, logger } from '@jetstream/api-config';
 import * as express from 'express';
-import { sendJson } from '../utils/response.handlers';
-import * as request from 'superagent';
 import Router from 'express-promise-router';
+import * as request from 'superagent';
 import { UserFacingError } from '../utils/error-handler';
-import { logger } from '../config/logger.config';
-import { ENV } from '../config/env-config';
+import { sendJson } from '../utils/response.handlers';
 
 const MAILCHIMP_USER = ENV.MAILCHIMP_USER;
 const MAILCHIMP_API_KEY = ENV.MAILCHIMP_API_KEY;
@@ -21,7 +20,6 @@ routes.post('/sign-up/notify', async (req: express.Request, res: express.Respons
 
     const url = `https://us10.api.mailchimp.com/3.0/lists/${MAILCHIMP_AUDIENCE_ID}/members/`;
     const response = await request.post(url).auth(MAILCHIMP_USER, MAILCHIMP_API_KEY, { type: 'basic' }).send({
-      // eslint-disable-next-line @typescript-eslint/camelcase
       email_address: email,
       status: 'subscribed',
     });

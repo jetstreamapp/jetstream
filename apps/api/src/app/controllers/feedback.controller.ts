@@ -1,7 +1,7 @@
+import { logger } from '@jetstream/api-config';
 import { UserProfileServer } from '@jetstream/types';
 import { NextFunction, Request, Response } from 'express';
 import { body } from 'express-validator';
-import { logger } from '../config/logger.config';
 import { createIssue } from '../services/github';
 import { UserFacingError } from '../utils/error-handler';
 import { sendJson } from '../utils/response.handlers';

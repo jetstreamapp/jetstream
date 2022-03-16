@@ -1,10 +1,10 @@
 /* eslint-disable @typescript-eslint/no-use-before-define */
+import { logger } from '@jetstream/api-config';
+import { QueryResults, QueryResultsColumn, QueryResultsColumns } from '@jetstream/api-interfaces';
 import { Connection } from 'jsforce';
-import { parseQuery, Query } from 'soql-parser-js';
-import { QueryColumnsSfdc, QueryColumnMetadata } from '../types/types';
-import { QueryResultsColumns, QueryResultsColumn, QueryResults } from '@jetstream/api-interfaces';
-import { logger } from '../config/logger.config';
 import * as querystring from 'querystring';
+import { parseQuery, Query } from 'soql-parser-js';
+import { QueryColumnMetadata, QueryColumnsSfdc } from '../types/types';
 
 export async function queryRecords(
   conn: Connection,

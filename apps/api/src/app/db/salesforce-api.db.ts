@@ -1,6 +1,5 @@
+import { ENV, prisma } from '@jetstream/api-config';
 import { SalesforceApi } from '@prisma/client';
-import { prisma } from '../config/db.config';
-import { ENV } from '../config/env-config';
 
 const VERSION_REPLACE = '{{version}}';
 

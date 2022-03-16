@@ -12,7 +12,7 @@ import {
 import * as jsforce from 'jsforce';
 import { isString } from 'lodash';
 import * as request from 'superagent';
-import { create as xmlBuilder, convert as xmlConverter } from 'xmlbuilder2';
+import { convert as xmlConverter, create as xmlBuilder } from 'xmlbuilder2';
 
 const { HEADERS, CONTENT_TYPE } = HTTP;
 

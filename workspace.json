@@ -2,6 +2,7 @@
   "version": 2,
   "projects": {
     "api": "apps/api",
+    "api-config": "libs/api-config",
     "api-interfaces": "libs/api-interfaces",
     "connected-connected-ui": "libs/connected/connected-ui",
     "cron-tasks": "apps/cron-tasks",
