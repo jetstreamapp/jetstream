@@ -1,11 +1,10 @@
+import { ENV, logger } from '@jetstream/api-config';
 import { UserProfileServer } from '@jetstream/types';
 import { NextFunction, Request, Response } from 'express';
 import { isString } from 'lodash';
 import * as passport from 'passport';
 import * as querystring from 'querystring';
 import { URL } from 'url';
-import { ENV } from '../config/env-config';
-import { logger } from '../config/logger.config';
 import { hardDeleteUserAndOrgs } from '../db/transactions.db';
 import { createOrUpdateUser } from '../db/user.db';
 // import { sendWelcomeEmail } from '../services/worker-jobs';

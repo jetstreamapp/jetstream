@@ -1,9 +1,8 @@
+import { ENV, logger } from '@jetstream/api-config';
 import { SalesforceOrgUi, SObjectOrganization, UserProfileServer } from '@jetstream/types';
 import * as express from 'express';
 import * as jsforce from 'jsforce';
 import * as querystring from 'querystring';
-import { ENV } from '../config/env-config';
-import { logger } from '../config/logger.config';
 import * as salesforceOrgsDb from '../db/salesforce-org.db';
 import { getJsforceOauth2 } from '../utils/auth-utils';
 import { OauthLinkParams } from './auth.controller';

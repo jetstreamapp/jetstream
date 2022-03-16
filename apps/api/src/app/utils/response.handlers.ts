@@ -1,12 +1,10 @@
+import { ENV, logger, rollbarServer } from '@jetstream/api-config';
 import { ERROR_MESSAGES, HTTP } from '@jetstream/shared/constants';
 import { SalesforceOrg } from '@prisma/client';
 import * as express from 'express';
 import * as querystring from 'querystring';
-import { ENV } from '../config/env-config';
-import { logger } from '../config/logger.config';
 import * as salesforceOrgsDb from '../db/salesforce-org.db';
 import { AuthenticationError, NotFoundError, UserFacingError } from './error-handler';
-import { rollbarServer } from '../config/rollbar.config';
 
 export function healthCheck(req: express.Request, res: express.Response) {
   return res.status(200).end();

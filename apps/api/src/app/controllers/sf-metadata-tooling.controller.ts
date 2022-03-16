@@ -1,3 +1,4 @@
+import { ENV, logger } from '@jetstream/api-config';
 import { HTTP, LOG_LEVELS, MIME_TYPES } from '@jetstream/shared/constants';
 import { ensureArray, getValueOrSoapNull, sanitizeForXml, splitArrayToMaxSize, toBoolean } from '@jetstream/shared/utils';
 import { AnonymousApexResponse, AnonymousApexSoapResponse, ApexCompletionResponse, ListMetadataResult, MapOf } from '@jetstream/types';
@@ -7,8 +8,6 @@ import * as jsforce from 'jsforce';
 import { DeployOptions, RetrieveRequest } from 'jsforce';
 import * as JSZip from 'jszip';
 import { isObject, isString, toNumber } from 'lodash';
-import { ENV } from '../config/env-config';
-import { logger } from '../config/logger.config';
 import { buildPackageXml, getRetrieveRequestFromListMetadata, getRetrieveRequestFromManifest } from '../services/sf-misc';
 import { UserFacingError } from '../utils/error-handler';
 import { sendJson } from '../utils/response.handlers';

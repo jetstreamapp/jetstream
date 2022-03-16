@@ -1,8 +1,8 @@
+import { logger } from '@jetstream/api-config';
 import { UserProfileServer } from '@jetstream/types';
 import { AxiosError } from 'axios';
 import * as express from 'express';
 import { body, query as queryString } from 'express-validator';
-import { logger } from '../config/logger.config';
 import { deleteUserAndOrgs } from '../db/transactions.db';
 import * as auth0Service from '../services/auth0';
 import { createIssue } from '../services/github';

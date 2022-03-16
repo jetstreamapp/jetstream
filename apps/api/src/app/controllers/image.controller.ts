@@ -1,5 +1,5 @@
+import { ENV } from '@jetstream/api-config';
 import { UserProfileServer } from '@jetstream/types';
-import { ENV } from 'apps/api/src/app/config/env-config';
 import { v2 as cloudinary } from 'cloudinary';
 import { NextFunction, Request, Response } from 'express';
 import { UserFacingError } from '../utils/error-handler';

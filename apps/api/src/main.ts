@@ -1,3 +1,5 @@
+import '@jetstream/api-config'; // this gets imported first to ensure as some items require early initialization
+import { ENV, logger, pgPool } from '@jetstream/api-config';
 import { SESSION_EXP_DAYS } from '@jetstream/shared/constants';
 import { json, raw, urlencoded } from 'body-parser';
 import * as pgSimple from 'connect-pg-simple';
@@ -9,13 +11,10 @@ import * as helmet from 'helmet';
 import * as passport from 'passport';
 import * as Auth0Strategy from 'passport-auth0';
 import { join } from 'path';
-import { pgPool } from './app/config/db.config';
-import { ENV } from './app/config/env-config';
-import { logger } from './app/config/logger.config';
 import { initSocketServer } from './app/controllers/socket.controller';
 import { apiRoutes, landingRoutes, oauthRoutes, platformEventRoutes, staticAuthenticatedRoutes } from './app/routes';
 import { blockBotByUserAgentMiddleware, logRoute, notFoundMiddleware, setApplicationCookieMiddleware } from './app/routes/route.middleware';
-import { healthCheck, uncaughtErrorHandler, blockBotHandler } from './app/utils/response.handlers';
+import { blockBotHandler, healthCheck, uncaughtErrorHandler } from './app/utils/response.handlers';
 import { environment } from './environments/environment';
 
 declare module 'express-session' {

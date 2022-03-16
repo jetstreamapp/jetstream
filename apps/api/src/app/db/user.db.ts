@@ -1,7 +1,6 @@
 import { User } from '.prisma/client';
+import { logger, prisma } from '@jetstream/api-config';
 import { UserProfileServer } from '@jetstream/types';
-import { prisma } from '../config/db.config';
-import { logger } from '../config/logger.config';
 
 /**
  * Find by Auth0 userId, not Jetstream Id

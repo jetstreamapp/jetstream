@@ -1,12 +1,11 @@
 /**
  * ENDED UP NOT USING THIS STUFF
  */
+import { ENV, logger } from '@jetstream/api-config';
 import { UserProfileServer } from '@jetstream/types';
-import { CometdReplayExtension } from './cometd-replay-extension';
 import { CometD } from 'cometd';
 import * as jsforce from 'jsforce';
-import { ENV } from '../../config/env-config';
-import { logger } from '../../config/logger.config';
+import { CometdReplayExtension } from './cometd-replay-extension';
 
 export function initCometD(user: UserProfileServer, cometd: CometD, connection: jsforce.Connection) {
   return new Promise<void>((resolve, reject) => {

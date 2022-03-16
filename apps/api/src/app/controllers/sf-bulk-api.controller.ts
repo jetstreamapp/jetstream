@@ -1,3 +1,4 @@
+import { logger } from '@jetstream/api-config';
 import { HTTP } from '@jetstream/shared/constants';
 import { toBoolean } from '@jetstream/shared/utils';
 import { BulkApiCreateJobRequestPayload, BulkApiDownloadType, BulkJobBatchInfo } from '@jetstream/types';
@@ -5,7 +6,6 @@ import { NextFunction, Request, Response } from 'express';
 import { body, param, query } from 'express-validator';
 import * as jsforce from 'jsforce';
 import { NODE_STREAM_INPUT, parse as parseCsv } from 'papaparse';
-import { logger } from '../config/logger.config';
 import {
   SfBulkAddBatchToJob,
   SfBulkAddBatchWithZipAttachmentToJob,
