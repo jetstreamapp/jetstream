@@ -1,10 +1,10 @@
 import { useNonInitialEffect } from '@jetstream/shared/ui-utils';
-import { DeployResult, ListMetadataResult, MapOf, SalesforceOrgUi } from '@jetstream/types';
+import { ChangeSet, DeployResult, ListMetadataResult, MapOf, SalesforceOrgUi } from '@jetstream/types';
 import { SalesforceLogin } from '@jetstream/ui';
 import { Fragment, FunctionComponent, useEffect, useState } from 'react';
 import { useRecoilState } from 'recoil';
 import { applicationCookieState } from '../../../app-state';
-import { getChangesetUrl, getDeploymentStatusUrl } from '../utils/deploy-metadata.utils';
+import { getDeploymentStatusUrl, getLightningChangesetUrl } from '../utils/deploy-metadata.utils';
 import DeployMetadataStatusModal from '../utils/DeployMetadataStatusModal';
 import { getStatusValue, useAddItemsToChangeset } from '../utils/useAddItemsToChangeset';
 
@@ -13,7 +13,7 @@ export interface AddToChangesetStatusModalProps {
   selectedMetadata: MapOf<ListMetadataResult[]>;
   changesetName: string;
   changesetDescription: string;
-  changesetId?: string;
+  changeset?: ChangeSet;
   // used to hide while download window is open
   hideModal: boolean;
   onGoBack: () => void;
@@ -25,7 +25,7 @@ export const AddToChangesetStatusModal: FunctionComponent<AddToChangesetStatusMo
   selectedOrg,
   changesetName,
   changesetDescription,
-  changesetId,
+  changeset,
   selectedMetadata,
   hideModal,
   onGoBack,
@@ -34,7 +34,6 @@ export const AddToChangesetStatusModal: FunctionComponent<AddToChangesetStatusMo
 }) => {
   const [{ serverUrl }] = useRecoilState(applicationCookieState);
   const [deployStatusUrl, setDeployStatusUrl] = useState<string>();
-  const [changesetUrl, setChangesetUrl] = useState<string>();
   const { deployMetadata, results, deployId, loading, status, lastChecked, hasError, errorMessage } = useAddItemsToChangeset(selectedOrg, {
     changesetName,
     changesetDescription,
@@ -54,12 +53,6 @@ export const AddToChangesetStatusModal: FunctionComponent<AddToChangesetStatusMo
     }
   }, [deployId]);
 
-  useEffect(() => {
-    if (changesetId) {
-      setChangesetUrl(getChangesetUrl(changesetId));
-    }
-  }, [changesetId]);
-
   return (
     <DeployMetadataStatusModal
       destinationOrg={selectedOrg}
@@ -78,9 +71,9 @@ export const AddToChangesetStatusModal: FunctionComponent<AddToChangesetStatusMo
       hasError={hasError}
       statusUrls={
         <Fragment>
-          {changesetUrl && (
+          {changeset?.link && (
             <div>
-              <SalesforceLogin org={selectedOrg} serverUrl={serverUrl} iconPosition="right" returnUrl={changesetUrl}>
+              <SalesforceLogin org={selectedOrg} serverUrl={serverUrl} iconPosition="right" returnUrl={getLightningChangesetUrl(changeset)}>
                 View the outbound changeset.
               </SalesforceLogin>
             </div>

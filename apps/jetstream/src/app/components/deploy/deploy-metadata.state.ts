@@ -1,10 +1,10 @@
 import { COMMON_METADATA_TYPES, ListMetadataQueryExtended } from '@jetstream/connected-ui';
-import { ListItem, MapOf } from '@jetstream/types';
+import { ListItem, MapOf, ChangeSet } from '@jetstream/types';
 import isAfter from 'date-fns/isAfter';
 import isSameDay from 'date-fns/isSameDay';
 import { MetadataObject } from 'jsforce';
 import { atom, selector } from 'recoil';
-import { AllUser, ChangeSetPackage, CommonUser, SalesforceUser, YesNo } from './deploy-metadata.types';
+import { AllUser, CommonUser, SalesforceUser, YesNo } from './deploy-metadata.types';
 
 export const metadataItemsState = atom<string[]>({
   key: 'deploy-metadata.metadataItemsState',
@@ -66,7 +66,7 @@ export const changesetPackage = atom<string>({
   default: '',
 });
 
-export const changesetPackages = atom<ListItem<string, ChangeSetPackage>[]>({
+export const changesetPackages = atom<ListItem<string, ChangeSet>[]>({
   key: 'deploy-metadata.changesetPackages',
   default: null,
 });
@@ -138,16 +138,14 @@ export const listMetadataQueriesSelector = selector<ListMetadataQueryExtended[]>
     const selectedMetadataItems = get(selectedMetadataItemsState);
     return (metadataSelectionType === 'common' ? COMMON_METADATA_TYPES : Array.from(selectedMetadataItems))
       .filter((item) => metadataItemsMap[item])
-      .map(
-        (item): ListMetadataQueryExtended => {
-          const metadataDescribe = metadataItemsMap[item];
-          return {
-            type: metadataDescribe.xmlName,
-            folder: null,
-            inFolder: metadataDescribe.inFolder,
-          };
-        }
-      );
+      .map((item): ListMetadataQueryExtended => {
+        const metadataDescribe = metadataItemsMap[item];
+        return {
+          type: metadataDescribe.xmlName,
+          folder: null,
+          inFolder: metadataDescribe.inFolder,
+        };
+      });
   },
 });
 

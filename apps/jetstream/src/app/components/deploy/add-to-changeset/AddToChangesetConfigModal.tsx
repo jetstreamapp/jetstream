@@ -1,24 +1,23 @@
 import { css } from '@emotion/react';
 import { useNonInitialEffect } from '@jetstream/shared/ui-utils';
-import { ListItem, ListMetadataResult, MapOf, SalesforceOrgUi } from '@jetstream/types';
-import { Grid, GridCol, Input, Modal, Picklist, Radio, RadioGroup, SalesforceLogin, Spinner, Textarea } from '@jetstream/ui';
+import { ChangeSet, ListItem, ListMetadataResult, MapOf, SalesforceOrgUi } from '@jetstream/types';
+import { ComboboxWithItems, Grid, GridCol, Input, Modal, Radio, RadioGroup, SalesforceLogin, Spinner, Textarea } from '@jetstream/ui';
 import { Fragment, FunctionComponent, useEffect, useRef, useState } from 'react';
 import { useRecoilState } from 'recoil';
 import { applicationCookieState } from '../../../app-state';
 import OrgLabelBadge from '../../core/OrgLabelBadge';
-import { ChangeSetPackage } from '../deploy-metadata.types';
 import { useChangesetList } from '../utils/useChangesetList';
 
 export interface AddToChangesetConfigModalProps {
   selectedOrg: SalesforceOrgUi;
   selectedMetadata: MapOf<ListMetadataResult[]>;
-  initialPackages?: ListItem<string, ChangeSetPackage>[];
+  initialPackages?: ListItem<string, ChangeSet>[];
   initialPackage?: string;
   initialDescription?: string;
-  onChangesetPackages: (changesetPackages: ListItem<string, ChangeSetPackage>[]) => void;
+  onChangesetPackages: (changesetPackages: ListItem<string, ChangeSet>[]) => void;
   onSelection: (changesetPackage: string) => void;
   onClose: () => void;
-  onDeploy: (changesetPackage: string, changesetDescription: string, changesetId?: string) => void;
+  onDeploy: (changesetPackage: string, changesetDescription: string, changeset?: ChangeSet) => void;
 }
 
 export const AddToChangesetConfigModal: FunctionComponent<AddToChangesetConfigModalProps> = ({
@@ -34,12 +33,12 @@ export const AddToChangesetConfigModal: FunctionComponent<AddToChangesetConfigMo
 }) => {
   const modalBodyRef = useRef<HTMLDivElement>();
   const [{ serverUrl }] = useRecoilState(applicationCookieState);
-  const [changesetEntryType, setChangesetEntryType] = useState<'list' | 'manual'>('manual');
+  const [changesetEntryType, setChangesetEntryType] = useState<'list' | 'manual'>('list');
   const [changesetPackage, setChangesetPackage] = useState<string>(initialPackage || '');
   const [changesetDescription, setChangesetDescription] = useState<string>(initialDescription || '');
-  const [changesetId, setChangesetId] = useState<string>(null);
-  const [loading, setLoading] = useState(false);
-  const { loadPackages, loading: loadingChangesetPackages, changesetPackages, hasError } = useChangesetList(selectedOrg, initialPackages);
+  const [selectedChangeset, setSelectedChangeset] = useState<ChangeSet>(null);
+  // FIXME: show hasError on page somewhere
+  const { loadPackages, loading, changesetPackages, hasError, errorMessage } = useChangesetList(selectedOrg, initialPackages);
   const [selectedMetadataList, setSelectedMetadataList] = useState<string[]>();
 
   useEffect(() => {
@@ -63,16 +62,11 @@ export const AddToChangesetConfigModal: FunctionComponent<AddToChangesetConfigMo
     }
   }, [selectedMetadata]);
 
-  function handleSelection(selectedItems: ListItem<string, ChangeSetPackage>[]) {
-    if (selectedItems?.length) {
-      setChangesetPackage(decodeURIComponent(selectedItems[0].value || ''));
-      setChangesetDescription(decodeURIComponent(selectedItems[0].meta?.Description || ''));
-      setChangesetId(selectedItems[0].meta?.Id);
-    } else {
-      setChangesetPackage('');
-      setChangesetDescription('');
-      setChangesetId(null);
-    }
+  function handleSelection(selectedItem: ListItem<string, ChangeSet>) {
+    setChangesetPackage(selectedItem.value || '');
+    setChangesetDescription(selectedItem.meta?.description || '');
+    // FIXME: do we want to parse the id from the link?
+    setSelectedChangeset(selectedItem.meta as ChangeSet);
   }
 
   return (
@@ -85,13 +79,13 @@ export const AddToChangesetConfigModal: FunctionComponent<AddToChangesetConfigMo
       }
       footer={
         <Fragment>
-          <button className="slds-button slds-button_neutral" onClick={() => onClose()} disabled={loadingChangesetPackages}>
+          <button className="slds-button slds-button_neutral" onClick={() => onClose()} disabled={loading}>
             Cancel
           </button>
           <button
             className="slds-button slds-button_brand"
-            onClick={() => onDeploy(changesetPackage, changesetDescription, changesetId)}
-            disabled={loadingChangesetPackages || !changesetPackage}
+            onClick={() => onDeploy(changesetPackage, changesetDescription, selectedChangeset)}
+            disabled={loading || !changesetPackage}
           >
             Deploy
           </button>
@@ -103,7 +97,7 @@ export const AddToChangesetConfigModal: FunctionComponent<AddToChangesetConfigMo
       <div className="slds-is-relative" ref={modalBodyRef}>
         <Grid>
           <GridCol className="slds-border_right slds-p-right_x-small">
-            {loadingChangesetPackages && <Spinner />}
+            {loading && <Spinner />}
 
             <ul className="slds-list_dotted">
               <li>
@@ -120,81 +114,82 @@ export const AddToChangesetConfigModal: FunctionComponent<AddToChangesetConfigMo
               <li>This process can be used for outbound changeset or unmanaged packages.</li>
               <li>The last modified user and date will get updated on all the items you are adding to the changeset.</li>
             </ul>
-
-            {/* @deprecated - Note supported by Salesforce - still wired up and ready to be used if there is ever a way */}
-            {/* <RadioGroup
-          className="slds-m-top_small slds-m-bottom_x-small"
-          idPrefix="package"
-          label="Choose changeset from list"
-          required
-          labelHelp="Salesforce has limited support for obtaining changesets, if your changeset is not shown below, manually enter the name. This list may also include unmanaged packages, which can be used successfully with this process."
-        >
-          <Radio
-            idPrefix="package"
-            id="package-list"
-            name="package"
-            label="Choose changeset from list"
-            value="list"
-            checked={changesetEntryType === 'list'}
-            disabled={loading}
-            onChange={(value) => setChangesetEntryType(value as 'list' | 'manual')}
-          />
-          <Radio
-            idPrefix="package"
-            id="package-manual-entry"
-            name="package"
-            label="Manually enter changeset name"
-            value="manual"
-            checked={changesetEntryType === 'manual'}
-            disabled={loading}
-            onChange={(value) => setChangesetEntryType(value as 'list' | 'manual')}
-          />
-        </RadioGroup> */}
+            <RadioGroup
+              className="slds-m-top_small slds-m-bottom_x-small"
+              idPrefix="package"
+              label="Choose changeset from list"
+              required
+              labelHelp="Salesforce has limited support for obtaining changesets, if your changeset is not shown below, manually enter the name."
+            >
+              <Radio
+                idPrefix="package"
+                id="package-list"
+                name="package"
+                label="Choose changeset from list"
+                value="list"
+                checked={changesetEntryType === 'list'}
+                disabled={loading}
+                onChange={(value) => setChangesetEntryType(value as 'list' | 'manual')}
+              />
+              <Radio
+                idPrefix="package"
+                id="package-manual-entry"
+                name="package"
+                label="Manually enter changeset name"
+                value="manual"
+                checked={changesetEntryType === 'manual'}
+                disabled={loading}
+                onChange={(value) => setChangesetEntryType(value as 'list' | 'manual')}
+              />
+            </RadioGroup>
 
             <div
               css={css`
                 margin-bottom: 200px;
               `}
             >
-              {/* @deprecated - Note supported by Salesforce - still wired up and ready to be used if there is ever a way */}
-              {/* {changesetEntryType === 'list' && (
-            <Grid verticalAlign="end">
-              <div className="slds-grow">
-                <Picklist
-                  isRequired
-                  label="Changesets"
-                  helpText={
-                    <span>
-                      Salesforce has limited changeset support for 3rd party applications. If your changeset does not appear, choose to{' '}
-                      <span className="slds-text-link" onClick={() => setChangesetEntryType('manual')}>
-                        manually enter
-                      </span>{' '}
-                      the changeset name.
-                    </span>
-                  }
-                  scrollLength={5}
-                  placeholder="Select an Option"
-                  items={changesetPackages || []}
-                  selectedItemIds={changesetPackage ? [changesetPackage] : undefined}
-                  disabled={loadingChangesetPackages || loading}
-                  allowDeselection={false}
-                  onChange={handleSelection}
-                ></Picklist>
-              </div>
-              <div className="slds-m-horizontal_small">
-                <button
-                  css={css`
-                    margin-bottom: 20px;
-                  `}
-                  className="slds-button slds-button_neutral"
-                  onClick={() => loadPackages()}
-                  disabled={loadingChangesetPackages || loading}
-                >
-                  Refresh Changesets
-                </button>
-              </div>
-            </Grid>
-          )} */}
+              {changesetEntryType === 'list' && (
+                <Grid verticalAlign="end">
+                  <div className="slds-grow">
+                    <ComboboxWithItems
+                      comboboxProps={{
+                        isRequired: true,
+                        label: 'Changesets',
+                        helpText: (
+                          <span>
+                            Salesforce has limited changeset support for 3rd party applications. If your changeset does not appear, choose
+                            to{' '}
+                            <span className="slds-text-link" onClick={() => setChangesetEntryType('manual')}>
+                              manually enter
+                            </span>{' '}
+                            the changeset name.
+                          </span>
+                        ),
+                        placeholder: 'Select an Option',
+                        disabled: loading,
+                        hasError,
+                        errorMessage,
+                        errorMessageId: 'list-changeset-error',
+                      }}
+                      items={changesetPackages || []}
+                      selectedItemId={changesetPackage}
+                      onSelected={handleSelection}
+                    />
+                  </div>
+                  <div className="slds-m-horizontal_small">
+                    <button
+                      css={css`
+                        margin-bottom: 20px;
+                      `}
+                      className="slds-button slds-button_neutral"
+                      onClick={() => loadPackages()}
+                      disabled={loading}
+                    >
+                      Refresh Changesets
+                    </button>
+                  </div>
+                </Grid>
+              )}
               {changesetEntryType === 'manual' && (
                 <Input
                   label="Changesets"
@@ -206,7 +201,7 @@ export const AddToChangesetConfigModal: FunctionComponent<AddToChangesetConfigMo
                     className="slds-input"
                     placeholder="Changeset name"
                     value={changesetPackage}
-                    disabled={loadingChangesetPackages || loading}
+                    disabled={loading}
                     onChange={(event) => setChangesetPackage(event.target.value)}
                   />
                 </Input>
@@ -220,7 +215,7 @@ export const AddToChangesetConfigModal: FunctionComponent<AddToChangesetConfigMo
                 <textarea
                   id="changeset-description"
                   className="slds-textarea"
-                  disabled={loadingChangesetPackages || loading}
+                  disabled={loading}
                   value={changesetDescription}
                   onChange={(event) => setChangesetDescription(event.target.value)}
                   maxLength={255}

@@ -1,23 +1,17 @@
 import { logger } from '@jetstream/shared/client-logger';
-import { query } from '@jetstream/shared/data';
-import { useReducerFetchFn } from '@jetstream/shared/ui-utils';
-import { ListItem, SalesforceOrgUi } from '@jetstream/types';
+import { getChangesetsFromDomParse, useReducerFetchFn } from '@jetstream/shared/ui-utils';
+import { ChangeSet, ListItem, SalesforceOrgUi } from '@jetstream/types';
 import { useCallback, useEffect, useReducer, useRef } from 'react';
-import { ChangeSetPackage } from '../deploy-metadata.types';
-import { getQueryForPackage } from './deploy-metadata.utils';
 
-export function useChangesetList(selectedOrg: SalesforceOrgUi, initialPackages?: ListItem<string, ChangeSetPackage>[]) {
+export function useChangesetList(selectedOrg: SalesforceOrgUi, initialPackages?: ListItem<string, ChangeSet>[]) {
   const isMounted = useRef(null);
 
-  const [{ hasLoaded, loading, data, hasError, errorMessage }, dispatch] = useReducer(
-    useReducerFetchFn<ListItem<string, ChangeSetPackage>[]>(),
-    {
-      hasLoaded: !!initialPackages,
-      loading: false,
-      hasError: false,
-      data: initialPackages || [],
-    }
-  );
+  const [{ hasLoaded, loading, data, hasError, errorMessage }, dispatch] = useReducer(useReducerFetchFn<ListItem<string, ChangeSet>[]>(), {
+    hasLoaded: !!initialPackages,
+    loading: false,
+    hasError: false,
+    data: initialPackages || [],
+  });
 
   useEffect(() => {
     isMounted.current = true;
@@ -29,10 +23,12 @@ export function useChangesetList(selectedOrg: SalesforceOrgUi, initialPackages?:
   const loadPackages = useCallback(async () => {
     try {
       dispatch({ type: 'REQUEST', payload: [] });
-      const { queryResults } = await query<ChangeSetPackage>(selectedOrg, getQueryForPackage());
+      const changesets = await getChangesetsFromDomParse(selectedOrg);
+
+      logger.log({ changesets });
 
       if (isMounted.current) {
-        dispatch({ type: 'SUCCESS', payload: getListItemFromQueryResults(queryResults.records) });
+        dispatch({ type: 'SUCCESS', payload: getListItemFromChangesets(changesets) });
       }
     } catch (ex) {
       logger.warn('[useChangesetList][ERROR]', ex.message);
@@ -52,18 +48,16 @@ export function useChangesetList(selectedOrg: SalesforceOrgUi, initialPackages?:
   return { loadPackages, loading, changesetPackages: data, hasError, errorMessage };
 }
 
-/**
- * Convert records into ListItem
- * @param records
- */
-function getListItemFromQueryResults(records: ChangeSetPackage[]) {
-  return records.map((changesetPackage): ListItem<string, ChangeSetPackage> => {
+function getListItemFromChangesets(records: ChangeSet[]) {
+  return records.map((changesetPackage): ListItem<string, ChangeSet> => {
     return {
-      id: changesetPackage.Name,
-      label: changesetPackage.Name,
-      value: changesetPackage.Name,
+      id: changesetPackage.name,
+      label: changesetPackage.name,
+      secondaryLabel: changesetPackage.description,
+      secondaryLabelOnNewLine: true,
+      value: changesetPackage.name,
       meta: changesetPackage,
-      title: changesetPackage.Description,
+      title: changesetPackage.description,
     };
   });
 }

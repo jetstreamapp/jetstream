@@ -1,5 +1,5 @@
 import { ANALYTICS_KEYS } from '@jetstream/shared/constants';
-import { DeployResult, ListMetadataResult, MapOf, SalesforceOrgUi } from '@jetstream/types';
+import { ChangeSet, DeployResult, ListMetadataResult, MapOf, SalesforceOrgUi } from '@jetstream/types';
 import { FileDownloadModal, Icon } from '@jetstream/ui';
 import { Fragment, FunctionComponent, useState } from 'react';
 import { useRecoilState } from 'recoil';
@@ -28,7 +28,7 @@ export const AddToChangeset: FunctionComponent<AddToChangesetProps> = ({ selecte
 
   const [changesetPackageName, setChangesetPackageName] = useState<string>();
   const [changesetPackageDescription, setChangesetPackageDescription] = useState<string>();
-  const [changesetId, setChangesetId] = useState<string>(null);
+  const [selectedChangeset, setSelectedChangeset] = useState<ChangeSet>(null);
 
   const [changesetPackage, setChangesetPackage] = useRecoilState(fromDeployMetadataState.changesetPackage);
   const [changesetPackages, setChangesetPackages] = useRecoilState(fromDeployMetadataState.changesetPackages);
@@ -40,10 +40,10 @@ export const AddToChangeset: FunctionComponent<AddToChangesetProps> = ({ selecte
     setSelectedMetadata(convertRowsToMapOfListMetadataResults(Array.from(selectedRows)));
   }
 
-  function handleDeployToChangeset(packageName: string, changesetDescription: string, changesetId?: string) {
+  function handleDeployToChangeset(packageName: string, changesetDescription: string, changeset?: ChangeSet) {
     setChangesetPackageName(packageName);
     setChangesetPackageDescription(changesetDescription);
-    setChangesetId(changesetId);
+    setSelectedChangeset(changeset);
     setConfigModalOpen(false);
     setDeployStatusModalOpen(true);
     trackEvent(ANALYTICS_KEYS.deploy_addToChangeset, {
@@ -93,7 +93,7 @@ export const AddToChangeset: FunctionComponent<AddToChangesetProps> = ({ selecte
           selectedOrg={selectedOrg}
           changesetName={changesetPackageName}
           changesetDescription={changesetPackageDescription}
-          changesetId={changesetId}
+          changeset={selectedChangeset}
           selectedMetadata={selectedMetadata}
           onGoBack={handleGoBackFromDeploy}
           onClose={() => setDeployStatusModalOpen(false)}
