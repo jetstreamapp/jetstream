@@ -4,7 +4,20 @@
 import { logger } from '@jetstream/shared/client-logger';
 import classNames from 'classnames';
 import React from 'react';
-import { DoctypeIcon, DoctypeIconObj, IconName, IconType, StandardIcon, StandardIconObj, UtilityIcon, UtilityIconObj } from './icon-types';
+import {
+  BrandIcon,
+  BrandIconObj,
+  DoctypeIcon,
+  DoctypeIconObj,
+  IconName,
+  IconType,
+  StandardIcon,
+  StandardIconObj,
+  UtilityIcon,
+  UtilityIconObj,
+} from './icon-types';
+import BrandIcon_Jetstream from './icons/brand/Jetstream';
+import BrandIcon_JetstreamInverse from './icons/brand/JetstreamInverse';
 import DoctypeIcon_Attachment from './icons/doctype/Attachment';
 import DoctypeIcon_Excel from './icons/doctype/Excel';
 import DoctypeIcon_Gdrive from './icons/doctype/Gdrive';
@@ -58,6 +71,7 @@ import UtilityIcon_Edit from './icons/utility/Edit';
 import UtilityIcon_Error from './icons/utility/Error';
 import UtilityIcon_Event from './icons/utility/Event';
 import UtilityIcon_ExpandAll from './icons/utility/ExpandAll';
+import UtilityIcon_ExpandAlt from './icons/utility/ExpandAlt';
 import UtilityIcon_Fallback from './icons/utility/Fallback';
 import UtilityIcon_Favorite from './icons/utility/Favorite';
 import UtilityIcon_File from './icons/utility/File';
@@ -72,6 +86,7 @@ import UtilityIcon_Italic from './icons/utility/Italic';
 import UtilityIcon_Left from './icons/utility/Left';
 import UtilityIcon_Link from './icons/utility/Link';
 import UtilityIcon_Logout from './icons/utility/Logout';
+import UtilityIcon_MinimizeWindow from './icons/utility/MinimizeWindow';
 import UtilityIcon_Moneybag from './icons/utility/Moneybag';
 import UtilityIcon_MultiSelectCheckbox from './icons/utility/MultiSelectCheckbox';
 import UtilityIcon_NewWindow from './icons/utility/NewWindow';
@@ -170,6 +185,7 @@ const utilityIcons: UtilityIconObj = {
   error: UtilityIcon_Error,
   event: UtilityIcon_Event,
   expand_all: UtilityIcon_ExpandAll,
+  expand_alt: UtilityIcon_ExpandAlt,
   fallback: UtilityIcon_Fallback,
   favorite: UtilityIcon_Favorite,
   file: UtilityIcon_File,
@@ -184,6 +200,7 @@ const utilityIcons: UtilityIconObj = {
   left: UtilityIcon_Left,
   link: UtilityIcon_Link,
   logout: UtilityIcon_Logout,
+  minimize_window: UtilityIcon_MinimizeWindow,
   moneybag: UtilityIcon_Moneybag,
   multi_select_checkbox: UtilityIcon_MultiSelectCheckbox,
   new_window: UtilityIcon_NewWindow,
@@ -223,6 +240,11 @@ const utilityIcons: UtilityIconObj = {
   warning: UtilityIcon_Warning,
 };
 
+const brandIcons: BrandIconObj = {
+  jetstream: BrandIcon_Jetstream,
+  jetstream_inverse: BrandIcon_JetstreamInverse,
+};
+
 export function getIcon(type: IconType, icon: string, className?: string) {
   let found = false;
   let IconOrFallback = UtilityIcon_Fallback;
@@ -245,6 +267,12 @@ export function getIcon(type: IconType, icon: string, className?: string) {
         found = true;
       }
       break;
+    case 'brand':
+      if (brandIcons[icon]) {
+        IconOrFallback = brandIcons[icon];
+        found = true;
+      }
+      break;
     default:
       break;
   }
@@ -260,6 +288,8 @@ export function getIconTypes(type: Omit<IconType, 'action' | 'custom'>): IconNam
       return Object.keys(doctypeIcons) as StandardIcon[];
     case 'standard':
       return Object.keys(standardIcons) as DoctypeIcon[];
+    case 'brand':
+      return Object.keys(brandIcons) as BrandIcon[];
     case 'utility':
     default:
       return Object.keys(utilityIcons) as UtilityIcon[];
