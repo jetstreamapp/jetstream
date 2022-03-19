@@ -201,7 +201,7 @@ export const App = () => {
               <AppStateResetOnOrgChange />
               <AppToast />
               <LogInitializer />
-              <NotificationsRequestModal featureFlags={featureFlags} loadDelay={30000} />
+              <NotificationsRequestModal featureFlags={featureFlags} loadDelay={10000} />
               <div>
                 <div>
                   <HeaderNavbar userProfile={userProfile} featureFlags={featureFlags} />

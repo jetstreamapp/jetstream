@@ -8,9 +8,10 @@ const navigation = [
   { name: 'Features', href: '/#features' },
   { name: 'Documentation', href: 'https://docs.getjetstream.app/', target: '_blank' },
   { name: 'Contact Us', href: 'mailto:support@getjetstream.app', target: '_blank' },
+  { name: 'Blog', href: '/blog' },
 ];
 
-export const Navigation = ({ className, inverse }: { className?: string; inverse?: boolean }) => (
+export const Navigation = ({ className, inverse, omitLinks = [] }: { className?: string; inverse?: boolean; omitLinks?: string[] }) => (
   <Popover as="header" className={classNames(className, 'relative')}>
     <div className={classNames('py-6', { 'bg-gray-900': inverse, 'bg-white': !inverse })}>
       <nav className="relative max-w-7xl mx-auto flex items-center justify-between px-4 sm:px-6" aria-label="Global">
@@ -46,19 +47,21 @@ export const Navigation = ({ className, inverse }: { className?: string; inverse
             </div>
           </div>
           <div className="hidden space-x-8 md:flex md:ml-10">
-            {navigation.map((item) => (
-              <a
-                key={item.name}
-                href={item.href}
-                className={classNames('text-base font-medium', {
-                  'text-white hover:text-gray-300': inverse,
-                  'text-gray-500 hover:text-gray-900': !inverse,
-                })}
-                target={item.target}
-              >
-                {item.name}
-              </a>
-            ))}
+            {navigation
+              .filter((item) => !omitLinks.includes(item.href))
+              .map((item) => (
+                <a
+                  key={item.name}
+                  href={item.href}
+                  className={classNames('text-base font-medium', {
+                    'text-white hover:text-gray-300': inverse,
+                    'text-gray-500 hover:text-gray-900': !inverse,
+                  })}
+                  target={item.target}
+                >
+                  {item.name}
+                </a>
+              ))}
           </div>
         </div>
         <div className="hidden md:flex md:items-center md:space-x-6">
@@ -112,11 +115,13 @@ export const Navigation = ({ className, inverse }: { className?: string; inverse
           </div>
           <div className="pt-5 pb-6">
             <div className="px-2 space-y-1">
-              {navigation.map((item) => (
-                <Link key={item.name} href={item.href}>
-                  <a className="block px-3 py-2 rounded-md text-base font-medium text-gray-900 hover:bg-gray-50">{item.name}</a>
-                </Link>
-              ))}
+              {navigation
+                .filter((item) => !omitLinks.includes(item.href))
+                .map((item) => (
+                  <Link key={item.name} href={item.href}>
+                    <a className="block px-3 py-2 rounded-md text-base font-medium text-gray-900 hover:bg-gray-50">{item.name}</a>
+                  </Link>
+                ))}
             </div>
             <div className="mt-6 px-5">
               <a

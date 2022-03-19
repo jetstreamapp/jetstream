@@ -3,7 +3,7 @@
  */
 import React from 'react';
 
-export type IconType = 'action' | 'custom' | 'doctype' | 'standard' | 'utility';
+export type IconType = 'action' | 'custom' | 'doctype' | 'standard' | 'utility' | 'brand';
 
 export interface IconObj {
   type: IconType;
@@ -12,10 +12,11 @@ export interface IconObj {
   description?: string;
 }
 
-export type IconName = StandardIcon | UtilityIcon | DoctypeIcon;
+export type IconName = StandardIcon | UtilityIcon | DoctypeIcon | BrandIcon;
 export type StandardIcon = keyof StandardIconObj;
 export type DoctypeIcon = keyof DoctypeIconObj;
 export type UtilityIcon = keyof UtilityIconObj;
+export type BrandIcon = keyof BrandIconObj;
 type IconEl = (props: React.SVGProps<SVGSVGElement>) => JSX.Element;
 export interface StandardIconObj {
   activations: IconEl;
@@ -77,6 +78,7 @@ export interface UtilityIconObj {
   error: IconEl;
   event: IconEl;
   expand_all: IconEl;
+  expand_alt: IconEl;
   fallback: IconEl;
   favorite: IconEl;
   file: IconEl;
@@ -91,6 +93,7 @@ export interface UtilityIconObj {
   left: IconEl;
   link: IconEl;
   logout: IconEl;
+  minimize_window: IconEl;
   moneybag: IconEl;
   multi_select_checkbox: IconEl;
   new_window: IconEl;
@@ -128,4 +131,9 @@ export interface UtilityIconObj {
   up: IconEl;
   upload: IconEl;
   warning: IconEl;
+}
+
+export interface BrandIconObj {
+  jetstream: IconEl;
+  jetstream_inverse: IconEl;
 }

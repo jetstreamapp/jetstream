@@ -12,6 +12,7 @@ const footerNavigation = {
     // { name: 'Pricing', href: '/pricing' },
     { name: 'Documentation', href: 'https://docs.getjetstream.app/', target: '_blank' },
     { name: 'Contact Us', href: 'mailto:support@getjetstream.app', target: '_blank' },
+    { name: 'Blog', href: '/blog' },
     // { name: 'Guides', href: '#' },
     // { name: 'API Status', href: '#' },
   ],
@@ -91,7 +92,7 @@ const footerNavigation = {
   // ],
 };
 
-export const Footer = () => (
+export const Footer = ({ omitLinks = [] }: { omitLinks?: string[] }) => (
   <footer className="bg-gray-50" aria-labelledby="footer-heading">
     <h2 id="footer-heading" className="sr-only">
       Footer
@@ -135,23 +136,23 @@ export const Footer = () => (
             <div className="mt-12 md:mt-0">
               <h3 className="text-sm font-semibold text-gray-400 tracking-wider uppercase">Support</h3>
               <ul role="list" className="mt-4 space-y-4">
-                {footerNavigation.support.map((item) => (
-                  <Fragment key={item.name}>
-                    {item.target && (
-                      <li>
+                {footerNavigation.support
+                  .filter((item) => !omitLinks.includes(item.href))
+                  .map((item) => (
+                    <li key={item.name}>
+                      {item.target && (
                         <a href={item.href} className="text-base text-gray-500 hover:text-gray-900" target={item.target}>
                           {item.name}
                         </a>
-                      </li>
-                    )}
-                    {!item.target && (
-                      <Link href={item.href}>
-                        {/* eslint-disable-next-line jsx-a11y/anchor-is-valid */}
-                        <a className="text-base text-gray-500 hover:text-gray-900">{item.name}</a>
-                      </Link>
-                    )}
-                  </Fragment>
-                ))}
+                      )}
+                      {!item.target && (
+                        <Link href={item.href}>
+                          {/* eslint-disable-next-line jsx-a11y/anchor-is-valid */}
+                          <a className="text-base text-gray-500 hover:text-gray-900">{item.name}</a>
+                        </Link>
+                      )}
+                    </li>
+                  ))}
               </ul>
             </div>
           </div>
@@ -171,14 +172,16 @@ export const Footer = () => (
             <div className="mt-12 md:mt-0">
               <h3 className="text-sm font-semibold text-gray-400 tracking-wider uppercase">Legal</h3>
               <ul role="list" className="mt-4 space-y-4">
-                {footerNavigation.legal.map((item) => (
-                  <li key={item.name}>
-                    <Link href={item.href}>
-                      {/* eslint-disable-next-line jsx-a11y/anchor-is-valid */}
-                      <a className="text-base text-gray-500 hover:text-gray-900">{item.name}</a>
-                    </Link>
-                  </li>
-                ))}
+                {footerNavigation.legal
+                  .filter((item) => !omitLinks.includes(item.href))
+                  .map((item) => (
+                    <li key={item.name}>
+                      <Link href={item.href}>
+                        {/* eslint-disable-next-line jsx-a11y/anchor-is-valid */}
+                        <a className="text-base text-gray-500 hover:text-gray-900">{item.name}</a>
+                      </Link>
+                    </li>
+                  ))}
               </ul>
             </div>
           </div>

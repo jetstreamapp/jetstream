@@ -14,7 +14,7 @@ interface PostProps {
 function Post({ post }: PostProps) {
   // TODO: helmet etc..
   return (
-    <Fragment>
+    <div>
       <Head>
         <title>Jetstream Blog - {post.title}</title>
         <meta name="description" content={`Jetstream blog - ${post.summary}.`} />
@@ -45,10 +45,10 @@ function Post({ post }: PostProps) {
         <link rel="icon" type="image/png" sizes="16x16" href="/assets/images/favicon-16x16.png" />
       </Head>
 
-      <div>
-        <Navigation />
-        <div className="relative py-16 bg-white overflow-hidden">
-          <div className="relative px-4 sm:px-6 lg:px-8">
+      <div className="bg-white">
+        <div className="relative overflow-hidden">
+          <Navigation inverse omitLinks={['/blog']} />
+          <div className="px-4 sm:px-6 lg:px-8">
             <div className="text-lg max-w-prose mx-auto text-center">
               <h1 className="mt-2 block text-3xl leading-8 font-extrabold tracking-tight text-gray-900 sm:text-4xl">{post.title}</h1>
               <div className="my-2 text-gray-500">Published {format(parseISO(post.publishDate), 'MMMM d, y')}</div>
@@ -57,11 +57,11 @@ function Post({ post }: PostProps) {
             <hr className="my-5" />
             <div className="mt-6 prose prose-blue text-gray-500 mx-auto">{renderBlogPostRichText(post.content)}</div>
           </div>
-        </div>
 
-        <Footer />
+          <Footer omitLinks={['/blog']} />
+        </div>
       </div>
-    </Fragment>
+    </div>
   );
 }
 

@@ -9,6 +9,7 @@ import { Fragment, FunctionComponent, useCallback, useEffect, useRef, useState }
 import { useTitle } from 'react-use';
 import { useAmplitude } from '../core/analytics';
 import { fireToast } from '../core/AppToast';
+import LoggerConfig from './LoggerConfig';
 import SettingsDeleteAccount from './SettingsDeleteAccount';
 import SettingsLinkedAccounts from './SettingsLinkedAccounts';
 import SettingsUserProfile from './SettingsUserProfile';
@@ -187,6 +188,11 @@ export const Settings: FunctionComponent<SettingsProps> = ({ userProfile, featur
               onUnlink={handleUnlinkAccount}
               onResendVerificationEmail={handleOnResendVerificationEmail}
             />
+
+            <div className="slds-m-top_medium">
+              <LoggerConfig />
+            </div>
+
             <SettingsDeleteAccount onDeleteAccount={handleDelete} />
           </Fragment>
         )}
