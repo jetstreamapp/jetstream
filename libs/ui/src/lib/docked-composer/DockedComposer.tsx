@@ -1,6 +1,6 @@
 import classNames from 'classnames';
 import { uniqueId } from 'lodash';
-import React, { forwardRef, Fragment, FunctionComponent, useImperativeHandle, useState } from 'react';
+import React, { forwardRef, Fragment, useImperativeHandle, useState } from 'react';
 import Icon from '../widgets/Icon';
 
 // https://www.lightningdesignsystem.com/components/docked-composer/?modifiers=.slds-is-open&variant=base

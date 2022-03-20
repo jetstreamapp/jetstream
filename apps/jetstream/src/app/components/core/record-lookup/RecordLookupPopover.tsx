@@ -202,7 +202,7 @@ export const RecordLookupPopover: FunctionComponent = () => {
                     max={18}
                     min={15}
                     value={recordId}
-                    placeholder="15 or 18 digit record id..."
+                    placeholder="15 or 18 digit record id"
                     autoComplete="off"
                     autoFocus
                     onChange={(event) => setRecordId(event.target.value.trim())}
