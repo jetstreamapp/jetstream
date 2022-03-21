@@ -1,6 +1,6 @@
 import React from 'react';
 
-interface FigureImgProps {
+export interface FigureImgProps {
   src: string;
   title: string;
   description: string;
@@ -11,7 +11,7 @@ interface FigureImgProps {
 export const FigureImg = ({ src, title, description, width, height }: FigureImgProps) => (
   <figure>
     <img className="w-full rounded-lg" src={src} alt={title} width={width} height={height} title={title} />
-    {/* <figcaption>{asset.fields.description}</figcaption> */}
+    <figcaption>{description}</figcaption>
   </figure>
 );
 

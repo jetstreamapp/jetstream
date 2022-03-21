@@ -92,6 +92,10 @@ module.exports = {
           sidebarCollapsed: false,
           routeBasePath: '/',
         },
+        gtag: {
+          anonymizeIP: true,
+          trackingID: 'G-GZJ9QQTK44',
+        },
         theme: {
           customCss: require.resolve('./src/css/custom.css'),
         },
