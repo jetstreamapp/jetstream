@@ -9,7 +9,7 @@ import JSZip from 'jszip';
 import groupBy from 'lodash/groupBy';
 import isNil from 'lodash/isNil';
 import isString from 'lodash/isString';
-import { composeQuery, getField } from 'soql-parser-js';
+import { composeQuery, getField, Query, WhereClause } from 'soql-parser-js';
 import {
   FieldMapping,
   FieldMappingItem,
@@ -465,29 +465,73 @@ function addErrors(errorsByRowIndex: Map<number, { row: number; record: any; err
  */
 function getRelatedFieldsQueries(baseObject: string, relatedObject: string, relatedField: string, relatedValues: string[]): string[] {
   let extraWhereClause = '';
+
+  const baseQuery: Query = {
+    sObject: relatedObject,
+    fields: [getField(relatedField)],
+  };
+
+  let extraWhereClauseNew: WhereClause;
+  const whereClause: WhereClause = {
+    left: {
+      field: relatedField,
+      operator: 'IN',
+      value: [],
+      literalType: 'STRING',
+    },
+  };
+
   /** SPECIAL CASES */
   if (relatedObject.toLowerCase() === 'recordtype') {
     extraWhereClause = `SobjectType = '${baseObject}' AND `;
+    extraWhereClauseNew = {
+      left: {
+        field: 'SobjectType',
+        operator: '=',
+        value: baseObject,
+        literalType: 'STRING',
+      },
+    };
   }
-  const BASE_QUERY = `SELECT Id, ${relatedField} FROM ${relatedObject} WHERE ${extraWhereClause}${relatedField} IN ('`;
-  const QUERY_ITEM_BUFFER_LENGTH = 3;
-  const BASE_QUERY_LENGTH = BASE_QUERY.length + QUERY_ITEM_BUFFER_LENGTH;
+  const QUERY_ITEM_BUFFER_LENGTH = 250;
+  const BASE_QUERY_LENGTH =
+    `SELECT Id, ${relatedField} FROM ${relatedObject} WHERE ${extraWhereClause}${relatedField} IN ('`.length + QUERY_ITEM_BUFFER_LENGTH;
   const MAX_QUERY_LENGTH = 9500; // somewhere just over 10K was giving an error
 
   const queries = [];
-  let tempRelatedValues = [];
+  let tempRelatedValues: string[] = [];
   let currLength = BASE_QUERY_LENGTH;
   relatedValues.forEach((value) => {
-    tempRelatedValues.push(value);
+    tempRelatedValues.push(value.replaceAll(`'`, `\\'`).replaceAll(`\\n`, `\\\\n`));
     currLength += value.length + QUERY_ITEM_BUFFER_LENGTH;
     if (currLength >= MAX_QUERY_LENGTH) {
-      queries.push(`${BASE_QUERY}${tempRelatedValues.join(`','`)}')`);
+      const tempQuery = { ...baseQuery };
+      if (extraWhereClauseNew) {
+        tempQuery.where = {
+          ...extraWhereClauseNew,
+          operator: 'AND',
+          right: { ...whereClause, left: { ...whereClause.left, value: tempRelatedValues } },
+        };
+      } else {
+        tempQuery.where = { ...whereClause, left: { ...whereClause.left, value: tempRelatedValues } };
+      }
+      queries.push(composeQuery(tempQuery));
       tempRelatedValues = [];
       currLength = BASE_QUERY_LENGTH;
     }
   });
   if (tempRelatedValues.length) {
-    queries.push(`${BASE_QUERY}${tempRelatedValues.join(`','`)}')`);
+    const tempQuery = { ...baseQuery };
+    if (extraWhereClauseNew) {
+      tempQuery.where = {
+        ...extraWhereClauseNew,
+        operator: 'AND',
+        right: { ...whereClause, left: { ...whereClause.left, value: tempRelatedValues } },
+      };
+    } else {
+      tempQuery.where = { ...whereClause, left: { ...whereClause.left, value: tempRelatedValues } };
+    }
+    queries.push(composeQuery(tempQuery));
   }
   return queries;
 }
