@@ -28,6 +28,14 @@ export const useDownloadResults = () => {
           graphResponse.compositeResponse.map((response) => {
             const { referenceId } = response;
             const { operation, sobject, externalId } = recordWithResponseByRefId[referenceId] || {};
+            // PATCH returns 204 with no body
+            if (!response.body) {
+              response.body = {
+                id: '',
+                success: true,
+                errors: [],
+              };
+            }
             const { id, success, message, created, errorCode } = response.body;
             return {
               Group: graphId,

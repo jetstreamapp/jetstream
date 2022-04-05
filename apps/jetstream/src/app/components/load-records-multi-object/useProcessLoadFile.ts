@@ -99,7 +99,7 @@ export const useValidateLoadFile = (org: SalesforceOrgUi, apiVersion: string, op
 
         logger.info('[LOAD MULTI OBJ]', { datasets });
         if (isMounted.current) {
-          let errors = datasets.flatMap((dataset) => dataset.errors);
+          const errors = datasets.flatMap((dataset) => dataset.errors);
 
           if (errors.length) {
             logger.error('[LOAD MULTI OBJ] Errors', { errors });
@@ -129,7 +129,7 @@ export const useValidateLoadFile = (org: SalesforceOrgUi, apiVersion: string, op
         }
       }
     },
-    [org, apiVersion]
+    [org]
   );
 
   return { processFile, reset, loading, data: dataGraph, errors };
