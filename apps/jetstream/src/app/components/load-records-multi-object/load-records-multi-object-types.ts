@@ -39,6 +39,7 @@ export interface LoadMultiObjectRecord {
   operation: InsertUpdateUpsert;
   externalId?: string;
   externalIdValue?: string;
+  recordIdForUpdate?: string;
   referenceId: string;
   record: any;
   recordIdx: number;

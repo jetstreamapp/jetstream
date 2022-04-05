@@ -154,7 +154,7 @@ export const useLoadFile = (org: SalesforceOrgUi, serverUrl: string, apiVersion:
     async (dataToProcess: LoadMultiObjectRequestWithResult[]) => {
       dispatch({ type: 'INIT', payload: { loading: true, data: getMapOf(dataToProcess, 'key') } });
 
-      for (let currentRequest of dataToProcess) {
+      for (const currentRequest of dataToProcess) {
         try {
           dispatch({ type: 'ITEM_STARTED', payload: { key: currentRequest.key } });
           const response = await genericRequest<CompositeGraphResponseBody>(org, {

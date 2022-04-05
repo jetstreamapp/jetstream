@@ -1,4 +1,5 @@
 import { formatNumber } from '@jetstream/shared/ui-utils';
+import { pluralizeFromNumber } from '@jetstream/shared/utils';
 import { FileExtAllTypes, SalesforceOrgUi, SalesforceOrgUiType } from '@jetstream/types';
 import { Badge, FileDownloadModal, Grid, Icon } from '@jetstream/ui';
 import { FunctionComponent, useEffect, useState } from 'react';
@@ -62,8 +63,8 @@ export const LoadRecordsMultiObjectResults: FunctionComponent<LoadRecordsMultiOb
         </div>
         <div className="slds-m-top_small">
           <button className="slds-button slds-button_brand" disabled={loading} onClick={onLoadStarted}>
-            Load <strong className="slds-m-horizontal_xx-small">{formatNumber(totalRecordCount)}</strong> Records ({formatNumber(numGroups)}{' '}
-            Groups)
+            Load <strong className="slds-m-horizontal_xx-small">{formatNumber(totalRecordCount)}</strong>{' '}
+            {pluralizeFromNumber('Record', totalRecordCount)} ({formatNumber(numGroups)} {pluralizeFromNumber('Group', numGroups)})
           </button>
         </div>
       </div>
