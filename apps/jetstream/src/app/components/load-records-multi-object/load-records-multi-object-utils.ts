@@ -21,6 +21,7 @@ const WORKSHEET_LOCATIONS = {
 };
 
 const SURROUNDING_BRACKETS_RGX = /^{|}$/g;
+const IS_REFERENCE_HEADER_RGX = new RegExp('^{.+}$');
 const VALID_REF_ID_RGX = /^[0-9A-Za-z][0-9A-Za-z_]+$/;
 const VALID_OPERATIONS = ['INSERT', 'UPDATE', 'UPSERT'];
 const MAX_REQ_SIZE = 500;
@@ -105,7 +106,7 @@ export async function parseWorkbook(workbook: XLSX.WorkBook, org: SalesforceOrgU
           }
           const currHeader = SURROUNDING_BRACKETS_RGX.test(dataHeaders[i])
             ? dataHeaders[i].replace(SURROUNDING_BRACKETS_RGX, '').trim()
-            : dataHeaders[i];
+            : dataHeaders[i].trim();
           currRow[currHeader] = cell ?? null;
           return currRow;
         }, {})
@@ -118,7 +119,7 @@ export async function parseWorkbook(workbook: XLSX.WorkBook, org: SalesforceOrgU
       );
       dataset.headers = headers.map((header) => header.replace(SURROUNDING_BRACKETS_RGX, '').trim());
       dataset.referenceHeaders = new Set(
-        headers.filter((header) => SURROUNDING_BRACKETS_RGX.test(header)).map((header) => header.replace(SURROUNDING_BRACKETS_RGX, ''))
+        headers.filter((header) => IS_REFERENCE_HEADER_RGX.test(header)).map((header) => header.replace(SURROUNDING_BRACKETS_RGX, ''))
       );
       dataset.dataById = dataset.data.reduce((output: MapOf<any>, row, i) => {
         const referenceId = row[dataset.referenceColumnHeader] || uniqueId('reference_');
@@ -383,9 +384,9 @@ export function getDataGraph(
     dataset.data.forEach((record, recordIdx) => {
       const lowercaseExternalId = dataset.externalId?.toLowerCase();
       /** Transform record values and flag which fields have references to other records */
-      const { transformedRecord, externalIdValue, recordIdForUpdate, dependencies } = dataset.headers.reduce(
-        ({ transformedRecord, recordIdForUpdate, dependencies }, header) => {
-          let externalIdValue: string | null = null;
+      const { transformedRecord, externalIdValue, dependencies } = dataset.headers.reduce(
+        ({ transformedRecord, dependencies }, header) => {
+          let externalIdValue: any = null;
           const field = dataset.fieldsByName[header.toLowerCase()];
           let value = record[header];
           const valueIsNull = isNil(value) || (isString(value) && !value);
@@ -424,14 +425,9 @@ export function getDataGraph(
             }
           }
 
-          // for updates, we need to know the url to update the record - this could be a relationship id or hard-coded id
-          if (dataset.operation === 'UPDATE' && field.name.toLowerCase() === 'id') {
-            recordIdForUpdate = transformedRecord[field.name];
-          }
-
-          return { transformedRecord, externalIdValue, recordIdForUpdate, dependencies };
+          return { transformedRecord, externalIdValue, dependencies };
         },
-        { transformedRecord: {}, externalIdValue: null, recordIdForUpdate: null, dependencies: [] }
+        { transformedRecord: {}, externalIdValue: null, dependencies: [] }
       );
 
       const tempData: LoadMultiObjectRecord = {
@@ -439,7 +435,6 @@ export function getDataGraph(
         operation: dataset.operation,
         externalId: dataset.externalId,
         externalIdValue,
-        recordIdForUpdate,
         referenceId: record[dataset.referenceColumnHeader],
         record: transformedRecord,
         recordIdx: recordIdx,
@@ -513,9 +508,7 @@ export function getDataGraph(
 
     graphs[topLevelNode].compositeRequest = graph.overallOrder().map((node) => {
       let url = `/services/data/${apiVersion}/sobjects/${recordsByRefId[node].sobject}`;
-      if (recordsByRefId[node].operation === 'UPDATE' && recordsByRefId[node].recordIdForUpdate) {
-        url = `/services/data/${apiVersion}/sobjects/${recordsByRefId[node].sobject}/${recordsByRefId[node].recordIdForUpdate}`;
-      } else if (recordsByRefId[node].operation === 'UPSERT' && recordsByRefId[node].externalId) {
+      if (recordsByRefId[node].operation === 'UPSERT' && recordsByRefId[node].externalId) {
         url += `/${recordsByRefId[node].externalId}/${recordsByRefId[node].externalIdValue}`;
       }
       return {
