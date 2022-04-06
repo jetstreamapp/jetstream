@@ -21,6 +21,7 @@ const WORKSHEET_LOCATIONS = {
 };
 
 const SURROUNDING_BRACKETS_RGX = /^{|}$/g;
+const IS_REFERENCE_HEADER_RGX = new RegExp('^{.+}$');
 const VALID_REF_ID_RGX = /^[0-9A-Za-z][0-9A-Za-z_]+$/;
 const VALID_OPERATIONS = ['INSERT', 'UPDATE', 'UPSERT'];
 const MAX_REQ_SIZE = 500;
@@ -103,6 +104,7 @@ export async function parseWorkbook(workbook: XLSX.WorkBook, org: SalesforceOrgU
           if (!dataHeaders[i] || dataHeaders[i].toLowerCase().startsWith('__empty')) {
             return currRow;
           }
+
           const currHeader = SURROUNDING_BRACKETS_RGX.test(dataHeaders[i])
             ? dataHeaders[i].replace(SURROUNDING_BRACKETS_RGX, '').trim()
             : dataHeaders[i];
@@ -118,7 +120,7 @@ export async function parseWorkbook(workbook: XLSX.WorkBook, org: SalesforceOrgU
       );
       dataset.headers = headers.map((header) => header.replace(SURROUNDING_BRACKETS_RGX, '').trim());
       dataset.referenceHeaders = new Set(
-        headers.filter((header) => SURROUNDING_BRACKETS_RGX.test(header)).map((header) => header.replace(SURROUNDING_BRACKETS_RGX, ''))
+        headers.filter((header) => IS_REFERENCE_HEADER_RGX.test(header)).map((header) => header.replace(SURROUNDING_BRACKETS_RGX, ''))
       );
       dataset.dataById = dataset.data.reduce((output: MapOf<any>, row, i) => {
         const referenceId = row[dataset.referenceColumnHeader] || uniqueId('reference_');
