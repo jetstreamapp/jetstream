@@ -14,20 +14,21 @@ import {
   ViewDocsLink,
 } from '@jetstream/ui';
 import Editor from '@monaco-editor/react';
-import PurgeLogsModal from './PurgeLogsModal';
 import formatDate from 'date-fns/format';
+import escapeRegExp from 'lodash/escapeRegExp';
 import type { editor } from 'monaco-editor';
 import { Fragment, FunctionComponent, useCallback, useEffect, useRef, useState } from 'react';
 import Split from 'react-split';
 import { useTitle } from 'react-use';
 import { useRecoilState, useRecoilValue } from 'recoil';
+import { filter } from 'rxjs/operators';
 import { applicationCookieState, selectedOrgState } from '../../app-state';
+import * as fromJetstreamEvents from '../core/jetstream-events';
 import DebugLogViewerFilter from './DebugLogViewerFilter';
 import DebugLogViewerTable from './DebugLogViewerTable';
 import DebugLogViewerTrace from './DebugLogViewerTrace';
+import PurgeLogsModal from './PurgeLogsModal';
 import { useDebugLogs } from './useDebugLogs';
-import * as fromJetstreamEvents from '../core/jetstream-events';
-import { filter } from 'rxjs/operators';
 
 const USER_DEBUG_REGEX = /\|USER_DEBUG\|/;
 
@@ -108,7 +109,7 @@ export const DebugLogViewer: FunctionComponent<DebugLogViewerProps> = () => {
     }
     // apply text filter
     if (textFilter && activeLog) {
-      const textFilterRegex = new RegExp(textFilter, 'i');
+      const textFilterRegex = new RegExp(escapeRegExp(textFilter), 'i');
       currResults = currResults.filter((line) => textFilterRegex.test(line));
     }
     setVisibleResults(currResults.join('\n'));

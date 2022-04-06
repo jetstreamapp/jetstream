@@ -19,6 +19,7 @@ import {
 } from '@jetstream/ui';
 import Editor, { OnMount, useMonaco } from '@monaco-editor/react';
 import localforage from 'localforage';
+import escapeRegExp from 'lodash/escapeRegExp';
 import type { editor } from 'monaco-editor';
 import { Fragment, FunctionComponent, MouseEvent, useCallback, useEffect, useRef, useState } from 'react';
 import Split from 'react-split';
@@ -114,7 +115,7 @@ export const AnonymousApex: FunctionComponent<AnonymousApexProps> = () => {
     }
     // apply text filter
     if (textFilter && results) {
-      const textFilterRegex = new RegExp(textFilter, 'i');
+      const textFilterRegex = new RegExp(escapeRegExp(textFilter), 'i');
       currResults = currResults.filter((line) => textFilterRegex.test(line));
     }
     setVisibleResults(currResults.join('\n'));
