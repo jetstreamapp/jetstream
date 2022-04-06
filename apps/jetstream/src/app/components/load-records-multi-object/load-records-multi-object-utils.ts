@@ -104,9 +104,10 @@ export async function parseWorkbook(workbook: XLSX.WorkBook, org: SalesforceOrgU
           if (!dataHeaders[i] || dataHeaders[i].toLowerCase().startsWith('__empty')) {
             return currRow;
           }
+
           const currHeader = SURROUNDING_BRACKETS_RGX.test(dataHeaders[i])
             ? dataHeaders[i].replace(SURROUNDING_BRACKETS_RGX, '').trim()
-            : dataHeaders[i].trim();
+            : dataHeaders[i];
           currRow[currHeader] = cell ?? null;
           return currRow;
         }, {})
@@ -384,9 +385,9 @@ export function getDataGraph(
     dataset.data.forEach((record, recordIdx) => {
       const lowercaseExternalId = dataset.externalId?.toLowerCase();
       /** Transform record values and flag which fields have references to other records */
-      const { transformedRecord, externalIdValue, dependencies } = dataset.headers.reduce(
-        ({ transformedRecord, dependencies }, header) => {
-          let externalIdValue: any = null;
+      const { transformedRecord, externalIdValue, recordIdForUpdate, dependencies } = dataset.headers.reduce(
+        ({ transformedRecord, recordIdForUpdate, dependencies }, header) => {
+          let externalIdValue: string | null = null;
           const field = dataset.fieldsByName[header.toLowerCase()];
           let value = record[header];
           const valueIsNull = isNil(value) || (isString(value) && !value);
@@ -425,15 +426,21 @@ export function getDataGraph(
             }
           }
 
-          return { transformedRecord, externalIdValue, dependencies };
+          // for updates, we need to know the url to update the record - this could be a relationship id or hard-coded id
+          if (dataset.operation === 'UPDATE' && field.name.toLowerCase() === 'id') {
+            recordIdForUpdate = transformedRecord[field.name];
+          }
+
+          return { transformedRecord, externalIdValue, recordIdForUpdate, dependencies };
         },
-        { transformedRecord: {}, externalIdValue: null, dependencies: [] }
+        { transformedRecord: {}, externalIdValue: null, recordIdForUpdate: null, dependencies: [] }
       );
 
       const tempData: LoadMultiObjectRecord = {
         sobject: dataset.sobject,
         operation: dataset.operation,
         externalId: dataset.externalId,
+        recordIdForUpdate,
         externalIdValue,
         referenceId: record[dataset.referenceColumnHeader],
         record: transformedRecord,
@@ -508,7 +515,9 @@ export function getDataGraph(
 
     graphs[topLevelNode].compositeRequest = graph.overallOrder().map((node) => {
       let url = `/services/data/${apiVersion}/sobjects/${recordsByRefId[node].sobject}`;
-      if (recordsByRefId[node].operation === 'UPSERT' && recordsByRefId[node].externalId) {
+      if (recordsByRefId[node].operation === 'UPDATE' && recordsByRefId[node].recordIdForUpdate) {
+        url = `/services/data/${apiVersion}/sobjects/${recordsByRefId[node].sobject}/${recordsByRefId[node].recordIdForUpdate}`;
+      } else if (recordsByRefId[node].operation === 'UPSERT' && recordsByRefId[node].externalId) {
         url += `/${recordsByRefId[node].externalId}/${recordsByRefId[node].externalIdValue}`;
       }
       return {
