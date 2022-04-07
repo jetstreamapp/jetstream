@@ -1,6 +1,6 @@
 import { ANALYTICS_KEYS, INPUT_ACCEPT_FILETYPES } from '@jetstream/shared/constants';
 import { parseFile } from '@jetstream/shared/ui-utils';
-import { ensureBoolean } from '@jetstream/shared/utils';
+import { ensureBoolean, REGEX } from '@jetstream/shared/utils';
 import { InputReadFileContent, SalesforceOrgUi } from '@jetstream/types';
 import {
   ButtonGroupContainer,
@@ -16,11 +16,11 @@ import React, { Fragment, FunctionComponent, useRef, useState } from 'react';
 import { useRecoilState } from 'recoil';
 import { applicationCookieState } from '../../app-state';
 import { useAmplitude } from '../core/analytics';
+import { fireToast } from '../core/AppToast';
 import * as fromJetstreamEvents from '../core/jetstream-events';
 import { CREATE_FIELDS_EXAMPLE_TEMPLATE } from './create-fields-import-example';
 import { FieldValues } from './create-fields-types';
-import { allFields, fieldDefinitions, getRowsForExport } from './create-fields-utils';
-import { fireToast } from '../core/AppToast';
+import { allFields, ensureValidSecondaryType, ensureValidType, fieldDefinitions, getRowsForExport } from './create-fields-utils';
 
 export interface CreateFieldsImportExportProps {
   selectedOrg: SalesforceOrgUi;
@@ -46,8 +46,8 @@ export const CreateFieldsImportExport: FunctionComponent<CreateFieldsImportExpor
   }
 
   async function handleImport({ content }: InputReadFileContent) {
-    // TODO: error messaging
-    const { data, errors } = await parseFile(content, { onParsedMultipleWorkbooks });
+    // eslint-disable-next-line prefer-const
+    let { data, errors } = await parseFile(content, { onParsedMultipleWorkbooks });
     trackEvent(ANALYTICS_KEYS.sobj_create_field_import_fields, {
       numFields: data.length,
       hasErrors: errors.length,
@@ -59,13 +59,33 @@ export const CreateFieldsImportExport: FunctionComponent<CreateFieldsImportExpor
         type: 'error',
       });
     }
+    // ensure all keys are lowercase to match up with expected field names
+    data = data.map((row) => {
+      return Object.keys(row).reduce((normalizedRow, key) => {
+        normalizedRow[key.toLowerCase().replace(REGEX.NOT_ALPHA, '')] = row[key];
+        return normalizedRow;
+      }, {});
+    });
+    // transform data into correct format
     onImportRows(
       data.map(
         (row): FieldValues =>
           allFields.reduce((output, field) => {
-            let value = row[field];
+            let value = row[field.toLowerCase()];
             if (fieldDefinitions[field].type === 'checkbox') {
-              value = ensureBoolean(row[field]);
+              value = ensureBoolean(value);
+            }
+            if (field === 'type') {
+              value = ensureValidType(value);
+            }
+            if (field === 'deleteConstraint' && value) {
+              value = value === 'SetNull' ? 'SetNull' : 'Restrict';
+            }
+            if (field === 'secondaryType' && value) {
+              value = ensureValidSecondaryType(value);
+            }
+            if (field === 'writeRequiresMasterRead' && value) {
+              value = value === 'true' ? 'true' : 'false';
             }
             output[field] = {
               value,

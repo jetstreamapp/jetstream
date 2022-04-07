@@ -34,6 +34,21 @@ export function filterCreateFieldsSobjects(sobject: DescribeGlobalSObjectResult)
   );
 }
 
+export function ensureValidType(type: string): SalesforceFieldType {
+  if (fieldTypeDependencies[type]) {
+    return type as SalesforceFieldType;
+  }
+  return (Object.keys(fieldTypeDependencies).find((key) => type.toLowerCase() === key.toLowerCase()) as SalesforceFieldType) || 'Text';
+}
+
+export function ensureValidSecondaryType(type: string): string {
+  const validOptions = new Set(['Checkbox', 'Currency', 'Date', 'DateTime', 'Number', 'Percent', 'Text', 'Time']);
+  if (validOptions.has(type)) {
+    return type as SalesforceFieldType;
+  }
+  return 'Text';
+}
+
 export const fieldDefinitions: FieldDefinitions = {
   type: {
     label: 'Type',
