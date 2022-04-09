@@ -1,7 +1,7 @@
 import { logger } from '@jetstream/shared/client-logger';
 import { describeGlobal, genericRequest, queryAllFromList, queryWithCache } from '@jetstream/shared/data';
 import { ensureBoolean, REGEX, splitArrayToMaxSize } from '@jetstream/shared/utils';
-import { CompositeResponse, MapOf, SalesforceOrgUi } from '@jetstream/types';
+import { CompositeResponse, GlobalValueSetRequest, MapOf, SalesforceOrgUi, ToolingApiResponse } from '@jetstream/types';
 import { DescribeGlobalSObjectResult } from 'jsforce';
 import isBoolean from 'lodash/isBoolean';
 import isNil from 'lodash/isNil';
@@ -811,6 +811,16 @@ function prepareFieldPayload(sobject: string, fieldValues: FieldValues): FieldDe
   }
 
   return fieldMetadata;
+}
+
+export async function createGlobalPicklist(org: SalesforceOrgUi, globalValueSet: GlobalValueSetRequest, apiVersion: string) {
+  const response = await genericRequest<ToolingApiResponse>(org, {
+    isTooling: true,
+    method: 'POST',
+    url: `/services/data/${apiVersion}/tooling/sobjects/GlobalValueSet`,
+    body: globalValueSet,
+  });
+  return response;
 }
 
 /**

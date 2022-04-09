@@ -147,7 +147,7 @@ export const METADATA_LABEL_MAP = {
   FlowDefinition: 'Flow Definitions',
   Form: 'Forms',
   GlobalPicklist: 'Global Picklists',
-  GlobalValueSet: 'Global Value Sets',
+  GlobalValueSet: 'Global Value Sets (Pick lists)',
   GlobalValueSetTranslation: 'Global Value Set Translations',
   Group: 'Groups',
   HomePageComponent: 'Home Page Components',
