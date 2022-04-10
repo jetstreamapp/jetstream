@@ -24,7 +24,7 @@ import {
 } from '../../components/load-records/load-records-types';
 import { fetchMappedRelatedRecords, LoadRecordsBatchError, transformData } from './utils/load-records-utils';
 
-type MessageName = 'prepareData' | 'loadData' | 'loadDataStatus';
+type MessageName = 'prepareData' | 'prepareDataProgress' | 'loadData' | 'loadDataStatus';
 // eslint-disable-next-line no-restricted-globals
 const ctx: Worker = self as any;
 
@@ -46,7 +46,9 @@ async function handleMessage(name: MessageName, payloadData: any) {
         }
 
         // also need to change file to add `#` at the beginning each data point
-        const preparedData = await fetchMappedRelatedRecords(transformData(payloadData), payloadData);
+        const preparedData = await fetchMappedRelatedRecords(transformData(payloadData), payloadData, (progress: number) => {
+          replyToMessage('prepareDataProgress', { progress });
+        });
 
         replyToMessage(name, { preparedData });
         break;

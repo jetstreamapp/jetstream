@@ -113,6 +113,22 @@ export interface PlatformEventResult {
 export type RecordResult = SuccessResult | ErrorResult;
 export type RecordResultWithRecord = RecordResult & { record: any };
 
+export interface ToolingApiResponse {
+  id: string;
+  success: boolean;
+  errors: {
+    fields: string[];
+    message: string;
+    statusCode: string;
+  }[];
+  warnings: {
+    fields: string[];
+    message: string;
+    statusCode: string;
+  }[];
+  infos: any[];
+}
+
 export interface SobjectCollectionRequest {
   allOrNone?: boolean;
   records?: SobjectCollectionRequestRecord[];
@@ -712,4 +728,25 @@ export interface ApexCompletionMethodParameter {
 export interface ApexCompletionProperty {
   name: string;
   references: unknown[];
+}
+
+export interface GlobalValueSetRequest {
+  FullName: string;
+  Metadata: GlobalValueSet;
+}
+
+export interface GlobalValueSet {
+  customValue: GlobalValueSetCustomValue[];
+  description: string;
+  masterLabel: string;
+  sorted: boolean;
+}
+
+export interface GlobalValueSetCustomValue {
+  color?: string;
+  default: boolean;
+  description?: string;
+  isActive?: boolean;
+  label?: string /** defaults to ValueName */;
+  valueName: string;
 }

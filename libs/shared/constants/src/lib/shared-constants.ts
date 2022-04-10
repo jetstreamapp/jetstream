@@ -216,6 +216,7 @@ export const ANALYTICS_KEYS = {
   sobj_create_field_submit_modal_opened: 'sobj_create_field_submit_modal_opened',
   sobj_create_field_deploy: 'sobj_create_field_deploy',
   sobj_create_field_export_results: 'sobj_create_field_export_results',
+  sobj_create_field_global_picklist: 'sobj_create_field_global_picklist',
   /** Platform Event */
   platform_event_subscribed: 'platform_event_subscribed',
   platform_event_unsubscribe: 'platform_event_unsubscribe',

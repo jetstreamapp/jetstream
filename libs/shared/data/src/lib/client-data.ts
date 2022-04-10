@@ -36,6 +36,7 @@ import {
   DescribeSObjectResult,
   ListMetadataQuery,
 } from 'jsforce';
+import isFunction from 'lodash/isFunction';
 import { handleExternalRequest, handleRequest, transformListMetadataResponse } from './client-data-data-helper';
 //// LANDING PAGE ROUTES
 
@@ -267,11 +268,21 @@ export async function queryAll<T = any>(
   org: SalesforceOrgUi,
   soqlQuery: string,
   isTooling = false,
-  includeDeletedRecords = false
+  includeDeletedRecords = false,
+  // Ended up not using onProgress - if used, need to test
+  onProgress?: (fetched: number, total: number) => void
 ): Promise<API.QueryResults<T>> {
   const results = await query(org, soqlQuery, isTooling, includeDeletedRecords);
   if (!results.queryResults.done) {
-    const currentResults = await queryRemaining(org, results.queryResults.nextRecordsUrl, isTooling);
+    let progress: { initialFetched: number; onProgress?: (fetched: number, total: number) => void };
+    if (isFunction(onProgress)) {
+      onProgress(results.queryResults.records.length, results.queryResults.totalSize);
+      progress = {
+        initialFetched: results.queryResults.records.length,
+        onProgress,
+      };
+    }
+    const currentResults = await queryRemaining(org, results.queryResults.nextRecordsUrl, isTooling, progress);
     results.queryResults.records = results.queryResults.records.concat(currentResults.queryResults.records);
     results.queryResults.nextRecordsUrl = null;
     results.queryResults.done = true;
@@ -290,10 +301,17 @@ export async function queryAll<T = any>(
 export async function queryRemaining<T = any>(
   org: SalesforceOrgUi,
   nextRecordsUrl: string,
-  isTooling = false
+  isTooling = false,
+  progress?: {
+    initialFetched: number;
+    onProgress?: (fetched: number, total: number) => void;
+  }
 ): Promise<API.QueryResults<T>> {
   const results = await queryMore(org, nextRecordsUrl, isTooling);
   while (!results.queryResults.done) {
+    if (progress && isFunction(progress.onProgress)) {
+      progress.onProgress(results.queryResults.records.length + progress.initialFetched, results.queryResults.totalSize);
+    }
     const currentResults = await queryMore(org, results.queryResults.nextRecordsUrl, isTooling);
     // update initial object with current results
     results.queryResults.records = results.queryResults.records.concat(currentResults.queryResults.records);

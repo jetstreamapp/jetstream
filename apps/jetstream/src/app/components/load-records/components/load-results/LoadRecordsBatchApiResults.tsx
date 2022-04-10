@@ -1,9 +1,10 @@
+import { css } from '@emotion/react';
 import { logger } from '@jetstream/shared/client-logger';
 import { ANALYTICS_KEYS } from '@jetstream/shared/constants';
 import { convertDateToLocale, useBrowserNotifications, useRollbar } from '@jetstream/shared/ui-utils';
 import { flattenRecord, getSuccessOrFailureChar, pluralizeFromNumber } from '@jetstream/shared/utils';
 import { InsertUpdateUpsertDelete, RecordResultWithRecord, SalesforceOrgUi, WorkerMessage } from '@jetstream/types';
-import { FileDownloadModal, Spinner } from '@jetstream/ui';
+import { FileDownloadModal, Grid, ProgressRing, Spinner } from '@jetstream/ui';
 import { FunctionComponent, useEffect, useRef, useState } from 'react';
 import { useRecoilState } from 'recoil';
 import { applicationCookieState } from '../../../../app-state';
@@ -76,6 +77,7 @@ export const LoadRecordsBatchApiResults: FunctionComponent<LoadRecordsBatchApiRe
   // used to ensure that data in the onworker callback gets a reference to the results
   const processingStatusRef = useRef<{ success: number; failure: number }>({ success: 0, failure: 0 });
   const [preparedData, setPreparedData] = useState<PrepareDataResponse>();
+  const [prepareDataProgress, setPrepareDataProgress] = useState(0);
   const [loadWorker] = useState(() => new Worker(new URL('../../load-records.worker', import.meta.url)));
   const [status, setStatus] = useState<Status>(STATUSES.PREPARING);
   const [fatalError, setFatalError] = useState<string>(null);
@@ -177,8 +179,8 @@ export const LoadRecordsBatchApiResults: FunctionComponent<LoadRecordsBatchApiRe
           return;
         }
         const payload: WorkerMessage<
-          'prepareData' | 'loadDataStatus' | 'loadData',
-          { preparedData?: PrepareDataResponse; records?: RecordResultWithRecord[] }
+          'prepareData' | 'prepareDataProgress' | 'loadDataStatus' | 'loadData',
+          { preparedData?: PrepareDataResponse; progress?: number; records?: RecordResultWithRecord[] }
         > = event.data;
         logger.log('[LOAD DATA]', payload.name, { payload });
         const dateString = convertDateToLocale(new Date(), { timeStyle: 'medium' });
@@ -221,6 +223,10 @@ export const LoadRecordsBatchApiResults: FunctionComponent<LoadRecordsBatchApiRe
               setStartTime(dateString);
               setProcessingEndTime(dateString);
             }
+            break;
+          }
+          case 'prepareDataProgress': {
+            setPrepareDataProgress(payload.data.progress || 0);
             break;
           }
           case 'loadDataStatus': {
@@ -368,9 +374,30 @@ export const LoadRecordsBatchApiResults: FunctionComponent<LoadRecordsBatchApiRe
           onClose={handleViewModalClose}
         />
       )}
-      <h3 className="slds-text-heading_small slds-grid">
-        <span>{status}</span>
-        {status === STATUSES.PREPARING && <Spinner inline containerClassName="slds-m-left_small" size="x-small" />}
+      <h3 className="slds-text-heading_small">
+        <Grid verticalAlign="center">
+          <span className="slds-m-right_x-small">{status}</span>
+          {status === STATUSES.PREPARING && (
+            <div>
+              {!!prepareDataProgress && (
+                <ProgressRing
+                  className="slds-m-right_x-small"
+                  fillPercent={prepareDataProgress / 100}
+                  size="medium"
+                  theme="active-step"
+                ></ProgressRing>
+              )}
+              <div
+                css={css`
+                  width: 20px;
+                  display: inline-block;
+                `}
+              >
+                <Spinner inline containerClassName="slds-m-bottom_small" size="x-small" />
+              </div>
+            </div>
+          )}
+        </Grid>
       </h3>
       {fatalError && (
         <div className="slds-text-color_error">

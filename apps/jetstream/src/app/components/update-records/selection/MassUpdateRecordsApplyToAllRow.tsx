@@ -164,7 +164,7 @@ export const MassUpdateRecordsApplyToAllRow: FunctionComponent<MassUpdateRecords
                 >
                   <textarea
                     id={`all-records-criteria`}
-                    className="slds-input"
+                    className="slds-textarea"
                     placeholder="CreatedDate >= THIS_WEEK AND Type__c != 'Account'"
                     rows={2}
                     value={whereClause}

@@ -368,7 +368,8 @@ export function transformData({ data, fieldMapping, sObject, insertNulls, dateFo
  */
 export async function fetchMappedRelatedRecords(
   data: any,
-  { org, sObject, fieldMapping, apiMode }: PrepareDataPayload
+  { org, sObject, fieldMapping, apiMode }: PrepareDataPayload,
+  onProgress: (progress: number) => void
 ): Promise<PrepareDataResponse> {
   const nonExternalIdFieldMappings = Object.values(fieldMapping).filter(
     (item) => item.mappedToLookup && item.relatedFieldMetadata && !item.relatedFieldMetadata.isExternalId
@@ -379,6 +380,18 @@ export async function fetchMappedRelatedRecords(
   const addError = addErrors(errorsByRowIndex);
 
   if (nonExternalIdFieldMappings.length) {
+    // progress indicator
+    let current = 0;
+    const step = 100 / nonExternalIdFieldMappings.length;
+    const total = 100;
+
+    // increment progress between current and next step - lots of incremental records queried
+    const emitQueryProgress = (currentQuery: number, total: number) => {
+      const progressIncrement = (currentQuery / total) * step;
+      // ensure we don't exceed beyond the current step
+      onProgress(Math.min(current + progressIncrement, current + step));
+    };
+
     for (const {
       lookupOptionNullIfNoMatch,
       lookupOptionUseFirstMatch,
@@ -387,6 +400,7 @@ export async function fetchMappedRelatedRecords(
       targetField,
       targetLookupField,
     } of nonExternalIdFieldMappings) {
+      onProgress(Math.min(current / total, 100));
       const fieldRelationshipName = `${relationshipName}.${targetLookupField}`;
       // remove any falsy values, related fields cannot be booleans or numbers, so this should not cause issues
       const relatedValues = new Set<string>(data.map((row) => row[targetField]).filter(Boolean));
@@ -395,8 +409,11 @@ export async function fetchMappedRelatedRecords(
         const relatedRecordsByRelatedField: MapOf<string[]> = {};
         // Get as many queries as required based on the size of the related fields
         const queries = getRelatedFieldsQueries(sObject, selectedReferenceTo, targetLookupField, Array.from(relatedValues));
+        let currentQuery = 1;
         for (const query of queries) {
           try {
+            emitQueryProgress(currentQuery, queries.length);
+            currentQuery++;
             (await queryAll(org, query)).queryResults.records.forEach((record) => {
               relatedRecordsByRelatedField[record[targetLookupField]] = relatedRecordsByRelatedField[record[targetLookupField]] || [];
               relatedRecordsByRelatedField[record[targetLookupField]].push(record.Id);
@@ -407,7 +424,7 @@ export async function fetchMappedRelatedRecords(
         }
 
         data.forEach((record, i) => {
-          if (isNil(record[targetField]) || record[targetField] == '') {
+          if (isNil(record[targetField]) || record[targetField] === '') {
             return;
           }
           const relatedRecords = relatedRecordsByRelatedField[record[targetField]];
@@ -437,7 +454,9 @@ export async function fetchMappedRelatedRecords(
           }
         });
       }
+      current++;
     }
+    onProgress(100);
   }
   // remove failed records from dataset
   data = data.filter((_, i: number) => !errorsByRowIndex.has(i));
