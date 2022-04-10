@@ -1,3 +1,4 @@
+import { css } from '@emotion/react';
 import { logger } from '@jetstream/shared/client-logger';
 import { ANALYTICS_KEYS } from '@jetstream/shared/constants';
 import { bulkApiGetJob, bulkApiGetRecords } from '@jetstream/shared/data';
@@ -12,7 +13,7 @@ import {
   SalesforceOrgUi,
   WorkerMessage,
 } from '@jetstream/types';
-import { FileDownloadModal, SalesforceLogin, Spinner } from '@jetstream/ui';
+import { FileDownloadModal, Grid, ProgressRing, SalesforceLogin, Spinner } from '@jetstream/ui';
 import { FunctionComponent, useEffect, useRef, useState } from 'react';
 import { useRecoilState } from 'recoil';
 import { applicationCookieState } from '../../../../app-state';
@@ -90,6 +91,7 @@ export const LoadRecordsBulkApiResults: FunctionComponent<LoadRecordsBulkApiResu
   const rollbar = useRollbar();
   const [{ serverUrl, google_apiKey, google_appId, google_clientId }] = useRecoilState(applicationCookieState);
   const [preparedData, setPreparedData] = useState<PrepareDataResponse>();
+  const [prepareDataProgress, setPrepareDataProgress] = useState(0);
   const [loadWorker] = useState(() => new Worker(new URL('../../load-records.worker', import.meta.url)));
   const [status, setStatus] = useState<Status>(STATUSES.PREPARING);
   const [fatalError, setFatalError] = useState<string>(null);
@@ -224,8 +226,13 @@ export const LoadRecordsBulkApiResults: FunctionComponent<LoadRecordsBulkApiResu
           return;
         }
         const payload: WorkerMessage<
-          'prepareData' | 'loadDataStatus' | 'loadData',
-          { preparedData?: PrepareDataResponse; jobInfo?: BulkJobWithBatches; resultsSummary?: LoadDataBulkApiStatusPayload },
+          'prepareData' | 'prepareDataProgress' | 'loadDataStatus' | 'loadData',
+          {
+            preparedData?: PrepareDataResponse;
+            jobInfo?: BulkJobWithBatches;
+            progress?: number;
+            resultsSummary?: LoadDataBulkApiStatusPayload;
+          },
           Error | LoadRecordsBatchError
         > = event.data;
         logger.log('[LOAD DATA]', payload.name, { payload });
@@ -292,6 +299,10 @@ export const LoadRecordsBulkApiResults: FunctionComponent<LoadRecordsBulkApiResu
               setPreparedData(payload.data.preparedData);
               setProcessingEndTime(dateString);
             }
+            break;
+          }
+          case 'prepareDataProgress': {
+            setPrepareDataProgress(payload.data.progress || 0);
             break;
           }
           case 'loadDataStatus': {
@@ -467,10 +478,31 @@ export const LoadRecordsBulkApiResults: FunctionComponent<LoadRecordsBulkApiResu
         />
       )}
       <h3 className="slds-text-heading_small slds-grid">
-        <span>
-          {status} <span className="slds-text-title">{getUploadingText()}</span>
-        </span>
-        {status === STATUSES.PREPARING && <Spinner inline containerClassName="slds-m-left_small" size="x-small" />}
+        <Grid verticalAlign="center">
+          <span className="slds-m-right_x-small">
+            {status} <span className="slds-text-title">{getUploadingText()}</span>
+          </span>
+          {status === STATUSES.PREPARING && (
+            <div>
+              {!!prepareDataProgress && (
+                <ProgressRing
+                  className="slds-m-right_x-small"
+                  fillPercent={prepareDataProgress / 100}
+                  size="medium"
+                  theme="active-step"
+                ></ProgressRing>
+              )}
+              <div
+                css={css`
+                  width: 20px;
+                  display: inline-block;
+                `}
+              >
+                <Spinner inline containerClassName="slds-m-bottom_small" size="x-small" />
+              </div>
+            </div>
+          )}
+        </Grid>
       </h3>
       {fatalError && (
         <div className="slds-text-color_error">
