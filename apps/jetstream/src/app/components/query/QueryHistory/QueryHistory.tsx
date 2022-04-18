@@ -7,7 +7,7 @@ import { multiWordObjectFilter } from '@jetstream/shared/utils';
 import { MapOf, QueryHistoryItem, QueryHistorySelection, SalesforceOrgUi, UpDown } from '@jetstream/types';
 import { EmptyState, Grid, GridCol, Icon, List, Modal, SearchInput, Spinner } from '@jetstream/ui';
 import localforage from 'localforage';
-import { createRef, FunctionComponent, useCallback, useEffect, useState } from 'react';
+import { createRef, forwardRef, useCallback, useEffect, useImperativeHandle, useState } from 'react';
 import { ErrorBoundary } from 'react-error-boundary';
 import { useLocation } from 'react-router-dom';
 import { useRecoilState, useRecoilValue, useResetRecoilState } from 'recoil';
@@ -21,12 +21,16 @@ import QueryHistoryWhichType from './QueryHistoryWhichType';
 
 const SHOWING_STEP = 25;
 
+export interface QueryHistoryRef {
+  open: (type: fromQueryHistoryState.QueryHistoryType) => void;
+}
+
 export interface QueryHistoryProps {
   selectedOrg: SalesforceOrgUi;
   onRestore?: (soql: string, tooling: boolean) => void;
 }
 
-export const QueryHistory: FunctionComponent<QueryHistoryProps> = ({ selectedOrg, onRestore }) => {
+export const QueryHistory = forwardRef<any, QueryHistoryProps>(({ selectedOrg, onRestore }, ref) => {
   const location = useLocation();
   const { trackEvent } = useAmplitude();
   const [queryHistoryStateMap, setQueryHistorySateMap] = useRecoilState(fromQueryHistoryState.queryHistoryState);
@@ -51,6 +55,16 @@ export const QueryHistory: FunctionComponent<QueryHistoryProps> = ({ selectedOrg
 
   const [showingUpTo, setShowingUpTo] = useState(SHOWING_STEP);
   const [visibleQueryHistory, setVisibleQueryHistory] = useState(filteredQueryHistory.slice(0, showingUpTo));
+
+  useImperativeHandle(ref, () => {
+    return {
+      open: (type: fromQueryHistoryState.QueryHistoryType = 'HISTORY') => {
+        setIsOpen(true);
+        setWhichType(type);
+        setWhichOrg('ALL');
+      },
+    };
+  });
 
   const onKeydown = useCallback(
     (event: KeyboardEvent) => {
@@ -122,7 +136,7 @@ export const QueryHistory: FunctionComponent<QueryHistoryProps> = ({ selectedOrg
       if (!sqlFilterValue) {
         setFilteredQueryHistory(queryHistory);
       } else {
-        setFilteredQueryHistory(queryHistory.filter(multiWordObjectFilter(['soql'], sqlFilterValue)));
+        setFilteredQueryHistory(queryHistory.filter(multiWordObjectFilter(['label', 'soql'], sqlFilterValue)));
       }
     }
   }, [queryHistory, sqlFilterValue]);
@@ -221,7 +235,12 @@ export const QueryHistory: FunctionComponent<QueryHistoryProps> = ({ selectedOrg
       logger.warn('[ERROR] Could not get updated query history', ex);
     }
     setQueryHistorySateMap({ ...queryHistory, [item.key]: { ...item, isFavorite } });
-    trackEvent(ANALYTICS_KEYS.query_HistorySaveQueryToggled, { isFavorite });
+    trackEvent(ANALYTICS_KEYS.query_HistorySaveQueryToggled, { location: 'modal', isFavorite });
+  }
+
+  function handleSetWhichType(type: fromQueryHistoryState.QueryHistoryType) {
+    setWhichType(type);
+    setWhichOrg('ALL');
   }
 
   return (
@@ -242,7 +261,7 @@ export const QueryHistory: FunctionComponent<QueryHistoryProps> = ({ selectedOrg
           tagline={
             <Grid align="spread" verticalAlign="center">
               <QueryHistoryWhichOrg selectedOrg={selectedOrg} whichOrg={whichOrg} onChange={setWhichOrg} />
-              <QueryHistoryWhichType which={whichType} onChange={setWhichType} />
+              <QueryHistoryWhichType which={whichType} onChange={handleSetWhichType} />
             </Grid>
           }
           size="lg"
@@ -308,6 +327,7 @@ export const QueryHistory: FunctionComponent<QueryHistoryProps> = ({ selectedOrg
                 {visibleQueryHistory.map((item) => (
                   <QueryHistoryItemCard
                     key={item.key}
+                    isOnSavedQueries={whichType === 'SAVED'}
                     item={item}
                     onExecute={handleExecute}
                     onSave={handleSaveFavorite}
@@ -332,6 +352,6 @@ export const QueryHistory: FunctionComponent<QueryHistoryProps> = ({ selectedOrg
       )}
     </ErrorBoundary>
   );
-};
+});
 
 export default QueryHistory;

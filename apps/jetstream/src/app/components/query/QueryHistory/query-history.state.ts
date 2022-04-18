@@ -22,6 +22,9 @@ const defaultSelectedObject: QueryHistorySelection = {
   isTooling: false,
 };
 
+export type QueryHistoryType = 'HISTORY' | 'SAVED';
+export type WhichOrgType = 'ALL' | 'SELECTED';
+
 /**
  * If query history grows to a very large size,
  * prune older entries
@@ -117,12 +120,12 @@ export const queryHistoryState = atom<MapOf<QueryHistoryItem>>({
   default: initQueryHistory(),
 });
 
-export const queryHistoryWhichType = atom<'HISTORY' | 'SAVED'>({
+export const queryHistoryWhichType = atom<QueryHistoryType>({
   key: 'queryHistory.queryHistoryWhichType',
   default: 'HISTORY',
 });
 
-export const queryHistoryWhichOrg = atom<'ALL' | 'SELECTED'>({
+export const queryHistoryWhichOrg = atom<WhichOrgType>({
   key: 'queryHistory.queryHistoryWhichOrg',
   default: 'SELECTED',
 });

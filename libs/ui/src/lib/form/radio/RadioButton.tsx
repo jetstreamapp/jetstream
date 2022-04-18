@@ -2,12 +2,11 @@ import React, { FunctionComponent } from 'react';
 import uniqueId from 'lodash/uniqueId';
 import classNames from 'classnames';
 
-/* eslint-disable-next-line */
 export interface RadioButtonProps {
   id?: string;
   className?: string;
   name: string;
-  label: string;
+  label: string | JSX.Element;
   checked: boolean;
   value: string;
   disabled?: boolean;

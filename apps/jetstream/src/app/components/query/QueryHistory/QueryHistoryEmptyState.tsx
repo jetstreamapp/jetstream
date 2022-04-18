@@ -1,9 +1,10 @@
 import { EmptyState } from '@jetstream/ui';
 import { Fragment, FunctionComponent, useEffect, useState } from 'react';
+import { QueryHistoryType, WhichOrgType } from './query-history.state';
 
 export interface QueryHistoryEmptyStateProps {
-  whichType: 'HISTORY' | 'SAVED';
-  whichOrg: 'ALL' | 'SELECTED';
+  whichType: QueryHistoryType;
+  whichOrg: WhichOrgType;
 }
 
 export const QueryHistoryEmptyState: FunctionComponent<QueryHistoryEmptyStateProps> = ({ whichType, whichOrg }) => {
@@ -29,6 +30,7 @@ export const QueryHistoryEmptyState: FunctionComponent<QueryHistoryEmptyStatePro
   }, [whichType, whichOrg]);
 
   return (
+    // eslint-disable-next-line react/jsx-no-useless-fragment
     <Fragment>
       <EmptyState headline={text1} subHeading={text2}></EmptyState>
     </Fragment>
