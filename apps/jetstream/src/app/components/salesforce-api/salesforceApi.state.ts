@@ -15,6 +15,7 @@ import localforage from 'localforage';
 import orderBy from 'lodash/orderBy';
 import { atom, selector } from 'recoil';
 import * as fromAppState from '../../app-state';
+import { WhichOrgType } from '../query/QueryHistory/query-history.state';
 
 let didRunCleanup = false;
 
@@ -101,7 +102,7 @@ export const salesforceApiHistoryState = atom<MapOf<SalesforceApiHistoryItem>>({
   default: initSalesforceApiHistory(),
 });
 
-export const salesforceApiHistoryWhichOrg = atom<'ALL' | 'SELECTED'>({
+export const salesforceApiHistoryWhichOrg = atom<WhichOrgType>({
   key: 'salesforceApiHistory.salesforceApiHistoryWhichOrg',
   default: 'SELECTED',
 });

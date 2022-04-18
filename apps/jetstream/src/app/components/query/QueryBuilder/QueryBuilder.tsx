@@ -26,7 +26,8 @@ import { useRecoilState, useRecoilValue, useResetRecoilState } from 'recoil';
 import { applicationCookieState, selectedOrgState } from '../../../app-state';
 import { useAmplitude } from '../../core/analytics';
 import * as fromQueryState from '../query.state';
-import QueryHistory from '../QueryHistory/QueryHistory';
+import { QueryHistoryType } from '../QueryHistory/query-history.state';
+import QueryHistory, { QueryHistoryRef } from '../QueryHistory/QueryHistory';
 import QueryFilterTitleSummary from '../QueryOptions/accordion-titles/QueryFilterTitleSummary';
 import QueryLimitTitleSummary from '../QueryOptions/accordion-titles/QueryLimitTitleSummary';
 import QueryOrderByTitleSummary from '../QueryOptions/accordion-titles/QueryOrderByTitleSummary';
@@ -61,6 +62,7 @@ export const QueryBuilder: FunctionComponent<QueryBuilderProps> = () => {
   const match = useRouteMatch();
   const history = useHistory();
   const [{ serverUrl }] = useRecoilState(applicationCookieState);
+  const queryHistoryRef = useRef<QueryHistoryRef>();
 
   const selectedOrg = useRecoilValue<SalesforceOrgUi>(selectedOrgState);
   const queryFieldsMap = useRecoilValue(fromQueryState.queryFieldsMapState);
@@ -214,6 +216,10 @@ export const QueryBuilder: FunctionComponent<QueryBuilderProps> = () => {
     resetState();
   }, [isTooling, resetState]);
 
+  function handleOpenHistory(type: QueryHistoryType) {
+    queryHistoryRef.current?.open(type);
+  }
+
   return (
     <Fragment>
       <QueryBuilderSoqlUpdater />
@@ -247,7 +253,7 @@ export const QueryBuilder: FunctionComponent<QueryBuilderProps> = () => {
               </button>
               <QueryResetButton />
               <ManualSoql isTooling={isTooling} generatedSoql={soql} />
-              <QueryHistory selectedOrg={selectedOrg} />
+              <QueryHistory selectedOrg={selectedOrg} ref={queryHistoryRef} />
               <ExecuteQueryButton soql={soql} isTooling={isTooling} selectedSObject={selectedSObject} />
             </PageHeaderActions>
           </PageHeaderRow>
@@ -372,7 +378,16 @@ export const QueryBuilder: FunctionComponent<QueryBuilderProps> = () => {
                       {
                         id: 'soql',
                         title: 'Soql Query',
-                        content: <SoqlTextarea key={selectedSObject.name} soql={soql} isTooling={isTooling} />,
+                        content: (
+                          <SoqlTextarea
+                            key={selectedSObject.name}
+                            soql={soql}
+                            selectedOrg={selectedOrg}
+                            selectedSObject={selectedSObject}
+                            isTooling={isTooling}
+                            onOpenHistory={handleOpenHistory}
+                          />
+                        ),
                       },
                     ]}
                     allowMultiple

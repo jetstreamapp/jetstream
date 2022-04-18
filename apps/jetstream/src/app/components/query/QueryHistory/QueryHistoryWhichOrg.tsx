@@ -1,11 +1,12 @@
 import { SalesforceOrgUi } from '@jetstream/types';
 import { Fragment, FunctionComponent } from 'react';
 import OrgLabelBadge from '../../core/OrgLabelBadge';
+import { WhichOrgType } from './query-history.state';
 
 export interface QueryHistoryWhichOrgProps {
   selectedOrg: SalesforceOrgUi;
-  whichOrg: 'ALL' | 'SELECTED';
-  onChange: (value: 'ALL' | 'SELECTED') => void;
+  whichOrg: WhichOrgType;
+  onChange: (value: WhichOrgType) => void;
 }
 
 export const QueryHistoryWhichOrg: FunctionComponent<QueryHistoryWhichOrgProps> = ({ selectedOrg, whichOrg, onChange }) => {

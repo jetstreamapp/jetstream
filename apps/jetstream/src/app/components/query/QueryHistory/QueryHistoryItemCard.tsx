@@ -2,11 +2,11 @@ import { IconObj } from '@jetstream/icon-factory';
 import { DATE_FORMATS } from '@jetstream/shared/constants';
 import { pluralizeFromNumber } from '@jetstream/shared/utils';
 import { QueryHistoryItem } from '@jetstream/types';
-import { Card, CheckboxButton, CopyToClipboard, Grid, GridCol, Icon, Textarea } from '@jetstream/ui';
+import { ButtonGroupContainer, Card, CopyToClipboard, Grid, GridCol, Icon, Textarea } from '@jetstream/ui';
 import Editor from '@monaco-editor/react';
 import formatDate from 'date-fns/format';
 import clamp from 'lodash/clamp';
-import React, { Fragment, FunctionComponent, useEffect, useRef, useState } from 'react';
+import React, { FunctionComponent, useEffect, useRef, useState } from 'react';
 import { Link, useRouteMatch } from 'react-router-dom';
 import RestoreQuery from '../QueryBuilder/RestoreQuery';
 
@@ -16,6 +16,7 @@ const METADATA_QUERY_ICON: IconObj = { type: 'standard', icon: 'settings', descr
 const REM_PER_LINE = 1.1;
 
 export interface QueryHistoryItemCardProps {
+  isOnSavedQueries: boolean;
   item: QueryHistoryItem;
   onExecute: (item: QueryHistoryItem) => void;
   onSave: (item: QueryHistoryItem, value: boolean) => void;
@@ -24,6 +25,7 @@ export interface QueryHistoryItemCardProps {
 }
 
 export const QueryHistoryItemCard: FunctionComponent<QueryHistoryItemCardProps> = ({
+  isOnSavedQueries,
   item,
   onExecute,
   onSave,
@@ -32,8 +34,11 @@ export const QueryHistoryItemCard: FunctionComponent<QueryHistoryItemCardProps> 
 }) => {
   const { sObject, label, soql, isTooling, runCount, lastRun } = item;
   const isMounted = useRef(null);
+  const timerRef = useRef(null);
   const match = useRouteMatch();
   const [lineCount, setLineCount] = useState(Math.max(soql.split('\n').length, 2));
+
+  const [isRemoving, setIsRemoving] = useState(false);
 
   useEffect(() => {
     isMounted.current = true;
@@ -48,6 +53,23 @@ export const QueryHistoryItemCard: FunctionComponent<QueryHistoryItemCardProps> 
     }
   }, [soql]);
 
+  function handleSave(value: boolean) {
+    if (!value && isOnSavedQueries) {
+      // delay to allow user to undo action
+      setIsRemoving(true);
+      timerRef.current = setTimeout(() => {
+        onSave(item, value);
+      }, 5000);
+    } else {
+      if (isRemoving) {
+        clearTimeout(timerRef.current);
+        setIsRemoving(false);
+      } else {
+        onSave(item, value);
+      }
+    }
+  }
+
   return (
     <Card
       className="modal-card-override"
@@ -60,23 +82,28 @@ export const QueryHistoryItemCard: FunctionComponent<QueryHistoryItemCardProps> 
           <GridCol className="slds-text-body_small slds-text-color_weak">{sObject}</GridCol>
         </Grid>
       }
-      // icon={{ type: 'standard', icon: 'account', description: 'Account' }}
       actions={
-        <Fragment>
-          <CheckboxButton
-            id={item.key}
-            className="slds-m-right_x-small"
-            checked={!!item.isFavorite}
-            label="Save Query"
-            checkedLabel="Query is saved"
-            icon="add"
-            iconChecked="check"
-            onChange={(value) => onSave(item, value)}
-          />
+        <ButtonGroupContainer>
+          {item.isFavorite && !isRemoving ? (
+            <button className="slds-button slds-button_brand" onClick={() => handleSave(false)}>
+              <Icon type="utility" icon="check" description="Manually enter query" className="slds-button__icon slds-button__icon_left" />
+              Saved
+            </button>
+          ) : (
+            <button className="slds-button slds-button_neutral" onClick={() => handleSave(true)}>
+              <Icon
+                type="utility"
+                icon="favorite"
+                description="Manually enter query"
+                className="slds-button__icon slds-button__icon_left"
+              />
+              Save
+            </button>
+          )}
           <RestoreQuery
             soql={soql}
             isTooling={isTooling}
-            className="slds-button_neutral slds-m-right_x-small"
+            className="slds-button_neutral slds-button_middle"
             startRestore={startRestore}
             endRestore={endRestore}
           />
@@ -98,7 +125,7 @@ export const QueryHistoryItemCard: FunctionComponent<QueryHistoryItemCardProps> 
             <Icon type="utility" icon="right" className="slds-button__icon slds-button__icon_left" />
             Execute
           </Link>
-        </Fragment>
+        </ButtonGroupContainer>
       }
     >
       <Grid wrap className="slds-m-bottom_x-small slds-scrollable_x">

@@ -26,7 +26,7 @@ export const HeaderHelpPopover: FunctionComponent<HeaderHelpPopoverProps> = () =
       placement="bottom-end"
       header={
         <header className="slds-popover__header">
-          <h2 className="slds-text-heading_small" title="Refresh Metadata">
+          <h2 className="slds-text-heading_small" title="Get Help">
             Get Help
           </h2>
         </header>

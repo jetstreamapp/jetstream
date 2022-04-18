@@ -52,7 +52,7 @@ import * as fromJetstreamEvents from '../../core/jetstream-events';
 import ViewEditCloneRecord from '../../core/ViewEditCloneRecord';
 import * as fromQueryState from '../query.state';
 import * as fromQueryHistory from '../QueryHistory/query-history.state';
-import QueryHistory from '../QueryHistory/QueryHistory';
+import QueryHistory, { QueryHistoryRef } from '../QueryHistory/QueryHistory';
 import IncludeDeletedRecordsToggle from '../QueryOptions/IncludeDeletedRecords';
 import { getFlattenSubqueryFlattenedFieldMap } from '../utils/query-utils';
 import useQueryRestore from '../utils/useQueryRestore';
@@ -80,6 +80,7 @@ export const QueryResults: FunctionComponent<QueryResultsProps> = React.memo(() 
   const isMounted = useRef(null);
   const history = useHistory();
   const { trackEvent } = useAmplitude();
+  const queryHistoryRef = useRef<QueryHistoryRef>();
   const previousSoql = useRecoilValue(fromQueryState.querySoqlState);
   const includeDeletedRecords = useRecoilValue(fromQueryState.queryIncludeDeletedRecordsState);
   const [priorSelectedOrg, setPriorSelectedOrg] = useState<string>(null);
@@ -205,9 +206,11 @@ export const QueryResults: FunctionComponent<QueryResultsProps> = React.memo(() 
         .getQueryHistoryItem(selectedOrg, soql, sObject, sObjectLabel, tooling)
         .then(({ queryHistoryItem, refreshedQueryHistory }) => {
           refreshedQueryHistory = refreshedQueryHistory || queryHistory;
+          // increment count and ensure certain properties are not overwritten
           if (refreshedQueryHistory && refreshedQueryHistory[queryHistoryItem.key]) {
             queryHistoryItem.runCount = refreshedQueryHistory[queryHistoryItem.key].runCount + 1;
             queryHistoryItem.created = refreshedQueryHistory[queryHistoryItem.key].created;
+            queryHistoryItem.label = refreshedQueryHistory[queryHistoryItem.key].label;
             queryHistoryItem.isFavorite = refreshedQueryHistory[queryHistoryItem.key].isFavorite;
           }
           setQueryHistory({ ...refreshedQueryHistory, [queryHistoryItem.key]: queryHistoryItem });
@@ -466,6 +469,10 @@ export const QueryResults: FunctionComponent<QueryResultsProps> = React.memo(() 
     setModifiedFields(visibleFields);
   }
 
+  function handleOpenHistory(type: fromQueryHistory.QueryHistoryType) {
+    queryHistoryRef.current?.open(type);
+  }
+
   return (
     <div>
       <RecordDownloadModal
@@ -533,7 +540,7 @@ export const QueryResults: FunctionComponent<QueryResultsProps> = React.memo(() 
             <Icon type="utility" icon="refresh" className="slds-button__icon slds-button__icon_left" omitContainer />
             Reload
           </button>
-          <QueryHistory selectedOrg={selectedOrg} onRestore={handleRestoreFromHistory} />
+          <QueryHistory ref={queryHistoryRef} selectedOrg={selectedOrg} onRestore={handleRestoreFromHistory} />
         </ToolbarItemGroup>
         <ToolbarItemActions>
           {/* FIXME: strongly type me! */}
@@ -564,8 +571,11 @@ export const QueryResults: FunctionComponent<QueryResultsProps> = React.memo(() 
           soql={soql}
           isTooling={isTooling}
           isOpen={soqlPanelOpen}
+          selectedOrg={selectedOrg}
+          sObject={allowContentDownload.sobjectName}
           onClosed={() => setSoqlPanelOpen(false)}
           executeQuery={(soql, tooling) => executeQuery(soql, SOURCE_MANUAL, { isTooling: tooling })}
+          onOpenHistory={handleOpenHistory}
         />
         <QueryResultsViewRecordFields
           org={selectedOrg}
