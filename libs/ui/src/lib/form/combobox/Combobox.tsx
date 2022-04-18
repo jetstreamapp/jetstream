@@ -64,6 +64,7 @@ export interface ComboboxProps {
   onInputChange?: (value: string) => void;
   onInputEnter?: () => void;
   onLeadingDropdownChange?: (item: FormGroupDropdownItem) => void;
+  children?: React.ReactNode;
 }
 
 function getContainer(hasGroup: boolean, children: React.ReactNode) {

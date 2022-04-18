@@ -1,7 +1,8 @@
 import { FunctionComponent } from 'react';
 
-// eslint-disable-next-line @typescript-eslint/no-empty-interface
-export interface PageHeaderProps {}
+export interface PageHeaderProps {
+  children?: React.ReactNode;
+}
 
 export const PageHeader: FunctionComponent<PageHeaderProps> = ({ children }) => {
   return (

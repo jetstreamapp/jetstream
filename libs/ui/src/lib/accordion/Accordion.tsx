@@ -3,7 +3,7 @@
 import { UiSection } from '@jetstream/types';
 import classNames from 'classnames';
 import isFunction from 'lodash/isFunction';
-import { Fragment, FunctionComponent, useState } from 'react';
+import { Fragment, FunctionComponent, ReactNode, useState } from 'react';
 import Icon from '../widgets/Icon';
 
 export interface AccordionProps {
@@ -81,6 +81,7 @@ export const Accordion: FunctionComponent<AccordionProps> = ({
           let content = item.content;
           if (isFunction(item.content)) {
             if (isOpen) {
+              // eslint-disable-next-line @typescript-eslint/ban-types
               content = (content as Function)();
             } else {
               content = '';
@@ -112,7 +113,7 @@ export const Accordion: FunctionComponent<AccordionProps> = ({
                   </h3>
                 </div>
                 <div className="slds-accordion__content" id={item.id}>
-                  {content}
+                  {content as ReactNode}
                 </div>
               </section>
             </li>

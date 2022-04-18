@@ -24,6 +24,7 @@ export interface InputProps {
   rightAddon?: JSX.Element | string;
   clearButton?: boolean;
   onClear?: () => void;
+  children?: React.ReactNode;
 }
 
 export const Input: FunctionComponent<InputProps> = ({

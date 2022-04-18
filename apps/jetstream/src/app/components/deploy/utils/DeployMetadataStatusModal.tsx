@@ -11,7 +11,11 @@ import { DeployMetadataStatus } from '../deploy-metadata.types';
 import DeployMetadataProgressSummary from './DeployMetadataProgressSummary';
 import DeployMetadataResultsTables from './DeployMetadataResultsTables';
 
-const DivWithTopMargin: FunctionComponent = ({ children }) => (
+export interface DivWithTopMarginProps {
+  children?: React.ReactNode;
+}
+
+const DivWithTopMargin: FunctionComponent<DivWithTopMarginProps> = ({ children }) => (
   <div
     css={css`
       margin-top: 0.6rem;

@@ -40,6 +40,7 @@ export interface LoadRecordsSelectObjectAndFileProps {
   onZipFileChange: (data: ArrayBuffer, filename: string) => void;
   onLoadTypeChange: (type: InsertUpdateUpsertDelete) => void;
   onExternalIdChange: (externalId?: string) => void;
+  children?: React.ReactNode;
 }
 
 const onParsedMultipleWorkbooks = async (worksheets: string[]): Promise<string> => {

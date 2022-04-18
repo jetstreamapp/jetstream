@@ -5,7 +5,7 @@ import { UserProfileUi } from '@jetstream/types';
 import { ConfirmationServiceProvider } from '@jetstream/ui';
 // import { initSocket } from '@jetstream/shared/data';
 import { OverlayProvider } from '@react-aria/overlays';
-import { lazy, Suspense, useEffect, useState } from 'react';
+import React, { lazy, Suspense, useEffect, useState } from 'react';
 import { ErrorBoundary } from 'react-error-boundary';
 import ModalContainer from 'react-modal-promise';
 import { Redirect, Route, RouteComponentProps, Switch } from 'react-router-dom';
@@ -197,32 +197,34 @@ export const App = () => {
         <Suspense fallback={<div>Loading...</div>}>
           <AppInitializer onUserProfile={setUserProfile}>
             <OverlayProvider>
-              <ModalContainer />
-              <AppStateResetOnOrgChange />
-              <AppToast />
-              <LogInitializer />
-              <NotificationsRequestModal featureFlags={featureFlags} loadDelay={10000} />
-              <div>
+              <React.StrictMode>
+                <ModalContainer />
+                <AppStateResetOnOrgChange />
+                <AppToast />
+                <LogInitializer />
+                <NotificationsRequestModal featureFlags={featureFlags} loadDelay={10000} />
                 <div>
-                  <HeaderNavbar userProfile={userProfile} featureFlags={featureFlags} />
+                  <div>
+                    <HeaderNavbar userProfile={userProfile} featureFlags={featureFlags} />
+                  </div>
+                  <div
+                    className="slds-p-horizontal_xx-small slds-p-vertical_xx-small"
+                    css={css`
+                      margin-top: 90px;
+                    `}
+                  >
+                    <Suspense fallback={<div>Loading...</div>}>
+                      <ErrorBoundary FallbackComponent={ErrorBoundaryFallback}>
+                        <Switch>
+                          {routes.map((route) => (
+                            <Route key={route.path} path={route.path} render={route.render} />
+                          ))}
+                        </Switch>
+                      </ErrorBoundary>
+                    </Suspense>
+                  </div>
                 </div>
-                <div
-                  className="slds-p-horizontal_xx-small slds-p-vertical_xx-small"
-                  css={css`
-                    margin-top: 90px;
-                  `}
-                >
-                  <Suspense fallback={<div>Loading...</div>}>
-                    <ErrorBoundary FallbackComponent={ErrorBoundaryFallback}>
-                      <Switch>
-                        {routes.map((route) => (
-                          <Route key={route.path} path={route.path} render={route.render} />
-                        ))}
-                      </Switch>
-                    </ErrorBoundary>
-                  </Suspense>
-                </div>
-              </div>
+              </React.StrictMode>
             </OverlayProvider>
           </AppInitializer>
         </Suspense>

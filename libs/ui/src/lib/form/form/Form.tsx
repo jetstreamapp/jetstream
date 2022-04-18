@@ -3,6 +3,7 @@ import React, { FunctionComponent } from 'react';
 
 export interface FormProps {
   className?: string;
+  children?: React.ReactNode;
 }
 
 export const Form: FunctionComponent<FormProps> = ({ className, children }) => {

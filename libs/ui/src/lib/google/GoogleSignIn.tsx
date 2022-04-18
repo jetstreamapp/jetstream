@@ -18,6 +18,7 @@ export interface GoogleSignInProps {
   disabled?: boolean;
   onError?: (error: string) => void;
   onSignInChanged?: (apiData: GoogleApiData, profile?: GoogleProfile) => void;
+  children?: React.ReactNode;
 }
 
 /**

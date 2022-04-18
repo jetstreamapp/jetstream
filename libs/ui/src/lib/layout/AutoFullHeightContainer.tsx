@@ -12,6 +12,7 @@ export interface AutoFullHeightContainerProps {
   setHeightAttr?: boolean;
   /** Set to true if used in a modal where the dom is not updated on the initial render */
   delayForSecondTopCalc?: boolean;
+  children?: React.ReactNode;
 }
 
 export interface AutoFullHeightContainerState {

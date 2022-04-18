@@ -12,6 +12,7 @@ export interface SectionProps {
   title?: string;
   removeFromDomOnCollapse?: boolean;
   noBorder?: boolean;
+  children?: React.ReactNode;
 }
 
 export const Section: FunctionComponent<SectionProps> = ({

@@ -1,6 +1,10 @@
 import React, { FunctionComponent } from 'react';
 
-export const ButtonRowContainer: FunctionComponent = ({ children }) => {
+export interface ButtonRowContainerProps {
+  children?: React.ReactNode;
+}
+
+export const ButtonRowContainer: FunctionComponent<ButtonRowContainerProps> = ({ children }) => {
   return <ul className="slds-button-group-row">{children}</ul>;
 };
 

@@ -3,6 +3,7 @@ import classNames from 'classnames';
 
 export interface ButtonGroupContainerProps {
   className?: string;
+  children?: React.ReactNode;
 }
 
 export const ButtonGroupContainer: FunctionComponent<ButtonGroupContainerProps> = ({ className, children }) => {

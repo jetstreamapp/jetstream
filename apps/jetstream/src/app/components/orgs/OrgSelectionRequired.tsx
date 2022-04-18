@@ -8,8 +8,9 @@ import * as fromJetstreamEvents from '../core/jetstream-events';
 import AddOrg from './AddOrg';
 import { OrgWelcomeInstructions } from './OrgWelcomeInstructions';
 
-// eslint-disable-next-line @typescript-eslint/no-empty-interface
-export interface OrgSelectionRequiredProps {}
+export interface OrgSelectionRequiredProps {
+  children?: React.ReactNode;
+}
 
 export const OrgSelectionRequired: FunctionComponent<OrgSelectionRequiredProps> = ({ children }) => {
   const selectedOrg = useRecoilValue<SalesforceOrgUi>(fromAppState.selectedOrgState);

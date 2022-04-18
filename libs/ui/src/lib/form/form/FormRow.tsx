@@ -3,6 +3,7 @@ import React, { FunctionComponent } from 'react';
 
 export interface FormRowProps {
   className?: string;
+  children?: React.ReactNode;
 }
 
 export const FormRow: FunctionComponent<FormRowProps> = ({ className, children }) => {

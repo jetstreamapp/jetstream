@@ -1,5 +1,5 @@
 import Avatar from '@salesforce-ux/design-system/assets/images/profile_avatar_96.png';
-import { FunctionComponent, ReactNode, Suspense, ReactNodeArray } from 'react';
+import { FunctionComponent, ReactNode, Suspense } from 'react';
 import { DropDownItem, UserProfileUi } from '@jetstream/types';
 import DropDown from '../form/dropdown/DropDown';
 
@@ -8,9 +8,10 @@ export interface HeaderProps {
   logo: string;
   orgs?: ReactNode;
   userMenuItems: DropDownItem[];
-  rightHandMenuItems?: ReactNode | ReactNodeArray;
+  rightHandMenuItems?: ReactNode;
   // notification?: ReactNode;
   onUserMenuItemSelected: (id: string) => void;
+  children?: React.ReactNode;
 }
 
 export const Header: FunctionComponent<HeaderProps> = ({

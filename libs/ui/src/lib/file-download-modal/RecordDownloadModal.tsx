@@ -68,6 +68,7 @@ export interface RecordDownloadModalProps {
     includeSubquery: boolean;
     googleFolder?: string;
   }) => void;
+  children?: React.ReactNode;
 }
 
 export const RecordDownloadModal: FunctionComponent<RecordDownloadModalProps> = ({

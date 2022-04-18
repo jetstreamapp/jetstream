@@ -6,6 +6,7 @@ export interface FormRowButtonProps {
   title: string;
   icon: IconObj;
   onClick: () => void;
+  children?: React.ReactNode;
 }
 
 /**
