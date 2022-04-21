@@ -50,7 +50,7 @@ export interface DataTableProps {
   columns: ColDef[];
   data: any[];
   agGridProps?: GridOptions;
-  frameworkComponents?: any;
+  components?: any;
   quickFilterText?: string;
   serverUrl?: string;
   org?: SalesforceOrgUi;
@@ -67,7 +67,7 @@ export const DataTable: FunctionComponent<DataTableProps> = ({
   agGridProps = {
     defaultColDef: {},
   },
-  frameworkComponents = {},
+  components = {},
   quickFilterText,
   serverUrl,
   org,
@@ -80,7 +80,7 @@ export const DataTable: FunctionComponent<DataTableProps> = ({
   return (
     <div className="ag-theme-custom-react" style={style}>
       <AgGridReact
-        // reactUi // TODO: enable at some point - makes deployment page blow up
+        // suppressReactUi
         rowSelection="multiple"
         suppressDragLeaveHidesColumns
         quickFilterText={quickFilterText}
@@ -103,7 +103,7 @@ export const DataTable: FunctionComponent<DataTableProps> = ({
           sortable: true,
           resizable: true,
         }}
-        frameworkComponents={{
+        components={{
           // CELL RENDERERS
           executeRenderer: ExecuteRenderer,
           actionRenderer: ActionRenderer,
@@ -118,7 +118,7 @@ export const DataTable: FunctionComponent<DataTableProps> = ({
           basicTextFloatingFilterRenderer: BasicTextFloatingFilterRenderer,
           booleanFilterRenderer: BooleanFilterRenderer,
           // Custom renderers that apply to specific implementations
-          ...frameworkComponents,
+          ...components,
         }}
         columnDefs={columns}
         rowData={data}

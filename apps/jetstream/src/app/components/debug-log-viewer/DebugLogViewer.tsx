@@ -18,7 +18,7 @@ import formatDate from 'date-fns/format';
 import escapeRegExp from 'lodash/escapeRegExp';
 import type { editor } from 'monaco-editor';
 import { Fragment, FunctionComponent, useCallback, useEffect, useRef, useState } from 'react';
-import Split from 'react-split';
+import { SplitWrapper as Split } from '@jetstream/splitjs';
 import { useTitle } from 'react-use';
 import { useRecoilState, useRecoilValue } from 'recoil';
 import { filter } from 'rxjs/operators';

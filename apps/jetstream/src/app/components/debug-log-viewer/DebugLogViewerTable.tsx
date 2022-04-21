@@ -1,4 +1,4 @@
-import { ColDef, ICellRendererParams, SelectionChangedEvent } from '@ag-grid-community/core';
+import { ColDef, GetRowIdParams, ICellRendererParams, SelectionChangedEvent } from '@ag-grid-community/core';
 import { css } from '@emotion/react';
 import { ApexLog, ApexLogWithViewed } from '@jetstream/types';
 import {
@@ -87,8 +87,8 @@ const COLUMNS: ColDef[] = [
   },
 ];
 
-function getRowNodeId({ Id }: ApexLog): string {
-  return Id;
+function getRowId({ data }: GetRowIdParams): string {
+  return data.Id;
 }
 
 export interface DebugLogViewerTableProps {
@@ -119,12 +119,11 @@ export const DebugLogViewerTable: FunctionComponent<DebugLogViewerTableProps> = 
         columns={COLUMNS}
         data={logs}
         agGridProps={{
-          immutableData: true,
-          getRowNodeId,
+          getRowId,
           enableRangeSelection: false,
-          suppressCellSelection: true,
+          suppressCellFocus: true,
           suppressRowClickSelection: false,
-          frameworkComponents: { logViewedRenderer: LogViewedRenderer },
+          components: { logViewedRenderer: LogViewedRenderer },
           rowSelection: 'single',
           onSelectionChanged: handleSelectionChanged,
         }}

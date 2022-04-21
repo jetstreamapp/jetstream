@@ -17,7 +17,7 @@ import { DescribeGlobalSObjectResult } from 'jsforce';
 import { FunctionComponent } from 'react';
 import { useRouteMatch } from 'react-router';
 import { Link } from 'react-router-dom';
-import Split from 'react-split';
+import { SplitWrapper as Split } from '@jetstream/splitjs';
 import { useTitle } from 'react-use';
 import { useRecoilState, useRecoilValue } from 'recoil';
 import { selectedOrgState } from '../../app-state';

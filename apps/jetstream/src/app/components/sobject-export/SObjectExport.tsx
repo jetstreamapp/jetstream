@@ -25,7 +25,7 @@ import {
 import { DescribeGlobalSObjectResult } from 'jsforce';
 import localforage from 'localforage';
 import { Fragment, FunctionComponent, useEffect, useRef, useState } from 'react';
-import Split from 'react-split';
+import { SplitWrapper as Split } from '@jetstream/splitjs';
 import { useRecoilState, useRecoilValue } from 'recoil';
 import { applicationCookieState, selectedOrgState } from '../../app-state';
 import * as fromJetstreamEvents from '../core/jetstream-events';

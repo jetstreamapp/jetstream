@@ -1,4 +1,4 @@
-import { ColDef } from '@ag-grid-community/core';
+import { ColDef, GetRowIdParams } from '@ag-grid-community/core';
 import { orderStringsBy } from '@jetstream/shared/utils';
 import { AutoFullHeightContainer, DataTable } from '@jetstream/ui';
 import { FunctionComponent, useEffect, useState } from 'react';
@@ -40,7 +40,7 @@ const columns: ColDef[] = [
   },
 ];
 
-function getRowNodeId(data: PlatformEvenRow): string {
+function getRowId({ data }: GetRowIdParams): string {
   return data.uuid;
 }
 
@@ -80,8 +80,7 @@ export const PlatformEventMonitorEvents: FunctionComponent<PlatformEventMonitorE
         data={rows}
         defaultMenuTabs={['filterMenuTab', 'generalMenuTab']}
         agGridProps={{
-          immutableData: true,
-          getRowNodeId,
+          getRowId,
           enableCellTextSelection: true,
           enableRangeSelection: false,
           autoGroupColumnDef: {

@@ -22,7 +22,7 @@ import localforage from 'localforage';
 import escapeRegExp from 'lodash/escapeRegExp';
 import type { editor } from 'monaco-editor';
 import { Fragment, FunctionComponent, MouseEvent, useCallback, useEffect, useRef, useState } from 'react';
-import Split from 'react-split';
+import { SplitWrapper as Split } from '@jetstream/splitjs';
 import { useTitle } from 'react-use';
 import { useRecoilState, useRecoilValue } from 'recoil';
 import { applicationCookieState, selectedOrgState, STORAGE_KEYS } from '../../app-state';

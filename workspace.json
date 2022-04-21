@@ -22,6 +22,7 @@
     "shared-ui-record-form": "libs/shared/ui-record-form",
     "shared-ui-utils": "libs/shared/ui-utils",
     "shared-utils": "libs/shared/utils",
+    "splitjs": "libs/splitjs",
     "types": "libs/types",
     "ui": "libs/ui",
     "ui-e2e": "apps/ui-e2e"

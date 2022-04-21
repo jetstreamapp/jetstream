@@ -13,7 +13,7 @@ import {
 } from '@jetstream/ui';
 import { FunctionComponent } from 'react';
 import { Link, useRouteMatch } from 'react-router-dom';
-import Split from 'react-split';
+import { SplitWrapper as Split } from '@jetstream/splitjs';
 import { useRecoilValue } from 'recoil';
 import { useAmplitude } from '../core/analytics';
 import DeployMetadataPackage from './deploy-metadata-package/DeployMetadataPackage';

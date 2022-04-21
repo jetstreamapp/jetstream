@@ -13,7 +13,7 @@ import {
 } from '@jetstream/ui';
 import { DescribeGlobalSObjectResult } from 'jsforce';
 import { FunctionComponent } from 'react';
-import Split from 'react-split';
+import { SplitWrapper as Split } from '@jetstream/splitjs';
 import LoadRecordsLoadTypeButtons from '../components/LoadRecordsLoadTypeButtons';
 import { FieldWithRelatedEntities, LocalOrGoogle } from '../load-records-types';
 import { filterLoadSobjects } from '../utils/load-records-utils';

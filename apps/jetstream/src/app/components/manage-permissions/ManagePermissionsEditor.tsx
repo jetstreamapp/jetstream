@@ -156,7 +156,7 @@ export const ManagePermissionsEditor: FunctionComponent<ManagePermissionsEditorP
       initTableData();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [fieldsByObject, fieldsByKey, objectPermissionMap, fieldPermissionMap]);
+  }, [loading, fieldsByObject, fieldsByKey, objectPermissionMap, fieldPermissionMap]);
 
   useEffect(() => {
     setHasError(recordData.hasError);

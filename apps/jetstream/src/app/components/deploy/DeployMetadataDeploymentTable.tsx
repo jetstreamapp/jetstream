@@ -1,6 +1,7 @@
 import {
   ColDef,
   ColumnEvent,
+  GetRowIdParams,
   GridApi,
   GridReadyEvent,
   ICellRendererParams,
@@ -25,7 +26,7 @@ export interface DeployMetadataDeploymentTableProps {
   onViewOrCompareOpen: () => void;
 }
 
-function getRowNodeId(data: DeployMetadataTableRow): string {
+function getRowId({ data }: GetRowIdParams): string {
   return data.key;
 }
 
@@ -131,9 +132,8 @@ export const DeployMetadataDeploymentTable: FunctionComponent<DeployMetadataDepl
           quickFilterText={globalFilter}
           defaultMenuTabs={['filterMenuTab', 'generalMenuTab']}
           agGridProps={{
-            immutableData: true,
-            getRowNodeId,
-            frameworkComponents: {
+            getRowId,
+            components: {
               valueOrLoading: ValueOrLoadingRenderer,
               metadataFilterItemsWithNoChildren: MetadataFilterItemsWithNoChildren,
             },
