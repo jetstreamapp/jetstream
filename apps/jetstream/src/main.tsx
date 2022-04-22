@@ -1,7 +1,7 @@
 import { LicenseManager } from '@ag-grid-enterprise/core';
 import '@salesforce-ux/design-system/assets/styles/salesforce-lightning-design-system.min.css';
 import React from 'react';
-import { createRoot } from 'react-dom/client';
+import { render } from 'react-dom';
 import { BrowserRouter as Router } from 'react-router-dom';
 import App from './app/app';
 import './main.scss';
@@ -11,12 +11,23 @@ LicenseManager.setLicenseKey(
 );
 
 const container = document.getElementById('root');
-const root = createRoot(container);
 
-root.render(
+// REACT 18 MODE
+// import { createRoot } from 'react-dom/client';
+// createRoot(container).render(
+//   <div className="app">
+//     <Router basename="/app">
+//       <App />
+//     </Router>
+//   </div>
+// );
+
+// REACT 17 MODE
+render(
   <div className="app">
     <Router basename="/app">
       <App />
     </Router>
-  </div>
+  </div>,
+  container
 );

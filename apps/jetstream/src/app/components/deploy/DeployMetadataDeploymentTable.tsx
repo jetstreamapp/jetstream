@@ -10,18 +10,15 @@ import {
   RowNode,
   SelectionChangedEvent,
 } from '@ag-grid-community/core';
-import { ListMetadataResultItem } from '@jetstream/connected-ui';
 import { formatNumber, useNonInitialEffect } from '@jetstream/shared/ui-utils';
-import { MapOf } from '@jetstream/types';
 import { AutoFullHeightContainer, Checkbox, DataTable, getFilteredRows, Grid, Icon, SearchInput, Spinner } from '@jetstream/ui';
 import { forwardRef, Fragment, FunctionComponent, useEffect, useImperativeHandle, useState } from 'react';
 import { DeployMetadataTableRow } from './deploy-metadata.types';
-import { getColumnDefinitions, getRows } from './utils/deploy-metadata.utils';
+import { getColumnDefinitions } from './utils/deploy-metadata.utils';
 
 export interface DeployMetadataDeploymentTableProps {
-  listMetadataItems: MapOf<ListMetadataResultItem>;
+  rows: DeployMetadataTableRow[];
   hasSelectedRows: boolean;
-  onRows?: (rows: DeployMetadataTableRow[]) => void;
   onSelectedRows: (selectedRows: Set<DeployMetadataTableRow>) => void;
   onViewOrCompareOpen: () => void;
 }
@@ -44,60 +41,33 @@ const ValueOrLoadingRenderer: FunctionComponent<ICellRendererParams> = ({ value,
 };
 
 export const DeployMetadataDeploymentTable: FunctionComponent<DeployMetadataDeploymentTableProps> = ({
-  listMetadataItems,
+  rows,
   hasSelectedRows,
-  onRows,
   onSelectedRows,
   onViewOrCompareOpen,
 }) => {
-  const [gridApi, setGridApi] = useState<GridApi>(null);
   const [columns, setColumns] = useState<ColDef[]>();
-  const [rows, setRows] = useState<DeployMetadataTableRow[]>();
-  const [visibleRows, setVisibleRows] = useState<DeployMetadataTableRow[]>();
+  const [visibleRows, setVisibleRows] = useState<DeployMetadataTableRow[]>(rows);
   const [globalFilter, setGlobalFilter] = useState<string>(null);
   const [selectedRows, setSelectedRow] = useState<Set<DeployMetadataTableRow>>(new Set());
+
+  useEffect(() => {
+    setVisibleRows(rows);
+  }, [rows]);
 
   useEffect(() => {
     setColumns(getColumnDefinitions());
   }, []);
 
   useEffect(() => {
-    const currRows = getRows(listMetadataItems);
-    setRows(currRows);
-    setVisibleRows(currRows);
-  }, [listMetadataItems]);
-
-  useEffect(() => {
-    if (onRows && rows) {
-      onRows(rows);
-    }
-  }, [onRows, rows]);
-
-  useEffect(() => {
     onSelectedRows(selectedRows);
   }, [onSelectedRows, selectedRows]);
-
-  // Hack to ensure that spinners are removed for rows that do not have any child items
-  useEffect(() => {
-    if (gridApi) {
-      const rowsToRefresh = rows
-        .filter((row) => (!row.loading && !row.fullName) || row.loading)
-        .map((row) => gridApi.getRowNode(row.key))
-        .filter((row) => !!row);
-      if (rowsToRefresh.length) {
-        gridApi.refreshCells({ force: true, columns: ['fullName'], rowNodes: rowsToRefresh });
-      }
-    }
-  }, [gridApi, rows]);
 
   function handleSelectionChanged(event: SelectionChangedEvent) {
     setSelectedRow(new Set(event.api.getSelectedRows().filter((row: DeployMetadataTableRow) => row.metadata)));
   }
 
-  function handleOnGridReady({ api }: GridReadyEvent) {
-    setGridApi(api);
-  }
-
+  // TODO: maybe move to parent?
   function handleFilterChangeOrRowDataUpdated(event: ColumnEvent) {
     setVisibleRows(getFilteredRows(event));
   }
@@ -184,7 +154,6 @@ export const DeployMetadataDeploymentTable: FunctionComponent<DeployMetadataDepl
               ],
             },
             isRowSelectable: handleIsRowSelectable,
-            onGridReady: handleOnGridReady,
             onSelectionChanged: handleSelectionChanged,
             onFilterChanged: handleFilterChangeOrRowDataUpdated,
           }}
