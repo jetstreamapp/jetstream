@@ -1,15 +1,42 @@
-import { getGreeting } from '../support/app.po';
+import { getExecuteQueryButton, getFieldsList, getObjectList, getOrgDropdownContainer } from '../support/app.po';
+
+/**
+ * Basic integration tests to ensure application is working
+ */
 
 describe('jetstream', () => {
   beforeEach(() => {
-    cy.loginByAuth0Api(Cypress.env('auth_username'), Cypress.env('auth_password'));
-    // TODO: what I actually need to do is get a session token from the server somehow, not just from auth0
+    cy.login();
+    cy.initOrg();
   });
 
-  it('should display welcome message', () => {
-    // // Custom command example, see `../support/commands.ts` file
-    // cy.login('my-email@something.com', 'myPassword');
-    // // Function helper example, see `../support/app.po.ts` file
-    // getGreeting().contains('Welcome to jetstream!');
+  it('Should be able to select a default org', () => {
+    sessionStorage.clear();
+    cy.visit('/app');
+    cy.contains('This action requires an org to be selected.').should('exist');
+
+    getOrgDropdownContainer('input').click();
+    getOrgDropdownContainer('ul li').last().click();
+
+    cy.contains('This action requires an org to be selected.').should('not.exist');
+    cy.location('pathname').should('eq', '/app/query');
+  });
+
+  it('Should be able to run query', () => {
+    cy.visit('/app');
+    // select account
+    getExecuteQueryButton().should('be.disabled');
+    getObjectList('li').contains('Account').click();
+
+    getFieldsList('li input[type=checkbox]').each(($el, index) => {
+      if (index > 4) {
+        return;
+      }
+      cy.wrap($el).check({ force: true });
+    });
+
+    getExecuteQueryButton().should('not.be.disabled');
+    getExecuteQueryButton().click();
+    cy.location('pathname').should('eq', '/app/query/results');
   });
 });

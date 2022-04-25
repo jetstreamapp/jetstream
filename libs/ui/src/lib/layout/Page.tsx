@@ -12,6 +12,7 @@ export const Page: FunctionComponent<PageProps> = ({ className, children }) => {
       css={css`
         height: 100%;
       `}
+      data-testid="page"
     >
       {/* Callee should include a PageHeader and then the page content as children */}
       {children}

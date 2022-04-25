@@ -30,5 +30,9 @@
   "/landing": {
     "target": "http://localhost:3333",
     "secure": false
+  },
+  "/__test__": {
+    "target": "http://localhost:3333",
+    "secure": false
   }
 }

@@ -12,7 +12,15 @@ import * as passport from 'passport';
 import * as Auth0Strategy from 'passport-auth0';
 import { join } from 'path';
 import { initSocketServer } from './app/controllers/socket.controller';
-import { apiRoutes, landingRoutes, oauthRoutes, platformEventRoutes, staticAuthenticatedRoutes } from './app/routes';
+import {
+  apiRoutes,
+  landingRoutes,
+  oauthRoutes,
+  platformEventRoutes,
+  registerPassportTestLoginStrategy,
+  staticAuthenticatedRoutes,
+  testRoutes,
+} from './app/routes';
 import { blockBotByUserAgentMiddleware, logRoute, notFoundMiddleware, setApplicationCookieMiddleware } from './app/routes/route.middleware';
 import { blockBotHandler, healthCheck, uncaughtErrorHandler } from './app/utils/response.handlers';
 import { environment } from './environments/environment';
@@ -137,6 +145,10 @@ if (ENV.ENVIRONMENT === 'development') {
 app.use(blockBotByUserAgentMiddleware);
 app.use(setApplicationCookieMiddleware);
 
+if (!environment.production) {
+  passport.use(registerPassportTestLoginStrategy());
+}
+
 passport.use(
   'auth0',
   new Auth0Strategy(
@@ -210,10 +222,12 @@ app.use('/oauth', logRoute, oauthRoutes); // NOTE: there are also static files w
 
 const server = httpServer.listen(Number(ENV.PORT), () => {
   logger.info('Listening at http://localhost:' + ENV.PORT);
+  logger.info('[ENVIRONMENT]: ' + ENV.ENVIRONMENT);
 });
 
 if (!environment.production) {
   app.use(cors({ origin: /http:\/\/localhost:[0-9]+$/ }));
+  app.use('/__test__', logRoute, testRoutes);
 }
 
 app.use('/codicon.ttf', (req: express.Request, res: express.Response) => {
