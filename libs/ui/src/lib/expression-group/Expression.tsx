@@ -16,6 +16,7 @@ export interface ExpressionProps {
   onAddCondition: () => void;
   onAddGroup: () => void;
   moveRowToGroup: (item: DraggableRow) => void;
+  children?: React.ReactNode;
 }
 
 export const Expression: FunctionComponent<ExpressionProps> = ({

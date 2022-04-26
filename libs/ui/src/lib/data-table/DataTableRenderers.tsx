@@ -1,5 +1,6 @@
 import {
   ColumnApi,
+  GetRowIdParams,
   GridReadyEvent,
   ICellRendererParams,
   IFilter,
@@ -128,7 +129,7 @@ export const SubqueryRenderer: FunctionComponent<ICellRendererParams> = ({ colDe
     }
   }
 
-  function getRowNodeId(data: any): string {
+  function getRowId({ data }: GetRowIdParams): string {
     if (data?.attributes?.type === 'AggregateResult') {
       return uniqueId('query-results-node-id');
     }
@@ -194,8 +195,7 @@ export const SubqueryRenderer: FunctionComponent<ICellRendererParams> = ({ colDe
                     data={records}
                     agGridProps={{
                       rowSelection: null,
-                      immutableData: true,
-                      getRowNodeId: (data) => getRowNodeId(data),
+                      getRowId: (data) => getRowId(data),
                       onGridReady: handleOnGridReady,
                     }}
                   />
@@ -360,7 +360,8 @@ interface FilterWithFloatingFilterCallback extends IFilter {
   onFloatingFilterValueChanged(value: string): void;
 }
 
-export const BasicTextFilterRenderer = forwardRef<any, IFilterParams>(({ filterChangedCallback, valueGetter }, ref) => {
+export const BasicTextFilterRenderer = forwardRef<any, IFilterParams>((props, ref) => {
+  const { api, colDef, column, columnApi, context, valueGetter, filterChangedCallback } = props;
   const [value, setValue] = useState('');
   useEffect(() => {
     filterChangedCallback();
@@ -376,10 +377,20 @@ export const BasicTextFilterRenderer = forwardRef<any, IFilterParams>(({ filterC
       },
 
       doesFilterPass({ node }) {
+        const fieldValue = valueGetter({
+          api,
+          colDef,
+          column,
+          columnApi,
+          context,
+          data: node.data,
+          getValue: (field) => node.data[field],
+          node,
+        });
         return value
           .toLowerCase()
           .split(' ')
-          .every((word) => `${valueGetter(node)}`.toLowerCase().includes(word));
+          .every((word) => fieldValue.toLowerCase().includes(word));
       },
 
       getModel() {
@@ -417,7 +428,7 @@ export const BasicTextFloatingFilterRenderer = forwardRef<any, IFloatingFilterPa
   const [value, setValue] = useState('');
   useEffect(() => {
     parentFilterInstance((instance) => {
-      instance.getFrameworkComponentInstance().onFloatingFilterValueChanged(value);
+      instance.onFloatingFilterChanged('contains', value);
     });
   }, [value]);
   useImperativeHandle(ref, () => {
@@ -438,7 +449,8 @@ export const BasicTextFloatingFilterRenderer = forwardRef<any, IFloatingFilterPa
   );
 });
 
-export const BooleanFilterRenderer = forwardRef<any, IFilterParams>(({ filterChangedCallback, valueGetter, colDef }, ref) => {
+export const BooleanFilterRenderer = forwardRef<any, IFilterParams>((props, ref) => {
+  const { api, colDef, column, columnApi, context, valueGetter, filterChangedCallback } = props;
   const [isEnabled, setIsEnabled] = useState(false);
   const [value, setValue] = useState(true);
   useEffect(() => {
@@ -451,8 +463,18 @@ export const BooleanFilterRenderer = forwardRef<any, IFilterParams>(({ filterCha
         return isEnabled;
       },
 
-      doesFilterPass(params) {
-        return valueGetter(params.node) === value;
+      doesFilterPass({ node }) {
+        const fieldValue = valueGetter({
+          api,
+          colDef,
+          column,
+          columnApi,
+          context,
+          data: node.data,
+          getValue: (field) => node.data[field],
+          node,
+        });
+        return fieldValue === value;
       },
 
       getModel() {

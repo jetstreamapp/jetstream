@@ -43,7 +43,7 @@ export function getQueryResultsCellContents(
       content = (
         <div className="slds-line-clamp_medium" title={`${value}`}>
           <SalesforceLogin serverUrl={serverUrl} org={org} returnUrl={`/${value}`} omitIcon>
-            {value}
+            {value as ReactNode}
           </SalesforceLogin>
         </div>
       );
@@ -51,7 +51,7 @@ export function getQueryResultsCellContents(
     default:
       content = (
         <div className="slds-line-clamp_medium" title={`${value}`}>
-          {value}
+          {value as ReactNode}
         </div>
       );
       break;

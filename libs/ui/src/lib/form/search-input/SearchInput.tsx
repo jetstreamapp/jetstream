@@ -15,6 +15,7 @@ export interface SearchInputProps {
   disabled?: boolean;
   onChange: (value: string) => void;
   onArrowKeyUpDown?: (direction: UpDown) => void;
+  children?: React.ReactNode;
 }
 
 export const SearchInput: FunctionComponent<SearchInputProps> = ({

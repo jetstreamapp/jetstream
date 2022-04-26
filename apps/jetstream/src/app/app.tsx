@@ -5,7 +5,7 @@ import { UserProfileUi } from '@jetstream/types';
 import { ConfirmationServiceProvider } from '@jetstream/ui';
 // import { initSocket } from '@jetstream/shared/data';
 import { OverlayProvider } from '@react-aria/overlays';
-import { lazy, Suspense, useEffect, useState } from 'react';
+import React, { lazy, Suspense, useEffect, useState } from 'react';
 import { ErrorBoundary } from 'react-error-boundary';
 import ModalContainer from 'react-modal-promise';
 import { Redirect, Route, RouteComponentProps, Switch } from 'react-router-dom';
@@ -197,6 +197,7 @@ export const App = () => {
         <Suspense fallback={<div>Loading...</div>}>
           <AppInitializer onUserProfile={setUserProfile}>
             <OverlayProvider>
+              {/* <React.StrictMode> */}
               <ModalContainer />
               <AppStateResetOnOrgChange />
               <AppToast />
@@ -224,6 +225,7 @@ export const App = () => {
                   </Suspense>
                 </div>
               </div>
+              {/* </React.StrictMode> */}
             </OverlayProvider>
           </AppInitializer>
         </Suspense>

@@ -36,6 +36,7 @@ localforage.config({
 
 export interface AppInitializerProps {
   onUserProfile: (userProfile: UserProfileUi) => void;
+  children?: React.ReactNode;
 }
 
 export const AppInitializer: FunctionComponent<AppInitializerProps> = ({ onUserProfile, children }) => {

@@ -8,7 +8,11 @@ export const ConfirmationServiceContext = React.createContext<(options: Confirma
 
 export const useConfirmation = () => React.useContext(ConfirmationServiceContext);
 
-export const ConfirmationServiceProvider: FunctionComponent = ({ children }) => {
+export interface ConfirmationServiceProviderProps {
+  children?: React.ReactNode;
+}
+
+export const ConfirmationServiceProvider: FunctionComponent<ConfirmationServiceProviderProps> = ({ children }) => {
   const [confirmationState, setConfirmationState] = React.useState<ConfirmationDialogServiceProviderOptions | null>(null);
 
   const awaitingPromiseRef = React.useRef<{

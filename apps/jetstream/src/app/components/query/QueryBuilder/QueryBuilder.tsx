@@ -21,7 +21,7 @@ import {
 import { DescribeGlobalSObjectResult } from 'jsforce';
 import { Fragment, FunctionComponent, useCallback, useEffect, useRef, useState } from 'react';
 import { useHistory, useRouteMatch } from 'react-router-dom';
-import Split from 'react-split';
+import { SplitWrapper as Split } from '@jetstream/splitjs';
 import { useRecoilState, useRecoilValue, useResetRecoilState } from 'recoil';
 import { applicationCookieState, selectedOrgState } from '../../../app-state';
 import { useAmplitude } from '../../core/analytics';

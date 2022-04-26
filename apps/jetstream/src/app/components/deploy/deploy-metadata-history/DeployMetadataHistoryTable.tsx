@@ -1,4 +1,4 @@
-import { ColDef, RowHeightParams } from '@ag-grid-community/core';
+import { ColDef, GetRowIdParams, RowHeightParams } from '@ag-grid-community/core';
 import { MapOf, SalesforceDeployHistoryItem, SalesforceOrgUi } from '@jetstream/types';
 import { DataTable, DateFilterComparator } from '@jetstream/ui';
 import { FunctionComponent } from 'react';
@@ -79,7 +79,7 @@ const getRowHeight = ({ data, context }: RowHeightParams) => {
   }
   return rowHeight * numberOfRows;
 };
-const getRowNodeId = ({ key }: SalesforceDeployHistoryItem) => key;
+const getRowId = ({ data }: GetRowIdParams) => data.key;
 
 export interface DeployMetadataHistoryTableProps {
   items: SalesforceDeployHistoryItem[];
@@ -95,8 +95,7 @@ export const DeployMetadataHistoryTable: FunctionComponent<DeployMetadataHistory
       data={items}
       defaultMenuTabs={['filterMenuTab']}
       agGridProps={{
-        immutableData: true,
-        getRowNodeId,
+        getRowId,
         getRowHeight,
         context: {
           orgsById,
@@ -104,10 +103,10 @@ export const DeployMetadataHistoryTable: FunctionComponent<DeployMetadataHistory
           onDownload,
         },
         enableRangeSelection: false,
-        suppressCellSelection: true,
+        suppressCellFocus: true,
         suppressRowClickSelection: true,
         enableCellTextSelection: true,
-        frameworkComponents: {
+        components: {
           orgRenderer: OrgRenderer,
           actionRenderer: ActionRenderer,
           statusRenderer: StatusRenderer,

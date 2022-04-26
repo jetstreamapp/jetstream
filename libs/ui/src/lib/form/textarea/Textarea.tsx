@@ -14,6 +14,7 @@ export interface TextareaProps {
   isRequired?: boolean;
   errorMessageId?: string;
   errorMessage?: React.ReactNode | string;
+  children?: React.ReactNode;
 }
 
 export const Textarea: FunctionComponent<TextareaProps> = ({

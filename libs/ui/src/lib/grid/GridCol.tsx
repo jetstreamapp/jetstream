@@ -23,6 +23,7 @@ export interface GridColProps {
   sizeLarge?: number;
   maxSizeLarge?: number;
   extraProps?: HTMLAttributes<HTMLDivElement>;
+  children?: React.ReactNode;
 }
 
 function getClassWithModifier(base: string, modifier?: TopRightBottomLeft) {

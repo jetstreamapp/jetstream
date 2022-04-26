@@ -3,6 +3,7 @@ import { FunctionComponent } from 'react';
 
 export interface PageProps {
   className?: string;
+  children?: React.ReactNode;
 }
 
 export const Page: FunctionComponent<PageProps> = ({ className, children }) => {

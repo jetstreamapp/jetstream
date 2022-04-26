@@ -15,6 +15,7 @@ export interface RadioGroupProps {
   hasError?: boolean;
   isButtonGroup?: boolean;
   errorMessage?: string;
+  children?: React.ReactNode;
 }
 
 export const RadioGroup: FunctionComponent<RadioGroupProps> = ({

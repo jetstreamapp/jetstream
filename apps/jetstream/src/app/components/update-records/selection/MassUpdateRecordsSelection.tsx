@@ -12,7 +12,7 @@ import {
 } from '@jetstream/ui';
 import { FunctionComponent, useEffect, useState } from 'react';
 import { Link, useRouteMatch } from 'react-router-dom';
-import Split from 'react-split';
+import { SplitWrapper as Split } from '@jetstream/splitjs';
 import { useRecoilState, useRecoilValue, useResetRecoilState } from 'recoil';
 import * as fromMassUpdateState from '../mass-update-records.state';
 import { filterMassUpdateSobject } from '../mass-update-records.utils';

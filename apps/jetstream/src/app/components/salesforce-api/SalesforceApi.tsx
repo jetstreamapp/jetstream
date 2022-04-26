@@ -6,7 +6,7 @@ import { useRollbar } from '@jetstream/shared/ui-utils';
 import { ManualRequestPayload, ManualRequestResponse, SalesforceApiHistoryRequest, SalesforceOrgUi } from '@jetstream/types';
 import { AutoFullHeightContainer } from '@jetstream/ui';
 import { FunctionComponent, useCallback, useEffect, useRef, useState } from 'react';
-import Split from 'react-split';
+import { SplitWrapper as Split } from '@jetstream/splitjs';
 import { useTitle } from 'react-use';
 import { useRecoilState, useRecoilValue } from 'recoil';
 import { applicationCookieState, selectedOrgState } from '../../app-state';

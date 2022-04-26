@@ -14,6 +14,7 @@ export interface SalesforceLoginProps {
   iconPosition?: PositionLeftRight;
   omitIcon?: boolean;
   onClick?: (event: MouseEvent<HTMLAnchorElement>, loginUrl: string) => void;
+  children?: React.ReactNode;
 }
 
 export const SalesforceLogin: FunctionComponent<SalesforceLoginProps> = ({

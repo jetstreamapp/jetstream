@@ -1,4 +1,4 @@
-import { ColDef } from '@ag-grid-community/core';
+import { ColDef, GetRowIdParams } from '@ag-grid-community/core';
 import { css } from '@emotion/react';
 import { logger } from '@jetstream/shared/client-logger';
 import { ANALYTICS_KEYS } from '@jetstream/shared/constants';
@@ -86,7 +86,7 @@ function getDeploymentItemMap(rows: TableRowItem[]): DeploymentItemMap {
   }, {});
 }
 
-const getRowNodeId = ({ metadata }: DeploymentItem) => metadata.key;
+const getRowId = ({ data }: GetRowIdParams) => data.metadata.key;
 
 export interface AutomationControlEditorReviewModalProps {
   defaultApiVersion: string;
@@ -325,13 +325,12 @@ export const AutomationControlEditorReviewModal: FunctionComponent<AutomationCon
               columns={COLUMNS}
               data={deploymentItems}
               agGridProps={{
-                immutableData: true,
-                getRowNodeId,
+                getRowId,
                 enableRangeSelection: false,
-                suppressCellSelection: true,
+                suppressCellFocus: true,
                 suppressRowClickSelection: true,
                 enableCellTextSelection: true,
-                frameworkComponents: {
+                components: {
                   booleanAndVersionRenderer: BooleanAndVersionRenderer,
                   automationDeployStatusRenderer: AutomationDeployStatusRenderer,
                 },

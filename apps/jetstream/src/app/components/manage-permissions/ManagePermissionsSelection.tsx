@@ -15,7 +15,7 @@ import {
 import { DescribeGlobalSObjectResult } from 'jsforce';
 import { FunctionComponent, useEffect } from 'react';
 import { Link, useRouteMatch } from 'react-router-dom';
-import Split from 'react-split';
+import { SplitWrapper as Split } from '@jetstream/splitjs';
 import { useRecoilState, useRecoilValue, useResetRecoilState } from 'recoil';
 import { selectedOrgState } from '../../app-state';
 import * as fromPermissionsState from './manage-permissions.state';

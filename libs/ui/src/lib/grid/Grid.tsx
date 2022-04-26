@@ -19,6 +19,7 @@ export interface GridProps {
   noWrap?: boolean;
   flexiTruncate?: boolean;
   divProps?: React.HTMLAttributes<HTMLDivElement>;
+  children?: React.ReactNode;
 }
 
 function getClassWithModifier(base: string, modifier?: CenterSpaceSpreadEnd | StartCenterEnd | sizeXXXSmallToXXLarge) {

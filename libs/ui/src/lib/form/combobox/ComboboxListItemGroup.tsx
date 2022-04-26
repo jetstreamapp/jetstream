@@ -2,6 +2,7 @@ import React, { FunctionComponent } from 'react';
 
 export interface ComboboxListItemGroupProps {
   label?: string; // can pass in children instead to override the complete media body
+  children?: React.ReactNode;
 }
 
 export const ComboboxListItemGroup: FunctionComponent<ComboboxListItemGroupProps> = ({ label, children }) => {

@@ -13,6 +13,7 @@ export interface PanelProps {
   size?: SizeSmMdLgXlFull;
   showBackArrow?: boolean;
   onClosed: () => void;
+  children?: React.ReactNode;
 }
 
 function getPositionClass(position: PositionLeftRight) {

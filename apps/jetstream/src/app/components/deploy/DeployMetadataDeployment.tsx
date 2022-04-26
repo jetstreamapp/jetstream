@@ -39,7 +39,7 @@ import DeployMetadataToOrg from './deploy-to-different-org/DeployMetadataToOrg';
 import DeployMetadataDeploymentSidePanel from './DeployMetadataDeploymentSidePanel';
 import DeployMetadataDeploymentTable from './DeployMetadataDeploymentTable';
 import DeployMetadataLastRefreshedPopover from './DeployMetadataLastRefreshedPopover';
-import { convertRowsForExport, convertRowsToMapOfListMetadataResults } from './utils/deploy-metadata.utils';
+import { convertRowsForExport, convertRowsToMapOfListMetadataResults, getRows } from './utils/deploy-metadata.utils';
 import DeployMetadataSelectedItemsBadge from './utils/DeployMetadataSelectedItemsBadge';
 import DownloadPackageWithFileSelector from './utils/DownloadPackageWithFileSelector';
 import ViewOrCompareMetadataModal from './view-or-compare-metadata/ViewOrCompareMetadataModal';
@@ -120,13 +120,13 @@ export const DeployMetadataDeployment: FunctionComponent<DeployMetadataDeploymen
 
   useEffect(() => {
     if (listMetadataFilterFn && listMetadataItemsUnfiltered) {
-      setListMetadataItems(
-        Object.keys(listMetadataItemsUnfiltered).reduce((output, key) => {
-          const item = listMetadataItemsUnfiltered[key];
-          output[key] = { ...item, items: item.items.filter(listMetadataFilterFn) };
-          return output;
-        }, {})
-      );
+      const _listMetadataItems = Object.keys(listMetadataItemsUnfiltered).reduce((output, key) => {
+        const item = listMetadataItemsUnfiltered[key];
+        output[key] = { ...item, items: item.items.filter(listMetadataFilterFn) };
+        return output;
+      }, {});
+      setRows(getRows(_listMetadataItems));
+      setListMetadataItems(_listMetadataItems);
     }
   }, [listMetadataFilterFn, listMetadataItemsUnfiltered]);
 
@@ -142,6 +142,7 @@ export const DeployMetadataDeployment: FunctionComponent<DeployMetadataDeploymen
         skipCacheIfOlderThan,
       });
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
     selectedOrg,
     listMetadataQueries,
@@ -218,6 +219,10 @@ export const DeployMetadataDeployment: FunctionComponent<DeployMetadataDeploymen
       setDeleteMetadataModalOpen(true);
     }
   }
+
+  const handleViewOrCompareOpen = useCallback(() => {
+    setViewOrCompareModalOpen(true);
+  }, []);
 
   return (
     <div>
@@ -408,11 +413,10 @@ export const DeployMetadataDeployment: FunctionComponent<DeployMetadataDeploymen
               `}
             >
               <DeployMetadataDeploymentTable
-                listMetadataItems={listMetadataItems}
+                rows={rows}
                 hasSelectedRows={selectedRows.size > 0}
-                onRows={setRows}
                 onSelectedRows={setSelectedRows}
-                onViewOrCompareOpen={() => setViewOrCompareModalOpen(true)}
+                onViewOrCompareOpen={handleViewOrCompareOpen}
               />
             </AutoFullHeightContainer>
           </Grid>
