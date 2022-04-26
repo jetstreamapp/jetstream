@@ -28,13 +28,14 @@ export const ExecuteQueryButton: FunctionComponent<ExecuteQueryButtonProps> = ({
               },
             },
           }}
+          data-testid="execute-query-button"
         >
           <Icon type="utility" icon="right" className="slds-button__icon slds-button__icon_left" />
           Execute
         </Link>
       )}
       {!soql && (
-        <button className="slds-button slds-button_brand" disabled>
+        <button className="slds-button slds-button_brand" disabled data-testid="execute-query-button">
           <Icon type="utility" icon="right" className="slds-button__icon slds-button__icon_left" />
           Execute
         </button>
