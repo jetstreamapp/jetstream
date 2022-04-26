@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-namespace */
 // ***********************************************
 // This example commands.js shows you how to
 // create various custom commands and overwrite
@@ -9,84 +10,40 @@
 // ***********************************************
 // eslint-disable-next-line @typescript-eslint/no-namespace
 import jwt from 'express-jwt';
-
 declare global {
   namespace Cypress {
     interface Chainable {
-      loginByAuth0Api(email: string, password: string): void;
+      login(): void;
+      initOrg(): void;
     }
   }
 }
 
-// declare namespace Cypress {
-//   interface Chainable<Subject> {
-//     loginByAuth0Api(email: string, password: string): void;
-//   }
-// }
-//
-// // -- This is a parent command --
-// Cypress.Commands.add('login', (email, password) => {
-//   console.log('Custom command example: Login', email, password);
-// });
-//
-// -- This is a child command --
-// Cypress.Commands.add("drag", { prevSubject: 'element'}, (subject, options) => { ... })
-//
-//
-// -- This is a dual command --
-// Cypress.Commands.add("dismiss", { prevSubject: 'optional'}, (subject, options) => { ... })
-//
-//
-// -- This will overwrite an existing command --
-// Cypress.Commands.overwrite("visit", (originalFn, url, options) => { ... })
+/**
+ * Logs in using username+password
+ * Does NOT use auth0
+ */
+Cypress.Commands.add('login', () => {
+  const email = Cypress.env('username');
+  const password = Cypress.env('password');
+  cy.request('POST', '/__test__/login', { email, password }).its('body').as('currentUser');
+});
 
-// cypress/support/commands.js
-Cypress.Commands.add('loginByAuth0Api', (username: string, password: string) => {
-  cy.log(`Logging in as ${username}`);
-  const client_id = Cypress.env('auth0_client_id');
-  const client_secret = Cypress.env('auth0_client_secret');
-  const audience = Cypress.env('auth0_audience');
-  const scope = Cypress.env('auth0_scope');
-
+/**
+ * Authenticates with Salesforce and adds org to DB
+ * TODO: we should only do this ONCE - maybe here? https://docs.cypress.io/api/commands/session
+ */
+Cypress.Commands.add('initOrg', () => {
   cy.request({
+    url: 'https://login.salesforce.com/services/oauth2/token',
     method: 'POST',
-    url: `https://${Cypress.env('auth0_domain')}/oauth/token`,
+    form: true,
     body: {
       grant_type: 'password',
-      username,
-      password,
-      audience,
-      scope,
-      client_id,
-      client_secret,
+      client_id: '3MVG94YrNIs0WS4d2PK0lDfKIz60UH6tNKX1qc7poTDrY.X4XsDJYnVdd1c.OsdTBLK.5z20hMJcKQh999rJF',
+      client_secret: '282991E5BE06438CC6B27A5A0FD0F8722E7C1837FB53CD122FE6C8BA0E8E1170',
+      username: 'test-e2e@getjetstream.app',
+      password: 'Password123',
     },
-  }).then(({ body }) => {
-    const claims = jwt.decode(body.id_token);
-    const { nickname, name, picture, updated_at, email, email_verified, sub, exp } = claims;
-
-    const item = {
-      body: {
-        ...body,
-        decodedToken: {
-          claims,
-          user: {
-            nickname,
-            name,
-            picture,
-            updated_at,
-            email,
-            email_verified,
-            sub,
-          },
-          audience,
-          client_id,
-        },
-      },
-      expiresAt: exp,
-    };
-
-    window.localStorage.setItem('auth0Cypress', JSON.stringify(item));
-
-    cy.visit('/');
-  });
+  }).then(({ body }) => cy.request('POST', '/__test__/orgs/init', body).its('body.data').as('org'));
 });

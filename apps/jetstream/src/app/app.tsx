@@ -204,7 +204,7 @@ export const App = () => {
               <LogInitializer />
               <NotificationsRequestModal featureFlags={featureFlags} loadDelay={10000} />
               <div>
-                <div>
+                <div data-testid="header">
                   <HeaderNavbar userProfile={userProfile} featureFlags={featureFlags} />
                 </div>
                 <div
@@ -212,6 +212,7 @@ export const App = () => {
                   css={css`
                     margin-top: 90px;
                   `}
+                  data-testid="content"
                 >
                   <Suspense fallback={<div>Loading...</div>}>
                     <ErrorBoundary FallbackComponent={ErrorBoundaryFallback}>

@@ -273,7 +273,7 @@ export const QueryBuilder: FunctionComponent<QueryBuilderProps> = () => {
               flex-direction: row;
             `}
           >
-            <div className="slds-p-horizontal_x-small">
+            <div className="slds-p-horizontal_x-small" data-testid="sobject-list">
               <ConnectedSobjectList
                 label={isTooling ? 'Metadata' : 'Objects'}
                 selectedOrg={selectedOrg}
@@ -286,7 +286,7 @@ export const QueryBuilder: FunctionComponent<QueryBuilderProps> = () => {
                 onSearchTermChange={setSObjectFilterTerm}
               />
             </div>
-            <div className="slds-p-horizontal_x-small">
+            <div className="slds-p-horizontal_x-small" data-testid="sobject-field-list">
               {selectedSObject && (
                 <Tabs
                   key={selectedSObject.name}
@@ -350,7 +350,7 @@ export const QueryBuilder: FunctionComponent<QueryBuilderProps> = () => {
                 />
               )}
             </div>
-            <div className="slds-p-horizontal_x-small">
+            <div className="slds-p-horizontal_x-small" data-testid="filters-and-soql">
               <AutoFullHeightContainer fillHeight bufferIfNotRendered={HEIGHT_BUFFER}>
                 {selectedSObject && isMounted.current && (
                   <Accordion
