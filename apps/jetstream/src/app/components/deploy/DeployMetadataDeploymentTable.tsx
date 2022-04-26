@@ -2,8 +2,6 @@ import {
   ColDef,
   ColumnEvent,
   GetRowIdParams,
-  GridApi,
-  GridReadyEvent,
   ICellRendererParams,
   IFilter,
   IFilterParams,
