@@ -3,7 +3,7 @@ import { CheckboxToggle, Grid, GridCol, Icon, Popover, PopoverRef, Spinner, Text
 import Editor, { OnMount } from '@monaco-editor/react';
 import type { editor } from 'monaco-editor';
 import { Fragment, FunctionComponent, useEffect, useRef, useState } from 'react';
-import { Link, useHistory, useRouteMatch } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { formatQuery, isQueryValid } from 'soql-parser-js';
 import { useAmplitude } from '../../core/analytics';
 import RestoreQuery from '../QueryBuilder/RestoreQuery';
@@ -50,9 +50,8 @@ export const ManualSoql: FunctionComponent<ManualSoqlProps> = ({ className, isTo
   const isMounted = useRef(null);
   const popoverRef = useRef<PopoverRef>(null);
   const editorRef = useRef<editor.IStandaloneCodeEditor>(null);
-  const history = useHistory();
+  const navigate = useNavigate();
   const { trackEvent } = useAmplitude();
-  const match = useRouteMatch();
   const [soql, setSoql] = useState<string>('');
   const [isRestoring, setIsRestoring] = useState(false);
   const [queryIsValid, setQueryIsValid] = useState(false);
@@ -109,9 +108,11 @@ export const ManualSoql: FunctionComponent<ManualSoqlProps> = ({ className, isTo
       label: 'Submit',
       keybindings: [monaco?.KeyMod.CtrlCmd | monaco?.KeyCode.Enter],
       run: (currEditor) => {
-        history.push(`${match.url}/results`, {
-          isTooling: userTooling,
-          soql: currEditor.getValue(),
+        navigate(`results`, {
+          state: {
+            isTooling: userTooling,
+            soql: currEditor.getValue(),
+          },
         });
       },
     });
@@ -217,12 +218,10 @@ export const ManualSoql: FunctionComponent<ManualSoqlProps> = ({ className, isTo
                 {queryIsValid && !isRestoring && (
                   <Link
                     className="slds-button slds-button_brand"
-                    to={{
-                      pathname: `${match.url}/results`,
-                      state: {
-                        isTooling: userTooling,
-                        soql,
-                      },
+                    to="results"
+                    state={{
+                      isTooling: userTooling,
+                      soql,
                     }}
                   >
                     <Icon type="utility" icon="right" className="slds-button__icon slds-button__icon_left" />

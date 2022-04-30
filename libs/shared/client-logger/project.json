@@ -20,7 +20,7 @@
     "test": {
       "executor": "@nrwl/jest:jest",
       "options": {
-        "jestConfig": "libs/shared/client-logger/jest.config.js",
+        "jestConfig": "libs/shared/client-logger/jest.config.ts",
         "passWithNoTests": true
       },
       "outputs": ["coverage/libs/shared/client-logger"]

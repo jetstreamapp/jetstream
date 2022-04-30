@@ -1,18 +1,16 @@
 import { TITLES } from '@jetstream/shared/constants';
 import { SalesforceOrgUi } from '@jetstream/types';
 import { Fragment, FunctionComponent, useEffect, useState } from 'react';
-import { Redirect, Route, Switch, useRouteMatch } from 'react-router-dom';
+import { Navigate, Outlet, useLocation } from 'react-router-dom';
 import { useTitle } from 'react-use';
 import { useRecoilValue, useResetRecoilState } from 'recoil';
 import { selectedOrgState } from '../../app-state';
 import StateDebugObserver from '../core/StateDebugObserver';
-import MassUpdateRecordsDeployment from './deployment/MassUpdateRecordsDeployment';
 import * as fromMassUpdateState from './mass-update-records.state';
-import MassUpdateRecordsSelection from './selection/MassUpdateRecordsSelection';
 
 export const MassUpdateRecords: FunctionComponent = () => {
   useTitle(TITLES.MASS_UPDATE_RECORDS);
-  const match = useRouteMatch();
+  const location = useLocation();
   const selectedOrg = useRecoilValue<SalesforceOrgUi>(selectedOrgState);
   const resetRowMapState = useResetRecoilState(fromMassUpdateState.rowsMapState);
   const resetSObjectsState = useResetRecoilState(fromMassUpdateState.sObjectsState);
@@ -68,14 +66,7 @@ export const MassUpdateRecords: FunctionComponent = () => {
           ['isConfigured', fromMassUpdateState.isConfigured],
         ]}
       />
-      <Switch>
-        <Route path={`${match.url}`} exact>
-          <MassUpdateRecordsSelection selectedOrg={selectedOrg} />
-        </Route>
-        <Route path={`${match.url}/deployment`}>
-          {isConfigured ? <MassUpdateRecordsDeployment selectedOrg={selectedOrg} /> : <Redirect to={match.url} />}
-        </Route>
-      </Switch>
+      {location.pathname.endsWith('/deployment') && !isConfigured ? <Navigate to="." /> : <Outlet />}
     </Fragment>
   );
 };

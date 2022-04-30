@@ -1,6 +1,5 @@
 import { useGlobalEventHandler } from '@jetstream/shared/ui-utils';
-import { FunctionComponent, useCallback, useEffect } from 'react';
-import { Prompt } from 'react-router-dom';
+import { Fragment, FunctionComponent, useCallback, useEffect } from 'react';
 import { useRecoilState } from 'recoil';
 import * as fromAppState from '../../app-state';
 
@@ -47,7 +46,9 @@ export const ConfirmPageChange: FunctionComponent<ConfirmPageChangeProps> = ({
     }
   }, [actionInProgress, actionInProgressState]);
 
-  return <Prompt when={actionInProgress} message={message} />;
+  // TODO: fix this
+  return <Fragment />;
+  // return <Prompt when={actionInProgress} message={message} />;
 };
 
 export default ConfirmPageChange;

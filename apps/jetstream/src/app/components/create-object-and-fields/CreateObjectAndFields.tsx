@@ -1,22 +1,19 @@
 import { TITLES } from '@jetstream/shared/constants';
 import { SalesforceOrgUi } from '@jetstream/types';
 import React, { Fragment, FunctionComponent, useEffect, useState } from 'react';
-import { Redirect, Route, Switch, useRouteMatch } from 'react-router-dom';
+import { Navigate, Outlet, useLocation } from 'react-router-dom';
 import { useTitle } from 'react-use';
-import { useRecoilState, useRecoilValue, useResetRecoilState } from 'recoil';
-import { applicationCookieState, selectedOrgState } from '../../app-state';
+import { useRecoilValue, useResetRecoilState } from 'recoil';
+import { selectedOrgState } from '../../app-state';
 import StateDebugObserver from '../core/StateDebugObserver';
 import * as fromCreateFieldsState from './create-fields.state';
-import CreateFields from './CreateFields';
-import CreateFieldsSelection from './CreateFieldsSelection';
 
 // eslint-disable-next-line @typescript-eslint/no-empty-interface
 export interface CreateObjectAndFieldsProps {}
 
 export const CreateObjectAndFields: FunctionComponent<CreateObjectAndFieldsProps> = () => {
   useTitle(TITLES.CREATE_OBJ_FIELD);
-  const match = useRouteMatch();
-  const [{ defaultApiVersion }] = useRecoilState(applicationCookieState);
+  const location = useLocation();
   const selectedOrg = useRecoilValue<SalesforceOrgUi>(selectedOrgState);
   const resetProfilesState = useResetRecoilState(fromCreateFieldsState.profilesState);
   const resetSelectedProfilesPermSetState = useResetRecoilState(fromCreateFieldsState.selectedProfilesPermSetState);
@@ -68,14 +65,7 @@ export const CreateObjectAndFields: FunctionComponent<CreateObjectAndFieldsProps
           ['fieldRowsState', fromCreateFieldsState.fieldRowsState],
         ]}
       />
-      <Switch>
-        <Route path={`${match.url}`} exact>
-          <CreateFieldsSelection />
-        </Route>
-        <Route path={`${match.url}/configurator`}>
-          {hasSelectionsMade ? <CreateFields apiVersion={defaultApiVersion} /> : <Redirect to={match.url} />}
-        </Route>
-      </Switch>
+      {location.pathname.endsWith('/configurator') && !hasSelectionsMade ? <Navigate to="." /> : <Outlet />}
     </Fragment>
   );
 };

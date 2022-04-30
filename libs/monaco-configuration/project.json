@@ -13,7 +13,7 @@
       "executor": "@nrwl/jest:jest",
       "outputs": ["coverage/libs/monaco-configuration"],
       "options": {
-        "jestConfig": "libs/monaco-configuration/jest.config.js",
+        "jestConfig": "libs/monaco-configuration/jest.config.ts",
         "passWithNoTests": true
       }
     }

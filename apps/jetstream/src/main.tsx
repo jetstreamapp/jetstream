@@ -3,7 +3,7 @@ import '@salesforce-ux/design-system/assets/styles/salesforce-lightning-design-s
 import React from 'react';
 import { render } from 'react-dom';
 // import { createRoot } from 'react-dom/client';
-import { BrowserRouter as Router } from 'react-router-dom';
+import { BrowserRouter } from 'react-router-dom';
 import App from './app/app';
 import './main.scss';
 
@@ -16,18 +16,18 @@ const container = document.getElementById('root');
 // REACT 18 MODE
 // createRoot(container).render(
 //   <div className="app">
-//     <Router basename="/app">
+//     <BrowserRouter basename="/app">
 //       <App />
-//     </Router>
+//     </BrowserRouter>
 //   </div>
 // );
 
 // REACT 17 MODE
 render(
   <div className="app">
-    <Router basename="/app">
+    <BrowserRouter basename="/app">
       <App />
-    </Router>
+    </BrowserRouter>
   </div>,
   container
 );

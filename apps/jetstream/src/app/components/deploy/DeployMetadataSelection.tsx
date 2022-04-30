@@ -12,7 +12,7 @@ import {
   PageHeaderTitle,
 } from '@jetstream/ui';
 import { FunctionComponent } from 'react';
-import { Link, useRouteMatch } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import { SplitWrapper as Split } from '@jetstream/splitjs';
 import { useRecoilValue } from 'recoil';
 import { useAmplitude } from '../core/analytics';
@@ -25,17 +25,16 @@ import ManagedPackageSelection from './selection-components/ManagedPackageSelect
 import MetadataSelection from './selection-components/MetadataSelection';
 import UserSelection from './selection-components/UserSelection';
 import DeployMetadataHistoryModal from './deploy-metadata-history/DeployMetadataHistoryModal';
+import { selectedOrgState } from '../../app-state';
 
 const HEIGHT_BUFFER = 170;
 
-export interface DeployMetadataSelectionProps {
-  selectedOrg: SalesforceOrgUi;
-}
+// eslint-disable-next-line @typescript-eslint/no-empty-interface
+export interface DeployMetadataSelectionProps {}
 
-export const DeployMetadataSelection: FunctionComponent<DeployMetadataSelectionProps> = ({ selectedOrg }) => {
-  const match = useRouteMatch();
+export const DeployMetadataSelection: FunctionComponent<DeployMetadataSelectionProps> = () => {
   const { trackEvent } = useAmplitude();
-
+  const selectedOrg = useRecoilValue<SalesforceOrgUi>(selectedOrgState);
   const amplitudeSubmissionSelector = useRecoilValue(fromDeployMetadataState.amplitudeSubmissionSelector);
   const metadataItems = useRecoilValue(fromDeployMetadataState.metadataItemsState);
   const hasSelectionsMade = useRecoilValue(fromDeployMetadataState.hasSelectionsMadeSelector);
@@ -61,13 +60,7 @@ export const DeployMetadataSelection: FunctionComponent<DeployMetadataSelectionP
               <DeployMetadataPackage selectedOrg={selectedOrg} />
             </ButtonGroupContainer>
             {hasSelectionsMade && (
-              <Link
-                onClick={trackContinue}
-                className="slds-button slds-button_brand"
-                to={{
-                  pathname: `${match.url}/deploy`,
-                }}
-              >
+              <Link onClick={trackContinue} className="slds-button slds-button_brand" to="deploy">
                 Continue
                 <Icon type="utility" icon="forward" className="slds-button__icon slds-button__icon_right" />
               </Link>

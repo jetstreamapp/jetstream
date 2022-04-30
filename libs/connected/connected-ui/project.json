@@ -13,7 +13,7 @@
       "executor": "@nrwl/jest:jest",
       "outputs": ["coverage/libs/connected/connected-ui"],
       "options": {
-        "jestConfig": "libs/connected/connected-ui/jest.config.js",
+        "jestConfig": "libs/connected/connected-ui/jest.config.ts",
         "passWithNoTests": true
       }
     }

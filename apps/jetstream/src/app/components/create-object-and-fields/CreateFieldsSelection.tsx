@@ -14,7 +14,7 @@ import {
 } from '@jetstream/ui';
 import { DescribeGlobalSObjectResult } from 'jsforce';
 import React, { FunctionComponent, useEffect } from 'react';
-import { Link, useRouteMatch } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import { SplitWrapper as Split } from '@jetstream/splitjs';
 import { useRecoilState, useRecoilValue } from 'recoil';
 import { selectedOrgState } from '../../app-state';
@@ -27,8 +27,6 @@ const HEIGHT_BUFFER = 170;
 export interface CreateFieldsSelectionProps {}
 
 export const CreateFieldsSelection: FunctionComponent<CreateFieldsSelectionProps> = () => {
-  const match = useRouteMatch();
-
   const selectedOrg = useRecoilValue<SalesforceOrgUi>(selectedOrgState);
 
   const [profiles, setProfiles] = useRecoilState(fromCreateFieldsState.profilesState);
@@ -61,12 +59,7 @@ export const CreateFieldsSelection: FunctionComponent<CreateFieldsSelectionProps
           <PageHeaderTitle icon={{ type: 'standard', icon: 'form' }} label="Create Fields" docsPath="/deploy-fields" />
           <PageHeaderActions colType="actions" buttonType="separate">
             {hasSelectionsMade && (
-              <Link
-                className="slds-button slds-button_brand"
-                to={{
-                  pathname: `${match.url}/configurator`,
-                }}
-              >
+              <Link className="slds-button slds-button_brand" to="configurator">
                 Continue
                 <Icon type="utility" icon="forward" className="slds-button__icon slds-button__icon_right" />
               </Link>

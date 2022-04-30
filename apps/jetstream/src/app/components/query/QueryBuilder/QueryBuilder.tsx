@@ -20,7 +20,7 @@ import {
 } from '@jetstream/ui';
 import { DescribeGlobalSObjectResult } from 'jsforce';
 import { Fragment, FunctionComponent, useCallback, useEffect, useRef, useState } from 'react';
-import { useHistory, useRouteMatch } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { SplitWrapper as Split } from '@jetstream/splitjs';
 import { useRecoilState, useRecoilValue, useResetRecoilState } from 'recoil';
 import { applicationCookieState, selectedOrgState } from '../../../app-state';
@@ -59,8 +59,7 @@ export interface QueryBuilderProps {}
 export const QueryBuilder: FunctionComponent<QueryBuilderProps> = () => {
   const isMounted = useRef(null);
   const { trackEvent } = useAmplitude();
-  const match = useRouteMatch();
-  const history = useHistory();
+  const navigate = useNavigate();
   const [{ serverUrl }] = useRecoilState(applicationCookieState);
   const queryHistoryRef = useRef<QueryHistoryRef>();
 
@@ -104,17 +103,19 @@ export const QueryBuilder: FunctionComponent<QueryBuilderProps> = () => {
       if (selectedSObject && soql && hasModifierKey(event as any) && isEnterKey(event as any)) {
         event.stopPropagation();
         event.preventDefault();
-        history.push(`${match.url}/results`, {
-          soql,
-          isTooling,
-          sobject: {
-            label: selectedSObject.label,
-            name: selectedSObject.name,
+        navigate('results', {
+          state: {
+            soql,
+            isTooling,
+            sobject: {
+              label: selectedSObject.label,
+              name: selectedSObject.name,
+            },
           },
         });
       }
     },
-    [history, isTooling, match.url, selectedSObject, soql]
+    [isTooling, navigate, selectedSObject, soql]
   );
 
   useGlobalEventHandler('keydown', onKeydown);

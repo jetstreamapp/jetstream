@@ -15,7 +15,6 @@ import {
 } from '@jetstream/ui';
 import { DescribeGlobalSObjectResult } from 'jsforce';
 import { FunctionComponent } from 'react';
-import { useRouteMatch } from 'react-router';
 import { Link } from 'react-router-dom';
 import { SplitWrapper as Split } from '@jetstream/splitjs';
 import { useTitle } from 'react-use';
@@ -45,8 +44,6 @@ export const AutomationControlSelection: FunctionComponent<AutomationControlSele
   useTitle(TITLES.AUTOMATION_CONTROL);
   const rollbar = useRollbar();
 
-  const match = useRouteMatch();
-
   const selectedOrg = useRecoilValue<SalesforceOrgUi>(selectedOrgState);
 
   const hasSelectionsMade = useRecoilValue(fromAutomationCtlState.hasSelectionsMade);
@@ -67,12 +64,7 @@ export const AutomationControlSelection: FunctionComponent<AutomationControlSele
           <PageHeaderTitle icon={{ type: 'standard', icon: 'activations' }} label="Automation Control" docsPath="/automation-control" />
           <PageHeaderActions colType="actions" buttonType="separate">
             {hasSelectionsMade && (
-              <Link
-                className="slds-button slds-button_brand"
-                to={{
-                  pathname: `${match.url}/editor`,
-                }}
-              >
+              <Link className="slds-button slds-button_brand" to="editor">
                 Continue
                 <Icon type="utility" icon="forward" className="slds-button__icon slds-button__icon_right" />
               </Link>

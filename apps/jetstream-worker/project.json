@@ -45,7 +45,7 @@
       "executor": "@nrwl/jest:jest",
       "outputs": ["coverage/apps/jetstream-worker"],
       "options": {
-        "jestConfig": "apps/jetstream-worker/jest.config.js",
+        "jestConfig": "apps/jetstream-worker/jest.config.ts",
         "passWithNoTests": true
       }
     }

@@ -26,7 +26,7 @@ import startOfDay from 'date-fns/startOfDay';
 import { FunctionComponent, useCallback, useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useRecoilState, useRecoilValue } from 'recoil';
-import { applicationCookieState } from '../../app-state';
+import { applicationCookieState, selectedOrgState } from '../../app-state';
 import { useAmplitude } from '../core/analytics';
 import * as fromJetstreamEvents from '../core/jetstream-events';
 import AddToChangeset from './add-to-changeset/AddToChangeset';
@@ -50,13 +50,14 @@ const TABLE_ACTION_DOWNLOAD = 'table-download';
 const TABLE_ACTION_DOWNLOAD_SELECTED = 'table-download-selected';
 const TABLE_ACTION_DOWNLOAD_MANIFEST = 'download-manifest';
 const TABLE_ACTION_DELETE_METADATA = 'delete-manifest';
-export interface DeployMetadataDeploymentProps {
-  selectedOrg: SalesforceOrgUi;
-}
 
-export const DeployMetadataDeployment: FunctionComponent<DeployMetadataDeploymentProps> = ({ selectedOrg }) => {
+// eslint-disable-next-line @typescript-eslint/no-empty-interface
+export interface DeployMetadataDeploymentProps {}
+
+export const DeployMetadataDeployment: FunctionComponent<DeployMetadataDeploymentProps> = () => {
   const { trackEvent } = useAmplitude();
   const [{ google_apiKey, google_appId, google_clientId }] = useRecoilState(applicationCookieState);
+  const selectedOrg = useRecoilValue<SalesforceOrgUi>(selectedOrgState);
   const {
     loadListMetadata,
     loadListMetadataItem,
@@ -269,7 +270,7 @@ export const DeployMetadataDeployment: FunctionComponent<DeployMetadataDeploymen
 
       <Toolbar>
         <ToolbarItemGroup>
-          <Link className="slds-button slds-button_brand" to={{ pathname: `/deploy-metadata` }}>
+          <Link className="slds-button slds-button_brand" to="..">
             <Icon type="utility" icon="back" className="slds-button__icon slds-button__icon_left" omitContainer />
             Go Back
           </Link>

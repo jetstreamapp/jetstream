@@ -15,6 +15,7 @@ import { isNumber } from 'lodash';
 import { ChangeEvent, FunctionComponent, useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useRecoilValue } from 'recoil';
+import { selectedOrgState } from '../../../app-state';
 import * as fromMassUpdateState from '../mass-update-records.state';
 import MassUpdateRecordsDeploymentRow from './MassUpdateRecordsDeploymentRow';
 import { useDeployRecords } from './useDeployRecords';
@@ -22,11 +23,11 @@ import { useDeployRecords } from './useDeployRecords';
 const HEIGHT_BUFFER = 170;
 const MAX_BATCH_SIZE = 10000;
 
-export interface MassUpdateRecordsDeploymentProps {
-  selectedOrg: SalesforceOrgUi;
-}
+// eslint-disable-next-line @typescript-eslint/no-empty-interface
+export interface MassUpdateRecordsDeploymentProps {}
 
-export const MassUpdateRecordsDeployment: FunctionComponent<MassUpdateRecordsDeploymentProps> = ({ selectedOrg }) => {
+export const MassUpdateRecordsDeployment: FunctionComponent<MassUpdateRecordsDeploymentProps> = () => {
+  const selectedOrg = useRecoilValue<SalesforceOrgUi>(selectedOrgState);
   const rows = useRecoilValue(fromMassUpdateState.rowsState);
   const [loading, setLoading] = useState(false);
   const [batchSize, setBatchSize] = useState(10000);
@@ -73,7 +74,7 @@ export const MassUpdateRecordsDeployment: FunctionComponent<MassUpdateRecordsDep
               Go Back
             </button>
           ) : (
-            <Link className="slds-button slds-button_neutral slds-m-right_x-small" to={{ pathname: `/update-records` }}>
+            <Link className="slds-button slds-button_neutral slds-m-right_x-small" to="..">
               <Icon type="utility" icon="back" className="slds-button__icon slds-button__icon_left" omitContainer />
               Go Back
             </Link>

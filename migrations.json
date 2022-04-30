@@ -1,92 +1,68 @@
 {
   "migrations": [
     {
-      "version": "13.6.0-beta.0",
-      "description": "Remove old options that are no longer used",
+      "version": "14.0.0-beta.0",
+      "description": "Changes the presets in nx.json to come from the nx package",
       "cli": "nx",
-      "implementation": "./src/migrations/update-13-6-0/remove-old-task-runner-options",
+      "implementation": "./src/migrations/update-14-0-0/change-nx-json-presets",
       "package": "@nrwl/workspace",
-      "name": "13-6-0-remove-old-task-runner-options"
+      "name": "14-0-0-change-nx-json-presets"
     },
     {
-      "version": "13.9.0-beta.0",
-      "description": "Replace @nrwl/tao with nx",
+      "version": "14.0.0-beta.0",
+      "description": "Migrates from @nrwl/workspace:run-script to nx:run-script",
       "cli": "nx",
-      "implementation": "./src/migrations/update-13-9-0/replace-tao-with-nx",
+      "implementation": "./src/migrations/update-14-0-0/change-npm-script-executor",
       "package": "@nrwl/workspace",
-      "name": "13-9-0-replace-tao-with-nx"
+      "name": "14-0-0-change-npm-script-executor"
     },
     {
-      "version": "13.10.0-beta.0",
-      "description": "Update the decorate-angular-cli script to require nx instead of @nrwl/cli",
+      "version": "14.0.0-beta.2",
       "cli": "nx",
-      "implementation": "./src/migrations/update-13-10-0/update-decorate-cli",
-      "package": "@nrwl/workspace",
-      "name": "13-10-0-update-decorate-cli"
-    },
-    {
-      "version": "13.10.0-beta.0",
-      "description": "Update the tasks runner property to import it from the nx package instead of @nrwl/worksapce",
-      "cli": "nx",
-      "implementation": "./src/migrations/update-13-10-0/update-tasks-runner",
-      "package": "@nrwl/workspace",
-      "name": "13-10-0-update-tasks-runner"
-    },
-    {
-      "version": "13.4.4-beta.0",
-      "cli": "nx",
-      "description": "Create a root babel config file if it doesn't exist and using babel-jest in jest.config.js and add @nrwl/web as needed",
-      "factory": "./src/migrations/update-13-4-4/add-missing-root-babel-config",
+      "description": "Update move jest config files to .ts files.",
+      "factory": "./src/migrations/update-14-0-0/update-jest-config-ext",
       "package": "@nrwl/jest",
-      "name": "add-missing-root-babel-config"
+      "name": "update-jest-config-extensions"
     },
     {
       "cli": "nx",
-      "version": "13.8.5-beta.1",
-      "description": "Renames @nrwl/node:build to @nrwl/node:webpack",
-      "factory": "./src/migrations/update-13-8-5/rename-build-to-webpack",
-      "package": "@nrwl/node",
-      "name": "rename-build-to-webpack"
+      "version": "14.0.0-beta.0",
+      "description": "Add a default development configuration for build and serve targets.",
+      "factory": "./src/migrations/update-14-0-0/add-default-development-configurations",
+      "package": "@nrwl/next",
+      "name": "add-default-development-configurations-14.0.0"
     },
     {
       "cli": "nx",
-      "version": "13.8.5-beta.1",
-      "description": "Renames @nrwl/node:execute to @nrwl/node:node",
-      "factory": "./src/migrations/update-13-8-5/rename-execute-to-node",
-      "package": "@nrwl/node",
-      "name": "rename-execute-to-node"
-    },
-    {
-      "cli": "nx",
-      "version": "13.8.5-beta.1",
-      "description": "Renames @nrwl/node:package to @nrwl/js:tsc",
-      "factory": "./src/migrations/update-13-8-5/update-package-to-tsc",
-      "package": "@nrwl/node",
-      "name": "update-package-to-tsc"
-    },
-    {
-      "cli": "nx",
-      "version": "13.10.0-beta.0",
-      "description": "Update to React 18",
-      "factory": "./src/migrations/update-13-10-0/update-13-10-0",
+      "version": "14.0.0-beta.0",
+      "description": "Update to React DOM render call to React 18 API.",
+      "factory": "./src/migrations/update-14-0-0/update-react-dom-render-for-v18",
       "package": "@nrwl/react",
-      "name": "update-react-18-13.10.0"
+      "name": "update-react-dom-render-14.0.0"
     },
     {
-      "version": "13.4.6-beta.1",
       "cli": "nx",
-      "description": "Add projectBuildConfig option to project's Storybook config.",
-      "factory": "./src/migrations/update-13-4-6/set-project-build-config",
+      "version": "14.0.0-beta.0",
+      "description": "Replace deprecated '@testing-library/react-hook' package with `renderHook` from '@testing-library/react'.",
+      "factory": "./src/migrations/update-14-0-0/replace-testing-library-react-hook",
+      "package": "@nrwl/react",
+      "name": "replace-testing-library-react-hook-14.0.0"
+    },
+    {
+      "cli": "nx",
+      "version": "14.0.0-beta.0",
+      "description": "Add a default development configuration for build and serve targets.",
+      "factory": "./src/migrations/update-14-0-0/add-default-development-configurations",
+      "package": "@nrwl/react",
+      "name": "add-default-development-configurations-14.0.0"
+    },
+    {
+      "version": "14.0.0",
+      "cli": "nx",
+      "description": "Migrate Storybook to v6",
+      "factory": "./src/migrations/update-14-0-0/migrate-to-storybook-6",
       "package": "@nrwl/storybook",
-      "name": "update-13.4.6"
-    },
-    {
-      "cli": "nx",
-      "version": "13.8.0-beta.1",
-      "description": "Add a postcss config option to apps to load a single config file for all libs",
-      "factory": "./src/migrations/update-13-8-0/add-postcss-config-option",
-      "package": "@nrwl/web",
-      "name": "add-postcss-config-option"
+      "name": "update-14.0.0"
     }
   ]
 }

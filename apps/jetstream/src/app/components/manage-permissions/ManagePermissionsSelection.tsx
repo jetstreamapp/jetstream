@@ -14,7 +14,7 @@ import {
 } from '@jetstream/ui';
 import { DescribeGlobalSObjectResult } from 'jsforce';
 import { FunctionComponent, useEffect } from 'react';
-import { Link, useRouteMatch } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import { SplitWrapper as Split } from '@jetstream/splitjs';
 import { useRecoilState, useRecoilValue, useResetRecoilState } from 'recoil';
 import { selectedOrgState } from '../../app-state';
@@ -27,8 +27,6 @@ const HEIGHT_BUFFER = 170;
 export interface ManagePermissionsSelectionProps {}
 
 export const ManagePermissionsSelection: FunctionComponent<ManagePermissionsSelectionProps> = () => {
-  const match = useRouteMatch();
-
   const selectedOrg = useRecoilValue<SalesforceOrgUi>(selectedOrgState);
 
   const [profiles, setProfiles] = useRecoilState(fromPermissionsState.profilesState);
@@ -76,12 +74,7 @@ export const ManagePermissionsSelection: FunctionComponent<ManagePermissionsSele
           <PageHeaderTitle icon={{ type: 'standard', icon: 'portal' }} label="Manage Permissions" docsPath="/permissions" />
           <PageHeaderActions colType="actions" buttonType="separate">
             {hasSelectionsMade && (
-              <Link
-                className="slds-button slds-button_brand"
-                to={{
-                  pathname: `${match.url}/editor`,
-                }}
-              >
+              <Link className="slds-button slds-button_brand" to="editor">
                 Continue
                 <Icon type="utility" icon="forward" className="slds-button__icon slds-button__icon_right" />
               </Link>
