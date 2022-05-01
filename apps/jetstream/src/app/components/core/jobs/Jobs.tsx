@@ -1,3 +1,4 @@
+import { css } from '@emotion/react';
 import { logger } from '@jetstream/shared/client-logger';
 import { fileExtToGoogleDriveMimeType, fileExtToMimeType, MIME_TYPES } from '@jetstream/shared/constants';
 import { googleUploadFile } from '@jetstream/shared/data';
@@ -29,6 +30,8 @@ import { jobsState, jobsUnreadState, selectActiveJobCount, selectJobs } from './
 
 export const Jobs: FunctionComponent = () => {
   const popoverRef = useRef<PopoverRef>();
+  const buttonRef = useRef<HTMLButtonElement>();
+  const isOpen = useRef<boolean>(false);
   const [{ serverUrl }] = useRecoilState(applicationCookieState);
   const rollbar = useRollbar();
   const setJobs = useSetRecoilState(jobsState);
@@ -60,7 +63,7 @@ export const Jobs: FunctionComponent = () => {
           },
         });
       });
-      popoverRef.current?.open();
+      setTimeout(() => popoverRef.current?.open());
       setJobsArr(newJobs.concat(jobs));
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -429,12 +432,17 @@ export const Jobs: FunctionComponent = () => {
   }
 
   function handleDismiss(job: AsyncJob) {
-    setJobsArr(jobs.filter(({ id }) => id !== job.id));
+    const newJobs = jobs.filter(({ id }) => id !== job.id);
+    setJobsArr(newJobs);
+    if (newJobs.length === 0) {
+      popoverRef.current?.close();
+    }
   }
 
   return (
     <Popover
       ref={popoverRef}
+      onChange={(open) => (isOpen.current = open)}
       header={
         <header className="slds-popover__header">
           <h2 className="slds-text-heading_small" id="background-jobs" title="Background Jobs">
@@ -443,7 +451,13 @@ export const Jobs: FunctionComponent = () => {
         </header>
       }
       content={
-        <div className="slds-popover__body slds-p-around_none">
+        <div
+          className="slds-popover__body slds-p-around_none"
+          css={css`
+            overflow-y: auto;
+            max-height: 80vh;
+          `}
+        >
           <ul>
             {jobs.map((job) => (
               <Job key={job.id} job={job} dismiss={handleDismiss} />
@@ -459,6 +473,7 @@ export const Jobs: FunctionComponent = () => {
       }}
     >
       <button
+        ref={buttonRef}
         className={classNames(
           'slds-dropdown-trigger slds-dropdown-trigger_click slds-button slds-button_icon slds-button_icon-container slds-button_icon-small slds-global-actions__notifications slds-global-actions__item-action',
           { 'slds-incoming-notification': activeJobCount || jobsUnread }

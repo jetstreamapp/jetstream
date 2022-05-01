@@ -1,15 +1,16 @@
 module.exports = {
-  displayName: 'download-zip-sw',
-  preset: '../../jest.preset.js',
-  setupFilesAfterEnv: ['<rootDir>/src/test-setup.ts'],
+  displayName: 'jetstream-worker',
+
   globals: {
     'ts-jest': {
       tsconfig: '<rootDir>/tsconfig.spec.json',
     },
   },
+  testEnvironment: 'node',
   transform: {
     '^.+\\.[tj]s$': 'ts-jest',
   },
   moduleFileExtensions: ['ts', 'js', 'html'],
-  coverageDirectory: '../../coverage/apps/download-zip-sw',
+  coverageDirectory: '../../coverage/apps/jetstream-worker',
+  preset: '../../jest.preset.ts',
 };

@@ -1,21 +1,18 @@
 import { TITLES } from '@jetstream/shared/constants';
-import React, { FunctionComponent, useEffect } from 'react';
-import { Redirect, Route, Switch, useHistory, useRouteMatch } from 'react-router-dom';
+import React, { Fragment, FunctionComponent, useEffect } from 'react';
+import { Navigate, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { useTitle } from 'react-use';
 import { useRecoilState, useRecoilValue, useResetRecoilState } from 'recoil';
 import { selectedOrgState } from '../../app-state';
 import * as fromAutomationCtlState from './automation-control.state';
-import AutomationControlEditor from './AutomationControlEditor';
-import AutomationControlSelection from './AutomationControlSelection';
 
 // eslint-disable-next-line @typescript-eslint/no-empty-interface
 export interface ManagePermissionsProps {}
 
 export const ManagePermissions: FunctionComponent<ManagePermissionsProps> = () => {
   useTitle(TITLES.AUTOMATION_CONTROL);
-  const match = useRouteMatch();
-  const history = useHistory();
-  const goBackUrl = match.url.replace('/editor', '');
+  const navigate = useNavigate();
+  const location = useLocation();
   const selectedOrg = useRecoilValue(selectedOrgState);
   const [priorSelectedOrg, setPriorSelectedOrg] = useRecoilState(fromAutomationCtlState.priorSelectedOrg);
   const resetSObjectsState = useResetRecoilState(fromAutomationCtlState.sObjectsState);
@@ -35,8 +32,8 @@ export const ManagePermissions: FunctionComponent<ManagePermissionsProps> = () =
       resetSelectedSObjectsState();
       resetAutomationTypes();
       resetSelectedAutomationTypes();
-      if (match.url.endsWith('/editor')) {
-        history.push(goBackUrl);
+      if (location.pathname.endsWith('/editor')) {
+        navigate('..');
       }
     } else if (!selectedOrg) {
       resetSObjectsState();
@@ -48,14 +45,8 @@ export const ManagePermissions: FunctionComponent<ManagePermissionsProps> = () =
   }, [selectedOrg, priorSelectedOrg]);
 
   return (
-    <Switch>
-      <Route path={`${match.url}`} exact>
-        <AutomationControlSelection />
-      </Route>
-      <Route path={`${match.url}/editor`}>
-        {hasSelectionsMade ? <AutomationControlEditor goBackUrl={goBackUrl} /> : <Redirect to={match.url} />}
-      </Route>
-    </Switch>
+    // eslint-disable-next-line react/jsx-no-useless-fragment
+    <Fragment>{location.pathname.endsWith('/editor') && !hasSelectionsMade ? <Navigate to="." /> : <Outlet />}</Fragment>
   );
 };
 

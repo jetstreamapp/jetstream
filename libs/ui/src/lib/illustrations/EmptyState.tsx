@@ -8,6 +8,7 @@ export interface EmptyStateProps {
   size?: 'small' | 'large';
   headline?: string;
   subHeading?: string;
+  children?: React.ReactNode;
 }
 
 /**

@@ -1,0 +1,23 @@
+{
+  "root": "libs/splitjs",
+  "sourceRoot": "libs/splitjs/src",
+  "projectType": "library",
+  "tags": [],
+  "targets": {
+    "lint": {
+      "executor": "@nrwl/linter:eslint",
+      "outputs": ["{options.outputFile}"],
+      "options": {
+        "lintFilePatterns": ["libs/splitjs/**/*.{ts,tsx,js,jsx}"]
+      }
+    },
+    "test": {
+      "executor": "@nrwl/jest:jest",
+      "outputs": ["coverage/libs/splitjs"],
+      "options": {
+        "jestConfig": "libs/splitjs/jest.config.ts",
+        "passWithNoTests": true
+      }
+    }
+  }
+}

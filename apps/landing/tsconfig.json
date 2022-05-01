@@ -14,5 +14,5 @@
   },
   "include": ["**/*.js", "**/*.jsx"],
   "files": [],
-  "exclude": ["node_modules"]
+  "exclude": ["node_modules", "jest.config.ts"]
 }

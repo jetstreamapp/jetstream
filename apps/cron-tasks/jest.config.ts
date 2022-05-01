@@ -1,6 +1,6 @@
 module.exports = {
-  displayName: 'jetstream-worker',
-  preset: '../../jest.preset.js',
+  displayName: 'cron-tasks',
+
   globals: {
     'ts-jest': {
       tsconfig: '<rootDir>/tsconfig.spec.json',
@@ -11,5 +11,6 @@ module.exports = {
     '^.+\\.[tj]s$': 'ts-jest',
   },
   moduleFileExtensions: ['ts', 'js', 'html'],
-  coverageDirectory: '../../coverage/apps/jetstream-worker',
+  coverageDirectory: '../../coverage/apps/cron-tasks',
+  preset: '../../jest.preset.ts',
 };

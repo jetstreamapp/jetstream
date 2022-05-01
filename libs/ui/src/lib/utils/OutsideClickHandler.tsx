@@ -9,6 +9,7 @@ export interface OutsideClickHandlerProps {
   disabled?: boolean;
   useCapture?: boolean;
   display?: 'block' | 'flex' | 'inline' | 'inline-block' | 'contents';
+  children?: React.ReactNode;
 }
 
 // Copied / inspired:

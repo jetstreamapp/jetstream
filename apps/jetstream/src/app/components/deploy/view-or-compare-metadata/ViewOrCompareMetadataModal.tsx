@@ -7,7 +7,7 @@ import { AutoFullHeightContainer, FileDownloadModal, Modal, Spinner, TreeItems }
 import Editor, { DiffEditor } from '@monaco-editor/react';
 import type { editor } from 'monaco-editor';
 import { Fragment, FunctionComponent, useCallback, useEffect, useRef, useState } from 'react';
-import Split from 'react-split';
+import { SplitWrapper as Split } from '@jetstream/splitjs';
 import { useRecoilState } from 'recoil';
 import { applicationCookieState } from '../../../app-state';
 import * as fromJetstreamEvents from '../../core/jetstream-events';

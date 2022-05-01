@@ -12,6 +12,7 @@ export interface SelectProps {
   isRequired?: boolean;
   errorMessageId?: string;
   errorMessage?: React.ReactNode | string;
+  children?: React.ReactNode;
 }
 
 export const Select: FunctionComponent<SelectProps> = ({

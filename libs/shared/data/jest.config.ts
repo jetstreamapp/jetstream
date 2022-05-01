@@ -1,5 +1,4 @@
 module.exports = {
-  preset: '../../../jest.preset.js',
   transform: {
     '^.+\\.[tj]sx?$': 'ts-jest',
   },
@@ -7,4 +6,5 @@ module.exports = {
   coverageDirectory: '../../../coverage/libs/shared/data',
   globals: { 'ts-jest': { tsconfig: '<rootDir>/tsconfig.spec.json' } },
   displayName: 'shared-data',
+  preset: '../../../jest.preset.ts',
 };

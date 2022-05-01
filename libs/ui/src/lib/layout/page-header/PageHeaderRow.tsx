@@ -1,7 +1,8 @@
 import { FunctionComponent } from 'react';
 
-// eslint-disable-next-line @typescript-eslint/no-empty-interface
-export interface PageHeaderRowProps {}
+export interface PageHeaderRowProps {
+  children?: React.ReactNode;
+}
 
 export const PageHeaderRow: FunctionComponent<PageHeaderRowProps> = ({ children }) => {
   return <div className="slds-page-header__row">{children}</div>;

@@ -11,22 +11,22 @@ import {
   Tooltip,
 } from '@jetstream/ui';
 import { FunctionComponent, useEffect, useState } from 'react';
-import { Link, useRouteMatch } from 'react-router-dom';
-import Split from 'react-split';
+import { Link } from 'react-router-dom';
+import { SplitWrapper as Split } from '@jetstream/splitjs';
 import { useRecoilState, useRecoilValue, useResetRecoilState } from 'recoil';
 import * as fromMassUpdateState from '../mass-update-records.state';
 import { filterMassUpdateSobject } from '../mass-update-records.utils';
 import MassUpdateRecordsObjects from './MassUpdateRecordsObjects';
 import { useMassUpdateFieldItems } from './useMassUpdateFieldItems';
+import { selectedOrgState } from '../../../app-state';
 
 const HEIGHT_BUFFER = 170;
 
-export interface MassUpdateRecordsSelectionProps {
-  selectedOrg: SalesforceOrgUi;
-}
+// eslint-disable-next-line @typescript-eslint/no-empty-interface
+export interface MassUpdateRecordsSelectionProps {}
 
-export const MassUpdateRecordsSelection: FunctionComponent<MassUpdateRecordsSelectionProps> = ({ selectedOrg }) => {
-  const match = useRouteMatch();
+export const MassUpdateRecordsSelection: FunctionComponent<MassUpdateRecordsSelectionProps> = () => {
+  const selectedOrg = useRecoilValue<SalesforceOrgUi>(selectedOrgState);
   const [sobjects, setSobjects] = useRecoilState(fromMassUpdateState.sObjectsState);
   const [selectedSObjects, setSelectedSObjects] = useRecoilState(fromMassUpdateState.selectedSObjectsState);
   const resetRowMapState = useResetRecoilState(fromMassUpdateState.rowsMapState);
@@ -76,12 +76,7 @@ export const MassUpdateRecordsSelection: FunctionComponent<MassUpdateRecordsSele
               </button>
             )}
             {allRowsValidated ? (
-              <Link
-                className="slds-button slds-button_brand"
-                to={{
-                  pathname: `${match.url}/deployment`,
-                }}
-              >
+              <Link className="slds-button slds-button_brand" to="deployment">
                 Review Changes
               </Link>
             ) : (

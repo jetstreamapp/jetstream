@@ -14,6 +14,7 @@ export interface ReadOnlyFormItemProps {
   fullWidth?: boolean;
   omitEdit?: boolean;
   onEditMore?: () => void;
+  children?: React.ReactNode;
 }
 
 export const ReadOnlyFormItem: FunctionComponent<ReadOnlyFormItemProps> = ({

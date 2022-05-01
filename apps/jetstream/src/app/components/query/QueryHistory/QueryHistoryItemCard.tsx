@@ -7,7 +7,7 @@ import Editor from '@monaco-editor/react';
 import formatDate from 'date-fns/format';
 import clamp from 'lodash/clamp';
 import React, { FunctionComponent, useEffect, useRef, useState } from 'react';
-import { Link, useRouteMatch } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import RestoreQuery from '../QueryBuilder/RestoreQuery';
 
 const SOBJECT_QUERY_ICON: IconObj = { type: 'standard', icon: 'record_lookup', description: 'Object Query' };
@@ -35,7 +35,6 @@ export const QueryHistoryItemCard: FunctionComponent<QueryHistoryItemCardProps> 
   const { sObject, label, soql, isTooling, runCount, lastRun } = item;
   const isMounted = useRef(null);
   const timerRef = useRef(null);
-  const match = useRouteMatch();
   const [lineCount, setLineCount] = useState(Math.max(soql.split('\n').length, 2));
 
   const [isRemoving, setIsRemoving] = useState(false);
@@ -110,15 +109,13 @@ export const QueryHistoryItemCard: FunctionComponent<QueryHistoryItemCardProps> 
           <Link
             className="slds-button slds-button_neutral"
             onClick={() => onExecute(item)}
-            to={{
-              pathname: `${match.url}/results`,
-              state: {
-                soql,
-                isTooling,
-                sobject: {
-                  label,
-                  name: sObject,
-                },
+            to="results"
+            state={{
+              soql,
+              isTooling,
+              sobject: {
+                label,
+                name: sObject,
               },
             }}
           >

@@ -1,6 +1,6 @@
 import { css } from '@emotion/react';
 import Tippy, { TippyProps } from '@tippyjs/react';
-import { FunctionComponent, MouseEvent, ReactNode, useState } from 'react';
+import { FunctionComponent, MouseEvent, useState } from 'react';
 
 export interface TooltipProps {
   /** @deprecated This is not used in the component */
@@ -8,7 +8,7 @@ export interface TooltipProps {
   className?: string;
   content: string | JSX.Element;
   onClick?: (event: MouseEvent<HTMLElement>) => void;
-  children?: ReactNode;
+  children?: React.ReactNode;
 }
 
 type LazyTippyProps = TippyProps;

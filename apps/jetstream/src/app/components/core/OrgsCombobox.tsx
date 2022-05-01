@@ -104,6 +104,7 @@ export const OrgsCombobox: FunctionComponent<OrgsComboboxProps> = ({
       css={css`
         ${minWidth ? `min-width: ${minWidth}px;` : undefined}
       `}
+      data-testid="orgs-combobox-container"
     >
       <Combobox
         isRequired={isRequired}

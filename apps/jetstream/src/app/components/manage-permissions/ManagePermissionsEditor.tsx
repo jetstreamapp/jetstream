@@ -156,7 +156,7 @@ export const ManagePermissionsEditor: FunctionComponent<ManagePermissionsEditorP
       initTableData();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [fieldsByObject, fieldsByKey, objectPermissionMap, fieldPermissionMap]);
+  }, [loading, fieldsByObject, fieldsByKey, objectPermissionMap, fieldPermissionMap]);
 
   useEffect(() => {
     setHasError(recordData.hasError);
@@ -373,7 +373,7 @@ export const ManagePermissionsEditor: FunctionComponent<ManagePermissionsEditorP
       )}
       <Toolbar>
         <ToolbarItemGroup>
-          <Link className="slds-button slds-button_brand" to={{ pathname: `/permissions-manager` }} onClick={handleGoBack}>
+          <Link className="slds-button slds-button_brand" to=".." onClick={handleGoBack}>
             <Icon type="utility" icon="back" className="slds-button__icon slds-button__icon_left" omitContainer />
             Go Back
           </Link>

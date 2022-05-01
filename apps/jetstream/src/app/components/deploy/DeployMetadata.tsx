@@ -1,21 +1,19 @@
+import { TITLES } from '@jetstream/shared/constants';
 import { SalesforceOrgUi } from '@jetstream/types';
 import React, { Fragment, FunctionComponent, useEffect, useState } from 'react';
-import { Redirect, Route, Switch, useRouteMatch } from 'react-router-dom';
+import { Navigate, Outlet, useLocation } from 'react-router-dom';
+import { useTitle } from 'react-use';
 import { useRecoilValue, useResetRecoilState } from 'recoil';
 import { selectedOrgState } from '../../app-state';
 import StateDebugObserver from '../core/StateDebugObserver';
 import * as fromDeployMetadataState from './deploy-metadata.state';
-import DeployMetadataDeployment from './DeployMetadataDeployment';
-import DeployMetadataSelection from './DeployMetadataSelection';
-import { TITLES } from '@jetstream/shared/constants';
-import { useTitle } from 'react-use';
 
 // eslint-disable-next-line @typescript-eslint/no-empty-interface
 export interface DeployMetadataProps {}
 
 export const DeployMetadata: FunctionComponent<DeployMetadataProps> = () => {
   useTitle(TITLES.DEPLOY_METADATA);
-  const match = useRouteMatch();
+  const location = useLocation();
   const selectedOrg = useRecoilValue<SalesforceOrgUi>(selectedOrgState);
   const hasSelectionsMade = useRecoilValue<boolean>(fromDeployMetadataState.hasSelectionsMadeSelector);
   const resetMetadataItemsState = useResetRecoilState(fromDeployMetadataState.metadataItemsState);
@@ -66,14 +64,7 @@ export const DeployMetadata: FunctionComponent<DeployMetadataProps> = () => {
           ['listMetadataQueriesSelector', fromDeployMetadataState.listMetadataQueriesSelector],
         ]}
       />
-      <Switch>
-        <Route path={`${match.url}`} exact>
-          <DeployMetadataSelection selectedOrg={selectedOrg} />
-        </Route>
-        <Route path={`${match.url}/deploy`}>
-          {hasSelectionsMade ? <DeployMetadataDeployment selectedOrg={selectedOrg} /> : <Redirect to={match.url} />}
-        </Route>
-      </Switch>
+      {location.pathname.endsWith('/deploy') && !hasSelectionsMade ? <Navigate to="." /> : <Outlet />}
     </Fragment>
   );
 };

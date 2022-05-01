@@ -9,6 +9,7 @@ export interface AlertProps {
   leadingIcon?: IconName;
   allowClose?: boolean;
   onClose?: () => void;
+  children?: React.ReactNode;
 }
 
 /**

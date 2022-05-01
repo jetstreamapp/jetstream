@@ -1,7 +1,8 @@
 import React, { FunctionComponent } from 'react';
 
-// eslint-disable-next-line @typescript-eslint/no-empty-interface
-export interface ToolbarItemGroupProps {}
+export interface ToolbarItemGroupProps {
+  children?: React.ReactNode;
+}
 
 export const ToolbarItemGroup: FunctionComponent<ToolbarItemGroupProps> = ({ children }) => {
   return (

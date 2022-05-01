@@ -1,15 +1,14 @@
 import { TITLES } from '@jetstream/shared/constants';
+import { useLocationState } from '@jetstream/shared/ui-utils';
 import { SalesforceOrgUi } from '@jetstream/types';
 import { Spinner } from '@jetstream/ui';
 import { Fragment, FunctionComponent, useCallback, useEffect, useState } from 'react';
-import { Redirect, Route, Switch, useLocation, useRouteMatch } from 'react-router-dom';
+import { Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { useTitle } from 'react-use';
 import { useRecoilValue, useResetRecoilState } from 'recoil';
 import { selectedOrgState } from '../../app-state';
 import StateDebugObserver from '../core/StateDebugObserver';
 import * as fromQueryState from './query.state';
-import QueryBuilder from './QueryBuilder/QueryBuilder';
-import QueryResults from './QueryResults/QueryResults';
 import useQueryRestore from './utils/useQueryRestore';
 
 // eslint-disable-next-line @typescript-eslint/no-empty-interface
@@ -17,8 +16,9 @@ export interface QueryProps {}
 
 export const Query: FunctionComponent<QueryProps> = () => {
   useTitle(TITLES.QUERY);
-  const match = useRouteMatch();
-  const location = useLocation<{ soql: string }>();
+  const location = useLocation();
+  const locationState = useLocationState<{ soql?: string }>();
+  const navigate = useNavigate();
   const selectedOrg = useRecoilValue<SalesforceOrgUi>(selectedOrgState);
   const querySoqlState = useRecoilValue(fromQueryState.querySoqlState);
   const isTooling = useRecoilValue(fromQueryState.isTooling);
@@ -60,7 +60,7 @@ export const Query: FunctionComponent<QueryProps> = () => {
       resetQueryOrderByState();
       resetQuerySoqlState();
 
-      if (match.url === '/query') {
+      if (location.pathname === '/query') {
         restore(soql, tooling);
       }
     } else if (!selectedOrg) {
@@ -78,6 +78,10 @@ export const Query: FunctionComponent<QueryProps> = () => {
     }
   }, [errorMessage, isRestoring]);
 
+  if (location.pathname.endsWith('/editor') && !querySoqlState && !locationState?.soql) {
+    navigate('..');
+  }
+
   return (
     <Fragment>
       <StateDebugObserver
@@ -94,13 +98,8 @@ export const Query: FunctionComponent<QueryProps> = () => {
           ['queryOrderByState', fromQueryState.queryOrderByState],
         ]}
       />
-      <Switch>
-        <Route path={`${match.url}`} exact>
-          {isRestoring && <Spinner />}
-          <QueryBuilder />
-        </Route>
-        <Route path={`${match.url}/results`}>{!location.state?.soql ? <Redirect to={match.url} /> : <QueryResults />}</Route>
-      </Switch>
+      {isRestoring && <Spinner />}
+      <Outlet />
     </Fragment>
   );
 };

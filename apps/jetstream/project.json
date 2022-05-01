@@ -69,9 +69,16 @@
               "maximumError": "15mb"
             }
           ]
+        },
+        "development": {
+          "extractLicenses": false,
+          "optimization": false,
+          "sourceMap": true,
+          "vendorChunk": true
         }
       },
-      "outputs": ["{options.outputPath}"]
+      "outputs": ["{options.outputPath}"],
+      "defaultConfiguration": "production"
     },
     "serve": {
       "executor": "@nrwl/web:dev-server",
@@ -83,8 +90,12 @@
       "configurations": {
         "production": {
           "buildTarget": "jetstream:build:production"
+        },
+        "development": {
+          "buildTarget": "jetstream:build:development"
         }
-      }
+      },
+      "defaultConfiguration": "development"
     },
     "lint": {
       "executor": "@nrwl/linter:eslint",
@@ -105,7 +116,7 @@
     "test": {
       "executor": "@nrwl/jest:jest",
       "options": {
-        "jestConfig": "apps/jetstream/jest.config.js",
+        "jestConfig": "apps/jetstream/jest.config.ts",
         "passWithNoTests": true
       },
       "outputs": ["coverage/apps/jetstream"]

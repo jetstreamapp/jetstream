@@ -4,7 +4,7 @@
   "projectType": "application",
   "targets": {
     "build": {
-      "executor": "@nrwl/node:build",
+      "executor": "@nrwl/node:webpack",
       "outputs": ["{options.outputPath}"],
       "options": {
         "outputPath": "dist/apps/jetstream-worker",
@@ -27,7 +27,7 @@
       }
     },
     "serve": {
-      "executor": "@nrwl/node:execute",
+      "executor": "@nrwl/node:node",
       "options": {
         "buildTarget": "jetstream-worker:build",
         "inspect": true,
@@ -45,7 +45,7 @@
       "executor": "@nrwl/jest:jest",
       "outputs": ["coverage/apps/jetstream-worker"],
       "options": {
-        "jestConfig": "apps/jetstream-worker/jest.config.js",
+        "jestConfig": "apps/jetstream-worker/jest.config.ts",
         "passWithNoTests": true
       }
     }

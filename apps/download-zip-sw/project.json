@@ -36,8 +36,15 @@
               "maximumError": "5mb"
             }
           ]
+        },
+        "development": {
+          "extractLicenses": false,
+          "optimization": false,
+          "sourceMap": true,
+          "vendorChunk": true
         }
-      }
+      },
+      "defaultConfiguration": "production"
     },
     "serve": {
       "executor": "@nrwl/web:dev-server",
@@ -47,8 +54,12 @@
       "configurations": {
         "production": {
           "buildTarget": "download-zip-sw:build:production"
+        },
+        "development": {
+          "buildTarget": "download-zip-sw:build:development"
         }
-      }
+      },
+      "defaultConfiguration": "development"
     },
     "lint": {
       "executor": "@nrwl/linter:eslint",
@@ -61,7 +72,7 @@
       "executor": "@nrwl/jest:jest",
       "outputs": ["coverage/apps/download-zip-sw"],
       "options": {
-        "jestConfig": "apps/download-zip-sw/jest.config.js",
+        "jestConfig": "apps/download-zip-sw/jest.config.ts",
         "passWithNoTests": true
       }
     }

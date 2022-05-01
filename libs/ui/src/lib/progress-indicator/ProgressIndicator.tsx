@@ -6,6 +6,7 @@ export interface ProgressIndicatorProps {
   className?: string;
   isVertical?: boolean;
   currentStep: number;
+  children?: React.ReactNode;
 }
 
 export const ProgressIndicator: FunctionComponent<ProgressIndicatorProps> = ({ className, isVertical, currentStep, children }) => {

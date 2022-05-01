@@ -7,6 +7,7 @@ export interface ScopedNotificationProps {
   className?: string;
   theme: ScopedNotificationTypes;
   icon?: JSX.Element;
+  children?: React.ReactNode;
 }
 
 function getIcon(theme: ScopedNotificationTypes, icon?: JSX.Element) {

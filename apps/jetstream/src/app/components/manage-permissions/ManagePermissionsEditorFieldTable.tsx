@@ -1,4 +1,4 @@
-import { ColDef, ColGroupDef, GridApi, GridReadyEvent, ICellRendererParams, RowClassParams } from '@ag-grid-community/core';
+import { ColDef, ColGroupDef, GetRowIdParams, GridApi, GridReadyEvent, ICellRendererParams, RowClassParams } from '@ag-grid-community/core';
 
 import { useNonInitialEffect } from '@jetstream/shared/ui-utils';
 import { MapOf } from '@jetstream/types';
@@ -66,7 +66,7 @@ export const ManagePermissionsEditorFieldTable = forwardRef<any, ManagePermissio
           <DataTable
             columns={columns}
             data={rows}
-            frameworkComponents={{
+            components={{
               pinnedInputFilter: PinnedLabelInputFilter,
               pinnedSelectAllRenderer: PinnedSelectAllRendererWrapper('field'),
               errorTooltipRenderer: ErrorTooltipRenderer,
@@ -137,9 +137,8 @@ export const ManagePermissionsEditorFieldTable = forwardRef<any, ManagePermissio
                 onBulkUpdate: onBulkUpdate,
                 type: 'field',
               },
-              immutableData: true,
               onCellKeyPress: handleOnCellPressed,
-              getRowNodeId: (data: PermissionTableFieldCell) => data.key,
+              getRowId: ({ data }: GetRowIdParams) => data.key,
               fullWidthCellRenderer: 'fullWidthRenderer',
               getRowClass: ({ node }: RowClassParams) => {
                 if (node.group) {

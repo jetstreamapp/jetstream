@@ -12,6 +12,7 @@ import {
   isMKey,
   useBrowserNotifications,
   useGlobalEventHandler,
+  useLocationState,
   useNonInitialEffect,
   useObservable,
 } from '@jetstream/shared/ui-utils';
@@ -43,7 +44,7 @@ import {
 } from '@jetstream/ui';
 import classNames from 'classnames';
 import React, { Fragment, FunctionComponent, useCallback, useEffect, useRef, useState } from 'react';
-import { Link, NavLink, useHistory, useLocation } from 'react-router-dom';
+import { Link, NavLink, useLocation, useNavigate } from 'react-router-dom';
 import { useRecoilState, useRecoilValue } from 'recoil';
 import { filter } from 'rxjs/operators';
 import { applicationCookieState, selectedOrgState } from '../../../app-state';
@@ -78,14 +79,20 @@ export interface QueryResultsProps {}
 
 export const QueryResults: FunctionComponent<QueryResultsProps> = React.memo(() => {
   const isMounted = useRef(null);
-  const history = useHistory();
+  const navigate = useNavigate();
   const { trackEvent } = useAmplitude();
   const queryHistoryRef = useRef<QueryHistoryRef>();
   const previousSoql = useRecoilValue(fromQueryState.querySoqlState);
   const includeDeletedRecords = useRecoilValue(fromQueryState.queryIncludeDeletedRecordsState);
   const [priorSelectedOrg, setPriorSelectedOrg] = useState<string>(null);
   const [isTooling, setIsTooling] = useRecoilState(fromQueryState.isTooling);
-  const location = useLocation<{ soql: string; isTooling: boolean; fromHistory?: boolean; sobject?: { name: string; label: string } }>();
+  const location = useLocation();
+  const locationState = useLocationState<{
+    soql: string;
+    isTooling: boolean;
+    fromHistory?: boolean;
+    sobject?: { name: string; label: string };
+  }>();
   const [soqlPanelOpen, setSoqlPanelOpen] = useState<boolean>(false);
   const [recordDetailPanelOpen, setRecordDetailPanelOpen] = useState<boolean>(false);
   const [recordDetailSelectedRow, setRecordDetailSelectedRow] = useState<Record>(null);
@@ -128,6 +135,14 @@ export const QueryResults: FunctionComponent<QueryResultsProps> = React.memo(() 
   });
 
   const { fieldMetadata, fieldMetadataSubquery } = useQueryResultsFetchMetadata(selectedOrg, queryResults?.parsedQuery, isTooling);
+
+  // ensure that on a page refresh, the query is restored from browser state if it exists
+  useEffect(() => {
+    if (!locationState && window.history?.state?.state?.soql) {
+      navigate('', { replace: true, state: window.history.state.state });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const onKeydown = useCallback(
     (event: KeyboardEvent) => {
@@ -172,12 +187,12 @@ export const QueryResults: FunctionComponent<QueryResultsProps> = React.memo(() 
 
   useEffect(() => {
     logger.log({ location });
-    if (location.state) {
-      setSoql(location.state.soql || '');
-      setUserSoql(location.state.soql || '');
-      setIsTooling(location.state.isTooling ? true : false);
-      executeQuery(location.state.soql, location.state.fromHistory ? SOURCE_HISTORY : SOURCE_STANDARD, {
-        isTooling: location.state.isTooling,
+    if (locationState) {
+      setSoql(locationState.soql || '');
+      setUserSoql(locationState.soql || '');
+      setIsTooling(locationState.isTooling ? true : false);
+      executeQuery(locationState.soql, locationState.fromHistory ? SOURCE_HISTORY : SOURCE_STANDARD, {
+        isTooling: locationState.isTooling,
       });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -196,9 +211,9 @@ export const QueryResults: FunctionComponent<QueryResultsProps> = React.memo(() 
   function saveQueryHistory(soql: string, sObject: string, tooling: boolean) {
     let sObjectLabel: string;
     // if object name did not change since last query, use data from location
-    if (location?.state?.sobject) {
-      if (location.state.sobject.name === sObject) {
-        sObjectLabel = location.state.sobject.label;
+    if (locationState?.sobject) {
+      if (locationState.sobject.name === sObject) {
+        sObjectLabel = locationState.sobject.label;
       }
     }
     if (soql && sObject) {
@@ -450,7 +465,7 @@ export const QueryResults: FunctionComponent<QueryResultsProps> = React.memo(() 
   }
 
   function handleRestoreFromHistory(soql: string, tooling) {
-    history.push(`/query`, { soql, isTooling: tooling, fromHistory: true });
+    navigate(`/query`, { state: { soql, isTooling: tooling, fromHistory: true } });
   }
 
   function handleCreateNewRecord() {
@@ -513,13 +528,7 @@ export const QueryResults: FunctionComponent<QueryResultsProps> = React.memo(() 
       )}
       <Toolbar>
         <ToolbarItemGroup>
-          <Link
-            className="slds-button slds-button_brand"
-            to={{
-              pathname: `/query`,
-              state: { soql },
-            }}
-          >
+          <Link className="slds-button slds-button_brand" to="/query" state={{ soql }}>
             <Icon type="utility" icon="back" className="slds-button__icon slds-button__icon_left" omitContainer />
             Go Back
           </Link>
@@ -634,13 +643,7 @@ export const QueryResults: FunctionComponent<QueryResultsProps> = React.memo(() 
                 subHeading="Go back and adjust your query or create a new record."
                 illustration={<CampingRainIllustration />}
               >
-                <Link
-                  className="slds-button slds-button_brand"
-                  to={{
-                    pathname: `/query`,
-                    state: { soql },
-                  }}
-                >
+                <Link className="slds-button slds-button_brand" to="/query" state={{ soql }}>
                   <Icon type="utility" icon="back" className="slds-button__icon slds-button__icon_left" omitContainer />
                   Go Back
                 </Link>

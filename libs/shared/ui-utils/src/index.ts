@@ -6,6 +6,7 @@ export * from './lib/hooks/useGlobalEventHandler';
 export * from './lib/hooks/useInjectScript';
 export * from './lib/hooks/useInterval';
 export * from './lib/hooks/useLoadGoogleApi';
+export * from './lib/hooks/useLocationState';
 export * from './lib/hooks/useNonInitialEffect';
 export * from './lib/hooks/useObservable';
 export * from './lib/hooks/useProfilesAndPermSets';

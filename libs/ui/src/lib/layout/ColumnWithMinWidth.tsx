@@ -13,6 +13,7 @@ export const COLUMN_SIZES = {
 export interface ColumnWithMinWidthProps {
   className?: string;
   minWidth?: number;
+  children?: React.ReactNode;
 }
 
 export const ColumnWithMinWidth: FunctionComponent<ColumnWithMinWidthProps> = ({ className, minWidth = COLUMN_SIZES.third, children }) => {

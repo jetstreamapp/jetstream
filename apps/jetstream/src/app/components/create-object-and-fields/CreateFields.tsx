@@ -59,11 +59,10 @@ function SelectedItemsBadge({ items: _items, labelListItem, label }: { items: st
   );
 }
 
-export interface CreateFieldsProps {
-  apiVersion: string;
-}
+// eslint-disable-next-line @typescript-eslint/no-empty-interface
+export interface CreateFieldsProps {}
 
-export const CreateFields: FunctionComponent<CreateFieldsProps> = ({ apiVersion }) => {
+export const CreateFields: FunctionComponent<CreateFieldsProps> = () => {
   const { trackEvent } = useAmplitude();
   const selectedOrg = useRecoilValue<SalesforceOrgUi>(selectedOrgState);
 
@@ -138,7 +137,7 @@ export const CreateFields: FunctionComponent<CreateFieldsProps> = ({ apiVersion 
         <ToolbarItemGroup>
           <Link
             className="slds-button slds-button_brand slds-m-right_x-small"
-            to={{ pathname: `/deploy-sobject-metadata` }}
+            to=".."
             title="Going back will keep all of your fields configured as-is, but you can change your selected objects, profiles, and permission sets."
           >
             <Icon type="utility" icon="back" className="slds-button__icon slds-button__icon_left" omitContainer />

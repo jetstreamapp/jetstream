@@ -1,132 +1,68 @@
 {
   "migrations": [
     {
-      "version": "13.0.0-beta.1",
-      "description": "Add default base to nx.json if its not currently set",
-      "factory": "./src/migrations/update-13-0-0/set-default-base-if-not-set",
+      "version": "14.0.0-beta.0",
+      "description": "Changes the presets in nx.json to come from the nx package",
       "cli": "nx",
+      "implementation": "./src/migrations/update-14-0-0/change-nx-json-presets",
       "package": "@nrwl/workspace",
-      "name": "set-default-base-if-not-set"
+      "name": "14-0-0-change-nx-json-presets"
     },
     {
-      "version": "13.0.0-beta.4",
-      "description": "Move global settings into nx.json, and project specific settings into workspace.json",
+      "version": "14.0.0-beta.0",
+      "description": "Migrates from @nrwl/workspace:run-script to nx:run-script",
       "cli": "nx",
-      "implementation": "./src/migrations/update-13-0-0/config-locations/config-locations",
+      "implementation": "./src/migrations/update-14-0-0/change-npm-script-executor",
       "package": "@nrwl/workspace",
-      "name": "13-0-0-config-locations"
+      "name": "14-0-0-change-npm-script-executor"
     },
     {
-      "version": "13.2.0",
-      "description": "Set --parallel=1 for existing repos to preserve the existing behavior",
+      "version": "14.0.0-beta.2",
       "cli": "nx",
-      "implementation": "./src/migrations/update-13-2-0/set-parallel-default",
-      "package": "@nrwl/workspace",
-      "name": "set-parallel-default"
-    },
-    {
-      "version": "13.3.0-beta.0",
-      "description": "@nrwl/workspace:tsc is now @nrwl/js:tsc",
-      "cli": "nx",
-      "implementation": "./src/migrations/update-13-3-0/update-tsc-executor-location",
-      "package": "@nrwl/workspace",
-      "name": "13-3-0-tsc-location"
-    },
-    {
-      "version": "13.1.2-beta.0",
-      "cli": "nx",
-      "description": "Support .test. file names in tsconfigs",
-      "factory": "./src/migrations/update-13-1-2/update-tsconfigs-for-tests",
+      "description": "Update move jest config files to .ts files.",
+      "factory": "./src/migrations/update-14-0-0/update-jest-config-ext",
       "package": "@nrwl/jest",
-      "name": "update-ts-config-for-test-filenames"
+      "name": "update-jest-config-extensions"
     },
     {
       "cli": "nx",
-      "version": "12.10.0-beta.1",
-      "description": "Updates .eslintrc.json file to use the correct pages directory for '@next/next/no-html-link-for-pages'.",
-      "factory": "./src/migrations/update-12-10-0/fix-page-dir-for-eslint",
+      "version": "14.0.0-beta.0",
+      "description": "Add a default development configuration for build and serve targets.",
+      "factory": "./src/migrations/update-14-0-0/add-default-development-configurations",
       "package": "@nrwl/next",
-      "name": "fix-page-dir-for-eslint"
+      "name": "add-default-development-configurations-14.0.0"
     },
     {
       "cli": "nx",
-      "version": "13.0.0-beta.0",
-      "description": "Update tsconfig.json to use `jsxImportSource` to support css prop",
-      "factory": "./src/migrations/update-13-0-0/update-emotion-setup",
-      "package": "@nrwl/next",
-      "name": "update-emotion-setup-13.0.0"
-    },
-    {
-      "cli": "nx",
-      "version": "13.0.0-beta.1",
-      "description": "Set `webpack5: true` for all next.js projects.",
-      "factory": "./src/migrations/update-13-0-0/update-to-webpack-5",
-      "package": "@nrwl/next",
-      "name": "update-to-webpack-5"
-    },
-    {
-      "cli": "nx",
-      "version": "13.0.3-beta.1",
-      "description": "Fix setup for less stylesheets",
-      "factory": "./src/migrations/update-13-0-3/fix-less",
-      "package": "@nrwl/next",
-      "name": "fix-less"
-    },
-    {
-      "cli": "nx",
-      "version": "13.0.0-beta.1",
-      "description": "Remove packages installed by Nx 12's `@nrwl/node:webpack5` generator.",
-      "factory": "./src/migrations/update-13-0-0/remove-webpack-5-packages-13-0-0",
-      "package": "@nrwl/node",
-      "name": "remove-webpack-5-packages"
-    },
-    {
-      "cli": "nx",
-      "version": "13.0.0-beta.0",
-      "description": "Update tsconfig.json to use `jsxImportSource` to support css prop",
-      "factory": "./src/migrations/update-13-0-0/update-emotion-setup",
+      "version": "14.0.0-beta.0",
+      "description": "Update to React DOM render call to React 18 API.",
+      "factory": "./src/migrations/update-14-0-0/update-react-dom-render-for-v18",
       "package": "@nrwl/react",
-      "name": "update-emotion-setup-13.0.0"
+      "name": "update-react-dom-render-14.0.0"
     },
     {
       "cli": "nx",
-      "version": "13.0.0-beta.0",
-      "description": "Migrate Storybook to use webpack 5",
-      "factory": "./src/migrations/update-13-0-0/migrate-storybook-to-webpack-5",
+      "version": "14.0.0-beta.0",
+      "description": "Replace deprecated '@testing-library/react-hook' package with `renderHook` from '@testing-library/react'.",
+      "factory": "./src/migrations/update-14-0-0/replace-testing-library-react-hook",
       "package": "@nrwl/react",
-      "name": "migrate-storybook-to-webpack-5-13.0.0"
+      "name": "replace-testing-library-react-hook-14.0.0"
     },
     {
       "cli": "nx",
-      "version": "13.0.0-beta.1",
-      "description": "Removes deprecated node-sass package (sass is already a dependency of @nrwl/web).",
-      "factory": "./src/migrations/update-13-0-0/remove-node-sass-13-0-0",
-      "package": "@nrwl/web",
-      "name": "remove-node-sass-13-0-0"
+      "version": "14.0.0-beta.0",
+      "description": "Add a default development configuration for build and serve targets.",
+      "factory": "./src/migrations/update-14-0-0/add-default-development-configurations",
+      "package": "@nrwl/react",
+      "name": "add-default-development-configurations-14.0.0"
     },
     {
+      "version": "14.0.0",
       "cli": "nx",
-      "version": "13.0.0-beta.1",
-      "description": "Remove packages installed by Nx 12's `@nrwl/web:webpack5` generator.",
-      "factory": "./src/migrations/update-13-0-0/remove-webpack-5-packages-13-0-0",
-      "package": "@nrwl/web",
-      "name": "remove-webpack-5-packages"
-    },
-    {
-      "cli": "nx",
-      "version": "13.3.0-beta.1",
-      "description": "Rename the 'build' executor to 'webpack'",
-      "factory": "./src/migrations/update-13-3-0/rename-build-to-webpack",
-      "package": "@nrwl/web",
-      "name": "rename-build-to-webpack"
-    },
-    {
-      "cli": "nx",
-      "version": "13.3.0-beta.1",
-      "description": "Rename the 'package' executor to 'rollup'",
-      "factory": "./src/migrations/update-13-3-0/rename-package-to-rollup",
-      "package": "@nrwl/web",
-      "name": "rename-package-to-rollup"
+      "description": "Migrate Storybook to v6",
+      "factory": "./src/migrations/update-14-0-0/migrate-to-storybook-6",
+      "package": "@nrwl/storybook",
+      "name": "update-14.0.0"
     }
   ]
 }

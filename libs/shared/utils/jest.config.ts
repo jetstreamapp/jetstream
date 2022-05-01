@@ -1,10 +1,10 @@
 module.exports = {
-  preset: '../../../jest.preset.js',
   transform: {
     '^.+\\.[tj]sx?$': 'ts-jest',
   },
   moduleFileExtensions: ['ts', 'tsx', 'js', 'jsx', 'html'],
-  coverageDirectory: '../../../coverage/libs/shared/ui-utils',
+  coverageDirectory: '../../../coverage/libs/shared/utils',
   globals: { 'ts-jest': { tsconfig: '<rootDir>/tsconfig.spec.json' } },
-  displayName: 'shared-ui-utils',
+  displayName: 'shared-utils',
+  preset: '../../../jest.preset.ts',
 };

@@ -20,7 +20,7 @@
     "test": {
       "executor": "@nrwl/jest:jest",
       "options": {
-        "jestConfig": "libs/api-interfaces/jest.config.js",
+        "jestConfig": "libs/api-interfaces/jest.config.ts",
         "passWithNoTests": true
       },
       "outputs": ["coverage/libs/api-interfaces"]

@@ -20,8 +20,8 @@ import {
 } from '@jetstream/ui';
 import { DescribeGlobalSObjectResult } from 'jsforce';
 import { Fragment, FunctionComponent, useCallback, useEffect, useRef, useState } from 'react';
-import { useHistory, useRouteMatch } from 'react-router-dom';
-import Split from 'react-split';
+import { useNavigate } from 'react-router-dom';
+import { SplitWrapper as Split } from '@jetstream/splitjs';
 import { useRecoilState, useRecoilValue, useResetRecoilState } from 'recoil';
 import { applicationCookieState, selectedOrgState } from '../../../app-state';
 import { useAmplitude } from '../../core/analytics';
@@ -57,10 +57,8 @@ const METADATA_QUERY_ICON: IconObj = { type: 'standard', icon: 'settings', descr
 export interface QueryBuilderProps {}
 
 export const QueryBuilder: FunctionComponent<QueryBuilderProps> = () => {
-  const isMounted = useRef(null);
   const { trackEvent } = useAmplitude();
-  const match = useRouteMatch();
-  const history = useHistory();
+  const navigate = useNavigate();
   const [{ serverUrl }] = useRecoilState(applicationCookieState);
   const queryHistoryRef = useRef<QueryHistoryRef>();
 
@@ -104,27 +102,22 @@ export const QueryBuilder: FunctionComponent<QueryBuilderProps> = () => {
       if (selectedSObject && soql && hasModifierKey(event as any) && isEnterKey(event as any)) {
         event.stopPropagation();
         event.preventDefault();
-        history.push(`${match.url}/results`, {
-          soql,
-          isTooling,
-          sobject: {
-            label: selectedSObject.label,
-            name: selectedSObject.name,
+        navigate('results', {
+          state: {
+            soql,
+            isTooling,
+            sobject: {
+              label: selectedSObject.label,
+              name: selectedSObject.name,
+            },
           },
         });
       }
     },
-    [history, isTooling, match.url, selectedSObject, soql]
+    [isTooling, navigate, selectedSObject, soql]
   );
 
   useGlobalEventHandler('keydown', onKeydown);
-
-  useEffect(() => {
-    isMounted.current = true;
-    return () => {
-      isMounted.current = false;
-    };
-  }, []);
 
   useNonInitialEffect(() => {
     if (showWalkthrough) {
@@ -273,7 +266,7 @@ export const QueryBuilder: FunctionComponent<QueryBuilderProps> = () => {
               flex-direction: row;
             `}
           >
-            <div className="slds-p-horizontal_x-small">
+            <div className="slds-p-horizontal_x-small" data-testid="sobject-list">
               <ConnectedSobjectList
                 label={isTooling ? 'Metadata' : 'Objects'}
                 selectedOrg={selectedOrg}
@@ -286,7 +279,7 @@ export const QueryBuilder: FunctionComponent<QueryBuilderProps> = () => {
                 onSearchTermChange={setSObjectFilterTerm}
               />
             </div>
-            <div className="slds-p-horizontal_x-small">
+            <div className="slds-p-horizontal_x-small" data-testid="sobject-field-list">
               {selectedSObject && (
                 <Tabs
                   key={selectedSObject.name}
@@ -350,9 +343,9 @@ export const QueryBuilder: FunctionComponent<QueryBuilderProps> = () => {
                 />
               )}
             </div>
-            <div className="slds-p-horizontal_x-small">
+            <div className="slds-p-horizontal_x-small" data-testid="filters-and-soql">
               <AutoFullHeightContainer fillHeight bufferIfNotRendered={HEIGHT_BUFFER}>
-                {selectedSObject && isMounted.current && (
+                {selectedSObject && (
                   <Accordion
                     key={selectedSObject.name}
                     initOpenIds={['filters', 'soql']}

@@ -13,7 +13,7 @@
     "test": {
       "executor": "@nrwl/jest:jest",
       "options": {
-        "jestConfig": "libs/shared/ui-record-form/jest.config.js",
+        "jestConfig": "libs/shared/ui-record-form/jest.config.ts",
         "passWithNoTests": true
       },
       "outputs": ["coverage/libs/shared/ui-record-form"]

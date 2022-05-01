@@ -10,6 +10,7 @@ export interface ConfirmationDialogProps {
   confirmText?: string;
   onCancel?: () => void;
   onConfirm: () => void;
+  children?: React.ReactNode;
 }
 
 export interface ConfirmationDialogServiceProviderOptions {

@@ -1,4 +1,4 @@
-import { ColDef, RowHeightParams } from '@ag-grid-community/core';
+import { ColDef, GetRowIdParams, RowHeightParams } from '@ag-grid-community/core';
 import { SalesforceOrgUi } from '@jetstream/types';
 import { DataTable } from '@jetstream/ui';
 import { forwardRef } from 'react';
@@ -57,7 +57,7 @@ const getRowHeight = (params: RowHeightParams) => {
   }
   return null;
 };
-const getRowNodeId = ({ key }: TableRowOrItemOrChild) => key;
+const getRowId = ({ data }: GetRowIdParams) => data.key;
 
 export interface AutomationControlEditorTableProps {
   serverUrl: string;
@@ -80,8 +80,7 @@ export const AutomationControlEditorTable = forwardRef<any, AutomationControlEdi
               selectedOrg,
               updateIsActiveFlag,
             },
-            immutableData: true,
-            getRowNodeId,
+            getRowId,
             autoGroupColumnDef: {
               headerName: 'Automation Item',
               width: 400,
@@ -102,13 +101,13 @@ export const AutomationControlEditorTable = forwardRef<any, AutomationControlEdi
             getDataPath: (data) => data.path,
             groupDefaultExpanded: -1,
             enableRangeSelection: false,
-            suppressCellSelection: true,
+            suppressCellFocus: true,
             suppressRowClickSelection: true,
             enableCellTextSelection: true,
             excludeChildrenWhenTreeDataFiltering: true,
             quickFilterText,
             ensureDomOrder: true,
-            frameworkComponents: {
+            components: {
               loadingAndActiveRenderer: LoadingAndActiveRenderer,
               additionalDetailRenderer: AdditionalDetailRenderer,
               // treeItemWithLinkRenderer: TreeItemWithLinkRenderer,

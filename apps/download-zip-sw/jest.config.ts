@@ -1,15 +1,16 @@
 module.exports = {
-  displayName: 'cron-tasks',
-  preset: '../../jest.preset.js',
+  displayName: 'download-zip-sw',
+
+  setupFilesAfterEnv: ['<rootDir>/src/test-setup.ts'],
   globals: {
     'ts-jest': {
       tsconfig: '<rootDir>/tsconfig.spec.json',
     },
   },
-  testEnvironment: 'node',
   transform: {
     '^.+\\.[tj]s$': 'ts-jest',
   },
   moduleFileExtensions: ['ts', 'js', 'html'],
-  coverageDirectory: '../../coverage/apps/cron-tasks',
+  coverageDirectory: '../../coverage/apps/download-zip-sw',
+  preset: '../../jest.preset.ts',
 };

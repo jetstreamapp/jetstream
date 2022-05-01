@@ -1,4 +1,12 @@
-import { ColDef, ColumnEvent, GridApi, GridReadyEvent, ProcessHeaderForExportParams, SelectionChangedEvent } from '@ag-grid-community/core';
+import {
+  ColDef,
+  ColumnEvent,
+  GetRowIdParams,
+  GridApi,
+  GridReadyEvent,
+  ProcessHeaderForExportParams,
+  SelectionChangedEvent,
+} from '@ag-grid-community/core';
 import { QueryResults } from '@jetstream/api-interfaces';
 import { logger } from '@jetstream/shared/client-logger';
 import { queryRemaining } from '@jetstream/shared/data';
@@ -26,7 +34,7 @@ import DataTable from './DataTable';
 
 const SFDC_EMPTY_ID = '000000000000000AAA';
 
-function getRowNodeId(data: any): string {
+function getRowId({ data }: GetRowIdParams): string {
   if (data?.attributes?.type === 'AggregateResult') {
     return uniqueId('query-results-node-id');
   }
@@ -246,8 +254,7 @@ export const SalesforceRecordDataTable: FunctionComponent<SalesforceRecordDataTa
               data={records}
               quickFilterText={globalFilter}
               agGridProps={{
-                immutableData: true,
-                getRowNodeId,
+                getRowId,
                 context: {
                   actions: {
                     edit: onEdit,

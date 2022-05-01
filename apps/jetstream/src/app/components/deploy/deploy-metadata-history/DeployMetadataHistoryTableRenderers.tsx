@@ -7,14 +7,16 @@ import { Fragment, FunctionComponent } from 'react';
 import OrgLabelBadge from '../../core/OrgLabelBadge';
 import { DeployHistoryTableContext } from '../deploy-metadata.types';
 
+const fallbackLabel = 'Unknown Org';
+
 export const OrgRenderer: FunctionComponent<ICellRendererParams> = ({ data, context }) => {
   const item = data as SalesforceDeployHistoryItem;
   const { orgsById } = context as DeployHistoryTableContext;
 
   const sourceOrg = item.sourceOrg ? orgsById[item.sourceOrg.uniqueId] : null;
-  const destinationOrg = orgsById[item.destinationOrg.uniqueId];
+  const destinationOrg = orgsById[item.destinationOrg?.uniqueId];
   const sourceOrgBadge = sourceOrg ? <OrgLabelBadge org={sourceOrg} /> : null;
-  const destinationOrgBadge = destinationOrg ? <OrgLabelBadge org={destinationOrg} /> : item.destinationOrg.label;
+  const destinationOrgBadge = destinationOrg ? <OrgLabelBadge org={destinationOrg} /> : item.destinationOrg?.label || fallbackLabel;
 
   return (
     <Fragment>
@@ -22,7 +24,7 @@ export const OrgRenderer: FunctionComponent<ICellRendererParams> = ({ data, cont
         <Grid
           vertical
           divProps={{
-            title: `${item.sourceOrg.label} to ${item.destinationOrg.label}`,
+            title: `${item.sourceOrg.label} to ${item.destinationOrg?.label || fallbackLabel}`,
           }}
         >
           <div>{sourceOrgBadge}</div>
@@ -45,7 +47,7 @@ export const OrgRenderer: FunctionComponent<ICellRendererParams> = ({ data, cont
         </Grid>
       )}
       {!item.sourceOrg && (
-        <Grid vertical className="slds-truncate" divProps={{ title: item.destinationOrg.label }}>
+        <Grid vertical className="slds-truncate" divProps={{ title: item.destinationOrg?.label || fallbackLabel }}>
           {destinationOrgBadge}
         </Grid>
       )}

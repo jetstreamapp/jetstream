@@ -11,9 +11,11 @@
         "outputPath": "dist/apps/landing"
       },
       "configurations": {
-        "production": {}
+        "production": {},
+        "development": {}
       },
-      "outputs": ["{options.outputPath}"]
+      "outputs": ["{options.outputPath}"],
+      "defaultConfiguration": "production"
     },
     "serve": {
       "executor": "@nrwl/next:server",
@@ -26,8 +28,13 @@
         "production": {
           "buildTarget": "landing:build:production",
           "dev": false
+        },
+        "development": {
+          "buildTarget": "landing:build:development",
+          "dev": true
         }
-      }
+      },
+      "defaultConfiguration": "development"
     },
     "export": {
       "executor": "@nrwl/next:export",
@@ -50,7 +57,7 @@
     "test": {
       "executor": "@nrwl/jest:jest",
       "options": {
-        "jestConfig": "apps/landing/jest.config.js",
+        "jestConfig": "apps/landing/jest.config.ts",
         "passWithNoTests": true
       },
       "outputs": ["coverage/apps/landing"]

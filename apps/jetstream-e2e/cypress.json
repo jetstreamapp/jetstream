@@ -1,1 +1,19 @@
-{"fileServerFolder":".","fixturesFolder":"./src/fixtures","integrationFolder":"./src/integration","modifyObstructiveCode":false,"pluginsFile":"./src/plugins/index","supportFile":"./src/support/index.ts","video":true,"videosFolder":"../../dist/cypress/apps/jetstream-e2e/videos","screenshotsFolder":"../../dist/cypress/apps/jetstream-e2e/screenshots","chromeWebSecurity":false}
+{
+  "fileServerFolder": ".",
+  "fixturesFolder": "./src/fixtures",
+  "integrationFolder": "./src/integration",
+  "modifyObstructiveCode": false,
+  "pluginsFile": "./src/plugins/index",
+  "supportFile": "./src/support/index.ts",
+  "video": true,
+  "videosFolder": "../../dist/cypress/apps/jetstream-e2e/videos",
+  "screenshotsFolder": "../../dist/cypress/apps/jetstream-e2e/screenshots",
+  "chromeWebSecurity": false,
+  "env": {
+    "username": "c6a5eb4f9003bbb091cb800b9e3298a3@test.com",
+    "password": "__test__",
+    "sfdc_username": "test-e2e@getjetstream.app",
+    "sfdc_password": "Password123",
+    "sfdc_loginUrl": "https://jetstream-e2e-dev-ed.my.salesforce.com"
+  }
+}

@@ -26,7 +26,7 @@ import startOfDay from 'date-fns/startOfDay';
 import { FunctionComponent, useCallback, useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useRecoilState, useRecoilValue } from 'recoil';
-import { applicationCookieState } from '../../app-state';
+import { applicationCookieState, selectedOrgState } from '../../app-state';
 import { useAmplitude } from '../core/analytics';
 import * as fromJetstreamEvents from '../core/jetstream-events';
 import AddToChangeset from './add-to-changeset/AddToChangeset';
@@ -39,7 +39,7 @@ import DeployMetadataToOrg from './deploy-to-different-org/DeployMetadataToOrg';
 import DeployMetadataDeploymentSidePanel from './DeployMetadataDeploymentSidePanel';
 import DeployMetadataDeploymentTable from './DeployMetadataDeploymentTable';
 import DeployMetadataLastRefreshedPopover from './DeployMetadataLastRefreshedPopover';
-import { convertRowsForExport, convertRowsToMapOfListMetadataResults } from './utils/deploy-metadata.utils';
+import { convertRowsForExport, convertRowsToMapOfListMetadataResults, getRows } from './utils/deploy-metadata.utils';
 import DeployMetadataSelectedItemsBadge from './utils/DeployMetadataSelectedItemsBadge';
 import DownloadPackageWithFileSelector from './utils/DownloadPackageWithFileSelector';
 import ViewOrCompareMetadataModal from './view-or-compare-metadata/ViewOrCompareMetadataModal';
@@ -50,13 +50,14 @@ const TABLE_ACTION_DOWNLOAD = 'table-download';
 const TABLE_ACTION_DOWNLOAD_SELECTED = 'table-download-selected';
 const TABLE_ACTION_DOWNLOAD_MANIFEST = 'download-manifest';
 const TABLE_ACTION_DELETE_METADATA = 'delete-manifest';
-export interface DeployMetadataDeploymentProps {
-  selectedOrg: SalesforceOrgUi;
-}
 
-export const DeployMetadataDeployment: FunctionComponent<DeployMetadataDeploymentProps> = ({ selectedOrg }) => {
+// eslint-disable-next-line @typescript-eslint/no-empty-interface
+export interface DeployMetadataDeploymentProps {}
+
+export const DeployMetadataDeployment: FunctionComponent<DeployMetadataDeploymentProps> = () => {
   const { trackEvent } = useAmplitude();
   const [{ google_apiKey, google_appId, google_clientId }] = useRecoilState(applicationCookieState);
+  const selectedOrg = useRecoilValue<SalesforceOrgUi>(selectedOrgState);
   const {
     loadListMetadata,
     loadListMetadataItem,
@@ -120,13 +121,13 @@ export const DeployMetadataDeployment: FunctionComponent<DeployMetadataDeploymen
 
   useEffect(() => {
     if (listMetadataFilterFn && listMetadataItemsUnfiltered) {
-      setListMetadataItems(
-        Object.keys(listMetadataItemsUnfiltered).reduce((output, key) => {
-          const item = listMetadataItemsUnfiltered[key];
-          output[key] = { ...item, items: item.items.filter(listMetadataFilterFn) };
-          return output;
-        }, {})
-      );
+      const _listMetadataItems = Object.keys(listMetadataItemsUnfiltered).reduce((output, key) => {
+        const item = listMetadataItemsUnfiltered[key];
+        output[key] = { ...item, items: item.items.filter(listMetadataFilterFn) };
+        return output;
+      }, {});
+      setRows(getRows(_listMetadataItems));
+      setListMetadataItems(_listMetadataItems);
     }
   }, [listMetadataFilterFn, listMetadataItemsUnfiltered]);
 
@@ -142,6 +143,7 @@ export const DeployMetadataDeployment: FunctionComponent<DeployMetadataDeploymen
         skipCacheIfOlderThan,
       });
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
     selectedOrg,
     listMetadataQueries,
@@ -219,6 +221,10 @@ export const DeployMetadataDeployment: FunctionComponent<DeployMetadataDeploymen
     }
   }
 
+  const handleViewOrCompareOpen = useCallback(() => {
+    setViewOrCompareModalOpen(true);
+  }, []);
+
   return (
     <div>
       {activeDownloadType && (
@@ -264,7 +270,7 @@ export const DeployMetadataDeployment: FunctionComponent<DeployMetadataDeploymen
 
       <Toolbar>
         <ToolbarItemGroup>
-          <Link className="slds-button slds-button_brand" to={{ pathname: `/deploy-metadata` }}>
+          <Link className="slds-button slds-button_brand" to="..">
             <Icon type="utility" icon="back" className="slds-button__icon slds-button__icon_left" omitContainer />
             Go Back
           </Link>
@@ -408,11 +414,10 @@ export const DeployMetadataDeployment: FunctionComponent<DeployMetadataDeploymen
               `}
             >
               <DeployMetadataDeploymentTable
-                listMetadataItems={listMetadataItems}
+                rows={rows}
                 hasSelectedRows={selectedRows.size > 0}
-                onRows={setRows}
                 onSelectedRows={setSelectedRows}
-                onViewOrCompareOpen={() => setViewOrCompareModalOpen(true)}
+                onViewOrCompareOpen={handleViewOrCompareOpen}
               />
             </AutoFullHeightContainer>
           </Grid>

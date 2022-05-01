@@ -1,8 +1,8 @@
 import { useGlobalEventHandler } from '@jetstream/shared/ui-utils';
-import { FunctionComponent, useCallback, useEffect } from 'react';
-import { Prompt } from 'react-router-dom';
+import { Fragment, FunctionComponent, useCallback, useEffect } from 'react';
 import { useRecoilState } from 'recoil';
 import * as fromAppState from '../../app-state';
+import { usePrompt } from './PromptNavigation';
 
 export interface ConfirmPageChangeProps {
   actionInProgress: boolean;
@@ -15,7 +15,6 @@ export const ConfirmPageChange: FunctionComponent<ConfirmPageChangeProps> = ({
 }) => {
   // the store tracks this to allow various places (e.x. org dropdown) to know that actions are in progress
   const [actionInProgressState, setActionInProgressState] = useRecoilState<boolean>(fromAppState.actionInProgressState);
-
   // give prompt before page refresh or browser tab being closed
   const beforeUnload = useCallback(
     (event: BeforeUnloadEvent) => {
@@ -47,7 +46,11 @@ export const ConfirmPageChange: FunctionComponent<ConfirmPageChangeProps> = ({
     }
   }, [actionInProgress, actionInProgressState]);
 
-  return <Prompt when={actionInProgress} message={message} />;
+  const prompt = usePrompt(message, actionInProgress);
+
+  // TODO: fix this
+  return <Fragment />;
+  // return <Prompt when={actionInProgress} message={message} />;
 };
 
 export default ConfirmPageChange;

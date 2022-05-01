@@ -1,21 +1,19 @@
 import { TITLES } from '@jetstream/shared/constants';
 import { SalesforceOrgUi } from '@jetstream/types';
 import React, { Fragment, FunctionComponent, useEffect, useState } from 'react';
-import { Redirect, Route, Switch, useRouteMatch } from 'react-router-dom';
+import { Navigate, Outlet, useLocation } from 'react-router-dom';
 import { useTitle } from 'react-use';
 import { useRecoilValue, useResetRecoilState } from 'recoil';
 import { selectedOrgState } from '../../app-state';
 import StateDebugObserver from '../core/StateDebugObserver';
 import * as fromPermissionsState from './manage-permissions.state';
-import ManagePermissionsEditor from './ManagePermissionsEditor';
-import ManagePermissionsSelection from './ManagePermissionsSelection';
 
 // eslint-disable-next-line @typescript-eslint/no-empty-interface
 export interface ManagePermissionsProps {}
 
 export const ManagePermissions: FunctionComponent<ManagePermissionsProps> = () => {
   useTitle(TITLES.MANAGE_PERMISSIONS);
-  const match = useRouteMatch();
+  const location = useLocation();
   const selectedOrg = useRecoilValue<SalesforceOrgUi>(selectedOrgState);
   const resetProfilesState = useResetRecoilState(fromPermissionsState.profilesState);
   const resetSelectedProfilesPermSetState = useResetRecoilState(fromPermissionsState.selectedProfilesPermSetState);
@@ -79,12 +77,7 @@ export const ManagePermissions: FunctionComponent<ManagePermissionsProps> = () =
           ['fieldPermissionMap', fromPermissionsState.fieldPermissionMap],
         ]}
       />
-      <Switch>
-        <Route path={`${match.url}`} exact>
-          <ManagePermissionsSelection />
-        </Route>
-        <Route path={`${match.url}/editor`}>{hasSelectionsMade ? <ManagePermissionsEditor /> : <Redirect to={match.url} />}</Route>
-      </Switch>
+      {location.pathname.endsWith('/editor') && !hasSelectionsMade ? <Navigate to="." /> : <Outlet />}
     </Fragment>
   );
 };

@@ -13,6 +13,7 @@ export interface ExpressionGroupProps {
   onActionChange: (value: AndOr) => void;
   onAddCondition: () => void;
   moveRowToGroup: (item: DraggableRow, targetGroup: number) => void;
+  children?: React.ReactNode;
 }
 
 export const ExpressionGroup: FunctionComponent<ExpressionGroupProps> = React.memo(

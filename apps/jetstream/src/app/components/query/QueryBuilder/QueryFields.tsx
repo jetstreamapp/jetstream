@@ -215,6 +215,7 @@ export const QueryFieldsComponent: FunctionComponent<QueryFieldsProps> = ({ sele
   }
 
   return (
+    // eslint-disable-next-line react/jsx-no-useless-fragment
     <Fragment>
       {selectedSObject && queryFieldsMap[baseKey] && (
         <AutoFullHeightContainer bottomBuffer={10}>
