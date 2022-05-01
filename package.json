@@ -165,6 +165,7 @@
     "form-data": "^2.3.3",
     "fs-extra": "^9.0.1",
     "helmet": "^4.1.1",
+    "history": "^5.3.0",
     "http-proxy-middleware": "^2.0.1",
     "jsforce": "^1.9.3",
     "jsonwebtoken": "^8.5.1",
