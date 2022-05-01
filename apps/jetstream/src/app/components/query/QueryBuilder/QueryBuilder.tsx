@@ -57,7 +57,6 @@ const METADATA_QUERY_ICON: IconObj = { type: 'standard', icon: 'settings', descr
 export interface QueryBuilderProps {}
 
 export const QueryBuilder: FunctionComponent<QueryBuilderProps> = () => {
-  const isMounted = useRef(null);
   const { trackEvent } = useAmplitude();
   const navigate = useNavigate();
   const [{ serverUrl }] = useRecoilState(applicationCookieState);
@@ -119,13 +118,6 @@ export const QueryBuilder: FunctionComponent<QueryBuilderProps> = () => {
   );
 
   useGlobalEventHandler('keydown', onKeydown);
-
-  useEffect(() => {
-    isMounted.current = true;
-    return () => {
-      isMounted.current = false;
-    };
-  }, []);
 
   useNonInitialEffect(() => {
     if (showWalkthrough) {
@@ -353,7 +345,7 @@ export const QueryBuilder: FunctionComponent<QueryBuilderProps> = () => {
             </div>
             <div className="slds-p-horizontal_x-small" data-testid="filters-and-soql">
               <AutoFullHeightContainer fillHeight bufferIfNotRendered={HEIGHT_BUFFER}>
-                {selectedSObject && isMounted.current && (
+                {selectedSObject && (
                   <Accordion
                     key={selectedSObject.name}
                     initOpenIds={['filters', 'soql']}

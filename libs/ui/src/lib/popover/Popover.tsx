@@ -2,7 +2,6 @@ import { css } from '@emotion/react';
 import { Popover as HeadlessPopover } from '@headlessui/react';
 import { SmallMediumLarge } from '@jetstream/types';
 import classNames from 'classnames';
-import { nextTick } from 'process';
 import { CSSProperties, forwardRef, Fragment, ReactNode, useCallback, useImperativeHandle, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { usePopper } from 'react-popper';
@@ -96,7 +95,7 @@ export const Popover = forwardRef<PopoverRef, PopoverProps>(
         if (open !== isOpen.current) {
           isOpen.current = open;
           if (onChange) {
-            nextTick(() => onChange(open));
+            setTimeout(() => onChange(open));
           }
         }
       },

@@ -47,7 +47,7 @@ import { TableRowItem } from './automation-control-types';
 import * as fromAutomationCtlState from './automation-control.state';
 import AutomationControlEditorReviewModal from './AutomationControlEditorReviewModal';
 import AutomationControlEditorTable from './AutomationControlEditorTable';
-import DeployMetadataLastRefreshedPopover from './AutomationControlLastRefreshedPopover';
+import AutomationControlLastRefreshedPopover from './AutomationControlLastRefreshedPopover';
 import { useAutomationControlData } from './useAutomationControlData';
 
 const HEIGHT_BUFFER = 170;
@@ -318,9 +318,11 @@ export const AutomationControlEditor: FunctionComponent<AutomationControlEditorP
             <Badge className="slds-m-left_x-small">
               {formatNumber(dirtyCount)} {pluralizeFromNumber('item', dirtyCount)} modified
             </Badge>
-            <div className="slds-col_bump-left">
-              <DeployMetadataLastRefreshedPopover onRefresh={handleRefreshProcessBuilders} />
-            </div>
+            {selectedAutomationTypes.includes('FlowProcessBuilder') && (
+              <div className="slds-col_bump-left">
+                <AutomationControlLastRefreshedPopover onRefresh={handleRefreshProcessBuilders} />
+              </div>
+            )}
           </Grid>
         </Grid>
       </div>

@@ -1,19 +1,20 @@
 import { UserProfileUi } from '@jetstream/types';
-import React, { lazy } from 'react';
-import { Navigate, Route, Routes } from 'react-router-dom';
+import lazy from './components/core/LazyLoad';
+import React, { useEffect } from 'react';
+
+import { Navigate, Route, Routes, useLocation } from 'react-router-dom';
 import OrgSelectionRequired from './components/orgs/OrgSelectionRequired';
 
-const AutomationControl = lazy(() => import('./components/automation-control/AutomationControl'));
-const AutomationControlSelection = lazy(() => import('./components/automation-control/AutomationControlSelection'));
-const AutomationControlEditor = lazy(() => import('./components/automation-control/AutomationControlEditor'));
-
-const Feedback = lazy(() => import('./components/feedback/Feedback'));
 const LoadRecords = lazy(() => import('./components/load-records/LoadRecords'));
 const LoadRecordsMultiObject = lazy(() => import('./components/load-records-multi-object/LoadRecordsMultiObject'));
 
 const Query = lazy(() => import('./components/query/Query'));
 const QueryBuilder = lazy(() => import('./components/query/QueryBuilder/QueryBuilder'));
 const QueryResults = lazy(() => import('./components/query/QueryResults/QueryResults'));
+
+const AutomationControl = lazy(() => import('./components/automation-control/AutomationControl'));
+const AutomationControlSelection = lazy(() => import('./components/automation-control/AutomationControlSelection'));
+const AutomationControlEditor = lazy(() => import('./components/automation-control/AutomationControlEditor'));
 
 const ManagePermissions = lazy(() => import('./components/manage-permissions/ManagePermissions'));
 const ManagePermissionsEditor = lazy(() => import('./components/manage-permissions/ManagePermissionsEditor'));
@@ -32,10 +33,17 @@ const MassUpdateRecordsSelection = lazy(() => import('./components/update-record
 const MassUpdateRecordsDeployment = lazy(() => import('./components/update-records/deployment/MassUpdateRecordsDeployment'));
 
 const AnonymousApex = lazy(() => import('./components/anonymous-apex/AnonymousApex'));
+
 const SalesforceApi = lazy(() => import('./components/salesforce-api/SalesforceApi'));
+
 const DebugLogViewer = lazy(() => import('./components/debug-log-viewer/DebugLogViewer'));
+
 const SObjectExport = lazy(() => import('./components/sobject-export/SObjectExport'));
+
 const PlatformEventMonitor = lazy(() => import('./components/platform-event-monitor/PlatformEventMonitor'));
+
+const Feedback = lazy(() => import('./components/feedback/Feedback'));
+
 const Settings = lazy(() => import('./components/settings/Settings'));
 
 export interface AppRoutesProps {
@@ -43,12 +51,26 @@ export interface AppRoutesProps {
   userProfile: UserProfileUi;
 }
 
-/**
- * TODO: Add suspense around each component in element
- * <Suspense fallback={<div>Loading...</div>}>
- */
-
 export const AppRoutes = ({ featureFlags, userProfile }: AppRoutesProps) => {
+  const location = useLocation();
+
+  // Preload sub-pages
+  useEffect(() => {
+    if (location.pathname.includes('/query')) {
+      QueryResults.preload();
+    } else if (location.pathname.includes('/automation-control')) {
+      AutomationControlEditor.preload();
+    } else if (location.pathname.includes('/permissions-manager')) {
+      ManagePermissionsEditor.preload();
+    } else if (location.pathname.includes('/deploy-metadata')) {
+      DeployMetadataDeployment.preload();
+    } else if (location.pathname.includes('/deploy-sobject-metadata')) {
+      CreateFields.preload();
+    } else if (location.pathname.includes('/update-records')) {
+      MassUpdateRecordsDeployment.preload();
+    }
+  }, [location]);
+
   return (
     <Routes>
       <Route

@@ -245,25 +245,27 @@ export const OrgInfoPopover: FunctionComponent<OrgInfoPopoverProps> = ({
                   <div title="Label">Label</div>
                 </td>
                 <td>
-                  <Input>
-                    <input
-                      className="slds-input"
-                      onChange={handleLabelChange}
-                      value={orgLabel}
-                      onKeyDown={handleLabelKeyDown}
-                      maxLength={100}
-                    />
-                  </Input>
-                  {isDirty && (
-                    <Grid align="spread">
-                      <button className="slds-button" disabled={!orgLabel} onClick={handleReset}>
-                        Undo
-                      </button>
-                      <button className="slds-button" disabled={!orgLabel} onClick={handleSave}>
-                        Save
-                      </button>
-                    </Grid>
-                  )}
+                  <div className="slds-p-right_small">
+                    <Input>
+                      <input
+                        className="slds-input"
+                        onChange={handleLabelChange}
+                        value={orgLabel}
+                        onKeyDown={handleLabelKeyDown}
+                        maxLength={100}
+                      />
+                    </Input>
+                    {isDirty && (
+                      <Grid className="slds-p-top_xx-small">
+                        <button className="slds-button slds-button_brand" disabled={!orgLabel} onClick={handleSave}>
+                          Save
+                        </button>
+                        <button className="slds-button slds-button_neutral" disabled={!orgLabel} onClick={handleReset}>
+                          Undo
+                        </button>
+                      </Grid>
+                    )}
+                  </div>
                 </td>
               </tr>
               <tr>

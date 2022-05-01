@@ -1,5 +1,4 @@
 import { ColDef } from '@ag-grid-community/core';
-import { css } from '@emotion/react';
 import { query } from '@jetstream/shared/data';
 import { logger } from '@jetstream/shared/client-logger';
 import { formatNumber } from '@jetstream/shared/ui-utils';
@@ -155,11 +154,7 @@ export const LoadRecordsDataPreview: FunctionComponent<LoadRecordsDataPreviewPro
             </div>
           )}
         </GridCol>
-        <GridCol
-          css={css`
-            height: 500px;
-          `}
-        >
+        <GridCol>
           {columns && rows && (
             <Fragment>
               <div className="slds-text-heading_small">File Preview</div>

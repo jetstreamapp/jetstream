@@ -3,11 +3,11 @@ import { Popover, PopoverRef } from '@jetstream/ui';
 import { FunctionComponent, useRef } from 'react';
 import { getProcessBuilderCachedSince } from './automation-control-data-utils';
 
-export interface DeployMetadataLastRefreshedPopoverProps {
+export interface AutomationControlLastRefreshedPopoverProps {
   onRefresh: () => void;
 }
 
-export const DeployMetadataLastRefreshedPopover: FunctionComponent<DeployMetadataLastRefreshedPopoverProps> = ({ onRefresh }) => {
+export const AutomationControlLastRefreshedPopover: FunctionComponent<AutomationControlLastRefreshedPopoverProps> = ({ onRefresh }) => {
   const popoverRef = useRef<PopoverRef>();
 
   function handleRefresh() {
@@ -51,4 +51,4 @@ export const DeployMetadataLastRefreshedPopover: FunctionComponent<DeployMetadat
   );
 };
 
-export default DeployMetadataLastRefreshedPopover;
+export default AutomationControlLastRefreshedPopover;

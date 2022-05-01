@@ -9,6 +9,7 @@ import ModalContainer from 'react-modal-promise';
 import { RecoilRoot } from 'recoil';
 import { AppRoutes } from './AppRoutes';
 import AppInitializer from './components/core/AppInitializer';
+import AppLoading from './components/core/AppLoading';
 import AppStateResetOnOrgChange from './components/core/AppStateResetOnOrgChange';
 import AppToast from './components/core/AppToast';
 import ErrorBoundaryFallback from './components/core/ErrorBoundaryFallback';
@@ -40,8 +41,7 @@ export const App = () => {
   return (
     <ConfirmationServiceProvider>
       <RecoilRoot>
-        {/* TODO: make better loading indicators for suspense (both global and localized versions - maybe SVG placeholders) */}
-        <Suspense fallback={<div>Loading...</div>}>
+        <Suspense fallback={<AppLoading />}>
           <AppInitializer onUserProfile={setUserProfile}>
             <OverlayProvider>
               {/* <React.StrictMode> */}
@@ -61,7 +61,7 @@ export const App = () => {
                   `}
                   data-testid="content"
                 >
-                  <Suspense fallback={<div>Loading...</div>}>
+                  <Suspense fallback={<AppLoading />}>
                     <ErrorBoundary FallbackComponent={ErrorBoundaryFallback}>
                       <AppRoutes featureFlags={featureFlags} userProfile={userProfile} />
                     </ErrorBoundary>
