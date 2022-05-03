@@ -11,6 +11,7 @@
     "icon-factory": "libs/icon-factory",
     "jetstream": "apps/jetstream",
     "jetstream-e2e": "apps/jetstream-e2e",
+    "jetstream-electron": "apps/jetstream-electron",
     "jetstream-worker": "apps/jetstream-worker",
     "landing": "apps/landing",
     "landing-e2e": "apps/landing-e2e",

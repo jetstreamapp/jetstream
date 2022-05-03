@@ -1,0 +1,9 @@
+{
+  "$schema": "../../../../../node_modules/nx-electron/src/validation/maker.schema.json",
+  "appId": "app.getjetstream",
+  "productName": "Jetstream",
+  "buildDependenciesFromSource": false,
+  "mac": {
+    "hardenedRuntime": true
+  }
+}

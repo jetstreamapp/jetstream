@@ -4,6 +4,7 @@
 export const environment = {
   name: 'JetstreamDev',
   production: false,
+  isElectron: false,
   rollbarClientAccessToken: 'd4b6a70b70444f91bdc22b2818040c7f',
   amplitudeToken: '242998ee09e81f804ae1536d9fd1429b',
   VERSION: process.env.GIT_VERSION,

@@ -1,0 +1,68 @@
+{
+  "root": "apps/jetstream-electron",
+  "sourceRoot": "apps/jetstream-electron/src",
+  "projectType": "application",
+  "targets": {
+    "build": {
+      "executor": "nx-electron:build",
+      "outputs": ["{options.outputPath}"],
+      "options": {
+        "outputPath": "dist/apps/jetstream-electron",
+        "main": "apps/jetstream-electron/src/main.ts",
+        "tsConfig": "apps/jetstream-electron/tsconfig.app.json",
+        "assets": ["apps/jetstream-electron/src/assets"]
+      },
+      "configurations": {
+        "production": {
+          "optimization": true,
+          "extractLicenses": true,
+          "inspect": false,
+          "fileReplacements": [
+            {
+              "replace": "apps/jetstream-electron/src/environments/environment.ts",
+              "with": "apps/jetstream-electron/src/environments/environment.prod.ts"
+            }
+          ]
+        }
+      }
+    },
+    "serve": {
+      "executor": "nx-electron:execute",
+      "options": {
+        "buildTarget": "jetstream-electron:build"
+      }
+    },
+    "package": {
+      "executor": "nx-electron:package",
+      "options": {
+        "name": "jetstream-electron",
+        "frontendProject": "jetstream",
+        "outputPath": "dist/packages",
+        "prepackageOnly": true
+      }
+    },
+    "make": {
+      "executor": "nx-electron:make",
+      "options": {
+        "name": "jetstream-electron",
+        "frontendProject": "jetstream",
+        "outputPath": "dist/executables"
+      }
+    },
+    "lint": {
+      "executor": "@nrwl/linter:eslint",
+      "outputs": ["{options.outputFile}"],
+      "options": {
+        "lintFilePatterns": ["apps/jetstream-electron/**/*.ts"]
+      }
+    },
+    "test": {
+      "executor": "@nrwl/jest:jest",
+      "outputs": ["coverage/apps/jetstream-electron"],
+      "options": {
+        "jestConfig": "apps/jetstream-electron/jest.config.ts",
+        "passWithNoTests": true
+      }
+    }
+  }
+}
