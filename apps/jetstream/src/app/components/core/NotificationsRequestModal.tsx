@@ -2,8 +2,7 @@ import { ANALYTICS_KEYS, FEATURE_FLAGS } from '@jetstream/shared/constants';
 import { hasFeatureFlagAccess } from '@jetstream/shared/ui-utils';
 import { DockedComposer, DockedComposerRef } from '@jetstream/ui';
 import { Fragment, FunctionComponent, useEffect, useRef, useState } from 'react';
-import { useRecoilState } from 'recoil';
-import { selectUserPreferenceState } from '../../app-state';
+import { useUserPreferenceState } from '../../app-state';
 import { useAmplitude } from '../core/analytics';
 import NotificationExampleImage from './jetstream-sample-notification.png';
 
@@ -27,7 +26,7 @@ export const NotificationsRequestModal: FunctionComponent<NotificationsRequestMo
   onClose,
 }) => {
   const composerRef = useRef<DockedComposerRef>();
-  const [userPreferences, setUserPreferences] = useRecoilState(selectUserPreferenceState);
+  const [userPreferences, setUserPreferences] = useUserPreferenceState();
   const [isDismissed, setIsDismissed] = useState(true);
   const { trackEvent } = useAmplitude();
 
