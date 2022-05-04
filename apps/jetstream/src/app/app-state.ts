@@ -1,3 +1,4 @@
+import { logger } from '@jetstream/shared/client-logger';
 import { HTTP, INDEXED_DB } from '@jetstream/shared/constants';
 import { getOrgs, getUserProfile } from '@jetstream/shared/data';
 import { getOrgType, parseCookie } from '@jetstream/shared/ui-utils';
@@ -5,7 +6,7 @@ import { getMapOf } from '@jetstream/shared/utils';
 import { ApplicationCookie, SalesforceOrgUi, SalesforceOrgUiType, UserProfilePreferences, UserProfileUi } from '@jetstream/types';
 import localforage from 'localforage';
 import isString from 'lodash/isString';
-import { atom, selector } from 'recoil';
+import { atom, selector, useRecoilValue, useSetRecoilState } from 'recoil';
 
 export const STORAGE_KEYS = {
   SELECTED_ORG_STORAGE_KEY: `SELECTED_ORG`,
@@ -158,12 +159,31 @@ export const selectUserPreferenceState = selector<UserProfilePreferences>({
     const userPreferences = get(userPreferenceState);
     return userPreferences;
   },
-  set: async ({ set }, userPreferences: UserProfilePreferences) => {
-    set(userPreferenceState, userPreferences);
+  // https://rollbar.com/jetstream/Jetstream/items/519/
+  // Causes error when used because this is async and async set selectors are not allowed
+  // set: async ({ set }, userPreferences: UserProfilePreferences) => {
+  //   set(userPreferenceState, userPreferences);
+  //   try {
+  //     await localforage.setItem<UserProfilePreferences>(INDEXED_DB.KEYS.userPreferences, userPreferences);
+  //   } catch (ex) {
+  //     // could not save to localstorage
+  //   }
+  // },
+});
+
+export const useUserPreferenceState = (): [UserProfilePreferences, (pref: UserProfilePreferences) => void] => {
+  const userPreference = useRecoilValue(selectUserPreferenceState);
+  const setUserPreferenceState = useSetRecoilState(userPreferenceState);
+
+  async function setUserPreferences(_userPreference: UserProfilePreferences) {
+    setUserPreferenceState(_userPreference);
     try {
-      await localforage.setItem<UserProfilePreferences>(INDEXED_DB.KEYS.userPreferences, userPreferences);
+      localforage.setItem<UserProfilePreferences>(INDEXED_DB.KEYS.userPreferences, _userPreference);
     } catch (ex) {
       // could not save to localstorage
+      logger.warn('could not save to localstorage');
     }
-  },
-});
+  }
+
+  return [userPreference, setUserPreferences];
+};
