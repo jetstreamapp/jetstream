@@ -3,6 +3,12 @@
   "appId": "app.getjetstream",
   "productName": "Jetstream",
   "buildDependenciesFromSource": false,
+  "protocols": [
+    {
+      "name": "Jetstream",
+      "schemes": ["jetstream"]
+    }
+  ],
   "mac": {
     "hardenedRuntime": true
   }

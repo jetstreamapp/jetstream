@@ -1,5 +1,5 @@
 // DO NOT CHANGE ORDER OF IMPORTS
-import { CONFIG } from './_config';
+import { CONFIG } from './app/components/core/config';
 // DO NOT CHANGE ORDER OF IMPORTS
 
 import '@salesforce-ux/design-system/assets/styles/salesforce-lightning-design-system.min.css';
@@ -23,7 +23,7 @@ const container = document.getElementById('root');
 // REACT 17 MODE
 render(
   <div className="app">
-    <CONFIG.Router basename="/app">
+    <CONFIG.Router basename={CONFIG.baseName}>
       <App />
     </CONFIG.Router>
   </div>,

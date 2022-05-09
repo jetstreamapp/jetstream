@@ -31,6 +31,11 @@ function getAppCookie() {
   appState.google_appId = appState.google_appId || '1071580433137';
   appState.google_apiKey = appState.google_apiKey || 'AIzaSyDaqv3SafGq6NmVVwUWqENrf2iEFiDSMoA';
   appState.google_clientId = appState.google_clientId || '1094188928456-fp5d5om6ar9prdl7ak03fjkqm4fgagoj.apps.googleusercontent.com';
+
+  if (window.electron?.isElectron) {
+    appState.serverUrl = 'http://localhost';
+    appState.environment = window.electron?.isElectronDev ? 'development' : 'production';
+  }
   return appState;
 }
 

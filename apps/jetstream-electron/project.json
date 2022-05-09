@@ -29,7 +29,9 @@
     "serve": {
       "executor": "nx-electron:execute",
       "options": {
-        "buildTarget": "jetstream-electron:build"
+        "buildTarget": "jetstream-electron:build",
+        "inspect": true,
+        "port": 5858
       }
     },
     "package": {

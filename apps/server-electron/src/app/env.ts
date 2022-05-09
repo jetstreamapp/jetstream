@@ -1,0 +1,4 @@
+export const ENV = {
+  SFDC_CLIENT_ID: process.env.SFDC_CLIENT_ID,
+  SFDC_FALLBACK_API_VERSION: process.env.SFDC_FALLBACK_API_VERSION,
+};

@@ -45,6 +45,12 @@ export const AddOrg: FunctionComponent<AddOrgProps> = ({ className, label = 'Add
     setLoginUrl(url);
   }, [orgType, customUrl]);
 
+  useEffect(() => {
+    if (window.electron?.onOrgAdded) {
+      window.electron.onOrgAdded(onAddOrg);
+    }
+  }, [onAddOrg]);
+
   // FIXME: we should have a way to know what org was being "fixed" and always replace it in the DB and here
   function handleAddOrg() {
     addOrg({ serverUrl: applicationState.serverUrl, loginUrl }, (addedOrg: SalesforceOrgUi) => {

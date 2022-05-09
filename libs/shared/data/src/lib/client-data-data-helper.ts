@@ -10,7 +10,7 @@ import {
   RetrieveResultRaw,
   SalesforceOrgUi,
 } from '@jetstream/types';
-import axios, { AxiosError, AxiosRequestConfig, AxiosResponse } from 'axios';
+import axios, { AxiosAdapter, AxiosError, AxiosRequestConfig, AxiosResponse } from 'axios';
 import parseISO from 'date-fns/parseISO';
 import { isEmpty, isObject } from 'lodash';
 import isString from 'lodash/isString';
@@ -27,8 +27,10 @@ function getHeader(headers: MapOf<string>, header: string) {
 
 const baseConfig: Partial<AxiosRequestConfig> = {};
 
-export function initForElectron() {
-  baseConfig.baseURL = 'http://localhost:3333';
+export function initForElectron(adapter: AxiosAdapter) {
+  // baseConfig.baseURL = 'http://localhost:3333';
+  // use MessagePort adapter for communicating with server
+  baseConfig.adapter = adapter;
 }
 
 /** Use for API calls going to external locations */
