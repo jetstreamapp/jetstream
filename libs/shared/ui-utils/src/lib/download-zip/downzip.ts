@@ -57,7 +57,14 @@ export async function cancelZipDownload(url: string) {
 
 async function registerServiceWorker() {
   if ('serviceWorker' in navigator) {
-    const registration = await navigator.serviceWorker.register(`/sw/download-zip.sw.js`, { scope: `./${SCOPE}/` });
+    let filename = `/sw/download-zip.sw.js`;
+
+    if ((window as any)?.electron?.isElectron) {
+      // TODO: need to figure out how to handle this when app is packaged
+      filename = '/electron-assets/download-zip-sw/download-zip.sw.js';
+    }
+
+    const registration = await navigator.serviceWorker.register(filename, { scope: `./${SCOPE}/` });
     logger.log('[SW CLIENT][REGISTRATION][SUCCESS]', registration.scope);
     return registration;
   } else {

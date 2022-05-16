@@ -15,7 +15,7 @@ routes.get(
   sfMiscController.getFrontdoorLoginUrl
 );
 
-// Is this used?
+// This is not used AFAIK
 routes.get(
   '/sfdc/bulk/:jobId/:batchId',
   ensureOrgExists,

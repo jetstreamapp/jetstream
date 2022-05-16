@@ -13,6 +13,8 @@ import Jobs from './jobs/Jobs';
 import NotificationsRequestModal from './NotificationsRequestModal';
 import RecordLookupPopover from './record-lookup/RecordLookupPopover';
 
+const isElectron = window.electron?.isElectron;
+
 export interface HeaderNavbarProps {
   userProfile: UserProfileUi;
   featureFlags: Set<string>;
@@ -85,9 +87,10 @@ export const HeaderNavbar: FunctionComponent<HeaderNavbarProps> = ({ userProfile
       <Header
         userProfile={userProfile}
         logo={Logo}
-        orgs={<OrgsDropdown />}
+        orgs={<OrgsDropdown addOrgsButtonClassName={isElectron ? 'slds-button_neutral' : undefined} />}
         userMenuItems={userMenuItems}
         rightHandMenuItems={[<RecordLookupPopover />, <HeaderHelpPopover />, <Jobs />]}
+        isElectron={isElectron}
         onUserMenuItemSelected={handleUserMenuSelection}
       >
         <Navbar>

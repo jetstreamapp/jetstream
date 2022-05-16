@@ -1,9 +1,19 @@
-import { getOrgs } from '../storage';
-import { ControllerFn } from '../types';
+import { ENV } from '../env';
+import { getOrgs, updateOrg, deleteOrg } from '../storage';
+import { ControllerFn, ControllerFnDataParams, ControllerFnParams } from '../types';
 
 export const placeholder: ControllerFn = async (_, __, params, { reject, resolve, connection, request }) => {
   reject(new Error('Not yet implemented'));
   return;
+};
+
+export const heartbeat: ControllerFn = async (_, __, params, { reject, resolve, connection, request }) => {
+  try {
+    // TODO: add custom webpack config to get version info
+    resolve({ version: ENV.GIT_VERSION || null });
+  } catch (ex) {
+    reject(ex);
+  }
 };
 
 export const getUserProfile: ControllerFn = async (_, __, params, { reject, resolve, connection, request }) => {
@@ -37,6 +47,35 @@ export const getUserProfile: ControllerFn = async (_, __, params, { reject, reso
 export const handleGetOrgs: ControllerFn = async (_, __, params, { reject, resolve, connection, request }) => {
   try {
     const orgs = await getOrgs();
+    resolve(orgs);
+  } catch (ex) {
+    reject(ex);
+  }
+};
+
+export const handleUpdateOrg: ControllerFnDataParams<{ label: string; color: string }, { uniqueId: string }> = async (
+  _,
+  __,
+  params,
+  { reject, resolve, connection, request }
+) => {
+  try {
+    const data = { label: request.data.label, color: request.data.color };
+    const orgs = await updateOrg(params.uniqueId, data);
+    resolve(orgs);
+  } catch (ex) {
+    reject(ex);
+  }
+};
+
+export const handleDeleteOrg: ControllerFnParams<{ uniqueId: string }> = async (
+  _,
+  __,
+  params,
+  { reject, resolve, connection, request }
+) => {
+  try {
+    const orgs = await deleteOrg(params.uniqueId);
     resolve(orgs);
   } catch (ex) {
     reject(ex);

@@ -1,6 +1,5 @@
 import { contextBridge, ipcRenderer } from 'electron';
 import App from '../app';
-import { v4 } from 'uuid';
 
 const windowLoaded = new Promise((resolve) => {
   window.onload = resolve;
@@ -20,5 +19,4 @@ contextBridge.exposeInMainWorld('electron', {
   isElectron: true,
   isElectronDev: App.isDevelopmentMode(),
   onOrgAdded: (callback) => ipcRenderer.on('org-added', callback),
-  uuid: v4,
 });

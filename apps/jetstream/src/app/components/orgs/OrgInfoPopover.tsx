@@ -340,7 +340,7 @@ export const OrgInfoPopover: FunctionComponent<OrgInfoPopoverProps> = ({
         className: 'slds-button slds-button_icon',
       }}
     >
-      <Icon type="utility" icon="settings" className="slds-button__icon slds-button__icon_left" omitContainer />
+      <Icon type="utility" icon="settings" className="slds-button__icon slds-button__icon_left slds-current-color" omitContainer />
     </Popover>
   );
 };

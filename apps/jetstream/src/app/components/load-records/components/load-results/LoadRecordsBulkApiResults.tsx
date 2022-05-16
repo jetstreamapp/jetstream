@@ -32,6 +32,7 @@ import {
   ViewModalData,
 } from '../../load-records-types';
 import { getFieldHeaderFromMapping, LoadRecordsBatchError } from '../../utils/load-records-utils';
+import { getLoadWorker } from '../../utils/load-records-worker';
 import LoadRecordsResultsModal from './LoadRecordsResultsModal';
 
 type Status = 'Preparing Data' | 'Uploading Data' | 'Processing Data' | 'Finished' | 'Error';
@@ -92,7 +93,7 @@ export const LoadRecordsBulkApiResults: FunctionComponent<LoadRecordsBulkApiResu
   const [{ serverUrl, google_apiKey, google_appId, google_clientId }] = useRecoilState(applicationCookieState);
   const [preparedData, setPreparedData] = useState<PrepareDataResponse>();
   const [prepareDataProgress, setPrepareDataProgress] = useState(0);
-  const [loadWorker] = useState(() => new Worker(new URL('../../load-records.worker', import.meta.url)));
+  const [loadWorker] = useState(() => getLoadWorker());
   const [status, setStatus] = useState<Status>(STATUSES.PREPARING);
   const [fatalError, setFatalError] = useState<string>(null);
   const [downloadError, setDownloadError] = useState<string>(null);
@@ -118,6 +119,12 @@ export const LoadRecordsBulkApiResults: FunctionComponent<LoadRecordsBulkApiResu
       isMounted.current = false;
     };
   }, []);
+
+  useEffect(() => {
+    if (!loadWorker) {
+      loadWorker.postMessage({ name: 'init', isElectron: window.electron?.isElectron });
+    }
+  }, [loadWorker]);
 
   useEffect(() => {
     if (batchSummary && batchSummary.batchSummary) {

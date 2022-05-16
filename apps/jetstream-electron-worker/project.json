@@ -1,0 +1,64 @@
+{
+  "root": "apps/jetstream-electron-worker",
+  "sourceRoot": "apps/jetstream-electron-worker/src",
+  "projectType": "application",
+  "targets": {
+    "build": {
+      "executor": "@nrwl/node:webpack",
+      "options": {
+        "outputPath": "dist/apps/jetstream-electron-worker",
+        "main": "apps/jetstream-electron-worker/src/main.ts",
+        "tsConfig": "apps/jetstream-electron-worker/tsconfig.app.json",
+        "assets": ["apps/jetstream-electron-worker/src/assets"],
+        "webpackConfig": "webpack.config.js"
+      },
+      "configurations": {
+        "production": {
+          "optimization": false,
+          "extractLicenses": false,
+          "outputHashing": "all",
+          "sourceMap": false,
+          "inspect": false,
+          "fileReplacements": [
+            {
+              "replace": "apps/jetstream-electron-worker/src/environments/environment.ts",
+              "with": "apps/jetstream-electron-worker/src/environments/environment.prod.ts"
+            }
+          ]
+        },
+        "development": {
+          "optimization": false,
+          "extractLicenses": false,
+          "sourceMap": true,
+          "inspect": false
+        }
+      },
+      "outputs": ["{options.outputPath}"],
+      "defaultConfiguration": "production"
+    },
+    "serve": {
+      "executor": "@nrwl/node:node",
+      "options": {
+        "buildTarget": "jetstream-electron-worker:build",
+        "inspect": true,
+        "watch": true
+      }
+    },
+    "lint": {
+      "executor": "@nrwl/linter:eslint",
+      "outputs": ["{options.outputFile}"],
+      "options": {
+        "lintFilePatterns": ["apps/jetstream-electron-worker/**/*.ts"]
+      }
+    },
+    "test": {
+      "executor": "@nrwl/jest:jest",
+      "outputs": ["coverage/apps/jetstream-electron-worker"],
+      "options": {
+        "jestConfig": "apps/jetstream-electron-worker/jest.config.ts",
+        "passWithNoTests": true
+      }
+    }
+  },
+  "tags": []
+}

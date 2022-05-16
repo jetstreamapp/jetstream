@@ -47,7 +47,7 @@ export const AddOrg: FunctionComponent<AddOrgProps> = ({ className, label = 'Add
 
   useEffect(() => {
     if (window.electron?.onOrgAdded) {
-      window.electron.onOrgAdded(onAddOrg);
+      window.electron.onOrgAdded((_event, org) => onAddOrg(org));
     }
   }, [onAddOrg]);
 

@@ -33,6 +33,12 @@ export function initForElectron(adapter: AxiosAdapter) {
   baseConfig.adapter = adapter;
 }
 
+export function initForElectronWorker() {
+  baseConfig.baseURL = 'http://localhost/worker';
+  // use MessagePort adapter for communicating with server
+  // baseConfig.adapter = adapter;
+}
+
 /** Use for API calls going to external locations */
 export async function handleExternalRequest<T = any>(config: AxiosRequestConfig): Promise<AxiosResponse<T>> {
   const axiosInstance = axios.create({ ...baseConfig, ...config });

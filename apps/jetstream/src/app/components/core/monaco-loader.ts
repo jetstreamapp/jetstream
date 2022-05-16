@@ -8,6 +8,8 @@ let monacoUrl = '/assets/js/monaco/vs';
 if (environment.isElectron) {
   // monacoUrl = encodeURI(`file://${resolve(join(__dirname, './assets/js/monaco/vs')).replace(/\\/g, '/')}`);
   monacoUrl = './electron-assets/monaco/vs';
+} else if (window.electron?.isElectron) {
+  monacoUrl = '/electron-assets/monaco/vs';
 }
 
 // Load as static resource instead of bundled in application

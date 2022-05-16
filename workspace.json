@@ -17,7 +17,7 @@
     "landing": "apps/landing",
     "landing-e2e": "apps/landing-e2e",
     "monaco-configuration": "libs/monaco-configuration",
-    "server-electron": "apps/server-electron",
+    "jetstream-electron-worker": "apps/jetstream-electron-worker",
     "shared-client-logger": "libs/shared/client-logger",
     "shared-constants": "libs/shared/constants",
     "shared-data": "libs/shared/data",

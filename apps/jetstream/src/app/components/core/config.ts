@@ -3,6 +3,7 @@ import { logger } from '@jetstream/shared/client-logger';
 import { initForElectron } from '@jetstream/shared/data';
 import { BrowserRouter, HashRouter } from 'react-router-dom';
 import { environment } from '../../../environments/environment';
+import { axiosElectronAdapter } from './electron-axios-adapter';
 import * as jetstreamElectron from './electron-utils';
 
 LicenseManager.setLicenseKey(
@@ -15,11 +16,11 @@ export const CONFIG = {
 };
 
 if (environment.isElectron || window.electron?.isElectron) {
-  initForElectron(jetstreamElectron.axiosElectronAdapter);
   CONFIG.Router = HashRouter;
   CONFIG.baseName = '/';
+  initForElectron(axiosElectronAdapter);
   (async () => {
     logger.log('Loaded electron');
-    await jetstreamElectron.init();
+    jetstreamElectron.init();
   })();
 }

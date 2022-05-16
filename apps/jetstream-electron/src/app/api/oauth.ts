@@ -7,7 +7,7 @@ export function getRedirectUrl(loginUrl: string, replaceOrgUniqueId?: string) {
   // TODO: we might need to determine if packaged or not and use a different url (e.x. jetstream://)
   const state = querystring.stringify({ loginUrl, replaceOrgUniqueId });
   const options = {
-    scope: 'api refresh_token',
+    scope: 'api web refresh_token',
     state,
     prompt: 'login',
   };

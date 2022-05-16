@@ -8,6 +8,7 @@ import { render } from 'react-dom';
 // import { createRoot } from 'react-dom/client';
 import App from './app/app';
 import './main.scss';
+import classNames from 'classnames';
 
 const container = document.getElementById('root');
 
@@ -22,7 +23,7 @@ const container = document.getElementById('root');
 
 // REACT 17 MODE
 render(
-  <div className="app">
+  <div className={classNames('app', { 'is-electron': window.electron?.isElectron })}>
     <CONFIG.Router basename={CONFIG.baseName}>
       <App />
     </CONFIG.Router>

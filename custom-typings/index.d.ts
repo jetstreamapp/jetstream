@@ -16,8 +16,7 @@ declare global {
       isElectronDev: boolean;
       // getServerSocket: () => Promise<string>;
       // ipcConnect: (is: string, func: (client: any) => void) => void;
-      onOrgAdded: (callback: (org: SalesforceOrgUi) => void) => void;
-      uuid: () => string;
+      onOrgAdded: (callback: (event: any, org: SalesforceOrgUi) => void) => void;
     };
   }
 }

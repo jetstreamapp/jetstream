@@ -3,6 +3,7 @@
 import { logger } from '@jetstream/shared/client-logger';
 import { MIME_TYPES } from '@jetstream/shared/constants';
 import {
+  initForElectron,
   queryMore,
   retrieveMetadataFromListMetadata,
   retrieveMetadataFromManifestFile,
@@ -31,6 +32,7 @@ import {
 } from '@jetstream/types';
 import { Record } from 'jsforce';
 import isString from 'lodash/isString';
+import { axiosElectronAdapter, initMessageHandler } from '../components/core/electron-axios-adapter';
 
 // eslint-disable-next-line no-restricted-globals
 const ctx: Worker = self as any;
@@ -39,12 +41,17 @@ const ctx: Worker = self as any;
 ctx.addEventListener('message', (event) => {
   const payload: WorkerMessage<AsyncJobType, AsyncJobWorkerMessagePayload> = event.data;
   logger.info('[WORKER]', { payload });
-  handleMessage(payload.name, payload.data);
+  handleMessage(payload.name, payload.data, event.ports?.[0]);
 });
 
-async function handleMessage(name: AsyncJobType, payloadData: AsyncJobWorkerMessagePayload) {
-  const { org, job } = payloadData;
+async function handleMessage(name: AsyncJobType, payloadData: AsyncJobWorkerMessagePayload, port?: MessagePort) {
+  const { org, job } = payloadData || {};
   switch (name) {
+    case 'isElectron': {
+      initForElectron(axiosElectronAdapter);
+      initMessageHandler(port);
+      break;
+    }
     case 'BulkDelete': {
       try {
         // TODO: add validation to ensure that we have at least one record

@@ -12,7 +12,7 @@
         "main": "apps/jetstream/src/main.tsx",
         "polyfills": "apps/jetstream/src/polyfills.ts",
         "tsConfig": "apps/jetstream/tsconfig.app.json",
-        "assets": ["apps/jetstream/src/favicon.ico", "apps/jetstream/src/assets"],
+        "assets": ["apps/jetstream/src/favicon.ico", "apps/jetstream/src/assets", "apps/jetstream/src/electron-assets"],
         "styles": [],
         "scripts": [],
         "webpackConfig": "webpack.config.js"
@@ -47,7 +47,6 @@
         },
         "electron": {
           "baseHref": "./",
-          "assets": ["apps/jetstream/src/favicon.ico", "apps/jetstream/src/assets", "apps/jetstream/src/electron-assets"],
           "fileReplacements": [
             {
               "replace": "apps/jetstream/src/environments/environment.ts",

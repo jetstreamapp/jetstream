@@ -8,6 +8,7 @@ export interface SalesforceOrgElectron extends SalesforceOrgUi {
 // Multiple type options to make it easier to focus specific params
 export type ControllerFnQuery<Query> = ControllerFn<any, Query>;
 export type ControllerFnParams<Params> = ControllerFn<any, MapOf<string>, Params>;
+export type ControllerFnDataParams<Data, Params> = ControllerFn<Data, MapOf<string>, Params>;
 export type ControllerFnQueryParams<Query, Params> = ControllerFn<any, Query, Params>;
 export type ControllerFn<Data = any, Query = MapOf<string>, Params = { [k: string]: string | undefined }> = (
   _: never,

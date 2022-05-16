@@ -3,6 +3,7 @@ import ElectronEvents from './app/events/electron.events';
 import UpdateEvents from './app/events/update.events';
 import { app, BrowserWindow } from 'electron';
 import App from './app/app';
+import { initMenus } from './app/menu';
 
 export default class Main {
   static initialize() {
@@ -13,7 +14,8 @@ export default class Main {
   }
 
   static bootstrapApp() {
-    App.main(app, BrowserWindow);
+    App.main(app);
+    initMenus(app);
   }
 
   static bootstrapAppEvents() {

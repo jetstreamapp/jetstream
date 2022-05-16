@@ -9,6 +9,13 @@
       "schemes": ["jetstream"]
     }
   ],
+  "files": [
+    {
+      "from": "/Users/austinturner/dev/node/jetstream/dist/apps/jetstream-electron-worker",
+      "to": "jetstream-electron-worker",
+      "filter": ["main.js", "assets"]
+    }
+  ],
   "mac": {
     "hardenedRuntime": true
   }

@@ -1,5 +1,4 @@
 /* eslint-disable @typescript-eslint/no-use-before-define */
-import { logger } from '@jetstream/api-config';
 import { QueryResults, QueryResultsColumn, QueryResultsColumns } from '@jetstream/api-interfaces';
 import { Connection } from 'jsforce';
 import * as querystring from 'querystring';
@@ -60,14 +59,14 @@ export async function queryRecords(
       columns: tempColumns.columnMetadata.flatMap((column) => flattenQueryColumn(column)),
     };
   } catch (ex) {
-    logger.error('Error fetching columns', ex);
+    console.error('Error fetching columns', ex);
   }
 
   // Attempt to parse columns from query
   try {
     parsedQuery = parseQuery(query);
   } catch (ex) {
-    logger.info('Error parsing query');
+    console.info('Error parsing query');
   }
 
   return { queryResults, columns, parsedQuery };

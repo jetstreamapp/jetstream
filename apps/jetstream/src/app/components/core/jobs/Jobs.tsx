@@ -23,10 +23,20 @@ import { FunctionComponent, useEffect, useRef, useState } from 'react';
 import { useRecoilState, useRecoilValue, useSetRecoilState } from 'recoil';
 import { filter } from 'rxjs/operators';
 import { applicationCookieState } from '../../../app-state';
+import { electronMessagesReadyPromise, externalMessagePorts } from '../electron-utils';
 import * as fromJetstreamEvents from '../jetstream-events';
 import Job from './Job';
 import JobPlaceholder from './JobPlaceholder';
 import { jobsState, jobsUnreadState, selectActiveJobCount, selectJobs } from './jobs.state';
+
+const jobsWorker = new Worker(new URL('../../../workers/jobs.worker', import.meta.url));
+
+if (jobsWorker && window.electron?.isElectron) {
+  (async () => {
+    await electronMessagesReadyPromise;
+    jobsWorker.postMessage({ name: 'isElectron' }, [externalMessagePorts.jobsWorkerPort]);
+  })();
+}
 
 export const Jobs: FunctionComponent = () => {
   const popoverRef = useRef<PopoverRef>();
@@ -40,7 +50,6 @@ export const Jobs: FunctionComponent = () => {
   const activeJobCount = useRecoilValue(selectActiveJobCount);
   const newJobsToProcess = useObservable(fromJetstreamEvents.getObservable('newJob').pipe(filter((ev: AsyncJobNew[]) => ev.length > 0)));
   const { notifyUser } = useBrowserNotifications(serverUrl);
-  const [jobsWorker] = useState(() => new Worker(new URL('../../../workers/jobs.worker', import.meta.url)));
 
   useEffect(() => {
     if (!!jobsWorker && newJobsToProcess && newJobsToProcess.length > 0) {

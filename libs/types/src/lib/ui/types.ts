@@ -364,7 +364,7 @@ export interface FormGroupDropdownItem {
   icon?: any; // FIXME:
 }
 
-export type AsyncJobType = 'BulkDelete' | 'BulkDownload' | 'RetrievePackageZip' | 'UploadToGoogle';
+export type AsyncJobType = 'isElectron' | 'init' | 'BulkDelete' | 'BulkDownload' | 'RetrievePackageZip' | 'UploadToGoogle';
 export type AsyncJobStatus = 'pending' | 'in-progress' | 'success' | 'finished-warning' | 'failed' | 'aborted';
 
 export type AsyncJobNew<T = unknown> = Omit<AsyncJob<T>, 'id' | 'started' | 'finished' | 'lastActivity' | 'status' | 'statusMessage'>;
