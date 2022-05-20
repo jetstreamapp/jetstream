@@ -3,9 +3,9 @@ import * as jsforce from 'jsforce';
 import * as querystring from 'querystring';
 import { ENV } from './env';
 
-export function getRedirectUrl(loginUrl: string, replaceOrgUniqueId?: string) {
+export function getRedirectUrl(windowId: number, protocol: 'jetstream' | 'http', loginUrl: string, replaceOrgUniqueId?: string) {
   // TODO: we might need to determine if packaged or not and use a different url (e.x. jetstream://)
-  const state = querystring.stringify({ loginUrl, replaceOrgUniqueId });
+  const state = querystring.stringify({ loginUrl, replaceOrgUniqueId, windowId });
   const options = {
     scope: 'api web refresh_token',
     state,
@@ -16,11 +16,11 @@ export function getRedirectUrl(loginUrl: string, replaceOrgUniqueId?: string) {
     loginUrl,
     // TODO: Get these from env vars
     clientId: ENV.SFDC_CLIENT_ID,
-    redirectUri: 'http://localhost/oauth/sfdc/callback',
+    redirectUri: `${protocol}://localhost/oauth/sfdc/callback`,
   }).getAuthorizationUrl(options);
 }
 
-export async function exchangeCodeForToken(params: URLSearchParams) {
+export async function exchangeCodeForToken(protocol: 'jetstream' | 'http', params: URLSearchParams) {
   const code = params.get('code');
   // TODO: handle error
   const error = params.get('error');
@@ -36,7 +36,7 @@ export async function exchangeCodeForToken(params: URLSearchParams) {
       loginUrl,
       // TODO: Get these from env vars
       clientId: ENV.SFDC_CLIENT_ID,
-      redirectUri: 'http://localhost/oauth/sfdc/callback',
+      redirectUri: `${protocol}://localhost/oauth/sfdc/callback`,
     }),
   });
   const userInfo = await conn.authorize(code);

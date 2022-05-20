@@ -34,7 +34,11 @@ export const OrgsDropdown: FunctionComponent<OrgsDropdownProps> = ({ addOrgsButt
 
   useEffect(() => {
     if (onAddOrgFromExternalSource && onAddOrgFromExternalSource.org) {
-      handleAddOrg(onAddOrgFromExternalSource.org, onAddOrgFromExternalSource.replaceOrgUniqueId);
+      handleAddOrg(
+        onAddOrgFromExternalSource.org,
+        onAddOrgFromExternalSource.switchActiveOrg,
+        onAddOrgFromExternalSource.replaceOrgUniqueId
+      );
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [onAddOrgFromExternalSource]);
@@ -44,13 +48,15 @@ export const OrgsDropdown: FunctionComponent<OrgsDropdownProps> = ({ addOrgsButt
    * @param org Org to add
    * @param replaceOrgUniqueId Id of org that should be removed from list. Only applicable to fixing org where Id ends up being different
    */
-  function handleAddOrg(org: SalesforceOrgUi, replaceOrgUniqueId?: string) {
+  function handleAddOrg(org: SalesforceOrgUi, switchActiveOrg: boolean, replaceOrgUniqueId?: string) {
     const sortedOrgs = uniqBy(
       orderBy([org, ...orgs.filter((org) => (replaceOrgUniqueId ? org.uniqueId !== replaceOrgUniqueId : true))], 'username'),
       'uniqueId'
     );
     setOrgs(sortedOrgs);
-    setSelectedOrgId(org.uniqueId);
+    if (switchActiveOrg) {
+      setSelectedOrgId(org.uniqueId);
+    }
   }
 
   async function handleRemoveOrg(org: SalesforceOrgUi) {

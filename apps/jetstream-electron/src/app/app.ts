@@ -1,9 +1,21 @@
-import { BrowserWindow, ipcMain, MessageChannelMain, screen, session, shell } from 'electron';
+import {
+  BrowserWindow,
+  BrowserWindowConstructorOptions,
+  dialog,
+  Event,
+  HandlerDetails,
+  ipcMain,
+  MessageChannelMain,
+  screen,
+  session,
+  shell,
+} from 'electron';
 import { join, resolve } from 'path';
 import { URL } from 'url';
 import { environment } from '../environments/environment';
 import { exchangeCodeForToken, getRedirectUrl } from './api/oauth';
 import { rendererAppName, rendererAppPort, workerAppName } from './constants';
+import * as querystring from 'querystring';
 
 // TODO: move to constants
 const isMac = process.platform === 'darwin';
@@ -28,26 +40,39 @@ export default class App {
     return isEnvironmentSet ? getFromEnvironment : !environment.production;
   }
 
+  public static isDevelopmentOrDebug() {
+    return this.isDevelopmentMode() || !!process.env.ELECTRON_ENABLE_LOGGING;
+  }
+
   private static onWindowAllClosed() {
     if (isMac) {
       App.application.quit();
     }
   }
 
-  // private static onClose() {
-  //   // Dereference the window object, usually you would store windows
-  //   // in an array if your app supports multi windows, this is the time
-  //   // when you should delete the corresponding element.
-  //   App.mainWindow = null;
-  // }
+  // TODO: might need to adjust to support windows
+  private static handleProtocolLinks() {
+    App.application.on('open-url', async (event, url) => {
+      console.log('PROTOCOL LINK', url);
+      const _url = new URL(url);
+      // finish oauth flow
+      if (_url.pathname.includes('oauth/sfdc/callback')) {
+        try {
+          event.preventDefault();
+          const windowId = Number(querystring.parse(_url.searchParams.get('state')).windowId);
+          const org = await exchangeCodeForToken('jetstream', _url.searchParams);
 
-  // private static onRedirect(event: any, url: string) {
-  //   if (url !== App.mainWindow.webContents.getURL()) {
-  //     // this is a normal external redirect, open it in a new browser window
-  //     event.preventDefault();
-  //     shell.openExternal(url);
-  //   }
-  // }
+          BrowserWindow.getAllWindows().forEach((window) => {
+            const switchActiveOrg = window.id === windowId;
+            window.webContents.send('org-added', org, switchActiveOrg);
+          });
+        } catch (ex) {
+          console.warn(ex.message);
+          dialog.showErrorBox('Salesforce Authorization', `There was a problem authorizing with Salesforce`);
+        }
+      }
+    });
+  }
 
   private static async onReady() {
     // This method will be called when Electron has finished
@@ -71,32 +96,7 @@ export default class App {
           console.log('REQUEST INTERCEPTED', details.method, details.url);
           const url = new URL(details.url);
 
-          if (url.pathname === '/oauth/sfdc/auth') {
-            const redirectURL = getRedirectUrl(url.searchParams.get('loginUrl'), url.searchParams.get('replaceOrgUniqueId'));
-            console.log('[REDIRECT]', redirectURL);
-            callback({ cancel: false, redirectURL });
-            return;
-          } else if (url.pathname === '/oauth/sfdc/callback') {
-            /**
-             * get org
-             * emit to renderer
-             * close the window used for auth (how do we know which one?)
-             *
-             * TODO: handle errors
-             */
-            const org = await exchangeCodeForToken(url.searchParams);
-
-            callback({ cancel: true });
-
-            BrowserWindow.getAllWindows().forEach((window) => {
-              if (window.webContents.id === details.webContentsId) {
-                window.close();
-              } else {
-                window.webContents.send('org-added', org);
-              }
-            });
-            return;
-          } else if (url.pathname === '/static/sfdc/login') {
+          if (url.pathname === '/static/sfdc/login') {
             App.backgroundWindow.webContents.send('sfdc-frontdoor-login', {
               orgId: url.searchParams.get('X-SFDC-ID'),
               returnUrl: url.searchParams.get('returnUrl'),
@@ -115,7 +115,7 @@ export default class App {
       callback({ requestHeaders: details.requestHeaders });
     });
 
-    // TODO: main thread needs to talk to all threads
+    // TODO: if background process is killed, need to re-establish everything
     // for example, adding a salesforce org opens a second window - and results need to go to both places
     ipcMain.on('request-worker-channel', (event) => {
       console.log('request-worker-channel received');
@@ -159,7 +159,6 @@ export default class App {
       titleBarOverlay: true,
       webPreferences: {
         contextIsolation: true,
-        // nodeIntegration: true,
         backgroundThrottling: false,
         preload: join(__dirname, 'main.preload.js'),
       },
@@ -170,37 +169,6 @@ export default class App {
     window.setMenu(null);
 
     window.once('ready-to-show', () => window.show());
-    window.on('closed', () => App.windows.filter((win) => win !== window));
-
-    window.webContents.setWindowOpenHandler(({ url }) => {
-      console.log('window open url', url);
-      if (url.startsWith('https://docs.getjetstream.app')) {
-        shell.openExternal(url);
-        return { action: 'deny' };
-      }
-
-      if (url.startsWith('http://localhost/static')) {
-        const _url = new URL(url);
-        App.backgroundWindow.webContents.send('sfdc-frontdoor-login', {
-          orgId: _url.searchParams.get('X-SFDC-ID'),
-          returnUrl: _url.searchParams.get('returnUrl'),
-        });
-
-        return { action: 'deny' };
-      }
-
-      if (url.startsWith('file://') || url.startsWith('http://localhost')) {
-        return {
-          action: 'allow',
-          overrideBrowserWindowOptions: {
-            ...windowConfig,
-            show: true,
-          },
-        };
-      }
-
-      return { action: 'allow' };
-    });
 
     if (!App.application.isPackaged) {
       window.loadURL(`http://localhost:${rendererAppPort}/app`);
@@ -208,9 +176,6 @@ export default class App {
       const url = new URL(join(__dirname, '..', rendererAppName, 'index.html'), 'file:');
       window.loadURL(url.toString());
     }
-
-    // TODO: only under debug condition
-    window.webContents.openDevTools();
 
     // window.webContents.on('did-finish-load', () => {
     //   //
@@ -231,7 +196,7 @@ export default class App {
       y: 500,
       width: 700,
       height: 500,
-      show: true, // TODO: hide in production but allow debug flag to show
+      show: App.isDevelopmentOrDebug(),
       webPreferences: {
         nodeIntegration: true,
         devTools: true,
@@ -243,12 +208,107 @@ export default class App {
     const url = new URL(join(__dirname, '..', workerAppName, 'assets', 'index.html'), 'file:');
     App.backgroundWindow.loadURL(url.toString());
 
-    // TODO: only for dev
-    App.backgroundWindow.webContents.openDevTools();
-
     App.backgroundWindow.on('closed', () => {
       App.backgroundWindow = null;
     });
+  }
+
+  private static handleNewWindow(event: Event, window: BrowserWindow) {
+    if (App.isDevelopmentOrDebug()) {
+      window.webContents.openDevTools();
+    }
+
+    if (window === App.backgroundWindow) {
+      return;
+    }
+
+    App.windows.push(window);
+
+    const workAreaSize = screen.getPrimaryDisplay().workAreaSize;
+    const width = Math.max(1000, Math.min(1280, workAreaSize.width || 1280));
+    const height = Math.max(720, workAreaSize.height || 720);
+
+    const windowConfig: Electron.BrowserWindowConstructorOptions = {
+      width: width,
+      height: height,
+      minWidth: 1000,
+      titleBarStyle: 'hidden',
+      titleBarOverlay: true,
+      webPreferences: {
+        contextIsolation: true,
+        backgroundThrottling: false,
+        preload: join(__dirname, 'main.preload.js'),
+      },
+    };
+
+    // May want to do this: (maybe even detect if window was not shown)
+    // window.once('ready-to-show', () => window.show());
+
+    window.webContents.setWindowOpenHandler(App.handleWindowOpen(windowConfig, window.id));
+
+    window.on('closed', () => App.windows.filter((win) => win !== window));
+  }
+
+  /**
+   * Makes sure that new windows have the correct style
+   * Also intercepts certain requests and takes alternative action
+   * * oauth with salesforce - open browser
+   * * External link - open in browser
+   * * Salesforce login - open in browser via background window
+   */
+  private static handleWindowOpen(windowConfig: Electron.BrowserWindowConstructorOptions, windowId: number) {
+    return ({
+      url,
+      frameName,
+    }: HandlerDetails): { action: 'deny' } | { action: 'allow'; overrideBrowserWindowOptions?: BrowserWindowConstructorOptions } => {
+      console.log('window open url', url);
+
+      const _url = new URL(url);
+
+      if (url.startsWith('https://docs.getjetstream.app')) {
+        shell.openExternal(url);
+        return { action: 'deny' };
+      }
+
+      if (url.startsWith('https://docs.getjetstream.app')) {
+        shell.openExternal(url);
+        return { action: 'deny' };
+      }
+
+      if (url.startsWith('http://localhost/static')) {
+        const _url = new URL(url);
+        App.backgroundWindow.webContents.send('sfdc-frontdoor-login', {
+          orgId: _url.searchParams.get('X-SFDC-ID'),
+          returnUrl: _url.searchParams.get('returnUrl'),
+        });
+
+        return { action: 'deny' };
+      }
+
+      if (_url.pathname === '/oauth/sfdc/auth') {
+        const redirectURL = getRedirectUrl(
+          windowId,
+          'jetstream',
+          _url.searchParams.get('loginUrl'),
+          _url.searchParams.get('replaceOrgUniqueId')
+        );
+        console.log('[REDIRECT][SHELL]', redirectURL);
+        shell.openExternal(redirectURL);
+        return { action: 'deny' };
+      }
+
+      if (url.startsWith('file://') || url.startsWith('http://localhost')) {
+        return {
+          action: 'allow',
+          overrideBrowserWindowOptions: {
+            ...windowConfig,
+            show: true,
+          },
+        };
+      }
+
+      return { action: 'allow' };
+    };
   }
 
   static async main(app: Electron.App) {
@@ -263,15 +323,11 @@ export default class App {
       app.setAsDefaultProtocolClient('jetstream');
     }
 
+    App.handleProtocolLinks();
+
     App.application.on('window-all-closed', App.onWindowAllClosed); // Quit when all windows are closed.
     App.application.on('ready', App.onReady); // App is ready to load data
     App.application.on('activate', App.onActivate); // App is activated
-    // ensure server process is killed
-    // App.application.on('before-quit', () => {
-    //   if (App.serverProcess) {
-    //     App.serverProcess.kill();
-    //     App.serverProcess = null;
-    //   }
-    // });
+    App.application.on('browser-window-created', App.handleNewWindow); // App is activated
   }
 }

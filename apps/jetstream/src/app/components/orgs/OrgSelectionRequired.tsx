@@ -16,8 +16,8 @@ export const OrgSelectionRequired: FunctionComponent<OrgSelectionRequiredProps> 
   const selectedOrg = useRecoilValue<SalesforceOrgUi>(fromAppState.selectedOrgState);
   const hasConfiguredOrg = useRecoilValue<boolean>(fromAppState.hasConfiguredOrgState);
 
-  function handleAddOrg(org: SalesforceOrgUi) {
-    fromJetstreamEvents.emit({ type: 'addOrg', payload: { org } });
+  function handleAddOrg(org: SalesforceOrgUi, switchActiveOrg: boolean) {
+    fromJetstreamEvents.emit({ type: 'addOrg', payload: { org, switchActiveOrg } });
   }
 
   return (

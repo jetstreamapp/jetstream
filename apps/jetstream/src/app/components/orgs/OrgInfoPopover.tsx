@@ -44,7 +44,7 @@ export interface OrgInfoPopoverProps {
   org: SalesforceOrgUi;
   loading?: boolean;
   disableOrgActions?: boolean;
-  onAddOrg: (org: SalesforceOrgUi, replaceOrgUniqueId?: string) => void;
+  onAddOrg: (org: SalesforceOrgUi, switchActiveOrg: boolean, replaceOrgUniqueId?: string) => void;
   onRemoveOrg: (org: SalesforceOrgUi) => void;
   onUpdateOrg: (org: SalesforceOrgUi, updatedOrg: Partial<SalesforceOrgUi>) => void;
 }
@@ -124,7 +124,7 @@ export const OrgInfoPopover: FunctionComponent<OrgInfoPopoverProps> = ({
         if (addedOrg.uniqueId !== org.uniqueId) {
           replaceOrgUniqueId = org.uniqueId;
         }
-        onAddOrg(addedOrg, replaceOrgUniqueId);
+        onAddOrg(addedOrg, true, replaceOrgUniqueId);
       }
     );
   }

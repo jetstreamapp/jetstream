@@ -26,7 +26,7 @@ export interface AddOrgProps {
   className?: string;
   label?: string;
   disabled?: boolean;
-  onAddOrg: (org: SalesforceOrgUi) => void;
+  onAddOrg: (org: SalesforceOrgUi, switchActiveOrg: boolean) => void;
 }
 
 export const AddOrg: FunctionComponent<AddOrgProps> = ({ className, label = 'Add Org', disabled, onAddOrg }) => {
@@ -47,14 +47,14 @@ export const AddOrg: FunctionComponent<AddOrgProps> = ({ className, label = 'Add
 
   useEffect(() => {
     if (window.electron?.onOrgAdded) {
-      window.electron.onOrgAdded((_event, org) => onAddOrg(org));
+      window.electron.onOrgAdded((_event, org, switchActiveOrg) => onAddOrg(org, switchActiveOrg));
     }
   }, [onAddOrg]);
 
   // FIXME: we should have a way to know what org was being "fixed" and always replace it in the DB and here
   function handleAddOrg() {
     addOrg({ serverUrl: applicationState.serverUrl, loginUrl }, (addedOrg: SalesforceOrgUi) => {
-      onAddOrg(addedOrg);
+      onAddOrg(addedOrg, true);
     });
   }
 

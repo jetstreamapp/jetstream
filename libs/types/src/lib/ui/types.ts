@@ -398,6 +398,7 @@ export type JetstreamEventType = 'newJob' | 'jobFinished' | 'lastActivityUpdate'
 export type JetstreamEvents = JetstreamEventJobFinished | JetstreamEventLastActivityUpdate | JetstreamEventNewJob | JetstreamEventAddOrg;
 export interface JetstreamEventAddOrgPayload {
   org: SalesforceOrgUi;
+  switchActiveOrg: boolean;
   replaceOrgUniqueId?: string;
 }
 export type JetstreamEventPayloads = AsyncJob | AsyncJobNew[] | JetstreamEventAddOrgPayload;
