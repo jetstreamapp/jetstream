@@ -11,11 +11,12 @@ import {
   shell,
 } from 'electron';
 import { join, resolve } from 'path';
+import * as querystring from 'querystring';
 import { URL } from 'url';
 import { environment } from '../environments/environment';
 import { exchangeCodeForToken, getRedirectUrl } from './api/oauth';
-import { rendererAppName, rendererAppPort, workerAppName } from './constants';
-import * as querystring from 'querystring';
+import { electronAppName, rendererAppName, rendererAppPort, workerAppName } from './constants';
+import ElectronEvents from './events/electron.events';
 
 // TODO: move to constants
 const isMac = process.platform === 'darwin';
@@ -28,9 +29,11 @@ export default class App {
   // Keep a global reference of the window object, if you don't, the window will
   // be closed automatically when the JavaScript object is garbage collected.
   // static mainWindow: Electron.BrowserWindow;
-  static windows: Electron.BrowserWindow[] = [];
+  static windows: Set<Electron.BrowserWindow> = new Set();
   static backgroundWindow: Electron.BrowserWindow;
+  static splashWindow: Electron.BrowserWindow;
   static application: Electron.App;
+  static userDataPath: string;
   static tray: Electron.Tray;
 
   public static isDevelopmentMode() {
@@ -79,15 +82,42 @@ export default class App {
     // initialization and is ready to create browser windows.
     // Some APIs can only be used after this event occurs.
 
+    App.splashWindow = new BrowserWindow({
+      width: 400,
+      height: 220,
+      center: true,
+      transparent: true,
+      frame: false,
+      alwaysOnTop: true,
+      webPreferences: { devTools: false, contextIsolation: true, sandbox: true },
+    });
+    App.splashWindow.loadURL(new URL(join(__dirname, '..', electronAppName, 'assets/splash.html'), 'file:').toString());
+    App.splashWindow.on('close', () => {
+      console.log('[RENDER][WORKER] closed');
+      App.splashWindow = null;
+    });
+
+    ElectronEvents.initOrgEvents();
+
     App.initBackgroundWindow();
 
-    // App.initMainWindow();
-    // App.loadMainWindow();
+    ElectronEvents.initRequestWorkerChannelEvents(App.backgroundWindow);
+
     App.createWindow();
 
     /**
      * Handle oauth with Salesforce
      */
+    // TODO: set CSP - https://www.electronjs.org/docs/latest/tutorial/security#7-define-a-content-security-policy
+    //  session.defaultSession.webRequest.onHeadersReceived((details, callback) => {
+    //   callback({
+    //     responseHeaders: {
+    //       ...details.responseHeaders,
+    //       'Content-Security-Policy': ['default-src \'none\'']
+    //     }
+    //   })
+    // })
+
     session.defaultSession.webRequest.onBeforeRequest(
       { urls: ['http://localhost/*', 'https://localhost/*'] },
       async (details, callback) => {
@@ -114,72 +144,59 @@ export default class App {
       details.requestHeaders['Service-Worker-Allowed'] = '/electron-assets/download-zip-sw';
       callback({ requestHeaders: details.requestHeaders });
     });
-
-    // TODO: if background process is killed, need to re-establish everything
-    // for example, adding a salesforce org opens a second window - and results need to go to both places
-    ipcMain.on('request-worker-channel', (event) => {
-      console.log('request-worker-channel received');
-      // For security reasons, let's make sure only the frames we expect can
-      // access the worker.
-      if (event.senderFrame !== App.backgroundWindow.webContents.mainFrame) {
-        // Create a new channel ...
-        const { port1, port2 } = new MessageChannelMain();
-        const { port1: loadWorkerPort1, port2: loadWorkerPort2 } = new MessageChannelMain();
-        const { port1: queryWorkerPort1, port2: queryWorkerPort2 } = new MessageChannelMain();
-        const { port1: jobsWorkerPort1, port2: jobsWorkerPort2 } = new MessageChannelMain();
-        // ... send one end to the worker ...
-        App.backgroundWindow.webContents.postMessage('new-client', null, [port1, loadWorkerPort1, queryWorkerPort1, jobsWorkerPort1]);
-        // ... and the other end to the main window.
-        event.senderFrame.postMessage('provide-worker-channel', null, [port2, loadWorkerPort2, queryWorkerPort2, jobsWorkerPort2]);
-      }
-    });
-
-    ipcMain.on('sfdc-frontdoor-login', (event, url) => shell.openExternal(url));
   }
 
   private static onActivate() {
     // On macOS it's common to re-create a window in the app when the
     // dock icon is clicked and there are no other windows open.
-    if (!App.windows.length) {
+    if (!App.windows.size) {
       App.createWindow();
     }
   }
 
-  public static createWindow(showImmediately = false) {
+  public static createWindow(showImmediately = false, urlHash?: string) {
     const workAreaSize = screen.getPrimaryDisplay().workAreaSize;
-    const width = Math.max(1000, Math.min(1280, workAreaSize.width || 1280));
-    const height = Math.min(720, workAreaSize.height || 720);
+    let width = Math.max(1200, workAreaSize.width || 1200);
+    let height = Math.max(720, workAreaSize.height || 720);
+
+    const currentWindow = BrowserWindow.getFocusedWindow();
+    if (currentWindow && !currentWindow.isFullScreen()) {
+      const bounds = currentWindow.getBounds();
+      width = bounds.width + 24;
+      height = bounds.height + 24;
+    }
 
     const windowConfig: Electron.BrowserWindowConstructorOptions = {
-      width: width,
-      height: height,
+      width,
+      height,
       minWidth: 1000,
       show: showImmediately,
       titleBarStyle: 'hidden',
       titleBarOverlay: true,
+      fullscreenable: false,
+      fullscreen: true,
       webPreferences: {
         contextIsolation: true,
         backgroundThrottling: false,
+        enableBlinkFeatures: '',
+        // sandbox: true, // TODO:
         preload: join(__dirname, 'main.preload.js'),
       },
     };
 
     const window = new BrowserWindow(windowConfig);
-    App.windows.push(window);
-    window.setMenu(null);
 
-    window.once('ready-to-show', () => window.show());
+    window.once('ready-to-show', () => {
+      App.splashWindow.destroy();
+      window.show();
+    });
 
     if (!App.application.isPackaged) {
-      window.loadURL(`http://localhost:${rendererAppPort}/app`);
+      window.loadURL(`http://localhost:${rendererAppPort}/app${urlHash ? urlHash : ''}`);
     } else {
-      const url = new URL(join(__dirname, '..', rendererAppName, 'index.html'), 'file:');
+      const url = new URL(join(__dirname, '..', rendererAppName, `index.html${urlHash ? urlHash : ''}`), 'file:');
       window.loadURL(url.toString());
     }
-
-    // window.webContents.on('did-finish-load', () => {
-    //   //
-    // });
 
     return window;
   }
@@ -195,12 +212,12 @@ export default class App {
       x: 500,
       y: 500,
       width: 700,
-      height: 500,
+      height: 400,
       show: App.isDevelopmentOrDebug(),
       webPreferences: {
         nodeIntegration: true,
         devTools: true,
-        // maybe todo?
+        backgroundThrottling: false,
         contextIsolation: false,
       },
     });
@@ -209,44 +226,49 @@ export default class App {
     App.backgroundWindow.loadURL(url.toString());
 
     App.backgroundWindow.on('closed', () => {
+      console.log('[RENDER][WORKER] closed');
       App.backgroundWindow = null;
     });
   }
 
   private static handleNewWindow(event: Event, window: BrowserWindow) {
+    // Splash window is handled individually
+    if (window === App.splashWindow) {
+      return;
+    }
+
     if (App.isDevelopmentOrDebug()) {
       window.webContents.openDevTools();
     }
 
+    // BG window is handled individualy
     if (window === App.backgroundWindow) {
       return;
     }
 
-    App.windows.push(window);
+    App.windows.add(window);
 
-    const workAreaSize = screen.getPrimaryDisplay().workAreaSize;
-    const width = Math.max(1000, Math.min(1280, workAreaSize.width || 1280));
-    const height = Math.max(720, workAreaSize.height || 720);
+    window.webContents.setWindowOpenHandler(App.handleWindowOpen(window.id));
 
-    const windowConfig: Electron.BrowserWindowConstructorOptions = {
-      width: width,
-      height: height,
-      minWidth: 1000,
-      titleBarStyle: 'hidden',
-      titleBarOverlay: true,
-      webPreferences: {
-        contextIsolation: true,
-        backgroundThrottling: false,
-        preload: join(__dirname, 'main.preload.js'),
-      },
-    };
+    window.webContents.once('did-finish-load', () => {
+      window.show();
+      window.focus();
+    });
 
-    // May want to do this: (maybe even detect if window was not shown)
-    // window.once('ready-to-show', () => window.show());
+    window.on('focus', () => {
+      window.webContents.send('focused', true);
+    });
 
-    window.webContents.setWindowOpenHandler(App.handleWindowOpen(windowConfig, window.id));
+    window.on('blur', () => {
+      if (!window.isDestroyed()) {
+        window.webContents.send('focused', false);
+      }
+    });
 
-    window.on('closed', () => App.windows.filter((win) => win !== window));
+    window.on('closed', () => {
+      console.log('[RENDER][MAIN] closed');
+      App.windows.delete(window);
+    });
   }
 
   /**
@@ -256,7 +278,7 @@ export default class App {
    * * External link - open in browser
    * * Salesforce login - open in browser via background window
    */
-  private static handleWindowOpen(windowConfig: Electron.BrowserWindowConstructorOptions, windowId: number) {
+  private static handleWindowOpen(windowId: number) {
     return ({
       url,
       frameName,
@@ -297,14 +319,11 @@ export default class App {
         return { action: 'deny' };
       }
 
-      if (url.startsWith('file://') || url.startsWith('http://localhost')) {
-        return {
-          action: 'allow',
-          overrideBrowserWindowOptions: {
-            ...windowConfig,
-            show: true,
-          },
-        };
+      // For some reason, allowing a normal url to open caused the new window app to crash
+      if ((url.startsWith('file://') || url.startsWith('http://localhost')) && _url.pathname === '/app') {
+        console.log('New app window', _url.hash);
+        App.createWindow(true, _url.hash);
+        return { action: 'deny' };
       }
 
       return { action: 'allow' };
@@ -313,6 +332,8 @@ export default class App {
 
   static async main(app: Electron.App) {
     App.application = app;
+    App.userDataPath = app.getPath('userData');
+    // App.application = app.getPath('downloads');
 
     // Register "jetstream://" protocol for opening links
     if (process.defaultApp) {
@@ -329,5 +350,11 @@ export default class App {
     App.application.on('ready', App.onReady); // App is ready to load data
     App.application.on('activate', App.onActivate); // App is activated
     App.application.on('browser-window-created', App.handleNewWindow); // App is activated
+    App.application.on('render-process-gone', (event, webContents, { exitCode, reason }) => {
+      console.log('render-process-gone', exitCode, reason);
+    });
+    App.application.on('child-process-gone', (event, { exitCode, reason, type, name, serviceName }) => {
+      console.log('child-process-gone', exitCode, reason, type, name, serviceName);
+    });
   }
 }

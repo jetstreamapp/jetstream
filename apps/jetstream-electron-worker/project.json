@@ -10,14 +10,15 @@
         "main": "apps/jetstream-electron-worker/src/main.ts",
         "tsConfig": "apps/jetstream-electron-worker/tsconfig.app.json",
         "assets": ["apps/jetstream-electron-worker/src/assets"],
+        "generatePackageJson": true,
         "webpackConfig": "webpack.config.js"
       },
       "configurations": {
         "production": {
-          "optimization": false,
+          "optimization": true,
           "extractLicenses": false,
-          "outputHashing": "all",
-          "sourceMap": false,
+          "outputHashing": "none",
+          "sourceMap": true,
           "inspect": false,
           "fileReplacements": [
             {

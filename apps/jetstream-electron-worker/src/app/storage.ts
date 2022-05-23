@@ -1,3 +1,4 @@
+import { ipcRenderer } from 'electron';
 import localforage from 'localforage';
 import { SalesforceOrgElectron } from './types';
 
@@ -6,11 +7,24 @@ const KEYS = {
   user: 'USER',
 };
 
+const orgsPromise = (async () => {
+  initOrgs(await ipcRenderer.invoke('init-orgs'));
+})();
+
+let ORGS: SalesforceOrgElectron[] = [];
+
+export function initOrgs(orgs: SalesforceOrgElectron[]) {
+  ORGS = orgs;
+}
+
 /**
  * ORGS
  */
 export async function getOrgs() {
-  return (await localforage.getItem<SalesforceOrgElectron[]>(KEYS.orgs)) || [];
+  // console.log(localforage);
+  // return (await localforage.getItem<SalesforceOrgElectron[]>(KEYS.orgs)) || [];
+  await orgsPromise;
+  return ORGS;
 }
 
 export async function getOrg(uniqueId: string) {
@@ -26,17 +40,24 @@ export async function updateOrg(uniqueId: string, org: Partial<SalesforceOrgElec
     }
     return currOrg;
   });
-  await localforage.setItem<SalesforceOrgElectron[]>(KEYS.orgs, orgs);
+  // await localforage.setItem<SalesforceOrgElectron[]>(KEYS.orgs, orgs);
+  await ipcRenderer.invoke('set-orgs', orgs);
+  ORGS = orgs;
   return updatedOrg;
 }
 
 export async function saveOrg(org: SalesforceOrgElectron) {
   const orgs = (await getOrgs()).filter((currOrg) => currOrg.uniqueId !== org.uniqueId);
   orgs.push(org);
-  return await localforage.setItem<SalesforceOrgElectron[]>(KEYS.orgs, orgs);
+  // return await localforage.setItem<SalesforceOrgElectron[]>(KEYS.orgs, orgs);
+  await ipcRenderer.invoke('set-orgs', orgs);
+  ORGS = orgs;
+  return orgs;
 }
 
 export async function deleteOrg(uniqueId: string) {
   const orgs = (await getOrgs()).filter((currOrg) => currOrg.uniqueId !== uniqueId);
   await localforage.setItem<SalesforceOrgElectron[]>(KEYS.orgs, orgs);
+  await ipcRenderer.invoke('set-orgs', orgs);
+  ORGS = orgs;
 }

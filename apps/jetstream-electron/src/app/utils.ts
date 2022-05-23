@@ -1,32 +1,17 @@
-import ipc from 'node-ipc';
-import { rendererAppName } from './constants';
+import Rollbar from 'rollbar';
+import { environment } from '../environments/environment';
 
-// ipc.config.silent = true;
+export let rollbar: Rollbar;
 
-function isSocketTaken(name: string) {
-  return new Promise((resolve, reject) => {
-    ipc.connectTo(name, () => {
-      ipc.of[name].on('error', () => {
-        ipc.disconnect(name);
-        resolve(false);
-      });
-
-      ipc.of[name].on('connect', () => {
-        ipc.disconnect(name);
-        resolve(true);
-      });
-    });
+export function initRollbar() {
+  rollbar = Rollbar.init({
+    accessToken: environment.rollbarClientAccessToken,
+    environment: environment.production ? 'development' : 'production',
+    captureUncaught: true,
+    captureUnhandledRejections: true,
+    payload: {
+      platform: 'client',
+      code_version: environment.version,
+    },
   });
-}
-
-export async function findOpenSocket() {
-  let currentSocket = 1;
-  console.log('checking for available socket', currentSocket);
-  let socketName = `${rendererAppName}${currentSocket}`;
-  while (await isSocketTaken(socketName)) {
-    currentSocket++;
-    socketName = `${rendererAppName}${currentSocket}`;
-  }
-  console.log('found available socket', socketName);
-  return socketName;
 }

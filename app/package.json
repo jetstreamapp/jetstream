@@ -1,0 +1,27 @@
+{
+  "name": "jetstream",
+  "description": "The Jetstream platform makes managing your Salesforce instances a breeze. Use Jetstream to work with your data and metadata to get your work done faster.",
+  "author": "Jetstream",
+  "version": "0.0.0",
+  "license": "PRIVATE",
+  "engines": {
+    "node": ">=16 <17"
+  },
+  "private": true,
+  "dependencies": {
+    "axios": "^0.21.4",
+    "date-fns": "^2.16.1",
+    "find-my-way": "^4.3.3",
+    "jsforce": "^1.9.3",
+    "jszip": "^3.5.0",
+    "localforage": "^1.9.0",
+    "lodash": "^4.17.15",
+    "papaparse": "^5.2.0",
+    "rollbar": "^2.21.0",
+    "soql-parser-js": "^4.4.0",
+    "superagent": "^5.2.2",
+    "tslib": "^2.4.0",
+    "xlsx": "^0.17.4",
+    "xmlbuilder2": "^2.4.0"
+  }
+}

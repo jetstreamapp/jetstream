@@ -4,7 +4,7 @@ import UpdateEvents from './app/events/update.events';
 import { app, BrowserWindow } from 'electron';
 import App from './app/app';
 import { initMenus } from './app/menu';
-
+import { initRollbar } from './app/utils';
 export default class Main {
   static initialize() {
     if (SquirrelEvents.handleEvents()) {
@@ -27,6 +27,8 @@ export default class Main {
     }
   }
 }
+
+initRollbar();
 
 // handle setup events as quickly as possible
 Main.initialize();

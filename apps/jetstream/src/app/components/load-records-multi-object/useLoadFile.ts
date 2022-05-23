@@ -123,7 +123,7 @@ function getNotification(dataToProcess: LoadMultiObjectRequestWithResult[]) {
 }
 
 export const useLoadFile = (org: SalesforceOrgUi, serverUrl: string, apiVersion: string) => {
-  const { notifyUser } = useBrowserNotifications(serverUrl);
+  const { notifyUser } = useBrowserNotifications(serverUrl, window.electron?.isFocused);
   const [{ loading, dataArray: data, finished }, dispatch] = useReducer(reducer, {
     loading: false,
     data: null,

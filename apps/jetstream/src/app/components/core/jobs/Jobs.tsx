@@ -49,7 +49,7 @@ export const Jobs: FunctionComponent = () => {
   const [jobs, setJobsArr] = useRecoilState(selectJobs);
   const activeJobCount = useRecoilValue(selectActiveJobCount);
   const newJobsToProcess = useObservable(fromJetstreamEvents.getObservable('newJob').pipe(filter((ev: AsyncJobNew[]) => ev.length > 0)));
-  const { notifyUser } = useBrowserNotifications(serverUrl);
+  const { notifyUser } = useBrowserNotifications(serverUrl, window.electron?.isFocused);
 
   useEffect(() => {
     if (!!jobsWorker && newJobsToProcess && newJobsToProcess.length > 0) {

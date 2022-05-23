@@ -56,6 +56,7 @@ function initTaskbarMenu(app: Electron.App): Electron.Menu {
         // {role: 'window'},
         {
           label: 'New Window',
+          accelerator: 'CommandOrControl+Shift+N',
           click: () => {
             App.createWindow(true);
           },

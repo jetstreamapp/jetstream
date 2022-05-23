@@ -6,9 +6,11 @@ export const OrgPersistence: FunctionComponent = () => {
   const [selectedOrgId] = useRecoilState<string>(selectedOrgIdState);
 
   useEffect(() => {
-    const orgId = btoa(selectedOrgId);
-    sessionStorage.setItem(STORAGE_KEYS.SELECTED_ORG_STORAGE_KEY, orgId);
-    localStorage.setItem(STORAGE_KEYS.SELECTED_ORG_STORAGE_KEY, orgId);
+    if (selectedOrgId) {
+      const orgId = btoa(selectedOrgId);
+      sessionStorage.setItem(STORAGE_KEYS.SELECTED_ORG_STORAGE_KEY, orgId);
+      localStorage.setItem(STORAGE_KEYS.SELECTED_ORG_STORAGE_KEY, orgId);
+    }
   }, [selectedOrgId]);
 
   return <Fragment />;

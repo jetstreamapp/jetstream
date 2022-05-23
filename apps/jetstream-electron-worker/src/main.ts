@@ -49,6 +49,7 @@ const handleMessage = (port: MessagePort) => async (event) => {
       result: { data: response },
     });
   } catch (_error) {
+    console.warn('[RES][ERROR]', _error);
     let error = _error;
     if (isString(error)) {
       error = new Error(error);

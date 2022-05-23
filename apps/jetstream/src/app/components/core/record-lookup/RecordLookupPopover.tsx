@@ -39,8 +39,10 @@ export const RecordLookupPopover: FunctionComponent = () => {
   const getRecentRecords = useCallback(async () => {
     setRecordId('');
     try {
-      const recentItems = (await localforage.getItem<RecentRecordMap>(INDEXED_DB.KEYS.userPreferences)) || {};
-      setRecentRecords(recentItems[selectedOrg.uniqueId] || []);
+      if (selectedOrg?.uniqueId) {
+        const recentItems = (await localforage.getItem<RecentRecordMap>(INDEXED_DB.KEYS.userPreferences)) || {};
+        setRecentRecords(recentItems[selectedOrg.uniqueId] || []);
+      }
     } catch (ex) {
       logger.warn('[ERROR] Could not get recent record history', ex);
     }

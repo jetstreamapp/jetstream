@@ -42,7 +42,8 @@ export function useAmplitude() {
         .set('feature-flags', userProfile['http://getjetstream.app/app_metadata']?.featureFlags)
         .set('environment', appCookie.environment)
         .set('denied-notifications', userPreferences.deniedNotifications)
-        .add('app-init-count', 1);
+        .add('app-init-count', 1)
+        .add('application-type', window.electron?.platform || 'web');
 
       amplitude.getInstance().identify(identify);
       amplitude.getInstance().setUserId(userProfile.email);

@@ -11,7 +11,7 @@ const ICON_URL = '/assets/images/jetstream-icon-white-bg.png';
  * @param serverUrl
  * @returns
  */
-export function useBrowserNotifications(serverUrl: string) {
+export function useBrowserNotifications(serverUrl: string, isFocused?: () => boolean) {
   const notification = useRef<Notification>();
 
   const visibilitychange = useCallback((event: Event) => {
@@ -34,18 +34,21 @@ export function useBrowserNotifications(serverUrl: string) {
    * @param {string} body Body of notification
    * @param {string} tag Optional, used to optionally replace existing unread notification with new notification
    */
-  const notifyUser = useCallback((title: string, options?: NotificationOptions) => {
-    options = options || {};
-    options.icon = `${serverUrl}${ICON_URL}`;
-    options.badge = `${serverUrl}${ICON_URL}`;
+  const notifyUser = useCallback(
+    async (title: string, options?: NotificationOptions) => {
+      options = options || {};
+      options.icon = `${serverUrl}${ICON_URL}`;
+      options.badge = `${serverUrl}${ICON_URL}`;
 
-    logger.info('[NOTIFICATION]', options);
-    if (window.Notification && Notification.permission === 'granted' && document.hidden) {
-      notification.current = new Notification(title, options);
-      notification.current.onclick = (event: Event) => window.focus();
-      notification.current.onerror = (event: Event) => logger.info('[NOTIFICATION][ERROR]', event);
-    }
-  }, []);
+      logger.info('[NOTIFICATION]', options);
+      if (window.Notification && Notification.permission === 'granted' && (document.hidden || (isFocused && !isFocused()))) {
+        notification.current = new Notification(title, options);
+        notification.current.onclick = (event: Event) => window.focus();
+        notification.current.onerror = (event: Event) => logger.info('[NOTIFICATION][ERROR]', event);
+      }
+    },
+    [serverUrl, isFocused]
+  );
 
   useGlobalEventHandler('visibilitychange', visibilitychange, false);
   useGlobalEventHandler('unload', handleUnload, false);

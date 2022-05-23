@@ -1,7 +1,10 @@
 {
   "$schema": "../../../../../node_modules/nx-electron/src/validation/maker.schema.json",
-  "appId": "app.getjetstream",
+  "appId": "app.get.jetstream",
   "productName": "Jetstream",
+  "copyright": "©Jetstream",
+  "compression": "store",
+  "npmRebuild": false,
   "buildDependenciesFromSource": false,
   "protocols": [
     {
@@ -9,6 +12,7 @@
       "schemes": ["jetstream"]
     }
   ],
+  "icon": null,
   "files": [
     {
       "from": "/Users/austinturner/dev/node/jetstream/dist/apps/jetstream-electron-worker",
@@ -16,7 +20,29 @@
       "filter": ["main.js", "assets"]
     }
   ],
+  "beforeBuild": "./electron-scripts/beforeBuild.js",
+  "beforePack": "./electron-scripts/beforePack.js",
+  "publish": {
+    "provider": "github"
+  },
+  "directories": {
+    "buildResources": "build",
+    "output": "release"
+  },
   "mac": {
-    "hardenedRuntime": true
+    "category": "public.app-category.productivity",
+    "hardenedRuntime": true,
+    "gatekeeperAssess": false,
+    "icon": "icon.icns"
+  },
+  "appx": {
+    "applicationId": "app.get.jetstream",
+    "displayName": "Homeworker"
+  },
+  "mas": {
+    "hardenedRuntime": false
+  },
+  "pkg": {
+    "installLocation": "/Applications"
   }
 }

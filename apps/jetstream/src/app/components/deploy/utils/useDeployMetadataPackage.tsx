@@ -87,7 +87,7 @@ export function useDeployMetadataPackage(destinationOrg: SalesforceOrgUi, deploy
   });
 
   const [{ serverUrl }] = useRecoilState(applicationCookieState);
-  const { notifyUser } = useBrowserNotifications(serverUrl);
+  const { notifyUser } = useBrowserNotifications(serverUrl, window.electron?.isFocused);
   const [lastChecked, setLastChecked] = useState<Date>(null);
 
   useEffect(() => {

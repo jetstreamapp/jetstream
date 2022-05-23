@@ -21,12 +21,10 @@ Open up multiple terminal windows and run the following commands in individual t
 
 ### Local development
 
-- Start api server (only to server monaco resources)
-  - `npm run start:api`
-- Start jetstream
+- Start jetstream local server
   - `npm run start`
 - Start jetstream-electron-worker in watch mode (background renderer - rebuild on changes)
-  - `npm run start:jetstream-electron-worker`
+  - `npm run start:start:electron-worker`
 - Start electron app
   - `npm run start:electron`
 

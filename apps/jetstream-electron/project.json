@@ -9,12 +9,6 @@
       "options": {
         "outputPath": "dist/apps/jetstream-electron",
         "main": "apps/jetstream-electron/src/main.ts",
-        "additionalEntryPoints": [
-          {
-            "entryName": "main.preload",
-            "entryPath": "apps/jetstream-electron/src/app/api/main.preload.ts"
-          }
-        ],
         "tsConfig": "apps/jetstream-electron/tsconfig.app.json",
         "assets": ["apps/jetstream-electron/src/assets"]
       },

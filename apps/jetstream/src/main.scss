@@ -307,7 +307,7 @@ button.ql-active {
     // height: env(titlebar-area-height, var(--title-bar-height));
     height: var(--title-bar-height);
     width: 100%;
-    background-color: black;
+    background-color: $color-gray-10;
 
     .draggable {
       app-region: drag;
