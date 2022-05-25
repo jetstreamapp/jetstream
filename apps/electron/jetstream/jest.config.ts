@@ -1,6 +1,6 @@
 module.exports = {
-  displayName: 'jetstream-electron-worker',
-  preset: '../../jest.preset.ts',
+  displayName: 'electron-jetstream',
+  preset: '../../../../jest.preset.ts',
   globals: {
     'ts-jest': {
       tsconfig: '<rootDir>/tsconfig.spec.json',
@@ -11,5 +11,5 @@ module.exports = {
     '^.+\\.[tj]s$': 'ts-jest',
   },
   moduleFileExtensions: ['ts', 'js', 'html'],
-  coverageDirectory: '../../coverage/apps/jetstream-electron-worker',
+  coverageDirectory: '../../../../coverage/apps/electron/jetstream',
 };

@@ -15,8 +15,8 @@
   "icon": null,
   "files": [
     {
-      "from": "/Users/austinturner/dev/node/jetstream/dist/apps/jetstream-electron-worker",
-      "to": "jetstream-electron-worker",
+      "from": "/Users/austinturner/dev/node/jetstream/dist/apps/electron/worker",
+      "to": "electron-worker",
       "filter": ["main.js", "assets"]
     }
   ],

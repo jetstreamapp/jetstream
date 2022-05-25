@@ -1,15 +1,15 @@
 {
-  "root": "apps/jetstream-electron-worker",
-  "sourceRoot": "apps/jetstream-electron-worker/src",
+  "root": "apps/electron/worker",
+  "sourceRoot": "apps/electron/worker/src",
   "projectType": "application",
   "targets": {
     "build": {
       "executor": "@nrwl/node:webpack",
       "options": {
-        "outputPath": "dist/apps/jetstream-electron-worker",
-        "main": "apps/jetstream-electron-worker/src/main.ts",
-        "tsConfig": "apps/jetstream-electron-worker/tsconfig.app.json",
-        "assets": ["apps/jetstream-electron-worker/src/assets"],
+        "outputPath": "dist/apps/electron/worker",
+        "main": "apps/electron/worker/src/main.ts",
+        "tsConfig": "apps/electron/worker/tsconfig.app.json",
+        "assets": ["apps/electron/worker/src/assets"],
         "generatePackageJson": true,
         "webpackConfig": "webpack.config.js"
       },
@@ -22,8 +22,8 @@
           "inspect": false,
           "fileReplacements": [
             {
-              "replace": "apps/jetstream-electron-worker/src/environments/environment.ts",
-              "with": "apps/jetstream-electron-worker/src/environments/environment.prod.ts"
+              "replace": "apps/electron/worker/src/environments/environment.ts",
+              "with": "apps/electron/worker/src/environments/environment.prod.ts"
             }
           ]
         },
@@ -40,7 +40,7 @@
     "serve": {
       "executor": "@nrwl/node:node",
       "options": {
-        "buildTarget": "jetstream-electron-worker:build",
+        "buildTarget": "electron-worker:build",
         "inspect": true,
         "watch": true
       }
@@ -49,14 +49,14 @@
       "executor": "@nrwl/linter:eslint",
       "outputs": ["{options.outputFile}"],
       "options": {
-        "lintFilePatterns": ["apps/jetstream-electron-worker/**/*.ts"]
+        "lintFilePatterns": ["apps/electron/worker/**/*.ts"]
       }
     },
     "test": {
       "executor": "@nrwl/jest:jest",
-      "outputs": ["coverage/apps/jetstream-electron-worker"],
+      "outputs": ["coverage/apps/electron/worker"],
       "options": {
-        "jestConfig": "apps/jetstream-electron-worker/jest.config.ts",
+        "jestConfig": "apps/electron/worker/jest.config.ts",
         "passWithNoTests": true
       }
     }

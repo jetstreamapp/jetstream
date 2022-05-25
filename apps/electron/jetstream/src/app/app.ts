@@ -32,6 +32,7 @@ export default class App {
   static windows: Set<Electron.BrowserWindow> = new Set();
   static backgroundWindow: Electron.BrowserWindow;
   static splashWindow: Electron.BrowserWindow;
+  static firstRunWindow: Electron.BrowserWindow;
   static application: Electron.App;
   static userDataPath: string;
   static tray: Electron.Tray;
@@ -333,8 +334,7 @@ export default class App {
   static async main(app: Electron.App) {
     App.application = app;
     App.userDataPath = app.getPath('userData');
-    // App.application = app.getPath('downloads');
-
+    // App.application = app.getPath('downloads')
     // Register "jetstream://" protocol for opening links
     if (process.defaultApp) {
       if (process.argv.length >= 2) {

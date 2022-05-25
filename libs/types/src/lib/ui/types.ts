@@ -650,3 +650,13 @@ export interface ChangeSet {
   modifiedBy: string;
   modifiedDate: string;
 }
+
+export interface ElectronPreferences {
+  isInitialized: boolean;
+  analyticsOptIn: boolean;
+  downloadFolder: { prompt: true } | { prompt: false; location: string };
+  defaultApiVersion: string; // format: 54.0
+  // syncOrgs: boolean;
+  // notifications
+  // bounce dock
+}

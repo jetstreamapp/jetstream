@@ -1,14 +1,15 @@
 module.exports = {
-  displayName: 'electron-utils-electron-utils',
+  displayName: 'electron-worker',
   preset: '../../../jest.preset.ts',
   globals: {
     'ts-jest': {
       tsconfig: '<rootDir>/tsconfig.spec.json',
     },
   },
+  testEnvironment: 'node',
   transform: {
     '^.+\\.[tj]s$': 'ts-jest',
   },
   moduleFileExtensions: ['ts', 'js', 'html'],
-  coverageDirectory: '../../../coverage/libs/electron-utils',
+  coverageDirectory: '../../../coverage/apps/electron/worker',
 };

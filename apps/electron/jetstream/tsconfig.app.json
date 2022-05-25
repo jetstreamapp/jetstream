@@ -1,10 +1,9 @@
 {
   "extends": "./tsconfig.json",
   "compilerOptions": {
-    "outDir": "../../dist/out-tsc",
-    "allowSyntheticDefaultImports": true,
+    "outDir": "../../../../dist/out-tsc",
     "types": ["node", "google.picker", "gapi.client.drive"]
   },
-  "exclude": ["jest.config.ts", "**/*.spec.ts", "**/*.test.ts"],
+  "exclude": ["**/*.spec.ts", "**/*.test.ts"],
   "include": ["**/*.ts"]
 }

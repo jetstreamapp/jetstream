@@ -23,7 +23,7 @@ Open up multiple terminal windows and run the following commands in individual t
 
 - Start jetstream local server
   - `npm run start`
-- Start jetstream-electron-worker in watch mode (background renderer - rebuild on changes)
+- Start electron-worker in watch mode (background renderer - rebuild on changes)
   - `npm run start:start:electron-worker`
 - Start electron app
   - `npm run start:electron`

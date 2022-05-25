@@ -1,16 +1,16 @@
 {
-  "root": "apps/jetstream-electron",
-  "sourceRoot": "apps/jetstream-electron/src",
+  "root": "apps/electron/jetstream",
+  "sourceRoot": "apps/electron/jetstream/src",
   "projectType": "application",
   "targets": {
     "build": {
       "executor": "nx-electron:build",
       "outputs": ["{options.outputPath}"],
       "options": {
-        "outputPath": "dist/apps/jetstream-electron",
-        "main": "apps/jetstream-electron/src/main.ts",
-        "tsConfig": "apps/jetstream-electron/tsconfig.app.json",
-        "assets": ["apps/jetstream-electron/src/assets"]
+        "outputPath": "dist/apps/electron/jetstream",
+        "main": "apps/electron/jetstream/src/main.ts",
+        "tsConfig": "apps/electron/jetstream/tsconfig.app.json",
+        "assets": ["apps/electron/jetstream/src/assets"]
       },
       "configurations": {
         "production": {
@@ -19,8 +19,8 @@
           "inspect": false,
           "fileReplacements": [
             {
-              "replace": "apps/jetstream-electron/src/environments/environment.ts",
-              "with": "apps/jetstream-electron/src/environments/environment.prod.ts"
+              "replace": "apps/electron/jetstream/src/environments/environment.ts",
+              "with": "apps/electron/jetstream/src/environments/environment.prod.ts"
             }
           ]
         }
@@ -29,7 +29,7 @@
     "serve": {
       "executor": "nx-electron:execute",
       "options": {
-        "buildTarget": "jetstream-electron:build",
+        "buildTarget": "electron-jetstream:build",
         "inspect": true,
         "port": 5858
       }
@@ -37,7 +37,7 @@
     "package": {
       "executor": "nx-electron:package",
       "options": {
-        "name": "jetstream-electron",
+        "name": "electron-jetstream",
         "frontendProject": "jetstream",
         "outputPath": "dist/packages",
         "prepackageOnly": true
@@ -46,9 +46,8 @@
     "make": {
       "executor": "nx-electron:make",
       "options": {
-        "name": "jetstream-electron",
+        "name": "electron-jetstream",
         "frontendProject": "jetstream",
-
         "outputPath": "dist/executables"
       }
     },
@@ -56,14 +55,14 @@
       "executor": "@nrwl/linter:eslint",
       "outputs": ["{options.outputFile}"],
       "options": {
-        "lintFilePatterns": ["apps/jetstream-electron/**/*.ts"]
+        "lintFilePatterns": ["apps/electron/jetstream/**/*.ts"]
       }
     },
     "test": {
       "executor": "@nrwl/jest:jest",
-      "outputs": ["coverage/apps/jetstream-electron"],
+      "outputs": ["coverage/apps/electron/jetstream"],
       "options": {
-        "jestConfig": "apps/jetstream-electron/jest.config.ts",
+        "jestConfig": "apps/electron/jetstream/jest.config.ts",
         "passWithNoTests": true
       }
     }
