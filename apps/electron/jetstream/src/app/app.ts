@@ -1,3 +1,4 @@
+import { ElectronPreferences } from '@jetstream/types';
 import {
   BrowserWindow,
   BrowserWindowConstructorOptions,
@@ -15,8 +16,9 @@ import * as querystring from 'querystring';
 import { URL } from 'url';
 import { environment } from '../environments/environment';
 import { exchangeCodeForToken, getRedirectUrl } from './api/oauth';
-import { electronAppName, rendererAppName, rendererAppPort, workerAppName } from './constants';
+import { electronAppName, preferencesAppName, rendererAppName, rendererAppPort, workerAppName } from './constants';
 import ElectronEvents from './events/electron.events';
+import { readPreferences } from './utils';
 
 // TODO: move to constants
 const isMac = process.platform === 'darwin';
@@ -32,9 +34,10 @@ export default class App {
   static windows: Set<Electron.BrowserWindow> = new Set();
   static backgroundWindow: Electron.BrowserWindow;
   static splashWindow: Electron.BrowserWindow;
-  static firstRunWindow: Electron.BrowserWindow;
+  static preferencesWindow: Electron.BrowserWindow;
   static application: Electron.App;
   static userDataPath: string;
+  static preferences: ElectronPreferences;
   static tray: Electron.Tray;
 
   public static isDevelopmentMode() {
@@ -94,7 +97,7 @@ export default class App {
     });
     App.splashWindow.loadURL(new URL(join(__dirname, '..', electronAppName, 'assets/splash.html'), 'file:').toString());
     App.splashWindow.on('close', () => {
-      console.log('[RENDER][WORKER] closed');
+      console.log('[SPLASH] closed');
       App.splashWindow = null;
     });
 
@@ -104,7 +107,11 @@ export default class App {
 
     ElectronEvents.initRequestWorkerChannelEvents(App.backgroundWindow);
 
-    App.createWindow();
+    if (!App.preferences.isInitialized) {
+      App.openPreferencesWindow(true);
+    } else {
+      App.createWindow();
+    }
 
     /**
      * Handle oauth with Salesforce
@@ -144,6 +151,20 @@ export default class App {
     session.defaultSession.webRequest.onBeforeSendHeaders({ urls: ['*://*/electron-assets/download-zip-sw'] }, (details, callback) => {
       details.requestHeaders['Service-Worker-Allowed'] = '/electron-assets/download-zip-sw';
       callback({ requestHeaders: details.requestHeaders });
+    });
+
+    session.defaultSession.on('will-download', (event, item, webContents) => {
+      console.log('DOWNLOADING', item.getURL());
+      if (App.preferences?.downloadFolder && !App.preferences.downloadFolder.prompt && App.preferences.downloadFolder.location) {
+        item.setSavePath(join(App.preferences.downloadFolder.location, item.getFilename()));
+      }
+      item.once('done', (e, state) => {
+        if (state === 'completed') {
+          console.log('DOWNLOAD COMPLETE');
+        } else {
+          console.log('DOWNLOAD FAILED');
+        }
+      });
     });
   }
 
@@ -188,7 +209,9 @@ export default class App {
     const window = new BrowserWindow(windowConfig);
 
     window.once('ready-to-show', () => {
-      App.splashWindow.destroy();
+      if (!App.splashWindow.isDestroyed()) {
+        App.splashWindow.destroy();
+      }
       window.show();
     });
 
@@ -232,9 +255,38 @@ export default class App {
     });
   }
 
+  public static openPreferencesWindow(createMainWindowOnClose = false) {
+    App.preferencesWindow = new BrowserWindow({
+      width: 800,
+      height: 800,
+      center: true,
+      show: false,
+      webPreferences: {
+        contextIsolation: true,
+        backgroundThrottling: false,
+        // sandbox: true,
+        preload: join(__dirname, 'preferences.preload.js'),
+      },
+    });
+    App.preferencesWindow.loadURL(new URL(join(__dirname, '..', preferencesAppName, 'index.html'), 'file:').toString());
+    ElectronEvents.initPreferencesEvents(App.preferencesWindow);
+    App.preferencesWindow.on('close', () => {
+      console.log('[PREFERENCES] closed');
+      App.preferencesWindow = null;
+      if (createMainWindowOnClose) {
+        App.createWindow();
+      }
+    });
+    App.preferencesWindow.once('ready-to-show', () => {
+      if (!App.splashWindow.isDestroyed()) {
+        App.splashWindow.destroy();
+      }
+    });
+  }
+
   private static handleNewWindow(event: Event, window: BrowserWindow) {
     // Splash window is handled individually
-    if (window === App.splashWindow) {
+    if (window === App.splashWindow || window === App.preferencesWindow) {
       return;
     }
 
@@ -334,6 +386,7 @@ export default class App {
   static async main(app: Electron.App) {
     App.application = app;
     App.userDataPath = app.getPath('userData');
+    App.preferences = readPreferences(App.userDataPath);
     // App.application = app.getPath('downloads')
     // Register "jetstream://" protocol for opening links
     if (process.defaultApp) {

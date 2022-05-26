@@ -26,6 +26,12 @@
     <link rel="icon" type="image/png" sizes="32x32" href="/assets/images/favicon-32x32.png" />
     <link rel="icon" type="image/png" sizes="96x96" href="/assets/images/favicon-96x96.png" />
     <link rel="icon" type="image/png" sizes="16x16" href="/assets/images/favicon-16x16.png" />
+    <script>
+      // disabled ga if user is on electron and has not opted in to analytics
+      if (window.electron && window.electron.initialPreferences && !window.electron.initialPreferences.analyticsOptIn) {
+        window['ga-disable-MEASUREMENT_ID'] = true;
+      }
+    </script>
     <script async src="https://www.googletagmanager.com/gtag/js?id=G-GZJ9QQTK44"></script>
     <!-- prettier-ignore -->
     <script>window.dataLayer = window.dataLayer || [];function gtag(){dataLayer.push(arguments);}if(window.location.hostname!=='localhost'){gtag('js', new Date());gtag('config', 'G-GZJ9QQTK44');}</script>

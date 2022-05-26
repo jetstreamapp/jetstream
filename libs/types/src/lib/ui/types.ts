@@ -654,8 +654,9 @@ export interface ChangeSet {
 export interface ElectronPreferences {
   isInitialized: boolean;
   analyticsOptIn: boolean;
-  downloadFolder: { prompt: true } | { prompt: false; location: string };
-  defaultApiVersion: string; // format: 54.0
+  crashReportingOptIn: boolean;
+  downloadFolder: { prompt: true; location?: string } | { prompt: false; location: string };
+  defaultApiVersion: { override: boolean; overrideValue?: string }; // format: 54.0
   // syncOrgs: boolean;
   // notifications
   // bounce dock

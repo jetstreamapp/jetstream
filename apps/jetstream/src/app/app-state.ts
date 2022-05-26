@@ -2,7 +2,14 @@ import { HTTP, INDEXED_DB } from '@jetstream/shared/constants';
 import { getOrgs, getUserProfile } from '@jetstream/shared/data';
 import { getOrgType, parseCookie } from '@jetstream/shared/ui-utils';
 import { getMapOf } from '@jetstream/shared/utils';
-import { ApplicationCookie, SalesforceOrgUi, SalesforceOrgUiType, UserProfilePreferences, UserProfileUi } from '@jetstream/types';
+import {
+  ApplicationCookie,
+  ElectronPreferences,
+  SalesforceOrgUi,
+  SalesforceOrgUiType,
+  UserProfilePreferences,
+  UserProfileUi,
+} from '@jetstream/types';
 import localforage from 'localforage';
 import isString from 'lodash/isString';
 import { atom, selector } from 'recoil';
@@ -100,6 +107,11 @@ export const applicationCookieState = atom<ApplicationCookie>({
 export const userProfileState = atom<UserProfileUi>({
   key: 'userState',
   default: fetchUserProfile(),
+});
+
+export const electronPreferences = atom<ElectronPreferences>({
+  key: 'electronPreferences',
+  default: window.electron?.initialPreferences,
 });
 
 export const salesforceOrgsState = atom<SalesforceOrgUi[]>({

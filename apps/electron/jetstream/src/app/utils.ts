@@ -8,8 +8,9 @@ import { ElectronPreferences } from '@jetstream/types';
 const defaultSettings: ElectronPreferences = {
   isInitialized: false,
   analyticsOptIn: true,
+  crashReportingOptIn: true,
   downloadFolder: { prompt: true },
-  defaultApiVersion: '53.0',
+  defaultApiVersion: { override: false, overrideValue: '53.0' },
 };
 
 export let rollbar: Rollbar;

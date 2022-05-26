@@ -38,6 +38,14 @@ function initTaskbarMenu(app: Electron.App): Electron.Menu {
             submenu: [
               { role: 'about' },
               { type: 'separator' },
+              {
+                label: 'Preferences',
+                accelerator: 'Command+,',
+                click: () => {
+                  App.openPreferencesWindow();
+                },
+              },
+              { type: 'separator' },
               { role: 'services' },
               { type: 'separator' },
               { role: 'hide' },
@@ -62,6 +70,17 @@ function initTaskbarMenu(app: Electron.App): Electron.Menu {
           },
         },
         { type: 'separator' },
+        ...(!isMac
+          ? [
+              {
+                label: 'Preferences',
+                accelerator: 'Control+,',
+                click: () => {
+                  App.openPreferencesWindow();
+                },
+              },
+            ]
+          : []),
         ...((isMac ? [{ role: 'close' }] : [{ role: 'quit' }]) as any),
       ],
     },

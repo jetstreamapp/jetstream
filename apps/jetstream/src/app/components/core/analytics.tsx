@@ -1,6 +1,7 @@
 import { logger } from '@jetstream/shared/client-logger';
 import { ApplicationCookie } from '@jetstream/types';
 import amplitude from 'amplitude-js';
+import isBoolean from 'lodash/isBoolean';
 import React, { useEffect } from 'react';
 import { useLocation } from 'react-router-dom';
 import { useRecoilValue } from 'recoil';
@@ -21,10 +22,20 @@ function init(appCookie: ApplicationCookie) {
   amplitude.getInstance().setVersionName(process.env.GIT_VERSION);
 }
 
-export function useAmplitude() {
+export function useAmplitude(optOut?: boolean) {
   const appCookie = useRecoilValue(fromAppState.applicationCookieState);
   const userProfile = useRecoilValue(fromAppState.userProfileState);
   const userPreferences = useRecoilValue(fromAppState.selectUserPreferenceState);
+
+  useEffect(() => {
+    if (isBoolean(optOut)) {
+      if (optOut) {
+        amplitude.getInstance().setOptOut(true);
+      } else {
+        amplitude.getInstance().setOptOut(false);
+      }
+    }
+  }, [optOut]);
 
   useEffect(() => {
     if (!hasInit && appCookie) {
