@@ -18,10 +18,13 @@
       "from": "/Users/austinturner/dev/node/jetstream/dist/apps/electron/worker",
       "to": "electron/worker",
       "filter": ["main.js", "assets"]
+    },
+    {
+      "from": "/Users/austinturner/dev/node/jetstream/dist/apps/electron/preferences",
+      "to": "electron/preferences",
+      "filter": ["**/!(*.+(js|css).map)", "assets"]
     }
   ],
-  "beforeBuild": "./electron-scripts/beforeBuild.js",
-  "beforePack": "./electron-scripts/beforePack.js",
   "publish": {
     "provider": "github"
   },

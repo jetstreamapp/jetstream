@@ -4,10 +4,10 @@ import { join, resolve } from 'path';
 import * as querystring from 'querystring';
 import { URL } from 'url';
 import { environment } from '../environments/environment';
-import { electronAppName, preferencesAppName, rendererAppName, rendererAppPort, workerAppName } from './constants';
+import { preferencesAppName, rendererAppName, rendererAppPort, workerAppName } from './constants';
 import ElectronEvents from './events/electron.events';
 import * as appOauth from './services/auth';
-import logger, { initLogger } from './services/logger';
+import logger from './services/logger';
 import * as sfdcOauth from './services/sfdc-oauth';
 import { readPreferences } from './utils';
 
@@ -48,7 +48,7 @@ export default class App {
   }
 
   private static onWindowAllClosed() {
-    if (isMac || App.isDevelopmentMode()) {
+    if (!isMac || App.isDevelopmentMode()) {
       App.application.quit();
     }
   }
@@ -91,9 +91,16 @@ export default class App {
           App.backgroundWindow.webContents.send('auth-user', {
             userInfo,
           });
-          setTimeout(() => {
-            App.authWindow?.destroy();
-          });
+          if (!App.authenticated) {
+            dialog.showErrorBox(
+              'Authentication Error',
+              'Your login attempt was unsuccessful. Please try again. If you continue to have issues, email support@getjetstream.app.'
+            );
+          } else {
+            setTimeout(() => {
+              App.authWindow?.destroy();
+            });
+          }
         } catch (ex) {
           logger.warn('[AUTH][FAILED]', ex.message, ex.response?.data);
         }
@@ -102,6 +109,7 @@ export default class App {
   }
 
   private static async onReady() {
+    logger.log('[APP][onReady]');
     // This method will be called when Electron has finished
     // initialization and is ready to create browser windows.
     // Some APIs can only be used after this event occurs.
@@ -116,7 +124,7 @@ export default class App {
       backgroundColor: 'rgb(17, 24, 39)',
       webPreferences: { devTools: false, contextIsolation: true, sandbox: true },
     });
-    App.splashWindow.loadURL(new URL(join(__dirname, '..', electronAppName, 'assets/splash.html'), 'file:').toString());
+    App.splashWindow.loadURL(new URL(join(__dirname, 'assets/splash.html'), 'file:').toString());
     App.splashWindow.on('closed', () => {
       logger.log('[SPLASH] closed');
       App.splashWindow = null;
@@ -208,7 +216,7 @@ export default class App {
         preload: join(__dirname, 'auth.preload.js'),
       },
     });
-    App.authWindow.loadURL(new URL(join(__dirname, '..', electronAppName, 'assets/login.html'), 'file:').toString());
+    App.authWindow.loadURL(new URL(join(__dirname, 'assets/login.html'), 'file:').toString());
 
     App.authWindow.on('closed', () => {
       logger.log('[AUTH] closed');
@@ -220,7 +228,7 @@ export default class App {
           App.createWindow();
         }
       } else {
-        logger.log('Auth closed, not authenticated, quitting');
+        logger.log('Authentication failure');
         App.application.quit();
       }
     });
@@ -286,7 +294,7 @@ export default class App {
     if (!App.application.isPackaged) {
       window.loadURL(`http://localhost:${rendererAppPort}/app${urlHash ? urlHash : ''}`);
     } else {
-      const url = new URL(join(__dirname, '..', rendererAppName, `index.html${urlHash ? urlHash : ''}`), 'file:');
+      const url = new URL(join(__dirname, '..', '..', rendererAppName, `index.html${urlHash ? urlHash : ''}`), 'file:');
       window.loadURL(url.toString());
     }
 
@@ -357,6 +365,12 @@ export default class App {
         App.createWindow();
       }
     });
+
+    App.aboutWindow.webContents.on('will-navigate', (event, url) => {
+      event.preventDefault();
+      shell.openExternal(url);
+    });
+
     App.preferencesWindow.once('ready-to-show', () => {
       App.preferencesWindow.show();
       if (!App.splashWindow?.isDestroyed()) {
@@ -382,10 +396,20 @@ export default class App {
         preload: join(__dirname, 'about.preload.js'),
       },
     });
-    App.aboutWindow.loadURL(new URL(join(__dirname, '..', electronAppName, 'assets/about.html'), 'file:').toString());
+    App.aboutWindow.loadURL(new URL(join(__dirname, 'assets/about.html'), 'file:').toString());
     App.aboutWindow.on('closed', () => {
       logger.log('[ABOUT] closed');
       App.aboutWindow = null;
+    });
+
+    App.aboutWindow.webContents.on('will-navigate', (event, url) => {
+      event.preventDefault();
+      shell.openExternal(url);
+    });
+
+    App.aboutWindow.webContents.on('new-window', (event, url) => {
+      event.preventDefault();
+      shell.openExternal(url);
     });
 
     App.aboutWindow.webContents.once('did-finish-load', () => {
@@ -504,7 +528,6 @@ export default class App {
   static async main(app: Electron.App) {
     App.application = app;
     App.userDataPath = app.getPath('userData');
-    initLogger();
     logger.log('[APP PATH]', App.userDataPath);
     App.preferences = readPreferences(App.userDataPath);
     // App.application = app.getPath('downloads')
@@ -523,11 +546,14 @@ export default class App {
     App.application.on('ready', App.onReady); // App is ready to load data
     App.application.on('activate', App.onActivate); // App is activated
     App.application.on('browser-window-created', App.handleNewWindow); // App is activated
-    // App.application.on('render-process-gone', (event, webContents, { exitCode, reason }) => {
-    //   logger.log('render-process-gone', exitCode, reason);
-    // });
-    // App.application.on('child-process-gone', (event, { exitCode, reason, type, name, serviceName }) => {
-    //   logger.log('child-process-gone', exitCode, reason, type, name, serviceName);
-    // });
+    App.application.on('will-quit', () => {
+      logger.log('[APP] will quit');
+    });
+    App.application.on('render-process-gone', (event, webContents, { exitCode, reason }) => {
+      logger.log('render-process-gone', exitCode, reason, `webContents: ${webContents.getTitle()}`);
+    });
+    App.application.on('child-process-gone', (event, { exitCode, reason, type, name, serviceName }) => {
+      logger.log('child-process-gone', exitCode, reason, type, name, serviceName);
+    });
   }
 }

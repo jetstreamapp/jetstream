@@ -3,7 +3,7 @@ import App from './app/app';
 import ElectronEvents from './app/events/electron.events';
 import SquirrelEvents from './app/events/squirrel.events';
 import { initMenus } from './app/menu';
-import { initLogger } from './app/services/logger';
+import logger from './app/services/logger';
 import { initRollbar } from './app/utils';
 export default class Main {
   static initialize() {
@@ -27,6 +27,8 @@ export default class Main {
     }
   }
 }
+
+logger.log('[APP][STARTING]');
 
 // TODO: respect preferences
 initRollbar();

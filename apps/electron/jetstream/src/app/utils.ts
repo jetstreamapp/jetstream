@@ -31,6 +31,7 @@ export function initRollbar() {
 
 export function readPreferences(path: string): ElectronPreferences {
   try {
+    logger.log('[PREF][READ]');
     let output: ElectronPreferences = defaultSettings;
     const filePath = join(path, userPreferencesStorage);
     if (fs.existsSync(filePath)) {
@@ -45,6 +46,7 @@ export function readPreferences(path: string): ElectronPreferences {
 
 export function writePreferences(path: string, preferences: ElectronPreferences): ElectronPreferences {
   try {
+    logger.log('[PREF][WRITE]');
     preferences = { ...preferences, isInitialized: true };
     const filePath = join(path, userPreferencesStorage);
     fs.writeJsonSync(filePath, preferences);

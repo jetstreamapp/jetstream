@@ -50,10 +50,12 @@ export default class ElectronEvents {
 
     ipcMain.handle('init-orgs', async (event) => {
       logger.log('[EVENT][init-orgs]');
+      let hasFile = false;
       try {
         let orgs = [];
         const filePath = join(ElectronEvents.userDataPath, salesforceOrgsStorage);
         if (fs.existsSync(filePath)) {
+          hasFile = true;
           if (safeStorage.isEncryptionAvailable()) {
             orgs = JSON.parse(safeStorage.decryptString(fs.readFileSync(filePath)));
           } else {
@@ -64,6 +66,7 @@ export default class ElectronEvents {
       } catch (ex) {
         // TODO: rollbar
         logger.error('[ERROR] INIT ORGS', ex.message);
+        return [];
       }
     });
 
@@ -151,10 +154,11 @@ ipcMain.handle('save-preferences', (event, preferences) => {
 });
 
 ipcMain.handle('get-app-info', () => {
-  const [electron, chrome, node, v8] = ['electron', 'chrome', 'node', 'v8'].map((e) => [e, process.versions[e]]);
+  const [electron, chrome, node, v8] = ['electron', 'chrome', 'node', 'v8'].map((e) => process.versions[e]);
   return {
-    name: app.getName(),
+    name: app.name || app.getName(),
     copyright: `©Jetstream ${new Date().getFullYear()}`,
+    version: app.getVersion(),
     versions: { electron, chrome, node, v8 },
   };
 });

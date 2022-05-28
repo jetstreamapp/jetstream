@@ -36,6 +36,7 @@ function getDomainAndClientId() {
  * Read auth token from storage
  */
 export function readAuthToken(path: string): AuthInfo {
+  logger.log('[AUTH][READ]');
   let auth: AuthInfo;
   const filePath = join(path, authStorage);
   if (fs.existsSync(filePath)) {
@@ -52,6 +53,7 @@ export function readAuthToken(path: string): AuthInfo {
  * Write auth token to storage
  */
 export function writeAuthToken(path: string, auth: AuthInfo): void {
+  logger.log('[AUTH][WRITE]');
   const filePath = join(path, authStorage);
 
   if (safeStorage.isEncryptionAvailable()) {
@@ -73,7 +75,7 @@ function verify(accessToken) {
     const { domain } = getDomainAndClientId();
     function getKey(header, callback) {
       const client = jwksClient({
-        jwksUri: 'https://getjetstream-dev.us.auth0.com/.well-known/jwks.json',
+        jwksUri: `https://${domain}/.well-known/jwks.json`,
       });
 
       client.getSigningKey(header.kid, function (err, key) {
@@ -187,7 +189,7 @@ export async function exchangeCodeForToken(url: URL): Promise<AuthInfo> {
     }).toString(),
   });
 
-  logger.log('[AUTH][TOKEN][OBTAINED]', token);
+  logger.log('[AUTH][TOKEN][OBTAINED]');
 
   const { data: userInfo } = await axios.request<UserProfileAuth0>({
     url: `https://${domain}/userinfo`,

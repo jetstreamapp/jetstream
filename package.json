@@ -51,6 +51,7 @@
     "build:storybook": "build-storybook -c libs/ui/.storybook -o dist/storybook -s node_modules/@salesforce-ux/design-system/assets/styles",
     "electron:dist:macos:arm64": "npm run build:electron && nx run electron-jetstream:make --arch=arm64 --platform=mac",
     "electron:dist:macos": "npm run build:electron && nx run electron-jetstream:make --platform=mac",
+    "electron:dist:all": "npm run build:electron && nx run electron-jetstream:make --platform=mac && nx run electron-jetstream:make --arch=arm64 --platform=mac && nx run electron-jetstream:make --arch=arm64 --platform=windows",
     "electron:extract:asar-x86": "npx asar extract dist/executables/mac/Jetstream.app/Contents/Resources/app.asar dist/executables/mac/extracted",
     "electron:extract:asar-arm": "npx asar extract dist/executables/mac-arm64/Jetstream.app/Contents/Resources/app.asar dist/executables/mac-arm64/extracted",
     "pm2:link": "pm2-runtime link quhsrndp43edp7v urfb6rbocz587wt",
