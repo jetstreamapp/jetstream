@@ -2,7 +2,7 @@ import { MapOf } from '@jetstream/types';
 import { ipcRenderer, ProtocolRequest } from 'electron';
 import { isString } from 'lodash';
 import { getJsforceConnection, handleRequest } from './app/electron.routes';
-import { getOrgs, saveOrg } from './app/storage';
+import { getOrgs, saveOrg, saveUserInfo } from './app/storage';
 import { ElectronRequestData } from './app/types';
 import * as services from '@jetstream/server-services';
 
@@ -10,6 +10,11 @@ import * as services from '@jetstream/server-services';
 ipcRenderer.on('org-added', (event, data) => {
   console.log('[EVENT][org-added]', data);
   saveOrg(data);
+});
+
+ipcRenderer.on('auth-user', (event, userInfo) => {
+  console.log('[EVENT][auth-user]', userInfo);
+  saveUserInfo(userInfo);
 });
 
 ipcRenderer.on('sfdc-frontdoor-login', async (event, data: { orgId: string; returnUrl?: string }) => {

@@ -1,16 +1,17 @@
+import { ElectronPreferences } from '@jetstream/types';
+import * as fs from 'fs-extra';
 import { join } from 'path';
 import Rollbar from 'rollbar';
 import { environment } from '../environments/environment';
-import * as fs from 'fs-extra';
 import { userPreferencesStorage } from './constants';
-import { ElectronPreferences } from '@jetstream/types';
+import logger from './services/logger';
 
 const defaultSettings: ElectronPreferences = {
   isInitialized: false,
   analyticsOptIn: true,
   crashReportingOptIn: true,
   downloadFolder: { prompt: true },
-  defaultApiVersion: { override: false, overrideValue: '53.0' },
+  defaultApiVersion: { override: false, overrideValue: process.env.SFDC_FALLBACK_API_VERSION },
 };
 
 export let rollbar: Rollbar;
@@ -38,7 +39,7 @@ export function readPreferences(path: string): ElectronPreferences {
     return output;
   } catch (ex) {
     // TODO: rollbar
-    console.error('[ERROR] INIT PREFERENCES', ex.message);
+    logger.error('[ERROR] INIT PREFERENCES', ex.message);
   }
 }
 
@@ -50,6 +51,6 @@ export function writePreferences(path: string, preferences: ElectronPreferences)
     return preferences;
   } catch (ex) {
     // TODO: rollbar
-    console.error('[ERROR] SAVE PREFERENCES', ex.message);
+    logger.error('[ERROR] SAVE PREFERENCES', ex.message);
   }
 }

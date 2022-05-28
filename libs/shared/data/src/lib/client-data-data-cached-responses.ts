@@ -463,10 +463,10 @@ const EntityDefinition = {
   undeletable: false,
   updateable: false,
   urls: {
-    rowTemplate: '/services/data/v53.0/tooling/sobjects/EntityDefinition/{ID}',
-    defaultValues: '/services/data/v53.0/tooling/sobjects/EntityDefinition/defaultValues?recordTypeId&fields',
-    describe: '/services/data/v53.0/tooling/sobjects/EntityDefinition/describe',
-    sobject: '/services/data/v53.0/tooling/sobjects/EntityDefinition',
+    rowTemplate: '/services/data/v54.0/tooling/sobjects/EntityDefinition/{ID}',
+    defaultValues: '/services/data/v54.0/tooling/sobjects/EntityDefinition/defaultValues?recordTypeId&fields',
+    describe: '/services/data/v54.0/tooling/sobjects/EntityDefinition/describe',
+    sobject: '/services/data/v54.0/tooling/sobjects/EntityDefinition',
   },
 };
 

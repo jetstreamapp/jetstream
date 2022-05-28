@@ -280,6 +280,7 @@ button.ql-active {
 :root {
   --title-bar-height: 50px;
   --app-top-offset: 90px;
+  --app-brand-color: rgb(17, 24, 39);
 }
 
 .app-container {
@@ -307,7 +308,7 @@ button.ql-active {
     // height: env(titlebar-area-height, var(--title-bar-height));
     height: var(--title-bar-height);
     width: 100%;
-    background-color: $color-gray-10;
+    background-color: var(--app-brand-color);
 
     .draggable {
       app-region: drag;

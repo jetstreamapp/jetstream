@@ -1,5 +1,8 @@
 export const isMac = process.platform === 'darwin';
 
+export const authAudience = 'jetstream://getjetstream.app';
+export const authRedirectUri = 'jetstream://localhost/oauth/callback';
+
 export const rendererAppPort = 4200;
 export const rendererAppName = 'jetstream';
 export const workerAppName = 'worker';
@@ -10,3 +13,4 @@ export const updateServerUrl = 'https://deployment-server-url.com'; // TODO: ins
 
 export const salesforceOrgsStorage = 'salesforce-orgs';
 export const userPreferencesStorage = 'preferences.json';
+export const authStorage = 'auth';

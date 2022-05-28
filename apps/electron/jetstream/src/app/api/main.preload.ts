@@ -25,6 +25,7 @@ ipcRenderer.on('focused', async (event, isFocused) => {
     initialPreferences: await ipcRenderer.invoke('load-preferences'),
     loadPreferences: () => ipcRenderer.invoke('load-preferences'),
     savePreferences: (preferences: ElectronPreferences) => ipcRenderer.invoke('save-preferences', preferences),
+    logout: () => ipcRenderer.send('logout'),
     getAppVersion: () => ipcRenderer.invoke('get-app-version'),
     isElectronDev: await ipcRenderer.invoke('is-dev'),
     platform: process.platform,

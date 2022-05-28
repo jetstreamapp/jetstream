@@ -16,7 +16,7 @@
   "files": [
     {
       "from": "/Users/austinturner/dev/node/jetstream/dist/apps/electron/worker",
-      "to": "electron-worker",
+      "to": "electron/worker",
       "filter": ["main.js", "assets"]
     }
   ],

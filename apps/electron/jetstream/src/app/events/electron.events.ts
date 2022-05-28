@@ -9,8 +9,9 @@ import { join } from 'path';
 import { environment } from '../../environments/environment';
 import App from '../app';
 import { salesforceOrgsStorage } from '../constants';
+import * as appOauth from '../services/auth';
+import logger from '../services/logger';
 import { readPreferences, writePreferences } from '../utils';
-
 export default class ElectronEvents {
   static userDataPath: string;
 
@@ -21,7 +22,7 @@ export default class ElectronEvents {
   static initRequestWorkerChannelEvents(backgroundWindow: Electron.BrowserWindow) {
     // TODO: if background process is killed, need to re-establish everything
     ipcMain.on('request-worker-channel', (event) => {
-      console.log('[EVENT][request-worker-channel]');
+      logger.log('[EVENT][request-worker-channel]');
       // For security reasons, let's make sure only the frames we expect can
       // access the worker.
       if (
@@ -48,7 +49,7 @@ export default class ElectronEvents {
     ElectronEvents.userDataPath = app.getPath('userData');
 
     ipcMain.handle('init-orgs', async (event) => {
-      console.log('[EVENT][init-orgs]');
+      logger.log('[EVENT][init-orgs]');
       try {
         let orgs = [];
         const filePath = join(ElectronEvents.userDataPath, salesforceOrgsStorage);
@@ -62,12 +63,12 @@ export default class ElectronEvents {
         return orgs;
       } catch (ex) {
         // TODO: rollbar
-        console.error('[ERROR] INIT ORGS', ex.message);
+        logger.error('[ERROR] INIT ORGS', ex.message);
       }
     });
 
     ipcMain.handle('set-orgs', async (event, orgs) => {
-      console.log('[EVENT][set-orgs]');
+      logger.log('[EVENT][set-orgs]');
       try {
         const filePath = join(ElectronEvents.userDataPath, salesforceOrgsStorage);
         if (safeStorage.isEncryptionAvailable()) {
@@ -77,7 +78,7 @@ export default class ElectronEvents {
         }
       } catch (ex) {
         // TODO: rollbar
-        console.error('[ERROR] INIT ORGS', ex.message);
+        logger.error('[ERROR] INIT ORGS', ex.message);
       }
     });
   }
@@ -95,7 +96,7 @@ export default class ElectronEvents {
 
 // Retrieve app version
 ipcMain.handle('get-app-version', (event) => {
-  console.log(`Fetching application version... [v${environment.version}]`);
+  logger.log(`Fetching application version... [v${environment.version}]`);
 
   return environment.version;
 });
@@ -108,6 +109,22 @@ ipcMain.handle('is-focused', (event) => {
 
 ipcMain.handle('is-dev', (event) => {
   return App.isDevelopmentMode();
+});
+
+ipcMain.on('auth-login', (event) => {
+  shell.openExternal(appOauth.generateAuthUrl());
+});
+
+ipcMain.on('auth-signup', () => {
+  shell.openExternal(appOauth.generateAuthUrl(true));
+});
+
+ipcMain.on('auth-close', () => {
+  app.quit();
+});
+
+ipcMain.on('logout', () => {
+  App.logout();
 });
 
 // Handle App termination
@@ -128,9 +145,18 @@ ipcMain.handle('save-preferences', (event, preferences) => {
     });
     return preferences;
   } else {
-    console.warn('Preferences was not provided');
+    logger.warn('Preferences was not provided');
   }
   return null;
+});
+
+ipcMain.handle('get-app-info', () => {
+  const [electron, chrome, node, v8] = ['electron', 'chrome', 'node', 'v8'].map((e) => [e, process.versions[e]]);
+  return {
+    name: app.getName(),
+    copyright: `©Jetstream ${new Date().getFullYear()}`,
+    versions: { electron, chrome, node, v8 },
+  };
 });
 
 ipcMain.handle(

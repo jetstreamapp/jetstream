@@ -21,16 +21,23 @@ export interface HeaderNavbarProps {
 }
 
 function logout(serverUrl: string) {
-  const logoutUrl = `${serverUrl}/oauth/logout`;
-  // eslint-disable-next-line no-restricted-globals
-  location.href = logoutUrl;
+  if (isElectron) {
+    window.electron?.logout();
+  } else {
+    const logoutUrl = `${serverUrl}/oauth/logout`;
+    // eslint-disable-next-line no-restricted-globals
+    location.href = logoutUrl;
+  }
 }
 
-function getMenuItems(userProfile: UserProfileUi, featureFlags: Set<string>, deniedNotifications?: boolean) {
-  const menu: DropDownItem[] = [
-    { id: 'settings', value: 'Settings', subheader: userProfile?.email, icon: { type: 'utility', icon: 'settings' } },
-    { id: 'nav-user-logout', value: 'Logout', icon: { type: 'utility', icon: 'logout' } },
-  ];
+function getMenuItems(userProfile: UserProfileUi, featureFlags: Set<string>, deniedNotifications?: boolean, isElectron?: boolean) {
+  const menu: DropDownItem[] = [];
+
+  if (!isElectron) {
+    menu.push({ id: 'settings', value: 'Settings', subheader: userProfile?.email, icon: { type: 'utility', icon: 'settings' } });
+  }
+
+  menu.push({ id: 'nav-user-logout', value: 'Logout', icon: { type: 'utility', icon: 'logout' } });
   if (
     hasFeatureFlagAccess(featureFlags, FEATURE_FLAGS.NOTIFICATIONS) &&
     deniedNotifications &&
@@ -72,11 +79,11 @@ export const HeaderNavbar: FunctionComponent<HeaderNavbarProps> = ({ userProfile
 
   function handleNotificationMenuClosed(isEnabled: boolean) {
     setEnableNotifications(false);
-    setUserMenuItems(getMenuItems(userProfile, featureFlags, !isEnabled));
+    setUserMenuItems(getMenuItems(userProfile, featureFlags, !isEnabled, isElectron));
   }
 
   useEffect(() => {
-    setUserMenuItems(getMenuItems(userProfile, featureFlags, deniedNotifications));
+    setUserMenuItems(getMenuItems(userProfile, featureFlags, deniedNotifications, isElectron));
   }, [userProfile, featureFlags, deniedNotifications]);
 
   return (

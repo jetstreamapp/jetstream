@@ -12,9 +12,18 @@ const orgsPromise = (async () => {
 })();
 
 let ORGS: SalesforceOrgElectron[] = [];
+let userInfo: any; // TODO: type me
 
 export function initOrgs(orgs: SalesforceOrgElectron[]) {
   ORGS = orgs;
+}
+
+export function saveUserInfo(_userInfo: any) {
+  userInfo = _userInfo;
+}
+
+export function getUserInfo() {
+  return userInfo;
 }
 
 /**

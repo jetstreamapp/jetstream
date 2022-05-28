@@ -37,7 +37,7 @@
     "package": {
       "executor": "nx-electron:package",
       "options": {
-        "name": "electron-jetstream",
+        "name": "electron/jetstream",
         "frontendProject": "jetstream",
         "outputPath": "dist/packages",
         "prepackageOnly": true
@@ -46,7 +46,7 @@
     "make": {
       "executor": "nx-electron:make",
       "options": {
-        "name": "electron-jetstream",
+        "name": "electron/jetstream",
         "frontendProject": "jetstream",
         "outputPath": "dist/executables"
       }

@@ -1,6 +1,6 @@
 import { logger } from '@jetstream/shared/client-logger';
 import { ApplicationCookie } from '@jetstream/types';
-import amplitude from 'amplitude-js';
+import amplitude, { Config } from 'amplitude-js';
 import isBoolean from 'lodash/isBoolean';
 import React, { useEffect } from 'react';
 import { useLocation } from 'react-router-dom';
@@ -15,10 +15,13 @@ const REMOVE_PROTO_REGEX = new RegExp('^http(s?)://');
 
 function init(appCookie: ApplicationCookie) {
   hasInit = true;
-  amplitude.getInstance().init(environment.amplitudeToken, undefined, {
-    apiEndpoint: `${appCookie.serverUrl.replace(REMOVE_PROTO_REGEX, '')}/analytics`,
-    forceHttps: false,
-  });
+  const config: Config = !window.electron?.isElectron
+    ? {
+        apiEndpoint: `${appCookie.serverUrl.replace(REMOVE_PROTO_REGEX, '')}/analytics`,
+        forceHttps: false,
+      }
+    : undefined;
+  amplitude.getInstance().init(environment.amplitudeToken, undefined, config);
   amplitude.getInstance().setVersionName(process.env.GIT_VERSION);
 }
 

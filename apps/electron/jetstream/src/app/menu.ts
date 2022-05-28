@@ -16,7 +16,7 @@ export function initMenus(app: Electron.App) {
 //     {
 //       label: 'New Window',
 //       click() {
-//         console.log('New Window');
+//         logger.log('New Window');
 //       },
 //     },
 //     {
@@ -36,7 +36,12 @@ function initTaskbarMenu(app: Electron.App): Electron.Menu {
           {
             label: 'Jetstream',
             submenu: [
-              { role: 'about' },
+              {
+                label: 'About Jetstream',
+                click: () => {
+                  App.openAboutWindow();
+                },
+              },
               { type: 'separator' },
               {
                 label: 'Preferences',
@@ -52,6 +57,12 @@ function initTaskbarMenu(app: Electron.App): Electron.Menu {
               { role: 'hideOthers' },
               { role: 'unhide' },
               { type: 'separator' },
+              {
+                label: 'Log Out',
+                click: () => {
+                  App.logout();
+                },
+              },
               { role: 'quit' },
             ],
           },

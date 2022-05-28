@@ -1,7 +1,8 @@
 import { app, autoUpdater, dialog } from 'electron';
-import { platform, arch } from 'os';
-import { updateServerUrl } from '../constants';
+import { arch, platform } from 'os';
 import App from '../app';
+import { updateServerUrl } from '../constants';
+import logger from '../services/logger';
 
 export default class UpdateEvents {
   // initialize auto update service - most be invoked only in production
@@ -11,7 +12,7 @@ export default class UpdateEvents {
     const feed: Electron.FeedURLOptions = { url: `${updateServerUrl}/update/${platform_arch}/${version}` };
 
     if (!App.isDevelopmentMode()) {
-      console.log('Initializing auto update service...\n');
+      logger.log('Initializing auto update service...\n');
 
       autoUpdater.setFeedURL(feed);
       UpdateEvents.checkForUpdates();
@@ -41,22 +42,22 @@ autoUpdater.on('update-downloaded', (event, releaseNotes, releaseName, releaseDa
 });
 
 autoUpdater.on('checking-for-update', () => {
-  console.log('Checking for updates...\n');
+  logger.log('Checking for updates...\n');
 });
 
 autoUpdater.on('update-available', () => {
-  console.log('New update available!\n');
+  logger.log('New update available!\n');
 });
 
 autoUpdater.on('update-not-available', () => {
-  console.log('Up to date!\n');
+  logger.log('Up to date!\n');
 });
 
 autoUpdater.on('before-quit-for-update', () => {
-  console.log('Application update is about to begin...\n');
+  logger.log('Application update is about to begin...\n');
 });
 
 autoUpdater.on('error', (message) => {
-  console.error('There was a problem updating the application');
-  console.error(message, '\n');
+  logger.error('There was a problem updating the application');
+  logger.error(message, '\n');
 });

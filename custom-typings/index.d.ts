@@ -16,6 +16,7 @@ declare global {
       loadPreferences: () => Promise<ElectronPreferences>;
       savePreferences: (preferences: ElectronPreferences) => Promise<ElectronPreferences>;
       getAppVersion: () => Promise<string>;
+      logout: () => void;
       onPreferencesChanged: (callback: (event: any, preferences: ElectronPreferences) => void) => void;
       platform: string;
       isElectron: boolean;
