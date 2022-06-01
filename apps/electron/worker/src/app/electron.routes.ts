@@ -14,12 +14,12 @@ const router = findMyWay({ caseSensitive: false });
 
 router.on('GET', '/api/heartbeat', appController.heartbeat);
 
-router.on('GET', '/api/me', appController.getUserProfile); // FIXME: this is hard-coded to me :flush:
-router.on('DELETE', '/api/me', appController.placeholder); // TODO:
+router.on('GET', '/api/me', appController.getUserProfile);
+// router.on('DELETE', '/api/me', appController.placeholder); // TODO:
 
-router.on('GET', '/api/me/profile', appController.placeholder); // TODO:
-router.on('POST', '/api/me/profile', appController.placeholder); // TODO:
-router.on('DELETE', '/api/me/profile/identity', appController.placeholder); // TODO:
+// router.on('GET', '/api/me/profile', appController.placeholder); // TODO:
+// router.on('POST', '/api/me/profile', appController.placeholder); // TODO:
+// router.on('DELETE', '/api/me/profile/identity', appController.placeholder); // TODO:
 
 router.on('GET', '/api/orgs', appController.handleGetOrgs);
 router.on('PATCH', '/api/orgs/:uniqueId', appController.handleUpdateOrg);
@@ -43,7 +43,7 @@ router.on('POST', '/api/metadata/deploy', salesforceController.deployMetadata);
 router.on('POST', '/api/metadata/deploy-zip', salesforceController.deployMetadataZip);
 router.on('GET', '/api/metadata/deploy/:id', salesforceController.checkMetadataResults);
 
-router.on('POST', '/api/me/profile/identity/verify-email', appController.placeholder); // TODO:
+// router.on('POST', '/api/me/profile/identity/verify-email', appController.placeholder); // TODO:
 router.on('GET', '/api/file/stream-download', appController.placeholder); // TODO:
 
 router.on('POST', '/api/metadata/retrieve/list-metadata', salesforceController.retrievePackageFromLisMetadataResults);

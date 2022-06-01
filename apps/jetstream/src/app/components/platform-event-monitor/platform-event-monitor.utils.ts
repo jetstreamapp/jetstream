@@ -25,14 +25,24 @@ export function init({
   return new Promise<CometD>((resolve, reject) => {
     const cometd = new CometD();
     cometd.unregisterTransport('websocket');
-    cometd.configure({
-      url: `${serverUrl}/platform-event?${HTTP.HEADERS.X_SFDC_ID}=${encodeURIComponent(selectedOrg.uniqueId)}`,
-      requestHeaders: {
-        [HTTP.HEADERS.X_SFDC_API_VERSION]: defaultApiVersion,
-      },
-      appendMessageTypeToURL: false,
-      // logLevel: 'debug',
-    });
+    if (window.electron?.isElectron) {
+      cometd.configure({
+        url: `${selectedOrg.instanceUrl}/cometd/${defaultApiVersion.replace('v', '')}`,
+        // TODO: what if token was refreshed - worker should update orgs after refresh?
+        requestHeaders: {
+          Authorization: `Bearer ${selectedOrg.accessToken}`,
+        },
+        appendMessageTypeToURL: false,
+      });
+    } else {
+      cometd.configure({
+        url: `${serverUrl}/platform-event?${HTTP.HEADERS.X_SFDC_ID}=${encodeURIComponent(selectedOrg.uniqueId)}`,
+        requestHeaders: {
+          [HTTP.HEADERS.X_SFDC_API_VERSION]: defaultApiVersion,
+        },
+        appendMessageTypeToURL: false,
+      });
+    }
 
     cometd.registerExtension(CometdReplayExtension.EXT_NAME, new CometdReplayExtension());
 

@@ -1,3 +1,4 @@
+process.env['NODE_OPTIONS'] = '--no-force-async-hooks-checks';
 import { app } from 'electron';
 import App from './app/app';
 import ElectronEvents from './app/events/electron.events';

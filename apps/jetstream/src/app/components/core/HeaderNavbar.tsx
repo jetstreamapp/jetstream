@@ -1,7 +1,5 @@
-import { FEATURE_FLAGS } from '@jetstream/shared/constants';
-import { hasFeatureFlagAccess } from '@jetstream/shared/ui-utils';
 import { DropDownItem, UserProfileUi } from '@jetstream/types';
-import { Header, Navbar, NavbarItem, NavbarMenuItems } from '@jetstream/ui';
+import { Header, JetstreamIcon, Navbar, NavbarItem, NavbarMenuItems } from '@jetstream/ui';
 import { Fragment, FunctionComponent, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useRecoilState, useRecoilValue } from 'recoil';
@@ -38,12 +36,7 @@ function getMenuItems(userProfile: UserProfileUi, featureFlags: Set<string>, den
   }
 
   menu.push({ id: 'nav-user-logout', value: 'Logout', icon: { type: 'utility', icon: 'logout' } });
-  if (
-    hasFeatureFlagAccess(featureFlags, FEATURE_FLAGS.NOTIFICATIONS) &&
-    deniedNotifications &&
-    window.Notification &&
-    window.Notification.permission === 'default'
-  ) {
+  if (deniedNotifications && window.Notification && window.Notification.permission === 'default') {
     menu.unshift({
       id: 'enable-notifications',
       value: 'Enable Notifications',
@@ -93,8 +86,8 @@ export const HeaderNavbar: FunctionComponent<HeaderNavbarProps> = ({ userProfile
       )}
       <Header
         userProfile={userProfile}
-        logo={Logo}
-        orgs={<OrgsDropdown addOrgsButtonClassName={isElectron ? 'slds-button_neutral' : undefined} />}
+        logo={isElectron ? <JetstreamIcon inverse /> : Logo}
+        orgs={<OrgsDropdown addOrgsButtonClassName={isElectron ? 'slds-button_neutral slds-m-left_small' : undefined} />}
         userMenuItems={userMenuItems}
         rightHandMenuItems={[<RecordLookupPopover />, <HeaderHelpPopover />, <Jobs />]}
         isElectron={isElectron}
@@ -103,28 +96,24 @@ export const HeaderNavbar: FunctionComponent<HeaderNavbarProps> = ({ userProfile
         <Navbar>
           <NavbarItem path="/query" title="Query Records" label="Query Records" />
 
-          {hasFeatureFlagAccess(featureFlags, FEATURE_FLAGS.LOAD_MULTI_OBJ) ? (
-            <NavbarMenuItems
-              label="Load Records"
-              items={[
-                { id: 'load', path: '/load', title: 'Load records to a single object', label: 'Load Records to Single Object' },
-                {
-                  id: 'load-with-relationships',
-                  path: '/load-multiple-objects',
-                  title: 'Load records from multiple objects at once',
-                  label: 'Load Records to Multiple Objects',
-                },
-                {
-                  id: 'update-records',
-                  path: '/update-records',
-                  title: 'Update Records without File',
-                  label: 'Update Records without File',
-                },
-              ]}
-            />
-          ) : (
-            <NavbarItem path="/load" title="Load Records" label="Load Records" />
-          )}
+          <NavbarMenuItems
+            label="Load Records"
+            items={[
+              { id: 'load', path: '/load', title: 'Load records to a single object', label: 'Load Records to Single Object' },
+              {
+                id: 'load-with-relationships',
+                path: '/load-multiple-objects',
+                title: 'Load records from multiple objects at once',
+                label: 'Load Records to Multiple Objects',
+              },
+              {
+                id: 'update-records',
+                path: '/update-records',
+                title: 'Update Records without File',
+                label: 'Update Records without File',
+              },
+            ]}
+          />
 
           <NavbarItem path="/automation-control" title="Automation Control" label="Automation Control" />
           <NavbarItem path="/permissions-manager" title="Manage Permissions" label="Manage Permissions" />

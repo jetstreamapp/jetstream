@@ -8,7 +8,7 @@
   - `npm run start:watch:electron`
 - Start electron in watch mode
   - `npm run start:electron`
-- If you modified the login page styles, rebuild tailwind CSS file
+- If you modified the login/splash page styles, rebuild tailwind CSS file
   - `npm run build:electron:css`
 
 ## Quirks
@@ -61,6 +61,17 @@ The application stores some files in the application data directory:
 TODO: need to create update server
 
 ## Packaging
+
+### Signing / Notorization
+
+- Mac
+  - Ensure the computer is signed in to the developer account
+  - install the signing keys into the keychain (on google drive)
+  - set the APPLE_ID and APPLE_ID_PASSWORD env variables
+    - use an app password, not the real password, for this
+  - That should be it!
+- Windows
+  - TODO:
 
 Run various make commands
 

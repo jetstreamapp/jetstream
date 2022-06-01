@@ -477,7 +477,7 @@ export const Jobs: FunctionComponent = () => {
       }
       // NOTE: this is non-standard because we require the extra container
       buttonProps={{
-        className: 'slds-dropdown-trigger slds-dropdown-trigger_click',
+        className: 'slds-dropdown-trigger slds-dropdown-trigger_click cursor-pointer',
         as: 'div',
       }}
     >

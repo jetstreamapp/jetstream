@@ -163,6 +163,10 @@ export const RecordLookupPopover: FunctionComponent = () => {
 
   const isDisabled = !recordId || (recordId.length !== 15 && recordId.length !== 18);
 
+  if (!selectedOrg || !!selectedOrg.connectionError) {
+    return null;
+  }
+
   return (
     <Fragment>
       {modalOpen && (
@@ -248,7 +252,7 @@ export const RecordLookupPopover: FunctionComponent = () => {
           </div>
         }
         buttonProps={{
-          className: 'slds-button slds-button_icon slds-button_icon-border-filled',
+          className: 'slds-button slds-button_icon slds-button_icon-border-filled cursor-pointer',
           title: 'View Record Details - ctrl/command + k',
           disabled: !selectedOrg || !!selectedOrg.connectionError,
         }}

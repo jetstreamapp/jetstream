@@ -1,7 +1,17 @@
 import { css } from '@emotion/react';
 import { logger } from '@jetstream/shared/client-logger';
 import { ElectronPreferences } from '@jetstream/types';
-import { Grid, Input, Page, PageHeader, PageHeaderActions, PageHeaderRow, PageHeaderTitle, Spinner } from '@jetstream/ui';
+import {
+  Grid,
+  Input,
+  Page,
+  PageHeader,
+  PageHeaderActions,
+  PageHeaderRow,
+  PageHeaderTitle,
+  ScopedNotification,
+  Spinner,
+} from '@jetstream/ui';
 import '@salesforce-ux/design-system/assets/styles/salesforce-lightning-design-system.min.css';
 import { FormEvent, useEffect, useState } from 'react';
 import './PreferencesApp.scss';
@@ -12,7 +22,7 @@ const salesforceApiVersionValid = /[0-9]{2,3}\.0/;
 export function App() {
   const [loading, setLoading] = useState(false);
   const [isValid, setIsValid] = useState(false);
-  const [preferences, setPreferences] = useState<ElectronPreferences | undefined>(window.electronPreferences?.initialPreferences);
+  const [preferences, setPreferences] = useState<ElectronPreferences | undefined>(() => window.electronPreferences?.initialPreferences);
   const [analyticsOptIn, setAnalyticsOptIn] = useState(true);
   const [crashReportingOptIn, setCrashReportingOprIn] = useState(true);
   const [downloadFolderEnabled, setDownloadFolderEnabled] = useState(false);
@@ -108,6 +118,14 @@ export function App() {
         </PageHeader>
         <div className="slds-p-around_medium slds-is-relative h-100">
           {loading && <Spinner />}
+          {preferences && !preferences.isInitialized && (
+            <ScopedNotification theme="info" className="slds-p-around_small">
+              <Grid vertical>
+                <p>Welcome to Jetstream!</p>
+                <p>Confirm your preferences and close this window to continue.</p>
+              </Grid>
+            </ScopedNotification>
+          )}
           <form id="preferences-form" className="" onSubmit={handleSave}>
             {/* Profile section */}
 

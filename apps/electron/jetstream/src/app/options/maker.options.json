@@ -1,5 +1,5 @@
 {
-  "$schema": "../../../../../node_modules/nx-electron/src/validation/maker.schema.json",
+  "$schema": "../../../../../../node_modules/nx-electron/src/validation/maker.schema.json",
   "appId": "app.get.jetstream",
   "productName": "Jetstream",
   "copyright": "©Jetstream",
@@ -15,16 +15,19 @@
   "icon": null,
   "files": [
     {
-      "from": "/Users/austinturner/dev/node/jetstream/dist/apps/electron/worker",
+      "from": "${CWD}/dist/apps/electron/worker",
       "to": "electron/worker",
       "filter": ["main.js", "assets"]
     },
     {
-      "from": "/Users/austinturner/dev/node/jetstream/dist/apps/electron/preferences",
+      "from": "${CWD}/dist/apps/electron/preferences",
       "to": "electron/preferences",
       "filter": ["**/!(*.+(js|css).map)", "assets"]
     }
   ],
+  "beforeBuild": "./electron-scripts/beforeBuild.js",
+  "beforePack": "./electron-scripts/beforePack.js",
+  "afterSign": "./electron-scripts/notarize.js",
   "publish": {
     "provider": "github"
   },
@@ -36,10 +39,15 @@
     "category": "public.app-category.productivity",
     "hardenedRuntime": true,
     "gatekeeperAssess": false,
-    "icon": "icon.icns"
+    "icon": "icon.icns",
+    "entitlements": "build/entitlements.mac.plist",
+    "entitlementsInherit": "build/entitlements.mac.plist"
+  },
+  "dmg": {
+    "sign": false
   },
   "appx": {
-    "applicationId": "app.get.jetstream",
+    "applicationId": "app.jetstream",
     "displayName": "Homeworker"
   },
   "mas": {

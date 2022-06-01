@@ -1,5 +1,9 @@
 @import '~@salesforce-ux/design-system/scss/_design-tokens';
 
+html {
+  background-color: rgb(17, 24, 39);
+}
+
 .app {
   // brand styling
 }
@@ -307,7 +311,8 @@ button.ql-active {
     top: env(titlebar-area-y, 0);
     // height: env(titlebar-area-height, var(--title-bar-height));
     height: var(--title-bar-height);
-    width: 100%;
+    // width: 100%;
+    width: env(titlebar-area-width, 100%);
     background-color: var(--app-brand-color);
 
     .draggable {
@@ -329,7 +334,7 @@ button.ql-active {
       user-select: none;
       height: 100%;
       left: env(titlebar-area-x, 0);
-      width: env(titlebar-area-width, 100%);
+      width: calc(100vw - 5.5rem);
     }
 
     .slds-button.slds-button_icon {

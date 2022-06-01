@@ -4,10 +4,11 @@ import { DropDownItem, UserProfileUi } from '@jetstream/types';
 import DropDown from '../form/dropdown/DropDown';
 import classNames from 'classnames';
 import Grid from '../grid/Grid';
+import { css } from '@emotion/react';
 
 export interface HeaderProps {
   userProfile: UserProfileUi;
-  logo: string;
+  logo: string | ReactNode;
   orgs?: ReactNode;
   userMenuItems: DropDownItem[];
   rightHandMenuItems?: ReactNode;
@@ -77,7 +78,18 @@ const HeaderContent: FunctionComponent<Omit<HeaderProps, 'children'>> = ({
   return (
     <Fragment>
       {/* LOGO */}
-      {!isElectron && (
+      {isElectron ? (
+        <div className="slds-global-header__item draggable">
+          <div
+            css={css`
+              height: 2.5rem;
+            `}
+            className="draggable"
+          >
+            {logo}
+          </div>
+        </div>
+      ) : (
         <div className="slds-global-header__item draggable">
           <div className="slds-global-header__logo draggable" style={{ backgroundImage: `url(${logo})` }}></div>
         </div>

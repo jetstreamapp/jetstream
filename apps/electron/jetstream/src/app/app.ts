@@ -1,5 +1,6 @@
+import { HTTP } from '@jetstream/shared/constants';
 import { AuthenticationToken, ElectronPreferences, UserProfileAuth0Ui } from '@jetstream/types';
-import { BrowserWindow, BrowserWindowConstructorOptions, dialog, Event, HandlerDetails, screen, session, shell } from 'electron';
+import { BrowserWindow, BrowserWindowConstructorOptions, dialog, Event, HandlerDetails, protocol, screen, session, shell } from 'electron';
 import { join, resolve } from 'path';
 import * as querystring from 'querystring';
 import { URL } from 'url';
@@ -8,8 +9,9 @@ import { preferencesAppName, rendererAppName, rendererAppPort, workerAppName } f
 import ElectronEvents from './events/electron.events';
 import * as appOauth from './services/auth';
 import logger from './services/logger';
+import { streamFileDownload } from './services/salesforce';
 import * as sfdcOauth from './services/sfdc-oauth';
-import { readPreferences } from './utils';
+import { readPreferences, writePreferences } from './utils';
 
 // TODO: move to constants
 const isMac = process.platform === 'darwin';
@@ -108,6 +110,28 @@ export default class App {
     });
   }
 
+  private static registerFileDownloadProtocol() {
+    protocol.registerStreamProtocol('jetstream-download', async (request, callback) => {
+      try {
+        logger.warn('[jetstream-download]', request.url);
+        ///api/file/stream-download?
+        // url=%2Fservices%2Fdata%2Fv54.0%2Fsobjects%2FAttachment%2F00P6g00000BG1KMEA1%2FBody&X-SFDC-ID=00D6g000008KX1jEAG-0056g000004tCpaAAE
+        const searchParams = new URL(request.url).searchParams;
+        const url = searchParams.get('url');
+        const uniqueId = searchParams.get(HTTP.HEADERS.X_SFDC_ID);
+        callback({
+          statusCode: 200,
+          headers: {
+            'Content-Type': 'application/octet-stream; charset=utf-8',
+          },
+          data: await streamFileDownload(uniqueId, { url }),
+        });
+      } catch (ex) {
+        logger.warn('[jetstream-download][ERROR]', ex.message);
+      }
+    });
+  }
+
   private static async onReady() {
     logger.log('[APP][onReady]');
     // This method will be called when Electron has finished
@@ -130,6 +154,8 @@ export default class App {
       App.splashWindow = null;
     });
 
+    App.registerFileDownloadProtocol();
+
     ElectronEvents.initOrgEvents();
 
     App.initBackgroundWindow();
@@ -145,12 +171,18 @@ export default class App {
       // OR expired token and refresh failed
       App.openAuthWindow();
     } else {
-      if (!App.preferences.isInitialized) {
+      if (!App.preferences?.isInitialized) {
         App.openPreferencesWindow(true);
       } else {
         App.createWindow();
       }
     }
+
+    // was here for testing, does not seem to pick up anything....
+    // session.defaultSession.webRequest.onBeforeRequest({ urls: ['*://*'] }, async (details, callback) => {
+    //   logger.log('REQUEST LOGGED', details.method, details.url);
+    //   callback({ cancel: false });
+    // });
 
     session.defaultSession.webRequest.onBeforeRequest(
       { urls: ['http://localhost/*', 'https://localhost/*'] },
@@ -173,14 +205,54 @@ export default class App {
       }
     );
 
+    // Request URL: file:///electron-assets/download-zip-sw/download-zip.sw.js
+    // session.defaultSession.webRequest.onBeforeRequest({ urls: ['*://electron-assets/*'] }, async (details, callback) => {
+    //   const _url = new URL(details.url);
+    //   const redirectURL = new URL('file:///', join(__dirname, '..', '..', '..', rendererAppName, _url.pathname)).toString();
+    //   console.log('[REDIRECT]', details.url, redirectURL);
+    //   callback({
+    //     cancel: false,
+    //     redirectURL,
+    //   });
+    // });
+
     // http://localhost:4200/electron-assets/download-zip-sw/download-zip.sw.js
-    session.defaultSession.webRequest.onBeforeSendHeaders({ urls: ['*://*/electron-assets/download-zip-sw'] }, (details, callback) => {
-      details.requestHeaders['Service-Worker-Allowed'] = '/electron-assets/download-zip-sw';
-      callback({ requestHeaders: details.requestHeaders });
+    // session.defaultSession.webRequest.onBeforeSendHeaders({ urls: ['*://*/electron-assets/download-zip-sw'] }, (details, callback) => {
+    //   if (details.url.endsWith('.sw.js')) {
+    //     details.requestHeaders['Service-Worker-Allowed'] = '/download-zip-sw';
+    //   }
+    //   callback({ requestHeaders: details.requestHeaders });
+    // });
+
+    // /Users/austinturner/dev/node/jetstream/dist/apps/jetstream/jetstream-download-zip/
+    // /Users/austinturner/dev/node/jetstream/dist/apps/jetstream/electron-assets/download-zip-sw/
+    // // http://localhost:4200/electron-assets/download-zip-sw/download-zip.sw.js
+    // session.defaultSession.webRequest.onHeadersReceived(
+    //   {
+    //     urls: ['*://*/electron-assets/download-zip-sw/*.sw.js'],
+    //   },
+    //   (details, callback) => {
+    //     console.log('[SW][REQUEST]', details.url);
+    //     // /Users/austinturner/dev/node/jetstream/dist/apps/jetstream/electron-assets/download-zip-sw/
+    //     details.responseHeaders['Service-Worker-Allowed'] = [
+    //       '/download-zip-sw/',
+    //     ];
+    //     callback({ responseHeaders: details.responseHeaders });
+    //   }
+    // );
+
+    // set CORS headers for Salesforce direct requests (platform events)
+    session.defaultSession.webRequest.onHeadersReceived({ urls: ['https://*.my.salesforce.com/cometd/*'] }, (details, callback) => {
+      console.log('[CORS][REQUEST]', details.url);
+      details.responseHeaders['Access-Control-Allow-Origin'] = [new URL(details.referrer).origin];
+      details.responseHeaders['Access-Control-Allow-Credentials'] = ['true'];
+      details.responseHeaders['Access-Control-Allow-Methods'] = ['*'];
+      details.responseHeaders['Access-Control-Allow-Headers'] = ['Authorization', 'Content-Type', 'Referer', 'User-Agent'];
+      callback({ responseHeaders: details.responseHeaders });
     });
 
     session.defaultSession.on('will-download', (event, item, webContents) => {
-      logger.log('DOWNLOADING', item.getURL());
+      logger.log('[DOWNLOADING]', item.getURL());
       if (App.preferences?.downloadFolder && !App.preferences.downloadFolder.prompt && App.preferences.downloadFolder.location) {
         item.setSavePath(join(App.preferences.downloadFolder.location, item.getFilename()));
       }
@@ -222,7 +294,7 @@ export default class App {
       logger.log('[AUTH] closed');
       App.authWindow = null;
       if (App.authenticated) {
-        if (!App.preferences.isInitialized) {
+        if (!App.preferences?.isInitialized) {
           App.openPreferencesWindow(true);
         } else {
           App.createWindow();
@@ -257,13 +329,6 @@ export default class App {
     let width = Math.max(1200, workAreaSize.width || 1200);
     let height = Math.max(720, workAreaSize.height || 720);
 
-    // const currentWindow = BrowserWindow.getFocusedWindow();
-    // if (currentWindow && !currentWindow.isFullScreen()) {
-    //   const bounds = currentWindow.getBounds();
-    //   width = bounds.width + 24;
-    //   height = bounds.height + 24;
-    // }
-
     const windowConfig: Electron.BrowserWindowConstructorOptions = {
       width,
       height,
@@ -291,7 +356,7 @@ export default class App {
       window.show();
     });
 
-    if (!App.application.isPackaged) {
+    if (false && !App.application.isPackaged) {
       window.loadURL(`http://localhost:${rendererAppPort}/app${urlHash ? urlHash : ''}`);
     } else {
       const url = new URL(join(__dirname, '..', '..', rendererAppName, `index.html${urlHash ? urlHash : ''}`), 'file:');
@@ -361,18 +426,26 @@ export default class App {
     App.preferencesWindow.on('closed', () => {
       logger.log('[PREFERENCES] closed');
       App.preferencesWindow = null;
+      // if window was closed without saving, save the defaults
+      if (!App.preferences?.isInitialized) {
+        App.preferences = writePreferences(App.userDataPath, {
+          ...App.preferences,
+          isInitialized: true,
+        });
+      }
       if (createMainWindowOnClose) {
         App.createWindow();
       }
     });
 
-    App.aboutWindow.webContents.on('will-navigate', (event, url) => {
+    App.preferencesWindow.webContents.on('will-navigate', (event, url) => {
       event.preventDefault();
       shell.openExternal(url);
     });
 
-    App.preferencesWindow.once('ready-to-show', () => {
+    App.preferencesWindow.webContents.once('did-finish-load', () => {
       App.preferencesWindow.show();
+      App.preferencesWindow.focus();
       if (!App.splashWindow?.isDestroyed()) {
         App.splashWindow?.destroy();
       }
@@ -492,6 +565,12 @@ export default class App {
         return { action: 'deny' };
       }
 
+      if (url.startsWith('https://drive.google.com')) {
+        // EX: https://drive.google.com/u/0/uc?id=1pOCPCoX4SxQWfdGc5IFa0wjXX_BKrBcV&export=download
+        shell.openExternal(url);
+        return { action: 'deny' };
+      }
+
       if (url.startsWith('http://localhost/static')) {
         const _url = new URL(url);
         App.backgroundWindow.webContents.send('sfdc-frontdoor-login', {
@@ -539,6 +618,13 @@ export default class App {
     } else {
       app.setAsDefaultProtocolClient('jetstream');
     }
+
+    protocol.registerSchemesAsPrivileged([
+      {
+        scheme: 'jetstream-download',
+        privileges: { bypassCSP: true, allowServiceWorkers: true, stream: true, supportFetchAPI: true, secure: true },
+      },
+    ]);
 
     App.handleProtocolLinks();
 

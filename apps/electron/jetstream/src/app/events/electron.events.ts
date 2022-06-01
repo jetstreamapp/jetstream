@@ -11,6 +11,7 @@ import App from '../app';
 import { salesforceOrgsStorage } from '../constants';
 import * as appOauth from '../services/auth';
 import logger from '../services/logger';
+import { setOrgs } from '../services/salesforce';
 import { readPreferences, writePreferences } from '../utils';
 export default class ElectronEvents {
   static userDataPath: string;
@@ -62,6 +63,7 @@ export default class ElectronEvents {
             orgs = JSON.parse(fs.readFileSync(filePath, 'utf-8'));
           }
         }
+        setOrgs(orgs);
         return orgs;
       } catch (ex) {
         // TODO: rollbar
@@ -79,6 +81,7 @@ export default class ElectronEvents {
         } else {
           fs.writeFileSync(filePath, JSON.stringify(orgs), { encoding: 'utf-8' });
         }
+        setOrgs(orgs);
       } catch (ex) {
         // TODO: rollbar
         logger.error('[ERROR] INIT ORGS', ex.message);
