@@ -1,4 +1,4 @@
-import type { ElectronPreferences, SalesforceOrgUi } from '../libs/types/src';
+import type { ApplicationCookie, ElectronPreferences, SalesforceOrgUi } from '../libs/types/src';
 
 // https://webpack.js.org/loaders/worker-loader/#integrating-with-typescript
 declare module 'worker-loader!*' {
@@ -12,6 +12,7 @@ declare module 'worker-loader!*' {
 declare global {
   interface Window {
     electron?: {
+      appCookie: ApplicationCookie;
       initialPreferences: ElectronPreferences;
       loadPreferences: () => Promise<ElectronPreferences>;
       savePreferences: (preferences: ElectronPreferences) => Promise<ElectronPreferences>;

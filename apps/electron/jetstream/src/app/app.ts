@@ -5,16 +5,13 @@ import { join, resolve } from 'path';
 import * as querystring from 'querystring';
 import { URL } from 'url';
 import { environment } from '../environments/environment';
-import { preferencesAppName, rendererAppName, rendererAppPort, workerAppName } from './constants';
+import { isMac, preferencesAppName, rendererAppName, rendererAppPort, workerAppName } from './constants';
 import ElectronEvents from './events/electron.events';
 import * as appOauth from './services/auth';
 import logger from './services/logger';
 import { streamFileDownload } from './services/salesforce';
 import * as sfdcOauth from './services/sfdc-oauth';
 import { readPreferences, writePreferences } from './utils';
-
-// TODO: move to constants
-const isMac = process.platform === 'darwin';
 
 // TODO: move magic strings etc.. to constants
 

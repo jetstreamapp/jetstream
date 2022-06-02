@@ -26,6 +26,7 @@ const footerNavigation = {
   legal: [
     { name: 'Privacy', href: '/privacy' },
     { name: 'Terms', href: '/terms-of-service' },
+    { name: 'Data Sub-Processors', href: '/subprocessors' },
   ],
   // social: [
   //   {

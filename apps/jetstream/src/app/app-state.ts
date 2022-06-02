@@ -24,7 +24,7 @@ export const STORAGE_KEYS = {
  * Parse application state with a fallback in case there is an issue parsing
  */
 function getAppCookie() {
-  let appState = parseCookie<ApplicationCookie>(HTTP.COOKIE.JETSTREAM);
+  let appState = window.electron?.isElectron ? window.electron.appCookie : parseCookie<ApplicationCookie>(HTTP.COOKIE.JETSTREAM);
   appState = appState || {
     serverUrl: 'http://localhost:3333',
     environment: 'development',
@@ -40,6 +40,7 @@ function getAppCookie() {
   appState.google_apiKey = appState.google_apiKey || 'AIzaSyDaqv3SafGq6NmVVwUWqENrf2iEFiDSMoA';
   appState.google_clientId = appState.google_clientId || '1094188928456-fp5d5om6ar9prdl7ak03fjkqm4fgagoj.apps.googleusercontent.com';
 
+  // if electron, ensure good defaults are set
   if (window.electron?.isElectron) {
     appState.serverUrl = 'http://localhost';
     appState.environment = window.electron?.isElectronDev ? 'development' : 'production';
