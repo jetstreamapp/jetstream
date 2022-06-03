@@ -25,7 +25,7 @@ export const STORAGE_KEYS = {
  */
 function getAppCookie() {
   let appState = window.electron?.isElectron ? window.electron.appCookie : parseCookie<ApplicationCookie>(HTTP.COOKIE.JETSTREAM);
-  appState = appState || {
+  appState = { ...appState } || {
     serverUrl: 'http://localhost:3333',
     environment: 'development',
     defaultApiVersion: 'v54.0',

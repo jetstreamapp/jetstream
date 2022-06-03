@@ -10,9 +10,11 @@ exports.default = async function notarizing(context) {
   const appName = context.packager.appInfo.productFilename;
 
   return await notarize({
-    appBundleId: 'app.jetstream',
+    tool: 'notarytool',
     appPath: `${appOutDir}/${appName}.app`,
+    appBundleId: 'app.jetstream',
     appleId: process.env.APPLE_ID,
     appleIdPassword: process.env.APPLE_ID_PASSWORD,
+    teamId: 'FPJQMTNSM4',
   });
 };

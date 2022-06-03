@@ -70,7 +70,7 @@ TODO: need to create update server
   - set the APPLE_ID and APPLE_ID_PASSWORD env variables
     - use an app password, not the real password, for this
   - That should be it!
-- Windows
+- Windows$$
   - TODO:
 
 Run various make commands
@@ -83,3 +83,13 @@ To troubleshoot, the app can be extracted and viewed
 
 - `electron:extract:asar-x86`
 - `electron:extract:asar-arm`
+
+### Building / Publishing / Releasing
+
+Published to public repository
+
+- https://github.com/jetstreamapp/jetstream
+
+- Ensure that `GH_TOKEN` environment variable is set
+- run build command
+  - `electron:dist:macos`

@@ -1,5 +1,6 @@
 process.env['NODE_OPTIONS'] = '--no-force-async-hooks-checks';
 import { app } from 'electron';
+import AppUpdater from './app/events/update.events';
 import App from './app/app';
 import ElectronEvents from './app/events/electron.events';
 import SquirrelEvents from './app/events/squirrel.events';
@@ -24,7 +25,9 @@ export default class Main {
 
     // initialize auto updater service
     if (!App.isDevelopmentMode()) {
-      // UpdateEvents.initAutoUpdateService();
+      app.once('ready', () => {
+        new AppUpdater();
+      });
     }
   }
 }

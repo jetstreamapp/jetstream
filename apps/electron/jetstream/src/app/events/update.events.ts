@@ -1,63 +1,50 @@
-import { app, autoUpdater, dialog } from 'electron';
-import { arch, platform } from 'os';
-import App from '../app';
-import { updateServerUrl } from '../constants';
+import { dialog } from 'electron';
+import { autoUpdater } from 'electron-updater';
 import logger from '../services/logger';
 
-export default class UpdateEvents {
-  // initialize auto update service - most be invoked only in production
-  static initAutoUpdateService() {
-    const platform_arch = platform() === 'win32' ? platform() : platform() + '_' + arch();
-    const version = app.getVersion();
-    const feed: Electron.FeedURLOptions = { url: `${updateServerUrl}/update/${platform_arch}/${version}` };
-
-    if (!App.isDevelopmentMode()) {
-      logger.log('Initializing auto update service...\n');
-
-      autoUpdater.setFeedURL(feed);
-      UpdateEvents.checkForUpdates();
-    }
-  }
-
-  // check for updates - most be invoked after initAutoUpdateService() and only in production
-  static checkForUpdates() {
-    if (!App.isDevelopmentMode() && autoUpdater.getFeedURL() !== '') {
-      autoUpdater.checkForUpdates();
-    }
+export default class AppUpdater {
+  constructor() {
+    autoUpdater.logger = logger;
+    autoUpdater.checkForUpdatesAndNotify();
   }
 }
 
-autoUpdater.on('update-downloaded', (event, releaseNotes, releaseName, releaseDate) => {
-  const dialogOpts = {
-    type: 'info',
-    buttons: ['Restart', 'Later'],
-    title: 'Application Update',
-    message: process.platform === 'win32' ? releaseNotes : releaseName,
-    detail: 'A new version has been downloaded. Restart the application to apply the updates.',
-  };
-
-  dialog.showMessageBox(dialogOpts).then((returnValue) => {
-    if (returnValue.response === 0) autoUpdater.quitAndInstall();
-  });
-});
-
 autoUpdater.on('checking-for-update', () => {
-  logger.log('Checking for updates...\n');
+  logger.log('Checking for updates...');
 });
 
-autoUpdater.on('update-available', () => {
-  logger.log('New update available!\n');
+autoUpdater.on('update-available', (info) => {
+  logger.log('New update available!');
 });
 
-autoUpdater.on('update-not-available', () => {
-  logger.log('Up to date!\n');
-});
-
-autoUpdater.on('before-quit-for-update', () => {
-  logger.log('Application update is about to begin...\n');
+autoUpdater.on('update-not-available', (info) => {
+  logger.log('No update available.');
 });
 
 autoUpdater.on('error', (message) => {
   logger.error('There was a problem updating the application');
-  logger.error(message, '\n');
+  logger.error(message);
+});
+
+autoUpdater.on('download-progress', (progressObj) => {
+  let message = 'Download speed: ' + progressObj.bytesPerSecond;
+  message = message + ' - Downloaded ' + progressObj.percent + '%';
+  message = message + ' (' + progressObj.transferred + '/' + progressObj.total + ')';
+  logger.error(message);
+});
+
+autoUpdater.on('update-downloaded', (info) => {
+  const dialogOpts = {
+    type: 'info',
+    buttons: ['Restart', 'Later'],
+    title: 'Application Update',
+    message: info.version,
+    detail: 'A new version has been downloaded. Restart the application to apply the updates.',
+  };
+
+  dialog.showMessageBox(dialogOpts).then((returnValue) => {
+    if (returnValue.response === 0) {
+      autoUpdater.quitAndInstall();
+    }
+  });
 });

@@ -29,7 +29,13 @@
   "beforePack": "./electron-scripts/beforePack.js",
   "afterSign": "./electron-scripts/notarize.js",
   "publish": {
-    "provider": "github"
+    "provider": "github",
+    "owner": "jetstreamapp",
+    "repo": "jetstream",
+    "private": false,
+    "protocol": "https",
+    "publishAutoUpdate": true,
+    "vPrefixedTagName": true
   },
   "directories": {
     "buildResources": "build",
