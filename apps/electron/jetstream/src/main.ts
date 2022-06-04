@@ -7,8 +7,11 @@ import SquirrelEvents from './app/events/squirrel.events';
 import { initMenus } from './app/menu';
 import logger from './app/services/logger';
 import { initRollbar } from './app/utils';
+import { appId } from './app/constants';
 export default class Main {
   static initialize() {
+    app.setAppUserModelId(appId);
+
     if (SquirrelEvents.handleEvents()) {
       // squirrel event handled (except first run event) and app will exit in 1000ms, so don't do anything else
       app.quit();

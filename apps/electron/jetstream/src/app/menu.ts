@@ -126,6 +126,12 @@ function initTaskbarMenu(app: Electron.App): Electron.Menu {
         { role: 'reload' },
         { role: 'forceReload' },
         { role: 'toggleDevTools' },
+        {
+          label: 'Show background worker window',
+          click: () => {
+            App.backgroundWindow?.show();
+          },
+        },
         { type: 'separator' },
         { role: 'resetZoom' },
         { role: 'zoomIn' },

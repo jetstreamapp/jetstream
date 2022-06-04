@@ -1,11 +1,23 @@
 import { HTTP } from '@jetstream/shared/constants';
 import { AuthenticationToken, ElectronPreferences, UserProfileAuth0Ui } from '@jetstream/types';
-import { BrowserWindow, BrowserWindowConstructorOptions, dialog, Event, HandlerDetails, protocol, screen, session, shell } from 'electron';
+import {
+  app,
+  BrowserWindow,
+  BrowserWindowConstructorOptions,
+  dialog,
+  Event,
+  HandlerDetails,
+  protocol,
+  screen,
+  session,
+  shell,
+} from 'electron';
+import { isString } from 'lodash';
 import { join, resolve } from 'path';
 import * as querystring from 'querystring';
 import { URL } from 'url';
 import { environment } from '../environments/environment';
-import { isMac, preferencesAppName, rendererAppName, rendererAppPort, workerAppName } from './constants';
+import { appProtocol, isMac, preferencesAppName, rendererAppName, rendererAppPort, workerAppName } from './constants';
 import ElectronEvents from './events/electron.events';
 import * as appOauth from './services/auth';
 import logger from './services/logger';
@@ -32,7 +44,7 @@ export default class App {
   static preferences: ElectronPreferences;
   static tray: Electron.Tray;
   static authToken: AuthenticationToken;
-  static authenticated: boolean;
+  static authenticated = false;
   static userInfo: UserProfileAuth0Ui;
 
   public static isDevelopmentMode() {
@@ -59,52 +71,52 @@ export default class App {
   }
 
   // TODO: might need to adjust to support windows
-  private static async handleProtocolLinks() {
-    App.application.on('open-url', async (event, url) => {
-      logger.log('PROTOCOL LINK', url);
-      const _url = new URL(url);
-      // finish oauth flow
-      if (_url.pathname.includes('oauth/sfdc/callback')) {
-        try {
-          event.preventDefault();
-          const windowId = Number(querystring.parse(_url.searchParams.get('state')).windowId);
-          const org = await sfdcOauth.exchangeCodeForToken('jetstream', _url.searchParams);
+  private static async handleProtocolLinks(url: string, event?: Electron.Event) {
+    logger.log('[PROTOCOL LINK]', url);
+    const _url = new URL(url);
+    // finish oauth flow
+    if (_url.pathname.includes('oauth/sfdc/callback')) {
+      App.application.releaseSingleInstanceLock();
+      event?.preventDefault();
+      try {
+        const windowId = Number(querystring.parse(_url.searchParams.get('state')).windowId);
+        const org = await sfdcOauth.exchangeCodeForToken('jetstream', _url.searchParams);
 
-          BrowserWindow.getAllWindows().forEach((window) => {
-            const switchActiveOrg = window.id === windowId;
-            window.webContents.send('org-added', org, switchActiveOrg);
-          });
-        } catch (ex) {
-          logger.warn(ex.message);
-          dialog.showErrorBox('Salesforce Authorization', `There was a problem authorizing with Salesforce`);
-        }
-      } else if (_url.pathname.includes('oauth/callback')) {
-        // TODO:
-        try {
-          // TODO: where should I store these and how should I use them?
-          const { token, codeVerifier, userInfo } = await appOauth.exchangeCodeForToken(_url);
-          App.authenticated = await appOauth.verifyToken(App.userDataPath, { token, codeVerifier, userInfo });
-          appOauth.writeAuthToken(App.userDataPath, { token, codeVerifier, userInfo });
-          App.authToken = token;
-          App.userInfo = userInfo;
-          App.backgroundWindow.webContents.send('auth-user', {
-            userInfo,
-          });
-          if (!App.authenticated) {
-            dialog.showErrorBox(
-              'Authentication Error',
-              'Your login attempt was unsuccessful. Please try again. If you continue to have issues, email support@getjetstream.app.'
-            );
-          } else {
-            setTimeout(() => {
-              App.authWindow?.destroy();
-            });
-          }
-        } catch (ex) {
-          logger.warn('[AUTH][FAILED]', ex.message, ex.response?.data);
-        }
+        BrowserWindow.getAllWindows().forEach((window) => {
+          const switchActiveOrg = window.id === windowId;
+          window.webContents.send('org-added', org, switchActiveOrg);
+        });
+      } catch (ex) {
+        logger.warn(ex.message);
+        dialog.showErrorBox('Salesforce Authorization', `There was a problem authorizing with Salesforce`);
       }
-    });
+      // AUTH OAUTH
+      // e.x. jetstream://localhost/oauth/callback&code_challenge=jtgGS1DjPRK0iHcGC9vwy3cMtU9aMJ5aRJuvzUgIk4s
+    } else if (_url.pathname.includes('oauth/callback')) {
+      event?.preventDefault();
+      try {
+        const { token, codeVerifier, userInfo } = await appOauth.exchangeCodeForToken(_url);
+        App.authenticated = await appOauth.verifyToken(App.userDataPath, { token, codeVerifier, userInfo });
+        appOauth.writeAuthToken(App.userDataPath, { token, codeVerifier, userInfo });
+        App.authToken = token;
+        App.userInfo = userInfo;
+        App.backgroundWindow.webContents.send('auth-user', {
+          userInfo,
+        });
+        if (!App.authenticated) {
+          dialog.showErrorBox(
+            'Authentication Error',
+            'Your login attempt was unsuccessful. Please try again. If you continue to have issues, email support@getjetstream.app.'
+          );
+        } else {
+          setTimeout(() => {
+            App.authWindow?.destroy();
+          });
+        }
+      } catch (ex) {
+        logger.warn('[AUTH][FAILED]', ex.message, ex.response?.data);
+      }
+    }
   }
 
   private static registerFileDownloadProtocol() {
@@ -135,6 +147,14 @@ export default class App {
     // initialization and is ready to create browser windows.
     // Some APIs can only be used after this event occurs.
 
+    // safe storage is only available after app is ready on windows/linux
+    try {
+      await App.initializeAuth();
+      logger.log('[AUTH][INIT][AUTHENTICATED]', App.authenticated);
+    } catch (ex) {
+      logger.log('[AUTH][INIT][INVALID]', ex.message);
+    }
+
     App.splashWindow = new BrowserWindow({
       width: 400,
       height: 150,
@@ -157,13 +177,6 @@ export default class App {
 
     App.initBackgroundWindow();
 
-    ElectronEvents.initRequestWorkerChannelEvents(App.backgroundWindow);
-
-    const { token, codeVerifier, userInfo } = appOauth.readAuthToken(App.userDataPath);
-    App.authToken = token;
-    App.userInfo = userInfo;
-    App.authenticated = await appOauth.verifyToken(App.userDataPath, { token, codeVerifier, userInfo });
-
     if (!App.authenticated) {
       // OR expired token and refresh failed
       App.openAuthWindow();
@@ -174,12 +187,6 @@ export default class App {
         App.createWindow();
       }
     }
-
-    // was here for testing, does not seem to pick up anything....
-    // session.defaultSession.webRequest.onBeforeRequest({ urls: ['*://*'] }, async (details, callback) => {
-    //   logger.log('REQUEST LOGGED', details.method, details.url);
-    //   callback({ cancel: false });
-    // });
 
     session.defaultSession.webRequest.onBeforeRequest(
       { urls: ['http://localhost/*', 'https://localhost/*'] },
@@ -202,41 +209,27 @@ export default class App {
       }
     );
 
-    // Request URL: file:///electron-assets/download-zip-sw/download-zip.sw.js
-    // session.defaultSession.webRequest.onBeforeRequest({ urls: ['*://electron-assets/*'] }, async (details, callback) => {
-    //   const _url = new URL(details.url);
-    //   const redirectURL = new URL('file:///', join(__dirname, '..', '..', '..', rendererAppName, _url.pathname)).toString();
-    //   console.log('[REDIRECT]', details.url, redirectURL);
-    //   callback({
-    //     cancel: false,
-    //     redirectURL,
-    //   });
-    // });
-
-    // http://localhost:4200/electron-assets/download-zip-sw/download-zip.sw.js
-    // session.defaultSession.webRequest.onBeforeSendHeaders({ urls: ['*://*/electron-assets/download-zip-sw'] }, (details, callback) => {
-    //   if (details.url.endsWith('.sw.js')) {
-    //     details.requestHeaders['Service-Worker-Allowed'] = '/download-zip-sw';
-    //   }
-    //   callback({ requestHeaders: details.requestHeaders });
-    // });
-
-    // /Users/austinturner/dev/node/jetstream/dist/apps/jetstream/jetstream-download-zip/
-    // /Users/austinturner/dev/node/jetstream/dist/apps/jetstream/electron-assets/download-zip-sw/
-    // // http://localhost:4200/electron-assets/download-zip-sw/download-zip.sw.js
-    // session.defaultSession.webRequest.onHeadersReceived(
-    //   {
-    //     urls: ['*://*/electron-assets/download-zip-sw/*.sw.js'],
-    //   },
+    // session.defaultSession.webRequest.onBeforeSendHeaders(
+    //   { urls: ['https://*.my.salesforce.com/*'] },
     //   (details, callback) => {
-    //     console.log('[SW][REQUEST]', details.url);
-    //     // /Users/austinturner/dev/node/jetstream/dist/apps/jetstream/electron-assets/download-zip-sw/
-    //     details.responseHeaders['Service-Worker-Allowed'] = [
-    //       '/download-zip-sw/',
-    //     ];
-    //     callback({ responseHeaders: details.responseHeaders });
-    //   }
+    //     callback({ requestHeaders: { Origin: '*', ...details.requestHeaders } });
+    //   },
     // );
+
+    // TODO: I just added this
+
+    session.defaultSession.webRequest.onHeadersReceived({ urls: ['https://*.my.salesforce.com/*'] }, (details, callback) => {
+      callback({
+        responseHeaders: {
+          Origin: '*',
+          ...details.responseHeaders,
+          'Access-Control-Allow-Origin': [new URL(details.referrer).origin],
+          'Access-Control-Allow-Credentials': ['true'],
+          'Access-Control-Allow-Headers': ['*'],
+          'Connect-Src': ["'self'", '*.my.salesforce.com'],
+        },
+      });
+    });
 
     // set CORS headers for Salesforce direct requests (platform events)
     session.defaultSession.webRequest.onHeadersReceived({ urls: ['https://*.my.salesforce.com/cometd/*'] }, (details, callback) => {
@@ -322,6 +315,11 @@ export default class App {
     if (!App.authenticated) {
       return;
     }
+
+    if (!App.backgroundWindow) {
+      App.initBackgroundWindow();
+    }
+
     const workAreaSize = screen.getPrimaryDisplay().workAreaSize;
     let width = Math.max(1200, workAreaSize.width || 1200);
     let height = Math.max(720, workAreaSize.height || 720);
@@ -353,7 +351,7 @@ export default class App {
       window.show();
     });
 
-    if (false && !App.application.isPackaged) {
+    if (!App.application.isPackaged) {
       window.loadURL(`http://localhost:${rendererAppPort}/app${urlHash ? urlHash : ''}`);
     } else {
       const url = new URL(join(__dirname, '..', '..', rendererAppName, `index.html${urlHash ? urlHash : ''}`), 'file:');
@@ -385,6 +383,8 @@ export default class App {
       },
     });
 
+    ElectronEvents.initRequestWorkerChannelEvents(App.backgroundWindow);
+
     const url = new URL(join(__dirname, '..', workerAppName, 'assets', 'index.html'), 'file:');
     App.backgroundWindow.loadURL(url.toString());
 
@@ -397,6 +397,11 @@ export default class App {
     App.backgroundWindow.on('closed', () => {
       logger.log('[RENDER][WORKER] closed');
       App.backgroundWindow = null;
+      // if background window closed, application will not work - ensure all windows are closed
+      // could cause application to fully quit (windows) or can be opened again (mac)
+      if (App.windows.size) {
+        Array.from(App.windows).forEach((window) => window.destroy());
+      }
     });
   }
 
@@ -493,7 +498,8 @@ export default class App {
   private static handleNewWindow(event: Event, window: BrowserWindow) {
     setTimeout(() => {
       // Splash window is handled individually
-      if (window === App.splashWindow || window === App.preferencesWindow || window === App.authWindow || window === App.aboutWindow) {
+
+      if ([App.splashWindow, App.preferencesWindow, App.authWindow, App.aboutWindow].includes(window)) {
         return;
       }
 
@@ -532,6 +538,20 @@ export default class App {
       window.on('closed', () => {
         logger.log('[RENDER][MAIN] closed');
         App.windows.delete(window);
+        // wait 1 second and if no other windows get opened, destroy the background window
+        // this ensures the process does not hang around
+        setTimeout(() => {
+          if (
+            !App.windows.size &&
+            !App.authWindow &&
+            !App.preferencesWindow &&
+            App.backgroundWindow &&
+            !App.backgroundWindow.isDestroyed()
+          ) {
+            App.backgroundWindow.destroy();
+            App.backgroundWindow = null;
+          }
+        }, 1000);
       });
     });
   }
@@ -587,6 +607,10 @@ export default class App {
         );
         logger.log('[REDIRECT][SHELL]', redirectURL);
         shell.openExternal(redirectURL);
+
+        const gotTheLock = app.requestSingleInstanceLock();
+        logger.log('[APPLICATION LOCK][SFDC AUTH][GOT LOCK]', gotTheLock);
+
         return { action: 'deny' };
       }
 
@@ -601,19 +625,59 @@ export default class App {
     };
   }
 
+  static async initializeAuth() {
+    // NOTE: safe storage is only available after app is ready on windows/linux
+    const { token, codeVerifier, userInfo } = appOauth.readAuthToken(App.userDataPath);
+    App.authToken = token;
+    App.userInfo = userInfo;
+    App.authenticated = await appOauth.verifyToken(App.userDataPath, { token, codeVerifier, userInfo });
+    if (App.authenticated) {
+      App.application.releaseSingleInstanceLock();
+    }
+  }
+
   static async main(app: Electron.App) {
     App.application = app;
     App.userDataPath = app.getPath('userData');
+
+    // TODO: we do want multiple windows, just not if user is on auth
+    const gotTheLock = app.requestSingleInstanceLock();
+    if (!gotTheLock) {
+      logger.log('[SINGLE INSTANCE LOCK FAILED] Not authenticated, quitting application');
+      app.quit();
+      return;
+    }
+
+    app.on('second-instance', (event, argv, workingDirectory) => {
+      logger.log('[SECOND INSTANCE][OPENED]');
+      // Someone tried to run a second instance, focus our main window.
+      // mac uses 'open-url' events
+      if (!isMac) {
+        const customProtocolUrl = argv.find((arg) => arg.startsWith(`${appProtocol}://`));
+        if (isString(customProtocolUrl)) {
+          App.handleProtocolLinks(customProtocolUrl);
+
+          if (App.windows.size > 0) {
+            const mainWindow = Array.from(App.windows)[0];
+            if (mainWindow) {
+              mainWindow.restore();
+            }
+            mainWindow.focus();
+          }
+        }
+      }
+    });
+
     logger.log('[APP PATH]', App.userDataPath);
     App.preferences = readPreferences(App.userDataPath);
     // App.application = app.getPath('downloads')
     // Register "jetstream://" protocol for opening links
     if (process.defaultApp) {
       if (process.argv.length >= 2) {
-        app.setAsDefaultProtocolClient('jetstream', process.execPath, [resolve(process.argv[1])]);
+        app.setAsDefaultProtocolClient(appProtocol, process.execPath, [resolve(process.argv[1])]);
       }
     } else {
-      app.setAsDefaultProtocolClient('jetstream');
+      app.setAsDefaultProtocolClient(appProtocol);
     }
 
     protocol.registerSchemesAsPrivileged([
@@ -623,8 +687,7 @@ export default class App {
       },
     ]);
 
-    App.handleProtocolLinks();
-
+    App.application.on('open-url', async (event, url) => App.handleProtocolLinks(url, event));
     App.application.on('window-all-closed', App.onWindowAllClosed); // Quit when all windows are closed.
     App.application.on('ready', App.onReady); // App is ready to load data
     App.application.on('activate', App.onActivate); // App is activated

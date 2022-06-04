@@ -36,13 +36,16 @@ function getDomainAndClientId() {
  * Read auth token from storage
  */
 export function readAuthToken(path: string): AuthInfo {
-  logger.log('[AUTH][READ]');
   let auth: AuthInfo;
   const filePath = join(path, authStorage);
+  logger.log('[AUTH][READ]', filePath);
   if (fs.existsSync(filePath)) {
     if (safeStorage.isEncryptionAvailable()) {
-      auth = JSON.parse(safeStorage.decryptString(fs.readFileSync(filePath)));
+      logger.log('[SAFE STORAGE][AVAILABLE]');
+      const authInfo = safeStorage.decryptString(fs.readFileSync(filePath));
+      auth = JSON.parse(authInfo);
     } else {
+      logger.log('[SAFE STORAGE][NOT AVAILABLE]');
       auth = fs.readJsonSync(filePath);
     }
   }

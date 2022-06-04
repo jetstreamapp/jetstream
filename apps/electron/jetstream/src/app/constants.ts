@@ -1,5 +1,8 @@
 export const isMac = process.platform === 'darwin';
 
+export const appId = 'app.get.jetstream';
+export const appProtocol = 'jetstream';
+
 export const authAudience = 'jetstream://getjetstream.app';
 export const authRedirectUri = 'jetstream://localhost/oauth/callback';
 
