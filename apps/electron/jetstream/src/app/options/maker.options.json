@@ -15,12 +15,12 @@
   "icon": null,
   "files": [
     {
-      "from": "${CWD}/dist/apps/electron/worker",
+      "from": "electron/worker",
       "to": "electron/worker",
       "filter": ["main.js", "assets"]
     },
     {
-      "from": "${CWD}/dist/apps/electron/preferences",
+      "from": "electron/preferences",
       "to": "electron/preferences",
       "filter": ["**/!(*.+(js|css).map)", "assets"]
     }

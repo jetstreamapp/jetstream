@@ -10,7 +10,7 @@
         "main": "apps/electron/worker/src/main.ts",
         "tsConfig": "apps/electron/worker/tsconfig.app.json",
         "assets": ["apps/electron/worker/src/assets"],
-        "generatePackageJson": true,
+        "generatePackageJson": false,
         "webpackConfig": "webpack.config.js"
       },
       "configurations": {
@@ -20,6 +20,7 @@
           "outputHashing": "none",
           "sourceMap": true,
           "inspect": false,
+          "generatePackageJson": false,
           "fileReplacements": [
             {
               "replace": "apps/electron/worker/src/environments/environment.ts",
