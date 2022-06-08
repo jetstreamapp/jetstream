@@ -53,7 +53,7 @@ router.on('GET', '/api/metadata/retrieve/check-results', salesforceController.ch
 router.on('POST', '/api/metadata/retrieve/check-and-redeploy', salesforceController.checkRetrieveStatusAndRedeploy);
 router.on('POST', '/api/metadata/package-xml', salesforceController.getPackageXml);
 router.on('POST', '/api/request', salesforceController.makeJsforceRequest);
-router.on('POST', '/api/request-manual', salesforceController.makeJsforceRequestViaAxios);
+router.on('POST', '/api/request-manual', salesforceController.makeJsforceRequestViaNode);
 
 router.on('POST', '/api/bulk', salesforceController.createJob);
 router.on('GET', '/api/bulk/:jobId', salesforceController.getJob);

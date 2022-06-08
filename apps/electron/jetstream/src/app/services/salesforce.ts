@@ -1,9 +1,9 @@
-import { MapOf, SalesforceOrgUi } from '@jetstream/types';
 import { getMapOf } from '@jetstream/shared/utils';
+import { MapOf, SalesforceOrgUi } from '@jetstream/types';
 import * as jsforce from 'jsforce';
-import { ENV } from '../api/env';
-import * as request from 'superagent';
+import fetch from 'node-fetch';
 import { PassThrough } from 'stream';
+import { ENV } from '../api/env';
 
 export interface SalesforceOrgElectron extends SalesforceOrgUi {
   accessToken: string;
@@ -74,10 +74,12 @@ export async function streamFileDownload(orgId: string, data: { url: string }) {
   const rv = new PassThrough();
   // ensure that our token is valid and not expired
   await connection.identity();
-  request
-    .get(`${connection.instanceUrl}${url}`)
-    .set({ ['Authorization']: `Bearer ${connection.accessToken}`, ['X-SFDC-Session']: connection.accessToken })
-    .buffer(false)
-    .pipe(rv);
+
+  const results = await fetch(`${connection.instanceUrl}${url}`, {
+    method: 'GET',
+    headers: { ['Authorization']: `Bearer ${connection.accessToken}`, ['X-SFDC-Session']: connection.accessToken },
+  }).then(async (res) => {
+    res.body.pipe(rv);
+  });
   return rv;
 }

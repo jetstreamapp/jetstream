@@ -1,4 +1,3 @@
-// import { Response } from 'superagent';
 import { SalesforceOrgUi } from '@jetstream/types';
 import { AxiosResponse } from 'axios';
 

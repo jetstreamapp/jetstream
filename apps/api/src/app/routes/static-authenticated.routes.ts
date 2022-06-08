@@ -16,11 +16,11 @@ routes.get(
 );
 
 // This is not used AFAIK
-routes.get(
-  '/sfdc/bulk/:jobId/:batchId',
-  ensureOrgExists,
-  validate(bulkApiController.routeValidators.downloadResultsFile),
-  bulkApiController.downloadResultsFile
-);
+// routes.get(
+//   '/sfdc/bulk/:jobId/:batchId',
+//   ensureOrgExists,
+//   validate(bulkApiController.routeValidators.downloadResultsFile),
+//   bulkApiController.downloadResultsFile
+// );
 
 export default routes;

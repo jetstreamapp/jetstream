@@ -1,5 +1,6 @@
 import * as services from '@jetstream/server-services';
-import { ensureArray, ensureBoolean, splitArrayToMaxSize, toBoolean } from '@jetstream/shared/utils';
+import fetch, { RequestInit } from 'node-fetch';
+import { ensureArray, ensureBoolean, flattenObjectArray, splitArrayToMaxSize, toBoolean } from '@jetstream/shared/utils';
 import { ControllerFn, ControllerFnDataParams, ControllerFnParams, ControllerFnQuery, ControllerFnQueryParams } from '../types';
 import * as JSZip from 'jszip';
 import {
@@ -16,7 +17,6 @@ import { correctInvalidXmlResponseTypes, getRetrieveRequestFromListMetadata } fr
 import { Connection, DeployOptions, RequestInfo, RetrieveRequest, Tooling } from 'jsforce';
 import { HTTP, MIME_TYPES, ORG_VERSION_PLACEHOLDER } from '@jetstream/shared/constants';
 import { isObject, isString } from 'lodash';
-import axios, { AxiosError, AxiosRequestConfig } from 'axios';
 import { ENV } from '../env';
 import { parse as parseCsv } from 'papaparse';
 
@@ -482,7 +482,7 @@ export const makeJsforceRequest: ControllerFn<GenericRequestPayload> = async (_,
   }
 };
 
-export const makeJsforceRequestViaAxios: ControllerFn<ManualRequestPayload> = async (
+export const makeJsforceRequestViaNode: ControllerFn<ManualRequestPayload> = async (
   _,
   __,
   params,
@@ -494,16 +494,10 @@ export const makeJsforceRequestViaAxios: ControllerFn<ManualRequestPayload> = as
 
     url = url.replace(ORG_VERSION_PLACEHOLDER, connection.version);
 
-    const config: AxiosRequestConfig = {
-      url,
+    const config: RequestInit = {
       method,
-      baseURL: connection.instanceUrl,
       // X-SFDC-Session is used for some SOAP APIs, such as the bulk api
       headers: { ...(headers || {}), ['Authorization']: `Bearer ${connection.accessToken}`, ['X-SFDC-Session']: connection.accessToken },
-      responseType: 'text',
-      validateStatus: null,
-      timeout: 120000,
-      transformResponse: [], // required to avoid automatic json parsing
     };
 
     if (isString(body) && SESSION_ID_RGX.test(body)) {
@@ -511,42 +505,20 @@ export const makeJsforceRequestViaAxios: ControllerFn<ManualRequestPayload> = as
     }
 
     if (method !== 'GET' && body) {
-      config.data = body;
+      config.body = isString(body) ? body : JSON.stringify(body);
     }
 
-    axios
-      .request(config)
-      .then((response) => {
+    fetch(`${connection.instanceUrl}/${url}`.replaceAll('//', '/'), config)
+      .then(async (response) => {
         resolve({
           error: response.status < 200 || response.status > 300,
           status: response.status,
           statusText: response.statusText,
-          headers: JSON.stringify(response.headers || {}, null, 2),
-          body: response.data,
+          headers: JSON.stringify(flattenObjectArray(response.headers.raw()), null, 2),
+          body: await response.text(),
         });
       })
-      .catch((error: AxiosError) => {
-        if (error.isAxiosError) {
-          if (error.response) {
-            return resolve({
-              error: true,
-              errorMessage: null,
-              status: error.response.status,
-              statusText: error.response.statusText,
-              headers: JSON.stringify(error.response.headers || {}, null, 2),
-              body: error.response.data,
-            });
-          } else if (error.request) {
-            return resolve({
-              error: true,
-              errorMessage: error.message || 'An unknown error has occurred.',
-              status: null,
-              statusText: null,
-              headers: null,
-              body: null,
-            });
-          }
-        }
+      .catch((error) => {
         resolve({
           error: true,
           errorMessage: error.message || 'An unknown error has occurred, the request was not made.',

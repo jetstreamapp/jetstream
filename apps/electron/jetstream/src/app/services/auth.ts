@@ -1,10 +1,10 @@
-import { AuthenticationToken, UserProfileAuth0, UserProfileAuth0Ui } from '@jetstream/types';
-import axios from 'axios';
+import { AuthenticationToken, UserProfileAuth0Ui } from '@jetstream/types';
 import { createHash, randomBytes } from 'crypto';
 import { safeStorage } from 'electron';
 import * as fs from 'fs-extra';
 import * as jwt from 'jsonwebtoken';
 import * as jwksClient from 'jwks-rsa';
+import fetch from 'node-fetch';
 import { join } from 'path';
 import * as querystring from 'querystring';
 import { URLSearchParams } from 'url';
@@ -177,27 +177,28 @@ export async function exchangeCodeForToken(url: URL): Promise<AuthInfo> {
 
   const { clientId, domain } = getDomainAndClientId();
 
-  const { data: token } = await axios.request<AuthenticationToken>({
-    url: `https://${domain}/oauth/token`,
-    method: 'POST',
-    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-
-    data: new URLSearchParams({
-      audience: authAudience,
-      grant_type: 'authorization_code',
-      client_id: clientId,
-      code_verifier,
-      code,
-      redirect_uri: 'jetstream://localhost/oauth/callback',
-    }).toString(),
-  });
+  const token = await (
+    await fetch(`https://${domain}/oauth/token`, {
+      method: 'POST',
+      body: new URLSearchParams({
+        audience: authAudience,
+        grant_type: 'authorization_code',
+        client_id: clientId,
+        code_verifier,
+        code,
+        redirect_uri: 'jetstream://localhost/oauth/callback',
+      }),
+    })
+  ).json();
 
   logger.log('[AUTH][TOKEN][OBTAINED]');
 
-  const { data: userInfo } = await axios.request<UserProfileAuth0>({
-    url: `https://${domain}/userinfo`,
-    headers: { Authorization: `Bearer ${token.access_token}` },
-  });
+  const userInfo = await (
+    await fetch(`https://${domain}/userinfo`, {
+      method: 'GET',
+      headers: { Authorization: `Bearer ${token.access_token}` },
+    })
+  ).json();
 
   logger.log('[AUTH][USER INFO][OBTAINED]');
 
@@ -223,16 +224,16 @@ export async function refreshToken(refreshToken: string): Promise<Authentication
 
   const { clientId, domain } = getDomainAndClientId();
 
-  const { data: token } = await axios.request<AuthenticationToken>({
-    url: `https://${domain}/oauth/token`,
-    method: 'POST',
-    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-    data: new URLSearchParams({
-      grant_type: 'refresh_token',
-      client_id: clientId,
-      refresh_token: refreshToken,
-    }).toString(),
-  });
+  const token = await (
+    await fetch(`https://${domain}/oauth/token`, {
+      method: 'POST',
+      body: new URLSearchParams({
+        grant_type: 'refresh_token',
+        client_id: clientId,
+        refresh_token: refreshToken,
+      }),
+    })
+  ).json();
 
   logger.log('[AUTH][REFRESH TOKEN][OBTAINED]');
 

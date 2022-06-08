@@ -209,32 +209,11 @@ export default class App {
       }
     );
 
-    // session.defaultSession.webRequest.onBeforeSendHeaders(
-    //   { urls: ['https://*.my.salesforce.com/*'] },
-    //   (details, callback) => {
-    //     callback({ requestHeaders: { Origin: '*', ...details.requestHeaders } });
-    //   },
-    // );
-
-    // TODO: I just added this
-
-    session.defaultSession.webRequest.onHeadersReceived({ urls: ['https://*.my.salesforce.com/*'] }, (details, callback) => {
-      callback({
-        responseHeaders: {
-          Origin: '*',
-          ...details.responseHeaders,
-          'Access-Control-Allow-Origin': [new URL(details.referrer).origin],
-          'Access-Control-Allow-Credentials': ['true'],
-          'Access-Control-Allow-Headers': ['*'],
-          'Connect-Src': ["'self'", '*.my.salesforce.com'],
-        },
-      });
-    });
-
     // set CORS headers for Salesforce direct requests (platform events)
     session.defaultSession.webRequest.onHeadersReceived({ urls: ['https://*.my.salesforce.com/cometd/*'] }, (details, callback) => {
       console.log('[CORS][REQUEST]', details.url);
-      details.responseHeaders['Access-Control-Allow-Origin'] = [new URL(details.referrer).origin];
+      // localhost has a referrer, otherwise from filesystem there is no origin
+      details.responseHeaders['Access-Control-Allow-Origin'] = [details.referrer ? new URL(details.referrer).origin : '*'];
       details.responseHeaders['Access-Control-Allow-Credentials'] = ['true'];
       details.responseHeaders['Access-Control-Allow-Methods'] = ['*'];
       details.responseHeaders['Access-Control-Allow-Headers'] = ['Authorization', 'Content-Type', 'Referer', 'User-Agent'];
@@ -329,8 +308,8 @@ export default class App {
       height,
       minWidth: 1100,
       show: showImmediately,
-      titleBarStyle: 'hidden',
-      titleBarOverlay: true,
+      titleBarStyle: isMac ? 'hidden' : 'default',
+      titleBarOverlay: isMac,
       fullscreenable: false,
       fullscreen: true,
       webPreferences: {

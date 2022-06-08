@@ -1,8 +1,7 @@
 import { HTTP } from '@jetstream/shared/constants';
-import { bulkApiEnsureTyped, ensureArray, toBoolean } from '@jetstream/shared/utils';
+import { bulkApiEnsureTyped, ensureArray } from '@jetstream/shared/utils';
 import {
   BulkApiCreateJobRequestPayload,
-  BulkApiDownloadType,
   BulkJob,
   BulkJobBatchInfo,
   BulkJobBatchInfoUntyped,
@@ -11,10 +10,8 @@ import {
 } from '@jetstream/types';
 import * as jsforce from 'jsforce';
 import { isString } from 'lodash';
-import * as request from 'superagent';
+import fetch from 'node-fetch';
 import { convert as xmlConverter, create as xmlBuilder } from 'xmlbuilder2';
-import { NODE_STREAM_INPUT, parse as parseCsv } from 'papaparse';
-import { Writable } from 'stream';
 
 const { HEADERS, CONTENT_TYPE } = HTTP;
 
@@ -112,15 +109,29 @@ export async function sfBulkAddBatchToJob(
   jobId: string,
   closeJob = false
 ): Promise<BulkJobBatchInfo> {
-  const results = await request
-    .post(`${conn.instanceUrl}/services/async/${conn.version}/job/${jobId}/batch`)
-    .set({ [HEADERS.CONTENT_TYPE]: CONTENT_TYPE.CSV, Accept: CONTENT_TYPE.XML, [HEADERS.X_SFDC_Session]: conn.accessToken })
-    .send(csv)
-    .then((res) => {
-      const resultXml = xmlConverter((res.body as Buffer).toString(), { format: 'object', wellFormed: true }) as any;
-      const bulkJob = bulkApiEnsureTyped(resultXml.batchInfo);
-      return bulkJob;
-    });
+  const results = await fetch(`${conn.instanceUrl}/services/async/${conn.version}/job/${jobId}/batch`, {
+    method: 'POST',
+    headers: { [HEADERS.CONTENT_TYPE]: CONTENT_TYPE.CSV, Accept: CONTENT_TYPE.XML, [HEADERS.X_SFDC_Session]: conn.accessToken },
+    body: csv,
+  }).then(async (res) => {
+    // TODO: do I need to do this?
+    // if(res.status < 200 || res.status > 299) {
+    //   throw new Error(await res.text());
+    // }
+    const resultXml = xmlConverter(await res.text(), { format: 'object', wellFormed: true }) as any;
+    const bulkJob = bulkApiEnsureTyped(resultXml.batchInfo);
+    return bulkJob;
+  });
+
+  // const results = await request
+  //   .post(`${conn.instanceUrl}/services/async/${conn.version}/job/${jobId}/batch`)
+  //   .set({ [HEADERS.CONTENT_TYPE]: CONTENT_TYPE.CSV, Accept: CONTENT_TYPE.XML, [HEADERS.X_SFDC_Session]: conn.accessToken })
+  //   .send(csv)
+  //   .then((res) => {
+  //     const resultXml = xmlConverter((res.body as Buffer).toString(), { format: 'object', wellFormed: true }) as any;
+  //     const bulkJob = bulkApiEnsureTyped(resultXml.batchInfo);
+  //     return bulkJob;
+  //   });
 
   if (closeJob) {
     await sfBulkCloseJob(conn, jobId);
@@ -134,15 +145,29 @@ export async function sfBulkAddBatchWithZipAttachmentToJob(
   jobId: string,
   closeJob = false
 ): Promise<BulkJobBatchInfo> {
-  const results = await request
-    .post(`${conn.instanceUrl}/services/async/${conn.version}/job/${jobId}/batch`)
-    .set({ [HEADERS.CONTENT_TYPE]: CONTENT_TYPE.ZIP_CSV, Accept: CONTENT_TYPE.XML, [HEADERS.X_SFDC_Session]: conn.accessToken })
-    .send(zip)
-    .then((res) => {
-      const resultXml = xmlConverter((res.body as Buffer).toString(), { format: 'object', wellFormed: true }) as any;
-      const bulkJob = bulkApiEnsureTyped(resultXml.batchInfo);
-      return bulkJob;
-    });
+  const results = await fetch(`${conn.instanceUrl}/services/async/${conn.version}/job/${jobId}/batch`, {
+    method: 'POST',
+    headers: { [HEADERS.CONTENT_TYPE]: CONTENT_TYPE.ZIP_CSV, Accept: CONTENT_TYPE.XML, [HEADERS.X_SFDC_Session]: conn.accessToken },
+    body: zip,
+  }).then(async (res) => {
+    // TODO: do I need to do this?
+    // if(res.status < 200 || res.status > 299) {
+    //   throw new Error(await res.text());
+    // }
+    const resultXml = xmlConverter(await res.text(), { format: 'object', wellFormed: true }) as any;
+    const bulkJob = bulkApiEnsureTyped(resultXml.batchInfo);
+    return bulkJob;
+  });
+
+  // const results = await request
+  //   .post(`${conn.instanceUrl}/services/async/${conn.version}/job/${jobId}/batch`)
+  //   .set({ [HEADERS.CONTENT_TYPE]: CONTENT_TYPE.ZIP_CSV, Accept: CONTENT_TYPE.XML, [HEADERS.X_SFDC_Session]: conn.accessToken })
+  //   .send(zip)
+  //   .then((res) => {
+  //     const resultXml = xmlConverter((res.body as Buffer).toString(), { format: 'object', wellFormed: true }) as any;
+  //     const bulkJob = bulkApiEnsureTyped(resultXml.batchInfo);
+  //     return bulkJob;
+  //   });
 
   if (closeJob) {
     await sfBulkCloseJob(conn, jobId);
