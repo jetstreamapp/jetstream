@@ -39,8 +39,10 @@ export const RecordLookupPopover: FunctionComponent = () => {
   const getRecentRecords = useCallback(async () => {
     setRecordId('');
     try {
-      const recentItems = (await localforage.getItem<RecentRecordMap>(INDEXED_DB.KEYS.userPreferences)) || {};
-      setRecentRecords(recentItems[selectedOrg.uniqueId] || []);
+      if (selectedOrg?.uniqueId) {
+        const recentItems = (await localforage.getItem<RecentRecordMap>(INDEXED_DB.KEYS.userPreferences)) || {};
+        setRecentRecords(recentItems[selectedOrg.uniqueId] || []);
+      }
     } catch (ex) {
       logger.warn('[ERROR] Could not get recent record history', ex);
     }
@@ -161,6 +163,10 @@ export const RecordLookupPopover: FunctionComponent = () => {
 
   const isDisabled = !recordId || (recordId.length !== 15 && recordId.length !== 18);
 
+  if (!selectedOrg || !!selectedOrg.connectionError) {
+    return null;
+  }
+
   return (
     <Fragment>
       {modalOpen && (
@@ -246,7 +252,7 @@ export const RecordLookupPopover: FunctionComponent = () => {
           </div>
         }
         buttonProps={{
-          className: 'slds-button slds-button_icon slds-button_icon-border-filled',
+          className: 'slds-button slds-button_icon slds-button_icon-border-filled cursor-pointer',
           title: 'View Record Details - ctrl/command + k',
           disabled: !selectedOrg || !!selectedOrg.connectionError,
         }}

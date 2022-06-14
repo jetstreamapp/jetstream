@@ -6,7 +6,7 @@ import { createServer, IncomingMessage } from 'http';
 import { Server, Socket } from 'socket.io';
 import { ExtendedError } from 'socket.io/dist/namespace';
 import { DefaultEventsMap } from 'socket.io/dist/typed-events';
-import * as uuid from 'uuid';
+import { nanoid } from 'nanoid';
 import { environment } from '../../environments/environment';
 import * as socketUtils from '../utils/socket-utils';
 
@@ -54,7 +54,7 @@ export function initSocketServer(app: express.Express, middlewareFns: express.Re
   });
 
   io.engine.generateId = (req) => {
-    return uuid.v4(); // must be unique across all Socket.IO servers
+    return nanoid(); // must be unique across all Socket.IO servers
   };
 
   // can we do anything here?

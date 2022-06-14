@@ -1,0 +1,72 @@
+{
+  "root": "apps/electron/jetstream",
+  "sourceRoot": "apps/electron/jetstream/src",
+  "projectType": "application",
+  "targets": {
+    "build": {
+      "executor": "nx-electron:build",
+      "outputs": ["{options.outputPath}"],
+      "options": {
+        "outputPath": "dist/apps/electron/jetstream",
+        "main": "apps/electron/jetstream/src/main.ts",
+        "tsConfig": "apps/electron/jetstream/tsconfig.app.json",
+        "generatePackageJson": false,
+        "assets": ["apps/electron/jetstream/src/assets"]
+      },
+      "configurations": {
+        "production": {
+          "optimization": true,
+          "extractLicenses": true,
+          "inspect": false,
+          "generatePackageJson": false,
+          "fileReplacements": [
+            {
+              "replace": "apps/electron/jetstream/src/environments/environment.ts",
+              "with": "apps/electron/jetstream/src/environments/environment.prod.ts"
+            }
+          ]
+        }
+      }
+    },
+    "serve": {
+      "executor": "nx-electron:execute",
+      "options": {
+        "buildTarget": "electron-jetstream:build",
+        "inspect": true,
+        "port": 5858
+      }
+    },
+    "package": {
+      "executor": "nx-electron:package",
+      "options": {
+        "name": "electron/jetstream",
+        "frontendProject": "jetstream",
+        "outputPath": "dist/packages",
+        "prepackageOnly": true
+      }
+    },
+    "make": {
+      "executor": "nx-electron:make",
+      "options": {
+        "name": "electron/jetstream",
+        "frontendProject": "jetstream",
+        "outputPath": "dist/executables"
+      }
+    },
+    "lint": {
+      "executor": "@nrwl/linter:eslint",
+      "outputs": ["{options.outputFile}"],
+      "options": {
+        "lintFilePatterns": ["apps/electron/jetstream/**/*.ts"]
+      }
+    },
+    "test": {
+      "executor": "@nrwl/jest:jest",
+      "outputs": ["coverage/apps/electron/jetstream"],
+      "options": {
+        "jestConfig": "apps/electron/jetstream/jest.config.ts",
+        "passWithNoTests": true
+      }
+    }
+  }
+}

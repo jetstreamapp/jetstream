@@ -130,6 +130,7 @@ export * from './lib/widgets/CopyToClipboard';
 export * from './lib/widgets/HelpText';
 export * from './lib/widgets/Icon';
 export * from './lib/widgets/ItemSelectionSummary';
+export * from './lib/widgets/JetstreamIcon';
 export * from './lib/widgets/Pill';
 export * from './lib/widgets/SalesforceLogin';
 export * from './lib/widgets/Spinner';

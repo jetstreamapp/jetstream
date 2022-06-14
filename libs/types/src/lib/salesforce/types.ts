@@ -1,4 +1,4 @@
-import { DescribeSObjectResult, Field, RetrieveResult as RetrieveResultSfdc } from 'jsforce';
+import type { DescribeSObjectResult, Field, RetrieveResult as RetrieveResultSfdc } from 'jsforce';
 import { HttpMethod, MapOf, RecordAttributes } from '../types';
 
 export type BulkApiDownloadType = 'request' | 'result';

@@ -65,7 +65,7 @@ export const HeaderHelpPopover: FunctionComponent<HeaderHelpPopoverProps> = () =
       }
       buttonProps={{
         className:
-          'slds-button slds-button_icon slds-button_icon slds-button_icon-container slds-button_icon-small slds-global-actions__help slds-global-actions__item-action',
+          'slds-button slds-button_icon slds-button_icon slds-button_icon-container slds-button_icon-small slds-global-actions__help slds-global-actions__item-action cursor-pointer',
       }}
     >
       <Icon type="utility" icon="help" className="slds-button__icon slds-global-header__icon" omitContainer />

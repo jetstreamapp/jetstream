@@ -33,7 +33,7 @@ export interface DownZipFile {
   size: number;
 }
 
-const SCOPE = 'jetstream-download-zip';
+let swScope = 'jetstream-download-zip';
 const TIMEOUT_MS = 5000;
 const KEEPALIVE_INTERVAL_MS = 5000;
 const CMD_ACKNOWLEDGE = 'ACKNOWLEDGE';
@@ -57,7 +57,15 @@ export async function cancelZipDownload(url: string) {
 
 async function registerServiceWorker() {
   if ('serviceWorker' in navigator) {
-    const registration = await navigator.serviceWorker.register(`/sw/download-zip.sw.js`, { scope: `./${SCOPE}/` });
+    let filename = `/sw/download-zip.sw.js`;
+
+    if ((window as any)?.electron?.isElectron) {
+      // TODO: need to figure out how to handle this when app is packaged
+      filename = './electron-assets/download-zip-sw/download-zip.sw.js';
+      swScope = 'electron-assets/download-zip-sw';
+    }
+
+    const registration = await navigator.serviceWorker.register(filename, { scope: `./${swScope}/` });
     logger.log('[SW CLIENT][REGISTRATION][SUCCESS]', registration.scope);
     return registration;
   } else {
@@ -164,7 +172,7 @@ class DownZip {
       const messageChannel = new MessageChannel();
       const eventHandler = (event: MessageEvent<any>) => {
         if (event.data.command === CMD_ACKNOWLEDGE) {
-          resolve(`${SCOPE}/download-${id}`);
+          resolve(`${swScope}/download-${id}`);
           messageChannel.port1.removeEventListener('message', eventHandler);
           messageChannel.port1.close();
         }

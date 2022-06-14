@@ -1,5 +1,5 @@
-import { Query } from 'soql-parser-js';
-import { QueryResult } from 'jsforce';
+import type { Query } from 'soql-parser-js';
+import type { QueryResult } from 'jsforce';
 
 export interface RequestResult<T> {
   data: T;

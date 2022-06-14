@@ -1,6 +1,7 @@
 import { logger } from '@jetstream/shared/client-logger';
 import { ApplicationCookie } from '@jetstream/types';
-import amplitude from 'amplitude-js';
+import amplitude, { Config } from 'amplitude-js';
+import isBoolean from 'lodash/isBoolean';
 import React, { useEffect } from 'react';
 import { useLocation } from 'react-router-dom';
 import { useRecoilValue } from 'recoil';
@@ -14,17 +15,30 @@ const REMOVE_PROTO_REGEX = new RegExp('^http(s?)://');
 
 function init(appCookie: ApplicationCookie) {
   hasInit = true;
-  amplitude.getInstance().init(environment.amplitudeToken, undefined, {
-    apiEndpoint: `${appCookie.serverUrl.replace(REMOVE_PROTO_REGEX, '')}/analytics`,
-    forceHttps: false,
-  });
+  const config: Config = !window.electron?.isElectron
+    ? {
+        apiEndpoint: `${appCookie.serverUrl.replace(REMOVE_PROTO_REGEX, '')}/analytics`,
+        forceHttps: false,
+      }
+    : undefined;
+  amplitude.getInstance().init(environment.amplitudeToken, undefined, config);
   amplitude.getInstance().setVersionName(process.env.GIT_VERSION);
 }
 
-export function useAmplitude() {
+export function useAmplitude(optOut?: boolean) {
   const appCookie = useRecoilValue(fromAppState.applicationCookieState);
   const userProfile = useRecoilValue(fromAppState.userProfileState);
   const userPreferences = useRecoilValue(fromAppState.selectUserPreferenceState);
+
+  useEffect(() => {
+    if (isBoolean(optOut)) {
+      if (optOut) {
+        amplitude.getInstance().setOptOut(true);
+      } else {
+        amplitude.getInstance().setOptOut(false);
+      }
+    }
+  }, [optOut]);
 
   useEffect(() => {
     if (!hasInit && appCookie) {
@@ -42,7 +56,8 @@ export function useAmplitude() {
         .set('feature-flags', userProfile['http://getjetstream.app/app_metadata']?.featureFlags)
         .set('environment', appCookie.environment)
         .set('denied-notifications', userPreferences.deniedNotifications)
-        .add('app-init-count', 1);
+        .add('app-init-count', 1)
+        .add('application-type', window.electron?.platform || 'web');
 
       amplitude.getInstance().identify(identify);
       amplitude.getInstance().setUserId(userProfile.email);

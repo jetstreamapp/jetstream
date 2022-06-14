@@ -15,6 +15,10 @@ module.exports = (config) => {
   // https://webpack.js.org/loaders/worker-loader/
   // config.module.rules.unshift({ test: /\.worker\.ts$/, loader: 'worker-loader' });
 
+  // required for monaco editor in electron environment
+  config.resolve = config.resolve || {};
+  config.resolve.fallback = { path: false };
+
   config.plugins = config.plugins || [];
   config.plugins.unshift(gitRevisionPlugin);
   config.plugins.unshift(

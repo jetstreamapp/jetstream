@@ -26,6 +26,7 @@ export interface FeedbackFormProps {
 }
 
 export const FeedbackForm: FunctionComponent<FeedbackFormProps> = ({ loading, hasError, onSubmit }) => {
+  const isElectron = !!window.electron?.isElectron;
   useTitle(TITLES.FEEDBACK);
   const cardRef = useRef<HTMLElement>();
   const [title, setTitle] = useState('');
@@ -51,7 +52,11 @@ export const FeedbackForm: FunctionComponent<FeedbackFormProps> = ({ loading, ha
       className="slds-grow slds-is-relative"
       title="Support and Feedback"
       actions={
-        <button className="slds-button slds-button_brand" onClick={() => onSubmit({ title, content, images })} disabled={!formValid}>
+        <button
+          className="slds-button slds-button_brand"
+          onClick={() => onSubmit({ title, content, images })}
+          disabled={!formValid || isElectron}
+        >
           Submit
         </button>
       }
@@ -61,6 +66,11 @@ export const FeedbackForm: FunctionComponent<FeedbackFormProps> = ({ loading, ha
       `}
     >
       {loading && <Spinner />}
+      {isElectron && (
+        <ScopedNotification theme="warning" className="slds-m-vertical_small">
+          The desktop application does not yet support filing support tickets, email us to report issues.
+        </ScopedNotification>
+      )}
       <Grid vertical>
         <p>
           Ask your questions, report issues, request new features, or just tell us how much you love{' '}
@@ -91,7 +101,7 @@ export const FeedbackForm: FunctionComponent<FeedbackFormProps> = ({ loading, ha
             className="slds-input"
             placeholder="Ticket subject"
             value={title}
-            disabled={loading}
+            disabled={loading || isElectron}
             maxLength={256}
             onChange={(event) => setTitle(event.target.value)}
           />
@@ -100,11 +110,11 @@ export const FeedbackForm: FunctionComponent<FeedbackFormProps> = ({ loading, ha
           label="Description"
           isRequired
           options={{ placeholder: `Tell us what's going on...` }}
-          disabled={loading}
+          disabled={loading || isElectron}
           onChange={setContent}
         />
 
-        <ImageSelector draggableRef={cardRef.current} disabled={loading} onImages={setImages}></ImageSelector>
+        <ImageSelector draggableRef={cardRef.current} disabled={loading || isElectron} onImages={setImages}></ImageSelector>
       </Grid>
     </Card>
   );

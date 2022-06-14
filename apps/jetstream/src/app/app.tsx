@@ -3,6 +3,7 @@ import { UserProfileUi } from '@jetstream/types';
 import { ConfirmationServiceProvider } from '@jetstream/ui';
 // import { initSocket } from '@jetstream/shared/data';
 import { OverlayProvider } from '@react-aria/overlays';
+import classNames from 'classnames';
 import React, { Suspense, useEffect, useState } from 'react';
 import { ErrorBoundary } from 'react-error-boundary';
 import ModalContainer from 'react-modal-promise';
@@ -54,13 +55,7 @@ export const App = () => {
                 <div data-testid="header">
                   <HeaderNavbar userProfile={userProfile} featureFlags={featureFlags} />
                 </div>
-                <div
-                  className="slds-p-horizontal_xx-small slds-p-vertical_xx-small"
-                  css={css`
-                    margin-top: 90px;
-                  `}
-                  data-testid="content"
-                >
+                <div className="app-container slds-p-horizontal_xx-small slds-p-vertical_xx-small" data-testid="content">
                   <Suspense fallback={<AppLoading />}>
                     <ErrorBoundary FallbackComponent={ErrorBoundaryFallback}>
                       <AppRoutes featureFlags={featureFlags} userProfile={userProfile} />

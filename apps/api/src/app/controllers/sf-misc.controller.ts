@@ -58,7 +58,7 @@ export async function getFrontdoorLoginUrl(req: Request, res: Response, next: Ne
 
 /**
  * Stream a file download from Salesforce
- * Query parameter of url is required (e.x. `/services/data/v53.0/sobjects/Attachment/00P6g000007BzmTEAS/Body`)
+ * Query parameter of url is required (e.x. `/services/data/v54.0/sobjects/Attachment/00P6g000007BzmTEAS/Body`)
  * @returns
  */
 export async function streamFileDownload(req: Request, res: Response, next: NextFunction) {

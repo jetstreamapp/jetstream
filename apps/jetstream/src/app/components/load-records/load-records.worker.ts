@@ -1,7 +1,14 @@
 /// <reference lib="webworker" />
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { logger } from '@jetstream/shared/client-logger';
-import { bulkApiAddBatchToJob, bulkApiCloseJob, bulkApiCreateJob, bulkApiGetJob, genericRequest } from '@jetstream/shared/data';
+import {
+  bulkApiAddBatchToJob,
+  bulkApiCloseJob,
+  bulkApiCreateJob,
+  bulkApiGetJob,
+  genericRequest,
+  initForElectron,
+} from '@jetstream/shared/data';
 import { generateCsv } from '@jetstream/shared/ui-utils';
 import { getHttpMethod, getSizeInMbFromBase64, splitArrayToMaxSize } from '@jetstream/shared/utils';
 import {
@@ -23,8 +30,9 @@ import {
   PrepareDataPayload,
 } from '../../components/load-records/load-records-types';
 import { fetchMappedRelatedRecords, LoadRecordsBatchError, transformData } from './utils/load-records-utils';
+import { axiosElectronAdapter, initMessageHandler } from '../core/electron-axios-adapter';
 
-type MessageName = 'prepareData' | 'prepareDataProgress' | 'loadData' | 'loadDataStatus';
+type MessageName = 'isElectron' | 'prepareData' | 'prepareDataProgress' | 'loadData' | 'loadDataStatus';
 // eslint-disable-next-line no-restricted-globals
 const ctx: Worker = self as any;
 
@@ -32,12 +40,17 @@ const ctx: Worker = self as any;
 ctx.addEventListener('message', (event) => {
   const payload: WorkerMessage<MessageName> = event.data;
   logger.info('[WORKER]', { payload });
-  handleMessage(payload.name, payload.data);
+  handleMessage(payload.name, payload.data, event.ports?.[0]);
 });
 
-async function handleMessage(name: MessageName, payloadData: any) {
+async function handleMessage(name: MessageName, payloadData: any, port?: MessagePort) {
   try {
     switch (name) {
+      case 'isElectron': {
+        initForElectron(axiosElectronAdapter);
+        initMessageHandler(port);
+        break;
+      }
       case 'prepareData': {
         payloadData = payloadData || {};
         const { data, fieldMapping, sObject, dateFormat, apiMode } = payloadData as PrepareDataPayload;

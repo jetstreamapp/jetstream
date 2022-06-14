@@ -21,6 +21,7 @@ import {
   ViewModalData,
 } from '../../load-records-types';
 import { getFieldHeaderFromMapping } from '../../utils/load-records-utils';
+import { getLoadWorker } from '../../utils/load-records-worker';
 import LoadRecordsBatchApiResultsTable from './LoadRecordsBatchApiResultsTable';
 import LoadRecordsResultsModal from './LoadRecordsResultsModal';
 
@@ -75,10 +76,10 @@ export const LoadRecordsBatchApiResults: FunctionComponent<LoadRecordsBatchApiRe
   const { trackEvent } = useAmplitude();
   const rollbar = useRollbar();
   // used to ensure that data in the onworker callback gets a reference to the results
+  const [loadWorker] = useState(() => getLoadWorker());
   const processingStatusRef = useRef<{ success: number; failure: number }>({ success: 0, failure: 0 });
   const [preparedData, setPreparedData] = useState<PrepareDataResponse>();
   const [prepareDataProgress, setPrepareDataProgress] = useState(0);
-  const [loadWorker] = useState(() => new Worker(new URL('../../load-records.worker', import.meta.url)));
   const [status, setStatus] = useState<Status>(STATUSES.PREPARING);
   const [fatalError, setFatalError] = useState<string>(null);
   const [processingStartTime, setProcessingStartTime] = useState<string>(null);
@@ -94,7 +95,7 @@ export const LoadRecordsBatchApiResults: FunctionComponent<LoadRecordsBatchApiRe
   const [downloadModalData, setDownloadModalData] = useState<DownloadModalData>({ open: false, data: [], header: [], fileNameParts: [] });
   const [resultsModalData, setResultsModalData] = useState<ViewModalData>({ open: false, data: [], header: [], type: 'results' });
   const [{ serverUrl, google_apiKey, google_appId, google_clientId }] = useRecoilState(applicationCookieState);
-  const { notifyUser } = useBrowserNotifications(serverUrl);
+  const { notifyUser } = useBrowserNotifications(serverUrl, window.electron?.isFocused);
 
   useEffect(() => {
     isMounted.current = true;
@@ -120,7 +121,7 @@ export const LoadRecordsBatchApiResults: FunctionComponent<LoadRecordsBatchApiRe
       loadWorker.postMessage({ name: 'prepareData', data: data });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [loadWorker]);
+  }, []);
 
   useEffect(() => {
     if (preparedData && preparedData.data.length) {

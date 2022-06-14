@@ -1,4 +1,4 @@
-import { InputAcceptTypeCsv, InputAcceptTypeExcel, InputAcceptTypeXml, InputAcceptTypeZip, MapOf, MimeType } from '@jetstream/types';
+import { InputAcceptTypeCsv, InputAcceptTypeExcel, InputAcceptTypeXml, InputAcceptTypeZip, MimeType } from '@jetstream/types';
 
 export const ORG_VERSION_PLACEHOLDER = '_DEFAULT_VERSION_';
 

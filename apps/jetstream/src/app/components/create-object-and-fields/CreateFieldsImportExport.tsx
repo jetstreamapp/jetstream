@@ -126,7 +126,7 @@ export const CreateFieldsImportExport: FunctionComponent<CreateFieldsImportExpor
         />
       )}
       <ButtonGroupContainer>
-        <button className="slds-button slds-button_neutral" onClick={() => handleExport()}>
+        <button className="slds-button slds-button_neutral slds-button_first" onClick={() => handleExport()}>
           <Icon type="utility" icon="download" className="slds-button__icon slds-button__icon_left" omitContainer />
           Export Fields
         </button>
@@ -152,7 +152,7 @@ export const CreateFieldsImportExport: FunctionComponent<CreateFieldsImportExpor
             </div>
           }
           buttonProps={{
-            className: 'slds-button slds-button_neutral',
+            className: 'slds-button slds-button_neutral slds-button_middle',
           }}
         >
           <Icon type="utility" icon="upload" className="slds-button__icon slds-button__icon_left" omitContainer />

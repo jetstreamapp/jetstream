@@ -15,12 +15,12 @@ routes.get(
   sfMiscController.getFrontdoorLoginUrl
 );
 
-// Is this used?
-routes.get(
-  '/sfdc/bulk/:jobId/:batchId',
-  ensureOrgExists,
-  validate(bulkApiController.routeValidators.downloadResultsFile),
-  bulkApiController.downloadResultsFile
-);
+// This is not used AFAIK
+// routes.get(
+//   '/sfdc/bulk/:jobId/:batchId',
+//   ensureOrgExists,
+//   validate(bulkApiController.routeValidators.downloadResultsFile),
+//   bulkApiController.downloadResultsFile
+// );
 
 export default routes;

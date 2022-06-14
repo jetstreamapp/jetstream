@@ -16,6 +16,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { useRecoilState } from 'recoil';
 import { applicationCookieState } from '../../app-state';
 import { useAmplitude } from '../core/analytics';
+import { fireToast } from '../core/AppToast';
 import * as platformEventUtils from './platform-event-monitor.utils';
 
 export type MessagesByChannel = MapOf<{ replayId?: number; messages: PlatformEventMessagePayload[] }>;
@@ -113,22 +114,27 @@ export function usePlatformEvent({ selectedOrg }: { selectedOrg: SalesforceOrgUi
 
   const subscribe = useCallback(
     async (platformEventName: string, replayId?: number) => {
-      if (selectedOrg) {
-        let requiredInit = false;
-        if (!cometD.current || cometD.current.isDisconnected()) {
-          cometD.current = await platformEventUtils.init({ defaultApiVersion, selectedOrg, serverUrl });
-          requiredInit = true;
+      try {
+        if (selectedOrg) {
+          let requiredInit = false;
+          if (!cometD.current || cometD.current.isDisconnected()) {
+            cometD.current = await platformEventUtils.init({ defaultApiVersion, selectedOrg, serverUrl });
+            requiredInit = true;
+          }
+
+          const cometd = cometD.current;
+          platformEventUtils.subscribe({ cometd, platformEventName, replayId }, onEvent(replayId));
+
+          setMessagesByChannel((item) => {
+            item = { ...item };
+            item[platformEventName] = { messages: [], replayId };
+            return item;
+          });
+          trackEvent(ANALYTICS_KEYS.platform_event_subscribed, { requiredInit });
         }
-
-        const cometd = cometD.current;
-        platformEventUtils.subscribe({ cometd, platformEventName, replayId }, onEvent(replayId));
-
-        setMessagesByChannel((item) => {
-          item = { ...item };
-          item[platformEventName] = { messages: [], replayId };
-          return item;
-        });
-        trackEvent(ANALYTICS_KEYS.platform_event_subscribed, { requiredInit });
+      } catch (ex) {
+        logger.warn('[PLATFORM EVENT][ERROR]', ex.message);
+        fireToast({ type: 'error', message: 'Error connecting to Salesforce' });
       }
     },
     [selectedOrg]
@@ -136,19 +142,23 @@ export function usePlatformEvent({ selectedOrg }: { selectedOrg: SalesforceOrgUi
 
   const unsubscribe = useCallback(
     async (platformEventName: string) => {
-      if (cometD.current) {
-        const cometd = cometD.current;
-        platformEventUtils.unsubscribe({ cometd, platformEventName });
+      try {
+        if (cometD.current) {
+          const cometd = cometD.current;
+          platformEventUtils.unsubscribe({ cometd, platformEventName });
 
-        setMessagesByChannel((item) => {
-          return Object.keys(item)
-            .filter((key) => key !== platformEventName)
-            .reduce((output: MessagesByChannel, key) => {
-              output[key] = item[key];
-              return output;
-            }, {});
-        });
-        trackEvent(ANALYTICS_KEYS.platform_event_unsubscribe, { user_initiated: true });
+          setMessagesByChannel((item) => {
+            return Object.keys(item)
+              .filter((key) => key !== platformEventName)
+              .reduce((output: MessagesByChannel, key) => {
+                output[key] = item[key];
+                return output;
+              }, {});
+          });
+          trackEvent(ANALYTICS_KEYS.platform_event_unsubscribe, { user_initiated: true });
+        }
+      } catch (ex) {
+        logger.warn('[PLATFORM EVENT][ERROR] unsubscribing', ex.message);
       }
     },
     [selectedOrg]

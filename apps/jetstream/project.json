@@ -12,13 +12,14 @@
         "main": "apps/jetstream/src/main.tsx",
         "polyfills": "apps/jetstream/src/polyfills.ts",
         "tsConfig": "apps/jetstream/tsconfig.app.json",
-        "assets": ["apps/jetstream/src/favicon.ico", "apps/jetstream/src/assets"],
+        "assets": ["apps/jetstream/src/favicon.ico", "apps/jetstream/src/assets", "apps/jetstream/src/electron-assets"],
         "styles": [],
         "scripts": [],
         "webpackConfig": "webpack.config.js"
       },
       "configurations": {
         "production": {
+          "baseHref": "/app",
           "fileReplacements": [
             {
               "replace": "apps/jetstream/src/environments/environment.ts",
@@ -43,6 +44,26 @@
               "maximumError": "10mb"
             }
           ]
+        },
+        "electron": {
+          "baseHref": "./",
+          "fileReplacements": [
+            {
+              "replace": "apps/jetstream/src/environments/environment.ts",
+              "with": "apps/jetstream/src/environments/environment.electron.ts"
+            },
+            {
+              "replace": "libs/ui/.storybook/storybook-styles.scss",
+              "with": "apps/jetstream/src/main.scss"
+            }
+          ],
+          "optimization": true,
+          "outputHashing": "none",
+          "sourceMap": false,
+          "extractCss": false,
+          "namedChunks": false,
+          "extractLicenses": false,
+          "vendorChunk": false
         },
         "test": {
           "fileReplacements": [
@@ -85,6 +106,7 @@
       "options": {
         "buildTarget": "jetstream:build",
         "hmr": true,
+        "baseHref": "/app",
         "proxyConfig": "proxy.conf.json"
       },
       "configurations": {

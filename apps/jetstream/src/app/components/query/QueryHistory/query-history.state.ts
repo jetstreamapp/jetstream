@@ -38,7 +38,7 @@ export async function cleanUpHistoryState(): Promise<MapOf<QueryHistoryItem> | u
     }
     didRunCleanup = true;
     const history = await initQueryHistory();
-    if (Object.keys(history).length > ITEMS_UNTIL_PRUNE) {
+    if (Object.keys(history || {}).length > ITEMS_UNTIL_PRUNE) {
       logger.info('[QUERY-HISTORY][CLEANUP]', 'Cleaning up query history');
       const dateCutOff = startOfDay(addDays(new Date(), -1 * DAYS_TO_KEEP));
       const itemsToKeep = getMapOf(

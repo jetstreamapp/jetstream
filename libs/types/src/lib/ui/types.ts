@@ -1,6 +1,6 @@
 import { QueryResultsColumn } from '@jetstream/api-interfaces';
-import { ChildRelationship, DescribeSObjectResult, Field } from 'jsforce';
-import { ReactNode } from 'react';
+import type { ChildRelationship, DescribeSObjectResult, Field } from 'jsforce';
+import type { ReactNode } from 'react';
 import type * as XLSX from 'xlsx';
 import { DeployOptions, DeployResult, DeployResultStatus, ListMetadataResult } from '../salesforce/types';
 import { HttpMethod, MapOf, SalesforceOrgUi } from '../types';
@@ -364,7 +364,7 @@ export interface FormGroupDropdownItem {
   icon?: any; // FIXME:
 }
 
-export type AsyncJobType = 'BulkDelete' | 'BulkDownload' | 'RetrievePackageZip' | 'UploadToGoogle';
+export type AsyncJobType = 'isElectron' | 'init' | 'BulkDelete' | 'BulkDownload' | 'RetrievePackageZip' | 'UploadToGoogle';
 export type AsyncJobStatus = 'pending' | 'in-progress' | 'success' | 'finished-warning' | 'failed' | 'aborted';
 
 export type AsyncJobNew<T = unknown> = Omit<AsyncJob<T>, 'id' | 'started' | 'finished' | 'lastActivity' | 'status' | 'statusMessage'>;
@@ -398,6 +398,7 @@ export type JetstreamEventType = 'newJob' | 'jobFinished' | 'lastActivityUpdate'
 export type JetstreamEvents = JetstreamEventJobFinished | JetstreamEventLastActivityUpdate | JetstreamEventNewJob | JetstreamEventAddOrg;
 export interface JetstreamEventAddOrgPayload {
   org: SalesforceOrgUi;
+  switchActiveOrg: boolean;
   replaceOrgUniqueId?: string;
 }
 export type JetstreamEventPayloads = AsyncJob | AsyncJobNew[] | JetstreamEventAddOrgPayload;
@@ -648,4 +649,15 @@ export interface ChangeSet {
   status: 'Open' | 'Closed'; // not sure exact types
   modifiedBy: string;
   modifiedDate: string;
+}
+
+export interface ElectronPreferences {
+  isInitialized: boolean;
+  analyticsOptIn: boolean;
+  crashReportingOptIn: boolean;
+  downloadFolder: { prompt: true; location?: string } | { prompt: false; location: string };
+  defaultApiVersion: { override: boolean; overrideValue?: string }; // format: 54.0
+  // syncOrgs: boolean;
+  // notifications
+  // bounce dock
 }

@@ -1,5 +1,9 @@
 @import '~@salesforce-ux/design-system/scss/_design-tokens';
 
+html {
+  background-color: rgb(17, 24, 39);
+}
+
 .app {
   // brand styling
 }
@@ -275,4 +279,73 @@ button.ql-active {
 
 .text-bold {
   font-weight: $font-weight-bold;
+}
+
+:root {
+  --title-bar-height: 50px;
+  --app-top-offset: 90px;
+  --app-brand-color: rgb(17, 24, 39);
+}
+
+.app-container {
+  margin-top: var(--app-top-offset);
+}
+
+.is-electron {
+  .app-container {
+    margin-top: unset;
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    top: var(--app-top-offset);
+    // overflow-x: hidden;
+  }
+
+  .slds-modal {
+    top: var(--app-top-offset);
+  }
+
+  .global-titlebar {
+    position: absolute;
+    top: env(titlebar-area-y, 0);
+    // height: env(titlebar-area-height, var(--title-bar-height));
+    height: var(--title-bar-height);
+    // width: 100%;
+    width: env(titlebar-area-width, 100%);
+    background-color: var(--app-brand-color);
+
+    .draggable {
+      app-region: drag;
+      /* Pre-fix app-region during standardization process */
+      -webkit-app-region: drag;
+    }
+
+    .non-draggable {
+      app-region: no-drag;
+      /* Pre-fix app-region during standardization process */
+      -webkit-app-region: no-drag;
+    }
+
+    .titlebar {
+      position: absolute;
+      top: 0;
+      display: flex;
+      user-select: none;
+      height: 100%;
+      left: env(titlebar-area-x, 0);
+      width: calc(100vw - 5.5rem);
+    }
+
+    .slds-button.slds-button_icon {
+      color: white;
+      &.slds-button_icon-border-filled {
+        color: $brand-header-icon;
+      }
+    }
+  }
+
+  .electron-navbar {
+    margin-top: var(--title-bar-height);
+  }
 }

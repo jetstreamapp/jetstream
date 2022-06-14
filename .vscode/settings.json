@@ -1,5 +1,5 @@
 {
-  "cSpell.words": ["unpackaged"],
+  "cSpell.words": ["titlebar", "unpackaged"],
   "search.exclude": {
     "apps/api/src/assets/js": true,
     "apps/authentication": true,

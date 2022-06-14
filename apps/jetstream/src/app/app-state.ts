@@ -3,7 +3,14 @@ import { HTTP, INDEXED_DB } from '@jetstream/shared/constants';
 import { getOrgs, getUserProfile } from '@jetstream/shared/data';
 import { getOrgType, parseCookie } from '@jetstream/shared/ui-utils';
 import { getMapOf } from '@jetstream/shared/utils';
-import { ApplicationCookie, SalesforceOrgUi, SalesforceOrgUiType, UserProfilePreferences, UserProfileUi } from '@jetstream/types';
+import {
+  ApplicationCookie,
+  ElectronPreferences,
+  SalesforceOrgUi,
+  SalesforceOrgUiType,
+  UserProfilePreferences,
+  UserProfileUi,
+} from '@jetstream/types';
 import localforage from 'localforage';
 import isString from 'lodash/isString';
 import { atom, selector, useRecoilValue, useSetRecoilState } from 'recoil';
@@ -17,21 +24,27 @@ export const STORAGE_KEYS = {
  * Parse application state with a fallback in case there is an issue parsing
  */
 function getAppCookie() {
-  let appState = parseCookie<ApplicationCookie>(HTTP.COOKIE.JETSTREAM);
-  appState = appState || {
+  let appState = window.electron?.isElectron ? window.electron.appCookie : parseCookie<ApplicationCookie>(HTTP.COOKIE.JETSTREAM);
+  appState = { ...appState } || {
     serverUrl: 'http://localhost:3333',
     environment: 'development',
-    defaultApiVersion: 'v53.0',
+    defaultApiVersion: 'v54.0',
     google_appId: '1071580433137',
     google_apiKey: 'AIzaSyDaqv3SafGq6NmVVwUWqENrf2iEFiDSMoA',
     google_clientId: '1094188928456-fp5d5om6ar9prdl7ak03fjkqm4fgagoj.apps.googleusercontent.com',
   };
   appState.serverUrl = appState.serverUrl || 'https://getjetstream.app/';
   appState.environment = appState.environment || 'production';
-  appState.defaultApiVersion = appState.defaultApiVersion || 'v53.0';
+  appState.defaultApiVersion = appState.defaultApiVersion || 'v54.0';
   appState.google_appId = appState.google_appId || '1071580433137';
   appState.google_apiKey = appState.google_apiKey || 'AIzaSyDaqv3SafGq6NmVVwUWqENrf2iEFiDSMoA';
   appState.google_clientId = appState.google_clientId || '1094188928456-fp5d5om6ar9prdl7ak03fjkqm4fgagoj.apps.googleusercontent.com';
+
+  // if electron, ensure good defaults are set
+  if (window.electron?.isElectron) {
+    appState.serverUrl = 'http://localhost';
+    appState.environment = window.electron?.isElectronDev ? 'development' : 'production';
+  }
   return appState;
 }
 
@@ -96,6 +109,11 @@ export const applicationCookieState = atom<ApplicationCookie>({
 export const userProfileState = atom<UserProfileUi>({
   key: 'userState',
   default: fetchUserProfile(),
+});
+
+export const electronPreferences = atom<ElectronPreferences>({
+  key: 'electronPreferences',
+  default: window.electron?.initialPreferences,
 });
 
 export const salesforceOrgsState = atom<SalesforceOrgUi[]>({

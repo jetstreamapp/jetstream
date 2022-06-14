@@ -708,3 +708,11 @@ export function getSizeInMbFromBase64(data: string) {
   const padding = data.endsWith('==') ? 2 : 1;
   return (data.length * 0.75 - padding) / 1e6;
 }
+
+export function flattenObjectArray(data: MapOf<string[]>, delimiter = ','): MapOf<string> {
+  const output: MapOf<string> = {};
+  Object.keys(data).forEach((key) => {
+    output[key] = data[key].join(delimiter);
+  });
+  return output;
+}
