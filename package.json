@@ -228,7 +228,7 @@
     "@babel/preset-env": "7.9.6",
     "@babel/preset-react": "7.9.4",
     "@babel/preset-typescript": "7.12.13",
-    "@contentful/rich-text-react-renderer": "^14.1.2",
+    "@contentful/rich-text-react-renderer": "^15.12.1",
     "@docusaurus/core": "^2.0.0-beta.18",
     "@docusaurus/plugin-ideal-image": "^2.0.0-beta.18",
     "@docusaurus/preset-classic": "^2.0.0-beta.18",
