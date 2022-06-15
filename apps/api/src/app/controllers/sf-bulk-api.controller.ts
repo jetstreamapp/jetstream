@@ -1,23 +1,14 @@
 import { logger } from '@jetstream/api-config';
-import { HTTP } from '@jetstream/shared/constants';
+import * as services from '@jetstream/server-services';
 import { toBoolean } from '@jetstream/shared/utils';
 import { BulkApiCreateJobRequestPayload, BulkApiDownloadType, BulkJobBatchInfo } from '@jetstream/types';
 import { NextFunction, Request, Response } from 'express';
 import { body, param, query } from 'express-validator';
 import * as jsforce from 'jsforce';
 import { NODE_STREAM_INPUT, parse as parseCsv } from 'papaparse';
-import {
-  SfBulkAddBatchToJob,
-  SfBulkAddBatchWithZipAttachmentToJob,
-  SfBulkCloseJob,
-  SfBulkCreateJob,
-  sfBulkDownloadRecords,
-  SfBulkGetJobInfo,
-} from '../services/sf-bulk';
+import { sfBulkDownloadRecords } from '../services/sf-bulk';
 import { UserFacingError } from '../utils/error-handler';
 import { sendJson } from '../utils/response.handlers';
-
-const { HEADERS, CONTENT_TYPE } = HTTP;
 
 export const routeValidators = {
   createJob: [
@@ -52,7 +43,7 @@ export async function createJob(req: Request, res: Response, next: NextFunction)
     const options = req.body as BulkApiCreateJobRequestPayload;
     const conn: jsforce.Connection = res.locals.jsforceConn;
 
-    const results = await SfBulkCreateJob(conn, options);
+    const results = await services.sfBulkCreateJob(conn, options);
 
     sendJson(res, results);
   } catch (ex) {
@@ -65,7 +56,7 @@ export async function getJob(req: Request, res: Response, next: NextFunction) {
     const jobId = req.params.jobId;
     const conn: jsforce.Connection = res.locals.jsforceConn;
 
-    const jobInfo = await SfBulkGetJobInfo(conn, jobId);
+    const jobInfo = await services.sfBulkGetJobInfo(conn, jobId);
 
     sendJson(res, jobInfo);
   } catch (ex) {
@@ -78,7 +69,7 @@ export async function closeJob(req: Request, res: Response, next: NextFunction) 
     const jobId = req.params.jobId;
     const conn: jsforce.Connection = res.locals.jsforceConn;
 
-    const jobInfo = await SfBulkCloseJob(conn, jobId);
+    const jobInfo = await services.sfBulkCloseJob(conn, jobId);
 
     sendJson(res, jobInfo);
   } catch (ex) {
@@ -93,10 +84,10 @@ export async function addBatchToJob(req: Request, res: Response, next: NextFunct
     const closeJob = req.query.closeJob as any;
     const conn: jsforce.Connection = res.locals.jsforceConn;
 
-    const results: BulkJobBatchInfo = await SfBulkAddBatchToJob(conn, csv, jobId, closeJob);
+    const results: BulkJobBatchInfo = await services.sfBulkAddBatchToJob(conn, csv, jobId, closeJob);
 
     // try {
-    //   results = await SfBulkGetJobInfo(conn, jobId);
+    //   results = await sfBulkGetJobInfo(conn, jobId);
     // } catch (ex) {
     //   // ignore error
     // }
@@ -114,7 +105,7 @@ export async function addBatchToJobWithBinaryAttachment(req: Request, res: Respo
     const closeJob = req.query.closeJob as any;
     const conn: jsforce.Connection = res.locals.jsforceConn;
 
-    const results: BulkJobBatchInfo = await SfBulkAddBatchWithZipAttachmentToJob(conn, zip, jobId, closeJob);
+    const results: BulkJobBatchInfo = await services.sfBulkAddBatchWithZipAttachmentToJob(conn, zip, jobId, closeJob);
 
     sendJson(res, results);
   } catch (ex) {
@@ -126,23 +117,25 @@ export async function addBatchToJobWithBinaryAttachment(req: Request, res: Respo
  * Download request or results as a CSV file directly streamed from SFDC
  * this should only be called from a link and not a JSON API call
  *
+ *  This is not used AFAIK
+ *
  */
-export async function downloadResultsFile(req: Request, res: Response, next: NextFunction) {
-  try {
-    const jobId = req.params.jobId;
-    const batchId = req.params.batchId;
-    const type = req.query.type as BulkApiDownloadType;
-    const conn: jsforce.Connection = res.locals.jsforceConn;
+// export async function downloadResultsFile(req: Request, res: Response, next: NextFunction) {
+//   try {
+//     const jobId = req.params.jobId;
+//     const batchId = req.params.batchId;
+//     const type = req.query.type as BulkApiDownloadType;
+//     const conn: jsforce.Connection = res.locals.jsforceConn;
 
-    const filename = req.query.filename || `${type}.csv`; // TODO: come up with better filename structure
-    res.setHeader(HEADERS.CONTENT_TYPE, CONTENT_TYPE.CSV);
-    res.setHeader(HEADERS.CONTENT_DISPOSITION, `attachment; filename="${filename}"`);
+//     const filename = req.query.filename || `${type}.csv`; // TODO: come up with better filename structure
+//     res.setHeader(HEADERS.CONTENT_TYPE, CONTENT_TYPE.CSV);
+//     res.setHeader(HEADERS.CONTENT_DISPOSITION, `attachment; filename="${filename}"`);
 
-    sfBulkDownloadRecords(conn, jobId, batchId, type).buffer(false).pipe(res);
-  } catch (ex) {
-    next(new UserFacingError(ex.message));
-  }
-}
+//     sfBulkDownloadRecords(conn, jobId, batchId, type).buffer(false).pipe(res);
+//   } catch (ex) {
+//     next(new UserFacingError(ex.message));
+//   }
+// }
 
 /**
  * Download requests or results as JSON, streamed from Salesforce as CSV, and transformed to JSON

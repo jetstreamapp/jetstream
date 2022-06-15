@@ -3,6 +3,7 @@ import { logBuffer, logger } from '@jetstream/shared/client-logger';
 import { useState } from 'react';
 import Rollbar from 'rollbar';
 import { useNonInitialEffect } from './useNonInitialEffect';
+import isBoolean from 'lodash/isBoolean';
 
 const VERSION = process.env.GIT_VERSION;
 const REPLACE_HOST_REGEX = /[a-zA-Z0-9._-]*?getjetstream.app/;
@@ -31,6 +32,7 @@ class RollbarConfig {
   // private serverUrl: string;
   public rollbar: Rollbar;
   public rollbarIsConfigured: boolean;
+  public optOut = false;
 
   // init if not already initialized
   private init(options?: RollbarProperties) {
@@ -46,6 +48,7 @@ class RollbarConfig {
     this.rollbar =
       this.rollbar ||
       new Rollbar({
+        enabled: !this.optOut,
         codeVersion: VERSION,
         code_version: VERSION,
         accessToken: this.accessToken,
@@ -100,6 +103,7 @@ class RollbarConfig {
       this.rollbarIsConfigured = true;
       const { sub, email } = this.userProfile;
       this.rollbar.configure({
+        enabled: !this.optOut,
         codeVersion: VERSION,
         code_version: VERSION,
         payload: {
@@ -122,9 +126,12 @@ class RollbarConfig {
     }
   }
 
-  static getInstance(options?: RollbarProperties): RollbarConfig {
+  static getInstance(options?: RollbarProperties, optOut?: boolean): RollbarConfig {
     if (!this.instance) {
       this.instance = new this();
+    }
+    if (isBoolean(optOut)) {
+      this.instance.optOut = optOut;
     }
     this.instance.init(options);
     return this.instance;
@@ -139,12 +146,12 @@ class RollbarConfig {
  * @param environment
  * @param userProfile
  */
-export function useRollbar(options?: RollbarProperties): Rollbar {
-  const [rollbarConfig, setRollbarConfig] = useState(() => RollbarConfig.getInstance(options));
+export function useRollbar(options?: RollbarProperties, optOut?: boolean): Rollbar {
+  const [rollbarConfig, setRollbarConfig] = useState(() => RollbarConfig.getInstance(options, optOut));
 
   useNonInitialEffect(() => {
-    setRollbarConfig(RollbarConfig.getInstance(options));
-  }, [options]);
+    setRollbarConfig(RollbarConfig.getInstance(options, optOut));
+  }, [options, optOut]);
 
   return rollbarConfig.rollbar;
 }

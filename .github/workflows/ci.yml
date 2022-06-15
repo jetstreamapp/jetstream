@@ -28,7 +28,7 @@ jobs:
         with:
           node-version: '16'
           cache: 'npm'
-      - run: npm ci
+      - run: npm ci --legacy-peer-deps
       - run: npx nx-cloud start-ci-run
       - run: npx nx affected --target=build --parallel --max-parallel=2 --configuration=production
       # - run: npx nx affected --target=test --parallel --max-parallel=2
@@ -67,6 +67,6 @@ jobs:
         with:
           node-version: '16'
           cache: 'npm'
-      - run: npm ci
+      - run: npm ci --legacy-peer-deps
       - name: Start Nx Agent ${{ matrix.agent }}
         run: npx nx-cloud start-agent

@@ -1,0 +1,66 @@
+{
+  "root": "apps/electron/worker",
+  "sourceRoot": "apps/electron/worker/src",
+  "projectType": "application",
+  "targets": {
+    "build": {
+      "executor": "@nrwl/node:webpack",
+      "options": {
+        "outputPath": "dist/apps/electron/worker",
+        "main": "apps/electron/worker/src/main.ts",
+        "tsConfig": "apps/electron/worker/tsconfig.app.json",
+        "assets": ["apps/electron/worker/src/assets"],
+        "generatePackageJson": false,
+        "webpackConfig": "webpack.config.js"
+      },
+      "configurations": {
+        "production": {
+          "optimization": true,
+          "extractLicenses": false,
+          "outputHashing": "none",
+          "sourceMap": true,
+          "inspect": false,
+          "generatePackageJson": false,
+          "fileReplacements": [
+            {
+              "replace": "apps/electron/worker/src/environments/environment.ts",
+              "with": "apps/electron/worker/src/environments/environment.prod.ts"
+            }
+          ]
+        },
+        "development": {
+          "optimization": false,
+          "extractLicenses": false,
+          "sourceMap": true,
+          "inspect": false
+        }
+      },
+      "outputs": ["{options.outputPath}"],
+      "defaultConfiguration": "production"
+    },
+    "serve": {
+      "executor": "@nrwl/node:node",
+      "options": {
+        "buildTarget": "electron-worker:build",
+        "inspect": true,
+        "watch": true
+      }
+    },
+    "lint": {
+      "executor": "@nrwl/linter:eslint",
+      "outputs": ["{options.outputFile}"],
+      "options": {
+        "lintFilePatterns": ["apps/electron/worker/**/*.ts"]
+      }
+    },
+    "test": {
+      "executor": "@nrwl/jest:jest",
+      "outputs": ["coverage/apps/electron/worker"],
+      "options": {
+        "jestConfig": "apps/electron/worker/jest.config.ts",
+        "passWithNoTests": true
+      }
+    }
+  },
+  "tags": []
+}

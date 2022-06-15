@@ -73,6 +73,10 @@ module.exports = {
               label: 'Terms of Service',
             },
             {
+              href: 'https://getjetstream.app/subprocessors/',
+              label: 'Data Sub-Processors',
+            },
+            {
               href: 'https://getjetstream.app/privacy/',
               label: 'Privacy Policy',
             },

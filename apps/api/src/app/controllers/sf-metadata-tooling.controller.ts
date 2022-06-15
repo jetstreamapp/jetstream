@@ -256,6 +256,7 @@ export async function checkRetrieveStatus(req: Request, res: Response, next: Nex
 }
 
 // TODO: split this into one option to deploy to a changeset
+// TODO: get from new shared service (code copied over)
 // and another to deploy as-is
 export async function checkRetrieveStatusAndRedeploy(req: Request, res: Response, next: NextFunction) {
   try {
@@ -318,6 +319,7 @@ export async function getPackageXml(req: Request, res: Response, next: NextFunct
   }
 }
 
+// TODO: use from shared service
 /**
  * This uses the SOAP api to allow returning logs
  */

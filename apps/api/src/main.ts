@@ -1,6 +1,6 @@
 import '@jetstream/api-config'; // this gets imported first to ensure as some items require early initialization
 import { ENV, logger, pgPool } from '@jetstream/api-config';
-import { SESSION_EXP_DAYS } from '@jetstream/shared/constants';
+import { HTTP, SESSION_EXP_DAYS } from '@jetstream/shared/constants';
 import { json, raw, urlencoded } from 'body-parser';
 import * as pgSimple from 'connect-pg-simple';
 import * as cors from 'cors';
@@ -191,14 +191,56 @@ app.use(passportMiddleware);
 
 // proxy must be provided prior to body parser to ensure streaming response
 if (ENV.ENVIRONMENT === 'development') {
+  app.use((req: express.Request, res: express.Response, next: express.NextFunction) => {
+    if (req.headers.origin?.includes('localhost')) {
+      res.setHeader('Access-Control-Allow-Origin', req.headers.origin);
+      res.setHeader(
+        'Access-Control-Expose-Headers',
+        [
+          HTTP.HEADERS.X_LOGOUT,
+          HTTP.HEADERS.X_LOGOUT_URL,
+          HTTP.HEADERS.X_SFDC_ID,
+          HTTP.HEADERS.X_SFDC_API_VERSION,
+          HTTP.HEADERS.X_SFDC_ID_TARGET,
+          HTTP.HEADERS.X_SFDC_API_TARGET_VERSION,
+          HTTP.HEADERS.X_SFDC_ORG_CONNECTION_ERROR,
+          HTTP.HEADERS.X_SFDC_Session,
+          HTTP.HEADERS.X_INCLUDE_CALL_OPTIONS,
+          HTTP.HEADERS.X_CACHE_RESPONSE,
+          HTTP.HEADERS.X_CACHE_KEY,
+          HTTP.HEADERS.X_CACHE_AGE,
+          HTTP.HEADERS.X_CACHE_EXP,
+        ].join(', ')
+      );
+    }
+    next();
+  });
   app.options(
     '*',
     logRoute,
     (req: express.Request, res: express.Response, next: express.NextFunction) => {
       res.setHeader('Access-Control-Allow-Credentials', 'true');
+      res.setHeader('Access-Control-Allow-Origin', '*');
       next();
     },
-    cors({ origin: true })
+    cors({
+      origin: true,
+      exposedHeaders: [
+        HTTP.HEADERS.X_LOGOUT,
+        HTTP.HEADERS.X_LOGOUT_URL,
+        HTTP.HEADERS.X_SFDC_ID,
+        HTTP.HEADERS.X_SFDC_API_VERSION,
+        HTTP.HEADERS.X_SFDC_ID_TARGET,
+        HTTP.HEADERS.X_SFDC_API_TARGET_VERSION,
+        HTTP.HEADERS.X_SFDC_ORG_CONNECTION_ERROR,
+        HTTP.HEADERS.X_SFDC_Session,
+        HTTP.HEADERS.X_INCLUDE_CALL_OPTIONS,
+        HTTP.HEADERS.X_CACHE_RESPONSE,
+        HTTP.HEADERS.X_CACHE_KEY,
+        HTTP.HEADERS.X_CACHE_AGE,
+        HTTP.HEADERS.X_CACHE_EXP,
+      ],
+    })
   );
   app.use('/platform-event', logRoute, cors({ origin: /http:\/\/localhost:[0-9]+$/ }), platformEventRoutes);
 } else {

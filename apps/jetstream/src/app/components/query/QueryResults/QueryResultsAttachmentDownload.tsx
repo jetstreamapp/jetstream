@@ -34,7 +34,7 @@ FILE_DOWNLOAD_FIELD_MAP.set('attachment', { bodyField: 'Body', nameField: 'Name'
 FILE_DOWNLOAD_FIELD_MAP.set('document', { bodyField: 'Body', nameField: 'Name', sizeField: 'BodyLength' });
 FILE_DOWNLOAD_FIELD_MAP.set('contentversion', { bodyField: 'VersionData', nameField: 'PathOnClient', sizeField: 'ContentSize' });
 
-const ROOT_FILENAME = '/api/file/stream-download';
+const ROOT_FILENAME = window.electron?.isElectron ? 'jetstream-download://localhost/file/stream-download' : '/api/file/stream-download';
 
 // TODO: duplicate files will overwrite eachother (e.x. contentversion)
 function getFile(selectedOrg: SalesforceOrgUi, sobjectName: string, record: Record): DownZipFile {

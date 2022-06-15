@@ -92,7 +92,7 @@ export const Modal = ({
   }
 
   return (
-    <OverlayContainer>
+    <OverlayContainer className={classNames({ 'is-electron': (window as any)?.electron?.isElectron })}>
       <FocusScope contain restoreFocus autoFocus>
         <section
           {...overlayProps}

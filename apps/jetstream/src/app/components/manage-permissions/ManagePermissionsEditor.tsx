@@ -1,4 +1,5 @@
 import { ColDef, ColGroupDef } from '@ag-grid-community/core';
+import { css } from '@emotion/react';
 
 import { logger } from '@jetstream/shared/client-logger';
 import { MapOf, SalesforceOrgUi } from '@jetstream/types';
@@ -397,7 +398,14 @@ export const ManagePermissionsEditor: FunctionComponent<ManagePermissionsEditorP
           </button>
         </ToolbarItemActions>
       </Toolbar>
-      <AutoFullHeightContainer bottomBuffer={10} className="slds-scrollable_none" bufferIfNotRendered={HEIGHT_BUFFER}>
+      <AutoFullHeightContainer
+        baseCss={css`
+          background-color: #ffffff;
+        `}
+        bottomBuffer={10}
+        className="slds-scrollable_none"
+        bufferIfNotRendered={HEIGHT_BUFFER}
+      >
         {loading && <Spinner />}
         {hasError && <Toast type="error">Uh Oh. There was a problem getting the permission data from Salesforce.</Toast>}
         {hasLoaded && (

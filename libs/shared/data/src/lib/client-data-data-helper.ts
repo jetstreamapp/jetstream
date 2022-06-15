@@ -1,27 +1,22 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { logger } from '@jetstream/shared/client-logger';
-import { HTTP, INDEXED_DB } from '@jetstream/shared/constants';
-import { REGEX } from '@jetstream/shared/utils';
+import { HTTP } from '@jetstream/shared/constants';
 import {
   ApiResponse,
-  CacheItemWithData,
   ListMetadataResult,
   ListMetadataResultRaw,
   MapOf,
-  OrgCacheItem,
-  QueryHistoryItem,
   RetrieveResult,
   RetrieveResultRaw,
   SalesforceOrgUi,
 } from '@jetstream/types';
-import axios, { AxiosError, AxiosRequestConfig, AxiosResponse } from 'axios';
+import axios, { AxiosAdapter, AxiosError, AxiosRequestConfig, AxiosResponse } from 'axios';
 import parseISO from 'date-fns/parseISO';
-import localforage from 'localforage';
 import { isEmpty, isObject } from 'lodash';
 import isString from 'lodash/isString';
+import { getCacheItemHttp, saveCacheItemHttp } from './client-data-cache';
 import { SOBJECT_DESCRIBE_CACHED_RESPONSES } from './client-data-data-cached-responses';
 import { errorMiddleware } from './middleware';
-import { getCacheItemHttp, saveCacheItemHttp } from './client-data-cache';
 
 function getHeader(headers: MapOf<string>, header: string) {
   if (!headers || !header) {
@@ -30,9 +25,23 @@ function getHeader(headers: MapOf<string>, header: string) {
   return headers[header] || headers[header.toLowerCase()];
 }
 
+const baseConfig: Partial<AxiosRequestConfig> = {};
+
+export function initForElectron(adapter: AxiosAdapter) {
+  // baseConfig.baseURL = 'http://localhost:3333';
+  // use MessagePort adapter for communicating with server
+  baseConfig.adapter = adapter;
+}
+
+export function initForElectronWorker() {
+  baseConfig.baseURL = 'http://localhost/worker';
+  // use MessagePort adapter for communicating with server
+  // baseConfig.adapter = adapter;
+}
+
 /** Use for API calls going to external locations */
 export async function handleExternalRequest<T = any>(config: AxiosRequestConfig): Promise<AxiosResponse<T>> {
-  const axiosInstance = axios.create(config);
+  const axiosInstance = axios.create({ ...baseConfig, ...config });
   axiosInstance.interceptors.request.use(requestInterceptor({}));
   axiosInstance.interceptors.response.use(
     (response) => {
@@ -47,7 +56,7 @@ export async function handleExternalRequest<T = any>(config: AxiosRequestConfig)
       if (error.isAxiosError && error.response) {
         message = error.message || 'An unknown error has occurred';
       }
-      throw new Error(error.message);
+      throw new Error(message);
     }
   );
   const response = await axiosInstance.request<T>(config);
@@ -71,7 +80,7 @@ export async function handleRequest<T = any>(
     config.headers = config.headers || {};
     config.headers[HTTP.HEADERS.X_MOCK_KEY] = options.mockHeaderKey;
   }
-  const axiosInstance = axios.create(config);
+  const axiosInstance = axios.create({ ...baseConfig, ...config });
   axiosInstance.interceptors.request.use(requestInterceptor(options));
   axiosInstance.interceptors.response.use(responseInterceptor(options), responseErrorInterceptor(options));
   const response = await axiosInstance.request<ApiResponse<T>>(config);

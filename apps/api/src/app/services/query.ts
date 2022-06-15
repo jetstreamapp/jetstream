@@ -6,6 +6,12 @@ import * as querystring from 'querystring';
 import { parseQuery, Query } from 'soql-parser-js';
 import { QueryColumnMetadata, QueryColumnsSfdc } from '../types/types';
 
+/**
+ * TODO:
+ * this code should be moved to shared query utils
+ * code was already copied there
+ */
+
 export async function queryRecords(
   conn: Connection,
   query: string,

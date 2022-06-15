@@ -1,0 +1,74 @@
+{
+  "root": "apps/electron/preferences",
+  "sourceRoot": "apps/electron/preferences/src",
+  "projectType": "application",
+  "targets": {
+    "build": {
+      "executor": "@nrwl/web:webpack",
+      "outputs": ["{options.outputPath}"],
+      "defaultConfiguration": "production",
+      "options": {
+        "compiler": "babel",
+        "outputPath": "dist/apps/electron/preferences",
+        "index": "apps/electron/preferences/src/index.html",
+        "baseHref": "./",
+        "main": "apps/electron/preferences/src/main.tsx",
+        "polyfills": "apps/electron/preferences/src/polyfills.ts",
+        "tsConfig": "apps/electron/preferences/tsconfig.app.json",
+        "assets": ["apps/electron/preferences/src/assets"],
+        "styles": ["apps/electron/preferences/src/styles.scss"],
+        "scripts": [],
+        "webpackConfig": "@nrwl/react/plugins/webpack"
+      },
+      "configurations": {
+        "development": {
+          "extractLicenses": false,
+          "optimization": false,
+          "sourceMap": true,
+          "outputHashing": "none",
+          "namedChunks": true,
+          "vendorChunk": true
+        },
+        "production": {
+          "fileReplacements": [
+            {
+              "replace": "apps/electron/preferences/src/environments/environment.ts",
+              "with": "apps/electron/preferences/src/environments/environment.prod.ts"
+            }
+          ],
+          "optimization": true,
+          "outputHashing": "none",
+          "sourceMap": true,
+          "namedChunks": false,
+          "extractLicenses": false,
+          "vendorChunk": false
+        }
+      }
+    },
+    "serve": {
+      "executor": "@nrwl/web:dev-server",
+      "defaultConfiguration": "development",
+      "options": {
+        "buildTarget": "electron-preferences:build",
+        "hmr": true
+      },
+      "configurations": {
+        "development": {
+          "buildTarget": "electron-preferences:build:development"
+        },
+        "production": {
+          "buildTarget": "electron-preferences:build:production",
+          "hmr": false
+        }
+      }
+    },
+    "lint": {
+      "executor": "@nrwl/linter:eslint",
+      "outputs": ["{options.outputFile}"],
+      "options": {
+        "lintFilePatterns": ["apps/electron/preferences/**/*.{ts,tsx,js,jsx}"]
+      }
+    }
+  },
+  "tags": ["electron"]
+}

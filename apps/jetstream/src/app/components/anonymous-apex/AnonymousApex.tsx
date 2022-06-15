@@ -66,7 +66,7 @@ export const AnonymousApex: FunctionComponent<AnonymousApexProps> = () => {
   /** Add trace for 1 hour so that any background jobs are logged even if dev console is not open */
   useSetTraceFlag(selectedOrg, 1);
 
-  const { notifyUser } = useBrowserNotifications(serverUrl);
+  const { notifyUser } = useBrowserNotifications(serverUrl, window.electron?.isFocused);
   const [logLevel, setLogLevel] = useState<string>('FINEST');
   const [userDebug, setUserDebug] = useState(false);
   const [textFilter, setTextFilter] = useState<string>('');

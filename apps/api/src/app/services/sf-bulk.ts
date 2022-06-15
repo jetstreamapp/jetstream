@@ -16,7 +16,7 @@ import { convert as xmlConverter, create as xmlBuilder } from 'xmlbuilder2';
 
 const { HEADERS, CONTENT_TYPE } = HTTP;
 
-export async function SfBulkCreateJob(conn: jsforce.Connection, options: BulkApiCreateJobRequestPayload): Promise<BulkJob> {
+export async function sfBulkCreateJob(conn: jsforce.Connection, options: BulkApiCreateJobRequestPayload): Promise<BulkJob> {
   const { type, sObject, assignmentRuleId, serialMode, externalId, hasZipAttachment } = options;
   // prettier-ignore
   const jobInfoNode = xmlBuilder({ version: '1.0', encoding: 'UTF-8' })
@@ -59,7 +59,7 @@ export async function SfBulkCreateJob(conn: jsforce.Connection, options: BulkApi
   return results;
 }
 
-export async function SfBulkGetJobInfo(conn: jsforce.Connection, jobId: string): Promise<BulkJobWithBatches> {
+export async function sfBulkGetJobInfo(conn: jsforce.Connection, jobId: string): Promise<BulkJobWithBatches> {
   const requestOptions: jsforce.RequestInfo = {
     method: 'GET',
     url: `/services/async/${conn.version}/job/${jobId}`,
@@ -83,7 +83,7 @@ export async function SfBulkGetJobInfo(conn: jsforce.Connection, jobId: string):
   return { ...jobResults, batches: batchesResults || [] };
 }
 
-export async function SfBulkCloseJob(conn: jsforce.Connection, jobId: string): Promise<BulkJob> {
+export async function sfBulkCloseJob(conn: jsforce.Connection, jobId: string): Promise<BulkJob> {
   // prettier-ignore
   const xml = xmlBuilder({ version: '1.0', encoding: 'UTF-8' })
       .ele('jobInfo', { xmlns: 'http://www.force.com/2009/06/asyncapi/dataload' })
@@ -104,7 +104,7 @@ export async function SfBulkCloseJob(conn: jsforce.Connection, jobId: string): P
   return results;
 }
 
-export async function SfBulkAddBatchToJob(
+export async function sfBulkAddBatchToJob(
   conn: jsforce.Connection,
   csv: string | Buffer | ArrayBuffer,
   jobId: string,
@@ -121,12 +121,12 @@ export async function SfBulkAddBatchToJob(
     });
 
   if (closeJob) {
-    await SfBulkCloseJob(conn, jobId);
+    await sfBulkCloseJob(conn, jobId);
   }
   return results;
 }
 
-export async function SfBulkAddBatchWithZipAttachmentToJob(
+export async function sfBulkAddBatchWithZipAttachmentToJob(
   conn: jsforce.Connection,
   zip: Buffer | ArrayBuffer,
   jobId: string,
@@ -143,7 +143,7 @@ export async function SfBulkAddBatchWithZipAttachmentToJob(
     });
 
   if (closeJob) {
-    await SfBulkCloseJob(conn, jobId);
+    await sfBulkCloseJob(conn, jobId);
   }
   return results;
 }

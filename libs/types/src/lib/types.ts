@@ -1,4 +1,4 @@
-import { SalesforceId } from 'jsforce';
+import type { SalesforceId } from 'jsforce';
 import { InsertUpdateUpsertDelete, SalesforceOrgEdition, SalesforceOrgLocaleKey } from './salesforce/types';
 
 export interface ApiResponse<T = unknown> {
