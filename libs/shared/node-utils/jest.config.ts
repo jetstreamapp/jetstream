@@ -1,4 +1,4 @@
-module.exports = {
+export default {
   testEnvironment: 'node',
   transform: {
     '^.+\\.[tj]sx?$': 'ts-jest',
@@ -7,5 +7,5 @@ module.exports = {
   coverageDirectory: '../../../coverage/libs/shared/node-utils',
   globals: { 'ts-jest': { tsconfig: '<rootDir>/tsconfig.spec.json' } },
   displayName: 'shared-node-utils',
-  preset: '../../../jest.preset.ts',
+  preset: '../../../jest.preset.js',
 };

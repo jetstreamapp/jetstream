@@ -1,5 +1,5 @@
 {
-  "root": "libs/connected/connected-ui",
+  "$schema": "../../../node_modules/nx/schemas/project-schema.json",
   "sourceRoot": "libs/connected/connected-ui/src",
   "projectType": "library",
   "targets": {

@@ -1,5 +1,5 @@
 {
-  "root": "apps/electron/preferences",
+  "$schema": "../../../node_modules/nx/schemas/project-schema.json",
   "sourceRoot": "apps/electron/preferences/src",
   "projectType": "application",
   "targets": {

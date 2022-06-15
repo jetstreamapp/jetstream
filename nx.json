@@ -1,4 +1,5 @@
 {
+  "$schema": "./node_modules/nx/schemas/nx-schema.json",
   "npmScope": "jetstream",
   "implicitDependencies": {
     "workspace.json": "*",
@@ -34,9 +35,6 @@
         "projects": "dependencies"
       }
     ]
-  },
-  "cli": {
-    "defaultCollection": "@nrwl/react"
   },
   "defaultProject": "jetstream",
   "generators": {

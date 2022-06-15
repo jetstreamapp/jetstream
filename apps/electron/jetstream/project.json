@@ -1,5 +1,5 @@
 {
-  "root": "apps/electron/jetstream",
+  "$schema": "../../../node_modules/nx/schemas/project-schema.json",
   "sourceRoot": "apps/electron/jetstream/src",
   "projectType": "application",
   "targets": {

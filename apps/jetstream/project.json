@@ -1,5 +1,5 @@
 {
-  "root": "apps/jetstream",
+  "$schema": "../../node_modules/nx/schemas/project-schema.json",
   "sourceRoot": "apps/jetstream/src",
   "projectType": "application",
   "generators": {},

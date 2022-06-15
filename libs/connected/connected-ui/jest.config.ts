@@ -1,4 +1,4 @@
-module.exports = {
+export default {
   displayName: 'connected-connected-ui',
 
   transform: {
@@ -6,5 +6,5 @@ module.exports = {
   },
   moduleFileExtensions: ['ts', 'tsx', 'js', 'jsx'],
   coverageDirectory: '../../../coverage/libs/connected/connected-ui',
-  preset: '../../../jest.preset.ts',
+  preset: '../../../jest.preset.js',
 };

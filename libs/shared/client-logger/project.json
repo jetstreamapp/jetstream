@@ -1,5 +1,5 @@
 {
-  "root": "libs/shared/client-logger",
+  "$schema": "../../../node_modules/nx/schemas/project-schema.json",
   "sourceRoot": "libs/shared/client-logger/src",
   "projectType": "library",
   "generators": {},

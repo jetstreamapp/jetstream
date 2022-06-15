@@ -1,6 +1,6 @@
 {
+  "$schema": "../../node_modules/nx/schemas/project-schema.json",
   "projectType": "application",
-  "root": "apps/download-zip-sw",
   "sourceRoot": "apps/download-zip-sw/src",
   "targets": {
     "build": {
