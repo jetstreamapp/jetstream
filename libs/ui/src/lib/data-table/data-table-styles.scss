@@ -2,8 +2,8 @@
 * WARNING - DO NOT IMPORT DIRECTLY, WILL CAUSE RENDER BUILD TO FAIL!
 */
 // ag-grid.scss defines structural styles and should be imported first
-@import 'ag-grid-community/src/styles/ag-grid.scss';
-@import 'ag-grid-community/src/styles/ag-theme-alpine/sass/ag-theme-alpine-mixin.scss';
+@import '@ag-grid-community/core/dist/styles/ag-grid.scss';
+@import '@ag-grid-community/core/dist/styles/ag-theme-alpine/sass/ag-theme-alpine-mixin.scss';
 @import '@salesforce-ux/design-system/scss/_design-tokens';
 
 // SassError: Invalid CSS after "    @return math": expected expression (e.g. 1px, bold), was ".div($lhs, $rhs);

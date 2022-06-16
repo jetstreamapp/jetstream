@@ -13,11 +13,12 @@ import classNames from 'classnames';
 const container = document.getElementById('root');
 
 // REACT 18 MODE
+// AG-GRID does not work well with React 18 in some places (e.x. tree grid)
 // createRoot(container).render(
-//   <div className="app">
-//     <BrowserRouter basename="/app">
+//   <div className={classNames('app', { 'is-electron': window.electron?.isElectron })}>
+//     <CONFIG.Router basename={CONFIG.baseName}>
 //       <App />
-//     </BrowserRouter>
+//     </CONFIG.Router>
 //   </div>
 // );
 
