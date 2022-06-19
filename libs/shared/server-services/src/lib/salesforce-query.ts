@@ -1,7 +1,6 @@
 /* eslint-disable @typescript-eslint/no-use-before-define */
 import { QueryResults, QueryResultsColumn, QueryResultsColumns } from '@jetstream/api-interfaces';
 import { Connection } from 'jsforce';
-import * as querystring from 'querystring';
 import { parseQuery, Query } from 'soql-parser-js';
 
 export interface QueryColumnsSfdc {
@@ -45,10 +44,10 @@ export async function queryRecords(
   try {
     const tempColumns = (await conn.request({
       method: 'GET',
-      url: `${isTooling ? '/tooling' : ''}/query/?${querystring.stringify({
+      url: `${isTooling ? '/tooling' : ''}/query/?${new URLSearchParams({
         q: query,
-        columns: true,
-      })}`,
+        columns: 'true',
+      }).toString()}`,
     })) as QueryColumnsSfdc;
 
     columns = {

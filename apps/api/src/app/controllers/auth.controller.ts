@@ -3,7 +3,6 @@ import { UserProfileServer } from '@jetstream/types';
 import { NextFunction, Request, Response } from 'express';
 import { isString } from 'lodash';
 import * as passport from 'passport';
-import * as querystring from 'querystring';
 import { URL } from 'url';
 import { hardDeleteUserAndOrgs } from '../db/transactions.db';
 import { createOrUpdateUser } from '../db/user.db';
@@ -69,14 +68,16 @@ export async function callback(req: Request, res: Response, next: NextFunction) 
 }
 
 export async function logout(req: Request, res: Response) {
-  req.logout();
+  req.logout(() => {
+    console.log('Logged out');
+  });
 
   const logoutURL = new URL(`https://${ENV.AUTH0_DOMAIN}/v2/logout`);
 
-  logoutURL.search = querystring.stringify({
+  logoutURL.search = new URLSearchParams({
     client_id: ENV.AUTH0_CLIENT_ID,
     returnTo: ENV.JETSTREAM_SERVER_URL,
-  });
+  }).toString();
 
   res.redirect(logoutURL.toString());
 }
@@ -86,7 +87,7 @@ export async function linkCallback(req: Request, res: Response, next: NextFuncti
   passport.authorize(
     'auth0-authz',
     {
-      failureRedirect: `/oauth-link/?error=${querystring.stringify({ error: 'Unknown Error' as any })}`,
+      failureRedirect: `/oauth-link/?error=${new URLSearchParams({ error: 'Unknown Error' as any }).toString()}`,
     } as any,
     async (err, userProfile, info) => {
       const params: OauthLinkParams = {
@@ -97,14 +98,14 @@ export async function linkCallback(req: Request, res: Response, next: NextFuncti
         logger.warn('[AUTH][LINK][ERROR] Error with authentication %o', err);
         params.error = isString(err) ? err : err.message || 'Unknown Error';
         params.message = (req.query.error_description as string) || undefined;
-        return res.redirect(`/oauth-link/?${querystring.stringify(params as any)}`);
+        return res.redirect(`/oauth-link/?${new URLSearchParams(params as any).toString()}`);
       }
       if (!userProfile) {
         logger.warn('[AUTH][LINK][ERROR] no user');
         logger.warn('[AUTH][LINK][ERROR] no info %o', info);
         params.error = 'Authentication Error';
         params.message = (req.query.error_description as string) || undefined;
-        return res.redirect(`/oauth-link/?${querystring.stringify(params as any)}`);
+        return res.redirect(`/oauth-link/?${new URLSearchParams(params as any).toString()}`);
       }
       try {
         const user = req.user as UserProfileServer;
@@ -122,11 +123,11 @@ export async function linkCallback(req: Request, res: Response, next: NextFuncti
           });
         }
 
-        return res.redirect(`/oauth-link/?${querystring.stringify(params as any)}`);
+        return res.redirect(`/oauth-link/?${new URLSearchParams(params as any).toString()}`);
       } catch (ex) {
         logger.warn('[AUTH][LINK][ERROR] Error linking account %o', err);
         params.error = 'Unexpected Error';
-        return res.redirect(`/oauth-link/?${querystring.stringify(params as any)}&clientUrl=${ENV.JETSTREAM_CLIENT_URL}`);
+        return res.redirect(`/oauth-link/?${new URLSearchParams(params as any).toString()}&clientUrl=${ENV.JETSTREAM_CLIENT_URL}`);
       }
     }
   )(req, res, next);

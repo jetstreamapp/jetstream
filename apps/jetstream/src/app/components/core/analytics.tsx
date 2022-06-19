@@ -53,7 +53,7 @@ export function useAmplitude(optOut?: boolean) {
         .set('id', userProfile.sub)
         .set('email', userProfile.email)
         .set('email-verified', userProfile.email_verified)
-        .set('feature-flags', userProfile['http://getjetstream.app/app_metadata']?.featureFlags)
+        .set('feature-flags', userProfile[environment.authAudience]?.featureFlags)
         .set('environment', appCookie.environment)
         .set('denied-notifications', userPreferences.deniedNotifications)
         .add('app-init-count', 1)

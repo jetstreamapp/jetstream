@@ -11,11 +11,12 @@
         "main": "apps/electron/jetstream/src/main.ts",
         "tsConfig": "apps/electron/jetstream/tsconfig.app.json",
         "generatePackageJson": false,
-        "assets": ["apps/electron/jetstream/src/assets"]
+        "assets": ["apps/electron/jetstream/src/assets"],
+        "webpackConfig": "apps/electron/jetstream/webpack.config.js"
       },
       "configurations": {
         "production": {
-          "optimization": true,
+          "optimization": false,
           "extractLicenses": true,
           "inspect": false,
           "generatePackageJson": false,

@@ -1,3 +1,4 @@
+/* eslint-disable no-restricted-globals */
 // DO NOT CHANGE ORDER OF IMPORTS
 import { CONFIG } from './app/components/core/config';
 // DO NOT CHANGE ORDER OF IMPORTS
@@ -11,6 +12,10 @@ import './main.scss';
 import classNames from 'classnames';
 
 const container = document.getElementById('root');
+
+if (location.hostname === 'localhost' && !location.pathname.includes('/app')) {
+  location.href = '/app';
+}
 
 // REACT 18 MODE
 // AG-GRID does not work well with React 18 in some places (e.x. tree grid)

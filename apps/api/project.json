@@ -27,6 +27,18 @@
             }
           ]
         },
+        "docker": {
+          "optimization": true,
+          "extractLicenses": true,
+          "inspect": false,
+          "sourceMap": false,
+          "fileReplacements": [
+            {
+              "replace": "apps/api/src/environments/environment.ts",
+              "with": "apps/api/src/environments/environment.prod.ts"
+            }
+          ]
+        },
         "test": {
           "optimization": false,
           "extractLicenses": false,

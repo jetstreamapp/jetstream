@@ -3,7 +3,7 @@ import { MapOf, SalesforceOrgUi } from '@jetstream/types';
 import * as jsforce from 'jsforce';
 import fetch from 'node-fetch';
 import { PassThrough } from 'stream';
-import { ENV } from '../api/env';
+import { environment } from '../../environments/environment';
 
 export interface SalesforceOrgElectron extends SalesforceOrgUi {
   accessToken: string;
@@ -31,14 +31,14 @@ export function getJsforceConnection(uniqueId: string, includeCallOptions = fals
   const connData: jsforce.ConnectionOptions = {
     oauth2: new jsforce.OAuth2({
       loginUrl: org.instanceUrl,
-      clientId: ENV.SFDC_CLIENT_ID,
+      clientId: environment.SFDC_CLIENT_ID,
       redirectUri: 'http://localhost/oauth/sfdc/callback',
     }),
     instanceUrl: org.instanceUrl,
     accessToken: org.accessToken,
     refreshToken: org.refreshToken,
     maxRequest: 5,
-    version: org.apiVersion || ENV.SFDC_FALLBACK_API_VERSION,
+    version: org.apiVersion || environment.sfdcFallbackApiVersion,
     callOptions: {},
   };
 

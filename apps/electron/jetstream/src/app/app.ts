@@ -14,7 +14,6 @@ import {
 } from 'electron';
 import { isString } from 'lodash';
 import { join, resolve } from 'path';
-import * as querystring from 'querystring';
 import { URL } from 'url';
 import { environment } from '../environments/environment';
 import { appProtocol, isMac, preferencesAppName, rendererAppName, rendererAppPort, workerAppName } from './constants';
@@ -24,10 +23,6 @@ import logger from './services/logger';
 import { streamFileDownload } from './services/salesforce';
 import * as sfdcOauth from './services/sfdc-oauth';
 import { readPreferences, writePreferences } from './utils';
-
-// TODO: move magic strings etc.. to constants
-
-// TODO: some of this stuff should be moved out of this file into other files (e.x. events)
 
 export default class App {
   // Keep a global reference of the window object, if you don't, the window will
@@ -79,7 +74,7 @@ export default class App {
       App.application.releaseSingleInstanceLock();
       event?.preventDefault();
       try {
-        const windowId = Number(querystring.parse(_url.searchParams.get('state')).windowId);
+        const windowId = Number(new URLSearchParams(_url.searchParams.get('state')).get('windowId'));
         const org = await sfdcOauth.exchangeCodeForToken('jetstream', _url.searchParams);
 
         BrowserWindow.getAllWindows().forEach((window) => {

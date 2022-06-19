@@ -21,10 +21,10 @@ export function initCometD(user: UserProfileServer, cometd: CometD, connection: 
       });
 
       if (ENV.COMETD_DEBUG) {
-        cometd.setLogLevel(ENV.COMETD_DEBUG);
+        cometd.setLogLevel(ENV.COMETD_DEBUG as any);
       }
 
-      cometd.registerExtension(CometdReplayExtension.EXT_NAME, new CometdReplayExtension());
+      cometd.registerExtension(CometdReplayExtension.EXT_NAME, new CometdReplayExtension() as any);
 
       cometd.handshake((shake) => {
         if (shake.successful) {
@@ -45,7 +45,7 @@ export function initCometD(user: UserProfileServer, cometd: CometD, connection: 
       cometd.addListener('/meta/unsuccessful', (message) => {
         logger.debug('[COMETD] unsuccessful - %s', message, { userId: user.id });
       });
-      cometd.onListenerException = (exception, subscriptionHandle, isListener, message) => {
+      (cometd as any).onListenerException = (exception, subscriptionHandle, isListener, message) => {
         logger.warn('[COMETD][LISTENER][ERROR] %s - %s - %o', exception?.message, message, subscriptionHandle, {
           isListener,
           userId: user.id,

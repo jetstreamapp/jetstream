@@ -1,12 +1,11 @@
 import { SalesforceOrgUi, SObjectOrganization } from '@jetstream/types';
 import * as jsforce from 'jsforce';
-import * as querystring from 'querystring';
-import { ENV } from '../api/env';
+import { environment } from '../../environments/environment';
 import logger from './logger';
 
 export function getRedirectUrl(windowId: number, protocol: 'jetstream' | 'http', loginUrl: string, replaceOrgUniqueId?: string) {
   // TODO: we might need to determine if packaged or not and use a different url (e.x. jetstream://)
-  const state = querystring.stringify({ loginUrl, replaceOrgUniqueId, windowId });
+  const state = new URLSearchParams({ loginUrl, replaceOrgUniqueId, windowId: `${windowId}` }).toString();
   const options = {
     scope: 'api web refresh_token',
     state,
@@ -16,7 +15,7 @@ export function getRedirectUrl(windowId: number, protocol: 'jetstream' | 'http',
   return new jsforce.OAuth2({
     loginUrl,
     // TODO: Get these from env vars
-    clientId: ENV.SFDC_CLIENT_ID,
+    clientId: environment.SFDC_CLIENT_ID,
     redirectUri: `${protocol}://localhost/oauth/sfdc/callback`,
   }).getAuthorizationUrl(options);
 }
@@ -27,16 +26,16 @@ export async function exchangeCodeForToken(protocol: 'jetstream' | 'http', param
   const error = params.get('error');
   const errorDescription = params.get('error_description');
 
-  const state = querystring.parse(params.get('state'));
-  const loginUrl = state.loginUrl as string;
+  const state = new URLSearchParams(params.get('state'));
+  const loginUrl = state.get('loginUrl');
   // TODO: might want to send back to delete this old invalid org
-  const replaceOrgUniqueId = state.replaceOrgUniqueId as string | undefined;
+  const replaceOrgUniqueId = state.get('replaceOrgUniqueId');
 
   const conn = new jsforce.Connection({
     oauth2: new jsforce.OAuth2({
       loginUrl,
       // TODO: Get these from env vars
-      clientId: ENV.SFDC_CLIENT_ID,
+      clientId: environment.SFDC_CLIENT_ID,
       redirectUri: `${protocol}://localhost/oauth/sfdc/callback`,
     }),
   });
@@ -63,7 +62,7 @@ export async function exchangeCodeForToken(protocol: 'jetstream' | 'http', param
     accessToken: conn.accessToken,
     refreshToken: conn.refreshToken,
     instanceUrl: conn.instanceUrl,
-    loginUrl: state.loginUrl as string,
+    loginUrl: state.get('loginUrl'),
     userId: identity.user_id,
     email: identity.email,
     organizationId: identity.organization_id,

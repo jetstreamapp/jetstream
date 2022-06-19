@@ -1,0 +1,11 @@
+.editorconfig
+.env.example
+.github
+.vscode
+.workspace.code-workspace
+app
+dist
+electron-scripts
+logs
+node_modules
+npm-debug.log

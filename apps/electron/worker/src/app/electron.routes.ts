@@ -90,8 +90,8 @@ export function handleRequest(path: string, requestData: ElectronRequestData) {
   return new Promise(async (resolve, reject) => {
     const route = router.find(method.toUpperCase() as HTTPMethod, path);
     let connection: jsforce.Connection;
+    let targetConnection: jsforce.Connection;
     if (!route) {
-      // TODO: should we encode differently?
       return reject(new Error('Route not found'));
     }
 
@@ -104,10 +104,20 @@ export function handleRequest(path: string, requestData: ElectronRequestData) {
       connection = getJsforceConnection(org, false);
     }
 
+    const targetOrgId = getHeader(headers, HTTP.HEADERS.X_SFDC_ID_TARGET);
+    if (targetOrgId) {
+      const org = (await getOrgs()).find(({ uniqueId }) => uniqueId === targetOrgId);
+      if (!org) {
+        return reject(new Error(`Org with provided id does not exist`));
+      }
+      targetConnection = getJsforceConnection(org, false);
+    }
+
     const request: ElectronRequest = {
       resolve,
       reject,
       connection,
+      targetConnection,
       request: requestData,
     };
 
@@ -135,7 +145,7 @@ export function getJsforceConnection(org: SalesforceOrgElectron, includeCallOpti
     accessToken: org.accessToken,
     refreshToken: org.refreshToken,
     maxRequest: 5,
-    version: org.apiVersion || ENV.SFDC_FALLBACK_API_VERSION,
+    version: org.apiVersion || ENV.sfdcFallbackApiVersion,
     callOptions: {},
   };
 

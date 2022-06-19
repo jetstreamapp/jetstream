@@ -9,6 +9,7 @@ import { ScopedNotification } from '@jetstream/ui';
 import type { DeltaOperation } from 'quill';
 import { FunctionComponent, useEffect, useRef, useState } from 'react';
 import { useTitle } from 'react-use';
+import { environment } from '../../../environments/environment';
 import FeedbackForm from './FeedbackForm';
 
 /**
@@ -52,7 +53,7 @@ export const Feedback: FunctionComponent<FeedbackProps> = ({ userProfile }) => {
     let body = `**Submitted By** ${userProfile.email} (${userProfile.sub})${NL}`;
 
     try {
-      const { flagVersion, flags, isDefault } = userProfile['http://getjetstream.app/app_metadata'].featureFlags;
+      const { flagVersion, flags, isDefault } = userProfile[environment.authAudience].featureFlags;
 
       try {
         body += `**Feature Flags Version** \`${flagVersion}\` - **Default Flags** \`${isDefault}\`${NL1}`;
