@@ -1,3 +1,4 @@
+/* eslint-disable react/display-name */
 import { documentToReactComponents, Options, NodeRenderer } from '@contentful/rich-text-react-renderer';
 import { BLOCKS, Document, MARKS } from '@contentful/rich-text-types';
 import { Asset } from 'contentful';
