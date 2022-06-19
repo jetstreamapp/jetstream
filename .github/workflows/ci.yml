@@ -28,7 +28,7 @@ jobs:
         with:
           node-version: '16'
           cache: 'npm'
-      - run: npm ci --legacy-peer-deps
+      - run: yarn install --frozen-lockfile
       - run: npx nx-cloud start-ci-run
       - run: npx nx affected --target=build --parallel --max-parallel=2 --configuration=production
       # - run: npx nx affected --target=test --parallel --max-parallel=2
@@ -49,7 +49,7 @@ jobs:
   #       with:
   #         node-version: '16'
   #         cache: 'npm'
-  #     - run: npm install
+  #     - run: yarn install
   #     - run: npx nx-cloud start-ci-run
   #     - run: npx nx affected --target=build --parallel --max-parallel=2
   #     # - run: npx nx affected --target=test --parallel --max-parallel=2
@@ -67,6 +67,6 @@ jobs:
         with:
           node-version: '16'
           cache: 'npm'
-      - run: npm ci --legacy-peer-deps
+      - run: yarn install --frozen-lockfile
       - name: Start Nx Agent ${{ matrix.agent }}
         run: npx nx-cloud start-agent
