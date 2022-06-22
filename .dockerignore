@@ -4,7 +4,7 @@
 .vscode
 .workspace.code-workspace
 app
-dist
+# dist
 electron-scripts
 logs
 node_modules

@@ -1,46 +1,41 @@
-# BUILDER
-FROM node:16 AS builder
+# docker build -f Dockerfile . -t jetstream
+# docker-compose up
+
+# Login and run DB migrations (TODO: figure out how to automate this)
+# https://medium.com/@sumankpaul/run-db-migration-script-in-docker-compose-ce8e447a77ba
+# docker ps
+# docker exec -it 791 bash
+# npx prisma migrate deploy
+
+# TODO: auth redirect flow is broken, need to fix it
+
+FROM node:16
 
 WORKDIR /usr/src/app
 
-COPY . .
+# Copy application
+COPY ./dist/apps/api ./dist/apps/api/
+COPY ./dist/apps/jetstream ./dist/apps/jetstream/
+COPY ./dist/apps/download-zip-sw ./dist/apps/download-zip-sw/
+COPY ./dist/apps/landing ./dist/apps/landing/
 
-RUN yarn install
+# Copy supporting files
+COPY ./dist/apps/api/package.json .
+COPY ./yarn.lock .
+COPY ./.env .
+COPY ./ecosystem.config.js .
+COPY ./prisma ./prisma/
 
-ENV NEXT_TELEMETRY_DISABLED 1
+# Install core dependencies
+RUN yarn
 
-# RUN npx prisma migrate deploy
+# Install other dependencies that were calculated by nx, but are required
+RUN yarn add dotenv prisma@^3.13.0
 
-RUN yarn build:docker
-
-# RUNNER
-FROM node:16 as runner
-
-# Create app directory
-WORKDIR /usr/src/app
-
-ENV NODE_ENV production
-ENV NEXT_TELEMETRY_DISABLED 1
-
-# # RUN yarn install
-# # If you are building your code for production
-# RUN yarn install --frozen-lockfile --only=production
-
-# RUN yarn install pm2
-
-# # Copy all files to docker container
-# COPY . .
-
-RUN addgroup --system --gid 1001 nodejs
-RUN adduser --system --uid 1001 jetstream
-
-COPY --chown=jetstream:nodejs --from=builder /usr/src/app/ ./
-
-USER jetstream
-
-ENV ENVIRONMENT production
-
+# Generate prisma client - ensure that there are no OS differences
+RUN npx prisma generate
 
 EXPOSE 3333
+EXPOSE 9229
 
-CMD [ "pm2-runtime", "start", "ecosystem.config.js", "--env", "production" ]
+CMD [ "node", "--inspect", "dist/apps/api/main.js" ]
