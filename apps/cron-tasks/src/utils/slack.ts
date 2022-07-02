@@ -1,3 +1,4 @@
+import { logger } from '../config/logger.config';
 import SlackNotify from 'slack-notify';
 import { DeleteResult } from './types';
 const SLACK_WEBHOOK_URL = 'https://hooks.slack.com/services/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';
@@ -9,7 +10,14 @@ export interface SlackResponse {
   ts: string; // transaction id, aka message id
 }
 
-export async function sendInactiveUserWarning(numUsersNotified: number): Promise<SlackResponse> {
+export async function sendInactiveUserWarning(
+  numUsersNotified: number,
+  {
+    failedCount,
+    successAuth0UpdateCount,
+    successEmailCount,
+  }: { successEmailCount: number; successAuth0UpdateCount: number; failedCount: number }
+): Promise<SlackResponse> {
   const slack = SlackNotify(SLACK_WEBHOOK_URL);
   return await slack.alert({
     channel,
@@ -30,8 +38,57 @@ export async function sendInactiveUserWarning(numUsersNotified: number): Promise
           text: `*${numUsersNotified} users were notified of future account deletion.*`,
         },
       },
+      {
+        type: 'section',
+        text: {
+          type: 'mrkdwn',
+          text: `
+            - *failedCount*: ${failedCount}
+            - *successAuth0UpdateCount*: ${successAuth0UpdateCount}
+            - *successEmailCount*: ${successEmailCount}
+          `,
+        },
+      },
     ],
   });
+}
+
+export async function logExceptionToSlack(message: string, errors: any): Promise<void> {
+  try {
+    const slack = SlackNotify(SLACK_WEBHOOK_URL);
+    await slack.alert({
+      channel,
+      text: `Cron Error`,
+      blocks: [
+        {
+          type: 'header',
+          text: {
+            type: 'plain_text',
+            text: `:warning: There was an error :warning:`,
+            emoji: true,
+          },
+        },
+        {
+          type: 'section',
+          text: {
+            type: 'mrkdwn',
+            text: message,
+          },
+        },
+        {
+          type: 'section',
+          text: {
+            type: 'mrkdwn',
+            text: `\`\`\`
+  ${JSON.stringify(errors, null, 2)}
+  \`\`\``,
+          },
+        },
+      ],
+    });
+  } catch (ex) {
+    logger.error('[ERROR] Sending to slack %s', errors);
+  }
 }
 
 export async function accountDeletionInitialNotification(results: DeleteResult[]): Promise<SlackResponse> {
