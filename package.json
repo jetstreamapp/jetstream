@@ -8,6 +8,7 @@
     "node": ">=16 <17"
   },
   "scripts": {
+    "init:project": "ts-node ./scripts/init-project.ts",
     "nx": "nx",
     "nx:rest": "nx reset",
     "nx:daemon:rest": "nx reset",
@@ -129,7 +130,7 @@
     "@opentelemetry/exporter-trace-otlp-grpc": "^0.27.0",
     "@opentelemetry/sdk-node": "^0.27.0",
     "@popperjs/core": "^2.4.0",
-    "@prisma/client": "^3.13.0",
+    "@prisma/client": "^4.0.0",
     "@react-aria/dialog": "^3.1.4",
     "@react-aria/focus": "^3.5.0",
     "@react-aria/overlays": "^3.7.2",
@@ -327,7 +328,7 @@
     "postcss": "^8.3.6",
     "postcss-preset-env": "7",
     "prettier": "2.7.0",
-    "prisma": "^3.13.0",
+    "prisma": "^4.0.0",
     "react-test-renderer": "18.2.0",
     "sass": "1.52.3",
     "sass-loader": "^10.0.4",

@@ -14,7 +14,7 @@ void (async function () {
   console.log(chalk.blue(`Uploading sourcemaps to Rollbar`));
   const distPath = path.join(__dirname, '../dist/apps/jetstream');
   let version = fs.readFileSync(path.join(distPath, 'VERSION'), 'utf8');
-  version = version || process.env.GIT_VERSION || gitRevisionPlugin.version();
+  version = (version || process.env.GIT_VERSION || gitRevisionPlugin.version()) as string;
   const url = 'https://api.rollbar.com/api/1/sourcemap';
   const accessToken = process.env.ROLLBAR_SERVER_TOKEN;
 
