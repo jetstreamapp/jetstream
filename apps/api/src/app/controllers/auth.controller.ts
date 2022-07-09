@@ -6,6 +6,7 @@ import * as passport from 'passport';
 import { URL } from 'url';
 import { hardDeleteUserAndOrgs } from '../db/transactions.db';
 import { createOrUpdateUser } from '../db/user.db';
+import { checkAuth } from '../routes/route.middleware';
 // import { sendWelcomeEmail } from '../services/worker-jobs';
 import { linkIdentity } from '../services/auth0';
 import { AuthenticationError } from '../utils/error-handler';
@@ -19,7 +20,35 @@ export interface OauthLinkParams {
 }
 
 export async function login(req: Request, res: Response) {
-  res.redirect('/');
+  // if user used a local login session, then we should be authenticated and can redirect to app
+  if (req.user && req.hostname === 'localhost') {
+    checkAuth(req, res, (err) => {
+      if (err) {
+        res.redirect('/');
+      } else {
+        const user = req.user as UserProfileServer;
+        req.logIn(user, async (err) => {
+          if (err) {
+            logger.warn('[AUTH][ERROR] Error logging in %o', err);
+            return res.redirect('/');
+          }
+
+          // Create or update user, then optionally enqueue email send job
+          createOrUpdateUser(user)
+            .then(async ({ created, user: _user }) => {
+              logger.info('[AUTH][SUCCESS] Logged in %s', _user.email, { userId: user.id });
+              res.redirect(ENV.JETSTREAM_CLIENT_URL);
+            })
+            .catch((err) => {
+              logger.error('[AUTH][DB][ERROR] Error creating or sending welcome email %o', err);
+              res.redirect('/');
+            });
+        });
+      }
+    });
+  } else {
+    res.redirect('/');
+  }
 }
 
 export async function callback(req: Request, res: Response, next: NextFunction) {
