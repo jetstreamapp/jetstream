@@ -23,6 +23,7 @@
     "start:watch:electron": "nx run-many --target=build --projects=electron-worker,electron-preferences,electron-jetstream --configuration=development --watch --parallel --maxParallel=10",
     "start:ui:storybook": "nx run ui:storybook",
     "start:prod": "pm2-runtime start ecosystem.config.js --env production",
+    "start:staging": "pm2-runtime start ecosystem.staging.config.js --env production",
     "start:prod:debug": "pm2-runtime start ecosystem.config.js --env production --node-args=\"--inspect\"",
     "start:cron:inactive-account-warning": "node dist/apps/cron-tasks/inactive-account-warning.js",
     "start:cron:inactive-account-deletion": "node dist/apps/cron-tasks/inactive-account-deletion.js",
