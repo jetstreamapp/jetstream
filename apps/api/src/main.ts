@@ -13,7 +13,7 @@ import * as Auth0Strategy from 'passport-auth0';
 import { Strategy as CustomStrategy } from 'passport-custom';
 import { join } from 'path';
 import { initSocketServer } from './app/controllers/socket.controller';
-import { apiRoutes, landingRoutes, oauthRoutes, platformEventRoutes, staticAuthenticatedRoutes } from './app/routes';
+import { apiRoutes, oauthRoutes, platformEventRoutes, staticAuthenticatedRoutes } from './app/routes';
 import { blockBotByUserAgentMiddleware, logRoute, notFoundMiddleware, setApplicationCookieMiddleware } from './app/routes/route.middleware';
 import { blockBotHandler, healthCheck, uncaughtErrorHandler } from './app/utils/response.handlers';
 import { environment } from './environments/environment';
@@ -283,7 +283,6 @@ app.use(urlencoded({ extended: true }));
 app.use('/healthz', healthCheck);
 app.use('/api', logRoute, apiRoutes);
 app.use('/static', logRoute, staticAuthenticatedRoutes); // these are routes that return files or redirect (e.x. NOT JSON)
-app.use('/landing', logRoute, landingRoutes);
 app.use('/oauth', logRoute, oauthRoutes); // NOTE: there are also static files with same path
 
 // const server = app.listen(Number(ENV.PORT), () => {

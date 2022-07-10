@@ -1,14 +1,15 @@
 version: '3.8'
 services:
   jetstream:
-    image: jetstream
+    build: .
     depends_on:
       - db
+      - db_seed
     environment:
       NODE_ENV: production
       ENVIRONMENT: production
       JESTREAM_POSTGRES_DBURI: postgres://postgres:postgres@postgres:5432/postgres
-      JESTREAM_SESSION_SECRET: 8e52194ce3b6650b93e95a5c40a705b2
+      JESTREAM_SESSION_SECRET: 15a845f36512d850dfd223af8809873c
       JETSTREAM_CLIENT_URL: http://localhost:3333/app
       JETSTREAM_SERVER_DOMAIN: localhost:3333
       JETSTREAM_SERVER_URL: http://localhost:3333
@@ -18,7 +19,6 @@ services:
       AUTH0_MGMT_CLIENT_ID: '${AUTH0_MGMT_CLIENT_ID}'
       AUTH0_MGMT_CLIENT_SECRET: '${AUTH0_MGMT_CLIENT_SECRET}'
       AUTH0_CLIENT_SECRET: '${AUTH0_CLIENT_SECRET}'
-      AUTH_AUDIENCE: '${AUTH_AUDIENCE}'
       SFDC_FALLBACK_API_VERSION: '${SFDC_FALLBACK_API_VERSION}'
       SFDC_CONSUMER_SECRET: '${SFDC_CONSUMER_SECRET}'
       SFDC_CONSUMER_KEY: '${SFDC_CONSUMER_KEY}'
@@ -43,6 +43,16 @@ services:
       - '5432:5432'
     volumes:
       - db:/var/lib/postgresql/data
+  db_seed:
+    build:
+      context: .
+      dockerfile: ./Dockerfile.db-migration
+    depends_on:
+      - db
+    environment:
+      NODE_ENV: production
+      ENVIRONMENT: production
+      JESTREAM_POSTGRES_DBURI: postgres://postgres:postgres@postgres:5432/postgres
 volumes:
   db:
     driver: local

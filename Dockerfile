@@ -29,7 +29,7 @@ COPY ./prisma ./prisma/
 # Install core dependencies
 RUN yarn
 
-# Install other dependencies that were calculated by nx, but are required
+# Install other dependencies that were not calculated by nx, but are required
 RUN yarn add dotenv prisma@^3.13.0
 
 # Generate prisma client - ensure that there are no OS differences
