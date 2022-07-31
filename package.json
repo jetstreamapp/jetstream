@@ -1,8 +1,12 @@
 {
   "name": "jetstream",
   "description": "The Jetstream platform makes managing your Salesforce instances a breeze. Use Jetstream to work with your data and metadata to get your work done faster.",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/jetstreamapp/jetstream/releases"
+  },
   "author": "Jetstream",
-  "version": "0.0.0",
+  "version": "1.0.0",
   "license": "PRIVATE",
   "engines": {
     "node": ">=16 <17"
@@ -10,9 +14,6 @@
   "scripts": {
     "init:project": "ts-node ./scripts/init-project.ts",
     "nx": "nx",
-    "nx:rest": "nx reset",
-    "nx:daemon:rest": "nx reset",
-    "nx:daemon:help": "nx daemon --help",
     "start": "nx serve",
     "start:api": "nx serve api",
     "start:worker": "nx serve jetstream-worker",
@@ -88,9 +89,7 @@
     "format:write": "nx format:write",
     "format:check": "nx format:check",
     "update": "nx migrate latest",
-    "dep-graph": "nx dep-graph",
-    "help": "nx help",
-    "workspace-generator": "nx workspace-generator"
+    "dep-graph": "nx dep-graph"
   },
   "private": true,
   "prisma": {
