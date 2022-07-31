@@ -117,6 +117,7 @@ TODO: include instructions on how to have a local user
     - `yarn build` (this may take 5 - 10 minutes)
   - Start Jetstream
     - `yarn db:migrate` to initialize database
+    - `yarn db:seed` to insert required records for the application
     - `node dist/apps/api/main.js`
     - Visit in a web browser - TODO: **allow skipping auth**
       - `http://localhost:3333/app`

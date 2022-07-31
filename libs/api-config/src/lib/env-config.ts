@@ -3,6 +3,10 @@ import { UserProfileServer } from '@jetstream/types';
 import * as dotenv from 'dotenv';
 dotenv.config();
 
+/**
+ * This object allows for someone to run Jetstream in a local environment
+ * without having to authenticate with a real account.
+ */
 const TEST_USER: UserProfileServer = {
   _json: {
     sub: 'TEST_USER',
@@ -59,7 +63,7 @@ export const ENV = {
   MAILGUN_PUBLIC_KEY: process.env.MAILGUN_PUBLIC_KEY,
   MAILGUN_WEBHOOK_KEY: process.env.MAILGUN_WEBHOOK_KEY,
   // SFDC
-  SFDC_FALLBACK_API_VERSION: process.env.NX_SFDC_FALLBACK_API_VERSION || process.env.SFDC_FALLBACK_API_VERSION,
+  SFDC_FALLBACK_API_VERSION: process.env.NX_SFDC_API_VERSION || process.env.SFDC_FALLBACK_API_VERSION,
   SFDC_CONSUMER_SECRET: process.env.SFDC_CONSUMER_SECRET,
   SFDC_CONSUMER_KEY: process.env.SFDC_CONSUMER_KEY,
   SFDC_CALLBACK_URL: process.env.SFDC_CALLBACK_URL,

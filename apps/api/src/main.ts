@@ -146,33 +146,6 @@ passport.use(
       return callback(new Error('Test user not enabled'));
     }
 
-    // TODO: should I login right here as well?
-    // req.logIn(user, async (err) => {
-    //   if (err) {
-    //     logger.warn('[AUTH][ERROR] Error logging in %o', err);
-    //     return next(new AuthenticationError(err));
-    //   }
-
-    //   // Create or update user, then optionally enqueue email send job
-    //   createOrUpdateUser(user)
-    //     .then(async ({ created, user: _user }) => {
-    //       // TODO: this is sent from Auth0 - so I guess we can/should ignore this job?!?
-    //       // if (created) {
-    //       //   // SEND WELCOME EMAIL
-    //       //   await sendWelcomeEmail(_user);
-    //       // }
-    //     })
-    //     .catch((err) => {
-    //       logger.error('[AUTH][DB][ERROR] Error creating or sending welcome email %o', err);
-    //     });
-
-    //   // TODO: confirm returnTo 0 it suddenly was reported as bad
-    //   const returnTo = (req.session as any).returnTo;
-    //   delete (req.session as any).returnTo;
-    //   logger.info('[AUTH][SUCCESS] Logged in %s', user.email, { userId: user.id });
-    //   res.redirect(returnTo || ENV.JETSTREAM_CLIENT_URL);
-    // });
-
     callback(null, ENV.TEST_USER);
   })
 );
