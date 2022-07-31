@@ -123,7 +123,7 @@ export type UserProfileAuth0Ui = Pick<
 
 export interface UserProfileUi {
   email: string;
-  email_verified: string;
+  email_verified: boolean;
   // Set from environment variable, could be different
   'http://getjetstream.app/app_metadata': { featureFlags: FeatureFlag };
   name: string;

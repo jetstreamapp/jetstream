@@ -10,6 +10,7 @@ import * as session from 'express-session';
 import * as helmet from 'helmet';
 import * as passport from 'passport';
 import * as Auth0Strategy from 'passport-auth0';
+import { Strategy as CustomStrategy } from 'passport-custom';
 import { join } from 'path';
 import { initSocketServer } from './app/controllers/socket.controller';
 import { apiRoutes, oauthRoutes, platformEventRoutes, staticAuthenticatedRoutes } from './app/routes';
@@ -136,6 +137,18 @@ if (ENV.ENVIRONMENT === 'development') {
 
 app.use(blockBotByUserAgentMiddleware);
 app.use(setApplicationCookieMiddleware);
+
+/** Manual test user, skip Auth0 completely */
+passport.use(
+  'custom',
+  new CustomStrategy(function (req, callback) {
+    if (req.hostname !== 'localhost' || !ENV.TEST_USER_OVERRIDE || !ENV.TEST_USER) {
+      return callback(new Error('Test user not enabled'));
+    }
+
+    callback(null, ENV.TEST_USER);
+  })
+);
 
 passport.use(
   'auth0',

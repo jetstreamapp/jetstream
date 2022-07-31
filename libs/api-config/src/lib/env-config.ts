@@ -1,8 +1,40 @@
 import { ensureBoolean, ensureStringValue } from '@jetstream/shared/utils';
+import { UserProfileServer } from '@jetstream/types';
 import * as dotenv from 'dotenv';
 dotenv.config();
 
+/**
+ * This object allows for someone to run Jetstream in a local environment
+ * without having to authenticate with a real account.
+ */
+const TEST_USER: UserProfileServer = {
+  _json: {
+    sub: 'TEST_USER',
+    nickname: 'Jetstream',
+    name: 'Jetstream Test',
+    picture: null,
+    updated_at: '2022-06-18T16:27:37.491Z',
+    email: 'test@example.com',
+    email_verified: true,
+    'http://getjetstream.app/app_metadata': {
+      featureFlags: { flagVersion: 'V1.4', flags: ['all'], isDefault: false },
+    },
+  },
+  _raw: null,
+  id: 'TEST_USER',
+  displayName: 'Jetstream Test',
+  emails: [],
+  name: 'Jetstream Test',
+  nickname: 'Jetstream',
+  picture: null,
+  provider: 'auth0',
+  user_id: 'TEST_USER',
+};
+
 export const ENV = {
+  // LOCAL OVERRIDE
+  TEST_USER_OVERRIDE: ensureBoolean(process.env.TEST_USER_OVERRIDE),
+  TEST_USER: process.env.TEST_USER_OVERRIDE ? TEST_USER : null,
   // SYSTEM
   NODE_ENV: process.env.NODE_ENV,
   ENVIRONMENT: process.env.ENVIRONMENT || 'production',
@@ -31,7 +63,7 @@ export const ENV = {
   MAILGUN_PUBLIC_KEY: process.env.MAILGUN_PUBLIC_KEY,
   MAILGUN_WEBHOOK_KEY: process.env.MAILGUN_WEBHOOK_KEY,
   // SFDC
-  SFDC_FALLBACK_API_VERSION: process.env.NX_SFDC_FALLBACK_API_VERSION || process.env.SFDC_FALLBACK_API_VERSION,
+  SFDC_FALLBACK_API_VERSION: process.env.NX_SFDC_API_VERSION || process.env.SFDC_FALLBACK_API_VERSION,
   SFDC_CONSUMER_SECRET: process.env.SFDC_CONSUMER_SECRET,
   SFDC_CONSUMER_KEY: process.env.SFDC_CONSUMER_KEY,
   SFDC_CALLBACK_URL: process.env.SFDC_CALLBACK_URL,
