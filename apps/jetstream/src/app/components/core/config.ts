@@ -6,7 +6,7 @@ import { environment } from '../../../environments/environment';
 import { axiosElectronAdapter } from './electron-axios-adapter';
 import * as jetstreamElectron from './electron-utils';
 
-LicenseManager.setLicenseKey(process.env.NX_AG_GRID_KEY);
+LicenseManager.setLicenseKey(environment.agGridKey);
 
 export const CONFIG = {
   Router: BrowserRouter,

@@ -72,7 +72,7 @@ export const ENV = {
   GOOGLE_API_KEY: process.env.GOOGLE_API_KEY,
   GOOGLE_CLIENT_ID: process.env.GOOGLE_CLIENT_ID,
   // GITHUB
-  GITHUB_TOKEN: process.env.GITHUB_TOKEN,
+  GITHUB_TOKEN: process.env.GITHUB_TOKEN || process.env.GH_TOKEN,
   // HONEYCOMB
   HONEYCOMB_ENABLED: ensureBoolean(process.env.HONEYCOMB_ENABLED),
   HONEYCOMB_API_KEY: process.env.HONEYCOMB_API_KEY,
