@@ -3,7 +3,7 @@
   "description": "The Jetstream platform makes managing your Salesforce instances a breeze. Use Jetstream to work with your data and metadata to get your work done faster.",
   "repository": {
     "type": "git",
-    "url": "https://github.com/jetstreamapp/jetstream/releases"
+    "url": "https://github.com/jetstreamapp/jetstream"
   },
   "author": "Jetstream",
   "version": "1.0.0",
@@ -61,6 +61,8 @@
     "electron:extract:asar-arm": "npx asar extract dist/executables/mac-arm64/Jetstream.app/Contents/Resources/app.asar dist/executables/mac-arm64/extracted",
     "pm2:link": "pm2-runtime link quhsrndp43edp7v urfb6rbocz587wt",
     "pm2:monitor": "pm2 monit",
+    "release": "dotenv release-it",
+    "release:build": "ts-node ./scripts/build-release.ts",
     "bundle-analyzer:client": "npx webpack-bundle-analyzer dist/apps/jetstream/stats.json",
     "docs:index": "docker run -it -e APPLICATION_ID=21D7I5RB7N -e API_KEY=5a8e69d756ddc4a3067c7d9e7aecfc3b -e \"CONFIG=$(cat ./apps/docs/algolia-config.json | jq -r tostring)\" algolia/docsearch-scraper",
     "rollbar:upload-sourcemaps": "ts-node ./scripts/upload-source-maps.ts",
@@ -306,6 +308,7 @@
     "css-loader": "^5.0.0",
     "cypress": "^8.3.0",
     "dotenv": "^16.0.1",
+    "dotenv-cli": "^6.0.0",
     "electron": "^18.2.4",
     "electron-builder": "^23.0.9",
     "electron-notarize": "^1.2.1",
@@ -330,6 +333,7 @@
     "prettier": "2.7.0",
     "prisma": "^4.0.0",
     "react-test-renderer": "18.2.0",
+    "release-it": "^15.2.0",
     "sass": "1.52.3",
     "sass-loader": "^10.0.4",
     "style-loader": "^2.0.0",
