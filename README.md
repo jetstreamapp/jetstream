@@ -61,7 +61,10 @@ This project was generated using [Nx](https://nx.dev) - This repository is consi
 
 ## Running Locally
 
-The easiest way to run Jetstream is to download the pre-built and transpiled javascript files and run them using NodeJs.
+📓 You can choose to skip authentication by setting the environment variable `EXAMPLE_USER_OVERRIDE=true`. This is set to true by default in the `.env.example` file.
+🌟 To use this, don't click the login button, but instead just go to `http://localhost:3333/app` directly
+
+The easiest way to run Jetstream locally is to download the pre-built and transpiled javascript files and run them using NodeJs.
 
 Jetstream relies on a Postgres database, so you either need to [run Postgresql locally](https://www.postgresql.org/download/) or use a managed provider such as one from the list below. Optionally you can run jetstream in a Docker container which includes Postgresql.
 
@@ -71,7 +74,7 @@ Jetstream relies on a Postgres database, so you either need to [run Postgresql l
 - [Azure](https://azure.microsoft.com/en-us/services/postgresql/)
 - [GCP](https://cloud.google.com/sql/docs/postgres)
 
-You can use the example OAuth2 client secret or client id, but you are welcome to create you own connected app in any Salesforce org of your choice.
+You can use the example Salesforce OAuth2 client secret or client id, but you are welcome to create you own connected app in any Salesforce org of your choice.
 
 If you want to create your own:
 
@@ -128,9 +131,9 @@ TODO: include instructions on how to have a local user
     - `yarn db:generate`
   - Start Jetstream
     - terminal 1: `yarn start:api` to start api server
-      - This runs on `http://localhost:3333`
+      - This runs on `http://localhost:3333` - most endpoints are prefixed at the `/api` path
     - terminal 2: `yarn start` to start api server
-      - This runs on `http://localhost:4200`
+      - This runs on `http://localhost:4200` and you will need to access the application here `http://localhost:4200/app`
   - Optional
     - `yarn start:ui:storybook` to start the storybook server
       - This runs on `http://localhost:4400`
@@ -145,6 +148,7 @@ TODO: include instructions on how to have a local user
    1. Optionally you can build from sources, following the steps above 👆
 3. Run `docker compose up` in your terminal
    1. This may take a while the very first time
+   2. If you make any changes, you need to re-build the application using `docker compose build`
 
 ## Desktop Application
 

@@ -21,7 +21,7 @@ routes.get(
 routes.get(
   '/login',
   passport.authenticate(
-    ['custom', 'auth0'].filter((item) => item === 'auth0' || (ENV.TEST_USER_OVERRIDE && ENV.TEST_USER)),
+    ['custom', 'auth0'].filter((item) => item === 'auth0' || (ENV.EXAMPLE_USER_OVERRIDE && ENV.EXAMPLE_USER)),
     {
       scope: 'openid email profile',
     }

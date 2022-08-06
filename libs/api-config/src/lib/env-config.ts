@@ -7,9 +7,9 @@ dotenv.config();
  * This object allows for someone to run Jetstream in a local environment
  * without having to authenticate with a real account.
  */
-const TEST_USER: UserProfileServer = {
+const EXAMPLE_USER: UserProfileServer = {
   _json: {
-    sub: 'TEST_USER',
+    sub: 'EXAMPLE_USER',
     nickname: 'Jetstream',
     name: 'Jetstream Test',
     picture: null,
@@ -21,20 +21,20 @@ const TEST_USER: UserProfileServer = {
     },
   },
   _raw: null,
-  id: 'TEST_USER',
+  id: 'EXAMPLE_USER',
   displayName: 'Jetstream Test',
   emails: [],
   name: 'Jetstream Test',
   nickname: 'Jetstream',
   picture: null,
   provider: 'auth0',
-  user_id: 'TEST_USER',
+  user_id: 'EXAMPLE_USER',
 };
 
 export const ENV = {
   // LOCAL OVERRIDE
-  TEST_USER_OVERRIDE: ensureBoolean(process.env.TEST_USER_OVERRIDE),
-  TEST_USER: process.env.TEST_USER_OVERRIDE ? TEST_USER : null,
+  EXAMPLE_USER_OVERRIDE: ensureBoolean(process.env.EXAMPLE_USER_OVERRIDE),
+  EXAMPLE_USER: process.env.EXAMPLE_USER_OVERRIDE ? EXAMPLE_USER : null,
   // SYSTEM
   NODE_ENV: process.env.NODE_ENV,
   ENVIRONMENT: process.env.ENVIRONMENT || 'production',

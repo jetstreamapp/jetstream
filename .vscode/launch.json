@@ -15,6 +15,15 @@
       "skipFiles": ["<node_internals>/**"]
     },
     {
+      "name": "Attach to API Server (prod mode)",
+      "type": "node",
+      "request": "attach",
+      "port": 9229,
+      "sourceMaps": true,
+      "restart": true,
+      "skipFiles": ["<node_internals>/**"]
+    },
+    {
       "name": "Attach to API Server (Docker)",
       "type": "node",
       "request": "attach",

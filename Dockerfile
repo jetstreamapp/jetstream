@@ -38,4 +38,4 @@ RUN npx prisma generate
 EXPOSE 3333
 EXPOSE 9229
 
-CMD [ "node", "--inspect", "dist/apps/api/main.js" ]
+CMD [ "node", "--inspect=0.0.0.0", "dist/apps/api/main.js" ]

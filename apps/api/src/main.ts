@@ -142,11 +142,13 @@ app.use(setApplicationCookieMiddleware);
 passport.use(
   'custom',
   new CustomStrategy(function (req, callback) {
-    if (req.hostname !== 'localhost' || !ENV.TEST_USER_OVERRIDE || !ENV.TEST_USER) {
+    if (req.hostname !== 'localhost' || !ENV.EXAMPLE_USER_OVERRIDE || !ENV.EXAMPLE_USER) {
       return callback(new Error('Test user not enabled'));
     }
 
-    callback(null, ENV.TEST_USER);
+    const user = ENV.EXAMPLE_USER;
+    req.user = user;
+    callback(null, user);
   })
 );
 
