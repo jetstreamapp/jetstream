@@ -59,14 +59,6 @@ function convertDateToLocale(dateOrIsoDateString: string | Date, options?: Intl.
   }
 }
 
-export async function signUpNotify(email: string): Promise<DescribeGlobalResult> {
-  return handleRequest({
-    method: 'POST',
-    url: '/landing/sign-up/notify',
-    data: { email },
-  }).then(unwrapResponseIgnoreCache);
-}
-
 //// APPLICATION ROUTES
 export async function platformEventProxyTest(org: SalesforceOrgUi): Promise<{ version: string }> {
   return handleRequest({ method: 'GET', url: '/platform-event' }, { org }).then(unwrapResponseIgnoreCache);

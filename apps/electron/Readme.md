@@ -3,13 +3,13 @@
 ## Development
 
 - Start jetstream app
-  - `npm run start`
+  - `yarn start`
 - Watch all files that might change
-  - `npm run start:watch:electron`
+  - `yarn start:watch:electron`
 - Start electron in watch mode
-  - `npm run start:electron`
+  - `yarn start:electron`
 - If you modified the login/splash page styles, rebuild tailwind CSS file
-  - `npm run build:electron:css`
+  - `yarn build:electron:css`
 
 ## Quirks
 

@@ -15,6 +15,9 @@ const REMOVE_PROTO_REGEX = new RegExp('^http(s?)://');
 
 function init(appCookie: ApplicationCookie) {
   hasInit = true;
+  if (!environment.amplitudeToken) {
+    return;
+  }
   const config: Config = !window.electron?.isElectron
     ? {
         apiEndpoint: `${appCookie.serverUrl.replace(REMOVE_PROTO_REGEX, '')}/analytics`,
@@ -47,13 +50,16 @@ export function useAmplitude(optOut?: boolean) {
   }, [appCookie]);
 
   useEffect(() => {
+    if (!environment.amplitudeToken) {
+      return;
+    }
     if (!hasProfileInit && userProfile && appCookie) {
       hasProfileInit = true;
       const identify = new amplitude.Identify()
         .set('id', userProfile.sub)
         .set('email', userProfile.email)
         .set('email-verified', userProfile.email_verified)
-        .set('feature-flags', userProfile['http://getjetstream.app/app_metadata']?.featureFlags)
+        .set('feature-flags', userProfile[environment.authAudience]?.featureFlags)
         .set('environment', appCookie.environment)
         .set('denied-notifications', userPreferences.deniedNotifications)
         .add('app-init-count', 1)
@@ -73,6 +79,9 @@ export function useAmplitude(optOut?: boolean) {
 export function usePageViews() {
   const location = useLocation();
   React.useEffect(() => {
+    if (!environment.amplitudeToken) {
+      return;
+    }
     amplitude.getInstance().logEvent('page-view', { url: location.pathname });
   }, [location]);
 }
@@ -82,8 +91,11 @@ export function usePageViews() {
  * @param key
  * @param value Object of any kind (NOT A PRIMITIVE)
  */
-export function track(key: string, value?: any) {
+export function track(key: string, value?: unknown) {
   try {
+    if (!environment.amplitudeToken) {
+      return;
+    }
     amplitude.getInstance().logEvent(key, value);
   } catch (ex) {
     logger.warn('[TRACKING ERROR]', ex);

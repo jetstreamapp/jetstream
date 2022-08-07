@@ -2,7 +2,6 @@ import { ENV, logger, rollbarServer } from '@jetstream/api-config';
 import { ERROR_MESSAGES, HTTP } from '@jetstream/shared/constants';
 import { SalesforceOrg } from '@prisma/client';
 import * as express from 'express';
-import * as querystring from 'querystring';
 import * as salesforceOrgsDb from '../db/salesforce-org.db';
 import { AuthenticationError, NotFoundError, UserFacingError } from './error-handler';
 
@@ -79,9 +78,9 @@ export async function uncaughtErrorHandler(err: any, req: express.Request, res: 
         data: err.additionalData,
       });
     } else {
-      const params = querystring.stringify({
+      const params = new URLSearchParams({
         error: `Your session is invalid or expired, please login again. Error code: ${err.message}`,
-      });
+      }).toString();
       return res.redirect(`/?${params}`); // TODO: can we show an error message to the user on this page or redirect to alternate page?
     }
   } else if (err instanceof NotFoundError) {

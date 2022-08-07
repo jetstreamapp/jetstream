@@ -2,7 +2,6 @@ import { ENV, logger } from '@jetstream/api-config';
 import { SalesforceOrgUi, SObjectOrganization, UserProfileServer } from '@jetstream/types';
 import * as express from 'express';
 import * as jsforce from 'jsforce';
-import * as querystring from 'querystring';
 import * as salesforceOrgsDb from '../db/salesforce-org.db';
 import { getJsforceOauth2 } from '../utils/auth-utils';
 import { OauthLinkParams } from './auth.controller';
@@ -16,7 +15,7 @@ export function salesforceOauthInitAuth(req: express.Request, res: express.Respo
   const loginUrl = req.query.loginUrl as string;
   const clientUrl = req.query.clientUrl as string;
   const replaceOrgUniqueId = req.query.replaceOrgUniqueId as string | undefined;
-  const state = querystring.stringify({ loginUrl, clientUrl, replaceOrgUniqueId });
+  const state = new URLSearchParams({ loginUrl, clientUrl, replaceOrgUniqueId }).toString();
 
   let options = {
     scope: 'api web refresh_token',
@@ -38,10 +37,10 @@ export function salesforceOauthInitAuth(req: express.Request, res: express.Respo
  */
 export async function salesforceOauthCallback(req: express.Request, res: express.Response) {
   const user = req.user as UserProfileServer;
-  const state = querystring.parse(req.query.state as string);
-  const loginUrl = state.loginUrl as string;
-  const clientUrl = (state.clientUrl as string) || new URL(ENV.JETSTREAM_CLIENT_URL).origin;
-  const replaceOrgUniqueId = state.replaceOrgUniqueId as string | undefined;
+  const state = new URLSearchParams(req.query.state as string);
+  const loginUrl = state.get('loginUrl');
+  const clientUrl = state.get('clientUrl') || new URL(ENV.JETSTREAM_CLIENT_URL).origin;
+  const replaceOrgUniqueId = state.get('replaceOrgUniqueId') || undefined;
   const returnParams: OauthLinkParams = {
     type: 'salesforce',
     clientUrl,
@@ -55,7 +54,7 @@ export async function salesforceOauthCallback(req: express.Request, res: express
         ? (req.query.error_description as string)
         : 'There was an error authenticating with Salesforce.';
       logger.info('[OAUTH][ERROR] %s', req.query.error, { ...req.query });
-      return res.redirect(`/oauth-link/?${querystring.stringify(returnParams as any)}`);
+      return res.redirect(`/oauth-link/?${new URLSearchParams(returnParams as any).toString()}`);
     }
 
     const conn = new jsforce.Connection({ oauth2: getJsforceOauth2(loginUrl as string) });
@@ -80,7 +79,7 @@ export async function salesforceOauthCallback(req: express.Request, res: express
       uniqueId: `${userInfo.organizationId}-${userInfo.id}`,
       accessToken: salesforceOrgsDb.encryptAccessToken(conn.accessToken, conn.refreshToken),
       instanceUrl: conn.instanceUrl,
-      loginUrl: state.loginUrl as string,
+      loginUrl: state.get('loginUrl'),
       userId: identity.user_id,
       email: identity.email,
       organizationId: identity.organization_id,
@@ -109,7 +108,7 @@ export async function salesforceOauthCallback(req: express.Request, res: express
     // }
 
     returnParams.data = JSON.stringify(salesforceOrg);
-    return res.redirect(`/oauth-link/?${querystring.stringify(returnParams as any)}`);
+    return res.redirect(`/oauth-link/?${new URLSearchParams(returnParams as any).toString()}`);
   } catch (ex) {
     const userInfo = req.user ? { username: (req.user as any)?.displayName, userId: (req.user as any)?.user_id } : undefined;
     logger.info('[OAUTH][ERROR] %o', ex.message, { userInfo });
@@ -117,6 +116,6 @@ export async function salesforceOauthCallback(req: express.Request, res: express
     returnParams.message = req.query.error_description
       ? (req.query.error_description as string)
       : 'There was an error authenticating with Salesforce.';
-    return res.redirect(`/oauth-link/?${querystring.stringify(returnParams as any)}`);
+    return res.redirect(`/oauth-link/?${new URLSearchParams(returnParams as any).toString()}`);
   }
 }

@@ -1,8 +1,40 @@
 import { ensureBoolean, ensureStringValue } from '@jetstream/shared/utils';
+import { UserProfileServer } from '@jetstream/types';
 import * as dotenv from 'dotenv';
 dotenv.config();
 
+/**
+ * This object allows for someone to run Jetstream in a local environment
+ * without having to authenticate with a real account.
+ */
+const EXAMPLE_USER: UserProfileServer = {
+  _json: {
+    sub: 'EXAMPLE_USER',
+    nickname: 'Jetstream',
+    name: 'Jetstream Test',
+    picture: null,
+    updated_at: '2022-06-18T16:27:37.491Z',
+    email: 'test@example.com',
+    email_verified: true,
+    'http://getjetstream.app/app_metadata': {
+      featureFlags: { flagVersion: 'V1.4', flags: ['all'], isDefault: false },
+    },
+  },
+  _raw: null,
+  id: 'EXAMPLE_USER',
+  displayName: 'Jetstream Test',
+  emails: [],
+  name: 'Jetstream Test',
+  nickname: 'Jetstream',
+  picture: null,
+  provider: 'auth0',
+  user_id: 'EXAMPLE_USER',
+};
+
 export const ENV = {
+  // LOCAL OVERRIDE
+  EXAMPLE_USER_OVERRIDE: ensureBoolean(process.env.EXAMPLE_USER_OVERRIDE),
+  EXAMPLE_USER: process.env.EXAMPLE_USER_OVERRIDE ? EXAMPLE_USER : null,
   // SYSTEM
   NODE_ENV: process.env.NODE_ENV,
   ENVIRONMENT: process.env.ENVIRONMENT || 'production',
@@ -26,16 +58,12 @@ export const ENV = {
   AUTH0_MGMT_CLIENT_ID: process.env.AUTH0_MGMT_CLIENT_ID,
   AUTH0_MGMT_CLIENT_SECRET: process.env.AUTH0_MGMT_CLIENT_SECRET,
   AUTH0_CLIENT_SECRET: process.env.AUTH0_CLIENT_SECRET,
-  // MAILCHIMP
-  MAILCHIMP_USER: process.env.MAILCHIMP_USER,
-  MAILCHIMP_API_KEY: process.env.MAILCHIMP_API_KEY,
-  MAILCHIMP_AUDIENCE_ID: process.env.MAILCHIMP_AUDIENCE_ID,
   // MAILGUN
   MAILGUN_API_KEY: process.env.MAILGUN_API_KEY,
   MAILGUN_PUBLIC_KEY: process.env.MAILGUN_PUBLIC_KEY,
   MAILGUN_WEBHOOK_KEY: process.env.MAILGUN_WEBHOOK_KEY,
   // SFDC
-  SFDC_FALLBACK_API_VERSION: process.env.SFDC_FALLBACK_API_VERSION,
+  SFDC_FALLBACK_API_VERSION: process.env.NX_SFDC_API_VERSION || process.env.SFDC_FALLBACK_API_VERSION,
   SFDC_CONSUMER_SECRET: process.env.SFDC_CONSUMER_SECRET,
   SFDC_CONSUMER_KEY: process.env.SFDC_CONSUMER_KEY,
   SFDC_CALLBACK_URL: process.env.SFDC_CALLBACK_URL,
@@ -44,8 +72,9 @@ export const ENV = {
   GOOGLE_API_KEY: process.env.GOOGLE_API_KEY,
   GOOGLE_CLIENT_ID: process.env.GOOGLE_CLIENT_ID,
   // GITHUB
-  GITHUB_TOKEN: process.env.GITHUB_TOKEN,
+  GITHUB_TOKEN: process.env.GITHUB_TOKEN || process.env.GH_TOKEN,
   // HONEYCOMB
   HONEYCOMB_ENABLED: ensureBoolean(process.env.HONEYCOMB_ENABLED),
   HONEYCOMB_API_KEY: process.env.HONEYCOMB_API_KEY,
+  AUTH_AUDIENCE: process.env.NX_AUTH_AUDIENCE,
 };

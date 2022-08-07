@@ -18,26 +18,6 @@ export const heartbeat: ControllerFn = async (_, __, params, { reject, resolve, 
 
 export const getUserProfile: ControllerFn = async (_, __, params, { reject, resolve, connection, request }) => {
   try {
-    // const user = {
-    //   sub: 'google-oauth2|116087078021369259894',
-    //   given_name: 'Austin',
-    //   family_name: 'Turner',
-    //   nickname: 'paustint',
-    //   name: 'Austin Turner',
-    //   picture: 'https://lh3.googleusercontent.com/a-/AOh14Ggm4uEKRl9ost7d6zV5JfK0xKo25_TZf2cuKdOTR1s=s96-c',
-    //   locale: 'en',
-    //   updated_at: '2022-04-30T14:24:26.493Z',
-    //   email: 'paustint@gmail.com',
-    //   email_verified: true,
-    //   'http://getjetstream.app/app_metadata': {
-    //     featureFlags: {
-    //       flagVersion: 'V1.4',
-    //       flags: ['all'],
-    //       isDefault: false,
-    //     },
-    //     lastActivity: '2022-04-27',
-    //   },
-    // };
     resolve(getUserInfo());
   } catch (ex) {
     reject(ex);

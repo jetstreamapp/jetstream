@@ -45,3 +45,6 @@ Thumbs.db
 # Generated Docusaurus files
 .docusaurus/
 .cache-loader/
+
+# Ensure we do not accidentally run npm install
+package-lock.json

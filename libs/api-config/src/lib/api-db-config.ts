@@ -3,6 +3,10 @@ import { logger } from './api-logger';
 import { Pool } from 'pg';
 import { ENV } from './env-config';
 
+process.on('uncaughtException', function (err) {
+  console.log(err);
+});
+
 const log: Array<Prisma.LogLevel | Prisma.LogDefinition> = ['info'];
 
 if (ENV.PRISMA_DEBUG) {

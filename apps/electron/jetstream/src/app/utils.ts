@@ -11,7 +11,7 @@ const defaultSettings: ElectronPreferences = {
   analyticsOptIn: true,
   crashReportingOptIn: true,
   downloadFolder: { prompt: true },
-  defaultApiVersion: { override: false, overrideValue: process.env.SFDC_FALLBACK_API_VERSION },
+  defaultApiVersion: { override: false, overrideValue: environment.sfdcFallbackApiVersion },
 };
 
 export let rollbar: Rollbar;

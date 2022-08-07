@@ -12,6 +12,7 @@
         "main": "apps/api/src/main.ts",
         "tsConfig": "apps/api/tsconfig.app.json",
         "assets": ["apps/api/src/assets"],
+        "generatePackageJson": true,
         "webpackConfig": "webpack-server.config.js"
       },
       "configurations": {
@@ -19,6 +20,18 @@
           "optimization": true,
           "extractLicenses": true,
           "inspect": false,
+          "sourceMap": true,
+          "fileReplacements": [
+            {
+              "replace": "apps/api/src/environments/environment.ts",
+              "with": "apps/api/src/environments/environment.prod.ts"
+            }
+          ]
+        },
+        "docker": {
+          "optimization": false,
+          "extractLicenses": false,
+          "inspect": true,
           "sourceMap": true,
           "fileReplacements": [
             {

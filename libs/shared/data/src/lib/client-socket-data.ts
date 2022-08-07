@@ -1,7 +1,7 @@
 import { logger } from '@jetstream/shared/client-logger';
 import { SocketAck } from '@jetstream/types';
 import { io, Socket } from 'socket.io-client';
-import { DefaultEventsMap } from 'socket.io-client/build/typed-events';
+import { DefaultEventsMap } from '@socket.io/component-emitter';
 
 let socket: Socket<DefaultEventsMap, DefaultEventsMap>;
 
@@ -36,6 +36,7 @@ export function initSocket(serverUrl?: string) {
   });
 }
 
+// eslint-disable-next-line @typescript-eslint/no-empty-function
 export function isConnected() {}
 
 export function emit<T = any>(channel: string, event: T, callback?: (data: SocketAck<T>) => void) {

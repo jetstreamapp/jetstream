@@ -2,7 +2,7 @@
   "name": "Jetstream",
   "description": "The Jetstream platform makes managing your Salesforce instances a breeze. Use Jetstream to work with your data and metadata to get your work done faster.",
   "author": "Jetstream",
-  "version": "1.0.0",
+  "version": "0.0.1",
   "license": "PRIVATE",
   "repository": "https://github.com/jetstreamapp/jetstream",
   "engines": {

@@ -46,7 +46,7 @@ export function initSocketServer(app: express.Express, middlewareFns: express.Re
       httpOnly: false,
       secure: environment.production,
       sameSite: 'strict',
-    },
+    } as any,
     allowRequest: (req, callback) => {
       const isOriginValid = isValidRequest(req);
       callback(null, isOriginValid);

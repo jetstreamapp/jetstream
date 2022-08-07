@@ -4,4 +4,4 @@
 set -ex
 # Seeding command
 # psql prisma/seed-salesforce-api.sql
-psql jetstream < prisma/seed-salesforce-api.sql
+psql postgres < prisma/seed-salesforce-api.sql

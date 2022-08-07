@@ -2,67 +2,11 @@
   "migrations": [
     {
       "cli": "nx",
-      "version": "14.0.6",
-      "description": "Remove root property from project.json files",
-      "factory": "./src/migrations/update-14-0-6/remove-roots",
+      "version": "14.3.4-beta.1",
+      "description": "Replace targetDependencies with targetDefaults",
+      "implementation": "./src/migrations/update-14-3-4/create-target-defaults",
       "package": "nx",
-      "name": "14-0-6-remove-root"
-    },
-    {
-      "cli": "nx",
-      "version": "14.2.0-beta.0",
-      "description": "Add JSON Schema to Nx configuration files",
-      "factory": "./src/migrations/update-14-2-0/add-json-schema",
-      "package": "nx",
-      "name": "14-2-0-add-json-schema"
-    },
-    {
-      "cli": "nx",
-      "version": "14.2.0-beta.0",
-      "description": "Remove default collection from configuration to switch to prompts for collection",
-      "factory": "./src/migrations/update-14-2-0/remove-default-collection",
-      "package": "nx",
-      "name": "14-2-0-remove-default-collection"
-    },
-    {
-      "cli": "nx",
-      "version": "14.2.0-beta.5",
-      "description": "Replace all ./ and ../ in outputs with absolute paths",
-      "factory": "./src/migrations/update-14-2-0/replace-all-relative-outputs-with-absolute",
-      "package": "nx",
-      "name": "14-2-0-replace-relative-outputs-with-absolute"
-    },
-    {
-      "version": "14.2.0",
-      "description": "Explicitly enable sourceAnalysis for all workspaces extending from npm.json or core.json (this was default behavior prior to 14.2)",
-      "cli": "nx",
-      "implementation": "./src/migrations/update-14-2-0/enable-source-analysis",
-      "package": "@nrwl/workspace",
-      "name": "14-2-0-enable-source-analysis"
-    },
-    {
-      "version": "14.1.8",
-      "cli": "nx",
-      "description": "Change storybook targets for Angular projects to use @storybook/angular executors",
-      "factory": "./src/migrations/update-14-1-8/change-storybook-targets",
-      "package": "@nrwl/storybook",
-      "name": "update-14.1.8"
-    },
-    {
-      "version": "14.1.5-beta.0",
-      "cli": "nx",
-      "description": "Update to export default in jest config and revert jest.preset.ts to jest.preset.js",
-      "factory": "./src/migrations/update-14-1-5/update-exports-jest-config",
-      "package": "@nrwl/jest",
-      "name": "update-to-export-default"
-    },
-    {
-      "cli": "nx",
-      "version": "14.1.0-beta.0",
-      "description": "Update external option in projects for Emotion",
-      "factory": "./src/migrations/update-14-1-0/update-external-emotion-jsx-runtime",
-      "package": "@nrwl/react",
-      "name": "update-external-emotion-jsx-runtime-14.1.0"
+      "name": "14.3.4-create-target-defaults"
     }
   ]
 }

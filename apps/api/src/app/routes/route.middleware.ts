@@ -92,6 +92,10 @@ function getActivityExp() {
 }
 
 export async function checkAuth(req: express.Request, res: express.Response, next: express.NextFunction) {
+  if (ENV.EXAMPLE_USER_OVERRIDE && ENV.EXAMPLE_USER && req.hostname === 'localhost') {
+    req.user = ENV.EXAMPLE_USER;
+    return next();
+  }
   if (req.user) {
     telemetryAddUserToAttributes(req.user as UserProfileServer);
     try {

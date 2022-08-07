@@ -8,6 +8,11 @@ export async function fetchBlogPosts() {
     return blogPostsBySlug;
   }
 
+  if (!process.env.CONTENTFUL_SPACE || !process.env.CONTENTFUL_TOKEN || !process.env.CONTENTFUL_HOST) {
+    blogPostsBySlug = {};
+    return blogPostsBySlug;
+  }
+
   const client = createClient({
     space: process.env.CONTENTFUL_SPACE,
     accessToken: process.env.CONTENTFUL_TOKEN,
@@ -34,19 +39,17 @@ export async function fetchBlogPosts() {
     }, {});
 
     blogPostsBySlug = entries.items
-      .map(
-        ({ sys, fields }): BlogPost => {
-          return {
-            id: sys.id,
-            title: fields.title,
-            summary: fields.summary,
-            slug: fields.slug,
-            publishDate: fields.publishDate,
-            content: fields.content,
-            author: authorsById[fields.author?.sys.id],
-          };
-        }
-      )
+      .map(({ sys, fields }): BlogPost => {
+        return {
+          id: sys.id,
+          title: fields.title,
+          summary: fields.summary,
+          slug: fields.slug,
+          publishDate: fields.publishDate,
+          content: fields.content,
+          author: authorsById[fields.author?.sys.id],
+        };
+      })
       .reduce((output: BlogPostsBySlug, item) => {
         output[item.slug] = item;
         return output;

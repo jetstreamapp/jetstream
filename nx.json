@@ -27,14 +27,6 @@
   "affected": {
     "defaultBase": "master"
   },
-  "targetDependencies": {
-    "build": [
-      {
-        "target": "build",
-        "projects": "dependencies"
-      }
-    ]
-  },
   "defaultProject": "jetstream",
   "generators": {
     "@nrwl/workspace": {
@@ -111,6 +103,11 @@
       "style": "css",
       "linter": "eslint",
       "unitTestRunner": "jest"
+    }
+  },
+  "targetDefaults": {
+    "build": {
+      "dependsOn": ["^build"]
     }
   }
 }

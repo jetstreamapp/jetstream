@@ -240,6 +240,7 @@
     "@typescript-eslint/no-array-constructor": "warn",
     "@typescript-eslint/no-namespace": "error",
     "no-use-before-define": "off",
+    "react/no-unescaped-entities": "off",
     "@typescript-eslint/no-use-before-define": [
       "warn",
       {
@@ -279,7 +280,7 @@
     {
       "files": ["*.ts", "*.tsx", "*.js", "*.jsx"],
       "parserOptions": {
-        "project": ["apps/landing/tsconfig(.*)?.json"]
+        "project": ["apps/landing/tsconfig.json"]
       },
       "rules": {
         "@next/next/no-html-link-for-pages": ["error", "apps/landing/pages"]
