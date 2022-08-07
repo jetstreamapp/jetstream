@@ -48,3 +48,6 @@ Thumbs.db
 
 # Ensure we do not accidentally run npm install
 package-lock.json
+
+# Next.js
+.next
