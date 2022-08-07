@@ -36,7 +36,7 @@
     "build:electron:jetstream": "nx build electron-jetstream --prod",
     "build:electron:worker": "nx build electron-worker --prod",
     "build:electron:preferences": "nx build electron-preferences --prod",
-    "build:electron:css": "tailwindcss -o apps/electron/jetstream/src/assets/tailwind.css -c apps/electron/jetstream/tailwind.config.js",
+    "build:electron:css": "tailwindcss -o apps/electron/jetstream/src/assets/tailwind.css -c apps/electron/jetstream/tailwind.config.js --minify",
     "build:affected": "npx nx affected --target=build --parallel --max-parallel=10 --configuration=production",
     "build:test": "npm-run-all db:generate build:client:test build:api:test build:sw build:landing",
     "build:client": "nx build jetstream --prod",
