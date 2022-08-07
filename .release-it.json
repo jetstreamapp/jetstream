@@ -31,7 +31,8 @@
   },
   "git": {
     "commitMessage": "chore: release ${version}",
-    "tag": "v${version}"
+    "tag": true,
+    "tagName": "v${version}"
   },
   "npm": {
     "publish": false
@@ -44,6 +45,6 @@
   "hooks": {
     "before:bump": "yarn release:build --version=${version}",
     "after:bump": "git checkout -- package.json",
-    "after:release": "yarn release:electron"
+    "after:release": "yarn "
   }
 }
