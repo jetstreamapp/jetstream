@@ -24,7 +24,8 @@ void (async function () {
   // Delete all prior release zip files
   fs.readdirSync('dist').forEach((file) => {
     if (file.endsWith('.zip')) {
-      fs.removeSync(file);
+      console.log('deleting ', file);
+      fs.unlinkSync(`dist/${file}`);
     }
   });
 
@@ -50,7 +51,4 @@ void (async function () {
   ];
 
   await $`zip -r dist/release-${version}.zip ${filesToZip}`;
-
-  // unrelated to this script
-  // build electron application - should be auto-added to github release
 })();
