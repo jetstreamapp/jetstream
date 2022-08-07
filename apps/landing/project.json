@@ -12,7 +12,9 @@
       },
       "configurations": {
         "production": {},
-        "development": {}
+        "development": {
+          "outputPath": "apps/landing"
+        }
       },
       "outputs": ["{options.outputPath}"],
       "defaultConfiguration": "production"
