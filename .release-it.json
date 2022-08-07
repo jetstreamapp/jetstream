@@ -43,6 +43,7 @@
   },
   "hooks": {
     "before:bump": "yarn release:build --version=${version}",
-    "after:bump": "git checkout -- package.json"
+    "after:bump": "git checkout -- package.json",
+    "after:release": "yarn release:electron"
   }
 }
