@@ -8,15 +8,17 @@ import React, { FunctionComponent } from 'react';
 import { downloadJob } from './job-utils';
 
 const JOBS_WITH_DOWNLOAD = new Set<AsyncJobType>(['BulkDelete']);
+const JOBS_WITH_CANCEL = new Set<AsyncJobType>(['BulkDownload', 'RetrievePackageZip']);
 const JOBS_WITH_LINK = new Set<AsyncJobType>(['BulkDownload', 'UploadToGoogle', 'RetrievePackageZip']);
 const JOBS_WITH_TIMESTAMP_UPDATE = new Set<AsyncJobType>(['RetrievePackageZip']);
 
 export interface JobProps {
   job: AsyncJob;
+  cancelJob: (job: AsyncJob) => void;
   dismiss: (job: AsyncJob) => void;
 }
 
-export const Job: FunctionComponent<JobProps> = ({ job, dismiss }) => {
+export const Job: FunctionComponent<JobProps> = ({ job, cancelJob, dismiss }) => {
   const status = job.statusMessage || job.status;
   let message;
   let timestamp;
@@ -117,6 +119,16 @@ export const Job: FunctionComponent<JobProps> = ({ job, dismiss }) => {
             </p>
           </div>
         </div>
+        {inProgress && JOBS_WITH_CANCEL.has(job.type) && (
+          <div className="slds-m-top_x-small slds-grid slds-grid_align-end">
+            <div className="slds-col">
+              <button className="slds-button slds-button_text-destructive" onClick={() => cancelJob(job)} disabled={job.cancelling}>
+                <Icon type="utility" icon="delete" className="slds-button__icon slds-button__icon_left" omitContainer />
+                {job.cancelling ? 'Attempting to cancel' : 'Cancel Job'}
+              </button>
+            </div>
+          </div>
+        )}
         {!inProgress && (
           <div className="slds-m-top_x-small slds-grid slds-grid_align-spread">
             <div className="slds-col">
@@ -138,7 +150,7 @@ export const Job: FunctionComponent<JobProps> = ({ job, dismiss }) => {
                 </a>
               )}
             </div>
-            <div className=" slds-col">
+            <div className="slds-col">
               <button className="slds-button slds-button_neutral" onClick={() => dismiss(job)}>
                 Dismiss
               </button>

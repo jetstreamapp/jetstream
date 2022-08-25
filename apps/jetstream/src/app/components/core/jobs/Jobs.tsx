@@ -19,7 +19,7 @@ import {
 import { Icon, Popover, PopoverRef } from '@jetstream/ui';
 import classNames from 'classnames';
 import uniqueId from 'lodash/uniqueId';
-import { FunctionComponent, useEffect, useRef, useState } from 'react';
+import { FunctionComponent, useEffect, useRef } from 'react';
 import { useRecoilState, useRecoilValue, useSetRecoilState } from 'recoil';
 import { filter } from 'rxjs/operators';
 import { applicationCookieState } from '../../../app-state';
@@ -95,6 +95,7 @@ export const Jobs: FunctionComponent = () => {
                   status: 'failed',
                   statusMessage: error || 'An unknown error ocurred',
                 };
+                setJobs((prevJobs) => ({ ...prevJobs, [newJob.id]: newJob }));
                 notifyUser(`Delete records failed`, { body: newJob.statusMessage, tag: 'BulkDelete' });
               } else {
                 const results: RecordResult[] = Array.isArray(data.results) ? data.results : [data.results];
@@ -132,6 +133,7 @@ export const Jobs: FunctionComponent = () => {
                   status: 'failed',
                   statusMessage: error || 'An unknown error ocurred',
                 };
+                setJobs((prevJobs) => ({ ...prevJobs, [newJob.id]: newJob }));
                 notifyUser(`Download records failed`, { body: newJob.statusMessage, tag: 'BulkDownload' });
               } else {
                 const { done, progress, fileData, fileFormat, googleFolder } = data.results as {
@@ -448,6 +450,25 @@ export const Jobs: FunctionComponent = () => {
     }
   }
 
+  function cancelJob(job: AsyncJob) {
+    if (jobsWorker) {
+      jobsWorker.postMessage({
+        name: 'CancelJob',
+        data: {
+          job: { ...job, meta: null, results: null },
+          org: job.org,
+        },
+      });
+      setJobs((prevJobs) => ({
+        ...prevJobs,
+        [job.id]: {
+          ...job,
+          cancelling: true,
+        },
+      }));
+    }
+  }
+
   return (
     <Popover
       ref={popoverRef}
@@ -469,7 +490,7 @@ export const Jobs: FunctionComponent = () => {
         >
           <ul>
             {jobs.map((job) => (
-              <Job key={job.id} job={job} dismiss={handleDismiss} />
+              <Job key={job.id} job={job} cancelJob={cancelJob} dismiss={handleDismiss} />
             ))}
             {!jobs.length && <JobPlaceholder />}
           </ul>
