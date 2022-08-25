@@ -364,7 +364,7 @@ export interface FormGroupDropdownItem {
   icon?: any; // FIXME:
 }
 
-export type AsyncJobType = 'isElectron' | 'init' | 'BulkDelete' | 'BulkDownload' | 'RetrievePackageZip' | 'UploadToGoogle';
+export type AsyncJobType = 'isElectron' | 'init' | 'BulkDelete' | 'BulkDownload' | 'RetrievePackageZip' | 'UploadToGoogle' | 'CancelJob';
 export type AsyncJobStatus = 'pending' | 'in-progress' | 'success' | 'finished-warning' | 'failed' | 'aborted';
 
 export type AsyncJobNew<T = unknown> = Omit<AsyncJob<T>, 'id' | 'started' | 'finished' | 'lastActivity' | 'status' | 'statusMessage'>;
@@ -379,6 +379,7 @@ export interface AsyncJob<T = unknown, R = unknown> {
   lastActivity: Date;
   status: AsyncJobStatus;
   statusMessage?: string; // will fallback to status if not provided
+  cancelling?: boolean; // set to true to indicate a cancellation is being attempted
   meta: T;
   results?: R;
 }
@@ -426,6 +427,10 @@ export interface JetstreamEventJobFinished extends JetstreamEvent<JetstreamEvent
 export interface JetstreamEventAddOrg extends JetstreamEvent<JetstreamEventPayloads> {
   type: 'addOrg';
   payload: JetstreamEventAddOrgPayload;
+}
+
+export interface CancelJob {
+  id: string;
 }
 
 export interface UploadToGoogleJob {
