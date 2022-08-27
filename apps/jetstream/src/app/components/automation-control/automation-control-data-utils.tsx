@@ -290,7 +290,9 @@ export async function getFlowsMetadata(selectedOrg: SalesforceOrgUi, sobjects: s
     await Promise.all(
       splitArrayToMaxSize(sobjects, 300).map((currSobjects) => query<FlowViewRecord>(selectedOrg, getFlowsQuery(currSobjects), false))
     )
-  ).flatMap(({ queryResults }) => queryResults.records);
+  )
+    .flatMap(({ queryResults }) => queryResults.records)
+    .filter((record) => record.ManageableState === 'unmanaged' || record.IsTemplate);
   return flowMetadataRecords;
 }
 
