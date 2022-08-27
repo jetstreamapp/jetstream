@@ -1,4 +1,4 @@
-module.exports = {
+export default {
   displayName: 'download-zip-sw',
 
   setupFilesAfterEnv: ['<rootDir>/src/test-setup.ts'],
@@ -12,5 +12,5 @@ module.exports = {
   },
   moduleFileExtensions: ['ts', 'js', 'html'],
   coverageDirectory: '../../coverage/apps/download-zip-sw',
-  preset: '../../jest.preset.ts',
+  preset: '../../jest.preset.js',
 };

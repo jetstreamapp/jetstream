@@ -1,4 +1,5 @@
 {
+  "$schema": "./node_modules/nx/schemas/nx-schema.json",
   "npmScope": "jetstream",
   "implicitDependencies": {
     "workspace.json": "*",
@@ -6,7 +7,6 @@
       "dependencies": "*",
       "devDependencies": "*"
     },
-    "tslint.json": "*",
     "nx.json": "*",
     "tsconfig.base.json": "*",
     ".eslintrc.json": "*"
@@ -26,17 +26,6 @@
   },
   "affected": {
     "defaultBase": "master"
-  },
-  "targetDependencies": {
-    "build": [
-      {
-        "target": "build",
-        "projects": "dependencies"
-      }
-    ]
-  },
-  "cli": {
-    "defaultCollection": "@nrwl/react"
   },
   "defaultProject": "jetstream",
   "generators": {
@@ -114,6 +103,11 @@
       "style": "css",
       "linter": "eslint",
       "unitTestRunner": "jest"
+    }
+  },
+  "targetDefaults": {
+    "build": {
+      "dependsOn": ["^build"]
     }
   }
 }

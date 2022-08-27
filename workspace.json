@@ -30,5 +30,6 @@
     "types": "libs/types",
     "ui": "libs/ui",
     "ui-e2e": "apps/ui-e2e"
-  }
+  },
+  "$schema": "./node_modules/nx/schemas/workspace-schema.json"
 }

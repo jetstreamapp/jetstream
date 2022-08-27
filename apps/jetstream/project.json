@@ -1,5 +1,5 @@
 {
-  "root": "apps/jetstream",
+  "$schema": "../../node_modules/nx/schemas/project-schema.json",
   "sourceRoot": "apps/jetstream/src",
   "projectType": "application",
   "generators": {},
@@ -33,6 +33,33 @@
           "optimization": true,
           "outputHashing": "all",
           "sourceMap": "hidden",
+          "extractCss": true,
+          "namedChunks": false,
+          "extractLicenses": true,
+          "vendorChunk": false,
+          "budgets": [
+            {
+              "type": "initial",
+              "maximumWarning": "2mb",
+              "maximumError": "10mb"
+            }
+          ]
+        },
+        "docker": {
+          "baseHref": "/app",
+          "fileReplacements": [
+            {
+              "replace": "apps/jetstream/src/environments/environment.ts",
+              "with": "apps/jetstream/src/environments/environment.prod.ts"
+            },
+            {
+              "replace": "libs/ui/.storybook/storybook-styles.scss",
+              "with": "apps/jetstream/src/main.scss"
+            }
+          ],
+          "optimization": true,
+          "outputHashing": "all",
+          "sourceMap": false,
           "extractCss": true,
           "namedChunks": false,
           "extractLicenses": true,

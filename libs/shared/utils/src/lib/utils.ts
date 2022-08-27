@@ -363,7 +363,7 @@ export function ensureBoolean(value: string | boolean | null | undefined) {
   } else if (isString(value)) {
     return value.toLowerCase().startsWith('t');
   }
-  return !!value;
+  return false;
 }
 
 export function ensureArray<T = unknown>(value: T): T {

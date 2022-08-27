@@ -6,8 +6,6 @@ import * as jwt from 'jsonwebtoken';
 import * as jwksClient from 'jwks-rsa';
 import fetch from 'node-fetch';
 import { join } from 'path';
-import * as querystring from 'querystring';
-import { URLSearchParams } from 'url';
 import App from '../app';
 import { authAudience, authRedirectUri, authStorage } from '../constants';
 import logger from './logger';
@@ -173,7 +171,7 @@ export async function exchangeCodeForToken(url: URL): Promise<AuthInfo> {
   const error = params.get('error');
   const errorDescription = params.get('error_description');
 
-  const state = querystring.parse(params.get('state'));
+  // const state = new URLSearchParams(params.get('state'));
 
   const { clientId, domain } = getDomainAndClientId();
 

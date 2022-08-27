@@ -1,5 +1,5 @@
 {
-  "root": "libs/monaco-configuration",
+  "$schema": "../../node_modules/nx/schemas/project-schema.json",
   "sourceRoot": "libs/monaco-configuration/src",
   "projectType": "library",
   "targets": {

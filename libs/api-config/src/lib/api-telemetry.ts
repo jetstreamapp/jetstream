@@ -18,44 +18,43 @@ const metadata = new Metadata();
 metadata.set('x-honeycomb-team', ENV.HONEYCOMB_API_KEY);
 metadata.set('x-honeycomb-dataset', `JETSTREAM-${ENV.ENVIRONMENT}`.toUpperCase());
 
-// The Trace Exporter exports the data to Honeycomb and uses
-// the previously-configured metadata and the Honeycomb endpoint.
-const traceExporter = new OTLPTraceExporter({
-  url: 'grpc://api.honeycomb.io:443/',
-  credentials: credentials.createSsl(),
-  metadata,
-});
+// Only enable tracing if the environment variable is set to true.
+if (ENV.HONEYCOMB_ENABLED) {
+  // The Trace Exporter exports the data to Honeycomb and uses
+  // the previously-configured metadata and the Honeycomb endpoint.
+  const traceExporter = new OTLPTraceExporter({
+    url: 'grpc://api.honeycomb.io:443/',
+    credentials: credentials.createSsl(),
+    metadata,
+  });
 
-// The service name is REQUIRED! It is a resource attribute, which means that it will be present on all observability data that your service generates.
-const sdk = new NodeSDK({
-  resource: new Resource({
-    [SemanticResourceAttributes.SERVICE_NAME]: 'JETSTREAM_API',
-  }),
-  traceExporter,
+  // The service name is REQUIRED! It is a resource attribute, which means that it will be present on all observability data that your service generates.
+  const sdk = new NodeSDK({
+    resource: new Resource({
+      [SemanticResourceAttributes.SERVICE_NAME]: 'JETSTREAM_API',
+    }),
+    traceExporter,
 
-  // Instrumentations allow you to add auto-instrumentation packages
-  instrumentations: [getNodeAutoInstrumentations()],
-});
+    // Instrumentations allow you to add auto-instrumentation packages
+    instrumentations: [getNodeAutoInstrumentations()],
+  });
 
-sdk
-  .start()
-  .then(() => logger.debug('[TELEMETRY] Tracing initialized'))
-  .catch((error) => logger.error('[TELEMETRY] Error initializing tracing', error));
-
-process.on('SIGTERM', () => {
   sdk
-    .shutdown()
-    .then(() => logger.debug('[TELEMETRY] Tracing terminated'))
-    .catch((error) => logger.error('[TELEMETRY] Error terminating tracing', error))
-    .finally(() => process.exit(0));
-});
+    .start()
+    .then(() => logger.debug('[TELEMETRY] Tracing initialized'))
+    .catch((error) => logger.error('[TELEMETRY] Error initializing tracing', error));
 
-export function changeDatasetBucket(bucketPrefix: string) {
-  metadata.set('x-honeycomb-dataset', `JETSTREAM-${bucketPrefix}-${ENV.ENVIRONMENT}`.toUpperCase());
+  process.on('SIGTERM', () => {
+    sdk
+      .shutdown()
+      .then(() => logger.debug('[TELEMETRY] Tracing terminated'))
+      .catch((error) => logger.error('[TELEMETRY] Error terminating tracing', error))
+      .finally(() => process.exit(0));
+  });
 }
 
 export function telemetryAddUserToAttributes(user?: UserProfileServer) {
-  if (user?.user_id || user.id) {
+  if (ENV.HONEYCOMB_ENABLED && (user?.user_id || user.id)) {
     try {
       telemetryApi.trace.getSpan(telemetryApi.context.active()).setAttribute('user.id', user.user_id || user.id);
     } catch (ex) {

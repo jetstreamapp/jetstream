@@ -1,5 +1,5 @@
 {
-  "root": "libs/shared/ui-record-form",
+  "$schema": "../../../node_modules/nx/schemas/project-schema.json",
   "sourceRoot": "libs/shared/ui-record-form/src",
   "projectType": "library",
   "generators": {},

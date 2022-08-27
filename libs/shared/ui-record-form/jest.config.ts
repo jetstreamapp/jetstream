@@ -1,4 +1,4 @@
-module.exports = {
+export default {
   displayName: 'shared-ui-record-form',
 
   transform: {
@@ -6,5 +6,5 @@ module.exports = {
   },
   moduleFileExtensions: ['ts', 'tsx', 'js', 'jsx'],
   coverageDirectory: '../../../coverage/libs/shared/ui-record-form',
-  preset: '../../../jest.preset.ts',
+  preset: '../../../jest.preset.js',
 };

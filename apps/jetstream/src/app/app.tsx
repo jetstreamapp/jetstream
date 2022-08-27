@@ -1,13 +1,12 @@
-import { css } from '@emotion/react';
 import { UserProfileUi } from '@jetstream/types';
 import { ConfirmationServiceProvider } from '@jetstream/ui';
 // import { initSocket } from '@jetstream/shared/data';
 import { OverlayProvider } from '@react-aria/overlays';
-import classNames from 'classnames';
-import React, { Suspense, useEffect, useState } from 'react';
+import { Suspense, useEffect, useState } from 'react';
 import { ErrorBoundary } from 'react-error-boundary';
 import ModalContainer from 'react-modal-promise';
 import { RecoilRoot } from 'recoil';
+import { environment } from '../environments/environment';
 import { AppRoutes } from './AppRoutes';
 import AppInitializer from './components/core/AppInitializer';
 import AppLoading from './components/core/AppLoading';
@@ -32,8 +31,8 @@ export const App = () => {
   // const [routes, setRoutes] = useState<RouteItem[]>(() => ROUTES.filter((route) => !route.flag));
 
   useEffect(() => {
-    if (userProfile && userProfile['http://getjetstream.app/app_metadata']?.featureFlags) {
-      const flags = new Set<string>(userProfile['http://getjetstream.app/app_metadata'].featureFlags.flags);
+    if (userProfile && userProfile[environment.authAudience]?.featureFlags) {
+      const flags = new Set<string>(userProfile[environment.authAudience].featureFlags.flags);
       // setRoutes(ROUTES.filter((route) => !route.flag || hasFeatureFlagAccess(flags, route.flag)));
       setFeatureFlags(flags);
     }

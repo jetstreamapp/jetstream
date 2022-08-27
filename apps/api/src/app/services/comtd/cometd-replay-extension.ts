@@ -99,6 +99,7 @@ export class CometdReplayExtension implements Extension {
   incoming(message: Message) {
     if (isNumber(this.replayFromMap[message.channel]) && message.data?.event?.replayId) {
       this.replayFromMap[message.channel] = message.data.event.replayId;
+      return message;
     }
   }
 
@@ -110,6 +111,7 @@ export class CometdReplayExtension implements Extension {
         }
         message.ext[CometdReplayExtension.REPLAY_FROM_KEY] = this.replayFromMap;
       }
+      return message;
     }
   }
 }

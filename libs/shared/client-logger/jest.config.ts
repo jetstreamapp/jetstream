@@ -1,4 +1,4 @@
-module.exports = {
+export default {
   transform: {
     '^.+\\.[tj]sx?$': 'ts-jest',
   },
@@ -6,5 +6,5 @@ module.exports = {
   coverageDirectory: '../../../coverage/libs/shared/client-logger',
   globals: { 'ts-jest': { tsconfig: '<rootDir>/tsconfig.spec.json' } },
   displayName: 'shared-client-logger',
-  preset: '../../../jest.preset.ts',
+  preset: '../../../jest.preset.js',
 };

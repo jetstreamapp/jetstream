@@ -8,6 +8,7 @@ import { initMenus } from './app/menu';
 import logger from './app/services/logger';
 import { initRollbar } from './app/utils';
 import { appId } from './app/constants';
+// something
 export default class Main {
   static initialize() {
     app.setAppUserModelId(appId);

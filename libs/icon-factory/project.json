@@ -1,5 +1,5 @@
 {
-  "root": "libs/icon-factory",
+  "$schema": "../../node_modules/nx/schemas/project-schema.json",
   "sourceRoot": "libs/icon-factory/src",
   "projectType": "library",
   "generators": {},

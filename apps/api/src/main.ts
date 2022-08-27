@@ -10,17 +10,10 @@ import * as session from 'express-session';
 import * as helmet from 'helmet';
 import * as passport from 'passport';
 import * as Auth0Strategy from 'passport-auth0';
+import { Strategy as CustomStrategy } from 'passport-custom';
 import { join } from 'path';
 import { initSocketServer } from './app/controllers/socket.controller';
-import {
-  apiRoutes,
-  landingRoutes,
-  oauthRoutes,
-  platformEventRoutes,
-  registerPassportTestLoginStrategy,
-  staticAuthenticatedRoutes,
-  testRoutes,
-} from './app/routes';
+import { apiRoutes, oauthRoutes, platformEventRoutes, staticAuthenticatedRoutes } from './app/routes';
 import { blockBotByUserAgentMiddleware, logRoute, notFoundMiddleware, setApplicationCookieMiddleware } from './app/routes/route.middleware';
 import { blockBotHandler, healthCheck, uncaughtErrorHandler } from './app/utils/response.handlers';
 import { environment } from './environments/environment';
@@ -145,9 +138,19 @@ if (ENV.ENVIRONMENT === 'development') {
 app.use(blockBotByUserAgentMiddleware);
 app.use(setApplicationCookieMiddleware);
 
-if (!environment.production) {
-  passport.use(registerPassportTestLoginStrategy());
-}
+/** Manual test user, skip Auth0 completely */
+passport.use(
+  'custom',
+  new CustomStrategy(function (req, callback) {
+    if (req.hostname !== 'localhost' || !ENV.EXAMPLE_USER_OVERRIDE || !ENV.EXAMPLE_USER) {
+      return callback(new Error('Test user not enabled'));
+    }
+
+    const user = ENV.EXAMPLE_USER;
+    req.user = user;
+    callback(null, user);
+  })
+);
 
 passport.use(
   'auth0',
@@ -255,7 +258,6 @@ app.use(urlencoded({ extended: true }));
 app.use('/healthz', healthCheck);
 app.use('/api', logRoute, apiRoutes);
 app.use('/static', logRoute, staticAuthenticatedRoutes); // these are routes that return files or redirect (e.x. NOT JSON)
-app.use('/landing', logRoute, landingRoutes);
 app.use('/oauth', logRoute, oauthRoutes); // NOTE: there are also static files with same path
 
 // const server = app.listen(Number(ENV.PORT), () => {
@@ -269,7 +271,6 @@ const server = httpServer.listen(Number(ENV.PORT), () => {
 
 if (!environment.production) {
   app.use(cors({ origin: /http:\/\/localhost:[0-9]+$/ }));
-  app.use('/__test__', logRoute, testRoutes);
 }
 
 app.use('/codicon.ttf', (req: express.Request, res: express.Response) => {

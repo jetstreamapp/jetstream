@@ -21,6 +21,7 @@ export interface ElectronRequest<Data = any, Query = MapOf<string>> {
   resolve: (data?: any) => void;
   reject: (error: Error) => void;
   connection?: jsforce.Connection;
+  targetConnection?: jsforce.Connection;
   request: ElectronRequestData<Data, Query>;
 }
 

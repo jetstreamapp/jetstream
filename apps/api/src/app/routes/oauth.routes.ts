@@ -1,3 +1,4 @@
+import { ENV } from '@jetstream/api-config';
 import * as express from 'express';
 import Router from 'express-promise-router';
 import * as passport from 'passport';
@@ -19,9 +20,12 @@ routes.get(
 
 routes.get(
   '/login',
-  passport.authenticate('auth0', {
-    scope: 'openid email profile',
-  }),
+  passport.authenticate(
+    ['custom', 'auth0'].filter((item) => item === 'auth0' || (ENV.EXAMPLE_USER_OVERRIDE && ENV.EXAMPLE_USER)),
+    {
+      scope: 'openid email profile',
+    }
+  ),
   authController.login
 );
 routes.get('/callback', authController.callback);

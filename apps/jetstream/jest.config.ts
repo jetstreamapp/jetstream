@@ -1,4 +1,4 @@
-module.exports = {
+export default {
   transform: {
     '^(?!.*\\.(js|jsx|ts|tsx|css|json)$)': '@nrwl/react/plugins/jest',
     '^.+\\.[tj]sx?$': 'ts-jest',
@@ -7,5 +7,5 @@ module.exports = {
   coverageDirectory: '../../coverage/apps/jetstream',
   globals: { 'ts-jest': { tsconfig: '<rootDir>/tsconfig.spec.json' } },
   displayName: 'jetstream',
-  preset: '../../jest.preset.ts',
+  preset: '../../jest.preset.js',
 };

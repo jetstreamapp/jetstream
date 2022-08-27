@@ -24,6 +24,7 @@ import {
   AsyncJobWorkerMessagePayload,
   AsyncJobWorkerMessageResponse,
   BulkDownloadJob,
+  CancelJob,
   RetrievePackageFromListMetadataJob,
   RetrievePackageFromManifestJob,
   RetrievePackageFromPackageNamesJob,
@@ -36,6 +37,8 @@ import { axiosElectronAdapter, initMessageHandler } from '../components/core/ele
 
 // eslint-disable-next-line no-restricted-globals
 const ctx: Worker = self as any;
+// Updated if a job is attempted to be cancelled, the job will check this on each iteration and cancel if possible
+const cancelledJobIds = new Set<string>();
 
 // Respond to message from parent thread
 ctx.addEventListener('message', (event) => {
@@ -52,6 +55,11 @@ async function handleMessage(name: AsyncJobType, payloadData: AsyncJobWorkerMess
       initMessageHandler(port);
       break;
     }
+    case 'CancelJob': {
+      const { job } = payloadData as AsyncJobWorkerMessagePayload<CancelJob>;
+      cancelledJobIds.add(job.id);
+      break;
+    }
     case 'BulkDelete': {
       try {
         // TODO: add validation to ensure that we have at least one record
@@ -65,6 +73,7 @@ async function handleMessage(name: AsyncJobType, payloadData: AsyncJobWorkerMess
         const results: any[] = [];
         for (const ids of splitArrayToMaxSize(allIds, MAX_DELETE_RECORDS)) {
           try {
+            // TODO: add progress notification and allow cancellation
             let tempResults = await sobjectOperation(org, sobject, 'delete', { ids }, { allOrNone: false });
             tempResults = Array.isArray(tempResults) ? tempResults : [tempResults];
             tempResults.forEach((result) => results.push(result));
@@ -103,6 +112,9 @@ async function handleMessage(name: AsyncJobType, payloadData: AsyncJobWorkerMess
           done = queryResults.done;
           nextRecordsUrl = queryResults.nextRecordsUrl;
           downloadedRecords = downloadedRecords.concat(queryResults.records);
+          if (cancelledJobIds.has(job.id)) {
+            throw new Error('Job cancelled');
+          }
         }
 
         let mimeType: string;
@@ -190,7 +202,14 @@ async function handleMessage(name: AsyncJobType, payloadData: AsyncJobWorkerMess
           }
         }
 
+        if (cancelledJobIds.has(job.id)) {
+          throw new Error('Job cancelled');
+        }
+
         const results = await pollRetrieveMetadataResultsUntilDone(org, id, {
+          isCancelled: () => {
+            return cancelledJobIds.has(job.id);
+          },
           onChecked: () => {
             const response: AsyncJobWorkerMessageResponse = { job, lastActivityUpdate: true };
             replyToMessage(name, response, undefined);
@@ -211,6 +230,9 @@ async function handleMessage(name: AsyncJobType, payloadData: AsyncJobWorkerMess
       } catch (ex) {
         const response: AsyncJobWorkerMessageResponse = { job };
         replyToMessage(name, response, ex.message);
+        if (cancelledJobIds.has(job.id)) {
+          cancelledJobIds.delete(job.id);
+        }
       }
       break;
     }

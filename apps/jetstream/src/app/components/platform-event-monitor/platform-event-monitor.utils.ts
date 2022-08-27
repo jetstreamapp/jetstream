@@ -44,7 +44,7 @@ export function init({
       });
     }
 
-    cometd.registerExtension(CometdReplayExtension.EXT_NAME, new CometdReplayExtension());
+    cometd.registerExtension(CometdReplayExtension.EXT_NAME, new CometdReplayExtension() as any);
 
     cometd.handshake((shake) => {
       if (shake.successful) {
@@ -65,7 +65,7 @@ export function init({
     cometd.addListener('/meta/unsuccessful', (message) => {
       logger.log('[COMETD] unsuccessful', message);
     });
-    cometd.onListenerException = (exception, subscriptionHandle, isListener, message) => {
+    (cometd as any).onListenerException = (exception, subscriptionHandle, isListener, message) => {
       logger.warn('[COMETD][LISTENER][ERROR]', exception?.message, message, subscriptionHandle);
     };
   });
@@ -78,7 +78,7 @@ export function subscribe<T = any>(
   const channel = `/event/${platformEventName}`;
 
   if (!cometd.isDisconnected()) {
-    const replayExt = cometd.getExtension(CometdReplayExtension.EXT_NAME) as CometdReplayExtension;
+    const replayExt = cometd.getExtension(CometdReplayExtension.EXT_NAME) as any;
     if (replayExt) {
       replayExt.addChannel(platformEventName, replayId);
     }
@@ -89,7 +89,7 @@ export function subscribe<T = any>(
     subscriptions.set(
       platformEventName,
       cometd.subscribe(channel, (message) => {
-        callback(message);
+        callback(message as any);
       })
     );
   }
@@ -147,6 +147,7 @@ class CometdReplayExtension implements Extension {
   incoming(message: Message) {
     if (isNumber(this.replayFromMap[message.channel]) && message.data?.event?.replayId) {
       this.replayFromMap[message.channel] = message.data.event.replayId;
+      return message;
     }
   }
 
@@ -158,6 +159,7 @@ class CometdReplayExtension implements Extension {
         }
         message.ext[CometdReplayExtension.REPLAY_FROM_KEY] = this.replayFromMap;
       }
+      return message;
     }
   }
 }

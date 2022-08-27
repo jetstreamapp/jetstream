@@ -264,7 +264,7 @@ export const checkRetrieveStatusAndRedeploy: ControllerFn<
     changesetName: string;
   },
   { id: string }
-> = async (_, __, params, { reject, resolve, connection, request }) => {
+> = async (_, __, params, { reject, resolve, connection, targetConnection, request }) => {
   try {
     const id = request.query.id;
     const deployOptions = request.data.deployOptions;
@@ -276,8 +276,8 @@ export const checkRetrieveStatusAndRedeploy: ControllerFn<
       deployOptions,
       replacementPackageXml,
       changesetName,
-      targetConn: connection, // FIXME: we need to get the alternate connection
-      fallbackApiVersion: ENV.SFDC_FALLBACK_API_VERSION,
+      targetConn: targetConnection,
+      fallbackApiVersion: ENV.sfdcFallbackApiVersion,
     });
 
     resolve(response);

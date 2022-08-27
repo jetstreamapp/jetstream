@@ -1,4 +1,4 @@
-module.exports = {
+export default {
   transform: {
     '^.+\\.[tj]sx?$': 'ts-jest',
   },
@@ -6,5 +6,5 @@ module.exports = {
   coverageDirectory: '../../coverage/libs/ui',
   globals: { 'ts-jest': { tsconfig: '<rootDir>/tsconfig.spec.json' } },
   displayName: 'ui',
-  preset: '../../jest.preset.ts',
+  preset: '../../jest.preset.js',
 };
