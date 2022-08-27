@@ -61,6 +61,7 @@ import {
   prepareFieldPermissionSaveData,
   prepareObjectPermissionSaveData,
   savePermissionRecords,
+  updatePermissionSetRecords,
 } from './utils/permission-manager-utils';
 
 const HEIGHT_BUFFER = 170;
@@ -254,6 +255,40 @@ export const ManagePermissionsEditor: FunctionComponent<ManagePermissionsEditorP
           fieldPermissionData
         );
         logger.log({ fieldSaveResults });
+      }
+
+      // Update records so that SFDX is aware of the changes
+      // TODO: I need to figure out how to split permission set ids and profile ids
+      // TODO: and do two updates
+      // try {
+      //   const recordIds = Array.from(
+      //     new Set(
+      //       [
+      //         ...(objectPermissionData?.recordsToInsert || []),
+      //         ...(objectPermissionData?.recordsToUpdate || []),
+      //         ...(fieldPermissionData?.recordsToInsert || []),
+      //         ...(fieldPermissionData?.recordsToUpdate || []),
+      //       ]
+      //         .filter(Boolean)
+      //         .filter(record => record.parent)
+      //         .map((record) => record)
+      //     )
+      //   );
+      //   const recordIds = Array.from(
+      //     new Set(
+      //       [
+      //         ...(objectPermissionData?.recordsToInsert || []),
+      //         ...(objectPermissionData?.recordsToUpdate || []),
+      //         ...(fieldPermissionData?.recordsToInsert || []),
+      //         ...(fieldPermissionData?.recordsToUpdate || []),
+      //       ]
+      //         .filter(Boolean)
+      //         .map(({ ParentId }) => ParentId)
+      //     )
+      //   );
+      //   await updatePermissionSetRecords(selectedOrg, recordIds);
+      } catch (ex) {
+        logger.error('Error flagging permissions sets as updated', ex);
       }
 
       if (isMounted.current) {

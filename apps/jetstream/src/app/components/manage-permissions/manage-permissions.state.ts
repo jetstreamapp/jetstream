@@ -1,9 +1,7 @@
 import {
   EntityParticlePermissionsRecord,
-  FieldPermissionRecord,
   ListItem,
   MapOf,
-  ObjectPermissionRecord,
   PermissionSetNoProfileRecord,
   PermissionSetWithProfileRecord,
 } from '@jetstream/types';

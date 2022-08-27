@@ -258,6 +258,19 @@ export function getDirtyObjectPermissions(dirtyRows: MapOf<DirtyRow<PermissionTa
   );
 }
 
+export function getDirtyObjectPermissionsIds(
+  dirtyRows: MapOf<DirtyRow<PermissionTableObjectCell>>,
+  objectPermissionMap: MapOf<ObjectPermissionDefinitionMap>
+) {
+  const records = Array.from(new Set(Object.values(dirtyRows).map((item) => item.row.sobject)))
+    .flatMap((sobject) => Object.values(objectPermissionMap[sobject].permissions))
+    .map((item) => item.record?.Parent);
+
+  // TODO: do this for fields as well
+  const profileIds = records.filter((item) => item.IsOwnedByProfile).map((item) => item.Id);
+  const permissionSetIdsIds = records.filter((item) => !item.IsOwnedByProfile).map((item) => item.Id);
+}
+
 export function getDirtyFieldPermissions(dirtyRows: MapOf<DirtyRow<PermissionTableFieldCell>>) {
   return Object.values(dirtyRows).flatMap(({ row }) =>
     Object.values(row.permissions).filter((permission) => permission.readIsDirty || permission.editIsDirty)

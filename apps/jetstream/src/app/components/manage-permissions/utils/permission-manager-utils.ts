@@ -178,6 +178,25 @@ export async function savePermissionRecords<RecordType, DirtyPermType>(
 }
 
 /**
+ * Update profile and permission set records - this just marks the record as updated without changing anything
+ * used to ensure sfdx knows that a change was made to the record
+ *
+ * @param org
+ * @param recordIds
+ */
+export async function updatePermissionSetRecords(org: SalesforceOrgUi, recordIds: string[]) {
+  await Promise.all(
+    splitArrayToMaxSize(
+      recordIds.map((id) => ({
+        attributes: { type: 'PermissionSet' },
+        Id: id,
+      })),
+      200
+    ).map((records) => sobjectOperation(org, 'PermissionSet', 'update', { records }, { allOrNone: false }))
+  );
+}
+
+/**
  * Refresh data after save based on results
  * Object Permissions
  */
