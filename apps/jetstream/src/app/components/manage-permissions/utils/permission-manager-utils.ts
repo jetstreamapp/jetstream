@@ -7,6 +7,8 @@ import {
   FieldPermissionRecord,
   MapOf,
   ObjectPermissionRecord,
+  PermissionSetNoProfileRecord,
+  PermissionSetWithProfileRecord,
   RecordResult,
   SalesforceOrgUi,
 } from '@jetstream/types';
@@ -184,16 +186,43 @@ export async function savePermissionRecords<RecordType, DirtyPermType>(
  * @param org
  * @param recordIds
  */
-export async function updatePermissionSetRecords(org: SalesforceOrgUi, recordIds: string[]) {
-  await Promise.all(
-    splitArrayToMaxSize(
-      recordIds.map((id) => ({
+export async function updatePermissionSetRecords(
+  org: SalesforceOrgUi,
+  { profileIds, permissionSetIds }: { profileIds: string[]; permissionSetIds: string[] }
+) {
+  await Promise.all([
+    ...splitArrayToMaxSize(
+      profileIds.map((id) => ({
+        attributes: { type: 'Profile' },
+        Id: id,
+      })),
+      200
+    ).map((records) => sobjectOperation(org, 'Profile', 'update', { records }, { allOrNone: false })),
+    ...splitArrayToMaxSize(
+      permissionSetIds.map((id) => ({
         attributes: { type: 'PermissionSet' },
         Id: id,
       })),
       200
-    ).map((records) => sobjectOperation(org, 'PermissionSet', 'update', { records }, { allOrNone: false }))
-  );
+    ).map((records) => sobjectOperation(org, 'PermissionSet', 'update', { records }, { allOrNone: false })),
+  ]);
+}
+
+export function collectProfileAndPermissionIds(
+  dirtyPermissions: (PermissionTableObjectCellPermission | PermissionTableFieldCellPermission)[],
+  profilesById: MapOf<PermissionSetWithProfileRecord>,
+  permissionSetsById: MapOf<PermissionSetNoProfileRecord>
+) {
+  const profileIds = new Set<string>();
+  const permissionSetIds = new Set<string>();
+  dirtyPermissions.forEach((item) => {
+    if (profilesById[item.parentId]) {
+      profileIds.add(profilesById[item.parentId].ProfileId);
+    } else if (permissionSetsById[item.parentId]) {
+      permissionSetIds.add(permissionSetsById[item.parentId].Id);
+    }
+  });
+  return { profileIds, permissionSetIds };
 }
 
 /**

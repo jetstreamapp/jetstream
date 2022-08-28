@@ -55,6 +55,7 @@ import {
 } from './utils/permission-manager-types';
 import {
   clearPermissionErrorMessage,
+  collectProfileAndPermissionIds,
   getUpdatedFieldPermissions,
   getUpdatedObjectPermissions,
   permissionsHaveError,
@@ -224,16 +225,25 @@ export const ManagePermissionsEditor: FunctionComponent<ManagePermissionsEditorP
       setLoading(true);
       let objectPermissionData: PermissionObjectSaveData;
       let fieldPermissionData: PermissionFieldSaveData;
+      let profileIds: string[] = [];
+      let permissionSetIds: string[] = [];
+
       if (dirtyObjectCount) {
         const dirtyPermissions = getDirtyObjectPermissions(dirtyObjectRows);
         if (dirtyPermissions.length > 0) {
           objectPermissionData = prepareObjectPermissionSaveData(dirtyPermissions);
+          const ids = collectProfileAndPermissionIds(dirtyPermissions, profilesById, permissionSetsById);
+          profileIds = [...profileIds, ...ids.profileIds];
+          permissionSetIds = [...permissionSetIds, ...ids.permissionSetIds];
         }
       }
       if (dirtyFieldCount) {
         const dirtyPermissions = getDirtyFieldPermissions(dirtyFieldRows);
         if (dirtyPermissions.length > 0) {
           fieldPermissionData = prepareFieldPermissionSaveData(dirtyPermissions);
+          const ids = collectProfileAndPermissionIds(dirtyPermissions, profilesById, permissionSetsById);
+          profileIds = [...profileIds, ...ids.profileIds];
+          permissionSetIds = [...permissionSetIds, ...ids.permissionSetIds];
         }
       }
 
@@ -258,35 +268,11 @@ export const ManagePermissionsEditor: FunctionComponent<ManagePermissionsEditorP
       }
 
       // Update records so that SFDX is aware of the changes
-      // TODO: I need to figure out how to split permission set ids and profile ids
-      // TODO: and do two updates
-      // try {
-      //   const recordIds = Array.from(
-      //     new Set(
-      //       [
-      //         ...(objectPermissionData?.recordsToInsert || []),
-      //         ...(objectPermissionData?.recordsToUpdate || []),
-      //         ...(fieldPermissionData?.recordsToInsert || []),
-      //         ...(fieldPermissionData?.recordsToUpdate || []),
-      //       ]
-      //         .filter(Boolean)
-      //         .filter(record => record.parent)
-      //         .map((record) => record)
-      //     )
-      //   );
-      //   const recordIds = Array.from(
-      //     new Set(
-      //       [
-      //         ...(objectPermissionData?.recordsToInsert || []),
-      //         ...(objectPermissionData?.recordsToUpdate || []),
-      //         ...(fieldPermissionData?.recordsToInsert || []),
-      //         ...(fieldPermissionData?.recordsToUpdate || []),
-      //       ]
-      //         .filter(Boolean)
-      //         .map(({ ParentId }) => ParentId)
-      //     )
-      //   );
-      //   await updatePermissionSetRecords(selectedOrg, recordIds);
+      try {
+        await updatePermissionSetRecords(selectedOrg, {
+          permissionSetIds: Array.from(permissionSetIds),
+          profileIds: Array.from(profileIds),
+        });
       } catch (ex) {
         logger.error('Error flagging permissions sets as updated', ex);
       }
