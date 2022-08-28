@@ -2,7 +2,7 @@ import { addMonths, endOfDay, format, startOfMonth } from 'date-fns';
 import { mailgun } from './config/email.config';
 import { logger } from './config/logger.config';
 import { searchUsersPaginateAll, updateUser } from './utils/auth0';
-import { sendInactiveUserWarning } from './utils/slack';
+import { logExceptionToSlack, sendInactiveUserWarning } from './utils/slack';
 // import * as userDb from '../db/user.db';
 
 /**
@@ -29,6 +29,9 @@ const MONTHS_UNTIL_DELETE = 1;
    * GET USERS TO DELETE
    */
   const usersToNotify = await searchUsersPaginateAll(params);
+  let failedCount = 0;
+  let successEmailCount = 0;
+  let successAuth0UpdateCount = 0;
 
   logger.debug('[inactive-account-warning][FOUND USERS] %o', { usersToNotifyLength: usersToNotify.length }, { cronTask: true });
 
@@ -48,7 +51,7 @@ const MONTHS_UNTIL_DELETE = 1;
         to: `${user.email}`,
         subject: 'Jetstream - Account deletion warning',
         template: 'generic_notification',
-        'h:X-Mailgun-Variables': {
+        'h:X-Mailgun-Variables': JSON.stringify({
           title: 'Jetstream account deletion warning',
           previewText: 'Your Jetstream account will be deleted',
           headline: `We haven't seen you login to Jetstream recently.`,
@@ -57,14 +60,16 @@ const MONTHS_UNTIL_DELETE = 1;
               text: 'If you do not login to Jetstream in the next 30 days, your account and all of your data will be deleted. If you want to continue using Jetstream, login to your account within the next 30 days.',
             },
             {
-              text: 'If you have been actively using Jetstream, you may have more than one account with the same email address. If you signed up using your email and password and later signed in using Google or Salesforce without combining accounts, you may have two separate accounts in which case you can disregard this email.',
+              text: 'If you have been actively using Jetstream, you may have more than one account with the same email address. If you signed up using your email and password and later signed in using Google or Salesforce without combining accounts, you may have two separate accounts in which case your unused account will be deleted and you can disregard this email.',
             },
           ],
           // cta: {} // if this had a link to do something, it would be here (maybe a login now link?)
-        },
+        }),
         'h:Reply-To': 'support@getjetstream.app',
         // ['o:tracking']: '',
       });
+
+      successEmailCount += 1;
 
       /**
        * Update user on Auth0 - app_metadata.accountDeletionDate
@@ -72,25 +77,35 @@ const MONTHS_UNTIL_DELETE = 1;
       try {
         await updateUser(user.user_id, { app_metadata: { accountDeletionDate } });
 
+        successAuth0UpdateCount += 1;
+
         logger.debug(
           '[inactive-account-warning][USER UPDATED] %o',
           { userId: user.user_id, email: user.email, accountDeletionDate },
           { cronTask: true, userId: user.user_id }
         );
       } catch (ex) {
+        failedCount += 1;
         // failed to update auth0
         logger.error(
           '[inactive-account-warning][AUTH0 UPDATE][ERROR] %o',
           { message: ex.message, stack: ex.stack },
           { cronTask: true, userId: user.user_id }
         );
+        logExceptionToSlack('[inactive-account-warning][AUTH0 UPDATE][ERROR]', {
+          userId: user.user_id,
+          message: ex.message,
+          stack: ex.stack,
+        });
       }
     } catch (ex) {
+      failedCount += 1;
       logger.error(
         '[inactive-account-warning][EMAIL][ERROR] %o',
         { message: ex.message, stack: ex.stack },
         { cronTask: true, userId: user.user_id }
       );
+      logExceptionToSlack('[inactive-account-warning][EMAIL][ERROR]', { userId: user.user_id, message: ex.message, stack: ex.stack });
     }
   }
 
@@ -98,6 +113,6 @@ const MONTHS_UNTIL_DELETE = 1;
    * Send Slack Notification if any users were notified
    */
   if (usersToNotify.length) {
-    await sendInactiveUserWarning(usersToNotify.length);
+    await sendInactiveUserWarning(usersToNotify.length, { successEmailCount, successAuth0UpdateCount, failedCount });
   }
 })();

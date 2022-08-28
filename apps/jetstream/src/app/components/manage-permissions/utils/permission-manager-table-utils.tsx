@@ -18,8 +18,9 @@ import { formatNumber, isArrowKey, isEnterOrSpace, isTabKey } from '@jetstream/s
 import { getMapOf, orderStringsBy, pluralizeFromNumber } from '@jetstream/shared/utils';
 import { MapOf, PermissionSetNoProfileRecord, PermissionSetWithProfileRecord } from '@jetstream/types';
 import { Checkbox, CheckboxToggle, Grid, Icon, Input, isColumnGroupDef, Modal, Popover, PopoverRef, Tooltip } from '@jetstream/ui';
+import { BasicTextFilterRenderer, BooleanEditableRenderer } from 'libs/ui/src/lib/data-table/DataTableRenderers';
 import { isFunction } from 'lodash';
-import { Fragment, FunctionComponent, useEffect, useRef, useState, useCallback } from 'react';
+import { Fragment, FunctionComponent, useEffect, useRef, useState, useCallback, ReactNode } from 'react';
 import {
   BulkActionCheckbox,
   DirtyRow,
@@ -277,7 +278,11 @@ export function getDirtyFieldPermissions(dirtyRows: MapOf<DirtyRow<PermissionTab
   );
 }
 
-function getCellRenderer(customNonPinnedRenderer: string, pinnedRenderer?: string, groupedRenderer?: string) {
+function getCellRenderer(
+  customNonPinnedRenderer: FunctionComponent<ICellRendererParams<any, any>>,
+  pinnedRenderer?: FunctionComponent<ICellRendererParams<any, any>>,
+  groupedRenderer?: FunctionComponent<ICellRendererParams<any, any>>
+) {
   return (params: ICellRendererParams): CellRendererSelectorResult => {
     const { node } = params;
     if (node.rowPinned && pinnedRenderer) {
@@ -334,7 +339,7 @@ export function getObjectPermissionsColumn(which: ObjectPermissionTypes, id) {
     cellClassRules: {
       'active-item-yellow-bg': getObjectDirtyValue(which),
     },
-    cellRendererSelector: getCellRenderer('booleanEditableRenderer', 'pinnedSelectAllRenderer'),
+    cellRendererSelector: getCellRenderer(BooleanEditableRenderer, PinnedSelectAllRendererWrapper('object')),
   };
   return colDef;
 }
@@ -351,7 +356,7 @@ export function getFieldPermissionsColumn(which: FieldPermissionTypes, id) {
     cellClassRules: {
       'active-item-yellow-bg': getFieldDirtyValue(which),
     },
-    cellRendererSelector: getCellRenderer('booleanEditableRenderer', 'pinnedSelectAllRenderer'),
+    cellRendererSelector: getCellRenderer(BooleanEditableRenderer, PinnedSelectAllRendererWrapper('field')),
   };
   return colDef;
 }
@@ -370,8 +375,8 @@ export function getObjectColumns(
       lockPinned: true,
       lockPosition: true,
       lockVisible: true,
-      filter: 'basicTextFilterRenderer',
-      cellRendererSelector: getCellRenderer(null, 'pinnedInputFilter'),
+      filter: BasicTextFilterRenderer,
+      cellRendererSelector: getCellRenderer(null, PinnedSelectAllRendererWrapper('object')),
       suppressMenu: true,
       suppressKeyboardEvent: suppressKeyboardEventOnPinnedInput,
       filterValueGetter: (params) => {
@@ -388,7 +393,7 @@ export function getObjectColumns(
         if (node.group) {
           return null;
         }
-        return { component: node.isRowPinned() ? 'bulkActionRenderer' : 'rowActionRenderer' };
+        return { component: node.isRowPinned() ? BulkActionRenderer : RowActionRenderer };
       },
       width: 100,
       filter: false,
@@ -544,7 +549,7 @@ export function getFieldColumns(
       },
     },
     {
-      cellRendererSelector: ({ node }) => ({ component: node.isRowPinned() ? 'bulkActionRenderer' : 'rowActionRenderer' }),
+      cellRendererSelector: ({ node }) => ({ component: node.isRowPinned() ? BulkActionRenderer : RowActionRenderer }),
       width: 100,
       filter: false,
       sortable: false,

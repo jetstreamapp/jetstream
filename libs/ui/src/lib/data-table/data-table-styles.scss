@@ -2,8 +2,7 @@
 * WARNING - DO NOT IMPORT DIRECTLY, WILL CAUSE RENDER BUILD TO FAIL!
 */
 // ag-grid.scss defines structural styles and should be imported first
-@import '@ag-grid-community/core/dist/styles/ag-grid.scss';
-@import '@ag-grid-community/core/dist/styles/ag-theme-alpine/sass/ag-theme-alpine-mixin.scss';
+@use '@ag-grid-community/styles' as ag;
 @import '@salesforce-ux/design-system/scss/_design-tokens';
 
 // SassError: Invalid CSS after "    @return math": expected expression (e.g. 1px, bold), was ".div($lhs, $rhs);
@@ -38,26 +37,28 @@
   background-color: $color-background-selection !important;
 }
 
-.ag-theme-custom-react {
-  @include ag-theme-alpine(
-    (
-      suppress-css-var-overrides: false,
-      font-family: (
-        'Salesforce Sans',
-        Arial,
-        sans-serif,
-      ),
-      font-size: 13px,
-      border-radius: 0 0 0.25rem 0.25rem,
-      row-height: 27px,
-      header-height: ag-derived(row-height),
-      header-column-separator: true,
-      cell-horizontal-border: solid $color-gray-5,
-      suppress-native-widget-styling: false,
-      checkbox-border-radius: 0.125rem,
-    )
-  );
+@include ag.grid-styles(
+  (
+    theme: ag-theme-custom-react,
+    extend-theme: alpine,
+    font-family: (
+      'Salesforce Sans',
+      Arial,
+      sans-serif,
+    ),
+    font-size: 13px,
+    border-radius: 0.25rem,
+    row-height: 27px,
+    header-height: 27px,
+    header-column-separator-display: true,
+    header-column-resize-handle-display: false,
+    cell-horizontal-border: solid $color-gray-5,
+    suppress-native-widget-styling: false,
+    checkbox-border-radius: 0.125rem,
+  )
+);
 
+.ag-theme-custom-react {
   --ag-border-color: var(--custom-color-gray-5);
   --ag-secondary-border-color: var(--custom-color-gray-5);
   --ag-header-background-color: var(--custom-table-color-background-header);
@@ -74,7 +75,7 @@
   --ag-checkbox-unchecked-color: var(--custom-color-gray-5);
   --ag-checkbox-indeterminate-color: var(--custom-color-brand-dark);
 
-  %ag-text-input {
+  @include ag.text-input {
     background-color: #fff;
     border: 1px solid #dddbda;
     border-radius: 0.25rem;
