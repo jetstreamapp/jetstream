@@ -165,6 +165,8 @@ export interface FlowViewRecord extends Omit<SystemFields, 'CreatedDate' | 'Crea
   Description: string;
   DurableId: string;
   IsActive: boolean;
+  ManageableState: 'beta' | 'deleted' | 'deprecated' | 'deprecatedEditable' | 'installed' | 'installedEditable' | 'released' | 'unmanaged';
+  IsTemplate: boolean;
   LatestVersionId: string;
   LastModifiedBy: string;
   ProcessType: 'AutoLaunchedFlow' | 'Workflow' | 'InvocableProcess';
