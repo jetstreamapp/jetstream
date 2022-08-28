@@ -15,7 +15,7 @@ import { addOrgsToLocal, checkAuth, ensureOrgExists, ensureTargetOrgExists, vali
 
 const routes: express.Router = Router();
 
-routes.use(checkAuth); // NOTE: all routes here must be authenticated
+routes.use(checkAuth);
 routes.use(addOrgsToLocal);
 
 // used to make sure the user is authenticated and can communicate with the server
