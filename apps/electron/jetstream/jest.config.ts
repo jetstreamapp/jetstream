@@ -1,3 +1,4 @@
+/* eslint-disable */
 export default {
   displayName: 'electron-jetstream',
   preset: '../../../../jest.preset.js',

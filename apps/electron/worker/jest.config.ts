@@ -1,3 +1,4 @@
+/* eslint-disable */
 export default {
   displayName: 'electron-worker',
   preset: '../../../jest.preset.js',

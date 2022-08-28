@@ -1,3 +1,4 @@
+/* eslint-disable */
 export default {
   transform: {
     '^(?!.*\\.(js|jsx|ts|tsx|css|json)$)': '@nrwl/react/plugins/jest',
