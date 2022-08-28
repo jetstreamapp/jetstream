@@ -54,12 +54,12 @@ export interface FieldPermissionItem {
   errorMessage?: string;
 }
 
-export interface ObjectPermissionRecordForSave extends Omit<ObjectPermissionRecord, 'Id' | 'parent'> {
+export interface ObjectPermissionRecordForSave extends Omit<ObjectPermissionRecord, 'Id' | 'Parent'> {
   attributes: Partial<RecordAttributes>;
   Id?: string;
 }
 
-export interface FieldPermissionRecordForSave extends Omit<FieldPermissionRecord, 'Id' | 'parent'> {
+export interface FieldPermissionRecordForSave extends Omit<FieldPermissionRecord, 'Id' | 'Parent'> {
   attributes: Partial<RecordAttributes>;
   Id?: string;
 }

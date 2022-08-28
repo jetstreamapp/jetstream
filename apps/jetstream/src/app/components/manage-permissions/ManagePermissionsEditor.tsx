@@ -55,12 +55,14 @@ import {
 } from './utils/permission-manager-types';
 import {
   clearPermissionErrorMessage,
+  collectProfileAndPermissionIds,
   getUpdatedFieldPermissions,
   getUpdatedObjectPermissions,
   permissionsHaveError,
   prepareFieldPermissionSaveData,
   prepareObjectPermissionSaveData,
   savePermissionRecords,
+  updatePermissionSetRecords,
 } from './utils/permission-manager-utils';
 
 const HEIGHT_BUFFER = 170;
@@ -223,16 +225,25 @@ export const ManagePermissionsEditor: FunctionComponent<ManagePermissionsEditorP
       setLoading(true);
       let objectPermissionData: PermissionObjectSaveData;
       let fieldPermissionData: PermissionFieldSaveData;
+      let profileIds: string[] = [];
+      let permissionSetIds: string[] = [];
+
       if (dirtyObjectCount) {
         const dirtyPermissions = getDirtyObjectPermissions(dirtyObjectRows);
         if (dirtyPermissions.length > 0) {
           objectPermissionData = prepareObjectPermissionSaveData(dirtyPermissions);
+          const ids = collectProfileAndPermissionIds(dirtyPermissions, profilesById, permissionSetsById);
+          profileIds = [...profileIds, ...ids.profileIds];
+          permissionSetIds = [...permissionSetIds, ...ids.permissionSetIds];
         }
       }
       if (dirtyFieldCount) {
         const dirtyPermissions = getDirtyFieldPermissions(dirtyFieldRows);
         if (dirtyPermissions.length > 0) {
           fieldPermissionData = prepareFieldPermissionSaveData(dirtyPermissions);
+          const ids = collectProfileAndPermissionIds(dirtyPermissions, profilesById, permissionSetsById);
+          profileIds = [...profileIds, ...ids.profileIds];
+          permissionSetIds = [...permissionSetIds, ...ids.permissionSetIds];
         }
       }
 
@@ -254,6 +265,16 @@ export const ManagePermissionsEditor: FunctionComponent<ManagePermissionsEditorP
           fieldPermissionData
         );
         logger.log({ fieldSaveResults });
+      }
+
+      // Update records so that SFDX is aware of the changes
+      try {
+        await updatePermissionSetRecords(selectedOrg, {
+          permissionSetIds: Array.from(permissionSetIds),
+          profileIds: Array.from(profileIds),
+        });
+      } catch (ex) {
+        logger.error('Error flagging permissions sets as updated', ex);
       }
 
       if (isMounted.current) {
