@@ -80,7 +80,7 @@ export const DataTable: FunctionComponent<DataTableProps> = ({
   return (
     <div className="ag-theme-custom-react" style={style}>
       <AgGridReact
-        // suppressReactUi
+        suppressReactUi // Turning this on with React18 causes poor behavior with grouped rows (permissions / deploy metadata)
         rowSelection="multiple"
         suppressDragLeaveHidesColumns
         quickFilterText={quickFilterText}
