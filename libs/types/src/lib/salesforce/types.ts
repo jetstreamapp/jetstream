@@ -282,7 +282,7 @@ export interface ObjectPermissionRecord {
   PermissionsModifyAllRecords: boolean;
   PermissionsViewAllRecords: boolean;
   ParentId: string;
-  parent: PermissionPermissionSetRecord;
+  Parent: PermissionPermissionSetRecord;
 }
 
 export interface FieldPermissionRecord {
@@ -292,7 +292,7 @@ export interface FieldPermissionRecord {
   PermissionsRead: boolean;
   PermissionsEdit: boolean;
   ParentId: string;
-  parent: PermissionPermissionSetRecord;
+  Parent: PermissionPermissionSetRecord;
 }
 
 export type BulkJobWithBatches = BulkJob & { batches: BulkJobBatchInfo[] };
