@@ -158,6 +158,8 @@ export function getFlowsQuery(sobjects: string[]) {
   const soql = composeQuery({
     fields: [
       getField('Id'),
+      getField('ManageableState'),
+      getField('IsTemplate'),
       getField('ActiveVersionId'),
       getField('Label'),
       getField('ApiName'),
@@ -189,8 +191,8 @@ export function getFlowsQuery(sobjects: string[]) {
       right: {
         left: {
           field: 'ManageableState',
-          operator: '=',
-          value: 'unmanaged',
+          operator: 'IN',
+          value: ['unmanaged', 'installed'],
           literalType: 'STRING',
         },
         operator: 'AND',
