@@ -151,7 +151,7 @@ export async function makeJsforceRequestViaAxios(req: Request, res: Response, ne
               status: error.response.status,
               statusText: error.response.statusText,
               headers: JSON.stringify(error.response.headers || {}, null, 2),
-              body: error.response.data,
+              body: error.response.data as any,
             });
           } else if (error.request) {
             return sendJson<ManualRequestResponse>(res, {

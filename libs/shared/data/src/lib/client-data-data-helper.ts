@@ -119,18 +119,17 @@ function requestInterceptor<T>(options: {
     }
 
     // IF mock response header exists and mock response exists, return data instead of making actual request
-    if (config.headers[HTTP.HEADERS.X_MOCK_KEY] && SOBJECT_DESCRIBE_CACHED_RESPONSES[config.headers[HTTP.HEADERS.X_MOCK_KEY]]) {
-      config.adapter = async (config: AxiosRequestConfig) => {
-        return {
-          config,
-          data: {
-            data: SOBJECT_DESCRIBE_CACHED_RESPONSES[config.headers[HTTP.HEADERS.X_MOCK_KEY]],
-          },
-          headers: { [HTTP.HEADERS.X_MOCK_KEY]: config.headers[HTTP.HEADERS.X_MOCK_KEY] },
-          status: 200,
-          statusText: 'OK (MOCKED)',
-          request: {},
-        };
+    if (config.headers[HTTP.HEADERS.X_MOCK_KEY] && SOBJECT_DESCRIBE_CACHED_RESPONSES[config.headers[HTTP.HEADERS.X_MOCK_KEY] as string]) {
+      config.adapter = (config: AxiosRequestConfig) => {
+        return new Promise((resolve) => {
+          resolve({
+            data: SOBJECT_DESCRIBE_CACHED_RESPONSES[config.headers[HTTP.HEADERS.X_MOCK_KEY] as string],
+            status: 200,
+            statusText: 'OK',
+            headers: {},
+            config,
+          });
+        });
       };
     } else if (useCache && org && !skipRequestCache) {
       // return cached response if available
@@ -139,26 +138,28 @@ function requestInterceptor<T>(options: {
         // if skipCacheIfOlderThan is provided, then see if cache is older than provided date and skip cache if so
         if (!skipCacheIfOlderThan || (Number.isFinite(skipCacheIfOlderThan) && cachedResults.age >= skipCacheIfOlderThan)) {
           config.adapter = async (config: AxiosRequestConfig) => {
-            return {
-              config,
-              data: {
-                data: cachedResults.data,
-                cache: {
-                  age: cachedResults.age,
-                  exp: cachedResults.exp,
-                  key: cachedResults.key,
+            return new Promise((resolve) => {
+              resolve({
+                config,
+                data: {
+                  data: cachedResults.data,
+                  cache: {
+                    age: cachedResults.age,
+                    exp: cachedResults.exp,
+                    key: cachedResults.key,
+                  },
                 },
-              },
-              headers: {
-                [HTTP.HEADERS.X_CACHE_RESPONSE]: '1',
-                [HTTP.HEADERS.X_CACHE_KEY]: cachedResults.key,
-                [HTTP.HEADERS.X_CACHE_AGE]: cachedResults.age,
-                [HTTP.HEADERS.X_CACHE_EXP]: cachedResults.exp,
-              },
-              status: 200,
-              statusText: 'OK (CACHED)',
-              request: {},
-            };
+                headers: {
+                  [HTTP.HEADERS.X_CACHE_RESPONSE]: '1',
+                  [HTTP.HEADERS.X_CACHE_KEY]: cachedResults.key,
+                  [HTTP.HEADERS.X_CACHE_AGE]: `${cachedResults.age}`,
+                  [HTTP.HEADERS.X_CACHE_EXP]: `${cachedResults.exp}`,
+                },
+                status: 200,
+                statusText: 'OK (CACHED)',
+                request: {},
+              });
+            });
           };
         }
       }

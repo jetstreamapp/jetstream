@@ -1,3 +1,4 @@
+/* eslint-disable */
 export default {
   displayName: 'shared-server-services',
   preset: '../../../jest.preset.js',

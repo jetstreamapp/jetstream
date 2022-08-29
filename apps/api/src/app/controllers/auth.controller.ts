@@ -34,7 +34,7 @@ export async function login(req: Request, res: Response) {
           }
 
           createOrUpdateUser(user)
-            .then(async ({ created, user: _user }) => {
+            .then(async ({ user: _user }) => {
               logger.info('[AUTH][SUCCESS] Logged in %s', _user.email, { userId: user.id });
               res.redirect(ENV.JETSTREAM_CLIENT_URL);
             })
