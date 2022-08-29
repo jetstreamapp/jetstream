@@ -12,7 +12,7 @@ interface TokenResponse {
   token_type: 'Bearer';
 }
 
-const USER_FIELDS = ['user_id', 'email', 'email_verified', 'identities', 'name', 'nickname', 'picture', 'app_metadata', 'username'];
+// const USER_FIELDS = ['user_id', 'email', 'email_verified', 'identities', 'name', 'nickname', 'picture', 'app_metadata', 'username'];
 
 const BASE_URL = `https://${ENV.AUTH0_M2M_DOMAIN}`;
 
@@ -67,7 +67,7 @@ export async function searchUsersPaginateAll<T = UserProfileAuth0>(params: any =
   let users: T[] = [];
   while (!done) {
     const response = await axiosAuth0.get<Auth0PaginatedResponse<'users', T>>(`/api/v2/users`, { params });
-    const { length, limit, start, total, users: _users } = response.data;
+    const { length, limit, users: _users } = response.data;
     users = users.concat(_users);
     currPage++;
     params.page = currPage;

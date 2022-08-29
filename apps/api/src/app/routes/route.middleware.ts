@@ -105,7 +105,7 @@ export async function checkAuth(req: express.Request, res: express.Response, nex
         req.session.activityExp = getActivityExp();
         // Update auth0 with expiration date
         updateUserLastActivity(req.user as UserProfileServer, fromUnixTime(req.session.activityExp))
-          .then((response) => {
+          .then(() => {
             logger.debug('[AUTH][LAST-ACTIVITY][UPDATED] %s', req.session.activityExp, { userId: (req.user as any)?.user_id });
           })
           .catch((err) => {
@@ -264,7 +264,7 @@ export async function getOrgForRequest(user: UserProfileServer, uniqueId: string
   const conn = new jsforce.Connection(connData);
 
   // Handle org refresh - then remove event listener if refreshed
-  const handleRefresh = async (accessToken, res) => {
+  const handleRefresh = async (accessToken) => {
     // Refresh event will be fired when renewed access token
     // to store it in your storage for next request
     try {
