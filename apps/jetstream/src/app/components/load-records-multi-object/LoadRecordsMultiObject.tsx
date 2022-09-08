@@ -84,14 +84,18 @@ export const LoadRecordsMultiObject: FunctionComponent<LoadRecordsMultiObjectPro
   }, [selectedOrg]);
 
   useNonInitialEffect(() => {
-    if (dataLoadLoading) {
-      document.title = `Loading Records | ${TITLES.BAR_JETSTREAM}`;
-    } else if (loadStarted && data) {
-      const success = data.flatMap((row) => row.results?.filter((row) => row.isSuccessful) || []).length;
-      const failures = data.flatMap((row) => row.results?.filter((row) => !row.isSuccessful) || []).length;
-      document.title = `${formatNumber(success)} Success - ${formatNumber(failures)} Failed ${TITLES.BAR_JETSTREAM}`;
-    } else {
-      document.title = TITLES.LOAD;
+    try {
+      if (dataLoadLoading) {
+        document.title = `Loading Records ${TITLES.BAR_JETSTREAM}`;
+      } else if (loadStarted && data) {
+        const success = data.flatMap((row) => row.results?.filter((row) => row.isSuccessful) || []).length;
+        const failures = data.flatMap((row) => row.results?.filter((row) => !row.isSuccessful) || []).length;
+        document.title = `${formatNumber(success)} Success - ${formatNumber(failures)} Failed ${TITLES.BAR_JETSTREAM}`;
+      } else {
+        document.title = TITLES.LOAD;
+      }
+    } catch (ex) {
+      // ignore
     }
   }, [data, dataLoadLoading, loadStarted]);
 
