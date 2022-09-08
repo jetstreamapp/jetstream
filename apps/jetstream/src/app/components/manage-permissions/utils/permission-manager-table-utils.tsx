@@ -713,7 +713,7 @@ export const PinnedLabelInputFilter: FunctionComponent<ICellRendererParams> = ({
   const [value, setValue] = useState('');
   useEffect(() => {
     api.getFilterInstance('label', (labelFilter) => {
-      labelFilter.setModel({ value });
+      labelFilter?.setModel({ value });
       api.onFilterChanged();
     });
   }, [value]);

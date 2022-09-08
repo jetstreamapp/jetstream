@@ -84,16 +84,20 @@ export const LoadRecordsMultiObject: FunctionComponent<LoadRecordsMultiObjectPro
   }, [selectedOrg]);
 
   useNonInitialEffect(() => {
-    if (dataLoadLoading) {
-      document.title = `Loading Records | ${TITLES.BAR_JETSTREAM}`;
-    } else if (loadStarted && data) {
-      const success = data.flatMap((row) => row.results.filter((row) => row.isSuccessful)).length;
-      const failures = data.flatMap((row) => row.results.filter((row) => !row.isSuccessful)).length;
-      document.title = `${formatNumber(success)} Success - ${formatNumber(failures)} Failed ${TITLES.BAR_JETSTREAM}`;
-    } else {
-      document.title = TITLES.LOAD;
+    try {
+      if (dataLoadLoading) {
+        document.title = `Loading Records ${TITLES.BAR_JETSTREAM}`;
+      } else if (loadStarted && data) {
+        const success = data.flatMap((row) => row.results?.filter((row) => row.isSuccessful) || []).length;
+        const failures = data.flatMap((row) => row.results?.filter((row) => !row.isSuccessful) || []).length;
+        document.title = `${formatNumber(success)} Success - ${formatNumber(failures)} Failed ${TITLES.BAR_JETSTREAM}`;
+      } else {
+        document.title = TITLES.LOAD;
+      }
+    } catch (ex) {
+      // ignore
     }
-  }, [data, dataLoadLoading]);
+  }, [data, dataLoadLoading, loadStarted]);
 
   // prefer loadResultsData if it is set, otherwise use fileProcessingData
   // It is all the same data, but loadResultsData clones the data as it is being processed and adds results
@@ -180,14 +184,13 @@ export const LoadRecordsMultiObject: FunctionComponent<LoadRecordsMultiObjectPro
         <ScopedNotification theme="light" className="slds-m-top_x-small">
           <p>
             Download the{' '}
-            <a href={`${templateUrl}`} target="_blank">
+            <a href={`${templateUrl}`} target="_blank" rel="noreferrer">
               Excel template
             </a>{' '}
             to get started.
           </p>
         </ScopedNotification>
 
-        {/* TODO: re-process file I guess if these are changed after file selection? */}
         <Grid>
           <fieldset className="slds-form-element slds-m-around_small">
             <legend className="slds-form-element__legend slds-form-element__label">Load Options</legend>
@@ -249,7 +252,7 @@ export const LoadRecordsMultiObject: FunctionComponent<LoadRecordsMultiObjectPro
             <EmptyState headline="Load a file to continue" illustration={<OpenRoadIllustration />}>
               <p>
                 Download the{' '}
-                <a href={`${templateUrl}`} target="_blank">
+                <a href={`${templateUrl}`} target="_blank" rel="noreferrer">
                   Excel template
                 </a>{' '}
                 to get started.

@@ -415,7 +415,7 @@ export const LoadRecords: FunctionComponent<LoadRecordsProps> = ({ featureFlags 
                 />
               </LoadRecordsSelectObjectAndFile>
             )}
-            {currentStep.name === 'fieldMapping' && (
+            {currentStep.name === 'fieldMapping' && selectedSObject && (
               <span>
                 <LoadRecordsFieldMapping
                   org={selectedOrg}
@@ -433,12 +433,12 @@ export const LoadRecords: FunctionComponent<LoadRecordsProps> = ({ featureFlags 
                 />
               </span>
             )}
-            {currentStep.name === 'automationDeploy' && (
+            {currentStep.name === 'automationDeploy' && selectedSObject && (
               <span>
                 <LoadRecordsLoadAutomationDeploy />
               </span>
             )}
-            {currentStep.name === 'loadRecords' && (
+            {currentStep.name === 'loadRecords' && selectedSObject && (
               <span>
                 {!isCustomMetadataObject ? (
                   <LoadRecordsPerformLoad
