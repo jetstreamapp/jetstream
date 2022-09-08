@@ -39,10 +39,11 @@ export const commonFields = selector<ListItem[]>({
   key: 'mass-update-records.commonFields',
   get: ({ get }) => {
     const rowsMap = get(rowsMapState);
-    return intersectionBy(...Array.from(rowsMap.values()).map((row) => row.fields.filter((field) => (field.meta as Field).updateable)), ((
-      item: ListItem
-    ) => {
-      return item.id;
-    }) as any).map((item) => ({ ...item, label: item.value, secondaryLabel: null }));
+    return intersectionBy(
+      ...Array.from(rowsMap.values()).map((row) => row.fields?.filter((field) => (field.meta as Field).updateable) || []),
+      ((item: ListItem) => {
+        return item.id;
+      }) as any
+    ).map((item) => ({ ...item, label: item.value, secondaryLabel: null }));
   },
 });
