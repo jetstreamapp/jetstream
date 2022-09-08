@@ -171,7 +171,7 @@ export const LoadRecordsBulkApiResultsTableRow: FunctionComponent<LoadRecordsBul
           </span>
         </div>
       </td>
-      <td title={`Batch Id: ${batch.id.substring(0, 15)}`}>
+      <td title={`Batch Id: ${batch.id?.substring(0, 15)}`}>
         <div className="slds-truncate">{batch.state}</div>
       </td>
     </tr>
