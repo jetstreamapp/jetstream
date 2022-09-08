@@ -262,7 +262,7 @@ export function getColumnDefinitions(results: QueryResults<any>, isTooling: bool
 
   // Base fields
   const flattenedFields: ColDef[] = getFlattenedFields(results.parsedQuery).map((field, i) =>
-    getColDef(field, queryColumnsByPath, isFieldSubquery(results.parsedQuery[i]))
+    getColDef(field, queryColumnsByPath, isFieldSubquery(results.parsedQuery?.[i]))
   );
 
   // set checkbox as first column
@@ -273,7 +273,7 @@ export function getColumnDefinitions(results: QueryResults<any>, isTooling: bool
   output.parentColumns = flattenedFields;
 
   // subquery fields - only used if user clicks "view data" on a field so that the table can be built properly
-  results.parsedQuery.fields
+  results.parsedQuery?.fields
     .filter((field) => isFieldSubquery(field))
     .forEach((field: FieldSubquery) => {
       output.subqueryColumns[field.subquery.relationshipName] = getFlattenedFields(field.subquery).map((field) =>

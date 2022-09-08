@@ -266,13 +266,26 @@ export function getResourceTypeFnsFromFields(fields: ListItemGroup[]): Expressio
       }
     },
     checkSelected: (selected: ExpressionConditionRowSelectedItems): ExpressionConditionRowSelectedItems => {
-      if (isListOperator(selected.operator) && !Array.isArray(selected.value)) {
+      const fieldMeta: Field = findResourceMeta(fields, selected);
+      if (!fieldMeta) {
+        return selected;
+      }
+
+      if (
+        (fieldMeta.type === 'multipicklist' || fieldMeta.type === 'picklist') &&
+        isListOperator(selected.operator) &&
+        !Array.isArray(selected.value)
+      ) {
         if (selected.value) {
           selected.value = [selected.value];
         } else {
           selected.value = [];
         }
-      } else if (!isListOperator(selected.operator) && Array.isArray(selected.value)) {
+      } else if (
+        (fieldMeta.type === 'multipicklist' || fieldMeta.type === 'picklist') &&
+        !isListOperator(selected.operator) &&
+        Array.isArray(selected.value)
+      ) {
         if (selected.value.length) {
           selected.value = selected.value[0];
         } else {
