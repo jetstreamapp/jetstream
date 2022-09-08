@@ -710,7 +710,7 @@ function convertQueryFilterOperator(operator: QueryFilterOperator): Operator {
 export function getOrgUrlParams(org: SalesforceOrgUi, additionalParams: { [param: string]: string } = {}): string {
   const params = {
     ...additionalParams,
-    [HTTP.HEADERS.X_SFDC_ID]: org.uniqueId || '',
+    [HTTP.HEADERS.X_SFDC_ID]: org?.uniqueId || '',
   };
   return Object.keys(params)
     .map((key) => `${key}=${encodeURIComponent(params[key])}`)
