@@ -1,10 +1,10 @@
-import { GoogleApiData, useNonInitialEffect } from '@jetstream/shared/ui-utils';
-import RadioButton from 'libs/ui/src/lib/form/radio/RadioButton';
-import RadioGroup from 'libs/ui/src/lib/form/radio/RadioGroup';
-import GridCol from 'libs/ui/src/lib/grid/GridCol';
+import { useNonInitialEffect } from '@jetstream/shared/ui-utils';
 import { FunctionComponent, useState } from 'react';
-import GoogleFolderSelector from '../../form/file-selector/GoogleFolderSelector';
+import GoogleFolderSelectorNew from '../../form/file-selector/GoogleFolderSelector';
+import RadioButton from '../../form/radio/RadioButton';
+import RadioGroup from '../../form/radio/RadioGroup';
 import GoogleSignIn from '../../google/GoogleSignIn';
+import GridCol from '../../grid/GridCol';
 
 export interface FileDownloadGoogleProps {
   google_apiKey: string;
@@ -12,7 +12,7 @@ export interface FileDownloadGoogleProps {
   google_clientId: string;
   disabled?: boolean;
   onFolderSelected: (folderId: string) => void;
-  onGoogleApiData: (apiData: GoogleApiData) => void;
+  onSignInChanged?: (signedIn: boolean) => void;
 }
 
 export const FileDownloadGoogle: FunctionComponent<FileDownloadGoogleProps> = ({
@@ -20,14 +20,16 @@ export const FileDownloadGoogle: FunctionComponent<FileDownloadGoogleProps> = ({
   google_appId,
   google_clientId,
   disabled,
-  onGoogleApiData,
+  onSignInChanged,
   onFolderSelected,
 }) => {
   const [googleFolder, setGoogleFolder] = useState<{ name: string; folderId: string }>();
   const [whichFolder, setWhichFolder] = useState<'root' | 'specified'>('root');
+  const [apiConfig] = useState({ apiKey: google_apiKey, appId: google_appId, clientId: google_clientId });
 
   useNonInitialEffect(() => {
     onFolderSelected(whichFolder === 'root' ? undefined : googleFolder?.folderId);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [whichFolder, googleFolder]);
 
   function handleGoogleFolderSelected(data: google.picker.DocumentObject) {
@@ -36,10 +38,7 @@ export const FileDownloadGoogle: FunctionComponent<FileDownloadGoogleProps> = ({
 
   return (
     <div className="slds-p-horizontal_medium slds-p-bottom_medium">
-      <GoogleSignIn
-        apiConfig={{ apiKey: google_apiKey, appId: google_appId, clientId: google_clientId }}
-        onSignInChanged={(apiData, profile) => onGoogleApiData(apiData)}
-      >
+      <GoogleSignIn apiConfig={apiConfig} onSignInChanged={onSignInChanged}>
         <GridCol size={12}>
           <RadioGroup label="Which Google Drive folder would you like to save to?" isButtonGroup>
             <RadioButton
@@ -61,8 +60,8 @@ export const FileDownloadGoogle: FunctionComponent<FileDownloadGoogleProps> = ({
           </RadioGroup>
         </GridCol>
         {whichFolder === 'specified' && (
-          <GoogleFolderSelector
-            apiConfig={{ apiKey: google_apiKey, appId: google_appId, clientId: google_clientId }}
+          <GoogleFolderSelectorNew
+            apiConfig={apiConfig}
             id={'load-google-drive-file'}
             label={'Google Drive'}
             folderName={googleFolder?.name}

@@ -1,10 +1,7 @@
-import { GoogleApiClientConfig, GoogleApiData, useLoadGoogleApi } from '@jetstream/shared/ui-utils';
-import Avatar from '@salesforce-ux/design-system/assets/images/profile_avatar_96.png';
-import Grid from '../grid/Grid';
-import { FunctionComponent, useEffect, useState } from 'react';
-import Icon from '../widgets/Icon';
-import Tooltip from '../widgets/Tooltip';
+import { GoogleApiClientConfig, useGoogleApi } from '@jetstream/shared/ui-utils';
 import classNames from 'classnames';
+import { FunctionComponent, ReactNode, useEffect } from 'react';
+import Icon from '../widgets/Icon';
 
 export interface GoogleProfile {
   name: string;
@@ -17,17 +14,10 @@ export interface GoogleSignInProps {
   className?: string;
   disabled?: boolean;
   onError?: (error: string) => void;
-  onSignInChanged?: (apiData: GoogleApiData, profile?: GoogleProfile) => void;
-  children?: React.ReactNode;
+  onSignInChanged?: (signedIn: boolean) => void;
+  children?: ReactNode;
 }
 
-/**
- * Shows a sign in button and only if signed in renders children
- * Shows signed in avatar and option to sign out
- * TODO: auto-sign in if token is still valid
- * TODO: maybe try to refresh sign in?
- * TODO: login hint and a bunch of stuff etc..
- */
 export const GoogleSignIn: FunctionComponent<GoogleSignInProps> = ({
   apiConfig,
   className,
@@ -36,81 +26,46 @@ export const GoogleSignIn: FunctionComponent<GoogleSignInProps> = ({
   onError,
   onSignInChanged,
 }) => {
-  const [profile, setProfile] = useState<GoogleProfile>(null);
-  const [apiData, signIn, signOut] = useLoadGoogleApi(apiConfig);
+  const { getToken, error, loading, isTokenValid } = useGoogleApi(apiConfig);
 
   useEffect(() => {
-    if (apiData.signedIn && apiData.authorized && apiData.gapiAuthInstance.currentUser) {
-      const profile: GoogleProfile = {
-        name: apiData.gapiAuthInstance.currentUser.get().getBasicProfile().getName(),
-        email: apiData.gapiAuthInstance.currentUser.get().getBasicProfile().getEmail(),
-        imageUrl: apiData.gapiAuthInstance.currentUser.get().getBasicProfile().getImageUrl(),
-      };
-      setProfile(profile);
-      onSignInChanged && onSignInChanged(apiData, profile);
+    if (error) {
+      onError && onError(error);
     }
-  }, [apiData.signedIn, apiData.authorized]);
+  }, [error, onError]);
 
   useEffect(() => {
-    if (profile && (!apiData.signedIn || !apiData.authorized)) {
-      setProfile(null);
-      onSignInChanged && onSignInChanged(apiData);
+    onSignInChanged && onSignInChanged(isTokenValid());
+  }, [isTokenValid, onSignInChanged]);
+
+  async function handleSignIn() {
+    try {
+      await getToken();
+      onSignInChanged && onSignInChanged(true);
+    } catch (ex) {
+      onSignInChanged && onSignInChanged(false);
     }
-  }, [apiData.signedIn, apiData.authorized, profile]);
-
-  useEffect(() => {
-    if (apiData.error && onError) {
-      onError(apiData.error);
-    }
-  }, [apiData.error, onError]);
-
-  function handleSignIn() {
-    // TODO: login hint?
-    // TODO: can we store data in localstorage if already signed in? (or can useLoadGoogleApi handle this part?)
-    // TODO: how do we detect when expired? and how do we handle?
-    signIn();
-  }
-
-  function handleSignOut() {
-    signOut();
   }
 
   return (
     <div className={className}>
-      {!profile && (
-        <div className={classNames('slds-form-element', { 'slds-has-error': !!apiData.error }, className)}>
+      {!isTokenValid() && (
+        <div className={classNames('slds-form-element', { 'slds-has-error': !!error }, className)}>
           <span className="slds-form-element__label">Google Drive</span>
           <div className="slds-form-element__control">
-            <button
-              className="slds-is-relative slds-button slds-button_neutral"
-              onClick={handleSignIn}
-              disabled={disabled || !apiData.hasApisLoaded || !apiData.gapiAuthInstance}
-            >
+            <button className="slds-is-relative slds-button slds-button_neutral" onClick={handleSignIn} disabled={disabled || loading}>
               <Icon type="doctype" icon="gdrive" className="slds-button__icon slds-button__icon_left" omitContainer />
-              Sign In
+              Authorize Google Drive
             </button>
           </div>
-          {apiData.error && (
+          {error && (
             <div className="slds-form-element__help slds-truncate" id="file-input-error">
-              {apiData.error}
+              {error}
             </div>
           )}
         </div>
       )}
-      {profile && (
-        <Grid verticalAlign="center" wrap>
-          <div className="slds-m-right_x-small">
-            <Tooltip id={`sobject-list-refresh-tooltip`} content={`Logged in as ${profile.email}`}>
-              <button className="slds-button" onClick={handleSignOut} disabled={disabled}>
-                <span className="slds-avatar slds-avatar_circle slds-avatar_medium">
-                  <img alt="Avatar" src={profile.imageUrl || Avatar} />
-                </span>
-              </button>
-            </Tooltip>
-          </div>
-          {children}
-        </Grid>
-      )}
+      {isTokenValid() && children}
     </div>
   );
 };

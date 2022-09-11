@@ -19,7 +19,7 @@ import {
   Select,
   Spinner,
 } from '@jetstream/ui';
-import { ChangeEvent, FunctionComponent, useEffect, useRef, useState } from 'react';
+import { ChangeEvent, FunctionComponent, useEffect, useMemo, useRef, useState } from 'react';
 import { useTitle } from 'react-use';
 import { useRecoilState, useRecoilValue } from 'recoil';
 import * as XLSX from 'xlsx';
@@ -50,6 +50,10 @@ export const LoadRecordsMultiObject: FunctionComponent<LoadRecordsMultiObjectPro
   const [inputFileType, setInputFileType] = useState<LocalOrGoogle>();
   const [inputFileData, setInputFileData] = useState<XLSX.WorkBook>();
   const [{ serverUrl, defaultApiVersion, google_apiKey, google_appId, google_clientId }] = useRecoilState(applicationCookieState);
+  const googleApiConfig = useMemo(
+    () => ({ apiKey: google_apiKey, appId: google_appId, clientId: google_clientId }),
+    [google_apiKey, google_appId, google_clientId]
+  );
   const [templateUrl] = useState(`${TEMPLATE_DOWNLOAD_LINK}`);
   const [insertNulls, setInsertNulls] = useState(false);
   const [dateFormat, setDateFormat] = useState<string>(DATE_FORMATS.MM_DD_YYYY);
@@ -233,7 +237,7 @@ export const LoadRecordsMultiObject: FunctionComponent<LoadRecordsMultiObjectPro
                 onReadFile: handleFile,
               }}
               googleSelectorProps={{
-                apiConfig: { apiKey: google_apiKey, appId: google_appId, clientId: google_clientId },
+                apiConfig: googleApiConfig,
                 id: 'load-google-drive-file',
                 label: 'Google Drive',
                 filename: inputFileType === 'google' ? inputFilename : undefined,

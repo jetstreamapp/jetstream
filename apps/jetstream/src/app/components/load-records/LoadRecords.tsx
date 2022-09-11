@@ -17,7 +17,7 @@ import {
   Spinner,
 } from '@jetstream/ui';
 import { startCase } from 'lodash';
-import { FunctionComponent, useCallback, useEffect, useRef, useState } from 'react';
+import { FunctionComponent, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTitle } from 'react-use';
 import { useRecoilState, useRecoilValue, useResetRecoilState } from 'recoil';
 import { applicationCookieState, selectedOrgState, selectedOrgType } from '../../app-state';
@@ -56,6 +56,10 @@ export const LoadRecords: FunctionComponent<LoadRecordsProps> = ({ featureFlags 
   const isMounted = useRef(null);
   const { trackEvent } = useAmplitude();
   const [{ defaultApiVersion, serverUrl, google_apiKey, google_appId, google_clientId }] = useRecoilState(applicationCookieState);
+  const googleApiConfig = useMemo(
+    () => ({ apiKey: google_apiKey, appId: google_appId, clientId: google_clientId }),
+    [google_apiKey, google_appId, google_clientId]
+  );
   const selectedOrg = useRecoilValue<SalesforceOrgUi>(selectedOrgState);
   const orgType = useRecoilValue(selectedOrgType);
   // TODO: probably need this to know when to reset state
@@ -384,7 +388,7 @@ export const LoadRecords: FunctionComponent<LoadRecordsProps> = ({ featureFlags 
           <GridCol>
             {currentStep.name === 'sobjectAndFile' && (
               <LoadRecordsSelectObjectAndFile
-                googleApiConfig={{ apiKey: google_apiKey, appId: google_appId, clientId: google_clientId }}
+                googleApiConfig={googleApiConfig}
                 featureFlags={featureFlags}
                 selectedOrg={selectedOrg}
                 sobjects={sobjects}

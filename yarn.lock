@@ -6384,6 +6384,11 @@
     "@types/minimatch" "*"
     "@types/node" "*"
 
+"@types/google.accounts@^0.0.2":
+  version "0.0.2"
+  resolved "https://registry.yarnpkg.com/@types/google.accounts/-/google.accounts-0.0.2.tgz#4e03bd249fe490f004f4f8d6423343fc51f5614a"
+  integrity sha512-wmnbDIiGZNr3dJ+NCGiWme78rhsf5gn1YJM6uRjf3FCb8lrRptybQeAnHQ+GDfKSo+z2hRxhS32VRDXJEAvCmg==
+
 "@types/google.picker@^0.0.39":
   version "0.0.39"
   resolved "https://registry.npmjs.org/@types/google.picker/-/google.picker-0.0.39.tgz"

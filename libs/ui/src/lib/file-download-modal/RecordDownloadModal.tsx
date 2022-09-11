@@ -1,16 +1,8 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 /* eslint-disable @typescript-eslint/no-explicit-any */
+import { logger } from '@jetstream/shared/client-logger';
 import { MIME_TYPES } from '@jetstream/shared/constants';
-import {
-  formatNumber,
-  getFilename,
-  GoogleApiData,
-  isEnterKey,
-  prepareCsvFile,
-  prepareExcelFile,
-  saveFile,
-  useRollbar,
-} from '@jetstream/shared/ui-utils';
+import { formatNumber, getFilename, isEnterKey, prepareCsvFile, prepareExcelFile, saveFile, useRollbar } from '@jetstream/shared/ui-utils';
 import { flattenRecords, getMapOfBaseAndSubqueryRecords } from '@jetstream/shared/utils';
 import {
   FileExtCsv,
@@ -24,7 +16,6 @@ import {
   SalesforceOrgUi,
 } from '@jetstream/types';
 import { Fragment, FunctionComponent, KeyboardEvent, useEffect, useRef, useState } from 'react';
-import { PopoverErrorButton } from '../popover/PopoverErrorButton';
 import FileDownloadGoogle from '../file-download-modal/options/FileDownloadGoogle';
 import Checkbox from '../form/checkbox/Checkbox';
 import Input from '../form/input/Input';
@@ -32,6 +23,7 @@ import Radio from '../form/radio/Radio';
 import RadioButton from '../form/radio/RadioButton';
 import RadioGroup from '../form/radio/RadioGroup';
 import Modal from '../modal/Modal';
+import { PopoverErrorButton } from '../popover/PopoverErrorButton';
 import {
   RADIO_ALL_BROWSER,
   RADIO_ALL_SERVER,
@@ -42,7 +34,6 @@ import {
   RADIO_FORMAT_XLSX,
   RADIO_SELECTED,
 } from './download-modal-utils';
-import { logger } from '@jetstream/shared/client-logger';
 
 export interface RecordDownloadModalProps {
   org: SalesforceOrgUi;
@@ -101,14 +92,13 @@ export const RecordDownloadModal: FunctionComponent<RecordDownloadModalProps> = 
   const [doFocusInput, setDoFocusInput] = useState<boolean>(true);
   const inputEl = useRef<HTMLInputElement>();
 
-  const [googleApiData, setGoogleApiData] = useState<GoogleApiData>();
+  const [isSignedInWithGoogle, setIsSignedInWithGoogle] = useState<boolean>(false);
   const [googleFolder, setGoogleFolder] = useState<string>();
 
   const [whichFields, setWhichFields] = useState<'all' | 'specified'>('specified');
 
   const [invalidConfig, setInvalidConfig] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string>(null);
-  const googleAuthorized = !!googleApiData?.authorized;
 
   const hasSubqueryFields = subqueryFields && !!Object.keys(subqueryFields).length && (fileFormat === 'xlsx' || fileFormat === 'gdrive');
 
@@ -119,12 +109,12 @@ export const RecordDownloadModal: FunctionComponent<RecordDownloadModalProps> = 
   }, [fields, modifiedFields]);
 
   useEffect(() => {
-    if (!fileName || (fileFormat === 'gdrive' && !googleAuthorized)) {
+    if (!fileName || (fileFormat === 'gdrive' && !isSignedInWithGoogle)) {
       setInvalidConfig(true);
     } else {
       setInvalidConfig(false);
     }
-  }, [fileName, fileFormat, googleAuthorized, googleFolder]);
+  }, [fileName, fileFormat, googleFolder, isSignedInWithGoogle]);
 
   useEffect(() => {
     if (downloadModalOpen) {
@@ -260,10 +250,6 @@ export const RecordDownloadModal: FunctionComponent<RecordDownloadModalProps> = 
     setGoogleFolder(folderId);
   }
 
-  function handleGoogleApiData(apiData: GoogleApiData) {
-    setGoogleApiData(apiData);
-  }
-
   return (
     <Fragment>
       {downloadModalOpen && (
@@ -373,7 +359,7 @@ export const RecordDownloadModal: FunctionComponent<RecordDownloadModalProps> = 
                   google_appId={google_appId}
                   google_clientId={google_clientId}
                   onFolderSelected={handleFolderSelected}
-                  onGoogleApiData={handleGoogleApiData}
+                  onSignInChanged={setIsSignedInWithGoogle}
                 />
               )}
             </RadioGroup>
