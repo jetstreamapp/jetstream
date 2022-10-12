@@ -79,7 +79,7 @@ export const CreateFieldsImportExport: FunctionComponent<CreateFieldsImportExpor
               value = ensureValidType(value);
             }
             if (field === 'deleteConstraint' && value) {
-              value = value === 'SetNull' ? 'SetNull' : 'Restrict';
+              value = ['SetNull', 'Cascade', 'Restrict'].includes(value) ? value : 'SetNull';
             }
             if (field === 'secondaryType' && value) {
               value = ensureValidSecondaryType(value);

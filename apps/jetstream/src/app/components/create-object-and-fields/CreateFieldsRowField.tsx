@@ -70,8 +70,8 @@ export const CreateFieldsRowField = forwardRef<any, CreateFieldsRowFieldProps>(
                 label: field.label,
                 helpText:
                   typeof field.helpText === 'function' ? field.helpText(allValues.type.value as SalesforceFieldType) : field.helpText,
-                errorMessage: fetchError,
-                hasError: !!fetchError,
+                errorMessage: fetchError || errorMessage,
+                hasError: !!fetchError || !!errorMessage,
                 labelHelp:
                   typeof field.labelHelp === 'function' ? field.labelHelp(allValues.type.value as SalesforceFieldType) : field.labelHelp,
                 isRequired: field.required,

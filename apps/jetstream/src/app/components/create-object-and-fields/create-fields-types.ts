@@ -81,8 +81,8 @@ export interface FieldDefinition {
   allowRefreshValues?: boolean;
   helpText?: string | ((type: SalesforceFieldType) => string);
   labelHelp?: string | ((type: SalesforceFieldType) => string);
-  // TODO: add a "failed validation error message"
-  validate?: (value: FieldValue, type?: SalesforceFieldType) => boolean;
+  validate?: (value: FieldValue, fieldValues: FieldValues) => boolean;
+  invalidErrorMessage?: string | ((type: SalesforceFieldType) => string);
   placeholder?: string;
   required?: boolean;
   disabled?: (fieldValues: FieldValues) => boolean;

@@ -93,6 +93,7 @@ export const fieldDefinitions: FieldDefinitions = {
       }
       return true;
     },
+    invalidErrorMessage: 'Must be a valid API name',
   },
   inlineHelpText: {
     label: 'Help Text',
@@ -123,7 +124,17 @@ export const fieldDefinitions: FieldDefinitions = {
     values: [
       { id: 'SetNull', value: 'SetNull', label: 'Clear Value' },
       { id: 'Restrict', value: 'Restrict', label: 'Prevent Deletion' },
+      { id: 'Cascade', value: 'Cascade', label: 'Delete Lookup Record' },
     ],
+    validate: (value: string, fieldValues: FieldValues) => {
+      const required = Boolean(fieldValues.required.value);
+      if (required && value === 'SetNull') {
+        return false;
+      }
+      return true;
+    },
+    invalidErrorMessage: 'Clear Value is not a valid option for required fields',
+    required: true,
   },
   length: {
     label: 'Length',
@@ -133,28 +144,36 @@ export const fieldDefinitions: FieldDefinitions = {
         return 'Max value 131072';
       }
     },
-    validate: (value: string, type: SalesforceFieldType) => {
+    validate: (value: string, fieldValues: FieldValues) => {
       if (!value || !/^[0-9]+$/.test(value)) {
         return false;
       }
       const numValue = Number(value);
+      const type = fieldValues.type.value;
       if (type === 'LongTextArea' || type === 'Html') {
         return isFinite(numValue) && numValue > 255 && numValue <= 131072;
       }
       return isFinite(numValue) && numValue > 0 && numValue <= 255;
+    },
+    invalidErrorMessage: (type) => {
+      if (type === 'LongTextArea') {
+        return 'Must be between 255 and 131,072';
+      }
+      return 'Must be between 0 and 255';
     },
     required: true,
   },
   precision: {
     label: 'Length',
     type: 'text', // number
-    validate: (value: string, type: SalesforceFieldType) => {
+    validate: (value: string) => {
       if (!value || !/^[0-9]+$/.test(value)) {
         return false;
       }
       const numValue = Number(value);
       return isFinite(numValue) && numValue >= 0 && numValue <= 18;
     },
+    invalidErrorMessage: 'Must be between 0 and 18',
     required: true,
   },
   scale: {
@@ -167,6 +186,7 @@ export const fieldDefinitions: FieldDefinitions = {
       const numValue = Number(value);
       return isFinite(numValue) && numValue >= 0 && numValue <= 18;
     },
+    invalidErrorMessage: 'Must be between 0 and 18',
     required: true,
   },
   required: {
@@ -230,17 +250,26 @@ export const fieldDefinitions: FieldDefinitions = {
         return '10 through 50';
       }
     },
-    validate: (value: string, type: SalesforceFieldType) => {
+    validate: (value: string, fieldValues: FieldValues) => {
       if (!value || !/^[0-9]+$/.test(value)) {
         return false;
       }
       const numValue = Number(value);
+      const type = fieldValues.type.value;
       if (type === 'LongTextArea') {
         return isFinite(numValue) && numValue >= 2 && numValue <= 50;
       } else if (type === 'Html') {
         return isFinite(numValue) && numValue >= 10 && numValue <= 50;
       }
       return isFinite(numValue) && numValue >= 0 && numValue <= 10;
+    },
+    invalidErrorMessage: (type) => {
+      if (type === 'LongTextArea') {
+        return 'Must be between 2 and 50';
+      } else if (type === 'Html') {
+        return 'Must be between 10 and 50';
+      }
+      return 'Must be between 0 and 10';
     },
   },
   startingNumber: {
@@ -253,6 +282,7 @@ export const fieldDefinitions: FieldDefinitions = {
       const numValue = Number(value);
       return isFinite(numValue) && numValue >= 0;
     },
+    invalidErrorMessage: 'Must be greater than 0',
     required: true,
   },
   displayFormat: {
@@ -317,6 +347,7 @@ export const fieldDefinitions: FieldDefinitions = {
       }
       return true;
     },
+    invalidErrorMessage: 'Must be a valid API name',
   },
 };
 
@@ -623,7 +654,7 @@ export function calculateFieldValidity(rows: FieldValues[]): { rows: FieldValues
         return;
       }
       const { isValid, value } = currField;
-      const { validate, required } = fieldDefinitions[fieldName];
+      const { validate, invalidErrorMessage, required } = fieldDefinitions[fieldName];
 
       if ((isNil(value) || value === '') && required) {
         if (isValid) {
@@ -635,12 +666,17 @@ export function calculateFieldValidity(rows: FieldValues[]): { rows: FieldValues
         } else {
           outputFieldValues[fieldName] = currField;
         }
-      } else if (!isNil(value) && typeof validate === 'function' && !validate(value, fieldValues.type.value as SalesforceFieldType)) {
+      } else if (!isNil(value) && typeof validate === 'function' && !validate(value, fieldValues)) {
         if (isValid) {
+          const errorMessage =
+            typeof invalidErrorMessage === 'function'
+              ? invalidErrorMessage(fieldValues.type.value as SalesforceFieldType)
+              : invalidErrorMessage;
+
           outputFieldValues[fieldName] = {
             ...currField,
             isValid: false,
-            errorMessage: 'Invalid format',
+            errorMessage: errorMessage || 'Invalid format',
           };
         } else {
           outputFieldValues[fieldName] = currField;
