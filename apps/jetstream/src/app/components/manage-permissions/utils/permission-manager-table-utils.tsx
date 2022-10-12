@@ -19,8 +19,9 @@ import { getMapOf, orderStringsBy, pluralizeFromNumber } from '@jetstream/shared
 import { MapOf, PermissionSetNoProfileRecord, PermissionSetWithProfileRecord } from '@jetstream/types';
 import { Checkbox, CheckboxToggle, Grid, Icon, Input, isColumnGroupDef, Modal, Popover, PopoverRef, Tooltip } from '@jetstream/ui';
 import { BasicTextFilterRenderer, BooleanEditableRenderer } from 'libs/ui/src/lib/data-table/DataTableRenderers';
-import { isFunction } from 'lodash';
-import { Fragment, FunctionComponent, useEffect, useRef, useState, useCallback, ReactNode } from 'react';
+import isFunction from 'lodash/isFunction';
+import isString from 'lodash/isString';
+import { Fragment, FunctionComponent, useCallback, useEffect, useRef, useState } from 'react';
 import {
   BulkActionCheckbox,
   DirtyRow,
@@ -732,7 +733,11 @@ export const PinnedSelectAllRendererWrapper =
   (type: PermissionType): FunctionComponent<ICellRendererParams> =>
   ({ api, node, column, colDef, context }) => {
     function handleSelection(action: 'selectAll' | 'unselectAll' | 'reset') {
-      const [id, which] = colDef.colId.split('-');
+      // This should not happen, but it did at least once.
+      if (!isString(colDef.colId)) {
+        return;
+      }
+      const [id, which] = colDef.colId?.split('-');
       const itemsToUpdate: any[] = [];
       api.forEachNodeAfterFilter((rowNode, index) => {
         if (!rowNode.isRowPinned() && !rowNode.group) {
