@@ -1179,7 +1179,7 @@ export const RowActionRenderer: FunctionComponent<ICellRendererParams> = ({ node
     const itemsToUpdate = [];
 
     // remove sobject, label, edit columns from list
-    const columns = columnApi.getAllColumns().slice(3);
+    const columns = columnApi.getColumns().slice(3);
     handleRowPermissionUpdate(columns, node, context.type, checkboxesById, applyToAll ? 'all' : 'visible', itemsToUpdate);
 
     const transactionResult = api.applyTransaction({ update: itemsToUpdate });
@@ -1194,7 +1194,7 @@ export const RowActionRenderer: FunctionComponent<ICellRendererParams> = ({ node
   function handleReset() {
     const itemsToUpdate = [];
 
-    const columns = columnApi.getAllColumns().slice(3);
+    const columns = columnApi.getColumns().slice(3);
     handleRowPermissionReset(columns, node, context.type, applyToAll ? 'all' : 'visible', itemsToUpdate);
     const transactionResult = api.applyTransaction({ update: itemsToUpdate });
     logger.log({ transactionResult });
@@ -1213,7 +1213,7 @@ export const RowActionRenderer: FunctionComponent<ICellRendererParams> = ({ node
       setApplyToAll(true);
       setAllColumnsVisible(
         columnApi
-          .getAllColumns()
+          .getColumns()
           .slice(3)
           .every((col) => col.isVisible())
       );
@@ -1353,7 +1353,7 @@ export const BulkActionRenderer: FunctionComponent<ICellRendererParams> = ({ nod
     const checkboxesById = getMapOf(checkboxes, 'id');
     const itemsToUpdate = [];
     // remove sobject, label, edit columns from list
-    const columns = columnApi.getAllColumns().slice(2);
+    const columns = columnApi.getColumns().slice(2);
     api.forEachNodeAfterFilterAndSort((rowNode, index) => {
       handleRowPermissionUpdate(columns, rowNode, context.type, checkboxesById, applyToAll ? 'all' : 'visible', itemsToUpdate);
     });
@@ -1371,7 +1371,7 @@ export const BulkActionRenderer: FunctionComponent<ICellRendererParams> = ({ nod
     setApplyToAll(true);
     setAllColumnsVisible(
       columnApi
-        .getAllColumns()
+        .getColumns()
         .slice(2)
         .every((col) => col.isVisible())
     );

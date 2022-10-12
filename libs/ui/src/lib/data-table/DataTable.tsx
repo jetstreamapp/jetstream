@@ -85,6 +85,7 @@ export const DataTable: FunctionComponent<DataTableProps> = ({
         suppressDragLeaveHidesColumns
         quickFilterText={quickFilterText}
         headerHeight={25}
+        maintainColumnOrder
         defaultColDef={{
           filter: 'agMultiColumnFilter',
           filterParams: {
