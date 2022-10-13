@@ -214,7 +214,7 @@ export function getCurrentColumns(columnApi: ColumnApi): string[] {
 
 export function getAllColumns(columnApi: ColumnApi): string[] {
   return columnApi
-    .getAllColumns()
+    .getColumns()
     .map((col) => col.getColDef())
     .filter((col) => col.field)
     .map((col) => col.field);

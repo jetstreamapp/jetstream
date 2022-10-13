@@ -280,6 +280,7 @@
     "@types/fs-extra": "^9.0.6",
     "@types/gapi.auth2": "^0.0.55",
     "@types/gapi.client.drive": "^3.0.13",
+    "@types/google.accounts": "^0.0.2",
     "@types/google.picker": "^0.0.39",
     "@types/jest": "27.4.1",
     "@types/jsforce": "^1.9.41",

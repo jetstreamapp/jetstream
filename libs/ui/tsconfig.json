@@ -6,7 +6,7 @@
     "allowJs": true,
     "esModuleInterop": true,
     "allowSyntheticDefaultImports": true,
-    "types": ["node", "jest", "google.picker", "gapi.auth2", "gapi.client.drive"]
+    "types": ["node", "jest", "google.accounts", "google.picker", "gapi.auth2", "gapi.client.drive"]
   },
   "files": [],
   "include": [],

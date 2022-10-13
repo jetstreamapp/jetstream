@@ -13,12 +13,11 @@ import { composeSoqlQuery } from '../utils/query-utils';
 
 export const QueryBuilderSoqlUpdater: FunctionComponent = () => {
   const selectedSObject = useRecoilValue(fromQueryState.selectedSObjectState);
+  const selectedFields = useRecoilValue(fromQueryState.selectQueryField);
   const filters = useRecoilValue(fromQueryState.queryFiltersState);
   const orderByClauses = useRecoilValue(fromQueryState.selectQueryOrderBy);
   const queryLimit = useRecoilValue(fromQueryState.selectQueryLimit);
   const queryLimitSkip = useRecoilValue(fromQueryState.selectQueryLimitSkip);
-  const selectedFields = useRecoilValue(fromQueryState.selectQueryField);
-  const selectedSubqueryFields = useRecoilValue(fromQueryState.selectedSubqueryFieldsState);
   const [soql, setSoql] = useRecoilState(fromQueryState.querySoqlState);
 
   useEffect(() => {

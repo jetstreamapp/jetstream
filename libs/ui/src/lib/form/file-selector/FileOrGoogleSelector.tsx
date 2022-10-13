@@ -1,6 +1,5 @@
 import Tabs from '../../tabs/Tabs';
 import { Fragment, FunctionComponent } from 'react';
-import GoogleSignIn from '../../google/GoogleSignIn';
 import FileSelector, { FileSelectorProps } from './FileSelector';
 import GoogleFileSelector, { GoogleFileSelectorProps } from './GoogleFileSelector';
 
@@ -16,6 +15,7 @@ export const FileOrGoogleSelector: FunctionComponent<FileOrGoogleSelectorProps> 
   omitGoogle,
 }) => {
   return (
+    // eslint-disable-next-line react/jsx-no-useless-fragment
     <Fragment>
       {omitGoogle ? (
         <FileSelector {...fileSelectorProps}></FileSelector>
@@ -31,13 +31,7 @@ export const FileOrGoogleSelector: FunctionComponent<FileOrGoogleSelectorProps> 
             {
               id: 'google',
               title: 'Google Drive',
-              content: (
-                <GoogleSignIn apiConfig={googleSelectorProps.apiConfig}>
-                  <div>
-                    <GoogleFileSelector {...googleSelectorProps} />
-                  </div>
-                </GoogleSignIn>
-              ),
+              content: <GoogleFileSelector {...googleSelectorProps} />,
             },
           ]}
         />

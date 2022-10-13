@@ -1,14 +1,8 @@
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-declare let window: any;
 import { logger } from '@jetstream/shared/client-logger';
-import { useEffect, useRef, useState } from 'react';
-import { GoogleApiClientConfig, GoogleApiData, useLoadGoogleApi } from './useLoadGoogleApi';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { GoogleApiClientConfig, useGoogleApi } from './useGoogleApi';
 
-export interface UseDrivePickerOptions {
-  scope?: string[];
-}
-
-export interface PickerConfiguration {
+export interface PickerConfigurationNew {
   title?: string;
   viewGroups?: google.picker.ViewGroup[];
   views: { view: google.picker.DocsView | google.picker.DocsUploadView | google.picker.ViewId; label?: string }[];
@@ -18,17 +12,9 @@ export interface PickerConfiguration {
   skipBuild?: boolean;
 }
 
-export const DEFAULT_CONFIGURATION: PickerConfiguration = {
-  viewGroups: [],
-  views: [],
-  features: [],
-  locale: 'en',
-};
-
 /**
  * https://stackoverflow.com/questions/48459402/change-google-picker-docsview-title
  * setLabel is not documented and not included in typescript definition, but it works
- *
  *
  * @param view
  * @param label
@@ -43,102 +29,74 @@ function setViewLabel(view: google.picker.DocsView | google.picker.DocsUploadVie
   } catch (ex) {
     logger.warn('Unable to set view label');
   } finally {
+    // eslint-disable-next-line no-unsafe-finally
     return view;
   }
 }
 
-export function useDrivePicker(
-  apiConfig: GoogleApiClientConfig
-): [
-  (config: PickerConfiguration) => google.picker.PickerBuilder | undefined,
-  {
-    apiLoaded: boolean;
-    auth: gapi.auth2.AuthResponse | undefined;
-    apiData: GoogleApiData;
-    data: google.picker.ResponseObject | undefined;
-    picker: google.picker.PickerBuilder | undefined;
-    scriptLoadError: string | undefined;
-  }
-] {
+export function useDrivePicker(apiConfig: GoogleApiClientConfig) {
   const picker = useRef<google.picker.PickerBuilder>();
-  const [apiData, signIn] = useLoadGoogleApi(apiConfig);
+  const { error, getToken, loading } = useGoogleApi(apiConfig);
   const [callBackInfo, setCallBackInfo] = useState<google.picker.ResponseObject>();
-  const [openAfterAuth, setOpenAfterAuth] = useState(false);
-  const [config, setConfig] = useState<PickerConfiguration>(DEFAULT_CONFIGURATION);
 
-  // If we were not already authorized when user clicked to open picker,
-  // then auto-open after authorization is complete
   useEffect(() => {
-    if (openAfterAuth && apiData.signedIn && apiData.authorized) {
-      setOpenAfterAuth(false);
-      createPicker(config);
-    }
-  }, [apiData.signedIn, apiData.authorized, openAfterAuth]);
+    logger.log('[GOOGLE][PICKER][RENDERED]');
+  });
 
-  // open the picker
-  const openPicker = (config: PickerConfiguration) => {
-    setConfig(config);
-    if (!apiData.signedIn || !apiData.authorized) {
-      setOpenAfterAuth(true);
-      signIn();
-    } else {
-      createPicker(config);
-    }
-    return picker.current;
-  };
-
-  const createPicker = ({ views, viewGroups, features, locale = 'en', title, skipBuild }: PickerConfiguration) => {
-    picker.current = new google.picker.PickerBuilder()
-      .setAppId(apiConfig.appId)
-      .setDeveloperKey(apiConfig.apiKey)
-      .setCallback(pickerCallback)
-      .setOAuthToken(apiData.authResponse?.access_token)
-      .setLocale(locale)
-      .setSize(window.innerWidth * 0.9, window.innerHeight * 0.9);
-
-    if (title) {
-      picker.current.setTitle(title);
-    }
-
-    if (Array.isArray(viewGroups)) {
-      viewGroups.forEach((viewGroup) => picker.current.addViewGroup(viewGroup));
-    }
-
-    if (Array.isArray(views)) {
-      views.forEach(({ view, label }) => {
-        if (label) {
-          setViewLabel(view, label);
-        }
-        picker.current.addView(view);
-      });
-    }
-
-    if (Array.isArray(features)) {
-      features.forEach((feature) => picker.current.enableFeature(feature));
-    }
-
-    if (!skipBuild) {
-      picker.current.build().setVisible(true);
-    }
-
-    return picker.current;
-  };
-
-  const pickerCallback = (data: google.picker.ResponseObject) => {
+  const pickerCallback = useCallback((data: google.picker.ResponseObject) => {
+    logger.log('[GOOGLE][PICKER]', data);
     if (data.action === window.google.picker.Action.PICKED) {
       setCallBackInfo(data);
     }
-  };
+  }, []);
 
-  return [
-    openPicker,
-    {
-      apiData,
-      apiLoaded: apiData.hasInitialized,
-      auth: apiData.authResponse,
-      data: callBackInfo,
-      picker: picker.current,
-      scriptLoadError: apiData.error,
+  const openPicker = useCallback(
+    async ({ views, viewGroups, features, locale = 'en', title, skipBuild }: PickerConfigurationNew) => {
+      logger.log('[GOOGLE][PICKER][RENDERED]openPicker()');
+      const token = await getToken();
+
+      picker.current = new google.picker.PickerBuilder()
+        .setAppId(apiConfig.appId)
+        .setDeveloperKey(apiConfig.apiKey)
+        .setOAuthToken(token.access_token)
+        .setLocale(locale)
+        .setSize(window.innerWidth * 0.9, window.innerHeight * 0.9)
+        .setCallback(pickerCallback);
+
+      if (title) {
+        picker.current.setTitle(title);
+      }
+
+      if (Array.isArray(viewGroups)) {
+        viewGroups.forEach((viewGroup) => picker.current.addViewGroup(viewGroup));
+      }
+
+      if (Array.isArray(views)) {
+        views.forEach(({ view, label }) => {
+          if (label) {
+            setViewLabel(view, label);
+          }
+          picker.current.addView(view);
+        });
+      }
+
+      if (Array.isArray(features)) {
+        features.forEach((feature) => picker.current.enableFeature(feature));
+      }
+
+      if (!skipBuild) {
+        picker.current.build().setVisible(true);
+      }
+
+      return picker.current;
     },
-  ];
+    [apiConfig.apiKey, apiConfig.appId, getToken, pickerCallback]
+  );
+
+  return {
+    loading,
+    error,
+    data: callBackInfo,
+    openPicker,
+  };
 }

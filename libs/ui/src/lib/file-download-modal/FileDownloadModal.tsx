@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
 import { MIME_TYPES } from '@jetstream/shared/constants';
-import { getFilename, GoogleApiData, isEnterKey, prepareCsvFile, prepareExcelFile, saveFile } from '@jetstream/shared/ui-utils';
+import { getFilename, isEnterKey, prepareCsvFile, prepareExcelFile, saveFile } from '@jetstream/shared/ui-utils';
 import {
   AsyncJobNew,
   FileExtAllTypes,
@@ -83,7 +83,6 @@ export const FileDownloadModal: FunctionComponent<FileDownloadModalProps> = ({
   const inputEl = useRef<HTMLInputElement>();
   const [filenameEmpty, setFilenameEmpty] = useState(false);
 
-  const [googleApiData, setGoogleApiData] = useState<GoogleApiData>();
   const [googleFolder, setGoogleFolder] = useState<string>();
 
   useEffect(() => {
@@ -229,10 +228,6 @@ export const FileDownloadModal: FunctionComponent<FileDownloadModalProps> = ({
     setGoogleFolder(folderId);
   }
 
-  function handleGoogleApiData(apiData: GoogleApiData) {
-    setGoogleApiData(apiData);
-  }
-
   return (
     <Modal
       header={modalHeader}
@@ -319,7 +314,6 @@ export const FileDownloadModal: FunctionComponent<FileDownloadModalProps> = ({
             google_appId={google_appId}
             google_clientId={google_clientId}
             onFolderSelected={handleFolderSelected}
-            onGoogleApiData={handleGoogleApiData}
           />
         )}
         <Input

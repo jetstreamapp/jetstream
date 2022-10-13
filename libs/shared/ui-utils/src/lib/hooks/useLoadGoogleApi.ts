@@ -4,7 +4,7 @@ import { useRollbar } from 'libs/shared/ui-utils/src/lib/hooks/useRollbar';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { getUseInjectScript } from './useInjectScript';
 
-const useInjectScript = getUseInjectScript('https://apis.google.com/js/api.js');
+const useInjectScript = getUseInjectScript('https://accounts.google.com/gsi/client');
 
 const apiConfig: ApiConfig = {
   discoveryDocs: ['https://www.googleapis.com/discovery/v1/apis/drive/v3/rest'],
@@ -103,6 +103,7 @@ export function useLoadGoogleApi({
     setHasApisLoaded(true);
     if (!apiLoaded.auth && gapi) {
       // https://developers.google.com/identity/protocols/oauth2/javascript-implicit-flow#js-client-library_4
+      /** @deprecated */
       gapi.load('client:auth2', () => {
         if (isMounted.current) {
           setApiLoaded((priorValue) => ({ ...priorValue, auth: true }));
@@ -143,11 +144,13 @@ export function useLoadGoogleApi({
           scope, // space-delimited list of access scopes.
         });
         if (isMounted.current) {
+          /** @deprecated */
           gapiAuthInstance = gapi.auth2.getAuthInstance();
           setHasInitialized(true);
           logger.log('Google initialized');
           // if user previously signed in, then they are signed in upon init
           if (gapiAuthInstance.isSignedIn.get()) {
+            /** @deprecated */
             initSignIn(gapiAuthInstance.currentUser.get());
           }
         }

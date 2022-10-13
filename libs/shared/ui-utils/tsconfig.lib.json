@@ -2,9 +2,13 @@
   "extends": "./tsconfig.json",
   "compilerOptions": {
     "outDir": "../../../dist/out-tsc",
-    "types": ["node", "google.picker", "gapi.auth2", "gapi.client.drive"]
+    "types": ["node", "google.accounts", "google.picker", "gapi.auth2", "gapi.client.drive"]
   },
   "exclude": ["**/*.spec.ts", "**/*.test.ts", "**/*.spec.tsx", "**/*.test.tsx", "jest.config.ts"],
   "include": ["**/*.js", "**/*.jsx", "**/*.ts", "**/*.tsx"],
-  "files": ["../../../node_modules/@nrwl/react/typings/cssmodule.d.ts", "../../../node_modules/@nrwl/react/typings/image.d.ts"]
+  "files": [
+    "../../../node_modules/@nrwl/react/typings/cssmodule.d.ts",
+    "../../../node_modules/@nrwl/react/typings/image.d.ts",
+    "../../../custom-typings/index.d.ts"
+  ]
 }
