@@ -151,7 +151,7 @@ export const dataTableAddressValueFormatter = (value: any): string => {
   return [street, remainingParts].join('\n');
 };
 
-export const dataTableAddressFormatter = ({ value }: ValueFormatterParams | GetQuickFilterTextParams): string => {
+export const dataTableAddressFormatter = <T extends { value: string | null | undefined }>({ value }: T): string => {
   return dataTableAddressValueFormatter(value);
 };
 
@@ -160,7 +160,7 @@ export const dataTableAddressValueGetter =
   ({ data }: ValueGetterParams) =>
     dataTableAddressValueFormatter(data[header]);
 
-export const dataTableLocationFormatter = ({ value }: ValueFormatterParams | GetQuickFilterTextParams): string => {
+export const dataTableLocationFormatter = <T extends { value: string | null | undefined }>({ value }: T): string => {
   if (!isObject(value)) {
     return '';
   }
@@ -168,7 +168,7 @@ export const dataTableLocationFormatter = ({ value }: ValueFormatterParams | Get
   return `Latitude: ${location.latitude}°, Longitude: ${location.longitude}°`;
 };
 
-export const dataTableDateFormatter = ({ value }: ValueFormatterParams | GetQuickFilterTextParams): string => {
+export const dataTableDateFormatter = <T extends { value: string | null | undefined }>({ value }: T): string => {
   const dateOrDateTime: string = value;
   if (!dateOrDateTime) {
     return null;
@@ -181,7 +181,7 @@ export const dataTableDateFormatter = ({ value }: ValueFormatterParams | GetQuic
   }
 };
 
-export const dataTableTimeFormatter = ({ value }: ValueFormatterParams | GetQuickFilterTextParams): string => {
+export const dataTableTimeFormatter = <T extends { value: string | null | undefined }>({ value }: T): string => {
   const time: string = value;
   if (!time) {
     return '';
@@ -192,12 +192,12 @@ export const dataTableTimeFormatter = ({ value }: ValueFormatterParams | GetQuic
   }
 };
 
-export const dataTableFileSizeFormatter = ({ value }: ValueFormatterParams | GetQuickFilterTextParams): string => {
+export const dataTableFileSizeFormatter = <T extends { value: string | null | undefined }>({ value }: T): string => {
   const dateOrDateTime: string = value;
   if (!dateOrDateTime) {
     return '';
   }
-  return fileSizeFormatter(value);
+  return fileSizeFormatter(value as any);
 };
 
 /**

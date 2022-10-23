@@ -102,10 +102,12 @@ export function multiWordStringFilter(value: string): (value: string, index: num
   };
 }
 
-export function orderObjectsBy<T>(items: T[], field: keyof T, order: 'asc' | 'desc' = 'asc'): T[] {
+export function orderObjectsBy<T>(items: T[], fields: keyof T | [keyof T], order: 'asc' | 'desc' | ('asc' | 'desc')[] = 'asc'): T[] {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const orderByItereeFn = (item: T) => (isString(item[field]) ? (item[field] as any).toLowerCase() : item[field]);
-  return orderBy(items, [orderByItereeFn], [order]);
+  fields = Array.isArray(fields) ? fields : [fields];
+  order = Array.isArray(order) ? order : [order];
+  const orderByItereeFn = fields.map((field) => (item: T) => isString(item[field]) ? (item[field] as any).toLowerCase() : item[field]);
+  return orderBy(items, orderByItereeFn, order);
 }
 
 export function orderStringsBy(items: string[], order: 'asc' | 'desc' = 'asc'): string[] {

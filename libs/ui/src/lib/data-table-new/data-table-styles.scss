@@ -1,0 +1,20 @@
+.rdg {
+  &.fill-grid {
+    block-size: 100%;
+  }
+
+  .select-checkbox {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    > input {
+      margin: 0;
+    }
+  }
+
+  .rdg-checkbox {
+    &:checked {
+      outline: 'none !important';
+    }
+  }
+}
