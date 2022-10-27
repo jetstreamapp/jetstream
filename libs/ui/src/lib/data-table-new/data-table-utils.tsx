@@ -1,22 +1,32 @@
 import { QueryResults, QueryResultsColumn } from '@jetstream/api-interfaces';
-import DataGrid, { Column, FormatterProps, HeaderRendererProps, SelectColumn, useRowSelection } from 'react-data-grid';
-import { getFlattenedFields, isFieldSubquery } from 'soql-parser-js';
+import { ensureBoolean } from '@jetstream/shared/utils';
 import { MapOf } from '@jetstream/types';
-import { Fragment, FunctionComponent, memo } from 'react';
-import Icon from '../widgets/Icon';
-import Checkbox from '../form/checkbox/Checkbox';
+import isAfter from 'date-fns/isAfter';
+import isBefore from 'date-fns/isBefore';
+import isSameDay from 'date-fns/isSameDay';
+import parseISO from 'date-fns/parseISO';
+import startOfDay from 'date-fns/startOfDay';
+import { Field } from 'jsforce';
+import { isBoolean, isNil, isNumber, isString } from 'lodash';
 import uniqueId from 'lodash/uniqueId';
-import { isFunction } from 'lodash';
-import { ActionRenderer, BooleanRenderer, ComplexDataRenderer, IdLinkRenderer } from './DataTableRenderers';
+import { createContext } from 'react';
+import { FormatterProps, HeaderRendererProps, SelectColumn, useRowSelection } from 'react-data-grid';
+import { getFlattenedFields, isFieldSubquery } from 'soql-parser-js';
 import {
   dataTableAddressValueFormatter,
-  dataTableAddressValueGetter,
   dataTableDateFormatter,
   dataTableLocationFormatter,
   dataTableTimeFormatter,
 } from '../data-table/data-table-utils';
+import Checkbox from '../form/checkbox/Checkbox';
+import { ColumnWithFilter, DataTableFilter, FilterContextProps, FilterType } from './data-table-types';
+import { ActionRenderer, BooleanRenderer, ComplexDataRenderer, FilterRenderer, HeaderFilter, IdLinkRenderer } from './DataTableRenderers';
 
 const SFDC_EMPTY_ID = '000000000000000AAA';
+
+export const EMPTY_FIELD = '-BLANK-';
+
+export const DataTableFilterContext = createContext<FilterContextProps>(undefined);
 
 export function getRowId(data: any): string {
   if (data?._key) {
@@ -65,7 +75,7 @@ function SelectHeaderRenderer(props: HeaderRendererProps<any>) {
   );
 }
 
-export function getColumnDefinitions<T = any>(results: QueryResults<T>, isTooling: boolean): Column<T>[] {
+export function getColumnDefinitions<T = any>(results: QueryResults<T>, isTooling: boolean): ColumnWithFilter<any>[] {
   // if we have id, include record actions
   // const includeRecordActions =
   //   !isTooling && results.queryResults.records.length
@@ -98,7 +108,7 @@ export function getColumnDefinitions<T = any>(results: QueryResults<T>, isToolin
   }
 
   // Base fields
-  const columnDefs: Column<T>[] = getFlattenedFields(results.parsedQuery).map((field, i) =>
+  const columnDefs: ColumnWithFilter<any>[] = getFlattenedFields(results.parsedQuery).map((field, i) =>
     getColDef(field, queryColumnsByPath, isFieldSubquery(results.parsedQuery?.[i]))
   );
 
@@ -140,35 +150,27 @@ export function getColumnDefinitions<T = any>(results: QueryResults<T>, isToolin
   return columnDefs;
 }
 
-// export const Actionformatter = memo((props: CellContext<any, unknown>) => {
-//   return (
-//     <div className="slds-grid">
-//       <Checkbox
-//         id={`checkbox-${props.row.id}`}
-//         label="Select row"
-//         hideLabel
-//         checked={props.row.getIsSelected()}
-//         // indeterminate={props.row.getIsSomeSelected()}
-//         onChangeNative={props.row.getToggleSelectedHandler()}
-//       />
-//       <ActionRenderer {...props} />
-//     </div>
-//   );
-// });
-
 type Mutable<Type> = {
   -readonly [Key in keyof Type]: Type[Key];
 };
 
-function getColDef<T = any>(field: string, queryColumnsByPath: MapOf<QueryResultsColumn>, isSubquery: boolean): Column<T> {
-  const column: Mutable<Column<T>> = {
+function getColDef<T = any>(field: string, queryColumnsByPath: MapOf<QueryResultsColumn>, isSubquery: boolean): ColumnWithFilter<any> {
+  const column: Mutable<ColumnWithFilter<any>> = {
     name: field,
     key: field,
     cellClass: 'slds-truncate',
     resizable: true,
     sortable: true,
     width: 200,
-    // headerRenderer
+    filters: ['TEXT', 'SET'],
+    headerRenderer: (props) => (
+      <FilterRenderer {...props}>
+        {({ filters, filterSetValues, updateFilter }) => (
+          <HeaderFilter columnKey={column.key} filters={filters} filterSetValues={filterSetValues} updateFilter={updateFilter} />
+        )}
+      </FilterRenderer>
+    ),
+
     // headerCellClass
     // summaryCellClass
     // formatter
@@ -183,6 +185,7 @@ function getColDef<T = any>(field: string, queryColumnsByPath: MapOf<QueryResult
     column.key = col.columnFullPath;
     if (col.booleanType) {
       column.formatter = BooleanRenderer;
+      column.filters = ['BOOLEAN_SET'];
       column.width = 100;
       // column.filterParams = {
       //   filters: [{ filter: 'agSetColumnFilter' }],
@@ -196,6 +199,7 @@ function getColDef<T = any>(field: string, queryColumnsByPath: MapOf<QueryResult
       column.width = 175;
     } else if (col.apexType === 'Date' || col.apexType === 'Datetime') {
       column.formatter = ({ column, row }) => dataTableDateFormatter({ value: row[column.key] });
+      column.filters = ['DATE', 'SET'];
       // column.getQuickFilterText = dataTableDateFormatter;
       // column.filterParams = {
       //   filters: [
@@ -272,4 +276,110 @@ function getColDef<T = any>(field: string, queryColumnsByPath: MapOf<QueryResult
     }
   }
   return column;
+}
+
+export function addFieldLabelToColumn<T = any>(columnDefinitions: ColumnWithFilter<any>[], fieldMetadata: MapOf<Field>) {
+  if (fieldMetadata) {
+    // set field api name and label
+    return columnDefinitions.map((col) => {
+      if (fieldMetadata[col.key?.toLowerCase()]?.label) {
+        const label = fieldMetadata[col.key.toLowerCase()].label;
+        return {
+          ...col,
+          name: `${col.name} (${label})`,
+        };
+      }
+      return col;
+    });
+  }
+  return columnDefinitions;
+}
+
+export function resetFilter(type: FilterType): DataTableFilter {
+  switch (type) {
+    case 'TEXT':
+      return { type, value: '' };
+    case 'NUMBER':
+      return { type, value: null, comparator: 'EQUALS' };
+    case 'DATE':
+      return { type, value: '', comparator: 'GREATER_THAN' };
+    case 'SET':
+    case 'BOOLEAN_SET':
+      return { type, value: [] };
+    default:
+      throw new Error(`Filter type ${type} not supported`);
+  }
+}
+
+export function isFilterActive(filter: DataTableFilter): boolean {
+  switch (filter?.type) {
+    case 'TEXT':
+      return !!filter.value;
+    case 'NUMBER':
+      return isNumber(filter.value) || !!filter.value;
+    case 'DATE':
+      return !!filter.value; // TODO: is valid date
+    case 'SET':
+    case 'BOOLEAN_SET':
+      return !!filter.value?.length;
+    default:
+      return false;
+  }
+}
+
+export function filterRecord(filter: DataTableFilter, value: any): boolean {
+  switch (filter?.type) {
+    case 'TEXT': {
+      if (!isString(value)) {
+        return false;
+      }
+      return value.toLowerCase().includes(filter.value.toLowerCase());
+    }
+    case 'NUMBER': {
+      const filterValue = Number(filter.value);
+      if (!isNumber(value)) {
+        return false;
+      }
+      switch (filter.comparator) {
+        case 'GREATER_THAN':
+          return value > filterValue;
+        case 'LESS_THAN':
+          return value < filterValue;
+        case 'EQUALS':
+        default:
+          return value === filterValue;
+      }
+    }
+    case 'DATE': {
+      if (!value) {
+        return false;
+      }
+      const dateFilter = startOfDay(parseISO(filter.value));
+      const date = startOfDay(parseISO(value));
+      switch (filter.comparator) {
+        case 'GREATER_THAN':
+          return isAfter(date, dateFilter);
+        case 'LESS_THAN':
+          return isBefore(date, dateFilter);
+        case 'EQUALS':
+        default:
+          return isSameDay(date, dateFilter);
+      }
+    }
+    case 'BOOLEAN_SET': {
+      if (!filter.value.length) {
+        return false;
+      } else if (filter.value.length === 2) {
+        return true;
+      }
+      const filterValue = ensureBoolean(filter.value[0]);
+      return value === ensureBoolean(filterValue);
+    }
+    case 'SET': {
+      const includeNulls = filter.value.includes(EMPTY_FIELD);
+      return (isNil(value) && includeNulls) || (!isNil(value) && filter.value.includes(String(value)));
+    }
+    default:
+      return false;
+  }
 }

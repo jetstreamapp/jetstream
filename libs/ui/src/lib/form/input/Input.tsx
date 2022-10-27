@@ -1,7 +1,7 @@
 // https://www.lightningdesignsystem.com/components/input/#Fixed-Text
 
 import classNames from 'classnames';
-import { Fragment, FunctionComponent } from 'react';
+import { Fragment, FunctionComponent, MouseEvent } from 'react';
 import HelpText from '../../widgets/HelpText';
 import Icon from '../../widgets/Icon';
 import { IconType, IconName } from '@jetstream/icon-factory';
@@ -24,7 +24,7 @@ export interface InputProps {
   leftAddon?: React.ReactNode | string;
   rightAddon?: React.ReactNode | string;
   clearButton?: boolean;
-  onClear?: () => void;
+  onClear?: (ev?: MouseEvent<HTMLButtonElement>) => void;
   children?: React.ReactNode;
 }
 

@@ -1,5 +1,5 @@
 import classNames from 'classnames';
-import React, { Fragment, FunctionComponent, RefObject } from 'react';
+import React, { Fragment, FunctionComponent, RefObject, useEffect, useRef } from 'react';
 import HelpText from '../../widgets/HelpText';
 
 export interface CheckboxProps {
@@ -8,6 +8,7 @@ export interface CheckboxProps {
   className?: string;
   checkboxClassName?: string;
   checked: boolean;
+  indeterminate?: boolean;
   label: string;
   hideLabel?: boolean;
   labelHelp?: string | JSX.Element;
@@ -20,6 +21,7 @@ export interface CheckboxProps {
   errorMessageId?: string;
   errorMessage?: React.ReactNode | string;
   onChange?: (value: boolean) => void;
+  onChangeNative?: (event: unknown) => void;
   onBlur?: () => void;
 }
 
@@ -29,6 +31,7 @@ export const Checkbox: FunctionComponent<CheckboxProps> = ({
   className,
   checkboxClassName,
   checked,
+  indeterminate,
   label,
   labelHelp,
   helpText,
@@ -41,8 +44,24 @@ export const Checkbox: FunctionComponent<CheckboxProps> = ({
   hideLabel = false,
   isStandAlone = false,
   onChange,
+  onChangeNative,
   onBlur,
 }) => {
+  // alternative in case parent does not include this property
+  const localInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (typeof indeterminate === 'boolean') {
+      if (inputRef?.current) {
+        inputRef.current.indeterminate = !checked && indeterminate;
+      }
+
+      if (localInputRef?.current) {
+        localInputRef.current.indeterminate = !checked && indeterminate;
+      }
+    }
+  }, [inputRef, localInputRef, indeterminate, checked]);
+
   return (
     <div className={classNames('slds-form-element', className, { 'slds-has-error': hasError })}>
       {isStandAlone && (
@@ -66,15 +85,18 @@ export const Checkbox: FunctionComponent<CheckboxProps> = ({
             </abbr>
           )}
           <input
-            ref={inputRef}
+            ref={inputRef || localInputRef}
             type="checkbox"
             name="options"
             id={id}
-            checked={checked}
+            checked={checked || false}
             disabled={readOnly || disabled}
             readOnly={readOnly}
             aria-describedby={errorMessageId}
-            onChange={(event) => onChange && onChange(event.target.checked)}
+            onChange={(event) => {
+              onChange && onChange(event.target?.checked || false);
+              onChangeNative && onChangeNative(event);
+            }}
             onBlur={onBlur}
           />
           {isStandAlone && <span className="slds-checkbox_faux"></span>}

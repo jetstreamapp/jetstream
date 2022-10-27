@@ -25,6 +25,7 @@ export interface PopoverRef {
 export interface PopoverProps {
   inverseIcons?: boolean;
   containerClassName?: string;
+  closeBtnClassName?: string;
   bodyClassName?: string;
   placement?: Placement;
   content: JSX.Element;
@@ -45,6 +46,7 @@ export const Popover = forwardRef<PopoverRef, PopoverProps>(
     {
       inverseIcons,
       containerClassName,
+      closeBtnClassName,
       bodyClassName = 'slds-popover__body',
       placement = 'auto',
       content,
@@ -177,9 +179,13 @@ export const Popover = forwardRef<PopoverRef, PopoverProps>(
                     {/* CLOSE BUTTON */}
                     <HeadlessPopover.Button
                       ref={setCloseElement}
-                      className={classNames('slds-button slds-button_icon slds-button_icon-small slds-float_right slds-popover__close', {
-                        'slds-button_icon-inverse': inverseIcons,
-                      })}
+                      className={classNames(
+                        'slds-button slds-button_icon slds-button_icon-small slds-float_right slds-popover__close',
+                        {
+                          'slds-button_icon-inverse': inverseIcons,
+                        },
+                        closeBtnClassName
+                      )}
                       title="Close dialog"
                     >
                       <Icon type="utility" icon="close" className="slds-button__icon" omitContainer />

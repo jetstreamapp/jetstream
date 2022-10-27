@@ -1,25 +1,35 @@
-// import {
-//   ColumnApi,
-//   GetRowIdParams,
-//   GridReadyEvent,
-//   FormatterProps<any, unknown>,
-//   IFilter,
-//   IFilterParams,
-//   IFloatingFilter,
-//   IFloatingFilterParams,
-// } from '@ag-grid-community/core';
-import { SalesforceOrgUi } from '@jetstream/types';
+import { css } from '@emotion/react';
+import { IconName } from '@jetstream/icon-factory';
+import { useDebounce } from '@jetstream/shared/ui-utils';
+import { ListItem, SalesforceOrgUi } from '@jetstream/types';
+import classNames from 'classnames';
+import formatISO from 'date-fns/formatISO';
+import parseISO from 'date-fns/parseISO';
 import { isFunction } from 'lodash';
-import { Fragment, FunctionComponent, useState } from 'react';
-import { FormatterProps } from 'react-data-grid';
+import { Fragment, FunctionComponent, useCallback, useContext, useEffect, useRef, useState } from 'react';
+import { FormatterProps, HeaderRendererProps, useFocusRef } from 'react-data-grid';
 import { getSfdcRetUrl } from '../data-table/data-table-utils';
 import Checkbox from '../form/checkbox/Checkbox';
+import DatePicker from '../form/date/DatePicker';
+import Input from '../form/input/Input';
+import Picklist from '../form/picklist/Picklist';
 import Modal from '../modal/Modal';
+import Popover, { PopoverRef } from '../popover/Popover';
 import CopyToClipboard from '../widgets/CopyToClipboard';
 import Icon from '../widgets/Icon';
 import SalesforceLogin from '../widgets/SalesforceLogin';
 import './data-table-styles.css';
-import { getRowId } from './data-table-utils';
+import {
+  ColumnWithFilter,
+  DataTableBooleanSetFilter,
+  DataTableDateFilter,
+  DataTableFilter,
+  DataTableSetFilter,
+  DataTableTextFilter,
+} from './data-table-types';
+import { DataTableFilterContext, getRowId, isFilterActive, resetFilter } from './data-table-utils';
+import { useVirtualizer } from '@tanstack/react-virtual';
+
 // import {
 
 // CONFIGURATION
@@ -34,6 +44,287 @@ export function configIdLinkRenderer(serverUrl: string, org: SalesforceOrgUi) {
   if (_org !== org) {
     _org = org;
   }
+}
+
+// HEADER RENDERERS
+export function FilterRenderer<R, SR, T extends HTMLOrSVGElement>({
+  isCellSelected,
+  onSort,
+  sortDirection,
+  column,
+  children,
+}: HeaderRendererProps<R, SR> & {
+  children: (
+    args: HeaderFilterProps & {
+      ref?: React.RefObject<T>;
+      tabIndex?: number;
+    }
+  ) => React.ReactElement;
+}) {
+  const { filters, filterSetValues, updateFilter } = useContext(DataTableFilterContext)!;
+  const { ref, tabIndex } = useFocusRef<T>(isCellSelected);
+
+  // TODO: sort and filter
+  const iconName: IconName = sortDirection === 'ASC' ? 'arrowup' : 'arrowdown';
+
+  return (
+    <div className="slds-grid slds-grid_align-spread slds-grid_vertical-align-center cursor-pointer" onClick={() => onSort(false)}>
+      <div className="slds-truncate">{column.name}</div>
+      <div className="slds-grid slds-grid_vertical-align-center">
+        {sortDirection && <Icon type="utility" icon={iconName} className="slds-icon slds-icon-text-default slds-icon_xx-small" />}
+        <div>{children({ ref, tabIndex, columnKey: column.key, filters: filters[column.key], filterSetValues, updateFilter })}</div>
+      </div>
+    </div>
+  );
+}
+
+interface HeaderFilterProps {
+  columnKey: string;
+  filters: DataTableFilter[];
+  filterSetValues: Record<string, string[]>;
+  updateFilter: (column: string, filter: DataTableFilter) => void;
+}
+
+export function HeaderFilter({ columnKey, filters, filterSetValues, updateFilter }: HeaderFilterProps) {
+  const popoverRef = useRef<PopoverRef>();
+
+  const [active, setActive] = useState(false);
+
+  useEffect(() => {
+    setActive(filters?.some(isFilterActive));
+  }, [filters]);
+
+  function getFilter(filter: DataTableFilter) {
+    switch (filter.type) {
+      case 'TEXT':
+        return <HeaderTextFilter columnKey={columnKey} filter={filter} updateFilter={updateFilter} />;
+      case 'NUMBER':
+        return null;
+      case 'DATE':
+        return <HeaderDateFilter columnKey={columnKey} filter={filter} updateFilter={updateFilter} />;
+      case 'BOOLEAN_SET':
+        return (
+          <HeaderSetFilter columnKey={columnKey} filter={filter} values={filterSetValues[columnKey] || []} updateFilter={updateFilter} />
+        );
+      case 'SET':
+        return (
+          <HeaderSetFilter columnKey={columnKey} filter={filter} values={filterSetValues[columnKey] || []} updateFilter={updateFilter} />
+        );
+      default:
+        return null;
+    }
+  }
+
+  function handleReset() {
+    filters.map((filter) => updateFilter(columnKey, resetFilter(filter.type)));
+    popoverRef.current?.close();
+  }
+
+  if (!filters?.length) {
+    return null;
+  }
+
+  return (
+    <div
+      onClick={(ev) => {
+        ev.stopPropagation();
+      }}
+      onPointerDown={(ev) => ev.stopPropagation()}
+    >
+      <Popover
+        ref={popoverRef}
+        header={
+          <header className="slds-popover__header" onPointerDown={(ev) => ev.stopPropagation()}>
+            <h2 className="slds-text-heading_small">Filter</h2>
+          </header>
+        }
+        footer={
+          <footer className="slds-popover__footer">
+            <button className="slds-button slds-button_neutral slds-m-top_x-small" onClick={handleReset}>
+              Reset
+            </button>
+          </footer>
+        }
+        content={
+          <div css={css``} onPointerDown={(ev) => ev.stopPropagation()}>
+            {filters
+              .filter((filter) => filter.type)
+              .map((filter, i) => (
+                <Fragment key={filter.type}>
+                  {i > 0 && <hr className="slds-m-vertical_small" />}
+                  <div>{getFilter(filter)}</div>
+                </Fragment>
+              ))}
+          </div>
+        }
+        buttonProps={{
+          className: 'slds-button slds-button_icon',
+        }}
+      >
+        <Icon
+          type="utility"
+          icon="filter"
+          className={classNames('slds-button__icon slds-icon_x-small', {
+            'slds-text-color_brand': active,
+          })}
+        />
+      </Popover>
+    </div>
+  );
+}
+
+interface DataTableTextFilterProps {
+  columnKey: string;
+  filter: DataTableTextFilter;
+  updateFilter: (column: string, filter: DataTableFilter) => void;
+}
+
+export function HeaderTextFilter({ columnKey, filter, updateFilter }: DataTableTextFilterProps) {
+  const [value, setValue] = useState(filter.value);
+  const debouncedValue = useDebounce(value, 300);
+
+  useEffect(() => {
+    if (filter.value !== debouncedValue) {
+      updateFilter(columnKey, { ...filter, value: debouncedValue });
+    }
+  }, [updateFilter, debouncedValue, columnKey, filter]);
+
+  return (
+    <Input className="slds-grow" label="Contains" clearButton={!!value} onClear={() => setValue('')}>
+      <input className="slds-input" value={value} onChange={(ev) => setValue(ev.target.value)} />
+    </Input>
+  );
+}
+
+interface HeaderSetFilterProps {
+  columnKey: string;
+  filter: DataTableSetFilter | DataTableBooleanSetFilter;
+  values: string[];
+  updateFilter: (column: string, filter: DataTableFilter) => void;
+}
+
+export function HeaderSetFilter({ columnKey, filter, values, updateFilter }: HeaderSetFilterProps) {
+  const parentRef = useRef<HTMLDivElement>(null);
+  const [selectedValues, setSelectedValues] = useState(() => new Set(filter.value.length ? filter.value : values));
+
+  const rowVirtualizer = useVirtualizer({
+    count: values.length,
+    getScrollElement: () => parentRef.current,
+    estimateSize: () => 20.33,
+    overscan: 50,
+  });
+
+  const handleSelectAll = (checked: boolean) => {
+    const newSet = checked ? new Set(values) : new Set<string>();
+    setSelectedValues(newSet);
+    updateFilter(columnKey, { ...filter, value: Array.from(newSet) });
+  };
+
+  function handleChange(value: string, checked: boolean) {
+    const newSet = new Set(selectedValues);
+    if (checked) {
+      newSet.add(value);
+    } else {
+      newSet.delete(value);
+    }
+    setSelectedValues(newSet);
+    updateFilter(columnKey, { ...filter, value: Array.from(newSet) });
+  }
+
+  return (
+    <div
+      className="slds-grid slds-grid_vertical"
+      css={css`
+        max-height: 25vh;
+      `}
+    >
+      <Checkbox
+        id={`${columnKey}-select-all`}
+        label="(Select All)"
+        indeterminate={selectedValues.size > 0 && selectedValues.size < values.length}
+        checked={selectedValues.size === values.length}
+        onChange={handleSelectAll}
+      />
+      <div ref={parentRef} className="slds-scrollable_y">
+        <div
+          css={css`
+            height: ${rowVirtualizer.getTotalSize()}px;
+            position: relative;
+          `}
+        >
+          {rowVirtualizer.getVirtualItems().map((virtualItem) => (
+            <div
+              key={virtualItem.key}
+              css={css`
+                position: absolute;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: ${virtualItem.size}px;
+                transform: translateY(${virtualItem.start}px);
+              `}
+            >
+              <Checkbox
+                id={`${columnKey}-${virtualItem.key}`}
+                checkboxClassName="slds-truncate white-space-nowrap"
+                label={values[virtualItem.index]}
+                checked={selectedValues.has(values[virtualItem.index])}
+                onChange={(checked) => handleChange(values[virtualItem.index], checked)}
+              />
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+interface DataTableDateFilterProps {
+  columnKey: string;
+  filter: DataTableDateFilter;
+  updateFilter: (column: string, filter: DataTableFilter) => void;
+}
+
+export function HeaderDateFilter({ columnKey, filter, updateFilter }: DataTableDateFilterProps) {
+  const [value, setValue] = useState(() => (filter.value ? parseISO(filter.value) : null));
+  const [comparators] = useState<ListItem<string, 'EQUALS' | 'GREATER_THAN' | 'LESS_THAN'>[]>(() => [
+    { id: 'EQUALS', label: 'Equals', value: 'EQUALS' },
+    { id: 'GREATER_THAN', label: 'Greater Than', value: 'GREATER_THAN' },
+    { id: 'LESS_THAN', label: 'Less Than', value: 'LESS_THAN' },
+  ]);
+  const [selectedComparator, setSelectedComparators] = useState<'EQUALS' | 'GREATER_THAN' | 'LESS_THAN'>(() => filter.comparator);
+
+  function handleComparatorChange(comparator: 'EQUALS' | 'GREATER_THAN' | 'LESS_THAN') {
+    setSelectedComparators(comparator);
+    if (filter.comparator !== comparator) {
+      updateFilter(columnKey, { ...filter, comparator });
+    }
+  }
+
+  function handleDateChange(value: Date) {
+    setValue(value);
+    updateFilter(columnKey, { ...filter, value: value ? formatISO(value) : null });
+  }
+
+  return (
+    <div>
+      <Picklist
+        label="Comparison"
+        items={comparators}
+        selectedItemIds={[selectedComparator]}
+        allowDeselection={false}
+        onChange={(items: ListItem<'EQUALS' | 'GREATER_THAN' | 'LESS_THAN'>[]) => handleComparatorChange(items[0].value)}
+      />
+      <DatePicker
+        id={`${columnKey}-datepicker`}
+        label="Date Range"
+        hideLabel
+        className="slds-m-top_small w-100"
+        initialSelectedDate={value}
+        onChange={handleDateChange}
+      />
+    </div>
+  );
 }
 
 // CELL RENDERERS

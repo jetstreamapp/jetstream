@@ -12,7 +12,7 @@ import Grid from '../grid/Grid';
 import AutoFullHeightContainer from '../layout/AutoFullHeightContainer';
 import { PopoverErrorButton } from '../popover/PopoverErrorButton';
 import Spinner from '../widgets/Spinner';
-import { getColumnDefinitions } from './data-table-utils';
+import { addFieldLabelToColumn, getColumnDefinitions } from './data-table-utils';
 import DataTable from './DataTable';
 
 const SFDC_EMPTY_ID = '000000000000000AAA';
@@ -130,7 +130,7 @@ export const SalesforceRecordDataTableNew: FunctionComponent<SalesforceRecordDat
         const columnDefinitions = getColumnDefinitions(queryResults, isTooling);
         // const parentColumnDefinitions = columnDefinitions.parentColumns;
         // const childColumnDefinitions = columnDefinitions.subqueryColumns;
-        // addFieldLabelToColumn(parentColumnDefinitions, fieldMetadata);
+        setColumns(addFieldLabelToColumn(columnDefinitions, fieldMetadata));
 
         // if (fieldMetadataSubquery) {
         //   // If there are subqueries, update field definition
@@ -142,14 +142,30 @@ export const SalesforceRecordDataTableNew: FunctionComponent<SalesforceRecordDat
         // }
 
         // gridApi.setColumnDefs(parentColumnDefinitions);
-        setColumns(columnDefinitions);
+        // setColumns(columnDefinitions);
         setColumnDefinitions(columnDefinitions);
       }
     }, [fieldMetadata, fieldMetadataSubquery, isTooling, queryResults]);
 
     const handleRowAction = useCallback((row: any, action: 'view' | 'edit' | 'clone' | 'apex') => {
-      // TODO: implement me
       logger.info('row action', row, action);
+      switch (action) {
+        case 'edit':
+          onEdit(row);
+          break;
+        case 'clone':
+          onClone(row);
+          break;
+        case 'view':
+          onView(row);
+          break;
+        case 'apex':
+          onGetAsApex(row);
+          break;
+        default:
+          break;
+      }
+      // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
     function handleSelectionChanged(event) {
