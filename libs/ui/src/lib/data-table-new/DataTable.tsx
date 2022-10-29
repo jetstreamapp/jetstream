@@ -21,9 +21,9 @@ function sortStatus({ sortDirection, priority }: SortStatusProps) {
   ) : null;
 }
 
-export interface DataTableNewProps extends Omit<DataGridProps<any>, 'columns' | 'rows'> {
+export interface DataTableNewProps extends Omit<DataGridProps<RowWithKey>, 'columns' | 'rows'> {
   data: RowWithKey[];
-  columns: ColumnWithFilter<any>[];
+  columns: ColumnWithFilter<RowWithKey>[];
   serverUrl?: string;
   org?: SalesforceOrgUi;
   quickFilterText?: string;
@@ -42,7 +42,7 @@ const DataTable: FunctionComponent<DataTableNewProps> = ({
   const tableContainerRef = useRef<HTMLTableSectionElement>(null);
   const [sortColumns, setSortColumns] = useState<readonly SortColumn[]>([]);
   // TODO: will be used for filtering
-  const [columnMap, setColumnMap] = useState<Map<string, Column<any>>>(() => new Map());
+  const [columnMap, setColumnMap] = useState<Map<string, Column<RowWithKey>>>(() => new Map());
   const [filters, setFilters] = useState<Record<string, DataTableFilter[]>>({});
   // TODO: do we need label and value?
   const [filterSetValues, setFilterSetValues] = useState<Record<string, string[]>>({});

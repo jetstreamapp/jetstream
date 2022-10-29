@@ -33,6 +33,7 @@ import {
   SubqueryContext,
   SalesforceQueryColumnDefinition,
   RowWithKey,
+  ColumnType,
 } from './data-table-types';
 import {
   ActionRenderer,
@@ -69,7 +70,7 @@ export function getRowId(data: RowWithKey): string {
   return nodeId;
 }
 
-function SelectFormatter(props: FormatterProps<any>) {
+function SelectFormatter(props: FormatterProps<RowWithKey>) {
   const { column, row } = props;
   const [isRowSelected, onRowSelectionChange] = useRowSelection();
 
@@ -84,7 +85,7 @@ function SelectFormatter(props: FormatterProps<any>) {
   );
 }
 
-function SelectHeaderRenderer(props: HeaderRendererProps<any>) {
+function SelectHeaderRenderer(props: HeaderRendererProps<RowWithKey>) {
   const { column, allRowsSelected, onAllRowsSelectionChange } = props;
 
   return (
@@ -100,6 +101,39 @@ function SelectHeaderRenderer(props: HeaderRendererProps<any>) {
   );
 }
 
+export function getColumnsForGenericTable(
+  headers: { label: string; key: string; columnProps?: Partial<ColumnWithFilter<RowWithKey>>; type?: ColumnType }[]
+): ColumnWithFilter<RowWithKey>[] {
+  return headers.map(({ label, key, columnProps, type }) => {
+    const column: Mutable<ColumnWithFilter<RowWithKey>> = {
+      name: label,
+      key,
+      cellClass: 'slds-truncate',
+      resizable: true,
+      sortable: true,
+      width: 200,
+      filters: ['TEXT', 'SET'],
+      headerRenderer: (props) => (
+        <FilterRenderer {...props}>
+          {({ filters, filterSetValues, updateFilter }) => (
+            <HeaderFilter columnKey={column.key} filters={filters} filterSetValues={filterSetValues} updateFilter={updateFilter} />
+          )}
+        </FilterRenderer>
+      ),
+    };
+    if (type) {
+      updateColumnFromType(column, type);
+    }
+    return { ...column, ...columnProps } as ColumnWithFilter<RowWithKey>;
+  });
+}
+
+/**
+ * Produce table columns from a Salesforce query
+ * @param results
+ * @param isTooling
+ * @returns
+ */
 export function getColumnDefinitions(results: QueryResults<any>, isTooling: boolean): SalesforceQueryColumnDefinition<any> {
   // if we have id, include record actions
   const includeRecordActions =
@@ -133,7 +167,7 @@ export function getColumnDefinitions(results: QueryResults<any>, isTooling: bool
   }
 
   // Base fields
-  const parentColumns: ColumnWithFilter<any>[] = getFlattenedFields(results.parsedQuery).map((field, i) =>
+  const parentColumns: ColumnWithFilter<RowWithKey>[] = getFlattenedFields(results.parsedQuery).map((field, i) =>
     getColDef(field, queryColumnsByPath, isFieldSubquery(results.parsedQuery?.[i]))
   );
 
@@ -177,8 +211,8 @@ type Mutable<Type> = {
   -readonly [Key in keyof Type]: Type[Key];
 };
 
-function getColDef<T = any>(field: string, queryColumnsByPath: MapOf<QueryResultsColumn>, isSubquery: boolean): ColumnWithFilter<any> {
-  const column: Mutable<ColumnWithFilter<any>> = {
+function getColDef(field: string, queryColumnsByPath: MapOf<QueryResultsColumn>, isSubquery: boolean): ColumnWithFilter<RowWithKey> {
+  const column: Mutable<ColumnWithFilter<RowWithKey>> = {
     name: field,
     key: field,
     cellClass: 'slds-truncate',
@@ -200,82 +234,151 @@ function getColDef<T = any>(field: string, queryColumnsByPath: MapOf<QueryResult
     const col = queryColumnsByPath[fieldLowercase];
     column.name = col.columnFullPath;
     column.key = col.columnFullPath;
-    if (col.booleanType) {
-      column.formatter = BooleanRenderer;
-      column.filters = ['BOOLEAN_SET'];
-      column.width = 100;
-    } else if (col.numberType) {
-      // TODO: gt, eq, lt
-      // column.filterParams = {
-      //   filters: [{ filter: 'agNumberColumnFilter' }, { filter: 'agSetColumnFilter' }],
-      // };
-    } else if (col.apexType === 'Id') {
-      column.formatter = IdLinkRenderer;
-      column.width = 175;
-    } else if (col.apexType === 'Date' || col.apexType === 'Datetime') {
-      column.formatter = ({ column, row }) => dataTableDateFormatter({ value: row[column.key] });
-      column.filters = ['DATE', 'SET'];
-    } else if (col.apexType === 'Time') {
-      // column.valueFormatter = dataTableTimeFormatter;
-      column.formatter = ({ column, row }) => dataTableTimeFormatter({ value: row[column.key] });
-      // column.getQuickFilterText = dataTableTimeFormatter;
-      // TODO: add time filter
-      // column.filter = 'agDateColumnFilter';
-      // column.filterParams.comparator = DateFilterComparator;
-    } else if (col.apexType === 'Address') {
-      column.formatter = ({ column, row }) => dataTableAddressValueFormatter(row[column.key]);
-      // column.valueGetter = dataTableAddressValueGetter(col.columnFullPath);
-      // column.filterParams = {
-      //   filters: [
-      //     {
-      //       filter: 'agTextColumnFilter',
-      //     },
-      //     {
-      //       filter: 'agSetColumnFilter',
-      //       filterParams: {
-      //         valueFormatter: ({ value }: ValueFormatterParams) => (value ? value.replace(REGEX.NEW_LINE, ' ') : value),
-      //         showTooltips: true,
-      //       },
-      //     },
-      //   ],
-      // };
-    } else if (col.apexType === 'Location') {
-      // column.valueFormatter = dataTableLocationFormatter;
-      column.formatter = ({ column, row }) => dataTableLocationFormatter({ value: row[column.key] });
-      // column.getQuickFilterText = dataTableLocationFormatter;
-    } else if (col.apexType === 'complexvaluetype' || col.columnName === 'Metadata') {
-      column.formatter = ComplexDataRenderer;
-      // column.filter = null;
-    } else if (Array.isArray(col.childColumnPaths)) {
-      // TODO:
-      column.formatter = SubqueryRenderer;
-      column.filters = [];
-      // TODO: set filter should be "with records, without records" - kinda like boolean
-      // column.valueGetter = (params) => params.data[params.column.field]?.records;
-      // column.keyCreator = (params) => (params.value?.length ? `Has Child Records` : 'No Child Records');
-      // column.filterParams = {
-      //   filters: [
-      //     {
-      //       filter: 'agSetColumnFilter',
-      //       filterParams: {
-      //         values: ['Has Child Records', 'No Child Records'],
-      //       },
-      //     },
-      //   ],
-      // };
-    }
+    updateColumnFromType(column, getColumnTypeFromQueryResultsColumn(col));
+    // if (col.booleanType) {
+    //   column.formatter = BooleanRenderer;
+    //   column.filters = ['BOOLEAN_SET'];
+    //   column.width = 100;
+    // } else if (col.numberType) {
+    //   // TODO: gt, eq, lt
+    //   // column.filterParams = {
+    //   //   filters: [{ filter: 'agNumberColumnFilter' }, { filter: 'agSetColumnFilter' }],
+    //   // };
+    // } else if (col.apexType === 'Id') {
+    //   column.formatter = IdLinkRenderer;
+    //   column.width = 175;
+    // } else if (col.apexType === 'Date' || col.apexType === 'Datetime') {
+    //   column.formatter = ({ column, row }) => dataTableDateFormatter({ value: row[column.key] });
+    //   column.filters = ['DATE', 'SET'];
+    // } else if (col.apexType === 'Time') {
+    //   // column.valueFormatter = dataTableTimeFormatter;
+    //   column.formatter = ({ column, row }) => dataTableTimeFormatter({ value: row[column.key] });
+    //   // column.getQuickFilterText = dataTableTimeFormatter;
+    //   // TODO: add time filter
+    //   // column.filter = 'agDateColumnFilter';
+    //   // column.filterParams.comparator = DateFilterComparator;
+    // } else if (col.apexType === 'Address') {
+    //   column.formatter = ({ column, row }) => dataTableAddressValueFormatter(row[column.key]);
+    //   // column.valueGetter = dataTableAddressValueGetter(col.columnFullPath);
+    //   // column.filterParams = {
+    //   //   filters: [
+    //   //     {
+    //   //       filter: 'agTextColumnFilter',
+    //   //     },
+    //   //     {
+    //   //       filter: 'agSetColumnFilter',
+    //   //       filterParams: {
+    //   //         valueFormatter: ({ value }: ValueFormatterParams) => (value ? value.replace(REGEX.NEW_LINE, ' ') : value),
+    //   //         showTooltips: true,
+    //   //       },
+    //   //     },
+    //   //   ],
+    //   // };
+    // } else if (col.apexType === 'Location') {
+    //   // column.valueFormatter = dataTableLocationFormatter;
+    //   column.formatter = ({ column, row }) => dataTableLocationFormatter({ value: row[column.key] });
+    //   // column.getQuickFilterText = dataTableLocationFormatter;
+    // } else if (col.apexType === 'complexvaluetype' || col.columnName === 'Metadata') {
+    //   column.formatter = ComplexDataRenderer;
+    //   // column.filter = null;
+    // } else if (Array.isArray(col.childColumnPaths)) {
+    //   // TODO:
+    //   column.formatter = SubqueryRenderer;
+    //   column.filters = [];
+    //   // TODO: set filter should be "with records, without records" - kinda like boolean
+    //   // column.valueGetter = (params) => params.data[params.column.field]?.records;
+    //   // column.keyCreator = (params) => (params.value?.length ? `Has Child Records` : 'No Child Records');
+    //   // column.filterParams = {
+    //   //   filters: [
+    //   //     {
+    //   //       filter: 'agSetColumnFilter',
+    //   //       filterParams: {
+    //   //         values: ['Has Child Records', 'No Child Records'],
+    //   //       },
+    //   //     },
+    //   //   ],
+    //   // };
+    // }
   } else {
     if (field.endsWith('Id')) {
-      column.formatter = IdLinkRenderer;
+      updateColumnFromType(column, 'salesforceId');
     } else if (isSubquery) {
-      // TODO:
-      // colDef.cellRenderer = 'subqueryRenderer';
+      updateColumnFromType(column, 'subquery');
     }
   }
   return column;
 }
 
-export function addFieldLabelToColumn<T = any>(columnDefinitions: ColumnWithFilter<any>[], fieldMetadata: MapOf<Field>) {
+function getColumnTypeFromQueryResultsColumn(col: QueryResultsColumn): ColumnType {
+  if (col.booleanType) {
+    return 'boolean';
+  } else if (col.numberType) {
+    return 'number';
+  } else if (col.apexType === 'Id') {
+    return 'salesforceId';
+  } else if (col.apexType === 'Date' || col.apexType === 'Datetime') {
+    return 'date';
+  } else if (col.apexType === 'Time') {
+    return 'time';
+  } else if (col.apexType === 'Address') {
+    return 'address';
+  } else if (col.apexType === 'Location') {
+    return 'location';
+  } else if (col.apexType === 'complexvaluetype' || col.columnName === 'Metadata') {
+    return 'object';
+  } else if (Array.isArray(col.childColumnPaths)) {
+    return 'subquery';
+  }
+  return 'text';
+}
+
+/**
+ * Based on field type, update formatters and filters
+ * @param column
+ * @param fieldType
+ */
+function updateColumnFromType(column: Mutable<ColumnWithFilter<RowWithKey>>, fieldType: ColumnType) {
+  switch (fieldType) {
+    case 'text':
+      break;
+    case 'number':
+      // TODO:
+      break;
+    case 'subquery':
+      column.formatter = SubqueryRenderer;
+      column.filters = []; // TODO:
+      break;
+    case 'object':
+      column.formatter = ComplexDataRenderer;
+      break;
+    case 'location':
+      column.formatter = ({ column, row }) => dataTableLocationFormatter({ value: row[column.key] });
+      break;
+    case 'date':
+      column.formatter = ({ column, row }) => dataTableDateFormatter({ value: row[column.key] });
+      column.filters = ['DATE', 'SET'];
+      break;
+    case 'time':
+      column.formatter = ({ column, row }) => dataTableTimeFormatter({ value: row[column.key] });
+      // TODO: add time filter
+      break;
+    case 'boolean':
+      column.formatter = BooleanRenderer;
+      column.filters = ['BOOLEAN_SET'];
+      column.width = 100;
+      break;
+    case 'address':
+      column.formatter = ({ column, row }) => dataTableAddressValueFormatter(row[column.key]);
+      // TODO: filters
+      break;
+    case 'salesforceId':
+      column.formatter = IdLinkRenderer;
+      column.width = 175;
+      break;
+  }
+}
+
+export function addFieldLabelToColumn(columnDefinitions: ColumnWithFilter<RowWithKey>[], fieldMetadata: MapOf<Field>) {
   if (fieldMetadata) {
     // set field api name and label
     return columnDefinitions.map((col) => {
@@ -416,7 +519,7 @@ export function getSubqueryModalTagline(parentRecord: any) {
 /**
  * Get text to allow for global search filtering
  */
-export function getSearchTextByRow(rows: RowWithKey[], columns: ColumnWithFilter<any>[]): Record<string, string> {
+export function getSearchTextByRow(rows: RowWithKey[], columns: ColumnWithFilter<RowWithKey>[]): Record<string, string> {
   const output: Record<string, string> = {};
   if (Array.isArray(rows)) {
     rows.forEach((row) => {

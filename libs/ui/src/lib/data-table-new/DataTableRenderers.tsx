@@ -26,6 +26,7 @@ import {
   DataTableFilter,
   DataTableSetFilter,
   DataTableTextFilter,
+  RowWithKey,
   SalesforceQueryColumnDefinition,
 } from './data-table-types';
 import {
@@ -345,7 +346,7 @@ export function HeaderDateFilter({ columnKey, filter, updateFilter }: DataTableD
 }
 
 // CELL RENDERERS
-export const SubqueryRenderer: FunctionComponent<FormatterProps<any, unknown>> = ({ column, row, onRowChange, isCellSelected }) => {
+export const SubqueryRenderer: FunctionComponent<FormatterProps<RowWithKey, unknown>> = ({ column, row, onRowChange, isCellSelected }) => {
   // const [columnApi, setColumnApi] = useState<ColumnApi>(null);
   const isMounted = useRef(null);
   const [isActive, setIsActive] = useState(false);
@@ -353,7 +354,7 @@ export const SubqueryRenderer: FunctionComponent<FormatterProps<any, unknown>> =
   const [downloadModalIsActive, setDownloadModalIsActive] = useState(false);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [{ records, done, nextRecordsUrl, totalSize }, setQueryResults] = useState<QueryResult<any>>(row[column.key] || {});
-  const [rows, setRows] = useState<any[]>([]);
+  const [rows, setRows] = useState<RowWithKey[]>([]);
   const [selectedRows, setSelectedRows] = useState<ReadonlySet<string>>(() => new Set());
 
   useEffect(() => {
@@ -549,7 +550,12 @@ export const SubqueryRenderer: FunctionComponent<FormatterProps<any, unknown>> =
   );
 };
 
-export const ComplexDataRenderer: FunctionComponent<FormatterProps<any, unknown>> = ({ column, row, onRowChange, isCellSelected }) => {
+export const ComplexDataRenderer: FunctionComponent<FormatterProps<RowWithKey, unknown>> = ({
+  column,
+  row,
+  onRowChange,
+  isCellSelected,
+}) => {
   const value = row[column.key];
   const [isActive, setIsActive] = useState(false);
   const [jsonValue] = useState(JSON.stringify(value || '', null, 2));

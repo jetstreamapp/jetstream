@@ -3,12 +3,16 @@ import { query } from '@jetstream/shared/data';
 import { logger } from '@jetstream/shared/client-logger';
 import { formatNumber } from '@jetstream/shared/ui-utils';
 import { InsertUpdateUpsertDelete, SalesforceOrgUi } from '@jetstream/types';
-import { Alert, AutoFullHeightContainer, DataTable, Grid, GridCol, Spinner } from '@jetstream/ui';
+import { Alert, AutoFullHeightContainer, DataTableNew, Grid, GridCol, Spinner } from '@jetstream/ui';
 import { DescribeGlobalSObjectResult } from 'jsforce';
 import isNil from 'lodash/isNil';
 import { Fragment, FunctionComponent, useEffect, useRef, useState } from 'react';
 import { useRecoilState } from 'recoil';
 import * as fromLoadRecordsState from '../load-records.state';
+import { RowWithKey } from 'libs/ui/src/lib/data-table-new/data-table-types';
+import { Column } from 'react-data-grid';
+import { getColumnsForGenericTable } from 'libs/ui/src/lib/data-table-new/data-table-utils';
+import { css } from '@emotion/react';
 
 const NUM_COLUMN = '_num';
 
@@ -55,22 +59,11 @@ function getLoadDescription(loadType: InsertUpdateUpsertDelete, totalRecordCount
   );
 }
 
-function getColumnDefinitions(headers: string[]): ColDef[] {
-  const colDefs = headers.map(
-    (header): ColDef => ({
-      headerName: header,
-      field: header,
-      valueGetter: (params) => params.data[header],
-    })
-  );
-
-  colDefs.unshift({
-    headerName: '#',
-    field: NUM_COLUMN,
-    width: 75,
-  });
-
-  return colDefs;
+function getColumnDefinitions(headers: string[]): Column<RowWithKey>[] {
+  return getColumnsForGenericTable([
+    { key: NUM_COLUMN, label: '#', columnProps: { width: 75, filters: [] } },
+    ...headers.map((header) => ({ key: header, label: header, columnProps: { width: 100 } })),
+  ]);
 }
 
 export const LoadRecordsDataPreview: FunctionComponent<LoadRecordsDataPreviewProps> = ({
@@ -83,8 +76,8 @@ export const LoadRecordsDataPreview: FunctionComponent<LoadRecordsDataPreviewPro
   const isMounted = useRef(null);
   const [totalRecordCount, setTotalRecordCount] = useRecoilState(fromLoadRecordsState.loadExistingRecordCount);
   const [omitTotalRecordCount, setOmitTotalRecordCount] = useState(true);
-  const [columns, setColumns] = useState<ColDef[]>(null);
-  const [rows, setRows] = useState<any[]>(null);
+  const [columns, setColumns] = useState<Column<RowWithKey>[]>(null);
+  const [rows, setRows] = useState<RowWithKey[]>(null);
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
@@ -154,14 +147,19 @@ export const LoadRecordsDataPreview: FunctionComponent<LoadRecordsDataPreviewPro
             </div>
           )}
         </GridCol>
-        <GridCol>
+        <GridCol className="slds-is-relative">
           {columns && rows && (
-            <Fragment>
+            <div
+              css={css`
+                position: absolute;
+                max-width: 100%;
+              `}
+            >
               <div className="slds-text-heading_small">File Preview</div>
               <AutoFullHeightContainer fillHeight setHeightAttr bottomBuffer={25}>
-                <DataTable columns={columns} data={rows} />
+                <DataTableNew columns={columns} data={rows} />
               </AutoFullHeightContainer>
-            </Fragment>
+            </div>
           )}
         </GridCol>
       </Grid>

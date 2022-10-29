@@ -75,10 +75,10 @@ export const SalesforceRecordDataTableNew: FunctionComponent<SalesforceRecordDat
     const isMounted = useRef(null);
     const rollbar = useRollbar();
     // const [gridApi, setGridApi] = useState<GridApi>(null);
-    const [columns, setColumns] = useState<Column<any>[]>();
+    const [columns, setColumns] = useState<Column<RowWithKey>[]>();
     // const [_columnDefinitions, setColumnDefinitions] = useState<Column<any>[]>();
-    const [subqueryColumnsMap, setSubqueryColumnsMap] = useState<MapOf<ColumnWithFilter<any, unknown>[]>>();
-    const [records, setRecords] = useState<any[]>();
+    const [subqueryColumnsMap, setSubqueryColumnsMap] = useState<MapOf<ColumnWithFilter<RowWithKey, unknown>[]>>();
+    const [records, setRecords] = useState<RowWithKey[]>();
     // Same as records but with additional data added
     const [rows, setRows] = useState<RowWithKey[]>();
     const [totalRecordCount, setTotalRecordCount] = useState<number>();
@@ -148,7 +148,7 @@ export const SalesforceRecordDataTableNew: FunctionComponent<SalesforceRecordDat
       }
     }, [fieldMetadata, fieldMetadataSubquery, isTooling, queryResults]);
 
-    const handleRowAction = useCallback((row: any, action: 'view' | 'edit' | 'clone' | 'apex') => {
+    const handleRowAction = useCallback((row: RowWithKey, action: 'view' | 'edit' | 'clone' | 'apex') => {
       logger.info('row action', row, action);
       switch (action) {
         case 'edit':
@@ -223,7 +223,7 @@ export const SalesforceRecordDataTableNew: FunctionComponent<SalesforceRecordDat
       // return column.getColDef().field;
     }
 
-    function handleCopy({ sourceRow, sourceColumnKey }: CopyEvent<any>): void {
+    function handleCopy({ sourceRow, sourceColumnKey }: CopyEvent<RowWithKey>): void {
       if (window.isSecureContext) {
         navigator.clipboard.writeText(sourceRow[sourceColumnKey]);
       }
