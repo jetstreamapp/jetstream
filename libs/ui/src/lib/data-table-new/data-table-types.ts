@@ -1,4 +1,7 @@
+import { MapOf, SalesforceOrgUi } from '@jetstream/types';
 import { Column } from 'react-data-grid';
+
+export type RowWithKey = Record<string, any> & { _key: string };
 
 export type FilterType = 'TEXT' | 'NUMBER' | 'DATE' | 'SET' | 'BOOLEAN_SET';
 export const FILTER_SET_TYPES = new Set<FilterType>(['SET', 'BOOLEAN_SET']);
@@ -43,8 +46,23 @@ export interface ColumnWithFilter<TRow, TSummaryRow = unknown> extends Column<TR
   readonly filters?: FilterType[];
 }
 
+export interface SalesforceQueryColumnDefinition<TRow, TSummaryRow = unknown> {
+  parentColumns: ColumnWithFilter<TRow, TSummaryRow>[];
+  subqueryColumns: MapOf<ColumnWithFilter<TRow, TSummaryRow>[]>;
+}
+
 export interface FilterContextProps {
   filterSetValues: Record<string, string[]>;
   filters: Record<string, DataTableFilter[]>;
   updateFilter: (column: string, filter: DataTableFilter) => void;
+}
+
+export interface SubqueryContext<TRow = any> {
+  serverUrl: string;
+  org: SalesforceOrgUi;
+  isTooling: boolean;
+  columnDefinitions: MapOf<ColumnWithFilter<TRow, unknown>[]>;
+  google_apiKey: string;
+  google_appId: string;
+  google_clientId: string;
 }

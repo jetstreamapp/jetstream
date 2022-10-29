@@ -1,6 +1,6 @@
 import { css } from '@emotion/react';
 import { IconName } from '@jetstream/icon-factory';
-import { useDebounce } from '@jetstream/shared/ui-utils';
+import { formatNumber, useDebounce } from '@jetstream/shared/ui-utils';
 import { ListItem, SalesforceOrgUi } from '@jetstream/types';
 import classNames from 'classnames';
 import formatISO from 'date-fns/formatISO';
@@ -26,9 +26,26 @@ import {
   DataTableFilter,
   DataTableSetFilter,
   DataTableTextFilter,
+  SalesforceQueryColumnDefinition,
 } from './data-table-types';
-import { DataTableFilterContext, getRowId, isFilterActive, resetFilter } from './data-table-utils';
+import {
+  DataTableFilterContext,
+  DataTableSubqueryContext,
+  getRowId,
+  getSubqueryModalTagline,
+  isFilterActive,
+  NON_DATA_COLUMN_KEYS,
+  resetFilter,
+} from './data-table-utils';
 import { useVirtualizer } from '@tanstack/react-virtual';
+import { QueryResult } from 'jsforce';
+import { queryMore } from '@jetstream/shared/data';
+import RecordDownloadModal from '../file-download-modal/RecordDownloadModal';
+import Grid from '../grid/Grid';
+import Spinner from '../widgets/Spinner';
+import AutoFullHeightContainer from '../layout/AutoFullHeightContainer';
+import DataTable from './DataTable';
+import { logger } from '@jetstream/shared/client-logger';
 
 // import {
 
@@ -328,177 +345,209 @@ export function HeaderDateFilter({ columnKey, filter, updateFilter }: DataTableD
 }
 
 // CELL RENDERERS
-// export const SubqueryRenderer: FunctionComponent<FormatterProps<any, unknown>> = ({ colDef, data, value }) => {
-//   const [columnApi, setColumnApi] = useState<ColumnApi>(null);
-//   const isMounted = useRef(null);
-//   const [isActive, setIsActive] = useState(false);
-//   const [modalTagline, setModalTagline] = useState<string>();
-//   const [downloadModalIsActive, setDownloadModalIsActive] = useState(false);
-//   const [isLoadingMore, setIsLoadingMore] = useState(false);
-//   const [{ records, done, nextRecordsUrl, totalSize }, setQueryResults] = useState<QueryResult<unknown>>(data[colDef.field] || {});
+export const SubqueryRenderer: FunctionComponent<FormatterProps<any, unknown>> = ({ column, row, onRowChange, isCellSelected }) => {
+  // const [columnApi, setColumnApi] = useState<ColumnApi>(null);
+  const isMounted = useRef(null);
+  const [isActive, setIsActive] = useState(false);
+  const [modalTagline, setModalTagline] = useState<string>();
+  const [downloadModalIsActive, setDownloadModalIsActive] = useState(false);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
+  const [{ records, done, nextRecordsUrl, totalSize }, setQueryResults] = useState<QueryResult<any>>(row[column.key] || {});
+  const [rows, setRows] = useState<any[]>([]);
+  const [selectedRows, setSelectedRows] = useState<ReadonlySet<string>>(() => new Set());
 
-//   useEffect(() => {
-//     isMounted.current = true;
-//     return () => {
-//       isMounted.current = false;
-//     };
-//   }, []);
+  useEffect(() => {
+    isMounted.current = true;
+    return () => {
+      isMounted.current = false;
+    };
+  }, []);
 
-//   function handleOnGridReady({ columnApi }: GridReadyEvent) {
-//     setColumnApi(columnApi);
-//   }
+  const handleRowAction = useCallback((row: any, action: 'view' | 'edit' | 'clone' | 'apex') => {
+    // logger.info('row action', row, action);
+    // switch (action) {
+    //   case 'edit':
+    //     onEdit(row);
+    //     break;
+    //   case 'clone':
+    //     onClone(row);
+    //     break;
+    //   case 'view':
+    //     onView(row);
+    //     break;
+    //   case 'apex':
+    //     onGetAsApex(row);
+    //     break;
+    //   default:
+    //     break;
+    // }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
-//   function handleViewData() {
-//     if (isActive) {
-//       setIsActive(false);
-//     } else {
-//       if (!modalTagline) {
-//         setModalTagline(getSubqueryModalTagline(data));
-//       }
-//       setIsActive(true);
-//     }
-//   }
+  useEffect(() => {
+    if (!records) {
+      return;
+    }
+    setRows(
+      records.map((row) => {
+        return {
+          _key: getRowId(row),
+          _action: handleRowAction,
+          ...row,
+        };
+      })
+    );
+  }, [handleRowAction, records]);
 
-//   function getColumns(columnDefinitions: SalesforceQueryColumnDefinition) {
-//     return columnDefinitions.subqueryColumns[colDef.field];
-//   }
+  // function handleOnGridReady({ columnApi }: GridReadyEvent) {
+  //   setColumnApi(columnApi);
+  // }
 
-//   function handleCloseModal(cancelled?: boolean) {
-//     if (typeof cancelled === 'boolean' && cancelled) {
-//       setIsActive(true);
-//       setDownloadModalIsActive(false);
-//     } else {
-//       setIsActive(false);
-//       setDownloadModalIsActive(false);
-//     }
-//   }
+  function handleViewData() {
+    if (isActive) {
+      setIsActive(false);
+    } else {
+      if (!modalTagline) {
+        setModalTagline(getSubqueryModalTagline(row));
+      }
+      setIsActive(true);
+    }
+  }
 
-//   function openDownloadModal() {
-//     setIsActive(false);
-//     setDownloadModalIsActive(true);
-//   }
+  function getColumns(subqueryColumns: SalesforceQueryColumnDefinition<any>['subqueryColumns']) {
+    return subqueryColumns[column.key];
+  }
 
-//   function handleCopyToClipboard() {
-//     const fields = getCurrentColumns(columnApi);
-//     const flattenedData = flattenRecords(records, fields);
-//     copyToClipboard(transformTabularDataToExcelStr(flattenedData, fields), { format: 'text/plain' });
-//   }
+  function handleCloseModal(cancelled?: boolean) {
+    if (typeof cancelled === 'boolean' && cancelled) {
+      setIsActive(true);
+      setDownloadModalIsActive(false);
+    } else {
+      setIsActive(false);
+      setDownloadModalIsActive(false);
+    }
+  }
 
-//   async function loadMore(org: SalesforceOrgUi, isTooling: boolean) {
-//     try {
-//       setIsLoadingMore(true);
-//       const results = await queryMore(org, nextRecordsUrl, isTooling);
-//       if (!isMounted.current) {
-//         return;
-//       }
-//       results.queryResults.records = records.concat(results.queryResults.records);
-//       setQueryResults(results.queryResults);
-//       setIsLoadingMore(false);
-//     } catch (ex) {
-//       if (!isMounted.current) {
-//         return;
-//       }
-//       setIsLoadingMore(false);
-//     }
-//   }
+  function openDownloadModal() {
+    setIsActive(false);
+    setDownloadModalIsActive(true);
+  }
 
-//   function getRowId({ data }: GetRowIdParams): string {
-//     if (data?.attributes?.type === 'AggregateResult') {
-//       return uniqueId('query-results-node-id');
-//     }
-//     let nodeId = data?.attributes?.url || data.Id;
-//     if (!nodeId) {
-//       nodeId = uniqueId('query-results-node-id');
-//     }
-//     return nodeId;
-//   }
+  function handleCopyToClipboard() {
+    // const fields = getCurrentColumns(columnApi);
+    // const flattenedData = flattenRecords(records, fields);
+    // copyToClipboard(transformTabularDataToExcelStr(flattenedData, fields), { format: 'text/plain' });
+  }
 
-//   if (!Array.isArray(value) || value.length === 0) {
-//     return <div />;
-//   }
+  async function loadMore(org: SalesforceOrgUi, isTooling: boolean) {
+    try {
+      setIsLoadingMore(true);
+      const results = await queryMore(org, nextRecordsUrl, isTooling);
+      if (!isMounted.current) {
+        return;
+      }
+      results.queryResults.records = records.concat(results.queryResults.records);
+      setQueryResults(results.queryResults);
+      setIsLoadingMore(false);
+    } catch (ex) {
+      if (!isMounted.current) {
+        return;
+      }
+      setIsLoadingMore(false);
+    }
+  }
 
-//   return (
-//     <DataTableContext.Consumer>
-//       {({ serverUrl, org, columnDefinitions, isTooling, google_apiKey, google_appId, google_clientId }) => (
-//         <div>
-//           {isActive && (
-//             <Modal
-//               size="lg"
-//               header={colDef.field}
-//               tagline={modalTagline}
-//               closeOnBackdropClick
-//               onClose={handleCloseModal}
-//               footerClassName="slds-is-relative"
-//               footer={
-//                 <Grid align="spread" verticalAlign="end">
-//                   <Grid verticalAlign="end">
-//                     <span className="slds-m-right_small">
-//                       Showing {formatNumber(records.length)} of {formatNumber(totalSize)} records
-//                     </span>
-//                     {!done && (
-//                       <button className="slds-button slds-button_neutral" onClick={() => loadMore(org, isTooling)}>
-//                         Load More
-//                       </button>
-//                     )}
-//                     {isLoadingMore && <Spinner />}
-//                   </Grid>
-//                   <div>
-//                     <button
-//                       className="slds-button slds-button_neutral"
-//                       onClick={() => handleCopyToClipboard()}
-//                       title="Copy the queried records to the clipboard. The records can then be pasted into a spreadsheet."
-//                     >
-//                       <Icon type="utility" icon="copy_to_clipboard" className="slds-button__icon slds-button__icon_left" omitContainer />
-//                       Copy to Clipboard
-//                     </button>
-//                     <button className="slds-button slds-button_brand" onClick={openDownloadModal}>
-//                       <Icon type="utility" icon="download" className="slds-button__icon slds-button__icon_left" omitContainer />
-//                       Download Records
-//                     </button>
-//                   </div>
-//                 </Grid>
-//               }
-//             >
-//               <div className="slds-scrollable_x">
-//                 <AutoFullHeightContainer fillHeight setHeightAttr bottomBuffer={300}>
-//                   <DataTable
-//                     // FIXME: commented out
-//                     // serverUrl={serverUrl}
-//                     // org={org}
-//                     columns={getColumns(columnDefinitions)}
-//                     data={records}
-//                     // agGridProps={{
-//                     //   rowSelection: null,
-//                     //   getRowId: (data) => getRowId(data),
-//                     //   onGridReady: handleOnGridReady,
-//                     // }}
-//                   />
-//                 </AutoFullHeightContainer>
-//               </div>
-//             </Modal>
-//           )}
-//           {downloadModalIsActive && (
-//             <RecordDownloadModal
-//               org={org}
-//               google_apiKey={google_apiKey}
-//               google_appId={google_appId}
-//               google_clientId={google_clientId}
-//               downloadModalOpen
-//               fields={getAllColumns(columnApi)}
-//               modifiedFields={getCurrentColumns(columnApi)}
-//               records={records}
-//               onModalClose={handleCloseModal}
-//             />
-//           )}
-//           <button className="slds-button" onClick={handleViewData}>
-//             <Icon type="utility" icon="search" className="slds-button__icon slds-button__icon_left" omitContainer />
-//             {Array.isArray(value) ? `${value.length} Records` : 'View Data'}
-//           </button>
-//         </div>
-//       )}
-//     </DataTableContext.Consumer>
-//   );
-// };
+  if (!Array.isArray(records) || records.length === 0) {
+    return <div />;
+  }
+
+  return (
+    <DataTableSubqueryContext.Consumer>
+      {({ serverUrl, org, columnDefinitions, isTooling, google_apiKey, google_appId, google_clientId }) => {
+        const columns = getColumns(columnDefinitions) || [];
+        const fields = columns.filter((column) => column.key && !NON_DATA_COLUMN_KEYS.has(column.key)).map((column) => column.key);
+        return (
+          <div>
+            {isActive && (
+              <Modal
+                size="lg"
+                header={column.key}
+                tagline={modalTagline}
+                closeOnBackdropClick
+                onClose={handleCloseModal}
+                footerClassName="slds-is-relative"
+                overrideZIndex={1001}
+                additionalOverlayProps={{ shouldCloseOnInteractOutside: () => false }}
+                footer={
+                  <Grid align="spread" verticalAlign="end">
+                    <Grid verticalAlign="end">
+                      <span className="slds-m-right_small">
+                        Showing {formatNumber(records.length)} of {formatNumber(totalSize)} records
+                      </span>
+                      {!done && (
+                        <button className="slds-button slds-button_neutral" onClick={() => loadMore(org, isTooling)}>
+                          Load More
+                        </button>
+                      )}
+                      {isLoadingMore && <Spinner />}
+                    </Grid>
+                    <div>
+                      <button
+                        className="slds-button slds-button_neutral"
+                        onClick={() => handleCopyToClipboard()}
+                        title="Copy the queried records to the clipboard. The records can then be pasted into a spreadsheet."
+                      >
+                        <Icon type="utility" icon="copy_to_clipboard" className="slds-button__icon slds-button__icon_left" omitContainer />
+                        Copy to Clipboard
+                      </button>
+                      <button className="slds-button slds-button_brand" onClick={openDownloadModal}>
+                        <Icon type="utility" icon="download" className="slds-button__icon slds-button__icon_left" omitContainer />
+                        Download Records
+                      </button>
+                    </div>
+                  </Grid>
+                }
+              >
+                <div className="slds-scrollable_x">
+                  <AutoFullHeightContainer fillHeight setHeightAttr bottomBuffer={300}>
+                    <DataTable
+                      serverUrl={serverUrl}
+                      org={org}
+                      data={rows}
+                      columns={columns}
+                      rowKeyGetter={getRowId}
+                      // onCopy={handleCopy}
+                      rowHeight={28.5}
+                      selectedRows={selectedRows}
+                      onSelectedRowsChange={setSelectedRows as any}
+                    />
+                  </AutoFullHeightContainer>
+                </div>
+              </Modal>
+            )}
+            {downloadModalIsActive && (
+              <RecordDownloadModal
+                org={org}
+                google_apiKey={google_apiKey}
+                google_appId={google_appId}
+                google_clientId={google_clientId}
+                downloadModalOpen
+                fields={fields}
+                modifiedFields={fields}
+                records={records}
+                onModalClose={handleCloseModal}
+              />
+            )}
+            <button className="slds-button" onClick={handleViewData}>
+              <Icon type="utility" icon="search" className="slds-button__icon slds-button__icon_left" omitContainer />
+              {Array.isArray(records) ? `${records.length} Records` : 'View Data'}
+            </button>
+          </div>
+        );
+      }}
+    </DataTableSubqueryContext.Consumer>
+  );
+};
 
 export const ComplexDataRenderer: FunctionComponent<FormatterProps<any, unknown>> = ({ column, row, onRowChange, isCellSelected }) => {
   const value = row[column.key];

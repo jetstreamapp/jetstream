@@ -3,7 +3,7 @@ import { isEscapeKey } from '@jetstream/shared/ui-utils';
 import { SizeSmMdLg } from '@jetstream/types';
 import { useDialog } from '@react-aria/dialog';
 import { FocusScope } from '@react-aria/focus';
-import { OverlayContainer, useModal, useOverlay, usePreventScroll } from '@react-aria/overlays';
+import { OverlayContainer, OverlayProps, useModal, useOverlay, usePreventScroll } from '@react-aria/overlays';
 import classNames from 'classnames';
 import uniqueId from 'lodash/uniqueId';
 import { KeyboardEvent, ReactNode, useRef, useState } from 'react';
@@ -26,6 +26,7 @@ export interface ModalProps {
   /** @deprecated This no longer does anything */
   skipAutoFocus?: boolean;
   overrideZIndex?: number;
+  additionalOverlayProps?: OverlayProps;
   children: ReactNode;
   onClose: () => void;
 }
@@ -59,6 +60,7 @@ export const Modal = ({
   closeOnBackdropClick = true,
   skipAutoFocus,
   overrideZIndex,
+  additionalOverlayProps,
   children,
   onClose,
 }: ModalProps) => {
@@ -73,6 +75,7 @@ export const Modal = ({
       onClose: () => {
         onClose();
       },
+      ...additionalOverlayProps,
     },
     ref
   );

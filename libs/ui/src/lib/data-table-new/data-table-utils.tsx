@@ -7,11 +7,17 @@ import isSameDay from 'date-fns/isSameDay';
 import parseISO from 'date-fns/parseISO';
 import startOfDay from 'date-fns/startOfDay';
 import { Field } from 'jsforce';
-import { isBoolean, isNil, isNumber, isString } from 'lodash';
+import { isNil, isNumber, isObject, isString } from 'lodash';
 import uniqueId from 'lodash/uniqueId';
 import { createContext } from 'react';
-import { FormatterProps, HeaderRendererProps, SelectColumn, useRowSelection } from 'react-data-grid';
-import { getFlattenedFields, isFieldSubquery } from 'soql-parser-js';
+import {
+  FormatterProps,
+  HeaderRendererProps,
+  SelectColumn,
+  SELECT_COLUMN_KEY as _SELECT_COLUMN_KEY,
+  useRowSelection,
+} from 'react-data-grid';
+import { FieldSubquery, getFlattenedFields, isFieldSubquery } from 'soql-parser-js';
 import {
   dataTableAddressValueFormatter,
   dataTableDateFormatter,
@@ -19,16 +25,37 @@ import {
   dataTableTimeFormatter,
 } from '../data-table/data-table-utils';
 import Checkbox from '../form/checkbox/Checkbox';
-import { ColumnWithFilter, DataTableFilter, FilterContextProps, FilterType } from './data-table-types';
-import { ActionRenderer, BooleanRenderer, ComplexDataRenderer, FilterRenderer, HeaderFilter, IdLinkRenderer } from './DataTableRenderers';
+import {
+  ColumnWithFilter,
+  DataTableFilter,
+  FilterContextProps,
+  FilterType,
+  SubqueryContext,
+  SalesforceQueryColumnDefinition,
+  RowWithKey,
+} from './data-table-types';
+import {
+  ActionRenderer,
+  BooleanRenderer,
+  ComplexDataRenderer,
+  FilterRenderer,
+  HeaderFilter,
+  IdLinkRenderer,
+  SubqueryRenderer,
+} from './DataTableRenderers';
 
 const SFDC_EMPTY_ID = '000000000000000AAA';
 
 export const EMPTY_FIELD = '-BLANK-';
+export const ACTION_COLUMN_KEY = '_actions';
+export const SELECT_COLUMN_KEY = _SELECT_COLUMN_KEY;
+export const NON_DATA_COLUMN_KEYS = new Set([SELECT_COLUMN_KEY, ACTION_COLUMN_KEY]);
 
+// Used to ensure that renderers and filters can have access to global state
 export const DataTableFilterContext = createContext<FilterContextProps>(undefined);
+export const DataTableSubqueryContext = createContext<SubqueryContext>(undefined);
 
-export function getRowId(data: any): string {
+export function getRowId(data: RowWithKey): string {
   if (data?._key) {
     return data._key;
   }
@@ -53,8 +80,6 @@ function SelectFormatter(props: FormatterProps<any>) {
       hideLabel
       checked={isRowSelected}
       onChange={(checked) => onRowSelectionChange({ row, checked, isShiftClick: false })}
-      // indeterminate={props.row.getIsSomeSelected()}
-      // onChangeNative={props.row.getToggleSelectedHandler()}
     />
   );
 }
@@ -69,22 +94,22 @@ function SelectHeaderRenderer(props: HeaderRendererProps<any>) {
       hideLabel
       checked={allRowsSelected}
       onChange={(checked) => onAllRowsSelectionChange(checked)}
+      // WAITING ON: https://github.com/adazzle/react-data-grid/issues/3058
       // indeterminate={props.row.getIsSomeSelected()}
-      // onChangeNative={props.row.getToggleSelectedHandler()}
     />
   );
 }
 
-export function getColumnDefinitions<T = any>(results: QueryResults<T>, isTooling: boolean): ColumnWithFilter<any>[] {
+export function getColumnDefinitions(results: QueryResults<any>, isTooling: boolean): SalesforceQueryColumnDefinition<any> {
   // if we have id, include record actions
-  // const includeRecordActions =
-  //   !isTooling && results.queryResults.records.length
-  //     ? !!(results.queryResults.records[0]?.Id || results.queryResults.records[0]?.attributes.url)
-  //     : false;
-  // const output: SalesforceQueryColumnDefinition = {
-  //   parentColumns: [],
-  //   subqueryColumns: {},
-  // };
+  const includeRecordActions =
+    !isTooling && results.queryResults.records.length
+      ? !!(results.queryResults.records[0]?.Id || results.queryResults.records[0]?.attributes.url)
+      : false;
+  const output: SalesforceQueryColumnDefinition<any> = {
+    parentColumns: [],
+    subqueryColumns: {},
+  };
 
   // map each field to the returned metadata from SFDC
   let queryColumnsByPath: MapOf<QueryResultsColumn> = {};
@@ -108,46 +133,44 @@ export function getColumnDefinitions<T = any>(results: QueryResults<T>, isToolin
   }
 
   // Base fields
-  const columnDefs: ColumnWithFilter<any>[] = getFlattenedFields(results.parsedQuery).map((field, i) =>
+  const parentColumns: ColumnWithFilter<any>[] = getFlattenedFields(results.parsedQuery).map((field, i) =>
     getColDef(field, queryColumnsByPath, isFieldSubquery(results.parsedQuery?.[i]))
   );
 
   // set checkbox as first column
-  if (columnDefs.length > 0) {
-    columnDefs.unshift({
+  if (parentColumns.length > 0) {
+    parentColumns.unshift({
       ...SelectColumn,
+      key: SELECT_COLUMN_KEY,
       resizable: false,
       formatter: SelectFormatter,
       headerRenderer: SelectHeaderRenderer,
-      // headerCellClass: 'select-checkbox',
-      // cellClass: 'select-checkbox',
     });
-    columnDefs.unshift({
-      key: '_actions',
-      name: '',
-      resizable: false,
-      width: 100,
-      formatter: ActionRenderer,
-      frozen: true,
-      sortable: false,
-      // headerRenderer: SelectHeaderRenderer,
-      // headerCellClass: 'select-checkbox',
-      // cellClass: 'select-checkbox',
-    });
+    if (includeRecordActions) {
+      parentColumns.unshift({
+        key: ACTION_COLUMN_KEY,
+        name: '',
+        resizable: false,
+        width: 100,
+        formatter: ActionRenderer,
+        frozen: true,
+        sortable: false,
+      });
+    }
   }
 
-  // output.parentColumns = flattenedFields;
+  output.parentColumns = parentColumns;
 
   // subquery fields - only used if user clicks "view data" on a field so that the table can be built properly
-  // results.parsedQuery?.fields
-  //   .filter((field) => isFieldSubquery(field))
-  //   .forEach((field: FieldSubquery) => {
-  //     output.subqueryColumns[field.subquery.relationshipName] = getFlattenedFields(field.subquery).map((field) =>
-  //       getColDef(field, queryColumnsByPath, false)
-  //     );
-  //   });
+  results.parsedQuery?.fields
+    .filter((field) => isFieldSubquery(field))
+    .forEach((field: FieldSubquery) => {
+      output.subqueryColumns[field.subquery.relationshipName] = getFlattenedFields(field.subquery).map((field) =>
+        getColDef(field, queryColumnsByPath, false)
+      );
+    });
 
-  return columnDefs;
+  return output;
 }
 
 type Mutable<Type> = {
@@ -170,12 +193,6 @@ function getColDef<T = any>(field: string, queryColumnsByPath: MapOf<QueryResult
         )}
       </FilterRenderer>
     ),
-
-    // headerCellClass
-    // summaryCellClass
-    // formatter
-    // summaryFormatter
-    // groupFormatter
   };
 
   const fieldLowercase = field.toLowerCase();
@@ -187,10 +204,8 @@ function getColDef<T = any>(field: string, queryColumnsByPath: MapOf<QueryResult
       column.formatter = BooleanRenderer;
       column.filters = ['BOOLEAN_SET'];
       column.width = 100;
-      // column.filterParams = {
-      //   filters: [{ filter: 'agSetColumnFilter' }],
-      // };
     } else if (col.numberType) {
+      // TODO: gt, eq, lt
       // column.filterParams = {
       //   filters: [{ filter: 'agNumberColumnFilter' }, { filter: 'agSetColumnFilter' }],
       // };
@@ -200,26 +215,6 @@ function getColDef<T = any>(field: string, queryColumnsByPath: MapOf<QueryResult
     } else if (col.apexType === 'Date' || col.apexType === 'Datetime') {
       column.formatter = ({ column, row }) => dataTableDateFormatter({ value: row[column.key] });
       column.filters = ['DATE', 'SET'];
-      // column.getQuickFilterText = dataTableDateFormatter;
-      // column.filterParams = {
-      //   filters: [
-      //     {
-      //       filter: 'agDateColumnFilter',
-      //       filterParams: {
-      //         defaultOption: 'greaterThan',
-      //         comparator: DateFilterComparator,
-      //         buttons: ['clear'],
-      //       },
-      //     },
-      //     {
-      //       filter: 'agSetColumnFilter',
-      //       filterParams: {
-      //         valueFormatter: dataTableDateFormatter,
-      //         showTooltips: true,
-      //       },
-      //     },
-      //   ],
-      // };
     } else if (col.apexType === 'Time') {
       // column.valueFormatter = dataTableTimeFormatter;
       column.formatter = ({ column, row }) => dataTableTimeFormatter({ value: row[column.key] });
@@ -253,7 +248,9 @@ function getColDef<T = any>(field: string, queryColumnsByPath: MapOf<QueryResult
       // column.filter = null;
     } else if (Array.isArray(col.childColumnPaths)) {
       // TODO:
-      // column.formatter = 'subqueryRenderer';
+      column.formatter = SubqueryRenderer;
+      column.filters = [];
+      // TODO: set filter should be "with records, without records" - kinda like boolean
       // column.valueGetter = (params) => params.data[params.column.field]?.records;
       // column.keyCreator = (params) => (params.value?.length ? `Has Child Records` : 'No Child Records');
       // column.filterParams = {
@@ -382,4 +379,62 @@ export function filterRecord(filter: DataTableFilter, value: any): boolean {
     default:
       return false;
   }
+}
+
+export function getSubqueryModalTagline(parentRecord: any) {
+  let currModalTagline: string;
+  let recordName: string;
+  let recordId: string;
+  try {
+    if (parentRecord.Name) {
+      recordName = parentRecord.Name;
+    }
+    if (parentRecord?.Id) {
+      recordId = parentRecord.Id;
+    } else if (parentRecord?.attributes?.url) {
+      recordId = parentRecord.attributes.url.substring(parentRecord.attributes.url.lastIndexOf('/') + 1);
+    }
+  } catch (ex) {
+    // ignore error
+  } finally {
+    // if we have name and id, then show both, otherwise only show one or the other
+    if (recordName || recordId) {
+      currModalTagline = 'Parent Record: ';
+      if (recordName) {
+        currModalTagline += recordName;
+      }
+      if (recordName && recordId) {
+        currModalTagline += ` (${recordId})`;
+      } else if (recordId) {
+        currModalTagline += recordId;
+      }
+    }
+  }
+  return currModalTagline;
+}
+
+/**
+ * Get text to allow for global search filtering
+ */
+export function getSearchTextByRow(rows: RowWithKey[], columns: ColumnWithFilter<any>[]): Record<string, string> {
+  const output: Record<string, string> = {};
+  if (Array.isArray(rows)) {
+    rows.forEach((row) => {
+      if (isString(row._key)) {
+        columns.forEach((column) => {
+          if (column.key) {
+            const value = row[column.key];
+            if (!isNil(value) && !isObject(value)) {
+              let filterValue = String(value);
+              if (filterValue === '[object Object]') {
+                filterValue = JSON.stringify(value);
+              }
+              output[row._key] = `${output[row._key] || ''}${filterValue.toLowerCase()}`;
+            }
+          }
+        });
+      }
+    });
+  }
+  return output;
 }

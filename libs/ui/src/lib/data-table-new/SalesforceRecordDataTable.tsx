@@ -12,7 +12,8 @@ import Grid from '../grid/Grid';
 import AutoFullHeightContainer from '../layout/AutoFullHeightContainer';
 import { PopoverErrorButton } from '../popover/PopoverErrorButton';
 import Spinner from '../widgets/Spinner';
-import { addFieldLabelToColumn, getColumnDefinitions } from './data-table-utils';
+import { ColumnWithFilter, RowWithKey } from './data-table-types';
+import { addFieldLabelToColumn, DataTableSubqueryContext, getColumnDefinitions, NON_DATA_COLUMN_KEYS } from './data-table-utils';
 import DataTable from './DataTable';
 
 const SFDC_EMPTY_ID = '000000000000000AAA';
@@ -75,10 +76,11 @@ export const SalesforceRecordDataTableNew: FunctionComponent<SalesforceRecordDat
     const rollbar = useRollbar();
     // const [gridApi, setGridApi] = useState<GridApi>(null);
     const [columns, setColumns] = useState<Column<any>[]>();
-    const [columnDefinitions, setColumnDefinitions] = useState<Column<any>[]>();
+    // const [_columnDefinitions, setColumnDefinitions] = useState<Column<any>[]>();
+    const [subqueryColumnsMap, setSubqueryColumnsMap] = useState<MapOf<ColumnWithFilter<any, unknown>[]>>();
     const [records, setRecords] = useState<any[]>();
     // Same as records but with additional data added
-    const [rows, setRows] = useState<any[]>();
+    const [rows, setRows] = useState<RowWithKey[]>();
     const [totalRecordCount, setTotalRecordCount] = useState<number>();
     const [isLoadingMore, setIsLoadingMore] = useState<boolean>(false);
     const [loadMoreErrorMessage, setLoadMoreErrorMessage] = useState<string>();
@@ -96,15 +98,16 @@ export const SalesforceRecordDataTableNew: FunctionComponent<SalesforceRecordDat
 
     useEffect(() => {
       if (queryResults) {
-        const columnDefinitions = getColumnDefinitions(queryResults, isTooling);
+        const { parentColumns, subqueryColumns } = getColumnDefinitions(queryResults, isTooling);
         // const fields = columnDefinitions.parentColumns.filter((column) => column.field).map((column) => column.field);
+        const fields = parentColumns.filter((column) => column.key && !NON_DATA_COLUMN_KEYS.has(column.key)).map((column) => column.key);
         // setColumns(columnDefinitions.parentColumns);
-        setColumns(columnDefinitions);
-        // onFields({ allFields: fields, visibleFields: fields });
-        setColumnDefinitions(columnDefinitions);
+        setColumns(parentColumns);
+        onFields({ allFields: fields, visibleFields: fields });
+        setSubqueryColumnsMap(subqueryColumns);
         setRecords(queryResults.queryResults.records);
         setRows(
-          queryResults.queryResults.records.map((row) => {
+          queryResults.queryResults.records.map((row): RowWithKey => {
             return {
               _key: getRowId(row),
               _action: handleRowAction,
@@ -127,23 +130,21 @@ export const SalesforceRecordDataTableNew: FunctionComponent<SalesforceRecordDat
      */
     useEffect(() => {
       if (fieldMetadata) {
-        const columnDefinitions = getColumnDefinitions(queryResults, isTooling);
-        // const parentColumnDefinitions = columnDefinitions.parentColumns;
-        // const childColumnDefinitions = columnDefinitions.subqueryColumns;
-        setColumns(addFieldLabelToColumn(columnDefinitions, fieldMetadata));
+        const { parentColumns, subqueryColumns } = getColumnDefinitions(queryResults, isTooling);
 
-        // if (fieldMetadataSubquery) {
-        //   // If there are subqueries, update field definition
-        //   for (const key in childColumnDefinitions) {
-        //     if (fieldMetadataSubquery[key.toLowerCase()]) {
-        //       addFieldLabelToColumn(childColumnDefinitions[key], fieldMetadataSubquery[key.toLowerCase()]);
-        //     }
-        //   }
-        // }
+        setColumns(addFieldLabelToColumn(parentColumns, fieldMetadata));
 
-        // gridApi.setColumnDefs(parentColumnDefinitions);
-        // setColumns(columnDefinitions);
-        setColumnDefinitions(columnDefinitions);
+        // If there are subqueries, update field definition
+        if (fieldMetadataSubquery) {
+          for (const key in subqueryColumns) {
+            if (fieldMetadataSubquery[key.toLowerCase()]) {
+              addFieldLabelToColumn(subqueryColumns[key], fieldMetadataSubquery[key.toLowerCase()]);
+            }
+          }
+        }
+
+        setColumns(parentColumns);
+        setSubqueryColumnsMap(subqueryColumns);
       }
     }, [fieldMetadata, fieldMetadataSubquery, isTooling, queryResults]);
 
@@ -255,17 +256,31 @@ export const SalesforceRecordDataTableNew: FunctionComponent<SalesforceRecordDat
           <div>{summaryHeaderRightContent}</div>
         </Grid>
         <AutoFullHeightContainer fillHeight setHeightAttr bottomBuffer={10}>
-          <DataTable
-            serverUrl={serverUrl}
-            org={org}
-            data={rows}
-            columns={columns}
-            rowKeyGetter={getRowId}
-            onCopy={handleCopy}
-            rowHeight={28.5}
-            selectedRows={selectedRows}
-            onSelectedRowsChange={setSelectedRows as any}
-          />
+          <DataTableSubqueryContext.Provider
+            value={{
+              serverUrl,
+              org,
+              isTooling,
+              columnDefinitions: subqueryColumnsMap,
+              google_apiKey,
+              google_appId,
+              google_clientId,
+            }}
+          >
+            <DataTable
+              serverUrl={serverUrl}
+              org={org}
+              data={rows}
+              columns={columns}
+              includeQuickFilter
+              quickFilterText={globalFilter}
+              rowKeyGetter={getRowId}
+              onCopy={handleCopy}
+              rowHeight={28.5}
+              selectedRows={selectedRows}
+              onSelectedRowsChange={setSelectedRows as any}
+            />
+          </DataTableSubqueryContext.Provider>
         </AutoFullHeightContainer>
       </Fragment>
     ) : null;
