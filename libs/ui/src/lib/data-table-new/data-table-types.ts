@@ -66,3 +66,7 @@ export interface SubqueryContext<TRow = any> {
   google_appId: string;
   google_clientId: string;
 }
+
+export interface SelectedRowsContext<TRow = any> {
+  selectedRowIds: Set<any>;
+}

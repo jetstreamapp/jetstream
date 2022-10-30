@@ -1,15 +1,9 @@
-import {
-  ColDef,
-  ColumnEvent,
-  GetRowIdParams,
-  ICellRendererParams,
-  IFilter,
-  IFilterParams,
-  RowNode,
-  SelectionChangedEvent,
-} from '@ag-grid-community/core';
+import { ColumnEvent, IFilter, IFilterParams, RowNode, SelectionChangedEvent } from '@ag-grid-community/core';
 import { formatNumber, useNonInitialEffect } from '@jetstream/shared/ui-utils';
-import { AutoFullHeightContainer, Checkbox, DataTable, getFilteredRows, Grid, Icon, SearchInput, Spinner } from '@jetstream/ui';
+import { AutoFullHeightContainer, Checkbox, DataTableNew, getFilteredRows, Grid, Icon, SearchInput } from '@jetstream/ui';
+import { ColumnWithFilter } from 'libs/ui/src/lib/data-table-new/data-table-types';
+import { DataTableSelectedContext } from 'libs/ui/src/lib/data-table-new/data-table-utils';
+import groupBy from 'lodash/groupBy';
 import { forwardRef, Fragment, FunctionComponent, useEffect, useImperativeHandle, useState } from 'react';
 import { DeployMetadataTableRow } from './deploy-metadata.types';
 import { getColumnDefinitions } from './utils/deploy-metadata.utils';
@@ -21,22 +15,11 @@ export interface DeployMetadataDeploymentTableProps {
   onViewOrCompareOpen: () => void;
 }
 
-function getRowId({ data }: GetRowIdParams): string {
-  return data.key;
+function getRowId({ key }: DeployMetadataTableRow): string {
+  return key;
 }
 
-const ValueOrLoadingRenderer: FunctionComponent<ICellRendererParams> = ({ value, node }) => {
-  if (node.group) {
-    return <div />;
-  }
-  const { loading, fullName }: DeployMetadataTableRow = node.data || {};
-  if (loading) {
-    return <Spinner size={'x-small'} />;
-  } else if (!fullName) {
-    return <em className="slds-text-color_weak">No matching components</em>;
-  }
-  return <div>{decodeURIComponent(value || '')}</div>;
-};
+const groupedRows = ['typeLabel'] as const;
 
 export const DeployMetadataDeploymentTable: FunctionComponent<DeployMetadataDeploymentTableProps> = ({
   rows,
@@ -44,13 +27,16 @@ export const DeployMetadataDeploymentTable: FunctionComponent<DeployMetadataDepl
   onSelectedRows,
   onViewOrCompareOpen,
 }) => {
-  const [columns, setColumns] = useState<ColDef[]>();
+  const [columns, setColumns] = useState<ColumnWithFilter<DeployMetadataTableRow>[]>([]);
   const [visibleRows, setVisibleRows] = useState<DeployMetadataTableRow[]>(rows);
   const [globalFilter, setGlobalFilter] = useState<string>(null);
   const [selectedRows, setSelectedRow] = useState<Set<DeployMetadataTableRow>>(new Set());
+  const [selectedRowIds, setSelectedRowIds] = useState(new Set<any>());
+  const [expandedGroupIds, setExpandedGroupIds] = useState(new Set<any>());
 
   useEffect(() => {
     setVisibleRows(rows);
+    setExpandedGroupIds(new Set(rows.map(({ typeLabel }) => typeLabel)));
   }, [rows]);
 
   useEffect(() => {
@@ -94,68 +80,21 @@ export const DeployMetadataDeploymentTable: FunctionComponent<DeployMetadataDepl
         </Grid>
       )}
       <AutoFullHeightContainer fillHeight setHeightAttr delayForSecondTopCalc bottomBuffer={15}>
-        <DataTable
-          columns={columns}
-          data={rows}
-          quickFilterText={globalFilter}
-          defaultMenuTabs={['filterMenuTab', 'generalMenuTab']}
-          agGridProps={{
-            getRowId,
-            components: {
-              valueOrLoading: ValueOrLoadingRenderer,
-              metadataFilterItemsWithNoChildren: MetadataFilterItemsWithNoChildren,
-            },
-            autoGroupColumnDef: {
-              headerName: 'Metadata Type',
-              width: 200,
-              cellRenderer: 'agGroupCellRenderer',
-              // filter: 'agMultiColumnFilter',
-              filterParams: {
-                filters: [
-                  { filter: 'metadataFilterItemsWithNoChildren' },
-                  { filter: 'agTextColumnFilter' },
-                  { filter: 'agSetColumnFilter', filterParams: { showTooltips: true } },
-                ],
-              },
-              menuTabs: ['filterMenuTab'],
-              filterValueGetter: ({ data }) => data.typeLabel,
-              sortable: true,
-              resizable: true,
-              sort: 'asc',
-            },
-            showOpenedGroup: true,
-            groupDefaultExpanded: 1,
-            groupSelectsChildren: true,
-            groupSelectsFiltered: true,
-            sideBar: {
-              toolPanels: [
-                {
-                  id: 'filters',
-                  labelDefault: 'Filters',
-                  labelKey: 'filters',
-                  iconKey: 'filter',
-                  toolPanel: 'agFiltersToolPanel',
-                },
-                {
-                  id: 'columns',
-                  labelDefault: 'Columns',
-                  labelKey: 'columns',
-                  iconKey: 'columns',
-                  toolPanel: 'agColumnsToolPanel',
-                  toolPanelParams: {
-                    suppressRowGroups: true,
-                    suppressValues: true,
-                    suppressPivots: true,
-                    suppressPivotMode: true,
-                  },
-                },
-              ],
-            },
-            isRowSelectable: handleIsRowSelectable,
-            onSelectionChanged: handleSelectionChanged,
-            onFilterChanged: handleFilterChangeOrRowDataUpdated,
-          }}
-        />
+        {/* TODO: loading indicator on grouped rows, will require context */}
+        <DataTableSelectedContext.Provider value={{ selectedRowIds }}>
+          <DataTableNew
+            columns={columns}
+            data={rows}
+            getRowKey={getRowId}
+            // TODO: metadataFilterItemsWithNoChildren
+            groupBy={groupedRows}
+            rowGrouper={groupBy}
+            expandedGroupIds={expandedGroupIds}
+            onExpandedGroupIdsChange={(items) => setExpandedGroupIds(items)}
+            selectedRows={selectedRowIds}
+            onSelectedRowsChange={setSelectedRowIds}
+          />
+        </DataTableSelectedContext.Provider>
       </AutoFullHeightContainer>
     </Fragment>
   );

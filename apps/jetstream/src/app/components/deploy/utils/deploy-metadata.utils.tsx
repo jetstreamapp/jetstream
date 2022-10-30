@@ -1,7 +1,8 @@
-import { ColDef, GetQuickFilterTextParams, ValueFormatterParams } from '@ag-grid-community/core';
+import { GetQuickFilterTextParams, ValueFormatterParams } from '@ag-grid-community/core';
 import { getMetadataLabelFromFullName, ListMetadataResultItem } from '@jetstream/connected-ui';
 import { logger } from '@jetstream/shared/client-logger';
 import { DATE_FORMATS, INDEXED_DB } from '@jetstream/shared/constants';
+import { logErrorToRollbar } from '@jetstream/shared/ui-utils';
 import { ensureArray, getSuccessOrFailureChar, orderStringsBy, pluralizeFromNumber } from '@jetstream/shared/utils';
 import {
   ChangeSet,
@@ -12,17 +13,20 @@ import {
   SalesforceDeployHistoryType,
   SalesforceOrgUi,
 } from '@jetstream/types';
-import { DateFilterComparator, getCheckboxColumnDef } from '@jetstream/ui';
-import parseISO from 'date-fns/parseISO';
-import formatISO from 'date-fns/formatISO';
+import { Spinner } from '@jetstream/ui';
 import formatDate from 'date-fns/format';
-import isString from 'lodash/isString';
-import { composeQuery, getField, Query } from 'soql-parser-js';
-import { DeployMetadataTableRow } from '../deploy-metadata.types';
-import localforage from 'localforage';
+import formatISO from 'date-fns/formatISO';
+import parseISO from 'date-fns/parseISO';
 import { DeployOptions } from 'jsforce';
 import JSZip from 'jszip';
-import { logErrorToRollbar } from '@jetstream/shared/ui-utils';
+import { ColumnWithFilter } from 'libs/ui/src/lib/data-table-new/data-table-types';
+import { setColumnFromType } from 'libs/ui/src/lib/data-table-new/data-table-utils';
+import { SelectFormatter, SelectHeaderGroupRenderer, SelectHeaderRenderer } from 'libs/ui/src/lib/data-table-new/DataTableRenderers';
+import localforage from 'localforage';
+import isString from 'lodash/isString';
+import { GroupFormatterProps, SelectColumn, SELECT_COLUMN_KEY } from 'react-data-grid';
+import { composeQuery, getField, Query } from 'soql-parser-js';
+import { DeployMetadataTableRow } from '../deploy-metadata.types';
 
 const MAX_HISTORY_ITEMS = 500;
 
@@ -209,82 +213,70 @@ export const dataTableDateFormatter = ({ value }: ValueFormatterParams | GetQuic
   return '';
 };
 
-export function getColumnDefinitions(): ColDef[] {
-  const output: ColDef[] = [
-    getCheckboxColumnDef(),
+const ValueOrLoadingRenderer = ({ row, childRows }: GroupFormatterProps<DeployMetadataTableRow>) => {
+  if (!row) {
+    return null;
+  }
+  const loading = childRows.some((row) => row.loading);
+  if (loading) {
+    return <Spinner size={'x-small'} />;
+  }
+  return null;
+};
+
+export function getColumnDefinitions(): ColumnWithFilter<DeployMetadataTableRow>[] {
+  const output: ColumnWithFilter<DeployMetadataTableRow>[] = [
     {
-      headerName: 'Metadata Type',
-      colId: 'typeLabel',
-      field: 'typeLabel',
-      width: 200,
-      rowGroup: true,
-      hide: true,
-      lockVisible: true,
-      lockPosition: true,
+      ...SelectColumn,
+      key: SELECT_COLUMN_KEY,
+      resizable: false,
+      formatter: SelectFormatter,
+      headerRenderer: SelectHeaderRenderer,
+      groupFormatter: SelectHeaderGroupRenderer,
     },
     {
-      headerName: 'Name',
-      colId: 'fullName',
-      field: 'fullName',
-      cellRenderer: 'valueOrLoading',
+      ...setColumnFromType('typeLabel', 'text'),
+      name: 'Metadata Type',
+      key: 'typeLabel',
+      width: 175,
+      frozen: true,
+    },
+    {
+      ...setColumnFromType('fullName', 'text'),
+      name: 'Name',
+      key: 'fullName',
+      frozen: true,
+      groupFormatter: ValueOrLoadingRenderer,
       width: 250,
-      lockVisible: true,
-      filterParams: {
-        filters: [
-          { filter: 'agTextColumnFilter' },
-          {
-            filter: 'agSetColumnFilter',
-            filterParams: { valueFormatter: ({ value }: ValueFormatterParams) => decodeURIComponent(value || ''), showTooltips: true },
-          },
-        ],
-      },
     },
     {
-      headerName: 'Last Modified By',
-      colId: 'lastModifiedByName',
-      field: 'lastModifiedByName',
+      ...setColumnFromType('lastModifiedByName', 'date'),
+      name: 'Last Modified By',
+      key: 'lastModifiedByName',
       width: 160,
     },
     {
-      headerName: 'Last Modified',
-      colId: 'lastModifiedDate',
-      field: 'lastModifiedDate',
+      ...setColumnFromType('lastModifiedDate', 'date'),
+      name: 'Last Modified',
+      key: 'lastModifiedDate',
       width: 202,
-      valueFormatter: dataTableDateFormatter,
-      getQuickFilterText: dataTableDateFormatter,
-      filterParams: {
-        comparator: DateFilterComparator,
-        filters: [
-          { filter: 'agDateColumnFilter', filterParams: { defaultOption: 'greaterThan', buttons: ['clear'] } },
-          { filter: 'agSetColumnFilter', filterParams: { showTooltips: true } },
-        ],
-      },
     },
     {
-      headerName: 'Created By',
-      colId: 'createdByName',
-      field: 'createdByName',
+      ...setColumnFromType('createdByName', 'date'),
+      name: 'Created By',
+      key: 'createdByName',
       width: 150,
     },
     {
-      headerName: 'Created',
-      colId: 'createdDate',
-      field: 'createdDate',
+      ...setColumnFromType('createdDate', 'date'),
+      name: 'Created',
+      key: 'createdDate',
       width: 202,
-      valueFormatter: dataTableDateFormatter,
-      getQuickFilterText: dataTableDateFormatter,
-      filterParams: {
-        comparator: DateFilterComparator,
-        filters: [
-          { filter: 'agDateColumnFilter', filterParams: { defaultOption: 'greaterThan', buttons: ['clear'] } },
-          { filter: 'agSetColumnFilter', filterParams: { showTooltips: true } },
-        ],
-      },
     },
     {
-      headerName: 'Manageable State',
-      colId: 'manageableState',
-      field: 'manageableState',
+      ...setColumnFromType('manageableState', 'text'),
+      name: 'Manageable State',
+      key: 'manageableState',
       width: 170,
     },
   ];

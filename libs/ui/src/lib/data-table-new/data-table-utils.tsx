@@ -10,13 +10,7 @@ import { Field } from 'jsforce';
 import { isNil, isNumber, isObject, isString } from 'lodash';
 import uniqueId from 'lodash/uniqueId';
 import { createContext } from 'react';
-import {
-  FormatterProps,
-  HeaderRendererProps,
-  SelectColumn,
-  SELECT_COLUMN_KEY as _SELECT_COLUMN_KEY,
-  useRowSelection,
-} from 'react-data-grid';
+import { SelectColumn, SELECT_COLUMN_KEY as _SELECT_COLUMN_KEY } from 'react-data-grid';
 import { FieldSubquery, getFlattenedFields, isFieldSubquery } from 'soql-parser-js';
 import {
   dataTableAddressValueFormatter,
@@ -24,16 +18,16 @@ import {
   dataTableLocationFormatter,
   dataTableTimeFormatter,
 } from '../data-table/data-table-utils';
-import Checkbox from '../form/checkbox/Checkbox';
 import {
+  ColumnType,
   ColumnWithFilter,
   DataTableFilter,
   FilterContextProps,
   FilterType,
-  SubqueryContext,
-  SalesforceQueryColumnDefinition,
   RowWithKey,
-  ColumnType,
+  SalesforceQueryColumnDefinition,
+  SelectedRowsContext,
+  SubqueryContext,
 } from './data-table-types';
 import {
   ActionRenderer,
@@ -42,6 +36,8 @@ import {
   FilterRenderer,
   HeaderFilter,
   IdLinkRenderer,
+  SelectFormatter,
+  SelectHeaderRenderer,
   SubqueryRenderer,
 } from './DataTableRenderers';
 
@@ -55,6 +51,7 @@ export const NON_DATA_COLUMN_KEYS = new Set([SELECT_COLUMN_KEY, ACTION_COLUMN_KE
 // Used to ensure that renderers and filters can have access to global state
 export const DataTableFilterContext = createContext<FilterContextProps>(undefined);
 export const DataTableSubqueryContext = createContext<SubqueryContext>(undefined);
+export const DataTableSelectedContext = createContext<SelectedRowsContext>(undefined);
 
 export function getRowId(data: any): string {
   if (data?._key) {
@@ -71,37 +68,6 @@ export function getRowId(data: any): string {
     nodeId = uniqueId('row-id');
   }
   return nodeId;
-}
-
-function SelectFormatter<T>(props: FormatterProps<T>) {
-  const { column, row } = props;
-  const [isRowSelected, onRowSelectionChange] = useRowSelection();
-
-  return (
-    <Checkbox
-      id={`checkbox-${column.name}-${getRowId(row)}`} // TODO: need way to get row id
-      label="Select row"
-      hideLabel
-      checked={isRowSelected}
-      onChange={(checked) => onRowSelectionChange({ row, checked, isShiftClick: false })}
-    />
-  );
-}
-
-function SelectHeaderRenderer<T>(props: HeaderRendererProps<T>) {
-  const { column, allRowsSelected, onAllRowsSelectionChange } = props;
-
-  return (
-    <Checkbox
-      id={`checkbox-${column.name}_header`} // TODO: need way to get row id
-      label="Select all"
-      hideLabel
-      checked={allRowsSelected}
-      onChange={(checked) => onAllRowsSelectionChange(checked)}
-      // WAITING ON: https://github.com/adazzle/react-data-grid/issues/3058
-      // indeterminate={props.row.getIsSomeSelected()}
-    />
-  );
 }
 
 export function getColumnsForGenericTable(
@@ -336,11 +302,32 @@ function getColumnTypeFromQueryResultsColumn(col: QueryResultsColumn): ColumnTyp
 }
 
 /**
+ * Based on field type, update formatter and filters
+ *
+ * @param fieldType
+ * @param defaultProps
+ * @returns
+ */
+export function setColumnFromType<T>(key: string, fieldType: ColumnType, defaultProps?: Partial<Mutable<ColumnWithFilter<T>>>) {
+  const column: Partial<Mutable<ColumnWithFilter<T>>> = { ...defaultProps };
+  column.headerRenderer = (props) => (
+    <FilterRenderer {...props}>
+      {({ filters, filterSetValues, updateFilter }) => (
+        <HeaderFilter columnKey={key} filters={filters} filterSetValues={filterSetValues} updateFilter={updateFilter} />
+      )}
+    </FilterRenderer>
+  );
+  updateColumnFromType(column as Mutable<ColumnWithFilter<T>>, fieldType);
+  return column;
+}
+
+/**
  * Based on field type, update formatters and filters
  * @param column
  * @param fieldType
  */
-function updateColumnFromType(column: Mutable<ColumnWithFilter<RowWithKey>>, fieldType: ColumnType) {
+export function updateColumnFromType(column: Mutable<ColumnWithFilter<any>>, fieldType: ColumnType) {
+  column.filters = ['TEXT', 'SET'];
   switch (fieldType) {
     case 'text':
       break;

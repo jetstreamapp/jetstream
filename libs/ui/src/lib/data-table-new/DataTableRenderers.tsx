@@ -1,26 +1,32 @@
 import { css } from '@emotion/react';
 import { IconName } from '@jetstream/icon-factory';
+import { queryMore } from '@jetstream/shared/data';
 import { formatNumber, useDebounce } from '@jetstream/shared/ui-utils';
 import { ListItem, SalesforceOrgUi } from '@jetstream/types';
+import { useVirtualizer } from '@tanstack/react-virtual';
 import classNames from 'classnames';
 import formatISO from 'date-fns/formatISO';
 import parseISO from 'date-fns/parseISO';
+import { QueryResult } from 'jsforce';
 import { isFunction } from 'lodash';
 import { Fragment, FunctionComponent, useCallback, useContext, useEffect, useRef, useState } from 'react';
-import { FormatterProps, HeaderRendererProps, useFocusRef } from 'react-data-grid';
+import { FormatterProps, GroupFormatterProps, HeaderRendererProps, useFocusRef, useRowSelection } from 'react-data-grid';
 import { getSfdcRetUrl } from '../data-table/data-table-utils';
+import RecordDownloadModal from '../file-download-modal/RecordDownloadModal';
 import Checkbox from '../form/checkbox/Checkbox';
 import DatePicker from '../form/date/DatePicker';
 import Input from '../form/input/Input';
 import Picklist from '../form/picklist/Picklist';
+import Grid from '../grid/Grid';
+import AutoFullHeightContainer from '../layout/AutoFullHeightContainer';
 import Modal from '../modal/Modal';
 import Popover, { PopoverRef } from '../popover/Popover';
 import CopyToClipboard from '../widgets/CopyToClipboard';
 import Icon from '../widgets/Icon';
 import SalesforceLogin from '../widgets/SalesforceLogin';
+import Spinner from '../widgets/Spinner';
 import './data-table-styles.css';
 import {
-  ColumnWithFilter,
   DataTableBooleanSetFilter,
   DataTableDateFilter,
   DataTableFilter,
@@ -31,6 +37,7 @@ import {
 } from './data-table-types';
 import {
   DataTableFilterContext,
+  DataTableSelectedContext,
   DataTableSubqueryContext,
   getRowId,
   getSubqueryModalTagline,
@@ -38,17 +45,7 @@ import {
   NON_DATA_COLUMN_KEYS,
   resetFilter,
 } from './data-table-utils';
-import { useVirtualizer } from '@tanstack/react-virtual';
-import { QueryResult } from 'jsforce';
-import { queryMore } from '@jetstream/shared/data';
-import RecordDownloadModal from '../file-download-modal/RecordDownloadModal';
-import Grid from '../grid/Grid';
-import Spinner from '../widgets/Spinner';
-import AutoFullHeightContainer from '../layout/AutoFullHeightContainer';
 import DataTable from './DataTable';
-import { logger } from '@jetstream/shared/client-logger';
-
-// import {
 
 // CONFIGURATION
 
@@ -65,6 +62,42 @@ export function configIdLinkRenderer(serverUrl: string, org: SalesforceOrgUi) {
 }
 
 // HEADER RENDERERS
+export function SelectHeaderRenderer<T>(props: HeaderRendererProps<T>) {
+  const { column, allRowsSelected, onAllRowsSelectionChange } = props;
+
+  return (
+    <Checkbox
+      id={`checkbox-${column.name}_header`} // TODO: need way to get row id
+      label="Select all"
+      hideLabel
+      checked={allRowsSelected}
+      onChange={(checked) => onAllRowsSelectionChange(checked)}
+      // WAITING ON: https://github.com/adazzle/react-data-grid/issues/3058
+      // indeterminate={props.row.getIsSomeSelected()}
+    />
+  );
+}
+
+export function SelectHeaderGroupRenderer<T>(props: GroupFormatterProps<T>) {
+  const { column, groupKey, row, childRows } = props;
+  const [isRowSelected, onRowSelectionChange] = useRowSelection();
+
+  return (
+    <DataTableSelectedContext.Consumer>
+      {({ selectedRowIds }) => (
+        <Checkbox
+          id={`checkbox-${column.name}_${groupKey}_header`} // TODO: need way to get row id
+          label="Select all"
+          hideLabel
+          checked={isRowSelected}
+          indeterminate={selectedRowIds.size > 0 && childRows.some((childRow) => selectedRowIds.has(getRowId(childRow)))}
+          onChange={(checked) => onRowSelectionChange({ row: row, checked, isShiftClick: false })}
+        />
+      )}
+    </DataTableSelectedContext.Consumer>
+  );
+}
+
 export function FilterRenderer<R, SR, T extends HTMLOrSVGElement>({
   isCellSelected,
   onSort,
@@ -79,7 +112,7 @@ export function FilterRenderer<R, SR, T extends HTMLOrSVGElement>({
     }
   ) => React.ReactElement;
 }) {
-  const { filters, filterSetValues, updateFilter } = useContext(DataTableFilterContext)!;
+  const { filters, filterSetValues, updateFilter } = useContext(DataTableFilterContext);
   const { ref, tabIndex } = useFocusRef<T>(isCellSelected);
 
   // TODO: sort and filter
@@ -346,6 +379,33 @@ export function HeaderDateFilter({ columnKey, filter, updateFilter }: DataTableD
 }
 
 // CELL RENDERERS
+export function SelectFormatter<T>(props: FormatterProps<T>) {
+  const { column, row } = props;
+  const [isRowSelected, onRowSelectionChange] = useRowSelection();
+
+  return (
+    <Checkbox
+      id={`checkbox-${column.name}-${getRowId(row)}`} // TODO: need way to get row id
+      label="Select row"
+      hideLabel
+      checked={isRowSelected}
+      onChange={(checked) => onRowSelectionChange({ row, checked, isShiftClick: false })}
+    />
+  );
+}
+
+export function ValueOrLoadingRenderer<T extends { loading: boolean }>({ column, row }: FormatterProps<T>) {
+  if (!row) {
+    return <div />;
+  }
+  const { loading } = row;
+  const value = row[column.key];
+  if (loading) {
+    return <Spinner size={'x-small'} />;
+  }
+  return <div>{value}</div>;
+}
+
 export const SubqueryRenderer: FunctionComponent<FormatterProps<RowWithKey, unknown>> = ({ column, row, onRowChange, isCellSelected }) => {
   // const [columnApi, setColumnApi] = useState<ColumnApi>(null);
   const isMounted = useRef(null);

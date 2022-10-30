@@ -169,9 +169,11 @@ export const dataTableLocationFormatter = <T extends { value: string | null | un
 };
 
 export const dataTableDateFormatter = <T extends { value: string | null | undefined }>({ value }: T): string => {
-  const dateOrDateTime: string = value;
+  const dateOrDateTime: string | Date = value;
   if (!dateOrDateTime) {
     return null;
+  } else if (isDate(dateOrDateTime)) {
+    return formatDate(dateOrDateTime, DATE_FORMATS.YYYY_MM_DD_HH_mm_ss_a);
   } else if (dateOrDateTime.length === 28) {
     return formatDate(parseISO(dateOrDateTime), DATE_FORMATS.YYYY_MM_DD_HH_mm_ss_a);
   } else if (dateOrDateTime.length === 10) {

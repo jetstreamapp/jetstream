@@ -1,5 +1,5 @@
 import classNames from 'classnames';
-import React, { Fragment, FunctionComponent, RefObject, useEffect, useRef } from 'react';
+import React, { Fragment, FunctionComponent, RefObject, SyntheticEvent, useEffect, useRef } from 'react';
 import HelpText from '../../widgets/HelpText';
 
 export interface CheckboxProps {
@@ -21,7 +21,7 @@ export interface CheckboxProps {
   errorMessageId?: string;
   errorMessage?: React.ReactNode | string;
   onChange?: (value: boolean) => void;
-  onChangeNative?: (event: unknown) => void;
+  onChangeNative?: (event: SyntheticEvent<HTMLInputElement>) => void;
   onBlur?: () => void;
 }
 
