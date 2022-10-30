@@ -165,6 +165,7 @@ const DataTable = <T extends object>({
         sortColumns={sortColumns}
         onSortColumnsChange={setSortColumns}
         rowKeyGetter={getRowKey}
+        defaultColumnOptions={{ resizable: true, ...rest.defaultColumnOptions }}
         {...rest}
       />
     </DataTableFilterContext.Provider>

@@ -74,6 +74,12 @@ export interface DeploymentItem {
   deploy: AutomationControlDeploymentItem;
 }
 
+export interface DeploymentItemRow extends TableRowItem {
+  status: DeploymentItemStatus;
+  deploy: AutomationControlDeploymentItem;
+  typeLabel: string;
+}
+
 export type MetadataCompositeResponseSuccessOrError = MetadataCompositeResponseSuccess | MetadataCompositeResponseError[];
 
 export interface MetadataCompositeResponseSuccess {

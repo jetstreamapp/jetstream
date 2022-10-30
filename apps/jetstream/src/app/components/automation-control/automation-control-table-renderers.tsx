@@ -1,4 +1,3 @@
-import { ICellRendererParams } from '@ag-grid-community/core';
 import { css } from '@emotion/react';
 import { SalesforceOrgUi } from '@jetstream/types';
 import { Checkbox, CopyToClipboard, Grid, GridCol, Icon, SalesforceLogin, Spinner, Tooltip } from '@jetstream/ui';
@@ -7,7 +6,7 @@ import { isNumber, uniqueId } from 'lodash';
 import { FunctionComponent } from 'react';
 import { CalculatedColumn, FormatterProps } from 'react-data-grid';
 import { isTableRow, isTableRowChild, isTableRowItem } from './automation-control-data-utils';
-import { DeploymentItem, DeploymentItemStatus, MetadataCompositeResponseError, TableRowOrItemOrChild } from './automation-control-types';
+import { DeploymentItemRow, DeploymentItemStatus, MetadataCompositeResponseError, TableRowOrItemOrChild } from './automation-control-types';
 
 export const ExpandingLabelRenderer: FunctionComponent<{
   serverUrl: string;
@@ -127,16 +126,17 @@ export const AdditionalDetailRenderer: FunctionComponent<FormatterProps<TableRow
   return null;
 };
 
-export const BooleanAndVersionRenderer: FunctionComponent<ICellRendererParams> = ({ value, node, data, colDef }) => {
-  const metadata = data.metadata;
+export const BooleanAndVersionRenderer: FunctionComponent<FormatterProps<DeploymentItemRow, unknown>> = ({ column, row }) => {
+  const metadata = row;
   const type = metadata.type;
+  const value = metadata[column.key];
   const checkbox = (
-    <Checkbox className="slds-align_absolute-center" id={`${colDef.colId}-${node.id}`} checked={value} label="value" hideLabel readOnly />
+    <Checkbox className="slds-align_absolute-center" id={`${column.key}-${row.key}`} checked={value} label="value" hideLabel readOnly />
   );
   if (type === 'FlowRecordTriggered' || type === 'FlowProcessBuilder') {
     const activeVersionNumberInitialState = metadata.activeVersionNumberInitialState;
     const activeVersionNumber = metadata.activeVersionNumber;
-    if (colDef.colId === 'isActiveInitialState') {
+    if (column.key === 'isActiveInitialState') {
       return (
         <Grid>
           {checkbox}
@@ -156,7 +156,6 @@ export const BooleanAndVersionRenderer: FunctionComponent<ICellRendererParams> =
   return checkbox;
 };
 
-// AutomationDeployStatusRenderer
 const loadingStatuses: DeploymentItemStatus[] = ['Preparing', 'Deploying', 'Rolling Back'];
 
 function getErrorMessageContent(deployError?: MetadataCompositeResponseError[]) {
@@ -177,8 +176,8 @@ function getErrorMessageContentString(deployError?: MetadataCompositeResponseErr
   }
 }
 
-export const AutomationDeployStatusRenderer: FunctionComponent<ICellRendererParams> = ({ value, node, data, colDef }) => {
-  const { status, deploy } = data as DeploymentItem;
+export const AutomationDeployStatusRenderer: FunctionComponent<FormatterProps<DeploymentItemRow, unknown>> = ({ row }) => {
+  const { status, deploy } = row;
   const { deployError } = deploy;
   const isLoading = loadingStatuses.includes(status);
   const isSuccess = status === 'Deployed' || status === 'Rolled Back';
