@@ -29,6 +29,10 @@ function getRowId(data: any): string {
   return nodeId;
 }
 
+function getRowKey(row: RowWithKey): string {
+  return row.id;
+}
+
 export interface SalesforceRecordDataTableNewProps {
   org: SalesforceOrgUi;
   isTooling: boolean;
@@ -274,7 +278,7 @@ export const SalesforceRecordDataTableNew: FunctionComponent<SalesforceRecordDat
               columns={columns}
               includeQuickFilter
               quickFilterText={globalFilter}
-              rowKeyGetter={getRowId}
+              getRowKey={getRowKey}
               onCopy={handleCopy}
               rowHeight={28.5}
               selectedRows={selectedRows}

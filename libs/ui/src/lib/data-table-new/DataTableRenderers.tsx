@@ -516,7 +516,7 @@ export const SubqueryRenderer: FunctionComponent<FormatterProps<RowWithKey, unkn
                       org={org}
                       data={rows}
                       columns={columns}
-                      rowKeyGetter={getRowId}
+                      getRowKey={getRowId}
                       // onCopy={handleCopy}
                       rowHeight={28.5}
                       selectedRows={selectedRows}

@@ -75,11 +75,13 @@ export const AutomationControlEditor: FunctionComponent<AutomationControlEditorP
 
   const {
     rows,
+    visibleRows,
     hasError,
     errorMessage,
     loading,
     fetchData,
     refreshProcessBuilders,
+    toggleRowExpand,
     updateIsActiveFlag,
     toggleAll,
     resetChanges,
@@ -352,8 +354,9 @@ export const AutomationControlEditor: FunctionComponent<AutomationControlEditorP
               <AutomationControlEditorTable
                 serverUrl={serverUrl}
                 selectedOrg={selectedOrg}
-                rows={rows}
+                rows={visibleRows}
                 quickFilterText={quickFilterText}
+                toggleRowExpand={toggleRowExpand}
                 updateIsActiveFlag={updateIsActiveFlag}
               />
             </AutoFullHeightContainer>

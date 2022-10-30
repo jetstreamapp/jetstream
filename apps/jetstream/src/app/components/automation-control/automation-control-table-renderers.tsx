@@ -1,37 +1,75 @@
 import { ICellRendererParams } from '@ag-grid-community/core';
 import { css } from '@emotion/react';
-import { Checkbox, CopyToClipboard, Grid, GridCol, Icon, Spinner, Tooltip } from '@jetstream/ui';
+import { SalesforceOrgUi } from '@jetstream/types';
+import { Checkbox, CopyToClipboard, Grid, GridCol, Icon, SalesforceLogin, Spinner, Tooltip } from '@jetstream/ui';
 import classNames from 'classnames';
 import { isNumber, uniqueId } from 'lodash';
-import { Fragment, FunctionComponent } from 'react';
-import { isTableRow, isTableRowItem } from './automation-control-data-utils';
-import {
-  DeploymentItem,
-  DeploymentItemStatus,
-  MetadataCompositeResponseError,
-  TableContext,
-  TableRowOrItemOrChild,
-} from './automation-control-types';
+import { FunctionComponent } from 'react';
+import { CalculatedColumn, FormatterProps } from 'react-data-grid';
+import { isTableRow, isTableRowChild, isTableRowItem } from './automation-control-data-utils';
+import { DeploymentItem, DeploymentItemStatus, MetadataCompositeResponseError, TableRowOrItemOrChild } from './automation-control-types';
 
-export const LoadingAndActiveRenderer: FunctionComponent<ICellRendererParams> = ({ value, node, context }) => {
-  const data = node.data as TableRowOrItemOrChild;
-  const tableContext = context as TableContext;
+export const ExpandingLabelRenderer: FunctionComponent<{
+  serverUrl: string;
+  selectedOrg: SalesforceOrgUi;
+  column: CalculatedColumn<TableRowOrItemOrChild, unknown>;
+  row: TableRowOrItemOrChild;
+  toggleRowExpand: (row: TableRowOrItemOrChild, value: boolean) => void;
+}> = ({ serverUrl, selectedOrg, column, row, toggleRowExpand }) => {
+  const value = row[column.key];
+  const leftMargin = isTableRowItem(row) ? 2 : isTableRowChild(row) ? 4.5 : 0;
 
-  // you need either field or valueSetter set on colDef for editing to work
-  function handleToggle(value: boolean) {
-    tableContext.updateIsActiveFlag(data, value);
+  const wrappedValue =
+    !isTableRow(row) && row.link && serverUrl && selectedOrg ? (
+      <SalesforceLogin serverUrl={serverUrl} org={selectedOrg} returnUrl={row.link} iconPosition="right">
+        {value}
+      </SalesforceLogin>
+    ) : (
+      value
+    );
+
+  if (isTableRow(row) || (isTableRowItem(row) && Array.isArray(row.children) && row.children.length)) {
+    return (
+      <Grid
+        verticalAlign="center"
+        css={css`
+          margin-left: ${leftMargin}rem;
+        `}
+      >
+        <button className="slds-button slds-button_icon slds-button_icon-container" onClick={() => toggleRowExpand(row, !row.isExpanded)}>
+          <Icon type="utility" icon={row.isExpanded ? 'chevrondown' : 'chevronright'} className="slds-button__icon" omitContainer />
+        </button>
+
+        <div>{wrappedValue}</div>
+      </Grid>
+    );
   }
 
-  if (isTableRow(data)) {
-    if (data.loading) {
+  return (
+    <div
+      css={css`
+        margin-left: ${leftMargin}rem;
+      `}
+    >
+      {wrappedValue}
+    </div>
+  );
+};
+
+export const LoadingAndActiveRenderer: FunctionComponent<{
+  row: TableRowOrItemOrChild;
+  updateIsActiveFlag: (row: TableRowOrItemOrChild, value: boolean) => void;
+}> = ({ row, updateIsActiveFlag }) => {
+  if (isTableRow(row)) {
+    if (row.loading) {
       return <Spinner size="x-small" />;
-    } else if (data.hasError) {
+    } else if (row.hasError) {
       return (
         <Tooltip
-          id={`tooltip-error-${data.key}`}
+          id={`tooltip-error-${row.key}`}
           content={
             <div>
-              <strong>There was an error fetching metadata. {data.errorMessage || 'An unknown error has occured.'}</strong>
+              <strong>There was an error fetching metadata. {row.errorMessage || 'An unknown error has occured.'}</strong>
             </div>
           }
         >
@@ -40,42 +78,32 @@ export const LoadingAndActiveRenderer: FunctionComponent<ICellRendererParams> = 
       );
     }
     return null;
-  } else if (isTableRowItem(data)) {
+  } else if (isTableRowItem(row)) {
     return (
       <div className="slds-p-left_x-small">
-        <Checkbox id={data.key} label="Active" checked={data.isActive} disabled={data.readOnly} onChange={handleToggle} />
+        <Checkbox
+          id={row.key}
+          label="Active"
+          checked={row.isActive}
+          disabled={row.readOnly}
+          onChange={(value) => updateIsActiveFlag(row, value)}
+        />
       </div>
     );
   } else {
     return (
       <div className="slds-p-left_x-small">
-        <Checkbox id={data.key} label="Active" checked={data.isActive} onChange={handleToggle} />
+        <Checkbox id={row.key} label="Active" checked={row.isActive} onChange={(value) => updateIsActiveFlag(row, value)} />
       </div>
     );
   }
 };
 
-// Adding this caused the value to "flash" each time the component is re-rendered
-// export const TreeItemWithLinkRenderer: FunctionComponent<ICellRendererParams> = ({ value, node, context }) => {
-//   const data = node.data as TableRowOrItemOrChild;
-
-//   if (!isTableRow(data) && data.link && context?.serverUrl && context?.selectedOrg) {
-//     return (
-//       <SalesforceLogin serverUrl={context.serverUrl} org={context.selectedOrg} returnUrl={data.link} iconPosition="right">
-//         {value}
-//       </SalesforceLogin>
-//     );
-//   }
-//   return value;
-// };
-
-export const AdditionalDetailRenderer: FunctionComponent<ICellRendererParams> = ({ value, node }) => {
-  const data = node.data as TableRowOrItemOrChild;
-
-  if (!isTableRow(data) && Array.isArray(data.additionalData) && data.additionalData.length > 0) {
+export const AdditionalDetailRenderer: FunctionComponent<FormatterProps<TableRowOrItemOrChild, unknown>> = ({ row }) => {
+  if (!isTableRow(row) && Array.isArray(row.additionalData) && row.additionalData.length > 0) {
     return (
-      <Fragment>
-        {data.additionalData.map(({ label, value }, i) => {
+      <Grid vertical className="slds-line-height_reset">
+        {row.additionalData.map(({ label, value }, i) => {
           // Treat as heading
           if (value === null) {
             return (
@@ -85,7 +113,7 @@ export const AdditionalDetailRenderer: FunctionComponent<ICellRendererParams> = 
             );
           }
           return (
-            <div key={`${label}-${i}`} className="slds-text-body_regular">
+            <div key={`${label}-${i}`} className="slds-text-body_regular slds-p-vertical_xx-small">
               <span className="slds-m-right_x-small">
                 <strong>{label}</strong>
               </span>
@@ -93,7 +121,7 @@ export const AdditionalDetailRenderer: FunctionComponent<ICellRendererParams> = 
             </div>
           );
         })}
-      </Fragment>
+      </Grid>
     );
   }
   return null;

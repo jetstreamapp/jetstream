@@ -16,6 +16,8 @@ import { css } from '@emotion/react';
 
 const NUM_COLUMN = '_num';
 
+const getRowId = ({ _key }: RowWithKey) => _key;
+
 export interface LoadRecordsDataPreviewProps {
   selectedOrg: SalesforceOrgUi;
   selectedSObject: DescribeGlobalSObjectResult;
@@ -157,7 +159,7 @@ export const LoadRecordsDataPreview: FunctionComponent<LoadRecordsDataPreviewPro
             >
               <div className="slds-text-heading_small">File Preview</div>
               <AutoFullHeightContainer fillHeight setHeightAttr bottomBuffer={25}>
-                <DataTableNew columns={columns} data={rows} />
+                <DataTableNew columns={columns} data={rows} getRowKey={getRowId} />
               </AutoFullHeightContainer>
             </div>
           )}

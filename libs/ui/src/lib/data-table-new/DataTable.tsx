@@ -1,8 +1,10 @@
 import { IconName } from '@jetstream/icon-factory';
+import { logger } from '@jetstream/shared/client-logger';
 import { orderObjectsBy, orderStringsBy } from '@jetstream/shared/utils';
 import { SalesforceOrgUi } from '@jetstream/types';
-import { isNil } from 'lodash';
-import { FunctionComponent, memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import escapeRegExp from 'lodash/escapeRegExp';
+import isNil from 'lodash/isNil';
+import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import DataGrid, { Column, DataGridProps, SortColumn, SortStatusProps } from 'react-data-grid';
 import 'react-data-grid/lib/styles.css';
 import Icon from '../widgets/Icon';
@@ -21,28 +23,29 @@ function sortStatus({ sortDirection, priority }: SortStatusProps) {
   ) : null;
 }
 
-export interface DataTableNewProps extends Omit<DataGridProps<RowWithKey>, 'columns' | 'rows'> {
-  data: RowWithKey[];
-  columns: ColumnWithFilter<RowWithKey>[];
+export interface DataTableNewProps<T = RowWithKey> extends Omit<DataGridProps<T>, 'columns' | 'rows' | 'rowKeyGetter'> {
+  data: T[];
+  columns: ColumnWithFilter<T>[];
   serverUrl?: string;
   org?: SalesforceOrgUi;
   quickFilterText?: string;
   includeQuickFilter?: boolean;
+  getRowKey: (row: T) => string;
 }
 
-const DataTable: FunctionComponent<DataTableNewProps> = ({
+const DataTable = <T extends object>({
   data,
   columns,
   serverUrl,
   org,
   quickFilterText,
   includeQuickFilter,
+  getRowKey,
   ...rest
-}) => {
-  const tableContainerRef = useRef<HTMLTableSectionElement>(null);
+}: DataTableNewProps<T>) => {
   const [sortColumns, setSortColumns] = useState<readonly SortColumn[]>([]);
   // TODO: will be used for filtering
-  const [columnMap, setColumnMap] = useState<Map<string, Column<RowWithKey>>>(() => new Map());
+  const [columnMap, setColumnMap] = useState<Map<string, Column<T>>>(() => new Map());
   const [filters, setFilters] = useState<Record<string, DataTableFilter[]>>({});
   // TODO: do we need label and value?
   const [filterSetValues, setFilterSetValues] = useState<Record<string, string[]>>({});
@@ -50,11 +53,11 @@ const DataTable: FunctionComponent<DataTableNewProps> = ({
 
   useEffect(() => {
     if (Array.isArray(columns) && columns.length && Array.isArray(data) && data.length) {
-      setRowFilterText(getSearchTextByRow(data, columns));
+      setRowFilterText(getSearchTextByRow(data, columns, getRowKey));
     } else {
       setRowFilterText({});
     }
-  }, [columns, data]);
+  }, [columns, data, getRowKey]);
 
   useEffect(() => {
     setColumnMap(new Map(columns.map((column) => [column.key, column])));
@@ -102,7 +105,7 @@ const DataTable: FunctionComponent<DataTableNewProps> = ({
     }));
   }, []);
 
-  const sortedRows = useMemo((): readonly RowWithKey[] => {
+  const sortedRows = useMemo((): readonly T[] => {
     if (sortColumns.length === 0) {
       return data;
     }
@@ -114,10 +117,14 @@ const DataTable: FunctionComponent<DataTableNewProps> = ({
     );
   }, [data, sortColumns]);
 
-  const filteredRows = useMemo((): readonly RowWithKey[] => {
+  const filteredRows = useMemo((): readonly T[] => {
     let quickFilterRegex: RegExp;
     if (includeQuickFilter && quickFilterText) {
-      quickFilterRegex = new RegExp(quickFilterText, 'i');
+      try {
+        quickFilterRegex = new RegExp(escapeRegExp(quickFilterText), 'i');
+      } catch (ex) {
+        logger.warn('Invalid quick filter text', ex);
+      }
     }
     return sortedRows.filter((row) => {
       const isVisible = Object.keys(filters)
@@ -130,12 +137,13 @@ const DataTable: FunctionComponent<DataTableNewProps> = ({
           return filters[columnKey].filter(isFilterActive).every((filter) => filterRecord(filter, rowValue));
         });
       // Apply global filter
-      if (quickFilterRegex && row._key && rowFilterText[row._key]) {
-        return isVisible && quickFilterRegex.test(rowFilterText[row._key]);
+      const key = getRowKey(row);
+      if (quickFilterRegex && key && rowFilterText[key]) {
+        return isVisible && quickFilterRegex.test(rowFilterText[key]);
       }
       return isVisible;
     });
-  }, [filters, includeQuickFilter, quickFilterText, rowFilterText, sortedRows]);
+  }, [filters, getRowKey, includeQuickFilter, quickFilterText, rowFilterText, sortedRows]);
 
   if (serverUrl && org) {
     configIdLinkRenderer(serverUrl, org);
@@ -156,6 +164,7 @@ const DataTable: FunctionComponent<DataTableNewProps> = ({
         renderers={{ sortStatus }}
         sortColumns={sortColumns}
         onSortColumnsChange={setSortColumns}
+        rowKeyGetter={getRowKey}
         {...rest}
       />
     </DataTableFilterContext.Provider>

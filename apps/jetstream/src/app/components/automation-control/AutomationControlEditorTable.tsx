@@ -1,119 +1,108 @@
-import { ColDef, GetRowIdParams, RowHeightParams } from '@ag-grid-community/core';
 import { SalesforceOrgUi } from '@jetstream/types';
-import { DataTable } from '@jetstream/ui';
-import { forwardRef } from 'react';
-import { getAutomationTypeLabel, isTableRow, isTableRowChild, isTableRowItem } from './automation-control-data-utils';
-import { AdditionalDetailRenderer, LoadingAndActiveRenderer } from './automation-control-table-renderers';
+import { DataTableNew } from '@jetstream/ui';
+import { ColumnWithFilter } from 'libs/ui/src/lib/data-table-new/data-table-types';
+import { forwardRef, useMemo } from 'react';
+import { RowHeightArgs } from 'react-data-grid';
+import { isTableRow } from './automation-control-data-utils';
+import { AdditionalDetailRenderer, ExpandingLabelRenderer, LoadingAndActiveRenderer } from './automation-control-table-renderers';
 import { TableRowOrItemOrChild } from './automation-control-types';
 
-const COLUMNS: ColDef[] = [
-  {
-    headerName: 'Object',
-    colId: 'sobject',
-    field: 'sobject',
-    width: 200,
-  },
-  {
-    headerName: 'Active',
-    colId: 'isActive',
-    cellRenderer: 'loadingAndActiveRenderer',
-    width: 110,
-    cellClassRules: {
-      'active-item-yellow-bg': ({ data }) => !isTableRow(data) && data.isActive !== data.isActiveInitialState,
-    },
-    filterValueGetter: ({ data }) => (!isTableRow(data) ? data.isActive : null),
-  },
-  {
-    headerName: 'Description',
-    colId: 'description',
-    field: 'description',
-    tooltipField: 'description',
-    width: 400,
-  },
-  {
-    headerName: 'Last Modified',
-    colId: 'lastModifiedBy',
-    field: 'lastModifiedBy',
-    tooltipField: 'lastModifiedBy',
-    width: 250,
-  },
-  {
-    headerName: 'Additional Information',
-    colId: 'additionalInfo',
-    cellRenderer: 'additionalDetailRenderer',
-    width: 400,
-    filter: null,
-    menuTabs: [],
-    sortable: false,
-  },
-];
-
-const getRowHeight = (params: RowHeightParams) => {
-  if (isTableRow(params.data)) {
-    return null;
+const getRowHeight = ({ row, type }: RowHeightArgs<TableRowOrItemOrChild>) => {
+  if (type === 'GROUP' || isTableRow(row)) {
+    return 28.5;
   }
-  if (params.data.additionalData.length > 1) {
-    return params.data.additionalData.length * 27.5;
+  if (row.additionalData.length > 1) {
+    return row.additionalData.length * 28.5;
   }
-  return null;
+  return 28.5;
 };
-const getRowId = ({ data }: GetRowIdParams) => data.key;
+
+const getRowClass = (row: TableRowOrItemOrChild) => {
+  if (isTableRow(row) && !row.loading) {
+    return 'bg-color-gray-light';
+  }
+  return undefined;
+};
+
+const getRowId = ({ key }: TableRowOrItemOrChild) => key;
 
 export interface AutomationControlEditorTableProps {
   serverUrl: string;
   selectedOrg: SalesforceOrgUi;
   rows: TableRowOrItemOrChild[];
   quickFilterText: string;
+  toggleRowExpand: (row: TableRowOrItemOrChild, value: boolean) => void;
   updateIsActiveFlag: (row: TableRowOrItemOrChild, value: boolean) => void;
 }
 
 export const AutomationControlEditorTable = forwardRef<any, AutomationControlEditorTableProps>(
-  ({ serverUrl, selectedOrg, rows, quickFilterText, updateIsActiveFlag }, ref) => {
+  ({ serverUrl, selectedOrg, rows, quickFilterText, toggleRowExpand, updateIsActiveFlag }, ref) => {
+    const columns = useMemo(() => {
+      return [
+        {
+          name: 'Automation Item',
+          key: 'label',
+          width: 400,
+          formatter: ({ column, row }) => {
+            return (
+              <ExpandingLabelRenderer
+                serverUrl={serverUrl}
+                selectedOrg={selectedOrg}
+                column={column}
+                row={row}
+                toggleRowExpand={toggleRowExpand}
+              />
+            );
+          },
+        },
+        {
+          name: 'Object',
+          key: 'sobject',
+          width: 200,
+        },
+        {
+          name: 'Active',
+          key: 'isActive',
+          width: 110,
+          cellClass: (row) => (!isTableRow(row) && row.isActive !== row.isActiveInitialState ? 'active-item-yellow-bg' : ''),
+          formatter: ({ row }) => {
+            return <LoadingAndActiveRenderer row={row} updateIsActiveFlag={updateIsActiveFlag} />;
+          },
+        },
+        {
+          name: 'Description',
+          key: 'description',
+          width: 400,
+        },
+        {
+          name: 'Last Modified',
+          key: 'lastModifiedBy',
+          width: 250,
+        },
+        {
+          name: 'Additional Information',
+          key: 'additionalInfo',
+          width: 400,
+          filters: null,
+          sortable: false,
+          formatter: AdditionalDetailRenderer,
+        },
+      ] as ColumnWithFilter<TableRowOrItemOrChild>[];
+    }, []);
+
     return (
       <div className="h-100">
-        <DataTable
-          columns={COLUMNS}
+        <DataTableNew
+          serverUrl={serverUrl}
+          org={selectedOrg}
           data={rows}
-          agGridProps={{
-            context: {
-              serverUrl,
-              selectedOrg,
-              updateIsActiveFlag,
-            },
-            getRowId,
-            autoGroupColumnDef: {
-              headerName: 'Automation Item',
-              width: 400,
-              filterValueGetter: ({ data }) => {
-                if (isTableRowItem(data) || isTableRowChild(data)) {
-                  return `${getAutomationTypeLabel(data.type)} ${data.label}`;
-                }
-                return null;
-              },
-              cellRendererParams: {
-                suppressCount: true,
-                // This causes the table to "blink" each time a row is selected.
-                // TODO: once reactUi is fixed (AG-6233) This might be solved
-                // innerRenderer: 'treeItemWithLinkRenderer',
-              },
-            },
-            treeData: true,
-            getDataPath: (data) => data.path,
-            groupDefaultExpanded: -1,
-            enableRangeSelection: false,
-            suppressCellFocus: true,
-            suppressRowClickSelection: true,
-            enableCellTextSelection: true,
-            excludeChildrenWhenTreeDataFiltering: true,
-            quickFilterText,
-            ensureDomOrder: true,
-            components: {
-              loadingAndActiveRenderer: LoadingAndActiveRenderer,
-              additionalDetailRenderer: AdditionalDetailRenderer,
-              // treeItemWithLinkRenderer: TreeItemWithLinkRenderer,
-            },
-            getRowHeight,
-          }}
+          columns={columns}
+          getRowKey={getRowId}
+          rowClass={getRowClass}
+          includeQuickFilter
+          quickFilterText={quickFilterText}
+          rowHeight={getRowHeight}
+          defaultColumnOptions={{ resizable: true }}
         />
       </div>
     );

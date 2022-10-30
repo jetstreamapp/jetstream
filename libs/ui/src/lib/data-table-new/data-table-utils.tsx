@@ -56,9 +56,12 @@ export const NON_DATA_COLUMN_KEYS = new Set([SELECT_COLUMN_KEY, ACTION_COLUMN_KE
 export const DataTableFilterContext = createContext<FilterContextProps>(undefined);
 export const DataTableSubqueryContext = createContext<SubqueryContext>(undefined);
 
-export function getRowId(data: RowWithKey): string {
+export function getRowId(data: any): string {
   if (data?._key) {
     return data._key;
+  }
+  if (data?.key) {
+    return data.key;
   }
   if (data?.attributes?.type === 'AggregateResult') {
     return uniqueId('row-id');
@@ -70,7 +73,7 @@ export function getRowId(data: RowWithKey): string {
   return nodeId;
 }
 
-function SelectFormatter(props: FormatterProps<RowWithKey>) {
+function SelectFormatter<T>(props: FormatterProps<T>) {
   const { column, row } = props;
   const [isRowSelected, onRowSelectionChange] = useRowSelection();
 
@@ -85,7 +88,7 @@ function SelectFormatter(props: FormatterProps<RowWithKey>) {
   );
 }
 
-function SelectHeaderRenderer(props: HeaderRendererProps<RowWithKey>) {
+function SelectHeaderRenderer<T>(props: HeaderRendererProps<T>) {
   const { column, allRowsSelected, onAllRowsSelectionChange } = props;
 
   return (
@@ -519,11 +522,12 @@ export function getSubqueryModalTagline(parentRecord: any) {
 /**
  * Get text to allow for global search filtering
  */
-export function getSearchTextByRow(rows: RowWithKey[], columns: ColumnWithFilter<RowWithKey>[]): Record<string, string> {
+export function getSearchTextByRow<T>(rows: T[], columns: ColumnWithFilter<T>[], getRowKey: (row: T) => string): Record<string, string> {
   const output: Record<string, string> = {};
   if (Array.isArray(rows)) {
     rows.forEach((row) => {
-      if (isString(row._key)) {
+      const key = getRowKey(row);
+      if (key) {
         columns.forEach((column) => {
           if (column.key) {
             const value = row[column.key];
@@ -532,7 +536,7 @@ export function getSearchTextByRow(rows: RowWithKey[], columns: ColumnWithFilter
               if (filterValue === '[object Object]') {
                 filterValue = JSON.stringify(value);
               }
-              output[row._key] = `${output[row._key] || ''}${filterValue.toLowerCase()}`;
+              output[key] = `${output[key] || ''}${filterValue.toLowerCase()}`;
             }
           }
         });

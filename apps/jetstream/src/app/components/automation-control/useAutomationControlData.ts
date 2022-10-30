@@ -37,6 +37,7 @@ type Action =
   | { type: 'FETCH_ERROR'; payload: FetchErrorPayload }
   | { type: 'FETCH_FINISH' }
   | { type: 'UPDATE_IS_ACTIVE_FLAG'; payload: { row: TableRowOrItemOrChild; value: boolean } }
+  | { type: 'TOGGLE_ROW_EXPAND'; payload: { row: TableRowOrItemOrChild; value: boolean } }
   | { type: 'TOGGLE_ALL'; payload: { value: boolean } }
   | { type: 'RESTORE_SNAPSHOT'; payload: { snapshot: TableRowItemSnapshot[] } }
   | { type: 'RESET' }
@@ -49,6 +50,7 @@ interface State {
   data: StateData;
   /** These are the only data points that are updated over time */
   rows: (TableRow | TableRowItem | TableRowItemChild)[];
+  visibleRows: (TableRow | TableRowItem | TableRowItemChild)[];
   /** allows accessing and changing data without iteration */
   rowsByKey: MapOf<TableRow | TableRowItem | TableRowItemChild>;
   /** Used to know order to rebuild rows from rowsByKey */
@@ -98,6 +100,7 @@ function reducer(state: State, action: Action): State {
       output.keys = keys;
       output.rows = rows;
       output.rowsByKey = rowsByKey;
+      output.visibleRows = getVisibleRows(output.rows, rowsByKey);
       output.dirtyCount = rows.reduce((output, row) => output + (isDirty(row) ? 1 : 0), 0);
       return output;
     }
@@ -123,6 +126,7 @@ function reducer(state: State, action: Action): State {
       output.keys = keys;
       output.rows = rows;
       output.rowsByKey = rowsByKey;
+      output.visibleRows = getVisibleRows(output.rows, rowsByKey);
       output.dirtyCount = rows.reduce((output, row) => output + (isDirty(row) ? 1 : 0), 0);
       return output;
     }
@@ -142,6 +146,7 @@ function reducer(state: State, action: Action): State {
       output.keys = keys;
       output.rows = rows;
       output.rowsByKey = rowsByKey;
+      output.visibleRows = getVisibleRows(output.rows, rowsByKey);
       output.dirtyCount = rows.reduce((output, row) => output + (isDirty(row) ? 1 : 0), 0);
       return output;
     }
@@ -166,6 +171,7 @@ function reducer(state: State, action: Action): State {
       const { keys, rows, rowsByKey } = flattenTableRows(output.data, state.rowsByKey);
       output.keys = keys;
       output.rows = rows;
+      output.visibleRows = getVisibleRows(rows, rowsByKey);
       output.rowsByKey = rowsByKey;
       output.dirtyCount = rows.reduce((output, row) => output + (isDirty(row) ? 1 : 0), 0);
       return output;
@@ -175,9 +181,6 @@ function reducer(state: State, action: Action): State {
       return { ...state, loading: false };
     case 'UPDATE_IS_ACTIVE_FLAG': {
       const key = action.payload.row.key;
-
-      // updateIsActiveFlag
-
       const rowsByKey = { ...state.rowsByKey };
 
       if (isTableRowItem(action.payload.row)) {
@@ -208,7 +211,23 @@ function reducer(state: State, action: Action): State {
         rows: state.keys.map((rowKey) => rowsByKey[rowKey]),
         rowsByKey,
       };
+      output.visibleRows = getVisibleRows(output.rows, rowsByKey);
       output.dirtyCount = output.rows.reduce((output, row) => output + (isDirty(row) ? 1 : 0), 0);
+      return output;
+    }
+    case 'TOGGLE_ROW_EXPAND': {
+      // toggleRowExpand
+      logger.log('TOGGLE_ROW_EXPAND', { state });
+      const key = action.payload.row.key;
+      const rowsByKey = { ...state.rowsByKey };
+      rowsByKey[key] = { ...rowsByKey[action.payload.row.key], isExpanded: action.payload.value };
+
+      const output: State = {
+        ...state,
+        rows: state.keys.map((rowKey) => rowsByKey[rowKey]),
+        rowsByKey,
+      };
+      output.visibleRows = getVisibleRows(output.rows, rowsByKey);
       return output;
     }
     case 'TOGGLE_ALL': {
@@ -302,6 +321,7 @@ function getRowsForItems({ type, records }: MetadataRecordType, loading: boolean
     type,
     loading: false,
     hasError: false,
+    isExpanded: true,
     items: [],
   };
 
@@ -328,6 +348,7 @@ function getRowsForItems({ type, records }: MetadataRecordType, loading: boolean
           link: `/lightning/setup/ObjectManager/${record.EntityDefinitionId}/ApexTriggers/${record.Id}/view`,
           sobject: record.EntityDefinition.QualifiedApiName,
           readOnly: false,
+          isExpanded: true,
           isActive: record.Status === 'Active',
           isActiveInitialState: record.Status === 'Active',
           label: record.Name,
@@ -349,6 +370,7 @@ function getRowsForItems({ type, records }: MetadataRecordType, loading: boolean
           link: `/lightning/setup/ObjectManager/${record.EntityDefinitionId}/ValidationRules/${record.Id}/view`,
           sobject: record.EntityDefinition.QualifiedApiName,
           readOnly: false,
+          isExpanded: true,
           isActive: record.Active,
           isActiveInitialState: record.Metadata.active,
           label: record.ValidationName,
@@ -373,6 +395,7 @@ function getRowsForItems({ type, records }: MetadataRecordType, loading: boolean
           link: `/lightning/setup/WorkflowRules/page?address=%2F${record.Id}&nodeId=WorkflowRules`,
           sobject: record.TableEnumOrId,
           readOnly: false,
+          isExpanded: true,
           isActive: record.Metadata.active,
           isActiveInitialState: record.Metadata.active,
           label: record.Name,
@@ -403,6 +426,7 @@ function getRowsForItems({ type, records }: MetadataRecordType, loading: boolean
                 )}`,
           sobject: record.TriggerObjectOrEvent.QualifiedApiName,
           readOnly: true,
+          isExpanded: true,
           isActive: record.ActiveVersionId != null,
           isActiveInitialState: record.ActiveVersionId != null,
           activeVersionNumber,
@@ -428,6 +452,7 @@ function getRowsForItems({ type, records }: MetadataRecordType, loading: boolean
               key: `${type}_${record.DurableId}_${version.DurableId}`,
               parentKey: `${type}_${record.DurableId}`,
               type,
+              isExpanded: false,
               record: version,
               link: type === 'FlowProcessBuilder' ? null : `/builder_platform_interaction/flowBuilder.app?flowId=${version.DurableId}`,
               sobject: record.TriggerObjectOrEvent.QualifiedApiName,
@@ -496,6 +521,26 @@ function flattenTableRows(
   return { rows, rowsByKey, keys };
 }
 
+function getVisibleRows(
+  rows: (TableRow | TableRowItem | TableRowItemChild)[],
+  rowsByKey: MapOf<TableRow | TableRowItem | TableRowItemChild>
+) {
+  return rows.filter((row) => {
+    if (isTableRow(row)) {
+      return true;
+    } else if (isTableRowItem(row) && rowsByKey[row.parentKey]?.isExpanded) {
+      return true;
+    } else if (
+      isTableRowChild(row) &&
+      rowsByKey[row.parentKey]?.isExpanded &&
+      rowsByKey[(rowsByKey[row.parentKey] as TableRowItem)?.parentKey]?.isExpanded
+    ) {
+      return true;
+    }
+    return false;
+  });
+}
+
 export function useAutomationControlData({
   selectedOrg,
   defaultApiVersion,
@@ -511,7 +556,7 @@ export function useAutomationControlData({
   const { trackEvent } = useAmplitude();
   const rollbar = useRollbar();
 
-  const [{ loading, hasError, errorMessage, data, rows, dirtyCount }, dispatch] = useReducer(reducer, {
+  const [{ loading, hasError, errorMessage, data, rows, visibleRows, dirtyCount }, dispatch] = useReducer(reducer, {
     loading: false,
     hasError: false,
     data: {
@@ -537,6 +582,7 @@ export function useAutomationControlData({
       },
     },
     rows: [],
+    visibleRows: [],
     rowsByKey: {},
     keys: [],
     dirtyCount: 0,
@@ -552,6 +598,10 @@ export function useAutomationControlData({
 
   const updateIsActiveFlag = useCallback((row: TableRowOrItemOrChild, value: boolean) => {
     dispatch({ type: 'UPDATE_IS_ACTIVE_FLAG', payload: { row, value } });
+  }, []);
+
+  const toggleRowExpand = useCallback((row: TableRowOrItemOrChild, value: boolean) => {
+    dispatch({ type: 'TOGGLE_ROW_EXPAND', payload: { row, value } });
   }, []);
 
   const resetChanges = useCallback(() => {
@@ -623,9 +673,11 @@ export function useAutomationControlData({
     errorMessage,
     data,
     rows,
+    visibleRows,
     fetchData,
     refreshProcessBuilders,
     updateIsActiveFlag,
+    toggleRowExpand,
     toggleAll,
     resetChanges,
     // restoreSnapshot,
