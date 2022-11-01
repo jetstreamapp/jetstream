@@ -52,6 +52,8 @@ export const NON_DATA_COLUMN_KEYS = new Set([SELECT_COLUMN_KEY, ACTION_COLUMN_KE
 export const DataTableFilterContext = createContext<FilterContextProps>(undefined);
 export const DataTableSubqueryContext = createContext<SubqueryContext>(undefined);
 export const DataTableSelectedContext = createContext<SelectedRowsContext>(undefined);
+// Used to allow arbitrary data to be accessed by renderers
+export const DataTableGenericContext = createContext<Record<string, any>>({});
 
 export function getRowId(data: any): string {
   if (data?._key) {

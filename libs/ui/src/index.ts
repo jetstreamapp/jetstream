@@ -13,6 +13,7 @@ export * from './lib/data-table/DataTable';
 export * from './lib/data-table/SalesforceRecordDataTable';
 export * from './lib/data-table-new/DataTable';
 export * from './lib/data-table-new/SalesforceRecordDataTable';
+export { DataTableGenericContext } from './lib/data-table-new/data-table-utils';
 export * from './lib/docked-composer/DockedComposer';
 export * from './lib/expression-group/expression-utils';
 export * from './lib/expression-group/ExpressionContainer';

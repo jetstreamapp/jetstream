@@ -10,7 +10,15 @@ import 'react-data-grid/lib/styles.css';
 import Icon from '../widgets/Icon';
 import './data-table-styles.scss';
 import { ColumnWithFilter, DataTableFilter, FILTER_SET_TYPES, RowWithKey } from './data-table-types';
-import { DataTableFilterContext, EMPTY_FIELD, filterRecord, getSearchTextByRow, isFilterActive, resetFilter } from './data-table-utils';
+import {
+  DataTableFilterContext,
+  DataTableGenericContext,
+  EMPTY_FIELD,
+  filterRecord,
+  getSearchTextByRow,
+  isFilterActive,
+  resetFilter,
+} from './data-table-utils';
 import { configIdLinkRenderer } from './DataTableRenderers';
 
 function sortStatus({ sortDirection, priority }: SortStatusProps) {
@@ -23,7 +31,8 @@ function sortStatus({ sortDirection, priority }: SortStatusProps) {
   ) : null;
 }
 
-export interface DataTableNewProps<T = RowWithKey> extends Omit<DataGridProps<T>, 'columns' | 'rows' | 'rowKeyGetter'> {
+export interface DataTableNewProps<T = RowWithKey, TContext = Record<string, any>>
+  extends Omit<DataGridProps<T>, 'columns' | 'rows' | 'rowKeyGetter'> {
   data: T[];
   columns: ColumnWithFilter<T>[];
   serverUrl?: string;
@@ -31,6 +40,7 @@ export interface DataTableNewProps<T = RowWithKey> extends Omit<DataGridProps<T>
   quickFilterText?: string;
   includeQuickFilter?: boolean;
   getRowKey: (row: T) => string;
+  context?: TContext;
 }
 
 const DataTable = <T extends object>({
@@ -41,6 +51,7 @@ const DataTable = <T extends object>({
   quickFilterText,
   includeQuickFilter,
   getRowKey,
+  context,
   ...rest
 }: DataTableNewProps<T>) => {
   const [sortColumns, setSortColumns] = useState<readonly SortColumn[]>([]);
@@ -150,25 +161,27 @@ const DataTable = <T extends object>({
   }
 
   return (
-    <DataTableFilterContext.Provider
-      value={{
-        filterSetValues,
-        filters,
-        updateFilter,
-      }}
-    >
-      <DataGrid
-        className="rdg-light fill-grid"
-        columns={columns}
-        rows={filteredRows}
-        renderers={{ sortStatus }}
-        sortColumns={sortColumns}
-        onSortColumnsChange={setSortColumns}
-        rowKeyGetter={getRowKey}
-        defaultColumnOptions={{ resizable: true, sortable: true, ...rest.defaultColumnOptions }}
-        {...rest}
-      />
-    </DataTableFilterContext.Provider>
+    <DataTableGenericContext.Provider value={context}>
+      <DataTableFilterContext.Provider
+        value={{
+          filterSetValues,
+          filters,
+          updateFilter,
+        }}
+      >
+        <DataGrid
+          className="rdg-light fill-grid"
+          columns={columns}
+          rows={filteredRows}
+          renderers={{ sortStatus }}
+          sortColumns={sortColumns}
+          onSortColumnsChange={setSortColumns}
+          rowKeyGetter={getRowKey}
+          defaultColumnOptions={{ resizable: true, sortable: true, ...rest.defaultColumnOptions }}
+          {...rest}
+        />
+      </DataTableFilterContext.Provider>
+    </DataTableGenericContext.Provider>
   );
 };
 

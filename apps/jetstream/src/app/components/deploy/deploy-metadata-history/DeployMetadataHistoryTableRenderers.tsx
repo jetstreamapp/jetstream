@@ -2,16 +2,16 @@ import { ICellRendererParams } from '@ag-grid-community/core';
 import { css } from '@emotion/react';
 import { IconName } from '@jetstream/icon-factory';
 import { SalesforceDeployHistoryItem } from '@jetstream/types';
-import { Grid, Icon } from '@jetstream/ui';
-import { Fragment, FunctionComponent } from 'react';
+import { DataTableGenericContext, Grid, Icon } from '@jetstream/ui';
+import { Fragment, FunctionComponent, useContext } from 'react';
+import { FormatterProps } from 'react-data-grid';
 import OrgLabelBadge from '../../core/OrgLabelBadge';
 import { DeployHistoryTableContext } from '../deploy-metadata.types';
 
 const fallbackLabel = 'Unknown Org';
 
-export const OrgRenderer: FunctionComponent<ICellRendererParams> = ({ data, context }) => {
-  const item = data as SalesforceDeployHistoryItem;
-  const { orgsById } = context as DeployHistoryTableContext;
+export function OrgRenderer({ row: item }: FormatterProps<SalesforceDeployHistoryItem>) {
+  const { orgsById } = useContext(DataTableGenericContext) as DeployHistoryTableContext;
 
   const sourceOrg = item.sourceOrg ? orgsById[item.sourceOrg.uniqueId] : null;
   const destinationOrg = orgsById[item.destinationOrg?.uniqueId];
@@ -53,10 +53,9 @@ export const OrgRenderer: FunctionComponent<ICellRendererParams> = ({ data, cont
       )}
     </Fragment>
   );
-};
+}
 
-export const StatusRenderer: FunctionComponent<ICellRendererParams> = ({ data, context }) => {
-  const item = data as SalesforceDeployHistoryItem;
+export function StatusRenderer({ row: item }: FormatterProps<SalesforceDeployHistoryItem>) {
   let status: string = item.status;
   let icon: IconName = 'success';
   let iconClassName = 'slds-icon slds-icon_x-small slds-icon-text-success';
@@ -82,15 +81,15 @@ export const StatusRenderer: FunctionComponent<ICellRendererParams> = ({ data, c
       {status}
     </div>
   );
-};
+}
 
-export const ActionRenderer: FunctionComponent<ICellRendererParams> = ({ data, context }) => {
-  const item = data as SalesforceDeployHistoryItem;
-  const { onDownload, onView } = context as DeployHistoryTableContext;
+export function ActionRenderer({ row: item }: FormatterProps<SalesforceDeployHistoryItem>) {
+  const { onDownload, onView } = useContext(DataTableGenericContext) as DeployHistoryTableContext;
 
   return (
     <Grid
       vertical
+      className="slds-line-height_reset"
       css={css`
         width: 180px;
       `}
@@ -109,4 +108,4 @@ export const ActionRenderer: FunctionComponent<ICellRendererParams> = ({ data, c
       )}
     </Grid>
   );
-};
+}
