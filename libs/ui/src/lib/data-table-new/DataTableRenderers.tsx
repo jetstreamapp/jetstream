@@ -84,13 +84,13 @@ export function SelectHeaderGroupRenderer<T>(props: GroupFormatterProps<T>) {
 
   return (
     <DataTableSelectedContext.Consumer>
-      {({ selectedRowIds }) => (
+      {({ selectedRowIds, getRowKey }) => (
         <Checkbox
           id={`checkbox-${column.name}_${groupKey}_header`} // TODO: need way to get row id
           label="Select all"
           hideLabel
           checked={isRowSelected}
-          indeterminate={selectedRowIds.size > 0 && childRows.some((childRow) => selectedRowIds.has(getRowId(childRow)))}
+          indeterminate={selectedRowIds.size > 0 && childRows.some((childRow) => selectedRowIds.has((getRowKey || getRowId)(childRow)))}
           onChange={(checked) => onRowSelectionChange({ row: row, checked, isShiftClick: false })}
         />
       )}

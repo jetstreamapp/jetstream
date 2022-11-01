@@ -15,8 +15,8 @@ export interface DeployMetadataDeploymentTableProps {
   onViewOrCompareOpen: () => void;
 }
 
-function getRowId({ key }: DeployMetadataTableRow): string {
-  return key;
+function getRowId(row: DeployMetadataTableRow): string {
+  return `${row.key}-${row.type}`;
 }
 
 const groupedRows = ['typeLabel'] as const;
@@ -30,7 +30,6 @@ export const DeployMetadataDeploymentTable: FunctionComponent<DeployMetadataDepl
   const [columns, setColumns] = useState<ColumnWithFilter<DeployMetadataTableRow>[]>([]);
   const [visibleRows, setVisibleRows] = useState<DeployMetadataTableRow[]>(rows);
   const [globalFilter, setGlobalFilter] = useState<string>(null);
-  const [selectedRows, setSelectedRow] = useState<Set<DeployMetadataTableRow>>(new Set());
   const [selectedRowIds, setSelectedRowIds] = useState(new Set<any>());
   const [expandedGroupIds, setExpandedGroupIds] = useState(new Set<any>());
 
@@ -44,24 +43,8 @@ export const DeployMetadataDeploymentTable: FunctionComponent<DeployMetadataDepl
   }, []);
 
   useEffect(() => {
-    onSelectedRows(selectedRows);
-  }, [onSelectedRows, selectedRows]);
-
-  function handleSelectionChanged(event: SelectionChangedEvent) {
-    setSelectedRow(new Set(event.api.getSelectedRows().filter((row: DeployMetadataTableRow) => row.metadata)));
-  }
-
-  // TODO: maybe move to parent?
-  function handleFilterChangeOrRowDataUpdated(event: ColumnEvent) {
-    setVisibleRows(getFilteredRows(event));
-  }
-
-  function handleIsRowSelectable(node: RowNode) {
-    if ((node.group && node.allChildrenCount === 1 && !node.allLeafChildren[0].data?.metadata) || (!node.group && !node.data?.metadata)) {
-      return false;
-    }
-    return true;
-  }
+    onSelectedRows(new Set(rows.filter((row) => selectedRowIds.has(getRowId(row)))));
+  }, [onSelectedRows, selectedRowIds]);
 
   return (
     <Fragment>
@@ -81,12 +64,13 @@ export const DeployMetadataDeploymentTable: FunctionComponent<DeployMetadataDepl
       )}
       <AutoFullHeightContainer fillHeight setHeightAttr delayForSecondTopCalc bottomBuffer={15}>
         {/* TODO: loading indicator on grouped rows, will require context */}
-        <DataTableSelectedContext.Provider value={{ selectedRowIds }}>
+        <DataTableSelectedContext.Provider value={{ selectedRowIds, getRowKey: getRowId }}>
           <DataTableNew
             columns={columns}
             data={rows}
             getRowKey={getRowId}
-            // TODO: metadataFilterItemsWithNoChildren
+            includeQuickFilter
+            quickFilterText={globalFilter}
             groupBy={groupedRows}
             rowGrouper={groupBy}
             expandedGroupIds={expandedGroupIds}
@@ -101,36 +85,3 @@ export const DeployMetadataDeploymentTable: FunctionComponent<DeployMetadataDepl
 };
 
 export default DeployMetadataDeploymentTable;
-
-export const MetadataFilterItemsWithNoChildren = forwardRef<any, IFilterParams>(({ filterChangedCallback, colDef, context }, ref) => {
-  const [value, setValue] = useState(true);
-
-  useNonInitialEffect(() => {
-    filterChangedCallback();
-  }, [filterChangedCallback, value]);
-
-  function nodeHasData(node: RowNode) {
-    return node.data?.loading || node.data?.metadata;
-  }
-
-  useImperativeHandle(ref, () => {
-    const filterComp: IFilter = {
-      isFilterActive: () => !value,
-      doesFilterPass: ({ node }) => {
-        if ((node.group && node.allChildrenCount === 1 && !nodeHasData(node.allLeafChildren[0])) || (!node.group && !nodeHasData(node))) {
-          return false;
-        }
-        return true;
-      },
-      getModel: () => ({ value }),
-      setModel: (model) => setValue(model ? model.value : true),
-    };
-    return filterComp;
-  });
-
-  return (
-    <div className="slds-p-around_small">
-      <Checkbox id={`metadata-filter-${colDef.field}`} checked={value} label="Show metadata types with no items" onChange={setValue} />
-    </div>
-  );
-});

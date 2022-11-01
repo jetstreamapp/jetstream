@@ -13,7 +13,7 @@ import {
   SalesforceDeployHistoryType,
   SalesforceOrgUi,
 } from '@jetstream/types';
-import { Spinner } from '@jetstream/ui';
+import { Grid, Spinner } from '@jetstream/ui';
 import formatDate from 'date-fns/format';
 import formatISO from 'date-fns/formatISO';
 import parseISO from 'date-fns/parseISO';
@@ -230,9 +230,37 @@ export function getColumnDefinitions(): ColumnWithFilter<DeployMetadataTableRow>
       ...SelectColumn,
       key: SELECT_COLUMN_KEY,
       resizable: false,
-      formatter: SelectFormatter,
+      formatter: (args) => {
+        const { row } = args;
+        if (row.loading) {
+          return null;
+        } else if (!row.metadata) {
+          return (
+            <Grid align="center" className="slds-text-color_weak">
+              <em>No metadata found</em>
+            </Grid>
+          );
+        }
+        return <SelectFormatter {...args} />;
+      },
       headerRenderer: SelectHeaderRenderer,
-      groupFormatter: SelectHeaderGroupRenderer,
+      groupFormatter: (args) => {
+        const { childRows } = args;
+        // Don't allow selection if child rows are loading
+        if (childRows.length === 0 || (childRows.length === 1 && (childRows[0].loading || !childRows[0].metadata))) {
+          return null;
+        }
+        return <SelectHeaderGroupRenderer {...args} />;
+      },
+      colSpan: (args) => {
+        if (args.type === 'ROW') {
+          const { row } = args;
+          if (!row.loading && !row.metadata) {
+            return 3;
+          }
+        }
+        return 1;
+      },
     },
     {
       ...setColumnFromType('typeLabel', 'text'),
@@ -254,6 +282,15 @@ export function getColumnDefinitions(): ColumnWithFilter<DeployMetadataTableRow>
       name: 'Last Modified By',
       key: 'lastModifiedByName',
       width: 160,
+      colSpan: (args) => {
+        if (args.type === 'ROW') {
+          const { row } = args;
+          if (!row.loading && !row.metadata) {
+            return 5;
+          }
+        }
+        return 1;
+      },
     },
     {
       ...setColumnFromType('lastModifiedDate', 'date'),

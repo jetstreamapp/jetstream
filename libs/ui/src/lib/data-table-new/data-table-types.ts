@@ -69,4 +69,5 @@ export interface SubqueryContext<TRow = any> {
 
 export interface SelectedRowsContext<TRow = any> {
   selectedRowIds: Set<any>;
+  getRowKey?: (row: TRow) => string;
 }
