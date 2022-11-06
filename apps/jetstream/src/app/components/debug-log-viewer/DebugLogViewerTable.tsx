@@ -1,22 +1,17 @@
-import { ColDef, GetRowIdParams, ICellRendererParams, SelectionChangedEvent } from '@ag-grid-community/core';
 import { css } from '@emotion/react';
-import { ApexLog, ApexLogWithViewed } from '@jetstream/types';
-import {
-  AutoFullHeightContainer,
-  DataTable,
-  dataTableDateFormatter,
-  dataTableFileSizeFormatter,
-  DateFilterComparator,
-  Icon,
-} from '@jetstream/ui';
+import { ApexLogWithViewed } from '@jetstream/types';
+import { AutoFullHeightContainer, DataTableNew, Icon } from '@jetstream/ui';
+import { ColumnWithFilter } from 'libs/ui/src/lib/data-table-new/data-table-types';
+import { setColumnFromType } from 'libs/ui/src/lib/data-table-new/data-table-utils';
 import { FunctionComponent, useEffect, useRef } from 'react';
+import { FormatterProps } from 'react-data-grid';
 
-export const LogViewedRenderer: FunctionComponent<ICellRendererParams> = ({ node }) => {
-  if (node.data?.viewed) {
+export const LogViewedRenderer: FunctionComponent<FormatterProps<ApexLogWithViewed>> = ({ row }) => {
+  if (row?.viewed) {
     return (
       <Icon
         css={css`
-          margin-left: -7px;
+          margin-left: 24px;
         `}
         type="utility"
         icon="preview"
@@ -29,71 +24,69 @@ export const LogViewedRenderer: FunctionComponent<ICellRendererParams> = ({ node
   return null;
 };
 
-const COLUMNS: ColDef[] = [
+const COLUMNS: ColumnWithFilter<ApexLogWithViewed>[] = [
   {
-    headerName: '',
-    colId: 'viewed',
-    field: 'viewed',
-    width: 24,
-    cellRenderer: 'logViewedRenderer',
-    lockPosition: true,
-    lockVisible: true,
+    name: '',
+    key: 'viewed',
+    width: 12,
+    formatter: LogViewedRenderer,
+    resizable: false,
+    // TODO: filter for this
   },
   {
-    headerName: 'User',
-    colId: 'user',
-    field: 'LogUser.Name',
+    ...setColumnFromType('LogLength', 'text'),
+    name: 'User',
+    key: 'LogUser.Name',
     width: 125,
   },
   {
-    headerName: 'Application',
-    colId: 'Application',
-    field: 'Application',
+    ...setColumnFromType('LogLength', 'text'),
+    name: 'Application',
+    key: 'Application',
     width: 125,
   },
   {
-    headerName: 'Operation',
-    colId: 'Operation',
-    field: 'Operation',
+    ...setColumnFromType('LogLength', 'text'),
+    name: 'Operation',
+    key: 'Operation',
     width: 125,
   },
   {
-    headerName: 'Status',
-    colId: 'Status',
-    field: 'Status',
+    ...setColumnFromType('LogLength', 'text'),
+    name: 'Status',
+    key: 'Status',
     width: 125,
   },
   {
-    headerName: 'Size',
-    colId: 'Size',
-    field: 'LogLength',
+    ...setColumnFromType('LogLength', 'text'),
+    name: 'Size',
+    key: 'LogLength',
     width: 125,
-    valueFormatter: dataTableFileSizeFormatter,
   },
   {
-    headerName: 'Time',
-    colId: 'LastModifiedDate',
-    field: 'LastModifiedDate',
-    sort: 'desc',
+    ...setColumnFromType('LastModifiedDate', 'date'),
+    name: 'Time',
+    key: 'LastModifiedDate',
+    // sort: 'desc',
     width: 202,
-    valueFormatter: dataTableDateFormatter,
-    getQuickFilterText: dataTableDateFormatter,
-    filter: 'agDateColumnFilter',
-    filterParams: {
-      defaultOption: 'greaterThan',
-      comparator: DateFilterComparator,
-      buttons: ['clear'],
-    },
+    // valueFormatter: dataTableDateFormatter,
+    // getQuickFilterText: dataTableDateFormatter,
+    // filter: 'agDateColumnFilter',
+    // filterParams: {
+    // defaultOption: 'greaterThan',
+    // comparator: DateFilterComparator,
+    // buttons: ['clear'],
+    // },
   },
 ];
 
-function getRowId({ data }: GetRowIdParams): string {
-  return data.Id;
+function getRowId({ Id }: ApexLogWithViewed): string {
+  return Id;
 }
 
 export interface DebugLogViewerTableProps {
   logs: ApexLogWithViewed[];
-  onRowSelection: (log: ApexLog) => void;
+  onRowSelection: (log: ApexLogWithViewed) => void;
 }
 
 export const DebugLogViewerTable: FunctionComponent<DebugLogViewerTableProps> = ({ logs, onRowSelection }) => {
@@ -106,28 +99,15 @@ export const DebugLogViewerTable: FunctionComponent<DebugLogViewerTableProps> = 
     };
   }, []);
 
-  function handleSelectionChanged(event: SelectionChangedEvent) {
-    const selectedRow: ApexLog = event.api.getSelectedRows()[0];
-    if (selectedRow) {
-      onRowSelection(selectedRow);
+  function handleSelectionChanged(row: ApexLogWithViewed, column: ColumnWithFilter<ApexLogWithViewed>) {
+    if (row) {
+      onRowSelection(row);
     }
   }
 
   return (
     <AutoFullHeightContainer fillHeight setHeightAttr bottomBuffer={75}>
-      <DataTable
-        columns={COLUMNS}
-        data={logs}
-        agGridProps={{
-          getRowId,
-          enableRangeSelection: false,
-          suppressCellFocus: true,
-          suppressRowClickSelection: false,
-          components: { logViewedRenderer: LogViewedRenderer },
-          rowSelection: 'single',
-          onSelectionChanged: handleSelectionChanged,
-        }}
-      />
+      <DataTableNew columns={COLUMNS} data={logs} getRowKey={getRowId} onRowClick={handleSelectionChanged} />
     </AutoFullHeightContainer>
   );
 };

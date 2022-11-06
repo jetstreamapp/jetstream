@@ -42,7 +42,7 @@ export interface DataTableBooleanSetFilter {
 
 export interface ColumnWithFilter<TRow, TSummaryRow = unknown> extends Column<TRow, TSummaryRow> {
   /** getValue is used when filtering or sorting rows */
-  readonly getValue?: (row: TRow) => string;
+  readonly getValue?: (params: { row: TRow; column: ColumnWithFilter<TRow, unknown> }) => string;
   readonly filters?: FilterType[];
 }
 
@@ -70,4 +70,21 @@ export interface SubqueryContext<TRow = any> {
 export interface SelectedRowsContext<TRow = any> {
   selectedRowIds: Set<any>;
   getRowKey?: (row: TRow) => string;
+}
+
+export interface SalesforceLocationField {
+  latitude: number;
+  longitude: number;
+}
+
+export interface SalesforceAddressField {
+  city?: string;
+  country?: string;
+  CountryCode?: string;
+  latitude?: number;
+  longitude?: number;
+  postalCode?: string;
+  state?: string;
+  StateCode?: string;
+  street?: string;
 }

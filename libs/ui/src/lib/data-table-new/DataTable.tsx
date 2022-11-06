@@ -56,7 +56,7 @@ const DataTable = <T extends object>({
 }: DataTableNewProps<T>) => {
   const [sortColumns, setSortColumns] = useState<readonly SortColumn[]>([]);
   // TODO: will be used for filtering
-  const [columnMap, setColumnMap] = useState<Map<string, Column<T>>>(() => new Map());
+  const [columnMap, setColumnMap] = useState<Map<string, ColumnWithFilter<T>>>(() => new Map());
   const [filters, setFilters] = useState<Record<string, DataTableFilter[]>>({});
   // TODO: do we need label and value?
   const [filterSetValues, setFilterSetValues] = useState<Record<string, string[]>>({});
@@ -88,6 +88,8 @@ const DataTable = <T extends object>({
         .filter((columnKey) => Array.isArray(filters[columnKey]) && filters[columnKey].some(({ type }) => FILTER_SET_TYPES.has(type)))
         .reduce((acc: Record<string, string[]>, columnKey) => {
           const filter = filters[columnKey].find(({ type }) => FILTER_SET_TYPES.has(type));
+          const column = columnMap.get(columnKey);
+          const getValueFn = columnMap.get(columnKey)?.getValue || (({ row, column }) => row[columnKey]);
           if (filter.type === 'BOOLEAN_SET') {
             acc[columnKey] = ['True', 'False'];
           } else {
@@ -95,7 +97,7 @@ const DataTable = <T extends object>({
               Array.from(
                 new Set(
                   data.map((row) => {
-                    const rowValue = row[columnKey];
+                    const rowValue = getValueFn({ row, column });
                     // TODO: we need some additional function to get the filter value and also compare the value when filtering
                     return isNil(row[columnKey]) ? EMPTY_FIELD : String(rowValue);
                   })
@@ -121,6 +123,7 @@ const DataTable = <T extends object>({
       return data;
     }
     // TODO: what about complex data?
+    // TODO: what about getValue on filter
     return orderObjectsBy(
       data,
       sortColumns.map(({ columnKey }) => columnKey) as any,
@@ -144,7 +147,11 @@ const DataTable = <T extends object>({
             Array.isArray(filters[columnKey]) && filters[columnKey].length && filters[columnKey].some((filter) => isFilterActive(filter))
         )
         .every((columnKey) => {
-          const rowValue = row[columnKey];
+          let rowValue = row[columnKey];
+          const column = columnMap.get(columnKey);
+          if (column?.getValue) {
+            rowValue = column.getValue({ row, column: columnMap.get(columnKey) });
+          }
           return filters[columnKey].filter(isFilterActive).every((filter) => filterRecord(filter, rowValue));
         });
       // Apply global filter

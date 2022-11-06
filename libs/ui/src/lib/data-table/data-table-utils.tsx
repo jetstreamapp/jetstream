@@ -6,7 +6,6 @@ import {
   ColumnApi,
   ColumnEvent,
   GetContextMenuItemsParams,
-  GetQuickFilterTextParams,
   MenuItemDef,
   ProcessCellForExportParams,
   RowNode,
@@ -26,6 +25,7 @@ import startOfDay from 'date-fns/startOfDay';
 import fileSizeFormatter from 'filesize';
 import { Field } from 'jsforce';
 import isDate from 'lodash/isDate';
+import isNil from 'lodash/isNil';
 import isObject from 'lodash/isObject';
 import { createContext } from 'react';
 import { FieldSubquery, getFlattenedFields, isFieldSubquery } from 'soql-parser-js';
@@ -194,12 +194,11 @@ export const dataTableTimeFormatter = <T extends { value: string | null | undefi
   }
 };
 
-export const dataTableFileSizeFormatter = <T extends { value: string | null | undefined }>({ value }: T): string => {
-  const dateOrDateTime: string = value;
-  if (!dateOrDateTime) {
+export const dataTableFileSizeFormatter = (sizeInBytes: string | number | null | undefined): string => {
+  if (isNil(sizeInBytes)) {
     return '';
   }
-  return fileSizeFormatter(value as any);
+  return fileSizeFormatter(sizeInBytes as any);
 };
 
 /**

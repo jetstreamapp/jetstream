@@ -1,23 +1,25 @@
 import { QueryResults, QueryResultsColumn } from '@jetstream/api-interfaces';
+import { DATE_FORMATS } from '@jetstream/shared/constants';
 import { ensureBoolean } from '@jetstream/shared/utils';
 import { MapOf } from '@jetstream/types';
+import formatDate from 'date-fns/format';
 import isAfter from 'date-fns/isAfter';
 import isBefore from 'date-fns/isBefore';
 import isSameDay from 'date-fns/isSameDay';
+import parseDate from 'date-fns/parse';
 import parseISO from 'date-fns/parseISO';
 import startOfDay from 'date-fns/startOfDay';
+import fileSizeFormatter from 'filesize';
 import { Field } from 'jsforce';
-import { isNil, isNumber, isObject, isString } from 'lodash';
+import isDate from 'lodash/isDate';
+import isNil from 'lodash/isNil';
+import isNumber from 'lodash/isNumber';
+import isObject from 'lodash/isObject';
+import isString from 'lodash/isString';
 import uniqueId from 'lodash/uniqueId';
 import { createContext } from 'react';
 import { SelectColumn, SELECT_COLUMN_KEY as _SELECT_COLUMN_KEY } from 'react-data-grid';
 import { FieldSubquery, getFlattenedFields, isFieldSubquery } from 'soql-parser-js';
-import {
-  dataTableAddressValueFormatter,
-  dataTableDateFormatter,
-  dataTableLocationFormatter,
-  dataTableTimeFormatter,
-} from '../data-table/data-table-utils';
 import {
   ColumnType,
   ColumnWithFilter,
@@ -25,6 +27,8 @@ import {
   FilterContextProps,
   FilterType,
   RowWithKey,
+  SalesforceAddressField,
+  SalesforceLocationField,
   SalesforceQueryColumnDefinition,
   SelectedRowsContext,
   SubqueryContext,
@@ -344,14 +348,15 @@ export function updateColumnFromType(column: Mutable<ColumnWithFilter<any>>, fie
       column.formatter = ComplexDataRenderer;
       break;
     case 'location':
-      column.formatter = ({ column, row }) => dataTableLocationFormatter({ value: row[column.key] });
+      column.formatter = ({ column, row }) => dataTableLocationFormatter(row[column.key]);
       break;
     case 'date':
-      column.formatter = ({ column, row }) => dataTableDateFormatter({ value: row[column.key] });
+      column.formatter = ({ column, row }) => dataTableDateFormatter(row[column.key]);
       column.filters = ['DATE', 'SET'];
+      column.getValue = ({ column, row }) => dataTableDateFormatter(row[column.key]);
       break;
     case 'time':
-      column.formatter = ({ column, row }) => dataTableTimeFormatter({ value: row[column.key] });
+      column.formatter = ({ column, row }) => dataTableTimeFormatter(row[column.key]);
       // TODO: add time filter
       break;
     case 'boolean':
@@ -519,7 +524,10 @@ export function getSearchTextByRow<T>(rows: T[], columns: ColumnWithFilter<T>[],
       if (key) {
         columns.forEach((column) => {
           if (column.key) {
-            const value = row[column.key];
+            let value = row[column.key];
+            if (column.getValue) {
+              value = column.getValue({ row, column });
+            }
             if (!isNil(value) && !isObject(value)) {
               let filterValue = String(value);
               if (filterValue === '[object Object]') {
@@ -534,3 +542,55 @@ export function getSearchTextByRow<T>(rows: T[], columns: ColumnWithFilter<T>[],
   }
   return output;
 }
+
+export const dataTableDateFormatter = (dateOrDateTime: Date | string | null | undefined): string => {
+  if (!dateOrDateTime) {
+    return null;
+  } else if (isDate(dateOrDateTime)) {
+    return formatDate(dateOrDateTime as Date, DATE_FORMATS.YYYY_MM_DD_HH_mm_ss_a);
+  } else if (dateOrDateTime.length === 28) {
+    return formatDate(parseISO(dateOrDateTime), DATE_FORMATS.YYYY_MM_DD_HH_mm_ss_a);
+  } else if (dateOrDateTime.length === 10) {
+    return formatDate(startOfDay(parseISO(dateOrDateTime)), DATE_FORMATS.yyyy_MM_dd);
+  } else {
+    return dateOrDateTime;
+  }
+};
+
+export const dataTableTimeFormatter = (value: string | null | undefined): string => {
+  const time: string = value;
+  if (!time) {
+    return '';
+  } else if (time.length === 13) {
+    return formatDate(parseDate(time, DATE_FORMATS.HH_mm_ss_ssss_z, new Date()), DATE_FORMATS.HH_MM_SS_a);
+  } else {
+    return time;
+  }
+};
+
+export const dataTableFileSizeFormatter = (sizeInBytes: string | number | null | undefined): string => {
+  if (isNil(sizeInBytes)) {
+    return '';
+  }
+  return fileSizeFormatter(sizeInBytes as any);
+};
+
+const newLineRegex = /\\n/g;
+
+export const dataTableAddressValueFormatter = (value: any): string => {
+  if (!isObject(value)) {
+    return '';
+  }
+  const address: SalesforceAddressField = value;
+  const street = (address.street || '').replace(newLineRegex, '');
+  const remainingParts = [address.city, address.state, address.postalCode, address.country].filter((part) => !!part).join(', ');
+  return [street, remainingParts].join('\n');
+};
+
+export const dataTableLocationFormatter = (value: SalesforceLocationField | null | undefined): string => {
+  if (!isObject(value)) {
+    return '';
+  }
+  const location: SalesforceLocationField = value as SalesforceLocationField;
+  return `Latitude: ${location.latitude}°, Longitude: ${location.longitude}°`;
+};
