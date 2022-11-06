@@ -1,9 +1,8 @@
-import { ColDef, GetRowIdParams, RowHeightParams } from '@ag-grid-community/core';
 import { MapOf, SalesforceDeployHistoryItem, SalesforceOrgUi } from '@jetstream/types';
-import { DataTable, DataTableNew, DateFilterComparator } from '@jetstream/ui';
+import { DataTableNew } from '@jetstream/ui';
 import { ColumnWithFilter } from 'libs/ui/src/lib/data-table-new/data-table-types';
 import { setColumnFromType } from 'libs/ui/src/lib/data-table-new/data-table-utils';
-import { FunctionComponent, useContext, useMemo } from 'react';
+import { FunctionComponent, useMemo } from 'react';
 import { RowHeightArgs } from 'react-data-grid';
 import { DeployHistoryTableContext } from '../deploy-metadata.types';
 import { ActionRenderer, OrgRenderer, StatusRenderer } from './DeployMetadataHistoryTableRenderers';
@@ -21,22 +20,12 @@ const COLUMNS: ColumnWithFilter<SalesforceDeployHistoryItem>[] = [
     name: 'Started',
     key: 'start',
     width: 200,
-    // valueFormatter: dataTableDateFormatter,
-    // getQuickFilterText: dataTableDateFormatter,
-    // tooltipField: 'start',
-    // filter: 'agDateColumnFilter',
-    // filterParams: {
-    //   defaultOption: 'greaterThan',
-    //   comparator: DateFilterComparator,
-    //   buttons: ['clear'],
-    // },
     filters: [], // FIXME: does not work in modal
   },
   {
     ...setColumnFromType('type', 'text'),
     name: 'Type',
     key: 'type',
-    // valueGetter: ({ data }) => TYPE_MAP[data.type],
     width: 165,
     formatter: ({ column, row }) => TYPE_MAP[row[column.key]],
     filters: [], // FIXME: does not work in modal
@@ -54,18 +43,12 @@ const COLUMNS: ColumnWithFilter<SalesforceDeployHistoryItem>[] = [
     key: 'status',
     formatter: StatusRenderer,
     width: 150,
-    // filterValueGetter: ({ data }) => {
-    //   const item = data as SalesforceDeployHistoryItem;
-    //   return item.status === 'SucceededPartial' ? 'Partial Success' : item.status;
-    // },
     filters: [], // FIXME: does not work in modal
   },
   {
     name: 'Actions',
     key: 'actionRenderer',
     width: 220,
-    // filter: false,
-    // menuTabs: [],
     sortable: false,
     resizable: false,
     formatter: ActionRenderer,
@@ -101,34 +84,7 @@ export interface DeployMetadataHistoryTableProps {
 export const DeployMetadataHistoryTable: FunctionComponent<DeployMetadataHistoryTableProps> = ({ items, orgsById, onView, onDownload }) => {
   const context: DeployHistoryTableContext = useMemo(() => ({ orgsById, onView, onDownload }), [orgsById, onView, onDownload]);
   const getRowHeightFn = useMemo(() => getRowHeight(orgsById), [orgsById]);
-  return (
-    <DataTableNew
-      columns={COLUMNS}
-      data={items}
-      getRowKey={getRowId}
-      context={context}
-      rowHeight={getRowHeightFn}
-      // defaultMenuTabs={['filterMenuTab']}
-      // agGridProps={{
-      //   getRowId,
-      //   getRowHeight,
-      //   context: {
-      //     orgsById,
-      //     onView,
-      //     onDownload,
-      //   },
-      //   enableRangeSelection: false,
-      //   suppressCellFocus: true,
-      //   suppressRowClickSelection: true,
-      //   enableCellTextSelection: true,
-      //   components: {
-      //     orgRenderer: OrgRenderer,
-      //     actionRenderer: ActionRenderer,
-      //     statusRenderer: StatusRenderer,
-      //   },
-      // }}
-    />
-  );
+  return <DataTableNew columns={COLUMNS} data={items} getRowKey={getRowId} context={context} rowHeight={getRowHeightFn} />;
 };
 
 export default DeployMetadataHistoryTable;
