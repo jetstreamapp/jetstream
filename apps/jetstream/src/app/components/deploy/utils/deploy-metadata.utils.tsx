@@ -1,7 +1,6 @@
-import { GetQuickFilterTextParams, ValueFormatterParams } from '@ag-grid-community/core';
 import { getMetadataLabelFromFullName, ListMetadataResultItem } from '@jetstream/connected-ui';
 import { logger } from '@jetstream/shared/client-logger';
-import { DATE_FORMATS, INDEXED_DB } from '@jetstream/shared/constants';
+import { INDEXED_DB } from '@jetstream/shared/constants';
 import { logErrorToRollbar } from '@jetstream/shared/ui-utils';
 import { ensureArray, getSuccessOrFailureChar, orderStringsBy, pluralizeFromNumber } from '@jetstream/shared/utils';
 import {
@@ -14,7 +13,6 @@ import {
   SalesforceOrgUi,
 } from '@jetstream/types';
 import { Grid, Spinner } from '@jetstream/ui';
-import formatDate from 'date-fns/format';
 import formatISO from 'date-fns/formatISO';
 import parseISO from 'date-fns/parseISO';
 import { DeployOptions } from 'jsforce';
@@ -205,13 +203,6 @@ export function getQueryForPackage(): string {
   logger.log('getQueryForPackage()', soql);
   return soql;
 }
-
-export const dataTableDateFormatter = ({ value }: ValueFormatterParams | GetQuickFilterTextParams): string => {
-  if (value instanceof Date) {
-    return formatDate(value, DATE_FORMATS.YYYY_MM_DD_HH_mm_ss_a);
-  }
-  return '';
-};
 
 const ValueOrLoadingRenderer = ({ row, childRows }: GroupFormatterProps<DeployMetadataTableRow>) => {
   if (!row) {

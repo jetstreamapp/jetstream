@@ -1,18 +1,17 @@
-import { ColDef } from '@ag-grid-community/core';
-import { query } from '@jetstream/shared/data';
+import { css } from '@emotion/react';
 import { logger } from '@jetstream/shared/client-logger';
+import { query } from '@jetstream/shared/data';
 import { formatNumber } from '@jetstream/shared/ui-utils';
 import { InsertUpdateUpsertDelete, SalesforceOrgUi } from '@jetstream/types';
 import { Alert, AutoFullHeightContainer, DataTableNew, Grid, GridCol, Spinner } from '@jetstream/ui';
 import { DescribeGlobalSObjectResult } from 'jsforce';
+import { RowWithKey } from 'libs/ui/src/lib/data-table-new/data-table-types';
+import { getColumnsForGenericTable } from 'libs/ui/src/lib/data-table-new/data-table-utils';
 import isNil from 'lodash/isNil';
-import { Fragment, FunctionComponent, useEffect, useRef, useState } from 'react';
+import { FunctionComponent, useEffect, useRef, useState } from 'react';
+import { Column } from 'react-data-grid';
 import { useRecoilState } from 'recoil';
 import * as fromLoadRecordsState from '../load-records.state';
-import { RowWithKey } from 'libs/ui/src/lib/data-table-new/data-table-types';
-import { Column } from 'react-data-grid';
-import { getColumnsForGenericTable } from 'libs/ui/src/lib/data-table-new/data-table-utils';
-import { css } from '@emotion/react';
 
 const NUM_COLUMN = '_num';
 

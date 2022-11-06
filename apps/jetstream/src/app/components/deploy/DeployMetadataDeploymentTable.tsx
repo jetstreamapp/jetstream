@@ -1,10 +1,9 @@
-import { ColumnEvent, IFilter, IFilterParams, RowNode, SelectionChangedEvent } from '@ag-grid-community/core';
-import { formatNumber, useNonInitialEffect } from '@jetstream/shared/ui-utils';
-import { AutoFullHeightContainer, Checkbox, DataTableNew, getFilteredRows, Grid, Icon, SearchInput } from '@jetstream/ui';
+import { formatNumber } from '@jetstream/shared/ui-utils';
+import { AutoFullHeightContainer, DataTableNew, Grid, Icon, SearchInput } from '@jetstream/ui';
 import { ColumnWithFilter } from 'libs/ui/src/lib/data-table-new/data-table-types';
 import { DataTableSelectedContext } from 'libs/ui/src/lib/data-table-new/data-table-utils';
 import groupBy from 'lodash/groupBy';
-import { forwardRef, Fragment, FunctionComponent, useEffect, useImperativeHandle, useState } from 'react';
+import { Fragment, FunctionComponent, useEffect, useState } from 'react';
 import { DeployMetadataTableRow } from './deploy-metadata.types';
 import { getColumnDefinitions } from './utils/deploy-metadata.utils';
 

@@ -1,9 +1,8 @@
-import { ICellRendererParams } from '@ag-grid-community/core';
 import { css } from '@emotion/react';
 import { IconName } from '@jetstream/icon-factory';
 import { SalesforceDeployHistoryItem } from '@jetstream/types';
 import { DataTableGenericContext, Grid, Icon } from '@jetstream/ui';
-import { Fragment, FunctionComponent, useContext } from 'react';
+import { Fragment, useContext } from 'react';
 import { FormatterProps } from 'react-data-grid';
 import OrgLabelBadge from '../../core/OrgLabelBadge';
 import { DeployHistoryTableContext } from '../deploy-metadata.types';
