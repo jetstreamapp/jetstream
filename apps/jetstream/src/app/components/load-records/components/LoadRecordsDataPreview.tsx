@@ -94,7 +94,7 @@ export const LoadRecordsDataPreview: FunctionComponent<LoadRecordsDataPreviewPro
         const sobjectName = selectedSObject.name;
         try {
           setLoading(true);
-          // TODO: we could use recordCount API: {{_endpoint}}/services/data/v{{version}}/limits/recordCount?sObjects=Account,Contact
+          // TODO: we could use recordCount API: :ENDPOINT/services/data/v{{version}}/limits/recordCount?sObjects=Account,Contact
           // TODO: this could be moved into a custom hook
           const results = await query(selectedOrg, `SELECT COUNT() FROM ${sobjectName}`);
           if (!isMounted.current || selectedSObject?.name !== sobjectName) {
