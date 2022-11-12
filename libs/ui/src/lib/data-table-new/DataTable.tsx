@@ -161,7 +161,7 @@ const DataTable = <T extends object>({
       }
       return isVisible;
     });
-  }, [filters, getRowKey, includeQuickFilter, quickFilterText, rowFilterText, sortedRows]);
+  }, [columnMap, filters, getRowKey, includeQuickFilter, quickFilterText, rowFilterText, sortedRows]);
 
   if (serverUrl && org) {
     configIdLinkRenderer(serverUrl, org);

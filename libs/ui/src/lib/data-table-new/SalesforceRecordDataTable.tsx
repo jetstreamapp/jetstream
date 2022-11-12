@@ -29,10 +29,6 @@ function getRowId(data: any): string {
   return nodeId;
 }
 
-function getRowKey(row: RowWithKey): string {
-  return row.id;
-}
-
 export interface SalesforceRecordDataTableNewProps {
   org: SalesforceOrgUi;
   isTooling: boolean;
@@ -173,27 +169,6 @@ export const SalesforceRecordDataTableNew: FunctionComponent<SalesforceRecordDat
       // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
-    function handleSelectionChanged(event) {
-      // if (onSelectionChanged) {
-      // onSelectionChanged(event.api.getSelectedRows());
-      // }
-    }
-
-    function handleColumnChanged(event) {
-      // logger.log('handleColumnMoved', { event });
-      // onFields({ allFields: getAllColumns(event.columnApi), visibleFields: getCurrentColumns(event.columnApi) });
-    }
-
-    /**
-     * User filtered data or clicked load more records
-     */
-    function handleFilterChangeOrRowDataUpdated(event) {
-      // logger.log('handleFilterChangeOrRowDataUpdated', { event });
-      // if (onFilteredRowsChanged) {
-      // onFilteredRowsChanged(getFilteredRows(event));
-      // }
-    }
-
     async function loadRemaining() {
       try {
         setIsLoadingMore(true);
@@ -220,11 +195,6 @@ export const SalesforceRecordDataTableNew: FunctionComponent<SalesforceRecordDat
         setLoadMoreErrorMessage('There was a problem loading the rest of the records.');
         rollbar.error('Load Remaining Records failed', { message: ex.message, stack: ex.stack });
       }
-    }
-
-    /** Ensure that the header is the true api name and does not include (type) */
-    function processHeaderForClipboard() {
-      // return column.getColDef().field;
     }
 
     function handleCopy({ sourceRow, sourceColumnKey }: CopyEvent<RowWithKey>): void {
@@ -278,7 +248,7 @@ export const SalesforceRecordDataTableNew: FunctionComponent<SalesforceRecordDat
               columns={columns}
               includeQuickFilter
               quickFilterText={globalFilter}
-              getRowKey={getRowKey}
+              getRowKey={getRowId}
               onCopy={handleCopy}
               rowHeight={28.5}
               selectedRows={selectedRows}
