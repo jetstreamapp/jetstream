@@ -1,6 +1,7 @@
 import { SalesforceOrgUi } from '@jetstream/types';
 import { DataTableNew } from '@jetstream/ui';
 import { ColumnWithFilter } from 'libs/ui/src/lib/data-table-new/data-table-types';
+import { setColumnFromType } from 'libs/ui/src/lib/data-table-new/data-table-utils';
 import { forwardRef, useMemo } from 'react';
 import { RowHeightArgs } from 'react-data-grid';
 import { isTableRow } from './automation-control-data-utils';
@@ -25,6 +26,8 @@ const getRowClass = (row: TableRowOrItemOrChild) => {
 };
 
 const getRowId = ({ key }: TableRowOrItemOrChild) => key;
+const ignoreRowInSetFilter = (row: TableRowOrItemOrChild) => isTableRow(row);
+const rowAlwaysVisible = (row: TableRowOrItemOrChild) => isTableRow(row);
 
 export interface AutomationControlEditorTableProps {
   serverUrl: string;
@@ -40,6 +43,7 @@ export const AutomationControlEditorTable = forwardRef<any, AutomationControlEdi
     const columns = useMemo(() => {
       return [
         {
+          ...setColumnFromType('label', 'text'),
           name: 'Automation Item',
           key: 'label',
           width: 400,
@@ -56,11 +60,13 @@ export const AutomationControlEditorTable = forwardRef<any, AutomationControlEdi
           },
         },
         {
+          ...setColumnFromType('sobject', 'text'),
           name: 'Object',
           key: 'sobject',
           width: 200,
         },
         {
+          ...setColumnFromType('isActive', 'boolean'),
           name: 'Active',
           key: 'isActive',
           width: 110,
@@ -75,6 +81,7 @@ export const AutomationControlEditorTable = forwardRef<any, AutomationControlEdi
           width: 400,
         },
         {
+          ...setColumnFromType('lastModifiedBy', 'text'),
           name: 'Last Modified',
           key: 'lastModifiedBy',
           width: 250,
@@ -97,12 +104,14 @@ export const AutomationControlEditorTable = forwardRef<any, AutomationControlEdi
           org={selectedOrg}
           data={rows}
           columns={columns}
-          getRowKey={getRowId}
           rowClass={getRowClass}
           includeQuickFilter
           quickFilterText={quickFilterText}
           rowHeight={getRowHeight}
           defaultColumnOptions={{ resizable: true }}
+          getRowKey={getRowId}
+          ignoreRowInSetFilter={ignoreRowInSetFilter}
+          rowAlwaysVisible={rowAlwaysVisible}
         />
       </div>
     );

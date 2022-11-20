@@ -4,8 +4,8 @@ import { orderObjectsBy, orderStringsBy } from '@jetstream/shared/utils';
 import { SalesforceOrgUi } from '@jetstream/types';
 import escapeRegExp from 'lodash/escapeRegExp';
 import isNil from 'lodash/isNil';
-import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import DataGrid, { Column, DataGridProps, SortColumn, SortStatusProps } from 'react-data-grid';
+import { memo, useCallback, useEffect, useMemo, useState } from 'react';
+import DataGrid, { DataGridProps, SortColumn, SortStatusProps } from 'react-data-grid';
 import 'react-data-grid/lib/styles.css';
 import Icon from '../widgets/Icon';
 import './data-table-styles.scss';
@@ -39,8 +39,10 @@ export interface DataTableNewProps<T = RowWithKey, TContext = Record<string, any
   org?: SalesforceOrgUi;
   quickFilterText?: string;
   includeQuickFilter?: boolean;
-  getRowKey: (row: T) => string;
   context?: TContext;
+  getRowKey: (row: T) => string;
+  rowAlwaysVisible?: (row: T) => boolean;
+  ignoreRowInSetFilter?: (row: T) => boolean;
 }
 
 const DataTable = <T extends object>({
@@ -50,8 +52,10 @@ const DataTable = <T extends object>({
   org,
   quickFilterText,
   includeQuickFilter,
-  getRowKey,
   context,
+  getRowKey,
+  ignoreRowInSetFilter,
+  rowAlwaysVisible,
   ...rest
 }: DataTableNewProps<T>) => {
   const [sortColumns, setSortColumns] = useState<readonly SortColumn[]>([]);
@@ -96,11 +100,13 @@ const DataTable = <T extends object>({
             acc[columnKey] = orderStringsBy(
               Array.from(
                 new Set(
-                  data.map((row) => {
-                    const rowValue = getValueFn({ row, column });
-                    // TODO: we need some additional function to get the filter value and also compare the value when filtering
-                    return isNil(row[columnKey]) ? EMPTY_FIELD : String(rowValue);
-                  })
+                  data
+                    .filter((row) => (ignoreRowInSetFilter ? !ignoreRowInSetFilter(row) : true))
+                    .map((row) => {
+                      const rowValue = getValueFn({ row, column });
+                      // TODO: we need some additional function to get the filter value and also compare the value when filtering
+                      return isNil(row[columnKey]) ? EMPTY_FIELD : String(rowValue);
+                    })
                 )
               )
             );
@@ -141,6 +147,9 @@ const DataTable = <T extends object>({
       }
     }
     return sortedRows.filter((row) => {
+      if (rowAlwaysVisible && rowAlwaysVisible(row)) {
+        return true;
+      }
       const isVisible = Object.keys(filters)
         .filter(
           (columnKey) =>
@@ -161,7 +170,7 @@ const DataTable = <T extends object>({
       }
       return isVisible;
     });
-  }, [columnMap, filters, getRowKey, includeQuickFilter, quickFilterText, rowFilterText, sortedRows]);
+  }, [columnMap, filters, getRowKey, includeQuickFilter, quickFilterText, rowAlwaysVisible, rowFilterText, sortedRows]);
 
   if (serverUrl && org) {
     configIdLinkRenderer(serverUrl, org);
