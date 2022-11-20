@@ -41,6 +41,7 @@ const columns: ColumnWithFilter<PlatformEventRow>[] = [
     // wrapText: true,
     // autoHeight: true,
     formatter: WrappedTextFormatter,
+    cellClass: 'break-all',
   },
   {
     name: 'UUID',
@@ -64,7 +65,10 @@ function getRowId(data: PlatformEventRow): string {
 
 function getRowHeight({ row, type }: RowHeightArgs<PlatformEventRow>) {
   if (type === 'ROW') {
-    return 48;
+    const numRows = Math.ceil(row.payload.length / 60);
+    const lineHeight = 16 * 1.2;
+    const maxRowHeight = 12 * lineHeight;
+    return Math.min(numRows * lineHeight, maxRowHeight);
   }
   return 24;
 }
