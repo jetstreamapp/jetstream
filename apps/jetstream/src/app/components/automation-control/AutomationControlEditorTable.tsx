@@ -1,7 +1,5 @@
 import { SalesforceOrgUi } from '@jetstream/types';
-import { DataTableNew } from '@jetstream/ui';
-import { ColumnWithFilter } from 'libs/ui/src/lib/data-table-new/data-table-types';
-import { setColumnFromType } from 'libs/ui/src/lib/data-table-new/data-table-utils';
+import { ColumnWithFilter, DataTableNew, setColumnFromType } from '@jetstream/ui';
 import { forwardRef, useMemo } from 'react';
 import { RowHeightArgs } from 'react-data-grid';
 import { isTableRow } from './automation-control-data-utils';

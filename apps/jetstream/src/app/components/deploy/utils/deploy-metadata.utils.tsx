@@ -12,13 +12,11 @@ import {
   SalesforceDeployHistoryType,
   SalesforceOrgUi,
 } from '@jetstream/types';
-import { Grid, Spinner } from '@jetstream/ui';
+import { ColumnWithFilter, Grid, setColumnFromType, Spinner } from '@jetstream/ui';
 import formatISO from 'date-fns/formatISO';
 import parseISO from 'date-fns/parseISO';
 import { DeployOptions } from 'jsforce';
 import JSZip from 'jszip';
-import { ColumnWithFilter } from 'libs/ui/src/lib/data-table-new/data-table-types';
-import { setColumnFromType } from 'libs/ui/src/lib/data-table-new/data-table-utils';
 import { SelectFormatter, SelectHeaderGroupRenderer, SelectHeaderRenderer } from 'libs/ui/src/lib/data-table-new/DataTableRenderers';
 import localforage from 'localforage';
 import isString from 'lodash/isString';

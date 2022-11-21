@@ -1,7 +1,5 @@
 import { formatNumber } from '@jetstream/shared/ui-utils';
-import { AutoFullHeightContainer, DataTableNew, Grid, Icon, SearchInput } from '@jetstream/ui';
-import { ColumnWithFilter } from 'libs/ui/src/lib/data-table-new/data-table-types';
-import { DataTableSelectedContext } from 'libs/ui/src/lib/data-table-new/data-table-utils';
+import { AutoFullHeightContainer, ColumnWithFilter, DataTableNew, DataTableSelectedContext, Grid, Icon, SearchInput } from '@jetstream/ui';
 import groupBy from 'lodash/groupBy';
 import { Fragment, FunctionComponent, useEffect, useState } from 'react';
 import { DeployMetadataTableRow } from './deploy-metadata.types';

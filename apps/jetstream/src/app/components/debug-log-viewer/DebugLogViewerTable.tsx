@@ -1,8 +1,6 @@
 import { css } from '@emotion/react';
 import { ApexLogWithViewed } from '@jetstream/types';
-import { AutoFullHeightContainer, DataTableNew, Icon } from '@jetstream/ui';
-import { ColumnWithFilter } from 'libs/ui/src/lib/data-table-new/data-table-types';
-import { setColumnFromType } from 'libs/ui/src/lib/data-table-new/data-table-utils';
+import { AutoFullHeightContainer, ColumnWithFilter, DataTableNew, Icon, setColumnFromType } from '@jetstream/ui';
 import { FunctionComponent, useEffect, useRef } from 'react';
 import { FormatterProps } from 'react-data-grid';
 
