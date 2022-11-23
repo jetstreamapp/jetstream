@@ -177,7 +177,7 @@ const DataTable = <T extends object>({
   }
 
   return (
-    <DataTableGenericContext.Provider value={context}>
+    <DataTableGenericContext.Provider value={{ ...context, rows: filteredRows }}>
       <DataTableFilterContext.Provider
         value={{
           filterSetValues,

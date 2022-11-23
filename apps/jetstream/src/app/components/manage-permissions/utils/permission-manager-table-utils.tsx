@@ -606,7 +606,7 @@ export function getFieldColumns(
       summaryCellClass: ({ type }) => (type === 'HEADING' ? 'bg-color-gray' : null),
       summaryFormatter: ({ row }) => {
         if (row.type === 'ACTION') {
-          return <div>Edit All</div>;
+          return <BulkActionRenderer />;
         }
         return undefined;
       },
@@ -675,7 +675,7 @@ function getColumnForProfileOrPermSet({
   actionType: 'Read' | 'Edit';
   actionKey: FieldPermissionTypes;
 }) {
-  const colWidth = Math.max(95, (`${label} (${type})`.length * 7.5) / 2);
+  const colWidth = Math.max(116, (`${label} (${type})`.length * 7.5) / 2);
   const column: ColumnWithFilter<PermissionTableFieldCell, PermissionTableSummaryRow> = {
     name: `${label} (${type})`,
     key: `${id}-${actionKey}`,
@@ -1008,7 +1008,7 @@ function defaultRowActionCheckboxes(type: PermissionType, allowEditPermission: b
   }
 }
 
-function updateCheckboxDependencies(
+export function updateCheckboxDependencies(
   which: ObjectPermissionTypes,
   type: PermissionType,
   checkboxesById: MapOf<BulkActionCheckbox>,
@@ -1450,30 +1450,18 @@ export const RowActionRenderer: FunctionComponent<ICellRendererParams> = ({ node
  *
  * This component provides a modal that the user can open to make changes that apply to an entire visible table
  */
-export const BulkActionRenderer: FunctionComponent<ICellRendererParams> = ({ node, context, api, columnApi }) => {
+export const BulkActionRenderer = () => {
+  const { type, rows, onBulkAction } = useContext(DataTableGenericContext) as PermissionManagerTableContext;
   const [isOpen, setIsOpen] = useState(false);
-  const [applyToAll, setApplyToAll] = useState(true);
-  const [allColumnsVisible, setAllColumnsVisible] = useState(true);
-  const [checkboxes, setCheckboxes] = useState(defaultRowActionCheckboxes(context.type, true));
-  const [visibleRows, setVisibleRows] = useState(getNumRows);
-
-  function getNumRows() {
-    let counter = 0;
-    api.forEachNodeAfterFilterAndSort((rowNode) => {
-      if (!rowNode.isRowPinned()) {
-        counter++;
-      }
-    });
-    return counter;
-  }
+  const [checkboxes, setCheckboxes] = useState(defaultRowActionCheckboxes(type, true));
 
   /**
    * Set all dependencies when fields change
    */
   function handleChange(which: ObjectPermissionTypes, value: boolean) {
     const checkboxesById = getMapOf(checkboxes, 'id');
-    updateCheckboxDependencies(which, context.type, checkboxesById, value);
-    if (context.type === 'object') {
+    updateCheckboxDependencies(which, type, checkboxesById, value);
+    if (type === 'object') {
       setCheckboxes([
         checkboxesById['create'],
         checkboxesById['read'],
@@ -1488,33 +1476,26 @@ export const BulkActionRenderer: FunctionComponent<ICellRendererParams> = ({ nod
   }
 
   function handleSave() {
-    const checkboxesById = getMapOf(checkboxes, 'id');
-    const itemsToUpdate = [];
-    // remove sobject, label, edit columns from list
-    const columns = columnApi.getColumns().slice(2);
-    api.forEachNodeAfterFilterAndSort((rowNode, index) => {
-      handleRowPermissionUpdate(columns, rowNode, context.type, checkboxesById, applyToAll ? 'all' : 'visible', itemsToUpdate);
-    });
+    // const checkboxesById = getMapOf(checkboxes, 'id');
+    // const itemsToUpdate = [];
+    // // remove sobject, label, edit columns from list
+    // const columns = columnApi.getColumns().slice(2);
+    // api.forEachNodeAfterFilterAndSort((rowNode, index) => {
+    //   handleRowPermissionUpdate(columns, rowNode, type, checkboxesById, applyToAll ? 'all' : 'visible', itemsToUpdate);
+    // });
 
-    const transactionResult = api.applyTransaction({ update: itemsToUpdate });
-    logger.log({ transactionResult });
-    if (isFunction(context.onBulkUpdate)) {
-      context.onBulkUpdate(itemsToUpdate);
-    }
-
+    // const transactionResult = api.applyTransaction({ update: itemsToUpdate });
+    // logger.log({ transactionResult });
+    // if (isFunction(context.onBulkUpdate)) {
+    //   context.onBulkUpdate(itemsToUpdate);
+    // }
+    // TODO: I AM HERE
+    // onBulkAction({type, permission});
     handleClose();
   }
 
   function handleOpen() {
-    setApplyToAll(true);
-    setAllColumnsVisible(
-      columnApi
-        .getColumns()
-        .slice(2)
-        .every((col) => col.isVisible())
-    );
-    setVisibleRows(getNumRows());
-    setCheckboxes(defaultRowActionCheckboxes(context.type, true));
+    setCheckboxes(defaultRowActionCheckboxes(type, true));
     setIsOpen(true);
   }
 
@@ -1532,7 +1513,7 @@ export const BulkActionRenderer: FunctionComponent<ICellRendererParams> = ({ nod
               <button className="slds-button slds-button_neutral" onClick={() => handleClose()}>
                 Cancel
               </button>
-              <button className="slds-button slds-button_brand" onClick={handleSave} disabled={visibleRows === 0}>
+              <button className="slds-button slds-button_brand" onClick={handleSave} disabled={rows.length === 0}>
                 Apply to All Visible Rows
               </button>
             </Fragment>
@@ -1543,8 +1524,11 @@ export const BulkActionRenderer: FunctionComponent<ICellRendererParams> = ({ nod
         >
           <div>
             <p className="slds-text-align_center slds-m-bottom_small">
-              This change will apply to <strong> {formatNumber(visibleRows)} visible rows</strong> and all selected profiles and permission
-              sets
+              This change will apply to{' '}
+              <strong>
+                {formatNumber(rows.length)} {pluralizeFromNumber('item', rows.length)}
+              </strong>{' '}
+              and all selected profiles and permission sets
             </p>
 
             <Grid align="center" wrap>
@@ -1559,20 +1543,6 @@ export const BulkActionRenderer: FunctionComponent<ICellRendererParams> = ({ nod
                 />
               ))}
             </Grid>
-
-            {!allColumnsVisible && (
-              <Grid align="center">
-                <CheckboxToggle
-                  id={`apply-to-all-${node.id}`}
-                  label="Apply to which columns"
-                  onText="All columns, even if hidden"
-                  offText="Only non-hidden columns"
-                  labelPosition="left"
-                  checked={applyToAll}
-                  onChange={setApplyToAll}
-                />
-              </Grid>
-            )}
           </div>
         </Modal>
       )}

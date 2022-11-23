@@ -11,6 +11,7 @@ import {
   ManagePermissionsEditorTableRef,
   PermissionTableFieldCell,
   PermissionTableSummaryRow,
+  PermissionType,
 } from './utils/permission-manager-types';
 
 function getRowKey(row: PermissionTableFieldCell) {
@@ -69,6 +70,10 @@ export const ManagePermissionsEditorFieldTable = forwardRef<any, ManagePermissio
       onBulkUpdate(updateRowsFromColumnAction('field', action, typeLabel as FieldPermissionTypes, id, rows));
     }
 
+    function handleBulkAction({ permission }: { type: PermissionType; permission: FieldPermissionTypes }) {
+      // TODO:
+    }
+
     const handleRowsChange = useCallback(
       (rows: PermissionTableFieldCell[], { indexes }) => {
         onBulkUpdate(rows, indexes);
@@ -85,7 +90,7 @@ export const ManagePermissionsEditorFieldTable = forwardRef<any, ManagePermissio
             getRowKey={getRowKey}
             topSummaryRows={SUMMARY_ROWS}
             onRowsChange={handleRowsChange}
-            context={{ onColumnAction: handleColumnAction }}
+            context={{ type: 'field', onColumnAction: handleColumnAction, onBulkAction: handleBulkAction }}
             rowHeight={getRowHeight}
             summaryRowHeight={38}
             groupBy={groupedRows}
