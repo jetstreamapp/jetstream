@@ -157,7 +157,5 @@ export interface PermissionManagerTableContext {
   rows: (PermissionTableObjectCell | PermissionTableFieldCell)[];
   onRowAction: (action: 'selectAll' | 'unselectAll' | 'reset', columnKey: string) => void;
   onColumnAction: (action: 'selectAll' | 'unselectAll' | 'reset', columnKey: string) => void;
-  onBulkAction: (
-    options: { type: PermissionType; permission: ObjectPermissionTypes } | { type: PermissionType; permission: FieldPermissionTypes }
-  ) => void;
+  onBulkAction: (rows: (PermissionTableObjectCell | PermissionTableFieldCell)[]) => void;
 }

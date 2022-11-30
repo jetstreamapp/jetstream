@@ -4,14 +4,13 @@ import { AutoFullHeightContainer, ColumnWithFilter, DataTableNew } from '@jetstr
 import { groupBy } from 'lodash';
 import { forwardRef, useCallback, useImperativeHandle, useState } from 'react';
 import { RowHeightArgs } from 'react-data-grid';
-import { updateRowsFromColumnAction } from './utils/permission-manager-table-utils';
+import { resetGridChanges, updateRowsFromColumnAction } from './utils/permission-manager-table-utils';
 import {
   DirtyRow,
   FieldPermissionTypes,
   ManagePermissionsEditorTableRef,
   PermissionTableFieldCell,
   PermissionTableSummaryRow,
-  PermissionType,
 } from './utils/permission-manager-types';
 
 function getRowKey(row: PermissionTableFieldCell) {
@@ -44,10 +43,8 @@ export const ManagePermissionsEditorFieldTable = forwardRef<any, ManagePermissio
 
     useImperativeHandle<any, ManagePermissionsEditorTableRef>(ref, () => ({
       resetChanges() {
-        // if (gridApi) {
-        //   resetGridChanges(gridApi, 'field');
-        //   setDirtyRows({});
-        // }
+        resetGridChanges({ rows, type: 'field' });
+        setDirtyRows({});
       },
       // Rebuild table and ensure error messages are cleared from prior attempts
       resetRows() {
@@ -61,17 +58,9 @@ export const ManagePermissionsEditorFieldTable = forwardRef<any, ManagePermissio
       dirtyRows && onDirtyRows && onDirtyRows(dirtyRows);
     }, [dirtyRows, onDirtyRows]);
 
-    // function handleOnGridReady({ api }: GridReadyEvent) {
-    //   setGridApi(api);
-    // }
-
     function handleColumnAction(action: 'selectAll' | 'unselectAll' | 'reset', columnKey: string) {
       const [id, typeLabel] = columnKey.split('-');
       onBulkUpdate(updateRowsFromColumnAction('field', action, typeLabel as FieldPermissionTypes, id, rows));
-    }
-
-    function handleBulkAction({ permission }: { type: PermissionType; permission: FieldPermissionTypes }) {
-      // TODO:
     }
 
     const handleRowsChange = useCallback(
@@ -90,102 +79,13 @@ export const ManagePermissionsEditorFieldTable = forwardRef<any, ManagePermissio
             getRowKey={getRowKey}
             topSummaryRows={SUMMARY_ROWS}
             onRowsChange={handleRowsChange}
-            context={{ type: 'field', onColumnAction: handleColumnAction, onBulkAction: handleBulkAction }}
+            context={{ type: 'field', onColumnAction: handleColumnAction, onBulkAction: onBulkUpdate }}
             rowHeight={getRowHeight}
             summaryRowHeight={38}
             groupBy={groupedRows}
             rowGrouper={groupBy}
             expandedGroupIds={expandedGroupIds}
             onExpandedGroupIdsChange={(items) => setExpandedGroupIds(items)}
-            // components={{
-            //   pinnedInputFilter: PinnedLabelInputFilter,
-            //   pinnedSelectAllRenderer: PinnedSelectAllRendererWrapper('field'),
-            //   errorTooltipRenderer: ErrorTooltipRenderer,
-            //   rowActionRenderer: RowActionRenderer,
-            //   bulkActionRenderer: BulkActionRenderer,
-            //   groupRowInnerRenderer: GroupRowInnerRenderer,
-            // }}
-            // agGridProps={{
-            //   pinnedTopRowData: [pinnedSelectAllRow],
-            //   rowSelection: null,
-            //   autoGroupColumnDef: {
-            //     headerName: 'Field',
-            //     pinned: true,
-            //     lockPosition: true,
-            //     lockVisible: true,
-            //     filter: 'agMultiColumnFilter',
-            //     cellRenderer: 'agGroupCellRenderer',
-            //     menuTabs: ['filterMenuTab'],
-            //     filterValueGetter: (params) => {
-            //       const data: PermissionTableFieldCell = params.data;
-            //       return data && `${data.label} (${data.apiName})`;
-            //     },
-            //     sortable: true,
-            //     resizable: true,
-            //   },
-            //   showOpenedGroup: true,
-            //   groupDefaultExpanded: 1,
-            //   groupDisplayType: 'groupRows',
-            //   groupRowRendererParams: {
-            //     innerRenderer: 'groupRowInnerRenderer',
-            //   },
-            //   sideBar: {
-            //     toolPanels: [
-            //       {
-            //         id: 'filters',
-            //         labelDefault: 'Filters',
-            //         labelKey: 'filters',
-            //         iconKey: 'filter',
-            //         toolPanel: 'agFiltersToolPanel',
-            //         toolPanelParams: {
-            //           suppressFilterSearch: true,
-            //         },
-            //       },
-            //       {
-            //         id: 'columns',
-            //         labelDefault: 'Columns',
-            //         labelKey: 'columns',
-            //         iconKey: 'columns',
-            //         toolPanel: 'agColumnsToolPanel',
-            //         toolPanelParams: {
-            //           suppressRowGroups: true,
-            //           suppressValues: true,
-            //           suppressPivots: true,
-            //           suppressPivotMode: true,
-            //         },
-            //       },
-            //     ],
-            //   },
-            //   context: {
-            //     isReadOnly: ({ node, colDef }: ICellRendererParams) => {
-            //       if (colDef.colId.endsWith('edit')) {
-            //         const data = node.data as PermissionTableFieldCell;
-            //         return !data?.allowEditPermission;
-            //       }
-            //       return false;
-            //     },
-            //     additionalComponent: ErrorTooltipRenderer,
-            //     onBulkUpdate: onBulkUpdate,
-            //     type: 'field',
-            //   },
-            //   onCellKeyPress: handleOnCellPressed,
-            //   getRowId: ({ data }: GetRowIdParams) => data.key,
-            //   fullWidthCellRenderer: 'fullWidthRenderer',
-            //   getRowClass: ({ node }: RowClassParams) => {
-            //     if (node.group) {
-            //       return 'row-group';
-            //     }
-            //   },
-            //   getRowHeight: ({ node }) => {
-            //     if (node.rowPinned) {
-            //       return 35;
-            //     }
-            //   },
-            //   onCellDoubleClicked: undefined,
-            //   onCellKeyDown: undefined,
-            //   onGridReady: handleOnGridReady,
-            //   onCellValueChanged: ({ data }) => onBulkUpdate([data]),
-            // }}
           />
         </AutoFullHeightContainer>
       </div>

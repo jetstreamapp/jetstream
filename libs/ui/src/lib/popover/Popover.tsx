@@ -33,6 +33,7 @@ export interface PopoverProps {
   footer?: JSX.Element;
   panelStyle?: CSSProperties;
   buttonProps: React.HTMLProps<HTMLButtonElement> & { as?: string };
+  buttonStyle?: CSSProperties;
   size?: SmallMediumLarge;
   /** By default, the popover is displayed in a portal, but this can be skipped by setting this to true */
   omitPortal?: boolean;
@@ -54,6 +55,7 @@ export const Popover = forwardRef<PopoverRef, PopoverProps>(
       footer,
       panelStyle,
       buttonProps,
+      buttonStyle,
       children,
       size,
       omitPortal = false,
@@ -230,7 +232,7 @@ export const Popover = forwardRef<PopoverRef, PopoverProps>(
                 </ConditionalPortal>
               )}
 
-              <HeadlessPopover.Button ref={setReferenceElement} {...(buttonProps as typeof HeadlessPopover.Button)}>
+              <HeadlessPopover.Button ref={setReferenceElement} {...(buttonProps as typeof HeadlessPopover.Button)} style={buttonStyle}>
                 {children}
               </HeadlessPopover.Button>
             </Fragment>
