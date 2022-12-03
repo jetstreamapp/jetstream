@@ -2,7 +2,7 @@ import { css } from '@emotion/react';
 import { Popover as HeadlessPopover } from '@headlessui/react';
 import { SmallMediumLarge } from '@jetstream/types';
 import classNames from 'classnames';
-import { CSSProperties, forwardRef, Fragment, ReactNode, useCallback, useImperativeHandle, useRef, useState } from 'react';
+import { CSSProperties, forwardRef, Fragment, MouseEvent, ReactNode, useCallback, useImperativeHandle, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { usePopper } from 'react-popper';
 import { Placement } from 'tippy.js';
@@ -107,7 +107,7 @@ export const Popover = forwardRef<PopoverRef, PopoverProps>(
     );
 
     return (
-      <HeadlessPopover className="slds-is-relative" as="span">
+      <HeadlessPopover className="slds-is-relative" as="span" onClick={(ev: MouseEvent<HTMLSpanElement>) => ev.stopPropagation()}>
         {({ open }) => {
           checkIfStateChanged(open);
           return (

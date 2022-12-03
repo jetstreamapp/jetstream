@@ -106,15 +106,6 @@ export const SalesforceRecordDataTableNew: FunctionComponent<SalesforceRecordDat
         onFields({ allFields: fields, visibleFields: fields });
         setSubqueryColumnsMap(subqueryColumns);
         setRecords(queryResults.queryResults.records);
-        setRows(
-          queryResults.queryResults.records.map((row): RowWithKey => {
-            return {
-              _key: getRowId(row),
-              _action: handleRowAction,
-              ...row,
-            };
-          })
-        );
         onFilteredRowsChanged(queryResults.queryResults.records);
         setTotalRecordCount(queryResults.queryResults.totalSize);
         if (!queryResults.queryResults.done) {
@@ -168,6 +159,18 @@ export const SalesforceRecordDataTableNew: FunctionComponent<SalesforceRecordDat
       }
       // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
+
+    useEffect(() => {
+      setRows(
+        (records || []).map((row): RowWithKey => {
+          return {
+            _key: getRowId(row),
+            _action: handleRowAction,
+            ...row,
+          };
+        })
+      );
+    }, [handleRowAction, records]);
 
     async function loadRemaining() {
       try {

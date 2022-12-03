@@ -182,6 +182,7 @@ const DataTable = <T extends object>({
         value={{
           filterSetValues,
           filters,
+          portalRefForFilters: context?.portalRefForFilters,
           updateFilter,
         }}
       >

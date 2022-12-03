@@ -14,6 +14,7 @@ import {
   setColumnFromType,
   Tooltip,
 } from '@jetstream/ui';
+import { startCase } from 'lodash';
 import { Fragment, FunctionComponent, useContext, useRef, useState } from 'react';
 import { FormatterProps, SummaryFormatterProps } from 'react-data-grid';
 import {
@@ -196,6 +197,7 @@ export function getObjectColumns(
       name: 'Object',
       key: 'tableLabel',
       frozen: true,
+      width: 300,
       // pinned: true,
       // lockPinned: true,
       // lockPosition: true,
@@ -208,6 +210,7 @@ export function getObjectColumns(
         const data: PermissionTableFieldCell = row[column.key];
         return data && `${data.label} (${data.apiName})`;
       },
+      summaryCellClass: ({ type }) => (type === 'HEADING' ? 'bg-color-gray' : null),
       // valueFormatter: (params) => {
       //   const data: PermissionTableObjectCell = params.data;
       //   return data && `${data.label} (${data.apiName})`;
@@ -223,6 +226,7 @@ export function getObjectColumns(
       //   return { component: node.isRowPinned() ? BulkActionRenderer : RowActionRenderer };
       // },
       width: 100,
+      resizable: false,
       // filter: false,
       // sortable: false,
       // suppressMenu: true,
@@ -233,64 +237,47 @@ export function getObjectColumns(
       // lockPosition: true,
       // lockVisible: true,
       // cellStyle: { overflow: 'visible' },
+      formatter: RowActionRenderer,
+      summaryCellClass: ({ type }) => (type === 'HEADING' ? 'bg-color-gray' : null),
+      summaryFormatter: ({ row }) => {
+        if (row.type === 'ACTION') {
+          return <BulkActionRenderer />;
+        }
+        return undefined;
+      },
     },
-    // {
-    //   name: '',
-    //   key: '_ROW_ACTION',
-    //   // cellRendererSelector: ({ node }) => ({ component: node.isRowPinned() ? BulkActionRenderer : RowActionRenderer }),
-    //   width: 100,
-    //   // filter: false,
-    //   // sortable: false,
-    //   // suppressMenu: true,
-    //   // resizable: false,
-    //   // pinned: true,
-    //   frozen: true,
-    //   // lockPinned: true,
-    //   // lockPosition: true,
-    //   // lockVisible: true,
-    //   // cellStyle: { overflow: 'visible' },
-    // },
   ];
   // Create column groups for profiles
   selectedProfiles.forEach((profileId) => {
     const profile = profilesById[profileId];
-    // TODO:
-    const currColumn: ColumnWithFilter<PermissionTableObjectCell, PermissionTableSummaryRow> = {
-      name: `${profile.Profile.Name} (Profile)`,
-      key: profileId,
-      colSpan: (args) => (args.type === 'HEADER' ? 2 : 1),
-      // openByDefault: true,
-      // marryChildren: true,
-      // children: [
-      //   getObjectPermissionsColumn('read', profileId),
-      //   getObjectPermissionsColumn('create', profileId),
-      //   getObjectPermissionsColumn('edit', profileId),
-      //   getObjectPermissionsColumn('delete', profileId),
-      //   getObjectPermissionsColumn('viewAll', profileId),
-      //   getObjectPermissionsColumn('modifyAll', profileId),
-      // ],
-    };
-    newColumns.push(currColumn);
+    (['read', 'create', 'edit', 'delete', 'viewAll', 'modifyAll'] as const).forEach((permissionType) => {
+      newColumns.push(
+        getColumnForProfileOrPermSet({
+          permissionType: 'object',
+          id: profileId,
+          type: 'Profile',
+          label: profile.Profile.Name,
+          actionType: startCase(permissionType) as 'Create' | 'Read' | 'Edit' | 'Delete' | 'ViewAll' | 'ModifyAll',
+          actionKey: permissionType,
+        })
+      );
+    });
   });
   // Create column groups for permission sets
   selectedPermissionSets.forEach((permissionSetId) => {
     const permissionSet = permissionSetsById[permissionSetId];
-    const currColumn: ColumnWithFilter<PermissionTableObjectCell, PermissionTableSummaryRow> = {
-      name: `${permissionSet.Name} (Permission Set)`,
-      key: permissionSetId,
-      colSpan: (args) => (args.type === 'HEADER' ? 2 : 1),
-      // openByDefault: true,
-      // marryChildren: true,
-      // children: [
-      //   getObjectPermissionsColumn('read', permissionSetId),
-      //   getObjectPermissionsColumn('create', permissionSetId),
-      //   getObjectPermissionsColumn('edit', permissionSetId),
-      //   getObjectPermissionsColumn('delete', permissionSetId),
-      //   getObjectPermissionsColumn('viewAll', permissionSetId),
-      //   getObjectPermissionsColumn('modifyAll', permissionSetId),
-      // ],
-    };
-    newColumns.push(currColumn);
+    (['read', 'create', 'edit', 'delete', 'viewAll', 'modifyAll'] as const).forEach((permissionType) => {
+      newColumns.push(
+        getColumnForProfileOrPermSet({
+          permissionType: 'object',
+          id: permissionSetId,
+          type: 'Permission Set',
+          label: permissionSet.Name,
+          actionType: startCase(permissionType) as 'Create' | 'Read' | 'Edit' | 'Delete' | 'ViewAll' | 'ModifyAll',
+          actionKey: permissionType,
+        })
+      );
+    });
   });
   return newColumns;
 }
@@ -452,6 +439,7 @@ export function getFieldColumns(
     const profile = profilesById[profileId];
     newColumns.push(
       getColumnForProfileOrPermSet({
+        permissionType: 'field',
         id: profileId,
         type: 'Profile',
         label: profile.Profile.Name,
@@ -461,8 +449,9 @@ export function getFieldColumns(
     );
     newColumns.push(
       getColumnForProfileOrPermSet({
+        permissionType: 'field',
         id: profileId,
-        type: 'Permission Set',
+        type: 'Profile',
         label: profile.Profile.Name,
         actionType: 'Edit',
         actionKey: 'edit',
@@ -474,6 +463,7 @@ export function getFieldColumns(
     const permissionSet = permissionSetsById[permissionSetId];
     newColumns.push(
       getColumnForProfileOrPermSet({
+        permissionType: 'field',
         id: permissionSetId,
         type: 'Permission Set',
         label: permissionSet.Name,
@@ -483,6 +473,7 @@ export function getFieldColumns(
     );
     newColumns.push(
       getColumnForProfileOrPermSet({
+        permissionType: 'field',
         id: permissionSetId,
         type: 'Permission Set',
         label: permissionSet.Name,
@@ -494,23 +485,40 @@ export function getFieldColumns(
   return newColumns;
 }
 
+type PermissionTypeColumn<T> = T extends 'object'
+  ? ColumnWithFilter<PermissionTableObjectCell, PermissionTableSummaryRow>
+  : T extends 'field'
+  ? ColumnWithFilter<PermissionTableFieldCell, PermissionTableSummaryRow>
+  : never;
+
+type PermissionActionType<T> = T extends 'object'
+  ? 'Create' | 'Read' | 'Edit' | 'Delete' | 'ViewAll' | 'ModifyAll'
+  : T extends 'field'
+  ? 'Read' | 'Edit'
+  : never;
+
+type PermissionActionAction<T> = T extends 'object' ? ObjectPermissionTypes : T extends 'field' ? FieldPermissionTypes : never;
+
 // TODO: use for object table permissions
 // TODO: figure out how to make type inference work somehow
-function getColumnForProfileOrPermSet({
+function getColumnForProfileOrPermSet<T extends PermissionType>({
+  permissionType,
   id,
   label,
   type,
   actionType,
   actionKey,
 }: {
+  permissionType: T;
   id: string;
   label: string;
   type: 'Profile' | 'Permission Set';
-  actionType: 'Read' | 'Edit';
-  actionKey: FieldPermissionTypes;
-}) {
-  const colWidth = Math.max(116, (`${label} (${type})`.length * 7.5) / 2);
-  const column: ColumnWithFilter<PermissionTableFieldCell, PermissionTableSummaryRow> = {
+  actionType: PermissionActionType<T>;
+  actionKey: PermissionActionAction<T>;
+}): PermissionTypeColumn<T> {
+  const numItems = permissionType === 'object' ? 6 : 2;
+  const colWidth = Math.max(116, (`${label} (${type})`.length * 7.5) / numItems);
+  const column: ColumnWithFilter<PermissionTableObjectCell | PermissionTableFieldCell, PermissionTableSummaryRow> = {
     name: `${label} (${type})`,
     key: `${id}-${actionKey}`,
     width: colWidth,
@@ -521,24 +529,36 @@ function getColumnForProfileOrPermSet({
       }
       return '';
     },
-    colSpan: (args) => (args.type === 'HEADER' ? 2 : 1),
+    colSpan: (args) => (args.type === 'HEADER' ? numItems : undefined),
     formatter: ({ column, isCellSelected, row, onRowChange }) => {
       const errorMessage = row.permissions[id].errorMessage;
-      const value = row.permissions[id][actionKey];
+      const value = row.permissions[id][actionKey as any];
       function handleChange(value: boolean) {
-        const newRow = setFieldValue(actionKey, row, id, value);
-        onRowChange(newRow);
+        if (permissionType === 'object') {
+          const newRow = setObjectValue(actionKey, row as PermissionTableObjectCell, id, value);
+          onRowChange(newRow);
+        } else {
+          const newRow = setFieldValue(actionKey as PermissionActionAction<'field'>, row as PermissionTableFieldCell, id, value);
+          onRowChange(newRow);
+        }
       }
       return (
-        <div className="slds-align_absolute-center">
-          <Checkbox
+        <div className="slds-align_absolute-center h-100">
+          <input
+            type="checkbox"
+            id={`${row.key}-${id}-${actionKey}`}
+            checked={value}
+            onChange={(ev) => handleChange(ev.target.checked)}
+          ></input>
+          {/* Rendering this custom checkbox was really slow, lot's of DOM elements */}
+          {/* <Checkbox
             id={`${row.key}-${id}-${actionKey}`}
             checked={value}
             label="value"
             hideLabel
             readOnly={actionKey === 'edit' && !row.allowEditPermission}
             onChange={handleChange}
-          />
+          /> */}
           {errorMessage && (
             <div
               css={css`
@@ -564,12 +584,12 @@ function getColumnForProfileOrPermSet({
     summaryCellClass: ({ type }) => (type === 'HEADING' ? 'bg-color-gray' : null),
     summaryFormatter: (args) => {
       if (args.row.type === 'HEADING') {
-        return <div>{actionType} Access</div>;
+        return <div>{actionType}</div>;
       }
       return <PinnedSelectAllRendererWrapper {...args} />;
     },
   };
-  return column;
+  return column as PermissionTypeColumn<T>;
 }
 
 export function getFieldRows(
@@ -1133,6 +1153,10 @@ export const RowActionRenderer: FunctionComponent<FormatterProps<PermissionTable
     }
   }
 
+  function handleOpen() {
+    popoverRef.current?.open();
+  }
+
   /**
    * FIXME:
    * this is broken - any click on popover closes it (maybe because it is in the table and super janked?)
@@ -1147,7 +1171,6 @@ export const RowActionRenderer: FunctionComponent<FormatterProps<PermissionTable
       size={type === 'object' ? 'large' : 'medium'}
       placement="bottom"
       onChange={handlePopoverChange}
-      omitPortal
       header={
         <header className="slds-popover__header">
           <h2 className="slds-text-heading_small" id="background-jobs" title="Background Jobs">
@@ -1185,6 +1208,7 @@ export const RowActionRenderer: FunctionComponent<FormatterProps<PermissionTable
       }
       buttonProps={{
         className: 'slds-button slds-button_stretch',
+        onChange: handleOpen,
       }}
       buttonStyle={{ lineHeight: '1rem' }}
     >

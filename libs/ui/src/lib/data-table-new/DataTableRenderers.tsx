@@ -9,7 +9,7 @@ import formatISO from 'date-fns/formatISO';
 import parseISO from 'date-fns/parseISO';
 import { QueryResult } from 'jsforce';
 import { isFunction } from 'lodash';
-import { Fragment, FunctionComponent, useCallback, useContext, useEffect, useRef, useState } from 'react';
+import { Fragment, FunctionComponent, MutableRefObject, useCallback, useContext, useEffect, useRef, useState } from 'react';
 import { FormatterProps, GroupFormatterProps, HeaderRendererProps, useFocusRef, useRowSelection } from 'react-data-grid';
 import { getSfdcRetUrl } from '../data-table/data-table-utils';
 import RecordDownloadModal from '../file-download-modal/RecordDownloadModal';
@@ -112,7 +112,7 @@ export function FilterRenderer<R, SR, T extends HTMLOrSVGElement>({
     }
   ) => React.ReactElement;
 }) {
-  const { filters, filterSetValues, updateFilter } = useContext(DataTableFilterContext);
+  const { filters, filterSetValues, portalRefForFilters, updateFilter } = useContext(DataTableFilterContext);
   const { ref, tabIndex } = useFocusRef<T>(isCellSelected);
 
   // TODO: sort and filter
@@ -123,7 +123,17 @@ export function FilterRenderer<R, SR, T extends HTMLOrSVGElement>({
       <div className="slds-truncate">{column.name}</div>
       <div className="slds-grid slds-grid_vertical-align-center">
         {sortDirection && <Icon type="utility" icon={iconName} className="slds-icon slds-icon-text-default slds-icon_xx-small" />}
-        <div>{children({ ref, tabIndex, columnKey: column.key, filters: filters[column.key], filterSetValues, updateFilter })}</div>
+        <div>
+          {children({
+            ref,
+            tabIndex,
+            columnKey: column.key,
+            filters: filters[column.key],
+            filterSetValues,
+            portalRefForFilters,
+            updateFilter,
+          })}
+        </div>
       </div>
     </div>
   );
@@ -133,10 +143,11 @@ interface HeaderFilterProps {
   columnKey: string;
   filters: DataTableFilter[];
   filterSetValues: Record<string, string[]>;
+  portalRefForFilters: MutableRefObject<HTMLElement>;
   updateFilter: (column: string, filter: DataTableFilter) => void;
 }
 
-export function HeaderFilter({ columnKey, filters, filterSetValues, updateFilter }: HeaderFilterProps) {
+export function HeaderFilter({ columnKey, filters, filterSetValues, portalRefForFilters, updateFilter }: HeaderFilterProps) {
   const popoverRef = useRef<PopoverRef>();
 
   const [active, setActive] = useState(false);
@@ -145,10 +156,10 @@ export function HeaderFilter({ columnKey, filters, filterSetValues, updateFilter
     setActive(filters?.some(isFilterActive));
   }, [filters]);
 
-  function getFilter(filter: DataTableFilter) {
+  function getFilter(filter: DataTableFilter, autoFocus = false) {
     switch (filter.type) {
       case 'TEXT':
-        return <HeaderTextFilter columnKey={columnKey} filter={filter} updateFilter={updateFilter} />;
+        return <HeaderTextFilter columnKey={columnKey} filter={filter} updateFilter={updateFilter} autoFocus={autoFocus} />;
       case 'NUMBER':
         return null;
       case 'DATE':
@@ -184,6 +195,7 @@ export function HeaderFilter({ columnKey, filters, filterSetValues, updateFilter
     >
       <Popover
         ref={popoverRef}
+        portalRef={portalRefForFilters?.current}
         header={
           <header className="slds-popover__header" onPointerDown={(ev) => ev.stopPropagation()}>
             <h2 className="slds-text-heading_small">Filter</h2>
@@ -203,13 +215,14 @@ export function HeaderFilter({ columnKey, filters, filterSetValues, updateFilter
               .map((filter, i) => (
                 <Fragment key={filter.type}>
                   {i > 0 && <hr className="slds-m-vertical_small" />}
-                  <div>{getFilter(filter)}</div>
+                  <div>{getFilter(filter, i === 0)}</div>
                 </Fragment>
               ))}
           </div>
         }
         buttonProps={{
           className: 'slds-button slds-button_icon',
+          onClick: (ev) => ev.stopPropagation(),
         }}
       >
         <Icon
@@ -227,10 +240,11 @@ export function HeaderFilter({ columnKey, filters, filterSetValues, updateFilter
 interface DataTableTextFilterProps {
   columnKey: string;
   filter: DataTableTextFilter;
+  autoFocus?: boolean;
   updateFilter: (column: string, filter: DataTableFilter) => void;
 }
 
-export function HeaderTextFilter({ columnKey, filter, updateFilter }: DataTableTextFilterProps) {
+export function HeaderTextFilter({ columnKey, filter, autoFocus = false, updateFilter }: DataTableTextFilterProps) {
   const [value, setValue] = useState(filter.value);
   const debouncedValue = useDebounce(value, 300);
 
@@ -242,7 +256,7 @@ export function HeaderTextFilter({ columnKey, filter, updateFilter }: DataTableT
 
   return (
     <Input className="slds-grow" label="Contains" clearButton={!!value} onClear={() => setValue('')}>
-      <input className="slds-input" value={value} onChange={(ev) => setValue(ev.target.value)} />
+      <input className="slds-input" value={value} onChange={(ev) => setValue(ev.target.value)} autoFocus={autoFocus} />
     </Input>
   );
 }
@@ -409,6 +423,7 @@ export function ValueOrLoadingRenderer<T extends { loading: boolean }>({ column,
 export const SubqueryRenderer: FunctionComponent<FormatterProps<RowWithKey, unknown>> = ({ column, row, onRowChange, isCellSelected }) => {
   // const [columnApi, setColumnApi] = useState<ColumnApi>(null);
   const isMounted = useRef(null);
+  const modalRef = useRef();
   const [isActive, setIsActive] = useState(false);
   const [modalTagline, setModalTagline] = useState<string>();
   const [downloadModalIsActive, setDownloadModalIsActive] = useState(false);
@@ -531,6 +546,7 @@ export const SubqueryRenderer: FunctionComponent<FormatterProps<RowWithKey, unkn
           <div>
             {isActive && (
               <Modal
+                ref={modalRef}
                 size="lg"
                 header={column.key}
                 tagline={modalTagline}
@@ -581,6 +597,7 @@ export const SubqueryRenderer: FunctionComponent<FormatterProps<RowWithKey, unkn
                       rowHeight={28.5}
                       selectedRows={selectedRows}
                       onSelectedRowsChange={setSelectedRows as any}
+                      context={{ portalRefForFilters: modalRef }}
                     />
                   </AutoFullHeightContainer>
                 </div>

@@ -90,8 +90,14 @@ export function getColumnsForGenericTable(
       filters: ['TEXT', 'SET'],
       headerRenderer: (props) => (
         <FilterRenderer {...props}>
-          {({ filters, filterSetValues, updateFilter }) => (
-            <HeaderFilter columnKey={column.key} filters={filters} filterSetValues={filterSetValues} updateFilter={updateFilter} />
+          {({ filters, filterSetValues, portalRefForFilters, updateFilter }) => (
+            <HeaderFilter
+              columnKey={column.key}
+              filters={filters}
+              filterSetValues={filterSetValues}
+              portalRefForFilters={portalRefForFilters}
+              updateFilter={updateFilter}
+            />
           )}
         </FilterRenderer>
       ),
@@ -197,8 +203,14 @@ function getColDef(field: string, queryColumnsByPath: MapOf<QueryResultsColumn>,
     filters: ['TEXT', 'SET'],
     headerRenderer: (props) => (
       <FilterRenderer {...props}>
-        {({ filters, filterSetValues, updateFilter }) => (
-          <HeaderFilter columnKey={column.key} filters={filters} filterSetValues={filterSetValues} updateFilter={updateFilter} />
+        {({ filters, filterSetValues, portalRefForFilters, updateFilter }) => (
+          <HeaderFilter
+            columnKey={column.key}
+            filters={filters}
+            filterSetValues={filterSetValues}
+            portalRefForFilters={portalRefForFilters}
+            updateFilter={updateFilter}
+          />
         )}
       </FilterRenderer>
     ),
@@ -318,8 +330,14 @@ export function setColumnFromType<T>(key: string, fieldType: ColumnType, default
   const column: Partial<Mutable<ColumnWithFilter<T>>> = { ...defaultProps };
   column.headerRenderer = (props) => (
     <FilterRenderer {...props}>
-      {({ filters, filterSetValues, updateFilter }) => (
-        <HeaderFilter columnKey={key} filters={filters} filterSetValues={filterSetValues} updateFilter={updateFilter} />
+      {({ filters, filterSetValues, portalRefForFilters, updateFilter }) => (
+        <HeaderFilter
+          columnKey={key}
+          filters={filters}
+          filterSetValues={filterSetValues}
+          portalRefForFilters={portalRefForFilters}
+          updateFilter={updateFilter}
+        />
       )}
     </FilterRenderer>
   );

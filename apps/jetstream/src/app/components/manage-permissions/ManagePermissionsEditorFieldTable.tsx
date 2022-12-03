@@ -1,7 +1,7 @@
 import { useNonInitialEffect } from '@jetstream/shared/ui-utils';
 import { MapOf } from '@jetstream/types';
 import { AutoFullHeightContainer, ColumnWithFilter, DataTableNew } from '@jetstream/ui';
-import { groupBy } from 'lodash';
+import groupBy from 'lodash/groupBy';
 import { forwardRef, useCallback, useImperativeHandle, useState } from 'react';
 import { RowHeightArgs } from 'react-data-grid';
 import { resetGridChanges, updateRowsFromColumnAction } from './utils/permission-manager-table-utils';
@@ -37,7 +37,6 @@ export interface ManagePermissionsEditorFieldTableProps {
 
 export const ManagePermissionsEditorFieldTable = forwardRef<any, ManagePermissionsEditorFieldTableProps>(
   ({ columns, rows, onDirtyRows, onBulkUpdate }, ref) => {
-    // const [gridApi, setGridApi] = useState<GridApi>(null);
     const [dirtyRows, setDirtyRows] = useState<MapOf<DirtyRow<PermissionTableFieldCell>>>({});
     const [expandedGroupIds, setExpandedGroupIds] = useState(() => new Set<any>(rows.map((row) => row.sobject)));
 
