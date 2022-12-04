@@ -1,6 +1,8 @@
 import { queryMore } from '@jetstream/shared/data';
-import { formatNumber } from '@jetstream/shared/ui-utils';
+import { formatNumber, transformTabularDataToExcelStr } from '@jetstream/shared/ui-utils';
+import { flattenRecords } from '@jetstream/shared/utils';
 import { SalesforceOrgUi } from '@jetstream/types';
+import copyToClipboard from 'copy-to-clipboard';
 import { QueryResult } from 'jsforce';
 import { FunctionComponent, useCallback, useEffect, useRef, useState } from 'react';
 import { FormatterProps } from 'react-data-grid';
@@ -10,13 +12,11 @@ import AutoFullHeightContainer from '../layout/AutoFullHeightContainer';
 import Modal from '../modal/Modal';
 import Icon from '../widgets/Icon';
 import Spinner from '../widgets/Spinner';
-import './data-table-styles.css';
-import { RowWithKey, SalesforceQueryColumnDefinition } from './data-table-types';
+import { ColumnWithFilter, RowWithKey, SalesforceQueryColumnDefinition } from './data-table-types';
 import { DataTableSubqueryContext, getRowId, getSubqueryModalTagline, NON_DATA_COLUMN_KEYS } from './data-table-utils';
 import { DataTable } from './DataTable';
 
 export const SubqueryRenderer: FunctionComponent<FormatterProps<RowWithKey, unknown>> = ({ column, row, onRowChange, isCellSelected }) => {
-  // const [columnApi, setColumnApi] = useState<ColumnApi>(null);
   const isMounted = useRef(null);
   const modalRef = useRef();
   const [isActive, setIsActive] = useState(false);
@@ -70,10 +70,6 @@ export const SubqueryRenderer: FunctionComponent<FormatterProps<RowWithKey, unkn
     );
   }, [handleRowAction, records]);
 
-  // function handleOnGridReady({ columnApi }: GridReadyEvent) {
-  //   setColumnApi(columnApi);
-  // }
-
   function handleViewData() {
     if (isActive) {
       setIsActive(false);
@@ -104,10 +100,10 @@ export const SubqueryRenderer: FunctionComponent<FormatterProps<RowWithKey, unkn
     setDownloadModalIsActive(true);
   }
 
-  function handleCopyToClipboard() {
-    // const fields = getCurrentColumns(columnApi);
-    // const flattenedData = flattenRecords(records, fields);
-    // copyToClipboard(transformTabularDataToExcelStr(flattenedData, fields), { format: 'text/plain' });
+  function handleCopyToClipboard(columns: ColumnWithFilter<any, unknown>[]) {
+    const fields = columns.map((column) => column.key);
+    const flattenedData = flattenRecords(records, fields);
+    copyToClipboard(transformTabularDataToExcelStr(flattenedData, fields), { format: 'text/plain' });
   }
 
   async function loadMore(org: SalesforceOrgUi, isTooling: boolean) {
@@ -166,7 +162,7 @@ export const SubqueryRenderer: FunctionComponent<FormatterProps<RowWithKey, unkn
                     <div>
                       <button
                         className="slds-button slds-button_neutral"
-                        onClick={() => handleCopyToClipboard()}
+                        onClick={() => handleCopyToClipboard(columns)}
                         title="Copy the queried records to the clipboard. The records can then be pasted into a spreadsheet."
                       >
                         <Icon type="utility" icon="copy_to_clipboard" className="slds-button__icon slds-button__icon_left" omitContainer />
