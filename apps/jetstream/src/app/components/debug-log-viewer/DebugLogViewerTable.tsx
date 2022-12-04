@@ -32,25 +32,25 @@ const COLUMNS: ColumnWithFilter<ApexLogWithViewed>[] = [
     // TODO: filter for this
   },
   {
-    ...setColumnFromType('LogLength', 'text'),
+    ...setColumnFromType('LogUser.Name', 'text'),
     name: 'User',
     key: 'LogUser.Name',
     width: 125,
   },
   {
-    ...setColumnFromType('LogLength', 'text'),
+    ...setColumnFromType('Application', 'text'),
     name: 'Application',
     key: 'Application',
     width: 125,
   },
   {
-    ...setColumnFromType('LogLength', 'text'),
+    ...setColumnFromType('Operation', 'text'),
     name: 'Operation',
     key: 'Operation',
     width: 125,
   },
   {
-    ...setColumnFromType('LogLength', 'text'),
+    ...setColumnFromType('Status', 'text'),
     name: 'Status',
     key: 'Status',
     width: 125,
@@ -65,16 +65,7 @@ const COLUMNS: ColumnWithFilter<ApexLogWithViewed>[] = [
     ...setColumnFromType('LastModifiedDate', 'date'),
     name: 'Time',
     key: 'LastModifiedDate',
-    // sort: 'desc',
     width: 202,
-    // valueFormatter: dataTableDateFormatter,
-    // getQuickFilterText: dataTableDateFormatter,
-    // filter: 'agDateColumnFilter',
-    // filterParams: {
-    // defaultOption: 'greaterThan',
-    // comparator: DateFilterComparator,
-    // buttons: ['clear'],
-    // },
   },
 ];
 
