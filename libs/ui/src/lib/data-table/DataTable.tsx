@@ -1,142 +1,207 @@
-import { ClientSideRowModelModule } from '@ag-grid-community/client-side-row-model';
-import { ColDef, GridOptions, ModuleRegistry, ValueFormatterParams } from '@ag-grid-community/core';
-import { InfiniteRowModelModule } from '@ag-grid-community/infinite-row-model';
-import { AgGridReact } from '@ag-grid-community/react';
-import { ClipboardModule } from '@ag-grid-enterprise/clipboard';
-import { ColumnsToolPanelModule } from '@ag-grid-enterprise/column-tool-panel';
-import { FiltersToolPanelModule } from '@ag-grid-enterprise/filter-tool-panel';
-import { MenuModule } from '@ag-grid-enterprise/menu';
-import { MultiFilterModule } from '@ag-grid-enterprise/multi-filter';
-import { RangeSelectionModule } from '@ag-grid-enterprise/range-selection';
-import { RowGroupingModule } from '@ag-grid-enterprise/row-grouping';
-import { SetFilterModule } from '@ag-grid-enterprise/set-filter';
-import { REGEX } from '@jetstream/shared/utils';
+import { IconName } from '@jetstream/icon-factory';
+import { logger } from '@jetstream/shared/client-logger';
+import { orderObjectsBy, orderStringsBy } from '@jetstream/shared/utils';
 import { SalesforceOrgUi } from '@jetstream/types';
-import { CSSProperties, FunctionComponent } from 'react';
-import './data-table-styles.css';
-import { getContextMenuItems, handleCellDoubleClicked, handleCellKeydown, processCellForClipboard } from './data-table-utils';
+import escapeRegExp from 'lodash/escapeRegExp';
+import isNil from 'lodash/isNil';
+import { memo, useCallback, useEffect, useMemo, useState } from 'react';
+import DataGrid, { DataGridProps, SortColumn, SortStatusProps } from 'react-data-grid';
+import 'react-data-grid/lib/styles.css';
+import Icon from '../widgets/Icon';
+import './data-table-styles.scss';
+import { ColumnWithFilter, DataTableFilter, FILTER_SET_TYPES, RowWithKey } from './data-table-types';
 import {
-  ActionRenderer,
-  BasicTextFilterRenderer,
-  BasicTextFloatingFilterRenderer,
-  BooleanEditableRenderer,
-  BooleanFilterRenderer,
-  BooleanRenderer,
-  ComplexDataRenderer,
-  configIdLinkRenderer,
-  ExecuteRenderer,
-  FullWidthRenderer,
-  IdLinkRenderer,
-  SubqueryRenderer,
-} from './DataTableRenderers';
+  DataTableFilterContext,
+  DataTableGenericContext,
+  EMPTY_FIELD,
+  filterRecord,
+  getSearchTextByRow,
+  isFilterActive,
+  resetFilter,
+} from './data-table-utils';
+import { configIdLinkRenderer } from './DataTableRenderers';
 
-ModuleRegistry.registerModules([
-  ClientSideRowModelModule,
-  ClipboardModule,
-  ColumnsToolPanelModule,
-  FiltersToolPanelModule,
-  InfiniteRowModelModule,
-  MenuModule,
-  MultiFilterModule,
-  RangeSelectionModule,
-  RowGroupingModule,
-  SetFilterModule,
-]);
-
-const DEFAULT_MENU_TABS = ['filterMenuTab', 'generalMenuTab', 'columnsMenuTab'];
-
-export interface DataTableProps {
-  style?: CSSProperties;
-  columns: ColDef[];
-  data: any[];
-  agGridProps?: GridOptions;
-  components?: any;
-  quickFilterText?: string;
-  serverUrl?: string;
-  org?: SalesforceOrgUi;
-  defaultMenuTabs?: string[];
+function sortStatus({ sortDirection, priority }: SortStatusProps) {
+  const iconName: IconName = sortDirection === 'ASC' ? 'arrowup' : 'arrowdown';
+  return sortDirection !== undefined ? (
+    <>
+      <Icon type="utility" icon={iconName} className="slds-icon slds-icon-text-default slds-icon_xx-small" />
+      <span>{priority}</span>
+    </>
+  ) : null;
 }
 
-export const DataTable: FunctionComponent<DataTableProps> = ({
-  style = {
-    height: '100%',
-    width: '100%',
-  },
-  columns,
+export interface DataTableNewProps<T = RowWithKey, TContext = Record<string, any>>
+  extends Omit<DataGridProps<T>, 'columns' | 'rows' | 'rowKeyGetter'> {
+  data: T[];
+  columns: ColumnWithFilter<T>[];
+  serverUrl?: string;
+  org?: SalesforceOrgUi;
+  quickFilterText?: string;
+  includeQuickFilter?: boolean;
+  context?: TContext;
+  getRowKey: (row: T) => string;
+  rowAlwaysVisible?: (row: T) => boolean;
+  ignoreRowInSetFilter?: (row: T) => boolean;
+}
+
+export const DataTable = <T extends object>({
   data,
-  agGridProps = {
-    defaultColDef: {},
-  },
-  components = {},
-  quickFilterText,
+  columns,
   serverUrl,
   org,
-  defaultMenuTabs = DEFAULT_MENU_TABS,
-}) => {
+  quickFilterText,
+  includeQuickFilter,
+  context,
+  getRowKey,
+  ignoreRowInSetFilter,
+  rowAlwaysVisible,
+  ...rest
+}: DataTableNewProps<T>) => {
+  const [sortColumns, setSortColumns] = useState<readonly SortColumn[]>([]);
+  // TODO: will be used for filtering
+  const [columnMap, setColumnMap] = useState<Map<string, ColumnWithFilter<T>>>(() => new Map());
+  const [filters, setFilters] = useState<Record<string, DataTableFilter[]>>({});
+  // TODO: do we need label and value?
+  const [filterSetValues, setFilterSetValues] = useState<Record<string, string[]>>({});
+  const [rowFilterText, setRowFilterText] = useState<Record<string, string>>({});
+
+  useEffect(() => {
+    if (Array.isArray(columns) && columns.length && Array.isArray(data) && data.length) {
+      setRowFilterText(getSearchTextByRow(data, columns, getRowKey));
+    } else {
+      setRowFilterText({});
+    }
+  }, [columns, data, getRowKey]);
+
+  useEffect(() => {
+    setColumnMap(new Map(columns.map((column) => [column.key, column])));
+    setFilters(
+      columns.reduce((acc: Record<string, DataTableFilter[]>, column) => {
+        if (Array.isArray(column.filters)) {
+          acc[column.key] = column.filters.map((filter) => resetFilter(filter));
+        }
+        return acc;
+      }, {})
+    );
+  }, [columns]);
+
+  useEffect(() => {
+    setFilterSetValues(
+      Object.keys(filters)
+        .filter((columnKey) => Array.isArray(filters[columnKey]) && filters[columnKey].some(({ type }) => FILTER_SET_TYPES.has(type)))
+        .reduce((acc: Record<string, string[]>, columnKey) => {
+          const filter = filters[columnKey].find(({ type }) => FILTER_SET_TYPES.has(type));
+          const column = columnMap.get(columnKey);
+          const getValueFn = columnMap.get(columnKey)?.getValue || (({ row, column }) => row[columnKey]);
+          if (filter.type === 'BOOLEAN_SET') {
+            acc[columnKey] = ['True', 'False'];
+          } else {
+            acc[columnKey] = orderStringsBy(
+              Array.from(
+                new Set(
+                  data
+                    .filter((row) => (ignoreRowInSetFilter ? !ignoreRowInSetFilter(row) : true))
+                    .map((row) => {
+                      const rowValue = getValueFn({ row, column });
+                      // TODO: we need some additional function to get the filter value and also compare the value when filtering
+                      return isNil(row[columnKey]) ? EMPTY_FIELD : String(rowValue);
+                    })
+                )
+              )
+            );
+          }
+
+          return acc;
+        }, {})
+    );
+  }, [columnMap, data, filters]);
+
+  const updateFilter = useCallback((column: string, filter: DataTableFilter) => {
+    setFilters((prevFilters) => ({
+      ...prevFilters,
+      [column]: prevFilters[column].map((currFilter) => (currFilter.type === filter.type ? filter : currFilter)),
+    }));
+  }, []);
+
+  const sortedRows = useMemo((): readonly T[] => {
+    if (sortColumns.length === 0) {
+      return data;
+    }
+    // TODO: what about complex data?
+    // TODO: what about getValue on filter
+    return orderObjectsBy(
+      data,
+      sortColumns.map(({ columnKey }) => columnKey) as any,
+      sortColumns.map(({ direction }) => (direction === 'ASC' ? 'asc' : 'desc'))
+    );
+  }, [data, sortColumns]);
+
+  const filteredRows = useMemo((): readonly T[] => {
+    let quickFilterRegex: RegExp;
+    if (includeQuickFilter && quickFilterText) {
+      try {
+        quickFilterRegex = new RegExp(escapeRegExp(quickFilterText), 'i');
+      } catch (ex) {
+        logger.warn('Invalid quick filter text', ex);
+      }
+    }
+    return sortedRows.filter((row) => {
+      if (rowAlwaysVisible && rowAlwaysVisible(row)) {
+        return true;
+      }
+      const isVisible = Object.keys(filters)
+        .filter(
+          (columnKey) =>
+            Array.isArray(filters[columnKey]) && filters[columnKey].length && filters[columnKey].some((filter) => isFilterActive(filter))
+        )
+        .every((columnKey) => {
+          let rowValue = row[columnKey];
+          const column = columnMap.get(columnKey);
+          if (column?.getValue) {
+            rowValue = column.getValue({ row, column: columnMap.get(columnKey) });
+          }
+          return filters[columnKey].filter(isFilterActive).every((filter) => filterRecord(filter, rowValue));
+        });
+      // Apply global filter
+      const key = getRowKey(row);
+      if (quickFilterRegex && key && rowFilterText[key]) {
+        return isVisible && quickFilterRegex.test(rowFilterText[key]);
+      }
+      return isVisible;
+    });
+  }, [columnMap, filters, getRowKey, includeQuickFilter, quickFilterText, rowAlwaysVisible, rowFilterText, sortedRows]);
+
   if (serverUrl && org) {
     configIdLinkRenderer(serverUrl, org);
   }
 
   return (
-    <div className="ag-theme-custom-react" style={style}>
-      <AgGridReact
-        suppressReactUi // Turning this on with React18 causes poor behavior with grouped rows (permissions / deploy metadata)
-        rowSelection="multiple"
-        suppressDragLeaveHidesColumns
-        quickFilterText={quickFilterText}
-        headerHeight={25}
-        maintainColumnOrder
-        defaultColDef={{
-          filter: 'agMultiColumnFilter',
-          filterParams: {
-            filters: [
-              { filter: 'agTextColumnFilter' },
-              {
-                filter: 'agSetColumnFilter',
-                filterParams: {
-                  valueFormatter: ({ value }: ValueFormatterParams) => (value ? value.replace(REGEX.NEW_LINE, ' ') : value),
-                  showTooltips: true,
-                },
-              },
-            ],
-          },
-          menuTabs: defaultMenuTabs,
-          sortable: true,
-          resizable: true,
+    <DataTableGenericContext.Provider value={{ ...context, rows: filteredRows }}>
+      <DataTableFilterContext.Provider
+        value={{
+          filterSetValues,
+          filters,
+          portalRefForFilters: context?.portalRefForFilters,
+          updateFilter,
         }}
-        components={{
-          // CELL RENDERERS
-          executeRenderer: ExecuteRenderer,
-          actionRenderer: ActionRenderer,
-          booleanRenderer: BooleanRenderer,
-          idLinkRenderer: IdLinkRenderer,
-          subqueryRenderer: SubqueryRenderer,
-          complexDataRenderer: ComplexDataRenderer,
-          booleanEditableRenderer: BooleanEditableRenderer,
-          fullWidthRenderer: FullWidthRenderer,
-          // FILTER RENDERERS
-          basicTextFilterRenderer: BasicTextFilterRenderer,
-          basicTextFloatingFilterRenderer: BasicTextFloatingFilterRenderer,
-          booleanFilterRenderer: BooleanFilterRenderer,
-          // Custom renderers that apply to specific implementations
-          ...components,
-        }}
-        columnDefs={columns}
-        rowData={data}
-        enableRangeSelection
-        suppressRowClickSelection
-        suppressMultiRangeSelection
-        suppressMenuHide
-        ensureDomOrder
-        copyHeadersToClipboard
-        processCellForClipboard={processCellForClipboard}
-        getContextMenuItems={getContextMenuItems}
-        onCellDoubleClicked={handleCellDoubleClicked}
-        onCellKeyDown={handleCellKeydown}
-        {...agGridProps}
-      ></AgGridReact>
-    </div>
+      >
+        <DataGrid
+          className="rdg-light fill-grid"
+          columns={columns}
+          rows={filteredRows}
+          renderers={{ sortStatus }}
+          sortColumns={sortColumns}
+          onSortColumnsChange={setSortColumns}
+          rowKeyGetter={getRowKey}
+          defaultColumnOptions={{ resizable: true, sortable: true, ...rest.defaultColumnOptions }}
+          {...rest}
+        />
+      </DataTableFilterContext.Provider>
+    </DataTableGenericContext.Provider>
   );
 };
 
-export default DataTable;
+// export const DataTable = memo(DataTable);
+
+// export default DataTable;

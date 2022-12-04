@@ -2,7 +2,7 @@ import { css } from '@emotion/react';
 import { logger } from '@jetstream/shared/client-logger';
 import { ANALYTICS_KEYS } from '@jetstream/shared/constants';
 import { SalesforceOrgUi } from '@jetstream/types';
-import { AutoFullHeightContainer, DataTableNew, Icon, Modal, Spinner } from '@jetstream/ui';
+import { AutoFullHeightContainer, DataTable, Icon, Modal, Spinner } from '@jetstream/ui';
 import { Fragment, FunctionComponent, useCallback, useEffect, useMemo, useState } from 'react';
 import { Column } from 'react-data-grid';
 import { useAmplitude } from '../core/analytics';
@@ -326,7 +326,7 @@ export const AutomationControlEditorReviewModal: FunctionComponent<AutomationCon
         >
           {inProgress && <Spinner />}
           <AutoFullHeightContainer fillHeight setHeightAttr bottomBuffer={250}>
-            <DataTableNew columns={COLUMNS} data={deploymentItemRows} getRowKey={getRowId} />
+            <DataTable columns={COLUMNS} data={deploymentItemRows} getRowKey={getRowId} />
           </AutoFullHeightContainer>
         </div>
       </Modal>

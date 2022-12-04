@@ -1,5 +1,5 @@
 import { SalesforceOrgUi } from '@jetstream/types';
-import { ColumnWithFilter, DataTableNew, setColumnFromType } from '@jetstream/ui';
+import { ColumnWithFilter, DataTable, setColumnFromType } from '@jetstream/ui';
 import { forwardRef, useMemo } from 'react';
 import { RowHeightArgs } from 'react-data-grid';
 import { isTableRow } from './automation-control-data-utils';
@@ -97,7 +97,7 @@ export const AutomationControlEditorTable = forwardRef<any, AutomationControlEdi
 
     return (
       <div className="h-100">
-        <DataTableNew
+        <DataTable
           serverUrl={serverUrl}
           org={selectedOrg}
           data={rows}

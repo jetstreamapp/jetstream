@@ -3,7 +3,7 @@ import { logger } from '@jetstream/shared/client-logger';
 import { query } from '@jetstream/shared/data';
 import { formatNumber } from '@jetstream/shared/ui-utils';
 import { InsertUpdateUpsertDelete, SalesforceOrgUi } from '@jetstream/types';
-import { Alert, AutoFullHeightContainer, DataTableNew, getColumnsForGenericTable, Grid, GridCol, RowWithKey, Spinner } from '@jetstream/ui';
+import { Alert, AutoFullHeightContainer, DataTable, getColumnsForGenericTable, Grid, GridCol, RowWithKey, Spinner } from '@jetstream/ui';
 import { DescribeGlobalSObjectResult } from 'jsforce';
 import isNil from 'lodash/isNil';
 import { FunctionComponent, useEffect, useRef, useState } from 'react';
@@ -13,7 +13,7 @@ import * as fromLoadRecordsState from '../load-records.state';
 
 const NUM_COLUMN = '_num';
 
-const getRowId = ({ _key }: RowWithKey) => _key;
+const getRowId = ({ _num }: any) => _num;
 
 export interface LoadRecordsDataPreviewProps {
   selectedOrg: SalesforceOrgUi;
@@ -104,6 +104,7 @@ export const LoadRecordsDataPreview: FunctionComponent<LoadRecordsDataPreviewPro
           logger.warn('[ERROR] Unable to get total record count', ex);
         } finally {
           if (!isMounted.current || selectedSObject?.name !== sobjectName) {
+            // eslint-disable-next-line no-unsafe-finally
             return;
           }
           setLoading(false);
@@ -156,7 +157,7 @@ export const LoadRecordsDataPreview: FunctionComponent<LoadRecordsDataPreviewPro
             >
               <div className="slds-text-heading_small">File Preview</div>
               <AutoFullHeightContainer fillHeight setHeightAttr bottomBuffer={25}>
-                <DataTableNew columns={columns} data={rows} getRowKey={getRowId} />
+                <DataTable columns={columns} data={rows} getRowKey={getRowId} />
               </AutoFullHeightContainer>
             </div>
           )}

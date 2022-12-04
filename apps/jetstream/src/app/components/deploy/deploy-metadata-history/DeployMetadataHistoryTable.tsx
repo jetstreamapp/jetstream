@@ -1,5 +1,5 @@
 import { MapOf, SalesforceDeployHistoryItem, SalesforceOrgUi } from '@jetstream/types';
-import { ColumnWithFilter, DataTableNew, setColumnFromType } from '@jetstream/ui';
+import { ColumnWithFilter, DataTable, setColumnFromType } from '@jetstream/ui';
 import { FunctionComponent, useMemo } from 'react';
 import { RowHeightArgs } from 'react-data-grid';
 import { DeployHistoryTableContext } from '../deploy-metadata.types';
@@ -89,7 +89,7 @@ export const DeployMetadataHistoryTable: FunctionComponent<DeployMetadataHistory
     [orgsById, modalRef, onView, onDownload]
   );
   const getRowHeightFn = useMemo(() => getRowHeight(orgsById), [orgsById]);
-  return <DataTableNew columns={COLUMNS} data={items} getRowKey={getRowId} context={context} rowHeight={getRowHeightFn} />;
+  return <DataTable columns={COLUMNS} data={items} getRowKey={getRowId} context={context} rowHeight={getRowHeightFn} />;
 };
 
 export default DeployMetadataHistoryTable;

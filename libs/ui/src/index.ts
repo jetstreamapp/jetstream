@@ -8,18 +8,17 @@ export * from './lib/badge/BadgePopoverList';
 export * from './lib/card/Card';
 export * from './lib/color-picker/ColorSwatches';
 export * from './lib/confirmation-dialog/ConfirmationDialog';
-export * from './lib/data-table/data-table-utils';
-export * from './lib/data-table/DataTable';
-export * from './lib/data-table/SalesforceRecordDataTable';
-export * from './lib/data-table-new/DataTable';
-export * from './lib/data-table-new/SalesforceRecordDataTable';
+export { ColumnWithFilter, RowWithKey } from './lib/data-table/data-table-types';
 export {
   DataTableGenericContext,
-  setColumnFromType,
   DataTableSelectedContext,
+  dataTableFileSizeFormatter,
   getColumnsForGenericTable,
-} from './lib/data-table-new/data-table-utils';
-export { ColumnWithFilter, RowWithKey } from './lib/data-table-new/data-table-types';
+  setColumnFromType,
+} from './lib/data-table/data-table-utils';
+export * from './lib/data-table/DataTable';
+export * from './lib/data-table/DataTableRenderers';
+export * from './lib/data-table/SalesforceRecordDataTable';
 export * from './lib/docked-composer/DockedComposer';
 export * from './lib/expression-group/expression-utils';
 export * from './lib/expression-group/ExpressionContainer';

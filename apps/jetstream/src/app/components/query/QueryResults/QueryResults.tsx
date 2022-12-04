@@ -36,7 +36,6 @@ import {
   Icon,
   RecordDownloadModal,
   SalesforceRecordDataTable,
-  SalesforceRecordDataTableNew,
   Spinner,
   Toolbar,
   ToolbarItemActions,
@@ -662,7 +661,7 @@ export const QueryResults: FunctionComponent<QueryResultsProps> = React.memo(() 
             </div>
           )}
           {!!(records && !!records.length) && (
-            <SalesforceRecordDataTableNew
+            <SalesforceRecordDataTable
               org={selectedOrg}
               google_apiKey={google_apiKey}
               google_appId={google_appId}

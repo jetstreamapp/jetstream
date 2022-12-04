@@ -1,5 +1,5 @@
 import { formatNumber } from '@jetstream/shared/ui-utils';
-import { AutoFullHeightContainer, ColumnWithFilter, DataTableNew, DataTableSelectedContext, Grid, Icon, SearchInput } from '@jetstream/ui';
+import { AutoFullHeightContainer, ColumnWithFilter, DataTable, DataTableSelectedContext, Grid, Icon, SearchInput } from '@jetstream/ui';
 import groupBy from 'lodash/groupBy';
 import { Fragment, FunctionComponent, useEffect, useState } from 'react';
 import { DeployMetadataTableRow } from './deploy-metadata.types';
@@ -62,7 +62,7 @@ export const DeployMetadataDeploymentTable: FunctionComponent<DeployMetadataDepl
       <AutoFullHeightContainer fillHeight setHeightAttr delayForSecondTopCalc bottomBuffer={15}>
         {/* TODO: loading indicator on grouped rows, will require context */}
         <DataTableSelectedContext.Provider value={{ selectedRowIds, getRowKey: getRowId }}>
-          <DataTableNew
+          <DataTable
             columns={columns}
             data={rows}
             getRowKey={getRowId}

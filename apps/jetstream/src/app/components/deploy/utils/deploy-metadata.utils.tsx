@@ -12,12 +12,19 @@ import {
   SalesforceDeployHistoryType,
   SalesforceOrgUi,
 } from '@jetstream/types';
-import { ColumnWithFilter, Grid, setColumnFromType, Spinner } from '@jetstream/ui';
+import {
+  ColumnWithFilter,
+  Grid,
+  SelectFormatter,
+  SelectHeaderGroupRenderer,
+  SelectHeaderRenderer,
+  setColumnFromType,
+  Spinner,
+} from '@jetstream/ui';
 import formatISO from 'date-fns/formatISO';
 import parseISO from 'date-fns/parseISO';
 import { DeployOptions } from 'jsforce';
 import JSZip from 'jszip';
-import { SelectFormatter, SelectHeaderGroupRenderer, SelectHeaderRenderer } from 'libs/ui/src/lib/data-table-new/DataTableRenderers';
 import localforage from 'localforage';
 import isString from 'lodash/isString';
 import { GroupFormatterProps, SelectColumn, SELECT_COLUMN_KEY } from 'react-data-grid';

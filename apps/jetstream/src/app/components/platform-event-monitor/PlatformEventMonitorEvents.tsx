@@ -1,7 +1,6 @@
 import { css } from '@emotion/react';
 import { orderStringsBy } from '@jetstream/shared/utils';
-import { AutoFullHeightContainer, DataTableNew } from '@jetstream/ui';
-import { ColumnWithFilter } from 'libs/ui/src/lib/data-table-new/data-table-types';
+import { AutoFullHeightContainer, ColumnWithFilter, DataTable } from '@jetstream/ui';
 import groupBy from 'lodash/groupBy';
 import { FunctionComponent, useEffect, useState } from 'react';
 import { FormatterProps, RowHeightArgs } from 'react-data-grid';
@@ -108,7 +107,7 @@ export const PlatformEventMonitorEvents: FunctionComponent<PlatformEventMonitorE
 
   return (
     <AutoFullHeightContainer fillHeight setHeightAttr delayForSecondTopCalc>
-      <DataTableNew
+      <DataTable
         columns={columns}
         data={rows}
         getRowKey={getRowId}

@@ -1,6 +1,6 @@
 import { css } from '@emotion/react';
 import { ApexLogWithViewed } from '@jetstream/types';
-import { AutoFullHeightContainer, ColumnWithFilter, DataTableNew, Icon, setColumnFromType } from '@jetstream/ui';
+import { AutoFullHeightContainer, ColumnWithFilter, DataTable, Icon, setColumnFromType } from '@jetstream/ui';
 import { FunctionComponent, useEffect, useRef } from 'react';
 import { FormatterProps } from 'react-data-grid';
 
@@ -105,7 +105,7 @@ export const DebugLogViewerTable: FunctionComponent<DebugLogViewerTableProps> = 
 
   return (
     <AutoFullHeightContainer fillHeight setHeightAttr bottomBuffer={75}>
-      <DataTableNew columns={COLUMNS} data={logs} getRowKey={getRowId} onRowClick={handleSelectionChanged} />
+      <DataTable columns={COLUMNS} data={logs} getRowKey={getRowId} onRowClick={handleSelectionChanged} />
     </AutoFullHeightContainer>
   );
 };

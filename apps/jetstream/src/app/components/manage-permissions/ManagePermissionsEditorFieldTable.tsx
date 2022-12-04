@@ -1,6 +1,6 @@
 import { useNonInitialEffect } from '@jetstream/shared/ui-utils';
 import { MapOf } from '@jetstream/types';
-import { AutoFullHeightContainer, ColumnWithFilter, DataTableNew } from '@jetstream/ui';
+import { AutoFullHeightContainer, ColumnWithFilter, DataTable } from '@jetstream/ui';
 import groupBy from 'lodash/groupBy';
 import { forwardRef, useCallback, useImperativeHandle, useState } from 'react';
 import { RowHeightArgs } from 'react-data-grid';
@@ -72,7 +72,7 @@ export const ManagePermissionsEditorFieldTable = forwardRef<any, ManagePermissio
     return (
       <div>
         <AutoFullHeightContainer fillHeight setHeightAttr bottomBuffer={15}>
-          <DataTableNew
+          <DataTable
             columns={columns}
             data={rows}
             getRowKey={getRowKey}
