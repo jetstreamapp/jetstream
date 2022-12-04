@@ -1,6 +1,4 @@
-import { ColDef, ColGroupDef } from '@ag-grid-community/core';
 import { css } from '@emotion/react';
-
 import { logger } from '@jetstream/shared/client-logger';
 import { MapOf, SalesforceOrgUi } from '@jetstream/types';
 import {
@@ -18,7 +16,6 @@ import {
   Tooltip,
 } from '@jetstream/ui';
 import { Fragment, FunctionComponent, useCallback, useEffect, useRef, useState } from 'react';
-import { RowsChangeData } from 'react-data-grid';
 import { Link } from 'react-router-dom';
 import { useRecoilState, useRecoilValue, useResetRecoilState } from 'recoil';
 import { applicationCookieState, selectedOrgState } from '../../app-state';
@@ -260,19 +257,19 @@ export const ManagePermissionsEditor: FunctionComponent<ManagePermissionsEditorP
   function exportChanges() {
     // generate brand-new columns/rows just for export
     // This is required in the case where a tab may not have been rendered
-    // setFileDownloadData(
-    //   generateExcelWorkbookFromTable(
-    //     {
-    //       columns: getObjectColumns(selectedProfiles, selectedPermissionSets, profilesById, permissionSetsById),
-    //       rows: getObjectRows(selectedSObjects, objectPermissionMap),
-    //     },
-    //     {
-    //       columns: getFieldColumns(selectedProfiles, selectedPermissionSets, profilesById, permissionSetsById),
-    //       rows: getFieldRows(selectedSObjects, fieldsByObject, fieldPermissionMap),
-    //     }
-    //   )
-    // );
-    // setFileDownloadModalOpen(true);
+    setFileDownloadData(
+      generateExcelWorkbookFromTable(
+        {
+          columns: getObjectColumns(selectedProfiles, selectedPermissionSets, profilesById, permissionSetsById),
+          rows: getObjectRows(selectedSObjects, objectPermissionMap),
+        },
+        {
+          columns: getFieldColumns(selectedProfiles, selectedPermissionSets, profilesById, permissionSetsById),
+          rows: getFieldRows(selectedSObjects, fieldsByObject, fieldPermissionMap),
+        }
+      )
+    );
+    setFileDownloadModalOpen(true);
   }
 
   async function saveChanges() {

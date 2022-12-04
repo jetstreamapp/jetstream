@@ -4,7 +4,7 @@ import { ANALYTICS_KEYS } from '@jetstream/shared/constants';
 import { useRollbar } from '@jetstream/shared/ui-utils';
 import { MapOf, SalesforceDeployHistoryItem, SalesforceOrgUi } from '@jetstream/types';
 import { EmptyState, FileDownloadModal, Icon, Modal, OpenRoadIllustration, ScopedNotification, Spinner } from '@jetstream/ui';
-import { Fragment, FunctionComponent, useEffect, useState } from 'react';
+import { Fragment, FunctionComponent, useEffect, useRef, useState } from 'react';
 import { useRecoilState, useRecoilValue } from 'recoil';
 import * as fromAppState from '../../../app-state';
 import { useAmplitude } from '../../core/analytics';
@@ -18,6 +18,7 @@ import DeployMetadataHistoryViewResults from './DeployMetadataHistoryViewResults
 export const DeployMetadataHistoryModal: FunctionComponent = () => {
   const { trackEvent } = useAmplitude();
   const rollbar = useRollbar();
+  const modalRef = useRef();
   const [{ serverUrl, google_apiKey, google_appId, google_clientId }] = useRecoilState(fromAppState.applicationCookieState);
   const [isOpen, setIsOpen] = useState(false);
   const [downloadPackageModalState, setDownloadPackageModalState] = useState<{ open: boolean; org: SalesforceOrgUi; data: ArrayBuffer }>({
@@ -191,6 +192,7 @@ export const DeployMetadataHistoryModal: FunctionComponent = () => {
       )}
       {isOpen && (
         <Modal
+          ref={modalRef}
           classStyles={css`
             min-height: 70vh;
             max-height: 70vh;
@@ -230,6 +232,7 @@ export const DeployMetadataHistoryModal: FunctionComponent = () => {
                 <DeployMetadataHistoryTable
                   items={historyItems}
                   orgsById={orgsById}
+                  modalRef={modalRef}
                   onDownload={handleDownload}
                   onView={handleViewModalOpen}
                 />

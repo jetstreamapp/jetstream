@@ -18,7 +18,6 @@ const COLUMNS: ColumnWithFilter<SalesforceDeployHistoryItem>[] = [
     name: 'Started',
     key: 'start',
     width: 200,
-    filters: [], // FIXME: does not work in modal
   },
   {
     ...setColumnFromType('type', 'text'),
@@ -26,22 +25,21 @@ const COLUMNS: ColumnWithFilter<SalesforceDeployHistoryItem>[] = [
     key: 'type',
     width: 165,
     formatter: ({ column, row }) => TYPE_MAP[row[column.key]],
-    filters: [], // FIXME: does not work in modal
   },
   {
-    ...setColumnFromType('type', 'text'),
+    ...setColumnFromType('destinationOrg', 'text'),
     name: 'Deployed To Org',
-    key: 'destinationOrg.label',
+    key: 'destinationOrg',
     formatter: OrgRenderer,
+    getValue: ({ row }) => row.destinationOrg?.label,
     width: 350,
-    filters: [], // FIXME: does not work in modal
   },
   {
+    ...setColumnFromType('status', 'text'),
     name: 'Status',
     key: 'status',
     formatter: StatusRenderer,
     width: 150,
-    filters: [], // FIXME: does not work in modal
   },
   {
     name: 'Actions',
@@ -50,7 +48,6 @@ const COLUMNS: ColumnWithFilter<SalesforceDeployHistoryItem>[] = [
     sortable: false,
     resizable: false,
     formatter: ActionRenderer,
-    filters: [], // FIXME: does not work in modal
   },
 ];
 
@@ -75,12 +72,22 @@ const getRowId = ({ key }: SalesforceDeployHistoryItem) => key;
 export interface DeployMetadataHistoryTableProps {
   items: SalesforceDeployHistoryItem[];
   orgsById: MapOf<SalesforceOrgUi>;
+  modalRef: React.RefObject<HTMLDivElement>;
   onView: (item: SalesforceDeployHistoryItem) => void;
   onDownload: (item: SalesforceDeployHistoryItem) => void;
 }
 
-export const DeployMetadataHistoryTable: FunctionComponent<DeployMetadataHistoryTableProps> = ({ items, orgsById, onView, onDownload }) => {
-  const context: DeployHistoryTableContext = useMemo(() => ({ orgsById, onView, onDownload }), [orgsById, onView, onDownload]);
+export const DeployMetadataHistoryTable: FunctionComponent<DeployMetadataHistoryTableProps> = ({
+  items,
+  orgsById,
+  modalRef,
+  onView,
+  onDownload,
+}) => {
+  const context: DeployHistoryTableContext = useMemo(
+    () => ({ orgsById, portalRefForFilters: modalRef, onView, onDownload }),
+    [orgsById, modalRef, onView, onDownload]
+  );
   const getRowHeightFn = useMemo(() => getRowHeight(orgsById), [orgsById]);
   return <DataTableNew columns={COLUMNS} data={items} getRowKey={getRowId} context={context} rowHeight={getRowHeightFn} />;
 };

@@ -42,6 +42,7 @@ export interface DeployMetadataTableRow {
 
 export interface DeployHistoryTableContext {
   orgsById: MapOf<SalesforceOrgUi>;
+  portalRefForFilters: React.RefObject<HTMLDivElement>;
   onView: (item: SalesforceDeployHistoryItem) => void;
   onDownload: (item: SalesforceDeployHistoryItem) => void;
 }
