@@ -24,8 +24,6 @@ const getRowClass = (row: TableRowOrItemOrChild) => {
 };
 
 const getRowId = ({ key }: TableRowOrItemOrChild) => key;
-const ignoreRowInSetFilter = (row: TableRowOrItemOrChild) => isTableRow(row);
-const rowAlwaysVisible = (row: TableRowOrItemOrChild) => isTableRow(row);
 
 export interface AutomationControlEditorTableProps {
   serverUrl: string;
@@ -108,8 +106,8 @@ export const AutomationControlEditorTable = forwardRef<any, AutomationControlEdi
           rowHeight={getRowHeight}
           defaultColumnOptions={{ resizable: true }}
           getRowKey={getRowId}
-          ignoreRowInSetFilter={ignoreRowInSetFilter}
-          rowAlwaysVisible={rowAlwaysVisible}
+          ignoreRowInSetFilter={isTableRow}
+          rowAlwaysVisible={isTableRow}
         />
       </div>
     );
