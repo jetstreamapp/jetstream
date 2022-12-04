@@ -89,7 +89,7 @@ export const DeployMetadataHistoryTable: FunctionComponent<DeployMetadataHistory
     [orgsById, modalRef, onView, onDownload]
   );
   const getRowHeightFn = useMemo(() => getRowHeight(orgsById), [orgsById]);
-  return <DataTable columns={COLUMNS} data={items} getRowKey={getRowId} context={context} rowHeight={getRowHeightFn} />;
+  return <DataTable allowReorder columns={COLUMNS} data={items} getRowKey={getRowId} context={context} rowHeight={getRowHeightFn} />;
 };
 
 export default DeployMetadataHistoryTable;

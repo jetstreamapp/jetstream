@@ -3,7 +3,7 @@ import { logger } from '@jetstream/shared/client-logger';
 import { ANALYTICS_KEYS } from '@jetstream/shared/constants';
 import { salesforceApiReq } from '@jetstream/shared/data';
 import { SalesforceApiRequest } from '@jetstream/types';
-import { AutoFullHeightContainer, DataTable, Grid, Icon, Modal, setColumnFromType, Spinner } from '@jetstream/ui';
+import { AutoFullHeightContainer, ColumnWithFilter, DataTable, Grid, Icon, Modal, setColumnFromType, Spinner } from '@jetstream/ui';
 import { groupBy } from 'lodash';
 import { FunctionComponent, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Column } from 'react-data-grid';
@@ -58,12 +58,13 @@ export const SalesforceApiExamplesModal: FunctionComponent<SalesforceApiExamples
   }, [isOpen]);
 
   const COLUMNS = useMemo(() => {
-    const columns: Column<SalesforceApiRequest>[] = [
+    const columns: ColumnWithFilter<SalesforceApiRequest>[] = [
       {
         ...setColumnFromType('groupName', 'text'),
         name: 'Group',
         key: 'groupName',
         width: 150,
+        preventReorder: true,
       },
       {
         name: 'action',
@@ -132,6 +133,7 @@ export const SalesforceApiExamplesModal: FunctionComponent<SalesforceApiExamples
             {isLoading && <Spinner />}
             <AutoFullHeightContainer fillHeight setHeightAttr bottomBuffer={250}>
               <DataTable
+                allowReorder
                 columns={COLUMNS}
                 data={requests}
                 getRowKey={(row: SalesforceApiRequest) => row.id}

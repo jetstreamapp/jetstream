@@ -42,8 +42,8 @@ import {
   IdLinkRenderer,
   SelectFormatter,
   SelectHeaderRenderer,
-  SubqueryRenderer,
 } from './DataTableRenderers';
+import { SubqueryRenderer } from './DataTableSubqueryRenderer';
 
 const SFDC_EMPTY_ID = '000000000000000AAA';
 
@@ -149,7 +149,7 @@ export function getColumnDefinitions(results: QueryResults<any>, isTooling: bool
 
   // Base fields
   const parentColumns: ColumnWithFilter<RowWithKey>[] = getFlattenedFields(results.parsedQuery).map((field, i) =>
-    getColDef(field, queryColumnsByPath, isFieldSubquery(results.parsedQuery?.[i]))
+    getQueryResultColumn(field, queryColumnsByPath, isFieldSubquery(results.parsedQuery?.[i]))
   );
 
   // set checkbox as first column
@@ -181,7 +181,7 @@ export function getColumnDefinitions(results: QueryResults<any>, isTooling: bool
     .filter((field) => isFieldSubquery(field))
     .forEach((field: FieldSubquery) => {
       output.subqueryColumns[field.subquery.relationshipName] = getFlattenedFields(field.subquery).map((field) =>
-        getColDef(field, queryColumnsByPath, false)
+        getQueryResultColumn(field, queryColumnsByPath, false)
       );
     });
 
@@ -192,7 +192,11 @@ type Mutable<Type> = {
   -readonly [Key in keyof Type]: Type[Key];
 };
 
-function getColDef(field: string, queryColumnsByPath: MapOf<QueryResultsColumn>, isSubquery: boolean): ColumnWithFilter<RowWithKey> {
+function getQueryResultColumn(
+  field: string,
+  queryColumnsByPath: MapOf<QueryResultsColumn>,
+  isSubquery: boolean
+): ColumnWithFilter<RowWithKey> {
   const column: Mutable<ColumnWithFilter<RowWithKey>> = {
     name: field,
     key: field,

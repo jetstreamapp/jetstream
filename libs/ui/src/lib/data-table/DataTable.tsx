@@ -5,8 +5,10 @@ import { SalesforceOrgUi } from '@jetstream/types';
 import escapeRegExp from 'lodash/escapeRegExp';
 import isNil from 'lodash/isNil';
 import { memo, useCallback, useEffect, useMemo, useState } from 'react';
-import DataGrid, { DataGridProps, SortColumn, SortStatusProps } from 'react-data-grid';
+import DataGrid, { DataGridProps, HeaderRendererProps, SortColumn, SortStatusProps } from 'react-data-grid';
 import 'react-data-grid/lib/styles.css';
+import { DndProvider } from 'react-dnd';
+import { HTML5Backend } from 'react-dnd-html5-backend';
 import Icon from '../widgets/Icon';
 import './data-table-styles.scss';
 import { ColumnWithFilter, DataTableFilter, FILTER_SET_TYPES, RowWithKey } from './data-table-types';
@@ -19,7 +21,7 @@ import {
   isFilterActive,
   resetFilter,
 } from './data-table-utils';
-import { configIdLinkRenderer } from './DataTableRenderers';
+import { configIdLinkRenderer, DraggableHeaderRenderer } from './DataTableRenderers';
 
 function sortStatus({ sortDirection, priority }: SortStatusProps) {
   const iconName: IconName = sortDirection === 'ASC' ? 'arrowup' : 'arrowdown';
@@ -40,6 +42,7 @@ export interface DataTableNewProps<T = RowWithKey, TContext = Record<string, any
   quickFilterText?: string;
   includeQuickFilter?: boolean;
   context?: TContext;
+  allowReorder?: boolean;
   getRowKey: (row: T) => string;
   rowAlwaysVisible?: (row: T) => boolean;
   ignoreRowInSetFilter?: (row: T) => boolean;
@@ -47,19 +50,20 @@ export interface DataTableNewProps<T = RowWithKey, TContext = Record<string, any
 
 export const DataTable = <T extends object>({
   data,
-  columns,
+  columns: _columns,
   serverUrl,
   org,
   quickFilterText,
   includeQuickFilter,
   context,
+  allowReorder,
   getRowKey,
   ignoreRowInSetFilter,
   rowAlwaysVisible,
   ...rest
 }: DataTableNewProps<T>) => {
+  const [columns, setColumns] = useState(_columns || []);
   const [sortColumns, setSortColumns] = useState<readonly SortColumn[]>([]);
-  // TODO: will be used for filtering
   const [columnMap, setColumnMap] = useState<Map<string, ColumnWithFilter<T>>>(() => new Map());
   const [filters, setFilters] = useState<Record<string, DataTableFilter[]>>({});
   // TODO: do we need label and value?
@@ -115,7 +119,7 @@ export const DataTable = <T extends object>({
           return acc;
         }, {})
     );
-  }, [columnMap, data, filters]);
+  }, [columnMap, data, filters, ignoreRowInSetFilter]);
 
   const updateFilter = useCallback((column: string, filter: DataTableFilter) => {
     setFilters((prevFilters) => ({
@@ -172,33 +176,62 @@ export const DataTable = <T extends object>({
     });
   }, [columnMap, filters, getRowKey, includeQuickFilter, quickFilterText, rowAlwaysVisible, rowFilterText, sortedRows]);
 
+  // This will be standard columns unless allowReorder is set to true
+  const draggableColumns = useMemo(() => {
+    if (!allowReorder) {
+      return columns;
+    }
+    function headerRenderer(props: HeaderRendererProps<T>) {
+      return <DraggableHeaderRenderer {...props} onColumnsReorder={handleColumnsReorder} />;
+    }
+
+    function handleColumnsReorder(sourceKey: string, targetKey: string) {
+      const sourceColumnIndex = columns.findIndex((c) => c.key === sourceKey);
+      const targetColumnIndex = columns.findIndex((c) => c.key === targetKey);
+      const reorderedColumns = [...columns];
+
+      reorderedColumns.splice(targetColumnIndex, 0, reorderedColumns.splice(sourceColumnIndex, 1)[0]);
+
+      setColumns(reorderedColumns);
+    }
+
+    return columns.map((column) => {
+      if (column.preventReorder || column.frozen) {
+        return column;
+      }
+      return { ...column, headerRenderer, _priorHeaderRenderer: column.headerRenderer };
+    });
+  }, [columns, allowReorder]);
+
   if (serverUrl && org) {
     configIdLinkRenderer(serverUrl, org);
   }
 
   return (
-    <DataTableGenericContext.Provider value={{ ...context, rows: filteredRows }}>
-      <DataTableFilterContext.Provider
-        value={{
-          filterSetValues,
-          filters,
-          portalRefForFilters: context?.portalRefForFilters,
-          updateFilter,
-        }}
-      >
-        <DataGrid
-          className="rdg-light fill-grid"
-          columns={columns}
-          rows={filteredRows}
-          renderers={{ sortStatus }}
-          sortColumns={sortColumns}
-          onSortColumnsChange={setSortColumns}
-          rowKeyGetter={getRowKey}
-          defaultColumnOptions={{ resizable: true, sortable: true, ...rest.defaultColumnOptions }}
-          {...rest}
-        />
-      </DataTableFilterContext.Provider>
-    </DataTableGenericContext.Provider>
+    <DndProvider backend={HTML5Backend}>
+      <DataTableGenericContext.Provider value={{ ...context, rows: filteredRows }}>
+        <DataTableFilterContext.Provider
+          value={{
+            filterSetValues,
+            filters,
+            portalRefForFilters: context?.portalRefForFilters,
+            updateFilter,
+          }}
+        >
+          <DataGrid
+            className="rdg-light fill-grid"
+            columns={draggableColumns}
+            rows={filteredRows}
+            renderers={{ sortStatus }}
+            sortColumns={sortColumns}
+            onSortColumnsChange={setSortColumns}
+            rowKeyGetter={getRowKey}
+            defaultColumnOptions={{ resizable: true, sortable: true, ...rest.defaultColumnOptions }}
+            {...rest}
+          />
+        </DataTableFilterContext.Provider>
+      </DataTableGenericContext.Provider>
+    </DndProvider>
   );
 };
 

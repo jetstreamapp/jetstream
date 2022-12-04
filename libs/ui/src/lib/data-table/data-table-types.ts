@@ -44,6 +44,8 @@ export interface ColumnWithFilter<TRow, TSummaryRow = unknown> extends Column<TR
   /** getValue is used when filtering or sorting rows */
   readonly getValue?: (params: { row: TRow; column: ColumnWithFilter<TRow, unknown> }) => string;
   readonly filters?: FilterType[];
+  /** If column reordering is enabled for a table, prevent column from reorder */
+  readonly preventReorder?: boolean;
 }
 
 export interface SalesforceQueryColumnDefinition<TRow, TSummaryRow = unknown> {

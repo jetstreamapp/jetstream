@@ -108,6 +108,7 @@ export const PlatformEventMonitorEvents: FunctionComponent<PlatformEventMonitorE
   return (
     <AutoFullHeightContainer fillHeight setHeightAttr delayForSecondTopCalc>
       <DataTable
+        allowReorder
         columns={columns}
         data={rows}
         getRowKey={getRowId}

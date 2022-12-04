@@ -105,7 +105,7 @@ export const DebugLogViewerTable: FunctionComponent<DebugLogViewerTableProps> = 
 
   return (
     <AutoFullHeightContainer fillHeight setHeightAttr bottomBuffer={75}>
-      <DataTable columns={COLUMNS} data={logs} getRowKey={getRowId} onRowClick={handleSelectionChanged} />
+      <DataTable allowReorder columns={COLUMNS} data={logs} getRowKey={getRowId} onRowClick={handleSelectionChanged} />
     </AutoFullHeightContainer>
   );
 };

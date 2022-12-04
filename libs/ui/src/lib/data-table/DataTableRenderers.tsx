@@ -10,8 +10,9 @@ import parseISO from 'date-fns/parseISO';
 import { QueryResult } from 'jsforce';
 import { isFunction } from 'lodash';
 import { Fragment, FunctionComponent, MutableRefObject, useCallback, useContext, useEffect, useRef, useState } from 'react';
-import { FormatterProps, GroupFormatterProps, HeaderRendererProps, useFocusRef, useRowSelection } from 'react-data-grid';
-import { getSfdcRetUrl } from '../data-table/data-table-utils';
+import { FormatterProps, GroupFormatterProps, headerRenderer, HeaderRendererProps, useFocusRef, useRowSelection } from 'react-data-grid';
+import { useDrag, useDrop } from 'react-dnd';
+import { getSfdcRetUrl } from './data-table-utils';
 import RecordDownloadModal from '../file-download-modal/RecordDownloadModal';
 import Checkbox from '../form/checkbox/Checkbox';
 import DatePicker from '../form/date/DatePicker';
@@ -62,6 +63,56 @@ export function configIdLinkRenderer(serverUrl: string, org: SalesforceOrgUi) {
 }
 
 // HEADER RENDERERS
+
+/**
+ * DRAGGABLE COLUMNS, ALLOW REORDERING
+ */
+interface DraggableHeaderRendererProps<R> extends HeaderRendererProps<R> {
+  onColumnsReorder: (sourceKey: string, targetKey: string) => void;
+}
+
+export function DraggableHeaderRenderer<R>({ onColumnsReorder, column, ...props }: DraggableHeaderRendererProps<R>) {
+  const [{ isDragging }, drag] = useDrag({
+    type: 'COLUMN_DRAG',
+    item: { key: column.key },
+    collect: (monitor) => ({
+      isDragging: monitor.isDragging(),
+    }),
+  });
+
+  const [{ isOver }, drop] = useDrop({
+    accept: 'COLUMN_DRAG',
+    drop({ key }: { key: string }) {
+      onColumnsReorder(key, column.key);
+    },
+    collect: (monitor) => ({
+      isOver: monitor.isOver(),
+      canDrop: monitor.canDrop(),
+    }),
+  });
+
+  return (
+    <div
+      ref={(ref) => {
+        drag(ref);
+        drop(ref);
+      }}
+      style={{
+        opacity: isDragging ? 0.5 : 1,
+        backgroundColor: isOver ? '#ececec' : undefined,
+        cursor: isDragging ? 'move' : undefined,
+      }}
+    >
+      {(column as any)._priorHeaderRenderer
+        ? (column as any)._priorHeaderRenderer({ column, ...props })
+        : headerRenderer({ column, ...props })}
+    </div>
+  );
+}
+
+/**
+ * SELECT ALL CHECKBOX HEADER
+ */
 export function SelectHeaderRenderer<T>(props: HeaderRendererProps<T>) {
   const { column, allRowsSelected, onAllRowsSelectionChange } = props;
 
@@ -419,213 +470,6 @@ export function ValueOrLoadingRenderer<T extends { loading: boolean }>({ column,
   }
   return <div>{value}</div>;
 }
-
-export const SubqueryRenderer: FunctionComponent<FormatterProps<RowWithKey, unknown>> = ({ column, row, onRowChange, isCellSelected }) => {
-  // const [columnApi, setColumnApi] = useState<ColumnApi>(null);
-  const isMounted = useRef(null);
-  const modalRef = useRef();
-  const [isActive, setIsActive] = useState(false);
-  const [modalTagline, setModalTagline] = useState<string>();
-  const [downloadModalIsActive, setDownloadModalIsActive] = useState(false);
-  const [isLoadingMore, setIsLoadingMore] = useState(false);
-  const [{ records, done, nextRecordsUrl, totalSize }, setQueryResults] = useState<QueryResult<any>>(row[column.key] || {});
-  const [rows, setRows] = useState<RowWithKey[]>([]);
-  const [selectedRows, setSelectedRows] = useState<ReadonlySet<string>>(() => new Set());
-
-  useEffect(() => {
-    isMounted.current = true;
-    return () => {
-      isMounted.current = false;
-    };
-  }, []);
-
-  const handleRowAction = useCallback((row: any, action: 'view' | 'edit' | 'clone' | 'apex') => {
-    // logger.info('row action', row, action);
-    // switch (action) {
-    //   case 'edit':
-    //     onEdit(row);
-    //     break;
-    //   case 'clone':
-    //     onClone(row);
-    //     break;
-    //   case 'view':
-    //     onView(row);
-    //     break;
-    //   case 'apex':
-    //     onGetAsApex(row);
-    //     break;
-    //   default:
-    //     break;
-    // }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  useEffect(() => {
-    if (!records) {
-      return;
-    }
-    setRows(
-      records.map((row) => {
-        return {
-          _key: getRowId(row),
-          _action: handleRowAction,
-          ...row,
-        };
-      })
-    );
-  }, [handleRowAction, records]);
-
-  // function handleOnGridReady({ columnApi }: GridReadyEvent) {
-  //   setColumnApi(columnApi);
-  // }
-
-  function handleViewData() {
-    if (isActive) {
-      setIsActive(false);
-    } else {
-      if (!modalTagline) {
-        setModalTagline(getSubqueryModalTagline(row));
-      }
-      setIsActive(true);
-    }
-  }
-
-  function getColumns(subqueryColumns: SalesforceQueryColumnDefinition<any>['subqueryColumns']) {
-    return subqueryColumns[column.key];
-  }
-
-  function handleCloseModal(cancelled?: boolean) {
-    if (typeof cancelled === 'boolean' && cancelled) {
-      setIsActive(true);
-      setDownloadModalIsActive(false);
-    } else {
-      setIsActive(false);
-      setDownloadModalIsActive(false);
-    }
-  }
-
-  function openDownloadModal() {
-    setIsActive(false);
-    setDownloadModalIsActive(true);
-  }
-
-  function handleCopyToClipboard() {
-    // const fields = getCurrentColumns(columnApi);
-    // const flattenedData = flattenRecords(records, fields);
-    // copyToClipboard(transformTabularDataToExcelStr(flattenedData, fields), { format: 'text/plain' });
-  }
-
-  async function loadMore(org: SalesforceOrgUi, isTooling: boolean) {
-    try {
-      setIsLoadingMore(true);
-      const results = await queryMore(org, nextRecordsUrl, isTooling);
-      if (!isMounted.current) {
-        return;
-      }
-      results.queryResults.records = records.concat(results.queryResults.records);
-      setQueryResults(results.queryResults);
-      setIsLoadingMore(false);
-    } catch (ex) {
-      if (!isMounted.current) {
-        return;
-      }
-      setIsLoadingMore(false);
-    }
-  }
-
-  if (!Array.isArray(records) || records.length === 0) {
-    return <div />;
-  }
-
-  return (
-    <DataTableSubqueryContext.Consumer>
-      {({ serverUrl, org, columnDefinitions, isTooling, google_apiKey, google_appId, google_clientId }) => {
-        const columns = getColumns(columnDefinitions) || [];
-        const fields = columns.filter((column) => column.key && !NON_DATA_COLUMN_KEYS.has(column.key)).map((column) => column.key);
-        return (
-          <div>
-            {isActive && (
-              <Modal
-                ref={modalRef}
-                size="lg"
-                header={column.key}
-                tagline={modalTagline}
-                closeOnBackdropClick
-                onClose={handleCloseModal}
-                footerClassName="slds-is-relative"
-                overrideZIndex={1001}
-                additionalOverlayProps={{ shouldCloseOnInteractOutside: () => false }}
-                footer={
-                  <Grid align="spread" verticalAlign="end">
-                    <Grid verticalAlign="end">
-                      <span className="slds-m-right_small">
-                        Showing {formatNumber(records.length)} of {formatNumber(totalSize)} records
-                      </span>
-                      {!done && (
-                        <button className="slds-button slds-button_neutral" onClick={() => loadMore(org, isTooling)}>
-                          Load More
-                        </button>
-                      )}
-                      {isLoadingMore && <Spinner />}
-                    </Grid>
-                    <div>
-                      <button
-                        className="slds-button slds-button_neutral"
-                        onClick={() => handleCopyToClipboard()}
-                        title="Copy the queried records to the clipboard. The records can then be pasted into a spreadsheet."
-                      >
-                        <Icon type="utility" icon="copy_to_clipboard" className="slds-button__icon slds-button__icon_left" omitContainer />
-                        Copy to Clipboard
-                      </button>
-                      <button className="slds-button slds-button_brand" onClick={openDownloadModal}>
-                        <Icon type="utility" icon="download" className="slds-button__icon slds-button__icon_left" omitContainer />
-                        Download Records
-                      </button>
-                    </div>
-                  </Grid>
-                }
-              >
-                <div className="slds-scrollable_x">
-                  <AutoFullHeightContainer fillHeight setHeightAttr bottomBuffer={300}>
-                    <DataTable
-                      serverUrl={serverUrl}
-                      org={org}
-                      data={rows}
-                      columns={columns}
-                      getRowKey={getRowId}
-                      // onCopy={handleCopy}
-                      rowHeight={28.5}
-                      selectedRows={selectedRows}
-                      onSelectedRowsChange={setSelectedRows as any}
-                      context={{ portalRefForFilters: modalRef }}
-                    />
-                  </AutoFullHeightContainer>
-                </div>
-              </Modal>
-            )}
-            {downloadModalIsActive && (
-              <RecordDownloadModal
-                org={org}
-                google_apiKey={google_apiKey}
-                google_appId={google_appId}
-                google_clientId={google_clientId}
-                downloadModalOpen
-                fields={fields}
-                modifiedFields={fields}
-                records={records}
-                onModalClose={handleCloseModal}
-              />
-            )}
-            <button className="slds-button" onClick={handleViewData}>
-              <Icon type="utility" icon="search" className="slds-button__icon slds-button__icon_left" omitContainer />
-              {Array.isArray(records) ? `${records.length} Records` : 'View Data'}
-            </button>
-          </div>
-        );
-      }}
-    </DataTableSubqueryContext.Consumer>
-  );
-};
 
 export const ComplexDataRenderer: FunctionComponent<FormatterProps<RowWithKey, unknown>> = ({
   column,

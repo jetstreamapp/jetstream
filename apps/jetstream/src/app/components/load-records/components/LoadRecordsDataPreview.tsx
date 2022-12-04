@@ -157,7 +157,7 @@ export const LoadRecordsDataPreview: FunctionComponent<LoadRecordsDataPreviewPro
             >
               <div className="slds-text-heading_small">File Preview</div>
               <AutoFullHeightContainer fillHeight setHeightAttr bottomBuffer={25}>
-                <DataTable columns={columns} data={rows} getRowKey={getRowId} />
+                <DataTable allowReorder columns={columns} data={rows} getRowKey={getRowId} />
               </AutoFullHeightContainer>
             </div>
           )}

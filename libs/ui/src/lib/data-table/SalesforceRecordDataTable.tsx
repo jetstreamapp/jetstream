@@ -249,6 +249,7 @@ export const SalesforceRecordDataTable: FunctionComponent<SalesforceRecordDataTa
               org={org}
               data={rows}
               columns={columns}
+              allowReorder
               includeQuickFilter
               quickFilterText={globalFilter}
               getRowKey={getRowId}
