@@ -1,12 +1,11 @@
-import { ColDef, GetRowIdParams } from '@ag-grid-community/core';
-import { orderStringsBy } from '@jetstream/shared/utils';
-import { AutoFullHeightContainer, DataTable, DataTableNew } from '@jetstream/ui';
-import { ColumnWithFilter } from 'libs/ui/src/lib/data-table-new/data-table-types';
-import { FunctionComponent, useEffect, useState } from 'react';
-import { MessagesByChannel } from './usePlatformEvent';
-import groupBy from 'lodash/groupBy';
-import { FormatterProps, RowHeightArgs } from 'react-data-grid';
 import { css } from '@emotion/react';
+import { orderStringsBy } from '@jetstream/shared/utils';
+import { AutoFullHeightContainer, DataTableNew } from '@jetstream/ui';
+import { ColumnWithFilter } from 'libs/ui/src/lib/data-table-new/data-table-types';
+import groupBy from 'lodash/groupBy';
+import { FunctionComponent, useEffect, useState } from 'react';
+import { FormatterProps, RowHeightArgs } from 'react-data-grid';
+import { MessagesByChannel } from './usePlatformEvent';
 
 export const WrappedTextFormatter: FunctionComponent<FormatterProps<PlatformEventRow>> = ({ column, row }) => {
   const value = row[column.key];
