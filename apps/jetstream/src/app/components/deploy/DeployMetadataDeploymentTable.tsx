@@ -1,7 +1,7 @@
 import { formatNumber } from '@jetstream/shared/ui-utils';
 import { AutoFullHeightContainer, ColumnWithFilter, DataTable, DataTableSelectedContext, Grid, Icon, SearchInput } from '@jetstream/ui';
 import groupBy from 'lodash/groupBy';
-import { Fragment, FunctionComponent, useEffect, useState } from 'react';
+import { FunctionComponent, useEffect, useState } from 'react';
 import { DeployMetadataTableRow } from './deploy-metadata.types';
 import { getColumnDefinitions } from './utils/deploy-metadata.utils';
 
@@ -41,10 +41,10 @@ export const DeployMetadataDeploymentTable: FunctionComponent<DeployMetadataDepl
 
   useEffect(() => {
     onSelectedRows(new Set(rows.filter((row) => selectedRowIds.has(getRowId(row)))));
-  }, [onSelectedRows, selectedRowIds]);
+  }, [onSelectedRows, rows, selectedRowIds]);
 
   return (
-    <Fragment>
+    <DataTableSelectedContext.Provider value={{ selectedRowIds, getRowKey: getRowId }}>
       {rows && visibleRows && (
         <Grid align="spread" verticalAlign="end" className="slds-p-top_xx-small slds-p-bottom_x-small slds-m-horizontal_small">
           <Grid>
@@ -60,24 +60,21 @@ export const DeployMetadataDeploymentTable: FunctionComponent<DeployMetadataDepl
         </Grid>
       )}
       <AutoFullHeightContainer fillHeight setHeightAttr delayForSecondTopCalc bottomBuffer={15}>
-        {/* TODO: loading indicator on grouped rows, will require context */}
-        <DataTableSelectedContext.Provider value={{ selectedRowIds, getRowKey: getRowId }}>
-          <DataTable
-            columns={columns}
-            data={rows}
-            getRowKey={getRowId}
-            includeQuickFilter
-            quickFilterText={globalFilter}
-            groupBy={groupedRows}
-            rowGrouper={groupBy}
-            expandedGroupIds={expandedGroupIds}
-            onExpandedGroupIdsChange={(items) => setExpandedGroupIds(items)}
-            selectedRows={selectedRowIds}
-            onSelectedRowsChange={setSelectedRowIds}
-          />
-        </DataTableSelectedContext.Provider>
+        <DataTable
+          columns={columns}
+          data={rows}
+          getRowKey={getRowId}
+          includeQuickFilter
+          quickFilterText={globalFilter}
+          groupBy={groupedRows}
+          rowGrouper={groupBy}
+          expandedGroupIds={expandedGroupIds}
+          onExpandedGroupIdsChange={(items) => setExpandedGroupIds(items)}
+          selectedRows={selectedRowIds}
+          onSelectedRowsChange={setSelectedRowIds}
+        />
       </AutoFullHeightContainer>
-    </Fragment>
+    </DataTableSelectedContext.Provider>
   );
 };
 

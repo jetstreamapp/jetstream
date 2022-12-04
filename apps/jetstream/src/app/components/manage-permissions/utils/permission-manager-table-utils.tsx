@@ -198,45 +198,18 @@ export function getObjectColumns(
       key: 'tableLabel',
       frozen: true,
       width: 300,
-      // pinned: true,
-      // lockPinned: true,
-      // lockPosition: true,
-      // lockVisible: true,
-      // filter: BasicTextFilterRenderer,
-      // cellRendererSelector: getCellRenderer(null, PinnedSelectAllRendererWrapper('object')),
-      // suppressMenu: true,
-      // suppressKeyboardEvent: suppressKeyboardEventOnPinnedInput,
       getValue: ({ column, row }) => {
         const data: PermissionTableFieldCell = row[column.key];
         return data && `${data.label} (${data.apiName})`;
       },
       summaryCellClass: ({ type }) => (type === 'HEADING' ? 'bg-color-gray' : null),
-      // valueFormatter: (params) => {
-      //   const data: PermissionTableObjectCell = params.data;
-      //   return data && `${data.label} (${data.apiName})`;
-      // },
     },
     {
       name: '',
       key: '_ROW_ACTION',
-      // cellRendererSelector: ({ node }: ICellRendererParams) => {
-      //   if (node.group) {
-      //     return null;
-      //   }
-      //   return { component: node.isRowPinned() ? BulkActionRenderer : RowActionRenderer };
-      // },
       width: 100,
       resizable: false,
-      // filter: false,
-      // sortable: false,
-      // suppressMenu: true,
-      // resizable: false,
-      // pinned: true,
       frozen: true,
-      // lockPinned: true,
-      // lockPosition: true,
-      // lockVisible: true,
-      // cellStyle: { overflow: 'visible' },
       formatter: RowActionRenderer,
       summaryCellClass: ({ type }) => (type === 'HEADING' ? 'bg-color-gray' : null),
       summaryFormatter: ({ row }) => {
@@ -366,8 +339,6 @@ export function getFieldColumns(
       name: '',
       key: 'sobject',
       width: 40,
-      // formatter: () => 'X',
-      // groupFormatter: () => 'X',
       groupFormatter: ({ isExpanded }) => (
         <Grid align="end" verticalAlign="center" className="h-100">
           <Icon
@@ -378,9 +349,6 @@ export function getFieldColumns(
           />
         </Grid>
       ),
-      // rowGroup: true,
-      // hide: true,
-      // lockVisible: true,
     },
     {
       ...setColumnFromType('tableLabel', 'text'),
@@ -388,41 +356,22 @@ export function getFieldColumns(
       key: 'tableLabel',
       frozen: true,
       width: 300,
-      // <button className="slds-button slds-align_absolute-center slds-text-link"
-      groupFormatter: ({ groupKey, toggleGroup }) => (
-        <button className="slds-button" onClick={toggleGroup}>
-          {groupKey as string}
-        </button>
+      groupFormatter: ({ groupKey, childRows, toggleGroup }) => (
+        <>
+          <button className="slds-button" onClick={toggleGroup}>
+            {groupKey as string}
+          </button>
+          <span className="slds-m-left_xx-small slds-text-body_small slds-text-color_weak">({childRows.length})</span>
+        </>
       ),
-      // lockPinned: true,
-      // lockPosition: true,
-      // lockVisible: true,
-      // getValue: ({ column, row }) => {
-      //   const data: PermissionTableFieldCell = row[column.key];
-      //   return `${data.sobject} ${data.label} (${data.apiName})`;
-      // },
       summaryCellClass: ({ type }) => (type === 'HEADING' ? 'bg-color-gray' : null),
-      // valueFormatter: (params) => {
-      //   const data: PermissionTableFieldCell = params.data;
-      //   return data?.label && `${data.label} (${data.apiName})`;
-      // },
     },
     {
       name: '',
       key: '_ROW_ACTION',
-      // cellRendererSelector: ({ node }) => ({ component: node.isRowPinned() ? BulkActionRenderer : RowActionRenderer }),
       width: 100,
       resizable: false,
-      // filter: false,
-      // sortable: false,
-      // suppressMenu: true,
-      // resizable: false,
-      // pinned: true,
       frozen: true,
-      // lockPinned: true,
-      // lockPosition: true,
-      // lockVisible: true,
-      // cellStyle: { overflow: 'visible' },
       formatter: RowActionRenderer,
       summaryCellClass: ({ type }) => (type === 'HEADING' ? 'bg-color-gray' : null),
       summaryFormatter: ({ row }) => {
@@ -948,129 +897,6 @@ export function updateCheckboxDependencies(
   }
 }
 
-// function handleRowPermissionUpdate(
-//   columns: Column[],
-//   rowNode: RowNode,
-//   type: PermissionType,
-//   checkboxesById: MapOf<BulkActionCheckbox>,
-//   applyTo: 'visible' | 'all',
-//   arrayToUpdate: any[]
-// ) {
-//   const columnsToApplyToById = getColumnToApplyTo(columns, applyTo);
-//   if (type === 'object') {
-//     const data: PermissionTableObjectCell = rowNode.data;
-//     if (!rowNode.isRowPinned() && data) {
-//       Object.values(data.permissions).forEach((permission) => {
-//         const applyTo = columnsToApplyToById[permission.parentId];
-
-//         if (applyTo['create']) {
-//           permission.create = checkboxesById['create'].value;
-//         }
-//         if (applyTo['read']) {
-//           permission.read = checkboxesById['read'].value;
-//         }
-//         if (data.allowEditPermission && applyTo['edit']) {
-//           permission.edit = checkboxesById['edit'].value;
-//         }
-//         if (applyTo['delete']) {
-//           permission.delete = checkboxesById['delete'].value;
-//         }
-//         if (applyTo['viewAll']) {
-//           permission.viewAll = checkboxesById['viewAll'].value;
-//         }
-//         if (applyTo['modifyAll']) {
-//           permission.modifyAll = checkboxesById['modifyAll'].value;
-//         }
-
-//         permission.createIsDirty = permission.create !== permission.record.create;
-//         permission.readIsDirty = permission.read !== permission.record.read;
-//         permission.editIsDirty = permission.edit !== permission.record.edit;
-//         permission.deleteIsDirty = permission.delete !== permission.record.delete;
-//         permission.viewAllIsDirty = permission.viewAll !== permission.record.viewAll;
-//         permission.modifyAllIsDirty = permission.modifyAll !== permission.record.modifyAll;
-//       });
-//       arrayToUpdate.push(data);
-//     }
-//   } else {
-//     const data: PermissionTableFieldCell = rowNode.data;
-//     if (!rowNode.isRowPinned() && data) {
-//       Object.values(data.permissions).forEach((permission) => {
-//         const applyTo = columnsToApplyToById[permission.parentId];
-//         if (applyTo['read']) {
-//           permission.read = checkboxesById['read'].value;
-//         }
-//         if (data.allowEditPermission && applyTo['edit']) {
-//           permission.edit = checkboxesById['edit'].value;
-//         }
-//         permission.readIsDirty = permission.read !== permission.record.read;
-//         permission.editIsDirty = permission.edit !== permission.record.edit;
-//       });
-//       arrayToUpdate.push(data);
-//     }
-//   }
-// }
-
-// function handleRowPermissionReset(
-//   columns: Column[],
-//   rowNode: RowNode,
-//   type: PermissionType,
-//   applyTo: 'visible' | 'all',
-//   arrayToUpdate: any[]
-// ) {
-//   const columnsToApplyToById = getColumnToApplyTo(columns, applyTo);
-//   if (type === 'object') {
-//     const data: PermissionTableObjectCell = rowNode.data;
-//     if (!rowNode.isRowPinned() && data) {
-//       Object.values(data.permissions).forEach((permission) => {
-//         const applyTo = columnsToApplyToById[permission.parentId];
-
-//         if (permission.createIsDirty && applyTo['create']) {
-//           permission.create = !permission.create;
-//           permission.createIsDirty = false;
-//         }
-//         if (permission.readIsDirty && applyTo['read']) {
-//           permission.read = !permission.read;
-//           permission.readIsDirty = false;
-//         }
-//         if (permission.editIsDirty && applyTo['edit']) {
-//           permission.edit = !permission.edit;
-//           permission.editIsDirty = false;
-//         }
-//         if (permission.deleteIsDirty && applyTo['delete']) {
-//           permission.delete = !permission.delete;
-//           permission.deleteIsDirty = false;
-//         }
-//         if (permission.viewAllIsDirty && applyTo['viewAll']) {
-//           permission.viewAll = !permission.viewAll;
-//           permission.viewAllIsDirty = false;
-//         }
-//         if (permission.modifyAllIsDirty && applyTo['modifyAll']) {
-//           permission.modifyAll = !permission.modifyAll;
-//           permission.modifyAllIsDirty = false;
-//         }
-//       });
-//       arrayToUpdate.push(data);
-//     }
-//   } else {
-//     const data: PermissionTableFieldCell = rowNode.data;
-//     if (!rowNode.isRowPinned() && data) {
-//       Object.values(data.permissions).forEach((permission) => {
-//         const applyTo = columnsToApplyToById[permission.parentId];
-
-//         if (permission.readIsDirty && applyTo['read']) {
-//           permission.read = !permission.read;
-//           permission.readIsDirty = false;
-//         }
-//         if (permission.editIsDirty && applyTo['edit']) {
-//           permission.edit = !permission.edit;
-//           permission.editIsDirty = false;
-//         }
-//       });
-//       arrayToUpdate.push(data);
-//     }
-//   }
-// }
-
 function getDirtyCount({ row, type }: { row: PermissionTableObjectCell | PermissionTableFieldCell; type: PermissionType });
 function getDirtyCount({
   row,
@@ -1156,14 +982,6 @@ export const RowActionRenderer: FunctionComponent<FormatterProps<PermissionTable
   function handleOpen() {
     popoverRef.current?.open();
   }
-
-  /**
-   * FIXME:
-   * this is broken - any click on popover closes it (maybe because it is in the table and super janked?)
-   * might need to keep old one here temporarily
-   *
-   * May need to move to modal if we cannot figure this out
-   */
 
   return (
     <Popover

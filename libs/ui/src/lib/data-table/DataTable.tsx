@@ -4,7 +4,7 @@ import { orderObjectsBy, orderStringsBy } from '@jetstream/shared/utils';
 import { SalesforceOrgUi } from '@jetstream/types';
 import escapeRegExp from 'lodash/escapeRegExp';
 import isNil from 'lodash/isNil';
-import { memo, useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import DataGrid, { DataGridProps, HeaderRendererProps, SortColumn, SortStatusProps } from 'react-data-grid';
 import 'react-data-grid/lib/styles.css';
 import { DndProvider } from 'react-dnd';
@@ -69,6 +69,10 @@ export const DataTable = <T extends object>({
   // TODO: do we need label and value?
   const [filterSetValues, setFilterSetValues] = useState<Record<string, string[]>>({});
   const [rowFilterText, setRowFilterText] = useState<Record<string, string>>({});
+
+  useEffect(() => {
+    setColumns(_columns);
+  }, [_columns]);
 
   useEffect(() => {
     if (Array.isArray(columns) && columns.length && Array.isArray(data) && data.length) {
@@ -234,7 +238,3 @@ export const DataTable = <T extends object>({
     </DndProvider>
   );
 };
-
-// export const DataTable = memo(DataTable);
-
-// export default DataTable;

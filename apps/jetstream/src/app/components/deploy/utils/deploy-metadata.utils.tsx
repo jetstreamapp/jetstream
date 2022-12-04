@@ -15,6 +15,7 @@ import {
 import {
   ColumnWithFilter,
   Grid,
+  Icon,
   SelectFormatter,
   SelectHeaderGroupRenderer,
   SelectHeaderRenderer,
@@ -27,7 +28,7 @@ import { DeployOptions } from 'jsforce';
 import JSZip from 'jszip';
 import localforage from 'localforage';
 import isString from 'lodash/isString';
-import { GroupFormatterProps, SelectColumn, SELECT_COLUMN_KEY } from 'react-data-grid';
+import { SelectColumn, SELECT_COLUMN_KEY } from 'react-data-grid';
 import { composeQuery, getField, Query } from 'soql-parser-js';
 import { DeployMetadataTableRow } from '../deploy-metadata.types';
 
@@ -209,17 +210,6 @@ export function getQueryForPackage(): string {
   return soql;
 }
 
-const ValueOrLoadingRenderer = ({ row, childRows }: GroupFormatterProps<DeployMetadataTableRow>) => {
-  if (!row) {
-    return null;
-  }
-  const loading = childRows.some((row) => row.loading);
-  if (loading) {
-    return <Spinner size={'x-small'} />;
-  }
-  return null;
-};
-
 export function getColumnDefinitions(): ColumnWithFilter<DeployMetadataTableRow>[] {
   const output: ColumnWithFilter<DeployMetadataTableRow>[] = [
     {
@@ -260,17 +250,37 @@ export function getColumnDefinitions(): ColumnWithFilter<DeployMetadataTableRow>
     },
     {
       ...setColumnFromType('typeLabel', 'text'),
-      name: 'Metadata Type',
+      name: '',
       key: 'typeLabel',
-      width: 175,
+      width: 40,
       frozen: true,
+      groupFormatter: ({ isExpanded }) => (
+        <Grid align="end" verticalAlign="center" className="h-100">
+          <Icon
+            icon={isExpanded ? 'chevrondown' : 'chevronright'}
+            type="utility"
+            className="slds-icon slds-icon-text-default slds-icon_x-small"
+            title="Toggle collapse"
+          />
+        </Grid>
+      ),
     },
     {
       ...setColumnFromType('fullName', 'text'),
       name: 'Name',
       key: 'fullName',
       frozen: true,
-      groupFormatter: ValueOrLoadingRenderer,
+      formatter: ({ row }) => (row.loading ? <Spinner size={'x-small'} /> : row.fullName),
+      groupFormatter: ({ toggleGroup, groupKey, childRows }) => (
+        <>
+          <button className="slds-button" onClick={toggleGroup}>
+            {groupKey as string}
+          </button>
+          {!childRows.some((row) => row.loading) && (
+            <span className="slds-m-left_xx-small slds-text-body_small slds-text-color_weak">({childRows.length})</span>
+          )}
+        </>
+      ),
       width: 250,
     },
     {
