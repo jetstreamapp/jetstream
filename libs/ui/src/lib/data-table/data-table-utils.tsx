@@ -1,6 +1,6 @@
 import { QueryResults, QueryResultsColumn } from '@jetstream/api-interfaces';
 import { DATE_FORMATS } from '@jetstream/shared/constants';
-import { ensureBoolean } from '@jetstream/shared/utils';
+import { ensureBoolean, pluralizeFromNumber } from '@jetstream/shared/utils';
 import { MapOf } from '@jetstream/types';
 import formatDate from 'date-fns/format';
 import isAfter from 'date-fns/isAfter';
@@ -363,32 +363,41 @@ export function updateColumnFromType(column: Mutable<ColumnWithFilter<any>>, fie
       // TODO:
       break;
     case 'subquery':
+      column.filters = ['SET'];
       column.formatter = SubqueryRenderer;
-      column.filters = []; // TODO:
+      column.getValue = ({ column, row }) => {
+        const results = row[column.key];
+        if (!results || !results.totalSize) {
+          return null;
+        }
+        return `${results.records.length} ${pluralizeFromNumber('record', results.records.length)}`;
+      };
       break;
     case 'object':
+      column.filters = [];
       column.formatter = ComplexDataRenderer;
       break;
     case 'location':
       column.formatter = ({ column, row }) => dataTableLocationFormatter(row[column.key]);
+      column.getValue = ({ column, row }) => dataTableLocationFormatter(row[column.key]);
       break;
     case 'date':
+      column.filters = ['DATE', 'SET']; // FIXME: add LT / GT
       column.formatter = ({ column, row }) => dataTableDateFormatter(row[column.key]);
-      column.filters = ['DATE', 'SET'];
       column.getValue = ({ column, row }) => dataTableDateFormatter(row[column.key]);
       break;
     case 'time':
       column.formatter = ({ column, row }) => dataTableTimeFormatter(row[column.key]);
-      // TODO: add time filter
+      column.getValue = ({ column, row }) => dataTableTimeFormatter(row[column.key]);
       break;
     case 'boolean':
-      column.formatter = BooleanRenderer;
       column.filters = ['BOOLEAN_SET'];
+      column.formatter = BooleanRenderer;
       column.width = 100;
       break;
     case 'address':
       column.formatter = ({ column, row }) => dataTableAddressValueFormatter(row[column.key]);
-      // TODO: filters
+      column.getValue = ({ column, row }) => dataTableAddressValueFormatter(row[column.key]);
       break;
     case 'salesforceId':
       column.formatter = IdLinkRenderer;
