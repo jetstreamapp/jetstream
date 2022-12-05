@@ -71,13 +71,12 @@ export function getColumnsForGenericTable(
       filters: ['TEXT', 'SET'],
       headerRenderer: (props) => (
         <FilterRenderer {...props}>
-          {({ filters, filterSetValues, portalRefForFilters, numRows, updateFilter }) => (
+          {({ filters, filterSetValues, portalRefForFilters, updateFilter }) => (
             <HeaderFilter
               columnKey={column.key}
               filters={filters}
               filterSetValues={filterSetValues}
               portalRefForFilters={portalRefForFilters}
-              numRows={numRows}
               updateFilter={updateFilter}
             />
           )}
@@ -189,13 +188,12 @@ function getQueryResultColumn(
     filters: ['TEXT', 'SET'],
     headerRenderer: (props) => (
       <FilterRenderer {...props}>
-        {({ filters, filterSetValues, portalRefForFilters, numRows, updateFilter }) => (
+        {({ filters, filterSetValues, portalRefForFilters, updateFilter }) => (
           <HeaderFilter
             columnKey={column.key}
             filters={filters}
             filterSetValues={filterSetValues}
             portalRefForFilters={portalRefForFilters}
-            numRows={numRows}
             updateFilter={updateFilter}
           />
         )}
@@ -317,13 +315,12 @@ export function setColumnFromType<T>(key: string, fieldType: ColumnType, default
   const column: Partial<Mutable<ColumnWithFilter<T>>> = { ...defaultProps };
   column.headerRenderer = (props) => (
     <FilterRenderer {...props}>
-      {({ filters, filterSetValues, portalRefForFilters, numRows, updateFilter }) => (
+      {({ filters, filterSetValues, portalRefForFilters, updateFilter }) => (
         <HeaderFilter
           columnKey={key}
           filters={filters}
           filterSetValues={filterSetValues}
           portalRefForFilters={portalRefForFilters}
-          numRows={numRows}
           updateFilter={updateFilter}
         />
       )}
@@ -423,7 +420,7 @@ export function resetFilter(type: FilterType, setValues: string[] = []): DataTab
   }
 }
 
-export function isFilterActive(filter: DataTableFilter, numRows: number): boolean {
+export function isFilterActive(filter: DataTableFilter, totalValues: number): boolean {
   switch (filter?.type) {
     case 'TEXT':
       return !!filter.value;
@@ -432,7 +429,7 @@ export function isFilterActive(filter: DataTableFilter, numRows: number): boolea
     case 'DATE':
       return !!filter.value; // TODO: is valid date
     case 'SET':
-      return (filter.value?.length || 0) < numRows;
+      return (filter.value?.length || 0) < totalValues;
     case 'BOOLEAN_SET':
       return (filter.value?.length || 0) !== 2;
     default:

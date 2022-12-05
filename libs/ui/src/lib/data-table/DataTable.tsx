@@ -251,7 +251,6 @@ export const DataTable = <T extends object>({
             filterSetValues,
             filters,
             portalRefForFilters: context?.portalRefForFilters,
-            allRows: data,
             updateFilter,
           }}
         >

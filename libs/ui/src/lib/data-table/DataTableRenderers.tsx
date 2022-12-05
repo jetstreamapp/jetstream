@@ -146,7 +146,7 @@ export function FilterRenderer<R, SR, T extends HTMLOrSVGElement>({
     }
   ) => React.ReactElement;
 }) {
-  const { filters, filterSetValues, portalRefForFilters, allRows, updateFilter } = useContext(DataTableFilterContext);
+  const { filters, filterSetValues, portalRefForFilters, updateFilter } = useContext(DataTableFilterContext);
   const { ref, tabIndex } = useFocusRef<T>(isCellSelected);
 
   // TODO: sort and filter
@@ -165,7 +165,6 @@ export function FilterRenderer<R, SR, T extends HTMLOrSVGElement>({
             filters: filters[column.key],
             filterSetValues,
             portalRefForFilters,
-            numRows: allRows?.length || 0,
             updateFilter,
           })}
         </div>
@@ -179,18 +178,17 @@ interface HeaderFilterProps {
   filters: DataTableFilter[];
   filterSetValues: Record<string, string[]>;
   portalRefForFilters: MutableRefObject<HTMLElement>;
-  numRows: number;
   updateFilter: (column: string, filter: DataTableFilter) => void;
 }
 
-export function HeaderFilter({ columnKey, filters, filterSetValues, portalRefForFilters, numRows, updateFilter }: HeaderFilterProps) {
+export function HeaderFilter({ columnKey, filters, filterSetValues, portalRefForFilters, updateFilter }: HeaderFilterProps) {
   const popoverRef = useRef<PopoverRef>();
 
   const [active, setActive] = useState(false);
 
   useEffect(() => {
-    setActive(filters?.some((filter) => isFilterActive(filter, numRows)));
-  }, [filters, numRows]);
+    setActive(filters?.some((filter) => isFilterActive(filter, (filterSetValues[columnKey] || []).length)));
+  }, [columnKey, filterSetValues, filters]);
 
   function getFilter(filter: DataTableFilter, autoFocus = false) {
     switch (filter.type) {
