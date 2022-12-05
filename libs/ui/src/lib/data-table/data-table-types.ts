@@ -58,6 +58,7 @@ export interface FilterContextProps {
   filters: Record<string, DataTableFilter[]>;
   /** Reference to element to attach portal to in table filters, needed when table is shown in a modal */
   portalRefForFilters?: any; // TODO: add types
+  allRows: any[];
   updateFilter: (column: string, filter: DataTableFilter) => void;
 }
 

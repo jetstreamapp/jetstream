@@ -12,8 +12,9 @@ import AutoFullHeightContainer from '../layout/AutoFullHeightContainer';
 import Modal from '../modal/Modal';
 import Icon from '../widgets/Icon';
 import Spinner from '../widgets/Spinner';
+import { DataTableSubqueryContext } from './data-table-context';
 import { ColumnWithFilter, RowWithKey, SalesforceQueryColumnDefinition } from './data-table-types';
-import { DataTableSubqueryContext, getRowId, getSubqueryModalTagline, NON_DATA_COLUMN_KEYS } from './data-table-utils';
+import { getRowId, getSubqueryModalTagline, NON_DATA_COLUMN_KEYS } from './data-table-utils';
 import { DataTable } from './DataTable';
 
 export const SubqueryRenderer: FunctionComponent<FormatterProps<RowWithKey, unknown>> = ({ column, row, onRowChange, isCellSelected }) => {

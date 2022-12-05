@@ -28,7 +28,8 @@ import {
   DataTableTextFilter,
   RowWithKey,
 } from './data-table-types';
-import { DataTableFilterContext, DataTableSelectedContext, getRowId, getSfdcRetUrl, isFilterActive, resetFilter } from './data-table-utils';
+import { getRowId, getSfdcRetUrl, isFilterActive, resetFilter } from './data-table-utils';
+import { DataTableFilterContext, DataTableSelectedContext } from './data-table-context';
 
 // CONFIGURATION
 
@@ -145,7 +146,7 @@ export function FilterRenderer<R, SR, T extends HTMLOrSVGElement>({
     }
   ) => React.ReactElement;
 }) {
-  const { filters, filterSetValues, portalRefForFilters, updateFilter } = useContext(DataTableFilterContext);
+  const { filters, filterSetValues, portalRefForFilters, allRows, updateFilter } = useContext(DataTableFilterContext);
   const { ref, tabIndex } = useFocusRef<T>(isCellSelected);
 
   // TODO: sort and filter
@@ -164,6 +165,7 @@ export function FilterRenderer<R, SR, T extends HTMLOrSVGElement>({
             filters: filters[column.key],
             filterSetValues,
             portalRefForFilters,
+            numRows: allRows?.length || 0,
             updateFilter,
           })}
         </div>
@@ -177,17 +179,18 @@ interface HeaderFilterProps {
   filters: DataTableFilter[];
   filterSetValues: Record<string, string[]>;
   portalRefForFilters: MutableRefObject<HTMLElement>;
+  numRows: number;
   updateFilter: (column: string, filter: DataTableFilter) => void;
 }
 
-export function HeaderFilter({ columnKey, filters, filterSetValues, portalRefForFilters, updateFilter }: HeaderFilterProps) {
+export function HeaderFilter({ columnKey, filters, filterSetValues, portalRefForFilters, numRows, updateFilter }: HeaderFilterProps) {
   const popoverRef = useRef<PopoverRef>();
 
   const [active, setActive] = useState(false);
 
   useEffect(() => {
-    setActive(filters?.some(isFilterActive));
-  }, [filters]);
+    setActive(filters?.some((filter) => isFilterActive(filter, numRows)));
+  }, [filters, numRows]);
 
   function getFilter(filter: DataTableFilter, autoFocus = false) {
     switch (filter.type) {
@@ -211,7 +214,7 @@ export function HeaderFilter({ columnKey, filters, filterSetValues, portalRefFor
   }
 
   function handleReset() {
-    filters.map((filter) => updateFilter(columnKey, resetFilter(filter.type)));
+    filters.map((filter) => updateFilter(columnKey, resetFilter(filter.type, filterSetValues[columnKey] || [])));
     popoverRef.current?.close();
   }
 
@@ -303,7 +306,7 @@ interface HeaderSetFilterProps {
 
 export function HeaderSetFilter({ columnKey, filter, values, updateFilter }: HeaderSetFilterProps) {
   const parentRef = useRef<HTMLDivElement>(null);
-  const [selectedValues, setSelectedValues] = useState(() => new Set(filter.value.length ? filter.value : values));
+  const [selectedValues, setSelectedValues] = useState(() => new Set<string>(filter.value));
 
   const rowVirtualizer = useVirtualizer({
     count: values.length,

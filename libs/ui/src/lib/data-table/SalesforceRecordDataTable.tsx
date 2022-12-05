@@ -12,8 +12,9 @@ import Grid from '../grid/Grid';
 import AutoFullHeightContainer from '../layout/AutoFullHeightContainer';
 import { PopoverErrorButton } from '../popover/PopoverErrorButton';
 import Spinner from '../widgets/Spinner';
+import { DataTableSubqueryContext } from './data-table-context';
 import { ColumnWithFilter, RowWithKey } from './data-table-types';
-import { addFieldLabelToColumn, DataTableSubqueryContext, getColumnDefinitions, NON_DATA_COLUMN_KEYS } from './data-table-utils';
+import { addFieldLabelToColumn, getColumnDefinitions, NON_DATA_COLUMN_KEYS } from './data-table-utils';
 import { DataTable } from './DataTable';
 
 const SFDC_EMPTY_ID = '000000000000000AAA';

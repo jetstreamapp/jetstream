@@ -1,38 +1,26 @@
 import { QueryResults, QueryResultsColumn } from '@jetstream/api-interfaces';
-import { DATE_FORMATS } from '@jetstream/shared/constants';
 import { ensureBoolean, pluralizeFromNumber } from '@jetstream/shared/utils';
 import { MapOf } from '@jetstream/types';
-import formatDate from 'date-fns/format';
 import isAfter from 'date-fns/isAfter';
 import isBefore from 'date-fns/isBefore';
 import isSameDay from 'date-fns/isSameDay';
-import parseDate from 'date-fns/parse';
 import parseISO from 'date-fns/parseISO';
 import startOfDay from 'date-fns/startOfDay';
-import fileSizeFormatter from 'filesize';
 import { Field } from 'jsforce';
-import isDate from 'lodash/isDate';
 import isNil from 'lodash/isNil';
 import isNumber from 'lodash/isNumber';
 import isObject from 'lodash/isObject';
 import isString from 'lodash/isString';
 import uniqueId from 'lodash/uniqueId';
-import { createContext } from 'react';
 import { SelectColumn, SELECT_COLUMN_KEY as _SELECT_COLUMN_KEY } from 'react-data-grid';
 import { FieldSubquery, getFlattenedFields, isFieldSubquery } from 'soql-parser-js';
 import {
-  ColumnType,
-  ColumnWithFilter,
-  DataTableFilter,
-  FilterContextProps,
-  FilterType,
-  RowWithKey,
-  SalesforceAddressField,
-  SalesforceLocationField,
-  SalesforceQueryColumnDefinition,
-  SelectedRowsContext,
-  SubqueryContext,
-} from './data-table-types';
+  dataTableAddressValueFormatter,
+  dataTableDateFormatter,
+  dataTableLocationFormatter,
+  dataTableTimeFormatter,
+} from './data-table-formatters';
+import { ColumnType, ColumnWithFilter, DataTableFilter, FilterType, RowWithKey, SalesforceQueryColumnDefinition } from './data-table-types';
 import {
   ActionRenderer,
   BooleanRenderer,
@@ -51,13 +39,6 @@ export const EMPTY_FIELD = '-BLANK-';
 export const ACTION_COLUMN_KEY = '_actions';
 export const SELECT_COLUMN_KEY = _SELECT_COLUMN_KEY;
 export const NON_DATA_COLUMN_KEYS = new Set([SELECT_COLUMN_KEY, ACTION_COLUMN_KEY]);
-
-// Used to ensure that renderers and filters can have access to global state
-export const DataTableFilterContext = createContext<FilterContextProps>(undefined);
-export const DataTableSubqueryContext = createContext<SubqueryContext>(undefined);
-export const DataTableSelectedContext = createContext<SelectedRowsContext>(undefined);
-// Used to allow arbitrary data to be accessed by renderers
-export const DataTableGenericContext = createContext<Record<string, any>>({});
 
 export function getRowId(data: any): string {
   if (data?._key) {
@@ -90,12 +71,13 @@ export function getColumnsForGenericTable(
       filters: ['TEXT', 'SET'],
       headerRenderer: (props) => (
         <FilterRenderer {...props}>
-          {({ filters, filterSetValues, portalRefForFilters, updateFilter }) => (
+          {({ filters, filterSetValues, portalRefForFilters, numRows, updateFilter }) => (
             <HeaderFilter
               columnKey={column.key}
               filters={filters}
               filterSetValues={filterSetValues}
               portalRefForFilters={portalRefForFilters}
+              numRows={numRows}
               updateFilter={updateFilter}
             />
           )}
@@ -207,12 +189,13 @@ function getQueryResultColumn(
     filters: ['TEXT', 'SET'],
     headerRenderer: (props) => (
       <FilterRenderer {...props}>
-        {({ filters, filterSetValues, portalRefForFilters, updateFilter }) => (
+        {({ filters, filterSetValues, portalRefForFilters, numRows, updateFilter }) => (
           <HeaderFilter
             columnKey={column.key}
             filters={filters}
             filterSetValues={filterSetValues}
             portalRefForFilters={portalRefForFilters}
+            numRows={numRows}
             updateFilter={updateFilter}
           />
         )}
@@ -334,12 +317,13 @@ export function setColumnFromType<T>(key: string, fieldType: ColumnType, default
   const column: Partial<Mutable<ColumnWithFilter<T>>> = { ...defaultProps };
   column.headerRenderer = (props) => (
     <FilterRenderer {...props}>
-      {({ filters, filterSetValues, portalRefForFilters, updateFilter }) => (
+      {({ filters, filterSetValues, portalRefForFilters, numRows, updateFilter }) => (
         <HeaderFilter
           columnKey={key}
           filters={filters}
           filterSetValues={filterSetValues}
           portalRefForFilters={portalRefForFilters}
+          numRows={numRows}
           updateFilter={updateFilter}
         />
       )}
@@ -423,7 +407,7 @@ export function addFieldLabelToColumn(columnDefinitions: ColumnWithFilter<RowWit
   return columnDefinitions;
 }
 
-export function resetFilter(type: FilterType): DataTableFilter {
+export function resetFilter(type: FilterType, setValues: string[] = []): DataTableFilter {
   switch (type) {
     case 'TEXT':
       return { type, value: '' };
@@ -433,13 +417,13 @@ export function resetFilter(type: FilterType): DataTableFilter {
       return { type, value: '', comparator: 'GREATER_THAN' };
     case 'SET':
     case 'BOOLEAN_SET':
-      return { type, value: [] };
+      return { type, value: setValues };
     default:
       throw new Error(`Filter type ${type} not supported`);
   }
 }
 
-export function isFilterActive(filter: DataTableFilter): boolean {
+export function isFilterActive(filter: DataTableFilter, numRows: number): boolean {
   switch (filter?.type) {
     case 'TEXT':
       return !!filter.value;
@@ -448,8 +432,9 @@ export function isFilterActive(filter: DataTableFilter): boolean {
     case 'DATE':
       return !!filter.value; // TODO: is valid date
     case 'SET':
+      return (filter.value?.length || 0) < numRows;
     case 'BOOLEAN_SET':
-      return !!filter.value?.length;
+      return (filter.value?.length || 0) !== 2;
     default:
       return false;
   }
@@ -505,7 +490,7 @@ export function filterRecord(filter: DataTableFilter, value: any): boolean {
     }
     case 'SET': {
       const includeNulls = filter.value.includes(EMPTY_FIELD);
-      return (isNil(value) && includeNulls) || (!isNil(value) && filter.value.includes(String(value)));
+      return (includeNulls && isNil(value)) || (!isNil(value) && filter.value.includes(String(value)));
     }
     default:
       return false;
@@ -594,55 +579,3 @@ export function getSearchTextByRow<T>(rows: T[], columns: ColumnWithFilter<T>[],
   }
   return output;
 }
-
-export const dataTableDateFormatter = (dateOrDateTime: Date | string | null | undefined): string => {
-  if (!dateOrDateTime) {
-    return null;
-  } else if (isDate(dateOrDateTime)) {
-    return formatDate(dateOrDateTime as Date, DATE_FORMATS.YYYY_MM_DD_HH_mm_ss_a);
-  } else if (dateOrDateTime.length === 28) {
-    return formatDate(parseISO(dateOrDateTime), DATE_FORMATS.YYYY_MM_DD_HH_mm_ss_a);
-  } else if (dateOrDateTime.length === 10) {
-    return formatDate(startOfDay(parseISO(dateOrDateTime)), DATE_FORMATS.yyyy_MM_dd);
-  } else {
-    return dateOrDateTime;
-  }
-};
-
-export const dataTableTimeFormatter = (value: string | null | undefined): string => {
-  const time: string = value;
-  if (!time) {
-    return '';
-  } else if (time.length === 13) {
-    return formatDate(parseDate(time, DATE_FORMATS.HH_mm_ss_ssss_z, new Date()), DATE_FORMATS.HH_MM_SS_a);
-  } else {
-    return time;
-  }
-};
-
-export const dataTableFileSizeFormatter = (sizeInBytes: string | number | null | undefined): string => {
-  if (isNil(sizeInBytes)) {
-    return '';
-  }
-  return fileSizeFormatter(sizeInBytes as any);
-};
-
-const newLineRegex = /\\n/g;
-
-export const dataTableAddressValueFormatter = (value: any): string => {
-  if (!isObject(value)) {
-    return '';
-  }
-  const address: SalesforceAddressField = value;
-  const street = (address.street || '').replace(newLineRegex, '');
-  const remainingParts = [address.city, address.state, address.postalCode, address.country].filter((part) => !!part).join(', ');
-  return [street, remainingParts].join('\n');
-};
-
-export const dataTableLocationFormatter = (value: SalesforceLocationField | null | undefined): string => {
-  if (!isObject(value)) {
-    return '';
-  }
-  const location: SalesforceLocationField = value as SalesforceLocationField;
-  return `Latitude: ${location.latitude}°, Longitude: ${location.longitude}°`;
-};

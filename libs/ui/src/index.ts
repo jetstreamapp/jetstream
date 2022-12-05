@@ -8,14 +8,10 @@ export * from './lib/badge/BadgePopoverList';
 export * from './lib/card/Card';
 export * from './lib/color-picker/ColorSwatches';
 export * from './lib/confirmation-dialog/ConfirmationDialog';
+export * from './lib/data-table/data-table-context';
+export * from './lib/data-table/data-table-formatters';
 export { ColumnWithFilter, RowWithKey } from './lib/data-table/data-table-types';
-export {
-  DataTableGenericContext,
-  DataTableSelectedContext,
-  dataTableFileSizeFormatter,
-  getColumnsForGenericTable,
-  setColumnFromType,
-} from './lib/data-table/data-table-utils';
+export { getColumnsForGenericTable, setColumnFromType } from './lib/data-table/data-table-utils';
 export * from './lib/data-table/DataTable';
 export * from './lib/data-table/DataTableRenderers';
 export * from './lib/data-table/SalesforceRecordDataTable';

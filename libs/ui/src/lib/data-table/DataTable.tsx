@@ -4,23 +4,16 @@ import { orderObjectsBy, orderStringsBy } from '@jetstream/shared/utils';
 import { SalesforceOrgUi } from '@jetstream/types';
 import escapeRegExp from 'lodash/escapeRegExp';
 import isNil from 'lodash/isNil';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useReducer, useState } from 'react';
 import DataGrid, { DataGridProps, HeaderRendererProps, SortColumn, SortStatusProps } from 'react-data-grid';
 import 'react-data-grid/lib/styles.css';
 import { DndProvider } from 'react-dnd';
 import { HTML5Backend } from 'react-dnd-html5-backend';
 import Icon from '../widgets/Icon';
+import { DataTableFilterContext, DataTableGenericContext } from './data-table-context';
 import './data-table-styles.scss';
 import { ColumnWithFilter, DataTableFilter, FILTER_SET_TYPES, RowWithKey } from './data-table-types';
-import {
-  DataTableFilterContext,
-  DataTableGenericContext,
-  EMPTY_FIELD,
-  filterRecord,
-  getSearchTextByRow,
-  isFilterActive,
-  resetFilter,
-} from './data-table-utils';
+import { EMPTY_FIELD, filterRecord, getSearchTextByRow, isFilterActive, resetFilter } from './data-table-utils';
 import { configIdLinkRenderer, DraggableHeaderRenderer } from './DataTableRenderers';
 
 function sortStatus({ sortDirection, priority }: SortStatusProps) {
@@ -31,6 +24,82 @@ function sortStatus({ sortDirection, priority }: SortStatusProps) {
       <span>{priority}</span>
     </>
   ) : null;
+}
+
+interface State<T> {
+  columnMap: Map<string, ColumnWithFilter<T>>;
+  filters: Record<string, DataTableFilter[]>;
+  filterSetValues: Record<string, string[]>;
+}
+
+type Action =
+  | { type: 'INIT'; payload: { columns: ColumnWithFilter<any>[]; data: any[]; ignoreRowInSetFilter?: (row: any) => boolean } }
+  | { type: 'UPDATE_FILTER'; payload: { column: string; filter: DataTableFilter } };
+
+// Reducer is used to limit the number of re-renders because of dependent state
+function reducer<T>(state: State<T>, action: Action): State<T> {
+  switch (action.type) {
+    case 'INIT': {
+      const { columns, data, ignoreRowInSetFilter } = action.payload;
+
+      const columnMap = new Map(columns.map((column) => [column.key, column]));
+
+      const filters = columns.reduce((acc: Record<string, DataTableFilter[]>, column) => {
+        if (Array.isArray(column.filters)) {
+          acc[column.key] = column.filters.map((filter) => resetFilter(filter, []));
+        }
+        return acc;
+      }, {});
+
+      // NOTICE: This function mutates filters
+      const filterSetValues = Object.keys(filters)
+        .filter((columnKey) => Array.isArray(filters[columnKey]) && filters[columnKey].some(({ type }) => FILTER_SET_TYPES.has(type)))
+        .reduce((acc: Record<string, string[]>, columnKey) => {
+          const filter = filters[columnKey].find(({ type }) => FILTER_SET_TYPES.has(type));
+          const column = columnMap.get(columnKey);
+          const getValueFn = columnMap.get(columnKey)?.getValue || (({ row, column }) => row[columnKey]);
+          if (filter.type === 'BOOLEAN_SET') {
+            acc[columnKey] = ['True', 'False'];
+          } else {
+            acc[columnKey] = orderStringsBy(
+              Array.from(
+                new Set(
+                  data
+                    .filter((row) => (ignoreRowInSetFilter ? !ignoreRowInSetFilter(row) : true))
+                    .map((row) => {
+                      const rowValue = getValueFn({ row, column });
+                      // TODO: we need some additional function to get the filter value and also compare the value when filtering
+                      return isNil(row[columnKey]) ? EMPTY_FIELD : String(rowValue);
+                    })
+                )
+              )
+            );
+          }
+
+          // Set filter default values to all values in set
+          filter.value = acc[columnKey];
+
+          return acc;
+        }, {});
+
+      return {
+        ...state,
+        columnMap,
+        filters,
+        filterSetValues,
+      };
+    }
+    case 'UPDATE_FILTER': {
+      const { column, filter } = action.payload;
+      return {
+        ...state,
+        filters: {
+          ...state.filters,
+          [column]: state.filters[column].map((currFilter) => (currFilter.type === filter.type ? filter : currFilter)),
+        },
+      };
+    }
+  }
 }
 
 export interface DataTableNewProps<T = RowWithKey, TContext = Record<string, any>>
@@ -64,11 +133,17 @@ export const DataTable = <T extends object>({
 }: DataTableNewProps<T>) => {
   const [columns, setColumns] = useState(_columns || []);
   const [sortColumns, setSortColumns] = useState<readonly SortColumn[]>([]);
-  const [columnMap, setColumnMap] = useState<Map<string, ColumnWithFilter<T>>>(() => new Map());
-  const [filters, setFilters] = useState<Record<string, DataTableFilter[]>>({});
-  // TODO: do we need label and value?
-  const [filterSetValues, setFilterSetValues] = useState<Record<string, string[]>>({});
   const [rowFilterText, setRowFilterText] = useState<Record<string, string>>({});
+
+  const [{ columnMap, filters, filterSetValues }, dispatch] = useReducer(reducer, {
+    columnMap: new Map(),
+    filters: {},
+    filterSetValues: {},
+  });
+
+  useEffect(() => {
+    dispatch({ type: 'INIT', payload: { columns: _columns, data, ignoreRowInSetFilter } });
+  }, [_columns, data, ignoreRowInSetFilter]);
 
   useEffect(() => {
     setColumns(_columns);
@@ -82,62 +157,15 @@ export const DataTable = <T extends object>({
     }
   }, [columns, data, getRowKey]);
 
-  useEffect(() => {
-    setColumnMap(new Map(columns.map((column) => [column.key, column])));
-    setFilters(
-      columns.reduce((acc: Record<string, DataTableFilter[]>, column) => {
-        if (Array.isArray(column.filters)) {
-          acc[column.key] = column.filters.map((filter) => resetFilter(filter));
-        }
-        return acc;
-      }, {})
-    );
-  }, [columns]);
-
-  useEffect(() => {
-    setFilterSetValues(
-      Object.keys(filters)
-        .filter((columnKey) => Array.isArray(filters[columnKey]) && filters[columnKey].some(({ type }) => FILTER_SET_TYPES.has(type)))
-        .reduce((acc: Record<string, string[]>, columnKey) => {
-          const filter = filters[columnKey].find(({ type }) => FILTER_SET_TYPES.has(type));
-          const column = columnMap.get(columnKey);
-          const getValueFn = columnMap.get(columnKey)?.getValue || (({ row, column }) => row[columnKey]);
-          if (filter.type === 'BOOLEAN_SET') {
-            acc[columnKey] = ['True', 'False'];
-          } else {
-            acc[columnKey] = orderStringsBy(
-              Array.from(
-                new Set(
-                  data
-                    .filter((row) => (ignoreRowInSetFilter ? !ignoreRowInSetFilter(row) : true))
-                    .map((row) => {
-                      const rowValue = getValueFn({ row, column });
-                      // TODO: we need some additional function to get the filter value and also compare the value when filtering
-                      return isNil(row[columnKey]) ? EMPTY_FIELD : String(rowValue);
-                    })
-                )
-              )
-            );
-          }
-
-          return acc;
-        }, {})
-    );
-  }, [columnMap, data, filters, ignoreRowInSetFilter]);
-
   const updateFilter = useCallback((column: string, filter: DataTableFilter) => {
-    setFilters((prevFilters) => ({
-      ...prevFilters,
-      [column]: prevFilters[column].map((currFilter) => (currFilter.type === filter.type ? filter : currFilter)),
-    }));
+    dispatch({ type: 'UPDATE_FILTER', payload: { column, filter } });
   }, []);
 
   const sortedRows = useMemo((): readonly T[] => {
     if (sortColumns.length === 0) {
       return data;
     }
-    // TODO: what about complex data?
-    // TODO: what about getValue on filter
+
     return orderObjectsBy(
       data,
       sortColumns.map(({ columnKey }) => columnKey) as any,
@@ -161,7 +189,9 @@ export const DataTable = <T extends object>({
       const isVisible = Object.keys(filters)
         .filter(
           (columnKey) =>
-            Array.isArray(filters[columnKey]) && filters[columnKey].length && filters[columnKey].some((filter) => isFilterActive(filter))
+            Array.isArray(filters[columnKey]) &&
+            filters[columnKey].length &&
+            filters[columnKey].some((filter) => isFilterActive(filter, sortedRows.length))
         )
         .every((columnKey) => {
           let rowValue = row[columnKey];
@@ -169,7 +199,9 @@ export const DataTable = <T extends object>({
           if (column?.getValue) {
             rowValue = column.getValue({ row, column: columnMap.get(columnKey) });
           }
-          return filters[columnKey].filter(isFilterActive).every((filter) => filterRecord(filter, rowValue));
+          return filters[columnKey]
+            .filter((filter) => isFilterActive(filter, sortedRows.length))
+            .every((filter) => filterRecord(filter, rowValue));
         });
       // Apply global filter
       const key = getRowKey(row);
@@ -219,6 +251,7 @@ export const DataTable = <T extends object>({
             filterSetValues,
             filters,
             portalRefForFilters: context?.portalRefForFilters,
+            allRows: data,
             updateFilter,
           }}
         >
