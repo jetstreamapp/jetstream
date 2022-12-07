@@ -26,7 +26,7 @@ export const dataTableDateFormatter = (dateOrDateTime: Date | string | null | un
 export const dataTableTimeFormatter = (value: string | null | undefined): string => {
   const time: string = value;
   if (!time) {
-    return '';
+    return null;
   } else if (time.length === 13) {
     return formatDate(parseDate(time, DATE_FORMATS.HH_mm_ss_ssss_z, new Date()), DATE_FORMATS.HH_MM_SS_a);
   } else {
@@ -36,7 +36,7 @@ export const dataTableTimeFormatter = (value: string | null | undefined): string
 
 export const dataTableFileSizeFormatter = (sizeInBytes: string | number | null | undefined): string => {
   if (isNil(sizeInBytes)) {
-    return '';
+    return null;
   }
   return fileSizeFormatter(sizeInBytes as any);
 };
@@ -45,7 +45,7 @@ const newLineRegex = /\\n/g;
 
 export const dataTableAddressValueFormatter = (value: any): string => {
   if (!isObject(value)) {
-    return '';
+    return null;
   }
   const address: SalesforceAddressField = value;
   const street = (address.street || '').replace(newLineRegex, '');
@@ -54,8 +54,8 @@ export const dataTableAddressValueFormatter = (value: any): string => {
 };
 
 export const dataTableLocationFormatter = (value: SalesforceLocationField | null | undefined): string => {
-  if (!isObject(value)) {
-    return '';
+  if (!value || !isObject(value)) {
+    return null;
   }
   const location: SalesforceLocationField = value as SalesforceLocationField;
   return `Latitude: ${location.latitude}°, Longitude: ${location.longitude}°`;

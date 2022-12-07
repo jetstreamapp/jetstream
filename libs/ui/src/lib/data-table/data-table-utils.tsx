@@ -384,6 +384,8 @@ export function updateColumnFromType(column: Mutable<ColumnWithFilter<any>>, fie
       column.formatter = IdLinkRenderer;
       column.width = 175;
       break;
+    default:
+      break;
   }
 }
 
