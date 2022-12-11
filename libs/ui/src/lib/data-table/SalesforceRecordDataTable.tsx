@@ -2,6 +2,7 @@ import { QueryResults } from '@jetstream/api-interfaces';
 import { logger } from '@jetstream/shared/client-logger';
 import { queryRemaining } from '@jetstream/shared/data';
 import { formatNumber, useRollbar } from '@jetstream/shared/ui-utils';
+import { flattenRecord } from '@jetstream/shared/utils';
 import { MapOf, SalesforceOrgUi } from '@jetstream/types';
 import { Field } from 'jsforce';
 import uniqueId from 'lodash/uniqueId';
@@ -130,12 +131,11 @@ export const SalesforceRecordDataTable: FunctionComponent<SalesforceRecordDataTa
         if (fieldMetadataSubquery) {
           for (const key in subqueryColumns) {
             if (fieldMetadataSubquery[key.toLowerCase()]) {
-              addFieldLabelToColumn(subqueryColumns[key], fieldMetadataSubquery[key.toLowerCase()]);
+              subqueryColumns[key] = addFieldLabelToColumn(subqueryColumns[key], fieldMetadataSubquery[key.toLowerCase()]);
             }
           }
         }
 
-        setColumns(parentColumns);
         setSubqueryColumnsMap(subqueryColumns);
       }
     }, [fieldMetadata, fieldMetadataSubquery, isTooling, queryResults]);
@@ -162,16 +162,17 @@ export const SalesforceRecordDataTable: FunctionComponent<SalesforceRecordDataTa
     }, []);
 
     useEffect(() => {
+      const columnKeys = columns?.map((col) => col.key) || null;
       setRows(
         (records || []).map((row): RowWithKey => {
           return {
             _key: getRowId(row),
             _action: handleRowAction,
-            ...row,
+            ...(columnKeys ? flattenRecord(row, columnKeys, false) : row),
           };
         })
       );
-    }, [handleRowAction, records]);
+    }, [columns, handleRowAction, records]);
 
     async function loadRemaining() {
       try {
