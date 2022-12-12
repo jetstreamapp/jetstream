@@ -301,6 +301,8 @@ export const LoadRecordsFieldMappingRow: FunctionComponent<LoadRecordsFieldMappi
                   <div className="slds-grow">
                     <Combobox
                       label="Related Mappable Fields"
+                      errorMessage="A related field must be selected"
+                      hasError={!fieldMappingItem.relatedFieldMetadata}
                       selectedItemLabel={getComboboxRelatedFieldName(fieldMappingItem.relatedFieldMetadata)}
                       selectedItemTitle={getComboboxRelatedFieldName(fieldMappingItem.relatedFieldMetadata)}
                       onInputChange={setRelatedTextFilter}
