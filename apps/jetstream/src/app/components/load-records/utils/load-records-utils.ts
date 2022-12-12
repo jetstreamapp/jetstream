@@ -49,19 +49,24 @@ export const getFieldMetadataCustomMetadataFilter = (field: FieldWithExtendedTyp
 export async function getFieldMetadata(org: SalesforceOrgUi, sobject: string): Promise<FieldWithRelatedEntities[]> {
   const fields = (await describeSObjectWithExtendedTypes(org, sobject)).fields
     .filter(sobject.endsWith('__mdt') ? getFieldMetadataCustomMetadataFilter : getFieldMetadataFilter)
-    .map(
-      (field): FieldWithRelatedEntities => ({
+    .map((field): FieldWithRelatedEntities => {
+      let referenceTo =
+        (field.type === 'reference' && field.referenceTo.slice(0, 5 /** Limit number of related object to limit query */)) || undefined;
+      // if only two polymorphic fields exist and the second is user, reverse the order so that User is first as it is most commonly used
+      if (Array.isArray(referenceTo) && referenceTo.length === 2 && referenceTo[1] === 'User') {
+        referenceTo = referenceTo.reverse();
+      }
+      return {
         label: field.label,
         name: field.name,
         type: field.type,
         soapType: field.soapType,
         externalId: field.externalId,
         typeLabel: field.typeLabel,
-        referenceTo:
-          (field.type === 'reference' && field.referenceTo.slice(0, 5 /** Limit number of related object to limit query */)) || undefined,
+        referenceTo,
         relationshipName: field.relationshipName || undefined,
-      })
-    );
+      };
+    });
 
   // fetch all related fields
   const fieldsWithRelationships = fields.filter((field) => Array.isArray(field.referenceTo) && field.referenceTo.length);
@@ -487,7 +492,7 @@ function getRelatedFieldsQueries(baseObject: string, relatedObject: string, rela
 
   const baseQuery: Query = {
     sObject: relatedObject,
-    fields: [getField(relatedField)],
+    fields: Array.from(new Set([getField('Id'), getField(relatedField)])),
   };
 
   let extraWhereClauseNew: WhereClause;
