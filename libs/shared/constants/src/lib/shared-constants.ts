@@ -137,6 +137,7 @@ export const DATE_FORMATS = {
   HH_mm_ss_ssss_z: `HH:mm:ss'.'SSSS'Z'`,
   HH_MM_SS_A: 'h:mm:ss A', // NOT DATE-FN COMPATIBLE
   HH_MM_SS_a: 'h:mm:ss a',
+  HH_MM_SS_SSSS: 'H:mm:ss.SSSS',
   FULL: 'MMMM do, yyyy hh:mm aa',
 };
 

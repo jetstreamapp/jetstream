@@ -26,10 +26,12 @@ import {
   DataTableFilter,
   DataTableSetFilter,
   DataTableTextFilter,
+  DataTableTimeFilter,
   RowWithKey,
 } from './data-table-types';
 import { getRowId, getSfdcRetUrl, isFilterActive, resetFilter } from './data-table-utils';
 import { DataTableFilterContext, DataTableSelectedContext } from './data-table-context';
+import TimePicker from '../form/time-picker/TimePicker';
 
 // CONFIGURATION
 
@@ -198,6 +200,8 @@ export function HeaderFilter({ columnKey, filters, filterSetValues, portalRefFor
         return null;
       case 'DATE':
         return <HeaderDateFilter columnKey={columnKey} filter={filter} updateFilter={updateFilter} />;
+      case 'TIME':
+        return <HeaderTimeFilter columnKey={columnKey} filter={filter} updateFilter={updateFilter} />;
       case 'BOOLEAN_SET':
         return (
           <HeaderSetFilter columnKey={columnKey} filter={filter} values={filterSetValues[columnKey] || []} updateFilter={updateFilter} />
@@ -421,6 +425,55 @@ export function HeaderDateFilter({ columnKey, filter, updateFilter }: DataTableD
         className="slds-m-top_small w-100"
         initialSelectedDate={value}
         onChange={handleDateChange}
+      />
+    </div>
+  );
+}
+
+interface HeaderTimeFilterProps {
+  columnKey: string;
+  filter: DataTableTimeFilter;
+  updateFilter: (column: string, filter: DataTableFilter) => void;
+}
+
+export function HeaderTimeFilter({ columnKey, filter, updateFilter }: HeaderTimeFilterProps) {
+  const [value, setValue] = useState(() => filter.value);
+  const [comparators] = useState<ListItem<string, 'EQUALS' | 'GREATER_THAN' | 'LESS_THAN'>[]>(() => [
+    { id: 'EQUALS', label: 'Equals', value: 'EQUALS' },
+    { id: 'GREATER_THAN', label: 'Greater Than', value: 'GREATER_THAN' },
+    { id: 'LESS_THAN', label: 'Less Than', value: 'LESS_THAN' },
+  ]);
+  const [selectedComparator, setSelectedComparators] = useState<'EQUALS' | 'GREATER_THAN' | 'LESS_THAN'>(() => filter.comparator);
+
+  function handleComparatorChange(comparator: 'EQUALS' | 'GREATER_THAN' | 'LESS_THAN') {
+    setSelectedComparators(comparator);
+    if (filter.comparator !== comparator) {
+      updateFilter(columnKey, { ...filter, comparator });
+    }
+  }
+
+  function handleTimeChange(value: string) {
+    setValue(value);
+    updateFilter(columnKey, { ...filter, value });
+  }
+
+  return (
+    <div>
+      <Picklist
+        label="Comparison"
+        items={comparators}
+        selectedItemIds={[selectedComparator]}
+        allowDeselection={false}
+        onChange={(items: ListItem<'EQUALS' | 'GREATER_THAN' | 'LESS_THAN'>[]) => handleComparatorChange(items[0].value)}
+      />
+      <TimePicker
+        id={`${columnKey}-time-picker`}
+        label="Time"
+        hideLabel
+        className="slds-m-top_small w-100"
+        selectedItem={value as string}
+        stepInMinutes={15}
+        onChange={handleTimeChange}
       />
     </div>
   );

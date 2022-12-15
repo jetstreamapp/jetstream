@@ -1,11 +1,15 @@
 import { QueryResults, QueryResultsColumn } from '@jetstream/api-interfaces';
+import { DATE_FORMATS } from '@jetstream/shared/constants';
 import { ensureBoolean, pluralizeFromNumber } from '@jetstream/shared/utils';
 import { MapOf } from '@jetstream/types';
 import isAfter from 'date-fns/isAfter';
 import isBefore from 'date-fns/isBefore';
 import isSameDay from 'date-fns/isSameDay';
+import isDateValid from 'date-fns/isValid';
+import parseDate from 'date-fns/parse';
 import parseISO from 'date-fns/parseISO';
 import startOfDay from 'date-fns/startOfDay';
+import startOfMinute from 'date-fns/startOfMinute';
 import { Field } from 'jsforce';
 import isNil from 'lodash/isNil';
 import isNumber from 'lodash/isNumber';
@@ -363,11 +367,12 @@ export function updateColumnFromType(column: Mutable<ColumnWithFilter<any>>, fie
       column.getValue = ({ column, row }) => dataTableLocationFormatter(row[column.key]);
       break;
     case 'date':
-      column.filters = ['DATE', 'SET']; // FIXME: add LT / GT
+      column.filters = ['DATE', 'SET'];
       column.formatter = ({ column, row }) => dataTableDateFormatter(row[column.key]);
       column.getValue = ({ column, row }) => dataTableDateFormatter(row[column.key]);
       break;
     case 'time':
+      column.filters = ['TIME', 'SET'];
       column.formatter = ({ column, row }) => dataTableTimeFormatter(row[column.key]);
       column.getValue = ({ column, row }) => dataTableTimeFormatter(row[column.key]);
       break;
@@ -414,6 +419,8 @@ export function resetFilter(type: FilterType, setValues: string[] = []): DataTab
       return { type, value: null, comparator: 'EQUALS' };
     case 'DATE':
       return { type, value: '', comparator: 'GREATER_THAN' };
+    case 'TIME':
+      return { type, value: '', comparator: 'GREATER_THAN' };
     case 'SET':
     case 'BOOLEAN_SET':
       return { type, value: setValues };
@@ -430,6 +437,8 @@ export function isFilterActive(filter: DataTableFilter, totalValues: number): bo
       return isNumber(filter.value) || !!filter.value;
     case 'DATE':
       return !!filter.value; // TODO: is valid date
+    case 'TIME':
+      return !!filter.value;
     case 'SET':
       return (filter.value?.length || 0) < totalValues;
     case 'BOOLEAN_SET':
@@ -467,7 +476,34 @@ export function filterRecord(filter: DataTableFilter, value: any): boolean {
         return false;
       }
       const dateFilter = startOfDay(parseISO(filter.value));
-      const date = startOfDay(parseISO(value));
+      let date: Date;
+      if (value.length === 21) {
+        date = parseDate(value, DATE_FORMATS.YYYY_MM_DD_HH_mm_ss_a, new Date());
+      } else {
+        date = startOfDay(parseISO(value));
+      }
+      if (!isDateValid(date)) {
+        return false;
+      }
+      switch (filter.comparator) {
+        case 'GREATER_THAN':
+          return isAfter(date, dateFilter);
+        case 'LESS_THAN':
+          return isBefore(date, dateFilter);
+        case 'EQUALS':
+        default:
+          return isSameDay(date, dateFilter);
+      }
+    }
+    case 'TIME': {
+      if (!value) {
+        return false;
+      }
+      const dateFilter = startOfMinute(parseDate(filter.value, DATE_FORMATS.HH_MM_SS_SSSS, new Date()));
+      const date = startOfMinute(parseDate(value, DATE_FORMATS.HH_MM_SS_a, new Date()));
+      if (!isDateValid(dateFilter) || !isDateValid(date)) {
+        return false;
+      }
       switch (filter.comparator) {
         case 'GREATER_THAN':
           return isAfter(date, dateFilter);

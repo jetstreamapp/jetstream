@@ -3,13 +3,14 @@ import { Column } from 'react-data-grid';
 
 export type RowWithKey = Record<string, any> & { _key: string };
 export type ColumnType = 'text' | 'number' | 'subquery' | 'object' | 'location' | 'date' | 'time' | 'boolean' | 'address' | 'salesforceId';
-export type FilterType = 'TEXT' | 'NUMBER' | 'DATE' | 'SET' | 'BOOLEAN_SET';
+export type FilterType = 'TEXT' | 'NUMBER' | 'DATE' | 'TIME' | 'SET' | 'BOOLEAN_SET';
 export const FILTER_SET_TYPES = new Set<FilterType>(['SET', 'BOOLEAN_SET']);
 
 export type DataTableFilter =
   | DataTableTextFilter
   | DataTableNumberFilter
   | DataTableDateFilter
+  | DataTableTimeFilter
   | DataTableSetFilter
   | DataTableBooleanSetFilter;
 
@@ -26,6 +27,12 @@ export interface DataTableNumberFilter {
 
 export interface DataTableDateFilter {
   type: 'DATE';
+  value: string;
+  comparator: 'EQUALS' | 'GREATER_THAN' | 'LESS_THAN';
+}
+
+export interface DataTableTimeFilter {
+  type: 'TIME';
   value: string;
   comparator: 'EQUALS' | 'GREATER_THAN' | 'LESS_THAN';
 }
