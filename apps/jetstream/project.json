@@ -32,7 +32,7 @@
           ],
           "optimization": true,
           "outputHashing": "all",
-          "sourceMap": "hidden",
+          "sourceMap": true,
           "extractCss": true,
           "namedChunks": false,
           "extractLicenses": true,

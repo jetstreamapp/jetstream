@@ -10,7 +10,10 @@ env:
   CONTENTFUL_HOST: cdn.contentful.com
   CONTENTFUL_SPACE: wuv9tl5d77ll
   CONTENTFUL_TOKEN: ${{ secrets.CONTENTFUL_TOKEN }}
-
+  NX_AUTH_AUDIENCE: http://getjetstream.app/app_metadata
+  NX_AG_GRID_KEY: ${{ secrets.NX_AG_GRID_KEY }}
+  NX_ROLLBAR_KEY: ${{ secrets.NX_ROLLBAR_KEY }}
+  NX_AMPLITUDE_KEY: ${{ secrets.NX_AMPLITUDE_KEY }}
 jobs:
   master:
     runs-on: ubuntu-latest
