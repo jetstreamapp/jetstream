@@ -47,7 +47,7 @@
     "build:ui:test": "nx build ui --configuration=test",
     "build:api": "nx build api --prod",
     "build:api:docker": "nx build api --configuration=docker",
-    "build:cron": "nx build cron-tasks --prod",
+    "build:cron": "db:generate && nx build cron-tasks --prod",
     "build:api:test": "nx build api --configuration=test",
     "build:sw": "nx build download-zip-sw --prod",
     "build:landing": "cross-env NODE_ENV=production nx run landing:export && yarn build:landing:sitemap",
