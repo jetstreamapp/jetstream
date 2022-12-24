@@ -223,9 +223,10 @@ export function getObjectColumns(
   // Create column groups for profiles
   selectedProfiles.forEach((profileId) => {
     const profile = profilesById[profileId];
-    (['read', 'create', 'edit', 'delete', 'viewAll', 'modifyAll'] as const).forEach((permissionType) => {
+    (['read', 'create', 'edit', 'delete', 'viewAll', 'modifyAll'] as const).forEach((permissionType, i) => {
       newColumns.push(
         getColumnForProfileOrPermSet({
+          isFirstItem: i === 0,
           permissionType: 'object',
           id: profileId,
           type: 'Profile',
@@ -239,9 +240,10 @@ export function getObjectColumns(
   // Create column groups for permission sets
   selectedPermissionSets.forEach((permissionSetId) => {
     const permissionSet = permissionSetsById[permissionSetId];
-    (['read', 'create', 'edit', 'delete', 'viewAll', 'modifyAll'] as const).forEach((permissionType) => {
+    (['read', 'create', 'edit', 'delete', 'viewAll', 'modifyAll'] as const).forEach((permissionType, i) => {
       newColumns.push(
         getColumnForProfileOrPermSet({
+          isFirstItem: i === 0,
           permissionType: 'object',
           id: permissionSetId,
           type: 'Permission Set',
@@ -384,52 +386,38 @@ export function getFieldColumns(
   ];
 
   // Create column groups for profiles
-  selectedProfiles.forEach((profileId) => {
+  selectedProfiles.forEach((profileId, i) => {
     const profile = profilesById[profileId];
-    newColumns.push(
-      getColumnForProfileOrPermSet({
-        permissionType: 'field',
-        id: profileId,
-        type: 'Profile',
-        label: profile.Profile.Name,
-        actionType: 'Read',
-        actionKey: 'read',
-      })
-    );
-    newColumns.push(
-      getColumnForProfileOrPermSet({
-        permissionType: 'field',
-        id: profileId,
-        type: 'Profile',
-        label: profile.Profile.Name,
-        actionType: 'Edit',
-        actionKey: 'edit',
-      })
-    );
+    (['read', 'edit'] as const).forEach((permissionType, i) => {
+      newColumns.push(
+        getColumnForProfileOrPermSet({
+          isFirstItem: i === 0,
+          permissionType: 'field',
+          id: profileId,
+          type: 'Profile',
+          label: profile.Profile.Name,
+          actionType: startCase(permissionType) as 'Read' | 'Edit',
+          actionKey: permissionType,
+        })
+      );
+    });
   });
   // Create column groups for permission sets
-  selectedPermissionSets.forEach((permissionSetId) => {
+  selectedPermissionSets.forEach((permissionSetId, i) => {
     const permissionSet = permissionSetsById[permissionSetId];
-    newColumns.push(
-      getColumnForProfileOrPermSet({
-        permissionType: 'field',
-        id: permissionSetId,
-        type: 'Permission Set',
-        label: permissionSet.Name,
-        actionType: 'Read',
-        actionKey: 'read',
-      })
-    );
-    newColumns.push(
-      getColumnForProfileOrPermSet({
-        permissionType: 'field',
-        id: permissionSetId,
-        type: 'Permission Set',
-        label: permissionSet.Name,
-        actionType: 'Edit',
-        actionKey: 'edit',
-      })
-    );
+    (['read', 'edit'] as const).forEach((permissionType, i) => {
+      newColumns.push(
+        getColumnForProfileOrPermSet({
+          isFirstItem: i === 0,
+          permissionType: 'field',
+          id: permissionSetId,
+          type: 'Profile',
+          label: permissionSet.Name,
+          actionType: startCase(permissionType) as 'Read' | 'Edit',
+          actionKey: permissionType,
+        })
+      );
+    });
   });
   return newColumns;
 }
@@ -448,10 +436,9 @@ type PermissionActionType<T> = T extends 'object'
 
 type PermissionActionAction<T> = T extends 'object' ? ObjectPermissionTypes : T extends 'field' ? FieldPermissionTypes : never;
 
-// TODO: use for object table permissions
-// TODO: figure out how to make type inference work somehow
 function getColumnForProfileOrPermSet<T extends PermissionType>({
   permissionType,
+  isFirstItem,
   id,
   label,
   type,
@@ -459,6 +446,7 @@ function getColumnForProfileOrPermSet<T extends PermissionType>({
   actionKey,
 }: {
   permissionType: T;
+  isFirstItem: boolean;
   id: string;
   label: string;
   type: 'Profile' | 'Permission Set';
@@ -478,7 +466,7 @@ function getColumnForProfileOrPermSet<T extends PermissionType>({
       }
       return '';
     },
-    colSpan: (args) => (args.type === 'HEADER' ? numItems : undefined),
+    colSpan: (args) => (args.type === 'HEADER' && isFirstItem ? numItems : undefined),
     formatter: ({ column, isCellSelected, row, onRowChange }) => {
       const errorMessage = row.permissions[id].errorMessage;
       const value = row.permissions[id][actionKey as any];
