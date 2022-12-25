@@ -1,11 +1,12 @@
 {
+  "name": "jetstream",
   "$schema": "../../node_modules/nx/schemas/project-schema.json",
   "sourceRoot": "apps/jetstream/src",
   "projectType": "application",
   "generators": {},
   "targets": {
     "build": {
-      "executor": "@nrwl/web:webpack",
+      "executor": "@nrwl/webpack:webpack",
       "options": {
         "outputPath": "dist/apps/jetstream",
         "index": "apps/jetstream/src/index.html",
@@ -129,7 +130,7 @@
       "defaultConfiguration": "production"
     },
     "serve": {
-      "executor": "@nrwl/web:dev-server",
+      "executor": "@nrwl/webpack:dev-server",
       "options": {
         "buildTarget": "jetstream:build",
         "hmr": true,
@@ -169,7 +170,7 @@
         "jestConfig": "apps/jetstream/jest.config.ts",
         "passWithNoTests": true
       },
-      "outputs": ["coverage/apps/jetstream"]
+      "outputs": ["{workspaceRoot}/coverage/apps/jetstream"]
     }
   },
   "tags": []

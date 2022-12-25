@@ -1,16 +1,19 @@
 {
+  "name": "jetstream-worker",
   "$schema": "../../node_modules/nx/schemas/project-schema.json",
   "sourceRoot": "apps/jetstream-worker/src",
   "projectType": "application",
   "targets": {
     "build": {
-      "executor": "@nrwl/node:webpack",
+      "executor": "@nrwl/webpack:webpack",
       "outputs": ["{options.outputPath}"],
       "options": {
         "outputPath": "dist/apps/jetstream-worker",
         "main": "apps/jetstream-worker/src/main.ts",
         "tsConfig": "apps/jetstream-worker/tsconfig.app.json",
-        "assets": ["apps/jetstream-worker/src/assets"]
+        "assets": ["apps/jetstream-worker/src/assets"],
+        "target": "node",
+        "compiler": "tsc"
       },
       "configurations": {
         "production": {
@@ -43,7 +46,7 @@
     },
     "test": {
       "executor": "@nrwl/jest:jest",
-      "outputs": ["coverage/apps/jetstream-worker"],
+      "outputs": ["{workspaceRoot}/coverage/apps/jetstream-worker"],
       "options": {
         "jestConfig": "apps/jetstream-worker/jest.config.ts",
         "passWithNoTests": true

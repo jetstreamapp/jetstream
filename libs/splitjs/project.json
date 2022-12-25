@@ -1,4 +1,5 @@
 {
+  "name": "splitjs",
   "$schema": "../../node_modules/nx/schemas/project-schema.json",
   "sourceRoot": "libs/splitjs/src",
   "projectType": "library",
@@ -13,7 +14,7 @@
     },
     "test": {
       "executor": "@nrwl/jest:jest",
-      "outputs": ["coverage/libs/splitjs"],
+      "outputs": ["{workspaceRoot}/coverage/libs/splitjs"],
       "options": {
         "jestConfig": "libs/splitjs/jest.config.ts",
         "passWithNoTests": true
