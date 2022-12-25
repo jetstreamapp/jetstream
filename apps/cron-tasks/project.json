@@ -1,10 +1,11 @@
 {
+  "name": "cron-tasks",
   "$schema": "../../node_modules/nx/schemas/project-schema.json",
   "sourceRoot": "apps/cron-tasks/src",
   "projectType": "application",
   "targets": {
     "build": {
-      "executor": "@nrwl/node:webpack",
+      "executor": "@nrwl/webpack:webpack",
       "outputs": ["{options.outputPath}"],
       "options": {
         "outputPath": "dist/apps/cron-tasks",
@@ -20,7 +21,9 @@
           }
         ],
         "tsConfig": "apps/cron-tasks/tsconfig.app.json",
-        "assets": []
+        "assets": [],
+        "target": "node",
+        "compiler": "tsc"
       },
       "configurations": {
         "production": {
@@ -52,7 +55,7 @@
     },
     "test": {
       "executor": "@nrwl/jest:jest",
-      "outputs": ["coverage/apps/cron-tasks"],
+      "outputs": ["{workspaceRoot}/coverage/apps/cron-tasks"],
       "options": {
         "jestConfig": "apps/cron-tasks/jest.config.ts",
         "passWithNoTests": true

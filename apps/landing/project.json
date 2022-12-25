@@ -1,4 +1,5 @@
 {
+  "name": "landing",
   "$schema": "../../node_modules/nx/schemas/project-schema.json",
   "sourceRoot": "apps/landing",
   "projectType": "application",
@@ -62,7 +63,7 @@
         "jestConfig": "apps/landing/jest.config.ts",
         "passWithNoTests": true
       },
-      "outputs": ["coverage/apps/landing"]
+      "outputs": ["{workspaceRoot}/coverage/apps/landing"]
     }
   },
   "tags": []

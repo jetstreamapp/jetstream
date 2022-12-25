@@ -1,4 +1,5 @@
 {
+  "name": "connected-connected-ui",
   "$schema": "../../../node_modules/nx/schemas/project-schema.json",
   "sourceRoot": "libs/connected/connected-ui/src",
   "projectType": "library",
@@ -11,7 +12,7 @@
     },
     "test": {
       "executor": "@nrwl/jest:jest",
-      "outputs": ["coverage/libs/connected/connected-ui"],
+      "outputs": ["{workspaceRoot}/coverage/libs/connected/connected-ui"],
       "options": {
         "jestConfig": "libs/connected/connected-ui/jest.config.ts",
         "passWithNoTests": true
