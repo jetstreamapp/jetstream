@@ -102,7 +102,14 @@ export const Modal = forwardRef<any, ModalProps>(
     }
 
     return (
-      <OverlayContainer className={classNames({ 'is-electron': (window as any)?.electron?.isElectron })}>
+      <OverlayContainer
+        className={classNames({ 'is-electron': (window as any)?.electron?.isElectron })}
+        // ensure children under overlay do not know this even was clicked if not handled by anything inside modal
+        onContextMenu={(ev) => {
+          ev.preventDefault();
+          ev.stopPropagation();
+        }}
+      >
         <FocusScope contain restoreFocus autoFocus>
           <section
             {...overlayProps}

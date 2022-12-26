@@ -108,6 +108,7 @@ export * from './lib/nav/Navbar';
 export * from './lib/nav/NavbarAppLauncher';
 export * from './lib/nav/NavbarItem';
 export * from './lib/nav/NavbarMenuItems';
+export * from './lib/popover/ContextMenu';
 export * from './lib/popover/Popover';
 export * from './lib/popover/PopoverErrorButton';
 export * from './lib/progress-indicator/ProgressIndicator';

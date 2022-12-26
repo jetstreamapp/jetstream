@@ -2,13 +2,23 @@ import { IconName } from '@jetstream/icon-factory';
 import { logger } from '@jetstream/shared/client-logger';
 import { orderObjectsBy, orderStringsBy } from '@jetstream/shared/utils';
 import { SalesforceOrgUi } from '@jetstream/types';
+import { uniqueId } from 'lodash';
 import escapeRegExp from 'lodash/escapeRegExp';
 import isNil from 'lodash/isNil';
-import { useCallback, useEffect, useMemo, useReducer, useState } from 'react';
-import DataGrid, { DataGridProps, HeaderRendererProps, SortColumn, SortStatusProps } from 'react-data-grid';
+import { useCallback, useContext, useEffect, useMemo, useReducer, useState } from 'react';
+import DataGrid, {
+  DataGridProps,
+  HeaderRendererProps,
+  Renderers,
+  Row as GridRow,
+  RowRendererProps,
+  SortColumn,
+  SortStatusProps,
+} from 'react-data-grid';
 import 'react-data-grid/lib/styles.css';
 import { DndProvider } from 'react-dnd';
 import { HTML5Backend } from 'react-dnd-html5-backend';
+import ContextMenu, { ContextMenuContext, ContextMenuItem } from '../popover/ContextMenu';
 import Icon from '../widgets/Icon';
 import { DataTableFilterContext, DataTableGenericContext } from './data-table-context';
 import './data-table-styles.scss';
@@ -24,6 +34,34 @@ function sortStatus({ sortDirection, priority }: SortStatusProps) {
       <span>{priority}</span>
     </>
   ) : null;
+}
+
+interface ContextMenuRendererProps {
+  containerId?: string;
+  props: RowRendererProps<any>;
+  contextMenuItems: ContextMenuItem[];
+  contextMenuAction: (item: ContextMenuItem, data: ContextMenuActionData<unknown>) => void;
+}
+
+function ContextMenuRenderer({ containerId, props, contextMenuItems, contextMenuAction }: ContextMenuRendererProps) {
+  const { columns, rows } = useContext(DataTableGenericContext);
+  return (
+    <ContextMenu
+      containerId={containerId}
+      menu={contextMenuItems}
+      onItemSelected={(item) => {
+        contextMenuAction(item, {
+          row: props.row,
+          rowIdx: props.rowIdx,
+          rows,
+          column: columns[props.selectedCellIdx],
+          columns,
+        });
+      }}
+    >
+      <GridRow data-id={containerId} {...props} />
+    </ContextMenu>
+  );
 }
 
 interface State<T> {
@@ -102,6 +140,14 @@ function reducer<T>(state: State<T>, action: Action): State<T> {
   }
 }
 
+export type ContextMenuActionData<T> = {
+  row: T;
+  rows: T[];
+  rowIdx: number;
+  column: ColumnWithFilter<T, unknown>;
+  columns: ColumnWithFilter<T, unknown>[];
+};
+
 export interface DataTableNewProps<T = RowWithKey, TContext = Record<string, any>>
   extends Omit<DataGridProps<T>, 'columns' | 'rows' | 'rowKeyGetter'> {
   data: T[];
@@ -112,6 +158,10 @@ export interface DataTableNewProps<T = RowWithKey, TContext = Record<string, any
   includeQuickFilter?: boolean;
   context?: TContext;
   allowReorder?: boolean;
+  /** Must be stable to avoid constant re-renders */
+  contextMenuItems?: ContextMenuItem[];
+  /** Must be stable to avoid constant re-renders */
+  contextMenuAction?: (item: ContextMenuItem, data: ContextMenuActionData<T>) => void;
   getRowKey: (row: T) => string;
   rowAlwaysVisible?: (row: T) => boolean;
   ignoreRowInSetFilter?: (row: T) => boolean;
@@ -126,14 +176,39 @@ export const DataTable = <T extends object>({
   includeQuickFilter,
   context,
   allowReorder,
+  contextMenuItems,
+  contextMenuAction,
   getRowKey,
   ignoreRowInSetFilter,
   rowAlwaysVisible,
   ...rest
 }: DataTableNewProps<T>) => {
+  const [gridId] = useState(() => uniqueId('grid-'));
   const [columns, setColumns] = useState(_columns || []);
   const [sortColumns, setSortColumns] = useState<readonly SortColumn[]>([]);
   const [rowFilterText, setRowFilterText] = useState<Record<string, string>>({});
+  const [renderers, setRenderers] = useState<Renderers<T, unknown>>({});
+
+  useEffect(() => {
+    if (contextMenuItems && contextMenuAction) {
+      setRenderers({
+        sortStatus,
+        rowRenderer: (key: React.Key, props: RowRendererProps<any>) => {
+          return (
+            <ContextMenuRenderer
+              key={key}
+              containerId={gridId}
+              props={props}
+              contextMenuItems={contextMenuItems}
+              contextMenuAction={contextMenuAction}
+            />
+          );
+        },
+      });
+    } else {
+      setRenderers({ sortStatus });
+    }
+  }, [contextMenuAction, contextMenuItems, gridId]);
 
   const [{ columnMap, filters, filterSetValues }, dispatch] = useReducer(reducer, {
     columnMap: new Map(),
@@ -245,28 +320,31 @@ export const DataTable = <T extends object>({
 
   return (
     <DndProvider backend={HTML5Backend}>
-      <DataTableGenericContext.Provider value={{ ...context, rows: filteredRows }}>
-        <DataTableFilterContext.Provider
-          value={{
-            filterSetValues,
-            filters,
-            portalRefForFilters: context?.portalRefForFilters,
-            updateFilter,
-          }}
-        >
-          <DataGrid
-            className="rdg-light fill-grid"
-            columns={draggableColumns}
-            rows={filteredRows}
-            renderers={{ sortStatus }}
-            sortColumns={sortColumns}
-            onSortColumnsChange={setSortColumns}
-            rowKeyGetter={getRowKey}
-            defaultColumnOptions={{ resizable: true, sortable: true, ...rest.defaultColumnOptions }}
-            {...rest}
-          />
-        </DataTableFilterContext.Provider>
-      </DataTableGenericContext.Provider>
+      <ContextMenuContext.Provider value={new Map()}>
+        <DataTableGenericContext.Provider value={{ ...context, rows: filteredRows, columns }}>
+          <DataTableFilterContext.Provider
+            value={{
+              filterSetValues,
+              filters,
+              portalRefForFilters: context?.portalRefForFilters,
+              updateFilter,
+            }}
+          >
+            <DataGrid
+              data-id={gridId}
+              className="rdg-light fill-grid"
+              columns={draggableColumns}
+              rows={filteredRows}
+              renderers={renderers}
+              sortColumns={sortColumns}
+              onSortColumnsChange={setSortColumns}
+              rowKeyGetter={getRowKey}
+              defaultColumnOptions={{ resizable: true, sortable: true, ...rest.defaultColumnOptions }}
+              {...rest}
+            />
+          </DataTableFilterContext.Provider>
+        </DataTableGenericContext.Provider>
+      </ContextMenuContext.Provider>
     </DndProvider>
   );
 };

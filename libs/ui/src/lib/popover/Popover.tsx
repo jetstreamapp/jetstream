@@ -24,6 +24,7 @@ export interface PopoverRef {
 // https://www.lightningdesignsystem.com/components/popovers
 export interface PopoverProps {
   inverseIcons?: boolean;
+  classname?: string;
   containerClassName?: string;
   closeBtnClassName?: string;
   bodyClassName?: string;
@@ -45,6 +46,7 @@ export interface PopoverProps {
 export const Popover = forwardRef<PopoverRef, PopoverProps>(
   (
     {
+      classname,
       inverseIcons,
       containerClassName,
       closeBtnClassName,
@@ -107,7 +109,11 @@ export const Popover = forwardRef<PopoverRef, PopoverProps>(
     );
 
     return (
-      <HeadlessPopover className="slds-is-relative" as="span" onClick={(ev: MouseEvent<HTMLSpanElement>) => ev.stopPropagation()}>
+      <HeadlessPopover
+        className={classNames('slds-is-relative', classname)}
+        as="span"
+        onClick={(ev: MouseEvent<HTMLSpanElement>) => ev.stopPropagation()}
+      >
         {({ open }) => {
           checkIfStateChanged(open);
           return (
