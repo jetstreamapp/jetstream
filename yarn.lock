@@ -3238,6 +3238,11 @@
     lodash "^4.17.15"
     tmp-promise "^3.0.2"
 
+"@mands/nx-playwright@^0.1.21":
+  version "0.1.21"
+  resolved "https://registry.yarnpkg.com/@mands/nx-playwright/-/nx-playwright-0.1.21.tgz#fe6db7280a8e3095997cf5b112194a0d29e7939f"
+  integrity sha512-xMYvY2rPJktF76E3pADnscjzN2NPm7hKw5Fe+EJF9n7//hgtRV6Ylb+z2m8TousXECtLI25RRLlz9nUt+Uf1uA==
+
 "@maxim_mazurok/gapi.client.drive@latest":
   version "3.0.20220626"
   resolved "https://registry.yarnpkg.com/@maxim_mazurok/gapi.client.drive/-/gapi.client.drive-3.0.20220626.tgz#f5f9342a178fdd5a2ea031d4711ffc01d50e4520"
@@ -4615,6 +4620,14 @@
   integrity sha512-jjMmK1tnZbm1Jq5a7fBliM4gQwjxMU7TFoRNwIyzwlO+eHPRCFv/Nv+H/Gi1jc3WR7QURG8D5d0Tn12YGrUqBQ==
   dependencies:
     esquery "^1.0.1"
+
+"@playwright/test@^1.26.0":
+  version "1.29.1"
+  resolved "https://registry.yarnpkg.com/@playwright/test/-/test-1.29.1.tgz#f2ed4dc143b9c7825a7ad2703b2f1ac4354e1145"
+  integrity sha512-iQxk2DX5U9wOGV3+/Jh9OHPsw5H3mleUL2S4BgQuwtlAfK3PnKvn38m4Rg9zIViGHVW24opSm99HQm/UFLEy6w==
+  dependencies:
+    "@types/node" "*"
+    playwright-core "1.29.1"
 
 "@pm2/agent@~1.0.8":
   version "1.0.8"
@@ -20109,6 +20122,18 @@ pkg-up@^3.1.0:
   integrity sha512-nDywThFk1i4BQK4twPQ6TA4RT8bDY96yeuCVBWL3ePARCiEKDRSrNGbFIgUJpLp+XeIR65v8ra7WuJOFUBtkMA==
   dependencies:
     find-up "^3.0.0"
+
+playwright-core@1.29.1:
+  version "1.29.1"
+  resolved "https://registry.yarnpkg.com/playwright-core/-/playwright-core-1.29.1.tgz#9ec15d61c4bd2f386ddf6ce010db53a030345a47"
+  integrity sha512-20Ai3d+lMkWpI9YZYlxk8gxatfgax5STW8GaMozAHwigLiyiKQrdkt7gaoT9UQR8FIVDg6qVXs9IoZUQrDjIIg==
+
+playwright@^1.26.0:
+  version "1.29.1"
+  resolved "https://registry.yarnpkg.com/playwright/-/playwright-1.29.1.tgz#fc04b34f42e3bfc0edadb1c45ef9bffd53c21f70"
+  integrity sha512-lasC+pMqsQ2uWhNurt3YK3xo0gWlMjslYUylKbHcqF/NTjwp9KStRGO7S6wwz2f52GcSnop8XUK/GymJjdzrxw==
+  dependencies:
+    playwright-core "1.29.1"
 
 plist@^3.0.1, plist@^3.0.4:
   version "3.0.5"
