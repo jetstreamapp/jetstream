@@ -45,12 +45,6 @@ export const ManagePermissionsEditorFieldTable = forwardRef<any, ManagePermissio
         resetGridChanges({ rows, type: 'field' });
         setDirtyRows({});
       },
-      // Rebuild table and ensure error messages are cleared from prior attempts
-      resetRows() {
-        // if (gridApi) {
-        //   gridApi.refreshCells({ force: true, suppressFlash: true });
-        // }
-      },
     }));
 
     useNonInitialEffect(() => {

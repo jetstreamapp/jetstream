@@ -44,12 +44,6 @@ export const ManagePermissionsEditorObjectTable = forwardRef<any, ManagePermissi
         resetGridChanges({ rows, type: 'object' });
         setDirtyRows({});
       },
-      // Rebuild table and ensure error messages are cleared from prior attempts
-      resetRows() {
-        // if (gridApi) {
-        //   gridApi.refreshCells({ force: true, suppressFlash: true });
-        // }
-      },
     }));
 
     useNonInitialEffect(() => {
@@ -77,13 +71,9 @@ export const ManagePermissionsEditorObjectTable = forwardRef<any, ManagePermissi
             getRowKey={getRowKey}
             topSummaryRows={SUMMARY_ROWS}
             onRowsChange={handleRowsChange}
-            context={{ type: 'field', onColumnAction: handleColumnAction, onBulkAction: onBulkUpdate }}
+            context={{ type: 'object', onColumnAction: handleColumnAction, onBulkAction: onBulkUpdate }}
             rowHeight={getRowHeight}
             summaryRowHeight={38}
-            // groupBy={groupedRows}
-            // rowGrouper={groupBy}
-            // expandedGroupIds={expandedGroupIds}
-            // onExpandedGroupIdsChange={(items) => setExpandedGroupIds(items)}
           />
         </AutoFullHeightContainer>
       </div>

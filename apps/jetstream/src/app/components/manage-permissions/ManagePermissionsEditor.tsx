@@ -250,7 +250,6 @@ export const ManagePermissionsEditor: FunctionComponent<ManagePermissionsEditorP
     setFieldRows(getFieldRows(selectedSObjects, fieldsByObject, fieldPermissionMapOverride || fieldPermissionMap));
     setDirtyFieldRows({});
     setDirtyObjectRows({});
-    resetTable();
   }
 
   // FIXME:
@@ -350,7 +349,6 @@ export const ManagePermissionsEditor: FunctionComponent<ManagePermissionsEditorP
           setFieldRows(rows);
           handleFieldBulkRowUpdate(rows);
         }
-        resetTable();
         setLoading(false);
       }
     }
@@ -362,19 +360,6 @@ export const ManagePermissionsEditor: FunctionComponent<ManagePermissionsEditorP
     setObjectPermissionMap(updatedObjectPermissionMap);
     setFieldPermissionMap(updatedFieldPermissionMap);
     initTableData(false, updatedObjectPermissionMap, updatedFieldPermissionMap);
-  }
-
-  /**
-   * This ensured that each table cell is re-rendered
-   * This is required because of the way the error message is implemented
-   */
-  function resetTable() {
-    if (managePermissionsEditorObjectTableRef.current) {
-      managePermissionsEditorObjectTableRef.current.resetRows();
-    }
-    if (managePermissionsEditorFieldTableRef.current) {
-      managePermissionsEditorFieldTableRef.current.resetRows();
-    }
   }
 
   function handleGoBack() {

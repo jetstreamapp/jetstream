@@ -137,7 +137,6 @@ export interface DirtyRow<T> {
 
 export interface ManagePermissionsEditorTableRef {
   resetChanges: () => void;
-  resetRows: () => void;
 }
 
 export interface PermissionObjectSaveData {
