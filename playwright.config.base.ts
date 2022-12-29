@@ -8,5 +8,6 @@ export const baseConfig: PlaywrightTestConfig = {
   timeout: 120000,
   use: {
     baseURL,
+    permissions: ['notifications'],
   },
 };

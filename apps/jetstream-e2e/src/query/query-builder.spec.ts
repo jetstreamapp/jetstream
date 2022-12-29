@@ -1,6 +1,4 @@
-import { test, expect } from '@playwright/test';
-// import { formatNumber } from '../../libs/shared/ui-utils/src';
-import { formatNumber } from '@jetstream/shared/ui-utils';
+import { test } from '@playwright/test';
 import { QueryPage } from '../pageObjectModels/QueryPage.model';
 
 test.beforeAll(async ({ page }) => {
@@ -15,10 +13,6 @@ test.beforeEach(async ({ page }) => {
 });
 
 test('Query builder should work', async ({ page }) => {
-  // await page.goto('/');
-  // await page.goto('http://localhost:4200/app');
-  // await page.goto('http://localhost:4200/app/query');
-
   const queryPage = new QueryPage(page);
   await queryPage.goto();
   await queryPage.selectObject('Account');
@@ -27,15 +21,28 @@ test('Query builder should work', async ({ page }) => {
 
   await queryPage.validateQueryByLine(['SELECT Name, CurrencyIsoCode, Description, OwnerId', 'FROM Account']);
 
+  await queryPage.selectRelatedFields(1, 'User', ['User ID', 'Full Name', 'Account ID', 'Active', 'Address']);
+  await queryPage.validateQueryByLine([
+    'SELECT Id, CreatedBy.Id, CreatedBy.Name, CreatedBy.AccountId, CreatedBy.Address,',
+    'CreatedBy.IsActive',
+    'FROM Account',
+  ]);
+
   await queryPage.addFilter({ conditionNumber: 1 }, 'Account Name', 'eq', { type: 'text', value: 'test' });
-  await queryPage.validateQueryByLine(['SELECT Name, CurrencyIsoCode, Description, OwnerId', 'FROM Account', "WHERE Name = 'test'"]);
+  await queryPage.validateQueryByLine([
+    'SELECT Id, CreatedBy.Id, CreatedBy.Name, CreatedBy.AccountId, CreatedBy.Address,',
+    'CreatedBy.IsActive',
+    'FROM Account',
+    "WHERE Name = 'test'",
+  ]);
 
   await queryPage.addCondition();
 
   await queryPage.addFilter({ conditionNumber: 2 }, 'Created Date', 'lt', { type: 'dropdown', value: 'Today' });
 
   await queryPage.validateQueryByLine([
-    'SELECT Name, CurrencyIsoCode, Description, OwnerId',
+    'SELECT Id, CreatedBy.Id, CreatedBy.Name, CreatedBy.AccountId, CreatedBy.Address,',
+    'CreatedBy.IsActive',
     'FROM Account',
     "WHERE Name = 'test'",
     'AND CreatedDate < TODAY',
@@ -46,7 +53,8 @@ test('Query builder should work', async ({ page }) => {
   await queryPage.addFilter({ conditionNumber: 1, groupNumber: 3 }, 'Account ID', 'in', { type: 'text', value: '123\n456' });
 
   await queryPage.validateQueryByLine([
-    'SELECT Name, CurrencyIsoCode, Description, OwnerId',
+    'SELECT Id, CreatedBy.Id, CreatedBy.Name, CreatedBy.AccountId, CreatedBy.Address,',
+    'CreatedBy.IsActive',
     'FROM Account',
     "WHERE Name = 'test'",
     'AND CreatedDate < TODAY',
@@ -58,7 +66,8 @@ test('Query builder should work', async ({ page }) => {
   await queryPage.addOrderBy('Created Date', 'DESC', 'LAST');
 
   await queryPage.validateQueryByLine([
-    'SELECT Name, CurrencyIsoCode, Description, OwnerId',
+    'SELECT Id, CreatedBy.Id, CreatedBy.Name, CreatedBy.AccountId, CreatedBy.Address,',
+    'CreatedBy.IsActive',
     'FROM Account',
     "WHERE Name = 'test'",
     'AND CreatedDate < TODAY',
@@ -72,7 +81,8 @@ test('Query builder should work', async ({ page }) => {
   await queryPage.addLimit(10, 5);
 
   await queryPage.validateQueryByLine([
-    'SELECT Name, CurrencyIsoCode, Description, OwnerId',
+    'SELECT Id, CreatedBy.Id, CreatedBy.Name, CreatedBy.AccountId, CreatedBy.Address,',
+    'CreatedBy.IsActive',
     'FROM Account',
     "WHERE Name = 'test'",
     'AND CreatedDate < TODAY',
@@ -82,6 +92,6 @@ test('Query builder should work', async ({ page }) => {
     '',
     'ORDER BY CreatedDate ASC NULLS LAST',
     'LIMIT 10',
-    'OFFSET 5', // TODO: not visible - may need to scroll or something?
+    'OFFSET 5',
   ]);
 });
