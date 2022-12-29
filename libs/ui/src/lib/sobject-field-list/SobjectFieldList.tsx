@@ -178,7 +178,7 @@ export const SobjectFieldList: FunctionComponent<SobjectFieldListProps> = ({
       css={css({
         backgroundColor: getBgColor(level),
       })}
-      data-testid={`sobject-fields`}
+      data-testid={level ? `sobject-fields-${level}-${sobject}` : `sobject-fields`}
     >
       {queryFields?.loading && (
         <div

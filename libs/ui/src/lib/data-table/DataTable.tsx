@@ -107,7 +107,7 @@ function reducer<T>(state: State<T>, action: Action): State<T> {
                     .map((row) => {
                       const rowValue = getValueFn({ row, column });
                       // TODO: we need some additional function to get the filter value and also compare the value when filtering
-                      return isNil(row[columnKey]) ? EMPTY_FIELD : String(rowValue);
+                      return isNil(rowValue) ? EMPTY_FIELD : String(rowValue);
                     })
                 )
               )
@@ -276,7 +276,11 @@ export const DataTable = <T extends object>({
           }
           return filters[columnKey]
             .filter((filter) => isFilterActive(filter, sortedRows.length))
-            .every((filter) => filterRecord(filter, rowValue));
+            .every((filter) => {
+              const filterResult = filterRecord(filter, rowValue);
+              console.log({ filterResult, columnKey, rowValue, row, filter });
+              return filterResult;
+            });
         });
       // Apply global filter
       const key = getRowKey(row);
