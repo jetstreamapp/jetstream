@@ -718,3 +718,7 @@ export function flattenObjectArray(data: MapOf<string[]>, delimiter = ','): MapO
   });
   return output;
 }
+
+export function isRecordWithId(value: any): value is { Id: string; [key: string]: any } {
+  return isString(value.Id);
+}

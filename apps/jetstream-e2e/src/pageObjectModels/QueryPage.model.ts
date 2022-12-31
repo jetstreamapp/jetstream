@@ -4,6 +4,7 @@ import { isNumber } from 'lodash';
 import { formatNumber } from '@jetstream/shared/ui-utils';
 import { QueryResults } from '@jetstream/api-interfaces';
 import { ApiRequestUtils } from '../fixtures/ApiRequestUtils';
+import { isRecordWithId } from '@jetstream/shared/utils';
 
 export class QueryPage {
   readonly apiRequestUtils: ApiRequestUtils;
@@ -140,7 +141,29 @@ export class QueryPage {
     await expect(queryResults.records.length).toBeGreaterThan(0);
     await this.page.getByText(`Showing ${formatNumber(queryResults.records.length)} of ${formatNumber(queryResults.totalSize)} records`);
 
-    // TODO: pick a record and check the details
+    // validate first 15 records - check that id is present
+    for (const record of queryResults.records.slice(0, 15)) {
+      await expect(isRecordWithId(record)).toBeTruthy();
+      isRecordWithId(record) && (await expect(this.page.getByRole('gridcell', { name: record.Id })).toBeVisible());
+    }
+
+    // reload page to make sure query still shows up
+    await this.page.reload();
+    await this.page.getByText(`Showing ${formatNumber(queryResults.records.length)} of ${formatNumber(queryResults.totalSize)} records`);
+
+    // verify correct query shows up
+    await this.page.getByRole('button', { name: 'SOQL Query' }).click();
+    await expect(this.page.getByRole('code').locator('div').filter({ hasText: query }).first()).toBeVisible();
+    await this.page.getByRole('button', { name: 'Collapse SOQL Query' }).click();
+
+    await this.page.getByRole('button', { name: 'History' }).click();
+
+    // verify query history
+    await expect(
+      this.page.getByRole('dialog', { name: 'Query History' }).getByRole('code').locator('div').filter({ hasText: query }).first()
+    ).toBeVisible();
+
+    await this.page.getByRole('dialog', { name: 'Query History' }).getByRole('button', { name: 'Close' }).click();
   }
 
   async submitQuery() {
