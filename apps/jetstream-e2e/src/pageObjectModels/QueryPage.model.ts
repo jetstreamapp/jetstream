@@ -28,7 +28,12 @@ export class QueryPage {
     await this.page.waitForURL('**/query');
     await this.page.getByRole('button', { name: 'Manually enter query Manual Query' }).click();
     await this.page.getByRole('textbox', { name: 'Editor content' }).fill(query);
+
+    const responsePromise = this.page.waitForResponse('**/api/query');
     await this.page.getByRole('link', { name: 'Execute' }).click();
+
+    const queryResults = await responsePromise;
+    console.log(queryResults);
   }
 
   async selectObject(label: string) {

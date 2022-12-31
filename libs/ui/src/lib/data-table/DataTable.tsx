@@ -278,7 +278,6 @@ export const DataTable = <T extends object>({
             .filter((filter) => isFilterActive(filter, sortedRows.length))
             .every((filter) => {
               const filterResult = filterRecord(filter, rowValue);
-              console.log({ filterResult, columnKey, rowValue, row, filter });
               return filterResult;
             });
         });
