@@ -137,17 +137,13 @@ export function flattenRecords(records: Record[], fields: string[]): MapOf<strin
   return records.map((record) => flattenRecord(record, fields));
 }
 
-export function flattenRecord(record: Record, fields: string[], flattenSubquery = true): MapOf<string> {
+export function flattenRecord(record: Record, fields: string[], flattObjects = true): MapOf<string> {
   return fields.reduce((obj, field) => {
     const value = lodashGet(record, field);
-    if (isObject(value)) {
+    if (isObject(value) && flattObjects) {
       // Subquery records have nested "records" values
       if (Array.isArray(value['records'])) {
-        if (flattenSubquery) {
-          obj[field] = JSON.stringify(value['records']).replace(REGEX.LEADING_TRAILING_QUOTES, '');
-        } else {
-          obj[field] = value;
-        }
+        obj[field] = JSON.stringify(value['records']).replace(REGEX.LEADING_TRAILING_QUOTES, '');
       } else {
         obj[field] = JSON.stringify(value).replace(REGEX.LEADING_TRAILING_QUOTES, '');
       }
