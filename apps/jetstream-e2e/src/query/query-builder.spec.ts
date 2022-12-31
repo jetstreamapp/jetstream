@@ -12,8 +12,8 @@ test.beforeEach(async ({ page }) => {
   await page.goto('/');
 });
 
-test('Query builder should work', async ({ page }) => {
-  const queryPage = new QueryPage(page);
+test('Query builder should work', async ({ page, request }) => {
+  const queryPage = new QueryPage(page, request);
   await queryPage.goto();
   await queryPage.selectObject('Account');
 

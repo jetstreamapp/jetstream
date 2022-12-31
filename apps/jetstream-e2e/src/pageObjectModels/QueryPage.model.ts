@@ -1,17 +1,23 @@
-import { expect, Locator, Page } from '@playwright/test';
+import { APIRequestContext, expect, Locator, Page } from '@playwright/test';
 import { QueryFilterOperator } from '@jetstream/types';
 import { isNumber } from 'lodash';
 import { formatNumber } from '@jetstream/shared/ui-utils';
+import { QueryResults } from '@jetstream/api-interfaces';
+import { ApiRequestUtils } from '../fixtures/ApiRequestUtils';
 
 export class QueryPage {
+  readonly apiRequestUtils: ApiRequestUtils;
   readonly page: Page;
+  readonly request: APIRequestContext;
   readonly sobjectList: Locator;
   readonly fieldsList: Locator;
   readonly soqlQuery: Locator;
   readonly executeBtn: Locator;
 
-  constructor(page: Page) {
+  constructor(page: Page, request: APIRequestContext, apiRequestUtils: ApiRequestUtils) {
+    this.apiRequestUtils = apiRequestUtils;
     this.page = page;
+    this.request = request;
     this.sobjectList = page.getByTestId('sobject-list');
     this.fieldsList = page.getByTestId('sobject-fields');
     this.soqlQuery = page.getByText('Generated SOQL');
@@ -29,11 +35,7 @@ export class QueryPage {
     await this.page.getByRole('button', { name: 'Manually enter query Manual Query' }).click();
     await this.page.getByRole('textbox', { name: 'Editor content' }).fill(query);
 
-    const responsePromise = this.page.waitForResponse('**/api/query');
     await this.page.getByRole('link', { name: 'Execute' }).click();
-
-    const queryResults = await responsePromise;
-    console.log(queryResults);
   }
 
   async selectObject(label: string) {
@@ -132,11 +134,13 @@ export class QueryPage {
     }
   }
 
-  async confirmQueryRecords() {
-    // TODO: this does not really work
-    // let rows = await this.page.getByRole('grid').getByRole('gridcell', { name: 'Select row' }).all();
-    // console.log(`Showing ${formatNumber(rows.length)} of ${formatNumber(rows.length)} records`);
-    // await this.page.getByText(`Showing ${formatNumber(rows.length)} of ${formatNumber(rows.length)} records`);
+  async confirmQueryRecords(query: string) {
+    const { queryResults, columns, parsedQuery } = await this.apiRequestUtils.makeRequest<QueryResults>('POST', `/api/query`, { query });
+
+    await expect(queryResults.records.length).toBeGreaterThan(0);
+    await this.page.getByText(`Showing ${formatNumber(queryResults.records.length)} of ${formatNumber(queryResults.totalSize)} records`);
+
+    // TODO: pick a record and check the details
   }
 
   async submitQuery() {

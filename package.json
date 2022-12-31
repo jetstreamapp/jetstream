@@ -81,6 +81,7 @@
     "lint": "nx workspace-lint && nx lint",
     "e2e": "nx e2e",
     "playwright:test": "yarn playwright test src --config apps/jetstream-e2e/playwright.config.ts",
+    "playwright:test:query-results": "yarn playwright test query-results.spec.ts --config apps/jetstream-e2e/playwright.config.ts --headed",
     "affected:apps": "nx affected:apps",
     "affected:libs": "nx affected:libs",
     "affected:build": "nx affected:build",
