@@ -75,7 +75,7 @@ export const SobjectFieldListItem: FunctionComponent<SobjectFieldListItemProps> 
   return (
     <Fragment>
       <Grid>
-        <div className="slds-truncate" title={field.label} onClick={() => onSelectField(parentKey, field)}>
+        <div className="slds-truncate" title={field.label}>
           {fieldLabel}
           {field.metadata.inlineHelpText && (
             <Tooltip
@@ -102,7 +102,6 @@ export const SobjectFieldListItem: FunctionComponent<SobjectFieldListItemProps> 
           `}
           className="slds-text-color_weak slds-truncate"
           title={field.name}
-          onClick={() => onSelectField(parentKey, field)}
         >
           {fieldName}
         </div>

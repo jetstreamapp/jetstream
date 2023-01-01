@@ -98,6 +98,7 @@ export const QuerySubquerySObjects: FunctionComponent<QuerySubquerySObjectsProps
             allowMultiple={false}
             sections={visibleChildRelationships.map((childRelationship) => ({
               id: `${childRelationship.relationshipName}-${childRelationship.childSObject}.${childRelationship.field}`,
+              testId: childRelationship.relationshipName,
               titleText: `${childRelationship.relationshipName} (${childRelationship.childSObject}.${childRelationship.field})`,
               title: (
                 <Grid align="spread" gutters>

@@ -25,6 +25,8 @@ export const ListItem = memo<ListItemProps>(
       <li
         ref={liRef}
         tabIndex={-1}
+        role="option"
+        aria-selected={isActive}
         className={classNames('slds-item', { 'is-active': isActive })}
         onClick={(event) => {
           event.preventDefault();

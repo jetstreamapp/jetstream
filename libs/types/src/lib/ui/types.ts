@@ -83,6 +83,7 @@ export interface FieldWrapper {
 // Tabs / Accordion / etc..
 export interface UiSection {
   id: string;
+  testId?: string;
   title: string | ReactNode;
   titleSummaryIfCollapsed?: string | ReactNode; // extra title content to show if collapsed
   titleText?: string; // use if title is not a string

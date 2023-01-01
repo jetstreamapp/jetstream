@@ -19,6 +19,7 @@ type RefObjType = RefObject<HTMLLIElement>[] | RefObject<HTMLInputElement>[];
 
 export interface ListProps {
   items: any[];
+  isMultiSelect?: boolean;
   autoScrollToFocus?: boolean;
   useCheckbox?: boolean;
   subheadingPlaceholder?: boolean;
@@ -26,9 +27,7 @@ export interface ListProps {
   highlightText?: boolean;
   isActive: (item: any) => boolean;
   // function used to extract
-  getContent: (
-    item: any
-  ) => {
+  getContent: (item: any) => {
     key: string;
     id?: string;
     heading?: string | JSX.Element;
@@ -44,6 +43,7 @@ export const List = forwardRef<HTMLUListElement, ListProps>(
       autoScrollToFocus = false,
       useCheckbox = false,
       subheadingPlaceholder = false,
+      isMultiSelect = useCheckbox,
       searchTerm,
       highlightText,
       isActive,
@@ -161,7 +161,14 @@ export const List = forwardRef<HTMLUListElement, ListProps>(
       // eslint-disable-next-line react/jsx-no-useless-fragment
       <Fragment>
         {Array.isArray(items) && items.length > 0 && (
-          <ul ref={ref} className="slds-has-dividers_bottom-space" tabIndex={0} onKeyDown={handleKeyDown}>
+          <ul
+            ref={ref}
+            role="listbox"
+            aria-multiselectable={isMultiSelect}
+            className="slds-has-dividers_bottom-space"
+            tabIndex={0}
+            onKeyDown={handleKeyDown}
+          >
             {items.map((item, i) => {
               const { key, id, heading, subheading } = getContent(item);
               return useCheckbox ? (

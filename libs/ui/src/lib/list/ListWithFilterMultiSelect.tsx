@@ -185,6 +185,7 @@ export const ListWithFilterMultiSelect: FunctionComponent<ListWithFilterMultiSel
               <List
                 ref={ulRef}
                 items={filteredItems}
+                isMultiSelect
                 isActive={(item: ListItemType) => selectedItemsSet.has(item.id)}
                 onSelected={handleSelection}
                 getContent={(item: ListItemType) => ({
