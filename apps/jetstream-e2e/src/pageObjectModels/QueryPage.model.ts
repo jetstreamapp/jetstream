@@ -31,16 +31,27 @@ export class QueryPage {
   }
 
   async gotoResults(query: string) {
+    await this.setManualQuery(query, 'EXECUTE');
+  }
+
+  async setManualQuery(query: string, action?: 'EXECUTE' | 'RESTORE') {
     await this.page.getByRole('menuitem', { name: 'Query Records' }).click();
     await this.page.waitForURL('**/query');
     await this.page.getByRole('button', { name: 'Manually enter query Manual Query' }).click();
     await this.page.getByRole('textbox', { name: 'Editor content' }).fill(query);
 
-    await this.page.getByRole('link', { name: 'Execute' }).click();
+    if (action === 'EXECUTE') {
+      await this.page.getByRole('link', { name: 'Execute' }).click();
+    } else if (action === 'RESTORE') {
+      await this.page.getByRole('button', { name: 'Restore' }).click();
+      await this.page.getByRole('button', { name: 'Close dialog' }).click();
+    } else {
+      await this.page.getByRole('button', { name: 'Close dialog' }).click();
+    }
   }
 
-  async selectObject(label: string) {
-    await this.sobjectList.getByRole('listitem').filter({ hasText: label }).getByTitle(label, { exact: true }).first().click();
+  async selectObject(sobjectName: string) {
+    await this.sobjectList.getByTestId(sobjectName).click();
     await expect(this.fieldsList).toBeVisible();
     await expect(this.soqlQuery).toBeVisible();
   }
@@ -49,21 +60,39 @@ export class QueryPage {
     await locator.getByText(label, { exact: true }).first().click();
   }
 
-  async selectFields(labels: string[]) {
-    for (const label of labels) {
+  async selectFields(fieldLabels: string[]) {
+    for (const label of fieldLabels) {
       await this.selectField(label);
     }
   }
 
-  async selectRelatedFields(level: number, object: string, labels: string[]) {
+  async selectRelatedFields(level: number, object: string, fieldLabels: string[]) {
     await this.fieldsList
       .getByRole('button', { name: `View ${object} Fields` })
       .first()
       .click();
     const locator = this.fieldsList.getByTestId(`sobject-fields-${level}-${object}`);
-    for (const label of labels) {
+    for (const label of fieldLabels) {
       await this.selectField(label, locator);
     }
+  }
+
+  getSelectedField(label: string) {
+    return this.fieldsList.getByRole('option').filter({
+      has: this.page.getByText(label, { exact: true }).first(),
+    });
+  }
+
+  async selectSubquery(relationshipName: string, fieldLabels: string[]) {
+    await this.page.getByRole('tab', { name: 'Related Objects (Subquery)' }).click();
+
+    await this.page.getByPlaceholder('Filter child objects').fill(relationshipName);
+    await this.page.getByTestId(relationshipName).click();
+
+    await this.selectFields(fieldLabels);
+
+    // Close relationship menu
+    await this.page.getByTestId(relationshipName).click();
   }
 
   // getByTestId('sobject-fields-1-User').getByText('Account ID')
@@ -79,15 +108,15 @@ export class QueryPage {
 
     await condition.getByLabel('Fields').click();
     await condition.getByLabel('Fields').fill(field);
-    await this.page.getByRole('option', { name: field }).locator('span').nth(2).click();
+    await condition.getByRole('option', { name: field }).locator('span').nth(2).click();
 
     await condition.getByLabel('Operator').click();
-    await this.page.locator(`#${operator}`).click();
+    await condition.locator(`#${operator}`).click();
 
     await condition.getByLabel('Value').click();
     (await value.type) === 'text'
       ? condition.getByLabel('Value').fill(value.value)
-      : this.page.getByRole('option', { name: value.value }).click();
+      : condition.getByRole('option', { name: value.value }).click();
   }
 
   async addCondition() {
