@@ -141,6 +141,7 @@ export const SobjectListMultiSelect: FunctionComponent<SobjectListMultiSelectPro
                 onSelected={handleSelection}
                 getContent={(item: DescribeGlobalSObjectResult) => ({
                   key: item.name,
+                  testId: item.name,
                   heading: item.label,
                   subheading: item.name,
                 })}

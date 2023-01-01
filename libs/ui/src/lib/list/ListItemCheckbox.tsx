@@ -7,6 +7,7 @@ import { useHighlightedText } from '../hooks/useHighlightedText';
 
 export interface ListItemCheckboxProps {
   id: string;
+  testId?: string;
   inputRef?: RefObject<HTMLInputElement>;
   heading: string | JSX.Element;
   subheading?: string;
@@ -18,7 +19,7 @@ export interface ListItemCheckboxProps {
 }
 
 export const ListItemCheckbox = memo<ListItemCheckboxProps>(
-  ({ id, inputRef, heading, subheading, isActive, subheadingPlaceholder, searchTerm, highlightText, onSelected }) => {
+  ({ id, testId, inputRef, heading, subheading, isActive, subheadingPlaceholder, searchTerm, highlightText, onSelected }) => {
     const highlightedHeading = useHighlightedText(heading, searchTerm, { className: 'slds-truncate', ignoreHighlight: !highlightText });
     const highlightedSubHeading = useHighlightedText(subheading, searchTerm, {
       ignoreHighlight: !highlightText,
@@ -31,6 +32,7 @@ export const ListItemCheckbox = memo<ListItemCheckboxProps>(
       <li
         role="option"
         aria-selected={isActive}
+        data-testId={testId}
         className={classNames('slds-item', { 'is-active': isActive })}
         tabIndex={-1}
         onClick={handleClick}

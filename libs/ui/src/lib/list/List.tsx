@@ -30,6 +30,7 @@ export interface ListProps {
   getContent: (item: any) => {
     key: string;
     id?: string;
+    testId?: string;
     heading?: string | JSX.Element;
     subheading?: string;
   };
@@ -170,12 +171,13 @@ export const List = forwardRef<HTMLUListElement, ListProps>(
             onKeyDown={handleKeyDown}
           >
             {items.map((item, i) => {
-              const { key, id, heading, subheading } = getContent(item);
+              const { key, id, testId, heading, subheading } = getContent(item);
               return useCheckbox ? (
                 <ListItemCheckbox
                   inputRef={elRefs.current[i] as RefObject<HTMLInputElement>}
                   key={key}
                   id={id || key}
+                  testId={testId}
                   isActive={isActive(item)}
                   heading={heading}
                   subheading={subheading}
@@ -187,6 +189,7 @@ export const List = forwardRef<HTMLUListElement, ListProps>(
               ) : (
                 <ListItem
                   key={key}
+                  testId={testId}
                   liRef={elRefs.current[i] as RefObject<HTMLLIElement>}
                   isActive={isActive(item)}
                   heading={heading}
