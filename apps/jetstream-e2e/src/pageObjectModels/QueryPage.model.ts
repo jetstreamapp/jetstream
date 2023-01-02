@@ -83,11 +83,14 @@ export class QueryPage {
     });
   }
 
-  async selectSubquery(relationshipName: string, fieldLabels: string[]) {
+  async selectSubqueryObject(relationshipName: string) {
     await this.page.getByRole('tab', { name: 'Related Objects (Subquery)' }).click();
-
     await this.page.getByPlaceholder('Filter child objects').fill(relationshipName);
     await this.page.getByTestId(relationshipName).click();
+  }
+
+  async selectSubquery(relationshipName: string, fieldLabels: string[]) {
+    await this.selectSubqueryObject(relationshipName);
 
     await this.selectFields(fieldLabels);
 

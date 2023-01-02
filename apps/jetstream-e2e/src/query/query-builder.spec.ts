@@ -123,25 +123,13 @@ FROM Account`;
 
   await expect(queryPage.sobjectList.getByTestId('Account')).toHaveAttribute('aria-selected', 'true');
 
-  //     await locator.getByText(label, { exact: true }).first().click();
-
-  // await page
-  // .getByRole('listitem')
-  // .filter({ has: page.getByRole('heading', { name: 'Product 2' })})
-  // .getByRole('button', { name: 'Add to cart' })
-  // .click()
-
-  // await expect(page
-  // .getByRole('listitem')
-  // .filter({ has: page.getByText('Product 2') }))
-  // .toHaveCount(1);
-
   for (const field of ['Account ID', 'Account Name']) {
     await expect(queryPage.getSelectedField(field)).toHaveAttribute('aria-selected', 'true');
   }
 
-  // TODO: validate subquery fields
+  await queryPage.selectSubqueryObject('Contacts');
 
-  // validate everything is selected
-  // getByRole('option', { name: 'Account Account' })
+  for (const field of ['Contact ID', 'Full Name', 'Account ID', 'Email']) {
+    await expect(queryPage.getSelectedField(field)).toHaveAttribute('aria-selected', 'true');
+  }
 });
