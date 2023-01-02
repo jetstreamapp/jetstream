@@ -1,0 +1,30 @@
+FROM mcr.microsoft.com/playwright:v1.27.0-focal
+
+WORKDIR /usr/src/app
+
+# Copy application
+COPY ./dist/apps/api ./dist/apps/api/
+COPY ./dist/apps/jetstream ./dist/apps/jetstream/
+COPY ./dist/apps/download-zip-sw ./dist/apps/download-zip-sw/
+COPY ./dist/apps/landing ./dist/apps/landing/
+
+# Copy supporting files
+COPY ./dist/apps/api/package.json .
+COPY ./yarn.lock .
+COPY ./.env .
+COPY ./ecosystem.config.js .
+COPY ./prisma ./prisma/
+
+# Install core dependencies
+RUN yarn
+
+# Install other dependencies that were not calculated by nx, but are required
+RUN yarn add dotenv prisma@^3.13.0
+
+# Generate prisma client - ensure that there are no OS differences
+RUN npx prisma generate
+
+EXPOSE 3333
+EXPOSE 9229
+
+CMD [ "yarn", "playwright:test" ]

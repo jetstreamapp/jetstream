@@ -1,7 +1,9 @@
 version: '3.8'
 services:
   jetstream:
-    build: .
+    build:
+      context: .
+      dockerfile: ./Dockerfile.e2e
     depends_on:
       - db
       - db_seed
