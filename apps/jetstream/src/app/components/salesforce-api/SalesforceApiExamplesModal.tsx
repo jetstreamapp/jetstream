@@ -1,46 +1,17 @@
-import { ColDef, GetRowIdParams, RowNode } from '@ag-grid-community/core';
 import { css } from '@emotion/react';
 import { logger } from '@jetstream/shared/client-logger';
 import { ANALYTICS_KEYS } from '@jetstream/shared/constants';
 import { salesforceApiReq } from '@jetstream/shared/data';
 import { SalesforceApiRequest } from '@jetstream/types';
-import { AutoFullHeightContainer, DataTable, Grid, Icon, Modal, Spinner } from '@jetstream/ui';
-import { FunctionComponent, useCallback, useEffect, useRef, useState } from 'react';
+import { AutoFullHeightContainer, ColumnWithFilter, DataTable, Grid, Icon, Modal, setColumnFromType, Spinner } from '@jetstream/ui';
+import { groupBy } from 'lodash';
+import { FunctionComponent, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { Column } from 'react-data-grid';
 import { ErrorBoundary } from 'react-error-boundary';
 import { useAmplitude } from '../core/analytics';
 import ErrorBoundaryFallback from '../core/ErrorBoundaryFallback';
 
-const COLUMNS: ColDef[] = [
-  {
-    headerName: '',
-    colId: 'execute',
-    field: 'id',
-    cellRenderer: 'executeRenderer',
-    width: 120,
-    filter: false,
-    pinned: true,
-    suppressMenu: true,
-    lockPinned: true,
-    lockPosition: true,
-    lockVisible: true,
-    sortable: false,
-    resizable: false,
-  },
-  {
-    headerName: 'Group',
-    colId: 'groupName',
-    field: 'groupName',
-    tooltipField: 'groupDescription',
-    width: 150,
-    rowGroup: true,
-    sortable: false,
-    // lockVisible: true,
-    // hide: true,
-  },
-  { headerName: 'Name', colId: 'name', field: 'name', tooltipField: 'description', width: 250 },
-  { headerName: 'Method', colId: 'method', field: 'method', tooltipField: 'description', width: 110 },
-  { headerName: 'url', colId: 'url', field: 'url', tooltipField: 'body', flex: 1 },
-];
+const groupedRows = ['groupName'] as const;
 
 export interface SalesforceApiExamplesModalProps {
   onExecute: (request: SalesforceApiRequest) => void;
@@ -49,9 +20,11 @@ export interface SalesforceApiExamplesModalProps {
 export const SalesforceApiExamplesModal: FunctionComponent<SalesforceApiExamplesModalProps> = ({ onExecute }) => {
   const isMounted = useRef(null);
   const { trackEvent } = useAmplitude();
+  const modalRef = useRef();
   const [isLoading, setIsLoading] = useState(false);
   const [isOpen, setIsOpen] = useState(false);
   const [requests, setRequests] = useState<SalesforceApiRequest[]>([]);
+  const [expandedGroupIds, setExpandedGroupIds] = useState(new Set());
 
   useEffect(() => {
     isMounted.current = true;
@@ -67,6 +40,7 @@ export const SalesforceApiExamplesModal: FunctionComponent<SalesforceApiExamples
       if (isMounted.current) {
         setIsLoading(false);
         setRequests(requests);
+        setExpandedGroupIds(new Set(requests.map((item) => item.groupName)));
       }
     } catch (ex) {
       logger.warn('[SALESFORCE API] Error fetching requests');
@@ -83,8 +57,35 @@ export const SalesforceApiExamplesModal: FunctionComponent<SalesforceApiExamples
     }
   }, [isOpen]);
 
-  function handleExecute(node: RowNode) {
-    const request: SalesforceApiRequest = node.data;
+  const COLUMNS = useMemo(() => {
+    const columns: ColumnWithFilter<SalesforceApiRequest>[] = [
+      {
+        ...setColumnFromType('groupName', 'text'),
+        name: 'Group',
+        key: 'groupName',
+        width: 150,
+        preventReorder: true,
+      },
+      {
+        name: 'action',
+        key: 'action',
+        width: 150,
+        formatter: ({ row }) => {
+          return (
+            <button className={'slds-button slds-text-link_reset slds-text-link'} onClick={() => handleExecute(row)}>
+              Use Request
+            </button>
+          );
+        },
+      },
+      { ...setColumnFromType('name', 'text'), name: 'Name', key: 'name', width: 250 },
+      { ...setColumnFromType('method', 'text'), name: 'Method', key: 'method', width: 110 },
+      { ...setColumnFromType('url', 'text'), name: 'url', key: 'url' /** flex: 1 */ },
+    ];
+    return columns;
+  }, []);
+
+  function handleExecute(request: SalesforceApiRequest) {
     logger.info('[SALESFORCE API]', { request });
     onExecute(request);
     trackEvent(ANALYTICS_KEYS.sfdcApi_Sample, { group: request.groupName, name: request.name });
@@ -104,6 +105,7 @@ export const SalesforceApiExamplesModal: FunctionComponent<SalesforceApiExamples
       </button>
       {isOpen && (
         <Modal
+          ref={modalRef}
           header="Sample API Requests"
           footer={
             <Grid align="spread" verticalAlign="center">
@@ -131,56 +133,15 @@ export const SalesforceApiExamplesModal: FunctionComponent<SalesforceApiExamples
             {isLoading && <Spinner />}
             <AutoFullHeightContainer fillHeight setHeightAttr bottomBuffer={250}>
               <DataTable
+                allowReorder
                 columns={COLUMNS}
                 data={requests}
-                agGridProps={{
-                  context: {
-                    label: 'Use Request',
-                    onClick: handleExecute,
-                  },
-                  autoGroupColumnDef: {
-                    headerName: 'Group',
-                    filter: 'agMultiColumnFilter',
-                    menuTabs: ['filterMenuTab'],
-                    sortable: true,
-                    resizable: true,
-                  },
-                  sideBar: {
-                    toolPanels: [
-                      {
-                        id: 'filters',
-                        labelDefault: 'Filters',
-                        labelKey: 'filters',
-                        iconKey: 'filter',
-                        toolPanel: 'agFiltersToolPanel',
-                        toolPanelParams: {
-                          suppressFilterSearch: true,
-                        },
-                      },
-                      {
-                        id: 'columns',
-                        labelDefault: 'Columns',
-                        labelKey: 'columns',
-                        iconKey: 'columns',
-                        toolPanel: 'agColumnsToolPanel',
-                        toolPanelParams: {
-                          suppressRowGroups: true,
-                          suppressValues: true,
-                          suppressPivots: true,
-                          suppressPivotMode: true,
-                        },
-                      },
-                    ],
-                  },
-                  showOpenedGroup: true,
-                  groupDefaultExpanded: 1,
-                  groupDisplayType: 'groupRows',
-                  rowSelection: null,
-                  getRowId: ({ data }: GetRowIdParams) => data.id,
-                  tooltipMouseTrack: true,
-                  tooltipShowDelay: 0,
-                  copyHeadersToClipboard: false,
-                }}
+                getRowKey={(row: SalesforceApiRequest) => row.id}
+                groupBy={groupedRows}
+                rowGrouper={groupBy}
+                expandedGroupIds={expandedGroupIds}
+                onExpandedGroupIdsChange={(items) => setExpandedGroupIds(items)}
+                context={{ portalRefForFilters: modalRef }}
               />
             </AutoFullHeightContainer>
           </div>

@@ -1,12 +1,14 @@
 import { css } from '@emotion/react';
 import { MIME_TYPES, TITLES } from '@jetstream/shared/constants';
 import { fetchActiveLog, saveFile, useNonInitialEffect, useObservable } from '@jetstream/shared/ui-utils';
-import { ApexLog, ApexLogWithViewed, AsyncJob, MapOf, SalesforceOrgUi } from '@jetstream/types';
+import { SplitWrapper as Split } from '@jetstream/splitjs';
+import { ApexLogWithViewed, AsyncJob, MapOf, SalesforceOrgUi } from '@jetstream/types';
 import {
   AutoFullHeightContainer,
   Card,
   Checkbox,
   CopyToClipboard,
+  dataTableFileSizeFormatter,
   Grid,
   Icon,
   SalesforceLogin,
@@ -18,7 +20,6 @@ import formatDate from 'date-fns/format';
 import escapeRegExp from 'lodash/escapeRegExp';
 import type { editor } from 'monaco-editor';
 import { Fragment, FunctionComponent, useCallback, useEffect, useRef, useState } from 'react';
-import { SplitWrapper as Split } from '@jetstream/splitjs';
 import { useTitle } from 'react-use';
 import { useRecoilState, useRecoilValue } from 'recoil';
 import { filter } from 'rxjs/operators';
@@ -62,7 +63,16 @@ export const DebugLogViewer: FunctionComponent<DebugLogViewerProps> = () => {
   const [pollTitle] = useState(() => `Checking for new logs every ${pollInterval / 1000} seconds`);
 
   /** Logs that get updated with viewed=true flag after viewing */
-  const [logsWithViewedFlag, setLogsWithViewedFlag] = useState<ApexLogWithViewed[]>(logs);
+  const [logsWithViewedFlag, setLogsWithViewedFlag] = useState<ApexLogWithViewed[]>(() =>
+    logs.map((log) => ({
+      ...log,
+      LogLength: dataTableFileSizeFormatter(log.LogLength),
+      viewed: !!logCache.current[log.Id],
+      'LogUser.Id': log.LogUser.Id,
+      'LogUser.Name': log.LogUser.Name,
+      'LogUser.Username': log.LogUser.Username,
+    }))
+  );
 
   useEffect(() => {
     isMounted.current = true;
@@ -116,7 +126,16 @@ export const DebugLogViewer: FunctionComponent<DebugLogViewerProps> = () => {
   }, [activeLog, userDebug, textFilter]);
 
   const updateLogsWithViewedFlag = useCallback(() => {
-    setLogsWithViewedFlag(logs.map((log) => ({ ...log, viewed: !!logCache.current[log.Id] })));
+    setLogsWithViewedFlag(
+      logs.map((log) => ({
+        ...log,
+        LogLength: dataTableFileSizeFormatter(log.LogLength),
+        viewed: !!logCache.current[log.Id],
+        'LogUser.Id': log.LogUser.Id,
+        'LogUser.Name': log.LogUser.Name,
+        'LogUser.Username': log.LogUser.Username,
+      }))
+    );
   }, [logs]);
 
   const getActiveLog = useCallback(async () => {
@@ -155,7 +174,7 @@ export const DebugLogViewer: FunctionComponent<DebugLogViewerProps> = () => {
     logRef.current = ed;
   }
 
-  function handleActiveLogChange(log: ApexLog) {
+  function handleActiveLogChange(log: ApexLogWithViewed) {
     setActiveLogId(log.Id);
     setTextFilter('');
     setUserDebug(false);

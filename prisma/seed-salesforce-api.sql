@@ -19,10 +19,10 @@ insert into "salesforce_api" ("body", "createdAt", "description", "groupDescript
 📚 [Async Query Resources Documentation](https://developer.salesforce.com/docs/atlas.en-us.chatterapi.meta/chatterapi/connect_resources_async_queries_home.htm)', 'Async Query', '{"Content-Type":"application/json"}', 'eb0ad811-0e48-4a9b-8d56-6fdb64ab5f2c', 'POST', 'Create Async Query', '2021-05-31 13:24:53.598375', 'services/data/v{{version}}/async-queries');
 insert into "salesforce_api" ("body", "createdAt", "description", "groupDescription", "groupName", "header", "id", "method", "name", "updatedAt", "url") values (NULL, '2021-05-31 13:24:53.598375', NULL, 'Submit Async SOQL queries to be processed asynchronously and check on their status. Use async query resources to make consistent SOQL queries, no matter what size the data is or where the data is stored.
 
-📚 [Async Query Resources Documentation](https://developer.salesforce.com/docs/atlas.en-us.chatterapi.meta/chatterapi/connect_resources_async_queries_home.htm)', 'Async Query', '{"Content-Type":"application/json"}', 'ee729933-8076-4ba2-8292-0c67f7c3636b', 'GET', 'Get Async Query Info', '2021-05-31 13:24:53.598375', 'services/data/v{{version}}/async-queries/{{_jobId}}');
+📚 [Async Query Resources Documentation](https://developer.salesforce.com/docs/atlas.en-us.chatterapi.meta/chatterapi/connect_resources_async_queries_home.htm)', 'Async Query', '{"Content-Type":"application/json"}', 'ee729933-8076-4ba2-8292-0c67f7c3636b', 'GET', 'Get Async Query Info', '2021-05-31 13:24:53.598375', 'services/data/v{{version}}/async-queries/:JOB_ID');
 insert into "salesforce_api" ("body", "createdAt", "description", "groupDescription", "groupName", "header", "id", "method", "name", "updatedAt", "url") values (NULL, '2021-05-31 13:24:53.598375', NULL, 'Submit Async SOQL queries to be processed asynchronously and check on their status. Use async query resources to make consistent SOQL queries, no matter what size the data is or where the data is stored.
 
-📚 [Async Query Resources Documentation](https://developer.salesforce.com/docs/atlas.en-us.chatterapi.meta/chatterapi/connect_resources_async_queries_home.htm)', 'Async Query', '{"Content-Type":"application/json"}', '00f55fa8-7d00-4f22-b24e-850b79e96489', 'DELETE', 'Delete Async Query', '2021-05-31 13:24:53.598375', 'services/data/v{{version}}/async-queries/{{_jobId}}');
+📚 [Async Query Resources Documentation](https://developer.salesforce.com/docs/atlas.en-us.chatterapi.meta/chatterapi/connect_resources_async_queries_home.htm)', 'Async Query', '{"Content-Type":"application/json"}', '00f55fa8-7d00-4f22-b24e-850b79e96489', 'DELETE', 'Delete Async Query', '2021-05-31 13:24:53.598375', 'services/data/v{{version}}/async-queries/:JOB_ID');
 insert into "salesforce_api" ("body", "createdAt", "description", "groupDescription", "groupName", "header", "id", "method", "name", "updatedAt", "url") values (NULL, '2021-05-31 13:24:53.598375', 'JWT Auth', 'Use requests from this folder to obtain an Access Token.
 
 The authentication requests automatically fill the endpoint URL and access token environment variables for subsequent API calls.', 'Auth', '{"Content-Type":"application/x-www-form-urlencoded"}', '31a8fdb8-56eb-4597-8929-5ae9a8e07c6a', 'POST', 'JWT Bearer Token Flow', '2021-05-31 13:24:53.598375', 'services/oauth2/token');
@@ -100,7 +100,7 @@ insert into "salesforce_api" ("body", "createdAt", "description", "groupDescript
 The authentication requests automatically fill the endpoint URL and access token environment variables for subsequent API calls.', 'Auth', '{}', '7bbc39c5-0891-4a82-a902-28d495b08b43', 'GET', 'Salesforce Keys', '2021-05-31 13:24:53.598375', 'id/keys');
 insert into "salesforce_api" ("body", "createdAt", "description", "groupDescription", "groupName", "header", "id", "method", "name", "updatedAt", "url") values (NULL, '2021-05-31 13:24:53.598375', NULL, 'Use requests from this folder to obtain an Access Token.
 
-The authentication requests automatically fill the endpoint URL and access token environment variables for subsequent API calls.', 'Auth', '{"Content-Type":"application/json"}', 'e0cd6a91-bd3e-4805-9c3d-266023458685', 'GET', 'ID Token', '2021-05-31 13:24:53.598375', 'id/{{_orgId}}/{{_userId}}');
+The authentication requests automatically fill the endpoint URL and access token environment variables for subsequent API calls.', 'Auth', '{"Content-Type":"application/json"}', 'e0cd6a91-bd3e-4805-9c3d-266023458685', 'GET', 'ID Token', '2021-05-31 13:24:53.598375', 'id/:ORG_ID/:USER_ID');
 insert into "salesforce_api" ("body", "createdAt", "description", "groupDescription", "groupName", "header", "id", "method", "name", "updatedAt", "url") values ('{
   "operation" : "insert",
   "object" : "Account",
@@ -111,7 +111,7 @@ The functionality described is available only if your org has the Bulk API featu
 
 📚 [Bulk API Developer Guide](https://developer.salesforce.com/docs/atlas.en-us.api_asynch.meta/api_asynch/asynch_api_intro.htm)
 
-**Note:** All Bulk API requests except "Create Job" require a `_jobId` variable. This variable is automatically set by the "Create Job" request.', 'Bulk v1', '{"X-SFDC-Session":"{{_accessToken}}","Content-Type":"application/json","charset":"UTF-8","Sforce-Disable-Batch-Retry":"FALSE","Sforce-Line-Ending":"CRLF","Sforce-Enable-PKChunking":"FALSE","chunkSize":"10000","Accept-Encoding":"gzip","Content-Encoding":"gzip"}', 'fd96ab6e-674b-4991-a83b-c7e14a00dfb4', 'POST', 'Bulk Create Job', '2021-05-31 13:24:53.598375', 'services/async/{{version}}/job');
+**Note:** All Bulk API requests except "Create Job" require a `_jobId` variable. This variable is automatically set by the "Create Job" request.', 'Bulk v1', '{"X-SFDC-Session":":ACCESS_TOKEN","Content-Type":"application/json","charset":"UTF-8","Sforce-Disable-Batch-Retry":"FALSE","Sforce-Line-Ending":"CRLF","Sforce-Enable-PKChunking":"FALSE","chunkSize":"10000","Accept-Encoding":"gzip","Content-Encoding":"gzip"}', 'fd96ab6e-674b-4991-a83b-c7e14a00dfb4', 'POST', 'Bulk Create Job', '2021-05-31 13:24:53.598375', 'services/async/{{version}}/job');
 insert into "salesforce_api" ("body", "createdAt", "description", "groupDescription", "groupName", "header", "id", "method", "name", "updatedAt", "url") values ('Salesforce Field,Csv Header,Value,Hint
 Name,Full Name,,
 Title,Job Title,,
@@ -123,14 +123,14 @@ The functionality described is available only if your org has the Bulk API featu
 
 📚 [Bulk API Developer Guide](https://developer.salesforce.com/docs/atlas.en-us.api_asynch.meta/api_asynch/asynch_api_intro.htm)
 
-**Note:** All Bulk API requests except "Create Job" require a `_jobId` variable. This variable is automatically set by the "Create Job" request.', 'Bulk v1', '{"X-SFDC-Session":"{{_accessToken}}","Content-Type":"text/csv","charset":"UTF-8","Accept-Encoding":"gzip","Content-Encoding":"gzip"}', '385047dc-ee79-401f-8bc8-41bfbf0d875a', 'POST', 'Bulk Spec', '2021-05-31 13:24:53.598375', 'services/async/{{version}}/job/{{_jobId}}/spec');
+**Note:** All Bulk API requests except "Create Job" require a `_jobId` variable. This variable is automatically set by the "Create Job" request.', 'Bulk v1', '{"X-SFDC-Session":":ACCESS_TOKEN","Content-Type":"text/csv","charset":"UTF-8","Accept-Encoding":"gzip","Content-Encoding":"gzip"}', '385047dc-ee79-401f-8bc8-41bfbf0d875a', 'POST', 'Bulk Spec', '2021-05-31 13:24:53.598375', 'services/async/{{version}}/job/:JOB_ID/spec');
 insert into "salesforce_api" ("body", "createdAt", "description", "groupDescription", "groupName", "header", "id", "method", "name", "updatedAt", "url") values (NULL, '2021-05-31 13:24:53.598375', NULL, 'The Bulk API provides a programmatic option to quickly load your org’s data into Salesforce. To use the API requires basic familiarity with software development, web services, and the Salesforce user interface.
 
 The functionality described is available only if your org has the Bulk API feature enabled. This feature is enabled by default for Performance, Unlimited, Enterprise, and Developer Editions.
 
 📚 [Bulk API Developer Guide](https://developer.salesforce.com/docs/atlas.en-us.api_asynch.meta/api_asynch/asynch_api_intro.htm)
 
-**Note:** All Bulk API requests except "Create Job" require a `_jobId` variable. This variable is automatically set by the "Create Job" request.', 'Bulk v1', '{"X-SFDC-Session":"{{_accessToken}}","Content-Type":["text/csv","zip/csv"],"charset":"UTF-8","Accept-Encoding":"gzip","Content-Encoding":"gzip"}', '821d377b-6a6d-4b5c-a000-9c171cd2b92a', 'POST', 'Bulk Create Batch', '2021-05-31 13:24:53.598375', 'services/async/{{version}}/job/{{_jobId}}/batch');
+**Note:** All Bulk API requests except "Create Job" require a `_jobId` variable. This variable is automatically set by the "Create Job" request.', 'Bulk v1', '{"X-SFDC-Session":":ACCESS_TOKEN","Content-Type":["text/csv","zip/csv"],"charset":"UTF-8","Accept-Encoding":"gzip","Content-Encoding":"gzip"}', '821d377b-6a6d-4b5c-a000-9c171cd2b92a', 'POST', 'Bulk Create Batch', '2021-05-31 13:24:53.598375', 'services/async/{{version}}/job/:JOB_ID/batch');
 insert into "salesforce_api" ("body", "createdAt", "description", "groupDescription", "groupName", "header", "id", "method", "name", "updatedAt", "url") values (NULL, '2021-05-31 13:24:53.598375', 'Get metadata about page layouts for the specified object type.', NULL, 'Records', '{}', 'ab9776a0-465f-44e9-8e55-41c803bf9c22', 'GET', 'Get Record Layout Metadata', '2021-05-31 13:24:53.598375', 'services/data/v{{version}}/ui-api/layout/:SOBJECT_API_NAME');
 insert into "salesforce_api" ("body", "createdAt", "description", "groupDescription", "groupName", "header", "id", "method", "name", "updatedAt", "url") values ('{
    "state" : "UploadComplete"
@@ -140,21 +140,21 @@ The functionality described is available only if your org has the Bulk API featu
 
 📚 [Bulk API Developer Guide](https://developer.salesforce.com/docs/atlas.en-us.api_asynch.meta/api_asynch/asynch_api_intro.htm)
 
-**Note:** All Bulk API requests except "Create Job" require a `_jobId` variable. This variable is automatically set by the "Create Job" request.', 'Bulk v1', '{"X-SFDC-Session":"{{_accessToken}}","Content-Type":"application/json","charset":"UTF-8","Accept-Encoding":"gzip","Content-Encoding":"gzip"}', 'a3649129-4f47-4365-acfd-bc61d66541d2', 'POST', 'Bulk Close Job', '2021-05-31 13:24:53.598375', 'services/async/{{version}}/job/{{_jobId}}');
+**Note:** All Bulk API requests except "Create Job" require a `_jobId` variable. This variable is automatically set by the "Create Job" request.', 'Bulk v1', '{"X-SFDC-Session":":ACCESS_TOKEN","Content-Type":"application/json","charset":"UTF-8","Accept-Encoding":"gzip","Content-Encoding":"gzip"}', 'a3649129-4f47-4365-acfd-bc61d66541d2', 'POST', 'Bulk Close Job', '2021-05-31 13:24:53.598375', 'services/async/{{version}}/job/:JOB_ID');
 insert into "salesforce_api" ("body", "createdAt", "description", "groupDescription", "groupName", "header", "id", "method", "name", "updatedAt", "url") values (NULL, '2021-05-31 13:24:53.598375', NULL, 'The Bulk API provides a programmatic option to quickly load your org’s data into Salesforce. To use the API requires basic familiarity with software development, web services, and the Salesforce user interface.
 
 The functionality described is available only if your org has the Bulk API feature enabled. This feature is enabled by default for Performance, Unlimited, Enterprise, and Developer Editions.
 
 📚 [Bulk API Developer Guide](https://developer.salesforce.com/docs/atlas.en-us.api_asynch.meta/api_asynch/asynch_api_intro.htm)
 
-**Note:** All Bulk API requests except "Create Job" require a `_jobId` variable. This variable is automatically set by the "Create Job" request.', 'Bulk v1', '{"X-SFDC-Session":"{{_accessToken}}","Accept-Encoding":"gzip","Content-Encoding":"gzip"}', 'df43bb2d-982a-44d0-b0e3-87e18c5659ac', 'GET', 'Bulk Check Batch Status', '2021-05-31 13:24:53.598375', 'services/async/{{version}}/job/{{_jobId}}/batch');
+**Note:** All Bulk API requests except "Create Job" require a `_jobId` variable. This variable is automatically set by the "Create Job" request.', 'Bulk v1', '{"X-SFDC-Session":":ACCESS_TOKEN","Accept-Encoding":"gzip","Content-Encoding":"gzip"}', 'df43bb2d-982a-44d0-b0e3-87e18c5659ac', 'GET', 'Bulk Check Batch Status', '2021-05-31 13:24:53.598375', 'services/async/{{version}}/job/:JOB_ID/batch');
 insert into "salesforce_api" ("body", "createdAt", "description", "groupDescription", "groupName", "header", "id", "method", "name", "updatedAt", "url") values (NULL, '2021-05-31 13:24:53.598375', NULL, 'The Bulk API provides a programmatic option to quickly load your org’s data into Salesforce. To use the API requires basic familiarity with software development, web services, and the Salesforce user interface.
 
 The functionality described is available only if your org has the Bulk API feature enabled. This feature is enabled by default for Performance, Unlimited, Enterprise, and Developer Editions.
 
 📚 [Bulk API Developer Guide](https://developer.salesforce.com/docs/atlas.en-us.api_asynch.meta/api_asynch/asynch_api_intro.htm)
 
-**Note:** All Bulk API requests except "Create Job" require a `_jobId` variable. This variable is automatically set by the "Create Job" request.', 'Bulk v1', '{"X-SFDC-Session":"{{_accessToken}}","Accept-Encoding":"gzip","Content-Encoding":"gzip"}', '2d5ddc0b-a81a-4b8a-89e1-86744d1c8368', 'GET', 'Bulk Retrieve Batch Result', '2021-05-31 13:24:53.598375', 'services/async/{{version}}/job/{{_jobId}}/batch/{{_batchId}}/result');
+**Note:** All Bulk API requests except "Create Job" require a `_jobId` variable. This variable is automatically set by the "Create Job" request.', 'Bulk v1', '{"X-SFDC-Session":":ACCESS_TOKEN","Accept-Encoding":"gzip","Content-Encoding":"gzip"}', '2d5ddc0b-a81a-4b8a-89e1-86744d1c8368', 'GET', 'Bulk Retrieve Batch Result', '2021-05-31 13:24:53.598375', 'services/async/{{version}}/job/:JOB_ID/batch/:BATCH_ID/result');
 insert into "salesforce_api" ("body", "createdAt", "description", "groupDescription", "groupName", "header", "id", "method", "name", "updatedAt", "url") values ('{
   "operation" : "query",
   "query" : "SELECT fields FROM object WHERE filter",
@@ -164,10 +164,10 @@ insert into "salesforce_api" ("body", "createdAt", "description", "groupDescript
 } ', '2021-05-31 13:24:53.598375', NULL, NULL, 'Query', '{"Content-Type":"application/json"}', '888bda90-1945-4fa9-b448-5825e0b3f497', 'POST', 'Create job Query', '2021-05-31 13:24:53.598375', 'services/data/v{{version}}/jobs/query');
 insert into "salesforce_api" ("body", "createdAt", "description", "groupDescription", "groupName", "header", "id", "method", "name", "updatedAt", "url") values ('{
 	"state":"Aborted"
-}', '2021-05-31 13:24:53.598375', NULL, NULL, 'Query', '{"Content-Type":"application/json"}', '034fae59-de09-477b-a2a5-a0f75dc0cd93', 'PATCH', 'Abort a Job Query', '2021-05-31 13:24:53.598375', 'services/data/v{{version}}/jobs/query/{{_jobId}}');
-insert into "salesforce_api" ("body", "createdAt", "description", "groupDescription", "groupName", "header", "id", "method", "name", "updatedAt", "url") values (NULL, '2021-05-31 13:24:53.598375', NULL, NULL, 'Query', '{"Content-Type":"application/json"}', '2ca0e44d-08b5-4ca4-8488-43abceebd468', 'GET', 'Get Job Info Query', '2021-05-31 13:24:53.598375', 'services/data/v{{version}}/jobs/query/{{_jobId}}');
-insert into "salesforce_api" ("body", "createdAt", "description", "groupDescription", "groupName", "header", "id", "method", "name", "updatedAt", "url") values (NULL, '2021-05-31 13:24:53.598375', NULL, NULL, 'Query', '{"Content-Type":"application/json"}', 'a6c4ffba-4b29-4d3a-bfdb-c9fc7e13e979', 'DELETE', 'Delete Job Query', '2021-05-31 13:24:53.598375', 'services/data/v{{version}}/jobs/query/{{_jobId}}');
-insert into "salesforce_api" ("body", "createdAt", "description", "groupDescription", "groupName", "header", "id", "method", "name", "updatedAt", "url") values (NULL, '2021-05-31 13:24:53.598375', NULL, NULL, 'Query', '{"Content-Type":"application/json","Accept":"test/csv"}', 'cbaeaa49-2dcb-4a4c-845c-55917f3cff44', 'GET', 'Get Job Query Result', '2021-05-31 13:24:53.598375', 'services/data/v{{version}}/jobs/query/{{_jobId}}/results');
+}', '2021-05-31 13:24:53.598375', NULL, NULL, 'Query', '{"Content-Type":"application/json"}', '034fae59-de09-477b-a2a5-a0f75dc0cd93', 'PATCH', 'Abort a Job Query', '2021-05-31 13:24:53.598375', 'services/data/v{{version}}/jobs/query/:JOB_ID');
+insert into "salesforce_api" ("body", "createdAt", "description", "groupDescription", "groupName", "header", "id", "method", "name", "updatedAt", "url") values (NULL, '2021-05-31 13:24:53.598375', NULL, NULL, 'Query', '{"Content-Type":"application/json"}', '2ca0e44d-08b5-4ca4-8488-43abceebd468', 'GET', 'Get Job Info Query', '2021-05-31 13:24:53.598375', 'services/data/v{{version}}/jobs/query/:JOB_ID');
+insert into "salesforce_api" ("body", "createdAt", "description", "groupDescription", "groupName", "header", "id", "method", "name", "updatedAt", "url") values (NULL, '2021-05-31 13:24:53.598375', NULL, NULL, 'Query', '{"Content-Type":"application/json"}', 'a6c4ffba-4b29-4d3a-bfdb-c9fc7e13e979', 'DELETE', 'Delete Job Query', '2021-05-31 13:24:53.598375', 'services/data/v{{version}}/jobs/query/:JOB_ID');
+insert into "salesforce_api" ("body", "createdAt", "description", "groupDescription", "groupName", "header", "id", "method", "name", "updatedAt", "url") values (NULL, '2021-05-31 13:24:53.598375', NULL, NULL, 'Query', '{"Content-Type":"application/json","Accept":"test/csv"}', 'cbaeaa49-2dcb-4a4c-845c-55917f3cff44', 'GET', 'Get Job Query Result', '2021-05-31 13:24:53.598375', 'services/data/v{{version}}/jobs/query/:JOB_ID/results');
 insert into "salesforce_api" ("body", "createdAt", "description", "groupDescription", "groupName", "header", "id", "method", "name", "updatedAt", "url") values (NULL, '2021-05-31 13:24:53.598375', NULL, NULL, 'Query', '{"Content-Type":"application/json"}', '08033f67-c75a-423f-a306-deb1cf3ddde9', 'GET', 'Get All Query Jobs', '2021-05-31 13:24:53.598375', 'services/data/v{{version}}/jobs/query');
 insert into "salesforce_api" ("body", "createdAt", "description", "groupDescription", "groupName", "header", "id", "method", "name", "updatedAt", "url") values ('{
   "operation" : "query",
@@ -178,10 +178,10 @@ insert into "salesforce_api" ("body", "createdAt", "description", "groupDescript
 } ', '2021-05-31 13:24:53.598375', NULL, NULL, 'Query', '{"Content-Type":"application/json"}', '0bb80b09-6c1d-4c34-a049-9b1544382130', 'POST', 'Create job Query', '2021-05-31 13:24:53.598375', 'services/data/v{{version}}/jobs/query');
 insert into "salesforce_api" ("body", "createdAt", "description", "groupDescription", "groupName", "header", "id", "method", "name", "updatedAt", "url") values ('{
 	"state":"Aborted"
-}', '2021-05-31 13:24:53.598375', NULL, NULL, 'Query', '{"Content-Type":"application/json"}', '9264c8fd-8e12-4d13-a98a-4da6859a2f51', 'PATCH', 'Abort a Job Query', '2021-05-31 13:24:53.598375', 'services/data/v{{version}}/jobs/query/{{_jobId}}');
-insert into "salesforce_api" ("body", "createdAt", "description", "groupDescription", "groupName", "header", "id", "method", "name", "updatedAt", "url") values (NULL, '2021-05-31 13:24:53.598375', NULL, NULL, 'Query', '{"Content-Type":"application/json"}', '0124581d-ea6d-422a-976b-a76315d2f276', 'GET', 'Get Job Info Query', '2021-05-31 13:24:53.598375', 'services/data/v{{version}}/jobs/query/{{_jobId}}');
-insert into "salesforce_api" ("body", "createdAt", "description", "groupDescription", "groupName", "header", "id", "method", "name", "updatedAt", "url") values (NULL, '2021-05-31 13:24:53.598375', NULL, NULL, 'Query', '{"Content-Type":"application/json"}', '4436a838-d7f1-4c41-83ca-2ad19c6db824', 'DELETE', 'Delete Job Query', '2021-05-31 13:24:53.598375', 'services/data/v{{version}}/jobs/query/{{_jobId}}');
-insert into "salesforce_api" ("body", "createdAt", "description", "groupDescription", "groupName", "header", "id", "method", "name", "updatedAt", "url") values (NULL, '2021-05-31 13:24:53.598375', NULL, NULL, 'Query', '{"Content-Type":"application/json","Accept":"test/csv"}', 'd0942cde-3cf8-4db3-91f2-17b622d2ecbf', 'GET', 'Get Job Query Result', '2021-05-31 13:24:53.598375', 'services/data/v{{version}}/jobs/query/{{_jobId}}/results');
+}', '2021-05-31 13:24:53.598375', NULL, NULL, 'Query', '{"Content-Type":"application/json"}', '9264c8fd-8e12-4d13-a98a-4da6859a2f51', 'PATCH', 'Abort a Job Query', '2021-05-31 13:24:53.598375', 'services/data/v{{version}}/jobs/query/:JOB_ID');
+insert into "salesforce_api" ("body", "createdAt", "description", "groupDescription", "groupName", "header", "id", "method", "name", "updatedAt", "url") values (NULL, '2021-05-31 13:24:53.598375', NULL, NULL, 'Query', '{"Content-Type":"application/json"}', '0124581d-ea6d-422a-976b-a76315d2f276', 'GET', 'Get Job Info Query', '2021-05-31 13:24:53.598375', 'services/data/v{{version}}/jobs/query/:JOB_ID');
+insert into "salesforce_api" ("body", "createdAt", "description", "groupDescription", "groupName", "header", "id", "method", "name", "updatedAt", "url") values (NULL, '2021-05-31 13:24:53.598375', NULL, NULL, 'Query', '{"Content-Type":"application/json"}', '4436a838-d7f1-4c41-83ca-2ad19c6db824', 'DELETE', 'Delete Job Query', '2021-05-31 13:24:53.598375', 'services/data/v{{version}}/jobs/query/:JOB_ID');
+insert into "salesforce_api" ("body", "createdAt", "description", "groupDescription", "groupName", "header", "id", "method", "name", "updatedAt", "url") values (NULL, '2021-05-31 13:24:53.598375', NULL, NULL, 'Query', '{"Content-Type":"application/json","Accept":"test/csv"}', 'd0942cde-3cf8-4db3-91f2-17b622d2ecbf', 'GET', 'Get Job Query Result', '2021-05-31 13:24:53.598375', 'services/data/v{{version}}/jobs/query/:JOB_ID/results');
 insert into "salesforce_api" ("body", "createdAt", "description", "groupDescription", "groupName", "header", "id", "method", "name", "updatedAt", "url") values (NULL, '2021-05-31 13:24:53.598375', NULL, NULL, 'Query', '{"Content-Type":"application/json"}', '5e6927fb-b95b-4120-b383-e08c72eae0fc', 'GET', 'Get All Query Jobs', '2021-05-31 13:24:53.598375', 'services/data/v{{version}}/jobs/query');
 insert into "salesforce_api" ("body", "createdAt", "description", "groupDescription", "groupName", "header", "id", "method", "name", "updatedAt", "url") values ('{
     "object": "Asset",
@@ -199,7 +199,7 @@ Bulk API 2.0 is available in API version 41.0 and later. Query jobs in Bulk API 
 
 📚 [Bulk API 2.0 Documentation](https://developer.salesforce.com/docs/atlas.en-us.api_bulk_v2.meta/api_bulk_v2/introduction_bulk_api_2.htm)
 
-**Note:** All Bulk API requests except "Create Job" require a `_jobId` variable. This variable is automatically set by the "Create Job" request.', 'Bulk v2', '{"Content-Type":"text/csv"}', 'b0e45bd7-3269-49f9-97fa-a7cc5f76f487', 'PUT', 'Upload Job Data', '2021-05-31 13:24:53.598375', 'services/data/v{{version}}/jobs/ingest/{{_jobId}}/batches');
+**Note:** All Bulk API requests except "Create Job" require a `_jobId` variable. This variable is automatically set by the "Create Job" request.', 'Bulk v2', '{"Content-Type":"text/csv"}', 'b0e45bd7-3269-49f9-97fa-a7cc5f76f487', 'PUT', 'Upload Job Data', '2021-05-31 13:24:53.598375', 'services/data/v{{version}}/jobs/ingest/:JOB_ID/batches');
 insert into "salesforce_api" ("body", "createdAt", "description", "groupDescription", "groupName", "header", "id", "method", "name", "updatedAt", "url") values ('{
 	"state":"UploadComplete"
 }', '2021-05-31 13:24:53.598375', NULL, 'Bulk API 2.0 provides a simple interface to quickly load large amounts of data into your Salesforce org and to perform bulk queries on your org data.
@@ -208,21 +208,21 @@ Bulk API 2.0 is available in API version 41.0 and later. Query jobs in Bulk API 
 
 📚 [Bulk API 2.0 Documentation](https://developer.salesforce.com/docs/atlas.en-us.api_bulk_v2.meta/api_bulk_v2/introduction_bulk_api_2.htm)
 
-**Note:** All Bulk API requests except "Create Job" require a `_jobId` variable. This variable is automatically set by the "Create Job" request.', 'Bulk v2', '{"Content-Type":"application/json"}', '101fb5d6-4f52-4285-b0d8-eaf522adcaf3', 'PATCH', 'Close or Abort a Job', '2021-05-31 13:24:53.598375', 'services/data/v{{version}}/jobs/ingest/{{_jobId}}');
+**Note:** All Bulk API requests except "Create Job" require a `_jobId` variable. This variable is automatically set by the "Create Job" request.', 'Bulk v2', '{"Content-Type":"application/json"}', '101fb5d6-4f52-4285-b0d8-eaf522adcaf3', 'PATCH', 'Close or Abort a Job', '2021-05-31 13:24:53.598375', 'services/data/v{{version}}/jobs/ingest/:JOB_ID');
 insert into "salesforce_api" ("body", "createdAt", "description", "groupDescription", "groupName", "header", "id", "method", "name", "updatedAt", "url") values (NULL, '2021-05-31 13:24:53.598375', NULL, 'Bulk API 2.0 provides a simple interface to quickly load large amounts of data into your Salesforce org and to perform bulk queries on your org data.
 
 Bulk API 2.0 is available in API version 41.0 and later. Query jobs in Bulk API 2.0 are available in API version 47.0 and later.
 
 📚 [Bulk API 2.0 Documentation](https://developer.salesforce.com/docs/atlas.en-us.api_bulk_v2.meta/api_bulk_v2/introduction_bulk_api_2.htm)
 
-**Note:** All Bulk API requests except "Create Job" require a `_jobId` variable. This variable is automatically set by the "Create Job" request.', 'Bulk v2', '{"Content-Type":"application/json"}', '07e2d2a0-3c07-4b80-82a6-58b4c5ec9217', 'DELETE', 'Delete Job', '2021-05-31 13:24:53.598375', 'services/data/v{{version}}/jobs/ingest/{{_jobId}}');
+**Note:** All Bulk API requests except "Create Job" require a `_jobId` variable. This variable is automatically set by the "Create Job" request.', 'Bulk v2', '{"Content-Type":"application/json"}', '07e2d2a0-3c07-4b80-82a6-58b4c5ec9217', 'DELETE', 'Delete Job', '2021-05-31 13:24:53.598375', 'services/data/v{{version}}/jobs/ingest/:JOB_ID');
 insert into "salesforce_api" ("body", "createdAt", "description", "groupDescription", "groupName", "header", "id", "method", "name", "updatedAt", "url") values (NULL, '2021-05-31 13:24:53.598375', NULL, 'Bulk API 2.0 provides a simple interface to quickly load large amounts of data into your Salesforce org and to perform bulk queries on your org data.
 
 Bulk API 2.0 is available in API version 41.0 and later. Query jobs in Bulk API 2.0 are available in API version 47.0 and later.
 
 📚 [Bulk API 2.0 Documentation](https://developer.salesforce.com/docs/atlas.en-us.api_bulk_v2.meta/api_bulk_v2/introduction_bulk_api_2.htm)
 
-**Note:** All Bulk API requests except "Create Job" require a `_jobId` variable. This variable is automatically set by the "Create Job" request.', 'Bulk v2', '{"Content-Type":"application/json"}', '2dc37950-4f64-4d4e-805a-d31a8c6ea369', 'GET', 'Get Job Info', '2021-05-31 13:24:53.598375', 'services/data/v{{version}}/jobs/ingest/{{_jobId}}');
+**Note:** All Bulk API requests except "Create Job" require a `_jobId` variable. This variable is automatically set by the "Create Job" request.', 'Bulk v2', '{"Content-Type":"application/json"}', '2dc37950-4f64-4d4e-805a-d31a8c6ea369', 'GET', 'Get Job Info', '2021-05-31 13:24:53.598375', 'services/data/v{{version}}/jobs/ingest/:JOB_ID');
 insert into "salesforce_api" ("body", "createdAt", "description", "groupDescription", "groupName", "header", "id", "method", "name", "updatedAt", "url") values (NULL, '2021-05-31 13:24:53.598375', NULL, 'Bulk API 2.0 provides a simple interface to quickly load large amounts of data into your Salesforce org and to perform bulk queries on your org data.
 
 Bulk API 2.0 is available in API version 41.0 and later. Query jobs in Bulk API 2.0 are available in API version 47.0 and later.
@@ -236,21 +236,21 @@ Bulk API 2.0 is available in API version 41.0 and later. Query jobs in Bulk API 
 
 📚 [Bulk API 2.0 Documentation](https://developer.salesforce.com/docs/atlas.en-us.api_bulk_v2.meta/api_bulk_v2/introduction_bulk_api_2.htm)
 
-**Note:** All Bulk API requests except "Create Job" require a `_jobId` variable. This variable is automatically set by the "Create Job" request.', 'Bulk v2', '{"Content-Type":"application/json"}', 'cfcaa5ba-33e7-4bdc-b80b-a80a8ca10eff', 'GET', 'Get Job Successful Record Results', '2021-05-31 13:24:53.598375', 'services/data/v{{version}}/jobs/ingest/{{_jobId}}/successfulResults');
+**Note:** All Bulk API requests except "Create Job" require a `_jobId` variable. This variable is automatically set by the "Create Job" request.', 'Bulk v2', '{"Content-Type":"application/json"}', 'cfcaa5ba-33e7-4bdc-b80b-a80a8ca10eff', 'GET', 'Get Job Successful Record Results', '2021-05-31 13:24:53.598375', 'services/data/v{{version}}/jobs/ingest/:JOB_ID/successfulResults');
 insert into "salesforce_api" ("body", "createdAt", "description", "groupDescription", "groupName", "header", "id", "method", "name", "updatedAt", "url") values (NULL, '2021-05-31 13:24:53.598375', NULL, 'Bulk API 2.0 provides a simple interface to quickly load large amounts of data into your Salesforce org and to perform bulk queries on your org data.
 
 Bulk API 2.0 is available in API version 41.0 and later. Query jobs in Bulk API 2.0 are available in API version 47.0 and later.
 
 📚 [Bulk API 2.0 Documentation](https://developer.salesforce.com/docs/atlas.en-us.api_bulk_v2.meta/api_bulk_v2/introduction_bulk_api_2.htm)
 
-**Note:** All Bulk API requests except "Create Job" require a `_jobId` variable. This variable is automatically set by the "Create Job" request.', 'Bulk v2', '{"Content-Type":"application/json"}', 'c0b2df37-9495-4b75-96c7-c899ad895827', 'GET', 'Get Job Failed Record Results', '2021-05-31 13:24:53.598375', 'services/data/v{{version}}/jobs/ingest/{{_jobId}}/failedResults');
+**Note:** All Bulk API requests except "Create Job" require a `_jobId` variable. This variable is automatically set by the "Create Job" request.', 'Bulk v2', '{"Content-Type":"application/json"}', 'c0b2df37-9495-4b75-96c7-c899ad895827', 'GET', 'Get Job Failed Record Results', '2021-05-31 13:24:53.598375', 'services/data/v{{version}}/jobs/ingest/:JOB_ID/failedResults');
 insert into "salesforce_api" ("body", "createdAt", "description", "groupDescription", "groupName", "header", "id", "method", "name", "updatedAt", "url") values (NULL, '2021-05-31 13:24:53.598375', NULL, 'Bulk API 2.0 provides a simple interface to quickly load large amounts of data into your Salesforce org and to perform bulk queries on your org data.
 
 Bulk API 2.0 is available in API version 41.0 and later. Query jobs in Bulk API 2.0 are available in API version 47.0 and later.
 
 📚 [Bulk API 2.0 Documentation](https://developer.salesforce.com/docs/atlas.en-us.api_bulk_v2.meta/api_bulk_v2/introduction_bulk_api_2.htm)
 
-**Note:** All Bulk API requests except "Create Job" require a `_jobId` variable. This variable is automatically set by the "Create Job" request.', 'Bulk v2', '{"Content-Type":"application/json"}', '64255ff3-97a3-4419-958e-6a0a835dee3a', 'GET', 'Get Job Unprocessed Record Results', '2021-05-31 13:24:53.598375', 'services/data/v{{version}}/jobs/ingest/{{_jobId}}/unprocessedrecords');
+**Note:** All Bulk API requests except "Create Job" require a `_jobId` variable. This variable is automatically set by the "Create Job" request.', 'Bulk v2', '{"Content-Type":"application/json"}', '64255ff3-97a3-4419-958e-6a0a835dee3a', 'GET', 'Get Job Unprocessed Record Results', '2021-05-31 13:24:53.598375', 'services/data/v{{version}}/jobs/ingest/:JOB_ID/unprocessedrecords');
 insert into "salesforce_api" ("body", "createdAt", "description", "groupDescription", "groupName", "header", "id", "method", "name", "updatedAt", "url") values ('{
     "allOrNone": "Boolean",
     "collateSubrequests": "Boolean",
@@ -1049,7 +1049,7 @@ https://developer.salesforce.com/docs/atlas.en-us.cpq_dev_api.meta/cpq_dev_api/c
 
 📚 [Salesforce CPQ Developer Guide](https://developer.salesforce.com/docs/atlas.en-us.cpq_dev_api.meta/cpq_dev_api/cpq_developer_guide_intro.htm)', 'CPQ', '{"Content-Type":"application/json"}', '3a8f4894-749d-4ec3-b882-d56c506ba2b4', 'POST', 'Generate Quote Document API', '2021-05-31 13:24:53.598375', 'services/apexrest/SBQQ/ServiceRouter');
 insert into "salesforce_api" ("body", "createdAt", "description", "groupDescription", "groupName", "header", "id", "method", "name", "updatedAt", "url") values (NULL, '2021-05-31 13:24:53.598375', NULL, NULL, 'Metadata REST', '{}', '81a2b7e8-2cab-460a-bcb2-6cb53b0cb62a', 'GET', 'Deploy Request Status', '2021-05-31 13:24:53.598375', 'services/data/v{{version}}/metadata/deployRequest/<deployRequestId>');
-insert into "salesforce_api" ("body", "createdAt", "description", "groupDescription", "groupName", "header", "id", "method", "name", "updatedAt", "url") values ('{ 
+insert into "salesforce_api" ("body", "createdAt", "description", "groupDescription", "groupName", "header", "id", "method", "name", "updatedAt", "url") values ('{
     "deployResult":
     {
         "status" : "Canceling"
@@ -1057,11 +1057,11 @@ insert into "salesforce_api" ("body", "createdAt", "description", "groupDescript
 }
 ', '2021-05-31 13:24:53.598375', NULL, NULL, 'Metadata REST', '{}', '178a35ae-2186-4ccd-95bb-d67006abf67f', 'PATCH', 'Deploy Request Cancellation', '2021-05-31 13:24:53.598375', 'services/data/v{{version}}/metadata/deployRequest/<deployRequestId>');
 insert into "salesforce_api" ("body", "createdAt", "description", "groupDescription", "groupName", "header", "id", "method", "name", "updatedAt", "url") values (NULL, '2021-05-31 13:24:53.598375', NULL, NULL, 'Metadata REST', '{}', '3d8b4d48-bbbd-4fdf-a8a2-faa7de282956', 'POST', 'Deploy Request', '2021-05-31 13:24:53.598375', 'services/data/v{{version}}/metadata/deployRequest');
-insert into "salesforce_api" ("body", "createdAt", "description", "groupDescription", "groupName", "header", "id", "method", "name", "updatedAt", "url") values ('{ 
+insert into "salesforce_api" ("body", "createdAt", "description", "groupDescription", "groupName", "header", "id", "method", "name", "updatedAt", "url") values ('{
     "validatedDeployRequestId" : "<validatedDeployRequestId>"
 }', '2021-05-31 13:24:53.598375', NULL, NULL, 'Metadata REST', '{}', '53a48a16-97db-4054-8ae2-df69eb8cea3a', 'POST', 'Deploy Request Previously Validated (Quick Deploy)', '2021-05-31 13:24:53.598375', 'services/data/v{{version}}/metadata/deployRequest/<validatedDeployRequestId>');
 insert into "salesforce_api" ("body", "createdAt", "description", "groupDescription", "groupName", "header", "id", "method", "name", "updatedAt", "url") values (NULL, '2021-05-31 13:24:53.598375', NULL, NULL, 'Metadata REST', '{}', '006bc6c0-40c2-4aac-83c1-fb2baa34c151', 'GET', 'Deploy Request Status', '2021-05-31 13:24:53.598375', 'services/data/v{{version}}/metadata/deployRequest/<deployRequestId>');
-insert into "salesforce_api" ("body", "createdAt", "description", "groupDescription", "groupName", "header", "id", "method", "name", "updatedAt", "url") values ('{ 
+insert into "salesforce_api" ("body", "createdAt", "description", "groupDescription", "groupName", "header", "id", "method", "name", "updatedAt", "url") values ('{
     "deployResult":
     {
         "status" : "Canceling"
@@ -1069,14 +1069,14 @@ insert into "salesforce_api" ("body", "createdAt", "description", "groupDescript
 }
 ', '2021-05-31 13:24:53.598375', NULL, NULL, 'Metadata REST', '{}', '9ef609c2-180d-4739-9aa3-72cdfbac3db9', 'PATCH', 'Deploy Request Cancellation', '2021-05-31 13:24:53.598375', 'services/data/v{{version}}/metadata/deployRequest/<deployRequestId>');
 insert into "salesforce_api" ("body", "createdAt", "description", "groupDescription", "groupName", "header", "id", "method", "name", "updatedAt", "url") values (NULL, '2021-05-31 13:24:53.598375', NULL, NULL, 'Metadata REST', '{}', 'ef0d6098-954f-4f4d-b159-08d2890e524d', 'POST', 'Deploy Request', '2021-05-31 13:24:53.598375', 'services/data/v{{version}}/metadata/deployRequest');
-insert into "salesforce_api" ("body", "createdAt", "description", "groupDescription", "groupName", "header", "id", "method", "name", "updatedAt", "url") values ('{ 
+insert into "salesforce_api" ("body", "createdAt", "description", "groupDescription", "groupName", "header", "id", "method", "name", "updatedAt", "url") values ('{
     "validatedDeployRequestId" : "<validatedDeployRequestId>"
 }', '2021-05-31 13:24:53.598375', NULL, NULL, 'Metadata REST', '{}', '44b92ec9-4434-4b7d-99c7-5addf1ad47cb', 'POST', 'Deploy Request Previously Validated (Quick Deploy)', '2021-05-31 13:24:53.598375', 'services/data/v{{version}}/metadata/deployRequest/<validatedDeployRequestId>');
 insert into "salesforce_api" ("body", "createdAt", "description", "groupDescription", "groupName", "header", "id", "method", "name", "updatedAt", "url") values ('<?xml version="1.0" encoding="utf-8"?>
 <soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/" xmlns:tns="http://soap.sforce.com/2006/04/metadata">
 	<soapenv:Header>
 	<tns:SessionHeader>
-		<tns:sessionId>{{_accessToken}}</tns:sessionId>
+		<tns:sessionId>:ACCESS_TOKEN</tns:sessionId>
 	</tns:SessionHeader>
 	</soapenv:Header>
 	<soapenv:Body>
@@ -1091,7 +1091,7 @@ insert into "salesforce_api" ("body", "createdAt", "description", "groupDescript
 <soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/" xmlns:tns="http://soap.sforce.com/2006/04/metadata">
 	<soapenv:Header>
 	<tns:SessionHeader>
-		<tns:sessionId>{{_accessToken}}</tns:sessionId>
+		<tns:sessionId>:ACCESS_TOKEN</tns:sessionId>
 	</tns:SessionHeader>
 	</soapenv:Header>
 	<soapenv:Body>
@@ -1107,7 +1107,7 @@ insert into "salesforce_api" ("body", "createdAt", "description", "groupDescript
 <soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/" xmlns:tns="http://soap.sforce.com/2006/04/metadata">
     <soapenv:Header>
         <tns:SessionHeader>
-            <tns:sessionId>{{_accessToken}}</tns:sessionId>
+            <tns:sessionId>:ACCESS_TOKEN</tns:sessionId>
         </tns:SessionHeader>
     </soapenv:Header>
     <soapenv:Body>
@@ -1123,7 +1123,7 @@ insert into "salesforce_api" ("body", "createdAt", "description", "groupDescript
 
 `folder`: If your type requires a folder add it here. Null values are ignored
 
-e.g. 
+e.g.
 
 ```<type>CustomObject</type>
 <folder></folder>```
@@ -1599,7 +1599,7 @@ insert into "salesforce_api" ("body", "createdAt", "description", "groupDescript
     "skipCodeCoverage": "boolean value"
 }
 
-or 
+or
 
 [
     {

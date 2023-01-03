@@ -1,16 +1,7 @@
-import {
-  ColDef,
-  ColumnEvent,
-  GetRowIdParams,
-  ICellRendererParams,
-  IFilter,
-  IFilterParams,
-  RowNode,
-  SelectionChangedEvent,
-} from '@ag-grid-community/core';
-import { formatNumber, useNonInitialEffect } from '@jetstream/shared/ui-utils';
-import { AutoFullHeightContainer, Checkbox, DataTable, getFilteredRows, Grid, Icon, SearchInput, Spinner } from '@jetstream/ui';
-import { forwardRef, Fragment, FunctionComponent, useEffect, useImperativeHandle, useState } from 'react';
+import { formatNumber } from '@jetstream/shared/ui-utils';
+import { AutoFullHeightContainer, ColumnWithFilter, DataTable, DataTableSelectedContext, Grid, Icon, SearchInput } from '@jetstream/ui';
+import groupBy from 'lodash/groupBy';
+import { FunctionComponent, useEffect, useState } from 'react';
 import { DeployMetadataTableRow } from './deploy-metadata.types';
 import { getColumnDefinitions } from './utils/deploy-metadata.utils';
 
@@ -21,22 +12,11 @@ export interface DeployMetadataDeploymentTableProps {
   onViewOrCompareOpen: () => void;
 }
 
-function getRowId({ data }: GetRowIdParams): string {
-  return data.key;
+function getRowId(row: DeployMetadataTableRow): string {
+  return `${row.key}-${row.type}`;
 }
 
-const ValueOrLoadingRenderer: FunctionComponent<ICellRendererParams> = ({ value, node }) => {
-  if (node.group) {
-    return <div />;
-  }
-  const { loading, fullName }: DeployMetadataTableRow = node.data || {};
-  if (loading) {
-    return <Spinner size={'x-small'} />;
-  } else if (!fullName) {
-    return <em className="slds-text-color_weak">No matching components</em>;
-  }
-  return <div>{decodeURIComponent(value || '')}</div>;
-};
+const groupedRows = ['typeLabel'] as const;
 
 export const DeployMetadataDeploymentTable: FunctionComponent<DeployMetadataDeploymentTableProps> = ({
   rows,
@@ -44,13 +24,15 @@ export const DeployMetadataDeploymentTable: FunctionComponent<DeployMetadataDepl
   onSelectedRows,
   onViewOrCompareOpen,
 }) => {
-  const [columns, setColumns] = useState<ColDef[]>();
+  const [columns, setColumns] = useState<ColumnWithFilter<DeployMetadataTableRow>[]>([]);
   const [visibleRows, setVisibleRows] = useState<DeployMetadataTableRow[]>(rows);
   const [globalFilter, setGlobalFilter] = useState<string>(null);
-  const [selectedRows, setSelectedRow] = useState<Set<DeployMetadataTableRow>>(new Set());
+  const [selectedRowIds, setSelectedRowIds] = useState(new Set<any>());
+  const [expandedGroupIds, setExpandedGroupIds] = useState(new Set<any>());
 
   useEffect(() => {
     setVisibleRows(rows);
+    setExpandedGroupIds(new Set(rows.map(({ typeLabel }) => typeLabel)));
   }, [rows]);
 
   useEffect(() => {
@@ -58,27 +40,11 @@ export const DeployMetadataDeploymentTable: FunctionComponent<DeployMetadataDepl
   }, []);
 
   useEffect(() => {
-    onSelectedRows(selectedRows);
-  }, [onSelectedRows, selectedRows]);
-
-  function handleSelectionChanged(event: SelectionChangedEvent) {
-    setSelectedRow(new Set(event.api.getSelectedRows().filter((row: DeployMetadataTableRow) => row.metadata)));
-  }
-
-  // TODO: maybe move to parent?
-  function handleFilterChangeOrRowDataUpdated(event: ColumnEvent) {
-    setVisibleRows(getFilteredRows(event));
-  }
-
-  function handleIsRowSelectable(node: RowNode) {
-    if ((node.group && node.allChildrenCount === 1 && !node.allLeafChildren[0].data?.metadata) || (!node.group && !node.data?.metadata)) {
-      return false;
-    }
-    return true;
-  }
+    onSelectedRows(new Set(rows.filter((row) => selectedRowIds.has(getRowId(row)))));
+  }, [onSelectedRows, rows, selectedRowIds]);
 
   return (
-    <Fragment>
+    <DataTableSelectedContext.Provider value={{ selectedRowIds, getRowKey: getRowId }}>
       {rows && visibleRows && (
         <Grid align="spread" verticalAlign="end" className="slds-p-top_xx-small slds-p-bottom_x-small slds-m-horizontal_small">
           <Grid>
@@ -97,101 +63,19 @@ export const DeployMetadataDeploymentTable: FunctionComponent<DeployMetadataDepl
         <DataTable
           columns={columns}
           data={rows}
+          getRowKey={getRowId}
+          includeQuickFilter
           quickFilterText={globalFilter}
-          defaultMenuTabs={['filterMenuTab', 'generalMenuTab']}
-          agGridProps={{
-            getRowId,
-            components: {
-              valueOrLoading: ValueOrLoadingRenderer,
-              metadataFilterItemsWithNoChildren: MetadataFilterItemsWithNoChildren,
-            },
-            autoGroupColumnDef: {
-              headerName: 'Metadata Type',
-              width: 200,
-              cellRenderer: 'agGroupCellRenderer',
-              // filter: 'agMultiColumnFilter',
-              filterParams: {
-                filters: [
-                  { filter: 'metadataFilterItemsWithNoChildren' },
-                  { filter: 'agTextColumnFilter' },
-                  { filter: 'agSetColumnFilter', filterParams: { showTooltips: true } },
-                ],
-              },
-              menuTabs: ['filterMenuTab'],
-              filterValueGetter: ({ data }) => data.typeLabel,
-              sortable: true,
-              resizable: true,
-              sort: 'asc',
-            },
-            showOpenedGroup: true,
-            groupDefaultExpanded: 1,
-            groupSelectsChildren: true,
-            groupSelectsFiltered: true,
-            sideBar: {
-              toolPanels: [
-                {
-                  id: 'filters',
-                  labelDefault: 'Filters',
-                  labelKey: 'filters',
-                  iconKey: 'filter',
-                  toolPanel: 'agFiltersToolPanel',
-                },
-                {
-                  id: 'columns',
-                  labelDefault: 'Columns',
-                  labelKey: 'columns',
-                  iconKey: 'columns',
-                  toolPanel: 'agColumnsToolPanel',
-                  toolPanelParams: {
-                    suppressRowGroups: true,
-                    suppressValues: true,
-                    suppressPivots: true,
-                    suppressPivotMode: true,
-                  },
-                },
-              ],
-            },
-            isRowSelectable: handleIsRowSelectable,
-            onSelectionChanged: handleSelectionChanged,
-            onFilterChanged: handleFilterChangeOrRowDataUpdated,
-          }}
+          groupBy={groupedRows}
+          rowGrouper={groupBy}
+          expandedGroupIds={expandedGroupIds}
+          onExpandedGroupIdsChange={(items) => setExpandedGroupIds(items)}
+          selectedRows={selectedRowIds}
+          onSelectedRowsChange={setSelectedRowIds}
         />
       </AutoFullHeightContainer>
-    </Fragment>
+    </DataTableSelectedContext.Provider>
   );
 };
 
 export default DeployMetadataDeploymentTable;
-
-export const MetadataFilterItemsWithNoChildren = forwardRef<any, IFilterParams>(({ filterChangedCallback, colDef, context }, ref) => {
-  const [value, setValue] = useState(true);
-
-  useNonInitialEffect(() => {
-    filterChangedCallback();
-  }, [filterChangedCallback, value]);
-
-  function nodeHasData(node: RowNode) {
-    return node.data?.loading || node.data?.metadata;
-  }
-
-  useImperativeHandle(ref, () => {
-    const filterComp: IFilter = {
-      isFilterActive: () => !value,
-      doesFilterPass: ({ node }) => {
-        if ((node.group && node.allChildrenCount === 1 && !nodeHasData(node.allLeafChildren[0])) || (!node.group && !nodeHasData(node))) {
-          return false;
-        }
-        return true;
-      },
-      getModel: () => ({ value }),
-      setModel: (model) => setValue(model ? model.value : true),
-    };
-    return filterComp;
-  });
-
-  return (
-    <div className="slds-p-around_small">
-      <Checkbox id={`metadata-filter-${colDef.field}`} checked={value} label="Show metadata types with no items" onChange={setValue} />
-    </div>
-  );
-});

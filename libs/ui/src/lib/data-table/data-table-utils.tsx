@@ -1,240 +1,112 @@
-import {
-  CellEvent,
-  CellKeyDownEvent,
-  ColDef,
-  ColGroupDef,
-  ColumnApi,
-  ColumnEvent,
-  GetContextMenuItemsParams,
-  GetQuickFilterTextParams,
-  MenuItemDef,
-  ProcessCellForExportParams,
-  RowNode,
-  ValueFormatterParams,
-  ValueGetterParams,
-} from '@ag-grid-community/core';
 import { QueryResults, QueryResultsColumn } from '@jetstream/api-interfaces';
 import { DATE_FORMATS } from '@jetstream/shared/constants';
-import { getValueForExcel, isEnterKey, polyfillFieldDefinition } from '@jetstream/shared/ui-utils';
-import { queryResultColumnToTypeLabel, REGEX } from '@jetstream/shared/utils';
-import { MapOf, SalesforceOrgUi } from '@jetstream/types';
-import copy from 'copy-to-clipboard';
-import formatDate from 'date-fns/format';
+import { ensureBoolean, pluralizeFromNumber } from '@jetstream/shared/utils';
+import { MapOf } from '@jetstream/types';
+import isAfter from 'date-fns/isAfter';
+import isBefore from 'date-fns/isBefore';
+import isSameDay from 'date-fns/isSameDay';
+import isDateValid from 'date-fns/isValid';
 import parseDate from 'date-fns/parse';
 import parseISO from 'date-fns/parseISO';
 import startOfDay from 'date-fns/startOfDay';
-import fileSizeFormatter from 'filesize';
+import startOfMinute from 'date-fns/startOfMinute';
 import { Field } from 'jsforce';
-import isDate from 'lodash/isDate';
+import isNil from 'lodash/isNil';
+import isNumber from 'lodash/isNumber';
 import isObject from 'lodash/isObject';
-import { createContext } from 'react';
+import isString from 'lodash/isString';
+import uniqueId from 'lodash/uniqueId';
+import { SelectColumn, SELECT_COLUMN_KEY as _SELECT_COLUMN_KEY } from 'react-data-grid';
 import { FieldSubquery, getFlattenedFields, isFieldSubquery } from 'soql-parser-js';
-import './data-table-styles.css';
+import {
+  dataTableAddressValueFormatter,
+  dataTableDateFormatter,
+  dataTableLocationFormatter,
+  dataTableTimeFormatter,
+} from './data-table-formatters';
+import { ColumnType, ColumnWithFilter, DataTableFilter, FilterType, RowWithKey, SalesforceQueryColumnDefinition } from './data-table-types';
+import {
+  ActionRenderer,
+  BooleanRenderer,
+  ComplexDataRenderer,
+  FilterRenderer,
+  HeaderFilter,
+  IdLinkRenderer,
+  SelectFormatter,
+  SelectHeaderRenderer,
+} from './DataTableRenderers';
+import { SubqueryRenderer } from './DataTableSubqueryRenderer';
 
-const copyShortcut = navigator.userAgent.indexOf('Mac OS X') == -1 ? 'Cmd+C' : 'Ctrl+C';
+const SFDC_EMPTY_ID = '000000000000000AAA';
 
-export interface SalesforceAddressField {
-  city?: string;
-  country?: string;
-  CountryCode?: string;
-  latitude?: number;
-  longitude?: number;
-  postalCode?: string;
-  state?: string;
-  StateCode?: string;
-  street?: string;
-}
+export const EMPTY_FIELD = '-BLANK-';
+export const ACTION_COLUMN_KEY = '_actions';
+export const SELECT_COLUMN_KEY = _SELECT_COLUMN_KEY;
+export const NON_DATA_COLUMN_KEYS = new Set([SELECT_COLUMN_KEY, ACTION_COLUMN_KEY]);
 
-export interface SalesforceLocationField {
-  latitude: number;
-  longitude: number;
-}
-
-export interface SalesforceQueryColumnDefinition {
-  parentColumns: ColDef[];
-  subqueryColumns: MapOf<ColDef[]>;
-}
-
-export interface DataTableContextValue {
-  serverUrl: string;
-  org: SalesforceOrgUi;
-  isTooling: boolean;
-  columnDefinitions: SalesforceQueryColumnDefinition;
-  google_apiKey: string;
-  google_appId: string;
-  google_clientId: string;
-}
-
-export interface TableExecuteContext {
-  label: string;
-  title?: string;
-  className?: string;
-  disabled?: boolean;
-  onClick: (node: RowNode) => void;
-}
-
-export interface TableContext {
-  actions: {
-    edit: (row: any) => void;
-    clone: (row: any) => void;
-    view: (row: any) => void;
-    getAsApex: (row: any) => void;
-  };
-}
-
-const newLineRegex = /\\n/g;
-
-/**
- * This is used to allow child cell renderers to have access to context specific data
- * e.x. subquery renderer
- */
-export const DataTableContext = createContext<DataTableContextValue>({
-  serverUrl: null,
-  org: null,
-  isTooling: false,
-  columnDefinitions: { parentColumns: [], subqueryColumns: {} },
-  google_apiKey: null,
-  google_appId: null,
-  google_clientId: null,
-});
-
-export function getDefaultColumnDef() {
-  return {
-    filter: true,
-    filterParams: {
-      buttons: ['reset'],
-    },
-    menuTabs: ['filterMenuTab', 'generalMenuTab', 'columnsMenuTab'],
-    sortable: true,
-    resizable: true,
-  };
-}
-
-export function getCheckboxColumnDef(includeActions?: boolean): ColDef {
-  return {
-    cellRenderer: includeActions ? 'actionRenderer' : undefined,
-    checkboxSelection: true,
-    headerCheckboxSelection: true,
-    headerCheckboxSelectionFilteredOnly: true,
-    width: includeActions ? 145 : 50,
-    filter: false,
-    sortable: false,
-    resizable: false,
-    pinned: true,
-    lockPinned: true,
-    lockPosition: true,
-    lockVisible: true,
-  };
-}
-
-export function DateFilterComparator(filterDate: Date, cellValue: string | Date): number {
-  if (!cellValue) {
-    return 0;
+export function getRowId(data: any): string {
+  if (data?._key) {
+    return data._key;
   }
-  const cellDate = startOfDay(isDate(cellValue) ? cellValue : parseISO(cellValue));
-  if (cellDate < filterDate) {
-    return -1;
-  } else if (cellDate > filterDate) {
-    return 1;
-  } else {
-    return 0;
+  if (data?.key) {
+    return data.key;
   }
+  if (data?.attributes?.type === 'AggregateResult') {
+    return uniqueId('row-id');
+  }
+  let nodeId = data?.attributes?.url || data.Id || data.id || data.key;
+  if (!nodeId || nodeId.endsWith(SFDC_EMPTY_ID) || data.Id === SFDC_EMPTY_ID) {
+    nodeId = uniqueId('row-id');
+  }
+  return nodeId;
 }
 
-export const dataTableAddressValueFormatter = (value: any): string => {
-  if (!isObject(value)) {
-    return '';
-  }
-  const address: SalesforceAddressField = value;
-  const street = (address.street || '').replace(newLineRegex, '');
-  const remainingParts = [address.city, address.state, address.postalCode, address.country].filter((part) => !!part).join(', ');
-  return [street, remainingParts].join('\n');
-};
-
-export const dataTableAddressFormatter = ({ value }: ValueFormatterParams | GetQuickFilterTextParams): string => {
-  return dataTableAddressValueFormatter(value);
-};
-
-export const dataTableAddressValueGetter =
-  (header: string) =>
-  ({ data }: ValueGetterParams) =>
-    dataTableAddressValueFormatter(data[header]);
-
-export const dataTableLocationFormatter = ({ value }: ValueFormatterParams | GetQuickFilterTextParams): string => {
-  if (!isObject(value)) {
-    return '';
-  }
-  const location: SalesforceLocationField = value as SalesforceLocationField;
-  return `Latitude: ${location.latitude}°, Longitude: ${location.longitude}°`;
-};
-
-export const dataTableDateFormatter = ({ value }: ValueFormatterParams | GetQuickFilterTextParams): string => {
-  const dateOrDateTime: string = value;
-  if (!dateOrDateTime) {
-    return null;
-  } else if (dateOrDateTime.length === 28) {
-    return formatDate(parseISO(dateOrDateTime), DATE_FORMATS.YYYY_MM_DD_HH_mm_ss_a);
-  } else if (dateOrDateTime.length === 10) {
-    return formatDate(startOfDay(parseISO(dateOrDateTime)), DATE_FORMATS.yyyy_MM_dd);
-  } else {
-    return dateOrDateTime;
-  }
-};
-
-export const dataTableTimeFormatter = ({ value }: ValueFormatterParams | GetQuickFilterTextParams): string => {
-  const time: string = value;
-  if (!time) {
-    return '';
-  } else if (time.length === 13) {
-    return formatDate(parseDate(time, DATE_FORMATS.HH_mm_ss_ssss_z, new Date()), DATE_FORMATS.HH_MM_SS_a);
-  } else {
-    return time;
-  }
-};
-
-export const dataTableFileSizeFormatter = ({ value }: ValueFormatterParams | GetQuickFilterTextParams): string => {
-  const dateOrDateTime: string = value;
-  if (!dateOrDateTime) {
-    return '';
-  }
-  return fileSizeFormatter(value);
-};
-
-/**
- * Returns columns exactly as shown in the UI
- * The same order and the same visible columns
- */
-export function getCurrentColumns(columnApi: ColumnApi): string[] {
-  return columnApi
-    .getAllDisplayedColumns()
-    .map((col) => col.getColDef())
-    .filter((col) => col.field)
-    .map((col) => col.field);
-}
-
-export function getAllColumns(columnApi: ColumnApi): string[] {
-  return columnApi
-    .getColumns()
-    .map((col) => col.getColDef())
-    .filter((col) => col.field)
-    .map((col) => col.field);
-}
-
-export function getFilteredRows<T = any>(event: ColumnEvent): T[] {
-  const visibleRecords: T[] = [];
-  event.api.forEachNodeAfterFilter((rowNode, index) => {
-    visibleRecords.push(rowNode.data);
+export function getColumnsForGenericTable(
+  headers: { label: string; key: string; columnProps?: Partial<ColumnWithFilter<RowWithKey>>; type?: ColumnType }[]
+): ColumnWithFilter<RowWithKey>[] {
+  return headers.map(({ label, key, columnProps, type }) => {
+    const column: Mutable<ColumnWithFilter<RowWithKey>> = {
+      name: label,
+      key,
+      cellClass: 'slds-truncate',
+      resizable: true,
+      sortable: true,
+      width: 200,
+      filters: ['TEXT', 'SET'],
+      headerRenderer: (props) => (
+        <FilterRenderer {...props}>
+          {({ filters, filterSetValues, portalRefForFilters, updateFilter }) => (
+            <HeaderFilter
+              columnKey={column.key}
+              filters={filters}
+              filterSetValues={filterSetValues}
+              portalRefForFilters={portalRefForFilters}
+              updateFilter={updateFilter}
+            />
+          )}
+        </FilterRenderer>
+      ),
+    };
+    if (type) {
+      updateColumnFromType(column, type);
+    }
+    return { ...column, ...columnProps } as ColumnWithFilter<RowWithKey>;
   });
-  return visibleRecords;
 }
 
-export function getColumnDefinitions(results: QueryResults<any>, isTooling: boolean): SalesforceQueryColumnDefinition {
+/**
+ * Produce table columns from a Salesforce query
+ * @param results
+ * @param isTooling
+ * @returns
+ */
+export function getColumnDefinitions(results: QueryResults<any>, isTooling: boolean): SalesforceQueryColumnDefinition<any> {
   // if we have id, include record actions
   const includeRecordActions =
     !isTooling && results.queryResults.records.length
       ? !!(results.queryResults.records[0]?.Id || results.queryResults.records[0]?.attributes.url)
       : false;
-  const output: SalesforceQueryColumnDefinition = {
+  const output: SalesforceQueryColumnDefinition<any> = {
     parentColumns: [],
     subqueryColumns: {},
   };
@@ -261,159 +133,402 @@ export function getColumnDefinitions(results: QueryResults<any>, isTooling: bool
   }
 
   // Base fields
-  const flattenedFields: ColDef[] = getFlattenedFields(results.parsedQuery).map((field, i) =>
-    getColDef(field, queryColumnsByPath, isFieldSubquery(results.parsedQuery?.[i]))
+  const parentColumns: ColumnWithFilter<RowWithKey>[] = getFlattenedFields(results.parsedQuery).map((field, i) =>
+    getQueryResultColumn(field, queryColumnsByPath, isFieldSubquery(results.parsedQuery?.[i]))
   );
 
   // set checkbox as first column
-  if (flattenedFields.length > 0) {
-    flattenedFields.unshift(getCheckboxColumnDef(includeRecordActions));
+  if (parentColumns.length > 0) {
+    parentColumns.unshift({
+      ...SelectColumn,
+      key: SELECT_COLUMN_KEY,
+      resizable: false,
+      formatter: SelectFormatter,
+      headerRenderer: SelectHeaderRenderer,
+    });
+    if (includeRecordActions) {
+      parentColumns.unshift({
+        key: ACTION_COLUMN_KEY,
+        name: '',
+        resizable: false,
+        width: 100,
+        formatter: ActionRenderer,
+        frozen: true,
+        sortable: false,
+      });
+    }
   }
 
-  output.parentColumns = flattenedFields;
+  output.parentColumns = parentColumns;
 
   // subquery fields - only used if user clicks "view data" on a field so that the table can be built properly
   results.parsedQuery?.fields
     .filter((field) => isFieldSubquery(field))
     .forEach((field: FieldSubquery) => {
       output.subqueryColumns[field.subquery.relationshipName] = getFlattenedFields(field.subquery).map((field) =>
-        getColDef(field, queryColumnsByPath, false)
+        getQueryResultColumn(field, queryColumnsByPath, false)
       );
     });
 
   return output;
 }
 
-/**
- * Convert query with results to table column definitions
- * @param field string - full path of field
- * @param queryColumnsByPath map of field with full path (lowercased) to the column definition
- * @param isSubquery one used as a fallback - use the parsed subquery to indicate if this is a subquery
- */
-function getColDef(field: string, queryColumnsByPath: MapOf<QueryResultsColumn>, isSubquery: boolean): ColDef {
-  const colDef: ColDef = {
-    headerName: field,
-    field: field,
-    headerTooltip: field,
-  };
-  const fieldLowercase = field.toLowerCase();
+type Mutable<Type> = {
+  -readonly [Key in keyof Type]: Type[Key];
+};
 
-  // If we have column data from SFDC, then use it
+function getQueryResultColumn(
+  field: string,
+  queryColumnsByPath: MapOf<QueryResultsColumn>,
+  isSubquery: boolean
+): ColumnWithFilter<RowWithKey> {
+  const column: Mutable<ColumnWithFilter<RowWithKey>> = {
+    name: field,
+    key: field,
+    cellClass: 'slds-truncate',
+    resizable: true,
+    sortable: true,
+    width: 200,
+    filters: ['TEXT', 'SET'],
+    headerRenderer: (props) => (
+      <FilterRenderer {...props}>
+        {({ filters, filterSetValues, portalRefForFilters, updateFilter }) => (
+          <HeaderFilter
+            columnKey={column.key}
+            filters={filters}
+            filterSetValues={filterSetValues}
+            portalRefForFilters={portalRefForFilters}
+            updateFilter={updateFilter}
+          />
+        )}
+      </FilterRenderer>
+    ),
+  };
+
+  const fieldLowercase = field.toLowerCase();
   if (queryColumnsByPath[fieldLowercase]) {
     const col = queryColumnsByPath[fieldLowercase];
-    colDef.headerName = col.columnFullPath;
-    colDef.field = col.columnFullPath;
-    colDef.headerTooltip = `${col.columnFullPath} (${queryResultColumnToTypeLabel(col)})`;
-    if (col.booleanType) {
-      colDef.cellRenderer = 'booleanRenderer';
-      colDef.keyCreator = (params) => (params.value ? `true` : 'false');
-      colDef.filterParams = {
-        filters: [{ filter: 'agSetColumnFilter' }],
-      };
-    } else if (col.numberType) {
-      colDef.filterParams = {
-        filters: [{ filter: 'agNumberColumnFilter' }, { filter: 'agSetColumnFilter' }],
-      };
-    } else if (col.apexType === 'Id') {
-      colDef.cellRenderer = 'idLinkRenderer';
-    } else if (col.apexType === 'Date' || col.apexType === 'Datetime') {
-      colDef.valueFormatter = dataTableDateFormatter;
-      colDef.getQuickFilterText = dataTableDateFormatter;
-      colDef.filterParams = {
-        filters: [
-          {
-            filter: 'agDateColumnFilter',
-            filterParams: {
-              defaultOption: 'greaterThan',
-              comparator: DateFilterComparator,
-              buttons: ['clear'],
-            },
-          },
-          {
-            filter: 'agSetColumnFilter',
-            filterParams: {
-              valueFormatter: dataTableDateFormatter,
-              showTooltips: true,
-            },
-          },
-        ],
-      };
-    } else if (col.apexType === 'Time') {
-      colDef.valueFormatter = dataTableTimeFormatter;
-      colDef.getQuickFilterText = dataTableTimeFormatter;
-      // TODO: add time filter
-      // colDef.filter = 'agDateColumnFilter';
-      // colDef.filterParams.comparator = DateFilterComparator;
-    } else if (col.apexType === 'Address') {
-      colDef.valueGetter = dataTableAddressValueGetter(col.columnFullPath);
-      colDef.filterParams = {
-        filters: [
-          {
-            filter: 'agTextColumnFilter',
-          },
-          {
-            filter: 'agSetColumnFilter',
-            filterParams: {
-              valueFormatter: ({ value }: ValueFormatterParams) => (value ? value.replace(REGEX.NEW_LINE, ' ') : value),
-              showTooltips: true,
-            },
-          },
-        ],
-      };
-    } else if (col.apexType === 'Location') {
-      colDef.valueFormatter = dataTableLocationFormatter;
-      colDef.getQuickFilterText = dataTableLocationFormatter;
-    } else if (col.apexType === 'complexvaluetype' || col.columnName === 'Metadata') {
-      colDef.cellRenderer = 'complexDataRenderer';
-      colDef.filter = null;
-    } else if (Array.isArray(col.childColumnPaths)) {
-      colDef.cellRenderer = 'subqueryRenderer';
-      colDef.valueGetter = (params) => params.data[params.colDef.field]?.records;
-      colDef.keyCreator = (params) => (params.value?.length ? `Has Child Records` : 'No Child Records');
-      colDef.filterParams = {
-        filters: [
-          {
-            filter: 'agSetColumnFilter',
-            filterParams: {
-              values: ['Has Child Records', 'No Child Records'],
-            },
-          },
-        ],
-      };
-    }
+    column.name = col.columnFullPath;
+    column.key = col.columnFullPath;
+    updateColumnFromType(column, getColumnTypeFromQueryResultsColumn(col));
+    // if (col.booleanType) {
+    //   column.formatter = BooleanRenderer;
+    //   column.filters = ['BOOLEAN_SET'];
+    //   column.width = 100;
+    // } else if (col.numberType) {
+    //   // TODO: gt, eq, lt
+    //   // column.filterParams = {
+    //   //   filters: [{ filter: 'agNumberColumnFilter' }, { filter: 'agSetColumnFilter' }],
+    //   // };
+    // } else if (col.apexType === 'Id') {
+    //   column.formatter = IdLinkRenderer;
+    //   column.width = 175;
+    // } else if (col.apexType === 'Date' || col.apexType === 'Datetime') {
+    //   column.formatter = ({ column, row }) => dataTableDateFormatter({ value: row[column.key] });
+    //   column.filters = ['DATE', 'SET'];
+    // } else if (col.apexType === 'Time') {
+    //   // column.valueFormatter = dataTableTimeFormatter;
+    //   column.formatter = ({ column, row }) => dataTableTimeFormatter({ value: row[column.key] });
+    //   // column.getQuickFilterText = dataTableTimeFormatter;
+    //   // TODO: add time filter
+    //   // column.filter = 'agDateColumnFilter';
+    //   // column.filterParams.comparator = DateFilterComparator;
+    // } else if (col.apexType === 'Address') {
+    //   column.formatter = ({ column, row }) => dataTableAddressValueFormatter(row[column.key]);
+    //   // column.valueGetter = dataTableAddressValueGetter(col.columnFullPath);
+    //   // column.filterParams = {
+    //   //   filters: [
+    //   //     {
+    //   //       filter: 'agTextColumnFilter',
+    //   //     },
+    //   //     {
+    //   //       filter: 'agSetColumnFilter',
+    //   //       filterParams: {
+    //   //         valueFormatter: ({ value }: ValueFormatterParams) => (value ? value.replace(REGEX.NEW_LINE, ' ') : value),
+    //   //         showTooltips: true,
+    //   //       },
+    //   //     },
+    //   //   ],
+    //   // };
+    // } else if (col.apexType === 'Location') {
+    //   // column.valueFormatter = dataTableLocationFormatter;
+    //   column.formatter = ({ column, row }) => dataTableLocationFormatter({ value: row[column.key] });
+    //   // column.getQuickFilterText = dataTableLocationFormatter;
+    // } else if (col.apexType === 'complexvaluetype' || col.columnName === 'Metadata') {
+    //   column.formatter = ComplexDataRenderer;
+    //   // column.filter = null;
+    // } else if (Array.isArray(col.childColumnPaths)) {
+    //   // TODO:
+    //   column.formatter = SubqueryRenderer;
+    //   column.filters = [];
+    //   // TODO: set filter should be "with records, without records" - kinda like boolean
+    //   // column.valueGetter = (params) => params.data[params.column.field]?.records;
+    //   // column.keyCreator = (params) => (params.value?.length ? `Has Child Records` : 'No Child Records');
+    //   // column.filterParams = {
+    //   //   filters: [
+    //   //     {
+    //   //       filter: 'agSetColumnFilter',
+    //   //       filterParams: {
+    //   //         values: ['Has Child Records', 'No Child Records'],
+    //   //       },
+    //   //     },
+    //   //   ],
+    //   // };
+    // }
   } else {
-    // we do not have any metadata from SFDC, so we will try to detect basic scenarios
     if (field.endsWith('Id')) {
-      colDef.cellRenderer = 'idLinkRenderer';
+      updateColumnFromType(column, 'salesforceId');
     } else if (isSubquery) {
-      colDef.cellRenderer = 'subqueryRenderer';
+      updateColumnFromType(column, 'subquery');
     }
   }
+  return column;
+}
 
-  return colDef;
+function getColumnTypeFromQueryResultsColumn(col: QueryResultsColumn): ColumnType {
+  if (col.booleanType) {
+    return 'boolean';
+  } else if (col.numberType) {
+    return 'number';
+  } else if (col.apexType === 'Id') {
+    return 'salesforceId';
+  } else if (col.apexType === 'Date' || col.apexType === 'Datetime') {
+    return 'date';
+  } else if (col.apexType === 'Time') {
+    return 'time';
+  } else if (col.apexType === 'Address') {
+    return 'address';
+  } else if (col.apexType === 'Location') {
+    return 'location';
+  } else if (col.apexType === 'complexvaluetype' || col.columnName === 'Metadata') {
+    return 'object';
+  } else if (Array.isArray(col.childColumnPaths)) {
+    return 'subquery';
+  }
+  return 'text';
 }
 
 /**
- * Mutates ColDef[]
- * Adds field label to column and flags update via the GridApi
- * Returns modified columns
+ * Based on field type, update formatter and filters
  *
- * @param columnDefinitions
- * @param fieldMetadata
- * @param gridApi
+ * @param fieldType
+ * @param defaultProps
  * @returns
  */
-export function addFieldLabelToColumn(columnDefinitions: ColDef[], fieldMetadata: MapOf<Field>) {
+export function setColumnFromType<T>(key: string, fieldType: ColumnType, defaultProps?: Partial<Mutable<ColumnWithFilter<T>>>) {
+  const column: Partial<Mutable<ColumnWithFilter<T>>> = { ...defaultProps };
+  column.headerRenderer = (props) => (
+    <FilterRenderer {...props}>
+      {({ filters, filterSetValues, portalRefForFilters, updateFilter }) => (
+        <HeaderFilter
+          columnKey={key}
+          filters={filters}
+          filterSetValues={filterSetValues}
+          portalRefForFilters={portalRefForFilters}
+          updateFilter={updateFilter}
+        />
+      )}
+    </FilterRenderer>
+  );
+  updateColumnFromType(column as Mutable<ColumnWithFilter<T>>, fieldType);
+  return column;
+}
+
+/**
+ * Based on field type, update formatters and filters
+ * @param column
+ * @param fieldType
+ */
+export function updateColumnFromType(column: Mutable<ColumnWithFilter<any>>, fieldType: ColumnType) {
+  column.filters = ['TEXT', 'SET'];
+  switch (fieldType) {
+    case 'text':
+      break;
+    case 'number':
+      // TODO:
+      break;
+    case 'subquery':
+      column.filters = ['SET'];
+      column.formatter = SubqueryRenderer;
+      column.getValue = ({ column, row }) => {
+        const results = row[column.key];
+        if (!results || !results.totalSize) {
+          return null;
+        }
+        return `${results.records.length} ${pluralizeFromNumber('record', results.records.length)}`;
+      };
+      break;
+    case 'object':
+      column.filters = [];
+      column.formatter = ComplexDataRenderer;
+      break;
+    case 'location':
+      column.formatter = ({ column, row }) => dataTableLocationFormatter(row[column.key]);
+      column.getValue = ({ column, row }) => dataTableLocationFormatter(row[column.key]);
+      break;
+    case 'date':
+      column.filters = ['DATE', 'SET'];
+      column.formatter = ({ column, row }) => dataTableDateFormatter(row[column.key]);
+      column.getValue = ({ column, row }) => dataTableDateFormatter(row[column.key]);
+      break;
+    case 'time':
+      column.filters = ['TIME', 'SET'];
+      column.formatter = ({ column, row }) => dataTableTimeFormatter(row[column.key]);
+      column.getValue = ({ column, row }) => dataTableTimeFormatter(row[column.key]);
+      break;
+    case 'boolean':
+      column.filters = ['BOOLEAN_SET'];
+      column.formatter = BooleanRenderer;
+      column.width = 100;
+      break;
+    case 'address':
+      column.formatter = ({ column, row }) => dataTableAddressValueFormatter(row[column.key]);
+      column.getValue = ({ column, row }) => dataTableAddressValueFormatter(row[column.key]);
+      break;
+    case 'salesforceId':
+      column.formatter = IdLinkRenderer;
+      column.width = 175;
+      break;
+    default:
+      break;
+  }
+}
+
+export function addFieldLabelToColumn(columnDefinitions: ColumnWithFilter<RowWithKey>[], fieldMetadata: MapOf<Field>) {
   if (fieldMetadata) {
     // set field api name and label
-    columnDefinitions.forEach((col) => {
-      if (fieldMetadata[col.field?.toLowerCase()]?.label) {
-        const label = fieldMetadata[col.field.toLowerCase()].label;
-        col.headerName = `${col.field} (${label})`;
-        col.headerTooltip = `${col.field} - ${label} (${polyfillFieldDefinition(fieldMetadata[col.field.toLowerCase()])})`;
+    return columnDefinitions.map((col) => {
+      if (fieldMetadata[col.key?.toLowerCase()]?.label) {
+        const label = fieldMetadata[col.key.toLowerCase()].label;
+        return {
+          ...col,
+          name: `${col.name} (${label})`,
+        };
       }
+      return col;
     });
-    return columnDefinitions;
+  }
+  return columnDefinitions;
+}
+
+export function resetFilter(type: FilterType, setValues: string[] = []): DataTableFilter {
+  switch (type) {
+    case 'TEXT':
+      return { type, value: '' };
+    case 'NUMBER':
+      return { type, value: null, comparator: 'EQUALS' };
+    case 'DATE':
+      return { type, value: '', comparator: 'GREATER_THAN' };
+    case 'TIME':
+      return { type, value: '', comparator: 'GREATER_THAN' };
+    case 'SET':
+    case 'BOOLEAN_SET':
+      return { type, value: setValues };
+    default:
+      throw new Error(`Filter type ${type} not supported`);
+  }
+}
+
+export function isFilterActive(filter: DataTableFilter, totalValues: number): boolean {
+  switch (filter?.type) {
+    case 'TEXT':
+      return !!filter.value;
+    case 'NUMBER':
+      return isNumber(filter.value) || !!filter.value;
+    case 'DATE':
+      return !!filter.value; // TODO: is valid date
+    case 'TIME':
+      return !!filter.value;
+    case 'SET':
+      return (filter.value?.length || 0) < totalValues;
+    case 'BOOLEAN_SET':
+      return (filter.value?.length || 0) !== 2;
+    default:
+      return false;
+  }
+}
+
+export function filterRecord(filter: DataTableFilter, value: any): boolean {
+  switch (filter?.type) {
+    case 'TEXT': {
+      if (!isString(value)) {
+        return false;
+      }
+      return value.toLowerCase().includes(filter.value.toLowerCase());
+    }
+    case 'NUMBER': {
+      const filterValue = Number(filter.value);
+      if (!isNumber(value)) {
+        return false;
+      }
+      switch (filter.comparator) {
+        case 'GREATER_THAN':
+          return value > filterValue;
+        case 'LESS_THAN':
+          return value < filterValue;
+        case 'EQUALS':
+        default:
+          return value === filterValue;
+      }
+    }
+    case 'DATE': {
+      if (!value) {
+        return false;
+      }
+      const dateFilter = startOfDay(parseISO(filter.value));
+      let date: Date;
+      if (value.length === 21) {
+        date = parseDate(value, DATE_FORMATS.YYYY_MM_DD_HH_mm_ss_a, new Date());
+      } else {
+        date = startOfDay(parseISO(value));
+      }
+      if (!isDateValid(date)) {
+        return false;
+      }
+      switch (filter.comparator) {
+        case 'GREATER_THAN':
+          return isAfter(date, dateFilter);
+        case 'LESS_THAN':
+          return isBefore(date, dateFilter);
+        case 'EQUALS':
+        default:
+          return isSameDay(date, dateFilter);
+      }
+    }
+    case 'TIME': {
+      if (!value) {
+        return false;
+      }
+      const dateFilter = startOfMinute(parseDate(filter.value, DATE_FORMATS.HH_MM_SS_SSSS, new Date()));
+      const date = startOfMinute(parseDate(value, DATE_FORMATS.HH_MM_SS_a, new Date()));
+      if (!isDateValid(dateFilter) || !isDateValid(date)) {
+        return false;
+      }
+      switch (filter.comparator) {
+        case 'GREATER_THAN':
+          return isAfter(date, dateFilter);
+        case 'LESS_THAN':
+          return isBefore(date, dateFilter);
+        case 'EQUALS':
+        default:
+          return isSameDay(date, dateFilter);
+      }
+    }
+    case 'BOOLEAN_SET': {
+      if (!filter.value.length) {
+        return false;
+      } else if (filter.value.length === 2) {
+        return true;
+      }
+      const filterValue = ensureBoolean(filter.value[0]);
+      return value === ensureBoolean(filterValue);
+    }
+    case 'SET': {
+      const includeNulls = filter.value.includes(EMPTY_FIELD);
+      return (includeNulls && isNil(value)) || (!isNil(value) && filter.value.includes(String(value)));
+    }
+    default:
+      return false;
   }
 }
 
@@ -449,58 +564,6 @@ export function getSubqueryModalTagline(parentRecord: any) {
   return currModalTagline;
 }
 
-export function handleCellKeydown(props: CellKeyDownEvent) {
-  const { event } = props;
-  if (event && isEnterKey(event as any)) {
-    handleCellDoubleClicked(props);
-  }
-  props.event.preventDefault();
-}
-
-export function processCellForClipboard({ value }: ProcessCellForExportParams) {
-  return getValueForExcel(value);
-}
-
-export function handleCellDoubleClicked(props: CellEvent) {
-  const { api, column, colDef, value, node } = props;
-  if (typeof value === 'undefined' || value === null || colDef.cellRenderer === 'agGroupCellRenderer') {
-    return;
-  }
-  let copiedValue = value;
-  if (Array.isArray(value)) {
-    copiedValue = JSON.stringify(value);
-  } else if (typeof colDef.valueFormatter === 'function') {
-    copiedValue = colDef.valueFormatter(props);
-  }
-  if (typeof copiedValue === 'object') {
-    copiedValue = JSON.stringify(value);
-  }
-  const didCopy = copy(copiedValue);
-  if (didCopy) {
-    api.flashCells({
-      rowNodes: [node],
-      columns: [column],
-      flashDelay: 0,
-      fadeDelay: 100,
-    });
-  }
-}
-
-export function getContextMenuItems({ api }: GetContextMenuItemsParams): (string | MenuItemDef)[] {
-  return [
-    'autoSizeAll',
-    {
-      name: 'Copy without headers',
-      action: () => api.copySelectedRangeToClipboard({ includeHeaders: false }),
-    },
-    {
-      name: 'Copy',
-      shortcut: copyShortcut,
-      action: () => api.copySelectedRangeToClipboard({ includeHeaders: false }),
-    },
-  ];
-}
-
 /**
  * Some URLS from salesforce do not allow accessing from id, but have varying URL structures
  * Also, some url paths are not allowed as redirect urls and are flagged to be skipped
@@ -522,10 +585,32 @@ export function getSfdcRetUrl(id: string, record: any): { skipFrontDoorAuth: boo
   }
 }
 
-export function isColumnGroupDef(val: any): val is ColGroupDef {
-  return Array.isArray(val.children);
-}
-
-export function isColumnDef(val: any): val is ColGroupDef {
-  return !Array.isArray(val.children);
+/**
+ * Get text to allow for global search filtering
+ */
+export function getSearchTextByRow<T>(rows: T[], columns: ColumnWithFilter<T>[], getRowKey: (row: T) => string): Record<string, string> {
+  const output: Record<string, string> = {};
+  if (Array.isArray(rows)) {
+    rows.forEach((row) => {
+      const key = getRowKey(row);
+      if (key) {
+        columns.forEach((column) => {
+          if (column.key) {
+            let value = row[column.key];
+            if (column.getValue) {
+              value = column.getValue({ row, column });
+            }
+            if (!isNil(value) && !isObject(value)) {
+              let filterValue = String(value);
+              if (filterValue === '[object Object]') {
+                filterValue = JSON.stringify(value);
+              }
+              output[key] = `${output[key] || ''}${filterValue.toLowerCase()}`;
+            }
+          }
+        });
+      }
+    });
+  }
+  return output;
 }

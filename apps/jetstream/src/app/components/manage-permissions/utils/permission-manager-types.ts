@@ -78,6 +78,7 @@ export interface PermissionTableCell<T = PermissionTableFieldCellPermission | Pe
   sobject: string;
   apiName: string;
   label: string;
+  tableLabel: string;
   permissions: MapOf<T>;
 }
 
@@ -88,6 +89,10 @@ export interface PermissionTableObjectCell extends PermissionTableCell<Permissio
 export interface PermissionTableFieldCell extends PermissionTableCell<PermissionTableFieldCellPermission> {
   type: string;
   allowEditPermission: boolean;
+}
+
+export interface PermissionTableSummaryRow {
+  type: 'HEADING' | 'ACTION';
 }
 
 export interface PermissionTableObjectCellPermissionBase<T = ObjectPermissionItem | FieldPermissionItem> {
@@ -132,7 +137,6 @@ export interface DirtyRow<T> {
 
 export interface ManagePermissionsEditorTableRef {
   resetChanges: () => void;
-  resetRows: () => void;
 }
 
 export interface PermissionObjectSaveData {
@@ -145,4 +149,12 @@ export interface PermissionFieldSaveData {
   permissionSaveResults: PermissionSaveResults<FieldPermissionRecordForSave, PermissionTableFieldCellPermission>[];
   recordsToInsert: FieldPermissionRecordForSave[];
   recordsToUpdate: FieldPermissionRecordForSave[];
+}
+
+export interface PermissionManagerTableContext {
+  type: PermissionType;
+  rows: (PermissionTableObjectCell | PermissionTableFieldCell)[];
+  onRowAction: (action: 'selectAll' | 'unselectAll' | 'reset', columnKey: string) => void;
+  onColumnAction: (action: 'selectAll' | 'unselectAll' | 'reset', columnKey: string) => void;
+  onBulkAction: (rows: (PermissionTableObjectCell | PermissionTableFieldCell)[]) => void;
 }

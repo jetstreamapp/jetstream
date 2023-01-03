@@ -40,6 +40,7 @@ export interface PicklistProps {
   // choose contents to ensure full width display
   containerDisplay?: 'block' | 'flex' | 'inline' | 'inline-block' | 'contents';
   label: string;
+  hideLabel?: boolean;
   labelHelp?: string;
   helpText?: React.ReactNode | string;
   hasError?: boolean;
@@ -69,6 +70,7 @@ export const Picklist = forwardRef<any, PicklistProps>(
       dropdownIcon = 'down',
       containerDisplay,
       label,
+      hideLabel,
       labelHelp,
       helpText,
       hasError,
@@ -308,7 +310,7 @@ export const Picklist = forwardRef<any, PicklistProps>(
     return (
       <OutsideClickHandler display={containerDisplay} onOutsideClick={() => setIsOpen(false)}>
         <div className={classNames('slds-form-element', className, { 'slds-has-error': hasError })}>
-          <label className="slds-form-element__label" htmlFor={comboboxId}>
+          <label className={classNames('slds-form-element__label', { 'slds-assistive-text': hideLabel })} htmlFor={comboboxId}>
             {isRequired && (
               <abbr className="slds-required" title="required">
                 *{' '}

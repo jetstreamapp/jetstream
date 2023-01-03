@@ -1,16 +1,19 @@
-import { ColDef } from '@ag-grid-community/core';
-import { query } from '@jetstream/shared/data';
+import { css } from '@emotion/react';
 import { logger } from '@jetstream/shared/client-logger';
+import { query } from '@jetstream/shared/data';
 import { formatNumber } from '@jetstream/shared/ui-utils';
 import { InsertUpdateUpsertDelete, SalesforceOrgUi } from '@jetstream/types';
-import { Alert, AutoFullHeightContainer, DataTable, Grid, GridCol, Spinner } from '@jetstream/ui';
+import { Alert, AutoFullHeightContainer, DataTable, getColumnsForGenericTable, Grid, GridCol, RowWithKey, Spinner } from '@jetstream/ui';
 import { DescribeGlobalSObjectResult } from 'jsforce';
 import isNil from 'lodash/isNil';
-import { Fragment, FunctionComponent, useEffect, useRef, useState } from 'react';
+import { FunctionComponent, useEffect, useRef, useState } from 'react';
+import { Column } from 'react-data-grid';
 import { useRecoilState } from 'recoil';
 import * as fromLoadRecordsState from '../load-records.state';
 
 const NUM_COLUMN = '_num';
+
+const getRowId = ({ _num }: any) => _num;
 
 export interface LoadRecordsDataPreviewProps {
   selectedOrg: SalesforceOrgUi;
@@ -55,22 +58,11 @@ function getLoadDescription(loadType: InsertUpdateUpsertDelete, totalRecordCount
   );
 }
 
-function getColumnDefinitions(headers: string[]): ColDef[] {
-  const colDefs = headers.map(
-    (header): ColDef => ({
-      headerName: header,
-      field: header,
-      valueGetter: (params) => params.data[header],
-    })
-  );
-
-  colDefs.unshift({
-    headerName: '#',
-    field: NUM_COLUMN,
-    width: 75,
-  });
-
-  return colDefs;
+function getColumnDefinitions(headers: string[]): Column<RowWithKey>[] {
+  return getColumnsForGenericTable([
+    { key: NUM_COLUMN, label: '#', columnProps: { width: 75, filters: [] } },
+    ...headers.map((header) => ({ key: header, label: header, columnProps: { width: 100 } })),
+  ]);
 }
 
 export const LoadRecordsDataPreview: FunctionComponent<LoadRecordsDataPreviewProps> = ({
@@ -83,8 +75,8 @@ export const LoadRecordsDataPreview: FunctionComponent<LoadRecordsDataPreviewPro
   const isMounted = useRef(null);
   const [totalRecordCount, setTotalRecordCount] = useRecoilState(fromLoadRecordsState.loadExistingRecordCount);
   const [omitTotalRecordCount, setOmitTotalRecordCount] = useState(true);
-  const [columns, setColumns] = useState<ColDef[]>(null);
-  const [rows, setRows] = useState<any[]>(null);
+  const [columns, setColumns] = useState<Column<RowWithKey>[]>(null);
+  const [rows, setRows] = useState<RowWithKey[]>(null);
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
@@ -100,7 +92,7 @@ export const LoadRecordsDataPreview: FunctionComponent<LoadRecordsDataPreviewPro
         const sobjectName = selectedSObject.name;
         try {
           setLoading(true);
-          // TODO: we could use recordCount API: {{_endpoint}}/services/data/v{{version}}/limits/recordCount?sObjects=Account,Contact
+          // TODO: we could use recordCount API: :ENDPOINT/services/data/v{{version}}/limits/recordCount?sObjects=Account,Contact
           // TODO: this could be moved into a custom hook
           const results = await query(selectedOrg, `SELECT COUNT() FROM ${sobjectName}`);
           if (!isMounted.current || selectedSObject?.name !== sobjectName) {
@@ -112,6 +104,7 @@ export const LoadRecordsDataPreview: FunctionComponent<LoadRecordsDataPreviewPro
           logger.warn('[ERROR] Unable to get total record count', ex);
         } finally {
           if (!isMounted.current || selectedSObject?.name !== sobjectName) {
+            // eslint-disable-next-line no-unsafe-finally
             return;
           }
           setLoading(false);
@@ -154,14 +147,19 @@ export const LoadRecordsDataPreview: FunctionComponent<LoadRecordsDataPreviewPro
             </div>
           )}
         </GridCol>
-        <GridCol>
+        <GridCol className="slds-is-relative">
           {columns && rows && (
-            <Fragment>
+            <div
+              css={css`
+                position: absolute;
+                max-width: 100%;
+              `}
+            >
               <div className="slds-text-heading_small">File Preview</div>
               <AutoFullHeightContainer fillHeight setHeightAttr bottomBuffer={25}>
-                <DataTable columns={columns} data={rows} />
+                <DataTable allowReorder columns={columns} data={rows} getRowKey={getRowId} />
               </AutoFullHeightContainer>
-            </Fragment>
+            </div>
           )}
         </GridCol>
       </Grid>

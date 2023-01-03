@@ -102,10 +102,12 @@ export function multiWordStringFilter(value: string): (value: string, index: num
   };
 }
 
-export function orderObjectsBy<T>(items: T[], field: keyof T, order: 'asc' | 'desc' = 'asc'): T[] {
+export function orderObjectsBy<T>(items: T[], fields: keyof T | [keyof T], order: 'asc' | 'desc' | ('asc' | 'desc')[] = 'asc'): T[] {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const orderByItereeFn = (item: T) => (isString(item[field]) ? (item[field] as any).toLowerCase() : item[field]);
-  return orderBy(items, [orderByItereeFn], [order]);
+  fields = Array.isArray(fields) ? fields : [fields];
+  order = Array.isArray(order) ? order : [order];
+  const orderByItereeFn = fields.map((field) => (item: T) => isString(item[field]) ? (item[field] as any).toLowerCase() : item[field]);
+  return orderBy(items, orderByItereeFn, order);
 }
 
 export function orderStringsBy(items: string[], order: 'asc' | 'desc' = 'asc'): string[] {
@@ -135,13 +137,17 @@ export function flattenRecords(records: Record[], fields: string[]): MapOf<strin
   return records.map((record) => flattenRecord(record, fields));
 }
 
-export function flattenRecord(record: Record, fields: string[]): MapOf<string> {
+export function flattenRecord(record: Record, fields: string[], flattenSubquery = true): MapOf<string> {
   return fields.reduce((obj, field) => {
     const value = lodashGet(record, field);
     if (isObject(value)) {
       // Subquery records have nested "records" values
       if (Array.isArray(value['records'])) {
-        obj[field] = JSON.stringify(value['records']).replace(REGEX.LEADING_TRAILING_QUOTES, '');
+        if (flattenSubquery) {
+          obj[field] = JSON.stringify(value['records']).replace(REGEX.LEADING_TRAILING_QUOTES, '');
+        } else {
+          obj[field] = value;
+        }
       } else {
         obj[field] = JSON.stringify(value).replace(REGEX.LEADING_TRAILING_QUOTES, '');
       }

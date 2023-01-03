@@ -1,16 +1,15 @@
-import { ColDef, ColGroupDef } from '@ag-grid-community/core';
 import { excelWorkbookToArrayBuffer, getMaxWidthFromColumnContent } from '@jetstream/shared/ui-utils';
-
+import { ColumnWithFilter } from '@jetstream/ui';
 import * as XLSX from 'xlsx';
-import { PermissionTableFieldCell, PermissionTableObjectCell } from './permission-manager-types';
+import { PermissionTableFieldCell, PermissionTableObjectCell, PermissionTableSummaryRow } from './permission-manager-types';
 
-function isColGroupDef(value: any): value is ColGroupDef {
-  return Array.isArray(value.children);
-}
+type ObjectOrFieldColumn =
+  | ColumnWithFilter<PermissionTableObjectCell, PermissionTableSummaryRow>
+  | ColumnWithFilter<PermissionTableFieldCell, PermissionTableSummaryRow>;
 
 export function generateExcelWorkbookFromTable(
-  objectData: { columns: (ColDef | ColGroupDef)[]; rows: PermissionTableObjectCell[] },
-  fieldData: { columns: (ColDef | ColGroupDef)[]; rows: PermissionTableFieldCell[] }
+  objectData: { columns: ObjectOrFieldColumn[]; rows: PermissionTableObjectCell[] },
+  fieldData: { columns: ObjectOrFieldColumn[]; rows: PermissionTableFieldCell[] }
 ) {
   const workbook = XLSX.utils.book_new();
   const objectWorksheet = generateObjectWorksheet(objectData.columns, objectData.rows);
@@ -22,7 +21,7 @@ export function generateExcelWorkbookFromTable(
   return excelWorkbookToArrayBuffer(workbook);
 }
 
-function generateObjectWorksheet(columns: (ColDef | ColGroupDef)[], rows: PermissionTableObjectCell[]) {
+function generateObjectWorksheet(columns: ObjectOrFieldColumn[], rows: PermissionTableObjectCell[]) {
   const merges: XLSX.Range[] = [];
   const header1: string[] = [''];
   const header2: string[] = ['Object'];
@@ -31,9 +30,9 @@ function generateObjectWorksheet(columns: (ColDef | ColGroupDef)[], rows: Permis
   const permissionKeys = [];
 
   columns.forEach((col) => {
-    if (isColGroupDef(col)) {
+    if (col.colSpan) {
       // header 1
-      header1.push(col.headerName);
+      header1.push(col.name as string);
       header1.push('');
       header1.push('');
       header1.push('');
@@ -52,7 +51,7 @@ function generateObjectWorksheet(columns: (ColDef | ColGroupDef)[], rows: Permis
       header2.push('View All');
       header2.push('Modify All');
       // keep track of group order to ensure same across all rows
-      permissionKeys.push(col.groupId);
+      permissionKeys.push(col.key.split('-')[0]);
     }
   });
 
@@ -76,7 +75,7 @@ function generateObjectWorksheet(columns: (ColDef | ColGroupDef)[], rows: Permis
   return worksheet;
 }
 
-function generateFieldWorksheet(columns: (ColDef | ColGroupDef)[], rows: PermissionTableFieldCell[]) {
+function generateFieldWorksheet(columns: ObjectOrFieldColumn[], rows: PermissionTableFieldCell[]) {
   const merges: XLSX.Range[] = [];
   const header1: string[] = ['', '', ''];
   const header2: string[] = ['Object', 'Field Api Name', 'Field Label'];
@@ -85,9 +84,9 @@ function generateFieldWorksheet(columns: (ColDef | ColGroupDef)[], rows: Permiss
   const permissionKeys = [];
 
   columns.forEach((col) => {
-    if (isColGroupDef(col)) {
+    if (col.colSpan) {
       // header 1
-      header1.push(col.headerName);
+      header1.push(col.name as string);
       header1.push('');
       // merge the added cells
       merges.push({
@@ -98,7 +97,8 @@ function generateFieldWorksheet(columns: (ColDef | ColGroupDef)[], rows: Permiss
       header2.push('Read Access');
       header2.push('Edit Access');
       // keep track of group order to ensure same across all rows
-      permissionKeys.push(col.groupId);
+      // key: `${id}-${actionKey}`,
+      permissionKeys.push(col.key.split('-')[0]);
     }
   });
 

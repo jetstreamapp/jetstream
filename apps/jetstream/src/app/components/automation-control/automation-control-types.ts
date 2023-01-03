@@ -74,6 +74,12 @@ export interface DeploymentItem {
   deploy: AutomationControlDeploymentItem;
 }
 
+export interface DeploymentItemRow extends TableRowItem {
+  status: DeploymentItemStatus;
+  deploy: AutomationControlDeploymentItem;
+  typeLabel: string;
+}
+
 export type MetadataCompositeResponseSuccessOrError = MetadataCompositeResponseSuccess | MetadataCompositeResponseError[];
 
 export interface MetadataCompositeResponseSuccess {
@@ -328,6 +334,7 @@ export interface TableRow {
   loading: boolean;
   hasError: boolean;
   errorMessage?: string;
+  isExpanded?: boolean;
   items: TableRowItem[];
 }
 
@@ -341,6 +348,7 @@ export interface TableRowItem {
   link: string;
   /** True for Flow and PB as this is controlled from children */
   readOnly: boolean;
+  isExpanded?: boolean;
   isActive: boolean;
   isActiveInitialState: boolean;
   /** only applies to activeVersionId and PB */
@@ -366,6 +374,7 @@ export interface TableRowItemChild {
   label: string;
   lastModifiedBy: string;
   description: string | null;
+  isExpanded?: boolean;
   additionalData: TableItemAdditionalData[];
 }
 

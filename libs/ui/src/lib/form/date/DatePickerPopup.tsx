@@ -118,7 +118,7 @@ export const DatePickerPopup: FunctionComponent<DatePickerPopupProps> = ({
         onPrevYear={() => setCurrYear(currYear - 1)}
         onNextYear={() => setCurrYear(currYear + 1)}
       />
-      <Grid align="spread">
+      <Grid align="spread" className="slds-m-horizontal_small">
         <GridCol>
           <button className="slds-button slds-align_absolute-center slds-text-link" onClick={() => handleClear()} disabled={!selectedDate}>
             Clear
