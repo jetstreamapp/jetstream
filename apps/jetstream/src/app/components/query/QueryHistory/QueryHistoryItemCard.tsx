@@ -73,6 +73,7 @@ export const QueryHistoryItemCard: FunctionComponent<QueryHistoryItemCardProps> 
     <Card
       className="modal-card-override"
       icon={isTooling ? METADATA_QUERY_ICON : SOBJECT_QUERY_ICON}
+      testId={`query-history-${soql}`}
       title={
         <Grid wrap>
           <GridCol size={12}>

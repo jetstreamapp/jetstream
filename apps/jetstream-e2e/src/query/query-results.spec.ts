@@ -1,4 +1,4 @@
-import { test } from '../fixtures/fixtures';
+import { expect, test } from '../fixtures/fixtures';
 
 // test.beforeAll(async ({ page }) => {
 //   await page.goto('/');
@@ -11,7 +11,7 @@ test.beforeEach(async ({ page }) => {
   await page.goto('/');
 });
 
-test('Query builder should work', async ({ queryPage }) => {
+test('Query results should work', async ({ queryPage }) => {
   const query = `SELECT Id, BillingAddress, CreatedBy.Id, CreatedBy.Name, CreatedBy.IsActive, Type FROM Account`;
   await queryPage.gotoResults(query);
 
@@ -19,4 +19,24 @@ test('Query builder should work', async ({ queryPage }) => {
 
   await queryPage.confirmQueryRecords(query);
   // TODO: do some stuff
+});
+
+test('Query history should work from query results page', async ({ queryPage, page }) => {
+  const query1 = `SELECT Id, BillingAddress, CreatedBy.Id, CreatedBy.Name, CreatedBy.IsActive, Type FROM Account`;
+  await queryPage.gotoResults(query1);
+  await queryPage.waitForQueryResults(query1);
+
+  const query2 = `SELECT Id, Name FROM Contact`;
+  await queryPage.gotoResults(query2);
+  await queryPage.waitForQueryResults(query2);
+
+  const query3 = `SELECT Id, Name, IsActive FROM Product2`;
+  await queryPage.gotoResults(query3);
+  await queryPage.waitForQueryResults(query3);
+
+  await queryPage.performQueryHistoryAction(query2, 'EXECUTE');
+  await expect(page.url()).toContain('/query/results');
+
+  // await page.getByRole('button', { name: 'History' }).click();
+  // await page.getByRole('link', { name: 'Execute' }).click();
 });

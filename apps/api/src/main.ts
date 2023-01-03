@@ -13,7 +13,7 @@ import * as Auth0Strategy from 'passport-auth0';
 import { Strategy as CustomStrategy } from 'passport-custom';
 import { join } from 'path';
 import { initSocketServer } from './app/controllers/socket.controller';
-import { apiRoutes, oauthRoutes, platformEventRoutes, staticAuthenticatedRoutes } from './app/routes';
+import { apiRoutes, oauthRoutes, platformEventRoutes, testRoutes, staticAuthenticatedRoutes } from './app/routes';
 import { blockBotByUserAgentMiddleware, logRoute, notFoundMiddleware, setApplicationCookieMiddleware } from './app/routes/route.middleware';
 import { blockBotHandler, healthCheck, uncaughtErrorHandler } from './app/utils/response.handlers';
 import { environment } from './environments/environment';
@@ -259,6 +259,10 @@ app.use('/healthz', healthCheck);
 app.use('/api', logRoute, apiRoutes);
 app.use('/static', logRoute, staticAuthenticatedRoutes); // these are routes that return files or redirect (e.x. NOT JSON)
 app.use('/oauth', logRoute, oauthRoutes); // NOTE: there are also static files with same path
+
+if (ENV.ENVIRONMENT !== 'production') {
+  app.use('/test', logRoute, testRoutes);
+}
 
 // const server = app.listen(Number(ENV.PORT), () => {
 //   logger.info('Listening at http://localhost:' + ENV.PORT);

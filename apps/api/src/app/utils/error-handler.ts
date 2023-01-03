@@ -50,3 +50,18 @@ export class NotFoundError extends Error {
     this.additionalData = additionalData;
   }
 }
+
+export class NotAllowedError extends Error {
+  additionalData?: any;
+  constructor(message: string | Error, additionalData?: any) {
+    logger.warn('[ROUTE NOT ALLOWED]', { message });
+    if (message instanceof Error) {
+      super(message.message);
+      this.name = message.name;
+      this.stack = message.stack;
+    } else {
+      super(message);
+    }
+    this.additionalData = additionalData;
+  }
+}

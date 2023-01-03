@@ -7,6 +7,8 @@ services:
     depends_on:
       - db
       - db_seed
+    ipc: host
+    init: true
     environment:
       NODE_ENV: production
       ENVIRONMENT: production
@@ -34,6 +36,13 @@ services:
       - '9229:9229'
     links:
       - db
+  e2e:
+    build:
+      context: .
+      dockerfile: ./Dockerfile.e2e
+    depends_on:
+      - jetstream
+    ipc: host
   db:
     image: postgres:14.1-alpine
     restart: always

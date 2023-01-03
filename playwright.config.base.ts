@@ -1,4 +1,12 @@
 import { PlaywrightTestConfig } from '@playwright/test';
+import * as dotenv from 'dotenv';
+
+// Ensure tests run via VSCode debugger are run from the root of the repo
+if (process.cwd().endsWith('/apps/jetstream-e2e')) {
+  process.chdir('../../');
+}
+
+dotenv.config();
 
 const baseURL = (process.env.E2E_BASE_URL || 'http://localhost:4200') + '/app/';
 

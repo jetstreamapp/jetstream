@@ -37,16 +37,20 @@ export class QueryPage {
   async setManualQuery(query: string, action?: 'EXECUTE' | 'RESTORE') {
     await this.page.getByRole('menuitem', { name: 'Query Records' }).click();
     await this.page.waitForURL('**/query');
-    await this.page.getByRole('button', { name: 'Manually enter query Manual Query' }).click();
-    await this.page.getByRole('textbox', { name: 'Editor content' }).fill(query);
+    await this.page.getByRole('button', { name: 'Manually enter query Manual Query' }).first().click();
+    const manualQueryPopover = this.page.getByTestId('manual-query');
+    await manualQueryPopover.getByRole('textbox', { name: 'Editor content' }).fill(query);
 
     if (action === 'EXECUTE') {
-      await this.page.getByRole('link', { name: 'Execute' }).click();
+      await Promise.all([
+        this.page.waitForURL('**/query/results', { waitUntil: 'networkidle' }),
+        manualQueryPopover.getByRole('link', { name: 'Execute' }).click(),
+      ]);
     } else if (action === 'RESTORE') {
-      await this.page.getByRole('button', { name: 'Restore' }).click();
-      await this.page.getByRole('button', { name: 'Close dialog' }).click();
+      await manualQueryPopover.getByRole('button', { name: 'Restore' }).click();
+      await manualQueryPopover.getByRole('button', { name: 'Close dialog' }).click();
     } else {
-      await this.page.getByRole('button', { name: 'Close dialog' }).click();
+      await manualQueryPopover.getByRole('button', { name: 'Close dialog' }).click();
     }
   }
 
@@ -167,11 +171,15 @@ export class QueryPage {
     }
   }
 
-  async confirmQueryRecords(query: string) {
-    const { queryResults, columns, parsedQuery } = await this.apiRequestUtils.makeRequest<QueryResults>('POST', `/api/query`, { query });
-
+  async waitForQueryResults(query: string) {
+    const { queryResults } = await this.apiRequestUtils.makeRequest<QueryResults>('POST', `/api/query`, { query });
     await expect(queryResults.records.length).toBeGreaterThan(0);
     await this.page.getByText(`Showing ${formatNumber(queryResults.records.length)} of ${formatNumber(queryResults.totalSize)} records`);
+    return queryResults;
+  }
+
+  async confirmQueryRecords(query: string) {
+    const queryResults = await this.waitForQueryResults(query);
 
     // validate first 15 records - check that id is present
     for (const record of queryResults.records.slice(0, 15)) {
@@ -196,6 +204,19 @@ export class QueryPage {
     ).toBeVisible();
 
     await this.page.getByRole('dialog', { name: 'Query History' }).getByRole('button', { name: 'Close' }).click();
+  }
+
+  async performQueryHistoryAction(query: string, action: 'EXECUTE' | 'RESTORE' | 'SAVE' | 'UN_SAVE' = 'EXECUTE') {
+    let buttonName = 'Execute';
+    if (action === 'RESTORE') {
+      buttonName = 'Restore';
+    } else if (action === 'SAVE') {
+      buttonName = 'Save';
+    } else if (action === 'UN_SAVE') {
+      buttonName = 'Saved';
+    }
+    await this.page.getByRole('button', { name: 'History' }).click();
+    await this.page.getByTestId(`query-history-${query}`).getByRole('link', { name: buttonName }).click();
   }
 
   async submitQuery() {

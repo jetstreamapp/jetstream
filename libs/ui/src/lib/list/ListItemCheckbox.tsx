@@ -32,7 +32,7 @@ export const ListItemCheckbox = memo<ListItemCheckboxProps>(
       <li
         role="option"
         aria-selected={isActive}
-        data-testId={testId}
+        data-testid={testId}
         className={classNames('slds-item', { 'is-active': isActive })}
         tabIndex={-1}
         onClick={handleClick}

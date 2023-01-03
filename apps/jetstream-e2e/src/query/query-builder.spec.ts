@@ -15,21 +15,21 @@ test('Query builder should work with filters', async ({ queryPage }) => {
   await queryPage.goto();
   await queryPage.selectObject('Account');
 
-  await queryPage.selectFields(['Account Name', 'Account Currency', 'Account Description', 'Owner ID']);
+  await queryPage.selectFields(['Account Name', 'Account Description', 'Owner ID']);
 
-  await queryPage.validateQueryByLine(['SELECT Id, Name, CurrencyIsoCode, Description, OwnerId', 'FROM Account']);
+  await queryPage.validateQueryByLine(['SELECT Id, Name, Description, OwnerId', 'FROM Account']);
 
   await queryPage.selectRelatedFields(1, 'User', ['User ID', 'Full Name', 'Account ID', 'Active', 'Address']);
   await queryPage.validateQueryByLine([
     'SELECT Id, Name, CreatedBy.Id, CreatedBy.Name, CreatedBy.AccountId, CreatedBy.Address,',
-    'CreatedBy.IsActive, CurrencyIsoCode, Description, OwnerId',
+    'CreatedBy.IsActive, Description, OwnerId',
     'FROM Account',
   ]);
 
   await queryPage.addFilter({ conditionNumber: 1 }, 'Account Name', 'eq', { type: 'text', value: 'test' });
   await queryPage.validateQueryByLine([
     'SELECT Id, Name, CreatedBy.Id, CreatedBy.Name, CreatedBy.AccountId, CreatedBy.Address,',
-    'CreatedBy.IsActive, CurrencyIsoCode, Description, OwnerId',
+    'CreatedBy.IsActive, Description, OwnerId',
     'FROM Account',
     "WHERE Name = 'test'",
   ]);
@@ -40,7 +40,7 @@ test('Query builder should work with filters', async ({ queryPage }) => {
 
   await queryPage.validateQueryByLine([
     'SELECT Id, Name, CreatedBy.Id, CreatedBy.Name, CreatedBy.AccountId, CreatedBy.Address,',
-    'CreatedBy.IsActive, CurrencyIsoCode, Description, OwnerId',
+    'CreatedBy.IsActive, Description, OwnerId',
     'FROM Account',
     "WHERE Name = 'test'",
     'AND CreatedDate < TODAY',
@@ -52,7 +52,7 @@ test('Query builder should work with filters', async ({ queryPage }) => {
 
   await queryPage.validateQueryByLine([
     'SELECT Id, Name, CreatedBy.Id, CreatedBy.Name, CreatedBy.AccountId, CreatedBy.Address,',
-    'CreatedBy.IsActive, CurrencyIsoCode, Description, OwnerId',
+    'CreatedBy.IsActive, Description, OwnerId',
     'FROM Account',
     "WHERE Name = 'test'",
     'AND CreatedDate < TODAY',
@@ -65,7 +65,7 @@ test('Query builder should work with filters', async ({ queryPage }) => {
 
   await queryPage.validateQueryByLine([
     'SELECT Id, Name, CreatedBy.Id, CreatedBy.Name, CreatedBy.AccountId, CreatedBy.Address,',
-    'CreatedBy.IsActive, CurrencyIsoCode, Description, OwnerId',
+    'CreatedBy.IsActive, Description, OwnerId',
     'FROM Account',
     "WHERE Name = 'test'",
     'AND CreatedDate < TODAY',
@@ -80,7 +80,7 @@ test('Query builder should work with filters', async ({ queryPage }) => {
 
   await queryPage.validateQueryByLine([
     'SELECT Id, Name, CreatedBy.Id, CreatedBy.Name, CreatedBy.AccountId, CreatedBy.Address,',
-    'CreatedBy.IsActive, CurrencyIsoCode, Description, OwnerId',
+    'CreatedBy.IsActive, Description, OwnerId',
     'FROM Account',
     "WHERE Name = 'test'",
     'AND CreatedDate < TODAY',
@@ -100,7 +100,7 @@ test('Query builder should work with subqueries', async ({ queryPage }) => {
 
   await queryPage.selectFields(['Account Name']);
 
-  await queryPage.validateQueryByLine(['SELECT Id, Name, CurrencyIsoCode, Description, OwnerId', 'FROM Account']);
+  await queryPage.validateQueryByLine(['SELECT Id, Name, Description, OwnerId', 'FROM Account']);
 
   await queryPage.selectSubquery('Contacts', ['Contact ID', 'Full Name', 'Account ID', 'Email']);
 
