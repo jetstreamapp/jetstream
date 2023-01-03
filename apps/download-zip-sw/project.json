@@ -1,10 +1,11 @@
 {
+  "name": "download-zip-sw",
   "$schema": "../../node_modules/nx/schemas/project-schema.json",
   "projectType": "application",
   "sourceRoot": "apps/download-zip-sw/src",
   "targets": {
     "build": {
-      "executor": "@nrwl/web:webpack",
+      "executor": "@nrwl/webpack:webpack",
       "outputs": ["{options.outputPath}"],
       "options": {
         "outputPath": "dist/apps/download-zip-sw",
@@ -47,7 +48,7 @@
       "defaultConfiguration": "production"
     },
     "serve": {
-      "executor": "@nrwl/web:dev-server",
+      "executor": "@nrwl/webpack:dev-server",
       "options": {
         "buildTarget": "download-zip-sw:build"
       },
@@ -70,7 +71,7 @@
     },
     "test": {
       "executor": "@nrwl/jest:jest",
-      "outputs": ["coverage/apps/download-zip-sw"],
+      "outputs": ["{workspaceRoot}/coverage/apps/download-zip-sw"],
       "options": {
         "jestConfig": "apps/download-zip-sw/jest.config.ts",
         "passWithNoTests": true

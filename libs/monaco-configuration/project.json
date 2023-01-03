@@ -1,4 +1,5 @@
 {
+  "name": "monaco-configuration",
   "$schema": "../../node_modules/nx/schemas/project-schema.json",
   "sourceRoot": "libs/monaco-configuration/src",
   "projectType": "library",
@@ -11,7 +12,7 @@
     },
     "test": {
       "executor": "@nrwl/jest:jest",
-      "outputs": ["coverage/libs/monaco-configuration"],
+      "outputs": ["{workspaceRoot}/coverage/libs/monaco-configuration"],
       "options": {
         "jestConfig": "libs/monaco-configuration/jest.config.ts",
         "passWithNoTests": true
