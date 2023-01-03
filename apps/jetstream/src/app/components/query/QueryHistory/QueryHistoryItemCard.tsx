@@ -110,7 +110,7 @@ export const QueryHistoryItemCard: FunctionComponent<QueryHistoryItemCardProps> 
           <Link
             className="slds-button slds-button_neutral"
             onClick={() => onExecute(item)}
-            to="results"
+            to="/query/results"
             state={{
               soql,
               isTooling,
