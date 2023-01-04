@@ -15,7 +15,6 @@ export class ApiRequestUtils {
 
   async makeRequest<T>(method: HttpMethod, path: string, data?: unknown): Promise<T> {
     const url = `${this.BASE_URL}${path}`;
-    console.log('url', url);
     const options = {
       data,
       headers: {
@@ -45,9 +44,9 @@ export class ApiRequestUtils {
     }
     const results = await response.json();
     if (!response.ok()) {
-      console.warn('REQUEST ERROR');
+      console.warn('\n\nREQUEST ERROR');
       console.log(results);
-      throw new Error('Request failed');
+      throw new Error('Request failed\n\n');
     }
     return results.data;
   }

@@ -208,15 +208,19 @@ export class QueryPage {
 
   async performQueryHistoryAction(query: string, action: 'EXECUTE' | 'RESTORE' | 'SAVE' | 'UN_SAVE' = 'EXECUTE') {
     let buttonName = 'Execute';
+    let role: 'link' | 'button' = 'link';
     if (action === 'RESTORE') {
       buttonName = 'Restore';
+      role = 'button';
     } else if (action === 'SAVE') {
       buttonName = 'Save';
+      role = 'button';
     } else if (action === 'UN_SAVE') {
       buttonName = 'Saved';
+      role = 'button';
     }
     await this.page.getByRole('button', { name: 'History' }).click();
-    await this.page.getByTestId(`query-history-${query}`).getByRole('link', { name: buttonName }).click();
+    await this.page.getByTestId(`query-history-${query}`).getByRole(role, { name: buttonName }).click();
   }
 
   async submitQuery() {
