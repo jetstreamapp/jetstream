@@ -40,6 +40,21 @@ env:
 jobs:
   build-app-with-nx-cache: # This ensures that the build is cached for more reliable deploy on render
     runs-on: ubuntu-latest
+    container: node:10.18-jessie
+
+    # Create a postgres service
+    # https://docs.github.com/en/actions/using-containerized-services/creating-postgresql-service-containers
+    services:
+      postgres:
+        image: postgres
+        env:
+          POSTGRES_PASSWORD: postgres
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
     steps:
       - uses: actions/checkout@v3
         name: Checkout [master]
