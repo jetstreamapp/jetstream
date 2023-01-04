@@ -52,8 +52,8 @@ jobs:
         with:
           node-version: '16'
           cache: 'yarn'
-      # - name: Install dependencies
-      # run: yarn install --frozen-lockfile
+      - name: Install dependencies
+        run: yarn install --frozen-lockfile
       - name: Install Playwright dependencies
         run: npx playwright install --with-deps
       - name: Build application
