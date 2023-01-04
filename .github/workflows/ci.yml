@@ -19,7 +19,7 @@ env:
   NX_ROLLBAR_KEY: ${{ secrets.NX_ROLLBAR_KEY }}
   NX_AMPLITUDE_KEY: ${{ secrets.NX_AMPLITUDE_KEY }}
 jobs:
-  build-app-with-nx-cache:
+  build-app-with-nx-cache: # This ensures that the build is cached for more reliable deploy on render
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
@@ -34,10 +34,14 @@ jobs:
         with:
           node-version: '16'
           cache: 'yarn'
-      - run: yarn install --frozen-lockfile
-      - run: npx nx-cloud start-ci-run
-      - run: npx nx affected --target=build --parallel --max-parallel=2 --configuration=production
-      - run: npx nx-cloud stop-all-agents
+      - name: install dependencies
+        run: yarn install --frozen-lockfile
+      - name: Init NX CI run
+        run: npx nx-cloud start-ci-run
+      - name: Start NX CI run
+        run: npx nx affected --target=build --parallel --max-parallel=2 --configuration=production
+      - name: Stop CI agents
+        run: npx nx-cloud stop-all-agents
   tests_e2e:
     name: Run end-to-end tests
     needs: build-app-with-nx-cache
@@ -45,8 +49,11 @@ jobs:
     steps:
       - uses: actions/checkout@v3
       - uses: actions/setup-node@v3
-      - name: Install dependencies
-        run: yarn install --frozen-lockfile
+        with:
+          node-version: '16'
+          cache: 'yarn'
+      # - name: Install dependencies
+      # run: yarn install --frozen-lockfile
       - name: Install Playwright dependencies
         run: npx playwright install --with-deps
       - name: Build application
@@ -61,8 +68,8 @@ jobs:
       matrix:
         agent: [1, 2]
     steps:
-      - uses: actions/checkout@v2
-      - uses: actions/setup-node@v2
+      - uses: actions/checkout@v3
+      - uses: actions/setup-node@v3
         with:
           node-version: '16'
           cache: 'yarn'
