@@ -22,7 +22,7 @@ env:
   JETSTREAM_CLIENT_URL: http://localhost:4200/app
   JETSTREAM_SERVER_DOMAIN: localhost:3333
   JETSTREAM_SERVER_URL: http://localhost:3333
-  JESTREAM_POSTGRES_DBURI: postgres://postgres@localhost:5432/postgres
+  JESTREAM_POSTGRES_DBURI: postgres://postgres:postgres@postgres:5432/postgres
   EXAMPLE_USER_OVERRIDE: true
   SFDC_CALLBACK_URL: http://localhost:3333/oauth/sfdc/callback
   SFDC_CONSUMER_KEY: ${{ secrets.SFDC_CONSUMER_KEY }}
@@ -78,6 +78,8 @@ jobs:
         run: npx nx affected --target=build --parallel --max-parallel=2 --configuration=production
       - name: Stop CI agents
         run: npx nx-cloud stop-all-agents
+      - name: Generate and seed DB
+        run: yarn db:generate && yarn db:seed
       - name: Run E2E tests
         run: yarn playwright:test
       - name: Upload test results
