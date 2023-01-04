@@ -14,7 +14,7 @@ export const baseConfig: PlaywrightTestConfig = {
   webServer: process.env.CI
     ? {
         command: 'yarn start:e2e',
-        url: 'http://localhost:3333',
+        port: 3333,
       }
     : undefined,
   retries: 3,

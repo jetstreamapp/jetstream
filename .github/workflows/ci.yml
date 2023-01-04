@@ -29,6 +29,9 @@ env:
   SFDC_CONSUMER_SECRET: ${{ secrets.SFDC_CONSUMER_SECRET }}
   SFDC_ENC_KEY: ${{ secrets.SFDC_ENC_KEY }}
   SFDC_FALLBACK_API_VERSION: '56.0'
+  TEST_E2E_LOGIN_USERNAME: 'integration@jetstream.app.e2e'
+  TEST_E2E_LOGIN_PASSWORD: 'TQC8vgu_fdx@qzu2tng'
+  TEST_E2E_LOGIN_URL: 'https://jetstream-e2e-dev-ed.develop.my.salesforce.com'
   GOOGLE_APP_ID: ${{ secrets.GOOGLE_APP_ID }}
   GOOGLE_API_KEY: ${{ secrets.GOOGLE_API_KEY }}
   GOOGLE_CLIENT_ID: ${{ secrets.GOOGLE_CLIENT_ID }}
