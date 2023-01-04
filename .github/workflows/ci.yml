@@ -1,6 +1,14 @@
 name: CI
 # TODO: figure out specifics of when this should run
-on: [pull_request]
+on:
+  push:
+    branches:
+      - master
+      - test
+  pull_request:
+    branches:
+      - master
+      - test
 env:
   NX_CLOUD_DISTRIBUTED_EXECUTION: true
   CONTENTFUL_HOST: cdn.contentful.com
