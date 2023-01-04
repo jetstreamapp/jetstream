@@ -18,6 +18,22 @@ env:
   NX_AG_GRID_KEY: ${{ secrets.NX_AG_GRID_KEY }}
   NX_ROLLBAR_KEY: ${{ secrets.NX_ROLLBAR_KEY }}
   NX_AMPLITUDE_KEY: ${{ secrets.NX_AMPLITUDE_KEY }}
+  JESTREAM_SESSION_SECRET: ${{ secrets.JESTREAM_SESSION_SECRET }}
+  JETSTREAM_CLIENT_URL: http://localhost:4200/app
+  JETSTREAM_SERVER_DOMAIN: localhost:3333
+  JETSTREAM_SERVER_URL: http://localhost:3333
+  JESTREAM_POSTGRES_DBURI: postgres://postgres@localhost:5432/postgres
+  EXAMPLE_USER_OVERRIDE: true
+  SFDC_CALLBACK_URL: http://localhost:3333/oauth/sfdc/callback
+  SFDC_CONSUMER_KEY: ${{ secrets.SFDC_CONSUMER_KEY }}
+  SFDC_CONSUMER_SECRET: ${{ secrets.SFDC_CONSUMER_SECRET }}
+  SFDC_ENC_KEY: ${{ secrets.SFDC_ENC_KEY }}
+  SFDC_FALLBACK_API_VERSION: '56.0'
+  GOOGLE_APP_ID: ${{ secrets.GOOGLE_APP_ID }}
+  GOOGLE_API_KEY: ${{ secrets.GOOGLE_API_KEY }}
+  GOOGLE_CLIENT_ID: ${{ secrets.GOOGLE_CLIENT_ID }}
+  GOOGLE_CLIENT_SECRET: ${{ secrets.GOOGLE_CLIENT_SECRET }}
+
 jobs:
   build-app-with-nx-cache: # This ensures that the build is cached for more reliable deploy on render
     runs-on: ubuntu-latest
@@ -42,6 +58,8 @@ jobs:
         run: npx playwright install --with-deps
       - name: Start NX CI run
         run: npx nx affected --target=build --parallel --max-parallel=2 --configuration=production
+      - name: Stop CI agents
+        run: npx nx-cloud stop-all-agents
       - name: Run E2E tests
         run: yarn playwright:test
       - name: Upload test results
@@ -50,8 +68,6 @@ jobs:
         with:
           name: playwright-report
           path: playwright-report
-      - name: Stop CI agents
-        run: npx nx-cloud stop-all-agents
   agents:
     runs-on: ubuntu-latest
     name: Agent 1
