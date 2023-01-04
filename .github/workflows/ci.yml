@@ -1,10 +1,6 @@
 name: CI
-on:
-  push:
-    branches:
-      - master
-      - test
-
+# TODO: figure out specifics of when this should run
+on: [pull_request]
 env:
   NX_CLOUD_DISTRIBUTED_EXECUTION: true
   CONTENTFUL_HOST: cdn.contentful.com
@@ -15,7 +11,7 @@ env:
   NX_ROLLBAR_KEY: ${{ secrets.NX_ROLLBAR_KEY }}
   NX_AMPLITUDE_KEY: ${{ secrets.NX_AMPLITUDE_KEY }}
 jobs:
-  master:
+  build-app-with-nx-cache:
     runs-on: ubuntu-latest
     if: ${{ github.event_name != 'pull_request' }}
     steps:
@@ -34,30 +30,22 @@ jobs:
       - run: yarn install --frozen-lockfile
       - run: npx nx-cloud start-ci-run
       - run: npx nx affected --target=build --parallel --max-parallel=2 --configuration=production
-      # - run: npx nx affected --target=test --parallel --max-parallel=2
       - run: npx nx-cloud stop-all-agents
-
-  # pr:
-  #   runs-on: ubuntu-latest
-  #   if: ${{ github.event_name == 'pull_request' }}
-  #   steps:
-  #     - uses: actions/checkout@v2
-  #       with:
-  #         ref: ${{ github.event.pull_request.head.ref }}
-  #         fetch-depth: 0
-  #     - name: Derive appropriate SHAs for base and head for `nx affected` commands
-  #       uses: nrwl/nx-set-shas@v2
-  #       with:
-  #         main-branch-name: 'master'
-  #     - uses: actions/setup-node@v2
-  #       with:
-  #         node-version: '16'
-  #         cache: 'yarn'
-  #     - run: yarn install
-  #     - run: npx nx-cloud start-ci-run
-  #     - run: npx nx affected --target=build --parallel --max-parallel=2
-  #     # - run: npx nx affected --target=test --parallel --max-parallel=2
-  #     - run: npx nx-cloud stop-all-agents
+  tests_e2e:
+    name: Run end-to-end tests
+    needs: build-app-with-nx-cache
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-node@v3
+      - name: Install dependencies
+        run: yarn install --frozen-lockfile
+      - name: Install Playwright dependencies
+        run: npx playwright install --with-deps
+      - name: Build application
+        run: yarn build
+      - name: Run E2E tests
+        run: playwright:test
   agents:
     runs-on: ubuntu-latest
     name: Agent 1

@@ -26,6 +26,7 @@
     "start:ui:storybook": "nx run ui:storybook",
     "start:prod": "pm2-runtime start ecosystem.config.js --env production",
     "start:staging": "pm2-runtime start ecosystem.staging.config.js --env production",
+    "start:e2e": "node dist/apps/api/main.js",
     "start:prod:debug": "pm2-runtime start ecosystem.config.js --env production --node-args=\"--inspect\"",
     "start:cron:inactive-account-warning": "node dist/apps/cron-tasks/inactive-account-warning.js",
     "start:cron:inactive-account-deletion": "node dist/apps/cron-tasks/inactive-account-deletion.js",
