@@ -21,7 +21,7 @@ env:
   JETSTREAM_CLIENT_URL: http://localhost:4200/app
   JETSTREAM_SERVER_DOMAIN: localhost:3333
   JETSTREAM_SERVER_URL: http://localhost:3333
-  JESTREAM_POSTGRES_DBURI: postgres://postgres:postgres@localhost:5432/postgres
+  JESTREAM_POSTGRES_DBURI: postgres://postgres@localhost:5432/postgres
   EXAMPLE_USER_OVERRIDE: true
   SFDC_CALLBACK_URL: http://localhost:3333/oauth/sfdc/callback
   SFDC_CONSUMER_KEY: ${{ secrets.SFDC_CONSUMER_KEY }}
@@ -76,6 +76,17 @@ jobs:
         run: npx playwright install --with-deps
       - name: Start NX CI run
         run: npx nx affected --target=build --parallel --max-parallel=2 --configuration=production
+      - name: TEST DB Connection
+        # Runs a script that creates a PostgreSQL table, populates
+        # the table with data, and then retrieves the data
+        run: node e2e-test.js
+        # Environment variables used by the `client.js` script to create
+        # a new PostgreSQL table.
+        env:
+          # The hostname used to communicate with the PostgreSQL service container
+          POSTGRES_HOST: localhost
+          # The default PostgreSQL port
+          POSTGRES_PORT: 5432
       - name: Generate and seed DB
         run: yarn db:generate && yarn db:seed
       - name: Run E2E tests
