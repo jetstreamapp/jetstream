@@ -38,7 +38,7 @@ env:
   GOOGLE_CLIENT_SECRET: ${{ secrets.GOOGLE_CLIENT_SECRET }}
 
 jobs:
-  build-app-with-nx-cache: # This ensures that the build is cached for more reliable deploy on render
+  build-and-test: # This ensures that the build is cached for more reliable deploy on render
     runs-on: ubuntu-latest
     container: node:10.18-jessie
 
@@ -76,18 +76,19 @@ jobs:
         run: npx playwright install --with-deps
       - name: Start NX CI run
         run: npx nx affected --target=build --parallel --max-parallel=2 --configuration=production
-      - name: Stop CI agents
-        run: npx nx-cloud stop-all-agents
       - name: Generate and seed DB
         run: yarn db:generate && yarn db:seed
       - name: Run E2E tests
         run: yarn playwright:test
       - name: Upload test results
-        if: always()
+        if: always() # This ensures step will always run even if prior steps fail
         uses: actions/upload-artifact@v3
         with:
           name: playwright-report
           path: playwright-report
+      - name: Stop CI agents
+        if: always() # This ensures step will always run even if prior steps fail
+        run: npx nx-cloud stop-all-agents
   agents:
     runs-on: ubuntu-latest
     name: Agent 1
