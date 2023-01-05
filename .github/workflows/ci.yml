@@ -1,5 +1,4 @@
 name: CI
-# TODO: figure out specifics of when this should run
 on:
   push:
     branches:
@@ -22,7 +21,7 @@ env:
   JETSTREAM_CLIENT_URL: http://localhost:4200/app
   JETSTREAM_SERVER_DOMAIN: localhost:3333
   JETSTREAM_SERVER_URL: http://localhost:3333
-  JESTREAM_POSTGRES_DBURI: postgres://postgres:postgres@postgres:5432/postgres
+  JESTREAM_POSTGRES_DBURI: postgres://postgres:postgres@localhost:5432/postgres
   EXAMPLE_USER_OVERRIDE: true
   SFDC_CALLBACK_URL: http://localhost:3333/oauth/sfdc/callback
   SFDC_CONSUMER_KEY: ${{ secrets.SFDC_CONSUMER_KEY }}
@@ -46,8 +45,6 @@ jobs:
     services:
       postgres:
         image: postgres
-        ports:
-          - 5432:5432
         env:
           POSTGRES_PASSWORD: postgres
         options: >-
@@ -55,6 +52,8 @@ jobs:
           --health-interval 10s
           --health-timeout 5s
           --health-retries 5
+        ports:
+          - 5432:5432
 
     steps:
       - uses: actions/checkout@v3
