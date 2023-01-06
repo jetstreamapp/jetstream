@@ -283,7 +283,7 @@ app.use('/codicon.ttf', (req: express.Request, res: express.Response) => {
 app.use('/assets', express.static(join(__dirname, './assets'), { maxAge: '1m' }));
 app.use('/fonts', express.static(join(__dirname, './assets/fonts')));
 
-if (environment.production) {
+if (environment.production || ENV.IS_CI) {
   app.use(express.static(join(__dirname, '../landing/exported')));
   app.use(express.static(join(__dirname, '../jetstream')));
   app.use(
