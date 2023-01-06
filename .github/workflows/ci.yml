@@ -21,7 +21,7 @@ env:
   JETSTREAM_CLIENT_URL: http://localhost:4200/app
   JETSTREAM_SERVER_DOMAIN: localhost:3333
   JETSTREAM_SERVER_URL: http://localhost:3333
-  JESTREAM_POSTGRES_DBURI: postgres://postgres@localhost:5432/postgres
+  JESTREAM_POSTGRES_DBURI: postgres://postgres:postgres@localhost:5432/postgres
   EXAMPLE_USER_OVERRIDE: true
   SFDC_CALLBACK_URL: http://localhost:3333/oauth/sfdc/callback
   SFDC_CONSUMER_KEY: ${{ secrets.SFDC_CONSUMER_KEY }}
@@ -46,7 +46,9 @@ jobs:
       postgres:
         image: postgres
         env:
+          POSTGRES_USER: postgres
           POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: postgres
         options: >-
           --health-cmd pg_isready
           --health-interval 10s
