@@ -89,8 +89,12 @@ jobs:
           POSTGRES_HOST: localhost
           # The default PostgreSQL port
           POSTGRES_PORT: 5432
-      - name: Generate and seed DB
-        run: yarn db:generate && yarn db:seed
+      - name: Run database migration
+        run: yarn db:migrate
+      - name: Generate database
+        run: yarn db:generate
+      # - name: Seed DB
+      #   run: yarn db:seed
       - name: Run E2E tests
         run: yarn playwright:test
       - name: Upload test results
