@@ -78,23 +78,19 @@ jobs:
         run: npx playwright install --with-deps
       - name: Start NX CI run
         run: npx nx affected --target=build --parallel --max-parallel=2 --configuration=production
-      - name: TEST DB Connection
-        # Runs a script that creates a PostgreSQL table, populates
-        # the table with data, and then retrieves the data
-        run: node e2e-test.js
-        # Environment variables used by the `client.js` script to create
-        # a new PostgreSQL table.
-        env:
-          # The hostname used to communicate with the PostgreSQL service container
-          POSTGRES_HOST: localhost
-          # The default PostgreSQL port
-          POSTGRES_PORT: 5432
-      - name: Run database migration
-        run: yarn db:migrate
       - name: Generate database
         run: yarn db:generate
-      # - name: Seed DB
-      #   run: yarn db:seed
+      - name: Run database migration
+        run: yarn db:migrate
+      - name: Seed DB
+        run: yarn db:seed
+        env:
+          POSTGRES_HOST: localhost
+          PGHOST: localhost
+          PGPORT: 5432
+          PGUSER: postgres
+          PGPASSWORD: postgres
+          PGDATABASE: postgres
       - name: Run E2E tests
         run: yarn playwright:test
       - name: Upload test results
