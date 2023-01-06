@@ -18,18 +18,16 @@ export const Navigation = ({ className, inverse, omitLinks = [] }: { className?:
         <div className="flex items-center flex-1">
           <div className="flex items-center justify-between w-full md:w-auto">
             <Link href="/">
-              <a className="">
-                <span className="sr-only">Jetstream</span>
-                <img
-                  className="h-8 w-auto sm:h-10"
-                  src={
-                    inverse
-                      ? 'https://res.cloudinary.com/getjetstream/image/upload/v1634516624/public/jetstream-logo-inverse.svg'
-                      : 'https://res.cloudinary.com/getjetstream/image/upload/v1634516624/public/jetstream-logo.svg'
-                  }
-                  alt="Jetstream logo"
-                />
-              </a>
+              <span className="sr-only">Jetstream</span>
+              <img
+                className="h-8 w-auto sm:h-10"
+                src={
+                  inverse
+                    ? 'https://res.cloudinary.com/getjetstream/image/upload/v1634516624/public/jetstream-logo-inverse.svg'
+                    : 'https://res.cloudinary.com/getjetstream/image/upload/v1634516624/public/jetstream-logo.svg'
+                }
+                alt="Jetstream logo"
+              />
             </Link>
             <div className="-mr-2 flex items-center md:hidden">
               <Popover.Button
@@ -118,8 +116,12 @@ export const Navigation = ({ className, inverse, omitLinks = [] }: { className?:
               {navigation
                 .filter((item) => !omitLinks.includes(item.href))
                 .map((item) => (
-                  <Link key={item.name} href={item.href}>
-                    <a className="block px-3 py-2 rounded-md text-base font-medium text-gray-900 hover:bg-gray-50">{item.name}</a>
+                  <Link
+                    key={item.name}
+                    href={item.href}
+                    className="block px-3 py-2 rounded-md text-base font-medium text-gray-900 hover:bg-gray-50"
+                  >
+                    {item.name}
                   </Link>
                 ))}
             </div>
