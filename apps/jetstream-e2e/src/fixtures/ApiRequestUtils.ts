@@ -8,7 +8,7 @@ export class ApiRequestUtils {
   readonly request: APIRequestContext;
 
   constructor(selectedOrgId: string, request: APIRequestContext) {
-    this.BASE_URL = process.env.E2E_BASE_URL || 'http://localhost:4200';
+    this.BASE_URL = process.env.JETSTREAM_SERVER_URL;
     this.selectedOrgId = selectedOrgId;
     this.request = request;
   }

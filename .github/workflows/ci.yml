@@ -18,7 +18,7 @@ env:
   NX_ROLLBAR_KEY: ${{ secrets.NX_ROLLBAR_KEY }}
   NX_AMPLITUDE_KEY: ${{ secrets.NX_AMPLITUDE_KEY }}
   JESTREAM_SESSION_SECRET: ${{ secrets.JESTREAM_SESSION_SECRET }}
-  JETSTREAM_CLIENT_URL: http://localhost:4200/app
+  JETSTREAM_CLIENT_URL: http://localhost:3333/app
   JETSTREAM_SERVER_DOMAIN: localhost:3333
   JETSTREAM_SERVER_URL: http://localhost:3333
   JESTREAM_POSTGRES_DBURI: postgres://postgres:postgres@localhost:5432/postgres
