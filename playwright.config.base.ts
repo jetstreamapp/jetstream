@@ -11,12 +11,12 @@ dotenv.config();
 const baseURL = (process.env.CI ? 'http://localhost:3333' : 'http://localhost:4200') + '/app/';
 
 export const baseConfig: PlaywrightTestConfig = {
-  webServer: process.env.CI
-    ? {
-        command: 'yarn start:e2e',
-        port: 3333,
-      }
-    : undefined,
+  // webServer: process.env.CI
+  //   ? {
+  //       command: 'yarn start:e2e',
+  //       port: 3333,
+  //     }
+  //   : undefined,
   retries: 3,
   maxFailures: 2,
   timeout: 120000,

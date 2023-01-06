@@ -92,7 +92,7 @@ jobs:
           PGPASSWORD: postgres
           PGDATABASE: postgres
       - name: Run E2E tests
-        run: yarn playwright:test
+        run: yarn playwright:test:with-server
       - name: Upload test results
         if: always() # This ensures step will always run even if prior steps fail
         uses: actions/upload-artifact@v3
