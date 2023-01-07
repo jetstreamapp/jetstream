@@ -136,10 +136,12 @@ export const SobjectListMultiSelect: FunctionComponent<SobjectListMultiSelectPro
               <List
                 ref={ulRef}
                 items={filteredSobjects}
+                isMultiSelect
                 isActive={(item: DescribeGlobalSObjectResult) => selectedSObjectSet.has(item.name)}
                 onSelected={handleSelection}
                 getContent={(item: DescribeGlobalSObjectResult) => ({
                   key: item.name,
+                  testId: item.name,
                   heading: item.label,
                   subheading: item.name,
                 })}

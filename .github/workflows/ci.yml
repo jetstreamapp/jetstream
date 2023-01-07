@@ -4,22 +4,64 @@ on:
     branches:
       - master
       - test
-
+  pull_request:
+    branches:
+      - master
+      - test
 env:
-  NX_CLOUD_DISTRIBUTED_EXECUTION: true
+  AUTH0_CLIENT_ID: 'shxza1G0595Ut2htmAd3NfbMMsqelrE5'
+  AUTH0_CLIENT_SECRET: 'NOT-NEEDED'
+  AUTH0_DOMAIN: 'getjetstream-dev.us.auth0.com'
   CONTENTFUL_HOST: cdn.contentful.com
   CONTENTFUL_SPACE: wuv9tl5d77ll
   CONTENTFUL_TOKEN: ${{ secrets.CONTENTFUL_TOKEN }}
-  NX_AUTH_AUDIENCE: http://getjetstream.app/app_metadata
+  E2E_LOGIN_PASSWORD: ${{ secrets.E2E_LOGIN_PASSWORD }}
+  E2E_LOGIN_URL: 'https://jetstream-e2e-dev-ed.develop.my.salesforce.com'
+  E2E_LOGIN_USERNAME: 'integration@jetstream.app.e2e'
+  EXAMPLE_USER_OVERRIDE: true
+  GOOGLE_API_KEY: ${{ secrets.GOOGLE_API_KEY }}
+  GOOGLE_APP_ID: ${{ secrets.GOOGLE_APP_ID }}
+  GOOGLE_CLIENT_ID: ${{ secrets.GOOGLE_CLIENT_ID }}
+  GOOGLE_CLIENT_SECRET: ${{ secrets.GOOGLE_CLIENT_SECRET }}
+  JESTREAM_POSTGRES_DBURI: postgres://postgres:postgres@localhost:5432/postgres
+  JESTREAM_SESSION_SECRET: ${{ secrets.JESTREAM_SESSION_SECRET }}
+  JETSTREAM_CLIENT_URL: http://localhost:3333/app
+  JETSTREAM_SERVER_DOMAIN: localhost:3333
+  JETSTREAM_SERVER_URL: http://localhost:3333
   NX_AG_GRID_KEY: ${{ secrets.NX_AG_GRID_KEY }}
-  NX_ROLLBAR_KEY: ${{ secrets.NX_ROLLBAR_KEY }}
   NX_AMPLITUDE_KEY: ${{ secrets.NX_AMPLITUDE_KEY }}
+  NX_AUTH_AUDIENCE: http://getjetstream.app/app_metadata
+  NX_CLOUD_DISTRIBUTED_EXECUTION: true
+  NX_ROLLBAR_KEY: ${{ secrets.NX_ROLLBAR_KEY }}
+  SFDC_CALLBACK_URL: http://localhost:3333/oauth/sfdc/callback
+  SFDC_CONSUMER_KEY: ${{ secrets.SFDC_CONSUMER_KEY }}
+  SFDC_CONSUMER_SECRET: ${{ secrets.SFDC_CONSUMER_SECRET }}
+  SFDC_ENC_KEY: ${{ secrets.SFDC_ENC_KEY }}
+  SFDC_FALLBACK_API_VERSION: '56.0'
+
 jobs:
-  master:
+  build-and-test: # This ensures that the build is cached for more reliable deploy on render
     runs-on: ubuntu-latest
-    if: ${{ github.event_name != 'pull_request' }}
+
+    # Create a postgres service
+    # https://docs.github.com/en/actions/using-containerized-services/creating-postgresql-service-containers
+    services:
+      postgres:
+        image: postgres
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: postgres
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
         name: Checkout [master]
         with:
           fetch-depth: 0
@@ -27,36 +69,42 @@ jobs:
         uses: nrwl/nx-set-shas@v2
         with:
           main-branch-name: 'master'
-      - uses: actions/setup-node@v2
+      - uses: actions/setup-node@v3
         with:
           node-version: '16'
           cache: 'yarn'
-      - run: yarn install --frozen-lockfile
-      - run: npx nx-cloud start-ci-run
-      - run: npx nx affected --target=build --parallel --max-parallel=2 --configuration=production
-      # - run: npx nx affected --target=test --parallel --max-parallel=2
-      - run: npx nx-cloud stop-all-agents
-  # pr:
-  #   runs-on: ubuntu-latest
-  #   if: ${{ github.event_name == 'pull_request' }}
-  #   steps:
-  #     - uses: actions/checkout@v2
-  #       with:
-  #         ref: ${{ github.event.pull_request.head.ref }}
-  #         fetch-depth: 0
-  #     - name: Derive appropriate SHAs for base and head for `nx affected` commands
-  #       uses: nrwl/nx-set-shas@v2
-  #       with:
-  #         main-branch-name: 'master'
-  #     - uses: actions/setup-node@v2
-  #       with:
-  #         node-version: '16'
-  #         cache: 'yarn'
-  #     - run: yarn install
-  #     - run: npx nx-cloud start-ci-run
-  #     - run: npx nx affected --target=build --parallel --max-parallel=2
-  #     # - run: npx nx affected --target=test --parallel --max-parallel=2
-  #     - run: npx nx-cloud stop-all-agents
+      - name: install dependencies
+        run: yarn install --frozen-lockfile
+      - name: Init NX CI run
+        run: npx nx-cloud start-ci-run
+      - name: Install Playwright dependencies
+        run: npx playwright install --with-deps
+      - name: Start NX CI run
+        run: npx nx affected --target=build --parallel --max-parallel=2 --configuration=production
+      - name: Generate database
+        run: yarn db:generate
+      - name: Run database migration
+        run: yarn db:migrate
+      - name: Seed DB
+        run: yarn db:seed
+        env:
+          POSTGRES_HOST: localhost
+          PGHOST: localhost
+          PGPORT: 5432
+          PGUSER: postgres
+          PGPASSWORD: postgres
+          PGDATABASE: postgres
+      - name: Run E2E tests
+        run: yarn playwright:test:with-server
+      - name: Upload test results
+        if: always() # This ensures step will always run even if prior steps fail
+        uses: actions/upload-artifact@v3
+        with:
+          name: playwright-report
+          path: playwright-report
+      - name: Stop CI agents
+        if: always() # This ensures step will always run even if prior steps fail
+        run: npx nx-cloud stop-all-agents
   agents:
     runs-on: ubuntu-latest
     name: Agent 1
@@ -65,8 +113,8 @@ jobs:
       matrix:
         agent: [1, 2]
     steps:
-      - uses: actions/checkout@v2
-      - uses: actions/setup-node@v2
+      - uses: actions/checkout@v3
+      - uses: actions/setup-node@v3
         with:
           node-version: '16'
           cache: 'yarn'

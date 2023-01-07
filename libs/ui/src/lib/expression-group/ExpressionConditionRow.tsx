@@ -294,14 +294,14 @@ export const ExpressionConditionRow: FunctionComponent<ExpressionConditionRowPro
             <div className="slds-col">
               {(!resourceType || resourceType === 'TEXT') && (
                 <Input
-                  id={`value-${row}`}
+                  id={`value-${group || 0}-${row}`}
                   label={valueLabel}
                   helpText={valueLabelHelpText}
                   hasError={false}
                   onClear={() => onChange({ ...selected, value: '' })}
                 >
                   <input
-                    id={`value-${row}`}
+                    id={`value-${group || 0}-${row}`}
                     className="slds-input"
                     value={selectedValue}
                     onChange={(event) => setSelectValue(event.currentTarget.value)}
@@ -310,9 +310,9 @@ export const ExpressionConditionRow: FunctionComponent<ExpressionConditionRowPro
                 </Input>
               )}
               {resourceType === 'TEXTAREA' && (
-                <Textarea id={`value-${row}`} label={valueLabel} helpText="Put each value on a new line" hasError={false}>
+                <Textarea id={`value-${group || 0}-${row}`} label={valueLabel} helpText="Put each value on a new line" hasError={false}>
                   <textarea
-                    id={`value-${row}`}
+                    id={`value-${group || 0}-${row}`}
                     className="slds-textarea"
                     rows={5}
                     value={selectedValue}

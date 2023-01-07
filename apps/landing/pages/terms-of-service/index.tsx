@@ -158,12 +158,7 @@ function TermsOfService() {
         </p>
         <h2>SECTION 10 - PERSONAL INFORMATION</h2>
         <p className="mb-2 pl-2">
-          Your submission of personal information through the store is governed by our{' '}
-          <Link href="/privacy">
-            {/* eslint-disable-next-line jsx-a11y/anchor-is-valid */}
-            <a>Privacy Policy</a>
-          </Link>
-          .
+          Your submission of personal information through the store is governed by our <Link href="/privacy">Privacy Policy</Link>.
         </p>
         <h2>SECTION 11 - ERRORS, INACCURACIES AND OMISSIONS</h2>
         <p className="mb-2 pl-2">

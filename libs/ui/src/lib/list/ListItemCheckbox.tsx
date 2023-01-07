@@ -1,12 +1,13 @@
 import { css } from '@emotion/react';
 import classNames from 'classnames';
 import isString from 'lodash/isString';
-import { memo, RefObject } from 'react';
+import { memo, MouseEvent, RefObject } from 'react';
 import Checkbox from '../form/checkbox/Checkbox';
 import { useHighlightedText } from '../hooks/useHighlightedText';
 
 export interface ListItemCheckboxProps {
   id: string;
+  testId?: string;
   inputRef?: RefObject<HTMLInputElement>;
   heading: string | JSX.Element;
   subheading?: string;
@@ -18,24 +19,31 @@ export interface ListItemCheckboxProps {
 }
 
 export const ListItemCheckbox = memo<ListItemCheckboxProps>(
-  ({ id, inputRef, heading, subheading, isActive, subheadingPlaceholder, searchTerm, highlightText, onSelected }) => {
+  ({ id, testId, inputRef, heading, subheading, isActive, subheadingPlaceholder, searchTerm, highlightText, onSelected }) => {
     const highlightedHeading = useHighlightedText(heading, searchTerm, { className: 'slds-truncate', ignoreHighlight: !highlightText });
     const highlightedSubHeading = useHighlightedText(subheading, searchTerm, {
       ignoreHighlight: !highlightText,
     });
+    function handleClick(ev: MouseEvent<HTMLLIElement>) {
+      ev.stopPropagation();
+      onSelected && onSelected();
+    }
     return (
-      <li className={classNames('slds-item', { 'is-active': isActive })} tabIndex={-1}>
+      <li
+        role="option"
+        aria-selected={isActive}
+        data-testid={testId}
+        className={classNames('slds-item', { 'is-active': isActive })}
+        tabIndex={-1}
+        onClick={handleClick}
+      >
         <div className="slds-grid slds-has-flexi-truncate">
           <div>
             <Checkbox inputRef={inputRef} id={id} checked={!!isActive} label="" hideLabel onChange={() => onSelected && onSelected()} />
           </div>
           <div className="slds-col slds-grow slds-has-flexi-truncate">
-            {isString(heading) ? <span onClick={() => onSelected && onSelected()}>{highlightedHeading}</span> : heading}
-            {subheading && (
-              <span className="slds-text-body_small slds-text-color_weak" onClick={() => onSelected && onSelected()}>
-                {highlightedSubHeading}
-              </span>
-            )}
+            {isString(heading) ? <span>{highlightedHeading}</span> : heading}
+            {subheading && <span className="slds-text-body_small slds-text-color_weak">{highlightedSubHeading}</span>}
             {!subheading && subheadingPlaceholder && (
               <div
                 css={css`

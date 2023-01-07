@@ -102,13 +102,11 @@ export const Footer = ({ omitLinks = [] }: { omitLinks?: string[] }) => (
       <div className="xl:grid xl:grid-cols-3 xl:gap-8">
         <div className="space-y-8 xl:col-span-1">
           <Link href="/">
-            <a>
-              <img
-                className="h-12"
-                src="https://res.cloudinary.com/getjetstream/image/upload/v1634516624/public/jetstream-logo.svg"
-                alt="Jetstream"
-              />
-            </a>
+            <img
+              className="h-12"
+              src="https://res.cloudinary.com/getjetstream/image/upload/v1634516624/public/jetstream-logo.svg"
+              alt="Jetstream"
+            />
           </Link>
           <p className="text-gray-500 text-base">Providing tools to help you get your job done faster.</p>
           {/* <div className="flex space-x-6">
@@ -147,9 +145,8 @@ export const Footer = ({ omitLinks = [] }: { omitLinks?: string[] }) => (
                         </a>
                       )}
                       {!item.target && (
-                        <Link href={item.href}>
-                          {/* eslint-disable-next-line jsx-a11y/anchor-is-valid */}
-                          <a className="text-base text-gray-500 hover:text-gray-900">{item.name}</a>
+                        <Link href={item.href} className="text-base text-gray-500 hover:text-gray-900">
+                          {item.name}
                         </Link>
                       )}
                     </li>
@@ -177,9 +174,8 @@ export const Footer = ({ omitLinks = [] }: { omitLinks?: string[] }) => (
                   .filter((item) => !omitLinks.includes(item.href))
                   .map((item) => (
                     <li key={item.name}>
-                      <Link href={item.href}>
-                        {/* eslint-disable-next-line jsx-a11y/anchor-is-valid */}
-                        <a className="text-base text-gray-500 hover:text-gray-900">{item.name}</a>
+                      <Link href={item.href} className="text-base text-gray-500 hover:text-gray-900">
+                        {item.name}
                       </Link>
                     </li>
                   ))}

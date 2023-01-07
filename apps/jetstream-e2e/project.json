@@ -5,11 +5,11 @@
   "projectType": "application",
   "targets": {
     "e2e": {
-      "executor": "@nrwl/cypress:cypress",
+      "executor": "@mands/nx-playwright:playwright-executor",
       "options": {
-        "cypressConfig": "apps/jetstream-e2e/cypress.json",
-        "tsConfig": "apps/jetstream-e2e/tsconfig.e2e.json",
-        "devServerTarget": "jetstream:serve"
+        "e2eFolder": "apps/jetstream-e2e",
+        "devServerTarget": "jetstream:serve",
+        "packageRunner": "yarn"
       },
       "configurations": {
         "production": {
@@ -17,10 +17,21 @@
         }
       }
     },
+    "ts-check": {
+      "executor": "nx:run-commands",
+      "options": {
+        "commands": [
+          {
+            "command": "tsc --build --force --verbose apps/jetstream-e2e/tsconfig.json"
+          }
+        ]
+      }
+    },
     "lint": {
       "executor": "@nrwl/linter:eslint",
+      "outputs": ["{options.outputFile}"],
       "options": {
-        "lintFilePatterns": ["apps/jetstream-e2e/src/**/*.ts", "apps/jetstream-e2e/src/**/*.js"]
+        "lintFilePatterns": ["apps/jetstream-e2e/**/*.{ts,tsx,js,jsx}"]
       }
     }
   },

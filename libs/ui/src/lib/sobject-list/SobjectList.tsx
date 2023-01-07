@@ -102,6 +102,7 @@ export const SobjectList: FunctionComponent<SobjectListProps> = ({
                 onSelected={(key) => onSelected(sobjects.find((item) => item.name === key))}
                 getContent={(item: DescribeGlobalSObjectResult) => ({
                   key: item.name,
+                  testId: item.name,
                   heading: item.label,
                   subheading: item.name,
                 })}

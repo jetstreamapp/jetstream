@@ -23,6 +23,7 @@ export interface PopoverRef {
 // TODO: add PopoverHeader and PopoverFooter components
 // https://www.lightningdesignsystem.com/components/popovers
 export interface PopoverProps {
+  testId?: string;
   inverseIcons?: boolean;
   classname?: string;
   containerClassName?: string;
@@ -46,6 +47,7 @@ export interface PopoverProps {
 export const Popover = forwardRef<PopoverRef, PopoverProps>(
   (
     {
+      testId,
       classname,
       inverseIcons,
       containerClassName,
@@ -122,6 +124,7 @@ export const Popover = forwardRef<PopoverRef, PopoverProps>(
                 <ConditionalPortal omitPortal={omitPortal} portalRef={portalRef}>
                   <HeadlessPopover.Panel
                     ref={setPopperElement}
+                    data-testid={testId}
                     style={{ ...styles.popper, ...panelStyle }}
                     {...attributes.popper}
                     className={classNames('slds-popover', size ? `slds-popover_${size}` : undefined, containerClassName)}

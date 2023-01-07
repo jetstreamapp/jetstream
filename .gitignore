@@ -51,3 +51,8 @@ package-lock.json
 
 # Next.js
 .next
+
+# Playwright
+**/test-results
+**/playwright-report
+**/playwright/.cache
