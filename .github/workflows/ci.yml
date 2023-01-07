@@ -9,32 +9,35 @@ on:
       - master
       - test
 env:
-  NX_CLOUD_DISTRIBUTED_EXECUTION: true
+  AUTH0_CLIENT_ID: 'shxza1G0595Ut2htmAd3NfbMMsqelrE5'
+  AUTH0_CLIENT_SECRET: 'NOT-NEEDED'
+  AUTH0_DOMAIN: 'getjetstream-dev.us.auth0.com'
   CONTENTFUL_HOST: cdn.contentful.com
   CONTENTFUL_SPACE: wuv9tl5d77ll
   CONTENTFUL_TOKEN: ${{ secrets.CONTENTFUL_TOKEN }}
-  NX_AUTH_AUDIENCE: http://getjetstream.app/app_metadata
-  NX_AG_GRID_KEY: ${{ secrets.NX_AG_GRID_KEY }}
-  NX_ROLLBAR_KEY: ${{ secrets.NX_ROLLBAR_KEY }}
-  NX_AMPLITUDE_KEY: ${{ secrets.NX_AMPLITUDE_KEY }}
+  EXAMPLE_USER_OVERRIDE: true
+  GOOGLE_API_KEY: ${{ secrets.GOOGLE_API_KEY }}
+  GOOGLE_APP_ID: ${{ secrets.GOOGLE_APP_ID }}
+  GOOGLE_CLIENT_ID: ${{ secrets.GOOGLE_CLIENT_ID }}
+  GOOGLE_CLIENT_SECRET: ${{ secrets.GOOGLE_CLIENT_SECRET }}
+  JESTREAM_POSTGRES_DBURI: postgres://postgres:postgres@localhost:5432/postgres
   JESTREAM_SESSION_SECRET: ${{ secrets.JESTREAM_SESSION_SECRET }}
   JETSTREAM_CLIENT_URL: http://localhost:3333/app
   JETSTREAM_SERVER_DOMAIN: localhost:3333
   JETSTREAM_SERVER_URL: http://localhost:3333
-  JESTREAM_POSTGRES_DBURI: postgres://postgres:postgres@localhost:5432/postgres
-  EXAMPLE_USER_OVERRIDE: true
+  NX_AG_GRID_KEY: ${{ secrets.NX_AG_GRID_KEY }}
+  NX_AMPLITUDE_KEY: ${{ secrets.NX_AMPLITUDE_KEY }}
+  NX_AUTH_AUDIENCE: http://getjetstream.app/app_metadata
+  NX_CLOUD_DISTRIBUTED_EXECUTION: true
+  NX_ROLLBAR_KEY: ${{ secrets.NX_ROLLBAR_KEY }}
   SFDC_CALLBACK_URL: http://localhost:3333/oauth/sfdc/callback
   SFDC_CONSUMER_KEY: ${{ secrets.SFDC_CONSUMER_KEY }}
   SFDC_CONSUMER_SECRET: ${{ secrets.SFDC_CONSUMER_SECRET }}
   SFDC_ENC_KEY: ${{ secrets.SFDC_ENC_KEY }}
   SFDC_FALLBACK_API_VERSION: '56.0'
-  TEST_E2E_LOGIN_USERNAME: 'integration@jetstream.app.e2e'
   TEST_E2E_LOGIN_PASSWORD: 'TQC8vgu_fdx@qzu2tng'
   TEST_E2E_LOGIN_URL: 'https://jetstream-e2e-dev-ed.develop.my.salesforce.com'
-  GOOGLE_APP_ID: ${{ secrets.GOOGLE_APP_ID }}
-  GOOGLE_API_KEY: ${{ secrets.GOOGLE_API_KEY }}
-  GOOGLE_CLIENT_ID: ${{ secrets.GOOGLE_CLIENT_ID }}
-  GOOGLE_CLIENT_SECRET: ${{ secrets.GOOGLE_CLIENT_SECRET }}
+  TEST_E2E_LOGIN_USERNAME: 'integration@jetstream.app.e2e'
 
 jobs:
   build-and-test: # This ensures that the build is cached for more reliable deploy on render
