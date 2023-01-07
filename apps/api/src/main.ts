@@ -260,7 +260,7 @@ app.use('/api', logRoute, apiRoutes);
 app.use('/static', logRoute, staticAuthenticatedRoutes); // these are routes that return files or redirect (e.x. NOT JSON)
 app.use('/oauth', logRoute, oauthRoutes); // NOTE: there are also static files with same path
 
-if (ENV.ENVIRONMENT !== 'production') {
+if (ENV.ENVIRONMENT !== 'production' || ENV.IS_CI) {
   app.use('/test', logRoute, testRoutes);
 }
 
