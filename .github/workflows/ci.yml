@@ -15,6 +15,9 @@ env:
   CONTENTFUL_HOST: cdn.contentful.com
   CONTENTFUL_SPACE: wuv9tl5d77ll
   CONTENTFUL_TOKEN: ${{ secrets.CONTENTFUL_TOKEN }}
+  E2E_LOGIN_PASSWORD: ${{ secrets.E2E_LOGIN_PASSWORD }}
+  E2E_LOGIN_URL: 'https://jetstream-e2e-dev-ed.develop.my.salesforce.com'
+  E2E_LOGIN_USERNAME: 'integration@jetstream.app.e2e'
   EXAMPLE_USER_OVERRIDE: true
   GOOGLE_API_KEY: ${{ secrets.GOOGLE_API_KEY }}
   GOOGLE_APP_ID: ${{ secrets.GOOGLE_APP_ID }}
@@ -35,9 +38,6 @@ env:
   SFDC_CONSUMER_SECRET: ${{ secrets.SFDC_CONSUMER_SECRET }}
   SFDC_ENC_KEY: ${{ secrets.SFDC_ENC_KEY }}
   SFDC_FALLBACK_API_VERSION: '56.0'
-  TEST_E2E_LOGIN_PASSWORD: 'TQC8vgu_fdx@qzu2tng'
-  TEST_E2E_LOGIN_URL: 'https://jetstream-e2e-dev-ed.develop.my.salesforce.com'
-  TEST_E2E_LOGIN_USERNAME: 'integration@jetstream.app.e2e'
 
 jobs:
   build-and-test: # This ensures that the build is cached for more reliable deploy on render
