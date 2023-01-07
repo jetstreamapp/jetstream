@@ -4,6 +4,7 @@ import React, { useEffect } from 'react';
 
 import { Navigate, Route, Routes, useLocation } from 'react-router-dom';
 import OrgSelectionRequired from './components/orgs/OrgSelectionRequired';
+import { Excelize } from './components/excelize/Excelize';
 
 const LoadRecords = lazy(() => import('./components/load-records/LoadRecords'));
 const LoadRecordsMultiObject = lazy(() => import('./components/load-records-multi-object/LoadRecordsMultiObject'));
@@ -73,6 +74,7 @@ export const AppRoutes = ({ featureFlags, userProfile }: AppRoutesProps) => {
 
   return (
     <Routes>
+      <Route path="/excelize" element={<Excelize />} />
       <Route
         path="/query"
         element={

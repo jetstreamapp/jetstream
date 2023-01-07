@@ -12869,6 +12869,11 @@ evp_bytestokey@^1.0.0, evp_bytestokey@^1.0.3:
     md5.js "^1.3.4"
     safe-buffer "^5.1.1"
 
+excelize-wasm@^0.0.2:
+  version "0.0.2"
+  resolved "https://registry.yarnpkg.com/excelize-wasm/-/excelize-wasm-0.0.2.tgz#d86c8022d048636b53234de9a15a5d1b7f2aa12b"
+  integrity sha512-OLV/s3WYs7rWwNesGXEoRg5JMC9pnWzB6xdMwUuziivVu6quLb5wIAypA7addzQ8GGOCArGJmtJkBDPAjd1kjw==
+
 exec-sh@^0.3.2:
   version "0.3.6"
   resolved "https://registry.npmjs.org/exec-sh/-/exec-sh-0.3.6.tgz"

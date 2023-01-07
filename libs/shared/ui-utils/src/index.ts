@@ -13,6 +13,7 @@ export * from './lib/hooks/useProfilesAndPermSets';
 export * from './lib/hooks/useRollbar';
 export * from './lib/queries';
 export * from './lib/shared-ui-data-utils';
+export * from './lib/shared-ui-excel';
 export * from './lib/shared-ui-keyboard';
 export * from './lib/shared-ui-query-utils';
 export * from './lib/shared-ui-utils';

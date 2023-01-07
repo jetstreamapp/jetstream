@@ -280,6 +280,7 @@
     "dependency-graph": "^0.11.0",
     "document.contains": "^1.0.1",
     "electron-log": "^4.4.7",
+    "excelize-wasm": "^0.0.2",
     "express": "4.18.1",
     "express-http-proxy": "^1.6.2",
     "express-jwt": "^6.1.0",
