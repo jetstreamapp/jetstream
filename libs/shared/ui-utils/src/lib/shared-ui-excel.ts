@@ -174,12 +174,10 @@ export function addDataToWorksheet(
   const finalRowFinalCol = `${columnAddresses[header.length - 1]}${data.length + 1}`;
 
   if (boldHeader) {
-    const { style, error } = spreadsheet.NewStyle(
-      JSON.stringify({
-        // Border: [{ Type: 'bottom', Color: 'ff0000', Style: 1 }],
-        Font: { Bold: true, Size: 14 },
-      })
-    );
+    const { style, error } = spreadsheet.NewStyle({
+      // Border: [{ Type: 'bottom', Color: 'ff0000', Style: 1 }],
+      Font: { Bold: true, Size: 14 },
+    });
 
     if (!error) {
       spreadsheet.SetCellStyle(sheetName, firstCol, finalCol, style);
@@ -191,17 +189,16 @@ export function addDataToWorksheet(
   // TODO: should we detect columns with long text and wrap them?
 
   if (autoFilter) {
-    spreadsheet.AutoFilter(sheetName, firstCol, finalRowFinalCol, '');
+    // FIXME: this worked in published version but had a different signature
+    spreadsheet.AutoFilter(sheetName, `${firstCol}:${finalRowFinalCol}`, {});
   }
 
   // FIXME: This does not seem to work correctly for some long cells
   // Also, auto-wrap is set but does not work correctly in GSheets (shows applied, but does not wrap without unsetting and re-setting)
   if (autoSizeColumns) {
-    const { style } = spreadsheet.NewStyle(
-      JSON.stringify({
-        Alignment: { WrapText: true },
-      })
-    );
+    const { style } = spreadsheet.NewStyle({
+      Alignment: { WrapText: true },
+    });
     for (let col = 0; col < header.length; col++) {
       const value = clamp(columnContentMaxWidths[col], 10, 200);
 
@@ -219,17 +216,14 @@ export function addDataToWorksheet(
   // freeze header
   if (freezeTopRow) {
     // https://xuri.me/excelize/en/utils.html#SetPanes
-    spreadsheet.SetPanes(
-      sheetName,
-      JSON.stringify({
-        freeze: true,
-        split: false,
-        x_split: 0,
-        y_split: 1,
-        top_left_cell: 'A1',
-        active_pane: 'topLeft',
-      })
-    );
+    spreadsheet.SetPanes(sheetName, {
+      Freeze: true,
+      Split: false,
+      XSplit: 0,
+      YSplit: 1,
+      TopLeftCell: 'A1',
+      ActivePane: 'topLeft',
+    });
   }
 }
 

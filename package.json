@@ -9,7 +9,7 @@
   "version": "0.0.0",
   "license": "PRIVATE",
   "engines": {
-    "node": ">=16 <17"
+    "node": ">=16 <18"
   },
   "scripts": {
     "init:project": "ts-node ./scripts/init-project.ts",
