@@ -54,6 +54,10 @@ export class QueryPage {
     }
   }
 
+  async resetQueryPage() {
+    await this.page.getByRole('button', { name: 'Reset Page' }).click();
+  }
+
   async selectObject(sobjectName: string) {
     await this.sobjectList.getByTestId(sobjectName).click();
     await expect(this.fieldsList).toBeVisible();
