@@ -6,7 +6,7 @@ import { useVirtualizer } from '@tanstack/react-virtual';
 import classNames from 'classnames';
 import formatISO from 'date-fns/formatISO';
 import parseISO from 'date-fns/parseISO';
-import { isFunction } from 'lodash';
+import { isBoolean, isFunction } from 'lodash';
 import { Fragment, FunctionComponent, MutableRefObject, useContext, useEffect, useRef, useState } from 'react';
 import { FormatterProps, GroupFormatterProps, headerRenderer, HeaderRendererProps, useFocusRef, useRowSelection } from 'react-data-grid';
 import { useDrag, useDrop } from 'react-dnd';
@@ -14,12 +14,15 @@ import Checkbox from '../form/checkbox/Checkbox';
 import DatePicker from '../form/date/DatePicker';
 import Input from '../form/input/Input';
 import Picklist from '../form/picklist/Picklist';
+import TimePicker from '../form/time-picker/TimePicker';
 import Modal from '../modal/Modal';
 import Popover, { PopoverRef } from '../popover/Popover';
 import CopyToClipboard from '../widgets/CopyToClipboard';
 import Icon from '../widgets/Icon';
 import SalesforceLogin from '../widgets/SalesforceLogin';
 import Spinner from '../widgets/Spinner';
+import { DataTableFilterContext, DataTableSelectedContext } from './data-table-context';
+import { dataTableDateFormatter } from './data-table-formatters';
 import {
   DataTableBooleanSetFilter,
   DataTableDateFilter,
@@ -30,8 +33,6 @@ import {
   RowWithKey,
 } from './data-table-types';
 import { getRowId, getSfdcRetUrl, isFilterActive, resetFilter } from './data-table-utils';
-import { DataTableFilterContext, DataTableSelectedContext } from './data-table-context';
-import TimePicker from '../form/time-picker/TimePicker';
 
 // CONFIGURATION
 
@@ -480,6 +481,27 @@ export function HeaderTimeFilter({ columnKey, filter, updateFilter }: HeaderTime
 }
 
 // CELL RENDERERS
+/** Generic cell renderer when the type of data is unknown */
+export function GenericRenderer(formatterProps: FormatterProps<RowWithKey>) {
+  const { column, row } = formatterProps;
+
+  if (!row) {
+    return <div />;
+  }
+
+  let value = row[column.key];
+
+  if (value instanceof Date) {
+    value = dataTableDateFormatter(value);
+  } else if (isBoolean(value)) {
+    return <BooleanRenderer {...formatterProps} />;
+  } else if (value && typeof value === 'object') {
+    value = <ComplexDataRenderer {...formatterProps} />;
+  }
+
+  return <div>{value}</div>;
+}
+
 export function SelectFormatter<T>(props: FormatterProps<T>) {
   const { column, row } = props;
   const [isRowSelected, onRowSelectionChange] = useRowSelection();

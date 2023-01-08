@@ -30,6 +30,7 @@ import {
   BooleanRenderer,
   ComplexDataRenderer,
   FilterRenderer,
+  GenericRenderer,
   HeaderFilter,
   IdLinkRenderer,
   SelectFormatter,
@@ -73,6 +74,7 @@ export function getColumnsForGenericTable(
       sortable: true,
       width: 200,
       filters: ['TEXT', 'SET'],
+      formatter: GenericRenderer,
       headerRenderer: (props) => (
         <FilterRenderer {...props}>
           {({ filters, filterSetValues, portalRefForFilters, updateFilter }) => (
