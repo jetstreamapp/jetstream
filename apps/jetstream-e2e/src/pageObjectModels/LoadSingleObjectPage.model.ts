@@ -1,32 +1,22 @@
-import { APIRequestContext, expect, Locator, Page } from '@playwright/test';
-import { QueryFilterOperator } from '@jetstream/types';
-import { isNumber } from 'lodash';
-import { formatNumber } from '@jetstream/shared/ui-utils';
-import { QueryResults } from '@jetstream/api-interfaces';
+import { APIRequestContext, Locator, Page } from '@playwright/test';
 import { ApiRequestUtils } from '../fixtures/ApiRequestUtils';
-import { isRecordWithId } from '@jetstream/shared/utils';
 
-export class LoadPage {
+export class LoadSingleObjectPage {
   readonly apiRequestUtils: ApiRequestUtils;
   readonly page: Page;
   readonly request: APIRequestContext;
   readonly sobjectList: Locator;
-  readonly fieldsList: Locator;
-  readonly soqlQuery: Locator;
-  readonly executeBtn: Locator;
 
   constructor(page: Page, request: APIRequestContext, apiRequestUtils: ApiRequestUtils) {
     this.apiRequestUtils = apiRequestUtils;
     this.page = page;
     this.request = request;
     this.sobjectList = page.getByTestId('sobject-list');
-    this.fieldsList = page.getByTestId('sobject-fields');
-    this.soqlQuery = page.getByText('Generated SOQL');
-    this.executeBtn = page.getByTestId('execute-query-button');
   }
 
   async goto() {
-    await this.page.getByRole('menuitem', { name: 'Load Records' }).click();
+    await this.page.getByRole('button', { name: 'Load Records' }).click();
+    await this.page.getByRole('menuitemcheckbox', { name: 'Load Records to Single Object' }).click();
     await this.page.waitForURL('**/load');
   }
 
@@ -36,12 +26,21 @@ export class LoadPage {
 
   async selectObject(sobjectName: string) {
     await this.sobjectList.getByTestId(sobjectName).click();
-    await expect(this.fieldsList).toBeVisible();
-    await expect(this.soqlQuery).toBeVisible();
   }
 
-  async selectFile() {
+  async selectFile(
+    filePathOrFile:
+      | string
+      | {
+          name: string;
+          mimeType: string;
+          buffer: Buffer;
+        }
+  ) {
+    const fileChooserPromise = this.page.waitForEvent('filechooser');
     await this.page.getByText('Upload File').click();
+    const fileChooser = await fileChooserPromise;
+    await fileChooser.setFiles(filePathOrFile);
   }
 
   async continueToMapFields() {

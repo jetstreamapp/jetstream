@@ -2,7 +2,7 @@ import { test as base } from '@playwright/test';
 import { QueryPage } from '../pageObjectModels/QueryPage.model';
 import { ApiRequestUtils } from './ApiRequestUtils';
 import * as dotenv from 'dotenv';
-import { LoadPage } from '../pageObjectModels/LoadPage.model';
+import { LoadSingleObjectPage } from '../pageObjectModels/LoadSingleObjectPage.model';
 
 // Ensure tests run via VSCode debugger are run from the root of the repo
 if (process.cwd().endsWith('/apps/jetstream-e2e')) {
@@ -14,7 +14,7 @@ dotenv.config();
 type MyFixtures = {
   apiRequestUtils: ApiRequestUtils;
   queryPage: QueryPage;
-  loadPage: LoadPage;
+  loadSingleObjectPage: LoadSingleObjectPage;
 };
 
 // Extend basic test by providing a "todoPage" fixture.
@@ -35,8 +35,8 @@ export const test = base.extend<MyFixtures>({
   queryPage: async ({ page, request, apiRequestUtils }, use) => {
     await use(new QueryPage(page, request, apiRequestUtils));
   },
-  loadPage: async ({ page, request, apiRequestUtils }, use) => {
-    await use(new LoadPage(page, request, apiRequestUtils));
+  loadSingleObjectPage: async ({ page, request, apiRequestUtils }, use) => {
+    await use(new LoadSingleObjectPage(page, request, apiRequestUtils));
   },
 });
 
