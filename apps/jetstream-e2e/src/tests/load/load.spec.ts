@@ -1,6 +1,6 @@
-import { expect, test } from '../../fixtures/fixtures';
+import { parse as parseCsv } from 'papaparse';
 import { join } from 'path';
-import { NODE_STREAM_INPUT, parse as parseCsv } from 'papaparse';
+import { test } from '../../fixtures/fixtures';
 
 test.beforeEach(async ({ page }) => {
   await page.goto('/');
