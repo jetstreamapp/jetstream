@@ -1,5 +1,6 @@
 import { expect, test } from '../../fixtures/fixtures';
 import { join } from 'path';
+import { NODE_STREAM_INPUT, parse as parseCsv } from 'papaparse';
 
 test.beforeEach(async ({ page }) => {
   await page.goto('/');
@@ -8,18 +9,19 @@ test.beforeEach(async ({ page }) => {
 test.describe.configure({ mode: 'parallel' });
 
 test.describe('LOAD RECORDS', () => {
-  test('should load basic file', async ({ loadSingleObjectPage }) => {
-    // TODO:
+  test('Should upload file', async ({ loadSingleObjectPage }) => {
+    const csvFile = join(__dirname, `../../assets/records-Product2.csv`);
+
+    const { data } = parseCsv(csvFile, { header: true });
 
     await loadSingleObjectPage.goto();
-    const csv = join(__dirname, '../../assets/records-Product2.csv');
-    await loadSingleObjectPage.selectFile(csv);
+    await loadSingleObjectPage.chooseObjectAndFile('Product2', csvFile, 'Update');
 
-    /**
-     * ensure warning shows up if file is added before object
-     * "Select an object from the list on the left to continue"
-     *
-     * test other mapping basics
-     */
+    await loadSingleObjectPage.mapFields('Update', 'Product', data.length, 3);
+
+    await loadSingleObjectPage.loadRecords('Batch API');
+    await loadSingleObjectPage.loadRecords('Bulk API', true);
+
+    await loadSingleObjectPage.startOver();
   });
 });

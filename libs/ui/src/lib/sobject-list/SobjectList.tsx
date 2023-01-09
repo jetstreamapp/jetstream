@@ -62,6 +62,7 @@ export const SobjectList: FunctionComponent<SobjectListProps> = ({
     <Fragment>
       {loading && (
         <div
+          data-testid="sobject-list"
           className="slds-is-relative"
           css={css`
             min-height: 50px;
@@ -70,7 +71,7 @@ export const SobjectList: FunctionComponent<SobjectListProps> = ({
           <Spinner />
         </div>
       )}
-      <div>
+      <div data-testid="sobject-list">
         {errorMessage && (
           <p className="slds-p-around_medium slds-text-align_center">
             <span className="slds-text-color_error">There was an error loading objects for the selected org.</span>

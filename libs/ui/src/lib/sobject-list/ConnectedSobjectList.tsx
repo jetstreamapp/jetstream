@@ -118,7 +118,12 @@ export const ConnectedSobjectList: FunctionComponent<ConnectedSobjectListProps> 
         <h2 className="slds-text-heading_medium slds-grow slds-text-align_center">{label}</h2>
         <div>
           <Tooltip id={`sobject-list-refresh-tooltip`} content={lastRefreshed}>
-            <button className="slds-button slds-button_icon slds-button_icon-container" disabled={loading} onClick={handleRefresh}>
+            <button
+              data-testid="sobject-list-refresh"
+              className="slds-button slds-button_icon slds-button_icon-container"
+              disabled={loading}
+              onClick={handleRefresh}
+            >
               <Icon type="utility" icon="refresh" description={`Reload objects`} className="slds-button__icon" omitContainer />
             </button>
           </Tooltip>
