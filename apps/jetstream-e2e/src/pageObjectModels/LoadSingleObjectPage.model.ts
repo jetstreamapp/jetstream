@@ -1,6 +1,4 @@
-import { formatNumber } from '@jetstream/shared/ui-utils';
 import { APIRequestContext, expect, Locator, Page } from '@playwright/test';
-import { join } from 'path';
 import { ApiRequestUtils } from '../fixtures/ApiRequestUtils';
 
 export class LoadSingleObjectPage {
