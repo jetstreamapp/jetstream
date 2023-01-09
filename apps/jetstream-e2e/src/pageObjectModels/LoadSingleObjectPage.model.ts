@@ -51,7 +51,7 @@ export class LoadSingleObjectPage {
 
   async validateHeaderButtonState(startOver: boolean, goBack: boolean, continueToMapFields: boolean) {
     async function validate(enabled: boolean, locator: Locator) {
-      (await enabled) ? expect(locator).toBeEnabled() : expect(locator).toBeDisabled();
+      await (enabled ? expect(locator).toBeEnabled() : expect(locator).toBeDisabled());
     }
     validate(startOver, this.page.getByTestId('start-over-button'));
     validate(goBack, this.page.getByTestId('prev-step-button'));
