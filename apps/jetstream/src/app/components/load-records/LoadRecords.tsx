@@ -346,6 +346,7 @@ export const LoadRecords: FunctionComponent<LoadRecordsProps> = ({ featureFlags 
           <PageHeaderActions colType="actions" buttonType="separate">
             {/* TODO: move to component since there is a bit of logic. */}
             <button
+              data-testid="start-over-button"
               className="slds-button slds-button_neutral"
               disabled={currentStep.idx === 0 || loading}
               onClick={() => handleStartOver()}
@@ -354,6 +355,7 @@ export const LoadRecords: FunctionComponent<LoadRecordsProps> = ({ featureFlags 
               Start Over
             </button>
             <button
+              data-testid="prev-step-button"
               className="slds-button slds-button_neutral"
               disabled={currentStep.idx === 0 || loading}
               onClick={() => handleGoBackToPrev()}
@@ -362,6 +364,7 @@ export const LoadRecords: FunctionComponent<LoadRecordsProps> = ({ featureFlags 
               Go Back To Previous Step
             </button>
             <button
+              data-testid="next-step-button"
               className="slds-button slds-button_brand slds-is-relative"
               disabled={nextStepDisabled || loading}
               onClick={() => changeStep(1)}

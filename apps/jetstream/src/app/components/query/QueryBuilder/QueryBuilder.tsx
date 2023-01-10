@@ -266,7 +266,7 @@ export const QueryBuilder: FunctionComponent<QueryBuilderProps> = () => {
               flex-direction: row;
             `}
           >
-            <div className="slds-p-horizontal_x-small" data-testid="sobject-list">
+            <div className="slds-p-horizontal_x-small">
               <ConnectedSobjectList
                 label={isTooling ? 'Metadata' : 'Objects'}
                 selectedOrg={selectedOrg}

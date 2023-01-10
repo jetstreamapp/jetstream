@@ -143,4 +143,32 @@ test.describe('QUERY BUILDER', () => {
       await expect(queryPage.getSelectedField(field)).toHaveAttribute('aria-selected', 'true');
     }
   });
+
+  test('should reset query', async ({ queryPage }) => {
+    const query = `SELECT Id, Name,
+    (
+      SELECT Id, Name, AccountId, Email
+      FROM Contacts
+    )
+  FROM Account`;
+
+    await queryPage.setManualQuery(query, 'RESTORE');
+
+    // TODO: add other related fields
+
+    await queryPage.validateQueryByLine([
+      'SELECT Id, Name',
+      '(',
+      'SELECT Id, Name, AccountId, Email',
+      'From Contacts',
+      ')',
+      'FROM Account',
+    ]);
+
+    await expect(queryPage.sobjectList.getByTestId('Account')).toHaveAttribute('aria-selected', 'true');
+
+    await queryPage.resetQueryPage();
+
+    await expect(queryPage.sobjectList.getByTestId('Account')).toHaveAttribute('aria-selected', 'false');
+  });
 });

@@ -294,7 +294,12 @@ export const LoadRecordsPerformLoad: FunctionComponent<LoadRecordsPerformLoadPro
           <strong className="slds-m-left_xx-small">{selectedOrg.username}</strong>
         </div>
         <div className="slds-m-top_small">
-          <button className="slds-button slds-button_brand" disabled={hasDataInputError() || loadInProgress} onClick={handleStartLoad}>
+          <button
+            data-testid="start-load"
+            className="slds-button slds-button_brand"
+            disabled={hasDataInputError() || loadInProgress}
+            onClick={handleStartLoad}
+          >
             {loadTypeLabel} <strong className="slds-m-horizontal_xx-small">{numRecordsImpactedLabel}</strong> Records
           </button>
         </div>
