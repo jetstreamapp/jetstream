@@ -49,13 +49,13 @@ export class LoadSingleObjectPage {
     await this.page.waitForURL('**/load');
   }
 
-  async validateHeaderButtonState(startOver: boolean, goBack: boolean, continueToMapFields: boolean) {
+  async validateHeaderButtonState(startOver: boolean, goBack: boolean, nextStep: boolean) {
     async function validate(enabled: boolean, locator: Locator) {
-      await (enabled ? expect(locator).toBeEnabled() : expect(locator).toBeDisabled());
+      enabled ? await expect(locator).toBeEnabled() : await expect(locator).toBeDisabled();
     }
-    validate(startOver, this.page.getByTestId('start-over-button'));
-    validate(goBack, this.page.getByTestId('prev-step-button'));
-    validate(continueToMapFields, this.page.getByTestId('next-step-button'));
+    await validate(startOver, this.page.getByTestId('start-over-button'));
+    await validate(goBack, this.page.getByTestId('prev-step-button'));
+    await validate(nextStep, this.page.getByTestId('next-step-button'));
   }
 
   async chooseObjectAndFile(objectType: string, filename: string, loadType: 'Update' | 'Insert' | 'Upsert' | 'Delete') {
@@ -103,7 +103,7 @@ export class LoadSingleObjectPage {
   async loadRecords(apiType: 'Bulk API' | 'Batch API', isSubsequentLoad = false) {
     // TODO: validate stuff on the page
 
-    this.page.getByText(apiType).nth(1).click();
+    await this.page.getByText(apiType).nth(1).click();
 
     await this.validateHeaderButtonState(true, true, false);
     await this.page.getByTestId('start-load').click();
@@ -114,7 +114,7 @@ export class LoadSingleObjectPage {
     }
 
     // ensure page is in loading state
-    await expect(this.page.getByRole('heading', { name: 'Processing Data' })).toBeVisible();
+    await expect(this.page.getByRole('heading', { name: /(Processing)|(Uploading) Data/ })).toBeVisible({ timeout: 30000 });
     await this.validateHeaderButtonState(false, false, false);
 
     await expect(this.page.getByRole('heading', { name: 'Finished' })).toBeVisible();
