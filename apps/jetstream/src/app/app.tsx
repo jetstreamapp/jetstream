@@ -3,6 +3,8 @@ import { ConfirmationServiceProvider } from '@jetstream/ui';
 // import { initSocket } from '@jetstream/shared/data';
 import { OverlayProvider } from '@react-aria/overlays';
 import { Suspense, useEffect, useState } from 'react';
+import { DndProvider } from 'react-dnd';
+import { HTML5Backend } from 'react-dnd-html5-backend';
 import { ErrorBoundary } from 'react-error-boundary';
 import ModalContainer from 'react-modal-promise';
 import { RecoilRoot } from 'recoil';
@@ -27,13 +29,10 @@ import NotificationsRequestModal from './components/core/NotificationsRequestMod
 export const App = () => {
   const [userProfile, setUserProfile] = useState<UserProfileUi>();
   const [featureFlags, setFeatureFlags] = useState<Set<string>>(new Set());
-  // This was causing feature flag blocked routes to change on reload in local dev
-  // const [routes, setRoutes] = useState<RouteItem[]>(() => ROUTES.filter((route) => !route.flag));
 
   useEffect(() => {
     if (userProfile && userProfile[environment.authAudience]?.featureFlags) {
       const flags = new Set<string>(userProfile[environment.authAudience].featureFlags.flags);
-      // setRoutes(ROUTES.filter((route) => !route.flag || hasFeatureFlagAccess(flags, route.flag)));
       setFeatureFlags(flags);
     }
   }, [userProfile]);
@@ -44,25 +43,25 @@ export const App = () => {
         <Suspense fallback={<AppLoading />}>
           <AppInitializer onUserProfile={setUserProfile}>
             <OverlayProvider>
-              {/* <React.StrictMode> */}
-              <ModalContainer />
-              <AppStateResetOnOrgChange />
-              <AppToast />
-              <LogInitializer />
-              <NotificationsRequestModal featureFlags={featureFlags} loadDelay={10000} />
-              <div>
-                <div data-testid="header">
-                  <HeaderNavbar userProfile={userProfile} featureFlags={featureFlags} />
+              <DndProvider backend={HTML5Backend}>
+                <ModalContainer />
+                <AppStateResetOnOrgChange />
+                <AppToast />
+                <LogInitializer />
+                <NotificationsRequestModal featureFlags={featureFlags} loadDelay={10000} />
+                <div>
+                  <div data-testid="header">
+                    <HeaderNavbar userProfile={userProfile} featureFlags={featureFlags} />
+                  </div>
+                  <div className="app-container slds-p-horizontal_xx-small slds-p-vertical_xx-small" data-testid="content">
+                    <Suspense fallback={<AppLoading />}>
+                      <ErrorBoundary FallbackComponent={ErrorBoundaryFallback}>
+                        <AppRoutes featureFlags={featureFlags} userProfile={userProfile} />
+                      </ErrorBoundary>
+                    </Suspense>
+                  </div>
                 </div>
-                <div className="app-container slds-p-horizontal_xx-small slds-p-vertical_xx-small" data-testid="content">
-                  <Suspense fallback={<AppLoading />}>
-                    <ErrorBoundary FallbackComponent={ErrorBoundaryFallback}>
-                      <AppRoutes featureFlags={featureFlags} userProfile={userProfile} />
-                    </ErrorBoundary>
-                  </Suspense>
-                </div>
-              </div>
-              {/* </React.StrictMode> */}
+              </DndProvider>
             </OverlayProvider>
           </AppInitializer>
         </Suspense>

@@ -6,7 +6,7 @@ test.beforeEach(async ({ page }) => {
 
 test.describe.configure({ mode: 'parallel' });
 
-test.describe('QUERY RESULTS', () => {
+test.describe('QUERY RESULTS', async () => {
   test('should work', async ({ queryPage }) => {
     const query = `SELECT Id, BillingAddress, CreatedBy.Id, CreatedBy.Name, CreatedBy.IsActive, Type FROM Account`;
     await queryPage.gotoResults(query);

@@ -16,8 +16,6 @@ import DataGrid, {
   SortStatusProps,
 } from 'react-data-grid';
 import 'react-data-grid/lib/styles.css';
-import { DndProvider } from 'react-dnd';
-import { HTML5Backend } from 'react-dnd-html5-backend';
 import ContextMenu, { ContextMenuContext, ContextMenuItem } from '../popover/ContextMenu';
 import Icon from '../widgets/Icon';
 import { DataTableFilterContext, DataTableGenericContext } from './data-table-context';
@@ -322,32 +320,30 @@ export const DataTable = <T extends object>({
   }
 
   return (
-    <DndProvider backend={HTML5Backend}>
-      <ContextMenuContext.Provider value={new Map()}>
-        <DataTableGenericContext.Provider value={{ ...context, rows: filteredRows, columns }}>
-          <DataTableFilterContext.Provider
-            value={{
-              filterSetValues,
-              filters,
-              portalRefForFilters: context?.portalRefForFilters,
-              updateFilter,
-            }}
-          >
-            <DataGrid
-              data-id={gridId}
-              className="rdg-light fill-grid"
-              columns={draggableColumns}
-              rows={filteredRows}
-              renderers={renderers}
-              sortColumns={sortColumns}
-              onSortColumnsChange={setSortColumns}
-              rowKeyGetter={getRowKey}
-              defaultColumnOptions={{ resizable: true, sortable: true, ...rest.defaultColumnOptions }}
-              {...rest}
-            />
-          </DataTableFilterContext.Provider>
-        </DataTableGenericContext.Provider>
-      </ContextMenuContext.Provider>
-    </DndProvider>
+    <ContextMenuContext.Provider value={new Map()}>
+      <DataTableGenericContext.Provider value={{ ...context, rows: filteredRows, columns }}>
+        <DataTableFilterContext.Provider
+          value={{
+            filterSetValues,
+            filters,
+            portalRefForFilters: context?.portalRefForFilters,
+            updateFilter,
+          }}
+        >
+          <DataGrid
+            data-id={gridId}
+            className="rdg-light fill-grid"
+            columns={draggableColumns}
+            rows={filteredRows}
+            renderers={renderers}
+            sortColumns={sortColumns}
+            onSortColumnsChange={setSortColumns}
+            rowKeyGetter={getRowKey}
+            defaultColumnOptions={{ resizable: true, sortable: true, ...rest.defaultColumnOptions }}
+            {...rest}
+          />
+        </DataTableFilterContext.Provider>
+      </DataTableGenericContext.Provider>
+    </ContextMenuContext.Provider>
   );
 };
