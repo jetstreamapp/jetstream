@@ -360,6 +360,8 @@ export function HeaderSetFilter({ columnKey, filter, values, updateFilter }: Hea
     updateFilter(columnKey, { ...filter, value: Array.from(newSet) });
   }
 
+  const hasVisibleItems = visibleItems.length > 0;
+
   return (
     <div
       className="slds-grid slds-grid_vertical"
@@ -368,43 +370,48 @@ export function HeaderSetFilter({ columnKey, filter, values, updateFilter }: Hea
       `}
     >
       <SearchInput id={`${columnKey}-filter`} className="slds-p-bottom_x-small" placeholder="Search..." onChange={setSearchTerm} />
-      <Checkbox
-        id={`${columnKey}-select-all`}
-        label="(Select All)"
-        indeterminate={indeterminate}
-        checked={allItemsSelected}
-        onChange={handleSelectAll}
-      />
-      <div ref={parentRef} className="slds-scrollable_y">
-        <div
-          css={css`
-            height: ${rowVirtualizer.getTotalSize()}px;
-            position: relative;
-          `}
-        >
-          {rowVirtualizer.getVirtualItems().map((virtualItem) => (
+      {!hasVisibleItems && <div>No items</div>}
+      {hasVisibleItems && (
+        <>
+          <Checkbox
+            id={`${columnKey}-select-all`}
+            label="(Select All)"
+            indeterminate={indeterminate}
+            checked={allItemsSelected}
+            onChange={handleSelectAll}
+          />
+          <div ref={parentRef} className="slds-scrollable_y">
             <div
-              key={virtualItem.key}
               css={css`
-                position: absolute;
-                top: 0;
-                left: 0;
-                width: 100%;
-                height: ${virtualItem.size}px;
-                transform: translateY(${virtualItem.start}px);
+                height: ${rowVirtualizer.getTotalSize()}px;
+                position: relative;
               `}
             >
-              <Checkbox
-                id={`${columnKey}-${virtualItem.key}`}
-                checkboxClassName="slds-truncate white-space-nowrap"
-                label={visibleItems[virtualItem.index]}
-                checked={selectedValues.has(visibleItems[virtualItem.index])}
-                onChange={(checked) => handleChange(visibleItems[virtualItem.index], checked)}
-              />
+              {rowVirtualizer.getVirtualItems().map((virtualItem) => (
+                <div
+                  key={virtualItem.key}
+                  css={css`
+                    position: absolute;
+                    top: 0;
+                    left: 0;
+                    width: 100%;
+                    height: ${virtualItem.size}px;
+                    transform: translateY(${virtualItem.start}px);
+                  `}
+                >
+                  <Checkbox
+                    id={`${columnKey}-${virtualItem.key}`}
+                    checkboxClassName="slds-truncate white-space-nowrap"
+                    label={visibleItems[virtualItem.index]}
+                    checked={selectedValues.has(visibleItems[virtualItem.index])}
+                    onChange={(checked) => handleChange(visibleItems[virtualItem.index], checked)}
+                  />
+                </div>
+              ))}
             </div>
-          ))}
-        </div>
-      </div>
+          </div>
+        </>
+      )}
     </div>
   );
 }
