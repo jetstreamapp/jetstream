@@ -1,6 +1,7 @@
 import { css } from '@emotion/react';
 import { IconName } from '@jetstream/icon-factory';
 import { useDebounce } from '@jetstream/shared/ui-utils';
+import { multiWordStringFilter } from '@jetstream/shared/utils';
 import { ListItem, SalesforceOrgUi } from '@jetstream/types';
 import { useVirtualizer } from '@tanstack/react-virtual';
 import classNames from 'classnames';
@@ -14,6 +15,7 @@ import Checkbox from '../form/checkbox/Checkbox';
 import DatePicker from '../form/date/DatePicker';
 import Input from '../form/input/Input';
 import Picklist from '../form/picklist/Picklist';
+import SearchInput from '../form/search-input/SearchInput';
 import TimePicker from '../form/time-picker/TimePicker';
 import Modal from '../modal/Modal';
 import Popover, { PopoverRef } from '../popover/Popover';
@@ -310,16 +312,39 @@ interface HeaderSetFilterProps {
 export function HeaderSetFilter({ columnKey, filter, values, updateFilter }: HeaderSetFilterProps) {
   const parentRef = useRef<HTMLDivElement>(null);
   const [selectedValues, setSelectedValues] = useState(() => new Set<string>(filter.value));
+  const [visibleItems, setVisibleItems] = useState(values);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [allItemsSelected, setAllItemsSelected] = useState(true);
+  const [indeterminate, setIndeterminate] = useState(false);
+
+  useEffect(() => {
+    if (searchTerm) {
+      setVisibleItems(values.filter(multiWordStringFilter(searchTerm)));
+    } else {
+      setVisibleItems(values);
+    }
+  }, [searchTerm, values]);
+
+  useEffect(() => {
+    const allItemsSelected = visibleItems.every((item) => selectedValues.has(item));
+    setIndeterminate(!allItemsSelected && visibleItems.some((item) => selectedValues.has(item)));
+    setAllItemsSelected(allItemsSelected);
+  }, [selectedValues, visibleItems]);
 
   const rowVirtualizer = useVirtualizer({
-    count: values.length,
+    count: visibleItems.length,
     getScrollElement: () => parentRef.current,
     estimateSize: () => 20.33,
     overscan: 50,
   });
 
   const handleSelectAll = (checked: boolean) => {
-    const newSet = checked ? new Set(values) : new Set<string>();
+    const newSet = new Set(selectedValues);
+    if (checked) {
+      visibleItems.forEach((item) => newSet.add(item));
+    } else {
+      visibleItems.forEach((item) => newSet.delete(item));
+    }
     setSelectedValues(newSet);
     updateFilter(columnKey, { ...filter, value: Array.from(newSet) });
   };
@@ -342,11 +367,12 @@ export function HeaderSetFilter({ columnKey, filter, values, updateFilter }: Hea
         max-height: 25vh;
       `}
     >
+      <SearchInput id={`${columnKey}-filter`} className="slds-p-bottom_x-small" placeholder="Search..." onChange={setSearchTerm} />
       <Checkbox
         id={`${columnKey}-select-all`}
         label="(Select All)"
-        indeterminate={selectedValues.size > 0 && selectedValues.size < values.length}
-        checked={selectedValues.size === values.length}
+        indeterminate={indeterminate}
+        checked={allItemsSelected}
         onChange={handleSelectAll}
       />
       <div ref={parentRef} className="slds-scrollable_y">
@@ -371,9 +397,9 @@ export function HeaderSetFilter({ columnKey, filter, values, updateFilter }: Hea
               <Checkbox
                 id={`${columnKey}-${virtualItem.key}`}
                 checkboxClassName="slds-truncate white-space-nowrap"
-                label={values[virtualItem.index]}
-                checked={selectedValues.has(values[virtualItem.index])}
-                onChange={(checked) => handleChange(values[virtualItem.index], checked)}
+                label={visibleItems[virtualItem.index]}
+                checked={selectedValues.has(visibleItems[virtualItem.index])}
+                onChange={(checked) => handleChange(visibleItems[virtualItem.index], checked)}
               />
             </div>
           ))}
