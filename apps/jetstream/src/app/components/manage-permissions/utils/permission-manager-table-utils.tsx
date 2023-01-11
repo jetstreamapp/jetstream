@@ -470,6 +470,7 @@ function getColumnForProfileOrPermSet<T extends PermissionType>({
     formatter: ({ column, isCellSelected, row, onRowChange }) => {
       const errorMessage = row.permissions[id].errorMessage;
       const value = row.permissions[id][actionKey as any];
+
       function handleChange(value: boolean) {
         if (permissionType === 'object') {
           const newRow = setObjectValue(actionKey, row as PermissionTableObjectCell, id, value);
@@ -479,13 +480,20 @@ function getColumnForProfileOrPermSet<T extends PermissionType>({
           onRowChange(newRow);
         }
       }
+
+      const disabled = actionKey === 'edit' && !row.allowEditPermission;
+
       return (
-        <div className="slds-align_absolute-center h-100">
+        <div className="slds-align_absolute-center h-100" onClick={() => !disabled && handleChange(!value)}>
           <input
             type="checkbox"
             id={`${row.key}-${id}-${actionKey}`}
             checked={value}
-            onChange={(ev) => handleChange(ev.target.checked)}
+            onChange={(ev) => {
+              ev.stopPropagation();
+              handleChange(ev.target.checked);
+            }}
+            disabled={disabled}
           ></input>
           {/* Rendering this custom checkbox was really slow, lot's of DOM elements */}
           {/* <Checkbox
