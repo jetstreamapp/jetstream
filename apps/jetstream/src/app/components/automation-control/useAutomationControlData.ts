@@ -267,6 +267,7 @@ function reducer(state: State, action: Action): State {
         rows: state.keys.map((rowKey) => rowsByKey[rowKey]),
         rowsByKey,
       };
+      output.visibleRows = getVisibleRows(output.rows, rowsByKey);
       output.dirtyCount = output.rows.reduce((output, row) => output + (isDirty(row) ? 1 : 0), 0);
       return output;
     }
@@ -286,6 +287,8 @@ function reducer(state: State, action: Action): State {
         rows: state.keys.map((rowKey) => rowsByKey[rowKey]),
         rowsByKey,
       };
+      output.visibleRows = getVisibleRows(output.rows, rowsByKey);
+      output.dirtyCount = output.rows.reduce((output, row) => output + (isDirty(row) ? 1 : 0), 0);
       return output;
     }
     case 'RESET': {
@@ -301,6 +304,8 @@ function reducer(state: State, action: Action): State {
         rowsByKey,
         dirtyCount: 0,
       };
+      output.visibleRows = getVisibleRows(output.rows, rowsByKey);
+      output.dirtyCount = output.rows.reduce((output, row) => output + (isDirty(row) ? 1 : 0), 0);
       return output;
     }
     case 'ERROR':
