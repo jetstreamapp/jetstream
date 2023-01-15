@@ -11,7 +11,7 @@ function Privacy() {
         <title>Privacy | Jetstream</title>
         <meta
           name="description"
-          content="Jetstream is a set of tools that supercharge your administration of Salesforce.com. Jetstream is build for administrators, developers, quality assurance, or power users that want to speed up your management of Salesforce. Jetstream comes with an advanced query builder for viewing records, a powerful data loader for making changes to your record data, and many more features!"
+          content="Jetstream is a set of tools that supercharge your administration of Salesforce.com. Jetstream is built for administrators, developers, quality assurance, or power users that want to speed up your management of Salesforce. Jetstream comes with an advanced query builder for viewing records, a powerful data loader for making changes to your record data, and many more features!"
         />
         <link rel="icon" type="image/png" href="/images/favicon.ico"></link>
         <meta charSet="UTF-8" />
