@@ -39,10 +39,24 @@ export const ComboboxWithItems: FunctionComponent<ComboboxWithItemsProps> = ({
 }) => {
   const comboboxRef = useRef<ComboboxPropsRef>();
   const [filterText, setFilterText] = useState<string>('');
-  const [selectedItemLabel, setSelectedItemLabel] = useState<string>(null);
-  const [selectedItemTitle, setSelectedItemTitle] = useState<string>(null);
-  const [selectedItem, setSelectedItem] = useState<ListItem>(null);
+  const [selectedItem, setSelectedItem] = useState<ListItem | null>(() =>
+    selectedItemId ? items.find((item) => item.id === selectedItemId) : null
+  );
   const [visibleItems, setVisibleItems] = useState(items);
+  const [selectedItemLabel, setSelectedItemLabel] = useState<string | null>(() => {
+    if (selectedItem) {
+      const selectedItem = items.find((item) => item.id === selectedItemId);
+      return selectedItem ? selectedItemLabelFn(selectedItem) : null;
+    }
+    return null;
+  });
+  const [selectedItemTitle, setSelectedItemTitle] = useState<string | null>(() => {
+    if (selectedItem) {
+      const selectedItem = items.find((item) => item.id === selectedItemId);
+      return selectedItem ? selectedItemLabelFn(selectedItem) : null;
+    }
+    return null;
+  });
 
   useEffect(() => {
     if (selectedItemId) {

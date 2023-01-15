@@ -50,8 +50,10 @@ export interface PicklistProps {
   placeholder?: string;
   items?: ListItem[];
   groups?: ListItemGroup[];
-  selectedItems?: ListItem[]; // This only applies on initialization, then the component will manage ongoing state
-  selectedItemIds?: string[]; // This only applies on initialization, will be ignored if selectedItems is provided
+  /** Only applies on initialization, then the component will manage ongoing state */
+  selectedItems?: ListItem[];
+  /** Only applies on initialization, will be ignored if selectedItems is provided */
+  selectedItemIds?: string[];
   multiSelection?: boolean;
   omitMultiSelectPills?: boolean;
   allowDeselection?: boolean;
@@ -59,6 +61,21 @@ export interface PicklistProps {
   disabled?: boolean;
   onChange: (selectedItems: ListItem[]) => void;
   onBlur?: () => void;
+}
+
+function getSelectItemText(selectedItemsIdsSet: Set<unknown>, items: ListItem[]) {
+  if (selectedItemsIdsSet.size > 1) {
+    return `${selectedItemsIdsSet.size} Options Selected`;
+  } else if (selectedItemsIdsSet.size === 1) {
+    const foundItem = items.find((item) => selectedItemsIdsSet.has(item.id));
+    if (foundItem) {
+      return foundItem.label;
+    } else {
+      return '';
+    }
+  } else {
+    return '';
+  }
 }
 
 export const Picklist = forwardRef<any, PicklistProps>(
@@ -78,7 +95,7 @@ export const Picklist = forwardRef<any, PicklistProps>(
       errorMessageId,
       errorMessage,
       placeholder,
-      items,
+      items = [],
       groups,
       selectedItems = [],
       selectedItemIds = [],
@@ -96,16 +113,16 @@ export const Picklist = forwardRef<any, PicklistProps>(
     const [comboboxId] = useState<string>(() => uniqueId(id || 'picklist'));
     const [listboxId] = useState<string>(() => uniqueId('listbox'));
     const [isOpen, setIsOpen] = useState<boolean>(false);
-    const [selectedItemText, setSelectedItemText] = useState<string>();
     const [selectedItemsIdsSet, setSelectedItemsIdsSet] = useState<Set<unknown>>(() => {
       let selectedItemIdsSet = new Set();
-      if (selectedItems && selectedItems.length > 0) {
+      if (selectedItems?.length > 0) {
         selectedItemIdsSet = new Set(selectedItems.map((item) => item.id));
-      } else if (selectedItemIds && selectedItemIds.length > 0) {
+      } else if (selectedItemIds?.length > 0) {
         selectedItemIdsSet = new Set(selectedItemIds);
       }
       return selectedItemIdsSet;
     });
+    const [selectedItemText, setSelectedItemText] = useState<string>(() => getSelectItemText(selectedItemsIdsSet, items));
     const scrollLengthClass = useMemo(() => `slds-dropdown_length-${scrollLength || 5}`, [scrollLength]);
     const [focusedItem, setFocusedItem] = useState<number>(null);
     const divContainerEl = useRef<HTMLDivElement>(null);
@@ -152,18 +169,7 @@ export const Picklist = forwardRef<any, PicklistProps>(
     }, [selectedItemsIdsSet]);
 
     useEffect(() => {
-      if (selectedItemsIdsSet.size > 1) {
-        setSelectedItemText(`${selectedItemsIdsSet.size} Options Selected`);
-      } else if (selectedItemsIdsSet.size === 1) {
-        const foundItem = items.find((item) => selectedItemsIdsSet.has(item.id));
-        if (foundItem) {
-          setSelectedItemText(foundItem.label);
-        } else {
-          setSelectedItemText('');
-        }
-      } else {
-        setSelectedItemText('');
-      }
+      setSelectedItemText(getSelectItemText(selectedItemsIdsSet, items));
     }, [selectedItemsIdsSet, items]);
 
     useImperativeHandle(ref, () => {
