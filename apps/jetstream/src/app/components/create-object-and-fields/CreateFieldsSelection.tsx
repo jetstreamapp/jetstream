@@ -1,5 +1,5 @@
 import { css } from '@emotion/react';
-import { useProfilesAndPermSets } from '@jetstream/shared/ui-utils';
+import { useNonInitialEffect, useProfilesAndPermSets } from '@jetstream/shared/ui-utils';
 import { SalesforceOrgUi } from '@jetstream/types';
 import {
   AutoFullHeightContainer,
@@ -38,11 +38,19 @@ export const CreateFieldsSelection: FunctionComponent<CreateFieldsSelectionProps
   const [sobjects, setSobjects] = useRecoilState(fromCreateFieldsState.sObjectsState);
   const [selectedSObjects, setSelectedSObjects] = useRecoilState(fromCreateFieldsState.selectedSObjectsState);
 
-  const profilesAndPermSetsData = useProfilesAndPermSets(selectedOrg);
+  const profilesAndPermSetsData = useProfilesAndPermSets(selectedOrg, profiles, permissionSets);
 
   const hasSelectionsMade = useRecoilValue(fromCreateFieldsState.hasSelectionsMade);
 
+  // Run only on first render
   useEffect(() => {
+    if (!profiles || !permissionSets) {
+      profilesAndPermSetsData.fetchMetadata();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  useNonInitialEffect(() => {
     setProfiles(profilesAndPermSetsData.profiles);
     setPermissionSets(profilesAndPermSetsData.permissionSets);
     // eslint-disable-next-line react-hooks/exhaustive-deps

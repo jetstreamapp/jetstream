@@ -53,14 +53,19 @@ export const ListWithFilterMultiSelect: FunctionComponent<ListWithFilterMultiSel
   errorReattempt,
   onRefresh = NOOP,
 }) => {
-  const [filteredItems, setFilteredItems] = useState<ListItemType[]>(null);
   const [selectedItemsSet, setSelectedItemsSet] = useState<Set<string>>(new Set<string>(selectedItems || []));
   const [searchTerm, setSearchTerm] = useState('');
+  const [filteredItems, setFilteredItems] = useState<ListItemType[]>(() => {
+    if (items?.length > 0 && searchTerm) {
+      return items.filter(multiWordObjectFilter(['label', 'secondaryLabel'], searchTerm));
+    }
+    return items;
+  });
   const [searchInputId] = useState(`${labels.descriptorSingular}-filter-${Date.now()}`);
   const ulRef = createRef<HTMLUListElement>();
 
   useEffect(() => {
-    if (items && items.length > 0 && searchTerm) {
+    if (items?.length > 0 && searchTerm) {
       setFilteredItems(items.filter(multiWordObjectFilter(['label', 'secondaryLabel'], searchTerm)));
     } else {
       setFilteredItems(items);
@@ -126,7 +131,7 @@ export const ListWithFilterMultiSelect: FunctionComponent<ListWithFilterMultiSel
           )}
         </Fragment>
       )}
-      {loading && (
+      {loading && !items && (
         <div
           className="slds-is-relative"
           css={css`
@@ -147,7 +152,7 @@ export const ListWithFilterMultiSelect: FunctionComponent<ListWithFilterMultiSel
             )}
           </p>
         )}
-        {!loading && !hasError && items && filteredItems && (
+        {!hasError && items && filteredItems && (
           <Fragment>
             <div className="slds-p-bottom--xx-small">
               <SearchInput

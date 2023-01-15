@@ -18,15 +18,23 @@ let _lastRefreshed: string;
  * Gets profile and permission set ListItems
  *
  * @param selectedOrg
+ * @param _initProfiles initial data for profiles
+ * @param _initPermissionSets initial data for permission sets
  * @returns
  */
-export function useProfilesAndPermSets(selectedOrg: SalesforceOrgUi) {
+export function useProfilesAndPermSets(
+  selectedOrg: SalesforceOrgUi,
+  _initProfiles?: ListItem<string, PermissionSetWithProfileRecord>[],
+  _initPermissionSets?: ListItem<string, PermissionSetNoProfileRecord>[]
+) {
   const isMounted = useRef(null);
   const [lastRefreshed, setLastRefreshed] = useState<string>(_lastRefreshed);
   const [loading, setLoading] = useState(false);
   const [hasError, setHasError] = useState(false);
-  const [profiles, setProfiles] = useState<ListItem<string, PermissionSetWithProfileRecord>[]>([]);
-  const [permissionSets, setPermissionSets] = useState<ListItem<string, PermissionSetNoProfileRecord>[]>([]);
+  const [profiles, setProfiles] = useState<ListItem<string, PermissionSetWithProfileRecord>[] | null>(_initProfiles || null);
+  const [permissionSets, setPermissionSets] = useState<ListItem<string, PermissionSetNoProfileRecord>[] | null>(
+    _initPermissionSets || null
+  );
 
   useEffect(() => {
     isMounted.current = true;
@@ -62,6 +70,8 @@ export function useProfilesAndPermSets(selectedOrg: SalesforceOrgUi) {
 
         if (skipCache) {
           clearCacheForOrg(selectedOrg);
+          setProfiles(null);
+          setPermissionSets(null);
         }
 
         const { data, cache } = await queryWithCache<PermissionSetRecord>(

@@ -1,5 +1,5 @@
 import { css } from '@emotion/react';
-import { useProfilesAndPermSets } from '@jetstream/shared/ui-utils';
+import { useNonInitialEffect, useProfilesAndPermSets } from '@jetstream/shared/ui-utils';
 import { SalesforceOrgUi } from '@jetstream/types';
 import {
   AutoFullHeightContainer,
@@ -43,13 +43,19 @@ export const ManagePermissionsSelection: FunctionComponent<ManagePermissionsSele
   const resetObjectPermissionMap = useResetRecoilState(fromPermissionsState.objectPermissionMap);
   const resetFieldPermissionMap = useResetRecoilState(fromPermissionsState.fieldPermissionMap);
 
-  // TODO: what about if we already have profiles and perm sets from state?
-  // TODO: when loading, should we clear prior selections?
-  const profilesAndPermSetsData = useProfilesAndPermSets(selectedOrg);
+  const profilesAndPermSetsData = useProfilesAndPermSets(selectedOrg, profiles, permissionSets);
 
   const hasSelectionsMade = useRecoilValue(fromPermissionsState.hasSelectionsMade);
 
+  // Run only on first render
   useEffect(() => {
+    if (!profiles || !permissionSets) {
+      profilesAndPermSetsData.fetchMetadata();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  useNonInitialEffect(() => {
     setProfiles(profilesAndPermSetsData.profiles);
     setPermissionSets(profilesAndPermSetsData.permissionSets);
     // eslint-disable-next-line react-hooks/exhaustive-deps

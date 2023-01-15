@@ -24,9 +24,6 @@ export const MassUpdateRecords: FunctionComponent = () => {
     return () => {
       setPriorSelectedOrg(selectedOrg.uniqueId);
       resetRowMapState();
-      resetSObjectsState();
-      resetSelectedSObjectsState();
-      resetSObjectsState();
       resetSelectedSObjectsState();
     };
   }, []);
@@ -40,12 +37,8 @@ export const MassUpdateRecords: FunctionComponent = () => {
       resetRowMapState();
       resetSObjectsState();
       resetSelectedSObjectsState();
-      resetSObjectsState();
-      resetSelectedSObjectsState();
     } else if (!selectedOrg) {
       resetRowMapState();
-      resetSObjectsState();
-      resetSelectedSObjectsState();
       resetSObjectsState();
       resetSelectedSObjectsState();
     }
