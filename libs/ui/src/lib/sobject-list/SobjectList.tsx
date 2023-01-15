@@ -33,8 +33,14 @@ export const SobjectList: FunctionComponent<SobjectListProps> = ({
   errorReattempt,
   onSearchTermChange,
 }) => {
-  const [filteredSobjects, setFilteredSobjects] = useState<DescribeGlobalSObjectResult[]>(null);
   const [searchTerm, setSearchTerm] = useState(initialSearchTerm || '');
+  const [filteredSobjects, setFilteredSobjects] = useState<DescribeGlobalSObjectResult[]>(() => {
+    if (sobjects && sobjects.length > 0 && searchTerm) {
+      return sobjects.filter(multiWordObjectFilter(['name', 'label'], searchTerm));
+    } else {
+      return sobjects;
+    }
+  });
   const [searchInputId] = useState(`object-filter-${Date.now()}`);
   const ulRef = createRef<HTMLUListElement>();
 
@@ -60,7 +66,7 @@ export const SobjectList: FunctionComponent<SobjectListProps> = ({
 
   return (
     <Fragment>
-      {loading && (
+      {loading && !sobjects && (
         <div
           data-testid="sobject-list"
           className="slds-is-relative"
@@ -80,7 +86,7 @@ export const SobjectList: FunctionComponent<SobjectListProps> = ({
             </button>
           </p>
         )}
-        {!loading && sobjects && filteredSobjects && (
+        {sobjects && filteredSobjects && (
           <Fragment>
             <div className="slds-p-bottom--xx-small">
               <SearchInput
