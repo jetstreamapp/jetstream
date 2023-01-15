@@ -72,7 +72,7 @@ export interface SObjectExportProps {}
 export const SObjectExport: FunctionComponent<SObjectExportProps> = () => {
   const selectedOrg = useRecoilValue<SalesforceOrgUi>(selectedOrgState);
   const rollbar = useRollbar();
-  const [{ serverUrl, defaultApiVersion, google_apiKey, google_appId, google_clientId }] = useRecoilState(applicationCookieState);
+  const [{ google_apiKey, google_appId, google_clientId }] = useRecoilState(applicationCookieState);
 
   const picklistWorksheetLayoutRef = useRef<PicklistRef>();
   const picklistHeaderOptionRef = useRef<PicklistRef>();
