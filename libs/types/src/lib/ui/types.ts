@@ -83,6 +83,7 @@ export interface FieldWrapper {
 // Tabs / Accordion / etc..
 export interface UiSection {
   id: string;
+  testId?: string;
   title: string | ReactNode;
   titleSummaryIfCollapsed?: string | ReactNode; // extra title content to show if collapsed
   titleText?: string; // use if title is not a string
@@ -610,7 +611,13 @@ export interface ApexLog {
   SystemModstamp: string;
 }
 
-export type ApexLogWithViewed = ApexLog & { viewed?: boolean };
+export type ApexLogWithViewed = Omit<ApexLog, 'LogLength'> & {
+  viewed?: boolean;
+  LogLength: string;
+  'LogUser.Id': string;
+  'LogUser.Name': string;
+  'LogUser.Username': string;
+};
 
 export interface UserTrace {
   Id: string;

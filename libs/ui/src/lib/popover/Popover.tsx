@@ -2,7 +2,7 @@ import { css } from '@emotion/react';
 import { Popover as HeadlessPopover } from '@headlessui/react';
 import { SmallMediumLarge } from '@jetstream/types';
 import classNames from 'classnames';
-import { CSSProperties, forwardRef, Fragment, ReactNode, useCallback, useImperativeHandle, useRef, useState } from 'react';
+import { CSSProperties, forwardRef, Fragment, MouseEvent, ReactNode, useCallback, useImperativeHandle, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { usePopper } from 'react-popper';
 import { Placement } from 'tippy.js';
@@ -23,8 +23,11 @@ export interface PopoverRef {
 // TODO: add PopoverHeader and PopoverFooter components
 // https://www.lightningdesignsystem.com/components/popovers
 export interface PopoverProps {
+  testId?: string;
   inverseIcons?: boolean;
+  classname?: string;
   containerClassName?: string;
+  closeBtnClassName?: string;
   bodyClassName?: string;
   placement?: Placement;
   content: JSX.Element;
@@ -32,6 +35,7 @@ export interface PopoverProps {
   footer?: JSX.Element;
   panelStyle?: CSSProperties;
   buttonProps: React.HTMLProps<HTMLButtonElement> & { as?: string };
+  buttonStyle?: CSSProperties;
   size?: SmallMediumLarge;
   /** By default, the popover is displayed in a portal, but this can be skipped by setting this to true */
   omitPortal?: boolean;
@@ -43,8 +47,11 @@ export interface PopoverProps {
 export const Popover = forwardRef<PopoverRef, PopoverProps>(
   (
     {
+      testId,
+      classname,
       inverseIcons,
       containerClassName,
+      closeBtnClassName,
       bodyClassName = 'slds-popover__body',
       placement = 'auto',
       content,
@@ -52,6 +59,7 @@ export const Popover = forwardRef<PopoverRef, PopoverProps>(
       footer,
       panelStyle,
       buttonProps,
+      buttonStyle,
       children,
       size,
       omitPortal = false,
@@ -103,7 +111,11 @@ export const Popover = forwardRef<PopoverRef, PopoverProps>(
     );
 
     return (
-      <HeadlessPopover className="slds-is-relative" as="span">
+      <HeadlessPopover
+        className={classNames('slds-is-relative', classname)}
+        as="span"
+        onClick={(ev: MouseEvent<HTMLSpanElement>) => ev.stopPropagation()}
+      >
         {({ open }) => {
           checkIfStateChanged(open);
           return (
@@ -112,6 +124,7 @@ export const Popover = forwardRef<PopoverRef, PopoverProps>(
                 <ConditionalPortal omitPortal={omitPortal} portalRef={portalRef}>
                   <HeadlessPopover.Panel
                     ref={setPopperElement}
+                    data-testid={testId}
                     style={{ ...styles.popper, ...panelStyle }}
                     {...attributes.popper}
                     className={classNames('slds-popover', size ? `slds-popover_${size}` : undefined, containerClassName)}
@@ -177,9 +190,13 @@ export const Popover = forwardRef<PopoverRef, PopoverProps>(
                     {/* CLOSE BUTTON */}
                     <HeadlessPopover.Button
                       ref={setCloseElement}
-                      className={classNames('slds-button slds-button_icon slds-button_icon-small slds-float_right slds-popover__close', {
-                        'slds-button_icon-inverse': inverseIcons,
-                      })}
+                      className={classNames(
+                        'slds-button slds-button_icon slds-button_icon-small slds-float_right slds-popover__close',
+                        {
+                          'slds-button_icon-inverse': inverseIcons,
+                        },
+                        closeBtnClassName
+                      )}
                       title="Close dialog"
                     >
                       <Icon type="utility" icon="close" className="slds-button__icon" omitContainer />
@@ -224,7 +241,7 @@ export const Popover = forwardRef<PopoverRef, PopoverProps>(
                 </ConditionalPortal>
               )}
 
-              <HeadlessPopover.Button ref={setReferenceElement} {...(buttonProps as typeof HeadlessPopover.Button)}>
+              <HeadlessPopover.Button ref={setReferenceElement} {...(buttonProps as typeof HeadlessPopover.Button)} style={buttonStyle}>
                 {children}
               </HeadlessPopover.Button>
             </Fragment>

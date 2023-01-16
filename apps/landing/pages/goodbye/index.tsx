@@ -60,10 +60,8 @@ function Goodbye() {
               if you have any questions or have feedback on what we can do better.
             </p>
             <div className="mt-6">
-              <Link href="/">
-                <a className="text-base font-medium text-cyan-600 hover:text-cyan-500">
-                  Go back home<span aria-hidden="true"> &rarr;</span>
-                </a>
+              <Link href="/" className="text-base font-medium text-cyan-600 hover:text-cyan-500">
+                Go back home<span aria-hidden="true"> &rarr;</span>
               </Link>
             </div>
           </div>

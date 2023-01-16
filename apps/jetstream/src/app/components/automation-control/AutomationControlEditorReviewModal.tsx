@@ -1,10 +1,10 @@
-import { ColDef, GetRowIdParams } from '@ag-grid-community/core';
 import { css } from '@emotion/react';
 import { logger } from '@jetstream/shared/client-logger';
 import { ANALYTICS_KEYS } from '@jetstream/shared/constants';
 import { SalesforceOrgUi } from '@jetstream/types';
 import { AutoFullHeightContainer, DataTable, Icon, Modal, Spinner } from '@jetstream/ui';
-import { Fragment, FunctionComponent, useCallback, useEffect, useState } from 'react';
+import { Fragment, FunctionComponent, useCallback, useEffect, useMemo, useState } from 'react';
+import { Column } from 'react-data-grid';
 import { useAmplitude } from '../core/analytics';
 import ConfirmPageChange from '../core/ConfirmPageChange';
 import { deployMetadata, getAutomationTypeLabel, preparePayloads } from './automation-control-data-utils';
@@ -13,51 +13,45 @@ import {
   AutomationControlDeploymentItem,
   DeploymentItem,
   DeploymentItemMap,
+  DeploymentItemRow,
   FlowViewRecord,
   TableRowItem,
 } from './automation-control-types';
 
-const COLUMNS: ColDef[] = [
+const COLUMNS: Column<DeploymentItemRow>[] = [
   {
-    headerName: 'Object',
-    colId: 'sobject',
-    field: 'metadata.sobject',
+    name: 'Object',
+    key: 'sobject',
     width: 200,
   },
   {
-    headerName: 'Type',
-    colId: 'sobject',
-    field: 'metadata.sobject',
+    name: 'Type',
+    key: 'typeLabel',
     width: 200,
-    valueGetter: (params) => getAutomationTypeLabel(params.data.metadata.type),
   },
   {
-    headerName: 'Name',
-    colId: 'label',
-    field: 'metadata.label',
+    name: 'Name',
+    key: 'label',
     width: 350,
   },
   {
-    headerName: 'Old Value',
-    colId: 'isActiveInitialState',
-    field: 'metadata.isActiveInitialState',
-    cellRenderer: 'booleanAndVersionRenderer',
+    name: 'Old Value',
+    key: 'isActiveInitialState',
+    formatter: BooleanAndVersionRenderer,
     width: 130,
     cellClass: 'bg-color-gray',
   },
   {
-    headerName: 'New Value',
-    colId: 'isActive',
-    field: 'metadata.isActive',
-    cellRenderer: 'booleanAndVersionRenderer',
+    name: 'New Value',
+    key: 'isActive',
+    formatter: BooleanAndVersionRenderer,
     width: 130,
     cellClass: 'active-item-yellow-bg',
   },
   {
-    headerName: 'Status',
-    colId: 'status',
-    field: 'status',
-    cellRenderer: 'automationDeployStatusRenderer',
+    name: 'Status',
+    key: 'status',
+    formatter: AutomationDeployStatusRenderer,
     width: 200,
   },
 ];
@@ -86,7 +80,7 @@ function getDeploymentItemMap(rows: TableRowItem[]): DeploymentItemMap {
   }, {});
 }
 
-const getRowId = ({ data }: GetRowIdParams) => data.metadata.key;
+const getRowId = (item: DeploymentItemRow) => item.key;
 
 export interface AutomationControlEditorReviewModalProps {
   defaultApiVersion: string;
@@ -111,6 +105,17 @@ export const AutomationControlEditorReviewModal: FunctionComponent<AutomationCon
   const [didDeploy, setDidDeploy] = useState(false);
   const [didRollback, setDidRollback] = useState(false);
   const [didDeployMetadata, setDidDeployMetadata] = useState(false);
+
+  const deploymentItemRows: DeploymentItemRow[] = useMemo(
+    () =>
+      deploymentItems.map(({ status, metadata, deploy }) => ({
+        status,
+        deploy,
+        typeLabel: getAutomationTypeLabel(metadata.type),
+        ...metadata,
+      })),
+    [deploymentItems]
+  );
 
   useEffect(() => {
     setDeploymentItems(Object.values(deploymentItemMap));
@@ -321,21 +326,7 @@ export const AutomationControlEditorReviewModal: FunctionComponent<AutomationCon
         >
           {inProgress && <Spinner />}
           <AutoFullHeightContainer fillHeight setHeightAttr bottomBuffer={250}>
-            <DataTable
-              columns={COLUMNS}
-              data={deploymentItems}
-              agGridProps={{
-                getRowId,
-                enableRangeSelection: false,
-                suppressCellFocus: true,
-                suppressRowClickSelection: true,
-                enableCellTextSelection: true,
-                components: {
-                  booleanAndVersionRenderer: BooleanAndVersionRenderer,
-                  automationDeployStatusRenderer: AutomationDeployStatusRenderer,
-                },
-              }}
-            />
+            <DataTable columns={COLUMNS} data={deploymentItemRows} getRowKey={getRowId} />
           </AutoFullHeightContainer>
         </div>
       </Modal>

@@ -51,17 +51,26 @@ export const DescribeMetadataList: FunctionComponent<DescribeMetadataListProps> 
 }) => {
   const isMounted = useRef(null);
   const [selectedItemsSet, setSelectedItemsSet] = useState<Set<string>>(new Set<string>(selectedItems || []));
-  const [filteredMetadataItems, setFilteredMetadataItems] = useState<ItemWithLabel[]>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [searchInputId] = useState(`${inputLabelPlural}-filter-${Date.now()}`);
   const ulRef = createRef<HTMLUListElement>();
 
-  const { loadDescribeMetadata, loading, hasError, errorMessage, metadataItemMap, metadataItems, orgInformation, lastRefreshed } =
-    useDescribeMetadata(org, initialItems, initialItemMap);
+  const { loadDescribeMetadata, loading, hasError, metadataItemMap, metadataItems, lastRefreshed } = useDescribeMetadata(
+    org,
+    initialItems,
+    initialItemMap
+  );
 
   const [itemsWithLabel, setItemsWithLabel] = useState<ItemWithLabel[]>(() =>
     metadataItems ? metadataItems.map((name) => ({ name, label: getMetadataLabelFromFullName(name) })) : null
   );
+  const [filteredMetadataItems, setFilteredMetadataItems] = useState<ItemWithLabel[]>(() => {
+    if (itemsWithLabel?.length > 0 && searchTerm) {
+      return itemsWithLabel.filter(multiWordObjectFilter(['name', 'label'], searchTerm));
+    } else if (itemsWithLabel) {
+      return itemsWithLabel;
+    }
+  });
 
   useEffect(() => {
     isMounted.current = true;

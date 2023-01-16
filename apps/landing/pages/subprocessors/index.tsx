@@ -107,50 +107,48 @@ function Privacy() {
           This page provides a list of sub-processors that Jetstream uses to provide services to our customers. Our web-based application
           and desktop application have a different set of processors and different opt-in/opt-out capabilities.
         </p>
-        <h2>Web-based version of Jetstream</h2>
+        <h2 className="mt-8">Web-based version of Jetstream</h2>
 
         <table>
           <thead>
             <tr>
-              <th>Sub-Processor Name</th>
-              <th>Function</th>
-              <th>Location</th>
-              <th>Optional / Allow opt-out</th>
+              <th className="text-left p-3">Sub-Processor Name</th>
+              <th className="text-left p-3">Function</th>
+              <th className="text-left p-3">Location</th>
+              <th className="text-left p-3">Optional / Allow opt-out</th>
             </tr>
           </thead>
           <tbody>
             {webSubProcessors.map((item) => (
-              <Fragment key={item.name}>
-                <tr>
-                  <td>{item.name}</td>
-                  <td>{item.function}</td>
-                  <td>{item.location}</td>
-                  <td>{item.optional}</td>
-                </tr>
-              </Fragment>
+              <tr key={item.name}>
+                <td className="p-3">{item.name}</td>
+                <td className="p-3">{item.function}</td>
+                <td className="p-3">{item.location}</td>
+                <td className="p-3">{item.optional}</td>
+              </tr>
             ))}
           </tbody>
         </table>
 
-        <h2>Desktop version of Jetstream</h2>
+        <h2 className="mt-8">Desktop version of Jetstream</h2>
 
         <table>
           <thead>
             <tr>
-              <th>Sub-Processor Name</th>
-              <th>Function</th>
-              <th>Location</th>
-              <th>Optional / Allow opt-out</th>
+              <th className="text-left p-3">Sub-Processor Name</th>
+              <th className="text-left p-3">Function</th>
+              <th className="text-left p-3">Location</th>
+              <th className="text-left p-3">Optional / Allow opt-out</th>
             </tr>
           </thead>
           <tbody>
             {webSubProcessors.map((item) => (
               <Fragment key={item.name}>
                 <tr>
-                  <td>{item.name}</td>
-                  <td>{item.function}</td>
-                  <td>{item.location}</td>
-                  <td>{item.optional}</td>
+                  <td className="p-3">{item.name}</td>
+                  <td className="p-3">{item.function}</td>
+                  <td className="p-3">{item.location}</td>
+                  <td className="p-3">{item.optional}</td>
                 </tr>
               </Fragment>
             ))}

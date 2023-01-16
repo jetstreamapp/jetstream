@@ -59,44 +59,14 @@ export async function salesforceOauthCallback(req: express.Request, res: express
 
     const conn = new jsforce.Connection({ oauth2: getJsforceOauth2(loginUrl as string) });
     const userInfo = await conn.authorize(req.query.code as string);
-    const identity = await conn.identity();
-    let companyInfoRecord: SObjectOrganization;
 
-    try {
-      const results = await conn.query<SObjectOrganization>(
-        `SELECT Id, Name, Country, OrganizationType, InstanceName, IsSandbox, LanguageLocaleKey, NamespacePrefix, TrialExpirationDate FROM Organization`
-      );
-      if (results.totalSize > 0) {
-        companyInfoRecord = results.records[0];
-      }
-    } catch (ex) {
-      logger.warn(ex);
-    }
-
-    const orgName = companyInfoRecord?.Name || 'Unknown Organization';
-
-    const salesforceOrgUi: Partial<SalesforceOrgUi> = {
-      uniqueId: `${userInfo.organizationId}-${userInfo.id}`,
-      accessToken: salesforceOrgsDb.encryptAccessToken(conn.accessToken, conn.refreshToken),
-      instanceUrl: conn.instanceUrl,
-      loginUrl: state.get('loginUrl'),
-      userId: identity.user_id,
-      email: identity.email,
-      organizationId: identity.organization_id,
-      username: identity.username,
-      displayName: identity.display_name,
-      thumbnail: identity.photos?.thumbnail,
-      orgName,
-      orgCountry: companyInfoRecord?.Country,
-      orgOrganizationType: companyInfoRecord?.OrganizationType,
-      orgInstanceName: companyInfoRecord?.InstanceName,
-      orgIsSandbox: companyInfoRecord?.IsSandbox,
-      orgLanguageLocaleKey: companyInfoRecord?.LanguageLocaleKey,
-      orgNamespacePrefix: companyInfoRecord?.NamespacePrefix,
-      orgTrialExpirationDate: companyInfoRecord?.TrialExpirationDate,
-    };
-
-    const salesforceOrg = await salesforceOrgsDb.createOrUpdateSalesforceOrg(user.id, salesforceOrgUi, replaceOrgUniqueId);
+    const salesforceOrg = await initConnectionFromOAuthResponse({
+      conn,
+      userInfo,
+      loginUrl,
+      userId: user.id,
+      replaceOrgUniqueId,
+    });
 
     // TODO: figure out what other data we need
     // try {
@@ -118,4 +88,58 @@ export async function salesforceOauthCallback(req: express.Request, res: express
       : 'There was an error authenticating with Salesforce.';
     return res.redirect(`/oauth-link/?${new URLSearchParams(returnParams as any).toString()}`);
   }
+}
+
+export async function initConnectionFromOAuthResponse({
+  conn,
+  userInfo,
+  loginUrl,
+  userId,
+  replaceOrgUniqueId,
+}: {
+  conn: jsforce.Connection;
+  userInfo: jsforce.UserInfo;
+  loginUrl: string;
+  userId: string;
+  replaceOrgUniqueId?: string;
+}) {
+  const identity = await conn.identity();
+  let companyInfoRecord: SObjectOrganization;
+
+  try {
+    const results = await conn.query<SObjectOrganization>(
+      `SELECT Id, Name, Country, OrganizationType, InstanceName, IsSandbox, LanguageLocaleKey, NamespacePrefix, TrialExpirationDate FROM Organization`
+    );
+    if (results.totalSize > 0) {
+      companyInfoRecord = results.records[0];
+    }
+  } catch (ex) {
+    logger.warn(ex);
+  }
+
+  const orgName = companyInfoRecord?.Name || 'Unknown Organization';
+
+  const salesforceOrgUi: Partial<SalesforceOrgUi> = {
+    uniqueId: `${userInfo.organizationId}-${userInfo.id}`,
+    accessToken: salesforceOrgsDb.encryptAccessToken(conn.accessToken, conn.refreshToken),
+    instanceUrl: conn.instanceUrl,
+    loginUrl,
+    userId: identity.user_id,
+    email: identity.email,
+    organizationId: identity.organization_id,
+    username: identity.username,
+    displayName: identity.display_name,
+    thumbnail: identity.photos?.thumbnail,
+    orgName,
+    orgCountry: companyInfoRecord?.Country,
+    orgOrganizationType: companyInfoRecord?.OrganizationType,
+    orgInstanceName: companyInfoRecord?.InstanceName,
+    orgIsSandbox: companyInfoRecord?.IsSandbox,
+    orgLanguageLocaleKey: companyInfoRecord?.LanguageLocaleKey,
+    orgNamespacePrefix: companyInfoRecord?.NamespacePrefix,
+    orgTrialExpirationDate: companyInfoRecord?.TrialExpirationDate,
+  };
+
+  const salesforceOrg = await salesforceOrgsDb.createOrUpdateSalesforceOrg(userId, salesforceOrgUi, replaceOrgUniqueId);
+  return salesforceOrg;
 }

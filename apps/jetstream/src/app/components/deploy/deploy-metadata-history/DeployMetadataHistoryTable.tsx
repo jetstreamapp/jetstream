@@ -1,9 +1,8 @@
-import { ColDef, GetRowIdParams, RowHeightParams } from '@ag-grid-community/core';
 import { MapOf, SalesforceDeployHistoryItem, SalesforceOrgUi } from '@jetstream/types';
-import { DataTable, DateFilterComparator } from '@jetstream/ui';
-import { FunctionComponent } from 'react';
+import { ColumnWithFilter, DataTable, setColumnFromType } from '@jetstream/ui';
+import { FunctionComponent, useMemo } from 'react';
+import { RowHeightArgs } from 'react-data-grid';
 import { DeployHistoryTableContext } from '../deploy-metadata.types';
-import { dataTableDateFormatter } from '../utils/deploy-metadata.utils';
 import { ActionRenderer, OrgRenderer, StatusRenderer } from './DeployMetadataHistoryTableRenderers';
 
 const TYPE_MAP = {
@@ -13,107 +12,84 @@ const TYPE_MAP = {
   orgToOrg: 'Org to org',
 };
 
-const COLUMNS: ColDef[] = [
+const COLUMNS: ColumnWithFilter<SalesforceDeployHistoryItem>[] = [
   {
-    headerName: 'Started',
-    colId: 'date',
-    field: 'start',
+    ...setColumnFromType('start', 'date'),
+    name: 'Started',
+    key: 'start',
     width: 200,
-    valueFormatter: dataTableDateFormatter,
-    getQuickFilterText: dataTableDateFormatter,
-    tooltipField: 'start',
-    filter: 'agDateColumnFilter',
-    filterParams: {
-      defaultOption: 'greaterThan',
-      comparator: DateFilterComparator,
-      buttons: ['clear'],
-    },
   },
   {
-    headerName: 'Type',
-    colId: 'type',
-    field: 'type',
-    valueGetter: ({ data }) => TYPE_MAP[data.type],
+    ...setColumnFromType('type', 'text'),
+    name: 'Type',
+    key: 'type',
     width: 165,
+    formatter: ({ column, row }) => TYPE_MAP[row[column.key]],
   },
   {
-    headerName: 'Deployed To Org',
-    colId: 'org',
-    field: 'destinationOrg.label',
-    cellRenderer: 'orgRenderer',
+    ...setColumnFromType('destinationOrg', 'text'),
+    name: 'Deployed To Org',
+    key: 'destinationOrg',
+    formatter: OrgRenderer,
+    getValue: ({ row }) => row.destinationOrg?.label,
     width: 350,
   },
   {
-    headerName: 'Status',
-    colId: 'status',
-    field: 'status',
-    cellRenderer: 'statusRenderer',
+    ...setColumnFromType('status', 'text'),
+    name: 'Status',
+    key: 'status',
+    formatter: StatusRenderer,
     width: 150,
-    filterValueGetter: ({ data }) => {
-      const item = data as SalesforceDeployHistoryItem;
-      return item.status === 'SucceededPartial' ? 'Partial Success' : item.status;
-    },
   },
   {
-    headerName: 'Actions',
-    colId: 'actions',
-    cellRenderer: 'actionRenderer',
+    name: 'Actions',
+    key: 'actionRenderer',
     width: 220,
-    filter: false,
-    menuTabs: [],
     sortable: false,
+    resizable: false,
+    formatter: ActionRenderer,
   },
 ];
 
-const getRowHeight = ({ data, context }: RowHeightParams) => {
-  const item = data as SalesforceDeployHistoryItem;
-  const { orgsById } = context as DeployHistoryTableContext;
-  const rowHeight = 27.5;
-  let numberOfRows = 3;
-  if (item.type === 'orgToOrg') {
-    /** we need 3 rows plus a little buffer */
-    numberOfRows = 3.5;
-  } else if (item.fileKey || (item.sourceOrg && orgsById[item.sourceOrg.uniqueId])) {
-    /** we need 3 rows */
-    return 27.5 * 3;
-  }
-  return rowHeight * numberOfRows;
-};
-const getRowId = ({ data }: GetRowIdParams) => data.key;
+const getRowHeight =
+  (orgsById: MapOf<SalesforceOrgUi>) =>
+  ({ row: item, type }: RowHeightArgs<SalesforceDeployHistoryItem>) => {
+    const rowHeight = 27.5;
+    let numberOfRows = 3;
+    if (type === 'ROW') {
+      if (item.type === 'orgToOrg') {
+        /** we need 3 rows plus a little buffer */
+        numberOfRows = 3.5;
+      } else if (item.fileKey || (item.sourceOrg && orgsById[item.sourceOrg.uniqueId])) {
+        /** we need 3 rows */
+        return 27.5 * 3;
+      }
+    }
+    return rowHeight * numberOfRows;
+  };
+const getRowId = ({ key }: SalesforceDeployHistoryItem) => key;
 
 export interface DeployMetadataHistoryTableProps {
   items: SalesforceDeployHistoryItem[];
   orgsById: MapOf<SalesforceOrgUi>;
+  modalRef: React.RefObject<HTMLDivElement>;
   onView: (item: SalesforceDeployHistoryItem) => void;
   onDownload: (item: SalesforceDeployHistoryItem) => void;
 }
 
-export const DeployMetadataHistoryTable: FunctionComponent<DeployMetadataHistoryTableProps> = ({ items, orgsById, onView, onDownload }) => {
-  return (
-    <DataTable
-      columns={COLUMNS}
-      data={items}
-      defaultMenuTabs={['filterMenuTab']}
-      agGridProps={{
-        getRowId,
-        getRowHeight,
-        context: {
-          orgsById,
-          onView,
-          onDownload,
-        },
-        enableRangeSelection: false,
-        suppressCellFocus: true,
-        suppressRowClickSelection: true,
-        enableCellTextSelection: true,
-        components: {
-          orgRenderer: OrgRenderer,
-          actionRenderer: ActionRenderer,
-          statusRenderer: StatusRenderer,
-        },
-      }}
-    />
+export const DeployMetadataHistoryTable: FunctionComponent<DeployMetadataHistoryTableProps> = ({
+  items,
+  orgsById,
+  modalRef,
+  onView,
+  onDownload,
+}) => {
+  const context: DeployHistoryTableContext = useMemo(
+    () => ({ orgsById, portalRefForFilters: modalRef, onView, onDownload }),
+    [orgsById, modalRef, onView, onDownload]
   );
+  const getRowHeightFn = useMemo(() => getRowHeight(orgsById), [orgsById]);
+  return <DataTable allowReorder columns={COLUMNS} data={items} getRowKey={getRowId} context={context} rowHeight={getRowHeightFn} />;
 };
 
 export default DeployMetadataHistoryTable;

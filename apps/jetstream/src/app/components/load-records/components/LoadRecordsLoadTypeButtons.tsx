@@ -61,7 +61,7 @@ export const LoadRecordsLoadTypeButtons: FunctionComponent<LoadRecordsLoadTypeBu
   }
 
   return (
-    <Grid verticalAlign="end">
+    <Grid testId="load-type" verticalAlign="end">
       <GridCol growNone>
         <RadioGroup label="Type of Data Load" required isButtonGroup>
           <RadioButton

@@ -33,9 +33,15 @@ export const SobjectListMultiSelect: FunctionComponent<SobjectListMultiSelectPro
   onSelected,
   errorReattempt,
 }) => {
-  const [filteredSobjects, setFilteredSobjects] = useState<DescribeGlobalSObjectResult[]>(null);
-  const [selectedSObjectSet, setSelectedSObjectSet] = useState<Set<string>>(new Set<string>(selectedSObjects || []));
   const [searchTerm, setSearchTerm] = useState('');
+  const [filteredSobjects, setFilteredSobjects] = useState<DescribeGlobalSObjectResult[]>(() => {
+    if (sobjects?.length > 0 && searchTerm) {
+      return sobjects.filter(multiWordObjectFilter(['name', 'label'], searchTerm));
+    } else {
+      return sobjects;
+    }
+  });
+  const [selectedSObjectSet, setSelectedSObjectSet] = useState<Set<string>>(new Set<string>(selectedSObjects || []));
   const [searchInputId] = useState(`object-filter-${Date.now()}`);
   const ulRef = createRef<HTMLUListElement>();
 
@@ -79,7 +85,7 @@ export const SobjectListMultiSelect: FunctionComponent<SobjectListMultiSelectPro
 
   return (
     <Fragment>
-      {loading && (
+      {loading && !sobjects && (
         <div
           className="slds-is-relative"
           css={css`
@@ -136,10 +142,12 @@ export const SobjectListMultiSelect: FunctionComponent<SobjectListMultiSelectPro
               <List
                 ref={ulRef}
                 items={filteredSobjects}
+                isMultiSelect
                 isActive={(item: DescribeGlobalSObjectResult) => selectedSObjectSet.has(item.name)}
                 onSelected={handleSelection}
                 getContent={(item: DescribeGlobalSObjectResult) => ({
                   key: item.name,
+                  testId: item.name,
                   heading: item.label,
                   subheading: item.name,
                 })}

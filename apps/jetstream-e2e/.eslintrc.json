@@ -1,21 +1,22 @@
 {
-  "rules": {},
+  "extends": ["../../.eslintrc.json"],
+  "ignorePatterns": ["!**/*"],
   "overrides": [
     {
       "files": ["*.ts", "*.tsx", "*.js", "*.jsx"],
-      "parserOptions": {
-        "project": ["apps/jetstream-e2e/tsconfig.*?.json"]
-      },
-      "rules": {}
+      "rules": {
+        "jest/no-done-callback": "off"
+      }
     },
     {
-      "files": ["src/plugins/index.js"],
+      "files": ["*.ts", "*.tsx"],
       "rules": {
-        "@typescript-eslint/no-var-requires": "off",
-        "no-undef": "off"
+        "jest/no-done-callback": "off"
       }
+    },
+    {
+      "files": ["*.js", "*.jsx"],
+      "rules": {}
     }
-  ],
-  "extends": ["../../.eslintrc.json", "plugin:cypress/recommended"],
-  "ignorePatterns": ["!**/*"]
+  ]
 }

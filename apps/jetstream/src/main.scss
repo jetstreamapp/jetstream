@@ -16,6 +16,27 @@ pre {
   cursor: pointer;
 }
 
+.display-none {
+  display: none !important;
+}
+
+.white-space-nowrap {
+  white-space: nowrap;
+}
+
+.break-normal {
+  overflow-wrap: normal;
+  word-break: normal;
+}
+
+.break-words {
+  overflow-wrap: break-word;
+}
+
+.break-all {
+  word-break: break-all;
+}
+
 .opacity-5 {
   opacity: 0.5;
 }
@@ -30,6 +51,10 @@ pre {
 
 .bg-color-gray {
   background-color: $color-background;
+}
+
+.bg-color-gray-light {
+  background-color: $color-gray-3;
 }
 
 .bg-color-gray-dark {

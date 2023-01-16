@@ -42,7 +42,14 @@ function getContent(field: FieldWrapper, org: SalesforceOrgUi) {
         </span>
       );
       return (
-        <Tooltip id={`${field.name}-type-tooltip`} content={tooltipContent} onClick={() => copy(copyToClipboardValue)}>
+        <Tooltip
+          id={`${field.name}-type-tooltip`}
+          content={tooltipContent}
+          onClick={(ev) => {
+            ev.stopPropagation();
+            copy(copyToClipboardValue);
+          }}
+        >
           <span className="slds-badge__icon slds-badge__icon_left slds-badge__icon_inverse">
             <Icon
               type="utility"

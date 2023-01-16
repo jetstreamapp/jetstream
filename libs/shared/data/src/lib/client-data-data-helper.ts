@@ -28,7 +28,6 @@ function getHeader(headers: MapOf<string>, header: string) {
 const baseConfig: Partial<AxiosRequestConfig> = {};
 
 export function initForElectron(adapter: AxiosAdapter) {
-  // baseConfig.baseURL = 'http://localhost:3333';
   // use MessagePort adapter for communicating with server
   baseConfig.adapter = adapter;
 }

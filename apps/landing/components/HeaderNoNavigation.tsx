@@ -7,14 +7,12 @@ export const HeaderNoNavigation = () => (
       <div className="flex items-center flex-1">
         <div className="flex items-center justify-between w-full md:w-auto">
           <Link href="/">
-            <a className="">
-              <span className="sr-only">Jetstream</span>
-              <img
-                className="h-8 w-auto sm:h-10"
-                src="https://res.cloudinary.com/getjetstream/image/upload/v1634516624/public/jetstream-logo.svg"
-                alt="Jetstream logo"
-              />
-            </a>
+            <span className="sr-only">Jetstream</span>
+            <img
+              className="h-8 w-auto sm:h-10"
+              src="https://res.cloudinary.com/getjetstream/image/upload/v1634516624/public/jetstream-logo.svg"
+              alt="Jetstream logo"
+            />
           </Link>
         </div>
       </div>

@@ -6,9 +6,11 @@ import type * as http from 'http';
 import { createProxyMiddleware } from 'http-proxy-middleware';
 import * as jsforce from 'jsforce';
 import { Url } from 'url';
-import { getOrgFromHeaderOrQuery } from './route.middleware';
+import { checkAuth, getOrgFromHeaderOrQuery } from './route.middleware';
 
 const routes: express.Router = Router();
+
+routes.use(checkAuth);
 
 routes.use((req: express.Request, res: express.Response, next: express.NextFunction) => {
   res.setHeader('Access-Control-Allow-Credentials', 'true');
@@ -17,7 +19,6 @@ routes.use((req: express.Request, res: express.Response, next: express.NextFunct
 
 /**
  * All requests are proxied to Salesforce based on the org mentioned in the URL
- *
  */
 routes.use(
   '/',

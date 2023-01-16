@@ -1,7 +1,10 @@
 const nxPreset = require('@nrwl/jest/preset').default;
-module.exports = {
+
+/** @type {import('jest').Config} */
+const config = {
   ...nxPreset,
   testMatch: ['**/+(*.)+(spec|test).+(ts|js)?(x)'],
+  modulePathIgnorePatterns: ['apps/jetstream-e2e/'],
   transform: {
     '^.+\\.(ts|js|html)$': 'ts-jest',
   },
@@ -9,3 +12,5 @@ module.exports = {
   moduleFileExtensions: ['ts', 'js', 'html'],
   coverageReporters: ['html'],
 };
+
+module.exports = config;

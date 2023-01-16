@@ -5,6 +5,7 @@ import React, { forwardRef, ReactNode } from 'react';
 import Icon from '../widgets/Icon';
 
 export interface CardProps {
+  testId?: string;
   className?: string;
   bodyClassName?: string;
   title?: string | ReactNode;
@@ -20,10 +21,10 @@ export interface CardProps {
  * (e.x. ExpressionConditionRow)
  */
 export const Card = forwardRef<HTMLElement, CardProps>(
-  ({ className, bodyClassName = 'slds-card__body_inner', title, icon, actions, footer, nestedBorder, children }, ref) => {
+  ({ testId, className, bodyClassName = 'slds-card__body_inner', title, icon, actions, footer, nestedBorder, children }, ref) => {
     const titleContent = isString(title) ? <span className="slds-truncate">{title}</span> : title;
     return (
-      <article className={classNames('slds-card', { 'slds-card_boundary': nestedBorder }, className)} ref={ref}>
+      <article data-testid={testId} className={classNames('slds-card', { 'slds-card_boundary': nestedBorder }, className)} ref={ref}>
         {title && (
           <div className="slds-card__header slds-grid">
             <header className={classNames('slds-media slds-media_center slds-has-flexi-truncate')}>

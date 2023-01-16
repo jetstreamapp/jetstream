@@ -3,7 +3,8 @@
   "compilerOptions": {
     "sourceMap": false,
     "outDir": "../../dist/out-tsc",
-    "allowJs": true
+    "allowJs": true,
+    "types": ["jest", "node"]
   },
   "include": ["src/**/*.ts", "src/**/*.js"]
 }

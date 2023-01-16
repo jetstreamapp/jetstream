@@ -32,6 +32,7 @@ const EXAMPLE_USER: UserProfileServer = {
 };
 
 export const ENV = {
+  IS_CI: ensureBoolean(process.env.CI),
   // LOCAL OVERRIDE
   EXAMPLE_USER_OVERRIDE: ensureBoolean(process.env.EXAMPLE_USER_OVERRIDE),
   EXAMPLE_USER: process.env.EXAMPLE_USER_OVERRIDE ? EXAMPLE_USER : null,

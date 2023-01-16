@@ -2,14 +2,15 @@ version: '3.8'
 services:
   jetstream:
     build: .
+    init: true
     depends_on:
-      - db
-      - db_seed
+      db:
+        condition: service_healthy
     environment:
       NODE_ENV: production
       ENVIRONMENT: production
       JESTREAM_POSTGRES_DBURI: postgres://postgres:postgres@postgres:5432/postgres
-      JESTREAM_SESSION_SECRET: 15a845f36512d850dfd223af8809873c
+      JESTREAM_SESSION_SECRET: '${JESTREAM_SESSION_SECRET}'
       JETSTREAM_CLIENT_URL: http://localhost:3333/app
       JETSTREAM_SERVER_DOMAIN: localhost:3333
       JETSTREAM_SERVER_URL: http://localhost:3333
@@ -24,13 +25,11 @@ services:
       SFDC_CONSUMER_SECRET: '${SFDC_CONSUMER_SECRET}'
       SFDC_CONSUMER_KEY: '${SFDC_CONSUMER_KEY}'
       SFDC_CALLBACK_URL: '${SFDC_CALLBACK_URL}'
-      NX_AG_GRID_KEY: '${NX_AG_GRID_KEY}'
       NX_ROLLBAR_KEY: '${NX_ROLLBAR_KEY}'
       NX_AMPLITUDE_KEY: '${NX_AMPLITUDE_KEY}'
       NX_AUTH_AUDIENCE: '${NX_AUTH_AUDIENCE}'
     ports:
       - '3333:3333'
-      - '9229:9229'
     links:
       - db
   db:
@@ -39,21 +38,32 @@ services:
     hostname: postgres
     environment:
       - POSTGRES_USER=postgres
+      - PGUSER=postgres
       - POSTGRES_PASSWORD=postgres
+    expose:
+      - 5432
     ports:
-      - '5432:5432'
+      - '5555:5432'
     volumes:
       - db:/var/lib/postgresql/data
+    healthcheck:
+      # this command checks if the database is ready directly on the source db server
+      test: ['CMD-SHELL', 'pg_isready']
+      interval: 5s
+      timeout: 5s
+      retries: 5
   db_seed:
     build:
       context: .
       dockerfile: ./Dockerfile.db-migration
     depends_on:
-      - db
+      db:
+        condition: service_healthy
     environment:
       NODE_ENV: production
       ENVIRONMENT: production
       JESTREAM_POSTGRES_DBURI: postgres://postgres:postgres@postgres:5432/postgres
+
 volumes:
   db:
     driver: local

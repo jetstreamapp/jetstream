@@ -1,10 +1,9 @@
-import { ColDef, ColGroupDef } from '@ag-grid-community/core';
 import { css } from '@emotion/react';
-
 import { logger } from '@jetstream/shared/client-logger';
 import { MapOf, SalesforceOrgUi } from '@jetstream/types';
 import {
   AutoFullHeightContainer,
+  ColumnWithFilter,
   ConfirmationModalPromise,
   FileDownloadModal,
   Icon,
@@ -16,7 +15,7 @@ import {
   ToolbarItemGroup,
   Tooltip,
 } from '@jetstream/ui';
-import { Fragment, FunctionComponent, useEffect, useRef, useState } from 'react';
+import { Fragment, FunctionComponent, useCallback, useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useRecoilState, useRecoilValue, useResetRecoilState } from 'recoil';
 import { applicationCookieState, selectedOrgState } from '../../app-state';
@@ -52,6 +51,7 @@ import {
   PermissionTableFieldCellPermission,
   PermissionTableObjectCell,
   PermissionTableObjectCellPermission,
+  PermissionTableSummaryRow,
 } from './utils/permission-manager-types';
 import {
   clearPermissionErrorMessage,
@@ -120,11 +120,11 @@ export const ManagePermissionsEditor: FunctionComponent<ManagePermissionsEditorP
   // TODO: when loading, should we clear prior selections?
   const recordData = usePermissionRecords(selectedOrg, selectedSObjects, selectedProfiles, selectedPermissionSets);
 
-  const [objectColumns, setObjectColumns] = useState<(ColDef | ColGroupDef)[]>([]);
+  const [objectColumns, setObjectColumns] = useState<ColumnWithFilter<PermissionTableObjectCell, PermissionTableSummaryRow>[]>([]);
   const [objectRows, setObjectRows] = useState<PermissionTableObjectCell[]>(null);
   const [dirtyObjectRows, setDirtyObjectRows] = useState<MapOf<DirtyRow<PermissionTableObjectCell>>>({});
 
-  const [fieldColumns, setFieldColumns] = useState<(ColDef | ColGroupDef)[]>([]);
+  const [fieldColumns, setFieldColumns] = useState<ColumnWithFilter<PermissionTableFieldCell, PermissionTableSummaryRow>[]>([]);
   const [fieldRows, setFieldRows] = useState<PermissionTableFieldCell[]>(null);
   const [dirtyFieldRows, setDirtyFieldRows] = useState<MapOf<DirtyRow<PermissionTableFieldCell>>>({});
 
@@ -180,6 +180,63 @@ export const ManagePermissionsEditor: FunctionComponent<ManagePermissionsEditorP
     setDirtyObjectCount(Object.values(dirtyObjectRows).reduce((output, { dirtyCount }) => output + dirtyCount, 0));
   }, [dirtyObjectRows]);
 
+  const handleObjectBulkRowUpdate = useCallback((rows: PermissionTableObjectCell[], indexes?: number[]) => {
+    setObjectRows(rows);
+    indexes = indexes || rows.map((row, index) => index);
+    setDirtyObjectRows((priorValue) => {
+      const newValues = { ...priorValue };
+      indexes.forEach((rowIndex) => {
+        const row = rows[rowIndex];
+        const rowKey = row.key; // e.x. Obj__c.Field__c
+        const dirtyCount = Object.values(row.permissions).reduce(
+          (output, { createIsDirty, readIsDirty, editIsDirty, deleteIsDirty, viewAllIsDirty, modifyAllIsDirty }) => {
+            output += createIsDirty ? 1 : 0;
+            output += readIsDirty ? 1 : 0;
+            output += editIsDirty ? 1 : 0;
+            output += deleteIsDirty ? 1 : 0;
+            output += viewAllIsDirty ? 1 : 0;
+            output += modifyAllIsDirty ? 1 : 0;
+            return output;
+          },
+          0
+        );
+        newValues[rowKey] = { rowKey, dirtyCount, row };
+      });
+      // remove items with a dirtyCount of 0 to reduce future processing required
+      return Object.keys(newValues).reduce((output: MapOf<DirtyRow<PermissionTableObjectCell>>, key) => {
+        if (newValues[key].dirtyCount) {
+          output[key] = newValues[key];
+        }
+        return output;
+      }, {});
+    });
+  }, []);
+
+  const handleFieldBulkRowUpdate = useCallback((rows: PermissionTableFieldCell[], indexes?: number[]) => {
+    setFieldRows(rows);
+    indexes = indexes || rows.map((row, index) => index);
+    setDirtyFieldRows((priorValue) => {
+      const newValues = { ...priorValue };
+      indexes.forEach((rowIndex) => {
+        const row = rows[rowIndex];
+        const rowKey = row.key; // e.x. Obj__c.Field__c
+        const dirtyCount = Object.values(row.permissions).reduce((output, { readIsDirty, editIsDirty }) => {
+          output += readIsDirty ? 1 : 0;
+          output += editIsDirty ? 1 : 0;
+          return output;
+        }, 0);
+        newValues[rowKey] = { rowKey, dirtyCount, row };
+      });
+      // remove items with a dirtyCount of 0 to reduce future processing required
+      return Object.keys(newValues).reduce((output: MapOf<DirtyRow<PermissionTableFieldCell>>, key) => {
+        if (newValues[key].dirtyCount) {
+          output[key] = newValues[key];
+        }
+        return output;
+      }, {});
+    });
+  }, []);
+
   function initTableData(
     includeColumns = true,
     objectPermissionMapOverride?: MapOf<ObjectPermissionDefinitionMap>,
@@ -193,9 +250,9 @@ export const ManagePermissionsEditor: FunctionComponent<ManagePermissionsEditorP
     setFieldRows(getFieldRows(selectedSObjects, fieldsByObject, fieldPermissionMapOverride || fieldPermissionMap));
     setDirtyFieldRows({});
     setDirtyObjectRows({});
-    resetTable();
   }
 
+  // FIXME:
   function exportChanges() {
     // generate brand-new columns/rows just for export
     // This is required in the case where a tab may not have been rendered
@@ -292,7 +349,6 @@ export const ManagePermissionsEditor: FunctionComponent<ManagePermissionsEditorP
           setFieldRows(rows);
           handleFieldBulkRowUpdate(rows);
         }
-        resetTable();
         setLoading(false);
       }
     }
@@ -306,75 +362,11 @@ export const ManagePermissionsEditor: FunctionComponent<ManagePermissionsEditorP
     initTableData(false, updatedObjectPermissionMap, updatedFieldPermissionMap);
   }
 
-  /**
-   * This ensured that each table cell is re-rendered
-   * This is required because of the way the error message is implemented
-   */
-  function resetTable() {
-    if (managePermissionsEditorObjectTableRef.current) {
-      managePermissionsEditorObjectTableRef.current.resetRows();
-    }
-    if (managePermissionsEditorFieldTableRef.current) {
-      managePermissionsEditorFieldTableRef.current.resetRows();
-    }
-  }
-
   function handleGoBack() {
     resetFieldsByObject();
     resetFieldsByKey();
     resetObjectPermissionMap();
     resetFieldPermissionMap();
-  }
-
-  function handleObjectBulkRowUpdate(rows: PermissionTableObjectCell[]) {
-    setDirtyObjectRows((priorValue) => {
-      const newValues = { ...priorValue };
-      rows.forEach((row) => {
-        const rowKey = row.key; // e.x. Obj__c.Field__c
-        const dirtyCount = Object.values(row.permissions).reduce(
-          (output, { createIsDirty, readIsDirty, editIsDirty, deleteIsDirty, viewAllIsDirty, modifyAllIsDirty }) => {
-            output += createIsDirty ? 1 : 0;
-            output += readIsDirty ? 1 : 0;
-            output += editIsDirty ? 1 : 0;
-            output += deleteIsDirty ? 1 : 0;
-            output += viewAllIsDirty ? 1 : 0;
-            output += modifyAllIsDirty ? 1 : 0;
-            return output;
-          },
-          0
-        );
-        newValues[rowKey] = { rowKey, dirtyCount, row };
-      });
-      // remove items with a dirtyCount of 0 to reduce future processing required
-      return Object.keys(newValues).reduce((output: MapOf<DirtyRow<PermissionTableObjectCell>>, key) => {
-        if (newValues[key].dirtyCount) {
-          output[key] = newValues[key];
-        }
-        return output;
-      }, {});
-    });
-  }
-
-  function handleFieldBulkRowUpdate(rows: PermissionTableFieldCell[]) {
-    setDirtyFieldRows((priorValue) => {
-      const newValues = { ...priorValue };
-      rows.forEach((row) => {
-        const rowKey = row.key; // e.x. Obj__c.Field__c
-        const dirtyCount = Object.values(row.permissions).reduce((output, { readIsDirty, editIsDirty }) => {
-          output += readIsDirty ? 1 : 0;
-          output += editIsDirty ? 1 : 0;
-          return output;
-        }, 0);
-        newValues[rowKey] = { rowKey, dirtyCount, row };
-      });
-      // remove items with a dirtyCount of 0 to reduce future processing required
-      return Object.keys(newValues).reduce((output: MapOf<DirtyRow<PermissionTableFieldCell>>, key) => {
-        if (newValues[key].dirtyCount) {
-          output[key] = newValues[key];
-        }
-        return output;
-      }, {});
-    });
   }
 
   return (

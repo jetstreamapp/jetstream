@@ -1,40 +1,31 @@
-import {
-  ColDef,
-  ColumnEvent,
-  GetRowIdParams,
-  GridApi,
-  GridReadyEvent,
-  ProcessHeaderForExportParams,
-  SelectionChangedEvent,
-} from '@ag-grid-community/core';
+/* eslint-disable no-fallthrough */
 import { QueryResults } from '@jetstream/api-interfaces';
 import { logger } from '@jetstream/shared/client-logger';
 import { queryRemaining } from '@jetstream/shared/data';
-import { formatNumber, useRollbar } from '@jetstream/shared/ui-utils';
+import { formatNumber, transformTabularDataToExcelStr, useRollbar } from '@jetstream/shared/ui-utils';
+import { flattenRecord, flattenRecords } from '@jetstream/shared/utils';
 import { MapOf, SalesforceOrgUi } from '@jetstream/types';
+import copyToClipboard from 'copy-to-clipboard';
 import { Field } from 'jsforce';
 import uniqueId from 'lodash/uniqueId';
-import { Fragment, FunctionComponent, memo, ReactNode, useEffect, useRef, useState } from 'react';
+import { Fragment, FunctionComponent, memo, ReactNode, useCallback, useEffect, useRef, useState } from 'react';
+import { Column, CopyEvent } from 'react-data-grid';
 import SearchInput from '../form/search-input/SearchInput';
 import Grid from '../grid/Grid';
 import AutoFullHeightContainer from '../layout/AutoFullHeightContainer';
+import { ContextMenuItem } from '../popover/ContextMenu';
 import { PopoverErrorButton } from '../popover/PopoverErrorButton';
 import Spinner from '../widgets/Spinner';
-import './data-table-styles.css';
-import {
-  addFieldLabelToColumn,
-  DataTableContext,
-  getAllColumns,
-  getColumnDefinitions,
-  getCurrentColumns,
-  getFilteredRows,
-  SalesforceQueryColumnDefinition,
-} from './data-table-utils';
-import DataTable from './DataTable';
+import { DataTableSubqueryContext } from './data-table-context';
+import { ColumnWithFilter, RowWithKey } from './data-table-types';
+import { addFieldLabelToColumn, getColumnDefinitions, NON_DATA_COLUMN_KEYS } from './data-table-utils';
+import { ContextMenuActionData, DataTable } from './DataTable';
+
+type ContextAction = 'COPY_ROW' | 'COPY_ROW_NO_HEADER' | 'COPY_COL' | 'COPY_COL_NO_HEADER' | 'COPY_TABLE' | 'COPY_TABLE_NO_HEADER';
 
 const SFDC_EMPTY_ID = '000000000000000AAA';
 
-function getRowId({ data }: GetRowIdParams): string {
+function getRowId(data: any): string {
   if (data?.attributes?.type === 'AggregateResult') {
     return uniqueId('query-results-node-id');
   }
@@ -90,16 +81,22 @@ export const SalesforceRecordDataTable: FunctionComponent<SalesforceRecordDataTa
   }) => {
     const isMounted = useRef(null);
     const rollbar = useRollbar();
-    const [gridApi, setGridApi] = useState<GridApi>(null);
-    const [columns, setColumns] = useState<ColDef[]>();
-    const [columnDefinitions, setColumnDefinitions] = useState<SalesforceQueryColumnDefinition>();
-    const [records, setRecords] = useState<any[]>();
+    // const [gridApi, setGridApi] = useState<GridApi>(null);
+    const [columns, setColumns] = useState<Column<RowWithKey>[]>();
+    // const [_columnDefinitions, setColumnDefinitions] = useState<Column<any>[]>();
+    const [subqueryColumnsMap, setSubqueryColumnsMap] = useState<MapOf<ColumnWithFilter<RowWithKey, unknown>[]>>();
+    const [records, setRecords] = useState<RowWithKey[]>();
+    // Same as records but with additional data added
+    const [fields, setFields] = useState<string[]>([]);
+    const [rows, setRows] = useState<RowWithKey[]>();
     const [totalRecordCount, setTotalRecordCount] = useState<number>();
     const [isLoadingMore, setIsLoadingMore] = useState<boolean>(false);
     const [loadMoreErrorMessage, setLoadMoreErrorMessage] = useState<string>();
     const [hasMoreRecords, setHasMoreRecords] = useState<boolean>(false);
     const [nextRecordsUrl, setNextRecordsUrl] = useState<string>();
     const [globalFilter, setGlobalFilter] = useState<string>(null);
+    const [selectedRows, setSelectedRows] = useState<ReadonlySet<string>>(() => new Set());
+    const [contextMenuItems, setContextMenuItems] = useState<ContextMenuItem[]>([]);
 
     useEffect(() => {
       isMounted.current = true;
@@ -110,11 +107,12 @@ export const SalesforceRecordDataTable: FunctionComponent<SalesforceRecordDataTa
 
     useEffect(() => {
       if (queryResults) {
-        const columnDefinitions = getColumnDefinitions(queryResults, isTooling);
-        const fields = columnDefinitions.parentColumns.filter((column) => column.field).map((column) => column.field);
-        setColumns(columnDefinitions.parentColumns);
+        const { parentColumns, subqueryColumns } = getColumnDefinitions(queryResults, isTooling);
+        const fields = parentColumns.filter((column) => column.key && !NON_DATA_COLUMN_KEYS.has(column.key)).map((column) => column.key);
+        setColumns(parentColumns);
+        setFields(fields);
         onFields({ allFields: fields, visibleFields: fields });
-        setColumnDefinitions(columnDefinitions);
+        setSubqueryColumnsMap(subqueryColumns);
         setRecords(queryResults.queryResults.records);
         onFilteredRowsChanged(queryResults.queryResults.records);
         setTotalRecordCount(queryResults.queryResults.totalSize);
@@ -126,51 +124,116 @@ export const SalesforceRecordDataTable: FunctionComponent<SalesforceRecordDataTa
       // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [queryResults]);
 
+    useEffect(() => {
+      setContextMenuItems([
+        { label: 'Copy row to clipboard with header', value: 'COPY_ROW' },
+        { label: 'Copy row to clipboard without header', value: 'COPY_ROW_NO_HEADER', divider: true },
+
+        { label: 'Copy column to clipboard with header', value: 'COPY_COL' },
+        { label: 'Copy column to clipboard without header', value: 'COPY_COL_NO_HEADER', divider: true },
+
+        { label: 'Copy table to clipboard with header', value: 'COPY_TABLE' },
+        { label: 'Copy table to clipboard without header', value: 'COPY_TABLE_NO_HEADER' },
+      ]);
+    }, []);
+
     /**
      * When metadata is obtained, update the grid columns to include field labels
      */
     useEffect(() => {
-      if (fieldMetadata && gridApi) {
-        const columnDefinitions = getColumnDefinitions(queryResults, isTooling);
-        const parentColumnDefinitions = columnDefinitions.parentColumns;
-        const childColumnDefinitions = columnDefinitions.subqueryColumns;
-        addFieldLabelToColumn(parentColumnDefinitions, fieldMetadata);
+      if (fieldMetadata) {
+        const { parentColumns, subqueryColumns } = getColumnDefinitions(queryResults, isTooling);
 
+        setColumns(addFieldLabelToColumn(parentColumns, fieldMetadata));
+
+        // If there are subqueries, update field definition
         if (fieldMetadataSubquery) {
-          // If there are subqueries, update field definition
-          for (const key in childColumnDefinitions) {
+          for (const key in subqueryColumns) {
             if (fieldMetadataSubquery[key.toLowerCase()]) {
-              addFieldLabelToColumn(childColumnDefinitions[key], fieldMetadataSubquery[key.toLowerCase()]);
+              subqueryColumns[key] = addFieldLabelToColumn(subqueryColumns[key], fieldMetadataSubquery[key.toLowerCase()]);
             }
           }
         }
 
-        gridApi.setColumnDefs(parentColumnDefinitions);
-        setColumns(parentColumnDefinitions);
-        setColumnDefinitions(columnDefinitions);
+        setSubqueryColumnsMap(subqueryColumns);
       }
-    }, [fieldMetadata, fieldMetadataSubquery, gridApi, isTooling, queryResults]);
+    }, [fieldMetadata, fieldMetadataSubquery, isTooling, queryResults]);
 
-    function handleSelectionChanged(event: SelectionChangedEvent) {
-      if (onSelectionChanged) {
-        onSelectionChanged(event.api.getSelectedRows());
+    const handleRowAction = useCallback((row: RowWithKey, action: 'view' | 'edit' | 'clone' | 'apex') => {
+      const record = row._record;
+      logger.info('row action', record, action);
+      switch (action) {
+        case 'edit':
+          onEdit(record);
+          break;
+        case 'clone':
+          onClone(record);
+          break;
+        case 'view':
+          onView(record);
+          break;
+        case 'apex':
+          onGetAsApex(record);
+          break;
+        default:
+          break;
       }
-    }
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []);
 
-    function handleColumnChanged(event: ColumnEvent) {
-      logger.log('handleColumnMoved', { event });
-      onFields({ allFields: getAllColumns(event.columnApi), visibleFields: getCurrentColumns(event.columnApi) });
-    }
+    const handleContextMenuAction = useCallback(
+      (item: ContextMenuItem<ContextAction>, { row, rows, column, columns }: ContextMenuActionData<RowWithKey>) => {
+        let includeHeader = true;
+        let recordsToCopy: any[] = [];
+        const records = rows.map((row) => row._record);
+        const fieldsSet = new Set(fields);
+        let fieldsToCopy = columns.map((column) => column.key).filter((field) => fieldsSet.has(field)); // prefer this over fields because it accounts for reordering
+        logger.info('row action', item.value, { record: row._record, column });
+        // NOTE: FALLTHROUGH IS INTENTIONAL
+        switch (item.value) {
+          case 'COPY_ROW_NO_HEADER':
+            includeHeader = false;
+          case 'COPY_ROW':
+            recordsToCopy = [row._record];
+            break;
 
-    /**
-     * User filtered data or clicked load more records
-     */
-    function handleFilterChangeOrRowDataUpdated(event: ColumnEvent) {
-      logger.log('handleFilterChangeOrRowDataUpdated', { event });
-      if (onFilteredRowsChanged) {
-        onFilteredRowsChanged(getFilteredRows(event));
-      }
-    }
+          case 'COPY_COL_NO_HEADER':
+            includeHeader = false;
+          case 'COPY_COL':
+            fieldsToCopy = fieldsToCopy.filter((field) => field === column.key);
+            recordsToCopy = records.map((row) => ({ [column.key]: row[column.key] }));
+            break;
+
+          case 'COPY_TABLE_NO_HEADER':
+            includeHeader = false;
+          case 'COPY_TABLE':
+            recordsToCopy = records;
+            break;
+
+          default:
+            break;
+        }
+        if (recordsToCopy.length) {
+          const flattenedData = flattenRecords(recordsToCopy, fieldsToCopy);
+          copyToClipboard(transformTabularDataToExcelStr(flattenedData, fieldsToCopy, includeHeader), { format: 'text/plain' });
+        }
+      },
+      [fields]
+    );
+
+    useEffect(() => {
+      const columnKeys = columns?.map((col) => col.key) || null;
+      setRows(
+        (records || []).map((row): RowWithKey => {
+          return {
+            _key: getRowId(row),
+            _action: handleRowAction,
+            _record: row,
+            ...(columnKeys ? flattenRecord(row, columnKeys, false) : row),
+          };
+        })
+      );
+    }, [columns, handleRowAction, records]);
 
     async function loadRemaining() {
       try {
@@ -200,13 +263,10 @@ export const SalesforceRecordDataTable: FunctionComponent<SalesforceRecordDataTa
       }
     }
 
-    function handleOnGridReady({ api }: GridReadyEvent) {
-      setGridApi(api);
-    }
-
-    /** Ensure that the header is the true api name and does not include (type) */
-    function processHeaderForClipboard({ column }: ProcessHeaderForExportParams) {
-      return column.getColDef().field;
+    function handleCopy({ sourceRow, sourceColumnKey }: CopyEvent<RowWithKey>): void {
+      if (window.isSecureContext) {
+        navigator.clipboard.writeText(sourceRow[sourceColumnKey]);
+      }
     }
 
     return records ? (
@@ -235,73 +295,38 @@ export const SalesforceRecordDataTable: FunctionComponent<SalesforceRecordDataTa
           </div>
           <div>{summaryHeaderRightContent}</div>
         </Grid>
-        <DataTableContext.Provider
-          value={{
-            org,
-            serverUrl,
-            isTooling,
-            columnDefinitions,
-            google_apiKey,
-            google_appId,
-            google_clientId,
-          }}
-        >
-          <AutoFullHeightContainer fillHeight setHeightAttr bottomBuffer={10}>
+        <AutoFullHeightContainer fillHeight setHeightAttr bottomBuffer={10}>
+          <DataTableSubqueryContext.Provider
+            value={{
+              serverUrl,
+              org,
+              isTooling,
+              columnDefinitions: subqueryColumnsMap,
+              google_apiKey,
+              google_appId,
+              google_clientId,
+            }}
+          >
             <DataTable
               serverUrl={serverUrl}
               org={org}
+              data={rows}
               columns={columns}
-              data={records}
+              allowReorder
+              includeQuickFilter
               quickFilterText={globalFilter}
-              agGridProps={{
-                getRowId,
-                context: {
-                  actions: {
-                    edit: onEdit,
-                    clone: onClone,
-                    view: onView,
-                    getAsApex: onGetAsApex,
-                  },
-                },
-                sideBar: {
-                  toolPanels: [
-                    {
-                      id: 'filters',
-                      labelDefault: 'Filters',
-                      labelKey: 'filters',
-                      iconKey: 'filter',
-                      toolPanel: 'agFiltersToolPanel',
-                    },
-                    {
-                      id: 'columns',
-                      labelDefault: 'Columns',
-                      labelKey: 'columns',
-                      iconKey: 'columns',
-                      toolPanel: 'agColumnsToolPanel',
-                      toolPanelParams: {
-                        suppressRowGroups: true,
-                        suppressValues: true,
-                        suppressPivots: true,
-                        suppressPivotMode: true,
-                      },
-                    },
-                  ],
-                },
-                processHeaderForClipboard: processHeaderForClipboard,
-                onGridReady: handleOnGridReady,
-                onSelectionChanged: handleSelectionChanged,
-                onColumnMoved: handleColumnChanged,
-                onColumnVisible: handleColumnChanged,
-                onFilterChanged: handleFilterChangeOrRowDataUpdated,
-                onRowDataUpdated: handleFilterChangeOrRowDataUpdated,
-              }}
+              getRowKey={getRowId}
+              onCopy={handleCopy}
+              rowHeight={28.5}
+              selectedRows={selectedRows}
+              onSelectedRowsChange={setSelectedRows as any}
+              contextMenuItems={contextMenuItems}
+              contextMenuAction={handleContextMenuAction}
             />
-          </AutoFullHeightContainer>
-        </DataTableContext.Provider>
+          </DataTableSubqueryContext.Provider>
+        </AutoFullHeightContainer>
       </Fragment>
-    ) : (
-      <Fragment />
-    );
+    ) : null;
   }
 );
 

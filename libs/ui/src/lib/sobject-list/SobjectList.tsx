@@ -33,8 +33,14 @@ export const SobjectList: FunctionComponent<SobjectListProps> = ({
   errorReattempt,
   onSearchTermChange,
 }) => {
-  const [filteredSobjects, setFilteredSobjects] = useState<DescribeGlobalSObjectResult[]>(null);
   const [searchTerm, setSearchTerm] = useState(initialSearchTerm || '');
+  const [filteredSobjects, setFilteredSobjects] = useState<DescribeGlobalSObjectResult[]>(() => {
+    if (sobjects && sobjects.length > 0 && searchTerm) {
+      return sobjects.filter(multiWordObjectFilter(['name', 'label'], searchTerm));
+    } else {
+      return sobjects;
+    }
+  });
   const [searchInputId] = useState(`object-filter-${Date.now()}`);
   const ulRef = createRef<HTMLUListElement>();
 
@@ -60,8 +66,9 @@ export const SobjectList: FunctionComponent<SobjectListProps> = ({
 
   return (
     <Fragment>
-      {loading && (
+      {loading && !sobjects && (
         <div
+          data-testid="sobject-list"
           className="slds-is-relative"
           css={css`
             min-height: 50px;
@@ -70,7 +77,7 @@ export const SobjectList: FunctionComponent<SobjectListProps> = ({
           <Spinner />
         </div>
       )}
-      <div>
+      <div data-testid="sobject-list">
         {errorMessage && (
           <p className="slds-p-around_medium slds-text-align_center">
             <span className="slds-text-color_error">There was an error loading objects for the selected org.</span>
@@ -79,7 +86,7 @@ export const SobjectList: FunctionComponent<SobjectListProps> = ({
             </button>
           </p>
         )}
-        {!loading && sobjects && filteredSobjects && (
+        {sobjects && filteredSobjects && (
           <Fragment>
             <div className="slds-p-bottom--xx-small">
               <SearchInput
@@ -102,6 +109,7 @@ export const SobjectList: FunctionComponent<SobjectListProps> = ({
                 onSelected={(key) => onSelected(sobjects.find((item) => item.name === key))}
                 getContent={(item: DescribeGlobalSObjectResult) => ({
                   key: item.name,
+                  testId: item.name,
                   heading: item.label,
                   subheading: item.name,
                 })}

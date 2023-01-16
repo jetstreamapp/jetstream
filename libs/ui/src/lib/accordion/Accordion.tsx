@@ -93,6 +93,7 @@ export const Accordion: FunctionComponent<AccordionProps> = ({
                 <div className="slds-accordion__summary">
                   <h3 className="slds-accordion__summary-heading">
                     <button
+                      data-testid={item.testId}
                       aria-controls={item.id}
                       aria-expanded={isOpen}
                       className="slds-button slds-button_reset slds-accordion__summary-action"

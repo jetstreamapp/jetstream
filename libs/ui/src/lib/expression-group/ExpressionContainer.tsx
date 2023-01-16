@@ -12,8 +12,6 @@ import {
   QueryFilterOperator,
 } from '@jetstream/types';
 import React, { FunctionComponent, useCallback, useReducer, useState } from 'react';
-import { DndProvider } from 'react-dnd';
-import { HTML5Backend } from 'react-dnd-html5-backend';
 import DropDown from '../form/dropdown/DropDown';
 import Expression from './Expression';
 import { DraggableRow } from './expression-types';
@@ -414,103 +412,101 @@ export const ExpressionContainer: FunctionComponent<ExpressionContainerProps> = 
     }
 
     return (
-      <DndProvider backend={HTML5Backend}>
-        <Expression
-          actionLabel={actionLabel}
-          title={title}
-          value={expression.action}
-          ancillaryOptions={
-            <div className="slds-m-top_large slds-m-left_xx-small">
-              <DropDown
-                position="left"
-                description="Display options"
-                initialSelectedId={displayOption}
-                items={[
-                  { id: DISPLAY_OPT_ROW, value: 'Display filters on one row' },
-                  { id: DISPLAY_OPT_WRAP, value: 'Wrap filters if limited space' },
-                ]}
-                onSelected={(id) => setDisplayOption(id)}
-              />
-            </div>
+      <Expression
+        actionLabel={actionLabel}
+        title={title}
+        value={expression.action}
+        ancillaryOptions={
+          <div className="slds-m-top_large slds-m-left_xx-small">
+            <DropDown
+              position="left"
+              description="Display options"
+              initialSelectedId={displayOption}
+              items={[
+                { id: DISPLAY_OPT_ROW, value: 'Display filters on one row' },
+                { id: DISPLAY_OPT_WRAP, value: 'Wrap filters if limited space' },
+              ]}
+              onSelected={(id) => setDisplayOption(id)}
+            />
+          </div>
+        }
+        onActionChange={handleExpressionActionChange}
+        onAddCondition={handleAddCondition}
+        onAddGroup={handleAddGroup}
+        moveRowToGroup={moveRowToGroup}
+      >
+        {expression.rows.map((row, i) => {
+          if (isExpressionConditionType(row)) {
+            return (
+              <ExpressionConditionRow
+                key={row.key}
+                rowKey={row.key}
+                row={i + 1}
+                AndOr={expression.action}
+                showDragHandles={showDragHandles}
+                wrap={displayOption === DISPLAY_OPT_WRAP}
+                resourceTypes={row.resourceTypes}
+                resourceType={row.resourceType}
+                resourceSelectItems={row.resourceSelectItems}
+                resourceLabel={resourceLabel}
+                resourceHelpText={resourceHelpText}
+                operatorLabel={operatorLabel}
+                operatorHelpText={operatorHelpText}
+                valueLabel={valueLabel}
+                valueLabelHelpText={valueLabelHelpText}
+                rowHelpText={row.helpText}
+                resources={resources}
+                operators={operators}
+                selected={row.selected}
+                disableValueForOperators={disableValueForOperators}
+                onChange={(selected) => handleRowChange(selected, row)}
+                onDelete={() => handleDeleteRow(row)}
+              ></ExpressionConditionRow>
+            );
+          } else {
+            return (
+              <ExpressionGroup
+                key={row.key}
+                groupKey={row.key}
+                group={i + 1}
+                parentAction={expression.action}
+                onActionChange={(andOr) => handleGroupActionChange(andOr, row)}
+                onAddCondition={() => handleAddCondition(row)}
+                moveRowToGroup={moveRowToGroup}
+              >
+                {row.rows.map((childRow: ExpressionConditionType, k) => (
+                  <ExpressionConditionRow
+                    key={childRow.key}
+                    rowKey={childRow.key}
+                    groupKey={row.key}
+                    group={i + 1}
+                    row={k + 1}
+                    AndOr={row.action}
+                    showDragHandles={showDragHandles}
+                    wrap={displayOption === DISPLAY_OPT_WRAP}
+                    resourceTypes={childRow.resourceTypes}
+                    resourceType={childRow.resourceType}
+                    resourceSelectItems={childRow.resourceSelectItems}
+                    resourceLabel={resourceLabel}
+                    resourceHelpText={resourceHelpText}
+                    operatorLabel={operatorLabel}
+                    operatorHelpText={operatorHelpText}
+                    valueLabel={valueLabel}
+                    valueLabelHelpText={valueLabelHelpText}
+                    rowHelpText={childRow.helpText}
+                    resources={resources}
+                    operators={operators}
+                    selected={childRow.selected}
+                    disableValueForOperators={disableValueForOperators}
+                    onChange={(selected) => handleRowChange(selected, childRow, row)}
+                    onDelete={() => handleDeleteRow(childRow, row)}
+                  ></ExpressionConditionRow>
+                ))}
+              </ExpressionGroup>
+            );
           }
-          onActionChange={handleExpressionActionChange}
-          onAddCondition={handleAddCondition}
-          onAddGroup={handleAddGroup}
-          moveRowToGroup={moveRowToGroup}
-        >
-          {expression.rows.map((row, i) => {
-            if (isExpressionConditionType(row)) {
-              return (
-                <ExpressionConditionRow
-                  key={row.key}
-                  rowKey={row.key}
-                  row={i + 1}
-                  AndOr={expression.action}
-                  showDragHandles={showDragHandles}
-                  wrap={displayOption === DISPLAY_OPT_WRAP}
-                  resourceTypes={row.resourceTypes}
-                  resourceType={row.resourceType}
-                  resourceSelectItems={row.resourceSelectItems}
-                  resourceLabel={resourceLabel}
-                  resourceHelpText={resourceHelpText}
-                  operatorLabel={operatorLabel}
-                  operatorHelpText={operatorHelpText}
-                  valueLabel={valueLabel}
-                  valueLabelHelpText={valueLabelHelpText}
-                  rowHelpText={row.helpText}
-                  resources={resources}
-                  operators={operators}
-                  selected={row.selected}
-                  disableValueForOperators={disableValueForOperators}
-                  onChange={(selected) => handleRowChange(selected, row)}
-                  onDelete={() => handleDeleteRow(row)}
-                ></ExpressionConditionRow>
-              );
-            } else {
-              return (
-                <ExpressionGroup
-                  key={row.key}
-                  groupKey={row.key}
-                  group={i + 1}
-                  parentAction={expression.action}
-                  onActionChange={(andOr) => handleGroupActionChange(andOr, row)}
-                  onAddCondition={() => handleAddCondition(row)}
-                  moveRowToGroup={moveRowToGroup}
-                >
-                  {row.rows.map((childRow: ExpressionConditionType, k) => (
-                    <ExpressionConditionRow
-                      key={childRow.key}
-                      rowKey={childRow.key}
-                      groupKey={row.key}
-                      group={i + 1}
-                      row={k + 1}
-                      AndOr={row.action}
-                      showDragHandles={showDragHandles}
-                      wrap={displayOption === DISPLAY_OPT_WRAP}
-                      resourceTypes={childRow.resourceTypes}
-                      resourceType={childRow.resourceType}
-                      resourceSelectItems={childRow.resourceSelectItems}
-                      resourceLabel={resourceLabel}
-                      resourceHelpText={resourceHelpText}
-                      operatorLabel={operatorLabel}
-                      operatorHelpText={operatorHelpText}
-                      valueLabel={valueLabel}
-                      valueLabelHelpText={valueLabelHelpText}
-                      rowHelpText={childRow.helpText}
-                      resources={resources}
-                      operators={operators}
-                      selected={childRow.selected}
-                      disableValueForOperators={disableValueForOperators}
-                      onChange={(selected) => handleRowChange(selected, childRow, row)}
-                      onDelete={() => handleDeleteRow(childRow, row)}
-                    ></ExpressionConditionRow>
-                  ))}
-                </ExpressionGroup>
-              );
-            }
-          })}
-        </Expression>
-      </DndProvider>
+        })}
+      </Expression>
     );
   }
 );

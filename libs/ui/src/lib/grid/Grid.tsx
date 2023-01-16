@@ -4,6 +4,7 @@ import { sizeXXXSmallToXXLarge, CenterSpaceSpreadEnd, StartCenterEnd } from '@je
 
 // eslint-disable-next-line @typescript-eslint/no-empty-interface
 export interface GridProps {
+  testId?: string;
   className?: string;
   gutters?: boolean;
   guttersDirect?: boolean;
@@ -30,6 +31,7 @@ function getClassWithModifier(base: string, modifier?: CenterSpaceSpreadEnd | St
 }
 
 export const Grid: FunctionComponent<GridProps> = ({
+  testId,
   className,
   gutters,
   guttersSize,
@@ -49,6 +51,7 @@ export const Grid: FunctionComponent<GridProps> = ({
 }) => {
   return (
     <div
+      data-testid={testId}
       className={classNames(
         'slds-grid',
         {

@@ -178,7 +178,9 @@ export const SobjectFieldList: FunctionComponent<SobjectFieldListProps> = ({
       css={css({
         backgroundColor: getBgColor(level),
       })}
-      data-testid={`sobject-fields`}
+      data-testid={level ? `sobject-fields-${level}-${sobject}` : `sobject-fields`}
+      // Ensure random events to don propagate to parent list item
+      onClick={(ev) => ev.stopPropagation()}
     >
       {queryFields?.loading && (
         <div

@@ -135,7 +135,8 @@
         "buildTarget": "jetstream:build",
         "hmr": true,
         "baseHref": "/app",
-        "proxyConfig": "proxy.conf.json"
+        "proxyConfig": "proxy.conf.json",
+        "open": true
       },
       "configurations": {
         "production": {

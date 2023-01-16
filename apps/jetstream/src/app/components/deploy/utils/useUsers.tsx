@@ -25,7 +25,7 @@ export function useUsers(
       hasLoaded: !!initialUsers,
       loading: false,
       hasError: false,
-      data: initialUsers || [],
+      data: initialUsers || null,
     }
   );
 
@@ -45,7 +45,7 @@ export function useUsers(
   const loadUsers = useCallback(
     async (clearCache = false) => {
       try {
-        dispatch({ type: 'REQUEST', payload: [] });
+        dispatch({ type: 'REQUEST', payload: null });
         if (clearCache) {
           clearCacheForOrg(selectedOrg);
         }
