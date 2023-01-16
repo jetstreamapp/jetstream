@@ -156,10 +156,6 @@ export async function deleteImage(deleteToken: string): Promise<CloudinaryUpload
   }).then(unwrapResponseIgnoreCache);
 }
 
-export async function submitFeedback(data: { title: string; body: string }): Promise<{ id: number }> {
-  return handleRequest({ method: 'POST', url: '/api/feedback/submit', data }).then(unwrapResponseIgnoreCache);
-}
-
 export async function describeGlobal(
   org: SalesforceOrgUi,
   isTooling = false,

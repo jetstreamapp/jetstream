@@ -21,8 +21,8 @@ export const SupportLink: FunctionComponent<SupportLinkProps> = (props) => {
     <Grid className={className} {...rest}>
       {label}
       <Link to={{ pathname: '/feedback' }} target="blank" className="slds-grid slds-m-left_xx-small">
-        <span className="slds-truncate" title={'File a support ticket'}>
-          file a support ticket
+        <span className="slds-truncate" title={'Get Help'}>
+          Get Help
         </span>
         <Icon
           type="utility"
