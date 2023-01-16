@@ -1,18 +1,23 @@
 # Jetstream
 
-Jetstream is a tool for Salesforce administrators.
+<img src="./jetstream-logo-white-plate.png" />
+
+**A better way to work on Salesforce**
+
+The Jetstream platform makes managing your Salesforce instances a breeze. Use Jetstream to work with your data and metadata to get your work done faster.
 
 Learn more by [reading the docs](https://docs.getjetstream.app/).
 
 There are multiple ways to use Jetstream.
 
 1. Use the hosted version at https://getjetstream.app
-2. Use the desktop version, download here **TODO:**
+2. Use the desktop version **TODO: COMING SOON**
 3. Run locally
    1. Using nodejs
       1. Building yourself (recommended if you want to contribute to the Jetstream codebase)
-      2. Using the pre-built version, downloaded here **TODO:**
+      2. Using the pre-built version **TODO: COMING SOON**
    2. Using Docker
+4. Want to self-host behind your company firewall? Reach out to the team for assistance.
 
 # Overview of the codebase structure
 
@@ -61,8 +66,15 @@ This project was generated using [Nx](https://nx.dev) - This repository is consi
 
 ## Running Locally
 
-📓 You can choose to skip authentication by setting the environment variable `EXAMPLE_USER_OVERRIDE=true`. This is set to true by default in the `.env.example` file.
-🌟 To use this, don't click the login button, but instead just go to `http://localhost:3333/app` directly
+**IF YOU HAVE ANY ISSUES WITH THE STEPS BELOW, PLEASE FILE A TICKET.**
+
+**Pre-req**
+
+1. Make sure you have node 16 or 18 installed.
+2. If you want to run the dev server, make sure you have yarn installed.
+
+📓 You can choose to skip authentication locally by setting the environment variable `EXAMPLE_USER_OVERRIDE=true`. This is set to true by default in the `.env.example` file.
+🌟 To use this, don't click the login button, but instead just go to `http://localhost:3333/app` or `http://localhost:4200/app` (if running the react development server) directly.
 
 The easiest way to run Jetstream locally is to download the pre-built and transpiled javascript files and run them using NodeJs.
 
@@ -96,7 +108,6 @@ If you want to create your own:
 This is the fastest 🏃 way to run Jetstream locally.
 
 TODO: instructions to download and instructions to run
-TODO: include instructions on how to have a local user
 
 ### Building
 
@@ -108,7 +119,7 @@ TODO: include instructions on how to have a local user
   - ensure this is running with a database called `postgres` and a user named `postgres` on default port 5432
     - If your database is cloud hosted or named something different, then you can adjust the environment variable in `.env` after you initialize your application and this file is created.
 - [Install node 16+](https://nodejs.org/en/download/)
-  - Other versions of node should work, but are untested
+  - Version 18 is preferred, but 16 will work.
 - [Install Yarn](https://classic.yarnpkg.com/lang/en/docs/install/#mac-stable)
 - Install dependencies
   - Run `yarn` to install all dependencies
@@ -117,7 +128,7 @@ TODO: include instructions on how to have a local user
   - If you need to adjust your postges connection, you can do so now.
 - **Running in production mode**
   - Build application
-    - `yarn build` (this may take 5 - 10 minutes)
+    - `yarn build` (this may take some time - if the build is cached in the cloud, this may run quickly)
   - Start Jetstream
     - `yarn db:migrate` to initialize database
     - `yarn db:seed` to insert required records for the application
@@ -151,6 +162,8 @@ TODO: include instructions on how to have a local user
    2. If you make any changes, you need to re-build the application using `docker compose build`
 
 ## Desktop Application
+
+**TODO: THIS HAS NOT BEEN ENTIRELY WORKED OUT YET**
 
 ### Local development
 
