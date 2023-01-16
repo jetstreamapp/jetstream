@@ -1,41 +1,15 @@
-// const withSass = require('@zeit/next-sass');
 const withImages = require('next-images');
 
-module.exports = withImages(
-  // withSass({
-  {
-    // Set this to true if you use CSS modules.
-    // See: https://github.com/css-modules/css-modules
-    cssModules: false,
-    // Warning: The "exportTrailingSlash" option has been renamed to "trailingSlash". Please update your next.config.js.
-    trailingSlash: true,
-    // #LAME https://github.com/nrwl/nx/issues/4182
-    webpack(config) {
-      // Prevent nx from adding an svg handler - stick to what is provided by
-      // nextjs or that we have defined ourselves.
-      config.module.rules.push = (...items) => {
-        Array.prototype.push.call(config.module.rules, ...items.filter((item) => item.test.toString() !== '/\\.svg$/'));
-      };
+module.exports = withImages({
+  trailingSlash: true,
+  // #LAME https://github.com/nrwl/nx/issues/4182
+  webpack(config) {
+    // Prevent nx from adding an svg handler - stick to what is provided by
+    // nextjs or that we have defined ourselves.
+    config.module.rules.push = (...items) => {
+      Array.prototype.push.call(config.module.rules, ...items.filter((item) => item.test.toString() !== '/\\.svg$/'));
+    };
 
-      return config;
-    },
-  }
-  // )
-);
-
-// Example from new install:
-// // eslint-disable-next-line @typescript-eslint/no-var-requires
-// const withNx = require('@nrwl/next/plugins/with-nx');
-
-// /**
-//  * @type {import('@nrwl/next/plugins/with-nx').WithNxOptions}
-//  **/
-// const nextConfig = {
-//   nx: {
-//     // Set this to true if you would like to to use SVGR
-//     // See: https://github.com/gregberge/svgr
-//     svgr: false,
-//   },
-// };
-
-// module.exports = withNx(nextConfig);
+    return config;
+  },
+});

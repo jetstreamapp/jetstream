@@ -1,21 +1,17 @@
-import { format, parseISO } from 'date-fns';
 import Head from 'next/head';
-import React, { Fragment } from 'react';
 import Footer from '../../components/Footer';
 import Navigation from '../../components/Navigation';
-import { fetchBlogPosts } from '../../utils/data';
 import { BlogPost } from '../../utils/types';
 
 interface PostProps {
   blogPosts: Array<BlogPost>;
 }
 
-function BlogPosts({ blogPosts }: PostProps) {
-  // TODO: helmet etc..
+function About({ blogPosts }: PostProps) {
   return (
     <div>
       <Head>
-        <title>Jetstream Blog</title>
+        <title>About Jetstream</title>
         <meta
           name="description"
           content="Jetstream is a set of tools that supercharge your administration of Salesforce.com. Jetstream is built for administrators, developers, quality assurance, or power users that want to speed up your management of Salesforce. Jetstream comes with an advanced query builder for viewing records, a powerful data loader for making changes to your record data, and many more features!"
@@ -48,46 +44,38 @@ function BlogPosts({ blogPosts }: PostProps) {
       </Head>
       <div className="bg-white">
         <div className="relative overflow-hidden">
-          <Navigation inverse omitLinks={['/blog']} />
-          {blogPosts.length === 0 && (
-            <div className="text-center pt-8 text-gray-500">There aren't any blog posts right now, check back soon.</div>
-          )}
-          <div className="py-8">
-            {blogPosts.map((post, i) => (
-              <div key={post.id}>
-                {i !== 0 && <hr className="my-5" />}
-                <div className="flex justify-center">
-                  <div className="w-full md:w-6/12 xl:w-4/12 px-6 md:px-0">
-                    <h3 className="text-xl">
-                      <a href={`/blog/post/${post.slug}`}>{post.title}</a>
-                    </h3>
-                    <p className="my-2 text-gray-500 text-sm">{format(parseISO(post.publishDate), 'MMMM d, y')}</p>
-                    <section className="text-sm mt-4">{post.summary}</section>
-                    <div className="mt-8">
-                      <a className="text-blue-700" href={`/blog/post/${post.slug}`}>
-                        Read More
-                      </a>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            ))}
+          <Navigation inverse />
+          <div className="bg-gray-50 py-24 sm:py-32 border-b border-b-gray-200">
+            <div className="mx-auto max-w-md px-6 sm:max-w-lg lg:max-w-7xl lg:px-8">
+              <h1 className="text-center text-4xl font-bold leading-10 tracking-tight text-gray-900 sm:text-5xl sm:leading-none lg:text-6xl">
+                About Jetstream
+              </h1>
+              <p className="mx-auto mt-6 max-w-3xl text-center text-xl leading-normal text-gray-500">
+                Jetstream is an open source project that was created and run by{' '}
+                <a
+                  href="https://www.linkedin.com/in/p-austin-turner/"
+                  target="_blank"
+                  rel="noreferrer"
+                  className="text-cyan-500 hover:text-cyan-900"
+                >
+                  Austin Turner
+                </a>
+                .
+              </p>
+              <p className="mx-auto mt-6 max-w-3xl text-center text-xl leading-normal text-gray-500">
+                I created Jetstream as a side project to solve common problems that my co-workers and I faced on a daily basis. Salesforce
+                is an amazing platform with a lot of extensibility, but it can be difficult to manage and maintain.
+              </p>
+              <p className="mx-auto mt-6 max-w-3xl text-center text-xl leading-normal text-gray-500">
+                I truly hope that you love Jetstream as much as I do!
+              </p>
+            </div>
           </div>
-          <Footer omitLinks={['/blog']} />
+          <Footer />
         </div>
       </div>
     </div>
   );
 }
 
-// This also gets called at build time
-export async function getStaticProps({ params }) {
-  // uses cached data
-  const blogPostsWithRelated = await fetchBlogPosts();
-
-  // params contains output from getStaticPaths() (I hope)
-  // Pass post data to the page via props
-  return { props: { blogPosts: Object.values(blogPostsWithRelated) } };
-}
-
-export default BlogPosts;
+export default About;

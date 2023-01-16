@@ -109,7 +109,7 @@ const features: {
 ];
 
 export const FeatureGrid = () => (
-  <div id="features" className="relative bg-white py-16 sm:py-24 lg:py-32">
+  <div id="features" className="relative bg-white py-16 pt-16 sm:pt-24">
     <div className="mx-auto max-w-md px-4 text-center sm:max-w-3xl sm:px-6 lg:px-8 lg:max-w-7xl">
       <FeatureHeading
         title="Unlimited org connections"

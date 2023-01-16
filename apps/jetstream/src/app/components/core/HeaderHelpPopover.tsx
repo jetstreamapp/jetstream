@@ -49,8 +49,8 @@ export const HeaderHelpPopover: FunctionComponent<HeaderHelpPopoverProps> = () =
             </li>
             <li className="slds-p-around_x-small">
               <Link to="/feedback" onClick={() => closePopover()} target="blank">
-                <span className="slds-truncate" title={'File a support ticket'}>
-                  File a support ticket
+                <span className="slds-truncate" title={'Get Help'}>
+                  Get Help
                 </span>
                 <Icon
                   type="utility"

@@ -154,7 +154,7 @@ export const HeaderNavbar: FunctionComponent<HeaderNavbarProps> = ({ userProfile
           <NavbarMenuItems
             label="Documentation &amp; Support"
             items={[
-              { id: 'feedback', path: '/feedback', title: 'File a support ticket', label: 'File a support ticket' },
+              { id: 'feedback', path: '/feedback', title: 'Get Help', label: 'Get Help' },
               {
                 id: 'documentation',
                 path: 'https://docs.getjetstream.app',

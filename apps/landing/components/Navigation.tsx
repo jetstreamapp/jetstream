@@ -7,7 +7,6 @@ import React, { Fragment } from 'react';
 const navigation = [
   { name: 'Features', href: '/#features' },
   { name: 'Documentation', href: 'https://docs.getjetstream.app/', target: '_blank' },
-  { name: 'Contact Us', href: 'mailto:support@getjetstream.app', target: '_blank' },
   { name: 'Blog', href: '/blog' },
 ];
 
@@ -60,6 +59,22 @@ export const Navigation = ({ className, inverse, omitLinks = [] }: { className?:
                   {item.name}
                 </a>
               ))}
+            <a href="https://github.com/jetstreamapp/jetstream" target="_blank" rel="noreferrer">
+              <img
+                title="View project on Github"
+                className="h-6 w-6"
+                src="https://res.cloudinary.com/getjetstream/image/upload/v1673824284/public/github-mark-white_ksnuo6.svg"
+                alt="View project on Github"
+              />
+            </a>
+            <a href="https://discord.gg/sfxd" target="_blank" rel="noreferrer">
+              <img
+                title="Join the SFXD Discord Community"
+                className="h-6 w-6"
+                src="https://res.cloudinary.com/getjetstream/image/upload/v1673824421/public/discord-mark-white_ny5zwv.svg"
+                alt="Join the SFXD Discord Community"
+              />
+            </a>
           </div>
         </div>
         <div className="hidden md:flex md:items-center md:space-x-6">
@@ -124,6 +139,22 @@ export const Navigation = ({ className, inverse, omitLinks = [] }: { className?:
                     {item.name}
                   </Link>
                 ))}
+              <a
+                href="https://github.com/jetstreamapp/jetstream"
+                target="_blank"
+                rel="noreferrer"
+                className="flex px-3 py-2 rounded-md text-base font-medium text-gray-900 hover:bg-gray-50"
+              >
+                Github Project
+              </a>
+              <a
+                href="https://discord.gg/sfxd"
+                target="_blank"
+                rel="noreferrer"
+                className="flex px-3 py-2 rounded-md text-base font-medium text-gray-900 hover:bg-gray-50"
+              >
+                SFXD Discord
+              </a>
             </div>
             <div className="mt-6 px-5">
               <a

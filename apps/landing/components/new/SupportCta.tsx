@@ -1,5 +1,32 @@
 import React from 'react';
 
+const items = [
+  {
+    image: 'https://res.cloudinary.com/getjetstream/image/upload/v1673822085/public/discord-mark-black_yj4q38.svg',
+    title: 'Ask a question',
+    subtitle: 'SFDX Discord Community',
+    link: 'https://discord.gg/sfxd',
+  },
+  {
+    image: 'https://res.cloudinary.com/getjetstream/image/upload/v1673804643/public/github-mark_ryp6er.svg',
+    title: 'Start a discussion',
+    subtitle: 'Github Discussion',
+    link: 'https://github.com/jetstreamapp/jetstream/discussions',
+  },
+  {
+    image: 'https://res.cloudinary.com/getjetstream/image/upload/v1673804643/public/github-mark_ryp6er.svg',
+    title: 'File a ticket',
+    subtitle: 'Github Issue',
+    link: 'https://github.com/jetstreamapp/jetstream/issues',
+  },
+  {
+    image: 'https://res.cloudinary.com/getjetstream/image/upload/v1673804643/public/github-mark_ryp6er.svg',
+    title: 'Contribute to the codebase',
+    subtitle: 'Github',
+    link: 'https://github.com/jetstreamapp/jetstream',
+  },
+] as const;
+
 export const SupportCta = () => (
   <div className="relative bg-gray-900">
     <div className="relative h-56 bg-indigo-600 sm:h-72 md:absolute md:left-0 md:h-full md:w-1/2">
@@ -14,27 +41,25 @@ export const SupportCta = () => (
       <div className="md:ml-auto md:w-1/2 md:pl-10">
         <p className="mt-2 text-white text-3xl font-extrabold tracking-tight sm:text-4xl">We’re here to help</p>
         <p className="mt-3 text-lg text-gray-300">Have a question about Jetstream or need support?</p>
-        <p className="mt-3 text-lg text-gray-300">Don't hesitate to reach out to our team.</p>
         <div className="mt-8 text-white underline"></div>
-        <div className="mt-8">
-          <div className="inline-flex rounded-md shadow mr-4">
-            <a
-              href="mailto:support@getjetstream.app"
-              target="_blank"
-              className="inline-flex items-center justify-center px-5 py-3 border border-transparent text-base font-medium rounded-md text-gray-900 bg-white hover:bg-gray-50"
+        <div className="mt-8 grid grid-cols-1 gap-4">
+          {items.map(({ image, link, subtitle, title }) => (
+            <div
+              key={title}
+              className="relative flex items-center space-x-3 rounded-lg border border-gray-300 bg-white px-4 py-3 shadow focus-within:ring-2 focus-within:ring-indigo-500 focus-within:ring-offset-2 hover:border-gray-400 hover:bg-gray-50"
             >
-              Contact support
-            </a>
-          </div>
-          <div className="inline-flex rounded-md shadow">
-            <a
-              href="https://docs.getjetstream.app"
-              target="_blank"
-              className="inline-flex items-center justify-center px-5 py-3 border border-transparent text-base font-medium rounded-md text-gray-900 bg-white hover:bg-gray-50"
-            >
-              View documentation
-            </a>
-          </div>
+              <div className="flex-shrink-0">
+                <img className="h-10 w-10" src={image} alt="" />
+              </div>
+              <div className="min-w-0 flex-1">
+                <a href={link} className="focus:outline-none" target="_blank" rel="noreferrer">
+                  <span className="absolute inset-0" aria-hidden="true" />
+                  <p className="text-sm font-medium text-gray-900">{title}</p>
+                  <p className="truncate text-sm text-gray-500">{subtitle}</p>
+                </a>
+              </div>
+            </div>
+          ))}
         </div>
       </div>
     </div>

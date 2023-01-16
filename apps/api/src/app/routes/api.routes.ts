@@ -1,7 +1,6 @@
 import { ENV } from '@jetstream/api-config';
 import * as express from 'express';
 import Router from 'express-promise-router';
-import * as feedbackController from '../controllers/feedback.controller';
 import * as imageController from '../controllers/image.controller';
 import * as orgsController from '../controllers/orgs.controller';
 import * as salesforceApiReqController from '../controllers/salesforce-api-requests.controller';
@@ -47,8 +46,6 @@ routes.patch('/orgs/:uniqueId', orgsController.updateOrg);
 routes.delete('/orgs/:uniqueId', orgsController.deleteOrg);
 
 routes.get('/images/upload-signature', validate(imageController.routeValidators.getUploadSignature), imageController.getUploadSignature);
-
-routes.post('/feedback/submit', validate(feedbackController.routeValidators.submit), feedbackController.submit);
 
 routes.get('/describe', ensureOrgExists, sfQueryController.describe);
 routes.get('/describe/:sobject', ensureOrgExists, sfQueryController.describeSObject);
