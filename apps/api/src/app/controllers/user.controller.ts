@@ -1,11 +1,10 @@
-import { logger } from '@jetstream/api-config';
+import { logger, mailgun } from '@jetstream/api-config';
 import { UserProfileServer } from '@jetstream/types';
 import { AxiosError } from 'axios';
 import * as express from 'express';
 import { body, query as queryString } from 'express-validator';
 import { deleteUserAndOrgs } from '../db/transactions.db';
 import * as auth0Service from '../services/auth0';
-import { createIssue } from '../services/github';
 import { UserFacingError } from '../utils/error-handler';
 import { sendJson } from '../utils/response.handlers';
 
@@ -112,17 +111,41 @@ export async function deleteAccount(req: express.Request, res: express.Response)
     // delete locally
     await deleteUserAndOrgs(user);
 
-    // send to github - don't wait for response
-    let body = reason ? `**Reason**: ${reason}` : `The user did not provide any reason.`;
-    body += `\n\n**UserId**: ${user.id}`;
-    body += `\n### User Details\n\`\`\`\n${JSON.stringify(user, null, 2)}\n\`\`\`\n`;
-    createIssue(`Account Termination: ${user.id}`, body)
-      .then((results) => {
-        logger.info('[ACCOUNT DELETE][TICKET CREATED] %s', results.data.id);
-      })
-      .catch((error) => {
-        logger.error('[ACCOUNT DELETE][ERROR CREATING ACCOUNT CLOSE TICKET] %s', error.message);
-      });
+    try {
+      // Send email to team about account deletion - if user provided a reason, then we can capture that
+      mailgun.messages
+        .create('mail.getjetstream.app', {
+          from: 'Jetstream Support <support@getjetstream.app>',
+          to: 'support@getjetstream.app',
+          subject: 'Jetstream - Account deletion notification',
+          template: 'generic_notification',
+          'h:X-Mailgun-Variables': JSON.stringify({
+            title: 'Jetstream account deleted',
+            previewText: 'Account was deleted',
+            headline: `Account was deleted`,
+            bodySegments: [
+              {
+                text: `The account ${user.id} was deleted.`,
+              },
+              {
+                text: reason ? `Reason: ${reason}` : `The user did not provide any reason.`,
+              },
+              {
+                text: JSON.stringify(user, null, 2),
+              },
+            ],
+          }),
+          'h:Reply-To': 'support@getjetstream.app',
+        })
+        .then((results) => {
+          logger.info('[ACCOUNT DELETE][EMAIL SENT] %s', results.data.id);
+        })
+        .catch((error) => {
+          logger.error('[ACCOUNT DELETE][ERROR SENDING EMAIL SUMMARY] %s', error.message);
+        });
+    } catch (ex) {
+      logger.error('[ACCOUNT DELETE][ERROR SENDING EMAIL SUMMARY] %s', ex.message);
+    }
 
     // Destroy session - don't wait for response
     req.session.destroy((error) => {
