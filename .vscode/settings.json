@@ -57,5 +57,6 @@
   },
   "typescript.updateImportsOnFileMove.enabled": "always",
   "editor.tabCompletion": "on",
-  "editor.defaultFormatter": "esbenp.prettier-vscode"
+  "editor.defaultFormatter": "esbenp.prettier-vscode",
+  "git.branchProtection": ["main", "master"]
 }
