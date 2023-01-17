@@ -284,7 +284,7 @@ export function getColumnDefinitions(): ColumnWithFilter<DeployMetadataTableRow>
       width: 250,
     },
     {
-      ...setColumnFromType('lastModifiedByName', 'date'),
+      ...setColumnFromType('lastModifiedByName', 'text'),
       name: 'Last Modified By',
       key: 'lastModifiedByName',
       width: 160,
@@ -305,7 +305,7 @@ export function getColumnDefinitions(): ColumnWithFilter<DeployMetadataTableRow>
       width: 202,
     },
     {
-      ...setColumnFromType('createdByName', 'date'),
+      ...setColumnFromType('createdByName', 'text'),
       name: 'Created By',
       key: 'createdByName',
       width: 150,
