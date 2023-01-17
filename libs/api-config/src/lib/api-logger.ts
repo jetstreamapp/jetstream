@@ -20,7 +20,7 @@ export const logger = createLogger({
     }),
   ],
   // TODO: put this in a shared mounted directory
-  exceptionHandlers: [new transports.File({ filename: './logs/unhandled-exceptions.log', level: 'error' })],
+  // exceptionHandlers: [new transports.File({ filename: './logs/unhandled-exceptions.log', level: 'error' })],
   // this is in docs but not typescript definition?
   // rejectionHandlers: [
   //   new transports.File({ filename: 'unhandled-exceptions.log'}),
