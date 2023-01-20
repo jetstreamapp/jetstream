@@ -125,7 +125,6 @@ export function ContextMenu({ containerId, menu, onItemSelected, children }: Con
           display: contents;
         `}
         onContextMenu={(event) => {
-          console.log('containerId', containerId);
           if (containerId) {
             try {
               const itemId =
