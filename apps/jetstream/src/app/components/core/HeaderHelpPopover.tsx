@@ -1,6 +1,5 @@
-import { Icon, Popover, PopoverRef } from '@jetstream/ui';
+import { FeedbackLink, Icon, Popover, PopoverRef } from '@jetstream/ui';
 import { FunctionComponent, useEffect, useRef } from 'react';
-import { Link } from 'react-router-dom';
 
 // eslint-disable-next-line @typescript-eslint/no-empty-interface
 export interface HeaderHelpPopoverProps {}
@@ -27,14 +26,14 @@ export const HeaderHelpPopover: FunctionComponent<HeaderHelpPopoverProps> = () =
       header={
         <header className="slds-popover__header">
           <h2 className="slds-text-heading_small" title="Get Help">
-            Get Help
+            Get Support
           </h2>
         </header>
       }
       content={
         <div>
           <ul>
-            <li className="slds-p-around_x-small">
+            <li className="slds-box slds-box_x-small slds-m-bottom_x-small">
               <a href="https://docs.getjetstream.app" target="_blank" rel="noreferrer" onClick={() => closePopover()}>
                 <span className="slds-truncate" title="Documentation">
                   Documentation
@@ -47,18 +46,18 @@ export const HeaderHelpPopover: FunctionComponent<HeaderHelpPopoverProps> = () =
                 />
               </a>
             </li>
-            <li className="slds-p-around_x-small">
-              <Link to="/feedback" onClick={() => closePopover()} target="blank">
-                <span className="slds-truncate" title={'Get Help'}>
-                  Get Help
-                </span>
-                <Icon
-                  type="utility"
-                  icon="new_window"
-                  className="slds-icon slds-icon_x-small slds-icon-text-default slds-m-left_xx-small"
-                  omitContainer
-                />
-              </Link>
+            <li className="slds-box slds-box_x-small slds-m-bottom_x-small">
+              <FeedbackLink type="GH_ISSUE" label="Report a bug or feature request" onClick={() => closePopover()} />
+            </li>
+            <li className="slds-box slds-box_x-small slds-m-bottom_x-small">
+              <FeedbackLink type="GH_DISCUSSION" label="Start a discussion" onClick={() => closePopover()} />
+            </li>
+            <li className="slds-box slds-box_x-small slds-m-bottom_x-small">
+              <FeedbackLink type="DISCORD" label="SFDX Discord" onClick={() => closePopover()} />
+              <p>#vendors-jetstream channel</p>
+            </li>
+            <li className="slds-box slds-box_x-small slds-m-bottom_x-small">
+              <FeedbackLink type="EMAIL" label="Send us an email" onClick={() => closePopover()} />
             </li>
           </ul>
         </div>

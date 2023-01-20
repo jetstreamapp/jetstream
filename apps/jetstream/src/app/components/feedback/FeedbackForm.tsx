@@ -1,6 +1,6 @@
 import { css } from '@emotion/react';
 import { TITLES } from '@jetstream/shared/constants';
-import { Card, Grid } from '@jetstream/ui';
+import { Card, FeedbackLink, Grid, Icon } from '@jetstream/ui';
 import { FunctionComponent, useRef } from 'react';
 import { useTitle } from 'react-use';
 
@@ -25,31 +25,32 @@ export const FeedbackForm: FunctionComponent<FeedbackFormProps> = () => {
         <div>
           <ol className="slds-list_ordered">
             <li>
-              Bug reports and feature requests -{' '}
-              <a href="https://github.com/jetstreamapp/jetstream/issues" target="_blank" rel="noreferrer">
-                Create a Github Issue
-              </a>
+              Bug reports and feature requests - <FeedbackLink type="GH_ISSUE" />
             </li>
             <li className="slds-m-top_x-small">
-              <a href="https://github.com/jetstreamapp/jetstream/discussions" target="_blank" rel="noreferrer">
-                Start a Github Discussion
-              </a>
+              <FeedbackLink type="GH_DISCUSSION" />
             </li>
             <li className="slds-m-top_x-small">
-              Ask a question in the <strong>#vendors-jetstream</strong> Discord channel{' '}
-              <a href="https://discord.gg/sfxd" target="_blank" rel="noreferrer">
-                SFXD Discord Community
-              </a>
+              Ask a question in the <strong>#vendors-jetstream</strong> Discord channel <FeedbackLink type="DISCORD" />
+            </li>
+            <li className="slds-m-top_x-small">
+              You can always email us at <FeedbackLink type="EMAIL" />
             </li>
           </ol>
         </div>
-        <p className="slds-m-bottom_small slds-m-top_large">
-          You can always email us at{' '}
-          <a href="mailto:support@getjetstream.app" target="_blank" rel="noreferrer">
-            support@getjetstream.app
+        <hr />
+        <div>
+          <p>Jetstream is an open source project and is paid for and supported by volunteers.</p>
+          <a
+            href="https://github.com/sponsors/jetstreamapp"
+            className="slds-button slds-button_brand slds-m-top_medium"
+            target="_blank"
+            rel="noreferrer"
+          >
+            <Icon type="custom" icon="heart" className="slds-button__icon slds-m-right_x-small" omitContainer />
+            Become a sponsor or make a donation
           </a>
-          .
-        </p>
+        </div>
       </Grid>
     </Card>
   );

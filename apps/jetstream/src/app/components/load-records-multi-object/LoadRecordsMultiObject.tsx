@@ -1,5 +1,5 @@
-import { ANALYTICS_KEYS, DATE_FORMATS, FEATURE_FLAGS, INPUT_ACCEPT_FILETYPES, TITLES } from '@jetstream/shared/constants';
-import { formatNumber, hasFeatureFlagAccess, useNonInitialEffect } from '@jetstream/shared/ui-utils';
+import { ANALYTICS_KEYS, DATE_FORMATS, INPUT_ACCEPT_FILETYPES, TITLES } from '@jetstream/shared/constants';
+import { formatNumber, useNonInitialEffect } from '@jetstream/shared/ui-utils';
 import { InputReadFileContent, InputReadGoogleSheet, SalesforceOrgUi } from '@jetstream/types';
 import {
   AutoFullHeightContainer,
@@ -227,7 +227,6 @@ export const LoadRecordsMultiObject: FunctionComponent<LoadRecordsMultiObjectPro
               </select>
             </Select>
             <FileOrGoogleSelector
-              omitGoogle={!hasFeatureFlagAccess(featureFlags, FEATURE_FLAGS.ALLOW_GOOGLE_UPLOAD)}
               fileSelectorProps={{
                 id: 'upload-load-template',
                 label: 'Data File (Excel File)',
