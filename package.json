@@ -81,7 +81,7 @@
     "test": "nx test",
     "lint": "nx workspace-lint && nx lint",
     "e2e": "nx e2e",
-    "playwright:test:with-server": "yarn start-server-and-test 'yarn start:e2e' http://localhost:3333 'yarn playwright:test'",
+    "playwright:test:with-server": "yarn start-server-and-test --expect 200 'yarn start:e2e' http://localhost:3333 'yarn playwright:test'",
     "playwright:test": "yarn playwright test src --config apps/jetstream-e2e/playwright.config.ts",
     "playwright:test:query-results": "yarn playwright test query-results.spec.ts --config apps/jetstream-e2e/playwright.config.ts --headed",
     "affected:apps": "nx affected:apps",
