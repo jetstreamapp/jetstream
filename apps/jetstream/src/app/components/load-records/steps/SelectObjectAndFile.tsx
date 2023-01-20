@@ -1,6 +1,6 @@
 import { css } from '@emotion/react';
-import { FEATURE_FLAGS, INPUT_ACCEPT_FILETYPES } from '@jetstream/shared/constants';
-import { GoogleApiClientConfig, hasFeatureFlagAccess, parseFile, parseWorkbook } from '@jetstream/shared/ui-utils';
+import { INPUT_ACCEPT_FILETYPES } from '@jetstream/shared/constants';
+import { GoogleApiClientConfig, parseFile, parseWorkbook } from '@jetstream/shared/ui-utils';
 import { InputReadFileContent, InputReadGoogleSheet, InsertUpdateUpsertDelete, SalesforceOrgUi } from '@jetstream/types';
 import {
   Alert,
@@ -118,7 +118,7 @@ export const LoadRecordsSelectObjectAndFile: FunctionComponent<LoadRecordsSelect
             <Grid verticalAlign="center">
               <GridCol>
                 <FileOrGoogleSelector
-                  omitGoogle={!hasGoogleInputConfigured || !hasFeatureFlagAccess(featureFlags, FEATURE_FLAGS.ALLOW_GOOGLE_UPLOAD)}
+                  omitGoogle={!hasGoogleInputConfigured}
                   fileSelectorProps={{
                     id: 'load-record-file',
                     label: 'File to Load',

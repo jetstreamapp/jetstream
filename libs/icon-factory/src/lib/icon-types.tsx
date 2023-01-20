@@ -12,8 +12,9 @@ export interface IconObj {
   description?: string;
 }
 
-export type IconName = StandardIcon | UtilityIcon | DoctypeIcon | BrandIcon;
+export type IconName = StandardIcon | CustomIcon | UtilityIcon | DoctypeIcon | BrandIcon;
 export type StandardIcon = keyof StandardIconObj;
+export type CustomIcon = keyof CustomIconObj;
 export type DoctypeIcon = keyof DoctypeIconObj;
 export type UtilityIcon = keyof UtilityIconObj;
 export type BrandIcon = keyof BrandIconObj;
@@ -34,6 +35,10 @@ export interface StandardIconObj {
   related_list: IconEl;
   record_lookup: IconEl;
   settings: IconEl;
+}
+
+export interface CustomIconObj {
+  heart: IconEl;
 }
 
 export interface DoctypeIconObj {

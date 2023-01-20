@@ -3,10 +3,10 @@
  */
 import { logger } from '@jetstream/shared/client-logger';
 import classNames from 'classnames';
-import React from 'react';
 import {
   BrandIcon,
   BrandIconObj,
+  CustomIconObj,
   DoctypeIcon,
   DoctypeIconObj,
   IconName,
@@ -18,6 +18,7 @@ import {
 } from './icon-types';
 import BrandIcon_Jetstream from './icons/brand/Jetstream';
 import BrandIcon_JetstreamInverse from './icons/brand/JetstreamInverse';
+import CustomIcon_Heart from './icons/custom/Heart';
 import DoctypeIcon_Attachment from './icons/doctype/Attachment';
 import DoctypeIcon_Excel from './icons/doctype/Excel';
 import DoctypeIcon_Gdrive from './icons/doctype/Gdrive';
@@ -143,6 +144,10 @@ const standardIcons: StandardIconObj = {
   settings: StandardIcon_Settings,
 };
 
+const customIcons: CustomIconObj = {
+  heart: CustomIcon_Heart,
+};
+
 const doctypeIcons: DoctypeIconObj = {
   attachment: DoctypeIcon_Attachment,
   excel: DoctypeIcon_Excel,
@@ -252,6 +257,12 @@ export function getIcon(type: IconType, icon: string, className?: string) {
     case 'standard':
       if (standardIcons[icon]) {
         IconOrFallback = standardIcons[icon];
+        found = true;
+      }
+      break;
+    case 'custom':
+      if (customIcons[icon]) {
+        IconOrFallback = customIcons[icon];
         found = true;
       }
       break;
