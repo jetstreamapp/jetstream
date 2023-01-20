@@ -1,13 +1,5 @@
 name: CI
-on:
-  push:
-    branches:
-      - master
-      - test
-  pull_request:
-    branches:
-      - master
-      - test
+on: push
 env:
   AUTH0_CLIENT_ID: 'shxza1G0595Ut2htmAd3NfbMMsqelrE5'
   AUTH0_CLIENT_SECRET: 'NOT-NEEDED'

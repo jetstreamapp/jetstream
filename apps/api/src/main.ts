@@ -350,4 +350,7 @@ BOT_ROUTES.forEach((route) => app.use(route, blockBotHandler));
 app.use('*', notFoundMiddleware);
 app.use(uncaughtErrorHandler);
 
-server.on('error', logger.error);
+server.on('error', (error: Error) => {
+  logger.error('[SERVER][ERROR]', error.message);
+  logger.error(error.stack);
+});
