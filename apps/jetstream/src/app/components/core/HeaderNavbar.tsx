@@ -1,11 +1,12 @@
 import { DropDownItem, UserProfileUi } from '@jetstream/types';
-import { Header, JetstreamIcon, Navbar, NavbarItem, NavbarMenuItems } from '@jetstream/ui';
+import { Header, Icon, Navbar, NavbarItem, NavbarMenuItems } from '@jetstream/ui';
 import { Fragment, FunctionComponent, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useRecoilState, useRecoilValue } from 'recoil';
 import Logo from '../../../assets/images/jetstream-logo-v1-200w.png';
 import { applicationCookieState, selectUserPreferenceState } from '../../app-state';
 import OrgsDropdown from '../orgs/OrgsDropdown';
+import HeaderDonatePopover from './HeaderDonatePopover';
 import HeaderHelpPopover from './HeaderHelpPopover';
 import Jobs from './jobs/Jobs';
 import NotificationsRequestModal from './NotificationsRequestModal';
@@ -86,10 +87,10 @@ export const HeaderNavbar: FunctionComponent<HeaderNavbarProps> = ({ userProfile
       )}
       <Header
         userProfile={userProfile}
-        logo={isElectron ? <JetstreamIcon inverse /> : Logo}
+        logo={isElectron ? <Icon type="brand" icon="jetstream_inverse" /> : Logo}
         orgs={<OrgsDropdown addOrgsButtonClassName={isElectron ? 'slds-button_neutral slds-m-left_small' : undefined} />}
         userMenuItems={userMenuItems}
-        rightHandMenuItems={[<RecordLookupPopover />, <HeaderHelpPopover />, <Jobs />]}
+        rightHandMenuItems={[<RecordLookupPopover />, <HeaderDonatePopover />, <HeaderHelpPopover />, <Jobs />]}
         isElectron={isElectron}
         onUserMenuItemSelected={handleUserMenuSelection}
       >

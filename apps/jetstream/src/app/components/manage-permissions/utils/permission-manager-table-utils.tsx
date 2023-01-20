@@ -247,7 +247,7 @@ export function getObjectColumns(
           permissionType: 'object',
           id: permissionSetId,
           type: 'Permission Set',
-          label: permissionSet.Name,
+          label: permissionSet?.Name || '',
           actionType: startCase(permissionType) as 'Create' | 'Read' | 'Edit' | 'Delete' | 'ViewAll' | 'ModifyAll',
           actionKey: permissionType,
         })
@@ -411,8 +411,8 @@ export function getFieldColumns(
           isFirstItem: i === 0,
           permissionType: 'field',
           id: permissionSetId,
-          type: 'Profile',
-          label: permissionSet.Name,
+          type: 'Permission Set',
+          label: permissionSet?.Name || '',
           actionType: startCase(permissionType) as 'Read' | 'Edit',
           actionKey: permissionType,
         })
