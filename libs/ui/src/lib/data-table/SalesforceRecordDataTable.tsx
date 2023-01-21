@@ -125,6 +125,12 @@ export const SalesforceRecordDataTable: FunctionComponent<SalesforceRecordDataTa
     }, [queryResults]);
 
     useEffect(() => {
+      if (onSelectionChanged && Array.isArray(rows) && selectedRows) {
+        onSelectionChanged(rows.filter((row) => selectedRows.has(getRowId(row))).map((row) => row._record));
+      }
+    }, [onSelectionChanged, rows, selectedRows]);
+
+    useEffect(() => {
       setContextMenuItems([
         { label: 'Copy row to clipboard with header', value: 'COPY_ROW' },
         { label: 'Copy row to clipboard without header', value: 'COPY_ROW_NO_HEADER', divider: true },
@@ -319,7 +325,7 @@ export const SalesforceRecordDataTable: FunctionComponent<SalesforceRecordDataTa
               onCopy={handleCopy}
               rowHeight={28.5}
               selectedRows={selectedRows}
-              onSelectedRowsChange={setSelectedRows as any}
+              onSelectedRowsChange={(rows) => setSelectedRows(rows as Set<string>)}
               contextMenuItems={contextMenuItems}
               contextMenuAction={handleContextMenuAction}
             />
