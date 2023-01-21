@@ -19,6 +19,10 @@ export const HeaderDonatePopover: FunctionComponent<HeaderDonatePopoverProps> = 
     popoverRef.current.close();
   }
 
+  if (!process.env.NX_SHOW_DONATION) {
+    return null;
+  }
+
   return (
     <Popover
       ref={popoverRef}

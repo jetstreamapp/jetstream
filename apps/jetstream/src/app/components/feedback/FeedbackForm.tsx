@@ -41,15 +41,17 @@ export const FeedbackForm: FunctionComponent<FeedbackFormProps> = () => {
         <hr />
         <div>
           <p>Jetstream is an open source project and is paid for and supported by volunteers.</p>
-          <a
-            href="https://github.com/sponsors/jetstreamapp"
-            className="slds-button slds-button_brand slds-m-top_medium"
-            target="_blank"
-            rel="noreferrer"
-          >
-            <Icon type="custom" icon="heart" className="slds-button__icon slds-m-right_x-small" omitContainer />
-            Become a sponsor or make a donation
-          </a>
+          {process.env.NX_SHOW_DONATION && (
+            <a
+              href="https://github.com/sponsors/jetstreamapp"
+              className="slds-button slds-button_brand slds-m-top_medium"
+              target="_blank"
+              rel="noreferrer"
+            >
+              <Icon type="custom" icon="heart" className="slds-button__icon slds-m-right_x-small" omitContainer />
+              Become a sponsor or make a donation
+            </a>
+          )}
         </div>
       </Grid>
     </Card>
