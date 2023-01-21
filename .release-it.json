@@ -1,5 +1,10 @@
 {
-  "plugins": {},
+  "plugins": {
+    "@release-it/bumper": {
+      "in": "package.json",
+      "out": "package.json"
+    }
+  },
   "git": {
     "commitMessage": "chore: release ${version}",
     "tag": true,
@@ -14,6 +19,6 @@
   "hooks": {
     "before:bump": "yarn build",
     "after:bump": "git checkout -- package.json",
-    "after:release": "git checkout release && git reset --hard main && git push origin release -f && git checkout main"
+    "after:release": "CURRENT_BRANCH=$(git rev-parse --abbrev-ref HEAD) && git checkout release && git reset --hard $CURRENT_BRANCH && git push origin release -f && git checkout main"
   }
 }

@@ -6,7 +6,7 @@
     "url": "https://github.com/jetstreamapp/jetstream"
   },
   "author": "Jetstream",
-  "version": "2.0.1",
+  "version": "2.0.2",
   "license": "GNU Lesser General Public License v3.0",
   "engines": {
     "node": ">=16 <=18"
@@ -136,7 +136,7 @@
     "@nx-plus/docusaurus": "14.0.0",
     "@playwright/test": "^1.26.0",
     "@pmmmwh/react-refresh-webpack-plugin": "^0.5.7",
-    "@release-it/bumper": "^4.0.0",
+    "@release-it/bumper": "^4.0.2",
     "@release-it/conventional-changelog": "^5.0.0",
     "@salesforce-ux/design-system": "^2.18.0",
     "@storybook/addon-essentials": "6.5.9",
