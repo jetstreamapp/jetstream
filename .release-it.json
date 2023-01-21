@@ -1,8 +1,7 @@
 {
   "plugins": {
     "@release-it/bumper": {
-      "in": "package.json",
-      "out": "package.json"
+      "in": "package.json"
     }
   },
   "git": {
