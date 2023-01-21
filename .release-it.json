@@ -1,34 +1,5 @@
 {
-  "plugins": {
-    "@release-it/conventional-changelog": {
-      "preset": {
-        "name": "conventionalcommits",
-        "types": [
-          {
-            "type": "feat",
-            "section": "Features"
-          },
-          {
-            "type": "fix",
-            "section": "Bug Fixes"
-          },
-          {
-            "type": "cleanup",
-            "section": "Cleanup"
-          },
-          {
-            "type": "docs",
-            "section": "Documentations"
-          }
-        ]
-      },
-      "infile": "CHANGELOG.md"
-    },
-    "@release-it/bumper": {
-      "in": "version.json",
-      "out": ["version.json", "dist/version.json", "app/package.json"]
-    }
-  },
+  "plugins": {},
   "git": {
     "commitMessage": "chore: release ${version}",
     "tag": true,
@@ -38,13 +9,11 @@
     "publish": false
   },
   "github": {
-    "release": true,
-    "releaseName": "Release ${version}",
-    "assets": ["dist/*.zip"]
+    "release": true
   },
   "hooks": {
-    "before:bump": "yarn release:build --version=${version}",
+    "before:bump": "yarn build",
     "after:bump": "git checkout -- package.json",
-    "after:release": "yarn "
+    "after:release": "git checkout release && git reset --hard main && git push origin release -f && git checkout main"
   }
 }

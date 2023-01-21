@@ -6,7 +6,7 @@
     "url": "https://github.com/jetstreamapp/jetstream"
   },
   "author": "Jetstream",
-  "version": "0.0.0",
+  "version": "2.0.0",
   "license": "GNU Lesser General Public License v3.0",
   "engines": {
     "node": ">=16 <=18"
@@ -195,7 +195,7 @@
     "css-loader": "^6.4.0",
     "cypress": "^8.3.0",
     "dotenv": "^16.0.1",
-    "dotenv-cli": "^6.0.0",
+    "dotenv-cli": "^7.0.0",
     "electron": "^18.2.4",
     "electron-builder": "^23.0.9",
     "electron-notarize": "^1.2.1",
