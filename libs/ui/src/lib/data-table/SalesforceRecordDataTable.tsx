@@ -81,9 +81,7 @@ export const SalesforceRecordDataTable: FunctionComponent<SalesforceRecordDataTa
   }) => {
     const isMounted = useRef(null);
     const rollbar = useRollbar();
-    // const [gridApi, setGridApi] = useState<GridApi>(null);
     const [columns, setColumns] = useState<Column<RowWithKey>[]>();
-    // const [_columnDefinitions, setColumnDefinitions] = useState<Column<any>[]>();
     const [subqueryColumnsMap, setSubqueryColumnsMap] = useState<MapOf<ColumnWithFilter<RowWithKey, unknown>[]>>();
     const [records, setRecords] = useState<RowWithKey[]>();
     // Same as records but with additional data added
@@ -275,6 +273,11 @@ export const SalesforceRecordDataTable: FunctionComponent<SalesforceRecordDataTa
       }
     }
 
+    const handleColumnReorder = useCallback((newFields: string[]) => {
+      onFields({ allFields: newFields, visibleFields: newFields });
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []);
+
     return records ? (
       <Fragment>
         <Grid className="slds-p-around_xx-small" align="spread">
@@ -325,7 +328,9 @@ export const SalesforceRecordDataTable: FunctionComponent<SalesforceRecordDataTa
               onCopy={handleCopy}
               rowHeight={28.5}
               selectedRows={selectedRows}
+              onReorderColumns={handleColumnReorder}
               onSelectedRowsChange={(rows) => setSelectedRows(rows as Set<string>)}
+              onSortedAndFilteredRowsChange={(rows) => onFilteredRowsChanged(rows as RowWithKey[])}
               contextMenuItems={contextMenuItems}
               contextMenuAction={handleContextMenuAction}
             />
