@@ -30,6 +30,12 @@ env:
   SFDC_CONSUMER_SECRET: ${{ secrets.SFDC_CONSUMER_SECRET }}
   SFDC_ENC_KEY: ${{ secrets.SFDC_ENC_KEY }}
   SFDC_FALLBACK_API_VERSION: '56.0'
+  POSTGRES_HOST: localhost
+  PGHOST: localhost
+  PGPORT: 5432
+  PGUSER: postgres
+  PGPASSWORD: postgres
+  PGDATABASE: postgres
 
 jobs:
   build-and-test:
@@ -67,23 +73,10 @@ jobs:
           cache: 'yarn'
       - name: install dependencies
         run: yarn install --frozen-lockfile
-      - name: Init NX CI run
-        run: npx nx-cloud start-ci-run
       - name: Install Playwright dependencies
         run: npx playwright install --with-deps
-      - name: Generate database
-        run: yarn db:generate
-      - name: Run database migration
-        run: yarn db:migrate
-      - name: Seed DB
-        run: yarn db:seed
-        env:
-          POSTGRES_HOST: localhost
-          PGHOST: localhost
-          PGPORT: 5432
-          PGUSER: postgres
-          PGPASSWORD: postgres
-          PGDATABASE: postgres
+      - name: Init NX CI run
+        run: npx nx-cloud start-ci-run
       - name: Start NX CI run
         run: npx nx affected --targets=build,e2e-ci --parallel --max-parallel=4 --configuration=production
       - name: Upload test results
