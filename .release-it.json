@@ -1,7 +1,8 @@
 {
   "plugins": {
     "@release-it/bumper": {
-      "in": "package.json"
+      "in": "package.json",
+      "out": "package.json"
     }
   },
   "git": {
@@ -9,10 +10,7 @@
     "tag": true,
     "tagName": "v${version}"
   },
-  "npm": {
-    "publish": false,
-    "ignoreVersion": true
-  },
+  "npm": false,
   "github": {
     "release": true
   },
