@@ -54,13 +54,13 @@ jobs:
 
     steps:
       - uses: actions/checkout@v3
-        name: Checkout [master]
+        name: Checkout [main]
         with:
           fetch-depth: 0
       - name: Derive appropriate SHAs for base and head for `nx affected` commands
         uses: nrwl/nx-set-shas@v3
         with:
-          main-branch-name: 'master'
+          main-branch-name: 'main'
       - uses: actions/setup-node@v3
         with:
           node-version: '18'
@@ -84,6 +84,8 @@ jobs:
           PGDATABASE: postgres
       # - name: Init NX CI run
       #   run: npx nx-cloud start-ci-run
+      - name: Ensure main is tracked
+        run: git branch --track main origin/main
       - name: Start NX CI run
         run: npx nx affected --targets=build,e2e-ci --parallel --max-parallel=4 --configuration=production
       - name: Upload test results
