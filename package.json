@@ -283,7 +283,7 @@
     "express-promise-router": "^3.0.3",
     "express-session": "^1.17.1",
     "express-validator": "^6.5.0",
-    "fastify": "^3.22.0",
+    "fastify": "^3.29.4",
     "file-saver": "^2.0.2",
     "filesize": "^6.3.0",
     "find-my-way": "^4.3.3",
