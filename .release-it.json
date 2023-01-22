@@ -9,7 +9,9 @@
     "tag": true,
     "tagName": "v${version}"
   },
-  "npm": false,
+  "npm": {
+    "publish": false
+  },
   "github": {
     "release": true
   },
