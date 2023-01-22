@@ -87,7 +87,7 @@ jobs:
       - name: Ensure main is tracked
         run: git branch --track main origin/main
       - name: Start NX CI run
-        run: npx nx affected --targets=build,e2e-ci --parallel --max-parallel=4 --configuration=production
+        run: npx nx affected --targets=build,e2e-ci --configuration=production
       - name: Upload test results
         if: always() # This ensures step will always run even if prior steps fail
         uses: actions/upload-artifact@v3
