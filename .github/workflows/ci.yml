@@ -30,12 +30,6 @@ env:
   SFDC_CONSUMER_SECRET: ${{ secrets.SFDC_CONSUMER_SECRET }}
   SFDC_ENC_KEY: ${{ secrets.SFDC_ENC_KEY }}
   SFDC_FALLBACK_API_VERSION: '56.0'
-  POSTGRES_HOST: localhost
-  PGHOST: localhost
-  PGPORT: 5432
-  PGUSER: postgres
-  PGPASSWORD: postgres
-  PGDATABASE: postgres
 
 jobs:
   build-and-test:
@@ -64,7 +58,7 @@ jobs:
         with:
           fetch-depth: 0
       - name: Derive appropriate SHAs for base and head for `nx affected` commands
-        uses: nrwl/nx-set-shas@v2
+        uses: nrwl/nx-set-shas@v3
         with:
           main-branch-name: 'master'
       - uses: actions/setup-node@v3
@@ -75,8 +69,21 @@ jobs:
         run: yarn install --frozen-lockfile
       - name: Install Playwright dependencies
         run: npx playwright install --with-deps
-      - name: Init NX CI run
-        run: npx nx-cloud start-ci-run
+      - name: Generate database
+        run: yarn db:generate
+      - name: Run database migration
+        run: yarn db:migrate
+      - name: Seed DB
+        run: yarn db:seed
+        env:
+          POSTGRES_HOST: localhost
+          PGHOST: localhost
+          PGPORT: 5432
+          PGUSER: postgres
+          PGPASSWORD: postgres
+          PGDATABASE: postgres
+      # - name: Init NX CI run
+      #   run: npx nx-cloud start-ci-run
       - name: Start NX CI run
         run: npx nx affected --targets=build,e2e-ci --parallel --max-parallel=4 --configuration=production
       - name: Upload test results
@@ -85,22 +92,24 @@ jobs:
         with:
           name: playwright-report
           path: playwright-report
-      - name: Stop CI agents
-        if: always() # This ensures step will always run even if prior steps fail
-        run: npx nx-cloud stop-all-agents
-  agents:
-    runs-on: ubuntu-latest
-    name: Agent
-    timeout-minutes: 60
-    strategy:
-      matrix:
-        agent: [1, 2]
-    steps:
-      - uses: actions/checkout@v3
-      - uses: actions/setup-node@v3
-        with:
-          node-version: '18'
-          cache: 'yarn'
-      - run: yarn install --frozen-lockfile
-      - name: Start Nx Agent ${{ matrix.agent }}
-        run: npx nx-cloud start-agent
+      # - name: Stop CI agents
+      #   if: always() # This ensures step will always run even if prior steps fail
+      #   run: npx nx-cloud stop-all-agents
+  # agents:
+  #   runs-on: ubuntu-latest
+  #   name: Agent
+  #   timeout-minutes: 60
+  #   strategy:
+  #     matrix:
+  #       agent: [1, 2]
+  #   steps:
+  #     - uses: actions/checkout@v3
+  #     - uses: actions/setup-node@v3
+  #       with:
+  #         node-version: '18'
+  #         cache: 'yarn'
+  #     - run: yarn install --frozen-lockfile
+  #     - name: Install Playwright dependencies
+  #       run: npx playwright install --with-deps
+  #     - name: Start Nx Agent ${{ matrix.agent }}
+  #       run: npx nx-cloud start-agent

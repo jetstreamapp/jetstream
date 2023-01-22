@@ -21,7 +21,7 @@
       "executor": "nx:run-commands",
       "outputs": ["apps/jetstream-e2e/playwright-report"],
       "options": {
-        "command": "yarn playwright:test:ci"
+        "command": "yarn start-server-and-test --expect 200 'yarn start:e2e' http://localhost:3333 'yarn playwright:test'"
       },
       "dependsOn": [{ "projects": "dependencies", "target": "build", "params": "ignore" }]
     },
