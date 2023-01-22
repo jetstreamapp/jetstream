@@ -117,25 +117,6 @@ export const PlatformEventMonitorEvents: FunctionComponent<PlatformEventMonitorE
         expandedGroupIds={expandedGroupIds}
         onExpandedGroupIdsChange={(items) => setExpandedGroupIds(items)}
         rowHeight={getRowHeight}
-        // defaultMenuTabs={['filterMenuTab', 'generalMenuTab']}
-        // agGridProps={{
-        //   getRowId,
-        //   enableCellTextSelection: true,
-        //   enableRangeSelection: false,
-        //   autoGroupColumnDef: {
-        //     name: 'Event',
-        //     key: 'agGroupCellRenderer',
-        //     filterParams: {
-        //       filters: [{ filter: 'agTextColumnFilter' }, { filter: 'agSetColumnFilter', filterParams: { showTooltips: true } }],
-        //     },
-        //     menuTabs: ['filterMenuTab'],
-        //     sortable: true,
-        //     resizable: true,
-        //     sort: 'asc',
-        //   },
-        //   showOpenedGroup: true,
-        //   groupDefaultExpanded: 1,
-        // }}
       />
     </AutoFullHeightContainer>
   );

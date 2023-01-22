@@ -98,7 +98,6 @@ export const LoadRecordsResultsModal: FunctionComponent<LoadRecordsResultsModalP
             {loading && <Spinner />}
             {rows && columns && (
               <DataTable
-                allowReorder
                 columns={columns}
                 data={rows}
                 getRowKey={getRowKey}
