@@ -58,5 +58,6 @@
   "typescript.updateImportsOnFileMove.enabled": "always",
   "editor.tabCompletion": "on",
   "editor.defaultFormatter": "esbenp.prettier-vscode",
-  "git.branchProtection": ["main", "master"]
+  "git.branchProtection": ["main", "master"],
+  "eslint.validate": ["json"]
 }
