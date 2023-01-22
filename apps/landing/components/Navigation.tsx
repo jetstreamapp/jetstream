@@ -69,10 +69,10 @@ export const Navigation = ({ className, inverse, omitLinks = [] }: { className?:
             </a>
             <a href="https://discord.gg/sfxd" target="_blank" rel="noreferrer">
               <img
-                title="Join the SFXD Discord Community"
+                title="Join the SFXD Discord Community (#vendors-jetstream)"
                 className="h-6 w-6"
                 src="https://res.cloudinary.com/getjetstream/image/upload/v1673824421/public/discord-mark-white_ny5zwv.svg"
-                alt="Join the SFXD Discord Community"
+                alt="Join the SFXD Discord Community (#vendors-jetstream)"
               />
             </a>
           </div>
@@ -153,7 +153,7 @@ export const Navigation = ({ className, inverse, omitLinks = [] }: { className?:
                 rel="noreferrer"
                 className="flex px-3 py-2 rounded-md text-base font-medium text-gray-900 hover:bg-gray-50"
               >
-                SFXD Discord
+                SFXD Discord <span className="ml-2 text-gray-400">(#vendors-jetstream)</span>
               </a>
             </div>
             <div className="mt-6 px-5">

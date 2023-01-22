@@ -4,25 +4,29 @@ const items = [
   {
     image: 'https://res.cloudinary.com/getjetstream/image/upload/v1673822085/public/discord-mark-black_yj4q38.svg',
     title: 'Ask a question',
-    subtitle: 'SFDX Discord Community',
+    subtitle: 'SFXD Discord Community',
+    footer: '#vendor-jetstream',
     link: 'https://discord.gg/sfxd',
   },
   {
     image: 'https://res.cloudinary.com/getjetstream/image/upload/v1673804643/public/github-mark_ryp6er.svg',
     title: 'Start a discussion',
     subtitle: 'Github Discussion',
+    footer: null,
     link: 'https://github.com/jetstreamapp/jetstream/discussions',
   },
   {
     image: 'https://res.cloudinary.com/getjetstream/image/upload/v1673804643/public/github-mark_ryp6er.svg',
     title: 'File a ticket',
     subtitle: 'Github Issue',
+    footer: null,
     link: 'https://github.com/jetstreamapp/jetstream/issues',
   },
   {
     image: 'https://res.cloudinary.com/getjetstream/image/upload/v1673804643/public/github-mark_ryp6er.svg',
     title: 'Contribute to the codebase',
     subtitle: 'Github',
+    footer: null,
     link: 'https://github.com/jetstreamapp/jetstream',
   },
 ] as const;
@@ -43,7 +47,7 @@ export const SupportCta = () => (
         <p className="mt-3 text-lg text-gray-300">Have a question about Jetstream or need support?</p>
         <div className="mt-8 text-white underline"></div>
         <div className="mt-8 grid grid-cols-1 gap-4">
-          {items.map(({ image, link, subtitle, title }) => (
+          {items.map(({ image, footer, link, subtitle, title }) => (
             <div
               key={title}
               className="relative flex items-center space-x-3 rounded-lg border border-gray-300 bg-white px-4 py-3 shadow focus-within:ring-2 focus-within:ring-indigo-500 focus-within:ring-offset-2 hover:border-gray-400 hover:bg-gray-50"
@@ -56,6 +60,7 @@ export const SupportCta = () => (
                   <span className="absolute inset-0" aria-hidden="true" />
                   <p className="text-sm font-medium text-gray-900">{title}</p>
                   <p className="truncate text-sm text-gray-500">{subtitle}</p>
+                  {footer && <p className="truncate text-sm text-gray-400">{footer}</p>}
                 </a>
               </div>
             </div>

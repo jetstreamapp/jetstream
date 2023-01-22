@@ -53,7 +53,7 @@ export const HeaderHelpPopover: FunctionComponent<HeaderHelpPopoverProps> = () =
               <FeedbackLink type="GH_DISCUSSION" label="Start a discussion" onClick={() => closePopover()} />
             </li>
             <li className="slds-box slds-box_x-small slds-m-bottom_x-small">
-              <FeedbackLink type="DISCORD" label="SFDX Discord" onClick={() => closePopover()} />
+              <FeedbackLink type="DISCORD" label="SFXD Discord" onClick={() => closePopover()} />
               <p>#vendors-jetstream channel</p>
             </li>
             <li className="slds-box slds-box_x-small slds-m-bottom_x-small">
