@@ -220,7 +220,7 @@
     "prisma": "^4.3.1",
     "react-refresh": "^0.10.0",
     "react-test-renderer": "18.2.0",
-    "release-it": "^15.2.0",
+    "release-it": "^15.6.0",
     "sass": "1.55.0",
     "sass-loader": "^10.0.4",
     "start-server-and-test": "^1.15.2",
