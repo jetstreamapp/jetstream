@@ -1,11 +1,25 @@
 name: Create Release
-on: workflow_dispatch
+
+on:
+  workflow_dispatch:
+    inputs:
+      increment:
+        type: choice
+        description: Increment
+        required: true
+        options:
+          - major
+          - minor
+          - patch
+
 jobs:
   release:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout [main]
         uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
       - name: Init npm cache
         uses: actions/setup-node@v3
         with:
@@ -13,11 +27,11 @@ jobs:
           cache: 'yarn'
       - name: install dependencies
         run: yarn install --frozen-lockfile
-      - name: Init git user
+      - name: git config
         run: |
-          git config --global user.email "paustint@gmail.com"
           git config --global user.name "Release Workflow"
+          git config --global user.email "support@getjetstream.app"
       - name: Run Release
-        run: yarn release --ci
+        run: yarn release ${{ github.event.inputs.increment }} --ci
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

@@ -60,7 +60,7 @@
     "electron:dist:win": "nx run electron-jetstream:make --platform=windows --arch=x64 --publishPolicy=onTagOrDraft",
     "electron:extract:asar-x86": "npx asar extract dist/executables/mac/Jetstream.app/Contents/Resources/app.asar dist/executables/mac/extracted",
     "electron:extract:asar-arm": "npx asar extract dist/executables/mac-arm64/Jetstream.app/Contents/Resources/app.asar dist/executables/mac-arm64/extracted",
-    "release": "dotenv release-it",
+    "release": "dotenv release-it ${0}",
     "release:build": "ts-node ./scripts/build-release.ts",
     "release:electron": "yarn build:electron && concurrently --group --restart-tries=3 \"npm:electron:dist:*\"",
     "pm2:link": "pm2-runtime link quhsrndp43edp7v urfb6rbocz587wt",
