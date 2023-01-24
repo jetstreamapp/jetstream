@@ -1,13 +1,10 @@
 {
-  "plugins": {
-    "@release-it/bumper": {
-      "in": "package.json"
-    }
-  },
+  "plugins": {},
   "git": {
     "commitMessage": "chore: release ${version}",
     "tag": true,
-    "tagName": "v${version}"
+    "tagName": "v${version}",
+    "requireBranch": "main"
   },
   "npm": {
     "publish": false

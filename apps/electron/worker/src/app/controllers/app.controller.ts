@@ -1,4 +1,3 @@
-import { ENV } from '../env';
 import { getOrgs, updateOrg, deleteOrg, getUserInfo } from '../storage';
 import { ControllerFn, ControllerFnDataParams, ControllerFnParams } from '../types';
 
@@ -10,7 +9,7 @@ export const placeholder: ControllerFn = async (_, __, params, { reject, resolve
 export const heartbeat: ControllerFn = async (_, __, params, { reject, resolve, connection, request }) => {
   try {
     // TODO: add custom webpack config to get version info
-    resolve({ version: ENV.GIT_VERSION || null });
+    resolve({ version: 'TODO:' });
   } catch (ex) {
     reject(ex);
   }

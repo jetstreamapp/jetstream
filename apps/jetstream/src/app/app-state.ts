@@ -1,6 +1,6 @@
 import { logger } from '@jetstream/shared/client-logger';
 import { HTTP, INDEXED_DB } from '@jetstream/shared/constants';
-import { getOrgs, getUserProfile } from '@jetstream/shared/data';
+import { checkHeartbeat, getOrgs, getUserProfile } from '@jetstream/shared/data';
 import { getOrgType, parseCookie } from '@jetstream/shared/ui-utils';
 import { getMapOf } from '@jetstream/shared/utils';
 import {
@@ -86,6 +86,10 @@ async function getSelectedOrgFromStorage(): Promise<string | undefined> {
   }
 }
 
+async function fetchAppVersion() {
+  return await checkHeartbeat();
+}
+
 async function fetchUserProfile(): Promise<UserProfileUi> {
   const userProfile = await getUserProfile();
   return userProfile;
@@ -104,6 +108,11 @@ export const actionInProgressState = atom<boolean>({
 export const applicationCookieState = atom<ApplicationCookie>({
   key: 'applicationCookieState',
   default: getAppCookie(),
+});
+
+export const appVersionState = atom<{ version: string }>({
+  key: 'appVersionState',
+  default: fetchAppVersion(),
 });
 
 export const userProfileState = atom<UserProfileUi>({
