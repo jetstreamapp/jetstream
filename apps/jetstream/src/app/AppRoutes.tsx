@@ -28,6 +28,8 @@ const CreateObjectAndFields = lazy(() => import('./components/create-object-and-
 const CreateFieldsSelection = lazy(() => import('./components/create-object-and-fields/CreateFieldsSelection'));
 const CreateFields = lazy(() => import('./components/create-object-and-fields/CreateFields'));
 
+const FormulaEvaluator = lazy(() => import('./components/formula-evaluator/FormulaEvaluator'));
+
 const MassUpdateRecords = lazy(() => import('./components/update-records/MassUpdateRecords'));
 const MassUpdateRecordsSelection = lazy(() => import('./components/update-records/selection/MassUpdateRecordsSelection'));
 const MassUpdateRecordsDeployment = lazy(() => import('./components/update-records/deployment/MassUpdateRecordsDeployment'));
@@ -149,6 +151,14 @@ export const AppRoutes = ({ featureFlags, userProfile }: AppRoutesProps) => {
         <Route path="configurator" element={<CreateFields />} />
         <Route path="*" element={<Navigate to=".." />} />
       </Route>
+      <Route
+        path="/formula-evaluator"
+        element={
+          <OrgSelectionRequired>
+            <FormulaEvaluator />
+          </OrgSelectionRequired>
+        }
+      />
       <Route
         path="/update-records"
         element={
