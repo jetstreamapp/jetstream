@@ -12,6 +12,7 @@ import {
   Popover,
   PopoverRef,
   setColumnFromType,
+  SummaryFilterRenderer,
   Tooltip,
 } from '@jetstream/ui';
 import { startCase } from 'lodash';
@@ -338,9 +339,11 @@ export function getFieldColumns(
   const newColumns: ColumnWithFilter<PermissionTableFieldCell, PermissionTableSummaryRow>[] = [
     {
       ...setColumnFromType('sobject', 'text'),
-      name: '',
+      name: 'Object',
       key: 'sobject',
-      width: 40,
+      width: 85,
+      cellClass: 'bg-color-gray-dark',
+      summaryCellClass: 'bg-color-gray-dark',
       groupFormatter: ({ isExpanded }) => (
         <Grid align="end" verticalAlign="center" className="h-100">
           <Icon
@@ -366,7 +369,7 @@ export function getFieldColumns(
           <span className="slds-m-left_xx-small slds-text-body_small slds-text-color_weak">({childRows.length})</span>
         </>
       ),
-      summaryCellClass: ({ type }) => (type === 'HEADING' ? 'bg-color-gray' : null),
+      summaryCellClass: 'bg-color-gray-dark',
     },
     {
       name: '',
@@ -459,6 +462,7 @@ function getColumnForProfileOrPermSet<T extends PermissionType>({
     name: `${label} (${type})`,
     key: `${id}-${actionKey}`,
     width: colWidth,
+    filters: ['BOOLEAN_SET'],
     cellClass: (row) => {
       const permission = row.permissions[id];
       if ((actionKey === 'read' && permission.readIsDirty) || (actionKey === 'edit' && permission.editIsDirty)) {
@@ -526,10 +530,11 @@ function getColumnForProfileOrPermSet<T extends PermissionType>({
         </div>
       );
     },
+    getValue: ({ column, row }) => row.permissions[id][actionKey as any],
     summaryCellClass: ({ type }) => (type === 'HEADING' ? 'bg-color-gray' : null),
     summaryFormatter: (args) => {
       if (args.row.type === 'HEADING') {
-        return <div>{actionType}</div>;
+        return <SummaryFilterRenderer columnKey={`${id}-${actionKey}`} label={actionType} />;
       }
       return <PinnedSelectAllRendererWrapper {...args} />;
     },
