@@ -17,7 +17,7 @@ import isObject from 'lodash/isObject';
 import isString from 'lodash/isString';
 import uniqueId from 'lodash/uniqueId';
 import { SelectColumn, SELECT_COLUMN_KEY as _SELECT_COLUMN_KEY } from 'react-data-grid';
-import { FieldSubquery, getFlattenedFields, isFieldSubquery } from 'soql-parser-js';
+import { FieldSubquery, getField, getFlattenedFields, isFieldSubquery } from 'soql-parser-js';
 import {
   dataTableAddressValueFormatter,
   dataTableDateFormatter,
@@ -69,10 +69,8 @@ export function getColumnsForGenericTable(
     const column: Mutable<ColumnWithFilter<RowWithKey>> = {
       name: label,
       key,
-      cellClass: 'slds-truncate',
       resizable: true,
       sortable: true,
-      width: 200,
       filters: ['TEXT', 'SET'],
       formatter: GenericRenderer,
       headerRenderer: (props) => (
@@ -132,6 +130,14 @@ export function getColumnDefinitions(results: QueryResults<any>, isTooling: bool
       }
       return out;
     }, {});
+  }
+  // If there is a FIELDS('') clause in the query, then we know the data will not be shown
+  // in this case, fall back to Salesforce column data instead of the query results
+  const hasFieldsQuery = results.parsedQuery.fields.some(
+    (field) => field.type === 'FieldFunctionExpression' && field.functionName === 'FIELDS'
+  );
+  if (hasFieldsQuery) {
+    results.parsedQuery.fields = results.columns?.columns.map((column) => getField(column.columnFullPath));
   }
 
   // Base fields

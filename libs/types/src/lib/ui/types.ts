@@ -555,6 +555,7 @@ export interface InputReadFileContent<T = string | ArrayBuffer> {
   filename: string;
   extension: string;
   content: T;
+  isPasteFromClipboard?: boolean;
 }
 
 export interface ImageWithUpload extends InputReadFileContent<string> {

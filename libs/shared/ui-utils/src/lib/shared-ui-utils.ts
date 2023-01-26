@@ -1068,6 +1068,7 @@ export async function parseFile(
   options?: {
     onParsedMultipleWorkbooks?: (worksheets: string[]) => Promise<string>;
     isBinaryString?: boolean;
+    isPasteFromClipboard?: boolean;
   }
 ): Promise<{
   data: any[];
@@ -1078,14 +1079,14 @@ export async function parseFile(
   if (!options.isBinaryString && isString(content)) {
     // csv - read from papaparse
     const csvResult = parseCsv(content, {
-      delimiter: detectDelimiter(),
+      delimiter: options.isPasteFromClipboard ? undefined : detectDelimiter(),
       header: true,
       skipEmptyLines: true,
     });
     return {
       data: csvResult.data,
       headers: Array.from(new Set(csvResult.meta.fields)), // remove duplicates, if any
-      errors: csvResult.errors.map((error) => `Row ${error.row}: ${error.message}`),
+      errors: csvResult.errors.map((error) => (error.row ? `Row ${error.row}: ${error.message}` : error.message)),
     };
   } else {
     // ArrayBuffer / binary string - xlsx file

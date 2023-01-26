@@ -348,7 +348,7 @@ export const LoadRecords: FunctionComponent<LoadRecordsProps> = ({ featureFlags 
             <button
               data-testid="start-over-button"
               className="slds-button slds-button_neutral"
-              disabled={currentStep.idx === 0 || loading}
+              disabled={(currentStep.idx === 0 && !inputFileData && !selectedSObject) || loading}
               onClick={() => handleStartOver()}
             >
               <Icon type="utility" icon="refresh" className="slds-button__icon slds-button__icon_left" />

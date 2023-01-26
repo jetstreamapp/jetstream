@@ -94,6 +94,7 @@ import UtilityIcon_NewWindow from './icons/utility/NewWindow';
 import UtilityIcon_Notification from './icons/utility/Notification';
 import UtilityIcon_OpenFolder from './icons/utility/OpenFolder';
 import UtilityIcon_Page from './icons/utility/Page';
+import UtilityIcon_Paste from './icons/utility/Paste';
 import UtilityIcon_Play from './icons/utility/Play';
 import UtilityIcon_Preview from './icons/utility/Preview';
 import UtilityIcon_PromptEdit from './icons/utility/PromptEdit';
@@ -212,6 +213,7 @@ const utilityIcons: UtilityIconObj = {
   notification: UtilityIcon_Notification,
   open_folder: UtilityIcon_OpenFolder,
   page: UtilityIcon_Page,
+  paste: UtilityIcon_Paste,
   play: UtilityIcon_Play,
   preview: UtilityIcon_Preview,
   prompt_edit: UtilityIcon_PromptEdit,
