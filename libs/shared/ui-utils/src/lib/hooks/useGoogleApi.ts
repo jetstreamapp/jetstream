@@ -30,7 +30,6 @@ export interface GoogleApiClientConfig {
  * @returns
  */
 export function useGoogleApi({ clientId, scopes = [SCOPES['drive.file']] }: GoogleApiClientConfig) {
-  const isMounted = useRef(null);
   const rollbar = useRollbar();
   const tokenClient = useRef<google.accounts.oauth2.TokenClient>(_tokenClient);
   const tokenResponse = useRef<google.accounts.oauth2.TokenResponse>(_tokenResponse);
@@ -43,17 +42,10 @@ export function useGoogleApi({ clientId, scopes = [SCOPES['drive.file']] }: Goog
   const [gisScriptLoaded, gisScriptLoadError] = useInjectScriptGis();
   const [loading, setLoading] = useState(!_apiLoaded);
   const [error, setError] = useState<string>();
-  const [hasApisLoaded, setHasApisLoaded] = useState(_apiLoaded);
+  const [hasApisLoaded, setHasApisLoaded] = useState(() => _apiLoaded && !!gapi && !!google?.accounts?.oauth2);
 
   const scriptLoaded = gapiScriptLoaded && gisScriptLoaded;
   const scriptLoadedError = gapiScriptLoadError || gisScriptLoadError;
-
-  useEffect(() => {
-    isMounted.current = true;
-    return () => {
-      isMounted.current = false;
-    };
-  }, []);
 
   // get the apis from googleapis
   useEffect(() => {
@@ -95,7 +87,7 @@ export function useGoogleApi({ clientId, scopes = [SCOPES['drive.file']] }: Goog
   }, []);
 
   useNonInitialEffect(() => {
-    if (hasApisLoaded && gapi) {
+    if (hasApisLoaded && gapi && google?.accounts?.oauth2) {
       tokenClient.current = google.accounts.oauth2.initTokenClient({
         client_id: clientId,
         scope: scopes.join(' '),
