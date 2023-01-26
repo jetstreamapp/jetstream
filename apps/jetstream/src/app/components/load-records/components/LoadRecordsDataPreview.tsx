@@ -61,7 +61,7 @@ function getLoadDescription(loadType: InsertUpdateUpsertDelete, totalRecordCount
 function getColumnDefinitions(headers: string[]): Column<RowWithKey>[] {
   return getColumnsForGenericTable([
     { key: NUM_COLUMN, label: '#', columnProps: { width: 75, filters: [] } },
-    ...headers.map((header) => ({ key: header, label: header, columnProps: { width: 100 } })),
+    ...headers.map((header) => ({ key: header, label: header })),
   ]);
 }
 
@@ -153,6 +153,7 @@ export const LoadRecordsDataPreview: FunctionComponent<LoadRecordsDataPreviewPro
               css={css`
                 position: absolute;
                 max-width: 100%;
+                min-width: 100%;
               `}
             >
               <div className="slds-text-heading_small">File Preview</div>

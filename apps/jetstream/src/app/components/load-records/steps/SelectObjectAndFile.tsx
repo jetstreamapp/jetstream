@@ -1,6 +1,8 @@
 import { css } from '@emotion/react';
+import { logger } from '@jetstream/shared/client-logger';
 import { INPUT_ACCEPT_FILETYPES } from '@jetstream/shared/constants';
 import { GoogleApiClientConfig, parseFile, parseWorkbook } from '@jetstream/shared/ui-utils';
+import { SplitWrapper as Split } from '@jetstream/splitjs';
 import { InputReadFileContent, InputReadGoogleSheet, InsertUpdateUpsertDelete, SalesforceOrgUi } from '@jetstream/types';
 import {
   Alert,
@@ -13,7 +15,7 @@ import {
 } from '@jetstream/ui';
 import { DescribeGlobalSObjectResult } from 'jsforce';
 import { FunctionComponent } from 'react';
-import { SplitWrapper as Split } from '@jetstream/splitjs';
+import { fireToast } from '../../core/AppToast';
 import LoadRecordsLoadTypeButtons from '../components/LoadRecordsLoadTypeButtons';
 import { FieldWithRelatedEntities, LocalOrGoogle } from '../load-records-types';
 import { filterLoadSobjects } from '../utils/load-records-utils';
@@ -72,9 +74,16 @@ export const LoadRecordsSelectObjectAndFile: FunctionComponent<LoadRecordsSelect
   children,
 }) => {
   const hasGoogleInputConfigured = !!googleApiConfig?.apiKey && !!googleApiConfig?.appId && !!googleApiConfig?.clientId;
-  async function handleFile({ content, filename }: InputReadFileContent) {
-    const { data, headers } = await parseFile(content, { onParsedMultipleWorkbooks });
+  async function handleFile({ content, filename, isPasteFromClipboard }: InputReadFileContent) {
+    const { data, headers, errors } = await parseFile(content, { onParsedMultipleWorkbooks, isPasteFromClipboard });
     onFileChange(data, headers, filename, 'local');
+    if (errors.length > 0) {
+      logger.warn(errors);
+      fireToast({
+        message: 'There were errors parsing the file. Check the file preview to ensure the data is correct.',
+        type: 'warning',
+      });
+    }
   }
 
   async function handleGoogleFile({ workbook, selectedFile }: InputReadGoogleSheet) {
@@ -124,6 +133,7 @@ export const LoadRecordsSelectObjectAndFile: FunctionComponent<LoadRecordsSelect
                     label: 'File to Load',
                     filename: inputFileType === 'local' ? inputFilename : undefined,
                     accept: [INPUT_ACCEPT_FILETYPES.CSV, INPUT_ACCEPT_FILETYPES.EXCEL],
+                    allowFromClipboard: true,
                     userHelpText: 'Choose CSV or XLSX file to upload',
                     onReadFile: handleFile,
                   }}

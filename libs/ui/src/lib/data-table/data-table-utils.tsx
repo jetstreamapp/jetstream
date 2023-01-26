@@ -69,10 +69,8 @@ export function getColumnsForGenericTable(
     const column: Mutable<ColumnWithFilter<RowWithKey>> = {
       name: label,
       key,
-      cellClass: 'slds-truncate',
       resizable: true,
       sortable: true,
-      width: 200,
       filters: ['TEXT', 'SET'],
       formatter: GenericRenderer,
       headerRenderer: (props) => (

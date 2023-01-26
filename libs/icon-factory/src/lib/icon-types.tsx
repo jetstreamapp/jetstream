@@ -105,6 +105,7 @@ export interface UtilityIconObj {
   notification: IconEl;
   open_folder: IconEl;
   page: IconEl;
+  paste: IconEl;
   play: IconEl;
   preview: IconEl;
   prompt_edit: IconEl;

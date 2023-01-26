@@ -532,7 +532,7 @@ export function GenericRenderer(formatterProps: FormatterProps<RowWithKey>) {
     value = <ComplexDataRenderer {...formatterProps} />;
   }
 
-  return <div>{value}</div>;
+  return <div className="slds-truncate">{value}</div>;
 }
 
 export function SelectFormatter<T>(props: FormatterProps<T>) {
