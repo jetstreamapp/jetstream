@@ -178,6 +178,26 @@ export function FilterRenderer<R, SR, T extends HTMLOrSVGElement>({
   );
 }
 
+/**
+ * Filter renderer that can be used for any field that does not need sort
+ * This can be used on summary rows as well to solve for headers that span multiple columns
+ */
+export function SummaryFilterRenderer({ columnKey, label }: { columnKey: string; label: string }) {
+  const { filters, filterSetValues, portalRefForFilters, updateFilter } = useContext(DataTableFilterContext);
+  return (
+    <div className="slds-grid slds-grid_align-spread slds-grid_vertical-align-center">
+      <div className="slds-truncate">{label}</div>
+      <HeaderFilter
+        columnKey={columnKey}
+        filters={filters[columnKey]}
+        filterSetValues={filterSetValues}
+        portalRefForFilters={portalRefForFilters}
+        updateFilter={updateFilter}
+      />
+    </div>
+  );
+}
+
 interface HeaderFilterProps {
   columnKey: string;
   filters: DataTableFilter[];
