@@ -1,18 +1,37 @@
 import { css } from '@emotion/react';
-import { LOG_LEVELS, TITLES } from '@jetstream/shared/constants';
+import { QueryResultsColumn } from '@jetstream/api-interfaces';
+import { logger } from '@jetstream/shared/client-logger';
+import { TITLES } from '@jetstream/shared/constants';
+import { describeGlobal, query } from '@jetstream/shared/data';
 import { useNonInitialEffect, useRollbar } from '@jetstream/shared/ui-utils';
 import { SplitWrapper as Split } from '@jetstream/splitjs';
-import { ListItem, SalesforceOrgUi } from '@jetstream/types';
-import { AutoFullHeightContainer, Card, Grid, Icon, ViewDocsLink } from '@jetstream/ui';
+import { SalesforceOrgUi } from '@jetstream/types';
+import {
+  AutoFullHeightContainer,
+  Card,
+  SobjectCombobox,
+  Grid,
+  Icon,
+  Input,
+  RadioButton,
+  RadioGroup,
+  ViewDocsLink,
+  SobjectFieldCombobox,
+  Spinner,
+  ScopedNotification,
+} from '@jetstream/ui';
 import Editor, { OnMount, useMonaco } from '@monaco-editor/react';
+import * as formulon from 'formulon';
+import { get as lodashGet } from 'lodash';
 import type { editor } from 'monaco-editor';
 import { FunctionComponent, useCallback, useEffect, useRef, useState } from 'react';
 import { useTitle } from 'react-use';
 import { useRecoilState, useRecoilValue } from 'recoil';
+import { composeQuery, getField } from 'soql-parser-js';
 import { applicationCookieState, selectedOrgState } from '../../app-state';
 import { useAmplitude } from '../core/analytics';
-import { parse } from 'formulon';
-import { logger } from '@jetstream/shared/client-logger';
+import * as fromFormulaState from './formula-evaluator.state';
+import { getFormulonTypeFromValue } from './formula-evaluator.utils';
 
 // TODO: ADD COMPLETIONS - for intellisense
 
@@ -27,8 +46,18 @@ export const FormulaEvaluator: FunctionComponent<FormulaEvaluatorProps> = () => 
   const rollbar = useRollbar();
   const [{ serverUrl }] = useRecoilState(applicationCookieState);
   const selectedOrg = useRecoilValue<SalesforceOrgUi>(selectedOrgState);
-  const [formulaValue, setFormulaValue] = useState('');
   const [loading, setLoading] = useState(false);
+  const [fieldErrorMessage, setFieldErrorMessage] = useState<string>(null);
+  const [errorMessage, setErrorMessage] = useState<string>(null);
+  // What about letting a user choose an existing formula?
+  const [formulaValue, setFormulaValue] = useRecoilState(fromFormulaState.formulaValueState);
+  const [selectedSObject, setSelectedSobject] = useRecoilState(fromFormulaState.selectedSObjectState);
+  // TODO: reset when object changes
+  const [selectedField, setSelectedField] = useRecoilState(fromFormulaState.selectedFieldState);
+  const [sourceType, setSourceType] = useRecoilState(fromFormulaState.sourceTypeState);
+  const [recordId, setRecordId] = useRecoilState(fromFormulaState.recordIdState);
+
+  const [results, setResults] = useState<{ formulaFields: formulon.FormulaData; parsedFormula: formulon.FormulaResult } | null>(null);
 
   const monaco = useMonaco();
 
@@ -38,6 +67,20 @@ export const FormulaEvaluator: FunctionComponent<FormulaEvaluatorProps> = () => 
       isMounted.current = false;
     };
   }, []);
+
+  useEffect(() => {
+    if (sourceType === 'EXISTING' && selectedField) {
+      editorRef.current?.setValue(selectedField.calculatedFormula);
+    }
+  }, [sourceType, selectedSObject, selectedField]);
+
+  useEffect(() => {
+    if (recordId && (recordId.length === 15 || recordId.length === 18)) {
+      // TODO: fetch record
+      // we also need to fetch related records as well - will need to do after formula is entered
+      // extract fields from formula
+    }
+  }, [recordId]);
 
   // this is required otherwise the action has stale variables in scope
   useNonInitialEffect(() => {
@@ -55,20 +98,89 @@ export const FormulaEvaluator: FunctionComponent<FormulaEvaluatorProps> = () => 
 
   const onSubmit = useCallback(
     async (value: string) => {
-      setLoading(true);
-      logger.log('results', parse(value));
-      // setResults('');
       try {
+        setLoading(true);
+        setFieldErrorMessage(null);
+        setErrorMessage(null);
+        setResults(null);
+
+        const fields = formulon.extract(value);
+        const formulaFields: formulon.FormulaData = {};
+
+        if (fields.length) {
+          if (!recordId) {
+            setFieldErrorMessage('Record id is required.');
+            return;
+          }
+
+          if (recordId.length !== 15 && recordId.length !== 18) {
+            setFieldErrorMessage('Record id is not a valid id.');
+            return;
+          }
+
+          const keyPrefix = recordId.substring(0, 3);
+          const describeGlobalResults = await describeGlobal(selectedOrg);
+          const sobject = describeGlobalResults.data.sobjects.find((sobject) => sobject.keyPrefix === keyPrefix);
+          if (!sobject) {
+            setFieldErrorMessage(`An object with the prefix "${keyPrefix}" was not found.`);
+            return;
+          }
+
+          // TODO: setup objects
+
+          // build query
+          /// 0012J00002S210GQAR
+          const { queryResults, columns } = await query(
+            selectedOrg,
+            composeQuery({
+              fields: fields.map(getField),
+              sObject: sobject.name,
+              where: {
+                left: {
+                  field: 'Id',
+                  operator: '=',
+                  value: recordId,
+                  literalType: 'STRING',
+                },
+              },
+            })
+          );
+
+          if (!queryResults.totalSize) {
+            setFieldErrorMessage(`A record with Id ${recordId} was not found.`);
+            return;
+          }
+
+          // get columns by field name in lowercase
+          const fieldsByName = columns.columns.reduce((output: Record<string, QueryResultsColumn>, item) => {
+            output[item.columnFullPath.toLowerCase()] = item;
+            return output;
+          }, {});
+
+          fields.forEach((field) => {
+            const column = fieldsByName[field.toLowerCase()];
+            formulaFields[field] = getFormulonTypeFromValue(column, lodashGet(queryResults.records[0], column.columnFullPath));
+          });
+        }
+
+        const parsedFormula = formulon.parse(value, formulaFields);
+        logger.log('results', parsedFormula);
+        setResults({
+          formulaFields,
+          parsedFormula,
+        });
         // TODO:
         // trackEvent(ANALYTICS_KEYS.apex_Submitted, { success: result.success });
       } catch (ex) {
         // setResults(`There was a problem submitting the request\n${ex.message}`);
         // trackEvent(ANALYTICS_KEYS.apex_Submitted, { success: false });
+        logger.warn(ex);
+        setErrorMessage(ex.message);
       } finally {
         setLoading(false);
       }
     },
-    [selectedOrg]
+    [selectedOrg, recordId]
   );
 
   function handleEditorChange(value, event) {
@@ -77,6 +189,9 @@ export const FormulaEvaluator: FunctionComponent<FormulaEvaluatorProps> = () => 
 
   const handleApexEditorMount: OnMount = (currEditor, monaco) => {
     editorRef.current = currEditor;
+    if (sourceType === 'EXISTING' && selectedField) {
+      editorRef.current?.setValue(selectedField.calculatedFormula);
+    }
     // this did not run on initial render if used in useEffect
     editorRef.current.addAction({
       id: 'modifier-enter',
@@ -116,13 +231,79 @@ export const FormulaEvaluator: FunctionComponent<FormulaEvaluatorProps> = () => 
               </Grid>
             }
             actions={
-              <button className="slds-button slds-button_brand" onClick={() => onSubmit(formulaValue)}>
+              <button className="slds-button slds-button_brand" onClick={() => onSubmit(formulaValue)} disabled={loading}>
                 <Icon type="utility" icon="apex" className="slds-button__icon slds-button__icon_left" omitContainer />
                 Test
               </button>
             }
           >
+            <Grid className="slds-m-bottom_x-small">
+              <Input
+                className="w-100"
+                label="Record Id"
+                isRequired
+                labelHelp="Provide a record id to test the formula against"
+                hasError={!loading && !!fieldErrorMessage}
+                errorMessage={fieldErrorMessage}
+              >
+                <input
+                  id="formula-id"
+                  className="slds-input"
+                  value={recordId}
+                  disabled={loading}
+                  onChange={(event) => setRecordId(event.target.value)}
+                />
+              </Input>
+            </Grid>
+
+            <Grid vertical>
+              <RadioGroup label="Formula source" isButtonGroup>
+                <RadioButton
+                  id="source-new"
+                  name="source-new"
+                  label="New Formula"
+                  value="NEW"
+                  checked={sourceType === 'NEW'}
+                  onChange={(value) => setSourceType(value as 'NEW')}
+                  disabled={loading}
+                />
+                <RadioButton
+                  id="source-existing"
+                  name="source-existing"
+                  label="From Salesforce Field"
+                  value="EXISTING"
+                  checked={sourceType === 'EXISTING'}
+                  onChange={(value) => setSourceType(value as 'EXISTING')}
+                  disabled={loading}
+                />
+              </RadioGroup>
+              {sourceType === 'EXISTING' && (
+                <Grid>
+                  <SobjectCombobox
+                    className="slds-grow"
+                    selectedOrg={selectedOrg}
+                    selectedSObject={selectedSObject}
+                    disabled={loading}
+                    onSelectedSObject={setSelectedSobject}
+                  />
+                  {selectedSObject?.name && (
+                    <SobjectFieldCombobox
+                      className="slds-grow slds-m-left_small"
+                      label="Formula Fields"
+                      selectedOrg={selectedOrg}
+                      selectedSObject={selectedSObject.name}
+                      selectedField={selectedField}
+                      disabled={loading}
+                      filterFn={(field) => !!field.calculatedFormula}
+                      onSelectField={setSelectedField}
+                    />
+                  )}
+                </Grid>
+              )}
+            </Grid>
+
             <Editor
+              className="slds-m-top_small"
               height="80vh"
               theme="vs-dark"
               defaultLanguage="javascript"
@@ -136,47 +317,47 @@ export const FormulaEvaluator: FunctionComponent<FormulaEvaluatorProps> = () => 
         <div className="slds-p-horizontal_x-small slds-is-relative">
           <Card
             className="h-100"
-            title={
-              <div>
-                Results
-                {/* {resultsStatus.hasResults && (
-                  <span className="slds-m-left_small">
-                    <Badge type={resultsStatus.success ? 'success' : 'error'}>
-                      <span className="slds-badge__icon slds-badge__icon_left slds-badge__icon_inverse">
-                        <Icon
-                          type="utility"
-                          icon={resultsStatus.success ? 'success' : 'error'}
-                          containerClassname="slds-icon_container slds-current-color"
-                          className="slds-icon slds-icon_xx-small"
-                        />
-                      </span>
-                      {resultsStatus.label}
-                    </Badge>
-                  </span>
-                )} */}
-              </div>
+            title={<div>Results</div>}
+            actions={
+              // TODO: open modal, show all field options, if new field offer permissions and page layouts
+              <button className="slds-button slds-button_neutral" disabled={!results || results.parsedFormula.type !== 'literal'}>
+                Deploy to Salesforce
+              </button>
             }
-            // actions={<CopyToClipboard type="button" content={results} disabled={!results} />}
           >
-            {/* {loading && <Spinner />} */}
-            {/* <FormulaEvaluatorFilter
-              textFilter={textFilter}
-              userDebug={userDebug}
-              hasResults={!!resultsStatus.hasResults}
-              onTextChange={setTextFilter}
-              onDebugChange={setUserDebug}
-            />
-            <Editor
-              height="80vh"
-              theme="vs-dark"
-              defaultLanguage="apex-log"
-              options={{
-                readOnly: true,
-                contextmenu: false,
-              }}
-              value={visibleResults}
-              onMount={handleLogEditorMount}
-            /> */}
+            {loading && <Spinner />}
+            {errorMessage && (
+              <div className="slds-m-around-medium">
+                <ScopedNotification theme="error" className="slds-m-top_medium">
+                  {errorMessage}
+                </ScopedNotification>
+              </div>
+            )}
+            {results && (
+              <Grid vertical>
+                <div className="slds-text-heading_small slds-m-bottom_x-small">Record Fields</div>
+                {Object.keys(results.formulaFields).map((field) => {
+                  const { dataType, value } = results.formulaFields[field];
+                  return (
+                    <div>
+                      <span className="text-bold">{field}</span>: {value} <span className="slds-text-color_weak">({dataType})</span>
+                    </div>
+                  );
+                })}
+                <div className="slds-text-heading_small slds-m-top_large slds-m-bottom_x-small">Formula Results</div>
+                {results.parsedFormula.type === 'error' ? (
+                  <Grid vertical className="slds-text-color_error">
+                    <div>{results.parsedFormula.errorType}</div>
+                    <div>{results.parsedFormula.message}</div>
+                    {results.parsedFormula.errorType === 'NotImplementedError' && results.parsedFormula.name === 'isnull' && (
+                      <div>Use ISBLANK instead</div>
+                    )}
+                  </Grid>
+                ) : (
+                  <div className="slds-text-color_success">{results.parsedFormula.value}</div>
+                )}
+              </Grid>
+            )}
           </Card>
         </div>
       </Split>
