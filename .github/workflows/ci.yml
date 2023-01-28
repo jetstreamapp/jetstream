@@ -103,6 +103,19 @@ jobs:
           name: dist-artifacts
           path: dist
 
+      # Cannot find module '/home/runner/work/jetstream/jetstream/dist/apps/api/main.js'
+      - name: Sanity check file paths
+        run: |
+          echo "cwd"
+          cwd
+          echo "ls - blank, dist, dist/apps, dist/apps/api"
+          ls
+          ls dist
+          ls dist/apps
+          ls dist/apps/api
+          echo "cat dist/apps/api/main.js"
+          cat dist/apps/api/main.js
+
       - uses: actions/checkout@v3
         name: Checkout
         with:
