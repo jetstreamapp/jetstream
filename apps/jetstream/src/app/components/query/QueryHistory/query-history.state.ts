@@ -118,6 +118,18 @@ export const selectedObjectState = atom<string>({
 export const queryHistoryState = atom<MapOf<QueryHistoryItem>>({
   key: 'queryHistory.queryHistoryState',
   default: initQueryHistory(),
+  effects: [
+    ({ setSelf, onSet }) => {
+      onSet((newQueryHistory) => {
+        localforage
+          .getItem<MapOf<QueryHistoryItem>>(INDEXED_DB.KEYS.queryHistory)
+          .then((storedHistory) =>
+            localforage.setItem<MapOf<QueryHistoryItem>>(INDEXED_DB.KEYS.queryHistory, { ...storedHistory, ...newQueryHistory })
+          )
+          .then(() => setSelf(newQueryHistory));
+      });
+    },
+  ],
 });
 
 export const queryHistoryWhichType = atom<QueryHistoryType>({

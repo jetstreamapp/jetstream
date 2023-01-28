@@ -1,7 +1,7 @@
 import React from 'react';
 import { render, fireEvent, waitFor, screen } from '@testing-library/react';
-import RadioGroup from './RadioGroup';
-import Radio from './Radio';
+import RadioGroup from '../RadioGroup';
+import Radio from '../Radio';
 
 test('changing checkbox should change active item', async () => {
   let activeValue = 'radio1';

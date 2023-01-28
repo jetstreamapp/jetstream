@@ -45,7 +45,7 @@ export const DeployMetadataSelection: FunctionComponent<DeployMetadataSelectionP
   }
 
   return (
-    <Page>
+    <Page testId="deploy-metadata-selection-page">
       <PageHeader>
         <PageHeaderRow>
           <PageHeaderTitle

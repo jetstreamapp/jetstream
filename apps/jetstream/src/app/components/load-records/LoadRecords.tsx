@@ -339,7 +339,7 @@ export const LoadRecords: FunctionComponent<LoadRecordsProps> = ({ featureFlags 
   }
 
   return (
-    <Page>
+    <Page testId="load-records-page">
       <PageHeader>
         <PageHeaderRow>
           <PageHeaderTitle icon={{ type: 'standard', icon: 'data_streams' }} label="Load Records" docsPath="/load" />

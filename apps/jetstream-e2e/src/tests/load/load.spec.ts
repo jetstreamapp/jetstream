@@ -3,7 +3,7 @@ import { join } from 'path';
 import { test } from '../../fixtures/fixtures';
 
 test.beforeEach(async ({ page }) => {
-  await page.goto('/');
+  await page.goto('/app');
 });
 
 test.describe.configure({ mode: 'parallel' });

@@ -74,7 +74,7 @@ export const ManagePermissionsSelection: FunctionComponent<ManagePermissionsSele
   }
 
   return (
-    <Page>
+    <Page testId="manage-permissions-page">
       <PageHeader>
         <PageHeaderRow>
           <PageHeaderTitle icon={{ type: 'standard', icon: 'portal' }} label="Manage Permissions" docsPath="/permissions" />

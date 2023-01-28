@@ -58,7 +58,7 @@ export const AutomationControlSelection: FunctionComponent<AutomationControlSele
   }
 
   return (
-    <Page>
+    <Page testId="automation-control--selection-page">
       <PageHeader>
         <PageHeaderRow>
           <PageHeaderTitle icon={{ type: 'standard', icon: 'activations' }} label="Automation Control" docsPath="/automation-control" />

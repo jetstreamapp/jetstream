@@ -189,8 +189,3 @@ export const queryIncludeDeletedRecordsState = atom<boolean>({
   key: 'query.queryIncludeDeletedRecordsState',
   default: false,
 });
-
-export const queryHistoryState = atom<MapOf<QueryHistoryItem>>({
-  key: 'query.queryHistory',
-  default: {},
-});
