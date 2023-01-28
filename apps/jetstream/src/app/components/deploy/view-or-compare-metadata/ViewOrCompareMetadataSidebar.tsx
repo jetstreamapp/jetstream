@@ -36,8 +36,6 @@ export const ViewOrCompareMetadataSidebar: FunctionComponent<ViewOrCompareMetada
 }) => {
   const orgs = useRecoilValue<SalesforceOrgUi[]>(salesforceOrgsOmitSelectedState);
 
-  useNonInitialEffect(() => {}, [files]);
-
   function handleSelectedFile(item: TreeItems<FileItemMetadata>) {
     if (item.meta) {
       onSelectedFile(item);

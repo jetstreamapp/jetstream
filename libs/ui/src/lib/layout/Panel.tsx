@@ -1,8 +1,8 @@
 import { css } from '@emotion/react';
-import { FunctionComponent, Fragment } from 'react';
+import { PositionLeftRight, SizeSmMdLgXlFull } from '@jetstream/types';
 import classNames from 'classnames';
+import { FunctionComponent, useState } from 'react';
 import Icon from '../widgets/Icon';
-import { SizeSmMdLgXlFull, PositionLeftRight } from '@jetstream/types';
 
 export interface PanelProps {
   containerClassName?: string;
@@ -50,54 +50,63 @@ export const Panel: FunctionComponent<PanelProps> = ({
   isOpen,
   fullHeight = true,
   position = 'left',
-  size = 'md',
+  size: userSize = 'md',
   showBackArrow,
   onClosed,
   children,
 }) => {
+  const [expanded, setExpanded] = useState(false);
+
+  if (!isOpen) {
+    return null;
+  }
+
+  const size: SizeSmMdLgXlFull = expanded ? 'full' : userSize;
+  const expandCollapseIcon = expanded ? 'contract_alt' : 'expand_alt';
+
   return (
-    <Fragment>
-      {isOpen && (
-        <div
-          className={containerClassName}
-          css={css`
-            z-index: 2;
-            ${fullHeight ? 'position: absolute; height: 100vh; top: 0;' : ''}
-            ${position === 'left' ? 'left: 0' : 'right: 0'};
-          `}
-        >
-          <div
-            className={classNames('slds-panel slds-panel_docked slds-is-open', getPositionClass(position), getSizeClass(size))}
-            aria-hidden="false"
+    <div
+      className={containerClassName}
+      css={css`
+        z-index: 2;
+        ${fullHeight ? 'position: absolute; height: 100vh; top: 0;' : ''}
+        ${position === 'left' ? 'left: 0' : 'right: 0'};
+      `}
+    >
+      <div
+        className={classNames('slds-panel slds-panel_docked slds-is-open', getPositionClass(position), getSizeClass(size))}
+        aria-hidden="false"
+      >
+        <div className="slds-panel__header">
+          {showBackArrow && (
+            <button
+              className="slds-button slds-button_icon slds-button_icon-small slds-panel__back"
+              title={`Collapse ${heading}`}
+              onClick={() => onClosed()}
+            >
+              <Icon type="utility" icon="back" className="slds-button__icon" />
+              <span className="slds-assistive-text">Collapse {heading}</span>
+            </button>
+          )}
+          <h2 className="slds-panel__header-title slds-text-heading_small slds-truncate" title={heading}>
+            {heading}
+          </h2>
+
+          <button className="slds-button slds-button_icon slds-button_icon-small" onClick={() => setExpanded(!expanded)}>
+            <Icon type="utility" icon={expandCollapseIcon} className="slds-button__icon" />
+          </button>
+          <button
+            className="slds-button slds-button_icon slds-button_icon-small slds-panel__close"
+            title={`Collapse ${heading}`}
+            onClick={() => onClosed()}
           >
-            <div className="slds-panel__header">
-              {showBackArrow && (
-                <button
-                  className="slds-button slds-button_icon slds-button_icon-small slds-panel__back"
-                  title={`Collapse ${heading}`}
-                  onClick={() => onClosed()}
-                >
-                  <Icon type="utility" icon="back" className="slds-button__icon" />
-                  <span className="slds-assistive-text">Collapse {heading}</span>
-                </button>
-              )}
-              <h2 className="slds-panel__header-title slds-text-heading_small slds-truncate" title={heading}>
-                {heading}
-              </h2>
-              <button
-                className="slds-button slds-button_icon slds-button_icon-small slds-panel__close"
-                title={`Collapse ${heading}`}
-                onClick={() => onClosed()}
-              >
-                <Icon type="utility" icon="close" className="slds-button__icon" />
-                <span className="slds-assistive-text">Collapse {heading}</span>
-              </button>
-            </div>
-            <div className="slds-panel__body">{children}</div>
-          </div>
+            <Icon type="utility" icon="close" className="slds-button__icon" />
+            <span className="slds-assistive-text">Collapse {heading}</span>
+          </button>
         </div>
-      )}
-    </Fragment>
+        <div className="slds-panel__body">{children}</div>
+      </div>
+    </div>
   );
 };
 

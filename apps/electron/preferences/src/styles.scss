@@ -16,6 +16,27 @@ pre {
   cursor: pointer;
 }
 
+.display-none {
+  display: none !important;
+}
+
+.white-space-nowrap {
+  white-space: nowrap;
+}
+
+.break-normal {
+  overflow-wrap: normal;
+  word-break: normal;
+}
+
+.break-words {
+  overflow-wrap: break-word;
+}
+
+.break-all {
+  word-break: break-all;
+}
+
 .opacity-5 {
   opacity: 0.5;
 }
@@ -52,16 +73,16 @@ pre {
   background-color: $color-background-backdrop-tint;
 }
 
-.bg-color-backdrop-tint {
-  background-color: $color-background-backdrop-tint;
-}
-
 .bg-color-pink {
   background-color: $palette-pink-60;
 }
 
 .text-color-pink {
   color: $palette-pink-60;
+}
+
+.text-color_warning {
+  color: $color-text-warning-alt;
 }
 
 .text-color_inverse-warning {
@@ -92,25 +113,22 @@ pre {
   background-position: 50%;
 }
 
+.gutter.gutter-horizontal {
+  background-image: url('assets/images/split-grip-vertical.png');
+  cursor: col-resize;
+}
+
+.gutter.gutter-vertical {
+  background-image: url('assets/images/split-grip-horizontal.png');
+  cursor: row-resize;
+}
+
 .bg-white {
   background-color: $color-background-alt;
 }
 
 .width-100 {
   width: 100%;
-}
-
-.break-normal {
-  overflow-wrap: normal;
-  word-break: normal;
-}
-
-.break-words {
-  overflow-wrap: break-word;
-}
-
-.break-all {
-  word-break: break-all;
 }
 
 .modal-full-height {
@@ -159,6 +177,10 @@ pre {
 
 .slds-text-color_brand {
   color: $brand-accessible;
+}
+
+.slds-popover_x-large {
+  width: 75%;
 }
 
 /**
@@ -299,6 +321,7 @@ button.ql-active {
 :root {
   --title-bar-height: 50px;
   --app-top-offset: 90px;
+  --app-brand-color: rgb(17, 24, 39);
 }
 
 .app-container {
@@ -325,8 +348,9 @@ button.ql-active {
     top: env(titlebar-area-y, 0);
     // height: env(titlebar-area-height, var(--title-bar-height));
     height: var(--title-bar-height);
-    width: 100%;
-    background-color: $color-gray-10;
+    // width: 100%;
+    width: env(titlebar-area-width, 100%);
+    background-color: var(--app-brand-color);
 
     .draggable {
       app-region: drag;
@@ -347,7 +371,7 @@ button.ql-active {
       user-select: none;
       height: 100%;
       left: env(titlebar-area-x, 0);
-      width: env(titlebar-area-width, 100%);
+      width: calc(100vw - 5.5rem);
     }
 
     .slds-button.slds-button_icon {

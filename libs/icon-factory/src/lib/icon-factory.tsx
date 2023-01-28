@@ -60,6 +60,7 @@ import UtilityIcon_Clock from './icons/utility/Clock';
 import UtilityIcon_Close from './icons/utility/Close';
 import UtilityIcon_CollapseAll from './icons/utility/CollapseAll';
 import UtilityIcon_ComponentCustomization from './icons/utility/ComponentCustomization';
+import UtilityIcon_ContractAlt from './icons/utility/ContractAlt';
 import UtilityIcon_Copy from './icons/utility/Copy';
 import UtilityIcon_CopyToClipboard from './icons/utility/CopyToClipboard';
 import UtilityIcon_Dash from './icons/utility/Dash';
@@ -181,6 +182,7 @@ const utilityIcons: UtilityIconObj = {
   component_customization: UtilityIcon_ComponentCustomization,
   copy_to_clipboard: UtilityIcon_CopyToClipboard,
   copy: UtilityIcon_Copy,
+  contract_alt: UtilityIcon_ContractAlt,
   dash: UtilityIcon_Dash,
   date_time: UtilityIcon_DateTime,
   delete: UtilityIcon_Delete,

@@ -140,6 +140,8 @@ export const ManualSoql: FunctionComponent<ManualSoqlProps> = ({ className, isTo
     <div className={className}>
       <Popover
         testId="manual-query"
+        // size="large"
+        size="x-large"
         onChange={handlePopoverChange}
         content={
           <Fragment>
@@ -167,7 +169,7 @@ export const ManualSoql: FunctionComponent<ManualSoqlProps> = ({ className, isTo
               {/* Cannot be dark as it changes all other editors on screen */}
               <Editor
                 className="slds-border_top slds-border_right slds-border_bottom slds-border_left"
-                height="300px"
+                height="350px"
                 language="soql"
                 value={soql}
                 options={{
