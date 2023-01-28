@@ -25,6 +25,9 @@ jobs:
         with:
           fetch-depth: 0
 
+      - name: Setup branch tracking
+        run: git branch --track main origin/main
+
       - name: Derive appropriate SHAs for base and head for `nx affected` commands
         uses: nrwl/nx-set-shas@v3
         with:
@@ -36,51 +39,16 @@ jobs:
           cache: 'yarn'
 
       - name: install dependencies
-        run: yarn install --frozen-lockfile
-
-      - name: Setup branch tracking
-        run: git branch --track main origin/main
-
-      # - name: Init NX CI run
-      #   run: npx nx-cloud start-ci-run
+        run: yarn install --frozen-lockfile --prefer-offline
 
       - name: Build application
         run: npx nx run-many --target=build --parallel=3 --projects=jetstream,api,download-zip-sw,landing --configuration=production
-
-      # - name: Stop CI agents
-      #   if: always() # Ensure these always get terminated
-      #   run: npx nx-cloud stop-all-agents
 
       - name: Uploading artifacts
         uses: actions/upload-artifact@v3
         with:
           name: dist-artifacts
           path: dist
-
-  # Parallel agents used to speed up build
-  # agents:
-  #   runs-on: ubuntu-latest
-  #   name: Agents
-  #   timeout-minutes: 60
-  #   strategy:
-  #     matrix:
-  #       agent: [1, 2, 3]
-  #   steps:
-  #     - uses: actions/checkout@v3
-  #       name: Checkout
-  #       with:
-  #         fetch-depth: 0
-
-  #     - uses: actions/setup-node@v3
-  #       with:
-  #         node-version: '18'
-  #         cache: 'yarn'
-
-  #     - name: install dependencies
-  #       run: yarn install --frozen-lockfile
-
-  #     - name: Start Nx Agent ${{ matrix.agent }}
-  #       run: npx nx-cloud start-agent
 
   # e2e tests only runs if build passes, since it uses production build to run tests
   e2e:
@@ -133,16 +101,12 @@ jobs:
         uses: actions/download-artifact@v3
         with:
           name: dist-artifacts
+          path: dist
 
       - uses: actions/checkout@v3
         name: Checkout
         with:
           fetch-depth: 0
-
-      - name: Derive appropriate SHAs for base and head for `nx affected` commands
-        uses: nrwl/nx-set-shas@v3
-        with:
-          main-branch-name: 'main'
 
       - uses: actions/setup-node@v3
         with:
@@ -150,7 +114,7 @@ jobs:
           cache: 'yarn'
 
       - name: install dependencies
-        run: yarn install --frozen-lockfile
+        run: yarn install --frozen-lockfile --prefer-offline
 
       - name: Install Playwright dependencies
         run: npx playwright install --with-deps
