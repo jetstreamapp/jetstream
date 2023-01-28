@@ -5,6 +5,7 @@ import Icon from '../widgets/Icon';
 import { IconName } from '@jetstream/icon-factory';
 
 export interface AlertProps {
+  className?: string;
   type: InfoWarningErrorOffline;
   leadingIcon?: IconName;
   allowClose?: boolean;
@@ -16,9 +17,9 @@ export interface AlertProps {
  * This is used when a button is inline on a form where there needs to be top-margin to align with the inputs
  * (e.x. ExpressionConditionRow)
  */
-export const Alert: FunctionComponent<AlertProps> = ({ type, leadingIcon, allowClose, children, onClose }) => {
+export const Alert: FunctionComponent<AlertProps> = ({ className, type, leadingIcon, allowClose, children, onClose }) => {
   return (
-    <div className={classNames('slds-notify slds-notify_alert slds-theme_alert-texture', `slds-theme_${type}`)} role="alert">
+    <div className={classNames('slds-notify slds-notify_alert slds-theme_alert-texture', `slds-theme_${type}`, className)} role="alert">
       <span className="slds-assistive-text">{type}</span>
       {leadingIcon && (
         <Icon

@@ -143,7 +143,7 @@ declare module 'formulon' {
 
   export interface AstLiteral {
     type: 'literal';
-    value: string;
+    value: string | number | boolean | null | Date;
     dataType: DataTypeNoOption;
     options?: Record<string, any> | null;
   }
@@ -159,7 +159,7 @@ declare module 'formulon' {
 
   export interface AstLiteralNumber {
     type: 'literal';
-    value: string;
+    value: number;
     dataType: 'number';
     options: {
       length: number;

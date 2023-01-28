@@ -1,37 +1,38 @@
 import { css } from '@emotion/react';
-import { QueryResultsColumn } from '@jetstream/api-interfaces';
 import { logger } from '@jetstream/shared/client-logger';
 import { TITLES } from '@jetstream/shared/constants';
-import { describeGlobal, query } from '@jetstream/shared/data';
+import { describeGlobal } from '@jetstream/shared/data';
 import { useNonInitialEffect, useRollbar } from '@jetstream/shared/ui-utils';
 import { SplitWrapper as Split } from '@jetstream/splitjs';
 import { SalesforceOrgUi } from '@jetstream/types';
 import {
+  Alert,
   AutoFullHeightContainer,
   Card,
-  SobjectCombobox,
+  EmptyState,
   Grid,
   Icon,
   Input,
+  Radio,
   RadioButton,
   RadioGroup,
-  ViewDocsLink,
+  ScopedNotification,
+  GoneFishingIllustration,
+  SobjectCombobox,
   SobjectFieldCombobox,
   Spinner,
-  ScopedNotification,
+  ViewDocsLink,
 } from '@jetstream/ui';
 import Editor, { OnMount, useMonaco } from '@monaco-editor/react';
 import * as formulon from 'formulon';
-import { get as lodashGet } from 'lodash';
 import type { editor } from 'monaco-editor';
 import { FunctionComponent, useCallback, useEffect, useRef, useState } from 'react';
 import { useTitle } from 'react-use';
 import { useRecoilState, useRecoilValue } from 'recoil';
-import { composeQuery, getField } from 'soql-parser-js';
 import { applicationCookieState, selectedOrgState } from '../../app-state';
 import { useAmplitude } from '../core/analytics';
 import * as fromFormulaState from './formula-evaluator.state';
-import { getFormulonTypeFromValue } from './formula-evaluator.utils';
+import { getFormulaData } from './formula-evaluator.utils';
 
 // TODO: ADD COMPLETIONS - for intellisense
 
@@ -56,6 +57,8 @@ export const FormulaEvaluator: FunctionComponent<FormulaEvaluatorProps> = () => 
   const [selectedField, setSelectedField] = useRecoilState(fromFormulaState.selectedFieldState);
   const [sourceType, setSourceType] = useRecoilState(fromFormulaState.sourceTypeState);
   const [recordId, setRecordId] = useRecoilState(fromFormulaState.recordIdState);
+  const [numberNullBehavior, setNumberNullBehavior] = useRecoilState(fromFormulaState.numberNullBehaviorState);
+  const [bannerDismissed, setBannerDismissed] = useRecoilState(fromFormulaState.bannerDismissedState);
 
   const [results, setResults] = useState<{ formulaFields: formulon.FormulaData; parsedFormula: formulon.FormulaResult } | null>(null);
 
@@ -99,13 +102,18 @@ export const FormulaEvaluator: FunctionComponent<FormulaEvaluatorProps> = () => 
   const onSubmit = useCallback(
     async (value: string) => {
       try {
+        if (!value) {
+          return;
+        }
         setLoading(true);
         setFieldErrorMessage(null);
         setErrorMessage(null);
         setResults(null);
 
         const fields = formulon.extract(value);
-        const formulaFields: formulon.FormulaData = {};
+        const ast = formulon.ast(value);
+        logger.log({ fields, ast });
+        let formulaFields: formulon.FormulaData = {};
 
         if (fields.length) {
           if (!recordId) {
@@ -126,41 +134,13 @@ export const FormulaEvaluator: FunctionComponent<FormulaEvaluatorProps> = () => 
             return;
           }
 
-          // TODO: setup objects
-
-          // build query
-          /// 0012J00002S210GQAR
-          const { queryResults, columns } = await query(
-            selectedOrg,
-            composeQuery({
-              fields: fields.map(getField),
-              sObject: sobject.name,
-              where: {
-                left: {
-                  field: 'Id',
-                  operator: '=',
-                  value: recordId,
-                  literalType: 'STRING',
-                },
-              },
-            })
-          );
-
-          if (!queryResults.totalSize) {
-            setFieldErrorMessage(`A record with Id ${recordId} was not found.`);
+          const response = await getFormulaData({ fields, recordId, selectedOrg, sobjectName: sobject.name, numberNullBehavior });
+          if (response.type === 'error') {
+            setFieldErrorMessage(response.message);
             return;
           }
-
-          // get columns by field name in lowercase
-          const fieldsByName = columns.columns.reduce((output: Record<string, QueryResultsColumn>, item) => {
-            output[item.columnFullPath.toLowerCase()] = item;
-            return output;
-          }, {});
-
-          fields.forEach((field) => {
-            const column = fieldsByName[field.toLowerCase()];
-            formulaFields[field] = getFormulonTypeFromValue(column, lodashGet(queryResults.records[0], column.columnFullPath));
-          });
+          // response.warnings; // TODO:
+          formulaFields = response.formulaFields;
         }
 
         const parsedFormula = formulon.parse(value, formulaFields);
@@ -210,6 +190,11 @@ export const FormulaEvaluator: FunctionComponent<FormulaEvaluatorProps> = () => 
 
   return (
     <AutoFullHeightContainer fillHeight bottomBuffer={10} setHeightAttr className="slds-p-horizontal_x-small slds-scrollable_none">
+      {!bannerDismissed && (
+        <Alert type="info" leadingIcon="info" className="slds-m-bottom_xx-small" allowClose onClose={() => setBannerDismissed(true)}>
+          Formulas in Jetstream may evaluate different from Salesforce and not every formula function is supported.
+        </Alert>
+      )}
       <Split
         sizes={[50, 50]}
         minSize={[300, 300]}
@@ -231,9 +216,13 @@ export const FormulaEvaluator: FunctionComponent<FormulaEvaluatorProps> = () => 
               </Grid>
             }
             actions={
-              <button className="slds-button slds-button_brand" onClick={() => onSubmit(formulaValue)} disabled={loading}>
+              <button
+                className="slds-button slds-button_brand"
+                onClick={() => onSubmit(formulaValue)}
+                disabled={!recordId || !formulaValue || loading}
+              >
                 <Icon type="utility" icon="apex" className="slds-button__icon slds-button__icon_left" omitContainer />
-                Test
+                Submit
               </button>
             }
           >
@@ -300,6 +289,26 @@ export const FormulaEvaluator: FunctionComponent<FormulaEvaluatorProps> = () => 
                   )}
                 </Grid>
               )}
+              <RadioGroup label="How to handle null values for numbers" formControlClassName="slds-grid">
+                <Radio
+                  id="null-zero"
+                  name="null-zero"
+                  label="Treat as zero"
+                  value="ZERO"
+                  checked={numberNullBehavior === 'ZERO'}
+                  onChange={(value) => setNumberNullBehavior(value as 'ZERO')}
+                  disabled={loading}
+                />
+                <Radio
+                  id="null-blank"
+                  name="null-blank"
+                  label="Treat as blank"
+                  value="BLANK"
+                  checked={numberNullBehavior === 'BLANK'}
+                  onChange={(value) => setNumberNullBehavior(value as 'BLANK')}
+                  disabled={loading}
+                />
+              </RadioGroup>
             </Grid>
 
             <Editor
@@ -335,16 +344,21 @@ export const FormulaEvaluator: FunctionComponent<FormulaEvaluatorProps> = () => 
             )}
             {results && (
               <Grid vertical>
-                <div className="slds-text-heading_small slds-m-bottom_x-small">Record Fields</div>
-                {Object.keys(results.formulaFields).map((field) => {
-                  const { dataType, value } = results.formulaFields[field];
-                  return (
-                    <div>
-                      <span className="text-bold">{field}</span>: {value} <span className="slds-text-color_weak">({dataType})</span>
-                    </div>
-                  );
-                })}
-                <div className="slds-text-heading_small slds-m-top_large slds-m-bottom_x-small">Formula Results</div>
+                {results.formulaFields.length && (
+                  <>
+                    <div className="slds-text-heading_small slds-m-bottom_large">Record Fields</div>
+                    {Object.keys(results.formulaFields).map((field) => {
+                      const { dataType, value } = results.formulaFields[field];
+                      return (
+                        <div key={field}>
+                          <span className="text-bold">{field}</span>: {String(value)}{' '}
+                          <span className="slds-text-color_weak">({dataType})</span>
+                        </div>
+                      );
+                    })}
+                  </>
+                )}
+                <div className="slds-text-heading_small">Formula Results</div>
                 {results.parsedFormula.type === 'error' ? (
                   <Grid vertical className="slds-text-color_error">
                     <div>{results.parsedFormula.errorType}</div>
@@ -354,9 +368,15 @@ export const FormulaEvaluator: FunctionComponent<FormulaEvaluatorProps> = () => 
                     )}
                   </Grid>
                 ) : (
-                  <div className="slds-text-color_success">{results.parsedFormula.value}</div>
+                  <div className="slds-text-color_success">{String(results.parsedFormula.value)}</div>
                 )}
               </Grid>
+            )}
+            {!errorMessage && !results && (
+              <EmptyState
+                headline="Test out a formula, the results will be shown here"
+                illustration={<GoneFishingIllustration />}
+              ></EmptyState>
             )}
           </Card>
         </div>

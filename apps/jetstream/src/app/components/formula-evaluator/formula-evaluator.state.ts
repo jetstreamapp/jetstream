@@ -1,6 +1,8 @@
 import type { DescribeGlobalSObjectResult, Field } from 'jsforce';
 import { atom } from 'recoil';
 
+export type NullNumberBehavior = 'ZERO' | 'BLANK';
+
 export const priorSelectedOrg = atom<string>({
   key: 'formula.priorSelectedOrg',
   default: null,
@@ -29,4 +31,14 @@ export const recordIdState = atom<string>({
 export const formulaValueState = atom<string>({
   key: 'formula.formulaValueState',
   default: '',
+});
+
+export const numberNullBehaviorState = atom<NullNumberBehavior>({
+  key: 'formula.numberNullBehaviorState',
+  default: 'BLANK',
+});
+
+export const bannerDismissedState = atom<boolean>({
+  key: 'formula.bannerDismissedState',
+  default: false,
 });
