@@ -29,8 +29,9 @@ function generateObjectWorksheet(columns: ObjectOrFieldColumn[], rows: Permissio
 
   const permissionKeys = [];
 
-  columns.forEach((col) => {
-    if (col.colSpan) {
+  columns
+    .filter((col) => col.key?.endsWith('-read'))
+    .forEach((col) => {
       // header 1
       header1.push(col.name as string);
       header1.push('');
@@ -52,8 +53,7 @@ function generateObjectWorksheet(columns: ObjectOrFieldColumn[], rows: Permissio
       header2.push('Modify All');
       // keep track of group order to ensure same across all rows
       permissionKeys.push(col.key.split('-')[0]);
-    }
-  });
+    });
 
   rows.forEach((row, i) => {
     const currRow = [row.sobject];
@@ -83,24 +83,26 @@ function generateFieldWorksheet(columns: ObjectOrFieldColumn[], rows: Permission
 
   const permissionKeys = [];
 
-  columns.forEach((col) => {
-    if (col.colSpan) {
-      // header 1
-      header1.push(col.name as string);
-      header1.push('');
-      // merge the added cells
-      merges.push({
-        s: { r: 0, c: header1.length - 2 },
-        e: { r: 0, c: header1.length - 1 },
-      });
-      // header 2
-      header2.push('Read Access');
-      header2.push('Edit Access');
-      // keep track of group order to ensure same across all rows
-      // key: `${id}-${actionKey}`,
-      permissionKeys.push(col.key.split('-')[0]);
-    }
-  });
+  columns
+    .filter((col) => col.key?.endsWith('-read'))
+    .forEach((col) => {
+      if (col.colSpan) {
+        // header 1
+        header1.push(col.name as string);
+        header1.push('');
+        // merge the added cells
+        merges.push({
+          s: { r: 0, c: header1.length - 2 },
+          e: { r: 0, c: header1.length - 1 },
+        });
+        // header 2
+        header2.push('Read');
+        header2.push('Edit');
+        // keep track of group order to ensure same across all rows
+        // key: `${id}-${actionKey}`,
+        permissionKeys.push(col.key.split('-')[0]);
+      }
+    });
 
   rows.forEach((row, i) => {
     const currRow = [row.sobject, row.apiName, row.label];

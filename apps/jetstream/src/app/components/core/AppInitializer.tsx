@@ -21,8 +21,8 @@ const preferencesChanged$ = preferencesChanged.asObservable();
 
 registerMiddleware('Error', (response: AxiosResponse, org?: SalesforceOrgUi) => {
   const connectionError =
-    response?.headers[HTTP.HEADERS.X_SFDC_ORG_CONNECTION_ERROR.toLowerCase()] ||
-    response?.headers[HTTP.HEADERS.X_SFDC_ORG_CONNECTION_ERROR];
+    response?.headers?.[HTTP.HEADERS.X_SFDC_ORG_CONNECTION_ERROR.toLowerCase()] ||
+    response?.headers?.[HTTP.HEADERS.X_SFDC_ORG_CONNECTION_ERROR];
   if (org && connectionError) {
     orgConnectionError.next({ uniqueId: org.uniqueId, connectionError });
   }

@@ -10,7 +10,7 @@ export * from './lib/color-picker/ColorSwatches';
 export * from './lib/confirmation-dialog/ConfirmationDialog';
 export * from './lib/data-table/data-table-context';
 export * from './lib/data-table/data-table-formatters';
-export { ColumnWithFilter, RowWithKey } from './lib/data-table/data-table-types';
+export type { ColumnWithFilter, RowWithKey } from './lib/data-table/data-table-types';
 export { getColumnsForGenericTable, setColumnFromType } from './lib/data-table/data-table-utils';
 export * from './lib/data-table/DataTable';
 export * from './lib/data-table/DataTableRenderers';

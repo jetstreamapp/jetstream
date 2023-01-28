@@ -1,10 +1,10 @@
 import { css } from '@emotion/react';
 import { logger } from '@jetstream/shared/client-logger';
-import { readFile } from '@jetstream/shared/ui-utils';
+import { readFile, useGlobalEventHandler } from '@jetstream/shared/ui-utils';
 import { InputAcceptType, InputReadFileContent } from '@jetstream/types';
 import classNames from 'classnames';
 import isString from 'lodash/isString';
-import { FunctionComponent, useRef, useState } from 'react';
+import { FunctionComponent, useCallback, useRef, useState } from 'react';
 import HelpText from '../../widgets/HelpText';
 import Icon from '../../widgets/Icon';
 import { useFilename } from './useFilename';
@@ -22,6 +22,7 @@ export interface FileSelectorProps {
   hideLabel?: boolean;
   disabled?: boolean;
   accept?: InputAcceptType[];
+  allowFromClipboard?: boolean;
   userHelpText?: React.ReactNode | string;
   hasError?: boolean;
   errorMessage?: React.ReactNode | string;
@@ -40,6 +41,7 @@ export const FileSelector: FunctionComponent<FileSelectorProps> = ({
   hideLabel,
   disabled,
   accept,
+  allowFromClipboard,
   userHelpText,
   hasError,
   errorMessage,
@@ -77,6 +79,25 @@ export const FileSelector: FunctionComponent<FileSelectorProps> = ({
     preventEventDefaults(event);
     handleFiles(event.target?.files);
   }
+
+  const handlePaste = useCallback(
+    (event: ClipboardEvent) => {
+      if (!allowFromClipboard || !event.clipboardData || !event.clipboardData.items) {
+        return;
+      }
+      const items = event.clipboardData.items;
+      items[0].getAsString((content) => {
+        if (content && content.split('\n').length > 1) {
+          setManagedFilename('Clipboard-Paste.csv');
+          onReadFile({ filename: 'Clipboard-Paste.csv', extension: '.csv', content, isPasteFromClipboard: true });
+        }
+      });
+    },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [allowFromClipboard, setManagedFilename]
+  );
+
+  useGlobalEventHandler('paste', handlePaste);
 
   async function handleFiles(files: FileList) {
     try {
@@ -158,8 +179,9 @@ export const FileSelector: FunctionComponent<FileSelectorProps> = ({
                 <Icon type="utility" icon="upload" className="slds-button__icon slds-button__icon_left" omitContainer />
                 {buttonLabel}
               </span>
-              <span className="slds-file-selector__text slds-medium-show">or Drop File</span>
+              <span className="slds-file-selector__text slds-medium-show">Drop File</span>
             </label>
+            {allowFromClipboard && <div className="slds-file-selector__text slds-m-top_xx-small">Or paste from clipboard</div>}
           </div>
         </div>
       </div>
