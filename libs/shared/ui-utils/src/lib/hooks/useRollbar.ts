@@ -5,14 +5,13 @@ import Rollbar from 'rollbar';
 import { useNonInitialEffect } from './useNonInitialEffect';
 import isBoolean from 'lodash/isBoolean';
 
-const VERSION = process.env.GIT_VERSION;
 const REPLACE_HOST_REGEX = /[a-zA-Z0-9._-]*?getjetstream.app/;
 
 interface RollbarProperties {
   accessToken?: string;
   environment?: Environment;
   userProfile?: UserProfileUi;
-  // serverUrl?: string; // could not get proxy config working
+  version?: string;
 }
 
 const getRecentLogs = () => {
@@ -29,7 +28,7 @@ class RollbarConfig {
   private accessToken: string;
   private environment: string;
   private userProfile: UserProfileUi;
-  // private serverUrl: string;
+  private version: string;
   public rollbar: Rollbar;
   public rollbarIsConfigured: boolean;
   public optOut = false;
@@ -40,7 +39,7 @@ class RollbarConfig {
     this.accessToken = options.accessToken || this.accessToken;
     this.environment = options.environment || this.environment;
     this.userProfile = options.userProfile || this.userProfile;
-    // this.serverUrl = options.serverUrl || this.serverUrl;
+    this.version = options.version || this.version;
 
     if (this.rollbarIsConfigured || !this.accessToken || !this.environment) {
       return;
@@ -49,8 +48,8 @@ class RollbarConfig {
       this.rollbar ||
       new Rollbar({
         enabled: !this.optOut,
-        codeVersion: VERSION,
-        code_version: VERSION,
+        codeVersion: this.version,
+        code_version: this.version,
         accessToken: this.accessToken,
         captureUncaught: true,
         captureUnhandledRejections: true,
@@ -70,7 +69,7 @@ class RollbarConfig {
             javascript: {
               source_map_enabled: true,
               environment: this.environment,
-              code_version: VERSION,
+              code_version: this.version,
             },
           },
         },
@@ -104,8 +103,8 @@ class RollbarConfig {
       const { sub, email } = this.userProfile;
       this.rollbar.configure({
         enabled: !this.optOut,
-        codeVersion: VERSION,
-        code_version: VERSION,
+        codeVersion: this.version,
+        code_version: this.version,
         payload: {
           server: {
             root: 'webpack:///./',
@@ -114,7 +113,7 @@ class RollbarConfig {
             javascript: {
               source_map_enabled: true,
               environment: this.environment,
-              code_version: VERSION,
+              code_version: this.version,
             },
           },
           person: {

@@ -182,7 +182,7 @@ export const SObjectExport: FunctionComponent<SObjectExportProps> = () => {
           emitUploadToGoogleEvent={fromJetstreamEvents.emit}
         />
       )}
-      <Page>
+      <Page testId="sobject-export-page">
         <PageHeader>
           <PageHeaderRow>
             <PageHeaderTitle

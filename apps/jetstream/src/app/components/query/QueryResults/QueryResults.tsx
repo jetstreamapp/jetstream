@@ -207,7 +207,7 @@ export const QueryResults: FunctionComponent<QueryResultsProps> = React.memo(() 
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedOrg]);
 
-  function saveQueryHistory(soql: string, sObject: string, tooling: boolean) {
+  async function saveQueryHistory(soql: string, sObject: string, tooling: boolean) {
     let sObjectLabel: string;
     // if object name did not change since last query, use data from location
     if (locationState?.sobject) {
@@ -216,20 +216,27 @@ export const QueryResults: FunctionComponent<QueryResultsProps> = React.memo(() 
       }
     }
     if (soql && sObject) {
-      fromQueryHistory
-        .getQueryHistoryItem(selectedOrg, soql, sObject, sObjectLabel, tooling)
-        .then(({ queryHistoryItem, refreshedQueryHistory }) => {
-          refreshedQueryHistory = refreshedQueryHistory || queryHistory;
-          // increment count and ensure certain properties are not overwritten
-          if (refreshedQueryHistory && refreshedQueryHistory[queryHistoryItem.key]) {
-            queryHistoryItem.runCount = refreshedQueryHistory[queryHistoryItem.key].runCount + 1;
-            queryHistoryItem.created = refreshedQueryHistory[queryHistoryItem.key].created;
-            queryHistoryItem.label = refreshedQueryHistory[queryHistoryItem.key].label;
-            queryHistoryItem.isFavorite = refreshedQueryHistory[queryHistoryItem.key].isFavorite;
-          }
-          setQueryHistory({ ...refreshedQueryHistory, [queryHistoryItem.key]: queryHistoryItem });
-        })
-        .catch((ex) => logger.warn(ex));
+      try {
+        // eslint-disable-next-line prefer-const
+        let { queryHistoryItem, refreshedQueryHistory } = await fromQueryHistory.getQueryHistoryItem(
+          selectedOrg,
+          soql,
+          sObject,
+          sObjectLabel,
+          tooling
+        );
+        refreshedQueryHistory = refreshedQueryHistory || queryHistory;
+        // increment count and ensure certain properties are not overwritten
+        if (refreshedQueryHistory && refreshedQueryHistory[queryHistoryItem.key]) {
+          queryHistoryItem.runCount = refreshedQueryHistory[queryHistoryItem.key].runCount + 1;
+          queryHistoryItem.created = refreshedQueryHistory[queryHistoryItem.key].created;
+          queryHistoryItem.label = refreshedQueryHistory[queryHistoryItem.key].label;
+          queryHistoryItem.isFavorite = refreshedQueryHistory[queryHistoryItem.key].isFavorite;
+        }
+        setQueryHistory({ ...refreshedQueryHistory, [queryHistoryItem.key]: queryHistoryItem });
+      } catch (ex) {
+        logger.warn(ex);
+      }
     }
   }
 
@@ -261,7 +268,6 @@ export const QueryResults: FunctionComponent<QueryResultsProps> = React.memo(() 
       }
       setQueryResults(results);
       setNextRecordsUrl(results.queryResults.nextRecordsUrl);
-      saveQueryHistory(soqlQuery, results.parsedQuery?.sObject || results.columns?.entityName, tooling);
       setRecordCount(results.queryResults.totalSize);
       setRecords(results.queryResults.records);
       setSubqueryFields(getFlattenSubqueryFlattenedFieldMap(results.parsedQuery));
@@ -282,6 +288,8 @@ export const QueryResults: FunctionComponent<QueryResultsProps> = React.memo(() 
         restore(soqlQuery, tooling);
       }
       trackEvent(ANALYTICS_KEYS.query_ExecuteQuery, { source, success: true, isTooling: tooling, includeDeletedRecords });
+
+      await saveQueryHistory(soqlQuery, results.parsedQuery?.sObject || results.columns?.entityName, tooling);
     } catch (ex) {
       if (!isMounted.current) {
         return;
@@ -488,7 +496,7 @@ export const QueryResults: FunctionComponent<QueryResultsProps> = React.memo(() 
   }
 
   return (
-    <div>
+    <div data-testid="query-results-page">
       <RecordDownloadModal
         org={selectedOrg}
         google_apiKey={google_apiKey}

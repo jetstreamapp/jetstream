@@ -1,12 +1,11 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
 import { logger } from '@jetstream/shared/client-logger';
-import { ANALYTICS_KEYS, INDEXED_DB } from '@jetstream/shared/constants';
+import { ANALYTICS_KEYS } from '@jetstream/shared/constants';
 import { formatNumber, hasModifierKey, isHKey, useGlobalEventHandler, useNonInitialEffect } from '@jetstream/shared/ui-utils';
 import { multiWordObjectFilter } from '@jetstream/shared/utils';
-import { MapOf, QueryHistoryItem, QueryHistorySelection, SalesforceOrgUi, UpDown } from '@jetstream/types';
+import { QueryHistoryItem, QueryHistorySelection, SalesforceOrgUi, UpDown } from '@jetstream/types';
 import { EmptyState, Grid, GridCol, Icon, List, Modal, SearchInput, Spinner } from '@jetstream/ui';
-import localforage from 'localforage';
 import { createRef, forwardRef, useCallback, useEffect, useImperativeHandle, useState } from 'react';
 import { ErrorBoundary } from 'react-error-boundary';
 import { useLocation } from 'react-router-dom';
@@ -78,23 +77,6 @@ export const QueryHistory = forwardRef<any, QueryHistoryProps>(({ selectedOrg, o
   );
 
   useGlobalEventHandler('keydown', onKeydown);
-
-  // Update store if queryHistory was modified
-  useEffect(() => {
-    if (queryHistory) {
-      // load history and put into store
-      (async () => {
-        try {
-          // re-fetch store to ensure that other browser tabs storage is not over-written
-          const storedHistory = await localforage.getItem<MapOf<QueryHistoryItem>>(INDEXED_DB.KEYS.queryHistory);
-          await localforage.setItem<MapOf<QueryHistoryItem>>(INDEXED_DB.KEYS.queryHistory, { ...storedHistory, ...queryHistoryStateMap });
-        } catch (ex) {
-          logger.warn(ex);
-        }
-      })();
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [queryHistory]);
 
   useEffect(() => {
     if (queryHistory) {

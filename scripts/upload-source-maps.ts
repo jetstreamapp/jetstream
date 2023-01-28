@@ -1,9 +1,6 @@
 #!/usr/bin/env node
 import 'dotenv/config';
-import { GitRevisionPlugin } from 'git-revision-webpack-plugin';
 import { $, chalk, fs, path } from 'zx'; // https://github.com/google/zx
-
-const gitRevisionPlugin = new GitRevisionPlugin();
 
 /**
  * Script to generate a new package version
@@ -16,9 +13,8 @@ void (async function () {
     return;
   }
   console.log(chalk.blue(`Uploading sourcemaps to Rollbar`));
-  const distPath = path.join(__dirname, '../dist/apps/jetstream');
-  let version = fs.readFileSync(path.join(distPath, 'VERSION'), 'utf8');
-  version = (version || process.env.GIT_VERSION || gitRevisionPlugin.version()) as string;
+  const distPath = path.join(__dirname, '../dist');
+  const version = fs.readFileSync(path.join(distPath, 'VERSION'), 'utf8') || (await $`git describe --always`).stdout;
   const url = 'https://api.rollbar.com/api/1/sourcemap';
   const accessToken = process.env.ROLLBAR_SERVER_TOKEN;
 

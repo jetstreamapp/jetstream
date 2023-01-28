@@ -13,7 +13,7 @@ let hasProfileInit = false;
 
 const REMOVE_PROTO_REGEX = new RegExp('^http(s?)://');
 
-function init(appCookie: ApplicationCookie) {
+function init(appCookie: ApplicationCookie, version: string) {
   hasInit = true;
   if (!environment.amplitudeToken) {
     return;
@@ -25,12 +25,13 @@ function init(appCookie: ApplicationCookie) {
       }
     : undefined;
   amplitude.getInstance().init(environment.amplitudeToken, undefined, config);
-  amplitude.getInstance().setVersionName(process.env.GIT_VERSION);
+  amplitude.getInstance().setVersionName(version);
 }
 
 export function useAmplitude(optOut?: boolean) {
   const appCookie = useRecoilValue(fromAppState.applicationCookieState);
   const userProfile = useRecoilValue(fromAppState.userProfileState);
+  const { version } = useRecoilValue(fromAppState.appVersionState);
   const userPreferences = useRecoilValue(fromAppState.selectUserPreferenceState);
 
   useEffect(() => {
@@ -45,9 +46,9 @@ export function useAmplitude(optOut?: boolean) {
 
   useEffect(() => {
     if (!hasInit && appCookie) {
-      init(appCookie);
+      init(appCookie, version);
     }
-  }, [appCookie]);
+  }, [appCookie, version]);
 
   useEffect(() => {
     if (!environment.amplitudeToken) {

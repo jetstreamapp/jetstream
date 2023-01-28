@@ -1,8 +1,8 @@
-import { getExcelSafeSheetName } from './utils';
+import { getExcelSafeSheetName } from '../utils';
 
 describe('utils.getExcelSafeSheetName', () => {
   it('should handle simple cases', () => {
-    expect(getExcelSafeSheetName('')).toEqual('Sheet1');
+    expect(getExcelSafeSheetName('')).toEqual('Sheet0');
     expect(getExcelSafeSheetName('records')).toEqual('records');
   });
 

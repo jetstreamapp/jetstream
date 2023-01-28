@@ -156,7 +156,7 @@ export const Settings: FunctionComponent<SettingsProps> = ({ userProfile, featur
   }
 
   return (
-    <Page>
+    <Page testId="settings-page">
       <PageHeader>
         <PageHeaderRow>
           <PageHeaderTitle icon={{ type: 'standard', icon: 'settings' }} label="Settings" />

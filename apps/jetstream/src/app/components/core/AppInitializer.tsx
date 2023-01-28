@@ -13,11 +13,6 @@ import { environment } from '../../../environments/environment';
 import * as fromAppState from '../../app-state';
 import { useAmplitude, usePageViews } from './analytics';
 
-const browserVersion = process.env.GIT_VERSION;
-if (browserVersion) {
-  console.log('JETSTREAM VERSION:', browserVersion);
-}
-
 const orgConnectionError = new Subject<{ uniqueId: string; connectionError: string }>();
 const orgConnectionError$ = orgConnectionError.asObservable();
 
@@ -52,17 +47,23 @@ export interface AppInitializerProps {
 
 export const AppInitializer: FunctionComponent<AppInitializerProps> = ({ onUserProfile, children }) => {
   const userProfile = useRecoilValue<UserProfileUi>(fromAppState.userProfileState);
+  const { version } = useRecoilValue(fromAppState.appVersionState);
   const appCookie = useRecoilValue<ApplicationCookie>(fromAppState.applicationCookieState);
   const [orgs, setOrgs] = useRecoilState(fromAppState.salesforceOrgsState);
   const [electronPreferencesState, setElectronPreferencesState] = useRecoilState(fromAppState.electronPreferences);
   const invalidOrg = useObservable(orgConnectionError$);
   const electronPreferences = useObservable(preferencesChanged$);
 
+  useEffect(() => {
+    console.log('APP VERSION', version);
+  }, [version]);
+
   useRollbar(
     {
       accessToken: environment.rollbarClientAccessToken,
       environment: appCookie.environment,
       userProfile: userProfile,
+      version,
     },
     electronPreferencesState && !electronPreferencesState.crashReportingOptIn
   );
@@ -113,8 +114,8 @@ export const AppInitializer: FunctionComponent<AppInitializerProps> = ({ onUserP
         const { version: serverVersion } = await checkHeartbeat();
         // TODO: inform user that there is a new version and that they should refresh their browser.
         // We could force refresh, but don't want to get into some weird infinite refresh state
-        if (browserVersion !== serverVersion) {
-          console.log('VERSION MISMATCH', { serverVersion, browserVersion });
+        if (version !== serverVersion) {
+          console.log('VERSION MISMATCH', { serverVersion, version });
         }
       }
     } catch (ex) {

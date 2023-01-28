@@ -1,118 +1,148 @@
 name: CI
-on: push
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+
 env:
-  AUTH0_CLIENT_ID: 'shxza1G0595Ut2htmAd3NfbMMsqelrE5'
-  AUTH0_CLIENT_SECRET: 'NOT-NEEDED'
-  AUTH0_DOMAIN: 'getjetstream-dev.us.auth0.com'
   CONTENTFUL_HOST: cdn.contentful.com
   CONTENTFUL_SPACE: wuv9tl5d77ll
   CONTENTFUL_TOKEN: ${{ secrets.CONTENTFUL_TOKEN }}
-  E2E_LOGIN_PASSWORD: ${{ secrets.E2E_LOGIN_PASSWORD }}
-  E2E_LOGIN_URL: 'https://jetstream-e2e-dev-ed.develop.my.salesforce.com'
-  E2E_LOGIN_USERNAME: 'integration@jetstream.app.e2e'
-  EXAMPLE_USER_OVERRIDE: true
-  GOOGLE_API_KEY: ${{ secrets.GOOGLE_API_KEY }}
-  GOOGLE_APP_ID: ${{ secrets.GOOGLE_APP_ID }}
-  GOOGLE_CLIENT_ID: ${{ secrets.GOOGLE_CLIENT_ID }}
-  GOOGLE_CLIENT_SECRET: ${{ secrets.GOOGLE_CLIENT_SECRET }}
-  JESTREAM_POSTGRES_DBURI: postgres://postgres:postgres@localhost:5432/postgres
-  JESTREAM_SESSION_SECRET: ${{ secrets.JESTREAM_SESSION_SECRET }}
-  JETSTREAM_CLIENT_URL: http://localhost:3333/app
-  JETSTREAM_SERVER_DOMAIN: localhost:3333
-  JETSTREAM_SERVER_URL: http://localhost:3333
-  NX_AG_GRID_KEY: ${{ secrets.NX_AG_GRID_KEY }}
+  NX_CLOUD_DISTRIBUTED_EXECUTION: false
   NX_AMPLITUDE_KEY: ${{ secrets.NX_AMPLITUDE_KEY }}
   NX_AUTH_AUDIENCE: http://getjetstream.app/app_metadata
-  NX_CLOUD_DISTRIBUTED_EXECUTION: true
   NX_ROLLBAR_KEY: ${{ secrets.NX_ROLLBAR_KEY }}
-  SFDC_CALLBACK_URL: http://localhost:3333/oauth/sfdc/callback
-  SFDC_CONSUMER_KEY: ${{ secrets.SFDC_CONSUMER_KEY }}
-  SFDC_CONSUMER_SECRET: ${{ secrets.SFDC_CONSUMER_SECRET }}
-  SFDC_ENC_KEY: ${{ secrets.SFDC_ENC_KEY }}
-  SFDC_FALLBACK_API_VERSION: '56.0'
 
 jobs:
-  build-and-test:
+  # Build application
+  build:
     runs-on: ubuntu-latest
-
-    # Create a postgres service - required for E2E tests
-    # https://docs.github.com/en/actions/using-containerized-services/creating-postgresql-service-containers
-    # services:
-    #   postgres:
-    #     image: postgres
-    #     env:
-    #       POSTGRES_USER: postgres
-    #       POSTGRES_PASSWORD: postgres
-    #       POSTGRES_DB: postgres
-    #     options: >-
-    #       --health-cmd pg_isready
-    #       --health-interval 10s
-    #       --health-timeout 5s
-    #       --health-retries 5
-    #     ports:
-    #       - 5432:5432
-
+    timeout-minutes: 60
     steps:
       - uses: actions/checkout@v3
-        name: Checkout [main]
+        name: Checkout [master]
         with:
           fetch-depth: 0
+
+      - name: Setup branch tracking
+        run: git branch --track main origin/main
+
       - name: Derive appropriate SHAs for base and head for `nx affected` commands
         uses: nrwl/nx-set-shas@v3
         with:
-          main-branch-name: 'main'
+          main-branch-name: main
+
       - uses: actions/setup-node@v3
         with:
           node-version: '18'
           cache: 'yarn'
+
       - name: install dependencies
-        run: yarn install --frozen-lockfile
-      # - name: Install Playwright dependencies
-      #   run: npx playwright install --with-deps
-      # - name: Generate database
-      #   run: yarn db:generate
-      # - name: Run database migration
-      #   run: yarn db:migrate
-      # - name: Seed DB
-      #   run: yarn db:seed
-      #   env:
-      #     POSTGRES_HOST: localhost
-      #     PGHOST: localhost
-      #     PGPORT: 5432
-      #     PGUSER: postgres
-      #     PGPASSWORD: postgres
-      #     PGDATABASE: postgres
-      # - name: Init NX CI run
-      #   run: npx nx-cloud start-ci-run
-      - name: Ensure main is tracked
-        run: git branch --track main origin/main
-      - name: Start NX CI run
-        # run: npx nx affected --targets=build,e2e-ci --configuration=production
-        run: npx nx affected --targets=build --configuration=production
-      # - name: Upload test results
-      #   if: always() # This ensures step will always run even if prior steps fail
-      #   uses: actions/upload-artifact@v3
-      #   with:
-      #     name: playwright-report
-      #     path: playwright-report
-      # - name: Stop CI agents
-      #   if: always() # This ensures step will always run even if prior steps fail
-      #   run: npx nx-cloud stop-all-agents
-  # agents:
-  #   runs-on: ubuntu-latest
-  #   name: Agent
-  #   timeout-minutes: 60
-  #   strategy:
-  #     matrix:
-  #       agent: [1, 2]
-  #   steps:
-  #     - uses: actions/checkout@v3
-  #     - uses: actions/setup-node@v3
-  #       with:
-  #         node-version: '18'
-  #         cache: 'yarn'
-  #     - run: yarn install --frozen-lockfile
-  #     - name: Install Playwright dependencies
-  #       run: npx playwright install --with-deps
-  #     - name: Start Nx Agent ${{ matrix.agent }}
-  #       run: npx nx-cloud start-agent
+        run: yarn install --frozen-lockfile --prefer-offline
+
+      - name: Build application
+        run: npx nx run-many --target=build --parallel=3 --projects=jetstream,api,download-zip-sw,landing --configuration=production
+
+      - name: Uploading artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: dist-artifacts
+          path: dist
+
+  # e2e tests only runs if build passes, since it uses production build to run tests
+  e2e:
+    needs: build
+    runs-on: ubuntu-latest
+    env:
+      AUTH0_CLIENT_ID: 'shxza1G0595Ut2htmAd3NfbMMsqelrE5'
+      AUTH0_CLIENT_SECRET: 'NOT-NEEDED'
+      AUTH0_DOMAIN: 'getjetstream-dev.us.auth0.com'
+      E2E_LOGIN_PASSWORD: ${{ secrets.E2E_LOGIN_PASSWORD }}
+      E2E_LOGIN_URL: 'https://jetstream-e2e-dev-ed.develop.my.salesforce.com'
+      E2E_LOGIN_USERNAME: 'integration@jetstream.app.e2e'
+      EXAMPLE_USER_OVERRIDE: true
+      GOOGLE_API_KEY: ${{ secrets.GOOGLE_API_KEY }}
+      GOOGLE_APP_ID: ${{ secrets.GOOGLE_APP_ID }}
+      GOOGLE_CLIENT_ID: ${{ secrets.GOOGLE_CLIENT_ID }}
+      GOOGLE_CLIENT_SECRET: ${{ secrets.GOOGLE_CLIENT_SECRET }}
+      JESTREAM_POSTGRES_DBURI: postgres://postgres:postgres@localhost:5432/postgres
+      JESTREAM_SESSION_SECRET: ${{ secrets.JESTREAM_SESSION_SECRET }}
+      JETSTREAM_CLIENT_URL: http://localhost:3333/app
+      JETSTREAM_SERVER_DOMAIN: localhost:3333
+      JETSTREAM_SERVER_URL: http://localhost:3333
+      NX_AMPLITUDE_KEY: ${{ secrets.NX_AMPLITUDE_KEY }}
+      NX_AUTH_AUDIENCE: http://getjetstream.app/app_metadata
+      NX_CLOUD_DISTRIBUTED_EXECUTION: false
+      NX_ROLLBAR_KEY: ${{ secrets.NX_ROLLBAR_KEY }}
+      SFDC_CALLBACK_URL: http://localhost:3333/oauth/sfdc/callback
+      SFDC_CONSUMER_KEY: ${{ secrets.SFDC_CONSUMER_KEY }}
+      SFDC_CONSUMER_SECRET: ${{ secrets.SFDC_CONSUMER_SECRET }}
+      SFDC_ENC_KEY: ${{ secrets.SFDC_ENC_KEY }}
+      SFDC_FALLBACK_API_VERSION: '56.0'
+
+    services:
+      postgres:
+        image: postgres
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: postgres
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+
+    steps:
+      - uses: actions/checkout@v3
+        name: Checkout [master]
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-node@v3
+        with:
+          node-version: '18'
+          cache: 'yarn'
+
+      - name: install dependencies
+        run: yarn install --frozen-lockfile --prefer-offline
+
+      - name: Download artifacts from build
+        uses: actions/download-artifact@v3
+        with:
+          name: dist-artifacts
+          path: dist
+
+      - name: Install Playwright dependencies
+        run: npx playwright install --with-deps
+
+      - name: Generate database
+        run: yarn db:generate
+
+      - name: Run database migration
+        run: yarn db:migrate
+
+      - name: Seed DB
+        run: yarn db:seed
+        env:
+          POSTGRES_HOST: localhost
+          PGHOST: localhost
+          PGPORT: 5432
+          PGUSER: postgres
+          PGPASSWORD: postgres
+          PGDATABASE: postgres
+
+      - name: Run E2E tests
+        run: yarn playwright:test:with-server
+
+      - name: Upload test results
+        if: always() # This ensures step will always run even if prior steps fail
+        uses: actions/upload-artifact@v3
+        with:
+          name: playwright-report
+          path: |
+            apps/jetstream-e2e/playwright-report
+            test-results

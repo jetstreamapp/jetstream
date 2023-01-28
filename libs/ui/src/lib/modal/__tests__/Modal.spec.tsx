@@ -1,7 +1,7 @@
 import React, { Fragment } from 'react';
 import { render } from '@testing-library/react';
 
-import Modal from './Modal';
+import Modal from '../Modal';
 // TODO:
 describe(' Modal', () => {
   it('should render successfully', () => {

@@ -1,12 +1,22 @@
 import { ensureBoolean } from '@jetstream/shared/utils';
 import * as dotenv from 'dotenv';
+import { readFileSync } from 'fs-extra';
+import { join } from 'path';
 dotenv.config();
+
+let VERSION;
+try {
+  VERSION = readFileSync(join(__dirname, '../../VERSION'), 'utf-8');
+  console.warn(`APP VERSION ${VERSION}`);
+} catch (ex) {
+  console.warn('COULD NOT READ VERSION FILE', ex.message);
+}
 
 export const ENV = {
   // SYSTEM
   NODE_ENV: process.env.NODE_ENV,
   ENVIRONMENT: process.env.ENVIRONMENT || 'production',
-  GIT_VERSION: process.env.GIT_VERSION,
+  GIT_VERSION: VERSION,
   ROLLBAR_SERVER_TOKEN: process.env.ROLLBAR_SERVER_TOKEN,
   JESTREAM_POSTGRES_DBURI: process.env.JESTREAM_POSTGRES_DBURI,
   PRISMA_DEBUG: ensureBoolean(process.env.PRISMA_DEBUG),

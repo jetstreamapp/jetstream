@@ -217,7 +217,7 @@ export const QueryBuilder: FunctionComponent<QueryBuilderProps> = () => {
     <Fragment>
       <QueryBuilderSoqlUpdater />
       {showWalkthrough && <QueryWalkthrough onClose={handleQueryWalkthroughClose} />}
-      <Page>
+      <Page testId="query-builder-page">
         <PageHeader>
           <PageHeaderRow>
             <PageHeaderTitle
