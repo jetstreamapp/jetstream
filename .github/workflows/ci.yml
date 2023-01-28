@@ -9,7 +9,7 @@ env:
   CONTENTFUL_HOST: cdn.contentful.com
   CONTENTFUL_SPACE: wuv9tl5d77ll
   CONTENTFUL_TOKEN: ${{ secrets.CONTENTFUL_TOKEN }}
-  NX_CLOUD_DISTRIBUTED_EXECUTION: true
+  NX_CLOUD_DISTRIBUTED_EXECUTION: false
   NX_AMPLITUDE_KEY: ${{ secrets.NX_AMPLITUDE_KEY }}
   NX_AUTH_AUDIENCE: http://getjetstream.app/app_metadata
   NX_ROLLBAR_KEY: ${{ secrets.NX_ROLLBAR_KEY }}
@@ -18,6 +18,7 @@ jobs:
   # Build application
   build:
     runs-on: ubuntu-latest
+    timeout-minutes: 60
     steps:
       - uses: actions/checkout@v3
         name: Checkout [master]
@@ -37,46 +38,49 @@ jobs:
       - name: install dependencies
         run: yarn install --frozen-lockfile
 
-      - name: Init NX CI run
-        run: npx nx-cloud start-ci-run
+      - name: Setup branch tracking
+        run: git branch --track main origin/main
 
-      - name: Start NX CI run
+      # - name: Init NX CI run
+      #   run: npx nx-cloud start-ci-run
+
+      - name: Build application
         run: npx nx run-many --target=build --parallel=3 --projects=jetstream,api,download-zip-sw,landing --configuration=production
 
-      - name: Stop CI agents
-        if: always() # Ensure these always get terminated
-        run: npx nx-cloud stop-all-agents
+      # - name: Stop CI agents
+      #   if: always() # Ensure these always get terminated
+      #   run: npx nx-cloud stop-all-agents
 
       - name: Uploading artifacts
         uses: actions/upload-artifact@v3
         with:
-          name: dist
-          path: dist-artifacts
+          name: dist-artifacts
+          path: dist
 
   # Parallel agents used to speed up build
-  agents:
-    runs-on: ubuntu-latest
-    name: Agents
-    timeout-minutes: 60
-    strategy:
-      matrix:
-        agent: [1, 2, 3]
-    steps:
-      - uses: actions/checkout@v3
-        name: Checkout
-        with:
-          fetch-depth: 0
+  # agents:
+  #   runs-on: ubuntu-latest
+  #   name: Agents
+  #   timeout-minutes: 60
+  #   strategy:
+  #     matrix:
+  #       agent: [1, 2, 3]
+  #   steps:
+  #     - uses: actions/checkout@v3
+  #       name: Checkout
+  #       with:
+  #         fetch-depth: 0
 
-      - uses: actions/setup-node@v3
-        with:
-          node-version: '18'
-          cache: 'yarn'
+  #     - uses: actions/setup-node@v3
+  #       with:
+  #         node-version: '18'
+  #         cache: 'yarn'
 
-      - name: install dependencies
-        run: yarn install --frozen-lockfile
+  #     - name: install dependencies
+  #       run: yarn install --frozen-lockfile
 
-      - name: Start Nx Agent ${{ matrix.agent }}
-        run: npx nx-cloud start-agent
+  #     - name: Start Nx Agent ${{ matrix.agent }}
+  #       run: npx nx-cloud start-agent
 
   # e2e tests only runs if build passes, since it uses production build to run tests
   e2e:
@@ -128,7 +132,7 @@ jobs:
       - name: Download artifacts from build
         uses: actions/download-artifact@v3
         with:
-          name: dist
+          name: dist-artifacts
 
       - uses: actions/checkout@v3
         name: Checkout
