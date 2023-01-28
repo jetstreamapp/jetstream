@@ -73,6 +73,7 @@ export interface UtilityIconObj {
   component_customization: IconEl;
   copy_to_clipboard: IconEl;
   copy: IconEl;
+  contract_alt: IconEl;
   dash: IconEl;
   date_time: IconEl;
   delete: IconEl;

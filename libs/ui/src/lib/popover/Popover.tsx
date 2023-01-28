@@ -1,6 +1,6 @@
 import { css } from '@emotion/react';
 import { Popover as HeadlessPopover } from '@headlessui/react';
-import { SmallMediumLarge } from '@jetstream/types';
+import { FullWidth, sizeXLarge, SmallMediumLarge } from '@jetstream/types';
 import classNames from 'classnames';
 import { CSSProperties, forwardRef, Fragment, MouseEvent, ReactNode, useCallback, useImperativeHandle, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
@@ -36,7 +36,7 @@ export interface PopoverProps {
   panelStyle?: CSSProperties;
   buttonProps: React.HTMLProps<HTMLButtonElement> & { as?: string };
   buttonStyle?: CSSProperties;
-  size?: SmallMediumLarge;
+  size?: SmallMediumLarge | sizeXLarge | FullWidth;
   /** By default, the popover is displayed in a portal, but this can be skipped by setting this to true */
   omitPortal?: boolean;
   portalRef?: Element;
