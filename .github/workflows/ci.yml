@@ -47,6 +47,12 @@ jobs:
         if: always() # Ensure these always get terminated
         run: npx nx-cloud stop-all-agents
 
+      - name: Uploading artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: dist
+          path: dist-artifacts
+
   # Parallel agents used to speed up build
   agents:
     runs-on: ubuntu-latest
@@ -72,7 +78,7 @@ jobs:
       - name: Start Nx Agent ${{ matrix.agent }}
         run: npx nx-cloud start-agent
 
-  # e2e tests 0 only runs if build passes, since it uses production build to run tests
+  # e2e tests only runs if build passes, since it uses production build to run tests
   e2e:
     needs: build
     runs-on: ubuntu-latest
@@ -119,7 +125,7 @@ jobs:
           - 5432:5432
 
     steps:
-      - name: Download artifacts from main
+      - name: Download artifacts from build
         uses: actions/download-artifact@v3
         with:
           name: dist
