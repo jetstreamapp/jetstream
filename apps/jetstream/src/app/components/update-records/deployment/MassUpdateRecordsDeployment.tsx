@@ -65,7 +65,7 @@ export const MassUpdateRecordsDeployment: FunctionComponent<MassUpdateRecordsDep
   }
 
   return (
-    <Page>
+    <Page testId="mass-update-records-deployment-page">
       <Toolbar>
         <ToolbarItemGroup>
           {loading ? (

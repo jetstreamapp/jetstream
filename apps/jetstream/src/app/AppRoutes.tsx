@@ -56,7 +56,7 @@ export interface AppRoutesProps {
 export const AppRoutes = ({ featureFlags, userProfile }: AppRoutesProps) => {
   const location = useLocation();
 
-  // Preload sub-pages
+  // Preload sub-pages if user is on parent page
   useEffect(() => {
     if (location.pathname.includes('/query')) {
       QueryResults.preload();

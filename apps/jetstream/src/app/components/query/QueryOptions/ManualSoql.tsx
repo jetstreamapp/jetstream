@@ -119,7 +119,7 @@ export const ManualSoql: FunctionComponent<ManualSoqlProps> = ({ className, isTo
     editorRef.current.addAction({
       id: 'format',
       label: 'Format',
-      keybindings: [monaco?.KeyMod.Shift | monaco?.KeyMod.Alt | monaco?.KeyCode.KEY_F],
+      keybindings: [monaco?.KeyMod.Shift | monaco?.KeyMod.Alt | monaco?.KeyCode.KeyF],
       contextMenuGroupId: '9_cutcopypaste',
       run: (currEditor) => {
         setSoql(formatQuery(currEditor.getValue(), { fieldMaxLineLength: 80 }));
@@ -140,6 +140,8 @@ export const ManualSoql: FunctionComponent<ManualSoqlProps> = ({ className, isTo
     <div className={className}>
       <Popover
         testId="manual-query"
+        // size="large"
+        size="x-large"
         onChange={handlePopoverChange}
         content={
           <Fragment>
@@ -167,7 +169,7 @@ export const ManualSoql: FunctionComponent<ManualSoqlProps> = ({ className, isTo
               {/* Cannot be dark as it changes all other editors on screen */}
               <Editor
                 className="slds-border_top slds-border_right slds-border_bottom slds-border_left"
-                height="300px"
+                height="350px"
                 language="soql"
                 value={soql}
                 options={{

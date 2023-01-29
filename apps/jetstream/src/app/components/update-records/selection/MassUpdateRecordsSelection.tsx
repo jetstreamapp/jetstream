@@ -65,7 +65,7 @@ export const MassUpdateRecordsSelection: FunctionComponent<MassUpdateRecordsSele
   }
 
   return (
-    <Page>
+    <Page testId="mass-update-records-selection-page">
       <PageHeader>
         <PageHeaderRow>
           <PageHeaderTitle icon={{ type: 'standard', icon: 'bundle_config' }} label="Update Records" docsPath="/load/update-records" />

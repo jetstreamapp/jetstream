@@ -64,14 +64,14 @@ export class LoadSingleObjectPage {
     await this.selectFile(filename);
 
     await expect(this.page.getByText('Select an object from the list on the left to continue')).toBeVisible();
-    await this.validateHeaderButtonState(false, false, false);
+    await this.validateHeaderButtonState(true, false, false);
 
     await this.selectObject(objectType);
 
     await this.page.locator('label').filter({ hasText: 'Update' });
     await this.page.getByTestId('load-type').getByText(loadType);
 
-    await this.validateHeaderButtonState(false, false, true);
+    await this.validateHeaderButtonState(true, false, true);
 
     await this.page.getByTestId('next-step-button').click();
   }

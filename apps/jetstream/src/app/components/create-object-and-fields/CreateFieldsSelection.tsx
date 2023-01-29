@@ -61,7 +61,7 @@ export const CreateFieldsSelection: FunctionComponent<CreateFieldsSelectionProps
   }
 
   return (
-    <Page>
+    <Page testId="create-field-selection-page">
       <PageHeader>
         <PageHeaderRow>
           <PageHeaderTitle icon={{ type: 'standard', icon: 'form' }} label="Create Fields" docsPath="/deploy-fields" />

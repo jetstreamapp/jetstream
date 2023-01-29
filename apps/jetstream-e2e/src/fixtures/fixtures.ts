@@ -20,7 +20,7 @@ type MyFixtures = {
 // Extend basic test by providing a "todoPage" fixture.
 export const test = base.extend<MyFixtures>({
   apiRequestUtils: async ({ page, request }, use) => {
-    await page.goto('/');
+    await page.goto('/app');
     // TODO: figure this out
     // TODO: this should be e2e org
     await page.getByPlaceholder('Select an Org').click();

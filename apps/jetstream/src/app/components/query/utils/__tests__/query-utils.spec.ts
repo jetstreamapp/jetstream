@@ -1,6 +1,6 @@
-import * as queryUtils from './query-utils';
+import * as queryUtils from '../query-utils';
 import '@jetstream/shared/data';
-import { DESCRIBE_GLOBAL_SPEC, DESCRIBE_ACCOUNT_SPEC, DESCRIBE_USER_SPEC } from './query-utils-data.spec';
+import { DESCRIBE_GLOBAL_SPEC, DESCRIBE_ACCOUNT_SPEC, DESCRIBE_USER_SPEC } from './query-utils.data';
 import { parseQuery } from 'soql-parser-js';
 import axios from 'axios';
 

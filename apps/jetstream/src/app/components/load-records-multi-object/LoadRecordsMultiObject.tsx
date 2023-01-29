@@ -163,7 +163,7 @@ export const LoadRecordsMultiObject: FunctionComponent<LoadRecordsMultiObjectPro
   }
 
   return (
-    <Page>
+    <Page testId="load-records-multi-page">
       <PageHeader>
         <PageHeaderRow>
           <PageHeaderTitle
