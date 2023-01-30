@@ -13,7 +13,6 @@ keywords:
     soql,
     apex,
     salesforce api,
-    fl,
     field level security,
     permissions,
     profile,

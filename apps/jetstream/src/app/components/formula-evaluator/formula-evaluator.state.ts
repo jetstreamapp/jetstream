@@ -1,7 +1,13 @@
 import type { DescribeGlobalSObjectResult, Field } from 'jsforce';
 import { atom } from 'recoil';
+import { EntityDefinition } from './formula-evaluator.types';
 
 export type NullNumberBehavior = 'ZERO' | 'BLANK';
+
+export const objectsByKeyPrefixState = atom<Record<string, EntityDefinition>>({
+  key: 'formula.objectsByKeyPrefixState',
+  default: {},
+});
 
 export const priorSelectedOrg = atom<string>({
   key: 'formula.priorSelectedOrg',

@@ -203,10 +203,11 @@ export async function queryWithCache<T = any>(
   org: SalesforceOrgUi,
   query: string,
   isTooling = false,
-  skipRequestCache = false
+  skipRequestCache = false,
+  includeDeletedRecords = false
 ): Promise<ApiResponse<API.QueryResults<T>>> {
   return handleRequest(
-    { method: 'POST', url: `/api/query`, params: { isTooling }, data: { query } },
+    { method: 'POST', url: `/api/query`, params: { isTooling, includeDeletedRecords }, data: { query } },
     { org, useCache: true, skipRequestCache, useQueryParamsInCacheKey: true, useBodyInCacheKey: true }
   );
 }
@@ -215,6 +216,17 @@ export async function queryMore<T = any>(org: SalesforceOrgUi, nextRecordsUrl: s
   return handleRequest({ method: 'GET', url: `/api/query-more`, params: { nextRecordsUrl, isTooling } }, { org }).then(
     unwrapResponseIgnoreCache
   );
+}
+
+export async function queryMoreWithCache<T = any>(
+  org: SalesforceOrgUi,
+  nextRecordsUrl: string,
+  isTooling = false
+): Promise<API.QueryResults<T>> {
+  return handleRequest(
+    { method: 'GET', url: `/api/query-more`, params: { nextRecordsUrl, isTooling } },
+    { org, useCache: true, useQueryParamsInCacheKey: true }
+  ).then(unwrapResponseIgnoreCache);
 }
 
 /**
@@ -301,6 +313,62 @@ export async function queryRemaining<T = any>(
       progress.onProgress(results.queryResults.records.length + progress.initialFetched, results.queryResults.totalSize);
     }
     const currentResults = await queryMore(org, results.queryResults.nextRecordsUrl, isTooling);
+    // update initial object with current results
+    results.queryResults.records = results.queryResults.records.concat(currentResults.queryResults.records);
+    results.queryResults.nextRecordsUrl = currentResults.queryResults.nextRecordsUrl;
+    results.queryResults.done = currentResults.queryResults.done;
+  }
+  results.queryResults.done = true;
+  return results;
+}
+
+/**
+ * Same as queryAll, but caches results
+ */
+export async function queryAllWithCache<T = any>(
+  org: SalesforceOrgUi,
+  soqlQuery: string,
+  isTooling = false,
+  includeDeletedRecords = false,
+  // Ended up not using onProgress - if used, need to test
+  onProgress?: (fetched: number, total: number) => void
+): Promise<API.QueryResults<T>> {
+  const { data: results } = await queryWithCache(org, soqlQuery, isTooling, false, includeDeletedRecords);
+  if (!results.queryResults.done) {
+    let progress: { initialFetched: number; onProgress?: (fetched: number, total: number) => void };
+    if (isFunction(onProgress)) {
+      onProgress(results.queryResults.records.length, results.queryResults.totalSize);
+      progress = {
+        initialFetched: results.queryResults.records.length,
+        onProgress,
+      };
+    }
+    const currentResults = await queryRemainingWithCache(org, results.queryResults.nextRecordsUrl, isTooling, progress);
+    results.queryResults.records = results.queryResults.records.concat(currentResults.queryResults.records);
+    results.queryResults.nextRecordsUrl = null;
+    results.queryResults.done = true;
+  }
+  return results;
+}
+
+/**
+ * Same as queryRemaining, but caches results
+ */
+export async function queryRemainingWithCache<T = any>(
+  org: SalesforceOrgUi,
+  nextRecordsUrl: string,
+  isTooling = false,
+  progress?: {
+    initialFetched: number;
+    onProgress?: (fetched: number, total: number) => void;
+  }
+): Promise<API.QueryResults<T>> {
+  const results = await queryMoreWithCache(org, nextRecordsUrl, isTooling);
+  while (!results.queryResults.done) {
+    if (progress && isFunction(progress.onProgress)) {
+      progress.onProgress(results.queryResults.records.length + progress.initialFetched, results.queryResults.totalSize);
+    }
+    const currentResults = await queryMoreWithCache(org, results.queryResults.nextRecordsUrl, isTooling);
     // update initial object with current results
     results.queryResults.records = results.queryResults.records.concat(currentResults.queryResults.records);
     results.queryResults.nextRecordsUrl = currentResults.queryResults.nextRecordsUrl;

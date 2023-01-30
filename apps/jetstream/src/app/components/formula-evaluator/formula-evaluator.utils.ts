@@ -1,6 +1,6 @@
 import { QueryResultsColumn, QueryResultsColumns } from '@jetstream/api-interfaces';
 import { logger } from '@jetstream/shared/client-logger';
-import { query } from '@jetstream/shared/data';
+import { query, queryWithCache } from '@jetstream/shared/data';
 import { getMapOf } from '@jetstream/shared/utils';
 import { SalesforceOrgUi } from '@jetstream/types';
 import * as formulon from 'formulon';
@@ -9,8 +9,20 @@ import lodashGet from 'lodash/get';
 import isNil from 'lodash/isNil';
 import { composeQuery, getField } from 'soql-parser-js';
 import { NullNumberBehavior } from './formula-evaluator.state';
+import { EntityDefinition, FormulaFieldsByType } from './formula-evaluator.types';
 
 const MATCH_FORMULA_SPECIAL_LABEL = /^\$[a-zA-Z]+\./;
+
+export async function getAllObjectsFromKeyPrefix(selectedOrg: SalesforceOrgUi) {
+  const { data } = await queryWithCache<EntityDefinition>(
+    selectedOrg,
+    `SELECT Id, KeyPrefix, QualifiedApiName FROM EntityDefinition WHERE KeyPrefix != null`
+  );
+  return data.queryResults.records.reduce((acc: Record<string, EntityDefinition>, record) => {
+    acc[record.KeyPrefix.toLowerCase()] = record;
+    return acc;
+  }, {});
+}
 
 export function getFormulonTypeFromColumnType(col: QueryResultsColumn): DataType {
   if (col.booleanType) {
@@ -76,20 +88,6 @@ function getPrecision(a) {
     p++;
   }
   return p;
-}
-
-interface FormulaFieldsByType {
-  objectFields: string[];
-  customLabels: string[];
-  apiFields: string[];
-  customMetadata: string[];
-  organization: string[];
-  customPermissions: string[];
-  profile: string[];
-  customSettings: string[];
-  system: string[];
-  user: string[];
-  userRole: string[];
 }
 
 export async function getFormulaData({
@@ -182,7 +180,6 @@ export async function getFormulaData({
   );
 
   // TODO: this is a good candidate for unit tests
-  // TODO: add try catch with error handling to tell user what went wrong
   // TODO: collect warnings
   // These should also be somewhat forgiving
   await collectBaseRecordFields({ selectedOrg, fields: objectFields, recordId, sobjectName, formulaFields, numberNullBehavior });
