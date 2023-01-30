@@ -13,7 +13,7 @@ import {
   SalesforceOrgUi,
   SobjectCollectionResponse,
 } from '@jetstream/types';
-import { Checkbox, FileDownloadModal, Grid, Icon, Modal, PopoverErrorButton, Spinner } from '@jetstream/ui';
+import { FileDownloadModal, Grid, Icon, Modal, PopoverErrorButton, Spinner } from '@jetstream/ui';
 import { Field } from 'jsforce';
 import isUndefined from 'lodash/isUndefined';
 import { Fragment, FunctionComponent, useCallback, useEffect, useRef, useState } from 'react';
@@ -181,7 +181,11 @@ export const ViewEditCloneRecord: FunctionComponent<ViewEditCloneRecordProps> = 
     } catch (ex) {
       // TODO: error handling
       if (isMounted.current) {
-        setFormErrors({ hasErrors: true, fieldErrors: {}, generalErrors: ['Oops. There was a problem loading the record information.'] });
+        setFormErrors({
+          hasErrors: true,
+          fieldErrors: {},
+          generalErrors: ['Oops. There was a problem loading the record information. Make sure the record id is valid.'],
+        });
         setLoading(false);
         onFetchError && onFetchError(recordId, sobjectName);
       }
@@ -282,19 +286,31 @@ export const ViewEditCloneRecord: FunctionComponent<ViewEditCloneRecordProps> = 
                       <PopoverErrorButton errors={formErrors.generalErrors} omitPortal />
                     </span>
                   )}
-                  <button className="slds-button slds-button_neutral" onClick={() => onChangeAction('edit')} disabled={loading}>
+                  <button
+                    className="slds-button slds-button_neutral"
+                    onClick={() => onChangeAction('edit')}
+                    disabled={loading || !initialRecord}
+                  >
                     <Icon type="utility" icon="edit" className="slds-button__icon slds-button__icon_left" omitContainer />
                     Edit Record
                   </button>
-                  <button className="slds-button slds-button_neutral" onClick={() => onChangeAction('clone')} disabled={loading}>
+                  <button
+                    className="slds-button slds-button_neutral"
+                    onClick={() => onChangeAction('clone')}
+                    disabled={loading || !initialRecord}
+                  >
                     <Icon type="utility" icon="copy" className="slds-button__icon slds-button__icon_left" omitContainer />
                     Clone Record
                   </button>
-                  <button className="slds-button slds-button_neutral" onClick={() => setDownloadModalOpen(true)} disabled={loading}>
+                  <button
+                    className="slds-button slds-button_neutral"
+                    onClick={() => setDownloadModalOpen(true)}
+                    disabled={loading || !initialRecord}
+                  >
                     <Icon type="utility" icon="download" className="slds-button__icon slds-button__icon_left" omitContainer />
                     Download
                   </button>
-                  <button className="slds-button slds-button_brand" onClick={() => onClose()} disabled={loading}>
+                  <button className="slds-button slds-button_brand" onClick={() => onClose()}>
                     Close
                   </button>
                 </div>

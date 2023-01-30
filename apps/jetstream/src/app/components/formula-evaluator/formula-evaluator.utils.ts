@@ -246,6 +246,10 @@ async function collectBaseRecordFields({
 
   fields.forEach((field) => {
     const column = fieldsByName[field.toLowerCase()];
+    if (!column) {
+      throw new Error(`Field ${field} does not exist on ${sobjectName}.`);
+    }
+    formulaFields['Id'] = { type: 'literal', dataType: 'text', value: recordId, options: { length: 18 } };
     formulaFields[field] = getFormulonTypeFromValue(column, lodashGet(queryResults.records[0], column.columnFullPath), numberNullBehavior);
   });
 }

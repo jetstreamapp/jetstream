@@ -2,9 +2,9 @@ import { css } from '@emotion/react';
 import { logger } from '@jetstream/shared/client-logger';
 import { ANALYTICS_KEYS, TITLES } from '@jetstream/shared/constants';
 import { clearCacheForOrg } from '@jetstream/shared/data';
-import { useNonInitialEffect } from '@jetstream/shared/ui-utils';
+import { hasModifierKey, isEnterKey, useGlobalEventHandler, useNonInitialEffect } from '@jetstream/shared/ui-utils';
 import { SplitWrapper as Split } from '@jetstream/splitjs';
-import { SalesforceOrgUi } from '@jetstream/types';
+import { CloneEditView, SalesforceOrgUi } from '@jetstream/types';
 import {
   Alert,
   AutoFullHeightContainer,
@@ -12,6 +12,7 @@ import {
   EmptyState,
   GoneFishingIllustration,
   Grid,
+  Icon,
   Input,
   KeyboardShortcut,
   Radio,
@@ -23,6 +24,7 @@ import {
   SobjectFieldCombobox,
   SobjectFieldComboboxRef,
   Spinner,
+  Tooltip,
   ViewDocsLink,
 } from '@jetstream/ui';
 import Editor, { OnMount, useMonaco } from '@monaco-editor/react';
@@ -31,8 +33,9 @@ import type { editor } from 'monaco-editor';
 import { FunctionComponent, useCallback, useEffect, useRef, useState } from 'react';
 import { useTitle } from 'react-use';
 import { useRecoilState, useRecoilValue } from 'recoil';
-import { selectedOrgState } from '../../app-state';
+import { applicationCookieState, selectedOrgState } from '../../app-state';
 import { useAmplitude } from '../core/analytics';
+import ViewEditCloneRecord from '../core/ViewEditCloneRecord';
 import { registerCompletions } from './formula-evaluator.editor-utils';
 import * as fromFormulaState from './formula-evaluator.state';
 import { getAllObjectsFromKeyPrefix, getFormulaData } from './formula-evaluator.utils';
@@ -57,6 +60,7 @@ export const FormulaEvaluator: FunctionComponent<FormulaEvaluatorProps> = () => 
   const [refreshLoading, setRefreshLoading] = useState(false);
   const [fieldErrorMessage, setFieldErrorMessage] = useState<string>(null);
   const [errorMessage, setErrorMessage] = useState<string>(null);
+  const [{ defaultApiVersion }] = useRecoilState(applicationCookieState);
   const [formulaValue, setFormulaValue] = useRecoilState(fromFormulaState.formulaValueState);
   const [selectedSObject, setSelectedSobject] = useRecoilState(fromFormulaState.selectedSObjectState);
   const [selectedField, setSelectedField] = useRecoilState(fromFormulaState.selectedFieldState);
@@ -70,6 +74,13 @@ export const FormulaEvaluator: FunctionComponent<FormulaEvaluatorProps> = () => 
   );
 
   const [results, setResults] = useState<{ formulaFields: formulon.FormulaData; parsedFormula: formulon.FormulaResult } | null>(null);
+
+  const [viewRecordModalOpen, setViewRecordModalOpen] = useState<boolean>();
+  const [viewRecordAction, setViewRecordAction] = useState<CloneEditView>('view');
+
+  const objectMismatch = !!detectedObject && !!selectedSObject && detectedObject !== selectedSObject?.name;
+  const testFormulaDisabled = loading || !selectedSObject || !recordId || objectMismatch || !formulaValue;
+  const viewRecordDisabled = (loading && !recordId) || !detectedObject || (recordId.length !== 15 && recordId.length !== 18);
 
   const monaco = useMonaco();
 
@@ -147,6 +158,19 @@ export const FormulaEvaluator: FunctionComponent<FormulaEvaluatorProps> = () => 
     [recordId, trackEvent, selectedOrg, selectedSObject, numberNullBehavior]
   );
 
+  const onKeydown = useCallback(
+    (event: KeyboardEvent) => {
+      if (!testFormulaDisabled && hasModifierKey(event as any) && isEnterKey(event as any)) {
+        event.stopPropagation();
+        event.preventDefault();
+        handleTestFormula(formulaValue);
+      }
+    },
+    [formulaValue, handleTestFormula, testFormulaDisabled]
+  );
+
+  useGlobalEventHandler('keydown', onKeydown);
+
   // this is required otherwise the action has stale variables in scope
   useNonInitialEffect(() => {
     if (monaco && editorRef.current) {
@@ -189,214 +213,238 @@ export const FormulaEvaluator: FunctionComponent<FormulaEvaluatorProps> = () => 
     setRefreshLoading(false);
   };
 
-  const objectMismatch = !!detectedObject && !!selectedSObject && detectedObject !== selectedSObject?.name;
-
   return (
-    <AutoFullHeightContainer fillHeight bottomBuffer={10} setHeightAttr className="slds-p-horizontal_x-small slds-scrollable_none">
-      {!bannerDismissed && (
-        <Alert type="info" leadingIcon="info" className="slds-m-bottom_xx-small" allowClose onClose={() => setBannerDismissed(true)}>
-          Formulas in Jetstream may evaluate different from Salesforce and not every formula function is supported.
-        </Alert>
+    <>
+      {viewRecordModalOpen && detectedObject && (
+        <ViewEditCloneRecord
+          apiVersion={defaultApiVersion}
+          selectedOrg={selectedOrg}
+          action={viewRecordAction}
+          sobjectName={detectedObject}
+          recordId={recordId}
+          onClose={() => {
+            setViewRecordModalOpen(false);
+            setViewRecordAction('view');
+          }}
+          onChangeAction={setViewRecordAction}
+        />
       )}
-      <Split
-        sizes={[50, 50]}
-        minSize={[300, 300]}
-        gutterSize={10}
-        className="slds-gutters"
-        css={css`
-          display: flex;
-          flex-direction: row;
-        `}
-      >
-        <div className="slds-p-horizontal_x-small">
-          <Card
-            className="h-100"
-            title={
+
+      <AutoFullHeightContainer fillHeight bottomBuffer={10} setHeightAttr className="slds-p-horizontal_x-small slds-scrollable_none">
+        {!bannerDismissed && (
+          <Alert type="info" leadingIcon="info" className="slds-m-bottom_xx-small" allowClose onClose={() => setBannerDismissed(true)}>
+            Formulas in Jetstream may evaluate different from Salesforce and not every formula function is supported.
+          </Alert>
+        )}
+        <Split
+          sizes={[50, 50]}
+          minSize={[300, 300]}
+          gutterSize={10}
+          className="slds-gutters"
+          css={css`
+            display: flex;
+            flex-direction: row;
+          `}
+        >
+          <div className="slds-p-horizontal_x-small">
+            <Card
+              className="h-100"
+              title={
+                <Grid vertical>
+                  <div>Formula Evaluator</div>
+                  <ViewDocsLink textReset path="/deploy/formula-evaluator" />
+                </Grid>
+              }
+              actions={<FormulaEvaluatorRefreshCachePopover org={selectedOrg} loading={refreshLoading} onReload={handleRefreshMetadata} />}
+            >
               <Grid vertical>
-                <div>Formula Evaluator</div>
-                <ViewDocsLink textReset path="/deploy/formula-evaluator" />
+                <SobjectCombobox
+                  ref={sobjectComboRef}
+                  className="slds-grow"
+                  isRequired
+                  label="Select an Object"
+                  selectedOrg={selectedOrg}
+                  selectedSObject={selectedSObject}
+                  disabled={loading}
+                  onSelectedSObject={setSelectedSobject}
+                />
+                <RadioGroup label="How to handle null values for numbers" formControlClassName="slds-grid">
+                  <Radio
+                    id="null-zero"
+                    name="null-zero"
+                    label="Treat as zero"
+                    value="ZERO"
+                    checked={numberNullBehavior === 'ZERO'}
+                    onChange={(value) => setNumberNullBehavior(value as 'ZERO')}
+                    disabled={loading}
+                  />
+                  <Radio
+                    id="null-blank"
+                    name="null-blank"
+                    label="Treat as blank"
+                    value="BLANK"
+                    checked={numberNullBehavior === 'BLANK'}
+                    onChange={(value) => setNumberNullBehavior(value as 'BLANK')}
+                    disabled={loading}
+                  />
+                </RadioGroup>
+                <RadioGroup label="Formula source" isButtonGroup>
+                  <RadioButton
+                    id="source-new"
+                    name="source-new"
+                    label="New Formula"
+                    value="NEW"
+                    checked={sourceType === 'NEW'}
+                    onChange={(value) => setSourceType(value as 'NEW')}
+                    disabled={loading || !selectedSObject}
+                  />
+                  <RadioButton
+                    id="source-existing"
+                    name="source-existing"
+                    label="From Salesforce Field"
+                    value="EXISTING"
+                    checked={sourceType === 'EXISTING'}
+                    onChange={(value) => setSourceType(value as 'EXISTING')}
+                    disabled={loading || !selectedSObject}
+                  />
+                </RadioGroup>
+                {sourceType === 'EXISTING' && (
+                  <Grid>
+                    {selectedSObject?.name && (
+                      <SobjectFieldCombobox
+                        ref={fieldsComboRef}
+                        className="slds-grow slds-m-left_small"
+                        label="Formula Fields"
+                        selectedOrg={selectedOrg}
+                        selectedSObject={selectedSObject.name}
+                        selectedField={selectedField}
+                        disabled={loading}
+                        filterFn={(field) => !!field.calculatedFormula}
+                        onSelectField={setSelectedField}
+                      />
+                    )}
+                  </Grid>
+                )}
               </Grid>
-            }
-            actions={<FormulaEvaluatorRefreshCachePopover org={selectedOrg} loading={refreshLoading} onReload={handleRefreshMetadata} />}
-          >
-            <Grid vertical>
-              <SobjectCombobox
-                ref={sobjectComboRef}
-                className="slds-grow"
-                isRequired
-                label="Select an Object"
-                selectedOrg={selectedOrg}
-                selectedSObject={selectedSObject}
-                disabled={loading}
-                onSelectedSObject={setSelectedSobject}
+
+              <Grid className="slds-m-top_x-small">
+                <KeyboardShortcut keys={['ctrl', 'space']} postContent="to open the auto-complete menu in the editor." />
+              </Grid>
+
+              <Editor
+                className="slds-m-top_small"
+                height="80vh"
+                theme="vs-dark"
+                defaultLanguage="sfdc-formula"
+                value={formulaValue}
+                options={{
+                  acceptSuggestionOnEnter: 'smart',
+                  suggest: {
+                    showKeywords: true,
+                  },
+                }}
+                onMount={handleApexEditorMount}
+                onChange={handleEditorChange}
               />
-              <RadioGroup label="How to handle null values for numbers" formControlClassName="slds-grid">
-                <Radio
-                  id="null-zero"
-                  name="null-zero"
-                  label="Treat as zero"
-                  value="ZERO"
-                  checked={numberNullBehavior === 'ZERO'}
-                  onChange={(value) => setNumberNullBehavior(value as 'ZERO')}
-                  disabled={loading}
-                />
-                <Radio
-                  id="null-blank"
-                  name="null-blank"
-                  label="Treat as blank"
-                  value="BLANK"
-                  checked={numberNullBehavior === 'BLANK'}
-                  onChange={(value) => setNumberNullBehavior(value as 'BLANK')}
-                  disabled={loading}
-                />
-              </RadioGroup>
-              <RadioGroup label="Formula source" isButtonGroup>
-                <RadioButton
-                  id="source-new"
-                  name="source-new"
-                  label="New Formula"
-                  value="NEW"
-                  checked={sourceType === 'NEW'}
-                  onChange={(value) => setSourceType(value as 'NEW')}
-                  disabled={loading || !selectedSObject}
-                />
-                <RadioButton
-                  id="source-existing"
-                  name="source-existing"
-                  label="From Salesforce Field"
-                  value="EXISTING"
-                  checked={sourceType === 'EXISTING'}
-                  onChange={(value) => setSourceType(value as 'EXISTING')}
-                  disabled={loading || !selectedSObject}
-                />
-              </RadioGroup>
-              {sourceType === 'EXISTING' && (
-                <Grid>
-                  {selectedSObject?.name && (
-                    <SobjectFieldCombobox
-                      ref={fieldsComboRef}
-                      className="slds-grow slds-m-left_small"
-                      label="Formula Fields"
-                      selectedOrg={selectedOrg}
-                      selectedSObject={selectedSObject.name}
-                      selectedField={selectedField}
-                      disabled={loading}
-                      filterFn={(field) => !!field.calculatedFormula}
-                      onSelectField={setSelectedField}
-                    />
+            </Card>
+          </div>
+          <div className="slds-p-horizontal_x-small slds-is-relative">
+            <Card
+              className="h-100"
+              title={<div>Results</div>}
+              actions={
+                // TODO: Allow user to deploy formula field (maybe we can allow a dry-run as well)
+                <button
+                  className="slds-button slds-button_brand"
+                  disabled={testFormulaDisabled}
+                  onClick={() => handleTestFormula(formulaValue)}
+                >
+                  Test Formula
+                </button>
+              }
+            >
+              {loading && <Spinner />}
+
+              <Grid className="slds-m-bottom_x-small" verticalAlign="end">
+                <Input
+                  className="w-100"
+                  label="Record Id"
+                  isRequired
+                  labelHelp="Provide a record id to test the formula against"
+                  hasError={!loading && (objectMismatch || !!fieldErrorMessage)}
+                  errorMessage={objectMismatch ? 'Id is not same type as selected object' : fieldErrorMessage}
+                >
+                  <input
+                    id="formula-id"
+                    className="slds-input"
+                    placeholder={selectedSObject ? `${selectedSObject.keyPrefix}...` : 'Select an object'}
+                    value={recordId}
+                    disabled={loading}
+                    onChange={(event) => setRecordId(event.target.value)}
+                  />
+                </Input>
+                <Tooltip content={!viewRecordDisabled && 'View Record Details'}>
+                  <button
+                    className="slds-button slds-button_icon slds-button_icon-border-filled cursor-pointer slds-m-left_x-small"
+                    onClick={() => setViewRecordModalOpen(true)}
+                    disabled={viewRecordDisabled}
+                  >
+                    <Icon type="utility" icon="record_lookup" className="slds-button__icon" omitContainer />
+                  </button>
+                </Tooltip>
+              </Grid>
+
+              {errorMessage && (
+                <div className="slds-m-around-medium">
+                  <ScopedNotification theme="error" className="slds-m-top_medium">
+                    {errorMessage}
+                  </ScopedNotification>
+                </div>
+              )}
+              {results && (
+                <Grid vertical>
+                  {Object.keys(results.formulaFields).length && (
+                    <>
+                      <div className="slds-text-heading_small">Record Fields</div>
+                      <div className="slds-m-top_xx-small slds-m-bottom_small slds-p-left_small">
+                        {Object.keys(results.formulaFields).map((field) => {
+                          const { value } = results.formulaFields[field];
+                          return (
+                            <div key={field}>
+                              <span className="text-bold">{field}</span>: {String(value) || '<blank>'}
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </>
                   )}
+                  <div className="slds-text-heading_small">Formula Results</div>
+                  <div className="slds-m-top_xx-small slds-m-bottom_small slds-p-left_small">
+                    {results.parsedFormula.type === 'error' ? (
+                      <Grid vertical className="slds-text-color_error">
+                        <div>{results.parsedFormula.errorType}</div>
+                        <div>{results.parsedFormula.message}</div>
+                        {results.parsedFormula.errorType === 'NotImplementedError' && results.parsedFormula.name === 'isnull' && (
+                          <div>Use ISBLANK instead</div>
+                        )}
+                      </Grid>
+                    ) : (
+                      <div className="slds-text-color_success">{String(results.parsedFormula.value)}</div>
+                    )}
+                  </div>
                 </Grid>
               )}
-            </Grid>
-
-            <Grid className="slds-m-top_x-small">
-              <KeyboardShortcut keys={['ctrl', 'space']} postContent="to open the auto-complete menu in the editor." />
-            </Grid>
-
-            <Editor
-              className="slds-m-top_small"
-              height="80vh"
-              theme="vs-dark"
-              defaultLanguage="sfdc-formula"
-              value={formulaValue}
-              options={{
-                acceptSuggestionOnEnter: 'smart',
-                suggest: {
-                  showKeywords: true,
-                },
-              }}
-              onMount={handleApexEditorMount}
-              onChange={handleEditorChange}
-            />
-          </Card>
-        </div>
-        <div className="slds-p-horizontal_x-small slds-is-relative">
-          <Card
-            className="h-100"
-            title={<div>Results</div>}
-            actions={
-              // TODO: Allow user to deploy formula field (maybe we can allow a dry-run as well)
-              <button
-                className="slds-button slds-button_brand"
-                disabled={loading || !selectedSObject || !recordId || objectMismatch || !formulaValue}
-                onClick={() => handleTestFormula(formulaValue)}
-              >
-                Test Formula
-              </button>
-            }
-          >
-            {loading && <Spinner />}
-
-            <Grid className="slds-m-bottom_x-small">
-              <Input
-                className="w-100"
-                label="Record Id"
-                isRequired
-                labelHelp="Provide a record id to test the formula against"
-                hasError={!loading && (objectMismatch || !!fieldErrorMessage)}
-                errorMessage={objectMismatch ? 'Id is not same type as selected object' : fieldErrorMessage}
-              >
-                <input
-                  id="formula-id"
-                  className="slds-input"
-                  placeholder={selectedSObject ? `${selectedSObject.keyPrefix}...` : 'Select an object'}
-                  value={recordId}
-                  disabled={loading}
-                  onChange={(event) => setRecordId(event.target.value)}
-                />
-              </Input>
-            </Grid>
-
-            {errorMessage && (
-              <div className="slds-m-around-medium">
-                <ScopedNotification theme="error" className="slds-m-top_medium">
-                  {errorMessage}
-                </ScopedNotification>
-              </div>
-            )}
-            {results && (
-              <Grid vertical>
-                {Object.keys(results.formulaFields).length && (
-                  <>
-                    <div className="slds-text-heading_small">Record Fields</div>
-                    <div className="slds-m-top_xx-small slds-m-bottom_small slds-p-left_small">
-                      {Object.keys(results.formulaFields).map((field) => {
-                        const { value } = results.formulaFields[field];
-                        return (
-                          <div key={field}>
-                            <span className="text-bold">{field}</span>: {String(value) || '<blank>'}
-                          </div>
-                        );
-                      })}
-                    </div>
-                  </>
-                )}
-                <div className="slds-text-heading_small">Formula Results</div>
-                <div className="slds-m-top_xx-small slds-m-bottom_small slds-p-left_small">
-                  {results.parsedFormula.type === 'error' ? (
-                    <Grid vertical className="slds-text-color_error">
-                      <div>{results.parsedFormula.errorType}</div>
-                      <div>{results.parsedFormula.message}</div>
-                      {results.parsedFormula.errorType === 'NotImplementedError' && results.parsedFormula.name === 'isnull' && (
-                        <div>Use ISBLANK instead</div>
-                      )}
-                    </Grid>
-                  ) : (
-                    <div className="slds-text-color_success">{String(results.parsedFormula.value)}</div>
-                  )}
-                </div>
-              </Grid>
-            )}
-            {!errorMessage && !results && (
-              <EmptyState
-                headline="Test out a formula, the results will be shown here"
-                illustration={<GoneFishingIllustration />}
-              ></EmptyState>
-            )}
-          </Card>
-        </div>
-      </Split>
-    </AutoFullHeightContainer>
+              {!errorMessage && !results && (
+                <EmptyState
+                  headline="Test out a formula, the results will be shown here"
+                  illustration={<GoneFishingIllustration />}
+                ></EmptyState>
+              )}
+            </Card>
+          </div>
+        </Split>
+      </AutoFullHeightContainer>
+    </>
   );
 };
 
