@@ -119,7 +119,7 @@ export const ManualSoql: FunctionComponent<ManualSoqlProps> = ({ className, isTo
     editorRef.current.addAction({
       id: 'format',
       label: 'Format',
-      keybindings: [monaco?.KeyMod.Shift | monaco?.KeyMod.Alt | monaco?.KeyCode.KEY_F],
+      keybindings: [monaco?.KeyMod.Shift | monaco?.KeyMod.Alt | monaco?.KeyCode.KeyF],
       contextMenuGroupId: '9_cutcopypaste',
       run: (currEditor) => {
         setSoql(formatQuery(currEditor.getValue(), { fieldMaxLineLength: 80 }));
