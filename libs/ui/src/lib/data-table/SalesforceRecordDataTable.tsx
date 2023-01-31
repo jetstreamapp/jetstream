@@ -26,11 +26,14 @@ type ContextAction = 'COPY_ROW' | 'COPY_ROW_NO_HEADER' | 'COPY_COL' | 'COPY_COL_
 const SFDC_EMPTY_ID = '000000000000000AAA';
 
 function getRowId(data: any): string {
+  if (data._key) {
+    return data._key;
+  }
   if (data?.attributes?.type === 'AggregateResult') {
     return uniqueId('query-results-node-id');
   }
   let nodeId = data?.attributes?.url || data.Id;
-  if (!nodeId || nodeId.endsWith(SFDC_EMPTY_ID) || data.Id === SFDC_EMPTY_ID) {
+  if (!nodeId || data.Id === SFDC_EMPTY_ID || nodeId.endsWith(SFDC_EMPTY_ID)) {
     nodeId = uniqueId('query-results-node-id');
   }
   return nodeId;
