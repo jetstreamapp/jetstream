@@ -230,14 +230,14 @@ export const FormulaEvaluator: FunctionComponent<FormulaEvaluatorProps> = () => 
         />
       )}
 
-      <AutoFullHeightContainer fillHeight bottomBuffer={10} setHeightAttr className="slds-p-horizontal_x-small slds-scrollable_none">
+      <AutoFullHeightContainer fillHeight bottomBuffer={10} className="slds-p-horizontal_x-small slds-scrollable_none">
         {!bannerDismissed && (
           <Alert type="info" leadingIcon="info" className="slds-m-bottom_xx-small" allowClose onClose={() => setBannerDismissed(true)}>
             Formulas in Jetstream may evaluate different from Salesforce and not every formula function is supported.
           </Alert>
         )}
         <Split
-          sizes={[50, 50]}
+          sizes={[60, 40]}
           minSize={[300, 300]}
           gutterSize={10}
           className="slds-gutters"
@@ -331,21 +331,29 @@ export const FormulaEvaluator: FunctionComponent<FormulaEvaluatorProps> = () => 
                 <KeyboardShortcut keys={['ctrl', 'space']} postContent="to open the auto-complete menu in the editor." />
               </Grid>
 
-              <Editor
-                className="slds-m-top_small"
-                height="80vh"
-                theme="vs-dark"
-                defaultLanguage="sfdc-formula"
-                value={formulaValue}
-                options={{
-                  acceptSuggestionOnEnter: 'smart',
-                  suggest: {
-                    showKeywords: true,
-                  },
-                }}
-                onMount={handleApexEditorMount}
-                onChange={handleEditorChange}
-              />
+              <AutoFullHeightContainer
+                fillHeight
+                bottomBuffer={25}
+                setHeightAttr
+                className="slds-p-horizontal_x-small slds-scrollable_none"
+              >
+                <Editor
+                  className="slds-m-top_small"
+                  height="95%"
+                  theme="vs-dark"
+                  defaultLanguage="sfdc-formula"
+                  value={formulaValue}
+                  options={{
+                    acceptSuggestionOnEnter: 'smart',
+                    minimap: { enabled: false },
+                    suggest: {
+                      showKeywords: true,
+                    },
+                  }}
+                  onMount={handleApexEditorMount}
+                  onChange={handleEditorChange}
+                />
+              </AutoFullHeightContainer>
             </Card>
           </div>
           <div className="slds-p-horizontal_x-small slds-is-relative">

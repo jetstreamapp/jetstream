@@ -68,7 +68,7 @@ export const FormulaEvaluatorRefreshCachePopover: FunctionComponent<FormulaEvalu
       }}
     >
       {loading && <Spinner size="x-small" />}
-      Not seeing recently metadata?
+      Not seeing recent metadata?
     </Popover>
   );
 };
