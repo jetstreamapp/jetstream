@@ -38,6 +38,14 @@
     <script async src="https://www.googletagmanager.com/gtag/js?id=G-GZJ9QQTK44"></script>
     <!-- prettier-ignore -->
     <script>window.dataLayer = window.dataLayer || [];function gtag(){dataLayer.push(arguments);}if(window.location.hostname!=='localhost'){gtag('js', new Date());gtag('config', 'G-GZJ9QQTK44');}</script>
+    <!-- Monaco throws error when hovering on a completion  -->
+    <script>
+      window.addEventListener('unhandledrejection', (event) => {
+        if (event && event.reason && event.reason.stack && event.reason.stack.includes && event.reason.stack.includes('monaco')) {
+          event.stopImmediatePropagation();
+        }
+      });
+    </script>
   </head>
   <body>
     <div id="root"></div>

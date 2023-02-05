@@ -3,7 +3,7 @@ import { INDEXED_DB } from '@jetstream/shared/constants';
 import { describeGlobal } from '@jetstream/shared/data';
 import { convertId15To18, hasModifierKey, isKKey, useGlobalEventHandler } from '@jetstream/shared/ui-utils';
 import { CloneEditView, MapOf, SalesforceOrgUi } from '@jetstream/types';
-import { Grid, Icon, Input, Popover, PopoverRef, ScopedNotification, Spinner } from '@jetstream/ui';
+import { getModifierKey, Grid, Icon, Input, KeyboardShortcut, Popover, PopoverRef, ScopedNotification, Spinner } from '@jetstream/ui';
 import localforage from 'localforage';
 import uniqBy from 'lodash/uniqBy';
 import { Fragment, FunctionComponent, useCallback, useEffect, useRef, useState } from 'react';
@@ -186,8 +186,9 @@ export const RecordLookupPopover: FunctionComponent = () => {
         ref={popoverRef}
         size="large"
         header={
-          <header className="slds-popover__header">
+          <header className="slds-popover__header slds-grid">
             <h2 className="slds-text-heading_small">View Record Details</h2>
+            <KeyboardShortcut className="slds-m-left_x-small" keys={[getModifierKey(), 'k']} />
           </header>
         }
         content={

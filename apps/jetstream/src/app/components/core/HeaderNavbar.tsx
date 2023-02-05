@@ -134,6 +134,12 @@ export const HeaderNavbar: FunctionComponent<HeaderNavbarProps> = ({ userProfile
                 title: 'Create Fields',
                 label: 'Create Fields',
               },
+              {
+                id: 'formula-evaluator',
+                path: '/formula-evaluator',
+                title: 'Formula Evaluator',
+                label: 'Formula Evaluator',
+              },
             ]}
           />
 

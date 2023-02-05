@@ -218,6 +218,8 @@ export const ANALYTICS_KEYS = {
   sobj_create_field_deploy: 'sobj_create_field_deploy',
   sobj_create_field_export_results: 'sobj_create_field_export_results',
   sobj_create_field_global_picklist: 'sobj_create_field_global_picklist',
+  /** FORMULA EVALUATOR */
+  formula_execute: 'formula_execute',
   /** Platform Event */
   platform_event_subscribed: 'platform_event_subscribed',
   platform_event_unsubscribe: 'platform_event_unsubscribe',
@@ -242,6 +244,7 @@ export const TITLES = {
   CREATE_OBJ_FIELD: 'Create Fields | Jetstream',
   MASS_UPDATE_RECORDS: 'Update Records | Jetstream',
   ANON_APEX: 'Anonymous Apex | Jetstream',
+  FORMULA_EVALUATOR: 'Formula Evaluator | Jetstream',
   DEBUG_LOGS: 'Debug Logs | Jetstream',
   API_EXPLORER: 'Salesforce Api | Jetstream',
   PLATFORM_EVENTS: 'Platform Events | Jetstream',

@@ -4,6 +4,7 @@ import { Combobox, ComboboxPropsRef } from './Combobox';
 import { ComboboxListItem } from './ComboboxListItem';
 import { FunctionComponent, useCallback, useEffect, useRef, useState } from 'react';
 import { ComboboxProps } from './Combobox';
+import { useDebounce } from '@jetstream/shared/ui-utils';
 
 const defaultFilterFn = (filter) => multiWordObjectFilter<ListItem<string, any>>(['label', 'value'], filter);
 const defaultSelectedItemLabelFn = (item: ListItem) => item.label;
@@ -38,7 +39,8 @@ export const ComboboxWithItems: FunctionComponent<ComboboxWithItemsProps> = ({
   onSelected,
 }) => {
   const comboboxRef = useRef<ComboboxPropsRef>();
-  const [filterText, setFilterText] = useState<string>('');
+  const [filterTextNonDebounced, setFilterText] = useState<string>('');
+  const filterText = useDebounce(filterTextNonDebounced, 300);
   const [selectedItem, setSelectedItem] = useState<ListItem | null>(() =>
     selectedItemId ? items.find((item) => item.id === selectedItemId) : null
   );
