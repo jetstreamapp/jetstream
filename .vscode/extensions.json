@@ -2,7 +2,6 @@
   "recommendations": [
     "dbaeumer.vscode-eslint",
     "esbenp.prettier-vscode",
-    "johnpapa.vscode-peacock",
     "mikestead.dotenv",
     "prisma.prisma",
     "vscode-icons-team.vscode-icons",
