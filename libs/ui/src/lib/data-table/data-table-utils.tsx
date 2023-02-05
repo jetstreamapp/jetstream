@@ -1,7 +1,9 @@
 import { QueryResults, QueryResultsColumn } from '@jetstream/api-interfaces';
 import { DATE_FORMATS } from '@jetstream/shared/constants';
-import { ensureBoolean, pluralizeFromNumber } from '@jetstream/shared/utils';
+import { transformTabularDataToExcelStr } from '@jetstream/shared/ui-utils';
+import { ensureBoolean, flattenRecords, pluralizeFromNumber } from '@jetstream/shared/utils';
 import { MapOf } from '@jetstream/types';
+import copyToClipboard from 'copy-to-clipboard';
 import isAfter from 'date-fns/isAfter';
 import isBefore from 'date-fns/isBefore';
 import isSameDay from 'date-fns/isSameDay';
@@ -18,13 +20,23 @@ import isString from 'lodash/isString';
 import uniqueId from 'lodash/uniqueId';
 import { SelectColumn, SELECT_COLUMN_KEY as _SELECT_COLUMN_KEY } from 'react-data-grid';
 import { FieldSubquery, getField, getFlattenedFields, isFieldSubquery } from 'soql-parser-js';
+import { ContextMenuItem } from '../popover/ContextMenu';
 import {
   dataTableAddressValueFormatter,
   dataTableDateFormatter,
   dataTableLocationFormatter,
   dataTableTimeFormatter,
 } from './data-table-formatters';
-import { ColumnType, ColumnWithFilter, DataTableFilter, FilterType, RowWithKey, SalesforceQueryColumnDefinition } from './data-table-types';
+import {
+  ColumnType,
+  ColumnWithFilter,
+  ContextAction,
+  ContextMenuActionData,
+  DataTableFilter,
+  FilterType,
+  RowWithKey,
+  SalesforceQueryColumnDefinition,
+} from './data-table-types';
 import {
   ActionRenderer,
   BooleanRenderer,
@@ -557,4 +569,72 @@ export function getSearchTextByRow<T>(rows: T[], columns: ColumnWithFilter<T>[],
     });
   }
   return output;
+}
+
+export const TABLE_CONTEXT_MENU_ITEMS: ContextMenuItem[] = [
+  { label: 'Copy cell to clipboard', value: 'COPY_CELL', divider: true },
+
+  { label: 'Copy row to clipboard with header', value: 'COPY_ROW' },
+  { label: 'Copy row to clipboard without header', value: 'COPY_ROW_NO_HEADER', divider: true },
+
+  { label: 'Copy column to clipboard with header', value: 'COPY_COL' },
+  { label: 'Copy column to clipboard without header', value: 'COPY_COL_NO_HEADER', divider: true },
+
+  { label: 'Copy table to clipboard with header', value: 'COPY_TABLE' },
+  { label: 'Copy table to clipboard without header', value: 'COPY_TABLE_NO_HEADER' },
+];
+
+/**
+ * FOR USE IN SALESFORCE RECORDS ONLY (assumes _record property)
+ * Generic function to copy table data to clipboard
+ * Assumes ContextMenuItem[]
+ * Other use-cases will need to implement their own
+ */
+export function copySalesforceRecordTableDataToClipboard(
+  action: ContextAction,
+  fields: string[],
+  { row, rows, column, columns }: ContextMenuActionData<RowWithKey>
+) {
+  let includeHeader = true;
+  let recordsToCopy: unknown[] = [];
+  const records = rows.map((row) => row._record);
+  const fieldsSet = new Set(fields);
+  let fieldsToCopy = columns.map((column) => column.key).filter((field) => fieldsSet.has(field)); // prefer this over fields because it accounts for reordering
+
+  switch (action) {
+    case 'COPY_CELL':
+      includeHeader = false;
+      fieldsToCopy = [column.key];
+      recordsToCopy = [row._record];
+      break;
+
+    case 'COPY_ROW_NO_HEADER':
+      includeHeader = false;
+    // eslint-disable-next-line no-fallthrough
+    case 'COPY_ROW':
+      recordsToCopy = [row._record];
+      break;
+
+    case 'COPY_COL_NO_HEADER':
+      includeHeader = false;
+    // eslint-disable-next-line no-fallthrough
+    case 'COPY_COL':
+      fieldsToCopy = fieldsToCopy.filter((field) => field === column.key);
+      recordsToCopy = records.map((row) => ({ [column.key]: row[column.key] }));
+      break;
+
+    case 'COPY_TABLE_NO_HEADER':
+      includeHeader = false;
+    // eslint-disable-next-line no-fallthrough
+    case 'COPY_TABLE':
+      recordsToCopy = records;
+      break;
+
+    default:
+      break;
+  }
+  if (recordsToCopy.length) {
+    const flattenedData = flattenRecords(recordsToCopy, fieldsToCopy);
+    copyToClipboard(transformTabularDataToExcelStr(flattenedData, fieldsToCopy, includeHeader), { format: 'text/plain' });
+  }
 }

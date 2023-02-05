@@ -1,11 +1,9 @@
-/* eslint-disable no-fallthrough */
 import { QueryResults } from '@jetstream/api-interfaces';
 import { logger } from '@jetstream/shared/client-logger';
 import { queryRemaining } from '@jetstream/shared/data';
-import { formatNumber, transformTabularDataToExcelStr, useRollbar } from '@jetstream/shared/ui-utils';
-import { flattenRecord, flattenRecords } from '@jetstream/shared/utils';
+import { formatNumber, useRollbar } from '@jetstream/shared/ui-utils';
+import { flattenRecord } from '@jetstream/shared/utils';
 import { MapOf, SalesforceOrgUi } from '@jetstream/types';
-import copyToClipboard from 'copy-to-clipboard';
 import { Field } from 'jsforce';
 import uniqueId from 'lodash/uniqueId';
 import { Fragment, FunctionComponent, memo, ReactNode, useCallback, useEffect, useRef, useState } from 'react';
@@ -17,11 +15,15 @@ import { ContextMenuItem } from '../popover/ContextMenu';
 import { PopoverErrorButton } from '../popover/PopoverErrorButton';
 import Spinner from '../widgets/Spinner';
 import { DataTableSubqueryContext } from './data-table-context';
-import { ColumnWithFilter, RowWithKey } from './data-table-types';
-import { addFieldLabelToColumn, getColumnDefinitions, NON_DATA_COLUMN_KEYS } from './data-table-utils';
-import { ContextMenuActionData, DataTable } from './DataTable';
-
-type ContextAction = 'COPY_ROW' | 'COPY_ROW_NO_HEADER' | 'COPY_COL' | 'COPY_COL_NO_HEADER' | 'COPY_TABLE' | 'COPY_TABLE_NO_HEADER';
+import { ColumnWithFilter, ContextAction, ContextMenuActionData, RowWithKey } from './data-table-types';
+import {
+  addFieldLabelToColumn,
+  copySalesforceRecordTableDataToClipboard,
+  getColumnDefinitions,
+  NON_DATA_COLUMN_KEYS,
+  TABLE_CONTEXT_MENU_ITEMS,
+} from './data-table-utils';
+import { DataTable } from './DataTable';
 
 const SFDC_EMPTY_ID = '000000000000000AAA';
 
@@ -97,7 +99,6 @@ export const SalesforceRecordDataTable: FunctionComponent<SalesforceRecordDataTa
     const [nextRecordsUrl, setNextRecordsUrl] = useState<string>();
     const [globalFilter, setGlobalFilter] = useState<string>(null);
     const [selectedRows, setSelectedRows] = useState<ReadonlySet<string>>(() => new Set());
-    const [contextMenuItems, setContextMenuItems] = useState<ContextMenuItem[]>([]);
 
     useEffect(() => {
       isMounted.current = true;
@@ -130,19 +131,6 @@ export const SalesforceRecordDataTable: FunctionComponent<SalesforceRecordDataTa
         onSelectionChanged(rows.filter((row) => selectedRows.has(getRowId(row))).map((row) => row._record));
       }
     }, [onSelectionChanged, rows, selectedRows]);
-
-    useEffect(() => {
-      setContextMenuItems([
-        { label: 'Copy row to clipboard with header', value: 'COPY_ROW' },
-        { label: 'Copy row to clipboard without header', value: 'COPY_ROW_NO_HEADER', divider: true },
-
-        { label: 'Copy column to clipboard with header', value: 'COPY_COL' },
-        { label: 'Copy column to clipboard without header', value: 'COPY_COL_NO_HEADER', divider: true },
-
-        { label: 'Copy table to clipboard with header', value: 'COPY_TABLE' },
-        { label: 'Copy table to clipboard without header', value: 'COPY_TABLE_NO_HEADER' },
-      ]);
-    }, []);
 
     /**
      * When metadata is obtained, update the grid columns to include field labels
@@ -189,41 +177,8 @@ export const SalesforceRecordDataTable: FunctionComponent<SalesforceRecordDataTa
     }, []);
 
     const handleContextMenuAction = useCallback(
-      (item: ContextMenuItem<ContextAction>, { row, rows, column, columns }: ContextMenuActionData<RowWithKey>) => {
-        let includeHeader = true;
-        let recordsToCopy: any[] = [];
-        const records = rows.map((row) => row._record);
-        const fieldsSet = new Set(fields);
-        let fieldsToCopy = columns.map((column) => column.key).filter((field) => fieldsSet.has(field)); // prefer this over fields because it accounts for reordering
-        logger.info('row action', item.value, { record: row._record, column });
-        // NOTE: FALLTHROUGH IS INTENTIONAL
-        switch (item.value) {
-          case 'COPY_ROW_NO_HEADER':
-            includeHeader = false;
-          case 'COPY_ROW':
-            recordsToCopy = [row._record];
-            break;
-
-          case 'COPY_COL_NO_HEADER':
-            includeHeader = false;
-          case 'COPY_COL':
-            fieldsToCopy = fieldsToCopy.filter((field) => field === column.key);
-            recordsToCopy = records.map((row) => ({ [column.key]: row[column.key] }));
-            break;
-
-          case 'COPY_TABLE_NO_HEADER':
-            includeHeader = false;
-          case 'COPY_TABLE':
-            recordsToCopy = records;
-            break;
-
-          default:
-            break;
-        }
-        if (recordsToCopy.length) {
-          const flattenedData = flattenRecords(recordsToCopy, fieldsToCopy);
-          copyToClipboard(transformTabularDataToExcelStr(flattenedData, fieldsToCopy, includeHeader), { format: 'text/plain' });
-        }
+      (item: ContextMenuItem<ContextAction>, data: ContextMenuActionData<RowWithKey>) => {
+        copySalesforceRecordTableDataToClipboard(item.value, fields, data);
       },
       [fields]
     );
@@ -334,7 +289,7 @@ export const SalesforceRecordDataTable: FunctionComponent<SalesforceRecordDataTa
               onReorderColumns={handleColumnReorder}
               onSelectedRowsChange={(rows) => setSelectedRows(rows as Set<string>)}
               onSortedAndFilteredRowsChange={(rows) => onFilteredRowsChanged(rows as RowWithKey[])}
-              contextMenuItems={contextMenuItems}
+              contextMenuItems={TABLE_CONTEXT_MENU_ITEMS}
               contextMenuAction={handleContextMenuAction}
             />
           </DataTableSubqueryContext.Provider>

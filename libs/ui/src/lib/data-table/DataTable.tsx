@@ -21,7 +21,7 @@ import ContextMenu, { ContextMenuContext, ContextMenuItem } from '../popover/Con
 import Icon from '../widgets/Icon';
 import { DataTableFilterContext, DataTableGenericContext } from './data-table-context';
 import './data-table-styles.scss';
-import { ColumnWithFilter, DataTableFilter, FILTER_SET_TYPES, RowWithKey } from './data-table-types';
+import { ColumnWithFilter, ContextMenuActionData, DataTableFilter, FILTER_SET_TYPES, RowWithKey } from './data-table-types';
 import { EMPTY_FIELD, filterRecord, getSearchTextByRow, isFilterActive, NON_DATA_COLUMN_KEYS, resetFilter } from './data-table-utils';
 import { configIdLinkRenderer, DraggableHeaderRenderer } from './DataTableRenderers';
 
@@ -148,14 +148,6 @@ export interface DataTableRef<T> {
   /** Takes into account re-ordered columns */
   getCurrentColumnNames: () => string[];
 }
-
-export type ContextMenuActionData<T> = {
-  row: T;
-  rows: T[];
-  rowIdx: number;
-  column: ColumnWithFilter<T, unknown>;
-  columns: ColumnWithFilter<T, unknown>[];
-};
 
 export interface DataTableProps<T = RowWithKey, TContext = Record<string, any>>
   extends Omit<DataGridProps<T>, 'columns' | 'rows' | 'rowKeyGetter'> {
