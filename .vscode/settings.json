@@ -58,6 +58,27 @@
   "typescript.updateImportsOnFileMove.enabled": "always",
   "editor.tabCompletion": "on",
   "editor.defaultFormatter": "esbenp.prettier-vscode",
-  "git.branchProtection": ["main", "master"],
-  "eslint.validate": ["json"]
+  "git.branchProtection": ["main", "release"],
+  "eslint.validate": ["json"],
+  "typescript.preferences.importModuleSpecifier": "project-relative",
+  "workbench.colorCustomizations": {
+    "activityBar.activeBackground": "#111827",
+    "activityBar.activeBorder": "#3FD9EC",
+    "activityBar.background": "#111827",
+    "activityBar.foreground": "#e7e7e7",
+    "activityBar.inactiveForeground": "#e7e7e799",
+    "activityBarBadge.background": "#3FD9EC",
+    "activityBarBadge.foreground": "#111827",
+    "statusBar.background": "#111827",
+    "statusBar.foreground": "#e7e7e7",
+    "statusBarItem.hoverBackground": "#626d86",
+    "titleBar.activeBackground": "#111827",
+    "titleBar.activeForeground": "#e7e7e7",
+    "titleBar.inactiveBackground": "#11182799",
+    "titleBar.inactiveForeground": "#e7e7e799",
+    "sash.hoverBorder": "#111827",
+    "statusBarItem.remoteBackground": "#111827",
+    "statusBarItem.remoteForeground": "#e7e7e7",
+    "commandCenter.border": "#e7e7e799"
+  }
 }
