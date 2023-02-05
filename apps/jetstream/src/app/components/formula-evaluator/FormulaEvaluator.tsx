@@ -333,7 +333,7 @@ export const FormulaEvaluator: FunctionComponent<FormulaEvaluatorProps> = () => 
 
               <AutoFullHeightContainer
                 fillHeight
-                bottomBuffer={25}
+                bottomBuffer={sourceType === 'EXISTING' ? 80 : 25}
                 setHeightAttr
                 className="slds-p-horizontal_x-small slds-scrollable_none"
               >

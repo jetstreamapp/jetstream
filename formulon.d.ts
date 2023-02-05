@@ -1,50 +1,10 @@
-import type { ApplicationCookie, ElectronPreferences, SalesforceOrgUi } from '../libs/types/src';
-
-// https://webpack.js.org/loaders/worker-loader/#integrating-with-typescript
-declare module 'worker-loader!*' {
-  class WebpackWorker extends Worker {
-    constructor();
-  }
-
-  export default WebpackWorker;
-}
-
-declare global {
-  interface Window {
-    electron?: {
-      appCookie: ApplicationCookie;
-      initialPreferences: ElectronPreferences;
-      loadPreferences: () => Promise<ElectronPreferences>;
-      savePreferences: (preferences: ElectronPreferences) => Promise<ElectronPreferences>;
-      getAppVersion: () => Promise<string>;
-      logout: () => void;
-      onPreferencesChanged: (callback: (event: any, preferences: ElectronPreferences) => void) => void;
-      platform: string;
-      isElectron: boolean;
-      isElectronDev: boolean;
-      isFocused: () => boolean;
-      // getServerSocket: () => Promise<string>;
-      // ipcConnect: (is: string, func: (client: any) => void) => void;
-      onOrgAdded: (callback: (event: any, org: SalesforceOrgUi, switchActiveOrg: boolean) => void) => void;
-    };
-    electronPreferences?: {
-      initialPreferences: ElectronPreferences;
-      loadPreferences: () => Promise<ElectronPreferences>;
-      savePreferences: (preferences: ElectronPreferences) => Promise<ElectronPreferences>;
-      pickDirectory: () => Promise<string | null>;
-      platform: string;
-      isElectron: boolean;
-    };
-  }
-}
-
 declare module 'formulon' {
-  export type DataType = 'number' | 'text' | DataTypeNoOption;
+  export type DataType = 'number' | 'text' | 'picklist' | 'multipicklist' | DataTypeNoOption;
   export type DataTypeNoOption = 'checkbox' | 'date' | 'time' | 'datetime' | 'geolocation' | 'null';
   export type DataType = 'number' | 'text' | 'checkbox' | 'date' | 'time' | 'datetime' | 'geolocation' | 'null';
   export type FormulaData = Record<string, FormulaDataValue>;
-  export type FormulaDataValue = AstLiteral | AstLiteralText | AstLiteralNumber;
-  export type FormulaResult = AstError | AstNotImplementedError | AstLiteral | AstLiteralText | AstLiteralNumber;
+  export type FormulaDataValue = AstLiteral | AstLiteralText | AstLiteralNumber | AstLiteralPicklist;
+  export type FormulaResult = AstError | AstNotImplementedError | FormulaDataValue;
   export type AstResult = AstCallExpression;
   export type FunctionType =
     | 'abs'
@@ -165,6 +125,13 @@ declare module 'formulon' {
       length: number;
       scale: number;
     };
+  }
+
+  export interface AstLiteralPicklist {
+    type: 'literal';
+    value: number;
+    dataType: 'picklist' | 'multipicklist';
+    options: { values: string[] };
   }
 
   export interface AstCallExpression {

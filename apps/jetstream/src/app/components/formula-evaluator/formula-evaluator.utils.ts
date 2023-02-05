@@ -3,11 +3,15 @@ import { logger } from '@jetstream/shared/client-logger';
 import { query, queryWithCache } from '@jetstream/shared/data';
 import { getMapOf } from '@jetstream/shared/utils';
 import { SalesforceOrgUi } from '@jetstream/types';
+import parseISO from 'date-fns/parseISO';
+import startOfDay from 'date-fns/startOfDay';
 import * as formulon from 'formulon';
 import { DataType, FormulaDataValue } from 'formulon';
+import type { Field } from 'jsforce';
 import lodashGet from 'lodash/get';
 import isNil from 'lodash/isNil';
 import { composeQuery, getField } from 'soql-parser-js';
+import { fetchMetadataFromSoql } from '../query/utils/query-soql-utils';
 import { NullNumberBehavior } from './formula-evaluator.state';
 import { EntityDefinition, FormulaFieldsByType } from './formula-evaluator.types';
 
@@ -41,12 +45,40 @@ export function getFormulonTypeFromColumnType(col: QueryResultsColumn): DataType
   return 'text';
 }
 
-export function getFormulonTypeFromValue(col: QueryResultsColumn, value: any, numberNullBehavior = 'ZERO'): FormulaDataValue {
-  const dataType = getFormulonTypeFromColumnType(col);
+export function getFormulonTypeFromMetadata(col: Field): DataType {
+  if (col.type === 'boolean') {
+    return 'checkbox';
+  } else if (col.type === 'double' || col.type === 'currency' || col.type === 'percent' || col.type === 'int') {
+    return 'number';
+  } else if (col.type === 'date') {
+    return 'date';
+  } else if (col.type === 'time') {
+    return 'time';
+  } else if (col.type === 'datetime') {
+    return 'datetime';
+  } else if (col.type === 'location') {
+    return 'geolocation';
+  } else if (col.type === 'picklist') {
+    return 'picklist';
+  } else if (col.type === 'multipicklist') {
+    return 'multipicklist';
+  }
+  return 'text';
+}
+
+/**
+ * Function that determines if the provided value is of type QueryResultsColumn or Field
+ */
+function isQueryResultsColumn(col: QueryResultsColumn | Field): col is QueryResultsColumn {
+  return (col as QueryResultsColumn).booleanType !== undefined;
+}
+
+export function getFormulonData(col: QueryResultsColumn | Field, value: any, numberNullBehavior = 'ZERO'): FormulaDataValue {
+  const dataType = isQueryResultsColumn(col) ? getFormulonTypeFromColumnType(col) : getFormulonTypeFromMetadata(col);
   if (dataType === 'text') {
     return {
       type: 'literal',
-      dataType: 'text',
+      dataType,
       value: value || '',
       options: {
         length: value?.length || 0,
@@ -54,13 +86,51 @@ export function getFormulonTypeFromValue(col: QueryResultsColumn, value: any, nu
     };
   }
   if (dataType === 'number') {
+    const { length, scale } = isQueryResultsColumn(col)
+      ? {
+          length: getPrecision(value) - 18,
+          scale: getPrecision(value),
+        }
+      : {
+          length: col.precision - col.scale,
+          scale: col.scale,
+        };
     return {
       type: 'literal',
-      dataType: 'number',
+      dataType,
       value: isNil(value) ? (numberNullBehavior === 'ZERO' ? 0 : '') : value,
+      options: {
+        length,
+        scale,
+      },
+    };
+  }
+  if (dataType === 'date') {
+    return {
+      type: 'literal',
+      dataType,
+      value: isNil(value) ? null : startOfDay(parseISO(value)),
+      options: {},
+    };
+  }
+  if (dataType === 'datetime') {
+    return {
+      type: 'literal',
+      dataType,
+      value: isNil(value) ? null : parseISO(value),
       options: {
         length: value.length,
         scale: getPrecision(value),
+      },
+    };
+  }
+  if (dataType === 'picklist' || dataType === 'multipicklist') {
+    return {
+      type: 'literal',
+      dataType,
+      value: value || '',
+      options: {
+        values: (col as Field).picklistValues?.map(({ value }) => value) || [],
       },
     };
   }
@@ -222,7 +292,7 @@ async function collectBaseRecordFields({
   if (!fields.length) {
     return;
   }
-  const { queryResults, columns } = await query(
+  const { queryResults, columns, parsedQuery } = await query(
     selectedOrg,
     composeQuery({
       fields: fields.map(getField),
@@ -243,14 +313,20 @@ async function collectBaseRecordFields({
   }
 
   const fieldsByName = getFieldsByName(columns);
+  const { lowercaseFieldMap } = await fetchMetadataFromSoql(selectedOrg, parsedQuery);
 
   fields.forEach((field) => {
-    const column = fieldsByName[field.toLowerCase()];
-    if (!column) {
+    // Prefer to get field from actual metadata, otherwise picklist is not handled and can cause formula errors
+    const column = lowercaseFieldMap[field.toLowerCase()] || fieldsByName[field.toLowerCase()];
+    if (!column || !fieldsByName[field.toLowerCase()]) {
       throw new Error(`Field ${field} does not exist on ${sobjectName}.`);
     }
     formulaFields['Id'] = { type: 'literal', dataType: 'text', value: recordId, options: { length: 18 } };
-    formulaFields[field] = getFormulonTypeFromValue(column, lodashGet(queryResults.records[0], column.columnFullPath), numberNullBehavior);
+    formulaFields[field] = getFormulonData(
+      column,
+      lodashGet(queryResults.records[0], fieldsByName[field.toLowerCase()].columnFullPath),
+      numberNullBehavior
+    );
   });
 }
 
@@ -321,7 +397,7 @@ async function collectCustomMetadata({
   // Query each metadata object, extract fields, and add to formulaFields
   for (const metadataObject of Object.keys(data)) {
     const { records } = data[metadataObject];
-    const { queryResults, columns } = await query(
+    const { queryResults, parsedQuery, columns } = await query(
       selectedOrg,
       composeQuery({
         // we could use actual fields instead of all if these has performance issues
@@ -341,13 +417,22 @@ async function collectCustomMetadata({
 
     // Group records by Api name, then get value of each used field in record
     const fieldsByName = getFieldsByName(columns);
+    const { lowercaseFieldMap } = await fetchMetadataFromSoql(selectedOrg, parsedQuery);
     const recordsByApiName = getRecordsByLowercaseField(queryResults.records, 'QualifiedApiName');
 
     Object.values(records).forEach(({ fields, record }) => {
       const metadataRecord = recordsByApiName[record.toLowerCase()];
       fields.forEach(({ field, fullField }) => {
-        const column = fieldsByName[field.toLowerCase()];
-        formulaFields[fullField] = getFormulonTypeFromValue(column, lodashGet(metadataRecord, column.columnFullPath), numberNullBehavior);
+        // Prefer to get field from actual metadata, otherwise picklist is not handled and can cause formula errors
+        const column = lowercaseFieldMap[field.toLowerCase()] || fieldsByName[field.toLowerCase()];
+        if (!column || !fieldsByName[field.toLowerCase()]) {
+          throw new Error(`Field ${field} does not exist on ${metadataObject}.`);
+        }
+        formulaFields[fullField] = getFormulonData(
+          column,
+          lodashGet(metadataRecord, fieldsByName[field.toLowerCase()].columnFullPath),
+          numberNullBehavior
+        );
       });
     });
   }
@@ -431,7 +516,7 @@ async function collectOrganizationFields({
     const field = fieldWithIdentifier.replace(MATCH_FORMULA_SPECIAL_LABEL, '');
     const fieldName = field.toLowerCase();
     const column = fieldsByName[fieldName];
-    formulaFields[fieldWithIdentifier] = getFormulonTypeFromValue(
+    formulaFields[fieldWithIdentifier] = getFormulonData(
       column,
       lodashGet(queryResults.records[0], column.columnFullPath),
       numberNullBehavior
@@ -491,21 +576,21 @@ async function collectUserProfileAndRoleFields({
     const field = fieldWithIdentifier.replace(MATCH_FORMULA_SPECIAL_LABEL, '');
     const fieldName = field.toLowerCase();
     const column = fieldsByName[fieldName];
-    formulaFields[fieldWithIdentifier] = getFormulonTypeFromValue(column, lodashGet(User, column.columnName), numberNullBehavior);
+    formulaFields[fieldWithIdentifier] = getFormulonData(column, lodashGet(User, column.columnName), numberNullBehavior);
   });
 
   profileFields.forEach((fieldWithIdentifier) => {
     const field = fieldWithIdentifier.replace(MATCH_FORMULA_SPECIAL_LABEL, '');
     const fieldName = field.toLowerCase();
     const column = fieldsByName[`profile.${fieldName}`];
-    formulaFields[fieldWithIdentifier] = getFormulonTypeFromValue(column, lodashGet(Profile, column.columnName), numberNullBehavior);
+    formulaFields[fieldWithIdentifier] = getFormulonData(column, lodashGet(Profile, column.columnName), numberNullBehavior);
   });
 
   roleFields.forEach((fieldWithIdentifier) => {
     const field = fieldWithIdentifier.replace(MATCH_FORMULA_SPECIAL_LABEL, '');
     const fieldName = field.toLowerCase();
     const column = fieldsByName[`userrole.${fieldName}`];
-    formulaFields[fieldWithIdentifier] = getFormulonTypeFromValue(column, lodashGet(UserRole, column.columnName), numberNullBehavior);
+    formulaFields[fieldWithIdentifier] = getFormulonData(column, lodashGet(UserRole, column.columnName), numberNullBehavior);
   });
 }
 
@@ -595,7 +680,7 @@ async function collectCustomSettingFields({
 
     fields.forEach(({ field, fullField }) => {
       const column = fieldsByName[field];
-      formulaFields[fullField] = getFormulonTypeFromValue(column, lodashGet(record, field), numberNullBehavior);
+      formulaFields[fullField] = getFormulonData(column, lodashGet(record, field), numberNullBehavior);
     });
   }
 }
