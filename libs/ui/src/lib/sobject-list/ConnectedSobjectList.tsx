@@ -49,7 +49,7 @@ export const ConnectedSobjectList: FunctionComponent<ConnectedSobjectListProps> 
   onSearchTermChange,
 }) => {
   const isMounted = useRef(null);
-  const [loading, setLoading] = useState<boolean>(false);
+  const [loading, setLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string>(null);
   const [lastRefreshed, setLastRefreshed] = useState<string>(_lastRefreshed);
 
@@ -85,8 +85,9 @@ export const ConnectedSobjectList: FunctionComponent<ConnectedSobjectListProps> 
         return;
       }
       setErrorMessage(ex.message);
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   }, [filterFn, onSobjects, selectedOrg, isTooling]);
 
   useEffect(() => {
@@ -96,8 +97,10 @@ export const ConnectedSobjectList: FunctionComponent<ConnectedSobjectListProps> 
   }, [selectedOrg, loading, errorMessage, sobjects, onSobjects, loadObjects]);
 
   useNonInitialEffect(() => {
-    if (selectedOrg && !loading) {
-      loadObjects();
+    if (selectedOrg) {
+      onSobjects(null);
+      onSelectedSObject(null);
+      // loadObjects called by different useEffect
     }
   }, [isTooling]);
 
@@ -106,7 +109,7 @@ export const ConnectedSobjectList: FunctionComponent<ConnectedSobjectListProps> 
       await clearCacheForOrg(selectedOrg);
       onSobjects(null);
       onSelectedSObject(null);
-      await loadObjects();
+      // loadObjects called by different useEffect
     } catch (ex) {
       // error
     }
