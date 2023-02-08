@@ -99,3 +99,20 @@ export interface SalesforceAddressField {
   StateCode?: string;
   street?: string;
 }
+
+export type ContextAction =
+  | 'COPY_CELL'
+  | 'COPY_ROW'
+  | 'COPY_ROW_NO_HEADER'
+  | 'COPY_COL'
+  | 'COPY_COL_NO_HEADER'
+  | 'COPY_TABLE'
+  | 'COPY_TABLE_NO_HEADER';
+
+export type ContextMenuActionData<T> = {
+  row: T;
+  rows: T[];
+  rowIdx: number;
+  column: ColumnWithFilter<T, unknown>;
+  columns: ColumnWithFilter<T, unknown>[];
+};

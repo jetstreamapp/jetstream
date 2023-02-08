@@ -71,7 +71,7 @@ export const RecordDownloadModal: FunctionComponent<RecordDownloadModalProps> = 
   fields = [],
   modifiedFields = [],
   subqueryFields = {},
-  records,
+  records = [],
   filteredRecords,
   selectedRecords,
   totalRecordCount,
