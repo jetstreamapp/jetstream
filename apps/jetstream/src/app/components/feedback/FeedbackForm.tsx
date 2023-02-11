@@ -48,7 +48,7 @@ export const FeedbackForm: FunctionComponent<FeedbackFormProps> = () => {
             rel="noreferrer"
           >
             <Icon type="custom" icon="heart" className="slds-button__icon slds-m-right_x-small" omitContainer />
-            Become a sponsor or make a donation
+            Become a sponsor
           </a>
         </div>
       </Grid>

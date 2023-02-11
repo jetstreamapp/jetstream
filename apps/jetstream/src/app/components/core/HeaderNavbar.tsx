@@ -91,7 +91,7 @@ export const HeaderNavbar: FunctionComponent<HeaderNavbarProps> = ({ userProfile
         logo={isElectron ? <Icon type="brand" icon="jetstream_inverse" /> : Logo}
         orgs={<OrgsDropdown addOrgsButtonClassName={isElectron ? 'slds-button_neutral slds-m-left_small' : undefined} />}
         userMenuItems={userMenuItems}
-        rightHandMenuItems={[<RecordLookupPopover />, <HeaderDonatePopover />, <HeaderHelpPopover />, <Jobs />]}
+        rightHandMenuItems={[<RecordLookupPopover />, <Jobs />, <HeaderHelpPopover />, <HeaderDonatePopover />]}
         isElectron={isElectron}
         onUserMenuItemSelected={handleUserMenuSelection}
       >

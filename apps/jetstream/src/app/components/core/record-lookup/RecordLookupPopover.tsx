@@ -253,12 +253,13 @@ export const RecordLookupPopover: FunctionComponent = () => {
           </div>
         }
         buttonProps={{
-          className: 'slds-button slds-button_icon slds-button_icon-border-filled cursor-pointer',
+          className:
+            'slds-button slds-button_icon slds-button_icon-container slds-button_icon-small slds-global-actions__help slds-global-actions__item-action cursor-pointer',
           title: 'View Record Details - ctrl/command + k',
           disabled: !selectedOrg || !!selectedOrg.connectionError,
         }}
       >
-        <Icon type="utility" icon="record_lookup" className="slds-button__icon" omitContainer />
+        <Icon type="utility" icon="record_lookup" className="slds-button__icon slds-global-header__icon" omitContainer />
       </Popover>
     </Fragment>
   );
