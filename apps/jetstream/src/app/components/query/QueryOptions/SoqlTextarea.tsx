@@ -36,7 +36,15 @@ export const SoqlTextarea: FunctionComponent<SoqlTextareaProps> = memo(
     return (
       <Fragment>
         <Textarea id="soql-textarea" label="Generated SOQL">
-          <ResizeObserver handleHeight targetRef={divRef} onResize={handleResize}>
+          <ResizeObserver
+            handleHeight
+            handleWidth={false}
+            refreshMode="throttle"
+            refreshRate={50}
+            refreshOptions={{ leading: true, trailing: true }}
+            targetRef={divRef}
+            onResize={handleResize}
+          >
             {({ height }) => (
               <div
                 ref={divRef}
