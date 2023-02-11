@@ -32,22 +32,20 @@ export const HeaderCta = () => (
               <p className="text-base text-gray-300 sm:text-xl lg:text-lg xl:text-xl">
                 Jetstream is open source and <span className="underline">free to use</span>.
               </p>
-              {process.env.NX_SHOW_DONATION && (
-                <>
-                  <p className="text-base text-gray-300 sm:text-xl lg:text-lg xl:text-xl">
-                    Costs are covered by the developer - donations and sponsorships are greatly appreciated via Github sponsors.
-                  </p>
-                  <a
-                    href="https://github.com/sponsors/jetstreamapp"
-                    className="mt-6 inline-flex items-center py-3 px-4 rounded-md shadow bg-cyan-600 text-white font-medium hover:from-teal-600 hover:bg-cyan-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-cyan-400 focus:ring-offset-gray-900"
-                    target="_blank"
-                    rel="noreferrer"
-                  >
-                    <HeartIcon className="-ml-0.5 mr-2 h-4 w-4" aria-hidden="true" />
-                    Donate to the project
-                  </a>
-                </>
-              )}
+              <>
+                <p className="text-base text-gray-300 sm:text-xl lg:text-lg xl:text-xl">
+                  Costs are covered by the developer - donations and sponsorships are greatly appreciated via Github sponsors.
+                </p>
+                <a
+                  href="https://github.com/sponsors/jetstreamapp"
+                  className="mt-6 inline-flex items-center py-3 px-4 rounded-md shadow bg-cyan-600 text-white font-medium hover:from-teal-600 hover:bg-cyan-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-cyan-400 focus:ring-offset-gray-900"
+                  target="_blank"
+                  rel="noreferrer"
+                >
+                  <HeartIcon className="-ml-0.5 mr-2 h-4 w-4" aria-hidden="true" />
+                  Donate to the project
+                </a>
+              </>
             </div>
           </div>
         </div>
