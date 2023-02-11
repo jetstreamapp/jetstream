@@ -36,7 +36,7 @@ export const APP_ROUTES: RouteMap = {
   QUERY: {
     ROUTE: '/query',
     DOCS: 'https://docs.getjetstream.app/query',
-    TITLE: 'Query Builder',
+    TITLE: 'Query Records',
     DESCRIPTION: 'Explore your data model and work with records',
   },
   LOAD: {
@@ -67,7 +67,7 @@ export const APP_ROUTES: RouteMap = {
     ROUTE: '/permissions-manager',
     DOCS: 'https://docs.getjetstream.app/permissions',
     TITLE: 'Manage Permissions',
-    DESCRIPTION: 'View and update permissions for Profiles and Permission Sets',
+    DESCRIPTION: 'View and update object and field permissions',
   },
   DEPLOY_METADATA: {
     ROUTE: '/deploy-metadata',

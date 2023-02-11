@@ -27,7 +27,7 @@ const HOME_ITEMS = [
     items: [APP_ROUTES.PERMISSION_MANAGER],
   },
   {
-    title: 'Deploy Metadata',
+    title: 'Deploy',
     icon: { type: 'standard', icon: 'asset_relationship' },
     items: [APP_ROUTES.DEPLOY_METADATA, APP_ROUTES.CREATE_FIELDS, APP_ROUTES.FORMULA_EVALUATOR],
   },
@@ -113,7 +113,7 @@ export const AppHome = () => {
                         </dt>
                         <dd className="slds-item_detail">{DESCRIPTION}</dd>
                         {DOCS && (
-                          <a href={DOCS} target="_blank" className="slds-text-body_small" title="View documentation" rel="noreferrer">
+                          <a href={DOCS} target="_blank" className="slds-text-body_small" rel="noreferrer">
                             Documentation
                             <Icon
                               type="utility"

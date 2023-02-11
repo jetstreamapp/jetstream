@@ -15,8 +15,7 @@ export class LoadSingleObjectPage {
   }
 
   async goto() {
-    await this.page.getByRole('button', { name: 'Load Records' }).click();
-    await this.page.getByRole('menuitemcheckbox', { name: 'Load Records to Single Object' }).click();
+    await this.page.getByRole('link', { name: 'Load Records' }).first().click();
     await this.page.waitForURL('**/load');
   }
 
