@@ -1,21 +1,9 @@
 /**
  * Every icon used in the application must be individually imported
+ * This ensures that we do not include icons that are not used in the application in the final bundle
  */
 import { logger } from '@jetstream/shared/client-logger';
 import classNames from 'classnames';
-import {
-  BrandIcon,
-  BrandIconObj,
-  CustomIconObj,
-  DoctypeIcon,
-  DoctypeIconObj,
-  IconName,
-  IconType,
-  StandardIcon,
-  StandardIconObj,
-  UtilityIcon,
-  UtilityIconObj,
-} from './icon-types';
 import BrandIcon_Jetstream from './icons/brand/Jetstream';
 import BrandIcon_JetstreamInverse from './icons/brand/JetstreamInverse';
 import CustomIcon_Heart from './icons/custom/Heart';
@@ -28,6 +16,7 @@ import DoctypeIcon_Pack from './icons/doctype/Pack';
 import DoctypeIcon_Xml from './icons/doctype/Xml';
 import DoctypeIcon_Zip from './icons/doctype/Zip';
 import StandardIcon_Activations from './icons/standard/Activations';
+import StandardIcon_Apex from './icons/standard/Apex';
 import StandardIcon_AssetRelationship from './icons/standard/AssetRelationship';
 import StandardIcon_BundleConfig from './icons/standard/BundleConfig';
 import StandardIcon_DataStreams from './icons/standard/DataStreams';
@@ -81,6 +70,8 @@ import UtilityIcon_Filter from './icons/utility/Filter';
 import UtilityIcon_FilterList from './icons/utility/FilterList';
 import UtilityIcon_Forward from './icons/utility/Forward';
 import UtilityIcon_Help from './icons/utility/Help';
+import UtilityIcon_HelpDocExt from './icons/utility/HelpDocExt';
+import UtilityIcon_Home from './icons/utility/Home';
 import UtilityIcon_Image from './icons/utility/Image';
 import UtilityIcon_Info from './icons/utility/Info';
 import UtilityIcon_InsertTagField from './icons/utility/InsertTagField';
@@ -128,8 +119,32 @@ import UtilityIcon_Up from './icons/utility/Up';
 import UtilityIcon_Upload from './icons/utility/Upload';
 import UtilityIcon_Warning from './icons/utility/Warning';
 
-const standardIcons: StandardIconObj = {
+export type IconType = 'action' | 'custom' | 'doctype' | 'standard' | 'utility' | 'brand';
+
+export type IconName = StandardIcon | CustomIcon | UtilityIcon | DoctypeIcon | BrandIcon;
+
+export type StandardIconObj = typeof standardIcons;
+export type CustomIconObj = typeof customIcons;
+export type DoctypeIconObj = typeof doctypeIcons;
+export type UtilityIconObj = typeof utilityIcons;
+export type BrandIconObj = typeof brandIcons;
+
+export type StandardIcon = keyof StandardIconObj;
+export type CustomIcon = keyof CustomIconObj;
+export type DoctypeIcon = keyof DoctypeIconObj;
+export type UtilityIcon = keyof UtilityIconObj;
+export type BrandIcon = keyof BrandIconObj;
+
+export interface IconObj {
+  type: IconType;
+  icon: IconName;
+  title?: string;
+  description?: string;
+}
+
+const standardIcons = {
   activations: StandardIcon_Activations,
+  apex: StandardIcon_Apex,
   asset_relationship: StandardIcon_AssetRelationship,
   bundle_config: StandardIcon_BundleConfig,
   data_streams: StandardIcon_DataStreams,
@@ -144,13 +159,13 @@ const standardIcons: StandardIconObj = {
   related_list: StandardIcon_RelatedList,
   record_lookup: StandardIcon_RecordLookup,
   settings: StandardIcon_Settings,
-};
+} as const;
 
-const customIcons: CustomIconObj = {
+const customIcons = {
   heart: CustomIcon_Heart,
-};
+} as const;
 
-const doctypeIcons: DoctypeIconObj = {
+const doctypeIcons = {
   attachment: DoctypeIcon_Attachment,
   excel: DoctypeIcon_Excel,
   gdrive: DoctypeIcon_Gdrive,
@@ -159,9 +174,9 @@ const doctypeIcons: DoctypeIconObj = {
   pack: DoctypeIcon_Pack,
   xml: DoctypeIcon_Xml,
   zip: DoctypeIcon_Zip,
-};
+} as const;
 
-const utilityIcons: UtilityIconObj = {
+const utilityIcons = {
   add: UtilityIcon_Add,
   apex_plugin: UtilityIcon_ApexPlugin,
   apex: UtilityIcon_Apex,
@@ -201,6 +216,8 @@ const utilityIcons: UtilityIconObj = {
   filterList: UtilityIcon_FilterList,
   forward: UtilityIcon_Forward,
   help: UtilityIcon_Help,
+  help_doc_ext: UtilityIcon_HelpDocExt,
+  home: UtilityIcon_Home,
   image: UtilityIcon_Image,
   info: UtilityIcon_Info,
   insert_tag_field: UtilityIcon_InsertTagField,
@@ -247,12 +264,12 @@ const utilityIcons: UtilityIconObj = {
   up: UtilityIcon_Up,
   upload: UtilityIcon_Upload,
   warning: UtilityIcon_Warning,
-};
+} as const;
 
-const brandIcons: BrandIconObj = {
+const brandIcons = {
   jetstream: BrandIcon_Jetstream,
   jetstream_inverse: BrandIcon_JetstreamInverse,
-};
+} as const;
 
 export function getIcon(type: IconType, icon: string, className?: string) {
   let found = false;
