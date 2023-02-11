@@ -7,7 +7,7 @@ dotenv.config();
 
 let VERSION = 'unknown';
 try {
-  VERSION = readFileSync(join(__dirname, '../../VERSION'), 'utf-8');
+  VERSION = readFileSync(join(__dirname, '../../VERSION'), 'utf-8').trim();
   console.warn(`APP VERSION ${VERSION}`);
 } catch (ex) {
   console.warn('COULD NOT READ VERSION FILE', ex.message);
