@@ -14,7 +14,7 @@ const testCases = [
     items: [
       { link: 'Load Records', path: '/load' },
       { link: 'Load Records to Multiple Objects', path: '/load-multiple-objects' },
-      { link: 'Update Records without File', path: '/update-records' },
+      { link: 'Update Records Without a File', path: '/update-records' },
     ],
   },
   { cardTitle: 'AUTOMATION', menu: 'Automation Control', items: [{ link: 'Automation Control', path: '/automation-control' }] },
