@@ -49,6 +49,7 @@ const CURRENT_TIME = new Date().getTime();
 export const AppHome = () => {
   return (
     <div
+      className="slds-m-top_small"
       css={css`
         max-width: calc(33em * 3);
         margin-left: auto;
@@ -65,7 +66,7 @@ export const AppHome = () => {
       >
         {HOME_ITEMS.map((card) => (
           <div
-            className="slds-box slds-box_x-small slds-m-bottom_x-small"
+            className="slds-box slds-box_x-small"
             css={css`
               background-color: white;
             `}

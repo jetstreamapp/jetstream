@@ -37,7 +37,7 @@ export const APP_ROUTES: RouteMap = {
     ROUTE: '/query',
     DOCS: 'https://docs.getjetstream.app/query',
     TITLE: 'Query Records',
-    DESCRIPTION: 'Explore your data model and work with records',
+    DESCRIPTION: 'Explore your object and fields and work with records',
   },
   LOAD: {
     ROUTE: '/load',
@@ -49,13 +49,13 @@ export const APP_ROUTES: RouteMap = {
     ROUTE: '/load-multiple-objects',
     DOCS: 'https://docs.getjetstream.app/load/with-related',
     TITLE: 'Load Records to Multiple Objects',
-    DESCRIPTION: 'Load related records to one or more objects',
+    DESCRIPTION: 'Load related records for one or more objects',
   },
   LOAD_MASS_UPDATE: {
     ROUTE: '/update-records',
     DOCS: 'https://docs.getjetstream.app/load/update-records',
-    TITLE: 'Update Records without File',
-    DESCRIPTION: 'Update records without a file',
+    TITLE: 'Update Records Without a File',
+    DESCRIPTION: 'Update records based on specified criteria',
   },
   AUTOMATION_CONTROL: {
     ROUTE: '/automation-control',
