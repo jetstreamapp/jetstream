@@ -1228,8 +1228,52 @@ export function transformTabularDataToExcelStr<T = unknown>(data: T[], fields?: 
   return output;
 }
 
+/**
+ * Same as transformTabularDataToExcelStr but returns as HTML table
+ * This can be pasted into spreadsheet programs like Excel with better formatting
+ *
+ * @param data
+ * @param fields
+ * @param includeHeader
+ * @returns
+ */
+export function transformTabularDataToHtml<T = unknown>(data: T[], fields?: string[], includeHeader = true): string {
+  if (!Array.isArray(data) || data.length === 0) {
+    return '';
+  }
+  if (!fields) {
+    fields = Object.keys(data[0]);
+  }
+
+  // turn each row into \t delimited string, then combine each row into a string delimited by \n
+  let output: string = data.map((row) => `<tr>${fields.map((field) => `<td>${escapeHtml(row[field])}</td>`).join('')}</tr>`).join('');
+
+  if (includeHeader) {
+    output = `<tr>${fields.map((field) => `<th>${escapeHtml(field)}</th>`).join('')}</tr>${output}`;
+  }
+
+  return `<table>${output}</table>`;
+}
+
 export function isErrorResponse(value: any): value is ErrorResult {
   return !value.success;
+}
+
+/**
+ * https://stackoverflow.com/questions/6234773/can-i-escape-html-special-chars-in-javascript
+ */
+export function escapeHtml(value = '') {
+  try {
+    if (isNil(value)) {
+      value = '';
+    }
+    if (typeof value === 'object') {
+      value = JSON.stringify(value);
+    }
+    return value.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#039;');
+  } catch (ex) {
+    return value;
+  }
 }
 
 // https://github.com/salesforce/design-system-react/blob/master/utilities/menu-item-select-scroll.js

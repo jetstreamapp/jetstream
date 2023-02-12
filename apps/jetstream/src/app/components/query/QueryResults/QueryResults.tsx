@@ -39,6 +39,7 @@ import {
   Toolbar,
   ToolbarItemActions,
   ToolbarItemGroup,
+  Tooltip,
   useConfirmation,
 } from '@jetstream/ui';
 import classNames from 'classnames';
@@ -62,6 +63,7 @@ import QueryResultsGetRecAsApexModal from './QueryResultsGetRecAsApexModal';
 import QueryResultsSoqlPanel from './QueryResultsSoqlPanel';
 import QueryResultsViewRecordFields from './QueryResultsViewRecordFields';
 import { useQueryResultsFetchMetadata } from './useQueryResultsFetchMetadata';
+import './query-results.scss';
 
 type SourceAction = 'STANDARD' | 'ORG_CHANGE' | 'BULK_DELETE' | 'HISTORY' | 'RECORD_ACTION' | 'MANUAL' | 'RELOAD';
 
@@ -537,38 +539,47 @@ export const QueryResults: FunctionComponent<QueryResultsProps> = React.memo(() 
         <ToolbarItemGroup>
           <Link className="slds-button slds-button_brand" to="/query" state={{ soql }}>
             <Icon type="utility" icon="back" className="slds-button__icon slds-button__icon_left" omitContainer />
-            Go Back
+            Back
           </Link>
           <button
-            className={classNames('slds-button', { 'slds-button_neutral': !soqlPanelOpen, 'slds-button_brand': soqlPanelOpen })}
+            className={classNames('slds-button collapsible-button', {
+              'slds-button_neutral': !soqlPanelOpen,
+              'slds-button_brand': soqlPanelOpen,
+            })}
             title="View or manually edit SOQL query (ctrl/command + m)"
             onClick={() => setSoqlPanelOpen(!soqlPanelOpen)}
           >
             <Icon type="utility" icon="component_customization" className="slds-button__icon slds-button__icon_left" omitContainer />
-            SOQL Query
+            <span>SOQL Query</span>
           </button>
           <button
-            className="slds-button slds-button_neutral"
+            className="slds-button slds-button_neutral collapsible-button"
             onClick={() => executeQuery(soql, SOURCE_RELOAD, { isTooling })}
             disabled={!!(loading || errorMessage)}
             title="Re-run the current query"
           >
             <Icon type="utility" icon="refresh" className="slds-button__icon slds-button__icon_left" omitContainer />
-            Reload
+            <span>Reload</span>
           </button>
           <QueryHistory ref={queryHistoryRef} selectedOrg={selectedOrg} onRestore={handleRestoreFromHistory} />
         </ToolbarItemGroup>
         <ToolbarItemActions>
           {/* FIXME: strongly type me! */}
-          <button
-            className="slds-button slds-button_text-destructive"
-            disabled={selectedRows.length === 0 || isTooling}
-            onClick={() => handleBulkRowAction('delete record', selectedRows)}
-          >
-            <Icon type="utility" icon="delete" className="slds-button__icon slds-button__icon_left" omitContainer />
-            Delete Selected
-          </button>
+          {!isTooling && (
+            <Tooltip content={selectedRows.length === 0 ? 'Select one or more records' : 'Delete selected records'}>
+              <button
+                className={classNames('slds-button slds-button_icon slds-button_icon-border slds-m-right_xx-small', {
+                  'slds-button_icon-error': selectedRows.length !== 0,
+                })}
+                disabled={selectedRows.length === 0}
+                onClick={() => handleBulkRowAction('delete record', selectedRows)}
+              >
+                <Icon type="utility" icon="delete" className="slds-button__icon" omitContainer />
+              </button>
+            </Tooltip>
+          )}
           <QueryResultsCopyToClipboard
+            className="collapsible-button"
             hasRecords={hasRecords()}
             fields={modifiedFields}
             records={records}
@@ -578,7 +589,7 @@ export const QueryResults: FunctionComponent<QueryResultsProps> = React.memo(() 
           />
           <button className="slds-button slds-button_brand" onClick={() => setDownloadModalOpen(true)} disabled={!hasRecords()}>
             <Icon type="utility" icon="download" className="slds-button__icon slds-button__icon_left" omitContainer />
-            Download Records
+            Download
           </button>
         </ToolbarItemActions>
       </Toolbar>

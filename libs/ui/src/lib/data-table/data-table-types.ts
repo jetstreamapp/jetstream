@@ -102,12 +102,13 @@ export interface SalesforceAddressField {
 
 export type ContextAction =
   | 'COPY_CELL'
-  | 'COPY_ROW'
-  | 'COPY_ROW_NO_HEADER'
+  | 'COPY_ROW_EXCEL'
+  | 'COPY_ROW_JSON'
   | 'COPY_COL'
+  | 'COPY_COL_JSON'
   | 'COPY_COL_NO_HEADER'
   | 'COPY_TABLE'
-  | 'COPY_TABLE_NO_HEADER';
+  | 'COPY_TABLE_JSON';
 
 export type ContextMenuActionData<T> = {
   row: T;
