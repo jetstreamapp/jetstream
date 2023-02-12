@@ -26,12 +26,11 @@ jobs:
           fetch-depth: 0
 
       - name: Setup branch tracking
+        if: success() && github.ref != 'refs/heads/main'
         run: git branch --track main origin/main
 
       - name: Derive appropriate SHAs for base and head for `nx affected` commands
         uses: nrwl/nx-set-shas@v3
-        with:
-          main-branch-name: main
 
       - uses: actions/setup-node@v3
         with:
