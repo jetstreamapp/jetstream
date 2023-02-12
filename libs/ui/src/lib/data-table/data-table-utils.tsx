@@ -1,6 +1,6 @@
 import { QueryResults, QueryResultsColumn } from '@jetstream/api-interfaces';
 import { DATE_FORMATS } from '@jetstream/shared/constants';
-import { transformTabularDataToExcelStr } from '@jetstream/shared/ui-utils';
+import { transformTabularDataToExcelStr, transformTabularDataToHtml } from '@jetstream/shared/ui-utils';
 import { ensureBoolean, flattenRecords, pluralizeFromNumber } from '@jetstream/shared/utils';
 import { MapOf } from '@jetstream/types';
 import copyToClipboard from 'copy-to-clipboard';
@@ -571,17 +571,18 @@ export function getSearchTextByRow<T>(rows: T[], columns: ColumnWithFilter<T>[],
   return output;
 }
 
-export const TABLE_CONTEXT_MENU_ITEMS: ContextMenuItem[] = [
+export const TABLE_CONTEXT_MENU_ITEMS: ContextMenuItem<ContextAction>[] = [
   { label: 'Copy cell to clipboard', value: 'COPY_CELL', divider: true },
 
-  { label: 'Copy row to clipboard with header', value: 'COPY_ROW' },
-  { label: 'Copy row to clipboard without header', value: 'COPY_ROW_NO_HEADER', divider: true },
+  { label: 'Copy row to clipboard (Excel)', value: 'COPY_ROW_EXCEL' },
+  { label: 'Copy row to clipboard (JSON)', value: 'COPY_ROW_JSON', divider: true },
 
-  { label: 'Copy column to clipboard with header', value: 'COPY_COL' },
+  { label: 'Copy column to clipboard (Excel)', value: 'COPY_COL' },
+  { label: 'Copy column to clipboard (JSON)', value: 'COPY_COL_JSON' },
   { label: 'Copy column to clipboard without header', value: 'COPY_COL_NO_HEADER', divider: true },
 
-  { label: 'Copy table to clipboard with header', value: 'COPY_TABLE' },
-  { label: 'Copy table to clipboard without header', value: 'COPY_TABLE_NO_HEADER' },
+  { label: 'Copy table to clipboard (Excel)', value: 'COPY_TABLE' },
+  { label: 'Copy table to clipboard (JSON)', value: 'COPY_TABLE_JSON' },
 ];
 
 /**
@@ -600,6 +601,7 @@ export function copySalesforceRecordTableDataToClipboard(
   const records = rows.map((row) => row._record);
   const fieldsSet = new Set(fields);
   let fieldsToCopy = columns.map((column) => column.key).filter((field) => fieldsSet.has(field)); // prefer this over fields because it accounts for reordering
+  let format: 'plain' | 'excel' | 'json' = 'plain';
 
   switch (action) {
     case 'COPY_CELL':
@@ -608,33 +610,56 @@ export function copySalesforceRecordTableDataToClipboard(
       recordsToCopy = [row._record];
       break;
 
-    case 'COPY_ROW_NO_HEADER':
-      includeHeader = false;
-    // eslint-disable-next-line no-fallthrough
-    case 'COPY_ROW':
+    case 'COPY_ROW_EXCEL':
+      format = 'excel';
       recordsToCopy = [row._record];
+      break;
+
+    case 'COPY_ROW_JSON':
+      recordsToCopy = [row._record];
+      format = 'json';
+      break;
+
+    case 'COPY_COL':
+      fieldsToCopy = fieldsToCopy.filter((field) => field === column.key);
+      recordsToCopy = records.map((row) => ({ [column.key]: row[column.key] }));
+      format = 'excel';
+      break;
+
+    case 'COPY_COL_JSON':
+      fieldsToCopy = fieldsToCopy.filter((field) => field === column.key);
+      recordsToCopy = records.map((row) => ({ [column.key]: row[column.key] }));
+      format = 'json';
       break;
 
     case 'COPY_COL_NO_HEADER':
       includeHeader = false;
-    // eslint-disable-next-line no-fallthrough
-    case 'COPY_COL':
       fieldsToCopy = fieldsToCopy.filter((field) => field === column.key);
       recordsToCopy = records.map((row) => ({ [column.key]: row[column.key] }));
+      format = 'plain';
       break;
 
-    case 'COPY_TABLE_NO_HEADER':
-      includeHeader = false;
-    // eslint-disable-next-line no-fallthrough
     case 'COPY_TABLE':
       recordsToCopy = records;
+      break;
+
+    case 'COPY_TABLE_JSON':
+      recordsToCopy = records;
+      format = 'json';
       break;
 
     default:
       break;
   }
   if (recordsToCopy.length) {
-    const flattenedData = flattenRecords(recordsToCopy, fieldsToCopy);
-    copyToClipboard(transformTabularDataToExcelStr(flattenedData, fieldsToCopy, includeHeader), { format: 'text/plain' });
+    if (format === 'json') {
+      copyToClipboard(JSON.stringify(recordsToCopy, null, 2), { format: 'text/plain' });
+    } else if (format === 'excel') {
+      const flattenedData = flattenRecords(recordsToCopy, fieldsToCopy);
+      copyToClipboard(transformTabularDataToHtml(flattenedData, fieldsToCopy), { format: 'text/html' });
+    } else {
+      const flattenedData = flattenRecords(recordsToCopy, fieldsToCopy);
+      copyToClipboard(transformTabularDataToExcelStr(flattenedData, fieldsToCopy, includeHeader), { format: 'text/plain' });
+    }
   }
 }

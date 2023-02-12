@@ -1,0 +1,27 @@
+.collapsible-button {
+  min-height: 2rem;
+
+  span {
+    display: none;
+  }
+
+  svg.slds-button__icon_left {
+    margin-right: 0;
+  }
+
+  @media (max-width: 830px) {
+    width: 2rem;
+    padding-left: unset;
+    padding-right: unset;
+  }
+
+  @media (min-width: 830px) {
+    span {
+      display: inline;
+    }
+
+    svg.slds-button__icon_left {
+      margin-right: 0.5rem;
+    }
+  }
+}
