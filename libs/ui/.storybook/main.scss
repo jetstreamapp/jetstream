@@ -113,15 +113,15 @@ pre {
   background-position: 50%;
 }
 
-.gutter.gutter-horizontal {
-  background-image: url('assets/images/split-grip-vertical.png');
-  cursor: col-resize;
-}
+// .gutter.gutter-horizontal {
+//   background-image: url('assets/images/split-grip-vertical.png');
+//   cursor: col-resize;
+// }
 
-.gutter.gutter-vertical {
-  background-image: url('assets/images/split-grip-horizontal.png');
-  cursor: row-resize;
-}
+// .gutter.gutter-vertical {
+//   background-image: url('assets/images/split-grip-horizontal.png');
+//   cursor: row-resize;
+// }
 
 .bg-white {
   background-color: $color-background-alt;
@@ -173,6 +173,14 @@ pre {
 
 .border-radius-25 {
   border-radius: 0.25rem;
+}
+
+.border-color-brand {
+  border-color: $color-border-brand;
+}
+
+.border-color-brand-dark {
+  border-color: $color-border-brand-dark;
 }
 
 .slds-text-color_brand {

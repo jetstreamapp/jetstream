@@ -175,6 +175,14 @@ pre {
   border-radius: 0.25rem;
 }
 
+.border-color-brand {
+  border-color: $color-border-brand;
+}
+
+.border-color-brand-dark {
+  border-color: $color-border-brand-dark;
+}
+
 .slds-text-color_brand {
   color: $brand-accessible;
 }

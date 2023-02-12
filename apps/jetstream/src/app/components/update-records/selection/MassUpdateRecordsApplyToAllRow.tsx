@@ -68,47 +68,47 @@ export const MassUpdateRecordsApplyToAllRow: FunctionComponent<MassUpdateRecords
   }
 
   return (
-    <Section id="mass-update-apply-to-all-section" label="Apply to All">
+    <Section id="mass-update-apply-to-all-section" label="Apply to All" className="border-color-brand-dark">
+      <div className="slds-p-horizontal_xx-small slds-text-body_small">Set configuration for all selected objects at once.</div>
       <div className="slds-p-around_xx-small">
         <Grid>
-          <div
-            css={css`
-              width: 240px;
-            `}
-          >
-            <ComboboxWithItems
-              comboboxProps={{
-                label: 'Select field for all objects',
-                itemLength: 10,
-                disabled: !hasCommonFields,
-                labelHelp:
-                  'If every selected object has a field with the same API name, you can select it here to apply the change to every object.',
-              }}
-              items={commonFields}
-              selectedItemId={commonField}
-              onSelected={(item) => selectedCommonField(item.id)}
-            />
-            <div>
-              <button
-                className="slds-button slds-button_neutral slds-m-top_x-small"
-                disabled={!commonField || !hasCommonFields}
-                onClick={handleApplyCommonField}
-              >
-                Apply
-              </button>
-            </div>
-          </div>
-          <div
-            css={css`
-              width: 48px;
-            `}
-          ></div>
           <Grid
+            className="slds-m-right_small"
             css={css`
               width: 240px;
             `}
           >
-            <div className="slds-m-horizontal_x-small slds-grow">
+            <div className="slds-grow">
+              <ComboboxWithItems
+                comboboxProps={{
+                  label: 'Select field for all objects',
+                  itemLength: 10,
+                  disabled: !hasCommonFields,
+                  labelHelp:
+                    'If every selected object has a field with the same API name, you can select it here to apply the change to every object.',
+                }}
+                items={commonFields}
+                selectedItemId={commonField}
+                onSelected={(item) => selectedCommonField(item.id)}
+              />
+              <div>
+                <button
+                  className="slds-button slds-button_neutral slds-m-top_x-small"
+                  disabled={!commonField || !hasCommonFields}
+                  onClick={handleApplyCommonField}
+                >
+                  Apply
+                </button>
+              </div>
+            </div>
+          </Grid>
+          <Grid
+            className="slds-m-right_small"
+            css={css`
+              width: 240px;
+            `}
+          >
+            <div className="slds-grow">
               <ComboboxWithItems
                 comboboxProps={{
                   label: 'Record update for all objects',
@@ -142,7 +142,7 @@ export const MassUpdateRecordsApplyToAllRow: FunctionComponent<MassUpdateRecords
               width: 240px;
             `}
           >
-            <div className="slds-m-horizontal_x-small slds-grow">
+            <div className="slds-grow">
               <ComboboxWithItems
                 comboboxProps={{
                   label: 'Which records should be updated?',

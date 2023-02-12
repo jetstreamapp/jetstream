@@ -88,7 +88,10 @@ export const MassUpdateRecordsDeployment: FunctionComponent<MassUpdateRecordsDep
         </ToolbarItemActions>
       </Toolbar>
       <AutoFullHeightContainer bottomBuffer={10} className="slds-p-around_small slds-scrollable_none" bufferIfNotRendered={HEIGHT_BUFFER}>
-        <Section id="mass-update-deploy-options" label="Options" className="">
+        <Section id="mass-update-deploy-options" label="Advanced Options" initialExpanded={false}>
+          <div className="slds-p-around_xx-small slds-text-body_small">
+            You may need to adjust these options if you are experiencing governor limits.
+          </div>
           <Checkbox
             id={'serial-mode'}
             checked={serialMode}
@@ -103,7 +106,7 @@ export const MassUpdateRecordsDeployment: FunctionComponent<MassUpdateRecordsDep
             hasError={!!batchSizeError}
             errorMessageId="batch-size-error"
             errorMessage={batchSizeError}
-            labelHelp="The batch size determines how many records will be processed together."
+            labelHelp="The batch size determines the maximum number of records will be processed together."
           >
             <input
               id="batch-size"
