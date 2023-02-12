@@ -1,29 +1,28 @@
 import { QueryResultsColumn, QueryResultsColumns } from '@jetstream/api-interfaces';
 import { logger } from '@jetstream/shared/client-logger';
-import { query, queryWithCache } from '@jetstream/shared/data';
+import { describeGlobal, query } from '@jetstream/shared/data';
 import { getMapOf } from '@jetstream/shared/utils';
 import { SalesforceOrgUi } from '@jetstream/types';
 import parseISO from 'date-fns/parseISO';
 import startOfDay from 'date-fns/startOfDay';
 import * as formulon from 'formulon';
 import { DataType, FormulaDataValue } from 'formulon';
-import type { Field } from 'jsforce';
+import type { DescribeGlobalSObjectResult, Field } from 'jsforce';
 import lodashGet from 'lodash/get';
 import isNil from 'lodash/isNil';
 import { composeQuery, getField } from 'soql-parser-js';
 import { fetchMetadataFromSoql } from '../query/utils/query-soql-utils';
 import { NullNumberBehavior } from './formula-evaluator.state';
-import { EntityDefinition, FormulaFieldsByType } from './formula-evaluator.types';
+import { FormulaFieldsByType } from './formula-evaluator.types';
 
 const MATCH_FORMULA_SPECIAL_LABEL = /^\$[a-zA-Z]+\./;
 
 export async function getAllObjectsFromKeyPrefix(selectedOrg: SalesforceOrgUi) {
-  const { data } = await queryWithCache<EntityDefinition>(
-    selectedOrg,
-    `SELECT Id, KeyPrefix, QualifiedApiName FROM EntityDefinition WHERE KeyPrefix != null`
-  );
-  return data.queryResults.records.reduce((acc: Record<string, EntityDefinition>, record) => {
-    acc[record.KeyPrefix.toLowerCase()] = record;
+  const { data } = await describeGlobal(selectedOrg);
+  return data.sobjects.reduce((acc: Record<string, DescribeGlobalSObjectResult>, record) => {
+    if (record.keyPrefix) {
+      acc[record.keyPrefix.toLowerCase()] = record;
+    }
     return acc;
   }, {});
 }
