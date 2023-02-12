@@ -18,9 +18,9 @@ import React, {
   Children,
   cloneElement,
   createRef,
+  FocusEvent,
   forwardRef,
   Fragment,
-  FunctionComponent,
   isValidElement,
   KeyboardEvent,
   ReactElement,
@@ -144,7 +144,9 @@ export const Combobox = forwardRef(
     const hasDropdownGroup = !!leadingDropdown && !!leadingDropdown.items?.length;
 
     const [focusedItem, setFocusedItem] = useState<number>(null);
+    const inputEl = useRef<HTMLInputElement>(null);
     const divContainerEl = useRef<HTMLDivElement>(null);
+    const entireContainerEl = useRef<HTMLDivElement>(null);
     const elRefs = useRef<HTMLLIElement[]>([]);
 
     useImperativeHandle<unknown, ComboboxPropsRef>(
@@ -153,6 +155,7 @@ export const Combobox = forwardRef(
         close: () => {
           setTimeout(() => {
             setIsOpen(false);
+            inputEl.current?.focus();
           });
         },
       }),
@@ -193,6 +196,7 @@ export const Combobox = forwardRef(
     useEffect(() => {
       if (isOpen) {
         setIsOpen(false);
+        inputEl.current?.focus();
       }
       if (value !== (selectedItemLabel || '')) {
         setValue(selectedItemLabel || '');
@@ -294,6 +298,9 @@ export const Combobox = forwardRef(
      * When on input, move focus down the first list item
      */
     function handleInputKeyUp(event: KeyboardEvent<HTMLInputElement>) {
+      if (disabled) {
+        return;
+      }
       if (isArrowUpKey(event)) {
         setFocusedItem(elRefs.current.length - 1);
         if (!isOpen) {
@@ -323,6 +330,7 @@ export const Combobox = forwardRef(
         event.preventDefault();
         event.stopPropagation();
         setIsOpen(false);
+        inputEl.current?.focus();
         return;
       }
       if (isNumber(focusedItem) && isEnterOrSpace(event)) {
@@ -331,6 +339,7 @@ export const Combobox = forwardRef(
         try {
           elRefs.current[focusedItem].click();
           setIsOpen(false);
+          inputEl.current?.focus();
         } catch (ex) {
           // error
         }
@@ -359,6 +368,19 @@ export const Combobox = forwardRef(
       }
     }
 
+    const handleBlur = (event: FocusEvent) => {
+      if (entireContainerEl.current?.contains(event.relatedTarget as Node)) {
+        return;
+      }
+      setIsOpen(false);
+    };
+
+    const handleInputClick = () => {
+      if (!disabled) {
+        setIsOpen(!isOpen);
+      }
+    };
+
     return (
       <div className={classNames('slds-form-element', { 'slds-has-error': hasError }, className)}>
         <label className={classNames('slds-form-element__label', { 'slds-assistive-text': hideLabel })} htmlFor={id}>
@@ -385,12 +407,13 @@ export const Combobox = forwardRef(
               )}
               <OutsideClickHandler className="slds-combobox_container" onOutsideClick={() => setIsOpen(false)}>
                 <div
+                  ref={entireContainerEl}
                   className={classNames('slds-combobox slds-dropdown-trigger slds-dropdown-trigger_click', { 'slds-is-open': isOpen })}
                   aria-expanded={isOpen}
                   aria-haspopup="listbox"
                   aria-controls={listId}
                   role="combobox"
-                  onClick={() => setIsOpen(true)}
+                  onClick={handleInputClick}
                 >
                   <div
                     className={classNames('slds-combobox__form-element', ' slds-input-has-icon', {
@@ -400,6 +423,7 @@ export const Combobox = forwardRef(
                     role="none"
                   >
                     <input
+                      ref={inputEl}
                       type="text"
                       className={classNames('slds-input slds-combobox__input', { 'slds-text-color_error': hasError })}
                       id={id}
@@ -413,6 +437,7 @@ export const Combobox = forwardRef(
                       onChange={(event) => setValue(event.target.value)}
                       value={value}
                       title={selectedItemTitle || value}
+                      onBlur={handleBlur}
                     />
                     {loading ? iconLoading : iconNotLoading}
                   </div>
@@ -423,6 +448,7 @@ export const Combobox = forwardRef(
                       role="listbox"
                       onKeyDown={handleListKeyDown}
                       ref={divContainerEl}
+                      onBlur={handleBlur}
                     >
                       {Children.count(children) === 0 && (
                         <ul className="slds-listbox slds-listbox_vertical" role="presentation">
