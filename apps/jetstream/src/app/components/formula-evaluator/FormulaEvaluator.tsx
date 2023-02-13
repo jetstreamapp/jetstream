@@ -70,7 +70,7 @@ export const FormulaEvaluator: FunctionComponent<FormulaEvaluatorProps> = () => 
   const [bannerDismissed, setBannerDismissed] = useRecoilState(fromFormulaState.bannerDismissedState);
   const [objectsByKeyPrefix, setObjectsByKeyPrefix] = useRecoilState(fromFormulaState.objectsByKeyPrefixState);
   const [detectedObject, setDetectedObject] = useState<string | undefined>(
-    () => objectsByKeyPrefix[recordId.substring(0, 3).toLowerCase()]?.QualifiedApiName
+    () => objectsByKeyPrefix[recordId.substring(0, 3).toLowerCase()]?.name
   );
 
   const [results, setResults] = useState<{ formulaFields: formulon.FormulaData; parsedFormula: formulon.FormulaResult } | null>(null);
@@ -98,7 +98,7 @@ export const FormulaEvaluator: FunctionComponent<FormulaEvaluatorProps> = () => 
   }, [selectedOrg, setObjectsByKeyPrefix]);
 
   useEffect(() => {
-    setDetectedObject(objectsByKeyPrefix[recordId.substring(0, 3).toLowerCase()]?.QualifiedApiName);
+    setDetectedObject(objectsByKeyPrefix[recordId.substring(0, 3).toLowerCase()]?.name);
   }, [objectsByKeyPrefix, recordId]);
 
   useEffect(() => {

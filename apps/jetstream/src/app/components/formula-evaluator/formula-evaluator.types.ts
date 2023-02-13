@@ -14,32 +14,6 @@ export interface FormulaFieldsByType {
   userRole: string[];
 }
 
-// export interface EntityParticle {
-//   Name: string;
-//   DataType: string;
-//   DeveloperName: string;
-//   EntityDefinition: { QualifiedApiName: string };
-//   EntityDefinitionId: string;
-//   Label: string;
-//   QualifiedApiName: string;
-//   ReferenceTo?: { referenceTo: [string] };
-//   RelationshipName?: string;
-// }
-
-// export interface CompletionFieldTree {
-//   sobject: string;
-//   fields: EntityParticle[];
-//   relatedFields: {
-//     [field: string]: CompletionFieldTree;
-//   };
-// }
-
-export interface EntityDefinition {
-  Id: string;
-  KeyPrefix: string;
-  QualifiedApiName: string;
-}
-
 export interface CharacterInfo {
   textUntilPosition: string;
   mostRecentCharacter: string;
