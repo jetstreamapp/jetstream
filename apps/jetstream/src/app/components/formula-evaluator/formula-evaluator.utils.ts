@@ -1,13 +1,13 @@
 import { QueryResultsColumn, QueryResultsColumns } from '@jetstream/api-interfaces';
 import { logger } from '@jetstream/shared/client-logger';
-import { describeGlobal, query } from '@jetstream/shared/data';
+import { query } from '@jetstream/shared/data';
 import { getMapOf } from '@jetstream/shared/utils';
 import { SalesforceOrgUi } from '@jetstream/types';
 import parseISO from 'date-fns/parseISO';
 import startOfDay from 'date-fns/startOfDay';
 import * as formulon from 'formulon';
 import { DataType, FormulaDataValue } from 'formulon';
-import type { DescribeGlobalSObjectResult, Field } from 'jsforce';
+import type { Field } from 'jsforce';
 import lodashGet from 'lodash/get';
 import isNil from 'lodash/isNil';
 import { composeQuery, getField } from 'soql-parser-js';
@@ -16,16 +16,6 @@ import { NullNumberBehavior } from './formula-evaluator.state';
 import { FormulaFieldsByType } from './formula-evaluator.types';
 
 const MATCH_FORMULA_SPECIAL_LABEL = /^\$[a-zA-Z]+\./;
-
-export async function getAllObjectsFromKeyPrefix(selectedOrg: SalesforceOrgUi) {
-  const { data } = await describeGlobal(selectedOrg);
-  return data.sobjects.reduce((acc: Record<string, DescribeGlobalSObjectResult>, record) => {
-    if (record.keyPrefix) {
-      acc[record.keyPrefix.toLowerCase()] = record;
-    }
-    return acc;
-  }, {});
-}
 
 export function getFormulonTypeFromColumnType(col: QueryResultsColumn): DataType {
   if (col.booleanType) {
