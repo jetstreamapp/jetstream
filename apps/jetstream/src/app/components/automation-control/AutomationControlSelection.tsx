@@ -31,6 +31,8 @@ export function filterPermissionsSobjects(sobject: DescribeGlobalSObjectResult) 
     sobject.triggerable &&
     !sobject.deprecatedAndHidden &&
     !sobject.customSetting &&
+    !sobject.name.endsWith('ChangeEvent') &&
+    !sobject.name.endsWith('ChgEvent') &&
     !sobject.name.endsWith('__History') &&
     !sobject.name.endsWith('__Tag') &&
     !sobject.name.endsWith('__Share')

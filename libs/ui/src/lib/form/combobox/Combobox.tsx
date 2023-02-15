@@ -23,6 +23,7 @@ import React, {
   Fragment,
   isValidElement,
   KeyboardEvent,
+  MouseEvent,
   ReactElement,
   useEffect,
   useImperativeHandle,
@@ -67,8 +68,12 @@ export interface ComboboxProps {
   hasError?: boolean;
   errorMessageId?: string;
   errorMessage?: React.ReactNode | string;
+  showSelectionAsButton?: boolean;
   onInputChange?: (value: string) => void;
+  /** Same as onInputChange, but does not get called when closed */
+  onFilterInputChange?: (value: string) => void;
   onInputEnter?: () => void;
+  onClear?: () => void;
   onLeadingDropdownChange?: (item: FormGroupDropdownItem) => void;
   children?: React.ReactNode;
 }
@@ -129,10 +134,13 @@ export const Combobox = forwardRef(
       hasError,
       errorMessageId,
       errorMessage,
+      showSelectionAsButton,
       children,
       onInputChange,
+      onFilterInputChange,
       onInputEnter,
       onLeadingDropdownChange,
+      onClear,
     }: ComboboxProps,
     ref
   ) => {
@@ -194,7 +202,7 @@ export const Combobox = forwardRef(
 
     // close on selection
     useEffect(() => {
-      if (isOpen) {
+      if (isOpen && selectedItemLabel) {
         setIsOpen(false);
         inputEl.current?.focus();
       }
@@ -314,9 +322,8 @@ export const Combobox = forwardRef(
       } else if (isEnterKey(event) && isOpen && onInputEnter) {
         onInputEnter();
       } else {
-        if (onInputChange) {
-          onInputChange(event.currentTarget.value);
-        }
+        onInputChange && onInputChange(event.currentTarget.value);
+        onFilterInputChange && onFilterInputChange(event.currentTarget.value);
       }
     }
 
@@ -377,8 +384,23 @@ export const Combobox = forwardRef(
 
     const handleInputClick = () => {
       if (!disabled) {
-        setIsOpen(!isOpen);
+        if (!isOpen && selectedItemLabel) {
+          setIsOpen(!isOpen);
+        } else {
+          setIsOpen(true);
+        }
       }
+    };
+
+    const handleRemoveItem = (event: MouseEvent) => {
+      event.stopPropagation();
+      onClear && onClear();
+      setIsOpen(true);
+      inputEl.current?.focus();
+      // Hacky, but make sure that input exists so it can be focused
+      setTimeout(() => {
+        inputEl.current?.focus();
+      }, 50);
     };
 
     return (
@@ -405,7 +427,10 @@ export const Combobox = forwardRef(
                   onSelected={onLeadingDropdownChange}
                 />
               )}
-              <OutsideClickHandler className="slds-combobox_container" onOutsideClick={() => setIsOpen(false)}>
+              <OutsideClickHandler
+                className={classNames('slds-combobox_container', { 'slds-has-selection': showSelectionAsButton && selectedItemLabel })}
+                onOutsideClick={() => setIsOpen(false)}
+              >
                 <div
                   ref={entireContainerEl}
                   className={classNames('slds-combobox slds-dropdown-trigger slds-dropdown-trigger_click', { 'slds-is-open': isOpen })}
@@ -422,24 +447,62 @@ export const Combobox = forwardRef(
                     })}
                     role="none"
                   >
-                    <input
-                      ref={inputEl}
-                      type="text"
-                      className={classNames('slds-input slds-combobox__input', { 'slds-text-color_error': hasError })}
-                      id={id}
-                      css={inputCss}
-                      aria-controls={listId}
-                      aria-describedby={errorMessageId}
-                      autoComplete="off"
-                      placeholder={placeholder}
-                      disabled={disabled}
-                      onKeyUp={handleInputKeyUp}
-                      onChange={(event) => setValue(event.target.value)}
-                      value={value}
-                      title={selectedItemTitle || value}
-                      onBlur={handleBlur}
-                    />
-                    {loading ? iconLoading : iconNotLoading}
+                    {showSelectionAsButton && selectedItemLabel ? (
+                      <>
+                        <button
+                          type="button"
+                          className="slds-input_faux slds-combobox__input slds-combobox__input-value"
+                          aria-controls="listbox-id-18"
+                          aria-expanded="false"
+                          aria-haspopup="listbox"
+                          onClick={(ev) => {
+                            ev.preventDefault();
+                            ev.stopPropagation();
+                          }}
+                          title={selectedItemTitle || value}
+                        >
+                          <span className="slds-truncate" id={id}>
+                            {value}
+                          </span>
+                        </button>
+
+                        <button
+                          className="slds-button slds-button_icon slds-input__icon slds-input__icon_right"
+                          title="Remove selected option"
+                          onClick={handleRemoveItem}
+                        >
+                          <Icon
+                            type="utility"
+                            icon="close"
+                            description="Remove selected option"
+                            className="slds-button__icon"
+                            omitContainer
+                          />
+                        </button>
+                      </>
+                    ) : (
+                      <>
+                        <input
+                          ref={inputEl}
+                          aria-autocomplete="list"
+                          type="text"
+                          className={classNames('slds-input slds-combobox__input', { 'slds-text-color_error': hasError })}
+                          id={id}
+                          css={inputCss}
+                          aria-controls={listId}
+                          aria-describedby={errorMessageId}
+                          autoComplete="off"
+                          placeholder={placeholder}
+                          disabled={disabled}
+                          onKeyUp={handleInputKeyUp}
+                          onChange={(event) => setValue(event.target.value)}
+                          value={value}
+                          title={selectedItemTitle || value}
+                          onBlur={handleBlur}
+                        />
+                        {loading ? iconLoading : iconNotLoading}
+                      </>
+                    )}
                   </div>
                   {isOpen && (
                     <div

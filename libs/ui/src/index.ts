@@ -34,6 +34,7 @@ export * from './lib/form/combobox/ComboboxListItem';
 export * from './lib/form/combobox/ComboboxListItemGroup';
 export * from './lib/form/combobox/ComboboxListItemLoadMore';
 export * from './lib/form/combobox/ComboboxWithItems';
+export * from './lib/form/combobox/ComboboxWithItemsTypeAhead';
 export * from './lib/form/controlled-inputs/ControlledInput';
 export * from './lib/form/controlled-inputs/ControlledTextarea';
 export * from './lib/form/date-time/DateTime';

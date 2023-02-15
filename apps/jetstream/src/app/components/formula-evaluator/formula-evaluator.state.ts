@@ -3,16 +3,6 @@ import { atom } from 'recoil';
 
 export type NullNumberBehavior = 'ZERO' | 'BLANK';
 
-export const objectsByKeyPrefixState = atom<Record<string, DescribeGlobalSObjectResult>>({
-  key: 'formula.objectsByKeyPrefixState',
-  default: {},
-});
-
-export const priorSelectedOrg = atom<string>({
-  key: 'formula.priorSelectedOrg',
-  default: null,
-});
-
 export const sourceTypeState = atom<'NEW' | 'EXISTING'>({
   key: 'formula.sourceTypeState',
   default: 'NEW',
