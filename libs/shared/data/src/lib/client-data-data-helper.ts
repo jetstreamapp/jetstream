@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { logger } from '@jetstream/shared/client-logger';
-import { HTTP } from '@jetstream/shared/constants';
+import { DATE_FORMATS, HTTP } from '@jetstream/shared/constants';
 import {
   ApiResponse,
   ListMetadataResult,
@@ -11,6 +11,8 @@ import {
   SalesforceOrgUi,
 } from '@jetstream/types';
 import axios, { AxiosAdapter, AxiosError, AxiosRequestConfig, AxiosResponse } from 'axios';
+import addHours from 'date-fns/addHours';
+import formatDate from 'date-fns/format';
 import parseISO from 'date-fns/parseISO';
 import { isEmpty, isObject } from 'lodash';
 import isString from 'lodash/isString';
@@ -136,6 +138,25 @@ function requestInterceptor<T>(options: {
       if (cachedResults) {
         // if skipCacheIfOlderThan is provided, then see if cache is older than provided date and skip cache if so
         if (!skipCacheIfOlderThan || (Number.isFinite(skipCacheIfOlderThan) && cachedResults.age >= skipCacheIfOlderThan)) {
+          // TODO: for describe calls, we should check SFDC x-modified-since header
+          // if cache is not super recent, then we should make a call to SFDC to see if the cache is still valid
+          // we should share promise for any other requests for the same data, since it is common for duplicate requests
+          // to be made for the same data
+
+          // 30 MINUTES for soft TTL
+          if (config.url.includes('/api/describe') && cachedResults.age + 1800000 <= new Date().getTime()) {
+            // Complicated - but header required name of timezone without an offset, not supported by date-fns
+            // this parses the offset and adds it to the date, then formats it back to the correct format manually
+            const [hours, minutes] = formatDate(new Date(cachedResults.age), 'O').split('GMT')[1].split(':');
+            let formattedDate = formatDate(
+              addHours(new Date(cachedResults.age), Number(`${hours || 0}.${minutes || 0}`)),
+              DATE_FORMATS.HTTP_DATE_NO_TZ
+            );
+            formattedDate = formattedDate + ' GMT';
+            config.headers[HTTP.HEADERS.IF_MODIFIED_SINCE] = formattedDate;
+            return config;
+          }
+
           config.adapter = async (config: AxiosRequestConfig) => {
             return new Promise((resolve) => {
               resolve({

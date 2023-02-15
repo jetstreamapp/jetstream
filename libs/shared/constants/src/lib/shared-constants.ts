@@ -45,6 +45,7 @@ export const HTTP = {
     X_SFDC_API_TARGET_VERSION: 'X-SFDC-API-TARGET-VERSION',
     X_SFDC_ORG_CONNECTION_ERROR: 'X-SFDC-ORG-CONNECTION-ERROR',
     X_SFDC_Session: 'X-SFDC-SESSION',
+    IF_MODIFIED_SINCE: 'If-Modified-Since',
     X_INCLUDE_CALL_OPTIONS: 'X_INCLUDE_CALL_OPTIONS',
     X_CACHE_RESPONSE: 'X-CACHE-RESPONSE',
     X_CACHE_KEY: 'X-CACHE-KEY',
@@ -139,6 +140,8 @@ export const DATE_FORMATS = {
   HH_MM_SS_a: 'h:mm:ss a',
   HH_MM_SS_SSSS: 'H:mm:ss.SSSS',
   FULL: 'MMMM do, yyyy hh:mm aa',
+  HTTP_DATE: 'EEE, dd LLL yyyy HH:mm:ss O', // Sun, 06 Nov 1994 08:49:37 GMT - https://www.rfc-editor.org/rfc/rfc9110.html#http.date
+  HTTP_DATE_NO_TZ: 'EEE, dd LLL yyyy HH:mm:ss',
 };
 
 export const ANALYTICS_KEYS = {
