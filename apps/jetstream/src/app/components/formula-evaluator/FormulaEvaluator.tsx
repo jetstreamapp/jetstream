@@ -39,6 +39,10 @@ import { getFormulaData } from './formula-evaluator.utils';
 import FormulaEvaluatorRecordSearch from './FormulaEvaluatorRecordSearch';
 import FormulaEvaluatorRefreshCachePopover from './FormulaEvaluatorRefreshCachePopover';
 
+// Lazy import
+const prettier = import('prettier/standalone');
+const prettierBabelParser = import('prettier/parser-babel');
+
 window.addEventListener('unhandledrejection', function (event) {
   console.log('unhandledrejection', event);
 });
@@ -189,6 +193,14 @@ export const FormulaEvaluator: FunctionComponent<FormulaEvaluatorProps> = () => 
         handleTestFormula(currEditor.getValue());
       },
     });
+    editorRef.current.addAction({
+      id: 'format',
+      label: 'Format',
+      contextMenuGroupId: '9_cutcopypaste',
+      run: (currEditor) => {
+        handleFormat(currEditor.getValue());
+      },
+    });
   };
 
   const handleRefreshMetadata = async () => {
@@ -199,8 +211,35 @@ export const FormulaEvaluator: FunctionComponent<FormulaEvaluatorProps> = () => 
     setRefreshLoading(false);
   };
 
+  const handleFormat = async (value = formulaValue) => {
+    try {
+      if (!editorRef.current || !formulaValue) {
+        return;
+      }
+      editorRef.current.setValue(
+        (await prettier).format(formulaValue, {
+          parser: 'babel',
+          plugins: [await prettierBabelParser],
+          bracketSpacing: false,
+          semi: false,
+          singleQuote: true,
+          trailingComma: 'none',
+          useTabs: false,
+          tabWidth: 2,
+        })
+      );
+    } catch (ex) {
+      logger.warn('failed to format', ex);
+    }
+  };
+
   return (
-    <AutoFullHeightContainer fillHeight bottomBuffer={10} className="slds-p-horizontal_x-small slds-scrollable_none">
+    <AutoFullHeightContainer
+      fillHeight
+      bottomBuffer={10}
+      className="slds-p-horizontal_x-small slds-scrollable_none"
+      key={selectedOrg.uniqueId}
+    >
       {!bannerDismissed && (
         <Alert type="info" leadingIcon="info" className="slds-m-bottom_xx-small" allowClose onClose={() => setBannerDismissed(true)}>
           Formulas in Jetstream may evaluate different from Salesforce and not every formula function is supported.
@@ -298,8 +337,17 @@ export const FormulaEvaluator: FunctionComponent<FormulaEvaluatorProps> = () => 
               )}
             </Grid>
 
-            <Grid className="slds-m-top_x-small">
+            <Grid className="slds-m-top_x-small" align="spread">
               <KeyboardShortcut keys={['ctrl', 'space']} postContent="to open the auto-complete menu in the editor." />
+              {formulaValue && (
+                <button
+                  className="slds-button slds-text-link_reset slds-text-link"
+                  title="Format soql query"
+                  onClick={() => handleFormat()}
+                >
+                  format
+                </button>
+              )}
             </Grid>
 
             <AutoFullHeightContainer

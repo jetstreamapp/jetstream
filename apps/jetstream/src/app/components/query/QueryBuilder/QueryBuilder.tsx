@@ -1,9 +1,9 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
-
 import { css } from '@emotion/react';
 import { IconObj } from '@jetstream/icon-factory';
 import { ANALYTICS_KEYS } from '@jetstream/shared/constants';
 import { hasModifierKey, isEnterKey, useGlobalEventHandler, useNonInitialEffect } from '@jetstream/shared/ui-utils';
+import { SplitWrapper as Split } from '@jetstream/splitjs';
 import { QueryFieldWithPolymorphic, SalesforceOrgUi } from '@jetstream/types';
 import {
   Accordion,
@@ -18,10 +18,9 @@ import {
   PageHeaderTitle,
   Tabs,
 } from '@jetstream/ui';
-import { DescribeGlobalSObjectResult } from 'jsforce';
-import { Fragment, FunctionComponent, useCallback, useEffect, useRef, useState } from 'react';
+import type { DescribeGlobalSObjectResult } from 'jsforce';
+import { Fragment, FunctionComponent, useCallback, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { SplitWrapper as Split } from '@jetstream/splitjs';
 import { useRecoilState, useRecoilValue, useResetRecoilState } from 'recoil';
 import { applicationCookieState, selectedOrgState } from '../../../app-state';
 import { useAmplitude } from '../../core/analytics';

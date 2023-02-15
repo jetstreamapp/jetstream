@@ -1,9 +1,10 @@
 import { SalesforceOrgUi } from '@jetstream/types';
-import React, { Fragment, FunctionComponent, useEffect, useState } from 'react';
+import { Fragment, FunctionComponent, useEffect, useState } from 'react';
 import { Resetter, useRecoilValue, useResetRecoilState } from 'recoil';
 import * as fromAppState from '../../app-state';
 import * as fromAutomationControlState from '../automation-control/automation-control.state';
 import * as fromDeployMetadataState from '../deploy/deploy-metadata.state';
+import * as fromFormulaState from '../formula-evaluator/formula-evaluator.state';
 import * as fromLoadState from '../load-records/load-records.state';
 import * as fromPermissionsState from '../manage-permissions/manage-permissions.state';
 import * as fromQueryState from '../query/query.state';
@@ -56,6 +57,14 @@ export const AppStateResetOnOrgChange: FunctionComponent<AppStateResetOnOrgChang
     useResetRecoilState(fromDeployMetadataState.metadataSelectionTypeState),
     useResetRecoilState(fromDeployMetadataState.changesetPackage),
     useResetRecoilState(fromDeployMetadataState.changesetPackages),
+    // Formula
+    useResetRecoilState(fromFormulaState.sourceTypeState),
+    useResetRecoilState(fromFormulaState.selectedSObjectState),
+    useResetRecoilState(fromFormulaState.selectedFieldState),
+    useResetRecoilState(fromFormulaState.recordIdState),
+    useResetRecoilState(fromFormulaState.formulaValueState),
+    useResetRecoilState(fromFormulaState.numberNullBehaviorState),
+    useResetRecoilState(fromFormulaState.bannerDismissedState),
   ];
 
   useEffect(() => {
