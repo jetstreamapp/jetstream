@@ -1,6 +1,7 @@
 import { ANALYTICS_KEYS } from '@jetstream/shared/constants';
 import { ChangeSet, DeployResult, ListMetadataResult, MapOf, SalesforceOrgUi } from '@jetstream/types';
 import { FileDownloadModal, Icon } from '@jetstream/ui';
+import classNames from 'classnames';
 import { Fragment, FunctionComponent, useState } from 'react';
 import { useRecoilState } from 'recoil';
 import { applicationCookieState } from '../../../app-state';
@@ -13,12 +14,13 @@ import AddToChangesetConfigModal from './AddToChangesetConfigModal';
 import AddToChangesetStatusModal from './AddToChangesetStatusModal';
 
 export interface AddToChangesetProps {
+  className?: string;
   selectedOrg: SalesforceOrgUi;
   loading: boolean;
   selectedRows: Set<DeployMetadataTableRow>;
 }
 
-export const AddToChangeset: FunctionComponent<AddToChangesetProps> = ({ selectedOrg, loading, selectedRows }) => {
+export const AddToChangeset: FunctionComponent<AddToChangesetProps> = ({ className, selectedOrg, loading, selectedRows }) => {
   const { trackEvent } = useAmplitude();
   const [{ google_apiKey, google_appId, google_clientId }] = useRecoilState(applicationCookieState);
   const [configModalOpen, setConfigModalOpen] = useState(false);
@@ -65,13 +67,13 @@ export const AddToChangeset: FunctionComponent<AddToChangesetProps> = ({ selecte
   return (
     <Fragment>
       <button
-        className="slds-button slds-button_neutral"
+        className={classNames('slds-button slds-button_neutral', className)}
         disabled={loading || selectedRows.size === 0}
         onClick={handleClick}
         title="You can deploy the selected components to an existing outbound changeset."
       >
         <Icon type="utility" icon="upload" className="slds-button__icon slds-button__icon_left" omitContainer />
-        Add To Outbound Changeset
+        <span>Add To Outbound Changeset</span>
       </button>
       {/* MODALS */}
       {configModalOpen && (

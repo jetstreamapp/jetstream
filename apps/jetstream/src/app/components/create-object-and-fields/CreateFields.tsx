@@ -143,16 +143,24 @@ export const CreateFields: FunctionComponent<CreateFieldsProps> = () => {
             <Icon type="utility" icon="back" className="slds-button__icon slds-button__icon_left" omitContainer />
             Go Back
           </Link>
-          <button className="slds-button slds-button_neutral slds-m-right_x-small" onClick={() => handleStartOver()}>
+          <button
+            className="slds-button slds-button_neutral slds-m-right_x-small collapsible-button collapsible-button-lg"
+            onClick={() => handleStartOver()}
+            title="Start Over"
+          >
             <Icon type="utility" icon="refresh" className="slds-button__icon slds-button__icon_left" omitContainer />
-            Start Over
+            <span>Start Over</span>
           </button>
           <CreateFieldsImportExport selectedOrg={selectedOrg} rows={rows} onImportRows={importRows} />
         </ToolbarItemGroup>
         <ToolbarItemActions>
-          <button className="slds-button slds-button_neutral slds-m-right_x-small" onClick={() => handleReset()}>
+          <button
+            className="slds-button slds-button_neutral slds-m-right_x-small collapsible-button collapsible-button-sm"
+            onClick={() => handleReset()}
+            title="Reset fields"
+          >
             <Icon type="utility" icon="refresh" className="slds-button__icon slds-button__icon_left" omitContainer />
-            Reset Fields
+            <span>Reset Fields</span>
           </button>
           <Tooltip content={allValid ? '' : 'All fields must be fully configured'}>
             <button className="slds-button slds-button_brand" onClick={() => handleSubmit()} disabled={!allValid}>

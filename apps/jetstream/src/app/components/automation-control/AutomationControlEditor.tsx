@@ -253,11 +253,12 @@ export const AutomationControlEditor: FunctionComponent<AutomationControlEditorP
         <ToolbarItemGroup>
           <Link
             className="slds-button slds-button_brand"
+            title="Go back"
             to=".."
             // onClick={handleGoBack}
           >
             <Icon type="utility" icon="back" className="slds-button__icon slds-button__icon_left" omitContainer />
-            Go Back
+            <span>Go Back</span>
           </Link>
           {/* Select all does not work well for flows/process builders since there is a version that needs to be selected */}
           {/* <button className="slds-button slds-button_neutral slds-m-left_small" onClick={handleSelectAll}>
@@ -271,20 +272,34 @@ export const AutomationControlEditor: FunctionComponent<AutomationControlEditorP
           <SearchInput id="quick-filter" placeholder="Filter items..." className="slds-m-left_small" onChange={setQuickFilterText} />
         </ToolbarItemGroup>
         <ToolbarItemActions>
-          <button className="slds-button slds-button_neutral" onClick={handleResetChanges} disabled={loading || !dirtyCount}>
+          <button
+            className="slds-button slds-button_neutral collapsible-button collapsible-button-xl"
+            onClick={handleResetChanges}
+            title="Reset changes"
+            disabled={loading || !dirtyCount}
+          >
             <Icon type="utility" icon="refresh" className="slds-button__icon slds-button__icon_left" />
-            Reset Changes
+            <span>Reset Changes</span>
           </button>
           <ButtonGroupContainer>
             <Tooltip content="Downloading as a metadata zip package will allow you to re-deploy the changes on the Deploy Metadata page.">
-              <button className="slds-button slds-button_neutral slds-button_first" disabled={loading} onClick={exportPackage}>
+              <button
+                className="slds-button slds-button_neutral slds-button_first collapsible-button collapsible-button-xl"
+                disabled={loading}
+                onClick={exportPackage}
+              >
                 <Icon type="utility" icon="archive" className="slds-button__icon slds-button__icon_left" />
-                Export as Zip
+                <span>Export as Zip</span>
               </button>
             </Tooltip>
-            <button className="slds-button slds-button_neutral" disabled={loading} onClick={exportSpreadsheet}>
+            <button
+              className="slds-button slds-button_neutral collapsible-button collapsible-button-md"
+              disabled={loading}
+              title="Export as Spreadsheet"
+              onClick={exportSpreadsheet}
+            >
               <Icon type="utility" icon="file" className="slds-button__icon slds-button__icon_left" />
-              Export as Spreadsheet
+              <span>Export as Spreadsheet</span>
             </button>
           </ButtonGroupContainer>
           <button className="slds-button slds-button_brand" disabled={loading || !dirtyCount} onClick={handleReviewChanges}>

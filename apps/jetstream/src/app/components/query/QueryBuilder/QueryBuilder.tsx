@@ -239,13 +239,17 @@ export const QueryBuilder: FunctionComponent<QueryBuilderProps> = () => {
               }
             />
             <PageHeaderActions colType="actions" buttonType="separate">
-              <button className="slds-button slds-button_neutral" title="Open help walkthrough" onClick={() => setShowWalkthrough(true)}>
+              <button
+                className="slds-button slds-button_neutral collapsible-button collapsible-button-lg"
+                title="Open help walkthrough"
+                onClick={() => setShowWalkthrough(true)}
+              >
                 <Icon type="utility" icon="help" description="Open help walkthrough" className="slds-button__icon slds-button__icon_left" />
-                Help
+                <span>Help</span>
               </button>
               <QueryResetButton />
               <ManualSoql isTooling={isTooling} generatedSoql={soql} />
-              <QueryHistory selectedOrg={selectedOrg} ref={queryHistoryRef} />
+              <QueryHistory className="collapsible-button collapsible-button-lg" selectedOrg={selectedOrg} ref={queryHistoryRef} />
               <ExecuteQueryButton soql={soql} isTooling={isTooling} selectedSObject={selectedSObject} />
             </PageHeaderActions>
           </PageHeaderRow>

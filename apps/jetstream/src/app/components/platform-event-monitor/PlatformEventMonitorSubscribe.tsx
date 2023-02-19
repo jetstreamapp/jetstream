@@ -60,7 +60,7 @@ export const PlatformEventMonitorSubscribe: FunctionComponent<PlatformEventMonit
   }
 
   return (
-    <Grid verticalAlign="end">
+    <Grid verticalAlign="end" wrap>
       <div className="slds-grow">
         <ComboboxWithItems
           comboboxProps={{
@@ -93,7 +93,12 @@ export const PlatformEventMonitorSubscribe: FunctionComponent<PlatformEventMonit
           />
         </Input>
       </div>
-      <div className="slds-m-horizontal_small">
+      <div
+        className="slds-m-horizontal_small"
+        css={css`
+          margin-left: auto;
+        `}
+      >
         {currentEventSubscribed && (
           <button
             className="slds-button slds-button_neutral"

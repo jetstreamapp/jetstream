@@ -276,19 +276,24 @@ export const DeployMetadataDeployment: FunctionComponent<DeployMetadataDeploymen
           </Link>
         </ToolbarItemGroup>
         <ToolbarItemActions>
-          <DeployMetadataHistoryModal />
+          <DeployMetadataHistoryModal className="collapsible-button collapsible-button-xxl" />
           <ButtonGroupContainer>
-            <DeployMetadataPackage selectedOrg={selectedOrg} />
+            <DeployMetadataPackage className="collapsible-button collapsible-button-xl" selectedOrg={selectedOrg} />
             <button
               title="Download a metadata package as a zip file so that you can view or modify the components locally and re-deploy to any org. You can also use this to keep a backup of the current state of the components."
-              className="slds-button slds-button_neutral"
+              className="slds-button slds-button_neutral collapsible-button collapsible-button-xl"
               onClick={() => handleDownloadActive('package')}
               disabled={loading || selectedRows.size === 0}
             >
               <Icon type="utility" icon="download" className="slds-button__icon slds-button__icon_left" omitContainer />
-              Download Metadata
+              <span>Download Metadata</span>
             </button>
-            <AddToChangeset selectedOrg={selectedOrg} loading={loading} selectedRows={selectedRows} />
+            <AddToChangeset
+              className="collapsible-button collapsible-button-sm"
+              selectedOrg={selectedOrg}
+              loading={loading}
+              selectedRows={selectedRows}
+            />
             <DeployMetadataToOrg selectedOrg={selectedOrg} loading={loading} selectedRows={selectedRows} />
             <DropDown
               position="right"

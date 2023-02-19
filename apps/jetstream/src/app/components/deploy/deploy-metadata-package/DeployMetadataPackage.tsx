@@ -1,6 +1,7 @@
 import { ANALYTICS_KEYS } from '@jetstream/shared/constants';
 import { DeployOptions, DeployResult, MapOf, SalesforceOrgUi } from '@jetstream/types';
 import { FileDownloadModal, Icon } from '@jetstream/ui';
+import classNames from 'classnames';
 import { Fragment, FunctionComponent, useState } from 'react';
 import { useRecoilState } from 'recoil';
 import { applicationCookieState } from '../../../app-state';
@@ -11,10 +12,11 @@ import DeployMetadataPackageConfigModal from './DeployMetadataPackageConfigModal
 import DeployMetadataPackageStatusModal from './DeployMetadataPackageStatusModal';
 
 export interface DeployMetadataPackageProps {
+  className?: string;
   selectedOrg: SalesforceOrgUi;
 }
 
-export const DeployMetadataPackage: FunctionComponent<DeployMetadataPackageProps> = ({ selectedOrg: initialSelectedOrg }) => {
+export const DeployMetadataPackage: FunctionComponent<DeployMetadataPackageProps> = ({ className, selectedOrg: initialSelectedOrg }) => {
   const { trackEvent } = useAmplitude();
   const [{ google_apiKey, google_appId, google_clientId }] = useRecoilState(applicationCookieState);
   const [destinationOrg, setDestinationOrg] = useState<SalesforceOrgUi>(initialSelectedOrg);
@@ -59,12 +61,12 @@ export const DeployMetadataPackage: FunctionComponent<DeployMetadataPackageProps
   return (
     <Fragment>
       <button
-        className="slds-button slds-button_neutral"
+        className={classNames('slds-button slds-button_neutral', className)}
         onClick={handleClick}
         title="If you have an existing metadata package zip file, you can deploy that file to the currently selected org."
       >
         <Icon type="utility" icon="upload" className="slds-button__icon slds-button__icon_left" omitContainer />
-        Upload Metadata Zip
+        <span>Upload Metadata Zip</span>
       </button>
       {/* MODALS */}
       {configModalOpen && (

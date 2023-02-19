@@ -218,6 +218,126 @@ pre {
   }
 }
 
+.collapsible-button {
+  min-height: 2rem;
+
+  span:not(.slds-icon_container) {
+    display: none;
+  }
+
+  svg.slds-button__icon_left {
+    margin-right: 0;
+  }
+
+  &.collapsible-button-xs {
+    @media (max-width: 500px) {
+      width: 2rem;
+      padding-left: unset;
+      padding-right: unset;
+    }
+
+    @media (min-width: 500px) {
+      span {
+        display: inline;
+      }
+
+      svg.slds-button__icon_left {
+        margin-right: 0.5rem;
+      }
+    }
+  }
+
+  &.collapsible-button-sm {
+    @media (max-width: 800px) {
+      width: 2rem;
+      padding-left: unset;
+      padding-right: unset;
+    }
+
+    @media (min-width: 800px) {
+      span {
+        display: inline;
+      }
+
+      svg.slds-button__icon_left {
+        margin-right: 0.5rem;
+      }
+    }
+  }
+
+  &.collapsible-button-md {
+    @media (max-width: 830px) {
+      width: 2rem;
+      padding-left: unset;
+      padding-right: unset;
+    }
+
+    @media (min-width: 830px) {
+      span {
+        display: inline;
+      }
+
+      svg.slds-button__icon_left {
+        margin-right: 0.5rem;
+      }
+    }
+  }
+
+  &.collapsible-button-lg {
+    @media (max-width: 890px) {
+      width: 2rem;
+      padding-left: unset;
+      padding-right: unset;
+    }
+
+    @media (min-width: 890px) {
+      span {
+        display: inline;
+      }
+
+      svg.slds-button__icon_left {
+        margin-right: 0.5rem;
+      }
+    }
+  }
+
+  &.collapsible-button-xl {
+    @media (max-width: 1000px) {
+      width: 2rem;
+      padding-left: unset;
+      padding-right: unset;
+    }
+
+    @media (min-width: 1000px) {
+      span {
+        display: inline;
+      }
+
+      svg.slds-button__icon_left {
+        margin-right: 0.5rem;
+      }
+    }
+  }
+
+  &.collapsible-button-xxl {
+    @media (max-width: 1075px) {
+      width: 2rem;
+      padding-left: unset;
+      padding-right: unset;
+    }
+
+    @media (min-width: 1075px) {
+      span {
+        display: inline;
+      }
+
+      svg.slds-button__icon_left {
+        margin-right: 0.5rem;
+      }
+    }
+  }
+}
+
 .modal-card-override {
   background: #fff;
   border: 1px solid #dddbda !important;

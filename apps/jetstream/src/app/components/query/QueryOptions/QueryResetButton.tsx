@@ -38,9 +38,13 @@ export const QueryResetButton: FunctionComponent<QueryResetButtonProps> = ({ cla
   }
 
   return (
-    <button className={classNames('slds-button slds-button_neutral', className)} title="Reset Query" onClick={resetQuery}>
+    <button
+      className={classNames('slds-button slds-button_neutral collapsible-button collapsible-button-lg', className)}
+      title="Reset Query"
+      onClick={resetQuery}
+    >
       <Icon type="utility" icon="refresh" className="slds-button__icon slds-button__icon_left" omitContainer />
-      Reset Page
+      <span>Reset Page</span>
     </button>
   );
 };

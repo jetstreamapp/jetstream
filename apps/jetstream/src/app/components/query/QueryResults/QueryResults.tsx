@@ -63,7 +63,6 @@ import QueryResultsGetRecAsApexModal from './QueryResultsGetRecAsApexModal';
 import QueryResultsSoqlPanel from './QueryResultsSoqlPanel';
 import QueryResultsViewRecordFields from './QueryResultsViewRecordFields';
 import { useQueryResultsFetchMetadata } from './useQueryResultsFetchMetadata';
-import './query-results.scss';
 
 type SourceAction = 'STANDARD' | 'ORG_CHANGE' | 'BULK_DELETE' | 'HISTORY' | 'RECORD_ACTION' | 'MANUAL' | 'RELOAD';
 
@@ -542,7 +541,7 @@ export const QueryResults: FunctionComponent<QueryResultsProps> = React.memo(() 
             Back
           </Link>
           <button
-            className={classNames('slds-button collapsible-button', {
+            className={classNames('slds-button collapsible-button collapsible-button-md', {
               'slds-button_neutral': !soqlPanelOpen,
               'slds-button_brand': soqlPanelOpen,
             })}
@@ -553,7 +552,7 @@ export const QueryResults: FunctionComponent<QueryResultsProps> = React.memo(() 
             <span>SOQL Query</span>
           </button>
           <button
-            className="slds-button slds-button_neutral collapsible-button"
+            className="slds-button slds-button_neutral collapsible-button collapsible-button-md"
             onClick={() => executeQuery(soql, SOURCE_RELOAD, { isTooling })}
             disabled={!!(loading || errorMessage)}
             title="Re-run the current query"
@@ -579,7 +578,7 @@ export const QueryResults: FunctionComponent<QueryResultsProps> = React.memo(() 
             </Tooltip>
           )}
           <QueryResultsCopyToClipboard
-            className="collapsible-button"
+            className="collapsible-button collapsible-button-md"
             hasRecords={hasRecords()}
             fields={modifiedFields}
             records={records}

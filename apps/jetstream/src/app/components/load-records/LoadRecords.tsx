@@ -344,15 +344,14 @@ export const LoadRecords: FunctionComponent<LoadRecordsProps> = ({ featureFlags 
         <PageHeaderRow>
           <PageHeaderTitle icon={{ type: 'standard', icon: 'data_streams' }} label="Load Records" docsPath="/load" />
           <PageHeaderActions colType="actions" buttonType="separate">
-            {/* TODO: move to component since there is a bit of logic. */}
             <button
               data-testid="start-over-button"
-              className="slds-button slds-button_neutral"
+              className="slds-button slds-button_neutral collapsible-button collapsible-button-md"
               disabled={(currentStep.idx === 0 && !inputFileData && !selectedSObject) || loading}
               onClick={() => handleStartOver()}
             >
               <Icon type="utility" icon="refresh" className="slds-button__icon slds-button__icon_left" />
-              Start Over
+              <span>Start Over</span>
             </button>
             <button
               data-testid="prev-step-button"

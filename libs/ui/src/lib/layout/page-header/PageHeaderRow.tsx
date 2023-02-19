@@ -1,3 +1,4 @@
+import { css } from '@emotion/react';
 import { FunctionComponent } from 'react';
 
 export interface PageHeaderRowProps {
@@ -5,7 +6,16 @@ export interface PageHeaderRowProps {
 }
 
 export const PageHeaderRow: FunctionComponent<PageHeaderRowProps> = ({ children }) => {
-  return <div className="slds-page-header__row">{children}</div>;
+  return (
+    <div
+      className="slds-page-header__row"
+      css={css`
+        flex-wrap: wrap;
+      `}
+    >
+      {children}
+    </div>
+  );
 };
 
 export default PageHeaderRow;

@@ -72,9 +72,10 @@ export const DebugLogViewerTrace: FunctionComponent<DebugLogViewerTraceProps> = 
           }
           buttonProps={{
             className: 'slds-button slds-button_neutral',
+            title: 'Log Level',
           }}
         >
-          {activeDebugLevel ? `Active Log Level - ${activeDebugLevel?.DeveloperName}` : 'Loading log levels'}
+          {activeDebugLevel ? `${activeDebugLevel?.DeveloperName}` : 'Loading log levels'}
         </Popover>
       </div>
     </Grid>
