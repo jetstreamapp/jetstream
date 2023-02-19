@@ -7,9 +7,9 @@ import formatDate from 'date-fns/format';
 import startOfDay from 'date-fns/startOfDay';
 import startOfMonth from 'date-fns/startOfMonth';
 import cloneDate from 'date-fns/toDate';
-import Grid from 'libs/ui/src/lib/grid/Grid';
-import GridCol from 'libs/ui/src/lib/grid/GridCol';
 import { FunctionComponent, useEffect, useState } from 'react';
+import Grid from '../../grid/Grid';
+import GridCol from '../../grid/GridCol';
 import DateGrid from './DateGrid';
 import DateGridPrevNextSelector from './DateGridPrevNextSelector';
 
@@ -85,12 +85,13 @@ export const DatePickerPopup: FunctionComponent<DatePickerPopupProps> = ({
   }
 
   return (
-    <div
-      aria-hidden="false"
-      aria-label={`Date picker: ${visibleMonth}`}
-      className={`slds-datepicker slds-dropdown slds-dropdown_${dropDownPosition}`}
-      role="dialog"
-    >
+    // <div
+    //   aria-hidden="false"
+    //   aria-label={`Date picker: ${visibleMonth}`}
+    //   className={`slds-datepicker slds-dropdown slds-dropdown_${dropDownPosition}`}
+    //   role="dialog"
+    // >
+    <>
       <DateGridPrevNextSelector
         id="date-picker"
         currMonth={currMonthString}
@@ -130,7 +131,8 @@ export const DatePickerPopup: FunctionComponent<DatePickerPopupProps> = ({
           </button>
         </GridCol>
       </Grid>
-    </div>
+      {/* </div> */}
+    </>
   );
 };
 

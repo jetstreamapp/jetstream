@@ -22,6 +22,7 @@ import classNames from 'classnames';
 import isNumber from 'lodash/isNumber';
 import uniqueId from 'lodash/uniqueId';
 import React, { createRef, forwardRef, KeyboardEvent, RefObject, useEffect, useImperativeHandle, useMemo, useRef, useState } from 'react';
+import PopoverContainer from '../../popover/PopoverContainer';
 import OutsideClickHandler from '../../utils/OutsideClickHandler';
 import HelpText from '../../widgets/HelpText';
 import Icon from '../../widgets/Icon';
@@ -109,6 +110,7 @@ export const Picklist = forwardRef<any, PicklistProps>(
     },
     ref
   ) => {
+    const inputRef = useRef<HTMLInputElement>();
     const keyBuffer = useRef(new KeyBuffer());
     const [comboboxId] = useState<string>(() => uniqueId(id || 'picklist'));
     const [listboxId] = useState<string>(() => uniqueId('listbox'));
@@ -337,6 +339,7 @@ export const Picklist = forwardRef<any, PicklistProps>(
               >
                 <div className="slds-combobox__form-element slds-input-has-icon slds-input-has-icon_right" role="none">
                   <input
+                    ref={inputRef}
                     type="text"
                     className={classNames('slds-input slds-combobox__input slds-combobox__input-value', { 'slds-has-focus': isOpen })}
                     id={comboboxId}
@@ -360,58 +363,55 @@ export const Picklist = forwardRef<any, PicklistProps>(
                     />
                   </span>
                 </div>
-                {isOpen && (
-                  <div
-                    id={listboxId}
-                    className={classNames('slds-dropdown slds-dropdown_fluid', scrollLengthClass)}
-                    role="listbox"
-                    onKeyDown={handleKeyDown}
-                  >
-                    {Array.isArray(items) && (
-                      <ul className="slds-listbox slds-listbox_vertical" role="presentation">
-                        {items.map((item, i) => (
+                <PopoverContainer
+                  id={listboxId}
+                  isOpen={isOpen}
+                  className={classNames('slds-dropdown_fluid', scrollLengthClass)}
+                  referenceElement={inputRef.current}
+                  role="listbox"
+                  onKeyDown={handleKeyDown}
+                >
+                  {Array.isArray(items) && (
+                    <ul className="slds-listbox slds-listbox_vertical" role="presentation">
+                      {items.map((item, i) => (
+                        <PicklistItem
+                          ref={elRefs.current[i]}
+                          key={item.id}
+                          id={item.id}
+                          label={item.label}
+                          secondaryLabel={item.secondaryLabel}
+                          title={item.title}
+                          value={item.value}
+                          isSelected={selectedItemsIdsSet.has(item.id)}
+                          onClick={() => handleSelection(item)}
+                        />
+                      ))}
+                    </ul>
+                  )}
+                  {Array.isArray(groups) &&
+                    groups.map((group) => (
+                      <ul key={group.id} className="slds-listbox slds-listbox_vertical" role="group" aria-label={group.label}>
+                        <li role="presentation" className="slds-listbox__item slds-item">
+                          <div className="slds-media slds-listbox__option slds-listbox__option_plain slds-media_small" role="presentation">
+                            <h3 className="slds-listbox__option-header" role="presentation">
+                              {group.label}
+                            </h3>
+                          </div>
+                        </li>
+                        {group.items.map((item, i) => (
                           <PicklistItem
                             ref={elRefs.current[i]}
                             key={item.id}
                             id={item.id}
                             label={item.label}
-                            secondaryLabel={item.secondaryLabel}
-                            title={item.title}
                             value={item.value}
                             isSelected={selectedItemsIdsSet.has(item.id)}
                             onClick={() => handleSelection(item)}
                           />
                         ))}
                       </ul>
-                    )}
-                    {Array.isArray(groups) &&
-                      groups.map((group) => (
-                        <ul key={group.id} className="slds-listbox slds-listbox_vertical" role="group" aria-label={group.label}>
-                          <li role="presentation" className="slds-listbox__item slds-item">
-                            <div
-                              className="slds-media slds-listbox__option slds-listbox__option_plain slds-media_small"
-                              role="presentation"
-                            >
-                              <h3 className="slds-listbox__option-header" role="presentation">
-                                {group.label}
-                              </h3>
-                            </div>
-                          </li>
-                          {group.items.map((item, i) => (
-                            <PicklistItem
-                              ref={elRefs.current[i]}
-                              key={item.id}
-                              id={item.id}
-                              label={item.label}
-                              value={item.value}
-                              isSelected={selectedItemsIdsSet.has(item.id)}
-                              onClick={() => handleSelection(item)}
-                            />
-                          ))}
-                        </ul>
-                      ))}
-                  </div>
-                )}
+                    ))}
+                </PopoverContainer>
               </div>
             </div>
             {multiSelection && !omitMultiSelectPills && selectedItemsIdsSet.size > 0 && (
