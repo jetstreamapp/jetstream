@@ -54,10 +54,10 @@ export const DeployMetadataSelection: FunctionComponent<DeployMetadataSelectionP
             docsPath="/deploy-metadata"
           />
           <PageHeaderActions colType="actions" buttonType="separate">
-            <DeployMetadataHistoryModal />
+            <DeployMetadataHistoryModal className="collapsible-button collapsible-button-xl" />
             <ButtonGroupContainer>
-              <DownloadMetadataPackage selectedOrg={selectedOrg} />
-              <DeployMetadataPackage selectedOrg={selectedOrg} />
+              <DownloadMetadataPackage className="collapsible-button collapsible-button-xl" selectedOrg={selectedOrg} />
+              <DeployMetadataPackage className="collapsible-button collapsible-button-sm" selectedOrg={selectedOrg} />
             </ButtonGroupContainer>
             {hasSelectionsMade && (
               <Link onClick={trackContinue} className="slds-button slds-button_brand" to="deploy">

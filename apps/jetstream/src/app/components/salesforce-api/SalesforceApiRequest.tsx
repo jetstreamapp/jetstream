@@ -213,7 +213,7 @@ export const SalesforceApiRequest: FunctionComponent<SalesforceApiRequestProps> 
         </Grid>
       }
       actions={
-        <Grid>
+        <>
           <SalesforceApiHistory className="slds-col" disabled={loading} onHistorySelected={handleRestoreFromHistory} />
           <button
             className="slds-button slds-button_brand"
@@ -224,7 +224,7 @@ export const SalesforceApiRequest: FunctionComponent<SalesforceApiRequestProps> 
             <Icon type="utility" icon="apex" className="slds-button__icon slds-button__icon_left" omitContainer />
             Submit
           </button>
-        </Grid>
+        </>
       }
     >
       <div>

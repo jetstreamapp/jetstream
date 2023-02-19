@@ -126,9 +126,12 @@ export const CreateFieldsImportExport: FunctionComponent<CreateFieldsImportExpor
         />
       )}
       <ButtonGroupContainer>
-        <button className="slds-button slds-button_neutral slds-button_first" onClick={() => handleExport()}>
+        <button
+          className="slds-button slds-button_neutral slds-button_first collapsible-button collapsible-button-lg"
+          onClick={() => handleExport()}
+        >
           <Icon type="utility" icon="download" className="slds-button__icon slds-button__icon_left" omitContainer />
-          Export Fields
+          <span>Export Fields</span>
         </button>
         <Popover
           ref={popoverRef}
@@ -152,11 +155,11 @@ export const CreateFieldsImportExport: FunctionComponent<CreateFieldsImportExpor
             </div>
           }
           buttonProps={{
-            className: 'slds-button slds-button_neutral slds-button_middle',
+            className: 'slds-button slds-button_neutral slds-button_middle collapsible-button collapsible-button-lg',
           }}
         >
           <Icon type="utility" icon="upload" className="slds-button__icon slds-button__icon_left" omitContainer />
-          Import Fields
+          <span>Import Fields</span>
         </Popover>
         <DropDown
           className="slds-button_last"

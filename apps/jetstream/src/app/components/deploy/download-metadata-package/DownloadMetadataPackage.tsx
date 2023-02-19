@@ -1,16 +1,21 @@
 import { ANALYTICS_KEYS } from '@jetstream/shared/constants';
 import { SalesforceOrgUi } from '@jetstream/types';
 import { Icon } from '@jetstream/ui';
+import classNames from 'classnames';
 import { Fragment, FunctionComponent, useState } from 'react';
 import { useAmplitude } from '../../core/analytics';
 import DownloadPackageWithFileSelector from '../utils/DownloadPackageWithFileSelector';
 import DownloadMetadataPackageConfigModal from './DownloadMetadataPackageConfigModal';
 
 export interface DownloadMetadataPackageProps {
+  className?: string;
   selectedOrg: SalesforceOrgUi;
 }
 
-export const DownloadMetadataPackage: FunctionComponent<DownloadMetadataPackageProps> = ({ selectedOrg: initiallySelectedOrg }) => {
+export const DownloadMetadataPackage: FunctionComponent<DownloadMetadataPackageProps> = ({
+  className,
+  selectedOrg: initiallySelectedOrg,
+}) => {
   const { trackEvent } = useAmplitude();
   const [destinationOrg, setDestinationOrg] = useState<SalesforceOrgUi>(initiallySelectedOrg);
   const [configModalOpen, setConfigModalOpen] = useState<boolean>(false);
@@ -45,12 +50,12 @@ export const DownloadMetadataPackage: FunctionComponent<DownloadMetadataPackageP
   return (
     <Fragment>
       <button
-        className="slds-button slds-button_neutral"
+        className={classNames('slds-button slds-button_neutral', className)}
         onClick={handleClick}
         title="If you have a Package.xml file or your org has an outbound changeset or an unmanaged package, you can download the metadata as a zip file so that you can view or modify the components locally and re-deploy to any org."
       >
         <Icon type="utility" icon="download" className="slds-button__icon slds-button__icon_left" omitContainer />
-        Download Metadata Package
+        <span>Download Metadata Package</span>
       </button>
       {/* MODALS */}
       {configModalOpen && (

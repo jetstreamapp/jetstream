@@ -6,6 +6,7 @@ import { formatNumber, hasModifierKey, isHKey, useGlobalEventHandler, useNonInit
 import { multiWordObjectFilter } from '@jetstream/shared/utils';
 import { QueryHistoryItem, QueryHistorySelection, SalesforceOrgUi, UpDown } from '@jetstream/types';
 import { EmptyState, Grid, GridCol, Icon, List, Modal, SearchInput, Spinner } from '@jetstream/ui';
+import classNames from 'classnames';
 import { createRef, forwardRef, useCallback, useEffect, useImperativeHandle, useState } from 'react';
 import { ErrorBoundary } from 'react-error-boundary';
 import { useLocation } from 'react-router-dom';
@@ -25,11 +26,12 @@ export interface QueryHistoryRef {
 }
 
 export interface QueryHistoryProps {
+  className?: string;
   selectedOrg: SalesforceOrgUi;
   onRestore?: (soql: string, tooling: boolean) => void;
 }
 
-export const QueryHistory = forwardRef<any, QueryHistoryProps>(({ selectedOrg, onRestore }, ref) => {
+export const QueryHistory = forwardRef<any, QueryHistoryProps>(({ className, selectedOrg, onRestore }, ref) => {
   const location = useLocation();
   const { trackEvent } = useAmplitude();
   const [queryHistoryStateMap, setQueryHistorySateMap] = useRecoilState(fromQueryHistoryState.queryHistoryState);
@@ -228,13 +230,13 @@ export const QueryHistory = forwardRef<any, QueryHistoryProps>(({ selectedOrg, o
   return (
     <ErrorBoundary FallbackComponent={ErrorBoundaryFallback}>
       <button
-        className="slds-button slds-button_neutral"
+        className={classNames('slds-button slds-button_neutral', className)}
         aria-haspopup="true"
         title="View query history and saved queries (ctrl/command + h)"
         onClick={() => handleOpenModal()}
       >
         <Icon type="utility" icon="date_time" className="slds-button__icon slds-button__icon_left" omitContainer />
-        History
+        <span>History</span>
       </button>
       {isOpen && (
         <Modal

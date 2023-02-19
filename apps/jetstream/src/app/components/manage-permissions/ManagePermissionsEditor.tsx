@@ -394,16 +394,22 @@ export const ManagePermissionsEditor: FunctionComponent<ManagePermissionsEditorP
         </ToolbarItemGroup>
         <ToolbarItemActions>
           <button
-            className="slds-button slds-button_neutral"
+            className="slds-button slds-button_neutral collapsible-button collapsible-button-xs"
             onClick={resetChanges}
+            title="Reset Changes"
             disabled={!dirtyObjectCount && !dirtyFieldCount && !objectsHaveErrors && !fieldsHaveErrors}
           >
             <Icon type="utility" icon="refresh" className="slds-button__icon slds-button__icon_left" />
-            Reset Changes
+            <span>Reset Changes</span>
           </button>
-          <button className="slds-button slds-button_neutral" onClick={exportChanges} disabled={loading || hasError}>
+          <button
+            className="slds-button slds-button_neutral collapsible-button collapsible-button-xs"
+            onClick={exportChanges}
+            disabled={loading || hasError}
+            title="Export"
+          >
             <Icon type="utility" icon="download" className="slds-button__icon slds-button__icon_left" />
-            Export
+            <span>Export</span>
           </button>
           <button className="slds-button slds-button_brand" onClick={saveChanges} disabled={!dirtyObjectCount && !dirtyFieldCount}>
             <Icon type="utility" icon="upload" className="slds-button__icon slds-button__icon_left" />

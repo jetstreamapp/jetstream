@@ -4,7 +4,8 @@ import { ANALYTICS_KEYS } from '@jetstream/shared/constants';
 import { useRollbar } from '@jetstream/shared/ui-utils';
 import { MapOf, SalesforceDeployHistoryItem, SalesforceOrgUi } from '@jetstream/types';
 import { EmptyState, FileDownloadModal, Icon, Modal, OpenRoadIllustration, ScopedNotification, Spinner } from '@jetstream/ui';
-import { Fragment, FunctionComponent, useEffect, useRef, useState } from 'react';
+import classNames from 'classnames';
+import { Fragment, useEffect, useRef, useState } from 'react';
 import { useRecoilState, useRecoilValue } from 'recoil';
 import * as fromAppState from '../../../app-state';
 import { useAmplitude } from '../../core/analytics';
@@ -15,7 +16,11 @@ import { getDeployResultsExcelData, getHistory, getHistoryItemFile } from '../ut
 import DeployMetadataHistoryTable from './DeployMetadataHistoryTable';
 import DeployMetadataHistoryViewResults from './DeployMetadataHistoryViewResults';
 
-export const DeployMetadataHistoryModal: FunctionComponent = () => {
+interface DeployMetadataHistoryModalProps {
+  className?: string;
+}
+
+export const DeployMetadataHistoryModal = ({ className }: DeployMetadataHistoryModalProps) => {
   const { trackEvent } = useAmplitude();
   const rollbar = useRollbar();
   const modalRef = useRef();
@@ -144,13 +149,13 @@ export const DeployMetadataHistoryModal: FunctionComponent = () => {
   return (
     <Fragment>
       <button
-        className="slds-button slds-button_neutral"
+        className={classNames('slds-button slds-button_neutral', className)}
         aria-haspopup="true"
         title="View deployment history"
         onClick={() => handleToggleOpen(true)}
       >
         <Icon type="utility" icon="date_time" className="slds-button__icon slds-button__icon_left" omitContainer />
-        History
+        <span>History</span>
       </button>
       {downloadPackageModalState.open && (
         <FileDownloadModal

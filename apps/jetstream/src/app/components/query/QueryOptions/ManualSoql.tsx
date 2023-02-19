@@ -140,8 +140,8 @@ export const ManualSoql: FunctionComponent<ManualSoqlProps> = ({ className, isTo
     <div className={className}>
       <Popover
         testId="manual-query"
-        // size="large"
         size="x-large"
+        placement="auto-end"
         onChange={handlePopoverChange}
         content={
           <Fragment>
