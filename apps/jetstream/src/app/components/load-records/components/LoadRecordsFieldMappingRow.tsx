@@ -182,12 +182,12 @@ export const LoadRecordsFieldMappingRow: FunctionComponent<LoadRecordsFieldMappi
   return (
     <tr>
       <td className="slds-align-top slds-text-color_weak bg-color-backdrop-tint">
-        <div className="slds-truncate slds-m-top_x-small" title={csvRowDataStr}>
+        <div className="slds-line-clamp_medium slds-m-top_x-small" title={csvRowDataStr}>
           {csvRowDataStr}
         </div>
       </td>
       <th scope="row" className="slds-align-top">
-        <div className="slds-truncate slds-m-top_x-small" title={csvField}>
+        <div className="slds-line-clamp_medium slds-m-top_x-small" title={csvField}>
           {csvField}
         </div>
       </th>
@@ -202,7 +202,13 @@ export const LoadRecordsFieldMappingRow: FunctionComponent<LoadRecordsFieldMappi
           />
         )}
       </td>
-      <td>
+      <td
+        css={css`
+          min-width: 344px;
+          max-width: 344px;
+          vertical-align: baseline;
+        `}
+      >
         <Combobox
           label="Salesforce Fields"
           selectedItemLabel={getComboboxFieldName(fieldMappingItem)}

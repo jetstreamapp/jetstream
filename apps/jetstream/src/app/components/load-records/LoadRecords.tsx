@@ -221,7 +221,13 @@ export const LoadRecords: FunctionComponent<LoadRecordsProps> = ({ featureFlags 
       case 'fieldMapping':
         // currStepButtonText = 'Continue to Disable Automation';
         currStepButtonText = 'Continue to Load Records';
+        // Ensure at least one field is mapped
         isNextStepDisabled = !fieldMapping || Object.values(fieldMapping).filter((field) => field.targetField).length === 0;
+        // Ensure related fields are fully configured
+        if (!isNextStepDisabled) {
+          isNextStepDisabled = Object.values(fieldMapping).some((field) => field.mappedToLookup && !field.targetLookupField);
+        }
+        // Ensure required fields are mapped for custom metadata objects
         if (!isNextStepDisabled && isCustomMetadataObject) {
           isNextStepDisabled =
             !fieldMapping ||
