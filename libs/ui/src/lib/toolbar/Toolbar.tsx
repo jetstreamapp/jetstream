@@ -1,3 +1,4 @@
+import { css } from '@emotion/react';
 import React, { FunctionComponent } from 'react';
 
 export interface ToolbarProps {
@@ -6,7 +7,13 @@ export interface ToolbarProps {
 
 export const Toolbar: FunctionComponent<ToolbarProps> = ({ children }) => {
   return (
-    <div className="slds-builder-toolbar" role="toolbar">
+    <div
+      className="slds-builder-toolbar"
+      role="toolbar"
+      css={css`
+        flex-wrap: wrap;
+      `}
+    >
       {children}
     </div>
   );

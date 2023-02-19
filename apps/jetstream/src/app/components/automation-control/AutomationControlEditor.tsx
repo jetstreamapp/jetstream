@@ -252,7 +252,7 @@ export const AutomationControlEditor: FunctionComponent<AutomationControlEditorP
       <Toolbar>
         <ToolbarItemGroup>
           <Link
-            className="slds-button slds-button_brand collapsible-button collapsible-button-md"
+            className="slds-button slds-button_brand"
             title="Go back"
             to=".."
             // onClick={handleGoBack}

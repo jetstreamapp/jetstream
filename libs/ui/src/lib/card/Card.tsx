@@ -29,7 +29,12 @@ export const Card = forwardRef<HTMLElement, CardProps>(
       <article data-testid={testId} className={classNames('slds-card', { 'slds-card_boundary': nestedBorder }, className)} ref={ref}>
         {title && (
           <div className="slds-card__header slds-grid">
-            <header className={classNames('slds-media slds-media_center slds-has-flexi-truncate flex-wrap')}>
+            <header
+              className={classNames('slds-media slds-media_center slds-has-flexi-truncate')}
+              css={css`
+                flex-wrap: wrap;
+              `}
+            >
               {icon && (
                 <div className="slds-media__figure">
                   <Icon
@@ -50,7 +55,16 @@ export const Card = forwardRef<HTMLElement, CardProps>(
               >
                 <h2 className="slds-card__header-title">{titleContent}</h2>
               </div>
-              {actions && <Grid wrap>{actions}</Grid>}
+              {actions && (
+                <Grid
+                  wrap
+                  css={css`
+                    margin-left: auto;
+                  `}
+                >
+                  {actions}
+                </Grid>
+              )}
             </header>
           </div>
         )}
