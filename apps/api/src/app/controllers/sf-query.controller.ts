@@ -15,22 +15,27 @@ export async function describe(req: Request, res: Response, next: NextFunction) 
   try {
     const isTooling = req.query.isTooling === 'true';
     const conn: jsforce.Connection = res.locals.jsforceConn;
+
     // Use If-Modified-Since header to check for changes
-    if (req.headers[HTTP.HEADERS.IF_MODIFIED_SINCE]) {
+    if (req.get(HTTP.HEADERS.IF_MODIFIED_SINCE)) {
       const requestOptions: jsforce.RequestInfo = {
         method: 'GET',
-        url: `/services/data/${conn.version}/sobjects/`,
+        url: isTooling ? `/services/data/v${conn.version}/tooling/sobjects/` : `/services/data/v${conn.version}/sobjects/`,
         headers: {
           ['Content-Type']: 'application/json;charset=utf-8',
-          [HTTP.HEADERS.IF_MODIFIED_SINCE]: req.headers[HTTP.HEADERS.IF_MODIFIED_SINCE],
+          [HTTP.HEADERS.IF_MODIFIED_SINCE]: req.get(HTTP.HEADERS.IF_MODIFIED_SINCE),
         },
       };
-      // TODO: if 304, return 304
-      // ensure no error is thrown from JSForce, otherwise need to use axios
       const results = await conn.request(requestOptions);
+      if (!results) {
+        res.set(HTTP.HEADERS.X_CACHE_KEY, req.get(HTTP.HEADERS.X_CACHE_KEY));
+        res.status(299).send();
+        return;
+      }
       sendJson(res, results);
       return;
     }
+
     const results = await (isTooling ? conn.tooling.describeGlobal() : conn.describeGlobal());
     sendJson(res, results);
   } catch (ex) {
@@ -42,7 +47,31 @@ export async function describeSObject(req: Request, res: Response, next: NextFun
   try {
     const isTooling = req.query.isTooling === 'true';
     const conn: jsforce.Connection = res.locals.jsforceConn;
-    const results = await (isTooling ? conn.tooling.describe(req.params.sobject) : conn.describe(req.params.sobject));
+    const sobject = req.params.sobject;
+
+    // Use If-Modified-Since header to check for changes
+    if (req.get(HTTP.HEADERS.IF_MODIFIED_SINCE)) {
+      const requestOptions: jsforce.RequestInfo = {
+        method: 'GET',
+        url: isTooling
+          ? `/services/data/v${conn.version}/tooling/sobjects/${sobject}/describe`
+          : `/services/data/v${conn.version}/sobjects/${sobject}/describe`,
+        headers: {
+          ['Content-Type']: 'application/json;charset=utf-8',
+          [HTTP.HEADERS.IF_MODIFIED_SINCE]: req.get(HTTP.HEADERS.IF_MODIFIED_SINCE),
+        },
+      };
+      const results = await conn.request(requestOptions);
+      if (!results) {
+        res.set(HTTP.HEADERS.X_CACHE_KEY, req.get(HTTP.HEADERS.X_CACHE_KEY));
+        res.status(299).send();
+        return;
+      }
+      sendJson(res, results);
+      return;
+    }
+
+    const results = await (isTooling ? conn.tooling.describe(sobject) : conn.describe(sobject));
     sendJson(res, results);
   } catch (ex) {
     next(new UserFacingError(ex.message));

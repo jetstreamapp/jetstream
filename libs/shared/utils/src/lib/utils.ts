@@ -15,7 +15,7 @@ import {
 import { formatISO as formatISODate, parse as parseDate, parseISO as parseISODate, startOfDay as startOfDayDate } from 'date-fns';
 import fromUnixTime from 'date-fns/fromUnixTime';
 import { FieldType as jsforceFieldType, QueryResult } from 'jsforce';
-import { get as lodashGet, inRange, isBoolean, isNil, isNumber, isObject, isString, orderBy } from 'lodash';
+import { get as lodashGet, isBoolean, isNil, isNumber, isObject, isString, orderBy } from 'lodash';
 import { ComposeFieldTypeof, FieldSubquery, FieldType, getField } from 'soql-parser-js';
 import { REGEX } from './regex';
 
