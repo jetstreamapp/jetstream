@@ -195,7 +195,7 @@ export const LoadRecordsFieldMapping = memo<LoadRecordsFieldMappingProps>(
             <SearchInput id="field-filter" className="slds-size_1-of-2" placeholder="Filter fields from file" onChange={setSearchTerm} />
             <LoadRecordsRefreshCachePopover org={org} sobject={sobject} loading={refreshLoading} onReload={handleCacheRefresh} />
           </Grid>
-          <table className="slds-table slds-table_cell-buffer slds-table_bordered slds-table_fixed-layout">
+          <table className="slds-table slds-table_cell-buffer slds-table_bordered">
             <thead>
               <tr className="slds-line-height_reset">
                 <th
@@ -233,12 +233,7 @@ export const LoadRecordsFieldMapping = memo<LoadRecordsFieldMappingProps>(
                     Field from File
                   </div>
                 </th>
-                <th
-                  scope="col"
-                  css={css`
-                    width: 35px;
-                  `}
-                ></th>
+                <th scope="col"></th>
                 <th scope="col">
                   <Grid verticalAlign="center">
                     <div className="slds-truncate" title="Salesforce Field">
@@ -262,12 +257,7 @@ export const LoadRecordsFieldMapping = memo<LoadRecordsFieldMappingProps>(
                     />
                   </Grid>
                 </th>
-                <th
-                  scope="col"
-                  css={css`
-                    width: 75px;
-                  `}
-                >
+                <th scope="col">
                   <DropDown
                     position="right"
                     actionText="Mapping Options"

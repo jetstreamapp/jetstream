@@ -106,7 +106,7 @@ export const PlatformEventMonitorEvents: FunctionComponent<PlatformEventMonitorE
   }, [messagesByChannel]);
 
   return (
-    <AutoFullHeightContainer fillHeight setHeightAttr delayForSecondTopCalc>
+    <AutoFullHeightContainer fillHeight setHeightAttr delayForSecondTopCalc bottomBuffer={25}>
       <DataTable
         allowReorder
         columns={columns}

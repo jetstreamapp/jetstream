@@ -30,6 +30,7 @@ import React, {
   useRef,
   useState,
 } from 'react';
+import PopoverContainer from '../../popover/PopoverContainer';
 import OutsideClickHandler from '../../utils/OutsideClickHandler';
 import HelpText from '../../widgets/HelpText';
 import Icon from '../../widgets/Icon';
@@ -504,15 +505,16 @@ export const Combobox = forwardRef(
                       </>
                     )}
                   </div>
-                  {isOpen && (
-                    <div
-                      id={listId}
-                      className={classNames(`slds-dropdown slds-dropdown_length-${itemLength} slds-dropdown_fluid`)}
-                      role="listbox"
-                      onKeyDown={handleListKeyDown}
-                      ref={divContainerEl}
-                      onBlur={handleBlur}
-                    >
+                  <PopoverContainer
+                    isOpen={isOpen}
+                    referenceElement={inputEl.current}
+                    className={`slds-dropdown_length-${itemLength} slds-dropdown_fluid`}
+                    id={listId}
+                    role="listbox"
+                    onKeyDown={handleListKeyDown}
+                    onBlur={handleBlur}
+                  >
+                    <div ref={divContainerEl}>
                       {Children.count(children) === 0 && (
                         <ul className="slds-listbox slds-listbox_vertical" role="presentation">
                           <ComboboxListItem id="placeholder" label={noItemsPlaceholder} selected={false} onSelection={NOOP} />
@@ -525,7 +527,7 @@ export const Combobox = forwardRef(
                         </ul>
                       )}
                     </div>
-                  )}
+                  </PopoverContainer>
                 </div>
               </OutsideClickHandler>
             </Fragment>

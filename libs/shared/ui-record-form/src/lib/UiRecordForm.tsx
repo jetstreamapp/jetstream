@@ -58,7 +58,9 @@ export const UiRecordForm: FunctionComponent<UiRecordFormProps> = ({
         visibleFields = visibleFields.filter((field) => !field.readOnly);
       }
       if (limitToRequired) {
-        visibleFields = visibleFields.filter((field) => !field.metadata.nillable && field.metadata.createable);
+        visibleFields = visibleFields.filter(
+          (field) => !field.metadata.nillable && field.metadata.type !== 'boolean' && field.metadata.createable
+        );
       }
       if (visibleFields.length) {
         setVisibleFieldMetadataRows(splitArrayToMaxSize(visibleFields, columnSize));

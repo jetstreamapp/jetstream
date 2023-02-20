@@ -2,7 +2,7 @@ import { mockPicklistValuesFromSobjectDescribe, UiRecordForm } from '@jetstream/
 import { clearCacheForOrg, describeSObject } from '@jetstream/shared/data';
 import { useReducerFetchFn } from '@jetstream/shared/ui-utils';
 import { ListItem, PicklistFieldValues, Record, SalesforceOrgUi } from '@jetstream/types';
-import { Card, ComboboxWithItems, Grid, Icon, Picklist, ScopedNotification, Spinner, Tooltip } from '@jetstream/ui';
+import { Card, ComboboxWithItems, Grid, Icon, ScopedNotification, Spinner, Tooltip } from '@jetstream/ui';
 import { formatRelative } from 'date-fns';
 import type { DescribeGlobalSObjectResult, DescribeSObjectResult } from 'jsforce';
 import { Fragment, FunctionComponent, useCallback, useEffect, useReducer, useRef, useState } from 'react';
@@ -57,30 +57,45 @@ export const PlatformEventMonitorPublisherCard: FunctionComponent<PlatformEventM
     };
   }, []);
 
+  const fetchSobjectDescribe = useCallback(
+    async (clearCache = false) => {
+      try {
+        dispatchSobjectDescribe({ type: 'REQUEST' });
+        if (clearCache) {
+          await clearCacheForOrg(selectedOrg);
+        }
+        const results = await describeSObject(selectedOrg, selectedPublishEvent);
+        const picklistValues = mockPicklistValuesFromSobjectDescribe(results.data);
+        // remove readonly fields
+        results.data.fields = results.data.fields.filter((field) => field.createable);
+        if (!isMounted.current) {
+          return;
+        }
+        dispatchSobjectDescribe({
+          type: 'SUCCESS',
+          payload: {
+            describe: results.data,
+            lastRefreshed: `Last updated ${formatRelative(results.cache.age, new Date())}`,
+            picklistValues,
+          },
+        });
+      } catch (ex) {
+        // ignore error if component is unmounted or if user changes org
+        if (!isMounted.current || ex.message === 'The requested resource does not exist') {
+          return;
+        }
+        dispatchSobjectDescribe({ type: 'ERROR', payload: { errorMessage: ex.message } });
+      }
+    },
+    [selectedOrg, selectedPublishEvent]
+  );
+
   useEffect(() => {
     if (selectedPublishEvent) {
       fetchSobjectDescribe();
       setPublishEventResponse(null);
     }
-  }, [selectedOrg, selectedPublishEvent]);
-
-  const fetchSobjectDescribe = useCallback(
-    async (clearCache = false) => {
-      dispatchSobjectDescribe({ type: 'REQUEST' });
-      if (clearCache) {
-        await clearCacheForOrg(selectedOrg);
-      }
-      const results = await describeSObject(selectedOrg, selectedPublishEvent);
-      const picklistValues = mockPicklistValuesFromSobjectDescribe(results.data);
-      // remove readonly fields
-      results.data.fields = results.data.fields.filter((field) => field.createable);
-      dispatchSobjectDescribe({
-        type: 'SUCCESS',
-        payload: { describe: results.data, lastRefreshed: `Last updated ${formatRelative(results.cache.age, new Date())}`, picklistValues },
-      });
-    },
-    [selectedOrg, selectedPublishEvent]
-  );
+  }, [fetchSobjectDescribe, selectedOrg, selectedPublishEvent]);
 
   const publishEvent = useCallback(
     async (record: Record) => {
@@ -100,8 +115,13 @@ export const PlatformEventMonitorPublisherCard: FunctionComponent<PlatformEventM
         }
       }
     },
-    [selectedOrg, selectedPublishEvent]
+    [publish, selectedPublishEvent]
   );
+
+  function handlePlatformEventChange(item: ListItem<string, any>) {
+    onSelectedPublishEvent(item.id);
+    clearForm();
+  }
 
   function clearForm() {
     setPublishEventRecord({});
@@ -135,7 +155,7 @@ export const PlatformEventMonitorPublisherCard: FunctionComponent<PlatformEventM
               }}
               items={platformEventsList}
               selectedItemId={selectedPublishEvent}
-              onSelected={(item) => onSelectedPublishEvent(item.id)}
+              onSelected={handlePlatformEventChange}
             />
           </div>
         </Grid>

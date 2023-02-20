@@ -10,7 +10,8 @@ import isSameDay from 'date-fns/isSameDay';
 import isValidDate from 'date-fns/isValid';
 import parseISO from 'date-fns/parseISO';
 import startOfDay from 'date-fns/startOfDay';
-import { ChangeEvent, FunctionComponent, KeyboardEvent, useEffect, useState } from 'react';
+import { ChangeEvent, FunctionComponent, KeyboardEvent, useEffect, useRef, useState } from 'react';
+import PopoverContainer from '../../popover/PopoverContainer';
 import OutsideClickHandler from '../../utils/OutsideClickHandler';
 import HelpText from '../../widgets/HelpText';
 import Icon from '../../widgets/Icon';
@@ -62,6 +63,7 @@ export const DatePicker: FunctionComponent<DatePickerProps> = ({
 }) => {
   initialSelectedDate = isValidDate(initialSelectedDate) ? initialSelectedDate : undefined;
   initialVisibleDate = isValidDate(initialVisibleDate) ? initialVisibleDate : undefined;
+  const inputRef = useRef<HTMLInputElement>();
   const [id] = useState<string>(`${_id || 'date-picker'}-${Date.now()}`); // used to avoid auto-complete
   const [value, setValue] = useState<string>('');
   const [selectedDate, setSelectedDate] = useState(() => (isValidDate(initialSelectedDate) ? initialSelectedDate : undefined));
@@ -160,6 +162,7 @@ export const DatePicker: FunctionComponent<DatePickerProps> = ({
         {!hideLabel && labelHelp && <HelpText id={`${id}-label-help-text`} content={labelHelp} />}
         <div className="slds-form-element__control slds-input-has-icon slds-input-has-icon_right">
           <input
+            ref={inputRef}
             aria-describedby={errorMessageId}
             type="text"
             autoComplete="false"
@@ -190,7 +193,7 @@ export const DatePicker: FunctionComponent<DatePickerProps> = ({
             {!readOnly && <Icon type="utility" icon="event" className="slds-button__icon" omitContainer description="Select a date" />}
           </button>
         </div>
-        {isOpen && (
+        <PopoverContainer isOpen={isOpen} className={`slds-datepicker`} referenceElement={inputRef.current}>
           <DatePickerPopup
             initialSelectedDate={selectedDate}
             initialVisibleDate={initialVisibleDate || selectedDate}
@@ -202,7 +205,7 @@ export const DatePicker: FunctionComponent<DatePickerProps> = ({
             onSelection={handleDateSelection}
             onClear={handleClear}
           />
-        )}
+        </PopoverContainer>
         {helpText && <div className="slds-form-element__help">{helpText}</div>}
         {hasError && errorMessage && (
           <div className="slds-form-element__help" id={errorMessageId}>
