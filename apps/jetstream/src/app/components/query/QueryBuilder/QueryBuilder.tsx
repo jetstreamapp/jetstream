@@ -351,7 +351,7 @@ export const QueryBuilder: FunctionComponent<QueryBuilderProps> = () => {
               <AutoFullHeightContainer fillHeight bufferIfNotRendered={HEIGHT_BUFFER}>
                 {selectedSObject && (
                   <Accordion
-                    key={queryKey}
+                    key={selectedSObject.name}
                     initOpenIds={['filters', 'soql']}
                     sections={[
                       {
@@ -377,7 +377,7 @@ export const QueryBuilder: FunctionComponent<QueryBuilderProps> = () => {
                         title: 'Soql Query',
                         content: (
                           <SoqlTextarea
-                            key={queryKey}
+                            key={selectedSObject.name}
                             soql={soql}
                             selectedOrg={selectedOrg}
                             selectedSObject={selectedSObject}
