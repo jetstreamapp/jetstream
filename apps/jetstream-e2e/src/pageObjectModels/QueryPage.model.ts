@@ -48,7 +48,6 @@ export class QueryPage {
       ]);
     } else if (action === 'RESTORE') {
       await manualQueryPopover.getByRole('button', { name: 'Restore' }).click();
-      await manualQueryPopover.getByRole('button', { name: 'Close dialog' }).click();
     } else {
       await manualQueryPopover.getByRole('button', { name: 'Close dialog' }).click();
     }
