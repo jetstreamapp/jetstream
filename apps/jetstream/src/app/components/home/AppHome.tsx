@@ -66,6 +66,7 @@ export const AppHome = () => {
       >
         {HOME_ITEMS.map((card) => (
           <div
+            key={card.title}
             className="slds-box slds-box_x-small"
             css={css`
               background-color: white;
