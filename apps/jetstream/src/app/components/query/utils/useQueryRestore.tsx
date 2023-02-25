@@ -48,6 +48,7 @@ export const useQueryRestore = (
   const setSelectedQueryFieldsState = useSetRecoilState(fromQueryState.selectedQueryFieldsState);
   const setSelectedSubqueryFieldsState = useSetRecoilState(fromQueryState.selectedSubqueryFieldsState);
   const setFilterQueryFieldsState = useSetRecoilState(fromQueryState.filterQueryFieldsState);
+  const setQueryRestoreKeyState = useSetRecoilState(fromQueryState.queryRestoreKeyState);
   const setQueryFiltersState = useSetRecoilState(fromQueryState.queryFiltersState);
   const setOrderByQueryFieldsState = useSetRecoilState(fromQueryState.orderByQueryFieldsState);
   const setQueryOrderByState = useSetRecoilState(fromQueryState.queryOrderByState);
@@ -113,6 +114,8 @@ export const useQueryRestore = (
 
         // This must come last to ensure components are not rendered prior to data being set
         setSelectedSObjectState(results.selectedSObjectState);
+        // Ensure components are forced to re-initialize
+        setQueryRestoreKeyState(new Date().getTime() + Math.random());
 
         if (endRestore) {
           endRestore(false, toolingOverride ?? isTooling, {

@@ -11,7 +11,7 @@ import {
   ListItemGroup,
   QueryFilterOperator,
 } from '@jetstream/types';
-import React, { FunctionComponent, useCallback, useReducer, useState } from 'react';
+import { FunctionComponent, memo, useCallback, useReducer, useState } from 'react';
 import DropDown from '../form/dropdown/DropDown';
 import Expression from './Expression';
 import { DraggableRow } from './expression-types';
@@ -337,7 +337,16 @@ function initConditionNumber(expression?: ExpressionType) {
   return nextConditionNumber;
 }
 
-export const ExpressionContainer: FunctionComponent<ExpressionContainerProps> = React.memo(
+function getInitialState(initialState: ExpressionType) {
+  const expression = initExpression(initialState);
+  return {
+    expression,
+    nextConditionNumber: initConditionNumber(initialState),
+    showDragHandles: shouldShowDragHandles(expression),
+  };
+}
+
+export const ExpressionContainer: FunctionComponent<ExpressionContainerProps> = memo(
   ({
     title,
     actionLabel,
@@ -356,18 +365,7 @@ export const ExpressionContainer: FunctionComponent<ExpressionContainerProps> = 
     onChange,
   }) => {
     const [displayOption, setDisplayOption] = useState(DISPLAY_OPT_ROW);
-    const [{ expression, showDragHandles }, dispatch] = useReducer(
-      reducer,
-      {
-        expression: initExpression(expressionInitValue),
-        nextConditionNumber: initConditionNumber(expressionInitValue),
-        showDragHandles: false,
-      },
-      (initialState) => ({
-        ...initialState,
-        showDragHandles: shouldShowDragHandles(initialState.expression),
-      })
-    );
+    const [{ expression, showDragHandles }, dispatch] = useReducer(reducer, expressionInitValue, getInitialState);
 
     useNonInitialEffect(() => {
       if (expression) {

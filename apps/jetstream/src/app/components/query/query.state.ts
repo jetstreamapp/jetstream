@@ -94,6 +94,21 @@ export const orderByQueryFieldsState = atom<ListItemGroup[]>({
   default: [],
 });
 
+/** Used so that after a query restore happens, the query filters can be re-initialized */
+export const queryRestoreKeyState = atom<number>({
+  key: 'query.queryRestoreKeyState',
+  default: new Date().getTime(),
+});
+
+export const selectQueryKeyState = selector<string>({
+  key: 'query.selectQueryKeyState',
+  get: ({ get }) => {
+    const selectedSObject = get(selectedSObjectState);
+    const queryRestoreKey = get(queryRestoreKeyState);
+    return `${selectedSObject?.name || 'no-sobject'}-${queryRestoreKey}`;
+  },
+});
+
 export const queryFiltersState = atom<ExpressionType>({
   key: 'query.queryFiltersState',
   default: {

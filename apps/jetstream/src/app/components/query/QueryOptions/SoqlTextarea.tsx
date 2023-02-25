@@ -76,7 +76,7 @@ export const SoqlTextarea: FunctionComponent<SoqlTextareaProps> = memo(
             )}
           </ResizeObserver>
         </Textarea>
-        <Grid verticalAlign="center">
+        <Grid verticalAlign="center" wrap>
           <ManualSoql isTooling={isTooling} generatedSoql={soql} />
           <SaveFavoriteSoql
             className="slds-m-left_x-small"

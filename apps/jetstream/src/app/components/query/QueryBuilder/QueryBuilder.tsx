@@ -75,6 +75,7 @@ export const QueryBuilder: FunctionComponent<QueryBuilderProps> = () => {
   const [selectedSubqueryFieldsState, setSelectedSubqueryFieldsState] = useRecoilState(fromQueryState.selectedSubqueryFieldsState);
   const [filterFields, setFilterFields] = useRecoilState(fromQueryState.filterQueryFieldsState);
   const [orderByFields, setOrderByFields] = useRecoilState(fromQueryState.orderByQueryFieldsState);
+  const queryKey = useRecoilValue(fromQueryState.selectQueryKeyState);
 
   const resetSelectedQueryFieldsState = useResetRecoilState(fromQueryState.selectedQueryFieldsState);
   const resetFilterQueryFieldsState = useResetRecoilState(fromQueryState.filterQueryFieldsState);
@@ -350,33 +351,33 @@ export const QueryBuilder: FunctionComponent<QueryBuilderProps> = () => {
               <AutoFullHeightContainer fillHeight bufferIfNotRendered={HEIGHT_BUFFER}>
                 {selectedSObject && (
                   <Accordion
-                    key={selectedSObject.name}
+                    key={queryKey}
                     initOpenIds={['filters', 'soql']}
                     sections={[
                       {
                         id: 'filters',
                         title: 'Filters',
-                        titleSummaryIfCollapsed: <QueryFilterTitleSummary key={selectedSObject.name} />,
-                        content: <QueryFilter key={selectedSObject.name} fields={filterFields} />,
+                        titleSummaryIfCollapsed: <QueryFilterTitleSummary key={queryKey} />,
+                        content: <QueryFilter key={queryKey} fields={filterFields} />,
                       },
                       {
                         id: 'orderBy',
                         title: 'Order By',
-                        titleSummaryIfCollapsed: <QueryOrderByTitleSummary key={selectedSObject.name} />,
-                        content: <QueryOrderBy key={selectedSObject.name} fields={orderByFields} />,
+                        titleSummaryIfCollapsed: <QueryOrderByTitleSummary key={queryKey} />,
+                        content: <QueryOrderBy key={queryKey} fields={orderByFields} />,
                       },
                       {
                         id: 'limit',
                         title: 'Limit',
-                        titleSummaryIfCollapsed: <QueryLimitTitleSummary key={selectedSObject.name} />,
-                        content: <QueryLimit key={selectedSObject.name} />,
+                        titleSummaryIfCollapsed: <QueryLimitTitleSummary key={queryKey} />,
+                        content: <QueryLimit key={queryKey} />,
                       },
                       {
                         id: 'soql',
                         title: 'Soql Query',
                         content: (
                           <SoqlTextarea
-                            key={selectedSObject.name}
+                            key={queryKey}
                             soql={soql}
                             selectedOrg={selectedOrg}
                             selectedSObject={selectedSObject}
