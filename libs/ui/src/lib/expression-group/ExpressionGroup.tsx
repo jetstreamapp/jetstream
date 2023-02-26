@@ -10,6 +10,7 @@ export interface ExpressionGroupProps {
   groupKey: number;
   group: number;
   parentAction: AndOr;
+  rowAction: AndOr;
   onActionChange: (value: AndOr) => void;
   onAddCondition: () => void;
   moveRowToGroup: (item: DraggableRow, targetGroup: number) => void;
@@ -17,7 +18,7 @@ export interface ExpressionGroupProps {
 }
 
 export const ExpressionGroup: FunctionComponent<ExpressionGroupProps> = React.memo(
-  ({ parentAction, groupKey, group, children, onActionChange, onAddCondition, moveRowToGroup }) => {
+  ({ parentAction, rowAction, groupKey, group, children, onActionChange, onAddCondition, moveRowToGroup }) => {
     const [{ isOver, canDrop }, drop] = useDrop({
       accept: 'row',
       collect: (monitor) => ({
@@ -42,7 +43,7 @@ export const ExpressionGroup: FunctionComponent<ExpressionGroupProps> = React.me
             <span>{parentAction}</span>
             <span className="slds-assistive-text">{`Condition Group ${group}`}</span>
           </legend>
-          <ExpressionActionDropDown label="" value="AND" onChange={onActionChange} />
+          <ExpressionActionDropDown label="" value={rowAction || 'AND'} onChange={onActionChange} />
           {children}
           <div className="slds-expression__buttons">
             <button className="slds-button slds-button_neutral" onClick={() => onAddCondition()}>
