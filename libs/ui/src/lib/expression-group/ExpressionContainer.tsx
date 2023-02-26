@@ -468,6 +468,7 @@ export const ExpressionContainer: FunctionComponent<ExpressionContainerProps> = 
                 groupKey={row.key}
                 group={i + 1}
                 parentAction={expression.action}
+                rowAction={row.action}
                 onActionChange={(andOr) => handleGroupActionChange(andOr, row)}
                 onAddCondition={() => handleAddCondition(row)}
                 moveRowToGroup={moveRowToGroup}
