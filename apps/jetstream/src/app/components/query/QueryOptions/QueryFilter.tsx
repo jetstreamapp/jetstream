@@ -1,8 +1,8 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 import { useNonInitialEffect } from '@jetstream/shared/ui-utils';
-import { ListItemGroup, QueryFilterOperator } from '@jetstream/types';
+import { ExpressionType, ListItemGroup, QueryFilterOperator } from '@jetstream/types';
 import { ExpressionContainer } from '@jetstream/ui';
-import React, { FunctionComponent, useEffect, useRef, useState } from 'react';
+import { FunctionComponent, useCallback, useEffect, useRef, useState } from 'react';
 import { useRecoilState } from 'recoil';
 import * as fromQueryState from '../query.state';
 import { getResourceTypeFnsFromFields, QUERY_OPERATORS } from '../utils/query-filter.utils';
@@ -32,6 +32,15 @@ export const QueryFilter: FunctionComponent<QueryFilterProps> = ({ fields }) => 
     setResourceTypeFns(getResourceTypeFnsFromFields(fields));
   }, [fields]);
 
+  const handleChange = useCallback(
+    (filters: ExpressionType) => {
+      if (isMounted.current) {
+        setQueryFilters(filters);
+      }
+    },
+    [setQueryFilters]
+  );
+
   return (
     <ExpressionContainer
       expressionInitValue={initialQueryFilters}
@@ -43,11 +52,7 @@ export const QueryFilter: FunctionComponent<QueryFilterProps> = ({ fields }) => 
       operators={QUERY_OPERATORS}
       getResourceTypeFns={getResourceTypeFns}
       disableValueForOperators={disableValueForOperators}
-      onChange={(filters) => {
-        if (isMounted.current) {
-          setQueryFilters(filters);
-        }
-      }}
+      onChange={handleChange}
     />
   );
 };
