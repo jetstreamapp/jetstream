@@ -206,8 +206,8 @@ export const FormulaEvaluator: FunctionComponent<FormulaEvaluatorProps> = () => 
   const handleRefreshMetadata = async () => {
     setRefreshLoading(true);
     await clearCacheForOrg(selectedOrg);
-    sobjectComboRef.current.reload();
-    fieldsComboRef.current.reload();
+    sobjectComboRef.current?.reload();
+    fieldsComboRef.current?.reload();
     setRefreshLoading(false);
   };
 
