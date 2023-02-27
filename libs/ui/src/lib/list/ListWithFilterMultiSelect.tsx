@@ -110,7 +110,7 @@ export const ListWithFilterMultiSelect: FunctionComponent<ListWithFilterMultiSel
             <Grid>
               <h2 className="slds-text-heading_medium slds-grow slds-text-align_center">{labels.listHeading}</h2>
               <div>
-                <Tooltip id={`sobject-list-refresh-tooltip`} content={lastRefreshed}>
+                <Tooltip id={`sobject-list-refresh-tooltip`} content={lastRefreshed || ''}>
                   <button className="slds-button slds-button_icon slds-button_icon-container" disabled={loading} onClick={onRefresh}>
                     <Icon
                       type="utility"

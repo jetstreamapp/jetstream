@@ -23,13 +23,13 @@ export function useListMetadata(
   initialItems?: ListMetadataResult[],
   transformItems?: (item: ListMetadataResult) => ListMetadataResult
 ) {
-  const isMounted = useRef(null);
+  const isMounted = useRef(true);
   const rollbar = useRollbar();
-  const [listMetadataItems, setListMetadataItems] = useState<ListMetadataResult[]>(initialItems);
+  const [listMetadataItems, setListMetadataItems] = useState<ListMetadataResult[] | undefined>(initialItems);
   const [hasLoaded, setHasLoaded] = useState(false);
   const [loading, setLoading] = useState(true);
   const [hasError, setHasError] = useState(false);
-  const [errorMessage, setErrorMessage] = useState<string>(null);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [lastRefreshed, setLastRefreshed] = useState<string>(_lastRefreshed);
   const [orgIdUsedToFetch, setOrgIdUsedToFetch] = useState<string>();
 

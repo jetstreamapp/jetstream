@@ -1,6 +1,9 @@
 import type { SalesforceId } from 'jsforce';
 import { InsertUpdateUpsertDelete, SalesforceOrgEdition, SalesforceOrgLocaleKey } from './salesforce/types';
 
+export type Maybe<T> = T | null | undefined;
+export type Nullable<T> = T | null;
+
 export interface ApiResponse<T = unknown> {
   data: T;
   cache?: CacheItem;
@@ -128,7 +131,7 @@ export interface UserProfileUi {
   'http://getjetstream.app/app_metadata': { featureFlags: FeatureFlag };
   name: string;
   nickname: string;
-  picture: string;
+  picture?: string | null;
   sub: string; // userid
   updated_at: string;
 }
@@ -136,13 +139,13 @@ export interface UserProfileUi {
 // SERVER ONLY TYPE - BROWSER WILL GET UserProfileUi
 export interface UserProfileServer {
   _json: UserProfileUi;
-  _raw: string;
+  _raw: string | null;
   id: string;
   displayName: string;
   emails: { value: string }[];
   name: any;
   nickname: string;
-  picture: string;
+  picture?: string | null;
   provider: string;
   user_id: string;
 }

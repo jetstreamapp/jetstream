@@ -8,12 +8,14 @@ import { ChangeEvent, DetailedHTMLProps, useEffect, useRef, useState } from 'rea
  */
 export const ControlledTextarea = (props: DetailedHTMLProps<React.TextareaHTMLAttributes<HTMLTextAreaElement>, HTMLTextAreaElement>) => {
   const { value, onChange, ...rest } = props;
-  const [cursor, setCursor] = useState(null);
-  const ref = useRef(null);
+  const [cursor, setCursor] = useState<number | null>(null);
+  const ref = useRef<HTMLTextAreaElement>(null);
 
   useEffect(() => {
     const input = ref.current;
-    if (input) input.setSelectionRange(cursor, cursor);
+    if (input) {
+      input.setSelectionRange(cursor, cursor);
+    }
   }, [ref, cursor, value]);
 
   const handleChange = (e: ChangeEvent<HTMLTextAreaElement>) => {

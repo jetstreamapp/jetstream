@@ -9,7 +9,7 @@ export interface ListItemCheckboxProps {
   id: string;
   testId?: string;
   inputRef?: RefObject<HTMLInputElement>;
-  heading: string | JSX.Element;
+  heading?: string | JSX.Element;
   subheading?: string;
   isActive?: boolean;
   subheadingPlaceholder?: boolean;

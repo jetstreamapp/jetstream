@@ -32,7 +32,7 @@ export interface AddOrgProps {
 export const AddOrg: FunctionComponent<AddOrgProps> = ({ className, label = 'Add Org', disabled, onAddOrg }) => {
   const [orgType, setOrgType] = useState<OrgType>('prod');
   const [customUrl, setCustomUrl] = useState<string>('');
-  const [loginUrl, setLoginUrl] = useState<string>(null);
+  const [loginUrl, setLoginUrl] = useState<string | null>(null);
   const [applicationState] = useRecoilState(applicationCookieState);
 
   useEffect(() => {

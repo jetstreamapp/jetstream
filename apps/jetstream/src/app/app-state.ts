@@ -13,7 +13,7 @@ import {
 } from '@jetstream/types';
 import localforage from 'localforage';
 import isString from 'lodash/isString';
-import { atom, selector, useRecoilValue, useSetRecoilState } from 'recoil';
+import { atom, selector, selectorFamily, useRecoilValue, useSetRecoilState } from 'recoil';
 
 export const STORAGE_KEYS = {
   SELECTED_ORG_STORAGE_KEY: `SELECTED_ORG`,
@@ -135,7 +135,7 @@ export const selectedOrgIdState = atom<string>({
   default: getSelectedOrgFromStorage(),
 });
 
-export const selectedOrgState = selector({
+export const selectedOrgStateWithoutPlaceholder = selector({
   key: 'selectedOrgState',
   get: ({ get }) => {
     const salesforceOrgs = get(salesforceOrgsState);
@@ -144,6 +144,36 @@ export const selectedOrgState = selector({
       return salesforceOrgs.find((org) => org.uniqueId === selectedOrgId);
     }
     return undefined;
+  },
+});
+
+/**
+ * If no org is selected, this returns a placeholder
+ * it is expected that any component with an org required
+ * will be wrapped in an <OrgSelectionRequired> component to guard against this
+ */
+export const selectedOrgState = selector({
+  key: 'selectedOrgState',
+  get: ({ get }) => {
+    const PLACEHOLDER: SalesforceOrgUi = {
+      uniqueId: '',
+      label: '',
+      filterText: '',
+      accessToken: '',
+      instanceUrl: '',
+      loginUrl: '',
+      userId: '',
+      email: '',
+      organizationId: '',
+      username: '',
+      displayName: '',
+    };
+    const salesforceOrgs = get(salesforceOrgsState);
+    const selectedOrgId = get(selectedOrgIdState);
+    if (isString(selectedOrgId) && Array.isArray(salesforceOrgs)) {
+      return salesforceOrgs.find((org) => org.uniqueId === selectedOrgId) || PLACEHOLDER;
+    }
+    return PLACEHOLDER;
   },
 });
 

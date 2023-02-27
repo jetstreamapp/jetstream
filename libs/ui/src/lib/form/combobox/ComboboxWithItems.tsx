@@ -1,5 +1,5 @@
 import { multiWordObjectFilter } from '@jetstream/shared/utils';
-import { ListItem } from '@jetstream/types';
+import { ListItem, Maybe } from '@jetstream/types';
 import { Combobox, ComboboxPropsRef } from './Combobox';
 import { ComboboxListItem } from './ComboboxListItem';
 import { FunctionComponent, useCallback, useEffect, useRef, useState } from 'react';
@@ -13,7 +13,7 @@ const defaultSelectedItemTitleFn = (item: ListItem) => item.title;
 export interface ComboboxWithItemsProps {
   comboboxProps: ComboboxProps;
   items: ListItem[];
-  selectedItemId: string;
+  selectedItemId?: string | null;
   /** Optional. If not provided, standard multi-word search will be used */
   filterFn?: (filter: string) => (value: unknown, index: number, array: unknown[]) => boolean;
   /** Used to customize what shows upon selection */
@@ -41,7 +41,7 @@ export const ComboboxWithItems: FunctionComponent<ComboboxWithItemsProps> = ({
   const comboboxRef = useRef<ComboboxPropsRef>();
   const [filterTextNonDebounced, setFilterText] = useState<string>('');
   const filterText = useDebounce(filterTextNonDebounced, 300);
-  const [selectedItem, setSelectedItem] = useState<ListItem | null>(() =>
+  const [selectedItem, setSelectedItem] = useState<Maybe<ListItem>>(() =>
     selectedItemId ? items.find((item) => item.id === selectedItemId) : null
   );
   const [visibleItems, setVisibleItems] = useState(items);
@@ -71,7 +71,7 @@ export const ComboboxWithItems: FunctionComponent<ComboboxWithItemsProps> = ({
   useEffect(() => {
     if (selectedItem) {
       setSelectedItemLabel(selectedItemLabelFn(selectedItem));
-      setSelectedItemTitle(selectedItemTitleFn(selectedItem));
+      setSelectedItemTitle(selectedItemTitleFn(selectedItem) || '');
     } else {
       setSelectedItemLabel(null);
       setSelectedItemTitle(null);

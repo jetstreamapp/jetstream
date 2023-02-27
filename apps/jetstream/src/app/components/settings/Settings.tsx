@@ -24,7 +24,7 @@ export interface SettingsProps {
 
 export const Settings: FunctionComponent<SettingsProps> = ({ userProfile, featureFlags }) => {
   useTitle(TITLES.SETTINGS);
-  const isMounted = useRef(null);
+  const isMounted = useRef(true);
   const { trackEvent } = useAmplitude();
   const rollbar = useRollbar();
   const [loading, setLoading] = useState(false);

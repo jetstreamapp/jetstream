@@ -110,8 +110,8 @@ export function ContextMenu({ containerId, menu, onItemSelected, children }: Con
   const idRef = useRef(uniqueId());
   const { open, setOpen } = useContextMenu(idRef.current);
 
-  const [referenceElement, setReferenceElement] = useState<HTMLElement>(null);
-  const [popperElement, setPopperElement] = useState<HTMLElement>(null);
+  const [referenceElement, setReferenceElement] = useState<HTMLElement | null>(null);
+  const [popperElement, setPopperElement] = useState<HTMLElement | null>(null);
 
   const { styles, attributes } = usePopper(referenceElement, popperElement, {
     placement: 'bottom-start',
@@ -129,8 +129,8 @@ export function ContextMenu({ containerId, menu, onItemSelected, children }: Con
             try {
               const itemId =
                 event.currentTarget.getAttribute('data-id') ||
-                event.currentTarget.parentElement.getAttribute('data-id') ||
-                event.currentTarget.firstElementChild.getAttribute('data-id') ||
+                event.currentTarget?.parentElement?.getAttribute('data-id') ||
+                event.currentTarget?.firstElementChild?.getAttribute('data-id') ||
                 null;
               if (itemId !== containerId) {
                 return;

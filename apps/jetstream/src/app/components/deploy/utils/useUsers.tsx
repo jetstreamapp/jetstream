@@ -16,7 +16,7 @@ export function useUsers(
   sortCurrentUserFirst = true,
   loadOnInit = true
 ) {
-  const isMounted = useRef(null);
+  const isMounted = useRef(true);
   const [lastRefreshed, setLastRefreshed] = useState<string>(_lastRefreshed);
 
   const [{ hasLoaded, loading, data, hasError, errorMessage }, dispatch] = useReducer(

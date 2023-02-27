@@ -72,7 +72,7 @@ export const LoadRecordsBatchApiResults: FunctionComponent<LoadRecordsBatchApiRe
   dateFormat,
   onFinish,
 }) => {
-  const isMounted = useRef(null);
+  const isMounted = useRef(true);
   const { trackEvent } = useAmplitude();
   const rollbar = useRollbar();
   // used to ensure that data in the onworker callback gets a reference to the results
@@ -81,11 +81,11 @@ export const LoadRecordsBatchApiResults: FunctionComponent<LoadRecordsBatchApiRe
   const [preparedData, setPreparedData] = useState<PrepareDataResponse>();
   const [prepareDataProgress, setPrepareDataProgress] = useState(0);
   const [status, setStatus] = useState<Status>(STATUSES.PREPARING);
-  const [fatalError, setFatalError] = useState<string>(null);
-  const [processingStartTime, setProcessingStartTime] = useState<string>(null);
-  const [processingEndTime, setProcessingEndTime] = useState<string>(null);
-  const [startTime, setStartTime] = useState<string>(null);
-  const [endTime, setEndTime] = useState<string>(null);
+  const [fatalError, setFatalError] = useState<string | null>(null);
+  const [processingStartTime, setProcessingStartTime] = useState<string | null>(null);
+  const [processingEndTime, setProcessingEndTime] = useState<string | null>(null);
+  const [startTime, setStartTime] = useState<string | null>(null);
+  const [endTime, setEndTime] = useState<string | null>(null);
   const [processedRecords, setProcessedRecords] = useState<RecordResultWithRecord[]>([]);
   const [processingStatus, setProcessingStatus] = useState<LoadDataBatchApiProgress>({
     total: 0,

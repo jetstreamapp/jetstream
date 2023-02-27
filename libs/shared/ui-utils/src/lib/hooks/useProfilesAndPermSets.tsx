@@ -27,7 +27,7 @@ export function useProfilesAndPermSets(
   _initProfiles?: ListItem<string, PermissionSetWithProfileRecord>[],
   _initPermissionSets?: ListItem<string, PermissionSetNoProfileRecord>[]
 ) {
-  const isMounted = useRef(null);
+  const isMounted = useRef(true);
   const [lastRefreshed, setLastRefreshed] = useState<string>(_lastRefreshed);
   const [loading, setLoading] = useState(false);
   const [hasError, setHasError] = useState(false);

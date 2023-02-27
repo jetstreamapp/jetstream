@@ -65,7 +65,7 @@ export interface FormulaEvaluatorProps {}
 
 export const FormulaEvaluator: FunctionComponent<FormulaEvaluatorProps> = () => {
   useTitle(TITLES.FORMULA_EVALUATOR);
-  const isMounted = useRef(null);
+  const isMounted = useRef(true);
   const editorRef = useRef<editor.IStandaloneCodeEditor>(null);
   const sobjectComboRef = useRef<SobjectComboboxRef>(null);
   const fieldsComboRef = useRef<SobjectFieldComboboxRef>(null);
@@ -73,8 +73,8 @@ export const FormulaEvaluator: FunctionComponent<FormulaEvaluatorProps> = () => 
   const selectedOrg = useRecoilValue<SalesforceOrgUi>(selectedOrgState);
   const [loading, setLoading] = useState(false);
   const [refreshLoading, setRefreshLoading] = useState(false);
-  const [fieldErrorMessage, setFieldErrorMessage] = useState<string>(null);
-  const [errorMessage, setErrorMessage] = useState<string>(null);
+  const [fieldErrorMessage, setFieldErrorMessage] = useState<string | null>(null);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [formulaValue, setFormulaValue] = useRecoilState(fromFormulaState.formulaValueState);
   const [selectedSObject, setSelectedSobject] = useRecoilState(fromFormulaState.selectedSObjectState);
   const [selectedField, setSelectedField] = useRecoilState(fromFormulaState.selectedFieldState);

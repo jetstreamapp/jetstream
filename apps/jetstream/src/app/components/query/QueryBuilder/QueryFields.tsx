@@ -23,7 +23,7 @@ export interface QueryFieldsProps {
 
 export const QueryFieldsComponent: FunctionComponent<QueryFieldsProps> = ({ selectedSObject, isTooling, onSelectionChanged }) => {
   const [{ serverUrl }] = useRecoilState(applicationCookieState);
-  const isMounted = useRef(null);
+  const isMounted = useRef(true);
   const [queryFieldsMap, setQueryFieldsMap] = useRecoilState(fromQueryState.queryFieldsMapState);
   const [queryFieldsKey, setQueryFieldsKey] = useRecoilState(fromQueryState.queryFieldsKey);
   const setChildRelationships = useSetRecoilState(fromQueryState.queryChildRelationships);

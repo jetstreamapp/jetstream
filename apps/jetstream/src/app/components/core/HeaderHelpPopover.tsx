@@ -5,7 +5,7 @@ import { FunctionComponent, useEffect, useRef } from 'react';
 export interface HeaderHelpPopoverProps {}
 
 export const HeaderHelpPopover: FunctionComponent<HeaderHelpPopoverProps> = () => {
-  const isMounted = useRef(null);
+  const isMounted = useRef(true);
   const popoverRef = useRef<PopoverRef>(null);
 
   useEffect(() => {

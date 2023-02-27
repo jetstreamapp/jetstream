@@ -61,7 +61,7 @@ export const LoadRecordsFieldMapping = memo<LoadRecordsFieldMappingProps>(
     // hack to force child re-render when fields are re-mapped
     const [keyPrefix, setKeyPrefix] = useState<number>(() => new Date().getTime());
     const [fieldMapping, setFieldMapping] = useState<FieldMapping>(() => JSON.parse(JSON.stringify(fieldMappingInit)));
-    const [warningMessage, setWarningMessage] = useState<string>(null);
+    const [warningMessage, setWarningMessage] = useState<string | null>(null);
     const [filter, setFilter] = useState<Filter>(FILTER_ALL);
     const [refreshLoading, setRefreshLoading] = useState(false);
     const [searchTerm, setSearchTerm] = useState('');

@@ -19,7 +19,7 @@ export interface PlatformEventMonitorProps {}
 export const PlatformEventMonitor: FunctionComponent<PlatformEventMonitorProps> = ({}) => {
   useTitle(TITLES.PLATFORM_EVENTS);
   const [{ serverUrl }] = useRecoilState(applicationCookieState);
-  const isMounted = useRef(null);
+  const isMounted = useRef(true);
   const selectedOrg = useRecoilValue<SalesforceOrgUi>(selectedOrgState);
   const {
     hasPlatformEvents,

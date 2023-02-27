@@ -14,7 +14,7 @@ export interface AppStateResetOnOrgChangeProps {}
 
 export const AppStateResetOnOrgChange: FunctionComponent<AppStateResetOnOrgChangeProps> = () => {
   const selectedOrg = useRecoilValue<SalesforceOrgUi>(fromAppState.selectedOrgState);
-  const [priorSelectedOrg, setPriorSelectedOrg] = useState<string>(null);
+  const [priorSelectedOrg, setPriorSelectedOrg] = useState<string | null>(null);
 
   const resetFns: Resetter[] = [
     // QUERY

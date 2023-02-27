@@ -31,8 +31,8 @@ export interface ConnectedSobjectListProps {
   isTooling?: boolean;
   initialSearchTerm?: string;
   filterFn?: (sobject: DescribeGlobalSObjectResult) => boolean;
-  onSobjects: (sobjects: DescribeGlobalSObjectResult[]) => void;
-  onSelectedSObject: (selectedSObject: DescribeGlobalSObjectResult) => void;
+  onSobjects: (sobjects: DescribeGlobalSObjectResult[] | null) => void;
+  onSelectedSObject: (selectedSObject: DescribeGlobalSObjectResult | null) => void;
   onSearchTermChange?: (searchTerm: string) => void;
 }
 
@@ -48,9 +48,9 @@ export const ConnectedSobjectList: FunctionComponent<ConnectedSobjectListProps> 
   onSelectedSObject,
   onSearchTermChange,
 }) => {
-  const isMounted = useRef(null);
+  const isMounted = useRef(true);
   const [loading, setLoading] = useState(false);
-  const [errorMessage, setErrorMessage] = useState<string>(null);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [lastRefreshed, setLastRefreshed] = useState<string>(_lastRefreshed);
 
   useEffect(() => {

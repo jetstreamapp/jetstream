@@ -10,7 +10,7 @@ export interface InputProps {
   id?: string;
   className?: string;
   label?: string;
-  labelHelp?: string;
+  labelHelp?: string | null;
   helpText?: JSX.Element | string;
   hasError?: boolean;
   isRequired?: boolean;

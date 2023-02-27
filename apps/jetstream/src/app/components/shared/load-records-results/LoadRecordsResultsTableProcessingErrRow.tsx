@@ -16,7 +16,7 @@ export const LoadRecordsResultsTableProcessingErrRow: FunctionComponent<LoadReco
   processingEndTime,
   onDownload,
 }) => {
-  const isMounted = useRef(null);
+  const isMounted = useRef(true);
 
   useEffect(() => {
     isMounted.current = true;

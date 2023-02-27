@@ -13,7 +13,7 @@ export interface SliderProps {
   label: string;
   rangeLabel: string;
   hideLabel?: boolean;
-  labelHelp?: string | JSX.Element;
+  labelHelp?: string | JSX.Element | null;
   helpText?: React.ReactNode | string;
   disabled?: boolean;
   readOnly?: boolean;

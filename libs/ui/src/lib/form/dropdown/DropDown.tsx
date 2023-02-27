@@ -65,8 +65,8 @@ export const DropDown: FunctionComponent<DropDownProps> = ({
     () => (scrollLength ? `slds-dropdown_length-${scrollLength}` : undefined),
     [scrollLength]
   );
-  const [focusedItem, setFocusedItem] = useState<number>(null);
-  const [selectedItem, setSelectedItem] = useState<string>(initialSelectedId);
+  const [focusedItem, setFocusedItem] = useState<number | null>(null);
+  const [selectedItem, setSelectedItem] = useState<string | undefined>(initialSelectedId);
   const ulContainerEl = useRef<HTMLUListElement>(null);
   const elRefs = useRef<RefObject<HTMLAnchorElement>[]>([]);
 
@@ -83,12 +83,14 @@ export const DropDown: FunctionComponent<DropDownProps> = ({
   useEffect(() => {
     if (elRefs.current && isNumber(focusedItem) && elRefs.current[focusedItem] && elRefs.current[focusedItem]) {
       try {
-        elRefs.current[focusedItem].current.focus();
+        elRefs.current?.[focusedItem]?.current?.focus();
 
-        menuItemSelectScroll({
-          container: ulContainerEl.current,
-          focusedIndex: focusedItem,
-        });
+        if (ulContainerEl.current) {
+          menuItemSelectScroll({
+            container: ulContainerEl.current,
+            focusedIndex: focusedItem,
+          });
+        }
       } catch (ex) {
         // silent error on keyboard navigation
       }

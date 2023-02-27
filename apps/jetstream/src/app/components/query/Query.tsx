@@ -33,7 +33,7 @@ export const Query: FunctionComponent<QueryProps> = () => {
   const resetQueryLimitSkip = useResetRecoilState(fromQueryState.queryLimitSkip);
   const resetQueryOrderByState = useResetRecoilState(fromQueryState.queryOrderByState);
   const resetQuerySoqlState = useResetRecoilState(fromQueryState.querySoqlState);
-  const [priorSelectedOrg, setPriorSelectedOrg] = useState<string>(null);
+  const [priorSelectedOrg, setPriorSelectedOrg] = useState<string | null>(null);
 
   const [isRestoring, setIsRestoring] = useState(false);
   const startRestore = useCallback(() => setIsRestoring(true), []);

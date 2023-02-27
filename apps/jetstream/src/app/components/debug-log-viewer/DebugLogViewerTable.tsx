@@ -79,7 +79,7 @@ export interface DebugLogViewerTableProps {
 }
 
 export const DebugLogViewerTable: FunctionComponent<DebugLogViewerTableProps> = ({ logs, onRowSelection }) => {
-  const isMounted = useRef(null);
+  const isMounted = useRef(true);
 
   useEffect(() => {
     isMounted.current = true;

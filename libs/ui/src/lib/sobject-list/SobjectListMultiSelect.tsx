@@ -1,7 +1,7 @@
 import { css } from '@emotion/react';
 import { formatNumber } from '@jetstream/shared/ui-utils';
 import { multiWordObjectFilter, orderStringsBy } from '@jetstream/shared/utils';
-import { UpDown } from '@jetstream/types';
+import { Maybe, UpDown } from '@jetstream/types';
 import { DescribeGlobalSObjectResult } from 'jsforce';
 import { createRef, Fragment, FunctionComponent, useEffect, useState } from 'react';
 import Checkbox from '../form/checkbox/Checkbox';
@@ -18,7 +18,7 @@ export interface SobjectListMultiSelectProps {
   allowSelectAll?: boolean;
   disabled?: boolean;
   loading: boolean;
-  errorMessage?: string; // TODO:
+  errorMessage?: Maybe<string>;
   onSelected: (selectedSObjects: string[]) => void;
   errorReattempt: () => void;
 }

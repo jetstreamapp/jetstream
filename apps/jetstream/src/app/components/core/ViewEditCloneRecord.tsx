@@ -74,7 +74,7 @@ export const ViewEditCloneRecord: FunctionComponent<ViewEditCloneRecordProps> = 
   onFetch,
   onFetchError,
 }) => {
-  const isMounted = useRef(null);
+  const isMounted = useRef(true);
   const [{ google_apiKey, google_appId, google_clientId }] = useRecoilState(applicationCookieState);
   const [sobjectFields, setSobjectFields] = useState<Field[]>();
   const [picklistValues, setPicklistValues] = useState<PicklistFieldValues>();

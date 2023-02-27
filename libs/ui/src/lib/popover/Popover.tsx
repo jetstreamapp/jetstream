@@ -69,10 +69,10 @@ export const Popover = forwardRef<PopoverRef, PopoverProps>(
     ref
   ) => {
     const isOpen = useRef<boolean>(false);
-    const [referenceElement, setReferenceElement] = useState<HTMLElement>(null);
-    const [popperElement, setPopperElement] = useState<HTMLElement>(null);
-    const [arrowElement, setArrowElement] = useState<HTMLElement>(null);
-    const [closeElement, setCloseElement] = useState<HTMLElement>(null);
+    const [referenceElement, setReferenceElement] = useState<HTMLElement | null>(null);
+    const [popperElement, setPopperElement] = useState<HTMLElement | null>(null);
+    const [arrowElement, setArrowElement] = useState<HTMLElement | null>(null);
+    const [closeElement, setCloseElement] = useState<HTMLElement | null>(null);
 
     const { styles, attributes } = usePopper(referenceElement, popperElement, {
       placement: placement,

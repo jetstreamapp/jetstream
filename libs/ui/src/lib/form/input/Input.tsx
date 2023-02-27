@@ -11,7 +11,7 @@ export interface InputProps {
   className?: string;
   formControlClassName?: string;
   label?: string;
-  labelHelp?: string;
+  labelHelp?: string | null;
   helpText?: React.ReactNode | string;
   hasError?: boolean;
   isRequired?: boolean;
@@ -95,7 +95,7 @@ export const Input: FunctionComponent<InputProps> = ({
           <Icon
             omitContainer
             type={iconRightType}
-            icon={iconLeft}
+            icon={iconRight}
             className="slds-icon slds-input__icon slds-icon-text-default slds-input__icon_right"
           />
         )}

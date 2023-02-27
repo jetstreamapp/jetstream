@@ -75,7 +75,7 @@ function reducer(state: State, action: Action): State {
  * @param changesetName
  */
 export function useDeployMetadataPackage(destinationOrg: SalesforceOrgUi, deployOptions: DeployOptions, file: ArrayBuffer) {
-  const isMounted = useRef(null);
+  const isMounted = useRef(true);
 
   const [{ hasLoaded, loading, hasError, errorMessage, status, deployId, results }, dispatch] = useReducer(reducer, {
     hasLoaded: false,

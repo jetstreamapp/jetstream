@@ -36,8 +36,8 @@ export const ViewOrCompareMetadataModal: FunctionComponent<ViewOrCompareMetadata
 
   const [activeFile, setActiveFile] = useState<TreeItems<FileItemMetadata | null>>(null);
   const [activeFileType, setActiveFileType] = useState<string>('xml');
-  const [activeSourceContent, setActiveSourceContent] = useState<string>(null);
-  const [activeTargetContent, setActiveTargetContent] = useState<string>(null);
+  const [activeSourceContent, setActiveSourceContent] = useState<string | null>(null);
+  const [activeTargetContent, setActiveTargetContent] = useState<string | null>(null);
   const [editorType, setEditorType] = useState<EditorType>('SOURCE');
   const [swapped, setSwapped] = useState(false);
 

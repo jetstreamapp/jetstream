@@ -87,7 +87,7 @@ export const LoadRecordsBulkApiResults: FunctionComponent<LoadRecordsBulkApiResu
   dateFormat,
   onFinish,
 }) => {
-  const isMounted = useRef(null);
+  const isMounted = useRef(true);
   const { trackEvent } = useAmplitude();
   const rollbar = useRollbar();
   const [{ serverUrl, google_apiKey, google_appId, google_clientId }] = useRecoilState(applicationCookieState);
@@ -95,12 +95,12 @@ export const LoadRecordsBulkApiResults: FunctionComponent<LoadRecordsBulkApiResu
   const [prepareDataProgress, setPrepareDataProgress] = useState(0);
   const [loadWorker] = useState(() => getLoadWorker());
   const [status, setStatus] = useState<Status>(STATUSES.PREPARING);
-  const [fatalError, setFatalError] = useState<string>(null);
-  const [downloadError, setDownloadError] = useState<string>(null);
+  const [fatalError, setFatalError] = useState<string | null>(null);
+  const [downloadError, setDownloadError] = useState<string | null>(null);
   const [jobInfo, setJobInfo] = useState<BulkJobWithBatches>();
   const [batchSummary, setBatchSummary] = useState<LoadDataBulkApiStatusPayload>();
-  const [processingStartTime, setProcessingStartTime] = useState<string>(null);
-  const [processingEndTime, setProcessingEndTime] = useState<string>(null);
+  const [processingStartTime, setProcessingStartTime] = useState<string | null>(null);
+  const [processingEndTime, setProcessingEndTime] = useState<string | null>(null);
   // Salesforce changes order of batches, so we want to ensure order is retained based on the input file
   const [batchIdByIndex, setBatchIdByIndex] = useState<MapOf<number>>();
   const [intervalCount, setIntervalCount] = useState<number>(0);

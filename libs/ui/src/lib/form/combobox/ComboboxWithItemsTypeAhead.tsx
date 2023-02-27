@@ -1,5 +1,5 @@
 import { useDebounce } from '@jetstream/shared/ui-utils';
-import { ListItem } from '@jetstream/types';
+import { ListItem, Maybe } from '@jetstream/types';
 import { FunctionComponent, useCallback, useEffect, useRef, useState } from 'react';
 import { Combobox, ComboboxProps, ComboboxPropsRef } from './Combobox';
 import { ComboboxListItem } from './ComboboxListItem';
@@ -16,7 +16,7 @@ export interface ComboboxWithItemsTypeAheadProps {
   /** Used to customize what shows upon selection */
   selectedItemLabelFn?: (item: ListItem) => string;
   selectedItemTitleFn?: (item: ListItem) => string;
-  onSelected: (item: ListItem) => void;
+  onSelected: (item: ListItem | null) => void;
 }
 
 export const ComboboxWithItemsTypeAhead: FunctionComponent<ComboboxWithItemsTypeAheadProps> = ({
@@ -32,7 +32,7 @@ export const ComboboxWithItemsTypeAhead: FunctionComponent<ComboboxWithItemsType
   const comboboxRef = useRef<ComboboxPropsRef>();
   const [filterTextNonDebounced, setFilterText] = useState<string>('');
   const filterText = useDebounce(filterTextNonDebounced, 300);
-  const [selectedItem, setSelectedItem] = useState<ListItem | null>(() =>
+  const [selectedItem, setSelectedItem] = useState<Maybe<ListItem>>(() =>
     selectedItemId ? items.find((item) => item.id === selectedItemId) : null
   );
   const [selectedItemLabel, setSelectedItemLabel] = useState<string | null>(() => {
@@ -61,7 +61,7 @@ export const ComboboxWithItemsTypeAhead: FunctionComponent<ComboboxWithItemsType
   useEffect(() => {
     if (selectedItem) {
       setSelectedItemLabel(selectedItemLabelFn(selectedItem));
-      setSelectedItemTitle(selectedItemTitleFn(selectedItem));
+      setSelectedItemTitle(selectedItemTitleFn(selectedItem) || '');
     } else {
       setSelectedItemLabel(null);
       setSelectedItemTitle(null);

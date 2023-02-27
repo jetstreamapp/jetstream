@@ -27,7 +27,7 @@ export const RecordLookupPopover: FunctionComponent = () => {
   const selectedOrg = useRecoilValue<SalesforceOrgUi>(selectedOrgState);
 
   const [loading, setLoading] = useState<boolean>();
-  const [errorMessage, setErrorMessage] = useState<string>(null);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   const [recentRecords, setRecentRecords] = useState<RecentRecord[]>();
   const [modalOpen, setModalOpen] = useState<boolean>();

@@ -26,7 +26,7 @@ export const DeployMetadataDeploymentTable: FunctionComponent<DeployMetadataDepl
 }) => {
   const [columns, setColumns] = useState<ColumnWithFilter<DeployMetadataTableRow>[]>([]);
   const [visibleRows, setVisibleRows] = useState<DeployMetadataTableRow[]>(rows);
-  const [globalFilter, setGlobalFilter] = useState<string>(null);
+  const [globalFilter, setGlobalFilter] = useState<string | null>(null);
   const [selectedRowIds, setSelectedRowIds] = useState(new Set<any>());
   const [expandedGroupIds, setExpandedGroupIds] = useState(new Set<any>());
 

@@ -27,7 +27,7 @@ export interface DataTableNumberFilter {
 
 export interface DataTableDateFilter {
   type: 'DATE';
-  value: string;
+  value: string | null;
   comparator: 'EQUALS' | 'GREATER_THAN' | 'LESS_THAN';
 }
 
@@ -49,7 +49,7 @@ export interface DataTableBooleanSetFilter {
 
 export interface ColumnWithFilter<TRow, TSummaryRow = unknown> extends Column<TRow, TSummaryRow> {
   /** getValue is used when filtering or sorting rows */
-  readonly getValue?: (params: { row: TRow; column: ColumnWithFilter<TRow, unknown> }) => string;
+  readonly getValue?: (params: { row: TRow; column: ColumnWithFilter<TRow, unknown> }) => string | null;
   readonly filters?: FilterType[];
   /** If column reordering is enabled for a table, prevent column from reorder */
   readonly preventReorder?: boolean;
@@ -72,7 +72,7 @@ export interface SubqueryContext<TRow = any> {
   serverUrl: string;
   org: SalesforceOrgUi;
   isTooling: boolean;
-  columnDefinitions: MapOf<ColumnWithFilter<TRow, unknown>[]>;
+  columnDefinitions?: MapOf<ColumnWithFilter<TRow, unknown>[]>;
   google_apiKey: string;
   google_appId: string;
   google_clientId: string;

@@ -22,7 +22,7 @@ export const CreateObjectAndFields: FunctionComponent<CreateObjectAndFieldsProps
   const resetSObjectsState = useResetRecoilState(fromCreateFieldsState.sObjectsState);
   const resetSelectedSObjectsState = useResetRecoilState(fromCreateFieldsState.selectedSObjectsState);
   const resetFieldRowsState = useResetRecoilState(fromCreateFieldsState.fieldRowsState);
-  const [priorSelectedOrg, setPriorSelectedOrg] = useState<string>(null);
+  const [priorSelectedOrg, setPriorSelectedOrg] = useState<string | null>(null);
 
   const hasSelectionsMade = useRecoilValue(fromCreateFieldsState.hasSelectionsMade);
 

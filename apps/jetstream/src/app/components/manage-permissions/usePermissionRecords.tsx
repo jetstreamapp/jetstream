@@ -12,7 +12,7 @@ import { FieldPermissionDefinitionMap, ObjectPermissionDefinitionMap } from './u
 import { useRollbar } from '@jetstream/shared/ui-utils';
 
 export function usePermissionRecords(selectedOrg: SalesforceOrgUi, sobjects: string[], profilePermSetIds: string[], permSetIds: string[]) {
-  const isMounted = useRef(null);
+  const isMounted = useRef(true);
   const rollbar = useRollbar();
   const [loading, setLoading] = useState(true);
   const [hasError, setHasError] = useState(false);

@@ -33,7 +33,7 @@ export const useQueryRestore = (
 
   const rollbar = useRollbar();
 
-  const isMounted = useRef(null);
+  const isMounted = useRef(true);
   const [errorMessage, setErrorMessage] = useState<string>();
   const org = useRecoilValue<SalesforceOrgUi>(selectedOrgState);
   // we should compare setting here vs in a selector - any difference in performance?

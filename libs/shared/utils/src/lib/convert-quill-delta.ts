@@ -106,7 +106,7 @@ function convert(ops, converters) {
                   group = {
                     el: fn.group(),
                     type: attr,
-                    value: op.attributes[k],
+                    value: op.attributes[k!],
                     distance: 0,
                     indent: 0,
                     indentCounts: [0],
@@ -147,8 +147,8 @@ function convert(ops, converters) {
   return root;
 
   function applyInlineAttributes(attrs: any, next?: any) {
-    var first = [],
-      then = [];
+    const first: any[] = [];
+    const then: any[] = [];
     attrs = attrs || {};
 
     var tag = el,

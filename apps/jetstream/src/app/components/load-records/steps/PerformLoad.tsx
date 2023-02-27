@@ -88,11 +88,11 @@ export const LoadRecordsPerformLoad: FunctionComponent<LoadRecordsPerformLoadPro
     getLabelWithOptionalRecommended('Batch API', inputFileData.length <= BATCH_RECOMMENDED_THRESHOLD, hasZipAttachment)
   );
   const [batchSize, setBatchSize] = useState<number>(MAX_BULK);
-  const [batchSizeError, setBatchSizeError] = useState<string>(null);
+  const [batchSizeError, setBatchSizeError] = useState<string | null>(null);
   const [insertNulls, setInsertNulls] = useState<boolean>(false);
   const [serialMode, setSerialMode] = useState<boolean>(false);
   const [dateFormat, setDateFormat] = useState<string>(DATE_FORMATS.MM_DD_YYYY);
-  const [batchApiLimitError, setBatchApiLimitError] = useState<string>(null);
+  const [batchApiLimitError, setBatchApiLimitError] = useState<string | null>(null);
   const [loading, setLoading] = useState<boolean>(false);
   const [loadInProgress, setLoadInProgress] = useState<boolean>(false);
   const [hasLoadResults, setHasLoadResults] = useState<boolean>(false);

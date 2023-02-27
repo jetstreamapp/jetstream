@@ -27,7 +27,7 @@ export const PlatformEventMonitorPublisherCard: FunctionComponent<PlatformEventM
   onSelectedPublishEvent,
   publish,
 }) => {
-  const isMounted = useRef(null);
+  const isMounted = useRef(true);
 
   const [
     {

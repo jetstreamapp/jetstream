@@ -7,7 +7,7 @@ import { useHighlightedText } from '../hooks/useHighlightedText';
 export interface ListItemProps {
   liRef?: RefObject<HTMLLIElement>;
   testId?: string;
-  heading: string | JSX.Element;
+  heading?: string | JSX.Element;
   subheading?: string;
   isActive?: boolean;
   subheadingPlaceholder?: boolean;
@@ -17,7 +17,7 @@ export interface ListItemProps {
 }
 
 export const ListItem = memo<ListItemProps>(
-  ({ liRef, testId, heading, subheading, isActive, subheadingPlaceholder, searchTerm, highlightText, onSelected }) => {
+  ({ liRef, testId, heading = '', subheading, isActive, subheadingPlaceholder, searchTerm, highlightText, onSelected }) => {
     const highlightedHeading = useHighlightedText(heading, searchTerm, { ignoreHighlight: !highlightText });
     const highlightedSubHeading = useHighlightedText(subheading, searchTerm, {
       ignoreHighlight: !highlightText,

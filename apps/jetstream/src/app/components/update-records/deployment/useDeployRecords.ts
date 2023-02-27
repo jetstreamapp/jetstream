@@ -33,7 +33,7 @@ const updateDeploymentResultsState =
 
 export function useDeployRecords(org: SalesforceOrgUi) {
   const [{ serverUrl }] = useRecoilState(applicationCookieState);
-  const isMounted = useRef(null);
+  const isMounted = useRef(true);
   const { notifyUser } = useBrowserNotifications(serverUrl, window.electron?.isFocused);
   const rollbar = useRollbar();
   const { trackEvent } = useAmplitude();

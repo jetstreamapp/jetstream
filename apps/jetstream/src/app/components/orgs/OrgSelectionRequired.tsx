@@ -13,7 +13,7 @@ export interface OrgSelectionRequiredProps {
 }
 
 export const OrgSelectionRequired: FunctionComponent<OrgSelectionRequiredProps> = ({ children }) => {
-  const selectedOrg = useRecoilValue<SalesforceOrgUi>(fromAppState.selectedOrgState);
+  const selectedOrg = useRecoilValue<SalesforceOrgUi | undefined>(fromAppState.selectedOrgStateWithoutPlaceholder);
   const hasConfiguredOrg = useRecoilValue<boolean>(fromAppState.hasConfiguredOrgState);
 
   const handleAddOrg = useCallback((org: SalesforceOrgUi, switchActiveOrg: boolean) => {

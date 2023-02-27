@@ -49,7 +49,7 @@ export const DescribeMetadataList: FunctionComponent<DescribeMetadataListProps> 
   onItemsMap,
   onSelected,
 }) => {
-  const isMounted = useRef(null);
+  const isMounted = useRef(true);
   const [selectedItemsSet, setSelectedItemsSet] = useState<Set<string>>(new Set<string>(selectedItems || []));
   const [searchTerm, setSearchTerm] = useState('');
   const [searchInputId] = useState(`${inputLabelPlural}-filter-${Date.now()}`);
@@ -61,11 +61,11 @@ export const DescribeMetadataList: FunctionComponent<DescribeMetadataListProps> 
     initialItemMap
   );
 
-  const [itemsWithLabel, setItemsWithLabel] = useState<ItemWithLabel[]>(() =>
+  const [itemsWithLabel, setItemsWithLabel] = useState<ItemWithLabel[] | null>(() =>
     metadataItems ? metadataItems.map((name) => ({ name, label: getMetadataLabelFromFullName(name) })) : null
   );
-  const [filteredMetadataItems, setFilteredMetadataItems] = useState<ItemWithLabel[]>(() => {
-    if (itemsWithLabel?.length > 0 && searchTerm) {
+  const [filteredMetadataItems, setFilteredMetadataItems] = useState<ItemWithLabel[] | null | undefined>(() => {
+    if (itemsWithLabel && itemsWithLabel.length > 0 && searchTerm) {
       return itemsWithLabel.filter(multiWordObjectFilter(['name', 'label'], searchTerm));
     } else if (itemsWithLabel) {
       return itemsWithLabel;
@@ -155,7 +155,7 @@ export const DescribeMetadataList: FunctionComponent<DescribeMetadataListProps> 
             </button>
           </p>
         )}
-        {!loading && metadataItems && filteredMetadataItems && (
+        {!loading && metadataItems && filteredMetadataItems && itemsWithLabel && (
           <Fragment>
             <div className="slds-p-bottom--xx-small">
               <SearchInput

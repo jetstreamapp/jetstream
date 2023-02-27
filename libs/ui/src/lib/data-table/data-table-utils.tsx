@@ -145,15 +145,15 @@ export function getColumnDefinitions(results: QueryResults<any>, isTooling: bool
   }
   // If there is a FIELDS('') clause in the query, then we know the data will not be shown
   // in this case, fall back to Salesforce column data instead of the query results
-  const hasFieldsQuery = results.parsedQuery.fields.some(
+  const hasFieldsQuery = results.parsedQuery?.fields?.some(
     (field) => field.type === 'FieldFunctionExpression' && field.functionName === 'FIELDS'
   );
-  if (hasFieldsQuery) {
-    results.parsedQuery.fields = results.columns?.columns.map((column) => getField(column.columnFullPath));
+  if (results.parsedQuery && hasFieldsQuery) {
+    results.parsedQuery.fields = results.columns?.columns?.map((column) => getField(column.columnFullPath));
   }
 
   // Base fields
-  const parentColumns: ColumnWithFilter<RowWithKey>[] = getFlattenedFields(results.parsedQuery).map((field, i) =>
+  const parentColumns: ColumnWithFilter<RowWithKey>[] = getFlattenedFields(results.parsedQuery || {}).map((field, i) =>
     getQueryResultColumn(field, queryColumnsByPath, isFieldSubquery(results.parsedQuery?.[i]))
   );
 
@@ -183,7 +183,7 @@ export function getColumnDefinitions(results: QueryResults<any>, isTooling: bool
 
   // subquery fields - only used if user clicks "view data" on a field so that the table can be built properly
   results.parsedQuery?.fields
-    .filter((field) => isFieldSubquery(field))
+    ?.filter((field) => isFieldSubquery(field))
     .forEach((field: FieldSubquery) => {
       output.subqueryColumns[field.subquery.relationshipName] = getFlattenedFields(field.subquery).map((field) =>
         getQueryResultColumn(field, queryColumnsByPath, false)
@@ -428,7 +428,7 @@ export function filterRecord(filter: DataTableFilter, value: any): boolean {
       }
     }
     case 'DATE': {
-      if (!value) {
+      if (!value || !filter.value) {
         return false;
       }
       const dateFilter = startOfDay(parseISO(filter.value));
@@ -489,9 +489,9 @@ export function filterRecord(filter: DataTableFilter, value: any): boolean {
 }
 
 export function getSubqueryModalTagline(parentRecord: any) {
-  let currModalTagline: string;
-  let recordName: string;
-  let recordId: string;
+  let currModalTagline: string | undefined = undefined;
+  let recordName: string | undefined = undefined;
+  let recordId: string | undefined = undefined;
   try {
     if (parentRecord.Name) {
       recordName = parentRecord.Name;

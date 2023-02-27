@@ -19,7 +19,7 @@ export interface ImageSelectorProps {
   draggableRef?: HTMLElement;
   label?: string;
   buttonLabel?: string;
-  labelHelp?: string;
+  labelHelp?: string | null;
   hideLabel?: boolean;
   disabled?: boolean;
   hasError?: boolean;
@@ -43,8 +43,8 @@ export const ImageSelector: FunctionComponent<ImageSelectorProps> = ({
   autoUploadImages = true,
   onImages,
 }) => {
-  const isMounted = useRef(null);
-  const [systemErrorMessage, setSystemErrorMessage] = useState<string>(null);
+  const isMounted = useRef(true);
+  const [systemErrorMessage, setSystemErrorMessage] = useState<string | null>(null);
   const [id] = useState(uniqueId('image-selector'));
   const [isDraggingOver, setIsDraggingOver] = useState(false);
   const inputRef = useRef<HTMLInputElement>();
@@ -103,7 +103,7 @@ export const ImageSelector: FunctionComponent<ImageSelectorProps> = ({
 
   function handleInputChange(event: React.ChangeEvent<HTMLInputElement>) {
     preventEventDefaults(event);
-    handleFiles(event.target?.files);
+    event.target?.files && handleFiles(event.target.files);
   }
 
   async function handleFiles(files: FileList) {
@@ -187,7 +187,8 @@ export const ImageSelector: FunctionComponent<ImageSelectorProps> = ({
     const indexToRemove = loadedImages.findIndex(({ id }) => id === idToRemove);
     if (indexToRemove >= 0) {
       if (loadedImages[indexToRemove].deleteToken) {
-        deleteImage(loadedImages[indexToRemove].deleteToken)
+        // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+        deleteImage(loadedImages[indexToRemove].deleteToken!)
           .then(NOOP)
           .catch((err) => {
             logger.warn('[IMAGE UPLOAD] Failed to delete image', err);

@@ -207,7 +207,7 @@ interface HeaderFilterProps {
 }
 
 export function HeaderFilter({ columnKey, filters, filterSetValues, portalRefForFilters, updateFilter }: HeaderFilterProps) {
-  const popoverRef = useRef<PopoverRef>();
+  const popoverRef = useRef<PopoverRef>(null);
 
   const [active, setActive] = useState(false);
 
@@ -477,7 +477,7 @@ export function HeaderDateFilter({ columnKey, filter, updateFilter }: DataTableD
         label="Date Range"
         hideLabel
         className="slds-m-top_small w-100"
-        initialSelectedDate={value}
+        initialSelectedDate={value || undefined}
         onChange={handleDateChange}
       />
     </div>

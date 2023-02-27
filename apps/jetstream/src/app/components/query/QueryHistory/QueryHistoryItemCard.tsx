@@ -33,7 +33,7 @@ export const QueryHistoryItemCard: FunctionComponent<QueryHistoryItemCardProps> 
   endRestore,
 }) => {
   const { sObject, label, soql, isTooling, runCount, lastRun } = item;
-  const isMounted = useRef(null);
+  const isMounted = useRef(true);
   const timerRef = useRef(null);
   const [lineCount, setLineCount] = useState(Math.max(soql.split('\n').length, 2));
 

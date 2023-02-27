@@ -16,7 +16,8 @@ export function getBgColor(level: number): string {
     case 4: {
       return '#96c5f7';
     }
-    case 5: {
+    case 5:
+    default: {
       return '#758ecd';
     }
   }

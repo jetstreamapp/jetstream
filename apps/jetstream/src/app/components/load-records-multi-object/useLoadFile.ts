@@ -131,7 +131,7 @@ export const useLoadFile = (org: SalesforceOrgUi, serverUrl: string, apiVersion:
     finished: false,
   });
 
-  const isMounted = useRef<boolean>(null);
+  const isMounted = useRef(true);
 
   useEffect(() => {
     isMounted.current = true;

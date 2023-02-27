@@ -11,7 +11,7 @@ export interface FileDownloadGoogleProps {
   google_appId: string;
   google_clientId: string;
   disabled?: boolean;
-  onFolderSelected: (folderId: string) => void;
+  onFolderSelected: (folderId?: string) => void;
   onSignInChanged?: (signedIn: boolean) => void;
 }
 

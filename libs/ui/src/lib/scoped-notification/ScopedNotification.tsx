@@ -1,7 +1,7 @@
 import { ScopedNotificationTypes } from '@jetstream/types';
 import classNames from 'classnames';
-import Icon from 'libs/ui/src/lib/widgets/Icon';
 import { FunctionComponent, useEffect, useState } from 'react';
+import Icon from '../widgets/Icon';
 
 export interface ScopedNotificationProps {
   className?: string;

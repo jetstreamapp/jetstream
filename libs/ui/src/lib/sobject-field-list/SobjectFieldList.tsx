@@ -48,7 +48,7 @@ export const SobjectFieldList: FunctionComponent<SobjectFieldListProps> = ({
   onUnselectAll,
   errorReattempt,
 }) => {
-  const [queryFields, setQueryFields] = useState<QueryFields>(() => {
+  const [queryFields, setQueryFields] = useState<QueryFields | null>(() => {
     if (isString(itemKey) && queryFieldsMap[itemKey]) {
       return queryFieldsMap[itemKey];
     }
@@ -61,7 +61,7 @@ export const SobjectFieldList: FunctionComponent<SobjectFieldListProps> = ({
     return 0;
   });
   const [activeFilters, setActiveFilters] = useState<FilterTypes>({ ...DEFAULT_FILTER_TYPES });
-  const [filteredFields, setFilteredFields] = useState<FieldWrapper[]>(() => {
+  const [filteredFields, setFilteredFields] = useState<FieldWrapper[] | null>(() => {
     if (isString(itemKey) && queryFieldsMap[itemKey] && queryFieldsMap[itemKey].visibleFields) {
       return Array.from(queryFieldsMap[itemKey].visibleFields)
         .map((key) => queryFieldsMap[itemKey].fields[key])
@@ -69,7 +69,7 @@ export const SobjectFieldList: FunctionComponent<SobjectFieldListProps> = ({
     }
     return null;
   });
-  const [visibleFields, setVisibleFields] = useState<Set<string>>(() => {
+  const [visibleFields, setVisibleFields] = useState<Set<string> | null>(() => {
     if (isString(itemKey) && queryFieldsMap[itemKey]) {
       return queryFieldsMap[itemKey].visibleFields;
     }
@@ -93,16 +93,17 @@ export const SobjectFieldList: FunctionComponent<SobjectFieldListProps> = ({
     if (visibleFields) {
       setFilteredFields(
         Array.from(visibleFields)
-          .map((key) => queryFields.fields[key])
-          .filter(filterFieldsFn(activeFilters))
+          .map((key) => queryFields?.fields?.[key])
+          .filter(Boolean)
+          .filter(filterFieldsFn(activeFilters)) as FieldWrapper[]
       );
     }
   }, [visibleFields, activeFilters, queryFields?.fields]);
 
   // when filtered fields changes, see if handleFieldFilterChanged fields are selected and possibly update allSelected state
   useEffect(() => {
-    if (filteredFields?.length > 0) {
-      const allSelected = filteredFields.every((field) => queryFields.selectedFields.has(field.name));
+    if (filteredFields && filteredFields?.length > 0) {
+      const allSelected = filteredFields.every((field) => queryFields?.selectedFields.has(field.name));
       if (allSelected !== selectAll) {
         setSelectAll(allSelected);
       }
@@ -113,19 +114,15 @@ export const SobjectFieldList: FunctionComponent<SobjectFieldListProps> = ({
   // When select all is explicitly modified, update field selection for visible fields
   function updateSelectAll(value: boolean) {
     setSelectAll(value);
-    onSelectAll(
-      itemKey,
-      value,
-      filteredFields.map((field) => field.name)
-    );
+    onSelectAll(itemKey, value, filteredFields?.map((field) => field.name) || []);
   }
 
   function isFieldActive(field: FieldWrapper) {
-    return queryFields.selectedFields.has(field.name);
+    return queryFields?.selectedFields.has(field.name) || false;
   }
 
   function handleFieldSelected(fieldName: string) {
-    onSelectField(itemKey, queryFields.fields[fieldName]);
+    queryFields?.fields[fieldName] && onSelectField(itemKey, queryFields.fields[fieldName]);
   }
 
   function getFieldContent(item: FieldWrapper) {
@@ -169,7 +166,7 @@ export const SobjectFieldList: FunctionComponent<SobjectFieldListProps> = ({
   }
 
   function handleDownloadMetadata() {
-    saveFile(JSON.stringify(queryFields.metadata, null, 2), `object-metadata-${sobject}.json`, MIME_TYPES.JSON);
+    queryFields && saveFile(JSON.stringify(queryFields.metadata, null, 2), `object-metadata-${sobject}.json`, MIME_TYPES.JSON);
   }
 
   return (

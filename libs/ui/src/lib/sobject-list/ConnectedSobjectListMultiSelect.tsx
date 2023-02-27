@@ -25,9 +25,9 @@ export interface ConnectedSobjectListMultiSelectProps {
   selectedSObjects: string[];
   allowSelectAll?: boolean;
   retainSelectionOnRefresh?: boolean;
-  filterFn?: (sobject: DescribeGlobalSObjectResult) => boolean;
-  onSobjects: (sobjects: DescribeGlobalSObjectResult[]) => void;
-  onSelectedSObjects: (selectedSObjects: string[]) => void;
+  filterFn?: (sobject: DescribeGlobalSObjectResult | null) => boolean;
+  onSobjects: (sobjects: DescribeGlobalSObjectResult[] | null) => void;
+  onSelectedSObjects: (selectedSObjects: string[] | null) => void;
   onRefresh?: () => void;
 }
 
@@ -43,9 +43,9 @@ export const ConnectedSobjectListMultiSelect: FunctionComponent<ConnectedSobject
   onSelectedSObjects,
   onRefresh,
 }) => {
-  const isMounted = useRef(null);
+  const isMounted = useRef(true);
   const [loading, setLoading] = useState<boolean>(false);
-  const [errorMessage, setErrorMessage] = useState<string>(null);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [lastRefreshed, setLastRefreshed] = useState<string>(_lastRefreshed);
 
   useEffect(() => {

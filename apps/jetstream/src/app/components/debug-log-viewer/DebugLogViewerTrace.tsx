@@ -9,7 +9,7 @@ export interface DebugLogViewerTraceProps {
 }
 
 export const DebugLogViewerTrace: FunctionComponent<DebugLogViewerTraceProps> = ({ org }) => {
-  const isMounted = useRef(null);
+  const isMounted = useRef(true);
   const popoverRef = useRef<PopoverRef>(null);
   const { changeLogLevel, loading, errorMessage, activeDebugLevel, debugLevels } = useSetTraceFlag(org);
 

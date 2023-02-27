@@ -74,7 +74,7 @@ function reducer(state: State, action: Action): State {
 }
 
 export function useSetTraceFlag(org: SalesforceOrgUi, extendTraceHours = DEFAULT_EXTEND_TRACE_BY_HOURS) {
-  const isMounted = useRef(null);
+  const isMounted = useRef(true);
   const expirationTimeout = useRef<number>();
 
   const [{ hasLoaded, loading, errorMessage, status, userTrace, debugLevels, activeDebugLevel, expirationDate }, dispatch] = useReducer(

@@ -48,7 +48,7 @@ export interface AnonymousApexProps {}
 
 export const AnonymousApex: FunctionComponent<AnonymousApexProps> = () => {
   useTitle(TITLES.ANON_APEX);
-  const isMounted = useRef(null);
+  const isMounted = useRef(true);
   const apexRef = useRef<editor.IStandaloneCodeEditor>(null);
   const logRef = useRef<editor.IStandaloneCodeEditor>(null);
   const { trackEvent } = useAmplitude();

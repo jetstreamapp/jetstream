@@ -13,7 +13,7 @@ import { fetchMetadataFromSoql } from '../utils/query-soql-utils';
  * @returns
  */
 export function useQueryResultsFetchMetadata(org: SalesforceOrgUi, parsedQuery: Query, isTooling: boolean) {
-  const [parsedQueryStr, setParsedQueryStr] = useState<string>(null);
+  const [parsedQueryStr, setParsedQueryStr] = useState<string | null>(null);
   const [fieldMetadata, setFieldMetadata] = useState<MapOf<Field>>(null);
   const [fieldMetadataSubquery, setFieldMetadataSubquery] = useState<MapOf<MapOf<Field>>>(null);
 

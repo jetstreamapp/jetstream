@@ -32,7 +32,7 @@ import {
 import { DataTable } from './DataTable';
 
 export const SubqueryRenderer: FunctionComponent<FormatterProps<RowWithKey, unknown>> = ({ column, row, onRowChange, isCellSelected }) => {
-  const isMounted = useRef(null);
+  const isMounted = useRef(true);
   const [isActive, setIsActive] = useState(false);
   const [modalTagline, setModalTagline] = useState<string>();
   const [downloadModalIsActive, setDownloadModalIsActive] = useState(false);
@@ -106,6 +106,9 @@ export const SubqueryRenderer: FunctionComponent<FormatterProps<RowWithKey, unkn
 
   async function loadMore(org: SalesforceOrgUi, isTooling: boolean) {
     try {
+      if (!nextRecordsUrl) {
+        return;
+      }
       setIsLoadingMore(true);
       const results = await queryMore(org, nextRecordsUrl, isTooling);
       if (!isMounted.current) {
@@ -128,7 +131,11 @@ export const SubqueryRenderer: FunctionComponent<FormatterProps<RowWithKey, unkn
 
   return (
     <DataTableSubqueryContext.Consumer>
-      {({ serverUrl, org, columnDefinitions, isTooling, google_apiKey, google_appId, google_clientId }) => {
+      {(props) => {
+        if (!props) {
+          return null;
+        }
+        const { serverUrl, org, columnDefinitions, isTooling, google_apiKey, google_appId, google_clientId } = props;
         return (
           <div>
             {(downloadModalIsActive || isActive) && (
@@ -169,7 +176,7 @@ export const SubqueryRenderer: FunctionComponent<FormatterProps<RowWithKey, unkn
 interface ModalDataTableProps extends SubqueryContext {
   isActive: boolean;
   columnKey: string;
-  modalTagline: string;
+  modalTagline?: string;
   queryResults: QueryResult<any>;
   isLoadingMore: boolean;
   selectedRows: ReadonlySet<string>;
@@ -220,8 +227,8 @@ function ModalDataTable({
     };
   });
 
-  function getColumns(subqueryColumns: SalesforceQueryColumnDefinition<any>['subqueryColumns']) {
-    return subqueryColumns[columnKey];
+  function getColumns(subqueryColumns?: SalesforceQueryColumnDefinition<any>['subqueryColumns']) {
+    return subqueryColumns?.[columnKey];
   }
 
   const handleContextMenuAction = useCallback(

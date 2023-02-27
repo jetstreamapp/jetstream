@@ -18,17 +18,17 @@ export const ItemSelectionSummary: FunctionComponent<ItemSelectionSummaryProps> 
   onClearItem,
   onClearAll,
 }) => {
-  const popoverRef = useRef<PopoverRef>();
+  const popoverRef = useRef<PopoverRef>(null);
 
   function handleClearAll() {
     onClearAll();
-    popoverRef.current.close();
+    popoverRef.current?.close();
   }
 
   function handleClearItem(item: string) {
     onClearItem(item);
     if (items.length === 1) {
-      popoverRef.current.close();
+      popoverRef.current?.close();
     }
   }
 

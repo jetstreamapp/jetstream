@@ -20,7 +20,7 @@ export interface SalesforceApiProps {}
 
 export const SalesforceApi: FunctionComponent<SalesforceApiProps> = () => {
   useTitle(TITLES.API_EXPLORER);
-  const isMounted = useRef(null);
+  const isMounted = useRef(true);
   const [{ defaultApiVersion }] = useRecoilState(applicationCookieState);
   const { trackEvent } = useAmplitude();
   const rollbar = useRollbar();

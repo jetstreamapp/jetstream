@@ -42,7 +42,7 @@ export const useValidateLoadFile = (org: SalesforceOrgUi, apiVersion: string, op
     errors: [],
   });
 
-  const isMounted = useRef<boolean>(null);
+  const isMounted = useRef(true);
 
   useEffect(() => {
     isMounted.current = true;

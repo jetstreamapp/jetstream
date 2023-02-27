@@ -32,7 +32,7 @@ export function usePlatformEvent({ selectedOrg }: { selectedOrg: SalesforceOrgUi
   unsubscribe: (platformEventName: string) => Promise<any>;
   publish: (platformEventName: string, data: any) => Promise<string>;
 } {
-  const isMounted = useRef(null);
+  const isMounted = useRef(true);
   const cometD = useRef<CometD>();
   const rollbar = useRollbar();
   const { trackEvent } = useAmplitude();

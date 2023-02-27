@@ -66,7 +66,7 @@ export const QueryResultsAttachmentDownload: FunctionComponent<QueryResultsAttac
   const [visible, setVisible] = useState(false);
   const [disabled, setDisabled] = useState(false);
   const [disabledReason, setDisabledReason] = useState('');
-  const [errorMessage, setErrorMessage] = useState<string>(null);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   useEffect(() => {
     setVisible(FILE_DOWNLOAD_FIELD_MAP.has(sobjectName) && hasRecords);

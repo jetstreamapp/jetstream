@@ -89,7 +89,7 @@ export function ErrorTooltip({ hasError, id }: { hasError: boolean; id: string }
 export interface ManagePermissionsEditorProps {}
 
 export const ManagePermissionsEditor: FunctionComponent<ManagePermissionsEditorProps> = () => {
-  const isMounted = useRef(null);
+  const isMounted = useRef(true);
   const [{ google_apiKey, google_appId, google_clientId }] = useRecoilState(applicationCookieState);
   const managePermissionsEditorObjectTableRef = useRef<ManagePermissionsEditorTableRef>();
   const managePermissionsEditorFieldTableRef = useRef<ManagePermissionsEditorTableRef>();

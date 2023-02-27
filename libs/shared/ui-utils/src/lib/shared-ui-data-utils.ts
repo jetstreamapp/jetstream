@@ -88,7 +88,7 @@ export function fetchFieldsProcessResults(
       const type = field.typeLabel;
 
       const filterText = `${field.name || ''}${field.label || ''}${type}${type.replace(REGEX.NOT_ALPHA, '')}`.toLowerCase();
-      let relatedSobject: string | string[];
+      let relatedSobject: string | string[] | undefined = undefined;
       if (field.type === 'reference' && field.relationshipName && field.referenceTo?.length) {
         if (field.referenceTo.length === 1) {
           relatedSobject = field.referenceTo[0];
@@ -165,7 +165,7 @@ export async function makeToolingRequests<T>(
   allOrNone = false
 ): Promise<CompositeResponse<T>> {
   const compositeRequestSets = splitArrayToMaxSize(compositeRequests, 25);
-  let results: CompositeResponse<T>;
+  let results: CompositeResponse<T> = { compositeResponse: [] };
   for (const compositeRequest of compositeRequestSets) {
     const response = await genericRequest<CompositeResponse<T>>(selectedOrg, {
       isTooling: true,

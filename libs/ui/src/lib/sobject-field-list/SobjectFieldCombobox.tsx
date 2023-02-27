@@ -26,7 +26,7 @@ export interface SobjectFieldComboboxProps {
   className?: string;
   label?: string;
   helpText?: string;
-  labelHelp?: string;
+  labelHelp?: string | null;
   isRequired?: boolean;
   disabled?: boolean;
   selectedOrg: SalesforceOrgUi;
@@ -55,10 +55,10 @@ export const SobjectFieldCombobox = forwardRef<any, SobjectFieldComboboxProps>(
     },
     ref
   ) => {
-    const isMounted = useRef(null);
+    const isMounted = useRef(true);
     const [loading, setLoading] = useState<boolean>(false);
-    const [errorMessage, setErrorMessage] = useState<string>(null);
-    const [fields, setFields] = useState<ListItem[]>(null);
+    const [errorMessage, setErrorMessage] = useState<string | null>(null);
+    const [fields, setFields] = useState<ListItem[] | null>(null);
     const [priorObject, setPriorObject] = useState(selectedSObject);
 
     useEffect(() => {

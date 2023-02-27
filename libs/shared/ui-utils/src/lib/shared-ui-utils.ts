@@ -21,7 +21,9 @@ import {
   ExpressionType,
   ListItem,
   MapOf,
+  Maybe,
   MimeType,
+  Nullable,
   PermissionSetRecord,
   PermissionSetWithProfileRecord,
   PositionAll,
@@ -66,7 +68,7 @@ export function parseQueryParams<T = any>(queryString: string): T {
 }
 
 export function parseCookie<T>(cookieName: string): T | null {
-  const cookieStrRegex: RegExpExecArray = RegExp(`${cookieName}[^;]+`).exec(document.cookie);
+  const cookieStrRegex: RegExpExecArray | null = RegExp(`${cookieName}[^;]+`).exec(document.cookie);
   const cookieStr = decodeURIComponent(cookieStrRegex ? cookieStrRegex.toString().replace(/^[^=]+./, '') : '');
   if (cookieStr.startsWith('j:')) {
     try {
@@ -86,10 +88,16 @@ export function eraseCookies() {
   });
 }
 
+type FieldAccumulator<T> = {
+  id: Nullable<T>;
+  name: Nullable<T>;
+  remaining: T[];
+};
+
 export function sortQueryFields(fields: Field[]): Field[] {
   // partition name and id field out, then append to front
   const reducedFields = orderObjectsBy(fields, 'label').reduce(
-    (out, field) => {
+    (out: FieldAccumulator<Field>, field) => {
       if (field.name === 'Id') {
         out.id = field;
       } else if (field.name === 'Name') {
@@ -106,7 +114,7 @@ export function sortQueryFields(fields: Field[]): Field[] {
     }
   );
 
-  const firstItems = [];
+  const firstItems: Field[] = [];
   if (reducedFields.id) {
     firstItems.push(reducedFields.id);
   }
@@ -120,7 +128,7 @@ export function sortQueryFields(fields: Field[]): Field[] {
 export function sortQueryFieldsStr(fields: string[]): string[] {
   // partition name and id field out, then append to front
   const reducedFields = fields.reduce(
-    (out, field) => {
+    (out: FieldAccumulator<string>, field) => {
       if (field === 'Id') {
         out.id = field;
       } else if (field === 'Name') {
@@ -137,7 +145,7 @@ export function sortQueryFieldsStr(fields: string[]): string[] {
     }
   );
 
-  const firstItems = [];
+  const firstItems: string[] = [];
   if (reducedFields.id) {
     firstItems.push(reducedFields.id);
   }
@@ -401,7 +409,7 @@ function isExpressionConditionType(value: any): value is ExpressionConditionType
   return !Array.isArray(value.rows);
 }
 
-export function convertFiltersToWhereClause(filters: ExpressionType): WhereClause {
+export function convertFiltersToWhereClause(filters: ExpressionType): WhereClause | undefined {
   if (!filters) {
     return;
   }
@@ -559,16 +567,17 @@ function buildExpressionGroupConditionWhereClause(
   } else {
     tempWhereClauses[0].left.openParen = 1;
   }
-  if ((tempWhereClauses[tempWhereClauses.length - 1].left as ValueCondition | ValueWithDateLiteralCondition).closeParen) {
-    (tempWhereClauses[tempWhereClauses.length - 1].left as ValueCondition | ValueWithDateLiteralCondition).closeParen += 1;
+  const currentLeft = tempWhereClauses[tempWhereClauses.length - 1].left as ValueCondition | ValueWithDateLiteralCondition;
+  if (currentLeft.closeParen) {
+    currentLeft.closeParen += 1;
   } else {
-    (tempWhereClauses[tempWhereClauses.length - 1].left as ValueCondition | ValueWithDateLiteralCondition).closeParen = 1;
+    currentLeft.closeParen = 1;
   }
 
   return whereClauses;
 }
 
-export function isNegationOperator(operator: QueryFilterOperator): boolean {
+export function isNegationOperator(operator: Maybe<QueryFilterOperator>): boolean {
   switch (operator) {
     case 'doesNotContain':
     case 'doesNotStartWith':
@@ -579,7 +588,7 @@ export function isNegationOperator(operator: QueryFilterOperator): boolean {
   }
 }
 
-function getValue(operator: QueryFilterOperator, value: string | string[]): string | string[] {
+function getValue(operator: Maybe<QueryFilterOperator>, value: string | string[]): string | string[] {
   value = value || '';
   value = Array.isArray(value) ? value.map(escapeSoqlString) : escapeSoqlString(value);
   switch (operator) {
@@ -667,7 +676,7 @@ function getLiteralType(selected: ExpressionConditionRowSelectedItems): LiteralT
   return 'STRING';
 }
 
-function convertQueryFilterOperator(operator: QueryFilterOperator): Operator {
+function convertQueryFilterOperator(operator: Maybe<QueryFilterOperator>): Operator {
   switch (operator) {
     case 'eq':
     case 'isNull':
@@ -786,7 +795,7 @@ export function getPicklistListItems(field: Field): ListItem[] {
   }));
 }
 /// START ADD ORG ////
-let windowRef: Window | undefined;
+let windowRef: Maybe<Window>;
 let addOrgCallbackFn: (org: SalesforceOrgUi) => void;
 
 function handleWindowEvent(event: MessageEvent) {
@@ -908,7 +917,7 @@ export async function pollMetadataResultsUntilDone(
 
   let attempts = 0;
   let done = false;
-  let deployResults: DeployResult;
+  let deployResults: DeployResult = {} as DeployResult;
   while (!done && attempts <= maxAttempts) {
     await delay(interval);
     deployResults = await checkMetadataResults(selectedOrg, id, includeDetails);
@@ -943,11 +952,11 @@ export async function pollRetrieveMetadataResultsUntilDone(
   interval = interval || DEFAULT_INTERVAL_5_SEC;
   maxAttempts = maxAttempts || DEFAULT_MAX_ATTEMPTS;
   onChecked = isFunction(onChecked) ? onChecked : NOOP;
-  const isCancelled = options.isCancelled || (() => false);
+  const isCancelled = options?.isCancelled || (() => false);
 
   let attempts = 0;
   let done = false;
-  let retrieveResults: RetrieveResult;
+  let retrieveResults: RetrieveResult = {} as RetrieveResult;
   while (!done && attempts <= maxAttempts) {
     await delay(interval);
     if (isCancelled && isCancelled()) {
@@ -1000,7 +1009,7 @@ export async function pollAndDeployMetadataResultsWhenReady(
 
   let attempts = 0;
   let done = false;
-  let retrieveResults: { type: 'deploy' | 'retrieve'; results: RetrieveResult; zipFile?: string };
+  let retrieveResults: { type: 'deploy' | 'retrieve'; results: RetrieveResult; zipFile?: string } | undefined = undefined;
   while (!done && attempts <= maxAttempts) {
     await delay(interval);
     retrieveResults = await checkMetadataRetrieveResultsAndDeployToTarget(selectedOrg, targetOrg, {
@@ -1017,7 +1026,7 @@ export async function pollAndDeployMetadataResultsWhenReady(
       interval += DEFAULT_INTERVAL_5_SEC;
     }
   }
-  if (!done) {
+  if (!done || !retrieveResults) {
     throw new Error('Timed out while checking for metadata results, check Salesforce for results.');
   }
   return retrieveResults;
@@ -1041,7 +1050,7 @@ export function readFile(file: File, type: 'text' | 'array_buffer' | 'data_url' 
       reader.readAsText(file);
     }
     reader.onload = (event: ProgressEvent<FileReader>) => {
-      resolve(reader.result);
+      resolve(reader.result || '');
     };
     reader.onabort = (event: ProgressEvent<FileReader>) => {
       logger.log('onabort', { event });
@@ -1108,7 +1117,7 @@ export async function parseWorkbook(
   errors: string[];
 }> {
   let selectedSheet = workbook.Sheets[workbook.SheetNames[0]];
-  if (workbook.SheetNames.length > 1 && typeof options.onParsedMultipleWorkbooks === 'function') {
+  if (workbook.SheetNames.length > 1 && typeof options?.onParsedMultipleWorkbooks === 'function') {
     const sheetName = await options.onParsedMultipleWorkbooks(workbook.SheetNames);
     if (workbook.Sheets[sheetName]) {
       selectedSheet = workbook.Sheets[sheetName];
@@ -1121,7 +1130,8 @@ export async function parseWorkbook(
     blankrows: false,
     rawNumbers: true,
   });
-  const headers = data.length > 0 ? Object.keys(data[0]) : [];
+  // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+  const headers = data.length > 0 ? Object.keys(data[0]!) : [];
   return {
     data,
     headers: headers.filter((field) => !field.startsWith('__empty')),
@@ -1161,9 +1171,9 @@ function detectDelimiter(): string {
  * @param options
  * @returns
  */
-export function convertDateToLocale(dateOrIsoDateString: string | Date, options?: Intl.DateTimeFormatOptions): string {
+export function convertDateToLocale(dateOrIsoDateString: string | Date, options?: Intl.DateTimeFormatOptions): string | undefined {
   if (!dateOrIsoDateString) {
-    return dateOrIsoDateString as undefined;
+    return undefined;
   }
   const date = dateOrIsoDateString instanceof Date ? dateOrIsoDateString : parseISO(dateOrIsoDateString);
   if (!options) {
@@ -1177,8 +1187,8 @@ export function convertArrayOfObjectToArrayOfArray(data: any[], headers?: string
   if (!data || !data.length) {
     return [];
   }
-  headers = headers || Object.keys(data[0]);
-  return [headers].concat(data.map((row) => headers.map((header) => row[header])));
+  headers = headers || Object.keys(data[0]) || [];
+  return [headers].concat(data.map((row) => headers?.map((header) => row[header]) || []));
 }
 
 export function getValueForExcel(value: any) {
@@ -1202,20 +1212,23 @@ export function getValueForExcel(value: any) {
  * @param data
  * @param fields
  */
-export function transformTabularDataToExcelStr<T = unknown>(data: T[], fields?: string[], includeHeader = true): string {
+export function transformTabularDataToExcelStr<T = Record<string, unknown>>(
+  data: Maybe<T>[],
+  fields?: string[],
+  includeHeader = true
+): string {
   if (!Array.isArray(data) || data.length === 0) {
     return '';
   }
-  if (!fields) {
-    fields = Object.keys(data[0]);
-  }
+  // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+  fields = fields || Object.keys(data[0]!) || [];
 
   // turn each row into \t delimited string, then combine each row into a string delimited by \n
   let output: string = data
     .map((row) =>
       fields
-        .map((field) => {
-          return getValueForExcel(row[field]);
+        ?.map((field) => {
+          return getValueForExcel(row?.[field]);
         })
         .join('\t')
     )
@@ -1242,11 +1255,12 @@ export function transformTabularDataToHtml<T = unknown>(data: T[], fields?: stri
     return '';
   }
   if (!fields) {
-    fields = Object.keys(data[0]);
+    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+    fields = Object.keys(data[0]!);
   }
 
   // turn each row into \t delimited string, then combine each row into a string delimited by \n
-  let output: string = data.map((row) => `<tr>${fields.map((field) => `<td>${escapeHtml(row[field])}</td>`).join('')}</tr>`).join('');
+  let output: string = data.map((row) => `<tr>${fields?.map((field) => `<td>${escapeHtml(row[field])}</td>`).join('')}</tr>`).join('');
 
   if (includeHeader) {
     output = `<tr>${fields.map((field) => `<th>${escapeHtml(field)}</th>`).join('')}</tr>${output}`;
@@ -1290,7 +1304,7 @@ export function menuItemSelectScroll({
   scrollPadding?: number;
 }) {
   try {
-    const domItem: HTMLLIElement = container.querySelector(`${itemTag}:nth-child(${focusedIndex + 1})`);
+    const domItem: HTMLLIElement | null = container.querySelector(`${itemTag}:nth-child(${focusedIndex + 1})`);
 
     if (domItem) {
       if (domItem.offsetHeight - container.scrollTop + domItem.offsetTop >= container.offsetHeight) {
@@ -1329,8 +1343,8 @@ export function useReducerFetchFn<T>() {
           ...state,
           loading: false,
           hasError: true,
-          errorMessage: action.payload.errorMessage,
-          data: action.payload.data ?? state.data,
+          errorMessage: action.payload?.errorMessage,
+          data: action.payload?.data ?? state.data,
         };
       default:
         throw new Error('Invalid action');
@@ -1395,12 +1409,12 @@ export async function getChangesetsFromDomParse(org: SalesforceOrgUi) {
 
   const changesets: ChangeSet[] = Array.from(changesetTable)
     .map((row) => ({
-      link: row.children[1].children[0].getAttribute('href'),
-      name: row.children[1].textContent.replace('\n', '').trim(),
-      description: row.children[2].textContent.replace('\n', '').trim() || null,
-      status: row.children[3].textContent.replace('\n', '').trim() as 'Open' | 'Closed',
-      modifiedBy: row.children[4].textContent.replace('\n', '').trim(),
-      modifiedDate: row.children[5].textContent.replace('\n', '').trim(),
+      link: row.children[1].children[0].getAttribute('href') || '',
+      name: row.children[1].textContent?.replace('\n', '').trim() || '',
+      description: row.children[2].textContent?.replace('\n', '').trim() || null,
+      status: row.children[3].textContent?.replace('\n', '').trim() as 'Open' | 'Closed',
+      modifiedBy: row.children[4].textContent?.replace('\n', '').trim() || '',
+      modifiedDate: row.children[5].textContent?.replace('\n', '').trim() || '',
     }))
     .filter((item) => item.status === 'Open');
 

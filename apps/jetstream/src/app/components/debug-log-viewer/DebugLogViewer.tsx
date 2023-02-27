@@ -38,7 +38,7 @@ export interface DebugLogViewerProps {}
 
 export const DebugLogViewer: FunctionComponent<DebugLogViewerProps> = () => {
   useTitle(TITLES.DEBUG_LOGS);
-  const isMounted = useRef(null);
+  const isMounted = useRef(true);
   const logCache = useRef<MapOf<string>>({});
   const logRef = useRef<editor.IStandaloneCodeEditor>(null);
   const [{ serverUrl }] = useRecoilState(applicationCookieState);

@@ -78,7 +78,7 @@ async function registerServiceWorker() {
  * A URL is generated and given to the service worker to listen to, and uses that to know what files to obtain
  */
 class DownZip {
-  private worker: ServiceWorker;
+  private worker: ServiceWorker | null;
   private intervalTimers: any[] = [];
   private activeDownloads = new Set();
 
@@ -127,23 +127,21 @@ class DownZip {
     const result = await registerServiceWorker();
     logger.log('[DownZip] Service worker registered successfully:', result);
     this.worker = result.installing || result.active;
-    this.worker.onerror = (event) => {
-      logger.error('[DownZip][SW ERROR] There was an error with our service worker', {
-        message: event.message,
-        error: event.error,
-        filename: event.filename,
-      });
-    };
+    if (this.worker) {
+      this.worker.onerror = (event) => {
+        logger.error('[DownZip][SW ERROR] There was an error with our service worker', {
+          message: event.message,
+          error: event.error,
+          filename: event.filename,
+        });
+      };
+    }
   }
 
   sendMessage(command: string, data?: any, port?: Transferable) {
-    this.worker.postMessage(
-      {
-        command,
-        data,
-      },
-      port ? [port] : undefined
-    );
+    if (this.worker) {
+      port ? this.worker.postMessage({ command, data }, [port]) : this.worker.postMessage({ command, data });
+    }
   }
 
   cancelDownload(url: string) {

@@ -11,7 +11,7 @@ const MAX_POLL_ATTEMPTS = 25;
 
 export function useDebugLogs(org: SalesforceOrgUi, { limit, pollInterval, userId }: UseDebugLogsOptions) {
   pollInterval = pollInterval || DEFAULT_POLL_INTERVAL;
-  const isMounted = useRef(null);
+  const isMounted = useRef(true);
   /** Used so that if multiple requests come in at about the same time, we can ignore results from intermediate requests as they may not be valid */
   const currentFetchToken = useRef<number>(new Date().getTime());
   const numPollErrors = useRef<number>(0);
@@ -19,7 +19,7 @@ export function useDebugLogs(org: SalesforceOrgUi, { limit, pollInterval, userId
   const [errorMessage, setErrorMessage] = useState();
   const [logs, setLogs] = useState<ApexLog[]>([]);
   /** If provided, will only fetch the most resent logs */
-  const [asOfId, setAsOfId] = useState<string>(null);
+  const [asOfId, setAsOfId] = useState<string | null>(null);
   const [intervalDelay, setIntervalDelay] = useState<number | null>(null);
   const [lastChecked, setLastChecked] = useState<Date>();
 

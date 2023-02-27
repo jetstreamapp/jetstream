@@ -7,7 +7,7 @@ export interface TextareaProps {
   className?: string;
   labelClassName?: string;
   label?: string | ReactNode;
-  labelHelp?: string;
+  labelHelp?: string | null;
   helpText?: React.ReactNode | string;
   hasError?: boolean;
   readOnly?: boolean;

@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
 // save the last {LOG_BUFFER_SIZE} logs in case of exception, logs can be provided
-export let logBuffer = [];
+export let logBuffer: any[] = [];
 const LOG_BUFFER_SIZE = 5;
 
 function LOG_NOOP(...logs: any[]) {

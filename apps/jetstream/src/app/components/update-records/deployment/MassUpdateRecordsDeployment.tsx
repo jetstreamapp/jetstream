@@ -31,7 +31,7 @@ export const MassUpdateRecordsDeployment: FunctionComponent<MassUpdateRecordsDep
   const rows = useRecoilValue(fromMassUpdateState.rowsState);
   const [loading, setLoading] = useState(false);
   const [batchSize, setBatchSize] = useState(10000);
-  const [batchSizeError, setBatchSizeError] = useState<string>(null);
+  const [batchSizeError, setBatchSizeError] = useState<string | null>(null);
   const [serialMode, setSerialMode] = useState(false);
   const { loadDataForRows, pollResultsUntilDone } = useDeployRecords(selectedOrg);
 

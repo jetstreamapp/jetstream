@@ -79,7 +79,7 @@ export function useAddItemsToChangeset(
     selectedMetadata,
   }: { changesetName: string; changesetDescription: string; selectedMetadata: MapOf<ListMetadataResult[]> }
 ) {
-  const isMounted = useRef(null);
+  const isMounted = useRef(true);
 
   const [{ hasLoaded, loading, hasError, errorMessage, status, deployId, results }, dispatch] = useReducer(reducer, {
     hasLoaded: false,

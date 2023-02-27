@@ -1,7 +1,7 @@
 import { css } from '@emotion/react';
 import { formatNumber, useNonInitialEffect } from '@jetstream/shared/ui-utils';
 import { multiWordObjectFilter } from '@jetstream/shared/utils';
-import { UpDown } from '@jetstream/types';
+import { Maybe, UpDown } from '@jetstream/types';
 import { DescribeGlobalSObjectResult } from 'jsforce';
 import { createRef, Fragment, FunctionComponent, useEffect, useState } from 'react';
 import SearchInput from '../form/search-input/SearchInput';
@@ -15,7 +15,7 @@ export interface SobjectListProps {
   sobjects: DescribeGlobalSObjectResult[];
   selectedSObject: DescribeGlobalSObjectResult;
   loading: boolean;
-  errorMessage?: string; // TODO:
+  errorMessage?: Maybe<string>;
   initialSearchTerm?: string;
   onSelected: (sobject: DescribeGlobalSObjectResult) => void;
   errorReattempt: () => void;
@@ -106,7 +106,10 @@ export const SobjectList: FunctionComponent<SobjectListProps> = ({
                 autoScrollToFocus
                 items={filteredSobjects}
                 isActive={(item: DescribeGlobalSObjectResult) => item.name === selectedSObject?.name}
-                onSelected={(key) => onSelected(sobjects.find((item) => item.name === key))}
+                onSelected={(key) => {
+                  const selected = sobjects.find((item) => item.name === key);
+                  selected && onSelected(selected);
+                }}
                 getContent={(item: DescribeGlobalSObjectResult) => ({
                   key: item.name,
                   testId: item.name,

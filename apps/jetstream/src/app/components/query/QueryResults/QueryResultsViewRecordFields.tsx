@@ -31,9 +31,9 @@ function getValue(value: any) {
 
 export const QueryResultsViewRecordFields: FunctionComponent<QueryResultsViewRecordFieldsProps> = React.memo(
   ({ org, row, isOpen, onClosed }) => {
-    const [recordData, setRecordData] = useState<string>(null);
+    const [recordData, setRecordData] = useState<string | null>(null);
     const [loading, setLoading] = useState<boolean>(false);
-    const [errorMessage, setErrorMessage] = useState<string>(null);
+    const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
     useEffect(() => {
       let mounted = true;

@@ -50,7 +50,7 @@ export const DeployMetadataPackageConfigModal: FunctionComponent<DeployMetadataP
   const [filename, setFileName] = useState<string>(initialFilename);
   const [fileContents, setFileContents] = useState<string[]>(initialFileContents);
   const [isConfigValid, setIsConfigValid] = useState(true);
-  const [zipFileError, setZipFileError] = useState<string>(null);
+  const [zipFileError, setZipFileError] = useState<string | null>(null);
   const [{ isSinglePackage, missingPackageXml }, setPackageDetection] = useState({
     isSinglePackage: initialIsSinglePackage ?? true,
     missingPackageXml: false,

@@ -53,7 +53,7 @@ export interface LoadRecordsProps {
 
 export const LoadRecords: FunctionComponent<LoadRecordsProps> = ({ featureFlags }) => {
   useTitle(TITLES.LOAD);
-  const isMounted = useRef(null);
+  const isMounted = useRef(true);
   const { trackEvent } = useAmplitude();
   const [{ defaultApiVersion, serverUrl, google_apiKey, google_appId, google_clientId }] = useRecoilState(applicationCookieState);
   const googleApiConfig = useMemo(

@@ -38,12 +38,14 @@ const LazyTippy = (props: LazyTippyProps) => {
 
 export const Tooltip: FunctionComponent<TooltipProps> = ({ className, content, onClick, children }) => {
   const [visible, setVisible] = useState(false);
-  const [arrowElement, setArrowElement] = useState<HTMLElement>(null);
+  const [arrowElement, setArrowElement] = useState<HTMLElement | null>(null);
 
   return (
     <LazyTippy
       onHide={() => setVisible(false)}
-      onShow={() => content && setVisible(true)}
+      onShow={() => {
+        content && setVisible(true);
+      }}
       hideOnClick={false}
       allowHTML
       popperOptions={{

@@ -77,7 +77,7 @@ export function useDeployMetadataBetweenOrgs(
   selectedMetadata: MapOf<ListMetadataResult[]>,
   deployOptions: DeployOptions
 ) {
-  const isMounted = useRef(null);
+  const isMounted = useRef(true);
 
   const [{ hasLoaded, loading, hasError, errorMessage, status, deployId, results }, dispatch] = useReducer(reducer, {
     hasLoaded: false,

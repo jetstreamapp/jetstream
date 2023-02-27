@@ -657,7 +657,7 @@ export interface FetchDebugLogOptions {
 
 export interface ChangeSet {
   name: string;
-  description: string;
+  description: string | null;
   link: string;
   status: 'Open' | 'Closed'; // not sure exact types
   modifiedBy: string;

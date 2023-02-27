@@ -53,7 +53,7 @@ export const Tabs = forwardRef<unknown, TabsProps>(
       return initialActiveId || (tabs && tabs[0] && tabs[0].id);
     });
 
-    const [activeTab, setActiveTab] = useState<UiTabSection>(() => {
+    const [activeTab, setActiveTab] = useState<UiTabSection | undefined>(() => {
       if (initialActiveId) {
         return tabs.find((tab) => tab.id === initialActiveId);
       } else if (tabs) {

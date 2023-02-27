@@ -7,7 +7,7 @@ import { TreeItems } from './Tree';
 export interface TreeItemProps {
   item: TreeItems;
   level: number;
-  selectedItem: string;
+  selectedItem?: string;
   expandedItems: Set<string>;
   onSelected: (item: TreeItems) => void;
 }

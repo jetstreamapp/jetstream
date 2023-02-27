@@ -557,7 +557,7 @@ export function useAutomationControlData({
   selectedSObjects: string[];
   selectedAutomationTypes: AutomationMetadataType[];
 }) {
-  const isMounted = useRef(null);
+  const isMounted = useRef(true);
   const { trackEvent } = useAmplitude();
   const rollbar = useRollbar();
 

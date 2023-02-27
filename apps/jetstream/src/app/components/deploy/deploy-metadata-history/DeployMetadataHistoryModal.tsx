@@ -43,7 +43,7 @@ export const DeployMetadataHistoryModal = ({ className }: DeployMetadataHistoryM
   });
   const [historyItems, setHistoryItems] = useState<SalesforceDeployHistoryItem[]>([]);
   const [isLoading, setIsLoading] = useState(false);
-  const [errorMessage, setError] = useState<string>(null);
+  const [errorMessage, setError] = useState<string | null>(null);
   const orgsById = useRecoilValue(fromAppState.salesforceOrgsById);
 
   useEffect(() => {

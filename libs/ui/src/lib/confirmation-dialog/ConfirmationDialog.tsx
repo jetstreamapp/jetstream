@@ -1,13 +1,14 @@
 import React, { Fragment, FunctionComponent } from 'react';
 import Modal from '../modal/Modal';
 import { OverlayProvider } from '@react-aria/overlays';
+import { Maybe } from '@jetstream/types';
 
 export interface ConfirmationDialogProps {
   isOpen: boolean;
-  header?: string | JSX.Element;
-  tagline?: string | JSX.Element;
-  cancelText?: string;
-  confirmText?: string;
+  header?: Maybe<string | JSX.Element>;
+  tagline?: Maybe<string | JSX.Element>;
+  cancelText?: Maybe<string>;
+  confirmText?: Maybe<string>;
   onCancel?: () => void;
   onConfirm: () => void;
   children?: React.ReactNode;
@@ -15,11 +16,11 @@ export interface ConfirmationDialogProps {
 
 export interface ConfirmationDialogServiceProviderOptions {
   rejectOnCancel?: boolean; // if true, then a cancellation will result in a rejected promise
-  header?: string | JSX.Element;
-  tagline?: string | JSX.Element;
+  header?: Maybe<string | JSX.Element>;
+  tagline?: Maybe<string | JSX.Element>;
   content: React.ReactNode;
-  cancelText?: string;
-  confirmText?: string;
+  cancelText?: Maybe<string>;
+  confirmText?: Maybe<string>;
 }
 
 export const ConfirmationDialog: FunctionComponent<ConfirmationDialogProps> = ({
@@ -50,7 +51,7 @@ export const ConfirmationDialog: FunctionComponent<ConfirmationDialogProps> = ({
               </button>
             </Fragment>
           }
-          onClose={() => onCancel()}
+          onClose={() => onCancel && onCancel()}
         >
           {children}
         </Modal>

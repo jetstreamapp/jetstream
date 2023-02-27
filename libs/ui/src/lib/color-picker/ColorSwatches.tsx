@@ -18,9 +18,9 @@ export interface ColorSwatchesProps {
 }
 
 export const ColorSwatches = ({ className, items = [], selectedItem, onSelection }: ColorSwatchesProps) => {
-  const ulRef = useRef<HTMLUListElement>();
+  const ulRef = useRef<HTMLUListElement>(null);
   const elRefs = useRef<HTMLAnchorElement[]>([]);
-  const [selectedItemIdx, setSelectedItemIdx] = useState<number>(null);
+  const [selectedItemIdx, setSelectedItemIdx] = useState<number | null>(null);
   const [focusedItem, setFocusedItem] = useState<number>(() => {
     if (selectedItem) {
       const currSelectedIdx = items.findIndex(({ id }) => id === selectedItem);
@@ -36,7 +36,7 @@ export const ColorSwatches = ({ className, items = [], selectedItem, onSelection
   }, [items]);
 
   useEffect(() => {
-    let currSelectedIdx = null;
+    let currSelectedIdx: number | null = null;
     if (selectedItem) {
       currSelectedIdx = items.findIndex(({ id }) => id === selectedItem);
       if (currSelectedIdx < 0) {
@@ -48,7 +48,7 @@ export const ColorSwatches = ({ className, items = [], selectedItem, onSelection
 
   useNonInitialEffect(() => {
     try {
-      if (elRefs.current && isNumber(focusedItem) && elRefs.current[focusedItem] && ulRef.current.contains(document.activeElement)) {
+      if (elRefs.current && isNumber(focusedItem) && elRefs.current[focusedItem] && ulRef.current?.contains(document.activeElement)) {
         elRefs.current[focusedItem].focus();
       }
     } catch (ex) {
@@ -104,7 +104,7 @@ export const ColorSwatches = ({ className, items = [], selectedItem, onSelection
             href="#"
             role="menuitem"
             tabIndex={i === 0 ? 0 : -1}
-            ref={(el) => (elRefs.current[i] = el)}
+            ref={(el) => Array.isArray(elRefs.current) && el && (elRefs.current[i] = el)}
             onKeyUp={handleKeyUp}
             onClick={(ev) => {
               ev.preventDefault();

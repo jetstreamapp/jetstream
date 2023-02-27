@@ -27,7 +27,7 @@ export const LoadRecordsAssignmentRules: FunctionComponent<LoadRecordsAssignment
   selectedSObject,
   onAssignmentRule,
 }) => {
-  const isMounted = useRef(null);
+  const isMounted = useRef(true);
   const [picklistKey, setPickListKey] = useState(currKey);
   const [loading, setLoading] = useState(false);
   const [useAssignmentRules, setUseAssignmentRules] = useState(false);

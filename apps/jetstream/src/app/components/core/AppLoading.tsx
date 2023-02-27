@@ -4,7 +4,7 @@ import { FunctionComponent, useEffect, useRef, useState } from 'react';
 const delayMs = 300;
 
 export const AppLoading: FunctionComponent = () => {
-  const isMounted = useRef(null);
+  const isMounted = useRef(true);
   const [isActive, setIsActive] = useState(false);
 
   useEffect(() => {

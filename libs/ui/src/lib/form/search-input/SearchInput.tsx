@@ -31,7 +31,7 @@ export const SearchInput: FunctionComponent<SearchInputProps> = ({
 }) => {
   const [value, setValue] = useState<string>(incomingValue || '');
   const debouncedFilters = useDebounce(value);
-  const inputEl = useRef<HTMLInputElement>();
+  const inputEl = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (incomingValue !== value) {
@@ -41,10 +41,8 @@ export const SearchInput: FunctionComponent<SearchInputProps> = ({
   }, [incomingValue]);
 
   useEffect(() => {
-    if (autoFocus && inputEl.current) {
-      inputEl.current.focus();
-    }
-  }, [inputEl]);
+    autoFocus && inputEl.current?.focus();
+  }, [autoFocus]);
 
   useNonInitialEffect(() => {
     onChange(debouncedFilters || '');
@@ -52,7 +50,7 @@ export const SearchInput: FunctionComponent<SearchInputProps> = ({
 
   function handleKeyUp(event: KeyboardEvent<HTMLInputElement>) {
     if (onArrowKeyUpDown) {
-      let direction: UpDown;
+      let direction: UpDown | undefined = undefined;
       if (isArrowUpKey(event)) {
         direction = 'UP';
       } else if (isArrowDownKey(event)) {

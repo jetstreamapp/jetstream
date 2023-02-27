@@ -24,7 +24,7 @@ export interface DatePickerProps {
   containerDisplay?: 'block' | 'flex' | 'inline' | 'inline-block' | 'contents';
   label: string;
   hideLabel?: boolean;
-  labelHelp?: string;
+  labelHelp?: string | null;
   helpText?: React.ReactNode | string;
   isRequired?: boolean;
   hasError?: boolean;
@@ -37,7 +37,7 @@ export interface DatePickerProps {
   dropDownPosition?: PositionLeftRight;
   disabled?: boolean;
   readOnly?: boolean;
-  onChange: (date: Date) => void;
+  onChange: (date: Date | null) => void;
 }
 
 export const DatePicker: FunctionComponent<DatePickerProps> = ({
@@ -63,7 +63,7 @@ export const DatePicker: FunctionComponent<DatePickerProps> = ({
 }) => {
   initialSelectedDate = isValidDate(initialSelectedDate) ? initialSelectedDate : undefined;
   initialVisibleDate = isValidDate(initialVisibleDate) ? initialVisibleDate : undefined;
-  const inputRef = useRef<HTMLInputElement>();
+  const inputRef = useRef<HTMLInputElement>(null);
   const [id] = useState<string>(`${_id || 'date-picker'}-${Date.now()}`); // used to avoid auto-complete
   const [value, setValue] = useState<string>('');
   const [selectedDate, setSelectedDate] = useState(() => (isValidDate(initialSelectedDate) ? initialSelectedDate : undefined));

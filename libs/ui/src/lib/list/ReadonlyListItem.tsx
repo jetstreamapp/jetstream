@@ -3,12 +3,12 @@ import isString from 'lodash/isString';
 import { memo } from 'react';
 
 export interface ReadonlyListItemProps {
-  heading: string | JSX.Element;
+  heading?: string | JSX.Element;
   subheading?: string;
   subheadingPlaceholder?: boolean;
 }
 
-export const ReadonlyListItem = memo<ReadonlyListItemProps>(({ heading, subheading, subheadingPlaceholder }) => {
+export const ReadonlyListItem = memo<ReadonlyListItemProps>(({ heading = '', subheading, subheadingPlaceholder }) => {
   return (
     <li className="slds-item read-only">
       {isString(heading) ? <div className="slds-truncate">{heading}</div> : heading}

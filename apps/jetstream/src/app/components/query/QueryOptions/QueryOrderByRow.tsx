@@ -18,7 +18,7 @@ function getSelectionLabel(groupLabel: string, item: ListItem<string, unknown>) 
 }
 
 export const QueryOrderBy: FunctionComponent<QueryOrderByProps> = ({ orderBy, fields, order, nulls, onChange, onDelete }) => {
-  const [fieldFilter, setFieldFilter] = useState<string>(null);
+  const [fieldFilter, setFieldFilter] = useState<string | null>(null);
   const [visibleFields, setVisibleFields] = useState(fields);
   const [initialSelectedOrder] = useState(order.find((item) => item.value === orderBy.order) || order[0]);
   const [initialSelectedNulls] = useState(nulls.find((item) => item.value === orderBy.nulls) || nulls[0]);

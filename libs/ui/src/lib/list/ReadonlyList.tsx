@@ -18,6 +18,7 @@ export interface ReadonlyListProps {
 export const ReadonlyList = forwardRef<HTMLUListElement, ReadonlyListProps>(
   ({ items, subheadingPlaceholder = false, getContent }, ref: RefObject<HTMLUListElement>) => {
     return (
+      // eslint-disable-next-line react/jsx-no-useless-fragment
       <Fragment>
         {Array.isArray(items) && items.length > 0 && (
           <ul ref={ref} className="slds-has-dividers_bottom-space">

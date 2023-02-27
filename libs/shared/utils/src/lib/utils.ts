@@ -8,6 +8,7 @@ import {
   HttpMethod,
   InsertUpdateUpsertDelete,
   MapOf,
+  Maybe,
   QueryFieldWithPolymorphic,
   Record,
   SoapNil,
@@ -87,7 +88,7 @@ export function multiWordObjectFilter<T>(
       .map((prop) => (item[prop] ?? '').toString())
       .join()
       .toLocaleLowerCase();
-    return search.every((word) => normalizedValue.includes(word)) || optionalExtraCondition?.(item);
+    return search.every((word) => normalizedValue.includes(word)) || optionalExtraCondition?.(item) || false;
   };
 }
 
@@ -161,8 +162,8 @@ export function splitArrayToMaxSize<T = unknown>(items: T[], maxSize: number): T
   if (!items || items.length === 0) {
     return [[]];
   }
-  let output = [];
-  let currSet = [];
+  let output: T[][] = [];
+  let currSet: T[] = [];
   items.forEach((item) => {
     if (currSet.length < maxSize) {
       currSet.push(item);
@@ -177,7 +178,7 @@ export function splitArrayToMaxSize<T = unknown>(items: T[], maxSize: number): T
   return output;
 }
 
-export function toBoolean(value: boolean | string | null | undefined, defaultValue: boolean = false) {
+export function toBoolean(value: Maybe<boolean | string>, defaultValue: boolean = false) {
   if (isBoolean(value)) {
     return value;
   }
@@ -187,7 +188,7 @@ export function toBoolean(value: boolean | string | null | undefined, defaultVal
   return defaultValue;
 }
 
-export function toNumber(value: number | string | null | undefined) {
+export function toNumber(value: Maybe<number | string>) {
   if (isString(value)) {
     const val = Number.parseInt(value);
     if (Number.isFinite(val)) {
@@ -242,7 +243,7 @@ export function replaceSubqueryQueryResultsWithRecords(results: QueryResults<any
   if (results.parsedQuery) {
     const subqueryFields = new Set<string>(
       results.parsedQuery.fields
-        .filter((field) => field.type === 'FieldSubquery')
+        ?.filter((field) => field.type === 'FieldSubquery')
         .map((field: FieldSubquery) => field.subquery.relationshipName)
     );
     if (subqueryFields.size > 0) {
@@ -311,8 +312,8 @@ export function getSObjectNameFromAttributes(record: any) {
 
 export function convertFieldWithPolymorphicToQueryFields(inputFields: QueryFieldWithPolymorphic[]): FieldType[] {
   let polymorphicItems: { field: string; sobject: string; fields: string[] } = {
-    field: null,
-    sobject: null,
+    field: '',
+    sobject: '',
     fields: [],
   };
   let outputFields = inputFields.reduce((output: FieldType[], field) => {
@@ -342,7 +343,7 @@ export function convertFieldWithPolymorphicToQueryFields(inputFields: QueryField
       // Compose prior polymorphic fields
       if (polymorphicItems.field && polymorphicItems.fields.length > 0) {
         output.push(getTypeOfField(polymorphicItems));
-        polymorphicItems = { field: null, sobject: null, fields: [] };
+        polymorphicItems = { field: '', sobject: '', fields: [] };
       }
       // return regular non-TYPEOF fields
       output.push(getField(field.field));
@@ -353,13 +354,13 @@ export function convertFieldWithPolymorphicToQueryFields(inputFields: QueryField
   // Compose remaining polymorphic fields
   if (polymorphicItems.field && polymorphicItems.fields.length > 0) {
     outputFields.push(getTypeOfField(polymorphicItems));
-    polymorphicItems = { field: null, sobject: null, fields: [] };
+    polymorphicItems = { field: '', sobject: '', fields: [] };
   }
 
   return outputFields;
 }
 
-export function ensureBoolean(value: string | boolean | null | undefined) {
+export function ensureBoolean(value: Maybe<string | boolean>) {
   if (isBoolean(value)) {
     return value;
   } else if (isString(value)) {
@@ -375,7 +376,7 @@ export function ensureArray<T = unknown>(value: T): T {
   return (Array.isArray(value) ? value : [value]) as T;
 }
 
-export function ensureStringValue(value: string, allowedValues: string[], fallback?: string): string | undefined {
+export function ensureStringValue(value: Maybe<string>, allowedValues: string[], fallback?: string): string | undefined {
   if (isNil(value)) {
     return fallback;
   }
@@ -506,7 +507,7 @@ export function transformRecordForDataLoad(value: any, fieldType: jsforceFieldTy
 const DATE_ERR_MESSAGE =
   'There was an error reading one or more date fields in your file. Ensure date fields are properly formatted with a four character year.';
 
-function transformDate(value: any, dateFormat: string): string | null {
+function transformDate(value: any, dateFormat: string): Maybe<string> {
   if (!value) {
     return null;
   }
@@ -569,7 +570,7 @@ function buildDateFromString(value: string, dateFormat: string, representation: 
   }
 }
 
-function transformDateTime(value: string | null | Date, dateFormat: string): string | null {
+function transformDateTime(value: string | null | Date, dateFormat: string): Maybe<string> {
   if (!value) {
     return null;
   }

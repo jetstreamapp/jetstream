@@ -19,7 +19,7 @@ export interface GoogleFileSelectorProps {
   label?: string;
   buttonLabel?: string;
   helpText?: string;
-  labelHelp?: string;
+  labelHelp?: string | null;
   hideLabel?: boolean;
   isRequired?: boolean;
   disabled?: boolean;

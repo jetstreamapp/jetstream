@@ -22,7 +22,7 @@ export const useAsync = (asyncFunction: Function, immediate = true) => {
   const [result, setResult] = useState(null);
   const [error, setError] = useState(null);
   // track if component is mounted
-  const isMounted = useRef<boolean>(null);
+  const isMounted = useRef(true);
 
   useEffect(() => {
     isMounted.current = true;

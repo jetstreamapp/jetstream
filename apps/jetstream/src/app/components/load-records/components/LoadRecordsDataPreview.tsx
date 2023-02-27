@@ -72,7 +72,7 @@ export const LoadRecordsDataPreview: FunctionComponent<LoadRecordsDataPreviewPro
   header,
   loadType,
 }) => {
-  const isMounted = useRef(null);
+  const isMounted = useRef(true);
   const [totalRecordCount, setTotalRecordCount] = useRecoilState(fromLoadRecordsState.loadExistingRecordCount);
   const [omitTotalRecordCount, setOmitTotalRecordCount] = useState(true);
   const [columns, setColumns] = useState<Column<RowWithKey>[]>(null);

@@ -39,9 +39,9 @@ export const QueryWhereIsThisUsed: FunctionComponent<QueryWhereIsThisUsedProps> 
     if (items) {
       setExportData(
         items.map(({ meta }) => ({
-          'Reference Type': meta.MetadataComponentType,
-          'Reference Label': meta.MetadataComponentName,
-          Namespace: meta.MetadataComponentNamespace,
+          'Reference Type': meta?.MetadataComponentType || '',
+          'Reference Label': meta?.MetadataComponentName || '',
+          Namespace: meta?.MetadataComponentNamespace || '',
         }))
       );
     }

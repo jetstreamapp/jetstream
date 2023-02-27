@@ -25,7 +25,7 @@ export const DeployMetadata: FunctionComponent<DeployMetadataProps> = () => {
   const resetChangesetPackage = useResetRecoilState(fromDeployMetadataState.changesetPackage);
   const resetChangesetPackages = useResetRecoilState(fromDeployMetadataState.changesetPackages);
 
-  const [priorSelectedOrg, setPriorSelectedOrg] = useState<string>(null);
+  const [priorSelectedOrg, setPriorSelectedOrg] = useState<string | null>(null);
 
   // reset everything if the selected org changes
   useEffect(() => {

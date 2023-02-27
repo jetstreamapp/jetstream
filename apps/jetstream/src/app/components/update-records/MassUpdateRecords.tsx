@@ -18,7 +18,7 @@ export const MassUpdateRecords: FunctionComponent = () => {
 
   const isConfigured = useRecoilValue(fromMassUpdateState.isConfigured);
 
-  const [priorSelectedOrg, setPriorSelectedOrg] = useState<string>(null);
+  const [priorSelectedOrg, setPriorSelectedOrg] = useState<string | null>(null);
 
   useEffect(() => {
     return () => {

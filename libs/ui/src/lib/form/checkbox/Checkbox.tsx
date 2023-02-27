@@ -11,7 +11,7 @@ export interface CheckboxProps {
   indeterminate?: boolean;
   label: string;
   hideLabel?: boolean;
-  labelHelp?: string | JSX.Element;
+  labelHelp?: string | JSX.Element | null;
   helpText?: React.ReactNode | string;
   disabled?: boolean;
   readOnly?: boolean;

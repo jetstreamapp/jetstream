@@ -78,7 +78,7 @@ export const SObjectExport: FunctionComponent<SObjectExportProps> = () => {
   const picklistHeaderOptionRef = useRef<PicklistRef>();
 
   const [loading, setLoading] = useState(false);
-  const [errorMessage, setErrorMessage] = useState<string>(null);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   const [sobjects, setSobjects] = useState<DescribeGlobalSObjectResult[]>();
   const [selectedSObjects, setSelectedSObjects] = useState<string[]>([]);

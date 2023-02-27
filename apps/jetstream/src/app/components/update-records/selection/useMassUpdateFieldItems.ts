@@ -194,7 +194,7 @@ function reducer(state: State, action: Action): State {
 }
 
 export function useMassUpdateFieldItems(org: SalesforceOrgUi, selectedSObjects: string[]) {
-  const isMounted = useRef(null);
+  const isMounted = useRef(true);
   const { trackEvent } = useAmplitude();
   const rollbar = useRollbar();
   const currentSelectedObjects = useRef(new Set<string>());

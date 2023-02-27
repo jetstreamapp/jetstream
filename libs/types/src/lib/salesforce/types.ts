@@ -351,8 +351,8 @@ export interface BulkJobBatchInfo {
   jobId: string;
   state: 'Queued' | 'InProgress' | 'Completed' | 'Failed' | 'NotProcessed';
   stateMessage?: string;
-  createdDate: string;
-  systemModstamp: string;
+  createdDate?: string;
+  systemModstamp?: string;
   totalProcessingTime: number;
   numberRecordsProcessed: number;
   numberRecordsFailed: number;
@@ -402,7 +402,7 @@ export interface PicklistFieldValueItem {
   attributes: null;
   label: string;
   value: string;
-  validFor: number[];
+  validFor: number[] | null;
 }
 
 export interface ListMetadataResultRaw {
@@ -445,7 +445,7 @@ export interface RetrieveResult extends Omit<RetrieveResultSfdc, 'zipFile'> {
   errorStatusCode?: string;
   status: 'Pending' | 'InProgress' | 'Succeeded' | 'Failed' | 'Canceling' | 'Canceled';
   success: boolean;
-  zipFile?: string;
+  zipFile?: string | null;
 }
 
 export interface RetrieveResultRaw extends Omit<RetrieveResultSfdc, 'zipFile'> {

@@ -20,7 +20,7 @@ export const PopoverErrorButton: FunctionComponent<PopoverErrorButtonProps> = ({
   omitPortal,
   portalRef,
 }) => {
-  const popoverRef = useRef<PopoverRef>();
+  const popoverRef = useRef<PopoverRef>(null);
 
   useEffect(() => {
     if (initOpenState) {

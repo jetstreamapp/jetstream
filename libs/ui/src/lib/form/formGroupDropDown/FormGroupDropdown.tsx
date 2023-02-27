@@ -10,7 +10,7 @@ export interface FormGroupDropdownProps {
   label: string;
   initialSelectedItemId?: string;
   items: FormGroupDropdownItem[];
-  onSelected: (item: FormGroupDropdownItem) => void;
+  onSelected?: (item: FormGroupDropdownItem) => void;
 }
 
 export const FormGroupDropdown: FunctionComponent<FormGroupDropdownProps> = ({

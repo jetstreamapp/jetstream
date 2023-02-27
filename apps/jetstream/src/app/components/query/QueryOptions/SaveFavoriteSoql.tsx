@@ -29,7 +29,7 @@ export const SaveFavoriteSoql: FunctionComponent<SaveFavoriteSoqlProps> = ({
   disabled,
   onOpenHistory,
 }) => {
-  const isMounted = useRef(null);
+  const isMounted = useRef(true);
   const popoverRef = useRef<PopoverRef>(null);
   const { trackEvent } = useAmplitude();
   const [name, setName] = useState('');

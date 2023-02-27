@@ -8,7 +8,7 @@ export interface ReadOnlyFormItemProps {
   id?: string;
   className?: string;
   label: string | ReactNode;
-  labelHelp?: string;
+  labelHelp?: string | null;
   isRequired?: boolean;
   horizontal?: boolean;
   fullWidth?: boolean;

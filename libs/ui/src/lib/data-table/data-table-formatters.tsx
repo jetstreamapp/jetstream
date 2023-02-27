@@ -1,5 +1,6 @@
 import { DATE_FORMATS } from '@jetstream/shared/constants';
 import { logErrorToRollbar } from '@jetstream/shared/ui-utils';
+import { Maybe } from '@jetstream/types';
 import formatDate from 'date-fns/format';
 import parseDate from 'date-fns/parse';
 import parseISO from 'date-fns/parseISO';
@@ -10,7 +11,7 @@ import isNil from 'lodash/isNil';
 import isObject from 'lodash/isObject';
 import { SalesforceAddressField, SalesforceLocationField } from './data-table-types';
 
-export const dataTableDateFormatter = (dateOrDateTime: Date | string | null | undefined): string => {
+export const dataTableDateFormatter = (dateOrDateTime: Maybe<Date | string>): string | null => {
   try {
     if (!dateOrDateTime) {
       return null;
@@ -34,9 +35,9 @@ export const dataTableDateFormatter = (dateOrDateTime: Date | string | null | un
   }
 };
 
-export const dataTableTimeFormatter = (value: string | null | undefined): string => {
+export const dataTableTimeFormatter = (value: Maybe<string>): string | null => {
   try {
-    const time: string = value;
+    const time = value;
     if (!time) {
       return null;
     } else if (time.length === 13) {
@@ -55,7 +56,7 @@ export const dataTableTimeFormatter = (value: string | null | undefined): string
   }
 };
 
-export const dataTableFileSizeFormatter = (sizeInBytes: string | number | null | undefined): string => {
+export const dataTableFileSizeFormatter = (sizeInBytes: Maybe<string | number>): string | null => {
   if (isNil(sizeInBytes)) {
     return null;
   }
@@ -74,7 +75,7 @@ export const dataTableFileSizeFormatter = (sizeInBytes: string | number | null |
 
 const newLineRegex = /\\n/g;
 
-export const dataTableAddressValueFormatter = (value: any): string => {
+export const dataTableAddressValueFormatter = (value: any): string | null => {
   try {
     if (!isObject(value)) {
       return null;
@@ -94,7 +95,7 @@ export const dataTableAddressValueFormatter = (value: any): string => {
   }
 };
 
-export const dataTableLocationFormatter = (value: SalesforceLocationField | null | undefined): string => {
+export const dataTableLocationFormatter = (value: Maybe<SalesforceLocationField>): string | null => {
   try {
     if (!value || !isObject(value)) {
       return null;

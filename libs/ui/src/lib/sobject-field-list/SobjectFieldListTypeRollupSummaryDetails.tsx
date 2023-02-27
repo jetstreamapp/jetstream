@@ -33,8 +33,8 @@ export interface CustomField {
   };
 }
 
-function copy(value: string) {
-  copyToClipboard(value);
+function copy(value?: string) {
+  value && copyToClipboard(value);
 }
 
 const copyToClipboardMsg = (
@@ -48,7 +48,7 @@ const TooltipContent = ({
   field,
   onContent,
 }: SobjectFieldListTypeRollupSummaryDetailsProps & { onContent: (value: string) => void }) => {
-  const isMounted = useRef(null);
+  const isMounted = useRef(true);
   const rollbar = useRollbar();
   const [content, setContent] = useState<{ label: string; items: string[] }>();
   const [loading, setLoading] = useState(false);
@@ -76,9 +76,9 @@ const TooltipContent = ({
     if (!suffix) {
       suffix = developerName;
       developerName = namespace;
-      namespace = null;
+      namespace = '';
     }
-    let query: string;
+    let query: string | undefined = undefined;
     try {
       setLoading(true);
       query = `SELECT Id, Metadata FROM CustomField

@@ -28,7 +28,7 @@ export const ConfirmationServiceProvider: FunctionComponent<ConfirmationServiceP
   };
 
   const handleClose = () => {
-    if (confirmationState.rejectOnCancel && awaitingPromiseRef.current) {
+    if (confirmationState?.rejectOnCancel && awaitingPromiseRef.current) {
       awaitingPromiseRef.current.reject();
     }
     setConfirmationState(null);

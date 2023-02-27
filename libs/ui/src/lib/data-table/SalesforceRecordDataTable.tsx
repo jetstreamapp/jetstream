@@ -84,7 +84,7 @@ export const SalesforceRecordDataTable: FunctionComponent<SalesforceRecordDataTa
     onView,
     onGetAsApex,
   }) => {
-    const isMounted = useRef(null);
+    const isMounted = useRef(true);
     const rollbar = useRollbar();
     const [columns, setColumns] = useState<Column<RowWithKey>[]>();
     const [subqueryColumnsMap, setSubqueryColumnsMap] = useState<MapOf<ColumnWithFilter<RowWithKey, unknown>[]>>();
@@ -94,10 +94,10 @@ export const SalesforceRecordDataTable: FunctionComponent<SalesforceRecordDataTa
     const [rows, setRows] = useState<RowWithKey[]>();
     const [totalRecordCount, setTotalRecordCount] = useState<number>();
     const [isLoadingMore, setIsLoadingMore] = useState<boolean>(false);
-    const [loadMoreErrorMessage, setLoadMoreErrorMessage] = useState<string>();
+    const [loadMoreErrorMessage, setLoadMoreErrorMessage] = useState<string | null>(null);
     const [hasMoreRecords, setHasMoreRecords] = useState<boolean>(false);
     const [nextRecordsUrl, setNextRecordsUrl] = useState<string>();
-    const [globalFilter, setGlobalFilter] = useState<string>(null);
+    const [globalFilter, setGlobalFilter] = useState<string | null>(null);
     const [selectedRows, setSelectedRows] = useState<ReadonlySet<string>>(() => new Set());
 
     useEffect(() => {
@@ -188,10 +188,10 @@ export const SalesforceRecordDataTable: FunctionComponent<SalesforceRecordDataTa
       setRows(
         (records || []).map((row): RowWithKey => {
           return {
-            _key: getRowId(row),
             _action: handleRowAction,
             _record: row,
             ...(columnKeys ? flattenRecord(row, columnKeys, false) : row),
+            _key: getRowId(row),
           };
         })
       );
@@ -199,6 +199,9 @@ export const SalesforceRecordDataTable: FunctionComponent<SalesforceRecordDataTa
 
     async function loadRemaining() {
       try {
+        if (!nextRecordsUrl) {
+          return;
+        }
         setIsLoadingMore(true);
         setLoadMoreErrorMessage(null);
         const results = await queryRemaining(org, nextRecordsUrl, isTooling);
@@ -209,7 +212,7 @@ export const SalesforceRecordDataTable: FunctionComponent<SalesforceRecordDataTa
         if (results.queryResults.done) {
           setHasMoreRecords(false);
         }
-        setRecords(records.concat(results.queryResults.records));
+        setRecords((records || []).concat(results.queryResults.records));
         setIsLoadingMore(false);
         if (onLoadMoreRecords) {
           onLoadMoreRecords(results);
@@ -241,7 +244,7 @@ export const SalesforceRecordDataTable: FunctionComponent<SalesforceRecordDataTa
         <Grid className="slds-p-around_xx-small" align="spread">
           <div className="slds-grid">
             <div className="slds-p-around_x-small">
-              Showing {formatNumber(records.length)} of {formatNumber(totalRecordCount)} records
+              Showing {formatNumber(records.length)} of {formatNumber(totalRecordCount || 0)} records
             </div>
             {hasMoreRecords && (
               <div>
@@ -253,7 +256,7 @@ export const SalesforceRecordDataTable: FunctionComponent<SalesforceRecordDataTa
                   Load All Records
                   {isLoadingMore && <Spinner size="small" />}
                 </button>
-                {loadMoreErrorMessage && <PopoverErrorButton listHeader={null} errors={loadMoreErrorMessage} />}
+                {loadMoreErrorMessage && <PopoverErrorButton errors={loadMoreErrorMessage} />}
               </div>
             )}
           </div>
@@ -277,8 +280,8 @@ export const SalesforceRecordDataTable: FunctionComponent<SalesforceRecordDataTa
             <DataTable
               serverUrl={serverUrl}
               org={org}
-              data={rows}
-              columns={columns}
+              data={rows || []}
+              columns={columns || []}
               allowReorder
               includeQuickFilter
               quickFilterText={globalFilter}

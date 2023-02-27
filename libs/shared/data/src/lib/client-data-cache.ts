@@ -26,7 +26,7 @@ export async function clearCacheForOrg(org: SalesforceOrgUi) {
 
 export async function clearQueryHistoryForOrg(org: SalesforceOrgUi) {
   try {
-    const queryHistory = await localforage.getItem<MapOf<QueryHistoryItem>>(INDEXED_DB.KEYS.queryHistory);
+    const queryHistory = (await localforage.getItem<MapOf<QueryHistoryItem | undefined>>(INDEXED_DB.KEYS.queryHistory)) || {};
     for (const [key] of Object.entries(queryHistory)) {
       if (key.startsWith(org.uniqueId)) {
         queryHistory[key] = undefined;
@@ -95,7 +95,7 @@ export async function saveCacheItemHttp<T>(
   org?: SalesforceOrgUi,
   useQueryParamsInCacheKey?: boolean,
   useBodyInCacheKey?: boolean
-): Promise<CacheItemWithData<T>> {
+): Promise<CacheItemWithData<T> | undefined> {
   try {
     const orgId = org?.uniqueId || 'unset';
     let cacheItem = await localforage.getItem<OrgCacheItem<T>>(`${INDEXED_DB.KEYS.httpCache}:${orgId}`);
@@ -119,7 +119,7 @@ export async function saveCacheItemHttp<T>(
   }
 }
 
-export async function saveCacheItemNonHttp<T>(data: T, org: SalesforceOrgUi, key: string): Promise<CacheItemWithData<T>> {
+export async function saveCacheItemNonHttp<T>(data: T, org: SalesforceOrgUi, key: string): Promise<CacheItemWithData<T> | undefined> {
   try {
     const orgId = org?.uniqueId || 'unset';
     let cacheItem = await localforage.getItem<OrgCacheItem<T>>(`${INDEXED_DB.KEYS.httpCache}:${orgId}`);

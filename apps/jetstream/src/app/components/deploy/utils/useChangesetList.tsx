@@ -4,7 +4,7 @@ import { ChangeSet, ListItem, SalesforceOrgUi } from '@jetstream/types';
 import { useCallback, useEffect, useReducer, useRef } from 'react';
 
 export function useChangesetList(selectedOrg: SalesforceOrgUi, initialPackages?: ListItem<string, ChangeSet>[]) {
-  const isMounted = useRef(null);
+  const isMounted = useRef(true);
 
   const [{ hasLoaded, loading, data, hasError, errorMessage }, dispatch] = useReducer(useReducerFetchFn<ListItem<string, ChangeSet>[]>(), {
     hasLoaded: !!initialPackages,

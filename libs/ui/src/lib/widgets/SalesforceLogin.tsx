@@ -45,7 +45,7 @@ export const SalesforceLogin: FunctionComponent<SalesforceLoginProps> = ({
   }, [serverUrl, org, returnUrl, loginUrl, skipFrontDoorAuth]);
 
   function handleOnClick(event: MouseEvent<HTMLAnchorElement>) {
-    if (onClick) {
+    if (onClick && loginUrl) {
       onClick(event, loginUrl);
     }
   }

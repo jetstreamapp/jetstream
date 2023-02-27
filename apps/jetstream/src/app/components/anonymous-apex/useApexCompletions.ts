@@ -15,7 +15,7 @@
 //  * @returns
 //  */
 // export function useApexCompletions(org: SalesforceOrgUi) {
-//   const isMounted = useRef(null);
+//   const isMounted = useRef(true);
 //   const [_completions, setCompletions] = useState<MapOf<ApexCompletion>>(null);
 //   const [loading, setLoading] = useState(false);
 

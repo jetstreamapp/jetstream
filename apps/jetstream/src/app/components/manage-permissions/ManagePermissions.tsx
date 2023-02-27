@@ -25,7 +25,7 @@ export const ManagePermissions: FunctionComponent<ManagePermissionsProps> = () =
   const resetFieldsByKey = useResetRecoilState(fromPermissionsState.fieldsByKey);
   const resetObjectPermissionMap = useResetRecoilState(fromPermissionsState.objectPermissionMap);
   const resetFieldPermissionMap = useResetRecoilState(fromPermissionsState.fieldPermissionMap);
-  const [priorSelectedOrg, setPriorSelectedOrg] = useState<string>(null);
+  const [priorSelectedOrg, setPriorSelectedOrg] = useState<string | null>(null);
 
   const hasSelectionsMade = useRecoilValue(fromPermissionsState.hasSelectionsMade);
 

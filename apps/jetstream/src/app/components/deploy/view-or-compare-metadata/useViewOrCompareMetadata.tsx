@@ -145,7 +145,7 @@ function reducer(state: State, action: Action): State {
  * @param changesetName
  */
 export function useViewOrCompareMetadata({ selectedMetadata }: { selectedMetadata: MapOf<ListMetadataResult[]> }) {
-  const isMounted = useRef(null);
+  const isMounted = useRef(true);
 
   const [
     {

@@ -96,7 +96,7 @@ function reducer(state: State, action: Action): State {
  * @param changesetName
  */
 export function useDeployMetadataPackage(serverUrl: string, onFinished: () => void) {
-  const isMounted = useRef(null);
+  const isMounted = useRef(true);
   const rollbar = useRollbar();
   const [{ hasLoaded, loading, hasError, errorMessage, deployId, results }, dispatch] = useReducer(reducer, {
     hasLoaded: false,

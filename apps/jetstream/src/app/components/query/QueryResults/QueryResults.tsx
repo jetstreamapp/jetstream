@@ -78,13 +78,13 @@ const SOURCE_RELOAD: SourceAction = 'RELOAD';
 export interface QueryResultsProps {}
 
 export const QueryResults: FunctionComponent<QueryResultsProps> = React.memo(() => {
-  const isMounted = useRef(null);
+  const isMounted = useRef(true);
   const navigate = useNavigate();
   const { trackEvent } = useAmplitude();
   const queryHistoryRef = useRef<QueryHistoryRef>();
   const previousSoql = useRecoilValue(fromQueryState.querySoqlState);
   const includeDeletedRecords = useRecoilValue(fromQueryState.queryIncludeDeletedRecordsState);
-  const [priorSelectedOrg, setPriorSelectedOrg] = useState<string>(null);
+  const [priorSelectedOrg, setPriorSelectedOrg] = useState<string | null>(null);
   const [isTooling, setIsTooling] = useRecoilState(fromQueryState.isTooling);
   const location = useLocation();
   const locationState = useLocationState<{
@@ -96,23 +96,23 @@ export const QueryResults: FunctionComponent<QueryResultsProps> = React.memo(() 
   const [soqlPanelOpen, setSoqlPanelOpen] = useState<boolean>(false);
   const [recordDetailPanelOpen, setRecordDetailPanelOpen] = useState<boolean>(false);
   const [recordDetailSelectedRow, setRecordDetailSelectedRow] = useState<Record>(null);
-  const [soql, setSoql] = useState<string>(null);
-  const [userSoql, setUserSoql] = useState<string>(null);
+  const [soql, setSoql] = useState<string | null>(null);
+  const [userSoql, setUserSoql] = useState<string | null>(null);
   const [queryResults, setQueryResults] = useState<IQueryResults>(null);
-  const [recordCount, setRecordCount] = useState<number>(null);
+  const [recordCount, setRecordCount] = useState<number | null>(null);
   const [records, setRecords] = useState<Record[]>(null);
-  const [nextRecordsUrl, setNextRecordsUrl] = useState<string>(null);
+  const [nextRecordsUrl, setNextRecordsUrl] = useState<string | null>(null);
   const [fields, setFields] = useState<string[]>(null);
   const [modifiedFields, setModifiedFields] = useState<string[]>(null);
   const [subqueryFields, setSubqueryFields] = useState<MapOf<string[]>>(null);
   const [filteredRows, setFilteredRows] = useState<Record[]>([]);
   const [selectedRows, setSelectedRows] = useState<Record[]>([]);
   const [loading, setLoading] = useState<boolean>(false);
-  const [errorMessage, setErrorMessage] = useState<string>(null);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [downloadModalOpen, setDownloadModalOpen] = useState<boolean>(false);
   const selectedOrg = useRecoilValue<SalesforceOrgUi>(selectedOrgState);
   const [{ serverUrl, defaultApiVersion, google_apiKey, google_appId, google_clientId }] = useRecoilState(applicationCookieState);
-  const [totalRecordCount, setTotalRecordCount] = useState<number>(null);
+  const [totalRecordCount, setTotalRecordCount] = useState<number | null>(null);
   const [queryHistory, setQueryHistory] = useRecoilState(fromQueryHistory.queryHistoryState);
   const bulkDeleteJob = useObservable(
     fromJetstreamEvents.getObservable('jobFinished').pipe(filter((ev: AsyncJob) => ev.type === 'BulkDelete'))
