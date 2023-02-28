@@ -2,13 +2,13 @@
 import { AxiosAdapter, AxiosRequestConfig } from 'axios';
 import { nanoid } from 'nanoid';
 
-let port: MessagePort;
+let port: MessagePort | undefined = undefined;
 
 const replyHandlers = new Map();
 
-let messageQueue = [];
+let messageQueue: { id: string; path: string; data: string }[] = [];
 
-export function initMessageHandler(_port: MessagePort) {
+export function initMessageHandler(_port?: MessagePort) {
   port = _port;
   if (port) {
     port.onmessage = (event: MessageEvent) => {
@@ -42,7 +42,7 @@ export function initMessageHandler(_port: MessagePort) {
     };
 
     if (messageQueue.length > 0) {
-      messageQueue.forEach((msg) => port.postMessage(msg));
+      messageQueue.forEach((msg) => port?.postMessage(msg));
       messageQueue = [];
     }
   } else {
@@ -69,7 +69,8 @@ export const axiosElectronAdapter: AxiosAdapter = async (config: AxiosRequestCon
    * I need to map method+endpoint to something so that I know how to handle
    */
   try {
-    const { error, data } = await send(config.url, {
+    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+    const { error, data } = await send(config.url!, {
       method: config.method,
       data: config.data,
       headers: config.headers || {},

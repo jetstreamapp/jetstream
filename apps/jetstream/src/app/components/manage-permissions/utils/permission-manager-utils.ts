@@ -252,7 +252,7 @@ export function getUpdatedObjectPermissions(
     const fieldKey = dirtyPermission.sobject;
     if (!isErrorResponse(response)) {
       const fieldPermission: Partial<ObjectPermissionRecord> = {
-        Id: response.id,
+        Id: response?.id,
         ParentId: dirtyPermission.parentId,
         PermissionsCreate: dirtyPermission.create,
         PermissionsRead: dirtyPermission.read,
@@ -349,7 +349,7 @@ export function getUpdatedFieldPermissions(
     const fieldKey = `${dirtyPermission.sobject}.${dirtyPermission.field}`;
     if (!isErrorResponse(response)) {
       const fieldPermission: Partial<FieldPermissionRecord> = {
-        Id: response.id,
+        Id: response?.id,
         Field: fieldKey,
         ParentId: dirtyPermission.parentId,
         PermissionsRead: dirtyPermission.read,
@@ -577,7 +577,7 @@ export function getQueryForFieldPermissions(allSobjects: string[], profilePermSe
  * @param permSetIds
  * @param profilePermSetIds
  */
-function getWhereClauseForPermissionQuery(sobjects: string[], profilePermSetIds: string[], permSetIds: string[]): WhereClause {
+function getWhereClauseForPermissionQuery(sobjects: string[], profilePermSetIds: string[], permSetIds: string[]): WhereClause | undefined {
   if (!sobjects.length || (!permSetIds.length && !profilePermSetIds.length)) {
     return undefined;
   }
@@ -593,7 +593,7 @@ function getWhereClauseForPermissionQuery(sobjects: string[], profilePermSetIds:
       left: {
         field: 'ParentId',
         operator: 'IN',
-        value: [].concat(permSetIds).concat(profilePermSetIds),
+        value: [...permSetIds, ...profilePermSetIds],
         literalType: 'STRING',
       },
     },

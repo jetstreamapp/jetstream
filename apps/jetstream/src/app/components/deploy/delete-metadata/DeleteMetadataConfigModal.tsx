@@ -29,7 +29,7 @@ export const DeleteMetadataConfigModal: FunctionComponent<DeleteMetadataConfigMo
   onDeploy,
 }) => {
   const rollbar = useRollbar();
-  const modalBodyRef = useRef<HTMLDivElement>();
+  const modalBodyRef = useRef<HTMLDivElement>(null);
   const [file, setFile] = useState<ArrayBuffer>();
   const [isConfigValid, setIsConfigValid] = useState(true);
   const [deployOptions, setDeployOptions] = useState<DeployOptions>(
@@ -53,7 +53,7 @@ export const DeleteMetadataConfigModal: FunctionComponent<DeleteMetadataConfigMo
   useEffect(() => {
     if (!file) {
       setIsConfigValid(false);
-    } else if (deployOptions.testLevel === 'RunSpecifiedTests' && deployOptions.runTests.length === 0) {
+    } else if (deployOptions.testLevel === 'RunSpecifiedTests' && deployOptions.runTests?.length === 0) {
       setIsConfigValid(false);
     } else {
       setIsConfigValid(true);
@@ -100,7 +100,7 @@ export const DeleteMetadataConfigModal: FunctionComponent<DeleteMetadataConfigMo
   }
 
   function handleDeploy() {
-    onDeploy(file, deployOptions);
+    file && onDeploy(file, deployOptions);
   }
 
   return (

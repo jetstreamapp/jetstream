@@ -13,9 +13,9 @@ export interface CreateFieldsResults {
   field: FieldDefinitionMetadata;
   state: CreateFieldsResultsStatus;
   operation: 'INSERT' | 'UPSERT';
-  errorMessage?: string;
-  flsErrorMessage?: string;
-  flsWarning?: boolean;
+  errorMessage?: string | null;
+  flsErrorMessage?: string | null;
+  flsWarning?: boolean | null;
   deployResult?: any;
   flsRecords?: FieldPermissionRecord[];
   flsResult?: RecordResult[];
@@ -69,8 +69,8 @@ export default function useCreateFields({
   const [_results, setResults] = useState<CreateFieldsResults[]>([]);
   const [resultsById, setResultsById] = useState<MapOf<CreateFieldsResults>>({});
   const [fatalError, setFatalError] = useState(false);
-  const [fatalErrorMessage, setFatalErrorMessage] = useState<string>();
-  const [layoutErrorMessage, setLayoutErrorMessage] = useState<string>();
+  const [fatalErrorMessage, setFatalErrorMessage] = useState<string | null>(null);
+  const [layoutErrorMessage, setLayoutErrorMessage] = useState<string | null>(null);
   const [deployed, setDeployed] = useState(false);
 
   useEffect(() => {
@@ -132,12 +132,12 @@ export default function useCreateFields({
 
         response.compositeResponse.forEach(({ body, httpStatusCode, referenceId }) => {
           _resultsById[referenceId] = { ..._resultsById[referenceId] };
-          _resultsById[referenceId].errorMessage = null;
+          _resultsById[referenceId] && (_resultsById[referenceId].errorMessage = null);
           if (body) {
             _resultsById[referenceId].deployResult = body;
           }
           if (httpStatusCode < 200 || httpStatusCode > 299) {
-            let errorMessage: string;
+            let errorMessage: string | undefined;
             // errors seem to be returned as an array, success is returned as an object
             if (Array.isArray(body)) {
               errorMessage = body.map(({ message }) => message).join(' ');

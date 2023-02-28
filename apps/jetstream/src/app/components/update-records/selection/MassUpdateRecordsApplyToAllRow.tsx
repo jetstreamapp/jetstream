@@ -1,6 +1,6 @@
 import { css } from '@emotion/react';
 import { useDebounce } from '@jetstream/shared/ui-utils';
-import { ListItem } from '@jetstream/types';
+import { ListItem, Maybe } from '@jetstream/types';
 import { ComboboxWithItems, Grid, Input, Section, Textarea } from '@jetstream/ui';
 import { FunctionComponent, useEffect, useState } from 'react';
 import { isQueryValid } from 'soql-parser-js';
@@ -22,9 +22,9 @@ export const MassUpdateRecordsApplyToAllRow: FunctionComponent<MassUpdateRecords
   applyCommonOption,
   applyCommonCriteria,
 }) => {
-  const [commonField, selectedCommonField] = useState<string>();
-  const [transformationOption, setTransformationOption] = useState<TransformationOption>();
-  const [transformationCriteria, setTransformationCriteria] = useState<TransformationCriteria>();
+  const [commonField, selectedCommonField] = useState<Maybe<string>>(null);
+  const [transformationOption, setTransformationOption] = useState<Maybe<TransformationOption>>();
+  const [transformationCriteria, setTransformationCriteria] = useState<Maybe<TransformationCriteria>>();
   const [staticValue, setStaticValue] = useState<string>('');
   const [whereClause, setWhereClause] = useState<string>('');
 
@@ -45,18 +45,18 @@ export const MassUpdateRecordsApplyToAllRow: FunctionComponent<MassUpdateRecords
   }, [commonField, commonFields]);
 
   function handleApplyCommonField() {
-    applyCommonField(commonField);
+    commonField && applyCommonField(commonField);
     selectedCommonField(null);
   }
 
   function handleApplyCommonOption() {
-    applyCommonOption(transformationOption, staticValue);
+    transformationOption && applyCommonOption(transformationOption, staticValue);
     setTransformationOption(null);
     setStaticValue('');
   }
 
   function handleApplyCommonCriteria() {
-    applyCommonCriteria(transformationCriteria, whereClause);
+    transformationCriteria && applyCommonCriteria(transformationCriteria, whereClause);
     setTransformationCriteria(null);
     setWhereClause('');
   }

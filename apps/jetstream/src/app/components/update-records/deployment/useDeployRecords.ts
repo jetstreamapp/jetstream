@@ -16,7 +16,7 @@ import { composeSoqlQuery, getFieldsToQuery } from '../mass-update-records.utils
 const updateDeploymentResultsState =
   (sobject: string, deployResults: DeployResults, fatalError?: boolean) => (priorRowsMap: Map<string, MetadataRow>) => {
     const rowsMap = new Map(priorRowsMap);
-    const row = { ...rowsMap.get(sobject), deployResults: { ...deployResults } };
+    const row: MetadataRow = { ...rowsMap.get(sobject), deployResults: { ...deployResults } } as MetadataRow;
     // Something went horribly wrong (e.x. lost internet connection) mark all as not processed
     if (fatalError && row.deployResults.jobInfo?.batches?.length) {
       row.deployResults.jobInfo = { ...row.deployResults.jobInfo, state: 'Failed' };
@@ -80,12 +80,14 @@ export function useDeployRecords(org: SalesforceOrgUi) {
 
       const records = queryResults.records.map((record) => {
         const newRecord = { ...record };
-        if (row.transformationOptions.option === 'anotherField') {
-          newRecord[row.selectedField] = newRecord[row.transformationOptions.alternateField];
-        } else if (row.transformationOptions.option === 'staticValue') {
-          newRecord[row.selectedField] = row.transformationOptions.staticValue;
-        } else {
-          newRecord[row.selectedField] = SFDC_BULK_API_NULL_VALUE;
+        if (row.selectedField) {
+          if (row.transformationOptions.option === 'anotherField' && row.transformationOptions.alternateField) {
+            newRecord[row.selectedField] = newRecord[row.transformationOptions.alternateField];
+          } else if (row.transformationOptions.option === 'staticValue') {
+            newRecord[row.selectedField] = row.transformationOptions.staticValue;
+          } else {
+            newRecord[row.selectedField] = SFDC_BULK_API_NULL_VALUE;
+          }
         }
         return newRecord;
       });
@@ -109,7 +111,7 @@ export function useDeployRecords(org: SalesforceOrgUi) {
       setRowDeployResults(updateDeploymentResultsState(row.sobject, deployResults));
 
       const jobInfo = await bulkApiCreateJob(org, { type: 'UPDATE', sObject: row.sobject, serialMode });
-      const jobId = jobInfo.id;
+      const jobId = jobInfo.id || '';
       const batches = splitArrayToMaxSize(records, batchSize).map((batch) => ({
         records: batch,
         csv: generateCsv(batch, { header: true, columns: fields }),
@@ -185,13 +187,13 @@ export function useDeployRecords(org: SalesforceOrgUi) {
     async (rows: MetadataRow[]) => {
       let allDone = true;
       for (const row of rows) {
-        if (!row.deployResults.done) {
+        if (!row.deployResults.done && row.deployResults.jobInfo?.id) {
           try {
             const jobInfo = await bulkApiGetJob(org, row.deployResults.jobInfo.id);
-            const done = checkIfBulkApiJobIsDone(jobInfo, row.deployResults.numberOfBatches);
+            const done = checkIfBulkApiJobIsDone(jobInfo, row.deployResults.numberOfBatches ?? 0);
 
             // the batch order is not stable with bulkApiGetJob - ensure order is correct
-            const batches = [];
+            const batches: BulkJobBatchInfo[] = [];
             jobInfo.batches.forEach((batch) => {
               batches[row.deployResults.batchIdToIndex[batch.id]] = batch;
             });

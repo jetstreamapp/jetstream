@@ -6,7 +6,7 @@ import { Fragment, FunctionComponent, useState } from 'react';
 
 const SPLIT_LINE_COMMA = /(\n|, |,)/g;
 
-const testLevelOptions: { label: string; value: DeployOptionsTestLevel }[] = [
+const testLevelOptions: { label: string; value: DeployOptionsTestLevel | undefined }[] = [
   { label: 'Default - Run non-managed tests in production, do not run any tests in other types of orgs', value: undefined },
   { label: 'Run specified Tests', value: 'RunSpecifiedTests' },
   { label: 'Do not run any tests', value: 'NoTestRun' },
@@ -23,7 +23,7 @@ export interface DeployMetadataOptionsProps {
 }
 
 export const DeployMetadataOptions: FunctionComponent<DeployMetadataOptionsProps> = ({
-  deployOptions,
+  deployOptions = {},
   hiddenOptions = new Set(),
   disabledOptions = new Set(),
   isSinglePackage,
@@ -36,7 +36,7 @@ export const DeployMetadataOptions: FunctionComponent<DeployMetadataOptionsProps
   const [purgeOnDelete, setPurgeOnDelete] = useState(deployOptions.purgeOnDelete ?? false);
   const [rollbackOnError, setRollbackOnError] = useState(deployOptions.rollbackOnError ?? true);
   const [singlePackage, setSinglePackage] = useState(deployOptions.singlePackage ?? true);
-  const [testLevel, setTestLevel] = useState<DeployOptionsTestLevel>(deployOptions.testLevel ?? undefined);
+  const [testLevel, setTestLevel] = useState<DeployOptionsTestLevel | undefined>(deployOptions.testLevel ?? undefined);
   const [runTests, setRunTests] = useState<string[]>(deployOptions.runTests ?? []);
 
   const [runSpecifiedTestsVisible, setRunSpecifiedTestsVisible] = useState(testLevel === 'RunSpecifiedTests');

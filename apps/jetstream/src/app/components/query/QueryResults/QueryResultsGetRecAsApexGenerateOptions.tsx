@@ -29,32 +29,32 @@ export const QueryResultsGetRecAsApexGenerateOptions: FunctionComponent<QueryRes
         <legend className="slds-form-element__legend slds-form-element__label">Apex Options</legend>
         <Checkbox
           id="rec-to-apex-inline"
-          checked={options.inline}
+          checked={!!options.inline}
           label="Construct object inline"
           onChange={(value) => setOptions({ ...options, inline: value })}
         />
         <Checkbox
           id="rec-to-apex-replace-date"
-          checked={options.replaceDateWithToday}
+          checked={!!options.replaceDateWithToday}
           label="Use today for Date / DateTime fields"
           onChange={(value) => setOptions({ ...options, replaceDateWithToday: value })}
         />
         <Checkbox
           id="rec-to-apex-insert"
-          checked={options.insertStatement}
+          checked={!!options.insertStatement}
           label="Include insert statement"
           onChange={(value) => setOptions({ ...options, insertStatement: value })}
         />
         <Checkbox
           id="rec-to-apex-wrapInMethod"
-          checked={options.wrapInMethod}
+          checked={!!options.wrapInMethod}
           label="Wrap in method"
           onChange={(value) => setOptions({ ...options, wrapInMethod: value })}
         />
         <Checkbox
           id="rec-to-apex-replace-wrapInMethodStatic"
           className="slds-p-left_large"
-          checked={options.wrapInMethodStatic}
+          checked={!!options.wrapInMethodStatic}
           label="Wrapped method is static"
           onChange={(value) => setOptions({ ...options, wrapInMethodStatic: value })}
           disabled={!options.wrapInMethod}

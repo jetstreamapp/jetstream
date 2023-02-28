@@ -212,7 +212,7 @@ export function pluralizeIfMultiple(value: string, items: any[], plural: string 
   return value;
 }
 
-export function pluralizeFromNumber(value: string, num: number, plural: string = 's'): string {
+export function pluralizeFromNumber(value: string, num: number = 0, plural: string = 's'): string {
   if (num !== 1) {
     return `${value}${plural}`;
   }

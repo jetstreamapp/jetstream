@@ -40,8 +40,8 @@ export const DateSelection: FunctionComponent<DateSelectionProps | DateSelection
   const [isValid, setIsValid] = useState(true);
 
   const [_dateRangeSelection, _setDateRangeSelection] = useRecoilState<AllUser>(fromDeployMetadataState.dateRangeSelectionState);
-  const [_dateRangeStart, _setDateRangeStart] = useRecoilState<Date>(fromDeployMetadataState.dateRangeStartState);
-  const [_dateRangeEnd, _setDateRangeEnd] = useRecoilState<Date>(fromDeployMetadataState.dateRangeEndState);
+  const [_dateRangeStart, _setDateRangeStart] = useRecoilState<Date | null>(fromDeployMetadataState.dateRangeStartState);
+  const [_dateRangeEnd, _setDateRangeEnd] = useRecoilState<Date | null>(fromDeployMetadataState.dateRangeEndState);
 
   const [dateRangeSelection, setDateRangeSelection] = useState(_dateRangeSelection);
   const [dateRangeStart, setDateRangeStart] = useState(_dateRangeStart);
@@ -84,7 +84,7 @@ export const DateSelection: FunctionComponent<DateSelectionProps | DateSelection
     _setDateRangeSelection(dateRangeSelection);
     _setDateRangeStart(dateRangeStart);
     _setDateRangeEnd(dateRangeEnd);
-    onSubmit();
+    onSubmit && onSubmit();
   }
 
   return (
@@ -122,7 +122,7 @@ export const DateSelection: FunctionComponent<DateSelectionProps | DateSelection
                 labelHelp="All metadata items that were created or modified on or after this date will be shown"
                 hasError={false}
                 errorMessageId={`modified-start-error`}
-                initialSelectedDate={dateRangeStart}
+                initialSelectedDate={dateRangeStart || undefined}
                 onChange={setDateRangeStart}
               />
               <DatePicker
@@ -134,7 +134,7 @@ export const DateSelection: FunctionComponent<DateSelectionProps | DateSelection
                 labelHelp="All metadata items that were created or modified on or before this date will be shown"
                 hasError={false}
                 errorMessageId={`modified-end-error`}
-                initialSelectedDate={dateRangeEnd}
+                initialSelectedDate={dateRangeEnd || undefined}
                 onChange={setDateRangeEnd}
               />
             </Fragment>

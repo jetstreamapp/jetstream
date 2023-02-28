@@ -48,7 +48,7 @@ export const DownloadPackageWithFileSelector: FunctionComponent<DownloadPackageW
   const [{ google_apiKey, google_appId, google_clientId }] = useRecoilState(applicationCookieState);
 
   async function handleManifestDownload(data: { fileName: string; fileFormat: FileExtAllTypes; mimeType: MimeType }) {
-    onClose();
+    onClose && onClose();
     const filename = `${data.fileName}.${data.fileFormat}`;
     if (listMetadataItems) {
       saveFile(await getPackageXml(selectedOrg, listMetadataItems), filename, data.mimeType);
@@ -64,7 +64,7 @@ export const DownloadPackageWithFileSelector: FunctionComponent<DownloadPackageW
     uploadToGoogle: boolean;
     googleFolder?: string;
   }) {
-    onClose();
+    onClose && onClose();
 
     let jobMeta: RetrievePackageFromListMetadataJob | RetrievePackageFromManifestJob | RetrievePackageFromPackageNamesJob;
 
@@ -98,6 +98,8 @@ export const DownloadPackageWithFileSelector: FunctionComponent<DownloadPackageW
         uploadToGoogle: data.uploadToGoogle,
         googleFolder: data.googleFolder,
       };
+    } else {
+      throw new Error('No package data provided');
     }
 
     const jobs: AsyncJobNew<RetrievePackageFromListMetadataJob | RetrievePackageFromManifestJob | RetrievePackageFromPackageNamesJob>[] = [
@@ -113,6 +115,7 @@ export const DownloadPackageWithFileSelector: FunctionComponent<DownloadPackageW
   }
 
   return (
+    // eslint-disable-next-line react/jsx-no-useless-fragment
     <Fragment>
       {(listMetadataItems || isString(packageManifest) || Array.isArray(packageNames)) && (
         <FileFauxDownloadModal
@@ -124,7 +127,7 @@ export const DownloadPackageWithFileSelector: FunctionComponent<DownloadPackageW
           google_clientId={google_clientId}
           fileNameParts={fileNameParts}
           allowedTypes={type === 'manifest' ? ['xml'] : ['zip']}
-          onCancel={onClose}
+          onCancel={() => onClose && onClose()}
           onDownload={type === 'manifest' ? handleManifestDownload : handlePackageDownload}
         />
       )}

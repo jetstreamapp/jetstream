@@ -14,7 +14,7 @@ export interface RadioGroupProps {
   required?: boolean;
   hasError?: boolean;
   isButtonGroup?: boolean;
-  errorMessage?: string;
+  errorMessage?: string | null;
   children?: React.ReactNode;
 }
 

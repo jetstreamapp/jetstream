@@ -1,4 +1,4 @@
-import { DropDownItem, UserProfileUi } from '@jetstream/types';
+import { DropDownItem, Maybe, UserProfileUi } from '@jetstream/types';
 import { Header, Icon, Navbar, NavbarItem, NavbarMenuItems } from '@jetstream/ui';
 import { Fragment, FunctionComponent, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
@@ -16,7 +16,7 @@ import RecordLookupPopover from './record-lookup/RecordLookupPopover';
 const isElectron = window.electron?.isElectron;
 
 export interface HeaderNavbarProps {
-  userProfile: UserProfileUi;
+  userProfile: Maybe<UserProfileUi>;
   featureFlags: Set<string>;
 }
 
@@ -30,7 +30,7 @@ function logout(serverUrl: string) {
   }
 }
 
-function getMenuItems(userProfile: UserProfileUi, featureFlags: Set<string>, deniedNotifications?: boolean, isElectron?: boolean) {
+function getMenuItems(userProfile: Maybe<UserProfileUi>, featureFlags: Set<string>, deniedNotifications?: boolean, isElectron?: boolean) {
   const menu: DropDownItem[] = [];
 
   if (!isElectron) {
@@ -74,11 +74,11 @@ export const HeaderNavbar: FunctionComponent<HeaderNavbarProps> = ({ userProfile
 
   function handleNotificationMenuClosed(isEnabled: boolean) {
     setEnableNotifications(false);
-    setUserMenuItems(getMenuItems(userProfile, featureFlags, !isEnabled, isElectron));
+    userProfile && setUserMenuItems(getMenuItems(userProfile, featureFlags, !isEnabled, isElectron));
   }
 
   useEffect(() => {
-    setUserMenuItems(getMenuItems(userProfile, featureFlags, deniedNotifications, isElectron));
+    userProfile && setUserMenuItems(getMenuItems(userProfile, featureFlags, deniedNotifications, isElectron));
   }, [userProfile, featureFlags, deniedNotifications]);
 
   return (

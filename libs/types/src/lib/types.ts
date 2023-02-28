@@ -4,6 +4,9 @@ import { InsertUpdateUpsertDelete, SalesforceOrgEdition, SalesforceOrgLocaleKey 
 export type Maybe<T> = T | null | undefined;
 export type Nullable<T> = T | null;
 
+export const isNotNullish = <T>(input: T | null | undefined): input is T => input != null;
+export const isNotEmpty = <T>(input: T[]) => input.length !== 0;
+
 export interface ApiResponse<T = unknown> {
   data: T;
   cache?: CacheItem;
@@ -57,7 +60,7 @@ export interface AuthenticationToken {
 }
 
 export interface UserProfilePreferences {
-  deniedNotifications: boolean;
+  deniedNotifications?: boolean;
 }
 
 export type UserProfileUsernameStatus = 'ACTIVE' | 'PENDING' | 'REJECTED';
@@ -197,20 +200,20 @@ export interface SalesforceOrgUi {
   organizationId: string;
   username: string;
   displayName: string;
-  thumbnail?: string;
-  apiVersion?: string;
-  orgName?: string;
-  orgCountry?: string;
-  orgOrganizationType?: SalesforceOrgEdition;
-  orgInstanceName?: string;
-  orgIsSandbox?: boolean;
-  orgLanguageLocaleKey?: SalesforceOrgLocaleKey;
-  orgNamespacePrefix?: string;
-  orgTrialExpirationDate?: string;
-  color?: string;
-  connectionError?: string;
-  createdAt?: string;
-  updatedAt?: string;
+  thumbnail?: Maybe<string>;
+  apiVersion?: Maybe<string>;
+  orgName?: Maybe<string>;
+  orgCountry?: Maybe<string>;
+  orgOrganizationType?: Maybe<SalesforceOrgEdition>;
+  orgInstanceName?: Maybe<string>;
+  orgIsSandbox?: Maybe<boolean>;
+  orgLanguageLocaleKey?: Maybe<SalesforceOrgLocaleKey>;
+  orgNamespacePrefix?: Maybe<string>;
+  orgTrialExpirationDate?: Maybe<string>;
+  color?: Maybe<string>;
+  connectionError?: Maybe<string>;
+  createdAt?: Maybe<string>;
+  updatedAt?: Maybe<string>;
 }
 
 export type SalesforceOrgUiType = 'Sandbox' | 'Developer' | 'Production';
@@ -241,10 +244,10 @@ export type ManualRequestResponse = {
 export interface BulkApiCreateJobRequestPayload {
   type: InsertUpdateUpsertDelete;
   sObject: string;
-  serialMode?: boolean;
-  externalId?: string;
-  assignmentRuleId?: string;
-  hasZipAttachment?: boolean;
+  serialMode?: Maybe<boolean>;
+  externalId?: Maybe<string>;
+  assignmentRuleId?: Maybe<string>;
+  hasZipAttachment?: Maybe<boolean>;
 }
 
 export interface SocketAck<T = any> {

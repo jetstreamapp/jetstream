@@ -35,8 +35,8 @@ export const PlatformEventMonitor: FunctionComponent<PlatformEventMonitorProps> 
   const [platformEventsList, setPlatformEventsList] = useState<ListItem<string, DescribeGlobalSObjectResult>[]>([]);
   const [subscribedPlatformEventsList, setSubscribedPlatformEventsList] = useState<ListItem<string, DescribeGlobalSObjectResult>[]>([]);
   const [picklistKey, setPicklistKey] = useState<number>(1);
-  const [selectedSubscribeEvent, setSelectedSubscribeEvent] = useState<string>();
-  const [selectedPublishEvent, setSelectedPublishEvent] = useState<string>();
+  const [selectedSubscribeEvent, setSelectedSubscribeEvent] = useState<string | null>(null);
+  const [selectedPublishEvent, setSelectedPublishEvent] = useState<string | null>(null);
 
   useEffect(() => {
     isMounted.current = true;

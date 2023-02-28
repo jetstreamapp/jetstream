@@ -93,7 +93,7 @@ export const RecordDownloadModal: FunctionComponent<RecordDownloadModalProps> = 
   const inputEl = useRef<HTMLInputElement>(null);
 
   const [isSignedInWithGoogle, setIsSignedInWithGoogle] = useState<boolean>(false);
-  const [googleFolder, setGoogleFolder] = useState<string>();
+  const [googleFolder, setGoogleFolder] = useState<string | null>(null);
 
   const [whichFields, setWhichFields] = useState<'all' | 'specified'>('specified');
 

@@ -2,7 +2,7 @@ import { logger } from '@jetstream/shared/client-logger';
 import { ANALYTICS_KEYS } from '@jetstream/shared/constants';
 import { describeSObject, query } from '@jetstream/shared/data';
 import { sortQueryFields, useNonInitialEffect, useRollbar } from '@jetstream/shared/ui-utils';
-import { SalesforceOrgUi } from '@jetstream/types';
+import { Maybe, SalesforceOrgUi } from '@jetstream/types';
 import type { DescribeSObjectResult } from 'jsforce';
 import { useCallback, useEffect, useReducer, useRef } from 'react';
 import { useRecoilState, useRecoilValue } from 'recoil';
@@ -23,7 +23,7 @@ type Action =
   | { type: 'METADATA_LOADED'; payload: { sobject: string; metadata: DescribeSObjectResult } }
   | { type: 'METADATA_ERROR'; payload: { sobject: string; error: string } }
   | { type: 'START_VALIDATION'; payload: { sobject: string } }
-  | { type: 'FINISH_VALIDATION'; payload: { sobject: string; impactedRecords: number; error: string } };
+  | { type: 'FINISH_VALIDATION'; payload: { sobject: string; impactedRecords: Maybe<number>; error: Maybe<string> } };
 
 interface State {
   rowsMap: Map<string, MetadataRow>;
@@ -83,7 +83,7 @@ function reducer(state: State, action: Action): State {
     case 'FIELD_SELECTION_CHANGED': {
       const { sobject, selectedField } = action.payload;
       const rowsMap = new Map(state.rowsMap);
-      const row = { ...state.rowsMap.get(sobject), selectedField };
+      const row = { ...state.rowsMap.get(sobject), selectedField } as MetadataRow;
       row.isValid = isValidRow(row);
       rowsMap.set(sobject, row);
       return { ...state, rowsMap, allRowsValid: Array.from(rowsMap.values()).every((row) => row.isValid) };
@@ -125,7 +125,7 @@ function reducer(state: State, action: Action): State {
     case 'TRANSFORMATION_OPTION_CHANGED': {
       const { sobject, transformationOptions } = action.payload;
       const rowsMap = new Map(state.rowsMap);
-      const row = { ...state.rowsMap.get(sobject), transformationOptions, validationResults: null };
+      const row = { ...state.rowsMap.get(sobject), transformationOptions, validationResults: null } as MetadataRow;
       row.isValid = isValidRow(row);
       rowsMap.set(sobject, row);
       return { ...state, rowsMap, allRowsValid: Array.from(rowsMap.values()).every((row) => row.isValid) };
@@ -169,7 +169,11 @@ function reducer(state: State, action: Action): State {
     case 'START_VALIDATION': {
       const { sobject } = action.payload;
       const rowsMap = new Map(state.rowsMap);
-      rowsMap.set(sobject, { ...state.rowsMap.get(sobject), loading: true, validationResults: { error: null, isValid: false } });
+      rowsMap.set(sobject, {
+        ...state.rowsMap.get(sobject),
+        loading: true,
+        validationResults: { error: null, isValid: false },
+      } as MetadataRow);
       return { ...state, rowsMap, allRowsValid: Array.from(rowsMap.values()).every((row) => row.isValid) };
     }
     case 'FINISH_VALIDATION': {
@@ -179,7 +183,7 @@ function reducer(state: State, action: Action): State {
         ...state.rowsMap.get(sobject),
         loading: false,
         validationResults: { impactedRecords, error: error, isValid: !error },
-      };
+      } as MetadataRow;
       row.isValid = isValidRow(row);
       rowsMap.set(sobject, row);
       return { ...state, rowsMap, allRowsValid: Array.from(rowsMap.values()).every((row) => row.isValid) };
@@ -187,7 +191,7 @@ function reducer(state: State, action: Action): State {
     case 'METADATA_ERROR': {
       const { sobject, error } = action.payload;
       const rowsMap = new Map(state.rowsMap);
-      rowsMap.set(sobject, { ...state.rowsMap.get(sobject), loadError: error });
+      rowsMap.set(sobject, { ...state.rowsMap.get(sobject), loadError: error } as MetadataRow);
       return { ...state, rowsMap, allRowsValid: Array.from(rowsMap.values()).every((row) => row.isValid) };
     }
   }
@@ -263,8 +267,11 @@ export function useMassUpdateFieldItems(org: SalesforceOrgUi, selectedSObjects: 
   const validateRowRecords = useCallback(
     async (sobject: string) => {
       try {
-        dispatch({ type: 'START_VALIDATION', payload: { sobject } });
         const row = rowsMap.get(sobject);
+        if (!row) {
+          return;
+        }
+        dispatch({ type: 'START_VALIDATION', payload: { sobject } });
         const soql = getValidationSoqlQuery(row);
         const results = await query(org, soql);
         if (isMounted.current) {

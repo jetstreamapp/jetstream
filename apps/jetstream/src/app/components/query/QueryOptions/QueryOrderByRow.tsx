@@ -7,8 +7,8 @@ import React, { FunctionComponent, useEffect, useState } from 'react';
 export interface QueryOrderByProps {
   orderBy: QueryOrderByClause;
   fields: ListItemGroup[];
-  order: ListItem<string, AscDesc>[];
-  nulls: ListItem<string, FirstLast | null>[];
+  order: ListItem<AscDesc>[];
+  nulls: ListItem<FirstLast | null>[];
   onChange: (orderBy: QueryOrderByClause) => void;
   onDelete: (orderBy: QueryOrderByClause) => void;
 }
@@ -28,7 +28,7 @@ export const QueryOrderBy: FunctionComponent<QueryOrderByProps> = ({ orderBy, fi
       setVisibleFields(fields);
     } else {
       const filter = fieldFilter.toLowerCase().trim();
-      const tempFields = [];
+      const tempFields: typeof fields = [];
       fields.forEach((field) => {
         tempFields.push({
           ...field,
@@ -82,10 +82,10 @@ export const QueryOrderBy: FunctionComponent<QueryOrderByProps> = ({ orderBy, fi
       <div className="slds-col slds-grow-none">
         <Picklist
           label="Nulls"
-          items={nulls}
-          selectedItems={[initialSelectedNulls]}
+          items={nulls as ListItem[]}
+          selectedItems={[initialSelectedNulls as ListItem]}
           allowDeselection={false}
-          onChange={(items: ListItem<FirstLast | null>[]) => onChange({ ...orderBy, nulls: items[0].value })}
+          onChange={(items) => onChange({ ...orderBy, nulls: items[0].value as FirstLast | null })}
         />
       </div>
       <div className="slds-col slds-grow-none">

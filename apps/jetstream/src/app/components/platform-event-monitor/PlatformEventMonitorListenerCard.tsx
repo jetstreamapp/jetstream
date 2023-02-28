@@ -1,4 +1,4 @@
-import { ListItem } from '@jetstream/types';
+import { ListItem, Maybe } from '@jetstream/types';
 import { Card, Grid, Pill, Spinner, ViewDocsLink } from '@jetstream/ui';
 import { DescribeGlobalSObjectResult } from 'jsforce';
 import { FunctionComponent } from 'react';
@@ -11,7 +11,7 @@ export interface PlatformEventMonitorListenerCardListenerCard {
   picklistKey: string | number;
   platformEventsList: ListItem<string, DescribeGlobalSObjectResult>[];
   subscribedPlatformEventsList: ListItem<string, DescribeGlobalSObjectResult>[];
-  selectedSubscribeEvent: string;
+  selectedSubscribeEvent?: Maybe<string>;
   messagesByChannel: MessagesByChannel;
   fetchPlatformEvents: (clearCache?: boolean) => void;
   subscribe: (platformEventName: string, replayId?: number) => Promise<any>;

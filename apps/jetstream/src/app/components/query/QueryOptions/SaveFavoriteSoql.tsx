@@ -1,6 +1,6 @@
 import { logger } from '@jetstream/shared/client-logger';
 import { ANALYTICS_KEYS } from '@jetstream/shared/constants';
-import { QueryHistoryItem, SalesforceOrgUi } from '@jetstream/types';
+import { Maybe, QueryHistoryItem, SalesforceOrgUi } from '@jetstream/types';
 import { Grid, Icon, Input, Popover, PopoverRef, Spinner, Textarea } from '@jetstream/ui';
 import Editor from '@monaco-editor/react';
 import { Fragment, FunctionComponent, useEffect, useRef, useState } from 'react';
@@ -12,8 +12,8 @@ export interface SaveFavoriteSoqlProps {
   className?: string;
   isTooling: boolean;
   selectedOrg: SalesforceOrgUi;
-  sObject: string;
-  sObjectLabel: string;
+  sObject: Maybe<string>;
+  sObjectLabel: Maybe<string>;
   soql: string;
   disabled?: boolean;
   onOpenHistory: (type: fromQueryHistory.QueryHistoryType) => void;
@@ -35,7 +35,7 @@ export const SaveFavoriteSoql: FunctionComponent<SaveFavoriteSoqlProps> = ({
   const [name, setName] = useState('');
   const [loading, setLoading] = useState(false);
   const [queryHistory, setQueryHistory] = useRecoilState(fromQueryHistory.queryHistoryState);
-  const [queryHistoryItem, setQueryHistoryItem] = useState<QueryHistoryItem>();
+  const [queryHistoryItem, setQueryHistoryItem] = useState<QueryHistoryItem | null>(null);
   const [isDirty, setIsDirty] = useState(false);
 
   useEffect(() => {
@@ -54,7 +54,7 @@ export const SaveFavoriteSoql: FunctionComponent<SaveFavoriteSoqlProps> = ({
   async function handlePopoverChange(isOpen: boolean) {
     try {
       setLoading(true);
-      if (isOpen) {
+      if (isOpen && sObject && sObjectLabel) {
         fromQueryHistory
           .getQueryHistoryItem(selectedOrg, soql, sObject, sObjectLabel, isTooling)
           .then(({ queryHistoryItem, refreshedQueryHistory }) => {
@@ -82,13 +82,19 @@ export const SaveFavoriteSoql: FunctionComponent<SaveFavoriteSoqlProps> = ({
   }
 
   function handleSave() {
-    const newQueryHistoryItem = { ...queryHistoryItem, label: name.trim(), isFavorite: true };
+    if (!queryHistoryItem) {
+      return;
+    }
+    const newQueryHistoryItem: QueryHistoryItem = { ...queryHistoryItem, label: name.trim(), isFavorite: true };
     setQueryHistory({ ...queryHistory, [queryHistoryItem.key]: newQueryHistoryItem });
     setQueryHistoryItem(newQueryHistoryItem);
     trackEvent(ANALYTICS_KEYS.query_HistorySaveQueryToggled, { location: 'popover', isFavorite: true });
   }
 
   function handleRemove() {
+    if (!queryHistoryItem) {
+      return;
+    }
     setQueryHistory({ ...queryHistory, [queryHistoryItem.key]: { ...queryHistoryItem, isFavorite: false } });
     popoverRef.current?.close();
     trackEvent(ANALYTICS_KEYS.query_HistorySaveQueryToggled, { location: 'popover', isFavorite: false });

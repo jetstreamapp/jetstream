@@ -31,7 +31,7 @@ export const DeployMetadataToOrgStatusModal: FunctionComponent<DeployMetadataToO
   onDownload,
 }) => {
   const [{ serverUrl }] = useRecoilState(applicationCookieState);
-  const [deployStatusUrl, setDeployStatusUrl] = useState<string>();
+  const [deployStatusUrl, setDeployStatusUrl] = useState<string | null>(null);
   const { deployMetadata, results, deployId, loading, status, lastChecked, hasError, errorMessage } = useDeployMetadataBetweenOrgs(
     sourceOrg,
     destinationOrg,

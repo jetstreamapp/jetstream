@@ -1,7 +1,7 @@
 import { ANALYTICS_KEYS, DATE_FORMATS, TITLES } from '@jetstream/shared/constants';
 import { formatNumber, useNonInitialEffect, useRollbar } from '@jetstream/shared/ui-utils';
 import { getMapOf } from '@jetstream/shared/utils';
-import { SalesforceOrgUi, SalesforceOrgUiType } from '@jetstream/types';
+import { DeployMessage, SalesforceOrgUi, SalesforceOrgUiType } from '@jetstream/types';
 import { Badge, Checkbox, ConfirmationModalPromise, FileDownloadModal, SalesforceLogin, Select, Spinner } from '@jetstream/ui';
 import { ChangeEvent, Fragment, FunctionComponent, useCallback, useState } from 'react';
 import { useRecoilState } from 'recoil';
@@ -50,9 +50,9 @@ export const PerformLoadCustomMetadata: FunctionComponent<PerformLoadCustomMetad
   const [loadNumber, setLoadNumber] = useState<number>(0);
   const [rollbackOnError, setRollbackOnError] = useState<boolean>(false);
   const [dateFormat, setDateFormat] = useState<string>(DATE_FORMATS.MM_DD_YYYY);
-  const [metadata, setMetadata] = useState<MapOfCustomMetadataRecord>();
-  const [deployStatusUrl, setDeployStatusUrl] = useState<string>();
-  const [prepareMetadataError, setDeployMetadataError] = useState<string>();
+  const [metadata, setMetadata] = useState<MapOfCustomMetadataRecord | null>(null);
+  const [deployStatusUrl, setDeployStatusUrl] = useState<string | null>(null);
+  const [prepareMetadataError, setDeployMetadataError] = useState<string | null>(null);
 
   const [downloadModalData, setDownloadModalData] = useState<DownloadModalData>({
     open: false,
@@ -113,8 +113,14 @@ export const PerformLoadCustomMetadata: FunctionComponent<PerformLoadCustomMetad
   }
 
   function handleDownload(type: DownloadType) {
-    const resultsByFullName = getMapOf(results.details.componentSuccesses.concat(results.details.componentFailures), 'fullName');
-    let header: string[];
+    if (!metadata) {
+      return;
+    }
+    const resultsByFullName = getMapOf<DeployMessage>(
+      results?.details?.componentSuccesses?.concat(results.details.componentFailures) || [],
+      'fullName'
+    );
+    let header: string[] = [];
     let data = Object.keys(metadata).map((fullName) => {
       if (!header) {
         header = ['_id', '_success', '_error', '_created', '_changed', ...Object.keys(metadata[fullName].record)];
@@ -136,8 +142,14 @@ export const PerformLoadCustomMetadata: FunctionComponent<PerformLoadCustomMetad
   }
 
   function handleViewResults(type: DownloadType) {
-    const resultsByFullName = getMapOf(results.details.componentSuccesses.concat(results.details.componentFailures), 'fullName');
-    let header: string[];
+    if (!metadata) {
+      return;
+    }
+    const resultsByFullName = getMapOf<DeployMessage>(
+      results?.details?.componentSuccesses?.concat(results.details.componentFailures) || [],
+      'fullName'
+    );
+    let header: string[] = [];
     let data = Object.keys(metadata).map((fullName) => {
       if (!header) {
         header = ['_id', '_success', '_error', '_created', '_changed', ...Object.keys(metadata[fullName].record)];

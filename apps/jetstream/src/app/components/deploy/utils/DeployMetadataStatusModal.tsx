@@ -1,6 +1,6 @@
 import { css } from '@emotion/react';
 import { ANALYTICS_KEYS, DATE_FORMATS } from '@jetstream/shared/constants';
-import { DeployResult, SalesforceOrgUi } from '@jetstream/types';
+import { DeployResult, Maybe, SalesforceOrgUi } from '@jetstream/types';
 import { Grid, GridCol, Icon, Modal, TabsRef } from '@jetstream/ui';
 import formatDate from 'date-fns/format';
 import { Fragment, FunctionComponent, useEffect, useRef, useState } from 'react';
@@ -33,12 +33,12 @@ export interface DeployMetadataStatusModalProps {
   finishedPartialSuccessfullyLabel?: string;
   fallbackErrorMessageLabel?: string;
   fallbackUnknownErrorMessageLabel?: string;
-  deployStatusUrl: string;
+  deployStatusUrl: Maybe<string>;
   loading: boolean;
   status: DeployMetadataStatus;
-  results: DeployResult;
-  lastChecked: Date;
-  errorMessage: string;
+  results?: Maybe<DeployResult>;
+  lastChecked: Maybe<Date>;
+  errorMessage: Maybe<string>;
   hasError: boolean;
   // if provided, this will show links to access the metadata
   statusUrls?: React.ReactNode;
@@ -79,9 +79,10 @@ export const DeployMetadataStatusModal: FunctionComponent<DeployMetadataStatusMo
   const tabsRef = useRef<TabsRef>();
   // when errors are encountered for the first time, focus the errors tab
   useEffect(() => {
-    if (results?.details?.componentFailures?.length > 0 && !hasErrors && tabsRef.current) {
+    const componentFailures = results?.details?.componentFailures;
+    if (componentFailures && componentFailures.length > 0 && !hasErrors && tabsRef.current) {
       setHasErrors(true);
-      tabsRef.current.changeTab('component-errors');
+      tabsRef.current?.changeTab('component-errors');
     }
   }, [hasErrors, results]);
 
@@ -123,7 +124,7 @@ export const DeployMetadataStatusModal: FunctionComponent<DeployMetadataStatusMo
           }
         : { results: 'none' }),
     });
-    onGoBack();
+    onGoBack && onGoBack();
   }
 
   return (
@@ -150,7 +151,7 @@ export const DeployMetadataStatusModal: FunctionComponent<DeployMetadataStatusMo
                 className="slds-button slds-button_neutral"
                 disabled={!results?.done}
                 onClick={() => {
-                  onDownload(results, `${destinationOrg.instanceUrl}${deployStatusUrl}`);
+                  results && onDownload(results, `${destinationOrg.instanceUrl}${deployStatusUrl}`);
                 }}
               >
                 <Icon type="utility" icon="download" className="slds-button__icon slds-button__icon_left" omitContainer />
@@ -279,7 +280,7 @@ export const DeployMetadataStatusModal: FunctionComponent<DeployMetadataStatusMo
                   title={`${results.checkOnly ? 'Validate' : deployLabel} Results`}
                   status={results.status}
                   totalProcessed={results.numberComponentsDeployed}
-                  totalErrors={results.numberComponentErrors || results.details?.componentFailures.length}
+                  totalErrors={results.numberComponentErrors || results.details?.componentFailures.length || 0}
                   totalItems={results.numberComponentsTotal}
                 />
                 {results.runTestsEnabled && (
@@ -287,8 +288,8 @@ export const DeployMetadataStatusModal: FunctionComponent<DeployMetadataStatusMo
                     title="Unit Test Results"
                     status={results.status}
                     totalProcessed={results.numberTestsCompleted}
-                    totalErrors={results.numberTestErrors + results.details?.runTestResult?.codeCoverageWarnings?.length || 0}
-                    totalItems={results.numberTestsTotal + results.details?.runTestResult?.codeCoverageWarnings?.length || 0}
+                    totalErrors={results.numberTestErrors + (results.details?.runTestResult?.codeCoverageWarnings?.length || 0)}
+                    totalItems={results.numberTestsTotal + (results.details?.runTestResult?.codeCoverageWarnings?.length || 0)}
                   />
                 )}
               </Grid>

@@ -78,7 +78,7 @@ export const FileFauxDownloadModal: FunctionComponent<FileFauxDownloadModalProps
   const inputEl = useRef<HTMLInputElement>(null);
   const [filenameEmpty, setFilenameEmpty] = useState(false);
 
-  const [googleFolder, setGoogleFolder] = useState<string>();
+  const [googleFolder, setGoogleFolder] = useState<string | null>(null);
 
   useEffect(() => {
     if (!fileName && !filenameEmpty) {

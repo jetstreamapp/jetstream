@@ -11,7 +11,7 @@ export interface ProgressRingProps {
   className?: string;
   size?: 'medium' | 'large' | 'x-large';
   fillPercent: number;
-  theme?: 'active-step' | 'warning' | 'expired' | 'complete';
+  theme?: 'active-step' | 'warning' | 'expired' | 'complete' | null;
   children?: ReactNode;
 }
 

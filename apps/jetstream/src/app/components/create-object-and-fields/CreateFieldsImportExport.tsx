@@ -31,7 +31,7 @@ export interface CreateFieldsImportExportProps {
 export const CreateFieldsImportExport: FunctionComponent<CreateFieldsImportExportProps> = ({ selectedOrg, rows, onImportRows }) => {
   const { trackEvent } = useAmplitude();
   const [{ google_apiKey, google_appId, google_clientId }] = useRecoilState(applicationCookieState);
-  const popoverRef = useRef<PopoverRef>();
+  const popoverRef = useRef<PopoverRef>(null);
   const [exportData, setExportData] = useState<any[]>(rows);
   const [exportModalOpen, setExportModalOpen] = useState(false);
 
@@ -97,7 +97,7 @@ export const CreateFieldsImportExport: FunctionComponent<CreateFieldsImportExpor
           }, {} as FieldValues)
       )
     );
-    popoverRef.current.close();
+    popoverRef.current?.close();
   }
 
   function handleMenuSelection(id: string) {

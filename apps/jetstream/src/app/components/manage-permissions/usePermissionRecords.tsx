@@ -1,15 +1,15 @@
-import { query, queryAll, queryAllUsingOffset } from '@jetstream/shared/data';
+import { logger } from '@jetstream/shared/client-logger';
+import { queryAll, queryAllUsingOffset } from '@jetstream/shared/data';
+import { useRollbar } from '@jetstream/shared/ui-utils';
 import { EntityParticlePermissionsRecord, FieldPermissionRecord, MapOf, ObjectPermissionRecord, SalesforceOrgUi } from '@jetstream/types';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { logger } from '@jetstream/shared/client-logger';
+import { FieldPermissionDefinitionMap, ObjectPermissionDefinitionMap } from './utils/permission-manager-types';
 import {
   getFieldDefinitionKey,
   getQueryForAllPermissionableFields,
   getQueryForFieldPermissions,
   getQueryObjectPermissions,
 } from './utils/permission-manager-utils';
-import { FieldPermissionDefinitionMap, ObjectPermissionDefinitionMap } from './utils/permission-manager-types';
-import { useRollbar } from '@jetstream/shared/ui-utils';
 
 export function usePermissionRecords(selectedOrg: SalesforceOrgUi, sobjects: string[], profilePermSetIds: string[], permSetIds: string[]) {
   const isMounted = useRef(true);
@@ -17,11 +17,11 @@ export function usePermissionRecords(selectedOrg: SalesforceOrgUi, sobjects: str
   const [loading, setLoading] = useState(true);
   const [hasError, setHasError] = useState(false);
 
-  const [fieldsByObject, setFieldsByObject] = useState<MapOf<string[]>>(null);
-  const [fieldsByKey, setFieldsByKey] = useState<MapOf<EntityParticlePermissionsRecord>>(null);
+  const [fieldsByObject, setFieldsByObject] = useState<MapOf<string[]> | null>(null);
+  const [fieldsByKey, setFieldsByKey] = useState<MapOf<EntityParticlePermissionsRecord> | null>(null);
 
-  const [objectPermissionMap, setObjectPermissionMap] = useState<MapOf<ObjectPermissionDefinitionMap>>(null);
-  const [fieldPermissionMap, setFieldPermissionMap] = useState<MapOf<FieldPermissionDefinitionMap>>(null);
+  const [objectPermissionMap, setObjectPermissionMap] = useState<MapOf<ObjectPermissionDefinitionMap> | null>(null);
+  const [fieldPermissionMap, setFieldPermissionMap] = useState<MapOf<FieldPermissionDefinitionMap> | null>(null);
 
   useEffect(() => {
     isMounted.current = true;

@@ -38,7 +38,7 @@ export const Query: FunctionComponent<QueryProps> = () => {
   const [isRestoring, setIsRestoring] = useState(false);
   const startRestore = useCallback(() => setIsRestoring(true), []);
   const endRestore = useCallback(() => setIsRestoring(false), []);
-  const [restore, errorMessage] = useQueryRestore(null, null, { startRestore: startRestore, endRestore: endRestore });
+  const [restore, errorMessage] = useQueryRestore(null, false, { startRestore: startRestore, endRestore: endRestore });
 
   // reset everything if the selected org changes
   useEffect(() => {

@@ -49,15 +49,19 @@ export interface AnonymousApexProps {}
 export const AnonymousApex: FunctionComponent<AnonymousApexProps> = () => {
   useTitle(TITLES.ANON_APEX);
   const isMounted = useRef(true);
-  const apexRef = useRef<editor.IStandaloneCodeEditor>(null);
-  const logRef = useRef<editor.IStandaloneCodeEditor>(null);
+  const apexRef = useRef<editor.IStandaloneCodeEditor>();
+  const logRef = useRef<editor.IStandaloneCodeEditor>();
   const { trackEvent } = useAmplitude();
   const rollbar = useRollbar();
   const [{ serverUrl }] = useRecoilState(applicationCookieState);
   const selectedOrg = useRecoilValue<SalesforceOrgUi>(selectedOrgState);
   const [apex, setApex] = useState(() => localStorage.getItem(STORAGE_KEYS.ANONYMOUS_APEX_STORAGE_KEY) || '');
   const [results, setResults] = useState('');
-  const [resultsStatus, setResultsStatus] = useState({ hasResults: false, success: false, label: null });
+  const [resultsStatus, setResultsStatus] = useState<{ hasResults: boolean; success: boolean; label: string | null }>({
+    hasResults: false,
+    success: false,
+    label: null,
+  });
   const [loading, setLoading] = useState(false);
   const [historyItems, setHistoryItems] = useRecoilState(fromApexState.apexHistoryState);
   const debouncedApex = useDebounce(apex, 1000);
@@ -141,7 +145,7 @@ export const AnonymousApex: FunctionComponent<AnonymousApexProps> = () => {
       setResults('');
       setTextFilter('');
       setUserDebug(false);
-      logRef.current.revealLine(1);
+      logRef.current?.revealLine(1);
       setResultsStatus({ hasResults: false, success: false, label: null });
       try {
         const { result, debugLog } = await anonymousApex(selectedOrg, value, logLevel);

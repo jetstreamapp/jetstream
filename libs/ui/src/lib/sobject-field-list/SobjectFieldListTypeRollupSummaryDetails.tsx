@@ -143,7 +143,7 @@ export const SobjectFieldListTypeRollupSummaryDetails: FunctionComponent<Sobject
   field,
   org,
 }) => {
-  const [content, setContent] = useState<string>();
+  const [content, setContent] = useState<string | null>(null);
   return (
     <ErrorBoundaryWithoutContent>
       <Tooltip

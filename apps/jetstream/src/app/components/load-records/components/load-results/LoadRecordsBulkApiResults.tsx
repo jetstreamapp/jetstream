@@ -10,6 +10,7 @@ import {
   BulkJobWithBatches,
   InsertUpdateUpsertDelete,
   MapOf,
+  Maybe,
   SalesforceOrgUi,
   WorkerMessage,
 } from '@jetstream/types';
@@ -59,13 +60,13 @@ export interface LoadRecordsBulkApiResultsProps {
   selectedSObject: string;
   fieldMapping: FieldMapping;
   inputFileData: any[];
-  inputZipFileData: ArrayBuffer;
+  inputZipFileData: Maybe<ArrayBuffer>;
   apiMode: ApiMode;
   loadType: InsertUpdateUpsertDelete;
-  externalId?: string;
+  externalId?: Maybe<string>;
   batchSize: number;
   insertNulls: boolean;
-  assignmentRuleId?: string;
+  assignmentRuleId?: Maybe<string>;
   serialMode: boolean;
   dateFormat: string;
   onFinish: (results: { success: number; failure: number }) => void;
@@ -95,12 +96,12 @@ export const LoadRecordsBulkApiResults: FunctionComponent<LoadRecordsBulkApiResu
   const [prepareDataProgress, setPrepareDataProgress] = useState(0);
   const [loadWorker] = useState(() => getLoadWorker());
   const [status, setStatus] = useState<Status>(STATUSES.PREPARING);
-  const [fatalError, setFatalError] = useState<string | null>(null);
-  const [downloadError, setDownloadError] = useState<string | null>(null);
+  const [fatalError, setFatalError] = useState<Maybe<string>>(null);
+  const [downloadError, setDownloadError] = useState<Maybe<string>>(null);
   const [jobInfo, setJobInfo] = useState<BulkJobWithBatches>();
   const [batchSummary, setBatchSummary] = useState<LoadDataBulkApiStatusPayload>();
-  const [processingStartTime, setProcessingStartTime] = useState<string | null>(null);
-  const [processingEndTime, setProcessingEndTime] = useState<string | null>(null);
+  const [processingStartTime, setProcessingStartTime] = useState<Maybe<string>>(null);
+  const [processingEndTime, setProcessingEndTime] = useState<Maybe<string>>(null);
   // Salesforce changes order of batches, so we want to ensure order is retained based on the input file
   const [batchIdByIndex, setBatchIdByIndex] = useState<MapOf<number>>();
   const [intervalCount, setIntervalCount] = useState<number>(0);
@@ -121,7 +122,7 @@ export const LoadRecordsBulkApiResults: FunctionComponent<LoadRecordsBulkApiResu
   }, []);
 
   useEffect(() => {
-    if (!loadWorker) {
+    if (loadWorker) {
       loadWorker.postMessage({ name: 'init', isElectron: window.electron?.isElectron });
     }
   }, [loadWorker]);
@@ -132,7 +133,9 @@ export const LoadRecordsBulkApiResults: FunctionComponent<LoadRecordsBulkApiResu
       if (Array.isArray(batchSummariesWithId)) {
         setBatchIdByIndex(
           batchSummariesWithId.reduce((output: MapOf<number>, batch) => {
-            output[batch.id] = batch.batchNumber;
+            if (batch.id) {
+              output[batch.id] = batch.batchNumber;
+            }
             return output;
           }, {})
         );
@@ -184,7 +187,7 @@ export const LoadRecordsBulkApiResults: FunctionComponent<LoadRecordsBulkApiResu
    * If not done and status is processing, then continue polling
    */
   useEffect(() => {
-    if (jobInfo && status !== STATUSES.ERROR && status !== STATUSES.FINISHED) {
+    if (jobInfo && status !== STATUSES.ERROR && status !== STATUSES.FINISHED && batchSummary && preparedData) {
       const isDone = checkIfBulkApiJobIsDone(jobInfo, batchSummary.totalBatches);
       if (isDone) {
         setStatus(STATUSES.FINISHED);
@@ -204,7 +207,7 @@ export const LoadRecordsBulkApiResults: FunctionComponent<LoadRecordsBulkApiResu
       } else if (status === STATUSES.PROCESSING && intervalCount < MAX_INTERVAL_CHECK_COUNT) {
         // we need to wait until all data is uploaded?
         setTimeout(async () => {
-          if (!isMounted.current) {
+          if (!isMounted.current || !batchIdByIndex || !jobInfo.id) {
             return;
           }
           const jobInfoWithBatches = await bulkApiGetJob(selectedOrg, jobInfo.id);
@@ -256,11 +259,11 @@ export const LoadRecordsBulkApiResults: FunctionComponent<LoadRecordsBulkApiResu
                 tag: 'load-records',
               });
               rollbar.error('Error preparing bulk api data', { message: payload.error.message, stack: payload.error.stack });
-            } else if (!payload.data.preparedData.data.length) {
-              if (payload.data.preparedData.queryErrors?.length) {
+            } else if (!payload.data.preparedData?.data.length) {
+              if (payload.data.preparedData?.queryErrors?.length) {
                 setFatalError(payload.data.preparedData.queryErrors.join('\n'));
               } else if (payload.error) {
-                setFatalError(payload.error.message);
+                setFatalError((payload.error as any)?.message || 'An unknown error has occurred');
               }
               // processing failed on every record
               setStatus(STATUSES.ERROR);
@@ -297,9 +300,9 @@ export const LoadRecordsBulkApiResults: FunctionComponent<LoadRecordsBulkApiResu
                 tag: 'load-records',
               });
               rollbar.error('Error preparing bulk api data', {
-                queryErrors: payload.data.preparedData.queryErrors,
-                message: payload.error?.message,
-                stack: payload.error?.stack,
+                queryErrors: payload.data.preparedData?.queryErrors,
+                message: (payload.error as any)?.message,
+                stack: (payload.error as any)?.stack,
               });
             } else {
               setStatus(STATUSES.UPLOADING);
@@ -314,7 +317,7 @@ export const LoadRecordsBulkApiResults: FunctionComponent<LoadRecordsBulkApiResu
           }
           case 'loadDataStatus': {
             setBatchSummary(payload.data.resultsSummary);
-            if (Array.isArray(payload.data.resultsSummary.jobInfo.batches) && payload.data.resultsSummary.jobInfo.batches.length) {
+            if (Array.isArray(payload.data.resultsSummary?.jobInfo.batches) && payload.data.resultsSummary?.jobInfo.batches.length) {
               setJobInfo(payload.data.resultsSummary.jobInfo);
             }
             break;
@@ -378,6 +381,9 @@ export const LoadRecordsBulkApiResults: FunctionComponent<LoadRecordsBulkApiResu
     batchIndex: number
   ): Promise<void> {
     try {
+      if (!batchSummary || !jobInfo?.id || !preparedData) {
+        return;
+      }
       if (downloadError) {
         setDownloadError(null);
       }
@@ -390,7 +396,7 @@ export const LoadRecordsBulkApiResults: FunctionComponent<LoadRecordsBulkApiResu
       const records: any[] = preparedData.data
         .slice(startIdx, startIdx + batchSize)
         .filter((record) => (loadType !== 'DELETE' ? true : !!record.Id));
-      const combinedResults = [];
+      const combinedResults: BulkJobResultRecord[] = [];
 
       results.forEach((resultRecord, i) => {
         // show all if results, otherwise just include errors
@@ -425,6 +431,9 @@ export const LoadRecordsBulkApiResults: FunctionComponent<LoadRecordsBulkApiResu
   }
 
   function handleDownloadProcessingErrors() {
+    if (!preparedData) {
+      return;
+    }
     const header = ['_id', '_success', '_errors'].concat(getFieldHeaderFromMapping(fieldMapping));
     setDownloadModalData({
       ...downloadModalData,
@@ -532,7 +541,7 @@ export const LoadRecordsBulkApiResults: FunctionComponent<LoadRecordsBulkApiResu
         </SalesforceLogin>
       )}
       {/* Data is being processed */}
-      {jobInfo && (
+      {jobInfo && preparedData && (
         <LoadRecordsBulkApiResultsTable
           jobInfo={jobInfo}
           processingErrors={preparedData.errors}

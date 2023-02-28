@@ -1,4 +1,4 @@
-import { UserProfileUi } from '@jetstream/types';
+import { Maybe, UserProfileUi } from '@jetstream/types';
 import lazy from './components/core/LazyLoad';
 import React, { useEffect } from 'react';
 import { Navigate, Route, Routes, useLocation } from 'react-router-dom';
@@ -51,7 +51,7 @@ const Settings = lazy(() => import('./components/settings/Settings'));
 
 export interface AppRoutesProps {
   featureFlags: Set<string>;
-  userProfile: UserProfileUi;
+  userProfile: Maybe<UserProfileUi>;
 }
 
 export const AppRoutes = ({ featureFlags, userProfile }: AppRoutesProps) => {
@@ -213,7 +213,7 @@ export const AppRoutes = ({ featureFlags, userProfile }: AppRoutesProps) => {
           </OrgSelectionRequired>
         }
       />
-      <Route path={APP_ROUTES.FEEDBACK_SUPPORT.ROUTE} element={<Feedback userProfile={userProfile} />} />
+      <Route path={APP_ROUTES.FEEDBACK_SUPPORT.ROUTE} element={<Feedback />} />
       <Route path={APP_ROUTES.SETTINGS.ROUTE} element={<Settings featureFlags={featureFlags} userProfile={userProfile} />} />
       <Route path="*" element={<Navigate to={APP_ROUTES.HOME.ROUTE} />} />
     </Routes>

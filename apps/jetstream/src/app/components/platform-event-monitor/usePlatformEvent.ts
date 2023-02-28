@@ -5,6 +5,7 @@ import { useDebounce, useRollbar } from '@jetstream/shared/ui-utils';
 import { orderObjectsBy } from '@jetstream/shared/utils';
 import {
   MapOf,
+  Maybe,
   PlatformEventCollectionResponse,
   PlatformEventMessage,
   PlatformEventMessagePayload,
@@ -23,7 +24,7 @@ export type MessagesByChannel = MapOf<{ replayId?: number; messages: PlatformEve
 
 export function usePlatformEvent({ selectedOrg }: { selectedOrg: SalesforceOrgUi }): {
   hasPlatformEvents: boolean;
-  platformEventFetchError?: string;
+  platformEventFetchError?: Maybe<string>;
   platformEvents: DescribeGlobalSObjectResult[];
   messagesByChannel: MessagesByChannel;
   loadingPlatformEvents: boolean;
@@ -40,7 +41,7 @@ export function usePlatformEvent({ selectedOrg }: { selectedOrg: SalesforceOrgUi
   const [platformEvents, setPlatformEvents] = useState<DescribeGlobalSObjectResult[]>([]);
   const [loadingPlatformEvents, setPlatformLoadingEvents] = useState<boolean>(false);
   const [hasPlatformEvents, setHasPlatformEvents] = useState(true);
-  const [platformEventFetchError, setPlatformEventFetchError] = useState<string>();
+  const [platformEventFetchError, setPlatformEventFetchError] = useState<Maybe<string>>(null);
   const [messagesByChannel, setMessagesByChannel] = useState<MessagesByChannel>({});
   const debouncedMessagesByChannel = useDebounce(messagesByChannel);
 

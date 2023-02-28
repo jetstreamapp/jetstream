@@ -1,4 +1,5 @@
 import { SerializedStyles } from '@emotion/react';
+import { Maybe } from '@jetstream/types';
 import classNames from 'classnames';
 import React, { forwardRef, Fragment } from 'react';
 import Icon from '../../widgets/Icon';
@@ -11,8 +12,8 @@ export interface ComboboxListItemProps {
   textBodyCss?: SerializedStyles;
   textCss?: SerializedStyles;
   label?: string; // can pass in children instead to override the complete media body
-  secondaryLabel?: string;
-  secondaryLabelOnNewLine?: boolean;
+  secondaryLabel?: Maybe<string>;
+  secondaryLabelOnNewLine?: Maybe<boolean>;
   title?: string; // fallback to label is label is a string
   selected: boolean;
   disabled?: boolean;

@@ -1,4 +1,4 @@
-import { UserProfileUi } from '@jetstream/types';
+import { Maybe, UserProfileUi } from '@jetstream/types';
 import { ConfirmationServiceProvider } from '@jetstream/ui';
 // import { initSocket } from '@jetstream/shared/data';
 import { OverlayProvider } from '@react-aria/overlays';
@@ -27,12 +27,12 @@ import NotificationsRequestModal from './components/core/NotificationsRequestMod
 // initSocket();
 
 export const App = () => {
-  const [userProfile, setUserProfile] = useState<UserProfileUi>();
+  const [userProfile, setUserProfile] = useState<Maybe<UserProfileUi>>();
   const [featureFlags, setFeatureFlags] = useState<Set<string>>(new Set());
 
   useEffect(() => {
-    if (userProfile && userProfile[environment.authAudience]?.featureFlags) {
-      const flags = new Set<string>(userProfile[environment.authAudience].featureFlags.flags);
+    if (userProfile && userProfile[environment.authAudience || '']?.featureFlags) {
+      const flags = new Set<string>(userProfile[environment.authAudience || ''].featureFlags.flags);
       setFeatureFlags(flags);
     }
   }, [userProfile]);

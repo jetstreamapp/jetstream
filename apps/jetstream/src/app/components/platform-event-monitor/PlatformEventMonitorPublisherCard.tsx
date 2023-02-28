@@ -1,7 +1,7 @@
 import { mockPicklistValuesFromSobjectDescribe, UiRecordForm } from '@jetstream/record-form';
 import { clearCacheForOrg, describeSObject } from '@jetstream/shared/data';
 import { useReducerFetchFn } from '@jetstream/shared/ui-utils';
-import { ListItem, PicklistFieldValues, Record, SalesforceOrgUi } from '@jetstream/types';
+import { ListItem, Maybe, PicklistFieldValues, Record, SalesforceOrgUi } from '@jetstream/types';
 import { Card, ComboboxWithItems, Grid, Icon, ScopedNotification, Spinner, Tooltip } from '@jetstream/ui';
 import { formatRelative } from 'date-fns';
 import type { DescribeGlobalSObjectResult, DescribeSObjectResult } from 'jsforce';
@@ -13,7 +13,7 @@ export interface PlatformEventMonitorPublisherCardProps {
   loadingPlatformEvents: boolean;
   picklistKey: string | number;
   platformEventsList: ListItem<string, DescribeGlobalSObjectResult>[];
-  selectedPublishEvent: string;
+  selectedPublishEvent: Maybe<string>;
   onSelectedPublishEvent: (id: string) => void;
   publish: (platformEventName: string, data: any) => Promise<string>;
 }
@@ -48,7 +48,9 @@ export const PlatformEventMonitorPublisherCard: FunctionComponent<PlatformEventM
   const [publishLoading, setPublishLoading] = useState(false);
   const [publishKey, setPublishKey] = useState<number>(1);
   const [publishEventRecord, setPublishEventRecord] = useState<Record>({});
-  const [publishEventResponse, setPublishEventResponse] = useState<{ success: boolean; eventId?: string; errorMessage?: string }>();
+  const [publishEventResponse, setPublishEventResponse] = useState<{ success: boolean; eventId?: string; errorMessage?: string } | null>(
+    null
+  );
 
   useEffect(() => {
     isMounted.current = true;
@@ -60,6 +62,9 @@ export const PlatformEventMonitorPublisherCard: FunctionComponent<PlatformEventM
   const fetchSobjectDescribe = useCallback(
     async (clearCache = false) => {
       try {
+        if (!selectedPublishEvent) {
+          return null;
+        }
         dispatchSobjectDescribe({ type: 'REQUEST' });
         if (clearCache) {
           await clearCacheForOrg(selectedOrg);
@@ -75,7 +80,7 @@ export const PlatformEventMonitorPublisherCard: FunctionComponent<PlatformEventM
           type: 'SUCCESS',
           payload: {
             describe: results.data,
-            lastRefreshed: `Last updated ${formatRelative(results.cache.age, new Date())}`,
+            lastRefreshed: `Last updated ${formatRelative(results.cache?.age || new Date().getTime(), new Date())}`,
             picklistValues,
           },
         });
@@ -99,6 +104,9 @@ export const PlatformEventMonitorPublisherCard: FunctionComponent<PlatformEventM
 
   const publishEvent = useCallback(
     async (record: Record) => {
+      if (!selectedPublishEvent) {
+        return;
+      }
       try {
         setPublishLoading(true);
         const results = await publish(selectedPublishEvent, record);

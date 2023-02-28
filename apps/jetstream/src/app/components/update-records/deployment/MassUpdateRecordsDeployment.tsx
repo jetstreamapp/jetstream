@@ -1,4 +1,4 @@
-import { SalesforceOrgUi } from '@jetstream/types';
+import { Maybe, SalesforceOrgUi } from '@jetstream/types';
 import {
   AutoFullHeightContainer,
   Checkbox,
@@ -30,7 +30,7 @@ export const MassUpdateRecordsDeployment: FunctionComponent<MassUpdateRecordsDep
   const selectedOrg = useRecoilValue<SalesforceOrgUi>(selectedOrgState);
   const rows = useRecoilValue(fromMassUpdateState.rowsState);
   const [loading, setLoading] = useState(false);
-  const [batchSize, setBatchSize] = useState(10000);
+  const [batchSize, setBatchSize] = useState<Maybe<number>>(10000);
   const [batchSizeError, setBatchSizeError] = useState<string | null>(null);
   const [serialMode, setSerialMode] = useState(false);
   const { loadDataForRows, pollResultsUntilDone } = useDeployRecords(selectedOrg);
@@ -43,7 +43,7 @@ export const MassUpdateRecordsDeployment: FunctionComponent<MassUpdateRecordsDep
 
   async function handleDeploy() {
     setLoading(true);
-    await loadDataForRows(rows, { batchSize, serialMode });
+    await loadDataForRows(rows, { batchSize: batchSize ?? 10000, serialMode });
     pollResultsUntilDone();
   }
 
@@ -113,7 +113,7 @@ export const MassUpdateRecordsDeployment: FunctionComponent<MassUpdateRecordsDep
               className="slds-input"
               placeholder="Set batch size"
               value={batchSize || ''}
-              aria-describedby={batchSizeError}
+              aria-describedby={batchSizeError || undefined}
               disabled={loading}
               onChange={handleBatchSize}
             />
@@ -121,7 +121,7 @@ export const MassUpdateRecordsDeployment: FunctionComponent<MassUpdateRecordsDep
         </Section>
 
         {rows.map((row) => (
-          <MassUpdateRecordsDeploymentRow key={row.sobject} selectedOrg={selectedOrg} row={row} batchSize={batchSize} />
+          <MassUpdateRecordsDeploymentRow key={row.sobject} selectedOrg={selectedOrg} row={row} batchSize={batchSize ?? 1000} />
         ))}
       </AutoFullHeightContainer>
     </Page>

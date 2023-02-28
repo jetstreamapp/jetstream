@@ -21,17 +21,17 @@ type Action =
 interface State {
   sourceLoading: boolean;
   sourceStatus: LoadStatus;
-  sourceLastChecked: Date;
-  sourceResults: JSZip;
-  sourceResultFiles: FilePropertiesWithContent[];
-  sourceError?: string;
+  sourceLastChecked: Date | null;
+  sourceResults: JSZip | null;
+  sourceResultFiles: FilePropertiesWithContent[] | null;
+  sourceError?: string | null;
 
   targetLoading: boolean;
   targetStatus: LoadStatus;
-  targetLastChecked: Date;
-  targetResults: JSZip;
-  targetResultFiles: FilePropertiesWithContent[];
-  targetError?: string;
+  targetLastChecked: Date | null;
+  targetResults: JSZip | null;
+  targetResultFiles: FilePropertiesWithContent[] | null;
+  targetError?: string | null;
 
   files: TreeItems<FileItemMetadata | null>[];
 

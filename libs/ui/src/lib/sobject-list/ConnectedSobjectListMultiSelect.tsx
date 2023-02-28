@@ -1,7 +1,7 @@
 import { logger } from '@jetstream/shared/client-logger';
 import { clearCacheForOrg, describeGlobal } from '@jetstream/shared/data';
 import { NOOP, orderObjectsBy } from '@jetstream/shared/utils';
-import { SalesforceOrgUi } from '@jetstream/types';
+import { Maybe, SalesforceOrgUi } from '@jetstream/types';
 import formatRelative from 'date-fns/formatRelative';
 import { DescribeGlobalSObjectResult } from 'jsforce';
 import React, { Fragment, FunctionComponent, useCallback, useEffect, useRef, useState } from 'react';
@@ -21,13 +21,13 @@ function filterSobjectFn(sobject: DescribeGlobalSObjectResult): boolean {
 export interface ConnectedSobjectListMultiSelectProps {
   label?: string;
   selectedOrg: SalesforceOrgUi;
-  sobjects: DescribeGlobalSObjectResult[];
+  sobjects: Maybe<DescribeGlobalSObjectResult[]>;
   selectedSObjects: string[];
   allowSelectAll?: boolean;
   retainSelectionOnRefresh?: boolean;
   filterFn?: (sobject: DescribeGlobalSObjectResult | null) => boolean;
   onSobjects: (sobjects: DescribeGlobalSObjectResult[] | null) => void;
-  onSelectedSObjects: (selectedSObjects: string[] | null) => void;
+  onSelectedSObjects: (selectedSObjects: string[]) => void;
   onRefresh?: () => void;
 }
 
@@ -94,7 +94,7 @@ export const ConnectedSobjectListMultiSelect: FunctionComponent<ConnectedSobject
       await clearCacheForOrg(selectedOrg);
       onSobjects(null);
       if (!retainSelectionOnRefresh) {
-        onSelectedSObjects(null);
+        onSelectedSObjects([]);
       }
       await loadObjects();
       if (isMounted.current) {

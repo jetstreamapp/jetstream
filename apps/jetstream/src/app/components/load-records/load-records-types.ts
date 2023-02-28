@@ -3,6 +3,7 @@ import {
   EntityParticleRecord,
   InsertUpdateUpsertDelete,
   MapOf,
+  Maybe,
   RecordAttributes,
   SalesforceOrgUi,
 } from '@jetstream/types';
@@ -60,7 +61,7 @@ export interface FieldMappingItem {
   selectedReferenceTo?: string;
   relationshipName?: string;
   targetLookupField?: string;
-  fieldMetadata: FieldWithRelatedEntities;
+  fieldMetadata: Maybe<FieldWithRelatedEntities>;
   relatedFieldMetadata?: FieldRelatedEntity;
   isDuplicateMappedField?: boolean;
   lookupOptionUseFirstMatch: NonExtIdLookupOption;
@@ -93,15 +94,15 @@ export interface PrepareDataResponse {
 export interface LoadDataPayload {
   org: SalesforceOrgUi;
   data: any[];
-  zipData?: ArrayBuffer;
+  zipData?: Maybe<ArrayBuffer>;
   sObject: string;
   apiMode: ApiMode;
   type: InsertUpdateUpsertDelete;
   batchSize: number;
-  serialMode?: boolean;
-  externalId?: string; // required for upsert, ignored for all others.
-  assignmentRuleId?: string; // only allowed for lead / case
-  binaryBodyField?: string;
+  serialMode?: Maybe<boolean>;
+  externalId?: Maybe<string>; // required for upsert, ignored for all others.
+  assignmentRuleId?: Maybe<string>; // only allowed for lead / case
+  binaryBodyField?: Maybe<string>;
 }
 
 export interface LoadDataBulkApi {

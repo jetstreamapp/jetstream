@@ -20,7 +20,7 @@ export function useUsers(
   const [lastRefreshed, setLastRefreshed] = useState<string>(_lastRefreshed);
 
   const [{ hasLoaded, loading, data, hasError, errorMessage }, dispatch] = useReducer(
-    useReducerFetchFn<ListItem<string, SalesforceUser>[]>(),
+    useReducerFetchFn<ListItem<string, SalesforceUser>[] | null>(),
     {
       hasLoaded: !!initialUsers,
       loading: false,

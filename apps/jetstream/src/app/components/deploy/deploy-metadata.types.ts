@@ -28,15 +28,15 @@ export interface DeployMetadataTableRow {
   type: string;
   typeLabel: string;
   fullName?: string;
-  folder: string;
-  lastRefreshed: string;
-  lastModifiedByName?: string;
-  lastModifiedDate?: Date;
-  createdByName?: string;
-  createdDate?: Date;
+  folder?: string | null;
+  lastRefreshed?: string | null;
+  lastModifiedByName?: string | null;
+  lastModifiedDate?: Date | null;
+  createdByName?: string | null;
+  createdDate?: Date | null;
   manageableState?: 'beta' | 'deleted' | 'deprecated' | 'deprecatedEditable' | 'installed' | 'installedEditable' | 'released' | 'unmanaged';
   loading: boolean;
-  error: boolean;
+  error?: boolean | null;
   metadata?: ListMetadataResult;
 }
 

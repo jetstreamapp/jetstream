@@ -5,9 +5,9 @@ const electron = window.electron;
 let port: MessagePort;
 
 export const externalMessagePorts: {
-  loadWorkerPort: MessagePort;
-  queryWorkerPort: MessagePort;
-  jobsWorkerPort: MessagePort;
+  loadWorkerPort: MessagePort | null;
+  queryWorkerPort: MessagePort | null;
+  jobsWorkerPort: MessagePort | null;
 } = {
   loadWorkerPort: null,
   queryWorkerPort: null,

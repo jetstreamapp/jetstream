@@ -27,7 +27,7 @@ export function useDescribeMetadata(
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [lastRefreshed, setLastRefreshed] = useState<string>(_lastRefreshed);
   const [orgInformation, setOrgInformation] = useState<Omit<DescribeMetadataResult, 'metadataObjects'> | null>(null);
-  const [orgIdUsedToFetch, setOrgIdUsedToFetch] = useState<string>();
+  const [orgIdUsedToFetch, setOrgIdUsedToFetch] = useState<string | null>(null);
 
   useEffect(() => {
     isMounted.current = true;

@@ -13,7 +13,7 @@ import Spinner from '../widgets/Spinner';
 export interface SobjectListProps {
   isTooling?: boolean;
   sobjects: DescribeGlobalSObjectResult[];
-  selectedSObject: DescribeGlobalSObjectResult;
+  selectedSObject: Maybe<DescribeGlobalSObjectResult>;
   loading: boolean;
   errorMessage?: Maybe<string>;
   initialSearchTerm?: string;

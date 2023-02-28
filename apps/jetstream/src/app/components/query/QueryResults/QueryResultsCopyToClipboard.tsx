@@ -1,7 +1,7 @@
 import { ANALYTICS_KEYS } from '@jetstream/shared/constants';
 import { transformTabularDataToExcelStr, transformTabularDataToHtml } from '@jetstream/shared/ui-utils';
 import { flattenRecords } from '@jetstream/shared/utils';
-import { Record } from '@jetstream/types';
+import { Maybe, Record } from '@jetstream/types';
 import { ButtonGroupContainer, DropDown, Icon, Modal, Radio, RadioGroup } from '@jetstream/ui';
 import classNames from 'classnames';
 import copyToClipboard from 'copy-to-clipboard';
@@ -13,8 +13,8 @@ type WhichRecords = 'all' | 'filtered' | 'selected';
 export interface QueryResultsCopyToClipboardProps {
   className?: string;
   hasRecords: boolean;
-  fields: string[];
-  records: Record[];
+  fields: Maybe<string[]>;
+  records: Maybe<Record[]>;
   filteredRows: Record[];
   selectedRows: Record[];
   isTooling: boolean;
@@ -53,7 +53,10 @@ export const QueryResultsCopyToClipboard: FunctionComponent<QueryResultsCopyToCl
   }, [records, filteredRows, selectedRows]);
 
   async function handleCopyToClipboard(format: 'excel' | 'text' | 'json' = 'excel') {
-    if ((hasFilteredRows && filteredRows.length < records.length) || (hasPartialSelectedRows && selectedRows.length < records.length)) {
+    if (
+      (records && hasFilteredRows && filteredRows.length < records.length) ||
+      (records && hasPartialSelectedRows && selectedRows.length < records.length)
+    ) {
       setIsModalOpen(true);
       return;
     }
@@ -86,10 +89,10 @@ export const QueryResultsCopyToClipboard: FunctionComponent<QueryResultsCopyToCl
   }
 
   function performCopy(recordsToCopy: any, copyFormat: 'excel' | 'text' | 'json') {
-    if (copyFormat === 'excel') {
+    if (copyFormat === 'excel' && fields) {
       const flattenedData = flattenRecords(recordsToCopy, fields);
       copyToClipboard(transformTabularDataToHtml(flattenedData, fields), { format: 'text/html' });
-    } else if (copyFormat === 'text') {
+    } else if (copyFormat === 'text' && fields) {
       const flattenedData = flattenRecords(recordsToCopy, fields);
       copyToClipboard(transformTabularDataToExcelStr(flattenedData, fields), { format: 'text/plain' });
     } else if (copyFormat === 'json') {
@@ -118,7 +121,7 @@ export const QueryResultsCopyToClipboard: FunctionComponent<QueryResultsCopyToCl
             { id: 'text', value: 'Copy as Text' },
             { id: 'json', value: 'Copy as JSON' },
           ]}
-          onSelected={handleCopyToClipboard}
+          onSelected={(item) => handleCopyToClipboard(item as 'excel' | 'text' | 'json')}
         />
       </ButtonGroupContainer>
       {isModalOpen && (
@@ -144,7 +147,7 @@ export const QueryResultsCopyToClipboard: FunctionComponent<QueryResultsCopyToCl
                 idPrefix="all"
                 id="radio-all"
                 name="which-records"
-                label={`All Records (${records.length})`}
+                label={`All Records (${records?.length || 0})`}
                 value="all"
                 checked={whichRecords === 'all'}
                 onChange={(value) => setWhichRecords('all')}

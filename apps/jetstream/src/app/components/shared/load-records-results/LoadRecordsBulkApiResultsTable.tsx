@@ -1,5 +1,5 @@
 import { css } from '@emotion/react';
-import { BulkJobBatchInfo, BulkJobWithBatches } from '@jetstream/types';
+import { BulkJobBatchInfo, BulkJobWithBatches, Maybe } from '@jetstream/types';
 import { FunctionComponent, useEffect, useState } from 'react';
 import { DownloadAction, DownloadType, PrepareDataResponseError } from './load-records-results-types';
 import LoadRecordsBulkApiResultsTableRow from './LoadRecordsBulkApiResultsTableRow';
@@ -7,8 +7,8 @@ import LoadRecordsResultsTableProcessingErrRow from './LoadRecordsResultsTablePr
 export interface LoadRecordsBulkApiResultsTableProps {
   jobInfo: BulkJobWithBatches;
   processingErrors: PrepareDataResponseError[];
-  processingStartTime: string;
-  processingEndTime: string;
+  processingStartTime: Maybe<string>;
+  processingEndTime: Maybe<string>;
   onDownloadOrView: (action: DownloadAction, type: DownloadType, batch: BulkJobBatchInfo, batchIndex: number) => Promise<void>;
   onDownloadProcessingErrors: () => void;
 }

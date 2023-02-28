@@ -3,7 +3,7 @@ import { logger } from '@jetstream/shared/client-logger';
 import { ANALYTICS_KEYS } from '@jetstream/shared/constants';
 import { convertDateToLocale, useBrowserNotifications, useRollbar } from '@jetstream/shared/ui-utils';
 import { flattenRecord, getSuccessOrFailureChar, pluralizeFromNumber } from '@jetstream/shared/utils';
-import { InsertUpdateUpsertDelete, RecordResultWithRecord, SalesforceOrgUi, WorkerMessage } from '@jetstream/types';
+import { InsertUpdateUpsertDelete, Maybe, RecordResultWithRecord, SalesforceOrgUi, WorkerMessage } from '@jetstream/types';
 import { FileDownloadModal, Grid, ProgressRing, Spinner } from '@jetstream/ui';
 import { FunctionComponent, useEffect, useRef, useState } from 'react';
 import { useRecoilState } from 'recoil';
@@ -44,13 +44,13 @@ export interface LoadRecordsBatchApiResultsProps {
   selectedSObject: string;
   fieldMapping: FieldMapping;
   inputFileData: any[];
-  inputZipFileData: ArrayBuffer;
+  inputZipFileData: Maybe<ArrayBuffer>;
   apiMode: ApiMode;
   loadType: InsertUpdateUpsertDelete;
   externalId?: string;
   batchSize: number;
   insertNulls: boolean;
-  assignmentRuleId?: string;
+  assignmentRuleId?: Maybe<string>;
   serialMode: boolean;
   dateFormat: string;
   onFinish: (results: { success: number; failure: number }) => void;
@@ -82,10 +82,10 @@ export const LoadRecordsBatchApiResults: FunctionComponent<LoadRecordsBatchApiRe
   const [prepareDataProgress, setPrepareDataProgress] = useState(0);
   const [status, setStatus] = useState<Status>(STATUSES.PREPARING);
   const [fatalError, setFatalError] = useState<string | null>(null);
-  const [processingStartTime, setProcessingStartTime] = useState<string | null>(null);
-  const [processingEndTime, setProcessingEndTime] = useState<string | null>(null);
-  const [startTime, setStartTime] = useState<string | null>(null);
-  const [endTime, setEndTime] = useState<string | null>(null);
+  const [processingStartTime, setProcessingStartTime] = useState<Maybe<string>>(null);
+  const [processingEndTime, setProcessingEndTime] = useState<Maybe<string>>(null);
+  const [startTime, setStartTime] = useState<Maybe<string>>(null);
+  const [endTime, setEndTime] = useState<Maybe<string>>(null);
   const [processedRecords, setProcessedRecords] = useState<RecordResultWithRecord[]>([]);
   const [processingStatus, setProcessingStatus] = useState<LoadDataBatchApiProgress>({
     total: 0,
@@ -148,7 +148,7 @@ export const LoadRecordsBatchApiResults: FunctionComponent<LoadRecordsBatchApiRe
       processingStatusRef.current.success = processedRecords.filter((record) => record.success).length;
       processingStatusRef.current.failure = processedRecords.filter((record) => !record.success).length;
       setProcessingStatus({
-        total: preparedData.data.length,
+        total: preparedData?.data.length || 0,
         success: processingStatusRef.current.success,
         failure: processingStatusRef.current.failure,
       });
@@ -197,8 +197,8 @@ export const LoadRecordsBatchApiResults: FunctionComponent<LoadRecordsBatchApiRe
                 tag: 'load-records',
               });
               rollbar.error('Error preparing batch api data', { message: payload.error.message, stack: payload.error.stack });
-            } else if (!payload.data.preparedData.data.length) {
-              if (payload.data.preparedData.queryErrors?.length) {
+            } else if (!payload.data.preparedData?.data.length) {
+              if (payload.data.preparedData?.queryErrors?.length) {
                 setFatalError(payload.data.preparedData.queryErrors.join('\n'));
               } else if (payload.error) {
                 setFatalError(payload.error.message);
@@ -214,7 +214,7 @@ export const LoadRecordsBatchApiResults: FunctionComponent<LoadRecordsBatchApiRe
                 tag: 'load-records',
               });
               rollbar.error('Error preparing batch api data', {
-                queryErrors: payload.data.preparedData.queryErrors,
+                queryErrors: payload.data.preparedData?.queryErrors,
                 message: payload.error?.message,
                 stack: payload.error?.stack,
               });
@@ -231,7 +231,7 @@ export const LoadRecordsBatchApiResults: FunctionComponent<LoadRecordsBatchApiRe
             break;
           }
           case 'loadDataStatus': {
-            setProcessedRecords((previousProcessedRecords) => previousProcessedRecords.concat(payload.data.records));
+            setProcessedRecords((previousProcessedRecords) => previousProcessedRecords.concat(payload.data.records || []));
             break;
           }
           case 'loadData': {
@@ -334,12 +334,13 @@ export const LoadRecordsBatchApiResults: FunctionComponent<LoadRecordsBatchApiRe
       open: true,
       fileNameParts: [loadType.toLocaleLowerCase(), selectedSObject.toLocaleLowerCase(), 'processing-failures'],
       header,
-      data: preparedData.errors.map((error) => ({
-        _id: null,
-        _success: false,
-        _errors: error.errors.join('\n'),
-        ...flattenRecord(error.record, fields),
-      })),
+      data:
+        preparedData?.errors.map((error) => ({
+          _id: null,
+          _success: false,
+          _errors: error.errors.join('\n'),
+          ...flattenRecord(error.record, fields),
+        })) || [],
     });
   }
 
@@ -408,7 +409,7 @@ export const LoadRecordsBatchApiResults: FunctionComponent<LoadRecordsBatchApiRe
       {/* Data is being processed */}
       {startTime && (
         <LoadRecordsBatchApiResultsTable
-          processingErrors={preparedData.errors}
+          processingErrors={preparedData?.errors}
           processingStatus={processingStatus}
           failedProcessingStage={!preparedData?.data.length && !!preparedData?.errors.length}
           inProgress={status === STATUSES.PROCESSING}

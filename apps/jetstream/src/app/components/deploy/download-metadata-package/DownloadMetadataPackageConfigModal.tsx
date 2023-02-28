@@ -27,8 +27,8 @@ export const DownloadMetadataPackageConfigModal: FunctionComponent<DownloadMetad
 }) => {
   const orgs = useRecoilValue<SalesforceOrgUi[]>(salesforceOrgsState);
   const [destinationOrg, setDestinationOrg] = useState<SalesforceOrgUi>(initiallySelectedOrg);
-  const [file, setFile] = useState<string>();
-  const [filename, setFileName] = useState<string>();
+  const [file, setFile] = useState<string | null>(null);
+  const [filename, setFileName] = useState<string | null>(null);
   const [packageNames, setPackageNames] = useState<string[]>([]);
   const [packageNamesStr, setPackageNamesStr] = useState<string>('');
 
@@ -121,14 +121,14 @@ export const DownloadMetadataPackageConfigModal: FunctionComponent<DownloadMetad
               className="slds-m-top_x-small"
               id="package-manifest"
               label="Package Manifest"
-              filename={filename}
+              filename={filename || ''}
               accept={[INPUT_ACCEPT_FILETYPES.XML]}
               userHelpText="Choose package.xml manifest file"
               onReadFile={handleFile}
             ></FileSelector>
             <button
               className="slds-button slds-button_brand slds-m-top_medium"
-              onClick={() => onDownloadFromManifest(destinationOrg, file)}
+              onClick={() => file && onDownloadFromManifest(destinationOrg, file)}
               disabled={!file}
             >
               Download

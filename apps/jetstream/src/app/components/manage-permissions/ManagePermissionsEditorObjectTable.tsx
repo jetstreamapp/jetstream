@@ -2,6 +2,7 @@ import { useNonInitialEffect } from '@jetstream/shared/ui-utils';
 import { MapOf } from '@jetstream/types';
 import { AutoFullHeightContainer, ColumnWithFilter, DataTable } from '@jetstream/ui';
 import { forwardRef, useCallback, useImperativeHandle, useState } from 'react';
+import { RowHeightArgs } from 'react-data-grid';
 import { resetGridChanges, updateRowsFromColumnAction } from './utils/permission-manager-table-utils';
 import {
   DirtyRow,
@@ -10,7 +11,6 @@ import {
   PermissionTableObjectCell,
   PermissionTableSummaryRow,
 } from './utils/permission-manager-types';
-import { RowHeightArgs } from 'react-data-grid';
 
 function getRowKey(row: PermissionTableObjectCell) {
   return row.key;

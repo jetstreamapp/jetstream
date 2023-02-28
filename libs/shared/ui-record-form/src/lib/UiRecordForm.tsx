@@ -16,7 +16,7 @@ export interface UiRecordFormProps {
   sobjectFields: Field[];
   picklistValues: PicklistFieldValues;
   record: Record;
-  saveErrors?: MapOf<string>;
+  saveErrors?: MapOf<string | undefined>;
   disabled?: boolean;
   onChange: (record: Record) => void;
 }

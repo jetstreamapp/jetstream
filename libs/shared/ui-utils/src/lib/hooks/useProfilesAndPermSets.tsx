@@ -24,8 +24,8 @@ let _lastRefreshed: string;
  */
 export function useProfilesAndPermSets(
   selectedOrg: SalesforceOrgUi,
-  _initProfiles?: ListItem<string, PermissionSetWithProfileRecord>[],
-  _initPermissionSets?: ListItem<string, PermissionSetNoProfileRecord>[]
+  _initProfiles?: ListItem<string, PermissionSetWithProfileRecord>[] | null,
+  _initPermissionSets?: ListItem<string, PermissionSetNoProfileRecord>[] | null
 ) {
   const isMounted = useRef(true);
   const [lastRefreshed, setLastRefreshed] = useState<string>(_lastRefreshed);

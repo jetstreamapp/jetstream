@@ -81,7 +81,7 @@ export const DeployMetadataPackage: FunctionComponent<DeployMetadataPackageProps
           onDeploy={handleDeploy}
         />
       )}
-      {deployStatusModalOpen && (
+      {deployStatusModalOpen && deployOptions && fileInfo.file && (
         <DeployMetadataPackageStatusModal
           destinationOrg={destinationOrg}
           deployOptions={deployOptions}
@@ -92,7 +92,7 @@ export const DeployMetadataPackage: FunctionComponent<DeployMetadataPackageProps
           onDownload={handleDeployResultsDownload}
         />
       )}
-      {downloadResultsModalOpen && (
+      {downloadResultsModalOpen && deployResultsData && (
         <FileDownloadModal
           modalHeader="Download Deploy Results"
           org={destinationOrg}

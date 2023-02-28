@@ -1,6 +1,6 @@
 import { logger } from '@jetstream/shared/client-logger';
 import { query } from '@jetstream/shared/data';
-import { CloneEditView, ListItem, SalesforceOrgUi } from '@jetstream/types';
+import { CloneEditView, ListItem, Maybe, SalesforceOrgUi } from '@jetstream/types';
 import { ComboboxWithItemsTypeAhead, Grid, Icon, Tooltip } from '@jetstream/ui';
 import { FunctionComponent, useCallback, useState } from 'react';
 import { useRecoilState } from 'recoil';
@@ -11,7 +11,7 @@ export interface FormulaEvaluatorRecordSearchProps {
   selectedOrg: SalesforceOrgUi;
   selectedSObject: string;
   disabled: boolean;
-  fieldErrorMessage: string;
+  fieldErrorMessage: Maybe<string>;
   onSelectedRecord: (recordId: string) => void;
 }
 
@@ -104,7 +104,7 @@ export const FormulaEvaluatorRecordSearch: FunctionComponent<FormulaEvaluatorRec
           selectedItemId={selectedRecord?.id}
           onSelected={handleSelection}
         />
-        <Tooltip content={!disabled && selectedRecord && 'View Record Details'}>
+        <Tooltip content={(!disabled && !!selectedRecord && 'View Record Details') || ''}>
           <button
             className="slds-button slds-button_icon slds-button_icon-border-filled cursor-pointer slds-m-left_x-small"
             onClick={() => selectedRecord && setViewRecordModalOpen(true)}

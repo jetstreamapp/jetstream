@@ -1,13 +1,12 @@
+import { css } from '@emotion/react';
+import { DropDownItem, Maybe, UserProfileUi } from '@jetstream/types';
 import Avatar from '@salesforce-ux/design-system/assets/images/profile_avatar_96.png';
 import { Fragment, FunctionComponent, ReactNode, Suspense } from 'react';
-import { DropDownItem, UserProfileUi } from '@jetstream/types';
 import DropDown from '../form/dropdown/DropDown';
-import classNames from 'classnames';
 import Grid from '../grid/Grid';
-import { css } from '@emotion/react';
 
 export interface HeaderProps {
-  userProfile: UserProfileUi;
+  userProfile: Maybe<UserProfileUi>;
   logo: string | ReactNode;
   orgs?: ReactNode;
   userMenuItems: DropDownItem[];

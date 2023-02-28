@@ -1,5 +1,5 @@
 import type { DescribeSObjectResult, Field, RetrieveResult as RetrieveResultSfdc } from 'jsforce';
-import { HttpMethod, MapOf, RecordAttributes } from '../types';
+import { HttpMethod, MapOf, Maybe, RecordAttributes } from '../types';
 
 export type BulkApiDownloadType = 'request' | 'result';
 
@@ -174,7 +174,7 @@ export interface CompositeResponseItem<T = CompositeGraphResponseBodyData> {
   referenceId: string;
 }
 
-export interface CompositeGraphResponseBody<T = unknown> {
+export interface CompositeGraphResponseBody<T = CompositeGraphResponseBodyData> {
   graphs: CompositeGraphResponse<T>[];
 }
 
@@ -300,13 +300,13 @@ export type BulkJobWithBatches = BulkJob & { batches: BulkJobBatchInfo[] };
 export interface BulkJob {
   concurrencyMode: 'Parallel' | 'Serial';
   contentType: string;
-  createdById: string;
-  createdDate: string;
-  id: string;
+  createdById: Maybe<string>;
+  createdDate: Maybe<string>;
+  id: Maybe<string>;
   object: string;
   operation: InsertUpdateUpsertDelete;
   state: 'Open' | 'Closed' | 'Aborted' | 'Failed';
-  systemModstamp: string;
+  systemModstamp: Maybe<string>;
   apexProcessingTime: number;
   apiActiveProcessingTime: number;
   apiVersion: number;
@@ -421,17 +421,17 @@ export interface ListMetadataResultRaw {
 }
 
 export interface ListMetadataResult {
-  createdById: string;
-  createdByName: string;
-  createdDate: Date;
+  createdById: string | null;
+  createdByName: string | null;
+  createdDate: Date | null;
   fileName: string;
   fullName: string;
   id: string;
-  lastModifiedById: string;
-  lastModifiedByName: string;
-  lastModifiedDate: Date;
+  lastModifiedById: string | null;
+  lastModifiedByName: string | null;
+  lastModifiedDate: Date | null;
   manageableState?: 'beta' | 'deleted' | 'deprecated' | 'deprecatedEditable' | 'installed' | 'installedEditable' | 'released' | 'unmanaged';
-  namespacePrefix?: string;
+  namespacePrefix?: string | null;
   type: string;
 }
 

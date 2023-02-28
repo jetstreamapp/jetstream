@@ -36,7 +36,7 @@ async function getFileContent(data: JSZip, fileProperties: FilePropertiesWithCon
       return;
     }
     if (!fileProperties.content) {
-      fileProperties.content = await data.file(fileProperties.fileName).async('string');
+      fileProperties.content = await data.file(fileProperties.fileName)?.async('string');
     }
   } catch (ex) {
     logger.warn('[VIEW OR COMPARE][CONTENT] Could not load content', fileProperties.fileName);
@@ -50,14 +50,14 @@ async function getFileContent(data: JSZip, fileProperties: FilePropertiesWithCon
  * @returns
  */
 export function buildTree(
-  sourceResultFiles: FilePropertiesWithContent[],
-  targetResultFiles?: FilePropertiesWithContent[]
+  sourceResultFiles: FilePropertiesWithContent[] | null,
+  targetResultFiles?: FilePropertiesWithContent[] | null
 ): TreeItems<FileItemMetadata | null>[] {
   const targetFiles = getMapOf(targetResultFiles || [], 'fileName');
 
-  let result: TreeItems<FileItemMetadata | null>[] = [];
+  const result: TreeItems<FileItemMetadata | null>[] = [];
   // level is just a placeholder object to store intermediate results
-  let level = { result };
+  const level = { result };
 
   sourceResultFiles
     ?.filter((file) => file.fileName !== 'package.xml')
@@ -88,7 +88,7 @@ export function buildTree(
   return orderObjectsBy(result, 'id');
 }
 
-function getTreeLabel(id: string, name: string, meta: FileItemMetadata): string | JSX.Element {
+function getTreeLabel(id: string, name: string, meta: FileItemMetadata | null): string | JSX.Element {
   if (meta?.source && meta?.targetHasLoaded) {
     let tooltip = 'Source and Target org are the same';
     if (!meta.sourceAndTargetMatch) {
@@ -122,7 +122,7 @@ export function compare(sourceFile: FilePropertiesWithContent, targetFiles: MapO
   let match = sourceFile.content === targetFiles[sourceFile.fileName]?.content;
   if (!match && sourceFile.content && targetFiles[sourceFile.fileName]?.content) {
     try {
-      match = sourceFile.content.trim() === targetFiles[sourceFile.fileName]?.content.trim();
+      match = sourceFile.content.trim() === targetFiles[sourceFile.fileName]?.content?.trim();
     } catch (ex) {
       // ignore failure
     }

@@ -3,7 +3,7 @@ import type { ChildRelationship, DescribeSObjectResult, Field } from 'jsforce';
 import type { ReactNode } from 'react';
 import type * as XLSX from 'xlsx';
 import { DeployOptions, DeployResult, DeployResultStatus, ListMetadataResult } from '../salesforce/types';
-import { HttpMethod, MapOf, SalesforceOrgUi } from '../types';
+import { HttpMethod, MapOf, Maybe, SalesforceOrgUi } from '../types';
 
 export type DropDownItemLength = 5 | 7 | 10;
 
@@ -17,8 +17,8 @@ export interface UseReducerFetchState<T> {
   hasLoaded: boolean;
   loading: boolean;
   hasError: boolean;
-  errorMessage?: string | null;
-  data: T;
+  errorMessage?: Maybe<string>;
+  data: Maybe<T>;
 }
 
 export type FileExtCsv = 'csv';
@@ -47,7 +47,7 @@ export interface WorkerMessage<T, K = any, E = any> {
 
 export interface QueryFieldWithPolymorphic {
   field: string;
-  polymorphicObj: string;
+  polymorphicObj: Maybe<string>;
 }
 
 export interface QueryFields {
@@ -83,15 +83,15 @@ export interface FieldWrapper {
 // Tabs / Accordion / etc..
 export interface UiSection {
   id: string;
-  testId?: string;
+  testId?: Maybe<string>;
   title: string | ReactNode;
-  titleSummaryIfCollapsed?: string | ReactNode; // extra title content to show if collapsed
-  titleText?: string; // use if title is not a string
+  titleSummaryIfCollapsed?: Maybe<string | ReactNode>; // extra title content to show if collapsed
+  titleText?: Maybe<string>; // use if title is not a string
   // eslint-disable-next-line @typescript-eslint/ban-types
   content: React.ReactNode | Function; // => React.ReactNode
-  disabled?: boolean;
-  className?: string;
-  style?: React.CSSProperties;
+  disabled?: Maybe<boolean>;
+  className?: Maybe<string>;
+  style?: Maybe<React.CSSProperties>;
 }
 
 export interface UiTabSection {
@@ -237,12 +237,12 @@ export interface ListItemGroup {
 export interface ListItem<V = string, M = any> {
   id: string;
   label: string;
-  secondaryLabel?: string;
-  secondaryLabelOnNewLine?: boolean;
-  metaLabel?: string;
+  secondaryLabel?: string | null;
+  secondaryLabelOnNewLine?: boolean | null;
+  metaLabel?: string | null;
   value: V;
-  title?: string;
-  meta?: M;
+  title?: string | null;
+  meta?: M | null;
 }
 
 export type Previous = 'PREVIOUS';
@@ -302,8 +302,8 @@ export interface ExpressionConditionHelpText {
 
 export interface ExpressionGetResourceTypeFns {
   // used to allow user selection of multiple types - if provided, adds dropdown before value
-  getTypes?: (selected: ExpressionConditionRowSelectedItems) => ListItem<ExpressionRowValueType>[];
-  getType: (selected: ExpressionConditionRowSelectedItems) => ExpressionRowValueType;
+  getTypes?: (selected: ExpressionConditionRowSelectedItems) => ListItem<ExpressionRowValueType>[] | undefined;
+  getType: (selected: ExpressionConditionRowSelectedItems) => ExpressionRowValueType | undefined;
   // used to display optional text below the row
   getHelpText?: (selected: ExpressionConditionRowSelectedItems) => ExpressionConditionHelpText | undefined;
   // optional function to mutate the selected properties (e.x. convert value from/to array from string)
@@ -335,7 +335,7 @@ export type QueryFilterOperator =
 export interface QueryOrderByClause {
   key: number;
   field: string | null;
-  fieldLabel: string;
+  fieldLabel: string | null;
   order: AscDesc;
   nulls: FirstLast | null;
 }
@@ -444,13 +444,13 @@ export interface UploadToGoogleJob {
 export interface BulkDownloadJob {
   isTooling: boolean;
   totalRecordCount: number;
-  nextRecordsUrl: string;
+  nextRecordsUrl: Maybe<string>;
   fields: string[];
-  subqueryFields: MapOf<string[]>;
+  subqueryFields: Maybe<MapOf<string[]>>;
   records: MapOf<string>[];
   fileFormat: FileExtAllTypes;
   fileName: string;
-  googleFolder: string;
+  googleFolder: Maybe<string>;
   includeSubquery: boolean;
 }
 
@@ -523,7 +523,7 @@ export interface SalesforceDeployHistoryItem {
   sourceOrg?: SalesforceDeploymentHistoryOrg;
   start: Date;
   finish: Date;
-  url?: string;
+  url?: string | null;
   status: DeployResultStatus;
   type: SalesforceDeployHistoryType;
   errorMessage?: string | null;
@@ -614,10 +614,10 @@ export interface ApexLog {
 
 export type ApexLogWithViewed = Omit<ApexLog, 'LogLength'> & {
   viewed?: boolean;
-  LogLength: string;
-  'LogUser.Id': string;
-  'LogUser.Name': string;
-  'LogUser.Username': string;
+  LogLength: string | null;
+  'LogUser.Id': string | null;
+  'LogUser.Name': string | null;
+  'LogUser.Username': string | null;
 };
 
 export interface UserTrace {
@@ -650,9 +650,9 @@ export interface UseDebugLogsOptions {
 }
 
 export interface FetchDebugLogOptions {
-  asOfId?: string;
-  limit?: number;
-  userId?: string;
+  asOfId?: string | null;
+  limit?: number | null;
+  userId?: string | null;
 }
 
 export interface ChangeSet {

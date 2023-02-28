@@ -48,9 +48,9 @@ export async function cleanUpHistoryState(): Promise<MapOf<ApexHistoryItem> | un
   }
 }
 
-function initApexHistory(): Promise<MapOf<ApexHistoryItem>> {
-  return localforage.getItem<MapOf<ApexHistoryItem>>(INDEXED_DB.KEYS.apexHistory);
-}
+const initApexHistory = async (): Promise<MapOf<ApexHistoryItem>> => {
+  return (await localforage.getItem<MapOf<ApexHistoryItem>>(INDEXED_DB.KEYS.apexHistory)) || {};
+};
 
 /**
  * Get new history item to save

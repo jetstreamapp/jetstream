@@ -31,7 +31,7 @@ export function useListMetadata(
   const [hasError, setHasError] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [lastRefreshed, setLastRefreshed] = useState<string>(_lastRefreshed);
-  const [orgIdUsedToFetch, setOrgIdUsedToFetch] = useState<string>();
+  const [orgIdUsedToFetch, setOrgIdUsedToFetch] = useState<string | null>(null);
 
   useEffect(() => {
     isMounted.current = true;

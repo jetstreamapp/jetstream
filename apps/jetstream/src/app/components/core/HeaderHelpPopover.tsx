@@ -16,7 +16,7 @@ export const HeaderHelpPopover: FunctionComponent<HeaderHelpPopoverProps> = () =
   }, []);
 
   function closePopover() {
-    popoverRef.current.close();
+    popoverRef.current?.close();
   }
 
   return (

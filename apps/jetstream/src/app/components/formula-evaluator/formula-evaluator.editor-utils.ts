@@ -111,7 +111,7 @@ async function fetchCompletions(
    */
   if (SPECIAL_WORDS.has(priorWords[0]?.toLowerCase())) {
     const specialWord = SPECIAL_WORDS.get(priorWords[0].toLowerCase());
-    if (specialWord.type === 'hardCoded') {
+    if (specialWord?.type === 'hardCoded') {
       return specialWord.value.map((value) => ({
         label: value,
         filterText: value,
@@ -119,9 +119,9 @@ async function fetchCompletions(
         insertText: value,
         range,
       }));
-    } else if (specialWord.type === 'sobject') {
+    } else if (specialWord?.type === 'sobject') {
       sobject = specialWord.value;
-    } else if (specialWord.type === 'api') {
+    } else if (specialWord?.type === 'api') {
       const results = await manualRequest(selectedOrg, { method: 'GET', url: '/services/data' });
       if (results.error || !results.body) {
         return [];
@@ -136,7 +136,7 @@ async function fetchCompletions(
           range,
         };
       });
-    } else if (specialWord.type === 'customMetadata') {
+    } else if (specialWord?.type === 'customMetadata') {
       /**
        * if word length === 1 [$CustomMetadata.], return list of objects
        * if word length === 2 [$CustomMetadata.Support_Tier__mdt], return records on selected object
@@ -172,7 +172,7 @@ async function fetchCompletions(
         sobject = foundCustomMetadata.name;
         priorWords = []; // treat this as the base object
       }
-    } else if (specialWord.type === 'customSettings') {
+    } else if (specialWord?.type === 'customSettings') {
       /**
        * if word length === 1 [$Setup.], return list of objects
        * if word length === 2 [$Setup.customSetting__c.], return fields on selected object
@@ -194,7 +194,7 @@ async function fetchCompletions(
         sobject = customSetting.name;
         priorWords = []; // treat this as the base object
       }
-    } else if (specialWord.type === 'customLabel' || specialWord.type === 'customPermission') {
+    } else if (specialWord?.type === 'customLabel' || specialWord?.type === 'customPermission') {
       if (priorWords.length > 2) {
         return [];
       }
@@ -207,7 +207,9 @@ async function fetchCompletions(
         range,
       }));
     }
-  } else if (!sobject) {
+  }
+
+  if (!sobject) {
     return [];
   }
 
@@ -230,7 +232,7 @@ async function fetchCompletions(
         (field) =>
           !!field.relationshipName && !!field.referenceTo?.length && field.relationshipName.toLowerCase() === priorWord.toLowerCase()
       );
-      if (foundRelationship) {
+      if (foundRelationship && foundRelationship.referenceTo && foundRelationship.referenceTo?.length > 0) {
         const { data: relatedSObjectMeta } = await describeSObject(selectedOrg, foundRelationship.referenceTo[0]);
         currentSObjectMeta = relatedSObjectMeta;
       } else {

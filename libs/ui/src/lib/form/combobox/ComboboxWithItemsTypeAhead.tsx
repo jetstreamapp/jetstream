@@ -10,7 +10,7 @@ const defaultSelectedItemTitleFn = (item: ListItem) => item.title;
 export interface ComboboxWithItemsTypeAheadProps {
   comboboxProps: ComboboxProps;
   items: ListItem[];
-  selectedItemId: string;
+  selectedItemId: Maybe<string>;
   /** called when search filter changes to fetch new items */
   onSearch: (filter: string) => Promise<void>;
   /** Used to customize what shows upon selection */

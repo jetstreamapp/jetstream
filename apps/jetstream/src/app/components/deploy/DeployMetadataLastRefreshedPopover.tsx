@@ -40,7 +40,7 @@ export const DeployMetadataLastRefreshedPopover: FunctionComponent<DeployMetadat
                 <div className="slds-truncate" title={listMetadataItems[key].type}>
                   {listMetadataItems[key].type}
                 </div>
-                <div className="slds-truncate slds-text-color_weak" title={listMetadataItems[key].lastRefreshed}>
+                <div className="slds-truncate slds-text-color_weak" title={listMetadataItems[key].lastRefreshed || undefined}>
                   {listMetadataItems[key].lastRefreshed}
                 </div>
               </li>

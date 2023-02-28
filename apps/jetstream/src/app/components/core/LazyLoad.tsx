@@ -48,7 +48,8 @@ export default function lazyWithPreload<T extends ComponentType<unknown>>(
   let LoadedComponent: T | undefined;
 
   const Component = forwardRef(function LazyWithPreload(props, ref) {
-    return createElement(LoadedComponent ?? LazyComponent, Object.assign(ref ? { ref } : {}, props) as unknown);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    return createElement((LoadedComponent as any) ?? (LazyComponent as any), Object.assign(ref ? { ref } : {}, props) as any);
   }) as unknown as PreloadableComponent<T>;
 
   Component.preload = () => {

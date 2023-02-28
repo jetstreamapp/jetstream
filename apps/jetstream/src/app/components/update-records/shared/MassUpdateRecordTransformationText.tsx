@@ -1,3 +1,4 @@
+import { Maybe } from '@jetstream/types';
 import { Badge } from '@jetstream/ui';
 import classNames from 'classnames';
 import { FunctionComponent } from 'react';
@@ -5,7 +6,7 @@ import { TransformationOptions } from '../mass-update-records.types';
 
 export interface MassUpdateRecordTransformationTextProps {
   className?: string;
-  selectedField: string;
+  selectedField: Maybe<string>;
   transformationOptions: TransformationOptions;
 }
 
@@ -19,7 +20,7 @@ export const MassUpdateRecordTransformationText: FunctionComponent<MassUpdateRec
   const { option, alternateField, staticValue, criteria, whereClause } = transformationOptions;
   let title = '';
   let objectAndField: JSX.Element;
-  let updateCriteria: JSX.Element;
+  let updateCriteria: Maybe<JSX.Element>;
   switch (option) {
     case 'staticValue':
       title += `"${selectedField}" will be set to "${staticValue}"`;

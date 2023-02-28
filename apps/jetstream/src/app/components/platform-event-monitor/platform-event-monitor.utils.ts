@@ -84,7 +84,8 @@ export function subscribe<T = any>(
     }
 
     if (subscriptions.has(platformEventName)) {
-      cometd.unsubscribe(subscriptions.get(platformEventName));
+      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+      cometd.unsubscribe(subscriptions.get(platformEventName)!);
     }
     subscriptions.set(
       platformEventName,
@@ -98,7 +99,8 @@ export function subscribe<T = any>(
 export function unsubscribe({ cometd, platformEventName }: { cometd: CometD; platformEventName: string }) {
   if (!cometd.isDisconnected()) {
     if (subscriptions.has(platformEventName)) {
-      cometd.unsubscribe(subscriptions.get(platformEventName));
+      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+      cometd.unsubscribe(subscriptions.get(platformEventName)!);
       subscriptions.delete(platformEventName);
     }
     // if no more subscriptions, disconnect everything
@@ -124,7 +126,7 @@ class CometdReplayExtension implements Extension {
   static REPLAY_FROM_KEY = 'replay';
   cometd: CometD;
   extensionEnabled = true;
-  replayFromMap: MapOf<number> = {};
+  replayFromMap: MapOf<number | undefined> = {};
 
   setEnabled(extensionEnabled: boolean) {
     this.extensionEnabled = extensionEnabled;
@@ -149,6 +151,7 @@ class CometdReplayExtension implements Extension {
       this.replayFromMap[message.channel] = message.data.event.replayId;
       return message;
     }
+    return null;
   }
 
   outgoing(message: Message) {
@@ -161,5 +164,6 @@ class CometdReplayExtension implements Extension {
       }
       return message;
     }
+    return null;
   }
 }

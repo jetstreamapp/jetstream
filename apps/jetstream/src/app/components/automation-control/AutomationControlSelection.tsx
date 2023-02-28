@@ -107,7 +107,7 @@ export const AutomationControlSelection: FunctionComponent<AutomationControlSele
           <div className="slds-p-horizontal_x-small">
             <ConnectedSobjectListMultiSelect
               selectedOrg={selectedOrg}
-              sobjects={sobjects}
+              sobjects={sobjects || []}
               selectedSObjects={selectedSObjects}
               filterFn={filterPermissionsSobjects}
               onSobjects={handleSobjectChange}

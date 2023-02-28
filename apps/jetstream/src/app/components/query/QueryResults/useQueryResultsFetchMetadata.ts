@@ -1,5 +1,5 @@
 import { logger } from '@jetstream/shared/client-logger';
-import { MapOf, SalesforceOrgUi } from '@jetstream/types';
+import { MapOf, Maybe, SalesforceOrgUi } from '@jetstream/types';
 import { Field } from 'jsforce';
 import { useCallback, useEffect, useState } from 'react';
 import { Query } from 'soql-parser-js';
@@ -12,10 +12,10 @@ import { fetchMetadataFromSoql } from '../utils/query-soql-utils';
  * @param parsedQuery
  * @returns
  */
-export function useQueryResultsFetchMetadata(org: SalesforceOrgUi, parsedQuery: Query, isTooling: boolean) {
+export function useQueryResultsFetchMetadata(org: SalesforceOrgUi, parsedQuery: Maybe<Query>, isTooling = false) {
   const [parsedQueryStr, setParsedQueryStr] = useState<string | null>(null);
-  const [fieldMetadata, setFieldMetadata] = useState<MapOf<Field>>(null);
-  const [fieldMetadataSubquery, setFieldMetadataSubquery] = useState<MapOf<MapOf<Field>>>(null);
+  const [fieldMetadata, setFieldMetadata] = useState<MapOf<Field> | null>(null);
+  const [fieldMetadataSubquery, setFieldMetadataSubquery] = useState<MapOf<MapOf<Field>> | null>(null);
 
   const fetchMetadata = useCallback(async () => {
     try {

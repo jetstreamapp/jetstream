@@ -6,7 +6,7 @@ import { MetadataObject } from 'jsforce';
 import { atom, selector } from 'recoil';
 import { AllUser, CommonUser, SalesforceUser, YesNo } from './deploy-metadata.types';
 
-export const metadataItemsState = atom<string[]>({
+export const metadataItemsState = atom<string[] | null>({
   key: 'deploy-metadata.metadataItemsState',
   default: null,
 });
@@ -21,7 +21,7 @@ export const selectedMetadataItemsState = atom<Set<string>>({
   default: new Set(),
 });
 
-export const usersList = atom<ListItem<string, SalesforceUser>[]>({
+export const usersList = atom<ListItem<string, SalesforceUser>[] | null>({
   key: 'deploy-metadata.usersList',
   default: null,
 });
@@ -46,12 +46,12 @@ export const includeManagedPackageItems = atom<YesNo>({
   default: 'No',
 });
 
-export const dateRangeStartState = atom<Date>({
+export const dateRangeStartState = atom<Date | null>({
   key: 'deploy-metadata.dateRangeStartState',
   default: null,
 });
 
-export const dateRangeEndState = atom<Date>({
+export const dateRangeEndState = atom<Date | null>({
   key: 'deploy-metadata.dateRangeEndState',
   default: null,
 });
@@ -66,7 +66,7 @@ export const changesetPackage = atom<string>({
   default: '',
 });
 
-export const changesetPackages = atom<ListItem<string, ChangeSet>[]>({
+export const changesetPackages = atom<ListItem<string, ChangeSet>[] | null>({
   key: 'deploy-metadata.changesetPackages',
   default: null,
 });

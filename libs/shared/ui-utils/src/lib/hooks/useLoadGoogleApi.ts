@@ -63,7 +63,7 @@ export function useLoadGoogleApi({
   const isMounted = useRef(true);
   const rollbar = useRollbar();
   const [scriptLoaded, scriptLoadError] = useInjectScript();
-  const [error, setError] = useState<string>();
+  const [error, setError] = useState<string | null>(null);
   const [hasApisLoaded, setHasApisLoaded] = useState(false);
   const [hasInitialized, setHasInitialized] = useState(!!gapiAuthInstance);
   const [signedIn, setSignedIn] = useState(_signedIn);

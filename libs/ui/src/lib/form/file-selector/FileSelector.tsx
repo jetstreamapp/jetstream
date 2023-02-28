@@ -1,7 +1,7 @@
 import { css } from '@emotion/react';
 import { logger } from '@jetstream/shared/client-logger';
 import { readFile, useGlobalEventHandler } from '@jetstream/shared/ui-utils';
-import { InputAcceptType, InputReadFileContent } from '@jetstream/types';
+import { InputAcceptType, InputReadFileContent, Maybe } from '@jetstream/types';
 import classNames from 'classnames';
 import isString from 'lodash/isString';
 import { FunctionComponent, useCallback, useRef, useState } from 'react';
@@ -18,7 +18,7 @@ export interface FileSelectorProps {
   /** @deprecated I guess? is not used in code, use `userHelpText` instead */
   helpText?: React.ReactNode | string; // FIXME: does not appear to be used, userHelpText is used
   isRequired?: boolean;
-  filename?: string; // optional, will be managed if not provided
+  filename?: Maybe<string>; // optional, will be managed if not provided
   hideLabel?: boolean;
   disabled?: boolean;
   accept?: InputAcceptType[];

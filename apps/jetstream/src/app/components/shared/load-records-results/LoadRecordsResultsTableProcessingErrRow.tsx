@@ -1,12 +1,13 @@
 import { formatNumber } from '@jetstream/shared/ui-utils';
+import { Maybe } from '@jetstream/types';
 import { Icon } from '@jetstream/ui';
 import { FunctionComponent, useEffect, useRef } from 'react';
 import { PrepareDataResponseError } from './load-records-results-types';
 
 export interface LoadRecordsResultsTableProcessingErrRowProps {
   processingErrors: PrepareDataResponseError[];
-  processingStartTime: string;
-  processingEndTime: string;
+  processingStartTime: Maybe<string>;
+  processingEndTime: Maybe<string>;
   onDownload: () => void;
 }
 

@@ -116,7 +116,7 @@ export const MetadataSelection: FunctionComponent<MetadataSelectionProps | Metad
     _setMetadataItems(metadataItems);
     _setMetadataItemsMap(metadataItemsMap);
     _setSelectedMetadataItems(selectedMetadataItems);
-    onSubmit();
+    onSubmit && onSubmit();
   }
 
   return (
@@ -160,7 +160,7 @@ export const MetadataSelection: FunctionComponent<MetadataSelectionProps | Metad
           omitRefresh={requireConfirmSelection}
           inputLabelPlural="Metadata Types"
           org={selectedOrg}
-          initialItems={metadataItems}
+          initialItems={metadataItems || []}
           initialItemMap={metadataItemsMap}
           selectedItems={selectedMetadataItems}
           onItems={setMetadataItems}

@@ -13,7 +13,7 @@ import ItemSelectionSummary from '../widgets/ItemSelectionSummary';
 import Spinner from '../widgets/Spinner';
 
 export interface SobjectListMultiSelectProps {
-  sobjects: DescribeGlobalSObjectResult[];
+  sobjects: Maybe<DescribeGlobalSObjectResult[]>;
   selectedSObjects: string[];
   allowSelectAll?: boolean;
   disabled?: boolean;
@@ -34,8 +34,8 @@ export const SobjectListMultiSelect: FunctionComponent<SobjectListMultiSelectPro
   errorReattempt,
 }) => {
   const [searchTerm, setSearchTerm] = useState('');
-  const [filteredSobjects, setFilteredSobjects] = useState<DescribeGlobalSObjectResult[]>(() => {
-    if (sobjects?.length > 0 && searchTerm) {
+  const [filteredSobjects, setFilteredSobjects] = useState<Maybe<DescribeGlobalSObjectResult[]>>(() => {
+    if (sobjects && sobjects?.length > 0 && searchTerm) {
       return sobjects.filter(multiWordObjectFilter(['name', 'label'], searchTerm));
     } else {
       return sobjects;
@@ -73,7 +73,7 @@ export const SobjectListMultiSelect: FunctionComponent<SobjectListMultiSelectPro
   }
 
   function handleSelectAll(value: boolean) {
-    filteredSobjects.forEach((item) => {
+    filteredSobjects?.forEach((item) => {
       if (value) {
         selectedSObjectSet.add(item.name);
       } else {

@@ -3,7 +3,7 @@ import { logger } from '@jetstream/shared/client-logger';
 import { ANALYTICS_KEYS } from '@jetstream/shared/constants';
 import { useDebounce, useNonInitialEffect } from '@jetstream/shared/ui-utils';
 import { multiWordStringFilter } from '@jetstream/shared/utils';
-import { InsertUpdateUpsertDelete, SalesforceOrgUi } from '@jetstream/types';
+import { InsertUpdateUpsertDelete, Maybe, SalesforceOrgUi } from '@jetstream/types';
 import { Alert, DropDown, Grid, GridCol, Icon, SearchInput } from '@jetstream/ui';
 import classNames from 'classnames';
 import { memo, useEffect, useRef, useState } from 'react';
@@ -32,8 +32,8 @@ export interface LoadRecordsFieldMappingProps {
   fieldMapping: FieldMapping;
   fileData: any[]; // first row will be used to obtain header
   loadType: InsertUpdateUpsertDelete;
-  externalId?: string;
-  binaryAttachmentBodyField?: string;
+  externalId?: Maybe<string>;
+  binaryAttachmentBodyField?: Maybe<string>;
   onFieldMappingChange: (fieldMapping: FieldMapping) => void;
   onRefreshFields: () => Promise<void>;
 }

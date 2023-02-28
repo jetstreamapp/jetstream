@@ -9,7 +9,7 @@ export interface FeedbackFormProps {}
 
 export const FeedbackForm: FunctionComponent<FeedbackFormProps> = () => {
   useTitle(TITLES.FEEDBACK);
-  const cardRef = useRef<HTMLElement>();
+  const cardRef = useRef<HTMLElement>(null);
 
   return (
     <Card

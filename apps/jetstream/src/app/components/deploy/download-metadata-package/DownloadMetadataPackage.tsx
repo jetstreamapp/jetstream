@@ -20,8 +20,8 @@ export const DownloadMetadataPackage: FunctionComponent<DownloadMetadataPackageP
   const [destinationOrg, setDestinationOrg] = useState<SalesforceOrgUi>(initiallySelectedOrg);
   const [configModalOpen, setConfigModalOpen] = useState<boolean>(false);
   const [downloadResultsModalOpen, setDownloadResultsModalOpen] = useState<boolean>(false);
-  const [packageManifest, setPackageManifest] = useState<string>();
-  const [packageNames, setPackageNames] = useState<string[]>();
+  const [packageManifest, setPackageManifest] = useState<string | null>(null);
+  const [packageNames, setPackageNames] = useState<string[] | null>(null);
 
   function handleClick() {
     setDestinationOrg(initiallySelectedOrg);
@@ -39,7 +39,7 @@ export const DownloadMetadataPackage: FunctionComponent<DownloadMetadataPackageP
     handleDownload(null, packageNames);
     trackEvent(ANALYTICS_KEYS.deploy_downloadMetadataPkg, { type: 'from-package-names' });
   }
-  function handleDownload(packageManifest: string, packageNames: string[]) {
+  function handleDownload(packageManifest: string | null, packageNames: string[] | null) {
     setPackageManifest(packageManifest);
     setPackageNames(packageNames);
     setConfigModalOpen(false);
@@ -66,7 +66,7 @@ export const DownloadMetadataPackage: FunctionComponent<DownloadMetadataPackageP
           onDownloadFromPackageNames={handleDownloadFromPackageNames}
         />
       )}
-      {downloadResultsModalOpen && (
+      {downloadResultsModalOpen && packageManifest && packageNames && (
         <DownloadPackageWithFileSelector
           type="package"
           selectedOrg={destinationOrg}

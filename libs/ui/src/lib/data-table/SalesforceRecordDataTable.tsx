@@ -3,7 +3,7 @@ import { logger } from '@jetstream/shared/client-logger';
 import { queryRemaining } from '@jetstream/shared/data';
 import { formatNumber, useRollbar } from '@jetstream/shared/ui-utils';
 import { flattenRecord } from '@jetstream/shared/utils';
-import { MapOf, SalesforceOrgUi } from '@jetstream/types';
+import { MapOf, Maybe, SalesforceOrgUi } from '@jetstream/types';
 import { Field } from 'jsforce';
 import uniqueId from 'lodash/uniqueId';
 import { Fragment, FunctionComponent, memo, ReactNode, useCallback, useEffect, useRef, useState } from 'react';
@@ -48,9 +48,9 @@ export interface SalesforceRecordDataTableProps {
   google_apiKey: string;
   google_appId: string;
   google_clientId: string;
-  queryResults: QueryResults<any>;
-  fieldMetadata: MapOf<Field>;
-  fieldMetadataSubquery: MapOf<MapOf<Field>>;
+  queryResults: Maybe<QueryResults<any>>;
+  fieldMetadata: Maybe<MapOf<Field>>;
+  fieldMetadataSubquery: Maybe<MapOf<MapOf<Field>>>;
   summaryHeaderRightContent?: ReactNode;
   onSelectionChanged: (rows: any[]) => void;
   onFilteredRowsChanged: (rows: any[]) => void;
@@ -96,7 +96,7 @@ export const SalesforceRecordDataTable: FunctionComponent<SalesforceRecordDataTa
     const [isLoadingMore, setIsLoadingMore] = useState<boolean>(false);
     const [loadMoreErrorMessage, setLoadMoreErrorMessage] = useState<string | null>(null);
     const [hasMoreRecords, setHasMoreRecords] = useState<boolean>(false);
-    const [nextRecordsUrl, setNextRecordsUrl] = useState<string>();
+    const [nextRecordsUrl, setNextRecordsUrl] = useState<Maybe<string>>(null);
     const [globalFilter, setGlobalFilter] = useState<string | null>(null);
     const [selectedRows, setSelectedRows] = useState<ReadonlySet<string>>(() => new Set());
 
@@ -118,7 +118,7 @@ export const SalesforceRecordDataTable: FunctionComponent<SalesforceRecordDataTa
         setRecords(queryResults.queryResults.records);
         onFilteredRowsChanged(queryResults.queryResults.records);
         setTotalRecordCount(queryResults.queryResults.totalSize);
-        if (!queryResults.queryResults.done) {
+        if (!queryResults.queryResults.done && queryResults.queryResults.nextRecordsUrl) {
           setHasMoreRecords(true);
           setNextRecordsUrl(queryResults.queryResults.nextRecordsUrl);
         }
@@ -136,7 +136,7 @@ export const SalesforceRecordDataTable: FunctionComponent<SalesforceRecordDataTa
      * When metadata is obtained, update the grid columns to include field labels
      */
     useEffect(() => {
-      if (fieldMetadata) {
+      if (fieldMetadata && queryResults) {
         const { parentColumns, subqueryColumns } = getColumnDefinitions(queryResults, isTooling);
 
         setColumns(addFieldLabelToColumn(parentColumns, fieldMetadata));

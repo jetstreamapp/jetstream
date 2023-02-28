@@ -12,9 +12,9 @@ type Action =
   | { type: 'IMPORT_ROWS'; payload: { rows: FieldValues[] } }
   | { type: 'REMOVE_ROW'; payload: { rowKey: number } }
   | { type: 'CLONE_ROW'; payload: { rowKey: number } }
-  | { type: 'CHANGE_ROW'; payload?: { rowKey: number; field: FieldDefinitionType; value: FieldValue } }
-  | { type: 'TOUCH_ROW_FIELD'; payload?: { rowKey: number; field: FieldDefinitionType } }
-  | { type: 'PICKLIST_OPTION_CHANGED'; payload?: { rowKey: number; value: boolean } }
+  | { type: 'CHANGE_ROW'; payload: { rowKey: number; field: FieldDefinitionType; value: FieldValue } }
+  | { type: 'TOUCH_ROW_FIELD'; payload: { rowKey: number; field: FieldDefinitionType } }
+  | { type: 'PICKLIST_OPTION_CHANGED'; payload: { rowKey: number; value: boolean } }
   | { type: 'RESET' };
 
 interface State {

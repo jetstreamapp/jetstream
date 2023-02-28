@@ -23,7 +23,7 @@ export interface DatePickerProps {
   // choose contents to ensure full width display
   containerDisplay?: 'block' | 'flex' | 'inline' | 'inline-block' | 'contents';
   label: string;
-  hideLabel?: boolean;
+  hideLabel?: boolean | null;
   labelHelp?: string | null;
   helpText?: React.ReactNode | string;
   isRequired?: boolean;
@@ -223,7 +223,7 @@ export const DatePicker: FunctionComponent<DatePickerProps> = ({
  * @param minAvailableDate The year from this date is used for the earliest year. Defaults to 1970
  * @param maxAvailableDate The year from this date is used for the latest year. Defaults to current year + 50
  */
-export function getDatePickerYears(minAvailableDate?: Date, maxAvailableDate?: Date) {
+export function getDatePickerYears(minAvailableDate?: Date | null, maxAvailableDate?: Date | null) {
   let minYear = minAvailableDate?.getFullYear() || 1969;
   const maxYear = maxAvailableDate?.getFullYear() || new Date().getFullYear() + 50;
   if (minYear > maxYear) {

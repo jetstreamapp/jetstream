@@ -1,7 +1,7 @@
 import { logger } from '@jetstream/shared/client-logger';
 import { describeGlobal } from '@jetstream/shared/data';
 import { orderObjectsBy } from '@jetstream/shared/utils';
-import { ListItem, SalesforceOrgUi } from '@jetstream/types';
+import { ListItem, Maybe, SalesforceOrgUi } from '@jetstream/types';
 import type { DescribeGlobalSObjectResult } from 'jsforce';
 import { forwardRef, useCallback, useEffect, useImperativeHandle, useRef, useState } from 'react';
 import ComboboxWithItems from '../form/combobox/ComboboxWithItems';
@@ -30,7 +30,7 @@ export interface SobjectComboboxProps {
   isRequired?: boolean;
   disabled?: boolean;
   selectedOrg: SalesforceOrgUi;
-  selectedSObject: DescribeGlobalSObjectResult;
+  selectedSObject: Maybe<DescribeGlobalSObjectResult>;
   isTooling?: boolean;
   filterFn?: (sobject: DescribeGlobalSObjectResult) => boolean;
   onSelectedSObject: (selectedSObject: DescribeGlobalSObjectResult) => void;

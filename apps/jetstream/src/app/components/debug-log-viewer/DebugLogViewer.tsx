@@ -40,12 +40,12 @@ export const DebugLogViewer: FunctionComponent<DebugLogViewerProps> = () => {
   useTitle(TITLES.DEBUG_LOGS);
   const isMounted = useRef(true);
   const logCache = useRef<MapOf<string>>({});
-  const logRef = useRef<editor.IStandaloneCodeEditor>(null);
+  const logRef = useRef<editor.IStandaloneCodeEditor>();
   const [{ serverUrl }] = useRecoilState(applicationCookieState);
   const selectedOrg = useRecoilValue<SalesforceOrgUi>(selectedOrgState);
   const [showLogsFromAllUsers, setShowLogsFromAllUsers] = useState(false);
   const [loadingLog, setLoadingLog] = useState(false);
-  const [activeLogId, setActiveLogId] = useState<string>();
+  const [activeLogId, setActiveLogId] = useState<string | null>(null);
   const [activeLog, setActiveLog] = useState<string>('');
   const [userDebug, setUserDebug] = useState(false);
   const [textFilter, setTextFilter] = useState<string>('');
@@ -91,7 +91,7 @@ export const DebugLogViewer: FunctionComponent<DebugLogViewerProps> = () => {
   useNonInitialEffect(() => {
     logCache.current = {};
     activeOrgId.current = selectedOrg.uniqueId;
-    setActiveLogId(undefined);
+    setActiveLogId(null);
     setTextFilter('');
     setVisibleResults('');
     setTextFilter('');
@@ -140,6 +140,9 @@ export const DebugLogViewer: FunctionComponent<DebugLogViewerProps> = () => {
 
   const getActiveLog = useCallback(async () => {
     try {
+      if (!activeLogId) {
+        return;
+      }
       if (logCache.current[activeLogId]) {
         setActiveLog(logCache.current[activeLogId]);
         return;

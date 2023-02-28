@@ -63,7 +63,7 @@ export const Tree = forwardRef<any, TreeProps>(
     },
     ref
   ) => {
-    const [selectedItem, setSelectedItem] = useState<string>();
+    const [selectedItem, setSelectedItem] = useState<string | null>(null);
     const [expandedItems, setExpandedItems] = useState(new Set<string>());
 
     useNonInitialEffect(() => {

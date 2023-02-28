@@ -1,6 +1,6 @@
 import { logger } from '@jetstream/shared/client-logger';
 import { useRollbar } from '@jetstream/shared/ui-utils';
-import { SalesforceOrgUi } from '@jetstream/types';
+import { Maybe, SalesforceOrgUi } from '@jetstream/types';
 import { isString } from 'lodash';
 import { useEffect, useRef, useState } from 'react';
 import { useRecoilState, useRecoilValue, useResetRecoilState, useSetRecoilState } from 'recoil';
@@ -14,11 +14,11 @@ const ERROR_MESSAGES = {
   PARSE_ERROR: 'There was an error parsing your query, please try again or submit a support request if the problem continues.',
 };
 
-export type UseQueryRestoreReturnType = [(soqlOverride?: string, toolingOverride?: boolean) => Promise<void>, string];
+export type UseQueryRestoreReturnType = [(soqlOverride?: string, toolingOverride?: boolean) => Promise<void>, Maybe<string>];
 
 export const useQueryRestore = (
-  soql: string,
-  isTooling: boolean,
+  soql: Maybe<string> = '',
+  isTooling = false,
   options?: {
     // emit toast messages on errors
     silent?: boolean;
@@ -28,13 +28,14 @@ export const useQueryRestore = (
     endRestore?: (isTooling: boolean, fatalError: boolean, errors?: QueryRestoreErrors) => void;
   }
 ): UseQueryRestoreReturnType => {
+  soql = soql || '';
   options = options || {};
   const { silent, startRestore, endRestore } = options;
 
   const rollbar = useRollbar();
 
   const isMounted = useRef(true);
-  const [errorMessage, setErrorMessage] = useState<string>();
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const org = useRecoilValue<SalesforceOrgUi>(selectedOrgState);
   // we should compare setting here vs in a selector - any difference in performance?
 
@@ -74,7 +75,7 @@ export const useQueryRestore = (
     setErrorMessage(null);
     let query: Query;
     try {
-      query = parseQuery(currSoql);
+      query = parseQuery(currSoql || '');
     } catch (ex) {
       setErrorMessage(ERROR_MESSAGES.PARSE_ERROR);
       if (endRestore) {

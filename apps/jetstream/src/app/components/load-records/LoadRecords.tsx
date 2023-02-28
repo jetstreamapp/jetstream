@@ -164,6 +164,9 @@ export const LoadRecords: FunctionComponent<LoadRecordsProps> = ({ featureFlags 
   }, [currentStep]);
 
   const fetchFieldMetadata = useCallback(async () => {
+    if (!selectedSObject) {
+      return;
+    }
     setLoadingFields(true);
     const fields = await getFieldMetadata(selectedOrg, selectedSObject.name);
     // ensure object did not change and that component is still mounted
@@ -193,7 +196,7 @@ export const LoadRecords: FunctionComponent<LoadRecordsProps> = ({ featureFlags 
   }, [fields, loadType, inputFileHeader]);
 
   useEffect(() => {
-    if (mappableFields && inputFileHeader) {
+    if (mappableFields && inputFileHeader && binaryAttachmentBodyField) {
       setFieldMapping(autoMapFields(inputFileHeader, mappableFields, binaryAttachmentBodyField));
     }
   }, [mappableFields, inputFileHeader, loadType, setFieldMapping]);
@@ -394,21 +397,21 @@ export const LoadRecords: FunctionComponent<LoadRecordsProps> = ({ featureFlags 
       <AutoFullHeightContainer className="slds-p-horizontal_x-small slds-scrollable_none" bufferIfNotRendered={HEIGHT_BUFFER}>
         <Grid gutters>
           <GridCol>
-            {currentStep.name === 'sobjectAndFile' && (
+            {currentStep.name === 'sobjectAndFile' && sobjects && selectedSObject && inputFilename && inputFilenameType && (
               <LoadRecordsSelectObjectAndFile
                 googleApiConfig={googleApiConfig}
                 featureFlags={featureFlags}
                 selectedOrg={selectedOrg}
                 sobjects={sobjects}
                 selectedSObject={selectedSObject}
-                isCustomMetadataObject={isCustomMetadataObject}
+                isCustomMetadataObject={!!isCustomMetadataObject}
                 loadType={loadType}
                 externalIdFields={externalIdFields}
                 loadingFields={loadingFields}
                 externalId={externalId}
                 inputFilename={inputFilename}
                 inputFileType={inputFilenameType}
-                allowBinaryAttachment={allowBinaryAttachment}
+                allowBinaryAttachment={!!allowBinaryAttachment}
                 binaryAttachmentBodyField={binaryAttachmentBodyField}
                 inputZipFilename={inputZipFilename}
                 onSobjects={setSobjects}
@@ -422,8 +425,8 @@ export const LoadRecords: FunctionComponent<LoadRecordsProps> = ({ featureFlags 
                   selectedOrg={selectedOrg}
                   selectedSObject={selectedSObject}
                   loadType={loadType}
-                  data={inputFileData}
-                  header={inputFileHeader}
+                  data={inputFileData || []}
+                  header={inputFileHeader || []}
                 />
               </LoadRecordsSelectObjectAndFile>
             )}
@@ -432,11 +435,11 @@ export const LoadRecords: FunctionComponent<LoadRecordsProps> = ({ featureFlags 
                 <LoadRecordsFieldMapping
                   org={selectedOrg}
                   sobject={selectedSObject?.name}
-                  isCustomMetadataObject={isCustomMetadataObject}
+                  isCustomMetadataObject={!!isCustomMetadataObject}
                   fields={mappableFields}
-                  inputHeader={inputFileHeader}
+                  inputHeader={inputFileHeader || []}
                   fieldMapping={fieldMapping}
-                  fileData={inputFileData}
+                  fileData={inputFileData || []}
                   loadType={loadType}
                   externalId={externalId}
                   binaryAttachmentBodyField={binaryAttachmentBodyField}
@@ -450,7 +453,7 @@ export const LoadRecords: FunctionComponent<LoadRecordsProps> = ({ featureFlags 
                 <LoadRecordsLoadAutomationDeploy />
               </span>
             )}
-            {currentStep.name === 'loadRecords' && selectedSObject && (
+            {currentStep.name === 'loadRecords' && selectedSObject && inputFileData && (
               <span>
                 {!isCustomMetadataObject ? (
                   <LoadRecordsPerformLoad

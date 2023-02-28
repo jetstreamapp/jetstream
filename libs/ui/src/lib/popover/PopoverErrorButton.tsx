@@ -6,7 +6,7 @@ import Popover, { PopoverRef } from './Popover';
 export interface PopoverErrorButtonProps {
   initOpenState?: boolean;
   header?: string;
-  listHeader?: string;
+  listHeader?: string | null;
   errors: string | string[];
   omitPortal?: boolean;
   portalRef?: Element;

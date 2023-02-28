@@ -21,7 +21,7 @@
 //   const [isOpen, setIsOpen] = useState(false);
 //   const [snapshots, setSnapshots] = useState<MapOf<TableRowItemSnapshot[]>>();
 //   const [snapshotsItems, setSnapshotItems] = useState<string[]>([]);
-//   const [selectedSnapshot, setSelectedSnapshot] = useState<string>();
+//   const [selectedSnapshot, setSelectedSnapshot] = useState<string | null>(null);
 
 //   const getSnapshots = useCallback(async () => {
 //     try {

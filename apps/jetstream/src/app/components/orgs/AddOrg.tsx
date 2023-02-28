@@ -53,9 +53,10 @@ export const AddOrg: FunctionComponent<AddOrgProps> = ({ className, label = 'Add
 
   // FIXME: we should have a way to know what org was being "fixed" and always replace it in the DB and here
   function handleAddOrg() {
-    addOrg({ serverUrl: applicationState.serverUrl, loginUrl }, (addedOrg: SalesforceOrgUi) => {
-      onAddOrg(addedOrg, true);
-    });
+    loginUrl &&
+      addOrg({ serverUrl: applicationState.serverUrl, loginUrl }, (addedOrg: SalesforceOrgUi) => {
+        onAddOrg(addedOrg, true);
+      });
   }
 
   return (

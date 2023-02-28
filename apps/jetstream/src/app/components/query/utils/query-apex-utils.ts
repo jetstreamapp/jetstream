@@ -124,7 +124,8 @@ function getDefaultOptions(record: any, options: RecordToApexOptionsInitialOptio
         : Object.keys(record).filter((field) => field !== 'attributes' && !isObject(record[field])),
     indentation,
     /** Inline spaces vs tabs has different defaults */
-    tabSize: Number.isFinite(options.tabSize) ? Math.abs(options.tabSize) : indentation === 'spaces' ? DEF_TAB_SIZE : DEF_TAB_SIZE_TABS,
+    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+    tabSize: Number.isFinite(options.tabSize) ? Math.abs(options.tabSize!) : indentation === 'spaces' ? DEF_TAB_SIZE : DEF_TAB_SIZE_TABS,
     replaceDateWithToday: options.replaceDateWithToday ?? DEF_REPLACE_DATE_W_TODAY,
     insertStatement: options.insertStatement ?? DEF_INSERT_STATEMENT,
   };

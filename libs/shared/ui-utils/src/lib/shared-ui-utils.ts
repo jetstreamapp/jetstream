@@ -54,8 +54,8 @@ import {
 import { Placement as tippyPlacement } from 'tippy.js';
 import * as XLSX from 'xlsx';
 
-export function formatNumber(number: number) {
-  return numeral(number).format('0,0');
+export function formatNumber(number?: number) {
+  return numeral(number || 0).format('0,0');
 }
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function parseQueryParams<T = any>(queryString: string): T {
@@ -726,7 +726,7 @@ export function getOrgUrlParams(org: SalesforceOrgUi, additionalParams: { [param
     .join('&');
 }
 
-export function getOrgType(org: SalesforceOrgUi): SalesforceOrgUiType | undefined {
+export function getOrgType(org: Maybe<SalesforceOrgUi>): SalesforceOrgUiType | undefined {
   if (org) {
     if (org.orgIsSandbox) {
       return 'Sandbox';
@@ -878,7 +878,8 @@ export async function pollBulkApiJobUntilDone(
   while (!done && attempts <= maxAttempts) {
     await delay(interval);
 
-    jobInfoWithBatches = await bulkApiGetJob(selectedOrg, jobInfo.id);
+    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+    jobInfoWithBatches = await bulkApiGetJob(selectedOrg, jobInfo.id!);
 
     logger.log({ jobInfoWithBatches });
     onChecked(jobInfoWithBatches);

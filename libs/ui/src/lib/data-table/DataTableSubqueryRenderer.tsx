@@ -34,7 +34,7 @@ import { DataTable } from './DataTable';
 export const SubqueryRenderer: FunctionComponent<FormatterProps<RowWithKey, unknown>> = ({ column, row, onRowChange, isCellSelected }) => {
   const isMounted = useRef(true);
   const [isActive, setIsActive] = useState(false);
-  const [modalTagline, setModalTagline] = useState<string>();
+  const [modalTagline, setModalTagline] = useState<string | null>(null);
   const [downloadModalIsActive, setDownloadModalIsActive] = useState(false);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [queryResults, setQueryResults] = useState<QueryResult<any>>(row[column.key] || {});

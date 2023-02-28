@@ -21,10 +21,10 @@ export const CreateFieldsRowField = forwardRef<any, CreateFieldsRowFieldProps>(
     const { value, touched, errorMessage } = valueState;
     const disabled = _disabled || field?.disabled?.(allValues);
     const [values, setValues] = useState<ListItem[]>([]);
-    const [fetchError, setFetchError] = useState<string>();
+    const [fetchError, setFetchError] = useState<string | null>(null);
     const [loadingValues, setLoadingValues] = useState<boolean>(false);
 
-    const fetchValues = async (newValue?: string, skipCache = false) => {
+    const fetchValues = async (newValue?: string | null, skipCache = false) => {
       if (typeof field.values === 'function') {
         setLoadingValues(true);
         setFetchError(null);
@@ -33,7 +33,8 @@ export const CreateFieldsRowField = forwardRef<any, CreateFieldsRowFieldProps>(
           .then((_values) => {
             setValues(_values);
             if (newValue && _values.length > 0 && _values.find((item) => item.id === newValue)) {
-              onChange(_values.find((item) => item.id === newValue).value);
+              const value = _values.find((item) => item.id === newValue)?.value;
+              value && onChange(value);
             } else if (!value && _values.length > 0) {
               onChange(_values[0].value);
             }

@@ -34,13 +34,15 @@ const jobsWorker = new Worker(new URL('../../../workers/jobs.worker', import.met
 if (jobsWorker && window.electron?.isElectron) {
   (async () => {
     await electronMessagesReadyPromise;
-    jobsWorker.postMessage({ name: 'isElectron' }, [externalMessagePorts.jobsWorkerPort]);
+    externalMessagePorts.jobsWorkerPort
+      ? jobsWorker.postMessage({ name: 'isElectron' }, [externalMessagePorts.jobsWorkerPort])
+      : jobsWorker.postMessage({ name: 'isElectron' });
   })();
 }
 
 export const Jobs: FunctionComponent = () => {
-  const popoverRef = useRef<PopoverRef>();
-  const buttonRef = useRef<HTMLButtonElement>();
+  const popoverRef = useRef<PopoverRef>(null);
+  const buttonRef = useRef<HTMLButtonElement>(null);
   const isOpen = useRef<boolean>(false);
   const [{ serverUrl }] = useRecoilState(applicationCookieState);
   const rollbar = useRollbar();

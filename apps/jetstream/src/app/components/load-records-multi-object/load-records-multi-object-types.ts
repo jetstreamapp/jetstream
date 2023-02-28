@@ -5,6 +5,7 @@ import {
   CompositeResponseItem,
   InsertUpdateUpsert,
   MapOf,
+  Maybe,
 } from '@jetstream/types';
 import { DescribeSObjectResult, Field } from 'jsforce';
 
@@ -37,9 +38,9 @@ export interface LoadMultiObjectData {
 export interface LoadMultiObjectRecord {
   sobject: string;
   operation: InsertUpdateUpsert;
-  externalId?: string;
-  externalIdValue?: string;
-  recordIdForUpdate?: string;
+  externalId?: Maybe<string>;
+  externalIdValue?: Maybe<string>;
+  recordIdForUpdate?: Maybe<string>;
   referenceId: string;
   record: any;
   recordIdx: number;
@@ -50,7 +51,7 @@ export interface RecordWithResponse {
   referenceId: string;
   sobject: string;
   operation: InsertUpdateUpsert;
-  externalId?: string;
+  externalId?: Maybe<string>;
   request: CompositeRequestBody;
   response: CompositeResponseItem | null;
 }

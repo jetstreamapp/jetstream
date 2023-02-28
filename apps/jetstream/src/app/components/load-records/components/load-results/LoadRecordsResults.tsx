@@ -1,4 +1,4 @@
-import { InsertUpdateUpsertDelete, SalesforceOrgUi } from '@jetstream/types';
+import { InsertUpdateUpsertDelete, Maybe, SalesforceOrgUi } from '@jetstream/types';
 import { FunctionComponent } from 'react';
 import { ApiMode, FieldMapping } from '../../load-records-types';
 import LoadRecordsBatchApiResults from './LoadRecordsBatchApiResults';
@@ -9,13 +9,13 @@ export interface LoadRecordsResultsProps {
   selectedSObject: string;
   fieldMapping: FieldMapping;
   inputFileData: any[];
-  inputZipFileData: ArrayBuffer;
+  inputZipFileData: Maybe<ArrayBuffer>;
   apiMode: ApiMode;
   loadType: InsertUpdateUpsertDelete;
   externalId?: string;
   batchSize: number;
   insertNulls: boolean;
-  assignmentRuleId?: string;
+  assignmentRuleId?: Maybe<string>;
   serialMode: boolean;
   dateFormat: string;
   onFinish: (results: { success: number; failure: number }) => void;

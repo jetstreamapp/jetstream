@@ -618,7 +618,7 @@ export async function salesforceApiReq(): Promise<SalesforceApiRequest[]> {
 
 export async function googleUploadFile(
   accessToken: string,
-  { fileMimeType, filename, folderId, fileData }: { fileMimeType: string; filename: string; folderId: string; fileData: any },
+  { fileMimeType, filename, folderId, fileData }: { fileMimeType: string; filename: string; folderId?: string | null; fileData: any },
   targetMimeType = MIME_TYPES.GSHEET
 ): Promise<GoogleFileApiResponse & { webViewLink: string }> {
   return await handleExternalRequest({

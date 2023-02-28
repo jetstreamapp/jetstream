@@ -6,6 +6,7 @@ import { getMapOf } from '@jetstream/shared/utils';
 import {
   ApplicationCookie,
   ElectronPreferences,
+  Maybe,
   SalesforceOrgUi,
   SalesforceOrgUiType,
   UserProfilePreferences,
@@ -13,7 +14,7 @@ import {
 } from '@jetstream/types';
 import localforage from 'localforage';
 import isString from 'lodash/isString';
-import { atom, selector, selectorFamily, useRecoilValue, useSetRecoilState } from 'recoil';
+import { atom, selector, useRecoilValue, useSetRecoilState } from 'recoil';
 
 export const STORAGE_KEYS = {
   SELECTED_ORG_STORAGE_KEY: `SELECTED_ORG`,
@@ -23,16 +24,18 @@ export const STORAGE_KEYS = {
 /**
  * Parse application state with a fallback in case there is an issue parsing
  */
-function getAppCookie() {
+function getAppCookie(): ApplicationCookie {
   let appState = window.electron?.isElectron ? window.electron.appCookie : parseCookie<ApplicationCookie>(HTTP.COOKIE.JETSTREAM);
-  appState = { ...appState } || {
-    serverUrl: 'http://localhost:3333',
-    environment: 'development',
-    defaultApiVersion: 'v54.0',
-    google_appId: '1071580433137',
-    google_apiKey: 'AIzaSyDaqv3SafGq6NmVVwUWqENrf2iEFiDSMoA',
-    google_clientId: '1094188928456-fp5d5om6ar9prdl7ak03fjkqm4fgagoj.apps.googleusercontent.com',
-  };
+  appState = appState
+    ? { ...appState }
+    : {
+        serverUrl: 'http://localhost:3333',
+        environment: 'development',
+        defaultApiVersion: 'v54.0',
+        google_appId: '1071580433137',
+        google_apiKey: 'AIzaSyDaqv3SafGq6NmVVwUWqENrf2iEFiDSMoA',
+        google_clientId: '1094188928456-fp5d5om6ar9prdl7ak03fjkqm4fgagoj.apps.googleusercontent.com',
+      };
   appState.serverUrl = appState.serverUrl || 'https://getjetstream.app/';
   appState.environment = appState.environment || 'production';
   appState.defaultApiVersion = appState.defaultApiVersion || 'v54.0';
@@ -48,7 +51,7 @@ function getAppCookie() {
   return appState;
 }
 
-function ensureUserProfileInit(pref?: UserProfilePreferences): UserProfilePreferences {
+function ensureUserProfileInit(pref?: Maybe<UserProfilePreferences>): UserProfilePreferences {
   return {
     // CURRENT
     ...pref,
@@ -130,7 +133,7 @@ export const salesforceOrgsState = atom<SalesforceOrgUi[]>({
   default: getOrgsFromStorage(),
 });
 
-export const selectedOrgIdState = atom<string>({
+export const selectedOrgIdState = atom<Maybe<string>>({
   key: 'selectedOrgIdState',
   default: getSelectedOrgFromStorage(),
 });
@@ -205,7 +208,7 @@ export const hasConfiguredOrgState = selector({
   },
 });
 
-export const selectedOrgType = selector<SalesforceOrgUiType>({
+export const selectedOrgType = selector<Maybe<SalesforceOrgUiType>>({
   key: 'selectedOrgType',
   get: ({ get }) => getOrgType(get(selectedOrgState)),
 });

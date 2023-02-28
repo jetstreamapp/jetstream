@@ -1,5 +1,5 @@
 import { logger } from '@jetstream/shared/client-logger';
-import { ListItem } from '@jetstream/types';
+import { ListItem, Maybe } from '@jetstream/types';
 import type { DescribeGlobalSObjectResult } from 'jsforce';
 import { composeQuery, getField, isQueryValid, Query } from 'soql-parser-js';
 import { MetadataRow } from './mass-update-records.types';
@@ -33,7 +33,10 @@ export const transformationCriteriaListItems: ListItem[] = [
  * @param row
  * @returns
  */
-export function isValidRow(row: MetadataRow) {
+export function isValidRow(row: Maybe<MetadataRow>) {
+  if (!row) {
+    return false;
+  }
   if (!row.selectedField) {
     return false;
   }
@@ -54,14 +57,14 @@ export function isValidRow(row: MetadataRow) {
   return true;
 }
 
-export function getFieldsToQuery(row: MetadataRow) {
+export function getFieldsToQuery(row: MetadataRow): string[] {
   let fields = ['Id', row.selectedField];
-  if (row.transformationOptions.option === 'anotherField') {
+  if (row.transformationOptions.option === 'anotherField' && row.transformationOptions.alternateField) {
     fields.push(row.transformationOptions.alternateField);
   }
   // ensure no duplicates
   fields = Array.from(new Set(fields));
-  return fields;
+  return fields.filter(Boolean) as string[];
 }
 
 export function getValidationSoqlQuery(row: MetadataRow) {
@@ -74,7 +77,7 @@ export function composeSoqlQuery(row: MetadataRow, fields: string[]) {
     sObject: row.sobject,
   };
 
-  if (row.transformationOptions.criteria === 'onlyIfBlank') {
+  if (row.transformationOptions.criteria === 'onlyIfBlank' && row.selectedField) {
     query.where = {
       left: {
         field: row.selectedField,
@@ -83,7 +86,7 @@ export function composeSoqlQuery(row: MetadataRow, fields: string[]) {
         literalType: 'NULL',
       },
     };
-  } else if (row.transformationOptions.criteria === 'onlyIfNotBlank') {
+  } else if (row.transformationOptions.criteria === 'onlyIfNotBlank' && row.selectedField) {
     query.where = {
       left: {
         field: row.selectedField,

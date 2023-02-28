@@ -26,7 +26,7 @@ export const DeployMetadataToOrg: FunctionComponent<DeployMetadataToOrgProps> = 
   const [deployResultsData, setDeployResultsData] = useState<MapOf<any[]>>();
 
   const [destinationOrg, setDestinationOrg] = useState<SalesforceOrgUi>();
-  const [deployMetadataOptions, setDeployMetadataOptions] = useState<DeployOptions>();
+  const [deployMetadataOptions, setDeployMetadataOptions] = useState<DeployOptions | null>(null);
 
   const [selectedMetadata, setSelectedMetadata] = useState<MapOf<ListMetadataResult[]>>();
 
@@ -70,29 +70,29 @@ export const DeployMetadataToOrg: FunctionComponent<DeployMetadataToOrgProps> = 
         Deploy to Different Org
       </button>
       {/* MODALS */}
-      {configModalOpen && (
+      {configModalOpen && selectedMetadata && (
         <DeployMetadataToOrgConfigModal
           sourceOrg={selectedOrg}
-          initialOptions={deployMetadataOptions}
+          initialOptions={deployMetadataOptions || {}}
           initialSelectedDestinationOrg={destinationOrg}
           selectedMetadata={selectedMetadata}
           onClose={handleCloseConfigModal}
           onDeploy={handleDeployMetadata}
         />
       )}
-      {deployStatusModalOpen && (
+      {deployStatusModalOpen && destinationOrg && selectedMetadata && (
         <DeployMetadataToOrgStatusModal
           hideModal={downloadResultsModalOpen}
           sourceOrg={selectedOrg}
           destinationOrg={destinationOrg}
           selectedMetadata={selectedMetadata}
-          deployOptions={deployMetadataOptions}
+          deployOptions={deployMetadataOptions || {}}
           onGoBack={handleGoBackFromDeploy}
           onClose={() => setDeployStatusModalOpen(false)}
           onDownload={handleDeployResultsDownload}
         />
       )}
-      {downloadResultsModalOpen && (
+      {downloadResultsModalOpen && deployResultsData && (
         <FileDownloadModal
           modalHeader="Download Deploy Results"
           org={selectedOrg}

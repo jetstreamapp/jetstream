@@ -13,8 +13,8 @@ type Action =
 
 interface State {
   loading: boolean;
-  dataSet: LoadMultiObjectData[];
-  dataGraph: LoadMultiObjectRequestWithResult[];
+  dataSet: LoadMultiObjectData[] | null;
+  dataGraph: LoadMultiObjectRequestWithResult[] | null;
   errors: LoadMultiObjectDataError[];
 }
 
@@ -58,6 +58,9 @@ export const useValidateLoadFile = (org: SalesforceOrgUi, apiVersion: string, op
   }, [errors, dataSet, dateFormat, insertNulls]);
 
   function processFileGraph() {
+    if (!dataSet) {
+      return;
+    }
     try {
       const data = getDataGraph(dataSet, apiVersion, { dateFormat, insertNulls });
       logger.info('[LOAD MULTI OBJ] Data', { data });

@@ -57,7 +57,7 @@ function getPageLayoutQueries(sObjects: string[]): string[] {
 export function useFetchPageLayouts(selectedOrg: SalesforceOrgUi, sObjects: string[]) {
   const rollbar = useRollbar();
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string>();
+  const [error, setError] = useState<string | null>(null);
   const [layouts, setLayouts] = useState<MapOf<PageLayout[]>>({});
   const [selectedLayoutIds, setSelectedLayoutIds] = useState<Set<string>>(new Set());
 

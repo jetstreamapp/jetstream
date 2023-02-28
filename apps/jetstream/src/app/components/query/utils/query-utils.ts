@@ -1,6 +1,6 @@
 import { convertFiltersToWhereClause } from '@jetstream/shared/ui-utils';
 import { getMapOf } from '@jetstream/shared/utils';
-import { ErrorResult, ExpressionType, ListItemGroup, MapOf, QueryFields, Record } from '@jetstream/types';
+import { ErrorResult, ExpressionType, ListItemGroup, MapOf, Maybe, QueryFields, Record } from '@jetstream/types';
 import formatISO from 'date-fns/formatISO';
 import parseISO from 'date-fns/parseISO';
 import { Field, FieldType } from 'jsforce';
@@ -12,7 +12,7 @@ import { composeQuery, FieldSubquery, getFlattenedFields, Query } from 'soql-par
 export interface EditFromErrors {
   hasErrors: boolean;
   generalErrors: string[];
-  fieldErrors: MapOf<string>;
+  fieldErrors: MapOf<string | undefined>;
 }
 
 const CHILD_FIELD_SEPARATOR = `~`;
@@ -189,11 +189,13 @@ export function handleEditFormErrorResponse(result: ErrorResult): EditFromErrors
  * @param query
  * @returns
  */
-export function getFlattenSubqueryFlattenedFieldMap(query: Query): MapOf<string[]> {
-  return query?.fields
-    .filter((field) => field.type === 'FieldSubquery')
-    .reduce((output: MapOf<string[]>, field: FieldSubquery) => {
-      output[field.subquery.relationshipName] = getFlattenedFields(field.subquery);
-      return output;
-    }, {});
+export function getFlattenSubqueryFlattenedFieldMap(query: Maybe<Query>): MapOf<string[]> {
+  return (
+    query?.fields
+      ?.filter((field) => field.type === 'FieldSubquery')
+      .reduce((output: MapOf<string[]>, field: FieldSubquery) => {
+        output[field.subquery.relationshipName] = getFlattenedFields(field.subquery);
+        return output;
+      }, {}) || {}
+  );
 }

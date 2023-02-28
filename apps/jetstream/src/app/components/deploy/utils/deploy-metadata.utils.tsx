@@ -55,7 +55,7 @@ export async function getHistory() {
 }
 
 export async function getHistoryItemFile(item: SalesforceDeployHistoryItem) {
-  let file: ArrayBuffer;
+  let file: ArrayBuffer | null = null;
   if (item.fileKey) {
     file = await localforage.getItem<ArrayBuffer>(item.fileKey);
   }
@@ -82,7 +82,7 @@ export async function saveHistory({
   metadata?: MapOf<ListMetadataResult[]>;
   deployOptions: DeployOptions;
   results?: DeployResult;
-  file?: ArrayBuffer | string;
+  file?: ArrayBuffer | string | null;
 }) {
   try {
     if (file && isString(file)) {
@@ -106,7 +106,7 @@ export async function saveHistory({
       destinationOrg: {
         uniqueId: destinationOrg.uniqueId,
         label: destinationOrg.label,
-        orgName: destinationOrg.orgName,
+        orgName: destinationOrg.orgName || '',
       },
       start,
       finish: new Date(),
@@ -122,7 +122,7 @@ export async function saveHistory({
       newItem.sourceOrg = {
         uniqueId: sourceOrg.uniqueId,
         label: sourceOrg.label,
-        orgName: sourceOrg.orgName,
+        orgName: sourceOrg.orgName || '',
       };
     }
     if (file && localforage.driver() === localforage.INDEXEDDB) {
@@ -140,7 +140,7 @@ export async function saveHistory({
     try {
       if (existingItems.length > MAX_HISTORY_ITEMS) {
         for (const item of existingItems.slice(MAX_HISTORY_ITEMS).filter((item) => item.fileKey)) {
-          await localforage.removeItem(item.fileKey);
+          item.fileKey && (await localforage.removeItem(item.fileKey));
         }
       }
     } catch (ex) {
@@ -390,14 +390,14 @@ export function convertRowsForExport(
   return rows
     .filter((row) => row.fullName && row.metadata && (!limitToSelected || selectedRows.has(row)))
     .map((row) => ({
-      Id: row.metadata.id,
-      Type: row.metadata.type,
-      Name: row.metadata.fullName,
-      'Last Modified By': `${row.metadata.lastModifiedByName} (${row.metadata.lastModifiedById})`,
-      'Last Modified Date': row.metadata.lastModifiedDate,
-      'Created By': `${row.metadata.createdByName} (${row.metadata.createdById})`,
-      CreatedDate: row.metadata.createdDate,
-      'Manageable State': row.metadata.manageableState,
+      Id: row.metadata?.id,
+      Type: row.metadata?.type,
+      Name: row.metadata?.fullName,
+      'Last Modified By': `${row.metadata?.lastModifiedByName} (${row.metadata?.lastModifiedById})`,
+      'Last Modified Date': row.metadata?.lastModifiedDate,
+      'Created By': `${row.metadata?.createdByName} (${row.metadata?.createdById})`,
+      CreatedDate: row.metadata?.createdDate,
+      'Manageable State': row.metadata?.manageableState,
     }));
 }
 
@@ -548,7 +548,7 @@ export function getNotificationMessageBody(deployResults: DeployResult) {
   const { numberComponentErrors, numberComponentsDeployed, numberTestsCompleted, runTestsEnabled, details, success } = deployResults;
   let { numberTestErrors } = deployResults;
   numberTestErrors = numberTestErrors ?? 0;
-  numberTestErrors = numberTestErrors + details?.runTestResult?.codeCoverageWarnings?.length || 0;
+  numberTestErrors = numberTestErrors + (details?.runTestResult?.codeCoverageWarnings?.length || 0);
   let output = '';
   if (success) {
     output += `${getSuccessOrFailureChar(

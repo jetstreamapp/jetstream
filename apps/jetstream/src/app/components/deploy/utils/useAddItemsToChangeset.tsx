@@ -34,8 +34,8 @@ interface State {
   hasError: boolean;
   errorMessage?: string | null;
   status: DeployMetadataStatus;
-  deployId: string;
-  results: DeployResult;
+  deployId: string | null;
+  results: DeployResult | null;
 }
 
 function reducer(state: State, action: Action): State {
@@ -56,9 +56,9 @@ function reducer(state: State, action: Action): State {
     case 'DEPLOY_IN_PROG':
       return { ...state, status: 'adding', deployId: action.payload.deployId };
     case 'SUCCESS':
-      return { ...state, loading: false, status: 'idle', results: action.payload.results };
+      return { ...state, loading: false, status: 'idle', results: action.payload?.results || null };
     case 'ERROR':
-      return { ...state, loading: false, hasError: true, errorMessage: action.payload.errorMessage, status: 'idle', results: null };
+      return { ...state, loading: false, hasError: true, errorMessage: action.payload?.errorMessage, status: 'idle', results: null };
     default:
       throw new Error('Invalid action');
   }
@@ -91,7 +91,7 @@ export function useAddItemsToChangeset(
   });
   const [{ serverUrl }] = useRecoilState(applicationCookieState);
   const { notifyUser } = useBrowserNotifications(serverUrl, window.electron?.isFocused);
-  const [lastChecked, setLastChecked] = useState<Date>(null);
+  const [lastChecked, setLastChecked] = useState<Date | null>(null);
 
   useEffect(() => {
     isMounted.current = true;

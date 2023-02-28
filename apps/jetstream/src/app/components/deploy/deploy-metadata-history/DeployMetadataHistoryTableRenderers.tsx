@@ -23,7 +23,7 @@ export function OrgRenderer({ row: item }: FormatterProps<SalesforceDeployHistor
         <Grid
           vertical
           divProps={{
-            title: `${item.sourceOrg.label} to ${item.destinationOrg?.label || fallbackLabel}`,
+            title: `${item.sourceOrg?.label} to ${item.destinationOrg?.label || fallbackLabel}`,
           }}
         >
           <div>{sourceOrgBadge}</div>

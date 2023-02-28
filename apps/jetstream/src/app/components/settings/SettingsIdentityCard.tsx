@@ -1,5 +1,5 @@
 import { css } from '@emotion/react';
-import { UserProfileAuth0Identity, UserProfileAuth0Ui } from '@jetstream/types';
+import { Maybe, UserProfileAuth0Identity, UserProfileAuth0Ui } from '@jetstream/types';
 import { Badge, ConfirmationModalPromise } from '@jetstream/ui';
 import { Fragment, FunctionComponent, useState } from 'react';
 
@@ -56,7 +56,7 @@ export const SettingsIdentityCard: FunctionComponent<SettingsIdentityCardProps> 
   onUnlink,
 }) => {
   const [providerName] = useState<string>(() => getProviderName(identity));
-  const [username] = useState<string>(() => getUsername(identity, fallback));
+  const [username] = useState<Maybe<string>>(() => getUsername(identity, fallback));
 
   const { profileData, user_id } = identity;
   const name = profileData?.name || fallback.name;

@@ -46,7 +46,7 @@ export const LoadRecordsMultiObject: FunctionComponent<LoadRecordsMultiObjectPro
   const selectedOrg = useRecoilValue<SalesforceOrgUi>(selectedOrgState);
   const orgType = useRecoilValue(selectedOrgType);
 
-  const [inputFilename, setInputFilename] = useState<string>();
+  const [inputFilename, setInputFilename] = useState<string | null>(null);
   const [inputFileType, setInputFileType] = useState<LocalOrGoogle>();
   const [inputFileData, setInputFileData] = useState<XLSX.WorkBook>();
   const [{ serverUrl, defaultApiVersion, google_apiKey, google_appId, google_clientId }] = useRecoilState(applicationCookieState);
@@ -72,7 +72,7 @@ export const LoadRecordsMultiObject: FunctionComponent<LoadRecordsMultiObjectPro
     loading: dataLoadLoading,
   } = useLoadFile(selectedOrg, serverUrl, defaultApiVersion);
 
-  const [data, setData] = useState<LoadMultiObjectRequestWithResult[]>();
+  const [data, setData] = useState<LoadMultiObjectRequestWithResult[] | null>(null);
   /** This only stores the data provided from the init file read process, so if the user loads again this has the pre-load state */
   const [initialData, setInitialData] = useState<LoadMultiObjectRequestWithResult[]>();
 
@@ -143,6 +143,9 @@ export const LoadRecordsMultiObject: FunctionComponent<LoadRecordsMultiObjectPro
   }
 
   async function handleLoadStarted() {
+    if (!initialData) {
+      return;
+    }
     if (
       !loadStarted ||
       (await ConfirmationModalPromise({
@@ -266,13 +269,13 @@ export const LoadRecordsMultiObject: FunctionComponent<LoadRecordsMultiObjectPro
         )}
         {/* TODO: what if there are no rows in any of the loaded data? */}
         {fileProcessingErrors?.length > 0 && <LoadRecordsMultiObjectErrors errors={fileProcessingErrors} />}
-        {data?.length > 0 && (
+        {data && data.length > 0 && (
           <LoadRecordsMultiObjectResults
             selectedOrg={selectedOrg}
             orgType={orgType}
             data={data}
             loading={dataLoadLoading}
-            loadFinished={loadResultsData && !dataLoadLoading}
+            loadFinished={!!loadResultsData && !dataLoadLoading}
             onLoadStarted={handleLoadStarted}
           />
         )}

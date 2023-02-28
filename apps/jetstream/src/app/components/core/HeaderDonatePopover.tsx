@@ -16,7 +16,7 @@ export const HeaderDonatePopover: FunctionComponent<HeaderDonatePopoverProps> = 
   }, []);
 
   function closePopover() {
-    popoverRef.current.close();
+    popoverRef.current?.close();
   }
 
   return (

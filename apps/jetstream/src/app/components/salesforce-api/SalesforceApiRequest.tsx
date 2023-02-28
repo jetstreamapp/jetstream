@@ -84,8 +84,8 @@ export const SalesforceApiRequest: FunctionComponent<SalesforceApiRequestProps> 
   selectedOrg,
   onSubmit,
 }) => {
-  const headerRef = useRef<editor.IStandaloneCodeEditor>(null);
-  const bodyRef = useRef<editor.IStandaloneCodeEditor>(null);
+  const headerRef = useRef<editor.IStandaloneCodeEditor>();
+  const bodyRef = useRef<editor.IStandaloneCodeEditor>();
   const [url, setUrl] = useState(() => getDefaultUrl(selectedOrg, defaultApiVersion));
   const [method, setMethod] = useState<HttpMethod>(_priorRequest?.method || 'GET');
   const [headers, setHeaders] = useState(() => _priorRequest?.headers || JSON.stringify(DEFAULT_HEADERS, null, 2));
@@ -253,7 +253,7 @@ export const SalesforceApiRequest: FunctionComponent<SalesforceApiRequestProps> 
           value={headers}
           options={{ minimap: { enabled: false }, scrollBeyondLastLine: false }}
           onMount={handleHeaderEditorMount}
-          onChange={(value) => setHeaders(value)}
+          onChange={(value) => setHeaders(value || '')}
         />
         <Grid
           verticalAlign="end"
@@ -313,7 +313,7 @@ export const SalesforceApiRequest: FunctionComponent<SalesforceApiRequestProps> 
               readOnly: method === 'GET',
             }}
             onMount={handleBodyEditorMount}
-            onChange={(value) => setBody(value)}
+            onChange={(value) => setBody(value || '')}
           />
         </div>
       </div>

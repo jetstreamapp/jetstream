@@ -57,7 +57,7 @@ export const DeleteMetadataModal: FunctionComponent<DeleteMetadataModalProps> = 
           onDeploy={handleDeploy}
         />
       )}
-      {deployStatusModalOpen && (
+      {deployStatusModalOpen && deployOptions && file && (
         <DeleteMetadataStatusModal
           destinationOrg={selectedOrg}
           deployOptions={deployOptions}
@@ -68,7 +68,7 @@ export const DeleteMetadataModal: FunctionComponent<DeleteMetadataModalProps> = 
           onDownload={handleDeployResultsDownload}
         />
       )}
-      {downloadResultsModalOpen && (
+      {downloadResultsModalOpen && deployResultsData && (
         <FileDownloadModal
           modalHeader="Download Deploy Results"
           org={selectedOrg}

@@ -1,6 +1,6 @@
 import { TITLES } from '@jetstream/shared/constants';
 import { SalesforceOrgUi } from '@jetstream/types';
-import React, { Fragment, FunctionComponent, useEffect, useState } from 'react';
+import { Fragment, FunctionComponent, useEffect, useState } from 'react';
 import { Navigate, Outlet, useLocation } from 'react-router-dom';
 import { useTitle } from 'react-use';
 import { useRecoilValue, useResetRecoilState } from 'recoil';

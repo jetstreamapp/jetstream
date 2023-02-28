@@ -12,6 +12,7 @@ import {
   FieldDefinitionMetadata,
   FieldDefinitions,
   FieldDefinitionType,
+  FieldPermissionRecord,
   FieldValueDependencies,
   FieldValues,
   GlobalPicklistRecord,
@@ -1073,10 +1074,10 @@ export function getRowsForExport(fieldValues: FieldValues[]) {
 }
 
 export function prepareDownloadResultsFile(fieldResults: CreateFieldsResults[], fieldValues: FieldValues[]) {
-  let permissionRecords = [];
+  let permissionRecords: FieldPermissionRecord[] = [];
   const resultsWorksheet = fieldResults.map(
     ({ label, state, deployResult, flsResult, flsErrors, flsRecords, layoutErrors, updatedLayoutIds }) => {
-      permissionRecords = permissionRecords.concat(flsRecords);
+      permissionRecords = permissionRecords.concat(flsRecords || []);
       let _flsResult = 'N/A';
       if (flsResult && flsResult.length) {
         _flsResult = flsResult?.every?.((result) => result.success) ? 'SUCCESS' : 'PARTIAL SUCCESS';

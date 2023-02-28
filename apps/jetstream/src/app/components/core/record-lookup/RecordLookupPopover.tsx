@@ -21,7 +21,7 @@ interface RecentRecord {
 const NUM_HISTORY_ITEMS = 10;
 
 export const RecordLookupPopover: FunctionComponent = () => {
-  const popoverRef = useRef<PopoverRef>();
+  const popoverRef = useRef<PopoverRef>(null);
   const retainRecordId = useRef<boolean>(false);
   const [{ defaultApiVersion }] = useRecoilState(applicationCookieState);
   const selectedOrg = useRecoilValue<SalesforceOrgUi>(selectedOrgState);
@@ -33,7 +33,7 @@ export const RecordLookupPopover: FunctionComponent = () => {
   const [modalOpen, setModalOpen] = useState<boolean>();
 
   const [recordId, setRecordId] = useState<string>('');
-  const [sobjectName, setSobjectName] = useState<string>();
+  const [sobjectName, setSobjectName] = useState<string | null>(null);
   const [action, setAction] = useState<CloneEditView>('view');
 
   const getRecentRecords = useCallback(async () => {
@@ -56,7 +56,7 @@ export const RecordLookupPopover: FunctionComponent = () => {
     if (hasModifierKey(event as any) && isKKey(event as any)) {
       event.stopPropagation();
       event.preventDefault();
-      popoverRef.current.open();
+      popoverRef.current?.open();
     }
   }, []);
 
@@ -67,7 +67,7 @@ export const RecordLookupPopover: FunctionComponent = () => {
     handleSubmit(null, recordId);
   }
 
-  async function handleSubmit(event?: React.FormEvent<HTMLFormElement>, _recordId?: string) {
+  async function handleSubmit(event?: React.FormEvent<HTMLFormElement> | null, _recordId?: string) {
     try {
       if (event) {
         event.preventDefault();
@@ -169,7 +169,7 @@ export const RecordLookupPopover: FunctionComponent = () => {
 
   return (
     <Fragment>
-      {modalOpen && (
+      {modalOpen && sobjectName && (
         <ViewEditCloneRecord
           apiVersion={defaultApiVersion}
           selectedOrg={selectedOrg}
