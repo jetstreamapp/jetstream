@@ -234,11 +234,11 @@ export type ManualRequestPayload = Omit<GenericRequestPayload, 'isTooling' | 'op
 
 export type ManualRequestResponse = {
   error: boolean;
-  errorMessage?: string;
+  errorMessage?: Maybe<string>;
   status: number | null;
   statusText: string | null;
   headers: string | null;
-  body?: string;
+  body?: Maybe<string>;
 };
 
 export interface BulkApiCreateJobRequestPayload {

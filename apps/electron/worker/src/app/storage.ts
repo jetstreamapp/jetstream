@@ -41,7 +41,7 @@ export async function getOrg(uniqueId: string) {
 }
 
 export async function updateOrg(uniqueId: string, org: Partial<SalesforceOrgElectron>) {
-  let updatedOrg: SalesforceOrgElectron;
+  let updatedOrg: SalesforceOrgElectron | undefined;
   const orgs = (await getOrgs()).map((currOrg) => {
     if (currOrg.uniqueId === uniqueId) {
       updatedOrg = { ...currOrg, ...org };

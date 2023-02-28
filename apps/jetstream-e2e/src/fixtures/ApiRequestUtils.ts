@@ -8,7 +8,8 @@ export class ApiRequestUtils {
   readonly request: APIRequestContext;
 
   constructor(selectedOrgId: string, request: APIRequestContext) {
-    this.BASE_URL = process.env.JETSTREAM_SERVER_URL;
+    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+    this.BASE_URL = process.env.JETSTREAM_SERVER_URL!;
     this.selectedOrgId = selectedOrgId;
     this.request = request;
   }

@@ -10,6 +10,7 @@ import {
   FileExtXml,
   FileExtZip,
   MapOf,
+  Maybe,
   MimeType,
   SalesforceOrgUi,
 } from '@jetstream/types';
@@ -45,7 +46,7 @@ export interface FileFauxDownloadModalProps {
     fileFormat: FileExtAllTypes;
     mimeType: MimeType;
     uploadToGoogle: boolean;
-    googleFolder?: string;
+    googleFolder?: Maybe<string>;
   }) => void;
 }
 
@@ -78,7 +79,7 @@ export const FileFauxDownloadModal: FunctionComponent<FileFauxDownloadModalProps
   const inputEl = useRef<HTMLInputElement>(null);
   const [filenameEmpty, setFilenameEmpty] = useState(false);
 
-  const [googleFolder, setGoogleFolder] = useState<string | null>(null);
+  const [googleFolder, setGoogleFolder] = useState<Maybe<string>>(null);
 
   useEffect(() => {
     if (!fileName && !filenameEmpty) {

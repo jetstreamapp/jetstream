@@ -1,5 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
+import { Maybe } from '@jetstream/types';
 import { forwardRef, Fragment, RefObject } from 'react';
 import ReadonlyListItem from './ReadonlyListItem';
 
@@ -10,8 +11,8 @@ export interface ReadonlyListProps {
   getContent: (item: any) => {
     key: string;
     id?: string;
-    heading?: string | JSX.Element;
-    subheading?: string;
+    heading?: Maybe<string | JSX.Element>;
+    subheading?: Maybe<string>;
   };
 }
 

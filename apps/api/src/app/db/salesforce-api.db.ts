@@ -9,7 +9,7 @@ export async function findAll(): Promise<SalesforceApi[]> {
       orderBy: [{ groupName: 'asc' }, { name: 'asc' }],
     })
   ).map((item) => {
-    item.url = item.url.replace(VERSION_REPLACE, ENV.SFDC_FALLBACK_API_VERSION);
+    item.url = item.url?.replace(VERSION_REPLACE, ENV.SFDC_FALLBACK_API_VERSION!) || '';
     return item;
   });
 }

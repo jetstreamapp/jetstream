@@ -2,6 +2,7 @@
   "extends": "./tsconfig.json",
   "compilerOptions": {
     "outDir": "../../../../dist/out-tsc",
+    "strictNullChecks": true,
     "types": ["node", "google.accounts", "google.picker", "gapi.client.drive"]
   },
   "exclude": ["**/*.spec.ts", "**/*.test.ts"],

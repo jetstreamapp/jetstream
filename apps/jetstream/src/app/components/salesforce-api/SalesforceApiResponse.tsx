@@ -44,7 +44,7 @@ export const SalesforceApiResponse: FunctionComponent<SalesforceApiResponseProps
         )}
         <div
           className="slds-text-color_error"
-          title={results?.errorMessage}
+          title={results?.errorMessage || undefined}
           css={css`
             white-space: nowrap;
             overflow-x: auto;

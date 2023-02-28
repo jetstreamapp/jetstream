@@ -51,7 +51,8 @@ passport.serializeUser(function (user, done) {
 });
 
 passport.deserializeUser(function (user, done) {
-  done(null, user);
+  // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+  done(null, user!);
 });
 
 const passportInitMiddleware = passport.initialize();
@@ -156,9 +157,10 @@ passport.use(
   'auth0',
   new Auth0Strategy(
     {
-      domain: ENV.AUTH0_DOMAIN,
-      clientID: ENV.AUTH0_CLIENT_ID,
-      clientSecret: ENV.AUTH0_CLIENT_SECRET,
+      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+      domain: ENV.AUTH0_DOMAIN!,
+      clientID: ENV.AUTH0_CLIENT_ID!,
+      clientSecret: ENV.AUTH0_CLIENT_SECRET!,
       callbackURL: `${ENV.JETSTREAM_SERVER_URL}/oauth/callback`,
     },
     (accessToken, refreshToken, extraParams, profile, done) => {
@@ -175,9 +177,9 @@ passport.use(
   'auth0-authz',
   new Auth0Strategy(
     {
-      domain: ENV.AUTH0_DOMAIN,
-      clientID: ENV.AUTH0_CLIENT_ID,
-      clientSecret: ENV.AUTH0_CLIENT_SECRET,
+      domain: ENV.AUTH0_DOMAIN!,
+      clientID: ENV.AUTH0_CLIENT_ID!,
+      clientSecret: ENV.AUTH0_CLIENT_SECRET!,
       callbackURL: `${ENV.JETSTREAM_SERVER_URL}/oauth/identity/link/callback`,
     },
     (accessToken, refreshToken, extraParams, profile, done) => {

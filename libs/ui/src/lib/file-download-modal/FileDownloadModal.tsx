@@ -13,6 +13,7 @@ import {
   FileExtZip,
   JetstreamEvents,
   MapOf,
+  Maybe,
   MimeType,
   SalesforceOrgUi,
   UploadToGoogleJob,
@@ -83,7 +84,7 @@ export const FileDownloadModal: FunctionComponent<FileDownloadModalProps> = ({
   const inputEl = useRef<HTMLInputElement>(null);
   const [filenameEmpty, setFilenameEmpty] = useState(false);
 
-  const [googleFolder, setGoogleFolder] = useState<string | null>(null);
+  const [googleFolder, setGoogleFolder] = useState<Maybe<string>>(null);
 
   useEffect(() => {
     if (!fileName && !filenameEmpty) {
@@ -211,7 +212,7 @@ export const FileDownloadModal: FunctionComponent<FileDownloadModalProps> = ({
         type: 'UploadToGoogle',
         title: `Upload to Google`,
         org,
-        meta: { fileName, fileData, fileType, googleFolder: googleFolder },
+        meta: { fileName, fileData, fileType, googleFolder },
       },
     ];
     emitUploadToGoogleEvent && emitUploadToGoogleEvent({ type: 'newJob', payload: jobs });

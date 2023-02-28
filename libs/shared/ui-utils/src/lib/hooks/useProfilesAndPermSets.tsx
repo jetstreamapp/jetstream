@@ -3,6 +3,7 @@ import { clearCacheForOrg, queryWithCache } from '@jetstream/shared/data';
 import { isPermissionSetWithProfile } from '../shared-ui-utils';
 import {
   ListItem,
+  Maybe,
   PermissionSetNoProfileRecord,
   PermissionSetRecord,
   PermissionSetWithProfileRecord,
@@ -62,6 +63,9 @@ export function useProfilesAndPermSets(
 
   const fetchMetadata = useCallback(
     async (skipCache = false) => {
+      if (!selectedOrg) {
+        return;
+      }
       try {
         setLoading(true);
         if (hasError) {
@@ -142,7 +146,7 @@ function getListItemFromQueryResults(records: PermissionSetRecord[]) {
   );
 }
 
-function getQueryForPermissionSetsWithProfiles(orgNamespace?: string): string {
+function getQueryForPermissionSetsWithProfiles(orgNamespace?: Maybe<string>): string {
   const query: Query = {
     fields: [
       getField('Id'),

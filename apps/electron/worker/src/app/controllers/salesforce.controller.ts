@@ -12,6 +12,7 @@ import {
   ManualRequestPayload,
   ManualRequestResponse,
   MapOf,
+  Maybe,
 } from '@jetstream/types';
 import { correctInvalidXmlResponseTypes, getRetrieveRequestFromListMetadata } from '@jetstream/server-services';
 import { Connection, DeployOptions, RequestInfo, RetrieveRequest, Tooling } from 'jsforce';
@@ -22,9 +23,16 @@ import { parse as parseCsv } from 'papaparse';
 
 const SESSION_ID_RGX = /\{sessionId\}/i;
 
+function ensureConnection(connection: Maybe<Connection>): Connection {
+  if (!connection) {
+    throw new Error('Connection is required');
+  }
+  return connection;
+}
+
 export const handleGlobalDescribe: ControllerFn = async (_, __, params, { reject, resolve, connection, request }) => {
   try {
-    const response = await connection.describeGlobal();
+    const response = await ensureConnection(connection).describeGlobal();
     resolve(response);
   } catch (ex) {
     reject(ex);
@@ -38,7 +46,7 @@ export const handleDescribeSobject: ControllerFnParams<{ sobject: string }> = as
   { reject, resolve, connection, request }
 ) => {
   try {
-    const response = await connection.describe(params.sobject);
+    const response = await ensureConnection(connection).describe(params.sobject);
     resolve(response);
   } catch (ex) {
     reject(ex);
@@ -47,7 +55,7 @@ export const handleDescribeSobject: ControllerFnParams<{ sobject: string }> = as
 
 export const describeMetadata: ControllerFn = async (_, __, params, { reject, resolve, connection, request }) => {
   try {
-    const response = await connection.metadata.describe();
+    const response = await ensureConnection(connection).metadata.describe();
     resolve(response);
   } catch (ex) {
     reject(ex);
@@ -61,13 +69,14 @@ export const listMetadata: ControllerFn<{ types: { type: string; folder: string 
   { reject, resolve, connection, request }
 ) => {
   try {
-    const types: { type: string; folder?: string }[] = request.data.types.map(({ type, folder }) => {
-      if (folder) {
-        return { type, folder };
-      }
-      return { type };
-    });
-    const response = services.correctInvalidArrayXmlResponseTypes(await connection.metadata.list(types));
+    const types: { type: string; folder?: string }[] =
+      request.data?.types.map(({ type, folder }) => {
+        if (folder) {
+          return { type, folder };
+        }
+        return { type };
+      }) || [];
+    const response = services.correctInvalidArrayXmlResponseTypes(await ensureConnection(connection).metadata.list(types));
     resolve(response);
   } catch (ex) {
     reject(ex);
@@ -81,11 +90,13 @@ export const readMetadata: ControllerFnDataParams<{ fullNames: string[] }, { typ
   { reject, resolve, connection, request }
 ) => {
   try {
-    const fullNames = request.data.fullNames;
+    const fullNames = request.data?.fullNames || [];
     const metadataType = params.type;
 
     const response = await (
-      await Promise.all(splitArrayToMaxSize(fullNames, 10).map((fullNames) => connection.metadata.read(metadataType, fullNames)))
+      await Promise.all(
+        splitArrayToMaxSize(fullNames, 10).map((fullNames) => ensureConnection(connection).metadata.read(metadataType, fullNames))
+      )
     ).flat();
     resolve(response);
   } catch (ex) {
@@ -100,13 +111,13 @@ export const deployMetadata: ControllerFn<{ options: any; files: { fullFilename:
   { reject, resolve, connection, request }
 ) => {
   try {
-    const files: { fullFilename: string; content: string }[] = request.data.files;
+    const files: { fullFilename: string; content: string }[] = request.data?.files || [];
 
     const zip = new JSZip();
     files.forEach((file) => zip.file(file.fullFilename, file.content));
 
     // TODO: see if this works
-    const results = await connection.metadata.deploy(zip.generateNodeStream(), request.data.options);
+    const results = await ensureConnection(connection).metadata.deploy(zip.generateNodeStream(), request.data?.options);
 
     resolve(results);
   } catch (ex) {
@@ -121,11 +132,14 @@ export const deployMetadataZip: ControllerFn<ArrayBuffer, { options: string }> =
   { reject, resolve, connection, request }
 ) => {
   try {
+    if (!request.query || !request.data) {
+      throw new Error('Invalid request');
+    }
     const options = JSON.parse(request.query.options);
     // TODO: FE should transfer object instead of clone
     const metadataPackage = Buffer.from(request.data); // initial type is ArrayBuffer
 
-    const response = await connection.metadata.deploy(metadataPackage, options);
+    const response = await ensureConnection(connection).metadata.deploy(metadataPackage, options);
     resolve(response);
   } catch (ex) {
     reject(ex);
@@ -140,8 +154,8 @@ export const checkMetadataResults: ControllerFnQueryParams<{ includeDetails: str
 ) => {
   try {
     // JSForce has invalid types, and XML is poorly formatted
-    const includeDetails = ensureBoolean(request.query.includeDetails);
-    let results = (await connection.metadata.checkDeployStatus(params.id, includeDetails)) as any;
+    const includeDetails = ensureBoolean(request.query?.includeDetails);
+    let results = (await ensureConnection(connection).metadata.checkDeployStatus(params.id, includeDetails)) as any;
 
     try {
       if (results) {
@@ -196,8 +210,10 @@ export const retrievePackageFromLisMetadataResults: ControllerFn<MapOf<ListMetad
   { reject, resolve, connection, request }
 ) => {
   try {
-    const types = request.data;
-    const response = await connection.metadata.retrieve(getRetrieveRequestFromListMetadata(types, connection.version));
+    const types = request.data || {};
+    const response = await ensureConnection(connection).metadata.retrieve(
+      getRetrieveRequestFromListMetadata(types, ensureConnection(connection).version)
+    );
     resolve(response);
   } catch (ex) {
     reject(ex);
@@ -211,15 +227,18 @@ export const retrievePackageFromExistingServerPackages: ControllerFn<{ packageNa
   { reject, resolve, connection, request }
 ) => {
   try {
+    if (!request.data) {
+      throw new Error('Invalid request');
+    }
     const packageNames = request.data.packageNames;
 
     const retrieveRequest: RetrieveRequest = {
-      apiVersion: connection.version,
+      apiVersion: ensureConnection(connection).version,
       packageNames,
       singlePackage: false,
     };
 
-    const response = correctInvalidXmlResponseTypes(await connection.metadata.retrieve(retrieveRequest));
+    const response = correctInvalidXmlResponseTypes(await ensureConnection(connection).metadata.retrieve(retrieveRequest));
 
     resolve(response);
   } catch (ex) {
@@ -234,9 +253,12 @@ export const retrievePackageFromManifest: ControllerFn<{ packageManifest: string
   { reject, resolve, connection, request }
 ) => {
   try {
+    if (!request.data) {
+      throw new Error('Invalid request');
+    }
     const packageManifest = request.data.packageManifest;
     const response = correctInvalidXmlResponseTypes(
-      await connection.metadata.retrieve(services.getRetrieveRequestFromManifest(packageManifest))
+      await ensureConnection(connection).metadata.retrieve(services.getRetrieveRequestFromManifest(packageManifest))
     );
     resolve(response);
   } catch (ex) {
@@ -246,8 +268,11 @@ export const retrievePackageFromManifest: ControllerFn<{ packageManifest: string
 
 export const checkRetrieveStatus: ControllerFnQuery<{ id: string }> = async (_, __, params, { reject, resolve, connection, request }) => {
   try {
+    if (!request.query?.id) {
+      throw new Error('Invalid request');
+    }
     const id = request.query.id;
-    const response = await connection.metadata.checkRetrieveStatus(id);
+    const response = await ensureConnection(connection).metadata.checkRetrieveStatus(id);
     response.fileProperties = ensureArray(response.fileProperties);
     response.messages = ensureArray(response.messages);
 
@@ -266,18 +291,22 @@ export const checkRetrieveStatusAndRedeploy: ControllerFn<
   { id: string }
 > = async (_, __, params, { reject, resolve, connection, targetConnection, request }) => {
   try {
+    if (!request.query?.id || !request.data) {
+      throw new Error('Invalid request');
+    }
     const id = request.query.id;
     const deployOptions = request.data.deployOptions;
     const replacementPackageXml = request.data.replacementPackageXml;
     const changesetName = request.data.changesetName;
 
-    const response = services.checkRetrieveStatusAndRedeploy(connection, {
+    const response = services.checkRetrieveStatusAndRedeploy(ensureConnection(connection), {
       id,
       deployOptions,
       replacementPackageXml,
       changesetName,
-      targetConn: targetConnection,
-      fallbackApiVersion: ENV.sfdcFallbackApiVersion,
+      targetConn: ensureConnection(targetConnection),
+      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+      fallbackApiVersion: ENV.sfdcFallbackApiVersion!,
     });
 
     resolve(response);
@@ -293,10 +322,13 @@ export const getPackageXml: ControllerFn<{ types: MapOf<ListMetadataResult[]>; o
   { reject, resolve, connection, request }
 ) => {
   try {
+    if (!request.data) {
+      throw new Error('Invalid request');
+    }
     const types = request.data.types;
     const otherFields = request.data.otherFields;
 
-    resolve(services.buildPackageXml(types, connection.version, otherFields));
+    resolve(services.buildPackageXml(types, ensureConnection(connection).version, otherFields));
   } catch (ex) {
     reject(ex);
   }
@@ -309,10 +341,13 @@ export const executeAnonymousApex: ControllerFn<{ apex: string; logLevel?: strin
   { reject, resolve, connection, request }
 ) => {
   try {
+    if (!request.data) {
+      throw new Error('Invalid request');
+    }
     const apex = request.data.apex;
     const logLevel = request.data.logLevel;
 
-    const response = services.executeAnonymousApex(connection, { apex, logLevel });
+    const response = services.executeAnonymousApex(ensureConnection(connection), { apex, logLevel });
 
     resolve(response);
   } catch (ex) {
@@ -326,14 +361,16 @@ export const apexCompletions: ControllerFnParams<{ type: string }> = async (_, _
 
     const requestOptions: RequestInfo = {
       method: 'GET',
-      url: `${connection.instanceUrl}/services/data/v${connection.version}/tooling/completions?type=${type}`,
+      url: `${ensureConnection(connection).instanceUrl}/services/data/v${
+        ensureConnection(connection).version
+      }/tooling/completions?type=${type}`,
       headers: {
         [HTTP.HEADERS.CONTENT_TYPE]: MIME_TYPES.JSON,
         [HTTP.HEADERS.ACCEPT]: MIME_TYPES.JSON,
       },
     };
 
-    const response = await connection.request<ApexCompletionResponse>(requestOptions);
+    const response = await ensureConnection(connection).request<ApexCompletionResponse>(requestOptions);
 
     resolve(response);
   } catch (ex) {
@@ -343,8 +380,11 @@ export const apexCompletions: ControllerFnParams<{ type: string }> = async (_, _
 
 export const createJob: ControllerFn<BulkApiCreateJobRequestPayload> = async (_, __, params, { reject, resolve, connection, request }) => {
   try {
+    if (!request.data) {
+      throw new Error('Invalid request');
+    }
     const options = request.data;
-    const response = services.sfBulkCreateJob(connection, options);
+    const response = services.sfBulkCreateJob(ensureConnection(connection), options);
 
     resolve(response);
   } catch (ex) {
@@ -356,7 +396,7 @@ export const getJob: ControllerFnParams<{ jobId: string }> = async (_, __, param
   try {
     const jobId = params.jobId;
 
-    const response = services.sfBulkGetJobInfo(connection, jobId);
+    const response = services.sfBulkGetJobInfo(ensureConnection(connection), jobId);
 
     resolve(response);
   } catch (ex) {
@@ -368,7 +408,7 @@ export const closeJob: ControllerFnParams<{ jobId: string }> = async (_, __, par
   try {
     const jobId = params.jobId;
 
-    const response = services.sfBulkCloseJob(connection, jobId);
+    const response = services.sfBulkCloseJob(ensureConnection(connection), jobId);
 
     resolve(response);
   } catch (ex) {
@@ -386,9 +426,12 @@ export const addBatchToJob: ControllerFn<string, { closeJob?: string }, { jobId:
   try {
     const jobId = params.jobId;
     const csv = request.data;
-    const closeJob = ensureBoolean(request.query.closeJob);
+    const closeJob = ensureBoolean(request.query?.closeJob);
+    if (!csv) {
+      throw new Error('Invalid request');
+    }
 
-    const response = services.sfBulkAddBatchToJob(connection, csv, jobId, closeJob);
+    const response = services.sfBulkAddBatchToJob(ensureConnection(connection), csv, jobId, closeJob);
 
     resolve(response);
   } catch (ex) {
@@ -406,9 +449,13 @@ export const addBatchToJobWithBinaryAttachment: ControllerFn<Buffer | ArrayBuffe
   try {
     const jobId = params.jobId;
     const zip = request.data;
-    const closeJob = ensureBoolean(request.query.closeJob);
+    const closeJob = ensureBoolean(request.query?.closeJob);
 
-    const response = services.sfBulkAddBatchWithZipAttachmentToJob(connection, zip, jobId, closeJob);
+    if (!zip) {
+      throw new Error('Invalid request');
+    }
+
+    const response = services.sfBulkAddBatchWithZipAttachmentToJob(ensureConnection(connection), zip, jobId, closeJob);
 
     resolve(response);
   } catch (ex) {
@@ -425,19 +472,21 @@ export const downloadBulkApiResults: ControllerFnQueryParams<{ type: string }, {
   try {
     const jobId = params.jobId;
     const batchId = params.batchId;
-    const type = request.query.type;
+    const type = request.query?.type;
 
     const requestOptions: RequestInfo = {
       method: `get`,
-      url: `${connection.instanceUrl}/services/async/${connection.version}/job/${jobId}/batch/${batchId}/${type}`,
+      url: `${ensureConnection(connection).instanceUrl}/services/async/${
+        ensureConnection(connection).version
+      }/job/${jobId}/batch/${batchId}/${type}`,
       headers: {
         [HTTP.HEADERS.CONTENT_TYPE]: HTTP.CONTENT_TYPE.XML_UTF8,
         Accept: HTTP.CONTENT_TYPE.CSV,
-        [HTTP.HEADERS.X_SFDC_Session]: connection.accessToken,
+        [HTTP.HEADERS.X_SFDC_Session]: ensureConnection(connection).accessToken,
       },
     };
 
-    const csvResults = await connection.request<string>(requestOptions, { responseType: 'text' });
+    const csvResults = await ensureConnection(connection).request<string>(requestOptions, { responseType: 'text' });
 
     const { data: response } = parseCsv(csvResults, {
       delimiter: ',',
@@ -461,8 +510,8 @@ export const downloadBulkApiResults: ControllerFnQueryParams<{ type: string }, {
 
 export const makeJsforceRequest: ControllerFn<GenericRequestPayload> = async (_, __, params, { reject, resolve, connection, request }) => {
   try {
-    const { url, method, isTooling, body, headers, options } = request.data;
-    const conn: Connection | Tooling = isTooling ? connection.tooling : connection;
+    const { url, method, isTooling, body, headers, options } = request.data || {};
+    const conn: Connection | Tooling = isTooling ? ensureConnection(connection).tooling : ensureConnection(connection);
 
     const requestOptions: RequestInfo = {
       method,
@@ -489,26 +538,30 @@ export const makeJsforceRequestViaNode: ControllerFn<ManualRequestPayload> = asy
   { reject, resolve, connection, request }
 ) => {
   try {
-    const { method, headers } = request.data;
-    let { url, body } = request.data;
+    const { method, headers } = request.data || {};
+    let { url, body } = request.data || {};
 
-    url = url.replace(ORG_VERSION_PLACEHOLDER, connection.version);
+    url = url?.replace(ORG_VERSION_PLACEHOLDER, ensureConnection(connection).version);
 
     const config: RequestInit = {
       method,
       // X-SFDC-Session is used for some SOAP APIs, such as the bulk api
-      headers: { ...(headers || {}), ['Authorization']: `Bearer ${connection.accessToken}`, ['X-SFDC-Session']: connection.accessToken },
+      headers: {
+        ...(headers || {}),
+        ['Authorization']: `Bearer ${ensureConnection(connection).accessToken}`,
+        ['X-SFDC-Session']: ensureConnection(connection).accessToken,
+      },
     };
 
     if (isString(body) && SESSION_ID_RGX.test(body)) {
-      body = body.replace(SESSION_ID_RGX, connection.accessToken);
+      body = body.replace(SESSION_ID_RGX, ensureConnection(connection).accessToken);
     }
 
     if (method !== 'GET' && body) {
       config.body = isString(body) ? body : JSON.stringify(body);
     }
 
-    fetch(`${connection.instanceUrl}/${url}`.replaceAll('//', '/'), config)
+    fetch(`${ensureConnection(connection).instanceUrl}/${url}`.replaceAll('//', '/'), config)
       .then(async (response) => {
         resolve({
           error: response.status < 200 || response.status > 300,
@@ -540,11 +593,14 @@ export const query: ControllerFn<{ query: string }, { isTooling?: string; includ
   { reject, resolve, connection, request }
 ) => {
   try {
-    const { query } = request.data;
+    const { query } = request.data || {};
     request.query = request.query || {};
+    if (!query) {
+      throw new Error('Invalid request');
+    }
     const isTooling = ensureBoolean(request.query.isTooling);
     const includeDeletedRecords = ensureBoolean(request.query.includeDeletedRecords);
-    const response = await services.queryRecords(connection, query, isTooling, includeDeletedRecords);
+    const response = await services.queryRecords(ensureConnection(connection), query, isTooling, includeDeletedRecords);
     resolve(response);
   } catch (ex) {
     reject(ex);
@@ -561,7 +617,10 @@ export const queryMore: ControllerFnQuery<{ nextRecordsUrl?: string; isTooling?:
     request.query = request.query || {};
     const isTooling = ensureBoolean(request.query.isTooling);
     const nextRecordsUrl = request.query.nextRecordsUrl;
-    const response = await services.queryMoreRecords(connection, nextRecordsUrl, isTooling);
+    if (!nextRecordsUrl) {
+      throw new Error('nextRecordsUrl is required');
+    }
+    const response = await services.queryMoreRecords(ensureConnection(connection), nextRecordsUrl, isTooling);
     resolve(response);
   } catch (ex) {
     reject(ex);
@@ -574,13 +633,16 @@ export const recordOperation: ControllerFn<
   { sobject: string; operation: string }
 > = async (_, __, params, { reject, resolve, connection, request }) => {
   try {
-    const response = await services.recordOperation(connection, {
+    if (!request.data) {
+      throw new Error('Invalid request');
+    }
+    const response = await services.recordOperation(ensureConnection(connection), {
       sobject: params.sobject,
       operation: params.operation,
       ids: request.data.ids,
       records: request.data.records,
-      externalId: request.query.externalId,
-      allOrNone: request.query.allOrNone,
+      externalId: request.query?.externalId,
+      allOrNone: request.query?.allOrNone,
     });
     resolve(response);
   } catch (ex) {

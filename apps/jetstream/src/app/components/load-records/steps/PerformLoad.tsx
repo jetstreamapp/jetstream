@@ -56,7 +56,7 @@ function getBatchSizeExceededError(numApiCalls: number): string {
 
 export interface LoadRecordsPerformLoadProps {
   selectedOrg: SalesforceOrgUi;
-  orgType: SalesforceOrgUiType;
+  orgType: Maybe<SalesforceOrgUiType>;
   selectedSObject: string;
   loadType: InsertUpdateUpsertDelete;
   fieldMapping: FieldMapping;
@@ -288,7 +288,7 @@ export const LoadRecordsPerformLoad: FunctionComponent<LoadRecordsPerformLoadPro
       <h1 className="slds-text-heading_medium">Summary</h1>
       <div className="slds-p-around_small">
         <div>
-          <Badge type={orgType === 'Production' ? 'warning' : 'light'} title={orgType}>
+          <Badge type={orgType === 'Production' ? 'warning' : 'light'} title={orgType || undefined}>
             {orgType}
           </Badge>
           <strong className="slds-m-left_xx-small">{selectedOrg.username}</strong>

@@ -24,7 +24,7 @@ export async function sfBulkCreateJob(conn: jsforce.Connection, options: BulkApi
         .ele('operation').txt(type.toLowerCase()).up()
         .ele('object').txt(sObject).up();
 
-  if (type === 'UPSERT') {
+  if (type === 'UPSERT' && externalId) {
     jobInfoNode.ele('externalIdFieldName').txt(externalId).up();
   }
 

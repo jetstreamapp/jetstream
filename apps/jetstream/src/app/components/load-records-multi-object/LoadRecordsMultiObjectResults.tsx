@@ -1,6 +1,6 @@
 import { formatNumber } from '@jetstream/shared/ui-utils';
 import { pluralizeFromNumber } from '@jetstream/shared/utils';
-import { FileExtAllTypes, SalesforceOrgUi, SalesforceOrgUiType } from '@jetstream/types';
+import { FileExtAllTypes, Maybe, SalesforceOrgUi, SalesforceOrgUiType } from '@jetstream/types';
 import { Badge, FileDownloadModal, Grid, Icon } from '@jetstream/ui';
 import { FunctionComponent, useEffect, useState } from 'react';
 import { useRecoilState } from 'recoil';
@@ -12,7 +12,7 @@ import useDownloadResults from './useDownloadResults';
 
 export interface LoadRecordsMultiObjectResultsProps {
   selectedOrg: SalesforceOrgUi;
-  orgType: SalesforceOrgUiType;
+  orgType: Maybe<SalesforceOrgUiType>;
   data: LoadMultiObjectRequestWithResult[];
   loading: boolean;
   loadFinished: boolean;
@@ -56,7 +56,7 @@ export const LoadRecordsMultiObjectResults: FunctionComponent<LoadRecordsMultiOb
       {/* Summary and load button */}
       <div className="slds-p-around_small">
         <div>
-          <Badge type={orgType === 'Production' ? 'warning' : 'light'} title={orgType}>
+          <Badge type={orgType === 'Production' ? 'warning' : 'light'} title={orgType || undefined}>
             {orgType}
           </Badge>
           <strong className="slds-m-left_xx-small">{selectedOrg.username}</strong>

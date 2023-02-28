@@ -3,6 +3,7 @@
   "compilerOptions": {
     "outDir": "../../../dist/out-tsc",
     "allowSyntheticDefaultImports": true,
+    "strictNullChecks": true,
     "types": ["node", "google.accounts", "google.picker", "gapi.client.drive"]
   },
   "exclude": ["jest.config.ts", "**/*.spec.ts", "**/*.test.ts"],

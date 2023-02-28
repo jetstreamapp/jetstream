@@ -39,7 +39,7 @@ export const handleUpdateOrg: ControllerFnDataParams<{ label: string; color: str
   { reject, resolve, connection, request }
 ) => {
   try {
-    const data = { label: request.data.label, color: request.data.color };
+    const data = { label: request.data?.label, color: request.data?.color };
     const orgs = await updateOrg(params.uniqueId, data);
     resolve(orgs);
   } catch (ex) {

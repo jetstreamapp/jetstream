@@ -56,7 +56,7 @@ export const GoogleFolderSelector: FunctionComponent<GoogleFolderSelectorProps> 
     if (scriptLoadError) {
       setErrorMessage(SCRIPT_LOAD_ERR_MESSAGE);
     } else if (errorMessage === SCRIPT_LOAD_ERR_MESSAGE) {
-      setErrorMessage(undefined);
+      setErrorMessage(null);
     }
   }, [scriptLoadError, errorMessage]);
 

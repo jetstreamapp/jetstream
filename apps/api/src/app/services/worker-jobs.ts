@@ -1,5 +1,5 @@
-import { User } from '.prisma/client';
 import { ENV, logger } from '@jetstream/api-config';
+import { User } from '@prisma/client';
 import axios, { AxiosError } from 'axios';
 
 export async function sendWelcomeEmail(user: User) {
@@ -21,7 +21,7 @@ export async function sendWelcomeEmail(user: User) {
     if (ex.isAxiosError) {
       if (ex.response) {
         const errorResponse = (ex as AxiosError).response;
-        logger.error('[WORKER-SERVICE][WELCOME EMAIL][ERROR] %s %o', errorResponse.status, errorResponse.data);
+        logger.error('[WORKER-SERVICE][WELCOME EMAIL][ERROR] %s %o', errorResponse?.status, errorResponse?.data);
       } else {
         logger.error('[WORKER-SERVICE][WELCOME EMAIL][ERROR] Unknown error occurred', ex.message);
       }

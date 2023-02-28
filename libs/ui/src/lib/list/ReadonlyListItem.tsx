@@ -1,10 +1,11 @@
 import { css } from '@emotion/react';
+import { Maybe } from '@jetstream/types';
 import isString from 'lodash/isString';
 import { memo } from 'react';
 
 export interface ReadonlyListItemProps {
-  heading?: string | JSX.Element;
-  subheading?: string;
+  heading?: Maybe<string | JSX.Element>;
+  subheading?: Maybe<string>;
   subheadingPlaceholder?: boolean;
 }
 

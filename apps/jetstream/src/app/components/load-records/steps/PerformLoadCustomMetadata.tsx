@@ -1,7 +1,7 @@
 import { ANALYTICS_KEYS, DATE_FORMATS, TITLES } from '@jetstream/shared/constants';
 import { formatNumber, useNonInitialEffect, useRollbar } from '@jetstream/shared/ui-utils';
 import { getMapOf } from '@jetstream/shared/utils';
-import { DeployMessage, SalesforceOrgUi, SalesforceOrgUiType } from '@jetstream/types';
+import { DeployMessage, Maybe, SalesforceOrgUi, SalesforceOrgUiType } from '@jetstream/types';
 import { Badge, Checkbox, ConfirmationModalPromise, FileDownloadModal, SalesforceLogin, Select, Spinner } from '@jetstream/ui';
 import { ChangeEvent, Fragment, FunctionComponent, useCallback, useState } from 'react';
 import { useRecoilState } from 'recoil';
@@ -27,7 +27,7 @@ export interface PerformLoadCustomMetadataProps {
   apiVersion: string;
   serverUrl: string;
   selectedOrg: SalesforceOrgUi;
-  orgType: SalesforceOrgUiType;
+  orgType: Maybe<SalesforceOrgUiType>;
   selectedSObject: string;
   fieldMapping: FieldMapping;
   fields: FieldWithRelatedEntities[];
@@ -257,7 +257,7 @@ export const PerformLoadCustomMetadata: FunctionComponent<PerformLoadCustomMetad
       <h1 className="slds-text-heading_medium">Summary</h1>
       <div className="slds-p-around_small">
         <div>
-          <Badge type={orgType === 'Production' ? 'warning' : 'light'} title={orgType}>
+          <Badge type={orgType === 'Production' ? 'warning' : 'light'} title={orgType || undefined}>
             {orgType}
           </Badge>
           <strong className="slds-m-left_xx-small">{selectedOrg.username}</strong>

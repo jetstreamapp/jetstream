@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-non-null-assertion */
 import { ENV, logger } from '@jetstream/api-config';
 import { UserProfileServer } from '@jetstream/types';
 import { NextFunction, Request, Response } from 'express';
@@ -36,7 +37,7 @@ export async function login(req: Request, res: Response) {
           createOrUpdateUser(user)
             .then(async ({ user: _user }) => {
               logger.info('[AUTH][SUCCESS] Logged in %s', _user.email, { userId: user.id });
-              res.redirect(ENV.JETSTREAM_CLIENT_URL);
+              res.redirect(ENV.JETSTREAM_CLIENT_URL!);
             })
             .catch((err) => {
               logger.error('[AUTH][DB][ERROR] Error creating or sending welcome email %o', err);
@@ -94,8 +95,8 @@ export async function logout(req: Request, res: Response) {
   const logoutURL = new URL(`https://${ENV.AUTH0_DOMAIN}/v2/logout`);
 
   logoutURL.search = new URLSearchParams({
-    client_id: ENV.AUTH0_CLIENT_ID,
-    returnTo: ENV.JETSTREAM_SERVER_URL,
+    client_id: ENV.AUTH0_CLIENT_ID!,
+    returnTo: ENV.JETSTREAM_SERVER_URL!,
   }).toString();
 
   res.redirect(logoutURL.toString());
@@ -111,7 +112,7 @@ export async function linkCallback(req: Request, res: Response, next: NextFuncti
     async (err, userProfile, info) => {
       const params: OauthLinkParams = {
         type: 'auth',
-        clientUrl: new URL(ENV.JETSTREAM_CLIENT_URL).origin,
+        clientUrl: new URL(ENV.JETSTREAM_CLIENT_URL!).origin,
       };
       if (err) {
         logger.warn('[AUTH][LINK][ERROR] Error with authentication %o', err);

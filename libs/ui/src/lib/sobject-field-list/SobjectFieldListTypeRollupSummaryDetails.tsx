@@ -149,7 +149,7 @@ export const SobjectFieldListTypeRollupSummaryDetails: FunctionComponent<Sobject
       <Tooltip
         id={`${field.name}-type-tooltip`}
         content={<TooltipContent field={field} org={org} onContent={setContent} />}
-        onClick={() => copy(content)}
+        onClick={() => content && copy(content)}
       >
         <span className="slds-badge__icon slds-badge__icon_left slds-badge__icon_inverse">
           <Icon

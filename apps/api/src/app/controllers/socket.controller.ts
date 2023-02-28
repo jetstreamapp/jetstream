@@ -102,7 +102,7 @@ export function initSocketServer(app: express.Express, middlewareFns: express.Re
       // TODO: should we distinguish specific reason for disconnect before unsubscribing from cometd?
       // If browser did not really disconnect, how will it know that it is no longer subscribed to cometd?
       Object.values(userSocketState.cometdConnections).forEach(({ cometd, subscriptions }) => {
-        socketUtils.disconnectCometD(cometd, socket, user);
+        cometd && socketUtils.disconnectCometD(cometd, socket, user);
         subscriptions.clear();
       });
       userSocketState.cometdConnections = {};

@@ -1,4 +1,5 @@
 /* eslint-disable jsx-a11y/anchor-is-valid */
+import { Maybe } from '@jetstream/types';
 import classNames from 'classnames';
 import React, { forwardRef } from 'react';
 import Icon from '../../widgets/Icon';
@@ -6,9 +7,9 @@ import Icon from '../../widgets/Icon';
 export interface PicklistItemProps {
   id: string;
   label: string;
-  secondaryLabel?: string;
+  secondaryLabel?: Maybe<string>;
   value: string;
-  title?: string;
+  title?: Maybe<string>;
   isSelected: boolean;
   onClick: (id: string) => void;
 }

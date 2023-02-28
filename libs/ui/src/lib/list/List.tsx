@@ -10,6 +10,7 @@ import {
   menuItemSelectScroll,
   useNonInitialEffect,
 } from '@jetstream/shared/ui-utils';
+import { Maybe } from '@jetstream/types';
 import isNil from 'lodash/isNil';
 import isNumber from 'lodash/isNumber';
 import { createRef, forwardRef, Fragment, KeyboardEvent, RefObject, useEffect, useRef, useState } from 'react';
@@ -32,8 +33,8 @@ export interface ListProps {
     key: string;
     id?: string;
     testId?: string;
-    heading?: string | JSX.Element;
-    subheading?: string;
+    heading?: Maybe<string | JSX.Element>;
+    subheading?: Maybe<string>;
   };
   onSelected: (key: string) => void;
 }

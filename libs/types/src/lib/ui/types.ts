@@ -438,7 +438,7 @@ export interface UploadToGoogleJob {
   fileName: string;
   fileData: any;
   fileType: FileExtCsvXLSX | FileExtZip;
-  googleFolder?: string;
+  googleFolder?: Maybe<string>;
 }
 
 export interface BulkDownloadJob {

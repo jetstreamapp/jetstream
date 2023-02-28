@@ -27,9 +27,16 @@ import { DeleteResult } from './utils/types';
   logger.debug('[inactive-account-deletion][FETCHING USERS] %o', { accountDeletionDate, params }, { cronTask: true });
 
   const cutoff = endOfDay(new Date());
-  const usersToDelete = (await searchUsersPaginateAll(params)).filter((user) =>
-    isBefore(parseISO(user.app_metadata.accountDeletionDate), cutoff)
-  );
+  const usersToDelete = (await searchUsersPaginateAll(params)).filter((user) => {
+    try {
+      if (!user.app_metadata.accountDeletionDate) {
+        return false;
+      }
+      return isBefore(parseISO(user.app_metadata.accountDeletionDate), cutoff);
+    } catch (ex) {
+      return false;
+    }
+  });
 
   const results: DeleteResult[] = [];
 

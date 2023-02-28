@@ -11,6 +11,7 @@
     "noEmit": true,
     "resolveJsonModule": true,
     "isolatedModules": true,
+    "strictNullChecks": true,
     "incremental": true
   },
   "include": ["**/*.js", "**/*.jsx", "**/*.ts", "**/*.tsx"],

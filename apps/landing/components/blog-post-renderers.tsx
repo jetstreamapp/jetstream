@@ -1,12 +1,12 @@
 /* eslint-disable react/display-name */
-import { documentToReactComponents, Options, NodeRenderer } from '@contentful/rich-text-react-renderer';
+import { documentToReactComponents, NodeRenderer, Options } from '@contentful/rich-text-react-renderer';
 import { BLOCKS, Document, MARKS } from '@contentful/rich-text-types';
 import { Asset } from 'contentful';
 import isString from 'lodash/isString';
-import React, { Fragment, ReactNode } from 'react';
+import { Fragment, ReactNode } from 'react';
 // import FigureImg from './FigureImg';
-import FigureImgWithViewFullScreen from './FigureImgWithViewFullScreen';
 import { LinkIcon } from '@heroicons/react/outline';
+import FigureImgWithViewFullScreen from './FigureImgWithViewFullScreen';
 const NON_URL_CHARACTERS = /[^a-zA-Z0-9-]/g;
 
 const getNodeText = (node: ReactNode) => {
@@ -36,8 +36,8 @@ function getSlug(node): string | undefined {
 const wrapHeadingWithAnchor = (type: 'heading-1' | 'heading-2' | 'heading-3' | 'heading-4' | 'heading-5' | 'heading-6'): NodeRenderer => {
   return (node, children) => {
     const text = getNodeText(children) as string;
-    let slug: string;
-    let anchor = null;
+    let slug = '';
+    let anchor: JSX.Element | null = null;
     if (isString(text)) {
       slug = text.toLowerCase().replace(NON_URL_CHARACTERS, '-');
     }

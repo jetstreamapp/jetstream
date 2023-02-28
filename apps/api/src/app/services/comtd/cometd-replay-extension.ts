@@ -76,7 +76,7 @@ export class CometdReplayExtension implements Extension {
   static REPLAY_FROM_KEY = 'replay';
   cometd: CometD;
   extensionEnabled = true;
-  replayFromMap: MapOf<number> = {};
+  replayFromMap: MapOf<number | undefined> = {};
 
   setEnabled(extensionEnabled: boolean) {
     this.extensionEnabled = extensionEnabled;
@@ -101,6 +101,7 @@ export class CometdReplayExtension implements Extension {
       this.replayFromMap[message.channel] = message.data.event.replayId;
       return message;
     }
+    return null;
   }
 
   outgoing(message: Message) {
@@ -113,5 +114,6 @@ export class CometdReplayExtension implements Extension {
       }
       return message;
     }
+    return null;
   }
 }

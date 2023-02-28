@@ -27,7 +27,8 @@ export const test = base.extend<MyFixtures>({
     await page.getByRole('option', { name: process.env.E2E_LOGIN_USERNAME }).click();
 
     const selectedOrgId = await page.evaluate(async () => {
-      return window.atob(localStorage.getItem('SELECTED_ORG'));
+      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+      return window.atob(localStorage.getItem('SELECTED_ORG')!);
     });
 
     await use(new ApiRequestUtils(selectedOrgId, request));

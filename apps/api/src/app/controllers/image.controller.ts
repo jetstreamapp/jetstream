@@ -17,7 +17,8 @@ export async function getUploadSignature(req: Request, res: Response, next: Next
     const timestamp = Math.round(new Date().getTime() / 1000);
     const cloudName = cloudinary.config().cloud_name;
     const apiKey = cloudinary.config().api_key;
-    const apiSecret = cloudinary.config().api_secret;
+    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+    const apiSecret = cloudinary.config().api_secret!;
     const context = `caption=${user.id.replace('|', '\\|')}|environment=${ENV.JETSTREAM_SERVER_URL}`;
 
     const signature = cloudinary.utils.api_sign_request({ timestamp: timestamp, upload_preset: 'jetstream-issues', context }, apiSecret);

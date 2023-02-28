@@ -53,7 +53,7 @@ export function correctInvalidArrayXmlResponseTypes<T = any[]>(item: T[]): T[] {
 
 export function correctInvalidXmlResponseTypes<T = any>(item: T): T {
   // TODO: what about number types?
-  Object.keys(item).forEach((key) => {
+  Object.keys(item!).forEach((key) => {
     if (isString(item[key]) && (item[key] === 'true' || item[key] === 'false')) {
       item[key] = item[key] === 'true';
     } else if (!Array.isArray(item[key]) && isObject(item[key]) && item[key]['$']) {
@@ -275,7 +275,7 @@ export async function checkRetrieveStatusAndRedeploy(req: Request, res: Response
         const newPackage = JSZip();
         newPackage
           .folder('unpackaged')
-          .file(
+          ?.file(
             'package.xml',
             `<?xml version="1.0" encoding="UTF-8"?>\n<Package xmlns="http://soap.sforce.com/2006/04/metadata">\n\t<version>${
               conn.version || ENV.SFDC_FALLBACK_API_VERSION
@@ -284,9 +284,9 @@ export async function checkRetrieveStatusAndRedeploy(req: Request, res: Response
 
         oldPackage.forEach((relativePath, file) => {
           if (file.name === 'package.xml') {
-            newPackage.folder(changesetName).file(relativePath, replacementPackageXml);
+            newPackage.folder(changesetName)?.file(relativePath, replacementPackageXml);
           } else if (!file.dir) {
-            newPackage.folder(changesetName).file(relativePath, file.async('uint8array'), { binary: true });
+            newPackage.folder(changesetName)?.file(relativePath, file.async('uint8array'), { binary: true });
           }
         });
         const deployResults = await targetConn.metadata.deploy(

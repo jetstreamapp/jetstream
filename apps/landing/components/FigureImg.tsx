@@ -4,8 +4,8 @@ export interface FigureImgProps {
   src: string;
   title: string;
   description: string;
-  width: number;
-  height: number;
+  width: number | undefined;
+  height: number | undefined;
 }
 
 export const FigureImg = ({ src, title, description, width, height }: FigureImgProps) => (

@@ -61,9 +61,12 @@ export function useAmplitude(optOut?: boolean) {
         .set('email', userProfile.email)
         .set('email-verified', userProfile.email_verified)
         .set('environment', appCookie.environment)
-        .set('denied-notifications', userPreferences.deniedNotifications)
         .add('app-init-count', 1)
         .add('application-type', window.electron?.platform || 'web');
+
+      if (userPreferences.deniedNotifications) {
+        identify.set('denied-notifications', userPreferences.deniedNotifications);
+      }
 
       if (environment.authAudience) {
         identify.set('feature-flags', userProfile[environment.authAudience]?.featureFlags);

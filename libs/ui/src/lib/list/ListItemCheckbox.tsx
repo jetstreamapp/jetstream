@@ -1,4 +1,5 @@
 import { css } from '@emotion/react';
+import { Maybe } from '@jetstream/types';
 import classNames from 'classnames';
 import isString from 'lodash/isString';
 import { memo, MouseEvent, RefObject } from 'react';
@@ -9,8 +10,8 @@ export interface ListItemCheckboxProps {
   id: string;
   testId?: string;
   inputRef?: RefObject<HTMLInputElement>;
-  heading?: string | JSX.Element;
-  subheading?: string;
+  heading?: Maybe<string | JSX.Element>;
+  subheading?: Maybe<string>;
   isActive?: boolean;
   subheadingPlaceholder?: boolean;
   searchTerm?: string;

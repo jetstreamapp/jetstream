@@ -11,6 +11,7 @@ import {
   FileExtJson,
   FileExtXLSX,
   MapOf,
+  Maybe,
   MimeType,
   Record,
   SalesforceOrgUi,
@@ -57,7 +58,7 @@ export interface RecordDownloadModalProps {
     subqueryFields: MapOf<string[]>;
     whichFields: 'all' | 'specified';
     includeSubquery: boolean;
-    googleFolder?: string;
+    googleFolder?: Maybe<string>;
   }) => void;
   children?: React.ReactNode;
 }
@@ -93,7 +94,7 @@ export const RecordDownloadModal: FunctionComponent<RecordDownloadModalProps> = 
   const inputEl = useRef<HTMLInputElement>(null);
 
   const [isSignedInWithGoogle, setIsSignedInWithGoogle] = useState<boolean>(false);
-  const [googleFolder, setGoogleFolder] = useState<string | null>(null);
+  const [googleFolder, setGoogleFolder] = useState<Maybe<string>>(null);
 
   const [whichFields, setWhichFields] = useState<'all' | 'specified'>('specified');
 

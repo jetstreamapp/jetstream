@@ -1,4 +1,5 @@
 import { css } from '@emotion/react';
+import { Maybe } from '@jetstream/types';
 import classNames from 'classnames';
 import isString from 'lodash/isString';
 import { memo, RefObject } from 'react';
@@ -6,9 +7,9 @@ import { useHighlightedText } from '../hooks/useHighlightedText';
 
 export interface ListItemProps {
   liRef?: RefObject<HTMLLIElement>;
-  testId?: string;
-  heading?: string | JSX.Element;
-  subheading?: string;
+  testId?: Maybe<string>;
+  heading?: Maybe<string | JSX.Element>;
+  subheading?: Maybe<string>;
   isActive?: boolean;
   subheadingPlaceholder?: boolean;
   searchTerm?: string;
