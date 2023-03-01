@@ -57,6 +57,7 @@ export const QueryResultsCopyToClipboard: FunctionComponent<QueryResultsCopyToCl
       (records && hasFilteredRows && filteredRows.length < records.length) ||
       (records && hasPartialSelectedRows && selectedRows.length < records.length)
     ) {
+      setFormat(format);
       setIsModalOpen(true);
       return;
     }
