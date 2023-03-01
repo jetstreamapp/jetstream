@@ -1,6 +1,6 @@
 import { query } from '@jetstream/shared/data';
 import { useRollbar } from '@jetstream/shared/ui-utils';
-import { SalesforceOrgUi } from '@jetstream/types';
+import { Maybe, SalesforceOrgUi } from '@jetstream/types';
 import { useCallback, useEffect, useState } from 'react';
 
 export interface UserPermissionAccess {
@@ -15,7 +15,7 @@ export interface UserPermissionAccess {
  * @param selectedOrg
  * @returns
  */
-export function useOrgPermissions(selectedOrg: SalesforceOrgUi) {
+export function useOrgPermissions(selectedOrg: Maybe<SalesforceOrgUi>) {
   const uniqueId = selectedOrg?.uniqueId;
   const connectionError = !!selectedOrg?.connectionError;
   const [hasMetadataAccess, setHasMetadataAccess] = useState(true);

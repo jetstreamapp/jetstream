@@ -171,12 +171,7 @@ export const selectedOrgState = selector({
       username: '',
       displayName: '',
     };
-    const salesforceOrgs = get(salesforceOrgsState);
-    const selectedOrgId = get(selectedOrgIdState);
-    if (isString(selectedOrgId) && Array.isArray(salesforceOrgs)) {
-      return salesforceOrgs.find((org) => org.uniqueId === selectedOrgId) || PLACEHOLDER;
-    }
-    return PLACEHOLDER;
+    return get(selectedOrgStateWithoutPlaceholder) || PLACEHOLDER;
   },
 });
 
@@ -210,7 +205,7 @@ export const hasConfiguredOrgState = selector({
 
 export const selectedOrgType = selector<Maybe<SalesforceOrgUiType>>({
   key: 'selectedOrgType',
-  get: ({ get }) => getOrgType(get(selectedOrgState)),
+  get: ({ get }) => getOrgType(get(selectedOrgStateWithoutPlaceholder)),
 });
 
 export const selectUserPreferenceState = selector<UserProfilePreferences>({
