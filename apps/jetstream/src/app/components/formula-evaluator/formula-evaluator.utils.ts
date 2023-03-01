@@ -472,12 +472,12 @@ async function collectLabels({
   fields.forEach((fieldWithIdentifier) => {
     const field = fieldWithIdentifier.replace(MATCH_FORMULA_SPECIAL_LABEL, '');
     const recordName = field.toLowerCase();
-    const record = recordsByApiName[recordName];
+    const record: Record<string, any> | undefined = recordsByApiName[recordName];
     formulaFields[fieldWithIdentifier] = {
       type: 'literal',
       dataType: 'text',
-      value: record.Value,
-      options: { length: record.Value.length },
+      value: record?.Value || '',
+      options: { length: record?.Value?.length || 0 },
     };
   });
 }
@@ -633,6 +633,7 @@ async function collectCustomSettingFields({
           field: 'Id',
           value: selectedOrg.userId,
           operator: '=',
+          literalType: 'STRING',
         },
       },
       limit: 1,

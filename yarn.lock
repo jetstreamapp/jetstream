@@ -14158,10 +14158,10 @@ formidable@^1.2.2:
   resolved "https://registry.npmjs.org/formidable/-/formidable-1.2.6.tgz"
   integrity sha512-KcpbcpuLNOwrEjnbpMC0gS+X8ciDoZE1kkqzat4a8vrprf+s9pKNQ/QIwWfbfs4ltgmFl3MD177SNTkve3BwGQ==
 
-formulon@^6.24.2:
-  version "6.24.2"
-  resolved "https://registry.yarnpkg.com/formulon/-/formulon-6.24.2.tgz#024cad2a4314c273b3ee9dba10b8a65a98d566c5"
-  integrity sha512-uEOO6dMGc9UfTzK+87n/rrGs6HepMBnsFwLChozp+pTGj/PzP1HDzdEdSFVw6d7K2xeh2x7GvC5BFe1PAGMv+g==
+formulon@^6.25.0:
+  version "6.25.0"
+  resolved "https://registry.yarnpkg.com/formulon/-/formulon-6.25.0.tgz#885e3849b6a89277d7a9ca0703b618f1b9bb0c34"
+  integrity sha512-x/jcPi8e7wZK7M115v3YiSNOAfmsrCY/o6i4M09zSxEYNslS3I1Nrk2a3S3jP5Qa6iEj9XPN49UfqKK7f8mn2w==
   dependencies:
     decimal.js "^10.3.1"
 
