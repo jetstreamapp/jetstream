@@ -91,10 +91,10 @@ export const FormulaEvaluatorRecordSearch: FunctionComponent<FormulaEvaluatorRec
           key={selectedSObject}
           comboboxProps={{
             disabled: disabled || !selectedSObject,
-            label: 'Record Id',
+            label: 'Record',
             className: 'w-100',
             isRequired: true,
-            labelHelp: 'Provide a record id to test the formula against',
+            labelHelp: 'Choose a record to test the formula against',
             placeholder: selectedSObject ? `Search ${selectedSObject} by name or id` : 'Select and object',
             hasError: !!fieldErrorMessage,
             errorMessage: fieldErrorMessage,
