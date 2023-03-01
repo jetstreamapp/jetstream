@@ -399,7 +399,7 @@ export const ManagePermissionsEditor: FunctionComponent<ManagePermissionsEditorP
             className="slds-button slds-button_neutral collapsible-button collapsible-button-xs"
             onClick={resetChanges}
             title="Reset Changes"
-            disabled={!dirtyObjectCount && !dirtyFieldCount && !objectsHaveErrors && !fieldsHaveErrors}
+            disabled={loading || (!dirtyObjectCount && !dirtyFieldCount && !objectsHaveErrors && !fieldsHaveErrors)}
           >
             <Icon type="utility" icon="refresh" className="slds-button__icon slds-button__icon_left" />
             <span>Reset Changes</span>
@@ -413,7 +413,11 @@ export const ManagePermissionsEditor: FunctionComponent<ManagePermissionsEditorP
             <Icon type="utility" icon="download" className="slds-button__icon slds-button__icon_left" />
             <span>Export</span>
           </button>
-          <button className="slds-button slds-button_brand" onClick={saveChanges} disabled={!dirtyObjectCount && !dirtyFieldCount}>
+          <button
+            className="slds-button slds-button_brand"
+            onClick={saveChanges}
+            disabled={loading || (!dirtyObjectCount && !dirtyFieldCount)}
+          >
             <Icon type="utility" icon="upload" className="slds-button__icon slds-button__icon_left" />
             Save
           </button>
