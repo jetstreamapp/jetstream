@@ -38,14 +38,25 @@ Some formula functions are not yet supported and some complex formulas may not w
 1. Choose which object you would like to work on
 2. Choose how numbers should be treated for fields with no value
 3. Choose if you want to write a formula from scratch or if you have an existing field you want to start from
+   1. If you choose an existing field, the formula editor will be populated with the existing formula
 4. Write your formula
-5. Provide a record id
+5. Search and choose a record
 6. Click "Test Formula"
 
-:::tip
+### Editor
 
-Make sure to press `ctrl` + `space` while editing to show a list of options
+The advanced editor includes syntax highlighting, code completion and the ability to format your formula.
 
-:::
+<img src={require('./formula-evaluator-editor.png').default} alt="Formula editor" />
 
-You will see the results of your formula on the page.
+### Intellisense
+
+Use the shortcut `ctrl` + `space` while editing to show a list of available formulas and object and field completions.
+
+<img src={require('./formula-evaluator-intellisense.png').default} alt="Formula intellisense" />
+
+### Results
+
+Your results will be evaluated based on the selected Object and record.
+
+<img src={require('./formula-evaluator-results.png').default} alt="Formula evaluation results" />
