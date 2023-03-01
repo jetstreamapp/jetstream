@@ -274,7 +274,7 @@ export const QueryBuilder: FunctionComponent<QueryBuilderProps> = () => {
               <ConnectedSobjectList
                 label={isTooling ? 'Metadata' : 'Objects'}
                 selectedOrg={selectedOrg}
-                sobjects={sobjects || []}
+                sobjects={sobjects}
                 selectedSObject={selectedSObject}
                 isTooling={isTooling}
                 initialSearchTerm={sObjectFilterTerm}

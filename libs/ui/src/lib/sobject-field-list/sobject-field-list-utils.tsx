@@ -1,8 +1,8 @@
 import { REGEX } from '@jetstream/shared/utils';
-import { FieldWrapper } from '@jetstream/types';
+import { FieldWrapper, Maybe } from '@jetstream/types';
 import { FilterTypes } from './SobjectFieldListFilterNew';
 
-export function getBgColor(level: number): string {
+export function getBgColor(level: number): string | undefined {
   switch (level) {
     case 1: {
       return '#eef1f6';
@@ -16,8 +16,7 @@ export function getBgColor(level: number): string {
     case 4: {
       return '#96c5f7';
     }
-    case 5:
-    default: {
+    case 5: {
       return '#758ecd';
     }
   }

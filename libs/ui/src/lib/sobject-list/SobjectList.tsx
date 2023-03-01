@@ -12,7 +12,7 @@ import Spinner from '../widgets/Spinner';
 
 export interface SobjectListProps {
   isTooling?: boolean;
-  sobjects: DescribeGlobalSObjectResult[];
+  sobjects: Maybe<DescribeGlobalSObjectResult[]>;
   selectedSObject: Maybe<DescribeGlobalSObjectResult>;
   loading: boolean;
   errorMessage?: Maybe<string>;
@@ -38,7 +38,7 @@ export const SobjectList: FunctionComponent<SobjectListProps> = ({
     if (sobjects && sobjects.length > 0 && searchTerm) {
       return sobjects.filter(multiWordObjectFilter(['name', 'label'], searchTerm));
     } else {
-      return sobjects;
+      return sobjects || [];
     }
   });
   const [searchInputId] = useState(`object-filter-${Date.now()}`);
@@ -48,7 +48,7 @@ export const SobjectList: FunctionComponent<SobjectListProps> = ({
     if (sobjects && sobjects.length > 0 && searchTerm) {
       setFilteredSobjects(sobjects.filter(multiWordObjectFilter(['name', 'label'], searchTerm)));
     } else {
-      setFilteredSobjects(sobjects);
+      setFilteredSobjects(sobjects || []);
     }
   }, [sobjects, searchTerm]);
 
@@ -119,7 +119,7 @@ export const SobjectList: FunctionComponent<SobjectListProps> = ({
                 searchTerm={searchTerm}
                 highlightText
               />
-              {!filteredSobjects.length && (
+              {!loading && !filteredSobjects.length && (
                 <EmptyState headline="There are no matching objects" subHeading="Adjust your selection."></EmptyState>
               )}
             </AutoFullHeightContainer>

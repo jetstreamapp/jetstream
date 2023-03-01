@@ -26,7 +26,7 @@ export function filterToolingSobjectFn(sobject: DescribeGlobalSObjectResult): bo
 export interface ConnectedSobjectListProps {
   label?: string;
   selectedOrg: SalesforceOrgUi;
-  sobjects: DescribeGlobalSObjectResult[];
+  sobjects: Maybe<DescribeGlobalSObjectResult[]>;
   selectedSObject: Maybe<DescribeGlobalSObjectResult>;
   isTooling?: boolean;
   initialSearchTerm?: string;
