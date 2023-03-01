@@ -35,7 +35,7 @@ export const Radio: FunctionComponent<RadioProps> = ({
         aria-describedby={`${idPrefix}-label-help-text ${idPrefix}-error-message`}
       />
       <label className="slds-radio__label" htmlFor={id}>
-        <span className="slds-radio_faux"></span>
+        <span className="slds-radio_faux" style={{ marginRight: '0.5rem' }}></span>
         <span className="slds-form-element__label">{label}</span>
       </label>
     </span>

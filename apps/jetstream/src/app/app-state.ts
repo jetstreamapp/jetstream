@@ -139,7 +139,7 @@ export const selectedOrgIdState = atom<Maybe<string>>({
 });
 
 export const selectedOrgStateWithoutPlaceholder = selector({
-  key: 'selectedOrgState',
+  key: 'selectedOrgStateWithoutPlaceholder',
   get: ({ get }) => {
     const salesforceOrgs = get(salesforceOrgsState);
     const selectedOrgId = get(selectedOrgIdState);

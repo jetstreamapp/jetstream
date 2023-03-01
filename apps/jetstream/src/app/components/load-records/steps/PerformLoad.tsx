@@ -123,11 +123,14 @@ export const LoadRecordsPerformLoad: FunctionComponent<LoadRecordsPerformLoadPro
   }, [apiMode]);
 
   useEffect(() => {
-    if (!isNumber(batchSize) || batchSize <= 0 || batchSize > getMaxBatchSize(apiMode)) {
-      setBatchSizeError(`The batch size must be between 1 and ${getMaxBatchSize(apiMode)}`);
-    } else if (batchSizeError) {
-      setBatchSizeError(null);
-    }
+    // Hack to ensure that the apiMode us fully changed before checking batch size
+    setTimeout(() => {
+      if (!isNumber(batchSize) || batchSize <= 0 || batchSize > getMaxBatchSize(apiMode)) {
+        setBatchSizeError(`The batch size must be between 1 and ${getMaxBatchSize(apiMode)}`);
+      } else if (batchSizeError) {
+        setBatchSizeError(null);
+      }
+    });
   }, [batchSize, apiMode, batchSizeError]);
 
   function handleBatchSize(event: ChangeEvent<HTMLInputElement>) {
@@ -317,7 +320,7 @@ export const LoadRecordsPerformLoad: FunctionComponent<LoadRecordsPerformLoadPro
             apiMode={apiMode}
             loadType={loadType}
             externalId={externalId}
-            batchSize={batchSize || getMaxBatchSize(apiMode)}
+            batchSize={batchSize ?? getMaxBatchSize(apiMode)}
             insertNulls={insertNulls}
             serialMode={serialMode}
             dateFormat={dateFormat}

@@ -17,10 +17,10 @@ const getRowId = ({ _num }: any) => _num;
 
 export interface LoadRecordsDataPreviewProps {
   selectedOrg: SalesforceOrgUi;
-  selectedSObject: DescribeGlobalSObjectResult;
+  selectedSObject: Maybe<DescribeGlobalSObjectResult>;
   loadType: InsertUpdateUpsertDelete;
-  data: any[];
-  header: string[];
+  data: Maybe<any[]>;
+  header: Maybe<string[]>;
 }
 
 // function valueGetter: ((params: ValueGetterParams) => any) | string;

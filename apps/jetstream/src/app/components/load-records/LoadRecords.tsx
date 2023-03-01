@@ -196,10 +196,10 @@ export const LoadRecords: FunctionComponent<LoadRecordsProps> = ({ featureFlags 
   }, [fields, loadType, inputFileHeader]);
 
   useEffect(() => {
-    if (mappableFields && inputFileHeader && binaryAttachmentBodyField) {
+    if (mappableFields && inputFileHeader) {
       setFieldMapping(autoMapFields(inputFileHeader, mappableFields, binaryAttachmentBodyField));
     }
-  }, [mappableFields, inputFileHeader, loadType, setFieldMapping]);
+  }, [mappableFields, inputFileHeader, loadType, setFieldMapping, binaryAttachmentBodyField]);
 
   useEffect(() => {
     setExternalIdFields(fields.filter((field) => field.externalId));
@@ -397,7 +397,7 @@ export const LoadRecords: FunctionComponent<LoadRecordsProps> = ({ featureFlags 
       <AutoFullHeightContainer className="slds-p-horizontal_x-small slds-scrollable_none" bufferIfNotRendered={HEIGHT_BUFFER}>
         <Grid gutters>
           <GridCol>
-            {currentStep.name === 'sobjectAndFile' && sobjects && selectedSObject && inputFilename && inputFilenameType && (
+            {currentStep.name === 'sobjectAndFile' && (
               <LoadRecordsSelectObjectAndFile
                 googleApiConfig={googleApiConfig}
                 featureFlags={featureFlags}
@@ -425,21 +425,21 @@ export const LoadRecords: FunctionComponent<LoadRecordsProps> = ({ featureFlags 
                   selectedOrg={selectedOrg}
                   selectedSObject={selectedSObject}
                   loadType={loadType}
-                  data={inputFileData || []}
-                  header={inputFileHeader || []}
+                  data={inputFileData}
+                  header={inputFileHeader}
                 />
               </LoadRecordsSelectObjectAndFile>
             )}
-            {currentStep.name === 'fieldMapping' && selectedSObject && (
+            {currentStep.name === 'fieldMapping' && selectedSObject && inputFileHeader && inputFileData && (
               <span>
                 <LoadRecordsFieldMapping
                   org={selectedOrg}
                   sobject={selectedSObject?.name}
                   isCustomMetadataObject={!!isCustomMetadataObject}
                   fields={mappableFields}
-                  inputHeader={inputFileHeader || []}
+                  inputHeader={inputFileHeader}
                   fieldMapping={fieldMapping}
-                  fileData={inputFileData || []}
+                  fileData={inputFileData}
                   loadType={loadType}
                   externalId={externalId}
                   binaryAttachmentBodyField={binaryAttachmentBodyField}

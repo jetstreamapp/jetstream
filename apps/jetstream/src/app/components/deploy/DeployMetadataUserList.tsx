@@ -42,7 +42,7 @@ export const DeployMetadataUserList: FunctionComponent<DeployMetadataUserListPro
       }}
       allowRefresh
       lastRefreshed={lastRefreshed}
-      items={users || []}
+      items={users}
       selectedItems={selectedUsers}
       loading={loading}
       onSelected={onSelection}

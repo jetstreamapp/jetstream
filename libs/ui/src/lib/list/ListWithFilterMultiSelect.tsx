@@ -1,7 +1,7 @@
 import { css } from '@emotion/react';
 import { formatNumber } from '@jetstream/shared/ui-utils';
 import { multiWordObjectFilter, NOOP, orderStringsBy, pluralizeIfMultiple } from '@jetstream/shared/utils';
-import { ListItem as ListItemType, UpDown } from '@jetstream/types';
+import { ListItem as ListItemType, Maybe, UpDown } from '@jetstream/types';
 import { FishIllustration } from '../illustrations/FishIllustration';
 import { createRef, Fragment, FunctionComponent, useEffect, useState } from 'react';
 import Checkbox from '../form/checkbox/Checkbox';
@@ -22,7 +22,7 @@ export interface ListWithFilterMultiSelectProps {
     descriptorSingular: string; // item -> showing x of x {items} || x {items} selected
     descriptorPlural: string; // items
   };
-  items: ListItemType[];
+  items: Maybe<ListItemType[]>;
   selectedItems: string[];
   allowSelectAll?: boolean;
   // disabled?: boolean;
@@ -55,8 +55,8 @@ export const ListWithFilterMultiSelect: FunctionComponent<ListWithFilterMultiSel
 }) => {
   const [selectedItemsSet, setSelectedItemsSet] = useState<Set<string>>(new Set<string>(selectedItems || []));
   const [searchTerm, setSearchTerm] = useState('');
-  const [filteredItems, setFilteredItems] = useState<ListItemType[]>(() => {
-    if (items?.length > 0 && searchTerm) {
+  const [filteredItems, setFilteredItems] = useState<Maybe<ListItemType[]>>(() => {
+    if (items && items.length > 0 && searchTerm) {
       return items.filter(multiWordObjectFilter(['label', 'secondaryLabel'], searchTerm));
     }
     return items;
@@ -65,7 +65,7 @@ export const ListWithFilterMultiSelect: FunctionComponent<ListWithFilterMultiSel
   const ulRef = createRef<HTMLUListElement>();
 
   useEffect(() => {
-    if (items?.length > 0 && searchTerm) {
+    if (items && items.length > 0 && searchTerm) {
       setFilteredItems(items.filter(multiWordObjectFilter(['label', 'secondaryLabel'], searchTerm)));
     } else {
       setFilteredItems(items);
@@ -92,6 +92,9 @@ export const ListWithFilterMultiSelect: FunctionComponent<ListWithFilterMultiSel
   }
 
   function handleSelectAll(value: boolean) {
+    if (!filteredItems) {
+      return;
+    }
     filteredItems.forEach((item) => {
       if (value) {
         selectedItemsSet.add(item.id);
@@ -131,7 +134,7 @@ export const ListWithFilterMultiSelect: FunctionComponent<ListWithFilterMultiSel
           )}
         </Fragment>
       )}
-      {loading && !items && (
+      {loading && (
         <div
           className="slds-is-relative"
           css={css`
@@ -201,10 +204,10 @@ export const ListWithFilterMultiSelect: FunctionComponent<ListWithFilterMultiSel
                 searchTerm={searchTerm}
                 highlightText
               />
-              {!items.length && (
+              {!loading && !items.length && (
                 <EmptyState headline={`There are no ${labels.descriptorPlural}`} illustration={<FishIllustration />}></EmptyState>
               )}
-              {!!items.length && !filteredItems.length && (
+              {!loading && !!items.length && !filteredItems.length && (
                 <EmptyState headline={`There are no matching ${labels.descriptorPlural}`} subHeading="Adjust your selection."></EmptyState>
               )}
             </AutoFullHeightContainer>

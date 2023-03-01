@@ -24,14 +24,14 @@ export interface LoadRecordsSelectObjectAndFileProps {
   googleApiConfig: GoogleApiClientConfig;
   featureFlags: Set<string>;
   selectedOrg: SalesforceOrgUi;
-  sobjects: DescribeGlobalSObjectResult[];
-  selectedSObject: DescribeGlobalSObjectResult;
+  sobjects: Maybe<DescribeGlobalSObjectResult[]>;
+  selectedSObject: Maybe<DescribeGlobalSObjectResult>;
   isCustomMetadataObject: boolean;
   loadType: InsertUpdateUpsertDelete;
   externalIdFields: FieldWithRelatedEntities[];
   externalId: string;
-  inputFileType: LocalOrGoogle;
-  inputFilename: string;
+  inputFileType: Maybe<LocalOrGoogle>;
+  inputFilename: Maybe<string>;
   loadingFields: Maybe<boolean>;
   allowBinaryAttachment: Maybe<boolean>;
   binaryAttachmentBodyField: Maybe<string>;

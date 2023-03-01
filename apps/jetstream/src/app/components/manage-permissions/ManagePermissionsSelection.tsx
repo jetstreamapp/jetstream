@@ -127,7 +127,7 @@ export const ManagePermissionsSelection: FunctionComponent<ManagePermissionsSele
                 descriptorSingular: 'profile',
                 descriptorPlural: 'profiles',
               }}
-              items={profiles || []}
+              items={profiles}
               selectedItems={selectedProfiles}
               allowRefresh
               lastRefreshed={profilesAndPermSetsData.lastRefreshed}
@@ -145,7 +145,7 @@ export const ManagePermissionsSelection: FunctionComponent<ManagePermissionsSele
                 descriptorSingular: 'permission set',
                 descriptorPlural: 'permission sets',
               }}
-              items={permissionSets || []}
+              items={permissionSets}
               allowRefresh
               lastRefreshed={profilesAndPermSetsData.lastRefreshed}
               selectedItems={selectedPermissionSets}
