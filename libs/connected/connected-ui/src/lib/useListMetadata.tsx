@@ -34,7 +34,12 @@ async function fetchListMetadata(
   skipCacheIfOlderThan?: number
 ): Promise<ListMetadataResultItem> {
   const { type, folder } = item;
-  const { data: items, cache } = await listMetadataApi(selectedOrg, [{ type, folder }], skipRequestCache, skipCacheIfOlderThan);
+  const { data: items, cache } = await listMetadataApi(
+    selectedOrg,
+    [{ type, folder: folder || undefined }],
+    skipRequestCache,
+    skipCacheIfOlderThan
+  );
   return {
     ...item,
     items: orderObjectsBy(items, 'fullName'),
@@ -67,7 +72,7 @@ async function fetchListMetadataForItemsInFolder(
   // get list of folders
   const { data, cache } = await listMetadataApi(
     selectedOrg,
-    [{ type: typeWithFolder, folder: null }],
+    [{ type: typeWithFolder, folder: undefined }],
     skipRequestCache,
     skipCacheIfOlderThan
   );

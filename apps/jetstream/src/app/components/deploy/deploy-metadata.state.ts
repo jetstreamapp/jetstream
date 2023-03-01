@@ -142,7 +142,7 @@ export const listMetadataQueriesSelector = selector<ListMetadataQueryExtended[]>
         const metadataDescribe = metadataItemsMap[item];
         return {
           type: metadataDescribe.xmlName,
-          folder: null,
+          folder: undefined,
           inFolder: metadataDescribe.inFolder,
         };
       });
