@@ -1,5 +1,5 @@
 import { useNonInitialEffect } from '@jetstream/shared/ui-utils';
-import { ListItem, SalesforceOrgUi } from '@jetstream/types';
+import { ListItem, Maybe, SalesforceOrgUi } from '@jetstream/types';
 import { ListWithFilterMultiSelect } from '@jetstream/ui';
 import { FunctionComponent, useEffect } from 'react';
 import { SalesforceUser } from './deploy-metadata.types';
@@ -7,7 +7,7 @@ import { useUsers } from './utils/useUsers';
 
 export interface DeployMetadataUserListProps {
   selectedOrg: SalesforceOrgUi;
-  initialUsers: ListItem<string, SalesforceUser>[];
+  initialUsers: Maybe<ListItem<string, SalesforceUser>[]>;
   selectedUsers: string[];
   onUsers: (users: ListItem<string, SalesforceUser>[]) => void;
   onSelection: (users: string[]) => void;
