@@ -270,7 +270,7 @@
     "axios": "^0.27.2",
     "classnames": "^2.2.6",
     "cloudinary": "^1.26.3",
-    "cometd": "^7.0.4",
+    "cometd": "^7.0.9",
     "cometd-nodejs-client": "^1.3.0",
     "connect-pg-simple": "^6.2.1",
     "consolidated-events": "^2.0.2",

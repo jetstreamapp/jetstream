@@ -50,7 +50,10 @@ export const PlatformEventMonitorSubscribe: FunctionComponent<PlatformEventMonit
   function handleSubscribe(event: React.SyntheticEvent<HTMLFormElement | HTMLButtonElement>) {
     event.preventDefault();
     event.stopPropagation();
-    selectedSubscribeEvent && subscribe(selectedSubscribeEvent, replayId ? parseInt(replayId, 10) : undefined);
+    if (!selectedSubscribeEvent) {
+      return;
+    }
+    subscribe(selectedSubscribeEvent, replayId ? parseInt(replayId, 10) : undefined);
   }
 
   function handleInputKeydown(event: KeyboardEvent<HTMLInputElement>) {

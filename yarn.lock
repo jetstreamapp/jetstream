@@ -10412,10 +10412,15 @@ cometd-nodejs-client@^1.3.0:
     https-proxy-agent ">=2.1.0"
     ws ">=7.2.0"
 
-cometd@>=3.1.2, cometd@^7.0.4:
+cometd@>=3.1.2:
   version "7.0.6"
   resolved "https://registry.npmjs.org/cometd/-/cometd-7.0.6.tgz"
   integrity sha512-G2paBJ48DZS2TaGDfCoJa8H73515zmTA91YBn4tJDnV0nRn3G6HI1Bt8RBIn0RgupvYqSXEeLCYDmrqWLKewgA==
+
+cometd@^7.0.9:
+  version "7.0.9"
+  resolved "https://registry.yarnpkg.com/cometd/-/cometd-7.0.9.tgz#f76189da71227908426cd16afb6dc6cdbbafb05d"
+  integrity sha512-sF5nAVajLu2vF65UgSwqmWYj9yyRVYaQynfz8Qjw/Ioehwc5128ed12abRrQ6x08kOGicerEzZSJ6v2YW+PqnA==
 
 comma-separated-tokens@^1.0.0:
   version "1.0.8"

@@ -727,7 +727,7 @@ export function getOrgUrlParams(org: SalesforceOrgUi, additionalParams: { [param
 }
 
 export function getOrgType(org: Maybe<SalesforceOrgUi>): SalesforceOrgUiType | undefined {
-  if (org) {
+  if (org?.uniqueId) {
     if (org.orgIsSandbox) {
       return 'Sandbox';
     }
