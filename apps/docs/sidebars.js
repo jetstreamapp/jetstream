@@ -21,7 +21,7 @@ module.exports = {
     {
       type: 'category',
       label: 'Deploy Metadata',
-      items: ['deploy/deploy-metadata', 'deploy/deploy-fields'],
+      items: ['deploy/deploy-metadata', 'deploy/deploy-fields', 'deploy/formula-evaluator'],
     },
     {
       type: 'category',
