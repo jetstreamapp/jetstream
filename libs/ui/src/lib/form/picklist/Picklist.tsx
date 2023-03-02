@@ -17,6 +17,7 @@ import {
   trapEventImmediate,
   useNonInitialEffect,
 } from '@jetstream/shared/ui-utils';
+import { NOOP } from '@jetstream/shared/utils';
 import { DropDownItemLength, ListItem, ListItemGroup } from '@jetstream/types';
 import classNames from 'classnames';
 import isNumber from 'lodash/isNumber';
@@ -49,6 +50,7 @@ export interface PicklistProps {
   errorMessageId?: string;
   errorMessage?: React.ReactNode | string;
   placeholder?: string;
+  noItemsPlaceholder?: string;
   items?: ListItem[];
   groups?: ListItemGroup[];
   /** Only applies on initialization, then the component will manage ongoing state */
@@ -95,7 +97,8 @@ export const Picklist = forwardRef<any, PicklistProps>(
       isRequired,
       errorMessageId,
       errorMessage,
-      placeholder,
+      placeholder = 'Select an Option',
+      noItemsPlaceholder = 'There are no items for selection',
       items = [],
       groups,
       selectedItems = [],
@@ -375,6 +378,16 @@ export const Picklist = forwardRef<any, PicklistProps>(
                 >
                   {Array.isArray(items) && (
                     <ul className="slds-listbox slds-listbox_vertical" role="presentation">
+                      {items.length === 0 && (
+                        <PicklistItem
+                          id={noItemsPlaceholder}
+                          label={noItemsPlaceholder}
+                          title={noItemsPlaceholder}
+                          value={noItemsPlaceholder}
+                          isSelected={false}
+                          onClick={() => NOOP}
+                        />
+                      )}
                       {items.map((item, i) => (
                         <PicklistItem
                           ref={elRefs.current[i]}

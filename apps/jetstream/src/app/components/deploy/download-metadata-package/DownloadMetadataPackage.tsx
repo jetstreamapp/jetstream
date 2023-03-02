@@ -66,7 +66,7 @@ export const DownloadMetadataPackage: FunctionComponent<DownloadMetadataPackageP
           onDownloadFromPackageNames={handleDownloadFromPackageNames}
         />
       )}
-      {downloadResultsModalOpen && packageManifest && packageNames && (
+      {downloadResultsModalOpen && (
         <DownloadPackageWithFileSelector
           type="package"
           selectedOrg={destinationOrg}
