@@ -151,7 +151,7 @@ export const PerformLoadCustomMetadata: FunctionComponent<PerformLoadCustomMetad
     );
     let header: string[] = [];
     let data = Object.keys(metadata).map((fullName) => {
-      if (!header) {
+      if (!header.length) {
         header = ['_id', '_success', '_error', '_created', '_changed', ...Object.keys(metadata[fullName].record)];
       }
       return {
