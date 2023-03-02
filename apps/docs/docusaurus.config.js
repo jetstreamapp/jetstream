@@ -14,7 +14,7 @@ module.exports = {
   themeConfig: {
     algolia: {
       appId: '21D7I5RB7N',
-      apiKey: '5a8e69d756ddc4a3067c7d9e7aecfc3b',
+      apiKey: '16cff3d92b030f175ef9a30f606a221e',
       indexName: 'jetstream-docs',
       // Optional: see doc section below
       contextualSearch: false,
