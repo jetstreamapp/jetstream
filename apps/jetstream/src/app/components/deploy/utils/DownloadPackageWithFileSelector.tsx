@@ -5,6 +5,7 @@ import {
   FileExtAllTypes,
   ListMetadataResult,
   MapOf,
+  Maybe,
   MimeType,
   RetrievePackageFromListMetadataJob,
   RetrievePackageFromManifestJob,
@@ -24,9 +25,9 @@ export interface DownloadPackageWithFileSelectorProps {
   modalHeader?: string;
   modalTagline?: string;
   fileNameParts?: string[];
-  listMetadataItems?: MapOf<ListMetadataResult[]>;
-  packageManifest?: string;
-  packageNames?: string[];
+  listMetadataItems?: Maybe<MapOf<ListMetadataResult[]>>;
+  packageManifest?: Maybe<string>;
+  packageNames?: Maybe<string[]>;
   onClose?: () => void;
 }
 
