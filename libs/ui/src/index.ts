@@ -134,6 +134,7 @@ export * from './lib/toolbar/ToolbarItemActions';
 export * from './lib/toolbar/ToolbarItemGroup';
 export * from './lib/tree/Tree';
 export * from './lib/utils/ErrorBoundaryWithoutContent';
+export * from './lib/widgets/ApiVersionDropdown';
 export * from './lib/widgets/CopyToClipboard';
 export * from './lib/widgets/FeedbackLink';
 export * from './lib/widgets/HelpText';

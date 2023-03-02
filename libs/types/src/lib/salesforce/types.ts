@@ -750,3 +750,9 @@ export interface GlobalValueSetCustomValue {
   label?: string /** defaults to ValueName */;
   valueName: string;
 }
+
+export interface SalesforceApiVersion {
+  label: string;
+  url: string;
+  version: string;
+}

@@ -27,6 +27,7 @@ import {
   UserProfileAuth0Ui,
   UserProfileUi,
 } from '@jetstream/types';
+import { AxiosRequestConfig } from 'axios';
 import parseISO from 'date-fns/parseISO';
 import type {
   AsyncResult,
@@ -36,8 +37,8 @@ import type {
   DescribeSObjectResult,
   ListMetadataQuery,
 } from 'jsforce';
-import isNil from 'lodash/isNil';
 import isFunction from 'lodash/isFunction';
+import isNil from 'lodash/isNil';
 import { handleExternalRequest, handleRequest, transformListMetadataResponse } from './client-data-data-helper';
 //// LANDING PAGE ROUTES
 
@@ -604,8 +605,15 @@ export async function bulkApiGetRecords<T = any>(
   return handleRequest({ method: 'GET', url: `/api/bulk/${jobId}/${batchId}`, params: { type } }, { org }).then(unwrapResponseIgnoreCache);
 }
 
-export async function anonymousApex(org: SalesforceOrgUi, apex: string, logLevel: string): Promise<AnonymousApexResponse> {
-  return handleRequest({ method: 'POST', url: `/api/apex/anonymous`, data: { apex, logLevel } }, { org }).then(unwrapResponseIgnoreCache);
+export async function anonymousApex(
+  org: SalesforceOrgUi,
+  apex: string,
+  logLevel: string,
+  axiosConfig?: AxiosRequestConfig
+): Promise<AnonymousApexResponse> {
+  return handleRequest({ method: 'POST', url: `/api/apex/anonymous`, data: { apex, logLevel }, ...axiosConfig }, { org }).then(
+    unwrapResponseIgnoreCache
+  );
 }
 
 export async function apexCompletions(org: SalesforceOrgUi, type: 'apex' | 'visualforce' = 'apex'): Promise<ApexCompletionResponse> {

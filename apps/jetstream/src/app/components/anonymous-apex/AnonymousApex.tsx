@@ -1,11 +1,12 @@
 import { css } from '@emotion/react';
 import { useSetTraceFlag } from '@jetstream/connected-ui';
 import { logger } from '@jetstream/shared/client-logger';
-import { ANALYTICS_KEYS, INDEXED_DB, LOG_LEVELS, TITLES } from '@jetstream/shared/constants';
+import { ANALYTICS_KEYS, HTTP, INDEXED_DB, LOG_LEVELS, TITLES } from '@jetstream/shared/constants';
 import { anonymousApex } from '@jetstream/shared/data';
 import { useBrowserNotifications, useDebounce, useNonInitialEffect, useRollbar } from '@jetstream/shared/ui-utils';
 import { ApexHistoryItem, ListItem, MapOf, SalesforceOrgUi } from '@jetstream/types';
 import {
+  ApiVersionDropdown,
   AutoFullHeightContainer,
   Badge,
   Card,
@@ -75,6 +76,7 @@ export const AnonymousApex: FunctionComponent<AnonymousApexProps> = () => {
   const [userDebug, setUserDebug] = useState(false);
   const [textFilter, setTextFilter] = useState<string>('');
   const [visibleResults, setVisibleResults] = useState<string>('');
+  const [apiVersion, setApiVersion] = useState<string>('');
 
   useEffect(() => {
     isMounted.current = true;
@@ -148,7 +150,9 @@ export const AnonymousApex: FunctionComponent<AnonymousApexProps> = () => {
       logRef.current?.revealLine(1);
       setResultsStatus({ hasResults: false, success: false, label: null });
       try {
-        const { result, debugLog } = await anonymousApex(selectedOrg, value, logLevel);
+        const { result, debugLog } = await anonymousApex(selectedOrg, value, logLevel, {
+          headers: { [HTTP.HEADERS.X_SFDC_API_VERSION]: apiVersion },
+        });
         if (!result.success) {
           let summary = '';
           summary += `line ${result.line}, column ${result.column}\n`;
@@ -183,7 +187,7 @@ export const AnonymousApex: FunctionComponent<AnonymousApexProps> = () => {
         setLoading(false);
       }
     },
-    [historyItems, selectedOrg, logLevel, setHistoryItems, trackEvent]
+    [selectedOrg, logLevel, apiVersion, trackEvent, notifyUser, setHistoryItems, rollbar]
   );
 
   function handleEditorChange(value, event) {
@@ -240,7 +244,8 @@ export const AnonymousApex: FunctionComponent<AnonymousApexProps> = () => {
             }
             actions={
               <Fragment>
-                <div className="slds-m-horizontal_x-small">
+                <ApiVersionDropdown className="slds-m-right_x-small" selectedOrg={selectedOrg} onChange={setApiVersion} />
+                <div className="slds-m-right_x-small">
                   <ComboboxWithItems
                     comboboxProps={{
                       label: 'Anonymous Apex',
