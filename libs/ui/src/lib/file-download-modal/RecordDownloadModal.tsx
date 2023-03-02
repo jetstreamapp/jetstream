@@ -101,6 +101,8 @@ export const RecordDownloadModal: FunctionComponent<RecordDownloadModalProps> = 
   const [invalidConfig, setInvalidConfig] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
+  const [isGooglePickerVisible, setIsGooglePickerVisible] = useState(false);
+
   const hasSubqueryFields = subqueryFields && !!Object.keys(subqueryFields).length && (fileFormat === 'xlsx' || fileFormat === 'gdrive');
 
   useEffect(() => {
@@ -274,6 +276,7 @@ export const RecordDownloadModal: FunctionComponent<RecordDownloadModalProps> = 
           skipAutoFocus
           overrideZIndex={1001}
           onClose={() => handleModalClose(true)}
+          hide={isGooglePickerVisible}
         >
           <div>
             <RadioGroup label="Which Records" required className="slds-m-bottom_small">
@@ -361,6 +364,7 @@ export const RecordDownloadModal: FunctionComponent<RecordDownloadModalProps> = 
                   google_clientId={google_clientId}
                   onFolderSelected={handleFolderSelected}
                   onSignInChanged={setIsSignedInWithGoogle}
+                  onSelectorVisible={setIsGooglePickerVisible}
                 />
               )}
             </RadioGroup>

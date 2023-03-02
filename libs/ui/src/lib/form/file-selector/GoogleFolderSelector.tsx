@@ -20,6 +20,7 @@ export interface GoogleFolderSelectorProps {
   hideLabel?: boolean;
   isRequired?: boolean;
   disabled?: boolean;
+  onSelectorVisible?: (isVisible: boolean) => void;
   onSelected?: (data: google.picker.DocumentObject) => void;
   onError?: (error: string) => void;
 }
@@ -36,11 +37,12 @@ export const GoogleFolderSelector: FunctionComponent<GoogleFolderSelectorProps> 
   helpText,
   isRequired,
   disabled,
+  onSelectorVisible,
   onSelected,
   onError,
 }) => {
   const [labelId] = useState(() => `${id}-label`);
-  const { data, error: scriptLoadError, loading: googleApiLoading, openPicker } = useDrivePicker(apiConfig);
+  const { data, error: scriptLoadError, loading: googleApiLoading, isVisible, openPicker } = useDrivePicker(apiConfig);
   const [loading, setLoading] = useState(false);
   const [selectedFolder, setSelectedFolder] = useState<google.picker.DocumentObject>();
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -51,6 +53,10 @@ export const GoogleFolderSelector: FunctionComponent<GoogleFolderSelectorProps> 
       onError(errorMessage);
     }
   }, [errorMessage, onError]);
+
+  useEffect(() => {
+    onSelectorVisible && onSelectorVisible(isVisible);
+  }, [onSelectorVisible, isVisible]);
 
   useEffect(() => {
     if (scriptLoadError) {

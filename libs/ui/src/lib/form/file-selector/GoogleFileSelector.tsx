@@ -23,6 +23,7 @@ export interface GoogleFileSelectorProps {
   hideLabel?: boolean;
   isRequired?: boolean;
   disabled?: boolean;
+  onSelectorVisible?: (isVisible: boolean) => void;
   onSelected?: (data: google.picker.ResponseObject) => void;
   onReadFile: (fileContent: InputReadGoogleSheet) => void;
   onError?: (error: string) => void;
@@ -40,12 +41,13 @@ export const GoogleFileSelector: FunctionComponent<GoogleFileSelectorProps> = ({
   helpText,
   isRequired,
   disabled,
+  onSelectorVisible,
   onSelected,
   onReadFile,
   onError,
 }) => {
   const [labelId] = useState(() => `${id}-label`);
-  const { data, error: scriptLoadError, loading: googleApiLoading, openPicker } = useDrivePicker(apiConfig);
+  const { data, error: scriptLoadError, loading: googleApiLoading, isVisible, openPicker } = useDrivePicker(apiConfig);
   const [loading, setLoading] = useState(false);
   const [selectedFile, setSelectedFile] = useState<google.picker.DocumentObject>();
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -56,6 +58,10 @@ export const GoogleFileSelector: FunctionComponent<GoogleFileSelectorProps> = ({
       onError(errorMessage);
     }
   }, [errorMessage, onError]);
+
+  useEffect(() => {
+    onSelectorVisible && onSelectorVisible(isVisible);
+  }, [onSelectorVisible, isVisible]);
 
   useEffect(() => {
     if (scriptLoadError) {

@@ -1,6 +1,6 @@
 import { useNonInitialEffect } from '@jetstream/shared/ui-utils';
 import { FunctionComponent, useState } from 'react';
-import GoogleFolderSelectorNew from '../../form/file-selector/GoogleFolderSelector';
+import GoogleFolderSelector from '../../form/file-selector/GoogleFolderSelector';
 import RadioButton from '../../form/radio/RadioButton';
 import RadioGroup from '../../form/radio/RadioGroup';
 import GoogleSignIn from '../../google/GoogleSignIn';
@@ -13,6 +13,7 @@ export interface FileDownloadGoogleProps {
   disabled?: boolean;
   onFolderSelected: (folderId?: string) => void;
   onSignInChanged?: (signedIn: boolean) => void;
+  onSelectorVisible?: (isVisible: boolean) => void;
 }
 
 export const FileDownloadGoogle: FunctionComponent<FileDownloadGoogleProps> = ({
@@ -22,6 +23,7 @@ export const FileDownloadGoogle: FunctionComponent<FileDownloadGoogleProps> = ({
   disabled,
   onSignInChanged,
   onFolderSelected,
+  onSelectorVisible,
 }) => {
   const [googleFolder, setGoogleFolder] = useState<{ name: string; folderId: string }>();
   const [whichFolder, setWhichFolder] = useState<'root' | 'specified'>('root');
@@ -60,13 +62,14 @@ export const FileDownloadGoogle: FunctionComponent<FileDownloadGoogleProps> = ({
           </RadioGroup>
         </GridCol>
         {whichFolder === 'specified' && (
-          <GoogleFolderSelectorNew
+          <GoogleFolderSelector
             apiConfig={apiConfig}
             id={'load-google-drive-file'}
             label={'Google Drive'}
             folderName={googleFolder?.name}
             disabled={disabled}
             onSelected={handleGoogleFolderSelected}
+            onSelectorVisible={onSelectorVisible}
           />
         )}
       </GoogleSignIn>
