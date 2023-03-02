@@ -16,18 +16,18 @@ export function useDescribeMetadata(
   initialMetadataItemMap?: MapOf<MetadataObject>,
   loadOnInit = true
 ) {
-  const isMounted = useRef(null);
+  const isMounted = useRef(true);
   const rollbar = useRollbar();
   // map of each item or child item to parent item
   const [metadataItemMap, setMetadataItemMap] = useState<MapOf<MetadataObject>>(initialMetadataItemMap || {});
-  const [metadataItems, setMetadataItems] = useState<string[]>(initialItems);
+  const [metadataItems, setMetadataItems] = useState<string[] | undefined>(initialItems);
   const [hasLoaded, setHasLoaded] = useState(false);
   const [loading, setLoading] = useState(false);
   const [hasError, setHasError] = useState(false);
-  const [errorMessage, setErrorMessage] = useState<string>(null);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [lastRefreshed, setLastRefreshed] = useState<string>(_lastRefreshed);
-  const [orgInformation, setOrgInformation] = useState<Omit<DescribeMetadataResult, 'metadataObjects'>>(null);
-  const [orgIdUsedToFetch, setOrgIdUsedToFetch] = useState<string>();
+  const [orgInformation, setOrgInformation] = useState<Omit<DescribeMetadataResult, 'metadataObjects'> | null>(null);
+  const [orgIdUsedToFetch, setOrgIdUsedToFetch] = useState<string | null>(null);
 
   useEffect(() => {
     isMounted.current = true;

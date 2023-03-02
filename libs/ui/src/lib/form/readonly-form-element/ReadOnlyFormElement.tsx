@@ -6,7 +6,7 @@ export interface ReadOnlyFormElementProps {
   id: string;
   className?: string;
   label?: string | ReactNode;
-  labelHelp?: string;
+  labelHelp?: string | null;
   helpText?: React.ReactNode | string;
   hasError?: boolean;
   isRequired?: boolean;

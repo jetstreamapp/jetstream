@@ -1,5 +1,6 @@
 import { css } from '@emotion/react';
 import { useNonInitialEffect, useProfilesAndPermSets } from '@jetstream/shared/ui-utils';
+import { SplitWrapper as Split } from '@jetstream/splitjs';
 import { SalesforceOrgUi } from '@jetstream/types';
 import {
   AutoFullHeightContainer,
@@ -15,7 +16,6 @@ import {
 import { DescribeGlobalSObjectResult } from 'jsforce';
 import { FunctionComponent, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { SplitWrapper as Split } from '@jetstream/splitjs';
 import { useRecoilState, useRecoilValue, useResetRecoilState } from 'recoil';
 import { selectedOrgState } from '../../app-state';
 import * as fromPermissionsState from './manage-permissions.state';

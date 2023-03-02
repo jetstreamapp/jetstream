@@ -45,9 +45,11 @@ export const SobjectFieldListItem: FunctionComponent<SobjectFieldListItemProps> 
   onFilterChanged,
   errorReattempt,
 }) => {
-  const [relationshipKey, setRelationshipKey] = useState<string>(null);
+  const [relationshipKey, setRelationshipKey] = useState<string | null>(null);
   const [isExpanded, setIsExpanded] = useState<boolean>(false);
-  const [selectedSObject, setSelectedSObject] = useState(queryFieldsMap[relationshipKey]?.sobject);
+  const [selectedSObject, setSelectedSObject] = useState(() => {
+    return relationshipKey && queryFieldsMap[relationshipKey]?.sobject;
+  });
   const fieldLabel = useHighlightedText(field.label, searchTerm, { ignoreHighlight: !highlightText });
   const fieldName = useHighlightedText(field.name, searchTerm, { ignoreHighlight: !highlightText });
 
@@ -107,7 +109,7 @@ export const SobjectFieldListItem: FunctionComponent<SobjectFieldListItemProps> 
         </div>
         <SobjectFieldListType org={org} field={field} />
       </div>
-      {field.relatedSobject && level < 5 && (
+      {field.relatedSobject && level < 5 && relationshipKey && (
         <div
           css={css`
             margin-left: -1.75rem;
@@ -124,7 +126,7 @@ export const SobjectFieldListItem: FunctionComponent<SobjectFieldListItemProps> 
             allowMultiple={level === 0}
             onToggleExpand={handleExpand}
           />
-          {isExpanded && (
+          {isExpanded && selectedSObject && (
             <div>
               <SobjectFieldList
                 org={org}

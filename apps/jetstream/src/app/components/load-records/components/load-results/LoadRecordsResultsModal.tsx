@@ -10,7 +10,7 @@ const COL_WIDTH_MAP = {
   _errors: 450,
 };
 
-const getRowHeight = ({ row, type }: RowHeightArgs<any>): number | undefined | null => (type === 'ROW' && row?._errors ? 75 : 25);
+const getRowHeight = ({ row, type }: RowHeightArgs<any>) => (type === 'ROW' && row?._errors ? 75 : 25);
 
 export interface LoadRecordsResultsModalProps {
   type: 'results' | 'failures';
@@ -30,7 +30,7 @@ export const LoadRecordsResultsModal: FunctionComponent<LoadRecordsResultsModalP
   onClose,
 }) => {
   const modalRef = useRef();
-  const [columns, setColumns] = useState<ColumnWithFilter<any>[]>(null);
+  const [columns, setColumns] = useState<ColumnWithFilter<any>[] | null>(null);
   // Store each row as key and the index as a value to use as a unique id for the row
   const [rowsMap, setRowsMap] = useState<WeakMap<any, string>>(() => new WeakMap(rows.map((row, i) => [row, `id-${i}`])));
 
@@ -66,7 +66,8 @@ export const LoadRecordsResultsModal: FunctionComponent<LoadRecordsResultsModalP
     setRowsMap(new WeakMap(rows.map((row, i) => [row, `id-${i}`])));
   }, [rows]);
 
-  const getRowKey = useCallback((row: any) => rowsMap.get(row), [rowsMap]);
+  // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+  const getRowKey = useCallback((row: any) => rowsMap.get(row)!, [rowsMap]);
 
   function handleDownload() {
     // TODO: allow user to choose filtered records to download

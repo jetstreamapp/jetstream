@@ -3,7 +3,7 @@ import { useRecoilState } from 'recoil';
 import { selectedOrgIdState, STORAGE_KEYS } from '../../app-state';
 
 export const OrgPersistence: FunctionComponent = () => {
-  const [selectedOrgId] = useRecoilState<string>(selectedOrgIdState);
+  const [selectedOrgId] = useRecoilState(selectedOrgIdState);
 
   useEffect(() => {
     if (selectedOrgId) {

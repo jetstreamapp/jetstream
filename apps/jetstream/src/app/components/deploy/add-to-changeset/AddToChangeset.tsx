@@ -28,14 +28,14 @@ export const AddToChangeset: FunctionComponent<AddToChangesetProps> = ({ classNa
   const [downloadResultsModalOpen, setDownloadResultsModalOpen] = useState<boolean>(false);
   const [deployResultsData, setDeployResultsData] = useState<MapOf<any[]>>();
 
-  const [changesetPackageName, setChangesetPackageName] = useState<string>();
-  const [changesetPackageDescription, setChangesetPackageDescription] = useState<string>();
-  const [selectedChangeset, setSelectedChangeset] = useState<ChangeSet>(null);
+  const [changesetPackageName, setChangesetPackageName] = useState<string | null>(null);
+  const [changesetPackageDescription, setChangesetPackageDescription] = useState<string | null>(null);
+  const [selectedChangeset, setSelectedChangeset] = useState<ChangeSet | null | undefined>(null);
 
   const [changesetPackage, setChangesetPackage] = useRecoilState(fromDeployMetadataState.changesetPackage);
   const [changesetPackages, setChangesetPackages] = useRecoilState(fromDeployMetadataState.changesetPackages);
 
-  const [selectedMetadata, setSelectedMetadata] = useState<MapOf<ListMetadataResult[]>>();
+  const [selectedMetadata, setSelectedMetadata] = useState<MapOf<ListMetadataResult[]>>({});
 
   function handleClick() {
     setConfigModalOpen(true);
@@ -89,12 +89,12 @@ export const AddToChangeset: FunctionComponent<AddToChangesetProps> = ({ classNa
           onDeploy={handleDeployToChangeset}
         />
       )}
-      {deployStatusModalOpen && (
+      {deployStatusModalOpen && changesetPackageName && (
         <AddToChangesetStatusModal
           hideModal={downloadResultsModalOpen}
           selectedOrg={selectedOrg}
           changesetName={changesetPackageName}
-          changesetDescription={changesetPackageDescription}
+          changesetDescription={changesetPackageDescription || ''}
           changeset={selectedChangeset}
           selectedMetadata={selectedMetadata}
           onGoBack={handleGoBackFromDeploy}
@@ -102,7 +102,7 @@ export const AddToChangeset: FunctionComponent<AddToChangesetProps> = ({ classNa
           onDownload={handleDeployResultsDownload}
         />
       )}
-      {downloadResultsModalOpen && (
+      {downloadResultsModalOpen && deployResultsData && (
         <FileDownloadModal
           modalHeader="Download Deploy Results"
           org={selectedOrg}

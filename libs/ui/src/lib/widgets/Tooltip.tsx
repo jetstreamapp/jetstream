@@ -1,4 +1,5 @@
 import { css } from '@emotion/react';
+import { Maybe } from '@jetstream/types';
 import Tippy, { TippyProps } from '@tippyjs/react';
 import { FunctionComponent, MouseEvent, useState } from 'react';
 
@@ -6,7 +7,7 @@ export interface TooltipProps {
   /** @deprecated This is not used in the component */
   id?: string;
   className?: string;
-  content: string | JSX.Element;
+  content: Maybe<string | JSX.Element>;
   onClick?: (event: MouseEvent<HTMLElement>) => void;
   children?: React.ReactNode;
 }
@@ -38,12 +39,14 @@ const LazyTippy = (props: LazyTippyProps) => {
 
 export const Tooltip: FunctionComponent<TooltipProps> = ({ className, content, onClick, children }) => {
   const [visible, setVisible] = useState(false);
-  const [arrowElement, setArrowElement] = useState<HTMLElement>(null);
+  const [arrowElement, setArrowElement] = useState<HTMLElement | null>(null);
 
   return (
     <LazyTippy
       onHide={() => setVisible(false)}
-      onShow={() => content && setVisible(true)}
+      onShow={() => {
+        content && setVisible(true);
+      }}
       hideOnClick={false}
       allowHTML
       popperOptions={{

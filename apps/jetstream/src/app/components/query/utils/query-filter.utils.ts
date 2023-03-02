@@ -7,6 +7,7 @@ import {
   ExpressionRowValueType,
   ListItem,
   ListItemGroup,
+  Maybe,
   QueryFilterOperator,
 } from '@jetstream/types';
 import { Field, FieldType } from 'jsforce';
@@ -33,18 +34,18 @@ export const QUERY_OPERATORS: ListItem<string, QueryFilterOperator>[] = [
 ];
 
 function findResourceMeta(fields: ListItemGroup[], selected: ExpressionConditionRowSelectedItems) {
-  return fields.find((group) => group.id === selected.resourceGroup)?.items.find((item) => item.id === selected.resource).meta.metadata;
+  return fields.find((group) => group.id === selected.resourceGroup)?.items.find((item) => item.id === selected.resource)?.meta.metadata;
 }
 
-function isListOperator(operator: QueryFilterOperator): boolean {
+function isListOperator(operator: Maybe<QueryFilterOperator>): boolean {
   return operator === 'in' || operator === 'notIn' || operator === 'includes' || operator === 'excludes';
 }
 
-function isDatetimeCompatibleFilter(operator: QueryFilterOperator): boolean {
+function isDatetimeCompatibleFilter(operator: Maybe<QueryFilterOperator>): boolean {
   return operator === 'lt' || operator === 'lte' || operator === 'gt' || operator === 'gte';
 }
 
-function isLikeOperator(operator: QueryFilterOperator): boolean {
+function isLikeOperator(operator: Maybe<QueryFilterOperator>): boolean {
   return (
     operator === 'contains' ||
     operator === 'doesNotContain' ||
@@ -55,7 +56,7 @@ function isLikeOperator(operator: QueryFilterOperator): boolean {
   );
 }
 
-function isIncludesExcludesOperator(operator: QueryFilterOperator): boolean {
+function isIncludesExcludesOperator(operator: Maybe<QueryFilterOperator>): boolean {
   return operator === 'includes' || operator === 'excludes';
 }
 
@@ -149,7 +150,7 @@ export function getDateTimeMultiResourceTypes(): ListItem<ExpressionRowValueType
   ];
 }
 
-export function getTypeFromMetadata(type: FieldType, operator: QueryFilterOperator, value?: string | string[]) {
+export function getTypeFromMetadata(type: FieldType, operator: Maybe<QueryFilterOperator>, value?: string | string[]) {
   /**
    * TODO:
    * int / double / currency / percent
@@ -160,7 +161,7 @@ export function getTypeFromMetadata(type: FieldType, operator: QueryFilterOperat
   switch (type) {
     case 'date': {
       // default to SELECT if value is a date literal (query restore would have a value)
-      if (Array.isArray(value) || DATE_LITERALS_SET.has(value)) {
+      if (Array.isArray(value) || DATE_LITERALS_SET.has(value || '')) {
         return isListOperator(operator) ? 'SELECT-MULTI' : 'SELECT';
       }
       return 'DATE';
@@ -216,7 +217,13 @@ export function ensureFieldSelectItemsIncludesSelectionsFromRestore(
   }
 }
 
-export function getFieldResourceTypes(field: Field, operator: QueryFilterOperator): ListItem<ExpressionRowValueType, any>[] {
+export function getFieldResourceTypes(
+  field: Field,
+  operator: Maybe<QueryFilterOperator>
+): ListItem<ExpressionRowValueType, any>[] | undefined {
+  if (!operator) {
+    return;
+  }
   if (field.type === 'picklist' || field.type === 'multipicklist') {
     return isListOperator(operator) ? getPicklistMultiResourceTypes() : getPicklistSingleResourceTypes();
   } else if (field.type === 'date') {
@@ -224,22 +231,22 @@ export function getFieldResourceTypes(field: Field, operator: QueryFilterOperato
   } else if (field.type === 'datetime') {
     return isListOperator(operator) ? getDateTimeMultiResourceTypes() : getDateTimeResourceTypes();
   }
-  return undefined;
+  return;
 }
 
 export function getResourceTypeFnsFromFields(fields: ListItemGroup[]): ExpressionGetResourceTypeFns {
   const getResourceTypeFns: ExpressionGetResourceTypeFns = {
-    getTypes: (selected: ExpressionConditionRowSelectedItems): ListItem<ExpressionRowValueType>[] => {
+    getTypes: (selected: ExpressionConditionRowSelectedItems): ListItem<ExpressionRowValueType>[] | undefined => {
       const fieldMeta: Field = findResourceMeta(fields, selected);
       if (!fieldMeta) {
-        return undefined;
+        return;
       }
       return getFieldResourceTypes(fieldMeta, selected.operator);
     },
-    getType: (selected: ExpressionConditionRowSelectedItems): ExpressionRowValueType => {
+    getType: (selected: ExpressionConditionRowSelectedItems): ExpressionRowValueType | undefined => {
       const fieldMeta: Field = findResourceMeta(fields, selected);
       if (!fieldMeta) {
-        return undefined;
+        return;
       }
       // e.x. IN or NOT NULL
       if (selected.resourceType) {
@@ -247,7 +254,7 @@ export function getResourceTypeFnsFromFields(fields: ListItemGroup[]): Expressio
       }
       return getTypeFromMetadata(fieldMeta.type, selected.operator);
     },
-    getHelpText: (selected: ExpressionConditionRowSelectedItems): ExpressionConditionHelpText => {
+    getHelpText: (selected: ExpressionConditionRowSelectedItems): ExpressionConditionHelpText | undefined => {
       const fieldMeta: Field = findResourceMeta(fields, selected);
       if (!fieldMeta) {
         return undefined;

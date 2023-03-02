@@ -1,6 +1,6 @@
 import { TITLES } from '@jetstream/shared/constants';
 import { SalesforceOrgUi } from '@jetstream/types';
-import React, { Fragment, FunctionComponent, useEffect, useState } from 'react';
+import { Fragment, FunctionComponent, useEffect, useState } from 'react';
 import { Navigate, Outlet, useLocation } from 'react-router-dom';
 import { useTitle } from 'react-use';
 import { useRecoilValue, useResetRecoilState } from 'recoil';
@@ -25,7 +25,7 @@ export const ManagePermissions: FunctionComponent<ManagePermissionsProps> = () =
   const resetFieldsByKey = useResetRecoilState(fromPermissionsState.fieldsByKey);
   const resetObjectPermissionMap = useResetRecoilState(fromPermissionsState.objectPermissionMap);
   const resetFieldPermissionMap = useResetRecoilState(fromPermissionsState.fieldPermissionMap);
-  const [priorSelectedOrg, setPriorSelectedOrg] = useState<string>(null);
+  const [priorSelectedOrg, setPriorSelectedOrg] = useState<string | null>(null);
 
   const hasSelectionsMade = useRecoilValue(fromPermissionsState.hasSelectionsMade);
 

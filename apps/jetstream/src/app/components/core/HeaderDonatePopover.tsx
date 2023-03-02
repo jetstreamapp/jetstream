@@ -5,7 +5,7 @@ import { FunctionComponent, useEffect, useRef } from 'react';
 export interface HeaderDonatePopoverProps {}
 
 export const HeaderDonatePopover: FunctionComponent<HeaderDonatePopoverProps> = () => {
-  const isMounted = useRef(null);
+  const isMounted = useRef(true);
   const popoverRef = useRef<PopoverRef>(null);
 
   useEffect(() => {
@@ -16,7 +16,7 @@ export const HeaderDonatePopover: FunctionComponent<HeaderDonatePopoverProps> = 
   }, []);
 
   function closePopover() {
-    popoverRef.current.close();
+    popoverRef.current?.close();
   }
 
   return (

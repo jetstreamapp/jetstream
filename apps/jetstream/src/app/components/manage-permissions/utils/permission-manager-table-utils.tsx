@@ -936,7 +936,7 @@ export const RowActionRenderer: FunctionComponent<FormatterProps<PermissionTable
   row,
 }) => {
   const { type } = useContext(DataTableGenericContext) as PermissionManagerTableContext;
-  const popoverRef = useRef<PopoverRef>();
+  const popoverRef = useRef<PopoverRef>(null);
   const [dirtyItemCount, setDirtyItemCount] = useState(0);
   const [checkboxes, setCheckboxes] = useState<BulkActionCheckbox[]>(defaultRowActionCheckboxes(type, row?.allowEditPermission));
 

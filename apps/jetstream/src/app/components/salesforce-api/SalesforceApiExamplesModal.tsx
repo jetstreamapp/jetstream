@@ -18,7 +18,7 @@ export interface SalesforceApiExamplesModalProps {
 }
 
 export const SalesforceApiExamplesModal: FunctionComponent<SalesforceApiExamplesModalProps> = ({ onExecute }) => {
-  const isMounted = useRef(null);
+  const isMounted = useRef(true);
   const { trackEvent } = useAmplitude();
   const modalRef = useRef();
   const [isLoading, setIsLoading] = useState(false);

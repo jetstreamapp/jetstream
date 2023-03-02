@@ -41,8 +41,8 @@ export async function getSobjectMetadata(org: SalesforceOrgUi, selectedSobjects:
 }
 
 export function prepareExport(sobjectMetadata: SobjectFetchResult[], selectedAttributes: string[], options: ExportOptions): MapOf<any[]> {
-  const errors = [];
-  const sobjectAttributes = [];
+  const errors: { sobject: string; error: string }[] = [];
+  const sobjectAttributes: any[] = [];
   const rowsBySobject: MapOf<any[]> = {};
   const output: MapOf<any[]> = {};
 
@@ -56,22 +56,23 @@ export function prepareExport(sobjectMetadata: SobjectFetchResult[], selectedAtt
   sobjectMetadata.forEach(({ sobject, error, metadata }) => {
     if (!error) {
       // Create field worksheet
-      rowsBySobject[sobject] = metadata.fields
-        .filter((field) => (options.includesStandardFields ? true : field.custom))
-        .flatMap((field: any) => {
-          const obj = { 'Object Name': sobject };
-          selectedAttributeFields.forEach(({ name, label, getterFn }) => {
-            const _label = options.headerOption === 'label' ? label : name;
-            // TODO: transform as required
+      rowsBySobject[sobject] =
+        metadata?.fields
+          .filter((field) => (options.includesStandardFields ? true : field.custom))
+          .flatMap((field: any) => {
+            const obj = { 'Object Name': sobject };
+            selectedAttributeFields.forEach(({ name, label, getterFn }) => {
+              const _label = options.headerOption === 'label' ? label : name;
+              // TODO: transform as required
 
-            if (isFunction(getterFn)) {
-              obj[_label] = getterFn(field[name]);
-            } else {
-              obj[_label] = field[name];
-            }
-          });
-          return obj;
-        });
+              if (isFunction(getterFn)) {
+                obj[_label] = getterFn(field[name]);
+              } else {
+                obj[_label] = field[name];
+              }
+            });
+            return obj;
+          }) || [];
 
       // Create object worksheet if required
       if (options.includeObjectAttributes) {
@@ -79,14 +80,14 @@ export function prepareExport(sobjectMetadata: SobjectFetchResult[], selectedAtt
           sobjectAttributeKeys = [
             'name',
             'label',
-            ...Object.keys(metadata)
+            ...Object.keys(metadata || {})
               .filter((key) => key !== 'name' && key !== 'label')
-              .filter((key) => typeof metadata[key] !== 'object'),
+              .filter((key) => typeof metadata?.[key] !== 'object'),
           ];
         }
         sobjectAttributes.push(
           sobjectAttributeKeys.reduce((output: any, key) => {
-            output[key] = metadata[key];
+            output[key] = metadata?.[key];
             return output;
           }, {})
         );
@@ -105,7 +106,7 @@ export function prepareExport(sobjectMetadata: SobjectFetchResult[], selectedAtt
   }
 
   if (options.worksheetLayout === 'combined') {
-    output['Field Metadata'] = sobjectMetadata.reduce((output, { sobject, error }) => {
+    output['Field Metadata'] = sobjectMetadata.reduce((output: any[], { sobject, error }) => {
       if (!error && rowsBySobject[sobject]) {
         rowsBySobject[sobject].forEach((row) => output.push(row));
       }

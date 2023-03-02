@@ -5,11 +5,12 @@ const standardIcons = getIconTypes('standard');
 const utilityIcons = getIconTypes('utility');
 
 const mapFn = (type: IconType) => (iconName: IconName) => `${type}:${iconName}`;
-export const iconsWithType = [].concat(
-  doctypeIcons.map(mapFn('doctype')),
-  standardIcons.map(mapFn('standard')),
-  utilityIcons.map(mapFn('utility'))
-);
+
+export const iconsWithType = [
+  ...doctypeIcons.map(mapFn('doctype')),
+  ...standardIcons.map(mapFn('standard')),
+  ...utilityIcons.map(mapFn('utility')),
+];
 /**
  * Export helper for defining a list of all args and map that to an IconOBj
  */

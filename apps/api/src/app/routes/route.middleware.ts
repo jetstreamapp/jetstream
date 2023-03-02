@@ -21,12 +21,12 @@ import { AuthenticationError, NotFoundError, UserFacingError } from '../utils/er
  */
 export function setApplicationCookieMiddleware(req: express.Request, res: express.Response, next: express.NextFunction) {
   const appCookie: ApplicationCookie = {
-    serverUrl: ENV.JETSTREAM_SERVER_URL,
+    serverUrl: ENV.JETSTREAM_SERVER_URL!,
     environment: ENV.ENVIRONMENT as any,
     defaultApiVersion: `v${ENV.SFDC_FALLBACK_API_VERSION}`,
-    google_appId: ENV.GOOGLE_APP_ID,
-    google_apiKey: ENV.GOOGLE_API_KEY,
-    google_clientId: ENV.GOOGLE_CLIENT_ID,
+    google_appId: ENV.GOOGLE_APP_ID!,
+    google_apiKey: ENV.GOOGLE_API_KEY!,
+    google_clientId: ENV.GOOGLE_CLIENT_ID!,
   };
   res.cookie(HTTP.COOKIE.JETSTREAM, appCookie, { httpOnly: false, sameSite: 'strict' });
   next();
@@ -72,7 +72,7 @@ export function notFoundMiddleware(req: express.Request, res: express.Response, 
  */
 export function blockBotByUserAgentMiddleware(req: express.Request, res: express.Response, next: express.NextFunction) {
   const userAgent = req.header('User-Agent');
-  if (userAgent.toLocaleLowerCase().includes('python')) {
+  if (userAgent?.toLocaleLowerCase().includes('python')) {
     logger.debug('[BLOCKED REQUEST][USER AGENT] %s %s', req.method, req.originalUrl, {
       blocked: true,
       method: req.method,
@@ -258,7 +258,7 @@ export async function getOrgForRequest(user: UserProfileServer, uniqueId: string
   };
 
   if (orgNamespacePrefix && includeCallOptions) {
-    connData.callOptions = { ...connData.callOptions, defaultNamespace: orgNamespacePrefix };
+    connData.callOptions = { ...connData.callOptions, defaultNamespace: orgNamespacePrefix } as any;
   }
 
   const conn = new jsforce.Connection(connData);
@@ -268,6 +268,9 @@ export async function getOrgForRequest(user: UserProfileServer, uniqueId: string
     // Refresh event will be fired when renewed access token
     // to store it in your storage for next request
     try {
+      if (!conn.refreshToken) {
+        return;
+      }
       await salesforceOrgsDb.updateAccessToken_UNSAFE(org, accessToken, conn.refreshToken);
       logger.info('[ORG][REFRESH] Org refreshed successfully');
     } catch (ex) {

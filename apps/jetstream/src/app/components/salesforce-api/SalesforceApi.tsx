@@ -3,7 +3,7 @@ import { logger } from '@jetstream/shared/client-logger';
 import { ANALYTICS_KEYS, TITLES } from '@jetstream/shared/constants';
 import { manualRequest } from '@jetstream/shared/data';
 import { useRollbar } from '@jetstream/shared/ui-utils';
-import { ManualRequestPayload, ManualRequestResponse, SalesforceApiHistoryRequest, SalesforceOrgUi } from '@jetstream/types';
+import { ManualRequestPayload, ManualRequestResponse, Maybe, SalesforceApiHistoryRequest, SalesforceOrgUi } from '@jetstream/types';
 import { AutoFullHeightContainer } from '@jetstream/ui';
 import { FunctionComponent, useCallback, useEffect, useRef, useState } from 'react';
 import { SplitWrapper as Split } from '@jetstream/splitjs';
@@ -20,13 +20,13 @@ export interface SalesforceApiProps {}
 
 export const SalesforceApi: FunctionComponent<SalesforceApiProps> = () => {
   useTitle(TITLES.API_EXPLORER);
-  const isMounted = useRef(null);
+  const isMounted = useRef(true);
   const [{ defaultApiVersion }] = useRecoilState(applicationCookieState);
   const { trackEvent } = useAmplitude();
   const rollbar = useRollbar();
   const selectedOrg = useRecoilValue<SalesforceOrgUi>(selectedOrgState);
-  const [request, setRequest] = useState<SalesforceApiHistoryRequest>();
-  const [results, setResults] = useState<ManualRequestResponse>(null);
+  const [request, setRequest] = useState<Maybe<SalesforceApiHistoryRequest>>();
+  const [results, setResults] = useState<Maybe<ManualRequestResponse>>(null);
   const [loading, setLoading] = useState(false);
   const [historyItems, setHistoryItems] = useRecoilState(fromSalesforceApiHistory.salesforceApiHistoryState);
 
@@ -58,8 +58,8 @@ export const SalesforceApi: FunctionComponent<SalesforceApiProps> = () => {
         setResults(results);
         fromSalesforceApiHistory
           .initSalesforceApiHistoryItem(selectedOrg, requestData, {
-            status: results.status,
-            statusText: results.statusText,
+            status: results.status || 200,
+            statusText: results.statusText || 'OK',
           })
           .then((updatedHistoryItems) => {
             setHistoryItems(updatedHistoryItems);

@@ -30,10 +30,10 @@ export const DeployMetadataToOrgConfigModal: FunctionComponent<DeployMetadataToO
   onClose,
   onDeploy,
 }) => {
-  const modalBodyRef = useRef<HTMLDivElement>();
+  const modalBodyRef = useRef<HTMLDivElement>(null);
   const [selectedMetadataList, setSelectedMetadataList] = useState<string[]>();
   const orgs = useRecoilValue<SalesforceOrgUi[]>(salesforceOrgsOmitSelectedState);
-  const [destinationOrg, setDestinationOrg] = useState<SalesforceOrgUi>(initialSelectedDestinationOrg);
+  const [destinationOrg, setDestinationOrg] = useState<SalesforceOrgUi | undefined>(initialSelectedDestinationOrg);
   const [isConfigValid, setIsConfigValid] = useState(true);
   const [deployOptions, setDeployOptions] = useState<DeployOptions>(
     initialOptions || {
@@ -56,7 +56,7 @@ export const DeployMetadataToOrgConfigModal: FunctionComponent<DeployMetadataToO
   useEffect(() => {
     if (selectedMetadata) {
       setSelectedMetadataList(
-        Object.keys(selectedMetadata).reduce((output, key) => {
+        Object.keys(selectedMetadata).reduce((output: string[], key) => {
           selectedMetadata[key].forEach((item) => output.push(`${key}: ${decodeURIComponent(item.fullName)}`));
           return output;
         }, [])
@@ -67,7 +67,7 @@ export const DeployMetadataToOrgConfigModal: FunctionComponent<DeployMetadataToO
   useEffect(() => {
     if (!destinationOrg) {
       setIsConfigValid(false);
-    } else if (deployOptions.testLevel === 'RunSpecifiedTests' && deployOptions.runTests.length === 0) {
+    } else if (deployOptions.testLevel === 'RunSpecifiedTests' && deployOptions.runTests?.length === 0) {
       setIsConfigValid(false);
     } else {
       setIsConfigValid(true);
@@ -92,7 +92,7 @@ export const DeployMetadataToOrgConfigModal: FunctionComponent<DeployMetadataToO
           </button>
           <button
             className="slds-button slds-button_brand"
-            onClick={() => onDeploy(destinationOrg, deployOptions)}
+            onClick={() => destinationOrg && onDeploy(destinationOrg, deployOptions)}
             disabled={!isConfigValid}
           >
             {deployOptions.checkOnly ? 'Validate' : 'Deploy'}

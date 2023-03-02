@@ -2,7 +2,7 @@ import { css } from '@emotion/react';
 import { logger } from '@jetstream/shared/client-logger';
 import { INDEXED_DB } from '@jetstream/shared/constants';
 import { useRollbar } from '@jetstream/shared/ui-utils';
-import { ListItem, MapOf, SalesforceOrgUi } from '@jetstream/types';
+import { ListItem, MapOf, Maybe, SalesforceOrgUi } from '@jetstream/types';
 import {
   AutoFullHeightContainer,
   Checkbox,
@@ -78,9 +78,9 @@ export const SObjectExport: FunctionComponent<SObjectExportProps> = () => {
   const picklistHeaderOptionRef = useRef<PicklistRef>();
 
   const [loading, setLoading] = useState(false);
-  const [errorMessage, setErrorMessage] = useState<string>(null);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
-  const [sobjects, setSobjects] = useState<DescribeGlobalSObjectResult[]>();
+  const [sobjects, setSobjects] = useState<Maybe<DescribeGlobalSObjectResult[]>>();
   const [selectedSObjects, setSelectedSObjects] = useState<string[]>([]);
   const [selectedAttributes, setSelectedAttributes] = useState<string[]>([]);
 

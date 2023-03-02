@@ -3,7 +3,7 @@ import { logger } from '@jetstream/shared/client-logger';
 import { queryRemaining } from '@jetstream/shared/data';
 import { formatNumber, useRollbar } from '@jetstream/shared/ui-utils';
 import { flattenRecord } from '@jetstream/shared/utils';
-import { MapOf, SalesforceOrgUi } from '@jetstream/types';
+import { MapOf, Maybe, SalesforceOrgUi } from '@jetstream/types';
 import { Field } from 'jsforce';
 import uniqueId from 'lodash/uniqueId';
 import { Fragment, FunctionComponent, memo, ReactNode, useCallback, useEffect, useRef, useState } from 'react';
@@ -48,9 +48,9 @@ export interface SalesforceRecordDataTableProps {
   google_apiKey: string;
   google_appId: string;
   google_clientId: string;
-  queryResults: QueryResults<any>;
-  fieldMetadata: MapOf<Field>;
-  fieldMetadataSubquery: MapOf<MapOf<Field>>;
+  queryResults: Maybe<QueryResults<any>>;
+  fieldMetadata: Maybe<MapOf<Field>>;
+  fieldMetadataSubquery: Maybe<MapOf<MapOf<Field>>>;
   summaryHeaderRightContent?: ReactNode;
   onSelectionChanged: (rows: any[]) => void;
   onFilteredRowsChanged: (rows: any[]) => void;
@@ -84,7 +84,7 @@ export const SalesforceRecordDataTable: FunctionComponent<SalesforceRecordDataTa
     onView,
     onGetAsApex,
   }) => {
-    const isMounted = useRef(null);
+    const isMounted = useRef(true);
     const rollbar = useRollbar();
     const [columns, setColumns] = useState<Column<RowWithKey>[]>();
     const [subqueryColumnsMap, setSubqueryColumnsMap] = useState<MapOf<ColumnWithFilter<RowWithKey, unknown>[]>>();
@@ -94,10 +94,10 @@ export const SalesforceRecordDataTable: FunctionComponent<SalesforceRecordDataTa
     const [rows, setRows] = useState<RowWithKey[]>();
     const [totalRecordCount, setTotalRecordCount] = useState<number>();
     const [isLoadingMore, setIsLoadingMore] = useState<boolean>(false);
-    const [loadMoreErrorMessage, setLoadMoreErrorMessage] = useState<string>();
+    const [loadMoreErrorMessage, setLoadMoreErrorMessage] = useState<string | null>(null);
     const [hasMoreRecords, setHasMoreRecords] = useState<boolean>(false);
-    const [nextRecordsUrl, setNextRecordsUrl] = useState<string>();
-    const [globalFilter, setGlobalFilter] = useState<string>(null);
+    const [nextRecordsUrl, setNextRecordsUrl] = useState<Maybe<string>>(null);
+    const [globalFilter, setGlobalFilter] = useState<string | null>(null);
     const [selectedRows, setSelectedRows] = useState<ReadonlySet<string>>(() => new Set());
 
     useEffect(() => {
@@ -118,7 +118,7 @@ export const SalesforceRecordDataTable: FunctionComponent<SalesforceRecordDataTa
         setRecords(queryResults.queryResults.records);
         onFilteredRowsChanged(queryResults.queryResults.records);
         setTotalRecordCount(queryResults.queryResults.totalSize);
-        if (!queryResults.queryResults.done) {
+        if (!queryResults.queryResults.done && queryResults.queryResults.nextRecordsUrl) {
           setHasMoreRecords(true);
           setNextRecordsUrl(queryResults.queryResults.nextRecordsUrl);
         }
@@ -136,7 +136,7 @@ export const SalesforceRecordDataTable: FunctionComponent<SalesforceRecordDataTa
      * When metadata is obtained, update the grid columns to include field labels
      */
     useEffect(() => {
-      if (fieldMetadata) {
+      if (fieldMetadata && queryResults) {
         const { parentColumns, subqueryColumns } = getColumnDefinitions(queryResults, isTooling);
 
         setColumns(addFieldLabelToColumn(parentColumns, fieldMetadata));
@@ -188,10 +188,10 @@ export const SalesforceRecordDataTable: FunctionComponent<SalesforceRecordDataTa
       setRows(
         (records || []).map((row): RowWithKey => {
           return {
-            _key: getRowId(row),
             _action: handleRowAction,
             _record: row,
             ...(columnKeys ? flattenRecord(row, columnKeys, false) : row),
+            _key: getRowId(row),
           };
         })
       );
@@ -199,6 +199,9 @@ export const SalesforceRecordDataTable: FunctionComponent<SalesforceRecordDataTa
 
     async function loadRemaining() {
       try {
+        if (!nextRecordsUrl) {
+          return;
+        }
         setIsLoadingMore(true);
         setLoadMoreErrorMessage(null);
         const results = await queryRemaining(org, nextRecordsUrl, isTooling);
@@ -209,7 +212,7 @@ export const SalesforceRecordDataTable: FunctionComponent<SalesforceRecordDataTa
         if (results.queryResults.done) {
           setHasMoreRecords(false);
         }
-        setRecords(records.concat(results.queryResults.records));
+        setRecords((records || []).concat(results.queryResults.records));
         setIsLoadingMore(false);
         if (onLoadMoreRecords) {
           onLoadMoreRecords(results);
@@ -241,7 +244,7 @@ export const SalesforceRecordDataTable: FunctionComponent<SalesforceRecordDataTa
         <Grid className="slds-p-around_xx-small" align="spread">
           <div className="slds-grid">
             <div className="slds-p-around_x-small">
-              Showing {formatNumber(records.length)} of {formatNumber(totalRecordCount)} records
+              Showing {formatNumber(records.length)} of {formatNumber(totalRecordCount || 0)} records
             </div>
             {hasMoreRecords && (
               <div>
@@ -253,7 +256,7 @@ export const SalesforceRecordDataTable: FunctionComponent<SalesforceRecordDataTa
                   Load All Records
                   {isLoadingMore && <Spinner size="small" />}
                 </button>
-                {loadMoreErrorMessage && <PopoverErrorButton listHeader={null} errors={loadMoreErrorMessage} />}
+                {loadMoreErrorMessage && <PopoverErrorButton errors={loadMoreErrorMessage} />}
               </div>
             )}
           </div>
@@ -277,8 +280,8 @@ export const SalesforceRecordDataTable: FunctionComponent<SalesforceRecordDataTa
             <DataTable
               serverUrl={serverUrl}
               org={org}
-              data={rows}
-              columns={columns}
+              data={rows || []}
+              columns={columns || []}
               allowReorder
               includeQuickFilter
               quickFilterText={globalFilter}

@@ -36,7 +36,7 @@ export interface RichTextProps {
   label?: string;
   isRequired?: boolean;
   options?: QuillOptionsStatic;
-  labelHelp?: string | JSX.Element;
+  labelHelp?: string | JSX.Element | null;
   debounceTimeMs?: number;
   disabled?: boolean;
   onChange: (contents: DeltaOperation[]) => void;
@@ -52,7 +52,7 @@ export const RichText: FunctionComponent<RichTextProps> = ({
   onChange,
 }) => {
   const [id] = useState(uniqueId('rich-text-'));
-  const editorContainerRef = useRef<HTMLDivElement>();
+  const editorContainerRef = useRef<HTMLDivElement>(null);
   const editorRef = useRef<Quill>();
   const [contents, setContents] = useState<DeltaOperation[]>();
   const debouncedContents = useDebounce(contents, debounceTimeMs);
@@ -60,7 +60,7 @@ export const RichText: FunctionComponent<RichTextProps> = ({
 
   const handleTextChange = useCallback(
     (delta: DeltaStatic, oldDelta: DeltaStatic, source: Sources) => {
-      setContents(editorRef.current.getContents().ops);
+      setContents(editorRef.current?.getContents().ops);
     },
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [editorContainerRef.current, setContents]
@@ -86,7 +86,7 @@ export const RichText: FunctionComponent<RichTextProps> = ({
   }, [disabled]);
 
   useNonInitialEffect(() => {
-    onChange(debouncedContents);
+    debouncedContents && onChange(debouncedContents);
   }, [debouncedContents, onChange]);
 
   function handleFocus(focus: boolean) {

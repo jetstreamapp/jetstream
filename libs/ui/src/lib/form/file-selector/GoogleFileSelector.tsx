@@ -1,6 +1,6 @@
 import { logger } from '@jetstream/shared/client-logger';
 import { GoogleApiClientConfig, useDrivePicker } from '@jetstream/shared/ui-utils';
-import { InputReadGoogleSheet } from '@jetstream/types';
+import { InputReadGoogleSheet, Maybe } from '@jetstream/types';
 import classNames from 'classnames';
 import { uniqueId } from 'lodash';
 import { FunctionComponent, useCallback, useEffect, useState } from 'react';
@@ -15,11 +15,11 @@ export interface GoogleFileSelectorProps {
   apiConfig: GoogleApiClientConfig;
   id?: string;
   className?: string;
-  filename?: string;
+  filename?: Maybe<string>;
   label?: string;
   buttonLabel?: string;
   helpText?: string;
-  labelHelp?: string;
+  labelHelp?: string | null;
   hideLabel?: boolean;
   isRequired?: boolean;
   disabled?: boolean;
@@ -48,7 +48,7 @@ export const GoogleFileSelector: FunctionComponent<GoogleFileSelectorProps> = ({
   const { data, error: scriptLoadError, loading: googleApiLoading, openPicker } = useDrivePicker(apiConfig);
   const [loading, setLoading] = useState(false);
   const [selectedFile, setSelectedFile] = useState<google.picker.DocumentObject>();
-  const [errorMessage, setErrorMessage] = useState<string>();
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [{ managedFilename, filenameTruncated }, setManagedFilename] = useFilename(filename);
 
   useEffect(() => {
@@ -61,7 +61,7 @@ export const GoogleFileSelector: FunctionComponent<GoogleFileSelectorProps> = ({
     if (scriptLoadError) {
       setErrorMessage(SCRIPT_LOAD_ERR_MESSAGE);
     } else if (errorMessage === SCRIPT_LOAD_ERR_MESSAGE) {
-      setErrorMessage(undefined);
+      setErrorMessage(null);
     }
   }, [scriptLoadError, errorMessage]);
 

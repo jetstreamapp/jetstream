@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-non-null-assertion */
 import { credentials, Metadata } from '@grpc/grpc-js';
 import { getNodeAutoInstrumentations } from '@opentelemetry/auto-instrumentations-node';
 import { OTLPTraceExporter } from '@opentelemetry/exporter-trace-otlp-grpc';
@@ -15,7 +16,7 @@ import { UserProfileServer } from '@jetstream/types';
 // A dataset is basically a bucket where observability data goes.
 // It's also a way to organize your data based on services or environments.
 const metadata = new Metadata();
-metadata.set('x-honeycomb-team', ENV.HONEYCOMB_API_KEY);
+metadata.set('x-honeycomb-team', ENV.HONEYCOMB_API_KEY!);
 metadata.set('x-honeycomb-dataset', `JETSTREAM-${ENV.ENVIRONMENT}`.toUpperCase());
 
 // Only enable tracing if the environment variable is set to true.
@@ -54,9 +55,9 @@ if (ENV.HONEYCOMB_ENABLED) {
 }
 
 export function telemetryAddUserToAttributes(user?: UserProfileServer) {
-  if (ENV.HONEYCOMB_ENABLED && (user?.user_id || user.id)) {
+  if (ENV.HONEYCOMB_ENABLED && user && (user.user_id || user.id)) {
     try {
-      telemetryApi.trace.getSpan(telemetryApi.context.active()).setAttribute('user.id', user.user_id || user.id);
+      telemetryApi.trace.getSpan(telemetryApi.context.active())?.setAttribute('user.id', user.user_id || user.id);
     } catch (ex) {
       logger.warn('[TELEMETRY] Error adding user to attributes', ex);
     }

@@ -18,10 +18,10 @@ export interface ListMetadataQueryExtended extends ListMetadataQuery {
 
 export interface ListMetadataResultItem {
   type: string;
-  folder: string;
+  folder?: string | null;
   inFolder: boolean;
   loading: boolean;
-  error: boolean;
+  error: boolean | null;
   lastRefreshed: string | null;
   items: ListMetadataResult[];
 }
@@ -34,7 +34,12 @@ async function fetchListMetadata(
   skipCacheIfOlderThan?: number
 ): Promise<ListMetadataResultItem> {
   const { type, folder } = item;
-  const { data: items, cache } = await listMetadataApi(selectedOrg, [{ type, folder }], skipRequestCache, skipCacheIfOlderThan);
+  const { data: items, cache } = await listMetadataApi(
+    selectedOrg,
+    [{ type, folder: folder || undefined }],
+    skipRequestCache,
+    skipCacheIfOlderThan
+  );
   return {
     ...item,
     items: orderObjectsBy(items, 'fullName'),
@@ -67,7 +72,7 @@ async function fetchListMetadataForItemsInFolder(
   // get list of folders
   const { data, cache } = await listMetadataApi(
     selectedOrg,
-    [{ type: typeWithFolder, folder: null }],
+    [{ type: typeWithFolder, folder: undefined }],
     skipRequestCache,
     skipCacheIfOlderThan
   );
@@ -112,7 +117,7 @@ function defaultFilterFn(item: ListMetadataResult) {
  * @param types
  */
 export function useListMetadata(selectedOrg: SalesforceOrgUi) {
-  const isMounted = useRef(null);
+  const isMounted = useRef(true);
   const rollbar = useRollbar();
   const [listMetadataItems, setListMetadataItems] = useState<MapOf<ListMetadataResultItem>>();
   const [loading, setLoading] = useState(true);
@@ -162,7 +167,7 @@ export function useListMetadata(selectedOrg: SalesforceOrgUi) {
           ({ type, folder, inFolder }): ListMetadataResultItem => ({
             type,
             folder,
-            inFolder,
+            inFolder: inFolder ?? false,
             loading: true,
             error: null,
             lastRefreshed: null,
@@ -215,10 +220,14 @@ export function useListMetadata(selectedOrg: SalesforceOrgUi) {
             if (!isMounted.current) {
               break;
             }
-            setListMetadataItems((previousItems) => ({
-              ...previousItems,
-              [type]: { ...previousItems[type], loading: false, error: true, items: [], lastRefreshed: null },
-            }));
+            setListMetadataItems((previousItems) =>
+              previousItems && previousItems[type]
+                ? {
+                    ...previousItems,
+                    [type]: { ...previousItems[type], loading: false, error: true, items: [], lastRefreshed: null },
+                  }
+                : previousItems
+            );
           }
         }
 
@@ -249,10 +258,14 @@ export function useListMetadata(selectedOrg: SalesforceOrgUi) {
     async (item: ListMetadataResultItem) => {
       const { type } = item;
       try {
-        setListMetadataItems((previousItems) => ({
-          ...previousItems,
-          [type]: { ...previousItems[type], loading: true, error: false, items: [], lastRefreshed: null },
-        }));
+        setListMetadataItems((previousItems) =>
+          previousItems && previousItems[type]
+            ? {
+                ...previousItems,
+                [type]: { ...previousItems[type], loading: true, error: false, items: [], lastRefreshed: null },
+              }
+            : previousItems
+        );
         const responseItem = await fetchListMetadata(selectedOrg, item, true);
         if (!isMounted.current) {
           return;
@@ -262,10 +275,14 @@ export function useListMetadata(selectedOrg: SalesforceOrgUi) {
         if (!isMounted.current) {
           return;
         }
-        setListMetadataItems((previousItems) => ({
-          ...previousItems,
-          [type]: { ...previousItems[type], loading: false, error: true, items: [], lastRefreshed: null },
-        }));
+        setListMetadataItems((previousItems) =>
+          previousItems && previousItems[type]
+            ? {
+                ...previousItems,
+                [type]: { ...previousItems[type], loading: false, error: true, items: [], lastRefreshed: null },
+              }
+            : previousItems
+        );
       }
     },
     [selectedOrg]

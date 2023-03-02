@@ -3,6 +3,7 @@
   "compilerOptions": {
     "outDir": "../../dist/out-tsc",
     "lib": ["es2020", "webworker"],
+    "strictNullChecks": true,
     "types": []
   },
   "exclude": ["**/*.spec.ts", "**/*.test.ts", "jest.config.ts"],

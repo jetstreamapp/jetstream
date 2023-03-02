@@ -1,4 +1,4 @@
-import { MapOf } from '@jetstream/types';
+import { MapOf, Maybe } from '@jetstream/types';
 import { QueryResult } from 'jsforce';
 
 export type ValidationRule = 'ValidationRule';
@@ -99,14 +99,14 @@ export interface MetadataCompositeResponseError {
 export interface AutomationControlDeploymentItem {
   type: AutomationMetadataType;
   id: string;
-  activeVersionNumber?: number; // only applies to flows
+  activeVersionNumber?: number | null; // only applies to flows
   value: boolean;
   requireMetadataApi: boolean;
-  metadataRetrieve?: MetadataCompositeResponseSuccess;
-  metadataDeploy?: MetadataCompositeResponseSuccess;
-  metadataDeployRollback?: MetadataCompositeResponseSuccess;
-  retrieveError?: MetadataCompositeResponseError[];
-  deployError?: MetadataCompositeResponseError[];
+  metadataRetrieve?: MetadataCompositeResponseSuccess | null;
+  metadataDeploy?: MetadataCompositeResponseSuccess | null;
+  metadataDeployRollback?: MetadataCompositeResponseSuccess | null;
+  retrieveError?: MetadataCompositeResponseError[] | null;
+  deployError?: MetadataCompositeResponseError[] | null;
 }
 
 export interface DeploymentItemByType {
@@ -352,11 +352,11 @@ export interface TableRowItem {
   isActive: boolean;
   isActiveInitialState: boolean;
   /** only applies to activeVersionId and PB */
-  activeVersionNumber?: number;
-  activeVersionNumberInitialState?: number;
+  activeVersionNumber?: number | null;
+  activeVersionNumberInitialState?: number | null;
   label: string;
   lastModifiedBy: string;
-  description: string | null;
+  description: Maybe<string>;
   additionalData: TableItemAdditionalData[];
   children?: TableRowItemChild[];
 }
@@ -368,7 +368,7 @@ export interface TableRowItemChild {
   type: AutomationMetadataType;
   sobject: string;
   record: ToolingFlowVersionRecord;
-  link?: string;
+  link?: string | null;
   isActive: boolean;
   isActiveInitialState: boolean;
   label: string;
@@ -380,7 +380,7 @@ export interface TableRowItemChild {
 
 export interface TableItemAdditionalData {
   label: string;
-  value: string;
+  value: string | null;
 }
 
 export interface TableEditorImperativeHandle {

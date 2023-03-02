@@ -13,6 +13,8 @@ interface StateDebugObserverProps {
  */
 export const StateDebugObserver: FunctionComponent<StateDebugObserverProps> = ({ name = 'SNAPSHOT', atoms }) => {
   if (logger.isEnabled) {
+    // FIXME: should not be conditionally called
+    // eslint-disable-next-line react-hooks/rules-of-hooks
     useRecoilTransactionObserver_UNSTABLE(({ snapshot }) => {
       logger.log(
         `[${name}]`,

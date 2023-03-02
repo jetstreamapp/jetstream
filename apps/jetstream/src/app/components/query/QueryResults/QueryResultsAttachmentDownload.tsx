@@ -9,7 +9,7 @@ import {
   getZipDownloadUrl,
   useRollbar,
 } from '@jetstream/shared/ui-utils';
-import { Record, SalesforceOrgUi } from '@jetstream/types';
+import { Maybe, Record, SalesforceOrgUi } from '@jetstream/types';
 import { Icon, Modal, ScopedNotification, Tooltip } from '@jetstream/ui';
 import React, { Fragment, FunctionComponent, useEffect, useState } from 'react';
 import { useAmplitude } from '../../core/analytics';
@@ -17,7 +17,7 @@ import { useAmplitude } from '../../core/analytics';
 export interface QueryResultsAttachmentDownloadProps {
   selectedOrg: SalesforceOrgUi;
   enabled: boolean;
-  sobjectName: string;
+  sobjectName: Maybe<string>;
   missingFields: string[];
   selectedRecords: Record[];
   hasRecords: boolean;
@@ -40,7 +40,8 @@ const ROOT_FILENAME = window.electron?.isElectron ? 'jetstream-download://localh
 function getFile(selectedOrg: SalesforceOrgUi, sobjectName: string, record: Record): DownZipFile {
   sobjectName = sobjectName.toLowerCase();
   if (FILE_DOWNLOAD_FIELD_MAP.has(sobjectName)) {
-    const { bodyField, nameField, sizeField } = FILE_DOWNLOAD_FIELD_MAP.get(sobjectName);
+    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+    const { bodyField, nameField, sizeField } = FILE_DOWNLOAD_FIELD_MAP.get(sobjectName)!;
     return {
       downloadUrl: `${ROOT_FILENAME}?${getOrgUrlParams(selectedOrg, { url: record[bodyField] })}`,
       name: record[nameField],
@@ -62,17 +63,17 @@ export const QueryResultsAttachmentDownload: FunctionComponent<QueryResultsAttac
   const rollbar = useRollbar();
   const { trackEvent } = useAmplitude();
   const [modalOpen, setModalOpen] = useState(false);
-  const [downloadAttachmentUrl, setDownloadAttachmentUrl] = useState<string>();
+  const [downloadAttachmentUrl, setDownloadAttachmentUrl] = useState<string | null>(null);
   const [visible, setVisible] = useState(false);
   const [disabled, setDisabled] = useState(false);
   const [disabledReason, setDisabledReason] = useState('');
-  const [errorMessage, setErrorMessage] = useState<string>(null);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   useEffect(() => {
-    setVisible(FILE_DOWNLOAD_FIELD_MAP.has(sobjectName) && hasRecords);
+    setVisible(FILE_DOWNLOAD_FIELD_MAP.has(sobjectName || '') && hasRecords);
     if (selectedRecords.length && !missingFields?.length) {
       setDisabled(false);
-      setDisabledReason(null);
+      setDisabledReason('');
     } else if (selectedRecords.length) {
       setDisabled(true);
       setDisabledReason(`Your query must to the following fields to download attachments: ${missingFields.join(', ')}`);
@@ -91,12 +92,16 @@ export const QueryResultsAttachmentDownload: FunctionComponent<QueryResultsAttac
 
   async function handleInitiateDownload() {
     try {
+      if (!sobjectName) {
+        return;
+      }
       trackEvent(ANALYTICS_KEYS.attachment_ModalOpened, { selectedRecords: selectedRecords.length, sobjectName });
       setDownloadAttachmentUrl(null);
-      setDisabledReason(null);
+      setDisabledReason('');
       setErrorMessage(null);
       setModalOpen(true);
-      const files = selectedRecords.map((record) => getFile(selectedOrg, sobjectName, record));
+      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+      const files = selectedRecords.map((record) => getFile(selectedOrg, sobjectName!, record));
       const url = await getZipDownloadUrl(getFilename(selectedOrg, [sobjectName, 'files']), files);
       setDownloadAttachmentUrl(url);
     } catch (ex) {
@@ -116,7 +121,7 @@ export const QueryResultsAttachmentDownload: FunctionComponent<QueryResultsAttac
     setModalOpen(false);
     if (cancel) {
       trackEvent(ANALYTICS_KEYS.attachment_Cancelled, { selectedRecords: selectedRecords.length, sobjectName });
-      cancelZipDownload(downloadAttachmentUrl);
+      downloadAttachmentUrl && cancelZipDownload(downloadAttachmentUrl);
     } else {
       trackEvent(ANALYTICS_KEYS.attachment_Downloaded, { selectedRecords: selectedRecords.length, sobjectName });
     }
@@ -147,7 +152,7 @@ export const QueryResultsAttachmentDownload: FunctionComponent<QueryResultsAttac
               <button className="slds-button slds-button_neutral" onClick={() => handleModalClose(true)}>
                 Cancel
               </button>
-              <a href={downloadAttachmentUrl} className="slds-button slds-button_brand" onClick={() => handleModalClose()}>
+              <a href={downloadAttachmentUrl || ''} className="slds-button slds-button_brand" onClick={() => handleModalClose()}>
                 Download
               </a>
             </Fragment>

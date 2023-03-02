@@ -59,7 +59,7 @@ export const CreateNewGlobalPicklistModal: FunctionComponent<CreateNewGlobalPick
   const rollbar = useRollbar();
   const [{ defaultApiVersion }] = useRecoilState(applicationCookieState);
   const [isOpen, setIsOpen] = useState(false);
-  const [errorMessage, setErrorMessage] = useState<string>(null);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   const [picklistData, setPicklistData] = useState<PicklistData>({ ...defaultValues });
   const [isValid, setIsValid] = useState(false);

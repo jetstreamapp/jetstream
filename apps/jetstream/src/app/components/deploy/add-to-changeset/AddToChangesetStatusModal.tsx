@@ -13,7 +13,7 @@ export interface AddToChangesetStatusModalProps {
   selectedMetadata: MapOf<ListMetadataResult[]>;
   changesetName: string;
   changesetDescription: string;
-  changeset?: ChangeSet;
+  changeset?: ChangeSet | null;
   // used to hide while download window is open
   hideModal: boolean;
   onGoBack: () => void;
@@ -33,7 +33,7 @@ export const AddToChangesetStatusModal: FunctionComponent<AddToChangesetStatusMo
   onDownload,
 }) => {
   const [{ serverUrl }] = useRecoilState(applicationCookieState);
-  const [deployStatusUrl, setDeployStatusUrl] = useState<string>();
+  const [deployStatusUrl, setDeployStatusUrl] = useState<string | null>(null);
   const { deployMetadata, results, deployId, loading, status, lastChecked, hasError, errorMessage } = useAddItemsToChangeset(selectedOrg, {
     changesetName,
     changesetDescription,

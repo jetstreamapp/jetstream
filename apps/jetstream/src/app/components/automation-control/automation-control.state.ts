@@ -3,12 +3,12 @@ import { DescribeGlobalSObjectResult } from 'jsforce';
 import { atom, selector } from 'recoil';
 import { AutomationMetadataType } from './automation-control-types';
 
-export const priorSelectedOrg = atom<string>({
+export const priorSelectedOrg = atom<string | null>({
   key: 'automation-control.priorSelectedOrg',
   default: null,
 });
 
-export const sObjectsState = atom<DescribeGlobalSObjectResult[]>({
+export const sObjectsState = atom<DescribeGlobalSObjectResult[] | null>({
   key: 'automation-control.sObjectsState',
   default: null,
 });

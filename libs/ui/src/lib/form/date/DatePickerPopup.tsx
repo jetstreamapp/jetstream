@@ -18,8 +18,8 @@ export interface DatePickerPopupProps {
   initialVisibleDate?: Date;
   dropDownPosition?: PositionLeftRight;
   availableYears: number[];
-  minAvailableDate: Date;
-  maxAvailableDate: Date;
+  minAvailableDate?: Date;
+  maxAvailableDate?: Date;
   onClose: () => void;
   onSelection: (date: Date) => void;
   onClear: () => void;
@@ -41,7 +41,7 @@ export const DatePickerPopup: FunctionComponent<DatePickerPopupProps> = ({
   const [currMonthString, setCurrMonthString] = useState(() => formatDate(initialVisibleDate, 'MMMM'));
   const [currMonth, setCurrMonth] = useState(() => initialVisibleDate.getMonth());
   const [currYear, setCurrYear] = useState(() => initialVisibleDate.getFullYear());
-  const [cameFromMonth, setCameFromMonth] = useState<PreviousNext>(null);
+  const [cameFromMonth, setCameFromMonth] = useState<PreviousNext | null>(null);
   const [prevMonthAvailable, setPrevMonthAvailable] = useState(true);
   const [nextMonthAvailable, setNextMonthAvailable] = useState(true);
 

@@ -1,16 +1,16 @@
 import { multiWordObjectFilter } from '@jetstream/shared/utils';
-import { InsertUpdateUpsertDelete } from '@jetstream/types';
+import { InsertUpdateUpsertDelete, Maybe } from '@jetstream/types';
 import { Combobox, ComboboxListItem, Grid, GridCol, RadioButton, RadioGroup, Spinner } from '@jetstream/ui';
 import { FunctionComponent, useEffect, useState } from 'react';
 import { FieldWithRelatedEntities } from '../load-records-types';
 
 export interface LoadRecordsLoadTypeButtonsProps {
   selectedType: InsertUpdateUpsertDelete;
-  loadingFields: boolean;
+  loadingFields: Maybe<boolean>;
   externalIdFields: FieldWithRelatedEntities[];
   externalId: string;
   isCustomMetadataObject: boolean;
-  onChange: (type: InsertUpdateUpsertDelete, externalId: string) => void;
+  onChange: (type: InsertUpdateUpsertDelete, externalId: Maybe<string>) => void;
 }
 
 export const LoadRecordsLoadTypeButtons: FunctionComponent<LoadRecordsLoadTypeButtonsProps> = ({

@@ -88,7 +88,7 @@ export const Accordion: FunctionComponent<AccordionProps> = ({
             }
           }
           return (
-            <li className={classNames('slds-accordion__list-item', item.className)} key={item.id} style={item.style}>
+            <li className={classNames('slds-accordion__list-item', item.className)} key={item.id} style={item.style || undefined}>
               <section className={classNames('slds-accordion__section', { 'slds-is-open': isOpen })}>
                 <div className="slds-accordion__summary">
                   <h3 className="slds-accordion__summary-heading">
@@ -98,7 +98,7 @@ export const Accordion: FunctionComponent<AccordionProps> = ({
                       aria-expanded={isOpen}
                       className="slds-button slds-button_reset slds-accordion__summary-action"
                       onClick={() => handleClick(item.id)}
-                      disabled={item.disabled}
+                      disabled={!!item.disabled}
                     >
                       <Icon
                         type="utility"

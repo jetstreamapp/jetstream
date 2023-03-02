@@ -6,6 +6,7 @@ import { getMapOf } from '@jetstream/shared/utils';
 import {
   ApplicationCookie,
   ElectronPreferences,
+  Maybe,
   SalesforceOrgUi,
   SalesforceOrgUiType,
   UserProfilePreferences,
@@ -23,16 +24,18 @@ export const STORAGE_KEYS = {
 /**
  * Parse application state with a fallback in case there is an issue parsing
  */
-function getAppCookie() {
+function getAppCookie(): ApplicationCookie {
   let appState = window.electron?.isElectron ? window.electron.appCookie : parseCookie<ApplicationCookie>(HTTP.COOKIE.JETSTREAM);
-  appState = { ...appState } || {
-    serverUrl: 'http://localhost:3333',
-    environment: 'development',
-    defaultApiVersion: 'v54.0',
-    google_appId: '1071580433137',
-    google_apiKey: 'AIzaSyDaqv3SafGq6NmVVwUWqENrf2iEFiDSMoA',
-    google_clientId: '1094188928456-fp5d5om6ar9prdl7ak03fjkqm4fgagoj.apps.googleusercontent.com',
-  };
+  appState = appState
+    ? { ...appState }
+    : {
+        serverUrl: 'http://localhost:3333',
+        environment: 'development',
+        defaultApiVersion: 'v54.0',
+        google_appId: '1071580433137',
+        google_apiKey: 'AIzaSyDaqv3SafGq6NmVVwUWqENrf2iEFiDSMoA',
+        google_clientId: '1094188928456-fp5d5om6ar9prdl7ak03fjkqm4fgagoj.apps.googleusercontent.com',
+      };
   appState.serverUrl = appState.serverUrl || 'https://getjetstream.app/';
   appState.environment = appState.environment || 'production';
   appState.defaultApiVersion = appState.defaultApiVersion || 'v54.0';
@@ -48,7 +51,7 @@ function getAppCookie() {
   return appState;
 }
 
-function ensureUserProfileInit(pref?: UserProfilePreferences): UserProfilePreferences {
+function ensureUserProfileInit(pref?: Maybe<UserProfilePreferences>): UserProfilePreferences {
   return {
     // CURRENT
     ...pref,
@@ -130,13 +133,13 @@ export const salesforceOrgsState = atom<SalesforceOrgUi[]>({
   default: getOrgsFromStorage(),
 });
 
-export const selectedOrgIdState = atom<string>({
+export const selectedOrgIdState = atom<Maybe<string>>({
   key: 'selectedOrgIdState',
   default: getSelectedOrgFromStorage(),
 });
 
-export const selectedOrgState = selector({
-  key: 'selectedOrgState',
+export const selectedOrgStateWithoutPlaceholder = selector({
+  key: 'selectedOrgStateWithoutPlaceholder',
   get: ({ get }) => {
     const salesforceOrgs = get(salesforceOrgsState);
     const selectedOrgId = get(selectedOrgIdState);
@@ -144,6 +147,31 @@ export const selectedOrgState = selector({
       return salesforceOrgs.find((org) => org.uniqueId === selectedOrgId);
     }
     return undefined;
+  },
+});
+
+/**
+ * If no org is selected, this returns a placeholder
+ * it is expected that any component with an org required
+ * will be wrapped in an <OrgSelectionRequired> component to guard against this
+ */
+export const selectedOrgState = selector({
+  key: 'selectedOrgState',
+  get: ({ get }) => {
+    const PLACEHOLDER: SalesforceOrgUi = {
+      uniqueId: '',
+      label: '',
+      filterText: '',
+      accessToken: '',
+      instanceUrl: '',
+      loginUrl: '',
+      userId: '',
+      email: '',
+      organizationId: '',
+      username: '',
+      displayName: '',
+    };
+    return get(selectedOrgStateWithoutPlaceholder) || PLACEHOLDER;
   },
 });
 
@@ -175,9 +203,9 @@ export const hasConfiguredOrgState = selector({
   },
 });
 
-export const selectedOrgType = selector<SalesforceOrgUiType>({
+export const selectedOrgType = selector<Maybe<SalesforceOrgUiType>>({
   key: 'selectedOrgType',
-  get: ({ get }) => getOrgType(get(selectedOrgState)),
+  get: ({ get }) => getOrgType(get(selectedOrgStateWithoutPlaceholder)),
 });
 
 export const selectUserPreferenceState = selector<UserProfilePreferences>({

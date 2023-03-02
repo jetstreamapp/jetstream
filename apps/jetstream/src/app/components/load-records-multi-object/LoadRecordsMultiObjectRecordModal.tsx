@@ -1,6 +1,6 @@
 import { formatNumber } from '@jetstream/shared/ui-utils';
 import { pluralizeFromNumber, pluralizeIfMultiple } from '@jetstream/shared/utils';
-import { CompositeGraphRequest, CompositeRequestBody } from '@jetstream/types';
+import { CompositeGraphRequest, CompositeRequestBody, Maybe } from '@jetstream/types';
 import { Icon, Modal, Tooltip, Tree, TreeItems } from '@jetstream/ui';
 import { Fragment, FunctionComponent, useEffect, useState } from 'react';
 import { LoadMultiObjectRequestWithResult, RecordWithResponse } from './load-records-multi-object-types';
@@ -11,8 +11,8 @@ export interface LoadRecordsMultiObjectRecordModalProps {
   data: LoadMultiObjectRequestWithResult;
 }
 
-function getIcon(isSuccess?: boolean) {
-  return !!isSuccess ? (
+function getIcon(isSuccess?: Maybe<boolean>) {
+  return isSuccess ? (
     <Icon type="utility" icon="success" className="slds-icon slds-icon-text-success slds-icon_xx-small" />
   ) : (
     <Icon type="utility" icon="error" className="slds-icon slds-icon-text-error slds-icon_xx-small" />
@@ -34,11 +34,11 @@ function getParentTreeItem(item: CompositeGraphRequest, data: LoadMultiObjectReq
             'slds-text-color_error': !graphResults.isSuccess,
           })}
         >
-          {getIcon(graphResults.isSuccess)} Record Group - {formatNumber(item.compositeRequest.length)}{' '}
-          {pluralizeFromNumber('record', item.compositeRequest.length)}
+          {getIcon(graphResults.isSuccess)} Record Group - {formatNumber(item.compositeRequest?.length)}{' '}
+          {pluralizeFromNumber('record', item.compositeRequest?.length)}
         </div>
       ),
-      treeItems: item.compositeRequest.map((item) => getTreeItem(data.recordWithResponseByRefId[item.referenceId], item)),
+      treeItems: item.compositeRequest?.map((item) => getTreeItem(data.recordWithResponseByRefId[item.referenceId], item)),
     };
   }
   /**
@@ -46,8 +46,8 @@ function getParentTreeItem(item: CompositeGraphRequest, data: LoadMultiObjectReq
    */
   return {
     id: `parent-${item.graphId}`,
-    label: `Record Group - ${formatNumber(item.compositeRequest.length)} ${pluralizeFromNumber('record', item.compositeRequest.length)}`,
-    treeItems: item.compositeRequest.map((item) => getTreeItem(data.recordWithResponseByRefId[item.referenceId], item)),
+    label: `Record Group - ${formatNumber(item.compositeRequest?.length)} ${pluralizeFromNumber('record', item.compositeRequest?.length)}`,
+    treeItems: item.compositeRequest?.map((item) => getTreeItem(data.recordWithResponseByRefId[item.referenceId], item)),
   };
 }
 

@@ -1,7 +1,7 @@
 import { logger } from '@jetstream/shared/client-logger';
 import { HTTP } from '@jetstream/shared/constants';
-import { MapOf, SalesforceOrgUi } from '@jetstream/types';
-import { CometD, Extension, Message, SubscriptionHandle } from 'cometd';
+import { MapOf, Maybe, SalesforceOrgUi } from '@jetstream/types';
+import { CometD, Message, SubscriptionHandle } from 'cometd';
 import isNumber from 'lodash/isNumber';
 
 /**
@@ -84,7 +84,8 @@ export function subscribe<T = any>(
     }
 
     if (subscriptions.has(platformEventName)) {
-      cometd.unsubscribe(subscriptions.get(platformEventName));
+      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+      cometd.unsubscribe(subscriptions.get(platformEventName)!);
     }
     subscriptions.set(
       platformEventName,
@@ -98,7 +99,8 @@ export function subscribe<T = any>(
 export function unsubscribe({ cometd, platformEventName }: { cometd: CometD; platformEventName: string }) {
   if (!cometd.isDisconnected()) {
     if (subscriptions.has(platformEventName)) {
-      cometd.unsubscribe(subscriptions.get(platformEventName));
+      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+      cometd.unsubscribe(subscriptions.get(platformEventName)!);
       subscriptions.delete(platformEventName);
     }
     // if no more subscriptions, disconnect everything
@@ -119,12 +121,24 @@ export function disconnect(cometd: CometD) {
     subscriptions.clear();
   });
 }
+
+/**
+ * The CometD "Extension" interface types are not correct
+ * They required retuning `Message | null` - only returning undefined allows the handshake to succeed
+ *
+ * {@link https://github.com/cometd/cometd/issues/1324}
+ */
+export interface Extension {
+  incoming?(message: Message): Maybe<Message>;
+  outgoing?(message: Message): Maybe<Message>;
+}
+
 class CometdReplayExtension implements Extension {
   static EXT_NAME = 'replay-extension';
   static REPLAY_FROM_KEY = 'replay';
   cometd: CometD;
   extensionEnabled = true;
-  replayFromMap: MapOf<number> = {};
+  replayFromMap: MapOf<number | undefined> = {};
 
   setEnabled(extensionEnabled: boolean) {
     this.extensionEnabled = extensionEnabled;

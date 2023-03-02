@@ -1,3 +1,4 @@
+import { Maybe } from '@jetstream/types';
 import { DescribeSObjectResult, Field } from 'jsforce';
 
 export type SobjectExportFieldName =
@@ -34,6 +35,6 @@ export interface ExportOptions {
 
 export interface SobjectFetchResult {
   sobject: string;
-  error?: string;
-  metadata: DescribeSObjectResult;
+  error?: Maybe<string>;
+  metadata: Maybe<DescribeSObjectResult>;
 }

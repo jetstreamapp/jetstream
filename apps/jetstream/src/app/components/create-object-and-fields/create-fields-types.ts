@@ -79,10 +79,10 @@ export interface FieldDefinition {
   type: FieldDefinitionUiType | ((type: SalesforceFieldType) => FieldDefinitionUiType);
   values?: ListItem[] | ((org: SalesforceOrgUi, skipRequestCache?: boolean) => Promise<ListItem[]>);
   allowRefreshValues?: boolean;
-  helpText?: string | ((type: SalesforceFieldType) => string);
-  labelHelp?: string | ((type: SalesforceFieldType) => string);
+  helpText?: string | ((type: SalesforceFieldType) => string | undefined);
+  labelHelp?: string | ((type: SalesforceFieldType) => string | undefined);
   validate?: (value: FieldValue, fieldValues: FieldValues) => boolean;
-  invalidErrorMessage?: string | ((type: SalesforceFieldType) => string);
+  invalidErrorMessage?: string | ((type: SalesforceFieldType | undefined) => string);
   placeholder?: string;
   required?: boolean;
   disabled?: (fieldValues: FieldValues) => boolean;

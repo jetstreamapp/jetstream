@@ -5,6 +5,7 @@
     "allowSyntheticDefaultImports": true,
     "esModuleInterop": true,
     "moduleResolution": "node",
+    "strictNullChecks": true,
     "outDir": "../../dist/out-tsc",
     "target": "esnext",
     "types": ["node", "google.accounts", "google.picker", "gapi.auth2", "gapi.client.drive"]

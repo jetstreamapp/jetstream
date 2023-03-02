@@ -7,7 +7,7 @@ import { useCallback, useEffect, useReducer, useRef } from 'react';
 import { LoadMultiObjectRequestWithResult } from './load-records-multi-object-types';
 
 type Action =
-  | { type: 'INIT'; payload: { loading: boolean; data: MapOf<LoadMultiObjectRequestWithResult> } }
+  | { type: 'INIT'; payload: { loading: boolean; data: MapOf<LoadMultiObjectRequestWithResult> | null } }
   | { type: 'ITEM_STARTED'; payload: { key: string } }
   | { type: 'ITEM_FAILED'; payload: { key: string; errorMessage: string } }
   | { type: 'ITEM_FINISHED'; payload: { key: string; results: CompositeGraphResponse[] } }
@@ -15,8 +15,8 @@ type Action =
 
 interface State {
   loading: boolean;
-  data: MapOf<LoadMultiObjectRequestWithResult>;
-  dataArray: LoadMultiObjectRequestWithResult[];
+  data: MapOf<LoadMultiObjectRequestWithResult> | null;
+  dataArray: LoadMultiObjectRequestWithResult[] | null;
   finished: boolean;
 }
 
@@ -100,7 +100,7 @@ function getNotification(dataToProcess: LoadMultiObjectRequestWithResult[]) {
       if (item.errorMessage) {
         output.failure += item.data.length;
       } else {
-        item.results.forEach((result) => {
+        item.results?.forEach((result) => {
           if (result.isSuccessful) {
             output.success += result.graphResponse.compositeResponse.length;
           } else {
@@ -131,7 +131,7 @@ export const useLoadFile = (org: SalesforceOrgUi, serverUrl: string, apiVersion:
     finished: false,
   });
 
-  const isMounted = useRef<boolean>(null);
+  const isMounted = useRef(true);
 
   useEffect(() => {
     isMounted.current = true;
@@ -141,7 +141,7 @@ export const useLoadFile = (org: SalesforceOrgUi, serverUrl: string, apiVersion:
   }, []);
 
   useEffect(() => {
-    if (finished) {
+    if (finished && data) {
       notifyUser(`Your data load is finished`, { body: getNotification(data), tag: 'load-multi-object' });
     }
   }, [finished]);

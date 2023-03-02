@@ -25,7 +25,15 @@ import CreateFieldsImportExport from './CreateFieldsImportExport';
 import CreateFieldsRow from './CreateFieldsRow';
 import { useFieldValues } from './useFieldValues';
 
-function SelectedItemsBadge({ items: _items, labelListItem, label }: { items: string[]; labelListItem?: ListItem[]; label: string }) {
+function SelectedItemsBadge({
+  items: _items,
+  labelListItem,
+  label,
+}: {
+  items: string[];
+  labelListItem?: ListItem[] | null;
+  label: string;
+}) {
   const [items] = useState<ListItem[]>(() => {
     if (labelListItem?.length) {
       const itemsById = getMapOf(labelListItem, 'id');

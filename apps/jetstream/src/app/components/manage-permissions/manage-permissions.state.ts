@@ -9,7 +9,7 @@ import { DescribeGlobalSObjectResult } from 'jsforce';
 import { atom, selector } from 'recoil';
 import { FieldPermissionDefinitionMap, ObjectPermissionDefinitionMap } from './utils/permission-manager-types';
 
-export const sObjectsState = atom<DescribeGlobalSObjectResult[]>({
+export const sObjectsState = atom<DescribeGlobalSObjectResult[] | null>({
   key: 'permission-manager.sObjectsState',
   default: null,
 });
@@ -19,7 +19,7 @@ export const selectedSObjectsState = atom<string[]>({
   default: [],
 });
 
-export const profilesState = atom<ListItem<string, PermissionSetWithProfileRecord>[]>({
+export const profilesState = atom<ListItem<string, PermissionSetWithProfileRecord>[] | null>({
   key: 'permission-manager.profilesState',
   default: null,
 });
@@ -30,7 +30,7 @@ export const selectedProfilesPermSetState = atom<string[]>({
   default: [],
 });
 
-export const permissionSetsState = atom<ListItem<string, PermissionSetNoProfileRecord>[]>({
+export const permissionSetsState = atom<ListItem<string, PermissionSetNoProfileRecord>[] | null>({
   key: 'permission-manager.permissionSetsState',
   default: null,
 });
@@ -40,13 +40,13 @@ export const selectedPermissionSetsState = atom<string[]>({
   default: [],
 });
 
-export const fieldsByObject = atom<MapOf<string[]>>({
+export const fieldsByObject = atom<MapOf<string[]> | null>({
   key: 'permission-manager.fieldsByObject',
   default: null,
 });
 
 // KEY = {SObject.FieldName}, ex: `${record.EntityDefinition.QualifiedApiName}.${record.QualifiedApiName}`
-export const fieldsByKey = atom<MapOf<EntityParticlePermissionsRecord>>({
+export const fieldsByKey = atom<MapOf<EntityParticlePermissionsRecord> | null>({
   key: 'permission-manager.fieldsByKey',
   default: null,
 });
@@ -69,12 +69,12 @@ export const fieldsByKey = atom<MapOf<EntityParticlePermissionsRecord>>({
 //   default: null,
 // });
 
-export const objectPermissionMap = atom<MapOf<ObjectPermissionDefinitionMap>>({
+export const objectPermissionMap = atom<MapOf<ObjectPermissionDefinitionMap> | null>({
   key: 'permission-manager.objectPermissionMap',
   default: null,
 });
 
-export const fieldPermissionMap = atom<MapOf<FieldPermissionDefinitionMap>>({
+export const fieldPermissionMap = atom<MapOf<FieldPermissionDefinitionMap> | null>({
   key: 'permission-manager.fieldPermissionMap',
   default: null,
 });

@@ -27,7 +27,7 @@ function generateObjectWorksheet(columns: ObjectOrFieldColumn[], rows: Permissio
   const header2: string[] = ['Object'];
   const excelRows = [header1, header2];
 
-  const permissionKeys = [];
+  const permissionKeys: string[] = [];
 
   columns
     .filter((col) => col.key?.endsWith('-read'))
@@ -81,7 +81,7 @@ function generateFieldWorksheet(columns: ObjectOrFieldColumn[], rows: Permission
   const header2: string[] = ['Object', 'Field Api Name', 'Field Label'];
   const excelRows = [header1, header2];
 
-  const permissionKeys = [];
+  const permissionKeys: string[] = [];
 
   columns
     .filter((col) => col.key?.endsWith('-read'))

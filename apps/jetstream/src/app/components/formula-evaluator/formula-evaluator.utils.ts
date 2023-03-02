@@ -2,7 +2,7 @@ import { QueryResultsColumn, QueryResultsColumns } from '@jetstream/api-interfac
 import { logger } from '@jetstream/shared/client-logger';
 import { query } from '@jetstream/shared/data';
 import { getMapOf } from '@jetstream/shared/utils';
-import { SalesforceOrgUi } from '@jetstream/types';
+import { MapOf, Maybe, SalesforceOrgUi } from '@jetstream/types';
 import parseISO from 'date-fns/parseISO';
 import startOfDay from 'date-fns/startOfDay';
 import * as formulon from 'formulon';
@@ -81,7 +81,7 @@ export function getFormulonData(col: QueryResultsColumn | Field, value: any, num
           scale: getPrecision(value),
         }
       : {
-          length: col.precision - col.scale,
+          length: (isNil(col.precision) ? getPrecision(value) : col.precision) - col.scale,
           scale: col.scale,
         };
     return {
@@ -302,7 +302,10 @@ async function collectBaseRecordFields({
   }
 
   const fieldsByName = getFieldsByName(columns);
-  const { lowercaseFieldMap } = await fetchMetadataFromSoql(selectedOrg, parsedQuery);
+  let lowercaseFieldMap: MapOf<Field> = {};
+  if (parsedQuery) {
+    lowercaseFieldMap = (await fetchMetadataFromSoql(selectedOrg, parsedQuery)).lowercaseFieldMap;
+  }
 
   fields.forEach((field) => {
     // Prefer to get field from actual metadata, otherwise picklist is not handled and can cause formula errors
@@ -406,7 +409,10 @@ async function collectCustomMetadata({
 
     // Group records by Api name, then get value of each used field in record
     const fieldsByName = getFieldsByName(columns);
-    const { lowercaseFieldMap } = await fetchMetadataFromSoql(selectedOrg, parsedQuery);
+    let lowercaseFieldMap: MapOf<Field> = {};
+    if (parsedQuery) {
+      lowercaseFieldMap = (await fetchMetadataFromSoql(selectedOrg, parsedQuery)).lowercaseFieldMap;
+    }
     const recordsByApiName = getRecordsByLowercaseField(queryResults.records, 'QualifiedApiName');
 
     Object.values(records).forEach(({ fields, record }) => {
@@ -466,12 +472,12 @@ async function collectLabels({
   fields.forEach((fieldWithIdentifier) => {
     const field = fieldWithIdentifier.replace(MATCH_FORMULA_SPECIAL_LABEL, '');
     const recordName = field.toLowerCase();
-    const record = recordsByApiName[recordName];
+    const record: Record<string, any> | undefined = recordsByApiName[recordName];
     formulaFields[fieldWithIdentifier] = {
       type: 'literal',
       dataType: 'text',
-      value: record.Value,
-      options: { length: record.Value.length },
+      value: record?.Value || '',
+      options: { length: record?.Value?.length || 0 },
     };
   });
 }
@@ -627,6 +633,7 @@ async function collectCustomSettingFields({
           field: 'Id',
           value: selectedOrg.userId,
           operator: '=',
+          literalType: 'STRING',
         },
       },
       limit: 1,
@@ -687,12 +694,14 @@ async function collectSystemFields({ fields, formulaFields }: { fields: string[]
 }
 
 /** get columns by field name in lowercase */
-function getFieldsByName(columns: QueryResultsColumns) {
+function getFieldsByName(columns: Maybe<QueryResultsColumns>) {
   // get columns by field name in lowercase
-  return columns.columns.reduce((output: Record<string, QueryResultsColumn>, item) => {
-    output[item.columnFullPath.toLowerCase()] = item;
-    return output;
-  }, {});
+  return (
+    columns?.columns?.reduce((output: Record<string, QueryResultsColumn>, item) => {
+      output[item.columnFullPath.toLowerCase()] = item;
+      return output;
+    }, {}) || {}
+  );
 }
 
 function getRecordsByLowercaseField(records: Record<string, any>[], field: string): Record<string, Record<string, any>> {

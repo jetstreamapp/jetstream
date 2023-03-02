@@ -89,8 +89,8 @@ export function handleRequest(path: string, requestData: ElectronRequestData) {
   // eslint-disable-next-line no-async-promise-executor
   return new Promise(async (resolve, reject) => {
     const route = router.find(method.toUpperCase() as HTTPMethod, path);
-    let connection: jsforce.Connection;
-    let targetConnection: jsforce.Connection;
+    let connection: jsforce.Connection | undefined;
+    let targetConnection: jsforce.Connection | undefined;
     if (!route) {
       return reject(new Error('Route not found'));
     }
@@ -130,7 +130,7 @@ export function handleRequest(path: string, requestData: ElectronRequestData) {
       }
     }
 
-    route.handler(null, null, route.params, request);
+    route.handler(null as any, null as any, route.params, request);
   });
 }
 
@@ -150,7 +150,7 @@ export function getJsforceConnection(org: SalesforceOrgElectron, includeCallOpti
   };
 
   if (org.orgNamespacePrefix && includeCallOptions) {
-    connData.callOptions = { ...connData.callOptions, defaultNamespace: org.orgNamespacePrefix };
+    connData.callOptions = { ...connData.callOptions, defaultNamespace: org.orgNamespacePrefix } as any;
   }
 
   const conn = new jsforce.Connection(connData);

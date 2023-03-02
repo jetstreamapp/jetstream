@@ -19,10 +19,8 @@ export interface MetadataDependency {
   MetadataComponentType: string;
 }
 
-const HAS_NAMESPACE = /__/;
-
 function getEntityDefinitionQuery(sobject: string, field: string) {
-  let namespace: string;
+  let namespace: string | undefined = undefined;
   if (field.includes('__')) {
     const [_namespace, fieldWithoutNamespace] = field.split('__');
     namespace = _namespace;
@@ -44,7 +42,7 @@ function getDependencyQuery(RefMetadataComponentId: string) {
 }
 
 export function useWhereIsThisUsed(org: SalesforceOrgUi, sobject: string, field: string) {
-  const isMounted = useRef(null);
+  const isMounted = useRef(true);
 
   const [{ hasLoaded, loading, data, hasError, errorMessage }, dispatch] = useReducer(
     useReducerFetchFn<ListItem<string, MetadataDependency>[]>(),

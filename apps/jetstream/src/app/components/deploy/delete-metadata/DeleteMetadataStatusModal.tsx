@@ -29,7 +29,7 @@ export const DeployMetadataPackageStatusModal: FunctionComponent<DeployMetadataP
   onDownload,
 }) => {
   const [{ serverUrl }] = useRecoilState(applicationCookieState);
-  const [deployStatusUrl, setDeployStatusUrl] = useState<string>();
+  const [deployStatusUrl, setDeployStatusUrl] = useState<string | null>(null);
   const { deployMetadata, results, deployId, loading, status, lastChecked, hasError, errorMessage } = useDeployMetadataPackage(
     destinationOrg,
     deployOptions,

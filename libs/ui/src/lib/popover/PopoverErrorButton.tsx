@@ -6,7 +6,7 @@ import Popover, { PopoverRef } from './Popover';
 export interface PopoverErrorButtonProps {
   initOpenState?: boolean;
   header?: string;
-  listHeader?: string;
+  listHeader?: string | null;
   errors: string | string[];
   omitPortal?: boolean;
   portalRef?: Element;
@@ -20,7 +20,7 @@ export const PopoverErrorButton: FunctionComponent<PopoverErrorButtonProps> = ({
   omitPortal,
   portalRef,
 }) => {
-  const popoverRef = useRef<PopoverRef>();
+  const popoverRef = useRef<PopoverRef>(null);
 
   useEffect(() => {
     if (initOpenState) {

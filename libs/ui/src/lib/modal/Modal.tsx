@@ -1,6 +1,6 @@
 import { css, SerializedStyles } from '@emotion/react';
 import { isEscapeKey } from '@jetstream/shared/ui-utils';
-import { SizeSmMdLg } from '@jetstream/types';
+import { Maybe, SizeSmMdLg } from '@jetstream/types';
 import { useDialog } from '@react-aria/dialog';
 import { FocusScope } from '@react-aria/focus';
 import { OverlayContainer, OverlayProps, useModal, useOverlay, usePreventScroll } from '@react-aria/overlays';
@@ -13,8 +13,8 @@ export interface ModalProps {
   className?: string;
   classStyles?: SerializedStyles;
   hide?: boolean; // used to hide the modal without destroying contents
-  header?: string | JSX.Element;
-  tagline?: string | JSX.Element;
+  header?: Maybe<string | JSX.Element>;
+  tagline?: Maybe<string | JSX.Element>;
   footer?: JSX.Element;
   directionalFooter?: boolean;
   containerClassName?: string;

@@ -18,11 +18,11 @@ export const LoadRecordsRefreshCachePopover: FunctionComponent<LoadRecordsRefres
   loading,
   onReload,
 }) => {
-  const popoverRef = useRef<PopoverRef>();
+  const popoverRef = useRef<PopoverRef>(null);
   const [{ serverUrl }] = useRecoilState(applicationCookieState);
 
   function handleReload() {
-    popoverRef.current.close();
+    popoverRef.current?.close();
     onReload();
   }
 

@@ -28,7 +28,7 @@ import {
   UserProfileUi,
 } from '@jetstream/types';
 import parseISO from 'date-fns/parseISO';
-import {
+import type {
   AsyncResult,
   DeployOptions,
   DescribeGlobalResult,
@@ -36,6 +36,7 @@ import {
   DescribeSObjectResult,
   ListMetadataQuery,
 } from 'jsforce';
+import isNil from 'lodash/isNil';
 import isFunction from 'lodash/isFunction';
 import { handleExternalRequest, handleRequest, transformListMetadataResponse } from './client-data-data-helper';
 //// LANDING PAGE ROUTES
@@ -47,9 +48,9 @@ function unwrapResponseIgnoreCache<T>(response: ApiResponse<T>) {
 }
 
 // duplicated here to avoid circular dependency :shrug:
-function convertDateToLocale(dateOrIsoDateString: string | Date, options?: Intl.DateTimeFormatOptions): string {
-  if (!dateOrIsoDateString) {
-    return dateOrIsoDateString as undefined;
+function convertDateToLocale(dateOrIsoDateString?: string | Date, options?: Intl.DateTimeFormatOptions): string | undefined {
+  if (isNil(dateOrIsoDateString)) {
+    return dateOrIsoDateString;
   }
   const date = dateOrIsoDateString instanceof Date ? dateOrIsoDateString : parseISO(dateOrIsoDateString);
   if (!options) {
@@ -273,8 +274,8 @@ export async function queryAll<T = any>(
   onProgress?: (fetched: number, total: number) => void
 ): Promise<API.QueryResults<T>> {
   const results = await query(org, soqlQuery, isTooling, includeDeletedRecords);
-  if (!results.queryResults.done) {
-    let progress: { initialFetched: number; onProgress?: (fetched: number, total: number) => void };
+  if (!results.queryResults.done && results.queryResults.nextRecordsUrl) {
+    let progress: { initialFetched: number; onProgress?: (fetched: number, total: number) => void } | undefined = undefined;
     if (isFunction(onProgress)) {
       onProgress(results.queryResults.records.length, results.queryResults.totalSize);
       progress = {
@@ -284,7 +285,7 @@ export async function queryAll<T = any>(
     }
     const currentResults = await queryRemaining(org, results.queryResults.nextRecordsUrl, isTooling, progress);
     results.queryResults.records = results.queryResults.records.concat(currentResults.queryResults.records);
-    results.queryResults.nextRecordsUrl = null;
+    results.queryResults.nextRecordsUrl = undefined;
     results.queryResults.done = true;
   }
   return results;
@@ -308,7 +309,7 @@ export async function queryRemaining<T = any>(
   }
 ): Promise<API.QueryResults<T>> {
   const results = await queryMore(org, nextRecordsUrl, isTooling);
-  while (!results.queryResults.done) {
+  while (!results.queryResults.done && results.queryResults.nextRecordsUrl) {
     if (progress && isFunction(progress.onProgress)) {
       progress.onProgress(results.queryResults.records.length + progress.initialFetched, results.queryResults.totalSize);
     }
@@ -334,8 +335,8 @@ export async function queryAllWithCache<T = any>(
   onProgress?: (fetched: number, total: number) => void
 ): Promise<API.QueryResults<T>> {
   const { data: results } = await queryWithCache(org, soqlQuery, isTooling, false, includeDeletedRecords);
-  if (!results.queryResults.done) {
-    let progress: { initialFetched: number; onProgress?: (fetched: number, total: number) => void };
+  if (!results.queryResults.done && results.queryResults.nextRecordsUrl) {
+    let progress: { initialFetched: number; onProgress?: (fetched: number, total: number) => void } | undefined = undefined;
     if (isFunction(onProgress)) {
       onProgress(results.queryResults.records.length, results.queryResults.totalSize);
       progress = {
@@ -345,7 +346,7 @@ export async function queryAllWithCache<T = any>(
     }
     const currentResults = await queryRemainingWithCache(org, results.queryResults.nextRecordsUrl, isTooling, progress);
     results.queryResults.records = results.queryResults.records.concat(currentResults.queryResults.records);
-    results.queryResults.nextRecordsUrl = null;
+    results.queryResults.nextRecordsUrl = undefined;
     results.queryResults.done = true;
   }
   return results;
@@ -364,7 +365,7 @@ export async function queryRemainingWithCache<T = any>(
   }
 ): Promise<API.QueryResults<T>> {
   const results = await queryMoreWithCache(org, nextRecordsUrl, isTooling);
-  while (!results.queryResults.done) {
+  while (!results.queryResults.done && results.queryResults.nextRecordsUrl) {
     if (progress && isFunction(progress.onProgress)) {
       progress.onProgress(results.queryResults.records.length + progress.initialFetched, results.queryResults.totalSize);
     }
@@ -514,7 +515,7 @@ export async function checkMetadataRetrieveResultsAndDeployToTarget(
     deployOptions,
     replacementPackageXml,
     changesetName,
-  }: { id: string; deployOptions: DeployOptions; replacementPackageXml?: string; changesetName?: string }
+  }: { id: string; deployOptions?: DeployOptions; replacementPackageXml?: string; changesetName?: string }
 ): Promise<{ type: 'deploy' | 'retrieve'; results: RetrieveResult; zipFile?: string }> {
   return handleRequest(
     {
@@ -617,7 +618,7 @@ export async function salesforceApiReq(): Promise<SalesforceApiRequest[]> {
 
 export async function googleUploadFile(
   accessToken: string,
-  { fileMimeType, filename, folderId, fileData }: { fileMimeType: string; filename: string; folderId: string; fileData: any },
+  { fileMimeType, filename, folderId, fileData }: { fileMimeType: string; filename: string; folderId?: string | null; fileData: any },
   targetMimeType = MIME_TYPES.GSHEET
 ): Promise<GoogleFileApiResponse & { webViewLink: string }> {
   return await handleExternalRequest({

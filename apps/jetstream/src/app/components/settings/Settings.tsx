@@ -2,7 +2,7 @@ import { logger } from '@jetstream/shared/client-logger';
 import { ANALYTICS_KEYS, TITLES } from '@jetstream/shared/constants';
 import { deleteUserProfile, getFullUserProfile, resendVerificationEmail, updateUserProfile } from '@jetstream/shared/data';
 import { eraseCookies, useRollbar } from '@jetstream/shared/ui-utils';
-import { Auth0ConnectionName, UserProfileAuth0Identity, UserProfileAuth0Ui, UserProfileUi } from '@jetstream/types';
+import { Auth0ConnectionName, Maybe, UserProfileAuth0Identity, UserProfileAuth0Ui, UserProfileUi } from '@jetstream/types';
 import { AutoFullHeightContainer, Page, PageHeader, PageHeaderRow, PageHeaderTitle, ScopedNotification, Spinner } from '@jetstream/ui';
 import localforage from 'localforage';
 import { Fragment, FunctionComponent, useCallback, useEffect, useRef, useState } from 'react';
@@ -18,13 +18,13 @@ import { useLinkAccount } from './useLinkAccount';
 const HEIGHT_BUFFER = 170;
 
 export interface SettingsProps {
-  userProfile: UserProfileUi;
+  userProfile: Maybe<UserProfileUi>;
   featureFlags: Set<string>;
 }
 
 export const Settings: FunctionComponent<SettingsProps> = ({ userProfile, featureFlags }) => {
   useTitle(TITLES.SETTINGS);
-  const isMounted = useRef(null);
+  const isMounted = useRef(true);
   const { trackEvent } = useAmplitude();
   const rollbar = useRollbar();
   const [loading, setLoading] = useState(false);
@@ -68,6 +68,9 @@ export const Settings: FunctionComponent<SettingsProps> = ({ userProfile, featur
 
   async function handleSave() {
     try {
+      if (!modifiedUser) {
+        return;
+      }
       setLoading(true);
       const userProfile = await updateUserProfile(modifiedUser);
       setFullUserProfile(userProfile);
@@ -87,7 +90,7 @@ export const Settings: FunctionComponent<SettingsProps> = ({ userProfile, featur
 
   function handleCancelEdit() {
     setEditMode(false);
-    setModifiedUser({ name: fullUserProfile.name });
+    fullUserProfile && setModifiedUser({ name: fullUserProfile.name });
   }
 
   async function handleUnlinkAccount(identity: UserProfileAuth0Identity) {

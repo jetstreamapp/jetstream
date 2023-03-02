@@ -1,4 +1,4 @@
-import { SalesforceOrgUi } from '@jetstream/types';
+import { Maybe, SalesforceOrgUi } from '@jetstream/types';
 import { Card, EmptyState, Icon, SalesforceLogin, ScopedNotification, SetupIllustration, Spinner } from '@jetstream/ui';
 import { FunctionComponent } from 'react';
 import { Link } from 'react-router-dom';
@@ -7,7 +7,7 @@ export interface PlatformEventMonitorFetchEventStatusProps {
   serverUrl: string;
   selectedOrg: SalesforceOrgUi;
   hasPlatformEvents: boolean;
-  platformEventFetchError?: string;
+  platformEventFetchError?: Maybe<string>;
   loadingPlatformEvents: boolean;
   fetchPlatformEvents: (clearCache?: boolean) => void;
 }

@@ -1,4 +1,4 @@
-import { MapOf, SalesforceOrgUi } from '@jetstream/types';
+import { MapOf, Maybe, SalesforceOrgUi } from '@jetstream/types';
 import type * as jsforce from 'jsforce';
 
 export interface SalesforceOrgElectron extends SalesforceOrgUi {
@@ -20,8 +20,8 @@ export type ControllerFn<Data = any, Query = MapOf<string>, Params = { [k: strin
 export interface ElectronRequest<Data = any, Query = MapOf<string>> {
   resolve: (data?: any) => void;
   reject: (error: Error) => void;
-  connection?: jsforce.Connection;
-  targetConnection?: jsforce.Connection;
+  connection?: Maybe<jsforce.Connection>;
+  targetConnection?: Maybe<jsforce.Connection>;
   request: ElectronRequestData<Data, Query>;
 }
 

@@ -14,7 +14,7 @@ import { REGEX } from '@jetstream/shared/utils';
  */
 export function useHighlightedText(
   text: string | JSX.Element | ReactNode,
-  searchTerm: string,
+  searchTerm?: string,
   options?: { className?: string; ignoreHighlight?: boolean }
 ) {
   options = options || {};

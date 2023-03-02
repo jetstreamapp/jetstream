@@ -10,7 +10,7 @@ export interface SalesforceLoginProps {
   className?: string;
   org: SalesforceOrgUi;
   title?: string;
-  returnUrl?: string;
+  returnUrl?: string | null;
   iconPosition?: PositionLeftRight;
   omitIcon?: boolean;
   onClick?: (event: MouseEvent<HTMLAnchorElement>, loginUrl: string) => void;
@@ -29,7 +29,7 @@ export const SalesforceLogin: FunctionComponent<SalesforceLoginProps> = ({
   children,
   onClick,
 }) => {
-  const [loginUrl, setLoginUrl] = useState<string>();
+  const [loginUrl, setLoginUrl] = useState<string | null>(null);
   useEffect(() => {
     if (skipFrontDoorAuth) {
       setLoginUrl(`${org.instanceUrl}/${returnUrl}`);
@@ -45,9 +45,13 @@ export const SalesforceLogin: FunctionComponent<SalesforceLoginProps> = ({
   }, [serverUrl, org, returnUrl, loginUrl, skipFrontDoorAuth]);
 
   function handleOnClick(event: MouseEvent<HTMLAnchorElement>) {
-    if (onClick) {
+    if (onClick && loginUrl) {
       onClick(event, loginUrl);
     }
+  }
+
+  if (!loginUrl) {
+    return null;
   }
 
   return (

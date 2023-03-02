@@ -66,7 +66,7 @@ export const AutomationControlEditor: FunctionComponent<AutomationControlEditorP
 
   const [dirtyRows, setDirtyRows] = useState<TableRowItem[]>([]);
   const [saveModalOpen, setSaveModalOpen] = useState(false);
-  const [quickFilterText, setQuickFilterText] = useState<string>(null);
+  const [quickFilterText, setQuickFilterText] = useState<string | null>(null);
 
   const [exportDataModalOpen, setExportDataModalOpen] = useState<boolean>(false);
   const [exportDataModalData, setExportDataModalData] = useState<any[]>([]);

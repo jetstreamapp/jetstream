@@ -45,11 +45,11 @@ routes.post(
         loginUrl: E2E_LOGIN_URL,
       },
     });
-    const userInfo = await conn.loginByOAuth2(E2E_LOGIN_USERNAME, E2E_LOGIN_PASSWORD);
+    const userInfo = await conn.loginByOAuth2(E2E_LOGIN_USERNAME!, E2E_LOGIN_PASSWORD!);
     const salesforceOrg = await initConnectionFromOAuthResponse({
       conn,
       userInfo,
-      loginUrl: E2E_LOGIN_URL,
+      loginUrl: E2E_LOGIN_URL!,
       userId: 'EXAMPLE_USER',
     });
     sendJson(res, salesforceOrg);

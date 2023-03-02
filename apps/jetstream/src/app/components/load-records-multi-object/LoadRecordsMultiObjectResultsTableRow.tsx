@@ -24,9 +24,9 @@ export const LoadRecordsMultiObjectResultsTableRow: FunctionComponent<LoadRecord
   const { loading, started, finished, errorMessage, data, results, dataWithResultsByGraphId, recordWithResponseByRefId } = row;
 
   const [{ successCount, failureCount }, setSuccessFailureCount] = useState({ successCount: 0, failureCount: 0 });
-  const [startTime, setStartTime] = useState<string>();
-  const [endTime, setEndTime] = useState<string>();
-  const [status, setStatus] = useState<string>();
+  const [startTime, setStartTime] = useState<string | null>(null);
+  const [endTime, setEndTime] = useState<string | null>(null);
+  const [status, setStatus] = useState<string | null>(null);
 
   const totalCount = Object.keys(recordWithResponseByRefId).length;
   const total = formatNumber(totalCount);
@@ -194,7 +194,7 @@ export const LoadRecordsMultiObjectResultsTableRow: FunctionComponent<LoadRecord
         )}
       </td>
       <td>
-        <div className="slds-truncate" title={status}>
+        <div className="slds-truncate" title={status || undefined}>
           {status}
         </div>
       </td>

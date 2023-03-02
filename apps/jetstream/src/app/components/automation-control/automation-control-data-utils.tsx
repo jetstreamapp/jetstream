@@ -341,7 +341,7 @@ export async function getProcessBuildersMetadata(
       .reduce((output: MapOf<string>, { Id, DefinitionId, Metadata }) => {
         try {
           if (Metadata) {
-            let sobject: string;
+            let sobject: string | undefined = undefined;
             if (Metadata.processMetadataValues) {
               const data = Metadata.processMetadataValues
                 .filter((value) => value.name === 'ObjectType')
@@ -366,7 +366,7 @@ export async function getProcessBuildersMetadata(
     // save cache for org
     flowIdToSobject = definitionIdsBySObject;
     const cachedItem = await saveCacheItemNonHttp(flowIdToSobject, selectedOrg, PROCESS_BUILDER_CACHE_ID);
-    processBuilderCachedSince = cachedItem.age;
+    cachedItem?.age && (processBuilderCachedSince = cachedItem.age);
   }
 
   if (!flowIdToSobject) {
@@ -454,23 +454,25 @@ export async function preparePayloadsForDeployment(
         deploymentItem.retrieveError = item.body as MetadataCompositeResponseError[];
       }
 
-      switch (deploymentItem.type) {
-        case 'ApexTrigger': {
-          deploymentItem.metadataDeploy.Metadata.status = deploymentItem.value ? 'Active' : 'Inactive';
-          break;
+      if (deploymentItem.metadataDeploy) {
+        switch (deploymentItem.type) {
+          case 'ApexTrigger': {
+            deploymentItem.metadataDeploy.Metadata.status = deploymentItem.value ? 'Active' : 'Inactive';
+            break;
+          }
+          case 'FlowRecordTriggered':
+          case 'FlowProcessBuilder': {
+            deploymentItem.metadataDeploy.Metadata.activeVersionNumber = deploymentItem.activeVersionNumber;
+            break;
+          }
+          case 'WorkflowRule':
+          case 'ValidationRule': {
+            deploymentItem.metadataDeploy.Metadata.active = deploymentItem.value;
+            break;
+          }
+          default:
+            break;
         }
-        case 'FlowRecordTriggered':
-        case 'FlowProcessBuilder': {
-          deploymentItem.metadataDeploy.Metadata.activeVersionNumber = deploymentItem.activeVersionNumber;
-          break;
-        }
-        case 'WorkflowRule':
-        case 'ValidationRule': {
-          deploymentItem.metadataDeploy.Metadata.active = deploymentItem.value;
-          break;
-        }
-        default:
-          break;
       }
 
       return { key: item.referenceId, deploymentItem };
@@ -589,15 +591,15 @@ export async function deployMetadataFileBased(
           files: [
             {
               name: `${(item.metadata.record as ToolingApexTriggerRecord).Name}.trigger`,
-              content: item.deploy.metadataDeploy.Body,
+              content: item.deploy.metadataDeploy?.Body || '',
             },
             {
               name: `${(item.metadata.record as ToolingApexTriggerRecord).Name}.trigger-meta.xml`,
               content: [
                 `<?xml version="1.0" encoding="UTF-8"?>`,
                 `<ApexTrigger xmlns="http://soap.sforce.com/2006/04/metadata">`,
-                `\t<apiVersion>${item.deploy.metadataRetrieve.ApiVersion || Number(apiVersion)}.0</apiVersion>`,
-                `\t<status>${item.deploy.metadataDeploy.Metadata.status}</status>`,
+                `\t<apiVersion>${item.deploy.metadataRetrieve?.ApiVersion || Number(apiVersion)}.0</apiVersion>`,
+                `\t<status>${item.deploy.metadataDeploy?.Metadata.status || ''}</status>`,
                 `</ApexTrigger>`,
               ].join('\n'),
             },
@@ -646,7 +648,7 @@ export function getAdditionalItemsWorkflowRuleText(recordMetadata: MetadataWorkf
   if (formula || (Array.isArray(criteriaItems) && criteriaItems.length > 0)) {
     output.push({
       label: 'Criteria',
-      value: null,
+      value: '',
     });
     if (formula) {
       output.push({
@@ -672,7 +674,7 @@ export function getAdditionalItemsWorkflowRuleText(recordMetadata: MetadataWorkf
   if (Array.isArray(actions) && actions.length > 0) {
     output.push({
       label: 'Immediate Actions',
-      value: null,
+      value: '',
     });
     actions.forEach((action) => output.push({ label: action.type, value: action.name }));
   }
@@ -680,13 +682,13 @@ export function getAdditionalItemsWorkflowRuleText(recordMetadata: MetadataWorkf
   if (Array.isArray(workflowTimeTriggers) && workflowTimeTriggers.length > 0) {
     output.push({
       label: 'Time-based Actions',
-      value: null,
+      value: '',
     });
 
     workflowTimeTriggers.forEach((timeTrigger) => {
       output.push({
         label: `${timeTrigger.timeLength} ${timeTrigger.workflowTimeTriggerUnit} ${timeTrigger.offsetFromField || ''}`,
-        value: null,
+        value: '',
       });
       timeTrigger.actions.forEach((action) => output.push({ label: action.type, value: action.name }));
     });

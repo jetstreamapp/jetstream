@@ -6,10 +6,17 @@ import { DefaultEventsMap } from '@socket.io/component-emitter';
 let socket: Socket<DefaultEventsMap, DefaultEventsMap>;
 
 export function initSocket(serverUrl?: string) {
-  socket = io(serverUrl, {
-    rememberUpgrade: true,
-    withCredentials: true,
-  });
+  if (serverUrl) {
+    socket = io(serverUrl, {
+      rememberUpgrade: true,
+      withCredentials: true,
+    });
+  } else {
+    socket = io({
+      rememberUpgrade: true,
+      withCredentials: true,
+    });
+  }
 
   socket.on('connect', () => {
     logger.log('[SOCKET][CONNECT]', socket.id);

@@ -1,14 +1,13 @@
 // https://www.lightningdesignsystem.com/components/input/#Fixed-Text
-
+import { useNonInitialEffect } from '@jetstream/shared/ui-utils';
+import { getMapOf } from '@jetstream/shared/utils';
+import { MapOf, UpDown } from '@jetstream/types';
 import classNames from 'classnames';
-import { DuelingPicklistItem, DuelingPicklistColumnRef } from './DuelingPicklistTypes';
-import { Fragment, FunctionComponent, useEffect, useRef, useState } from 'react';
+import { FunctionComponent, useRef, useState } from 'react';
 import HelpText from '../../widgets/HelpText';
 import Icon from '../../widgets/Icon';
 import DuelingPicklistColumn from './DuelingPicklistColumn';
-import { MapOf, UpDown } from '@jetstream/types';
-import { useNonInitialEffect } from '@jetstream/shared/ui-utils';
-import { getMapOf } from '@jetstream/shared/utils';
+import { DuelingPicklistColumnRef, DuelingPicklistItem } from './DuelingPicklistTypes';
 
 /**
  * TODO:
@@ -23,7 +22,7 @@ export interface DuelingPicklistProps {
   id?: string;
   className?: string;
   label?: string;
-  labelHelp?: string;
+  labelHelp?: string | null;
   hideLabel?: boolean;
   labelLeft: string;
   labelRight: string;
@@ -68,19 +67,19 @@ export const DuelingPicklist: FunctionComponent<DuelingPicklistProps> = ({
   }, [selectedItems]);
 
   function handleSelectButton() {
-    columnLeftRef.current.toggleSelection();
+    columnLeftRef.current?.toggleSelection();
   }
 
   function handleDeselectButton() {
-    columnRightRef.current.toggleSelection();
+    columnRightRef.current?.toggleSelection();
   }
 
   function handleMoveUp() {
-    columnRightRef.current.moveWithinList('UP');
+    columnRightRef.current?.moveWithinList('UP');
   }
 
   function handleMoveDown() {
-    columnRightRef.current.moveWithinList('DOWN');
+    columnRightRef.current?.moveWithinList('DOWN');
   }
 
   function handleSelect(items: DuelingPicklistItem[]) {
@@ -154,9 +153,9 @@ export const DuelingPicklist: FunctionComponent<DuelingPicklistProps> = ({
 
   function handleSelection(which: 'LEFT' | 'RIGHT', items: DuelingPicklistItem[]) {
     if (which === 'LEFT') {
-      columnRightRef.current.clearSelection();
+      columnRightRef.current?.clearSelection();
     } else {
-      columnLeftRef.current.clearSelection();
+      columnLeftRef.current?.clearSelection();
     }
   }
 

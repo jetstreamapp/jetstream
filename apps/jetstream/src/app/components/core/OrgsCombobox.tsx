@@ -1,12 +1,12 @@
 import { css, SerializedStyles } from '@emotion/react';
 import { multiWordObjectFilter } from '@jetstream/shared/utils';
-import { MapOf, SalesforceOrgUi } from '@jetstream/types';
+import { MapOf, Maybe, SalesforceOrgUi } from '@jetstream/types';
 import { Combobox, ComboboxListItem, ComboboxListItemGroup } from '@jetstream/ui';
 import { sortBy } from 'lodash';
 import groupBy from 'lodash/groupBy';
 import { FunctionComponent, useEffect, useState } from 'react';
 
-function getSelectedItemLabel(org?: SalesforceOrgUi) {
+function getSelectedItemLabel(org: Maybe<SalesforceOrgUi>) {
   if (!org) {
     return;
   }
@@ -17,7 +17,7 @@ function getSelectedItemLabel(org?: SalesforceOrgUi) {
   return `${org.label}${subtext}`;
 }
 
-function getSelectedItemTitle(org?: SalesforceOrgUi) {
+function getSelectedItemTitle(org: Maybe<SalesforceOrgUi>) {
   if (!org) {
     return;
   }
@@ -28,7 +28,7 @@ function getSelectedItemTitle(org?: SalesforceOrgUi) {
   return `${org.orgInstanceName} - ${org.label}${subtext}`;
 }
 
-function getSelectedItemStyle(org?: SalesforceOrgUi): SerializedStyles | undefined {
+function getSelectedItemStyle(org: Maybe<SalesforceOrgUi>): SerializedStyles | undefined {
   if (!org || !org.color || !!org.connectionError) {
     return;
   }
@@ -39,7 +39,7 @@ function getSelectedItemStyle(org?: SalesforceOrgUi): SerializedStyles | undefin
   });
 }
 
-function getDropdownOrgStyle(org: SalesforceOrgUi): SerializedStyles | undefined {
+function getDropdownOrgStyle(org: Maybe<SalesforceOrgUi>): SerializedStyles | undefined {
   if (!org || !org.color) {
     return css({
       borderLeft: `solid 0.3rem transparent`,
@@ -50,16 +50,16 @@ function getDropdownOrgStyle(org: SalesforceOrgUi): SerializedStyles | undefined
   });
 }
 
-function orgHasError(org?: SalesforceOrgUi): boolean {
+function orgHasError(org: Maybe<SalesforceOrgUi>): boolean {
   if (!org) {
-    return;
+    return false;
   }
   return !!org.connectionError;
 }
 
 export interface OrgsComboboxProps {
   orgs: SalesforceOrgUi[];
-  selectedOrg: SalesforceOrgUi;
+  selectedOrg: Maybe<SalesforceOrgUi>;
   label?: string;
   hideLabel?: boolean;
   placeholder?: string;
@@ -128,7 +128,7 @@ export const OrgsCombobox: FunctionComponent<OrgsComboboxProps> = ({
                 label={org.label || org.username}
                 secondaryLabel={org.username !== org.label ? org.username : undefined}
                 hasError={orgHasError(org)}
-                selected={selectedOrg && selectedOrg.uniqueId === org.uniqueId}
+                selected={!!selectedOrg && selectedOrg.uniqueId === org.uniqueId}
                 textBodyCss={getDropdownOrgStyle(org)}
                 onSelection={(id) => onSelected(org)}
               />

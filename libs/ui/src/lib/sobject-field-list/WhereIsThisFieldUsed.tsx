@@ -39,9 +39,9 @@ export const QueryWhereIsThisUsed: FunctionComponent<QueryWhereIsThisUsedProps> 
     if (items) {
       setExportData(
         items.map(({ meta }) => ({
-          'Reference Type': meta.MetadataComponentType,
-          'Reference Label': meta.MetadataComponentName,
-          Namespace: meta.MetadataComponentNamespace,
+          'Reference Type': meta?.MetadataComponentType || '',
+          'Reference Label': meta?.MetadataComponentName || '',
+          Namespace: meta?.MetadataComponentNamespace || '',
         }))
       );
     }
@@ -92,14 +92,14 @@ export const QueryWhereIsThisUsed: FunctionComponent<QueryWhereIsThisUsedProps> 
                   <button
                     className="slds-button slds-button_neutral"
                     onClick={handleCopyToClipboard}
-                    disabled={!hasLoaded || loading || !items.length}
+                    disabled={!hasLoaded || loading || !items?.length}
                   >
                     Copy to Clipboard
                   </button>
                   <button
                     className="slds-button slds-button_neutral"
                     onClick={handleDownload}
-                    disabled={!hasLoaded || loading || !items.length}
+                    disabled={!hasLoaded || loading || !items?.length}
                   >
                     Download
                   </button>
@@ -127,9 +127,9 @@ export const QueryWhereIsThisUsed: FunctionComponent<QueryWhereIsThisUsedProps> 
                     </p>
                   </Fragment>
                 )}
-                {hasLoaded && !loading && !items.length && !hasError && <EmptyState headline="No dependencies were found"></EmptyState>}
+                {hasLoaded && !loading && !items?.length && !hasError && <EmptyState headline="No dependencies were found"></EmptyState>}
                 <ReadonlyList
-                  items={items}
+                  items={items || []}
                   getContent={(item: ListItem<string, MetadataDependency>) => ({
                     key: item.id,
                     id: item.id,

@@ -17,7 +17,7 @@ export const LoadRecordsBulkApiResultsTableRow: FunctionComponent<LoadRecordsBul
   onDownload,
   onView,
 }) => {
-  const isMounted = useRef(null);
+  const isMounted = useRef(true);
   const [downloadResultsRecordsLoading, setDownloadResultsRecordsLoading] = useState(false);
 
   useEffect(() => {

@@ -10,7 +10,7 @@ import {
 } from '@jetstream/types';
 import { ChildRelationship, DescribeGlobalSObjectResult } from 'jsforce';
 import { atom, selector } from 'recoil';
-import { FieldType, getField, OrderByClause, Subquery } from 'soql-parser-js';
+import { FieldType, getField, OrderByClause, OrderByFieldClause, Subquery } from 'soql-parser-js';
 
 export const isRestore = atom<boolean>({
   key: 'query.isRestore',
@@ -22,7 +22,7 @@ export const isTooling = atom<boolean>({
   default: false,
 });
 
-export const sObjectsState = atom<DescribeGlobalSObjectResult[]>({
+export const sObjectsState = atom<DescribeGlobalSObjectResult[] | null>({
   key: 'query.sObjectsState',
   default: null,
 });
@@ -32,12 +32,12 @@ export const sObjectFilterTerm = atom<string>({
   default: '',
 });
 
-export const selectedSObjectState = atom<DescribeGlobalSObjectResult>({
+export const selectedSObjectState = atom<DescribeGlobalSObjectResult | null>({
   key: 'query.selectedSObjectState',
   default: null,
 });
 
-export const queryFieldsKey = atom<string>({
+export const queryFieldsKey = atom<string | null>({
   key: 'query.queryFieldsKey',
   default: null,
 });
@@ -187,12 +187,15 @@ export const selectQueryOrderBy = selector<OrderByClause[]>({
   key: 'query.selectQueryOrderBy',
   get: ({ get }) =>
     get(queryOrderByState)
-      .filter((orderBy) => !!orderBy.field)
-      .map((orderBy) => ({
-        field: orderBy.field,
-        nulls: orderBy.nulls,
-        order: orderBy.order,
-      })),
+      ?.filter((orderBy) => !!orderBy.field)
+      .map(
+        (orderBy): OrderByFieldClause => ({
+          // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+          field: orderBy.field!,
+          nulls: orderBy.nulls || undefined,
+          order: orderBy.order,
+        })
+      ),
 });
 
 export const querySoqlState = atom<string>({

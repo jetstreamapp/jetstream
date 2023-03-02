@@ -21,10 +21,10 @@ interface OrgsDropdownProps {
 }
 
 export const OrgsDropdown: FunctionComponent<OrgsDropdownProps> = ({ addOrgsButtonClassName }) => {
-  const [orgs, setOrgs] = useRecoilState<SalesforceOrgUi[]>(fromAppState.salesforceOrgsState);
-  const setSelectedOrgId = useSetRecoilState<string>(fromAppState.selectedOrgIdState);
-  const actionInProgress = useRecoilValue<boolean>(fromAppState.actionInProgressState);
-  const selectedOrg = useRecoilValue<SalesforceOrgUi>(fromAppState.selectedOrgState);
+  const [orgs, setOrgs] = useRecoilState(fromAppState.salesforceOrgsState);
+  const setSelectedOrgId = useSetRecoilState(fromAppState.selectedOrgIdState);
+  const actionInProgress = useRecoilValue(fromAppState.actionInProgressState);
+  const selectedOrg = useRecoilValue(fromAppState.selectedOrgStateWithoutPlaceholder);
   const orgType = useRecoilValue(fromAppState.selectedOrgType);
   const [orgLoading, setOrgLoading] = useState(false);
   const { hasMetadataAccess } = useOrgPermissions(selectedOrg);
@@ -63,7 +63,7 @@ export const OrgsDropdown: FunctionComponent<OrgsDropdownProps> = ({ addOrgsButt
     try {
       await deleteOrg(org);
       setOrgs(await getOrgs());
-      setSelectedOrgId(undefined);
+      setSelectedOrgId(null);
       // async, but results are ignored as this will not throw
       clearCacheForOrg(org);
       clearQueryHistoryForOrg(org);

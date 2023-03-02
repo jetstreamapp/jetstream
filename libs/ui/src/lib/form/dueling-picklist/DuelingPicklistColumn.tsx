@@ -41,7 +41,7 @@ export const DuelingPicklistColumn = forwardRef<any, DuelingPicklistColumnProps>
     const keyBuffer = useRef(new KeyBuffer());
     const [selectedItems, setSelectedItems] = useState<DuelingPicklistItem[]>([]);
     const [cursor, setCursor] = useState(0);
-    const divElRef = useRef<HTMLDivElement>();
+    const divElRef = useRef<HTMLDivElement>(null);
     const elRefs = useRef<RefObject<HTMLLIElement>[]>([]);
 
     // if length of items changes, re-calc refs
@@ -58,11 +58,13 @@ export const DuelingPicklistColumn = forwardRef<any, DuelingPicklistColumnProps>
         if (elRefs.current && isNumber(cursor) && elRefs.current[cursor] && elRefs.current[cursor]) {
           elRefs.current[cursor].current?.focus();
         }
-        menuItemSelectScroll({
-          container: divElRef.current,
-          focusedIndex: cursor,
-          scrollPadding: 30,
-        });
+        if (divElRef.current) {
+          menuItemSelectScroll({
+            container: divElRef.current,
+            focusedIndex: cursor,
+            scrollPadding: 30,
+          });
+        }
       } catch (ex) {
         logger.log('Error with keyboard navigation', ex);
       }
@@ -124,14 +126,14 @@ export const DuelingPicklistColumn = forwardRef<any, DuelingPicklistColumnProps>
     function handleKeyDown(event: KeyboardEvent<HTMLDivElement>) {
       event.preventDefault();
       if ((hasMetaModifierKey(event) || hasCtrlModifierKey(event)) && isAKey(event)) {
-        let newSelectedItems = [...items];
+        const newSelectedItems = [...items];
         setSelectedItems(newSelectedItems);
         onSelection(newSelectedItems);
       }
     }
 
     function handleListNavigation(event: KeyboardEvent<HTMLLIElement>) {
-      let newCursor: number;
+      let newCursor: number | undefined = undefined;
       if (isArrowUpKey(event)) {
         trapEvent(event);
         if (cursor === 0) {

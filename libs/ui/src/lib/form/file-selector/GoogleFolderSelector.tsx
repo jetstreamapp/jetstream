@@ -16,7 +16,7 @@ export interface GoogleFolderSelectorProps {
   label?: string;
   buttonLabel?: string;
   helpText?: string;
-  labelHelp?: string;
+  labelHelp?: string | null;
   hideLabel?: boolean;
   isRequired?: boolean;
   disabled?: boolean;
@@ -43,7 +43,7 @@ export const GoogleFolderSelector: FunctionComponent<GoogleFolderSelectorProps> 
   const { data, error: scriptLoadError, loading: googleApiLoading, openPicker } = useDrivePicker(apiConfig);
   const [loading, setLoading] = useState(false);
   const [selectedFolder, setSelectedFolder] = useState<google.picker.DocumentObject>();
-  const [errorMessage, setErrorMessage] = useState<string>();
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [{ managedFilename: managedName, filenameTruncated }, setManagedName] = useFilename(folderName);
 
   useEffect(() => {
@@ -56,7 +56,7 @@ export const GoogleFolderSelector: FunctionComponent<GoogleFolderSelectorProps> 
     if (scriptLoadError) {
       setErrorMessage(SCRIPT_LOAD_ERR_MESSAGE);
     } else if (errorMessage === SCRIPT_LOAD_ERR_MESSAGE) {
-      setErrorMessage(undefined);
+      setErrorMessage(null);
     }
   }, [scriptLoadError, errorMessage]);
 
@@ -64,7 +64,7 @@ export const GoogleFolderSelector: FunctionComponent<GoogleFolderSelectorProps> 
     if (Array.isArray(data.docs) && data.docs.length > 0) {
       const selectedItem = data.docs[0];
       setSelectedFolder(selectedItem);
-      onSelected(selectedItem);
+      onSelected && onSelected(selectedItem);
       setManagedName(selectedItem.name);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps

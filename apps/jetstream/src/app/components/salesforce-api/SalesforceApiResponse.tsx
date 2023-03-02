@@ -1,5 +1,5 @@
 import { css } from '@emotion/react';
-import { ManualRequestResponse, SalesforceApiHistoryRequest } from '@jetstream/types';
+import { ManualRequestResponse, Maybe, SalesforceApiHistoryRequest } from '@jetstream/types';
 import { Card, CopyToClipboard, Grid, Spinner } from '@jetstream/ui';
 import Editor from '@monaco-editor/react';
 import classNames from 'classnames';
@@ -7,13 +7,13 @@ import { FunctionComponent } from 'react';
 
 export interface SalesforceApiResponseProps {
   loading: boolean;
-  request: SalesforceApiHistoryRequest;
-  results: ManualRequestResponse;
+  request: Maybe<SalesforceApiHistoryRequest>;
+  results: Maybe<ManualRequestResponse>;
 }
 
 export const SalesforceApiResponse: FunctionComponent<SalesforceApiResponseProps> = ({ loading, request, results }) => {
   return (
-    <Card title="Response" actions={<CopyToClipboard type="button" content={results?.body} disabled={!results} />}>
+    <Card title="Response" actions={<CopyToClipboard type="button" content={results?.body || ''} disabled={!results} />}>
       {loading && <Spinner />}
       <Grid
         vertical
@@ -32,17 +32,19 @@ export const SalesforceApiResponse: FunctionComponent<SalesforceApiResponseProps
             >
               {results?.status} {results?.statusText}
             </span>
-            <span className="slds-m-left_small">
-              <span className="slds-m-right_x-small">{request.method}</span>
-              <span className="slds-truncate" title={request.url}>
-                {request.url}
+            {request && (
+              <span className="slds-m-left_small">
+                <span className="slds-m-right_x-small">{request.method}</span>
+                <span className="slds-truncate" title={request.url}>
+                  {request.url}
+                </span>
               </span>
-            </span>
+            )}
           </div>
         )}
         <div
           className="slds-text-color_error"
-          title={results?.errorMessage}
+          title={results?.errorMessage || undefined}
           css={css`
             white-space: nowrap;
             overflow-x: auto;

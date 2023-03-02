@@ -74,7 +74,7 @@ export const UserSelection: FunctionComponent<UserSelectionProps | UserSelection
     _setUserSelection(userSelection);
     _setUsersList(usersList);
     _setSelectedUsers(selectedUsers);
-    onSubmit();
+    onSubmit && onSubmit();
   }
 
   return (

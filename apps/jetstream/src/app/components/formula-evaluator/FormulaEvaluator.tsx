@@ -65,16 +65,16 @@ export interface FormulaEvaluatorProps {}
 
 export const FormulaEvaluator: FunctionComponent<FormulaEvaluatorProps> = () => {
   useTitle(TITLES.FORMULA_EVALUATOR);
-  const isMounted = useRef(null);
-  const editorRef = useRef<editor.IStandaloneCodeEditor>(null);
+  const isMounted = useRef(true);
+  const editorRef = useRef<editor.IStandaloneCodeEditor>();
   const sobjectComboRef = useRef<SobjectComboboxRef>(null);
   const fieldsComboRef = useRef<SobjectFieldComboboxRef>(null);
   const { trackEvent } = useAmplitude();
   const selectedOrg = useRecoilValue<SalesforceOrgUi>(selectedOrgState);
   const [loading, setLoading] = useState(false);
   const [refreshLoading, setRefreshLoading] = useState(false);
-  const [fieldErrorMessage, setFieldErrorMessage] = useState<string>(null);
-  const [errorMessage, setErrorMessage] = useState<string>(null);
+  const [fieldErrorMessage, setFieldErrorMessage] = useState<string | null>(null);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [formulaValue, setFormulaValue] = useRecoilState(fromFormulaState.formulaValueState);
   const [selectedSObject, setSelectedSobject] = useRecoilState(fromFormulaState.selectedSObjectState);
   const [selectedField, setSelectedField] = useRecoilState(fromFormulaState.selectedFieldState);
@@ -97,12 +97,12 @@ export const FormulaEvaluator: FunctionComponent<FormulaEvaluatorProps> = () => 
   }, []);
 
   useEffect(() => {
-    registerCompletions(monaco, selectedOrg, selectedSObject?.name);
+    monaco && registerCompletions(monaco, selectedOrg, selectedSObject?.name);
   }, [monaco, selectedOrg, selectedSObject?.name]);
 
   useEffect(() => {
     if (sourceType === 'EXISTING' && selectedField) {
-      editorRef.current?.setValue(selectedField.calculatedFormula);
+      editorRef.current?.setValue(selectedField.calculatedFormula || '');
     }
   }, [sourceType, selectedSObject, selectedField]);
 
@@ -122,7 +122,13 @@ export const FormulaEvaluator: FunctionComponent<FormulaEvaluatorProps> = () => 
         let formulaFields: formulon.FormulaData = {};
 
         if (fields.length) {
-          const response = await getFormulaData({ fields, recordId, selectedOrg, sobjectName: selectedSObject.name, numberNullBehavior });
+          const response = await getFormulaData({
+            fields,
+            recordId,
+            selectedOrg,
+            sobjectName: selectedSObject?.name || '',
+            numberNullBehavior,
+          });
           if (response.type === 'error') {
             setFieldErrorMessage(response.message);
             return;
@@ -182,7 +188,7 @@ export const FormulaEvaluator: FunctionComponent<FormulaEvaluatorProps> = () => 
   const handleApexEditorMount: OnMount = (currEditor, monaco) => {
     editorRef.current = currEditor;
     if (sourceType === 'EXISTING' && selectedField) {
-      editorRef.current?.setValue(selectedField.calculatedFormula);
+      editorRef.current?.setValue(selectedField.calculatedFormula || '');
     }
     // this did not run on initial render if used in useEffect
     editorRef.current.addAction({

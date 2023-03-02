@@ -2,7 +2,7 @@ import { css } from '@emotion/react';
 import { logger } from '@jetstream/shared/client-logger';
 import { INPUT_ACCEPT_FILETYPES } from '@jetstream/shared/constants';
 import { useNonInitialEffect, useRollbar } from '@jetstream/shared/ui-utils';
-import { DeployOptions, InputReadFileContent, SalesforceOrgUi } from '@jetstream/types';
+import { DeployOptions, InputReadFileContent, Maybe, SalesforceOrgUi } from '@jetstream/types';
 import { FileSelector, Grid, GridCol, Modal } from '@jetstream/ui';
 import JSZip from 'jszip';
 import { Fragment, FunctionComponent, useEffect, useRef, useState } from 'react';
@@ -45,12 +45,12 @@ export const DeployMetadataPackageConfigModal: FunctionComponent<DeployMetadataP
   const rollbar = useRollbar();
   const orgs = useRecoilValue<SalesforceOrgUi[]>(salesforceOrgsState);
   const [destinationOrg, setDestinationOrg] = useState<SalesforceOrgUi>(initiallySelectedOrg);
-  const [file, setFile] = useState<ArrayBuffer>(initialFile);
-  const modalBodyRef = useRef<HTMLDivElement>();
-  const [filename, setFileName] = useState<string>(initialFilename);
-  const [fileContents, setFileContents] = useState<string[]>(initialFileContents);
+  const [file, setFile] = useState<Maybe<ArrayBuffer>>(initialFile);
+  const modalBodyRef = useRef<HTMLDivElement>(null);
+  const [filename, setFileName] = useState<Maybe<string>>(initialFilename);
+  const [fileContents, setFileContents] = useState<Maybe<string[]>>(initialFileContents);
   const [isConfigValid, setIsConfigValid] = useState(true);
-  const [zipFileError, setZipFileError] = useState<string>(null);
+  const [zipFileError, setZipFileError] = useState<string | null>(null);
   const [{ isSinglePackage, missingPackageXml }, setPackageDetection] = useState({
     isSinglePackage: initialIsSinglePackage ?? true,
     missingPackageXml: false,
@@ -76,7 +76,7 @@ export const DeployMetadataPackageConfigModal: FunctionComponent<DeployMetadataP
   useEffect(() => {
     if (!file) {
       setIsConfigValid(false);
-    } else if (deployOptions.testLevel === 'RunSpecifiedTests' && deployOptions.runTests.length === 0) {
+    } else if (deployOptions.testLevel === 'RunSpecifiedTests' && deployOptions?.runTests?.length === 0) {
       setIsConfigValid(false);
     } else {
       setIsConfigValid(true);
@@ -114,7 +114,7 @@ export const DeployMetadataPackageConfigModal: FunctionComponent<DeployMetadataP
   }
 
   function handleDeploy() {
-    onDeploy({ file, filename, fileContents, isSinglePackage }, destinationOrg, deployOptions);
+    file && filename && fileContents && onDeploy({ file, filename, fileContents, isSinglePackage }, destinationOrg, deployOptions);
   }
 
   return (
@@ -160,7 +160,7 @@ export const DeployMetadataPackageConfigModal: FunctionComponent<DeployMetadataP
                 <FileSelector
                   id="upload-package"
                   label="Metadata Package (Zip File)"
-                  filename={filename}
+                  filename={filename || ''}
                   accept={[INPUT_ACCEPT_FILETYPES.ZIP]}
                   userHelpText="Choose zip metadata file"
                   onReadFile={handleFile}

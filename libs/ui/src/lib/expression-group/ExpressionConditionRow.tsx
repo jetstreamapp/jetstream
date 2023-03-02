@@ -89,9 +89,9 @@ export const ExpressionConditionRow: FunctionComponent<ExpressionConditionRowPro
     const [disableValueInput, setDisableValueInput] = useState(false);
     const [visibleResources, setVisibleResources] = useState<ListItemGroup[]>(resources);
     const [selectedResourceType, setSelectedResourceType] = useState<ListItem<ExpressionRowValueType>[]>();
-    const [resourcesFilter, setResourcesFilter] = useState<string>(null);
+    const [resourcesFilter, setResourcesFilter] = useState<string | null>(null);
     const [selectedValue, setSelectValue] = useState(selected.value);
-    const [selectedResourceComboboxLabel, setSelectedResourceComboboxLabel] = useState<string>(() => {
+    const [selectedResourceComboboxLabel, setSelectedResourceComboboxLabel] = useState<string | null>(() => {
       if (selected.resource) {
         const group = resources.find((currResource) => currResource.id === selected.resourceGroup);
         if (group) {
@@ -101,7 +101,7 @@ export const ExpressionConditionRow: FunctionComponent<ExpressionConditionRowPro
       }
       return null;
     });
-    const [selectedResourceTitle] = useState<string>(null);
+    const [selectedResourceTitle] = useState<string | null>(null);
     // used to force re-render and re-init for picklist values - since array turns to string and takes multiple renders
     // the default picklist value does not get picked up in time - so this forces the picklist to re-render
     const [picklistKey, setPicklistKey] = useState<string>(`${new Date().getTime()}`);
@@ -132,11 +132,12 @@ export const ExpressionConditionRow: FunctionComponent<ExpressionConditionRowPro
     }, [selected.value, selected.resourceType]);
 
     useEffect(() => {
-      setDisableValueInput(disableValueForOperators.includes(selected.operator));
+      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+      setDisableValueInput(disableValueForOperators.includes(selected.operator!));
     }, [disableValueForOperators, selected.operator]);
 
     useEffect(() => {
-      let selectedType: ListItem<ExpressionRowValueType>;
+      let selectedType: ListItem<ExpressionRowValueType> | undefined = undefined;
       if (resourceTypes?.length) {
         // changing operator can change the resource type, some types are considered equivalent
         if (resourceType === 'TEXT' || resourceType === 'TEXTAREA') {
@@ -166,7 +167,7 @@ export const ExpressionConditionRow: FunctionComponent<ExpressionConditionRowPro
         setVisibleResources(resources);
       } else {
         const filter = resourcesFilter.toLowerCase().trim();
-        const tempResources = [];
+        const tempResources: ListItemGroup[] = [];
         resources.forEach((resource) => {
           tempResources.push({
             ...resource,
@@ -278,7 +279,7 @@ export const ExpressionConditionRow: FunctionComponent<ExpressionConditionRowPro
               />
             </div>
             {/* Type (*Optional*) */}
-            {resourceTypes?.length > 0 && selectedResourceType && (
+            {resourceTypes && resourceTypes?.length > 0 && selectedResourceType && (
               <div className="slds-col slds-grow-none">
                 <Picklist
                   label="Type"
@@ -327,7 +328,7 @@ export const ExpressionConditionRow: FunctionComponent<ExpressionConditionRowPro
                   initialSelectedDate={selectedValue ? parseDate(selectedValue) : undefined}
                   label={valueLabel}
                   dropDownPosition="right"
-                  onChange={(value) => setSelectValue(formatISO(value, { representation: 'date' }))}
+                  onChange={(value) => value && setSelectValue(formatISO(value, { representation: 'date' }))}
                   disabled={disableValueInput}
                 />
               )}
@@ -337,7 +338,7 @@ export const ExpressionConditionRow: FunctionComponent<ExpressionConditionRowPro
                   initialSelectedDate={selectedValue ? parseDate(selectedValue) : undefined}
                   label={valueLabel}
                   dropDownPosition="right"
-                  onChange={(value) => setSelectValue(formatISO(value))}
+                  onChange={(value) => value && setSelectValue(formatISO(value))}
                   disabled={disableValueInput}
                 />
               )}

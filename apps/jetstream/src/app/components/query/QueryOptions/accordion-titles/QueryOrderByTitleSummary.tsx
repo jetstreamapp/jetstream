@@ -29,7 +29,7 @@ export const QueryOrderByTitleSummary: FunctionComponent<QueryOrderByTitleSummar
         orderByClauses
           .filter((orderBy) => orderBy.field)
           .map((orderBy) => (
-            <Badge key={orderBy.field} className="slds-m-left_x-small slds-truncate" title={orderBy.fieldLabel}>
+            <Badge key={orderBy.field} className="slds-m-left_x-small slds-truncate" title={orderBy.fieldLabel || undefined}>
               {getOrderByText(orderBy)}
             </Badge>
           ))}

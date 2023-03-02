@@ -1,6 +1,6 @@
 import { formatNumber } from '@jetstream/shared/ui-utils';
 import { pluralizeFromNumber } from '@jetstream/shared/utils';
-import { FieldWrapper, MapOf, QueryFields } from '@jetstream/types';
+import { FieldWrapper, MapOf, Maybe, QueryFields } from '@jetstream/types';
 import { Fragment, FunctionComponent, useEffect, useState } from 'react';
 import Select from '../form/select/Select';
 import Icon from '../widgets/Icon';
@@ -11,7 +11,7 @@ const relationshipHelpText =
   'and other records will only display the Id of the related record.';
 
 export interface SobjectExpandChildrenBtnProps {
-  initialSelectedSObject: string;
+  initialSelectedSObject?: string;
   parentKey: string;
   itemKey: string;
   queryFieldsMap: MapOf<QueryFields>;
@@ -37,8 +37,8 @@ export const SobjectExpandChildrenBtn: FunctionComponent<SobjectExpandChildrenBt
     : null;
   const hasMultiple = Array.isArray(field.relatedSobject);
   const showWhich = hasMultiple && allowMultiple ? 'multiple' : 'single';
-  const [selectedSObject, setSelectedSObject] = useState<string>(
-    () => initialSelectedSObject || (hasMultiple ? field.relatedSobject[0] : (field.relatedSobject as string))
+  const [selectedSObject, setSelectedSObject] = useState<Maybe<string>>(
+    () => initialSelectedSObject || (hasMultiple ? field.relatedSobject?.[0] : (field.relatedSobject as string))
   );
   const [selectId] = useState(() => `select-${parentKey}-${field.name}`);
 
@@ -51,7 +51,7 @@ export const SobjectExpandChildrenBtn: FunctionComponent<SobjectExpandChildrenBt
   function handleExpand(event: React.MouseEvent<HTMLButtonElement, MouseEvent>) {
     event.preventDefault();
     event.stopPropagation();
-    onToggleExpand(parentKey, field, selectedSObject);
+    selectedSObject && onToggleExpand(parentKey, field, selectedSObject);
   }
 
   return (
@@ -62,7 +62,7 @@ export const SobjectExpandChildrenBtn: FunctionComponent<SobjectExpandChildrenBt
             <select
               className="slds-select"
               id={selectId}
-              value={selectedSObject}
+              value={selectedSObject || undefined}
               onChange={(event) => setSelectedSObject(event.target.value)}
               disabled={isExpanded}
               title={isExpanded ? 'Hide fields to enable this element' : ''}
@@ -78,7 +78,7 @@ export const SobjectExpandChildrenBtn: FunctionComponent<SobjectExpandChildrenBt
             <Icon type="utility" icon={isExpanded ? 'dash' : 'add'} className="slds-button__icon slds-button__icon_left" />
             {isExpanded ? 'Hide' : 'View'} {selectedSObject} Fields
             {selectedChildFields ? (
-              <span className="slds-m-left_xxx-small" title={selectedChildFieldsTitle}>
+              <span className="slds-m-left_xxx-small" title={selectedChildFieldsTitle || undefined}>
                 ({selectedChildFields})
               </span>
             ) : null}
@@ -90,7 +90,7 @@ export const SobjectExpandChildrenBtn: FunctionComponent<SobjectExpandChildrenBt
           <Icon type="utility" icon={isExpanded ? 'dash' : 'add'} className="slds-button__icon slds-button__icon_left" />
           {isExpanded ? 'Hide' : 'View'} {selectedSObject} Fields{' '}
           {selectedChildFields ? (
-            <span className="slds-m-left_xxx-small" title={selectedChildFieldsTitle}>
+            <span className="slds-m-left_xxx-small" title={selectedChildFieldsTitle || undefined}>
               ({selectedChildFields})
             </span>
           ) : null}

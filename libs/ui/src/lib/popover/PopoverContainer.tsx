@@ -6,7 +6,7 @@ import { usePopper } from 'react-popper';
 interface PopoverContainerProps extends HTMLAttributes<HTMLDivElement> {
   className?: string;
   isOpen: boolean;
-  referenceElement: HTMLElement;
+  referenceElement: HTMLElement | null;
   usePortal?: boolean;
   children: ReactNode;
 }
@@ -15,7 +15,7 @@ interface PopoverContainerProps extends HTMLAttributes<HTMLDivElement> {
  * Generic popover container used for dropdown menus, date pickers, etc.
  */
 export function PopoverContainer({ className, isOpen, referenceElement, usePortal = false, children, ...rest }: PopoverContainerProps) {
-  const [popperElement, setPopperElement] = useState<HTMLElement>(null);
+  const [popperElement, setPopperElement] = useState<HTMLElement | null>(null);
 
   const { styles, attributes } = usePopper(referenceElement, popperElement, {
     placement: 'bottom-start',

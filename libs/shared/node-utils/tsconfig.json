@@ -1,6 +1,7 @@
 {
   "extends": "../../../tsconfig.base.json",
   "compilerOptions": {
+    "strictNullChecks": true,
     "types": ["node", "jest"]
   },
   "include": [],

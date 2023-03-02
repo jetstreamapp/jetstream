@@ -179,7 +179,7 @@ function reducer(state: State, action: Action): State {
       const { rowKey, groupKey } = action.payload.row;
       const expression = { ...state.expression };
 
-      let rowToMove: ExpressionConditionType;
+      let rowToMove: ExpressionConditionType | undefined;
 
       expression.rows = [...expression.rows];
 
@@ -315,8 +315,8 @@ function updateResourcesOnRow(
       expressionRow.resourceTypes = getResourceTypeFns.getTypes ? getResourceTypeFns.getTypes(selected) : undefined;
       expressionRow.resourceType = getResourceTypeFns.getType(selected);
       expressionRow.resourceSelectItems = getResourceTypeFns.getSelectItems(selected);
-      expressionRow.helpText = getResourceTypeFns?.getHelpText(selected);
-      expressionRow.selected = getResourceTypeFns?.checkSelected(selected) || selected;
+      expressionRow.helpText = getResourceTypeFns?.getHelpText?.(selected);
+      expressionRow.selected = getResourceTypeFns?.checkSelected?.(selected) || selected;
     } catch (ex) {
       logger.warn('Error setting resource type or selected items', ex);
     }

@@ -67,8 +67,8 @@ export async function cleanUpHistoryState(): Promise<MapOf<QueryHistoryItem> | u
   }
 }
 
-export function initQueryHistory(): Promise<MapOf<QueryHistoryItem>> {
-  return localforage.getItem<MapOf<QueryHistoryItem>>(INDEXED_DB.KEYS.queryHistory);
+export async function initQueryHistory(): Promise<MapOf<QueryHistoryItem>> {
+  return (await localforage.getItem<MapOf<QueryHistoryItem>>(INDEXED_DB.KEYS.queryHistory)) || {};
 }
 
 // FIXME: there is some really poor naming conventions surrounding the entire query history

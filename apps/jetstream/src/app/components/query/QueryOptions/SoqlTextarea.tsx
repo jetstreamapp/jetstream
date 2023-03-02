@@ -21,8 +21,8 @@ export interface SoqlTextareaProps {
 
 export const SoqlTextarea: FunctionComponent<SoqlTextareaProps> = memo(
   ({ soql, isTooling, selectedOrg, selectedSObject, onOpenHistory }) => {
-    const divRef = useRef<HTMLDivElement>();
-    const editorRef = useRef<editor.IStandaloneCodeEditor>(null);
+    const divRef = useRef<HTMLDivElement>(null);
+    const editorRef = useRef<editor.IStandaloneCodeEditor>();
 
     const handleEditorMount: OnMount = (currEditor, monaco) => {
       editorRef.current = currEditor;

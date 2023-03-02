@@ -57,7 +57,7 @@ const STATUS_MAP: StatusMap = {
  */
 function LinkAuthAccount() {
   const [hasError, setHasError] = useState(false);
-  const [errorHeading, setErrorHeading] = useState<string>();
+  const [errorHeading, setErrorHeading] = useState<string | null>(null);
   const [status, setStatus] = useState('Your request is being processed, please wait.');
 
   useEffect(() => {

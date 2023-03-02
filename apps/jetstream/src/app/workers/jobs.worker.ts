@@ -99,7 +99,7 @@ async function handleMessage(name: AsyncJobType, payloadData: AsyncJobWorkerMess
         let downloadedRecords = records;
         let done = !nextRecordsUrl;
 
-        while (!done) {
+        while (!done && nextRecordsUrl) {
           // emit progress
           const results = {
             done: false,

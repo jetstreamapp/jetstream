@@ -1,20 +1,28 @@
 import { css } from '@emotion/react';
-import { SalesforceOrgUi } from '@jetstream/types';
+import { Maybe, SalesforceOrgUi } from '@jetstream/types';
 import { Badge, CopyToClipboard, Grid, Icon, Tooltip, TreeItems } from '@jetstream/ui';
 import classNames from 'classnames';
 import { FunctionComponent } from 'react';
 import { EditorType, FileItemMetadata, FilePropertiesWithContent } from './viewOrCompareMetadataTypes';
 
 export interface ViewOrCompareMetadataEditorSummaryProps {
-  activeFile: TreeItems<FileItemMetadata>;
+  activeFile: Maybe<TreeItems<FileItemMetadata>>;
   editorType: EditorType;
-  sourceOrg: SalesforceOrgUi;
-  targetOrg: SalesforceOrgUi;
+  sourceOrg: Maybe<SalesforceOrgUi>;
+  targetOrg: Maybe<SalesforceOrgUi>;
   swapped: boolean;
   onSwap: () => void;
 }
 
-const Content = ({ item, org, align }: { item: FilePropertiesWithContent; org: SalesforceOrgUi; align: 'left' | 'right' }) => {
+const Content = ({
+  item,
+  org,
+  align,
+}: {
+  item: Maybe<FilePropertiesWithContent>;
+  org: Maybe<SalesforceOrgUi>;
+  align: 'left' | 'right';
+}) => {
   if (!item || !org) {
     return (
       <div>
@@ -48,15 +56,15 @@ export const ViewOrCompareMetadataEditorSummary: FunctionComponent<ViewOrCompare
   function getMetadataContent(which: EditorType, align: 'left' | 'right') {
     if (editorType !== 'DIFF' || !swapped) {
       if (which === 'SOURCE') {
-        return <Content item={activeFile.meta.source} org={sourceOrg} align={align} />;
+        return <Content item={activeFile?.meta?.source} org={sourceOrg} align={align} />;
       }
-      return <Content item={activeFile.meta.target} org={targetOrg} align={align} />;
+      return <Content item={activeFile?.meta?.target} org={targetOrg} align={align} />;
     }
     // swapped
     if (which === 'SOURCE') {
-      return <Content item={activeFile.meta.target} org={targetOrg} align={align} />;
+      return <Content item={activeFile?.meta?.target} org={targetOrg} align={align} />;
     }
-    return <Content item={activeFile.meta.source} org={sourceOrg} align={align} />;
+    return <Content item={activeFile?.meta?.source} org={sourceOrg} align={align} />;
   }
 
   return (

@@ -2,7 +2,7 @@ import { logger } from '@jetstream/shared/client-logger';
 import { describeSObject } from '@jetstream/shared/data';
 import { useNonInitialEffect } from '@jetstream/shared/ui-utils';
 import { orderObjectsBy } from '@jetstream/shared/utils';
-import { ListItem, SalesforceOrgUi } from '@jetstream/types';
+import { ListItem, Maybe, SalesforceOrgUi } from '@jetstream/types';
 import type { Field } from 'jsforce';
 import { forwardRef, useCallback, useEffect, useImperativeHandle, useRef, useState } from 'react';
 import ComboboxWithItems from '../form/combobox/ComboboxWithItems';
@@ -26,12 +26,12 @@ export interface SobjectFieldComboboxProps {
   className?: string;
   label?: string;
   helpText?: string;
-  labelHelp?: string;
+  labelHelp?: string | null;
   isRequired?: boolean;
   disabled?: boolean;
   selectedOrg: SalesforceOrgUi;
   selectedSObject: string;
-  selectedField: Field;
+  selectedField: Maybe<Field>;
   isTooling?: boolean;
   filterFn?: (sobject: Field) => boolean;
   onSelectField: (selectedSObject: Field) => void;
@@ -55,10 +55,10 @@ export const SobjectFieldCombobox = forwardRef<any, SobjectFieldComboboxProps>(
     },
     ref
   ) => {
-    const isMounted = useRef(null);
+    const isMounted = useRef(true);
     const [loading, setLoading] = useState<boolean>(false);
-    const [errorMessage, setErrorMessage] = useState<string>(null);
-    const [fields, setFields] = useState<ListItem[]>(null);
+    const [errorMessage, setErrorMessage] = useState<string | null>(null);
+    const [fields, setFields] = useState<ListItem[] | null>(null);
     const [priorObject, setPriorObject] = useState(selectedSObject);
 
     useEffect(() => {

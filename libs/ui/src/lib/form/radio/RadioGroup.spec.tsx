@@ -2,8 +2,9 @@ import React from 'react';
 import { render, fireEvent, waitFor, screen } from '@testing-library/react';
 import RadioGroup from './RadioGroup';
 import Radio from './Radio';
+import { NOOP } from '@jetstream/shared/utils';
 
-const radio = <Radio name="test" label="Radio 1" value="radio1" checked onChange={() => {}} />;
+const radio = <Radio name="test" label="Radio 1" value="radio1" checked onChange={NOOP} />;
 
 describe('Radio Group Test', () => {
   test('required', async () => {

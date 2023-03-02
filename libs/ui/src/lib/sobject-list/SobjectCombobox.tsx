@@ -1,7 +1,7 @@
 import { logger } from '@jetstream/shared/client-logger';
 import { describeGlobal } from '@jetstream/shared/data';
 import { orderObjectsBy } from '@jetstream/shared/utils';
-import { ListItem, SalesforceOrgUi } from '@jetstream/types';
+import { ListItem, Maybe, SalesforceOrgUi } from '@jetstream/types';
 import type { DescribeGlobalSObjectResult } from 'jsforce';
 import { forwardRef, useCallback, useEffect, useImperativeHandle, useRef, useState } from 'react';
 import ComboboxWithItems from '../form/combobox/ComboboxWithItems';
@@ -26,11 +26,11 @@ export interface SobjectComboboxProps {
   className?: string;
   label?: string;
   helpText?: string;
-  labelHelp?: string;
+  labelHelp?: string | null;
   isRequired?: boolean;
   disabled?: boolean;
   selectedOrg: SalesforceOrgUi;
-  selectedSObject: DescribeGlobalSObjectResult;
+  selectedSObject: Maybe<DescribeGlobalSObjectResult>;
   isTooling?: boolean;
   filterFn?: (sobject: DescribeGlobalSObjectResult) => boolean;
   onSelectedSObject: (selectedSObject: DescribeGlobalSObjectResult) => void;
@@ -53,10 +53,10 @@ export const SobjectCombobox = forwardRef<any, SobjectComboboxProps>(
     },
     ref
   ) => {
-    const isMounted = useRef(null);
+    const isMounted = useRef(true);
     const [loading, setLoading] = useState<boolean>(false);
-    const [errorMessage, setErrorMessage] = useState<string>(null);
-    const [sobjects, setSObjects] = useState<ListItem[]>(null);
+    const [errorMessage, setErrorMessage] = useState<string | null>(null);
+    const [sobjects, setSObjects] = useState<ListItem[] | null>(null);
 
     useEffect(() => {
       isMounted.current = true;

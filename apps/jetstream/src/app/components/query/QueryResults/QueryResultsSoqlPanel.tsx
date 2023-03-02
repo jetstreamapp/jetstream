@@ -25,7 +25,10 @@ function reducer(state: State, action: Action): State {
       if (action.payload.soql) {
         try {
           const parsedQuery = parseQuery(action.payload.soql);
-          return { ...state, isValid: true, sobjectName: parsedQuery.sObject };
+          if (parsedQuery.sObject) {
+            return { ...state, isValid: true, sobjectName: parsedQuery.sObject };
+          }
+          return { ...state, isValid: false, sobjectName: null };
         } catch (ex) {
           return { ...state, isValid: false, sobjectName: null };
         }
@@ -68,7 +71,7 @@ export const QueryResultsSoqlPanel: FunctionComponent<QueryResultsSoqlPanelProps
   executeQuery,
   onOpenHistory,
 }) => {
-  const editorRef = useRef<editor.IStandaloneCodeEditor>(null);
+  const editorRef = useRef<editor.IStandaloneCodeEditor>();
   const [userSoql, setUserSoql] = useState<string>(soql);
   const [userTooling, setUserTooling] = useState<boolean>(isTooling);
   const [{ formattedSoql, isValid, sobjectName }, dispatch] = useReducer(reducer, {
@@ -184,7 +187,7 @@ export const QueryResultsSoqlPanel: FunctionComponent<QueryResultsSoqlPanelProps
             scrollBeyondLastLine: false,
           }}
           onMount={handleEditorMount}
-          onChange={(value) => setUserSoql(value)}
+          onChange={(value) => setUserSoql(value || '')}
         />
       </Textarea>
       <Grid align="spread" className="slds-m-top--small">

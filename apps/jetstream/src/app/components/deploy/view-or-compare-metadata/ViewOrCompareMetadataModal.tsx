@@ -30,20 +30,20 @@ export const ViewOrCompareMetadataModal: FunctionComponent<ViewOrCompareMetadata
   onClose,
 }) => {
   const [{ google_apiKey, google_appId, google_clientId }] = useRecoilState(applicationCookieState);
-  const editorRef = useRef<editor.IStandaloneCodeEditor>(null);
-  const diffEditorRef = useRef<editor.IStandaloneDiffEditor>(null);
-  const [targetOrg, setTargetOrg] = useState<SalesforceOrgUi>(null);
+  const editorRef = useRef<editor.IStandaloneCodeEditor>();
+  const diffEditorRef = useRef<editor.IStandaloneDiffEditor>();
+  const [targetOrg, setTargetOrg] = useState<SalesforceOrgUi | null>(null);
 
-  const [activeFile, setActiveFile] = useState<TreeItems<FileItemMetadata | null>>(null);
+  const [activeFile, setActiveFile] = useState<TreeItems<FileItemMetadata> | null>(null);
   const [activeFileType, setActiveFileType] = useState<string>('xml');
-  const [activeSourceContent, setActiveSourceContent] = useState<string>(null);
-  const [activeTargetContent, setActiveTargetContent] = useState<string>(null);
+  const [activeSourceContent, setActiveSourceContent] = useState<string | null>(null);
+  const [activeTargetContent, setActiveTargetContent] = useState<string | null>(null);
   const [editorType, setEditorType] = useState<EditorType>('SOURCE');
   const [swapped, setSwapped] = useState(false);
 
   const [downloadFileModalConfig, setDownloadFileModalConfig] = useState<{
     open: boolean;
-    org: SalesforceOrgUi;
+    org: SalesforceOrgUi | null;
     data: any;
     fileNameParts: string[];
     allowedTypes: FileExtAllTypes[];
@@ -94,7 +94,7 @@ export const ViewOrCompareMetadataModal: FunctionComponent<ViewOrCompareMetadata
       }
       if (targetResults) {
         try {
-          setActiveTargetContent(currentActiveFile.meta.target?.content || '');
+          setActiveTargetContent(currentActiveFile.meta?.target?.content || '');
         } catch (ex) {
           // failed
           logger.warn('[VIEW OR COMPARE][FILE LOAD ERROR][TARGET]', ex);
@@ -144,7 +144,7 @@ export const ViewOrCompareMetadataModal: FunctionComponent<ViewOrCompareMetadata
     // navigate to first difference
     ed.onDidUpdateDiff(() => {
       const diff = ed.getLineChanges();
-      if (diff.length) {
+      if (diff?.length) {
         ed.revealLineInCenter(diff[0].originalStartLineNumber);
       } else {
         ed.revealPosition({ column: 0, lineNumber: 0 });
@@ -207,7 +207,7 @@ export const ViewOrCompareMetadataModal: FunctionComponent<ViewOrCompareMetadata
 
   return (
     <Fragment>
-      {downloadFileModalConfig.open && (
+      {downloadFileModalConfig.open && downloadFileModalConfig.org && (
         <FileDownloadModal
           org={downloadFileModalConfig.org}
           google_apiKey={google_apiKey}
@@ -229,7 +229,7 @@ export const ViewOrCompareMetadataModal: FunctionComponent<ViewOrCompareMetadata
             <ViewOrCompareMetadataModalFooter
               hasSourceMetadata={!!sourceResults}
               hasTargetMetadata={!!targetResults}
-              hasTargetMetadataContent={targetResultFiles?.length > 1}
+              hasTargetMetadataContent={!!targetResultFiles && targetResultFiles?.length > 1}
               sourceLoading={sourceLoading}
               sourceLastChecked={sourceLastChecked}
               targetLoading={targetLoading}

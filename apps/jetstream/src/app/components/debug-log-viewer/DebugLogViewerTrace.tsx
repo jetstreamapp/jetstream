@@ -9,7 +9,7 @@ export interface DebugLogViewerTraceProps {
 }
 
 export const DebugLogViewerTrace: FunctionComponent<DebugLogViewerTraceProps> = ({ org }) => {
-  const isMounted = useRef(null);
+  const isMounted = useRef(true);
   const popoverRef = useRef<PopoverRef>(null);
   const { changeLogLevel, loading, errorMessage, activeDebugLevel, debugLevels } = useSetTraceFlag(org);
 
@@ -21,7 +21,7 @@ export const DebugLogViewerTrace: FunctionComponent<DebugLogViewerTraceProps> = 
   }, []);
 
   function handleChangeLogLevel(debugLevel: DebugLevel) {
-    popoverRef.current.close();
+    popoverRef.current?.close();
     changeLogLevel(debugLevel);
   }
 
@@ -33,7 +33,7 @@ export const DebugLogViewerTrace: FunctionComponent<DebugLogViewerTraceProps> = 
       `}
     >
       <div className="slds-m-left_small">{loading && <Spinner size="x-small" />}</div>
-      {errorMessage && <PopoverErrorButton listHeader={null} errors={errorMessage} />}
+      {errorMessage && <PopoverErrorButton errors={errorMessage} />}
       <div>
         <Popover
           ref={popoverRef}
@@ -50,14 +50,14 @@ export const DebugLogViewerTrace: FunctionComponent<DebugLogViewerTraceProps> = 
                 <ul className="slds-has-dividers_top-space slds-dropdown_length-10">
                   {debugLevels.map((debugLevel) => (
                     <Fragment key={debugLevel.Id}>
-                      {debugLevel.Id === activeDebugLevel.Id && (
+                      {debugLevel.Id === activeDebugLevel?.Id && (
                         <li className="slds-item">
                           <div className="slds-truncate" title={debugLevel.DeveloperName}>
                             {debugLevel.DeveloperName}
                           </div>
                         </li>
                       )}
-                      {debugLevel.Id !== activeDebugLevel.Id && (
+                      {debugLevel.Id !== activeDebugLevel?.Id && (
                         <li className="slds-item slds-text-link" onClick={() => handleChangeLogLevel(debugLevel)}>
                           <div className="slds-truncate" title={debugLevel.DeveloperName}>
                             {debugLevel.DeveloperName}

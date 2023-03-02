@@ -44,7 +44,7 @@ export async function handleExternalRequest<T = any>(config: AxiosRequestConfig)
   axiosInstance.interceptors.request.use(requestInterceptor({}));
   axiosInstance.interceptors.response.use(
     (response) => {
-      logger.info(`[HTTP][RES][${response.config.method.toUpperCase()}][${response.status}]`, response.config.url, {
+      logger.info(`[HTTP][RES][${response.config.method?.toUpperCase()}][${response.status}]`, response.config.url, {
         response: response.data,
       });
       return response;
@@ -101,7 +101,7 @@ function requestInterceptor<T>(options: {
   useBodyInCacheKey?: boolean;
 }) {
   return async (config: AxiosRequestConfig) => {
-    logger.info(`[HTTP][REQ][${config.method.toUpperCase()}]`, config.url, { request: config });
+    logger.info(`[HTTP][REQ][${config.method?.toUpperCase()}]`, config.url, { request: config });
     const { org, targetOrg, useCache, skipRequestCache, skipCacheIfOlderThan, useQueryParamsInCacheKey, useBodyInCacheKey } = options;
     // add request headers
     config.headers = config.headers || {};
@@ -122,7 +122,7 @@ function requestInterceptor<T>(options: {
       config.adapter = (config: AxiosRequestConfig) => {
         return new Promise((resolve) => {
           resolve({
-            data: SOBJECT_DESCRIBE_CACHED_RESPONSES[config.headers[HTTP.HEADERS.X_MOCK_KEY] as string],
+            data: SOBJECT_DESCRIBE_CACHED_RESPONSES[config.headers?.[HTTP.HEADERS.X_MOCK_KEY] as string],
             status: 200,
             statusText: 'OK',
             headers: {},
@@ -181,9 +181,9 @@ function responseInterceptor<T>(options: {
     const { org, useCache, useQueryParamsInCacheKey, useBodyInCacheKey } = options;
     const cachedResponse = getHeader(response.headers, HTTP.HEADERS.X_CACHE_RESPONSE) === '1';
     if (cachedResponse) {
-      logger.info(`[HTTP][RES][${response.config.method.toUpperCase()}][CACHE]`, response.config.url, { response: response.data });
+      logger.info(`[HTTP][RES][${response.config.method?.toUpperCase()}][CACHE]`, response.config.url, { response: response.data });
     } else {
-      logger.info(`[HTTP][RES][${response.config.method.toUpperCase()}][${response.status}]`, response.config.url, {
+      logger.info(`[HTTP][RES][${response.config.method?.toUpperCase()}][${response.status}]`, response.config.url, {
         response: response.data,
       });
     }

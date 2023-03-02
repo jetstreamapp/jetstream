@@ -10,6 +10,8 @@ import {
   menuItemSelectScroll,
   useNonInitialEffect,
 } from '@jetstream/shared/ui-utils';
+import { Maybe } from '@jetstream/types';
+import isNil from 'lodash/isNil';
 import isNumber from 'lodash/isNumber';
 import { createRef, forwardRef, Fragment, KeyboardEvent, RefObject, useEffect, useRef, useState } from 'react';
 import ListItem from './ListItem';
@@ -31,8 +33,8 @@ export interface ListProps {
     key: string;
     id?: string;
     testId?: string;
-    heading?: string | JSX.Element;
-    subheading?: string;
+    heading?: Maybe<string | JSX.Element>;
+    subheading?: Maybe<string>;
   };
   onSelected: (key: string) => void;
 }
@@ -53,7 +55,7 @@ export const List = forwardRef<HTMLUListElement, ListProps>(
     },
     ref: RefObject<HTMLUListElement>
   ) => {
-    const [focusedItem, setFocusedItem] = useState<number>(null);
+    const [focusedItem, setFocusedItem] = useState<number | null>(null);
     const [didScrollIntoView, setDidScrollIntoView] = useState(false);
     const elRefs = useRef<RefObjType>([]);
 
@@ -76,7 +78,7 @@ export const List = forwardRef<HTMLUListElement, ListProps>(
         const activeItemIdx = items.findIndex(isActive);
         if (elRefs.current[activeItemIdx] && elRefs.current[activeItemIdx].current) {
           // without timeout, the viewport does not appear to have been fully rendered and the scroll position was slightly off
-          const timeout = setTimeout(() => elRefs.current[activeItemIdx].current.scrollIntoView());
+          const timeout = setTimeout(() => elRefs.current?.[activeItemIdx]?.current?.scrollIntoView());
           setDidScrollIntoView(true);
           return () => clearTimeout(timeout);
         }
@@ -86,12 +88,14 @@ export const List = forwardRef<HTMLUListElement, ListProps>(
     useNonInitialEffect(() => {
       if (elRefs.current && isNumber(focusedItem) && elRefs.current[focusedItem] && elRefs.current[focusedItem]) {
         try {
-          elRefs.current[focusedItem].current.focus();
+          elRefs.current?.[focusedItem]?.current?.focus();
 
-          menuItemSelectScroll({
-            container: ref.current,
-            focusedIndex: focusedItem,
-          });
+          if (ref.current) {
+            menuItemSelectScroll({
+              container: ref.current,
+              focusedIndex: focusedItem,
+            });
+          }
         } catch (ex) {
           // silent failure
         }
@@ -146,7 +150,7 @@ export const List = forwardRef<HTMLUListElement, ListProps>(
       } else if (!useCheckbox && !hasMetaModifierKey(event) && isEnterOrSpace(event)) {
         event.stopPropagation();
         event.preventDefault();
-        if (items[currFocusedItem]) {
+        if (!isNil(currFocusedItem) && items[currFocusedItem]) {
           const { key } = getContent(items[currFocusedItem]);
           handleSelect(key, currFocusedItem);
         }

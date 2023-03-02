@@ -8,12 +8,12 @@ export const sourceTypeState = atom<'NEW' | 'EXISTING'>({
   default: 'NEW',
 });
 
-export const selectedSObjectState = atom<DescribeGlobalSObjectResult>({
+export const selectedSObjectState = atom<DescribeGlobalSObjectResult | null>({
   key: 'formula.selectedSObjectState',
   default: null,
 });
 
-export const selectedFieldState = atom<Field>({
+export const selectedFieldState = atom<Field | null>({
   key: 'formula.selectedFieldState',
   default: null,
 });

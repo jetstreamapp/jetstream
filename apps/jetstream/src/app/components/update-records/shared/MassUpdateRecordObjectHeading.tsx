@@ -1,3 +1,4 @@
+import { Maybe } from '@jetstream/types';
 import { Grid, Icon, Tooltip } from '@jetstream/ui';
 import { FunctionComponent } from 'react';
 import { ValidationResults } from '../mass-update-records.types';
@@ -5,7 +6,7 @@ import { ValidationResults } from '../mass-update-records.types';
 export interface MassUpdateRecordObjectHeadingProps {
   sobject: string;
   isValid: boolean;
-  validationResults: ValidationResults;
+  validationResults: Maybe<ValidationResults>;
 }
 
 export const MassUpdateRecordObjectHeading: FunctionComponent<MassUpdateRecordObjectHeadingProps> = ({

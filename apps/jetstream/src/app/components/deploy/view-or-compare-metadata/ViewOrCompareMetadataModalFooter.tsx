@@ -7,9 +7,9 @@ export interface ViewOrCompareMetadataModalFooterProps {
   hasTargetMetadata: boolean;
   hasTargetMetadataContent: boolean;
   sourceLoading: boolean;
-  sourceLastChecked: Date;
+  sourceLastChecked: Date | null;
   targetLoading: boolean;
-  targetLastChecked: Date;
+  targetLastChecked: Date | null;
   onDownloadPackage: (which: OrgType) => void;
   onExportSummary: () => void;
   onClose: () => void;
@@ -32,12 +32,12 @@ export const ViewOrCompareMetadataModalFooter: FunctionComponent<ViewOrCompareMe
     <Grid align="spread" verticalAlign="center">
       <div>
         {sourceLoading && (
-          <div className="slds-truncate" title={`last checked at ${sourceLastChecked.toLocaleTimeString()}`}>
+          <div className="slds-truncate" title={`last checked at ${sourceLastChecked?.toLocaleTimeString() || '<waiting>'}`}>
             Loading metadata from Salesforce {sourceLastChecked && <span>- last checked at {sourceLastChecked.toLocaleTimeString()}</span>}
           </div>
         )}
         {targetLoading && (
-          <div className="slds-truncate" title={`last checked at ${targetLastChecked.toLocaleTimeString()}`}>
+          <div className="slds-truncate" title={`last checked at ${targetLastChecked?.toLocaleTimeString() || '<waiting>'}`}>
             Loading metadata from Salesforce {targetLastChecked && <span>- last checked at {targetLastChecked.toLocaleTimeString()}</span>}
           </div>
         )}

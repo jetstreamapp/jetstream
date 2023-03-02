@@ -23,27 +23,39 @@ interface DeployMetadataHistoryModalProps {
 export const DeployMetadataHistoryModal = ({ className }: DeployMetadataHistoryModalProps) => {
   const { trackEvent } = useAmplitude();
   const rollbar = useRollbar();
-  const modalRef = useRef();
+  const modalRef = useRef(null);
   const [{ serverUrl, google_apiKey, google_appId, google_clientId }] = useRecoilState(fromAppState.applicationCookieState);
   const [isOpen, setIsOpen] = useState(false);
-  const [downloadPackageModalState, setDownloadPackageModalState] = useState<{ open: boolean; org: SalesforceOrgUi; data: ArrayBuffer }>({
+  const [downloadPackageModalState, setDownloadPackageModalState] = useState<{
+    open: boolean;
+    org: SalesforceOrgUi | null;
+    data: ArrayBuffer | null;
+  }>({
     open: false,
     org: null,
     data: null,
   });
-  const [viewItemModalState, setViewItemModalState] = useState<{ open: boolean; org: SalesforceOrgUi; item: SalesforceDeployHistoryItem }>({
+  const [viewItemModalState, setViewItemModalState] = useState<{
+    open: boolean;
+    org: SalesforceOrgUi | null;
+    item: SalesforceDeployHistoryItem | null;
+  }>({
     open: false,
     org: null,
     item: null,
   });
-  const [downloadItemModalState, setDownloadItemModalState] = useState<{ open: boolean; org: SalesforceOrgUi; data: MapOf<any[]> }>({
+  const [downloadItemModalState, setDownloadItemModalState] = useState<{
+    open: boolean;
+    org: SalesforceOrgUi | null;
+    data: MapOf<any[]> | null;
+  }>({
     open: false,
     org: null,
     data: null,
   });
   const [historyItems, setHistoryItems] = useState<SalesforceDeployHistoryItem[]>([]);
   const [isLoading, setIsLoading] = useState(false);
-  const [errorMessage, setError] = useState<string>(null);
+  const [errorMessage, setError] = useState<string | null>(null);
   const orgsById = useRecoilValue(fromAppState.salesforceOrgsById);
 
   useEffect(() => {
@@ -127,19 +139,21 @@ export const DeployMetadataHistoryModal = ({ className }: DeployMetadataHistoryM
 
   /** Initiated from view modal */
   function handleDownloadResults() {
-    setDownloadItemModalState({
-      open: true,
-      org: viewItemModalState.org,
-      data: getDeployResultsExcelData(
-        viewItemModalState.item.results,
-        `${viewItemModalState.org.instanceUrl}${viewItemModalState.item.url}`
-      ),
-    });
-    setViewItemModalState({ open: false, org: null, item: null });
-    trackEvent(ANALYTICS_KEYS.deploy_history_download_results, {
-      type: viewItemModalState.item.type,
-      status: viewItemModalState.item.status,
-    });
+    if (viewItemModalState.org && viewItemModalState.item?.results) {
+      setDownloadItemModalState({
+        open: true,
+        org: viewItemModalState.org,
+        data: getDeployResultsExcelData(
+          viewItemModalState.item.results,
+          `${viewItemModalState.org.instanceUrl}${viewItemModalState.item.url}`
+        ),
+      });
+      setViewItemModalState({ open: false, org: null, item: null });
+      trackEvent(ANALYTICS_KEYS.deploy_history_download_results, {
+        type: viewItemModalState.item.type,
+        status: viewItemModalState.item.status,
+      });
+    }
   }
 
   function handleDownloadResultsModalClose() {
@@ -157,7 +171,7 @@ export const DeployMetadataHistoryModal = ({ className }: DeployMetadataHistoryM
         <Icon type="utility" icon="date_time" className="slds-button__icon slds-button__icon_left" omitContainer />
         <span>History</span>
       </button>
-      {downloadPackageModalState.open && (
+      {downloadPackageModalState.open && downloadPackageModalState.org && downloadPackageModalState.data && (
         <FileDownloadModal
           org={downloadPackageModalState.org}
           google_apiKey={google_apiKey}
@@ -171,7 +185,7 @@ export const DeployMetadataHistoryModal = ({ className }: DeployMetadataHistoryM
           emitUploadToGoogleEvent={fromJetstreamEvents.emit}
         />
       )}
-      {downloadItemModalState.open && (
+      {downloadItemModalState.open && downloadItemModalState.org && downloadItemModalState.data && (
         <FileDownloadModal
           org={downloadItemModalState.org}
           modalHeader="Download Deploy Results"
@@ -185,7 +199,7 @@ export const DeployMetadataHistoryModal = ({ className }: DeployMetadataHistoryM
           emitUploadToGoogleEvent={fromJetstreamEvents.emit}
         />
       )}
-      {viewItemModalState.open && (
+      {viewItemModalState.open && viewItemModalState.org && viewItemModalState.item && (
         <DeployMetadataHistoryViewResults
           item={viewItemModalState.item}
           destinationOrg={viewItemModalState.org}

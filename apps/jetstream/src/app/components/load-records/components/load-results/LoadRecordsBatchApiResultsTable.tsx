@@ -1,5 +1,6 @@
 import { css } from '@emotion/react';
 import { formatNumber } from '@jetstream/shared/ui-utils';
+import { Maybe } from '@jetstream/types';
 import { Grid, Icon, Spinner } from '@jetstream/ui';
 import classNames from 'classnames';
 import { FunctionComponent } from 'react';
@@ -8,15 +9,15 @@ import LoadRecordsResultsTableProcessingErrRow from '../../../shared/load-record
 import { LoadDataBatchApiProgress } from '../../load-records-types';
 
 export interface LoadRecordsBatchApiResultsTableProps {
-  processingErrors: PrepareDataResponseError[];
+  processingErrors: Maybe<PrepareDataResponseError[]>;
   processingStatus: LoadDataBatchApiProgress;
   failedProcessingStage: boolean;
   inProgress: boolean;
   failed: boolean;
   startTime: string;
-  endTime: string;
-  processingStartTime: string;
-  processingEndTime: string;
+  endTime: Maybe<string>;
+  processingStartTime: Maybe<string>;
+  processingEndTime: Maybe<string>;
   onDownload: (type: DownloadType) => void;
   onViewResults: (type: DownloadType) => void;
   onDownloadProcessingErrors: () => void;

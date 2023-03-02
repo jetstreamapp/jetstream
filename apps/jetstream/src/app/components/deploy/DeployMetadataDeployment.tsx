@@ -66,21 +66,21 @@ export const DeployMetadataDeployment: FunctionComponent<DeployMetadataDeploymen
     initialLoadFinished,
     hasError,
   } = useListMetadata(selectedOrg);
-  const [listMetadataItems, setListMetadataItems] = useState<MapOf<ListMetadataResultItem>>(listMetadataItemsUnfiltered);
+  const [listMetadataItems, setListMetadataItems] = useState<MapOf<ListMetadataResultItem> | undefined>(listMetadataItemsUnfiltered);
 
   // used for manifest or package download
   const [activeDownloadType, setActiveDownloadType] = useState<'manifest' | 'package' | null>(null);
 
   const listMetadataQueries = useRecoilValue(fromDeployMetadataState.listMetadataQueriesSelector);
-  const userSelection = useRecoilValue<AllUser>(fromDeployMetadataState.userSelectionState);
+  const userSelection = useRecoilValue(fromDeployMetadataState.userSelectionState);
   const selectedUsers = useRecoilValue(fromDeployMetadataState.selectedUsersState);
-  const dateRangeSelection = useRecoilValue<AllUser>(fromDeployMetadataState.dateRangeSelectionState);
-  const dateRangeStartState = useRecoilValue<Date>(fromDeployMetadataState.dateRangeStartState);
-  const dateRangeEndState = useRecoilValue<Date>(fromDeployMetadataState.dateRangeEndState);
-  const includeManagedPackageItems = useRecoilValue<YesNo>(fromDeployMetadataState.includeManagedPackageItems);
+  const dateRangeSelection = useRecoilValue(fromDeployMetadataState.dateRangeSelectionState);
+  const dateRangeStartState = useRecoilValue(fromDeployMetadataState.dateRangeStartState);
+  const dateRangeEndState = useRecoilValue(fromDeployMetadataState.dateRangeEndState);
+  const includeManagedPackageItems = useRecoilValue(fromDeployMetadataState.includeManagedPackageItems);
   const amplitudeSubmissionSelector = useRecoilValue(fromDeployMetadataState.amplitudeSubmissionSelector);
 
-  const [exportData, setExportData] = useState<MapOf<any>>();
+  const [exportData, setExportData] = useState<MapOf<any> | null>(null);
   const [rows, setRows] = useState<DeployMetadataTableRow[]>();
   const [selectedRows, setSelectedRows] = useState<Set<DeployMetadataTableRow>>(new Set());
 
@@ -97,12 +97,13 @@ export const DeployMetadataDeployment: FunctionComponent<DeployMetadataDeploymen
       if (includeManagedPackageItems === 'No' && item.manageableState !== 'unmanaged') {
         return false;
       }
-      if (userSelection === 'user' && !selectedUserSet.has(item.lastModifiedById)) {
+      if (userSelection === 'user' && !selectedUserSet.has(item.lastModifiedById || '')) {
         return false;
       }
       if (
         dateRangeSelection === 'user' &&
         dateRangeStartState &&
+        item.lastModifiedDate &&
         !isBefore(startOfDay(addMinutes(dateRangeStartState || new Date(), -1)), item.lastModifiedDate)
       ) {
         return false;
@@ -110,6 +111,7 @@ export const DeployMetadataDeployment: FunctionComponent<DeployMetadataDeploymen
       if (
         dateRangeSelection === 'user' &&
         dateRangeEndState &&
+        item.lastModifiedDate &&
         !isAfter(startOfDay(addMinutes(dateRangeEndState || new Date(), +1)), item.lastModifiedDate)
       ) {
         return false;
@@ -133,7 +135,7 @@ export const DeployMetadataDeployment: FunctionComponent<DeployMetadataDeploymen
 
   useEffect(() => {
     if (selectedOrg) {
-      let skipCacheIfOlderThan: number;
+      let skipCacheIfOlderThan: number | undefined = undefined;
       if (dateRangeSelection === 'user' && dateRangeStartState) {
         skipCacheIfOlderThan = startOfDay(dateRangeStartState || new Date()).getTime();
       }
@@ -165,14 +167,14 @@ export const DeployMetadataDeployment: FunctionComponent<DeployMetadataDeploymen
         );
       } else if (dateRangeStartState) {
         setModifiedLabel(`Modified since ${formatISODate(dateRangeStartState, { representation: 'date' })}`);
-      } else {
+      } else if (dateRangeEndState) {
         setModifiedLabel(`Modified before ${formatISODate(dateRangeEndState, { representation: 'date' })}`);
       }
     }
   }, [dateRangeStartState, dateRangeEndState]);
 
   async function handleRefreshItem(type: string) {
-    if (listMetadataItems[type]) {
+    if (listMetadataItems?.[type]) {
       loadListMetadataItem(listMetadataItems[type]);
     }
   }
@@ -209,13 +211,13 @@ export const DeployMetadataDeployment: FunctionComponent<DeployMetadataDeploymen
     if (id === TABLE_ACTION_DOWNLOAD_MANIFEST) {
       handleDownloadActive('manifest');
     } else if (id === TABLE_ACTION_CLIPBOARD) {
-      copyToClipboard(transformTabularDataToExcelStr(convertRowsForExport(rows, selectedRows)), { format: 'text/plain' });
+      copyToClipboard(transformTabularDataToExcelStr(convertRowsForExport(rows || [], selectedRows)), { format: 'text/plain' });
     } else if (id === TABLE_ACTION_CLIPBOARD_SELECTED) {
-      copyToClipboard(transformTabularDataToExcelStr(convertRowsForExport(rows, selectedRows, true)), { format: 'text/plain' });
+      copyToClipboard(transformTabularDataToExcelStr(convertRowsForExport(rows || [], selectedRows, true)), { format: 'text/plain' });
     } else if (id === TABLE_ACTION_DOWNLOAD) {
-      setExportData(convertRowsForExport(rows, selectedRows));
+      setExportData(convertRowsForExport(rows || [], selectedRows));
     } else if (id === TABLE_ACTION_DOWNLOAD_SELECTED) {
-      setExportData(convertRowsForExport(rows, selectedRows, true));
+      setExportData(convertRowsForExport(rows || [], selectedRows, true));
     } else if (id === TABLE_ACTION_DELETE_METADATA) {
       setDeleteMetadataModalOpen(true);
     }
@@ -419,7 +421,7 @@ export const DeployMetadataDeployment: FunctionComponent<DeployMetadataDeploymen
               `}
             >
               <DeployMetadataDeploymentTable
-                rows={rows}
+                rows={rows || []}
                 hasSelectedRows={selectedRows.size > 0}
                 onSelectedRows={setSelectedRows}
                 onViewOrCompareOpen={handleViewOrCompareOpen}

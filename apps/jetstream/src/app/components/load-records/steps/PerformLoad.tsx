@@ -1,6 +1,6 @@
 import { ANALYTICS_KEYS, DATE_FORMATS, TITLES } from '@jetstream/shared/constants';
 import { formatNumber } from '@jetstream/shared/ui-utils';
-import { InsertUpdateUpsertDelete, SalesforceOrgUi, SalesforceOrgUiType } from '@jetstream/types';
+import { InsertUpdateUpsertDelete, Maybe, SalesforceOrgUi, SalesforceOrgUiType } from '@jetstream/types';
 import { Badge, Checkbox, ConfirmationModalPromise, Input, Radio, RadioGroup, Select } from '@jetstream/ui';
 import { isNumber } from 'lodash';
 import startCase from 'lodash/startCase';
@@ -56,12 +56,12 @@ function getBatchSizeExceededError(numApiCalls: number): string {
 
 export interface LoadRecordsPerformLoadProps {
   selectedOrg: SalesforceOrgUi;
-  orgType: SalesforceOrgUiType;
+  orgType: Maybe<SalesforceOrgUiType>;
   selectedSObject: string;
   loadType: InsertUpdateUpsertDelete;
   fieldMapping: FieldMapping;
   inputFileData: any[];
-  inputZipFileData: ArrayBuffer;
+  inputZipFileData: Maybe<ArrayBuffer>;
   externalId?: string;
   onIsLoading: (isLoading: boolean) => void;
 }
@@ -87,18 +87,18 @@ export const LoadRecordsPerformLoad: FunctionComponent<LoadRecordsPerformLoadPro
   const [batchApiModeLabel] = useState<string | JSX.Element>(() =>
     getLabelWithOptionalRecommended('Batch API', inputFileData.length <= BATCH_RECOMMENDED_THRESHOLD, hasZipAttachment)
   );
-  const [batchSize, setBatchSize] = useState<number>(MAX_BULK);
-  const [batchSizeError, setBatchSizeError] = useState<string>(null);
+  const [batchSize, setBatchSize] = useState<Maybe<number>>(MAX_BULK);
+  const [batchSizeError, setBatchSizeError] = useState<Maybe<string>>(null);
   const [insertNulls, setInsertNulls] = useState<boolean>(false);
   const [serialMode, setSerialMode] = useState<boolean>(false);
   const [dateFormat, setDateFormat] = useState<string>(DATE_FORMATS.MM_DD_YYYY);
-  const [batchApiLimitError, setBatchApiLimitError] = useState<string>(null);
+  const [batchApiLimitError, setBatchApiLimitError] = useState<Maybe<string>>(null);
   const [loading, setLoading] = useState<boolean>(false);
   const [loadInProgress, setLoadInProgress] = useState<boolean>(false);
   const [hasLoadResults, setHasLoadResults] = useState<boolean>(false);
   const loadTypeLabel = startCase(loadType.toLowerCase());
   const numRecordsImpactedLabel = formatNumber(inputFileData.length);
-  const [assignmentRuleId, setAssignmentRuleId] = useState<string>();
+  const [assignmentRuleId, setAssignmentRuleId] = useState<Maybe<string>>(null);
 
   // ensure that the Batch API does not consume an huge amount of API calls
   useEffect(() => {
@@ -123,11 +123,14 @@ export const LoadRecordsPerformLoad: FunctionComponent<LoadRecordsPerformLoadPro
   }, [apiMode]);
 
   useEffect(() => {
-    if (!isNumber(batchSize) || batchSize <= 0 || batchSize > getMaxBatchSize(apiMode)) {
-      setBatchSizeError(`The batch size must be between 1 and ${getMaxBatchSize(apiMode)}`);
-    } else if (batchSizeError) {
-      setBatchSizeError(null);
-    }
+    // Hack to ensure that the apiMode us fully changed before checking batch size
+    setTimeout(() => {
+      if (!isNumber(batchSize) || batchSize <= 0 || batchSize > getMaxBatchSize(apiMode)) {
+        setBatchSizeError(`The batch size must be between 1 and ${getMaxBatchSize(apiMode)}`);
+      } else if (batchSizeError) {
+        setBatchSizeError(null);
+      }
+    });
   }, [batchSize, apiMode, batchSizeError]);
 
   function handleBatchSize(event: ChangeEvent<HTMLInputElement>) {
@@ -259,7 +262,7 @@ export const LoadRecordsPerformLoad: FunctionComponent<LoadRecordsPerformLoadPro
             className="slds-input"
             placeholder="Set batch size"
             value={batchSize || ''}
-            aria-describedby={batchSizeError}
+            aria-describedby={batchSizeError || undefined}
             disabled={loading || hasZipAttachment}
             onChange={handleBatchSize}
           />
@@ -288,7 +291,7 @@ export const LoadRecordsPerformLoad: FunctionComponent<LoadRecordsPerformLoadPro
       <h1 className="slds-text-heading_medium">Summary</h1>
       <div className="slds-p-around_small">
         <div>
-          <Badge type={orgType === 'Production' ? 'warning' : 'light'} title={orgType}>
+          <Badge type={orgType === 'Production' ? 'warning' : 'light'} title={orgType || undefined}>
             {orgType}
           </Badge>
           <strong className="slds-m-left_xx-small">{selectedOrg.username}</strong>
@@ -317,7 +320,7 @@ export const LoadRecordsPerformLoad: FunctionComponent<LoadRecordsPerformLoadPro
             apiMode={apiMode}
             loadType={loadType}
             externalId={externalId}
-            batchSize={batchSize}
+            batchSize={batchSize ?? getMaxBatchSize(apiMode)}
             insertNulls={insertNulls}
             serialMode={serialMode}
             dateFormat={dateFormat}

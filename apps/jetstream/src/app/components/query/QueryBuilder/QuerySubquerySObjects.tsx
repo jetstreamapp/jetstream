@@ -46,6 +46,9 @@ export const QuerySubquerySObjects: FunctionComponent<QuerySubquerySObjectsProps
   function getContent(childRelationship: ChildRelationship) {
     return () => {
       let content;
+      if (!childRelationship.relationshipName) {
+        return;
+      }
       if (childRelationshipContent[childRelationship.relationshipName]) {
         content = childRelationshipContent[childRelationship.relationshipName];
       } else {
@@ -56,16 +59,21 @@ export const QuerySubquerySObjects: FunctionComponent<QuerySubquerySObjectsProps
             isTooling={isTooling}
             selectedSObject={childRelationship.childSObject}
             parentRelationshipName={childRelationship.relationshipName}
-            onSelectionChanged={(fields: QueryFieldWithPolymorphic[]) => onSelectionChanged(childRelationship.relationshipName, fields)}
+            // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+            onSelectionChanged={(fields: QueryFieldWithPolymorphic[]) => onSelectionChanged(childRelationship.relationshipName!, fields)}
           />
         );
-        setTimeout(() => setChildRelationshipContent({ ...childRelationshipContent, [childRelationship.relationshipName]: content }));
+        // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+        setTimeout(() => setChildRelationshipContent({ ...childRelationshipContent, [childRelationship.relationshipName!]: content }));
       }
       return content;
     };
   }
 
   function getCollapsedSummary(childRelationship: ChildRelationship) {
+    if (!childRelationship.relationshipName) {
+      return;
+    }
     const queryFields = selectedFieldState[childRelationship.relationshipName];
     if (Array.isArray(queryFields)) {
       return (
@@ -74,7 +82,7 @@ export const QuerySubquerySObjects: FunctionComponent<QuerySubquerySObjectsProps
         </Badge>
       );
     }
-    return undefined;
+    return;
   }
 
   return (

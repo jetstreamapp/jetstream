@@ -29,7 +29,7 @@ export const CreateFieldsRowPicklistOption: FunctionComponent<CreateFieldsRowPic
   const createFieldRowRef = useRef<{ fetchValues: (newValue?: string, skipCache?: boolean) => void }>();
 
   function handlePicklistCreated(name: string) {
-    createFieldRowRef.current.fetchValues(name, true);
+    createFieldRowRef.current?.fetchValues(name, true);
   }
 
   return (

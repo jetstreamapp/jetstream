@@ -1,3 +1,4 @@
+import { logger } from '@jetstream/shared/client-logger';
 import { SalesforceOrgUi } from '@jetstream/types';
 import { Panel } from '@jetstream/ui';
 import { FunctionComponent, useEffect, useState } from 'react';
@@ -20,7 +21,7 @@ export const DeployMetadataDeploymentSidePanel: FunctionComponent<DeployMetadata
   isOpen,
   onClosed,
 }) => {
-  const [label, setLabel] = useState<string>();
+  const [label, setLabel] = useState<string | null>(null);
 
   useEffect(() => {
     switch (activeItem) {
@@ -43,6 +44,11 @@ export const DeployMetadataDeploymentSidePanel: FunctionComponent<DeployMetadata
 
   function handleSubmit() {
     onClosed();
+  }
+
+  if (!label) {
+    logger.warn('No label set, returning null');
+    return null;
   }
 
   return (

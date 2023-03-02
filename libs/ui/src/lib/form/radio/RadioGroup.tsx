@@ -9,12 +9,12 @@ export interface RadioGroupProps {
   formControlClassName?: string;
   helpTextClassName?: string;
   label?: string;
-  labelHelp?: string | JSX.Element;
+  labelHelp?: string | JSX.Element | null;
   helpText?: string | JSX.Element;
   required?: boolean;
   hasError?: boolean;
   isButtonGroup?: boolean;
-  errorMessage?: string;
+  errorMessage?: string | null;
   children?: React.ReactNode;
 }
 

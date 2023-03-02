@@ -1,5 +1,6 @@
 import { css } from '@emotion/react';
 import { IconObj } from '@jetstream/icon-factory';
+import { Maybe } from '@jetstream/types';
 import classNames from 'classnames';
 import isString from 'lodash/isString';
 import { forwardRef, ReactNode } from 'react';
@@ -9,7 +10,7 @@ import Icon from '../widgets/Icon';
 export interface CardProps {
   testId?: string;
   className?: string;
-  bodyClassName?: string;
+  bodyClassName?: Maybe<string>;
   title?: string | ReactNode;
   icon?: IconObj;
   actions?: ReactNode;

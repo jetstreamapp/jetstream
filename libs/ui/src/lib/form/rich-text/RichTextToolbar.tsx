@@ -1,8 +1,8 @@
 import { IconName } from '@jetstream/icon-factory';
-import Select from 'libs/ui/src/lib/form/select/Select';
-import Icon from 'libs/ui/src/lib/widgets/Icon';
 import { uniqueId } from 'lodash';
 import { FunctionComponent, useState } from 'react';
+import Icon from '../../widgets/Icon';
+import Select from '../select/Select';
 
 export interface RichTextToolbarProps {
   disabled?: boolean;

@@ -1,7 +1,7 @@
 import { queryMore } from '@jetstream/shared/data';
 import { formatNumber, transformTabularDataToExcelStr } from '@jetstream/shared/ui-utils';
 import { flattenRecord, flattenRecords } from '@jetstream/shared/utils';
-import { SalesforceOrgUi } from '@jetstream/types';
+import { Maybe, SalesforceOrgUi } from '@jetstream/types';
 import copyToClipboard from 'copy-to-clipboard';
 import { QueryResult } from 'jsforce';
 import { FunctionComponent, useCallback, useEffect, useRef, useState } from 'react';
@@ -32,9 +32,9 @@ import {
 import { DataTable } from './DataTable';
 
 export const SubqueryRenderer: FunctionComponent<FormatterProps<RowWithKey, unknown>> = ({ column, row, onRowChange, isCellSelected }) => {
-  const isMounted = useRef(null);
+  const isMounted = useRef(true);
   const [isActive, setIsActive] = useState(false);
-  const [modalTagline, setModalTagline] = useState<string>();
+  const [modalTagline, setModalTagline] = useState<Maybe<string>>(null);
   const [downloadModalIsActive, setDownloadModalIsActive] = useState(false);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [queryResults, setQueryResults] = useState<QueryResult<any>>(row[column.key] || {});
@@ -76,7 +76,7 @@ export const SubqueryRenderer: FunctionComponent<FormatterProps<RowWithKey, unkn
     if (isActive) {
       setIsActive(false);
     } else {
-      if (!modalTagline) {
+      if (!modalTagline && row) {
         setModalTagline(getSubqueryModalTagline(row));
       }
       setIsActive(true);
@@ -106,6 +106,9 @@ export const SubqueryRenderer: FunctionComponent<FormatterProps<RowWithKey, unkn
 
   async function loadMore(org: SalesforceOrgUi, isTooling: boolean) {
     try {
+      if (!nextRecordsUrl) {
+        return;
+      }
       setIsLoadingMore(true);
       const results = await queryMore(org, nextRecordsUrl, isTooling);
       if (!isMounted.current) {
@@ -128,7 +131,11 @@ export const SubqueryRenderer: FunctionComponent<FormatterProps<RowWithKey, unkn
 
   return (
     <DataTableSubqueryContext.Consumer>
-      {({ serverUrl, org, columnDefinitions, isTooling, google_apiKey, google_appId, google_clientId }) => {
+      {(props) => {
+        if (!props) {
+          return null;
+        }
+        const { serverUrl, org, columnDefinitions, isTooling, google_apiKey, google_appId, google_clientId } = props;
         return (
           <div>
             {(downloadModalIsActive || isActive) && (
@@ -169,7 +176,7 @@ export const SubqueryRenderer: FunctionComponent<FormatterProps<RowWithKey, unkn
 interface ModalDataTableProps extends SubqueryContext {
   isActive: boolean;
   columnKey: string;
-  modalTagline: string;
+  modalTagline?: Maybe<string>;
   queryResults: QueryResult<any>;
   isLoadingMore: boolean;
   selectedRows: ReadonlySet<string>;
@@ -220,8 +227,8 @@ function ModalDataTable({
     };
   });
 
-  function getColumns(subqueryColumns: SalesforceQueryColumnDefinition<any>['subqueryColumns']) {
-    return subqueryColumns[columnKey];
+  function getColumns(subqueryColumns?: SalesforceQueryColumnDefinition<any>['subqueryColumns']) {
+    return subqueryColumns?.[columnKey];
   }
 
   const handleContextMenuAction = useCallback(

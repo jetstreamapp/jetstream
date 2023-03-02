@@ -32,7 +32,7 @@ export interface AddOrgProps {
 export const AddOrg: FunctionComponent<AddOrgProps> = ({ className, label = 'Add Org', disabled, onAddOrg }) => {
   const [orgType, setOrgType] = useState<OrgType>('prod');
   const [customUrl, setCustomUrl] = useState<string>('');
-  const [loginUrl, setLoginUrl] = useState<string>(null);
+  const [loginUrl, setLoginUrl] = useState<string | null>(null);
   const [applicationState] = useRecoilState(applicationCookieState);
 
   useEffect(() => {
@@ -53,9 +53,10 @@ export const AddOrg: FunctionComponent<AddOrgProps> = ({ className, label = 'Add
 
   // FIXME: we should have a way to know what org was being "fixed" and always replace it in the DB and here
   function handleAddOrg() {
-    addOrg({ serverUrl: applicationState.serverUrl, loginUrl }, (addedOrg: SalesforceOrgUi) => {
-      onAddOrg(addedOrg, true);
-    });
+    loginUrl &&
+      addOrg({ serverUrl: applicationState.serverUrl, loginUrl }, (addedOrg: SalesforceOrgUi) => {
+        onAddOrg(addedOrg, true);
+      });
   }
 
   return (

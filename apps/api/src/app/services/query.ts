@@ -22,8 +22,8 @@ export async function queryRecords(
     ? conn.tooling.query(query, { scanAll: includeDeletedRecords })
     : conn.query(query, { scanAll: includeDeletedRecords }));
 
-  let columns: QueryResultsColumns;
-  let parsedQuery: Query;
+  let columns: QueryResultsColumns | undefined;
+  let parsedQuery: Query | undefined;
 
   // get column info from SFDC
   try {

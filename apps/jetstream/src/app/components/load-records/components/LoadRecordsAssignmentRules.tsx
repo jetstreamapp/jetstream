@@ -1,7 +1,7 @@
 import { css } from '@emotion/react';
 import { queryWithCache } from '@jetstream/shared/data';
 import { useNonInitialEffect } from '@jetstream/shared/ui-utils';
-import { ListItem, SalesforceOrgUi } from '@jetstream/types';
+import { ListItem, Maybe, SalesforceOrgUi } from '@jetstream/types';
 import { Checkbox, Grid, Picklist, Spinner } from '@jetstream/ui';
 import { Fragment, FunctionComponent, useCallback, useEffect, useRef, useState } from 'react';
 import { ApiMode } from '../load-records-types';
@@ -18,7 +18,7 @@ export interface LoadRecordsAssignmentRulesProps {
   selectedOrg: SalesforceOrgUi;
   apiMode: ApiMode;
   selectedSObject: string;
-  onAssignmentRule: (assignmentRuleId: string | null) => void;
+  onAssignmentRule: (assignmentRuleId: Maybe<string>) => void;
 }
 
 export const LoadRecordsAssignmentRules: FunctionComponent<LoadRecordsAssignmentRulesProps> = ({
@@ -27,12 +27,12 @@ export const LoadRecordsAssignmentRules: FunctionComponent<LoadRecordsAssignment
   selectedSObject,
   onAssignmentRule,
 }) => {
-  const isMounted = useRef(null);
+  const isMounted = useRef(true);
   const [picklistKey, setPickListKey] = useState(currKey);
   const [loading, setLoading] = useState(false);
   const [useAssignmentRules, setUseAssignmentRules] = useState(false);
   const [assignmentRules, setAssignmentRules] = useState<ListItem<string, AssignmentRuleRecord>[]>([]);
-  const [selectedAssignmentRule, setSelectedAssignmentRule] = useState<string>();
+  const [selectedAssignmentRule, setSelectedAssignmentRule] = useState<Maybe<string>>(null);
 
   useEffect(() => {
     isMounted.current = true;

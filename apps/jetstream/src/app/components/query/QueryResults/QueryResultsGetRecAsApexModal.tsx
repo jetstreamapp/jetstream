@@ -80,7 +80,7 @@ export const QueryResultsGetRecAsApexModal: FunctionComponent<QueryResultsGetRec
   }, [fields]);
 
   useNonInitialEffect(() => {
-    if (!loading && !hasError && setFieldMetadata) {
+    if (!loading && !hasError) {
       setApex(recordToApex(record, options));
     }
   }, [hasError, loading, options, record]);

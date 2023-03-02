@@ -9,8 +9,8 @@ export interface CreateFieldsDeployModalRowProps {
 
 export const CreateFieldsDeployModalRow: FunctionComponent<CreateFieldsDeployModalRowProps> = ({ result }) => {
   const [fieldJson] = useState(() => JSON.stringify(result.field));
-  const [flsErrors, setFlsErrors] = useState<string>();
-  const [layoutErrors, setLayoutErrors] = useState<string>();
+  const [flsErrors, setFlsErrors] = useState<string | null>(null);
+  const [layoutErrors, setLayoutErrors] = useState<string | null>(null);
 
   useEffect(() => {
     if (Array.isArray(result.flsErrors) && result.flsErrors.length) {
@@ -85,7 +85,7 @@ export const CreateFieldsDeployModalRow: FunctionComponent<CreateFieldsDeployMod
             className="slds-icon slds-icon_small slds-icon-text-success"
           />
         )}
-        {result.state === 'SUCCESS' && result.flsWarning && result.flsResult && (
+        {result.state === 'SUCCESS' && result.flsWarning && result.flsResult && flsErrors && (
           <Tooltip content={flsErrors}>
             <Icon
               type="utility"
@@ -109,7 +109,7 @@ export const CreateFieldsDeployModalRow: FunctionComponent<CreateFieldsDeployMod
             className="slds-icon slds-icon_small slds-icon-text-success"
           />
         )}
-        {result.state === 'SUCCESS' && result.pageLayoutStatus === 'PARTIAL' && (
+        {result.state === 'SUCCESS' && result.pageLayoutStatus === 'PARTIAL' && layoutErrors && (
           <Tooltip content={layoutErrors}>
             <Icon
               type="utility"
@@ -120,7 +120,7 @@ export const CreateFieldsDeployModalRow: FunctionComponent<CreateFieldsDeployMod
             />
           </Tooltip>
         )}
-        {result.state === 'SUCCESS' && result.pageLayoutStatus === 'FAILED' && (
+        {result.state === 'SUCCESS' && result.pageLayoutStatus === 'FAILED' && layoutErrors && (
           <Tooltip content={layoutErrors}>
             <Icon
               type="utility"

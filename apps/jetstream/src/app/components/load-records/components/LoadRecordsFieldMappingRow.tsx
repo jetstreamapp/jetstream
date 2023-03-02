@@ -1,5 +1,6 @@
 import { css } from '@emotion/react';
 import { multiWordObjectFilter } from '@jetstream/shared/utils';
+import { Maybe } from '@jetstream/types';
 import { Checkbox, Combobox, ComboboxListItem, Grid, Icon, Select } from '@jetstream/ui';
 import classNames from 'classnames';
 import isNil from 'lodash/isNil';
@@ -18,20 +19,20 @@ function getPreviewData(csvRowData: string | Date | boolean | number | null): st
 }
 
 function getComboboxFieldName(fieldMappingItem: FieldMappingItem) {
-  if (!fieldMappingItem || !fieldMappingItem.targetField) {
+  if (!fieldMappingItem || !fieldMappingItem.fieldMetadata || !fieldMappingItem.targetField) {
     return undefined;
   }
   return `${fieldMappingItem.fieldMetadata.label} (${fieldMappingItem.targetField})`;
 }
 
 function getComboboxFieldTitle(fieldMappingItem: FieldMappingItem) {
-  if (!fieldMappingItem || !fieldMappingItem.targetField) {
+  if (!fieldMappingItem || !fieldMappingItem.fieldMetadata || !fieldMappingItem.targetField) {
     return undefined;
   }
   return `${fieldMappingItem.fieldMetadata.label} (${fieldMappingItem.targetField}) - ${fieldMappingItem.fieldMetadata.typeLabel}`;
 }
 
-function getComboboxRelatedFieldName(relatedFieldMetadata: FieldRelatedEntity) {
+function getComboboxRelatedFieldName(relatedFieldMetadata: Maybe<FieldRelatedEntity>) {
   if (!relatedFieldMetadata) {
     return undefined;
   }
@@ -61,7 +62,7 @@ export const LoadRecordsFieldMappingRow: FunctionComponent<LoadRecordsFieldMappi
   const [visibleFields, setVisibleFields] = useState(fields);
 
   const [relatedTextFilter, setRelatedTextFilter] = useState<string>('');
-  const [selectedRelatedObject, setSelectedRelatedObject] = useState<string>(fieldMappingItem.selectedReferenceTo);
+  const [selectedRelatedObject, setSelectedRelatedObject] = useState<Maybe<string>>(fieldMappingItem.selectedReferenceTo);
   const [visibleRelatedFields, setVisibleRelatedFields] = useState<FieldRelatedEntity[]>([]);
 
   useEffect(() => {
@@ -80,13 +81,13 @@ export const LoadRecordsFieldMappingRow: FunctionComponent<LoadRecordsFieldMappi
         if (selectedRelatedObject !== fieldMappingItem.selectedReferenceTo) {
           setSelectedRelatedObject(fieldMappingItem.selectedReferenceTo);
           setRelatedTextFilter('');
-          setVisibleRelatedFields(fieldMappingItem.fieldMetadata.relatedFields?.[fieldMappingItem.selectedReferenceTo] || []);
+          setVisibleRelatedFields(fieldMappingItem.fieldMetadata.relatedFields?.[fieldMappingItem.selectedReferenceTo || ''] || []);
         } else {
           // apply filter
           setVisibleRelatedFields(
-            fieldMappingItem.fieldMetadata.relatedFields[fieldMappingItem.selectedReferenceTo].filter(
+            fieldMappingItem.fieldMetadata.relatedFields?.[fieldMappingItem.selectedReferenceTo || '']?.filter(
               multiWordObjectFilter(['name', 'label'], relatedTextFilter)
-            )
+            ) || []
           );
         }
       } else {
@@ -94,21 +95,21 @@ export const LoadRecordsFieldMappingRow: FunctionComponent<LoadRecordsFieldMappi
         if (selectedRelatedObject !== fieldMappingItem.selectedReferenceTo) {
           setSelectedRelatedObject(fieldMappingItem.selectedReferenceTo);
           if (fieldMappingItem.selectedReferenceTo) {
-            setVisibleRelatedFields(fieldMappingItem.fieldMetadata.relatedFields[fieldMappingItem.selectedReferenceTo]);
+            setVisibleRelatedFields(fieldMappingItem.fieldMetadata.relatedFields?.[fieldMappingItem.selectedReferenceTo] || []);
           }
           // ensure that all values are shown since there is no filter
         } else if (
           fieldMappingItem.selectedReferenceTo &&
           Array.isArray(fieldMappingItem.fieldMetadata.relatedFields?.[fieldMappingItem.selectedReferenceTo]) &&
-          fieldMappingItem.fieldMetadata.relatedFields[fieldMappingItem.selectedReferenceTo].length !== visibleRelatedFields.length
+          fieldMappingItem.fieldMetadata.relatedFields?.[fieldMappingItem.selectedReferenceTo].length !== visibleRelatedFields.length
         ) {
-          setVisibleRelatedFields(fieldMappingItem.fieldMetadata.relatedFields[fieldMappingItem.selectedReferenceTo]);
+          setVisibleRelatedFields(fieldMappingItem.fieldMetadata.relatedFields?.[fieldMappingItem.selectedReferenceTo] || []);
         }
       }
     }
   }, [fieldMappingItem, relatedTextFilter, selectedRelatedObject]);
 
-  function handleSelectionChanged(field: FieldWithRelatedEntities) {
+  function handleSelectionChanged(field: Maybe<FieldWithRelatedEntities>) {
     if (!field) {
       onSelectionChanged(csvField, {
         csvField,
@@ -150,10 +151,10 @@ export const LoadRecordsFieldMappingRow: FunctionComponent<LoadRecordsFieldMappi
       mappedToLookup: true,
       targetLookupField: field.name,
       relatedFieldMetadata: field,
-      relationshipName: fieldMappingItem.fieldMetadata.relationshipName,
+      relationshipName: fieldMappingItem.fieldMetadata?.relationshipName,
     };
 
-    if (newFieldMappingItem.targetLookupField && newFieldMappingItem.relatedFieldMetadata.isExternalId) {
+    if (newFieldMappingItem.targetLookupField && newFieldMappingItem.relatedFieldMetadata?.isExternalId) {
       newFieldMappingItem.lookupOptionNullIfNoMatch = false;
       newFieldMappingItem.lookupOptionUseFirstMatch = 'ERROR_IF_MULTIPLE';
     }
@@ -165,7 +166,7 @@ export const LoadRecordsFieldMappingRow: FunctionComponent<LoadRecordsFieldMappi
     onSelectionChanged(csvField, {
       ...fieldMappingItem,
       mappedToLookup: value,
-      selectedReferenceTo: fieldMappingItem.selectedReferenceTo || fieldMappingItem.fieldMetadata.referenceTo?.[0],
+      selectedReferenceTo: fieldMappingItem.selectedReferenceTo || fieldMappingItem.fieldMetadata?.referenceTo?.[0],
     });
   }
 
@@ -177,7 +178,7 @@ export const LoadRecordsFieldMappingRow: FunctionComponent<LoadRecordsFieldMappi
     }
   }
 
-  const isLookup = fieldMappingItem.targetField && Array.isArray(fieldMappingItem.fieldMetadata.referenceTo);
+  const isLookup = fieldMappingItem.targetField && Array.isArray(fieldMappingItem.fieldMetadata?.referenceTo);
 
   return (
     <tr>
@@ -284,7 +285,7 @@ export const LoadRecordsFieldMappingRow: FunctionComponent<LoadRecordsFieldMappi
                       label="Related Object"
                       isRequired
                       labelHelp={
-                        fieldMappingItem.fieldMetadata.referenceTo.length <= 1
+                        (fieldMappingItem.fieldMetadata?.referenceTo?.length || 0) <= 1
                           ? 'This option is only enabled for fields that have more than one related object.'
                           : 'This lookup can point to multiple objects, choose the related object that you are mapping to.'
                       }
@@ -292,11 +293,11 @@ export const LoadRecordsFieldMappingRow: FunctionComponent<LoadRecordsFieldMappi
                       <select
                         className="slds-select"
                         id={`${fieldMappingItem.targetField}-related-to`}
-                        disabled={fieldMappingItem.fieldMetadata.referenceTo.length <= 1}
+                        disabled={(fieldMappingItem.fieldMetadata?.referenceTo?.length || 0) <= 1}
                         value={fieldMappingItem.selectedReferenceTo}
                         onChange={(event) => handleRelatedObjectSelectionChanged(event.target.value)}
                       >
-                        {fieldMappingItem.fieldMetadata.referenceTo.map((relatedObject) => (
+                        {fieldMappingItem.fieldMetadata?.referenceTo?.map((relatedObject) => (
                           <option key={relatedObject} value={relatedObject}>
                             {relatedObject}
                           </option>
@@ -348,7 +349,7 @@ export const LoadRecordsFieldMappingRow: FunctionComponent<LoadRecordsFieldMappi
                   <LoadRecordsFieldMappingRowLookupOption
                     csvField={csvField}
                     fieldMappingItem={fieldMappingItem}
-                    disabled={fieldMappingItem.relatedFieldMetadata.isExternalId}
+                    disabled={!!fieldMappingItem.relatedFieldMetadata?.isExternalId}
                     onSelectionChanged={onSelectionChanged}
                   />
                 )}

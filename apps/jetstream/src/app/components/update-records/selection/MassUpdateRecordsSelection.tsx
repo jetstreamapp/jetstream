@@ -51,7 +51,7 @@ export const MassUpdateRecordsSelection: FunctionComponent<MassUpdateRecordsSele
 
   useEffect(() => {
     if (allRowsValid) {
-      setAllRowsValidated(rows.length && rows.every((row) => row.validationResults?.isValid));
+      setAllRowsValidated(!!rows.length && rows.every((row) => row.validationResults?.isValid));
     } else {
       setAllRowsValidated(false);
     }

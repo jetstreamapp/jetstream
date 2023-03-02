@@ -3,7 +3,7 @@ import { logger } from '@jetstream/shared/client-logger';
 import { INPUT_ACCEPT_FILETYPES } from '@jetstream/shared/constants';
 import { GoogleApiClientConfig, parseFile, parseWorkbook } from '@jetstream/shared/ui-utils';
 import { SplitWrapper as Split } from '@jetstream/splitjs';
-import { InputReadFileContent, InputReadGoogleSheet, InsertUpdateUpsertDelete, SalesforceOrgUi } from '@jetstream/types';
+import { InputReadFileContent, InputReadGoogleSheet, InsertUpdateUpsertDelete, Maybe, SalesforceOrgUi } from '@jetstream/types';
 import {
   Alert,
   ConnectedSobjectList,
@@ -24,24 +24,24 @@ export interface LoadRecordsSelectObjectAndFileProps {
   googleApiConfig: GoogleApiClientConfig;
   featureFlags: Set<string>;
   selectedOrg: SalesforceOrgUi;
-  sobjects: DescribeGlobalSObjectResult[];
-  selectedSObject: DescribeGlobalSObjectResult;
+  sobjects: Maybe<DescribeGlobalSObjectResult[]>;
+  selectedSObject: Maybe<DescribeGlobalSObjectResult>;
   isCustomMetadataObject: boolean;
   loadType: InsertUpdateUpsertDelete;
   externalIdFields: FieldWithRelatedEntities[];
   externalId: string;
-  inputFileType: LocalOrGoogle;
-  inputFilename: string;
-  loadingFields: boolean;
-  allowBinaryAttachment: boolean;
-  binaryAttachmentBodyField: string;
-  inputZipFilename: string;
+  inputFileType: Maybe<LocalOrGoogle>;
+  inputFilename: Maybe<string>;
+  loadingFields: Maybe<boolean>;
+  allowBinaryAttachment: Maybe<boolean>;
+  binaryAttachmentBodyField: Maybe<string>;
+  inputZipFilename: Maybe<string>;
   onSobjects: (sobjects: DescribeGlobalSObjectResult[]) => void;
   onSelectedSobject: (selectedSObject: DescribeGlobalSObjectResult) => void;
   onFileChange: (data: any[], headers: string[], filename: string, inputFileType: LocalOrGoogle) => void;
   onZipFileChange: (data: ArrayBuffer, filename: string) => void;
   onLoadTypeChange: (type: InsertUpdateUpsertDelete) => void;
-  onExternalIdChange: (externalId?: string) => void;
+  onExternalIdChange: (externalId: string) => void;
   children?: React.ReactNode;
 }
 
@@ -97,7 +97,7 @@ export const LoadRecordsSelectObjectAndFile: FunctionComponent<LoadRecordsSelect
 
   function handleLoadTypeChange(type: InsertUpdateUpsertDelete, externalId?: string) {
     onLoadTypeChange(type);
-    onExternalIdChange(externalId);
+    onExternalIdChange(externalId || '');
   }
 
   return (
@@ -150,7 +150,7 @@ export const LoadRecordsSelectObjectAndFile: FunctionComponent<LoadRecordsSelect
               </GridCol>
             </Grid>
           </GridCol>
-          {allowBinaryAttachment && (
+          {allowBinaryAttachment && inputZipFilename && (
             <GridCol className="slds-m-bottom_small">
               <Grid verticalAlign="center">
                 <GridCol size={6}>

@@ -1,4 +1,5 @@
 import { logger } from '@jetstream/shared/client-logger';
+import { Maybe } from '@jetstream/types';
 import { useNonInitialEffect } from 'libs/shared/ui-utils/src/lib/hooks/useNonInitialEffect';
 import { useRollbar } from 'libs/shared/ui-utils/src/lib/hooks/useRollbar';
 import { useCallback, useEffect, useRef, useState } from 'react';
@@ -18,7 +19,7 @@ let API_LOADED: ApisLoaded = {
 };
 let _signedIn = false;
 let _authorized = false;
-let _authResponse: gapi.auth2.AuthResponse | undefined;
+let _authResponse: Maybe<gapi.auth2.AuthResponse>;
 
 let gapiAuthInstance: gapi.auth2.GoogleAuth;
 
@@ -36,7 +37,7 @@ export interface ApisLoaded {
 export interface GoogleApiData {
   apiConfig: ApiConfig;
   authorized: boolean;
-  authResponse: gapi.auth2.AuthResponse | undefined;
+  authResponse: Maybe<gapi.auth2.AuthResponse>;
   error?: string;
   gapiAuthInstance: gapi.auth2.GoogleAuth;
   hasApisLoaded: boolean;
@@ -59,15 +60,15 @@ export function useLoadGoogleApi({
   appId,
   clientId,
 }: GoogleApiClientConfig): [GoogleApiData, (options?: gapi.auth2.SigninOptions) => void, () => void] {
-  const isMounted = useRef(null);
+  const isMounted = useRef(true);
   const rollbar = useRollbar();
   const [scriptLoaded, scriptLoadError] = useInjectScript();
-  const [error, setError] = useState<string>();
+  const [error, setError] = useState<string | null>(null);
   const [hasApisLoaded, setHasApisLoaded] = useState(false);
   const [hasInitialized, setHasInitialized] = useState(!!gapiAuthInstance);
   const [signedIn, setSignedIn] = useState(_signedIn);
   const [authorized, setAuthorized] = useState(_authorized);
-  const [authResponse, setAuthResponse] = useState<gapi.auth2.AuthResponse | undefined>(_authResponse);
+  const [authResponse, setAuthResponse] = useState<Maybe<gapi.auth2.AuthResponse>>(_authResponse);
   const [apiLoaded, setApiLoaded] = useState(API_LOADED);
 
   useEffect(() => {

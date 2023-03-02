@@ -47,9 +47,9 @@ const InvalidQuery = () => {
 };
 
 export const ManualSoql: FunctionComponent<ManualSoqlProps> = ({ className, isTooling = false, generatedSoql }) => {
-  const isMounted = useRef(null);
+  const isMounted = useRef(true);
   const popoverRef = useRef<PopoverRef>(null);
-  const editorRef = useRef<editor.IStandaloneCodeEditor>(null);
+  const editorRef = useRef<editor.IStandaloneCodeEditor>();
   const navigate = useNavigate();
   const { trackEvent } = useAmplitude();
   const [soql, setSoql] = useState<string>('');
@@ -102,7 +102,10 @@ export const ManualSoql: FunctionComponent<ManualSoqlProps> = ({ className, isTo
   const handleEditorMount: OnMount = (currEditor, monaco) => {
     editorRef.current = currEditor;
     currEditor.focus();
-    currEditor.setSelection(currEditor.getModel().getFullModelRange());
+
+    const modelRange = currEditor.getModel()?.getFullModelRange();
+    modelRange && currEditor.setSelection(modelRange);
+
     editorRef.current.addAction({
       id: 'modifier-enter',
       label: 'Submit',
@@ -181,7 +184,7 @@ export const ManualSoql: FunctionComponent<ManualSoqlProps> = ({ className, isTo
                   scrollBeyondLastLine: false,
                 }}
                 onMount={handleEditorMount}
-                onChange={(value) => setSoql(value)}
+                onChange={(value) => setSoql(value || '')}
               />
             </Textarea>
             <Grid className="slds-m-top_xx-small">

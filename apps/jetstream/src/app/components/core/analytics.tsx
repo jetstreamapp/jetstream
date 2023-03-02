@@ -18,7 +18,7 @@ function init(appCookie: ApplicationCookie, version: string) {
   if (!environment.amplitudeToken) {
     return;
   }
-  const config: Config = !window.electron?.isElectron
+  const config: Config | undefined = !window.electron?.isElectron
     ? {
         apiEndpoint: `${appCookie.serverUrl.replace(REMOVE_PROTO_REGEX, '')}/analytics`,
         forceHttps: false,
@@ -60,11 +60,17 @@ export function useAmplitude(optOut?: boolean) {
         .set('id', userProfile.sub)
         .set('email', userProfile.email)
         .set('email-verified', userProfile.email_verified)
-        .set('feature-flags', userProfile[environment.authAudience]?.featureFlags)
         .set('environment', appCookie.environment)
-        .set('denied-notifications', userPreferences.deniedNotifications)
         .add('app-init-count', 1)
         .add('application-type', window.electron?.platform || 'web');
+
+      if (userPreferences.deniedNotifications) {
+        identify.set('denied-notifications', userPreferences.deniedNotifications);
+      }
+
+      if (environment.authAudience) {
+        identify.set('feature-flags', userProfile[environment.authAudience]?.featureFlags);
+      }
 
       amplitude.getInstance().identify(identify);
       amplitude.getInstance().setUserId(userProfile.email);

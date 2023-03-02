@@ -1,7 +1,7 @@
 import { logger } from '@jetstream/shared/client-logger';
 import { fetchFields, getFieldKey } from '@jetstream/shared/ui-utils';
 import { multiWordObjectFilter } from '@jetstream/shared/utils';
-import { FieldWrapper, MapOf, QueryFields, QueryFieldWithPolymorphic } from '@jetstream/types';
+import { FieldWrapper, MapOf, Maybe, QueryFields, QueryFieldWithPolymorphic } from '@jetstream/types';
 import { AutoFullHeightContainer, SobjectFieldList } from '@jetstream/ui';
 import isEmpty from 'lodash/isEmpty';
 import React, { Fragment, FunctionComponent, useCallback, useEffect, useRef, useState } from 'react';
@@ -16,14 +16,14 @@ import {
 } from '../utils/query-fields-utils';
 
 export interface QueryFieldsProps {
-  selectedSObject: string;
+  selectedSObject: Maybe<string>;
   isTooling: boolean;
   onSelectionChanged: (fields: QueryFieldWithPolymorphic[]) => void;
 }
 
 export const QueryFieldsComponent: FunctionComponent<QueryFieldsProps> = ({ selectedSObject, isTooling, onSelectionChanged }) => {
   const [{ serverUrl }] = useRecoilState(applicationCookieState);
-  const isMounted = useRef(null);
+  const isMounted = useRef(true);
   const [queryFieldsMap, setQueryFieldsMap] = useRecoilState(fromQueryState.queryFieldsMapState);
   const [queryFieldsKey, setQueryFieldsKey] = useRecoilState(fromQueryState.queryFieldsKey);
   const setChildRelationships = useSetRecoilState(fromQueryState.queryChildRelationships);
@@ -39,6 +39,9 @@ export const QueryFieldsComponent: FunctionComponent<QueryFieldsProps> = ({ sele
 
   // Fetch fields for base object if the selected object changes
   useEffect(() => {
+    if (!selectedSObject) {
+      return;
+    }
     const fieldKey = getQueryFieldKey(selectedOrg, selectedSObject);
     if (isEmpty(queryFieldsMap) || fieldKey !== queryFieldsKey) {
       // init query fields when object changes

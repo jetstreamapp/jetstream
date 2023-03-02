@@ -1,11 +1,11 @@
 import { logger } from '@jetstream/shared/client-logger';
 import { unlinkIdentityFromProfile } from '@jetstream/shared/data';
-import { Auth0ConnectionName, UserProfileAuth0Identity } from '@jetstream/types';
+import { Auth0ConnectionName, Maybe, UserProfileAuth0Identity } from '@jetstream/types';
 import { useCallback, useState } from 'react';
 import { useRecoilState } from 'recoil';
 import { applicationCookieState } from '../../app-state';
 
-let windowRef: Window | undefined;
+let windowRef: Maybe<Window>;
 let addOrgCallbackFn: () => void;
 
 function handleWindowEvent(event: MessageEvent) {

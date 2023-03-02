@@ -10,7 +10,7 @@ export function getNextKey() {
   return key++;
 }
 
-export const sObjectsState = atom<DescribeGlobalSObjectResult[]>({
+export const sObjectsState = atom<DescribeGlobalSObjectResult[] | null>({
   key: 'create-fields.sObjectsState',
   default: null,
 });
@@ -20,7 +20,7 @@ export const selectedSObjectsState = atom<string[]>({
   default: [],
 });
 
-export const profilesState = atom<ListItem<string, PermissionSetWithProfileRecord>[]>({
+export const profilesState = atom<ListItem<string, PermissionSetWithProfileRecord>[] | null>({
   key: 'create-fields.profilesState',
   default: null,
 });
@@ -31,7 +31,7 @@ export const selectedProfilesPermSetState = atom<string[]>({
   default: [],
 });
 
-export const permissionSetsState = atom<ListItem<string, PermissionSetNoProfileRecord>[]>({
+export const permissionSetsState = atom<ListItem<string, PermissionSetNoProfileRecord>[] | null>({
   key: 'create-fields.permissionSetsState',
   default: null,
 });

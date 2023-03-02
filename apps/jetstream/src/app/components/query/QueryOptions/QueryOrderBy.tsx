@@ -10,12 +10,12 @@ export interface QueryOrderByContainerProps {
   fields: ListItemGroup[];
 }
 
-const order: ListItem<string, AscDesc>[] = [
+const order: ListItem<AscDesc>[] = [
   { id: 'asc', label: 'Ascending (A to Z)', value: 'ASC' },
   { id: 'desc', label: 'Descending (Z to A)', value: 'DESC' },
 ];
 
-const nulls: ListItem<string, FirstLast | null>[] = [
+const nulls: ListItem<FirstLast | null>[] = [
   { id: 'nullsIgnore', label: 'Ignore Nulls', value: null },
   { id: 'nullsFirst', label: 'Nulls First', value: 'FIRST' },
   { id: 'nullsLast', label: 'Nulls Last', value: 'LAST' },

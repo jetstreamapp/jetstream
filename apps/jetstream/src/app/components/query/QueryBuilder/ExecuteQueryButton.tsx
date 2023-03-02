@@ -1,3 +1,4 @@
+import { Maybe } from '@jetstream/types';
 import { Icon } from '@jetstream/ui';
 import { DescribeGlobalSObjectResult } from 'jsforce';
 import React, { Fragment, FunctionComponent } from 'react';
@@ -6,7 +7,7 @@ import { Link } from 'react-router-dom';
 interface ExecuteQueryButtonProps {
   soql: string;
   isTooling: boolean;
-  selectedSObject: DescribeGlobalSObjectResult;
+  selectedSObject: Maybe<DescribeGlobalSObjectResult>;
 }
 
 export const ExecuteQueryButton: FunctionComponent<ExecuteQueryButtonProps> = ({ soql, isTooling, selectedSObject }) => {

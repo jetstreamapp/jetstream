@@ -5,7 +5,7 @@ import intersectionBy from 'lodash/intersectionBy';
 import { atom, selector } from 'recoil';
 import { MetadataRow } from './mass-update-records.types';
 
-export const sObjectsState = atom<DescribeGlobalSObjectResult[]>({
+export const sObjectsState = atom<DescribeGlobalSObjectResult[] | null>({
   key: 'mass-update-records.sObjectsState',
   default: null,
 });
@@ -31,7 +31,7 @@ export const isConfigured = selector<boolean>({
   key: 'mass-update-records.isConfigured',
   get: ({ get }) => {
     const rows = get(rowsState);
-    return rows.length && rows.every((row) => row.isValid && row.validationResults?.isValid);
+    return !!rows.length && rows.every((row) => row.isValid && row.validationResults?.isValid);
   },
 });
 

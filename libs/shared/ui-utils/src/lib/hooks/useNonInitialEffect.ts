@@ -1,3 +1,4 @@
+import { NOOP } from '@jetstream/shared/utils';
 import { DependencyList, EffectCallback, useEffect, useRef } from 'react';
 
 /**
@@ -20,7 +21,7 @@ export function useNonInitialEffect(effect: EffectCallback, deps?: DependencyLis
   const initialRender = useRef(true);
 
   useEffect(() => {
-    let effectReturns: void | (() => void | undefined) = () => {};
+    let effectReturns: ReturnType<EffectCallback> = NOOP;
     if (initialRender.current) {
       initialRender.current = false;
     } else {
@@ -30,5 +31,6 @@ export function useNonInitialEffect(effect: EffectCallback, deps?: DependencyLis
     if (effectReturns && typeof effectReturns === 'function') {
       return effectReturns;
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, deps);
 }

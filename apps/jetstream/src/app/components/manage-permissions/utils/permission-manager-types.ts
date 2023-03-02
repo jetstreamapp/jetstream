@@ -2,6 +2,7 @@ import {
   EntityParticlePermissionsRecord,
   FieldPermissionRecord,
   MapOf,
+  Maybe,
   ObjectPermissionRecord,
   RecordAttributes,
   RecordResult,
@@ -34,7 +35,7 @@ export interface ObjectPermissionItem {
   delete: boolean;
   viewAll: boolean;
   modifyAll: boolean;
-  record?: ObjectPermissionRecord;
+  record?: Maybe<ObjectPermissionRecord>;
   errorMessage?: string;
 }
 
@@ -50,13 +51,13 @@ export interface FieldPermissionDefinitionMap {
 export interface FieldPermissionItem {
   read: boolean;
   edit: boolean;
-  record?: FieldPermissionRecord;
-  errorMessage?: string;
+  record?: Maybe<FieldPermissionRecord>;
+  errorMessage?: Maybe<string>;
 }
 
 export interface ObjectPermissionRecordForSave extends Omit<ObjectPermissionRecord, 'Id' | 'Parent'> {
   attributes: Partial<RecordAttributes>;
-  Id?: string;
+  Id?: Maybe<string>;
 }
 
 export interface FieldPermissionRecordForSave extends Omit<FieldPermissionRecord, 'Id' | 'Parent'> {
@@ -70,7 +71,7 @@ export interface PermissionSaveResults<RecordType, DirtyPermType> {
   operation: 'insert' | 'update';
   record: RecordType;
   recordIdx: number;
-  response?: RecordResult;
+  response?: Maybe<RecordResult>;
 }
 
 export interface PermissionTableCell<T = PermissionTableFieldCellPermission | PermissionTableObjectCellPermission> {
@@ -99,7 +100,7 @@ export interface PermissionTableObjectCellPermissionBase<T = ObjectPermissionIte
   rowKey: string;
   parentId: string; // permissions set (placeholder profile or permission set Id)
   sobject: string;
-  errorMessage?: string;
+  errorMessage?: Maybe<string>;
   record: T;
 }
 

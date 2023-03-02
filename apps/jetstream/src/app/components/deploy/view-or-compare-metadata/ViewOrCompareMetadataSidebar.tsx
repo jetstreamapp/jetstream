@@ -1,5 +1,5 @@
 import { useNonInitialEffect } from '@jetstream/shared/ui-utils';
-import { SalesforceOrgUi } from '@jetstream/types';
+import { Maybe, SalesforceOrgUi } from '@jetstream/types';
 import { RadioButton, RadioGroup, ScopedNotification, Spinner, Tree, TreeItems } from '@jetstream/ui';
 import { Fragment, FunctionComponent } from 'react';
 import { useRecoilValue } from 'recoil';
@@ -9,13 +9,13 @@ import { FileItemMetadata } from './viewOrCompareMetadataTypes';
 
 export interface ViewOrCompareMetadataSidebarProps {
   editorType: 'SOURCE' | 'TARGET' | 'DIFF';
-  files: TreeItems<FileItemMetadata>[];
-  targetOrg: SalesforceOrgUi;
+  files: TreeItems<FileItemMetadata | null>[] | null;
+  targetOrg?: SalesforceOrgUi | null;
   targetLoading: boolean;
   hasSourceResults: boolean;
   hasTargetResults: boolean;
-  sourceError?: string;
-  targetError?: string;
+  sourceError?: Maybe<string>;
+  targetError?: Maybe<string>;
   onEditorTypeChange: (value: 'SOURCE' | 'TARGET' | 'DIFF') => void;
   onSelectedFile: (item: TreeItems<FileItemMetadata>) => void;
   onTargetOrgChange: (org: SalesforceOrgUi) => void;

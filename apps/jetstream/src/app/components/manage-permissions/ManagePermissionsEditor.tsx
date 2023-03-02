@@ -89,7 +89,7 @@ export function ErrorTooltip({ hasError, id }: { hasError: boolean; id: string }
 export interface ManagePermissionsEditorProps {}
 
 export const ManagePermissionsEditor: FunctionComponent<ManagePermissionsEditorProps> = () => {
-  const isMounted = useRef(null);
+  const isMounted = useRef(true);
   const [{ google_apiKey, google_appId, google_clientId }] = useRecoilState(applicationCookieState);
   const managePermissionsEditorObjectTableRef = useRef<ManagePermissionsEditorTableRef>();
   const managePermissionsEditorFieldTableRef = useRef<ManagePermissionsEditorTableRef>();
@@ -99,7 +99,7 @@ export const ManagePermissionsEditor: FunctionComponent<ManagePermissionsEditorP
   const [hasLoaded, setHasLoaded] = useState(false);
   const [hasError, setHasError] = useState(false);
   const [fileDownloadModalOpen, setFileDownloadModalOpen] = useState<boolean>(false);
-  const [fileDownloadData, setFileDownloadData] = useState<ArrayBuffer>(null);
+  const [fileDownloadData, setFileDownloadData] = useState<ArrayBuffer | null>(null);
 
   const selectedProfiles = useRecoilValue(fromPermissionsState.selectedProfilesPermSetState);
   const selectedPermissionSets = useRecoilValue(fromPermissionsState.selectedPermissionSetsState);
@@ -121,11 +121,11 @@ export const ManagePermissionsEditor: FunctionComponent<ManagePermissionsEditorP
   const recordData = usePermissionRecords(selectedOrg, selectedSObjects, selectedProfiles, selectedPermissionSets);
 
   const [objectColumns, setObjectColumns] = useState<ColumnWithFilter<PermissionTableObjectCell, PermissionTableSummaryRow>[]>([]);
-  const [objectRows, setObjectRows] = useState<PermissionTableObjectCell[]>(null);
+  const [objectRows, setObjectRows] = useState<PermissionTableObjectCell[] | null>(null);
   const [dirtyObjectRows, setDirtyObjectRows] = useState<MapOf<DirtyRow<PermissionTableObjectCell>>>({});
 
   const [fieldColumns, setFieldColumns] = useState<ColumnWithFilter<PermissionTableFieldCell, PermissionTableSummaryRow>[]>([]);
-  const [fieldRows, setFieldRows] = useState<PermissionTableFieldCell[]>(null);
+  const [fieldRows, setFieldRows] = useState<PermissionTableFieldCell[] | null>(null);
   const [dirtyFieldRows, setDirtyFieldRows] = useState<MapOf<DirtyRow<PermissionTableFieldCell>>>({});
 
   const [dirtyObjectCount, setDirtyObjectCount] = useState<number>(0);
@@ -185,7 +185,7 @@ export const ManagePermissionsEditor: FunctionComponent<ManagePermissionsEditorP
     indexes = indexes || rows.map((row, index) => index);
     setDirtyObjectRows((priorValue) => {
       const newValues = { ...priorValue };
-      indexes.forEach((rowIndex) => {
+      indexes?.forEach((rowIndex) => {
         const row = rows[rowIndex];
         const rowKey = row.key; // e.x. Obj__c.Field__c
         const dirtyCount = Object.values(row.permissions).reduce(
@@ -217,7 +217,7 @@ export const ManagePermissionsEditor: FunctionComponent<ManagePermissionsEditorP
     indexes = indexes || rows.map((row, index) => index);
     setDirtyFieldRows((priorValue) => {
       const newValues = { ...priorValue };
-      indexes.forEach((rowIndex) => {
+      indexes?.forEach((rowIndex) => {
         const row = rows[rowIndex];
         const rowKey = row.key; // e.x. Obj__c.Field__c
         const dirtyCount = Object.values(row.permissions).reduce((output, { readIsDirty, editIsDirty }) => {
@@ -246,8 +246,8 @@ export const ManagePermissionsEditor: FunctionComponent<ManagePermissionsEditorP
       setObjectColumns(getObjectColumns(selectedProfiles, selectedPermissionSets, profilesById, permissionSetsById));
       setFieldColumns(getFieldColumns(selectedProfiles, selectedPermissionSets, profilesById, permissionSetsById));
     }
-    setObjectRows(getObjectRows(selectedSObjects, objectPermissionMapOverride || objectPermissionMap));
-    setFieldRows(getFieldRows(selectedSObjects, fieldsByObject, fieldPermissionMapOverride || fieldPermissionMap));
+    setObjectRows(getObjectRows(selectedSObjects, objectPermissionMapOverride || objectPermissionMap || {}));
+    setFieldRows(getFieldRows(selectedSObjects, fieldsByObject || {}, fieldPermissionMapOverride || fieldPermissionMap || {}));
     setDirtyFieldRows({});
     setDirtyObjectRows({});
   }
@@ -260,11 +260,11 @@ export const ManagePermissionsEditor: FunctionComponent<ManagePermissionsEditorP
       generateExcelWorkbookFromTable(
         {
           columns: getObjectColumns(selectedProfiles, selectedPermissionSets, profilesById, permissionSetsById),
-          rows: getObjectRows(selectedSObjects, objectPermissionMap),
+          rows: getObjectRows(selectedSObjects, objectPermissionMap || {}),
         },
         {
           columns: getFieldColumns(selectedProfiles, selectedPermissionSets, profilesById, permissionSetsById),
-          rows: getFieldRows(selectedSObjects, fieldsByObject, fieldPermissionMap),
+          rows: getFieldRows(selectedSObjects, fieldsByObject || {}, fieldPermissionMap || {}),
         }
       )
     );
@@ -280,8 +280,8 @@ export const ManagePermissionsEditor: FunctionComponent<ManagePermissionsEditorP
       })
     ) {
       setLoading(true);
-      let objectPermissionData: PermissionObjectSaveData;
-      let fieldPermissionData: PermissionFieldSaveData;
+      let objectPermissionData: PermissionObjectSaveData | undefined = undefined;
+      let fieldPermissionData: PermissionFieldSaveData | undefined = undefined;
       let profileIds: string[] = [];
       let permissionSetIds: string[] = [];
 
@@ -304,8 +304,10 @@ export const ManagePermissionsEditor: FunctionComponent<ManagePermissionsEditorP
         }
       }
 
-      let objectSaveResults: PermissionSaveResults<ObjectPermissionRecordForSave, PermissionTableObjectCellPermission>[];
-      let fieldSaveResults: PermissionSaveResults<FieldPermissionRecordForSave, PermissionTableFieldCellPermission>[];
+      let objectSaveResults: PermissionSaveResults<ObjectPermissionRecordForSave, PermissionTableObjectCellPermission>[] | undefined =
+        undefined;
+      let fieldSaveResults: PermissionSaveResults<FieldPermissionRecordForSave, PermissionTableFieldCellPermission>[] | undefined =
+        undefined;
 
       if (objectPermissionData) {
         objectSaveResults = await savePermissionRecords<ObjectPermissionRecordForSave, PermissionTableObjectCellPermission>(
@@ -335,14 +337,14 @@ export const ManagePermissionsEditor: FunctionComponent<ManagePermissionsEditorP
       }
 
       if (isMounted.current) {
-        if (objectSaveResults) {
+        if (objectSaveResults && objectPermissionMap && objectRows) {
           const permissionsMap = getUpdatedObjectPermissions(objectPermissionMap, objectSaveResults);
           const rows = updateObjectRowsAfterSave(objectRows, permissionsMap);
           setObjectPermissionMap(permissionsMap);
           setObjectRows(rows);
           handleObjectBulkRowUpdate(rows);
         }
-        if (fieldSaveResults) {
+        if (fieldSaveResults && fieldPermissionMap && fieldRows) {
           const permissionsMap = getUpdatedFieldPermissions(fieldPermissionMap, fieldSaveResults);
           const rows = updateFieldRowsAfterSave(fieldRows, permissionsMap);
           setFieldPermissionMap(permissionsMap);
@@ -355,8 +357,8 @@ export const ManagePermissionsEditor: FunctionComponent<ManagePermissionsEditorP
   }
 
   function resetChanges() {
-    const updatedObjectPermissionMap = clearPermissionErrorMessage(objectPermissionMap);
-    const updatedFieldPermissionMap = clearPermissionErrorMessage(fieldPermissionMap);
+    const updatedObjectPermissionMap = clearPermissionErrorMessage(objectPermissionMap || {});
+    const updatedFieldPermissionMap = clearPermissionErrorMessage(fieldPermissionMap || {});
     setObjectPermissionMap(updatedObjectPermissionMap);
     setFieldPermissionMap(updatedFieldPermissionMap);
     initTableData(false, updatedObjectPermissionMap, updatedFieldPermissionMap);
@@ -397,7 +399,7 @@ export const ManagePermissionsEditor: FunctionComponent<ManagePermissionsEditorP
             className="slds-button slds-button_neutral collapsible-button collapsible-button-xs"
             onClick={resetChanges}
             title="Reset Changes"
-            disabled={!dirtyObjectCount && !dirtyFieldCount && !objectsHaveErrors && !fieldsHaveErrors}
+            disabled={loading || (!dirtyObjectCount && !dirtyFieldCount && !objectsHaveErrors && !fieldsHaveErrors)}
           >
             <Icon type="utility" icon="refresh" className="slds-button__icon slds-button__icon_left" />
             <span>Reset Changes</span>
@@ -411,7 +413,11 @@ export const ManagePermissionsEditor: FunctionComponent<ManagePermissionsEditorP
             <Icon type="utility" icon="download" className="slds-button__icon slds-button__icon_left" />
             <span>Export</span>
           </button>
-          <button className="slds-button slds-button_brand" onClick={saveChanges} disabled={!dirtyObjectCount && !dirtyFieldCount}>
+          <button
+            className="slds-button slds-button_brand"
+            onClick={saveChanges}
+            disabled={loading || (!dirtyObjectCount && !dirtyFieldCount)}
+          >
             <Icon type="utility" icon="upload" className="slds-button__icon slds-button__icon_left" />
             Save
           </button>
@@ -453,7 +459,7 @@ export const ManagePermissionsEditor: FunctionComponent<ManagePermissionsEditorP
                   <ManagePermissionsEditorObjectTable
                     ref={managePermissionsEditorObjectTableRef}
                     columns={objectColumns}
-                    rows={objectRows}
+                    rows={objectRows || []}
                     onBulkUpdate={handleObjectBulkRowUpdate}
                     onDirtyRows={setDirtyObjectRows}
                   />
@@ -480,7 +486,7 @@ export const ManagePermissionsEditor: FunctionComponent<ManagePermissionsEditorP
                   <ManagePermissionsEditorFieldTable
                     ref={managePermissionsEditorFieldTableRef}
                     columns={fieldColumns}
-                    rows={fieldRows}
+                    rows={fieldRows || []}
                     onBulkUpdate={handleFieldBulkRowUpdate}
                     onDirtyRows={setDirtyFieldRows}
                   />

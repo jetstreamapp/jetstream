@@ -103,7 +103,7 @@ export function convertMetadataToEditableFields(
             id: item.value,
             label: item.label,
             value: item.value,
-            meta: item,
+            meta: item as any,
           }))
         );
         // if record has an inactive value, this will show the field as dirty - so instead we add the inactive value to the list
@@ -146,12 +146,13 @@ export function mockPicklistValuesFromSobjectDescribe(sobjectMetadata: DescribeS
         url: '',
         controllerValues: {},
         defaultValue: field.defaultValue,
-        values: field.picklistValues.map(({ label, value, validFor }) => ({
-          attributes: null,
-          label,
-          value,
-          validFor: [],
-        })),
+        values:
+          field?.picklistValues?.map(({ label, value, validFor }) => ({
+            attributes: null,
+            label: label || value,
+            value,
+            validFor: [],
+          })) || [],
       };
       return output;
     }, {});

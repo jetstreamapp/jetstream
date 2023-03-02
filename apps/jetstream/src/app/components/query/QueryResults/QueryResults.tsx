@@ -23,6 +23,7 @@ import {
   CloneEditView,
   FileExtCsvXLSXJsonGSheet,
   MapOf,
+  Maybe,
   Record,
   SalesforceOrgUi,
 } from '@jetstream/types';
@@ -78,13 +79,13 @@ const SOURCE_RELOAD: SourceAction = 'RELOAD';
 export interface QueryResultsProps {}
 
 export const QueryResults: FunctionComponent<QueryResultsProps> = React.memo(() => {
-  const isMounted = useRef(null);
+  const isMounted = useRef(true);
   const navigate = useNavigate();
   const { trackEvent } = useAmplitude();
   const queryHistoryRef = useRef<QueryHistoryRef>();
   const previousSoql = useRecoilValue(fromQueryState.querySoqlState);
   const includeDeletedRecords = useRecoilValue(fromQueryState.queryIncludeDeletedRecordsState);
-  const [priorSelectedOrg, setPriorSelectedOrg] = useState<string>(null);
+  const [priorSelectedOrg, setPriorSelectedOrg] = useState<string | null>(null);
   const [isTooling, setIsTooling] = useRecoilState(fromQueryState.isTooling);
   const location = useLocation();
   const locationState = useLocationState<{
@@ -96,23 +97,23 @@ export const QueryResults: FunctionComponent<QueryResultsProps> = React.memo(() 
   const [soqlPanelOpen, setSoqlPanelOpen] = useState<boolean>(false);
   const [recordDetailPanelOpen, setRecordDetailPanelOpen] = useState<boolean>(false);
   const [recordDetailSelectedRow, setRecordDetailSelectedRow] = useState<Record>(null);
-  const [soql, setSoql] = useState<string>(null);
-  const [userSoql, setUserSoql] = useState<string>(null);
-  const [queryResults, setQueryResults] = useState<IQueryResults>(null);
-  const [recordCount, setRecordCount] = useState<number>(null);
-  const [records, setRecords] = useState<Record[]>(null);
-  const [nextRecordsUrl, setNextRecordsUrl] = useState<string>(null);
-  const [fields, setFields] = useState<string[]>(null);
-  const [modifiedFields, setModifiedFields] = useState<string[]>(null);
-  const [subqueryFields, setSubqueryFields] = useState<MapOf<string[]>>(null);
+  const [soql, setSoql] = useState<string>('');
+  const [userSoql, setUserSoql] = useState<string | null>(null);
+  const [queryResults, setQueryResults] = useState<IQueryResults | null>(null);
+  const [recordCount, setRecordCount] = useState<number | null>(null);
+  const [records, setRecords] = useState<Record[] | null>(null);
+  const [nextRecordsUrl, setNextRecordsUrl] = useState<Maybe<string>>(null);
+  const [fields, setFields] = useState<string[] | null>(null);
+  const [modifiedFields, setModifiedFields] = useState<string[] | null>(null);
+  const [subqueryFields, setSubqueryFields] = useState<Maybe<MapOf<string[]>>>(null);
   const [filteredRows, setFilteredRows] = useState<Record[]>([]);
   const [selectedRows, setSelectedRows] = useState<Record[]>([]);
   const [loading, setLoading] = useState<boolean>(false);
-  const [errorMessage, setErrorMessage] = useState<string>(null);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [downloadModalOpen, setDownloadModalOpen] = useState<boolean>(false);
   const selectedOrg = useRecoilValue<SalesforceOrgUi>(selectedOrgState);
   const [{ serverUrl, defaultApiVersion, google_apiKey, google_appId, google_clientId }] = useRecoilState(applicationCookieState);
-  const [totalRecordCount, setTotalRecordCount] = useState<number>(null);
+  const [totalRecordCount, setTotalRecordCount] = useState<number | null>(null);
   const [queryHistory, setQueryHistory] = useRecoilState(fromQueryHistory.queryHistoryState);
   const bulkDeleteJob = useObservable(
     fromJetstreamEvents.getObservable('jobFinished').pipe(filter((ev: AsyncJob) => ev.type === 'BulkDelete'))
@@ -120,13 +121,17 @@ export const QueryResults: FunctionComponent<QueryResultsProps> = React.memo(() 
   const confirm = useConfirmation();
   const { notifyUser } = useBrowserNotifications(serverUrl, window.electron?.isFocused);
 
-  const [cloneEditViewRecord, setCloneEditViewRecord] = useState<{ action: CloneEditView; sobjectName: string; recordId: string }>();
-  const [getRecordAsApex, setGetRecordAsApex] = useState<{ record: any; sobjectName: string }>();
+  const [cloneEditViewRecord, setCloneEditViewRecord] = useState<{
+    action: CloneEditView;
+    sobjectName: string;
+    recordId: string | null;
+  } | null>(null);
+  const [getRecordAsApex, setGetRecordAsApex] = useState<{ record: any; sobjectName: string } | null>(null);
   const [restore] = useQueryRestore(soql, isTooling, { silent: true });
 
   const [allowContentDownload, setAllowContentDownload] = useState<{
     enabled: boolean;
-    sobjectName: string;
+    sobjectName: string | null;
     missingFields: string[];
   }>({
     enabled: false,
@@ -173,7 +178,7 @@ export const QueryResults: FunctionComponent<QueryResultsProps> = React.memo(() 
   }, [queryResults]);
 
   useEffect(() => {
-    if (bulkDeleteJob && executeQuery) {
+    if (bulkDeleteJob && executeQuery && soql) {
       executeQuery(soql, SOURCE_BULK_DELETE);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -191,9 +196,10 @@ export const QueryResults: FunctionComponent<QueryResultsProps> = React.memo(() 
       setSoql(locationState.soql || '');
       setUserSoql(locationState.soql || '');
       setIsTooling(locationState.isTooling ? true : false);
-      executeQuery(locationState.soql, locationState.fromHistory ? SOURCE_HISTORY : SOURCE_STANDARD, {
-        isTooling: locationState.isTooling,
-      });
+      locationState.soql &&
+        executeQuery(locationState.soql, locationState.fromHistory ? SOURCE_HISTORY : SOURCE_STANDARD, {
+          isTooling: locationState.isTooling,
+        });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [location]);
@@ -209,7 +215,7 @@ export const QueryResults: FunctionComponent<QueryResultsProps> = React.memo(() 
   }, [selectedOrg]);
 
   async function saveQueryHistory(soql: string, sObject: string, tooling: boolean) {
-    let sObjectLabel: string;
+    let sObjectLabel: string | undefined = undefined;
     // if object name did not change since last query, use data from location
     if (locationState?.sobject) {
       if (locationState.sobject.name === sObject) {
@@ -290,7 +296,8 @@ export const QueryResults: FunctionComponent<QueryResultsProps> = React.memo(() 
       }
       trackEvent(ANALYTICS_KEYS.query_ExecuteQuery, { source, success: true, isTooling: tooling, includeDeletedRecords });
 
-      await saveQueryHistory(soqlQuery, results.parsedQuery?.sObject || results.columns?.entityName, tooling);
+      const sobjectName = results.parsedQuery?.sObject || results.columns?.entityName;
+      sobjectName && (await saveQueryHistory(soqlQuery, sobjectName, tooling));
     } catch (ex) {
       if (!isMounted.current) {
         return;
@@ -315,10 +322,11 @@ export const QueryResults: FunctionComponent<QueryResultsProps> = React.memo(() 
   function handleDownloadContentConfig(results: IQueryResults<any>) {
     // Configure file download content
     if (results.parsedQuery?.sObject && FILE_DOWNLOAD_FIELD_MAP.has(results.parsedQuery.sObject.toLowerCase())) {
-      const { bodyField, nameField, sizeField } = FILE_DOWNLOAD_FIELD_MAP.get(results.parsedQuery.sObject.toLowerCase());
-      const missingFields = [];
+      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+      const { bodyField, nameField, sizeField } = FILE_DOWNLOAD_FIELD_MAP.get(results.parsedQuery.sObject.toLowerCase())!;
+      const missingFields: string[] = [];
       const fields = new Set(
-        results.parsedQuery.fields.map((field) => field.type === 'Field' && field.field.toLowerCase()).filter(Boolean)
+        results.parsedQuery.fields?.map((field) => field.type === 'Field' && field.field.toLowerCase()).filter(Boolean) || []
       );
       if (!fields.has(bodyField.toLowerCase())) {
         missingFields.push(bodyField);
@@ -403,8 +411,8 @@ export const QueryResults: FunctionComponent<QueryResultsProps> = React.memo(() 
           isTooling,
           fields,
           subqueryFields,
-          records: records,
-          totalRecordCount,
+          records: records || [],
+          totalRecordCount: totalRecordCount || 0,
           nextRecordsUrl,
           fileFormat,
           fileName,
@@ -425,11 +433,12 @@ export const QueryResults: FunctionComponent<QueryResultsProps> = React.memo(() 
 
   function handleLoadMore(results: IQueryResults<any>) {
     if (isMounted.current) {
+      const sobjectName = results.parsedQuery?.sObject || results.columns?.entityName;
       setNextRecordsUrl(results.queryResults.nextRecordsUrl);
-      saveQueryHistory(soql, results.parsedQuery?.sObject || results.columns?.entityName, isTooling);
-      setRecords(records.concat(results.queryResults.records));
+      sobjectName && saveQueryHistory(soql, sobjectName, isTooling);
+      records && setRecords(records.concat(results.queryResults.records));
       trackEvent(ANALYTICS_KEYS.query_LoadMore, {
-        existingRecordCount: records.length,
+        existingRecordCount: records?.length || 0,
         nextSetCount: results.queryResults.records.length,
         totalSize: results.queryResults.totalSize,
         isTooling,
@@ -451,7 +460,7 @@ export const QueryResults: FunctionComponent<QueryResultsProps> = React.memo(() 
   }
 
   function handleChangeAction(action: CloneEditView) {
-    setCloneEditViewRecord((currentAction) => ({ ...currentAction, action }));
+    setCloneEditViewRecord((currentAction) => (currentAction ? { ...currentAction, action } : null));
   }
 
   async function handleCloseEditCloneModal(reloadRecords?: boolean) {
@@ -477,7 +486,7 @@ export const QueryResults: FunctionComponent<QueryResultsProps> = React.memo(() 
   }
 
   function handleCreateNewRecord() {
-    if (queryResults.parsedQuery.sObject) {
+    if (queryResults?.parsedQuery?.sObject) {
       setCloneEditViewRecord({
         action: 'create',
         recordId: null,
@@ -504,18 +513,18 @@ export const QueryResults: FunctionComponent<QueryResultsProps> = React.memo(() 
         google_appId={google_appId}
         google_clientId={google_clientId}
         downloadModalOpen={downloadModalOpen}
-        fields={fields}
-        modifiedFields={modifiedFields}
-        subqueryFields={subqueryFields}
-        records={records}
+        fields={fields || []}
+        modifiedFields={modifiedFields || []}
+        subqueryFields={subqueryFields || {}}
+        records={records || []}
         filteredRecords={filteredRows}
         selectedRecords={selectedRows}
-        totalRecordCount={totalRecordCount}
+        totalRecordCount={totalRecordCount || 0}
         onModalClose={() => setDownloadModalOpen(false)}
         onDownload={handleDidDownload}
         onDownloadFromServer={handleDownloadFromServer}
       />
-      {cloneEditViewRecord && (
+      {cloneEditViewRecord && cloneEditViewRecord.recordId && (
         <ViewEditCloneRecord
           apiVersion={defaultApiVersion}
           selectedOrg={selectedOrg}
@@ -580,8 +589,8 @@ export const QueryResults: FunctionComponent<QueryResultsProps> = React.memo(() 
           <QueryResultsCopyToClipboard
             className="collapsible-button collapsible-button-md"
             hasRecords={hasRecords()}
-            fields={modifiedFields}
-            records={records}
+            fields={modifiedFields || []}
+            records={records || []}
             filteredRows={filteredRows}
             selectedRows={selectedRows}
             isTooling={isTooling}
@@ -598,7 +607,7 @@ export const QueryResults: FunctionComponent<QueryResultsProps> = React.memo(() 
           isTooling={isTooling}
           isOpen={soqlPanelOpen}
           selectedOrg={selectedOrg}
-          sObject={allowContentDownload.sobjectName}
+          sObject={allowContentDownload.sobjectName || ''}
           onClosed={() => setSoqlPanelOpen(false)}
           executeQuery={(soql, tooling) => executeQuery(soql, SOURCE_MANUAL, { isTooling: tooling })}
           onOpenHistory={handleOpenHistory}

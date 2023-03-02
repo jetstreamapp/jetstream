@@ -247,12 +247,12 @@ function reducer(state: State, action: Action): State {
               // if disable, then remove active version and set all children to disabled
               if (action.payload.value) {
                 // set all versions to false, then latest version to true
-                const latestVersion = row.children.reduce((maxRow, child) => {
+                const latestVersion = row.children.reduce((maxRow: TableRowItemChild, child) => {
                   if (!maxRow) {
                     return child;
                   }
                   return maxRow.record.VersionNumber > child.record.VersionNumber ? maxRow : child;
-                }, null);
+                }, row.children[0]);
                 // set latest version to true and set active version number on parent
                 rowsByKey[latestVersion.key] = { ...rowsByKey[latestVersion.key], isActive: true };
                 (rowsByKey[key] as TableRowItem).activeVersionNumber = latestVersion.record.VersionNumber;
@@ -309,8 +309,8 @@ function reducer(state: State, action: Action): State {
       return output;
     }
     case 'ERROR':
-      logger.log('ERROR', action.payload.errorMessage, { state });
-      return { ...state, loading: false, hasError: true, errorMessage: action.payload.errorMessage };
+      logger.log('ERROR', action.payload?.errorMessage, { state });
+      return { ...state, loading: false, hasError: true, errorMessage: action.payload?.errorMessage };
     default:
       throw new Error('Invalid action');
   }
@@ -429,7 +429,7 @@ function getRowsForItems({ type, records }: MetadataRecordType, loading: boolean
                 `/lightning/setup/Flows/page?address=${encodeURIComponent(
                   encodeURIComponent(`/${record.DurableId}?retUrl=/lightning/setup/Flows/home`)
                 )}`,
-          sobject: record.TriggerObjectOrEvent.QualifiedApiName,
+          sobject: record.TriggerObjectOrEvent?.QualifiedApiName || '',
           readOnly: true,
           isExpanded: true,
           isActive: record.ActiveVersionId != null,
@@ -460,7 +460,7 @@ function getRowsForItems({ type, records }: MetadataRecordType, loading: boolean
               isExpanded: false,
               record: version,
               link: type === 'FlowProcessBuilder' ? null : `/builder_platform_interaction/flowBuilder.app?flowId=${version.DurableId}`,
-              sobject: record.TriggerObjectOrEvent.QualifiedApiName,
+              sobject: record.TriggerObjectOrEvent?.QualifiedApiName || '',
               isActive: version.DurableId === record.ActiveVersionId,
               isActiveInitialState: version.DurableId === record.ActiveVersionId,
               label: `${record.Label} (V${version.VersionNumber})`,
@@ -557,7 +557,7 @@ export function useAutomationControlData({
   selectedSObjects: string[];
   selectedAutomationTypes: AutomationMetadataType[];
 }) {
-  const isMounted = useRef(null);
+  const isMounted = useRef(true);
   const { trackEvent } = useAmplitude();
   const rollbar = useRollbar();
 

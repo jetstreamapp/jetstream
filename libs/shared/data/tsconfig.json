@@ -6,6 +6,7 @@
     "allowJs": true,
     "esModuleInterop": true,
     "allowSyntheticDefaultImports": true,
+    "strictNullChecks": true,
     "types": ["node", "jest"]
   },
   "files": [],

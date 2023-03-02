@@ -42,7 +42,7 @@ export interface PicklistProps {
   containerDisplay?: 'block' | 'flex' | 'inline' | 'inline-block' | 'contents';
   label: string;
   hideLabel?: boolean;
-  labelHelp?: string;
+  labelHelp?: string | null;
   helpText?: React.ReactNode | string;
   hasError?: boolean;
   isRequired?: boolean;
@@ -110,7 +110,7 @@ export const Picklist = forwardRef<any, PicklistProps>(
     },
     ref
   ) => {
-    const inputRef = useRef<HTMLInputElement>();
+    const inputRef = useRef<HTMLInputElement>(null);
     const keyBuffer = useRef(new KeyBuffer());
     const [comboboxId] = useState<string>(() => uniqueId(id || 'picklist'));
     const [listboxId] = useState<string>(() => uniqueId('listbox'));
@@ -126,7 +126,7 @@ export const Picklist = forwardRef<any, PicklistProps>(
     });
     const [selectedItemText, setSelectedItemText] = useState<string>(() => getSelectItemText(selectedItemsIdsSet, items));
     const scrollLengthClass = useMemo(() => `slds-dropdown_length-${scrollLength || 5}`, [scrollLength]);
-    const [focusedItem, setFocusedItem] = useState<number>(null);
+    const [focusedItem, setFocusedItem] = useState<number | null>(null);
     const divContainerEl = useRef<HTMLDivElement>(null);
     const elRefs = useRef<RefObject<HTMLLIElement>[]>([]);
 
@@ -147,12 +147,14 @@ export const Picklist = forwardRef<any, PicklistProps>(
     useNonInitialEffect(() => {
       if (elRefs.current && isNumber(focusedItem) && elRefs.current[focusedItem] && elRefs.current[focusedItem]) {
         try {
-          elRefs.current[focusedItem].current.focus();
+          elRefs.current?.[focusedItem]?.current?.focus();
 
-          menuItemSelectScroll({
-            container: divContainerEl.current,
-            focusedIndex: focusedItem,
-          });
+          if (divContainerEl.current) {
+            menuItemSelectScroll({
+              container: divContainerEl.current,
+              focusedIndex: focusedItem,
+            });
+          }
         } catch (ex) {
           // silent failure
         }
@@ -266,7 +268,7 @@ export const Picklist = forwardRef<any, PicklistProps>(
         if (!isNumber(focusedItem) || focusedItem === items.length - 1) {
           newFocusedItem = 0;
         } else {
-          newFocusedItem = newFocusedItem + 1;
+          newFocusedItem = (newFocusedItem || 0) + 1;
         }
       } else if (isArrowUpKey(event)) {
         event.preventDefault();
@@ -275,7 +277,7 @@ export const Picklist = forwardRef<any, PicklistProps>(
         if (!isNumber(focusedItem) || focusedItem === 0) {
           newFocusedItem = items.length - 1;
         } else {
-          newFocusedItem = newFocusedItem - 1;
+          newFocusedItem = (newFocusedItem || 0) - 1;
         }
       } else {
         let allItems: ListItem[] = [];

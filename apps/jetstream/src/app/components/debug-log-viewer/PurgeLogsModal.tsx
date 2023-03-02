@@ -15,7 +15,7 @@ export interface PurgeLogsModalProps {
 }
 
 export const PurgeLogsModal: FunctionComponent<PurgeLogsModalProps> = ({ selectedOrg, onModalClose }) => {
-  const isMounted = useRef(null);
+  const isMounted = useRef(true);
   const [status, setStatus] = useState<Status>('NOT_STARTED');
   const [whichUsers, setWhichUsers] = useState<WhichUsers>('ALL');
 

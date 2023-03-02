@@ -1,10 +1,10 @@
 import { logger } from '@jetstream/shared/client-logger';
 import { getChangesetsFromDomParse, useReducerFetchFn } from '@jetstream/shared/ui-utils';
-import { ChangeSet, ListItem, SalesforceOrgUi } from '@jetstream/types';
+import { ChangeSet, ListItem, Maybe, SalesforceOrgUi } from '@jetstream/types';
 import { useCallback, useEffect, useReducer, useRef } from 'react';
 
-export function useChangesetList(selectedOrg: SalesforceOrgUi, initialPackages?: ListItem<string, ChangeSet>[]) {
-  const isMounted = useRef(null);
+export function useChangesetList(selectedOrg: SalesforceOrgUi, initialPackages?: Maybe<ListItem<string, ChangeSet>[]>) {
+  const isMounted = useRef(true);
 
   const [{ hasLoaded, loading, data, hasError, errorMessage }, dispatch] = useReducer(useReducerFetchFn<ListItem<string, ChangeSet>[]>(), {
     hasLoaded: !!initialPackages,

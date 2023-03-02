@@ -167,7 +167,7 @@ export default SobjectFieldListFilter;
 interface SobjectFieldListFilterSectionProps {
   field: keyof FilterTypes;
   label: string;
-  labelHelp?: string;
+  labelHelp?: string | null;
   idPrefix: string;
   items: { key: string; label: string }[];
   value: string;

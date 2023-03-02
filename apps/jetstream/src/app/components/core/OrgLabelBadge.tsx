@@ -20,7 +20,7 @@ export interface OrgLabelBadgeProps {
 }
 
 export const OrgLabelBadge: FunctionComponent<OrgLabelBadgeProps> = ({ className = 'slds-m-horizontal_xx-small', org }) => {
-  const [orgType, setOrgType] = useState<SalesforceOrgUiType>(getOrgType(org));
+  const [orgType, setOrgType] = useState<SalesforceOrgUiType | undefined>(getOrgType(org));
   const [badgeType, setBadgeType] = useState<BadgeTypes>('light');
 
   useEffect(() => {

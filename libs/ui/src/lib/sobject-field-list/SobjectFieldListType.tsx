@@ -22,9 +22,9 @@ const copyToClipboardMsg = (
 );
 
 function getContent(field: FieldWrapper, org: SalesforceOrgUi) {
-  let copyToClipboardValue: string = undefined;
+  let copyToClipboardValue: string | undefined = undefined;
   if (field.metadata.type === 'picklist' || field.metadata.type === 'multipicklist') {
-    let tooltipContent: JSX.Element = undefined;
+    let tooltipContent: JSX.Element | undefined = undefined;
     if (Array.isArray(field.metadata.picklistValues) && field.metadata.picklistValues.length > 0) {
       copyToClipboardValue = field.metadata.picklistValues?.map((picklist) => picklist.value).join('\n');
       let values: (string | JSX.Element)[] = field.metadata.picklistValues?.map((picklist) => picklist.label || picklist.value) || [];
@@ -47,7 +47,7 @@ function getContent(field: FieldWrapper, org: SalesforceOrgUi) {
           content={tooltipContent}
           onClick={(ev) => {
             ev.stopPropagation();
-            copy(copyToClipboardValue);
+            copyToClipboardValue && copy(copyToClipboardValue);
           }}
         >
           <span className="slds-badge__icon slds-badge__icon_left slds-badge__icon_inverse">
@@ -71,7 +71,11 @@ function getContent(field: FieldWrapper, org: SalesforceOrgUi) {
       </span>
     );
     return (
-      <Tooltip id={`${field.name}-type-tooltip`} content={tooltipContent} onClick={() => copy(copyToClipboardValue)}>
+      <Tooltip
+        id={`${field.name}-type-tooltip`}
+        content={tooltipContent}
+        onClick={() => copyToClipboardValue && copy(copyToClipboardValue)}
+      >
         <span className="slds-badge__icon slds-badge__icon_left slds-badge__icon_inverse">
           <Icon
             type="utility"

@@ -11,6 +11,7 @@ import {
   FileExtJson,
   FileExtXLSX,
   MapOf,
+  Maybe,
   MimeType,
   Record,
   SalesforceOrgUi,
@@ -57,7 +58,7 @@ export interface RecordDownloadModalProps {
     subqueryFields: MapOf<string[]>;
     whichFields: 'all' | 'specified';
     includeSubquery: boolean;
-    googleFolder?: string;
+    googleFolder?: Maybe<string>;
   }) => void;
   children?: React.ReactNode;
 }
@@ -90,15 +91,15 @@ export const RecordDownloadModal: FunctionComponent<RecordDownloadModalProps> = 
   const [columnAreModified, setColumnsAreModified] = useState(false);
   // If the user changes the filename, we do not want to focus/select the text again or else the user cannot type
   const [doFocusInput, setDoFocusInput] = useState<boolean>(true);
-  const inputEl = useRef<HTMLInputElement>();
+  const inputEl = useRef<HTMLInputElement>(null);
 
   const [isSignedInWithGoogle, setIsSignedInWithGoogle] = useState<boolean>(false);
-  const [googleFolder, setGoogleFolder] = useState<string>();
+  const [googleFolder, setGoogleFolder] = useState<Maybe<string>>(null);
 
   const [whichFields, setWhichFields] = useState<'all' | 'specified'>('specified');
 
   const [invalidConfig, setInvalidConfig] = useState(false);
-  const [errorMessage, setErrorMessage] = useState<string>(null);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   const hasSubqueryFields = subqueryFields && !!Object.keys(subqueryFields).length && (fileFormat === 'xlsx' || fileFormat === 'gdrive');
 
@@ -141,7 +142,7 @@ export const RecordDownloadModal: FunctionComponent<RecordDownloadModalProps> = 
   }, [fileName]);
 
   useEffect(() => {
-    const hasMoreRecordsTemp = totalRecordCount && records && totalRecordCount > records.length;
+    const hasMoreRecordsTemp = !!totalRecordCount && !!records && totalRecordCount > records.length;
     setHasMoreRecords(hasMoreRecordsTemp);
     setDownloadRecordsValue(hasMoreRecordsTemp ? RADIO_ALL_SERVER : RADIO_ALL_BROWSER);
   }, [totalRecordCount, records]);
@@ -181,9 +182,9 @@ export const RecordDownloadModal: FunctionComponent<RecordDownloadModalProps> = 
       } else {
         let activeRecords = records;
         if (downloadRecordsValue === RADIO_FILTERED) {
-          activeRecords = filteredRecords;
+          activeRecords = filteredRecords || [];
         } else if (downloadRecordsValue === RADIO_SELECTED) {
-          activeRecords = selectedRecords;
+          activeRecords = selectedRecords || [];
         }
 
         let mimeType: MimeType;
@@ -306,7 +307,7 @@ export const RecordDownloadModal: FunctionComponent<RecordDownloadModalProps> = 
               {hasFilteredRecords() && (
                 <Radio
                   name="radio-download"
-                  label={`Filtered records (${formatNumber(filteredRecords.length) || 0})`}
+                  label={`Filtered records (${formatNumber(filteredRecords?.length || 0)})`}
                   value={RADIO_FILTERED}
                   checked={downloadRecordsValue === RADIO_FILTERED}
                   onChange={setDownloadRecordsValue}
@@ -315,7 +316,7 @@ export const RecordDownloadModal: FunctionComponent<RecordDownloadModalProps> = 
               {hasSelectedRecords() && (
                 <Radio
                   name="radio-download"
-                  label={`Selected records (${formatNumber(selectedRecords.length) || 0})`}
+                  label={`Selected records (${formatNumber(selectedRecords?.length || 0)})`}
                   value={RADIO_SELECTED}
                   checked={downloadRecordsValue === RADIO_SELECTED}
                   onChange={setDownloadRecordsValue}

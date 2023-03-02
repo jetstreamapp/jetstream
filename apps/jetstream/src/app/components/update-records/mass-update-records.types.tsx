@@ -1,4 +1,4 @@
-import { BulkJobWithBatches, ListItem, MapOf } from '@jetstream/types';
+import { BulkJobWithBatches, ListItem, MapOf, Maybe } from '@jetstream/types';
 import type { DescribeSObjectResult } from 'jsforce';
 import { PrepareDataResponseError } from '../shared/load-records-results/load-records-results-types';
 
@@ -6,14 +6,14 @@ export interface MetadataRow {
   /** Confirmed all input is valid, but does not indicate that the row has been validated */
   isValid: boolean;
   sobject: string;
-  loadError?: string;
+  loadError?: Maybe<string>;
   loading: boolean;
   metadata?: DescribeSObjectResult;
   fields: ListItem[];
   allFields: ListItem[];
-  selectedField?: string;
+  selectedField?: Maybe<string>;
   transformationOptions: TransformationOptions;
-  validationResults?: ValidationResults;
+  validationResults?: Maybe<ValidationResults>;
   deployResults: DeployResults;
 }
 
@@ -25,15 +25,15 @@ export interface DeployResults {
   batchIdToIndex: MapOf<number>;
   numberOfBatches?: number;
   processingErrors: PrepareDataResponseError[];
-  processingStartTime?: string;
-  processingEndTime?: string;
+  processingStartTime?: Maybe<string>;
+  processingEndTime?: Maybe<string>;
   lastChecked?: string; // {formatDate(lastChecked, 'h:mm:ss')}
 }
 
 export interface ValidationResults {
   isValid: boolean;
   impactedRecords?: number;
-  error?: string;
+  error?: Maybe<string>;
 }
 
 export interface TransformationOptions {

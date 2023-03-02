@@ -22,9 +22,11 @@ ipcRenderer.on('sfdc-frontdoor-login', async (event, data: { orgId: string; retu
     console.log('[EVENT][sfdc-frontdoor-login]', data);
     const { orgId, returnUrl } = data;
     const org = (await getOrgs()).find(({ uniqueId }) => uniqueId === orgId);
-    const url = await services.getFrontdoorLoginUrl(getJsforceConnection(org), returnUrl);
-    console.log(url);
-    ipcRenderer.send('sfdc-frontdoor-login', url);
+    if (org) {
+      const url = await services.getFrontdoorLoginUrl(getJsforceConnection(org), returnUrl);
+      console.log(url);
+      ipcRenderer.send('sfdc-frontdoor-login', url);
+    }
   } catch (ex) {
     console.error('[ERROR][sfdc-frontdoor-login]', ex);
   }

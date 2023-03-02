@@ -13,6 +13,7 @@ import {
   FileExtZip,
   JetstreamEvents,
   MapOf,
+  Maybe,
   MimeType,
   SalesforceOrgUi,
   UploadToGoogleJob,
@@ -80,10 +81,10 @@ export const FileDownloadModal: FunctionComponent<FileDownloadModalProps> = ({
   const [fileName, setFileName] = useState<string>(getFilename(org, fileNameParts));
   // If the user changes the filename, we do not want to focus/select the text again or else the user cannot type
   const [doFocusInput, setDoFocusInput] = useState<boolean>(true);
-  const inputEl = useRef<HTMLInputElement>();
+  const inputEl = useRef<HTMLInputElement>(null);
   const [filenameEmpty, setFilenameEmpty] = useState(false);
 
-  const [googleFolder, setGoogleFolder] = useState<string>();
+  const [googleFolder, setGoogleFolder] = useState<Maybe<string>>(null);
 
   useEffect(() => {
     if (!fileName && !filenameEmpty) {
@@ -110,8 +111,8 @@ export const FileDownloadModal: FunctionComponent<FileDownloadModalProps> = ({
 
   useEffect(() => {
     if (doFocusInput) {
-      inputEl.current.focus();
-      inputEl.current.select();
+      inputEl.current?.focus();
+      inputEl.current?.select();
       setDoFocusInput(false);
     }
   }, [inputEl.current]);
@@ -211,10 +212,10 @@ export const FileDownloadModal: FunctionComponent<FileDownloadModalProps> = ({
         type: 'UploadToGoogle',
         title: `Upload to Google`,
         org,
-        meta: { fileName, fileData, fileType, googleFolder: googleFolder },
+        meta: { fileName, fileData, fileType, googleFolder },
       },
     ];
-    emitUploadToGoogleEvent({ type: 'newJob', payload: jobs });
+    emitUploadToGoogleEvent && emitUploadToGoogleEvent({ type: 'newJob', payload: jobs });
     onModalClose();
   }
 
@@ -308,7 +309,7 @@ export const FileDownloadModal: FunctionComponent<FileDownloadModalProps> = ({
             />
           )}
         </RadioGroup>
-        {fileFormat === 'gdrive' && (
+        {fileFormat === 'gdrive' && google_apiKey && google_appId && google_clientId && (
           <FileDownloadGoogle
             google_apiKey={google_apiKey}
             google_appId={google_appId}

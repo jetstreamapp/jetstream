@@ -131,7 +131,7 @@ async function queryRestoreBuildState(org: SalesforceOrgUi, query: Query, data: 
   outputStateItems.selectedQueryFieldsState = [];
   outputStateItems.selectedSubqueryFieldsState = {};
 
-  processFields(data, outputStateItems, query.fields);
+  processFields(data, outputStateItems, query.fields || []);
 
   outputStateItems.filterQueryFieldsState = calculateFilterAndOrderByListGroupFields(outputStateItems.queryFieldsMapState, ['filterable']);
   outputStateItems.orderByQueryFieldsState = calculateFilterAndOrderByListGroupFields(outputStateItems.queryFieldsMapState, ['sortable']);
@@ -154,6 +154,9 @@ async function queryRestoreBuildState(org: SalesforceOrgUi, query: Query, data: 
  */
 function processFields(data: SoqlFetchMetadataOutput, stateItems: Partial<QueryRestoreStateItems>, queryFields: QueryFieldType[]) {
   const { queryFieldsMapState: queryFieldsMap } = stateItems;
+  if (!queryFieldsMap) {
+    return;
+  }
   const baseKey = getQueryFieldBaseKey(data.selectedSobjectMetadata.global.name);
   const baseQueryFieldMap = initQueryFieldStateItem(baseKey, data.selectedSobjectMetadata.global.name);
   const baseObjectResults = convertDescribeToDescribeSObjectWithExtendedTypes(data.selectedSobjectMetadata.sobject);
@@ -181,7 +184,14 @@ function processFields(data: SoqlFetchMetadataOutput, stateItems: Partial<QueryR
       (field) => field.type === 'FieldSubquery' && field.subquery.relationshipName.toLowerCase() === relationshipName.toLowerCase()
     ) as FieldSubquery;
     if (subqueryField) {
-      setSelectedFields(childBaseKey, objectMetadata.fields, subqueryField.subquery.fields, metadataTree, stateItems, relationshipName);
+      setSelectedFields(
+        childBaseKey,
+        objectMetadata.fields,
+        subqueryField.subquery.fields || [],
+        metadataTree,
+        stateItems,
+        relationshipName
+      );
     } else {
       // ERROR - this should not happen (confirm if it is possible or not and remove this path if so)
       // otherwise handle error
@@ -199,7 +209,7 @@ function processFilters(
     const condition = query.where;
     stateItems.queryFiltersState = {
       action: isWhereClauseWithRightCondition(condition) && condition.operator === 'OR' ? 'OR' : 'AND',
-      rows: flattenWhereClause(stateItems.missingMisc, fieldWrapperWithParentKey, condition, 0),
+      rows: flattenWhereClause(stateItems.missingMisc || [], fieldWrapperWithParentKey, condition, 0),
     };
   }
 }
@@ -213,8 +223,8 @@ function flattenWhereClause(
   previousCondition?: ExpressionConditionType,
   currentGroup?: ExpressionGroupType
 ) {
-  let expressionCondition: ExpressionConditionType;
-  let expressionGroup: ExpressionGroupType = currentGroup;
+  let expressionCondition: ExpressionConditionType | undefined = undefined;
+  let expressionGroup: ExpressionGroupType | undefined = currentGroup;
   let closeGroup = false;
   /** if a new group is initialized, the operator is following the first condition */
   let needsGroupOperator = false;
@@ -226,7 +236,7 @@ function flattenWhereClause(
   if (!isValueQueryCondition(condition)) {
     // init group if there are open parens
     const requiredOpeningParens = isNegation ? 2 : 1;
-    if (where.left?.openParen >= requiredOpeningParens && !expressionGroup) {
+    if ((where.left?.openParen || 0) >= requiredOpeningParens && !expressionGroup) {
       expressionGroup = {
         key: currKey,
         action: 'AND', // Potentially updated later
@@ -293,7 +303,7 @@ function flattenWhereClause(
       }
 
       const requiredClosingParens = priorConditionIsNegation ? 2 : 1;
-      closeGroup = condition?.closeParen >= requiredClosingParens;
+      closeGroup = (condition?.closeParen || 0) >= requiredClosingParens;
     } else if (!isNegation) {
       // skip - we cannot process a value condition
       missingMisc.push(`Filter is not supported or field was not found`);
@@ -347,12 +357,15 @@ function processOrderBy(
   fieldWrapperWithParentKey: MapOf<FieldWrapperWithParentKey>
 ) {
   if (query.orderBy) {
-    const orderByClauses = Array.isArray(query.orderBy) ? query.orderBy : [query.orderBy];
+    const orderByClauses = (Array.isArray(query.orderBy) ? query.orderBy : [query.orderBy]) as QueryOrderByClause[];
     stateItems.queryOrderByState = orderByClauses
-      .filter((orderBy) => isOrderByField(orderBy))
-      .map((orderBy: OrderByFieldClause, i) => {
+      .map((orderBy, i) => {
+        if (!isOrderByField(orderBy)) {
+          return null;
+        }
         const foundField = fieldWrapperWithParentKey[orderBy.field.toLowerCase()];
         if (!foundField) {
+          stateItems.missingFields = stateItems.missingFields || [];
           stateItems.missingFields.push(`Filter ${orderBy.field} was not found`);
           return undefined;
         }
@@ -372,7 +385,7 @@ function processOrderBy(
         }
         return undefined;
       })
-      .filter((orderBy) => !!orderBy);
+      .filter((orderBy) => !!orderBy) as QueryOrderByClause[];
   }
 }
 
@@ -400,12 +413,12 @@ function setSelectedFields(
   subqueryRelationshipName?: string
 ) {
   const {
-    missingFields: missingFieldsTemp,
-    missingSubqueryFields,
-    missingMisc,
-    queryFieldsMapState: queryFieldsMap,
-    selectedQueryFieldsState: selectedQueryFieldsTemp,
-    selectedSubqueryFieldsState: selectedSubqueryFields,
+    missingFields: missingFieldsTemp = [],
+    missingSubqueryFields = {},
+    missingMisc = [],
+    queryFieldsMapState: queryFieldsMap = {},
+    selectedQueryFieldsState: selectedQueryFieldsTemp = [],
+    selectedSubqueryFieldsState: selectedSubqueryFields = {},
   } = stateItems;
 
   let selectedQueryFields = selectedQueryFieldsTemp;
@@ -441,7 +454,7 @@ function setSelectedFields(
         const [_, relationshipPath] = node.fieldKey.split('|');
         queryFieldsMap[node.fieldKey].selectedFields.add(fieldName);
         selectedQueryFields.push({ field: `${relationshipPath}${fieldName}`, polymorphicObj: undefined });
-      } else {
+      } else if (field.rawValue) {
         missingFields.push(field.rawValue);
       }
     } else if (field.type === 'FieldTypeof') {

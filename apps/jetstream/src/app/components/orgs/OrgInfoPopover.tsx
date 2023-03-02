@@ -52,7 +52,7 @@ export interface OrgInfoPopoverProps {
 function getOrgProp(serverUrl: string, org: SalesforceOrgUi, prop: keyof SalesforceOrgUi, label?: string) {
   label = label || startCase(prop);
   let value: string | number | boolean | ReactNode = org[prop];
-  let tooltip: string;
+  let tooltip = '';
   if (!value && prop !== 'orgIsSandbox') {
     return undefined;
   }
@@ -120,7 +120,7 @@ export const OrgInfoPopover: FunctionComponent<OrgInfoPopoverProps> = ({
     addOrg(
       { serverUrl: applicationState.serverUrl, loginUrl: org.instanceUrl, replaceOrgUniqueId: org.uniqueId },
       (addedOrg: SalesforceOrgUi) => {
-        let replaceOrgUniqueId = undefined;
+        let replaceOrgUniqueId: string | undefined = undefined;
         if (addedOrg.uniqueId !== org.uniqueId) {
           replaceOrgUniqueId = org.uniqueId;
         }

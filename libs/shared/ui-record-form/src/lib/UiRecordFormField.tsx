@@ -14,7 +14,7 @@ import { isCheckbox, isDate, isDateTime, isInput, isPicklist, isTextarea, isTime
 
 const REPLACE_NON_NUMERIC = /[^\d.-]/g;
 
-function getInitialValue(initialValue: string | boolean | null, field: EditableFields): string | string[] | boolean {
+function getInitialValue(initialValue: string | boolean | null, field: EditableFields): string | string[] | boolean | null {
   if (initialValue) {
     const { metadata } = field;
     if (metadata.type === 'date') {
@@ -32,7 +32,11 @@ function getInitialValue(initialValue: string | boolean | null, field: EditableF
   return initialValue;
 }
 
-function getInitialModifiedValue(modifiedValue: string | boolean | null, initialValue: string | boolean | string[], field: EditableFields) {
+function getInitialModifiedValue(
+  modifiedValue: string | boolean | null,
+  initialValue: string | boolean | string[] | null,
+  field: EditableFields
+) {
   if (modifiedValue !== null && modifiedValue !== undefined) {
     return getInitialValue(modifiedValue, field);
   }
@@ -104,7 +108,7 @@ export const UiRecordFormField: FunctionComponent<UiRecordFormFieldProps> = ({
 
   function checkIfDirty(
     isDirty: boolean,
-    valueOverride?: string | string[] | boolean
+    valueOverride?: string | string[] | boolean | null
   ): { value: string | boolean | null; isDirty: boolean } {
     const priorDirtyValue = isDirty;
     let newDirtyValue = isDirty;
@@ -135,7 +139,7 @@ export const UiRecordFormField: FunctionComponent<UiRecordFormFieldProps> = ({
     };
   }
 
-  function checkIfDirtyAndEmit(valueOverride?: string | string[] | boolean) {
+  function checkIfDirtyAndEmit(valueOverride?: string | string[] | boolean | null) {
     if (!readOnly) {
       const dirtyValue = checkIfDirty(isDirty, valueOverride);
       if (isDirty !== dirtyValue.isDirty) {

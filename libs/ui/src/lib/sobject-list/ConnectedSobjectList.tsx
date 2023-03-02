@@ -2,7 +2,7 @@ import { logger } from '@jetstream/shared/client-logger';
 import { clearCacheForOrg, describeGlobal } from '@jetstream/shared/data';
 import { useNonInitialEffect } from '@jetstream/shared/ui-utils';
 import { orderObjectsBy } from '@jetstream/shared/utils';
-import { SalesforceOrgUi } from '@jetstream/types';
+import { Maybe, SalesforceOrgUi } from '@jetstream/types';
 import formatRelative from 'date-fns/formatRelative';
 import { DescribeGlobalSObjectResult } from 'jsforce';
 import React, { Fragment, FunctionComponent, useCallback, useEffect, useRef, useState } from 'react';
@@ -26,13 +26,13 @@ export function filterToolingSobjectFn(sobject: DescribeGlobalSObjectResult): bo
 export interface ConnectedSobjectListProps {
   label?: string;
   selectedOrg: SalesforceOrgUi;
-  sobjects: DescribeGlobalSObjectResult[];
-  selectedSObject: DescribeGlobalSObjectResult;
+  sobjects: Maybe<DescribeGlobalSObjectResult[]>;
+  selectedSObject: Maybe<DescribeGlobalSObjectResult>;
   isTooling?: boolean;
   initialSearchTerm?: string;
   filterFn?: (sobject: DescribeGlobalSObjectResult) => boolean;
-  onSobjects: (sobjects: DescribeGlobalSObjectResult[]) => void;
-  onSelectedSObject: (selectedSObject: DescribeGlobalSObjectResult) => void;
+  onSobjects: (sobjects: DescribeGlobalSObjectResult[] | null) => void;
+  onSelectedSObject: (selectedSObject: DescribeGlobalSObjectResult | null) => void;
   onSearchTermChange?: (searchTerm: string) => void;
 }
 
@@ -48,9 +48,9 @@ export const ConnectedSobjectList: FunctionComponent<ConnectedSobjectListProps> 
   onSelectedSObject,
   onSearchTermChange,
 }) => {
-  const isMounted = useRef(null);
+  const isMounted = useRef(true);
   const [loading, setLoading] = useState(false);
-  const [errorMessage, setErrorMessage] = useState<string>(null);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [lastRefreshed, setLastRefreshed] = useState<string>(_lastRefreshed);
 
   useEffect(() => {

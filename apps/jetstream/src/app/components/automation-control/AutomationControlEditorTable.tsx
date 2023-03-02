@@ -29,7 +29,7 @@ export interface AutomationControlEditorTableProps {
   serverUrl: string;
   selectedOrg: SalesforceOrgUi;
   rows: TableRowOrItemOrChild[];
-  quickFilterText: string;
+  quickFilterText?: string | null;
   toggleRowExpand: (row: TableRowOrItemOrChild, value: boolean) => void;
   updateIsActiveFlag: (row: TableRowOrItemOrChild, value: boolean) => void;
 }

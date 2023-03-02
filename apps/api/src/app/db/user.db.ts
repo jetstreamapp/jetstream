@@ -1,6 +1,6 @@
-import { User } from '.prisma/client';
 import { ENV, logger, prisma } from '@jetstream/api-config';
 import { UserProfileServer } from '@jetstream/types';
+import { User } from '@prisma/client';
 
 /**
  * Find by Auth0 userId, not Jetstream Id
@@ -35,7 +35,7 @@ export async function createOrUpdateUser(user: UserProfileServer): Promise<{ cre
       const updatedUser = await prisma.user.update({
         where: { userId: user.id },
         data: {
-          appMetadata: JSON.stringify(user._json[ENV.AUTH_AUDIENCE]),
+          appMetadata: JSON.stringify(user._json[ENV.AUTH_AUDIENCE!]),
         },
       });
       logger.debug('[DB][USER][UPDATED] %s', user.id, { userId: user.id, id: existingUser.id });
@@ -48,7 +48,7 @@ export async function createOrUpdateUser(user: UserProfileServer): Promise<{ cre
           name: user._json.name,
           nickname: user._json.nickname,
           picture: user._json.picture,
-          appMetadata: JSON.stringify(user._json[ENV.AUTH_AUDIENCE]),
+          appMetadata: JSON.stringify(user._json[ENV.AUTH_AUDIENCE!]),
         },
       });
       logger.debug('[DB][USER][CREATED] %s', user.id, { userId: user.id, id: createdUser.id });

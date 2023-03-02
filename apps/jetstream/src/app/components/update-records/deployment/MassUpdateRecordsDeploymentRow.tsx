@@ -52,12 +52,15 @@ export const MassUpdateRecordsDeploymentRow: FunctionComponent<MassUpdateRecords
       // if (downloadError) {
       // setDownloadError(null);
       // }
+      if (!jobInfo?.id) {
+        return;
+      }
       const data = await bulkApiGetRecords<BulkJobResultRecord>(selectedOrg, jobInfo.id, batch.id, 'result');
 
       const startIdx = row.deployResults.batchIdToIndex[batch.id] * batchSize;
 
       const records: any[] = row.deployResults.records.slice(startIdx, startIdx + batchSize);
-      const combinedResults = [];
+      const combinedResults: any[] = [];
 
       data.forEach((resultRecord, i) => {
         // show all if results, otherwise just include errors
@@ -167,7 +170,6 @@ export const MassUpdateRecordsDeploymentRow: FunctionComponent<MassUpdateRecords
       )}
 
       <Card
-        bodyClassName={null}
         nestedBorder
         title={
           <Grid>
@@ -181,7 +183,7 @@ export const MassUpdateRecordsDeploymentRow: FunctionComponent<MassUpdateRecords
           <div className="slds-m-left_medium">
             When validated,{' '}
             <span className="text-bold">
-              {formatNumber(row.validationResults.impactedRecords)} {pluralizeFromNumber('record', row.validationResults.impactedRecords)}
+              {formatNumber(row.validationResults?.impactedRecords)} {pluralizeFromNumber('record', row.validationResults?.impactedRecords)}
             </span>{' '}
             were found matching this criteria.
           </div>
@@ -199,7 +201,7 @@ export const MassUpdateRecordsDeploymentRow: FunctionComponent<MassUpdateRecords
               View job in Salesforce
             </SalesforceLogin>
           )}
-          {Array.isArray(jobInfo?.batches) && (
+          {jobInfo && Array.isArray(jobInfo.batches) && (
             <LoadRecordsBulkApiResultsTable
               jobInfo={jobInfo}
               processingErrors={processingErrors}

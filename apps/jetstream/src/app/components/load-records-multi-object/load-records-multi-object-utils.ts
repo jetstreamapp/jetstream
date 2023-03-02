@@ -41,6 +41,7 @@ export async function parseWorkbook(workbook: XLSX.WorkBook, org: SalesforceOrgU
       dataset.sobject = worksheet[WORKSHEET_LOCATIONS.sobject].v.toLowerCase();
     } catch (ex) {
       logger.warn('Error parsing object name', ex);
+      dataset.errors = dataset.errors || [];
       dataset.errors.push({
         property: 'sobject',
         worksheet: sheetName,
@@ -53,6 +54,7 @@ export async function parseWorkbook(workbook: XLSX.WorkBook, org: SalesforceOrgU
       dataset.operation = worksheet[WORKSHEET_LOCATIONS.operation].v.toUpperCase();
     } catch (ex) {
       logger.warn('Error parsing operation', ex);
+      dataset.errors = dataset.errors || [];
       dataset.errors.push({
         property: 'operation',
         worksheet: sheetName,
@@ -67,6 +69,7 @@ export async function parseWorkbook(workbook: XLSX.WorkBook, org: SalesforceOrgU
       logger.warn('Error parsing external Id', ex);
       // only return error if this is an upsert operation
       if (dataset.operation?.toLowerCase() === 'upsert') {
+        dataset.errors = dataset.errors || [];
         dataset.errors.push({
           property: 'externalId',
           worksheet: sheetName,
@@ -90,6 +93,7 @@ export async function parseWorkbook(workbook: XLSX.WorkBook, org: SalesforceOrgU
       const dataHeaders = data[0].filter(Boolean).map((header) => header.trim());
 
       if (dataHeaders.length !== new Set(dataHeaders).size) {
+        dataset.errors = dataset.errors || [];
         dataset.errors.push({
           property: 'data',
           worksheet: sheetName,
@@ -123,8 +127,9 @@ export async function parseWorkbook(workbook: XLSX.WorkBook, org: SalesforceOrgU
         headers.filter((header) => IS_REFERENCE_HEADER_RGX.test(header)).map((header) => header.replace(SURROUNDING_BRACKETS_RGX, ''))
       );
       dataset.dataById = dataset.data.reduce((output: MapOf<any>, row, i) => {
-        const referenceId = row[dataset.referenceColumnHeader] || uniqueId('reference_');
+        const referenceId = row[dataset.referenceColumnHeader || ''] || uniqueId('reference_');
         if (output[referenceId]) {
+          dataset.errors = dataset.errors || [];
           dataset.errors.push({
             property: 'data',
             worksheet: sheetName,
@@ -138,6 +143,7 @@ export async function parseWorkbook(workbook: XLSX.WorkBook, org: SalesforceOrgU
       }, {});
     } catch (ex) {
       logger.warn('Error parsing record data', ex);
+      dataset.errors = dataset.errors || [];
       dataset.errors.push({
         property: 'data',
         worksheet: sheetName,
@@ -189,7 +195,8 @@ async function validateObjectData(org: SalesforceOrgUi, datasets: LoadMultiObjec
               dataset.fieldsByRelationshipName = dataset.metadata.fields
                 .filter((field) => field.relationshipName)
                 .reduce((output: MapOf<Field>, item) => {
-                  output[item.relationshipName.toLowerCase()] = item;
+                  // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+                  output[item.relationshipName!.toLowerCase()] = item;
                   return output;
                 }, {});
 
@@ -386,7 +393,14 @@ export function getDataGraph(
       const lowercaseExternalId = dataset.externalId?.toLowerCase();
       /** Transform record values and flag which fields have references to other records */
       const { transformedRecord, externalIdValue, recordIdForUpdate, dependencies } = dataset.headers.reduce(
-        ({ transformedRecord, recordIdForUpdate, dependencies }, header) => {
+        (
+          {
+            transformedRecord,
+            recordIdForUpdate,
+            dependencies,
+          }: { transformedRecord: MapOf<any>; externalIdValue: string | null; recordIdForUpdate: string | null; dependencies: string[] },
+          header
+        ) => {
           let externalIdValue: string | null = null;
           const field = dataset.fieldsByName[header.toLowerCase()];
           let value = record[header];
@@ -415,7 +429,7 @@ export function getDataGraph(
             if (header.includes('.')) {
               const [relationshipName] = header.toLowerCase().split('.');
               const relationshipField = dataset.fieldsByRelationshipName?.[relationshipName];
-              if (relationshipField) {
+              if (relationshipField?.relationshipName && relationshipField.referenceTo?.length) {
                 transformedRecord[relationshipField.relationshipName] = {
                   attributes: { type: relationshipField.referenceTo[0] },
                   [field.name]: value,
@@ -528,7 +542,7 @@ export function getDataGraph(
       };
     });
 
-    if (graphs[topLevelNode].compositeRequest.length >= MAX_REQ_SIZE) {
+    if ((graphs[topLevelNode]?.compositeRequest?.length || 0) >= MAX_REQ_SIZE) {
       const dataset = refIdToDataset[topLevelNode];
       const record = recordsByRefId[topLevelNode];
       dataset.errors.push({
@@ -537,7 +551,7 @@ export function getDataGraph(
         location: `${WORKSHEET_LOCATIONS.dataStartRow + 1 + record.recordIdx + 1}`,
         locationType: 'ROW',
         message: `The Reference Id "${topLevelNode}" has ${formatNumber(
-          graphs[topLevelNode].compositeRequest.length
+          graphs[topLevelNode]?.compositeRequest?.length || 0
         )} dependent records. A maximum of ${MAX_REQ_SIZE} records can be related to each other in one data load`,
       });
       throw new Error('There was an error parsing the record dependencies');
@@ -597,21 +611,22 @@ function transformGraphRequestsToRequestWithResults(
         compositeRequestGraph.map((item) => ({
           graphId: item.graphId,
           isSuccess: null,
-          compositeRequest: item.compositeRequest,
+          compositeRequest: item.compositeRequest || [],
           compositeResponse: null,
         })),
         'graphId'
       ),
       recordWithResponseByRefId: getMapOf(
-        compositeRequestGraph.flatMap(({ compositeRequest }) =>
-          compositeRequest.map((item) => ({
-            referenceId: item.referenceId,
-            sobject: recordsByRefId[item.referenceId].sobject,
-            operation: recordsByRefId[item.referenceId].operation,
-            externalId: recordsByRefId[item.referenceId].externalId,
-            request: item,
-            response: null,
-          }))
+        compositeRequestGraph.flatMap(
+          ({ compositeRequest }) =>
+            compositeRequest?.map((item) => ({
+              referenceId: item.referenceId,
+              sobject: recordsByRefId[item.referenceId].sobject,
+              operation: recordsByRefId[item.referenceId].operation,
+              externalId: recordsByRefId[item.referenceId].externalId,
+              request: item,
+              response: null,
+            })) || []
         ),
         'referenceId'
       ),
@@ -626,11 +641,14 @@ function splitRequestsToMaxSize(items: CompositeGraphRequest[], maxSize: number)
   if (!items || items.length === 0) {
     return [[]];
   }
-  const output = [];
-  let currSet = [];
+  const output: CompositeGraphRequest[][] = [];
+  let currSet: CompositeGraphRequest[] = [];
   let currPayloadNodes = new Set<string>();
   let currCount = 0;
   items.forEach((item) => {
+    if (!item.compositeRequest) {
+      return;
+    }
     // get all variations of nodes
     item.compositeRequest.forEach((req) => currPayloadNodes.add(req.url.split('/')[5]));
     /**

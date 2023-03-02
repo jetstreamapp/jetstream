@@ -1,6 +1,6 @@
 import { formatNumber } from '@jetstream/shared/ui-utils';
 import { pluralizeFromNumber } from '@jetstream/shared/utils';
-import { ListItem } from '@jetstream/types';
+import { ListItem, Maybe } from '@jetstream/types';
 import { Grid, GridCol, ScopedNotification, Spinner, Tooltip } from '@jetstream/ui';
 import type { DescribeSObjectResult } from 'jsforce';
 import isNumber from 'lodash/isNumber';
@@ -15,13 +15,13 @@ import MassUpdateRecordsObjectRowValue from './MassUpdateRecordsObjectRowValue';
 export interface MassUpdateRecordsObjectRowProps {
   sobject: string;
   isValid: boolean;
-  loadError?: string;
+  loadError?: Maybe<string>;
   loading: boolean;
-  metadata?: DescribeSObjectResult;
+  metadata?: Maybe<DescribeSObjectResult>;
   fields: ListItem[];
   allFields: ListItem[];
-  selectedField?: string;
-  validationResults: ValidationResults;
+  selectedField?: Maybe<string>;
+  validationResults: Maybe<ValidationResults>;
   transformationOptions: TransformationOptions;
   onFieldChange: (selectedField: string) => void;
   onOptionsChange: (sobject: string, options: TransformationOptions) => void;
@@ -87,7 +87,7 @@ export const MassUpdateRecordsObjectRow: FunctionComponent<MassUpdateRecordsObje
             transformationOptions={transformationOptions}
           />
           <div>
-            {isNumber(validationResults?.impactedRecords) && (
+            {validationResults && isNumber(validationResults?.impactedRecords) && (
               <ScopedNotification theme="info" className="slds-m-top_x-small slds-m-left_small">
                 {formatNumber(validationResults.impactedRecords)} {pluralizeFromNumber('record', validationResults.impactedRecords)} will be
                 updated

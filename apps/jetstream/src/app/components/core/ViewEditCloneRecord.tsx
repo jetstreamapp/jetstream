@@ -74,7 +74,7 @@ export const ViewEditCloneRecord: FunctionComponent<ViewEditCloneRecordProps> = 
   onFetch,
   onFetchError,
 }) => {
-  const isMounted = useRef(null);
+  const isMounted = useRef(true);
   const [{ google_apiKey, google_appId, google_clientId }] = useRecoilState(applicationCookieState);
   const [sobjectFields, setSobjectFields] = useState<Field[]>();
   const [picklistValues, setPicklistValues] = useState<PicklistFieldValues>();
@@ -203,8 +203,8 @@ export const ViewEditCloneRecord: FunctionComponent<ViewEditCloneRecordProps> = 
   }
 
   async function handleSave() {
-    let record = transformEditForm(sobjectFields, modifiedRecord);
-    const currentFormErrors = validateEditForm(sobjectFields, record);
+    let record = transformEditForm(sobjectFields || [], modifiedRecord);
+    const currentFormErrors = validateEditForm(sobjectFields || [], record);
 
     if (currentFormErrors.hasErrors) {
       setFormErrors({ hasErrors: true, fieldErrors: currentFormErrors.fieldErrors, generalErrors: [] });
@@ -224,7 +224,7 @@ export const ViewEditCloneRecord: FunctionComponent<ViewEditCloneRecordProps> = 
         recordResponse = (await sobjectOperation<SobjectCollectionResponse>(selectedOrg, sobjectName, 'update', { records: [record] }))[0];
       } else {
         // include all creatable fields from original record
-        record = combineRecordsForClone(sobjectFields, initialRecord, record);
+        record = combineRecordsForClone(sobjectFields || [], initialRecord, record);
         recordResponse = (await sobjectOperation<SobjectCollectionResponse>(selectedOrg, sobjectName, 'create', { records: [record] }))[0];
       }
 
@@ -345,8 +345,8 @@ export const ViewEditCloneRecord: FunctionComponent<ViewEditCloneRecordProps> = 
             {!loading && initialRecord && (
               <UiRecordForm
                 action={action}
-                sobjectFields={sobjectFields}
-                picklistValues={picklistValues}
+                sobjectFields={sobjectFields || []}
+                picklistValues={picklistValues || {}}
                 record={initialRecord}
                 saveErrors={formErrors.fieldErrors}
                 onChange={handleRecordChange}

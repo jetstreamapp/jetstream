@@ -3,7 +3,7 @@ import { SFDC_BULK_API_NULL_VALUE } from '@jetstream/shared/constants';
 import { queryAll, queryWithCache } from '@jetstream/shared/data';
 import { describeSObjectWithExtendedTypes, formatNumber } from '@jetstream/shared/ui-utils';
 import { REGEX, transformRecordForDataLoad } from '@jetstream/shared/utils';
-import { EntityParticleRecord, FieldWithExtendedType, MapOf, SalesforceOrgUi } from '@jetstream/types';
+import { EntityParticleRecord, FieldWithExtendedType, isNotNullish, MapOf, Maybe, SalesforceOrgUi } from '@jetstream/types';
 import { DescribeGlobalSObjectResult } from 'jsforce';
 import JSZip from 'jszip';
 import groupBy from 'lodash/groupBy';
@@ -51,7 +51,7 @@ export async function getFieldMetadata(org: SalesforceOrgUi, sobject: string): P
     .filter(sobject.endsWith('__mdt') ? getFieldMetadataCustomMetadataFilter : getFieldMetadataFilter)
     .map((field): FieldWithRelatedEntities => {
       let referenceTo =
-        (field.type === 'reference' && field.referenceTo.slice(0, 5 /** Limit number of related object to limit query */)) || undefined;
+        (field.type === 'reference' && field.referenceTo?.slice(0, 5 /** Limit number of related object to limit query */)) || undefined;
       // if only two polymorphic fields exist and the second is user, reverse the order so that User is first as it is most commonly used
       if (Array.isArray(referenceTo) && referenceTo.length === 2 && referenceTo[1] === 'User') {
         referenceTo = referenceTo.reverse();
@@ -70,7 +70,8 @@ export async function getFieldMetadata(org: SalesforceOrgUi, sobject: string): P
 
   // fetch all related fields
   const fieldsWithRelationships = fields.filter((field) => Array.isArray(field.referenceTo) && field.referenceTo.length);
-  const relatedObjects = new Set(fieldsWithRelationships.flatMap((field) => field.referenceTo));
+  // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+  const relatedObjects = new Set(fieldsWithRelationships.flatMap((field) => field.referenceTo!));
   // related records
   if (relatedObjects.size > 0) {
     const relatedEntities = (
@@ -110,7 +111,7 @@ export async function getFieldMetadata(org: SalesforceOrgUi, sobject: string): P
  * @param inputHeader
  * @param fields
  */
-export function autoMapFields(inputHeader: string[], fields: FieldWithRelatedEntities[], binaryBodyField: string): FieldMapping {
+export function autoMapFields(inputHeader: string[], fields: FieldWithRelatedEntities[], binaryBodyField: Maybe<string>): FieldMapping {
   const output: FieldMapping = {};
   const fieldVariations: MapOf<FieldWithRelatedEntities> = {};
   const fieldLabelVariations: MapOf<FieldWithRelatedEntities> = {};
@@ -159,13 +160,13 @@ export function autoMapFields(inputHeader: string[], fields: FieldWithRelatedEnt
     if (relatedField && matchedField && matchedField.relatedFields) {
       // search all related object fields to see if related field matches
       const { relatedObject, matchedRelatedField } = Object.keys(matchedField.relatedFields).reduce(
-        (output: { relatedObject: string; matchedRelatedField: FieldRelatedEntity }, key) => {
+        (output: { relatedObject: string | undefined; matchedRelatedField: FieldRelatedEntity | undefined }, key) => {
           // if we found a prior match, stop checking
           if (output.matchedRelatedField) {
             return output;
           }
           // find if current related object has field by same related name
-          const matchedRelatedField = matchedField.relatedFields[key].find(
+          const matchedRelatedField = matchedField.relatedFields?.[key].find(
             (relatedEntityField) =>
               relatedField === relatedEntityField.name || relatedField.toLowerCase() === relatedEntityField.name.toLowerCase()
           );
@@ -215,13 +216,18 @@ export function checkForDuplicateFieldMappings(fieldMapping: FieldMapping): Fiel
   const mappedFieldFrequency = Object.values(fieldMapping)
     .filter((field) => !!field.targetField)
     .reduce((output: MapOf<number>, field) => {
-      output[field.targetField] = output[field.targetField] || 0;
-      output[field.targetField] += 1;
+      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+      output[field.targetField!] = output[field.targetField!] || 0;
+      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+      output[field.targetField!] += 1;
       return output;
     }, {});
   Object.keys(fieldMapping).forEach((key) => {
     if (fieldMapping[key].targetField) {
-      fieldMapping[key] = { ...fieldMapping[key], isDuplicateMappedField: mappedFieldFrequency[fieldMapping[key].targetField] > 1 };
+      fieldMapping[key] = {
+        ...fieldMapping[key],
+        isDuplicateMappedField: (mappedFieldFrequency[fieldMapping[key].targetField || ''] || 0) > 1,
+      };
     } else {
       fieldMapping[key] = { ...fieldMapping[key], isDuplicateMappedField: false };
     }
@@ -285,11 +291,12 @@ function getExternalIdFieldsForSobjectsQuery(sobjects: string[]) {
   return soql;
 }
 
-export function getFieldHeaderFromMapping(fieldMapping: FieldMapping) {
+export function getFieldHeaderFromMapping(fieldMapping: FieldMapping): string[] {
   return Object.values(fieldMapping)
     .filter((item) => !!item.targetField)
     .map((item) => {
-      let output = item.targetField;
+      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+      let output = item.targetField!;
       if (item.mappedToLookup && item.targetLookupField && item.relatedFieldMetadata?.isExternalId) {
         output = `${item.relationshipName}.${item.targetLookupField}`;
       }
@@ -319,7 +326,7 @@ export function transformData({ data, fieldMapping, sObject, insertNulls, dateFo
             // batch api will always clear the value in SFDC if a null is passed, so we must ensure it is not included at all
             skipField = true;
           }
-        } else {
+        } else if (fieldMappingItem.fieldMetadata) {
           value = transformRecordForDataLoad(value, fieldMappingItem.fieldMetadata.type, dateFormat);
         }
 
@@ -330,11 +337,12 @@ export function transformData({ data, fieldMapping, sObject, insertNulls, dateFo
             apiMode === 'BATCH' &&
             fieldMappingItem.mappedToLookup &&
             fieldMappingItem.relatedFieldMetadata?.isExternalId &&
+            fieldMappingItem.relationshipName &&
             fieldMappingItem.targetLookupField
           ) {
             output[fieldMappingItem.relationshipName] = { [fieldMappingItem.targetLookupField]: value };
             // if polymorphic field, then add type attribute
-            if (fieldMappingItem.fieldMetadata?.referenceTo?.length > 1) {
+            if ((fieldMappingItem.fieldMetadata?.referenceTo?.length || 0) > 1) {
               output[fieldMappingItem.relationshipName] = {
                 attributes: { type: fieldMappingItem.selectedReferenceTo },
                 ...output[fieldMappingItem.relationshipName],
@@ -345,7 +353,7 @@ export function transformData({ data, fieldMapping, sObject, insertNulls, dateFo
             fieldMappingItem.relatedFieldMetadata?.isExternalId &&
             fieldMappingItem.targetLookupField
           ) {
-            if (fieldMappingItem.fieldMetadata?.referenceTo?.length > 1) {
+            if ((fieldMappingItem.fieldMetadata?.referenceTo?.length || 0) > 1) {
               // add in polymorphic field type
               // https://developer.salesforce.com/docs/atlas.en-us.api_asynch.meta/api_asynch/datafiles_csv_rel_field_header_row.htm?search_text=Polymorphic
               output[`${fieldMappingItem.selectedReferenceTo}:${fieldMappingItem.relationshipName}.${fieldMappingItem.targetLookupField}`] =
@@ -353,7 +361,7 @@ export function transformData({ data, fieldMapping, sObject, insertNulls, dateFo
             } else {
               output[`${fieldMappingItem.relationshipName}.${fieldMappingItem.targetLookupField}`] = value;
             }
-          } else {
+          } else if (fieldMappingItem.targetField) {
             output[fieldMappingItem.targetField] = value;
           }
         }
@@ -408,9 +416,9 @@ export async function fetchMappedRelatedRecords(
       onProgress(Math.min(current / total, 100));
       const fieldRelationshipName = `${relationshipName}.${targetLookupField}`;
       // remove any falsy values, related fields cannot be booleans or numbers, so this should not cause issues
-      const relatedValues = new Set<string>(data.map((row) => row[targetField]).filter(Boolean));
+      const relatedValues = new Set<string>(data.map((row) => row[targetField || '']).filter(Boolean));
 
-      if (relatedValues.size) {
+      if (relatedValues.size && selectedReferenceTo && targetLookupField) {
         const relatedRecordsByRelatedField: MapOf<string[]> = {};
         // Get as many queries as required based on the size of the related fields
         const queries = getRelatedFieldsQueries(sObject, selectedReferenceTo, targetLookupField, Array.from(relatedValues));
@@ -429,7 +437,7 @@ export async function fetchMappedRelatedRecords(
         }
 
         data.forEach((record, i) => {
-          if (isNil(record[targetField]) || record[targetField] === '') {
+          if (!targetField || isNil(record[targetField]) || record[targetField] === '') {
             return;
           }
           const relatedRecords = relatedRecordsByRelatedField[record[targetField]];
@@ -474,7 +482,7 @@ function addErrors(errorsByRowIndex: Map<number, { row: number; record: any; err
     if (!errorsByRowIndex.has(row)) {
       errorsByRowIndex.set(row, { row, record, errors: [] });
     }
-    errorsByRowIndex.get(row).errors.push(error);
+    errorsByRowIndex.get(row)?.errors.push(error);
   };
 }
 
@@ -495,7 +503,7 @@ function getRelatedFieldsQueries(baseObject: string, relatedObject: string, rela
     fields: Array.from(new Set([getField('Id'), getField(relatedField)])),
   };
 
-  let extraWhereClauseNew: WhereClause;
+  let extraWhereClauseNew: WhereClause | undefined = undefined;
   const whereClause: WhereClause = {
     left: {
       field: relatedField,
@@ -522,7 +530,7 @@ function getRelatedFieldsQueries(baseObject: string, relatedObject: string, rela
     `SELECT Id, ${relatedField} FROM ${relatedObject} WHERE ${extraWhereClause}${relatedField} IN ('`.length + QUERY_ITEM_BUFFER_LENGTH;
   const MAX_QUERY_LENGTH = 9500; // somewhere just over 10K was giving an error
 
-  const queries = [];
+  const queries: string[] = [];
   let tempRelatedValues: string[] = [];
   let currLength = BASE_QUERY_LENGTH;
   relatedValues.forEach((value) => {
@@ -574,9 +582,10 @@ export function convertCsvToCustomMetadata(
 
   selectedSObject = selectedSObject.replace('__mdt', '');
   const fieldMappingByTargetField: MapOf<FieldMappingItem> = Object.values(fieldMapping)
-    .filter((field) => field.targetField)
+    .filter((field) => !!field.targetField)
     .reduce((output, field) => {
-      output[field.targetField] = field;
+      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+      output[field.targetField!] = field;
       return output;
     }, {});
 

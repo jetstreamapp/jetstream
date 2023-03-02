@@ -3,6 +3,7 @@ import { clearCacheForOrg, queryWithCache } from '@jetstream/shared/data';
 import { isPermissionSetWithProfile } from '../shared-ui-utils';
 import {
   ListItem,
+  Maybe,
   PermissionSetNoProfileRecord,
   PermissionSetRecord,
   PermissionSetWithProfileRecord,
@@ -24,10 +25,10 @@ let _lastRefreshed: string;
  */
 export function useProfilesAndPermSets(
   selectedOrg: SalesforceOrgUi,
-  _initProfiles?: ListItem<string, PermissionSetWithProfileRecord>[],
-  _initPermissionSets?: ListItem<string, PermissionSetNoProfileRecord>[]
+  _initProfiles?: ListItem<string, PermissionSetWithProfileRecord>[] | null,
+  _initPermissionSets?: ListItem<string, PermissionSetNoProfileRecord>[] | null
 ) {
-  const isMounted = useRef(null);
+  const isMounted = useRef(true);
   const [lastRefreshed, setLastRefreshed] = useState<string>(_lastRefreshed);
   const [loading, setLoading] = useState(false);
   const [hasError, setHasError] = useState(false);
@@ -62,6 +63,9 @@ export function useProfilesAndPermSets(
 
   const fetchMetadata = useCallback(
     async (skipCache = false) => {
+      if (!selectedOrg) {
+        return;
+      }
       try {
         setLoading(true);
         if (hasError) {
@@ -142,7 +146,7 @@ function getListItemFromQueryResults(records: PermissionSetRecord[]) {
   );
 }
 
-function getQueryForPermissionSetsWithProfiles(orgNamespace?: string): string {
+function getQueryForPermissionSetsWithProfiles(orgNamespace?: Maybe<string>): string {
   const query: Query = {
     fields: [
       getField('Id'),

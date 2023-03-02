@@ -50,7 +50,7 @@ export interface ComboboxProps {
   className?: string;
   inputCss?: SerializedStyles;
   label: string;
-  labelHelp?: string;
+  labelHelp?: string | null;
   helpText?: React.ReactNode | string;
   isRequired?: boolean;
   hideLabel?: boolean;
@@ -58,8 +58,8 @@ export interface ComboboxProps {
   noItemsPlaceholder?: string;
   disabled?: boolean;
   loading?: boolean;
-  selectedItemLabel?: string; // used for text
-  selectedItemTitle?: string; // used for text
+  selectedItemLabel?: string | null; // used for text
+  selectedItemTitle?: string | null; // used for text
   leadingDropdown?: {
     label: string;
     items: FormGroupDropdownItem[];
@@ -152,7 +152,7 @@ export const Combobox = forwardRef(
     const [hasGroups, setHasGroups] = useState(false);
     const hasDropdownGroup = !!leadingDropdown && !!leadingDropdown.items?.length;
 
-    const [focusedItem, setFocusedItem] = useState<number>(null);
+    const [focusedItem, setFocusedItem] = useState<number | null>(null);
     const inputEl = useRef<HTMLInputElement>(null);
     const divContainerEl = useRef<HTMLDivElement>(null);
     const entireContainerEl = useRef<HTMLDivElement>(null);
@@ -176,10 +176,12 @@ export const Combobox = forwardRef(
         if (elRefs.current && isNumber(focusedItem) && elRefs.current[focusedItem] && elRefs.current[focusedItem]) {
           elRefs.current[focusedItem].focus();
         }
-        menuItemSelectScroll({
-          container: divContainerEl.current,
-          focusedIndex: focusedItem,
-        });
+        if (divContainerEl.current && isNumber(focusedItem)) {
+          menuItemSelectScroll({
+            container: divContainerEl.current,
+            focusedIndex: focusedItem,
+          });
+        }
       } catch (ex) {
         logger.log('Error with keyboard navigation', ex);
       }
@@ -273,7 +275,9 @@ export const Combobox = forwardRef(
             }
             const clonedEl = cloneElement(grandChild, {
               ref: ((currCounter: number) => (node) => {
-                elRefs.current[currCounter] = node;
+                if (elRefs.current && node) {
+                  elRefs.current[currCounter] = node;
+                }
                 // Call the original ref, if any
                 const { ref } = child as any;
                 if (typeof ref === 'function') {
@@ -359,7 +363,8 @@ export const Combobox = forwardRef(
         if (!isNumber(focusedItem) || focusedItem === 0) {
           newFocusedItem = elRefs.current.length - 1;
         } else {
-          newFocusedItem = newFocusedItem - 1;
+          // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+          newFocusedItem = newFocusedItem! - 1;
         }
       } else if (isArrowDownKey(event)) {
         event.preventDefault();
@@ -367,7 +372,8 @@ export const Combobox = forwardRef(
         if (!isNumber(focusedItem) || focusedItem === elRefs.current.length - 1) {
           newFocusedItem = 0;
         } else {
-          newFocusedItem = newFocusedItem + 1;
+          // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+          newFocusedItem = newFocusedItem! + 1;
         }
       }
 

@@ -1,7 +1,7 @@
 import { css } from '@emotion/react';
 import { logger } from '@jetstream/shared/client-logger';
 import { readFile, useGlobalEventHandler } from '@jetstream/shared/ui-utils';
-import { InputAcceptType, InputReadFileContent } from '@jetstream/types';
+import { InputAcceptType, InputReadFileContent, Maybe } from '@jetstream/types';
 import classNames from 'classnames';
 import isString from 'lodash/isString';
 import { FunctionComponent, useCallback, useRef, useState } from 'react';
@@ -14,11 +14,11 @@ export interface FileSelectorProps {
   id: string;
   label: string;
   buttonLabel?: string;
-  labelHelp?: string;
+  labelHelp?: string | null;
   /** @deprecated I guess? is not used in code, use `userHelpText` instead */
   helpText?: React.ReactNode | string; // FIXME: does not appear to be used, userHelpText is used
   isRequired?: boolean;
-  filename?: string; // optional, will be managed if not provided
+  filename?: Maybe<string>; // optional, will be managed if not provided
   hideLabel?: boolean;
   disabled?: boolean;
   accept?: InputAcceptType[];
@@ -50,9 +50,9 @@ export const FileSelector: FunctionComponent<FileSelectorProps> = ({
 }) => {
   const [labelPrimaryId] = useState(() => `${id}-label-primary`);
   const [labelSecondaryId] = useState(() => `${id}-label`);
-  const [systemErrorMessage, setSystemErrorMessage] = useState<string>(null);
+  const [systemErrorMessage, setSystemErrorMessage] = useState<string | null>(null);
   const [isDraggingOver, setIsDraggingOver] = useState(false);
-  const inputRef = useRef<HTMLInputElement>();
+  const inputRef = useRef<HTMLInputElement>(null);
   const [{ managedFilename, filenameTruncated }, setManagedFilename] = useFilename(filename);
 
   function preventEventDefaults(event: React.DragEvent<HTMLDivElement> | React.ChangeEvent<HTMLInputElement>) {
@@ -77,7 +77,7 @@ export const FileSelector: FunctionComponent<FileSelectorProps> = ({
 
   function handleInputChange(event: React.ChangeEvent<HTMLInputElement>) {
     preventEventDefaults(event);
-    handleFiles(event.target?.files);
+    event.target?.files && handleFiles(event.target.files);
   }
 
   const handlePaste = useCallback(
@@ -109,6 +109,9 @@ export const FileSelector: FunctionComponent<FileSelectorProps> = ({
         throw new Error('Only 1 file is supported');
       }
       const file = files.item(0);
+      if (!file) {
+        return;
+      }
       logger.info(file);
       const fileSizeMb = file.size / 1000 / 1000;
 

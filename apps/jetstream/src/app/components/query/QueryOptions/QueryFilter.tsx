@@ -14,7 +14,7 @@ export interface QueryFilterProps {
 const disableValueForOperators: QueryFilterOperator[] = ['isNull', 'isNotNull'];
 
 export const QueryFilter: FunctionComponent<QueryFilterProps> = ({ fields }) => {
-  const isMounted = useRef(null);
+  const isMounted = useRef(true);
 
   const [queryFilters, setQueryFilters] = useRecoilState(fromQueryState.queryFiltersState);
   const [initialQueryFilters] = useState(queryFilters);

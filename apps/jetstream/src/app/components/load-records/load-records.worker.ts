@@ -12,6 +12,7 @@ import {
 import { generateCsv } from '@jetstream/shared/ui-utils';
 import { getHttpMethod, getSizeInMbFromBase64, splitArrayToMaxSize } from '@jetstream/shared/utils';
 import {
+  BulkJobBatchInfo,
   BulkJobWithBatches,
   HttpMethod,
   MapOf,
@@ -89,7 +90,8 @@ async function loadBulkApiData({ org, data, sObject, type, batchSize, externalId
   const replyName = 'loadData';
   try {
     const results = await bulkApiCreateJob(org, { type, sObject, serialMode, assignmentRuleId, externalId });
-    const jobId = results.id;
+    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+    const jobId = results.id!;
     let batches: LoadDataBulkApi[] = [];
     batches = splitArrayToMaxSize(data, batchSize)
       .map((batch) => generateCsv(batch))
@@ -115,7 +117,7 @@ async function loadBulkApiData({ org, data, sObject, type, batchSize, externalId
         batch.errorMessage = ex.message;
         loadErrors.push(ex);
       } finally {
-        let transfer: Transferable[];
+        let transfer: Transferable[] | undefined = undefined;
         if (batch.data instanceof ArrayBuffer) {
           transfer = [batch.data];
         }
@@ -125,7 +127,7 @@ async function loadBulkApiData({ org, data, sObject, type, batchSize, externalId
     }
     const jobInfoWithBatches = await bulkApiGetJob(org, jobId);
 
-    const sortedBatches = [];
+    const sortedBatches: BulkJobBatchInfo[] = [];
     jobInfoWithBatches.batches.forEach((batch) => {
       sortedBatches[batchOrderMap[batch.id]] = batch;
     });
@@ -170,25 +172,26 @@ async function loadBatchApiData(payload: LoadDataPayload) {
 
     for (let batchIndex = 0; batchIndex < batches.length; batchIndex++) {
       const batch = batches[batchIndex];
-      let responseWithRecord: RecordResultWithRecord[];
+      let responseWithRecord: RecordResultWithRecord[] = [];
       let queryParams = '';
       /** if deleting records, and some records are null for the id, then those records are not loaded and the response will have incorrect indexes */
       let records = batch.records;
       /** This stores the original record before adding {attribute} tag and before adding base64 zip */
-      const originalBatchRecords = batchRecordMap.get(batchIndex);
+      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+      const originalBatchRecords = batchRecordMap.get(batchIndex)!;
       let recordIndexesWithMissingIds: Set<number> = new Set();
 
       try {
         if (type === 'DELETE') {
           queryParams = `?ids=${batch.records
-            .map((record) => record.Id)
+            ?.map((record) => record.Id)
             .filter(Boolean)
             .join(',')}&allOrNone=false`;
           /** Account for records with no mapped id - these records cannot be submitted with the batch API */
           recordIndexesWithMissingIds = new Set(
-            batch.records.map((record, i) => (!record.Id ? i : undefined)).filter((idx) => Number.isFinite(idx))
-          );
-          records = records.filter((record) => record.Id);
+            batch.records?.map((record, i) => (!record.Id ? i : undefined)).filter((idx) => Number.isFinite(idx)) || []
+          ) as Set<number>;
+          records = records?.filter((record) => record.Id) || [];
         }
 
         // https://developer.salesforce.com/docs/atlas.en-us.api_rest.meta/api_rest/headers_autoassign.htm
@@ -212,10 +215,10 @@ async function loadBatchApiData(payload: LoadDataPayload) {
             output.push({
               success: false,
               errors: [{ fields: [], message: `This record did not have a mapped value for the Id`, statusCode: 'MISSING_ID' }],
-              record: originalBatchRecords[i],
+              record: originalBatchRecords?.[i] || [],
             });
           }
-          output.push({ ...response, record: originalBatchRecords[i] });
+          output.push({ ...response, record: originalBatchRecords?.[i] });
           return output;
         }, []);
 
@@ -225,24 +228,25 @@ async function loadBatchApiData(payload: LoadDataPayload) {
             responseWithRecord.push({
               success: false,
               errors: [{ fields: [], message: `This record did not have a mapped value for the Id`, statusCode: 'MISSING_ID' }],
-              record: originalBatchRecords[i],
+              record: originalBatchRecords?.[i],
             });
           });
         }
       } catch (ex) {
-        responseWithRecord = batch.records.map(
-          (record, i): RecordResultWithRecord => ({
-            success: false,
-            errors: [
-              {
-                fields: [],
-                message: `An unknown error has occurred. Salesforce Message: ${ex.message}`,
-                statusCode: 'UNKNOWN',
-              },
-            ],
-            record: originalBatchRecords[i],
-          })
-        );
+        responseWithRecord =
+          batch.records?.map(
+            (record, i): RecordResultWithRecord => ({
+              success: false,
+              errors: [
+                {
+                  fields: [],
+                  message: `An unknown error has occurred. Salesforce Message: ${ex.message}`,
+                  statusCode: 'UNKNOWN',
+                },
+              ],
+              record: originalBatchRecords[i],
+            })
+          ) || [];
       } finally {
         replyToMessage('loadDataStatus', { records: responseWithRecord });
       }
@@ -298,7 +302,7 @@ async function getBatchApiBatches({
     const THRESHOLD_RECORDS = 200;
     let i = 0;
     let currentSize = 0;
-    let request: SobjectCollectionRequest = {
+    let request: Required<SobjectCollectionRequest> = {
       allOrNone: false,
       records: [],
     };
@@ -319,7 +323,7 @@ async function getBatchApiBatches({
         if (!Array.isArray(batchRecordMap.get(i))) {
           batchRecordMap.set(i, []);
         }
-        batchRecordMap.get(i).push(_record);
+        batchRecordMap.get(i)?.push(_record);
       } catch (ex) {
         failedRecords.push(_record);
       }
@@ -359,7 +363,7 @@ function getBatchSummary(results: BulkJobWithBatches, batches: LoadDataBulkApi[]
 }
 
 function replyToMessage(name: string, data: any, error?: any, transfer?: Transferable[]) {
-  ctx.postMessage({ name, data, error }, transfer);
+  transfer ? ctx.postMessage({ name, data, error }, transfer) : ctx.postMessage({ name, data, error });
 }
 
 export default null as any;

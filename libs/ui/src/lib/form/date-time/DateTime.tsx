@@ -1,4 +1,5 @@
 import { useNonInitialEffect } from '@jetstream/shared/ui-utils';
+import { Maybe } from '@jetstream/types';
 import { formatISO, parse as parseDate, parseISO } from 'date-fns';
 import formatDate from 'date-fns/format';
 import React, { FunctionComponent, useState } from 'react';
@@ -12,7 +13,7 @@ export interface DateTimeProps {
   initialValue?: string;
   initialDateValue?: Date;
   // ISO8601 date string
-  onChange: (date: string) => void;
+  onChange: (date: string | null) => void;
 }
 
 const TIME_FORMAT = 'HH:mm:ss.SSS';
@@ -25,7 +26,7 @@ export const DateTime: FunctionComponent<DateTimeProps> = ({
   initialDateValue,
   onChange,
 }) => {
-  const [value, setValue] = useState(() => {
+  const [value, setValue] = useState<Maybe<string>>(() => {
     if (initialValue) {
       return initialValue;
     }
@@ -34,7 +35,7 @@ export const DateTime: FunctionComponent<DateTimeProps> = ({
     }
   });
 
-  const [datePickerValue, setDatePickerValue] = useState<string>(() => {
+  const [datePickerValue, setDatePickerValue] = useState<Maybe<string>>(() => {
     if (initialValue) {
       return formatISO(parseISO(initialValue), { representation: 'date' });
     }
@@ -43,7 +44,7 @@ export const DateTime: FunctionComponent<DateTimeProps> = ({
     }
   });
 
-  const [timeValue, setTimeValue] = useState<string>(() => {
+  const [timeValue, setTimeValue] = useState<Maybe<string>>(() => {
     if (initialValue) {
       return formatDate(parseISO(initialValue), TIME_FORMAT);
     }
@@ -53,7 +54,7 @@ export const DateTime: FunctionComponent<DateTimeProps> = ({
   });
 
   useNonInitialEffect(() => {
-    let newValue: string = null;
+    let newValue: string | null = null;
     if (datePickerValue && timeValue) {
       // combine date and time into ISO8601
       newValue = formatISO(parseDate(timeValue, TIME_FORMAT, parseISO(datePickerValue)));

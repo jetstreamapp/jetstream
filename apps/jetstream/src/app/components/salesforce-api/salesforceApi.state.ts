@@ -55,7 +55,7 @@ export async function cleanUpHistoryState(): Promise<MapOf<SalesforceApiHistoryI
 }
 
 function initSalesforceApiHistory(): Promise<MapOf<SalesforceApiHistoryItem>> {
-  return localforage.getItem<MapOf<SalesforceApiHistoryItem>>(INDEXED_DB.KEYS.salesforceApiHistory);
+  return localforage.getItem<MapOf<SalesforceApiHistoryItem>>(INDEXED_DB.KEYS.salesforceApiHistory).then((item) => item || {});
 }
 
 /**

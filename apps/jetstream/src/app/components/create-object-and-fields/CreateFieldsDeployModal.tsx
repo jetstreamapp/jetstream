@@ -54,7 +54,7 @@ export const CreateFieldsDeployModal: FunctionComponent<CreateFieldsDeployModalP
   const [exportData, setExportModalData] = useState<{
     worksheetData: MapOf<any[]>;
     headerData: MapOf<any[]>;
-  }>();
+  } | null>(null);
 
   async function handleDeploy() {
     trackEvent(ANALYTICS_KEYS.sobj_create_field_deploy, {
@@ -100,7 +100,7 @@ export const CreateFieldsDeployModal: FunctionComponent<CreateFieldsDeployModalP
   return (
     <Fragment>
       <ConfirmPageChange actionInProgress={loading} />
-      {exportModalOpen && (
+      {exportModalOpen && exportData && (
         <FileDownloadModal
           org={selectedOrg}
           google_apiKey={google_apiKey}

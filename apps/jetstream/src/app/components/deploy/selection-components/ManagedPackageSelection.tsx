@@ -46,7 +46,7 @@ export const ManagedPackageSelection: FunctionComponent<ManagedPackageSelectionP
 
   function handleSubmit() {
     _setIncludeManagedPackageItems(includeManagedPackageItems);
-    onSubmit();
+    onSubmit && onSubmit();
   }
 
   return (

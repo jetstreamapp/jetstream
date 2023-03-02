@@ -1,5 +1,5 @@
 import { css } from '@emotion/react';
-import { SalesforceOrgUi } from '@jetstream/types';
+import { Maybe, SalesforceOrgUi } from '@jetstream/types';
 import { Checkbox, CopyToClipboard, Grid, GridCol, Icon, SalesforceLogin, Spinner, Tooltip } from '@jetstream/ui';
 import classNames from 'classnames';
 import { isNumber, uniqueId } from 'lodash';
@@ -158,7 +158,7 @@ export const BooleanAndVersionRenderer: FunctionComponent<FormatterProps<Deploym
 
 const loadingStatuses: DeploymentItemStatus[] = ['Preparing', 'Deploying', 'Rolling Back'];
 
-function getErrorMessageContent(deployError?: MetadataCompositeResponseError[]) {
+function getErrorMessageContent(deployError: Maybe<MetadataCompositeResponseError[]>) {
   if (Array.isArray(deployError) && deployError.length > 0) {
     return (
       <ul>
@@ -170,7 +170,7 @@ function getErrorMessageContent(deployError?: MetadataCompositeResponseError[]) 
   }
 }
 
-function getErrorMessageContentString(deployError?: MetadataCompositeResponseError[]) {
+function getErrorMessageContentString(deployError: Maybe<MetadataCompositeResponseError[]>) {
   if (Array.isArray(deployError) && deployError.length > 0) {
     return deployError.map((item, i) => item.message).join('\n\n');
   }

@@ -49,6 +49,9 @@ function ContextMenuRenderer({ containerId, props, contextMenuItems, contextMenu
       containerId={containerId}
       menu={contextMenuItems}
       onItemSelected={(item) => {
+        if (!props.selectedCellIdx) {
+          return;
+        }
         contextMenuAction(item, {
           row: props.row,
           rowIdx: props.rowIdx,
@@ -95,6 +98,9 @@ function reducer<T>(state: State<T>, action: Action): State<T> {
           const filter = filters[columnKey].find(({ type }) => FILTER_SET_TYPES.has(type));
           const column = columnMap.get(columnKey);
           const getValueFn = columnMap.get(columnKey)?.getValue || (({ row, column }) => row[columnKey]);
+          if (!filter || !column) {
+            return acc;
+          }
           if (filter.type === 'BOOLEAN_SET') {
             acc[columnKey] = ['True', 'False'];
           } else {
@@ -155,7 +161,7 @@ export interface DataTableProps<T = RowWithKey, TContext = Record<string, any>>
   columns: ColumnWithFilter<T>[];
   serverUrl?: string;
   org?: SalesforceOrgUi;
-  quickFilterText?: string;
+  quickFilterText?: string | null;
   includeQuickFilter?: boolean;
   context?: TContext;
   allowReorder?: boolean;
@@ -284,8 +290,8 @@ export const DataTable = forwardRef<any, DataTableProps<any>>(
           .every((columnKey) => {
             let rowValue = row[columnKey];
             const column = columnMap.get(columnKey);
-            if (column?.getValue) {
-              rowValue = column.getValue({ row, column: columnMap.get(columnKey) });
+            if (column?.getValue && column) {
+              rowValue = column.getValue({ row, column });
             }
             return filters[columnKey]
               .filter((filter) => isFilterActive(filter, sortedRows.length))

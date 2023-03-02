@@ -11,7 +11,8 @@ import App from './app/app';
 import './main.scss';
 import classNames from 'classnames';
 
-const container = document.getElementById('root');
+// eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+const container = document.getElementById('root')!;
 
 if (location.hostname === 'localhost' && !location.pathname.includes('/app')) {
   location.href = '/app';

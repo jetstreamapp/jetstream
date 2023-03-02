@@ -8,7 +8,7 @@ export interface AutomationControlLastRefreshedPopoverProps {
 }
 
 export const AutomationControlLastRefreshedPopover: FunctionComponent<AutomationControlLastRefreshedPopoverProps> = ({ onRefresh }) => {
-  const popoverRef = useRef<PopoverRef>();
+  const popoverRef = useRef<PopoverRef>(null);
 
   function handleRefresh() {
     if (popoverRef.current) {

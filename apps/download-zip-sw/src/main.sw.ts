@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-non-null-assertion */
 /**
 MIT License
 
@@ -115,19 +116,19 @@ self.addEventListener('fetch', async (event) => {
 
     // Respond with the zip outputStream
     event.respondWith(
-      new Response(zipMap.get(id).zip.outputStream, {
+      new Response(zipMap.get(id)!.zip.outputStream, {
         headers: new Headers({
           'Content-Type': 'application/octet-stream; charset=utf-8',
-          'Content-Disposition': `attachment; filename="${zipMap.get(id).name}.zip"`,
-          'Content-Length': zipMap.get(id).sizeBig.toString(), // This is an approximation, does not take into account the headers
+          'Content-Disposition': `attachment; filename="${zipMap.get(id)!.name}.zip"`,
+          'Content-Length': zipMap.get(id)!.sizeBig.toString(), // This is an approximation, does not take into account the headers
         }),
       })
     );
 
     // Start feeding zip the downloads
-    for (const file of zipMap.get(id).files) {
+    for (const file of zipMap.get(id)!.files) {
       // Start new file in the zip
-      zipMap.get(id).zip.startFile(file.name);
+      zipMap.get(id)!.zip.startFile(file.name);
 
       // Append all the downloaded data
       try {
@@ -135,6 +136,9 @@ self.addEventListener('fetch', async (event) => {
           fetch(file.downloadUrl)
             .then((response) => response.body)
             .then(async (stream) => {
+              if (!stream) {
+                return;
+              }
               const reader = stream.getReader();
               let doneReading = false;
               while (!doneReading) {
@@ -147,7 +151,7 @@ self.addEventListener('fetch', async (event) => {
                   doneReading = true;
                 } else {
                   // If not, append data to the zip
-                  zipMap.get(id).zip.appendData(value);
+                  zipMap.get(id)!.zip.appendData(value);
                 }
               }
             })
@@ -160,11 +164,11 @@ self.addEventListener('fetch', async (event) => {
       }
 
       // End file
-      zipMap.get(id).zip.endFile();
+      zipMap.get(id)!.zip.endFile();
     }
 
     // End zip
-    zipMap.get(id).zip.finish();
+    zipMap.get(id)!.zip.finish();
     zipMap.delete(id);
     logger.log('[SW]', 'Done with zip', id);
   } else {

@@ -63,12 +63,19 @@ export function useDrivePicker(apiConfig: GoogleApiClientConfig) {
         .setSize(window.innerWidth * 0.9, window.innerHeight * 0.9)
         .setCallback(pickerCallback);
 
+      const pickerBuilder = picker.current;
+
+      if (!pickerBuilder) {
+        logger.warn('[GOOGLE][PICKER] pickerBuilder is undefined');
+        return;
+      }
+
       if (title) {
-        picker.current.setTitle(title);
+        pickerBuilder.setTitle(title);
       }
 
       if (Array.isArray(viewGroups)) {
-        viewGroups.forEach((viewGroup) => picker.current.addViewGroup(viewGroup));
+        viewGroups.forEach((viewGroup) => pickerBuilder.addViewGroup(viewGroup));
       }
 
       if (Array.isArray(views)) {
@@ -76,19 +83,19 @@ export function useDrivePicker(apiConfig: GoogleApiClientConfig) {
           if (label) {
             setViewLabel(view, label);
           }
-          picker.current.addView(view);
+          pickerBuilder.addView(view);
         });
       }
 
       if (Array.isArray(features)) {
-        features.forEach((feature) => picker.current.enableFeature(feature));
+        features.forEach((feature) => pickerBuilder.enableFeature(feature));
       }
 
       if (!skipBuild) {
-        picker.current.build().setVisible(true);
+        pickerBuilder.build().setVisible(true);
       }
 
-      return picker.current;
+      return pickerBuilder;
     },
     [apiConfig.apiKey, apiConfig.appId, getToken, pickerCallback]
   );

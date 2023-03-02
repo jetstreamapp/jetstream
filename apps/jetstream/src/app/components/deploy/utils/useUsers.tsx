@@ -1,7 +1,7 @@
 import { logger } from '@jetstream/shared/client-logger';
 import { clearCacheForOrg, queryWithCache } from '@jetstream/shared/data';
 import { useReducerFetchFn } from '@jetstream/shared/ui-utils';
-import { ListItem, SalesforceOrgUi } from '@jetstream/types';
+import { ListItem, Maybe, SalesforceOrgUi } from '@jetstream/types';
 import formatRelative from 'date-fns/formatRelative';
 import partition from 'lodash/partition';
 import { useCallback, useEffect, useReducer, useRef, useState } from 'react';
@@ -12,15 +12,15 @@ let _lastRefreshed: string;
 
 export function useUsers(
   selectedOrg: SalesforceOrgUi,
-  initialUsers?: ListItem<string, SalesforceUser>[],
+  initialUsers?: Maybe<ListItem<string, SalesforceUser>[]>,
   sortCurrentUserFirst = true,
   loadOnInit = true
 ) {
-  const isMounted = useRef(null);
+  const isMounted = useRef(true);
   const [lastRefreshed, setLastRefreshed] = useState<string>(_lastRefreshed);
 
   const [{ hasLoaded, loading, data, hasError, errorMessage }, dispatch] = useReducer(
-    useReducerFetchFn<ListItem<string, SalesforceUser>[]>(),
+    useReducerFetchFn<ListItem<string, SalesforceUser>[] | null>(),
     {
       hasLoaded: !!initialUsers,
       loading: false,

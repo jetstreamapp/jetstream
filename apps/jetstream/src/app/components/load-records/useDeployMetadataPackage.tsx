@@ -2,7 +2,7 @@ import { logger } from '@jetstream/shared/client-logger';
 import { deployMetadataZip } from '@jetstream/shared/data';
 import { pollMetadataResultsUntilDone, useBrowserNotifications, useRollbar } from '@jetstream/shared/ui-utils';
 import { getSuccessOrFailureChar, pluralizeFromNumber } from '@jetstream/shared/utils';
-import { DeployOptions, DeployResult, SalesforceOrgUi } from '@jetstream/types';
+import { DeployOptions, DeployResult, Maybe, SalesforceOrgUi } from '@jetstream/types';
 import { useCallback, useEffect, useReducer, useRef, useState } from 'react';
 
 /**
@@ -20,7 +20,7 @@ function getNotificationMessageBody(deployResults: DeployResult) {
   const { numberComponentErrors, numberComponentsDeployed, numberTestsCompleted, runTestsEnabled, details, success } = deployResults;
   let { numberTestErrors } = deployResults;
   numberTestErrors = numberTestErrors ?? 0;
-  numberTestErrors = numberTestErrors + details?.runTestResult?.codeCoverageWarnings?.length || 0;
+  numberTestErrors = numberTestErrors + (details?.runTestResult?.codeCoverageWarnings?.length || 0);
   let output = '';
   if (success) {
     output += `${getSuccessOrFailureChar(
@@ -61,8 +61,8 @@ interface State {
   loading: boolean;
   hasError: boolean;
   errorMessage?: string | null;
-  deployId: string;
-  results: DeployResult;
+  deployId: Maybe<string>;
+  results: Maybe<DeployResult>;
 }
 
 function reducer(state: State, action: Action): State {
@@ -80,9 +80,9 @@ function reducer(state: State, action: Action): State {
     case 'DEPLOY_IN_PROG':
       return { ...state, deployId: action.payload.deployId, results: action.payload.results };
     case 'SUCCESS':
-      return { ...state, loading: false, results: action.payload.results };
+      return { ...state, loading: false, results: action.payload?.results };
     case 'ERROR':
-      return { ...state, loading: false, hasError: true, errorMessage: action.payload.errorMessage, results: null };
+      return { ...state, loading: false, hasError: true, errorMessage: action.payload?.errorMessage, results: null };
     default:
       throw new Error('Invalid action');
   }
@@ -96,7 +96,7 @@ function reducer(state: State, action: Action): State {
  * @param changesetName
  */
 export function useDeployMetadataPackage(serverUrl: string, onFinished: () => void) {
-  const isMounted = useRef(null);
+  const isMounted = useRef(true);
   const rollbar = useRollbar();
   const [{ hasLoaded, loading, hasError, errorMessage, deployId, results }, dispatch] = useReducer(reducer, {
     hasLoaded: false,
@@ -106,7 +106,7 @@ export function useDeployMetadataPackage(serverUrl: string, onFinished: () => vo
     results: null,
   });
   const { notifyUser } = useBrowserNotifications(serverUrl, window.electron?.isFocused);
-  const [lastChecked, setLastChecked] = useState<Date>(null);
+  const [lastChecked, setLastChecked] = useState<Date | null>(null);
 
   useEffect(() => {
     isMounted.current = true;

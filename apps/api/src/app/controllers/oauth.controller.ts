@@ -15,7 +15,7 @@ export function salesforceOauthInitAuth(req: express.Request, res: express.Respo
   const loginUrl = req.query.loginUrl as string;
   const clientUrl = req.query.clientUrl as string;
   const replaceOrgUniqueId = req.query.replaceOrgUniqueId as string | undefined;
-  const state = new URLSearchParams({ loginUrl, clientUrl, replaceOrgUniqueId }).toString();
+  const state = new URLSearchParams({ loginUrl, clientUrl, replaceOrgUniqueId: replaceOrgUniqueId || '' }).toString();
 
   let options = {
     scope: 'api web refresh_token',
@@ -39,7 +39,7 @@ export async function salesforceOauthCallback(req: express.Request, res: express
   const user = req.user as UserProfileServer;
   const state = new URLSearchParams(req.query.state as string);
   const loginUrl = state.get('loginUrl');
-  const clientUrl = state.get('clientUrl') || new URL(ENV.JETSTREAM_CLIENT_URL).origin;
+  const clientUrl = state.get('clientUrl') || new URL(ENV.JETSTREAM_CLIENT_URL!).origin;
   const replaceOrgUniqueId = state.get('replaceOrgUniqueId') || undefined;
   const returnParams: OauthLinkParams = {
     type: 'salesforce',
@@ -63,7 +63,7 @@ export async function salesforceOauthCallback(req: express.Request, res: express
     const salesforceOrg = await initConnectionFromOAuthResponse({
       conn,
       userInfo,
-      loginUrl,
+      loginUrl: loginUrl as string,
       userId: user.id,
       replaceOrgUniqueId,
     });
@@ -104,7 +104,7 @@ export async function initConnectionFromOAuthResponse({
   replaceOrgUniqueId?: string;
 }) {
   const identity = await conn.identity();
-  let companyInfoRecord: SObjectOrganization;
+  let companyInfoRecord: SObjectOrganization | undefined;
 
   try {
     const results = await conn.query<SObjectOrganization>(
@@ -121,7 +121,8 @@ export async function initConnectionFromOAuthResponse({
 
   const salesforceOrgUi: Partial<SalesforceOrgUi> = {
     uniqueId: `${userInfo.organizationId}-${userInfo.id}`,
-    accessToken: salesforceOrgsDb.encryptAccessToken(conn.accessToken, conn.refreshToken),
+    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+    accessToken: salesforceOrgsDb.encryptAccessToken(conn.accessToken, conn.refreshToken!),
     instanceUrl: conn.instanceUrl,
     loginUrl,
     userId: identity.user_id,

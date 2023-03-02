@@ -8,22 +8,22 @@ SUPPORTED_ATTACHMENT_OBJECTS.set('Attachment', { bodyField: 'Body' });
 SUPPORTED_ATTACHMENT_OBJECTS.set('Document', { bodyField: 'Body' });
 SUPPORTED_ATTACHMENT_OBJECTS.set('ContentVersion', { bodyField: 'VersionData' });
 
-export const priorSelectedOrg = atom<string>({
+export const priorSelectedOrg = atom<string | null>({
   key: 'load.priorSelectedOrg',
   default: null,
 });
 
-export const sObjectsState = atom<DescribeGlobalSObjectResult[]>({
+export const sObjectsState = atom<DescribeGlobalSObjectResult[] | null>({
   key: 'load.sObjectsState',
   default: null,
 });
 
-export const selectedSObjectState = atom<DescribeGlobalSObjectResult>({
+export const selectedSObjectState = atom<DescribeGlobalSObjectResult | null>({
   key: 'load.selectedSObjectState',
   default: null,
 });
 
-export const loadExistingRecordCount = atom<number>({
+export const loadExistingRecordCount = atom<number | null>({
   key: 'load.loadExistingRecordCount',
   default: null,
 });
@@ -33,32 +33,32 @@ export const loadTypeState = atom<InsertUpdateUpsertDelete>({
   default: 'INSERT',
 });
 
-export const inputFileDataState = atom<any[]>({
+export const inputFileDataState = atom<any[] | null>({
   key: 'load.inputFileDataState',
   default: null,
 });
 
-export const inputFileHeaderState = atom<string[]>({
+export const inputFileHeaderState = atom<string[] | null>({
   key: 'load.inputFileHeaderState',
   default: null,
 });
 
-export const inputFilenameState = atom<string>({
+export const inputFilenameState = atom<string | null>({
   key: 'load.inputFilenameState',
   default: null,
 });
 
-export const inputFilenameTypeState = atom<LocalOrGoogle>({
+export const inputFilenameTypeState = atom<LocalOrGoogle | null>({
   key: 'load.inputFilenameTypeState',
   default: null,
 });
 
-export const inputZipFileDataState = atom<ArrayBuffer>({
+export const inputZipFileDataState = atom<ArrayBuffer | null>({
   key: 'load.inputZipFileDataState',
   default: null,
 });
 
-export const inputZipFilenameState = atom<string>({
+export const inputZipFilenameState = atom<string | null>({
   key: 'load.inputZipFilenameState',
   default: null,
 });
@@ -68,7 +68,7 @@ export const fieldMappingState = atom<FieldMapping>({
   default: {},
 });
 
-export const selectAllowBinaryAttachment = selector<boolean>({
+export const selectAllowBinaryAttachment = selector<boolean | null>({
   key: 'load.selectAllowBinaryAttachment',
   get: ({ get }) => {
     const selectedObject = get(selectedSObjectState);
@@ -83,13 +83,13 @@ export const selectBinaryAttachmentBodyField = selector<string | null>({
     return (
       (selectedObject &&
         SUPPORTED_ATTACHMENT_OBJECTS.has(selectedObject.name) &&
-        SUPPORTED_ATTACHMENT_OBJECTS.get(selectedObject.name).bodyField) ||
+        SUPPORTED_ATTACHMENT_OBJECTS.get(selectedObject.name)?.bodyField) ||
       null
     );
   },
 });
 
-export const isCustomMetadataObject = selector<boolean>({
+export const isCustomMetadataObject = selector<boolean | null>({
   key: 'load.isCustomMetadataObject',
   get: ({ get }) => {
     const selectedObject = get(selectedSObjectState);

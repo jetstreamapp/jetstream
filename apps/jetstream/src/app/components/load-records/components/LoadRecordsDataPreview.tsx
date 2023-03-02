@@ -2,7 +2,7 @@ import { css } from '@emotion/react';
 import { logger } from '@jetstream/shared/client-logger';
 import { query } from '@jetstream/shared/data';
 import { formatNumber } from '@jetstream/shared/ui-utils';
-import { InsertUpdateUpsertDelete, SalesforceOrgUi } from '@jetstream/types';
+import { InsertUpdateUpsertDelete, Maybe, SalesforceOrgUi } from '@jetstream/types';
 import { Alert, AutoFullHeightContainer, DataTable, getColumnsForGenericTable, Grid, GridCol, RowWithKey, Spinner } from '@jetstream/ui';
 import { DescribeGlobalSObjectResult } from 'jsforce';
 import isNil from 'lodash/isNil';
@@ -17,10 +17,10 @@ const getRowId = ({ _num }: any) => _num;
 
 export interface LoadRecordsDataPreviewProps {
   selectedOrg: SalesforceOrgUi;
-  selectedSObject: DescribeGlobalSObjectResult;
+  selectedSObject: Maybe<DescribeGlobalSObjectResult>;
   loadType: InsertUpdateUpsertDelete;
-  data: any[];
-  header: string[];
+  data: Maybe<any[]>;
+  header: Maybe<string[]>;
 }
 
 // function valueGetter: ((params: ValueGetterParams) => any) | string;
@@ -72,11 +72,11 @@ export const LoadRecordsDataPreview: FunctionComponent<LoadRecordsDataPreviewPro
   header,
   loadType,
 }) => {
-  const isMounted = useRef(null);
+  const isMounted = useRef(true);
   const [totalRecordCount, setTotalRecordCount] = useRecoilState(fromLoadRecordsState.loadExistingRecordCount);
   const [omitTotalRecordCount, setOmitTotalRecordCount] = useState(true);
-  const [columns, setColumns] = useState<Column<RowWithKey>[]>(null);
-  const [rows, setRows] = useState<RowWithKey[]>(null);
+  const [columns, setColumns] = useState<Maybe<Column<RowWithKey>[]>>(null);
+  const [rows, setRows] = useState<Maybe<RowWithKey[]>>(null);
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
@@ -143,7 +143,7 @@ export const LoadRecordsDataPreview: FunctionComponent<LoadRecordsDataPreviewPro
               <div>
                 Object: <strong>{selectedSObject.name}</strong>
               </div>
-              <div>{getLoadDescription(loadType, totalRecordCount, omitTotalRecordCount, data)}</div>
+              <div>{getLoadDescription(loadType, totalRecordCount || 0, omitTotalRecordCount, data)}</div>
             </div>
           )}
         </GridCol>

@@ -1,6 +1,6 @@
 import { css } from '@emotion/react';
 import { useNonInitialEffect } from '@jetstream/shared/ui-utils';
-import { ChangeSet, ListItem, ListMetadataResult, MapOf, SalesforceOrgUi } from '@jetstream/types';
+import { ChangeSet, ListItem, ListMetadataResult, MapOf, Maybe, SalesforceOrgUi } from '@jetstream/types';
 import { ComboboxWithItems, Grid, GridCol, Input, Modal, Radio, RadioGroup, SalesforceLogin, Spinner, Textarea } from '@jetstream/ui';
 import { Fragment, FunctionComponent, useEffect, useRef, useState } from 'react';
 import { useRecoilState } from 'recoil';
@@ -11,9 +11,9 @@ import { useChangesetList } from '../utils/useChangesetList';
 export interface AddToChangesetConfigModalProps {
   selectedOrg: SalesforceOrgUi;
   selectedMetadata: MapOf<ListMetadataResult[]>;
-  initialPackages?: ListItem<string, ChangeSet>[];
+  initialPackages?: Maybe<ListItem<string, ChangeSet>[]>;
   initialPackage?: string;
-  initialDescription?: string;
+  initialDescription?: string | null;
   onChangesetPackages: (changesetPackages: ListItem<string, ChangeSet>[]) => void;
   onSelection: (changesetPackage: string) => void;
   onClose: () => void;
@@ -31,12 +31,12 @@ export const AddToChangesetConfigModal: FunctionComponent<AddToChangesetConfigMo
   onClose,
   onDeploy,
 }) => {
-  const modalBodyRef = useRef<HTMLDivElement>();
+  const modalBodyRef = useRef<HTMLDivElement>(null);
   const [{ serverUrl }] = useRecoilState(applicationCookieState);
   const [changesetEntryType, setChangesetEntryType] = useState<'list' | 'manual'>('list');
   const [changesetPackage, setChangesetPackage] = useState<string>(initialPackage || '');
   const [changesetDescription, setChangesetDescription] = useState<string>(initialDescription || '');
-  const [selectedChangeset, setSelectedChangeset] = useState<ChangeSet>(null);
+  const [selectedChangeset, setSelectedChangeset] = useState<ChangeSet | null>(null);
   // FIXME: show hasError on page somewhere
   const { loadPackages, loading, changesetPackages, hasError, errorMessage } = useChangesetList(selectedOrg, initialPackages);
   const [selectedMetadataList, setSelectedMetadataList] = useState<string[]>();
@@ -54,7 +54,7 @@ export const AddToChangesetConfigModal: FunctionComponent<AddToChangesetConfigMo
   useEffect(() => {
     if (selectedMetadata) {
       setSelectedMetadataList(
-        Object.keys(selectedMetadata).reduce((output, key) => {
+        Object.keys(selectedMetadata).reduce((output: string[], key) => {
           selectedMetadata[key].forEach((item) => output.push(`${key}: ${decodeURIComponent(item.fullName)}`));
           return output;
         }, [])
@@ -84,7 +84,7 @@ export const AddToChangesetConfigModal: FunctionComponent<AddToChangesetConfigMo
           </button>
           <button
             className="slds-button slds-button_brand"
-            onClick={() => onDeploy(changesetPackage, changesetDescription, selectedChangeset)}
+            onClick={() => selectedChangeset && onDeploy(changesetPackage, changesetDescription, selectedChangeset)}
             disabled={loading || !changesetPackage}
           >
             Deploy

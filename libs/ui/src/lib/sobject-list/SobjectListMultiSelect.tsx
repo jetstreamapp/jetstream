@@ -1,7 +1,7 @@
 import { css } from '@emotion/react';
 import { formatNumber } from '@jetstream/shared/ui-utils';
 import { multiWordObjectFilter, orderStringsBy } from '@jetstream/shared/utils';
-import { UpDown } from '@jetstream/types';
+import { Maybe, UpDown } from '@jetstream/types';
 import { DescribeGlobalSObjectResult } from 'jsforce';
 import { createRef, Fragment, FunctionComponent, useEffect, useState } from 'react';
 import Checkbox from '../form/checkbox/Checkbox';
@@ -13,12 +13,12 @@ import ItemSelectionSummary from '../widgets/ItemSelectionSummary';
 import Spinner from '../widgets/Spinner';
 
 export interface SobjectListMultiSelectProps {
-  sobjects: DescribeGlobalSObjectResult[];
+  sobjects: Maybe<DescribeGlobalSObjectResult[]>;
   selectedSObjects: string[];
   allowSelectAll?: boolean;
   disabled?: boolean;
   loading: boolean;
-  errorMessage?: string; // TODO:
+  errorMessage?: Maybe<string>;
   onSelected: (selectedSObjects: string[]) => void;
   errorReattempt: () => void;
 }
@@ -34,8 +34,8 @@ export const SobjectListMultiSelect: FunctionComponent<SobjectListMultiSelectPro
   errorReattempt,
 }) => {
   const [searchTerm, setSearchTerm] = useState('');
-  const [filteredSobjects, setFilteredSobjects] = useState<DescribeGlobalSObjectResult[]>(() => {
-    if (sobjects?.length > 0 && searchTerm) {
+  const [filteredSobjects, setFilteredSobjects] = useState<Maybe<DescribeGlobalSObjectResult[]>>(() => {
+    if (sobjects && sobjects?.length > 0 && searchTerm) {
       return sobjects.filter(multiWordObjectFilter(['name', 'label'], searchTerm));
     } else {
       return sobjects;
@@ -73,7 +73,7 @@ export const SobjectListMultiSelect: FunctionComponent<SobjectListMultiSelectPro
   }
 
   function handleSelectAll(value: boolean) {
-    filteredSobjects.forEach((item) => {
+    filteredSobjects?.forEach((item) => {
       if (value) {
         selectedSObjectSet.add(item.name);
       } else {

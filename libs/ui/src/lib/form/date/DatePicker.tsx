@@ -23,8 +23,8 @@ export interface DatePickerProps {
   // choose contents to ensure full width display
   containerDisplay?: 'block' | 'flex' | 'inline' | 'inline-block' | 'contents';
   label: string;
-  hideLabel?: boolean;
-  labelHelp?: string;
+  hideLabel?: boolean | null;
+  labelHelp?: string | null;
   helpText?: React.ReactNode | string;
   isRequired?: boolean;
   hasError?: boolean;
@@ -37,7 +37,7 @@ export interface DatePickerProps {
   dropDownPosition?: PositionLeftRight;
   disabled?: boolean;
   readOnly?: boolean;
-  onChange: (date: Date) => void;
+  onChange: (date: Date | null) => void;
 }
 
 export const DatePicker: FunctionComponent<DatePickerProps> = ({
@@ -63,7 +63,7 @@ export const DatePicker: FunctionComponent<DatePickerProps> = ({
 }) => {
   initialSelectedDate = isValidDate(initialSelectedDate) ? initialSelectedDate : undefined;
   initialVisibleDate = isValidDate(initialVisibleDate) ? initialVisibleDate : undefined;
-  const inputRef = useRef<HTMLInputElement>();
+  const inputRef = useRef<HTMLInputElement>(null);
   const [id] = useState<string>(`${_id || 'date-picker'}-${Date.now()}`); // used to avoid auto-complete
   const [value, setValue] = useState<string>('');
   const [selectedDate, setSelectedDate] = useState(() => (isValidDate(initialSelectedDate) ? initialSelectedDate : undefined));
@@ -223,7 +223,7 @@ export const DatePicker: FunctionComponent<DatePickerProps> = ({
  * @param minAvailableDate The year from this date is used for the earliest year. Defaults to 1970
  * @param maxAvailableDate The year from this date is used for the latest year. Defaults to current year + 50
  */
-export function getDatePickerYears(minAvailableDate?: Date, maxAvailableDate?: Date) {
+export function getDatePickerYears(minAvailableDate?: Date | null, maxAvailableDate?: Date | null) {
   let minYear = minAvailableDate?.getFullYear() || 1969;
   const maxYear = maxAvailableDate?.getFullYear() || new Date().getFullYear() + 50;
   if (minYear > maxYear) {

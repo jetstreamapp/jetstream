@@ -12,7 +12,7 @@ export interface RadioButtonSelectionProps {
   items: RadioButtonItem[];
   checkedValue: string;
   disabled?: boolean;
-  labelHelp?: string;
+  labelHelp?: string | null;
   onChange: (value: string) => void;
 }
 

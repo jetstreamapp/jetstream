@@ -1,6 +1,6 @@
 import { css } from '@emotion/react';
 import { isEnterKey } from '@jetstream/shared/ui-utils';
-import { ListItem } from '@jetstream/types';
+import { ListItem, Maybe } from '@jetstream/types';
 import { ComboboxWithItems, Grid, Input } from '@jetstream/ui';
 import type { DescribeGlobalSObjectResult } from 'jsforce';
 import React, { FunctionComponent, KeyboardEvent, useEffect, useState } from 'react';
@@ -9,7 +9,7 @@ import { MessagesByChannel } from './usePlatformEvent';
 export interface PlatformEventMonitorSubscribeListenerCard {
   picklistKey: string | number;
   platformEventsList: ListItem<string, DescribeGlobalSObjectResult>[];
-  selectedSubscribeEvent: string;
+  selectedSubscribeEvent?: Maybe<string>;
   messagesByChannel: MessagesByChannel;
   fetchPlatformEvents: (clearCache?: boolean) => void;
   subscribe: (platformEventName: string, replayId?: number) => Promise<any>;
@@ -32,7 +32,7 @@ export const PlatformEventMonitorSubscribe: FunctionComponent<PlatformEventMonit
   const [currentEventSubscribed, setCurrentEventSubscribed] = useState(false);
 
   useEffect(() => {
-    setCurrentEventSubscribed(selectedSubscribeEvent && !!messagesByChannel[selectedSubscribeEvent]);
+    setCurrentEventSubscribed(!!selectedSubscribeEvent && !!messagesByChannel[selectedSubscribeEvent]);
   }, [selectedSubscribeEvent, messagesByChannel]);
 
   useEffect(() => {
@@ -50,12 +50,15 @@ export const PlatformEventMonitorSubscribe: FunctionComponent<PlatformEventMonit
   function handleSubscribe(event: React.SyntheticEvent<HTMLFormElement | HTMLButtonElement>) {
     event.preventDefault();
     event.stopPropagation();
-    subscribe(selectedSubscribeEvent, replayId && parseInt(replayId, 10));
+    if (!selectedSubscribeEvent) {
+      return;
+    }
+    subscribe(selectedSubscribeEvent, replayId ? parseInt(replayId, 10) : undefined);
   }
 
   function handleInputKeydown(event: KeyboardEvent<HTMLInputElement>) {
     if (isEnterKey(event) && !currentEventSubscribed && selectedSubscribeEvent) {
-      subscribe(selectedSubscribeEvent, replayId && parseInt(replayId, 10));
+      subscribe(selectedSubscribeEvent, replayId ? parseInt(replayId, 10) : undefined);
     }
   }
 
@@ -102,7 +105,7 @@ export const PlatformEventMonitorSubscribe: FunctionComponent<PlatformEventMonit
         {currentEventSubscribed && (
           <button
             className="slds-button slds-button_neutral"
-            onClick={() => unsubscribe(selectedSubscribeEvent)}
+            onClick={() => selectedSubscribeEvent && unsubscribe(selectedSubscribeEvent)}
             disabled={!selectedSubscribeEvent}
           >
             Unsubscribe

@@ -2,7 +2,7 @@ import { logger } from '@jetstream/shared/client-logger';
 import { describeGlobal, describeSObject } from '@jetstream/shared/data';
 import { getFieldKey } from '@jetstream/shared/ui-utils';
 import { orderStringsBy } from '@jetstream/shared/utils';
-import { MapOf, SalesforceOrgUi } from '@jetstream/types';
+import { MapOf, Maybe, SalesforceOrgUi } from '@jetstream/types';
 import { DescribeGlobalSObjectResult, DescribeSObjectResult, Field } from 'jsforce';
 import {
   FieldType as QueryFieldType,
@@ -89,7 +89,7 @@ export async function fetchMetadataFromSoql(
 ): Promise<SoqlFetchMetadataOutput> {
   // fetch initial sobject metadata
   const { data: describeResults } = await describeGlobal(org, isTooling);
-  const selectedSobjectMetadata = describeResults.sobjects.find((item) => item.name.toLowerCase() === query.sObject.toLowerCase());
+  const selectedSobjectMetadata = describeResults.sobjects.find((item) => item.name.toLowerCase() === query.sObject?.toLowerCase());
   if (!selectedSobjectMetadata) {
     throw new Error(`Object ${query.sObject} was not found in org`);
   }
@@ -109,7 +109,7 @@ export async function fetchMetadataFromSoql(
     lowercaseFieldMap: getLowercaseFieldMap(rootSobjectDescribe.fields),
   };
 
-  const parsableFields = includeEntireQuery ? getFieldsFromAllPartsOfQuery(query) : getParsableFields(query.fields);
+  const parsableFields = includeEntireQuery ? getFieldsFromAllPartsOfQuery(query) : getParsableFields(query.fields || []);
   output.metadata = await fetchAllMetadata(org, isTooling, rootSobjectDescribe, parsableFields.fields, describeCache);
 
   // add entries to lowercaseFieldMap for all related objects
@@ -146,7 +146,7 @@ export async function fetchMetadataFromSoql(
 }
 
 function getFieldsFromAllPartsOfQuery(query: Query): ParsableFields {
-  const parsableFields = getParsableFields(query.fields);
+  const parsableFields = getParsableFields(query.fields || []);
 
   parsableFields.fields = parsableFields.fields.concat(getParsableFieldsFromFilter(query.where));
 
@@ -176,14 +176,14 @@ function getParsableFields(fields: QueryFieldType[]): ParsableFields {
       if (field.type === 'Field') {
         output.fields.push(field.field);
       } else if (field.type === 'FieldRelationship') {
-        output.fields.push(field.rawValue);
+        output.fields.push(field.rawValue || '');
       } else if (field.type === 'FieldTypeof') {
         const [firstCondition] = field.conditions;
         firstCondition.fieldList.forEach((typeofField) =>
           output.fields.push(`${firstCondition.objectType}${TYPEOF_SEPARATOR}${field.field}.${typeofField}`)
         );
       } else if (field.type === 'FieldSubquery') {
-        output.subqueries[field.subquery.relationshipName] = getParsableFields(field.subquery.fields).fields;
+        output.subqueries[field.subquery.relationshipName] = getParsableFields(field.subquery.fields || []).fields;
       }
       return output;
     },
@@ -195,7 +195,7 @@ function getParsableFields(fields: QueryFieldType[]): ParsableFields {
   return sortedOutput;
 }
 
-function getParsableFieldsFromFilter(where: WhereClause, fields: string[] = []): string[] {
+function getParsableFieldsFromFilter(where: Maybe<WhereClause>, fields: string[] = []): string[] {
   if (!where) {
     return fields;
   }
@@ -267,7 +267,7 @@ async function fetchRecursiveMetadata(
   parentKey: string,
   describeCache: MapOf<DescribeSObjectResult>,
   output: MapOf<SoqlMetadataTree> = {},
-  parentNode: SoqlMetadataTree = null
+  parentNode: SoqlMetadataTree | null = null
 ): Promise<MapOf<SoqlMetadataTree>> {
   // filter items to keep fields without any children relationships to fetch metadata
   const currRelationships = fieldRelationships.filter((field) => field.indexOf('.') === -1);
@@ -277,7 +277,7 @@ async function fetchRecursiveMetadata(
 
   for (let currRelationship of currRelationships) {
     try {
-      let relatedObject: string;
+      let relatedObject: string | undefined = undefined;
       if (currRelationship.includes(TYPEOF_SEPARATOR)) {
         const [typeofObject, relationship] = currRelationship.split(TYPEOF_SEPARATOR);
         relatedObject = typeofObject;
