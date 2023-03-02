@@ -80,6 +80,7 @@ export const FileFauxDownloadModal: FunctionComponent<FileFauxDownloadModalProps
   const [filenameEmpty, setFilenameEmpty] = useState(false);
 
   const [googleFolder, setGoogleFolder] = useState<Maybe<string>>(null);
+  const [isGooglePickerVisible, setIsGooglePickerVisible] = useState(false);
 
   useEffect(() => {
     if (!fileName && !filenameEmpty) {
@@ -182,6 +183,7 @@ export const FileFauxDownloadModal: FunctionComponent<FileFauxDownloadModalProps
         </Fragment>
       }
       skipAutoFocus
+      hide={isGooglePickerVisible}
       onClose={() => onCancel()}
     >
       <div>
@@ -247,6 +249,7 @@ export const FileFauxDownloadModal: FunctionComponent<FileFauxDownloadModalProps
             google_appId={google_appId}
             google_clientId={google_clientId}
             onFolderSelected={handleFolderSelected}
+            onSelectorVisible={setIsGooglePickerVisible}
           />
         )}
         <Input
