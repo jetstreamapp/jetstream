@@ -3,7 +3,7 @@ import { SFDC_BULK_API_NULL_VALUE } from '@jetstream/shared/constants';
 import { queryAll, queryWithCache } from '@jetstream/shared/data';
 import { describeSObjectWithExtendedTypes, formatNumber } from '@jetstream/shared/ui-utils';
 import { REGEX, transformRecordForDataLoad } from '@jetstream/shared/utils';
-import { EntityParticleRecord, FieldWithExtendedType, isNotNullish, MapOf, Maybe, SalesforceOrgUi } from '@jetstream/types';
+import { EntityParticleRecord, FieldWithExtendedType, InsertUpdateUpsertDelete, MapOf, Maybe, SalesforceOrgUi } from '@jetstream/types';
 import { DescribeGlobalSObjectResult } from 'jsforce';
 import JSZip from 'jszip';
 import groupBy from 'lodash/groupBy';
@@ -636,6 +636,7 @@ export function convertCsvToCustomMetadata(
   logger.log({ metadataByFullName });
   return metadataByFullName;
 }
+
 export function prepareCustomMetadata(apiVersion, metadata: MapOfCustomMetadataRecord): Promise<ArrayBuffer> {
   const zip = new JSZip();
   zip.file(
@@ -655,4 +656,34 @@ export function prepareCustomMetadata(apiVersion, metadata: MapOfCustomMetadataR
     zip.file(`customMetadata/${fullName}.md`, metadata[fullName].metadata);
   });
   return zip.generateAsync({ type: 'arraybuffer' });
+}
+
+export function checkForDuplicateRecords(
+  fieldMapping: FieldMapping,
+  inputFileData: any[],
+  loadType: InsertUpdateUpsertDelete,
+  isCustomMetadata = false,
+  externalId?: string
+): {
+  duplicateKey: string;
+  duplicateRecords: [string, any[]][];
+} | null {
+  let mappingItem: FieldMappingItem | undefined;
+  if (isCustomMetadata) {
+    mappingItem = Object.values(fieldMapping).find(({ targetField }) => targetField === 'DeveloperName');
+  } else if (loadType === 'UPDATE' || loadType === 'DELETE') {
+    mappingItem = Object.values(fieldMapping).find(({ targetField }) => targetField === 'Id');
+  } else if (loadType === 'UPSERT' && externalId) {
+    mappingItem = Object.values(fieldMapping).find(({ targetField }) => targetField === externalId);
+  }
+
+  if (mappingItem && mappingItem.targetField) {
+    const rowsByMappedKeyField = groupBy(inputFileData, mappingItem.csvField);
+    return {
+      duplicateKey:
+        mappingItem.csvField === mappingItem.targetField ? mappingItem.csvField : `${mappingItem.csvField} -> ${mappingItem.targetField}`,
+      duplicateRecords: Object.entries(rowsByMappedKeyField).filter(([key, values]) => values.length > 1),
+    };
+  }
+  return null;
 }

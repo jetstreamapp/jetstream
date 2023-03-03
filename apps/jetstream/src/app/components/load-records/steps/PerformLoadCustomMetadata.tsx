@@ -12,6 +12,7 @@ import * as fromJetstreamEvents from '../../core/jetstream-events';
 import { DownloadType } from '../../shared/load-records-results/load-records-results-types';
 import LoadRecordsCustomMetadataResultsTable from '../components/load-results/LoadRecordsCustomMetadataResultsTable';
 import LoadRecordsResultsModal from '../components/load-results/LoadRecordsResultsModal';
+import LoadRecordsDuplicateWarning from '../components/LoadRecordsDuplicateWarning';
 import { DownloadModalData, FieldMapping, FieldWithRelatedEntities, MapOfCustomMetadataRecord, ViewModalData } from '../load-records-types';
 import { useDeployMetadataPackage } from '../useDeployMetadataPackage';
 import { convertCsvToCustomMetadata, prepareCustomMetadata } from '../utils/load-records-utils';
@@ -29,6 +30,7 @@ export interface PerformLoadCustomMetadataProps {
   selectedOrg: SalesforceOrgUi;
   orgType: Maybe<SalesforceOrgUiType>;
   selectedSObject: string;
+  inputFileHeader: string[] | null;
   fieldMapping: FieldMapping;
   fields: FieldWithRelatedEntities[];
   inputFileData: any[];
@@ -39,6 +41,7 @@ export const PerformLoadCustomMetadata: FunctionComponent<PerformLoadCustomMetad
   selectedOrg,
   orgType,
   selectedSObject,
+  inputFileHeader,
   fieldMapping,
   fields,
   inputFileData,
@@ -213,6 +216,14 @@ export const PerformLoadCustomMetadata: FunctionComponent<PerformLoadCustomMetad
           onClose={handleViewModalClose}
         />
       )}
+      <LoadRecordsDuplicateWarning
+        className="slds-m-vertical_x-small"
+        inputFileHeader={inputFileHeader}
+        fieldMapping={fieldMapping}
+        inputFileData={inputFileData}
+        loadType="UPSERT"
+        isCustomMetadata
+      />
       <h1 className="slds-text-heading_medium">Options</h1>
       <div className="slds-p-around_small">
         <Checkbox

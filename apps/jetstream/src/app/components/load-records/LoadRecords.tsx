@@ -29,7 +29,7 @@ import * as fromLoadRecordsState from './load-records.state';
 import LoadRecordsFieldMapping from './steps/FieldMapping';
 import LoadRecordsLoadAutomationDeploy from './steps/LoadRecordsAutomationDeploy';
 import LoadRecordsLoadAutomationRollback from './steps/LoadRecordsAutomationRollback';
-import LoadRecordsPerformLoad from './steps/PerformLoad';
+import PerformLoad from './steps/PerformLoad';
 import PerformLoadCustomMetadata from './steps/PerformLoadCustomMetadata';
 import LoadRecordsSelectObjectAndFile from './steps/SelectObjectAndFile';
 import { autoMapFields, getFieldMetadata } from './utils/load-records-utils';
@@ -456,10 +456,11 @@ export const LoadRecords: FunctionComponent<LoadRecordsProps> = ({ featureFlags 
             {currentStep.name === 'loadRecords' && selectedSObject && inputFileData && (
               <span>
                 {!isCustomMetadataObject ? (
-                  <LoadRecordsPerformLoad
+                  <PerformLoad
                     selectedOrg={selectedOrg}
                     orgType={orgType}
                     selectedSObject={selectedSObject.name}
+                    inputFileHeader={inputFileHeader}
                     loadType={loadType}
                     fieldMapping={fieldMapping}
                     inputFileData={inputFileData}
@@ -474,6 +475,7 @@ export const LoadRecords: FunctionComponent<LoadRecordsProps> = ({ featureFlags 
                     selectedOrg={selectedOrg}
                     orgType={orgType}
                     selectedSObject={selectedSObject.name}
+                    inputFileHeader={inputFileHeader}
                     fields={mappableFields}
                     fieldMapping={fieldMapping}
                     inputFileData={inputFileData}
