@@ -92,7 +92,9 @@ async function fetchCompletions(
   selectedOrg: SalesforceOrgUi,
   sobject?: string
 ): Promise<monaco.languages.CompletionItem[]> {
-  const { textUntilPosition, mostRecentCharacter, range } = characterInfo;
+  const { textUntilPosition: textUntilPositionAll, mostRecentCharacter, range } = characterInfo;
+  // if spaces, ignore prior words - e.x. "Log__r.ApiVersion__c != LoggedBy__r" we only care about LoggedBy__r
+  const textUntilPosition = textUntilPositionAll.split(' ').reverse()[0];
 
   let priorWords: string[] = [];
   if (mostRecentCharacter === '.' || textUntilPosition.includes('.')) {
