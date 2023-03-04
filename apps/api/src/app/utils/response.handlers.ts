@@ -48,7 +48,9 @@ export async function uncaughtErrorHandler(err: any, req: express.Request, res: 
   // If org had a connection error, ensure that the database is updated
   // TODO: what about alternate org?
   if (
-    (err.message === ERROR_MESSAGES.SFDC_EXPIRED_TOKEN || err.message === ERROR_MESSAGES.SFDC_EXPIRED_TOKEN_VALIDITY) &&
+    (err.message === ERROR_MESSAGES.SFDC_EXPIRED_TOKEN ||
+      err.message === ERROR_MESSAGES.SFDC_EXPIRED_TOKEN_VALIDITY ||
+      ERROR_MESSAGES.SFDC_ORG_DOES_NOT_EXIST.test(err.message)) &&
     !!res.locals?.org
   ) {
     try {
