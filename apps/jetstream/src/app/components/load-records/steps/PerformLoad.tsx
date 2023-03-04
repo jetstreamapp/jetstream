@@ -9,6 +9,7 @@ import { useAmplitude } from '../../core/analytics';
 import ConfirmPageChange from '../../core/ConfirmPageChange';
 import LoadRecordsResults from '../components/load-results/LoadRecordsResults';
 import LoadRecordsAssignmentRules from '../components/LoadRecordsAssignmentRules';
+import LoadRecordsDuplicateWarning from '../components/LoadRecordsDuplicateWarning';
 import { ApiMode, FieldMapping } from '../load-records-types';
 
 const MAX_BULK = 10000;
@@ -59,6 +60,7 @@ export interface LoadRecordsPerformLoadProps {
   orgType: Maybe<SalesforceOrgUiType>;
   selectedSObject: string;
   loadType: InsertUpdateUpsertDelete;
+  inputFileHeader: string[] | null;
   fieldMapping: FieldMapping;
   inputFileData: any[];
   inputZipFileData: Maybe<ArrayBuffer>;
@@ -71,6 +73,7 @@ export const LoadRecordsPerformLoad: FunctionComponent<LoadRecordsPerformLoadPro
   orgType,
   selectedSObject,
   loadType,
+  inputFileHeader,
   fieldMapping,
   inputFileData,
   inputZipFileData,
@@ -193,6 +196,14 @@ export const LoadRecordsPerformLoad: FunctionComponent<LoadRecordsPerformLoadPro
   return (
     <div>
       <ConfirmPageChange actionInProgress={loadInProgress} />
+      <LoadRecordsDuplicateWarning
+        className="slds-m-vertical_x-small"
+        inputFileHeader={inputFileHeader}
+        fieldMapping={fieldMapping}
+        inputFileData={inputFileData}
+        loadType={loadType}
+        externalId={externalId}
+      />
       <h1 className="slds-text-heading_medium">Options</h1>
       <div className="slds-p-around_small">
         <RadioGroup
