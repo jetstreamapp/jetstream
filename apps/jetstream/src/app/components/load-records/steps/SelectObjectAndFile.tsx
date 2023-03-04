@@ -128,6 +128,7 @@ export const LoadRecordsSelectObjectAndFile: FunctionComponent<LoadRecordsSelect
               <GridCol>
                 <FileOrGoogleSelector
                   omitGoogle={!hasGoogleInputConfigured}
+                  initialSelectedTab={hasGoogleInputConfigured && inputFileType === 'google' && inputFilename ? 'google' : 'local'}
                   fileSelectorProps={{
                     id: 'load-record-file',
                     label: 'File to Load',
