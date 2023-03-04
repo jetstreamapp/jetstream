@@ -1,8 +1,8 @@
 import { addOrg } from '@jetstream/shared/ui-utils';
 import { SalesforceOrgUi } from '@jetstream/types';
-import { Grid, GridCol, Icon, Input, Popover, Radio, RadioGroup } from '@jetstream/ui';
+import { Grid, GridCol, Icon, Input, Popover, PopoverRef, Radio, RadioGroup } from '@jetstream/ui';
 import classNames from 'classnames';
-import { FunctionComponent, useEffect, useState } from 'react';
+import { FunctionComponent, useEffect, useRef, useState } from 'react';
 import { useRecoilState } from 'recoil';
 import { applicationCookieState } from '../../app-state';
 
@@ -30,6 +30,7 @@ export interface AddOrgProps {
 }
 
 export const AddOrg: FunctionComponent<AddOrgProps> = ({ className, label = 'Add Org', disabled, onAddOrg }) => {
+  const popoverRef = useRef<PopoverRef>(null);
   const [orgType, setOrgType] = useState<OrgType>('prod');
   const [customUrl, setCustomUrl] = useState<string>('');
   const [loginUrl, setLoginUrl] = useState<string | null>(null);
@@ -55,6 +56,7 @@ export const AddOrg: FunctionComponent<AddOrgProps> = ({ className, label = 'Add
   function handleAddOrg() {
     loginUrl &&
       addOrg({ serverUrl: applicationState.serverUrl, loginUrl }, (addedOrg: SalesforceOrgUi) => {
+        popoverRef.current?.close();
         onAddOrg(addedOrg, true);
       });
   }
@@ -62,6 +64,7 @@ export const AddOrg: FunctionComponent<AddOrgProps> = ({ className, label = 'Add
   return (
     // TODO: figure out way to close this once an org is added - this was fixed, but it caused the component to fully re-render each time!
     <Popover
+      ref={popoverRef}
       // placement="bottom-end"
       header={
         <header className="slds-popover__header">
