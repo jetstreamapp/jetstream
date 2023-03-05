@@ -260,7 +260,7 @@
     "@react-aria/focus": "^3.5.0",
     "@react-aria/overlays": "^3.7.2",
     "@swc/helpers": "~0.4.11",
-    "@tanstack/react-virtual": "^3.0.0-beta.18",
+    "@tanstack/react-virtual": "^3.0.0-beta.53",
     "@tippyjs/react": "^4.0.2",
     "@types/node-ipc": "^9.2.0",
     "@types/uuid": "^8.3.4",

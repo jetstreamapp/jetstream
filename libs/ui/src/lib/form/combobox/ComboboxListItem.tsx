@@ -7,6 +7,7 @@ import Icon from '../../widgets/Icon';
 export interface ComboboxListItemProps {
   id: string;
   className?: string;
+  containerCss?: SerializedStyles;
   textContainerClassName?: string;
   textClassName?: string;
   textBodyCss?: SerializedStyles;
@@ -27,6 +28,7 @@ export const ComboboxListItem = forwardRef<HTMLLIElement, ComboboxListItemProps>
     {
       id,
       className,
+      containerCss,
       textContainerClassName,
       textClassName,
       textBodyCss,
@@ -52,6 +54,7 @@ export const ComboboxListItem = forwardRef<HTMLLIElement, ComboboxListItemProps>
         className={classNames('slds-listbox__item slds-item', className)}
         onClick={() => onSelection(id)}
         tabIndex={-1}
+        css={containerCss}
       >
         <div
           id={id}
