@@ -56,34 +56,18 @@ export function calculateFilterAndOrderByListGroupFields(
         items: [],
       };
       newFilterFields.push(currGroup);
-      if (!path) {
-        Object.values(queryField.fields)
-          .filter(({ metadata }) => includeField(metadata))
-          .forEach((field) => {
-            const value = `${path || ''}${field.name}`;
-            currGroup.items.push({
-              id: value,
-              label: field.label,
-              secondaryLabel: `(${field.name})`,
-              value: value,
-              meta: field,
-            });
+      Object.values(queryField.fields)
+        .filter(({ metadata }) => includeField(metadata))
+        .forEach((field) => {
+          const value = `${path || ''}${field.name}`;
+          currGroup.items.push({
+            id: value,
+            label: field.label,
+            secondaryLabel: `(${field.name})`,
+            value: value,
+            meta: field,
           });
-      } else {
-        queryField.selectedFields.forEach((selectedFieldKey) => {
-          const field = queryField.fields[selectedFieldKey];
-          if (includeField(field.metadata)) {
-            const value = `${path || ''}${field.name}`;
-            currGroup.items.push({
-              id: value,
-              label: field.label,
-              secondaryLabel: `(${field.name})`,
-              value: value,
-              meta: field,
-            });
-          }
         });
-      }
     });
   return newFilterFields;
 }
