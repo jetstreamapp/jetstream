@@ -19,6 +19,7 @@ export interface ComboboxListItemProps {
   selected: boolean;
   disabled?: boolean;
   hasError?: boolean;
+  placeholder?: boolean;
   onSelection: (id: string) => void;
   children?: React.ReactNode; // required because forwardRef
 }
@@ -40,6 +41,7 @@ export const ComboboxListItem = forwardRef<HTMLLIElement, ComboboxListItemProps>
       selected,
       disabled,
       hasError,
+      placeholder,
       onSelection,
       children,
     },
@@ -60,29 +62,37 @@ export const ComboboxListItem = forwardRef<HTMLLIElement, ComboboxListItemProps>
           id={id}
           aria-disabled={disabled}
           className={classNames(
-            'slds-media slds-listbox__option slds-listbox__option_plain slds-media_small',
+            'slds-media slds-listbox__option slds-listbox__option_plain',
             {
               'slds-is-selected': selected,
               'slds-text-color_error': hasError,
+              'slds-media_small': !placeholder,
             },
             textContainerClassName
           )}
           role="option"
           aria-selected={selected}
         >
-          <span className="slds-media__figure slds-listbox__option-icon">
-            {selected && (
-              <Icon
-                type="utility"
-                icon="check"
-                className="slds-icon slds-icon_x-small"
-                containerClassname={classNames('slds-icon_container slds-icon-utility-check slds-current-color', {
-                  'slds-icon_disabled': disabled,
-                })}
-              />
-            )}
-          </span>
-          <span className="slds-media__body" css={textBodyCss}>
+          {!placeholder && (
+            <span className="slds-media__figure slds-listbox__option-icon">
+              {selected && (
+                <Icon
+                  type="utility"
+                  icon="check"
+                  className="slds-icon slds-icon_x-small"
+                  containerClassname={classNames('slds-icon_container slds-icon-utility-check slds-current-color', {
+                    'slds-icon_disabled': disabled,
+                  })}
+                />
+              )}
+            </span>
+          )}
+          <span
+            className={classNames({
+              'slds-media__body': !placeholder,
+            })}
+            css={textBodyCss}
+          >
             {label && (!secondaryLabel || !secondaryLabelOnNewLine) && (
               <span className={classNames('slds-truncate', textClassName)} title={title} css={textCss}>
                 {label}

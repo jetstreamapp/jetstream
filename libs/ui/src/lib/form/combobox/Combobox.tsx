@@ -116,7 +116,7 @@ const iconNotLoading = (
 //   <ComboboxElement ref={ref} {...props} icon={props.loading ? iconLoading : iconNotLoading} />
 // ));
 
-export const Combobox = forwardRef(
+export const Combobox = forwardRef<ComboboxPropsRef, ComboboxProps>(
   (
     {
       className,
@@ -165,7 +165,6 @@ export const Combobox = forwardRef(
       ref,
       () => ({
         getPopoverRef: () => {
-          console.log('popoverRef.current', popoverRef.current);
           return popoverRef.current;
         },
         close: () => {
@@ -534,7 +533,7 @@ export const Combobox = forwardRef(
                     <div ref={divContainerEl}>
                       {Children.count(children) === 0 && (
                         <ul className="slds-listbox slds-listbox_vertical" role="presentation">
-                          <ComboboxListItem id="placeholder" label={noItemsPlaceholder} selected={false} onSelection={NOOP} />
+                          <ComboboxListItem id="placeholder" placeholder label={noItemsPlaceholder} selected={false} onSelection={NOOP} />
                         </ul>
                       )}
                       {hasGroups && childrenWithRef}

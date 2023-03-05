@@ -23,11 +23,9 @@ export interface ComboboxWithItemsVirtualProps {
 }
 
 /**
- * Combobox wrapper to simplify the creation of a combobox
- * This allow text filtering/search with a simple picklist like interaction
- *
- * Does not support groups
- * TODO: create ComboboxWithGroups component
+ * Combobox with virtualized list of items
+ * Items must be a flat list. If you need groups, set isGroup: true on an item
+ * You can use getFlattenedListItems to handle this
  */
 export const ComboboxWithItemsVirtual: FunctionComponent<ComboboxWithItemsVirtualProps> = ({
   comboboxProps,
@@ -38,8 +36,7 @@ export const ComboboxWithItemsVirtual: FunctionComponent<ComboboxWithItemsVirtua
   selectedItemTitleFn = defaultSelectedItemTitleFn,
   onSelected,
 }) => {
-  const comboboxRef = useRef<ComboboxPropsRef>();
-  const [popoverContainerRef, setPopoverContainerRef] = useState<HTMLDivElement | null>(null);
+  const comboboxRef = useRef<ComboboxPropsRef>(null);
   const [filterTextNonDebounced, setFilterText] = useState<string>('');
   const filterText = useDebounce(filterTextNonDebounced, 300);
   const [selectedItem, setSelectedItem] = useState<Maybe<ListItem>>(() =>
@@ -84,13 +81,20 @@ export const ComboboxWithItemsVirtual: FunctionComponent<ComboboxWithItemsVirtua
       setVisibleItems(items);
     } else {
       const filter = filterText.toLowerCase().trim();
-      setVisibleItems(items.filter(filterFn(filter)));
+
+      // Since data coming in is flat, ensure that groups with items stay in the list
+      let visibleItemsAndGroups = items.filter((item, index, array) => item.isGroup || filterFn(filter)(item, index, array));
+      const visibleGroups = new Set(visibleItemsAndGroups.map((item) => item.group?.id).filter(Boolean));
+      visibleItemsAndGroups = visibleItemsAndGroups.filter((item) => !item.isGroup || (item.isGroup && visibleGroups.has(item.id)));
+
+      setVisibleItems(visibleItemsAndGroups);
     }
   }, [items, filterText, filterFn]);
 
   const onInputEnter = useCallback(() => {
-    if (visibleItems.length > 0) {
-      onSelected(visibleItems[0]);
+    const firstItem = visibleItems.find((item) => !item.isGroup);
+    if (firstItem) {
+      onSelected(firstItem);
     }
   }, [onSelected, visibleItems]);
 
@@ -103,30 +107,12 @@ export const ComboboxWithItemsVirtual: FunctionComponent<ComboboxWithItemsVirtua
       onInputChange={setFilterText}
       onInputEnter={onInputEnter}
     >
-      {/* <ComboboxListVirtual
+      <ComboboxListVirtual
         items={visibleItems}
         parentRef={comboboxRef.current?.getPopoverRef() || null}
-        // getScrollElement={() => {
-        //   console.log('comboboxRef.current', comboboxRef.current?.getPopoverRef());
-        //   return comboboxRef.current?.getPopoverRef();
-        // }}
         selectedItem={selectedItem}
         onSelected={onSelected}
-      /> */}
-      {comboboxRef.current?.getPopoverRef() ? (
-        <ComboboxListVirtual
-          items={visibleItems}
-          parentRef={comboboxRef.current?.getPopoverRef() || null}
-          // getScrollElement={() => {
-          //   console.log('comboboxRef.current', comboboxRef.current?.getPopoverRef());
-          //   return comboboxRef.current?.getPopoverRef();
-          // }}
-          selectedItem={selectedItem}
-          onSelected={onSelected}
-        />
-      ) : (
-        <></>
-      )}
+      />
     </Combobox>
   );
 };

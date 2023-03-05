@@ -29,7 +29,7 @@ export const ComboboxWithItemsTypeAhead: FunctionComponent<ComboboxWithItemsType
   onSelected,
 }) => {
   const [loading, setLoading] = useState(false);
-  const comboboxRef = useRef<ComboboxPropsRef>();
+  const comboboxRef = useRef<ComboboxPropsRef>(null);
   const [filterTextNonDebounced, setFilterText] = useState<string>('');
   const filterText = useDebounce(filterTextNonDebounced, 300);
   const [selectedItem, setSelectedItem] = useState<Maybe<ListItem>>(() =>

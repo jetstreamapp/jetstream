@@ -1,4 +1,5 @@
 import { css } from '@emotion/react';
+import { NOOP } from '@jetstream/shared/utils';
 import { ListItem, Maybe } from '@jetstream/types';
 import { useVirtualizer } from '@tanstack/react-virtual';
 import { ComboboxListItem } from './ComboboxListItem';
@@ -8,22 +9,12 @@ export interface ComboboxListVirtualProps {
   parentRef: HTMLDivElement | null;
   selectedItem: Maybe<ListItem<string, any>>;
   onSelected: (item: ListItem) => void;
-  // getScrollElement: () => Maybe<HTMLDivElement>;
 }
 
 export const ComboboxListVirtual = ({ items, selectedItem, parentRef, onSelected }: ComboboxListVirtualProps) => {
   const rowVirtualizer = useVirtualizer({
     count: items.length,
-    observeElementRect: (instance, cb) => {
-      const observer = new ResizeObserver((entries) => {
-        const entry = entries[0];
-        cb(entry.contentRect);
-      });
-      observer.observe(instance);
-      return () => observer.disconnect();
-    },
     getScrollElement: () => parentRef,
-    // getScrollElement: getScrollElement as any, // TS definition docs say "can return undefined", but TS definition does not allow
     estimateSize: (index: number) => {
       const item = items[index];
       if (item.isGroup) {
@@ -34,17 +25,35 @@ export const ComboboxListVirtual = ({ items, selectedItem, parentRef, onSelected
     },
   });
 
+  const virtualItems = rowVirtualizer.getVirtualItems();
+
   return (
     <ul
       className="slds-listbox slds-listbox_vertical"
       role="group"
       css={css`
-        height: ${rowVirtualizer.getTotalSize()}px;
+        height: ${rowVirtualizer.getTotalSize() || 36}px;
         width: 100%;
         position: relative;
       `}
     >
-      {rowVirtualizer.getVirtualItems().map((virtualItem) => {
+      {virtualItems.length === 0 && (
+        <ComboboxListItem
+          containerCss={css`
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 36px;
+          `}
+          id="placeholder"
+          placeholder
+          label="There are no items for selection"
+          selected={false}
+          onSelection={NOOP}
+        />
+      )}
+      {virtualItems.map((virtualItem) => {
         const item = items[virtualItem.index];
 
         const styles = css`
@@ -66,6 +75,7 @@ export const ComboboxListVirtual = ({ items, selectedItem, parentRef, onSelected
           </li>
         ) : (
           <ComboboxListItem
+            key={item.id}
             id={item.id}
             containerCss={styles}
             label={item.label}

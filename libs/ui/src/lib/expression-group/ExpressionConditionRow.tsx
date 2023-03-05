@@ -1,6 +1,6 @@
 import { css } from '@emotion/react';
 import { useDebounce } from '@jetstream/shared/ui-utils';
-import { multiWordObjectFilter, getFlattenedListItems } from '@jetstream/shared/utils';
+import { getFlattenedListItems } from '@jetstream/shared/utils';
 import {
   AndOr,
   ExpressionConditionHelpText,
@@ -18,18 +18,15 @@ import isNumber from 'lodash/isNumber';
 import isString from 'lodash/isString';
 import React, { FunctionComponent, useEffect, useState } from 'react';
 import { useDrag } from 'react-dnd';
-import { Icon } from '../widgets/Icon';
 import FormRowButton from '../form/button/FormRowButton';
-import Combobox from '../form/combobox/Combobox';
-import { ComboboxListItem } from '../form/combobox/ComboboxListItem';
-import { ComboboxListItemGroup } from '../form/combobox/ComboboxListItemGroup';
+import ComboboxWithItems from '../form/combobox/ComboboxWithItems';
 import { ComboboxWithItemsVirtual } from '../form/combobox/ComboboxWithItemsVirtual';
 import DatePicker from '../form/date/DatePicker';
 import Input from '../form/input/Input';
 import Picklist from '../form/picklist/Picklist';
 import Textarea from '../form/textarea/Textarea';
+import { Icon } from '../widgets/Icon';
 import { DraggableRow } from './expression-types';
-import ComboboxWithItems from '../form/combobox/ComboboxWithItems';
 
 export interface ExpressionConditionRowProps {
   rowKey: number;
@@ -88,22 +85,9 @@ export const ExpressionConditionRow: FunctionComponent<ExpressionConditionRowPro
     onDelete,
   }) => {
     const [disableValueInput, setDisableValueInput] = useState(false);
-    // const [visibleResources, setVisibleResources] = useState<ListItemGroup[]>(resources); // TOD: can we remove?
     const [flattenedResources, setFlattenedResources] = useState<ListItem[]>(() => getFlattenedListItems(resources));
     const [selectedResourceType, setSelectedResourceType] = useState<ListItem<ExpressionRowValueType>[]>();
-    // const, s] = useState<string | null>(null);
     const [selectedValue, setSelectValue] = useState(selected.value);
-    // const [selectedResourceComboboxLabel, setSelectedResourceComboboxLabel] = useState<string | null>(() => {
-    //   if (selected.resource) {
-    //     const group = resources.find((currResource) => currResource.id === selected.resourceGroup);
-    //     if (group) {
-    //       const item = group.items.find((item) => item.id === selected.resource);
-    //       return item ? getSelectionLabel(group.label, item) : null;
-    //     }
-    //   }
-    //   return null;
-    // });
-    // const [selectedResourceTitle] = useState<string | null>(null);
     // used to force re-render and re-init for picklist values - since array turns to string and takes multiple renders
     // the default picklist value does not get picked up in time - so this forces the picklist to re-render
     const [picklistKey, setPicklistKey] = useState<string>(`${new Date().getTime()}`);
@@ -168,10 +152,6 @@ export const ExpressionConditionRow: FunctionComponent<ExpressionConditionRowPro
       setFlattenedResources(getFlattenedListItems(resources));
     }, [resources]);
 
-    // useEffect(() => {
-    //   setFlattenedResources(getFlattenedListItems(visibleResources));
-    // }, [visibleResources]);
-
     function handleSelectedResourceType(type: ListItem<ExpressionRowValueType>[]) {
       setSelectedResourceType(type);
       if (type && type[0] && selected.resourceType !== type[0].value) {
@@ -225,9 +205,6 @@ export const ExpressionConditionRow: FunctionComponent<ExpressionConditionRowPro
                 comboboxProps={{
                   label: resourceLabel,
                   labelHelp: resourceHelpText,
-                  // onInputChange: (filter) => s(filter),
-                  // selectedItemLabel: selectedResourceComboboxLabel,
-                  // selectedItemTitle: selectedResourceTitle,
                   itemLength: 10,
                 }}
                 selectedItemLabelFn={getSelectionLabel}
@@ -237,44 +214,6 @@ export const ExpressionConditionRow: FunctionComponent<ExpressionConditionRowPro
                   onChange({ ...selected, resource: item.id, resourceGroup: item.group?.id || '', resourceMeta: item.meta })
                 }
               />
-              {/* <Combobox
-                label={resourceLabel}
-                labelHelp={resourceHelpText}
-                onInputChange={(filter) => s(filter)}
-                selectedItemLabel={selectedResourceComboboxLabel}
-                selectedItemTitle={selectedResourceTitle}
-                itemLength={10}
-                // Select first item
-                onInputEnter={() => {
-                  const groupWithItems = visibleResources.findIndex((group) => group.items.length > 0);
-                  if (groupWithItems >= 0) {
-                    const group = visibleResources[groupWithItems];
-                    const item = group.items[0];
-                    setSelectedResourceComboboxLabel(getSelectionLabel(group.label, item));
-                    onChange({ ...selected, resource: item.id, resourceGroup: group.id, resourceMeta: item.meta });
-                  }
-                }}
-              >
-                {visibleResources
-                  .filter((group) => group.items.length > 0)
-                  .map((group) => (
-                    <ComboboxListItemGroup key={group.id} label={group.label}>
-                      {group.items.map((item) => (
-                        <ComboboxListItem
-                          key={item.id}
-                          id={item.id}
-                          label={item.label}
-                          secondaryLabel={item.secondaryLabel}
-                          selected={item.id === selected.resource}
-                          onSelection={(id) => {
-                            setSelectedResourceComboboxLabel(getSelectionLabel(group.label, item));
-                            onChange({ ...selected, resource: id, resourceGroup: group.id, resourceMeta: item.meta });
-                          }}
-                        />
-                      ))}
-                    </ComboboxListItemGroup>
-                  ))}
-              </Combobox> */}
             </div>
             {/* Operator */}
             <div className="slds-col slds-grow-none">

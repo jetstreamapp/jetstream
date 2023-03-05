@@ -1,6 +1,5 @@
 import { css } from '@emotion/react';
-import { useForwardRef } from '@jetstream/shared/ui-utils';
-import { forwardRef, HTMLAttributes, ReactNode, useState } from 'react';
+import { forwardRef, HTMLAttributes, ReactNode } from 'react';
 import { createPortal } from 'react-dom';
 import { usePopper } from 'react-popper';
 
@@ -26,16 +25,15 @@ interface PopoverContainerProps extends PopoverContainerBaseProps {
  */
 export const PopoverContainer = forwardRef<HTMLDivElement, PopoverContainerFnAsChildrenProps | PopoverContainerProps>(
   ({ className, isOpen, referenceElement, usePortal = false, fnAsChildren, children, ...rest }, ref) => {
-    const popperElement = useForwardRef(ref);
-    // const [popperElement, setPopperElement] = useState<HTMLDivElement | null>(null);
-
-    const { styles, attributes } = usePopper(referenceElement, popperElement.current, {
+    const { styles, attributes } = usePopper(referenceElement, (ref as any)?.current, {
       placement: 'bottom-start',
       modifiers: [{ name: 'offset', options: { offset: [0, 1.75] } }],
     });
 
+    // The popover is always rendered to ensure that the ref is set for other dependent components (e.x. virtualized list)
+    let childrenToRender = fnAsChildren ? children({ containerRef: (ref as any)?.current }) : children;
     if (!isOpen) {
-      return null;
+      childrenToRender = null;
     }
 
     const content = (
@@ -46,18 +44,19 @@ export const PopoverContainer = forwardRef<HTMLDivElement, PopoverContainerFnAsC
         // Selectively picked from `slds-dropdown` - removed margin as that must be set via popper offset
         css={css`
           z-index: 7000;
-          ${className?.includes('_fluid') ? '' : 'min-width: 15rem; max-width: 20rem;'}
+          ${className?.includes('_fluid') ? 'min-width: 15rem;' : 'min-width: 15rem; max-width: 20rem;'}
           border: 1px solid #e5e5e5;
           border-radius: 0.25rem;
           padding: 0.25rem 0;
           background: #fff;
           box-shadow: 0 2px 3px 0 rgb(0 0 0 / 16%);
           color: #181818;
+          visibility: ${isOpen ? 'visible' : 'hidden'};
         `}
         style={{ ...styles.popper }}
         {...attributes.popper}
       >
-        {fnAsChildren ? children({ containerRef: popperElement.current }) : children}
+        {childrenToRender}
       </div>
     );
 
