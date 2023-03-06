@@ -67,7 +67,7 @@ export const ComboboxListItem = forwardRef<HTMLLIElement, ComboboxListItemProps>
             {
               'slds-is-selected': selected,
               'slds-text-color_error': hasError,
-              'slds-listbox__option_plain': placeholder && !secondaryLabelOnNewLine,
+              'slds-listbox__option_plain': !secondaryLabelOnNewLine,
               'slds-listbox__option_entity slds-listbox__option_has-meta': !placeholder && secondaryLabelOnNewLine && secondaryLabel,
               'slds-media_small': !placeholder && !secondaryLabelOnNewLine,
             },
