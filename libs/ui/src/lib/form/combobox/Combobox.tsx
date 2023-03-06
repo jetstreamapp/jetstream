@@ -524,12 +524,9 @@ export const Combobox = forwardRef<ComboboxPropsRef, ComboboxProps>(
                     className={`slds-dropdown_length-${itemLength} slds-dropdown_fluid`}
                     id={listId}
                     role="listbox"
-                    // fnAsChildren
                     onKeyDown={handleListKeyDown}
                     onBlur={handleBlur}
                   >
-                    {/* {({ containerRef }) => { */}
-                    {/* return ( */}
                     <div ref={divContainerEl}>
                       {Children.count(children) === 0 && (
                         <ul className="slds-listbox slds-listbox_vertical" role="presentation">
@@ -543,8 +540,6 @@ export const Combobox = forwardRef<ComboboxPropsRef, ComboboxProps>(
                         </ul>
                       )}
                     </div>
-                    {/* ); */}
-                    {/* }} */}
                   </PopoverContainer>
                 </div>
               </OutsideClickHandler>

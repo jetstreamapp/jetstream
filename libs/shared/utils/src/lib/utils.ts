@@ -726,6 +726,9 @@ export function isRecordWithId(value: any): value is { Id: string; [key: string]
   return isString(value.Id);
 }
 
+/**
+ * Flattens ListItemGroup[] into ListItem[]
+ */
 export function getFlattenedListItems(items: ListItemGroup[] = []): ListItem[] {
   return (items || []).reduce((output: ListItem[], group) => {
     if (group.items.length) {

@@ -24,7 +24,7 @@ export interface ComboboxWithItemsVirtualProps {
 
 /**
  * Combobox with virtualized list of items
- * Items must be a flat list. If you need groups, set isGroup: true on an item
+ * Groups are supported but only using a flat list of ListItems with the isGroup=true property
  * You can use getFlattenedListItems to handle this
  */
 export const ComboboxWithItemsVirtual: FunctionComponent<ComboboxWithItemsVirtualProps> = ({

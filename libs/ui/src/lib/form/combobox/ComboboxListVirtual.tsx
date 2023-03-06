@@ -20,8 +20,7 @@ export const ComboboxListVirtual = ({ items, selectedItem, parentRef, onSelected
       if (item.isGroup) {
         return 37;
       }
-      // TODO: make sure these numbers are correct
-      return item.secondaryLabelOnNewLine && item.secondaryLabel ? 72 : 36;
+      return item.secondaryLabelOnNewLine && item.secondaryLabel ? 53 : 36;
     },
   });
 
@@ -43,7 +42,7 @@ export const ComboboxListVirtual = ({ items, selectedItem, parentRef, onSelected
             position: absolute;
             top: 0;
             left: 0;
-            width: 100%;
+            width: 99%;
             height: 36px;
           `}
           id="placeholder"
@@ -60,7 +59,7 @@ export const ComboboxListVirtual = ({ items, selectedItem, parentRef, onSelected
           position: absolute;
           top: 0;
           left: 0;
-          width: 100%;
+          width: 99%;
           height: ${virtualItem.size}px;
           transform: translateY(${virtualItem.start}px);
         `;

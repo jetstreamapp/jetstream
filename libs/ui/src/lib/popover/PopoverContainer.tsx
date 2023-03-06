@@ -3,38 +3,26 @@ import { forwardRef, HTMLAttributes, ReactNode } from 'react';
 import { createPortal } from 'react-dom';
 import { usePopper } from 'react-popper';
 
-interface PopoverContainerBaseProps extends Omit<HTMLAttributes<HTMLDivElement>, 'children'> {
+interface PopoverContainerProps extends Omit<HTMLAttributes<HTMLDivElement>, 'children'> {
   className?: string;
   isOpen: boolean;
   referenceElement: HTMLElement | null;
   usePortal?: boolean;
-}
-
-interface PopoverContainerFnAsChildrenProps extends PopoverContainerBaseProps {
-  fnAsChildren: true;
-  children: (props: { containerRef: HTMLDivElement | null }) => ReactNode;
-}
-
-interface PopoverContainerProps extends PopoverContainerBaseProps {
-  fnAsChildren?: never;
   children: ReactNode;
 }
 
 /**
  * Generic popover container used for dropdown menus, date pickers, etc.
  */
-export const PopoverContainer = forwardRef<HTMLDivElement, PopoverContainerFnAsChildrenProps | PopoverContainerProps>(
-  ({ className, isOpen, referenceElement, usePortal = false, fnAsChildren, children, ...rest }, ref) => {
+export const PopoverContainer = forwardRef<HTMLDivElement, PopoverContainerProps>(
+  ({ className, isOpen, referenceElement, usePortal = false, children, ...rest }, ref) => {
     const { styles, attributes } = usePopper(referenceElement, (ref as any)?.current, {
       placement: 'bottom-start',
       modifiers: [{ name: 'offset', options: { offset: [0, 1.75] } }],
     });
 
     // The popover is always rendered to ensure that the ref is set for other dependent components (e.x. virtualized list)
-    let childrenToRender = fnAsChildren ? children({ containerRef: (ref as any)?.current }) : children;
-    if (!isOpen) {
-      childrenToRender = null;
-    }
+    const childrenToRender = isOpen ? children : null;
 
     const content = (
       <div

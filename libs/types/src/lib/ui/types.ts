@@ -240,7 +240,7 @@ export interface ListItem<V = string, M = any> {
   secondaryLabel?: string | null;
   secondaryLabelOnNewLine?: boolean | null;
   metaLabel?: string | null;
-  /** used for flattened virtual lists */
+  /** used for flattened lists (used for virtual scrolling) */
   isGroup?: Maybe<boolean>;
   /** If list is flattened, group information should be attached to each item */
   group?: Maybe<{ id: string; label: string }>;

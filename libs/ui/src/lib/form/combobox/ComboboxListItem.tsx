@@ -19,6 +19,7 @@ export interface ComboboxListItemProps {
   selected: boolean;
   disabled?: boolean;
   hasError?: boolean;
+  /** Set to true for a placeholder to show if there are no items in the list */
   placeholder?: boolean;
   onSelection: (id: string) => void;
   children?: React.ReactNode; // required because forwardRef
@@ -62,11 +63,13 @@ export const ComboboxListItem = forwardRef<HTMLLIElement, ComboboxListItemProps>
           id={id}
           aria-disabled={disabled}
           className={classNames(
-            'slds-media slds-listbox__option slds-listbox__option_plain',
+            'slds-media slds-listbox__option',
             {
               'slds-is-selected': selected,
               'slds-text-color_error': hasError,
-              'slds-media_small': !placeholder,
+              'slds-listbox__option_plain': placeholder && !secondaryLabelOnNewLine,
+              'slds-listbox__option_entity slds-listbox__option_has-meta': !placeholder && secondaryLabelOnNewLine && secondaryLabel,
+              'slds-media_small': !placeholder && !secondaryLabelOnNewLine,
             },
             textContainerClassName
           )}

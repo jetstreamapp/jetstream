@@ -2,7 +2,6 @@ export * from './lib/download-zip/downzip';
 export * from './lib/hooks/useBrowserNotifications';
 export * from './lib/hooks/useDebounce';
 export * from './lib/hooks/useDrivePicker';
-export * from './lib/hooks/useForwardRef';
 export * from './lib/hooks/useGlobalEventHandler';
 export * from './lib/hooks/useGoogleApi';
 export * from './lib/hooks/useInjectScript';
