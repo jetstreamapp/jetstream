@@ -38,7 +38,6 @@ import Spinner from '../../widgets/Spinner';
 import { FormGroupDropdown } from '../formGroupDropDown/FormGroupDropdown';
 import { ComboboxListItem, ComboboxListItemProps } from './ComboboxListItem';
 import { ComboboxListItemGroup, ComboboxListItemGroupProps } from './ComboboxListItemGroup';
-import { ComboboxListVirtual } from './ComboboxListVirtual';
 
 type ChildListItem = ComboboxListItemProps & React.RefAttributes<HTMLLIElement>;
 type ChildListGroup = ComboboxListItemGroupProps & { children: React.ReactNode };
@@ -72,6 +71,8 @@ export interface ComboboxProps {
   errorMessageId?: string;
   errorMessage?: React.ReactNode | string;
   showSelectionAsButton?: boolean;
+  /** If using virtual list, this ensures child detection for keyboard navigation is correct */
+  isVirtual?: boolean;
   onInputChange?: (value: string) => void;
   /** Same as onInputChange, but does not get called when closed */
   onFilterInputChange?: (value: string) => void;
@@ -138,6 +139,7 @@ export const Combobox = forwardRef<ComboboxPropsRef, ComboboxProps>(
       errorMessageId,
       errorMessage,
       showSelectionAsButton,
+      isVirtual,
       children,
       onInputChange,
       onFilterInputChange,
@@ -152,7 +154,7 @@ export const Combobox = forwardRef<ComboboxPropsRef, ComboboxProps>(
     const [id] = useState<string>(uniqueId('Combobox'));
     const [listId] = useState<string>(uniqueId('Combobox-list'));
     const [value, setValue] = useState<string>(selectedItemLabel || '');
-    const [hasGroups, setHasGroups] = useState(false);
+    const [hasGroups, setHasGroups] = useState(!!isVirtual);
     const hasDropdownGroup = !!leadingDropdown && !!leadingDropdown.items?.length;
 
     const [focusedItem, setFocusedItem] = useState<number | null>(null);
@@ -179,7 +181,13 @@ export const Combobox = forwardRef<ComboboxPropsRef, ComboboxProps>(
 
     useNonInitialEffect(() => {
       try {
-        if (elRefs.current && isNumber(focusedItem) && elRefs.current[focusedItem] && elRefs.current[focusedItem]) {
+        if (
+          elRefs.current &&
+          isNumber(focusedItem) &&
+          elRefs.current[focusedItem] &&
+          elRefs.current[focusedItem] &&
+          !!elRefs.current[focusedItem].focus
+        ) {
           elRefs.current[focusedItem].focus();
         }
         if (divContainerEl.current && isNumber(focusedItem)) {
@@ -226,7 +234,7 @@ export const Combobox = forwardRef<ComboboxPropsRef, ComboboxProps>(
     // setCheckedForGroups(true);
     Children.forEach(children, (child) => {
       if (isValidElement(child)) {
-        if (child.type === ComboboxListItemGroup || child.type === ComboboxListVirtual) {
+        if (child.type === ComboboxListItemGroup) {
           childrenSize += Children.count(child.props.children);
           if (!hasGroups) {
             setHasGroups(true);

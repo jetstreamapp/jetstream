@@ -1,9 +1,11 @@
+import { css } from '@emotion/react';
 import { useDebounce } from '@jetstream/shared/ui-utils';
-import { multiWordObjectFilter } from '@jetstream/shared/utils';
+import { multiWordObjectFilter, NOOP } from '@jetstream/shared/utils';
 import { ListItem, Maybe } from '@jetstream/types';
+import { useVirtualizer } from '@tanstack/react-virtual';
 import { FunctionComponent, useCallback, useEffect, useRef, useState } from 'react';
 import { Combobox, ComboboxProps, ComboboxPropsRef } from './Combobox';
-import { ComboboxListVirtual } from './ComboboxListVirtual';
+import { ComboboxListItem } from './ComboboxListItem';
 
 const defaultFilterFn = (filter) => multiWordObjectFilter<ListItem<string, any>>(['label', 'value'], filter);
 const defaultSelectedItemLabelFn = (item: ListItem) => item.label;
@@ -58,6 +60,18 @@ export const ComboboxWithItemsVirtual: FunctionComponent<ComboboxWithItemsVirtua
     return null;
   });
 
+  const rowVirtualizer = useVirtualizer({
+    count: visibleItems.length,
+    getScrollElement: () => comboboxRef.current?.getPopoverRef() || null,
+    estimateSize: (index: number) => {
+      const item = visibleItems[index];
+      if (item.isGroup) {
+        return 37;
+      }
+      return item.secondaryLabelOnNewLine && item.secondaryLabel ? 53 : 36;
+    },
+  });
+
   useEffect(() => {
     if (selectedItemId) {
       setSelectedItem(items.find((item) => item.id === selectedItemId));
@@ -98,21 +112,79 @@ export const ComboboxWithItemsVirtual: FunctionComponent<ComboboxWithItemsVirtua
     }
   }, [onSelected, visibleItems]);
 
+  const virtualItems = rowVirtualizer.getVirtualItems();
+
   return (
     <Combobox
       ref={comboboxRef}
       {...comboboxProps}
       selectedItemLabel={selectedItemLabel}
       selectedItemTitle={selectedItemTitle}
+      isVirtual
       onInputChange={setFilterText}
       onInputEnter={onInputEnter}
     >
-      <ComboboxListVirtual
-        items={visibleItems}
-        parentRef={comboboxRef.current?.getPopoverRef() || null}
-        selectedItem={selectedItem}
-        onSelected={onSelected}
-      />
+      <ul
+        className="slds-listbox slds-listbox_vertical"
+        role="group"
+        css={css`
+          height: ${rowVirtualizer.getTotalSize() || 36}px;
+          width: 100%;
+          position: relative;
+        `}
+      >
+        {virtualItems.length === 0 && (
+          <ComboboxListItem
+            containerCss={css`
+              position: absolute;
+              top: 0;
+              left: 0;
+              width: 99%;
+              height: 36px;
+            `}
+            id="placeholder"
+            placeholder
+            label="There are no items for selection"
+            selected={false}
+            onSelection={NOOP}
+          />
+        )}
+        {virtualItems.map((virtualItem) => {
+          const item = visibleItems[virtualItem.index];
+
+          const styles = css`
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 99%;
+            height: ${virtualItem.size}px;
+            transform: translateY(${virtualItem.start}px);
+          `;
+
+          return item.isGroup ? (
+            <li key={item.id} role="presentation" className="slds-listbox__item slds-item" css={styles}>
+              <div className="slds-media slds-listbox__option slds-listbox__option_plain slds-media_small" role="presentation">
+                <h3 className="slds-listbox__option-header" role="presentation">
+                  {item.label}
+                </h3>
+              </div>
+            </li>
+          ) : (
+            <ComboboxListItem
+              key={item.id}
+              id={item.id}
+              containerCss={styles}
+              label={item.label}
+              secondaryLabel={item.secondaryLabel}
+              secondaryLabelOnNewLine={item.secondaryLabelOnNewLine}
+              selected={item.id === selectedItem?.id}
+              onSelection={() => {
+                onSelected(item);
+              }}
+            />
+          );
+        })}
+      </ul>
     </Combobox>
   );
 };
