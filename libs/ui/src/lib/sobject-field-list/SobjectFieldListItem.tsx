@@ -71,6 +71,8 @@ export const SobjectFieldListItem: FunctionComponent<SobjectFieldListItemProps> 
   useEffect(() => {
     if (relationshipKey && field.relatedSobject) {
       setIsExpanded(queryFieldsMap[relationshipKey]?.expanded || false);
+      // Ensure that on query restore, the selected sobject is set otherwise the child list will not render
+      queryFieldsMap[relationshipKey]?.expanded && setSelectedSObject(queryFieldsMap[relationshipKey]?.sobject);
     }
   }, [relationshipKey, field, queryFieldsMap]);
 

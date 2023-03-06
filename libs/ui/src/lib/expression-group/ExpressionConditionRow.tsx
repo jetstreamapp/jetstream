@@ -1,6 +1,6 @@
 import { css } from '@emotion/react';
 import { useDebounce } from '@jetstream/shared/ui-utils';
-import { multiWordObjectFilter } from '@jetstream/shared/utils';
+import { getFlattenedListItems } from '@jetstream/shared/utils';
 import {
   AndOr,
   ExpressionConditionHelpText,
@@ -18,16 +18,14 @@ import isNumber from 'lodash/isNumber';
 import isString from 'lodash/isString';
 import React, { FunctionComponent, useEffect, useState } from 'react';
 import { useDrag } from 'react-dnd';
-import { Icon } from '../widgets/Icon';
 import FormRowButton from '../form/button/FormRowButton';
-import Combobox from '../form/combobox/Combobox';
-import { ComboboxListItem } from '../form/combobox/ComboboxListItem';
-import { ComboboxListItemGroup } from '../form/combobox/ComboboxListItemGroup';
 import ComboboxWithItems from '../form/combobox/ComboboxWithItems';
+import { ComboboxWithItemsVirtual } from '../form/combobox/ComboboxWithItemsVirtual';
 import DatePicker from '../form/date/DatePicker';
 import Input from '../form/input/Input';
 import Picklist from '../form/picklist/Picklist';
 import Textarea from '../form/textarea/Textarea';
+import { Icon } from '../widgets/Icon';
 import { DraggableRow } from './expression-types';
 
 export interface ExpressionConditionRowProps {
@@ -56,8 +54,8 @@ export interface ExpressionConditionRowProps {
   onDelete: () => void;
 }
 
-function getSelectionLabel(groupLabel: string, item: ListItem<string, unknown>) {
-  return `${groupLabel} - ${item.label} ${item.secondaryLabel || ''}`;
+function getSelectionLabel(item: ListItem<string, unknown>) {
+  return item.group ? `${item.group.label} - ${item.label} ${item.secondaryLabel || ''}` : `${item.label} ${item.secondaryLabel || ''}`;
 }
 
 export const ExpressionConditionRow: FunctionComponent<ExpressionConditionRowProps> = React.memo(
@@ -87,21 +85,9 @@ export const ExpressionConditionRow: FunctionComponent<ExpressionConditionRowPro
     onDelete,
   }) => {
     const [disableValueInput, setDisableValueInput] = useState(false);
-    const [visibleResources, setVisibleResources] = useState<ListItemGroup[]>(resources);
+    const [flattenedResources, setFlattenedResources] = useState<ListItem[]>(() => getFlattenedListItems(resources));
     const [selectedResourceType, setSelectedResourceType] = useState<ListItem<ExpressionRowValueType>[]>();
-    const [resourcesFilter, setResourcesFilter] = useState<string | null>(null);
     const [selectedValue, setSelectValue] = useState(selected.value);
-    const [selectedResourceComboboxLabel, setSelectedResourceComboboxLabel] = useState<string | null>(() => {
-      if (selected.resource) {
-        const group = resources.find((currResource) => currResource.id === selected.resourceGroup);
-        if (group) {
-          const item = group.items.find((item) => item.id === selected.resource);
-          return item ? getSelectionLabel(group.label, item) : null;
-        }
-      }
-      return null;
-    });
-    const [selectedResourceTitle] = useState<string | null>(null);
     // used to force re-render and re-init for picklist values - since array turns to string and takes multiple renders
     // the default picklist value does not get picked up in time - so this forces the picklist to re-render
     const [picklistKey, setPicklistKey] = useState<string>(`${new Date().getTime()}`);
@@ -163,22 +149,10 @@ export const ExpressionConditionRow: FunctionComponent<ExpressionConditionRowPro
     }, [resourceTypes, resourceType]);
 
     useEffect(() => {
-      if (!resourcesFilter) {
-        setVisibleResources(resources);
-      } else {
-        const filter = resourcesFilter.toLowerCase().trim();
-        const tempResources: ListItemGroup[] = [];
-        resources.forEach((resource) => {
-          tempResources.push({
-            ...resource,
-            items: resource.items.filter(multiWordObjectFilter(['label', 'value'], filter)),
-          });
-        });
-        setVisibleResources(tempResources);
-      }
-    }, [resources, resourcesFilter]);
+      setFlattenedResources(getFlattenedListItems(resources));
+    }, [resources]);
 
-    function handleSelectedResource(type: ListItem<ExpressionRowValueType>[]) {
+    function handleSelectedResourceType(type: ListItem<ExpressionRowValueType>[]) {
       setSelectedResourceType(type);
       if (type && type[0] && selected.resourceType !== type[0].value) {
         onChange({ ...selected, resourceType: type[0].value });
@@ -227,43 +201,19 @@ export const ExpressionConditionRow: FunctionComponent<ExpressionConditionRowPro
             )}
             {/* Resource */}
             <div className="slds-col">
-              <Combobox
-                label={resourceLabel}
-                labelHelp={resourceHelpText}
-                onInputChange={(filter) => setResourcesFilter(filter)}
-                selectedItemLabel={selectedResourceComboboxLabel}
-                selectedItemTitle={selectedResourceTitle}
-                itemLength={10}
-                onInputEnter={() => {
-                  const groupWithItems = visibleResources.findIndex((group) => group.items.length > 0);
-                  if (groupWithItems >= 0) {
-                    const group = visibleResources[groupWithItems];
-                    const item = group.items[0];
-                    setSelectedResourceComboboxLabel(getSelectionLabel(group.label, item));
-                    onChange({ ...selected, resource: item.id, resourceGroup: group.id, resourceMeta: item.meta });
-                  }
+              <ComboboxWithItemsVirtual
+                comboboxProps={{
+                  label: resourceLabel,
+                  labelHelp: resourceHelpText,
+                  itemLength: 10,
                 }}
-              >
-                {visibleResources
-                  .filter((group) => group.items.length > 0)
-                  .map((group) => (
-                    <ComboboxListItemGroup key={group.id} label={group.label}>
-                      {group.items.map((item) => (
-                        <ComboboxListItem
-                          key={item.id}
-                          id={item.id}
-                          label={item.label}
-                          secondaryLabel={item.secondaryLabel}
-                          selected={item.id === selected.resource}
-                          onSelection={(id) => {
-                            setSelectedResourceComboboxLabel(getSelectionLabel(group.label, item));
-                            onChange({ ...selected, resource: id, resourceGroup: group.id, resourceMeta: item.meta });
-                          }}
-                        />
-                      ))}
-                    </ComboboxListItemGroup>
-                  ))}
-              </Combobox>
+                selectedItemLabelFn={getSelectionLabel}
+                selectedItemId={selected.resource}
+                items={flattenedResources}
+                onSelected={(item) =>
+                  onChange({ ...selected, resource: item.id, resourceGroup: item.group?.id || '', resourceMeta: item.meta })
+                }
+              />
             </div>
             {/* Operator */}
             <div className="slds-col slds-grow-none">
@@ -287,7 +237,7 @@ export const ExpressionConditionRow: FunctionComponent<ExpressionConditionRowPro
                   selectedItems={selectedResourceType}
                   allowDeselection={false}
                   scrollLength={10}
-                  onChange={handleSelectedResource}
+                  onChange={handleSelectedResourceType}
                 />
               </div>
             )}

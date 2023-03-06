@@ -7,6 +7,7 @@ import Icon from '../../widgets/Icon';
 export interface ComboboxListItemProps {
   id: string;
   className?: string;
+  containerCss?: SerializedStyles;
   textContainerClassName?: string;
   textClassName?: string;
   textBodyCss?: SerializedStyles;
@@ -18,6 +19,8 @@ export interface ComboboxListItemProps {
   selected: boolean;
   disabled?: boolean;
   hasError?: boolean;
+  /** Set to true for a placeholder to show if there are no items in the list */
+  placeholder?: boolean;
   onSelection: (id: string) => void;
   children?: React.ReactNode; // required because forwardRef
 }
@@ -27,6 +30,7 @@ export const ComboboxListItem = forwardRef<HTMLLIElement, ComboboxListItemProps>
     {
       id,
       className,
+      containerCss,
       textContainerClassName,
       textClassName,
       textBodyCss,
@@ -38,6 +42,7 @@ export const ComboboxListItem = forwardRef<HTMLLIElement, ComboboxListItemProps>
       selected,
       disabled,
       hasError,
+      placeholder,
       onSelection,
       children,
     },
@@ -52,34 +57,45 @@ export const ComboboxListItem = forwardRef<HTMLLIElement, ComboboxListItemProps>
         className={classNames('slds-listbox__item slds-item', className)}
         onClick={() => onSelection(id)}
         tabIndex={-1}
+        css={containerCss}
       >
         <div
           id={id}
           aria-disabled={disabled}
           className={classNames(
-            'slds-media slds-listbox__option slds-listbox__option_plain slds-media_small',
+            'slds-media slds-listbox__option',
             {
               'slds-is-selected': selected,
               'slds-text-color_error': hasError,
+              'slds-listbox__option_plain': placeholder && !secondaryLabelOnNewLine,
+              'slds-listbox__option_entity slds-listbox__option_has-meta': !placeholder && secondaryLabelOnNewLine && secondaryLabel,
+              'slds-media_small': !placeholder && !secondaryLabelOnNewLine,
             },
             textContainerClassName
           )}
           role="option"
           aria-selected={selected}
         >
-          <span className="slds-media__figure slds-listbox__option-icon">
-            {selected && (
-              <Icon
-                type="utility"
-                icon="check"
-                className="slds-icon slds-icon_x-small"
-                containerClassname={classNames('slds-icon_container slds-icon-utility-check slds-current-color', {
-                  'slds-icon_disabled': disabled,
-                })}
-              />
-            )}
-          </span>
-          <span className="slds-media__body" css={textBodyCss}>
+          {!placeholder && (
+            <span className="slds-media__figure slds-listbox__option-icon">
+              {selected && (
+                <Icon
+                  type="utility"
+                  icon="check"
+                  className="slds-icon slds-icon_x-small"
+                  containerClassname={classNames('slds-icon_container slds-icon-utility-check slds-current-color', {
+                    'slds-icon_disabled': disabled,
+                  })}
+                />
+              )}
+            </span>
+          )}
+          <span
+            className={classNames({
+              'slds-media__body': !placeholder,
+            })}
+            css={textBodyCss}
+          >
             {label && (!secondaryLabel || !secondaryLabelOnNewLine) && (
               <span className={classNames('slds-truncate', textClassName)} title={title} css={textCss}>
                 {label}

@@ -10,7 +10,7 @@ import {
   useNonInitialEffect,
 } from '@jetstream/shared/ui-utils';
 import { NOOP } from '@jetstream/shared/utils';
-import { DropDownItemLength, FormGroupDropdownItem } from '@jetstream/types';
+import { DropDownItemLength, FormGroupDropdownItem, Maybe } from '@jetstream/types';
 import classNames from 'classnames';
 import isNumber from 'lodash/isNumber';
 import uniqueId from 'lodash/uniqueId';
@@ -38,11 +38,13 @@ import Spinner from '../../widgets/Spinner';
 import { FormGroupDropdown } from '../formGroupDropDown/FormGroupDropdown';
 import { ComboboxListItem, ComboboxListItemProps } from './ComboboxListItem';
 import { ComboboxListItemGroup, ComboboxListItemGroupProps } from './ComboboxListItemGroup';
+import { ComboboxListVirtual } from './ComboboxListVirtual';
 
 type ChildListItem = ComboboxListItemProps & React.RefAttributes<HTMLLIElement>;
 type ChildListGroup = ComboboxListItemGroupProps & { children: React.ReactNode };
 
 export interface ComboboxPropsRef {
+  getPopoverRef(): Maybe<HTMLDivElement>;
   close(): void;
 }
 
@@ -114,7 +116,7 @@ const iconNotLoading = (
 //   <ComboboxElement ref={ref} {...props} icon={props.loading ? iconLoading : iconNotLoading} />
 // ));
 
-export const Combobox = forwardRef(
+export const Combobox = forwardRef<ComboboxPropsRef, ComboboxProps>(
   (
     {
       className,
@@ -145,6 +147,7 @@ export const Combobox = forwardRef(
     }: ComboboxProps,
     ref
   ) => {
+    const popoverRef = useRef<HTMLDivElement | null>(null);
     const [isOpen, setIsOpen] = useState<boolean>(false);
     const [id] = useState<string>(uniqueId('Combobox'));
     const [listId] = useState<string>(uniqueId('Combobox-list'));
@@ -161,6 +164,9 @@ export const Combobox = forwardRef(
     useImperativeHandle<unknown, ComboboxPropsRef>(
       ref,
       () => ({
+        getPopoverRef: () => {
+          return popoverRef.current;
+        },
         close: () => {
           setTimeout(() => {
             setIsOpen(false);
@@ -220,7 +226,7 @@ export const Combobox = forwardRef(
     // setCheckedForGroups(true);
     Children.forEach(children, (child) => {
       if (isValidElement(child)) {
-        if (child.type === ComboboxListItemGroup) {
+        if (child.type === ComboboxListItemGroup || child.type === ComboboxListVirtual) {
           childrenSize += Children.count(child.props.children);
           if (!hasGroups) {
             setHasGroups(true);
@@ -512,6 +518,7 @@ export const Combobox = forwardRef(
                     )}
                   </div>
                   <PopoverContainer
+                    ref={popoverRef}
                     isOpen={isOpen}
                     referenceElement={inputEl.current}
                     className={`slds-dropdown_length-${itemLength} slds-dropdown_fluid`}
@@ -523,7 +530,7 @@ export const Combobox = forwardRef(
                     <div ref={divContainerEl}>
                       {Children.count(children) === 0 && (
                         <ul className="slds-listbox slds-listbox_vertical" role="presentation">
-                          <ComboboxListItem id="placeholder" label={noItemsPlaceholder} selected={false} onSelection={NOOP} />
+                          <ComboboxListItem id="placeholder" placeholder label={noItemsPlaceholder} selected={false} onSelection={NOOP} />
                         </ul>
                       )}
                       {hasGroups && childrenWithRef}

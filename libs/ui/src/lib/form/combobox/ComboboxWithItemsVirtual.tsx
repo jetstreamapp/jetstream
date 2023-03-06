@@ -1,40 +1,48 @@
 import { useDebounce } from '@jetstream/shared/ui-utils';
+import { multiWordObjectFilter } from '@jetstream/shared/utils';
 import { ListItem, Maybe } from '@jetstream/types';
 import { FunctionComponent, useCallback, useEffect, useRef, useState } from 'react';
 import { Combobox, ComboboxProps, ComboboxPropsRef } from './Combobox';
-import { ComboboxListItem } from './ComboboxListItem';
+import { ComboboxListVirtual } from './ComboboxListVirtual';
 
+const defaultFilterFn = (filter) => multiWordObjectFilter<ListItem<string, any>>(['label', 'value'], filter);
 const defaultSelectedItemLabelFn = (item: ListItem) => item.label;
 const defaultSelectedItemTitleFn = (item: ListItem) => item.title;
 
-export interface ComboboxWithItemsTypeAheadProps {
-  comboboxProps: ComboboxProps;
+export interface ComboboxWithItemsVirtualProps {
+  comboboxProps: Omit<ComboboxProps, 'selectedItemLabel' | 'selectedItemTitle' | 'onInputChange' | 'onInputEnter'>;
+  /** For groups, set isGroup: true on an item */
   items: ListItem[];
-  selectedItemId: Maybe<string>;
-  /** called when search filter changes to fetch new items */
-  onSearch: (filter: string) => Promise<void>;
+  selectedItemId?: string | null;
+  /** Optional. If not provided, standard multi-word search will be used */
+  filterFn?: (filter: string) => (value: unknown, index: number, array: unknown[]) => boolean;
   /** Used to customize what shows upon selection */
   selectedItemLabelFn?: (item: ListItem) => string;
   selectedItemTitleFn?: (item: ListItem) => string;
-  onSelected: (item: ListItem | null) => void;
+  onSelected: (item: ListItem) => void;
 }
 
-export const ComboboxWithItemsTypeAhead: FunctionComponent<ComboboxWithItemsTypeAheadProps> = ({
+/**
+ * Combobox with virtualized list of items
+ * Groups are supported but only using a flat list of ListItems with the isGroup=true property
+ * You can use getFlattenedListItems to handle this
+ */
+export const ComboboxWithItemsVirtual: FunctionComponent<ComboboxWithItemsVirtualProps> = ({
   comboboxProps,
   items,
   selectedItemId,
-  onSearch,
+  filterFn = defaultFilterFn,
   selectedItemLabelFn = defaultSelectedItemLabelFn,
   selectedItemTitleFn = defaultSelectedItemTitleFn,
   onSelected,
 }) => {
-  const [loading, setLoading] = useState(false);
   const comboboxRef = useRef<ComboboxPropsRef>(null);
   const [filterTextNonDebounced, setFilterText] = useState<string>('');
   const filterText = useDebounce(filterTextNonDebounced, 300);
   const [selectedItem, setSelectedItem] = useState<Maybe<ListItem>>(() =>
     selectedItemId ? items.find((item) => item.id === selectedItemId) : null
   );
+  const [visibleItems, setVisibleItems] = useState(items);
   const [selectedItemLabel, setSelectedItemLabel] = useState<string | null>(() => {
     if (selectedItem) {
       const selectedItem = items.find((item) => item.id === selectedItemId);
@@ -69,53 +77,44 @@ export const ComboboxWithItemsTypeAhead: FunctionComponent<ComboboxWithItemsType
   }, [selectedItem, selectedItemLabelFn, selectedItemTitleFn]);
 
   useEffect(() => {
-    setLoading(true);
-    onSearch(filterText)
-      .then(() => setLoading(false))
-      .catch(() => setLoading(false));
-  }, [filterText, onSearch]);
+    if (!filterText) {
+      setVisibleItems(items);
+    } else {
+      const filter = filterText.toLowerCase().trim();
+
+      // Since data coming in is flat, ensure that groups with items stay in the list
+      let visibleItemsAndGroups = items.filter((item, index, array) => item.isGroup || filterFn(filter)(item, index, array));
+      const visibleGroups = new Set(visibleItemsAndGroups.map((item) => item.group?.id).filter(Boolean));
+      visibleItemsAndGroups = visibleItemsAndGroups.filter((item) => !item.isGroup || (item.isGroup && visibleGroups.has(item.id)));
+
+      setVisibleItems(visibleItemsAndGroups);
+    }
+  }, [items, filterText, filterFn]);
 
   const onInputEnter = useCallback(() => {
-    if (items.length > 0) {
-      onSelected(items[0]);
+    const firstItem = visibleItems.find((item) => !item.isGroup);
+    if (firstItem) {
+      onSelected(firstItem);
     }
-  }, [onSelected, items]);
-
-  function handleClear() {
-    onSelected(null);
-    onSearch('')
-      .then(() => setLoading(false))
-      .catch(() => setLoading(false));
-  }
+  }, [onSelected, visibleItems]);
 
   return (
     <Combobox
       ref={comboboxRef}
       {...comboboxProps}
-      loading={loading}
       selectedItemLabel={selectedItemLabel}
       selectedItemTitle={selectedItemTitle}
-      onFilterInputChange={setFilterText}
+      onInputChange={setFilterText}
       onInputEnter={onInputEnter}
-      onClear={handleClear}
-      showSelectionAsButton
     >
-      {items.map((item) => (
-        <ComboboxListItem
-          key={item.id}
-          id={item.id}
-          label={item.label}
-          secondaryLabel={item.secondaryLabel}
-          secondaryLabelOnNewLine={item.secondaryLabelOnNewLine}
-          selected={item === selectedItem}
-          onSelection={(id) => {
-            onSelected(item);
-            comboboxRef.current?.close();
-          }}
-        />
-      ))}
+      <ComboboxListVirtual
+        items={visibleItems}
+        parentRef={comboboxRef.current?.getPopoverRef() || null}
+        selectedItem={selectedItem}
+        onSelected={onSelected}
+      />
     </Combobox>
   );
 };
 
-export default ComboboxWithItemsTypeAhead;
+export default ComboboxWithItemsVirtual;
