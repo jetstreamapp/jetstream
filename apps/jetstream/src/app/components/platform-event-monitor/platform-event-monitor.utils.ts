@@ -1,7 +1,7 @@
 import { logger } from '@jetstream/shared/client-logger';
 import { HTTP } from '@jetstream/shared/constants';
 import { MapOf, Maybe, SalesforceOrgUi } from '@jetstream/types';
-import { CometD, Message, SubscriptionHandle } from 'cometd';
+import { CometD, Message, Extension, SubscriptionHandle } from 'cometd';
 import isNumber from 'lodash/isNumber';
 
 /**
@@ -122,17 +122,7 @@ export function disconnect(cometd: CometD) {
   });
 }
 
-/**
- * The CometD "Extension" interface types are not correct
- * They required retuning `Message | null` - only returning undefined allows the handshake to succeed
- *
- * {@link https://github.com/cometd/cometd/issues/1324}
- */
-export interface Extension {
-  incoming?(message: Message): Maybe<Message>;
-  outgoing?(message: Message): Maybe<Message>;
-}
-
+/** {@link https://docs.cometd.org/current7/reference/#_extensions_writing} */
 class CometdReplayExtension implements Extension {
   static EXT_NAME = 'replay-extension';
   static REPLAY_FROM_KEY = 'replay';
@@ -161,8 +151,8 @@ class CometdReplayExtension implements Extension {
   incoming(message: Message) {
     if (isNumber(this.replayFromMap[message.channel]) && message.data?.event?.replayId) {
       this.replayFromMap[message.channel] = message.data.event.replayId;
-      return message;
     }
+    return message;
   }
 
   outgoing(message: Message) {
@@ -173,7 +163,7 @@ class CometdReplayExtension implements Extension {
         }
         message.ext[CometdReplayExtension.REPLAY_FROM_KEY] = this.replayFromMap;
       }
-      return message;
     }
+    return message;
   }
 }
