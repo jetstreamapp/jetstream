@@ -14,31 +14,17 @@ export interface QueryOrderByProps {
 }
 
 function getSelectionLabel(item: ListItem<string, unknown>) {
-  return item.group ? `${item.group.label} - ${item.label} ${item.secondaryLabel || ''}` : `${item.label} ${item.secondaryLabel || ''}`;
+  return item.group ? `${item.group.label} - ${item.secondaryLabel || item.label}` : `${item.secondaryLabel || item.label}`;
 }
 
 export const QueryOrderBy: FunctionComponent<QueryOrderByProps> = ({ orderBy, fields, order, nulls, onChange, onDelete }) => {
-  const [fieldFilter, setFieldFilter] = useState<string | null>(null);
-  const [visibleFields, setVisibleFields] = useState(fields);
   const [initialSelectedOrder] = useState(order.find((item) => item.value === orderBy.order) || order[0]);
   const [initialSelectedNulls] = useState(nulls.find((item) => item.value === orderBy.nulls) || nulls[0]);
   const [flattenedResources, setFlattenedResources] = useState<ListItem[]>(() => getFlattenedListItems(fields));
 
   useEffect(() => {
-    if (!fieldFilter) {
-      setVisibleFields(fields);
-    } else {
-      const filter = fieldFilter.toLowerCase().trim();
-      const tempFields: typeof fields = [];
-      fields.forEach((field) => {
-        tempFields.push({
-          ...field,
-          items: field.items.filter(multiWordObjectFilter(['label', 'value'], filter)),
-        });
-      });
-      setVisibleFields(tempFields);
-    }
-  }, [fields, fieldFilter]);
+    setFlattenedResources(getFlattenedListItems(fields));
+  }, [fields]);
 
   return (
     <div className="slds-grid slds-gutters_xx-small">
