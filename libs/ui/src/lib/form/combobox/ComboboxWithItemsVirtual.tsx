@@ -3,6 +3,7 @@ import { useDebounce } from '@jetstream/shared/ui-utils';
 import { multiWordObjectFilter, NOOP } from '@jetstream/shared/utils';
 import { ListItem, Maybe } from '@jetstream/types';
 import { useVirtualizer } from '@tanstack/react-virtual';
+import isNumber from 'lodash/isNumber';
 import { FunctionComponent, useCallback, useEffect, useRef, useState } from 'react';
 import { Combobox, ComboboxProps, ComboboxPropsRef } from './Combobox';
 import { ComboboxListItem } from './ComboboxListItem';
@@ -45,6 +46,7 @@ export const ComboboxWithItemsVirtual: FunctionComponent<ComboboxWithItemsVirtua
     selectedItemId ? items.find((item) => item.id === selectedItemId) : null
   );
   const [visibleItems, setVisibleItems] = useState(items);
+  const [focusedIndex, setFocusedIndex] = useState<number | null>(null);
   const [selectedItemLabel, setSelectedItemLabel] = useState<string | null>(() => {
     if (selectedItem) {
       const selectedItem = items.find((item) => item.id === selectedItemId);
@@ -105,6 +107,71 @@ export const ComboboxWithItemsVirtual: FunctionComponent<ComboboxWithItemsVirtua
     }
   }, [items, filterText, filterFn]);
 
+  // FIXME: scroll on open
+  // TODO: if combobox is open, scroll to selected item - combobx can return fn as child optionally in this case
+
+  const handleKeyboardNavigation = (action: 'up' | 'down' | 'enter') => {
+    if (visibleItems.length <= 1) {
+      return;
+    }
+    let tempFocusedIndex = focusedIndex;
+    const maxIndex = visibleItems.length - 1;
+    switch (action) {
+      case 'down': {
+        if (tempFocusedIndex == null) {
+          tempFocusedIndex = 0;
+        }
+        tempFocusedIndex++;
+        break;
+      }
+      case 'up': {
+        if (tempFocusedIndex == null) {
+          tempFocusedIndex = maxIndex;
+        }
+        tempFocusedIndex--;
+        break;
+      }
+      case 'enter': {
+        if (isNumber(tempFocusedIndex)) {
+          tempFocusedIndex = null;
+          setFocusedIndex(tempFocusedIndex);
+        }
+        isNumber(focusedIndex) && onSelected(visibleItems[focusedIndex]);
+        return;
+      }
+      default:
+        break;
+    }
+
+    if (isNumber(tempFocusedIndex)) {
+      let count = 0;
+      while (visibleItems[tempFocusedIndex]?.isGroup || tempFocusedIndex < 0 || tempFocusedIndex > maxIndex) {
+        // wrap if needed
+        if (tempFocusedIndex < 0) {
+          // set to max item
+          tempFocusedIndex = maxIndex;
+        } else if (tempFocusedIndex > maxIndex) {
+          // if > max item
+          tempFocusedIndex = 0;
+        }
+        // Ensure we don't land on group
+        if (visibleItems[tempFocusedIndex]?.isGroup) {
+          action === 'up' ? tempFocusedIndex-- : tempFocusedIndex++;
+        }
+        count++;
+        // should only take a couple iterations to correct - break otherwise to avoid infinite loop
+        if (count > 3) {
+          break;
+        }
+      }
+      // TODO: need to focus on element - maybe we can send prop to child to auto-focus
+      rowVirtualizer.scrollToIndex(tempFocusedIndex, { behavior: 'auto', align: 'auto' });
+    }
+    if (tempFocusedIndex !== focusedIndex) {
+      setFocusedIndex(tempFocusedIndex);
+    }
+  };
+
   const onInputEnter = useCallback(() => {
     const firstItem = visibleItems.find((item) => !item.isGroup);
     if (firstItem) {
@@ -123,6 +190,7 @@ export const ComboboxWithItemsVirtual: FunctionComponent<ComboboxWithItemsVirtua
       isVirtual
       onInputChange={setFilterText}
       onInputEnter={onInputEnter}
+      onKeyboardNavigation={handleKeyboardNavigation}
     >
       <ul
         className="slds-listbox slds-listbox_vertical"
@@ -162,7 +230,7 @@ export const ComboboxWithItemsVirtual: FunctionComponent<ComboboxWithItemsVirtua
           `;
 
           return item.isGroup ? (
-            <li key={item.id} role="presentation" className="slds-listbox__item slds-item" css={styles}>
+            <li key={item.id} data-type="group" role="presentation" className="slds-listbox__item slds-item" css={styles}>
               <div className="slds-media slds-listbox__option slds-listbox__option_plain slds-media_small" role="presentation">
                 <h3 className="slds-listbox__option-header" role="presentation">
                   {item.label}
@@ -178,6 +246,7 @@ export const ComboboxWithItemsVirtual: FunctionComponent<ComboboxWithItemsVirtua
               secondaryLabel={item.secondaryLabel}
               secondaryLabelOnNewLine={item.secondaryLabelOnNewLine}
               selected={item.id === selectedItem?.id}
+              focused={virtualItem.index === focusedIndex}
               onSelection={() => {
                 onSelected(item);
               }}

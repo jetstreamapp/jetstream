@@ -79,6 +79,8 @@ export interface ComboboxProps {
   onInputEnter?: () => void;
   onClear?: () => void;
   onLeadingDropdownChange?: (item: FormGroupDropdownItem) => void;
+  /** If provided, all keyboard navigation events will be sent to parent to control focus */
+  onKeyboardNavigation?: (action: 'up' | 'down' | 'enter') => void;
   children?: React.ReactNode;
 }
 
@@ -146,6 +148,7 @@ export const Combobox = forwardRef<ComboboxPropsRef, ComboboxProps>(
       onInputEnter,
       onLeadingDropdownChange,
       onClear,
+      onKeyboardNavigation,
     }: ComboboxProps,
     ref
   ) => {
@@ -162,6 +165,7 @@ export const Combobox = forwardRef<ComboboxPropsRef, ComboboxProps>(
     const divContainerEl = useRef<HTMLDivElement>(null);
     const entireContainerEl = useRef<HTMLDivElement>(null);
     const elRefs = useRef<HTMLLIElement[]>([]);
+    const parentOwnsKeyboardNavigation = !!onKeyboardNavigation;
 
     useImperativeHandle<unknown, ComboboxPropsRef>(
       ref,
@@ -276,22 +280,41 @@ export const Combobox = forwardRef<ComboboxPropsRef, ComboboxProps>(
      * This allows moving between elements with keyboard
      */
     let counter = 0;
-    const childrenWithRef = Children.map(children, (child: ReactElement<ChildListItem | ChildListGroup>, i) => {
-      if (!isValidElement<ChildListItem | ChildListGroup>(child)) {
-        return child;
-      }
-      // set refs on all grandchildren list items
-      if (hasGroups && isValidElement<ChildListGroup>(child)) {
-        return cloneElement(child as ReactElement<ChildListGroup>, {
-          children: Children.map(child.props.children, (grandChild: ReactElement<ChildListItem>) => {
-            if (!isValidElement<ChildListItem>(grandChild)) {
-              return grandChild;
-            }
-            const clonedEl = cloneElement(grandChild, {
-              ref: ((currCounter: number) => (node) => {
-                if (elRefs.current && node) {
-                  elRefs.current[currCounter] = node;
+    const childrenWithRef = parentOwnsKeyboardNavigation
+      ? children
+      : Children.map(children, (child: ReactElement<ChildListItem | ChildListGroup>, i) => {
+          if (!isValidElement<ChildListItem | ChildListGroup>(child)) {
+            return child;
+          }
+          // set refs on all grandchildren list items
+          if (hasGroups && isValidElement<ChildListGroup>(child)) {
+            return cloneElement(child as ReactElement<ChildListGroup>, {
+              children: Children.map(child.props.children, (grandChild: ReactElement<ChildListItem>) => {
+                if (!isValidElement<ChildListItem>(grandChild) || grandChild.props['data-type'] === 'group') {
+                  return grandChild;
                 }
+                const clonedEl = cloneElement(grandChild, {
+                  ref: ((currCounter: number) => (node) => {
+                    if (elRefs.current && node) {
+                      elRefs.current[currCounter] = node;
+                    }
+                    // Call the original ref, if any
+                    const { ref } = child as any;
+                    if (typeof ref === 'function') {
+                      ref(node);
+                    } else if (ref !== null) {
+                      ref.current = node;
+                    }
+                  })(counter),
+                });
+                counter++;
+                return clonedEl;
+              }),
+            });
+          } else {
+            return cloneElement(child, {
+              ref: (node) => {
+                elRefs.current[i] = node;
                 // Call the original ref, if any
                 const { ref } = child as any;
                 if (typeof ref === 'function') {
@@ -299,27 +322,10 @@ export const Combobox = forwardRef<ComboboxPropsRef, ComboboxProps>(
                 } else if (ref !== null) {
                   ref.current = node;
                 }
-              })(counter),
+              },
             });
-            counter++;
-            return clonedEl;
-          }),
+          }
         });
-      } else {
-        return cloneElement(child, {
-          ref: (node) => {
-            elRefs.current[i] = node;
-            // Call the original ref, if any
-            const { ref } = child as any;
-            if (typeof ref === 'function') {
-              ref(node);
-            } else if (ref !== null) {
-              ref.current = node;
-            }
-          },
-        });
-      }
-    });
 
     /**
      * When on input, move focus down the first list item
@@ -329,14 +335,18 @@ export const Combobox = forwardRef<ComboboxPropsRef, ComboboxProps>(
         return;
       }
       if (isArrowUpKey(event)) {
-        setFocusedItem(elRefs.current.length - 1);
-        if (!isOpen) {
-          setIsOpen(true);
+        !isOpen && setIsOpen(true);
+        if (parentOwnsKeyboardNavigation) {
+          onKeyboardNavigation?.('up');
+        } else {
+          setFocusedItem(elRefs.current.length - 1);
         }
       } else if (isArrowDownKey(event)) {
-        setFocusedItem(0);
-        if (!isOpen) {
-          setIsOpen(true);
+        !isOpen && setIsOpen(true);
+        if (parentOwnsKeyboardNavigation) {
+          onKeyboardNavigation?.('down');
+        } else {
+          setFocusedItem(0);
         }
       } else if (isEnterKey(event) && isOpen && onInputEnter) {
         onInputEnter();
@@ -359,39 +369,52 @@ export const Combobox = forwardRef<ComboboxPropsRef, ComboboxProps>(
         inputEl.current?.focus();
         return;
       }
-      if (isNumber(focusedItem) && isEnterOrSpace(event)) {
+      if ((parentOwnsKeyboardNavigation || isNumber(focusedItem)) && isEnterOrSpace(event)) {
         event.preventDefault();
         event.stopPropagation();
         try {
-          elRefs.current[focusedItem].click();
+          if (parentOwnsKeyboardNavigation) {
+            onKeyboardNavigation?.('enter');
+          } else {
+            elRefs.current[focusedItem!].click();
+          }
           setIsOpen(false);
           inputEl.current?.focus();
         } catch (ex) {
           // error
+          logger.warn('Error in ComboboxList onKeyDown', ex);
         }
         return;
       }
       if (isArrowUpKey(event)) {
         event.preventDefault();
         event.stopPropagation();
-        if (!isNumber(focusedItem) || focusedItem === 0) {
-          newFocusedItem = elRefs.current.length - 1;
+        if (parentOwnsKeyboardNavigation) {
+          onKeyboardNavigation?.('up');
         } else {
-          // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-          newFocusedItem = newFocusedItem! - 1;
+          if (!isNumber(focusedItem) || focusedItem === 0) {
+            newFocusedItem = elRefs.current.length - 1;
+          } else {
+            // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+            newFocusedItem = newFocusedItem! - 1;
+          }
         }
       } else if (isArrowDownKey(event)) {
         event.preventDefault();
         event.stopPropagation();
-        if (!isNumber(focusedItem) || focusedItem === elRefs.current.length - 1) {
-          newFocusedItem = 0;
+        if (parentOwnsKeyboardNavigation) {
+          onKeyboardNavigation?.('down');
         } else {
-          // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-          newFocusedItem = newFocusedItem! + 1;
+          if (!isNumber(focusedItem) || focusedItem === elRefs.current.length - 1) {
+            newFocusedItem = 0;
+          } else {
+            // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+            newFocusedItem = newFocusedItem! + 1;
+          }
         }
       }
 
-      if (isNumber(newFocusedItem) && newFocusedItem !== focusedItem) {
+      if (!parentOwnsKeyboardNavigation && isNumber(newFocusedItem) && newFocusedItem !== focusedItem) {
         setFocusedItem(newFocusedItem);
       }
     }
