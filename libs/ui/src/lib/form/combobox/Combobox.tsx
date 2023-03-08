@@ -555,6 +555,7 @@ export const Combobox = forwardRef<ComboboxPropsRef, ComboboxProps>(
                     className={`slds-dropdown_length-${itemLength} slds-dropdown_fluid`}
                     id={listId}
                     role="listbox"
+                    isEager={isVirtual}
                     onKeyDown={handleListKeyDown}
                     onBlur={handleBlur}
                   >

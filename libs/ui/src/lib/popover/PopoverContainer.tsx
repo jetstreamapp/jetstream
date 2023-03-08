@@ -1,5 +1,5 @@
 import { css } from '@emotion/react';
-import { forwardRef, HTMLAttributes, ReactNode } from 'react';
+import { forwardRef, HTMLAttributes, ReactNode, useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { usePopper } from 'react-popper';
 
@@ -8,6 +8,7 @@ interface PopoverContainerProps extends Omit<HTMLAttributes<HTMLDivElement>, 'ch
   isOpen: boolean;
   referenceElement: HTMLElement | null;
   usePortal?: boolean;
+  isEager?: boolean;
   children: ReactNode;
 }
 
@@ -15,19 +16,40 @@ interface PopoverContainerProps extends Omit<HTMLAttributes<HTMLDivElement>, 'ch
  * Generic popover container used for dropdown menus, date pickers, etc.
  */
 export const PopoverContainer = forwardRef<HTMLDivElement, PopoverContainerProps>(
-  ({ className, isOpen, referenceElement, usePortal = false, children, ...rest }, ref) => {
-    const { styles, attributes } = usePopper(referenceElement, (ref as any)?.current, {
+  ({ className, isOpen, referenceElement, usePortal = false, isEager = false, children, ...rest }, ref) => {
+    const [popperElement, setPopperElement] = useState<HTMLDivElement | null>(null);
+    const { styles, attributes, update } = usePopper(referenceElement, popperElement, {
       placement: 'bottom-start',
       modifiers: [{ name: 'offset', options: { offset: [0, 1.75] } }],
     });
 
-    // The popover is always rendered to ensure that the ref is set for other dependent components (e.x. virtualized list)
+    useEffect(() => {
+      if (!ref) {
+        return;
+      }
+      if (popperElement && typeof ref === 'function') {
+        ref(popperElement);
+      } else if (popperElement && typeof ref !== 'function') {
+        ref.current = popperElement;
+      }
+    }, [popperElement, ref]);
+
+    // Ensure positioning is updated when the popover is opened - mostly impacts isEager popovers
+    useEffect(() => {
+      isOpen && update && update();
+    }, [update, isOpen]);
+
+    if (!isEager && !isOpen) {
+      return null;
+    }
+
+    // if isEager and not open, render the container and not any children (so ref exists)
     const childrenToRender = isOpen ? children : null;
 
     const content = (
       <div
         {...rest}
-        ref={ref}
+        ref={setPopperElement}
         className={className}
         // Selectively picked from `slds-dropdown` - removed margin as that must be set via popper offset
         css={css`
@@ -39,7 +61,7 @@ export const PopoverContainer = forwardRef<HTMLDivElement, PopoverContainerProps
           background: #fff;
           box-shadow: 0 2px 3px 0 rgb(0 0 0 / 16%);
           color: #181818;
-          visibility: ${isOpen ? 'visible' : 'hidden'};
+          display: ${isOpen ? 'block' : 'none'};
         `}
         style={{ ...styles.popper }}
         {...attributes.popper}
