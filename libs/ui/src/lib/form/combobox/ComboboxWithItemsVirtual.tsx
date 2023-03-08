@@ -68,7 +68,7 @@ export const ComboboxWithItemsVirtual: FunctionComponent<ComboboxWithItemsVirtua
       if (item.isGroup) {
         return 37;
       }
-      return item.secondaryLabelOnNewLine && item.secondaryLabel ? 53 : 36;
+      return item.secondaryLabelOnNewLine && item.secondaryLabel ? 50 : 36;
     },
   });
 

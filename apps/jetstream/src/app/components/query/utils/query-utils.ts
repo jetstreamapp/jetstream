@@ -63,7 +63,8 @@ export function calculateFilterAndOrderByListGroupFields(
           currGroup.items.push({
             id: value,
             label: field.label,
-            secondaryLabel: `(${field.name})`,
+            secondaryLabel: `${path}${field.name}`,
+            secondaryLabelOnNewLine: true,
             value: value,
             meta: field,
           });

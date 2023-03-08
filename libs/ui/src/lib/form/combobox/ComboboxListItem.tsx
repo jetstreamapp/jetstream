@@ -99,13 +99,15 @@ export const ComboboxListItem = forwardRef<HTMLLIElement, ComboboxListItemProps>
             {label && (!secondaryLabel || !secondaryLabelOnNewLine) && (
               <span className={classNames('slds-truncate', textClassName)} title={title} css={textCss}>
                 {label}
-                {secondaryLabel && <span className="slds-text-color_weak slds-m-left_xx-small">{secondaryLabel}</span>}
+                {secondaryLabel && <span className="slds-text-color_weak slds-m-left_xx-small slds-truncate">{secondaryLabel}</span>}
               </span>
             )}
             {label && secondaryLabel && secondaryLabelOnNewLine && (
               <Fragment>
-                <span className="slds-listbox__option-text slds-listbox__option-text_entity">{label}</span>
-                <span className="slds-listbox__option-meta slds-listbox__option-meta_entity">{secondaryLabel}</span>
+                <div className="slds-listbox__option-text slds-listbox__option-text_entity">{label}</div>
+                <div className="slds-listbox__option-meta slds-listbox__option-meta_entity slds-truncate" title={secondaryLabel}>
+                  {secondaryLabel}
+                </div>
               </Fragment>
             )}
             {children}
