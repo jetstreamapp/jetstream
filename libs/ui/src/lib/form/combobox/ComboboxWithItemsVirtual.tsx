@@ -230,7 +230,7 @@ export const ComboboxWithItemsVirtual: FunctionComponent<ComboboxWithItemsVirtua
           `;
 
           return item.isGroup ? (
-            <li key={item.id} data-type="group" role="presentation" className="slds-listbox__item slds-item" css={styles}>
+            <li key={item.id} data-type="group" role="presentation" className="slds-listbox__item" css={styles}>
               <div className="slds-media slds-listbox__option slds-listbox__option_plain slds-media_small" role="presentation">
                 <h3 className="slds-listbox__option-header" role="presentation">
                   {item.label}

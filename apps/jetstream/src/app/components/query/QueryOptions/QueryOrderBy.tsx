@@ -46,9 +46,10 @@ export const QueryOrderByContainer: FunctionComponent<QueryOrderByContainerProps
 
   return (
     <Fragment>
-      {orderByClauses.map((orderBy) => (
+      {orderByClauses.map((orderBy, i) => (
         <QueryOrderByRow
           key={orderBy.key}
+          groupNumber={i + 1}
           fields={fields}
           order={order}
           nulls={nulls}

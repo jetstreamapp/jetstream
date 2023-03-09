@@ -5,6 +5,7 @@ import { ComboboxWithItemsVirtual, FormRowButton, Picklist } from '@jetstream/ui
 import { FunctionComponent, useEffect, useState } from 'react';
 
 export interface QueryOrderByProps {
+  groupNumber: number;
   orderBy: QueryOrderByClause;
   fields: ListItemGroup[];
   order: ListItem<AscDesc>[];
@@ -17,7 +18,15 @@ function getSelectionLabel(item: ListItem<string, unknown>) {
   return `${item.secondaryLabel} (${item.label})`;
 }
 
-export const QueryOrderByRow: FunctionComponent<QueryOrderByProps> = ({ orderBy, fields, order, nulls, onChange, onDelete }) => {
+export const QueryOrderByRow: FunctionComponent<QueryOrderByProps> = ({
+  groupNumber,
+  orderBy,
+  fields,
+  order,
+  nulls,
+  onChange,
+  onDelete,
+}) => {
   const [initialSelectedOrder] = useState(order.find((item) => item.value === orderBy.order) || order[0]);
   const [initialSelectedNulls] = useState(nulls.find((item) => item.value === orderBy.nulls) || nulls[0]);
   const [flattenedResources, setFlattenedResources] = useState<ListItem[]>(() => getFlattenedListItems(fields));
@@ -27,13 +36,13 @@ export const QueryOrderByRow: FunctionComponent<QueryOrderByProps> = ({ orderBy,
   }, [fields]);
 
   return (
-    <div className="slds-grid slds-gutters_xx-small">
+    <div className="slds-grid slds-gutters_xx-small" role="group" aria-label={`Filter row ${groupNumber}`}>
       {/* Resource */}
       <div className="slds-col">
         <ComboboxWithItemsVirtual
           comboboxProps={{
             label: 'Field',
-            labelHelp: 'Related fields must be selected to appear in this list and only fields that allow sorting are included.',
+            labelHelp: 'Related fields will show up if you have visited the object.',
             itemLength: 10,
           }}
           selectedItemLabelFn={getSelectionLabel}
