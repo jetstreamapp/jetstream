@@ -55,7 +55,7 @@ export interface ExpressionConditionRowProps {
 }
 
 function getSelectionLabel(item: ListItem<string, unknown>) {
-  return item.group ? `${item.group.label} - ${item.secondaryLabel || item.label}` : `${item.secondaryLabel || item.label}`;
+  return `${item.secondaryLabel} (${item.label})`;
 }
 
 export const ExpressionConditionRow: FunctionComponent<ExpressionConditionRowProps> = React.memo(

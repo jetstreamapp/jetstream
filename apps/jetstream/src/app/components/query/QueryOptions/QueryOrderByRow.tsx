@@ -14,10 +14,10 @@ export interface QueryOrderByProps {
 }
 
 function getSelectionLabel(item: ListItem<string, unknown>) {
-  return item.group ? `${item.group.label} - ${item.secondaryLabel || item.label}` : `${item.secondaryLabel || item.label}`;
+  return `${item.secondaryLabel} (${item.label})`;
 }
 
-export const QueryOrderBy: FunctionComponent<QueryOrderByProps> = ({ orderBy, fields, order, nulls, onChange, onDelete }) => {
+export const QueryOrderByRow: FunctionComponent<QueryOrderByProps> = ({ orderBy, fields, order, nulls, onChange, onDelete }) => {
   const [initialSelectedOrder] = useState(order.find((item) => item.value === orderBy.order) || order[0]);
   const [initialSelectedNulls] = useState(nulls.find((item) => item.value === orderBy.nulls) || nulls[0]);
   const [flattenedResources, setFlattenedResources] = useState<ListItem[]>(() => getFlattenedListItems(fields));
@@ -71,4 +71,4 @@ export const QueryOrderBy: FunctionComponent<QueryOrderByProps> = ({ orderBy, fi
   );
 };
 
-export default QueryOrderBy;
+export default QueryOrderByRow;

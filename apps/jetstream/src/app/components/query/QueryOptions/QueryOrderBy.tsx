@@ -4,7 +4,7 @@ import { Icon } from '@jetstream/ui';
 import React, { Fragment, FunctionComponent, useState } from 'react';
 import { useRecoilState } from 'recoil';
 import * as fromQueryState from '../query.state';
-import QueryOrderBy from './QueryOrderByRow';
+import QueryOrderByRow from './QueryOrderByRow';
 
 export interface QueryOrderByContainerProps {
   fields: ListItemGroup[];
@@ -47,7 +47,7 @@ export const QueryOrderByContainer: FunctionComponent<QueryOrderByContainerProps
   return (
     <Fragment>
       {orderByClauses.map((orderBy) => (
-        <QueryOrderBy
+        <QueryOrderByRow
           key={orderBy.key}
           fields={fields}
           order={order}
