@@ -1,0 +1,16 @@
+{
+  "name": "onedrive-picker-sdk",
+  "$schema": "../../node_modules/nx/schemas/project-schema.json",
+  "sourceRoot": "libs/onedrive-picker-sdk/src",
+  "projectType": "library",
+  "targets": {
+    "lint": {
+      "executor": "@nrwl/linter:eslint",
+      "outputs": ["{options.outputFile}"],
+      "options": {
+        "lintFilePatterns": ["libs/onedrive-picker-sdk/**/*.ts"]
+      }
+    }
+  },
+  "tags": []
+}

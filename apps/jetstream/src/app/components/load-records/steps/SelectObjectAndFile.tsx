@@ -147,6 +147,19 @@ export const LoadRecordsSelectObjectAndFile: FunctionComponent<LoadRecordsSelect
                     filename: inputFileType === 'google' ? inputFilename : undefined,
                     onReadFile: handleGoogleFile,
                   }}
+                  oneDriveSelectorProps={{
+                    apiConfig: {
+                      baseUrl: 'https://onedrive.live.com/picker',
+                      clientAuthority: 'https://login.microsoftonline.com/consumers', // or https://login.microsoftonline.com/{tenant id}
+                      clientId: 'd7ebb58b-bbeb-4667-8d15-222c0a641745',
+                    },
+                    id: 'load-google-drive-file',
+                    className: 'slds-m-left_x-small',
+                    label: 'Google Drive',
+                    buttonLabel: 'Choose Google Sheet',
+                    filename: inputFileType === 'google' ? inputFilename : undefined,
+                    onReadFile: handleGoogleFile,
+                  }}
                 />
               </GridCol>
             </Grid>

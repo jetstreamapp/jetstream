@@ -2,10 +2,12 @@ import Tabs from '../../tabs/Tabs';
 import { Fragment, FunctionComponent } from 'react';
 import FileSelector, { FileSelectorProps } from './FileSelector';
 import GoogleFileSelector, { GoogleFileSelectorProps } from './GoogleFileSelector';
+import OneDriveFileSelector, { OneDriveFileSelectorProps } from './OneDriveFileSelector';
 
 export interface FileOrGoogleSelectorProps {
   fileSelectorProps: FileSelectorProps;
   googleSelectorProps: GoogleFileSelectorProps;
+  oneDriveSelectorProps?: OneDriveFileSelectorProps;
   omitGoogle?: boolean;
   initialSelectedTab?: 'local' | 'google';
 }
@@ -13,6 +15,7 @@ export interface FileOrGoogleSelectorProps {
 export const FileOrGoogleSelector: FunctionComponent<FileOrGoogleSelectorProps> = ({
   fileSelectorProps,
   googleSelectorProps,
+  oneDriveSelectorProps,
   omitGoogle,
   initialSelectedTab = 'local',
 }) => {
@@ -35,6 +38,15 @@ export const FileOrGoogleSelector: FunctionComponent<FileOrGoogleSelectorProps> 
               title: 'Google Drive',
               content: <GoogleFileSelector {...googleSelectorProps} />,
             },
+            ...(oneDriveSelectorProps
+              ? [
+                  {
+                    id: 'onedrive',
+                    title: 'Microsoft OneDrive',
+                    content: <OneDriveFileSelector {...oneDriveSelectorProps} />,
+                  },
+                ]
+              : []),
           ]}
         />
       )}
