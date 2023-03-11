@@ -2,7 +2,7 @@ import { useNonInitialEffect } from '@jetstream/shared/ui-utils';
 import { multiWordObjectFilter, pluralizeFromNumber } from '@jetstream/shared/utils';
 import { MapOf, QueryFieldWithPolymorphic, SalesforceOrgUi } from '@jetstream/types';
 import { Accordion, Badge, DesertIllustration, EmptyState, Grid, GridCol, SearchInput } from '@jetstream/ui';
-import { ChildRelationship } from 'jsforce';
+import type { ChildRelationship } from 'jsforce';
 import React, { Fragment, FunctionComponent, useState } from 'react';
 import { useRecoilValue } from 'recoil';
 import * as fromQueryState from '../query.state';

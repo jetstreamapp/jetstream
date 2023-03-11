@@ -2,7 +2,7 @@ import { COMMON_METADATA_TYPES, ListMetadataQueryExtended } from '@jetstream/con
 import { ListItem, MapOf, ChangeSet } from '@jetstream/types';
 import isAfter from 'date-fns/isAfter';
 import isSameDay from 'date-fns/isSameDay';
-import { MetadataObject } from 'jsforce';
+import type { MetadataObject } from 'jsforce';
 import { atom, selector } from 'recoil';
 import { AllUser, CommonUser, SalesforceUser, YesNo } from './deploy-metadata.types';
 

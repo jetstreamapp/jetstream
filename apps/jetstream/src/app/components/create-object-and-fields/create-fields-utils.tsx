@@ -2,7 +2,7 @@ import { logger } from '@jetstream/shared/client-logger';
 import { describeGlobal, genericRequest, queryAllFromList, queryWithCache } from '@jetstream/shared/data';
 import { ensureBoolean, REGEX, splitArrayToMaxSize } from '@jetstream/shared/utils';
 import { CompositeResponse, GlobalValueSetRequest, MapOf, SalesforceOrgUi, ToolingApiResponse } from '@jetstream/types';
-import { DescribeGlobalSObjectResult } from 'jsforce';
+import type { DescribeGlobalSObjectResult } from 'jsforce';
 import isBoolean from 'lodash/isBoolean';
 import isNil from 'lodash/isNil';
 import isString from 'lodash/isString';

@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-use-before-define */
 import { QueryResults, QueryResultsColumn, QueryResultsColumns } from '@jetstream/api-interfaces';
-import { Connection } from 'jsforce';
+import type { Connection } from 'jsforce';
 import { parseQuery, Query } from 'soql-parser-js';
 
 export interface QueryColumnsSfdc {

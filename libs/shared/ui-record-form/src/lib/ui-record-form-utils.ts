@@ -1,6 +1,6 @@
 import { sortQueryFields } from '@jetstream/shared/ui-utils';
 import { CloneEditView, PicklistFieldValues, Record } from '@jetstream/types';
-import { DescribeSObjectResult, Field, FieldType } from 'jsforce';
+import type { DescribeSObjectResult, Field, FieldType } from 'jsforce';
 import isString from 'lodash/isString';
 import {
   EditableFieldCheckbox,

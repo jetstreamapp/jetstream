@@ -8,7 +8,7 @@ import {
   QueryHistoryItem,
   QueryOrderByClause,
 } from '@jetstream/types';
-import { ChildRelationship, DescribeGlobalSObjectResult } from 'jsforce';
+import type { ChildRelationship, DescribeGlobalSObjectResult } from 'jsforce';
 import { atom, selector } from 'recoil';
 import { FieldType, getField, OrderByClause, OrderByFieldClause, Subquery } from 'soql-parser-js';
 

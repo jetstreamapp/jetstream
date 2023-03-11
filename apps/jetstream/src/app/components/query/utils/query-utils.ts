@@ -3,7 +3,7 @@ import { getMapOf } from '@jetstream/shared/utils';
 import { ErrorResult, ExpressionType, ListItemGroup, MapOf, Maybe, QueryFields, Record } from '@jetstream/types';
 import formatISO from 'date-fns/formatISO';
 import parseISO from 'date-fns/parseISO';
-import { Field, FieldType } from 'jsforce';
+import type { Field, FieldType } from 'jsforce';
 import isNil from 'lodash/isNil';
 import isNumber from 'lodash/isNumber';
 import isString from 'lodash/isString';

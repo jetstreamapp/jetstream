@@ -37,7 +37,7 @@ import {
 } from '@jetstream/types';
 import parseISO from 'date-fns/parseISO';
 import { saveAs } from 'file-saver';
-import { Field } from 'jsforce';
+import type { Field } from 'jsforce';
 import { get as safeGet, isFunction, isUndefined } from 'lodash';
 import isNil from 'lodash/isNil';
 import isString from 'lodash/isString';

@@ -7,7 +7,7 @@ import {
   RecordAttributes,
   SalesforceOrgUi,
 } from '@jetstream/types';
-import { FieldType } from 'jsforce';
+import type { FieldType } from 'jsforce';
 import { DownloadType, PrepareDataResponseError } from '../shared/load-records-results/load-records-results-types';
 
 export type LocalOrGoogle = 'local' | 'google';

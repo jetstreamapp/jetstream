@@ -1,6 +1,6 @@
 import { SalesforceOrgUi } from '@jetstream/types';
 import { ConnectedSobjectList } from '@jetstream/ui';
-import { DescribeGlobalSObjectResult } from 'jsforce';
+import type { DescribeGlobalSObjectResult } from 'jsforce';
 import React, { Fragment, FunctionComponent } from 'react';
 import { useRecoilValue, useResetRecoilState } from 'recoil';
 import { selectedOrgState } from '../../../app-state';

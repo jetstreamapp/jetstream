@@ -5,7 +5,7 @@ import {
   PermissionSetNoProfileRecord,
   PermissionSetWithProfileRecord,
 } from '@jetstream/types';
-import { DescribeGlobalSObjectResult } from 'jsforce';
+import type { DescribeGlobalSObjectResult } from 'jsforce';
 import { atom, selector } from 'recoil';
 import { FieldPermissionDefinitionMap, ObjectPermissionDefinitionMap } from './utils/permission-manager-types';
 

@@ -14,7 +14,7 @@ import {
 } from '@jetstream/types';
 import addHours from 'date-fns/addHours';
 import formatISO from 'date-fns/formatISO';
-import { DescribeSObjectResult, Field } from 'jsforce';
+import type { DescribeSObjectResult, Field } from 'jsforce';
 import { composeQuery, getField } from 'soql-parser-js';
 import { polyfillFieldDefinition, sortQueryFields } from './shared-ui-utils';
 

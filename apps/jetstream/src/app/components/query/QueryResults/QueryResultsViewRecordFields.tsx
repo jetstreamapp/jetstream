@@ -4,7 +4,7 @@ import { getIdAndObjFromRecordUrl, orderStringsBy } from '@jetstream/shared/util
 import { SalesforceOrgUi } from '@jetstream/types';
 import { AutoFullHeightContainer, Icon, Panel, Spinner } from '@jetstream/ui';
 import classNames from 'classnames';
-import { Record } from 'jsforce';
+import type { Record } from 'jsforce';
 import { isBoolean, isNil, isObject } from 'lodash';
 import React, { Fragment, FunctionComponent, useEffect, useState } from 'react';
 

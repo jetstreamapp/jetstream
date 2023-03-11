@@ -3,7 +3,7 @@ import { describeGlobal, describeSObject } from '@jetstream/shared/data';
 import { getFieldKey } from '@jetstream/shared/ui-utils';
 import { orderStringsBy } from '@jetstream/shared/utils';
 import { MapOf, Maybe, SalesforceOrgUi } from '@jetstream/types';
-import { DescribeGlobalSObjectResult, DescribeSObjectResult, Field } from 'jsforce';
+import type { DescribeGlobalSObjectResult, DescribeSObjectResult, Field } from 'jsforce';
 import {
   FieldType as QueryFieldType,
   isOrderByField,

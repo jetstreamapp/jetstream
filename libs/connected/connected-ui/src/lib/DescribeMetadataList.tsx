@@ -15,7 +15,7 @@ import {
   Spinner,
   Tooltip,
 } from '@jetstream/ui';
-import { MetadataObject } from 'jsforce';
+import type { MetadataObject } from 'jsforce';
 import { startCase } from 'lodash';
 import { createRef, Fragment, FunctionComponent, useEffect, useRef, useState } from 'react';
 import { useDescribeMetadata } from './useDescribeMetadata';
