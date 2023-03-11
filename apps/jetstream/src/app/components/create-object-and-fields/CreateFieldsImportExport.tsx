@@ -19,8 +19,14 @@ import { useAmplitude } from '../core/analytics';
 import { fireToast } from '../core/AppToast';
 import * as fromJetstreamEvents from '../core/jetstream-events';
 import { CREATE_FIELDS_EXAMPLE_TEMPLATE } from './create-fields-import-example';
-import { FieldValues } from './create-fields-types';
-import { allFields, ensureValidSecondaryType, ensureValidType, fieldDefinitions, getRowsForExport } from './create-fields-utils';
+import { FieldValues } from '../shared/create-fields/create-fields-types';
+import {
+  allFields,
+  ensureValidSecondaryType,
+  ensureValidType,
+  fieldDefinitions,
+  getRowsForExport,
+} from '../shared/create-fields/create-fields-utils';
 
 export interface CreateFieldsImportExportProps {
   selectedOrg: SalesforceOrgUi;

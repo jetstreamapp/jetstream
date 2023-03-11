@@ -5,7 +5,13 @@ import { getMapOf, getSuccessOrFailureChar, pluralizeFromNumber, REGEX, splitArr
 import { CompositeGraphResponseBodyData, CompositeResponse, ErrorResult, MapOf, RecordResult, SalesforceOrgUi } from '@jetstream/types';
 import { useCallback, useEffect, useState } from 'react';
 import { FieldDefinitionMetadata, FieldPermissionRecord, FieldValues, SalesforceFieldType } from './create-fields-types';
-import { deployLayouts, getFieldPermissionRecords, prepareCreateFieldsCompositeRequests, preparePayload } from './create-fields-utils';
+import {
+  deployLayouts,
+  getFieldPermissionRecords,
+  isFieldValuesArray,
+  prepareCreateFieldsCompositeRequests,
+  preparePayload,
+} from './create-fields-utils';
 
 export interface CreateFieldsResults {
   key: string;
@@ -46,6 +52,18 @@ export function getFriendlyStatus(result: CreateFieldsResults) {
   }
 }
 
+interface UseCreateFieldsOptions {
+  apiVersion: string;
+  serverUrl: string;
+  selectedOrg: SalesforceOrgUi;
+  profiles: string[];
+  permissionSets: string[];
+  /** This allows creating the field on multiple objects */
+  sObjects: string[];
+  /** FieldValues[] is used for create fields UI, FieldDefinitionMetadata[] used anywhere else */
+  rows: FieldValues[] | FieldDefinitionMetadata[];
+}
+
 export default function useCreateFields({
   apiVersion,
   serverUrl,
@@ -54,15 +72,7 @@ export default function useCreateFields({
   permissionSets,
   sObjects,
   rows,
-}: {
-  apiVersion: string;
-  serverUrl: string;
-  selectedOrg: SalesforceOrgUi;
-  profiles: string[];
-  permissionSets: string[];
-  sObjects: string[];
-  rows: FieldValues[];
-}) {
+}: UseCreateFieldsOptions) {
   const rollbar = useRollbar();
   const { notifyUser } = useBrowserNotifications(serverUrl, window.electron?.isFocused);
   const [loading, setLoading] = useState(false);
@@ -76,7 +86,7 @@ export default function useCreateFields({
   useEffect(() => {
     if (rows) {
       try {
-        const payload: CreateFieldsResults[] = preparePayload(sObjects, rows).map((field) => ({
+        const payload: CreateFieldsResults[] = (isFieldValuesArray(rows) ? preparePayload(sObjects, rows) : rows).map((field) => ({
           key: `${(field.fullName as string).replace('.', '_').replace(REGEX.CONSECUTIVE_UNDERSCORES, '_')}`,
           label: field.fullName,
           field,

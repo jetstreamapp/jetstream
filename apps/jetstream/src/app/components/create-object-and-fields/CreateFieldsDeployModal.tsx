@@ -8,10 +8,10 @@ import { applicationCookieState } from '../../app-state';
 import { useAmplitude } from '../core/analytics';
 import ConfirmPageChange from '../core/ConfirmPageChange';
 import * as fromJetstreamEvents from '../core/jetstream-events';
-import { FieldValues } from './create-fields-types';
-import { prepareDownloadResultsFile } from './create-fields-utils';
+import { FieldValues } from '../shared/create-fields/create-fields-types';
+import { prepareDownloadResultsFile } from '../shared/create-fields/create-fields-utils';
 import CreateFieldsDeployModalRow from './CreateFieldsDeployModalRow';
-import useCreateFields from './useCreateFields';
+import useCreateFields from '../shared/create-fields/useCreateFields';
 import { useFetchPageLayouts } from './useFetchPageLayouts';
 
 export interface CreateFieldsDeployModalProps {

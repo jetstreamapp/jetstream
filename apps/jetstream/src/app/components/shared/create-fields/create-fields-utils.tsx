@@ -791,6 +791,14 @@ function validatePicklist(fieldValues: FieldValues, outputFieldValues: FieldValu
   return allValid;
 }
 
+export function isFieldValuesArray(input: FieldValues[] | FieldDefinitionMetadata[]): input is FieldValues[] {
+  return !input || input.length === 0 || isFieldValues(input[0]);
+}
+
+export function isFieldValues(input: FieldValues | FieldDefinitionMetadata): input is FieldValues {
+  return !isNil((input as any)?._key);
+}
+
 export function preparePayload(sobjects: string[], rows: FieldValues[]): FieldDefinitionMetadata[] {
   return rows.flatMap((row) => sobjects.map((sobject) => prepareFieldPayload(sobject, row)));
 }

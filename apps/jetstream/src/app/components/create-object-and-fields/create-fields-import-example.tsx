@@ -1,4 +1,4 @@
-import { FieldDefinitionType, FieldValue } from './create-fields-types';
+import { FieldDefinitionType, FieldValue } from '../shared/create-fields/create-fields-types';
 
 export const CREATE_FIELDS_EXAMPLE_TEMPLATE: Record<FieldDefinitionType, FieldValue>[] = [
   {

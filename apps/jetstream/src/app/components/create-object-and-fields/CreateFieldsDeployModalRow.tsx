@@ -1,7 +1,7 @@
 import { Badge, Icon, Spinner, Tooltip } from '@jetstream/ui';
 import classNames from 'classnames';
 import { FunctionComponent, useEffect, useState } from 'react';
-import { CreateFieldsResults, getFriendlyStatus } from './useCreateFields';
+import { CreateFieldsResults, getFriendlyStatus } from '../shared/create-fields/useCreateFields';
 
 export interface CreateFieldsDeployModalRowProps {
   result: CreateFieldsResults;

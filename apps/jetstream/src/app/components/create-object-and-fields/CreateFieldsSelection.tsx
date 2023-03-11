@@ -18,7 +18,7 @@ import { Link } from 'react-router-dom';
 import { SplitWrapper as Split } from '@jetstream/splitjs';
 import { useRecoilState, useRecoilValue } from 'recoil';
 import { selectedOrgState } from '../../app-state';
-import { filterCreateFieldsSobjects } from './create-fields-utils';
+import { filterCreateFieldsSobjects } from '../shared/create-fields/create-fields-utils';
 import * as fromCreateFieldsState from './create-fields.state';
 
 const HEIGHT_BUFFER = 170;
