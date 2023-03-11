@@ -14,7 +14,7 @@ import {
 import { isNumber } from 'lodash';
 import { ChangeEvent, FunctionComponent, useCallback, useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { useRecoilValue, useSetRecoilState } from 'recoil';
+import { useRecoilCallback, useRecoilValue, useSetRecoilState } from 'recoil';
 import { selectedOrgState } from '../../../app-state';
 import * as fromMassUpdateState from '../mass-update-records.state';
 import MassUpdateRecordsDeploymentRow from '../../shared/mass-update-records/MassUpdateRecordsDeploymentRow';
@@ -53,7 +53,13 @@ export const MassUpdateRecordsDeployment: FunctionComponent<MassUpdateRecordsDep
   const [batchSizeError, setBatchSizeError] = useState<string | null>(null);
   const [serialMode, setSerialMode] = useState(false);
   const setDeploymentState = useSetRecoilState(fromMassUpdateState.rowsMapState);
-
+  const getRows = useRecoilCallback(
+    ({ snapshot }) =>
+      () => {
+        return snapshot.getLoadable(fromMassUpdateState.rowsState).getValue();
+      },
+    []
+  );
   const handleDeployResults = useCallback(
     (sobject: string, deployResults: DeployResults, fatalError?: boolean) => {
       setDeploymentState(updateDeploymentResultsState(sobject, deployResults, fatalError));
@@ -72,7 +78,7 @@ export const MassUpdateRecordsDeployment: FunctionComponent<MassUpdateRecordsDep
   async function handleDeploy() {
     setLoading(true);
     await loadDataForRows(rows, { batchSize: batchSize ?? 10000, serialMode });
-    pollResultsUntilDone();
+    pollResultsUntilDone(getRows);
   }
 
   useEffect(() => {

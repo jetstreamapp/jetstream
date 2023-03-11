@@ -5,7 +5,7 @@ import { formatNumber } from '@jetstream/shared/ui-utils';
 import { pluralizeFromNumber } from '@jetstream/shared/utils';
 import { BulkJobBatchInfo, BulkJobResultRecord, SalesforceOrgUi } from '@jetstream/types';
 import { Card, FileDownloadModal, Grid, SalesforceLogin, ScopedNotification, Spinner, SupportLink } from '@jetstream/ui';
-import { Fragment, FunctionComponent, useState } from 'react';
+import { Fragment, FunctionComponent, useEffect, useState } from 'react';
 import { useRecoilState } from 'recoil';
 import { applicationCookieState } from '../../../app-state';
 import { useAmplitude } from '../../core/analytics';
@@ -29,9 +29,11 @@ export interface ViewModalData extends Omit<DownloadModalData, 'fileNameParts'> 
 }
 
 export interface MassUpdateRecordsDeploymentRowProps
-  extends Pick<MetadataRow, 'sobject' | 'deployResults' | 'transformationOptions' | 'selectedField' | 'validationResults'> {
+  extends Pick<MetadataRow, 'sobject' | 'deployResults' | 'transformationOptions' | 'selectedField'> {
+  validationResults?: MetadataRow['validationResults'];
   selectedOrg: SalesforceOrgUi;
   batchSize: number;
+  onModalOpenChange?: (isOpen: boolean) => void;
 }
 
 export const MassUpdateRecordsDeploymentRow: FunctionComponent<MassUpdateRecordsDeploymentRowProps> = ({
@@ -42,6 +44,7 @@ export const MassUpdateRecordsDeploymentRow: FunctionComponent<MassUpdateRecords
   selectedField,
   validationResults,
   batchSize,
+  onModalOpenChange,
 }) => {
   const { trackEvent } = useAmplitude();
   const [downloadModalData, setDownloadModalData] = useState<DownloadModalData>({ open: false, data: [], header: [], fileNameParts: [] });
@@ -50,6 +53,10 @@ export const MassUpdateRecordsDeploymentRow: FunctionComponent<MassUpdateRecords
 
   const { done, processingErrors, status, jobInfo, processingEndTime, processingStartTime } = deployResults;
 
+  useEffect(() => {
+    onModalOpenChange && onModalOpenChange(downloadModalData.open || resultsModalData.open);
+  }, [downloadModalData.open, onModalOpenChange, resultsModalData.open]);
+
   async function handleDownloadOrViewRecords(
     action: DownloadAction,
     type: DownloadType,
@@ -57,9 +64,6 @@ export const MassUpdateRecordsDeploymentRow: FunctionComponent<MassUpdateRecords
     batchIndex: number
   ): Promise<void> {
     try {
-      // if (downloadError) {
-      // setDownloadError(null);
-      // }
       if (!jobInfo?.id) {
         return;
       }
@@ -82,7 +86,8 @@ export const MassUpdateRecordsDeploymentRow: FunctionComponent<MassUpdateRecords
         }
       });
 
-      const header = ['_id', '_success', '_errors'].concat(getFieldsToQuery({ transformationOptions, selectedField }));
+      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+      const header = ['_id', '_success', '_errors'].concat(['Id', selectedField!]);
 
       if (action === 'view') {
         setResultsModalData({ ...downloadModalData, open: true, header, data: combinedResults, type });
@@ -187,7 +192,7 @@ export const MassUpdateRecordsDeploymentRow: FunctionComponent<MassUpdateRecords
         }
         footer={<MassUpdateRecordTransformationText selectedField={selectedField} transformationOptions={transformationOptions} />}
       >
-        {!processingStartTime && (
+        {!processingStartTime && validationResults && (
           <div className="slds-m-left_medium">
             When validated,{' '}
             <span className="text-bold">

@@ -4,7 +4,7 @@ import { queryAll, queryWithCache } from '@jetstream/shared/data';
 import { describeSObjectWithExtendedTypes, formatNumber } from '@jetstream/shared/ui-utils';
 import { REGEX, transformRecordForDataLoad } from '@jetstream/shared/utils';
 import { EntityParticleRecord, FieldWithExtendedType, InsertUpdateUpsertDelete, MapOf, Maybe, SalesforceOrgUi } from '@jetstream/types';
-import { DescribeGlobalSObjectResult } from 'jsforce';
+import type { DescribeGlobalSObjectResult, DescribeSObjectResult } from 'jsforce';
 import JSZip from 'jszip';
 import groupBy from 'lodash/groupBy';
 import isNil from 'lodash/isNil';
@@ -32,7 +32,7 @@ export class LoadRecordsBatchError extends Error {
   }
 }
 
-export function filterLoadSobjects(sobject: DescribeGlobalSObjectResult) {
+export function filterLoadSobjects(sobject: DescribeGlobalSObjectResult | DescribeSObjectResult) {
   return (
     (sobject.createable || sobject.updateable || sobject.name.endsWith('__mdt')) &&
     !sobject.name.endsWith('__History') &&

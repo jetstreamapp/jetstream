@@ -1,28 +1,33 @@
 import { css } from '@emotion/react';
 import { describeSObject } from '@jetstream/shared/data';
-import { convertDateToLocale, formatNumber, sortQueryFields, useRollbar } from '@jetstream/shared/ui-utils';
+import { convertDateToLocale, sortQueryFields, useRollbar } from '@jetstream/shared/ui-utils';
+import { getRecordIdFromAttributes } from '@jetstream/shared/utils';
 import { ListItem, Maybe, Record, SalesforceOrgUi } from '@jetstream/types';
 import {
   Checkbox,
   Input,
   Modal,
-  Radio,
-  RadioGroup,
   RADIO_ALL_BROWSER,
   RADIO_ALL_SERVER,
   RADIO_FILTERED,
   RADIO_SELECTED,
+  ScopedNotification,
   Section,
 } from '@jetstream/ui';
-import { DescribeSObjectResult } from 'jsforce';
 import { isNumber } from 'lodash';
 import { ChangeEvent, Fragment, FunctionComponent, useCallback, useEffect, useState } from 'react';
+import { atom, useRecoilCallback, useRecoilState, useResetRecoilState } from 'recoil';
 import { Query } from 'soql-parser-js';
+import { filterLoadSobjects } from '../../../load-records/utils/load-records-utils';
 import { DeployResults, TransformationOptions } from '../../../shared/mass-update-records/mass-update-records.types';
+import { fetchRecordsWithRequiredFields } from '../../../shared/mass-update-records/mass-update-records.utils';
+import MassUpdateRecordsDeploymentRow from '../../../shared/mass-update-records/MassUpdateRecordsDeploymentRow';
 import MassUpdateRecordsObjectRow from '../../../shared/mass-update-records/MassUpdateRecordsObjectRow';
 import { useDeployRecords } from '../../../shared/mass-update-records/useDeployRecords';
+import BulkUpdateFromQueryRecordSelection from './BulkUpdateFromQueryRecordSelection';
 
 const MAX_BATCH_SIZE = 10000;
+const IN_PROGRESS_STATUSES = new Set<DeployResults['status']>(['In Progress - Preparing', 'In Progress - Uploading', 'In Progress']);
 
 function checkIfValid(selectedField: string | null, transformationOptions: TransformationOptions) {
   if (!selectedField) {
@@ -37,10 +42,24 @@ function checkIfValid(selectedField: string | null, transformationOptions: Trans
   return true;
 }
 
+// These are stored in state to allow stable access from a callback to poll results
+export const deployResultsState = atom<DeployResults>({
+  key: 'mass-update-records.deployResultsFromQueryState',
+  default: {
+    done: false,
+    processingStartTime: convertDateToLocale(new Date()),
+    processingEndTime: null,
+    processingErrors: [],
+    records: [],
+    batchIdToIndex: {},
+    status: 'Not Started',
+  },
+});
+
 export interface BulkUpdateFromQueryModalProps {
   selectedOrg: SalesforceOrgUi;
   sobject: string;
-  parsedQuery?: Query;
+  parsedQuery: Query;
   records: Record[];
   filteredRecords: Record[];
   selectedRecords: Record[];
@@ -61,11 +80,11 @@ export const BulkUpdateFromQueryModal: FunctionComponent<BulkUpdateFromQueryModa
   const rollbar = useRollbar();
   const [loading, setLoading] = useState(false);
   const [isValid, setIsValid] = useState(false);
+  const [fatalError, setFatalError] = useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [selectedField, setSelectedField] = useState<string | null>(null);
   const [fields, setFields] = useState<ListItem[]>([]);
   const [allFields, setAllFields] = useState<ListItem[]>([]);
-  const [metadata, setMetadata] = useState<DescribeSObjectResult>();
   const [transformationOptions, setTransformationOptions] = useState<TransformationOptions>({
     option: 'anotherField',
     alternateField: undefined,
@@ -78,25 +97,31 @@ export const BulkUpdateFromQueryModal: FunctionComponent<BulkUpdateFromQueryModa
   const [batchSize, setBatchSize] = useState<Maybe<number>>(10000);
   const [batchSizeError, setBatchSizeError] = useState<string | null>(null);
   const [serialMode, setSerialMode] = useState(false);
-  const [deployResults, setDeployResults] = useState<DeployResults>({
-    done: false,
-    processingStartTime: convertDateToLocale(new Date()),
-    processingEndTime: null,
-    processingErrors: [],
-    records: [],
-    batchIdToIndex: {},
-    status: 'Not Started',
-  });
+  const [isSecondModalOpen, setIsSecondModalOpen] = useState(false);
+  const [deployResults, setDeployResults] = useRecoilState(deployResultsState);
+  const resetDeployResults = useResetRecoilState(deployResultsState);
+  // this allows the pollResults to have a stable data source for updated data
+  const getDeploymentResults = useRecoilCallback(
+    ({ snapshot }) =>
+      () => {
+        return [
+          {
+            deployResults: snapshot.getLoadable(deployResultsState).getValue(),
+            sobject,
+          },
+        ];
+      },
+    [sobject]
+  );
 
   const handleDeployResults = useCallback((sobject: string, deployResults: DeployResults, fatalError?: boolean) => {
     setDeployResults(deployResults);
     if (fatalError) {
-      // TODO: figure out how to handle this or what to show etc..
       setErrorMessage('An error occurred while processing your request. Please try again.');
     }
   }, []);
 
-  const { loadDataForProvidedRecords, pollResultsUntilDone } = useDeployRecords(selectedOrg, handleDeployResults);
+  const { loadDataForProvidedRecords, pollResultsUntilDone } = useDeployRecords(selectedOrg, handleDeployResults, 'QUERY');
 
   useEffect(() => {
     const hasMoreRecordsTemp = !!totalRecordCount && !!records && totalRecordCount > records.length;
@@ -105,6 +130,7 @@ export const BulkUpdateFromQueryModal: FunctionComponent<BulkUpdateFromQueryModa
   }, [totalRecordCount, records]);
 
   useEffect(() => {
+    resetDeployResults();
     loadMetadata();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedOrg, sobject, parsedQuery]);
@@ -121,12 +147,15 @@ export const BulkUpdateFromQueryModal: FunctionComponent<BulkUpdateFromQueryModa
     }
   }, [batchSize, batchSizeError]);
 
+  /**
+   * Get list of all fields available for the selected object
+   * TODO: support nested fields
+   */
   async function loadMetadata() {
     try {
       setLoading(true);
       const { data } = await describeSObject(selectedOrg, sobject);
       const allFieldMetadata = sortQueryFields(data.fields);
-      setMetadata(data);
       setAllFields(
         allFieldMetadata.map((field) => ({
           id: field.name,
@@ -147,28 +176,68 @@ export const BulkUpdateFromQueryModal: FunctionComponent<BulkUpdateFromQueryModa
             meta: field,
           }))
       );
+      if (!filterLoadSobjects(data)) {
+        setFatalError('This object does not support loading in data.');
+      }
     } catch (ex) {
-      // TODO: handle error
+      setFatalError('There was a problem loading metadata for this object. Please try again.');
     } finally {
       setLoading(false);
     }
   }
 
-  function handleLoadRecords() {
-    /**
-     * 1. IF we have all records and we have all dependent fields, do not query again
-     * 2. Otherwise we need to add any fields to the query and re-run it to get records we don't have yet
-     * 3.
-     */
-  }
+  const handleLoadRecords = async () => {
+    if (!selectedField || batchSizeError) {
+      return;
+    }
 
-  function hasFilteredRecords(): boolean {
-    return Array.isArray(filteredRecords) && filteredRecords.length && filteredRecords.length !== records.length ? true : false;
-  }
+    setDeployResults({
+      done: false,
+      processingStartTime: convertDateToLocale(new Date()),
+      processingEndTime: null,
+      processingErrors: [],
+      records: [],
+      batchIdToIndex: {},
+      status: 'In Progress - Preparing',
+    });
 
-  function hasSelectedRecords(): boolean {
-    return Array.isArray(selectedRecords) && selectedRecords.length && selectedRecords.length !== records.length ? true : false;
-  }
+    // if records need to be re-fetched from the server, ensure that we only keep records that user wants to work with
+    let idsToInclude: Set<string> | undefined;
+    if (downloadRecordsValue === RADIO_ALL_BROWSER && hasMoreRecords) {
+      idsToInclude = new Set(records.map((record) => record.Id || getRecordIdFromAttributes(record)));
+    } else if (downloadRecordsValue === RADIO_FILTERED) {
+      idsToInclude = new Set(filteredRecords.map((record) => record.Id || getRecordIdFromAttributes(record)));
+    } else if (downloadRecordsValue === RADIO_SELECTED) {
+      idsToInclude = new Set(filteredRecords.map((record) => record.Id || getRecordIdFromAttributes(record)));
+    }
+
+    const recordsToLoad = await fetchRecordsWithRequiredFields({
+      selectedOrg,
+      records,
+      parsedQuery,
+      transformationOptions,
+      idsToInclude,
+    });
+
+    try {
+      setLoading(true);
+
+      await loadDataForProvidedRecords({
+        records: recordsToLoad,
+        sobject,
+        fields: ['Id', selectedField],
+        batchSize: batchSize ?? 10000,
+        serialMode,
+        selectedField,
+        transformationOptions,
+      });
+      pollResultsUntilDone(getDeploymentResults);
+    } catch (ex) {
+      // TODO: show fatal error message
+    } finally {
+      setLoading(false);
+    }
+  };
 
   function handleBatchSize(event: ChangeEvent<HTMLInputElement>) {
     const value = Number.parseInt(event.target.value);
@@ -179,18 +248,26 @@ export const BulkUpdateFromQueryModal: FunctionComponent<BulkUpdateFromQueryModa
     }
   }
 
+  const deployInProgress = IN_PROGRESS_STATUSES.has(deployResults.status);
+
   return (
     <Modal
       header="Update Records"
+      tagline="Update a field from your query results to a new value."
       size="lg"
       closeOnBackdropClick={false}
       closeOnEsc={false}
+      hide={isSecondModalOpen}
       footer={
         <Fragment>
           <button className="slds-button slds-button_neutral" onClick={() => onModalClose()}>
             Cancel
           </button>
-          <button className="slds-button slds-button_brand" onClick={handleLoadRecords} disabled={!isValid || loading || !!batchSizeError}>
+          <button
+            className="slds-button slds-button_brand"
+            onClick={handleLoadRecords}
+            disabled={!isValid || loading || !!batchSizeError || deployInProgress || !!fatalError}
+          >
             Update Records
           </button>
         </Fragment>
@@ -204,61 +281,23 @@ export const BulkUpdateFromQueryModal: FunctionComponent<BulkUpdateFromQueryModa
           min-height: 50vh;
         `}
       >
-        {/* TODO: add option for "selected records" */}
-        {/* TODO: add a note about how many records are going to be updated */}
+        {(errorMessage || fatalError) && (
+          <ScopedNotification theme="error" className="slds-m-around_small">
+            {errorMessage || fatalError}
+          </ScopedNotification>
+        )}
 
-        <RadioGroup
-          label="Which Records"
-          labelHelp={parsedQuery?.where ? 'Only records that match your query filters will be updated' : ''}
-          required
-          className="slds-m-bottom_small"
-        >
-          {hasMoreRecords && (
-            <Fragment>
-              <Radio
-                name="radio-download"
-                label={`All records (${formatNumber(totalRecordCount || records.length)})`}
-                value={RADIO_ALL_SERVER}
-                checked={downloadRecordsValue === RADIO_ALL_SERVER}
-                onChange={setDownloadRecordsValue}
-              />
-              <Radio
-                name="radio-download"
-                label={`First set of records (${formatNumber(records.length)})`}
-                value={RADIO_ALL_BROWSER}
-                checked={downloadRecordsValue === RADIO_ALL_BROWSER}
-                onChange={setDownloadRecordsValue}
-              />
-            </Fragment>
-          )}
-          {!hasMoreRecords && (
-            <Radio
-              name="radio-download"
-              label={`All records (${formatNumber(totalRecordCount || records.length)})`}
-              value={RADIO_ALL_BROWSER}
-              checked={downloadRecordsValue === RADIO_ALL_BROWSER}
-              onChange={setDownloadRecordsValue}
-            />
-          )}
-          {hasFilteredRecords() && (
-            <Radio
-              name="radio-download"
-              label={`Filtered records (${formatNumber(filteredRecords?.length || 0)})`}
-              value={RADIO_FILTERED}
-              checked={downloadRecordsValue === RADIO_FILTERED}
-              onChange={setDownloadRecordsValue}
-            />
-          )}
-          {hasSelectedRecords() && (
-            <Radio
-              name="radio-download"
-              label={`Selected records (${formatNumber(selectedRecords?.length || 0)})`}
-              value={RADIO_SELECTED}
-              checked={downloadRecordsValue === RADIO_SELECTED}
-              onChange={setDownloadRecordsValue}
-            />
-          )}
-        </RadioGroup>
+        <BulkUpdateFromQueryRecordSelection
+          disabled={deployInProgress || !!fatalError}
+          hasMoreRecords={hasMoreRecords}
+          downloadRecordsValue={downloadRecordsValue}
+          parsedQuery={parsedQuery}
+          records={records}
+          filteredRecords={filteredRecords}
+          selectedRecords={selectedRecords}
+          totalRecordCount={totalRecordCount}
+          onChange={setDownloadRecordsValue}
+        />
 
         <MassUpdateRecordsObjectRow
           className={'slds-is-relative slds-item read-only'}
@@ -268,6 +307,7 @@ export const BulkUpdateFromQueryModal: FunctionComponent<BulkUpdateFromQueryModa
           allFields={allFields}
           selectedField={selectedField}
           transformationOptions={transformationOptions}
+          disabled={loading || deployInProgress || !!fatalError}
           onFieldChange={setSelectedField}
           onOptionsChange={(_, options) => setTransformationOptions(options)}
           filterCriteriaFn={(field) => field.value !== 'custom'}
@@ -304,6 +344,18 @@ export const BulkUpdateFromQueryModal: FunctionComponent<BulkUpdateFromQueryModa
             />
           </Input>
         </Section>
+
+        {deployResults.status !== 'Not Started' && (
+          <MassUpdateRecordsDeploymentRow
+            selectedOrg={selectedOrg}
+            sobject={sobject}
+            deployResults={deployResults}
+            transformationOptions={transformationOptions}
+            selectedField={selectedField}
+            batchSize={batchSize ?? 10000}
+            onModalOpenChange={setIsSecondModalOpen}
+          />
+        )}
       </div>
     </Modal>
   );

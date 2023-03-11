@@ -6,30 +6,22 @@ import { delay, splitArrayToMaxSize } from '@jetstream/shared/utils';
 import { BulkJobBatchInfo, Maybe, SalesforceOrgUi } from '@jetstream/types';
 import formatDate from 'date-fns/format';
 import { useCallback, useEffect, useRef } from 'react';
-import { useRecoilCallback, useRecoilState } from 'recoil';
+import { useRecoilState } from 'recoil';
 import { applicationCookieState } from '../../../app-state';
 import { useAmplitude } from '../../core/analytics';
-import * as fromMassUpdateState from '../../update-records/mass-update-records.state';
 import { DeployResults, MetadataRow, TransformationOptions } from './mass-update-records.types';
 import { composeSoqlQuery, getFieldsToQuery } from './mass-update-records.utils';
 
 export function useDeployRecords(
   org: SalesforceOrgUi,
-  onDeployResults: (sobject: string, deployResults: DeployResults, fatalError?: boolean) => void
+  onDeployResults: (sobject: string, deployResults: DeployResults, fatalError?: boolean) => void,
+  source: 'STAND-ALONE' | 'QUERY' = 'STAND-ALONE'
 ) {
   const [{ serverUrl }] = useRecoilState(applicationCookieState);
   const isMounted = useRef(true);
   const { notifyUser } = useBrowserNotifications(serverUrl, window.electron?.isFocused);
   const rollbar = useRollbar();
   const { trackEvent } = useAmplitude();
-
-  const getRows = useRecoilCallback(
-    ({ snapshot }) =>
-      () => {
-        return snapshot.getLoadable(fromMassUpdateState.rowsState).getValue();
-      },
-    []
-  );
 
   useEffect(() => {
     isMounted.current = true;
@@ -82,6 +74,7 @@ export function useDeployRecords(
       batchSize: number;
       serialMode: boolean;
     }) => {
+      deployResults = { ...deployResults };
       const jobInfo = await bulkApiCreateJob(org, { type: 'UPDATE', sObject: sobject, serialMode });
       const jobId = jobInfo.id || '';
       const batches = splitArrayToMaxSize(records, batchSize).map((batch) => ({
@@ -92,7 +85,7 @@ export function useDeployRecords(
       deployResults.jobInfo = jobInfo;
       deployResults.numberOfBatches = batches.length;
       deployResults.records = records;
-      onDeployResults(sobject, deployResults);
+      onDeployResults(sobject, { ...deployResults });
 
       let currItem = 0;
       for (const batch of batches) {
@@ -103,7 +96,7 @@ export function useDeployRecords(
           deployResults.jobInfo.batches = deployResults.jobInfo.batches || [];
           deployResults.jobInfo.batches = [...deployResults.jobInfo.batches, batchResult];
 
-          onDeployResults(sobject, deployResults);
+          onDeployResults(sobject, { ...deployResults });
         } catch (ex) {
           // error loading batch
           logger.error('Error loading batch', ex);
@@ -114,6 +107,9 @@ export function useDeployRecords(
           currItem++;
         }
       }
+      deployResults.status = 'In Progress';
+      deployResults.lastChecked = formatDate(new Date(), 'h:mm:ss');
+      onDeployResults(sobject, { ...deployResults });
     },
     [org, rollbar, onDeployResults]
   );
@@ -132,7 +128,7 @@ export function useDeployRecords(
 
       const fields = getFieldsToQuery(row);
 
-      onDeployResults(row.sobject, deployResults);
+      onDeployResults(row.sobject, { ...deployResults });
 
       const { queryResults } = await queryAll(org, composeSoqlQuery(row, fields));
       if (!isMounted.current) {
@@ -155,17 +151,18 @@ export function useDeployRecords(
           batchIdToIndex: {},
           status: 'Finished',
         };
-        onDeployResults(row.sobject, deployResults);
+        onDeployResults(row.sobject, { ...deployResults });
         return;
       }
 
       deployResults.status = 'In Progress - Uploading';
-      onDeployResults(row.sobject, deployResults);
+      onDeployResults(row.sobject, { ...deployResults });
 
       await performLoad({
         deployResults,
         sobject: row.sobject,
-        fields,
+        // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+        fields: ['Id', row.selectedField!],
         records,
         batchSize,
         serialMode,
@@ -174,10 +171,6 @@ export function useDeployRecords(
       if (!isMounted.current) {
         return;
       }
-
-      deployResults.status = 'In Progress';
-      deployResults.lastChecked = formatDate(new Date(), 'h:mm:ss');
-      onDeployResults(row.sobject, deployResults);
     },
     [org, performLoad, prepareRecords, onDeployResults]
   );
@@ -192,6 +185,7 @@ export function useDeployRecords(
         batchSize: options.batchSize,
         serialMode: options.serialMode,
         numObjects: rows.length,
+        source,
       });
       for (const row of rows) {
         try {
@@ -212,7 +206,7 @@ export function useDeployRecords(
         }
       }
     },
-    [loadDataForRow, rollbar, onDeployResults, trackEvent]
+    [trackEvent, source, loadDataForRow, onDeployResults, rollbar]
   );
 
   /**
@@ -220,7 +214,7 @@ export function useDeployRecords(
    */
   const loadDataForProvidedRecords = useCallback(
     async ({
-      initialRecords,
+      records: initialRecords,
       sobject,
       fields,
       batchSize,
@@ -228,8 +222,9 @@ export function useDeployRecords(
       selectedField,
       transformationOptions,
     }: {
-      initialRecords: any[];
+      records: any[];
       sobject: string;
+      /** Fields to include in load */
       fields: string[];
       batchSize: number;
       serialMode: boolean;
@@ -240,6 +235,7 @@ export function useDeployRecords(
         batchSize: batchSize,
         serialMode: serialMode,
         numObjects: initialRecords.length,
+        source,
       });
       const deployResults: DeployResults = {
         done: false,
@@ -251,11 +247,11 @@ export function useDeployRecords(
         status: 'In Progress - Preparing',
       };
       try {
-        onDeployResults(sobject, deployResults);
+        onDeployResults(sobject, { ...deployResults });
         const records = prepareRecords(initialRecords, { selectedField, transformationOptions });
 
         deployResults.status = 'In Progress - Uploading';
-        onDeployResults(sobject, deployResults);
+        onDeployResults(sobject, { ...deployResults });
 
         performLoad({
           deployResults,
@@ -280,11 +276,11 @@ export function useDeployRecords(
         logger.error('Error loading data for row', ex);
       }
     },
-    [performLoad, prepareRecords, rollbar, onDeployResults, trackEvent]
+    [trackEvent, source, onDeployResults, prepareRecords, performLoad, rollbar]
   );
 
   const pollResults = useCallback(
-    async (rows: MetadataRow[]) => {
+    async (rows: Pick<MetadataRow, 'deployResults' | 'sobject'>[]) => {
       let allDone = true;
       for (const row of rows) {
         if (!row.deployResults.done && row.deployResults.jobInfo?.id) {
@@ -308,7 +304,7 @@ export function useDeployRecords(
               allDone = false;
             }
 
-            onDeployResults(row.sobject, deployResults);
+            onDeployResults(row.sobject, { ...deployResults });
           } catch (ex) {
             logger.error('Error polling bulk api job', ex);
             rollbar.error('There was an error polling bulk api job', { message: ex.message, stack: ex.stack });
@@ -327,20 +323,32 @@ export function useDeployRecords(
     [org, rollbar, onDeployResults]
   );
 
-  const pollResultsUntilDone = useCallback(async () => {
-    try {
-      let done = false;
-      while (!done && isMounted.current) {
-        await delay(5000);
-        done = await pollResults(getRows());
+  /**
+   * Result will be polled until all jobs are done
+   * All saving needs to happen in the parent component
+   *
+   * getRows() should use recoil to store data since the fn will be called multiple times
+   * and the data it depends on will have been updated each time the polling happens
+   *
+   * and onDeployResults() will be called with the modified rows
+   */
+  const pollResultsUntilDone = useCallback(
+    async (getRows: () => Pick<MetadataRow, 'deployResults' | 'sobject'>[]) => {
+      try {
+        let done = false;
+        while (!done && isMounted.current) {
+          await delay(5000);
+          done = await pollResults(getRows());
+        }
+        notifyUser(`Updating records has finished`, { body: 'Updating records has finished', tag: 'massUpdateRecords' });
+      } catch (ex) {
+        rollbar.error('There was an error polling for mass record update results', { message: ex.message, stack: ex.stack });
+        logger.warn('Error polling for jobs', ex);
+        notifyUser(`Updating records has failed`, { body: 'There was a problem with your data processing', tag: 'massUpdateRecords' });
       }
-      notifyUser(`Updating records has finished`, { body: 'Updating records has finished', tag: 'massUpdateRecords' });
-    } catch (ex) {
-      rollbar.error('There was an error polling for mass record update results', { message: ex.message, stack: ex.stack });
-      logger.warn('Error polling for jobs', ex);
-      notifyUser(`Updating records has failed`, { body: 'There was a problem with your data processing', tag: 'massUpdateRecords' });
-    }
-  }, [getRows, notifyUser, pollResults, rollbar]);
+    },
+    [notifyUser, pollResults, rollbar]
+  );
 
   return {
     loadDataForRows,

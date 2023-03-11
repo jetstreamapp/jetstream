@@ -8,12 +8,14 @@ import { transformationOptionListItems } from './mass-update-records.utils';
 export interface MassUpdateRecordsObjectRowValueProps {
   fields: ListItem[];
   transformationOptions: TransformationOptions;
+  disabled?: boolean;
   onOptionsChange: (options: TransformationOptions) => void;
 }
 
 export const MassUpdateRecordsObjectRowValue: FunctionComponent<MassUpdateRecordsObjectRowValueProps> = ({
   fields,
   transformationOptions,
+  disabled,
   onOptionsChange,
 }) => {
   function handleUpdateToApply(option: TransformationOption) {
@@ -46,6 +48,7 @@ export const MassUpdateRecordsObjectRowValue: FunctionComponent<MassUpdateRecord
                 label: 'Record update to Apply',
                 itemLength: 5,
                 isRequired: true,
+                disabled,
               }}
               items={transformationOptionListItems}
               selectedItemId={transformationOptions.option}
@@ -67,6 +70,7 @@ export const MassUpdateRecordsObjectRowValue: FunctionComponent<MassUpdateRecord
                     className="slds-input"
                     placeholder="Value to set on each record"
                     value={transformationOptions.staticValue}
+                    disabled={disabled}
                     onChange={(event) => handleStaticValueChanged(event.target.value)}
                   />
                 </Input>
@@ -88,6 +92,7 @@ export const MassUpdateRecordsObjectRowValue: FunctionComponent<MassUpdateRecord
                   itemLength: 5,
                   isRequired: true,
                   labelHelp: 'Each record will be updated with the value from this field',
+                  disabled,
                 }}
                 items={fields}
                 selectedItemId={transformationOptions.alternateField}

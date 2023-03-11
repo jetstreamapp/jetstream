@@ -2,7 +2,6 @@ import { ANALYTICS_KEYS } from '@jetstream/shared/constants';
 import { AsyncJobNew, BulkDownloadJob, FileExtCsvXLSXJsonGSheet, MapOf, Maybe, SalesforceOrgUi } from '@jetstream/types';
 import { ButtonGroupContainer, DropDown, Icon, RecordDownloadModal } from '@jetstream/ui';
 import { Fragment, FunctionComponent, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { useRecoilState } from 'recoil';
 import { Query } from 'soql-parser-js';
 import { applicationCookieState } from '../../../app-state';
@@ -41,7 +40,6 @@ export const QueryResultsDownloadButton: FunctionComponent<QueryResultsDownloadB
   selectedRows,
   totalRecordCount,
 }) => {
-  const navigate = useNavigate();
   const { trackEvent } = useAmplitude();
   const [{ google_apiKey, google_appId, google_clientId }] = useRecoilState(applicationCookieState);
   const [isDownloadModalOpen, setModalOpen] = useState<boolean>(false);

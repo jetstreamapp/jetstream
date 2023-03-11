@@ -10,6 +10,7 @@ import { startsWithWhereRgx, transformationCriteriaListItems } from './mass-upda
 export interface MassUpdateRecordsObjectRowCriteriaProps {
   sobject: string;
   transformationOptions: TransformationOptions;
+  disabled?: boolean;
   filterFn?: (item: ListItem) => boolean;
   onOptionsChange: (options: TransformationOptions) => void;
 }
@@ -17,6 +18,7 @@ export interface MassUpdateRecordsObjectRowCriteriaProps {
 export const MassUpdateRecordsObjectRowCriteria: FunctionComponent<MassUpdateRecordsObjectRowCriteriaProps> = ({
   sobject,
   transformationOptions,
+  disabled,
   filterFn = () => true,
   onOptionsChange,
 }) => {
@@ -56,6 +58,7 @@ export const MassUpdateRecordsObjectRowCriteria: FunctionComponent<MassUpdateRec
                 label: 'Which records should be updated?',
                 itemLength: 5,
                 isRequired: true,
+                disabled,
               }}
               items={transformationCriteriaListItems.filter(filterFn)}
               selectedItemId={transformationOptions.criteria}
@@ -86,6 +89,7 @@ export const MassUpdateRecordsObjectRowCriteria: FunctionComponent<MassUpdateRec
                   className="slds-input"
                   placeholder="CreatedDate >= THIS_WEEK AND Type__c != 'Account'"
                   rows={1}
+                  disabled={disabled}
                   value={transformationOptions.whereClause}
                   onChange={(event) => handleWhereClauseChanged(event.target.value)}
                 />
