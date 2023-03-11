@@ -73,7 +73,7 @@ export const DeployMetadataToOrg: FunctionComponent<DeployMetadataToOrgProps> = 
       {configModalOpen && selectedMetadata && (
         <DeployMetadataToOrgConfigModal
           sourceOrg={selectedOrg}
-          initialOptions={deployMetadataOptions || {}}
+          initialOptions={deployMetadataOptions}
           initialSelectedDestinationOrg={destinationOrg}
           selectedMetadata={selectedMetadata}
           onClose={handleCloseConfigModal}
