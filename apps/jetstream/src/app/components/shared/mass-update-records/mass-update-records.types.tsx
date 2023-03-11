@@ -1,6 +1,6 @@
 import { BulkJobWithBatches, ListItem, MapOf, Maybe } from '@jetstream/types';
 import type { DescribeSObjectResult } from 'jsforce';
-import { PrepareDataResponseError } from '../shared/load-records-results/load-records-results-types';
+import { PrepareDataResponseError } from '../load-records-results/load-records-results-types';
 
 export interface MetadataRow {
   /** Confirmed all input is valid, but does not indicate that the row has been validated */

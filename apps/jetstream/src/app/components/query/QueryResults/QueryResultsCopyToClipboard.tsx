@@ -118,6 +118,7 @@ export const QueryResultsCopyToClipboard: FunctionComponent<QueryResultsCopyToCl
           className="slds-button_last"
           dropDownClassName="slds-dropdown_actions"
           position="right"
+          disabled={!hasRecords}
           items={[
             { id: 'text', value: 'Copy as Text' },
             { id: 'json', value: 'Copy as JSON' },

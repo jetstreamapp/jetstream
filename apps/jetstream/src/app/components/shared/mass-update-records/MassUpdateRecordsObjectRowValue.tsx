@@ -2,8 +2,8 @@ import { css } from '@emotion/react';
 import { ListItem } from '@jetstream/types';
 import { ComboboxWithItems, ControlledInput, Grid, Input } from '@jetstream/ui';
 import { FunctionComponent } from 'react';
-import { TransformationOption, TransformationOptions } from '../mass-update-records.types';
-import { transformationOptionListItems } from '../mass-update-records.utils';
+import { TransformationOption, TransformationOptions } from './mass-update-records.types';
+import { transformationOptionListItems } from './mass-update-records.utils';
 
 export interface MassUpdateRecordsObjectRowValueProps {
   fields: ListItem[];
@@ -44,7 +44,7 @@ export const MassUpdateRecordsObjectRowValue: FunctionComponent<MassUpdateRecord
             <ComboboxWithItems
               comboboxProps={{
                 label: 'Record update to Apply',
-                itemLength: 10,
+                itemLength: 5,
                 isRequired: true,
               }}
               items={transformationOptionListItems}
@@ -85,7 +85,7 @@ export const MassUpdateRecordsObjectRowValue: FunctionComponent<MassUpdateRecord
               <ComboboxWithItems
                 comboboxProps={{
                   label: 'Field to use as value',
-                  itemLength: 10,
+                  itemLength: 5,
                   isRequired: true,
                   labelHelp: 'Each record will be updated with the value from this field',
                 }}

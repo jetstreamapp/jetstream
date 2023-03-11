@@ -1,9 +1,15 @@
 import { ListItem } from '@jetstream/types';
-import { AutoFullHeightContainer, EmptyState, OpenRoadIllustration } from '@jetstream/ui';
+import { AutoFullHeightContainer, EmptyState, Grid, GridCol, OpenRoadIllustration, Tooltip } from '@jetstream/ui';
 import { Fragment, FunctionComponent } from 'react';
-import { MetadataRow, TransformationCriteria, TransformationOption, TransformationOptions } from '../mass-update-records.types';
+import {
+  MetadataRow,
+  TransformationCriteria,
+  TransformationOption,
+  TransformationOptions,
+} from '../../shared/mass-update-records/mass-update-records.types';
 import MassUpdateRecordsApplyToAllRow from './MassUpdateRecordsApplyToAllRow';
-import MassUpdateRecordsObjectRow from './MassUpdateRecordsObjectRow';
+import MassUpdateRecordsObjectRow from '../../shared/mass-update-records/MassUpdateRecordsObjectRow';
+import MassUpdateRecordObjectHeading from '../shared/MassUpdateRecordObjectHeading';
 
 export interface MassUpdateRecordsRowProps {
   rows: MetadataRow[];
@@ -39,21 +45,46 @@ export const MassUpdateRecordsRow: FunctionComponent<MassUpdateRecordsRowProps> 
           />
           <ul className="slds-has-dividers_around-space">
             {rows.map((row) => (
-              <MassUpdateRecordsObjectRow
-                key={row.sobject}
-                sobject={row.sobject}
-                isValid={row.isValid}
-                loadError={row.loadError}
-                loading={row.loading}
-                fields={row.fields}
-                allFields={row.allFields}
-                selectedField={row.selectedField}
-                validationResults={row.validationResults}
-                transformationOptions={row.transformationOptions}
-                onFieldChange={(selectedField) => onFieldSelected(row.sobject, selectedField)}
-                onOptionsChange={handleOptionChange}
-                validateRowRecords={validateRowRecords}
-              />
+              <li key={row.sobject} className="slds-is-relative slds-item read-only slds-p-left_small">
+                <MassUpdateRecordsObjectRow
+                  sobject={row.sobject}
+                  loading={row.loading}
+                  fields={row.fields}
+                  allFields={row.allFields}
+                  selectedField={row.selectedField}
+                  validationResults={row.validationResults}
+                  transformationOptions={row.transformationOptions}
+                  onFieldChange={(selectedField) => onFieldSelected(row.sobject, selectedField)}
+                  onOptionsChange={handleOptionChange}
+                >
+                  <GridCol size={12}>
+                    <Grid align="spread" verticalAlign="center">
+                      <MassUpdateRecordObjectHeading
+                        isValid={row.isValid}
+                        sobject={row.sobject}
+                        validationResults={row.validationResults}
+                      />
+                      <div>
+                        <Tooltip
+                          content={
+                            row.isValid
+                              ? 'Configure this object before you can validate the number of impacted records.'
+                              : 'Check the number of records that will be updated'
+                          }
+                        >
+                          <button
+                            className="slds-button slds-button_neutral"
+                            disabled={!row.isValid}
+                            onClick={() => validateRowRecords(row.sobject)}
+                          >
+                            Validate Results
+                          </button>
+                        </Tooltip>
+                      </div>
+                    </Grid>
+                  </GridCol>
+                </MassUpdateRecordsObjectRow>
+              </li>
             ))}
           </ul>
         </Fragment>

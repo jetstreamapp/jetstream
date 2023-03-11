@@ -29,7 +29,7 @@ export const MassUpdateRecordsObjectRowField: FunctionComponent<MassUpdateRecord
         <ComboboxWithItems
           comboboxProps={{
             label: 'Field to Update',
-            itemLength: 10,
+            itemLength: 5,
             isRequired: true,
           }}
           items={fields}

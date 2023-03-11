@@ -2,7 +2,7 @@ import { Maybe } from '@jetstream/types';
 import { Badge } from '@jetstream/ui';
 import classNames from 'classnames';
 import { FunctionComponent } from 'react';
-import { TransformationOptions } from '../mass-update-records.types';
+import { TransformationOptions } from '../../shared/mass-update-records/mass-update-records.types';
 
 export interface MassUpdateRecordTransformationTextProps {
   className?: string;

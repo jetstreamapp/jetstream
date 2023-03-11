@@ -48,6 +48,7 @@ import React, { Fragment, FunctionComponent, useCallback, useEffect, useRef, use
 import { Link, NavLink, useLocation, useNavigate } from 'react-router-dom';
 import { useRecoilState, useRecoilValue } from 'recoil';
 import { filter } from 'rxjs/operators';
+import { Query, WhereClause } from 'soql-parser-js';
 import { applicationCookieState, selectedOrgState } from '../../../app-state';
 import { useAmplitude } from '../../core/analytics';
 import * as fromJetstreamEvents from '../../core/jetstream-events';
@@ -60,6 +61,7 @@ import { getFlattenSubqueryFlattenedFieldMap } from '../utils/query-utils';
 import useQueryRestore from '../utils/useQueryRestore';
 import QueryResultsAttachmentDownload, { FILE_DOWNLOAD_FIELD_MAP } from './QueryResultsAttachmentDownload';
 import QueryResultsCopyToClipboard from './QueryResultsCopyToClipboard';
+import QueryResultsDownloadButton from './QueryResultsDownloadButton';
 import QueryResultsGetRecAsApexModal from './QueryResultsGetRecAsApexModal';
 import QueryResultsSoqlPanel from './QueryResultsSoqlPanel';
 import QueryResultsViewRecordFields from './QueryResultsViewRecordFields';
@@ -95,10 +97,9 @@ export const QueryResults: FunctionComponent<QueryResultsProps> = React.memo(() 
     sobject?: { name: string; label: string };
   }>();
   const [soqlPanelOpen, setSoqlPanelOpen] = useState<boolean>(false);
-  const [recordDetailPanelOpen, setRecordDetailPanelOpen] = useState<boolean>(false);
-  const [recordDetailSelectedRow, setRecordDetailSelectedRow] = useState<Record>(null);
   const [soql, setSoql] = useState<string>('');
-  const [userSoql, setUserSoql] = useState<string | null>(null);
+  const [sobject, setSobject] = useState<Maybe<string>>(null);
+  const [parsedQuery, setParsedQuery] = useState<Maybe<Query>>(null);
   const [queryResults, setQueryResults] = useState<IQueryResults | null>(null);
   const [recordCount, setRecordCount] = useState<number | null>(null);
   const [records, setRecords] = useState<Record[] | null>(null);
@@ -110,7 +111,6 @@ export const QueryResults: FunctionComponent<QueryResultsProps> = React.memo(() 
   const [selectedRows, setSelectedRows] = useState<Record[]>([]);
   const [loading, setLoading] = useState<boolean>(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
-  const [downloadModalOpen, setDownloadModalOpen] = useState<boolean>(false);
   const selectedOrg = useRecoilValue<SalesforceOrgUi>(selectedOrgState);
   const [{ serverUrl, defaultApiVersion, google_apiKey, google_appId, google_clientId }] = useRecoilState(applicationCookieState);
   const [totalRecordCount, setTotalRecordCount] = useState<number | null>(null);
@@ -194,7 +194,6 @@ export const QueryResults: FunctionComponent<QueryResultsProps> = React.memo(() 
     logger.log({ location });
     if (locationState) {
       setSoql(locationState.soql || '');
-      setUserSoql(locationState.soql || '');
       setIsTooling(locationState.isTooling ? true : false);
       locationState.soql &&
         executeQuery(locationState.soql, locationState.fromHistory ? SOURCE_HISTORY : SOURCE_STANDARD, {
@@ -298,6 +297,8 @@ export const QueryResults: FunctionComponent<QueryResultsProps> = React.memo(() 
 
       const sobjectName = results.parsedQuery?.sObject || results.columns?.entityName;
       sobjectName && (await saveQueryHistory(soqlQuery, sobjectName, tooling));
+      setSobject(sobjectName);
+      setParsedQuery(results.parsedQuery);
     } catch (ex) {
       if (!isMounted.current) {
         return;
@@ -310,6 +311,8 @@ export const QueryResults: FunctionComponent<QueryResultsProps> = React.memo(() 
         body: ex.message,
         tag: 'query',
       });
+      setSobject(null);
+      setParsedQuery(null);
     } finally {
       setLoading(false);
     }
@@ -379,56 +382,6 @@ export const QueryResults: FunctionComponent<QueryResultsProps> = React.memo(() 
       default:
         break;
     }
-  }
-
-  function handleDidDownload(fileFormat: FileExtCsvXLSXJsonGSheet, whichFields: 'all' | 'specified', includeSubquery: boolean) {
-    trackEvent(ANALYTICS_KEYS.query_DownloadResults, {
-      source: 'BROWSER',
-      fileFormat,
-      isTooling,
-      userOverrideFields: whichFields === 'specified',
-      whichFields,
-      includeSubquery,
-    });
-  }
-
-  function handleDownloadFromServer(options: {
-    fileFormat: FileExtCsvXLSXJsonGSheet;
-    fileName: string;
-    fields: string[];
-    subqueryFields: MapOf<string[]>;
-    whichFields: 'all' | 'specified';
-    includeSubquery: boolean;
-    googleFolder?: string;
-  }) {
-    const { fileFormat, fileName, fields, includeSubquery, whichFields, googleFolder } = options;
-    const jobs: AsyncJobNew<BulkDownloadJob>[] = [
-      {
-        type: 'BulkDownload',
-        title: `Download Records`,
-        org: selectedOrg,
-        meta: {
-          isTooling,
-          fields,
-          subqueryFields,
-          records: records || [],
-          totalRecordCount: totalRecordCount || 0,
-          nextRecordsUrl,
-          fileFormat,
-          fileName,
-          includeSubquery,
-          googleFolder,
-        },
-      },
-    ];
-    fromJetstreamEvents.emit({ type: 'newJob', payload: jobs });
-    trackEvent(ANALYTICS_KEYS.query_DownloadResults, {
-      source: 'SERVER',
-      fileFormat,
-      isTooling,
-      userOverrideFields: whichFields === 'specified',
-      includeSubquery,
-    });
   }
 
   function handleLoadMore(results: IQueryResults<any>) {
@@ -507,23 +460,6 @@ export const QueryResults: FunctionComponent<QueryResultsProps> = React.memo(() 
 
   return (
     <div data-testid="query-results-page">
-      <RecordDownloadModal
-        org={selectedOrg}
-        google_apiKey={google_apiKey}
-        google_appId={google_appId}
-        google_clientId={google_clientId}
-        downloadModalOpen={downloadModalOpen}
-        fields={fields || []}
-        modifiedFields={modifiedFields || []}
-        subqueryFields={subqueryFields || {}}
-        records={records || []}
-        filteredRecords={filteredRows}
-        selectedRecords={selectedRows}
-        totalRecordCount={totalRecordCount || 0}
-        onModalClose={() => setDownloadModalOpen(false)}
-        onDownload={handleDidDownload}
-        onDownloadFromServer={handleDownloadFromServer}
-      />
       {cloneEditViewRecord && cloneEditViewRecord.recordId && (
         <ViewEditCloneRecord
           apiVersion={defaultApiVersion}
@@ -595,10 +531,21 @@ export const QueryResults: FunctionComponent<QueryResultsProps> = React.memo(() 
             selectedRows={selectedRows}
             isTooling={isTooling}
           />
-          <button className="slds-button slds-button_brand" onClick={() => setDownloadModalOpen(true)} disabled={!hasRecords()}>
-            <Icon type="utility" icon="download" className="slds-button__icon slds-button__icon_left" omitContainer />
-            Download
-          </button>
+          <QueryResultsDownloadButton
+            selectedOrg={selectedOrg}
+            sobject={sobject}
+            parsedQuery={parsedQuery}
+            disabled={!hasRecords()}
+            isTooling={isTooling}
+            nextRecordsUrl={nextRecordsUrl}
+            fields={fields || []}
+            modifiedFields={modifiedFields || []}
+            subqueryFields={subqueryFields}
+            records={records || []}
+            filteredRows={filteredRows}
+            selectedRows={selectedRows}
+            totalRecordCount={totalRecordCount || 0}
+          />
         </ToolbarItemActions>
       </Toolbar>
       <div className="slds-grid">
@@ -611,12 +558,6 @@ export const QueryResults: FunctionComponent<QueryResultsProps> = React.memo(() 
           onClosed={() => setSoqlPanelOpen(false)}
           executeQuery={(soql, tooling) => executeQuery(soql, SOURCE_MANUAL, { isTooling: tooling })}
           onOpenHistory={handleOpenHistory}
-        />
-        <QueryResultsViewRecordFields
-          org={selectedOrg}
-          row={recordDetailSelectedRow}
-          isOpen={recordDetailPanelOpen}
-          onClosed={() => setRecordDetailPanelOpen(false)}
         />
         <AutoFullHeightContainer
           className="slds-scrollable bg-white"

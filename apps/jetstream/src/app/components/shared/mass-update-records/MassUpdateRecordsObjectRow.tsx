@@ -1,37 +1,34 @@
 import { formatNumber } from '@jetstream/shared/ui-utils';
 import { pluralizeFromNumber } from '@jetstream/shared/utils';
 import { ListItem, Maybe } from '@jetstream/types';
-import { Grid, GridCol, ScopedNotification, Spinner, Tooltip } from '@jetstream/ui';
-import type { DescribeSObjectResult } from 'jsforce';
+import { Grid, GridCol, ScopedNotification, Spinner } from '@jetstream/ui';
 import isNumber from 'lodash/isNumber';
-import { FunctionComponent } from 'react';
-import { TransformationOptions, ValidationResults } from '../mass-update-records.types';
-import MassUpdateRecordObjectHeading from '../shared/MassUpdateRecordObjectHeading';
-import MassUpdateRecordTransformationText from '../shared/MassUpdateRecordTransformationText';
+import { FunctionComponent, ReactNode } from 'react';
+import MassUpdateRecordTransformationText from '../../update-records/shared/MassUpdateRecordTransformationText';
+import { TransformationOptions, ValidationResults } from './mass-update-records.types';
 import MassUpdateRecordsObjectRowCriteria from './MassUpdateRecordsObjectRowCriteria';
 import MassUpdateRecordsObjectRowField from './MassUpdateRecordsObjectRowField';
 import MassUpdateRecordsObjectRowValue from './MassUpdateRecordsObjectRowValue';
 
 export interface MassUpdateRecordsObjectRowProps {
+  className?: string;
   sobject: string;
-  isValid: boolean;
-  loadError?: Maybe<string>;
   loading: boolean;
-  metadata?: Maybe<DescribeSObjectResult>;
   fields: ListItem[];
   allFields: ListItem[];
   selectedField?: Maybe<string>;
-  validationResults: Maybe<ValidationResults>;
+  validationResults?: Maybe<ValidationResults>;
   transformationOptions: TransformationOptions;
   onFieldChange: (selectedField: string) => void;
   onOptionsChange: (sobject: string, options: TransformationOptions) => void;
-  validateRowRecords: (sobject: string) => void;
+  /** Used if some options should not be included in criteria dropdown */
+  filterCriteriaFn?: (item: ListItem) => boolean;
+  children?: ReactNode;
 }
 
 export const MassUpdateRecordsObjectRow: FunctionComponent<MassUpdateRecordsObjectRowProps> = ({
+  className,
   sobject,
-  isValid,
-  loadError,
   loading,
   fields,
   allFields,
@@ -40,29 +37,15 @@ export const MassUpdateRecordsObjectRow: FunctionComponent<MassUpdateRecordsObje
   transformationOptions,
   onFieldChange,
   onOptionsChange,
-  validateRowRecords,
+  filterCriteriaFn,
+  children,
 }) => {
   return (
-    <li className="slds-is-relative slds-item read-only slds-p-left_small">
+    <div className={className}>
       {loading && <Spinner />}
       <Grid verticalAlign="end" wrap>
+        {children}
         <GridCol size={12}>
-          <Grid align="spread" verticalAlign="center">
-            <MassUpdateRecordObjectHeading isValid={isValid} sobject={sobject} validationResults={validationResults} />
-            <div>
-              <Tooltip
-                content={
-                  isValid
-                    ? 'Configure this object before you can validate the number of impacted records.'
-                    : 'Check the number of records that will be updated'
-                }
-              >
-                <button className="slds-button slds-button_neutral" disabled={!isValid} onClick={() => validateRowRecords(sobject)}>
-                  Validate Results
-                </button>
-              </Tooltip>
-            </div>
-          </Grid>
           <MassUpdateRecordsObjectRowField fields={fields} selectedField={selectedField} onchange={onFieldChange} />
         </GridCol>
         <MassUpdateRecordsObjectRowValue
@@ -75,11 +58,12 @@ export const MassUpdateRecordsObjectRow: FunctionComponent<MassUpdateRecordsObje
           <MassUpdateRecordsObjectRowCriteria
             sobject={sobject}
             transformationOptions={transformationOptions}
+            filterFn={filterCriteriaFn}
             onOptionsChange={(options) => onOptionsChange(sobject, options)}
           />
         </GridCol>
       </Grid>
-      {selectedField && (
+      {!!selectedField && (
         <footer className="slds-card__footer">
           <MassUpdateRecordTransformationText
             className="slds-m-top_x-small slds-m-left_small"
@@ -101,7 +85,7 @@ export const MassUpdateRecordsObjectRow: FunctionComponent<MassUpdateRecordsObje
           </div>
         </footer>
       )}
-    </li>
+    </div>
   );
 };
 

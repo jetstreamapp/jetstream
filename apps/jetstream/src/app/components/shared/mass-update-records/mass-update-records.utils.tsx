@@ -57,10 +57,13 @@ export function isValidRow(row: Maybe<MetadataRow>) {
   return true;
 }
 
-export function getFieldsToQuery(row: MetadataRow): string[] {
-  let fields = ['Id', row.selectedField];
-  if (row.transformationOptions.option === 'anotherField' && row.transformationOptions.alternateField) {
-    fields.push(row.transformationOptions.alternateField);
+export function getFieldsToQuery({
+  transformationOptions,
+  selectedField,
+}: Pick<MetadataRow, 'selectedField' | 'transformationOptions'>): string[] {
+  let fields = ['Id', selectedField];
+  if (transformationOptions.option === 'anotherField' && transformationOptions.alternateField) {
+    fields.push(transformationOptions.alternateField);
   }
   // ensure no duplicates
   fields = Array.from(new Set(fields));
