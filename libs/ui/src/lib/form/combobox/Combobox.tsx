@@ -10,7 +10,7 @@ import {
   useNonInitialEffect,
 } from '@jetstream/shared/ui-utils';
 import { NOOP } from '@jetstream/shared/utils';
-import { DropDownItemLength, FormGroupDropdownItem } from '@jetstream/types';
+import { DropDownItemLength, FormGroupDropdownItem, Maybe } from '@jetstream/types';
 import classNames from 'classnames';
 import isNumber from 'lodash/isNumber';
 import uniqueId from 'lodash/uniqueId';
@@ -43,6 +43,7 @@ type ChildListItem = ComboboxListItemProps & React.RefAttributes<HTMLLIElement>;
 type ChildListGroup = ComboboxListItemGroupProps & { children: React.ReactNode };
 
 export interface ComboboxPropsRef {
+  getPopoverRef(): Maybe<HTMLDivElement>;
   close(): void;
 }
 
@@ -70,12 +71,16 @@ export interface ComboboxProps {
   errorMessageId?: string;
   errorMessage?: React.ReactNode | string;
   showSelectionAsButton?: boolean;
+  /** If using virtual list, this ensures child detection for keyboard navigation is correct */
+  isVirtual?: boolean;
   onInputChange?: (value: string) => void;
   /** Same as onInputChange, but does not get called when closed */
   onFilterInputChange?: (value: string) => void;
   onInputEnter?: () => void;
   onClear?: () => void;
   onLeadingDropdownChange?: (item: FormGroupDropdownItem) => void;
+  /** If provided, all keyboard navigation events will be sent to parent to control focus */
+  onKeyboardNavigation?: (action: 'up' | 'down' | 'enter') => void;
   children?: React.ReactNode;
 }
 
@@ -114,7 +119,7 @@ const iconNotLoading = (
 //   <ComboboxElement ref={ref} {...props} icon={props.loading ? iconLoading : iconNotLoading} />
 // ));
 
-export const Combobox = forwardRef(
+export const Combobox = forwardRef<ComboboxPropsRef, ComboboxProps>(
   (
     {
       className,
@@ -136,20 +141,23 @@ export const Combobox = forwardRef(
       errorMessageId,
       errorMessage,
       showSelectionAsButton,
+      isVirtual,
       children,
       onInputChange,
       onFilterInputChange,
       onInputEnter,
       onLeadingDropdownChange,
       onClear,
+      onKeyboardNavigation,
     }: ComboboxProps,
     ref
   ) => {
+    const popoverRef = useRef<HTMLDivElement | null>(null);
     const [isOpen, setIsOpen] = useState<boolean>(false);
     const [id] = useState<string>(uniqueId('Combobox'));
     const [listId] = useState<string>(uniqueId('Combobox-list'));
     const [value, setValue] = useState<string>(selectedItemLabel || '');
-    const [hasGroups, setHasGroups] = useState(false);
+    const [hasGroups, setHasGroups] = useState(!!isVirtual);
     const hasDropdownGroup = !!leadingDropdown && !!leadingDropdown.items?.length;
 
     const [focusedItem, setFocusedItem] = useState<number | null>(null);
@@ -157,10 +165,14 @@ export const Combobox = forwardRef(
     const divContainerEl = useRef<HTMLDivElement>(null);
     const entireContainerEl = useRef<HTMLDivElement>(null);
     const elRefs = useRef<HTMLLIElement[]>([]);
+    const parentOwnsKeyboardNavigation = !!onKeyboardNavigation;
 
     useImperativeHandle<unknown, ComboboxPropsRef>(
       ref,
       () => ({
+        getPopoverRef: () => {
+          return popoverRef.current;
+        },
         close: () => {
           setTimeout(() => {
             setIsOpen(false);
@@ -173,7 +185,13 @@ export const Combobox = forwardRef(
 
     useNonInitialEffect(() => {
       try {
-        if (elRefs.current && isNumber(focusedItem) && elRefs.current[focusedItem] && elRefs.current[focusedItem]) {
+        if (
+          elRefs.current &&
+          isNumber(focusedItem) &&
+          elRefs.current[focusedItem] &&
+          elRefs.current[focusedItem] &&
+          !!elRefs.current[focusedItem].focus
+        ) {
           elRefs.current[focusedItem].focus();
         }
         if (divContainerEl.current && isNumber(focusedItem)) {
@@ -262,22 +280,41 @@ export const Combobox = forwardRef(
      * This allows moving between elements with keyboard
      */
     let counter = 0;
-    const childrenWithRef = Children.map(children, (child: ReactElement<ChildListItem | ChildListGroup>, i) => {
-      if (!isValidElement<ChildListItem | ChildListGroup>(child)) {
-        return child;
-      }
-      // set refs on all grandchildren list items
-      if (hasGroups && isValidElement<ChildListGroup>(child)) {
-        return cloneElement(child as ReactElement<ChildListGroup>, {
-          children: Children.map(child.props.children, (grandChild: ReactElement<ChildListItem>) => {
-            if (!isValidElement<ChildListItem>(grandChild)) {
-              return grandChild;
-            }
-            const clonedEl = cloneElement(grandChild, {
-              ref: ((currCounter: number) => (node) => {
-                if (elRefs.current && node) {
-                  elRefs.current[currCounter] = node;
+    const childrenWithRef = parentOwnsKeyboardNavigation
+      ? children
+      : Children.map(children, (child: ReactElement<ChildListItem | ChildListGroup>, i) => {
+          if (!isValidElement<ChildListItem | ChildListGroup>(child)) {
+            return child;
+          }
+          // set refs on all grandchildren list items
+          if (hasGroups && isValidElement<ChildListGroup>(child)) {
+            return cloneElement(child as ReactElement<ChildListGroup>, {
+              children: Children.map(child.props.children, (grandChild: ReactElement<ChildListItem>) => {
+                if (!isValidElement<ChildListItem>(grandChild) || grandChild.props['data-type'] === 'group') {
+                  return grandChild;
                 }
+                const clonedEl = cloneElement(grandChild, {
+                  ref: ((currCounter: number) => (node) => {
+                    if (elRefs.current && node) {
+                      elRefs.current[currCounter] = node;
+                    }
+                    // Call the original ref, if any
+                    const { ref } = child as any;
+                    if (typeof ref === 'function') {
+                      ref(node);
+                    } else if (ref !== null) {
+                      ref.current = node;
+                    }
+                  })(counter),
+                });
+                counter++;
+                return clonedEl;
+              }),
+            });
+          } else {
+            return cloneElement(child, {
+              ref: (node) => {
+                elRefs.current[i] = node;
                 // Call the original ref, if any
                 const { ref } = child as any;
                 if (typeof ref === 'function') {
@@ -285,27 +322,10 @@ export const Combobox = forwardRef(
                 } else if (ref !== null) {
                   ref.current = node;
                 }
-              })(counter),
+              },
             });
-            counter++;
-            return clonedEl;
-          }),
+          }
         });
-      } else {
-        return cloneElement(child, {
-          ref: (node) => {
-            elRefs.current[i] = node;
-            // Call the original ref, if any
-            const { ref } = child as any;
-            if (typeof ref === 'function') {
-              ref(node);
-            } else if (ref !== null) {
-              ref.current = node;
-            }
-          },
-        });
-      }
-    });
 
     /**
      * When on input, move focus down the first list item
@@ -315,14 +335,18 @@ export const Combobox = forwardRef(
         return;
       }
       if (isArrowUpKey(event)) {
-        setFocusedItem(elRefs.current.length - 1);
-        if (!isOpen) {
-          setIsOpen(true);
+        !isOpen && setIsOpen(true);
+        if (parentOwnsKeyboardNavigation) {
+          onKeyboardNavigation?.('up');
+        } else {
+          setFocusedItem(elRefs.current.length - 1);
         }
       } else if (isArrowDownKey(event)) {
-        setFocusedItem(0);
-        if (!isOpen) {
-          setIsOpen(true);
+        !isOpen && setIsOpen(true);
+        if (parentOwnsKeyboardNavigation) {
+          onKeyboardNavigation?.('down');
+        } else {
+          setFocusedItem(0);
         }
       } else if (isEnterKey(event) && isOpen && onInputEnter) {
         onInputEnter();
@@ -345,39 +369,52 @@ export const Combobox = forwardRef(
         inputEl.current?.focus();
         return;
       }
-      if (isNumber(focusedItem) && isEnterOrSpace(event)) {
+      if ((parentOwnsKeyboardNavigation || isNumber(focusedItem)) && isEnterOrSpace(event)) {
         event.preventDefault();
         event.stopPropagation();
         try {
-          elRefs.current[focusedItem].click();
+          if (parentOwnsKeyboardNavigation) {
+            onKeyboardNavigation?.('enter');
+          } else {
+            elRefs.current[focusedItem!].click();
+          }
           setIsOpen(false);
           inputEl.current?.focus();
         } catch (ex) {
           // error
+          logger.warn('Error in ComboboxList onKeyDown', ex);
         }
         return;
       }
       if (isArrowUpKey(event)) {
         event.preventDefault();
         event.stopPropagation();
-        if (!isNumber(focusedItem) || focusedItem === 0) {
-          newFocusedItem = elRefs.current.length - 1;
+        if (parentOwnsKeyboardNavigation) {
+          onKeyboardNavigation?.('up');
         } else {
-          // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-          newFocusedItem = newFocusedItem! - 1;
+          if (!isNumber(focusedItem) || focusedItem === 0) {
+            newFocusedItem = elRefs.current.length - 1;
+          } else {
+            // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+            newFocusedItem = newFocusedItem! - 1;
+          }
         }
       } else if (isArrowDownKey(event)) {
         event.preventDefault();
         event.stopPropagation();
-        if (!isNumber(focusedItem) || focusedItem === elRefs.current.length - 1) {
-          newFocusedItem = 0;
+        if (parentOwnsKeyboardNavigation) {
+          onKeyboardNavigation?.('down');
         } else {
-          // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-          newFocusedItem = newFocusedItem! + 1;
+          if (!isNumber(focusedItem) || focusedItem === elRefs.current.length - 1) {
+            newFocusedItem = 0;
+          } else {
+            // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+            newFocusedItem = newFocusedItem! + 1;
+          }
         }
       }
 
-      if (isNumber(newFocusedItem) && newFocusedItem !== focusedItem) {
+      if (!parentOwnsKeyboardNavigation && isNumber(newFocusedItem) && newFocusedItem !== focusedItem) {
         setFocusedItem(newFocusedItem);
       }
     }
@@ -512,18 +549,20 @@ export const Combobox = forwardRef(
                     )}
                   </div>
                   <PopoverContainer
+                    ref={popoverRef}
                     isOpen={isOpen}
                     referenceElement={inputEl.current}
                     className={`slds-dropdown_length-${itemLength} slds-dropdown_fluid`}
                     id={listId}
                     role="listbox"
+                    isEager={isVirtual}
                     onKeyDown={handleListKeyDown}
                     onBlur={handleBlur}
                   >
                     <div ref={divContainerEl}>
                       {Children.count(children) === 0 && (
                         <ul className="slds-listbox slds-listbox_vertical" role="presentation">
-                          <ComboboxListItem id="placeholder" label={noItemsPlaceholder} selected={false} onSelection={NOOP} />
+                          <ComboboxListItem id="placeholder" placeholder label={noItemsPlaceholder} selected={false} onSelection={NOOP} />
                         </ul>
                       )}
                       {hasGroups && childrenWithRef}

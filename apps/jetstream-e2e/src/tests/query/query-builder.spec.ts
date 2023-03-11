@@ -57,7 +57,7 @@ test.describe('QUERY BUILDER', () => {
       ')',
     ]);
 
-    await queryPage.addOrderBy('Created Date', 'DESC', 'LAST');
+    await queryPage.addOrderBy('Created Date', 'DESC', 'LAST', 1);
 
     await queryPage.validateQueryByLine([
       'SELECT Id, Name, CreatedBy.Id, CreatedBy.Name, CreatedBy.AccountId, CreatedBy.Address,',

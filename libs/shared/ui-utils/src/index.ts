@@ -1,5 +1,6 @@
 export * from './lib/download-zip/downzip';
 export * from './lib/hooks/useBrowserNotifications';
+export * from './lib/hooks/useCombinedRefs';
 export * from './lib/hooks/useDebounce';
 export * from './lib/hooks/useDrivePicker';
 export * from './lib/hooks/useGlobalEventHandler';

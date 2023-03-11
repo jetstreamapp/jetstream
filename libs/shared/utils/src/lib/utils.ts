@@ -7,6 +7,8 @@ import {
   BulkJobUntyped,
   HttpMethod,
   InsertUpdateUpsertDelete,
+  ListItem,
+  ListItemGroup,
   MapOf,
   Maybe,
   QueryFieldWithPolymorphic,
@@ -722,4 +724,30 @@ export function flattenObjectArray(data: MapOf<string[]>, delimiter = ','): MapO
 
 export function isRecordWithId(value: any): value is { Id: string; [key: string]: any } {
   return isString(value.Id);
+}
+
+/**
+ * Flattens ListItemGroup[] into ListItem[]
+ */
+export function getFlattenedListItems(items: ListItemGroup[] = []): ListItem[] {
+  return (items || []).reduce((output: ListItem[], group) => {
+    if (group.items.length) {
+      output.push({
+        id: group.id,
+        label: group.label,
+        value: group.id,
+        isGroup: true,
+      });
+      group.items.forEach((item) =>
+        output.push({
+          ...item,
+          group: {
+            id: group.id,
+            label: group.label,
+          },
+        })
+      );
+    }
+    return output;
+  }, []);
 }

@@ -53,6 +53,7 @@ import {
 } from 'soql-parser-js';
 import { Placement as tippyPlacement } from 'tippy.js';
 import * as XLSX from 'xlsx';
+import { isRelationshipField } from './shared-ui-data-utils';
 
 export function formatNumber(number?: number) {
   return numeral(number || 0).format('0,0');
@@ -238,6 +239,9 @@ export function polyfillFieldDefinition(field: Field): string {
     value = `${length > 255 ? 'Long ' : ''}Text Area(${length})`;
   } else if (type === 'textarea' && extraTypeInfo === 'richtextarea') {
     value = `Rich Text Area(${length})`;
+  } else if (isRelationshipField(field)) {
+    // includes text/reference if referenceTo has data
+    value = `Lookup(${(referenceTo || []).join(',')})`;
   } else if (type === 'string') {
     value = `Text(${length})`;
   } else if (type === 'boolean') {
@@ -262,8 +266,6 @@ export function polyfillFieldDefinition(field: Field): string {
     value = `Percent(${precision}, ${scale})`;
   } else if (type === 'url') {
     value = `URL(${length})`;
-  } else if (type === 'reference') {
-    value = `Lookup(${(referenceTo || []).join(',')})`;
   } else {
     // Address, Email, Date, Time, picklist, phone
     value = `${type[0].toUpperCase()}${type.substring(1)}`;

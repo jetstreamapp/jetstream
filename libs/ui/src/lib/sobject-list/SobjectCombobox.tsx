@@ -4,7 +4,7 @@ import { orderObjectsBy } from '@jetstream/shared/utils';
 import { ListItem, Maybe, SalesforceOrgUi } from '@jetstream/types';
 import type { DescribeGlobalSObjectResult } from 'jsforce';
 import { forwardRef, useCallback, useEffect, useImperativeHandle, useRef, useState } from 'react';
-import ComboboxWithItems from '../form/combobox/ComboboxWithItems';
+import ComboboxWithItemsVirtual from '../form/combobox/ComboboxWithItemsVirtual';
 import { filterSobjectFn, filterToolingSobjectFn } from './ConnectedSobjectList';
 
 function sobjectToListItem(sobjects: DescribeGlobalSObjectResult[]): ListItem[] {
@@ -106,7 +106,7 @@ export const SobjectCombobox = forwardRef<any, SobjectComboboxProps>(
     }, [selectedOrg, loading, errorMessage, loadObjects, sobjects]);
 
     return (
-      <ComboboxWithItems
+      <ComboboxWithItemsVirtual
         comboboxProps={{
           className,
           label,

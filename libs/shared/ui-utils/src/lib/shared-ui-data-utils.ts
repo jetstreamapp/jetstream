@@ -80,7 +80,6 @@ export function fetchFieldsProcessResults(
   parentKey: string
 ): QueryFields {
   const { sobject } = queryFields;
-  const isCustomMetadata = sobject.endsWith('__mdt');
 
   const childRelationships = describeResults.childRelationships.filter((relationship) => !!relationship.relationshipName);
   const fields: MapOf<FieldWrapper> = getMapOf(
@@ -89,7 +88,7 @@ export function fetchFieldsProcessResults(
 
       const filterText = `${field.name || ''}${field.label || ''}${type}${type.replace(REGEX.NOT_ALPHA, '')}`.toLowerCase();
       let relatedSobject: string | string[] | undefined = undefined;
-      if (field.type === 'reference' && field.relationshipName && field.referenceTo?.length) {
+      if (isRelationshipField(field) && field?.referenceTo?.length) {
         if (field.referenceTo.length === 1) {
           relatedSobject = field.referenceTo[0];
         } else {
@@ -110,14 +109,18 @@ export function fetchFieldsProcessResults(
         relatedSobject,
         filterText,
         metadata: field,
-        relationshipKey:
-          field.type === 'reference' && field.relationshipName && field.referenceTo?.length ? getFieldKey(parentKey, field) : undefined,
+        relationshipKey: isRelationshipField(field) ? getFieldKey(parentKey, field) : undefined,
       };
     }),
     'name'
   );
 
   return { ...queryFields, fields, visibleFields: new Set(Object.keys(fields)), childRelationships, metadata: describeResults };
+}
+
+export function isRelationshipField(field: Field): boolean {
+  // Some fields are listed as a string, but are actually lookup fields
+  return (field.type === 'reference' || field.type === 'string') && !!field.relationshipName && !!field.referenceTo?.length;
 }
 
 /**
