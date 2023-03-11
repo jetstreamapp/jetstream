@@ -18,6 +18,7 @@
     "landing": "apps/landing",
     "landing-e2e": "apps/landing-e2e",
     "monaco-configuration": "libs/monaco-configuration",
+    "onedrive-picker-sdk": "libs/onedrive-picker-sdk",
     "shared-client-logger": "libs/shared/client-logger",
     "shared-constants": "libs/shared/constants",
     "shared-data": "libs/shared/data",

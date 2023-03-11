@@ -242,6 +242,7 @@
     "zx": "^4.3.0"
   },
   "dependencies": {
+    "@azure/msal-browser": "^2.34.0",
     "@emotion/react": "11.10.5",
     "@emotion/styled": "11.10.5",
     "@fullhuman/postcss-purgecss": "^2.2.0",
@@ -254,6 +255,7 @@
     "@opentelemetry/auto-instrumentations-node": "^0.28.0",
     "@opentelemetry/exporter-trace-otlp-grpc": "^0.27.0",
     "@opentelemetry/sdk-node": "^0.27.0",
+    "@pnp/core": "^3.12.1",
     "@popperjs/core": "^2.4.0",
     "@prisma/client": "^4.3.1",
     "@react-aria/dialog": "^3.1.4",

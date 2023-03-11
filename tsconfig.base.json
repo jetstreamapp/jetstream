@@ -22,6 +22,7 @@
       "@jetstream/electron": ["libs/electron-utils/src/index.ts"],
       "@jetstream/icon-factory": ["libs/icon-factory/src/index.ts"],
       "@jetstream/monaco": ["libs/monaco-configuration/src/index.ts"],
+      "@jetstream/onedrive": ["libs/onedrive-picker-sdk/src/index.ts"],
       "@jetstream/record-form": ["libs/shared/ui-record-form/src/index.ts"],
       "@jetstream/server-services": ["libs/shared/server-services/src/index.ts"],
       "@jetstream/shared/client-logger": ["libs/shared/client-logger/src/index.ts"],
