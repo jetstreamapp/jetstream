@@ -16,7 +16,8 @@
         "assets": ["apps/jetstream/src/favicon.ico", "apps/jetstream/src/assets", "apps/jetstream/src/electron-assets"],
         "styles": [],
         "scripts": [],
-        "webpackConfig": "webpack.config.js"
+        "webpackConfig": "webpack.config.js",
+        "isolatedConfig": true
       },
       "configurations": {
         "production": {
