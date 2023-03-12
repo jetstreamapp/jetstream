@@ -1,5 +1,5 @@
 import classNames from 'classnames';
-import { uniqueId } from 'lodash';
+import uniqueId from 'lodash/uniqueId';
 import { Fragment, FunctionComponent, useEffect, useState } from 'react';
 import BadgeNotification from '../badge/BadgeNotification';
 import RadioButton from '../form/radio/RadioButton';

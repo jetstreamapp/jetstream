@@ -19,7 +19,7 @@ import {
   SalesforceOrgUi,
 } from '@jetstream/types';
 import type { ChildRelationship, DescribeGlobalSObjectResult, Field } from 'jsforce';
-import { isString } from 'lodash';
+import isString from 'lodash/isString';
 import {
   Condition,
   DateLiteral,

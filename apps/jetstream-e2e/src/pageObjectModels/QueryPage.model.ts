@@ -1,6 +1,6 @@
 import { APIRequestContext, expect, Locator, Page } from '@playwright/test';
 import { QueryFilterOperator } from '@jetstream/types';
-import { isNumber } from 'lodash';
+import isNumber from 'lodash/isNumber';
 import { formatNumber } from '@jetstream/shared/ui-utils';
 import { QueryResults } from '@jetstream/api-interfaces';
 import { ApiRequestUtils } from '../fixtures/ApiRequestUtils';

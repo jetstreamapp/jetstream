@@ -19,7 +19,7 @@ import {
   UploadToGoogleJob,
 } from '@jetstream/types';
 import FileDownloadGoogle from './options/FileDownloadGoogle';
-import { isString } from 'lodash';
+import isString from 'lodash/isString';
 import { Fragment, FunctionComponent, KeyboardEvent, useEffect, useRef, useState } from 'react';
 import Input from '../form/input/Input';
 import Radio from '../form/radio/Radio';

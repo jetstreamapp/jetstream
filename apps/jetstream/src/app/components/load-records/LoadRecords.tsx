@@ -16,7 +16,7 @@ import {
   PageHeaderTitle,
   Spinner,
 } from '@jetstream/ui';
-import { startCase } from 'lodash';
+import startCase from 'lodash/startCase';
 import { FunctionComponent, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTitle } from 'react-use';
 import { useRecoilState, useRecoilValue, useResetRecoilState } from 'recoil';

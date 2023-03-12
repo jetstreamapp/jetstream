@@ -5,7 +5,7 @@ import { Icon, Modal, Tooltip, Tree, TreeItems } from '@jetstream/ui';
 import { Fragment, FunctionComponent, useEffect, useState } from 'react';
 import { LoadMultiObjectRequestWithResult, RecordWithResponse } from './load-records-multi-object-types';
 import classNames from 'classnames';
-import { isBoolean } from 'lodash';
+import isBoolean from 'lodash/isBoolean';
 
 export interface LoadRecordsMultiObjectRecordModalProps {
   data: LoadMultiObjectRequestWithResult;

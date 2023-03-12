@@ -16,7 +16,7 @@ import {
   Tooltip,
 } from '@jetstream/ui';
 import type { MetadataObject } from 'jsforce';
-import { startCase } from 'lodash';
+import startCase from 'lodash/startCase';
 import { createRef, Fragment, FunctionComponent, useEffect, useRef, useState } from 'react';
 import { useDescribeMetadata } from './useDescribeMetadata';
 import { getMetadataLabelFromFullName } from './utils';

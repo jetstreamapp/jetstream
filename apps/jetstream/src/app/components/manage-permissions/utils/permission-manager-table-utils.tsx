@@ -15,7 +15,7 @@ import {
   SummaryFilterRenderer,
   Tooltip,
 } from '@jetstream/ui';
-import { startCase } from 'lodash';
+import startCase from 'lodash/startCase';
 import { Fragment, FunctionComponent, useContext, useRef, useState } from 'react';
 import { FormatterProps, SummaryFormatterProps } from 'react-data-grid';
 import {
