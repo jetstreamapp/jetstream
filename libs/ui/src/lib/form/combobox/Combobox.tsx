@@ -1,6 +1,7 @@
 import { SerializedStyles } from '@emotion/react';
 import { logger } from '@jetstream/shared/client-logger';
 import {
+  isAlphaNumericKey,
   isArrowDownKey,
   isArrowUpKey,
   isEnterKey,
@@ -88,6 +89,7 @@ function getContainer(hasGroup: boolean, children: React.ReactNode) {
   if (hasGroup) {
     return <div className="slds-combobox-group">{children}</div>;
   }
+  // eslint-disable-next-line react/jsx-no-useless-fragment
   return <Fragment>{children}</Fragment>;
 }
 
@@ -111,13 +113,6 @@ const iconNotLoading = (
     containerClassname="slds-icon_container slds-icon-utility-down slds-input__icon slds-input__icon_right"
   />
 );
-
-/**
- * Optimization to skip re-renders of parts of component
- */
-// export const Combobox = forwardRef((props: ComboboxProps, ref) => (
-//   <ComboboxElement ref={ref} {...props} icon={props.loading ? iconLoading : iconNotLoading} />
-// ));
 
 export const Combobox = forwardRef<ComboboxPropsRef, ComboboxProps>(
   (
@@ -152,6 +147,8 @@ export const Combobox = forwardRef<ComboboxPropsRef, ComboboxProps>(
     }: ComboboxProps,
     ref
   ) => {
+    // store keys user typed in so that if typing triggered open, we can ensure input is set to this value
+    const inputBuffer = useRef('');
     const popoverRef = useRef<HTMLDivElement | null>(null);
     const [isOpen, setIsOpen] = useState<boolean>(false);
     const [id] = useState<string>(uniqueId('Combobox'));
@@ -208,8 +205,9 @@ export const Combobox = forwardRef<ComboboxPropsRef, ComboboxProps>(
     // when closed, set input value in case user modified
     useEffect(() => {
       if (isOpen) {
-        setValue('');
+        setValue(inputBuffer.current || '');
       } else {
+        inputBuffer.current = '';
         setFocusedItem(null);
         if (value !== (selectedItemLabel || '')) {
           setValue(selectedItemLabel || '');
@@ -348,9 +346,16 @@ export const Combobox = forwardRef<ComboboxPropsRef, ComboboxProps>(
         } else {
           setFocusedItem(0);
         }
+      } else if (isEscapeKey(event)) {
+        setIsOpen(false);
       } else if (isEnterKey(event) && isOpen && onInputEnter) {
         onInputEnter();
       } else {
+        if (isAlphaNumericKey(event) && !isOpen) {
+          // save input so that when we open, we can set the value instead of clearing it
+          inputBuffer.current = `${inputBuffer.current}${event.currentTarget.value}`;
+          setIsOpen(true);
+        }
         onInputChange && onInputChange(event.currentTarget.value);
         onFilterInputChange && onFilterInputChange(event.currentTarget.value);
       }
