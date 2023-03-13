@@ -74,6 +74,19 @@ export const ComboboxWithItemsVirtual: FunctionComponent<ComboboxWithItemsVirtua
     },
   });
 
+  const handleSelection = useCallback(
+    (value: ListItem) => {
+      onSelected(value);
+      setFocusedIndex(null);
+    },
+    [onSelected]
+  );
+
+  // ensure that focused item is removed if user types something
+  useEffect(() => {
+    setFocusedIndex(null);
+  }, [filterTextNonDebounced]);
+
   useEffect(() => {
     if (selectedItemId) {
       setSelectedItem(items.find((item) => item.id === selectedItemId));
@@ -136,7 +149,7 @@ export const ComboboxWithItemsVirtual: FunctionComponent<ComboboxWithItemsVirtua
           tempFocusedIndex = null;
           setFocusedIndex(tempFocusedIndex);
         }
-        isNumber(focusedIndex) && onSelected(visibleItems[focusedIndex]);
+        isNumber(focusedIndex) && handleSelection(visibleItems[focusedIndex]);
         return;
       }
       default:
@@ -175,9 +188,9 @@ export const ComboboxWithItemsVirtual: FunctionComponent<ComboboxWithItemsVirtua
   const onInputEnter = useCallback(() => {
     const firstItem = visibleItems.find((item) => !item.isGroup);
     if (firstItem) {
-      onSelected(firstItem);
+      handleSelection(firstItem);
     }
-  }, [onSelected, visibleItems]);
+  }, [handleSelection, visibleItems]);
 
   const virtualItems = rowVirtualizer.getVirtualItems();
 
@@ -248,7 +261,7 @@ export const ComboboxWithItemsVirtual: FunctionComponent<ComboboxWithItemsVirtua
               selected={item.id === selectedItem?.id}
               focused={virtualItem.index === focusedIndex}
               onSelection={() => {
-                onSelected(item);
+                handleSelection(item);
               }}
             />
           );
