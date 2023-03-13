@@ -4,7 +4,7 @@ import { queryRemaining } from '@jetstream/shared/data';
 import { formatNumber, useRollbar } from '@jetstream/shared/ui-utils';
 import { flattenRecord } from '@jetstream/shared/utils';
 import { MapOf, Maybe, SalesforceOrgUi } from '@jetstream/types';
-import { Field } from 'jsforce';
+import type { Field } from 'jsforce';
 import uniqueId from 'lodash/uniqueId';
 import { Fragment, FunctionComponent, memo, ReactNode, useCallback, useEffect, useRef, useState } from 'react';
 import { Column, CopyEvent } from 'react-data-grid';

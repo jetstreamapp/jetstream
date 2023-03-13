@@ -12,7 +12,7 @@ import {
   SalesforceOrgUi,
 } from '@jetstream/types';
 import { CometD } from 'cometd';
-import { DescribeGlobalSObjectResult } from 'jsforce';
+import type { DescribeGlobalSObjectResult } from 'jsforce';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useRecoilState } from 'recoil';
 import { applicationCookieState } from '../../app-state';

@@ -1,6 +1,6 @@
 import { Maybe } from '@jetstream/types';
 import classNames from 'classnames';
-import { isString } from 'lodash';
+import isString from 'lodash/isString';
 import { SyntheticEvent } from 'react';
 import Icon from '../widgets/Icon';
 import { TreeItems } from './Tree';

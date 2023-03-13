@@ -10,7 +10,7 @@ import {
   Maybe,
   QueryFilterOperator,
 } from '@jetstream/types';
-import { Field, FieldType } from 'jsforce';
+import type { Field, FieldType } from 'jsforce';
 
 export const QUERY_OPERATORS: ListItem<string, QueryFilterOperator>[] = [
   { id: 'eq', label: 'Equals', value: 'eq' },

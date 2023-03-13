@@ -3,7 +3,7 @@ import { multiWordObjectFilter, splitArrayToMaxSize } from '@jetstream/shared/ut
 import { CloneEditView, MapOf, PicklistFieldValues, Record } from '@jetstream/types';
 import { Checkbox, EmptyState, Grid, SearchInput, Select } from '@jetstream/ui';
 import classNames from 'classnames';
-import { Field } from 'jsforce';
+import type { Field } from 'jsforce';
 import { Fragment, FunctionComponent, useEffect, useState } from 'react';
 import { EditableFields } from './ui-record-form-types';
 import { convertMetadataToEditableFields } from './ui-record-form-utils';

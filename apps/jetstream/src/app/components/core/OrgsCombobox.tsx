@@ -2,7 +2,7 @@ import { css, SerializedStyles } from '@emotion/react';
 import { multiWordObjectFilter } from '@jetstream/shared/utils';
 import { MapOf, Maybe, SalesforceOrgUi } from '@jetstream/types';
 import { Combobox, ComboboxListItem, ComboboxListItemGroup } from '@jetstream/ui';
-import { sortBy } from 'lodash';
+import sortBy from 'lodash/sortBy';
 import groupBy from 'lodash/groupBy';
 import { FunctionComponent, useEffect, useState } from 'react';
 

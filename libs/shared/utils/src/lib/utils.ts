@@ -17,8 +17,14 @@ import {
 } from '@jetstream/types';
 import { formatISO as formatISODate, parse as parseDate, parseISO as parseISODate, startOfDay as startOfDayDate } from 'date-fns';
 import fromUnixTime from 'date-fns/fromUnixTime';
-import { FieldType as jsforceFieldType, QueryResult } from 'jsforce';
-import { get as lodashGet, inRange, isBoolean, isNil, isNumber, isObject, isString, orderBy } from 'lodash';
+import type { FieldType as jsforceFieldType, QueryResult } from 'jsforce';
+import lodashGet from 'lodash/get';
+import isBoolean from 'lodash/isBoolean';
+import isNil from 'lodash/isNil';
+import isNumber from 'lodash/isNumber';
+import isObject from 'lodash/isObject';
+import isString from 'lodash/isString';
+import orderBy from 'lodash/orderBy';
 import { ComposeFieldTypeof, FieldSubquery, FieldType, getField } from 'soql-parser-js';
 import { REGEX } from './regex';
 
@@ -444,7 +450,7 @@ export function getHttpMethod(type: InsertUpdateUpsertDelete): HttpMethod {
   }
 }
 
-export function getValueOrSoapNull(value: string | SoapNil) {
+export function getValueOrSoapNull(value?: string | SoapNil): string | null {
   return isString(value) ? value : null;
 }
 

@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-use-before-define */
 import { logger } from '@jetstream/api-config';
 import { QueryResults, QueryResultsColumn, QueryResultsColumns } from '@jetstream/api-interfaces';
-import { Connection } from 'jsforce';
+import type { Connection } from 'jsforce';
 import { parseQuery, Query } from 'soql-parser-js';
 import { QueryColumnMetadata, QueryColumnsSfdc } from '../types/types';
 

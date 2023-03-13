@@ -6,7 +6,7 @@ import { MapOf, SalesforceOrgUi } from '@jetstream/types';
 import { AxeIllustration, EmptyState, Grid, GridCol, Icon, Modal, Spinner } from '@jetstream/ui';
 import Editor from '@monaco-editor/react';
 import copyToClipboard from 'copy-to-clipboard';
-import { Field, FieldType } from 'jsforce';
+import type { Field, FieldType } from 'jsforce';
 import { FunctionComponent, useCallback, useEffect, useState } from 'react';
 import { recordToApex, RecordToApexOptionsInitialOptions } from '../utils/query-apex-utils';
 import QueryResultsGetRecAsApexFieldOptions from './QueryResultsGetRecAsApexFieldOptions';

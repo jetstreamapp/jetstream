@@ -2,7 +2,7 @@ import { logger } from '@jetstream/shared/client-logger';
 import { GoogleApiClientConfig, useDrivePicker } from '@jetstream/shared/ui-utils';
 import { InputReadGoogleSheet, Maybe } from '@jetstream/types';
 import classNames from 'classnames';
-import { uniqueId } from 'lodash';
+import uniqueId from 'lodash/uniqueId';
 import { FunctionComponent, useCallback, useEffect, useState } from 'react';
 import * as XLSX from 'xlsx';
 import HelpText from '../../widgets/HelpText';

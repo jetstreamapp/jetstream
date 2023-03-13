@@ -13,7 +13,7 @@ import {
   GridCol,
   XlsxSheetSelectionModalPromise,
 } from '@jetstream/ui';
-import { DescribeGlobalSObjectResult } from 'jsforce';
+import type { DescribeGlobalSObjectResult } from 'jsforce';
 import { FunctionComponent } from 'react';
 import { fireToast } from '../../core/AppToast';
 import LoadRecordsLoadTypeButtons from '../components/LoadRecordsLoadTypeButtons';

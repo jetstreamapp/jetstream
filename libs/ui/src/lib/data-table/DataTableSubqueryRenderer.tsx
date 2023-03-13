@@ -3,7 +3,7 @@ import { formatNumber, transformTabularDataToExcelStr } from '@jetstream/shared/
 import { flattenRecord, flattenRecords } from '@jetstream/shared/utils';
 import { Maybe, SalesforceOrgUi } from '@jetstream/types';
 import copyToClipboard from 'copy-to-clipboard';
-import { QueryResult } from 'jsforce';
+import type { QueryResult } from 'jsforce';
 import { FunctionComponent, useCallback, useEffect, useRef, useState } from 'react';
 import { FormatterProps } from 'react-data-grid';
 import RecordDownloadModal from '../file-download-modal/RecordDownloadModal';

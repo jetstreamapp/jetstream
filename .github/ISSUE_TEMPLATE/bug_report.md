@@ -8,23 +8,10 @@ assignees: ''
 
 <!-- Replace the example text with your own. Click the "Preview" tab to see what your issue will look like. -->
 
-**Describe the bug**
-A clear and concise description of what the bug is.
-
-**To Reproduce**
-Steps to reproduce the behavior:
-
-1. Go to '...'
-2. Click on '....'
-3. Scroll down to '....'
-4. See error
+**Describe the bug and steps to reproduce**
 
 **Expected behavior**
-A clear and concise description of what you expected to happen.
 
-<!-- If applicable, please include screenshots - make sure no sensitive data that you do not want public is included in screenshot -->
+<!-- If applicable, please include screenshots - MAKE SURE NO SENSITIVE DATA THAT YOU DO NOT WANT PUBLIC IS INCLUDED IN SCREENSHOT -->
 
-**Environment:**
-
-- OS:
-- Browser:
+**Browser and operating system:**

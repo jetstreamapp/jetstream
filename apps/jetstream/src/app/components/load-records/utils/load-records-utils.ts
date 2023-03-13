@@ -4,7 +4,7 @@ import { queryAll, queryWithCache } from '@jetstream/shared/data';
 import { describeSObjectWithExtendedTypes, formatNumber, isRelationshipField } from '@jetstream/shared/ui-utils';
 import { REGEX, transformRecordForDataLoad } from '@jetstream/shared/utils';
 import { EntityParticleRecord, FieldWithExtendedType, InsertUpdateUpsertDelete, MapOf, Maybe, SalesforceOrgUi } from '@jetstream/types';
-import { DescribeGlobalSObjectResult } from 'jsforce';
+import type { DescribeGlobalSObjectResult } from 'jsforce';
 import JSZip from 'jszip';
 import groupBy from 'lodash/groupBy';
 import isNil from 'lodash/isNil';

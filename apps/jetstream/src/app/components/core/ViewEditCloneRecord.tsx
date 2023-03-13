@@ -14,7 +14,7 @@ import {
   SobjectCollectionResponse,
 } from '@jetstream/types';
 import { FileDownloadModal, Grid, Icon, Modal, PopoverErrorButton, Spinner } from '@jetstream/ui';
-import { Field } from 'jsforce';
+import type { Field } from 'jsforce';
 import isUndefined from 'lodash/isUndefined';
 import { Fragment, FunctionComponent, useCallback, useEffect, useRef, useState } from 'react';
 import { useRecoilState } from 'recoil';

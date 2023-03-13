@@ -24,7 +24,7 @@ import {
 } from '@jetstream/ui';
 import formatISO from 'date-fns/formatISO';
 import parseISO from 'date-fns/parseISO';
-import { DeployOptions } from 'jsforce';
+import type { DeployOptions } from 'jsforce';
 import JSZip from 'jszip';
 import localforage from 'localforage';
 import isString from 'lodash/isString';

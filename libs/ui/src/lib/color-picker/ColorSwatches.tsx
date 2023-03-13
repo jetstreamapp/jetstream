@@ -2,7 +2,7 @@ import { css } from '@emotion/react';
 import { logger } from '@jetstream/shared/client-logger';
 import { isArrowLeftKey, isArrowRightKey, isEnterOrSpace, useNonInitialEffect } from '@jetstream/shared/ui-utils';
 import classNames from 'classnames';
-import { isNumber } from 'lodash';
+import isNumber from 'lodash/isNumber';
 import { KeyboardEvent, useEffect, useRef, useState } from 'react';
 
 export interface ColorSwatchItem {
