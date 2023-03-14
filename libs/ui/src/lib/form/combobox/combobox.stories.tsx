@@ -1,4 +1,4 @@
-import { FormGroupDropdownItem } from '@jetstream/types';
+import { FormGroupDropdownItem, ListItem } from '@jetstream/types';
 import { action } from '@storybook/addon-actions';
 import { boolean, text } from '@storybook/addon-knobs';
 import React from 'react';
@@ -6,6 +6,7 @@ import Combobox from './Combobox';
 import { ComboboxListItem } from './ComboboxListItem';
 import { ComboboxListItemGroup } from './ComboboxListItemGroup';
 import { ComboboxListItemLoadMore } from './ComboboxListItemLoadMore';
+import ComboboxWithItemsVirtual from './ComboboxWithItemsVirtual';
 
 export default {
   component: Combobox,
@@ -176,5 +177,24 @@ export const leadingDropDown = () => {
       <ComboboxListItem id="item2" label="Item 2" selected={false} onSelection={action('selected')} />
       <ComboboxListItem id="item3" label="Item 3" selected={false} onSelection={action('selected')} />
     </Combobox>
+  );
+};
+
+export const virtualized = () => {
+  const items: ListItem[] = new Array(50)
+    .fill(50)
+    .map((_, i) => ({ id: `${i}`, label: `Item ${i}`, value: `${i}`, isGroup: i === 0 || i === 15 }));
+  return (
+    <ComboboxWithItemsVirtual
+      comboboxProps={{
+        label: text('label', 'My Combobox'),
+        labelHelp: text('label', 'Help text'),
+        itemLength: 10,
+      }}
+      // selectedItemLabelFn={getSelectionLabel}
+      // selectedItemId={selected.resource}
+      items={items}
+      onSelected={action('selected')}
+    />
   );
 };

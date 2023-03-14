@@ -4,8 +4,10 @@ import { getIdAndObjFromRecordUrl, orderStringsBy } from '@jetstream/shared/util
 import { SalesforceOrgUi } from '@jetstream/types';
 import { AutoFullHeightContainer, Icon, Panel, Spinner } from '@jetstream/ui';
 import classNames from 'classnames';
-import { Record } from 'jsforce';
-import { isBoolean, isNil, isObject } from 'lodash';
+import type { Record } from 'jsforce';
+import isBoolean from 'lodash/isBoolean';
+import isNil from 'lodash/isNil';
+import isObject from 'lodash/isObject';
 import React, { Fragment, FunctionComponent, useEffect, useState } from 'react';
 
 // eslint-disable-next-line @typescript-eslint/no-empty-interface

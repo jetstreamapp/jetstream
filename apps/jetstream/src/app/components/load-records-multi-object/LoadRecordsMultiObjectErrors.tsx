@@ -1,6 +1,6 @@
 import { MapOf } from '@jetstream/types';
 import { ScopedNotification } from '@jetstream/ui';
-import { groupBy } from 'lodash';
+import groupBy from 'lodash/groupBy';
 import { Fragment, FunctionComponent, useEffect, useState } from 'react';
 import { LoadMultiObjectDataError } from './load-records-multi-object-types';
 

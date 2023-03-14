@@ -1,5 +1,5 @@
 import { IconName } from '@jetstream/icon-factory';
-import { uniqueId } from 'lodash';
+import uniqueId from 'lodash/uniqueId';
 import { FunctionComponent, useState } from 'react';
 import Icon from '../../widgets/Icon';
 import Select from '../select/Select';

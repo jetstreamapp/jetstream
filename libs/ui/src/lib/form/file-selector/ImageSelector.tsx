@@ -4,7 +4,7 @@ import { readFile, useNonInitialEffect } from '@jetstream/shared/ui-utils';
 import { NOOP } from '@jetstream/shared/utils';
 import { ImageWithUpload, InputAcceptType } from '@jetstream/types';
 import classNames from 'classnames';
-import { uniqueId } from 'lodash';
+import uniqueId from 'lodash/uniqueId';
 import { Fragment, FunctionComponent, useEffect, useRef, useState } from 'react';
 import Grid from '../../grid/Grid';
 import HelpText from '../../widgets/HelpText';

@@ -2,7 +2,7 @@ import { ANALYTICS_KEYS, DATE_FORMATS, TITLES } from '@jetstream/shared/constant
 import { formatNumber } from '@jetstream/shared/ui-utils';
 import { InsertUpdateUpsertDelete, Maybe, SalesforceOrgUi, SalesforceOrgUiType } from '@jetstream/types';
 import { Badge, Checkbox, ConfirmationModalPromise, Input, Radio, RadioGroup, Select } from '@jetstream/ui';
-import { isNumber } from 'lodash';
+import isNumber from 'lodash/isNumber';
 import startCase from 'lodash/startCase';
 import { ChangeEvent, FunctionComponent, useEffect, useState } from 'react';
 import { useAmplitude } from '../../core/analytics';

@@ -3,7 +3,7 @@ import { logger } from '@jetstream/shared/client-logger';
 import { useNonInitialEffect } from '@jetstream/shared/ui-utils';
 import { orderObjectsBy, orderStringsBy } from '@jetstream/shared/utils';
 import { SalesforceOrgUi } from '@jetstream/types';
-import { uniqueId } from 'lodash';
+import uniqueId from 'lodash/uniqueId';
 import escapeRegExp from 'lodash/escapeRegExp';
 import isNil from 'lodash/isNil';
 import { forwardRef, useCallback, useContext, useEffect, useImperativeHandle, useMemo, useReducer, useState } from 'react';

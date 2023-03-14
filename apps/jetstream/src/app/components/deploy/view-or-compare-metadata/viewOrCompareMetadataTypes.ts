@@ -1,4 +1,4 @@
-import { FileProperties } from 'jsforce';
+import type { FileProperties } from 'jsforce';
 
 export type OrgType = 'SOURCE' | 'TARGET';
 export type EditorType = 'SOURCE' | 'TARGET' | 'DIFF';

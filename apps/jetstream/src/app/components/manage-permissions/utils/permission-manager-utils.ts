@@ -12,7 +12,7 @@ import {
   RecordResult,
   SalesforceOrgUi,
 } from '@jetstream/types';
-import { DescribeGlobalSObjectResult } from 'jsforce';
+import type { DescribeGlobalSObjectResult } from 'jsforce';
 import { composeQuery, getField, Query, WhereClause } from 'soql-parser-js';
 import {
   FieldPermissionDefinitionMap,

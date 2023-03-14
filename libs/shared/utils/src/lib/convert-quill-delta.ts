@@ -1,4 +1,7 @@
-import { isArray, isObject, isString, pull } from 'lodash';
+import isArray from 'lodash/isArray';
+import isObject from 'lodash/isObject';
+import isString from 'lodash/isString';
+import pull from 'lodash/pull';
 import type { DeltaOperation } from 'quill';
 
 export function convertDeltaToMarkdown(ops: DeltaOperation[], converters = fromDeltaConverters) {

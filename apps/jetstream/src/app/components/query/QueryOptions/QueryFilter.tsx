@@ -45,7 +45,7 @@ export const QueryFilter: FunctionComponent<QueryFilterProps> = ({ fields }) => 
     <ExpressionContainer
       expressionInitValue={initialQueryFilters}
       actionLabel="Filter When"
-      resourceHelpText="Related fields must be selected to appear in this list and only fields that allow filtering are included."
+      resourceHelpText="Related fields will show up if you have visited the object."
       operatorHelpText="Use the In or Not In operators to match against a list of values."
       resourceLabel="Fields"
       resources={fields}

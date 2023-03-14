@@ -9,7 +9,7 @@ import {
   BulkJobWithBatches,
 } from '@jetstream/types';
 import * as jsforce from 'jsforce';
-import { isString } from 'lodash';
+import isString from 'lodash/isString';
 import fetch from 'node-fetch';
 import { convert as xmlConverter, create as xmlBuilder } from 'xmlbuilder2';
 

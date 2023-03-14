@@ -4,7 +4,7 @@ import { formatNumber } from '@jetstream/shared/ui-utils';
 import { getHttpMethod, getMapOf, pluralizeFromNumber, transformRecordForDataLoad } from '@jetstream/shared/utils';
 import { CompositeGraphRequest, MapOf, SalesforceOrgUi } from '@jetstream/types';
 import { DepGraph } from 'dependency-graph';
-import { Field } from 'jsforce';
+import type { Field } from 'jsforce';
 import isNil from 'lodash/isNil';
 import isString from 'lodash/isString';
 import uniqueId from 'lodash/uniqueId';

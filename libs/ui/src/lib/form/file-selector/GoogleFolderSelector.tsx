@@ -1,6 +1,6 @@
 import { GoogleApiClientConfig, useDrivePicker } from '@jetstream/shared/ui-utils';
 import classNames from 'classnames';
-import { uniqueId } from 'lodash';
+import uniqueId from 'lodash/uniqueId';
 import { FunctionComponent, useCallback, useEffect, useState } from 'react';
 import HelpText from '../../widgets/HelpText';
 import Icon from '../../widgets/Icon';

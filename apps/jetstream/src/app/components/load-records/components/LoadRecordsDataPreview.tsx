@@ -4,7 +4,7 @@ import { query } from '@jetstream/shared/data';
 import { formatNumber } from '@jetstream/shared/ui-utils';
 import { InsertUpdateUpsertDelete, Maybe, SalesforceOrgUi } from '@jetstream/types';
 import { Alert, AutoFullHeightContainer, DataTable, getColumnsForGenericTable, Grid, GridCol, RowWithKey, Spinner } from '@jetstream/ui';
-import { DescribeGlobalSObjectResult } from 'jsforce';
+import type { DescribeGlobalSObjectResult } from 'jsforce';
 import isNil from 'lodash/isNil';
 import { FunctionComponent, useEffect, useRef, useState } from 'react';
 import { Column } from 'react-data-grid';

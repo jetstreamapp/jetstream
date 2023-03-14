@@ -12,7 +12,7 @@ import parseDate from 'date-fns/parse';
 import parseISO from 'date-fns/parseISO';
 import startOfDay from 'date-fns/startOfDay';
 import startOfMinute from 'date-fns/startOfMinute';
-import { Field } from 'jsforce';
+import type { Field } from 'jsforce';
 import isNil from 'lodash/isNil';
 import isNumber from 'lodash/isNumber';
 import isObject from 'lodash/isObject';

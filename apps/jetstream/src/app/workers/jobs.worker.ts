@@ -31,7 +31,7 @@ import {
   UploadToGoogleJob,
   WorkerMessage,
 } from '@jetstream/types';
-import { Record } from 'jsforce';
+import type { Record } from 'jsforce';
 import isString from 'lodash/isString';
 import { axiosElectronAdapter, initMessageHandler } from '../components/core/electron-axios-adapter';
 

@@ -1,7 +1,7 @@
 import { logger } from '@jetstream/shared/client-logger';
 import { SFDC_BULK_API_NULL_VALUE } from '@jetstream/shared/constants';
 import { queryAll, queryWithCache } from '@jetstream/shared/data';
-import { describeSObjectWithExtendedTypes, formatNumber } from '@jetstream/shared/ui-utils';
+import { describeSObjectWithExtendedTypes, formatNumber, isRelationshipField } from '@jetstream/shared/ui-utils';
 import { REGEX, transformRecordForDataLoad } from '@jetstream/shared/utils';
 import { EntityParticleRecord, FieldWithExtendedType, InsertUpdateUpsertDelete, MapOf, Maybe, SalesforceOrgUi } from '@jetstream/types';
 import type { DescribeGlobalSObjectResult, DescribeSObjectResult } from 'jsforce';
@@ -51,7 +51,7 @@ export async function getFieldMetadata(org: SalesforceOrgUi, sobject: string): P
     .filter(sobject.endsWith('__mdt') ? getFieldMetadataCustomMetadataFilter : getFieldMetadataFilter)
     .map((field): FieldWithRelatedEntities => {
       let referenceTo =
-        (field.type === 'reference' && field.referenceTo?.slice(0, 5 /** Limit number of related object to limit query */)) || undefined;
+        (isRelationshipField(field) && field.referenceTo?.slice(0, 5 /** Limit number of related object to limit query */)) || undefined;
       // if only two polymorphic fields exist and the second is user, reverse the order so that User is first as it is most commonly used
       if (Array.isArray(referenceTo) && referenceTo.length === 2 && referenceTo[1] === 'User') {
         referenceTo = referenceTo.reverse();

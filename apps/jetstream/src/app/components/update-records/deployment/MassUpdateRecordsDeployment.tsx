@@ -11,7 +11,7 @@ import {
   ToolbarItemActions,
   ToolbarItemGroup,
 } from '@jetstream/ui';
-import { isNumber } from 'lodash';
+import isNumber from 'lodash/isNumber';
 import { ChangeEvent, FunctionComponent, useCallback, useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useRecoilCallback, useRecoilValue, useSetRecoilState } from 'recoil';

@@ -1,5 +1,5 @@
 import { ListItem } from '@jetstream/types';
-import { DescribeGlobalSObjectResult } from 'jsforce';
+import type { DescribeGlobalSObjectResult } from 'jsforce';
 import { atom, selector } from 'recoil';
 import { AutomationMetadataType } from './automation-control-types';
 

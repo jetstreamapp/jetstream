@@ -1,10 +1,11 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
-import { multiWordObjectFilter } from '@jetstream/shared/utils';
+import { getFlattenedListItems, multiWordObjectFilter } from '@jetstream/shared/utils';
 import { AscDesc, FirstLast, ListItem, ListItemGroup, QueryOrderByClause } from '@jetstream/types';
-import { Combobox, ComboboxListItem, ComboboxListItemGroup, FormRowButton, Picklist } from '@jetstream/ui';
-import React, { FunctionComponent, useEffect, useState } from 'react';
+import { ComboboxWithItemsVirtual, FormRowButton, Picklist } from '@jetstream/ui';
+import { FunctionComponent, useEffect, useState } from 'react';
 
 export interface QueryOrderByProps {
+  groupNumber: number;
   orderBy: QueryOrderByClause;
   fields: ListItemGroup[];
   order: ListItem<AscDesc>[];
@@ -13,62 +14,42 @@ export interface QueryOrderByProps {
   onDelete: (orderBy: QueryOrderByClause) => void;
 }
 
-function getSelectionLabel(groupLabel: string, item: ListItem<string, unknown>) {
-  return `${groupLabel} - ${item.label} ${item.secondaryLabel || ''}`;
+function getSelectionLabel(item: ListItem<string, unknown>) {
+  return `${item.secondaryLabel} (${item.label})`;
 }
 
-export const QueryOrderBy: FunctionComponent<QueryOrderByProps> = ({ orderBy, fields, order, nulls, onChange, onDelete }) => {
-  const [fieldFilter, setFieldFilter] = useState<string | null>(null);
-  const [visibleFields, setVisibleFields] = useState(fields);
+export const QueryOrderByRow: FunctionComponent<QueryOrderByProps> = ({
+  groupNumber,
+  orderBy,
+  fields,
+  order,
+  nulls,
+  onChange,
+  onDelete,
+}) => {
   const [initialSelectedOrder] = useState(order.find((item) => item.value === orderBy.order) || order[0]);
   const [initialSelectedNulls] = useState(nulls.find((item) => item.value === orderBy.nulls) || nulls[0]);
+  const [flattenedResources, setFlattenedResources] = useState<ListItem[]>(() => getFlattenedListItems(fields));
 
   useEffect(() => {
-    if (!fieldFilter) {
-      setVisibleFields(fields);
-    } else {
-      const filter = fieldFilter.toLowerCase().trim();
-      const tempFields: typeof fields = [];
-      fields.forEach((field) => {
-        tempFields.push({
-          ...field,
-          items: field.items.filter(multiWordObjectFilter(['label', 'value'], filter)),
-        });
-      });
-      setVisibleFields(tempFields);
-    }
-  }, [fields, fieldFilter]);
+    setFlattenedResources(getFlattenedListItems(fields));
+  }, [fields]);
 
   return (
-    <div className="slds-grid slds-gutters_xx-small">
+    <div className="slds-grid slds-gutters_xx-small" role="group" aria-label={`Filter row ${groupNumber}`}>
       {/* Resource */}
       <div className="slds-col">
-        <Combobox
-          label="Field"
-          labelHelp="Related fields must be selected to appear in this list and only fields that allow sorting are included."
-          onInputChange={(filter) => setFieldFilter(filter)}
-          selectedItemLabel={orderBy.fieldLabel}
-          selectedItemTitle={null}
-        >
-          {visibleFields
-            .filter((group) => group.items.length > 0)
-            .map((group) => (
-              <ComboboxListItemGroup key={group.id} label={group.label}>
-                {group.items.map((item) => (
-                  <ComboboxListItem
-                    key={item.id}
-                    id={item.id}
-                    label={item.label}
-                    secondaryLabel={item.secondaryLabel}
-                    selected={item.id === orderBy.field}
-                    onSelection={(id) => {
-                      onChange({ ...orderBy, field: item.value, fieldLabel: getSelectionLabel(group.label, item) });
-                    }}
-                  />
-                ))}
-              </ComboboxListItemGroup>
-            ))}
-        </Combobox>
+        <ComboboxWithItemsVirtual
+          comboboxProps={{
+            label: 'Field',
+            labelHelp: 'Related fields will show up if you have visited the object.',
+            itemLength: 10,
+          }}
+          selectedItemLabelFn={getSelectionLabel}
+          selectedItemId={orderBy.field}
+          items={flattenedResources}
+          onSelected={(item) => onChange({ ...orderBy, field: item.value, fieldLabel: getSelectionLabel(item) })}
+        />
       </div>
       <div className="slds-col slds-grow-none">
         <Picklist
@@ -99,4 +80,4 @@ export const QueryOrderBy: FunctionComponent<QueryOrderByProps> = ({ orderBy, fi
   );
 };
 
-export default QueryOrderBy;
+export default QueryOrderByRow;

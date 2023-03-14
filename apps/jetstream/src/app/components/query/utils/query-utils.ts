@@ -3,7 +3,7 @@ import { getMapOf } from '@jetstream/shared/utils';
 import { ErrorResult, ExpressionType, ListItemGroup, MapOf, Maybe, QueryFields, Record } from '@jetstream/types';
 import formatISO from 'date-fns/formatISO';
 import parseISO from 'date-fns/parseISO';
-import { Field, FieldType } from 'jsforce';
+import type { Field, FieldType } from 'jsforce';
 import isNil from 'lodash/isNil';
 import isNumber from 'lodash/isNumber';
 import isString from 'lodash/isString';
@@ -56,34 +56,19 @@ export function calculateFilterAndOrderByListGroupFields(
         items: [],
       };
       newFilterFields.push(currGroup);
-      if (!path) {
-        Object.values(queryField.fields)
-          .filter(({ metadata }) => includeField(metadata))
-          .forEach((field) => {
-            const value = `${path || ''}${field.name}`;
-            currGroup.items.push({
-              id: value,
-              label: field.label,
-              secondaryLabel: `(${field.name})`,
-              value: value,
-              meta: field,
-            });
+      Object.values(queryField.fields)
+        .filter(({ metadata }) => includeField(metadata))
+        .forEach((field) => {
+          const value = `${path || ''}${field.name}`;
+          currGroup.items.push({
+            id: value,
+            label: field.label,
+            secondaryLabel: `${path}${field.name}`,
+            secondaryLabelOnNewLine: true,
+            value: value,
+            meta: field,
           });
-      } else {
-        queryField.selectedFields.forEach((selectedFieldKey) => {
-          const field = queryField.fields[selectedFieldKey];
-          if (includeField(field.metadata)) {
-            const value = `${path || ''}${field.name}`;
-            currGroup.items.push({
-              id: value,
-              label: field.label,
-              secondaryLabel: `(${field.name})`,
-              value: value,
-              meta: field,
-            });
-          }
         });
-      }
     });
   return newFilterFields;
 }

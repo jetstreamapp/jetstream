@@ -22,7 +22,7 @@ import {
   Spinner,
   Tooltip,
 } from '@jetstream/ui';
-import { DescribeGlobalSObjectResult } from 'jsforce';
+import type { DescribeGlobalSObjectResult } from 'jsforce';
 import localforage from 'localforage';
 import { Fragment, FunctionComponent, useEffect, useRef, useState } from 'react';
 import { SplitWrapper as Split } from '@jetstream/splitjs';

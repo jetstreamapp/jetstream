@@ -7,6 +7,8 @@ import {
   BulkJobUntyped,
   HttpMethod,
   InsertUpdateUpsertDelete,
+  ListItem,
+  ListItemGroup,
   MapOf,
   Maybe,
   QueryFieldWithPolymorphic,
@@ -15,8 +17,14 @@ import {
 } from '@jetstream/types';
 import { formatISO as formatISODate, parse as parseDate, parseISO as parseISODate, startOfDay as startOfDayDate } from 'date-fns';
 import fromUnixTime from 'date-fns/fromUnixTime';
-import { FieldType as jsforceFieldType, QueryResult } from 'jsforce';
-import { get as lodashGet, inRange, isBoolean, isNil, isNumber, isObject, isString, orderBy } from 'lodash';
+import type { FieldType as jsforceFieldType, QueryResult } from 'jsforce';
+import lodashGet from 'lodash/get';
+import isBoolean from 'lodash/isBoolean';
+import isNil from 'lodash/isNil';
+import isNumber from 'lodash/isNumber';
+import isObject from 'lodash/isObject';
+import isString from 'lodash/isString';
+import orderBy from 'lodash/orderBy';
 import { ComposeFieldTypeof, FieldSubquery, FieldType, getField } from 'soql-parser-js';
 import { REGEX } from './regex';
 
@@ -442,7 +450,7 @@ export function getHttpMethod(type: InsertUpdateUpsertDelete): HttpMethod {
   }
 }
 
-export function getValueOrSoapNull(value: string | SoapNil) {
+export function getValueOrSoapNull(value?: string | SoapNil): string | null {
   return isString(value) ? value : null;
 }
 
@@ -722,4 +730,30 @@ export function flattenObjectArray(data: MapOf<string[]>, delimiter = ','): MapO
 
 export function isRecordWithId(value: any): value is { Id: string; [key: string]: any } {
   return isString(value.Id);
+}
+
+/**
+ * Flattens ListItemGroup[] into ListItem[]
+ */
+export function getFlattenedListItems(items: ListItemGroup[] = []): ListItem[] {
+  return (items || []).reduce((output: ListItem[], group) => {
+    if (group.items.length) {
+      output.push({
+        id: group.id,
+        label: group.label,
+        value: group.id,
+        isGroup: true,
+      });
+      group.items.forEach((item) =>
+        output.push({
+          ...item,
+          group: {
+            id: group.id,
+            label: group.label,
+          },
+        })
+      );
+    }
+    return output;
+  }, []);
 }

@@ -1,7 +1,7 @@
 import { describeSObject } from '@jetstream/shared/data';
 import { splitArrayToMaxSize } from '@jetstream/shared/utils';
 import { ApiResponse, MapOf, SalesforceOrgUi } from '@jetstream/types';
-import { DescribeSObjectResult } from 'jsforce';
+import type { DescribeSObjectResult } from 'jsforce';
 import isFunction from 'lodash/isFunction';
 import isString from 'lodash/isString';
 import { ExportOptions, SobjectExportField, SobjectFetchResult } from './sobject-export-types';

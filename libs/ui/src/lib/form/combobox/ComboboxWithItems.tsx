@@ -38,7 +38,7 @@ export const ComboboxWithItems: FunctionComponent<ComboboxWithItemsProps> = ({
   selectedItemTitleFn = defaultSelectedItemTitleFn,
   onSelected,
 }) => {
-  const comboboxRef = useRef<ComboboxPropsRef>();
+  const comboboxRef = useRef<ComboboxPropsRef>(null);
   const [filterTextNonDebounced, setFilterText] = useState<string>('');
   const filterText = useDebounce(filterTextNonDebounced, 300);
   const [selectedItem, setSelectedItem] = useState<Maybe<ListItem>>(() =>

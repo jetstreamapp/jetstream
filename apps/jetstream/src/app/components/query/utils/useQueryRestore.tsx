@@ -1,7 +1,7 @@
 import { logger } from '@jetstream/shared/client-logger';
 import { useRollbar } from '@jetstream/shared/ui-utils';
 import { Maybe, SalesforceOrgUi } from '@jetstream/types';
-import { isString } from 'lodash';
+import isString from 'lodash/isString';
 import { useEffect, useRef, useState } from 'react';
 import { useRecoilState, useRecoilValue, useResetRecoilState, useSetRecoilState } from 'recoil';
 import { parseQuery, Query } from 'soql-parser-js';

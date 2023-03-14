@@ -1,5 +1,5 @@
 import { ListItem, MapOf, PermissionSetNoProfileRecord, PermissionSetWithProfileRecord } from '@jetstream/types';
-import { DescribeGlobalSObjectResult } from 'jsforce';
+import type { DescribeGlobalSObjectResult } from 'jsforce';
 import { atom, selector } from 'recoil';
 import { FieldValues } from './create-fields-types';
 import { getInitialValues } from './create-fields-utils';

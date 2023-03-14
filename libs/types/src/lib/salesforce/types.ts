@@ -682,12 +682,12 @@ export interface AnonymousApexSoapResponse {
 export interface AnonymousApexResponse {
   debugLog: string;
   result: {
-    column: number | null;
-    compileProblem: string | null;
+    column: Maybe<number>;
+    compileProblem: Maybe<string>;
     compiled: boolean;
-    exceptionMessage: string | null;
-    exceptionStackTrace: string | null;
-    line: number | null;
+    exceptionMessage: Maybe<string>;
+    exceptionStackTrace: Maybe<string>;
+    line: Maybe<number>;
     success: boolean;
   };
 }
