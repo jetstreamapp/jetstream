@@ -155,6 +155,7 @@ function reducer(state: State, action: Action): State {
             value: field.name,
             label: field.label,
             secondaryLabel: field.name,
+            secondaryLabelOnNewLine: true,
             meta: field,
           })),
         allFields: allFieldMetadata.map((field) => ({
@@ -162,6 +163,7 @@ function reducer(state: State, action: Action): State {
           value: field.name,
           label: field.label,
           secondaryLabel: field.name,
+          secondaryLabelOnNewLine: true,
           meta: field,
         })),
       });

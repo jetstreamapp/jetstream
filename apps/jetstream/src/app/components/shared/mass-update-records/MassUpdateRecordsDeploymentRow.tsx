@@ -201,7 +201,7 @@ export const MassUpdateRecordsDeploymentRow: FunctionComponent<MassUpdateRecords
             were found matching this criteria.
           </div>
         )}
-        <div>
+        <div className="slds-scrollable_x">
           <div className="text-bold slds-m-left_medium">{status}</div>
           {jobInfo?.id && (
             <SalesforceLogin

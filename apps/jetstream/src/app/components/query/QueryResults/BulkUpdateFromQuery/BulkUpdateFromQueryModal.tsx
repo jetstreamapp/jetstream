@@ -162,6 +162,7 @@ export const BulkUpdateFromQueryModal: FunctionComponent<BulkUpdateFromQueryModa
           value: field.name,
           label: field.label,
           secondaryLabel: field.name,
+          secondaryLabelOnNewLine: true,
           meta: field,
         }))
       );
@@ -173,6 +174,7 @@ export const BulkUpdateFromQueryModal: FunctionComponent<BulkUpdateFromQueryModa
             value: field.name,
             label: field.label,
             secondaryLabel: field.name,
+            secondaryLabelOnNewLine: true,
             meta: field,
           }))
       );
