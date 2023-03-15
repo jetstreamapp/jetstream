@@ -210,7 +210,7 @@ export const BulkUpdateFromQueryModal: FunctionComponent<BulkUpdateFromQueryModa
     } else if (downloadRecordsValue === RADIO_FILTERED) {
       idsToInclude = new Set(filteredRecords.map((record) => record.Id || getRecordIdFromAttributes(record)));
     } else if (downloadRecordsValue === RADIO_SELECTED) {
-      idsToInclude = new Set(filteredRecords.map((record) => record.Id || getRecordIdFromAttributes(record)));
+      idsToInclude = new Set(selectedRecords.map((record) => record.Id || getRecordIdFromAttributes(record)));
     }
 
     const recordsToLoad = await fetchRecordsWithRequiredFields({
