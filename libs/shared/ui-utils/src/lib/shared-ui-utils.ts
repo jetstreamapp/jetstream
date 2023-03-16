@@ -67,7 +67,7 @@ initXlsx();
 export function initXlsx() {
   import('xlsx/dist/cpexcel.full.mjs')
     .then((module) => {
-      XLSX.set_cptable(module.cptable);
+      XLSX.set_cptable(module);
     })
     .catch((ex) => {
       logger.error('Error loading xlsx', ex);
