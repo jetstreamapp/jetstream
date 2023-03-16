@@ -57,14 +57,14 @@ import { Placement as tippyPlacement } from 'tippy.js';
 import * as XLSX from 'xlsx';
 import { isRelationshipField } from './shared-ui-data-utils';
 
-initXlsx();
+initXlsx(XLSX);
 
 /**
  * Lazy load cpexcel since it appears it was failing to load for at least one user
  * https://github.com/jetstreamapp/jetstream/issues/211
  * https://git.sheetjs.com/sheetjs/sheetjs/issues/2900
  */
-export function initXlsx() {
+export function initXlsx(_xlsx: typeof import('xlsx')) {
   import('xlsx/dist/cpexcel.full.mjs')
     .then((module) => {
       XLSX.set_cptable(module);

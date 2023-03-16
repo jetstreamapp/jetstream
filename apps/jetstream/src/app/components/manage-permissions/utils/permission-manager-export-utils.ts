@@ -3,7 +3,7 @@ import { ColumnWithFilter } from '@jetstream/ui';
 import * as XLSX from 'xlsx';
 import { PermissionTableFieldCell, PermissionTableObjectCell, PermissionTableSummaryRow } from './permission-manager-types';
 
-initXlsx();
+initXlsx(XLSX);
 
 type ObjectOrFieldColumn =
   | ColumnWithFilter<PermissionTableObjectCell, PermissionTableSummaryRow>

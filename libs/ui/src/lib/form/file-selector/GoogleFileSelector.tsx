@@ -11,7 +11,7 @@ import Spinner from '../../widgets/Spinner';
 import { SCRIPT_LOAD_ERR_MESSAGE } from './file-selector-utils';
 import { useFilename } from './useFilename';
 
-initXlsx();
+initXlsx(XLSX);
 
 export interface GoogleFileSelectorProps {
   apiConfig: GoogleApiClientConfig;

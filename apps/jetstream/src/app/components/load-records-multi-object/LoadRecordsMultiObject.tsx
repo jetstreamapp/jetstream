@@ -32,7 +32,7 @@ import LoadRecordsMultiObjectResults from './LoadRecordsMultiObjectResults';
 import useLoadFile from './useLoadFile';
 import useProcessLoadFile from './useProcessLoadFile';
 
-initXlsx();
+initXlsx(XLSX);
 
 const TEMPLATE_DOWNLOAD_LINK = 'https://drive.google.com/u/0/uc?id=1pOCPCoX4SxQWfdGc5IFa0wjXX_BKrBcV&export=download';
 const HEIGHT_BUFFER = 170;
