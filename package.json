@@ -350,7 +350,7 @@
     "uuid": "^8.3.2",
     "validator": "^13.7.0",
     "winston": "^3.2.1",
-    "xlsx": "^0.17.4",
+    "xlsx": "https://cdn.sheetjs.com/xlsx-0.19.2/xlsx-0.19.2.tgz",
     "xmlbuilder2": "^2.4.0"
   }
 }

@@ -40,9 +40,9 @@ import { saveAs } from 'file-saver';
 import type { Field } from 'jsforce';
 import safeGet from 'lodash/get';
 import isFunction from 'lodash/isFunction';
-import isUndefined from 'lodash/isUndefined';
 import isNil from 'lodash/isNil';
 import isString from 'lodash/isString';
+import isUndefined from 'lodash/isUndefined';
 import numeral from 'numeral';
 import { parse as parseCsv, unparse, unparse as unparseCsv, UnparseConfig } from 'papaparse';
 import {
@@ -56,6 +56,23 @@ import {
 import { Placement as tippyPlacement } from 'tippy.js';
 import * as XLSX from 'xlsx';
 import { isRelationshipField } from './shared-ui-data-utils';
+
+initXlsx();
+
+/**
+ * Lazy load cpexcel since it appears it was failing to load for at least one user
+ * https://github.com/jetstreamapp/jetstream/issues/211
+ * https://git.sheetjs.com/sheetjs/sheetjs/issues/2900
+ */
+export function initXlsx() {
+  import('xlsx/dist/cpexcel.full.mjs')
+    .then((module) => {
+      XLSX.set_cptable(module.cptable);
+    })
+    .catch((ex) => {
+      logger.error('Error loading xlsx', ex);
+    });
+}
 
 export function formatNumber(number?: number) {
   return numeral(number || 0).format('0,0');

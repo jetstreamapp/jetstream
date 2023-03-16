@@ -1,7 +1,9 @@
-import { excelWorkbookToArrayBuffer, getMaxWidthFromColumnContent } from '@jetstream/shared/ui-utils';
+import { excelWorkbookToArrayBuffer, getMaxWidthFromColumnContent, initXlsx } from '@jetstream/shared/ui-utils';
 import { ColumnWithFilter } from '@jetstream/ui';
 import * as XLSX from 'xlsx';
 import { PermissionTableFieldCell, PermissionTableObjectCell, PermissionTableSummaryRow } from './permission-manager-types';
+
+initXlsx();
 
 type ObjectOrFieldColumn =
   | ColumnWithFilter<PermissionTableObjectCell, PermissionTableSummaryRow>

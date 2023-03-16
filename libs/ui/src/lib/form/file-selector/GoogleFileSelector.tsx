@@ -1,5 +1,5 @@
 import { logger } from '@jetstream/shared/client-logger';
-import { GoogleApiClientConfig, useDrivePicker } from '@jetstream/shared/ui-utils';
+import { GoogleApiClientConfig, initXlsx, useDrivePicker } from '@jetstream/shared/ui-utils';
 import { InputReadGoogleSheet, Maybe } from '@jetstream/types';
 import classNames from 'classnames';
 import uniqueId from 'lodash/uniqueId';
@@ -10,6 +10,8 @@ import Icon from '../../widgets/Icon';
 import Spinner from '../../widgets/Spinner';
 import { SCRIPT_LOAD_ERR_MESSAGE } from './file-selector-utils';
 import { useFilename } from './useFilename';
+
+initXlsx();
 
 export interface GoogleFileSelectorProps {
   apiConfig: GoogleApiClientConfig;
