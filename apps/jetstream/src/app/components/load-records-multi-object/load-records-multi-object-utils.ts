@@ -11,7 +11,7 @@ import uniqueId from 'lodash/uniqueId';
 import * as XLSX from 'xlsx';
 import { LoadMultiObjectData, LoadMultiObjectRecord, LoadMultiObjectRequestWithResult } from './load-records-multi-object-types';
 
-initXlsx();
+initXlsx(XLSX);
 
 const WORKSHEET_LOCATIONS = {
   sobject: 'B1',
