@@ -573,12 +573,7 @@ export default class App {
       }
 
       if (_url.pathname === '/oauth/sfdc/auth') {
-        const redirectURL = sfdcOauth.getRedirectUrl(
-          windowId,
-          'jetstream',
-          _url.searchParams.get('loginUrl'),
-          _url.searchParams.get('replaceOrgUniqueId')
-        );
+        const redirectURL = sfdcOauth.getRedirectUrl(windowId, 'jetstream', _url.searchParams.get('loginUrl'));
         logger.log('[REDIRECT][SHELL]', redirectURL);
         shell.openExternal(redirectURL);
 
