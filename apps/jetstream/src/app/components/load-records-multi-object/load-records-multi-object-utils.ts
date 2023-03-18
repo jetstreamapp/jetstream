@@ -1,6 +1,6 @@
 import { logger } from '@jetstream/shared/client-logger';
 import { describeSObject } from '@jetstream/shared/data';
-import { formatNumber } from '@jetstream/shared/ui-utils';
+import { formatNumber, initXlsx } from '@jetstream/shared/ui-utils';
 import { getHttpMethod, getMapOf, pluralizeFromNumber, transformRecordForDataLoad } from '@jetstream/shared/utils';
 import { CompositeGraphRequest, MapOf, SalesforceOrgUi } from '@jetstream/types';
 import { DepGraph } from 'dependency-graph';
@@ -10,6 +10,8 @@ import isString from 'lodash/isString';
 import uniqueId from 'lodash/uniqueId';
 import * as XLSX from 'xlsx';
 import { LoadMultiObjectData, LoadMultiObjectRecord, LoadMultiObjectRequestWithResult } from './load-records-multi-object-types';
+
+initXlsx(XLSX);
 
 const WORKSHEET_LOCATIONS = {
   sobject: 'B1',

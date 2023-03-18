@@ -90,7 +90,11 @@ async function getSelectedOrgFromStorage(): Promise<string | undefined> {
 }
 
 async function fetchAppVersion() {
-  return await checkHeartbeat();
+  try {
+    return await checkHeartbeat();
+  } catch (ex) {
+    return { version: 'unknown' };
+  }
 }
 
 async function fetchUserProfile(): Promise<UserProfileUi> {

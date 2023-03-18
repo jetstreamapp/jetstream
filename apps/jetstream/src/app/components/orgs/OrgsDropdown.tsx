@@ -1,3 +1,4 @@
+import { logger } from '@jetstream/shared/client-logger';
 import { clearCacheForOrg, clearQueryHistoryForOrg, deleteOrg, getOrgs, updateOrg } from '@jetstream/shared/data';
 import { useObservable } from '@jetstream/shared/ui-utils';
 import { JetstreamEventAddOrgPayload, SalesforceOrgUi } from '@jetstream/types';
@@ -34,41 +35,41 @@ export const OrgsDropdown: FunctionComponent<OrgsDropdownProps> = ({ addOrgsButt
 
   useEffect(() => {
     if (onAddOrgFromExternalSource && onAddOrgFromExternalSource.org) {
-      handleAddOrg(
-        onAddOrgFromExternalSource.org,
-        onAddOrgFromExternalSource.switchActiveOrg,
-        onAddOrgFromExternalSource.replaceOrgUniqueId
-      );
+      handleAddOrg(onAddOrgFromExternalSource.org, onAddOrgFromExternalSource.switchActiveOrg);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [onAddOrgFromExternalSource]);
 
   /**
-   * This is not in a usecallback because it caused an infinite loop since orgs changes a lot and is a dependency
-   * @param org Org to add
-   * @param replaceOrgUniqueId Id of org that should be removed from list. Only applicable to fixing org where Id ends up being different
+   * This is not in a useCallback because it caused an infinite loop since orgs changes a lot and is a dependency
    */
-  function handleAddOrg(org: SalesforceOrgUi, switchActiveOrg: boolean, replaceOrgUniqueId?: string) {
-    const sortedOrgs = uniqBy(
-      orderBy([org, ...orgs.filter((org) => (replaceOrgUniqueId ? org.uniqueId !== replaceOrgUniqueId : true))], 'username'),
-      'uniqueId'
-    );
+  function handleAddOrg(org: SalesforceOrgUi, switchActiveOrg: boolean) {
+    const sortedOrgs = uniqBy(orderBy([org, ...orgs], 'username'), 'uniqueId');
     setOrgs(sortedOrgs);
     if (switchActiveOrg) {
       setSelectedOrgId(org.uniqueId);
+    }
+    handleRefetchOrgs();
+  }
+
+  async function handleRefetchOrgs() {
+    try {
+      setOrgs(await getOrgs());
+    } catch (ex) {
+      logger.warn('Error refreshing orgs', ex);
     }
   }
 
   async function handleRemoveOrg(org: SalesforceOrgUi) {
     try {
       await deleteOrg(org);
-      setOrgs(await getOrgs());
+      handleRefetchOrgs();
       setSelectedOrgId(null);
       // async, but results are ignored as this will not throw
       clearCacheForOrg(org);
       clearQueryHistoryForOrg(org);
     } catch (ex) {
-      // TODO:
+      logger.warn('Error removing org', ex);
     }
   }
 
@@ -78,7 +79,7 @@ export const OrgsDropdown: FunctionComponent<OrgsDropdownProps> = ({ addOrgsButt
       await updateOrg(org, updatedOrg);
       setOrgs(await getOrgs());
     } catch (ex) {
-      // TODO:
+      logger.warn('Error updating org', ex);
     } finally {
       setOrgLoading(false);
     }

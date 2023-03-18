@@ -1,7 +1,7 @@
 import { logger } from '@jetstream/shared/client-logger';
 import { SalesforceOrgUi } from '@jetstream/types';
 import { useCallback, useEffect, useReducer, useRef } from 'react';
-import * as XLSX from 'xlsx';
+import type * as XLSX from 'xlsx';
 import { LoadMultiObjectData, LoadMultiObjectDataError, LoadMultiObjectRequestWithResult } from './load-records-multi-object-types';
 import { getDataGraph, parseWorkbook } from './load-records-multi-object-utils';
 

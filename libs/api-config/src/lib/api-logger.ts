@@ -4,7 +4,7 @@ import { YYYY_MM_DD__HH_mm_ss } from '@jetstream/shared/constants';
 const { createLogger, format, transports } = winston;
 
 export const logger = createLogger({
-  level: 'debug',
+  level: process.env.CI ? 'info' : 'debug',
   format: format.combine(
     format.timestamp({
       format: YYYY_MM_DD__HH_mm_ss,

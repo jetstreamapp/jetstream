@@ -19,7 +19,8 @@
         "assets": ["apps/electron/preferences/src/assets"],
         "styles": ["apps/electron/preferences/src/styles.scss"],
         "scripts": [],
-        "webpackConfig": "@nrwl/react/plugins/webpack"
+        "webpackConfig": "apps/electron/preferences/webpack.config.js",
+        "isolatedConfig": true
       },
       "configurations": {
         "development": {

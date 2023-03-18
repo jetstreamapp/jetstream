@@ -24,9 +24,7 @@
       "options": {
         "uiFramework": "@storybook/react",
         "port": 4400,
-        "config": {
-          "configFolder": "libs/shared/ui-record-form/.storybook"
-        }
+        "configDir": "libs/shared/ui-record-form/.storybook"
       },
       "configurations": {
         "ci": {
@@ -38,17 +36,15 @@
       "executor": "@nrwl/storybook:build",
       "options": {
         "uiFramework": "@storybook/react",
-        "outputPath": "dist/storybook/shared-ui-record-form",
-        "config": {
-          "configFolder": "libs/shared/ui-record-form/.storybook"
-        }
+        "configDir": "libs/shared/ui-record-form/.storybook",
+        "outputDir": "dist/storybook/shared-ui-record-form"
       },
       "configurations": {
         "ci": {
           "quiet": true
         }
       },
-      "outputs": ["{options.outputPath}"]
+      "outputs": ["{options.outputDir}"]
     }
   },
   "tags": []

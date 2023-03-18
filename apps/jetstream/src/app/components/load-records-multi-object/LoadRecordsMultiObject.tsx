@@ -1,5 +1,5 @@
 import { ANALYTICS_KEYS, DATE_FORMATS, INPUT_ACCEPT_FILETYPES, TITLES } from '@jetstream/shared/constants';
-import { formatNumber, useNonInitialEffect } from '@jetstream/shared/ui-utils';
+import { formatNumber, initXlsx, useNonInitialEffect } from '@jetstream/shared/ui-utils';
 import { InputReadFileContent, InputReadGoogleSheet, SalesforceOrgUi } from '@jetstream/types';
 import {
   AutoFullHeightContainer,
@@ -31,6 +31,8 @@ import LoadRecordsMultiObjectErrors from './LoadRecordsMultiObjectErrors';
 import LoadRecordsMultiObjectResults from './LoadRecordsMultiObjectResults';
 import useLoadFile from './useLoadFile';
 import useProcessLoadFile from './useProcessLoadFile';
+
+initXlsx(XLSX);
 
 const TEMPLATE_DOWNLOAD_LINK = 'https://drive.google.com/u/0/uc?id=1pOCPCoX4SxQWfdGc5IFa0wjXX_BKrBcV&export=download';
 const HEIGHT_BUFFER = 170;

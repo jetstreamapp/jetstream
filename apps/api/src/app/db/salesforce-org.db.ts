@@ -106,20 +106,26 @@ export async function findByUserId(jetstreamUserId: string) {
   });
 }
 
-export async function createOrUpdateSalesforceOrg(
-  jetstreamUserId: string,
-  salesforceOrgUi: Partial<SalesforceOrgUi>,
-  deleteOrgUniqueId?: string
-) {
+export async function createOrUpdateSalesforceOrg(jetstreamUserId: string, salesforceOrgUi: Partial<SalesforceOrgUi>) {
   const existingOrg = await prisma.salesforceOrg.findUnique({
     where: findUniqueOrg({ jetstreamUserId, uniqueId: salesforceOrgUi.uniqueId! }),
   });
 
   let orgToDelete: Maybe<{ id: number }>;
-  if (deleteOrgUniqueId && deleteOrgUniqueId !== salesforceOrgUi.uniqueId) {
-    orgToDelete = await prisma.salesforceOrg.findUnique({
+  /**
+   * After a sandbox refresh, the orgId will change but the username will remain the same
+   * There cannot be two different orgs with the same username since this is globally unique on Salesforce
+   * After a user does a sandbox refresh, this deletes the old org no matter how the user initiated the connection
+   */
+  if (salesforceOrgUi.organizationId && salesforceOrgUi.username) {
+    orgToDelete = await prisma.salesforceOrg.findFirst({
       select: { id: true },
-      where: findUniqueOrg({ jetstreamUserId, uniqueId: deleteOrgUniqueId }),
+      where: {
+        jetstreamUserId: { equals: jetstreamUserId },
+        jetstreamUrl: { equals: ENV.JETSTREAM_SERVER_URL! },
+        username: { equals: salesforceOrgUi.username },
+        uniqueId: { not: { equals: salesforceOrgUi.uniqueId! } },
+      },
     });
   }
 

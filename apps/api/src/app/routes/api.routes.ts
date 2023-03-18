@@ -40,6 +40,7 @@ routes.get(
   validate(sfMiscController.routeValidators.streamFileDownload),
   sfMiscController.streamFileDownload
 );
+routes.post('/orgs/health-check', ensureOrgExists, orgsController.checkOrgHealth);
 
 routes.get('/orgs', orgsController.getOrgs);
 routes.patch('/orgs/:uniqueId', orgsController.updateOrg);
