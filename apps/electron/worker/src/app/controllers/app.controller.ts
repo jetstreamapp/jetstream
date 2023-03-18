@@ -60,3 +60,18 @@ export const handleDeleteOrg: ControllerFnParams<{ uniqueId: string }> = async (
     reject(ex);
   }
 };
+
+export const handleOrgHealthCheck: ControllerFnParams<{ uniqueId: string }> = async (
+  _,
+  __,
+  params,
+  { reject, resolve, connection, request }
+) => {
+  try {
+    // const orgs = await deleteOrg(params.uniqueId);
+    // TODO: implement for electron
+    resolve(null);
+  } catch (ex) {
+    reject(ex);
+  }
+};

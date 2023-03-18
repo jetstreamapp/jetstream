@@ -105,6 +105,10 @@ export async function deleteOrg(org: SalesforceOrgUi): Promise<void> {
   return handleRequest({ method: 'DELETE', url: `/api/orgs/${org.uniqueId}` }).then(unwrapResponseIgnoreCache);
 }
 
+export async function checkOrgHealth(org: SalesforceOrgUi): Promise<void> {
+  return handleRequest({ method: 'POST', url: `/api/orgs/health-check` }, { org }).then(unwrapResponseIgnoreCache);
+}
+
 /**
  * First an upload signature is obtained from the server, if needed (good for 1 hour)
  * Then images are uploaded directly to cloudinary

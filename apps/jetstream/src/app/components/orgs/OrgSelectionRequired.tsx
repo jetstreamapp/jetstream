@@ -1,9 +1,12 @@
 import { css } from '@emotion/react';
+import { logger } from '@jetstream/shared/client-logger';
+import { checkOrgHealth, getOrgs } from '@jetstream/shared/data';
 import { SalesforceOrgUi } from '@jetstream/types';
-import { Alert, EmptyState, NoAccess2Illustration } from '@jetstream/ui';
-import { Fragment, FunctionComponent, useCallback } from 'react';
-import { useRecoilValue } from 'recoil';
+import { Alert, EmptyState, Icon, NoAccess2Illustration } from '@jetstream/ui';
+import { Fragment, FunctionComponent, useCallback, useState } from 'react';
+import { useRecoilValue, useSetRecoilState } from 'recoil';
 import * as fromAppState from '../../app-state';
+import { fireToast } from '../core/AppToast';
 import * as fromJetstreamEvents from '../core/jetstream-events';
 import AddOrg from './AddOrg';
 import { OrgWelcomeInstructions } from './OrgWelcomeInstructions';
@@ -15,10 +18,30 @@ export interface OrgSelectionRequiredProps {
 export const OrgSelectionRequired: FunctionComponent<OrgSelectionRequiredProps> = ({ children }) => {
   const selectedOrg = useRecoilValue<SalesforceOrgUi | undefined>(fromAppState.selectedOrgStateWithoutPlaceholder);
   const hasConfiguredOrg = useRecoilValue<boolean>(fromAppState.hasConfiguredOrgState);
+  const setOrgs = useSetRecoilState(fromAppState.salesforceOrgsState);
+
+  const [loadingRetry, setLoadingRetry] = useState(false);
 
   const handleAddOrg = useCallback((org: SalesforceOrgUi, switchActiveOrg: boolean) => {
     fromJetstreamEvents.emit({ type: 'addOrg', payload: { org, switchActiveOrg } });
   }, []);
+
+  const handleRetryOrgConnection = async () => {
+    try {
+      if (!selectedOrg) {
+        return;
+      }
+      setLoadingRetry(true);
+      await checkOrgHealth(selectedOrg);
+      setOrgs(await getOrgs());
+      fireToast({ type: 'success', message: 'Your org is now valid' });
+    } catch (ex) {
+      fireToast({ type: 'error', message: 'Unable to connect to your org' });
+      logger.log('Unable to connect to this org.', ex);
+    } finally {
+      setLoadingRetry(false);
+    }
+  };
 
   return (
     <Fragment>
@@ -37,6 +60,14 @@ export const OrgSelectionRequired: FunctionComponent<OrgSelectionRequiredProps> 
           </Alert>
           <div>
             <EmptyState size="large" headline={`Fix your org connection to continue`} illustration={<NoAccess2Illustration />}>
+              <button
+                className="slds-button slds-button_neutral slds-m-right_x-small"
+                onClick={handleRetryOrgConnection}
+                disabled={loadingRetry}
+              >
+                <Icon type="utility" icon="refresh" className="slds-button__icon slds-button__icon_left" omitContainer />
+                Retry Connection
+              </button>
               <AddOrg className="slds-button_brand" label="Reconnect Org" onAddOrg={handleAddOrg} />
             </EmptyState>
           </div>

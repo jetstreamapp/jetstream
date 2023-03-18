@@ -405,7 +405,6 @@ export type JetstreamEvents = JetstreamEventJobFinished | JetstreamEventLastActi
 export interface JetstreamEventAddOrgPayload {
   org: SalesforceOrgUi;
   switchActiveOrg: boolean;
-  replaceOrgUniqueId?: string;
 }
 export type JetstreamEventPayloads = AsyncJob | AsyncJobNew[] | JetstreamEventAddOrgPayload;
 
