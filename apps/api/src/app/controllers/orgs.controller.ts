@@ -65,9 +65,15 @@ export async function checkOrgHealth(req: Request, res: Response, next: NextFunc
     }
 
     try {
-      await salesforceOrgsDb.updateOrg_UNSAFE(org, { connectionError });
+      if (connectionError !== org.connectionError) {
+        await salesforceOrgsDb.updateOrg_UNSAFE(org, { connectionError });
+      }
     } catch (ex) {
       logger.warn('[ERROR UPDATING INVALID ORG] %s', ex.message, { error: ex.message, userInfo });
+    }
+
+    if (connectionError) {
+      throw new UserFacingError('Your org is no longer valid. Reconnect this org to Salesforce.');
     }
 
     sendJson(res, undefined, 200);
