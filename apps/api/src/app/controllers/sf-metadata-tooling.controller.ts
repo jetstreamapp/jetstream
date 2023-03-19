@@ -5,7 +5,7 @@ import { AnonymousApexResponse, AnonymousApexSoapResponse, ApexCompletionRespons
 import { NextFunction, Request, Response } from 'express';
 import { body, param, query } from 'express-validator';
 import * as jsforce from 'jsforce';
-import { DeployOptions, RetrieveRequest } from 'jsforce';
+import type { DeployOptions, RetrieveRequest } from 'jsforce';
 import * as JSZip from 'jszip';
 import { isObject, isString, toNumber } from 'lodash';
 import { buildPackageXml, getRetrieveRequestFromListMetadata, getRetrieveRequestFromManifest } from '../services/sf-misc';

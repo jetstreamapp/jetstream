@@ -4,7 +4,7 @@ import { queryRemaining } from '@jetstream/shared/data';
 import { formatNumber, useRollbar } from '@jetstream/shared/ui-utils';
 import { flattenRecord } from '@jetstream/shared/utils';
 import { MapOf, Maybe, SalesforceOrgUi } from '@jetstream/types';
-import { Field } from 'jsforce';
+import type { Field } from 'jsforce';
 import uniqueId from 'lodash/uniqueId';
 import { Fragment, FunctionComponent, memo, ReactNode, useCallback, useEffect, useRef, useState } from 'react';
 import { Column, CopyEvent } from 'react-data-grid';
@@ -15,7 +15,7 @@ import { ContextMenuItem } from '../popover/ContextMenu';
 import { PopoverErrorButton } from '../popover/PopoverErrorButton';
 import Spinner from '../widgets/Spinner';
 import { DataTableSubqueryContext } from './data-table-context';
-import { ColumnWithFilter, ContextAction, ContextMenuActionData, RowWithKey } from './data-table-types';
+import { ColumnWithFilter, ContextAction, ContextMenuActionData, RowSalesforceRecordWithKey, RowWithKey } from './data-table-types';
 import {
   addFieldLabelToColumn,
   copySalesforceRecordTableDataToClipboard,
@@ -86,12 +86,12 @@ export const SalesforceRecordDataTable: FunctionComponent<SalesforceRecordDataTa
   }) => {
     const isMounted = useRef(true);
     const rollbar = useRollbar();
-    const [columns, setColumns] = useState<Column<RowWithKey>[]>();
-    const [subqueryColumnsMap, setSubqueryColumnsMap] = useState<MapOf<ColumnWithFilter<RowWithKey, unknown>[]>>();
-    const [records, setRecords] = useState<RowWithKey[]>();
+    const [columns, setColumns] = useState<Column<RowSalesforceRecordWithKey>[]>();
+    const [subqueryColumnsMap, setSubqueryColumnsMap] = useState<MapOf<ColumnWithFilter<RowSalesforceRecordWithKey, unknown>[]>>();
+    const [records, setRecords] = useState<any[]>();
     // Same as records but with additional data added
     const [fields, setFields] = useState<string[]>([]);
-    const [rows, setRows] = useState<RowWithKey[]>();
+    const [rows, setRows] = useState<RowSalesforceRecordWithKey[]>();
     const [totalRecordCount, setTotalRecordCount] = useState<number>();
     const [isLoadingMore, setIsLoadingMore] = useState<boolean>(false);
     const [loadMoreErrorMessage, setLoadMoreErrorMessage] = useState<string | null>(null);
@@ -186,7 +186,7 @@ export const SalesforceRecordDataTable: FunctionComponent<SalesforceRecordDataTa
     useEffect(() => {
       const columnKeys = columns?.map((col) => col.key) || null;
       setRows(
-        (records || []).map((row): RowWithKey => {
+        (records || []).map((row): RowSalesforceRecordWithKey => {
           return {
             _action: handleRowAction,
             _record: row,
@@ -228,11 +228,22 @@ export const SalesforceRecordDataTable: FunctionComponent<SalesforceRecordDataTa
       }
     }
 
-    function handleCopy({ sourceRow, sourceColumnKey }: CopyEvent<RowWithKey>): void {
+    const handleSortedAndFilteredRowsChange = useCallback(
+      (rows: RowSalesforceRecordWithKey[]) => {
+        onFilteredRowsChanged(rows.map(({ _record }) => _record));
+      },
+      [onFilteredRowsChanged]
+    );
+
+    const handleSelectedRowsChange = useCallback((rows: Set<string>) => {
+      setSelectedRows(rows);
+    }, []);
+
+    const handleCopy = useCallback(({ sourceRow, sourceColumnKey }: CopyEvent<RowWithKey>) => {
       if (window.isSecureContext) {
         navigator.clipboard.writeText(sourceRow[sourceColumnKey]);
       }
-    }
+    }, []);
 
     const handleColumnReorder = useCallback((newFields: string[]) => {
       onFields({ allFields: newFields, visibleFields: newFields });
@@ -290,8 +301,8 @@ export const SalesforceRecordDataTable: FunctionComponent<SalesforceRecordDataTa
               rowHeight={28.5}
               selectedRows={selectedRows}
               onReorderColumns={handleColumnReorder}
-              onSelectedRowsChange={(rows) => setSelectedRows(rows as Set<string>)}
-              onSortedAndFilteredRowsChange={(rows) => onFilteredRowsChanged(rows as RowWithKey[])}
+              onSelectedRowsChange={handleSelectedRowsChange}
+              onSortedAndFilteredRowsChange={handleSortedAndFilteredRowsChange}
               contextMenuItems={TABLE_CONTEXT_MENU_ITEMS}
               contextMenuAction={handleContextMenuAction}
             />

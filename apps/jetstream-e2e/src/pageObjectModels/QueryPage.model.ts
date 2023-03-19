@@ -1,6 +1,6 @@
 import { APIRequestContext, expect, Locator, Page } from '@playwright/test';
 import { QueryFilterOperator } from '@jetstream/types';
-import { isNumber } from 'lodash';
+import isNumber from 'lodash/isNumber';
 import { formatNumber } from '@jetstream/shared/ui-utils';
 import { QueryResults } from '@jetstream/api-interfaces';
 import { ApiRequestUtils } from '../fixtures/ApiRequestUtils';
@@ -117,8 +117,9 @@ export class QueryPage {
     const condition = this.page.getByRole('group', { name: `Condition ${conditionNumber}${groupRole}` });
 
     await condition.getByLabel('Fields').click();
-    await condition.getByLabel('Fields').fill(field);
-    await condition.getByRole('option', { name: field }).locator('span').nth(2).click();
+    await this.page.keyboard.type(field, { delay: 100 });
+    // await condition.getByLabel('Fields').fill(field);
+    await condition.getByRole('option', { name: field }).first().click();
 
     await condition.getByLabel('Operator').click();
     await condition.locator(`#${operator}`).click();
@@ -143,20 +144,22 @@ export class QueryPage {
     }
   }
 
-  async addOrderBy(field: string, direction: 'ASC' | 'DESC', nulls: 'IGNORE' | 'FIRST' | 'LAST' = 'IGNORE') {
+  async addOrderBy(field: string, direction: 'ASC' | 'DESC', nulls: 'IGNORE' | 'FIRST' | 'LAST' = 'IGNORE', groupNumber = 1) {
     await this.page.getByRole('button', { name: 'Order By' }).click();
 
-    const locator = this.page.getByText('Order ByFieldRelated fields must be selected to appear in this list and only fields');
+    const orderByRow = this.page.getByRole('group', { name: `Filter row ${groupNumber}` });
 
-    await locator.getByLabel('Field').click();
-    await locator.getByRole('option', { name: field }).click();
+    await orderByRow.getByLabel('Field').click();
+    await this.page.keyboard.type(field, { delay: 100 });
+    // await orderByRow.getByLabel('Field').fill(field);
+    await orderByRow.getByRole('option', { name: field }).first().click();
 
-    await locator.getByLabel('Order').click();
-    await locator.getByRole('option', { name: direction ? 'Ascending (A to Z)' : 'Descending (Z to A)' }).click();
+    await orderByRow.getByLabel('Order').click();
+    await orderByRow.getByRole('option', { name: direction ? 'Ascending (A to Z)' : 'Descending (Z to A)' }).click();
 
     if (nulls !== 'IGNORE') {
-      await locator.getByLabel('Nulls').click();
-      await locator.getByRole('option', { name: nulls === 'FIRST' ? 'Nulls First' : 'Nulls Last' }).click();
+      await orderByRow.getByLabel('Nulls').click();
+      await orderByRow.getByRole('option', { name: nulls === 'FIRST' ? 'Nulls First' : 'Nulls Last' }).click();
     }
   }
 

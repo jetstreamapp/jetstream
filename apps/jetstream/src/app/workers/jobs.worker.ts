@@ -31,7 +31,7 @@ import {
   UploadToGoogleJob,
   WorkerMessage,
 } from '@jetstream/types';
-import { Record } from 'jsforce';
+import type { Record } from 'jsforce';
 import isString from 'lodash/isString';
 import { axiosElectronAdapter, initMessageHandler } from '../components/core/electron-axios-adapter';
 
@@ -93,13 +93,13 @@ async function handleMessage(name: AsyncJobType, payloadData: AsyncJobWorkerMess
     case 'BulkDownload': {
       try {
         const { org, job } = payloadData as AsyncJobWorkerMessagePayload<BulkDownloadJob>;
-        const { isTooling, fields, records, fileFormat, fileName, subqueryFields, includeSubquery, googleFolder } = job.meta;
+        const { isTooling, fields, records, hasAllRecords, fileFormat, fileName, subqueryFields, includeSubquery, googleFolder } = job.meta;
         // eslint-disable-next-line prefer-const
         let { nextRecordsUrl, totalRecordCount } = job.meta;
         let downloadedRecords = records;
         let done = !nextRecordsUrl;
 
-        while (!done && nextRecordsUrl) {
+        while (!done && nextRecordsUrl && !hasAllRecords) {
           // emit progress
           const results = {
             done: false,

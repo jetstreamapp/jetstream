@@ -15,7 +15,7 @@ import { Link } from 'react-router-dom';
 import { SplitWrapper as Split } from '@jetstream/splitjs';
 import { useRecoilState, useRecoilValue, useResetRecoilState } from 'recoil';
 import * as fromMassUpdateState from '../mass-update-records.state';
-import { filterMassUpdateSobject } from '../mass-update-records.utils';
+import { filterMassUpdateSobject } from '../../shared/mass-update-records/mass-update-records.utils';
 import MassUpdateRecordsObjects from './MassUpdateRecordsObjects';
 import { useMassUpdateFieldItems } from './useMassUpdateFieldItems';
 import { selectedOrgState } from '../../../app-state';

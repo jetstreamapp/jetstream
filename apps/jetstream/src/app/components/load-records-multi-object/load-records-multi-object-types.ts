@@ -7,7 +7,7 @@ import {
   MapOf,
   Maybe,
 } from '@jetstream/types';
-import { DescribeSObjectResult, Field } from 'jsforce';
+import type { DescribeSObjectResult, Field } from 'jsforce';
 
 export interface LoadMultiObjectDataError {
   property: Omit<keyof LoadMultiObjectData, 'errors'>;

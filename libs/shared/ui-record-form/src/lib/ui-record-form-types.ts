@@ -1,5 +1,5 @@
 import { ListItem, PicklistFieldValueItem } from '@jetstream/types';
-import { Field } from 'jsforce';
+import type { Field } from 'jsforce';
 
 export type EditableFields =
   | EditableFieldInput

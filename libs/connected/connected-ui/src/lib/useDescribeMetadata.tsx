@@ -4,7 +4,7 @@ import { useNonInitialEffect, useRollbar } from '@jetstream/shared/ui-utils';
 import { orderStringsBy } from '@jetstream/shared/utils';
 import { MapOf, SalesforceOrgUi } from '@jetstream/types';
 import formatRelative from 'date-fns/formatRelative';
-import { DescribeMetadataResult, MetadataObject } from 'jsforce';
+import type { DescribeMetadataResult, MetadataObject } from 'jsforce';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { METADATA_TYPES_TO_OMIT } from './utils';
 

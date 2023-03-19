@@ -8,8 +8,13 @@ import { useCallback, useEffect, useReducer, useRef } from 'react';
 import { useRecoilState, useRecoilValue } from 'recoil';
 import { useAmplitude } from '../../core/analytics';
 import * as fromMassUpdateState from '../mass-update-records.state';
-import { MetadataRow, TransformationCriteria, TransformationOption, TransformationOptions } from '../mass-update-records.types';
-import { getValidationSoqlQuery, isValidRow } from '../mass-update-records.utils';
+import {
+  MetadataRow,
+  TransformationCriteria,
+  TransformationOption,
+  TransformationOptions,
+} from '../../shared/mass-update-records/mass-update-records.types';
+import { getValidationSoqlQuery, isValidRow } from '../../shared/mass-update-records/mass-update-records.utils';
 
 type Action =
   | { type: 'RESET' }
@@ -150,6 +155,7 @@ function reducer(state: State, action: Action): State {
             value: field.name,
             label: field.label,
             secondaryLabel: field.name,
+            secondaryLabelOnNewLine: true,
             meta: field,
           })),
         allFields: allFieldMetadata.map((field) => ({
@@ -157,6 +163,7 @@ function reducer(state: State, action: Action): State {
           value: field.name,
           label: field.label,
           secondaryLabel: field.name,
+          secondaryLabelOnNewLine: true,
           meta: field,
         })),
       });

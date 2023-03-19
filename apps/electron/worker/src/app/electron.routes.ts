@@ -24,6 +24,7 @@ router.on('GET', '/api/me', appController.getUserProfile);
 router.on('GET', '/api/orgs', appController.handleGetOrgs);
 router.on('PATCH', '/api/orgs/:uniqueId', appController.handleUpdateOrg);
 router.on('DELETE', '/api/orgs/:uniqueId', appController.handleDeleteOrg);
+router.on('POST', '/api/orgs/:uniqueId/health-check', appController.handleOrgHealthCheck); // TODO:
 
 router.on('GET', '/api/images/upload-signature', appController.placeholder); // TODO:
 router.on('POST', '/api/feedback/submit', appController.placeholder); // TODO:

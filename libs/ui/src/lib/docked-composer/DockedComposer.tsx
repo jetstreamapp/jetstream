@@ -1,5 +1,5 @@
 import classNames from 'classnames';
-import { uniqueId } from 'lodash';
+import uniqueId from 'lodash/uniqueId';
 import React, { forwardRef, Fragment, useImperativeHandle, useState } from 'react';
 import Icon from '../widgets/Icon';
 

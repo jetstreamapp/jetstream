@@ -14,8 +14,7 @@ import { OauthLinkParams } from './auth.controller';
 export function salesforceOauthInitAuth(req: express.Request, res: express.Response) {
   const loginUrl = req.query.loginUrl as string;
   const clientUrl = req.query.clientUrl as string;
-  const replaceOrgUniqueId = req.query.replaceOrgUniqueId as string | undefined;
-  const state = new URLSearchParams({ loginUrl, clientUrl, replaceOrgUniqueId: replaceOrgUniqueId || '' }).toString();
+  const state = new URLSearchParams({ loginUrl, clientUrl }).toString();
 
   let options = {
     scope: 'api web refresh_token',
@@ -40,7 +39,6 @@ export async function salesforceOauthCallback(req: express.Request, res: express
   const state = new URLSearchParams(req.query.state as string);
   const loginUrl = state.get('loginUrl');
   const clientUrl = state.get('clientUrl') || new URL(ENV.JETSTREAM_CLIENT_URL!).origin;
-  const replaceOrgUniqueId = state.get('replaceOrgUniqueId') || undefined;
   const returnParams: OauthLinkParams = {
     type: 'salesforce',
     clientUrl,
@@ -65,7 +63,6 @@ export async function salesforceOauthCallback(req: express.Request, res: express
       userInfo,
       loginUrl: loginUrl as string,
       userId: user.id,
-      replaceOrgUniqueId,
     });
 
     // TODO: figure out what other data we need
@@ -95,13 +92,11 @@ export async function initConnectionFromOAuthResponse({
   userInfo,
   loginUrl,
   userId,
-  replaceOrgUniqueId,
 }: {
   conn: jsforce.Connection;
   userInfo: jsforce.UserInfo;
   loginUrl: string;
   userId: string;
-  replaceOrgUniqueId?: string;
 }) {
   const identity = await conn.identity();
   let companyInfoRecord: SObjectOrganization | undefined;
@@ -141,6 +136,6 @@ export async function initConnectionFromOAuthResponse({
     orgTrialExpirationDate: companyInfoRecord?.TrialExpirationDate,
   };
 
-  const salesforceOrg = await salesforceOrgsDb.createOrUpdateSalesforceOrg(userId, salesforceOrgUi, replaceOrgUniqueId);
+  const salesforceOrg = await salesforceOrgsDb.createOrUpdateSalesforceOrg(userId, salesforceOrgUi);
   return salesforceOrg;
 }

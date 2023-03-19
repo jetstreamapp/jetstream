@@ -44,7 +44,7 @@ export interface OrgInfoPopoverProps {
   org: SalesforceOrgUi;
   loading?: boolean;
   disableOrgActions?: boolean;
-  onAddOrg: (org: SalesforceOrgUi, switchActiveOrg: boolean, replaceOrgUniqueId?: string) => void;
+  onAddOrg: (org: SalesforceOrgUi, switchActiveOrg: boolean) => void;
   onRemoveOrg: (org: SalesforceOrgUi) => void;
   onUpdateOrg: (org: SalesforceOrgUi, updatedOrg: Partial<SalesforceOrgUi>) => void;
 }
@@ -117,16 +117,9 @@ export const OrgInfoPopover: FunctionComponent<OrgInfoPopoverProps> = ({
   }, [org]);
 
   function handleFixOrg() {
-    addOrg(
-      { serverUrl: applicationState.serverUrl, loginUrl: org.instanceUrl, replaceOrgUniqueId: org.uniqueId },
-      (addedOrg: SalesforceOrgUi) => {
-        let replaceOrgUniqueId: string | undefined = undefined;
-        if (addedOrg.uniqueId !== org.uniqueId) {
-          replaceOrgUniqueId = org.uniqueId;
-        }
-        onAddOrg(addedOrg, true, replaceOrgUniqueId);
-      }
-    );
+    addOrg({ serverUrl: applicationState.serverUrl, loginUrl: org.instanceUrl }, (addedOrg: SalesforceOrgUi) => {
+      onAddOrg(addedOrg, true);
+    });
   }
 
   function handleLabelChange(event: React.ChangeEvent<HTMLInputElement>) {

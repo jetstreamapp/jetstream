@@ -1,7 +1,7 @@
 import { REGEX } from '@jetstream/shared/utils';
 import { MapOf } from '@jetstream/types';
-import { FieldType } from 'jsforce';
-import { isString } from 'lodash';
+import type { FieldType } from 'jsforce';
+import isString from 'lodash/isString';
 import isObject from 'lodash/isObject';
 
 type FieldValue = string | number | boolean | null;

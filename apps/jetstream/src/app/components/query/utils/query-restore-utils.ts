@@ -18,8 +18,8 @@ import {
   QueryOrderByClause,
   SalesforceOrgUi,
 } from '@jetstream/types';
-import { ChildRelationship, DescribeGlobalSObjectResult, Field } from 'jsforce';
-import { isString } from 'lodash';
+import type { ChildRelationship, DescribeGlobalSObjectResult, Field } from 'jsforce';
+import isString from 'lodash/isString';
 import {
   Condition,
   DateLiteral,

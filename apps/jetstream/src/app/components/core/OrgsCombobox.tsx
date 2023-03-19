@@ -2,7 +2,7 @@ import { css, SerializedStyles } from '@emotion/react';
 import { multiWordObjectFilter } from '@jetstream/shared/utils';
 import { MapOf, Maybe, SalesforceOrgUi } from '@jetstream/types';
 import { Combobox, ComboboxListItem, ComboboxListItemGroup } from '@jetstream/ui';
-import { sortBy } from 'lodash';
+import sortBy from 'lodash/sortBy';
 import groupBy from 'lodash/groupBy';
 import { FunctionComponent, useEffect, useState } from 'react';
 
@@ -42,11 +42,11 @@ function getSelectedItemStyle(org: Maybe<SalesforceOrgUi>): SerializedStyles | u
 function getDropdownOrgStyle(org: Maybe<SalesforceOrgUi>): SerializedStyles | undefined {
   if (!org || !org.color) {
     return css({
-      borderLeft: `solid 0.3rem transparent`,
+      borderBottom: `solid 0.3rem transparent`,
     });
   }
   return css({
-    borderLeft: `solid 0.3rem ${org.color}`,
+    borderBottom: `solid 0.3rem ${org.color}`,
   });
 }
 
@@ -127,6 +127,7 @@ export const OrgsCombobox: FunctionComponent<OrgsComboboxProps> = ({
                 id={org.uniqueId}
                 label={org.label || org.username}
                 secondaryLabel={org.username !== org.label ? org.username : undefined}
+                secondaryLabelOnNewLine={org.username !== org.label}
                 hasError={orgHasError(org)}
                 selected={!!selectedOrg && selectedOrg.uniqueId === org.uniqueId}
                 textBodyCss={getDropdownOrgStyle(org)}

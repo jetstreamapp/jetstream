@@ -1,19 +1,11 @@
-const getWebpackConfig = require('@nrwl/react/plugins/webpack');
+const { composePlugins, withNx } = require('@nrwl/webpack');
+const { withReact } = require('@nrwl/react');
 
-module.exports = (config) => {
-  config = getWebpackConfig(config);
-
-  // https://stackoverflow.com/questions/64294706/webpack5-automatic-publicpath-is-not-supported-in-this-browser
-  config.output.publicPath = '';
-
-  // https://webpack.js.org/loaders/worker-loader/
-  // config.module.rules.unshift({ test: /\.worker\.ts$/, loader: 'worker-loader' });
-
-  // required for monaco editor in electron environment
-  config.resolve = config.resolve || {};
-  config.resolve.fallback = { path: false };
-
-  config.plugins = config.plugins || [];
-
-  return config;
-};
+// Nx plugins for webpack.
+module.exports = composePlugins(withNx(), withReact(), (config, { options, context }) => {
+  // Note: This was added by an Nx migration.
+  // You should consider inlining the logic into this file.
+  // For more information on webpack config and Nx see:
+  // https://nx.dev/packages/webpack/documents/webpack-config-setup
+  return require('./webpack.config.old.js')(config, context);
+});

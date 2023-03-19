@@ -12,7 +12,7 @@ import parseDate from 'date-fns/parse';
 import parseISO from 'date-fns/parseISO';
 import startOfDay from 'date-fns/startOfDay';
 import startOfMinute from 'date-fns/startOfMinute';
-import { Field } from 'jsforce';
+import type { Field } from 'jsforce';
 import isNil from 'lodash/isNil';
 import isNumber from 'lodash/isNumber';
 import isObject from 'lodash/isObject';
@@ -74,8 +74,16 @@ export function getRowId(data: any): string {
   return nodeId;
 }
 
+/**
+ * Get columns for a generic table. Use this when the data is provided by the user and types of columns are generally unknown
+ *
+ * @param headers
+ * @param defaultFilters If no type is provided, the default filters that will be applied
+ * @returns
+ */
 export function getColumnsForGenericTable(
-  headers: { label: string; key: string; columnProps?: Partial<ColumnWithFilter<RowWithKey>>; type?: ColumnType }[]
+  headers: { label: string; key: string; columnProps?: Partial<ColumnWithFilter<RowWithKey>>; type?: ColumnType }[],
+  defaultFilters: FilterType[] = ['TEXT', 'SET']
 ): ColumnWithFilter<RowWithKey>[] {
   return headers.map(({ label, key, columnProps, type }) => {
     const column: Mutable<ColumnWithFilter<RowWithKey>> = {
@@ -83,7 +91,7 @@ export function getColumnsForGenericTable(
       key,
       resizable: true,
       sortable: true,
-      filters: ['TEXT', 'SET'],
+      filters: defaultFilters,
       formatter: GenericRenderer,
       headerRenderer: (props) => (
         <FilterRenderer {...props}>

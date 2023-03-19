@@ -1,6 +1,6 @@
 import { ListItem, Maybe } from '@jetstream/types';
 import { Card, Grid, Pill, Spinner, ViewDocsLink } from '@jetstream/ui';
-import { DescribeGlobalSObjectResult } from 'jsforce';
+import type { DescribeGlobalSObjectResult } from 'jsforce';
 import { FunctionComponent } from 'react';
 import PlatformEventMonitorEvents from './PlatformEventMonitorEvents';
 import PlatformEventMonitorSubscribe from './PlatformEventMonitorSubscribe';

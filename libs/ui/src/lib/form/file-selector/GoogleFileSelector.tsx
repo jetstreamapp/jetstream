@@ -1,8 +1,8 @@
 import { logger } from '@jetstream/shared/client-logger';
-import { GoogleApiClientConfig, useDrivePicker } from '@jetstream/shared/ui-utils';
+import { GoogleApiClientConfig, initXlsx, useDrivePicker } from '@jetstream/shared/ui-utils';
 import { InputReadGoogleSheet, Maybe } from '@jetstream/types';
 import classNames from 'classnames';
-import { uniqueId } from 'lodash';
+import uniqueId from 'lodash/uniqueId';
 import { FunctionComponent, useCallback, useEffect, useState } from 'react';
 import * as XLSX from 'xlsx';
 import HelpText from '../../widgets/HelpText';
@@ -10,6 +10,8 @@ import Icon from '../../widgets/Icon';
 import Spinner from '../../widgets/Spinner';
 import { SCRIPT_LOAD_ERR_MESSAGE } from './file-selector-utils';
 import { useFilename } from './useFilename';
+
+initXlsx(XLSX);
 
 export interface GoogleFileSelectorProps {
   apiConfig: GoogleApiClientConfig;

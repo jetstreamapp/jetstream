@@ -2,7 +2,7 @@ import { logger } from '@jetstream/shared/client-logger';
 import { clearCacheForOrg, queryWithCache } from '@jetstream/shared/data';
 import { useReducerFetchFn } from '@jetstream/shared/ui-utils';
 import { ListItem, SalesforceOrgUi } from '@jetstream/types';
-import { orderBy } from 'lodash';
+import orderBy from 'lodash/orderBy';
 import { useCallback, useEffect, useReducer, useRef } from 'react';
 
 export interface MetadataDependencyEntityDefinition {

@@ -3,9 +3,9 @@ import * as jsforce from 'jsforce';
 import { environment } from '../../environments/environment';
 import logger from './logger';
 
-export function getRedirectUrl(windowId: number, protocol: 'jetstream' | 'http', loginUrl: string, replaceOrgUniqueId?: string) {
+export function getRedirectUrl(windowId: number, protocol: 'jetstream' | 'http', loginUrl: string) {
   // TODO: we might need to determine if packaged or not and use a different url (e.x. jetstream://)
-  const state = new URLSearchParams({ loginUrl, replaceOrgUniqueId, windowId: `${windowId}` }).toString();
+  const state = new URLSearchParams({ loginUrl, windowId: `${windowId}` }).toString();
   const options = {
     scope: 'api web refresh_token',
     state,
@@ -28,8 +28,6 @@ export async function exchangeCodeForToken(protocol: 'jetstream' | 'http', param
 
   const state = new URLSearchParams(params.get('state'));
   const loginUrl = state.get('loginUrl');
-  // TODO: might want to send back to delete this old invalid org
-  const replaceOrgUniqueId = state.get('replaceOrgUniqueId');
 
   const conn = new jsforce.Connection({
     oauth2: new jsforce.OAuth2({

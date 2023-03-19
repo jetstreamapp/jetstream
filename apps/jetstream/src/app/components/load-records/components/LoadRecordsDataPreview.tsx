@@ -4,15 +4,15 @@ import { query } from '@jetstream/shared/data';
 import { formatNumber } from '@jetstream/shared/ui-utils';
 import { InsertUpdateUpsertDelete, Maybe, SalesforceOrgUi } from '@jetstream/types';
 import { Alert, AutoFullHeightContainer, DataTable, getColumnsForGenericTable, Grid, GridCol, RowWithKey, Spinner } from '@jetstream/ui';
-import { DescribeGlobalSObjectResult } from 'jsforce';
+import type { DescribeGlobalSObjectResult } from 'jsforce';
 import isNil from 'lodash/isNil';
 import { FunctionComponent, useEffect, useRef, useState } from 'react';
 import { Column } from 'react-data-grid';
 import { useRecoilState } from 'recoil';
 import * as fromLoadRecordsState from '../load-records.state';
 
+const MAX_COLUMNS_TO_KEEP_SET_FILTER = 2000;
 const NUM_COLUMN = '_num';
-
 const getRowId = ({ _num }: any) => _num;
 
 export interface LoadRecordsDataPreviewProps {
@@ -58,11 +58,14 @@ function getLoadDescription(loadType: InsertUpdateUpsertDelete, totalRecordCount
   );
 }
 
-function getColumnDefinitions(headers: string[]): Column<RowWithKey>[] {
-  return getColumnsForGenericTable([
-    { key: NUM_COLUMN, label: '#', columnProps: { width: 75, filters: [] } },
-    ...headers.map((header) => ({ key: header, label: header })),
-  ]);
+function getColumnDefinitions(headers: string[], numRows: number): Column<RowWithKey>[] {
+  return getColumnsForGenericTable(
+    [
+      { key: NUM_COLUMN, label: '#', columnProps: { width: 75, filters: [] } },
+      ...headers.map((header) => ({ key: header, label: header })),
+    ],
+    numRows > MAX_COLUMNS_TO_KEEP_SET_FILTER ? ['TEXT'] : undefined
+  );
 }
 
 export const LoadRecordsDataPreview: FunctionComponent<LoadRecordsDataPreviewProps> = ({
@@ -111,12 +114,13 @@ export const LoadRecordsDataPreview: FunctionComponent<LoadRecordsDataPreviewPro
         }
       })();
     }
-  }, [selectedOrg, selectedSObject, totalRecordCount]);
+  }, [selectedOrg, selectedSObject, setTotalRecordCount, totalRecordCount]);
 
   useEffect(() => {
     if (data && header) {
-      setRows(data.map((row, i) => ({ ...row, [NUM_COLUMN]: i + 1 })));
-      setColumns(getColumnDefinitions(header));
+      const _rows = data.map((row, i) => ({ ...row, [NUM_COLUMN]: i + 1 }));
+      setRows(_rows);
+      setColumns(getColumnDefinitions(header, _rows.length));
     } else {
       setColumns(null);
       setRows(null);

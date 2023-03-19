@@ -1,18 +1,19 @@
 import { Maybe } from '@jetstream/types';
 import { Badge } from '@jetstream/ui';
-import classNames from 'classnames';
 import { FunctionComponent } from 'react';
-import { TransformationOptions } from '../mass-update-records.types';
+import { TransformationOptions } from '../../shared/mass-update-records/mass-update-records.types';
 
 export interface MassUpdateRecordTransformationTextProps {
   className?: string;
   selectedField: Maybe<string>;
   transformationOptions: TransformationOptions;
+  hasExternalWhereClause?: boolean;
 }
 
 export const MassUpdateRecordTransformationText: FunctionComponent<MassUpdateRecordTransformationTextProps> = ({
   selectedField,
   transformationOptions,
+  hasExternalWhereClause,
 }) => {
   if (!selectedField) {
     return null;
@@ -34,7 +35,7 @@ export const MassUpdateRecordTransformationText: FunctionComponent<MassUpdateRec
       title += `"${selectedField}" will be set to the value from the "${alternateField}" field`;
       objectAndField = (
         <span>
-          "{selectedField}" will be set to the value from the "{alternateField}" field
+          "{selectedField}" will be set to the value from the "{alternateField || '(select a field)'}" field
         </span>
       );
       break;
@@ -47,15 +48,26 @@ export const MassUpdateRecordTransformationText: FunctionComponent<MassUpdateRec
   switch (criteria) {
     case 'all':
       title += ` on all records`;
-      updateCriteria = <span>on all records</span>;
+      updateCriteria = <span>on all records{hasExternalWhereClause ? ' that meet your query filter conditions' : ''}</span>;
       break;
     case 'onlyIfBlank':
-      title += ` on records where "${selectedField}" is blank`;
-      updateCriteria = <span>on records where "{selectedField}" is blank</span>;
+      title += ` on records where "${selectedField}" is blank${hasExternalWhereClause ? ' and meet your query filter conditions' : ''}`;
+      updateCriteria = (
+        <span>
+          on records where "{selectedField}" is blank
+          {hasExternalWhereClause ? ' and meet your query filter conditions' : ''}
+        </span>
+      );
       break;
     case 'onlyIfNotBlank':
-      title += ` on records where "${selectedField}" is not blank`;
+      title += ` on records where "${selectedField}" is not blank${hasExternalWhereClause ? ' and meet your query filter conditions' : ''}`;
       updateCriteria = <span>on records where "{selectedField}" is not blank</span>;
+      updateCriteria = (
+        <span>
+          on records where "{selectedField}" is not blank
+          {hasExternalWhereClause ? ' and meet your query filter conditions' : ''}
+        </span>
+      );
       break;
     case 'custom':
       title += ` on records that meet your custom criteria: ${whereClause}`;
@@ -70,9 +82,11 @@ export const MassUpdateRecordTransformationText: FunctionComponent<MassUpdateRec
   }
 
   return (
-    <Badge className={classNames('slds-truncate', classNames)} title={title}>
-      <span>{objectAndField}</span>
-      <span className="slds-m-left_xx-small">{updateCriteria}</span>
+    <Badge title={title}>
+      <span className="slds-line-clamp">
+        <span>{objectAndField}</span>
+        <span className="slds-m-left_xx-small">{updateCriteria}</span>
+      </span>
     </Badge>
   );
 };

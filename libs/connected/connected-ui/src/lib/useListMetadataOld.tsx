@@ -4,7 +4,7 @@ import { useNonInitialEffect, useRollbar } from '@jetstream/shared/ui-utils';
 import { orderObjectsBy } from '@jetstream/shared/utils';
 import { ListMetadataResult, SalesforceOrgUi } from '@jetstream/types';
 import formatRelative from 'date-fns/formatRelative';
-import { ListMetadataQuery } from 'jsforce';
+import type { ListMetadataQuery } from 'jsforce';
 import { useCallback, useEffect, useRef, useState } from 'react';
 
 let _lastRefreshed: string;

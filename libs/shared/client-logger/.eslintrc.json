@@ -8,7 +8,19 @@
       "parserOptions": {
         "project": ["libs/shared/client-logger/tsconfig.*?.json"]
       },
-      "rules": {}
+      "rules": {
+        "no-restricted-imports": [
+          "error",
+          {
+            "paths": [
+              {
+                "name": "lodash",
+                "message": "Import [module] from lodash/[module] instead"
+              }
+            ]
+          }
+        ]
+      }
     },
     {
       "files": ["*.ts", "*.tsx"],

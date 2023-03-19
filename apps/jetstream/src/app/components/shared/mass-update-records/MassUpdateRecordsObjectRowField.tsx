@@ -6,12 +6,14 @@ import { FunctionComponent } from 'react';
 export interface MassUpdateRecordsObjectRowFieldProps {
   fields: ListItem[];
   selectedField?: Maybe<string>;
+  disabled?: boolean;
   onchange: (selectedField: string) => void;
 }
 
 export const MassUpdateRecordsObjectRowField: FunctionComponent<MassUpdateRecordsObjectRowFieldProps> = ({
   fields,
   selectedField,
+  disabled,
   onchange,
 }) => {
   function handleFieldSelection(item: ListItem) {
@@ -29,8 +31,9 @@ export const MassUpdateRecordsObjectRowField: FunctionComponent<MassUpdateRecord
         <ComboboxWithItems
           comboboxProps={{
             label: 'Field to Update',
-            itemLength: 10,
+            itemLength: 5,
             isRequired: true,
+            disabled,
           }}
           items={fields}
           selectedItemId={selectedField}

@@ -37,10 +37,12 @@ import {
 } from '@jetstream/types';
 import parseISO from 'date-fns/parseISO';
 import { saveAs } from 'file-saver';
-import { Field } from 'jsforce';
-import { get as safeGet, isFunction, isUndefined } from 'lodash';
+import type { Field } from 'jsforce';
+import safeGet from 'lodash/get';
+import isFunction from 'lodash/isFunction';
 import isNil from 'lodash/isNil';
 import isString from 'lodash/isString';
+import isUndefined from 'lodash/isUndefined';
 import numeral from 'numeral';
 import { parse as parseCsv, unparse, unparse as unparseCsv, UnparseConfig } from 'papaparse';
 import {
@@ -53,6 +55,24 @@ import {
 } from 'soql-parser-js';
 import { Placement as tippyPlacement } from 'tippy.js';
 import * as XLSX from 'xlsx';
+import { isRelationshipField } from './shared-ui-data-utils';
+
+initXlsx(XLSX);
+
+/**
+ * Lazy load cpexcel since it appears it was failing to load for at least one user
+ * https://github.com/jetstreamapp/jetstream/issues/211
+ * https://git.sheetjs.com/sheetjs/sheetjs/issues/2900
+ */
+export function initXlsx(_xlsx: typeof import('xlsx')) {
+  import('xlsx/dist/cpexcel.full.mjs')
+    .then((module) => {
+      _xlsx.set_cptable(module);
+    })
+    .catch((ex) => {
+      logger.error('Error loading xlsx', ex);
+    });
+}
 
 export function formatNumber(number?: number) {
   return numeral(number || 0).format('0,0');
@@ -238,6 +258,9 @@ export function polyfillFieldDefinition(field: Field): string {
     value = `${length > 255 ? 'Long ' : ''}Text Area(${length})`;
   } else if (type === 'textarea' && extraTypeInfo === 'richtextarea') {
     value = `Rich Text Area(${length})`;
+  } else if (isRelationshipField(field)) {
+    // includes text/reference if referenceTo has data
+    value = `Lookup(${(referenceTo || []).join(',')})`;
   } else if (type === 'string') {
     value = `Text(${length})`;
   } else if (type === 'boolean') {
@@ -262,8 +285,6 @@ export function polyfillFieldDefinition(field: Field): string {
     value = `Percent(${precision}, ${scale})`;
   } else if (type === 'url') {
     value = `URL(${length})`;
-  } else if (type === 'reference') {
-    value = `Lookup(${(referenceTo || []).join(',')})`;
   } else {
     // Address, Email, Date, Time, picklist, phone
     value = `${type[0].toUpperCase()}${type.substring(1)}`;
@@ -818,20 +839,14 @@ function handleWindowEvent(event: MessageEvent) {
   }
 }
 
-export function addOrg(
-  options: { serverUrl: string; loginUrl: string; replaceOrgUniqueId?: string },
-  callback: (org: SalesforceOrgUi) => void
-) {
-  const { serverUrl, loginUrl, replaceOrgUniqueId } = options;
+export function addOrg(options: { serverUrl: string; loginUrl: string }, callback: (org: SalesforceOrgUi) => void) {
+  const { serverUrl, loginUrl } = options;
   addOrgCallbackFn = callback;
   window.removeEventListener('message', handleWindowEvent);
   const strWindowFeatures = 'toolbar=no, menubar=no, width=1025, height=700';
   let url = `${serverUrl}/oauth/sfdc/auth?`;
   url += `loginUrl=${encodeURIComponent(loginUrl)}`;
   url += `&clientUrl=${encodeURIComponent(document.location.origin)}`;
-  if (replaceOrgUniqueId) {
-    url += `&replaceOrgUniqueId=${encodeURIComponent(replaceOrgUniqueId)}`;
-  }
   windowRef = window.open(url, 'Add Salesforce Org', strWindowFeatures);
   window.addEventListener('message', handleWindowEvent, false);
 }

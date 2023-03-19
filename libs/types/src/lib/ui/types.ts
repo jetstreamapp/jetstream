@@ -240,6 +240,10 @@ export interface ListItem<V = string, M = any> {
   secondaryLabel?: string | null;
   secondaryLabelOnNewLine?: boolean | null;
   metaLabel?: string | null;
+  /** used for flattened lists (used for virtual scrolling) */
+  isGroup?: Maybe<boolean>;
+  /** If list is flattened, group information should be attached to each item */
+  group?: Maybe<{ id: string; label: string }>;
   value: V;
   title?: string | null;
   meta?: M | null;
@@ -401,7 +405,6 @@ export type JetstreamEvents = JetstreamEventJobFinished | JetstreamEventLastActi
 export interface JetstreamEventAddOrgPayload {
   org: SalesforceOrgUi;
   switchActiveOrg: boolean;
-  replaceOrgUniqueId?: string;
 }
 export type JetstreamEventPayloads = AsyncJob | AsyncJobNew[] | JetstreamEventAddOrgPayload;
 
@@ -448,6 +451,7 @@ export interface BulkDownloadJob {
   fields: string[];
   subqueryFields: Maybe<MapOf<string[]>>;
   records: MapOf<string>[];
+  hasAllRecords: boolean;
   fileFormat: FileExtAllTypes;
   fileName: string;
   googleFolder: Maybe<string>;

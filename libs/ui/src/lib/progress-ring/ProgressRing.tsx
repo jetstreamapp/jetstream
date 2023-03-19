@@ -1,5 +1,5 @@
 import classNames from 'classnames';
-import { uniqueId } from 'lodash';
+import uniqueId from 'lodash/uniqueId';
 import { FunctionComponent, ReactNode, useState } from 'react';
 
 /**

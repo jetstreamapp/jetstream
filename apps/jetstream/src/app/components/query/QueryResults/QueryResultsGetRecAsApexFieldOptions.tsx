@@ -1,6 +1,6 @@
 import { useNonInitialEffect } from '@jetstream/shared/ui-utils';
 import { Checkbox, Grid } from '@jetstream/ui';
-import { Field } from 'jsforce';
+import type { Field } from 'jsforce';
 import { FunctionComponent, useEffect, useState } from 'react';
 
 export interface QueryResultsGetRecAsApexFieldOptionsProps {

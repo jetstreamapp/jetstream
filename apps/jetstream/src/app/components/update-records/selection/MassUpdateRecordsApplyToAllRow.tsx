@@ -4,8 +4,12 @@ import { ListItem, Maybe } from '@jetstream/types';
 import { ComboboxWithItems, Grid, Input, Section, Textarea } from '@jetstream/ui';
 import { FunctionComponent, useEffect, useState } from 'react';
 import { isQueryValid } from 'soql-parser-js';
-import { MetadataRow, TransformationCriteria, TransformationOption } from '../mass-update-records.types';
-import { startsWithWhereRgx, transformationCriteriaListItems, transformationOptionListItems } from '../mass-update-records.utils';
+import { MetadataRow, TransformationCriteria, TransformationOption } from '../../shared/mass-update-records/mass-update-records.types';
+import {
+  startsWithWhereRgx,
+  transformationCriteriaListItems,
+  transformationOptionListItems,
+} from '../../shared/mass-update-records/mass-update-records.utils';
 
 export interface MassUpdateRecordsApplyToAllRowProps {
   commonFields: ListItem[];

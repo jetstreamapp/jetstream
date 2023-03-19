@@ -21,7 +21,7 @@ import {
 } from '@jetstream/shared/ui-utils';
 import { UpDown } from '@jetstream/types';
 import classNames from 'classnames';
-import { isNumber } from 'lodash';
+import isNumber from 'lodash/isNumber';
 import React, { createRef, forwardRef, KeyboardEvent, RefObject, useImperativeHandle, useRef, useState } from 'react';
 import { DuelingPicklistColumnRef, DuelingPicklistItem } from './DuelingPicklistTypes';
 

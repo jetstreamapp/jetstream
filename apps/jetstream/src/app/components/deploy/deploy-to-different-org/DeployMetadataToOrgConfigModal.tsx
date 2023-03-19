@@ -1,6 +1,6 @@
 import { css } from '@emotion/react';
 import { useNonInitialEffect } from '@jetstream/shared/ui-utils';
-import { DeployOptions, ListMetadataResult, MapOf, SalesforceOrgUi } from '@jetstream/types';
+import { DeployOptions, ListMetadataResult, MapOf, Maybe, SalesforceOrgUi } from '@jetstream/types';
 import { Grid, GridCol, Icon, Modal } from '@jetstream/ui';
 import { Fragment, FunctionComponent, useEffect, useRef, useState } from 'react';
 import { useRecoilValue } from 'recoil';
@@ -13,7 +13,7 @@ const DISABLED_OPTIONS = new Set<keyof DeployOptions>(['allowMissingFiles', 'aut
 
 export interface DeployMetadataToOrgConfigModalProps {
   sourceOrg: SalesforceOrgUi;
-  initialOptions?: DeployOptions;
+  initialOptions?: Maybe<DeployOptions>;
   initialSelectedDestinationOrg?: SalesforceOrgUi;
   selectedMetadata: MapOf<ListMetadataResult[]>;
   onSelection?: (deployOptions: DeployOptions) => void;

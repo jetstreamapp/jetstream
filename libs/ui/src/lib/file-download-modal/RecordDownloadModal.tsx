@@ -36,6 +36,23 @@ import {
   RADIO_SELECTED,
 } from './download-modal-utils';
 
+export interface DownloadFromServerOpts {
+  fileFormat: FileExtCsvXLSXJsonGSheet;
+  fileName: string;
+  fields: string[];
+  subqueryFields: MapOf<string[]>;
+  whichFields: 'all' | 'specified';
+  includeSubquery: boolean;
+  /**
+   * If downloading from server, this will be the first set of records
+   * If uploading to gdrive, this will be the records to include or the first set of records depending on the option selected
+   */
+  recordsToInclude?: any[];
+  /** Only applies if fileFormat === 'gdrive', indicates to ignore nextRecords if there are any */
+  hasAllRecords: boolean;
+  googleFolder?: Maybe<string>;
+}
+
 export interface RecordDownloadModalProps {
   org: SalesforceOrgUi;
   google_apiKey: string;
@@ -51,15 +68,7 @@ export interface RecordDownloadModalProps {
   totalRecordCount?: number;
   onModalClose: (cancelled?: boolean) => void;
   onDownload?: (fileFormat: FileExtCsvXLSXJsonGSheet, whichFields: 'all' | 'specified', includeSubquery: boolean) => void;
-  onDownloadFromServer?: (options: {
-    fileFormat: FileExtCsvXLSXJsonGSheet;
-    fileName: string;
-    fields: string[];
-    subqueryFields: MapOf<string[]>;
-    whichFields: 'all' | 'specified';
-    includeSubquery: boolean;
-    googleFolder?: Maybe<string>;
-  }) => void;
+  onDownloadFromServer?: (options: DownloadFromServerOpts) => void;
   children?: React.ReactNode;
 }
 
@@ -166,6 +175,14 @@ export const RecordDownloadModal: FunctionComponent<RecordDownloadModalProps> = 
     }
     try {
       const fileNameWithExt = `${fileName}${fileFormat !== 'gdrive' ? `.${fileFormat}` : ''}`;
+
+      let activeRecords = records;
+      if (downloadRecordsValue === RADIO_FILTERED) {
+        activeRecords = filteredRecords || [];
+      } else if (downloadRecordsValue === RADIO_SELECTED) {
+        activeRecords = selectedRecords || [];
+      }
+
       /** Google will always load in the background to account for upload to Google */
       if (fileFormat === 'gdrive' || downloadRecordsValue === RADIO_ALL_SERVER) {
         // emit event, which starts job, which downloads in the background
@@ -177,18 +194,13 @@ export const RecordDownloadModal: FunctionComponent<RecordDownloadModalProps> = 
             subqueryFields,
             whichFields,
             includeSubquery: includeSubquery && hasSubqueryFields,
+            recordsToInclude: activeRecords,
+            hasAllRecords: downloadRecordsValue !== RADIO_ALL_SERVER,
             googleFolder,
           });
         }
         handleModalClose();
       } else {
-        let activeRecords = records;
-        if (downloadRecordsValue === RADIO_FILTERED) {
-          activeRecords = filteredRecords || [];
-        } else if (downloadRecordsValue === RADIO_SELECTED) {
-          activeRecords = selectedRecords || [];
-        }
-
         let mimeType: MimeType;
         let fileData;
         switch (fileFormat) {
