@@ -129,13 +129,7 @@ export const DeleteMetadataConfigModal: FunctionComponent<DeleteMetadataConfigMo
           <GridCol className="slds-border_right slds-p-right_x-small">
             <div>
               <p className="slds-text-color_destructive">
-                <Icon
-                  type="utility"
-                  icon="warning"
-                  description="Batch completed with errors"
-                  title="Batch completed with errors"
-                  className="slds-icon slds-icon_small slds-icon-text-warning slds-m-right_xxx-small"
-                />
+                <Icon type="utility" icon="warning" className="slds-icon slds-icon_small slds-icon-text-warning slds-m-right_xxx-small" />
                 <strong>This will delete the selected metadata from your org.</strong>
               </p>
               <p>

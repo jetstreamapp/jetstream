@@ -129,6 +129,17 @@
       "toolbar",
       "top"
     ],
+    "no-restricted-imports": [
+      "error",
+      {
+        "paths": [
+          {
+            "name": "lodash",
+            "message": "Import [module] from lodash/[module] instead"
+          }
+        ]
+      }
+    ],
     "no-unexpected-multiline": "warn",
     "no-unreachable": "warn",
     "no-unused-expressions": "off",
