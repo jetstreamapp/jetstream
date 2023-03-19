@@ -1,6 +1,6 @@
 import { ANALYTICS_KEYS } from '@jetstream/shared/constants';
 import { AsyncJobNew, BulkDownloadJob, FileExtCsvXLSXJsonGSheet, MapOf, Maybe, SalesforceOrgUi } from '@jetstream/types';
-import { ButtonGroupContainer, DropDown, Icon, RecordDownloadModal } from '@jetstream/ui';
+import { ButtonGroupContainer, DownloadFromServerOpts, DropDown, Icon, RecordDownloadModal } from '@jetstream/ui';
 import { Fragment, FunctionComponent, useState } from 'react';
 import { useRecoilState } from 'recoil';
 import { Query } from 'soql-parser-js';
@@ -58,16 +58,8 @@ export const QueryResultsDownloadButton: FunctionComponent<QueryResultsDownloadB
     });
   }
 
-  function handleDownloadFromServer(options: {
-    fileFormat: FileExtCsvXLSXJsonGSheet;
-    fileName: string;
-    fields: string[];
-    subqueryFields: MapOf<string[]>;
-    whichFields: 'all' | 'specified';
-    includeSubquery: boolean;
-    googleFolder?: string;
-  }) {
-    const { fileFormat, fileName, fields, includeSubquery, whichFields, googleFolder } = options;
+  function handleDownloadFromServer(options: DownloadFromServerOpts) {
+    const { fileFormat, fileName, fields, includeSubquery, whichFields, recordsToInclude, hasAllRecords, googleFolder } = options;
     const jobs: AsyncJobNew<BulkDownloadJob>[] = [
       {
         type: 'BulkDownload',
@@ -77,9 +69,10 @@ export const QueryResultsDownloadButton: FunctionComponent<QueryResultsDownloadB
           isTooling,
           fields,
           subqueryFields,
-          records: records || [],
+          records: recordsToInclude || records || [],
           totalRecordCount: totalRecordCount || 0,
           nextRecordsUrl,
+          hasAllRecords,
           fileFormat,
           fileName,
           includeSubquery,
