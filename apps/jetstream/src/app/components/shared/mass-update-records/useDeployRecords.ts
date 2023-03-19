@@ -268,7 +268,7 @@ export function useDeployRecords(
         deployResults.status = 'In Progress - Uploading';
         onDeployResults(sobject, { ...deployResults });
 
-        performLoad({
+        await performLoad({
           deployResults,
           sobject,
           fields,
@@ -302,7 +302,6 @@ export function useDeployRecords(
           try {
             const jobInfo = await bulkApiGetJob(org, row.deployResults.jobInfo.id);
             const done = checkIfBulkApiJobIsDone(jobInfo, row.deployResults.numberOfBatches ?? 0);
-
             // the batch order is not stable with bulkApiGetJob - ensure order is correct
             const batches: BulkJobBatchInfo[] = [];
             jobInfo.batches.forEach((batch) => {

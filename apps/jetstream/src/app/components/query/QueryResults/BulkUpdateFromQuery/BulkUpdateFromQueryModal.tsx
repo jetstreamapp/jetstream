@@ -194,37 +194,37 @@ export const BulkUpdateFromQueryModal: FunctionComponent<BulkUpdateFromQueryModa
       return;
     }
 
-    setDidDeploy(true);
-    setDeployResults({
-      done: false,
-      processingStartTime: convertDateToLocale(new Date()),
-      processingEndTime: null,
-      processingErrors: [],
-      records: [],
-      batchIdToIndex: {},
-      status: 'In Progress - Preparing',
-    });
-
-    // if records need to be re-fetched from the server, ensure that we only keep records that user wants to work with
-    let idsToInclude: Set<string> | undefined;
-    if (downloadRecordsValue === RADIO_ALL_BROWSER && hasMoreRecords) {
-      idsToInclude = new Set(records.map((record) => record.Id || getRecordIdFromAttributes(record)));
-    } else if (downloadRecordsValue === RADIO_FILTERED) {
-      idsToInclude = new Set(filteredRecords.map((record) => record.Id || getRecordIdFromAttributes(record)));
-    } else if (downloadRecordsValue === RADIO_SELECTED) {
-      idsToInclude = new Set(selectedRecords.map((record) => record.Id || getRecordIdFromAttributes(record)));
-    }
-
-    const recordsToLoad = await fetchRecordsWithRequiredFields({
-      selectedOrg,
-      records,
-      parsedQuery,
-      transformationOptions,
-      selectedField,
-      idsToInclude,
-    });
-
     try {
+      setDidDeploy(true);
+      setDeployResults({
+        done: false,
+        processingStartTime: convertDateToLocale(new Date()),
+        processingEndTime: null,
+        processingErrors: [],
+        records: [],
+        batchIdToIndex: {},
+        status: 'In Progress - Preparing',
+      });
+
+      // if records need to be re-fetched from the server, ensure that we only keep records that user wants to work with
+      let idsToInclude: Set<string> | undefined;
+      if (downloadRecordsValue === RADIO_ALL_BROWSER && hasMoreRecords) {
+        idsToInclude = new Set(records.map((record) => record.Id || getRecordIdFromAttributes(record)));
+      } else if (downloadRecordsValue === RADIO_FILTERED) {
+        idsToInclude = new Set(filteredRecords.map((record) => record.Id || getRecordIdFromAttributes(record)));
+      } else if (downloadRecordsValue === RADIO_SELECTED) {
+        idsToInclude = new Set(selectedRecords.map((record) => record.Id || getRecordIdFromAttributes(record)));
+      }
+
+      const recordsToLoad = await fetchRecordsWithRequiredFields({
+        selectedOrg,
+        records,
+        parsedQuery,
+        transformationOptions,
+        selectedField,
+        idsToInclude,
+      });
+
       setLoading(true);
 
       await loadDataForProvidedRecords({
@@ -238,7 +238,11 @@ export const BulkUpdateFromQueryModal: FunctionComponent<BulkUpdateFromQueryModa
       });
       pollResultsUntilDone(getDeploymentResults);
     } catch (ex) {
-      // TODO: show fatal error message
+      setFatalError('There was a problem loading records. Please try again.');
+      rollbar.error('Error bulk updating records', {
+        message: ex.message,
+        stack: ex.stack,
+      });
     } finally {
       setLoading(false);
     }
@@ -307,7 +311,7 @@ export const BulkUpdateFromQueryModal: FunctionComponent<BulkUpdateFromQueryModa
         <MassUpdateRecordsObjectRow
           className={'slds-is-relative slds-item read-only'}
           sobject={sobject}
-          loading={loading}
+          loading={false}
           fields={fields}
           allFields={allFields}
           selectedField={selectedField}

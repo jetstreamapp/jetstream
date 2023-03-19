@@ -110,7 +110,7 @@ export const QueryResultsDownloadButton: FunctionComponent<QueryResultsDownloadB
 
   function handleBulkUpdateModalClose(didUpdate = false) {
     setIsBulkUpdateModalOpen(false);
-    refreshRecords();
+    didUpdate && refreshRecords();
   }
 
   return (
