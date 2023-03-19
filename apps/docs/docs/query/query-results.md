@@ -36,6 +36,7 @@ Here are some examples of things you can do from the Query Results page:
 - Download records so you can make changes to records, then load the data back in to Salesforce.
 - Copy records to your clipboard and paste into a spreadsheet.
 - Modify records (view, edit, clone, delete).
+- Update all of the queried records in bulk, such as updating a picklist field for all records.
 
 <img src={require('./query-results-records.png').default} alt="Query results table" />
 
@@ -125,3 +126,25 @@ If you are using **Windows** and choose **CSV**, non-english special characters 
 :::
 
 <img src={require('./download-modal.png').default} alt="Download records modal" />
+
+## Updating queried records
+
+You can update all or some of your queried records without downloading anything from the Query Results.
+
+After you query records, you can access the bulk update menu from the dropdown next to the Download button.
+
+<img src={require('./query-results-bulk-update-menu.png').default} alt="Accessing bulk update" />
+
+The configuration to update records is very similar to [Update records in bulk](../load/update-records.md), you can refer to the options there for additional details.
+
+1. First, determine which records you want to target by selecting **Which Base Records**.
+   1. Depending on how many records are in Salesforce and how your query was configured, you may have fewer options to choose from than the screenshot shown below.
+2. Choose which field you would like to update.
+3. Choose what value you would like to apply to the field on each record.
+4. Choose which base records you would like to update.
+   1. This criteria only applies to records returned from your query.
+5. Adjust the advanced options if required.
+   1. In most cases, these options can be ignored.
+6. Click update records to begin the record update process.
+
+<img src={require('./query-results-bulk-update-modal.png').default} alt="Bulk update modal" />
