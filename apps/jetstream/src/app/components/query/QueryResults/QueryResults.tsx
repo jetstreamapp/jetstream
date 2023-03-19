@@ -545,6 +545,7 @@ export const QueryResults: FunctionComponent<QueryResultsProps> = React.memo(() 
             filteredRows={filteredRows}
             selectedRows={selectedRows}
             totalRecordCount={totalRecordCount || 0}
+            refreshRecords={() => executeQuery(soql, SOURCE_RELOAD, { isTooling })}
           />
         </ToolbarItemActions>
       </Toolbar>

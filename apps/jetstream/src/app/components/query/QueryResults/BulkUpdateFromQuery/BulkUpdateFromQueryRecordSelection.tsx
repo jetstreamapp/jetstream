@@ -37,11 +37,11 @@ export const BulkUpdateFromQueryRecordSelection: FunctionComponent<BulkUpdateFro
 
   return (
     <RadioGroup
-      label="Which Records"
+      label="Which Base Records"
       labelHelp={
         parsedQuery?.where
-          ? 'Only records that match your query filters will be updated. You can select and filter records to get additional options.'
-          : ''
+          ? 'Only records that match your query filters will be considered for update. You can also apply the criteria below to filter the records further.'
+          : 'If you would like to use a custom criteria, go to the Query Builder and add a filter to your query.'
       }
       required
       className="slds-m-bottom_small"

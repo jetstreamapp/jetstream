@@ -2,6 +2,7 @@ import { logger } from '@jetstream/shared/client-logger';
 import { queryAll } from '@jetstream/shared/data';
 import { ListItem, Maybe, Record, SalesforceOrgUi } from '@jetstream/types';
 import type { DescribeGlobalSObjectResult } from 'jsforce';
+import isNil from 'lodash/isNil';
 import { composeQuery, getField, isQueryValid, Query } from 'soql-parser-js';
 import { MetadataRow, TransformationOptions } from './mass-update-records.types';
 
@@ -122,18 +123,18 @@ export async function fetchRecordsWithRequiredFields({
   records: existingRecords,
   parsedQuery,
   transformationOptions,
+  selectedField,
   idsToInclude,
 }: {
   selectedOrg: SalesforceOrgUi;
   records: Record[];
   parsedQuery: Query;
   transformationOptions: TransformationOptions;
+  selectedField: string;
   idsToInclude?: Set<string>;
 }): Promise<any[]> {
-  const fieldsRequiredInRecords = new Set(['Id']);
-  const fieldsFromQuery = parsedQuery.fields || [];
-  const hasId = fieldsFromQuery.some((field) => field.type === 'Field' && field.field === 'Id');
-  let hasAlternateField = true; // true if not needed
+  // selectedField is required so that transformationOptions.criteria can be applied to records
+  const fieldsRequiredInRecords = new Set(['Id', selectedField]);
 
   if (transformationOptions.option === 'anotherField') {
     const { alternateField } = transformationOptions;
@@ -142,21 +143,24 @@ export async function fetchRecordsWithRequiredFields({
       throw new Error('Alternate field is required');
     }
     fieldsRequiredInRecords.add(alternateField);
-    hasAlternateField = fieldsFromQuery.some((field) => field.type === 'Field' && field.field === alternateField);
   }
 
-  if (hasId && hasAlternateField) {
-    // good to go - no query required
-    return existingRecords;
-  }
-
-  // Re-fetch records
+  // Re-fetch records - this may not always be required, but for consistency this will happen every time
   parsedQuery = { ...parsedQuery, fields: Array.from(fieldsRequiredInRecords).map((field) => getField(field)) };
   const { queryResults } = await queryAll(selectedOrg, composeQuery(parsedQuery));
   let { records } = queryResults;
-  // if user has filtered/selected records, only return those
+
+  // if user has filtered/selected records, only include those
   if (idsToInclude) {
     records = records.filter((record) => idsToInclude.has(record.Id));
   }
+
+  // Skip records that don't meet additional criteria
+  if (transformationOptions.criteria === 'onlyIfBlank') {
+    records = records.filter((record) => isNil(record[selectedField]));
+  } else if (transformationOptions.criteria === 'onlyIfNotBlank') {
+    records = records.filter((record) => !isNil(record[selectedField]));
+  }
+
   return records;
 }

@@ -21,16 +21,6 @@ export const LoadRecordsBulkApiResultsTable: FunctionComponent<LoadRecordsBulkAp
   onDownloadOrView,
   onDownloadProcessingErrors,
 }) => {
-  const [hasErrors, setHasErrors] = useState<boolean>(false);
-
-  useEffect(() => {
-    if (!hasErrors) {
-      if (jobInfo.batches.some((batch) => batch.numberRecordsFailed)) {
-        setHasErrors(true);
-      }
-    }
-  }, [jobInfo, hasErrors]);
-
   return (
     <table className="slds-table slds-table_cell-buffer slds-table_bordered">
       <thead>
@@ -91,7 +81,6 @@ export const LoadRecordsBulkApiResultsTable: FunctionComponent<LoadRecordsBulkAp
           <LoadRecordsBulkApiResultsTableRow
             key={batch.id}
             batch={batch}
-            hasErrors={hasErrors}
             onDownload={(type, batch) => onDownloadOrView('download', type, batch, i)}
             onView={(type, batch) => onDownloadOrView('view', type, batch, i)}
           />

@@ -19,6 +19,7 @@ export interface MassUpdateRecordsObjectRowProps {
   selectedField?: Maybe<string>;
   validationResults?: Maybe<ValidationResults>;
   transformationOptions: TransformationOptions;
+  hasExternalWhereClause?: boolean;
   disabled?: boolean;
   onFieldChange: (selectedField: string) => void;
   onOptionsChange: (sobject: string, options: TransformationOptions) => void;
@@ -36,6 +37,7 @@ export const MassUpdateRecordsObjectRow: FunctionComponent<MassUpdateRecordsObje
   selectedField,
   validationResults,
   transformationOptions,
+  hasExternalWhereClause,
   disabled,
   onFieldChange,
   onOptionsChange,
@@ -73,6 +75,7 @@ export const MassUpdateRecordsObjectRow: FunctionComponent<MassUpdateRecordsObje
             className="slds-m-top_x-small slds-m-left_small"
             selectedField={selectedField}
             transformationOptions={transformationOptions}
+            hasExternalWhereClause={hasExternalWhereClause}
           />
           <div>
             {validationResults && isNumber(validationResults?.impactedRecords) && (

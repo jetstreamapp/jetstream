@@ -14,7 +14,7 @@ import {
   ScopedNotification,
   Section,
 } from '@jetstream/ui';
-import { isNumber } from 'lodash';
+import isNumber from 'lodash/isNumber';
 import { ChangeEvent, Fragment, FunctionComponent, useCallback, useEffect, useState } from 'react';
 import { atom, useRecoilCallback, useRecoilState, useResetRecoilState } from 'recoil';
 import { Query } from 'soql-parser-js';
@@ -64,7 +64,7 @@ export interface BulkUpdateFromQueryModalProps {
   filteredRecords: Record[];
   selectedRecords: Record[];
   totalRecordCount: number;
-  onModalClose: () => void;
+  onModalClose: (didUpdate?: boolean) => void;
 }
 
 export const BulkUpdateFromQueryModal: FunctionComponent<BulkUpdateFromQueryModalProps> = ({
@@ -99,6 +99,7 @@ export const BulkUpdateFromQueryModal: FunctionComponent<BulkUpdateFromQueryModa
   const [serialMode, setSerialMode] = useState(false);
   const [isSecondModalOpen, setIsSecondModalOpen] = useState(false);
   const [deployResults, setDeployResults] = useRecoilState(deployResultsState);
+  const [didDeploy, setDidDeploy] = useState(false);
   const resetDeployResults = useResetRecoilState(deployResultsState);
   // this allows the pollResults to have a stable data source for updated data
   const getDeploymentResults = useRecoilCallback(
@@ -193,6 +194,7 @@ export const BulkUpdateFromQueryModal: FunctionComponent<BulkUpdateFromQueryModa
       return;
     }
 
+    setDidDeploy(true);
     setDeployResults({
       done: false,
       processingStartTime: convertDateToLocale(new Date()),
@@ -218,6 +220,7 @@ export const BulkUpdateFromQueryModal: FunctionComponent<BulkUpdateFromQueryModa
       records,
       parsedQuery,
       transformationOptions,
+      selectedField,
       idsToInclude,
     });
 
@@ -262,8 +265,8 @@ export const BulkUpdateFromQueryModal: FunctionComponent<BulkUpdateFromQueryModa
       hide={isSecondModalOpen}
       footer={
         <Fragment>
-          <button className="slds-button slds-button_neutral" onClick={() => onModalClose()}>
-            Cancel
+          <button className="slds-button slds-button_neutral" onClick={() => onModalClose(didDeploy)}>
+            Close
           </button>
           <button
             className="slds-button slds-button_brand"
@@ -275,7 +278,7 @@ export const BulkUpdateFromQueryModal: FunctionComponent<BulkUpdateFromQueryModa
         </Fragment>
       }
       overrideZIndex={1001}
-      onClose={() => onModalClose()}
+      onClose={() => onModalClose(didDeploy)}
     >
       <div
         className="slds-is-relative"
@@ -309,6 +312,7 @@ export const BulkUpdateFromQueryModal: FunctionComponent<BulkUpdateFromQueryModa
           allFields={allFields}
           selectedField={selectedField}
           transformationOptions={transformationOptions}
+          hasExternalWhereClause={!!parsedQuery.where}
           disabled={loading || deployInProgress || !!fatalError}
           onFieldChange={setSelectedField}
           onOptionsChange={(_, options) => setTransformationOptions(options)}
@@ -324,7 +328,7 @@ export const BulkUpdateFromQueryModal: FunctionComponent<BulkUpdateFromQueryModa
             checked={serialMode}
             label={'Serial Mode'}
             labelHelp="Serial mode processes the batches one-by-one instead of parallel."
-            disabled={loading}
+            disabled={loading || deployInProgress}
             onChange={setSerialMode}
           />
           <Input
@@ -341,7 +345,7 @@ export const BulkUpdateFromQueryModal: FunctionComponent<BulkUpdateFromQueryModa
               placeholder="Set batch size"
               value={batchSize || ''}
               aria-describedby={batchSizeError || undefined}
-              disabled={loading}
+              disabled={loading || deployInProgress}
               onChange={handleBatchSize}
             />
           </Input>
@@ -353,8 +357,10 @@ export const BulkUpdateFromQueryModal: FunctionComponent<BulkUpdateFromQueryModa
             sobject={sobject}
             deployResults={deployResults}
             transformationOptions={transformationOptions}
+            hasExternalWhereClause={!!parsedQuery.where}
             selectedField={selectedField}
             batchSize={batchSize ?? 10000}
+            omitTransformationText
             onModalOpenChange={setIsSecondModalOpen}
           />
         )}

@@ -11,11 +11,11 @@ import { applicationCookieState } from '../../../app-state';
 import { useAmplitude } from '../../core/analytics';
 import * as fromJetstreamEvents from '../../core/jetstream-events';
 import LoadRecordsResultsModal from '../../load-records/components/load-results/LoadRecordsResultsModal';
+import MassUpdateRecordTransformationText from '../../update-records/shared/MassUpdateRecordTransformationText';
 import { DownloadAction, DownloadType } from '../load-records-results/load-records-results-types';
 import LoadRecordsBulkApiResultsTable from '../load-records-results/LoadRecordsBulkApiResultsTable';
 import { MetadataRow } from './mass-update-records.types';
 import { getFieldsToQuery } from './mass-update-records.utils';
-import MassUpdateRecordTransformationText from '../../update-records/shared/MassUpdateRecordTransformationText';
 
 export interface DownloadModalData {
   open: boolean;
@@ -30,9 +30,11 @@ export interface ViewModalData extends Omit<DownloadModalData, 'fileNameParts'> 
 
 export interface MassUpdateRecordsDeploymentRowProps
   extends Pick<MetadataRow, 'sobject' | 'deployResults' | 'transformationOptions' | 'selectedField'> {
+  hasExternalWhereClause?: boolean;
   validationResults?: MetadataRow['validationResults'];
   selectedOrg: SalesforceOrgUi;
   batchSize: number;
+  omitTransformationText?: boolean;
   onModalOpenChange?: (isOpen: boolean) => void;
 }
 
@@ -42,8 +44,10 @@ export const MassUpdateRecordsDeploymentRow: FunctionComponent<MassUpdateRecords
   deployResults,
   transformationOptions,
   selectedField,
+  hasExternalWhereClause,
   validationResults,
   batchSize,
+  omitTransformationText,
   onModalOpenChange,
 }) => {
   const { trackEvent } = useAmplitude();
@@ -190,7 +194,18 @@ export const MassUpdateRecordsDeploymentRow: FunctionComponent<MassUpdateRecords
             {!done && processingStartTime && <Spinner inline containerClassName="slds-m-left_medium" size="x-small" />}
           </Grid>
         }
-        footer={<MassUpdateRecordTransformationText selectedField={selectedField} transformationOptions={transformationOptions} />}
+        footer={
+          omitTransformationText ? (
+            // eslint-disable-next-line react/jsx-no-useless-fragment
+            <></>
+          ) : (
+            <MassUpdateRecordTransformationText
+              selectedField={selectedField}
+              transformationOptions={transformationOptions}
+              hasExternalWhereClause={hasExternalWhereClause}
+            />
+          )
+        }
       >
         {!processingStartTime && validationResults && (
           <div className="slds-m-left_medium">

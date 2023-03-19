@@ -247,6 +247,21 @@ export function useDeployRecords(
         status: 'In Progress - Preparing',
       };
       try {
+        // No records were provided
+        if (initialRecords.length === 0) {
+          const deployResults: DeployResults = {
+            done: true,
+            processingStartTime: convertDateToLocale(new Date()),
+            processingEndTime: convertDateToLocale(new Date()),
+            processingErrors: [],
+            records: [],
+            batchIdToIndex: {},
+            status: 'Finished',
+          };
+          onDeployResults(sobject, { ...deployResults });
+          return;
+        }
+
         onDeployResults(sobject, { ...deployResults });
         const records = prepareRecords(initialRecords, { selectedField, transformationOptions });
 

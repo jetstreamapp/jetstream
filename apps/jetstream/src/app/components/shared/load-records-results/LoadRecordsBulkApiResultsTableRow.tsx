@@ -6,14 +6,12 @@ import { FunctionComponent, useEffect, useRef, useState } from 'react';
 
 export interface LoadRecordsBulkApiResultsTableRowProps {
   batch: BulkJobBatchInfo;
-  hasErrors: boolean;
   onDownload: (type: 'results' | 'failures', batch: BulkJobBatchInfo) => Promise<void>;
   onView: (type: 'results' | 'failures', batch: BulkJobBatchInfo) => Promise<void>;
 }
 
 export const LoadRecordsBulkApiResultsTableRow: FunctionComponent<LoadRecordsBulkApiResultsTableRowProps> = ({
   batch,
-  hasErrors,
   onDownload,
   onView,
 }) => {
@@ -30,6 +28,7 @@ export const LoadRecordsBulkApiResultsTableRow: FunctionComponent<LoadRecordsBul
   const total = formatNumber(batch.numberRecordsProcessed);
   const success = formatNumber(batch.numberRecordsProcessed - batch.numberRecordsFailed);
   const failure = formatNumber(batch.numberRecordsFailed || 0);
+  const hasErrors = !!batch.numberRecordsFailed;
 
   async function downloadResults(type: 'results' | 'failures') {
     try {

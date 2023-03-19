@@ -23,6 +23,7 @@ export interface QueryResultsDownloadButtonProps {
   filteredRows: any[];
   selectedRows: any[];
   totalRecordCount: number;
+  refreshRecords: () => void;
 }
 
 export const QueryResultsDownloadButton: FunctionComponent<QueryResultsDownloadButtonProps> = ({
@@ -39,6 +40,7 @@ export const QueryResultsDownloadButton: FunctionComponent<QueryResultsDownloadB
   filteredRows,
   selectedRows,
   totalRecordCount,
+  refreshRecords,
 }) => {
   const { trackEvent } = useAmplitude();
   const [{ google_apiKey, google_appId, google_clientId }] = useRecoilState(applicationCookieState);
@@ -106,6 +108,11 @@ export const QueryResultsDownloadButton: FunctionComponent<QueryResultsDownloadB
     }
   }
 
+  function handleBulkUpdateModalClose(didUpdate = false) {
+    setIsBulkUpdateModalOpen(false);
+    refreshRecords();
+  }
+
   return (
     <Fragment>
       <ButtonGroupContainer>
@@ -151,7 +158,7 @@ export const QueryResultsDownloadButton: FunctionComponent<QueryResultsDownloadB
           filteredRecords={filteredRows}
           selectedRecords={selectedRows}
           totalRecordCount={totalRecordCount || 0}
-          onModalClose={() => setIsBulkUpdateModalOpen(false)}
+          onModalClose={handleBulkUpdateModalClose}
         />
       )}
     </Fragment>
