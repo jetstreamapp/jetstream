@@ -451,6 +451,7 @@ export interface BulkDownloadJob {
   fields: string[];
   subqueryFields: Maybe<MapOf<string[]>>;
   records: MapOf<string>[];
+  hasAllRecords: boolean;
   fileFormat: FileExtAllTypes;
   fileName: string;
   googleFolder: Maybe<string>;

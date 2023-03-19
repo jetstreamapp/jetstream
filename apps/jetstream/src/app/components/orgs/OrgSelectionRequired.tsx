@@ -34,9 +34,9 @@ export const OrgSelectionRequired: FunctionComponent<OrgSelectionRequiredProps> 
       setLoadingRetry(true);
       await checkOrgHealth(selectedOrg);
       setOrgs(await getOrgs());
-      fireToast({ type: 'success', message: 'Your org is now valid' });
+      fireToast({ type: 'success', message: 'Your org is now valid.' });
     } catch (ex) {
-      fireToast({ type: 'error', message: 'Unable to connect to your org' });
+      fireToast({ type: 'error', message: 'Unable to connect to your org, reconnect to Salesforce to keep using this org.' });
       logger.log('Unable to connect to this org.', ex);
     } finally {
       setLoadingRetry(false);
