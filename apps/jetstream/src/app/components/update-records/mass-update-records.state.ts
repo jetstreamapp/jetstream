@@ -3,7 +3,7 @@ import { ListItem } from '@jetstream/types';
 import type { DescribeGlobalSObjectResult, Field } from 'jsforce';
 import intersectionBy from 'lodash/intersectionBy';
 import { atom, selector } from 'recoil';
-import { MetadataRow } from './mass-update-records.types';
+import { MetadataRow } from '../shared/mass-update-records/mass-update-records.types';
 
 export const sObjectsState = atom<DescribeGlobalSObjectResult[] | null>({
   key: 'mass-update-records.sObjectsState',

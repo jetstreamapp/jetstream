@@ -1,20 +1,25 @@
 import { css } from '@emotion/react';
 import { useDebounce } from '@jetstream/shared/ui-utils';
+import { ListItem } from '@jetstream/types';
 import { ComboboxWithItems, Grid, Textarea, ControlledTextarea } from '@jetstream/ui';
 import { FunctionComponent, useEffect, useState } from 'react';
 import { isQueryValid } from 'soql-parser-js';
-import { TransformationCriteria, TransformationOptions } from '../mass-update-records.types';
-import { startsWithWhereRgx, transformationCriteriaListItems } from '../mass-update-records.utils';
+import { TransformationCriteria, TransformationOptions } from './mass-update-records.types';
+import { startsWithWhereRgx, transformationCriteriaListItems } from './mass-update-records.utils';
 
 export interface MassUpdateRecordsObjectRowCriteriaProps {
   sobject: string;
   transformationOptions: TransformationOptions;
+  disabled?: boolean;
+  filterFn?: (item: ListItem) => boolean;
   onOptionsChange: (options: TransformationOptions) => void;
 }
 
 export const MassUpdateRecordsObjectRowCriteria: FunctionComponent<MassUpdateRecordsObjectRowCriteriaProps> = ({
   sobject,
   transformationOptions,
+  disabled,
+  filterFn = () => true,
   onOptionsChange,
 }) => {
   const debouncedWhereClause = useDebounce(transformationOptions.whereClause, 300);
@@ -51,10 +56,11 @@ export const MassUpdateRecordsObjectRowCriteria: FunctionComponent<MassUpdateRec
             <ComboboxWithItems
               comboboxProps={{
                 label: 'Which records should be updated?',
-                itemLength: 10,
+                itemLength: 5,
                 isRequired: true,
+                disabled,
               }}
-              items={transformationCriteriaListItems}
+              items={transformationCriteriaListItems.filter(filterFn)}
               selectedItemId={transformationOptions.criteria}
               onSelected={(item) => handleUpdateToApply(item.id as TransformationCriteria)}
             />
@@ -83,6 +89,7 @@ export const MassUpdateRecordsObjectRowCriteria: FunctionComponent<MassUpdateRec
                   className="slds-input"
                   placeholder="CreatedDate >= THIS_WEEK AND Type__c != 'Account'"
                   rows={1}
+                  disabled={disabled}
                   value={transformationOptions.whereClause}
                   onChange={(event) => handleWhereClauseChanged(event.target.value)}
                 />

@@ -1,8 +1,10 @@
 import { logger } from '@jetstream/shared/client-logger';
-import { ListItem, Maybe } from '@jetstream/types';
+import { queryAll } from '@jetstream/shared/data';
+import { ListItem, Maybe, Record, SalesforceOrgUi } from '@jetstream/types';
 import type { DescribeGlobalSObjectResult } from 'jsforce';
+import isNil from 'lodash/isNil';
 import { composeQuery, getField, isQueryValid, Query } from 'soql-parser-js';
-import { MetadataRow } from './mass-update-records.types';
+import { MetadataRow, TransformationOptions } from './mass-update-records.types';
 
 export const startsWithWhereRgx = /^( )*WHERE( )*/i;
 
@@ -57,10 +59,13 @@ export function isValidRow(row: Maybe<MetadataRow>) {
   return true;
 }
 
-export function getFieldsToQuery(row: MetadataRow): string[] {
-  let fields = ['Id', row.selectedField];
-  if (row.transformationOptions.option === 'anotherField' && row.transformationOptions.alternateField) {
-    fields.push(row.transformationOptions.alternateField);
+export function getFieldsToQuery({
+  transformationOptions,
+  selectedField,
+}: Pick<MetadataRow, 'selectedField' | 'transformationOptions'>): string[] {
+  let fields = ['Id', selectedField];
+  if (transformationOptions.option === 'anotherField' && transformationOptions.alternateField) {
+    fields.push(transformationOptions.alternateField);
   }
   // ensure no duplicates
   fields = Array.from(new Set(fields));
@@ -108,4 +113,54 @@ export function composeSoqlQuery(row: MetadataRow, fields: string[]) {
 
   logger.info('soqlQuery()', { soql });
   return soql;
+}
+
+/**
+ * Used from places where records are already fetched (query results,)
+ */
+export async function fetchRecordsWithRequiredFields({
+  selectedOrg,
+  records: existingRecords,
+  parsedQuery,
+  transformationOptions,
+  selectedField,
+  idsToInclude,
+}: {
+  selectedOrg: SalesforceOrgUi;
+  records: Record[];
+  parsedQuery: Query;
+  transformationOptions: TransformationOptions;
+  selectedField: string;
+  idsToInclude?: Set<string>;
+}): Promise<any[]> {
+  // selectedField is required so that transformationOptions.criteria can be applied to records
+  const fieldsRequiredInRecords = new Set(['Id', selectedField]);
+
+  if (transformationOptions.option === 'anotherField') {
+    const { alternateField } = transformationOptions;
+    // This should always exist in this state
+    if (!alternateField) {
+      throw new Error('Alternate field is required');
+    }
+    fieldsRequiredInRecords.add(alternateField);
+  }
+
+  // Re-fetch records - this may not always be required, but for consistency this will happen every time
+  parsedQuery = { ...parsedQuery, fields: Array.from(fieldsRequiredInRecords).map((field) => getField(field)) };
+  const { queryResults } = await queryAll(selectedOrg, composeQuery(parsedQuery));
+  let { records } = queryResults;
+
+  // if user has filtered/selected records, only include those
+  if (idsToInclude) {
+    records = records.filter((record) => idsToInclude.has(record.Id));
+  }
+
+  // Skip records that don't meet additional criteria
+  if (transformationOptions.criteria === 'onlyIfBlank') {
+    records = records.filter((record) => isNil(record[selectedField]));
+  } else if (transformationOptions.criteria === 'onlyIfNotBlank') {
+    records = records.filter((record) => !isNil(record[selectedField]));
+  }
+
+  return records;
 }

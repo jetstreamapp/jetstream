@@ -1,4 +1,4 @@
-import { Maybe, SalesforceOrgUi } from '@jetstream/types';
+import { BulkJobBatchInfo, Maybe, SalesforceOrgUi } from '@jetstream/types';
 import {
   AutoFullHeightContainer,
   Checkbox,
@@ -12,16 +12,35 @@ import {
   ToolbarItemGroup,
 } from '@jetstream/ui';
 import isNumber from 'lodash/isNumber';
-import { ChangeEvent, FunctionComponent, useEffect, useState } from 'react';
+import { ChangeEvent, FunctionComponent, useCallback, useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { useRecoilValue } from 'recoil';
+import { useRecoilCallback, useRecoilValue, useSetRecoilState } from 'recoil';
 import { selectedOrgState } from '../../../app-state';
 import * as fromMassUpdateState from '../mass-update-records.state';
-import MassUpdateRecordsDeploymentRow from './MassUpdateRecordsDeploymentRow';
-import { useDeployRecords } from './useDeployRecords';
+import MassUpdateRecordsDeploymentRow from '../../shared/mass-update-records/MassUpdateRecordsDeploymentRow';
+import { useDeployRecords } from '../../shared/mass-update-records/useDeployRecords';
+import { DeployResults, MetadataRow } from '../../shared/mass-update-records/mass-update-records.types';
 
 const HEIGHT_BUFFER = 170;
 const MAX_BATCH_SIZE = 10000;
+
+const updateDeploymentResultsState =
+  (sobject: string, deployResults: DeployResults, fatalError?: boolean) => (priorRowsMap: Map<string, MetadataRow>) => {
+    const rowsMap = new Map(priorRowsMap);
+    const row: MetadataRow = { ...rowsMap.get(sobject), deployResults: { ...deployResults } } as MetadataRow;
+    // Something went horribly wrong (e.x. lost internet connection) mark all as not processed
+    if (fatalError && row.deployResults.jobInfo?.batches?.length) {
+      row.deployResults.jobInfo = { ...row.deployResults.jobInfo, state: 'Failed' };
+      row.deployResults.jobInfo.batches = row.deployResults.jobInfo.batches.map((batch): BulkJobBatchInfo => {
+        if (batch.state !== 'Completed') {
+          return { ...batch, state: 'NotProcessed' };
+        }
+        return batch;
+      });
+    }
+    rowsMap.set(row.sobject, row);
+    return rowsMap;
+  };
 
 // eslint-disable-next-line @typescript-eslint/no-empty-interface
 export interface MassUpdateRecordsDeploymentProps {}
@@ -33,7 +52,22 @@ export const MassUpdateRecordsDeployment: FunctionComponent<MassUpdateRecordsDep
   const [batchSize, setBatchSize] = useState<Maybe<number>>(10000);
   const [batchSizeError, setBatchSizeError] = useState<string | null>(null);
   const [serialMode, setSerialMode] = useState(false);
-  const { loadDataForRows, pollResultsUntilDone } = useDeployRecords(selectedOrg);
+  const setDeploymentState = useSetRecoilState(fromMassUpdateState.rowsMapState);
+  const getRows = useRecoilCallback(
+    ({ snapshot }) =>
+      () => {
+        return snapshot.getLoadable(fromMassUpdateState.rowsState).getValue();
+      },
+    []
+  );
+  const handleDeployResults = useCallback(
+    (sobject: string, deployResults: DeployResults, fatalError?: boolean) => {
+      setDeploymentState(updateDeploymentResultsState(sobject, deployResults, fatalError));
+    },
+    [setDeploymentState]
+  );
+
+  const { loadDataForRows, pollResultsUntilDone } = useDeployRecords(selectedOrg, handleDeployResults);
 
   useEffect(() => {
     if (rows.every((row) => row.deployResults.done)) {
@@ -44,7 +78,7 @@ export const MassUpdateRecordsDeployment: FunctionComponent<MassUpdateRecordsDep
   async function handleDeploy() {
     setLoading(true);
     await loadDataForRows(rows, { batchSize: batchSize ?? 10000, serialMode });
-    pollResultsUntilDone();
+    pollResultsUntilDone(getRows);
   }
 
   useEffect(() => {
@@ -121,7 +155,16 @@ export const MassUpdateRecordsDeployment: FunctionComponent<MassUpdateRecordsDep
         </Section>
 
         {rows.map((row) => (
-          <MassUpdateRecordsDeploymentRow key={row.sobject} selectedOrg={selectedOrg} row={row} batchSize={batchSize ?? 1000} />
+          <MassUpdateRecordsDeploymentRow
+            key={row.sobject}
+            selectedOrg={selectedOrg}
+            deployResults={row.deployResults}
+            sobject={row.sobject}
+            transformationOptions={row.transformationOptions}
+            selectedField={row.selectedField}
+            validationResults={row.validationResults}
+            batchSize={batchSize ?? 1000}
+          />
         ))}
       </AutoFullHeightContainer>
     </Page>

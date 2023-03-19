@@ -9,7 +9,7 @@ import formatISO from 'date-fns/formatISO';
 import parseISO from 'date-fns/parseISO';
 import isBoolean from 'lodash/isBoolean';
 import isFunction from 'lodash/isFunction';
-import { Fragment, FunctionComponent, MutableRefObject, useContext, useEffect, useRef, useState } from 'react';
+import { Fragment, FunctionComponent, memo, MutableRefObject, useContext, useEffect, useRef, useState } from 'react';
 import { FormatterProps, GroupFormatterProps, headerRenderer, HeaderRendererProps, useFocusRef, useRowSelection } from 'react-data-grid';
 import { useDrag, useDrop } from 'react-dnd';
 import Checkbox from '../form/checkbox/Checkbox';
@@ -155,7 +155,6 @@ export function FilterRenderer<R, SR, T extends HTMLOrSVGElement>({
   const { filters, filterSetValues, portalRefForFilters, updateFilter } = useContext(DataTableFilterContext);
   const { ref, tabIndex } = useFocusRef<T>(isCellSelected);
 
-  // TODO: sort and filter
   const iconName: IconName = sortDirection === 'ASC' ? 'arrowup' : 'arrowdown';
 
   return (
@@ -207,7 +206,7 @@ interface HeaderFilterProps {
   updateFilter: (column: string, filter: DataTableFilter) => void;
 }
 
-export function HeaderFilter({ columnKey, filters, filterSetValues, portalRefForFilters, updateFilter }: HeaderFilterProps) {
+export const HeaderFilter = memo(({ columnKey, filters, filterSetValues, portalRefForFilters, updateFilter }: HeaderFilterProps) => {
   const popoverRef = useRef<PopoverRef>(null);
 
   const [active, setActive] = useState(false);
@@ -271,7 +270,7 @@ export function HeaderFilter({ columnKey, filters, filterSetValues, portalRefFor
           </footer>
         }
         content={
-          <div css={css``} onPointerDown={(ev) => ev.stopPropagation()}>
+          <div onPointerDown={(ev) => ev.stopPropagation()}>
             {filters
               .filter((filter) => filter.type)
               .map((filter, i) => (
@@ -297,7 +296,7 @@ export function HeaderFilter({ columnKey, filters, filterSetValues, portalRefFor
       </Popover>
     </div>
   );
-}
+});
 
 interface DataTableTextFilterProps {
   columnKey: string;
@@ -306,7 +305,7 @@ interface DataTableTextFilterProps {
   updateFilter: (column: string, filter: DataTableFilter) => void;
 }
 
-export function HeaderTextFilter({ columnKey, filter, autoFocus = false, updateFilter }: DataTableTextFilterProps) {
+export const HeaderTextFilter = memo(({ columnKey, filter, autoFocus = false, updateFilter }: DataTableTextFilterProps) => {
   const [value, setValue] = useState(filter.value);
   const debouncedValue = useDebounce(value, 300);
 
@@ -321,7 +320,7 @@ export function HeaderTextFilter({ columnKey, filter, autoFocus = false, updateF
       <input className="slds-input" value={value} onChange={(ev) => setValue(ev.target.value)} autoFocus={autoFocus} />
     </Input>
   );
-}
+});
 
 interface HeaderSetFilterProps {
   columnKey: string;
@@ -330,7 +329,7 @@ interface HeaderSetFilterProps {
   updateFilter: (column: string, filter: DataTableFilter) => void;
 }
 
-export function HeaderSetFilter({ columnKey, filter, values, updateFilter }: HeaderSetFilterProps) {
+export const HeaderSetFilter = memo(({ columnKey, filter, values, updateFilter }: HeaderSetFilterProps) => {
   const parentRef = useRef<HTMLDivElement>(null);
   const [selectedValues, setSelectedValues] = useState(() => new Set<string>(filter.value));
   const [visibleItems, setVisibleItems] = useState(values);
@@ -435,7 +434,7 @@ export function HeaderSetFilter({ columnKey, filter, values, updateFilter }: Hea
       )}
     </div>
   );
-}
+});
 
 interface DataTableDateFilterProps {
   columnKey: string;
@@ -443,7 +442,7 @@ interface DataTableDateFilterProps {
   updateFilter: (column: string, filter: DataTableFilter) => void;
 }
 
-export function HeaderDateFilter({ columnKey, filter, updateFilter }: DataTableDateFilterProps) {
+export const HeaderDateFilter = memo(({ columnKey, filter, updateFilter }: DataTableDateFilterProps) => {
   const [value, setValue] = useState(() => (filter.value ? parseISO(filter.value) : null));
   const [comparators] = useState<ListItem<string, 'EQUALS' | 'GREATER_THAN' | 'LESS_THAN'>[]>(() => [
     { id: 'EQUALS', label: 'Equals', value: 'EQUALS' },
@@ -483,7 +482,7 @@ export function HeaderDateFilter({ columnKey, filter, updateFilter }: DataTableD
       />
     </div>
   );
-}
+});
 
 interface HeaderTimeFilterProps {
   columnKey: string;
@@ -491,7 +490,7 @@ interface HeaderTimeFilterProps {
   updateFilter: (column: string, filter: DataTableFilter) => void;
 }
 
-export function HeaderTimeFilter({ columnKey, filter, updateFilter }: HeaderTimeFilterProps) {
+export const HeaderTimeFilter = memo(({ columnKey, filter, updateFilter }: HeaderTimeFilterProps) => {
   const [value, setValue] = useState(() => filter.value);
   const [comparators] = useState<ListItem<string, 'EQUALS' | 'GREATER_THAN' | 'LESS_THAN'>[]>(() => [
     { id: 'EQUALS', label: 'Equals', value: 'EQUALS' },
@@ -532,7 +531,7 @@ export function HeaderTimeFilter({ columnKey, filter, updateFilter }: HeaderTime
       />
     </div>
   );
-}
+});
 
 // CELL RENDERERS
 /** Generic cell renderer when the type of data is unknown */
