@@ -2,7 +2,7 @@ import { css } from '@emotion/react';
 import { ANALYTICS_KEYS } from '@jetstream/shared/constants';
 import { MapOf, SalesforceOrgUi } from '@jetstream/types';
 import { Checkbox, ConfirmationModalPromise, FileDownloadModal, Grid, Icon, Modal, ScopedNotification, Spinner } from '@jetstream/ui';
-import { Fragment, FunctionComponent, useState } from 'react';
+import { Fragment, FunctionComponent, useEffect, useState } from 'react';
 import { useRecoilState } from 'recoil';
 import { applicationCookieState } from '../../app-state';
 import { useAmplitude } from '../core/analytics';
@@ -10,8 +10,8 @@ import ConfirmPageChange from '../core/ConfirmPageChange';
 import * as fromJetstreamEvents from '../core/jetstream-events';
 import { FieldValues } from '../shared/create-fields/create-fields-types';
 import { prepareDownloadResultsFile } from '../shared/create-fields/create-fields-utils';
-import CreateFieldsDeployModalRow from './CreateFieldsDeployModalRow';
 import useCreateFields from '../shared/create-fields/useCreateFields';
+import CreateFieldsDeployModalRow from './CreateFieldsDeployModalRow';
 import { useFetchPageLayouts } from './useFetchPageLayouts';
 
 export interface CreateFieldsDeployModalProps {
@@ -40,14 +40,13 @@ export const CreateFieldsDeployModal: FunctionComponent<CreateFieldsDeployModalP
     selectedLayoutIds,
     handleSelectLayout,
   } = useFetchPageLayouts(selectedOrg, sObjects);
-  const { results, loading, deployed, fatalError, fatalErrorMessage, layoutErrorMessage, deployFields } = useCreateFields({
+  const { results, loading, deployed, fatalError, fatalErrorMessage, layoutErrorMessage, prepareFields, deployFields } = useCreateFields({
     apiVersion: defaultApiVersion,
     serverUrl,
     selectedOrg,
     profiles,
     permissionSets,
     sObjects,
-    rows,
   });
   const [confirmModalOpen, setConfirmModalOpen] = useState(false);
   const [exportModalOpen, setExportModalOpen] = useState(false);
@@ -55,6 +54,10 @@ export const CreateFieldsDeployModal: FunctionComponent<CreateFieldsDeployModalP
     worksheetData: MapOf<any[]>;
     headerData: MapOf<any[]>;
   } | null>(null);
+
+  useEffect(() => {
+    prepareFields(rows);
+  }, [prepareFields, rows, sObjects]);
 
   async function handleDeploy() {
     trackEvent(ANALYTICS_KEYS.sobj_create_field_deploy, {

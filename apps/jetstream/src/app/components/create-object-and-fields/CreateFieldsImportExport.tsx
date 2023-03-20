@@ -12,13 +12,12 @@ import {
   Popover,
   PopoverRef,
 } from '@jetstream/ui';
-import React, { Fragment, FunctionComponent, useRef, useState } from 'react';
+import { Fragment, FunctionComponent, useRef, useState } from 'react';
 import { useRecoilState } from 'recoil';
 import { applicationCookieState } from '../../app-state';
 import { useAmplitude } from '../core/analytics';
 import { fireToast } from '../core/AppToast';
 import * as fromJetstreamEvents from '../core/jetstream-events';
-import { CREATE_FIELDS_EXAMPLE_TEMPLATE } from './create-fields-import-example';
 import { FieldValues } from '../shared/create-fields/create-fields-types';
 import {
   allFields,
@@ -27,6 +26,7 @@ import {
   fieldDefinitions,
   getRowsForExport,
 } from '../shared/create-fields/create-fields-utils';
+import { CREATE_FIELDS_EXAMPLE_TEMPLATE } from './create-fields-import-example';
 
 export interface CreateFieldsImportExportProps {
   selectedOrg: SalesforceOrgUi;

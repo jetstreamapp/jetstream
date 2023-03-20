@@ -699,7 +699,8 @@ export function calculateFieldValidity(rows: FieldValues[]): { rows: FieldValues
 
     // Number validation
     if (
-      NUMBER_TYPES.has(fieldValues.type.value as SalesforceFieldType) &&
+      (NUMBER_TYPES.has(fieldValues.type.value as SalesforceFieldType) ||
+        (fieldValues.type.value === 'Formula' && NUMBER_TYPES.has(fieldValues.secondaryType.value as SalesforceFieldType))) &&
       outputFieldValues.precision.isValid &&
       outputFieldValues.scale.isValid &&
       Number(fieldValues.precision.value) + Number(fieldValues.scale.value) > 18
@@ -789,10 +790,6 @@ function validatePicklist(fieldValues: FieldValues, outputFieldValues: FieldValu
     allValid = isValid;
   }
   return allValid;
-}
-
-export function isFieldValuesArray(input: FieldValues[] | FieldDefinitionMetadata[]): input is FieldValues[] {
-  return !input || input.length === 0 || isFieldValues(input[0]);
 }
 
 export function isFieldValues(input: FieldValues | FieldDefinitionMetadata): input is FieldValues {
@@ -1152,4 +1149,23 @@ export function getQueriesForAllCustomFieldsForObjects(allSobjects: string[]): s
   });
   logger.log('getQueriesForAllCustomFieldsForObjects()', queries);
   return queries;
+}
+
+export function getSecondaryTypeFromType(value: string) {
+  // TODO:
+  // Checkbox
+  // Currency
+  // Date
+  // DateTime
+  // Number
+  // Percent
+  // Text
+  // Time
+  switch (value) {
+    case 'boolean':
+      return 'Checkbox';
+    case 'string':
+    default:
+      return 'Text';
+  }
 }

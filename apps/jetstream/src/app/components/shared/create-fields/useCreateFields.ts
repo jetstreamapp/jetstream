@@ -5,13 +5,7 @@ import { getMapOf, getSuccessOrFailureChar, pluralizeFromNumber, REGEX, splitArr
 import { CompositeGraphResponseBodyData, CompositeResponse, ErrorResult, MapOf, RecordResult, SalesforceOrgUi } from '@jetstream/types';
 import { useCallback, useEffect, useState } from 'react';
 import { FieldDefinitionMetadata, FieldPermissionRecord, FieldValues, SalesforceFieldType } from './create-fields-types';
-import {
-  deployLayouts,
-  getFieldPermissionRecords,
-  isFieldValuesArray,
-  prepareCreateFieldsCompositeRequests,
-  preparePayload,
-} from './create-fields-utils';
+import { deployLayouts, getFieldPermissionRecords, prepareCreateFieldsCompositeRequests, preparePayload } from './create-fields-utils';
 
 export interface CreateFieldsResults {
   key: string;
@@ -58,10 +52,7 @@ interface UseCreateFieldsOptions {
   selectedOrg: SalesforceOrgUi;
   profiles: string[];
   permissionSets: string[];
-  /** This allows creating the field on multiple objects */
   sObjects: string[];
-  /** FieldValues[] is used for create fields UI, FieldDefinitionMetadata[] used anywhere else */
-  rows: FieldValues[] | FieldDefinitionMetadata[];
 }
 
 export default function useCreateFields({
@@ -71,7 +62,6 @@ export default function useCreateFields({
   profiles,
   permissionSets,
   sObjects,
-  rows,
 }: UseCreateFieldsOptions) {
   const rollbar = useRollbar();
   const { notifyUser } = useBrowserNotifications(serverUrl, window.electron?.isFocused);
@@ -84,40 +74,58 @@ export default function useCreateFields({
   const [deployed, setDeployed] = useState(false);
 
   useEffect(() => {
-    if (rows) {
-      try {
-        const payload: CreateFieldsResults[] = (isFieldValuesArray(rows) ? preparePayload(sObjects, rows) : rows).map((field) => ({
-          key: `${(field.fullName as string).replace('.', '_').replace(REGEX.CONSECUTIVE_UNDERSCORES, '_')}`,
-          label: field.fullName,
-          field,
-          state: 'NOT_STARTED',
-          operation: 'INSERT',
-        }));
-        setResultsById(getMapOf(payload, 'key'));
-        logger.log('[DEPLOY FIELDS][PAYLOADS]', payload);
-      } catch (ex) {
-        setFatalError(true);
-        setFatalErrorMessage('There was a problem preparing the data for deployment');
-        rollbar.critical('Create fields - prepare payload error', {
-          message: ex.message,
-          stack: ex.stack,
-        });
-      }
-    }
-  }, [rollbar, rows, sObjects]);
-
-  useEffect(() => {
     if (resultsById) {
       setResults(Object.values(resultsById));
+      logger.log({ resultsById });
     }
-    logger.log({ resultsById });
+    setResults([]);
   }, [resultsById]);
+
+  /**
+   * Prepare the field metadata for deployment
+   * This must be called before deployFieldMetadata
+   */
+  const prepareFields = useCallback(
+    (rows: FieldValues[]) => {
+      if (rows?.length && sObjects?.length) {
+        try {
+          const payload: CreateFieldsResults[] = preparePayload(sObjects, rows).map((field) => ({
+            key: `${(field.fullName as string).replace('.', '_').replace(REGEX.CONSECUTIVE_UNDERSCORES, '_')}`,
+            label: field.fullName,
+            field,
+            state: 'NOT_STARTED',
+            operation: 'INSERT',
+          }));
+          const _resultsById = getMapOf(payload, 'key');
+          setResultsById(_resultsById);
+          logger.log('[DEPLOY FIELDS][PAYLOADS]', payload);
+          return Object.values(_resultsById);
+        } catch (ex) {
+          setFatalError(true);
+          setFatalErrorMessage('There was a problem preparing the data for deployment');
+          rollbar.critical('Create fields - prepare payload error', {
+            message: ex.message,
+            stack: ex.stack,
+          });
+          return false;
+        }
+      }
+      return false;
+    },
+    [rollbar, sObjects]
+  );
 
   /**
    * DEPLOY FIELD METADATA
    */
   const deployFieldMetadata = useCallback(
     async (_resultsById: MapOf<CreateFieldsResults>, permissionRecords: FieldPermissionRecord[]) => {
+      if (!sObjects.length) {
+        throw new Error('At least one object must be selected');
+      }
+      if (!Object.keys(_resultsById).length) {
+        throw new Error('At least one field must be selected');
+      }
       setFatalErrorMessage(null);
       setLayoutErrorMessage(null);
       setFatalError(false);
@@ -177,7 +185,7 @@ export default function useCreateFields({
         });
       }
     },
-    [apiVersion, permissionSets, profiles, selectedOrg]
+    [apiVersion, permissionSets, profiles, sObjects, selectedOrg]
   );
 
   /**
@@ -338,6 +346,7 @@ export default function useCreateFields({
         setLoading(false);
       }
     },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     [apiVersion, deployFieldMetadata, deployFieldPermissions, rollbar, selectedOrg]
   );
 
@@ -399,5 +408,5 @@ export default function useCreateFields({
     notifyUser(`Your field deployment has finished`, { body, tag: 'create-fields' });
   }
 
-  return { results: _results, loading, deployed, fatalError, fatalErrorMessage, layoutErrorMessage, deployFields };
+  return { results: _results, loading, deployed, fatalError, fatalErrorMessage, layoutErrorMessage, prepareFields, deployFields };
 }
