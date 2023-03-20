@@ -202,6 +202,7 @@
     "electron-notarize": "^1.2.1",
     "electron-updater": "^5.0.1",
     "eslint": "8.2.0",
+    "eslint-config-next": "^13.2.4",
     "eslint-config-prettier": "8.1.0",
     "eslint-plugin-cypress": "^2.10.3",
     "eslint-plugin-import": "2.26.0",
