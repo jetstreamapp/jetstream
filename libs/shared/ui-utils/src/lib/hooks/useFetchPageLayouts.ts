@@ -1,11 +1,11 @@
 import { logger } from '@jetstream/shared/client-logger';
 import { queryWithCache } from '@jetstream/shared/data';
-import { useRollbar } from '@jetstream/shared/ui-utils';
-import { splitArrayToMaxSize } from '@jetstream/shared/utils';
+import { getMapOf, splitArrayToMaxSize } from '@jetstream/shared/utils';
 import { MapOf, SalesforceOrgUi } from '@jetstream/types';
 import groupBy from 'lodash/groupBy';
 import { useCallback, useEffect, useState } from 'react';
 import { composeQuery, getField, Query } from 'soql-parser-js';
+import { useRollbar } from './useRollbar';
 
 const MAX_OBJ_IN_QUERY = 100;
 
@@ -58,7 +58,9 @@ export function useFetchPageLayouts(selectedOrg: SalesforceOrgUi, sObjects: stri
   const rollbar = useRollbar();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [layouts, setLayouts] = useState<MapOf<PageLayout[]>>({});
+  const [layouts, setLayouts] = useState<PageLayout[]>([]);
+  const [layoutsByObject, setLayoutsByObject] = useState<MapOf<PageLayout[]>>({});
+  const [layoutsById, setLayoutsById] = useState<MapOf<PageLayout>>({});
   const [selectedLayoutIds, setSelectedLayoutIds] = useState<Set<string>>(new Set());
 
   const fetchLayouts = useCallback(async () => {
@@ -69,7 +71,9 @@ export function useFetchPageLayouts(selectedOrg: SalesforceOrgUi, sObjects: stri
       for (const query of getPageLayoutQueries(sObjects)) {
         (await queryWithCache<PageLayout>(selectedOrg, query, true)).data.queryResults.records.forEach((layout) => _layouts.push(layout));
       }
-      setLayouts(groupBy(_layouts, 'EntityDefinition.QualifiedApiName') as MapOf<PageLayout[]>);
+      setLayouts(_layouts);
+      setLayoutsByObject(groupBy(_layouts, 'EntityDefinition.QualifiedApiName') as MapOf<PageLayout[]>);
+      setLayoutsById(getMapOf(_layouts, 'Id'));
     } catch (ex) {
       logger.warn('[LAYOUT][FETCH][ERROR]', ex);
       setError('There was a problem getting page layouts');
@@ -99,6 +103,8 @@ export function useFetchPageLayouts(selectedOrg: SalesforceOrgUi, sObjects: stri
     loading,
     error,
     layouts,
+    layoutsByObject,
+    layoutsById,
     selectedLayoutIds,
     handleSelectLayout,
   };

@@ -1,5 +1,6 @@
 import { css } from '@emotion/react';
 import { ANALYTICS_KEYS } from '@jetstream/shared/constants';
+import { useFetchPageLayouts } from '@jetstream/shared/ui-utils';
 import { MapOf, SalesforceOrgUi } from '@jetstream/types';
 import { Checkbox, ConfirmationModalPromise, FileDownloadModal, Grid, Icon, Modal, ScopedNotification, Spinner } from '@jetstream/ui';
 import { Fragment, FunctionComponent, useEffect, useState } from 'react';
@@ -12,7 +13,6 @@ import { FieldValues } from '../shared/create-fields/create-fields-types';
 import { prepareDownloadResultsFile } from '../shared/create-fields/create-fields-utils';
 import useCreateFields from '../shared/create-fields/useCreateFields';
 import CreateFieldsDeployModalRow from './CreateFieldsDeployModalRow';
-import { useFetchPageLayouts } from './useFetchPageLayouts';
 
 export interface CreateFieldsDeployModalProps {
   selectedOrg: SalesforceOrgUi;
@@ -36,7 +36,7 @@ export const CreateFieldsDeployModal: FunctionComponent<CreateFieldsDeployModalP
   const {
     loading: loadingLayouts,
     error: loadingLayoutsError,
-    layouts,
+    layoutsByObject,
     selectedLayoutIds,
     handleSelectLayout,
   } = useFetchPageLayouts(selectedOrg, sObjects);
@@ -62,7 +62,7 @@ export const CreateFieldsDeployModal: FunctionComponent<CreateFieldsDeployModalP
   async function handleDeploy() {
     trackEvent(ANALYTICS_KEYS.sobj_create_field_deploy, {
       numFields: rows.length,
-      nulLayouts: selectedLayoutIds.size,
+      numLayouts: selectedLayoutIds.size,
       previousDeploy: deployed,
     });
     if (deployed) {
@@ -245,7 +245,7 @@ export const CreateFieldsDeployModal: FunctionComponent<CreateFieldsDeployModalP
                 <div className="slds-text-heading_small slds-truncate" title="Add to Page Layouts">
                   Add to Page Layouts
                 </div>
-                {Object.keys(layouts).map((objectName) => (
+                {Object.keys(layoutsByObject).map((objectName) => (
                   <fieldset className="slds-form-element slds-m-top_small" key={`layout-heading-${objectName}`}>
                     <legend
                       className="slds-form-element__label slds-truncate"
@@ -256,7 +256,7 @@ export const CreateFieldsDeployModal: FunctionComponent<CreateFieldsDeployModalP
                     >
                       {objectName}
                     </legend>
-                    {layouts[objectName].map((layout) => (
+                    {layoutsByObject[objectName].map((layout) => (
                       <Checkbox
                         key={`layout-${layout.Id}`}
                         id={`layout-${layout.Id}`}

@@ -252,7 +252,7 @@ export const FormulaEvaluator: FunctionComponent<FormulaEvaluatorProps> = () => 
         <FormulaEvaluatorDeployModal
           selectedOrg={selectedOrg}
           sobject={selectedSObject.name}
-          selectedField={selectedField}
+          selectedField={sourceType === 'EXISTING' ? selectedField : null}
           formula={formulaValue}
           numberNullBehaviorState={numberNullBehavior}
           onClose={handleDeployModalClose}

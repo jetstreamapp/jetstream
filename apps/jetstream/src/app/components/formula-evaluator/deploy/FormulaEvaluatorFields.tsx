@@ -51,9 +51,15 @@ export function FormulaEvaluatorFields({ formula, field, loading, onFieldChange 
   return (
     <Grid gutters wrap>
       <GridCol size={12} sizeMedium={6}>
-        <Input label="Field Label" errorMessage={field.label.errorMessage} hasError={!field.label.isValid && !!field.label.errorMessage}>
+        <Input
+          label="Field Label"
+          isRequired
+          errorMessage={field.label.errorMessage}
+          hasError={!field.label.isValid && !!field.label.errorMessage}
+        >
           <input
             className="slds-input"
+            required
             max={18}
             min={15}
             value={(field.label.value as string) || ''}
@@ -67,11 +73,13 @@ export function FormulaEvaluatorFields({ formula, field, loading, onFieldChange 
       <GridCol size={12} sizeMedium={6}>
         <Input
           label="Field Name"
+          isRequired
           errorMessage={field.fullName.errorMessage}
           hasError={!field.fullName.isValid && !!field.fullName.errorMessage}
         >
           <input
             className="slds-input"
+            required
             max={18}
             min={15}
             value={(field.fullName.value as string) || ''}
@@ -84,6 +92,7 @@ export function FormulaEvaluatorFields({ formula, field, loading, onFieldChange 
       <GridCol size={12} sizeMedium={6}>
         <Picklist
           className="slds-m-top_x-small"
+          isRequired
           label="Field Type"
           items={fieldType}
           selectedItemIds={[field.secondaryType.value as string]}
