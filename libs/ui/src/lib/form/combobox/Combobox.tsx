@@ -79,6 +79,7 @@ export interface ComboboxProps {
   onFilterInputChange?: (value: string) => void;
   onInputEnter?: () => void;
   onClear?: () => void;
+  onClose?: () => void;
   onLeadingDropdownChange?: (item: FormGroupDropdownItem) => void;
   /** If provided, all keyboard navigation events will be sent to parent to control focus */
   onKeyboardNavigation?: (action: 'up' | 'down' | 'enter') => void;
@@ -143,6 +144,7 @@ export const Combobox = forwardRef<ComboboxPropsRef, ComboboxProps>(
       onInputEnter,
       onLeadingDropdownChange,
       onClear,
+      onClose,
       onKeyboardNavigation,
     }: ComboboxProps,
     ref
@@ -173,11 +175,12 @@ export const Combobox = forwardRef<ComboboxPropsRef, ComboboxProps>(
         close: () => {
           setTimeout(() => {
             setIsOpen(false);
+            onClose && onClose();
             inputEl.current?.focus();
           });
         },
       }),
-      []
+      [onClose]
     );
 
     useNonInitialEffect(() => {
@@ -223,6 +226,7 @@ export const Combobox = forwardRef<ComboboxPropsRef, ComboboxProps>(
     useEffect(() => {
       if (isOpen && selectedItemLabel) {
         setIsOpen(false);
+        onClose && onClose();
         inputEl.current?.focus();
       }
       if (value !== (selectedItemLabel || '')) {
@@ -348,6 +352,7 @@ export const Combobox = forwardRef<ComboboxPropsRef, ComboboxProps>(
         }
       } else if (isEscapeKey(event)) {
         setIsOpen(false);
+        onClose && onClose();
       } else if (isEnterKey(event) && isOpen && onInputEnter) {
         onInputEnter();
       } else {
@@ -371,6 +376,7 @@ export const Combobox = forwardRef<ComboboxPropsRef, ComboboxProps>(
         event.preventDefault();
         event.stopPropagation();
         setIsOpen(false);
+        onClose && onClose();
         inputEl.current?.focus();
         return;
       }
@@ -384,6 +390,7 @@ export const Combobox = forwardRef<ComboboxPropsRef, ComboboxProps>(
             elRefs.current[focusedItem!].click();
           }
           setIsOpen(false);
+          onClose && onClose();
           inputEl.current?.focus();
         } catch (ex) {
           // error
@@ -429,6 +436,7 @@ export const Combobox = forwardRef<ComboboxPropsRef, ComboboxProps>(
         return;
       }
       setIsOpen(false);
+      onClose && onClose();
     };
 
     const handleInputClick = () => {
@@ -478,7 +486,12 @@ export const Combobox = forwardRef<ComboboxPropsRef, ComboboxProps>(
               )}
               <OutsideClickHandler
                 className={classNames('slds-combobox_container', { 'slds-has-selection': showSelectionAsButton && selectedItemLabel })}
-                onOutsideClick={() => setIsOpen(false)}
+                onOutsideClick={() => {
+                  if (isOpen) {
+                    setIsOpen(false);
+                    onClose && onClose();
+                  }
+                }}
               >
                 <div
                   ref={entireContainerEl}
@@ -562,6 +575,11 @@ export const Combobox = forwardRef<ComboboxPropsRef, ComboboxProps>(
                     role="listbox"
                     isEager={isVirtual}
                     onKeyDown={handleListKeyDown}
+                    /**
+                     * This ensures that combobox does not close when scrollbar is clicked
+                     * https://github.com/salesforce/design-system-react/pull/1911
+                     */
+                    onMouseDown={(event) => event.preventDefault()}
                     onBlur={handleBlur}
                   >
                     <div ref={divContainerEl}>

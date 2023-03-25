@@ -16,6 +16,8 @@ export interface ComboboxListItemProps {
   label?: string; // can pass in children instead to override the complete media body
   secondaryLabel?: Maybe<string>;
   secondaryLabelOnNewLine?: Maybe<boolean>;
+  /** If true, will show icon to indicate child items */
+  isDrillInItem?: boolean;
   title?: string; // fallback to label is label is a string
   selected: boolean;
   disabled?: boolean;
@@ -41,6 +43,7 @@ export const ComboboxListItem = forwardRef<HTMLLIElement, ComboboxListItemProps>
       label,
       secondaryLabel,
       secondaryLabelOnNewLine,
+      isDrillInItem,
       title,
       selected,
       disabled,
@@ -76,12 +79,13 @@ export const ComboboxListItem = forwardRef<HTMLLIElement, ComboboxListItemProps>
           id={id}
           aria-disabled={disabled}
           className={classNames(
-            'slds-media slds-listbox__option',
+            'slds-media slds-listbox__option slds-media_center',
             {
               'slds-is-selected': selected,
               'slds-text-color_error': hasError,
               'slds-listbox__option_plain': !secondaryLabelOnNewLine,
-              'slds-listbox__option_entity slds-listbox__option_has-meta': !placeholder && secondaryLabelOnNewLine && secondaryLabel,
+              'slds-media_center slds-listbox__option_entity slds-listbox__option_has-meta':
+                !placeholder && secondaryLabelOnNewLine && secondaryLabel,
               'slds-media_small': !placeholder && !secondaryLabelOnNewLine,
             },
             textContainerClassName
@@ -125,6 +129,11 @@ export const ComboboxListItem = forwardRef<HTMLLIElement, ComboboxListItemProps>
             )}
             {children}
           </span>
+          {isDrillInItem && (
+            <span className="slds-media__figure slds-media__figure_reverse">
+              <Icon type="utility" icon="chevronright" className="slds-icon slds-icon-text-default slds-icon_xx-small" />
+            </span>
+          )}
         </div>
       </li>
     );

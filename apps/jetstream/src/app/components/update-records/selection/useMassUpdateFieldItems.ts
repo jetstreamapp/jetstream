@@ -54,7 +54,7 @@ function reducer(state: State, action: Action): State {
           sobject,
           loading: true,
           fields: [],
-          allFields: [],
+          valueFields: [],
           deployResults: {
             status: 'Not Started',
             done: false,
@@ -158,7 +158,7 @@ function reducer(state: State, action: Action): State {
             secondaryLabelOnNewLine: true,
             meta: field,
           })),
-        allFields: allFieldMetadata.map((field) => ({
+        valueFields: allFieldMetadata.map((field) => ({
           id: field.name,
           value: field.name,
           label: field.label,

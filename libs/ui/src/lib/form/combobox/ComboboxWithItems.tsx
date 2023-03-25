@@ -1,10 +1,10 @@
+import { getFlattenedListItemsById, useDebounce } from '@jetstream/shared/ui-utils';
 import { multiWordObjectFilter } from '@jetstream/shared/utils';
 import { ListItem, Maybe } from '@jetstream/types';
-import { Combobox, ComboboxPropsRef } from './Combobox';
-import { ComboboxListItem } from './ComboboxListItem';
 import { FunctionComponent, useCallback, useEffect, useRef, useState } from 'react';
-import { ComboboxProps } from './Combobox';
-import { useDebounce } from '@jetstream/shared/ui-utils';
+import { Combobox, ComboboxProps, ComboboxPropsRef } from './Combobox';
+import { ComboboxListItem } from './ComboboxListItem';
+import { ComboboxListItemHeading } from './ComboboxListItemHeading';
 
 const defaultFilterFn = (filter) => multiWordObjectFilter<ListItem<string, any>>(['label', 'value'], filter);
 const defaultSelectedItemLabelFn = (item: ListItem) => item.label;
@@ -14,12 +14,19 @@ export interface ComboboxWithItemsProps {
   comboboxProps: ComboboxProps;
   items: ListItem[];
   selectedItemId?: string | null;
+  /** Heading for list (just like grouped items) */
+  heading?: {
+    label: string;
+    actionLabel?: string;
+    onActionClick?: () => void;
+  };
   /** Optional. If not provided, standard multi-word search will be used */
   filterFn?: (filter: string) => (value: unknown, index: number, array: unknown[]) => boolean;
   /** Used to customize what shows upon selection */
   selectedItemLabelFn?: (item: ListItem) => string;
-  selectedItemTitleFn?: (item: ListItem) => string;
+  selectedItemTitleFn?: (item: ListItem) => Maybe<string>;
   onSelected: (item: ListItem) => void;
+  onClose?: () => void;
 }
 
 /**
@@ -33,10 +40,12 @@ export const ComboboxWithItems: FunctionComponent<ComboboxWithItemsProps> = ({
   comboboxProps,
   items,
   selectedItemId,
+  heading,
   filterFn = defaultFilterFn,
   selectedItemLabelFn = defaultSelectedItemLabelFn,
   selectedItemTitleFn = defaultSelectedItemTitleFn,
   onSelected,
+  onClose,
 }) => {
   const comboboxRef = useRef<ComboboxPropsRef>(null);
   const [filterTextNonDebounced, setFilterText] = useState<string>('');
@@ -62,7 +71,7 @@ export const ComboboxWithItems: FunctionComponent<ComboboxWithItemsProps> = ({
 
   useEffect(() => {
     if (selectedItemId) {
-      setSelectedItem(items.find((item) => item.id === selectedItemId));
+      setSelectedItem(getFlattenedListItemsById(items)[selectedItemId]);
     } else {
       setSelectedItem(null);
     }
@@ -101,7 +110,9 @@ export const ComboboxWithItems: FunctionComponent<ComboboxWithItemsProps> = ({
       selectedItemTitle={selectedItemTitle}
       onInputChange={setFilterText}
       onInputEnter={onInputEnter}
+      onClose={onClose}
     >
+      {heading && <ComboboxListItemHeading label={heading.label} actionLabel={heading.actionLabel} onActionClick={heading.onActionClick} />}
       {visibleItems.map((item) => (
         <ComboboxListItem
           key={item.id}
@@ -109,10 +120,14 @@ export const ComboboxWithItems: FunctionComponent<ComboboxWithItemsProps> = ({
           label={item.label}
           secondaryLabel={item.secondaryLabel}
           secondaryLabelOnNewLine={item.secondaryLabelOnNewLine}
+          isDrillInItem={item.isDrillInItem}
           selected={item === selectedItem}
           onSelection={(id) => {
             onSelected(item);
-            comboboxRef.current?.close();
+            if (!item.isDrillInItem) {
+              comboboxRef.current?.close();
+              onClose && onClose();
+            }
           }}
         />
       ))}

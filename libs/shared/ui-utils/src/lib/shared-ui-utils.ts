@@ -1436,3 +1436,40 @@ export async function getChangesetsFromDomParse(org: SalesforceOrgUi) {
 
   return changesets;
 }
+
+/**
+ * Gets map of list items by id
+ * recursively traverses child items
+ */
+export function getFlattenedListItemsById(items: ListItem[], output = {}): Record<string, ListItem> {
+  items.forEach((item) => {
+    output[item.id] = item;
+    if (Array.isArray(item.childItems)) {
+      getFlattenedListItemsById(item.childItems, output);
+    }
+  });
+  return output;
+}
+
+/**
+ * Given an object of all items by id, use the parentId field to create a tree structure
+ * the parentId is blank for all the top level items and is "." delimited for all parentId's
+ */
+export function unFlattenedListItemsById(items: Record<string, ListItem>): ListItem[] {
+  const output: ListItem[] = [];
+  // clone items to ensure we don't mutate the original
+  items = JSON.parse(JSON.stringify(items));
+  Object.keys(items).forEach((key) => {
+    const item = items[key];
+    if (item.parentId === '') {
+      output.push(item);
+    } else if (item.parentId) {
+      const parent = items[item.parentId];
+      if (!parent.childItems) {
+        parent.childItems = [];
+      }
+      parent.childItems.push(item);
+    }
+  });
+  return output;
+}

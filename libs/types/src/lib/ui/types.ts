@@ -239,11 +239,18 @@ export interface ListItem<V = string, M = any> {
   label: string;
   secondaryLabel?: string | null;
   secondaryLabelOnNewLine?: boolean | null;
+  disabled?: boolean;
   metaLabel?: string | null;
   /** used for flattened lists (used for virtual scrolling) */
   isGroup?: Maybe<boolean>;
   /** If list is flattened, group information should be attached to each item */
   group?: Maybe<{ id: string; label: string }>;
+  /** If true, indicates that this item can be clicked on to drill in to a child menu */
+  isDrillInItem?: boolean;
+  // Keys of all parent items
+  parentId?: string;
+  // child items
+  childItems?: ListItem<V, M>[];
   value: V;
   title?: string | null;
   meta?: M | null;

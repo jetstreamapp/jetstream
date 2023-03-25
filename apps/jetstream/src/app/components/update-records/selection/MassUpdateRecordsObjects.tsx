@@ -50,7 +50,7 @@ export const MassUpdateRecordsRow: FunctionComponent<MassUpdateRecordsRowProps> 
                   sobject={row.sobject}
                   loading={row.loading}
                   fields={row.fields}
-                  allFields={row.allFields}
+                  valueFields={row.valueFields}
                   selectedField={row.selectedField}
                   validationResults={row.validationResults}
                   transformationOptions={row.transformationOptions}
