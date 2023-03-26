@@ -2,7 +2,7 @@ import { getFlattenedListItemsById } from '@jetstream/shared/ui-utils';
 import { ListItem, Maybe } from '@jetstream/types';
 import { FunctionComponent, useCallback, useEffect, useRef, useState } from 'react';
 import { ComboboxProps } from './Combobox';
-import ComboboxWithItems, { ComboboxWithItemsProps } from './ComboboxWithItems';
+import ComboboxWithItems, { ComboboxWithItemsProps, ComboboxWithItemsRef } from './ComboboxWithItems';
 
 export interface ComboboxWithDrillInItemsProps extends Pick<ComboboxWithItemsProps, 'selectedItemLabelFn' | 'selectedItemTitleFn'> {
   comboboxProps: ComboboxProps;
@@ -45,6 +45,7 @@ export const ComboboxWithDrillInItems: FunctionComponent<ComboboxWithDrillInItem
   onLoadItems,
   ...rest
 }) => {
+  const comboboxRef = useRef<ComboboxWithItemsRef>(null);
   // Ref to keep track of selected item without re-rendering, used to know if should reset to top level on close if no selection
   const selectedItem = useRef<Maybe<ListItem>>(null);
   // Current visible items, will change based on drill in
@@ -79,6 +80,7 @@ export const ComboboxWithDrillInItems: FunctionComponent<ComboboxWithDrillInItem
       selectedItem.current = item;
       return;
     } else {
+      comboboxRef.current?.clearSearchTerm();
       // see if we have items already, if so set them
       // otherwise call to parent to get the items
       if (item.childItems) {
@@ -97,6 +99,7 @@ export const ComboboxWithDrillInItems: FunctionComponent<ComboboxWithDrillInItem
   const handleClose = useCallback(() => {
     if (!selectedItem.current) {
       setCurrentItems(items);
+      setActiveItemId('');
     }
   }, [items]);
 
@@ -116,6 +119,7 @@ export const ComboboxWithDrillInItems: FunctionComponent<ComboboxWithDrillInItem
         setActiveItemId('');
         onSelected(null);
         selectedItem.current = null;
+        comboboxRef.current?.clearSearchTerm();
       },
     };
   } else if (rootHeadingLabel) {
@@ -124,6 +128,7 @@ export const ComboboxWithDrillInItems: FunctionComponent<ComboboxWithDrillInItem
 
   return (
     <ComboboxWithItems
+      ref={comboboxRef}
       comboboxProps={comboboxPropsInternal}
       heading={heading}
       items={currentItems}

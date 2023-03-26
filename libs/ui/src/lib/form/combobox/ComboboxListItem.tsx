@@ -79,11 +79,12 @@ export const ComboboxListItem = forwardRef<HTMLLIElement, ComboboxListItemProps>
           id={id}
           aria-disabled={disabled}
           className={classNames(
-            'slds-media slds-listbox__option slds-media_center',
+            'slds-listbox__option slds-media slds-media_center',
             {
+              'slds-listbox__option_entity': isDrillInItem,
               'slds-is-selected': selected,
               'slds-text-color_error': hasError,
-              'slds-listbox__option_plain': !secondaryLabelOnNewLine,
+              'slds-listbox__option_plain': !isDrillInItem && !secondaryLabelOnNewLine,
               'slds-media_center slds-listbox__option_entity slds-listbox__option_has-meta':
                 !placeholder && secondaryLabelOnNewLine && secondaryLabel,
               'slds-media_small': !placeholder && !secondaryLabelOnNewLine,
@@ -131,7 +132,12 @@ export const ComboboxListItem = forwardRef<HTMLLIElement, ComboboxListItemProps>
           </span>
           {isDrillInItem && (
             <span className="slds-media__figure slds-media__figure_reverse">
-              <Icon type="utility" icon="chevronright" className="slds-icon slds-icon-text-default slds-icon_xx-small" />
+              <Icon
+                type="utility"
+                icon="chevronright"
+                className="slds-icon slds-icon-text-default slds-icon_xx-small"
+                description="Has further options"
+              />
             </span>
           )}
         </div>

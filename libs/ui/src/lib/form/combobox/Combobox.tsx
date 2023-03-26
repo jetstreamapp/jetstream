@@ -39,11 +39,13 @@ import Spinner from '../../widgets/Spinner';
 import { FormGroupDropdown } from '../formGroupDropDown/FormGroupDropdown';
 import { ComboboxListItem, ComboboxListItemProps } from './ComboboxListItem';
 import { ComboboxListItemGroup, ComboboxListItemGroupProps } from './ComboboxListItemGroup';
+import { ComboboxListItemHeading } from './ComboboxListItemHeading';
 
 type ChildListItem = ComboboxListItemProps & React.RefAttributes<HTMLLIElement>;
 type ChildListGroup = ComboboxListItemGroupProps & { children: React.ReactNode };
 
 export interface ComboboxPropsRef {
+  clearInputText(): void;
   getPopoverRef(): Maybe<HTMLDivElement>;
   close(): void;
 }
@@ -169,6 +171,9 @@ export const Combobox = forwardRef<ComboboxPropsRef, ComboboxProps>(
     useImperativeHandle<unknown, ComboboxPropsRef>(
       ref,
       () => ({
+        clearInputText: () => {
+          isOpen && setValue('');
+        },
         getPopoverRef: () => {
           return popoverRef.current;
         },
@@ -180,7 +185,7 @@ export const Combobox = forwardRef<ComboboxPropsRef, ComboboxProps>(
           });
         },
       }),
-      [onClose]
+      [isOpen, onClose]
     );
 
     useNonInitialEffect(() => {
@@ -583,6 +588,7 @@ export const Combobox = forwardRef<ComboboxPropsRef, ComboboxProps>(
                     onBlur={handleBlur}
                   >
                     <div ref={divContainerEl}>
+                      {/* Show placeholder if there are no items to show */}
                       {Children.count(children) === 0 && (
                         <ul className="slds-listbox slds-listbox_vertical" role="presentation">
                           <ComboboxListItem id="placeholder" placeholder label={noItemsPlaceholder} selected={false} onSelection={NOOP} />
@@ -592,6 +598,10 @@ export const Combobox = forwardRef<ComboboxPropsRef, ComboboxProps>(
                       {!hasGroups && (
                         <ul className="slds-listbox slds-listbox_vertical" role="presentation">
                           {childrenWithRef}
+                          {/* If the header is the only item, then show empty placeholder */}
+                          {Children.count(children) === 1 && children?.[0]?.type === ComboboxListItemHeading && (
+                            <ComboboxListItem id="placeholder" placeholder label={noItemsPlaceholder} selected={false} onSelection={NOOP} />
+                          )}
                         </ul>
                       )}
                     </div>

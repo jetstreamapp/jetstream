@@ -1457,6 +1457,7 @@ export function getFlattenedListItemsById(items: ListItem[], output = {}): Recor
  */
 export function unFlattenedListItemsById(items: Record<string, ListItem>): ListItem[] {
   const output: ListItem[] = [];
+  const childItemsByParentId: Record<string, ListItem[]> = {};
   // clone items to ensure we don't mutate the original
   items = JSON.parse(JSON.stringify(items));
   Object.keys(items).forEach((key) => {
@@ -1464,12 +1465,44 @@ export function unFlattenedListItemsById(items: Record<string, ListItem>): ListI
     if (item.parentId === '') {
       output.push(item);
     } else if (item.parentId) {
-      const parent = items[item.parentId];
-      if (!parent.childItems) {
-        parent.childItems = [];
-      }
-      parent.childItems.push(item);
+      childItemsByParentId[item.parentId] = childItemsByParentId[item.parentId] || [];
+      childItemsByParentId[item.parentId].push(item);
+    }
+  });
+  Object.keys(childItemsByParentId).forEach((key) => {
+    if (items[key]) {
+      items[key].childItems = childItemsByParentId[key];
     }
   });
   return output;
+}
+
+export function getListItemsFromFieldWithRelatedItems(fields: Field[], parentId = ''): ListItem[] {
+  const parentPath = parentId ? `${parentId}.` : '';
+  const allowChildren = parentPath.split('.').length <= 6;
+  const relatedFields: ListItem[] = fields
+    .filter((field) => allowChildren && Array.isArray(field.referenceTo) && field.referenceTo.length > 0 && field.relationshipName)
+    .map((field) => ({
+      id: `${parentPath}${field.relationshipName}`,
+      value: `${parentPath}${field.relationshipName}`,
+      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+      label: field.relationshipName!,
+      secondaryLabel: field.referenceTo?.[0],
+      secondaryLabelOnNewLine: false,
+      isDrillInItem: true,
+      parentId: parentId,
+      meta: field,
+    }));
+
+  const coreFields: ListItem[] = fields.flatMap((field) => ({
+    id: `${parentPath}${field.name}`,
+    value: `${parentPath}${field.name}`,
+    label: field.label,
+    secondaryLabel: field.name,
+    secondaryLabelOnNewLine: true,
+    parentId: parentId,
+    meta: field,
+  }));
+
+  return [...relatedFields, ...coreFields];
 }

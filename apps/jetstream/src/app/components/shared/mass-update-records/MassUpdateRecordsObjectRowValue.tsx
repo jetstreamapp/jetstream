@@ -96,8 +96,10 @@ export const MassUpdateRecordsObjectRowValue: FunctionComponent<MassUpdateRecord
                   label: 'Field to use as value',
                   itemLength: 7,
                   isRequired: true,
+                  showSelectionAsButton: true,
                   labelHelp: 'Each record will be updated with the value from this field',
                   disabled,
+                  onClear: () => handleAlternateFieldChange(null),
                 }}
                 items={fields}
                 rootHeadingLabel={sobject}
