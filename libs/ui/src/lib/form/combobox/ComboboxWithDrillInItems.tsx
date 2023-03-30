@@ -20,6 +20,7 @@ export interface ComboboxWithDrillInItemsProps extends Pick<ComboboxWithItemsPro
 /**
  * Combobox that allows drill in for nested objects
  * This is primarily designed for fields, but could be used for other things
+ * The parent must handle data fetching and providing a list with nested items.
  *
  * Data Flow:
  * * Parent passes in the initial items and includes `isDrillInItem` on any items that have children
@@ -104,9 +105,24 @@ export const ComboboxWithDrillInItems: FunctionComponent<ComboboxWithDrillInItem
   }, [items]);
 
   // Ensure loading state is set for drill-in items
-  let comboboxPropsInternal = comboboxProps;
+  let comboboxPropsInternal = {
+    ...comboboxProps,
+    onClear: () => {
+      comboboxProps.onClear?.();
+      setCurrentItems(items);
+      setActiveItemId('');
+    },
+  };
   if (loading) {
-    comboboxPropsInternal = { ...comboboxProps, loading: true };
+    comboboxPropsInternal = {
+      ...comboboxPropsInternal,
+      loading: true,
+      onClear: () => {
+        comboboxProps.onClear?.();
+        setCurrentItems(items);
+        setActiveItemId('');
+      },
+    };
   }
 
   let heading: Maybe<ComboboxWithItemsProps['heading']> = undefined;

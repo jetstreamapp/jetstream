@@ -1,8 +1,11 @@
+/* eslint-disable no-prototype-builtins */
 import { SerializedStyles } from '@emotion/react';
 import { logger } from '@jetstream/shared/client-logger';
 import {
+  focusElementFromRefWhenAvailable,
   isAlphaNumericKey,
   isArrowDownKey,
+  isArrowRightKey,
   isArrowUpKey,
   isEnterKey,
   isEnterOrSpace,
@@ -11,7 +14,7 @@ import {
   useNonInitialEffect,
 } from '@jetstream/shared/ui-utils';
 import { NOOP } from '@jetstream/shared/utils';
-import { DropDownItemLength, FormGroupDropdownItem, Maybe } from '@jetstream/types';
+import { DropDownItemLength, FormGroupDropdownItem } from '@jetstream/types';
 import classNames from 'classnames';
 import isNumber from 'lodash/isNumber';
 import uniqueId from 'lodash/uniqueId';
@@ -39,14 +42,19 @@ import Spinner from '../../widgets/Spinner';
 import { FormGroupDropdown } from '../formGroupDropDown/FormGroupDropdown';
 import { ComboboxListItem, ComboboxListItemProps } from './ComboboxListItem';
 import { ComboboxListItemGroup, ComboboxListItemGroupProps } from './ComboboxListItemGroup';
-import { ComboboxListItemHeading } from './ComboboxListItemHeading';
+import { ComboboxListItemHeading, ComboboxListItemHeadingProps } from './ComboboxListItemHeading';
 
 type ChildListItem = ComboboxListItemProps & React.RefAttributes<HTMLLIElement>;
 type ChildListGroup = ComboboxListItemGroupProps & { children: React.ReactNode };
 
 export interface ComboboxPropsRef {
   clearInputText(): void;
-  getPopoverRef(): Maybe<HTMLDivElement>;
+  getRefs(): {
+    inputEl: React.RefObject<HTMLInputElement>;
+    divContainerEl: React.RefObject<HTMLDivElement>;
+    entireContainerEl: React.RefObject<HTMLDivElement>;
+    popoverRef: React.RefObject<HTMLDivElement>;
+  };
   close(): void;
 }
 
@@ -62,19 +70,43 @@ export interface ComboboxProps {
   noItemsPlaceholder?: string;
   disabled?: boolean;
   loading?: boolean;
-  selectedItemLabel?: string | null; // used for text
-  selectedItemTitle?: string | null; // used for text
+  /**
+   * Text shown for the selected item when the menu is closed.
+   */
+  selectedItemLabel?: string | null;
+  /**
+   * Text shown for the selected item title when the menu is closed.
+   */
+  selectedItemTitle?: string | null;
+  /**
+   * Shows a dropdown at beginning to choose between different types of items.
+   * {@link https://www.lightningdesignsystem.com/components/combobox/?variant=deprecated-multi-entity#Grouped-Comboboxes-(Cross-entity-Polymorphic)}
+   */
   leadingDropdown?: {
     label: string;
     items: FormGroupDropdownItem[];
     initialSelectedItem?: FormGroupDropdownItem;
   };
+  /**
+   * Depending on how Combobox is used, isEmpty may not be able to be automatically calculated.
+   * if so, Set this field to true if you know there are no items in the list.
+   */
+  isEmpty?: boolean;
+  /**
+   * How many items should be visible before scrolling
+   */
   itemLength?: DropDownItemLength;
   hasError?: boolean;
   errorMessageId?: string;
   errorMessage?: React.ReactNode | string;
+  /**
+   * If true, the selected item will be shown with a border and a close X button.
+   * User must clear the input before changing selection.
+   */
   showSelectionAsButton?: boolean;
-  /** If using virtual list, this ensures child detection for keyboard navigation is correct */
+  /**
+   * If using virtual list, this ensures child detection for keyboard navigation is correct.
+   */
   isVirtual?: boolean;
   onInputChange?: (value: string) => void;
   /** Same as onInputChange, but does not get called when closed */
@@ -82,9 +114,14 @@ export interface ComboboxProps {
   onInputEnter?: () => void;
   onClear?: () => void;
   onClose?: () => void;
+  /**
+   * If there is a leading grouped dropdown, indicates if item in that list changed
+   */
   onLeadingDropdownChange?: (item: FormGroupDropdownItem) => void;
-  /** If provided, all keyboard navigation events will be sent to parent to control focus */
-  onKeyboardNavigation?: (action: 'up' | 'down' | 'enter') => void;
+  /**
+   * If provided, all keyboard navigation events will be sent to parent to control navigation and focus.
+   */
+  onKeyboardNavigation?: (action: 'up' | 'down' | 'right' | 'enter') => void;
   children?: React.ReactNode;
 }
 
@@ -134,6 +171,7 @@ export const Combobox = forwardRef<ComboboxPropsRef, ComboboxProps>(
       selectedItemLabel,
       selectedItemTitle,
       leadingDropdown,
+      isEmpty = false,
       itemLength = 7,
       hasError,
       errorMessageId,
@@ -174,14 +212,22 @@ export const Combobox = forwardRef<ComboboxPropsRef, ComboboxProps>(
         clearInputText: () => {
           isOpen && setValue('');
         },
-        getPopoverRef: () => {
-          return popoverRef.current;
+        focusInput: () => {
+          return inputEl.current?.focus();
+        },
+        getRefs: () => {
+          return {
+            inputEl: inputEl,
+            divContainerEl: divContainerEl,
+            entireContainerEl: entireContainerEl,
+            popoverRef: popoverRef,
+          };
         },
         close: () => {
           setTimeout(() => {
-            setIsOpen(false);
+            isOpen && setIsOpen(false);
             onClose && onClose();
-            inputEl.current?.focus();
+            focusElementFromRefWhenAvailable(inputEl);
           });
         },
       }),
@@ -190,13 +236,7 @@ export const Combobox = forwardRef<ComboboxPropsRef, ComboboxProps>(
 
     useNonInitialEffect(() => {
       try {
-        if (
-          elRefs.current &&
-          isNumber(focusedItem) &&
-          elRefs.current[focusedItem] &&
-          elRefs.current[focusedItem] &&
-          !!elRefs.current[focusedItem].focus
-        ) {
+        if (elRefs.current && isNumber(focusedItem) && elRefs.current[focusedItem] && !!elRefs.current[focusedItem].focus) {
           elRefs.current[focusedItem].focus();
         }
         if (divContainerEl.current && isNumber(focusedItem)) {
@@ -241,11 +281,12 @@ export const Combobox = forwardRef<ComboboxPropsRef, ComboboxProps>(
 
     // Determine if children are groups instead of items
     let childrenSize = Children.count(children);
-    // if (!checkedForGroups) {
-    // setCheckedForGroups(true);
+
     Children.forEach(children, (child) => {
       if (isValidElement(child)) {
-        if (child.type === ComboboxListItemGroup) {
+        if (child.props.hasOwnProperty('onActionClick')) {
+          childrenSize--;
+        } else if (child.type === ComboboxListItemGroup) {
           childrenSize += Children.count(child.props.children);
           if (!hasGroups) {
             setHasGroups(true);
@@ -253,12 +294,13 @@ export const Combobox = forwardRef<ComboboxPropsRef, ComboboxProps>(
         }
       }
     });
-    // }
 
     // remove double counted children size - since we really just want to know grandchildren size
     if (hasGroups) {
       childrenSize -= Children.count(children);
     }
+
+    childrenSize = Math.max(childrenSize, 0);
 
     // init refs for children for keyboard navigation
     if (elRefs.current.length !== childrenSize) {
@@ -274,8 +316,11 @@ export const Combobox = forwardRef<ComboboxPropsRef, ComboboxProps>(
             });
           }
         } else {
-          refs[counter] = elRefs[counter] || createRef();
-          counter++;
+          // skip ComboboxListItemHeading, thi is not focusable
+          if (isValidElement(child) && !child.props.hasOwnProperty('onActionClick')) {
+            refs[counter] = elRefs[counter] || createRef();
+            counter++;
+          }
         }
       });
       // add or remove refs
@@ -289,8 +334,8 @@ export const Combobox = forwardRef<ComboboxPropsRef, ComboboxProps>(
     let counter = 0;
     const childrenWithRef = parentOwnsKeyboardNavigation
       ? children
-      : Children.map(children, (child: ReactElement<ChildListItem | ChildListGroup>, i) => {
-          if (!isValidElement<ChildListItem | ChildListGroup>(child)) {
+      : Children.map(children, (child: ReactElement<ChildListItem | ChildListGroup | ComboboxListItemHeadingProps>, i) => {
+          if (!isValidElement<ChildListItem | ChildListGroup>(child) || child.props.hasOwnProperty('onActionClick')) {
             return child;
           }
           // set refs on all grandchildren list items
@@ -319,9 +364,11 @@ export const Combobox = forwardRef<ComboboxPropsRef, ComboboxProps>(
               }),
             });
           } else {
+            const currIdx = counter;
+            counter++;
             return cloneElement(child, {
               ref: (node) => {
-                elRefs.current[i] = node;
+                elRefs.current[currIdx] = node;
                 // Call the original ref, if any
                 const { ref } = child as any;
                 if (typeof ref === 'function') {
@@ -394,9 +441,16 @@ export const Combobox = forwardRef<ComboboxPropsRef, ComboboxProps>(
           } else {
             elRefs.current[focusedItem!].click();
           }
-          setIsOpen(false);
-          onClose && onClose();
-          inputEl.current?.focus();
+          // Don't close if drill-in
+          if (elRefs.current[focusedItem!]?.getAttribute('data-type') === 'drill-in') {
+            inputEl.current?.focus();
+            return;
+          }
+          if (!parentOwnsKeyboardNavigation) {
+            setIsOpen(false);
+            onClose && onClose();
+            inputEl.current?.focus();
+          }
         } catch (ex) {
           // error
           logger.warn('Error in ComboboxList onKeyDown', ex);
@@ -429,6 +483,10 @@ export const Combobox = forwardRef<ComboboxPropsRef, ComboboxProps>(
             newFocusedItem = newFocusedItem! + 1;
           }
         }
+      } else if (isArrowRightKey(event) && parentOwnsKeyboardNavigation) {
+        event.preventDefault();
+        event.stopPropagation();
+        onKeyboardNavigation?.('right');
       }
 
       if (!parentOwnsKeyboardNavigation && isNumber(newFocusedItem) && newFocusedItem !== focusedItem) {
@@ -458,11 +516,7 @@ export const Combobox = forwardRef<ComboboxPropsRef, ComboboxProps>(
       event.stopPropagation();
       onClear && onClear();
       setIsOpen(true);
-      inputEl.current?.focus();
-      // Hacky, but make sure that input exists so it can be focused
-      setTimeout(() => {
-        inputEl.current?.focus();
-      }, 50);
+      focusElementFromRefWhenAvailable(inputEl);
     };
 
     return (
@@ -588,8 +642,8 @@ export const Combobox = forwardRef<ComboboxPropsRef, ComboboxProps>(
                     onBlur={handleBlur}
                   >
                     <div ref={divContainerEl}>
-                      {/* Show placeholder if there are no items to show */}
-                      {Children.count(children) === 0 && (
+                      {/* Show placeholder if there are no items to show - in case there are other children (e.x. a header), parent can use isEmpty */}
+                      {(isEmpty || Children.count(children) === 0) && (
                         <ul className="slds-listbox slds-listbox_vertical" role="presentation">
                           <ComboboxListItem id="placeholder" placeholder label={noItemsPlaceholder} selected={false} onSelection={NOOP} />
                         </ul>

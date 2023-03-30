@@ -13,12 +13,21 @@ export interface ComboboxListItemProps {
   textClassName?: string;
   textBodyCss?: SerializedStyles;
   textCss?: SerializedStyles;
-  label?: string; // can pass in children instead to override the complete media body
+  /**
+   * can pass in children instead to override the complete body of the list item
+   */
+  label?: string;
   secondaryLabel?: Maybe<string>;
   secondaryLabelOnNewLine?: Maybe<boolean>;
-  /** If true, will show icon to indicate child items */
+  tertiaryLabel?: Maybe<string>;
+  /**
+   * If true, will show icon to indicate child items shown after selected
+   */
   isDrillInItem?: boolean;
-  title?: string; // fallback to label is label is a string
+  /**
+   * fallback to label if label is not a string
+   */
+  title?: string;
   selected: boolean;
   disabled?: boolean;
   hasError?: boolean;
@@ -43,6 +52,7 @@ export const ComboboxListItem = forwardRef<HTMLLIElement, ComboboxListItemProps>
       label,
       secondaryLabel,
       secondaryLabelOnNewLine,
+      tertiaryLabel,
       isDrillInItem,
       title,
       selected,
@@ -74,6 +84,7 @@ export const ComboboxListItem = forwardRef<HTMLLIElement, ComboboxListItemProps>
         onClick={() => onSelection(id)}
         tabIndex={-1}
         css={containerCss}
+        data-type={isDrillInItem ? 'drill-in' : 'item'}
       >
         <div
           id={id}
@@ -118,6 +129,13 @@ export const ComboboxListItem = forwardRef<HTMLLIElement, ComboboxListItemProps>
               <span className={classNames('slds-truncate', textClassName)} title={title} css={textCss}>
                 {label}
                 {secondaryLabel && <span className="slds-text-color_weak slds-m-left_xx-small slds-truncate">{secondaryLabel}</span>}
+                {tertiaryLabel && (
+                  <span className="slds-listbox__option-meta slds-listbox__option-meta_entity">
+                    <div className="slds-truncate">
+                      <strong>{tertiaryLabel}</strong>
+                    </div>
+                  </span>
+                )}
               </span>
             )}
             {label && secondaryLabel && secondaryLabelOnNewLine && (
@@ -126,6 +144,13 @@ export const ComboboxListItem = forwardRef<HTMLLIElement, ComboboxListItemProps>
                 <div className="slds-listbox__option-meta slds-listbox__option-meta_entity slds-truncate" title={secondaryLabel}>
                   {secondaryLabel}
                 </div>
+                {tertiaryLabel && (
+                  <span className="slds-listbox__option-meta slds-listbox__option-meta_entity">
+                    <div className="slds-truncate">
+                      <strong>{tertiaryLabel}</strong>
+                    </div>
+                  </span>
+                )}
               </Fragment>
             )}
             {children}

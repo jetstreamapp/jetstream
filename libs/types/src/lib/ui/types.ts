@@ -237,8 +237,12 @@ export interface ListItemGroup {
 export interface ListItem<V = string, M = any> {
   id: string;
   label: string;
+  /** If provided, then this will be used for children ComboboxListItem */
+  customRenderer?: (item: ListItem<V, M>) => React.ReactNode;
   secondaryLabel?: string | null;
   secondaryLabelOnNewLine?: boolean | null;
+  /** Show a third label under the primary/secondary labels (Combobox) */
+  tertiaryLabel?: string;
   disabled?: boolean;
   metaLabel?: string | null;
   /** used for flattened lists (used for virtual scrolling) */

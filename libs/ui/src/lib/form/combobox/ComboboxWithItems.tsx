@@ -1,7 +1,8 @@
-import { getFlattenedListItemsById, useDebounce } from '@jetstream/shared/ui-utils';
+import { focusElementFromRefWhenAvailable, getFlattenedListItemsById, menuItemSelectScroll, useDebounce } from '@jetstream/shared/ui-utils';
 import { multiWordObjectFilter } from '@jetstream/shared/utils';
 import { ListItem, Maybe } from '@jetstream/types';
-import { forwardRef, useCallback, useEffect, useImperativeHandle, useRef, useState } from 'react';
+import isNumber from 'lodash/isNumber';
+import { createRef, forwardRef, useCallback, useEffect, useImperativeHandle, useRef, useState } from 'react';
 import { Combobox, ComboboxProps, ComboboxPropsRef } from './Combobox';
 import { ComboboxListItem } from './ComboboxListItem';
 import { ComboboxListItemHeading } from './ComboboxListItemHeading';
@@ -38,7 +39,6 @@ export interface ComboboxWithItemsProps {
  * This allow text filtering/search with a simple picklist like interaction
  *
  * Does not support groups
- * TODO: create ComboboxWithGroups component
  */
 export const ComboboxWithItems = forwardRef<ComboboxWithItemsRef, ComboboxWithItemsProps>(
   (
@@ -76,6 +76,8 @@ export const ComboboxWithItems = forwardRef<ComboboxWithItemsRef, ComboboxWithIt
       }
       return null;
     });
+    const [focusedIndex, setFocusedIndex] = useState<number | null>(null);
+    const refs = visibleItems.map((value) => createRef<HTMLLIElement>());
 
     useImperativeHandle<unknown, ComboboxWithItemsRef>(
       ref,
@@ -109,9 +111,11 @@ export const ComboboxWithItems = forwardRef<ComboboxWithItemsRef, ComboboxWithIt
     useEffect(() => {
       if (!filterText) {
         setVisibleItems(items);
+        setFocusedIndex(null);
       } else {
         const filter = filterText.toLowerCase().trim();
         setVisibleItems(items.filter(filterFn(filter)));
+        setFocusedIndex(null);
       }
     }, [items, filterText, filterFn]);
 
@@ -121,37 +125,155 @@ export const ComboboxWithItems = forwardRef<ComboboxWithItemsRef, ComboboxWithIt
       }
     }, [onSelected, visibleItems]);
 
+    const handleKeyboardNavigation = (action: 'up' | 'down' | 'right' | 'enter') => {
+      // if loading, items may not be ready yet and when they are ready it can cause issues with navigation
+      if (comboboxProps?.loading) {
+        return;
+      }
+      let tempFocusedIndex = focusedIndex;
+      const maxIndex = visibleItems.length - 1;
+      switch (action) {
+        case 'down': {
+          if (tempFocusedIndex == null) {
+            tempFocusedIndex = 0;
+          } else {
+            tempFocusedIndex++;
+          }
+          break;
+        }
+        case 'up': {
+          if (tempFocusedIndex == null) {
+            tempFocusedIndex = maxIndex;
+          } else {
+            tempFocusedIndex--;
+          }
+          break;
+        }
+        // Right drills-in
+        case 'right': {
+          if (isNumber(focusedIndex) && visibleItems[focusedIndex].isDrillInItem) {
+            const item = visibleItems[focusedIndex];
+            onSelected(item);
+            setFocusedIndex(null);
+            if (comboboxRef.current?.getRefs().inputEl) {
+              // if focused too fast, then the input will get the keydown event and select the first item
+              setTimeout(() => {
+                focusElementFromRefWhenAvailable(comboboxRef.current?.getRefs().inputEl);
+              }, 50);
+            }
+          }
+
+          break;
+        }
+        case 'enter': {
+          if (isNumber(tempFocusedIndex)) {
+            tempFocusedIndex = null;
+            setFocusedIndex(tempFocusedIndex);
+          }
+          if (isNumber(focusedIndex)) {
+            const item = visibleItems[focusedIndex];
+            onSelected(item);
+            setFocusedIndex(null);
+            if (item.isDrillInItem) {
+              if (comboboxRef.current?.getRefs().inputEl) {
+                // if focused too fast, then the input will get the keydown event and select the first item
+                setTimeout(() => {
+                  focusElementFromRefWhenAvailable(comboboxRef.current?.getRefs().inputEl);
+                }, 50);
+              }
+            } else {
+              comboboxRef.current?.close();
+              onClose && onClose();
+            }
+            return;
+          }
+          break;
+        }
+        default:
+          break;
+      }
+
+      if (isNumber(tempFocusedIndex)) {
+        if (tempFocusedIndex < 0) {
+          // set to max item
+          tempFocusedIndex = maxIndex;
+        } else if (tempFocusedIndex > maxIndex) {
+          // if > max item
+          tempFocusedIndex = 0;
+        }
+        refs[tempFocusedIndex]?.current?.focus();
+      }
+      if (tempFocusedIndex !== focusedIndex) {
+        setFocusedIndex(tempFocusedIndex);
+      }
+      const divContainerEl = comboboxRef.current?.getRefs().divContainerEl;
+      if (divContainerEl?.current && isNumber(tempFocusedIndex)) {
+        menuItemSelectScroll({
+          container: divContainerEl.current,
+          focusedIndex: tempFocusedIndex,
+        });
+      }
+    };
+
+    function handleHeadingClick() {
+      heading?.onActionClick && heading.onActionClick();
+      // Ensure next cycle so that input does not get keyup event
+      setTimeout(() => {
+        focusElementFromRefWhenAvailable(comboboxRef.current?.getRefs().inputEl);
+      }, 50);
+    }
+
     return (
       <Combobox
         ref={comboboxRef}
         {...comboboxProps}
         selectedItemLabel={selectedItemLabel}
         selectedItemTitle={selectedItemTitle}
+        isEmpty={visibleItems.length === 0}
+        onKeyboardNavigation={handleKeyboardNavigation}
         onInputChange={setFilterText}
         onInputEnter={onInputEnter}
         onClose={onClose}
       >
-        {heading && (
-          <ComboboxListItemHeading label={heading.label} actionLabel={heading.actionLabel} onActionClick={heading.onActionClick} />
+        {heading && <ComboboxListItemHeading label={heading.label} actionLabel={heading.actionLabel} onActionClick={handleHeadingClick} />}
+        {visibleItems.map((item, i) =>
+          !item.customRenderer ? (
+            <ComboboxListItem
+              key={item.id}
+              ref={refs[i]}
+              id={item.id}
+              label={item.label}
+              secondaryLabel={item.secondaryLabel}
+              secondaryLabelOnNewLine={item.secondaryLabelOnNewLine}
+              tertiaryLabel={item.tertiaryLabel}
+              isDrillInItem={item.isDrillInItem}
+              selected={item === selectedItem}
+              onSelection={(id) => {
+                onSelected(item);
+                if (!item.isDrillInItem) {
+                  comboboxRef.current?.close();
+                  onClose && onClose();
+                }
+              }}
+            />
+          ) : (
+            <ComboboxListItem
+              key={item.id}
+              ref={refs[i]}
+              id={item.id}
+              selected={item === selectedItem}
+              onSelection={(id) => {
+                onSelected(item);
+                if (!item.isDrillInItem) {
+                  comboboxRef.current?.close();
+                  onClose && onClose();
+                }
+              }}
+            >
+              {item.customRenderer(item)}
+            </ComboboxListItem>
+          )
         )}
-        {visibleItems.map((item) => (
-          <ComboboxListItem
-            key={item.id}
-            id={item.id}
-            label={item.label}
-            secondaryLabel={item.secondaryLabel}
-            secondaryLabelOnNewLine={item.secondaryLabelOnNewLine}
-            isDrillInItem={item.isDrillInItem}
-            selected={item === selectedItem}
-            onSelection={(id) => {
-              onSelected(item);
-              if (!item.isDrillInItem) {
-                comboboxRef.current?.close();
-                onClose && onClose();
-              }
-            }}
-          />
-        ))}
       </Combobox>
     );
   }

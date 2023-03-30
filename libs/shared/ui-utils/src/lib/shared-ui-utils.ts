@@ -1506,3 +1506,33 @@ export function getListItemsFromFieldWithRelatedItems(fields: Field[], parentId 
 
   return [...relatedFields, ...coreFields];
 }
+
+/**
+ * If there is a change in UI that would make an element take a render ror more
+ * to be added to the dom, this will try a {maxAttempts} times to focus the element
+ *
+ * @param element
+ * @param backOff
+ * @param attempt
+ * @param maxAttempts
+ * @returns
+ */
+export function focusElementFromRefWhenAvailable<T extends HTMLElement>(
+  element: Maybe<React.RefObject<T>>,
+  backOff = 0,
+  attempt = 0,
+  maxAttempts = 3
+) {
+  if (!element) {
+    return;
+  }
+  if (element.current) {
+    element.current.focus();
+  } else {
+    if (attempt < maxAttempts) {
+      setTimeout(() => {
+        focusElementFromRefWhenAvailable(element, backOff + 50, attempt + 1, maxAttempts);
+      }, backOff);
+    }
+  }
+}

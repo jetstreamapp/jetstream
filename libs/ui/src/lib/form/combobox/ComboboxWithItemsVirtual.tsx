@@ -64,7 +64,7 @@ export const ComboboxWithItemsVirtual: FunctionComponent<ComboboxWithItemsVirtua
 
   const rowVirtualizer = useVirtualizer({
     count: visibleItems.length,
-    getScrollElement: () => comboboxRef.current?.getPopoverRef() || null,
+    getScrollElement: () => comboboxRef.current?.getRefs().popoverRef.current || null,
     estimateSize: (index: number) => {
       const item = visibleItems[index];
       if (item.isGroup) {
