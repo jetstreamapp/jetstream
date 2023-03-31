@@ -3,7 +3,7 @@ import { multiWordObjectFilter, NOOP } from '@jetstream/shared/utils';
 import { ListItem, ListItemGroup, Maybe } from '@jetstream/types';
 import isNumber from 'lodash/isNumber';
 import { createRef, forwardRef, useCallback, useEffect, useImperativeHandle, useRef, useState } from 'react';
-import { Combobox, ComboboxProps, ComboboxPropsRef } from './Combobox';
+import { Combobox, ComboboxPropsRef, ComboboxSharedProps } from './Combobox';
 import { ComboboxListItem, ComboboxListItemProps } from './ComboboxListItem';
 import { ComboboxListItemGroup } from './ComboboxListItemGroup';
 
@@ -17,7 +17,7 @@ export interface ComboboxWithGroupedItemsRef {
 }
 
 export interface ComboboxWithGroupedItemsProps {
-  comboboxProps: ComboboxProps;
+  comboboxProps: ComboboxSharedProps;
   groups: ListItemGroup[];
   selectedItemId?: string | null;
   /**
@@ -196,7 +196,11 @@ export const ComboboxWithGroupedItems = forwardRef<ComboboxWithGroupedItemsRef, 
               if (comboboxRef.current?.getRefs().inputEl) {
                 // if focused too fast, then the input will get the keydown event and select the first item
                 setTimeout(() => {
-                  focusElementFromRefWhenAvailable(comboboxRef.current?.getRefs().inputEl);
+                  if (comboboxProps.showSelectionAsButton) {
+                    focusElementFromRefWhenAvailable(comboboxRef.current?.getRefs().buttonEl);
+                  } else {
+                    focusElementFromRefWhenAvailable(comboboxRef.current?.getRefs().inputEl);
+                  }
                 }, 50);
               }
             } else {
@@ -239,6 +243,7 @@ export const ComboboxWithGroupedItems = forwardRef<ComboboxWithGroupedItemsRef, 
       <Combobox
         ref={comboboxRef}
         {...comboboxProps}
+        hasGroups
         selectedItemLabel={selectedItemLabel}
         selectedItemTitle={selectedItemTitle}
         isEmpty={visibleItems.length === 0}

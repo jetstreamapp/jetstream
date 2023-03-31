@@ -1,11 +1,11 @@
 import { getFlattenedListItemsById } from '@jetstream/shared/ui-utils';
 import { ListItem, Maybe } from '@jetstream/types';
 import { FunctionComponent, useCallback, useEffect, useRef, useState } from 'react';
-import { ComboboxProps } from './Combobox';
+import { ComboboxSharedProps } from './Combobox';
 import ComboboxWithItems, { ComboboxWithItemsProps, ComboboxWithItemsRef } from './ComboboxWithItems';
 
 export interface ComboboxWithDrillInItemsProps extends Pick<ComboboxWithItemsProps, 'selectedItemLabelFn' | 'selectedItemTitleFn'> {
-  comboboxProps: ComboboxProps;
+  comboboxProps: ComboboxSharedProps;
   items: ListItem[];
   selectedItemId?: string | null;
   /** Used as the heading in the dropdown when no items are selected. Will be pre-pended to child item labels */
