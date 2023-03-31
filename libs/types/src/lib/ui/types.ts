@@ -227,10 +227,10 @@ export type DefaultInverseLight = Default | Inverse | Light;
 export type BadgeTypes = SuccessWarningError | DefaultInverseLight;
 export type ScopedNotificationTypes = Info | Success | Warning | Error | Light | Dark;
 
-export interface ListItemGroup {
+export interface ListItemGroup<V = string, M = any> {
   id: string;
   label: string;
-  items: ListItem[];
+  items: ListItem<V, M>[];
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any

@@ -1,32 +1,37 @@
 import { focusElementFromRefWhenAvailable, getFlattenedListItemsById, menuItemSelectScroll, useDebounce } from '@jetstream/shared/ui-utils';
 import { multiWordObjectFilter, NOOP } from '@jetstream/shared/utils';
-import { ListItem, Maybe } from '@jetstream/types';
+import { ListItem, ListItemGroup, Maybe } from '@jetstream/types';
 import isNumber from 'lodash/isNumber';
 import { createRef, forwardRef, useCallback, useEffect, useImperativeHandle, useRef, useState } from 'react';
 import { Combobox, ComboboxProps, ComboboxPropsRef } from './Combobox';
 import { ComboboxListItem, ComboboxListItemProps } from './ComboboxListItem';
-import { ComboboxListItemHeading } from './ComboboxListItemHeading';
+import { ComboboxListItemGroup } from './ComboboxListItemGroup';
 
 const defaultFilterFn = (filter) => multiWordObjectFilter<ListItem<string, any>>(['label', 'value'], filter);
+const defaultGroupFilterFn = (filter) => multiWordObjectFilter<ListItemGroup>(['label'], filter);
 const defaultSelectedItemLabelFn = (item: ListItem) => item.label;
 const defaultSelectedItemTitleFn = (item: ListItem) => item.title;
 
-export interface ComboboxWithItemsRef {
+export interface ComboboxWithGroupedItemsRef {
   clearSearchTerm: () => void;
 }
 
-export interface ComboboxWithItemsProps {
+export interface ComboboxWithGroupedItemsProps {
   comboboxProps: ComboboxProps;
-  items: ListItem[];
+  groups: ListItemGroup[];
   selectedItemId?: string | null;
-  /** Heading for list (just like grouped items) */
-  heading?: {
-    label: string;
-    actionLabel?: string;
-    onActionClick?: () => void;
-  };
+  /**
+   * Show all items in a group if the group label matches the filter text
+   * default: true
+   */
+  allowGroupToMatchFilterText?: boolean;
   /** Function called for each item to customize the props of <ComboboxListItem /> */
   itemProps?: (item: ListItem) => Partial<ComboboxListItemProps>;
+  /**
+   * Optional. If not provided, standard multi-word search will be used
+   * only applies if allowGroupToMatchFilterText is true
+   */
+  groupFilterFn?: (filter: string) => (value: unknown, index: number, array: unknown[]) => boolean;
   /** Optional. If not provided, standard multi-word search will be used */
   filterFn?: (filter: string) => (value: unknown, index: number, array: unknown[]) => boolean;
   /** Used to customize what shows upon selection */
@@ -37,19 +42,18 @@ export interface ComboboxWithItemsProps {
 }
 
 /**
- * Combobox wrapper to simplify the creation of a combobox
+ * Combobox wrapper for groups to simplify the creation of a combobox
  * This allow text filtering/search with a simple picklist like interaction
- *
- * Does not support groups
  */
-export const ComboboxWithItems = forwardRef<ComboboxWithItemsRef, ComboboxWithItemsProps>(
+export const ComboboxWithGroupedItems = forwardRef<ComboboxWithGroupedItemsRef, ComboboxWithGroupedItemsProps>(
   (
     {
       comboboxProps,
-      items,
+      groups,
       selectedItemId,
-      heading,
+      allowGroupToMatchFilterText = true,
       itemProps = NOOP,
+      groupFilterFn = defaultGroupFilterFn,
       filterFn = defaultFilterFn,
       selectedItemLabelFn = defaultSelectedItemLabelFn,
       selectedItemTitleFn = defaultSelectedItemTitleFn,
@@ -62,27 +66,27 @@ export const ComboboxWithItems = forwardRef<ComboboxWithItemsRef, ComboboxWithIt
     const [filterTextNonDebounced, setFilterText] = useState<string>('');
     const filterText = useDebounce(filterTextNonDebounced, 300);
     const [selectedItem, setSelectedItem] = useState<Maybe<ListItem>>(() =>
-      selectedItemId ? items.find((item) => item.id === selectedItemId) : null
+      selectedItemId ? groups.flatMap((group) => group.items).find((item) => item.id === selectedItemId) : null
     );
-    const [visibleItems, setVisibleItems] = useState(items);
+    const [visibleItems, setVisibleItems] = useState(groups);
     const [selectedItemLabel, setSelectedItemLabel] = useState<string | null>(() => {
       if (selectedItem) {
-        const selectedItem = items.find((item) => item.id === selectedItemId);
+        const selectedItem = groups.flatMap((group) => group.items).find((item) => item.id === selectedItemId);
         return selectedItem ? selectedItemLabelFn(selectedItem) : null;
       }
       return null;
     });
     const [selectedItemTitle, setSelectedItemTitle] = useState<string | null>(() => {
       if (selectedItem) {
-        const selectedItem = items.find((item) => item.id === selectedItemId);
+        const selectedItem = groups.flatMap((group) => group.items).find((item) => item.id === selectedItemId);
         return selectedItem ? selectedItemLabelFn(selectedItem) : null;
       }
       return null;
     });
     const [focusedIndex, setFocusedIndex] = useState<number | null>(null);
-    const refs = visibleItems.map((value) => createRef<HTMLLIElement>());
+    const refs = visibleItems.flatMap((group) => group.items).map((value) => createRef<HTMLLIElement>());
 
-    useImperativeHandle<unknown, ComboboxWithItemsRef>(
+    useImperativeHandle<unknown, ComboboxWithGroupedItemsRef>(
       ref,
       () => ({
         clearSearchTerm: () => {
@@ -95,11 +99,11 @@ export const ComboboxWithItems = forwardRef<ComboboxWithItemsRef, ComboboxWithIt
 
     useEffect(() => {
       if (selectedItemId) {
-        setSelectedItem(getFlattenedListItemsById(items)[selectedItemId]);
+        setSelectedItem(getFlattenedListItemsById(groups.flatMap((group) => group.items))[selectedItemId]);
       } else {
         setSelectedItem(null);
       }
-    }, [items, selectedItemId]);
+    }, [groups, selectedItemId]);
 
     useEffect(() => {
       if (selectedItem) {
@@ -113,18 +117,28 @@ export const ComboboxWithItems = forwardRef<ComboboxWithItemsRef, ComboboxWithIt
 
     useEffect(() => {
       if (!filterText) {
-        setVisibleItems(items);
+        setVisibleItems(groups);
         setFocusedIndex(null);
       } else {
         const filter = filterText.toLowerCase().trim();
-        setVisibleItems(items.filter(filterFn(filter)));
+        setVisibleItems(
+          groups
+            .map((group) => {
+              const isGroupMatch = [group].filter(groupFilterFn(filter)).length > 0;
+              return allowGroupToMatchFilterText && isGroupMatch
+                ? { ...group, items: group.items } // keep all items if the group label matches the filter text
+                : { ...group, items: group.items.filter(filterFn(filter)) };
+            })
+            .filter((group) => group.items.length > 0)
+        );
         setFocusedIndex(null);
       }
-    }, [items, filterText, filterFn]);
+    }, [groups, filterText, filterFn, groupFilterFn, allowGroupToMatchFilterText]);
 
     const onInputEnter = useCallback(() => {
-      if (visibleItems.length > 0) {
-        onSelected(visibleItems[0]);
+      const items = visibleItems.flatMap((group) => group.items);
+      if (items.length > 0) {
+        onSelected(items[0]);
       }
     }, [onSelected, visibleItems]);
 
@@ -133,8 +147,9 @@ export const ComboboxWithItems = forwardRef<ComboboxWithItemsRef, ComboboxWithIt
       if (comboboxProps?.loading) {
         return;
       }
+      const items = visibleItems.flatMap((group) => group.items);
       let tempFocusedIndex = focusedIndex;
-      const maxIndex = visibleItems.length - 1;
+      const maxIndex = items.length - 1;
       switch (action) {
         case 'down': {
           if (tempFocusedIndex == null) {
@@ -154,8 +169,8 @@ export const ComboboxWithItems = forwardRef<ComboboxWithItemsRef, ComboboxWithIt
         }
         // Right drills-in
         case 'right': {
-          if (isNumber(focusedIndex) && visibleItems[focusedIndex].isDrillInItem) {
-            const item = visibleItems[focusedIndex];
+          if (isNumber(focusedIndex) && items[focusedIndex].isDrillInItem) {
+            const item = items[focusedIndex];
             onSelected(item);
             setFocusedIndex(null);
             if (comboboxRef.current?.getRefs().inputEl) {
@@ -174,7 +189,7 @@ export const ComboboxWithItems = forwardRef<ComboboxWithItemsRef, ComboboxWithIt
             setFocusedIndex(tempFocusedIndex);
           }
           if (isNumber(focusedIndex)) {
-            const item = visibleItems[focusedIndex];
+            const item = items[focusedIndex];
             onSelected(item);
             setFocusedIndex(null);
             if (item.isDrillInItem) {
@@ -218,13 +233,7 @@ export const ComboboxWithItems = forwardRef<ComboboxWithItemsRef, ComboboxWithIt
       }
     };
 
-    function handleHeadingClick() {
-      heading?.onActionClick && heading.onActionClick();
-      // Ensure next cycle so that input does not get keyup event
-      setTimeout(() => {
-        focusElementFromRefWhenAvailable(comboboxRef.current?.getRefs().inputEl);
-      }, 50);
-    }
+    let counter = 0;
 
     return (
       <Combobox
@@ -238,50 +247,53 @@ export const ComboboxWithItems = forwardRef<ComboboxWithItemsRef, ComboboxWithIt
         onInputEnter={onInputEnter}
         onClose={onClose}
       >
-        {heading && <ComboboxListItemHeading label={heading.label} actionLabel={heading.actionLabel} onActionClick={handleHeadingClick} />}
-        {visibleItems.map((item, i) =>
-          !item.customRenderer ? (
-            <ComboboxListItem
-              key={item.id}
-              ref={refs[i]}
-              id={item.id}
-              label={item.label}
-              secondaryLabel={item.secondaryLabel}
-              secondaryLabelOnNewLine={item.secondaryLabelOnNewLine}
-              tertiaryLabel={item.tertiaryLabel}
-              isDrillInItem={item.isDrillInItem}
-              selected={item === selectedItem}
-              onSelection={(id) => {
-                onSelected(item);
-                if (!item.isDrillInItem) {
-                  comboboxRef.current?.close();
-                  onClose && onClose();
-                }
-              }}
-              {...itemProps(item)}
-            />
-          ) : (
-            <ComboboxListItem
-              key={item.id}
-              ref={refs[i]}
-              id={item.id}
-              selected={item === selectedItem}
-              onSelection={(id) => {
-                onSelected(item);
-                if (!item.isDrillInItem) {
-                  comboboxRef.current?.close();
-                  onClose && onClose();
-                }
-              }}
-              {...itemProps(item)}
-            >
-              {item.customRenderer(item)}
-            </ComboboxListItem>
-          )
-        )}
+        {visibleItems.map((group, i) => (
+          <ComboboxListItemGroup key={group.id} label={group.label}>
+            {group.items.map((item, j) =>
+              !item.customRenderer ? (
+                <ComboboxListItem
+                  key={item.id}
+                  ref={refs[counter++]}
+                  id={item.id}
+                  label={item.label}
+                  secondaryLabel={item.secondaryLabel}
+                  secondaryLabelOnNewLine={item.secondaryLabelOnNewLine}
+                  tertiaryLabel={item.tertiaryLabel}
+                  isDrillInItem={item.isDrillInItem}
+                  selected={item === selectedItem}
+                  onSelection={(id) => {
+                    onSelected(item);
+                    if (!item.isDrillInItem) {
+                      comboboxRef.current?.close();
+                      onClose && onClose();
+                    }
+                  }}
+                  {...itemProps(item)}
+                />
+              ) : (
+                <ComboboxListItem
+                  key={item.id}
+                  ref={refs[counter++]}
+                  id={item.id}
+                  selected={item === selectedItem}
+                  onSelection={(id) => {
+                    onSelected(item);
+                    if (!item.isDrillInItem) {
+                      comboboxRef.current?.close();
+                      onClose && onClose();
+                    }
+                  }}
+                  {...itemProps(item)}
+                >
+                  {item.customRenderer(item)}
+                </ComboboxListItem>
+              )
+            )}
+          </ComboboxListItemGroup>
+        ))}
       </Combobox>
     );
   }
 );
 
-export default ComboboxWithItems;
+export default ComboboxWithGroupedItems;

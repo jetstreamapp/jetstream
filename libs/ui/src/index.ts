@@ -34,6 +34,7 @@ export * from './lib/form/combobox/ComboboxListItem';
 export * from './lib/form/combobox/ComboboxListItemGroup';
 export * from './lib/form/combobox/ComboboxListItemLoadMore';
 export * from './lib/form/combobox/ComboboxWithDrillInItems';
+export * from './lib/form/combobox/ComboboxWithGroupedItems';
 export * from './lib/form/combobox/ComboboxWithItems';
 export * from './lib/form/combobox/ComboboxWithItemsTypeAhead';
 export * from './lib/form/combobox/ComboboxWithItemsVirtual';
