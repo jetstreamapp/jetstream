@@ -1,12 +1,17 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
-import { DATE_LITERALS_SET, getBooleanListItems, getDateLiteralListItems, getPicklistListItems } from '@jetstream/shared/ui-utils';
+import {
+  DATE_LITERALS_SET,
+  getBooleanListItems,
+  getDateLiteralListItems,
+  getFlattenedListItemsById,
+  getPicklistListItems,
+} from '@jetstream/shared/ui-utils';
 import {
   ExpressionConditionHelpText,
   ExpressionConditionRowSelectedItems,
   ExpressionGetResourceTypeFns,
   ExpressionRowValueType,
   ListItem,
-  ListItemGroup,
   Maybe,
   QueryFilterOperator,
 } from '@jetstream/types';
@@ -33,8 +38,8 @@ export const QUERY_OPERATORS: ListItem<string, QueryFilterOperator>[] = [
   { id: 'excludes', label: 'Excludes', value: 'excludes' },
 ];
 
-function findResourceMeta(fields: ListItemGroup[], selected: ExpressionConditionRowSelectedItems) {
-  return fields.find((group) => group.id === selected.resourceGroup)?.items.find((item) => item.id === selected.resource)?.meta.metadata;
+function findResourceMeta(fields: ListItem[], selected: ExpressionConditionRowSelectedItems) {
+  return selected.resource && getFlattenedListItemsById(fields)[selected.resource]?.meta;
 }
 
 function isListOperator(operator: Maybe<QueryFilterOperator>): boolean {
@@ -234,8 +239,9 @@ export function getFieldResourceTypes(
   return;
 }
 
-export function getResourceTypeFnsFromFields(fields: ListItemGroup[]): ExpressionGetResourceTypeFns {
-  const getResourceTypeFns: ExpressionGetResourceTypeFns = {
+export function getResourceTypeFnsFromFields(fields: ListItem[]): ExpressionGetResourceTypeFns {
+  const getResourceTypeFns: ExpressionGetResourceTypeFns & { fields: ListItem[] } = {
+    fields,
     getTypes: (selected: ExpressionConditionRowSelectedItems): ListItem<ExpressionRowValueType>[] | undefined => {
       const fieldMeta: Field = findResourceMeta(fields, selected);
       if (!fieldMeta) {

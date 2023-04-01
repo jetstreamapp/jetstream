@@ -1479,7 +1479,7 @@ export function unFlattenedListItemsById(items: Record<string, ListItem>): ListI
 
 export function getListItemsFromFieldWithRelatedItems(fields: Field[], parentId = ''): ListItem[] {
   const parentPath = parentId ? `${parentId}.` : '';
-  const allowChildren = parentPath.split('.').length <= 6;
+  const allowChildren = parentPath.split('.').length <= 5;
   const relatedFields: ListItem[] = fields
     .filter((field) => allowChildren && Array.isArray(field.referenceTo) && field.referenceTo.length > 0 && field.relationshipName)
     .map((field) => ({

@@ -1,6 +1,6 @@
 import { convertFiltersToWhereClause } from '@jetstream/shared/ui-utils';
 import { getMapOf } from '@jetstream/shared/utils';
-import { ErrorResult, ExpressionType, ListItemGroup, MapOf, Maybe, QueryFields, Record } from '@jetstream/types';
+import { ErrorResult, ExpressionType, MapOf, Maybe, Record } from '@jetstream/types';
 import formatISO from 'date-fns/formatISO';
 import parseISO from 'date-fns/parseISO';
 import type { Field, FieldType } from 'jsforce';
@@ -15,7 +15,6 @@ export interface EditFromErrors {
   fieldErrors: MapOf<string | undefined>;
 }
 
-const CHILD_FIELD_SEPARATOR = `~`;
 const DATE_FIELD_TYPES = new Set<FieldType>(['date', 'datetime']);
 const TIME_FIELD_TYPES = new Set<FieldType>(['time']);
 const NUMBER_TYPES = new Set<FieldType>(['int', 'double', 'currency', 'percent']);
@@ -25,52 +24,6 @@ export function composeSoqlQuery(query: Query, whereExpression: ExpressionType) 
     { ...query, where: convertFiltersToWhereClause(whereExpression) },
     { format: true, formatOptions: { fieldMaxLineLength: 80 } }
   );
-}
-
-/**
- * Build all the data to show in the field filter
- * This omits any field that is not filterable
- *
- * @param queryFieldsMap Query fields with filter data
- */
-export function calculateFilterAndOrderByListGroupFields(
-  queryFieldsMap: MapOf<QueryFields>,
-  requiredMetadataProps?: [keyof Field]
-): ListItemGroup[] {
-  const newFilterFields: ListItemGroup[] = [];
-
-  function includeField(metadata: Field) {
-    if (Array.isArray(requiredMetadataProps) && requiredMetadataProps.length > 0) {
-      return requiredMetadataProps.every((prop) => metadata[prop]);
-    }
-    return true;
-  }
-
-  Object.values(queryFieldsMap)
-    .filter((queryField) => !queryField.key.includes(CHILD_FIELD_SEPARATOR))
-    .forEach((queryField) => {
-      const [base, path] = queryField.key.split('|');
-      const currGroup: ListItemGroup = {
-        id: queryField.key,
-        label: path ? path.substring(0, path.length - 1) : base,
-        items: [],
-      };
-      newFilterFields.push(currGroup);
-      Object.values(queryField.fields)
-        .filter(({ metadata }) => includeField(metadata))
-        .forEach((field) => {
-          const value = `${path || ''}${field.name}`;
-          currGroup.items.push({
-            id: value,
-            label: field.label,
-            secondaryLabel: `${path}${field.name}`,
-            secondaryLabelOnNewLine: true,
-            value: value,
-            meta: field,
-          });
-        });
-    });
-  return newFilterFields;
 }
 
 /**

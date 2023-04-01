@@ -2,16 +2,19 @@ import { logger } from '@jetstream/shared/client-logger';
 import {
   convertDescribeToDescribeSObjectWithExtendedTypes,
   fetchFieldsProcessResults,
+  getListItemsFromFieldWithRelatedItems,
   getOperatorFromWhereClause,
+  sortQueryFields,
   unescapeSoqlString,
+  unFlattenedListItemsById,
 } from '@jetstream/shared/ui-utils';
-import { REGEX } from '@jetstream/shared/utils';
+import { getMapOf, REGEX } from '@jetstream/shared/utils';
 import {
   ExpressionConditionType,
   ExpressionGroupType,
   ExpressionType,
   FieldWrapper,
-  ListItemGroup,
+  ListItem,
   MapOf,
   QueryFields,
   QueryFieldWithPolymorphic,
@@ -31,7 +34,6 @@ import {
   isValueQueryCondition,
   isWhereClauseWithRightCondition,
   Operator,
-  OrderByFieldClause,
   Query,
   WhereClause,
 } from 'soql-parser-js';
@@ -50,7 +52,6 @@ import {
   getTypeFromMetadata,
 } from './query-filter.utils';
 import { fetchMetadataFromSoql, SoqlFetchMetadataOutput, SoqlMetadataTree } from './query-soql-utils';
-import { calculateFilterAndOrderByListGroupFields } from './query-utils';
 
 export interface QueryRestoreErrors {
   missingFields: string[];
@@ -66,8 +67,8 @@ interface QueryRestoreStateItems extends QueryRestoreErrors {
   queryFieldsMapState: MapOf<QueryFields>;
   selectedQueryFieldsState: QueryFieldWithPolymorphic[];
   selectedSubqueryFieldsState: MapOf<QueryFieldWithPolymorphic[]>;
-  filterQueryFieldsState: ListItemGroup[];
-  orderByQueryFieldsState: ListItemGroup[];
+  filterQueryFieldsState: ListItem[];
+  orderByQueryFieldsState: ListItem[];
   queryFiltersState: ExpressionType;
   queryLimit: string;
   queryLimitSkip: string;
@@ -133,8 +134,27 @@ async function queryRestoreBuildState(org: SalesforceOrgUi, query: Query, data: 
 
   processFields(data, outputStateItems, query.fields || []);
 
-  outputStateItems.filterQueryFieldsState = calculateFilterAndOrderByListGroupFields(outputStateItems.queryFieldsMapState, ['filterable']);
-  outputStateItems.orderByQueryFieldsState = calculateFilterAndOrderByListGroupFields(outputStateItems.queryFieldsMapState, ['sortable']);
+  // Calculate all ListItems for filters and order by
+  const allListItems = Object.values(outputStateItems.queryFieldsMapState)
+    .filter((queryField) => !queryField.key.includes(CHILD_FIELD_SEPARATOR))
+    .flatMap((item) => {
+      const [, path] = item.key.split('|');
+      const parentKey = path ? path.slice(0, -1) : ``;
+      return getListItemsFromFieldWithRelatedItems(sortQueryFields(item.metadata?.fields || []), parentKey);
+    });
+
+  outputStateItems.filterQueryFieldsState = unFlattenedListItemsById(
+    getMapOf(
+      allListItems.filter((item) => item.meta.filterable),
+      'id'
+    )
+  );
+  outputStateItems.orderByQueryFieldsState = unFlattenedListItemsById(
+    getMapOf(
+      allListItems.filter((item) => item.meta.sortable),
+      'id'
+    )
+  );
 
   const fieldWrapperWithParentKey = getFieldWrapperPath(outputStateItems.queryFieldsMapState);
 

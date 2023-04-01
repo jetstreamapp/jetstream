@@ -133,7 +133,7 @@ export const BulkUpdateFromQueryModal: FunctionComponent<BulkUpdateFromQueryModa
 
   const { loadDataForProvidedRecords, pollResultsUntilDone } = useDeployRecords(selectedOrg, handleDeployResults, 'QUERY');
 
-  const { fields: valueFields, loadChildFields, loadFields } = useFieldListItemsWithDrillIn(selectedOrg, sobject);
+  const { fields: valueFields, loadChildFields, loadFields } = useFieldListItemsWithDrillIn(selectedOrg);
 
   useEffect(() => {
     const hasMoreRecordsTemp = !!totalRecordCount && !!records && totalRecordCount > records.length;
@@ -162,7 +162,7 @@ export const BulkUpdateFromQueryModal: FunctionComponent<BulkUpdateFromQueryModa
     resetDeployResults();
     setLoading(true);
     try {
-      const { describe, fields } = await loadFields();
+      const { describe, fields } = await loadFields(sobject);
       // Set all fields that can be updated
       setFields(
         fields

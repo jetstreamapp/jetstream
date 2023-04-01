@@ -1,13 +1,5 @@
 import { convertFieldWithPolymorphicToQueryFields, orderStringsBy } from '@jetstream/shared/utils';
-import {
-  ExpressionType,
-  ListItemGroup,
-  MapOf,
-  QueryFields,
-  QueryFieldWithPolymorphic,
-  QueryHistoryItem,
-  QueryOrderByClause,
-} from '@jetstream/types';
+import { ExpressionType, ListItem, MapOf, QueryFields, QueryFieldWithPolymorphic, QueryOrderByClause } from '@jetstream/types';
 import type { ChildRelationship, DescribeGlobalSObjectResult } from 'jsforce';
 import { atom, selector } from 'recoil';
 import { FieldType, getField, OrderByClause, OrderByFieldClause, Subquery } from 'soql-parser-js';
@@ -84,12 +76,12 @@ export const selectQueryField = selector<FieldType[]>({
   },
 });
 
-export const filterQueryFieldsState = atom<ListItemGroup[]>({
+export const filterQueryFieldsState = atom<ListItem[]>({
   key: 'query.filterQueryFieldsState',
   default: [],
 });
 
-export const orderByQueryFieldsState = atom<ListItemGroup[]>({
+export const orderByQueryFieldsState = atom<ListItem[]>({
   key: 'query.orderByQueryFieldsState',
   default: [],
 });

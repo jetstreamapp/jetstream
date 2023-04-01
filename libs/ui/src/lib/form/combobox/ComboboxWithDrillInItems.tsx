@@ -98,11 +98,11 @@ export const ComboboxWithDrillInItems: FunctionComponent<ComboboxWithDrillInItem
   }, []);
 
   const handleClose = useCallback(() => {
-    if (!selectedItem.current) {
+    if (!selectedItem.current && !selectedItemId) {
       setCurrentItems(items);
       setActiveItemId('');
     }
-  }, [items]);
+  }, [items, selectedItemId]);
 
   // Ensure loading state is set for drill-in items
   let comboboxPropsInternal = {

@@ -1,5 +1,5 @@
 /* eslint-disable no-prototype-builtins */
-import { SerializedStyles } from '@emotion/react';
+import { css, SerializedStyles } from '@emotion/react';
 import { logger } from '@jetstream/shared/client-logger';
 import {
   focusElementFromRefWhenAvailable,
@@ -7,6 +7,7 @@ import {
   isArrowDownKey,
   isArrowRightKey,
   isArrowUpKey,
+  isBackspaceOrDeleteKey,
   isEnterKey,
   isEnterOrSpace,
   isEscapeKey,
@@ -276,6 +277,8 @@ export const Combobox = forwardRef<ComboboxPropsRef, ComboboxProps>(
         !isOpen && setIsOpen(true);
         onKeyboardNavigation('down');
       } else if (isEscapeKey(event)) {
+        event.stopPropagation();
+        event.preventDefault();
         setIsOpen(false);
         onClose && onClose();
       } else if (isEnterKey(event) && isOpen && onInputEnter) {
@@ -347,7 +350,7 @@ export const Combobox = forwardRef<ComboboxPropsRef, ComboboxProps>(
       }
     };
 
-    const handleRemoveItem = (event: MouseEvent) => {
+    const handleRemoveItem = (event: MouseEvent | KeyboardEvent) => {
       event.stopPropagation();
       onClear && onClear();
       setIsOpen(true);
@@ -401,6 +404,9 @@ export const Combobox = forwardRef<ComboboxPropsRef, ComboboxProps>(
                       'slds-input-has-icon_right': !loading,
                       'slds-input-has-icon_group-right': loading,
                     })}
+                    css={css`
+                      ${showSelectionAsButton && selectedItemLabel ? `max-width: 20rem` : ``}
+                    `}
                     role="none"
                   >
                     {showSelectionAsButton && selectedItemLabel ? (
@@ -409,18 +415,21 @@ export const Combobox = forwardRef<ComboboxPropsRef, ComboboxProps>(
                           ref={buttonEl}
                           type="button"
                           className="slds-input_faux slds-combobox__input slds-combobox__input-value"
-                          aria-controls="listbox-id-18"
+                          aria-controls={listId}
                           aria-expanded="false"
                           aria-haspopup="listbox"
+                          onKeyDown={(event) => {
+                            if (isBackspaceOrDeleteKey(event)) {
+                              handleRemoveItem(event);
+                            }
+                          }}
                           onClick={(ev) => {
                             ev.preventDefault();
                             ev.stopPropagation();
                           }}
                           title={selectedItemTitle || value}
                         >
-                          <span className="slds-truncate" id={id}>
-                            {value}
-                          </span>
+                          <span className="slds-truncate">{value}</span>
                         </button>
 
                         <button
@@ -478,16 +487,16 @@ export const Combobox = forwardRef<ComboboxPropsRef, ComboboxProps>(
                     onBlur={handleBlur}
                   >
                     <div ref={divContainerEl}>
-                      {/* Show placeholder if there are no items to show - in case there are other children (e.x. a header), parent can use isEmpty */}
-                      {(isEmpty || Children.count(children) === 0) && (
-                        <ul className="slds-listbox slds-listbox_vertical" role="presentation">
-                          <ComboboxListItem id="placeholder" placeholder label={noItemsPlaceholder} selected={false} onSelection={NOOP} />
-                        </ul>
-                      )}
                       {hasGroups && children}
                       {!hasGroups && (
                         <ul className="slds-listbox slds-listbox_vertical" role="presentation">
                           {children}
+                        </ul>
+                      )}
+                      {/* Show placeholder if there are no items to show - in case there are other children (e.x. a header), parent can use isEmpty */}
+                      {(isEmpty || Children.count(children) === 0) && (
+                        <ul className="slds-listbox slds-listbox_vertical" role="presentation">
+                          <ComboboxListItem id="placeholder" placeholder label={noItemsPlaceholder} selected={false} onSelection={NOOP} />
                         </ul>
                       )}
                     </div>

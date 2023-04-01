@@ -1,10 +1,21 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 import { css } from '@emotion/react';
 import { IconObj } from '@jetstream/icon-factory';
+import { logger } from '@jetstream/shared/client-logger';
 import { ANALYTICS_KEYS } from '@jetstream/shared/constants';
-import { hasModifierKey, isEnterKey, useGlobalEventHandler, useNonInitialEffect } from '@jetstream/shared/ui-utils';
+import { describeSObject } from '@jetstream/shared/data';
+import {
+  getFlattenedListItemsById,
+  getListItemsFromFieldWithRelatedItems,
+  hasModifierKey,
+  isEnterKey,
+  sortQueryFields,
+  unFlattenedListItemsById,
+  useGlobalEventHandler,
+  useNonInitialEffect,
+} from '@jetstream/shared/ui-utils';
 import { SplitWrapper as Split } from '@jetstream/splitjs';
-import { QueryFieldWithPolymorphic, SalesforceOrgUi } from '@jetstream/types';
+import { ListItem, QueryFieldWithPolymorphic, SalesforceOrgUi } from '@jetstream/types';
 import {
   Accordion,
   AutoFullHeightContainer,
@@ -18,10 +29,10 @@ import {
   PageHeaderTitle,
   Tabs,
 } from '@jetstream/ui';
-import type { DescribeGlobalSObjectResult } from 'jsforce';
+import type { DescribeGlobalSObjectResult, Field } from 'jsforce';
 import { Fragment, FunctionComponent, useCallback, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useRecoilState, useRecoilValue, useResetRecoilState } from 'recoil';
+import { useRecoilState, useRecoilValue, useResetRecoilState, useSetRecoilState } from 'recoil';
 import { applicationCookieState, selectedOrgState } from '../../../app-state';
 import { useAmplitude } from '../../core/analytics';
 import * as fromQueryState from '../query.state';
@@ -37,7 +48,6 @@ import QueryOrderBy from '../QueryOptions/QueryOrderBy';
 import QueryResetButton from '../QueryOptions/QueryResetButton';
 import SoqlTextarea from '../QueryOptions/SoqlTextarea';
 import QueryWalkthrough from '../QueryWalkthrough/QueryWalkthrough';
-import { calculateFilterAndOrderByListGroupFields } from '../utils/query-utils';
 import ExecuteQueryButton from './ExecuteQueryButton';
 import QueryBuilderSoqlUpdater from './QueryBuilderSoqlUpdater';
 import QueryFieldsComponent from './QueryFields';
@@ -71,7 +81,7 @@ export const QueryBuilder: FunctionComponent<QueryBuilderProps> = () => {
   const [sObjectFilterTerm, setSObjectFilterTerm] = useRecoilState(fromQueryState.sObjectFilterTerm);
   const [selectedSObject, setSelectedSObject] = useRecoilState(fromQueryState.selectedSObjectState);
   const [isTooling, setIsTooling] = useRecoilState(fromQueryState.isTooling);
-  const [selectedFields, setSelectedFields] = useRecoilState(fromQueryState.selectedQueryFieldsState);
+  const setSelectedFields = useSetRecoilState(fromQueryState.selectedQueryFieldsState);
   const [selectedSubqueryFieldsState, setSelectedSubqueryFieldsState] = useRecoilState(fromQueryState.selectedSubqueryFieldsState);
   const [filterFields, setFilterFields] = useRecoilState(fromQueryState.filterQueryFieldsState);
   const [orderByFields, setOrderByFields] = useRecoilState(fromQueryState.orderByQueryFieldsState);
@@ -125,18 +135,6 @@ export const QueryBuilder: FunctionComponent<QueryBuilderProps> = () => {
     }
   }, [isTooling, showWalkthrough, trackEvent]);
 
-  useNonInitialEffect(() => {
-    if (queryFieldsMap && selectedSObject) {
-      setFilterFields(calculateFilterAndOrderByListGroupFields(queryFieldsMap, ['filterable']));
-      setOrderByFields(calculateFilterAndOrderByListGroupFields(queryFieldsMap, ['sortable']));
-    } else if (!isRestore) {
-      // if restore is true, then avoid reset will page is being re-hydrated
-      setFilterFields([]);
-      setOrderByFields([]);
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedSObject, queryFieldsMap, selectedFields]);
-
   function handleSubquerySelectedField(relationshipName: string, fields: QueryFieldWithPolymorphic[]) {
     const tempSelectedSubqueryFieldsState = { ...selectedSubqueryFieldsState, [relationshipName]: fields };
     setSelectedSubqueryFieldsState(tempSelectedSubqueryFieldsState);
@@ -163,6 +161,44 @@ export const QueryBuilder: FunctionComponent<QueryBuilderProps> = () => {
   function handleQueryTypeChange(id: string) {
     setIsTooling(id === METADATA_QUERY_ID);
     trackEvent(ANALYTICS_KEYS.query_MetadataQueryToggled, { changedTo: id });
+  }
+
+  /**
+   * Load ListItem for drill-in fields in filter and OrderBy
+   */
+  async function loadRelatedFilterAndOrderbyFields(item: ListItem): Promise<ListItem[]> {
+    try {
+      const field = item.meta as Field;
+      if (!Array.isArray(field.referenceTo) || field.referenceTo.length <= 0) {
+        return [];
+      }
+      const { data } = await describeSObject(selectedOrg, field.referenceTo?.[0] || '');
+      const allFieldMetadata = sortQueryFields(data.fields);
+      const childFields = getListItemsFromFieldWithRelatedItems(allFieldMetadata, item.id);
+
+      setFilterFields((prevItems) => {
+        let allFilterItems = getFlattenedListItemsById(prevItems);
+        allFilterItems = {
+          ...allFilterItems,
+          [item.id]: { ...allFilterItems[item.id], childItems: childFields.filter((field) => field.meta?.filterable) },
+        };
+        return unFlattenedListItemsById(allFilterItems);
+      });
+
+      setOrderByFields((prevItems) => {
+        let allFilterItems = getFlattenedListItemsById(prevItems);
+        allFilterItems = {
+          ...allFilterItems,
+          [item.id]: { ...allFilterItems[item.id], childItems: childFields.filter((field) => field.meta?.sortable) },
+        };
+        return unFlattenedListItemsById(allFilterItems);
+      });
+
+      return childFields;
+    } catch (ex) {
+      logger.warn('Error fetching related fields', ex);
+    }
+    return [];
   }
 
   const resetState = useCallback(
@@ -358,13 +394,27 @@ export const QueryBuilder: FunctionComponent<QueryBuilderProps> = () => {
                         id: 'filters',
                         title: 'Filters',
                         titleSummaryIfCollapsed: <QueryFilterTitleSummary key={queryKey} />,
-                        content: <QueryFilter key={queryKey} fields={filterFields} />,
+                        content: (
+                          <QueryFilter
+                            key={queryKey}
+                            sobject={selectedSObject.name}
+                            fields={filterFields}
+                            onLoadRelatedFields={loadRelatedFilterAndOrderbyFields}
+                          />
+                        ),
                       },
                       {
                         id: 'orderBy',
                         title: 'Order By',
                         titleSummaryIfCollapsed: <QueryOrderByTitleSummary key={queryKey} />,
-                        content: <QueryOrderBy key={queryKey} fields={orderByFields} />,
+                        content: (
+                          <QueryOrderBy
+                            key={queryKey}
+                            sobject={selectedSObject.name}
+                            fields={orderByFields}
+                            onLoadRelatedFields={loadRelatedFilterAndOrderbyFields}
+                          />
+                        ),
                       },
                       {
                         id: 'limit',

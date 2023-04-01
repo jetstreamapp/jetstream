@@ -8,10 +8,9 @@ import {
   ExpressionGroupType,
   ExpressionType,
   ListItem,
-  ListItemGroup,
   QueryFilterOperator,
 } from '@jetstream/types';
-import { FunctionComponent, memo, useCallback, useReducer, useState } from 'react';
+import { FunctionComponent, memo, useCallback, useEffect, useReducer, useState } from 'react';
 import DropDown from '../form/dropdown/DropDown';
 import Expression from './Expression';
 import { DraggableRow } from './expression-types';
@@ -32,7 +31,9 @@ export interface ExpressionContainerProps {
   operatorHelpText?: string;
   valueLabel?: string;
   valueLabelHelpText?: string;
-  resources: ListItemGroup[];
+  resources: ListItem[];
+  resourceListHeader?: string;
+  resourceDrillInOnLoad?: (item: ListItem) => Promise<ListItem[]>;
   operators: ListItem[];
   expressionInitValue?: ExpressionType;
   // used to optionally change input type of value based on the selected resource
@@ -43,6 +44,7 @@ export interface ExpressionContainerProps {
 }
 
 type Action =
+  | { type: 'RESOURCE_FILTERS'; payload: { getResourceTypeFns?: ExpressionGetResourceTypeFns } }
   | { type: 'ACTION_CHANGED'; payload: { action: AndOr } }
   | { type: 'GROUP_ACTION_CHANGED'; payload: { action: AndOr; group: ExpressionGroupType } }
   | { type: 'ADD_CONDITION'; payload: { group?: ExpressionGroupType } }
@@ -53,7 +55,6 @@ type Action =
         selected: ExpressionConditionRowSelectedItems;
         row: ExpressionConditionType;
         group?: ExpressionGroupType;
-        getResourceTypeFns?: ExpressionGetResourceTypeFns;
       };
     }
   | {
@@ -63,6 +64,7 @@ type Action =
   | { type: 'DELETE_ROW'; payload: { row: ExpressionConditionType; group?: ExpressionGroupType } };
 
 interface State {
+  getResourceTypeFns?: ExpressionGetResourceTypeFns;
   expression: ExpressionType;
   nextConditionNumber: number;
   showDragHandles: boolean;
@@ -75,6 +77,12 @@ function shouldShowDragHandles(expression: ExpressionType) {
 
 function reducer(state: State, action: Action): State {
   switch (action.type) {
+    case 'RESOURCE_FILTERS': {
+      return {
+        ...state,
+        getResourceTypeFns: action.payload.getResourceTypeFns,
+      };
+    }
     case 'ACTION_CHANGED': {
       return {
         ...state,
@@ -128,7 +136,8 @@ function reducer(state: State, action: Action): State {
     }
 
     case 'ROW_CHANGED': {
-      const { selected, row, group, getResourceTypeFns } = action.payload;
+      const getResourceTypeFns = state.getResourceTypeFns;
+      const { selected, row, group } = action.payload;
       const expression = { ...state.expression };
       if (group) {
         const groupIdx = expression.rows.findIndex((item) => item.key === group.key);
@@ -358,14 +367,20 @@ export const ExpressionContainer: FunctionComponent<ExpressionContainerProps> = 
     valueLabel,
     valueLabelHelpText,
     resources,
+    resourceListHeader,
+    resourceDrillInOnLoad,
     operators,
     expressionInitValue,
     getResourceTypeFns,
     disableValueForOperators,
     onChange,
   }) => {
-    const [displayOption, setDisplayOption] = useState(DISPLAY_OPT_ROW);
+    const [displayOption, setDisplayOption] = useState(DISPLAY_OPT_WRAP);
     const [{ expression, showDragHandles }, dispatch] = useReducer(reducer, expressionInitValue, getInitialState);
+
+    useEffect(() => {
+      dispatch({ type: 'RESOURCE_FILTERS', payload: { getResourceTypeFns } });
+    }, [getResourceTypeFns]);
 
     useNonInitialEffect(() => {
       if (expression) {
@@ -400,7 +415,6 @@ export const ExpressionContainer: FunctionComponent<ExpressionContainerProps> = 
           selected,
           row,
           group,
-          getResourceTypeFns,
         },
       });
     }
@@ -454,6 +468,8 @@ export const ExpressionContainer: FunctionComponent<ExpressionContainerProps> = 
                 valueLabelHelpText={valueLabelHelpText}
                 rowHelpText={row.helpText}
                 resources={resources}
+                resourceListHeader={resourceListHeader}
+                resourceDrillInOnLoad={resourceDrillInOnLoad}
                 operators={operators}
                 selected={row.selected}
                 disableValueForOperators={disableValueForOperators}
@@ -494,6 +510,7 @@ export const ExpressionContainer: FunctionComponent<ExpressionContainerProps> = 
                     valueLabelHelpText={valueLabelHelpText}
                     rowHelpText={childRow.helpText}
                     resources={resources}
+                    resourceListHeader={resourceListHeader}
                     operators={operators}
                     selected={childRow.selected}
                     disableValueForOperators={disableValueForOperators}
