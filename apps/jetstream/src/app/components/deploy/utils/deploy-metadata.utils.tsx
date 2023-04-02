@@ -145,19 +145,27 @@ export async function saveHistory({
       }
     } catch (ex) {
       logger.warn('[DEPLOY][HISTORY][CLEANUP ERROR] Error cleaning up files', ex);
-      logErrorToRollbar(ex.message, {
-        stack: ex.stack,
-        place: 'DeployMetadataHistory',
-        type: 'error cleaning up metadata history',
-      });
+      logErrorToRollbar(
+        ex.message,
+        {
+          stack: ex.stack,
+          place: 'DeployMetadataHistory',
+          type: 'error cleaning up metadata history',
+        },
+        'warn'
+      );
     }
   } catch (ex) {
     logger.warn('[DEPLOY][HISTORY][SAVE ERROR]', ex);
-    logErrorToRollbar(ex.message, {
-      stack: ex.stack,
-      place: 'DeployMetadataHistory',
-      type: 'error saving metadata history',
-    });
+    logErrorToRollbar(
+      ex.message,
+      {
+        stack: ex.stack,
+        place: 'DeployMetadataHistory',
+        type: 'error saving metadata history',
+      },
+      'warn'
+    );
   }
 }
 
