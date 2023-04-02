@@ -172,6 +172,17 @@ export function isEnterOrSpace(event: KeyboardEvent<unknown>): boolean {
 export function isEscapeKey(event: KeyboardEvent<unknown>): boolean {
   return event.key === 'Escape' || event.keyCode === 27;
 }
+export function isBackspaceKey(event: KeyboardEvent<unknown>): boolean {
+  return event.key === 'Delete' || event.keyCode === 46;
+}
+
+export function isDeleteKey(event: KeyboardEvent<unknown>): boolean {
+  return event.key === 'Backspace' || event.keyCode === 8;
+}
+
+export function isBackspaceOrDeleteKey(event: KeyboardEvent<unknown>): boolean {
+  return isBackspaceKey(event) || isDeleteKey(event);
+}
 
 export function isPageUpKey(event: KeyboardEvent<unknown>): boolean {
   return event.key === 'PageUp' || event.keyCode === 33;

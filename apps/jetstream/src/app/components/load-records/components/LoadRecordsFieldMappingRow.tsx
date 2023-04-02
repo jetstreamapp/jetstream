@@ -1,7 +1,6 @@
 import { css } from '@emotion/react';
-import { multiWordObjectFilter } from '@jetstream/shared/utils';
-import { Maybe } from '@jetstream/types';
-import { Checkbox, Combobox, ComboboxListItem, Grid, Icon, Select } from '@jetstream/ui';
+import { ListItem, Maybe } from '@jetstream/types';
+import { Checkbox, ComboboxWithItems, Grid, Icon, Select } from '@jetstream/ui';
 import classNames from 'classnames';
 import isNil from 'lodash/isNil';
 import { Fragment, FunctionComponent, useEffect, useState } from 'react';
@@ -18,25 +17,12 @@ function getPreviewData(csvRowData: string | Date | boolean | number | null): st
   return `${csvRowData}`;
 }
 
-function getComboboxFieldName(fieldMappingItem: FieldMappingItem) {
-  if (!fieldMappingItem || !fieldMappingItem.fieldMetadata || !fieldMappingItem.targetField) {
-    return undefined;
-  }
-  return `${fieldMappingItem.fieldMetadata.label} (${fieldMappingItem.targetField})`;
+function getComboboxFieldName(item: ListItem) {
+  return `${item.label} (${item.value})`;
 }
 
-function getComboboxFieldTitle(fieldMappingItem: FieldMappingItem) {
-  if (!fieldMappingItem || !fieldMappingItem.fieldMetadata || !fieldMappingItem.targetField) {
-    return undefined;
-  }
-  return `${fieldMappingItem.fieldMetadata.label} (${fieldMappingItem.targetField}) - ${fieldMappingItem.fieldMetadata.typeLabel}`;
-}
-
-function getComboboxRelatedFieldName(relatedFieldMetadata: Maybe<FieldRelatedEntity>) {
-  if (!relatedFieldMetadata) {
-    return undefined;
-  }
-  return `${relatedFieldMetadata.label} (${relatedFieldMetadata.name})`;
+function getComboboxFieldTitle(item: ListItem) {
+  return `${item.label} (${item.value}) - ${item.secondaryLabel}`;
 }
 
 export interface LoadRecordsFieldMappingRowProps {
@@ -58,56 +44,57 @@ export const LoadRecordsFieldMappingRow: FunctionComponent<LoadRecordsFieldMappi
   binaryAttachmentBodyField,
   onSelectionChanged,
 }) => {
-  const [textFilter, setTextFilter] = useState<string>('');
-  const [visibleFields, setVisibleFields] = useState(fields);
-
-  const [relatedTextFilter, setRelatedTextFilter] = useState<string>('');
-  const [selectedRelatedObject, setSelectedRelatedObject] = useState<Maybe<string>>(fieldMappingItem.selectedReferenceTo);
-  const [visibleRelatedFields, setVisibleRelatedFields] = useState<FieldRelatedEntity[]>([]);
+  const [fieldListItems, setFieldListItems] = useState<ListItem<string, FieldWithRelatedEntities>[]>([]);
+  const [relatedFields, setRelatedFields] = useState<ListItem<string, FieldRelatedEntity>[]>([]);
 
   useEffect(() => {
-    if (!textFilter && fields.length !== visibleFields.length) {
-      setVisibleFields(fields);
-    } else if (textFilter) {
-      setVisibleFields(fields.filter(multiWordObjectFilter(['name', 'label'], textFilter)));
-    }
-  }, [fields, textFilter]);
+    setFieldListItems(
+      fields.map((field) => ({
+        id: field.name,
+        label: field.label,
+        value: field.name,
+        secondaryLabel: field.typeLabel,
+        meta: field,
+        customRenderer: (item: ListItem<string, FieldWithRelatedEntities>) => (
+          <>
+            <span className="slds-listbox__option-text slds-listbox__option-text_entity">
+              <Grid align="spread">
+                <span title={item.label} className="slds-truncate">
+                  {item.label}
+                </span>
+                {item.secondaryLabel && (
+                  <span className="slds-badge slds-badge_lightest slds-truncate" title={item.secondaryLabel}>
+                    {item.secondaryLabel}
+                  </span>
+                )}
+              </Grid>
+            </span>
+            <span className="slds-listbox__option-meta slds-listbox__option-meta_entity">
+              <span title={item.value} className="slds-truncate">
+                {item.value}
+              </span>
+            </span>
+          </>
+        ),
+      }))
+    );
+  }, [fields]);
 
-  // EXTERNAL ID FILTER
   useEffect(() => {
     if (fieldMappingItem.fieldMetadata) {
-      if (relatedTextFilter) {
-        // related object changed, reset filter and related fields
-        if (selectedRelatedObject !== fieldMappingItem.selectedReferenceTo) {
-          setSelectedRelatedObject(fieldMappingItem.selectedReferenceTo);
-          setRelatedTextFilter('');
-          setVisibleRelatedFields(fieldMappingItem.fieldMetadata.relatedFields?.[fieldMappingItem.selectedReferenceTo || ''] || []);
-        } else {
-          // apply filter
-          setVisibleRelatedFields(
-            fieldMappingItem.fieldMetadata.relatedFields?.[fieldMappingItem.selectedReferenceTo || '']?.filter(
-              multiWordObjectFilter(['name', 'label'], relatedTextFilter)
-            ) || []
-          );
-        }
-      } else {
-        // if reference changed, then reset state
-        if (selectedRelatedObject !== fieldMappingItem.selectedReferenceTo) {
-          setSelectedRelatedObject(fieldMappingItem.selectedReferenceTo);
-          if (fieldMappingItem.selectedReferenceTo) {
-            setVisibleRelatedFields(fieldMappingItem.fieldMetadata.relatedFields?.[fieldMappingItem.selectedReferenceTo] || []);
-          }
-          // ensure that all values are shown since there is no filter
-        } else if (
-          fieldMappingItem.selectedReferenceTo &&
-          Array.isArray(fieldMappingItem.fieldMetadata.relatedFields?.[fieldMappingItem.selectedReferenceTo]) &&
-          fieldMappingItem.fieldMetadata.relatedFields?.[fieldMappingItem.selectedReferenceTo].length !== visibleRelatedFields.length
-        ) {
-          setVisibleRelatedFields(fieldMappingItem.fieldMetadata.relatedFields?.[fieldMappingItem.selectedReferenceTo] || []);
-        }
-      }
+      setRelatedFields(
+        (fieldMappingItem.fieldMetadata.relatedFields?.[fieldMappingItem.selectedReferenceTo || ''] || []).map((field) => ({
+          id: field.name,
+          label: field.label,
+          value: field.name,
+          secondaryLabel: field.name,
+          secondaryLabelOnNewLine: true,
+          tertiaryLabel: field.isExternalId ? 'External ID' : undefined,
+          meta: field,
+        }))
+      );
     }
-  }, [fieldMappingItem, relatedTextFilter, selectedRelatedObject]);
+  }, [fieldMappingItem.fieldMetadata, fieldMappingItem.selectedReferenceTo]);
 
   function handleSelectionChanged(field: Maybe<FieldWithRelatedEntities>) {
     if (!field) {
@@ -163,20 +150,19 @@ export const LoadRecordsFieldMappingRow: FunctionComponent<LoadRecordsFieldMappi
   }
 
   function handleMapToRelatedChanged(value: boolean) {
+    const referenceToItems = fieldMappingItem.fieldMetadata?.referenceTo || [];
+    let selectedReferenceTo = referenceToItems[0];
+    if (fieldMappingItem.selectedReferenceTo && referenceToItems.includes(fieldMappingItem.selectedReferenceTo)) {
+      selectedReferenceTo = fieldMappingItem.selectedReferenceTo;
+    }
     onSelectionChanged(csvField, {
       ...fieldMappingItem,
       mappedToLookup: value,
-      selectedReferenceTo: fieldMappingItem.selectedReferenceTo || fieldMappingItem.fieldMetadata?.referenceTo?.[0],
+      selectedReferenceTo,
     });
   }
 
   const csvRowDataStr = getPreviewData(csvRowData);
-
-  function handleInputChange(value: string) {
-    if (value !== textFilter) {
-      setTextFilter(value);
-    }
-  }
 
   const isLookup = fieldMappingItem.targetField && Array.isArray(fieldMappingItem.fieldMetadata?.referenceTo);
 
@@ -210,41 +196,20 @@ export const LoadRecordsFieldMappingRow: FunctionComponent<LoadRecordsFieldMappi
           vertical-align: baseline;
         `}
       >
-        <Combobox
-          label="Salesforce Fields"
-          selectedItemLabel={getComboboxFieldName(fieldMappingItem)}
-          selectedItemTitle={getComboboxFieldTitle(fieldMappingItem)}
-          hideLabel
-          onInputChange={handleInputChange}
-          hasError={fieldMappingItem.isDuplicateMappedField}
-          errorMessageId={`${csvField}-${fieldMappingItem.targetField}-duplicate-field-error`}
-          errorMessage="Each Salesforce field should only be mapped once"
-        >
-          {visibleFields.map((field) => (
-            <ComboboxListItem
-              key={field.name}
-              id={`${csvField}-${field.name}`}
-              selected={field.name === fieldMappingItem.targetField}
-              onSelection={(value) => handleSelectionChanged(field)}
-            >
-              <span className="slds-listbox__option-text slds-listbox__option-text_entity">
-                <Grid align="spread">
-                  <span title={field.label} className="slds-truncate">
-                    {field.label}
-                  </span>
-                  <span className="slds-badge slds-badge_lightest slds-truncate" title="field.typeLabel">
-                    {field.typeLabel}
-                  </span>
-                </Grid>
-              </span>
-              <span className="slds-listbox__option-meta slds-listbox__option-meta_entity">
-                <span title={field.name} className="slds-truncate">
-                  {field.name}
-                </span>
-              </span>
-            </ComboboxListItem>
-          ))}
-        </Combobox>
+        <ComboboxWithItems
+          comboboxProps={{
+            hideLabel: true,
+            label: 'Salesforce Fields',
+            hasError: fieldMappingItem.isDuplicateMappedField,
+            errorMessage: 'Each Salesforce field should only be mapped once',
+            errorMessageId: `${csvField}-${fieldMappingItem.targetField}-duplicate-field-error`,
+          }}
+          items={fieldListItems}
+          selectedItemId={fieldMappingItem.targetField}
+          selectedItemLabelFn={getComboboxFieldName}
+          selectedItemTitleFn={getComboboxFieldTitle}
+          onSelected={(item) => handleSelectionChanged(item.meta)}
+        />
         {isLookup && isCustomMetadataObject && (
           <div
             css={css`
@@ -306,43 +271,17 @@ export const LoadRecordsFieldMappingRow: FunctionComponent<LoadRecordsFieldMappi
                     </Select>
                   </div>
                   <div className="slds-grow">
-                    <Combobox
-                      label="Related Mappable Fields"
-                      errorMessage="A related field must be selected"
-                      hasError={!fieldMappingItem.relatedFieldMetadata}
-                      selectedItemLabel={getComboboxRelatedFieldName(fieldMappingItem.relatedFieldMetadata)}
-                      selectedItemTitle={getComboboxRelatedFieldName(fieldMappingItem.relatedFieldMetadata)}
-                      onInputChange={setRelatedTextFilter}
-                    >
-                      {visibleRelatedFields.map((field) => (
-                        <ComboboxListItem
-                          key={field.name}
-                          id={`${csvField}-${field.name}-related`}
-                          selected={field.name === fieldMappingItem.targetLookupField}
-                          onSelection={(value) => handleRelatedSelectionChanged(field)}
-                        >
-                          <span className="slds-listbox__option-text slds-listbox__option-text_entity">
-                            <Grid align="spread">
-                              <span title={field.label} className="slds-truncate">
-                                {field.label}
-                              </span>
-                            </Grid>
-                          </span>
-                          <span className="slds-listbox__option-meta slds-listbox__option-meta_entity">
-                            <span title={field.name} className="slds-truncate">
-                              {field.name}
-                            </span>
-                          </span>
-                          {field.isExternalId && (
-                            <span className="slds-listbox__option-meta slds-listbox__option-meta_entity">
-                              <div title="External Id field" className="slds-truncate">
-                                <strong>External Id</strong>
-                              </div>
-                            </span>
-                          )}
-                        </ComboboxListItem>
-                      ))}
-                    </Combobox>
+                    <ComboboxWithItems
+                      comboboxProps={{
+                        label: 'Related Mappable Fields',
+                        errorMessage: 'A related field must be selected',
+                        hasError: !fieldMappingItem.relatedFieldMetadata,
+                      }}
+                      items={relatedFields}
+                      selectedItemId={fieldMappingItem.targetLookupField}
+                      selectedItemLabelFn={getComboboxFieldName}
+                      onSelected={(item) => handleRelatedSelectionChanged(item.meta)}
+                    />
                   </div>
                 </Grid>
                 {fieldMappingItem.targetLookupField && (

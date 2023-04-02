@@ -1436,3 +1436,103 @@ export async function getChangesetsFromDomParse(org: SalesforceOrgUi) {
 
   return changesets;
 }
+
+/**
+ * Gets map of list items by id
+ * recursively traverses child items
+ */
+export function getFlattenedListItemsById(items: ListItem[], output = {}): Record<string, ListItem> {
+  items.forEach((item) => {
+    output[item.id] = item;
+    if (Array.isArray(item.childItems)) {
+      getFlattenedListItemsById(item.childItems, output);
+    }
+  });
+  return output;
+}
+
+/**
+ * Given an object of all items by id, use the parentId field to create a tree structure
+ * the parentId is blank for all the top level items and is "." delimited for all parentId's
+ */
+export function unFlattenedListItemsById(items: Record<string, ListItem>): ListItem[] {
+  const output: ListItem[] = [];
+  const childItemsByParentId: Record<string, ListItem[]> = {};
+  // clone items to ensure we don't mutate the original
+  items = JSON.parse(JSON.stringify(items));
+  Object.keys(items).forEach((key) => {
+    const item = items[key];
+    if (item.parentId === '') {
+      output.push(item);
+    } else if (item.parentId) {
+      childItemsByParentId[item.parentId] = childItemsByParentId[item.parentId] || [];
+      childItemsByParentId[item.parentId].push(item);
+    }
+  });
+  Object.keys(childItemsByParentId).forEach((key) => {
+    if (items[key]) {
+      items[key].childItems = childItemsByParentId[key];
+    }
+  });
+  return output;
+}
+
+export function getListItemsFromFieldWithRelatedItems(fields: Field[], parentId = ''): ListItem[] {
+  const parentPath = parentId ? `${parentId}.` : '';
+  const allowChildren = parentPath.split('.').length <= 5;
+  const relatedFields: ListItem[] = fields
+    .filter((field) => allowChildren && Array.isArray(field.referenceTo) && field.referenceTo.length > 0 && field.relationshipName)
+    .map((field) => ({
+      id: `${parentPath}${field.relationshipName}`,
+      value: `${parentPath}${field.relationshipName}`,
+      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+      label: field.relationshipName!,
+      secondaryLabel: field.referenceTo?.[0],
+      secondaryLabelOnNewLine: false,
+      isDrillInItem: true,
+      parentId: parentId,
+      meta: field,
+    }));
+
+  const coreFields: ListItem[] = fields.flatMap((field) => ({
+    id: `${parentPath}${field.name}`,
+    value: `${parentPath}${field.name}`,
+    label: field.label,
+    secondaryLabel: field.name,
+    secondaryLabelOnNewLine: true,
+    parentId: parentId,
+    meta: field,
+  }));
+
+  return [...relatedFields, ...coreFields];
+}
+
+/**
+ * If there is a change in UI that would make an element take a render ror more
+ * to be added to the dom, this will try a {maxAttempts} times to focus the element
+ *
+ * @param element
+ * @param backOff
+ * @param attempt
+ * @param maxAttempts
+ * @returns
+ */
+export function focusElementFromRefWhenAvailable<T extends HTMLElement>(
+  element: Maybe<React.RefObject<T>>,
+  backOff = 0,
+  attempt = 0,
+  maxAttempts = 3
+) {
+  if (!element) {
+    return;
+  }
+  if (element.current) {
+    element.current.focus();
+  } else {
+    if (attempt < maxAttempts) {
+      setTimeout(() => {
+        focusElementFromRefWhenAvailable(element, backOff + 50, attempt + 1, maxAttempts);
+      }, backOff);
+    }
+  }
+}

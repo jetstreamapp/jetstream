@@ -13,6 +13,7 @@ import {
   GoneFishingIllustration,
   Grid,
   KeyboardShortcut,
+  NotSeeingRecentMetadataPopover,
   Radio,
   RadioButton,
   RadioGroup,
@@ -31,13 +32,12 @@ import type { editor } from 'monaco-editor';
 import { FunctionComponent, useCallback, useEffect, useRef, useState } from 'react';
 import { useTitle } from 'react-use';
 import { useRecoilState, useRecoilValue } from 'recoil';
-import { selectedOrgState } from '../../app-state';
+import { applicationCookieState, selectedOrgState } from '../../app-state';
 import { useAmplitude } from '../core/analytics';
 import { registerCompletions } from './formula-evaluator.editor-utils';
 import * as fromFormulaState from './formula-evaluator.state';
 import { getFormulaData } from './formula-evaluator.utils';
 import FormulaEvaluatorRecordSearch from './FormulaEvaluatorRecordSearch';
-import FormulaEvaluatorRefreshCachePopover from './FormulaEvaluatorRefreshCachePopover';
 
 // Lazy import
 const prettier = import('prettier/standalone');
@@ -82,6 +82,8 @@ export const FormulaEvaluator: FunctionComponent<FormulaEvaluatorProps> = () => 
   const [recordId, setRecordId] = useRecoilState(fromFormulaState.recordIdState);
   const [numberNullBehavior, setNumberNullBehavior] = useRecoilState(fromFormulaState.numberNullBehaviorState);
   const [bannerDismissed, setBannerDismissed] = useRecoilState(fromFormulaState.bannerDismissedState);
+  const [deployModalOpen, setDeployModalOpen] = useState(false);
+  const [{ serverUrl }] = useRecoilState(applicationCookieState);
 
   const [results, setResults] = useState<{ formulaFields: formulon.FormulaData; parsedFormula: formulon.FormulaResult } | null>(null);
 
@@ -270,7 +272,14 @@ export const FormulaEvaluator: FunctionComponent<FormulaEvaluatorProps> = () => 
                 <ViewDocsLink textReset path="/deploy/formula-evaluator" />
               </Grid>
             }
-            actions={<FormulaEvaluatorRefreshCachePopover org={selectedOrg} loading={refreshLoading} onReload={handleRefreshMetadata} />}
+            actions={
+              <NotSeeingRecentMetadataPopover
+                org={selectedOrg}
+                loading={refreshLoading}
+                serverUrl={serverUrl}
+                onReload={handleRefreshMetadata}
+              />
+            }
           >
             <Grid vertical>
               <SobjectCombobox

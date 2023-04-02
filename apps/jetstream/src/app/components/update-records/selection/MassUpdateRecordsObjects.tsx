@@ -1,5 +1,5 @@
-import { ListItem } from '@jetstream/types';
-import { AutoFullHeightContainer, EmptyState, Grid, GridCol, OpenRoadIllustration, Tooltip } from '@jetstream/ui';
+import { ListItem, SalesforceOrgUi } from '@jetstream/types';
+import { AutoFullHeightContainer, EmptyState, OpenRoadIllustration } from '@jetstream/ui';
 import { Fragment, FunctionComponent } from 'react';
 import {
   MetadataRow,
@@ -8,13 +8,14 @@ import {
   TransformationOptions,
 } from '../../shared/mass-update-records/mass-update-records.types';
 import MassUpdateRecordsApplyToAllRow from './MassUpdateRecordsApplyToAllRow';
-import MassUpdateRecordsObjectRow from '../../shared/mass-update-records/MassUpdateRecordsObjectRow';
-import MassUpdateRecordObjectHeading from '../shared/MassUpdateRecordObjectHeading';
+import MassUpdateRecordsObject from './MassUpdateRecordsObject';
 
-export interface MassUpdateRecordsRowProps {
+export interface MassUpdateRecordsObjectsProps {
+  selectedOrg: SalesforceOrgUi;
   rows: MetadataRow[];
   commonFields: ListItem[];
   onFieldSelected: (sobject: string, selectedField: string) => void;
+  onLoadChildFields: (sobject: string, item: ListItem) => Promise<ListItem[]>;
   applyCommonField: (selectedField: string) => void;
   applyCommonOption: (option: TransformationOption) => void;
   applyCommonCriteria: (criteria: TransformationCriteria) => void;
@@ -22,10 +23,12 @@ export interface MassUpdateRecordsRowProps {
   validateRowRecords: (sobject: string) => void;
 }
 
-export const MassUpdateRecordsRow: FunctionComponent<MassUpdateRecordsRowProps> = ({
+export const MassUpdateRecordsObjects: FunctionComponent<MassUpdateRecordsObjectsProps> = ({
+  selectedOrg,
   rows,
   commonFields,
   onFieldSelected,
+  onLoadChildFields,
   applyCommonField,
   applyCommonOption,
   applyCommonCriteria,
@@ -45,46 +48,16 @@ export const MassUpdateRecordsRow: FunctionComponent<MassUpdateRecordsRowProps> 
           />
           <ul className="slds-has-dividers_around-space">
             {rows.map((row) => (
-              <li key={row.sobject} className="slds-is-relative slds-item read-only slds-p-left_small">
-                <MassUpdateRecordsObjectRow
-                  sobject={row.sobject}
-                  loading={row.loading}
-                  fields={row.fields}
-                  allFields={row.allFields}
-                  selectedField={row.selectedField}
-                  validationResults={row.validationResults}
-                  transformationOptions={row.transformationOptions}
-                  onFieldChange={(selectedField) => onFieldSelected(row.sobject, selectedField)}
-                  onOptionsChange={handleOptionChange}
-                >
-                  <GridCol size={12}>
-                    <Grid align="spread" verticalAlign="center">
-                      <MassUpdateRecordObjectHeading
-                        isValid={row.isValid}
-                        sobject={row.sobject}
-                        validationResults={row.validationResults}
-                      />
-                      <div>
-                        <Tooltip
-                          content={
-                            row.isValid
-                              ? 'Configure this object before you can validate the number of impacted records.'
-                              : 'Check the number of records that will be updated'
-                          }
-                        >
-                          <button
-                            className="slds-button slds-button_neutral"
-                            disabled={!row.isValid}
-                            onClick={() => validateRowRecords(row.sobject)}
-                          >
-                            Validate Results
-                          </button>
-                        </Tooltip>
-                      </div>
-                    </Grid>
-                  </GridCol>
-                </MassUpdateRecordsObjectRow>
-              </li>
+              <MassUpdateRecordsObject
+                key={row.sobject}
+                selectedOrg={selectedOrg}
+                row={row}
+                commonFields={commonFields}
+                onFieldSelected={onFieldSelected}
+                onLoadChildFields={onLoadChildFields}
+                handleOptionChange={handleOptionChange}
+                validateRowRecords={validateRowRecords}
+              />
             ))}
           </ul>
         </Fragment>
@@ -95,4 +68,4 @@ export const MassUpdateRecordsRow: FunctionComponent<MassUpdateRecordsRowProps> 
   );
 };
 
-export default MassUpdateRecordsRow;
+export default MassUpdateRecordsObjects;

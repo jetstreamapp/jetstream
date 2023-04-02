@@ -1,6 +1,5 @@
-import { multiWordObjectFilter } from '@jetstream/shared/utils';
-import { InsertUpdateUpsertDelete, Maybe } from '@jetstream/types';
-import { Combobox, ComboboxListItem, Grid, GridCol, RadioButton, RadioGroup, Spinner } from '@jetstream/ui';
+import { InsertUpdateUpsertDelete, ListItem, Maybe } from '@jetstream/types';
+import { ComboboxWithItems, Grid, GridCol, RadioButton, RadioGroup, Spinner } from '@jetstream/ui';
 import { FunctionComponent, useEffect, useState } from 'react';
 import { FieldWithRelatedEntities } from '../load-records-types';
 
@@ -21,18 +20,16 @@ export const LoadRecordsLoadTypeButtons: FunctionComponent<LoadRecordsLoadTypeBu
   isCustomMetadataObject,
   onChange,
 }) => {
-  const [textFilter, setTextFilter] = useState<string>('');
-  const [visibleExternalIdFields, setVisibleExternalIds] = useState(() => [...externalIdFields]);
+  const [externalIdField, setExternalIdFields] = useState<ListItem<string, FieldWithRelatedEntities>[]>(() =>
+    externalIdFields.map((field) => ({
+      id: field.name,
+      label: field.label,
+      value: field.name,
+      meta: field,
+    }))
+  );
   const [externalId, setExternalId] = useState(externalIdInit || '');
   const [externalIdNoItemsText, setExternalIdNoItemsText] = useState('');
-
-  useEffect(() => {
-    if (!textFilter && visibleExternalIdFields.length !== externalIdFields.length) {
-      setVisibleExternalIds(externalIdFields);
-    } else if (textFilter) {
-      setVisibleExternalIds(externalIdFields.filter(multiWordObjectFilter(['name', 'label'], textFilter)));
-    }
-  }, [externalIdFields, textFilter]);
 
   useEffect(() => {
     if (externalIdFields && externalIdFields.length) {
@@ -45,7 +42,15 @@ export const LoadRecordsLoadTypeButtons: FunctionComponent<LoadRecordsLoadTypeBu
         setExternalId('');
       }
     }
-  }, [externalIdFields]);
+    setExternalIdFields(
+      (externalIdFields || []).map((field) => ({
+        id: field.name,
+        label: field.label,
+        value: field.name,
+        meta: field,
+      }))
+    );
+  }, [externalId, externalIdFields]);
 
   function handleChange(type: InsertUpdateUpsertDelete) {
     if (type === 'UPSERT') {
@@ -102,34 +107,17 @@ export const LoadRecordsLoadTypeButtons: FunctionComponent<LoadRecordsLoadTypeBu
         <GridCol>
           <div className="slds-is-relative">
             {loadingFields && <Spinner size="small" />}
-            <Combobox
-              label="External Id"
-              selectedItemLabel={externalId}
-              selectedItemTitle={externalId}
-              noItemsPlaceholder={externalIdNoItemsText}
-              onInputChange={setTextFilter}
-              labelHelp="Upsert requires an external Id as an alternative to a record id for matching rows in your input data to records in Salesforce. If a match is found, the record will be updated. Otherwise a new record will be created."
-            >
-              {visibleExternalIdFields.map((field) => (
-                <ComboboxListItem
-                  key={field.name}
-                  id={field.name}
-                  selected={field.name === externalId}
-                  onSelection={handleExternalIdChange}
-                >
-                  <span className="slds-listbox__option-text slds-listbox__option-text_entity">
-                    <span title={field.label} className="slds-truncate">
-                      {field.label}
-                    </span>
-                  </span>
-                  <span className="slds-listbox__option-meta slds-listbox__option-meta_entity">
-                    <span title={field.name} className="slds-truncate">
-                      {field.name}
-                    </span>
-                  </span>
-                </ComboboxListItem>
-              ))}
-            </Combobox>
+            <ComboboxWithItems
+              comboboxProps={{
+                label: 'External Id',
+                noItemsPlaceholder: externalIdNoItemsText,
+                labelHelp:
+                  'Upsert requires an external Id as an alternative to a record id for matching rows in your input data to records in Salesforce. If a match is found, the record will be updated. Otherwise a new record will be created.',
+              }}
+              items={externalIdField}
+              selectedItemId={externalId}
+              onSelected={(item) => handleExternalIdChange(item.id)}
+            />
           </div>
         </GridCol>
       )}

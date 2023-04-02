@@ -116,9 +116,9 @@ export class QueryPage {
     const groupRole = isNumber(groupNumber) ? ` Of Group ${groupNumber}` : '';
     const condition = this.page.getByRole('group', { name: `Condition ${conditionNumber}${groupRole}` });
 
-    await condition.getByLabel('Fields').click();
+    await condition.getByLabel('Field').click();
     await this.page.keyboard.type(field, { delay: 100 });
-    // await condition.getByLabel('Fields').fill(field);
+    // await condition.getByLabel('Field').fill(field);
     await condition.getByRole('option', { name: field }).first().click();
 
     await condition.getByLabel('Operator').click();

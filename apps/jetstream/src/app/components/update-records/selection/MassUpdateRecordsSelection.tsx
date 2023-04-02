@@ -39,6 +39,7 @@ export const MassUpdateRecordsSelection: FunctionComponent<MassUpdateRecordsSele
     rows,
     allRowsValid,
     onFieldSelected,
+    onLoadChildFields,
     applyCommonField,
     applyCommonOption,
     applyCommonCriteria,
@@ -129,9 +130,11 @@ export const MassUpdateRecordsSelection: FunctionComponent<MassUpdateRecordsSele
           <div className="slds-p-horizontal_x-small">
             {selectedSObjects && (
               <MassUpdateRecordsObjects
+                selectedOrg={selectedOrg}
                 rows={rows}
                 commonFields={commonFields}
                 onFieldSelected={onFieldSelected}
+                onLoadChildFields={onLoadChildFields}
                 applyCommonField={applyCommonField}
                 applyCommonOption={applyCommonOption}
                 applyCommonCriteria={applyCommonCriteria}

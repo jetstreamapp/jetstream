@@ -1,14 +1,14 @@
 import { css, SerializedStyles } from '@emotion/react';
-import { multiWordObjectFilter } from '@jetstream/shared/utils';
-import { MapOf, Maybe, SalesforceOrgUi } from '@jetstream/types';
-import { Combobox, ComboboxListItem, ComboboxListItemGroup } from '@jetstream/ui';
-import sortBy from 'lodash/sortBy';
+import { ListItem, ListItemGroup, Maybe, SalesforceOrgUi } from '@jetstream/types';
+import { ComboboxWithGroupedItems } from '@jetstream/ui';
 import groupBy from 'lodash/groupBy';
+import sortBy from 'lodash/sortBy';
 import { FunctionComponent, useEffect, useState } from 'react';
 
-function getSelectedItemLabel(org: Maybe<SalesforceOrgUi>) {
+function getSelectedItemLabel(item: ListItem<string, SalesforceOrgUi>) {
+  const org = item.meta;
   if (!org) {
-    return;
+    return '';
   }
   let subtext = '';
   if (org.label !== org.username) {
@@ -17,9 +17,10 @@ function getSelectedItemLabel(org: Maybe<SalesforceOrgUi>) {
   return `${org.label}${subtext}`;
 }
 
-function getSelectedItemTitle(org: Maybe<SalesforceOrgUi>) {
+function getSelectedItemTitle(item: ListItem<string, SalesforceOrgUi>) {
+  const org = item.meta;
   if (!org) {
-    return;
+    return '';
   }
   let subtext = '';
   if (org.label !== org.username) {
@@ -57,6 +58,24 @@ function orgHasError(org: Maybe<SalesforceOrgUi>): boolean {
   return !!org.connectionError;
 }
 
+function groupOrgs(orgs: SalesforceOrgUi[]): ListItemGroup<string, SalesforceOrgUi>[] {
+  const orgsById = groupBy(sortBy(orgs, ['label']), 'orgName');
+  return Object.keys(orgsById).map(
+    (key): ListItemGroup => ({
+      id: key,
+      label: key,
+      items: orgsById[key].map((org) => ({
+        id: org.uniqueId,
+        label: org.label || org.username,
+        value: org.uniqueId,
+        secondaryLabel: org.username !== org.label ? org.username : undefined,
+        secondaryLabelOnNewLine: org.username !== org.label,
+        meta: org,
+      })),
+    })
+  );
+}
+
 export interface OrgsComboboxProps {
   orgs: SalesforceOrgUi[];
   selectedOrg: Maybe<SalesforceOrgUi>;
@@ -80,23 +99,11 @@ export const OrgsCombobox: FunctionComponent<OrgsComboboxProps> = ({
   minWidth = 300,
   onSelected,
 }) => {
-  const [visibleOrgs, setVisibleOrgs] = useState<SalesforceOrgUi[]>([]);
-  const [orgsByOrganization, setOrgsByOrganization] = useState<MapOf<SalesforceOrgUi[]>>({});
-  const [filterText, setFilterText] = useState<string>('');
+  const [groupedOrgs, setGroupedOrgs] = useState<ListItemGroup<string, SalesforceOrgUi>[]>(() => groupOrgs(orgs));
 
   useEffect(() => {
-    if (Array.isArray(visibleOrgs)) {
-      setOrgsByOrganization(groupBy(sortBy(visibleOrgs, ['label']), 'orgName'));
-    }
-  }, [visibleOrgs]);
-
-  useEffect(() => {
-    if (!filterText) {
-      setVisibleOrgs(orgs);
-    } else {
-      setVisibleOrgs(orgs.filter(multiWordObjectFilter(['username', 'label'], filterText)));
-    }
-  }, [orgs, filterText]);
+    setGroupedOrgs(groupOrgs(orgs));
+  }, [orgs]);
 
   return (
     <div
@@ -106,37 +113,30 @@ export const OrgsCombobox: FunctionComponent<OrgsComboboxProps> = ({
       `}
       data-testid="orgs-combobox-container"
     >
-      <Combobox
-        isRequired={isRequired}
-        label={label}
-        hideLabel={hideLabel}
-        placeholder={placeholder}
-        itemLength={7}
-        hasError={orgHasError(selectedOrg)}
-        disabled={disabled}
-        onInputChange={(filter) => setFilterText(filter)}
-        selectedItemLabel={getSelectedItemLabel(selectedOrg)}
-        selectedItemTitle={getSelectedItemTitle(selectedOrg)}
-        inputCss={getSelectedItemStyle(selectedOrg)}
-      >
-        {Object.keys(orgsByOrganization).map((groupKey) => (
-          <ComboboxListItemGroup key={groupKey} label={groupKey}>
-            {orgsByOrganization[groupKey].map((org) => (
-              <ComboboxListItem
-                key={org.uniqueId}
-                id={org.uniqueId}
-                label={org.label || org.username}
-                secondaryLabel={org.username !== org.label ? org.username : undefined}
-                secondaryLabelOnNewLine={org.username !== org.label}
-                hasError={orgHasError(org)}
-                selected={!!selectedOrg && selectedOrg.uniqueId === org.uniqueId}
-                textBodyCss={getDropdownOrgStyle(org)}
-                onSelection={(id) => onSelected(org)}
-              />
-            ))}
-          </ComboboxListItemGroup>
-        ))}
-      </Combobox>
+      <ComboboxWithGroupedItems
+        comboboxProps={{
+          isRequired: isRequired,
+          label: label,
+          hideLabel: hideLabel,
+          placeholder: placeholder,
+          itemLength: 7,
+          hasError: orgHasError(selectedOrg),
+          disabled: disabled,
+          // onInputChange: (filter) => setFilterText(filter),
+          // selectedItemLabel: getSelectedItemLabel(selectedOrg),
+          // selectedItemTitle: getSelectedItemTitle(selectedOrg),
+          inputCss: getSelectedItemStyle(selectedOrg),
+        }}
+        itemProps={(item) => ({
+          hasError: orgHasError(item.meta),
+          textBodyCss: getDropdownOrgStyle(item.meta),
+        })}
+        groups={groupedOrgs}
+        onSelected={(item) => onSelected(item.meta)}
+        selectedItemId={selectedOrg?.uniqueId}
+        selectedItemLabelFn={getSelectedItemLabel}
+        selectedItemTitleFn={getSelectedItemTitle}
+      />
     </div>
   );
 };

@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 import { useNonInitialEffect } from '@jetstream/shared/ui-utils';
-import { ExpressionType, ListItemGroup, QueryFilterOperator } from '@jetstream/types';
+import { ExpressionType, ListItem, QueryFilterOperator } from '@jetstream/types';
 import { ExpressionContainer } from '@jetstream/ui';
 import { FunctionComponent, useCallback, useEffect, useRef, useState } from 'react';
 import { useRecoilState } from 'recoil';
@@ -8,12 +8,14 @@ import * as fromQueryState from '../query.state';
 import { getResourceTypeFnsFromFields, QUERY_OPERATORS } from '../utils/query-filter.utils';
 
 export interface QueryFilterProps {
-  fields: ListItemGroup[];
+  sobject: string;
+  fields: ListItem[];
+  onLoadRelatedFields: (item: ListItem) => Promise<ListItem[]>;
 }
 
 const disableValueForOperators: QueryFilterOperator[] = ['isNull', 'isNotNull'];
 
-export const QueryFilter: FunctionComponent<QueryFilterProps> = ({ fields }) => {
+export const QueryFilter: FunctionComponent<QueryFilterProps> = ({ sobject, fields, onLoadRelatedFields }) => {
   const isMounted = useRef(true);
 
   const [queryFilters, setQueryFilters] = useRecoilState(fromQueryState.queryFiltersState);
@@ -47,8 +49,10 @@ export const QueryFilter: FunctionComponent<QueryFilterProps> = ({ fields }) => 
       actionLabel="Filter When"
       resourceHelpText="Related fields will show up if you have visited the object."
       operatorHelpText="Use the In or Not In operators to match against a list of values."
-      resourceLabel="Fields"
+      resourceLabel="Field"
       resources={fields}
+      resourceListHeader={sobject}
+      resourceDrillInOnLoad={onLoadRelatedFields}
       operators={QUERY_OPERATORS}
       getResourceTypeFns={getResourceTypeFns}
       disableValueForOperators={disableValueForOperators}

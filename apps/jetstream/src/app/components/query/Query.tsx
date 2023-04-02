@@ -93,6 +93,7 @@ export const Query: FunctionComponent<QueryProps> = () => {
           ['selectedQueryFieldsState', fromQueryState.selectedQueryFieldsState],
           ['selectedSubqueryFieldsState', fromQueryState.selectedSubqueryFieldsState],
           ['queryFiltersState', fromQueryState.queryFiltersState],
+          ['filterQueryFieldsState', fromQueryState.filterQueryFieldsState],
           ['selectQueryKeyState', fromQueryState.selectQueryKeyState],
           ['queryLimit', fromQueryState.queryLimit],
           ['queryLimitSkip', fromQueryState.queryLimitSkip],

@@ -1,23 +1,28 @@
 import { css } from '@emotion/react';
-import { describeSObject } from '@jetstream/shared/data';
-import { convertDateToLocale, sortQueryFields, useRollbar } from '@jetstream/shared/ui-utils';
+import { clearCacheForOrg } from '@jetstream/shared/data';
+import { convertDateToLocale, useRollbar } from '@jetstream/shared/ui-utils';
 import { getRecordIdFromAttributes } from '@jetstream/shared/utils';
-import { ListItem, Maybe, Record, SalesforceOrgUi } from '@jetstream/types';
+import { ListItem, Maybe, Record, SalesforceOrgUi, _PLACEHOLDER } from '@jetstream/types';
 import {
   Checkbox,
+  Grid,
   Input,
   Modal,
+  NotSeeingRecentMetadataPopover,
   RADIO_ALL_BROWSER,
   RADIO_ALL_SERVER,
   RADIO_FILTERED,
   RADIO_SELECTED,
   ScopedNotification,
   Section,
+  Spinner,
+  useFieldListItemsWithDrillIn,
 } from '@jetstream/ui';
 import isNumber from 'lodash/isNumber';
-import { ChangeEvent, Fragment, FunctionComponent, useCallback, useEffect, useState } from 'react';
+import { ChangeEvent, FunctionComponent, useCallback, useEffect, useState } from 'react';
 import { atom, useRecoilCallback, useRecoilState, useResetRecoilState } from 'recoil';
 import { Query } from 'soql-parser-js';
+import { applicationCookieState } from '../../../../app-state';
 import { filterLoadSobjects } from '../../../load-records/utils/load-records-utils';
 import { DeployResults, TransformationOptions } from '../../../shared/mass-update-records/mass-update-records.types';
 import { fetchRecordsWithRequiredFields } from '../../../shared/mass-update-records/mass-update-records.utils';
@@ -25,6 +30,8 @@ import MassUpdateRecordsDeploymentRow from '../../../shared/mass-update-records/
 import MassUpdateRecordsObjectRow from '../../../shared/mass-update-records/MassUpdateRecordsObjectRow';
 import { useDeployRecords } from '../../../shared/mass-update-records/useDeployRecords';
 import BulkUpdateFromQueryRecordSelection from './BulkUpdateFromQueryRecordSelection';
+
+const _ = _PLACEHOLDER;
 
 const MAX_BATCH_SIZE = 10000;
 const IN_PROGRESS_STATUSES = new Set<DeployResults['status']>(['In Progress - Preparing', 'In Progress - Uploading', 'In Progress']);
@@ -79,12 +86,13 @@ export const BulkUpdateFromQueryModal: FunctionComponent<BulkUpdateFromQueryModa
 }) => {
   const rollbar = useRollbar();
   const [loading, setLoading] = useState(false);
+  const [refreshLoading, setRefreshLoading] = useState(false);
   const [isValid, setIsValid] = useState(false);
   const [fatalError, setFatalError] = useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [selectedField, setSelectedField] = useState<string | null>(null);
   const [fields, setFields] = useState<ListItem[]>([]);
-  const [allFields, setAllFields] = useState<ListItem[]>([]);
+  /** Fields that can be used as value */
   const [transformationOptions, setTransformationOptions] = useState<TransformationOptions>({
     option: 'anotherField',
     alternateField: undefined,
@@ -101,6 +109,7 @@ export const BulkUpdateFromQueryModal: FunctionComponent<BulkUpdateFromQueryModa
   const [deployResults, setDeployResults] = useRecoilState(deployResultsState);
   const [didDeploy, setDidDeploy] = useState(false);
   const resetDeployResults = useResetRecoilState(deployResultsState);
+  const [{ serverUrl }] = useRecoilState(applicationCookieState);
   // this allows the pollResults to have a stable data source for updated data
   const getDeploymentResults = useRecoilCallback(
     ({ snapshot }) =>
@@ -124,6 +133,8 @@ export const BulkUpdateFromQueryModal: FunctionComponent<BulkUpdateFromQueryModa
 
   const { loadDataForProvidedRecords, pollResultsUntilDone } = useDeployRecords(selectedOrg, handleDeployResults, 'QUERY');
 
+  const { fields: valueFields, loadChildFields, loadFields } = useFieldListItemsWithDrillIn(selectedOrg);
+
   useEffect(() => {
     const hasMoreRecordsTemp = !!totalRecordCount && !!records && totalRecordCount > records.length;
     setHasMoreRecords(hasMoreRecordsTemp);
@@ -131,8 +142,7 @@ export const BulkUpdateFromQueryModal: FunctionComponent<BulkUpdateFromQueryModa
   }, [totalRecordCount, records]);
 
   useEffect(() => {
-    resetDeployResults();
-    loadMetadata();
+    init();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedOrg, sobject, parsedQuery]);
 
@@ -148,27 +158,14 @@ export const BulkUpdateFromQueryModal: FunctionComponent<BulkUpdateFromQueryModa
     }
   }, [batchSize, batchSizeError]);
 
-  /**
-   * Get list of all fields available for the selected object
-   * TODO: support nested fields
-   */
-  async function loadMetadata() {
+  async function init() {
+    resetDeployResults();
+    setLoading(true);
     try {
-      setLoading(true);
-      const { data } = await describeSObject(selectedOrg, sobject);
-      const allFieldMetadata = sortQueryFields(data.fields);
-      setAllFields(
-        allFieldMetadata.map((field) => ({
-          id: field.name,
-          value: field.name,
-          label: field.label,
-          secondaryLabel: field.name,
-          secondaryLabelOnNewLine: true,
-          meta: field,
-        }))
-      );
+      const { describe, fields } = await loadFields(sobject);
+      // Set all fields that can be updated
       setFields(
-        allFieldMetadata
+        fields
           .filter((field) => field.updateable)
           .map((field) => ({
             id: field.name,
@@ -179,7 +176,7 @@ export const BulkUpdateFromQueryModal: FunctionComponent<BulkUpdateFromQueryModa
             meta: field,
           }))
       );
-      if (!filterLoadSobjects(data)) {
+      if (!filterLoadSobjects(describe)) {
         setFatalError('This object does not support loading in data.');
       }
     } catch (ex) {
@@ -257,6 +254,13 @@ export const BulkUpdateFromQueryModal: FunctionComponent<BulkUpdateFromQueryModa
     }
   }
 
+  const handleRefreshMetadata = async () => {
+    setRefreshLoading(true);
+    await clearCacheForOrg(selectedOrg);
+    setRefreshLoading(false);
+    init();
+  };
+
   const deployInProgress = IN_PROGRESS_STATUSES.has(deployResults.status);
 
   return (
@@ -268,18 +272,26 @@ export const BulkUpdateFromQueryModal: FunctionComponent<BulkUpdateFromQueryModa
       closeOnEsc={false}
       hide={isSecondModalOpen}
       footer={
-        <Fragment>
-          <button className="slds-button slds-button_neutral" onClick={() => onModalClose(didDeploy)}>
-            Close
-          </button>
-          <button
-            className="slds-button slds-button_brand"
-            onClick={handleLoadRecords}
-            disabled={!isValid || loading || !!batchSizeError || deployInProgress || !!fatalError}
-          >
-            Update Records
-          </button>
-        </Fragment>
+        <Grid align="spread">
+          <NotSeeingRecentMetadataPopover
+            org={selectedOrg}
+            loading={refreshLoading}
+            serverUrl={serverUrl}
+            onReload={handleRefreshMetadata}
+          />
+          <div>
+            <button className="slds-button slds-button_neutral" onClick={() => onModalClose(didDeploy)}>
+              Close
+            </button>
+            <button
+              className="slds-button slds-button_brand"
+              onClick={handleLoadRecords}
+              disabled={!isValid || loading || !!batchSizeError || deployInProgress || !!fatalError}
+            >
+              Update Records
+            </button>
+          </div>
+        </Grid>
       }
       overrideZIndex={1001}
       onClose={() => onModalClose(didDeploy)}
@@ -290,6 +302,7 @@ export const BulkUpdateFromQueryModal: FunctionComponent<BulkUpdateFromQueryModa
           min-height: 50vh;
         `}
       >
+        {loading && <Spinner />}
         {(errorMessage || fatalError) && (
           <ScopedNotification theme="error" className="slds-m-around_small">
             {errorMessage || fatalError}
@@ -313,13 +326,14 @@ export const BulkUpdateFromQueryModal: FunctionComponent<BulkUpdateFromQueryModa
           sobject={sobject}
           loading={false}
           fields={fields}
-          allFields={allFields}
+          valueFields={valueFields}
           selectedField={selectedField}
           transformationOptions={transformationOptions}
           hasExternalWhereClause={!!parsedQuery.where}
           disabled={loading || deployInProgress || !!fatalError}
           onFieldChange={setSelectedField}
           onOptionsChange={(_, options) => setTransformationOptions(options)}
+          onLoadChildFields={loadChildFields}
           filterCriteriaFn={(field) => field.value !== 'custom'}
         />
 
