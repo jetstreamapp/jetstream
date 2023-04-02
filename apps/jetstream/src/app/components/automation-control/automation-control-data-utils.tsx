@@ -665,7 +665,7 @@ export function getAdditionalItemsWorkflowRuleText(recordMetadata: MetadataWorkf
       criteriaItems.forEach(({ field, operation, value }, i) => {
         output.push({
           label: `${i + 1}.`,
-          value: `${field} ${operation} ${value || ''}`,
+          value: `${field} ${operation} ${value ?? 'null'}`,
         });
       });
     }
