@@ -21,7 +21,7 @@ export const ExpandingLabelRenderer: FunctionComponent<{
 
   const wrappedValue =
     !isTableRow(row) && row.link && serverUrl && selectedOrg ? (
-      <SalesforceLogin serverUrl={serverUrl} org={selectedOrg} returnUrl={row.link} iconPosition="right">
+      <SalesforceLogin serverUrl={serverUrl} org={selectedOrg} returnUrl={row.link} iconPosition="right" title={value}>
         {value}
       </SalesforceLogin>
     ) : (
@@ -49,6 +49,11 @@ export const ExpandingLabelRenderer: FunctionComponent<{
     <div
       css={css`
         margin-left: ${leftMargin}rem;
+        display: inline-block;
+        line-height: 1.5;
+        overflow-wrap: break-word;
+        white-space: normal;
+        text-align: justify;
       `}
     >
       {wrappedValue}
