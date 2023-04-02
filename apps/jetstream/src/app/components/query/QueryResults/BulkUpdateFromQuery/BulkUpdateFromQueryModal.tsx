@@ -24,10 +24,10 @@ import { atom, useRecoilCallback, useRecoilState, useResetRecoilState } from 're
 import { Query } from 'soql-parser-js';
 import { applicationCookieState } from '../../../../app-state';
 import { filterLoadSobjects } from '../../../load-records/utils/load-records-utils';
-import { DeployResults, TransformationOptions } from '../../../shared/mass-update-records/mass-update-records.types';
-import { fetchRecordsWithRequiredFields } from '../../../shared/mass-update-records/mass-update-records.utils';
 import MassUpdateRecordsDeploymentRow from '../../../shared/mass-update-records/MassUpdateRecordsDeploymentRow';
 import MassUpdateRecordsObjectRow from '../../../shared/mass-update-records/MassUpdateRecordsObjectRow';
+import { DeployResults, TransformationOptions } from '../../../shared/mass-update-records/mass-update-records.types';
+import { fetchRecordsWithRequiredFields } from '../../../shared/mass-update-records/mass-update-records.utils';
 import { useDeployRecords } from '../../../shared/mass-update-records/useDeployRecords';
 import BulkUpdateFromQueryRecordSelection from './BulkUpdateFromQueryRecordSelection';
 

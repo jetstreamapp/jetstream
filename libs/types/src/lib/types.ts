@@ -1,5 +1,5 @@
 import type { SalesforceId } from 'jsforce';
-import { InsertUpdateUpsertDelete, SalesforceOrgEdition, SalesforceOrgLocaleKey } from './salesforce/types';
+import { InsertUpdateUpsertDeleteQuery, SalesforceOrgEdition, SalesforceOrgLocaleKey } from './salesforce/types';
 
 export type Maybe<T> = T | null | undefined;
 export type Nullable<T> = T | null;
@@ -242,7 +242,7 @@ export type ManualRequestResponse = {
 };
 
 export interface BulkApiCreateJobRequestPayload {
-  type: InsertUpdateUpsertDelete;
+  type: InsertUpdateUpsertDeleteQuery;
   sObject: string;
   serialMode?: Maybe<boolean>;
   externalId?: Maybe<string>;

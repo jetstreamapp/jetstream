@@ -14,11 +14,12 @@ import AppInitializer from './components/core/AppInitializer';
 import AppLoading from './components/core/AppLoading';
 import AppStateResetOnOrgChange from './components/core/AppStateResetOnOrgChange';
 import AppToast from './components/core/AppToast';
+import { DownloadFileStream } from './components/core/DownloadFileStream';
 import ErrorBoundaryFallback from './components/core/ErrorBoundaryFallback';
 import HeaderNavbar from './components/core/HeaderNavbar';
 import LogInitializer from './components/core/LogInitializer';
-import './components/core/monaco-loader';
 import NotificationsRequestModal from './components/core/NotificationsRequestModal';
+import './components/core/monaco-loader';
 
 /**
  * TODO: disabled socket from browser until we have a solid use-case for it
@@ -49,6 +50,7 @@ export const App = () => {
                 <AppToast />
                 <LogInitializer />
                 <NotificationsRequestModal featureFlags={featureFlags} loadDelay={10000} />
+                <DownloadFileStream />
                 <div>
                   <div data-testid="header">
                     <HeaderNavbar userProfile={userProfile} featureFlags={featureFlags} />

@@ -10,7 +10,7 @@ import { downloadJob } from './job-utils';
 const JOBS_WITH_DOWNLOAD = new Set<AsyncJobType>(['BulkDelete']);
 const JOBS_WITH_CANCEL = new Set<AsyncJobType>(['BulkDownload', 'RetrievePackageZip']);
 const JOBS_WITH_LINK = new Set<AsyncJobType>(['BulkDownload', 'UploadToGoogle', 'RetrievePackageZip']);
-const JOBS_WITH_TIMESTAMP_UPDATE = new Set<AsyncJobType>(['RetrievePackageZip']);
+const JOBS_WITH_TIMESTAMP_UPDATE = new Set<AsyncJobType>(['RetrievePackageZip', 'BulkDownload']);
 
 export interface JobProps {
   job: AsyncJob;

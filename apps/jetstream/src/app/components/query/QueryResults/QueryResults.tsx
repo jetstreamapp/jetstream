@@ -533,8 +533,10 @@ export const QueryResults: FunctionComponent<QueryResultsProps> = React.memo(() 
           />
           <QueryResultsDownloadButton
             selectedOrg={selectedOrg}
-            sobject={sobject}
+            sObject={sobject}
+            soql={soql}
             parsedQuery={parsedQuery}
+            columns={queryResults?.columns?.columns || []}
             disabled={!hasRecords()}
             isTooling={isTooling}
             nextRecordsUrl={nextRecordsUrl}

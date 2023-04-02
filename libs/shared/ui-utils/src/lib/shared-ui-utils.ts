@@ -738,13 +738,10 @@ function convertQueryFilterOperator(operator: Maybe<QueryFilterOperator>): Opera
  * @param org
  */
 export function getOrgUrlParams(org: SalesforceOrgUi, additionalParams: { [param: string]: string } = {}): string {
-  const params = {
+  return new URLSearchParams({
     ...additionalParams,
     [HTTP.HEADERS.X_SFDC_ID]: org?.uniqueId || '',
-  };
-  return Object.keys(params)
-    .map((key) => `${key}=${encodeURIComponent(params[key])}`)
-    .join('&');
+  }).toString();
 }
 
 export function getOrgType(org: Maybe<SalesforceOrgUi>): SalesforceOrgUiType | undefined {
