@@ -24,11 +24,12 @@ import { useTitle } from 'react-use';
 import { useRecoilState, useRecoilValue } from 'recoil';
 import * as XLSX from 'xlsx';
 import { applicationCookieState, selectedOrgState, selectedOrgType } from '../../app-state';
+import { fireToast } from '../core/AppToast';
 import { useAmplitude } from '../core/analytics';
 import { LocalOrGoogle } from '../load-records/load-records-types';
-import { LoadMultiObjectRequestWithResult } from './load-records-multi-object-types';
 import LoadRecordsMultiObjectErrors from './LoadRecordsMultiObjectErrors';
 import LoadRecordsMultiObjectResults from './LoadRecordsMultiObjectResults';
+import { LoadMultiObjectRequestWithResult } from './load-records-multi-object-types';
 import useLoadFile from './useLoadFile';
 import useProcessLoadFile from './useProcessLoadFile';
 
@@ -126,13 +127,20 @@ export const LoadRecordsMultiObject: FunctionComponent<LoadRecordsMultiObjectPro
   }
 
   function handleFile({ content, filename }: InputReadFileContent) {
-    setLoadStarted(false);
-    const workbook = XLSX.read(content, { cellText: false, cellDates: true, type: 'array' });
-    setInputFilename(filename);
-    setInputFileType('local');
-    setInputFileData(workbook);
-    fileProcessingReset();
-    loadResultsReset();
+    try {
+      setLoadStarted(false);
+      const workbook = XLSX.read(content, { cellText: false, cellDates: true, type: 'array' });
+      setInputFilename(filename);
+      setInputFileType('local');
+      setInputFileData(workbook);
+      fileProcessingReset();
+      loadResultsReset();
+    } catch (ex) {
+      fireToast({
+        message: `There was an error reading your file. ${ex.message}`,
+        type: 'error',
+      });
+    }
   }
 
   function handleGoogleFile({ workbook, selectedFile }: InputReadGoogleSheet) {

@@ -14,6 +14,7 @@ import {
   XlsxSheetSelectionModalPromise,
 } from '@jetstream/ui';
 import type { DescribeGlobalSObjectResult } from 'jsforce';
+import isString from 'lodash/isString';
 import { FunctionComponent } from 'react';
 import { fireToast } from '../../core/AppToast';
 import LoadRecordsLoadTypeButtons from '../components/LoadRecordsLoadTypeButtons';
@@ -75,24 +76,53 @@ export const LoadRecordsSelectObjectAndFile: FunctionComponent<LoadRecordsSelect
 }) => {
   const hasGoogleInputConfigured = !!googleApiConfig?.apiKey && !!googleApiConfig?.appId && !!googleApiConfig?.clientId;
   async function handleFile({ content, filename, isPasteFromClipboard }: InputReadFileContent) {
-    const { data, headers, errors } = await parseFile(content, { onParsedMultipleWorkbooks, isPasteFromClipboard });
-    onFileChange(data, headers, filename, 'local');
-    if (errors.length > 0) {
-      logger.warn(errors);
-      fireToast({
-        message: 'There were errors parsing the file. Check the file preview to ensure the data is correct.',
-        type: 'warning',
-      });
+    try {
+      const { data, headers, errors } = await parseFile(content, { onParsedMultipleWorkbooks, isPasteFromClipboard });
+      onFileChange(data, headers, filename, 'local');
+      if (errors.length > 0) {
+        logger.warn(errors);
+        fireToast({
+          message: 'There were errors parsing the file. Check the file preview to ensure the data is correct.',
+          type: 'warning',
+        });
+      }
+    } catch (ex) {
+      logger.warn('Error reading file', ex);
+      if (isString(ex.message) && ex.message.includes('password-protected')) {
+        fireToast({
+          message: `Your file is password protected, remove the password and try again.`,
+          type: 'error',
+        });
+      } else {
+        fireToast({
+          message: `There was an error reading your file. ${ex.message}`,
+          type: 'error',
+        });
+      }
     }
   }
 
   async function handleGoogleFile({ workbook, selectedFile }: InputReadGoogleSheet) {
-    const { data, headers } = await parseWorkbook(workbook, { onParsedMultipleWorkbooks });
-    onFileChange(data, headers, selectedFile.name, 'google');
+    try {
+      const { data, headers } = await parseWorkbook(workbook, { onParsedMultipleWorkbooks });
+      onFileChange(data, headers, selectedFile.name, 'google');
+    } catch (ex) {
+      fireToast({
+        message: `There was an error reading your file. ${ex.message}`,
+        type: 'error',
+      });
+    }
   }
 
   async function handleZip({ content, filename }: InputReadFileContent<ArrayBuffer>) {
-    onZipFileChange(content, filename);
+    try {
+      onZipFileChange(content, filename);
+    } catch (ex) {
+      fireToast({
+        message: `There was an error reading your file. ${ex.message}`,
+        type: 'error',
+      });
+    }
   }
 
   function handleLoadTypeChange(type: InsertUpdateUpsertDelete, externalId?: string) {
