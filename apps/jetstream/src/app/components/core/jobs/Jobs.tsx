@@ -137,13 +137,21 @@ export const Jobs: FunctionComponent = () => {
                 };
                 setJobs((prevJobs) => ({ ...prevJobs, [newJob.id]: newJob }));
                 notifyUser(`Download records failed`, { body: newJob.statusMessage, tag: 'BulkDownload' });
+              } else if (data.lastActivityUpdate) {
+                newJob = {
+                  ...newJob,
+                  lastActivity: new Date(),
+                };
+                setJobs((prevJobs) => ({ ...prevJobs, [newJob.id]: newJob }));
               } else {
-                const { done, progress, fileData, fileFormat, googleFolder } = data.results as {
+                const { done, progress, fileData, useBulkApi, fileFormat, results, googleFolder } = data.results as {
                   done: boolean;
                   progress: number;
                   fileData: any;
+                  useBulkApi?: boolean;
                   mimeType: MimeType;
                   fileFormat: string;
+                  results?: string;
                   googleFolder?: string;
                 };
                 let { fileName, mimeType } = data.results as { fileName: string; mimeType: MimeType };
@@ -164,8 +172,28 @@ export const Jobs: FunctionComponent = () => {
                     status: 'success',
                     statusMessage: 'Records downloaded successfully',
                   };
-                  // If user requested to save to gsheet
-                  if (fileFormat === 'gdrive' && gapi?.client?.getToken()?.access_token) {
+                  if (useBulkApi) {
+                    if (results) {
+                      fromJetstreamEvents.emit({
+                        type: 'streamFileDownload',
+                        payload: {
+                          fileName,
+                          link: results,
+                        },
+                      });
+                      setJobs((prevJobs) => ({
+                        ...prevJobs,
+                        [newJob.id]: {
+                          ...newJob,
+                          results,
+                          finished: new Date(),
+                          lastActivity: new Date(),
+                        },
+                      }));
+                    } else {
+                      // TODO: handle error
+                    }
+                  } else if (fileFormat === 'gdrive' && gapi?.client?.getToken()?.access_token) {
                     // show status of uploading to Google
                     setJobs((prevJobs) => ({
                       ...prevJobs,

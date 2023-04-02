@@ -126,6 +126,24 @@ export async function sfBulkAddBatchToJob(
   return results;
 }
 
+export async function sfBulkGetQueryResultsJobIds(conn: jsforce.Connection, jobId: string, batchId: string): Promise<string[]> {
+  const results = await request
+    .get(`${conn.instanceUrl}/services/async/${conn.version}/job/${jobId}/batch/${batchId}/result`)
+    .set({ Accept: CONTENT_TYPE.XML, [HEADERS.X_SFDC_Session]: conn.accessToken })
+    .then((res) => {
+      // https://developer.salesforce.com/docs/atlas.en-us.api_asynch.meta/api_asynch/asynch_api_code_curl_walkthrough.htm
+      // {result-list: Object {@xmlns: "http://www.force.com/2009/06/asyncapi/dataload", result: "752x00000004CJE"}}
+      const resultXml = xmlConverter((res.body as Buffer).toString(), { format: 'object', wellFormed: true }) as any;
+      let resultIds = resultXml['result-list'].result;
+      // FIXME: there could potentially be multiple results
+      if (!Array.isArray(resultIds) && resultIds) {
+        resultIds = [resultIds];
+      }
+      return resultIds || [];
+    });
+  return results;
+}
+
 export async function sfBulkAddBatchWithZipAttachmentToJob(
   conn: jsforce.Connection,
   zip: Buffer | ArrayBuffer,
@@ -152,9 +170,11 @@ export function sfBulkDownloadRecords(
   conn: jsforce.Connection,
   jobId: string,
   batchId: string,
-  type: BulkApiDownloadType
+  type: BulkApiDownloadType,
+  /** For query jobs, an id is required */
+  resultId?: string
 ): request.SuperAgentRequest {
   return request
-    .get(`${conn.instanceUrl}/services/async/${conn.version}/job/${jobId}/batch/${batchId}/${type}`)
+    .get(`${conn.instanceUrl}/services/async/${conn.version}/job/${jobId}/batch/${batchId}/${type}${resultId ? `/${resultId}` : ''}`)
     .set({ [HEADERS.CONTENT_TYPE]: CONTENT_TYPE.XML_UTF8, Accept: CONTENT_TYPE.CSV, [HEADERS.X_SFDC_Session]: conn.accessToken });
 }

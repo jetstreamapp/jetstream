@@ -3,6 +3,8 @@
 import { logger } from '@jetstream/shared/client-logger';
 import { MIME_TYPES } from '@jetstream/shared/constants';
 import {
+  bulkApiAddBatchToJob,
+  bulkApiCreateJob,
   initForElectron,
   queryMore,
   retrieveMetadataFromListMetadata,
@@ -10,7 +12,14 @@ import {
   retrieveMetadataFromPackagesNames,
   sobjectOperation,
 } from '@jetstream/shared/data';
-import { base64ToArrayBuffer, pollRetrieveMetadataResultsUntilDone, prepareCsvFile, prepareExcelFile } from '@jetstream/shared/ui-utils';
+import {
+  base64ToArrayBuffer,
+  getOrgUrlParams,
+  pollBulkApiJobUntilDone,
+  pollRetrieveMetadataResultsUntilDone,
+  prepareCsvFile,
+  prepareExcelFile,
+} from '@jetstream/shared/ui-utils';
 import {
   flattenRecords,
   getIdFromRecordUrl,
@@ -37,13 +46,14 @@ import { axiosElectronAdapter, initMessageHandler } from '../components/core/ele
 
 // eslint-disable-next-line no-restricted-globals
 const ctx: Worker = self as any;
+
 // Updated if a job is attempted to be cancelled, the job will check this on each iteration and cancel if possible
 const cancelledJobIds = new Set<string>();
 
 // Respond to message from parent thread
 ctx.addEventListener('message', (event) => {
   const payload: WorkerMessage<AsyncJobType, AsyncJobWorkerMessagePayload> = event.data;
-  logger.info('[WORKER]', { payload });
+  logger.info({ payload });
   handleMessage(payload.name, payload.data, event.ports?.[0]);
 });
 
@@ -93,32 +103,86 @@ async function handleMessage(name: AsyncJobType, payloadData: AsyncJobWorkerMess
     case 'BulkDownload': {
       try {
         const { org, job } = payloadData as AsyncJobWorkerMessagePayload<BulkDownloadJob>;
-        const { isTooling, fields, records, hasAllRecords, fileFormat, fileName, subqueryFields, includeSubquery, googleFolder } = job.meta;
-        // eslint-disable-next-line prefer-const
-        let { nextRecordsUrl, totalRecordCount } = job.meta;
-        let downloadedRecords = records;
-        let done = !nextRecordsUrl;
-
-        while (!done && nextRecordsUrl && !hasAllRecords) {
-          // emit progress
-          const results = {
-            done: false,
-            progress: Math.floor((downloadedRecords.length / Math.max(totalRecordCount, records.length)) * 100),
-          };
-          const response: AsyncJobWorkerMessageResponse = { job, lastActivityUpdate: true, results };
-          replyToMessage(name, response);
-
-          const { queryResults } = await queryMore(org, nextRecordsUrl, isTooling).then(replaceSubqueryQueryResultsWithRecords);
-          done = queryResults.done;
-          nextRecordsUrl = queryResults.nextRecordsUrl;
-          downloadedRecords = downloadedRecords.concat(queryResults.records);
-          if (cancelledJobIds.has(job.id)) {
-            throw new Error('Job cancelled');
-          }
-        }
-
+        const {
+          serverUrl,
+          sObject,
+          soql,
+          isTooling,
+          fields,
+          records,
+          hasAllRecords,
+          useBulkApi,
+          fileFormat,
+          fileName,
+          subqueryFields,
+          includeSubquery,
+          googleFolder,
+        } = job.meta;
         let mimeType: string;
         let fileData;
+        let downloadedRecords = records;
+
+        if (!useBulkApi) {
+          // eslint-disable-next-line prefer-const
+          let { nextRecordsUrl, totalRecordCount } = job.meta;
+          let done = !nextRecordsUrl;
+
+          while (!done && nextRecordsUrl && !hasAllRecords) {
+            // emit progress
+            const results = {
+              done: false,
+              progress: Math.floor((downloadedRecords.length / Math.max(totalRecordCount, records.length)) * 100),
+            };
+            const response: AsyncJobWorkerMessageResponse = { job, lastActivityUpdate: true, results };
+            replyToMessage(name, response);
+
+            const { queryResults } = await queryMore(org, nextRecordsUrl, isTooling).then(replaceSubqueryQueryResultsWithRecords);
+            done = queryResults.done;
+            nextRecordsUrl = queryResults.nextRecordsUrl;
+            downloadedRecords = downloadedRecords.concat(queryResults.records);
+            if (cancelledJobIds.has(job.id)) {
+              throw new Error('Job cancelled');
+            }
+          }
+        } else {
+          // Submit bulk query job and poll until results are ready
+          // Main Browser context will handle downloading the file as a link so it can be streamed
+          const jobInfo = await bulkApiCreateJob(org, { type: 'QUERY', sObject });
+          // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+          const jobId = jobInfo.id!;
+          const batchResult = await bulkApiAddBatchToJob(org, jobId, soql, true);
+
+          const response: AsyncJobWorkerMessageResponse = { job, lastActivityUpdate: true };
+          replyToMessage(name, response, undefined);
+
+          const finalResults = await pollBulkApiJobUntilDone(org, jobInfo, 1, {
+            onChecked: () => {
+              const response: AsyncJobWorkerMessageResponse = { job, lastActivityUpdate: true };
+              replyToMessage(name, response, undefined);
+            },
+          });
+
+          if (finalResults.batches?.[0].state === 'Failed') {
+            throw new Error(finalResults.batches[0].stateMessage);
+          }
+
+          const results = {
+            done: true,
+            progress: 100,
+            mimeType: MIME_TYPES.CSV,
+            useBulkApi: true,
+            results: `${serverUrl}/static/bulk/${jobId}/${batchResult.id}/file?${getOrgUrlParams(org, {
+              type: 'result',
+              isQuery: 'true',
+              fileName: `${fileName}.csv`,
+            })}`,
+            fileName,
+            fileFormat,
+            googleFolder,
+          };
+          replyToMessage(name, { job, results });
+          return;
+        }
 
         switch (fileFormat) {
           case 'xlsx': {
@@ -152,6 +216,7 @@ async function handleMessage(name: AsyncJobType, payloadData: AsyncJobWorkerMess
           default:
             throw new Error('A valid file type type has not been selected');
         }
+
         const results = { done: true, progress: 100, fileData, mimeType, fileName, fileFormat, googleFolder };
 
         const response: AsyncJobWorkerMessageResponse = { job, results };

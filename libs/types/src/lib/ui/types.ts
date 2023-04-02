@@ -411,13 +411,14 @@ export interface AsyncJobWorkerMessageResponse<T = unknown, R = unknown> {
   results?: R;
 }
 
-export type JetstreamEventType = 'newJob' | 'jobFinished' | 'lastActivityUpdate' | 'addOrg';
-export type JetstreamEvents = JetstreamEventJobFinished | JetstreamEventLastActivityUpdate | JetstreamEventNewJob | JetstreamEventAddOrg;
-export interface JetstreamEventAddOrgPayload {
-  org: SalesforceOrgUi;
-  switchActiveOrg: boolean;
-}
-export type JetstreamEventPayloads = AsyncJob | AsyncJobNew[] | JetstreamEventAddOrgPayload;
+export type JetstreamEventType = 'newJob' | 'jobFinished' | 'lastActivityUpdate' | 'addOrg' | 'streamFileDownload';
+export type JetstreamEvents =
+  | JetstreamEventJobFinished
+  | JetstreamEventLastActivityUpdate
+  | JetstreamEventNewJob
+  | JetstreamEventAddOrg
+  | JetstreamEventStreamFile;
+export type JetstreamEventPayloads = AsyncJob | AsyncJobNew[] | JetstreamEventAddOrgPayload | JetstreamEventStreamFilePayload;
 
 export interface JetstreamEvent<T> {
   type: JetstreamEventType;
@@ -443,6 +444,19 @@ export interface JetstreamEventAddOrg extends JetstreamEvent<JetstreamEventPaylo
   type: 'addOrg';
   payload: JetstreamEventAddOrgPayload;
 }
+export interface JetstreamEventAddOrgPayload {
+  org: SalesforceOrgUi;
+  switchActiveOrg: boolean;
+}
+
+export interface JetstreamEventStreamFile extends JetstreamEvent<JetstreamEventPayloads> {
+  type: 'streamFileDownload';
+  payload: JetstreamEventStreamFilePayload;
+}
+export interface JetstreamEventStreamFilePayload {
+  link: string;
+  fileName: string;
+}
 
 export interface CancelJob {
   id: string;
@@ -456,6 +470,9 @@ export interface UploadToGoogleJob {
 }
 
 export interface BulkDownloadJob {
+  serverUrl: string;
+  sObject: string;
+  soql: string;
   isTooling: boolean;
   totalRecordCount: number;
   nextRecordsUrl: Maybe<string>;
@@ -467,6 +484,7 @@ export interface BulkDownloadJob {
   fileName: string;
   googleFolder: Maybe<string>;
   includeSubquery: boolean;
+  useBulkApi: boolean;
 }
 
 export interface RetrievePackageJob {

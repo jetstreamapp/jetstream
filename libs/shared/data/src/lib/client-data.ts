@@ -577,7 +577,13 @@ export async function bulkApiAddBatchToJob(
   closeJob?: boolean
 ): Promise<BulkJobBatchInfo> {
   return handleRequest<BulkJobBatchInfo>(
-    { method: 'POST', url: `/api/bulk/${jobId}`, data: csv, headers: { [HTTP.HEADERS.CONTENT_TYPE]: HTTP.CONTENT_TYPE.CSV } },
+    {
+      method: 'POST',
+      url: `/api/bulk/${jobId}`,
+      data: csv,
+      params: { closeJob },
+      headers: { [HTTP.HEADERS.CONTENT_TYPE]: HTTP.CONTENT_TYPE.CSV },
+    },
     { org }
   )
     .then(unwrapResponseIgnoreCache)
@@ -603,9 +609,12 @@ export async function bulkApiGetRecords<T = any>(
   org: SalesforceOrgUi,
   jobId: string,
   batchId: string,
-  type: BulkApiDownloadType
+  type: BulkApiDownloadType,
+  isQuery?: boolean
 ): Promise<T[]> {
-  return handleRequest({ method: 'GET', url: `/api/bulk/${jobId}/${batchId}`, params: { type } }, { org }).then(unwrapResponseIgnoreCache);
+  return handleRequest({ method: 'GET', url: `/api/bulk/${jobId}/${batchId}`, params: { type, isQuery } }, { org }).then(
+    unwrapResponseIgnoreCache
+  );
 }
 
 export async function anonymousApex(org: SalesforceOrgUi, apex: string, logLevel: string): Promise<AnonymousApexResponse> {
