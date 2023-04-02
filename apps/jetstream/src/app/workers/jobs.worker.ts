@@ -174,7 +174,7 @@ async function handleMessage(name: AsyncJobType, payloadData: AsyncJobWorkerMess
             results: `${serverUrl}/static/bulk/${jobId}/${batchResult.id}/file?${getOrgUrlParams(org, {
               type: 'result',
               isQuery: 'true',
-              fileName: `${fileName}.csv`,
+              fileName,
             })}`,
             fileName,
             fileFormat,

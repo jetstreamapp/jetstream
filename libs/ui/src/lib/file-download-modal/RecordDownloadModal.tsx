@@ -130,7 +130,7 @@ export const RecordDownloadModal: FunctionComponent<RecordDownloadModalProps> = 
 
   const allowBulkApi =
     (totalRecordCount || 0) >= ALLOW_BULK_API_COUNT &&
-    !hasSubqueryFields &&
+    !Object.keys(subqueryFields).length &&
     records?.[0]?.attributes?.type !== 'AggregateResult' &&
     !columns.some((column) => PROHIBITED_BULK_APEX_TYPES.has(column.apexType || '')) &&
     downloadRecordsValue === RADIO_ALL_SERVER;
