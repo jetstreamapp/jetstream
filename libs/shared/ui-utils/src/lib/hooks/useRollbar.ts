@@ -156,10 +156,14 @@ export function useRollbar(options?: RollbarProperties, optOut?: boolean): Rollb
 }
 
 // This should be used outside of a component (e.x. utility function)
-export function logErrorToRollbar(message: string, data?: any) {
+export function logErrorToRollbar(
+  message: string,
+  data?: any,
+  severity: 'log' | 'debug' | 'info' | 'warn' | 'error' | 'critical' = 'error'
+) {
   try {
     if (RollbarConfig.getInstance().rollbarIsConfigured) {
-      RollbarConfig.getInstance().rollbar.error(message, data);
+      RollbarConfig.getInstance().rollbar[severity](message, data);
     }
   } catch (ex) {
     // could not report to rollbar

@@ -354,11 +354,15 @@ export async function getProcessBuildersMetadata(
           }
         } catch (ex) {
           logger.warn('Error processing flow metadata', ex);
-          logErrorToRollbar(ex.message, {
-            stack: ex.stack,
-            place: 'AutomationControl',
-            type: 'getProcessBuildersMetadata()',
-          });
+          logErrorToRollbar(
+            ex.message,
+            {
+              stack: ex.stack,
+              place: 'AutomationControl',
+              type: 'getProcessBuildersMetadata()',
+            },
+            'warn'
+          );
         }
         return output;
       }, {});
