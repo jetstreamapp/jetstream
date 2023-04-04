@@ -664,7 +664,7 @@ export function unescapeSoqlString(value: string) {
 }
 
 function getLiteralType(selected: ExpressionConditionRowSelectedItems): LiteralType {
-  const field: Field = safeGet(selected, 'resourceMeta.metadata');
+  const field: Field = safeGet(selected, 'resourceMeta');
 
   if (selected.operator === 'isNull' || selected.operator === 'isNotNull') {
     return 'NULL';
