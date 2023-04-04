@@ -5,6 +5,7 @@ import classNames from 'classnames';
 import isNil from 'lodash/isNil';
 import { Fragment, FunctionComponent, useEffect, useState } from 'react';
 import { FieldMappingItem, FieldRelatedEntity, FieldWithRelatedEntities } from '../load-records-types';
+import { SELF_LOOKUP_KEY } from '../utils/load-records-utils';
 import LoadRecordsFieldMappingRowLookupOption from './LoadRecordsFieldMappingRowLookupOption';
 
 function getPreviewData(csvRowData: string | Date | boolean | number | null): string {
@@ -288,7 +289,9 @@ export const LoadRecordsFieldMappingRow: FunctionComponent<LoadRecordsFieldMappi
                   <LoadRecordsFieldMappingRowLookupOption
                     csvField={csvField}
                     fieldMappingItem={fieldMappingItem}
-                    disabled={!!fieldMappingItem.relatedFieldMetadata?.isExternalId}
+                    disabled={
+                      !!fieldMappingItem.relatedFieldMetadata?.isExternalId && fieldMappingItem.relationshipName !== SELF_LOOKUP_KEY
+                    }
                     onSelectionChanged={onSelectionChanged}
                   />
                 )}
