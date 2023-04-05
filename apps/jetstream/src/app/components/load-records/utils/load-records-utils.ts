@@ -21,6 +21,7 @@ import {
   PrepareDataResponse,
 } from '../load-records-types';
 
+export const SELF_LOOKUP_KEY = '~SELF_LOOKUP~';
 const DEFAULT_NON_EXT_ID_MAPPING_OPT: NonExtIdLookupOption = 'ERROR_IF_MULTIPLE';
 const DEFAULT_NULL_IF_NO_MATCH_MAPPING_OPT = false;
 
@@ -56,6 +57,15 @@ export async function getFieldMetadata(org: SalesforceOrgUi, sobject: string): P
       if (Array.isArray(referenceTo) && referenceTo.length === 2 && referenceTo[1] === 'User') {
         referenceTo = referenceTo.reverse();
       }
+
+      let relationshipName = field.relationshipName || undefined;
+
+      // Fake lookup field for self-relationship (e.x. use Email as Id for base record)
+      if (field.name === 'Id') {
+        referenceTo = [sobject];
+        relationshipName = SELF_LOOKUP_KEY;
+      }
+
       return {
         label: field.label,
         name: field.name,
@@ -64,7 +74,7 @@ export async function getFieldMetadata(org: SalesforceOrgUi, sobject: string): P
         externalId: field.externalId,
         typeLabel: field.typeLabel,
         referenceTo,
-        relationshipName: field.relationshipName || undefined,
+        relationshipName,
       };
     });
 
@@ -297,7 +307,12 @@ export function getFieldHeaderFromMapping(fieldMapping: FieldMapping): string[] 
     .map((item) => {
       // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
       let output = item.targetField!;
-      if (item.mappedToLookup && item.targetLookupField && item.relatedFieldMetadata?.isExternalId) {
+      if (
+        item.mappedToLookup &&
+        item.targetLookupField &&
+        item.relatedFieldMetadata?.isExternalId &&
+        item.relationshipName !== SELF_LOOKUP_KEY
+      ) {
         output = `${item.relationshipName}.${item.targetLookupField}`;
       }
       return output;
@@ -337,6 +352,7 @@ export function transformData({ data, fieldMapping, sObject, insertNulls, dateFo
             apiMode === 'BATCH' &&
             fieldMappingItem.mappedToLookup &&
             fieldMappingItem.relatedFieldMetadata?.isExternalId &&
+            fieldMappingItem.relationshipName !== SELF_LOOKUP_KEY &&
             fieldMappingItem.relationshipName &&
             fieldMappingItem.targetLookupField
           ) {
@@ -351,6 +367,7 @@ export function transformData({ data, fieldMapping, sObject, insertNulls, dateFo
           } else if (
             fieldMappingItem.mappedToLookup &&
             fieldMappingItem.relatedFieldMetadata?.isExternalId &&
+            fieldMappingItem.relationshipName !== SELF_LOOKUP_KEY &&
             fieldMappingItem.targetLookupField
           ) {
             if ((fieldMappingItem.fieldMetadata?.referenceTo?.length || 0) > 1) {
@@ -385,7 +402,10 @@ export async function fetchMappedRelatedRecords(
   onProgress: (progress: number) => void
 ): Promise<PrepareDataResponse> {
   const nonExternalIdFieldMappings = Object.values(fieldMapping).filter(
-    (item) => item.mappedToLookup && item.relatedFieldMetadata && !item.relatedFieldMetadata.isExternalId
+    (item) =>
+      item.mappedToLookup &&
+      item.relatedFieldMetadata &&
+      (!item.relatedFieldMetadata.isExternalId || item.relationshipName === SELF_LOOKUP_KEY)
   );
 
   const queryErrors: string[] = [];
@@ -414,7 +434,12 @@ export async function fetchMappedRelatedRecords(
       targetLookupField,
     } of nonExternalIdFieldMappings) {
       onProgress(Math.min(current / total, 100));
-      const fieldRelationshipName = `${relationshipName}.${targetLookupField}`;
+      // only used for error messaging
+      let fieldRelationshipName = `${relationshipName}.${targetLookupField}`;
+      if (relationshipName === SELF_LOOKUP_KEY) {
+        // Don't show user ~SELF_LOOKUP~
+        fieldRelationshipName = `${targetLookupField}`;
+      }
       // remove any falsy values, related fields cannot be booleans or numbers, so this should not cause issues
       const relatedValues = new Set<string>(data.map((row) => row[targetField || '']).filter(Boolean));
 
