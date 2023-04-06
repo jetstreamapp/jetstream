@@ -96,8 +96,7 @@ export const ComboboxListItem = forwardRef<HTMLLIElement, ComboboxListItemProps>
               'slds-is-selected': selected,
               'slds-text-color_error': hasError,
               'slds-listbox__option_plain': !isDrillInItem && !secondaryLabelOnNewLine,
-              'slds-media_center slds-listbox__option_entity slds-listbox__option_has-meta':
-                !placeholder && secondaryLabelOnNewLine && secondaryLabel,
+              'slds-media_center slds-listbox__option_entity': !placeholder && secondaryLabelOnNewLine && secondaryLabel,
               'slds-media_small': !placeholder && !secondaryLabelOnNewLine,
             },
             textContainerClassName
@@ -120,15 +119,15 @@ export const ComboboxListItem = forwardRef<HTMLLIElement, ComboboxListItemProps>
             </span>
           )}
           <span
-            className={classNames({
+            className={classNames('slds-text-body_small', {
               'slds-media__body': !placeholder,
             })}
             css={textBodyCss}
           >
             {label && (!secondaryLabel || !secondaryLabelOnNewLine) && (
               <span className={classNames('slds-truncate', textClassName)} title={title} css={textCss}>
-                {label}
-                {secondaryLabel && <span className="slds-text-color_weak slds-m-left_xx-small slds-truncate">{secondaryLabel}</span>}
+                <span>{label}</span>
+                {secondaryLabel && <span className="slds-text-color_weak slds-m-left_xx-small">{secondaryLabel}</span>}
                 {tertiaryLabel && (
                   <span className="slds-listbox__option-meta slds-listbox__option-meta_entity">
                     <div className="slds-truncate">
@@ -156,7 +155,7 @@ export const ComboboxListItem = forwardRef<HTMLLIElement, ComboboxListItemProps>
             {children}
           </span>
           {isDrillInItem && (
-            <span className="slds-media__figure slds-media__figure_reverse">
+            <span className="slds-media__figure">
               <Icon
                 type="utility"
                 icon="chevronright"

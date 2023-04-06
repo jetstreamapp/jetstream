@@ -1485,7 +1485,7 @@ export function getListItemsFromFieldWithRelatedItems(fields: Field[], parentId 
       // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
       label: field.relationshipName!,
       secondaryLabel: field.referenceTo?.[0],
-      secondaryLabelOnNewLine: false,
+      secondaryLabelOnNewLine: true,
       isDrillInItem: true,
       parentId: parentId,
       meta: field,
