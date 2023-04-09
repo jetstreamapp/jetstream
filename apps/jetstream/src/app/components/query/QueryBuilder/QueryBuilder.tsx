@@ -417,6 +417,7 @@ export const QueryBuilder: FunctionComponent<QueryBuilderProps> = () => {
                       {
                         id: 'standardOptions',
                         titleClassName: 'slds-size_1-of-2',
+                        titleText: 'Standard Options',
                         title: (
                           <Grid>
                             Standard Options
@@ -484,6 +485,7 @@ export const QueryBuilder: FunctionComponent<QueryBuilderProps> = () => {
                       {
                         id: 'advancedOptions',
                         titleClassName: 'slds-size_1-of-2',
+                        titleText: 'Standard Options',
                         title: (
                           <Grid>
                             Advanced Options

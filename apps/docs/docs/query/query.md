@@ -142,15 +142,24 @@ The advanced options allows configured complex SOQL queries using field function
 
 On the right hand section of the page, choose the "Advanced Options" tab to access these features.
 
-Here is an example of a Group By SOQL query that can be generated with Jetstream. This query would be used to identify how many contacts exist for each account (assuming that you do no have any accounts with a duplicate name).
+Here is an example of a Group By SOQL query that can be generated with Jetstream. This query will identify the number of Accounts that have duplicate names.
+
+- `Name` Was added as a Group By and also selected to know what the name of the duplicate is.
+- The `COUNT` function was applied to `Id` to count the number of records grouped and the field was given an alias of `numDuplicates` (otherwise the column would be auto-named as `expr0`).
+- There is a Having clause to only return accounts where there are at least two records that will be grouped.
 
 ```sql
-SELECT Account.Name, COUNT(Id)
-FROM Contact
-WHERE AccountId != null
-GROUP BY Account.Name
-HAVING COUNT(Id) > 1
+SELECT COUNT(Id) numDuplicates, Name
+FROM Account
+GROUP BY Name
+HAVING COUNT(Name) > 1
 ```
+
+<img src={require('./query-builder-advanced-options.png').default} alt="Query advanced options example" />
+
+Here are the results:
+
+<img src={require('./query-builder-advanced-results.png').default} alt="Query advanced options example" />
 
 ### Field Functions
 
