@@ -196,11 +196,7 @@ export const ComboboxWithGroupedItems = forwardRef<ComboboxWithGroupedItemsRef, 
               if (comboboxRef.current?.getRefs().inputEl) {
                 // if focused too fast, then the input will get the keydown event and select the first item
                 setTimeout(() => {
-                  if (comboboxProps.showSelectionAsButton) {
-                    focusElementFromRefWhenAvailable(comboboxRef.current?.getRefs().buttonEl);
-                  } else {
-                    focusElementFromRefWhenAvailable(comboboxRef.current?.getRefs().inputEl);
-                  }
+                  focusElementFromRefWhenAvailable(comboboxRef.current?.getRefs().inputEl);
                 }, 50);
               }
             } else {

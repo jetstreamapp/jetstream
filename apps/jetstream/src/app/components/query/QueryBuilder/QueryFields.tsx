@@ -29,6 +29,7 @@ export const QueryFieldsComponent: FunctionComponent<QueryFieldsProps> = ({ sele
   const [queryFieldsKey, setQueryFieldsKey] = useRecoilState(fromQueryState.queryFieldsKey);
   const setFilterFields = useSetRecoilState(fromQueryState.filterQueryFieldsState);
   const setOrderByFields = useSetRecoilState(fromQueryState.orderByQueryFieldsState);
+  const setGroupByFields = useSetRecoilState(fromQueryState.groupByQueryFieldsState);
   const setChildRelationships = useSetRecoilState(fromQueryState.queryChildRelationships);
   const [baseKey, setBaseKey] = useState<string>(`${selectedSObject}|`);
   const selectedOrg = useRecoilValue(selectedOrgState);
@@ -79,6 +80,7 @@ export const QueryFieldsComponent: FunctionComponent<QueryFieldsProps> = ({ sele
           const fields = Object.values(tempQueryFieldsMap[BASE_KEY].fields).map((item) => item.metadata);
           setFilterFields(getListItemsFromFieldWithRelatedItems(sortQueryFields(fields.filter((field) => field.filterable))));
           setOrderByFields(getListItemsFromFieldWithRelatedItems(sortQueryFields(fields.filter((field) => field.sortable))));
+          setGroupByFields(getListItemsFromFieldWithRelatedItems(sortQueryFields(fields.filter((field) => field.groupable))));
 
           tempQueryFieldsMap[BASE_KEY] = { ...tempQueryFieldsMap[BASE_KEY], loading: false };
           setChildRelationships(tempQueryFieldsMap[BASE_KEY].childRelationships || []);

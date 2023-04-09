@@ -87,6 +87,8 @@ Any object that has a lookup field to the current object will show up in this li
 
 <img src={require('./subquery-fields.png').default} alt="Selecting subquery fields" />
 
+## Standard Options
+
 ### Filters
 
 Filters allow you to limit which records are returned from Salesforce.
@@ -122,11 +124,70 @@ If you want to look up just one record by Id, use the **View Record Details** bu
 
 <img src={require('./query-filter-example.png').default} alt="Query filter example" />
 
-#### Filtering related fields
+### Order By
 
-Related fields only show up in the list of fields if you have selected the related field to be included in the query.
+Order by allows you to sort the returned records. In addition to choosing the sort order, you can also choose if records with blank values are sorted with higher or lower precedence compared to records with values.
 
-<img src={require('./query-filter-related-fields.png').default} alt="Filtering related fields" />
+You can add multiple Order By clauses.
+
+### Limit and Skip
+
+Limit allows you to choose the maximum number of records that can be returned from a query.
+
+Skip allows you to skip some number of records in the return set. This is normally paired with Limit.
+
+## Advanced Options
+
+The advanced options allows configured complex SOQL queries using field functions and GROUP BY clauses. Refer to the Salesforce documentation to understand how these work and understand under what circumstances various functions and group by clauses are available for use.
+
+On the right hand section of the page, choose the "Advanced Options" tab to access these features.
+
+Here is an example of a Group By SOQL query that can be generated with Jetstream. This query will identify the number of Accounts that have duplicate names.
+
+- `Name` Was added as a Group By and also selected to know what the name of the duplicate is.
+- The `COUNT` function was applied to `Id` to count the number of records grouped and the field was given an alias of `numDuplicates` (otherwise the column would be auto-named as `expr0`).
+- There is a Having clause to only return accounts where there are at least two records that will be grouped.
+
+```sql
+SELECT COUNT(Id) numDuplicates, Name
+FROM Account
+GROUP BY Name
+HAVING COUNT(Name) > 1
+```
+
+<img src={require('./query-builder-advanced-options.png').default} alt="Query advanced options example" />
+
+Here are the results:
+
+<img src={require('./query-builder-advanced-results.png').default} alt="Query advanced options example" />
+
+### Field Functions
+
+Field functions change the value returned for a field.
+
+Only fields you have selected in your Query will be available for selection because these functions can only modify fields included in the query.
+
+Depending on the type of field you have selected and if you have included a Group By clause will determine what type of functions are available for each field.
+
+`FORMAT` and `COUNT` are available for all fields.
+
+Picklist fields have the `toFormat` formula available that will show the translated version of a field.
+
+Currency fields have the `ConvertCurrency` function available but can only be used if your org has multi-currency enabled.
+
+If you have a GROUP BY clause configured, then all date and datetime fields have a variety of functions that can be used.
+
+### Group By
+
+Group By allows summarizing records and combines groups of records into an individual query result.
+
+You can add multiple group by fields to your query as dimensions to group your records. Any fields included in your query must either be in your group by clause or must have an aggregate function applied (e.x. `COUNT` of `SUM`)
+
+Review the Salesforce documentation for more information.
+
+### Having
+
+Having is just like normal query filters, but must be combined with a group by clause and will be applied after the grouping has taken place. You can include aggregate functions in your having clause, which are not available in normal query filters.
 
 ## Query history
 
@@ -150,6 +211,8 @@ Query history is stored locally in your browser, so if you change browsers or co
 ## Manual query
 
 If you have a SOQL query and you want to use that on the Query builder, then you click the **Manual Query** button at the top of the page and paste in your query and **restore** or **execute**.
+
+Clicking restore will reset the page to match the provided query. This is really useful if you have obtained a query from somewhere else and want to make changes to it using the query builder.
 
 ## Querying metadata records
 

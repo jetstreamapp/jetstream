@@ -113,6 +113,7 @@ import UtilityIcon_Success from './icons/utility/Success';
 import UtilityIcon_Switch from './icons/utility/Switch';
 import UtilityIcon_Sync from './icons/utility/Sync';
 import UtilityIcon_Task from './icons/utility/Task';
+import UtilityIcon_Text from './icons/utility/Text';
 import UtilityIcon_Underline from './icons/utility/Underline';
 import UtilityIcon_Undo from './icons/utility/Undo';
 import UtilityIcon_Up from './icons/utility/Up';
@@ -259,6 +260,7 @@ const utilityIcons = {
   switch: UtilityIcon_Switch,
   sync: UtilityIcon_Sync,
   task: UtilityIcon_Task,
+  text: UtilityIcon_Text,
   underline: UtilityIcon_Underline,
   undo: UtilityIcon_Undo,
   up: UtilityIcon_Up,

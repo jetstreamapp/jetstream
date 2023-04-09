@@ -318,7 +318,10 @@ export function getSObjectNameFromAttributes(record: any) {
   return urlWithoutId.substring(urlWithoutId.lastIndexOf('/') + 1);
 }
 
-export function convertFieldWithPolymorphicToQueryFields(inputFields: QueryFieldWithPolymorphic[]): FieldType[] {
+export function convertFieldWithPolymorphicToQueryFields(
+  inputFields: QueryFieldWithPolymorphic[],
+  filterFns: MapOf<{ fn: string; alias: string | null }> = {}
+): FieldType[] {
   let polymorphicItems: { field: string; sobject: string; fields: string[] } = {
     field: '',
     sobject: '',
@@ -353,8 +356,19 @@ export function convertFieldWithPolymorphicToQueryFields(inputFields: QueryField
         output.push(getTypeOfField(polymorphicItems));
         polymorphicItems = { field: '', sobject: '', fields: [] };
       }
-      // return regular non-TYPEOF fields
-      output.push(getField(field.field));
+      if (filterFns[field.field]?.fn) {
+        // return FieldFunctionExpression
+        output.push(
+          getField({
+            functionName: filterFns[field.field].fn,
+            alias: filterFns[field.field].alias || undefined,
+            parameters: [field.field],
+          })
+        );
+      } else {
+        // return regular non-TYPEOF fields
+        output.push(getField(field.field));
+      }
     }
     return output;
   }, []);

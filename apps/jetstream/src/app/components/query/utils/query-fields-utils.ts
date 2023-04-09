@@ -41,15 +41,19 @@ export function initQueryFieldStateItem(key: string, sobject: string, props: Par
 
 export function getSelectedFieldsFromQueryFields(fieldsMap: MapOf<QueryFields>): QueryFieldWithPolymorphic[] {
   const fields: QueryFieldWithPolymorphic[] = orderObjectsBy(
-      Object.values(fieldsMap)
-        .filter((queryField) => !queryField.key.includes(CHILD_FIELD_SEPARATOR))
-        .flatMap((queryField) => {
-          const basePath = queryField.key.replace(/.+\|/, '');
-          return Array.from(queryField.selectedFields)
-            .map((fieldKey) => `${basePath}${fieldKey}`)
-            .map((field) => ({ field, polymorphicObj: queryField.isPolymorphic ? queryField.sobject : undefined }));
-        }),
-      'field'
-    ).sort(sortQueryFieldsPolymorphicComparable)
+    Object.values(fieldsMap)
+      .filter((queryField) => !queryField.key.includes(CHILD_FIELD_SEPARATOR))
+      .flatMap((queryField) => {
+        const basePath = queryField.key.replace(/.+\|/, '');
+        return Array.from(queryField.selectedFields).map((field): QueryFieldWithPolymorphic => {
+          return {
+            field: `${basePath}${field}`,
+            polymorphicObj: queryField.isPolymorphic ? queryField.sobject : undefined,
+            metadata: queryField.fields[field].metadata,
+          };
+        });
+      }),
+    'field'
+  ).sort(sortQueryFieldsPolymorphicComparable);
   return fields;
 }

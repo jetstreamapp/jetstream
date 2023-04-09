@@ -7,7 +7,8 @@ import { Combobox, ComboboxPropsRef, ComboboxSharedProps } from './Combobox';
 import { ComboboxListItem, ComboboxListItemProps } from './ComboboxListItem';
 import { ComboboxListItemHeading } from './ComboboxListItemHeading';
 
-const defaultFilterFn = (filter) => multiWordObjectFilter<ListItem<string, any>>(['label', 'value'], filter);
+const defaultFilterFn = (filter) =>
+  multiWordObjectFilter<ListItem<string, any>>(['label', 'value', 'secondaryLabel', 'tertiaryLabel'], filter);
 const defaultSelectedItemLabelFn = (item: ListItem) => item.label;
 const defaultSelectedItemTitleFn = (item: ListItem) => item.title;
 
@@ -181,11 +182,7 @@ export const ComboboxWithItems = forwardRef<ComboboxWithItemsRef, ComboboxWithIt
               if (comboboxRef.current?.getRefs().inputEl) {
                 // if focused too fast, then the input will get the keydown event and select the first item
                 setTimeout(() => {
-                  if (comboboxProps.showSelectionAsButton) {
-                    focusElementFromRefWhenAvailable(comboboxRef.current?.getRefs().buttonEl);
-                  } else {
-                    focusElementFromRefWhenAvailable(comboboxRef.current?.getRefs().inputEl);
-                  }
+                  focusElementFromRefWhenAvailable(comboboxRef.current?.getRefs().inputEl);
                 }, 50);
               }
             } else {

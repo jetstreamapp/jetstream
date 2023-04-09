@@ -1,5 +1,5 @@
 /* eslint-disable no-prototype-builtins */
-import { css, SerializedStyles } from '@emotion/react';
+import { SerializedStyles } from '@emotion/react';
 import { logger } from '@jetstream/shared/client-logger';
 import {
   focusElementFromRefWhenAvailable,
@@ -7,7 +7,6 @@ import {
   isArrowDownKey,
   isArrowRightKey,
   isArrowUpKey,
-  isBackspaceOrDeleteKey,
   isEnterKey,
   isEnterOrSpace,
   isEscapeKey,
@@ -40,7 +39,6 @@ export interface ComboboxPropsRef {
   clearInputText(): void;
   getRefs(): {
     inputEl: React.RefObject<HTMLInputElement>;
-    buttonEl: React.RefObject<HTMLButtonElement>;
     divContainerEl: React.RefObject<HTMLDivElement>;
     entireContainerEl: React.RefObject<HTMLDivElement>;
     popoverRef: React.RefObject<HTMLDivElement>;
@@ -99,6 +97,7 @@ export interface ComboboxProps {
   /**
    * If true, the selected item will be shown with a border and a close X button.
    * User must clear the input before changing selection.
+   * This requires `onClear()` to be set, otherwise value cannot be cleared.
    */
   showSelectionAsButton?: boolean;
   /**
@@ -140,15 +139,6 @@ const iconLoading = (
       containerClassname="slds-icon_container slds-icon-utility-down slds-input__icon slds-input__icon_right"
     />
   </div>
-);
-
-const iconNotLoading = (
-  <Icon
-    type="utility"
-    icon="down"
-    className="slds-icon slds-icon slds-icon_x-small slds-icon-text-default"
-    containerClassname="slds-icon_container slds-icon-utility-down slds-input__icon slds-input__icon_right"
-  />
 );
 
 export const Combobox = forwardRef<ComboboxPropsRef, ComboboxProps>(
@@ -194,15 +184,13 @@ export const Combobox = forwardRef<ComboboxPropsRef, ComboboxProps>(
     const [id] = useState<string>(uniqueId('Combobox'));
     const [listId] = useState<string>(uniqueId('Combobox-list'));
     const [value, setValue] = useState<string>(selectedItemLabel || '');
-    // const [hasGroups, setHasGroups] = useState(!!isVirtual);
     const hasDropdownGroup = !!leadingDropdown && !!leadingDropdown.items?.length;
 
-    // const [focusedItem, setFocusedItem] = useState<number | null>(null);
     const inputEl = useRef<HTMLInputElement>(null);
-    const buttonEl = useRef<HTMLButtonElement>(null);
     const divContainerEl = useRef<HTMLDivElement>(null);
     const entireContainerEl = useRef<HTMLDivElement>(null);
-    // const elRefs = useRef<HTMLLIElement[]>([]);
+
+    const preventOpen = !!showSelectionAsButton && !!onClear && !!selectedItemLabel;
 
     useImperativeHandle<unknown, ComboboxPropsRef>(
       ref,
@@ -216,7 +204,6 @@ export const Combobox = forwardRef<ComboboxPropsRef, ComboboxProps>(
         getRefs: () => {
           return {
             inputEl,
-            buttonEl,
             divContainerEl,
             entireContainerEl,
             popoverRef,
@@ -226,11 +213,11 @@ export const Combobox = forwardRef<ComboboxPropsRef, ComboboxProps>(
           setTimeout(() => {
             isOpen && setIsOpen(false);
             onClose && onClose();
-            showSelectionAsButton ? focusElementFromRefWhenAvailable(buttonEl) : focusElementFromRefWhenAvailable(inputEl);
+            focusElementFromRefWhenAvailable(inputEl);
           });
         },
       }),
-      [isOpen, onClose, showSelectionAsButton]
+      [isOpen, onClose]
     );
 
     // when closed, set input value in case user modified
@@ -255,19 +242,19 @@ export const Combobox = forwardRef<ComboboxPropsRef, ComboboxProps>(
       if (isOpen && selectedItemLabel) {
         setIsOpen(false);
         onClose && onClose();
-        showSelectionAsButton ? buttonEl.current?.focus() : inputEl.current?.focus();
+        inputEl.current?.focus();
       }
       if (value !== (selectedItemLabel || '')) {
         setValue(selectedItemLabel || '');
       }
       // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [selectedItemLabel, showSelectionAsButton]);
+    }, [selectedItemLabel]);
 
     /**
      * When on input, move focus down the first list item
      */
     function handleInputKeyUp(event: KeyboardEvent<HTMLInputElement>) {
-      if (disabled) {
+      if (disabled || preventOpen) {
         return;
       }
       if (isArrowUpKey(event)) {
@@ -341,7 +328,7 @@ export const Combobox = forwardRef<ComboboxPropsRef, ComboboxProps>(
     };
 
     const handleInputClick = () => {
-      if (!disabled) {
+      if (!disabled && !preventOpen) {
         if (!isOpen && selectedItemLabel) {
           setIsOpen(!isOpen);
         } else {
@@ -357,6 +344,22 @@ export const Combobox = forwardRef<ComboboxPropsRef, ComboboxProps>(
       focusElementFromRefWhenAvailable(inputEl);
     };
 
+    const iconNotLoading =
+      showSelectionAsButton && onClear && selectedItemLabel ? (
+        <div className="slds-input__icon-group slds-input__icon-group_right">
+          <button className="slds-button slds-button_icon slds-input__icon slds-input__icon_right" onClick={handleRemoveItem}>
+            <Icon type="utility" icon="clear" className="slds-button__icon" omitContainer description="Clear Selection" />
+          </button>
+        </div>
+      ) : (
+        <Icon
+          type="utility"
+          icon="down"
+          className="slds-icon slds-icon slds-icon_x-small slds-icon-text-default"
+          containerClassname="slds-icon_container slds-icon-utility-down slds-input__icon slds-input__icon_right"
+        />
+      );
+
     return (
       <div className={classNames('slds-form-element', { 'slds-has-error': hasError }, className)}>
         <label className={classNames('slds-form-element__label', { 'slds-assistive-text': hideLabel })} htmlFor={id}>
@@ -367,7 +370,7 @@ export const Combobox = forwardRef<ComboboxPropsRef, ComboboxProps>(
           )}
           {label}
         </label>
-        {labelHelp && <HelpText id={`${id}-label-help-text`} content={labelHelp} />}
+        {labelHelp && !hideLabel && <HelpText id={`${id}-label-help-text`} content={labelHelp} />}
         <div className="slds-form-element__control">
           {getContainer(
             hasDropdownGroup,
@@ -404,71 +407,28 @@ export const Combobox = forwardRef<ComboboxPropsRef, ComboboxProps>(
                       'slds-input-has-icon_right': !loading,
                       'slds-input-has-icon_group-right': loading,
                     })}
-                    css={css`
-                      ${showSelectionAsButton && selectedItemLabel ? `max-width: 20rem` : ``}
-                    `}
                     role="none"
                   >
-                    {showSelectionAsButton && selectedItemLabel ? (
-                      <>
-                        <button
-                          ref={buttonEl}
-                          type="button"
-                          className="slds-input_faux slds-combobox__input slds-combobox__input-value"
-                          aria-controls={listId}
-                          aria-expanded="false"
-                          aria-haspopup="listbox"
-                          onKeyDown={(event) => {
-                            if (isBackspaceOrDeleteKey(event)) {
-                              handleRemoveItem(event);
-                            }
-                          }}
-                          onClick={(ev) => {
-                            ev.preventDefault();
-                            ev.stopPropagation();
-                          }}
-                          title={selectedItemTitle || value}
-                        >
-                          <span className="slds-truncate">{value}</span>
-                        </button>
-
-                        <button
-                          className="slds-button slds-button_icon slds-input__icon slds-input__icon_right"
-                          title="Remove selected option"
-                          onClick={handleRemoveItem}
-                        >
-                          <Icon
-                            type="utility"
-                            icon="close"
-                            description="Remove selected option"
-                            className="slds-button__icon"
-                            omitContainer
-                          />
-                        </button>
-                      </>
-                    ) : (
-                      <>
-                        <input
-                          ref={inputEl}
-                          aria-autocomplete="list"
-                          type="text"
-                          className={classNames('slds-input slds-combobox__input', { 'slds-text-color_error': hasError })}
-                          id={id}
-                          css={inputCss}
-                          aria-controls={listId}
-                          aria-describedby={errorMessageId}
-                          autoComplete="off"
-                          placeholder={placeholder}
-                          disabled={disabled}
-                          onKeyUp={handleInputKeyUp}
-                          onChange={(event) => setValue(event.target.value)}
-                          value={value}
-                          title={selectedItemTitle || value}
-                          onBlur={handleBlur}
-                        />
-                        {loading ? iconLoading : iconNotLoading}
-                      </>
-                    )}
+                    <input
+                      ref={inputEl}
+                      aria-autocomplete="list"
+                      type="text"
+                      className={classNames('slds-input slds-combobox__input', { 'slds-text-color_error': hasError })}
+                      id={id}
+                      css={inputCss}
+                      aria-controls={listId}
+                      aria-describedby={errorMessageId}
+                      autoComplete="off"
+                      placeholder={placeholder}
+                      disabled={disabled}
+                      readOnly={preventOpen}
+                      onKeyUp={handleInputKeyUp}
+                      onChange={(event) => setValue(event.target.value)}
+                      value={value}
+                      title={selectedItemTitle || value}
+                      onBlur={handleBlur}
+                    />
+                    {loading ? iconLoading : iconNotLoading}
                   </div>
                   <PopoverContainer
                     ref={popoverRef}

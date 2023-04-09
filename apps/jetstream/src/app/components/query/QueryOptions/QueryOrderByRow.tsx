@@ -40,7 +40,6 @@ export const QueryOrderByRow: FunctionComponent<QueryOrderByProps> = ({
         <ComboboxWithDrillInItems
           comboboxProps={{
             label: 'Field',
-            labelHelp: 'Related fields will show up if you have visited the object.',
             itemLength: 10,
           }}
           selectedItemLabelFn={getSelectionLabel}
