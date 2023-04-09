@@ -26,9 +26,12 @@ export const QueryResetButton: FunctionComponent<QueryResetButtonProps> = ({ cla
     useResetRecoilState(fromQueryState.filterQueryFieldsState),
     useResetRecoilState(fromQueryState.orderByQueryFieldsState),
     useResetRecoilState(fromQueryState.queryFiltersState),
+    useResetRecoilState(fromQueryState.queryHavingState),
+    useResetRecoilState(fromQueryState.fieldFilterFunctions),
+    useResetRecoilState(fromQueryState.queryGroupByState),
+    useResetRecoilState(fromQueryState.queryOrderByState),
     useResetRecoilState(fromQueryState.queryLimit),
     useResetRecoilState(fromQueryState.queryLimitSkip),
-    useResetRecoilState(fromQueryState.queryOrderByState),
     useResetRecoilState(fromQueryState.querySoqlState),
   ];
 

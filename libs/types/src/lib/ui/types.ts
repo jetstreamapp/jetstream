@@ -48,6 +48,7 @@ export interface WorkerMessage<T, K = any, E = any> {
 export interface QueryFieldWithPolymorphic {
   field: string;
   polymorphicObj: Maybe<string>;
+  metadata: Field;
 }
 
 export interface QueryFields {
@@ -305,6 +306,7 @@ export interface ExpressionConditionRowSelectedItems<T = any> {
   resource: string | null;
   resourceMeta?: T;
   resourceGroup: string | null;
+  function: string | null;
   operator: QueryFilterOperator | null;
   resourceType?: ExpressionRowValueType;
   value: string | string[];
@@ -353,6 +355,13 @@ export interface QueryOrderByClause {
   fieldLabel: string | null;
   order: AscDesc;
   nulls: FirstLast | null;
+}
+
+export interface QueryGroupByClause {
+  key: number;
+  field: string | null;
+  fieldLabel: string | null;
+  function: string | null;
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any

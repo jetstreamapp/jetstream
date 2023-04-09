@@ -1,5 +1,6 @@
 export const REGEX = {
   LEADING_TRAILING_QUOTES: /(^")|("$)/g,
+  NUMERIC: /^[0-9\.]+$/g, // FIXME: should not allow multiple decimal places
   NOT_NUMERIC: /[^0-9]/g,
   NOT_ALPHA: /[^A-Za-z]/g,
   NOT_ALPHANUMERIC: /[^A-Za-z0-9]/g,

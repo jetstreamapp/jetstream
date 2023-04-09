@@ -1,10 +1,10 @@
 import { logger } from '@jetstream/shared/client-logger';
 import { fetchFields, getFieldKey, sortQueryFieldsStr } from '@jetstream/shared/ui-utils';
 import { multiWordObjectFilter } from '@jetstream/shared/utils';
-import { FieldWrapper, MapOf, QueryFields, QueryFieldWithPolymorphic, SalesforceOrgUi } from '@jetstream/types';
+import { FieldWrapper, MapOf, QueryFieldWithPolymorphic, QueryFields, SalesforceOrgUi } from '@jetstream/types';
 import { SobjectFieldList } from '@jetstream/ui';
 import isEmpty from 'lodash/isEmpty';
-import React, { Fragment, FunctionComponent, useEffect, useState } from 'react';
+import { Fragment, FunctionComponent, useEffect, useState } from 'react';
 import { useRecoilState, useRecoilValue } from 'recoil';
 import { selectedOrgState } from '../../../app-state';
 import * as fromQueryState from '../query.state';
@@ -93,9 +93,14 @@ export const QueryChildFields: FunctionComponent<QueryChildFieldsProps> = ({
       .flatMap((queryField) => {
         // remove the first part of the key (which identified this object)
         const basePath = queryField.key.replace(/.+\|/, '');
-        return sortQueryFieldsStr(Array.from(queryField.selectedFields))
-          .map((fieldKey) => `${basePath}${fieldKey}`)
-          .map((field) => ({ field, polymorphicObj: queryField.isPolymorphic ? queryField.sobject : undefined }));
+        return sortQueryFieldsStr(Array.from(queryField.selectedFields)).map(
+          (field): QueryFieldWithPolymorphic => ({
+            field,
+            polymorphicObj: queryField.isPolymorphic ? queryField.sobject : undefined,
+            // path: `${basePath}${field}`,
+            metadata: queryField.fields[field].metadata,
+          })
+        );
       });
 
     onSelectionChanged(fields);

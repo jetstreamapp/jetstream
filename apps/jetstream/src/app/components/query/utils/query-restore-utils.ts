@@ -3,6 +3,7 @@ import {
   convertDescribeToDescribeSObjectWithExtendedTypes,
   fetchFieldsProcessResults,
   getListItemsFromFieldWithRelatedItems,
+  getLowercaseFieldFunctionMap,
   getOperatorFromWhereClause,
   sortQueryFields,
   unescapeSoqlString,
@@ -18,6 +19,7 @@ import {
   MapOf,
   QueryFields,
   QueryFieldWithPolymorphic,
+  QueryGroupByClause,
   QueryOrderByClause,
   SalesforceOrgUi,
 } from '@jetstream/types';
@@ -27,7 +29,9 @@ import {
   Condition,
   DateLiteral,
   FieldSubquery,
-  FieldType as QueryFieldType,
+  HavingClause,
+  isGroupByField,
+  isGroupByFn,
   isNegationCondition,
   isOrderByField,
   isValueFunctionCondition,
@@ -35,8 +39,10 @@ import {
   isWhereClauseWithRightCondition,
   Operator,
   Query,
+  FieldType as QueryFieldType,
   WhereClause,
 } from 'soql-parser-js';
+import { FieldFilterFunction } from '../query.state';
 import {
   BASE_FIELD_SEPARATOR,
   CHILD_FIELD_SEPARATOR,
@@ -67,9 +73,13 @@ interface QueryRestoreStateItems extends QueryRestoreErrors {
   queryFieldsMapState: MapOf<QueryFields>;
   selectedQueryFieldsState: QueryFieldWithPolymorphic[];
   selectedSubqueryFieldsState: MapOf<QueryFieldWithPolymorphic[]>;
+  fieldFilterFunctions: FieldFilterFunction[];
   filterQueryFieldsState: ListItem[];
   orderByQueryFieldsState: ListItem[];
+  groupByQueryFieldsState: ListItem[];
+  queryGroupByState: QueryGroupByClause[];
   queryFiltersState: ExpressionType;
+  queryHavingState: ExpressionType;
   queryLimit: string;
   queryLimitSkip: string;
   queryOrderByState: QueryOrderByClause[];
@@ -134,6 +144,8 @@ async function queryRestoreBuildState(org: SalesforceOrgUi, query: Query, data: 
 
   processFields(data, outputStateItems, query.fields || []);
 
+  processFieldFunctions(outputStateItems, query.fields || []);
+
   // Calculate all ListItems for filters and order by
   const allListItems = Object.values(outputStateItems.queryFieldsMapState)
     .filter((queryField) => !queryField.key.includes(CHILD_FIELD_SEPARATOR))
@@ -155,10 +167,18 @@ async function queryRestoreBuildState(org: SalesforceOrgUi, query: Query, data: 
       'id'
     )
   );
+  outputStateItems.groupByQueryFieldsState = unFlattenedListItemsById(
+    getMapOf(
+      allListItems.filter((item) => item.meta.groupable),
+      'id'
+    )
+  );
 
   const fieldWrapperWithParentKey = getFieldWrapperPath(outputStateItems.queryFieldsMapState);
 
-  processFilters(data, outputStateItems, query, fieldWrapperWithParentKey);
+  processGroupBy(outputStateItems, query, fieldWrapperWithParentKey);
+  processFilters(outputStateItems, query, fieldWrapperWithParentKey);
+  processHavingClause(outputStateItems, query, fieldWrapperWithParentKey);
   processOrderBy(outputStateItems, query, fieldWrapperWithParentKey);
   processLimit(outputStateItems, query);
 
@@ -219,8 +239,72 @@ function processFields(data: SoqlFetchMetadataOutput, stateItems: Partial<QueryR
   });
 }
 
+/**
+ * This relies on selectedQueryFieldsState having been set first.
+ * Only fields that are valid and selected are processed.
+ * @param stateItems
+ */
+function processFieldFunctions(stateItems: Partial<QueryRestoreStateItems>, queryFields: QueryFieldType[]) {
+  const selectedQueryFieldsState = getMapOf(stateItems.selectedQueryFieldsState || [], 'field');
+  stateItems.fieldFilterFunctions = [];
+  const lowercaseFieldFnMap = getLowercaseFieldFunctionMap();
+
+  queryFields.forEach((field) => {
+    if (field.type !== 'FieldFunctionExpression' || !isString(field.parameters[0]) || !selectedQueryFieldsState[field.parameters[0]]) {
+      return;
+    }
+
+    stateItems.fieldFilterFunctions?.push({
+      selectedField: selectedQueryFieldsState[field.parameters[0]],
+      selectedFunction: lowercaseFieldFnMap[field.functionName.toLocaleLowerCase()] || field.functionName,
+      alias: field.alias || null,
+    });
+  });
+
+  if (!stateItems.fieldFilterFunctions.length) {
+    stateItems.fieldFilterFunctions.push({
+      selectedField: null,
+      selectedFunction: null,
+      alias: null,
+    });
+  }
+}
+
+function processGroupBy(
+  stateItems: Partial<QueryRestoreStateItems>,
+  query: Query,
+  fieldWrapperWithParentKey: MapOf<FieldWrapperWithParentKey>
+) {
+  if (!query.groupBy) {
+    return;
+  }
+  const groupBys = Array.isArray(query.groupBy) ? query.groupBy : [query.groupBy];
+  stateItems.queryGroupByState = [];
+  let key = 0;
+  groupBys.forEach((groupBy) => {
+    if (isGroupByField(groupBy)) {
+      stateItems.queryGroupByState?.push({
+        key: key++,
+        field: groupBy.field, // TODO: case-sensitive check?
+        fieldLabel: groupBy.field, // TODO: what is this used for?
+        function: null,
+      });
+    } else if (isGroupByFn(groupBy) && isString(groupBy.fn.parameters?.[0])) {
+      stateItems.queryGroupByState?.push({
+        key: key++,
+        field: groupBy.fn.parameters?.[0] || null,
+        fieldLabel: groupBy.fn.parameters?.[0] || null,
+        function: groupBy.fn.functionName || null,
+      });
+    }
+  });
+
+  if (stateItems.queryGroupByState.length === 0) {
+    stateItems.queryGroupByState = undefined;
+  }
+}
+
 function processFilters(
-  data: SoqlFetchMetadataOutput,
   stateItems: Partial<QueryRestoreStateItems>,
   query: Query,
   fieldWrapperWithParentKey: MapOf<FieldWrapperWithParentKey>
@@ -234,10 +318,24 @@ function processFilters(
   }
 }
 
+function processHavingClause(
+  stateItems: Partial<QueryRestoreStateItems>,
+  query: Query,
+  fieldWrapperWithParentKey: MapOf<FieldWrapperWithParentKey>
+) {
+  if (query.having) {
+    const condition = query.having;
+    stateItems.queryHavingState = {
+      action: isWhereClauseWithRightCondition(condition) && condition.operator === 'OR' ? 'OR' : 'AND',
+      rows: flattenWhereClause(stateItems.missingMisc || [], fieldWrapperWithParentKey, condition, 0),
+    };
+  }
+}
+
 function flattenWhereClause(
   missingMisc: string[],
   fieldWrapperWithParentKey: MapOf<FieldWrapperWithParentKey>,
-  where: WhereClause,
+  where: WhereClause | HavingClause,
   currKey: number,
   rows: (ExpressionConditionType | ExpressionGroupType)[] = [],
   previousCondition?: ExpressionConditionType,
@@ -279,47 +377,57 @@ function flattenWhereClause(
 
     // we should never have double nested negation conditions as it is not allowed in UI
     // this is just here to narrow type, it is the common path
-    if (
-      !isNegation &&
-      !isNegationCondition(condition) &&
-      !isValueFunctionCondition(condition) &&
-      fieldWrapperWithParentKey[condition.field.toLowerCase()]
-    ) {
-      const foundField = fieldWrapperWithParentKey[condition.field.toLowerCase()];
-      const { fieldMetadata, fieldKey, parentKey } = foundField;
-      const field = fieldMetadata.metadata;
-      const operator = getOperatorFromWhereClause(condition.operator, condition.value as string, priorConditionIsNegation);
+    if (!isNegation && !isNegationCondition(condition)) {
+      // Get field and optional function
+      let queryField = '';
+      let clauseFunction: string | null = null;
+      if (isValueFunctionCondition(condition) && isString(condition.fn.parameters?.[0])) {
+        queryField = condition.fn.parameters?.[0] || '';
+        clauseFunction = condition.fn.functionName || null;
+      } else if (!isValueFunctionCondition(condition)) {
+        queryField = condition.field.toLowerCase();
+      }
+      const foundField = fieldWrapperWithParentKey[queryField.toLowerCase()];
+      clauseFunction = clauseFunction ? getLowercaseFieldFunctionMap()[clauseFunction.toLowerCase()] : null;
 
-      if (field) {
-        const value = ['isNull', 'isNotNull'].includes(operator) ? '' : removeQuotesAndPercentage(condition.operator, condition.value);
-        expressionCondition = {
-          key: currKey,
-          resourceSelectItems: ensureFieldSelectItemsIncludesSelectionsFromRestore(field, getFieldSelectItems(field), value),
-          // FIXME: for picklist restore, what if one or more values are not valid in metadata?
-          // we could turn into text/area instead
-          // ABOVE SHOULD BE FIXED, BUT NEEDS MORE TESTING
-          // TODO:
-          resourceType: getTypeFromMetadata(field.type, operator, value),
-          resourceTypes: getFieldResourceTypes(field, operator),
-          selected: {
-            resource: fieldKey,
-            resourceMeta: fieldMetadata,
-            resourceGroup: parentKey,
-            operator,
-            value,
-          },
-        };
-        // for non-list resourceTypes, ensure that value is always a string
-        if (
-          Array.isArray(value) &&
-          (expressionCondition.resourceType === 'TEXT' ||
-            expressionCondition.resourceType === 'TEXTAREA' ||
-            expressionCondition.resourceType === 'NUMBER')
-        ) {
-          expressionCondition.selected.value = (expressionCondition.selected.value as string[]).join('\n');
+      if (foundField && (!isValueFunctionCondition(condition) || !!clauseFunction)) {
+        const { fieldMetadata, fieldKey, parentKey } = foundField;
+        const field = fieldMetadata.metadata;
+        const operator = getOperatorFromWhereClause(condition.operator, condition.value as string, priorConditionIsNegation);
+
+        if (field) {
+          const value = ['isNull', 'isNotNull'].includes(operator) ? '' : removeQuotesAndPercentage(condition.operator, condition.value);
+          expressionCondition = {
+            key: currKey,
+            resourceSelectItems: ensureFieldSelectItemsIncludesSelectionsFromRestore(field, getFieldSelectItems(field), value),
+            // FIXME: for picklist restore, what if one or more values are not valid in metadata?
+            // we could turn into text/area instead
+            // ABOVE SHOULD BE FIXED, BUT NEEDS MORE TESTING
+            resourceType: getTypeFromMetadata(field.type, operator, value),
+            resourceTypes: getFieldResourceTypes(field, operator),
+            selected: {
+              resource: fieldKey,
+              resourceMeta: fieldMetadata,
+              resourceGroup: parentKey,
+              function: clauseFunction,
+              operator,
+              value,
+            },
+          };
+          // for non-list resourceTypes, ensure that value is always a string
+          if (
+            Array.isArray(value) &&
+            (expressionCondition.resourceType === 'TEXT' ||
+              expressionCondition.resourceType === 'TEXTAREA' ||
+              expressionCondition.resourceType === 'NUMBER')
+          ) {
+            expressionCondition.selected.value = (expressionCondition.selected.value as string[]).join('\n');
+          }
+        } else {
+          missingMisc.push(`Filter ${queryField} was not found`);
         }
       } else {
-        missingMisc.push(`Filter ${condition.field} was not found`);
+        missingMisc.push(`Filter is not supported or field was not found`);
       }
 
       const requiredClosingParens = priorConditionIsNegation ? 2 : 1;
@@ -461,9 +569,18 @@ function setSelectedFields(
       if (baseFieldLowercaseMap[lowercaseField]) {
         const fieldName = baseFieldLowercaseMap[lowercaseField].name;
         queryFieldsMap[baseKey].selectedFields.add(fieldName);
-        selectedQueryFields.push({ field: fieldName, polymorphicObj: undefined });
+        selectedQueryFields.push({ field: fieldName, polymorphicObj: undefined, metadata: baseFieldLowercaseMap[lowercaseField] });
       } else {
         missingFields.push(field.field);
+      }
+    } else if (field.type === 'FieldFunctionExpression' && isString(field.parameters[0])) {
+      const lowercaseField = field.parameters[0].toLowerCase();
+      if (baseFieldLowercaseMap[lowercaseField]) {
+        const fieldName = baseFieldLowercaseMap[lowercaseField].name;
+        queryFieldsMap[baseKey].selectedFields.add(fieldName);
+        selectedQueryFields.push({ field: fieldName, polymorphicObj: undefined, metadata: baseFieldLowercaseMap[lowercaseField] });
+      } else {
+        missingFields.push(field.rawValue || field.functionName);
       }
     } else if (field.type === 'FieldRelationship') {
       const lowercaseField = field.field.toLowerCase();
@@ -473,7 +590,11 @@ function setSelectedFields(
         const fieldName = node.lowercaseFieldMap[lowercaseField].name;
         const [_, relationshipPath] = node.fieldKey.split('|');
         queryFieldsMap[node.fieldKey].selectedFields.add(fieldName);
-        selectedQueryFields.push({ field: `${relationshipPath}${fieldName}`, polymorphicObj: undefined });
+        selectedQueryFields.push({
+          field: `${relationshipPath}${fieldName}`,
+          polymorphicObj: undefined,
+          metadata: baseFieldLowercaseMap[lowercaseField],
+        });
       } else if (field.rawValue) {
         missingFields.push(field.rawValue);
       }
@@ -487,7 +608,11 @@ function setSelectedFields(
           const fieldName = node.lowercaseFieldMap[lowercaseField].name;
           const [_, relationshipPath] = node.fieldKey.split('|');
           queryFieldsMap[node.fieldKey].selectedFields.add(fieldName);
-          selectedQueryFields.push({ field: `${relationshipPath}${fieldName}`, polymorphicObj: firstCondition.objectType });
+          selectedQueryFields.push({
+            field: `${relationshipPath}${fieldName}`,
+            polymorphicObj: firstCondition.objectType,
+            metadata: baseFieldLowercaseMap[lowercaseField],
+          });
         } else {
           missingFields.push(`${field.field}.${relatedField}`);
         }

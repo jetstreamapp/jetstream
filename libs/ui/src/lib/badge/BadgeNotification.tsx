@@ -1,6 +1,6 @@
 import { css } from '@emotion/react';
 import classNames from 'classnames';
-import React, { FunctionComponent, ReactNode } from 'react';
+import { ReactNode } from 'react';
 
 export interface BadgeNotificationProps {
   className?: string;
@@ -8,7 +8,7 @@ export interface BadgeNotificationProps {
   children?: ReactNode;
 }
 
-export const BadgeNotification: FunctionComponent<BadgeNotificationProps> = ({ className, animate, children }) => {
+export const BadgeNotification = ({ className, animate = false, children }: BadgeNotificationProps) => {
   return (
     <span
       css={css`

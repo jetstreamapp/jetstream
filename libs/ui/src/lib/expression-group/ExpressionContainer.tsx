@@ -27,6 +27,8 @@ export interface ExpressionContainerProps {
   actionHelpText?: string;
   resourceLabel?: string;
   resourceHelpText?: string;
+  functionsLabel?: string;
+  functionsHelpText?: string;
   operatorLabel?: string;
   operatorHelpText?: string;
   valueLabel?: string;
@@ -34,6 +36,7 @@ export interface ExpressionContainerProps {
   resources: ListItem[];
   resourceListHeader?: string;
   resourceDrillInOnLoad?: (item: ListItem) => Promise<ListItem[]>;
+  functions?: ListItem<string, QueryFilterOperator>[];
   operators: ListItem[];
   expressionInitValue?: ExpressionType;
   // used to optionally change input type of value based on the selected resource
@@ -300,6 +303,7 @@ function initRow(key: number): ExpressionConditionType {
     selected: {
       resource: null,
       resourceGroup: null,
+      function: null,
       operator: 'eq',
       value: '',
     },
@@ -362,6 +366,8 @@ export const ExpressionContainer: FunctionComponent<ExpressionContainerProps> = 
     actionHelpText,
     resourceLabel,
     resourceHelpText,
+    functionsLabel,
+    functionsHelpText,
     operatorLabel,
     operatorHelpText,
     valueLabel,
@@ -369,6 +375,7 @@ export const ExpressionContainer: FunctionComponent<ExpressionContainerProps> = 
     resources,
     resourceListHeader,
     resourceDrillInOnLoad,
+    functions,
     operators,
     expressionInitValue,
     getResourceTypeFns,
@@ -461,6 +468,8 @@ export const ExpressionContainer: FunctionComponent<ExpressionContainerProps> = 
                 resourceType={row.resourceType}
                 resourceSelectItems={row.resourceSelectItems}
                 resourceLabel={resourceLabel}
+                functionsLabel={functionsLabel}
+                functionsHelpText={functionsHelpText}
                 resourceHelpText={resourceHelpText}
                 operatorLabel={operatorLabel}
                 operatorHelpText={operatorHelpText}
@@ -470,6 +479,7 @@ export const ExpressionContainer: FunctionComponent<ExpressionContainerProps> = 
                 resources={resources}
                 resourceListHeader={resourceListHeader}
                 resourceDrillInOnLoad={resourceDrillInOnLoad}
+                functions={functions}
                 operators={operators}
                 selected={row.selected}
                 disableValueForOperators={disableValueForOperators}
@@ -503,6 +513,8 @@ export const ExpressionContainer: FunctionComponent<ExpressionContainerProps> = 
                     resourceType={childRow.resourceType}
                     resourceSelectItems={childRow.resourceSelectItems}
                     resourceLabel={resourceLabel}
+                    functionsLabel={functionsLabel}
+                    functionsHelpText={functionsHelpText}
                     resourceHelpText={resourceHelpText}
                     operatorLabel={operatorLabel}
                     operatorHelpText={operatorHelpText}
@@ -511,6 +523,7 @@ export const ExpressionContainer: FunctionComponent<ExpressionContainerProps> = 
                     rowHelpText={childRow.helpText}
                     resources={resources}
                     resourceListHeader={resourceListHeader}
+                    functions={functions}
                     operators={operators}
                     selected={childRow.selected}
                     disableValueForOperators={disableValueForOperators}

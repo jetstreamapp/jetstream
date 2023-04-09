@@ -38,6 +38,8 @@ export interface ExpressionConditionRowProps {
   wrap?: boolean;
   resourceLabel?: string;
   resourceHelpText?: string;
+  functionsLabel?: string;
+  functionsHelpText?: string;
   operatorLabel?: string;
   operatorHelpText?: string;
   valueLabel?: string;
@@ -46,6 +48,7 @@ export interface ExpressionConditionRowProps {
   resources: ListItem[];
   resourceListHeader?: string;
   resourceDrillInOnLoad?: (item: ListItem) => Promise<ListItem[]>;
+  functions?: ListItem<string, QueryFilterOperator>[];
   operators: ListItem<string, QueryFilterOperator>[];
   selected: ExpressionConditionRowSelectedItems;
   resourceTypes?: ListItem<ExpressionRowValueType>[];
@@ -70,6 +73,8 @@ export const ExpressionConditionRow: FunctionComponent<ExpressionConditionRowPro
   wrap,
   resourceLabel = 'Resource',
   resourceHelpText,
+  functionsLabel = 'Field Functions',
+  functionsHelpText,
   operatorLabel = 'Operator',
   operatorHelpText,
   valueLabel = 'Value',
@@ -78,6 +83,7 @@ export const ExpressionConditionRow: FunctionComponent<ExpressionConditionRowPro
   resources,
   resourceListHeader,
   resourceDrillInOnLoad,
+  functions,
   operators,
   selected,
   resourceTypes,
@@ -184,7 +190,7 @@ export const ExpressionConditionRow: FunctionComponent<ExpressionConditionRowPro
           {row !== 1 && AndOr && <span>{AndOr}</span>}
           <span className="slds-assistive-text">{`Condition ${row} ${group ? `Of Group ${group}` : ''}`}</span>
         </legend>
-        <Grid guttersSize="xx-small" wrap={wrap}>
+        <Grid guttersSize="xx-small" wrap={wrap} verticalAlign="end">
           {showDragHandles && (
             <button
               ref={drag}
@@ -217,6 +223,23 @@ export const ExpressionConditionRow: FunctionComponent<ExpressionConditionRowPro
               }}
             />
           </GridCol>
+          {/* Function */}
+          {functions && (
+            <GridCol growNone>
+              <ComboboxWithItems
+                comboboxProps={{
+                  label: functionsLabel,
+                  labelHelp: functionsHelpText,
+                  itemLength: 10,
+                  showSelectionAsButton: true,
+                  onClear: () => onChange({ ...selected, function: null }),
+                }}
+                items={functions}
+                selectedItemId={selected.function}
+                onSelected={(item) => onChange({ ...selected, function: item.value })}
+              />
+            </GridCol>
+          )}
           {/* Operator */}
           <GridCol growNone>
             <ComboboxWithItems

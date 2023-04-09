@@ -345,7 +345,7 @@
     "slack-notify": "^0.1.7",
     "socket.io": "^4.2.0",
     "socket.io-client": "^4.2.0",
-    "soql-parser-js": "^4.4.1",
+    "soql-parser-js": "^4.8.1",
     "split.js": "^1.6.5",
     "superagent": "^5.2.2",
     "tslib": "^2.3.0",

@@ -7,7 +7,7 @@ import type { Field, FieldType } from 'jsforce';
 import isNil from 'lodash/isNil';
 import isNumber from 'lodash/isNumber';
 import isString from 'lodash/isString';
-import { composeQuery, FieldSubquery, getFlattenedFields, Query } from 'soql-parser-js';
+import { FieldSubquery, HavingClause, Query, WhereClause, composeQuery, getFlattenedFields } from 'soql-parser-js';
 
 export interface EditFromErrors {
   hasErrors: boolean;
@@ -19,9 +19,13 @@ const DATE_FIELD_TYPES = new Set<FieldType>(['date', 'datetime']);
 const TIME_FIELD_TYPES = new Set<FieldType>(['time']);
 const NUMBER_TYPES = new Set<FieldType>(['int', 'double', 'currency', 'percent']);
 
-export function composeSoqlQuery(query: Query, whereExpression: ExpressionType) {
+export function composeSoqlQuery(query: Query, whereExpression: ExpressionType, havingClauses?: ExpressionType) {
   return composeQuery(
-    { ...query, where: convertFiltersToWhereClause(whereExpression) },
+    {
+      ...query,
+      where: convertFiltersToWhereClause<WhereClause>(whereExpression),
+      having: havingClauses ? convertFiltersToWhereClause<HavingClause>(havingClauses) : undefined,
+    },
     { format: true, formatOptions: { fieldMaxLineLength: 80 } }
   );
 }

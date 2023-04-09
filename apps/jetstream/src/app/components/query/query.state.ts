@@ -1,8 +1,18 @@
+import { queryFilterHasValue } from '@jetstream/shared/ui-utils';
 import { convertFieldWithPolymorphicToQueryFields, orderStringsBy } from '@jetstream/shared/utils';
-import { ExpressionType, ListItem, MapOf, QueryFields, QueryFieldWithPolymorphic, QueryOrderByClause } from '@jetstream/types';
+import {
+  ExpressionType,
+  ListItem,
+  MapOf,
+  QueryFieldWithPolymorphic,
+  QueryFields,
+  QueryGroupByClause,
+  QueryOrderByClause,
+} from '@jetstream/types';
+import { isExpressionConditionType } from '@jetstream/ui';
 import type { ChildRelationship, DescribeGlobalSObjectResult } from 'jsforce';
 import { atom, selector } from 'recoil';
-import { FieldType, getField, OrderByClause, OrderByFieldClause, Subquery } from 'soql-parser-js';
+import { FieldType, GroupByFieldClause, GroupByFnClause, OrderByClause, OrderByFieldClause, Subquery, getField } from 'soql-parser-js';
 
 export const isRestore = atom<boolean>({
   key: 'query.isRestore',
@@ -57,7 +67,13 @@ export const selectedSubqueryFieldsState = atom<MapOf<QueryFieldWithPolymorphic[
 export const selectQueryField = selector<FieldType[]>({
   key: 'query.selectQueryField',
   get: ({ get }) => {
-    let fields = convertFieldWithPolymorphicToQueryFields(get(selectedQueryFieldsState));
+    const filterFieldFns = get(fieldFilterFunctions).reduce((acc: MapOf<{ fn: string; alias: string | null }>, item) => {
+      if (!!item.selectedField && !!item.selectedFunction) {
+        acc[item.selectedField.field] = { fn: item.selectedFunction, alias: item.alias };
+      }
+      return acc;
+    }, {});
+    let fields = convertFieldWithPolymorphicToQueryFields(get(selectedQueryFieldsState), filterFieldFns);
     const fieldsByChildRelName = get(selectedSubqueryFieldsState);
     // Concat subquery fields
     fields = fields.concat(
@@ -81,9 +97,31 @@ export const filterQueryFieldsState = atom<ListItem[]>({
   default: [],
 });
 
+export const groupByQueryFieldsState = atom<ListItem[]>({
+  key: 'query.groupByQueryFieldsState',
+  default: [],
+});
+
 export const orderByQueryFieldsState = atom<ListItem[]>({
   key: 'query.orderByQueryFieldsState',
   default: [],
+});
+
+export type FieldFilterFunction = {
+  selectedField: QueryFieldWithPolymorphic | null;
+  selectedFunction: string | null;
+  alias: string | null;
+};
+
+export const fieldFilterFunctions = atom<FieldFilterFunction[]>({
+  key: 'query.fieldFilterFunctions',
+  default: [
+    {
+      selectedField: null,
+      selectedFunction: null,
+      alias: null,
+    },
+  ],
 });
 
 /** Used so that after a query restore happens, the query filters can be re-initialized */
@@ -111,6 +149,57 @@ export const queryFiltersState = atom<ExpressionType>({
         selected: {
           resource: null,
           resourceGroup: null,
+          function: null,
+          operator: 'eq',
+          value: '',
+        },
+      },
+    ],
+  },
+});
+
+export function initGroupByClause(key = 0): QueryGroupByClause {
+  return { key, field: null, fieldLabel: null, function: null };
+}
+
+export const queryGroupByState = atom<QueryGroupByClause[]>({
+  key: 'query.queryGroupByState',
+  default: [initGroupByClause()],
+});
+
+export const selectQueryGroupByBy = selector<(GroupByFieldClause | GroupByFnClause)[]>({
+  key: 'query.selectQueryGroupByBy',
+  get: ({ get }) =>
+    get(queryGroupByState)
+      ?.filter((groupBy) => !!groupBy.field)
+      .map((orderBy): GroupByFieldClause | GroupByFnClause => {
+        if (orderBy.function) {
+          return {
+            fn: {
+              functionName: orderBy.function,
+              // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+              parameters: [orderBy.field!],
+            },
+          };
+        }
+        return {
+          // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+          field: orderBy.field!,
+        };
+      }),
+});
+
+export const queryHavingState = atom<ExpressionType>({
+  key: 'query.queryHavingState',
+  default: {
+    action: 'AND',
+    rows: [
+      {
+        key: 0,
+        selected: {
+          resource: null,
+          resourceGroup: null,
+          function: null,
           operator: 'eq',
           value: '',
         },
@@ -198,4 +287,50 @@ export const querySoqlState = atom<string>({
 export const queryIncludeDeletedRecordsState = atom<boolean>({
   key: 'query.queryIncludeDeletedRecordsState',
   default: false,
+});
+
+export const hasFiltersConfigured = selector<boolean>({
+  key: 'query.hasFiltersConfigured',
+  get: ({ get }) =>
+    !!get(queryFiltersState)
+      .rows.flatMap((row) => (isExpressionConditionType(row) ? row : row.rows.map((row) => row)))
+      .some((row) => queryFilterHasValue(row)),
+});
+
+export const hasHavingConfigured = selector<boolean>({
+  key: 'query.hasHavingConfigured',
+  get: ({ get }) =>
+    !!get(queryHavingState)
+      .rows.flatMap((row) => (isExpressionConditionType(row) ? row : row.rows.map((row) => row)))
+      .some((row) => queryFilterHasValue(row)),
+});
+
+export const hasGroupByConfigured = selector<boolean>({
+  key: 'query.hasGroupByConfigured',
+  get: ({ get }) => get(queryGroupByState)?.filter((groupBy) => !!groupBy.field).length > 0 || false,
+});
+
+export const hasOrderByConfigured = selector<boolean>({
+  key: 'query.hasOrderByConfigured',
+  get: ({ get }) => get(queryOrderByState).some((orderBy) => !!orderBy.field),
+});
+
+export const hasLimitConfigured = selector<boolean>({
+  key: 'query.hasLimitConfigured',
+  get: ({ get }) => !!get(queryLimit).trim() || !!get(queryLimitSkip).trim(),
+});
+
+export const hasFieldFunctionsConfigured = selector<boolean>({
+  key: 'query.hasFieldFunctionsConfigured',
+  get: ({ get }) => get(fieldFilterFunctions).some((fn) => !!fn.selectedField && !!fn.selectedFunction),
+});
+
+export const hasQueryOptionsConfigured = selector<{ standard: number; advanced: number }>({
+  key: 'query.hasQueryOptionsConfigured',
+  get: ({ get }) => {
+    return {
+      standard: [get(hasFiltersConfigured), get(hasOrderByConfigured), get(hasLimitConfigured)].filter(Boolean).length,
+      advanced: [get(hasFieldFunctionsConfigured), get(hasGroupByConfigured), get(hasHavingConfigured)].filter(Boolean).length,
+    };
+  },
 });

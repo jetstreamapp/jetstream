@@ -1,15 +1,15 @@
-/* eslint-disable @typescript-eslint/no-unused-vars */
 import { formatNumber } from '@jetstream/shared/ui-utils';
 import { truncate } from '@jetstream/shared/utils';
 import { ExpressionConditionType } from '@jetstream/types';
 import { Badge, isExpressionConditionType } from '@jetstream/ui';
-import React, { Fragment, FunctionComponent } from 'react';
+import { Fragment } from 'react';
 import { ErrorBoundary } from 'react-error-boundary';
 import { useRecoilValue } from 'recoil';
 import * as fromQueryState from '../../query.state';
 
-// eslint-disable-next-line @typescript-eslint/no-empty-interface
-export interface QueryFilterTitleSummaryProps {}
+export interface QueryFilterTitleSummaryProps {
+  isHavingClause?: boolean;
+}
 
 function hasValue(row: ExpressionConditionType) {
   const hasValue = Array.isArray(row.selected.value) ? row.selected.value.length : !!row.selected.value;
@@ -101,8 +101,10 @@ function getFilterLabel(row: ExpressionConditionType) {
   );
 }
 
-export const QueryFilterTitleSummary: FunctionComponent<QueryFilterTitleSummaryProps> = () => {
-  const filters = useRecoilValue(fromQueryState.queryFiltersState);
+export const QueryFilterTitleSummary = ({ isHavingClause = false }: QueryFilterTitleSummaryProps) => {
+  const filtersState = useRecoilValue(fromQueryState.queryFiltersState);
+  const having = useRecoilValue(fromQueryState.queryHavingState);
+  const filters = isHavingClause ? having : filtersState;
 
   const configuredFilters = filters.rows
     .flatMap((filterRow) => (isExpressionConditionType(filterRow) ? filterRow : filterRow.rows))
@@ -110,6 +112,7 @@ export const QueryFilterTitleSummary: FunctionComponent<QueryFilterTitleSummaryP
   const beyondDisplayLimit = configuredFilters.length > 3;
 
   return (
+    // eslint-disable-next-line react/jsx-no-useless-fragment
     <ErrorBoundary fallbackRender={() => <Fragment />}>
       {!!configuredFilters.length &&
         !beyondDisplayLimit &&
