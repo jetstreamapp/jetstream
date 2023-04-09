@@ -715,7 +715,7 @@ export function getLowercaseFieldFunctionMap() {
 }
 
 function getLiteralType(selected: ExpressionConditionRowSelectedItems, functionName?: Maybe<string>): LiteralType {
-  const field: Field = safeGet(selected, 'resourceMeta');
+  const field: Field = safeGet(selected, 'resourceMeta.metadata', safeGet(selected, 'resourceMeta'));
 
   if (selected.operator === 'isNull' || selected.operator === 'isNotNull') {
     return 'NULL';

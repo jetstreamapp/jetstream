@@ -228,7 +228,7 @@ export function getTypeFromMetadata(type: FieldType, operator: Maybe<QueryFilter
       } else if (value && REGEX.NUMERIC.test(value)) {
         return 'TEXT';
       }
-      return 'SELECT';
+      return 'DATETIME';
     }
     case 'boolean':
     case 'picklist':

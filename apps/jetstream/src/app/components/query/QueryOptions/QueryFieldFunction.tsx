@@ -77,7 +77,6 @@ export const QueryFieldFunction = ({ hasGroupByClause, selectedFields }: QueryFi
 
   return (
     <Grid vertical>
-      <p>You can add functions to your fields to change their behavior</p>
       <Grid wrap>
         {fieldFilterFunctions.map(({ selectedField, selectedFunction, alias }, i) => (
           <GridCol key={i} size={12} className="slds-m-bottom_x-small">

@@ -1,6 +1,7 @@
 import { ListItem, QueryFieldWithPolymorphic, UiSection } from '@jetstream/types';
 import { Accordion, ScopedNotification } from '@jetstream/ui';
-import { useRecoilState, useRecoilValue } from 'recoil';
+import { useEffect } from 'react';
+import { useRecoilState, useRecoilValue, useResetRecoilState } from 'recoil';
 import * as fromQueryState from '../query.state';
 import QueryFieldFunction from './QueryFieldFunction';
 import QueryFilter from './QueryFilter';
@@ -29,7 +30,16 @@ export const QueryBuilderAdvancedOptions = ({
   const queryKey = useRecoilValue(fromQueryState.selectQueryKeyState);
   const hasGroupByClause = useRecoilValue(fromQueryState.hasGroupByConfigured);
   const groupByFields = useRecoilValue(fromQueryState.groupByQueryFieldsState);
+  const hasGroupByConfigured = useRecoilValue(fromQueryState.hasGroupByConfigured);
+  const hasHavingConfigured = useRecoilValue(fromQueryState.hasHavingConfigured);
+  const resetQueryHaving = useResetRecoilState(fromQueryState.queryHavingState);
   const [queryHaving, setQueryHaving] = useRecoilState(fromQueryState.queryHavingState);
+
+  useEffect(() => {
+    if (!hasGroupByConfigured && hasHavingConfigured) {
+      resetQueryHaving();
+    }
+  }, [hasGroupByConfigured, hasHavingConfigured, resetQueryHaving]);
 
   return (
     <Accordion

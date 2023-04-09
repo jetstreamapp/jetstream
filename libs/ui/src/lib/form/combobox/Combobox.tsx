@@ -348,7 +348,7 @@ export const Combobox = forwardRef<ComboboxPropsRef, ComboboxProps>(
       showSelectionAsButton && onClear && selectedItemLabel ? (
         <div className="slds-input__icon-group slds-input__icon-group_right">
           <button className="slds-button slds-button_icon slds-input__icon slds-input__icon_right" onClick={handleRemoveItem}>
-            <Icon type="utility" icon="close" className="slds-button__icon" omitContainer description="Clear Selection" />
+            <Icon type="utility" icon="clear" className="slds-button__icon" omitContainer description="Clear Selection" />
           </button>
         </div>
       ) : (
@@ -421,6 +421,7 @@ export const Combobox = forwardRef<ComboboxPropsRef, ComboboxProps>(
                       autoComplete="off"
                       placeholder={placeholder}
                       disabled={disabled}
+                      readOnly={preventOpen}
                       onKeyUp={handleInputKeyUp}
                       onChange={(event) => setValue(event.target.value)}
                       value={value}
