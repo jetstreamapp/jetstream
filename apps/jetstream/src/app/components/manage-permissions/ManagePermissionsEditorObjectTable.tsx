@@ -8,6 +8,7 @@ import {
   DirtyRow,
   FieldPermissionTypes,
   ManagePermissionsEditorTableRef,
+  PermissionManagerTableContext,
   PermissionTableObjectCell,
   PermissionTableSummaryRow,
 } from './utils/permission-manager-types';
@@ -29,12 +30,14 @@ const SUMMARY_ROWS: PermissionTableSummaryRow[] = [{ type: 'HEADING' }, { type: 
 export interface ManagePermissionsEditorObjectTableProps {
   columns: ColumnWithFilter<PermissionTableObjectCell, PermissionTableSummaryRow>[];
   rows: PermissionTableObjectCell[];
+  totalCount: number;
+  onFilter: (value: string) => void;
   onBulkUpdate: (rows: PermissionTableObjectCell[], indexes?: number[]) => void;
   onDirtyRows?: (values: MapOf<DirtyRow<PermissionTableObjectCell>>) => void;
 }
 
 export const ManagePermissionsEditorObjectTable = forwardRef<any, ManagePermissionsEditorObjectTableProps>(
-  ({ columns, rows, onBulkUpdate, onDirtyRows }, ref) => {
+  ({ columns, rows, totalCount, onFilter, onBulkUpdate, onDirtyRows }, ref) => {
     const [dirtyRows, setDirtyRows] = useState<MapOf<DirtyRow<PermissionTableObjectCell>>>({});
     // const [expandedGroupIds, setExpandedGroupIds] = useState(() => new Set<any>(rows.map((row) => row.sobject)));
 
@@ -71,7 +74,15 @@ export const ManagePermissionsEditorObjectTable = forwardRef<any, ManagePermissi
             getRowKey={getRowKey}
             topSummaryRows={SUMMARY_ROWS}
             onRowsChange={handleRowsChange}
-            context={{ type: 'object', onColumnAction: handleColumnAction, onBulkAction: onBulkUpdate }}
+            context={
+              {
+                type: 'object',
+                totalCount,
+                onFilterRows: onFilter,
+                onColumnAction: handleColumnAction,
+                onBulkAction: onBulkUpdate,
+              } as PermissionManagerTableContext
+            }
             rowHeight={getRowHeight}
             summaryRowHeight={38}
           />

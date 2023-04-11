@@ -11,9 +11,10 @@ import {
   Modal,
   Popover,
   PopoverRef,
-  setColumnFromType,
+  SearchInput,
   SummaryFilterRenderer,
   Tooltip,
+  setColumnFromType,
 } from '@jetstream/ui';
 import startCase from 'lodash/startCase';
 import { Fragment, FunctionComponent, useContext, useRef, useState } from 'react';
@@ -203,7 +204,15 @@ export function getObjectColumns(
         const data: PermissionTableFieldCell = row[column.key];
         return data && `${data.label} (${data.apiName})`;
       },
-      summaryCellClass: ({ type }) => (type === 'HEADING' ? 'bg-color-gray' : null),
+      summaryCellClass: 'bg-color-gray-dark no-outline',
+      summaryFormatter: ({ row }) => {
+        if (row.type === 'HEADING') {
+          return <ColumnSearchFilterSummary />;
+        } else if (row.type === 'ACTION') {
+          return <ColumnSearchFilter />;
+        }
+        return undefined;
+      },
     },
     {
       name: '',
@@ -369,7 +378,15 @@ export function getFieldColumns(
           <span className="slds-m-left_xx-small slds-text-body_small slds-text-color_weak">({childRows.length})</span>
         </>
       ),
-      summaryCellClass: 'bg-color-gray-dark',
+      summaryCellClass: 'bg-color-gray-dark no-outline',
+      summaryFormatter: ({ row }) => {
+        if (row.type === 'HEADING') {
+          return <ColumnSearchFilterSummary />;
+        } else if (row.type === 'ACTION') {
+          return <ColumnSearchFilter />;
+        }
+        return undefined;
+      },
     },
     {
       name: '',
@@ -1041,6 +1058,28 @@ export const RowActionRenderer: FunctionComponent<FormatterProps<PermissionTable
  *
  * This component provides a modal that the user can open to make changes that apply to an entire visible table
  */
+export const ColumnSearchFilter = () => {
+  const { onFilterRows } = useContext(DataTableGenericContext) as PermissionManagerTableContext;
+  return <SearchInput id="column-filter" value="" placeholder="Filter..." onChange={onFilterRows} />;
+};
+
+export const ColumnSearchFilterSummary = () => {
+  const { type, rows, totalCount } = useContext(DataTableGenericContext) as PermissionManagerTableContext;
+  if (!Array.isArray(rows) || !totalCount || rows.length === totalCount) {
+    return null;
+  }
+  return (
+    <p className="slds-text-body_small slds-text-color_weak">
+      Showing {formatNumber(rows.length)} of {formatNumber(totalCount)} {pluralizeFromNumber(type, totalCount)}
+    </p>
+  );
+};
+
+/**
+ * Bulk Row action renderer
+ *
+ * This component provides a modal that the user can open to make changes that apply to an entire visible table
+ */
 export const BulkActionRenderer = () => {
   const { type, rows, onBulkAction } = useContext(DataTableGenericContext) as PermissionManagerTableContext;
   const [isOpen, setIsOpen] = useState(false);
@@ -1105,7 +1144,7 @@ export const BulkActionRenderer = () => {
             <p className="slds-text-align_center slds-m-bottom_small">
               This change will apply to{' '}
               <strong>
-                {formatNumber(rows.length)} {pluralizeFromNumber('item', rows.length)}
+                {formatNumber(rows.length)} {pluralizeFromNumber(type, rows.length)}
               </strong>{' '}
               and all selected profiles and permission sets
             </p>
