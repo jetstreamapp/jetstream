@@ -579,6 +579,22 @@ function setSelectedFields(
         const fieldName = baseFieldLowercaseMap[lowercaseField].name;
         queryFieldsMap[baseKey].selectedFields.add(fieldName);
         selectedQueryFields.push({ field: fieldName, polymorphicObj: undefined, metadata: baseFieldLowercaseMap[lowercaseField] });
+      } else if (lowercaseField.includes('.')) {
+        const baseField = lowercaseField.split('.').slice(-1)[0];
+        const relationship = lowercaseField.split('.').slice(0, -1).join('.');
+        if (keyToMetadataTreeNode[relationship]?.lowercaseFieldMap[baseField]) {
+          const node = keyToMetadataTreeNode[relationship];
+          const fieldName = node.lowercaseFieldMap[baseField].name;
+          const [_, relationshipPath] = node.fieldKey.split('|');
+          queryFieldsMap[node.fieldKey].selectedFields.add(fieldName);
+          selectedQueryFields.push({
+            field: `${relationshipPath}${fieldName}`,
+            polymorphicObj: undefined,
+            metadata: keyToMetadataTreeNode[relationship].lowercaseFieldMap[baseField],
+          });
+        } else {
+          missingFields.push(field.rawValue || field.functionName);
+        }
       } else {
         missingFields.push(field.rawValue || field.functionName);
       }
@@ -593,7 +609,7 @@ function setSelectedFields(
         selectedQueryFields.push({
           field: `${relationshipPath}${fieldName}`,
           polymorphicObj: undefined,
-          metadata: baseFieldLowercaseMap[lowercaseField],
+          metadata: keyToMetadataTreeNode[relationship].lowercaseFieldMap[lowercaseField],
         });
       } else if (field.rawValue) {
         missingFields.push(field.rawValue);
@@ -611,7 +627,7 @@ function setSelectedFields(
           selectedQueryFields.push({
             field: `${relationshipPath}${fieldName}`,
             polymorphicObj: firstCondition.objectType,
-            metadata: baseFieldLowercaseMap[lowercaseField],
+            metadata: keyToMetadataTreeNode[relationship].lowercaseFieldMap[lowercaseField],
           });
         } else {
           missingFields.push(`${field.field}.${relatedField}`);

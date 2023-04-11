@@ -20,7 +20,7 @@ export const QueryFieldFunction = ({ hasGroupByClause, selectedFields }: QueryFi
       selectedFields.map(
         (field): ListItem<string, QueryFieldWithPolymorphic> => ({
           id: field.field,
-          label: field.metadata.label,
+          label: field.metadata?.label || field.field,
           value: field.field,
           secondaryLabel: field.field,
           secondaryLabelOnNewLine: true,

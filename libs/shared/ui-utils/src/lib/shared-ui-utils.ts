@@ -235,6 +235,9 @@ export function sortQueryFieldsPolymorphicComparable(field1: QueryFieldWithPolym
 }
 
 export function polyfillFieldDefinition(field: Field): string {
+  if (!field) {
+    return '';
+  }
   const autoNumber: boolean = field.autoNumber;
   const { type, calculated, calculatedFormula, externalId, nameField, extraTypeInfo, length, precision, referenceTo, scale } = field;
   let prefix = '';
