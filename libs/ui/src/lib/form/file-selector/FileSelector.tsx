@@ -82,16 +82,20 @@ export const FileSelector: FunctionComponent<FileSelectorProps> = ({
 
   const handlePaste = useCallback(
     (event: ClipboardEvent) => {
-      if (!allowFromClipboard || !event.clipboardData || !event.clipboardData.items) {
-        return;
-      }
-      const items = event.clipboardData.items;
-      items[0].getAsString((content) => {
-        if (content && content.split('\n').length > 1) {
-          setManagedFilename('Clipboard-Paste.csv');
-          onReadFile({ filename: 'Clipboard-Paste.csv', extension: '.csv', content, isPasteFromClipboard: true });
+      try {
+        if (!allowFromClipboard || !event.clipboardData || !Array.isArray(event.clipboardData.items) || !event.clipboardData.items.length) {
+          return;
         }
-      });
+        const items = event.clipboardData.items;
+        items[0].getAsString((content) => {
+          if (content && content.split('\n').length > 1) {
+            setManagedFilename('Clipboard-Paste.csv');
+            onReadFile({ filename: 'Clipboard-Paste.csv', extension: '.csv', content, isPasteFromClipboard: true });
+          }
+        });
+      } catch (ex) {
+        logger.warn('[CLIPBOARD] Failed to handle clipboard paste', ex);
+      }
     },
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [allowFromClipboard, setManagedFilename]
