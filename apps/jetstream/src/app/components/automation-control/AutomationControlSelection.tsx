@@ -1,6 +1,7 @@
 import { css } from '@emotion/react';
 import { TITLES } from '@jetstream/shared/constants';
 import { useRollbar } from '@jetstream/shared/ui-utils';
+import { SplitWrapper as Split } from '@jetstream/splitjs';
 import { SalesforceOrgUi } from '@jetstream/types';
 import {
   AutoFullHeightContainer,
@@ -16,10 +17,10 @@ import {
 import type { DescribeGlobalSObjectResult } from 'jsforce';
 import { FunctionComponent } from 'react';
 import { Link } from 'react-router-dom';
-import { SplitWrapper as Split } from '@jetstream/splitjs';
 import { useTitle } from 'react-use';
 import { useRecoilState, useRecoilValue } from 'recoil';
 import { selectedOrgState } from '../../app-state';
+import { RequireMetadataApiBanner } from '../core/RequireMetadataApiBanner';
 import { AutomationMetadataType } from './automation-control-types';
 import * as fromAutomationCtlState from './automation-control.state';
 
@@ -61,6 +62,7 @@ export const AutomationControlSelection: FunctionComponent<AutomationControlSele
 
   return (
     <Page testId="automation-control--selection-page">
+      <RequireMetadataApiBanner />
       <PageHeader>
         <PageHeaderRow>
           <PageHeaderTitle icon={{ type: 'standard', icon: 'activations' }} label="Automation Control" docsPath="/automation-control" />

@@ -1,5 +1,6 @@
 import { css } from '@emotion/react';
 import { logger } from '@jetstream/shared/client-logger';
+import { getMapOf, multiWordObjectFilter } from '@jetstream/shared/utils';
 import { MapOf, SalesforceOrgUi } from '@jetstream/types';
 import {
   AutoFullHeightContainer,
@@ -20,10 +21,11 @@ import { Link } from 'react-router-dom';
 import { useRecoilState, useRecoilValue, useResetRecoilState } from 'recoil';
 import { applicationCookieState, selectedOrgState } from '../../app-state';
 import ConfirmPageChange from '../core/ConfirmPageChange';
+import { RequireMetadataApiBanner } from '../core/RequireMetadataApiBanner';
 import * as fromJetstreamEvents from '../core/jetstream-events';
-import * as fromPermissionsState from './manage-permissions.state';
 import ManagePermissionsEditorFieldTable from './ManagePermissionsEditorFieldTable';
 import ManagePermissionsEditorObjectTable from './ManagePermissionsEditorObjectTable';
+import * as fromPermissionsState from './manage-permissions.state';
 import { usePermissionRecords } from './usePermissionRecords';
 import { generateExcelWorkbookFromTable } from './utils/permission-manager-export-utils';
 import {
@@ -64,7 +66,6 @@ import {
   savePermissionRecords,
   updatePermissionSetRecords,
 } from './utils/permission-manager-utils';
-import { getMapOf, multiWordObjectFilter } from '@jetstream/shared/utils';
 
 const HEIGHT_BUFFER = 170;
 
@@ -413,6 +414,7 @@ export const ManagePermissionsEditor: FunctionComponent<ManagePermissionsEditorP
           emitUploadToGoogleEvent={fromJetstreamEvents.emit}
         />
       )}
+      <RequireMetadataApiBanner />
       <Toolbar>
         <ToolbarItemGroup>
           <Link className="slds-button slds-button_brand" to=".." onClick={handleGoBack}>

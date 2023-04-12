@@ -8,12 +8,12 @@ import {
   Card,
   Checkbox,
   CopyToClipboard,
-  dataTableFileSizeFormatter,
   Grid,
   Icon,
   SalesforceLogin,
   Spinner,
   ViewDocsLink,
+  dataTableFileSizeFormatter,
 } from '@jetstream/ui';
 import Editor from '@monaco-editor/react';
 import formatDate from 'date-fns/format';
@@ -24,6 +24,7 @@ import { useTitle } from 'react-use';
 import { useRecoilState, useRecoilValue } from 'recoil';
 import { filter } from 'rxjs/operators';
 import { applicationCookieState, selectedOrgState } from '../../app-state';
+import { RequireMetadataApiBanner } from '../core/RequireMetadataApiBanner';
 import * as fromJetstreamEvents from '../core/jetstream-events';
 import DebugLogViewerFilter from './DebugLogViewerFilter';
 import DebugLogViewerTable from './DebugLogViewerTable';
@@ -191,6 +192,7 @@ export const DebugLogViewer: FunctionComponent<DebugLogViewerProps> = () => {
 
   return (
     <AutoFullHeightContainer fillHeight bottomBuffer={10} setHeightAttr className="slds-p-horizontal_x-small slds-scrollable_none">
+      <RequireMetadataApiBanner />
       {purgeModalOpen && <PurgeLogsModal selectedOrg={selectedOrg} onModalClose={() => setPurgeModalOpen(false)} />}
       <Split
         sizes={[66, 33]}

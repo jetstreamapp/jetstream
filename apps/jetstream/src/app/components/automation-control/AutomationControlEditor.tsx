@@ -32,8 +32,12 @@ import { Link } from 'react-router-dom';
 import { useTitle } from 'react-use';
 import { useRecoilState, useRecoilValue } from 'recoil';
 import { applicationCookieState, selectedOrgState } from '../../app-state';
+import { RequireMetadataApiBanner } from '../core/RequireMetadataApiBanner';
 import { useAmplitude } from '../core/analytics';
 import * as fromJetstreamEvents from '../core/jetstream-events';
+import AutomationControlEditorReviewModal from './AutomationControlEditorReviewModal';
+import AutomationControlEditorTable from './AutomationControlEditorTable';
+import AutomationControlLastRefreshedPopover from './AutomationControlLastRefreshedPopover';
 import {
   getAutomationDeployType,
   isTableRow,
@@ -45,9 +49,6 @@ import {
 } from './automation-control-data-utils';
 import { TableRowItem } from './automation-control-types';
 import * as fromAutomationCtlState from './automation-control.state';
-import AutomationControlEditorReviewModal from './AutomationControlEditorReviewModal';
-import AutomationControlEditorTable from './AutomationControlEditorTable';
-import AutomationControlLastRefreshedPopover from './AutomationControlLastRefreshedPopover';
 import { useAutomationControlData } from './useAutomationControlData';
 
 const HEIGHT_BUFFER = 170;
@@ -248,7 +249,7 @@ export const AutomationControlEditor: FunctionComponent<AutomationControlEditorP
           onDownload={handlePackageDownload}
         />
       )}
-
+      <RequireMetadataApiBanner />
       <Toolbar>
         <ToolbarItemGroup>
           <Link

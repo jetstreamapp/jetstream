@@ -1,5 +1,6 @@
 import { css } from '@emotion/react';
 import { ANALYTICS_KEYS } from '@jetstream/shared/constants';
+import { SplitWrapper as Split } from '@jetstream/splitjs';
 import { SalesforceOrgUi } from '@jetstream/types';
 import {
   AutoFullHeightContainer,
@@ -13,19 +14,19 @@ import {
 } from '@jetstream/ui';
 import { FunctionComponent } from 'react';
 import { Link } from 'react-router-dom';
-import { SplitWrapper as Split } from '@jetstream/splitjs';
 import { useRecoilValue } from 'recoil';
+import { selectedOrgState } from '../../app-state';
+import { RequireMetadataApiBanner } from '../core/RequireMetadataApiBanner';
 import { useAmplitude } from '../core/analytics';
+import './DeployMetadataSelection.scss';
+import DeployMetadataHistoryModal from './deploy-metadata-history/DeployMetadataHistoryModal';
 import DeployMetadataPackage from './deploy-metadata-package/DeployMetadataPackage';
 import * as fromDeployMetadataState from './deploy-metadata.state';
-import './DeployMetadataSelection.scss';
 import DownloadMetadataPackage from './download-metadata-package/DownloadMetadataPackage';
 import DateSelection from './selection-components/DateSelection';
 import ManagedPackageSelection from './selection-components/ManagedPackageSelection';
 import MetadataSelection from './selection-components/MetadataSelection';
 import UserSelection from './selection-components/UserSelection';
-import DeployMetadataHistoryModal from './deploy-metadata-history/DeployMetadataHistoryModal';
-import { selectedOrgState } from '../../app-state';
 
 const HEIGHT_BUFFER = 170;
 
@@ -46,6 +47,7 @@ export const DeployMetadataSelection: FunctionComponent<DeployMetadataSelectionP
 
   return (
     <Page testId="deploy-metadata-selection-page">
+      <RequireMetadataApiBanner />
       <PageHeader>
         <PageHeaderRow>
           <PageHeaderTitle
