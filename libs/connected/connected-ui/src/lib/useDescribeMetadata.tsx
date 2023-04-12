@@ -112,7 +112,6 @@ export function useDescribeMetadata(
         setMetadataItems(orderStringsBy(items.filter((item) => !METADATA_TYPES_TO_OMIT.has(item))));
       } catch (ex) {
         logger.error(ex);
-        rollbar.error('Describe Metadata Failed', ex);
         if (!isMounted.current || uniqueId !== selectedOrg.uniqueId) {
           return;
         }

@@ -155,7 +155,7 @@ export const DescribeMetadataList: FunctionComponent<DescribeMetadataListProps> 
             </button>
           </p>
         )}
-        {!loading && metadataItems && filteredMetadataItems && itemsWithLabel && (
+        {!loading && !hasError && metadataItems && filteredMetadataItems && itemsWithLabel && (
           <Fragment>
             <div className="slds-p-bottom--xx-small">
               <SearchInput

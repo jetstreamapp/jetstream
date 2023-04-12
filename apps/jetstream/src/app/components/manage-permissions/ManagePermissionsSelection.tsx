@@ -18,6 +18,7 @@ import { FunctionComponent, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useRecoilState, useRecoilValue, useResetRecoilState } from 'recoil';
 import { selectedOrgState } from '../../app-state';
+import { RequireMetadataApiBanner } from '../core/RequireMetadataApiBanner';
 import * as fromPermissionsState from './manage-permissions.state';
 import { filterPermissionsSobjects } from './utils/permission-manager-utils';
 
@@ -75,6 +76,7 @@ export const ManagePermissionsSelection: FunctionComponent<ManagePermissionsSele
 
   return (
     <Page testId="manage-permissions-page">
+      <RequireMetadataApiBanner />
       <PageHeader>
         <PageHeaderRow>
           <PageHeaderTitle icon={{ type: 'standard', icon: 'portal' }} label="Manage Permissions" docsPath="/permissions" />
