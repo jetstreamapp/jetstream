@@ -2,7 +2,7 @@ import { css } from '@emotion/react';
 import { ApexLogWithViewed } from '@jetstream/types';
 import { AutoFullHeightContainer, ColumnWithFilter, DataTable, Icon, setColumnFromType } from '@jetstream/ui';
 import { FunctionComponent, useEffect, useRef } from 'react';
-import { FormatterProps } from 'react-data-grid';
+import { CellClickArgs, FormatterProps } from 'react-data-grid';
 
 export const LogViewedRenderer: FunctionComponent<FormatterProps<ApexLogWithViewed>> = ({ row }) => {
   if (row?.viewed) {
@@ -88,7 +88,7 @@ export const DebugLogViewerTable: FunctionComponent<DebugLogViewerTableProps> = 
     };
   }, []);
 
-  function handleSelectionChanged(row: ApexLogWithViewed, column: ColumnWithFilter<ApexLogWithViewed>) {
+  function handleSelectionChanged({ row }: CellClickArgs<ApexLogWithViewed>) {
     if (row) {
       onRowSelection(row);
     }
@@ -96,7 +96,7 @@ export const DebugLogViewerTable: FunctionComponent<DebugLogViewerTableProps> = 
 
   return (
     <AutoFullHeightContainer fillHeight setHeightAttr bottomBuffer={75}>
-      <DataTable allowReorder columns={COLUMNS} data={logs} getRowKey={getRowId} onRowClick={handleSelectionChanged} />
+      <DataTable allowReorder columns={COLUMNS} data={logs} getRowKey={getRowId} onCellClick={handleSelectionChanged} />
     </AutoFullHeightContainer>
   );
 };
