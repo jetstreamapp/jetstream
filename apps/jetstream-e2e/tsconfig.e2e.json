@@ -2,6 +2,7 @@
   "extends": "./tsconfig.json",
   "compilerOptions": {
     "sourceMap": false,
+    "allowSyntheticDefaultImports": true,
     "outDir": "../../dist/out-tsc",
     "allowJs": true,
     "strictNullChecks": true,

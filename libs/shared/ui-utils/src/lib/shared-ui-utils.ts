@@ -46,9 +46,12 @@ import isUndefined from 'lodash/isUndefined';
 import numeral from 'numeral';
 import { parse as parseCsv, unparse, unparse as unparseCsv, UnparseConfig } from 'papaparse';
 import {
+  HavingClause,
+  HavingClauseWithRightCondition,
   LiteralType,
   Operator,
   ValueCondition,
+  ValueFunctionCondition,
   ValueWithDateLiteralCondition,
   WhereClause,
   WhereClauseWithRightCondition,
@@ -217,8 +220,8 @@ export function sortQueryFieldsPolymorphicComparable(field1: QueryFieldWithPolym
     const bRoot = bParts.shift();
     if (aRoot === bRoot) {
       return sortQueryFieldsPolymorphicComparable(
-        { field: aParts.join('.'), polymorphicObj: field1.polymorphicObj },
-        { field: bParts.join('.'), polymorphicObj: field2.polymorphicObj }
+        { field: aParts.join('.'), polymorphicObj: field1.polymorphicObj } as any,
+        { field: bParts.join('.'), polymorphicObj: field2.polymorphicObj } as any
       );
     } else {
       if (a < b) {
@@ -232,6 +235,9 @@ export function sortQueryFieldsPolymorphicComparable(field1: QueryFieldWithPolym
 }
 
 export function polyfillFieldDefinition(field: Field): string {
+  if (!field) {
+    return '';
+  }
   const autoNumber: boolean = field.autoNumber;
   const { type, calculated, calculatedFormula, externalId, nameField, extraTypeInfo, length, precision, referenceTo, scale } = field;
   let prefix = '';
@@ -417,7 +423,7 @@ export function convertTippyPlacementToSlds(placement: tippyPlacement): Position
   }
 }
 
-function queryFilterHasValueValue(row: ExpressionConditionType) {
+export function queryFilterHasValue(row: ExpressionConditionType) {
   const hasValue = Array.isArray(row.selected.value) ? row.selected.value.length : !!row.selected.value;
   return (
     row.selected.operator &&
@@ -430,44 +436,45 @@ function isExpressionConditionType(value: any): value is ExpressionConditionType
   return !Array.isArray(value.rows);
 }
 
-export function convertFiltersToWhereClause(filters: ExpressionType): WhereClause | undefined {
+export function convertFiltersToWhereClause<T extends WhereClause | HavingClause>(filters: ExpressionType): T | undefined {
   if (!filters) {
     return;
   }
   logger.log({ filters });
 
   // Process all where clauses
-  const whereClauses = filters.rows.reduce((whereClauses: WhereClause[], row, i) => {
+  const whereOrHavingClauses = filters.rows.reduce((whereOrHavingClauses: T[], row, i) => {
     if (isExpressionConditionType(row)) {
-      if (queryFilterHasValueValue(row)) {
-        buildExpressionConditionWhereClause(whereClauses, row, filters.action);
+      if (queryFilterHasValue(row)) {
+        buildExpressionConditionWhereClause(whereOrHavingClauses, row, filters.action);
       }
     } else {
       const group = { ...row };
-      group.rows = group.rows.filter(queryFilterHasValueValue);
+      group.rows = group.rows.filter(queryFilterHasValue);
       if (group.rows.length > 0) {
-        buildExpressionGroupConditionWhereClause(whereClauses, group, filters.action);
+        buildExpressionGroupConditionWhereClause(whereOrHavingClauses, group, filters.action);
       }
     }
-    return whereClauses;
+    return whereOrHavingClauses;
   }, []);
 
-  if (!whereClauses.length) {
+  if (!whereOrHavingClauses.length) {
     return;
   }
 
   // combine all where clauses
-  const rootClause = whereClauses[0];
-  whereClauses.reduce((whereClause: WhereClauseWithRightCondition, currWhereClause, i) => {
-    if (whereClause) {
-      whereClause.right = currWhereClause;
+  const rootClause = whereOrHavingClauses[0];
+  whereOrHavingClauses.reduce((whereOrHavingClause: T, currClause, i) => {
+    if (whereOrHavingClause) {
+      // TODO: should have better types
+      (whereOrHavingClause as any).right = currClause;
       // use current operator as the prior operator (e.x. AND on this item applies to the prior item and this item)
       // whereClauses[i - 1].operator = currWhereClause.operator;
     }
     // if (i === whereClauses.length && currWhereClause.operator) {
     //   currWhereClause.operator = undefined;
     // }
-    return currWhereClause;
+    return currClause;
   });
 
   return rootClause;
@@ -518,48 +525,64 @@ export function getOperatorFromWhereClause(operator: Operator, value: string, ha
 /**
  * Build where clauses from filter rows
  */
-function buildExpressionConditionWhereClause(whereClauses: WhereClause[], row: ExpressionConditionType, action: AndOr): WhereClause[] {
+function buildExpressionConditionWhereClause<T extends WhereClause | HavingClause>(
+  whereOrHavingClauses: T[],
+  row: ExpressionConditionType,
+  action: AndOr
+): T[] {
   // REGULAR WHERE CLAUSE
   if (isNegationOperator(row.selected.operator)) {
-    whereClauses.push({
+    (whereOrHavingClauses as (WhereClause | HavingClause)[]).push({
       left: { openParen: 1 },
       operator: 'NOT',
     });
-    whereClauses.push({
+    (whereOrHavingClauses as (WhereClause | HavingClause)[]).push({
       left: {
+        fn: row.selected.function
+          ? {
+              functionName: row.selected.function,
+              parameters: [row.selected.resource],
+            }
+          : undefined,
         operator: convertQueryFilterOperator(row.selected.operator),
         logicalPrefix: isNegationOperator(row.selected.operator) ? 'NOT' : undefined,
         field: row.selected.resource,
         value: getValue(row.selected.operator, row.selected.value),
-        literalType: getLiteralType(row.selected),
+        literalType: getLiteralType(row.selected, row.selected.function),
         closeParen: 1,
-      } as ValueCondition | ValueWithDateLiteralCondition,
+      } as ValueCondition | ValueWithDateLiteralCondition | ValueFunctionCondition,
       operator: action,
     });
   } else {
     // REGULAR WHERE CLAUSE
-    whereClauses.push({
+    (whereOrHavingClauses as (WhereClause | HavingClause)[]).push({
       left: {
+        fn: row.selected.function
+          ? {
+              functionName: row.selected.function,
+              parameters: [row.selected.resource],
+            }
+          : undefined,
         operator: convertQueryFilterOperator(row.selected.operator),
         logicalPrefix: isNegationOperator(row.selected.operator) ? 'NOT' : undefined,
         field: row.selected.resource,
         value: getValue(row.selected.operator, row.selected.value),
-        literalType: getLiteralType(row.selected),
-      } as ValueCondition | ValueWithDateLiteralCondition,
+        literalType: getLiteralType(row.selected, row.selected.function),
+      } as ValueCondition | ValueWithDateLiteralCondition | ValueFunctionCondition,
       operator: action,
     });
   }
-  return whereClauses;
+  return whereOrHavingClauses;
 }
 
-function buildExpressionGroupConditionWhereClause(
-  whereClauses: WhereClause[],
+function buildExpressionGroupConditionWhereClause<T extends WhereClause | HavingClause>(
+  whereOrHavingClauses: T[],
   group: ExpressionGroupType,
   parentAction: AndOr
-): WhereClause[] {
-  const tempWhereClauses: WhereClauseWithRightCondition[] = [];
+): T[] {
+  const tempWhereOrHavingClauses: (WhereClauseWithRightCondition | HavingClauseWithRightCondition)[] = [];
   group.rows.forEach((row, i) => {
-    const whereClause: Partial<WhereClauseWithRightCondition> = {
+    const whereOrHavingClause: Partial<WhereClauseWithRightCondition | HavingClauseWithRightCondition> = {
       left: {
         operator: convertQueryFilterOperator(row.selected.operator),
         logicalPrefix: isNegationOperator(row.selected.operator) ? 'NOT' : undefined,
@@ -572,30 +595,30 @@ function buildExpressionGroupConditionWhereClause(
     };
     // Add additional where clause
     if (isNegationOperator(row.selected.operator)) {
-      const negationCondition: Partial<WhereClauseWithRightCondition> = {
+      const negationCondition: Partial<WhereClauseWithRightCondition | HavingClauseWithRightCondition> = {
         left: { openParen: 1 },
         operator: 'NOT',
       };
-      (whereClause.left as ValueCondition | ValueWithDateLiteralCondition).closeParen = 1;
-      tempWhereClauses.push(negationCondition as WhereClauseWithRightCondition);
-      whereClauses.push(negationCondition as WhereClause);
+      (whereOrHavingClause.left as ValueCondition | ValueWithDateLiteralCondition).closeParen = 1;
+      tempWhereOrHavingClauses.push(negationCondition as WhereClauseWithRightCondition | HavingClauseWithRightCondition);
+      whereOrHavingClauses.push(negationCondition as T);
     }
-    tempWhereClauses.push(whereClause as WhereClauseWithRightCondition);
-    whereClauses.push(whereClause as WhereClause);
+    tempWhereOrHavingClauses.push(whereOrHavingClause as WhereClauseWithRightCondition | HavingClauseWithRightCondition);
+    whereOrHavingClauses.push(whereOrHavingClause as T);
   });
-  if (tempWhereClauses[0].left.openParen) {
-    tempWhereClauses[0].left.openParen += 1;
+  if (tempWhereOrHavingClauses[0].left.openParen) {
+    tempWhereOrHavingClauses[0].left.openParen += 1;
   } else {
-    tempWhereClauses[0].left.openParen = 1;
+    tempWhereOrHavingClauses[0].left.openParen = 1;
   }
-  const currentLeft = tempWhereClauses[tempWhereClauses.length - 1].left as ValueCondition | ValueWithDateLiteralCondition;
+  const currentLeft = tempWhereOrHavingClauses[tempWhereOrHavingClauses.length - 1].left as ValueCondition | ValueWithDateLiteralCondition;
   if (currentLeft.closeParen) {
     currentLeft.closeParen += 1;
   } else {
     currentLeft.closeParen = 1;
   }
 
-  return whereClauses;
+  return whereOrHavingClauses;
 }
 
 export function isNegationOperator(operator: Maybe<QueryFilterOperator>): boolean {
@@ -663,11 +686,71 @@ export function unescapeSoqlString(value: string) {
     .replace(REGEX.ESCAPED_BACKSLASH_QUOTE, `\\`);
 }
 
-function getLiteralType(selected: ExpressionConditionRowSelectedItems): LiteralType {
-  const field: Field = safeGet(selected, 'resourceMeta.metadata');
+/**
+ * Allows case-insensitive lookup
+ * @returns a map of lowercase function names to their proper case
+ */
+export function getLowercaseFieldFunctionMap() {
+  return [
+    'AVG',
+    'COUNT',
+    'COUNT_DISTINCT',
+    'MIN',
+    'MAX',
+    'SUM',
+    'CALENDAR_MONTH',
+    'CALENDAR_QUARTER',
+    'CALENDAR_YEAR',
+    'DAY_IN_MONTH',
+    'DAY_IN_WEEK',
+    'DAY_IN_YEAR',
+    'DAY_ONLY',
+    'FISCAL_MONTH',
+    'FISCAL_QUARTER',
+    'FISCAL_YEAR',
+    'HOUR_IN_DAY',
+    'WEEK_IN_MONTH',
+    'WEEK_IN_YEAR',
+  ].reduce((acc, item) => {
+    acc[item.toLowerCase()] = item;
+    return acc;
+  }, {});
+}
+
+function getLiteralType(selected: ExpressionConditionRowSelectedItems, functionName?: Maybe<string>): LiteralType {
+  const field: Field = safeGet(selected, 'resourceMeta.metadata', safeGet(selected, 'resourceMeta'));
 
   if (selected.operator === 'isNull' || selected.operator === 'isNotNull') {
     return 'NULL';
+  }
+
+  if (field && functionName) {
+    switch (functionName) {
+      case 'AVG':
+      case 'COUNT':
+      case 'COUNT_DISTINCT':
+      case 'MIN':
+      case 'MAX':
+      case 'SUM':
+        return 'INTEGER';
+      case 'CALENDAR_MONTH':
+      case 'CALENDAR_QUARTER':
+      case 'CALENDAR_YEAR':
+      case 'DAY_IN_MONTH':
+      case 'DAY_IN_WEEK':
+      case 'DAY_IN_YEAR':
+      case 'DAY_ONLY':
+      case 'FISCAL_MONTH':
+      case 'FISCAL_QUARTER':
+      case 'FISCAL_YEAR':
+      case 'HOUR_IN_DAY':
+      case 'WEEK_IN_MONTH':
+      case 'WEEK_IN_YEAR':
+        if (selected.resourceType === 'SELECT') {
+          return 'DATE_LITERAL';
+        }
+        return 'INTEGER';
+    }
   }
 
   if (field) {
@@ -738,13 +821,10 @@ function convertQueryFilterOperator(operator: Maybe<QueryFilterOperator>): Opera
  * @param org
  */
 export function getOrgUrlParams(org: SalesforceOrgUi, additionalParams: { [param: string]: string } = {}): string {
-  const params = {
+  return new URLSearchParams({
     ...additionalParams,
     [HTTP.HEADERS.X_SFDC_ID]: org?.uniqueId || '',
-  };
-  return Object.keys(params)
-    .map((key) => `${key}=${encodeURIComponent(params[key])}`)
-    .join('&');
+  }).toString();
 }
 
 export function getOrgType(org: Maybe<SalesforceOrgUi>): SalesforceOrgUiType | undefined {
@@ -1435,4 +1515,104 @@ export async function getChangesetsFromDomParse(org: SalesforceOrgUi) {
     .filter((item) => item.status === 'Open');
 
   return changesets;
+}
+
+/**
+ * Gets map of list items by id
+ * recursively traverses child items
+ */
+export function getFlattenedListItemsById(items: ListItem[], output = {}): Record<string, ListItem> {
+  items.forEach((item) => {
+    output[item.id] = item;
+    if (Array.isArray(item.childItems)) {
+      getFlattenedListItemsById(item.childItems, output);
+    }
+  });
+  return output;
+}
+
+/**
+ * Given an object of all items by id, use the parentId field to create a tree structure
+ * the parentId is blank for all the top level items and is "." delimited for all parentId's
+ */
+export function unFlattenedListItemsById(items: Record<string, ListItem>): ListItem[] {
+  const output: ListItem[] = [];
+  const childItemsByParentId: Record<string, ListItem[]> = {};
+  // clone items to ensure we don't mutate the original
+  items = JSON.parse(JSON.stringify(items));
+  Object.keys(items).forEach((key) => {
+    const item = items[key];
+    if (item.parentId === '') {
+      output.push(item);
+    } else if (item.parentId) {
+      childItemsByParentId[item.parentId] = childItemsByParentId[item.parentId] || [];
+      childItemsByParentId[item.parentId].push(item);
+    }
+  });
+  Object.keys(childItemsByParentId).forEach((key) => {
+    if (items[key]) {
+      items[key].childItems = childItemsByParentId[key];
+    }
+  });
+  return output;
+}
+
+export function getListItemsFromFieldWithRelatedItems(fields: Field[], parentId = ''): ListItem[] {
+  const parentPath = parentId ? `${parentId}.` : '';
+  const allowChildren = parentPath.split('.').length <= 5;
+  const relatedFields: ListItem[] = fields
+    .filter((field) => allowChildren && Array.isArray(field.referenceTo) && field.referenceTo.length > 0 && field.relationshipName)
+    .map((field) => ({
+      id: `${parentPath}${field.relationshipName}`,
+      value: `${parentPath}${field.relationshipName}`,
+      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+      label: field.relationshipName!,
+      secondaryLabel: field.referenceTo?.[0],
+      secondaryLabelOnNewLine: true,
+      isDrillInItem: true,
+      parentId: parentId,
+      meta: field,
+    }));
+
+  const coreFields: ListItem[] = fields.flatMap((field) => ({
+    id: `${parentPath}${field.name}`,
+    value: `${parentPath}${field.name}`,
+    label: field.label,
+    secondaryLabel: field.name,
+    secondaryLabelOnNewLine: true,
+    parentId: parentId,
+    meta: field,
+  }));
+
+  return [...relatedFields, ...coreFields];
+}
+
+/**
+ * If there is a change in UI that would make an element take a render ror more
+ * to be added to the dom, this will try a {maxAttempts} times to focus the element
+ *
+ * @param element
+ * @param backOff
+ * @param attempt
+ * @param maxAttempts
+ * @returns
+ */
+export function focusElementFromRefWhenAvailable<T extends HTMLElement>(
+  element: Maybe<React.RefObject<T>>,
+  backOff = 0,
+  attempt = 0,
+  maxAttempts = 3
+) {
+  if (!element) {
+    return;
+  }
+  if (element.current) {
+    element.current.focus();
+  } else {
+    if (attempt < maxAttempts) {
+      setTimeout(() => {
+        focusElementFromRefWhenAvailable(element, backOff + 50, attempt + 1, maxAttempts);
+      }, backOff);
+    }
+  }
 }

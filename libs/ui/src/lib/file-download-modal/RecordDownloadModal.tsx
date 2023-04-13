@@ -1,6 +1,7 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { logger } from '@jetstream/shared/client-logger';
+import { QueryResultsColumn } from '@jetstream/api-interfaces';
+import { enableLogger, logger } from '@jetstream/shared/client-logger';
 import { MIME_TYPES } from '@jetstream/shared/constants';
 import { formatNumber, getFilename, isEnterKey, prepareCsvFile, prepareExcelFile, saveFile, useRollbar } from '@jetstream/shared/ui-utils';
 import { flattenRecords, getMapOfBaseAndSubqueryRecords } from '@jetstream/shared/utils';
@@ -25,9 +26,12 @@ import RadioButton from '../form/radio/RadioButton';
 import RadioGroup from '../form/radio/RadioGroup';
 import Modal from '../modal/Modal';
 import { PopoverErrorButton } from '../popover/PopoverErrorButton';
+import ScopedNotification from '../scoped-notification/ScopedNotification';
 import {
   RADIO_ALL_BROWSER,
   RADIO_ALL_SERVER,
+  RADIO_DOWNLOAD_METHOD_BULK_API,
+  RADIO_DOWNLOAD_METHOD_STANDARD,
   RADIO_FILTERED,
   RADIO_FORMAT_CSV,
   RADIO_FORMAT_GDRIVE,
@@ -51,6 +55,7 @@ export interface DownloadFromServerOpts {
   /** Only applies if fileFormat === 'gdrive', indicates to ignore nextRecords if there are any */
   hasAllRecords: boolean;
   googleFolder?: Maybe<string>;
+  useBulkApi: boolean; // FIXME: made req to see where used
 }
 
 export interface RecordDownloadModalProps {
@@ -59,6 +64,7 @@ export interface RecordDownloadModalProps {
   google_appId: string;
   google_clientId: string;
   downloadModalOpen: boolean;
+  columns?: QueryResultsColumn[];
   fields: string[];
   modifiedFields: string[];
   subqueryFields?: MapOf<string[]>;
@@ -72,12 +78,17 @@ export interface RecordDownloadModalProps {
   children?: React.ReactNode;
 }
 
+const PROHIBITED_BULK_APEX_TYPES = new Set(['Address', 'Location', 'complexvaluetype']);
+const ALLOW_BULK_API_COUNT = 25_000;
+const REQUIRE_BULK_API_COUNT = 500_000;
+
 export const RecordDownloadModal: FunctionComponent<RecordDownloadModalProps> = ({
   org,
   google_apiKey,
   google_appId,
   google_clientId,
   downloadModalOpen,
+  columns = [],
   fields = [],
   modifiedFields = [],
   subqueryFields = {},
@@ -95,6 +106,9 @@ export const RecordDownloadModal: FunctionComponent<RecordDownloadModalProps> = 
   const [hasMoreRecords, setHasMoreRecords] = useState<boolean>(false);
   const [downloadRecordsValue, setDownloadRecordsValue] = useState<string>(hasMoreRecords ? RADIO_ALL_SERVER : RADIO_ALL_BROWSER);
   const [fileFormat, setFileFormat] = useState<FileExtCsvXLSXJsonGSheet>(RADIO_FORMAT_XLSX);
+  const [downloadMethod, setDownloadMethod] = useState<typeof RADIO_DOWNLOAD_METHOD_STANDARD | typeof RADIO_DOWNLOAD_METHOD_BULK_API>(
+    RADIO_DOWNLOAD_METHOD_STANDARD
+  );
   const [includeSubquery, setIncludeSubquery] = useState(true);
   const [fileName, setFileName] = useState<string>(getFilename(org, ['records']));
   const [columnAreModified, setColumnsAreModified] = useState(false);
@@ -113,6 +127,29 @@ export const RecordDownloadModal: FunctionComponent<RecordDownloadModalProps> = 
   const [isGooglePickerVisible, setIsGooglePickerVisible] = useState(false);
 
   const hasSubqueryFields = subqueryFields && !!Object.keys(subqueryFields).length && (fileFormat === 'xlsx' || fileFormat === 'gdrive');
+
+  const allowBulkApi =
+    (totalRecordCount || 0) >= ALLOW_BULK_API_COUNT &&
+    !Object.keys(subqueryFields).length &&
+    records?.[0]?.attributes?.type !== 'AggregateResult' &&
+    !columns.some((column) => PROHIBITED_BULK_APEX_TYPES.has(column.apexType || '')) &&
+    downloadRecordsValue === RADIO_ALL_SERVER;
+
+  const requireBulkApi = allowBulkApi && (totalRecordCount || 0) >= REQUIRE_BULK_API_COUNT;
+  const isBulkApi = downloadMethod === RADIO_DOWNLOAD_METHOD_BULK_API;
+
+  useEffect(() => {
+    if (requireBulkApi) {
+      setFileFormat(RADIO_FORMAT_CSV);
+      setDownloadMethod(RADIO_DOWNLOAD_METHOD_BULK_API);
+    }
+  }, [requireBulkApi, downloadRecordsValue]);
+
+  useEffect(() => {
+    if (isBulkApi) {
+      setFileFormat(RADIO_FORMAT_CSV);
+    }
+  }, [isBulkApi]);
 
   useEffect(() => {
     if (fields !== modifiedFields && fields && modifiedFields) {
@@ -197,6 +234,7 @@ export const RecordDownloadModal: FunctionComponent<RecordDownloadModalProps> = 
             recordsToInclude: activeRecords,
             hasAllRecords: downloadRecordsValue !== RADIO_ALL_SERVER,
             googleFolder,
+            useBulkApi: downloadMethod === RADIO_DOWNLOAD_METHOD_BULK_API,
           });
         }
         handleModalClose();
@@ -291,6 +329,11 @@ export const RecordDownloadModal: FunctionComponent<RecordDownloadModalProps> = 
           hide={isGooglePickerVisible}
         >
           <div>
+            {requireBulkApi && (
+              <ScopedNotification theme="info">
+                Because of the record volume, your download will use the Salesforce Bulk API and is limited to CSV.
+              </ScopedNotification>
+            )}
             <RadioGroup label="Which Records" required className="slds-m-bottom_small">
               {hasMoreRecords && (
                 <Fragment>
@@ -345,6 +388,7 @@ export const RecordDownloadModal: FunctionComponent<RecordDownloadModalProps> = 
                 value={RADIO_FORMAT_XLSX}
                 checked={fileFormat === RADIO_FORMAT_XLSX}
                 onChange={(value: FileExtXLSX) => setFileFormat(value)}
+                disabled={isBulkApi}
               />
               <Radio
                 name="radio-download-file-format"
@@ -359,6 +403,7 @@ export const RecordDownloadModal: FunctionComponent<RecordDownloadModalProps> = 
                 value={RADIO_FORMAT_JSON}
                 checked={fileFormat === RADIO_FORMAT_JSON}
                 onChange={(value: FileExtJson) => setFileFormat(value)}
+                disabled={isBulkApi}
               />
               {hasGoogleInputConfigured && (
                 <Radio
@@ -367,6 +412,7 @@ export const RecordDownloadModal: FunctionComponent<RecordDownloadModalProps> = 
                   value={RADIO_FORMAT_GDRIVE}
                   checked={fileFormat === RADIO_FORMAT_GDRIVE}
                   onChange={(value: FileExtGDrive) => setFileFormat(value)}
+                  disabled={isBulkApi}
                 />
               )}
               {fileFormat === 'gdrive' && (
@@ -389,7 +435,32 @@ export const RecordDownloadModal: FunctionComponent<RecordDownloadModalProps> = 
                 onChange={setIncludeSubquery}
               />
             )}
-            {fileFormat !== 'json' && columnAreModified && (
+            {allowBulkApi && (
+              <RadioGroup
+                label="Download Method"
+                required
+                className="slds-m-bottom_small"
+                labelHelp="The Bulk API is usually faster and can support a very large number of records. However, it does not support all file formats."
+              >
+                <Radio
+                  name="radio-download-method"
+                  label="Standard"
+                  value={RADIO_DOWNLOAD_METHOD_STANDARD}
+                  checked={downloadMethod === RADIO_DOWNLOAD_METHOD_STANDARD}
+                  onChange={(value: typeof RADIO_DOWNLOAD_METHOD_STANDARD) => setDownloadMethod(value)}
+                  disabled={requireBulkApi}
+                />
+                <Radio
+                  name="radio-download-method"
+                  label="Salesforce Bulk API"
+                  value={RADIO_DOWNLOAD_METHOD_BULK_API}
+                  checked={downloadMethod === RADIO_DOWNLOAD_METHOD_BULK_API}
+                  onChange={(value: typeof RADIO_DOWNLOAD_METHOD_BULK_API) => setDownloadMethod(value)}
+                  disabled={requireBulkApi}
+                />
+              </RadioGroup>
+            )}
+            {fileFormat !== 'json' && columnAreModified && !requireBulkApi && (
               <RadioGroup
                 label="Include Which Fields"
                 isButtonGroup

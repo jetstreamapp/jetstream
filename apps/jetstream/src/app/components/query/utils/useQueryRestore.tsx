@@ -51,14 +51,21 @@ export const useQueryRestore = (
   const setFilterQueryFieldsState = useSetRecoilState(fromQueryState.filterQueryFieldsState);
   const setQueryRestoreKeyState = useSetRecoilState(fromQueryState.queryRestoreKeyState);
   const setQueryFiltersState = useSetRecoilState(fromQueryState.queryFiltersState);
+  const setQueryHavingState = useSetRecoilState(fromQueryState.queryHavingState);
   const setOrderByQueryFieldsState = useSetRecoilState(fromQueryState.orderByQueryFieldsState);
+  const setFieldFilterFunctions = useSetRecoilState(fromQueryState.fieldFilterFunctions);
+  const setGroupByQueryFieldsState = useSetRecoilState(fromQueryState.groupByQueryFieldsState);
+  const setQueryGroupByState = useSetRecoilState(fromQueryState.queryGroupByState);
   const setQueryOrderByState = useSetRecoilState(fromQueryState.queryOrderByState);
   const setQueryLimit = useSetRecoilState(fromQueryState.queryLimit);
   const setQueryLimitSkip = useSetRecoilState(fromQueryState.queryLimitSkip);
 
   const resetSelectedSObjectState = useResetRecoilState(fromQueryState.selectedSObjectState);
 
+  const resetFieldFilterFunctions = useResetRecoilState(fromQueryState.fieldFilterFunctions);
   const resetQueryFiltersState = useResetRecoilState(fromQueryState.queryFiltersState);
+  const resetQueryHavingState = useResetRecoilState(fromQueryState.queryHavingState);
+  const resetQueryGroupByState = useResetRecoilState(fromQueryState.queryGroupByState);
   const resetQueryOrderByState = useResetRecoilState(fromQueryState.queryOrderByState);
   const resetQueryLimit = useResetRecoilState(fromQueryState.queryLimit);
   const resetQueryLimitSkip = useResetRecoilState(fromQueryState.queryLimitSkip);
@@ -99,7 +106,11 @@ export const useQueryRestore = (
         setIsTooling(toolingOverride ?? isTooling);
         setFilterQueryFieldsState(results.filterQueryFieldsState);
         setOrderByQueryFieldsState(results.orderByQueryFieldsState);
+        setGroupByQueryFieldsState(results.groupByQueryFieldsState);
+        results.fieldFilterFunctions ? setFieldFilterFunctions(results.fieldFilterFunctions) : resetFieldFilterFunctions();
         results.queryFiltersState ? setQueryFiltersState(results.queryFiltersState) : resetQueryFiltersState();
+        results.queryHavingState ? setQueryHavingState(results.queryHavingState) : resetQueryHavingState();
+        results.queryGroupByState ? setQueryGroupByState(results.queryGroupByState) : resetQueryGroupByState();
         results.queryOrderByState ? setQueryOrderByState(results.queryOrderByState) : resetQueryOrderByState();
         results.queryLimit ? setQueryLimit(results.queryLimit) : resetQueryLimit();
         results.queryLimitSkip ? setQueryLimitSkip(results.queryLimitSkip) : resetQueryLimitSkip();

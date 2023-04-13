@@ -14,15 +14,16 @@ import {
   ToolbarItemGroup,
   Tooltip,
 } from '@jetstream/ui';
-import React, { FunctionComponent, useCallback, useState } from 'react';
+import { FunctionComponent, useCallback, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useRecoilValue, useResetRecoilState } from 'recoil';
 import { selectedOrgState } from '../../app-state';
+import { RequireMetadataApiBanner } from '../core/RequireMetadataApiBanner';
 import { useAmplitude } from '../core/analytics';
-import * as fromCreateFieldsState from './create-fields.state';
 import CreateFieldsDeployModal from './CreateFieldsDeployModal';
 import CreateFieldsImportExport from './CreateFieldsImportExport';
 import CreateFieldsRow from './CreateFieldsRow';
+import * as fromCreateFieldsState from './create-fields.state';
 import { useFieldValues } from './useFieldValues';
 
 function SelectedItemsBadge({
@@ -141,6 +142,7 @@ export const CreateFields: FunctionComponent<CreateFieldsProps> = () => {
           onClose={handleCloseModal}
         />
       )}
+      <RequireMetadataApiBanner />
       <Toolbar>
         <ToolbarItemGroup>
           <Link

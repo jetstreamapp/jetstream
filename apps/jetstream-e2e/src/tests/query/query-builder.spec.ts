@@ -7,6 +7,7 @@ test.beforeEach(async ({ page }) => {
 test.describe.configure({ mode: 'parallel' });
 
 test.describe('QUERY BUILDER', () => {
+  // TODO: add test for drilling in to related query filters
   test('should work with filters', async ({ queryPage }) => {
     await queryPage.goto();
     await queryPage.selectObject('Account');

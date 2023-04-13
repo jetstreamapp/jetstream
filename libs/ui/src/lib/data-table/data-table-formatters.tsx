@@ -25,12 +25,16 @@ export const dataTableDateFormatter = (dateOrDateTime: Maybe<Date | string>): st
       return dateOrDateTime;
     }
   } catch (ex) {
-    logErrorToRollbar(ex.message, {
-      stack: ex.stack,
-      place: 'dataTableDateFormatter',
-      type: 'Error formatting date',
-      inputValue: dateOrDateTime,
-    });
+    logErrorToRollbar(
+      ex.message,
+      {
+        stack: ex.stack,
+        place: 'dataTableDateFormatter',
+        type: 'Error formatting date',
+        inputValue: dateOrDateTime,
+      },
+      'warn'
+    );
     return String(dateOrDateTime || '');
   }
 };
@@ -46,12 +50,16 @@ export const dataTableTimeFormatter = (value: Maybe<string>): string | null => {
       return time;
     }
   } catch (ex) {
-    logErrorToRollbar(ex.message, {
-      stack: ex.stack,
-      place: 'dataTableDateFormatter',
-      type: 'Error formatting time',
-      inputValue: value,
-    });
+    logErrorToRollbar(
+      ex.message,
+      {
+        stack: ex.stack,
+        place: 'dataTableDateFormatter',
+        type: 'Error formatting time',
+        inputValue: value,
+      },
+      'warn'
+    );
     return String(value || '');
   }
 };
@@ -63,12 +71,16 @@ export const dataTableFileSizeFormatter = (sizeInBytes: Maybe<string | number>):
   try {
     return fileSizeFormatter(sizeInBytes as any);
   } catch (ex) {
-    logErrorToRollbar(ex.message, {
-      stack: ex.stack,
-      place: 'dataTableDateFormatter',
-      type: 'error formatting file size',
-      inputValue: sizeInBytes,
-    });
+    logErrorToRollbar(
+      ex.message,
+      {
+        stack: ex.stack,
+        place: 'dataTableDateFormatter',
+        type: 'error formatting file size',
+        inputValue: sizeInBytes,
+      },
+      'warn'
+    );
     return String(sizeInBytes || '');
   }
 };
@@ -85,12 +97,16 @@ export const dataTableAddressValueFormatter = (value: any): string | null => {
     const remainingParts = [address.city, address.state, address.postalCode, address.country].filter((part) => !!part).join(', ');
     return [street, remainingParts].join('\n');
   } catch (ex) {
-    logErrorToRollbar(ex.message, {
-      stack: ex.stack,
-      place: 'dataTableDateFormatter',
-      type: 'error formatting address',
-      inputValue: value,
-    });
+    logErrorToRollbar(
+      ex.message,
+      {
+        stack: ex.stack,
+        place: 'dataTableDateFormatter',
+        type: 'error formatting address',
+        inputValue: value,
+      },
+      'warn'
+    );
     return String(value || '');
   }
 };
@@ -103,12 +119,16 @@ export const dataTableLocationFormatter = (value: Maybe<SalesforceLocationField>
     const location: SalesforceLocationField = value as SalesforceLocationField;
     return `Latitude: ${location.latitude}°, Longitude: ${location.longitude}°`;
   } catch (ex) {
-    logErrorToRollbar(ex.message, {
-      stack: ex.stack,
-      place: 'dataTableDateFormatter',
-      type: 'error formatting location',
-      inputValue: value,
-    });
+    logErrorToRollbar(
+      ex.message,
+      {
+        stack: ex.stack,
+        place: 'dataTableDateFormatter',
+        type: 'error formatting location',
+        inputValue: value,
+      },
+      'warn'
+    );
     return String(value || '');
   }
 };

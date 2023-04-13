@@ -2,8 +2,9 @@ import { css } from '@emotion/react';
 import { logger } from '@jetstream/shared/client-logger';
 import { query } from '@jetstream/shared/data';
 import { formatNumber } from '@jetstream/shared/ui-utils';
+import { REGEX, getMapOf } from '@jetstream/shared/utils';
 import { InsertUpdateUpsertDelete, Maybe, SalesforceOrgUi } from '@jetstream/types';
-import { Alert, AutoFullHeightContainer, DataTable, getColumnsForGenericTable, Grid, GridCol, RowWithKey, Spinner } from '@jetstream/ui';
+import { Alert, AutoFullHeightContainer, DataTable, Grid, GridCol, RowWithKey, Spinner, getColumnsForGenericTable } from '@jetstream/ui';
 import type { DescribeGlobalSObjectResult } from 'jsforce';
 import isNil from 'lodash/isNil';
 import { FunctionComponent, useEffect, useRef, useState } from 'react';
@@ -58,12 +59,15 @@ function getLoadDescription(loadType: InsertUpdateUpsertDelete, totalRecordCount
   );
 }
 
-function getColumnDefinitions(headers: string[], numRows: number): Column<RowWithKey>[] {
+function getColumnDefinitions(
+  headers: {
+    key: string;
+    label: string;
+  }[],
+  numRows: number
+): Column<RowWithKey>[] {
   return getColumnsForGenericTable(
-    [
-      { key: NUM_COLUMN, label: '#', columnProps: { width: 75, filters: [] } },
-      ...headers.map((header) => ({ key: header, label: header })),
-    ],
+    [{ key: NUM_COLUMN, label: '#', columnProps: { width: 75, filters: [] } }, ...headers],
     numRows > MAX_COLUMNS_TO_KEEP_SET_FILTER ? ['TEXT'] : undefined
   );
 }
@@ -118,9 +122,29 @@ export const LoadRecordsDataPreview: FunctionComponent<LoadRecordsDataPreviewPro
 
   useEffect(() => {
     if (data && header) {
-      const _rows = data.map((row, i) => ({ ...row, [NUM_COLUMN]: i + 1 }));
+      // Transform data keys if needed to ensure the table preview can be rendered
+      // Special characters in the header key cause issues with react-data-grid
+      let _rows = data;
+      const headersWithLabel = header.map((header) => ({
+        key: header.replaceAll(REGEX.NOT_ALPHANUMERIC_OR_UNDERSCORE, '_'),
+        label: header,
+      }));
+      const madeModifications = headersWithLabel.some((item) => item.key !== item.label);
+      if (madeModifications) {
+        // Replace all rows with sanitized header
+        const headersByOldKey = getMapOf(headersWithLabel, 'label');
+        _rows = data.map((row) =>
+          Object.keys(row).reduce((acc, field) => {
+            if (headersByOldKey[field]) {
+              acc[headersByOldKey[field].key] = row[field];
+            }
+            return acc;
+          }, {})
+        );
+      }
+      _rows = _rows.map((row, i) => ({ ...row, [NUM_COLUMN]: i + 1 }));
       setRows(_rows);
-      setColumns(getColumnDefinitions(header, _rows.length));
+      setColumns(getColumnDefinitions(headersWithLabel, _rows.length));
     } else {
       setColumns(null);
       setRows(null);

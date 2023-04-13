@@ -5,6 +5,7 @@ import { checkIfBulkApiJobIsDone, convertDateToLocale, generateCsv, useBrowserNo
 import { delay, splitArrayToMaxSize } from '@jetstream/shared/utils';
 import { BulkJobBatchInfo, Maybe, SalesforceOrgUi } from '@jetstream/types';
 import formatDate from 'date-fns/format';
+import lodashGet from 'lodash/get';
 import { useCallback, useEffect, useRef } from 'react';
 import { useRecoilState } from 'recoil';
 import { applicationCookieState } from '../../../app-state';
@@ -42,7 +43,7 @@ export function useDeployRecords(
         const newRecord = { ...record };
         if (selectedField) {
           if (transformationOptions.option === 'anotherField' && transformationOptions.alternateField) {
-            newRecord[selectedField] = newRecord[transformationOptions.alternateField];
+            newRecord[selectedField] = lodashGet(newRecord, transformationOptions.alternateField, SFDC_BULK_API_NULL_VALUE);
           } else if (transformationOptions.option === 'staticValue') {
             newRecord[selectedField] = transformationOptions.staticValue;
           } else {

@@ -10,7 +10,7 @@ export interface MetadataRow {
   loading: boolean;
   metadata?: DescribeSObjectResult;
   fields: ListItem[];
-  allFields: ListItem[];
+  valueFields: ListItem[];
   selectedField?: Maybe<string>;
   transformationOptions: TransformationOptions;
   validationResults?: Maybe<ValidationResults>;
@@ -38,7 +38,7 @@ export interface ValidationResults {
 
 export interface TransformationOptions {
   option: TransformationOption;
-  alternateField?: string;
+  alternateField?: Maybe<string>;
   staticValue: string;
   criteria: TransformationCriteria;
   whereClause: string;

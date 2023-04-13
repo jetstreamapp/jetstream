@@ -48,6 +48,7 @@ export interface WorkerMessage<T, K = any, E = any> {
 export interface QueryFieldWithPolymorphic {
   field: string;
   polymorphicObj: Maybe<string>;
+  metadata: Field;
 }
 
 export interface QueryFields {
@@ -227,23 +228,34 @@ export type DefaultInverseLight = Default | Inverse | Light;
 export type BadgeTypes = SuccessWarningError | DefaultInverseLight;
 export type ScopedNotificationTypes = Info | Success | Warning | Error | Light | Dark;
 
-export interface ListItemGroup {
+export interface ListItemGroup<V = string, M = any> {
   id: string;
   label: string;
-  items: ListItem[];
+  items: ListItem<V, M>[];
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export interface ListItem<V = string, M = any> {
   id: string;
   label: string;
+  /** If provided, then this will be used for children ComboboxListItem */
+  customRenderer?: (item: ListItem<V, M>) => React.ReactNode;
   secondaryLabel?: string | null;
   secondaryLabelOnNewLine?: boolean | null;
+  /** Show a third label under the primary/secondary labels (Combobox) */
+  tertiaryLabel?: string;
+  disabled?: boolean;
   metaLabel?: string | null;
   /** used for flattened lists (used for virtual scrolling) */
   isGroup?: Maybe<boolean>;
   /** If list is flattened, group information should be attached to each item */
   group?: Maybe<{ id: string; label: string }>;
+  /** If true, indicates that this item can be clicked on to drill in to a child menu */
+  isDrillInItem?: boolean;
+  // Keys of all parent items
+  parentId?: string;
+  // child items
+  childItems?: ListItem<V, M>[];
   value: V;
   title?: string | null;
   meta?: M | null;
@@ -294,6 +306,7 @@ export interface ExpressionConditionRowSelectedItems<T = any> {
   resource: string | null;
   resourceMeta?: T;
   resourceGroup: string | null;
+  function: string | null;
   operator: QueryFilterOperator | null;
   resourceType?: ExpressionRowValueType;
   value: string | string[];
@@ -342,6 +355,13 @@ export interface QueryOrderByClause {
   fieldLabel: string | null;
   order: AscDesc;
   nulls: FirstLast | null;
+}
+
+export interface QueryGroupByClause {
+  key: number;
+  field: string | null;
+  fieldLabel: string | null;
+  function: string | null;
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -400,13 +420,14 @@ export interface AsyncJobWorkerMessageResponse<T = unknown, R = unknown> {
   results?: R;
 }
 
-export type JetstreamEventType = 'newJob' | 'jobFinished' | 'lastActivityUpdate' | 'addOrg';
-export type JetstreamEvents = JetstreamEventJobFinished | JetstreamEventLastActivityUpdate | JetstreamEventNewJob | JetstreamEventAddOrg;
-export interface JetstreamEventAddOrgPayload {
-  org: SalesforceOrgUi;
-  switchActiveOrg: boolean;
-}
-export type JetstreamEventPayloads = AsyncJob | AsyncJobNew[] | JetstreamEventAddOrgPayload;
+export type JetstreamEventType = 'newJob' | 'jobFinished' | 'lastActivityUpdate' | 'addOrg' | 'streamFileDownload';
+export type JetstreamEvents =
+  | JetstreamEventJobFinished
+  | JetstreamEventLastActivityUpdate
+  | JetstreamEventNewJob
+  | JetstreamEventAddOrg
+  | JetstreamEventStreamFile;
+export type JetstreamEventPayloads = AsyncJob | AsyncJobNew[] | JetstreamEventAddOrgPayload | JetstreamEventStreamFilePayload;
 
 export interface JetstreamEvent<T> {
   type: JetstreamEventType;
@@ -432,6 +453,19 @@ export interface JetstreamEventAddOrg extends JetstreamEvent<JetstreamEventPaylo
   type: 'addOrg';
   payload: JetstreamEventAddOrgPayload;
 }
+export interface JetstreamEventAddOrgPayload {
+  org: SalesforceOrgUi;
+  switchActiveOrg: boolean;
+}
+
+export interface JetstreamEventStreamFile extends JetstreamEvent<JetstreamEventPayloads> {
+  type: 'streamFileDownload';
+  payload: JetstreamEventStreamFilePayload;
+}
+export interface JetstreamEventStreamFilePayload {
+  link: string;
+  fileName: string;
+}
 
 export interface CancelJob {
   id: string;
@@ -445,6 +479,9 @@ export interface UploadToGoogleJob {
 }
 
 export interface BulkDownloadJob {
+  serverUrl: string;
+  sObject: string;
+  soql: string;
   isTooling: boolean;
   totalRecordCount: number;
   nextRecordsUrl: Maybe<string>;
@@ -456,6 +493,7 @@ export interface BulkDownloadJob {
   fileName: string;
   googleFolder: Maybe<string>;
   includeSubquery: boolean;
+  useBulkApi: boolean;
 }
 
 export interface RetrievePackageJob {

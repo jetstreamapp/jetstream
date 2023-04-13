@@ -1,22 +1,26 @@
 import { css } from '@emotion/react';
-import { ListItem } from '@jetstream/types';
-import { ComboboxWithItems, ControlledInput, Grid, Input } from '@jetstream/ui';
+import { ListItem, Maybe } from '@jetstream/types';
+import { ComboboxWithDrillInItems, ComboboxWithItems, ControlledInput, Grid, Input } from '@jetstream/ui';
 import { FunctionComponent } from 'react';
 import { TransformationOption, TransformationOptions } from './mass-update-records.types';
 import { transformationOptionListItems } from './mass-update-records.utils';
 
 export interface MassUpdateRecordsObjectRowValueProps {
+  sobject: string;
   fields: ListItem[];
   transformationOptions: TransformationOptions;
   disabled?: boolean;
   onOptionsChange: (options: TransformationOptions) => void;
+  onLoadChildFields?: (item: ListItem) => Promise<ListItem[]>;
 }
 
 export const MassUpdateRecordsObjectRowValue: FunctionComponent<MassUpdateRecordsObjectRowValueProps> = ({
+  sobject,
   fields,
   transformationOptions,
   disabled,
   onOptionsChange,
+  onLoadChildFields,
 }) => {
   function handleUpdateToApply(option: TransformationOption) {
     onOptionsChange({ ...transformationOptions, option });
@@ -26,16 +30,16 @@ export const MassUpdateRecordsObjectRowValue: FunctionComponent<MassUpdateRecord
     onOptionsChange({ ...transformationOptions, staticValue });
   }
 
-  function handleAlternateFieldChange(alternateField: string) {
+  function handleAlternateFieldChange(alternateField: Maybe<string>) {
     onOptionsChange({ ...transformationOptions, alternateField });
   }
 
   return (
-    <Grid verticalAlign="end">
+    <Grid className="slds-grow" verticalAlign="end">
       <Grid verticalAlign="end" className="text-bold slds-m-horizontal_medium slds-m-bottom_x-small">
         NEW VALUE
       </Grid>
-      <Grid wrap>
+      <Grid className="slds-grow" wrap>
         <Grid
           verticalAlign="end"
           css={css`
@@ -80,23 +84,29 @@ export const MassUpdateRecordsObjectRowValue: FunctionComponent<MassUpdateRecord
         )}
         {transformationOptions.option === 'anotherField' && (
           <Grid
+            className="slds-grow"
             verticalAlign="end"
             css={css`
               min-width: 240px;
             `}
           >
             <div className="slds-m-horizontal_x-small slds-grow">
-              <ComboboxWithItems
+              <ComboboxWithDrillInItems
                 comboboxProps={{
                   label: 'Field to use as value',
-                  itemLength: 5,
+                  itemLength: 7,
                   isRequired: true,
+                  showSelectionAsButton: true,
                   labelHelp: 'Each record will be updated with the value from this field',
                   disabled,
+                  onClear: () => handleAlternateFieldChange(null),
                 }}
                 items={fields}
+                rootHeadingLabel={sobject}
+                selectedItemLabelFn={(item) => item.value}
                 selectedItemId={transformationOptions.alternateField}
-                onSelected={(item) => handleAlternateFieldChange(item.id)}
+                onSelected={(item) => handleAlternateFieldChange(item?.id)}
+                onLoadItems={onLoadChildFields}
               />
             </div>
           </Grid>

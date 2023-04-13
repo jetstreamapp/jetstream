@@ -1,15 +1,27 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 import { css } from '@emotion/react';
 import { IconObj } from '@jetstream/icon-factory';
+import { logger } from '@jetstream/shared/client-logger';
 import { ANALYTICS_KEYS } from '@jetstream/shared/constants';
-import { hasModifierKey, isEnterKey, useGlobalEventHandler, useNonInitialEffect } from '@jetstream/shared/ui-utils';
+import { describeSObject } from '@jetstream/shared/data';
+import {
+  getFlattenedListItemsById,
+  getListItemsFromFieldWithRelatedItems,
+  hasModifierKey,
+  isEnterKey,
+  sortQueryFields,
+  unFlattenedListItemsById,
+  useGlobalEventHandler,
+  useNonInitialEffect,
+} from '@jetstream/shared/ui-utils';
 import { SplitWrapper as Split } from '@jetstream/splitjs';
-import { QueryFieldWithPolymorphic, SalesforceOrgUi } from '@jetstream/types';
+import { ListItem, QueryFieldWithPolymorphic, SalesforceOrgUi } from '@jetstream/types';
 import {
   Accordion,
   AutoFullHeightContainer,
   CheckboxToggle,
   ConnectedSobjectList,
+  Grid,
   Icon,
   Page,
   PageHeader,
@@ -18,26 +30,27 @@ import {
   PageHeaderTitle,
   Tabs,
 } from '@jetstream/ui';
-import type { DescribeGlobalSObjectResult } from 'jsforce';
+import type { DescribeGlobalSObjectResult, Field } from 'jsforce';
 import { Fragment, FunctionComponent, useCallback, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useRecoilState, useRecoilValue, useResetRecoilState } from 'recoil';
+import { useRecoilState, useRecoilValue, useResetRecoilState, useSetRecoilState } from 'recoil';
 import { applicationCookieState, selectedOrgState } from '../../../app-state';
 import { useAmplitude } from '../../core/analytics';
-import * as fromQueryState from '../query.state';
-import { QueryHistoryType } from '../QueryHistory/query-history.state';
 import QueryHistory, { QueryHistoryRef } from '../QueryHistory/QueryHistory';
-import QueryFilterTitleSummary from '../QueryOptions/accordion-titles/QueryFilterTitleSummary';
-import QueryLimitTitleSummary from '../QueryOptions/accordion-titles/QueryLimitTitleSummary';
-import QueryOrderByTitleSummary from '../QueryOptions/accordion-titles/QueryOrderByTitleSummary';
+import { QueryHistoryType } from '../QueryHistory/query-history.state';
 import ManualSoql from '../QueryOptions/ManualSoql';
+import QueryBuilderAdvancedOptions from '../QueryOptions/QueryBuilderAdvancedOptions';
 import QueryFilter from '../QueryOptions/QueryFilter';
 import QueryLimit from '../QueryOptions/QueryLimit';
 import QueryOrderBy from '../QueryOptions/QueryOrderBy';
 import QueryResetButton from '../QueryOptions/QueryResetButton';
 import SoqlTextarea from '../QueryOptions/SoqlTextarea';
+import QueryFilterTitleSummary from '../QueryOptions/accordion-titles/QueryFilterTitleSummary';
+import QueryLimitTitleSummary from '../QueryOptions/accordion-titles/QueryLimitTitleSummary';
+import QueryOrderByTitleSummary from '../QueryOptions/accordion-titles/QueryOrderByTitleSummary';
+import TabTitleActivityIndicator from '../QueryOptions/accordion-titles/TabTitleActivityIndicator';
 import QueryWalkthrough from '../QueryWalkthrough/QueryWalkthrough';
-import { calculateFilterAndOrderByListGroupFields } from '../utils/query-utils';
+import * as fromQueryState from '../query.state';
 import ExecuteQueryButton from './ExecuteQueryButton';
 import QueryBuilderSoqlUpdater from './QueryBuilderSoqlUpdater';
 import QueryFieldsComponent from './QueryFields';
@@ -75,7 +88,9 @@ export const QueryBuilder: FunctionComponent<QueryBuilderProps> = () => {
   const [selectedSubqueryFieldsState, setSelectedSubqueryFieldsState] = useRecoilState(fromQueryState.selectedSubqueryFieldsState);
   const [filterFields, setFilterFields] = useRecoilState(fromQueryState.filterQueryFieldsState);
   const [orderByFields, setOrderByFields] = useRecoilState(fromQueryState.orderByQueryFieldsState);
+  const setGroupByFields = useSetRecoilState(fromQueryState.groupByQueryFieldsState);
   const queryKey = useRecoilValue(fromQueryState.selectQueryKeyState);
+  const [queryFilters, setQueryFilters] = useRecoilState(fromQueryState.queryFiltersState);
 
   const resetSelectedQueryFieldsState = useResetRecoilState(fromQueryState.selectedQueryFieldsState);
   const resetFilterQueryFieldsState = useResetRecoilState(fromQueryState.filterQueryFieldsState);
@@ -86,6 +101,9 @@ export const QueryBuilder: FunctionComponent<QueryBuilderProps> = () => {
   const resetQueryFieldsKey = useResetRecoilState(fromQueryState.queryFieldsKey);
   const resetSelectedSubqueryFieldsState = useResetRecoilState(fromQueryState.selectedSubqueryFieldsState);
   const resetQueryFiltersState = useResetRecoilState(fromQueryState.queryFiltersState);
+  const resetQueryHavingState = useResetRecoilState(fromQueryState.queryHavingState);
+  const resetFieldFilterFunctions = useResetRecoilState(fromQueryState.fieldFilterFunctions);
+  const resetQueryGroupByState = useResetRecoilState(fromQueryState.queryGroupByState);
   const resetQueryOrderByState = useResetRecoilState(fromQueryState.queryOrderByState);
   const resetQueryLimit = useResetRecoilState(fromQueryState.queryLimit);
   const resetQueryLimitSkip = useResetRecoilState(fromQueryState.queryLimitSkip);
@@ -125,18 +143,6 @@ export const QueryBuilder: FunctionComponent<QueryBuilderProps> = () => {
     }
   }, [isTooling, showWalkthrough, trackEvent]);
 
-  useNonInitialEffect(() => {
-    if (queryFieldsMap && selectedSObject) {
-      setFilterFields(calculateFilterAndOrderByListGroupFields(queryFieldsMap, ['filterable']));
-      setOrderByFields(calculateFilterAndOrderByListGroupFields(queryFieldsMap, ['sortable']));
-    } else if (!isRestore) {
-      // if restore is true, then avoid reset will page is being re-hydrated
-      setFilterFields([]);
-      setOrderByFields([]);
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedSObject, queryFieldsMap, selectedFields]);
-
   function handleSubquerySelectedField(relationshipName: string, fields: QueryFieldWithPolymorphic[]) {
     const tempSelectedSubqueryFieldsState = { ...selectedSubqueryFieldsState, [relationshipName]: fields };
     setSelectedSubqueryFieldsState(tempSelectedSubqueryFieldsState);
@@ -165,6 +171,53 @@ export const QueryBuilder: FunctionComponent<QueryBuilderProps> = () => {
     trackEvent(ANALYTICS_KEYS.query_MetadataQueryToggled, { changedTo: id });
   }
 
+  /**
+   * Load ListItem for drill-in fields in filter and OrderBy
+   */
+  async function loadRelatedFilterAndOrderbyFields(item: ListItem): Promise<ListItem[]> {
+    try {
+      const field = item.meta as Field;
+      if (!Array.isArray(field.referenceTo) || field.referenceTo.length <= 0) {
+        return [];
+      }
+      const { data } = await describeSObject(selectedOrg, field.referenceTo?.[0] || '');
+      const allFieldMetadata = sortQueryFields(data.fields);
+      const childFields = getListItemsFromFieldWithRelatedItems(allFieldMetadata, item.id);
+
+      setFilterFields((prevItems) => {
+        let allFilterItems = getFlattenedListItemsById(prevItems);
+        allFilterItems = {
+          ...allFilterItems,
+          [item.id]: { ...allFilterItems[item.id], childItems: childFields.filter((field) => field.meta?.filterable) },
+        };
+        return unFlattenedListItemsById(allFilterItems);
+      });
+
+      setOrderByFields((prevItems) => {
+        let allFilterItems = getFlattenedListItemsById(prevItems);
+        allFilterItems = {
+          ...allFilterItems,
+          [item.id]: { ...allFilterItems[item.id], childItems: childFields.filter((field) => field.meta?.sortable) },
+        };
+        return unFlattenedListItemsById(allFilterItems);
+      });
+
+      setGroupByFields((prevItems) => {
+        let allFilterItems = getFlattenedListItemsById(prevItems);
+        allFilterItems = {
+          ...allFilterItems,
+          [item.id]: { ...allFilterItems[item.id], childItems: childFields.filter((field) => field.meta?.groupable) },
+        };
+        return unFlattenedListItemsById(allFilterItems);
+      });
+
+      return childFields;
+    } catch (ex) {
+      logger.warn('Error fetching related fields', ex);
+    }
+    return [];
+  }
+
   const resetState = useCallback(
     (includeSobjectReset = true) => {
       if (includeSobjectReset) {
@@ -178,6 +231,9 @@ export const QueryBuilder: FunctionComponent<QueryBuilderProps> = () => {
       resetOrderByQueryFieldsState();
       resetSelectedSubqueryFieldsState();
       resetQueryFiltersState();
+      resetQueryHavingState();
+      resetFieldFilterFunctions();
+      resetQueryGroupByState();
       resetQueryOrderByState();
       resetQueryLimit();
       resetQueryLimitSkip();
@@ -186,21 +242,24 @@ export const QueryBuilder: FunctionComponent<QueryBuilderProps> = () => {
       resetQueryIncludeDeletedRecordsState();
     },
     [
+      resetSObjectFilterTerm,
+      resetQueryFieldsMapState,
+      resetQueryFieldsKey,
+      resetSelectedQueryFieldsState,
       resetFilterQueryFieldsState,
       resetOrderByQueryFieldsState,
-      resetQueryChildRelationships,
-      resetQueryFieldsKey,
-      resetQueryFieldsMapState,
+      resetSelectedSubqueryFieldsState,
       resetQueryFiltersState,
-      resetQueryIncludeDeletedRecordsState,
+      resetQueryHavingState,
+      resetFieldFilterFunctions,
+      resetQueryGroupByState,
+      resetQueryOrderByState,
       resetQueryLimit,
       resetQueryLimitSkip,
-      resetQueryOrderByState,
       resetQuerySoqlState,
-      resetSelectedQueryFieldsState,
+      resetQueryChildRelationships,
+      resetQueryIncludeDeletedRecordsState,
       resetSelectedSObject,
-      resetSObjectFilterTerm,
-      resetSelectedSubqueryFieldsState,
     ]
   );
 
@@ -350,45 +409,118 @@ export const QueryBuilder: FunctionComponent<QueryBuilderProps> = () => {
             <div className="slds-p-horizontal_x-small" data-testid="filters-and-soql">
               <AutoFullHeightContainer fillHeight bufferIfNotRendered={HEIGHT_BUFFER}>
                 {selectedSObject && (
-                  <Accordion
+                  <Tabs
                     key={selectedSObject.name}
-                    initOpenIds={['filters', 'soql']}
-                    sections={[
+                    initialActiveId="standardOptions"
+                    contentClassname="slds-p-bottom_none"
+                    tabs={[
                       {
-                        id: 'filters',
-                        title: 'Filters',
-                        titleSummaryIfCollapsed: <QueryFilterTitleSummary key={queryKey} />,
-                        content: <QueryFilter key={queryKey} fields={filterFields} />,
-                      },
-                      {
-                        id: 'orderBy',
-                        title: 'Order By',
-                        titleSummaryIfCollapsed: <QueryOrderByTitleSummary key={queryKey} />,
-                        content: <QueryOrderBy key={queryKey} fields={orderByFields} />,
-                      },
-                      {
-                        id: 'limit',
-                        title: 'Limit',
-                        titleSummaryIfCollapsed: <QueryLimitTitleSummary key={queryKey} />,
-                        content: <QueryLimit key={queryKey} />,
-                      },
-                      {
-                        id: 'soql',
-                        title: 'Soql Query',
+                        id: 'standardOptions',
+                        titleClassName: 'slds-size_1-of-2',
+                        titleText: 'Standard Options',
+                        title: (
+                          <Grid>
+                            Standard Options
+                            <TabTitleActivityIndicator type="standard" />
+                          </Grid>
+                        ),
                         content: (
-                          <SoqlTextarea
+                          <Accordion
                             key={selectedSObject.name}
-                            soql={soql}
-                            selectedOrg={selectedOrg}
-                            selectedSObject={selectedSObject}
-                            isTooling={isTooling}
-                            onOpenHistory={handleOpenHistory}
+                            initOpenIds={['filters', 'soql']}
+                            sections={[
+                              {
+                                id: 'filters',
+                                title: 'Filters',
+                                titleSummaryIfCollapsed: <QueryFilterTitleSummary key={queryKey} />,
+                                content: (
+                                  <QueryFilter
+                                    key={queryKey}
+                                    sobject={selectedSObject.name}
+                                    fields={filterFields}
+                                    filtersOrHaving={queryFilters}
+                                    setFiltersOrHaving={setQueryFilters}
+                                    onLoadRelatedFields={loadRelatedFilterAndOrderbyFields}
+                                  />
+                                ),
+                              },
+                              {
+                                id: 'orderBy',
+                                title: 'Order By',
+                                titleSummaryIfCollapsed: <QueryOrderByTitleSummary key={queryKey} />,
+                                content: (
+                                  <QueryOrderBy
+                                    key={queryKey}
+                                    sobject={selectedSObject.name}
+                                    fields={orderByFields}
+                                    onLoadRelatedFields={loadRelatedFilterAndOrderbyFields}
+                                  />
+                                ),
+                              },
+                              {
+                                id: 'limit',
+                                title: 'Limit',
+                                titleSummaryIfCollapsed: <QueryLimitTitleSummary key={queryKey} />,
+                                content: <QueryLimit key={queryKey} />,
+                              },
+                              {
+                                id: 'soql',
+                                title: 'Soql Query',
+                                content: (
+                                  <SoqlTextarea
+                                    key={selectedSObject.name}
+                                    soql={soql}
+                                    selectedOrg={selectedOrg}
+                                    selectedSObject={selectedSObject}
+                                    isTooling={isTooling}
+                                    onOpenHistory={handleOpenHistory}
+                                  />
+                                ),
+                              },
+                            ]}
+                            allowMultiple
+                          ></Accordion>
+                        ),
+                      },
+                      {
+                        id: 'advancedOptions',
+                        titleClassName: 'slds-size_1-of-2',
+                        titleText: 'Standard Options',
+                        title: (
+                          <Grid>
+                            Advanced Options
+                            <TabTitleActivityIndicator type="advanced" />
+                          </Grid>
+                        ),
+                        content: (
+                          <QueryBuilderAdvancedOptions
+                            key={queryKey}
+                            sobject={selectedSObject.name}
+                            selectedFields={selectedFields}
+                            filterFields={filterFields}
+                            initialOpenIds={['soql']}
+                            onLoadRelatedFields={loadRelatedFilterAndOrderbyFields}
+                            additionalSections={[
+                              {
+                                id: 'soql',
+                                title: 'Soql Query',
+                                content: (
+                                  <SoqlTextarea
+                                    key={selectedSObject.name}
+                                    soql={soql}
+                                    selectedOrg={selectedOrg}
+                                    selectedSObject={selectedSObject}
+                                    isTooling={isTooling}
+                                    onOpenHistory={handleOpenHistory}
+                                  />
+                                ),
+                              },
+                            ]}
                           />
                         ),
                       },
                     ]}
-                    allowMultiple
-                  ></Accordion>
+                  />
                 )}
               </AutoFullHeightContainer>
             </div>

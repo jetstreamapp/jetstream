@@ -1,9 +1,16 @@
 import { logger } from '@jetstream/shared/client-logger';
 import { ANALYTICS_KEYS } from '@jetstream/shared/constants';
 import { describeSObject, query } from '@jetstream/shared/data';
-import { sortQueryFields, useNonInitialEffect, useRollbar } from '@jetstream/shared/ui-utils';
-import { Maybe, SalesforceOrgUi } from '@jetstream/types';
-import type { DescribeSObjectResult } from 'jsforce';
+import {
+  getFlattenedListItemsById,
+  getListItemsFromFieldWithRelatedItems,
+  sortQueryFields,
+  unFlattenedListItemsById,
+  useNonInitialEffect,
+  useRollbar,
+} from '@jetstream/shared/ui-utils';
+import { ListItem, Maybe, SalesforceOrgUi } from '@jetstream/types';
+import type { DescribeSObjectResult, Field } from 'jsforce';
 import { useCallback, useEffect, useReducer, useRef } from 'react';
 import { useRecoilState, useRecoilValue } from 'recoil';
 import { useAmplitude } from '../../core/analytics';
@@ -26,6 +33,7 @@ type Action =
   | { type: 'COMMON_CRITERIA_SELECTED'; payload: { criteria: TransformationCriteria; whereClause?: string } }
   | { type: 'TRANSFORMATION_OPTION_CHANGED'; payload: { sobject: string; transformationOptions: TransformationOptions } }
   | { type: 'METADATA_LOADED'; payload: { sobject: string; metadata: DescribeSObjectResult } }
+  | { type: 'CHILD_FIELDS_LOADED'; payload: { sobject: string; parentId: string; childFields: ListItem[] } }
   | { type: 'METADATA_ERROR'; payload: { sobject: string; error: string } }
   | { type: 'START_VALIDATION'; payload: { sobject: string } }
   | { type: 'FINISH_VALIDATION'; payload: { sobject: string; impactedRecords: Maybe<number>; error: Maybe<string> } };
@@ -54,7 +62,7 @@ function reducer(state: State, action: Action): State {
           sobject,
           loading: true,
           fields: [],
-          allFields: [],
+          valueFields: [],
           deployResults: {
             status: 'Not Started',
             done: false,
@@ -66,7 +74,7 @@ function reducer(state: State, action: Action): State {
             option: 'anotherField',
             staticValue: '',
             criteria: 'all',
-            alternateField: 'Id',
+            alternateField: null,
             whereClause: '',
           },
         });
@@ -158,20 +166,33 @@ function reducer(state: State, action: Action): State {
             secondaryLabelOnNewLine: true,
             meta: field,
           })),
-        allFields: allFieldMetadata.map((field) => ({
-          id: field.name,
-          value: field.name,
-          label: field.label,
-          secondaryLabel: field.name,
-          secondaryLabelOnNewLine: true,
-          meta: field,
-        })),
+        valueFields: getListItemsFromFieldWithRelatedItems(allFieldMetadata),
       });
       return {
         ...state,
         rowsMap,
         allRowsValid: Array.from(rowsMap.values()).every((row) => row.isValid),
       };
+    }
+    case 'CHILD_FIELDS_LOADED': {
+      const { sobject, parentId, childFields } = action.payload;
+      const rowsMap = new Map(state.rowsMap);
+      const existingRow = state.rowsMap.get(sobject);
+      if (!existingRow) {
+        return state;
+      }
+
+      // Add child items to the parent
+      let allItems = getFlattenedListItemsById(existingRow.valueFields);
+      allItems = { ...allItems, [parentId]: { ...allItems[parentId], childItems: childFields } };
+      const valueFields = unFlattenedListItemsById(allItems);
+
+      rowsMap.set(sobject, {
+        ...existingRow,
+        valueFields,
+      });
+
+      return { ...state, rowsMap, allRowsValid: Array.from(rowsMap.values()).every((row) => row.isValid) };
     }
     case 'START_VALIDATION': {
       const { sobject } = action.payload;
@@ -321,6 +342,22 @@ export function useMassUpdateFieldItems(org: SalesforceOrgUi, selectedSObjects: 
     dispatch({ type: 'FIELD_SELECTION_CHANGED', payload: { sobject, selectedField } });
   }, []);
 
+  const onLoadChildFields = useCallback(
+    async (sobject: string, item: ListItem): Promise<ListItem[]> => {
+      const field = item.meta as Field;
+      if (!Array.isArray(field.referenceTo) || field.referenceTo.length <= 0) {
+        return [];
+      }
+      const { data } = await describeSObject(org, field.referenceTo?.[0] || '');
+      const allFieldMetadata = sortQueryFields(data.fields);
+      const childFields = getListItemsFromFieldWithRelatedItems(allFieldMetadata, item.id);
+
+      dispatch({ type: 'CHILD_FIELDS_LOADED', payload: { sobject, parentId: item.id, childFields } });
+      return childFields;
+    },
+    [org]
+  );
+
   /** Handle added / removed sobjects */
   useEffect(() => {
     currentSelectedObjects.current = new Set(selectedSObjects || []);
@@ -374,6 +411,7 @@ export function useMassUpdateFieldItems(org: SalesforceOrgUi, selectedSObjects: 
     rows,
     allRowsValid,
     onFieldSelected,
+    onLoadChildFields,
     applyCommonField,
     applyCommonOption,
     applyCommonCriteria,

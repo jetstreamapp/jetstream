@@ -1,18 +1,19 @@
 import { logger } from '@jetstream/api-config';
 import * as services from '@jetstream/server-services';
-import { toBoolean } from '@jetstream/shared/utils';
+import { ensureBoolean, toBoolean } from '@jetstream/shared/utils';
 import { BulkApiCreateJobRequestPayload, BulkApiDownloadType, BulkJobBatchInfo } from '@jetstream/types';
 import { NextFunction, Request, Response } from 'express';
 import { body, param, query } from 'express-validator';
 import * as jsforce from 'jsforce';
 import { NODE_STREAM_INPUT, parse as parseCsv } from 'papaparse';
-import { sfBulkDownloadRecords } from '../services/sf-bulk';
+import { sfBulkDownloadRecords, sfBulkGetQueryResultsJobIds } from '../services/sf-bulk';
 import { UserFacingError } from '../utils/error-handler';
 import { sendJson } from '../utils/response.handlers';
+import { HTTP } from '@jetstream/shared/constants';
 
 export const routeValidators = {
   createJob: [
-    body('type').isIn(['INSERT', 'UPDATE', 'UPSERT', 'DELETE']),
+    body('type').isIn(['INSERT', 'UPDATE', 'UPSERT', 'DELETE', 'QUERY']),
     body('sObject').isString(),
     body('serialMode').optional().isBoolean(),
     body('externalIdFieldName').optional().isString(),
@@ -22,12 +23,18 @@ export const routeValidators = {
   ],
   getJob: [param('jobId').isString()],
   closeJob: [param('jobId').isString()],
-  downloadResults: [param('jobId').isString(), param('batchId').isString(), query('type').isIn(['request', 'result'])],
+  downloadResults: [
+    param('jobId').isString(),
+    param('batchId').isString(),
+    query('type').isIn(['request', 'result']),
+    query('isQuery').optional().isBoolean(),
+  ],
   downloadResultsFile: [
     param('jobId').isString(),
     param('batchId').isString(),
     query('type').isIn(['request', 'result']),
-    query('filename').optional().isString(),
+    query('isQuery').optional().isBoolean(),
+    query('fileName').optional().isString(),
   ],
   addBatchToJob: [param('jobId').isString(), body().exists({ checkNull: true }), query('closeJob').optional().toBoolean()],
   addBatchToJobWithBinaryAttachment: [
@@ -120,22 +127,29 @@ export async function addBatchToJobWithBinaryAttachment(req: Request, res: Respo
  *  This is not used AFAIK
  *
  */
-// export async function downloadResultsFile(req: Request, res: Response, next: NextFunction) {
-//   try {
-//     const jobId = req.params.jobId;
-//     const batchId = req.params.batchId;
-//     const type = req.query.type as BulkApiDownloadType;
-//     const conn: jsforce.Connection = res.locals.jsforceConn;
+export async function downloadResultsFile(req: Request, res: Response, next: NextFunction) {
+  try {
+    const jobId = req.params.jobId;
+    const batchId = req.params.batchId;
+    const type = req.query.type as BulkApiDownloadType;
+    const isQuery = ensureBoolean(req.query.isQuery as string);
+    const fileName = req.query.fileName || `${type}.csv`;
+    const conn: jsforce.Connection = res.locals.jsforceConn;
 
-//     const filename = req.query.filename || `${type}.csv`; // TODO: come up with better filename structure
-//     res.setHeader(HEADERS.CONTENT_TYPE, CONTENT_TYPE.CSV);
-//     res.setHeader(HEADERS.CONTENT_DISPOSITION, `attachment; filename="${filename}"`);
+    res.setHeader(HTTP.HEADERS.CONTENT_TYPE, HTTP.CONTENT_TYPE.CSV);
+    res.setHeader(HTTP.HEADERS.CONTENT_DISPOSITION, `attachment; filename="${fileName}"`);
 
-//     sfBulkDownloadRecords(conn, jobId, batchId, type).buffer(false).pipe(res);
-//   } catch (ex) {
-//     next(new UserFacingError(ex.message));
-//   }
-// }
+    let resultId: string | undefined;
+
+    if (isQuery) {
+      resultId = (await sfBulkGetQueryResultsJobIds(conn, jobId, batchId))[0];
+    }
+
+    sfBulkDownloadRecords(conn, jobId, batchId, type, resultId).buffer(false).pipe(res);
+  } catch (ex) {
+    next(new UserFacingError(ex.message));
+  }
+}
 
 /**
  * Download requests or results as JSON, streamed from Salesforce as CSV, and transformed to JSON
@@ -145,6 +159,7 @@ export async function downloadResults(req: Request, res: Response, next: NextFun
     const jobId = req.params.jobId;
     const batchId = req.params.batchId;
     const type = req.query.type as BulkApiDownloadType;
+    const isQuery = ensureBoolean(req.query.isQuery as string);
     const conn: jsforce.Connection = res.locals.jsforceConn;
 
     const csvParseStream = parseCsv(NODE_STREAM_INPUT, {
@@ -160,11 +175,17 @@ export async function downloadResults(req: Request, res: Response, next: NextFun
         return data;
       },
     });
-    sfBulkDownloadRecords(conn, jobId, batchId, type).buffer(false).pipe(csvParseStream);
+    if (isQuery) {
+      const resultIds = await sfBulkGetQueryResultsJobIds(conn, jobId, batchId);
+      sfBulkDownloadRecords(conn, jobId, batchId, type, resultIds[0]).buffer(false).pipe(csvParseStream);
+    } else {
+      sfBulkDownloadRecords(conn, jobId, batchId, type).buffer(false).pipe(csvParseStream);
+    }
 
     let isFirstChunk = true;
 
     csvParseStream.on('data', (data) => {
+      console.log('DATA: %o', data);
       data = JSON.stringify(data);
       if (isFirstChunk) {
         isFirstChunk = false;
@@ -175,6 +196,7 @@ export async function downloadResults(req: Request, res: Response, next: NextFun
       res.write(data);
     });
     csvParseStream.on('finish', () => {
+      console.log('FINISH');
       res.write(']}');
       res.status(200).send();
     });

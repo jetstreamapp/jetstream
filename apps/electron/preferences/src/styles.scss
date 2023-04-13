@@ -49,6 +49,10 @@ pre {
   opacity: 0.8;
 }
 
+.no-outline {
+  outline: none !important;
+}
+
 .bg-color-gray {
   background-color: $color-background;
 }

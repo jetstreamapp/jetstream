@@ -10,7 +10,10 @@ export interface SearchInputProps {
   className?: string;
   placeholder?: string;
   autoFocus?: boolean;
-  // this can generally be omitted, but can be used to control the value
+  /**
+   * Optional value to control the input externally
+   * Normally this can be omitted and the component will manage its own state
+   */
   value?: string;
   disabled?: boolean;
   onChange: (value: string) => void;

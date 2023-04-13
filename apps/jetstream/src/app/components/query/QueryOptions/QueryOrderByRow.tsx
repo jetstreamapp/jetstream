@@ -1,54 +1,53 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
-import { getFlattenedListItems, multiWordObjectFilter } from '@jetstream/shared/utils';
-import { AscDesc, FirstLast, ListItem, ListItemGroup, QueryOrderByClause } from '@jetstream/types';
-import { ComboboxWithItemsVirtual, FormRowButton, Picklist } from '@jetstream/ui';
-import { FunctionComponent, useEffect, useState } from 'react';
+import { AscDesc, FirstLast, ListItem, QueryOrderByClause } from '@jetstream/types';
+import { ComboboxWithDrillInItems, FormRowButton, Picklist } from '@jetstream/ui';
+import { FunctionComponent, useState } from 'react';
 
 export interface QueryOrderByProps {
   groupNumber: number;
   orderBy: QueryOrderByClause;
-  fields: ListItemGroup[];
+  sobject: string;
+  fields: ListItem[];
   order: ListItem<AscDesc>[];
   nulls: ListItem<FirstLast | null>[];
   onChange: (orderBy: QueryOrderByClause) => void;
   onDelete: (orderBy: QueryOrderByClause) => void;
+  onLoadRelatedFields: (item: ListItem) => Promise<ListItem[]>;
 }
 
 function getSelectionLabel(item: ListItem<string, unknown>) {
-  return `${item.secondaryLabel} (${item.label})`;
+  return `${item.value} (${item.label})`;
 }
 
 export const QueryOrderByRow: FunctionComponent<QueryOrderByProps> = ({
   groupNumber,
+  sobject,
   orderBy,
   fields,
   order,
   nulls,
   onChange,
   onDelete,
+  onLoadRelatedFields,
 }) => {
   const [initialSelectedOrder] = useState(order.find((item) => item.value === orderBy.order) || order[0]);
   const [initialSelectedNulls] = useState(nulls.find((item) => item.value === orderBy.nulls) || nulls[0]);
-  const [flattenedResources, setFlattenedResources] = useState<ListItem[]>(() => getFlattenedListItems(fields));
-
-  useEffect(() => {
-    setFlattenedResources(getFlattenedListItems(fields));
-  }, [fields]);
 
   return (
     <div className="slds-grid slds-gutters_xx-small" role="group" aria-label={`Filter row ${groupNumber}`}>
       {/* Resource */}
       <div className="slds-col">
-        <ComboboxWithItemsVirtual
+        <ComboboxWithDrillInItems
           comboboxProps={{
             label: 'Field',
-            labelHelp: 'Related fields will show up if you have visited the object.',
             itemLength: 10,
           }}
           selectedItemLabelFn={getSelectionLabel}
           selectedItemId={orderBy.field}
-          items={flattenedResources}
-          onSelected={(item) => onChange({ ...orderBy, field: item.value, fieldLabel: getSelectionLabel(item) })}
+          items={fields}
+          rootHeadingLabel={sobject}
+          onLoadItems={onLoadRelatedFields}
+          onSelected={(item) => item && onChange({ ...orderBy, field: item.value, fieldLabel: getSelectionLabel(item) })}
         />
       </div>
       <div className="slds-col slds-grow-none">

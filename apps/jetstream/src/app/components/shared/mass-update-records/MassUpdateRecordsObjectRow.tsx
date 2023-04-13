@@ -15,7 +15,7 @@ export interface MassUpdateRecordsObjectRowProps {
   sobject: string;
   loading: boolean;
   fields: ListItem[];
-  allFields: ListItem[];
+  valueFields: ListItem[];
   selectedField?: Maybe<string>;
   validationResults?: Maybe<ValidationResults>;
   transformationOptions: TransformationOptions;
@@ -25,6 +25,7 @@ export interface MassUpdateRecordsObjectRowProps {
   onOptionsChange: (sobject: string, options: TransformationOptions) => void;
   /** Used if some options should not be included in criteria dropdown */
   filterCriteriaFn?: (item: ListItem) => boolean;
+  onLoadChildFields?: (item: ListItem) => Promise<ListItem[]>;
   children?: ReactNode;
 }
 
@@ -33,7 +34,7 @@ export const MassUpdateRecordsObjectRow: FunctionComponent<MassUpdateRecordsObje
   sobject,
   loading,
   fields,
-  allFields,
+  valueFields,
   selectedField,
   validationResults,
   transformationOptions,
@@ -42,6 +43,7 @@ export const MassUpdateRecordsObjectRow: FunctionComponent<MassUpdateRecordsObje
   onFieldChange,
   onOptionsChange,
   filterCriteriaFn,
+  onLoadChildFields,
   children,
 }) => {
   return (
@@ -53,10 +55,12 @@ export const MassUpdateRecordsObjectRow: FunctionComponent<MassUpdateRecordsObje
           <MassUpdateRecordsObjectRowField fields={fields} selectedField={selectedField} disabled={disabled} onchange={onFieldChange} />
         </GridCol>
         <MassUpdateRecordsObjectRowValue
-          fields={allFields}
+          sobject={sobject}
+          fields={valueFields}
           transformationOptions={transformationOptions}
           disabled={disabled}
           onOptionsChange={(options) => onOptionsChange(sobject, options)}
+          onLoadChildFields={onLoadChildFields}
         />
 
         <GridCol size={12}>

@@ -30,9 +30,13 @@ export const Query: FunctionComponent<QueryProps> = () => {
   const resetSelectedQueryFieldsState = useResetRecoilState(fromQueryState.selectedQueryFieldsState);
   const resetSelectedSubqueryFieldsState = useResetRecoilState(fromQueryState.selectedSubqueryFieldsState);
   const resetQueryFiltersState = useResetRecoilState(fromQueryState.queryFiltersState);
+  const resetQueryHavingState = useResetRecoilState(fromQueryState.queryHavingState);
+  const resetFieldFilterFunctions = useResetRecoilState(fromQueryState.fieldFilterFunctions);
+  const resetQueryGroupByState = useResetRecoilState(fromQueryState.queryGroupByState);
   const resetQueryLimitSkip = useResetRecoilState(fromQueryState.queryLimitSkip);
   const resetQueryOrderByState = useResetRecoilState(fromQueryState.queryOrderByState);
   const resetQuerySoqlState = useResetRecoilState(fromQueryState.querySoqlState);
+
   const [priorSelectedOrg, setPriorSelectedOrg] = useState<string | null>(null);
 
   const [isRestoring, setIsRestoring] = useState(false);
@@ -56,6 +60,9 @@ export const Query: FunctionComponent<QueryProps> = () => {
       resetSelectedQueryFieldsState();
       resetSelectedSubqueryFieldsState();
       resetQueryFiltersState();
+      resetQueryHavingState();
+      resetFieldFilterFunctions();
+      resetQueryGroupByState();
       resetQueryLimitSkip();
       resetQueryOrderByState();
       resetQuerySoqlState();
@@ -93,6 +100,10 @@ export const Query: FunctionComponent<QueryProps> = () => {
           ['selectedQueryFieldsState', fromQueryState.selectedQueryFieldsState],
           ['selectedSubqueryFieldsState', fromQueryState.selectedSubqueryFieldsState],
           ['queryFiltersState', fromQueryState.queryFiltersState],
+          ['filterQueryFieldsState', fromQueryState.filterQueryFieldsState],
+          ['queryHavingState', fromQueryState.queryHavingState],
+          ['fieldFilterFunctions', fromQueryState.fieldFilterFunctions],
+          ['queryGroupByState', fromQueryState.queryGroupByState],
           ['selectQueryKeyState', fromQueryState.selectQueryKeyState],
           ['queryLimit', fromQueryState.queryLimit],
           ['queryLimitSkip', fromQueryState.queryLimitSkip],

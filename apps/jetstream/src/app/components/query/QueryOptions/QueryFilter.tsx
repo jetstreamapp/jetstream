@@ -1,23 +1,32 @@
-/* eslint-disable @typescript-eslint/no-unused-vars */
 import { useNonInitialEffect } from '@jetstream/shared/ui-utils';
-import { ExpressionType, ListItemGroup, QueryFilterOperator } from '@jetstream/types';
+import { ExpressionType, ListItem, QueryFilterOperator } from '@jetstream/types';
 import { ExpressionContainer } from '@jetstream/ui';
 import { FunctionComponent, useCallback, useEffect, useRef, useState } from 'react';
-import { useRecoilState } from 'recoil';
-import * as fromQueryState from '../query.state';
-import { getResourceTypeFnsFromFields, QUERY_OPERATORS } from '../utils/query-filter.utils';
+import { SetterOrUpdater } from 'recoil';
+import { QUERY_FIELD_FUNCTIONS, QUERY_OPERATORS, getResourceTypeFnsFromFields } from '../utils/query-filter.utils';
 
 export interface QueryFilterProps {
-  fields: ListItemGroup[];
+  sobject: string;
+  fields: ListItem[];
+  filtersOrHaving: ExpressionType;
+  isHavingClause?: boolean;
+  setFiltersOrHaving: SetterOrUpdater<ExpressionType>;
+  onLoadRelatedFields: (item: ListItem) => Promise<ListItem[]>;
 }
 
 const disableValueForOperators: QueryFilterOperator[] = ['isNull', 'isNotNull'];
 
-export const QueryFilter: FunctionComponent<QueryFilterProps> = ({ fields }) => {
+export const QueryFilter: FunctionComponent<QueryFilterProps> = ({
+  sobject,
+  fields,
+  filtersOrHaving,
+  isHavingClause,
+  setFiltersOrHaving,
+  onLoadRelatedFields,
+}) => {
   const isMounted = useRef(true);
 
-  const [queryFilters, setQueryFilters] = useRecoilState(fromQueryState.queryFiltersState);
-  const [initialQueryFilters] = useState(queryFilters);
+  const [initialQueryFilters] = useState(filtersOrHaving);
   const [getResourceTypeFns, setResourceTypeFns] = useState(() => getResourceTypeFnsFromFields(fields));
 
   useEffect(() => {
@@ -35,20 +44,22 @@ export const QueryFilter: FunctionComponent<QueryFilterProps> = ({ fields }) => 
   const handleChange = useCallback(
     (filters: ExpressionType) => {
       if (isMounted.current) {
-        setQueryFilters(filters);
+        setFiltersOrHaving(filters);
       }
     },
-    [setQueryFilters]
+    [setFiltersOrHaving]
   );
 
   return (
     <ExpressionContainer
       expressionInitValue={initialQueryFilters}
       actionLabel="Filter When"
-      resourceHelpText="Related fields will show up if you have visited the object."
       operatorHelpText="Use the In or Not In operators to match against a list of values."
-      resourceLabel="Fields"
+      resourceLabel="Field"
       resources={fields}
+      resourceListHeader={sobject}
+      resourceDrillInOnLoad={onLoadRelatedFields}
+      functions={isHavingClause ? QUERY_FIELD_FUNCTIONS : undefined}
       operators={QUERY_OPERATORS}
       getResourceTypeFns={getResourceTypeFns}
       disableValueForOperators={disableValueForOperators}

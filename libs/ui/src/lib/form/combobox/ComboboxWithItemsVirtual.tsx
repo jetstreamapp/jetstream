@@ -5,7 +5,7 @@ import { ListItem, Maybe } from '@jetstream/types';
 import { useVirtualizer } from '@tanstack/react-virtual';
 import isNumber from 'lodash/isNumber';
 import { FunctionComponent, useCallback, useEffect, useRef, useState } from 'react';
-import { Combobox, ComboboxProps, ComboboxPropsRef } from './Combobox';
+import { Combobox, ComboboxPropsRef, ComboboxSharedProps } from './Combobox';
 import { ComboboxListItem } from './ComboboxListItem';
 
 const defaultFilterFn = (filter) => multiWordObjectFilter<ListItem<string, any>>(['label', 'value'], filter);
@@ -13,7 +13,7 @@ const defaultSelectedItemLabelFn = (item: ListItem) => item.label;
 const defaultSelectedItemTitleFn = (item: ListItem) => item.title;
 
 export interface ComboboxWithItemsVirtualProps {
-  comboboxProps: Omit<ComboboxProps, 'selectedItemLabel' | 'selectedItemTitle' | 'onInputChange' | 'onInputEnter'>;
+  comboboxProps: Omit<ComboboxSharedProps, 'onInputChange' | 'onInputEnter'>;
   /** For groups, set isGroup: true on an item */
   items: ListItem[];
   selectedItemId?: string | null;
@@ -64,7 +64,7 @@ export const ComboboxWithItemsVirtual: FunctionComponent<ComboboxWithItemsVirtua
 
   const rowVirtualizer = useVirtualizer({
     count: visibleItems.length,
-    getScrollElement: () => comboboxRef.current?.getPopoverRef() || null,
+    getScrollElement: () => comboboxRef.current?.getRefs().popoverRef.current || null,
     estimateSize: (index: number) => {
       const item = visibleItems[index];
       if (item.isGroup) {

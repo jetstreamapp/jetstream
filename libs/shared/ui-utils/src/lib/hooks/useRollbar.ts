@@ -1,7 +1,7 @@
 import { Environment, UserProfileUi } from '@jetstream/types';
 import { logBuffer, logger } from '@jetstream/shared/client-logger';
 import { useState } from 'react';
-import Rollbar from 'rollbar';
+import Rollbar, { LogArgument } from 'rollbar';
 import { useNonInitialEffect } from './useNonInitialEffect';
 import isBoolean from 'lodash/isBoolean';
 
@@ -105,6 +105,21 @@ class RollbarConfig {
         enabled: !this.optOut,
         codeVersion: this.version,
         code_version: this.version,
+        checkIgnore: (isUncaught: boolean, args: LogArgument[], item: any) => {
+          try {
+            if (
+              item?.body?.trace?.exception?.description === 'Canceled' ||
+              item?.body?.trace?.exception?.class === 'ChunkLoadError' ||
+              item?.body?.trace?.exception?.class === '(unknown)' ||
+              item?.body?.trace?.frames?.[0]?.filename?.endsWith('/js/monaco/vs/loader.js')
+            ) {
+              return true;
+            }
+            return false;
+          } catch (ex) {
+            return false;
+          }
+        },
         payload: {
           server: {
             root: 'webpack:///./',
@@ -156,10 +171,14 @@ export function useRollbar(options?: RollbarProperties, optOut?: boolean): Rollb
 }
 
 // This should be used outside of a component (e.x. utility function)
-export function logErrorToRollbar(message: string, data?: any) {
+export function logErrorToRollbar(
+  message: string,
+  data?: any,
+  severity: 'log' | 'debug' | 'info' | 'warn' | 'error' | 'critical' = 'error'
+) {
   try {
     if (RollbarConfig.getInstance().rollbarIsConfigured) {
-      RollbarConfig.getInstance().rollbar.error(message, data);
+      RollbarConfig.getInstance().rollbar[severity](message, data);
     }
   } catch (ex) {
     // could not report to rollbar

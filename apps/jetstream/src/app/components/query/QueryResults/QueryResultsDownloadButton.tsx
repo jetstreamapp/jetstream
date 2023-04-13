@@ -1,3 +1,4 @@
+import { QueryResultsColumn } from '@jetstream/api-interfaces';
 import { ANALYTICS_KEYS } from '@jetstream/shared/constants';
 import { AsyncJobNew, BulkDownloadJob, FileExtCsvXLSXJsonGSheet, MapOf, Maybe, SalesforceOrgUi } from '@jetstream/types';
 import { ButtonGroupContainer, DownloadFromServerOpts, DropDown, Icon, RecordDownloadModal } from '@jetstream/ui';
@@ -11,8 +12,10 @@ import BulkUpdateFromQueryModal from './BulkUpdateFromQuery/BulkUpdateFromQueryM
 
 export interface QueryResultsDownloadButtonProps {
   selectedOrg: SalesforceOrgUi;
-  sobject?: Maybe<string>;
+  sObject?: Maybe<string>;
+  soql: string;
   parsedQuery: Maybe<Query>;
+  columns?: QueryResultsColumn[];
   disabled: boolean;
   isTooling: boolean;
   nextRecordsUrl: Maybe<string>;
@@ -28,8 +31,10 @@ export interface QueryResultsDownloadButtonProps {
 
 export const QueryResultsDownloadButton: FunctionComponent<QueryResultsDownloadButtonProps> = ({
   selectedOrg,
-  sobject,
+  sObject,
+  soql,
   parsedQuery,
+  columns,
   disabled,
   isTooling,
   nextRecordsUrl,
@@ -43,7 +48,7 @@ export const QueryResultsDownloadButton: FunctionComponent<QueryResultsDownloadB
   refreshRecords,
 }) => {
   const { trackEvent } = useAmplitude();
-  const [{ google_apiKey, google_appId, google_clientId }] = useRecoilState(applicationCookieState);
+  const [{ google_apiKey, google_appId, google_clientId, serverUrl }] = useRecoilState(applicationCookieState);
   const [isDownloadModalOpen, setModalOpen] = useState<boolean>(false);
   const [isBulkUpdateModalOpen, setIsBulkUpdateModalOpen] = useState<boolean>(false);
 
@@ -59,14 +64,19 @@ export const QueryResultsDownloadButton: FunctionComponent<QueryResultsDownloadB
   }
 
   function handleDownloadFromServer(options: DownloadFromServerOpts) {
-    const { fileFormat, fileName, fields, includeSubquery, whichFields, recordsToInclude, hasAllRecords, googleFolder } = options;
+    const { fileFormat, fileName, fields, includeSubquery, whichFields, recordsToInclude, hasAllRecords, googleFolder, useBulkApi } =
+      options;
     const jobs: AsyncJobNew<BulkDownloadJob>[] = [
       {
         type: 'BulkDownload',
         title: `Download Records`,
         org: selectedOrg,
         meta: {
+          serverUrl,
+          sObject: sObject || '',
+          soql,
           isTooling,
+          useBulkApi,
           fields,
           subqueryFields,
           records: recordsToInclude || records || [],
@@ -118,7 +128,7 @@ export const QueryResultsDownloadButton: FunctionComponent<QueryResultsDownloadB
           dropDownClassName="slds-dropdown_actions"
           position="right"
           items={[
-            { id: 'bulk-update', value: 'Bulk update records', disabled: isTooling || !sobject || !totalRecordCount || !parsedQuery },
+            { id: 'bulk-update', value: 'Bulk update records', disabled: isTooling || !sObject || !totalRecordCount || !parsedQuery },
           ]}
           onSelected={(item) => handleAction(item as 'bulk-update')}
         />
@@ -130,6 +140,7 @@ export const QueryResultsDownloadButton: FunctionComponent<QueryResultsDownloadB
           google_appId={google_appId}
           google_clientId={google_clientId}
           downloadModalOpen={isDownloadModalOpen}
+          columns={columns}
           fields={fields || []}
           modifiedFields={modifiedFields || []}
           subqueryFields={subqueryFields || {}}
@@ -142,10 +153,10 @@ export const QueryResultsDownloadButton: FunctionComponent<QueryResultsDownloadB
           onDownloadFromServer={handleDownloadFromServer}
         />
       )}
-      {isBulkUpdateModalOpen && sobject && totalRecordCount && parsedQuery && (
+      {isBulkUpdateModalOpen && sObject && totalRecordCount && parsedQuery && (
         <BulkUpdateFromQueryModal
           selectedOrg={selectedOrg}
-          sobject={sobject}
+          sobject={sObject}
           parsedQuery={parsedQuery}
           records={records || []}
           filteredRecords={filteredRows}

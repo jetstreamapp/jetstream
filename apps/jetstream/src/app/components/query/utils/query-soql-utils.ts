@@ -4,14 +4,15 @@ import { getFieldKey } from '@jetstream/shared/ui-utils';
 import { orderStringsBy } from '@jetstream/shared/utils';
 import { MapOf, Maybe, SalesforceOrgUi } from '@jetstream/types';
 import type { DescribeGlobalSObjectResult, DescribeSObjectResult, Field } from 'jsforce';
+import isString from 'lodash/isString';
 import {
+  OrderByFieldClause,
+  Query,
   FieldType as QueryFieldType,
+  WhereClause,
   isOrderByField,
   isValueCondition,
   isWhereOrHavingClauseWithRightCondition,
-  OrderByFieldClause,
-  Query,
-  WhereClause,
 } from 'soql-parser-js';
 import { getQueryFieldBaseKey, getSubqueryFieldBaseKey } from './query-fields-utils';
 
@@ -175,6 +176,11 @@ function getParsableFields(fields: QueryFieldType[]): ParsableFields {
     (output: ParsableFields, field) => {
       if (field.type === 'Field') {
         output.fields.push(field.field);
+      }
+      if (field.type === 'FieldFunctionExpression') {
+        if (isString(field.parameters[0])) {
+          output.fields.push(field.parameters[0]);
+        }
       } else if (field.type === 'FieldRelationship') {
         output.fields.push(field.rawValue || '');
       } else if (field.type === 'FieldTypeof') {

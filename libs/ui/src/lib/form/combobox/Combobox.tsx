@@ -1,31 +1,27 @@
+/* eslint-disable no-prototype-builtins */
 import { SerializedStyles } from '@emotion/react';
 import { logger } from '@jetstream/shared/client-logger';
 import {
+  focusElementFromRefWhenAvailable,
   isAlphaNumericKey,
   isArrowDownKey,
+  isArrowRightKey,
   isArrowUpKey,
   isEnterKey,
   isEnterOrSpace,
   isEscapeKey,
-  menuItemSelectScroll,
-  useNonInitialEffect,
 } from '@jetstream/shared/ui-utils';
 import { NOOP } from '@jetstream/shared/utils';
-import { DropDownItemLength, FormGroupDropdownItem, Maybe } from '@jetstream/types';
+import { DropDownItemLength, FormGroupDropdownItem } from '@jetstream/types';
 import classNames from 'classnames';
-import isNumber from 'lodash/isNumber';
 import uniqueId from 'lodash/uniqueId';
 import React, {
   Children,
-  cloneElement,
-  createRef,
   FocusEvent,
   forwardRef,
   Fragment,
-  isValidElement,
   KeyboardEvent,
   MouseEvent,
-  ReactElement,
   useEffect,
   useImperativeHandle,
   useRef,
@@ -37,20 +33,28 @@ import HelpText from '../../widgets/HelpText';
 import Icon from '../../widgets/Icon';
 import Spinner from '../../widgets/Spinner';
 import { FormGroupDropdown } from '../formGroupDropDown/FormGroupDropdown';
-import { ComboboxListItem, ComboboxListItemProps } from './ComboboxListItem';
-import { ComboboxListItemGroup, ComboboxListItemGroupProps } from './ComboboxListItemGroup';
-
-type ChildListItem = ComboboxListItemProps & React.RefAttributes<HTMLLIElement>;
-type ChildListGroup = ComboboxListItemGroupProps & { children: React.ReactNode };
+import { ComboboxListItem } from './ComboboxListItem';
 
 export interface ComboboxPropsRef {
-  getPopoverRef(): Maybe<HTMLDivElement>;
+  clearInputText(): void;
+  getRefs(): {
+    inputEl: React.RefObject<HTMLInputElement>;
+    divContainerEl: React.RefObject<HTMLDivElement>;
+    entireContainerEl: React.RefObject<HTMLDivElement>;
+    popoverRef: React.RefObject<HTMLDivElement>;
+  };
   close(): void;
 }
+
+export type ComboboxSharedProps = Omit<
+  ComboboxProps,
+  'hasGroups' | 'selectedItemLabel' | 'selectedItemTitle' | 'isEmpty' | 'isVirtual' | 'onKeyboardNavigation' | 'children'
+>;
 
 export interface ComboboxProps {
   className?: string;
   inputCss?: SerializedStyles;
+  hasGroups?: boolean;
   label: string;
   labelHelp?: string | null;
   helpText?: React.ReactNode | string;
@@ -60,28 +64,60 @@ export interface ComboboxProps {
   noItemsPlaceholder?: string;
   disabled?: boolean;
   loading?: boolean;
-  selectedItemLabel?: string | null; // used for text
-  selectedItemTitle?: string | null; // used for text
+  /** Set to true if there are groups */
+  /**
+   * Text shown for the selected item when the menu is closed.
+   */
+  selectedItemLabel?: string | null;
+  /**
+   * Text shown for the selected item title when the menu is closed.
+   */
+  selectedItemTitle?: string | null;
+  /**
+   * Shows a dropdown at beginning to choose between different types of items.
+   * {@link https://www.lightningdesignsystem.com/components/combobox/?variant=deprecated-multi-entity#Grouped-Comboboxes-(Cross-entity-Polymorphic)}
+   */
   leadingDropdown?: {
     label: string;
     items: FormGroupDropdownItem[];
     initialSelectedItem?: FormGroupDropdownItem;
   };
+  /**
+   * Depending on how Combobox is used, isEmpty may not be able to be automatically calculated.
+   * if so, Set this field to true if you know there are no items in the list.
+   */
+  isEmpty?: boolean;
+  /**
+   * How many items should be visible before scrolling
+   */
   itemLength?: DropDownItemLength;
   hasError?: boolean;
   errorMessageId?: string;
   errorMessage?: React.ReactNode | string;
+  /**
+   * If true, the selected item will be shown with a border and a close X button.
+   * User must clear the input before changing selection.
+   * This requires `onClear()` to be set, otherwise value cannot be cleared.
+   */
   showSelectionAsButton?: boolean;
-  /** If using virtual list, this ensures child detection for keyboard navigation is correct */
+  /**
+   * If using virtual list, this ensures child detection for keyboard navigation is correct.
+   */
   isVirtual?: boolean;
   onInputChange?: (value: string) => void;
   /** Same as onInputChange, but does not get called when closed */
   onFilterInputChange?: (value: string) => void;
   onInputEnter?: () => void;
   onClear?: () => void;
+  onClose?: () => void;
+  /**
+   * If there is a leading grouped dropdown, indicates if item in that list changed
+   */
   onLeadingDropdownChange?: (item: FormGroupDropdownItem) => void;
-  /** If provided, all keyboard navigation events will be sent to parent to control focus */
-  onKeyboardNavigation?: (action: 'up' | 'down' | 'enter') => void;
+  /**
+   * Notify parent of keyboard navigation event
+   */
+  onKeyboardNavigation: (action: 'up' | 'down' | 'right' | 'enter') => void;
   children?: React.ReactNode;
 }
 
@@ -105,20 +141,12 @@ const iconLoading = (
   </div>
 );
 
-const iconNotLoading = (
-  <Icon
-    type="utility"
-    icon="down"
-    className="slds-icon slds-icon slds-icon_x-small slds-icon-text-default"
-    containerClassname="slds-icon_container slds-icon-utility-down slds-input__icon slds-input__icon_right"
-  />
-);
-
 export const Combobox = forwardRef<ComboboxPropsRef, ComboboxProps>(
   (
     {
       className,
       inputCss,
+      hasGroups,
       label,
       labelHelp,
       helpText,
@@ -131,6 +159,7 @@ export const Combobox = forwardRef<ComboboxPropsRef, ComboboxProps>(
       selectedItemLabel,
       selectedItemTitle,
       leadingDropdown,
+      isEmpty = false,
       itemLength = 7,
       hasError,
       errorMessageId,
@@ -143,6 +172,7 @@ export const Combobox = forwardRef<ComboboxPropsRef, ComboboxProps>(
       onInputEnter,
       onLeadingDropdownChange,
       onClear,
+      onClose,
       onKeyboardNavigation,
     }: ComboboxProps,
     ref
@@ -154,53 +184,41 @@ export const Combobox = forwardRef<ComboboxPropsRef, ComboboxProps>(
     const [id] = useState<string>(uniqueId('Combobox'));
     const [listId] = useState<string>(uniqueId('Combobox-list'));
     const [value, setValue] = useState<string>(selectedItemLabel || '');
-    const [hasGroups, setHasGroups] = useState(!!isVirtual);
     const hasDropdownGroup = !!leadingDropdown && !!leadingDropdown.items?.length;
 
-    const [focusedItem, setFocusedItem] = useState<number | null>(null);
     const inputEl = useRef<HTMLInputElement>(null);
     const divContainerEl = useRef<HTMLDivElement>(null);
     const entireContainerEl = useRef<HTMLDivElement>(null);
-    const elRefs = useRef<HTMLLIElement[]>([]);
-    const parentOwnsKeyboardNavigation = !!onKeyboardNavigation;
+
+    const preventOpen = !!showSelectionAsButton && !!onClear && !!selectedItemLabel;
 
     useImperativeHandle<unknown, ComboboxPropsRef>(
       ref,
       () => ({
-        getPopoverRef: () => {
-          return popoverRef.current;
+        clearInputText: () => {
+          isOpen && setValue('');
+        },
+        focusInput: () => {
+          return inputEl.current?.focus();
+        },
+        getRefs: () => {
+          return {
+            inputEl,
+            divContainerEl,
+            entireContainerEl,
+            popoverRef,
+          };
         },
         close: () => {
           setTimeout(() => {
-            setIsOpen(false);
-            inputEl.current?.focus();
+            isOpen && setIsOpen(false);
+            onClose && onClose();
+            focusElementFromRefWhenAvailable(inputEl);
           });
         },
       }),
-      []
+      [isOpen, onClose]
     );
-
-    useNonInitialEffect(() => {
-      try {
-        if (
-          elRefs.current &&
-          isNumber(focusedItem) &&
-          elRefs.current[focusedItem] &&
-          elRefs.current[focusedItem] &&
-          !!elRefs.current[focusedItem].focus
-        ) {
-          elRefs.current[focusedItem].focus();
-        }
-        if (divContainerEl.current && isNumber(focusedItem)) {
-          menuItemSelectScroll({
-            container: divContainerEl.current,
-            focusedIndex: focusedItem,
-          });
-        }
-      } catch (ex) {
-        logger.log('Error with keyboard navigation', ex);
-      }
-    }, [focusedItem]);
 
     // when closed, set input value in case user modified
     useEffect(() => {
@@ -208,7 +226,7 @@ export const Combobox = forwardRef<ComboboxPropsRef, ComboboxProps>(
         setValue(inputBuffer.current || '');
       } else {
         inputBuffer.current = '';
-        setFocusedItem(null);
+        // setFocusedItem(null);
         if (value !== (selectedItemLabel || '')) {
           setValue(selectedItemLabel || '');
         }
@@ -223,131 +241,33 @@ export const Combobox = forwardRef<ComboboxPropsRef, ComboboxProps>(
     useEffect(() => {
       if (isOpen && selectedItemLabel) {
         setIsOpen(false);
+        onClose && onClose();
         inputEl.current?.focus();
       }
       if (value !== (selectedItemLabel || '')) {
         setValue(selectedItemLabel || '');
       }
+      // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [selectedItemLabel]);
-
-    // Determine if children are groups instead of items
-    let childrenSize = Children.count(children);
-    // if (!checkedForGroups) {
-    // setCheckedForGroups(true);
-    Children.forEach(children, (child) => {
-      if (isValidElement(child)) {
-        if (child.type === ComboboxListItemGroup) {
-          childrenSize += Children.count(child.props.children);
-          if (!hasGroups) {
-            setHasGroups(true);
-          }
-        }
-      }
-    });
-    // }
-
-    // remove double counted children size - since we really just want to know grandchildren size
-    if (hasGroups) {
-      childrenSize -= Children.count(children);
-    }
-
-    // init refs for children for keyboard navigation
-    if (elRefs.current.length !== childrenSize) {
-      const refs: HTMLLIElement[] = [];
-      let counter = 0;
-      Children.forEach(children, (child, i) => {
-        // if groups, use grandchildren
-        if (hasGroups) {
-          if (isValidElement(child)) {
-            Children.forEach(child.props.children, (grandChild) => {
-              refs[counter] = elRefs[counter] || createRef();
-              counter++;
-            });
-          }
-        } else {
-          refs[counter] = elRefs[counter] || createRef();
-          counter++;
-        }
-      });
-      // add or remove refs
-      elRefs.current = refs;
-    }
-
-    /**
-     * Create a ref on all children or grandchildren (for groups)
-     * This allows moving between elements with keyboard
-     */
-    let counter = 0;
-    const childrenWithRef = parentOwnsKeyboardNavigation
-      ? children
-      : Children.map(children, (child: ReactElement<ChildListItem | ChildListGroup>, i) => {
-          if (!isValidElement<ChildListItem | ChildListGroup>(child)) {
-            return child;
-          }
-          // set refs on all grandchildren list items
-          if (hasGroups && isValidElement<ChildListGroup>(child)) {
-            return cloneElement(child as ReactElement<ChildListGroup>, {
-              children: Children.map(child.props.children, (grandChild: ReactElement<ChildListItem>) => {
-                if (!isValidElement<ChildListItem>(grandChild) || grandChild.props['data-type'] === 'group') {
-                  return grandChild;
-                }
-                const clonedEl = cloneElement(grandChild, {
-                  ref: ((currCounter: number) => (node) => {
-                    if (elRefs.current && node) {
-                      elRefs.current[currCounter] = node;
-                    }
-                    // Call the original ref, if any
-                    const { ref } = child as any;
-                    if (typeof ref === 'function') {
-                      ref(node);
-                    } else if (ref !== null) {
-                      ref.current = node;
-                    }
-                  })(counter),
-                });
-                counter++;
-                return clonedEl;
-              }),
-            });
-          } else {
-            return cloneElement(child, {
-              ref: (node) => {
-                elRefs.current[i] = node;
-                // Call the original ref, if any
-                const { ref } = child as any;
-                if (typeof ref === 'function') {
-                  ref(node);
-                } else if (ref !== null) {
-                  ref.current = node;
-                }
-              },
-            });
-          }
-        });
 
     /**
      * When on input, move focus down the first list item
      */
     function handleInputKeyUp(event: KeyboardEvent<HTMLInputElement>) {
-      if (disabled) {
+      if (disabled || preventOpen) {
         return;
       }
       if (isArrowUpKey(event)) {
         !isOpen && setIsOpen(true);
-        if (parentOwnsKeyboardNavigation) {
-          onKeyboardNavigation?.('up');
-        } else {
-          setFocusedItem(elRefs.current.length - 1);
-        }
+        onKeyboardNavigation('up');
       } else if (isArrowDownKey(event)) {
         !isOpen && setIsOpen(true);
-        if (parentOwnsKeyboardNavigation) {
-          onKeyboardNavigation?.('down');
-        } else {
-          setFocusedItem(0);
-        }
+        onKeyboardNavigation('down');
       } else if (isEscapeKey(event)) {
+        event.stopPropagation();
+        event.preventDefault();
         setIsOpen(false);
+        onClose && onClose();
       } else if (isEnterKey(event) && isOpen && onInputEnter) {
         onInputEnter();
       } else {
@@ -366,61 +286,36 @@ export const Combobox = forwardRef<ComboboxPropsRef, ComboboxProps>(
      * The outer div listens for the keyboard events and handles actions
      */
     function handleListKeyDown(event: KeyboardEvent<HTMLDivElement>) {
-      let newFocusedItem = focusedItem;
-      if (isOpen && isEscapeKey(event)) {
-        event.preventDefault();
-        event.stopPropagation();
-        setIsOpen(false);
-        inputEl.current?.focus();
-        return;
-      }
-      if ((parentOwnsKeyboardNavigation || isNumber(focusedItem)) && isEnterOrSpace(event)) {
-        event.preventDefault();
-        event.stopPropagation();
-        try {
-          if (parentOwnsKeyboardNavigation) {
-            onKeyboardNavigation?.('enter');
-          } else {
-            elRefs.current[focusedItem!].click();
-          }
+      try {
+        if (isOpen && isEscapeKey(event)) {
+          event.preventDefault();
+          event.stopPropagation();
           setIsOpen(false);
+          onClose && onClose();
           inputEl.current?.focus();
-        } catch (ex) {
-          // error
-          logger.warn('Error in ComboboxList onKeyDown', ex);
+          return;
         }
-        return;
-      }
-      if (isArrowUpKey(event)) {
-        event.preventDefault();
-        event.stopPropagation();
-        if (parentOwnsKeyboardNavigation) {
-          onKeyboardNavigation?.('up');
-        } else {
-          if (!isNumber(focusedItem) || focusedItem === 0) {
-            newFocusedItem = elRefs.current.length - 1;
-          } else {
-            // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-            newFocusedItem = newFocusedItem! - 1;
-          }
+        if (isEnterOrSpace(event)) {
+          event.preventDefault();
+          event.stopPropagation();
+          onKeyboardNavigation('enter');
+          return;
         }
-      } else if (isArrowDownKey(event)) {
-        event.preventDefault();
-        event.stopPropagation();
-        if (parentOwnsKeyboardNavigation) {
-          onKeyboardNavigation?.('down');
-        } else {
-          if (!isNumber(focusedItem) || focusedItem === elRefs.current.length - 1) {
-            newFocusedItem = 0;
-          } else {
-            // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-            newFocusedItem = newFocusedItem! + 1;
-          }
+        if (isArrowUpKey(event)) {
+          event.preventDefault();
+          event.stopPropagation();
+          onKeyboardNavigation('up');
+        } else if (isArrowDownKey(event)) {
+          event.preventDefault();
+          event.stopPropagation();
+          onKeyboardNavigation('down');
+        } else if (isArrowRightKey(event)) {
+          event.preventDefault();
+          event.stopPropagation();
+          onKeyboardNavigation?.('right');
         }
-      }
-
-      if (!parentOwnsKeyboardNavigation && isNumber(newFocusedItem) && newFocusedItem !== focusedItem) {
-        setFocusedItem(newFocusedItem);
+      } catch (ex) {
+        logger.warn('Error in ComboboxList onKeyDown', ex);
       }
     }
 
@@ -429,10 +324,11 @@ export const Combobox = forwardRef<ComboboxPropsRef, ComboboxProps>(
         return;
       }
       setIsOpen(false);
+      onClose && onClose();
     };
 
     const handleInputClick = () => {
-      if (!disabled) {
+      if (!disabled && !preventOpen) {
         if (!isOpen && selectedItemLabel) {
           setIsOpen(!isOpen);
         } else {
@@ -441,16 +337,28 @@ export const Combobox = forwardRef<ComboboxPropsRef, ComboboxProps>(
       }
     };
 
-    const handleRemoveItem = (event: MouseEvent) => {
+    const handleRemoveItem = (event: MouseEvent | KeyboardEvent) => {
       event.stopPropagation();
       onClear && onClear();
       setIsOpen(true);
-      inputEl.current?.focus();
-      // Hacky, but make sure that input exists so it can be focused
-      setTimeout(() => {
-        inputEl.current?.focus();
-      }, 50);
+      focusElementFromRefWhenAvailable(inputEl);
     };
+
+    const iconNotLoading =
+      showSelectionAsButton && onClear && selectedItemLabel ? (
+        <div className="slds-input__icon-group slds-input__icon-group_right">
+          <button className="slds-button slds-button_icon slds-input__icon slds-input__icon_right" onClick={handleRemoveItem}>
+            <Icon type="utility" icon="clear" className="slds-button__icon" omitContainer description="Clear Selection" />
+          </button>
+        </div>
+      ) : (
+        <Icon
+          type="utility"
+          icon="down"
+          className="slds-icon slds-icon slds-icon_x-small slds-icon-text-default"
+          containerClassname="slds-icon_container slds-icon-utility-down slds-input__icon slds-input__icon_right"
+        />
+      );
 
     return (
       <div className={classNames('slds-form-element', { 'slds-has-error': hasError }, className)}>
@@ -462,7 +370,7 @@ export const Combobox = forwardRef<ComboboxPropsRef, ComboboxProps>(
           )}
           {label}
         </label>
-        {labelHelp && <HelpText id={`${id}-label-help-text`} content={labelHelp} />}
+        {labelHelp && !hideLabel && <HelpText id={`${id}-label-help-text`} content={labelHelp} />}
         <div className="slds-form-element__control">
           {getContainer(
             hasDropdownGroup,
@@ -478,7 +386,12 @@ export const Combobox = forwardRef<ComboboxPropsRef, ComboboxProps>(
               )}
               <OutsideClickHandler
                 className={classNames('slds-combobox_container', { 'slds-has-selection': showSelectionAsButton && selectedItemLabel })}
-                onOutsideClick={() => setIsOpen(false)}
+                onOutsideClick={() => {
+                  if (isOpen) {
+                    setIsOpen(false);
+                    onClose && onClose();
+                  }
+                }}
               >
                 <div
                   ref={entireContainerEl}
@@ -496,62 +409,26 @@ export const Combobox = forwardRef<ComboboxPropsRef, ComboboxProps>(
                     })}
                     role="none"
                   >
-                    {showSelectionAsButton && selectedItemLabel ? (
-                      <>
-                        <button
-                          type="button"
-                          className="slds-input_faux slds-combobox__input slds-combobox__input-value"
-                          aria-controls="listbox-id-18"
-                          aria-expanded="false"
-                          aria-haspopup="listbox"
-                          onClick={(ev) => {
-                            ev.preventDefault();
-                            ev.stopPropagation();
-                          }}
-                          title={selectedItemTitle || value}
-                        >
-                          <span className="slds-truncate" id={id}>
-                            {value}
-                          </span>
-                        </button>
-
-                        <button
-                          className="slds-button slds-button_icon slds-input__icon slds-input__icon_right"
-                          title="Remove selected option"
-                          onClick={handleRemoveItem}
-                        >
-                          <Icon
-                            type="utility"
-                            icon="close"
-                            description="Remove selected option"
-                            className="slds-button__icon"
-                            omitContainer
-                          />
-                        </button>
-                      </>
-                    ) : (
-                      <>
-                        <input
-                          ref={inputEl}
-                          aria-autocomplete="list"
-                          type="text"
-                          className={classNames('slds-input slds-combobox__input', { 'slds-text-color_error': hasError })}
-                          id={id}
-                          css={inputCss}
-                          aria-controls={listId}
-                          aria-describedby={errorMessageId}
-                          autoComplete="off"
-                          placeholder={placeholder}
-                          disabled={disabled}
-                          onKeyUp={handleInputKeyUp}
-                          onChange={(event) => setValue(event.target.value)}
-                          value={value}
-                          title={selectedItemTitle || value}
-                          onBlur={handleBlur}
-                        />
-                        {loading ? iconLoading : iconNotLoading}
-                      </>
-                    )}
+                    <input
+                      ref={inputEl}
+                      aria-autocomplete="list"
+                      type="text"
+                      className={classNames('slds-input slds-combobox__input', { 'slds-text-color_error': hasError })}
+                      id={id}
+                      css={inputCss}
+                      aria-controls={listId}
+                      aria-describedby={errorMessageId}
+                      autoComplete="off"
+                      placeholder={placeholder}
+                      disabled={disabled}
+                      readOnly={preventOpen}
+                      onKeyUp={handleInputKeyUp}
+                      onChange={(event) => setValue(event.target.value)}
+                      value={value}
+                      title={selectedItemTitle || value}
+                      onBlur={handleBlur}
+                    />
+                    {loading ? iconLoading : iconNotLoading}
                   </div>
                   <PopoverContainer
                     ref={popoverRef}
@@ -562,18 +439,24 @@ export const Combobox = forwardRef<ComboboxPropsRef, ComboboxProps>(
                     role="listbox"
                     isEager={isVirtual}
                     onKeyDown={handleListKeyDown}
+                    /**
+                     * This ensures that combobox does not close when scrollbar is clicked
+                     * https://github.com/salesforce/design-system-react/pull/1911
+                     */
+                    onMouseDown={(event) => event.preventDefault()}
                     onBlur={handleBlur}
                   >
                     <div ref={divContainerEl}>
-                      {Children.count(children) === 0 && (
-                        <ul className="slds-listbox slds-listbox_vertical" role="presentation">
-                          <ComboboxListItem id="placeholder" placeholder label={noItemsPlaceholder} selected={false} onSelection={NOOP} />
-                        </ul>
-                      )}
-                      {hasGroups && childrenWithRef}
+                      {hasGroups && children}
                       {!hasGroups && (
                         <ul className="slds-listbox slds-listbox_vertical" role="presentation">
-                          {childrenWithRef}
+                          {children}
+                        </ul>
+                      )}
+                      {/* Show placeholder if there are no items to show - in case there are other children (e.x. a header), parent can use isEmpty */}
+                      {(isEmpty || Children.count(children) === 0) && (
+                        <ul className="slds-listbox slds-listbox_vertical" role="presentation">
+                          <ComboboxListItem id="placeholder" placeholder label={noItemsPlaceholder} selected={false} onSelection={NOOP} />
                         </ul>
                       )}
                     </div>

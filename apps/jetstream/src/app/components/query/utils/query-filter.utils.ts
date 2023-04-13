@@ -1,16 +1,49 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
-import { DATE_LITERALS_SET, getBooleanListItems, getDateLiteralListItems, getPicklistListItems } from '@jetstream/shared/ui-utils';
+import {
+  DATE_LITERALS_SET,
+  getBooleanListItems,
+  getDateLiteralListItems,
+  getFlattenedListItemsById,
+  getPicklistListItems,
+} from '@jetstream/shared/ui-utils';
+import { REGEX } from '@jetstream/shared/utils';
 import {
   ExpressionConditionHelpText,
   ExpressionConditionRowSelectedItems,
   ExpressionGetResourceTypeFns,
   ExpressionRowValueType,
   ListItem,
-  ListItemGroup,
   Maybe,
   QueryFilterOperator,
 } from '@jetstream/types';
 import type { Field, FieldType } from 'jsforce';
+
+// Used for GROUP BY and HAVING clause
+export const QUERY_FIELD_DATE_FUNCTIONS: ListItem<string, QueryFilterOperator>[] = [
+  { id: 'CALENDAR_MONTH', label: 'CALENDAR_MONTH', value: 'CALENDAR_MONTH' },
+  { id: 'CALENDAR_QUARTER', label: 'CALENDAR_QUARTER', value: 'CALENDAR_QUARTER' },
+  { id: 'CALENDAR_YEAR', label: 'CALENDAR_YEAR', value: 'CALENDAR_YEAR' },
+  { id: 'DAY_IN_MONTH', label: 'DAY_IN_MONTH', value: 'DAY_IN_MONTH' },
+  { id: 'DAY_IN_WEEK', label: 'DAY_IN_WEEK', value: 'DAY_IN_WEEK' },
+  { id: 'DAY_IN_YEAR', label: 'DAY_IN_YEAR', value: 'DAY_IN_YEAR' },
+  { id: 'DAY_ONLY', label: 'DAY_ONLY', value: 'DAY_ONLY' },
+  { id: 'FISCAL_MONTH', label: 'FISCAL_MONTH', value: 'FISCAL_MONTH' },
+  { id: 'FISCAL_QUARTER', label: 'FISCAL_QUARTER', value: 'FISCAL_QUARTER' },
+  { id: 'FISCAL_YEAR', label: 'FISCAL_YEAR', value: 'FISCAL_YEAR' },
+  { id: 'HOUR_IN_DAY', label: 'HOUR_IN_DAY', value: 'HOUR_IN_DAY' },
+  { id: 'WEEK_IN_MONTH', label: 'WEEK_IN_MONTH', value: 'WEEK_IN_MONTH' },
+  { id: 'WEEK_IN_YEAR', label: 'WEEK_IN_YEAR', value: 'WEEK_IN_YEAR' },
+];
+
+export const QUERY_FIELD_FUNCTIONS: ListItem<string, QueryFilterOperator>[] = [
+  { id: 'AVG', label: 'AVG', value: 'AVG' },
+  { id: 'COUNT', label: 'COUNT', value: 'COUNT' },
+  { id: 'COUNT_DISTINCT', label: 'COUNT_DISTINCT', value: 'COUNT_DISTINCT' },
+  { id: 'MIN', label: 'MIN', value: 'MIN' },
+  { id: 'MAX', label: 'MAX', value: 'MAX' },
+  { id: 'SUM', label: 'SUM', value: 'SUM' },
+  ...QUERY_FIELD_DATE_FUNCTIONS,
+];
 
 export const QUERY_OPERATORS: ListItem<string, QueryFilterOperator>[] = [
   { id: 'eq', label: 'Equals', value: 'eq' },
@@ -33,8 +66,8 @@ export const QUERY_OPERATORS: ListItem<string, QueryFilterOperator>[] = [
   { id: 'excludes', label: 'Excludes', value: 'excludes' },
 ];
 
-function findResourceMeta(fields: ListItemGroup[], selected: ExpressionConditionRowSelectedItems) {
-  return fields.find((group) => group.id === selected.resourceGroup)?.items.find((item) => item.id === selected.resource)?.meta.metadata;
+function findResourceMeta(fields: ListItem[], selected: ExpressionConditionRowSelectedItems) {
+  return selected.resource && getFlattenedListItemsById(fields)[selected.resource]?.meta;
 }
 
 function isListOperator(operator: Maybe<QueryFilterOperator>): boolean {
@@ -102,6 +135,11 @@ export function getDateResourceTypes(): ListItem<ExpressionRowValueType>[] {
       label: 'Relative Value',
       value: 'SELECT',
     },
+    {
+      id: 'manual',
+      label: 'Manual Value',
+      value: 'TEXT',
+    },
   ];
 }
 
@@ -116,6 +154,11 @@ export function getDateMultiResourceTypes(): ListItem<ExpressionRowValueType>[] 
       id: 'literal',
       label: 'Relative Value',
       value: 'SELECT-MULTI',
+    },
+    {
+      id: 'manual',
+      label: 'Manual Value',
+      value: 'TEXT',
     },
   ];
 }
@@ -132,6 +175,11 @@ export function getDateTimeResourceTypes(): ListItem<ExpressionRowValueType>[] {
       label: 'Relative Value',
       value: 'SELECT',
     },
+    {
+      id: 'manual',
+      label: 'Manual Value',
+      value: 'TEXT',
+    },
   ];
 }
 
@@ -146,6 +194,11 @@ export function getDateTimeMultiResourceTypes(): ListItem<ExpressionRowValueType
       id: 'literal',
       label: 'Relative Value',
       value: 'SELECT-MULTI',
+    },
+    {
+      id: 'manual',
+      label: 'Manual Value',
+      value: 'TEXT',
     },
   ];
 }
@@ -163,6 +216,8 @@ export function getTypeFromMetadata(type: FieldType, operator: Maybe<QueryFilter
       // default to SELECT if value is a date literal (query restore would have a value)
       if (Array.isArray(value) || DATE_LITERALS_SET.has(value || '')) {
         return isListOperator(operator) ? 'SELECT-MULTI' : 'SELECT';
+      } else if (value && REGEX.NUMERIC.test(value)) {
+        return 'TEXT';
       }
       return 'DATE';
     }
@@ -170,8 +225,10 @@ export function getTypeFromMetadata(type: FieldType, operator: Maybe<QueryFilter
       // default to SELECT (Relative Value) if no value or value is a date literal (query restore would have a value)
       if (!value || Array.isArray(value) || DATE_LITERALS_SET.has(value)) {
         return isListOperator(operator) ? 'SELECT-MULTI' : 'SELECT';
+      } else if (value && REGEX.NUMERIC.test(value)) {
+        return 'TEXT';
       }
-      return 'SELECT';
+      return 'DATETIME';
     }
     case 'boolean':
     case 'picklist':
@@ -234,8 +291,9 @@ export function getFieldResourceTypes(
   return;
 }
 
-export function getResourceTypeFnsFromFields(fields: ListItemGroup[]): ExpressionGetResourceTypeFns {
-  const getResourceTypeFns: ExpressionGetResourceTypeFns = {
+export function getResourceTypeFnsFromFields(fields: ListItem[]): ExpressionGetResourceTypeFns {
+  const getResourceTypeFns: ExpressionGetResourceTypeFns & { fields: ListItem[] } = {
+    fields,
     getTypes: (selected: ExpressionConditionRowSelectedItems): ListItem<ExpressionRowValueType>[] | undefined => {
       const fieldMeta: Field = findResourceMeta(fields, selected);
       if (!fieldMeta) {

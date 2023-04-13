@@ -22,6 +22,18 @@ import { SelectColumn, SELECT_COLUMN_KEY as _SELECT_COLUMN_KEY } from 'react-dat
 import { FieldSubquery, getField, getFlattenedFields, isFieldSubquery } from 'soql-parser-js';
 import { ContextMenuItem } from '../popover/ContextMenu';
 import {
+  ActionRenderer,
+  BooleanRenderer,
+  ComplexDataRenderer,
+  FilterRenderer,
+  GenericRenderer,
+  HeaderFilter,
+  IdLinkRenderer,
+  SelectFormatter,
+  SelectHeaderRenderer,
+} from './DataTableRenderers';
+import { SubqueryRenderer } from './DataTableSubqueryRenderer';
+import {
   dataTableAddressValueFormatter,
   dataTableDateFormatter,
   dataTableLocationFormatter,
@@ -37,18 +49,6 @@ import {
   RowWithKey,
   SalesforceQueryColumnDefinition,
 } from './data-table-types';
-import {
-  ActionRenderer,
-  BooleanRenderer,
-  ComplexDataRenderer,
-  FilterRenderer,
-  GenericRenderer,
-  HeaderFilter,
-  IdLinkRenderer,
-  SelectFormatter,
-  SelectHeaderRenderer,
-} from './DataTableRenderers';
-import { SubqueryRenderer } from './DataTableSubqueryRenderer';
 
 const SFDC_EMPTY_ID = '000000000000000AAA';
 

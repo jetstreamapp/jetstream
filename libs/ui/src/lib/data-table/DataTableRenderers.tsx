@@ -103,15 +103,16 @@ export function DraggableHeaderRenderer<R>({ onColumnsReorder, column, ...props 
  * SELECT ALL CHECKBOX HEADER
  */
 export function SelectHeaderRenderer<T>(props: HeaderRendererProps<T>) {
-  const { column, allRowsSelected, onAllRowsSelectionChange } = props;
+  const { column } = props;
+  const [isRowSelected, onRowSelectionChange] = useRowSelection();
 
   return (
     <Checkbox
       id={`checkbox-${column.name}_header`} // TODO: need way to get row id
       label="Select all"
       hideLabel
-      checked={allRowsSelected}
-      onChange={(checked) => onAllRowsSelectionChange(checked)}
+      checked={isRowSelected}
+      onChange={(checked) => onRowSelectionChange({ type: 'HEADER', checked })}
       // WAITING ON: https://github.com/adazzle/react-data-grid/issues/3058
       // indeterminate={props.row.getIsSomeSelected()}
     />
@@ -131,7 +132,7 @@ export function SelectHeaderGroupRenderer<T>(props: GroupFormatterProps<T>) {
           hideLabel
           checked={isRowSelected}
           indeterminate={selectedRowIds.size > 0 && childRows.some((childRow) => selectedRowIds.has((getRowKey || getRowId)(childRow)))}
-          onChange={(checked) => onRowSelectionChange({ row: row, checked, isShiftClick: false })}
+          onChange={(checked) => onRowSelectionChange({ type: 'ROW', row: row, checked, isShiftClick: false })}
         />
       )}
     </DataTableSelectedContext.Consumer>
@@ -565,7 +566,7 @@ export function SelectFormatter<T>(props: FormatterProps<T>) {
       label="Select row"
       hideLabel
       checked={isRowSelected}
-      onChange={(checked) => onRowSelectionChange({ row, checked, isShiftClick: false })}
+      onChange={(checked) => onRowSelectionChange({ type: 'ROW', row, checked, isShiftClick: false })}
     />
   );
 }

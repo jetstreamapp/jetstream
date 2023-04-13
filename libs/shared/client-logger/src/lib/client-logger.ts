@@ -82,13 +82,21 @@ export const enableLogger = (enable: boolean) => {
   } else {
     try {
       saveLoggingEnabledState();
-      logger.log = console.log.bind(window.console, '%c DEBUG', 'color: blue; font-weight: bold;');
-      logger.info = console.info.bind(window.console, '%c INFO', 'color: green; font-weight: bold;');
-      logger.warn = console.warn.bind(window.console, '%c WARN', 'font-weight: bold;');
-      logger.error = console.error.bind(window.console, '%c ERROR', 'font-weight: bold;');
-      logger.group = console.group.bind(window.console);
-      logger.groupCollapsed = console.groupCollapsed.bind(window.console);
-      logger.groupEnd = console.groupEnd.bind(window.console);
+      if (self.document) {
+        logger.log = console.log.bind(window.console, '%c DEBUG', 'color: blue; font-weight: bold;');
+        logger.info = console.info.bind(window.console, '%c INFO', 'color: green; font-weight: bold;');
+        logger.warn = console.warn.bind(window.console, '%c WARN', 'font-weight: bold;');
+        logger.error = console.error.bind(window.console, '%c ERROR', 'font-weight: bold;');
+        logger.group = console.group.bind(window.console);
+        logger.groupCollapsed = console.groupCollapsed.bind(window.console);
+        logger.groupEnd = console.groupEnd.bind(window.console);
+      } else {
+        // don't bind for worker scope
+        logger.log = (...args: any[]) => console.log('[WORKER]', ...args);
+        logger.info = (...args: any[]) => console.info('[WORKER]', ...args);
+        logger.warn = (...args: any[]) => console.warn('[WORKER]', ...args);
+        logger.error = (...args: any[]) => console.error('[WORKER]', ...args);
+      }
     } catch (ex) {
       // fail silently
     }

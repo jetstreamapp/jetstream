@@ -1,23 +1,38 @@
 import { css } from '@emotion/react';
 import { SalesforceOrgUi } from '@jetstream/types';
-import { Icon, Popover, PopoverRef, SalesforceLogin, Spinner } from '@jetstream/ui';
 import { FunctionComponent, useRef } from 'react';
-import { useRecoilState } from 'recoil';
-import { applicationCookieState } from '../../app-state';
+import Popover, { PopoverRef } from '../popover/Popover';
+import Icon from './Icon';
+import SalesforceLogin from './SalesforceLogin';
+import Spinner from './Spinner';
 
-export interface FormulaEvaluatorRefreshCachePopoverProps {
-  org: SalesforceOrgUi;
+export interface NotSeeingRecentMetadataPopoverProps {
   loading: boolean;
+  header?: string;
+  /** only required to show viewInSalesforceSetup */
+  org?: SalesforceOrgUi;
+  serverUrl?: string;
+  viewInSalesforceSetup?: {
+    label: string;
+    title: string;
+    link: string;
+  };
   onReload: () => void;
 }
 
-export const FormulaEvaluatorRefreshCachePopover: FunctionComponent<FormulaEvaluatorRefreshCachePopoverProps> = ({
+export const NotSeeingRecentMetadataPopover: FunctionComponent<NotSeeingRecentMetadataPopoverProps> = ({
   org,
   loading,
+  serverUrl,
+  header = 'Missing Fields?',
+  viewInSalesforceSetup = {
+    label: 'View object in Salesforce setup',
+    link: `/lightning/setup/ObjectManager/home`,
+    title: `View object in Salesforce setup`,
+  },
   onReload,
 }) => {
   const popoverRef = useRef<PopoverRef>(null);
-  const [{ serverUrl }] = useRecoilState(applicationCookieState);
 
   function handleReload() {
     popoverRef.current?.close();
@@ -31,7 +46,7 @@ export const FormulaEvaluatorRefreshCachePopover: FunctionComponent<FormulaEvalu
       header={
         <header className="slds-popover__header">
           <h2 className="slds-text-heading_small" title="Refresh Metadata">
-            Missing Fields?
+            {header}
           </h2>
         </header>
       }
@@ -42,15 +57,17 @@ export const FormulaEvaluatorRefreshCachePopover: FunctionComponent<FormulaEvalu
           `}
         >
           {loading && <Spinner />}
-          <SalesforceLogin
-            serverUrl={serverUrl}
-            org={org}
-            returnUrl={`/lightning/setup/ObjectManager/home`}
-            title={`View object in Salesforce setup`}
-            iconPosition="right"
-          >
-            View object in Salesforce setup
-          </SalesforceLogin>
+          {viewInSalesforceSetup && serverUrl && org && (
+            <SalesforceLogin
+              serverUrl={serverUrl}
+              org={org}
+              returnUrl={viewInSalesforceSetup.link}
+              title={viewInSalesforceSetup.title}
+              iconPosition="right"
+            >
+              {viewInSalesforceSetup.label}
+            </SalesforceLogin>
+          )}
           <p className="slds-m-bottom_x-small">Make sure all objects and fields have proper permissions.</p>
           <p className="slds-m-bottom_x-small">If metadata is not showing up, try refreshing the metadata cache.</p>
         </div>
@@ -73,4 +90,4 @@ export const FormulaEvaluatorRefreshCachePopover: FunctionComponent<FormulaEvalu
   );
 };
 
-export default FormulaEvaluatorRefreshCachePopover;
+export default NotSeeingRecentMetadataPopover;

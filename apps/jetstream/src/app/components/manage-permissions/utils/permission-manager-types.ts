@@ -155,6 +155,8 @@ export interface PermissionFieldSaveData {
 export interface PermissionManagerTableContext {
   type: PermissionType;
   rows: (PermissionTableObjectCell | PermissionTableFieldCell)[];
+  totalCount: number;
+  onFilterRows: (value: string) => void;
   onRowAction: (action: 'selectAll' | 'unselectAll' | 'reset', columnKey: string) => void;
   onColumnAction: (action: 'selectAll' | 'unselectAll' | 'reset', columnKey: string) => void;
   onBulkAction: (rows: (PermissionTableObjectCell | PermissionTableFieldCell)[]) => void;

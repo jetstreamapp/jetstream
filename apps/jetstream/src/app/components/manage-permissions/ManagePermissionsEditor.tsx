@@ -1,5 +1,6 @@
 import { css } from '@emotion/react';
 import { logger } from '@jetstream/shared/client-logger';
+import { getMapOf, multiWordObjectFilter } from '@jetstream/shared/utils';
 import { MapOf, SalesforceOrgUi } from '@jetstream/types';
 import {
   AutoFullHeightContainer,
@@ -20,10 +21,11 @@ import { Link } from 'react-router-dom';
 import { useRecoilState, useRecoilValue, useResetRecoilState } from 'recoil';
 import { applicationCookieState, selectedOrgState } from '../../app-state';
 import ConfirmPageChange from '../core/ConfirmPageChange';
+import { RequireMetadataApiBanner } from '../core/RequireMetadataApiBanner';
 import * as fromJetstreamEvents from '../core/jetstream-events';
-import * as fromPermissionsState from './manage-permissions.state';
 import ManagePermissionsEditorFieldTable from './ManagePermissionsEditorFieldTable';
 import ManagePermissionsEditorObjectTable from './ManagePermissionsEditorObjectTable';
+import * as fromPermissionsState from './manage-permissions.state';
 import { usePermissionRecords } from './usePermissionRecords';
 import { generateExcelWorkbookFromTable } from './utils/permission-manager-export-utils';
 import {
@@ -116,17 +118,19 @@ export const ManagePermissionsEditor: FunctionComponent<ManagePermissionsEditorP
   const resetObjectPermissionMap = useResetRecoilState(fromPermissionsState.objectPermissionMap);
   const resetFieldPermissionMap = useResetRecoilState(fromPermissionsState.fieldPermissionMap);
 
-  // TODO: what about if we already have profiles and perm sets from state?
-  // TODO: when loading, should we clear prior selections?
   const recordData = usePermissionRecords(selectedOrg, selectedSObjects, selectedProfiles, selectedPermissionSets);
 
   const [objectColumns, setObjectColumns] = useState<ColumnWithFilter<PermissionTableObjectCell, PermissionTableSummaryRow>[]>([]);
   const [objectRows, setObjectRows] = useState<PermissionTableObjectCell[] | null>(null);
+  const [visibleObjectRows, setVisibleObjectRows] = useState<PermissionTableObjectCell[] | null>(null);
   const [dirtyObjectRows, setDirtyObjectRows] = useState<MapOf<DirtyRow<PermissionTableObjectCell>>>({});
+  const [objectFilter, setObjectFilter] = useState('');
 
   const [fieldColumns, setFieldColumns] = useState<ColumnWithFilter<PermissionTableFieldCell, PermissionTableSummaryRow>[]>([]);
   const [fieldRows, setFieldRows] = useState<PermissionTableFieldCell[] | null>(null);
+  const [visibleFieldRows, setVisibleFieldRows] = useState<PermissionTableFieldCell[] | null>(null);
   const [dirtyFieldRows, setDirtyFieldRows] = useState<MapOf<DirtyRow<PermissionTableFieldCell>>>({});
+  const [fieldFilter, setFieldFilter] = useState('');
 
   const [dirtyObjectCount, setDirtyObjectCount] = useState<number>(0);
   const [dirtyFieldCount, setDirtyFieldCount] = useState<number>(0);
@@ -180,8 +184,25 @@ export const ManagePermissionsEditor: FunctionComponent<ManagePermissionsEditorP
     setDirtyObjectCount(Object.values(dirtyObjectRows).reduce((output, { dirtyCount }) => output + dirtyCount, 0));
   }, [dirtyObjectRows]);
 
+  useEffect(() => {
+    if (fieldRows && fieldFilter) {
+      setVisibleFieldRows(fieldRows.filter(multiWordObjectFilter(['label', 'apiName'], fieldFilter)));
+    } else {
+      setVisibleFieldRows(fieldRows);
+    }
+  }, [fieldFilter, fieldRows]);
+
+  useEffect(() => {
+    if (objectRows && objectFilter) {
+      setVisibleObjectRows(objectRows.filter(multiWordObjectFilter(['label', 'apiName'], objectFilter)));
+    } else {
+      setVisibleObjectRows(objectRows);
+    }
+  }, [objectFilter, objectRows]);
+
   const handleObjectBulkRowUpdate = useCallback((rows: PermissionTableObjectCell[], indexes?: number[]) => {
-    setObjectRows(rows);
+    const rowsByKey = getMapOf(rows, 'key');
+    setObjectRows((prevRows) => (prevRows ? prevRows?.map((row) => rowsByKey[row.key] || row) : rows));
     indexes = indexes || rows.map((row, index) => index);
     setDirtyObjectRows((priorValue) => {
       const newValues = { ...priorValue };
@@ -213,7 +234,8 @@ export const ManagePermissionsEditor: FunctionComponent<ManagePermissionsEditorP
   }, []);
 
   const handleFieldBulkRowUpdate = useCallback((rows: PermissionTableFieldCell[], indexes?: number[]) => {
-    setFieldRows(rows);
+    const rowsByKey = getMapOf(rows, 'key');
+    setFieldRows((prevRows) => (prevRows ? prevRows?.map((row) => rowsByKey[row.key] || row) : rows));
     indexes = indexes || rows.map((row, index) => index);
     setDirtyFieldRows((priorValue) => {
       const newValues = { ...priorValue };
@@ -246,10 +268,15 @@ export const ManagePermissionsEditor: FunctionComponent<ManagePermissionsEditorP
       setObjectColumns(getObjectColumns(selectedProfiles, selectedPermissionSets, profilesById, permissionSetsById));
       setFieldColumns(getFieldColumns(selectedProfiles, selectedPermissionSets, profilesById, permissionSetsById));
     }
-    setObjectRows(getObjectRows(selectedSObjects, objectPermissionMapOverride || objectPermissionMap || {}));
-    setFieldRows(getFieldRows(selectedSObjects, fieldsByObject || {}, fieldPermissionMapOverride || fieldPermissionMap || {}));
-    setDirtyFieldRows({});
+    const tempObjectRows = getObjectRows(selectedSObjects, objectPermissionMapOverride || objectPermissionMap || {});
+    setObjectRows(tempObjectRows);
+    setVisibleObjectRows(tempObjectRows);
     setDirtyObjectRows({});
+
+    const tempFieldRows = getFieldRows(selectedSObjects, fieldsByObject || {}, fieldPermissionMapOverride || fieldPermissionMap || {});
+    setFieldRows(tempFieldRows);
+    setVisibleFieldRows(tempFieldRows);
+    setDirtyFieldRows({});
   }
 
   // FIXME:
@@ -387,6 +414,7 @@ export const ManagePermissionsEditor: FunctionComponent<ManagePermissionsEditorP
           emitUploadToGoogleEvent={fromJetstreamEvents.emit}
         />
       )}
+      <RequireMetadataApiBanner />
       <Toolbar>
         <ToolbarItemGroup>
           <Link className="slds-button slds-button_brand" to=".." onClick={handleGoBack}>
@@ -459,7 +487,9 @@ export const ManagePermissionsEditor: FunctionComponent<ManagePermissionsEditorP
                   <ManagePermissionsEditorObjectTable
                     ref={managePermissionsEditorObjectTableRef}
                     columns={objectColumns}
-                    rows={objectRows || []}
+                    rows={visibleObjectRows || []}
+                    totalCount={objectRows?.length || 0}
+                    onFilter={setObjectFilter}
                     onBulkUpdate={handleObjectBulkRowUpdate}
                     onDirtyRows={setDirtyObjectRows}
                   />
@@ -486,7 +516,9 @@ export const ManagePermissionsEditor: FunctionComponent<ManagePermissionsEditorP
                   <ManagePermissionsEditorFieldTable
                     ref={managePermissionsEditorFieldTableRef}
                     columns={fieldColumns}
-                    rows={fieldRows || []}
+                    rows={visibleFieldRows || []}
+                    totalCount={fieldRows?.length || 0}
+                    onFilter={setFieldFilter}
                     onBulkUpdate={handleFieldBulkRowUpdate}
                     onDirtyRows={setDirtyFieldRows}
                   />

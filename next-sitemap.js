@@ -1,6 +1,6 @@
 module.exports = {
   siteUrl: 'https://getjetstream.app',
-  sourceDir: 'dist/apps/landing/.next',
+  sourceDir: 'apps/landing/.next',
   outDir: 'dist/apps/landing/exported',
 
   generateRobotsTxt: true, // (optional)

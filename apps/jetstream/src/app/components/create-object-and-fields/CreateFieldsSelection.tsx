@@ -1,5 +1,6 @@
 import { css } from '@emotion/react';
 import { useNonInitialEffect, useProfilesAndPermSets } from '@jetstream/shared/ui-utils';
+import { SplitWrapper as Split } from '@jetstream/splitjs';
 import { SalesforceOrgUi } from '@jetstream/types';
 import {
   AutoFullHeightContainer,
@@ -13,11 +14,11 @@ import {
   PageHeaderTitle,
 } from '@jetstream/ui';
 import type { DescribeGlobalSObjectResult } from 'jsforce';
-import React, { FunctionComponent, useEffect } from 'react';
+import { FunctionComponent, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { SplitWrapper as Split } from '@jetstream/splitjs';
 import { useRecoilState, useRecoilValue } from 'recoil';
 import { selectedOrgState } from '../../app-state';
+import { RequireMetadataApiBanner } from '../core/RequireMetadataApiBanner';
 import { filterCreateFieldsSobjects } from '../shared/create-fields/create-fields-utils';
 import * as fromCreateFieldsState from './create-fields.state';
 
@@ -62,6 +63,7 @@ export const CreateFieldsSelection: FunctionComponent<CreateFieldsSelectionProps
 
   return (
     <Page testId="create-field-selection-page">
+      <RequireMetadataApiBanner />
       <PageHeader>
         <PageHeaderRow>
           <PageHeaderTitle icon={{ type: 'standard', icon: 'form' }} label="Create Fields" docsPath="/deploy-fields" />
