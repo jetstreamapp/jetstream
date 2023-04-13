@@ -61,6 +61,7 @@ export interface SalesforceRecordDataTableProps {
   onClone: (record: any) => void;
   onView: (record: any) => void;
   onGetAsApex: (record: any) => void;
+  onGetAsJson: (record: any) => void;
 }
 
 export const SalesforceRecordDataTable: FunctionComponent<SalesforceRecordDataTableProps> = memo<SalesforceRecordDataTableProps>(
@@ -83,6 +84,7 @@ export const SalesforceRecordDataTable: FunctionComponent<SalesforceRecordDataTa
     onClone,
     onView,
     onGetAsApex,
+    onGetAsJson,
   }) => {
     const isMounted = useRef(true);
     const rollbar = useRollbar();
@@ -154,7 +156,7 @@ export const SalesforceRecordDataTable: FunctionComponent<SalesforceRecordDataTa
       }
     }, [fieldMetadata, fieldMetadataSubquery, isTooling, queryResults]);
 
-    const handleRowAction = useCallback((row: RowWithKey, action: 'view' | 'edit' | 'clone' | 'apex') => {
+    const handleRowAction = useCallback((row: RowWithKey, action: 'view' | 'edit' | 'clone' | 'apex' | 'json') => {
       const record = row._record;
       logger.info('row action', record, action);
       switch (action) {
@@ -169,6 +171,9 @@ export const SalesforceRecordDataTable: FunctionComponent<SalesforceRecordDataTa
           break;
         case 'apex':
           onGetAsApex(record);
+          break;
+        case 'json':
+          onGetAsJson(record);
           break;
         default:
           break;
