@@ -51,7 +51,7 @@ export const SubqueryRenderer: FunctionComponent<FormatterProps<RowWithKey, unkn
   }, []);
 
   // Not yet supported
-  const handleRowAction = useCallback((row: any, action: 'view' | 'edit' | 'clone' | 'apex') => {
+  const handleRowAction = useCallback((row: any, action: 'view' | 'edit' | 'clone' | 'apex' | 'json') => {
     // logger.info('row action', row, action);
     // switch (action) {
     //   case 'edit':
@@ -185,7 +185,7 @@ interface ModalDataTableProps extends SubqueryContext {
   openDownloadModal: () => void;
   handleCloseModal: (cancelled?: boolean) => void;
   handleCopyToClipboard: (columns: ColumnWithFilter<any, unknown>[]) => void;
-  handleRowAction: (row: any, action: 'view' | 'edit' | 'clone' | 'apex') => void;
+  handleRowAction: (row: any, action: 'view' | 'edit' | 'clone' | 'apex' | 'json') => void;
   setSelectedRows: (rows: ReadonlySet<string>) => void;
 }
 

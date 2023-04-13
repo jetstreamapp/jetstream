@@ -3,7 +3,7 @@ import { Column } from 'react-data-grid';
 
 export type RowWithKey = Record<string, any> & { _key: string };
 export type RowSalesforceRecordWithKey = RowWithKey & {
-  _action: (row: RowWithKey, action: 'view' | 'edit' | 'clone' | 'apex') => void;
+  _action: (row: RowWithKey, action: 'view' | 'edit' | 'clone' | 'apex' | 'json') => void;
   _record: Record<string, any>;
 };
 export type ColumnType = 'text' | 'number' | 'subquery' | 'object' | 'location' | 'date' | 'time' | 'boolean' | 'address' | 'salesforceId';

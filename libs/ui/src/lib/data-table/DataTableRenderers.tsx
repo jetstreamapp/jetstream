@@ -658,7 +658,7 @@ export const ActionRenderer: FunctionComponent<{ row: any }> = ({ row }) => {
         <Icon type="utility" icon="apex" className="slds-button__icon " omitContainer />
       </button>
       <button className="slds-button slds-button_icon" title="Copy Record as JSON" onClick={() => row._action(row, 'json')}>
-        <Icon type="utility" icon="apex" className="slds-button__icon " omitContainer />
+        <Icon type="utility" icon="copy_to_clipboard" className="slds-button__icon " omitContainer />
       </button>
     </Fragment>
   );
