@@ -1,11 +1,12 @@
 import { css } from '@emotion/react';
 import { useFetchPageLayouts, useProfilesAndPermSets } from '@jetstream/shared/ui-utils';
-import { ListItem, Maybe, PermissionSetNoProfileRecord, PermissionSetWithProfileRecord, SalesforceOrgUi } from '@jetstream/types';
-import { Grid, Icon, Modal, Tabs, Tooltip } from '@jetstream/ui';
+import { Maybe, SalesforceOrgUi } from '@jetstream/types';
+import { Grid, Icon, Modal, ScopedNotification, Spinner, Tabs, Tooltip } from '@jetstream/ui';
 import type { Field } from 'jsforce';
 import { useState } from 'react';
 import { useRecoilState } from 'recoil';
 import { applicationCookieState } from '../../../app-state';
+import { fireToast } from '../../core/AppToast';
 import { FieldValues } from '../../shared/create-fields/create-fields-types';
 import { getInitialValues, getSecondaryTypeFromType } from '../../shared/create-fields/create-fields-utils';
 import useCreateFields from '../../shared/create-fields/useCreateFields';
@@ -60,12 +61,12 @@ export const FormulaEvaluatorDeployModal = ({
   const permissionData = useProfilesAndPermSets(selectedOrg);
   const layoutData = useFetchPageLayouts(selectedOrg, sObjects);
 
-  const { deployFields, prepareFields, deployed, fatalError, fatalErrorMessage, layoutErrorMessage, loading, results } = useCreateFields({
+  const { deployFields, prepareFields, fatalError, fatalErrorMessage, layoutErrorMessage, loading, results } = useCreateFields({
     apiVersion: defaultApiVersion,
     serverUrl,
     selectedOrg,
-    permissionSets: [],
-    profiles: [],
+    permissionSets: selectedPermissionSets,
+    profiles: selectedProfiles,
     sObjects,
   });
 
@@ -95,14 +96,16 @@ export const FormulaEvaluatorDeployModal = ({
   }
 
   async function deploy() {
-    // TODO: try catch, show user progress, etc..
-    // TODO: payload for blankAsFoo is not a valid value
-    const prepareResults = await prepareFields([field]);
-    if (!prepareResults) {
-      // TODO:
-      return;
+    try {
+      const prepareResults = await prepareFields([field]);
+      if (!prepareResults) {
+        fireToast({ type: 'error', message: 'There was an error preparing your field for deployment.' });
+        return;
+      }
+      await deployFields(prepareResults, Array.from(layoutData.selectedLayoutIds));
+    } catch (ex) {
+      fireToast({ type: 'error', message: 'There was an error preparing your field for deployment.' });
     }
-    deployFields(prepareResults, []);
   }
 
   const actionButtonDisabled = loading || (activeTab === 'results' && !fieldValid);
@@ -125,15 +128,18 @@ export const FormulaEvaluatorDeployModal = ({
       onClose={onClose}
     >
       <div
+        className="slds-is-relative"
         css={css`
           min-height: 550px;
         `}
       >
-        {/* TODO: (below) - maybe use tabs or "wizard" to step through? */}
-        {/* Permissions -> Profile/Perm Set (if new) */}
-        {/* Page Layout */}
-
-        {/* TODO: handle deployment and results */}
+        {loading && <Spinner />}
+        {fatalError && <ScopedNotification theme="error">{fatalErrorMessage || 'An unknown error occurred.'}</ScopedNotification>}
+        {layoutErrorMessage && (
+          <ScopedNotification theme="warning">{layoutErrorMessage || 'An unknown error occurred.'}</ScopedNotification>
+        )}
+        {!loading && results?.[0]?.flsErrorMessage && <ScopedNotification theme="warning">{results[0].flsErrorMessage}</ScopedNotification>}
+        {!loading && results && <ScopedNotification theme="success">Your field has been successfully deployed.</ScopedNotification>}
 
         <Tabs
           initialActiveId={activeTab}
@@ -241,6 +247,18 @@ export const FormulaEvaluatorDeployModal = ({
               title: (
                 <Grid verticalAlign="center">
                   <span>Deploy Field</span>
+                  {results && !fatalError && (
+                    <Tooltip content="Field is configured">
+                      <Icon
+                        type="utility"
+                        icon="success"
+                        description="Configured successfully"
+                        title="Configured successfully"
+                        className="slds-icon slds-icon_x-small slds-icon-text-success"
+                        containerClassname="slds-icon_container slds-icon-utility-success slds-m-left_x-small"
+                      />
+                    </Tooltip>
+                  )}
                 </Grid>
               ),
               content: (
@@ -255,7 +273,6 @@ export const FormulaEvaluatorDeployModal = ({
                     return record?.IsOwnedByProfile ? record.Profile.Name : record.Name;
                   })}
                   selectedLayouts={Array.from(layoutData.selectedLayoutIds).map((item) => layoutData.layoutsById[item].Name)}
-                  // error={error}
                 />
               ),
             },

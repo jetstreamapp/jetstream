@@ -9,7 +9,6 @@ export interface FormulaEvaluatorDeploySummaryProps {
   selectedProfiles: string[];
   selectedPermissionSets: string[];
   selectedLayouts: string[];
-  error?: Maybe<string>;
 }
 
 export function FormulaEvaluatorDeploySummary({
@@ -17,18 +16,9 @@ export function FormulaEvaluatorDeploySummary({
   selectedProfiles,
   selectedPermissionSets,
   selectedLayouts,
-  error,
 }: FormulaEvaluatorDeploySummaryProps) {
   return (
     <Grid gutters wrap>
-      {error && (
-        <GridCol size={12} className="slds-m-around-medium">
-          <ScopedNotification theme="error" className="slds-m-top_medium">
-            <p>{error}</p>
-          </ScopedNotification>
-        </GridCol>
-      )}
-
       {/* Show summary of field, permissions, layouts */}
       <GridCol className="slds-m-around-medium">
         <fieldset className="slds-form-element slds-m-top_small">

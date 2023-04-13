@@ -113,7 +113,7 @@ export const FormulaEvaluator: FunctionComponent<FormulaEvaluatorProps> = () => 
   const handleTestFormula = useCallback(
     async (value: string) => {
       try {
-        if (!value) {
+        if (testFormulaDisabled) {
           return;
         }
 
@@ -155,7 +155,7 @@ export const FormulaEvaluator: FunctionComponent<FormulaEvaluatorProps> = () => 
         setLoading(false);
       }
     },
-    [recordId, trackEvent, selectedOrg, selectedSObject, numberNullBehavior]
+    [testFormulaDisabled, trackEvent, recordId, selectedOrg, selectedSObject?.name, numberNullBehavior]
   );
 
   const onKeydown = useCallback(
