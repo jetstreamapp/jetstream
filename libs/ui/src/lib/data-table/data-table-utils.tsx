@@ -179,7 +179,7 @@ export function getColumnDefinitions(results: QueryResults<any>, isTooling: bool
         key: ACTION_COLUMN_KEY,
         name: '',
         resizable: false,
-        width: 100,
+        width: 115,
         formatter: ActionRenderer,
         frozen: true,
         sortable: false,
