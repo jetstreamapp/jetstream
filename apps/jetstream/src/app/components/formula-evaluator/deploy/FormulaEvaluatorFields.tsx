@@ -60,8 +60,8 @@ export function FormulaEvaluatorFields({ formula, field, loading, onFieldChange 
           <input
             className="slds-input"
             required
-            max={18}
-            min={15}
+            minLength={1}
+            maxLength={40}
             value={(field.label.value as string) || ''}
             autoComplete="off"
             autoFocus
@@ -80,8 +80,8 @@ export function FormulaEvaluatorFields({ formula, field, loading, onFieldChange 
           <input
             className="slds-input"
             required
-            max={18}
-            min={15}
+            minLength={3}
+            maxLength={43}
             value={(field.fullName.value as string) || ''}
             autoComplete="off"
             onChange={(event) => setValue('fullName', event.target.value)}

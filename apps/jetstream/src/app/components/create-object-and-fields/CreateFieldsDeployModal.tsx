@@ -153,6 +153,7 @@ export const CreateFieldsDeployModal: FunctionComponent<CreateFieldsDeployModalP
           <div
             css={css`
               min-height: 300px;
+              overflow-x: auto;
             `}
           >
             {fatalError && (
@@ -171,7 +172,12 @@ export const CreateFieldsDeployModal: FunctionComponent<CreateFieldsDeployModalP
               </div>
             )}
             <Grid>
-              <table className="slds-table slds-table_cell-buffer slds-no-row-hover slds-table_bordered slds-table_fixed-layout">
+              <table
+                className="slds-table slds-table_cell-buffer slds-no-row-hover slds-table_bordered slds-table_fixed-layout"
+                css={css`
+                  min-width: 650px;
+                `}
+              >
                 <thead>
                   <tr className="slds-line-height_reset">
                     <th scope="col">
@@ -246,7 +252,7 @@ export const CreateFieldsDeployModal: FunctionComponent<CreateFieldsDeployModalP
                   Add to Page Layouts
                 </div>
                 {Object.keys(layoutsByObject).map((objectName) => (
-                  <fieldset className="slds-form-element slds-m-top_small" key={`layout-heading-${objectName}`}>
+                  <fieldset className="slds-form-element slds-m-top_small slds-p-right_x-small" key={`layout-heading-${objectName}`}>
                     <legend
                       className="slds-form-element__label slds-truncate"
                       title={objectName}

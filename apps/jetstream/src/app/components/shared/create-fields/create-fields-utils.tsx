@@ -39,7 +39,10 @@ export function ensureValidType(type: string): SalesforceFieldType {
   if (fieldTypeDependencies[type]) {
     return type as SalesforceFieldType;
   }
-  return (Object.keys(fieldTypeDependencies).find((key) => type.toLowerCase() === key.toLowerCase()) as SalesforceFieldType) || 'Text';
+  return (
+    (type && (Object.keys(fieldTypeDependencies).find((key) => type?.toLowerCase() === key?.toLowerCase()) as SalesforceFieldType)) ||
+    'Text'
+  );
 }
 
 export function ensureValidSecondaryType(type: string): string {

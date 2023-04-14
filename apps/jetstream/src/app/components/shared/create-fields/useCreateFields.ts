@@ -77,8 +77,9 @@ export default function useCreateFields({
     if (resultsById) {
       setResults(Object.values(resultsById));
       logger.log({ resultsById });
+    } else {
+      setResults([]);
     }
-    setResults([]);
   }, [resultsById]);
 
   /**

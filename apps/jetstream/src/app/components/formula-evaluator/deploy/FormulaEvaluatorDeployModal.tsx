@@ -1,14 +1,18 @@
 import { css } from '@emotion/react';
+import { ANALYTICS_KEYS } from '@jetstream/shared/constants';
 import { useFetchPageLayouts, useProfilesAndPermSets } from '@jetstream/shared/ui-utils';
-import { Maybe, SalesforceOrgUi } from '@jetstream/types';
-import { Grid, Icon, Modal, ScopedNotification, Spinner, Tabs, Tooltip } from '@jetstream/ui';
+import { MapOf, Maybe, SalesforceOrgUi } from '@jetstream/types';
+import { FileDownloadModal, Grid, Icon, Modal, ScopedNotification, Spinner, Tabs, Tooltip } from '@jetstream/ui';
 import type { Field } from 'jsforce';
 import { useState } from 'react';
 import { useRecoilState } from 'recoil';
 import { applicationCookieState } from '../../../app-state';
 import { fireToast } from '../../core/AppToast';
+import ConfirmPageChange from '../../core/ConfirmPageChange';
+import { useAmplitude } from '../../core/analytics';
+import * as fromJetstreamEvents from '../../core/jetstream-events';
 import { FieldValues } from '../../shared/create-fields/create-fields-types';
-import { getInitialValues, getSecondaryTypeFromType } from '../../shared/create-fields/create-fields-utils';
+import { getInitialValues, getSecondaryTypeFromType, prepareDownloadResultsFile } from '../../shared/create-fields/create-fields-utils';
 import useCreateFields from '../../shared/create-fields/useCreateFields';
 import { NullNumberBehavior } from '../formula-evaluator.state';
 import FormulaEvaluatorDeploySummary from './FormulaEvaluatorDeploySummary';
@@ -35,6 +39,7 @@ export const FormulaEvaluatorDeployModal = ({
   numberNullBehaviorState,
   onClose,
 }: FormulaEvaluatorDeployModalProps) => {
+  const { trackEvent } = useAmplitude();
   const [{ defaultApiVersion, serverUrl, google_apiKey, google_appId, google_clientId }] = useRecoilState(applicationCookieState);
   const [fieldValid, setIsFieldValid] = useState(!!selectedField);
   const [sObjects] = useState([sobject]);
@@ -61,7 +66,13 @@ export const FormulaEvaluatorDeployModal = ({
   const permissionData = useProfilesAndPermSets(selectedOrg);
   const layoutData = useFetchPageLayouts(selectedOrg, sObjects);
 
-  const { deployFields, prepareFields, fatalError, fatalErrorMessage, layoutErrorMessage, loading, results } = useCreateFields({
+  const [exportModalOpen, setExportModalOpen] = useState(false);
+  const [exportData, setExportModalData] = useState<{
+    worksheetData: MapOf<any[]>;
+    headerData: MapOf<any[]>;
+  } | null>(null);
+
+  const { deployFields, prepareFields, deployed, fatalError, fatalErrorMessage, layoutErrorMessage, loading, results } = useCreateFields({
     apiVersion: defaultApiVersion,
     serverUrl,
     selectedOrg,
@@ -103,183 +114,232 @@ export const FormulaEvaluatorDeployModal = ({
         return;
       }
       await deployFields(prepareResults, Array.from(layoutData.selectedLayoutIds));
+      trackEvent(ANALYTICS_KEYS.formula_export_results, {
+        success: true,
+        permissionCount: selectedProfiles.length + selectedPermissionSets.length,
+        layoutCount: layoutData.selectedLayoutIds.size,
+      });
     } catch (ex) {
       fireToast({ type: 'error', message: 'There was an error preparing your field for deployment.' });
+      trackEvent(ANALYTICS_KEYS.formula_export_results, {
+        success: false,
+        permissionCount: selectedProfiles.length + selectedPermissionSets.length,
+        layoutCount: layoutData.selectedLayoutIds.size,
+      });
     }
+  }
+
+  function downloadResults() {
+    setExportModalData(prepareDownloadResultsFile(results, [field]));
+    setExportModalOpen(true);
+    trackEvent(ANALYTICS_KEYS.formula_export_deploy);
+  }
+
+  function handleDownloadResultsModalClosed() {
+    setExportModalData(null);
+    setExportModalOpen(false);
   }
 
   const actionButtonDisabled = loading || (activeTab === 'results' && !fieldValid);
 
-  return (
-    <Modal
-      header="Save Field"
-      tagline="Field will be upserted based on the Field Name."
-      size="md"
-      footer={
-        <>
-          <button className="slds-button slds-button_neutral" onClick={() => onClose()}>
-            Cancel
-          </button>
-          <button className="slds-button slds-button_brand" disabled={actionButtonDisabled} onClick={() => handleActionClick()}>
-            {activeTab !== 'results' ? 'Next' : 'Deploy'}
-          </button>
-        </>
-      }
-      onClose={onClose}
-    >
-      <div
-        className="slds-is-relative"
-        css={css`
-          min-height: 550px;
-        `}
-      >
-        {loading && <Spinner />}
-        {fatalError && <ScopedNotification theme="error">{fatalErrorMessage || 'An unknown error occurred.'}</ScopedNotification>}
-        {layoutErrorMessage && (
-          <ScopedNotification theme="warning">{layoutErrorMessage || 'An unknown error occurred.'}</ScopedNotification>
-        )}
-        {!loading && results?.[0]?.flsErrorMessage && <ScopedNotification theme="warning">{results[0].flsErrorMessage}</ScopedNotification>}
-        {!loading && results && <ScopedNotification theme="success">Your field has been successfully deployed.</ScopedNotification>}
+  let deployLabel = 'Next';
+  if (activeTab === 'results' && results?.[0]?.state === 'SUCCESS') {
+    deployLabel = 'Deploy Again';
+  } else if (activeTab === 'results') {
+    deployLabel = 'Deploy';
+  }
 
-        <Tabs
-          initialActiveId={activeTab}
-          contentClassname="slds-p-bottom_none"
-          onChange={(value: Tab) => setActiveTab(value)}
-          tabs={[
-            {
-              id: 'field',
-              title: (
-                <Grid verticalAlign="center">
-                  <span>Field</span>
-                  {fieldValid ? (
-                    <Tooltip content="Field is configured">
-                      <Icon
-                        type="utility"
-                        icon="success"
-                        description="Configured successfully"
-                        title="Configured successfully"
-                        className="slds-icon slds-icon_x-small slds-icon-text-success"
-                        containerClassname="slds-icon_container slds-icon-utility-success slds-m-left_x-small"
-                      />
-                    </Tooltip>
-                  ) : (
-                    <Tooltip content="Field is not yet configured">
-                      <Icon
-                        type="utility"
-                        icon="error"
-                        className="slds-icon slds-icon-text-error slds-icon_xx-small"
-                        containerClassname="slds-icon_container slds-icon-utility-error slds-m-left_x-small"
-                        description="Field is not yet configured"
-                      />
-                    </Tooltip>
-                  )}
-                </Grid>
-              ),
-              content: <FormulaEvaluatorFields formula={formula} field={field} loading={loading} onFieldChange={onFieldChange} />,
-            },
-            {
-              id: 'permissions',
-              title: (
-                <Grid verticalAlign="center">
-                  <span>Field Permissions</span>
-                  {(!!selectedProfiles.length || !!selectedPermissionSets.length) && (
-                    <Tooltip content="Permissions are configured">
-                      <Icon
-                        type="utility"
-                        icon="success"
-                        description="Configured successfully"
-                        title="Configured successfully"
-                        className="slds-icon slds-icon_x-small slds-icon-text-success"
-                        containerClassname="slds-icon_container slds-icon-utility-success slds-m-left_x-small"
-                      />
-                    </Tooltip>
-                  )}
-                </Grid>
-              ),
-              content: (
-                <FormulaEvaluatorPermissions
-                  hasError={permissionData.hasError}
-                  lastRefreshed={permissionData.lastRefreshed}
-                  loading={permissionData.loading}
-                  profiles={permissionData.profiles}
-                  permissionSets={permissionData.permissionSets}
-                  selectedPermissionSets={selectedPermissionSets}
-                  selectedProfiles={selectedProfiles}
-                  fetchMetadata={permissionData.fetchMetadata}
-                  onSelectedPermissionSetChange={setSelectedPermissionSets}
-                  onSelectedProfileChange={setSelectedProfiles}
-                />
-              ),
-            },
-            {
-              id: 'layouts',
-              title: (
-                <Grid verticalAlign="center">
-                  <span>Page Layouts</span>
-                  {!!layoutData.selectedLayoutIds.size && (
-                    <Tooltip content="Layouts are configured">
-                      <Icon
-                        type="utility"
-                        icon="success"
-                        description="Configured successfully"
-                        title="Configured successfully"
-                        className="slds-icon slds-icon_x-small slds-icon-text-success"
-                        containerClassname="slds-icon_container slds-icon-utility-success slds-m-left_x-small"
-                      />
-                    </Tooltip>
-                  )}
-                </Grid>
-              ),
-              content: (
-                <FormulaEvaluatorPageLayouts
-                  sobjectName={sobject}
-                  error={layoutData.error}
-                  handleSelectLayout={layoutData.handleSelectLayout}
-                  layouts={layoutData.layouts}
-                  loading={layoutData.loading}
-                  selectedLayoutIds={layoutData.selectedLayoutIds}
-                  disabled={loading}
-                />
-              ),
-            },
-            {
-              id: 'results',
-              title: (
-                <Grid verticalAlign="center">
-                  <span>Deploy Field</span>
-                  {results && !fatalError && (
-                    <Tooltip content="Field is configured">
-                      <Icon
-                        type="utility"
-                        icon="success"
-                        description="Configured successfully"
-                        title="Configured successfully"
-                        className="slds-icon slds-icon_x-small slds-icon-text-success"
-                        containerClassname="slds-icon_container slds-icon-utility-success slds-m-left_x-small"
-                      />
-                    </Tooltip>
-                  )}
-                </Grid>
-              ),
-              content: (
-                <FormulaEvaluatorDeploySummary
-                  field={field}
-                  selectedProfiles={selectedProfiles.map((item) => {
-                    const record = permissionData.profilesAndPermSetsById[item];
-                    return record?.IsOwnedByProfile ? record.Profile.Name : record.Name;
-                  })}
-                  selectedPermissionSets={selectedPermissionSets.map((item) => {
-                    const record = permissionData.profilesAndPermSetsById[item];
-                    return record?.IsOwnedByProfile ? record.Profile.Name : record.Name;
-                  })}
-                  selectedLayouts={Array.from(layoutData.selectedLayoutIds).map((item) => layoutData.layoutsById[item].Name)}
-                />
-              ),
-            },
-          ]}
+  return (
+    <>
+      <ConfirmPageChange actionInProgress={loading} />
+      {exportModalOpen && exportData && (
+        <FileDownloadModal
+          org={selectedOrg}
+          google_apiKey={google_apiKey}
+          google_appId={google_appId}
+          google_clientId={google_clientId}
+          modalHeader="Download Results"
+          data={exportData.worksheetData}
+          header={exportData.headerData}
+          fileNameParts={['create-fields']}
+          allowedTypes={['xlsx']}
+          onModalClose={handleDownloadResultsModalClosed}
+          emitUploadToGoogleEvent={fromJetstreamEvents.emit}
         />
-      </div>
-    </Modal>
+      )}
+      {!exportModalOpen && (
+        <Modal
+          header="Save Field"
+          tagline="Field will be upserted based on the Field Name."
+          size="md"
+          footer={
+            <Grid align="spread">
+              <div>
+                <button className="slds-button slds-button_neutral" onClick={() => downloadResults()} disabled={loading || !deployed}>
+                  <Icon type="utility" icon="download" className="slds-button__icon slds-button__icon_left" omitContainer />
+                  Download Results
+                </button>
+              </div>
+              <div>
+                <button className="slds-button slds-button_neutral" onClick={() => onClose()}>
+                  Cancel
+                </button>
+                <button className="slds-button slds-button_brand" disabled={actionButtonDisabled} onClick={() => handleActionClick()}>
+                  {deployLabel}
+                </button>
+              </div>
+            </Grid>
+          }
+          onClose={onClose}
+        >
+          <div
+            className="slds-is-relative"
+            css={css`
+              min-height: 550px;
+            `}
+          >
+            {loading && <Spinner />}
+            {fatalError && <ScopedNotification theme="error">{fatalErrorMessage || 'An unknown error occurred.'}</ScopedNotification>}
+            {!loading && results?.[0]?.errorMessage && <ScopedNotification theme="error">{results[0].errorMessage}</ScopedNotification>}
+            {layoutErrorMessage && (
+              <ScopedNotification theme="warning">{layoutErrorMessage || 'An unknown error occurred.'}</ScopedNotification>
+            )}
+            {!loading && results?.[0]?.flsErrorMessage && (
+              <ScopedNotification theme="warning">{results[0].flsErrorMessage}</ScopedNotification>
+            )}
+            {!loading && results?.[0]?.state === 'SUCCESS' && (
+              <ScopedNotification theme="success">Your field has been successfully deployed.</ScopedNotification>
+            )}
+
+            <Tabs
+              initialActiveId={activeTab}
+              contentClassname="slds-p-bottom_none"
+              onChange={(value: Tab) => setActiveTab(value)}
+              tabs={[
+                {
+                  id: 'field',
+                  title: (
+                    <Grid verticalAlign="center">
+                      <span>Field</span>
+                      {fieldValid ? (
+                        <Tooltip content="Field is configured">
+                          <Icon
+                            type="utility"
+                            icon="success"
+                            description="Configured successfully"
+                            title="Configured successfully"
+                            className="slds-icon slds-icon_x-small slds-icon-text-success"
+                            containerClassname="slds-icon_container slds-icon-utility-success slds-m-left_x-small"
+                          />
+                        </Tooltip>
+                      ) : (
+                        <Tooltip content="Field is not yet configured">
+                          <Icon
+                            type="utility"
+                            icon="error"
+                            className="slds-icon slds-icon-text-error slds-icon_xx-small"
+                            containerClassname="slds-icon_container slds-icon-utility-error slds-m-left_x-small"
+                            description="Field is not yet configured"
+                          />
+                        </Tooltip>
+                      )}
+                    </Grid>
+                  ),
+                  content: <FormulaEvaluatorFields formula={formula} field={field} loading={loading} onFieldChange={onFieldChange} />,
+                },
+                {
+                  id: 'permissions',
+                  title: (
+                    <Grid verticalAlign="center">
+                      <span>Field Permissions</span>
+                      {(!!selectedProfiles.length || !!selectedPermissionSets.length) && (
+                        <Tooltip content="Permissions are configured">
+                          <Icon
+                            type="utility"
+                            icon="success"
+                            description="Configured successfully"
+                            title="Configured successfully"
+                            className="slds-icon slds-icon_x-small slds-icon-text-success"
+                            containerClassname="slds-icon_container slds-icon-utility-success slds-m-left_x-small"
+                          />
+                        </Tooltip>
+                      )}
+                    </Grid>
+                  ),
+                  content: (
+                    <FormulaEvaluatorPermissions
+                      hasError={permissionData.hasError}
+                      lastRefreshed={permissionData.lastRefreshed}
+                      loading={permissionData.loading}
+                      profiles={permissionData.profiles}
+                      permissionSets={permissionData.permissionSets}
+                      selectedPermissionSets={selectedPermissionSets}
+                      selectedProfiles={selectedProfiles}
+                      fetchMetadata={permissionData.fetchMetadata}
+                      onSelectedPermissionSetChange={setSelectedPermissionSets}
+                      onSelectedProfileChange={setSelectedProfiles}
+                    />
+                  ),
+                },
+                {
+                  id: 'layouts',
+                  title: (
+                    <Grid verticalAlign="center">
+                      <span>Page Layouts</span>
+                      {!!layoutData.selectedLayoutIds.size && (
+                        <Tooltip content="Layouts are configured">
+                          <Icon
+                            type="utility"
+                            icon="success"
+                            description="Configured successfully"
+                            title="Configured successfully"
+                            className="slds-icon slds-icon_x-small slds-icon-text-success"
+                            containerClassname="slds-icon_container slds-icon-utility-success slds-m-left_x-small"
+                          />
+                        </Tooltip>
+                      )}
+                    </Grid>
+                  ),
+                  content: (
+                    <FormulaEvaluatorPageLayouts
+                      sobjectName={sobject}
+                      error={layoutData.error}
+                      handleSelectLayout={layoutData.handleSelectLayout}
+                      layouts={layoutData.layouts}
+                      loading={layoutData.loading}
+                      selectedLayoutIds={layoutData.selectedLayoutIds}
+                      disabled={loading}
+                    />
+                  ),
+                },
+                {
+                  id: 'results',
+                  title: (
+                    <Grid verticalAlign="center">
+                      <span>Deploy Field</span>
+                    </Grid>
+                  ),
+                  content: (
+                    <FormulaEvaluatorDeploySummary
+                      field={field}
+                      selectedProfiles={selectedProfiles.map((item) => {
+                        const record = permissionData.profilesAndPermSetsById[item];
+                        return record?.IsOwnedByProfile ? record.Profile.Name : record.Name;
+                      })}
+                      selectedPermissionSets={selectedPermissionSets.map((item) => {
+                        const record = permissionData.profilesAndPermSetsById[item];
+                        return record?.IsOwnedByProfile ? record.Profile.Name : record.Name;
+                      })}
+                      selectedLayouts={Array.from(layoutData.selectedLayoutIds).map((item) => layoutData.layoutsById[item].Name)}
+                    />
+                  ),
+                },
+              ]}
+            />
+          </div>
+        </Modal>
+      )}
+    </>
   );
 };
 
