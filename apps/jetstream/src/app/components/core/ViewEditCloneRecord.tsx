@@ -51,7 +51,6 @@ function getButtonState(action: CloneEditView) {
   } else if (action === 'json') {
     return 'JSON';
   }
-  return 'Create Record';
 }
 
 function getTagline(sobjectName: string, initialRecord?: Record, recordId?: string) {
@@ -275,8 +274,6 @@ export const ViewEditCloneRecord: FunctionComponent<ViewEditCloneRecordProps> = 
     copyToClipboard(initialRecord, { format: 'text/plain' });
   }
 
-  function handleBackToView() {}
-
   return (
     <div>
       {downloadModalOpen && (
@@ -399,13 +396,13 @@ export const ViewEditCloneRecord: FunctionComponent<ViewEditCloneRecordProps> = 
             )}
 
             {!loading && initialRecord && action === 'json' && (
-              <div className="slds-p-around_medium">
+              <div className="slds-p-around_large">
                 <Editor
                   height="90vh"
                   theme="vs-dark"
                   defaultLanguage="json"
                   value={JSON.stringify(initialRecord, null, 2)}
-                  options={{ contextmenu: false, readOnly: true }}
+                  options={{ readOnly: true }}
                 />
               </div>
             )}
