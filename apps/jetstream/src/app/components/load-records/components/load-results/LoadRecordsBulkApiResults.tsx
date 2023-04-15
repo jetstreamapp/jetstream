@@ -1,7 +1,7 @@
 import { css } from '@emotion/react';
 import { logger } from '@jetstream/shared/client-logger';
 import { ANALYTICS_KEYS } from '@jetstream/shared/constants';
-import { bulkApiGetJob, bulkApiGetRecords } from '@jetstream/shared/data';
+import { bulkApiAbortJob, bulkApiGetJob, bulkApiGetRecords } from '@jetstream/shared/data';
 import { checkIfBulkApiJobIsDone, convertDateToLocale, useBrowserNotifications, useRollbar } from '@jetstream/shared/ui-utils';
 import { getSuccessOrFailureChar, pluralizeFromNumber } from '@jetstream/shared/utils';
 import {
@@ -14,14 +14,15 @@ import {
   SalesforceOrgUi,
   WorkerMessage,
 } from '@jetstream/types';
-import { FileDownloadModal, Grid, ProgressRing, SalesforceLogin, Spinner } from '@jetstream/ui';
+import { FileDownloadModal, Grid, ProgressRing, SalesforceLogin, Spinner, Tooltip } from '@jetstream/ui';
 import { FunctionComponent, useEffect, useRef, useState } from 'react';
 import { useRecoilState } from 'recoil';
 import { applicationCookieState } from '../../../../app-state';
+import { fireToast } from '../../../core/AppToast';
 import { useAmplitude } from '../../../core/analytics';
 import * as fromJetstreamEvents from '../../../core/jetstream-events';
-import { DownloadAction, DownloadType } from '../../../shared/load-records-results/load-records-results-types';
 import LoadRecordsBulkApiResultsTable from '../../../shared/load-records-results/LoadRecordsBulkApiResultsTable';
+import { DownloadAction, DownloadType } from '../../../shared/load-records-results/load-records-results-types';
 import {
   ApiMode,
   DownloadModalData,
@@ -32,28 +33,31 @@ import {
   PrepareDataResponse,
   ViewModalData,
 } from '../../load-records-types';
-import { getFieldHeaderFromMapping, LoadRecordsBatchError } from '../../utils/load-records-utils';
+import { LoadRecordsBatchError, getFieldHeaderFromMapping } from '../../utils/load-records-utils';
 import { getLoadWorker } from '../../utils/load-records-worker';
 import LoadRecordsResultsModal from './LoadRecordsResultsModal';
 
-type Status = 'Preparing Data' | 'Uploading Data' | 'Processing Data' | 'Finished' | 'Error';
+type Status = 'Preparing Data' | 'Uploading Data' | 'Processing Data' | 'Aborting' | 'Finished' | 'Error';
 
 const STATUSES: {
   PREPARING: Status;
   UPLOADING: Status;
   PROCESSING: Status;
+  ABORTING: Status;
   FINISHED: Status;
   ERROR: Status;
 } = {
   PREPARING: 'Preparing Data',
   UPLOADING: 'Uploading Data',
   PROCESSING: 'Processing Data',
+  ABORTING: 'Aborting',
   FINISHED: 'Finished',
   ERROR: 'Error',
 };
 
 const CHECK_INTERVAL = 3000;
 const MAX_INTERVAL_CHECK_COUNT = 200; // 3000*200/60=10 minutes
+const ABORTABLE_STATUSES = new Set<Status>([STATUSES.PREPARING, STATUSES.UPLOADING, STATUSES.PROCESSING, STATUSES.ABORTING]);
 
 export interface LoadRecordsBulkApiResultsProps {
   selectedOrg: SalesforceOrgUi;
@@ -469,6 +473,21 @@ export const LoadRecordsBulkApiResults: FunctionComponent<LoadRecordsBulkApiResu
   function handleViewModalClose() {
     setResultsModalData({ open: false, data: [], header: [], type: 'results' });
   }
+
+  async function handleAbort() {
+    loadWorker.postMessage({ name: 'abort' });
+    setStatus(STATUSES.ABORTING);
+    try {
+      jobInfo?.id && (await bulkApiAbortJob(selectedOrg, jobInfo.id));
+    } catch (ex) {
+      logger.warn(ex);
+      fireToast({
+        message: 'There was an error aborting the load.',
+        type: 'error',
+      });
+    }
+  }
+
   return (
     <div>
       {downloadModalData.open && (
@@ -493,53 +512,71 @@ export const LoadRecordsBulkApiResults: FunctionComponent<LoadRecordsBulkApiResu
           onClose={handleViewModalClose}
         />
       )}
-      <h3 className="slds-text-heading_small slds-grid">
-        <Grid verticalAlign="center">
-          <span className="slds-m-right_x-small">
-            {status} <span className="slds-text-title">{getUploadingText()}</span>
-          </span>
-          {status === STATUSES.PREPARING && (
-            <div>
-              {!!prepareDataProgress && (
-                <ProgressRing
-                  className="slds-m-right_x-small"
-                  fillPercent={prepareDataProgress / 100}
-                  size="medium"
-                  theme="active-step"
-                ></ProgressRing>
+      <Grid verticalAlign="end" align="spread">
+        <div>
+          <h3 className="slds-text-heading_small slds-grid">
+            <Grid verticalAlign="center">
+              <span className="slds-m-right_x-small">
+                {status} <span className="slds-text-title">{getUploadingText()}</span>
+              </span>
+              {status === STATUSES.PREPARING && (
+                <div>
+                  {!!prepareDataProgress && (
+                    <ProgressRing
+                      className="slds-m-right_x-small"
+                      fillPercent={prepareDataProgress / 100}
+                      size="medium"
+                      theme="active-step"
+                    ></ProgressRing>
+                  )}
+                  <div
+                    css={css`
+                      width: 20px;
+                      display: inline-block;
+                    `}
+                  >
+                    <Spinner inline containerClassName="slds-m-bottom_small" size="x-small" />
+                  </div>
+                </div>
               )}
-              <div
-                css={css`
-                  width: 20px;
-                  display: inline-block;
-                `}
-              >
-                <Spinner inline containerClassName="slds-m-bottom_small" size="x-small" />
-              </div>
+            </Grid>
+          </h3>
+          {fatalError && (
+            <div className="slds-text-color_error">
+              <strong>Fatal Error</strong>: {fatalError}
             </div>
           )}
-        </Grid>
-      </h3>
-      {fatalError && (
-        <div className="slds-text-color_error">
-          <strong>Fatal Error</strong>: {fatalError}
+          {downloadError && (
+            <div className="slds-text-color_error">
+              <strong>Error preparing data</strong>: {downloadError}
+            </div>
+          )}
+          {batchSummary && (
+            <SalesforceLogin
+              serverUrl={serverUrl}
+              org={selectedOrg}
+              returnUrl={`/lightning/setup/AsyncApiJobStatus/page?address=%2F${batchSummary.jobInfo.id}`}
+              iconPosition="right"
+            >
+              View job in Salesforce
+            </SalesforceLogin>
+          )}
         </div>
-      )}
-      {downloadError && (
-        <div className="slds-text-color_error">
-          <strong>Error preparing data</strong>: {downloadError}
+        <div>
+          {ABORTABLE_STATUSES.has(status) && (
+            <Tooltip content="Any batches in progress may not be able to be aborted.">
+              <button
+                className="slds-button slds-button_text-destructive slds-m-bottom_xx-small slds-is-relative"
+                disabled={status === STATUSES.ABORTING}
+                onClick={handleAbort}
+              >
+                {status === STATUSES.ABORTING && <Spinner size="small" />}
+                Abort Job
+              </button>
+            </Tooltip>
+          )}
         </div>
-      )}
-      {batchSummary && (
-        <SalesforceLogin
-          serverUrl={serverUrl}
-          org={selectedOrg}
-          returnUrl={`/lightning/setup/AsyncApiJobStatus/page?address=%2F${batchSummary.jobInfo.id}`}
-          iconPosition="right"
-        >
-          View job in Salesforce
-        </SalesforceLogin>
-      )}
+      </Grid>
       {/* Data is being processed */}
       {jobInfo && preparedData && (
         <LoadRecordsBulkApiResultsTable

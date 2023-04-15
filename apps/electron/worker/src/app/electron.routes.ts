@@ -4,8 +4,8 @@ import findMyWay, { HTTPMethod } from 'find-my-way';
 import * as jsforce from 'jsforce';
 import { isString } from 'lodash';
 import * as appController from './controllers/app.controller';
-import * as salesforceController from './controllers/salesforce.controller';
 import * as salesforceApiController from './controllers/salesforce-api.controller';
+import * as salesforceController from './controllers/salesforce.controller';
 import { ENV } from './env';
 import { getOrgs, updateOrg } from './storage';
 import { ElectronRequest, ElectronRequestData, SalesforceOrgElectron } from './types';
@@ -58,7 +58,7 @@ router.on('POST', '/api/request-manual', salesforceController.makeJsforceRequest
 
 router.on('POST', '/api/bulk', salesforceController.createJob);
 router.on('GET', '/api/bulk/:jobId', salesforceController.getJob);
-router.on('DELETE', '/api/bulk/:jobId', salesforceController.closeJob);
+router.on('DELETE', '/api/bulk/:jobId/:action', salesforceController.closeOrAbortJob);
 router.on('POST', '/api/bulk/:jobId', salesforceController.addBatchToJob);
 router.on('POST', '/api/bulk/zip/:jobId', salesforceController.addBatchToJobWithBinaryAttachment);
 router.on('GET', '/api/bulk/:jobId/:batchId', salesforceController.downloadBulkApiResults);

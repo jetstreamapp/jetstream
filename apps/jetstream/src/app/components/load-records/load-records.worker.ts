@@ -30,12 +30,14 @@ import {
   LoadDataPayload,
   PrepareDataPayload,
 } from '../../components/load-records/load-records-types';
-import { fetchMappedRelatedRecords, LoadRecordsBatchError, transformData } from './utils/load-records-utils';
 import { axiosElectronAdapter, initMessageHandler } from '../core/electron-axios-adapter';
+import { LoadRecordsBatchError, fetchMappedRelatedRecords, transformData } from './utils/load-records-utils';
 
-type MessageName = 'isElectron' | 'prepareData' | 'prepareDataProgress' | 'loadData' | 'loadDataStatus';
+type MessageName = 'isElectron' | 'prepareData' | 'prepareDataProgress' | 'loadData' | 'loadDataStatus' | 'abort';
 // eslint-disable-next-line no-restricted-globals
 const ctx: Worker = self as any;
+
+const abortStatus = { isAborted: false };
 
 // Respond to message from parent thread
 ctx.addEventListener('message', (event) => {
@@ -46,6 +48,7 @@ ctx.addEventListener('message', (event) => {
 
 async function handleMessage(name: MessageName, payloadData: any, port?: MessagePort) {
   try {
+    abortStatus.isAborted = false;
     switch (name) {
       case 'isElectron': {
         initForElectron(axiosElectronAdapter);
@@ -78,6 +81,10 @@ async function handleMessage(name: MessageName, payloadData: any, port?: Message
         }
         break;
       }
+      case 'abort': {
+        abortStatus.isAborted = true;
+        break;
+      }
       default:
         break;
     }
@@ -104,6 +111,9 @@ async function loadBulkApiData({ org, data, sObject, type, batchSize, externalId
     const batchOrderMap: MapOf<number> = {};
     for (const batch of batches) {
       try {
+        if (abortStatus.isAborted) {
+          throw new Error('Aborted');
+        }
         const batchResult = await bulkApiAddBatchToJob(org, jobId, batch.data, currItem === batches.length);
         batchOrderMap[batchResult.id] = currItem - 1;
         results.batches = results.batches || [];
@@ -182,6 +192,9 @@ async function loadBatchApiData(payload: LoadDataPayload) {
       let recordIndexesWithMissingIds: Set<number> = new Set();
 
       try {
+        if (abortStatus.isAborted) {
+          throw new Error('Aborted');
+        }
         if (type === 'DELETE') {
           queryParams = `?ids=${batch.records
             ?.map((record) => record.Id)
@@ -233,6 +246,12 @@ async function loadBatchApiData(payload: LoadDataPayload) {
           });
         }
       } catch (ex) {
+        let message = `An unknown error has occurred. Salesforce Message: ${ex.message}`;
+        let statusCode = 'UNKNOWN';
+        if (abortStatus.isAborted) {
+          message = 'Data load aborted';
+          statusCode = 'ABORTED';
+        }
         responseWithRecord =
           batch.records?.map(
             (record, i): RecordResultWithRecord => ({
@@ -240,8 +259,8 @@ async function loadBatchApiData(payload: LoadDataPayload) {
               errors: [
                 {
                   fields: [],
-                  message: `An unknown error has occurred. Salesforce Message: ${ex.message}`,
-                  statusCode: 'UNKNOWN',
+                  message,
+                  statusCode,
                 },
               ],
               record: originalBatchRecords[i],

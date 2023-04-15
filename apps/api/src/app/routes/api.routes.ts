@@ -147,7 +147,12 @@ routes.post(
 
 routes.post('/bulk', ensureOrgExists, validate(bulkApiController.routeValidators.createJob), bulkApiController.createJob);
 routes.get('/bulk/:jobId', ensureOrgExists, validate(bulkApiController.routeValidators.getJob), bulkApiController.getJob);
-routes.delete('/bulk/:jobId', ensureOrgExists, validate(bulkApiController.routeValidators.closeJob), bulkApiController.closeJob);
+routes.delete(
+  '/bulk/:jobId/:action',
+  ensureOrgExists,
+  validate(bulkApiController.routeValidators.closeJob),
+  bulkApiController.closeOrAbortJob
+);
 routes.post('/bulk/:jobId', ensureOrgExists, validate(bulkApiController.routeValidators.addBatchToJob), bulkApiController.addBatchToJob);
 routes.post(
   '/bulk/zip/:jobId',

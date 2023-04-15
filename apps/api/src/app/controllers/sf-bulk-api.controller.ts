@@ -1,5 +1,6 @@
 import { logger } from '@jetstream/api-config';
 import * as services from '@jetstream/server-services';
+import { HTTP } from '@jetstream/shared/constants';
 import { ensureBoolean, toBoolean } from '@jetstream/shared/utils';
 import { BulkApiCreateJobRequestPayload, BulkApiDownloadType, BulkJobBatchInfo } from '@jetstream/types';
 import { NextFunction, Request, Response } from 'express';
@@ -9,7 +10,6 @@ import { NODE_STREAM_INPUT, parse as parseCsv } from 'papaparse';
 import { sfBulkDownloadRecords, sfBulkGetQueryResultsJobIds } from '../services/sf-bulk';
 import { UserFacingError } from '../utils/error-handler';
 import { sendJson } from '../utils/response.handlers';
-import { HTTP } from '@jetstream/shared/constants';
 
 export const routeValidators = {
   createJob: [
@@ -71,12 +71,13 @@ export async function getJob(req: Request, res: Response, next: NextFunction) {
   }
 }
 
-export async function closeJob(req: Request, res: Response, next: NextFunction) {
+export async function closeOrAbortJob(req: Request, res: Response, next: NextFunction) {
   try {
     const jobId = req.params.jobId;
+    const action: 'Closed' | 'Aborted' = req.params.action === 'abort' ? 'Aborted' : 'Closed';
     const conn: jsforce.Connection = res.locals.jsforceConn;
 
-    const jobInfo = await services.sfBulkCloseJob(conn, jobId);
+    const jobInfo = await services.sfBulkCloseOrAbortJob(conn, jobId, action);
 
     sendJson(res, jobInfo);
   } catch (ex) {
