@@ -16,17 +16,7 @@ import {
   useObservable,
 } from '@jetstream/shared/ui-utils';
 import { getRecordIdFromAttributes, getSObjectNameFromAttributes, pluralizeIfMultiple } from '@jetstream/shared/utils';
-import {
-  AsyncJob,
-  AsyncJobNew,
-  BulkDownloadJob,
-  CloneEditView,
-  FileExtCsvXLSXJsonGSheet,
-  MapOf,
-  Maybe,
-  Record,
-  SalesforceOrgUi,
-} from '@jetstream/types';
+import { AsyncJob, AsyncJobNew, CloneEditView, MapOf, Maybe, Record, SalesforceOrgUi } from '@jetstream/types';
 import {
   AutoFullHeightContainer,
   CampingRainIllustration,
@@ -34,7 +24,6 @@ import {
   Grid,
   GridCol,
   Icon,
-  RecordDownloadModal,
   SalesforceRecordDataTable,
   Spinner,
   Toolbar,
@@ -44,11 +33,12 @@ import {
   useConfirmation,
 } from '@jetstream/ui';
 import classNames from 'classnames';
+import copyToClipboard from 'copy-to-clipboard';
 import React, { Fragment, FunctionComponent, useCallback, useEffect, useRef, useState } from 'react';
 import { Link, NavLink, useLocation, useNavigate } from 'react-router-dom';
 import { useRecoilState, useRecoilValue } from 'recoil';
 import { filter } from 'rxjs/operators';
-import { Query, WhereClause } from 'soql-parser-js';
+import { Query } from 'soql-parser-js';
 import { applicationCookieState, selectedOrgState } from '../../../app-state';
 import { useAmplitude } from '../../core/analytics';
 import * as fromJetstreamEvents from '../../core/jetstream-events';
@@ -64,9 +54,7 @@ import QueryResultsCopyToClipboard from './QueryResultsCopyToClipboard';
 import QueryResultsDownloadButton from './QueryResultsDownloadButton';
 import QueryResultsGetRecAsApexModal from './QueryResultsGetRecAsApexModal';
 import QueryResultsSoqlPanel from './QueryResultsSoqlPanel';
-import QueryResultsViewRecordFields from './QueryResultsViewRecordFields';
 import { useQueryResultsFetchMetadata } from './useQueryResultsFetchMetadata';
-import copyToClipboard from 'copy-to-clipboard';
 
 type SourceAction = 'STANDARD' | 'ORG_CHANGE' | 'BULK_DELETE' | 'HISTORY' | 'RECORD_ACTION' | 'MANUAL' | 'RELOAD';
 
