@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { css } from '@emotion/react';
+import copyToClipboard from 'copy-to-clipboard';
 import Editor from '@monaco-editor/react';
 import { mockPicklistValuesFromSobjectDescribe, UiRecordForm } from '@jetstream/record-form';
 import { logger } from '@jetstream/shared/client-logger';
@@ -39,6 +39,17 @@ function getModalTitle(action: CloneEditView) {
     return 'Clone Record';
   } else if (action === 'json') {
     return 'View as JSON';
+  }
+  return 'Create Record';
+}
+
+function getButtonState(action: CloneEditView) {
+  if (action === 'view') {
+    return 'VIEW';
+  } else if (action === 'edit' || action === 'clone') {
+    return 'EDIT';
+  } else if (action === 'json') {
+    return 'JSON';
   }
   return 'Create Record';
 }
@@ -90,6 +101,7 @@ export const ViewEditCloneRecord: FunctionComponent<ViewEditCloneRecordProps> = 
   const [showFieldTypes, setShowFieldTypes] = useState<boolean>(false);
   const [formErrors, setFormErrors] = useState<EditFromErrors>({ hasErrors: false, fieldErrors: {}, generalErrors: [] });
   const [modalTitle, setModalTitle] = useState(() => getModalTitle(action));
+  const [buttonState, setButtonState] = useState(() => getButtonState(action));
 
   const [downloadModalOpen, setDownloadModalOpen] = useState(false);
 
@@ -102,6 +114,7 @@ export const ViewEditCloneRecord: FunctionComponent<ViewEditCloneRecordProps> = 
 
   useNonInitialEffect(() => {
     setModalTitle(getModalTitle(action));
+    setButtonState(getButtonState(action));
   }, [action]);
 
   useNonInitialEffect(() => {
@@ -258,6 +271,12 @@ export const ViewEditCloneRecord: FunctionComponent<ViewEditCloneRecordProps> = 
     }
   }
 
+  function handleCopyToClipboard() {
+    copyToClipboard(initialRecord, { format: 'text/plain' });
+  }
+
+  function handleBackToView() {}
+
   return (
     <div>
       {downloadModalOpen && (
@@ -283,7 +302,7 @@ export const ViewEditCloneRecord: FunctionComponent<ViewEditCloneRecordProps> = 
           className="h-100 slds-is-relative"
           footer={
             <Fragment>
-              {action === 'view' && (
+              {buttonState === 'VIEW' && (
                 <div>
                   {formErrors.hasErrors && formErrors.generalErrors.length > 0 && (
                     <span className="slds-text-align_left d-inline-block">
@@ -327,28 +346,40 @@ export const ViewEditCloneRecord: FunctionComponent<ViewEditCloneRecordProps> = 
                   </button>
                 </div>
               )}
-              {action !== 'view' &&
-                action !== 'json' && ( //TODO: assuming this isn't a good idea but closes buttons
-                  <Grid align="center">
-                    <div>
-                      {formErrors.hasErrors && formErrors.generalErrors.length > 0 && (
-                        <span className="slds-text-align_left d-inline-block">
-                          <PopoverErrorButton errors={formErrors.generalErrors} omitPortal />
-                        </span>
-                      )}
-                      <button className="slds-button slds-button_neutral" onClick={() => onClose()} disabled={loading}>
-                        Cancel
-                      </button>
-                      <button
-                        className="slds-button slds-button_brand"
-                        onClick={handleSave}
-                        disabled={(action === 'edit' && !formIsDirty) || loading || !initialRecord}
-                      >
-                        Save
-                      </button>
-                    </div>
-                  </Grid>
-                )}
+              {buttonState === 'EDIT' && (
+                <Grid align="center">
+                  <div>
+                    {formErrors.hasErrors && formErrors.generalErrors.length > 0 && (
+                      <span className="slds-text-align_left d-inline-block">
+                        <PopoverErrorButton errors={formErrors.generalErrors} omitPortal />
+                      </span>
+                    )}
+                    <button className="slds-button slds-button_neutral" onClick={() => onClose()} disabled={loading}>
+                      Cancel
+                    </button>
+                    <button
+                      className="slds-button slds-button_brand"
+                      onClick={handleSave}
+                      disabled={(action === 'edit' && !formIsDirty) || loading || !initialRecord}
+                    >
+                      Save
+                    </button>
+                  </div>
+                </Grid>
+              )}
+              {buttonState === 'JSON' && (
+                <div>
+                  <button className="slds-button slds-button_neutral" onClick={handleCopyToClipboard}>
+                    Copy to Clipboard
+                  </button>
+                  <button className="slds-button slds-button_brand" onClick={() => onChangeAction('view')} disabled={loading}>
+                    Back
+                  </button>
+                  <button className="slds-button slds-button_brand" onClick={() => onClose()} disabled={loading}>
+                    Close
+                  </button>
+                </div>
+              )}
             </Fragment>
           }
           onClose={() => onClose()}
@@ -366,55 +397,18 @@ export const ViewEditCloneRecord: FunctionComponent<ViewEditCloneRecordProps> = 
               />
             )}
 
-            <div
-              className="slds-is-relative"
-              css={css`
-                height: 80vh;
-                min-height: 80vh;
-                max-height: 80vh;
-              `}
-            >
-              {!loading && initialRecord && action === 'json' && (
-                <Grid align="center">
-                  <GridCol size={8}>
-                    <Editor
-                      height="100%"
-                      theme="vs-dark"
-                      defaultLanguage="json"
-                      value={JSON.stringify(initialRecord, null, 2)}
-                      options={{ contextmenu: false, readOnly: true }}
-                      //onChange={handleEditorChange}
-                    />
-                  </GridCol>
-                </Grid>
-              )}
-            </div>
-          </div>
-
-          {/* <div
-            className="slds-is-relative"
-            css={css`
-              height: 80vh;
-              min-height: 80vh;
-              max-height: 80vh;
-            `}
-          >
-            {(loading || saving) && <Spinner />}
             {!loading && initialRecord && action === 'json' && (
-              <Grid align="center">
-                <GridCol size={8}>
-                  <Editor
-                    height="100%"
-                    theme="vs-dark"
-                    defaultLanguage="json"
-                    value={JSON.stringify(initialRecord, null, 2)}
-                    options={{ contextmenu: false, readOnly: true }}
-                    //onChange={handleEditorChange}
-                  />
-                </GridCol>
-              </Grid>
+              <div className="slds-p-around_medium">
+                <Editor
+                  height="90vh"
+                  theme="vs-dark"
+                  defaultLanguage="json"
+                  value={JSON.stringify(initialRecord, null, 2)}
+                  options={{ contextmenu: false, readOnly: true }}
+                />
+              </div>
             )}
-          </div> */}
+          </div>
         </Modal>
       )}
     </div>
