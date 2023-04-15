@@ -116,8 +116,6 @@ export const QueryResults: FunctionComponent<QueryResultsProps> = React.memo(() 
     recordId: string | null;
   } | null>(null);
   const [getRecordAsApex, setGetRecordAsApex] = useState<{ record: any; sobjectName: string } | null>(null);
-  //const [getRecordAsJson, setGetRecordAsJson] = useState<{ record: any };
-
   const [restore] = useQueryRestore(soql, isTooling, { silent: true });
 
   const [allowContentDownload, setAllowContentDownload] = useState<{
@@ -426,7 +424,6 @@ export const QueryResults: FunctionComponent<QueryResultsProps> = React.memo(() 
   }
 
   function handleGetAsJson(record: any) {
-    //setGetRecordAsJson();
     copyToClipboard(JSON.stringify(record, null, 2), { format: 'text/plain' });
   }
 
