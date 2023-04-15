@@ -1,5 +1,7 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 /* eslint-disable @typescript-eslint/no-explicit-any */
+import { css } from '@emotion/react';
+import Editor from '@monaco-editor/react';
 import { mockPicklistValuesFromSobjectDescribe, UiRecordForm } from '@jetstream/record-form';
 import { logger } from '@jetstream/shared/client-logger';
 import { describeSObject, genericRequest, sobjectOperation } from '@jetstream/shared/data';
@@ -13,7 +15,7 @@ import {
   SalesforceOrgUi,
   SobjectCollectionResponse,
 } from '@jetstream/types';
-import { FileDownloadModal, Grid, Icon, Modal, PopoverErrorButton, Spinner } from '@jetstream/ui';
+import { FileDownloadModal, Grid, GridCol, Icon, Modal, PopoverErrorButton, Spinner } from '@jetstream/ui';
 import type { Field } from 'jsforce';
 import isUndefined from 'lodash/isUndefined';
 import { Fragment, FunctionComponent, useCallback, useEffect, useRef, useState } from 'react';
@@ -35,6 +37,8 @@ function getModalTitle(action: CloneEditView) {
     return 'Edit Record';
   } else if (action === 'clone') {
     return 'Clone Record';
+  } else if (action === 'json') {
+    return 'View as JSON';
   }
   return 'Create Record';
 }
@@ -310,39 +314,48 @@ export const ViewEditCloneRecord: FunctionComponent<ViewEditCloneRecordProps> = 
                     <Icon type="utility" icon="download" className="slds-button__icon slds-button__icon_left" omitContainer />
                     Download
                   </button>
+                  <button
+                    className="slds-button slds-button_neutral"
+                    onClick={() => onChangeAction('json')}
+                    disabled={loading || !initialRecord}
+                  >
+                    <Icon type="utility" icon="copy_to_clipboard" className="slds-button__icon slds-button__icon_left" omitContainer />
+                    View as JSON
+                  </button>
                   <button className="slds-button slds-button_brand" onClick={() => onClose()}>
                     Close
                   </button>
                 </div>
               )}
-              {action !== 'view' && (
-                <Grid align="center">
-                  <div>
-                    {formErrors.hasErrors && formErrors.generalErrors.length > 0 && (
-                      <span className="slds-text-align_left d-inline-block">
-                        <PopoverErrorButton errors={formErrors.generalErrors} omitPortal />
-                      </span>
-                    )}
-                    <button className="slds-button slds-button_neutral" onClick={() => onClose()} disabled={loading}>
-                      Cancel
-                    </button>
-                    <button
-                      className="slds-button slds-button_brand"
-                      onClick={handleSave}
-                      disabled={(action === 'edit' && !formIsDirty) || loading || !initialRecord}
-                    >
-                      Save
-                    </button>
-                  </div>
-                </Grid>
-              )}
+              {action !== 'view' &&
+                action !== 'json' && ( //TODO: assuming this isn't a good idea but closes buttons
+                  <Grid align="center">
+                    <div>
+                      {formErrors.hasErrors && formErrors.generalErrors.length > 0 && (
+                        <span className="slds-text-align_left d-inline-block">
+                          <PopoverErrorButton errors={formErrors.generalErrors} omitPortal />
+                        </span>
+                      )}
+                      <button className="slds-button slds-button_neutral" onClick={() => onClose()} disabled={loading}>
+                        Cancel
+                      </button>
+                      <button
+                        className="slds-button slds-button_brand"
+                        onClick={handleSave}
+                        disabled={(action === 'edit' && !formIsDirty) || loading || !initialRecord}
+                      >
+                        Save
+                      </button>
+                    </div>
+                  </Grid>
+                )}
             </Fragment>
           }
           onClose={() => onClose()}
         >
           <div>
             {(loading || saving) && <Spinner />}
-            {!loading && initialRecord && (
+            {!loading && initialRecord && action !== 'json' && (
               <UiRecordForm
                 action={action}
                 sobjectFields={sobjectFields || []}
@@ -352,11 +365,60 @@ export const ViewEditCloneRecord: FunctionComponent<ViewEditCloneRecordProps> = 
                 onChange={handleRecordChange}
               />
             )}
+
+            <div
+              className="slds-is-relative"
+              css={css`
+                height: 80vh;
+                min-height: 80vh;
+                max-height: 80vh;
+              `}
+            >
+              {!loading && initialRecord && action === 'json' && (
+                <Grid align="center">
+                  <GridCol size={8}>
+                    <Editor
+                      height="100%"
+                      theme="vs-dark"
+                      defaultLanguage="json"
+                      value={JSON.stringify(initialRecord, null, 2)}
+                      options={{ contextmenu: false, readOnly: true }}
+                      //onChange={handleEditorChange}
+                    />
+                  </GridCol>
+                </Grid>
+              )}
+            </div>
           </div>
+
+          {/* <div
+            className="slds-is-relative"
+            css={css`
+              height: 80vh;
+              min-height: 80vh;
+              max-height: 80vh;
+            `}
+          >
+            {(loading || saving) && <Spinner />}
+            {!loading && initialRecord && action === 'json' && (
+              <Grid align="center">
+                <GridCol size={8}>
+                  <Editor
+                    height="100%"
+                    theme="vs-dark"
+                    defaultLanguage="json"
+                    value={JSON.stringify(initialRecord, null, 2)}
+                    options={{ contextmenu: false, readOnly: true }}
+                    //onChange={handleEditorChange}
+                  />
+                </GridCol>
+              </Grid>
+            )}
+          </div> */}
         </Modal>
       )}
     </div>
   );
 };
-
+//
 export default ViewEditCloneRecord;
