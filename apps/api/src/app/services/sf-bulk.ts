@@ -12,7 +12,7 @@ import {
 import * as jsforce from 'jsforce';
 import { isString } from 'lodash';
 import * as request from 'superagent';
-import { convert as xmlConverter, create as xmlBuilder } from 'xmlbuilder2';
+import { create as xmlBuilder, convert as xmlConverter } from 'xmlbuilder2';
 
 const { HEADERS, CONTENT_TYPE } = HTTP;
 
@@ -83,11 +83,15 @@ export async function sfBulkGetJobInfo(conn: jsforce.Connection, jobId: string):
   return { ...jobResults, batches: batchesResults || [] };
 }
 
-export async function sfBulkCloseJob(conn: jsforce.Connection, jobId: string): Promise<BulkJob> {
+export async function sfBulkCloseOrAbortJob(
+  conn: jsforce.Connection,
+  jobId: string,
+  state: 'Closed' | 'Aborted' = 'Closed'
+): Promise<BulkJob> {
   // prettier-ignore
   const xml = xmlBuilder({ version: '1.0', encoding: 'UTF-8' })
       .ele('jobInfo', { xmlns: 'http://www.force.com/2009/06/asyncapi/dataload' })
-        .ele('state').txt('Closed').up()
+        .ele('state').txt(state).up()
       .end({ prettyPrint: true });
 
   const requestOptions: jsforce.RequestInfo = {
@@ -121,7 +125,7 @@ export async function sfBulkAddBatchToJob(
     });
 
   if (closeJob) {
-    await sfBulkCloseJob(conn, jobId);
+    await sfBulkCloseOrAbortJob(conn, jobId, 'Closed');
   }
   return results;
 }
@@ -161,7 +165,7 @@ export async function sfBulkAddBatchWithZipAttachmentToJob(
     });
 
   if (closeJob) {
-    await sfBulkCloseJob(conn, jobId);
+    await sfBulkCloseOrAbortJob(conn, jobId, 'Closed');
   }
   return results;
 }

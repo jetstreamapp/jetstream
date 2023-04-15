@@ -36,8 +36,8 @@ import type {
   DescribeSObjectResult,
   ListMetadataQuery,
 } from 'jsforce';
-import isNil from 'lodash/isNil';
 import isFunction from 'lodash/isFunction';
+import isNil from 'lodash/isNil';
 import { handleExternalRequest, handleRequest, transformListMetadataResponse } from './client-data-data-helper';
 //// LANDING PAGE ROUTES
 
@@ -554,6 +554,10 @@ export async function bulkApiCreateJob(org: SalesforceOrgUi, payload: BulkApiCre
   return handleRequest({ method: 'POST', url: `/api/bulk`, data: payload }, { org }).then(unwrapResponseIgnoreCache);
 }
 
+export async function bulkApiCancelJob(org: SalesforceOrgUi, payload: BulkApiCreateJobRequestPayload): Promise<BulkJobWithBatches> {
+  return handleRequest({ method: 'POST', url: `/api/bulk`, data: payload }, { org }).then(unwrapResponseIgnoreCache);
+}
+
 export async function bulkApiGetJob(org: SalesforceOrgUi, jobId: string): Promise<BulkJobWithBatches> {
   return handleRequest<BulkJobWithBatches>({ method: 'GET', url: `/api/bulk/${jobId}` }, { org })
     .then(unwrapResponseIgnoreCache)
@@ -567,7 +571,11 @@ export async function bulkApiGetJob(org: SalesforceOrgUi, jobId: string): Promis
 }
 
 export async function bulkApiCloseJob(org: SalesforceOrgUi, jobId: string): Promise<BulkJob> {
-  return handleRequest({ method: 'DELETE', url: `/api/bulk/${jobId}` }, { org }).then(unwrapResponseIgnoreCache);
+  return handleRequest({ method: 'DELETE', url: `/api/bulk/${jobId}/close` }, { org }).then(unwrapResponseIgnoreCache);
+}
+
+export async function bulkApiAbortJob(org: SalesforceOrgUi, jobId: string): Promise<BulkJob> {
+  return handleRequest({ method: 'DELETE', url: `/api/bulk/${jobId}/abort` }, { org }).then(unwrapResponseIgnoreCache);
 }
 
 export async function bulkApiAddBatchToJob(

@@ -1,25 +1,23 @@
 import * as services from '@jetstream/server-services';
-import fetch, { RequestInit } from 'node-fetch';
+import { correctInvalidXmlResponseTypes, getRetrieveRequestFromListMetadata } from '@jetstream/server-services';
+import { HTTP, MIME_TYPES, ORG_VERSION_PLACEHOLDER } from '@jetstream/shared/constants';
 import { ensureArray, ensureBoolean, flattenObjectArray, splitArrayToMaxSize, toBoolean } from '@jetstream/shared/utils';
-import { ControllerFn, ControllerFnDataParams, ControllerFnParams, ControllerFnQuery, ControllerFnQueryParams } from '../types';
-import * as JSZip from 'jszip';
 import {
   ApexCompletionResponse,
   BulkApiCreateJobRequestPayload,
-  BulkApiDownloadType,
   GenericRequestPayload,
   ListMetadataResult,
   ManualRequestPayload,
-  ManualRequestResponse,
   MapOf,
   Maybe,
 } from '@jetstream/types';
-import { correctInvalidXmlResponseTypes, getRetrieveRequestFromListMetadata } from '@jetstream/server-services';
 import { Connection, DeployOptions, RequestInfo, RetrieveRequest, Tooling } from 'jsforce';
-import { HTTP, MIME_TYPES, ORG_VERSION_PLACEHOLDER } from '@jetstream/shared/constants';
+import * as JSZip from 'jszip';
 import { isObject, isString } from 'lodash';
-import { ENV } from '../env';
+import fetch, { RequestInit } from 'node-fetch';
 import { parse as parseCsv } from 'papaparse';
+import { ENV } from '../env';
+import { ControllerFn, ControllerFnDataParams, ControllerFnParams, ControllerFnQuery, ControllerFnQueryParams } from '../types';
 
 const SESSION_ID_RGX = /\{sessionId\}/i;
 
@@ -404,11 +402,17 @@ export const getJob: ControllerFnParams<{ jobId: string }> = async (_, __, param
   }
 };
 
-export const closeJob: ControllerFnParams<{ jobId: string }> = async (_, __, params, { reject, resolve, connection, request }) => {
+export const closeOrAbortJob: ControllerFnParams<{ jobId: string; action: 'close' | 'abort' }> = async (
+  _,
+  __,
+  params,
+  { reject, resolve, connection, request }
+) => {
   try {
     const jobId = params.jobId;
+    const action: 'Closed' | 'Aborted' = params.action === 'abort' ? 'Aborted' : 'Closed';
 
-    const response = services.sfBulkCloseJob(ensureConnection(connection), jobId);
+    const response = services.sfBulkCloseOrAbortJob(ensureConnection(connection), jobId, action);
 
     resolve(response);
   } catch (ex) {

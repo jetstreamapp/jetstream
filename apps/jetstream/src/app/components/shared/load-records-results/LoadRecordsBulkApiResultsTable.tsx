@@ -1,9 +1,9 @@
 import { css } from '@emotion/react';
 import { BulkJobBatchInfo, BulkJobWithBatches, Maybe } from '@jetstream/types';
-import { FunctionComponent, useEffect, useState } from 'react';
-import { DownloadAction, DownloadType, PrepareDataResponseError } from './load-records-results-types';
+import { FunctionComponent } from 'react';
 import LoadRecordsBulkApiResultsTableRow from './LoadRecordsBulkApiResultsTableRow';
 import LoadRecordsResultsTableProcessingErrRow from './LoadRecordsResultsTableProcessingErrRow';
+import { DownloadAction, DownloadType, PrepareDataResponseError } from './load-records-results-types';
 export interface LoadRecordsBulkApiResultsTableProps {
   jobInfo: BulkJobWithBatches;
   processingErrors: PrepareDataResponseError[];
@@ -79,7 +79,7 @@ export const LoadRecordsBulkApiResultsTable: FunctionComponent<LoadRecordsBulkAp
         )}
         {jobInfo.batches.map((batch, i) => (
           <LoadRecordsBulkApiResultsTableRow
-            key={batch.id}
+            key={batch.id || i}
             batch={batch}
             onDownload={(type, batch) => onDownloadOrView('download', type, batch, i)}
             onView={(type, batch) => onDownloadOrView('view', type, batch, i)}
