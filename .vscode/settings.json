@@ -2,6 +2,9 @@
   "editor.rulers": [140],
   "editor.tabSize": 2,
   "editor.formatOnSave": true,
+  "editor.codeActionsOnSave": {
+    "source.organizeImports": true
+  },
   "files.exclude": {
     "**/.git": true,
     "**/.svn": true,
