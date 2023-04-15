@@ -112,7 +112,7 @@ export const QueryResultsCopyToClipboard: FunctionComponent<QueryResultsCopyToCl
           title="Copy the queried records to the clipboard. The records can then be pasted into a spreadsheet."
         >
           <Icon type="utility" icon="copy_to_clipboard" className="slds-button__icon slds-button__icon_left" omitContainer />
-          <span>Copy to Clipboard</span>
+          <span>ipboard</span>
         </button>
         <DropDown
           className="slds-button_last"

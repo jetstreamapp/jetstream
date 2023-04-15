@@ -1,7 +1,5 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import copyToClipboard from 'copy-to-clipboard';
-import Editor from '@monaco-editor/react';
 import { mockPicklistValuesFromSobjectDescribe, UiRecordForm } from '@jetstream/record-form';
 import { logger } from '@jetstream/shared/client-logger';
 import { describeSObject, genericRequest, sobjectOperation } from '@jetstream/shared/data';
@@ -15,7 +13,9 @@ import {
   SalesforceOrgUi,
   SobjectCollectionResponse,
 } from '@jetstream/types';
-import { FileDownloadModal, Grid, GridCol, Icon, Modal, PopoverErrorButton, Spinner } from '@jetstream/ui';
+import { FileDownloadModal, Grid, Icon, Modal, PopoverErrorButton, Spinner } from '@jetstream/ui';
+import Editor from '@monaco-editor/react';
+import copyToClipboard from 'copy-to-clipboard';
 import type { Field } from 'jsforce';
 import isUndefined from 'lodash/isUndefined';
 import { Fragment, FunctionComponent, useCallback, useEffect, useRef, useState } from 'react';
@@ -338,7 +338,7 @@ export const ViewEditCloneRecord: FunctionComponent<ViewEditCloneRecordProps> = 
                     onClick={() => onChangeAction('json')}
                     disabled={loading || !initialRecord}
                   >
-                    <Icon type="utility" icon="copy_to_clipboard" className="slds-button__icon slds-button__icon_left" omitContainer />
+                    <Icon type="utility" icon="preview" className="slds-button__icon slds-button__icon_left" omitContainer />
                     View as JSON
                   </button>
                   <button className="slds-button slds-button_brand" onClick={() => onClose()}>
@@ -369,11 +369,12 @@ export const ViewEditCloneRecord: FunctionComponent<ViewEditCloneRecordProps> = 
               )}
               {buttonState === 'JSON' && (
                 <div>
-                  <button className="slds-button slds-button_neutral" onClick={handleCopyToClipboard}>
+                  <button className="slds-button slds-float_left slds-button_neutral" onClick={handleCopyToClipboard}>
+                    <Icon type="utility" icon="download" className="slds-button__icon slds-button__icon_left" omitContainer />
                     Copy to Clipboard
                   </button>
-                  <button className="slds-button slds-button_brand" onClick={() => onChangeAction('view')} disabled={loading}>
-                    Back
+                  <button className="slds-button slds-button_neutral" onClick={() => onChangeAction('view')} disabled={loading}>
+                    View Record
                   </button>
                   <button className="slds-button slds-button_brand" onClick={() => onClose()} disabled={loading}>
                     Close
