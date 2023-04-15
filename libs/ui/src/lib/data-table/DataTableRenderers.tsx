@@ -646,19 +646,19 @@ export const ActionRenderer: FunctionComponent<{ row: any }> = ({ row }) => {
   return (
     <Fragment>
       <button className="slds-button slds-button_icon" title="View Full Record" onClick={() => row._action(row, 'view')}>
-        <Icon type="utility" icon="preview" className="slds-button__icon " omitContainer />
+        <Icon type="utility" icon="preview" className="slds-button__icon" omitContainer />
       </button>
       <button className="slds-button slds-button_icon" title="Edit Record" onClick={() => row._action(row, 'edit')}>
-        <Icon type="utility" icon="edit" className="slds-button__icon " omitContainer />
+        <Icon type="utility" icon="edit" className="slds-button__icon" omitContainer />
       </button>
       <button className="slds-button slds-button_icon" title="Clone Record" onClick={() => row._action(row, 'clone')}>
-        <Icon type="utility" icon="copy" className="slds-button__icon " omitContainer />
+        <Icon type="utility" icon="copy" className="slds-button__icon" omitContainer />
       </button>
       <button className="slds-button slds-button_icon" title="Turn Record Into Apex" onClick={() => row._action(row, 'apex')}>
-        <Icon type="utility" icon="apex" className="slds-button__icon " omitContainer />
+        <Icon type="utility" icon="apex" className="slds-button__icon" omitContainer />
       </button>
       <button className="slds-button slds-button_icon" title="Copy Record as JSON" onClick={() => row._action(row, 'json')}>
-        <Icon type="utility" icon="copy_to_clipboard" className="slds-button__icon " omitContainer />
+        <Icon type="utility" icon="copy_to_clipboard" className="slds-button__icon" omitContainer />
       </button>
     </Fragment>
   );
