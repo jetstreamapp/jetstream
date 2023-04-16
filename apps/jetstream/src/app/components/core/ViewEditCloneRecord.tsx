@@ -308,6 +308,14 @@ export const ViewEditCloneRecord: FunctionComponent<ViewEditCloneRecordProps> = 
                   )}
                   <button
                     className="slds-button slds-button_neutral"
+                    onClick={() => onChangeAction('json')}
+                    disabled={loading || !initialRecord}
+                  >
+                    <Icon type="utility" icon="merge_field" className="slds-button__icon slds-button__icon_left" omitContainer />
+                    View as JSON
+                  </button>
+                  <button
+                    className="slds-button slds-button_neutral"
                     onClick={() => onChangeAction('edit')}
                     disabled={loading || !initialRecord}
                   >
@@ -329,14 +337,6 @@ export const ViewEditCloneRecord: FunctionComponent<ViewEditCloneRecordProps> = 
                   >
                     <Icon type="utility" icon="download" className="slds-button__icon slds-button__icon_left" omitContainer />
                     Download
-                  </button>
-                  <button
-                    className="slds-button slds-button_neutral"
-                    onClick={() => onChangeAction('json')}
-                    disabled={loading || !initialRecord}
-                  >
-                    <Icon type="utility" icon="preview" className="slds-button__icon slds-button__icon_left" omitContainer />
-                    View as JSON
                   </button>
                   <button className="slds-button slds-button_brand" onClick={() => onClose()}>
                     Close
