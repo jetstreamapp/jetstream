@@ -1,13 +1,17 @@
-import { Badge, Icon, Spinner, Tooltip } from '@jetstream/ui';
+import { SalesforceOrgUi } from '@jetstream/types';
+import { Badge, Grid, Icon, SalesforceLogin, Spinner, Tooltip } from '@jetstream/ui';
 import classNames from 'classnames';
+import isString from 'lodash/isString';
 import { FunctionComponent, useEffect, useState } from 'react';
 import { CreateFieldsResults, getFriendlyStatus } from '../shared/create-fields/useCreateFields';
 
 export interface CreateFieldsDeployModalRowProps {
+  selectedOrg: SalesforceOrgUi;
+  serverUrl: string;
   result: CreateFieldsResults;
 }
 
-export const CreateFieldsDeployModalRow: FunctionComponent<CreateFieldsDeployModalRowProps> = ({ result }) => {
+export const CreateFieldsDeployModalRow: FunctionComponent<CreateFieldsDeployModalRowProps> = ({ selectedOrg, serverUrl, result }) => {
   const [fieldJson] = useState(() => JSON.stringify(result.field));
   const [flsErrors, setFlsErrors] = useState<string | null>(null);
   const [layoutErrors, setLayoutErrors] = useState<string | null>(null);
@@ -31,13 +35,27 @@ export const CreateFieldsDeployModalRow: FunctionComponent<CreateFieldsDeployMod
   return (
     <tr key={result.key} className="slds-hint-parent">
       <th scope="row">
-        <div className="slds-truncate" title={result.label}>
-          <Tooltip content={fieldJson}>{result.label}</Tooltip>
-        </div>
-        <Badge>
-          {result.field.secondaryType ? `${result.field.secondaryType}: ` : ''}
-          {result.field.type}
-        </Badge>
+        <Grid vertical>
+          <div className="slds-truncate" title={result.label}>
+            <Tooltip content={fieldJson}>{result.label}</Tooltip>
+          </div>
+          <div>
+            <Badge>
+              {result.field.secondaryType ? `${result.field.secondaryType}: ` : ''}
+              {result.field.type}
+            </Badge>
+          </div>
+          {isString(result?.fieldId) && (
+            <SalesforceLogin
+              org={selectedOrg}
+              serverUrl={serverUrl}
+              iconPosition="right"
+              returnUrl={`/lightning/setup/ObjectManager/${result.sobject}/FieldsAndRelationships/${result.fieldId}/view`}
+            >
+              View field in Salesforce
+            </SalesforceLogin>
+          )}
+        </Grid>
       </th>
       <td className="slds-is-relative">
         {result.state === 'LOADING' && <Spinner size="x-small" />}

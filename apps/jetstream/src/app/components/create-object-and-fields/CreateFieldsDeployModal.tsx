@@ -6,8 +6,8 @@ import { Checkbox, ConfirmationModalPromise, FileDownloadModal, Grid, Icon, Moda
 import { Fragment, FunctionComponent, useEffect, useState } from 'react';
 import { useRecoilState } from 'recoil';
 import { applicationCookieState } from '../../app-state';
-import { useAmplitude } from '../core/analytics';
 import ConfirmPageChange from '../core/ConfirmPageChange';
+import { useAmplitude } from '../core/analytics';
 import * as fromJetstreamEvents from '../core/jetstream-events';
 import { FieldValues } from '../shared/create-fields/create-fields-types';
 import { prepareDownloadResultsFile } from '../shared/create-fields/create-fields-utils';
@@ -229,7 +229,7 @@ export const CreateFieldsDeployModal: FunctionComponent<CreateFieldsDeployModalP
                 </thead>
                 <tbody>
                   {results.map((result) => (
-                    <CreateFieldsDeployModalRow key={result.key} result={result} />
+                    <CreateFieldsDeployModalRow key={result.key} selectedOrg={selectedOrg} serverUrl={serverUrl} result={result} />
                   ))}
                 </tbody>
               </table>
