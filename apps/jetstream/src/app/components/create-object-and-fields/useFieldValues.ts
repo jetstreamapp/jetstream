@@ -2,8 +2,8 @@ import { useNonInitialEffect } from '@jetstream/shared/ui-utils';
 import { ConfirmationModalPromise } from '@jetstream/ui';
 import { useCallback, useEffect, useReducer } from 'react';
 import { useRecoilState } from 'recoil';
-import { FieldDefinitionType, FieldValue, FieldValues } from './create-fields-types';
-import { allFields, calculateFieldValidity, generateApiNameFromLabel, getInitialValues } from './create-fields-utils';
+import { FieldDefinitionType, FieldValue, FieldValues } from '../shared/create-fields/create-fields-types';
+import { allFields, calculateFieldValidity, generateApiNameFromLabel, getInitialValues } from '../shared/create-fields/create-fields-utils';
 import * as fromCreateFieldsState from './create-fields.state';
 
 type Action =

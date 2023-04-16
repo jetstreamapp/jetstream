@@ -78,6 +78,7 @@ export const ComboboxWithItemsVirtual: FunctionComponent<ComboboxWithItemsVirtua
     (value: ListItem) => {
       onSelected(value);
       setFocusedIndex(null);
+      comboboxRef?.current?.close();
     },
     [onSelected]
   );

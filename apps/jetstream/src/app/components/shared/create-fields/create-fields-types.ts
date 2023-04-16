@@ -129,6 +129,13 @@ export interface LayoutRecord {
   };
 }
 
+export interface LayoutResult {
+  id: string;
+  deployed: boolean;
+  error?: string;
+  metadata?: LayoutRecord;
+}
+
 export interface FieldPermissionRecord {
   Success?: boolean;
   Id?: string;

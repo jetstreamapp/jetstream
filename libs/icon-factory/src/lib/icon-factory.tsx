@@ -38,6 +38,7 @@ import UtilityIcon_Archive from './icons/utility/Archive';
 import UtilityIcon_Arrowdown from './icons/utility/Arrowdown';
 import UtilityIcon_Arrowup from './icons/utility/Arrowup';
 import UtilityIcon_Back from './icons/utility/Back';
+import UtilityIcon_Ban from './icons/utility/Ban';
 import UtilityIcon_Bold from './icons/utility/Bold';
 import UtilityIcon_ChangeRecordType from './icons/utility/ChangeRecordType';
 import UtilityIcon_Chart from './icons/utility/Chart';
@@ -185,6 +186,7 @@ const utilityIcons = {
   arrowdown: UtilityIcon_Arrowdown,
   arrowup: UtilityIcon_Arrowup,
   back: UtilityIcon_Back,
+  ban: UtilityIcon_Ban,
   bold: UtilityIcon_Bold,
   change_record_type: UtilityIcon_ChangeRecordType,
   chart: UtilityIcon_Chart,

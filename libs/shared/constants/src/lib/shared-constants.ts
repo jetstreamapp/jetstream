@@ -221,6 +221,8 @@ export const ANALYTICS_KEYS = {
   sobj_create_field_global_picklist: 'sobj_create_field_global_picklist',
   /** FORMULA EVALUATOR */
   formula_execute: 'formula_execute',
+  formula_export_deploy: 'formula_export_deploy',
+  formula_export_results: 'formula_export_results',
   /** Platform Event */
   platform_event_subscribed: 'platform_event_subscribed',
   platform_event_unsubscribe: 'platform_event_unsubscribe',

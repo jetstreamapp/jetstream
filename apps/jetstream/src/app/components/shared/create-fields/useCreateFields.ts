@@ -1,28 +1,30 @@
 import { logger } from '@jetstream/shared/client-logger';
 import { genericRequest, sobjectOperation } from '@jetstream/shared/data';
 import { useBrowserNotifications, useRollbar } from '@jetstream/shared/ui-utils';
-import { getMapOf, getSuccessOrFailureChar, pluralizeFromNumber, REGEX, splitArrayToMaxSize } from '@jetstream/shared/utils';
+import { REGEX, getMapOf, getSuccessOrFailureChar, pluralizeFromNumber, splitArrayToMaxSize } from '@jetstream/shared/utils';
 import { CompositeGraphResponseBodyData, CompositeResponse, ErrorResult, MapOf, RecordResult, SalesforceOrgUi } from '@jetstream/types';
 import { useCallback, useEffect, useState } from 'react';
-import { FieldDefinitionMetadata, FieldPermissionRecord, FieldValues, SalesforceFieldType } from './create-fields-types';
+import { FieldDefinitionMetadata, FieldPermissionRecord, FieldValues, LayoutResult, SalesforceFieldType } from './create-fields-types';
 import { deployLayouts, getFieldPermissionRecords, prepareCreateFieldsCompositeRequests, preparePayload } from './create-fields-utils';
 
 export interface CreateFieldsResults {
   key: string;
   label: string;
+  sobject: string;
   field: FieldDefinitionMetadata;
   state: CreateFieldsResultsStatus;
   operation: 'INSERT' | 'UPSERT';
   errorMessage?: string | null;
   flsErrorMessage?: string | null;
   flsWarning?: boolean | null;
-  deployResult?: any;
+  deployResult?: CompositeGraphResponseBodyData;
+  fieldId?: string;
   flsRecords?: FieldPermissionRecord[];
   flsResult?: RecordResult[];
   flsErrors?: string[];
   pageLayoutStatus?: 'SKIPPED' | 'SUCCESS' | 'PARTIAL' | 'FAILED';
   layoutErrors?: string[];
-  updatedLayoutIds?: string[];
+  updatedLayouts?: LayoutResult[];
 }
 
 export type CreateFieldsResultsStatus = 'NOT_STARTED' | 'LOADING' | 'SUCCESS' | 'FAILED';
@@ -46,6 +48,15 @@ export function getFriendlyStatus(result: CreateFieldsResults) {
   }
 }
 
+interface UseCreateFieldsOptions {
+  apiVersion: string;
+  serverUrl: string;
+  selectedOrg: SalesforceOrgUi;
+  profiles: string[];
+  permissionSets: string[];
+  sObjects: string[];
+}
+
 export default function useCreateFields({
   apiVersion,
   serverUrl,
@@ -53,16 +64,7 @@ export default function useCreateFields({
   profiles,
   permissionSets,
   sObjects,
-  rows,
-}: {
-  apiVersion: string;
-  serverUrl: string;
-  selectedOrg: SalesforceOrgUi;
-  profiles: string[];
-  permissionSets: string[];
-  sObjects: string[];
-  rows: FieldValues[];
-}) {
+}: UseCreateFieldsOptions) {
   const rollbar = useRollbar();
   const { notifyUser } = useBrowserNotifications(serverUrl, window.electron?.isFocused);
   const [loading, setLoading] = useState(false);
@@ -74,40 +76,71 @@ export default function useCreateFields({
   const [deployed, setDeployed] = useState(false);
 
   useEffect(() => {
-    if (rows) {
-      try {
-        const payload: CreateFieldsResults[] = preparePayload(sObjects, rows).map((field) => ({
-          key: `${(field.fullName as string).replace('.', '_').replace(REGEX.CONSECUTIVE_UNDERSCORES, '_')}`,
-          label: field.fullName,
-          field,
-          state: 'NOT_STARTED',
-          operation: 'INSERT',
-        }));
-        setResultsById(getMapOf(payload, 'key'));
-        logger.log('[DEPLOY FIELDS][PAYLOADS]', payload);
-      } catch (ex) {
-        setFatalError(true);
-        setFatalErrorMessage('There was a problem preparing the data for deployment');
-        rollbar.critical('Create fields - prepare payload error', {
-          message: ex.message,
-          stack: ex.stack,
-        });
-      }
-    }
-  }, [rollbar, rows, sObjects]);
-
-  useEffect(() => {
     if (resultsById) {
       setResults(Object.values(resultsById));
+      logger.log({ resultsById });
+    } else {
+      setResults([]);
     }
-    logger.log({ resultsById });
   }, [resultsById]);
+
+  const clearResults = useCallback(() => {
+    setResultsById({});
+    setResults([]);
+    setFatalError(false);
+    setFatalErrorMessage(null);
+    setLayoutErrorMessage(null);
+    setDeployed(false);
+  }, []);
+
+  /**
+   * Prepare the field metadata for deployment
+   * This must be called before deployFieldMetadata
+   */
+  const prepareFields = useCallback(
+    (rows: FieldValues[]) => {
+      if (rows?.length && sObjects?.length) {
+        try {
+          const payload: CreateFieldsResults[] = preparePayload(sObjects, rows).map(
+            (field): CreateFieldsResults => ({
+              key: `${(field.fullName as string).replace('.', '_').replace(REGEX.CONSECUTIVE_UNDERSCORES, '_')}`,
+              label: field.fullName,
+              sobject: field.fullName.split('.')[0],
+              field,
+              state: 'NOT_STARTED',
+              operation: 'INSERT',
+            })
+          );
+          const _resultsById = getMapOf(payload, 'key');
+          setResultsById(_resultsById);
+          logger.log('[DEPLOY FIELDS][PAYLOADS]', payload);
+          return Object.values(_resultsById);
+        } catch (ex) {
+          setFatalError(true);
+          setFatalErrorMessage('There was a problem preparing the data for deployment');
+          rollbar.critical('Create fields - prepare payload error', {
+            message: ex.message,
+            stack: ex.stack,
+          });
+          return false;
+        }
+      }
+      return false;
+    },
+    [rollbar, sObjects]
+  );
 
   /**
    * DEPLOY FIELD METADATA
    */
   const deployFieldMetadata = useCallback(
     async (_resultsById: MapOf<CreateFieldsResults>, permissionRecords: FieldPermissionRecord[]) => {
+      if (!sObjects.length) {
+        throw new Error('At least one object must be selected');
+      }
+      if (!Object.keys(_resultsById).length) {
+        throw new Error('At least one field must be selected');
+      }
       setFatalErrorMessage(null);
       setLayoutErrorMessage(null);
       setFatalError(false);
@@ -118,6 +151,14 @@ export default function useCreateFields({
         apiVersion,
         Object.values(_resultsById)
       );
+
+      createFieldsPayloads.forEach(({ compositeRequest }) => {
+        compositeRequest.forEach(({ method, referenceId, url }) => {
+          if (method === 'PATCH') {
+            _resultsById[referenceId].fieldId = url.split('/').pop();
+          }
+        });
+      });
 
       for (const compositeRequest of createFieldsPayloads) {
         const response = await genericRequest<CompositeResponse<CompositeGraphResponseBodyData | CompositeGraphResponseBodyData[]>>(
@@ -134,7 +175,7 @@ export default function useCreateFields({
           _resultsById[referenceId] = { ..._resultsById[referenceId] };
           _resultsById[referenceId] && (_resultsById[referenceId].errorMessage = null);
           if (body) {
-            _resultsById[referenceId].deployResult = body;
+            _resultsById[referenceId].deployResult = body as CompositeGraphResponseBodyData;
           }
           if (httpStatusCode < 200 || httpStatusCode > 299) {
             let errorMessage: string | undefined;
@@ -151,7 +192,7 @@ export default function useCreateFields({
             if (httpStatusCode === 204) {
               _resultsById[referenceId].operation = 'UPSERT';
             } else {
-              _resultsById[referenceId].deployResult = (body as CompositeGraphResponseBodyData).id;
+              _resultsById[referenceId].fieldId = (body as CompositeGraphResponseBodyData).id;
 
               // required fields and master detail cannot have FLS set
               if (!_resultsById[referenceId].field.required && _resultsById[referenceId].field.type !== 'MasterDetail') {
@@ -167,7 +208,7 @@ export default function useCreateFields({
         });
       }
     },
-    [apiVersion, permissionSets, profiles, selectedOrg]
+    [apiVersion, permissionSets, profiles, sObjects, selectedOrg]
   );
 
   /**
@@ -230,6 +271,10 @@ export default function useCreateFields({
     async (results: CreateFieldsResults[], selectedLayoutIds: string[]) => {
       try {
         setLoading(true);
+        setDeployed(false);
+        setFatalError(false);
+        setFatalErrorMessage(null);
+        setLayoutErrorMessage(null);
 
         let _resultsById: MapOf<CreateFieldsResults> = getMapOf(
           results.map((result) => ({ ...result, state: 'LOADING' })),
@@ -262,10 +307,10 @@ export default function useCreateFields({
         /** PAGE LAYOUTS */
         let pageLayoutStatus: 'SKIPPED' | 'SUCCESS' | 'PARTIAL' | 'FAILED' = 'SKIPPED';
         let _layoutErrors: string[] = [];
-        let _updatedLayoutIds: string[] = [];
+        let _updatedLayouts: LayoutResult[] = [];
         if (deployedFields.length && selectedLayoutIds.length) {
           try {
-            const { updatedLayoutIds, errors: layoutErrors } = await deployLayouts(
+            const { updatedLayouts, errors: layoutErrors } = await deployLayouts(
               apiVersion,
               selectedOrg,
               selectedLayoutIds,
@@ -274,7 +319,7 @@ export default function useCreateFields({
             if (layoutErrors.length) {
               setLayoutErrorMessage(layoutErrors.join(' '));
             }
-            if (layoutErrors.length && !updatedLayoutIds.length) {
+            if (layoutErrors.length && !updatedLayouts.length) {
               pageLayoutStatus = 'FAILED';
             } else if (layoutErrors.length) {
               pageLayoutStatus = 'PARTIAL';
@@ -282,7 +327,7 @@ export default function useCreateFields({
               pageLayoutStatus = 'SUCCESS';
             }
             _layoutErrors = layoutErrors;
-            _updatedLayoutIds = updatedLayoutIds;
+            _updatedLayouts = updatedLayouts;
           } catch (ex) {
             setLayoutErrorMessage('There was an unexpected error updating page layouts');
             pageLayoutStatus = 'FAILED';
@@ -298,7 +343,7 @@ export default function useCreateFields({
             result.state = 'SUCCESS';
             result.pageLayoutStatus = pageLayoutStatus;
             result.layoutErrors = _layoutErrors;
-            result.updatedLayoutIds = _updatedLayoutIds;
+            result.updatedLayouts = _updatedLayouts;
           }
         });
 
@@ -328,6 +373,7 @@ export default function useCreateFields({
         setLoading(false);
       }
     },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     [apiVersion, deployFieldMetadata, deployFieldPermissions, rollbar, selectedOrg]
   );
 
@@ -389,5 +435,15 @@ export default function useCreateFields({
     notifyUser(`Your field deployment has finished`, { body, tag: 'create-fields' });
   }
 
-  return { results: _results, loading, deployed, fatalError, fatalErrorMessage, layoutErrorMessage, deployFields };
+  return {
+    results: _results,
+    loading,
+    deployed,
+    fatalError,
+    fatalErrorMessage,
+    layoutErrorMessage,
+    clearResults,
+    prepareFields,
+    deployFields,
+  };
 }

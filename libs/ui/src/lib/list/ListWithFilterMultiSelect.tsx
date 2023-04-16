@@ -8,7 +8,7 @@ import Checkbox from '../form/checkbox/Checkbox';
 import SearchInput from '../form/search-input/SearchInput';
 import Grid from '../grid/Grid';
 import EmptyState from '../illustrations/EmptyState';
-import AutoFullHeightContainer from '../layout/AutoFullHeightContainer';
+import AutoFullHeightContainer, { AutoFullHeightContainerProps } from '../layout/AutoFullHeightContainer';
 import Icon from '../widgets/Icon';
 import ItemSelectionSummary from '../widgets/ItemSelectionSummary';
 import Spinner from '../widgets/Spinner';
@@ -30,6 +30,7 @@ export interface ListWithFilterMultiSelectProps {
   hasError?: boolean;
   allowRefresh?: boolean;
   lastRefreshed?: string;
+  autoFillContainerProps?: AutoFullHeightContainerProps;
   onSelected: (items: string[]) => void;
   errorReattempt?: () => void;
   onRefresh?: () => void;
@@ -49,6 +50,7 @@ export const ListWithFilterMultiSelect: FunctionComponent<ListWithFilterMultiSel
   hasError,
   allowRefresh,
   lastRefreshed,
+  autoFillContainerProps,
   onSelected,
   errorReattempt,
   onRefresh = NOOP,
@@ -189,7 +191,7 @@ export const ListWithFilterMultiSelect: FunctionComponent<ListWithFilterMultiSel
                 </div>
               )}
             </div>
-            <AutoFullHeightContainer bottomBuffer={15}>
+            <AutoFullHeightContainer bottomBuffer={15} {...autoFillContainerProps}>
               <List
                 ref={ulRef}
                 items={filteredItems}

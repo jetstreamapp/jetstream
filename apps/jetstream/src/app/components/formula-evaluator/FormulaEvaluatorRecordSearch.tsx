@@ -104,15 +104,17 @@ export const FormulaEvaluatorRecordSearch: FunctionComponent<FormulaEvaluatorRec
           selectedItemId={selectedRecord?.id}
           onSelected={handleSelection}
         />
-        <Tooltip content={(!disabled && !!selectedRecord && 'View Record Details') || ''}>
-          <button
-            className="slds-button slds-button_icon slds-button_icon-border-filled cursor-pointer slds-m-left_x-small"
-            onClick={() => selectedRecord && setViewRecordModalOpen(true)}
-            disabled={disabled || !selectedRecord}
-          >
-            <Icon type="utility" icon="record_lookup" className="slds-button__icon" omitContainer />
-          </button>
-        </Tooltip>
+        <div className="slds-m-left_x-small">
+          <Tooltip content={(!disabled && !!selectedRecord && 'View Record Details') || ''}>
+            <button
+              className="slds-button slds-button_icon slds-button_icon-border-filled cursor-pointer"
+              onClick={() => selectedRecord && setViewRecordModalOpen(true)}
+              disabled={disabled || !selectedRecord}
+            >
+              <Icon type="utility" icon="record_lookup" className="slds-button__icon" omitContainer />
+            </button>
+          </Tooltip>
+        </div>
       </Grid>
     </>
   );

@@ -32,14 +32,14 @@ export function OrgRenderer({ row: item }: FormatterProps<SalesforceDeployHistor
               type="utility"
               icon="arrowdown"
               className="slds-icon slds-icon_x-small slds-icon-text-default"
-              description="Deployed to"
+              description="Right arrow"
             />
-            Deployed To
+            Deploy To
             <Icon
               type="utility"
               icon="arrowdown"
               className="slds-icon slds-icon_x-small slds-icon-text-default"
-              description="Deployed to"
+              description="Right arrow"
             />
           </div>
           <div>{destinationOrgBadge}</div>

@@ -4,9 +4,9 @@ import { DeployResult, Maybe, SalesforceOrgUi } from '@jetstream/types';
 import { Grid, GridCol, Icon, Modal, TabsRef } from '@jetstream/ui';
 import formatDate from 'date-fns/format';
 import { Fragment, FunctionComponent, useEffect, useRef, useState } from 'react';
-import { useAmplitude } from '../../core/analytics';
 import ConfirmPageChange from '../../core/ConfirmPageChange';
 import OrgLabelBadge from '../../core/OrgLabelBadge';
+import { useAmplitude } from '../../core/analytics';
 import { DeployMetadataStatus } from '../deploy-metadata.types';
 import DeployMetadataProgressSummary from './DeployMetadataProgressSummary';
 import DeployMetadataResultsTables from './DeployMetadataResultsTables';
@@ -140,7 +140,7 @@ export const DeployMetadataStatusModal: FunctionComponent<DeployMetadataStatusMo
       closeOnEsc={false}
       tagline={
         <div className="slds-align_absolute-center">
-          Deployed to <OrgLabelBadge org={destinationOrg} />
+          Deploy to <OrgLabelBadge org={destinationOrg} />
         </div>
       }
       footer={

@@ -2,7 +2,14 @@ import { css } from '@emotion/react';
 import { ListItem, SalesforceOrgUi } from '@jetstream/types';
 import { Checkbox, ComboboxWithItems, Grid, Icon, Input, Radio, RadioGroup, Spinner, Textarea, Tooltip } from '@jetstream/ui';
 import React, { forwardRef, useEffect, useImperativeHandle, useState } from 'react';
-import { FieldDefinition, FieldDefinitions, FieldValue, FieldValues, FieldValueState, SalesforceFieldType } from './create-fields-types';
+import {
+  FieldDefinition,
+  FieldDefinitions,
+  FieldValue,
+  FieldValues,
+  FieldValueState,
+  SalesforceFieldType,
+} from '../shared/create-fields/create-fields-types';
 
 export interface CreateFieldsRowFieldProps {
   selectedOrg: SalesforceOrgUi;

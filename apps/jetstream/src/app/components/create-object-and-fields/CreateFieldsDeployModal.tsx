@@ -1,18 +1,18 @@
 import { css } from '@emotion/react';
 import { ANALYTICS_KEYS } from '@jetstream/shared/constants';
+import { useFetchPageLayouts } from '@jetstream/shared/ui-utils';
 import { MapOf, SalesforceOrgUi } from '@jetstream/types';
 import { Checkbox, ConfirmationModalPromise, FileDownloadModal, Grid, Icon, Modal, ScopedNotification, Spinner } from '@jetstream/ui';
-import { Fragment, FunctionComponent, useState } from 'react';
+import { Fragment, FunctionComponent, useEffect, useState } from 'react';
 import { useRecoilState } from 'recoil';
 import { applicationCookieState } from '../../app-state';
-import { useAmplitude } from '../core/analytics';
 import ConfirmPageChange from '../core/ConfirmPageChange';
+import { useAmplitude } from '../core/analytics';
 import * as fromJetstreamEvents from '../core/jetstream-events';
-import { FieldValues } from './create-fields-types';
-import { prepareDownloadResultsFile } from './create-fields-utils';
+import { FieldValues } from '../shared/create-fields/create-fields-types';
+import { prepareDownloadResultsFile } from '../shared/create-fields/create-fields-utils';
+import useCreateFields from '../shared/create-fields/useCreateFields';
 import CreateFieldsDeployModalRow from './CreateFieldsDeployModalRow';
-import useCreateFields from './useCreateFields';
-import { useFetchPageLayouts } from './useFetchPageLayouts';
 
 export interface CreateFieldsDeployModalProps {
   selectedOrg: SalesforceOrgUi;
@@ -36,18 +36,17 @@ export const CreateFieldsDeployModal: FunctionComponent<CreateFieldsDeployModalP
   const {
     loading: loadingLayouts,
     error: loadingLayoutsError,
-    layouts,
+    layoutsByObject,
     selectedLayoutIds,
     handleSelectLayout,
   } = useFetchPageLayouts(selectedOrg, sObjects);
-  const { results, loading, deployed, fatalError, fatalErrorMessage, layoutErrorMessage, deployFields } = useCreateFields({
+  const { results, loading, deployed, fatalError, fatalErrorMessage, layoutErrorMessage, prepareFields, deployFields } = useCreateFields({
     apiVersion: defaultApiVersion,
     serverUrl,
     selectedOrg,
     profiles,
     permissionSets,
     sObjects,
-    rows,
   });
   const [confirmModalOpen, setConfirmModalOpen] = useState(false);
   const [exportModalOpen, setExportModalOpen] = useState(false);
@@ -56,10 +55,14 @@ export const CreateFieldsDeployModal: FunctionComponent<CreateFieldsDeployModalP
     headerData: MapOf<any[]>;
   } | null>(null);
 
+  useEffect(() => {
+    prepareFields(rows);
+  }, [prepareFields, rows, sObjects]);
+
   async function handleDeploy() {
     trackEvent(ANALYTICS_KEYS.sobj_create_field_deploy, {
       numFields: rows.length,
-      nulLayouts: selectedLayoutIds.size,
+      numLayouts: selectedLayoutIds.size,
       previousDeploy: deployed,
     });
     if (deployed) {
@@ -150,6 +153,7 @@ export const CreateFieldsDeployModal: FunctionComponent<CreateFieldsDeployModalP
           <div
             css={css`
               min-height: 300px;
+              overflow-x: auto;
             `}
           >
             {fatalError && (
@@ -168,7 +172,12 @@ export const CreateFieldsDeployModal: FunctionComponent<CreateFieldsDeployModalP
               </div>
             )}
             <Grid>
-              <table className="slds-table slds-table_cell-buffer slds-no-row-hover slds-table_bordered slds-table_fixed-layout">
+              <table
+                className="slds-table slds-table_cell-buffer slds-no-row-hover slds-table_bordered slds-table_fixed-layout"
+                css={css`
+                  min-width: 650px;
+                `}
+              >
                 <thead>
                   <tr className="slds-line-height_reset">
                     <th scope="col">
@@ -220,7 +229,7 @@ export const CreateFieldsDeployModal: FunctionComponent<CreateFieldsDeployModalP
                 </thead>
                 <tbody>
                   {results.map((result) => (
-                    <CreateFieldsDeployModalRow key={result.key} result={result} />
+                    <CreateFieldsDeployModalRow key={result.key} selectedOrg={selectedOrg} serverUrl={serverUrl} result={result} />
                   ))}
                 </tbody>
               </table>
@@ -242,8 +251,8 @@ export const CreateFieldsDeployModal: FunctionComponent<CreateFieldsDeployModalP
                 <div className="slds-text-heading_small slds-truncate" title="Add to Page Layouts">
                   Add to Page Layouts
                 </div>
-                {Object.keys(layouts).map((objectName) => (
-                  <fieldset className="slds-form-element slds-m-top_small" key={`layout-heading-${objectName}`}>
+                {Object.keys(layoutsByObject).map((objectName) => (
+                  <fieldset className="slds-form-element slds-m-top_small slds-p-right_x-small" key={`layout-heading-${objectName}`}>
                     <legend
                       className="slds-form-element__label slds-truncate"
                       title={objectName}
@@ -253,7 +262,7 @@ export const CreateFieldsDeployModal: FunctionComponent<CreateFieldsDeployModalP
                     >
                       {objectName}
                     </legend>
-                    {layouts[objectName].map((layout) => (
+                    {layoutsByObject[objectName].map((layout) => (
                       <Checkbox
                         key={`layout-${layout.Id}`}
                         id={`layout-${layout.Id}`}

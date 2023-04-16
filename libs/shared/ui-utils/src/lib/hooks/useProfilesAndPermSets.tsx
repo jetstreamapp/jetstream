@@ -3,6 +3,7 @@ import { clearCacheForOrg, queryWithCache } from '@jetstream/shared/data';
 import { isPermissionSetWithProfile } from '../shared-ui-utils';
 import {
   ListItem,
+  MapOf,
   Maybe,
   PermissionSetNoProfileRecord,
   PermissionSetRecord,
@@ -36,6 +37,27 @@ export function useProfilesAndPermSets(
   const [permissionSets, setPermissionSets] = useState<ListItem<string, PermissionSetNoProfileRecord>[] | null>(
     _initPermissionSets || null
   );
+
+  const [profilesAndPermSetsById, setProfilesAndPermSetsById] = useState<
+    MapOf<PermissionSetWithProfileRecord | PermissionSetNoProfileRecord>
+  >({});
+
+  useEffect(() => {
+    if (profiles && permissionSets) {
+      const newItemsById: MapOf<PermissionSetWithProfileRecord | PermissionSetNoProfileRecord> = {};
+      profiles.forEach((item) => {
+        // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+        newItemsById[item.id] = item.meta!;
+      });
+      permissionSets.forEach((item) => {
+        // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+        newItemsById[item.id] = item.meta!;
+      });
+      setProfilesAndPermSetsById(newItemsById);
+    } else {
+      setProfilesAndPermSetsById({});
+    }
+  }, [profiles, permissionSets]);
 
   useEffect(() => {
     isMounted.current = true;
@@ -106,7 +128,15 @@ export function useProfilesAndPermSets(
     [selectedOrg]
   );
 
-  return { fetchMetadata, loading, profiles, permissionSets, hasError, lastRefreshed };
+  return {
+    fetchMetadata,
+    loading: loading && !profiles?.length,
+    profiles,
+    permissionSets,
+    profilesAndPermSetsById,
+    hasError,
+    lastRefreshed,
+  };
 }
 
 /**

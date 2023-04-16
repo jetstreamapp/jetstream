@@ -8,7 +8,7 @@ import { FunctionComponent, useEffect, useState } from 'react';
 import { useRecoilState } from 'recoil';
 import { applicationCookieState } from '../../app-state';
 import { useAmplitude } from '../core/analytics';
-import { createGlobalPicklist, generateApiNameFromLabel } from './create-fields-utils';
+import { createGlobalPicklist, generateApiNameFromLabel } from '../shared/create-fields/create-fields-utils';
 
 interface PicklistData {
   label: string;
