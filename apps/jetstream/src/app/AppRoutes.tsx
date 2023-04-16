@@ -1,10 +1,10 @@
 import { Maybe, UserProfileUi } from '@jetstream/types';
-import lazy from './components/core/LazyLoad';
-import React, { useEffect } from 'react';
+import { useEffect } from 'react';
 import { Navigate, Route, Routes, useLocation } from 'react-router-dom';
-import OrgSelectionRequired from './components/orgs/OrgSelectionRequired';
-import { AppHome } from './components/home/AppHome';
+import lazy from './components/core/LazyLoad';
 import { APP_ROUTES } from './components/core/app-routes';
+import { AppHome } from './components/home/AppHome';
+import OrgSelectionRequired from './components/orgs/OrgSelectionRequired';
 
 const LoadRecords = lazy(() => import('./components/load-records/LoadRecords'));
 const LoadRecordsMultiObject = lazy(() => import('./components/load-records-multi-object/LoadRecordsMultiObject'));
@@ -76,6 +76,8 @@ export const AppRoutes = ({ featureFlags, userProfile }: AppRoutesProps) => {
 
   return (
     <Routes>
+      {/* This is just here to allow testing the error page without having a real error - can uncomment for testing */}
+      {/* <Route path={'/error'} element={<ErrorBoundaryFallback error={new Error('test')} resetErrorBoundary={NOOP} />} /> */}
       <Route path={APP_ROUTES.HOME.ROUTE} element={<AppHome />} />
       <Route
         path={APP_ROUTES.QUERY.ROUTE}

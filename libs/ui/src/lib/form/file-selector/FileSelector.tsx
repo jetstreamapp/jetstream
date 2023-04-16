@@ -19,6 +19,7 @@ export interface FileSelectorProps {
   helpText?: React.ReactNode | string; // FIXME: does not appear to be used, userHelpText is used
   isRequired?: boolean;
   filename?: Maybe<string>; // optional, will be managed if not provided
+  omitFilename?: boolean;
   hideLabel?: boolean;
   disabled?: boolean;
   accept?: InputAcceptType[];
@@ -27,6 +28,7 @@ export interface FileSelectorProps {
   hasError?: boolean;
   errorMessage?: React.ReactNode | string;
   maxAllowedSizeMB?: number;
+  allowMultipleFiles?: boolean;
   onReadFile: (fileContent: InputReadFileContent) => void;
 }
 
@@ -37,6 +39,7 @@ export const FileSelector: FunctionComponent<FileSelectorProps> = ({
   buttonLabel = 'Upload File',
   labelHelp,
   filename,
+  omitFilename = false,
   isRequired,
   hideLabel,
   disabled,
@@ -46,6 +49,7 @@ export const FileSelector: FunctionComponent<FileSelectorProps> = ({
   hasError,
   errorMessage,
   maxAllowedSizeMB,
+  allowMultipleFiles = false,
   onReadFile,
 }) => {
   const [labelPrimaryId] = useState(() => `${id}-label-primary`);
@@ -109,33 +113,34 @@ export const FileSelector: FunctionComponent<FileSelectorProps> = ({
       setManagedFilename(null);
       if (!files || files.length === 0) {
         return;
-      } else if (files.length > 1) {
+      } else if (!allowMultipleFiles && files.length > 1) {
         throw new Error('Only 1 file is supported');
       }
-      const file = files.item(0);
-      if (!file) {
-        return;
+      for (let i = 0; i < files.length; i++) {
+        const file = files.item(i);
+        if (!file) {
+          continue;
+        }
+        logger.info(file);
+        const fileSizeMb = file.size / 1000 / 1000;
+
+        const extension = (file.name.substring(file.name.lastIndexOf('.')) || '').toLowerCase() as InputAcceptType;
+
+        if (accept && !accept.includes(extension)) {
+          throw new Error(`File type ${extension} is not supported`);
+        }
+
+        if (maxAllowedSizeMB && fileSizeMb > maxAllowedSizeMB) {
+          throw new Error(`Maximum allowed file size is ${maxAllowedSizeMB}MB`);
+        }
+
+        setManagedFilename(file.name);
+
+        const readAsArrayBuffer = extension !== '.csv' && extension !== '.xml';
+        const content = await (readAsArrayBuffer ? readFile(file, 'array_buffer') : readFile(file, 'text'));
+
+        onReadFile({ filename: file.name, extension, content });
       }
-      logger.info(file);
-      const fileSizeMb = file.size / 1000 / 1000;
-
-      const extension = (file.name.substring(file.name.lastIndexOf('.')) || '').toLowerCase() as InputAcceptType;
-
-      if (accept && !accept.includes(extension)) {
-        throw new Error(`File type ${extension} is not supported`);
-      }
-
-      if (maxAllowedSizeMB && fileSizeMb > maxAllowedSizeMB) {
-        throw new Error(`Maximum allowed file size is ${maxAllowedSizeMB}MB`);
-      }
-
-      setManagedFilename(file.name);
-
-      // TODO: we might want to do something else here in the future
-      const readAsArrayBuffer = extension !== '.csv' && extension !== '.xml';
-      const content = await (readAsArrayBuffer ? readFile(file, 'array_buffer') : readFile(file, 'text'));
-
-      onReadFile({ filename: file.name, extension, content });
     } catch (ex) {
       setSystemErrorMessage(ex.message);
       setManagedFilename(null);
@@ -175,6 +180,7 @@ export const FileSelector: FunctionComponent<FileSelectorProps> = ({
               type="file"
               className="slds-file-selector__input slds-assistive-text"
               accept={accept ? accept.join(', ') : undefined}
+              multiple={allowMultipleFiles}
               id={id}
               aria-describedby={`${id}-file-input-help ${id}-file-input-system-error ${id}-file-input-error ${id}-file-input-name`}
               aria-labelledby={`${labelPrimaryId} ${labelSecondaryId}`}
@@ -197,7 +203,7 @@ export const FileSelector: FunctionComponent<FileSelectorProps> = ({
           min-height: 20px;
         `}
       >
-        {userHelpText && !managedFilename && (
+        {!!userHelpText && !managedFilename && (
           <div
             className="slds-form-element__help slds-truncate"
             id={`${id}-file-input-help`}
@@ -206,8 +212,8 @@ export const FileSelector: FunctionComponent<FileSelectorProps> = ({
             {userHelpText}
           </div>
         )}
-        {managedFilename && (
-          <div className="slds-form-element__help slds-truncate" id={`${id}-file-input-name`} title={managedFilename}>
+        {!omitFilename && filenameTruncated && (
+          <div className="slds-form-element__help slds-truncate" id={`${id}-file-input-name`} title={managedFilename || ''}>
             {filenameTruncated}
           </div>
         )}
@@ -218,7 +224,7 @@ export const FileSelector: FunctionComponent<FileSelectorProps> = ({
         )}
         {hasError && errorMessage && (
           <div className="slds-form-element__help slds-truncate" id={`${id}-file-input-error`}>
-            {systemErrorMessage}
+            {errorMessage}
           </div>
         )}
       </div>

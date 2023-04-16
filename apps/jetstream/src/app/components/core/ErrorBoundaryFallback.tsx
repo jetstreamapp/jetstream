@@ -4,6 +4,7 @@ import { Icon } from '@jetstream/ui';
 import { FunctionComponent, useEffect } from 'react';
 import { FallbackProps } from 'react-error-boundary';
 import { Link } from 'react-router-dom';
+import { EmailSupport } from './EmailSupport';
 
 // componentStack is depreacted in version 3.0 and must be added as a listener to every place ErrorBoundary is used
 export const ErrorBoundaryFallback: FunctionComponent<FallbackProps> = ({ error, /** componentStack, */ resetErrorBoundary }) => {
@@ -65,6 +66,8 @@ export const ErrorBoundaryFallback: FunctionComponent<FallbackProps> = ({ error,
           </button>
         </div>
       )}
+      <hr className="slds-m-vertical_medium" />
+      <EmailSupport />
     </div>
   );
 };

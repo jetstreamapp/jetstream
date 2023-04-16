@@ -1,8 +1,8 @@
-import Mailgun from 'mailgun.js';
 import formData from 'form-data';
+import Mailgun from 'mailgun.js';
 import { ENV } from './env-config';
 
-export let mailgun: any;
+export let mailgun: ReturnType<Mailgun['client']>;
 
 if (ENV.MAILGUN_API_KEY) {
   mailgun = new Mailgun(formData).client({
