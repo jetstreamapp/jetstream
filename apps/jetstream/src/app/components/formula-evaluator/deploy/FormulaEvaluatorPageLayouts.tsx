@@ -15,6 +15,7 @@ export function FormulaEvaluatorPageLayouts({
   loading,
   selectedLayoutIds,
   handleSelectLayout,
+  handleSelectAll,
 }: FormulaEvaluatorPageLayoutsProps) {
   return (
     <Grid gutters wrap>
@@ -37,7 +38,14 @@ export function FormulaEvaluatorPageLayouts({
           >
             {sobjectName}
           </legend>
-
+          <Checkbox
+            id={`layouts-select-all`}
+            label="Select All"
+            className="slds-m-bottom_xx-small"
+            checked={selectedLayoutIds.size === layouts.length}
+            disabled={disabled || loading}
+            onChange={(value) => handleSelectAll(value)}
+          />
           {layouts.map((layout) => (
             <Checkbox
               key={`layout-${layout.Id}`}

@@ -4,7 +4,7 @@ import { getMapOf, splitArrayToMaxSize } from '@jetstream/shared/utils';
 import { MapOf, SalesforceOrgUi } from '@jetstream/types';
 import groupBy from 'lodash/groupBy';
 import { useCallback, useEffect, useState } from 'react';
-import { composeQuery, getField, Query } from 'soql-parser-js';
+import { Query, composeQuery, getField } from 'soql-parser-js';
 import { useRollbar } from './useRollbar';
 
 const MAX_OBJ_IN_QUERY = 100;
@@ -99,6 +99,14 @@ export function useFetchPageLayouts(selectedOrg: SalesforceOrgUi, sObjects: stri
     setSelectedLayoutIds(new Set(selectedLayoutIds));
   }
 
+  function handleSelectAll(value: boolean) {
+    if (value) {
+      setSelectedLayoutIds(new Set(layouts.map((layout) => layout.Id)));
+    } else {
+      setSelectedLayoutIds(new Set());
+    }
+  }
+
   return {
     loading,
     error,
@@ -107,5 +115,6 @@ export function useFetchPageLayouts(selectedOrg: SalesforceOrgUi, sObjects: stri
     layoutsById,
     selectedLayoutIds,
     handleSelectLayout,
+    handleSelectAll,
   };
 }

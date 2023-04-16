@@ -4,7 +4,7 @@ import { useFetchPageLayouts, useProfilesAndPermSets } from '@jetstream/shared/u
 import { MapOf, Maybe, SalesforceOrgUi } from '@jetstream/types';
 import { FileDownloadModal, Grid, Icon, Modal, ScopedNotification, Spinner, Tabs, Tooltip } from '@jetstream/ui';
 import type { Field } from 'jsforce';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useRecoilState } from 'recoil';
 import { applicationCookieState } from '../../../app-state';
 import { fireToast } from '../../core/AppToast';
@@ -72,14 +72,19 @@ export const FormulaEvaluatorDeployModal = ({
     headerData: MapOf<any[]>;
   } | null>(null);
 
-  const { deployFields, prepareFields, deployed, fatalError, fatalErrorMessage, layoutErrorMessage, loading, results } = useCreateFields({
-    apiVersion: defaultApiVersion,
-    serverUrl,
-    selectedOrg,
-    permissionSets: selectedPermissionSets,
-    profiles: selectedProfiles,
-    sObjects,
-  });
+  const { deployFields, prepareFields, clearResults, deployed, fatalError, fatalErrorMessage, layoutErrorMessage, loading, results } =
+    useCreateFields({
+      apiVersion: defaultApiVersion,
+      serverUrl,
+      selectedOrg,
+      permissionSets: selectedPermissionSets,
+      profiles: selectedProfiles,
+      sObjects,
+    });
+
+  useEffect(() => {
+    clearResults();
+  }, [field, selectedProfiles, selectedPermissionSets, layoutData.selectedLayoutIds, clearResults]);
 
   function onFieldChange(field: FieldValues, isValid: boolean) {
     setField(field);
@@ -172,17 +177,21 @@ export const FormulaEvaluatorDeployModal = ({
           header="Save Field"
           tagline="Field will be upserted based on the Field Name."
           size="md"
+          closeOnEsc={false}
+          closeDisabled={loading}
           footer={
             <Grid align="spread">
               <div>
-                <button className="slds-button slds-button_neutral" onClick={() => downloadResults()} disabled={loading || !deployed}>
-                  <Icon type="utility" icon="download" className="slds-button__icon slds-button__icon_left" omitContainer />
-                  Download Results
-                </button>
+                {!loading && results?.[0]?.state === 'SUCCESS' && (
+                  <button className="slds-button slds-button_neutral" onClick={() => downloadResults()} disabled={loading || !deployed}>
+                    <Icon type="utility" icon="download" className="slds-button__icon slds-button__icon_left" omitContainer />
+                    Download Results
+                  </button>
+                )}
               </div>
               <div>
-                <button className="slds-button slds-button_neutral" onClick={() => onClose()}>
-                  Cancel
+                <button className="slds-button slds-button_neutral" onClick={() => onClose()} disabled={loading}>
+                  Close
                 </button>
                 <button className="slds-button slds-button_brand" disabled={actionButtonDisabled} onClick={() => handleActionClick()}>
                   {deployLabel}
@@ -208,13 +217,17 @@ export const FormulaEvaluatorDeployModal = ({
               <ScopedNotification theme="warning">{results[0].flsErrorMessage}</ScopedNotification>
             )}
             {!loading && results?.[0]?.state === 'SUCCESS' && (
-              <ScopedNotification theme="success">Your field has been successfully deployed.</ScopedNotification>
+              <ScopedNotification theme="success">
+                Your field has been successfully {results?.[0].operation === 'UPSERT' ? 'updated' : 'created'}.
+              </ScopedNotification>
             )}
 
             <Tabs
               initialActiveId={activeTab}
               contentClassname="slds-p-bottom_none"
-              onChange={(value: Tab) => setActiveTab(value)}
+              onChange={(value: Tab) => {
+                setActiveTab(value);
+              }}
               tabs={[
                 {
                   id: 'field',
@@ -251,19 +264,7 @@ export const FormulaEvaluatorDeployModal = ({
                   id: 'permissions',
                   title: (
                     <Grid verticalAlign="center">
-                      <span>Field Permissions</span>
-                      {(!!selectedProfiles.length || !!selectedPermissionSets.length) && (
-                        <Tooltip content="Permissions are configured">
-                          <Icon
-                            type="utility"
-                            icon="success"
-                            description="Configured successfully"
-                            title="Configured successfully"
-                            className="slds-icon slds-icon_x-small slds-icon-text-success"
-                            containerClassname="slds-icon_container slds-icon-utility-success slds-m-left_x-small"
-                          />
-                        </Tooltip>
-                      )}
+                      <span>Field Permissions ({selectedProfiles.length + selectedPermissionSets.length})</span>
                     </Grid>
                   ),
                   content: (
@@ -285,19 +286,7 @@ export const FormulaEvaluatorDeployModal = ({
                   id: 'layouts',
                   title: (
                     <Grid verticalAlign="center">
-                      <span>Page Layouts</span>
-                      {!!layoutData.selectedLayoutIds.size && (
-                        <Tooltip content="Layouts are configured">
-                          <Icon
-                            type="utility"
-                            icon="success"
-                            description="Configured successfully"
-                            title="Configured successfully"
-                            className="slds-icon slds-icon_x-small slds-icon-text-success"
-                            containerClassname="slds-icon_container slds-icon-utility-success slds-m-left_x-small"
-                          />
-                        </Tooltip>
-                      )}
+                      <span>Page Layouts ({layoutData.selectedLayoutIds.size})</span>
                     </Grid>
                   ),
                   content: (
@@ -305,6 +294,7 @@ export const FormulaEvaluatorDeployModal = ({
                       sobjectName={sobject}
                       error={layoutData.error}
                       handleSelectLayout={layoutData.handleSelectLayout}
+                      handleSelectAll={layoutData.handleSelectAll}
                       layouts={layoutData.layouts}
                       loading={layoutData.loading}
                       selectedLayoutIds={layoutData.selectedLayoutIds}
@@ -317,20 +307,52 @@ export const FormulaEvaluatorDeployModal = ({
                   title: (
                     <Grid verticalAlign="center">
                       <span>Deploy Field</span>
+                      {results?.[0]?.state === 'SUCCESS' && (
+                        <Icon
+                          type="utility"
+                          icon="success"
+                          description="Configured successfully"
+                          title="Configured successfully"
+                          className="slds-icon slds-icon_x-small slds-icon-text-success"
+                          containerClassname="slds-icon_container slds-icon-utility-success slds-m-left_x-small"
+                        />
+                      )}
+                      {results?.[0]?.state === 'FAILED' && (
+                        <Icon
+                          type="utility"
+                          icon="error"
+                          className="slds-icon slds-icon-text-error slds-icon_xx-small"
+                          containerClassname="slds-icon_container slds-icon-utility-error slds-m-left_x-small"
+                          description="Field is not yet configured"
+                        />
+                      )}
                     </Grid>
                   ),
                   content: (
                     <FormulaEvaluatorDeploySummary
+                      selectedOrg={selectedOrg}
+                      sobject={sobject}
                       field={field}
+                      deployed={deployed}
+                      results={results?.[0]}
                       selectedProfiles={selectedProfiles.map((item) => {
                         const record = permissionData.profilesAndPermSetsById[item];
-                        return record?.IsOwnedByProfile ? record.Profile.Name : record.Name;
+                        return {
+                          id: record.Id,
+                          label: record.IsOwnedByProfile ? record.Profile.Name : record.Name,
+                        };
                       })}
                       selectedPermissionSets={selectedPermissionSets.map((item) => {
                         const record = permissionData.profilesAndPermSetsById[item];
-                        return record?.IsOwnedByProfile ? record.Profile.Name : record.Name;
+                        return {
+                          id: record.Id,
+                          label: record.IsOwnedByProfile ? record.Profile.Name : record.Name,
+                        };
                       })}
-                      selectedLayouts={Array.from(layoutData.selectedLayoutIds).map((item) => layoutData.layoutsById[item].Name)}
+                      selectedLayouts={Array.from(layoutData.selectedLayoutIds).map((item) => ({
+                        id: layoutData.layoutsById[item].Id,
+                        label: layoutData.layoutsById[item].Name,
+                      }))}
                     />
                   ),
                 },

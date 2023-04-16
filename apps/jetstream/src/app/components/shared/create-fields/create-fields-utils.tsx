@@ -1,6 +1,6 @@
 import { logger } from '@jetstream/shared/client-logger';
 import { describeGlobal, genericRequest, queryAllFromList, queryWithCache } from '@jetstream/shared/data';
-import { ensureBoolean, REGEX, splitArrayToMaxSize } from '@jetstream/shared/utils';
+import { REGEX, ensureBoolean, splitArrayToMaxSize } from '@jetstream/shared/utils';
 import { CompositeResponse, GlobalValueSetRequest, MapOf, SalesforceOrgUi, ToolingApiResponse } from '@jetstream/types';
 import type { DescribeGlobalSObjectResult } from 'jsforce';
 import isBoolean from 'lodash/isBoolean';
@@ -10,13 +10,14 @@ import { composeQuery, getField } from 'soql-parser-js';
 import {
   EntityParticleRecord,
   FieldDefinitionMetadata,
-  FieldDefinitions,
   FieldDefinitionType,
+  FieldDefinitions,
   FieldPermissionRecord,
   FieldValueDependencies,
   FieldValues,
   GlobalPicklistRecord,
   LayoutRecord,
+  LayoutResult,
   SalesforceFieldType,
 } from './create-fields-types';
 import { CreateFieldsResults } from './useCreateFields';
@@ -1000,9 +1001,13 @@ export async function deployLayouts(
   }));
 
   const layoutsToUpdate: LayoutRecord[] = [];
-  const updatedLayoutIds: string[] = [];
+  const updatedLayouts: MapOf<LayoutResult> = {};
   const errors: string[] = [];
+  layoutIds.forEach((id) => {
+    updatedLayouts[id] = { id, deployed: false };
+  });
 
+  // Fetch full layout metadata
   for (const compositeRequest of layoutsWithFullMetadata) {
     const response = await genericRequest<CompositeResponse<LayoutRecord | { errorCode: string; message: string }[]>>(selectedOrg, {
       isTooling: true,
@@ -1012,14 +1017,19 @@ export async function deployLayouts(
     });
 
     response.compositeResponse.forEach(({ body, httpStatusCode, referenceId }) => {
+      const layout = updatedLayouts[referenceId];
       if (httpStatusCode < 200 || httpStatusCode > 299) {
+        layout && (layout.error = 'Unable to obtain layout metadata');
         if (Array.isArray(body)) {
           // ERROR getting full layout metadata
           if (Array.isArray(body)) {
-            errors.push(body.map(({ message }) => message).join(' '));
+            const error = body.map(({ message }) => message).join(' ');
+            errors.push(error);
+            layout && (layout.error = error);
           }
         }
       } else {
+        layout && (layout.metadata = body as LayoutRecord);
         const didAddFields = addFieldToLayout(fields, body as LayoutRecord);
         if (didAddFields) {
           layoutsToUpdate.push(body as LayoutRecord);
@@ -1047,18 +1057,22 @@ export async function deployLayouts(
       body: compositeRequest,
     });
     response.compositeResponse.forEach(({ body, httpStatusCode, referenceId }) => {
+      const layout = updatedLayouts[referenceId];
       if (httpStatusCode < 200 || httpStatusCode > 299) {
+        layout && (layout.error = 'Unknown error updating layout');
         if (Array.isArray(body)) {
-          errors.push(body.map(({ message }) => message).join(' '));
+          const error = body.map(({ message }) => message).join(' ');
+          errors.push(error);
+          layout && (layout.error = error);
         }
       } else {
-        updatedLayoutIds.push(referenceId);
+        layout && (layout.deployed = true);
       }
     });
   }
 
   return {
-    updatedLayoutIds,
+    updatedLayouts: Object.values(updatedLayouts),
     errors,
   };
 }
@@ -1084,7 +1098,7 @@ export function getRowsForExport(fieldValues: FieldValues[]) {
 export function prepareDownloadResultsFile(fieldResults: CreateFieldsResults[], fieldValues: FieldValues[]) {
   let permissionRecords: FieldPermissionRecord[] = [];
   const resultsWorksheet = fieldResults.map(
-    ({ label, state, deployResult, flsResult, flsErrors, flsRecords, layoutErrors, updatedLayoutIds }) => {
+    ({ label, state, deployResult, flsResult, flsErrors, flsRecords, layoutErrors, updatedLayouts }) => {
       permissionRecords = permissionRecords.concat(flsRecords || []);
       let _flsResult = 'N/A';
       if (flsResult && flsResult.length) {
@@ -1096,7 +1110,10 @@ export function prepareDownloadResultsFile(fieldResults: CreateFieldsResults[], 
         'Field Id': isString(deployResult) ? deployResult : '',
         'FLS Result': _flsResult,
         'FLS Errors': flsErrors?.join?.('\n') || '',
-        'Page Layouts Updated': updatedLayoutIds?.join('\n') || '',
+        'Page Layouts Updated':
+          updatedLayouts
+            ?.map((layout) => (layout.metadata ? `${decodeURIComponent(layout.metadata.FullName)} (${layout.id})` : layout.id))
+            ?.join('\n') || '',
         'Page Layouts Errors': layoutErrors?.join('\n') || '',
       };
     }
