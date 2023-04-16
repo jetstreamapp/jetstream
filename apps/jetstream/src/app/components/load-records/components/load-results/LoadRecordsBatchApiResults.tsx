@@ -4,7 +4,7 @@ import { ANALYTICS_KEYS } from '@jetstream/shared/constants';
 import { convertDateToLocale, useBrowserNotifications, useRollbar } from '@jetstream/shared/ui-utils';
 import { flattenRecord, getSuccessOrFailureChar, pluralizeFromNumber } from '@jetstream/shared/utils';
 import { InsertUpdateUpsertDelete, Maybe, RecordResultWithRecord, SalesforceOrgUi, WorkerMessage } from '@jetstream/types';
-import { FileDownloadModal, Grid, ProgressRing, Spinner } from '@jetstream/ui';
+import { FileDownloadModal, Grid, ProgressRing, Spinner, Tooltip } from '@jetstream/ui';
 import { FunctionComponent, useEffect, useRef, useState } from 'react';
 import { useRecoilState } from 'recoil';
 import { applicationCookieState } from '../../../../app-state';
@@ -25,19 +25,22 @@ import { getLoadWorker } from '../../utils/load-records-worker';
 import LoadRecordsBatchApiResultsTable from './LoadRecordsBatchApiResultsTable';
 import LoadRecordsResultsModal from './LoadRecordsResultsModal';
 
-type Status = 'Preparing Data' | 'Processing Data' | 'Finished' | 'Error';
+type Status = 'Preparing Data' | 'Processing Data' | 'Aborting' | 'Finished' | 'Error';
 
 const STATUSES: {
   PREPARING: Status;
   PROCESSING: Status;
+  ABORTING: Status;
   FINISHED: Status;
   ERROR: Status;
 } = {
   PREPARING: 'Preparing Data',
   PROCESSING: 'Processing Data',
+  ABORTING: 'Aborting',
   FINISHED: 'Finished',
   ERROR: 'Error',
 };
+const ABORTABLE_STATUSES = new Set<Status>([STATUSES.PREPARING, STATUSES.PROCESSING, STATUSES.ABORTING]);
 
 export interface LoadRecordsBatchApiResultsProps {
   selectedOrg: SalesforceOrgUi;
@@ -352,6 +355,11 @@ export const LoadRecordsBatchApiResults: FunctionComponent<LoadRecordsBatchApiRe
     setResultsModalData({ open: false, data: [], header: [], type: 'results' });
   }
 
+  function handleAbort() {
+    loadWorker.postMessage({ name: 'abort' });
+    setStatus(STATUSES.ABORTING);
+  }
+
   return (
     <div>
       {downloadModalData.open && (
@@ -376,36 +384,54 @@ export const LoadRecordsBatchApiResults: FunctionComponent<LoadRecordsBatchApiRe
           onClose={handleViewModalClose}
         />
       )}
-      <h3 className="slds-text-heading_small">
-        <Grid verticalAlign="center">
-          <span className="slds-m-right_x-small">{status}</span>
-          {status === STATUSES.PREPARING && (
-            <div>
-              {!!prepareDataProgress && (
-                <ProgressRing
-                  className="slds-m-right_x-small"
-                  fillPercent={prepareDataProgress / 100}
-                  size="medium"
-                  theme="active-step"
-                ></ProgressRing>
+      <Grid verticalAlign="end" align="spread">
+        <div>
+          <h3 className="slds-text-heading_small">
+            <Grid verticalAlign="center">
+              <span className="slds-m-right_x-small">{status}</span>
+              {status === STATUSES.PREPARING && (
+                <div>
+                  {!!prepareDataProgress && (
+                    <ProgressRing
+                      className="slds-m-right_x-small"
+                      fillPercent={prepareDataProgress / 100}
+                      size="medium"
+                      theme="active-step"
+                    ></ProgressRing>
+                  )}
+                  <div
+                    css={css`
+                      width: 20px;
+                      display: inline-block;
+                    `}
+                  >
+                    <Spinner inline containerClassName="slds-m-bottom_small" size="x-small" />
+                  </div>
+                </div>
               )}
-              <div
-                css={css`
-                  width: 20px;
-                  display: inline-block;
-                `}
-              >
-                <Spinner inline containerClassName="slds-m-bottom_small" size="x-small" />
-              </div>
+            </Grid>
+          </h3>
+          {fatalError && (
+            <div className="slds-text-color_error">
+              <strong>Fatal Error</strong>: {fatalError}
             </div>
           )}
-        </Grid>
-      </h3>
-      {fatalError && (
-        <div className="slds-text-color_error">
-          <strong>Fatal Error</strong>: {fatalError}
         </div>
-      )}
+        <div>
+          {ABORTABLE_STATUSES.has(status) && (
+            <Tooltip content="Any batches in progress may not be able to be aborted.">
+              <button
+                className="slds-button slds-button_text-destructive slds-m-bottom_xx-small slds-is-relative"
+                disabled={status === STATUSES.ABORTING}
+                onClick={handleAbort}
+              >
+                {status === STATUSES.ABORTING && <Spinner size="small" />}
+                Abort Job
+              </button>
+            </Tooltip>
+          )}
+        </div>
+      </Grid>
       {/* Data is being processed */}
       {startTime && (
         <LoadRecordsBatchApiResultsTable
