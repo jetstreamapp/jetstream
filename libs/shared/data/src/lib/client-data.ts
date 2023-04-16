@@ -15,6 +15,7 @@ import {
   DeployResult,
   GenericRequestPayload,
   GoogleFileApiResponse,
+  InputReadFileContent,
   ListMetadataResult,
   ListMetadataResultRaw,
   ManualRequestPayload,
@@ -67,6 +68,13 @@ export async function platformEventProxyTest(org: SalesforceOrgUi): Promise<{ ve
 
 export async function checkHeartbeat(): Promise<{ version: string }> {
   return handleRequest({ method: 'GET', url: '/api/heartbeat' }).then(unwrapResponseIgnoreCache);
+}
+
+export async function emailSupport(emailBody: string, attachments: InputReadFileContent[]): Promise<void> {
+  const form = new FormData();
+  form.append('emailBody', emailBody);
+  attachments.forEach((attachment) => form.append('files', new Blob([attachment.content]), attachment.filename));
+  return handleRequest({ method: 'POST', url: '/api/support/email', data: form }).then(unwrapResponseIgnoreCache);
 }
 
 export async function getUserProfile(): Promise<UserProfileUi> {

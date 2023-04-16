@@ -9,16 +9,17 @@ export function useFilename(
   const [filenameTruncated, setFilenameTruncated] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!filename) {
+    const _filename = filename || managedFilename;
+    if (!_filename) {
       setFilenameTruncated(null);
     } else {
-      if (filename.length > 40) {
-        setFilenameTruncated(`${filename.substring(0, 25)}...${filename.substring(filename.length - 10)}`);
+      if (_filename.length > 40) {
+        setFilenameTruncated(`${_filename.substring(0, 25)}...${_filename.substring(_filename.length - 10)}`);
       } else {
-        setFilenameTruncated(filename || '');
+        setFilenameTruncated(_filename || '');
       }
     }
-  }, [filename]);
+  }, [filename, managedFilename]);
 
   useNonInitialEffect(() => {
     setManagedFilename(filename || null);

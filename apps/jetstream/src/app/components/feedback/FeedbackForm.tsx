@@ -38,8 +38,9 @@ export const FeedbackForm: FunctionComponent<FeedbackFormProps> = () => {
             </li>
           </ol>
         </div>
-        <hr />
+        <hr className="slds-m-vertical_medium" />
         <div>
+          <h3 className="slds-text-heading_small slds-m-bottom_small">Support the Jetstream project</h3>
           <p>Jetstream is an open source project and is paid for and supported by volunteers.</p>
           <a
             href="https://github.com/sponsors/jetstreamapp"

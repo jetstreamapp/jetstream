@@ -15,6 +15,45 @@ export const routeValidators = {
   deleteAccount: [body('reason').isString().optional()],
 };
 
+export async function emailSupport(req: express.Request, res: express.Response) {
+  const user = req.user as UserProfileServer;
+  const files = Array.isArray(req.files) ? req.files : [];
+  const { emailBody } = req.body || {};
+
+  try {
+    const results = await mailgun.messages.create('mail.getjetstream.app', {
+      from: 'Jetstream Support <support@getjetstream.app>',
+      to: 'support@getjetstream.app',
+      subject: 'Jetstream - User submitted feedback',
+      template: 'generic_notification',
+      attachment: files?.map((file) => ({ data: file.buffer, filename: file.originalname })),
+      'h:X-Mailgun-Variables': JSON.stringify({
+        title: 'User submitted feedback',
+        previewText: 'User submitted feedback',
+        headline: `User submitted feedback`,
+        bodySegments: [
+          {
+            text: emailBody,
+          },
+          {
+            text: `The account ${user.id} has submitted feedback.`,
+          },
+          {
+            text: JSON.stringify(user, null, 2),
+          },
+        ],
+      }),
+      'h:Reply-To': 'support@getjetstream.app',
+    });
+    logger.info('[SUPPORT EMAIL][EMAIL SENT] %s', results.id);
+    sendJson(res);
+  } catch (ex) {
+    logger.error('[SUPPORT EMAIL][ERROR] %s', ex.message || 'An unknown error has occurred.', { userId: user.id });
+    logger.error(ex.stack);
+    throw new UserFacingError('There was a problem sending the email');
+  }
+}
+
 export async function getUserProfile(req: express.Request, res: express.Response) {
   const user = req.user as UserProfileServer;
   sendJson(res, user._json);
@@ -138,7 +177,7 @@ export async function deleteAccount(req: express.Request, res: express.Response)
           'h:Reply-To': 'support@getjetstream.app',
         })
         .then((results) => {
-          logger.info('[ACCOUNT DELETE][EMAIL SENT] %s', results.data.id);
+          logger.info('[ACCOUNT DELETE][EMAIL SENT] %s', results.id);
         })
         .catch((error) => {
           logger.error('[ACCOUNT DELETE][ERROR SENDING EMAIL SUMMARY] %s', error.message);

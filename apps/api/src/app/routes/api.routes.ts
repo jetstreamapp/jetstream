@@ -1,6 +1,7 @@
 import { ENV } from '@jetstream/api-config';
 import * as express from 'express';
 import Router from 'express-promise-router';
+import * as multer from 'multer';
 import * as imageController from '../controllers/image.controller';
 import * as orgsController from '../controllers/orgs.controller';
 import * as salesforceApiReqController from '../controllers/salesforce-api-requests.controller';
@@ -11,6 +12,9 @@ import * as sfQueryController from '../controllers/sf-query.controller';
 import * as userController from '../controllers/user.controller';
 import { sendJson } from '../utils/response.handlers';
 import { addOrgsToLocal, checkAuth, ensureOrgExists, ensureTargetOrgExists, validate } from './route.middleware';
+
+const storage = multer.memoryStorage();
+const upload = multer({ storage: storage });
 
 const routes: express.Router = Router();
 
@@ -32,6 +36,8 @@ routes.post(
   validate(userController.routeValidators.resendVerificationEmail),
   userController.resendVerificationEmail
 );
+
+routes.post('/support/email', upload.array('files', 5), userController.emailSupport);
 
 /** Download file or attachment */
 routes.get(
