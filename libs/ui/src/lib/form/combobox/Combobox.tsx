@@ -18,10 +18,10 @@ import uniqueId from 'lodash/uniqueId';
 import React, {
   Children,
   FocusEvent,
-  forwardRef,
   Fragment,
   KeyboardEvent,
   MouseEvent,
+  forwardRef,
   useEffect,
   useImperativeHandle,
   useRef,
@@ -347,7 +347,11 @@ export const Combobox = forwardRef<ComboboxPropsRef, ComboboxProps>(
     const iconNotLoading =
       showSelectionAsButton && onClear && selectedItemLabel ? (
         <div className="slds-input__icon-group slds-input__icon-group_right">
-          <button className="slds-button slds-button_icon slds-input__icon slds-input__icon_right" onClick={handleRemoveItem}>
+          <button
+            className="slds-button slds-button_icon slds-input__icon slds-input__icon_right"
+            onClick={handleRemoveItem}
+            title="Clear value"
+          >
             <Icon type="utility" icon="clear" className="slds-button__icon" omitContainer description="Clear Selection" />
           </button>
         </div>
