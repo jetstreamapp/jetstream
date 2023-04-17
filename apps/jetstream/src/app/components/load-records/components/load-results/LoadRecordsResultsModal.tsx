@@ -6,8 +6,10 @@ import {
   CopyToClipboard,
   DataTable,
   Icon,
-  Modal, setColumnFromType,
-  Spinner, Tooltip
+  Modal,
+  setColumnFromType,
+  Spinner,
+  Tooltip,
 } from '@jetstream/ui';
 import { FunctionComponent, useCallback, useEffect, useRef, useState } from 'react';
 import { RowHeightArgs } from 'react-data-grid';
