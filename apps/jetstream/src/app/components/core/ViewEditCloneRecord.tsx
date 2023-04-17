@@ -37,20 +37,8 @@ function getModalTitle(action: CloneEditView) {
     return 'Edit Record';
   } else if (action === 'clone') {
     return 'Clone Record';
-  } else if (action === 'json') {
-    return 'View as JSON';
   }
   return 'Create Record';
-}
-
-function getButtonState(action: CloneEditView) {
-  if (action === 'view') {
-    return 'VIEW';
-  } else if (action === 'edit' || action === 'clone') {
-    return 'EDIT';
-  } else if (action === 'json') {
-    return 'JSON';
-  }
 }
 
 function getTagline(sobjectName: string, initialRecord?: Record, recordId?: string) {
@@ -100,7 +88,7 @@ export const ViewEditCloneRecord: FunctionComponent<ViewEditCloneRecordProps> = 
   const [showFieldTypes, setShowFieldTypes] = useState<boolean>(false);
   const [formErrors, setFormErrors] = useState<EditFromErrors>({ hasErrors: false, fieldErrors: {}, generalErrors: [] });
   const [modalTitle, setModalTitle] = useState(() => getModalTitle(action));
-  const [buttonState, setButtonState] = useState(() => getButtonState(action));
+  const [isViewAsJson, setIsViewAsJson] = useState(false);
 
   const [downloadModalOpen, setDownloadModalOpen] = useState(false);
 
@@ -113,7 +101,7 @@ export const ViewEditCloneRecord: FunctionComponent<ViewEditCloneRecordProps> = 
 
   useNonInitialEffect(() => {
     setModalTitle(getModalTitle(action));
-    setButtonState(getButtonState(action));
+    setIsViewAsJson(false);
   }, [action]);
 
   useNonInitialEffect(() => {
@@ -299,21 +287,29 @@ export const ViewEditCloneRecord: FunctionComponent<ViewEditCloneRecordProps> = 
           className="h-100 slds-is-relative"
           footer={
             <Fragment>
-              {buttonState === 'VIEW' && (
+              {action === 'view' && (
                 <div>
                   {formErrors.hasErrors && formErrors.generalErrors.length > 0 && (
                     <span className="slds-text-align_left d-inline-block">
                       <PopoverErrorButton errors={formErrors.generalErrors} omitPortal />
                     </span>
                   )}
-                  <button
-                    className="slds-button slds-button_neutral"
-                    onClick={() => onChangeAction('json')}
-                    disabled={loading || !initialRecord}
-                  >
-                    <Icon type="utility" icon="merge_field" className="slds-button__icon slds-button__icon_left" omitContainer />
-                    View as JSON
-                  </button>
+                  {isViewAsJson && (
+                    <button className="slds-button slds-float_left slds-button_neutral" onClick={handleCopyToClipboard}>
+                      <Icon type="utility" icon="download" className="slds-button__icon slds-button__icon_left" omitContainer />
+                      Copy to Clipboard
+                    </button>
+                  )}
+                  {!isViewAsJson && (
+                    <button
+                      className="slds-button slds-button_neutral"
+                      onClick={() => setIsViewAsJson(true)}
+                      disabled={loading || !initialRecord}
+                    >
+                      <Icon type="utility" icon="merge_field" className="slds-button__icon slds-button__icon_left" omitContainer />
+                      View as JSON
+                    </button>
+                  )}
                   <button
                     className="slds-button slds-button_neutral"
                     onClick={() => onChangeAction('edit')}
@@ -343,7 +339,7 @@ export const ViewEditCloneRecord: FunctionComponent<ViewEditCloneRecordProps> = 
                   </button>
                 </div>
               )}
-              {buttonState === 'EDIT' && (
+              {action !== 'view' && (
                 <Grid align="center">
                   <div>
                     {formErrors.hasErrors && formErrors.generalErrors.length > 0 && (
@@ -364,27 +360,13 @@ export const ViewEditCloneRecord: FunctionComponent<ViewEditCloneRecordProps> = 
                   </div>
                 </Grid>
               )}
-              {buttonState === 'JSON' && (
-                <div>
-                  <button className="slds-button slds-float_left slds-button_neutral" onClick={handleCopyToClipboard}>
-                    <Icon type="utility" icon="download" className="slds-button__icon slds-button__icon_left" omitContainer />
-                    Copy to Clipboard
-                  </button>
-                  <button className="slds-button slds-button_neutral" onClick={() => onChangeAction('view')} disabled={loading}>
-                    View Record
-                  </button>
-                  <button className="slds-button slds-button_brand" onClick={() => onClose()} disabled={loading}>
-                    Close
-                  </button>
-                </div>
-              )}
             </Fragment>
           }
           onClose={() => onClose()}
         >
           <div>
             {(loading || saving) && <Spinner />}
-            {!loading && initialRecord && action !== 'json' && (
+            {!loading && initialRecord && !isViewAsJson && (
               <UiRecordForm
                 action={action}
                 sobjectFields={sobjectFields || []}
@@ -395,7 +377,7 @@ export const ViewEditCloneRecord: FunctionComponent<ViewEditCloneRecordProps> = 
               />
             )}
 
-            {!loading && initialRecord && action === 'json' && (
+            {!loading && initialRecord && isViewAsJson && (
               <div className="slds-p-around_large">
                 <Editor
                   height="90vh"

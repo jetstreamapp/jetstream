@@ -37,7 +37,7 @@ export type Clone = 'clone';
 export type Create = 'create';
 export type View = 'view';
 export type Json = 'json';
-export type CloneEditView = Edit | Clone | Create | View | Json;
+export type CloneEditView = Edit | Clone | Create | View;
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export interface WorkerMessage<T, K = any, E = any> {
