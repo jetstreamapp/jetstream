@@ -294,12 +294,10 @@ export const ViewEditCloneRecord: FunctionComponent<ViewEditCloneRecordProps> = 
                       <PopoverErrorButton errors={formErrors.generalErrors} omitPortal />
                     </span>
                   )}
-                  {isViewAsJson && (
-                    <button className="slds-button slds-float_left slds-button_neutral" onClick={handleCopyToClipboard}>
-                      <Icon type="utility" icon="download" className="slds-button__icon slds-button__icon_left" omitContainer />
-                      Copy to Clipboard
-                    </button>
-                  )}
+                  <button className="slds-button slds-float_left slds-button_neutral" onClick={handleCopyToClipboard}>
+                    <Icon type="utility" icon="download" className="slds-button__icon slds-button__icon_left" omitContainer />
+                    Copy to Clipboard
+                  </button>
                   {!isViewAsJson && (
                     <button
                       className="slds-button slds-button_neutral"
