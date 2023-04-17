@@ -1,6 +1,16 @@
 import { css } from '@emotion/react';
 import { useNonInitialEffect } from '@jetstream/shared/ui-utils';
-import { AutoFullHeightContainer, ColumnWithFilter, DataTable, Icon, Modal, setColumnFromType, Spinner } from '@jetstream/ui';
+import {
+  AutoFullHeightContainer,
+  ColumnWithFilter,
+  CopyToClipboard,
+  DataTable,
+  Icon,
+  Modal,
+  Tooltip,
+  setColumnFromType,
+  Spinner,
+} from '@jetstream/ui';
 import { FunctionComponent, useCallback, useEffect, useRef, useState } from 'react';
 import { RowHeightArgs } from 'react-data-grid';
 
@@ -53,6 +63,15 @@ export const LoadRecordsResultsModal: FunctionComponent<LoadRecordsResultsModalP
                       line-height: normal;
                     `}
                   >
+                    {row._errors && (
+                      <Tooltip content={row._errors}>
+                        <CopyToClipboard
+                          icon={{ type: 'utility', icon: 'error', description: 'load error' }}
+                          content={row._errors}
+                          className="slds-text-color_error slds-p-right_x-small"
+                        />
+                      </Tooltip>
+                    )}
                     {row?._errors}
                   </p>
                 )
