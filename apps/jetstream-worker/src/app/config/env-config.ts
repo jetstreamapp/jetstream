@@ -22,7 +22,8 @@ export const ENV = {
   // JETSTREAM
   JETSTREAM_SERVER_DOMAIN: process.env.JETSTREAM_SERVER_DOMAIN,
   JETSTREAM_SERVER_URL: process.env.JETSTREAM_SERVER_URL,
-  JESTREAM_POSTGRES_DBURI: process.env.JESTREAM_POSTGRES_DBURI,
+  // FIXME: there was a typo in env variables, using both temporarily as a safe fallback
+  JETSTREAM_POSTGRES_DBURI: process.env.JETSTREAM_POSTGRES_DBURI || process.env.JESTREAM_POSTGRES_DBURI,
   PRISMA_DEBUG: ensureBoolean(process.env.PRISMA_DEBUG),
   // MAILGUN
   MAILGUN_API_KEY: process.env.MAILGUN_API_KEY,

@@ -152,7 +152,7 @@ TODO: instructions to download and instructions to run
   - Optional
     - `yarn start:ui:storybook` to start the storybook server
       - This runs on `http://localhost:4400`
-      - You can check out the public version of this at https://jestream-storybook.onrender.com
+      - You can check out the public version of this at https://storybook.getjetstream.app
 
 ### Start Jetstream (with docker)
 

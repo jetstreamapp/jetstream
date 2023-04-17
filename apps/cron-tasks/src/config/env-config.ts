@@ -18,7 +18,8 @@ export const ENV = {
   ENVIRONMENT: process.env.ENVIRONMENT || 'production',
   GIT_VERSION: VERSION,
   ROLLBAR_SERVER_TOKEN: process.env.ROLLBAR_SERVER_TOKEN,
-  JESTREAM_POSTGRES_DBURI: process.env.JESTREAM_POSTGRES_DBURI,
+  // FIXME: there was a typo in env variables, using both temporarily as a safe fallback
+  JETSTREAM_POSTGRES_DBURI: process.env.JETSTREAM_POSTGRES_DBURI || process.env.JESTREAM_POSTGRES_DBURI,
   PRISMA_DEBUG: ensureBoolean(process.env.PRISMA_DEBUG),
 
   // AUTH

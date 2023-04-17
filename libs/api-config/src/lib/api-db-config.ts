@@ -1,6 +1,6 @@
 import { Prisma, PrismaClient } from '@prisma/client';
-import { logger } from './api-logger';
 import { Pool } from 'pg';
+import { logger } from './api-logger';
 import { ENV } from './env-config';
 
 process.on('uncaughtException', function (err) {
@@ -19,7 +19,7 @@ export const prisma = new PrismaClient({
 });
 
 export const pgPool = new Pool({
-  connectionString: ENV.JESTREAM_POSTGRES_DBURI,
+  connectionString: ENV.JETSTREAM_POSTGRES_DBURI,
   connectionTimeoutMillis: 2000,
   idleTimeoutMillis: 30000,
 });

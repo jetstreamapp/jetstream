@@ -65,8 +65,8 @@ jobs:
       GOOGLE_APP_ID: ${{ secrets.GOOGLE_APP_ID }}
       GOOGLE_CLIENT_ID: ${{ secrets.GOOGLE_CLIENT_ID }}
       GOOGLE_CLIENT_SECRET: ${{ secrets.GOOGLE_CLIENT_SECRET }}
-      JESTREAM_POSTGRES_DBURI: postgres://postgres:postgres@localhost:5432/postgres
-      JESTREAM_SESSION_SECRET: ${{ secrets.JESTREAM_SESSION_SECRET }}
+      JETSTREAM_POSTGRES_DBURI: postgres://postgres:postgres@localhost:5432/postgres
+      JETSTREAM_SESSION_SECRET: ${{ secrets.JETSTREAM_SESSION_SECRET }}
       JETSTREAM_CLIENT_URL: http://localhost:3333/app
       JETSTREAM_SERVER_DOMAIN: localhost:3333
       JETSTREAM_SERVER_URL: http://localhost:3333
