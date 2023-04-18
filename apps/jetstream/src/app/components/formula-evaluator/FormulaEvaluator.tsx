@@ -2,7 +2,7 @@ import { css } from '@emotion/react';
 import { logger } from '@jetstream/shared/client-logger';
 import { ANALYTICS_KEYS, TITLES } from '@jetstream/shared/constants';
 import { clearCacheForOrg } from '@jetstream/shared/data';
-import { hasModifierKey, isEnterKey, useGlobalEventHandler, useNonInitialEffect } from '@jetstream/shared/ui-utils';
+import { hasModifierKey, isEnterKey, useGlobalEventHandler, useNonInitialEffect, useTitle } from '@jetstream/shared/ui-utils';
 import { SplitWrapper as Split } from '@jetstream/splitjs';
 import { SalesforceOrgUi } from '@jetstream/types';
 import {
@@ -30,15 +30,14 @@ import * as formulon from 'formulon';
 import type { DescribeGlobalSObjectResult } from 'jsforce';
 import type { editor } from 'monaco-editor';
 import { FunctionComponent, useCallback, useEffect, useRef, useState } from 'react';
-import { useTitle } from 'react-use';
 import { useRecoilState, useRecoilValue } from 'recoil';
 import { applicationCookieState, selectedOrgState } from '../../app-state';
 import { useAmplitude } from '../core/analytics';
+import FormulaEvaluatorRecordSearch from './FormulaEvaluatorRecordSearch';
+import FormulaEvaluatorDeployModal from './deploy/FormulaEvaluatorDeployModal';
 import { registerCompletions } from './formula-evaluator.editor-utils';
 import * as fromFormulaState from './formula-evaluator.state';
 import { getFormulaData } from './formula-evaluator.utils';
-import FormulaEvaluatorDeployModal from './deploy/FormulaEvaluatorDeployModal';
-import FormulaEvaluatorRecordSearch from './FormulaEvaluatorRecordSearch';
 
 // Lazy import
 const prettier = import('prettier/standalone');

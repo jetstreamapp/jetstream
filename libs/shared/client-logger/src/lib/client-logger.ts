@@ -82,14 +82,14 @@ export const enableLogger = (enable: boolean) => {
   } else {
     try {
       saveLoggingEnabledState();
-      if (self.document) {
-        logger.log = console.log.bind(window.console, '%c DEBUG', 'color: blue; font-weight: bold;');
-        logger.info = console.info.bind(window.console, '%c INFO', 'color: green; font-weight: bold;');
-        logger.warn = console.warn.bind(window.console, '%c WARN', 'font-weight: bold;');
-        logger.error = console.error.bind(window.console, '%c ERROR', 'font-weight: bold;');
-        logger.group = console.group.bind(window.console);
-        logger.groupCollapsed = console.groupCollapsed.bind(window.console);
-        logger.groupEnd = console.groupEnd.bind(window.console);
+      if (globalThis?.console && globalThis?.document) {
+        logger.log = console.log.bind(globalThis.console, '%c DEBUG', 'color: blue; font-weight: bold;');
+        logger.info = console.info.bind(globalThis.console, '%c INFO', 'color: green; font-weight: bold;');
+        logger.warn = console.warn.bind(globalThis.console, '%c WARN', 'font-weight: bold;');
+        logger.error = console.error.bind(globalThis.console, '%c ERROR', 'font-weight: bold;');
+        logger.group = console.group.bind(globalThis.console);
+        logger.groupCollapsed = console.groupCollapsed.bind(globalThis.console);
+        logger.groupEnd = console.groupEnd.bind(globalThis.console);
       } else {
         // don't bind for worker scope
         logger.log = (...args: any[]) => console.log('[WORKER]', ...args);

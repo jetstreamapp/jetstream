@@ -288,6 +288,7 @@ app.use('/fonts', express.static(join(__dirname, './assets/fonts')));
 if (environment.production || ENV.IS_CI) {
   app.use(express.static(join(__dirname, '../landing/exported')));
   app.use(express.static(join(__dirname, '../jetstream')));
+  app.use('/app/assets', express.static(join(__dirname, '../jetstream/assets')));
   app.use(
     '/sw',
     express.static(join(__dirname, '../download-zip-sw'), {

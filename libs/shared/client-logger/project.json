@@ -27,5 +27,5 @@
       "outputs": ["{workspaceRoot}/coverage/libs/shared/client-logger"]
     }
   },
-  "tags": []
+  "tags": ["scope:shared", "scope:allow-worker-import"]
 }

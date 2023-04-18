@@ -3,7 +3,8 @@ import { useSetTraceFlag } from '@jetstream/connected-ui';
 import { logger } from '@jetstream/shared/client-logger';
 import { ANALYTICS_KEYS, INDEXED_DB, LOG_LEVELS, TITLES } from '@jetstream/shared/constants';
 import { anonymousApex } from '@jetstream/shared/data';
-import { useBrowserNotifications, useDebounce, useNonInitialEffect, useRollbar } from '@jetstream/shared/ui-utils';
+import { useBrowserNotifications, useDebounce, useNonInitialEffect, useRollbar, useTitle } from '@jetstream/shared/ui-utils';
+import { SplitWrapper as Split } from '@jetstream/splitjs';
 import { ApexHistoryItem, ListItem, MapOf, SalesforceOrgUi } from '@jetstream/types';
 import {
   AutoFullHeightContainer,
@@ -22,10 +23,8 @@ import localforage from 'localforage';
 import escapeRegExp from 'lodash/escapeRegExp';
 import type { editor } from 'monaco-editor';
 import { Fragment, FunctionComponent, MouseEvent, useCallback, useEffect, useRef, useState } from 'react';
-import { SplitWrapper as Split } from '@jetstream/splitjs';
-import { useTitle } from 'react-use';
 import { useRecoilState, useRecoilValue } from 'recoil';
-import { applicationCookieState, selectedOrgState, STORAGE_KEYS } from '../../app-state';
+import { STORAGE_KEYS, applicationCookieState, selectedOrgState } from '../../app-state';
 import { useAmplitude } from '../core/analytics';
 import AnonymousApexFilter from './AnonymousApexFilter';
 import AnonymousApexHistory from './AnonymousApexHistory';

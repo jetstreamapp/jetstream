@@ -12,5 +12,5 @@
       }
     }
   },
-  "tags": []
+  "tags": ["scope:shared", "scope:allow-worker-import"]
 }

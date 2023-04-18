@@ -47,5 +47,5 @@
       "outputs": ["{options.outputDir}"]
     }
   },
-  "tags": []
+  "tags": ["scope:shared"]
 }

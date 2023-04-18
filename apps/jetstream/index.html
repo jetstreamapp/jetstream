@@ -21,11 +21,13 @@
     <link rel="apple-touch-icon" sizes="180x180" href="/assets/images/apple-icon-180x180.png" />
     <link rel="icon" type="image/png" sizes="192x192" href="/assets/images/android-icon-192x192.png" />
 
-    <link rel="manifest" href="/assets/images/manifest.json" />
+    <!-- FIXME: need to figure out how/when to include this! -->
+    <!-- <link rel="manifest" href="/assets/images/manifest.json" /> -->
 
     <meta name="msapplication-TileColor" content="#ffffff" />
     <meta name="msapplication-TileImage" content="/images/ms-icon-144x144.png" />
 
+    <!-- FIXME: these do not work in dev -->
     <link rel="icon" type="image/png" sizes="32x32" href="/assets/images/favicon-32x32.png" />
     <link rel="icon" type="image/png" sizes="96x96" href="/assets/images/favicon-96x96.png" />
     <link rel="icon" type="image/png" sizes="16x16" href="/assets/images/favicon-16x16.png" />
@@ -50,5 +52,6 @@
   <body>
     <div id="root"></div>
     <div id="modal-root"></div>
+    <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>

@@ -1,6 +1,6 @@
 import { describeSObject, genericRequest } from '@jetstream/shared/data';
-import { getMapOf, REGEX, splitArrayToMaxSize } from '@jetstream/shared/utils';
-import {
+import { REGEX, getMapOf, splitArrayToMaxSize } from '@jetstream/shared/utils';
+import type {
   CompositeRequestBody,
   CompositeResponse,
   DebugLevel,
@@ -16,7 +16,7 @@ import addHours from 'date-fns/addHours';
 import formatISO from 'date-fns/formatISO';
 import type { DescribeSObjectResult, Field } from 'jsforce';
 import { composeQuery, getField } from 'soql-parser-js';
-import { polyfillFieldDefinition, sortQueryFields } from './shared-ui-utils';
+import { isRelationshipField, polyfillFieldDefinition, sortQueryFields } from './shared-ui-utils';
 
 export function buildQuery(sObject: string, fields: string[]) {
   return composeQuery({ sObject, fields: fields.map((field) => getField(field)) }, { format: true });
@@ -116,11 +116,6 @@ export function fetchFieldsProcessResults(
   );
 
   return { ...queryFields, fields, visibleFields: new Set(Object.keys(fields)), childRelationships, metadata: describeResults };
-}
-
-export function isRelationshipField(field: Field): boolean {
-  // Some fields are listed as a string, but are actually lookup fields
-  return (field.type === 'reference' || field.type === 'string') && !!field.relationshipName && !!field.referenceTo?.length;
 }
 
 /**

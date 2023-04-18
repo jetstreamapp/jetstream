@@ -27,5 +27,5 @@
       "outputs": ["{workspaceRoot}/coverage/libs/api-interfaces"]
     }
   },
-  "tags": []
+  "tags": ["scope:shared", "scope:allow-worker-import", "scope:type-only"]
 }

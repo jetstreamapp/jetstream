@@ -58,5 +58,5 @@
       "outputs": ["{options.outputDir}"]
     }
   },
-  "tags": ["ui"]
+  "tags": ["scope:shared"]
 }

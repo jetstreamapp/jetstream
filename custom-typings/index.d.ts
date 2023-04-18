@@ -1,3 +1,4 @@
+import 'vite/client';
 import type { ApplicationCookie, ElectronPreferences, SalesforceOrgUi } from '../libs/types/src';
 
 // https://webpack.js.org/loaders/worker-loader/#integrating-with-typescript
