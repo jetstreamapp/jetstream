@@ -1,6 +1,6 @@
 import { GoogleApiClientConfig, useGoogleApi } from '@jetstream/shared/ui-utils';
 import classNames from 'classnames';
-import { FunctionComponent, ReactNode, useEffect } from 'react';
+import { FunctionComponent, ReactNode, useEffect, useState } from 'react';
 import Icon from '../widgets/Icon';
 
 export interface GoogleProfile {
@@ -27,6 +27,7 @@ export const GoogleSignIn: FunctionComponent<GoogleSignInProps> = ({
   onSignInChanged,
 }) => {
   const { getToken, error, loading, isTokenValid } = useGoogleApi(apiConfig);
+  const [isLoginValid, setIsLoginValid] = useState(isTokenValid());
 
   useEffect(() => {
     if (error) {
@@ -41,6 +42,7 @@ export const GoogleSignIn: FunctionComponent<GoogleSignInProps> = ({
   async function handleSignIn() {
     try {
       await getToken();
+      setIsLoginValid(true);
       onSignInChanged && onSignInChanged(true);
     } catch (ex) {
       onSignInChanged && onSignInChanged(false);
@@ -49,7 +51,7 @@ export const GoogleSignIn: FunctionComponent<GoogleSignInProps> = ({
 
   return (
     <div className={className}>
-      {!isTokenValid() && (
+      {!isLoginValid && (
         <div className={classNames('slds-form-element', { 'slds-has-error': !!error }, className)}>
           <span className="slds-form-element__label">Google Drive</span>
           <div className="slds-form-element__control">
@@ -65,7 +67,7 @@ export const GoogleSignIn: FunctionComponent<GoogleSignInProps> = ({
           )}
         </div>
       )}
-      {isTokenValid() && children}
+      {isLoginValid && children}
     </div>
   );
 };
