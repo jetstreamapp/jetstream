@@ -45,6 +45,7 @@ export const GoogleSignIn: FunctionComponent<GoogleSignInProps> = ({
       setIsLoginValid(true);
       onSignInChanged && onSignInChanged(true);
     } catch (ex) {
+      setIsLoginValid(false);
       onSignInChanged && onSignInChanged(false);
     }
   }
