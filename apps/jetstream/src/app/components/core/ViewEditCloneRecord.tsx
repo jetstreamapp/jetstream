@@ -14,6 +14,8 @@ import {
   SobjectCollectionResponse,
 } from '@jetstream/types';
 import { FileDownloadModal, Grid, Icon, Modal, PopoverErrorButton, Spinner } from '@jetstream/ui';
+import Editor from '@monaco-editor/react';
+import copyToClipboard from 'copy-to-clipboard';
 import type { Field } from 'jsforce';
 import isUndefined from 'lodash/isUndefined';
 import { Fragment, FunctionComponent, useCallback, useEffect, useRef, useState } from 'react';
@@ -86,6 +88,7 @@ export const ViewEditCloneRecord: FunctionComponent<ViewEditCloneRecordProps> = 
   const [showFieldTypes, setShowFieldTypes] = useState<boolean>(false);
   const [formErrors, setFormErrors] = useState<EditFromErrors>({ hasErrors: false, fieldErrors: {}, generalErrors: [] });
   const [modalTitle, setModalTitle] = useState(() => getModalTitle(action));
+  const [isViewAsJson, setIsViewAsJson] = useState(false);
 
   const [downloadModalOpen, setDownloadModalOpen] = useState(false);
 
@@ -98,6 +101,7 @@ export const ViewEditCloneRecord: FunctionComponent<ViewEditCloneRecordProps> = 
 
   useNonInitialEffect(() => {
     setModalTitle(getModalTitle(action));
+    setIsViewAsJson(false);
   }, [action]);
 
   useNonInitialEffect(() => {
@@ -254,6 +258,10 @@ export const ViewEditCloneRecord: FunctionComponent<ViewEditCloneRecordProps> = 
     }
   }
 
+  function handleCopyToClipboard() {
+    copyToClipboard(initialRecord, { format: 'text/plain' });
+  }
+
   return (
     <div>
       {downloadModalOpen && (
@@ -285,6 +293,20 @@ export const ViewEditCloneRecord: FunctionComponent<ViewEditCloneRecordProps> = 
                     <span className="slds-text-align_left d-inline-block">
                       <PopoverErrorButton errors={formErrors.generalErrors} omitPortal />
                     </span>
+                  )}
+                  <button className="slds-button slds-float_left slds-button_neutral" onClick={handleCopyToClipboard}>
+                    <Icon type="utility" icon="download" className="slds-button__icon slds-button__icon_left" omitContainer />
+                    Copy to Clipboard
+                  </button>
+                  {!isViewAsJson && (
+                    <button
+                      className="slds-button slds-button_neutral"
+                      onClick={() => setIsViewAsJson(true)}
+                      disabled={loading || !initialRecord}
+                    >
+                      <Icon type="utility" icon="merge_field" className="slds-button__icon slds-button__icon_left" omitContainer />
+                      View as JSON
+                    </button>
                   )}
                   <button
                     className="slds-button slds-button_neutral"
@@ -342,7 +364,7 @@ export const ViewEditCloneRecord: FunctionComponent<ViewEditCloneRecordProps> = 
         >
           <div>
             {(loading || saving) && <Spinner />}
-            {!loading && initialRecord && (
+            {!loading && initialRecord && !isViewAsJson && (
               <UiRecordForm
                 action={action}
                 sobjectFields={sobjectFields || []}
@@ -351,6 +373,18 @@ export const ViewEditCloneRecord: FunctionComponent<ViewEditCloneRecordProps> = 
                 saveErrors={formErrors.fieldErrors}
                 onChange={handleRecordChange}
               />
+            )}
+
+            {!loading && initialRecord && isViewAsJson && (
+              <div className="slds-p-around_large">
+                <Editor
+                  height="90vh"
+                  theme="vs-dark"
+                  defaultLanguage="json"
+                  value={JSON.stringify(initialRecord, null, 2)}
+                  options={{ readOnly: true }}
+                />
+              </div>
             )}
           </div>
         </Modal>

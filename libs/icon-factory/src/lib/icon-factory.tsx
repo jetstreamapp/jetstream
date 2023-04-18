@@ -80,6 +80,7 @@ import UtilityIcon_Italic from './icons/utility/Italic';
 import UtilityIcon_Left from './icons/utility/Left';
 import UtilityIcon_Link from './icons/utility/Link';
 import UtilityIcon_Logout from './icons/utility/Logout';
+import UtilityIcon_MergeField from './icons/utility/MergeField';
 import UtilityIcon_MinimizeWindow from './icons/utility/MinimizeWindow';
 import UtilityIcon_Moneybag from './icons/utility/Moneybag';
 import UtilityIcon_MultiSelectCheckbox from './icons/utility/MultiSelectCheckbox';
@@ -229,6 +230,7 @@ const utilityIcons = {
   link: UtilityIcon_Link,
   logout: UtilityIcon_Logout,
   minimize_window: UtilityIcon_MinimizeWindow,
+  merge_field: UtilityIcon_MergeField,
   moneybag: UtilityIcon_Moneybag,
   multi_select_checkbox: UtilityIcon_MultiSelectCheckbox,
   new_window: UtilityIcon_NewWindow,
