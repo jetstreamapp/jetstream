@@ -138,10 +138,6 @@ export function useGoogleApi({ clientId, scopes = [SCOPES['drive.file']] }: Goog
     }
   }, [rollbar]);
 
-  // const isTokenValid = useCallback(() => {
-  //   return !!tokenClient.current && !!tokenResponse.current && !!tokenExpiration.current && isAfter(tokenExpiration.current, new Date());
-  // }, []);
-
   const isTokenValid = useCallback(() => {
     return !!tokenClient.current && !!tokenResponse.current && !!currentTokenExpiration && isAfter(currentTokenExpiration, new Date());
   }, [currentTokenExpiration]);
