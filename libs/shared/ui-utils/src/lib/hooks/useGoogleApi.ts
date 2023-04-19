@@ -43,6 +43,7 @@ export function useGoogleApi({ clientId, scopes = [SCOPES['drive.file']] }: Goog
     | undefined
   >();
   const tokenExpiration = useRef<Maybe<Date>>(_tokenExpiration);
+  const [currentTokenExpiration, setCurrentTokenExpiration] = useState<Maybe<Date>>(tokenExpiration.current);
   const [gapiScriptLoaded, gapiScriptLoadError] = useInjectScriptGapi();
   const [gisScriptLoaded, gisScriptLoadError] = useInjectScriptGis();
   const [loading, setLoading] = useState(!_apiLoaded);
@@ -75,6 +76,7 @@ export function useGoogleApi({ clientId, scopes = [SCOPES['drive.file']] }: Goog
     if (response.error !== undefined) {
       _tokenExpiration = null;
       tokenExpiration.current = _tokenExpiration;
+      setCurrentTokenExpiration(tokenExpiration.current);
       setError(response.error);
       if (tokenCallback.current) {
         tokenCallback.current.reject(response);
@@ -83,6 +85,7 @@ export function useGoogleApi({ clientId, scopes = [SCOPES['drive.file']] }: Goog
     } else {
       _tokenExpiration = addSeconds(new Date(), Number(response.expires_in));
       tokenExpiration.current = _tokenExpiration;
+      setCurrentTokenExpiration(tokenExpiration.current);
       setError(null);
       if (tokenCallback.current) {
         tokenCallback.current.resolve(response);
@@ -135,9 +138,13 @@ export function useGoogleApi({ clientId, scopes = [SCOPES['drive.file']] }: Goog
     }
   }, [rollbar]);
 
+  // const isTokenValid = useCallback(() => {
+  //   return !!tokenClient.current && !!tokenResponse.current && !!tokenExpiration.current && isAfter(tokenExpiration.current, new Date());
+  // }, []);
+
   const isTokenValid = useCallback(() => {
-    return !!tokenClient.current && !!tokenResponse.current && !!tokenExpiration.current && isAfter(tokenExpiration.current, new Date());
-  }, []);
+    return !!tokenClient.current && !!tokenResponse.current && !!currentTokenExpiration && isAfter(currentTokenExpiration, new Date());
+  }, [currentTokenExpiration]);
 
   const getToken = useCallback(() => {
     return new Promise<google.accounts.oauth2.TokenResponse>((resolve, reject) => {
@@ -163,6 +170,7 @@ export function useGoogleApi({ clientId, scopes = [SCOPES['drive.file']] }: Goog
     _tokenResponse = tokenResponse.current;
     _tokenExpiration = null;
     tokenExpiration.current = _tokenExpiration;
+    setCurrentTokenExpiration(tokenExpiration.current);
   }, []);
 
   return {
