@@ -288,39 +288,19 @@ app.use('/fonts', express.static(join(__dirname, './assets/fonts')));
 if (environment.production || ENV.IS_CI) {
   app.use(express.static(join(__dirname, '../landing/exported')));
   app.use(express.static(join(__dirname, '../jetstream')));
-  app.use('/app/assets', express.static(join(__dirname, '../jetstream/assets')));
-  app.use(
-    '/sw',
-    express.static(join(__dirname, '../download-zip-sw'), {
-      index: false,
-      extensions: ['js'],
-      cacheControl: false,
-      setHeaders: (res, url) => {
-        if (url.endsWith('.sw.js')) {
-          res.setHeader('Service-Worker-Allowed', '/jetstream-download-zip');
-        }
-      },
-    })
-  );
+  // SERVICE WORKER FOR DOWNLOAD ZIP
+  app.use('/download-zip.sw.js', (req: express.Request, res: express.Response) => {
+    res.sendFile(join(__dirname, '../download-zip-sw/download-zip.sw.js'), { maxAge: '1m' });
+  });
   app.use('/app', logRoute, (req: express.Request, res: express.Response) => {
     res.sendFile(join(__dirname, '../jetstream/index.html'));
   });
 } else {
   // localhost will only use landing page resources
   app.use(express.static(join(__dirname, '../../../dist/apps/landing/exported')));
-  app.use(
-    '/sw',
-    express.static(join(__dirname, '../../../dist/apps/download-zip-sw'), {
-      index: false,
-      extensions: ['js'],
-      cacheControl: false,
-      setHeaders: (res, url) => {
-        if (url.endsWith('.sw.js')) {
-          res.setHeader('Service-Worker-Allowed', '/jetstream-download-zip');
-        }
-      },
-    })
-  );
+  app.use('/download-zip.sw.js', (req: express.Request, res: express.Response) => {
+    res.sendFile(join(__dirname, '../../../dist/apps/download-zip-sw/download-zip.sw.js'), { maxAge: '1m' });
+  });
 }
 
 /**

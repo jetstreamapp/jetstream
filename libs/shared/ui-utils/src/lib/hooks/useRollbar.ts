@@ -1,9 +1,10 @@
-import { Environment, UserProfileUi } from '@jetstream/types';
 import { logBuffer, logger } from '@jetstream/shared/client-logger';
+import { NOOP } from '@jetstream/shared/utils';
+import { Environment, UserProfileUi } from '@jetstream/types';
+import isBoolean from 'lodash/isBoolean';
 import { useState } from 'react';
 import Rollbar, { LogArgument } from 'rollbar';
 import { useNonInitialEffect } from './useNonInitialEffect';
-import isBoolean from 'lodash/isBoolean';
 
 const REPLACE_HOST_REGEX = /[a-zA-Z0-9._-]*?getjetstream.app/;
 
@@ -167,7 +168,11 @@ export function useRollbar(options?: RollbarProperties, optOut?: boolean): Rollb
     setRollbarConfig(RollbarConfig.getInstance(options, optOut));
   }, [options, optOut]);
 
-  return rollbarConfig.rollbar;
+  return (
+    rollbarConfig.rollbar || {
+      error: NOOP,
+    }
+  );
 }
 
 // This should be used outside of a component (e.x. utility function)

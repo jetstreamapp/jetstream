@@ -85,13 +85,13 @@ const messageHandlers = {
 };
 
 // /////////// EVENT HANDLERS /////////// //
-self.addEventListener('install', () => {
-  logger.log('[SW]', 'Installing worker and skip waiting');
+self.addEventListener('install', (event) => {
+  logger.log('[SW]', 'Installing worker and skip waiting', { event });
   self.skipWaiting();
 });
 
-self.addEventListener('activate', () => {
-  logger.log('[SW]', 'Activating worker and skip waiting');
+self.addEventListener('activate', (event) => {
+  logger.log('[SW]', 'Activating worker and skip waiting', { event });
   self.skipWaiting();
   self.clients.claim();
 });
