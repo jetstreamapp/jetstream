@@ -63,9 +63,6 @@ class RollbarConfig {
         },
         hostBlockList: ['localhost'],
         payload: {
-          server: {
-            root: 'webpack:///./',
-          },
           client: {
             javascript: {
               source_map_enabled: true,
@@ -153,6 +150,10 @@ class RollbarConfig {
   }
 }
 
+const FALLBACK = {
+  error: NOOP,
+};
+
 /**
  * Parameters are only required on initialization component
  * Anything else lower in the tree will be able to use without arguments
@@ -168,11 +169,7 @@ export function useRollbar(options?: RollbarProperties, optOut?: boolean): Rollb
     setRollbarConfig(RollbarConfig.getInstance(options, optOut));
   }, [options, optOut]);
 
-  return (
-    rollbarConfig.rollbar || {
-      error: NOOP,
-    }
-  );
+  return rollbarConfig.rollbar || FALLBACK;
 }
 
 // This should be used outside of a component (e.x. utility function)
