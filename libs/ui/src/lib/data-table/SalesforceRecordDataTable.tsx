@@ -23,7 +23,7 @@ import {
   NON_DATA_COLUMN_KEYS,
   TABLE_CONTEXT_MENU_ITEMS,
 } from './data-table-utils';
-import { DataTable } from './DataTable';
+import { DataTable, DataTableProperties } from './DataTable';
 
 const SFDC_EMPTY_ID = '000000000000000AAA';
 
@@ -255,7 +255,7 @@ export const SalesforceRecordDataTable: FunctionComponent<SalesforceRecordDataTa
         <Grid className="slds-p-around_xx-small" align="spread">
           <div className="slds-grid">
             <div className="slds-p-around_x-small">
-              Showing {formatNumber(records.length)} of {formatNumber(totalRecordCount || 0)} records
+              Showing {formatNumber(DataTableProperties.currentDisplayRecordCount)} of {formatNumber(totalRecordCount || 0)} records
             </div>
             {hasMoreRecords && (
               <div>

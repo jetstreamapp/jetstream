@@ -3,9 +3,9 @@ import { logger } from '@jetstream/shared/client-logger';
 import { useNonInitialEffect } from '@jetstream/shared/ui-utils';
 import { orderObjectsBy, orderStringsBy } from '@jetstream/shared/utils';
 import { SalesforceOrgUi } from '@jetstream/types';
-import uniqueId from 'lodash/uniqueId';
 import escapeRegExp from 'lodash/escapeRegExp';
 import isNil from 'lodash/isNil';
+import uniqueId from 'lodash/uniqueId';
 import { forwardRef, useCallback, useContext, useEffect, useImperativeHandle, useMemo, useReducer, useState } from 'react';
 import DataGrid, {
   DataGridProps,
@@ -176,6 +176,10 @@ export interface DataTableProps<T = RowWithKey, TContext = Record<string, any>>
   onSortedAndFilteredRowsChange?: (rows: readonly T[]) => void;
 }
 
+export const DataTableProperties = {
+  currentDisplayRecordCount: 0,
+};
+
 export const DataTable = forwardRef<any, DataTableProps<any>>(
   <T extends object>(
     {
@@ -310,6 +314,7 @@ export const DataTable = forwardRef<any, DataTableProps<any>>(
     }, [columnMap, filters, getRowKey, includeQuickFilter, quickFilterText, rowAlwaysVisible, rowFilterText, sortedRows]);
 
     useEffect(() => {
+      DataTableProperties.currentDisplayRecordCount = filteredRows.length;
       onSortedAndFilteredRowsChange && onSortedAndFilteredRowsChange(filteredRows);
     }, [filteredRows, onSortedAndFilteredRowsChange]);
 
