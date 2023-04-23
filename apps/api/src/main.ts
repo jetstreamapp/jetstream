@@ -38,7 +38,7 @@ const sessionMiddleware = session({
     maxAge: 1000 * 60 * 60 * 24 * SESSION_EXP_DAYS,
     // sameSite: 'strict',
   },
-  secret: ENV.JESTREAM_SESSION_SECRET,
+  secret: ENV.JETSTREAM_SESSION_SECRET,
   resave: false,
   saveUninitialized: false,
   // This will extend the cookie expiration date if there is a request of any kind to a logged in user

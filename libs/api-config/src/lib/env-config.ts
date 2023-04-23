@@ -54,9 +54,11 @@ export const ENV = {
   ROLLBAR_SERVER_TOKEN: process.env.ROLLBAR_SERVER_TOKEN,
   // JETSTREAM
   JETSTREAM_SERVER_DOMAIN: process.env.JETSTREAM_SERVER_DOMAIN,
-  JESTREAM_SESSION_SECRET: process.env.JESTREAM_SESSION_SECRET || '',
+  // FIXME: there was a typo in env variables, using both temporarily as a safe fallback
+  JETSTREAM_SESSION_SECRET: process.env.JETSTREAM_SESSION_SECRET || process.env.JESTREAM_SESSION_SECRET || '',
   JETSTREAM_SERVER_URL: process.env.JETSTREAM_SERVER_URL,
-  JESTREAM_POSTGRES_DBURI: process.env.JESTREAM_POSTGRES_DBURI,
+  // FIXME: there was a typo in env variables, using both temporarily as a safe fallback
+  JETSTREAM_POSTGRES_DBURI: process.env.JETSTREAM_POSTGRES_DBURI || process.env.JESTREAM_POSTGRES_DBURI,
   JETSTREAM_CLIENT_URL: process.env.JETSTREAM_CLIENT_URL,
   JETSTREAM_WORKER_URL: process.env.JETSTREAM_WORKER_URL,
   PRISMA_DEBUG: ensureBoolean(process.env.PRISMA_DEBUG),

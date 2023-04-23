@@ -1,7 +1,6 @@
+import { ENV, logger } from '@jetstream/api-config';
 import Fastify from 'fastify';
 import PgBoss from 'pg-boss';
-import { ENV } from '@jetstream/api-config';
-import { logger } from '@jetstream/api-config';
 import emailJob, { EMAIL_JOB_TYPE } from './app/jobs/email.job';
 import { POST_JOB_SCHEMA } from './app/schemas';
 import { JobRequestEmail } from './app/types';
@@ -48,7 +47,7 @@ async function initWorker() {
   logger.info('[STARTING WORKER]');
   try {
     boss = new PgBoss({
-      connectionString: ENV.JESTREAM_POSTGRES_DBURI,
+      connectionString: ENV.JETSTREAM_POSTGRES_DBURI,
       application_name: 'jetstream-worker',
     });
 
