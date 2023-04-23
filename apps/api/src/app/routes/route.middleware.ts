@@ -23,7 +23,7 @@ export function setApplicationCookieMiddleware(req: express.Request, res: expres
   const appCookie: ApplicationCookie = {
     serverUrl: ENV.JETSTREAM_SERVER_URL!,
     environment: ENV.ENVIRONMENT as any,
-    defaultApiVersion: `v${ENV.SFDC_FALLBACK_API_VERSION}`,
+    defaultApiVersion: `v${ENV.SFDC_API_VERSION}`,
     google_appId: ENV.GOOGLE_APP_ID!,
     google_apiKey: ENV.GOOGLE_API_KEY!,
     google_clientId: ENV.GOOGLE_CLIENT_ID!,
@@ -248,12 +248,12 @@ export async function getOrgForRequest(user: UserProfileServer, uniqueId: string
     accessToken,
     refreshToken,
     maxRequest: 5,
-    version: apiVersion || org.apiVersion || ENV.SFDC_FALLBACK_API_VERSION,
+    version: apiVersion || org.apiVersion || ENV.SFDC_API_VERSION,
     callOptions: {
       // Magical metadata shows up when using this
       // http://www.fishofprey.com/2016/03/salesforce-forcecom-ide-superpowers.html
       // FIXME: this breaks some orgs
-      // client: `apex_eclipse/v${apiVersion || org.apiVersion || ENV.SFDC_FALLBACK_API_VERSION}`,
+      // client: `apex_eclipse/v${apiVersion || org.apiVersion || ENV.SFDC_API_VERSION}`,
     },
   };
 
