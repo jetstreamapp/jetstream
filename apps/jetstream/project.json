@@ -6,22 +6,12 @@
   "generators": {},
   "targets": {
     "build": {
-      "executor": "@nrwl/webpack:webpack",
+      "executor": "@nrwl/vite:build",
       "options": {
-        "outputPath": "dist/apps/jetstream",
-        "index": "apps/jetstream/src/index.html",
-        "main": "apps/jetstream/src/main.tsx",
-        "polyfills": "apps/jetstream/src/polyfills.ts",
-        "tsConfig": "apps/jetstream/tsconfig.app.json",
-        "assets": ["apps/jetstream/src/favicon.ico", "apps/jetstream/src/assets", "apps/jetstream/src/electron-assets"],
-        "styles": [],
-        "scripts": [],
-        "webpackConfig": "webpack.config.js",
-        "isolatedConfig": true
+        "outputPath": "dist/apps/jetstream"
       },
       "configurations": {
         "production": {
-          "baseHref": "/app",
           "fileReplacements": [
             {
               "replace": "apps/jetstream/src/environments/environment.ts",
@@ -48,7 +38,6 @@
           ]
         },
         "docker": {
-          "baseHref": "/app",
           "fileReplacements": [
             {
               "replace": "apps/jetstream/src/environments/environment.ts",
@@ -131,7 +120,7 @@
       "defaultConfiguration": "production"
     },
     "serve": {
-      "executor": "@nrwl/webpack:dev-server",
+      "executor": "@nrwl/vite:dev-server",
       "options": {
         "buildTarget": "jetstream:build",
         "hmr": true,
@@ -172,6 +161,22 @@
         "passWithNoTests": true
       },
       "outputs": ["{workspaceRoot}/coverage/apps/jetstream"]
+    },
+    "preview": {
+      "executor": "@nrwl/vite:preview-server",
+      "defaultConfiguration": "development",
+      "options": {
+        "buildTarget": "jetstream:build",
+        "open": true
+      },
+      "configurations": {
+        "development": {
+          "buildTarget": "jetstream:build:development"
+        },
+        "production": {
+          "buildTarget": "jetstream:build:production"
+        }
+      }
     }
   },
   "tags": []

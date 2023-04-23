@@ -3,7 +3,6 @@
   "$schema": "../../node_modules/nx/schemas/project-schema.json",
   "sourceRoot": "libs/splitjs/src",
   "projectType": "library",
-  "tags": [],
   "targets": {
     "lint": {
       "executor": "@nrwl/linter:eslint",
@@ -20,5 +19,6 @@
         "passWithNoTests": true
       }
     }
-  }
+  },
+  "tags": ["scope:shared"]
 }

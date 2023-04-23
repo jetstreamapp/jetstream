@@ -11,7 +11,7 @@ import {
 } from '@jetstream/shared/ui-utils';
 import { Maybe, Record, SalesforceOrgUi } from '@jetstream/types';
 import { Icon, Modal, ScopedNotification, Tooltip } from '@jetstream/ui';
-import React, { Fragment, FunctionComponent, useEffect, useState } from 'react';
+import { Fragment, FunctionComponent, useEffect, useState } from 'react';
 import { useAmplitude } from '../../core/analytics';
 
 export interface QueryResultsAttachmentDownloadProps {

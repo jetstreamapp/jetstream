@@ -1,5 +1,13 @@
 /// <reference lib="webworker" />
 /* eslint-disable @typescript-eslint/no-explicit-any */
+import {
+  base64ToArrayBuffer,
+  getOrgUrlParams,
+  pollBulkApiJobUntilDone,
+  pollRetrieveMetadataResultsUntilDone,
+  prepareCsvFile,
+  prepareExcelFile,
+} from '@jetstream/shared/browser-worker-utils';
 import { logger } from '@jetstream/shared/client-logger';
 import { MIME_TYPES } from '@jetstream/shared/constants';
 import {
@@ -13,14 +21,6 @@ import {
   sobjectOperation,
 } from '@jetstream/shared/data';
 import {
-  base64ToArrayBuffer,
-  getOrgUrlParams,
-  pollBulkApiJobUntilDone,
-  pollRetrieveMetadataResultsUntilDone,
-  prepareCsvFile,
-  prepareExcelFile,
-} from '@jetstream/shared/ui-utils';
-import {
   flattenRecords,
   getIdFromRecordUrl,
   getMapOfBaseAndSubqueryRecords,
@@ -28,7 +28,7 @@ import {
   replaceSubqueryQueryResultsWithRecords,
   splitArrayToMaxSize,
 } from '@jetstream/shared/utils';
-import {
+import type {
   AsyncJobType,
   AsyncJobWorkerMessagePayload,
   AsyncJobWorkerMessageResponse,
@@ -44,14 +44,18 @@ import type { Record } from 'jsforce';
 import isString from 'lodash/isString';
 import { axiosElectronAdapter, initMessageHandler } from '../components/core/electron-axios-adapter';
 
-// eslint-disable-next-line no-restricted-globals
-const ctx: Worker = self as any;
+declare const self: DedicatedWorkerGlobalScope;
+logger.log('[JOBS WORKER] INITIALIZED');
 
 // Updated if a job is attempted to be cancelled, the job will check this on each iteration and cancel if possible
 const cancelledJobIds = new Set<string>();
 
+self.addEventListener('error', (event) => {
+  console.log('WORKER ERROR', event);
+});
+
 // Respond to message from parent thread
-ctx.addEventListener('message', (event) => {
+self.addEventListener('message', (event) => {
   const payload: WorkerMessage<AsyncJobType, AsyncJobWorkerMessagePayload> = event.data;
   logger.info({ payload });
   handleMessage(payload.name, payload.data, event.ports?.[0]);
@@ -217,7 +221,7 @@ async function handleMessage(name: AsyncJobType, payloadData: AsyncJobWorkerMess
             throw new Error('A valid file type type has not been selected');
         }
 
-        const results = { done: true, progress: 100, fileData, mimeType, fileName, fileFormat, googleFolder };
+        const results = { done: true, progress: 100, fileData, mimeType: '', fileName, fileFormat, googleFolder };
 
         const response: AsyncJobWorkerMessageResponse = { job, results };
         replyToMessage(name, response);
@@ -308,7 +312,5 @@ async function handleMessage(name: AsyncJobType, payloadData: AsyncJobWorkerMess
 
 function replyToMessage(name: string, data: any, error?: any, transferrable?: any) {
   transferrable = transferrable ? [transferrable] : undefined;
-  ctx.postMessage({ name, data, error }, transferrable);
+  self.postMessage({ name, data, error }, transferrable);
 }
-
-export default null as any;

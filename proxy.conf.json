@@ -19,7 +19,7 @@
     "target": "http://localhost:3333",
     "secure": false
   },
-  "/sw": {
+  "/download-zip.sw.js": {
     "target": "http://localhost:3333",
     "secure": false
   },

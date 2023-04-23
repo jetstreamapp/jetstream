@@ -1,5 +1,5 @@
 import { TITLES } from '@jetstream/shared/constants';
-import { useTitle } from 'react-use';
+import { useTitle } from '@jetstream/shared/ui-utils';
 import FeedbackForm from './FeedbackForm';
 
 export const Feedback = () => {

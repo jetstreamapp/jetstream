@@ -10,7 +10,7 @@ import groupBy from 'lodash/groupBy';
 import isNil from 'lodash/isNil';
 import isString from 'lodash/isString';
 import { composeQuery, getField, Query, WhereClause } from 'soql-parser-js';
-import {
+import type {
   FieldMapping,
   FieldMappingItem,
   FieldRelatedEntity,

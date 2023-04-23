@@ -29,7 +29,7 @@ import Job from './Job';
 import JobPlaceholder from './JobPlaceholder';
 import { jobsState, jobsUnreadState, selectActiveJobCount, selectJobs } from './jobs.state';
 
-const jobsWorker = new Worker(new URL('../../../workers/jobs.worker', import.meta.url));
+const jobsWorker = new Worker(new URL('../../../workers/jobs.worker.ts', import.meta.url), { type: 'module' });
 
 if (jobsWorker && window.electron?.isElectron) {
   (async () => {

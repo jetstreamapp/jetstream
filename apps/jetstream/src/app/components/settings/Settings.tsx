@@ -1,14 +1,13 @@
 import { logger } from '@jetstream/shared/client-logger';
 import { ANALYTICS_KEYS, TITLES } from '@jetstream/shared/constants';
 import { deleteUserProfile, getFullUserProfile, resendVerificationEmail, updateUserProfile } from '@jetstream/shared/data';
-import { eraseCookies, useRollbar } from '@jetstream/shared/ui-utils';
+import { eraseCookies, useRollbar, useTitle } from '@jetstream/shared/ui-utils';
 import { Auth0ConnectionName, Maybe, UserProfileAuth0Identity, UserProfileAuth0Ui, UserProfileUi } from '@jetstream/types';
 import { AutoFullHeightContainer, Page, PageHeader, PageHeaderRow, PageHeaderTitle, ScopedNotification, Spinner } from '@jetstream/ui';
 import localforage from 'localforage';
 import { Fragment, FunctionComponent, useCallback, useEffect, useRef, useState } from 'react';
-import { useTitle } from 'react-use';
-import { useAmplitude } from '../core/analytics';
 import { fireToast } from '../core/AppToast';
+import { useAmplitude } from '../core/analytics';
 import LoggerConfig from './LoggerConfig';
 import SettingsDeleteAccount from './SettingsDeleteAccount';
 import SettingsLinkedAccounts from './SettingsLinkedAccounts';

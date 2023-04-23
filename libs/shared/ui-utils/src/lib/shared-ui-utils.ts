@@ -2,13 +2,12 @@ import { logger } from '@jetstream/shared/client-logger';
 import { HTTP } from '@jetstream/shared/constants';
 import {
   anonymousApex,
-  bulkApiGetJob,
   checkMetadataResults,
   checkMetadataRetrieveResults,
   checkMetadataRetrieveResultsAndDeployToTarget,
 } from '@jetstream/shared/data';
-import { delay, ensureBoolean, NOOP, orderObjectsBy, REGEX } from '@jetstream/shared/utils';
-import {
+import { NOOP, REGEX, delay, ensureBoolean, orderObjectsBy } from '@jetstream/shared/utils';
+import type {
   AndOr,
   BulkJobWithBatches,
   ChangeSet,
@@ -44,7 +43,7 @@ import isNil from 'lodash/isNil';
 import isString from 'lodash/isString';
 import isUndefined from 'lodash/isUndefined';
 import numeral from 'numeral';
-import { parse as parseCsv, unparse, unparse as unparseCsv, UnparseConfig } from 'papaparse';
+import { UnparseConfig, parse as parseCsv, unparse, unparse as unparseCsv } from 'papaparse';
 import {
   HavingClause,
   HavingClauseWithRightCondition,
@@ -58,7 +57,6 @@ import {
 } from 'soql-parser-js';
 import { Placement as tippyPlacement } from 'tippy.js';
 import * as XLSX from 'xlsx';
-import { isRelationshipField } from './shared-ui-data-utils';
 
 initXlsx(XLSX);
 
@@ -955,42 +953,6 @@ export function checkIfBulkApiJobIsDone(jobInfo: BulkJobWithBatches, totalBatche
   );
 }
 
-// TODO: This was built, but ended up not being used yet - should be useful in the future
-export async function pollBulkApiJobUntilDone(
-  selectedOrg: SalesforceOrgUi,
-  jobInfo: BulkJobWithBatches,
-  totalBatches: number,
-  options?: { interval?: number; maxAttempts?: number; onChecked?: (jobInfo: BulkJobWithBatches) => void }
-): Promise<BulkJobWithBatches> {
-  let { interval, maxAttempts, onChecked } = options || {};
-  interval = interval || DEFAULT_INTERVAL_5_SEC;
-  maxAttempts = maxAttempts || DEFAULT_MAX_ATTEMPTS;
-  onChecked = isFunction(onChecked) ? onChecked : NOOP;
-
-  let attempts = 0;
-  let done = false;
-  let jobInfoWithBatches: BulkJobWithBatches = jobInfo;
-  while (!done && attempts <= maxAttempts) {
-    await delay(interval);
-
-    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-    jobInfoWithBatches = await bulkApiGetJob(selectedOrg, jobInfo.id!);
-
-    logger.log({ jobInfoWithBatches });
-    onChecked(jobInfoWithBatches);
-    done = checkIfBulkApiJobIsDone(jobInfoWithBatches, totalBatches);
-    attempts++;
-    // back off checking if it is taking a long time
-    if (attempts % BACK_OFF_INTERVAL === 0) {
-      interval += DEFAULT_INTERVAL_5_SEC;
-    }
-  }
-  if (!done) {
-    throw new Error('Timed out while waiting for the job to finish, check Salesforce for results.');
-  }
-  return jobInfoWithBatches;
-}
-
 /**
  *
  * @param selectedOrg
@@ -1615,4 +1577,9 @@ export function focusElementFromRefWhenAvailable<T extends HTMLElement>(
       }, backOff);
     }
   }
+}
+
+export function isRelationshipField(field: Field): boolean {
+  // Some fields are listed as a string, but are actually lookup fields
+  return (field.type === 'reference' || field.type === 'string') && !!field.relationshipName && !!field.referenceTo?.length;
 }

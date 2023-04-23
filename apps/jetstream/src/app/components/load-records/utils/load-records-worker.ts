@@ -1,6 +1,6 @@
 import { externalMessagePorts } from '../../core/electron-utils';
 
-const loadWorker = new Worker(new URL('../load-records.worker', import.meta.url));
+const loadWorker = new Worker(new URL('../load-records.worker.ts', import.meta.url), { type: 'module' });
 
 if (loadWorker && window.electron?.isElectron) {
   externalMessagePorts.loadWorkerPort

@@ -1,6 +1,6 @@
 import { css } from '@emotion/react';
 import { ANALYTICS_KEYS, TITLES } from '@jetstream/shared/constants';
-import { formatNumber } from '@jetstream/shared/ui-utils';
+import { formatNumber, useTitle } from '@jetstream/shared/ui-utils';
 import { pluralizeFromNumber } from '@jetstream/shared/utils';
 import {
   FileExtAllTypes,
@@ -29,7 +29,6 @@ import {
 import classNames from 'classnames';
 import { FunctionComponent, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { useTitle } from 'react-use';
 import { useRecoilState, useRecoilValue } from 'recoil';
 import { applicationCookieState, selectedOrgState } from '../../app-state';
 import { RequireMetadataApiBanner } from '../core/RequireMetadataApiBanner';

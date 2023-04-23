@@ -1,6 +1,6 @@
 import { css } from '@emotion/react';
 import { MIME_TYPES, TITLES } from '@jetstream/shared/constants';
-import { fetchActiveLog, saveFile, useNonInitialEffect, useObservable } from '@jetstream/shared/ui-utils';
+import { fetchActiveLog, saveFile, useNonInitialEffect, useObservable, useTitle } from '@jetstream/shared/ui-utils';
 import { SplitWrapper as Split } from '@jetstream/splitjs';
 import { ApexLogWithViewed, AsyncJob, MapOf, SalesforceOrgUi } from '@jetstream/types';
 import {
@@ -20,7 +20,6 @@ import formatDate from 'date-fns/format';
 import escapeRegExp from 'lodash/escapeRegExp';
 import type { editor } from 'monaco-editor';
 import { Fragment, FunctionComponent, useCallback, useEffect, useRef, useState } from 'react';
-import { useTitle } from 'react-use';
 import { useRecoilState, useRecoilValue } from 'recoil';
 import { filter } from 'rxjs/operators';
 import { applicationCookieState, selectedOrgState } from '../../app-state';

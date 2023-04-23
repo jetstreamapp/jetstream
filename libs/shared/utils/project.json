@@ -27,5 +27,5 @@
       "outputs": ["{workspaceRoot}/coverage/libs/shared/utils"]
     }
   },
-  "tags": []
+  "tags": ["scope:allow-worker-import", "scope:any"]
 }

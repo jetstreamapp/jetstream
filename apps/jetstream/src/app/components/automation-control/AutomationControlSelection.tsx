@@ -1,6 +1,6 @@
 import { css } from '@emotion/react';
 import { TITLES } from '@jetstream/shared/constants';
-import { useRollbar } from '@jetstream/shared/ui-utils';
+import { useRollbar, useTitle } from '@jetstream/shared/ui-utils';
 import { SplitWrapper as Split } from '@jetstream/splitjs';
 import { SalesforceOrgUi } from '@jetstream/types';
 import {
@@ -17,7 +17,6 @@ import {
 import type { DescribeGlobalSObjectResult } from 'jsforce';
 import { FunctionComponent } from 'react';
 import { Link } from 'react-router-dom';
-import { useTitle } from 'react-use';
 import { useRecoilState, useRecoilValue } from 'recoil';
 import { selectedOrgState } from '../../app-state';
 import { RequireMetadataApiBanner } from '../core/RequireMetadataApiBanner';

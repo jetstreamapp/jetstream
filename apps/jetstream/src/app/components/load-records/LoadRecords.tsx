@@ -2,7 +2,7 @@ import { css } from '@emotion/react';
 import { logger } from '@jetstream/shared/client-logger';
 import { ANALYTICS_KEYS, TITLES } from '@jetstream/shared/constants';
 import { clearCacheForOrg } from '@jetstream/shared/data';
-import { formatNumber } from '@jetstream/shared/ui-utils';
+import { formatNumber, useTitle } from '@jetstream/shared/ui-utils';
 import { SalesforceOrgUi } from '@jetstream/types';
 import {
   AutoFullHeightContainer,
@@ -18,7 +18,6 @@ import {
 } from '@jetstream/ui';
 import startCase from 'lodash/startCase';
 import { FunctionComponent, useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { useTitle } from 'react-use';
 import { useRecoilState, useRecoilValue, useResetRecoilState } from 'recoil';
 import { applicationCookieState, selectedOrgState, selectedOrgType } from '../../app-state';
 import { useAmplitude } from '../core/analytics';

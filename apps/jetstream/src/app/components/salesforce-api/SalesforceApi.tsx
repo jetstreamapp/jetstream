@@ -2,18 +2,17 @@ import { css } from '@emotion/react';
 import { logger } from '@jetstream/shared/client-logger';
 import { ANALYTICS_KEYS, TITLES } from '@jetstream/shared/constants';
 import { manualRequest } from '@jetstream/shared/data';
-import { useRollbar } from '@jetstream/shared/ui-utils';
+import { useRollbar, useTitle } from '@jetstream/shared/ui-utils';
+import { SplitWrapper as Split } from '@jetstream/splitjs';
 import { ManualRequestPayload, ManualRequestResponse, Maybe, SalesforceApiHistoryRequest, SalesforceOrgUi } from '@jetstream/types';
 import { AutoFullHeightContainer } from '@jetstream/ui';
 import { FunctionComponent, useCallback, useEffect, useRef, useState } from 'react';
-import { SplitWrapper as Split } from '@jetstream/splitjs';
-import { useTitle } from 'react-use';
 import { useRecoilState, useRecoilValue } from 'recoil';
 import { applicationCookieState, selectedOrgState } from '../../app-state';
 import { useAmplitude } from '../core/analytics';
-import * as fromSalesforceApiHistory from './salesforceApi.state';
 import SalesforceApiRequest from './SalesforceApiRequest';
 import SalesforceApiResponse from './SalesforceApiResponse';
+import * as fromSalesforceApiHistory from './salesforceApi.state';
 
 // eslint-disable-next-line @typescript-eslint/no-empty-interface
 export interface SalesforceApiProps {}
