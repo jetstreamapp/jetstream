@@ -176,10 +176,6 @@ export interface DataTableProps<T = RowWithKey, TContext = Record<string, any>>
   onSortedAndFilteredRowsChange?: (rows: readonly T[]) => void;
 }
 
-export const DataTableProperties = {
-  currentDisplayRecordCount: 0,
-};
-
 export const DataTable = forwardRef<any, DataTableProps<any>>(
   <T extends object>(
     {
@@ -314,7 +310,6 @@ export const DataTable = forwardRef<any, DataTableProps<any>>(
     }, [columnMap, filters, getRowKey, includeQuickFilter, quickFilterText, rowAlwaysVisible, rowFilterText, sortedRows]);
 
     useEffect(() => {
-      DataTableProperties.currentDisplayRecordCount = filteredRows.length;
       onSortedAndFilteredRowsChange && onSortedAndFilteredRowsChange(filteredRows);
     }, [filteredRows, onSortedAndFilteredRowsChange]);
 
