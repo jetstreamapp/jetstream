@@ -13,7 +13,7 @@ export function initCometD(user: UserProfileServer, cometd: CometD, connection: 
       // This appears to be unsupported
       cometd.unregisterTransport('websocket');
       cometd.configure({
-        url: `${connection.instanceUrl}/cometd/${connection.version || ENV.SFDC_FALLBACK_API_VERSION}`,
+        url: `${connection.instanceUrl}/cometd/${connection.version || ENV.SFDC_API_VERSION}`,
         requestHeaders: {
           Authorization: `Bearer ${connection.accessToken}`,
         },

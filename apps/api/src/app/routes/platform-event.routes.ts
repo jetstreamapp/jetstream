@@ -39,7 +39,7 @@ routes.use(
       return result.connection.instanceUrl;
     },
     pathRewrite: {
-      '^/platform-event': `/cometd/${ENV.SFDC_FALLBACK_API_VERSION}`,
+      '^/platform-event': `/cometd/${ENV.SFDC_API_VERSION}`,
     },
     secure: false, // required or else SSL certificate validation will fail
     cookiePathRewrite: {

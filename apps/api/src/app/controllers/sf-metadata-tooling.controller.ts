@@ -4,8 +4,8 @@ import { ensureArray, getValueOrSoapNull, sanitizeForXml, splitArrayToMaxSize, t
 import { AnonymousApexResponse, AnonymousApexSoapResponse, ApexCompletionResponse, ListMetadataResult, MapOf } from '@jetstream/types';
 import { NextFunction, Request, Response } from 'express';
 import { body, param, query } from 'express-validator';
-import * as jsforce from 'jsforce';
 import type { DeployOptions, RetrieveRequest } from 'jsforce';
+import * as jsforce from 'jsforce';
 import * as JSZip from 'jszip';
 import { isObject, isString, toNumber } from 'lodash';
 import { buildPackageXml, getRetrieveRequestFromListMetadata, getRetrieveRequestFromManifest } from '../services/sf-misc';
@@ -278,7 +278,7 @@ export async function checkRetrieveStatusAndRedeploy(req: Request, res: Response
           ?.file(
             'package.xml',
             `<?xml version="1.0" encoding="UTF-8"?>\n<Package xmlns="http://soap.sforce.com/2006/04/metadata">\n\t<version>${
-              conn.version || ENV.SFDC_FALLBACK_API_VERSION
+              conn.version || ENV.SFDC_API_VERSION
             }</version>\n</Package>`
           );
 
