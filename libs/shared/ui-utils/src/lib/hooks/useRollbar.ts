@@ -1,9 +1,10 @@
-import { Environment, UserProfileUi } from '@jetstream/types';
 import { logBuffer, logger } from '@jetstream/shared/client-logger';
+import { NOOP } from '@jetstream/shared/utils';
+import { Environment, UserProfileUi } from '@jetstream/types';
+import isBoolean from 'lodash/isBoolean';
 import { useState } from 'react';
 import Rollbar, { LogArgument } from 'rollbar';
 import { useNonInitialEffect } from './useNonInitialEffect';
-import isBoolean from 'lodash/isBoolean';
 
 const REPLACE_HOST_REGEX = /[a-zA-Z0-9._-]*?getjetstream.app/;
 
@@ -62,9 +63,6 @@ class RollbarConfig {
         },
         hostBlockList: ['localhost'],
         payload: {
-          server: {
-            root: 'webpack:///./',
-          },
           client: {
             javascript: {
               source_map_enabled: true,
@@ -152,6 +150,10 @@ class RollbarConfig {
   }
 }
 
+const FALLBACK = {
+  error: NOOP,
+};
+
 /**
  * Parameters are only required on initialization component
  * Anything else lower in the tree will be able to use without arguments
@@ -167,7 +169,7 @@ export function useRollbar(options?: RollbarProperties, optOut?: boolean): Rollb
     setRollbarConfig(RollbarConfig.getInstance(options, optOut));
   }, [options, optOut]);
 
-  return rollbarConfig.rollbar;
+  return rollbarConfig.rollbar || FALLBACK;
 }
 
 // This should be used outside of a component (e.x. utility function)

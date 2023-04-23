@@ -1,5 +1,6 @@
 /// <reference lib="webworker" />
 /* eslint-disable @typescript-eslint/no-explicit-any */
+import { LoadRecordsBatchError, fetchMappedRelatedRecords, generateCsv, transformData } from '@jetstream/shared/browser-worker-utils';
 import { logger } from '@jetstream/shared/client-logger';
 import {
   bulkApiAddBatchToJob,
@@ -9,9 +10,8 @@ import {
   genericRequest,
   initForElectron,
 } from '@jetstream/shared/data';
-import { generateCsv } from '@jetstream/shared/ui-utils';
 import { getHttpMethod, getSizeInMbFromBase64, splitArrayToMaxSize } from '@jetstream/shared/utils';
-import {
+import type {
   BulkJobBatchInfo,
   BulkJobWithBatches,
   HttpMethod,
@@ -24,23 +24,27 @@ import {
 } from '@jetstream/types';
 import JSZip from 'jszip';
 import isString from 'lodash/isString';
-import {
+import type {
   LoadDataBulkApi,
   LoadDataBulkApiStatusPayload,
   LoadDataPayload,
   PrepareDataPayload,
 } from '../../components/load-records/load-records-types';
 import { axiosElectronAdapter, initMessageHandler } from '../core/electron-axios-adapter';
-import { LoadRecordsBatchError, fetchMappedRelatedRecords, transformData } from './utils/load-records-utils';
+
+declare const self: DedicatedWorkerGlobalScope;
+logger.log('[LOAD WORKER] INITIALIZED');
+
+self.addEventListener('error', (event) => {
+  console.log('WORKER ERROR', event);
+});
 
 type MessageName = 'isElectron' | 'prepareData' | 'prepareDataProgress' | 'loadData' | 'loadDataStatus' | 'abort';
-// eslint-disable-next-line no-restricted-globals
-const ctx: Worker = self as any;
 
 const abortStatus = { isAborted: false };
 
 // Respond to message from parent thread
-ctx.addEventListener('message', (event) => {
+self.addEventListener('message', (event) => {
   const payload: WorkerMessage<MessageName> = event.data;
   logger.info('[WORKER]', { payload });
   handleMessage(payload.name, payload.data, event.ports?.[0]);
@@ -135,6 +139,7 @@ async function loadBulkApiData({ org, data, sObject, type, batchSize, externalId
       }
       currItem++;
     }
+
     const jobInfoWithBatches = await bulkApiGetJob(org, jobId);
 
     const sortedBatches: BulkJobBatchInfo[] = [];
@@ -382,7 +387,7 @@ function getBatchSummary(results: BulkJobWithBatches, batches: LoadDataBulkApi[]
 }
 
 function replyToMessage(name: string, data: any, error?: any, transfer?: Transferable[]) {
-  transfer ? ctx.postMessage({ name, data, error }, transfer) : ctx.postMessage({ name, data, error });
+  transfer ? self.postMessage({ name, data, error }, transfer) : self.postMessage({ name, data, error });
 }
 
 export default null as any;

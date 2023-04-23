@@ -1,11 +1,11 @@
 import { css } from '@emotion/react';
 import { TITLES } from '@jetstream/shared/constants';
+import { useTitle } from '@jetstream/shared/ui-utils';
+import { SplitWrapper as Split } from '@jetstream/splitjs';
 import { ListItem, SalesforceOrgUi } from '@jetstream/types';
 import { AutoFullHeightContainer } from '@jetstream/ui';
 import type { DescribeGlobalSObjectResult } from 'jsforce';
 import { FunctionComponent, useEffect, useRef, useState } from 'react';
-import { SplitWrapper as Split } from '@jetstream/splitjs';
-import { useTitle } from 'react-use';
 import { useRecoilState, useRecoilValue } from 'recoil';
 import { applicationCookieState, selectedOrgState } from '../../app-state';
 import PlatformEventMonitorFetchEventStatus from './PlatformEventMonitorFetchEventStatus';

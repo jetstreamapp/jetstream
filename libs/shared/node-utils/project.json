@@ -27,5 +27,5 @@
       "outputs": ["{workspaceRoot}/coverage/libs/shared/node-utils"]
     }
   },
-  "tags": []
+  "tags": ["scope:server"]
 }

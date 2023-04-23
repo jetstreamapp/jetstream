@@ -1,5 +1,5 @@
 import { ANALYTICS_KEYS, DATE_FORMATS, INPUT_ACCEPT_FILETYPES, TITLES } from '@jetstream/shared/constants';
-import { formatNumber, initXlsx, useNonInitialEffect } from '@jetstream/shared/ui-utils';
+import { formatNumber, initXlsx, useNonInitialEffect, useTitle } from '@jetstream/shared/ui-utils';
 import { InputReadFileContent, InputReadGoogleSheet, SalesforceOrgUi } from '@jetstream/types';
 import {
   AutoFullHeightContainer,
@@ -20,7 +20,6 @@ import {
   Spinner,
 } from '@jetstream/ui';
 import { ChangeEvent, FunctionComponent, useEffect, useMemo, useRef, useState } from 'react';
-import { useTitle } from 'react-use';
 import { useRecoilState, useRecoilValue } from 'recoil';
 import * as XLSX from 'xlsx';
 import { applicationCookieState, selectedOrgState, selectedOrgType } from '../../app-state';

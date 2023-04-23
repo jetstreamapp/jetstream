@@ -30,5 +30,5 @@
       "outputs": ["{workspaceRoot}/coverage/libs/shared/data"]
     }
   },
-  "tags": []
+  "tags": ["scope:shared", "scope:allow-worker-import"]
 }

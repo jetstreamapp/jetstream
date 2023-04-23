@@ -1,7 +1,7 @@
 import { TITLES } from '@jetstream/shared/constants';
-import React, { Fragment, FunctionComponent, useEffect } from 'react';
+import { useTitle } from '@jetstream/shared/ui-utils';
+import { Fragment, FunctionComponent, useEffect } from 'react';
 import { Navigate, Outlet, useLocation, useNavigate } from 'react-router-dom';
-import { useTitle } from 'react-use';
 import { useRecoilState, useRecoilValue, useResetRecoilState } from 'recoil';
 import { selectedOrgState } from '../../app-state';
 import * as fromAutomationCtlState from './automation-control.state';

@@ -57,7 +57,7 @@ export async function cancelZipDownload(url: string) {
 
 async function registerServiceWorker() {
   if ('serviceWorker' in navigator) {
-    let filename = `/sw/download-zip.sw.js`;
+    let filename = `/download-zip.sw.js`;
 
     if ((window as any)?.electron?.isElectron) {
       // TODO: need to figure out how to handle this when app is packaged

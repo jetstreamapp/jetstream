@@ -27,6 +27,6 @@
       "outputs": ["{workspaceRoot}/coverage/libs/types"]
     }
   },
-  "tags": [],
-  "implicitDependencies": []
+  "implicitDependencies": [],
+  "tags": ["scope:shared", "scope:allow-worker-import", "scope:type-only"]
 }

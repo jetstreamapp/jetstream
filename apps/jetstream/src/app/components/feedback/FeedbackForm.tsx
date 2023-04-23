@@ -1,8 +1,8 @@
 import { css } from '@emotion/react';
 import { TITLES } from '@jetstream/shared/constants';
+import { useTitle } from '@jetstream/shared/ui-utils';
 import { Card, FeedbackLink, Grid, Icon } from '@jetstream/ui';
 import { FunctionComponent, useRef } from 'react';
-import { useTitle } from 'react-use';
 
 // eslint-disable-next-line @typescript-eslint/no-empty-interface
 export interface FeedbackFormProps {}
