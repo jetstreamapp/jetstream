@@ -1,4 +1,4 @@
-import { css } from '@emotion/react';
+import { css, SerializedStyles } from '@emotion/react';
 import { Popover as HeadlessPopover } from '@headlessui/react';
 import { FullWidth, sizeXLarge, SmallMediumLarge } from '@jetstream/types';
 import classNames from 'classnames';
@@ -29,6 +29,7 @@ export interface PopoverProps {
   containerClassName?: string;
   closeBtnClassName?: string;
   bodyClassName?: string;
+  bodyStyle?: SerializedStyles;
   placement?: Placement;
   content: JSX.Element;
   header?: JSX.Element;
@@ -53,6 +54,7 @@ export const Popover = forwardRef<PopoverRef, PopoverProps>(
       containerClassName,
       closeBtnClassName,
       bodyClassName = 'slds-popover__body',
+      bodyStyle,
       placement = 'auto',
       content,
       header,
@@ -204,7 +206,9 @@ export const Popover = forwardRef<PopoverRef, PopoverProps>(
                     </HeadlessPopover.Button>
                     {/* CONTENT */}
                     {header}
-                    <div className={bodyClassName}>{content}</div>
+                    <div css={bodyStyle} className={bodyClassName}>
+                      {content}
+                    </div>
                     {footer}
                     {/* ARROW */}
                     <div

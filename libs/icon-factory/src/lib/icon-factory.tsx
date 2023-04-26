@@ -86,6 +86,7 @@ import UtilityIcon_Moneybag from './icons/utility/Moneybag';
 import UtilityIcon_MultiSelectCheckbox from './icons/utility/MultiSelectCheckbox';
 import UtilityIcon_NewWindow from './icons/utility/NewWindow';
 import UtilityIcon_Notification from './icons/utility/Notification';
+import UtilityIcon_Open from './icons/utility/Open';
 import UtilityIcon_OpenFolder from './icons/utility/OpenFolder';
 import UtilityIcon_Page from './icons/utility/Page';
 import UtilityIcon_Paste from './icons/utility/Paste';
@@ -235,6 +236,7 @@ const utilityIcons = {
   multi_select_checkbox: UtilityIcon_MultiSelectCheckbox,
   new_window: UtilityIcon_NewWindow,
   notification: UtilityIcon_Notification,
+  open: UtilityIcon_Open,
   open_folder: UtilityIcon_OpenFolder,
   page: UtilityIcon_Page,
   paste: UtilityIcon_Paste,

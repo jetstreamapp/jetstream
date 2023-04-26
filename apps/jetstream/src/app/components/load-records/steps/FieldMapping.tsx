@@ -4,14 +4,22 @@ import { ANALYTICS_KEYS } from '@jetstream/shared/constants';
 import { useDebounce, useNonInitialEffect } from '@jetstream/shared/ui-utils';
 import { multiWordStringFilter } from '@jetstream/shared/utils';
 import { InsertUpdateUpsertDelete, Maybe, SalesforceOrgUi } from '@jetstream/types';
-import { Alert, DropDown, Grid, GridCol, Icon, SearchInput } from '@jetstream/ui';
+import { Alert, ButtonGroupContainer, DropDown, Grid, GridCol, Icon, SearchInput } from '@jetstream/ui';
 import classNames from 'classnames';
 import { memo, useEffect, useRef, useState } from 'react';
 import { useAmplitude } from '../../core/analytics';
 import LoadRecordsFieldMappingRow from '../components/LoadRecordsFieldMappingRow';
 import LoadRecordsRefreshCachePopover from '../components/LoadRecordsRefreshCachePopover';
+import { LoadMappingPopover } from '../components/load-mapping-storage/LoadMappingPopover';
+import SaveMappingPopover from '../components/load-mapping-storage/SaveMappingPopover';
 import { FieldMapping, FieldMappingItem, FieldWithRelatedEntities } from '../load-records-types';
-import { autoMapFields, checkForDuplicateFieldMappings, resetFieldMapping } from '../utils/load-records-utils';
+import { LoadSavedMappingItem } from '../load-records.state';
+import {
+  autoMapFields,
+  checkForDuplicateFieldMappings,
+  loadFieldMappingFromSavedMapping,
+  resetFieldMapping,
+} from '../utils/load-records-utils';
 
 type DropDownAction = 'CLEAR' | 'RESET' | 'ALL' | 'MAPPED' | 'UNMAPPED';
 type Filter = 'ALL' | 'MAPPED' | 'UNMAPPED';
@@ -55,6 +63,8 @@ export const LoadRecordsFieldMapping = memo<LoadRecordsFieldMappingProps>(
   }) => {
     const { trackEvent } = useAmplitude();
     const hasInitialized = useRef(false);
+    const [csvFields, setCsvFields] = useState(() => new Set(inputHeader));
+    const [objectFields, setObjectFields] = useState(() => new Set(fields.map((field) => field.name)));
     const [visibleHeaders, setVisibleHeaders] = useState(inputHeader);
     const [activeRowIndex, setActiveRowIndex] = useState(0);
     const [activeRow, setActiveRow] = useState<string[]>(() => fileData[activeRowIndex]);
@@ -71,6 +81,11 @@ export const LoadRecordsFieldMapping = memo<LoadRecordsFieldMappingProps>(
     useNonInitialEffect(() => {
       setActiveRow(fileData[debouncedSelectedValue] || fileData[0]);
     }, [debouncedSelectedValue, fileData, trackEvent]);
+
+    useNonInitialEffect(() => {
+      setCsvFields(new Set(inputHeader));
+      setObjectFields(new Set(fields.map((field) => field.name)));
+    }, [fields, inputHeader]);
 
     useEffect(() => {
       if (hasInitialized.current) {
@@ -156,6 +171,12 @@ export const LoadRecordsFieldMapping = memo<LoadRecordsFieldMappingProps>(
       setKeyPrefix(new Date().getTime());
     }
 
+    function handleLoadMapping(savedMapping: LoadSavedMappingItem) {
+      setFieldMapping(loadFieldMappingFromSavedMapping(savedMapping, inputHeader, fields, binaryAttachmentBodyField));
+      trackEvent(ANALYTICS_KEYS.load_SavedMappingLoaded);
+      setKeyPrefix(new Date().getTime());
+    }
+
     function handlePrevNextRowPreview(action: 'PREV' | 'NEXT') {
       if (action === 'PREV') {
         setActiveRowIndex(activeRowIndex - 1);
@@ -192,6 +213,10 @@ export const LoadRecordsFieldMapping = memo<LoadRecordsFieldMappingProps>(
         </GridCol>
         <GridCol grow>
           <Grid align="spread" className="slds-p-vertical_xx-small">
+            <ButtonGroupContainer>
+              <SaveMappingPopover sobject={sobject} fieldMapping={fieldMapping} />
+              <LoadMappingPopover sobject={sobject} csvFields={csvFields} objectFields={objectFields} onLoadMapping={handleLoadMapping} />
+            </ButtonGroupContainer>
             <SearchInput id="field-filter" className="slds-size_1-of-2" placeholder="Filter fields from file" onChange={setSearchTerm} />
             <LoadRecordsRefreshCachePopover org={org} sobject={sobject} loading={refreshLoading} onReload={handleCacheRefresh} />
           </Grid>

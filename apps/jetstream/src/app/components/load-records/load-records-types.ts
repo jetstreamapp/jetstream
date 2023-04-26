@@ -54,6 +54,10 @@ export interface FieldMapping {
   [field: string]: FieldMappingItem;
 }
 
+export interface SavedFieldMapping {
+  [field: string]: Omit<FieldMappingItem, 'fieldMetadata'>;
+}
+
 export interface FieldMappingItem {
   csvField: string;
   targetField: string | null;

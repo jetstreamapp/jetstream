@@ -113,6 +113,7 @@ export const INDEXED_DB = {
   KEYS: {
     automationControlHistory: 'AUTOMATION:QUERY',
     queryHistory: 'HISTORY:QUERY',
+    loadSavedMapping: 'LOAD:SAVED_MAPPING',
     apexHistory: 'HISTORY:APEX',
     deployHistory: 'HISTORY:DEPLOY',
     salesforceApiHistory: 'HISTORY:SALESFORCE_API',
@@ -182,6 +183,7 @@ export const ANALYTICS_KEYS = {
   /** LOAD */
   load_GoBackToPrevStep: 'load_GoBackToPrevStep',
   load_MappingAutomationChanged: 'load_MappingAutomationChanged',
+  load_SavedMappingLoaded: 'load_SavedMappingLoaded',
   load_MappingFilterChanged: 'load_MappingFilterChanged',
   load_MappingRowPreviewChanged: 'load_MappingRowPreviewChanged',
   load_StartOver: 'load_StartOver',
