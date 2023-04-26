@@ -99,7 +99,7 @@ export const SalesforceRecordDataTable: FunctionComponent<SalesforceRecordDataTa
     const [nextRecordsUrl, setNextRecordsUrl] = useState<Maybe<string>>(null);
     const [globalFilter, setGlobalFilter] = useState<string | null>(null);
     const [selectedRows, setSelectedRows] = useState<ReadonlySet<string>>(() => new Set());
-    const [visibleRecordCount, setVisibleRecordCount] = useState<number>(0);
+    const [visibleRecordCount, setVisibleRecordCount] = useState(records?.length);
 
     useEffect(() => {
       isMounted.current = true;
