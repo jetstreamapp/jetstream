@@ -246,10 +246,13 @@
     "url-loader": "^4.1.1",
     "vite": "^4.0.1",
     "vite-plugin-eslint": "^1.8.1",
+    "vite-plugin-pwa": "^0.14.7",
     "vite-tsconfig-paths": "^4.0.2",
     "vitest": "^0.25.8",
     "webpack": "^5.75.0",
     "webpack-merge": "^5.8.0",
+    "workbox-precaching": "^6.5.4",
+    "workbox-window": "^6.5.4",
     "worker-loader": "^2.0.0",
     "zx": "^4.3.0"
   },

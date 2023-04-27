@@ -1,5 +1,4 @@
 import Head from 'next/head';
-import React from 'react';
 import Footer from '../components/Footer';
 import Navigation from '../components/Navigation';
 import LandingPage from '../components/new/LandingPage';
@@ -21,7 +20,7 @@ export const Index = ({ omitBlogPosts }: { omitBlogPosts: boolean }) => {
 
         <meta
           name="image"
-          content="https://res.cloudinary.com/getjetstream/image/upload/b_rgb:ffffff,bo_3px_solid_rgb:ffffff,pg_1/v1634516631/public/jetstream-logo-1200w.png"
+          content="https://res.cloudinary.com/getjetstream/image/upload/b_rgb:111827,bo_3px_solid_rgb:111827,pg_1/v1634516631/public/jetstream-logo-1200w.png"
         />
         <meta
           name="og:image"
@@ -36,7 +35,7 @@ export const Index = ({ omitBlogPosts }: { omitBlogPosts: boolean }) => {
         <meta charSet="UTF-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 
-        <meta name="theme-color" content="#ffffff" />
+        <meta name="theme-color" content="#111827" />
 
         <link rel="apple-touch-icon" sizes="57x57" href="/assets/images/apple-icon-57x57.png" />
         <link rel="apple-touch-icon" sizes="60x60" href="/assets/images/apple-icon-60x60.png" />
@@ -51,7 +50,7 @@ export const Index = ({ omitBlogPosts }: { omitBlogPosts: boolean }) => {
 
         <link rel="manifest" href="/assets/images/manifest.json" />
 
-        <meta name="msapplication-TileColor" content="#ffffff" />
+        <meta name="msapplication-TileColor" content="#111827" />
         <meta name="msapplication-TileImage" content="/images/ms-icon-144x144.png" />
 
         <link rel="icon" type="image/png" sizes="32x32" href="/assets/images/favicon-32x32.png" />
