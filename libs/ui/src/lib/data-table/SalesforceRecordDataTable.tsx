@@ -99,6 +99,7 @@ export const SalesforceRecordDataTable: FunctionComponent<SalesforceRecordDataTa
     const [nextRecordsUrl, setNextRecordsUrl] = useState<Maybe<string>>(null);
     const [globalFilter, setGlobalFilter] = useState<string | null>(null);
     const [selectedRows, setSelectedRows] = useState<ReadonlySet<string>>(() => new Set());
+    const [visibleRecordCount, setVisibleRecordCount] = useState(records?.length);
 
     useEffect(() => {
       isMounted.current = true;
@@ -231,6 +232,8 @@ export const SalesforceRecordDataTable: FunctionComponent<SalesforceRecordDataTa
     const handleSortedAndFilteredRowsChange = useCallback(
       (rows: RowSalesforceRecordWithKey[]) => {
         onFilteredRowsChanged(rows.map(({ _record }) => _record));
+
+        setVisibleRecordCount(rows.length);
       },
       [onFilteredRowsChanged]
     );
@@ -255,7 +258,7 @@ export const SalesforceRecordDataTable: FunctionComponent<SalesforceRecordDataTa
         <Grid className="slds-p-around_xx-small" align="spread">
           <div className="slds-grid">
             <div className="slds-p-around_x-small">
-              Showing {formatNumber(records.length)} of {formatNumber(totalRecordCount || 0)} records
+              Showing {formatNumber(visibleRecordCount)} of {formatNumber(totalRecordCount || 0)} records
             </div>
             {hasMoreRecords && (
               <div>
