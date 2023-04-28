@@ -1,12 +1,62 @@
-import { InsertUpdateUpsertDelete } from '@jetstream/types';
+import { logger } from '@jetstream/shared/client-logger';
+import { INDEXED_DB } from '@jetstream/shared/constants';
+import { InsertUpdateUpsertDelete, MapOf } from '@jetstream/types';
 import type { DescribeGlobalSObjectResult } from 'jsforce';
-import { atom, selector } from 'recoil';
-import { FieldMapping, LocalOrGoogle } from './load-records-types';
+import localforage from 'localforage';
+import { atom, selector, selectorFamily } from 'recoil';
+import { FieldMapping, LocalOrGoogle, SavedFieldMapping } from './load-records-types';
 
 const SUPPORTED_ATTACHMENT_OBJECTS = new Map<string, { bodyField: string }>();
 SUPPORTED_ATTACHMENT_OBJECTS.set('Attachment', { bodyField: 'Body' });
 SUPPORTED_ATTACHMENT_OBJECTS.set('Document', { bodyField: 'Body' });
 SUPPORTED_ATTACHMENT_OBJECTS.set('ContentVersion', { bodyField: 'VersionData' });
+
+export interface LoadSavedMappingItem {
+  key: string; // object:createdDate
+  name: string;
+  sobject: string;
+  csvFields: string[];
+  sobjectFields: string[];
+  mapping: SavedFieldMapping;
+  createdDate: Date;
+}
+
+const initLoadSavedMapping = async (): Promise<MapOf<MapOf<LoadSavedMappingItem>>> => {
+  const results = await localforage.getItem<MapOf<MapOf<LoadSavedMappingItem>>>(INDEXED_DB.KEYS.loadSavedMapping);
+  return results || {};
+};
+
+export const savedFieldMappingState = atom<MapOf<MapOf<LoadSavedMappingItem>>>({
+  key: 'load.savedFieldMappingState',
+  default: initLoadSavedMapping(),
+  effects: [
+    ({ onSet }) => {
+      onSet(async (newValue) => {
+        try {
+          logger.log('Saving loadSavedMapping to localforage', newValue);
+          await localforage.setItem<MapOf<MapOf<LoadSavedMappingItem>>>(INDEXED_DB.KEYS.loadSavedMapping, newValue);
+        } catch (ex) {
+          logger.error('Error saving loadSavedMapping to localforage', ex);
+        }
+      });
+    },
+  ],
+});
+
+export const selectSavedFieldMappingState = selectorFamily<
+  LoadSavedMappingItem[],
+  { sobject: string; csvFields: Set<string>; objectFields: Set<string> }
+>({
+  key: 'load.selectSavedFieldMappingState',
+  get:
+    ({ sobject, csvFields, objectFields }) =>
+    ({ get }) => {
+      const savedMappings = Object.values(get(savedFieldMappingState)[sobject] || {});
+      return savedMappings.filter(
+        (item) => item.csvFields.every((field) => csvFields.has(field)) && item.sobjectFields.every((field) => objectFields.has(field))
+      );
+    },
+});
 
 export const priorSelectedOrg = atom<string | null>({
   key: 'load.priorSelectedOrg',

@@ -547,6 +547,7 @@ export interface ApexHistoryItem {
   apex: string;
   lastRun: Date;
 }
+
 export interface SalesforceApiHistoryItem {
   key: string; // org:method:url
   org: string;

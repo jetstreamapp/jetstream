@@ -2,14 +2,14 @@ import { logger } from '@jetstream/shared/client-logger';
 import { SFDC_BULK_API_NULL_VALUE } from '@jetstream/shared/constants';
 import { queryAll, queryWithCache } from '@jetstream/shared/data';
 import { describeSObjectWithExtendedTypes, formatNumber, isRelationshipField } from '@jetstream/shared/ui-utils';
-import { REGEX, transformRecordForDataLoad } from '@jetstream/shared/utils';
+import { REGEX, getMapOf, transformRecordForDataLoad } from '@jetstream/shared/utils';
 import { EntityParticleRecord, FieldWithExtendedType, InsertUpdateUpsertDelete, MapOf, Maybe, SalesforceOrgUi } from '@jetstream/types';
 import type { DescribeGlobalSObjectResult, DescribeSObjectResult } from 'jsforce';
 import JSZip from 'jszip';
 import groupBy from 'lodash/groupBy';
 import isNil from 'lodash/isNil';
 import isString from 'lodash/isString';
-import { composeQuery, getField, Query, WhereClause } from 'soql-parser-js';
+import { Query, WhereClause, composeQuery, getField } from 'soql-parser-js';
 import type {
   FieldMapping,
   FieldMappingItem,
@@ -20,6 +20,7 @@ import type {
   PrepareDataPayload,
   PrepareDataResponse,
 } from '../load-records-types';
+import { LoadSavedMappingItem } from '../load-records.state';
 
 export const SELF_LOOKUP_KEY = '~SELF_LOOKUP~';
 const DEFAULT_NON_EXT_ID_MAPPING_OPT: NonExtIdLookupOption = 'ERROR_IF_MULTIPLE';
@@ -217,6 +218,39 @@ export function resetFieldMapping(inputHeader: string[]): FieldMapping {
       lookupOptionNullIfNoMatch: DEFAULT_NULL_IF_NO_MATCH_MAPPING_OPT,
       isBinaryBodyField: false,
     };
+    return output;
+  }, {});
+}
+
+export function loadFieldMappingFromSavedMapping(
+  savedMapping: LoadSavedMappingItem,
+  inputHeader: string[],
+  fields: FieldWithRelatedEntities[],
+  binaryBodyField: Maybe<string>
+): FieldMapping {
+  const fieldMetadataByName = getMapOf(fields, 'name');
+  return inputHeader.reduce((output: FieldMapping, field) => {
+    const matchedMapping = savedMapping.mapping[field];
+    if (matchedMapping && matchedMapping.targetField && fieldMetadataByName[matchedMapping.targetField]) {
+      output[field] = {
+        ...savedMapping.mapping[field],
+        fieldMetadata: {
+          ...fieldMetadataByName[matchedMapping.targetField],
+        },
+        isBinaryBodyField: !!binaryBodyField && matchedMapping.targetField === binaryBodyField,
+      };
+    } else {
+      output[field] = {
+        csvField: field,
+        targetField: null,
+        mappedToLookup: false,
+        fieldMetadata: undefined,
+        selectedReferenceTo: undefined,
+        lookupOptionUseFirstMatch: DEFAULT_NON_EXT_ID_MAPPING_OPT,
+        lookupOptionNullIfNoMatch: DEFAULT_NULL_IF_NO_MATCH_MAPPING_OPT,
+        isBinaryBodyField: false,
+      };
+    }
     return output;
   }, {});
 }
