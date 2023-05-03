@@ -62,7 +62,13 @@ export const LoadRecordsResultsModal: FunctionComponent<LoadRecordsResultsModalP
                       line-height: normal;
                     `}
                   >
-                    {row._errors && <TooltipCopyToClipboard content={row._errors} />}
+                    {row._errors && (
+                      <TooltipCopyToClipboard
+                        toolTipContent={row._errors}
+                        icon={{ type: 'utility', icon: 'error', description: 'Click to copy to clipboard' }}
+                        className="slds-text-color_error slds-p-right_x-small"
+                      />
+                    )}
                     {row?._errors}
                   </p>
                 )

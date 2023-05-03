@@ -1,35 +1,28 @@
-import { Maybe } from '@jetstream/types';
-import { CopyToClipboard, Tooltip } from '@jetstream/ui';
-import { FunctionComponent, useEffect, useState } from 'react';
+import { IconObj } from '@jetstream/icon-factory';
+import { CopyToClipboard, CopyToClipboardProps, Tooltip } from '@jetstream/ui';
+import { FunctionComponent, useState } from 'react';
 
-export interface TooltipCopyToClipboardProps {
-  content: Maybe<string | JSX.Element>;
+export interface TooltipCopyToClipboardProps extends Omit<CopyToClipboardProps, 'copied'> {
+  toolTipContent: string;
+  className?: string;
+  icon?: IconObj;
+  copiedMessage?: string;
 }
 
-export const TooltipCopyToClipboard: FunctionComponent<TooltipCopyToClipboardProps> = (content) => {
-  const [displayContent, setDisplayContent] = useState(content.content);
-  const [copiedState, setCopiedState] = useState(false);
+export const TooltipCopyToClipboard: FunctionComponent<TooltipCopyToClipboardProps> = ({
+  toolTipContent,
+  copiedMessage = 'Copied to clipboard',
+  ...copyToClipboardProps
+}) => {
+  const [displayContent, setDisplayContent] = useState(toolTipContent);
 
-  const handleCopied = (data) => {
-    setCopiedState(data);
+  const handleCopied = (active: boolean) => {
+    setDisplayContent(active ? copiedMessage : toolTipContent);
   };
-
-  useEffect(() => {
-    if (!copiedState) {
-      setDisplayContent(content.content);
-    } else {
-      setDisplayContent('Copied to Clipboard');
-    }
-  }, [handleCopied]);
 
   return (
     <Tooltip content={displayContent}>
-      <CopyToClipboard
-        icon={{ type: 'utility', icon: 'error', description: 'Click to copy to clipboard' }}
-        content="test"
-        className="slds-text-color_error slds-p-right_x-small"
-        copied={handleCopied}
-      />
+      <CopyToClipboard {...copyToClipboardProps} content={toolTipContent} copied={handleCopied} />
     </Tooltip>
   );
 };
