@@ -2,7 +2,7 @@ import { IconObj } from '@jetstream/icon-factory';
 import { CopyToClipboard, CopyToClipboardProps, Tooltip } from '@jetstream/ui';
 import { FunctionComponent, useState } from 'react';
 
-export interface TooltipCopyToClipboardProps extends Omit<CopyToClipboardProps, 'copied'> {
+export interface TooltipCopyToClipboardProps extends Omit<CopyToClipboardProps, 'copied' | 'content'> {
   toolTipContent: string;
   className?: string;
   icon?: IconObj;
