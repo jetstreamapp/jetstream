@@ -1,11 +1,8 @@
-import { IconObj } from '@jetstream/icon-factory';
-import { CopyToClipboard, CopyToClipboardProps, Tooltip } from '@jetstream/ui';
 import { FunctionComponent, useState } from 'react';
+import { CopyToClipboard, CopyToClipboardProps } from './CopyToClipboard';
+import { Tooltip } from './Tooltip';
 
-export interface CopyToClipboardWithToolTipProps extends Omit<CopyToClipboardProps, 'copied' | 'content'> {
-  content: string;
-  className?: string;
-  icon?: IconObj;
+export interface CopyToClipboardWithToolTipProps extends Omit<CopyToClipboardProps, 'copied'> {
   copiedMessage?: string;
 }
 
