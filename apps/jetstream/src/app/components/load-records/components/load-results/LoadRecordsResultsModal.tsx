@@ -1,5 +1,6 @@
 import { css } from '@emotion/react';
 import { useNonInitialEffect } from '@jetstream/shared/ui-utils';
+import { decodeHtmlEntity } from '@jetstream/shared/utils';
 import {
   AutoFullHeightContainer,
   ColumnWithFilter,
@@ -64,15 +65,15 @@ export const LoadRecordsResultsModal: FunctionComponent<LoadRecordsResultsModalP
                     `}
                   >
                     {row._errors && (
-                      <Tooltip content={row._errors}>
+                      <Tooltip content={decodeHtmlEntity(row._errors)}>
                         <CopyToClipboard
                           icon={{ type: 'utility', icon: 'error', description: 'load error' }}
-                          content={row._errors}
+                          content={decodeHtmlEntity(row._errors)}
                           className="slds-text-color_error slds-p-right_x-small"
                         />
                       </Tooltip>
                     )}
-                    {row?._errors}
+                    {decodeHtmlEntity(row?._errors)}
                   </p>
                 )
               : undefined,
