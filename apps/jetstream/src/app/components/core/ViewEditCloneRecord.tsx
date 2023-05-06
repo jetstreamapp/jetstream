@@ -4,7 +4,7 @@ import { mockPicklistValuesFromSobjectDescribe, UiRecordForm } from '@jetstream/
 import { logger } from '@jetstream/shared/client-logger';
 import { ANALYTICS_KEYS } from '@jetstream/shared/constants';
 import { describeGlobal, describeSObject, genericRequest, query, sobjectOperation } from '@jetstream/shared/data';
-import { isErrorResponse, useNonInitialEffect } from '@jetstream/shared/ui-utils';
+import { copyRecordsToClipboard, isErrorResponse, useNonInitialEffect } from '@jetstream/shared/ui-utils';
 import {
   AsyncJobNew,
   BulkDownloadJob,
@@ -21,7 +21,9 @@ import {
 } from '@jetstream/types';
 import {
   Breadcrumbs,
+  ButtonGroupContainer,
   DownloadFromServerOpts,
+  DropDown,
   Grid,
   Icon,
   Modal,
@@ -32,7 +34,6 @@ import {
   Tabs,
 } from '@jetstream/ui';
 import Editor from '@monaco-editor/react';
-import copyToClipboard from 'copy-to-clipboard';
 import type { ChildRelationship, Field } from 'jsforce';
 import isNumber from 'lodash/isNumber';
 import isObject from 'lodash/isObject';
@@ -432,8 +433,12 @@ export const ViewEditCloneRecord: FunctionComponent<ViewEditCloneRecordProps> = 
     });
   }
 
-  function handleCopyToClipboard() {
-    copyToClipboard(initialRecord, { format: 'text/plain' });
+  function handleCopyToClipboard(format: 'excel' | 'text' | 'json' = 'excel') {
+    copyRecordsToClipboard(
+      [initialRecord],
+      format,
+      Object.keys(initialRecord).filter((field) => field !== 'attributes')
+    );
     trackEvent(ANALYTICS_KEYS.record_modal_clipboard);
   }
 
@@ -542,10 +547,26 @@ export const ViewEditCloneRecord: FunctionComponent<ViewEditCloneRecordProps> = 
                       <PopoverErrorButton errors={formErrors.generalErrors} omitPortal />
                     </span>
                   )}
-                  <button className="slds-button slds-float_left slds-button_neutral" onClick={handleCopyToClipboard}>
-                    <Icon type="utility" icon="download" className="slds-button__icon slds-button__icon_left" omitContainer />
-                    Copy to Clipboard
-                  </button>
+                  <ButtonGroupContainer className="slds-float_left">
+                    <button
+                      className="slds-button slds-button_neutral"
+                      onClick={() => handleCopyToClipboard()}
+                      title="Copy the record to the clipboard which can then pasted into a spreadsheet."
+                    >
+                      <Icon type="utility" icon="copy_to_clipboard" className="slds-button__icon slds-button__icon_left" omitContainer />
+                      <span>Copy to Clipboard</span>
+                    </button>
+                    <DropDown
+                      className="slds-button_last"
+                      dropDownClassName="slds-dropdown_actions"
+                      position="right"
+                      items={[
+                        { id: 'text', value: 'Copy as Text' },
+                        { id: 'json', value: 'Copy as JSON' },
+                      ]}
+                      onSelected={(item) => handleCopyToClipboard(item as 'excel' | 'text' | 'json')}
+                    />
+                  </ButtonGroupContainer>
                   <button
                     className="slds-button slds-button_neutral"
                     onClick={() => setIsViewAsJson(!isViewAsJson)}
