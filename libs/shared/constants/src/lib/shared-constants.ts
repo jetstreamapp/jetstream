@@ -147,6 +147,14 @@ export const ANALYTICS_KEYS = {
   /** Browser Notifications */
   notifications_modal_opened: 'notifications_modal_opened',
   notifications_permission_requested: 'notifications_permission_requested',
+  /** Record Modal */
+  record_modal_action_change: 'record_modal_action_change',
+  record_modal_view_related: 'record_modal_view_related',
+  record_modal_view_children: 'record_modal_view_children',
+  record_modal_download: 'record_modal_download',
+  record_modal_json: 'record_modal_json',
+  record_modal_save: 'record_modal_save',
+  record_modal_clipboard: 'record_modal_clipboard',
   /** AUTOMATION CONTROL */
   automation_selection: 'automation_selection',
   automation_review: 'automation_review',
@@ -235,7 +243,7 @@ export const ANALYTICS_KEYS = {
   settings_unlink_account: 'settings_unlink_account',
   settings_resend_email_verification: 'settings_resend_email_verification',
   settings_delete_account: 'settings_delete_account',
-};
+} as const;
 
 export const LOG_LEVELS = ['NONE', 'ERROR', 'WARN', 'INFO', 'DEBUG', 'FINE', 'FINER', 'FINEST'];
 

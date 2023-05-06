@@ -2,11 +2,16 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { mockPicklistValuesFromSobjectDescribe, UiRecordForm } from '@jetstream/record-form';
 import { logger } from '@jetstream/shared/client-logger';
+import { ANALYTICS_KEYS } from '@jetstream/shared/constants';
 import { describeGlobal, describeSObject, genericRequest, query, sobjectOperation } from '@jetstream/shared/data';
 import { isErrorResponse, useNonInitialEffect } from '@jetstream/shared/ui-utils';
-import { flattenRecords } from '@jetstream/shared/utils';
 import {
+  AsyncJobNew,
+  BulkDownloadJob,
   CloneEditView,
+  FileExtCsvXLSXJsonGSheet,
+  MapOf,
+  Maybe,
   PicklistFieldValues,
   PicklistFieldValuesResponse,
   Record,
@@ -14,16 +19,29 @@ import {
   SalesforceOrgUi,
   SobjectCollectionResponse,
 } from '@jetstream/types';
-import { Breadcrumbs, FileDownloadModal, Grid, Icon, Modal, PopoverErrorButton, SalesforceLogin, Spinner } from '@jetstream/ui';
+import {
+  Breadcrumbs,
+  DownloadFromServerOpts,
+  Grid,
+  Icon,
+  Modal,
+  PopoverErrorButton,
+  RecordDownloadModal,
+  SalesforceLogin,
+  Spinner,
+  Tabs,
+} from '@jetstream/ui';
 import Editor from '@monaco-editor/react';
 import copyToClipboard from 'copy-to-clipboard';
-import type { Field } from 'jsforce';
+import type { ChildRelationship, Field } from 'jsforce';
 import isNumber from 'lodash/isNumber';
+import isObject from 'lodash/isObject';
 import isUndefined from 'lodash/isUndefined';
 import { Fragment, FunctionComponent, useCallback, useEffect, useRef, useState } from 'react';
 import { useRecoilState } from 'recoil';
 import { composeQuery, getField } from 'soql-parser-js';
 import { applicationCookieState } from '../../app-state';
+import * as fromJetstreamEvents from '../core/jetstream-events';
 import {
   combineRecordsForClone,
   EditFromErrors,
@@ -31,7 +49,19 @@ import {
   transformEditForm,
   validateEditForm,
 } from '../query/utils/query-utils';
-import * as fromJetstreamEvents from './jetstream-events';
+import { useAmplitude } from './analytics';
+import ViewChildRecords from './ViewChildRecords';
+
+const CHILD_RELATIONSHIP_BLOCK_LIST = new Set<string>([
+  'OutgoingEmailRelations',
+  'UserFieldAccessRights',
+  'RecordActionHistories',
+  'DocumentChecklistItemUploadedBy',
+  'DocumentChecklistWho',
+  'UserEntityAccessRights', // this works, but no useful fields show up
+  'UserPreferences', // this works, but no useful fields show up
+  'ContentDocumentLinks', // this works, but no useful fields show up
+]);
 
 function getModalTitle(action: CloneEditView) {
   if (action === 'view') {
@@ -96,7 +126,14 @@ export const ViewEditCloneRecord: FunctionComponent<ViewEditCloneRecordProps> = 
   onFetch,
   onFetchError,
 }) => {
+  const { trackEvent } = useAmplitude();
   const isMounted = useRef(true);
+  const modalRef = useRef(null);
+  const modalBodyRef = useRef<HTMLDivElement>(null);
+  // If user was ever in view mode, clicking cancel will take back to view instead of close
+  const hasEverBeenInViewMode = useRef(false);
+  hasEverBeenInViewMode.current = action === 'view' || hasEverBeenInViewMode.current;
+
   const [{ serverUrl, google_apiKey, google_appId, google_clientId }] = useRecoilState(applicationCookieState);
 
   // User can drill in to related records, this allows us to go back up the chain via Breadcrumbs
@@ -104,9 +141,11 @@ export const ViewEditCloneRecord: FunctionComponent<ViewEditCloneRecordProps> = 
   const [sobjectName, setSobjectName] = useState(initialSobjectName);
   const [priorRecords, setPriorRecords] = useState<{ recordId: string; sobjectName: string }[]>([]);
 
+  const [childRelationships, setChildRelationships] = useState<ChildRelationship[]>();
   const [sobjectFields, setSobjectFields] = useState<Field[]>();
   const [picklistValues, setPicklistValues] = useState<PicklistFieldValues>();
   const [initialRecord, setInitialRecord] = useState<Record>();
+  const [recordWithChildrenQueries, setRecordWithChildrenQueries] = useState<Maybe<Record>>();
   const [modifiedRecord, setModifiedRecord] = useState<Record>({});
   const [formIsDirty, setIsFormDirty] = useState<boolean>(false);
   const [loading, setLoading] = useState<boolean>(false);
@@ -115,7 +154,11 @@ export const ViewEditCloneRecord: FunctionComponent<ViewEditCloneRecordProps> = 
   const [modalTitle, setModalTitle] = useState(() => getModalTitle(action));
   const [isViewAsJson, setIsViewAsJson] = useState(false);
 
-  const [downloadModalOpen, setDownloadModalOpen] = useState(false);
+  const [downloadModalData, setDownloadModalData] = useState<
+    { open: false } | { open: true; data: Record; fields: string[]; subqueryFields?: MapOf<string[]> }
+  >({
+    open: false,
+  });
 
   useEffect(() => {
     isMounted.current = true;
@@ -155,11 +198,16 @@ export const ViewEditCloneRecord: FunctionComponent<ViewEditCloneRecordProps> = 
       let picklistValues: PicklistFieldValues = {};
       let record: Record = {};
 
+      const sobjectMetadata = await describeSObject(selectedOrg, sobjectName);
+      setChildRelationships(
+        sobjectMetadata.data.childRelationships.filter(
+          (item) => item.relationshipName && item.childSObject && !CHILD_RELATIONSHIP_BLOCK_LIST.has(item.relationshipName)
+        )
+      );
+
       if (action !== 'create') {
         record = await sobjectOperation<Record>(selectedOrg, sobjectName, 'retrieve', { ids: recordId });
       }
-
-      const sobjectMetadata = await describeSObject(selectedOrg, sobjectName);
 
       let recordTypeId = record?.RecordTypeId;
       if (!recordTypeId) {
@@ -257,6 +305,10 @@ export const ViewEditCloneRecord: FunctionComponent<ViewEditCloneRecordProps> = 
     fetchMetadata();
   }, [fetchMetadata]);
 
+  useEffect(() => {
+    trackEvent(ANALYTICS_KEYS.record_modal_action_change, { action, isViewAsJson });
+  }, [action, isViewAsJson, trackEvent]);
+
   async function handleRecordChange(record: Record) {
     setModifiedRecord(record);
   }
@@ -292,7 +344,8 @@ export const ViewEditCloneRecord: FunctionComponent<ViewEditCloneRecordProps> = 
           setFormErrors(handleEditFormErrorResponse(recordResponse));
         } else {
           // record created/updated
-          onClose(true);
+          hasEverBeenInViewMode.current ? onChangeAction('view') : onClose(true);
+          // onClose(true);
         }
       }
     } catch (ex) {
@@ -303,18 +356,85 @@ export const ViewEditCloneRecord: FunctionComponent<ViewEditCloneRecordProps> = 
     if (isMounted.current) {
       setSaving(false);
     }
+    trackEvent(ANALYTICS_KEYS.record_modal_save, { action });
+  }
+
+  function handleDownloadModalOpen() {
+    const record = { ...initialRecord, ...recordWithChildrenQueries };
+    setDownloadModalData({
+      open: true,
+      data: [record],
+      fields: Object.keys(record).filter((field) => field !== 'attributes'),
+      subqueryFields: Object.keys(record)
+        .filter((field) => field !== 'attributes')
+        .reduce((acc, field) => {
+          if (record[field] && isObject(record[field]) && Array.isArray(record[field]?.records)) {
+            const firstRecord = record[field]?.records?.[0] || {};
+            acc[field] = Object.keys(firstRecord)
+              .filter((field) => field !== 'attributes')
+              .map((field) => {
+                if (field === 'CreatedBy' || field === 'LastModifiedBy') {
+                  return `${field}.Name`;
+                }
+                return field;
+              });
+          }
+          return acc;
+        }, {}),
+    });
   }
 
   function handleDownloadModalClose(canceled?: boolean) {
-    if (canceled) {
-      setDownloadModalOpen(false);
-    } else {
-      onClose();
-    }
+    setDownloadModalData({ open: false });
+  }
+
+  // Used for Google Drive upload
+  function handleDownloadFromServer(options: DownloadFromServerOpts) {
+    const { fileFormat, fileName, fields, subqueryFields, includeSubquery, whichFields, recordsToInclude, googleFolder } = options;
+    const jobs: AsyncJobNew<BulkDownloadJob>[] = [
+      {
+        type: 'BulkDownload',
+        title: `Download Records`,
+        org: selectedOrg,
+        meta: {
+          serverUrl,
+          sObject: sobjectName,
+          soql: '',
+          isTooling: false,
+          useBulkApi: false,
+          fields,
+          subqueryFields,
+          records: recordsToInclude || [],
+          totalRecordCount: 1,
+          nextRecordsUrl: '',
+          hasAllRecords: true,
+          fileFormat,
+          fileName,
+          includeSubquery,
+          googleFolder,
+        },
+      },
+    ];
+    fromJetstreamEvents.emit({ type: 'newJob', payload: jobs });
+    trackEvent(ANALYTICS_KEYS.record_modal_download, {
+      fileFormat,
+      whichFields,
+      includeSubquery,
+    });
+    onClose();
+  }
+
+  function handleDidDownload(fileFormat: FileExtCsvXLSXJsonGSheet, whichFields: 'all' | 'specified', includeSubquery: boolean) {
+    trackEvent(ANALYTICS_KEYS.record_modal_download, {
+      fileFormat,
+      whichFields,
+      includeSubquery,
+    });
   }
 
   function handleCopyToClipboard() {
     copyToClipboard(initialRecord, { format: 'text/plain' });
+    trackEvent(ANALYTICS_KEYS.record_modal_clipboard);
   }
 
   /**
@@ -330,6 +450,7 @@ export const ViewEditCloneRecord: FunctionComponent<ViewEditCloneRecordProps> = 
         throw new Error(`Could not find sobject for record id ${newRecordId}`);
       }
       if (isMounted.current) {
+        setRecordWithChildrenQueries(null);
         setPriorRecords((prevValue) => [...prevValue, { recordId, sobjectName }]);
         setModifiedRecord({});
         setRecordId(newRecordId);
@@ -343,6 +464,8 @@ export const ViewEditCloneRecord: FunctionComponent<ViewEditCloneRecordProps> = 
           generalErrors: ['Oops. There was a problem loading the related record information.'],
         });
       }
+    } finally {
+      trackEvent(ANALYTICS_KEYS.record_modal_view_related);
     }
   }
 
@@ -367,30 +490,26 @@ export const ViewEditCloneRecord: FunctionComponent<ViewEditCloneRecordProps> = 
 
   return (
     <div>
-      {downloadModalOpen && (
-        <FileDownloadModal
+      {downloadModalData.open && (
+        <RecordDownloadModal
           org={selectedOrg}
           google_apiKey={google_apiKey}
           google_appId={google_appId}
           google_clientId={google_clientId}
-          modalHeader="Download Record"
-          data={[initialRecord]}
-          fileNameParts={['record', recordId]}
-          allowedTypes={['xlsx', 'csv', 'json']}
+          downloadModalOpen
+          fields={downloadModalData.fields || []}
+          subqueryFields={downloadModalData.subqueryFields || {}}
+          records={downloadModalData.data || []}
+          totalRecordCount={1}
           onModalClose={handleDownloadModalClose}
-          emitUploadToGoogleEvent={fromJetstreamEvents.emit}
-          // Avoid [object, object] in csv and xlsx data for nested fields
-          transformData={(options) => {
-            if (options.fileFormat === 'csv' || options.fileFormat === 'xlsx') {
-              return flattenRecords(options.data, options.header);
-            }
-            return options.data;
-          }}
+          onDownload={handleDidDownload}
+          onDownloadFromServer={handleDownloadFromServer}
         />
       )}
 
-      {!downloadModalOpen && (
+      {!downloadModalData.open && (
         <Modal
+          ref={modalRef}
           header={modalTitle}
           tagline={
             <div>
@@ -458,7 +577,7 @@ export const ViewEditCloneRecord: FunctionComponent<ViewEditCloneRecordProps> = 
                   </button>
                   <button
                     className="slds-button slds-button_neutral"
-                    onClick={() => setDownloadModalOpen(true)}
+                    onClick={() => handleDownloadModalOpen()}
                     disabled={loading || !initialRecord}
                   >
                     <Icon type="utility" icon="download" className="slds-button__icon slds-button__icon_left" omitContainer />
@@ -477,7 +596,13 @@ export const ViewEditCloneRecord: FunctionComponent<ViewEditCloneRecordProps> = 
                         <PopoverErrorButton errors={formErrors.generalErrors} omitPortal />
                       </span>
                     )}
-                    <button className="slds-button slds-button_neutral" onClick={() => onClose()} disabled={loading || saving}>
+                    <button
+                      className="slds-button slds-button_neutral"
+                      onClick={() => {
+                        hasEverBeenInViewMode.current ? onChangeAction('view') : onClose();
+                      }}
+                      disabled={loading || saving}
+                    >
                       Cancel
                     </button>
                     <button
@@ -494,30 +619,75 @@ export const ViewEditCloneRecord: FunctionComponent<ViewEditCloneRecordProps> = 
           }
           onClose={() => onClose()}
         >
-          <div>
+          <div ref={modalBodyRef}>
             {(loading || saving) && <Spinner />}
-            {!loading && initialRecord && !isViewAsJson && (
-              <UiRecordForm
-                action={action}
-                sobjectFields={sobjectFields || []}
-                picklistValues={picklistValues || {}}
-                record={initialRecord}
-                saveErrors={formErrors.fieldErrors}
-                onChange={handleRecordChange}
-                viewRelatedRecord={viewRelatedRecord}
-              />
-            )}
-
-            {!loading && initialRecord && isViewAsJson && (
-              <div className="slds-p-around_large">
-                <Editor
-                  height="90vh"
-                  theme="vs-dark"
-                  defaultLanguage="json"
-                  value={JSON.stringify(initialRecord, null, 2)}
-                  options={{ readOnly: true }}
-                />
-              </div>
+            {!loading && initialRecord && (
+              <>
+                {/* Create and Edit do not show child records */}
+                {!isViewAsJson && action !== 'view' && (
+                  <UiRecordForm
+                    action={action}
+                    sobjectFields={sobjectFields || []}
+                    picklistValues={picklistValues || {}}
+                    record={initialRecord}
+                    saveErrors={formErrors.fieldErrors}
+                    onChange={handleRecordChange}
+                    viewRelatedRecord={viewRelatedRecord}
+                  />
+                )}
+                {!isViewAsJson && action === 'view' && (
+                  <Tabs
+                    onChange={(value) => {
+                      value === 'children' && trackEvent(ANALYTICS_KEYS.record_modal_view_children);
+                    }}
+                    tabs={[
+                      {
+                        id: 'root',
+                        title: 'Record',
+                        content: (
+                          <UiRecordForm
+                            action={action}
+                            sobjectFields={sobjectFields || []}
+                            picklistValues={picklistValues || {}}
+                            record={initialRecord}
+                            saveErrors={formErrors.fieldErrors}
+                            onChange={handleRecordChange}
+                            viewRelatedRecord={viewRelatedRecord}
+                          />
+                        ),
+                      },
+                      {
+                        id: 'child',
+                        title: 'Child Records',
+                        content: (
+                          <ViewChildRecords
+                            selectedOrg={selectedOrg}
+                            sobjectName={sobjectName}
+                            parentRecordId={recordId}
+                            childRelationships={childRelationships || []}
+                            initialData={recordWithChildrenQueries}
+                            modalRef={modalRef}
+                            onChildrenData={setRecordWithChildrenQueries}
+                          />
+                        ),
+                      },
+                    ]}
+                  />
+                )}
+                {isViewAsJson && (
+                  <div className="slds-p-around_large">
+                    <Editor
+                      height={
+                        modalBodyRef.current?.parentElement?.clientHeight ? modalBodyRef.current?.parentElement?.clientHeight - 50 : '70vh'
+                      }
+                      theme="vs-dark"
+                      defaultLanguage="json"
+                      value={JSON.stringify(initialRecord, null, 2)}
+                      options={{ readOnly: true }}
+                    />
+                  </div>
+                )}
+              </>
             )}
           </div>
         </Modal>
