@@ -774,5 +774,5 @@ export function getFlattenedListItems(items: ListItemGroup[] = []): ListItem[] {
 
 // https://stackoverflow.com/questions/7394748/whats-the-right-way-to-decode-a-string-that-has-special-html-entities-in-it
 export function decodeHtmlEntity(value: Maybe<string>) {
-  return value?.replace(/&#(\d+);/g, (match, dec) => String.fromCharCode(dec)) || '';
+  return value?.replace(/&amp;|&#(\d+);/g, (match, dec) => String.fromCharCode(dec)) || '';
 }

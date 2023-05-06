@@ -1,6 +1,5 @@
 import { css } from '@emotion/react';
 import { useNonInitialEffect } from '@jetstream/shared/ui-utils';
-import { decodeHtmlEntity } from '@jetstream/shared/utils';
 import {
   AutoFullHeightContainer,
   ColumnWithFilter,
@@ -47,9 +46,6 @@ export const LoadRecordsResultsModal: FunctionComponent<LoadRecordsResultsModalP
 
   useEffect(() => {
     if (header) {
-      rows = rows.map((row, i) => ({ ...row, _errors: decodeHtmlEntity(row?._errors) }));
-      console.log('row', rows[0]._errors);
-
       setColumns(
         header.map((item) => ({
           ...setColumnFromType(item, 'text'),
@@ -76,7 +72,7 @@ export const LoadRecordsResultsModal: FunctionComponent<LoadRecordsResultsModalP
                         />
                       </Tooltip>
                     )}
-                    {decodeHtmlEntity(row?._errors)}
+                    {row?._errors}
                   </p>
                 )
               : undefined,

@@ -3,7 +3,7 @@ import { logger } from '@jetstream/shared/client-logger';
 import { ANALYTICS_KEYS } from '@jetstream/shared/constants';
 import { bulkApiAbortJob, bulkApiGetJob, bulkApiGetRecords } from '@jetstream/shared/data';
 import { checkIfBulkApiJobIsDone, convertDateToLocale, useBrowserNotifications, useRollbar } from '@jetstream/shared/ui-utils';
-import { getSuccessOrFailureChar, pluralizeFromNumber } from '@jetstream/shared/utils';
+import { decodeHtmlEntity } from '@jetstream/shared/utils';
 import {
   BulkJobBatchInfo,
   BulkJobResultRecord,
@@ -18,11 +18,11 @@ import { FileDownloadModal, Grid, ProgressRing, SalesforceLogin, Spinner, Toolti
 import { FunctionComponent, useEffect, useRef, useState } from 'react';
 import { useRecoilState } from 'recoil';
 import { applicationCookieState } from '../../../../app-state';
-import { fireToast } from '../../../core/AppToast';
 import { useAmplitude } from '../../../core/analytics';
+import { fireToast } from '../../../core/AppToast';
 import * as fromJetstreamEvents from '../../../core/jetstream-events';
-import LoadRecordsBulkApiResultsTable from '../../../shared/load-records-results/LoadRecordsBulkApiResultsTable';
 import { DownloadAction, DownloadType } from '../../../shared/load-records-results/load-records-results-types';
+import LoadRecordsBulkApiResultsTable from '../../../shared/load-records-results/LoadRecordsBulkApiResultsTable';
 import {
   ApiMode,
   DownloadModalData,
@@ -33,7 +33,7 @@ import {
   PrepareDataResponse,
   ViewModalData,
 } from '../../load-records-types';
-import { LoadRecordsBatchError, getFieldHeaderFromMapping } from '../../utils/load-records-utils';
+import { getFieldHeaderFromMapping, LoadRecordsBatchError } from '../../utils/load-records-utils';
 import { getLoadWorker } from '../../utils/load-records-worker';
 import LoadRecordsResultsModal from './LoadRecordsResultsModal';
 
@@ -408,7 +408,7 @@ export const LoadRecordsBulkApiResults: FunctionComponent<LoadRecordsBulkApiResu
           combinedResults.push({
             _id: resultRecord.Id || records[i].Id || null,
             _success: resultRecord.Success,
-            _errors: resultRecord.Error,
+            _errors: decodeHtmlEntity(resultRecord.Error),
             ...records[i],
           });
         }

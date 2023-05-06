@@ -2,7 +2,7 @@ import { logger } from '@jetstream/shared/client-logger';
 import { ANALYTICS_KEYS } from '@jetstream/shared/constants';
 import { bulkApiGetRecords } from '@jetstream/shared/data';
 import { formatNumber } from '@jetstream/shared/ui-utils';
-import { pluralizeFromNumber } from '@jetstream/shared/utils';
+import { decodeHtmlEntity, pluralizeFromNumber } from '@jetstream/shared/utils';
 import { BulkJobBatchInfo, BulkJobResultRecord, SalesforceOrgUi } from '@jetstream/types';
 import { Card, FileDownloadModal, Grid, SalesforceLogin, ScopedNotification, Spinner, SupportLink } from '@jetstream/ui';
 import { Fragment, FunctionComponent, useEffect, useState } from 'react';
@@ -84,7 +84,7 @@ export const MassUpdateRecordsDeploymentRow: FunctionComponent<MassUpdateRecords
           combinedResults.push({
             _id: resultRecord.Id || records[i].Id || null,
             _success: resultRecord.Success,
-            _errors: resultRecord.Error,
+            _errors: decodeHtmlEntity(resultRecord.Error),
             ...records[i],
           });
         }
