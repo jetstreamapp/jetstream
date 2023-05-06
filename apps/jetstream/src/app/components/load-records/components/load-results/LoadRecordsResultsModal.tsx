@@ -47,6 +47,9 @@ export const LoadRecordsResultsModal: FunctionComponent<LoadRecordsResultsModalP
 
   useEffect(() => {
     if (header) {
+      rows = rows.map((row, i) => ({ ...row, _errors: decodeHtmlEntity(row?._errors) }));
+      console.log('row', rows[0]._errors);
+
       setColumns(
         header.map((item) => ({
           ...setColumnFromType(item, 'text'),
@@ -65,10 +68,10 @@ export const LoadRecordsResultsModal: FunctionComponent<LoadRecordsResultsModalP
                     `}
                   >
                     {row._errors && (
-                      <Tooltip content={decodeHtmlEntity(row._errors)}>
+                      <Tooltip content={row._errors}>
                         <CopyToClipboard
                           icon={{ type: 'utility', icon: 'error', description: 'load error' }}
-                          content={decodeHtmlEntity(row._errors)}
+                          content={row._errors}
                           className="slds-text-color_error slds-p-right_x-small"
                         />
                       </Tooltip>
