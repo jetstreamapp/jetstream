@@ -3,6 +3,7 @@ import {
   ListItem,
   MapOf,
   PermissionSetNoProfileRecord,
+  PermissionSetProfileRecord,
   PermissionSetWithProfileRecord,
 } from '@jetstream/types';
 import type { DescribeGlobalSObjectResult } from 'jsforce';
@@ -120,5 +121,14 @@ export const permissionSetsByIdSelector = selector<MapOf<PermissionSetNoProfileR
       }, {});
     }
     return {};
+  },
+});
+
+export const selectedProfilesSelector = selector<PermissionSetProfileRecord[]>({
+  key: 'permission-manager.selectedProfilesSelector',
+  get: ({ get }) => {
+    const selectedProfiles = get(selectedProfilesPermSetState);
+    const profilesById = get(profilesByIdSelector);
+    return selectedProfiles.map((profileId) => profilesById[profileId].Profile).filter(Boolean);
   },
 });

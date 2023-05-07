@@ -1,3 +1,8 @@
+import { ensureBoolean } from '@jetstream/shared/utils';
+
+export type ParsedProfile = ReturnType<typeof parseProfile>;
+export type ParsedRecordTypePicklistValues = ReturnType<typeof parseRecordTypePicklistValuesFromCustomObject>;
+
 export function parseProfile(xml: string) {
   const parser = new DOMParser();
   const xmlDoc = parser.parseFromString(xml, 'text/xml');
@@ -10,21 +15,21 @@ export function parseProfile(xml: string) {
     }),
     recordTypeVisibilities: Array.from(xmlDoc.getElementsByTagName('recordTypeVisibilities')).map((node) => {
       return {
-        default: parseAttribute(node, 'default'),
-        recordType: parseAttribute(node, 'recordType', 'boolean'),
-        visible: parseAttribute(node, 'visible'),
+        default: ensureBoolean(parseAttribute(node, 'default')),
+        recordType: parseAttribute(node, 'recordType'),
+        visible: ensureBoolean(parseAttribute(node, 'visible')),
       };
     }),
   };
 }
 
-export function parseRecordTypesFromCustomObject(xml: string) {
+export function parseRecordTypePicklistValuesFromCustomObject(xml: string) {
   const parser = new DOMParser();
   const xmlDoc = parser.parseFromString(xml, 'text/xml');
   return Array.from(xmlDoc.getElementsByTagName('recordTypes')).map((node) => {
     return {
       fullName: parseAttribute(node, 'fullName'),
-      active: parseAttribute(node, 'active', 'boolean'),
+      active: ensureBoolean(parseAttribute(node, 'active')),
       label: parseAttribute(node, 'label'),
       picklistValues: parseArrayAttribute(node, 'picklistValues').map((values) => {
         return {
@@ -32,7 +37,7 @@ export function parseRecordTypesFromCustomObject(xml: string) {
           values: parseArrayAttribute(node, 'values').map((value) => {
             return {
               fullName: parseAttribute(value, 'fullName'),
-              default: parseAttribute(value, 'default', 'boolean'),
+              default: ensureBoolean(parseAttribute(value, 'default')),
             };
           }),
         };
@@ -41,13 +46,13 @@ export function parseRecordTypesFromCustomObject(xml: string) {
   });
 }
 
-function parseAttribute(node: Element, name: string, type: 'text' | 'boolean' = 'text') {
+function parseAttribute(node: Element, name: string) {
   let content = node.querySelector(name)?.textContent || null;
   // FIXME: not sure if this is working
-  if (content !== null && type === 'text') {
+  if (content !== null) {
     content = decodeURIComponent(content);
   }
-  return type === 'boolean' ? content === 'true' : content;
+  return content;
 }
 
 function parseArrayAttribute(node: Element, name: string) {

@@ -263,3 +263,19 @@ export const SOCKET_EVENTS = {
   PLATFORM_EVENT_SUBSCRIBE: 'platform-event:subscribe',
   PLATFORM_EVENT_UNSUBSCRIBE: 'platform-event:unsubscribe',
 };
+
+/**
+ * Some standard profiles have random fullnames that do not match their label.
+ */
+export const PROFILE_LABEL_TO_FULL_NAME_MAP = {
+  'Contract Manager': 'ContractManager',
+  'Customer Portal Manager': 'CustomerManager',
+  'High Volume Customer Portal': 'HighVolumePortal',
+  'Marketing User': 'MarketingProfile',
+  'Partner User': 'Partner',
+  'Service Cloud': 'ServiceCloud',
+  'Solution Manager': 'SolutionManager',
+  'Standard Platform User': 'StandardAul',
+  'Standard User': 'Standard',
+  'System Administrator': 'Admin',
+} as const;

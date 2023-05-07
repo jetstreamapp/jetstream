@@ -26,6 +26,8 @@ import * as fromJetstreamEvents from '../core/jetstream-events';
 import ManagePermissionsEditorFieldTable from './ManagePermissionsEditorFieldTable';
 import ManagePermissionsEditorObjectTable from './ManagePermissionsEditorObjectTable';
 import * as fromPermissionsState from './manage-permissions.state';
+import ManagePermissionRecordTypes from './record-types/ManagePermissionRecordTypes';
+import { usePermissionRecordTypes } from './usePermissionRecordTypes';
 import { usePermissionRecords } from './usePermissionRecords';
 import { generateExcelWorkbookFromTable } from './utils/permission-manager-export-utils';
 import {
@@ -109,6 +111,9 @@ export const ManagePermissionsEditor: FunctionComponent<ManagePermissionsEditorP
 
   const profilesById = useRecoilValue(fromPermissionsState.profilesByIdSelector);
   const permissionSetsById = useRecoilValue(fromPermissionsState.permissionSetsByIdSelector);
+
+  const selectedProfileRecords = useRecoilValue(fromPermissionsState.selectedProfilesSelector);
+
   const [fieldsByObject, setFieldsByObject] = useRecoilState(fromPermissionsState.fieldsByObject);
   const [fieldsByKey, setFieldsByKey] = useRecoilState(fromPermissionsState.fieldsByKey);
   const [objectPermissionMap, setObjectPermissionMap] = useRecoilState(fromPermissionsState.objectPermissionMap);
@@ -119,6 +124,7 @@ export const ManagePermissionsEditor: FunctionComponent<ManagePermissionsEditorP
   const resetFieldPermissionMap = useResetRecoilState(fromPermissionsState.fieldPermissionMap);
 
   const recordData = usePermissionRecords(selectedOrg, selectedSObjects, selectedProfiles, selectedPermissionSets);
+  const recordTypeData = usePermissionRecordTypes(selectedOrg, selectedSObjects, selectedProfileRecords);
 
   const [objectColumns, setObjectColumns] = useState<ColumnWithFilter<PermissionTableObjectCell, PermissionTableSummaryRow>[]>([]);
   const [objectRows, setObjectRows] = useState<PermissionTableObjectCell[] | null>(null);
@@ -279,7 +285,6 @@ export const ManagePermissionsEditor: FunctionComponent<ManagePermissionsEditorP
     setDirtyFieldRows({});
   }
 
-  // FIXME:
   function exportChanges() {
     // generate brand-new columns/rows just for export
     // This is required in the case where a tab may not have been rendered
@@ -522,6 +527,37 @@ export const ManagePermissionsEditor: FunctionComponent<ManagePermissionsEditorP
                     onBulkUpdate={handleFieldBulkRowUpdate}
                     onDirtyRows={setDirtyFieldRows}
                   />
+                ),
+              },
+              {
+                id: 'record-types',
+                title: (
+                  <Fragment>
+                    {recordTypeData.loading && <Spinner size="small" />}
+                    <span className="slds-tabs__left-icon">
+                      <Icon
+                        type="standard"
+                        icon="record"
+                        containerClassname="slds-icon_container slds-icon-standard-record"
+                        className="slds-icon slds-icon_small"
+                      />
+                    </span>
+                    Record Types
+                    {/* <ErrorTooltip hasError={fieldsHaveErrors} id="record-type-errors" /> */}
+                  </Fragment>
+                ),
+                titleText: 'Record Types',
+                content: (
+                  <>
+                    {recordTypeData.loading && <Spinner size="small" />}
+                    {recordTypeData.recordTypeData && (
+                      <ManagePermissionRecordTypes
+                        recordTypeData={recordTypeData.recordTypeData}
+                        loading={recordTypeData.loading}
+                        hasError={recordTypeData.hasError}
+                      />
+                    )}
+                  </>
                 ),
               },
             ]}

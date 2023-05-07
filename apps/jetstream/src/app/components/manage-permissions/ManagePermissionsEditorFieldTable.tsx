@@ -66,6 +66,8 @@ export const ManagePermissionsEditorFieldTable = forwardRef<any, ManagePermissio
       [onBulkUpdate]
     );
 
+    // TODO: check if we have rows, otherwise there may not be record types enabled on selected objects
+
     return (
       <div>
         <AutoFullHeightContainer fillHeight setHeightAttr bottomBuffer={15}>

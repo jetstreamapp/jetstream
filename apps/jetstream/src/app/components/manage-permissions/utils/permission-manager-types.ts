@@ -161,3 +161,34 @@ export interface PermissionManagerTableContext {
   onColumnAction: (action: 'selectAll' | 'unselectAll' | 'reset', columnKey: string) => void;
   onBulkAction: (rows: (PermissionTableObjectCell | PermissionTableFieldCell)[]) => void;
 }
+
+export interface PermissionManagerObjectWithRecordTypes {
+  [sobject: string]: {
+    [recordType: string]: {
+      [profileName: string]: PermissionManagerObjectWithRecordType;
+    };
+  };
+}
+
+export interface PermissionManagerObjectWithRecordType {
+  recordType: { DeveloperName: string; SobjectType: string; fullName: string };
+  profile: string;
+  profileFullName: string;
+  layoutLabel: string;
+  layoutName: string;
+  default: boolean;
+  visible: boolean;
+}
+
+export interface PermissionManagerRecordTypeRow {
+  key: string;
+  sobject: string;
+  recordType: string;
+  permissions: {
+    [profileName: string]: PermissionManagerObjectWithRecordType;
+  };
+  /** Initial values */
+  permissionsOriginal: {
+    [profileName: string]: PermissionManagerObjectWithRecordType;
+  };
+}
