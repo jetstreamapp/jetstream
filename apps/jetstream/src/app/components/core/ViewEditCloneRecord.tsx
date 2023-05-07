@@ -146,7 +146,7 @@ export const ViewEditCloneRecord: FunctionComponent<ViewEditCloneRecordProps> = 
   const [sobjectFields, setSobjectFields] = useState<Field[]>();
   const [picklistValues, setPicklistValues] = useState<PicklistFieldValues>();
   const [initialRecord, setInitialRecord] = useState<Record>();
-  const [recordWithChildrenQueries, setRecordWithChildrenQueries] = useState<Maybe<Record>>();
+  const [recordWithChildrenQueries, setRecordWithChildrenQueries] = useState<MapOf<Maybe<Record>>>({});
   const [modifiedRecord, setModifiedRecord] = useState<Record>({});
   const [formIsDirty, setIsFormDirty] = useState<boolean>(false);
   const [loading, setLoading] = useState<boolean>(false);
@@ -287,7 +287,6 @@ export const ViewEditCloneRecord: FunctionComponent<ViewEditCloneRecordProps> = 
         onFetch && onFetch(recordId, record);
       }
     } catch (ex) {
-      // TODO: error handling
       if (isMounted.current) {
         setFormErrors({
           hasErrors: true,
@@ -455,7 +454,6 @@ export const ViewEditCloneRecord: FunctionComponent<ViewEditCloneRecordProps> = 
         throw new Error(`Could not find sobject for record id ${newRecordId}`);
       }
       if (isMounted.current) {
-        setRecordWithChildrenQueries(null);
         setPriorRecords((prevValue) => [...prevValue, { recordId, sobjectName }]);
         setModifiedRecord({});
         setRecordId(newRecordId);
@@ -686,9 +684,11 @@ export const ViewEditCloneRecord: FunctionComponent<ViewEditCloneRecordProps> = 
                             sobjectName={sobjectName}
                             parentRecordId={recordId}
                             childRelationships={childRelationships || []}
-                            initialData={recordWithChildrenQueries}
+                            initialData={recordWithChildrenQueries[recordId]}
                             modalRef={modalRef}
-                            onChildrenData={setRecordWithChildrenQueries}
+                            onChildrenData={(parentRecordId, record) =>
+                              setRecordWithChildrenQueries((priorData) => ({ ...priorData, [parentRecordId]: record }))
+                            }
                           />
                         ),
                       },

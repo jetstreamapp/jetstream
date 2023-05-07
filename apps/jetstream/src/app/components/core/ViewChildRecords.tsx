@@ -73,7 +73,7 @@ export interface ViewChildRecordsProps {
   initialData?: Record;
   childRelationships: ChildRelationship[];
   modalRef?: MutableRefObject<Maybe<HTMLDivElement>>;
-  onChildrenData?: (record: Record) => void;
+  onChildrenData?: (parentRecordId: string, record: Record) => void;
 }
 
 export const ViewChildRecords: FunctionComponent<ViewChildRecordsProps> = ({
@@ -287,7 +287,7 @@ export const ViewChildRecords: FunctionComponent<ViewChildRecordsProps> = ({
         setRows(_rows);
         setExpandedGroupIds(new Set(_rows.map((row) => row._groupByLabel)));
 
-        onChildrenData && onChildrenData(record);
+        onChildrenData && onChildrenData(parentRecordId, record);
         trackEvent(ANALYTICS_KEYS.record_modal_view_children, { subqueryCount: subqueries.length, childRecordCount: _rows });
       } catch (ex) {
         logger.warn('Error loading records', ex);
