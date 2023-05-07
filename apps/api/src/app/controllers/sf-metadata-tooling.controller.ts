@@ -198,7 +198,7 @@ export async function checkMetadataResults(req: Request, res: Response, next: Ne
 
 export async function retrievePackageFromLisMetadataResults(req: Request, res: Response, next: NextFunction) {
   try {
-    const types: MapOf<ListMetadataResult[]> = req.body;
+    const types: MapOf<ListMetadataResult[] | { fullName: string }[]> = req.body;
     const conn: jsforce.Connection = res.locals.jsforceConn;
 
     const results = await conn.metadata.retrieve(getRetrieveRequestFromListMetadata(types, conn.version));

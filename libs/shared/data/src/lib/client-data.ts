@@ -492,9 +492,10 @@ export async function checkMetadataResults(org: SalesforceOrgUi, id: string, inc
   );
 }
 
-export async function retrieveMetadataFromListMetadata(
+export async function retrieveMetadataFromListMetadata<T extends { fullName: string }>(
   org: SalesforceOrgUi,
-  payload: MapOf<ListMetadataResult[]>
+  /** Accepts an array of any type as long as {fullName: string} is there, e.x. ListMetadata */
+  payload: MapOf<T[]>
 ): Promise<RetrieveResult> {
   return handleRequest({ method: 'POST', url: `/api/metadata/retrieve/list-metadata`, data: payload }, { org }).then(
     unwrapResponseIgnoreCache
