@@ -1310,25 +1310,22 @@ function getColumnsForProfile(
         }
         return '';
       },
-      // formatter: ({ column, isCellSelected, row, onRowChange }) => {
-      //   return row.permissions[profile]?.layoutLabel;
-      // },
       formatter: ({ column, isCellSelected, row, onRowChange }) => {
         // eslint-disable-next-line react-hooks/rules-of-hooks
         const [items] = useState<ListItem[]>(() =>
           orderObjectsBy(layoutsBySobject[row.sobject], 'Name').map((layout) => ({
-            id: layout.Name,
+            id: `${row.sobject}-${layout.Name}`,
             label: layout.Name,
-            value: layout.Name,
+            value: `${row.sobject}-${layout.Name}`,
             meta: layout,
           }))
         );
         // const errorMessage = row.permissions[id].errorMessage;
-        const value = row.permissions[profile]?.layoutLabel;
+        const value = row.permissions[profile]?.layoutName;
 
         function handleChange(event: ChangeEvent<HTMLSelectElement>) {
           // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-          const selectedItem = items.find((item) => item.id === event.target.value)!;
+          const selectedItem = items.find((item) => item.value === event.target.value)!;
           const newRow = {
             ...row,
             permissions: {
@@ -1336,7 +1333,7 @@ function getColumnsForProfile(
               [profile]: {
                 ...row.permissions[profile],
                 layoutLabel: selectedItem.label,
-                layoutName: selectedItem.id,
+                layoutName: selectedItem.value,
               },
             },
           };
@@ -1349,7 +1346,6 @@ function getColumnsForProfile(
                 Page Layouts
               </label>
               <div className="slds-form-element__control">
-                {/* <div className="slds-select_container"> */}
                 <select className="slds-select" id={`${profile}-assigned-record-type`} value={value} onChange={handleChange}>
                   {items.map((item) => (
                     <option key={item.id} value={item.value}>
@@ -1357,7 +1353,6 @@ function getColumnsForProfile(
                     </option>
                   ))}
                 </select>
-                {/* </div> */}
               </div>
             </div>
           </div>

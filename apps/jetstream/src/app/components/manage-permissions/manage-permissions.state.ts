@@ -52,24 +52,6 @@ export const fieldsByKey = atom<MapOf<EntityParticlePermissionsRecord> | null>({
   default: null,
 });
 
-// // key = either Sobject name or field name with object prefix
-// export const permissionsByObjectAndField = atom<MapOf<string[]>>({
-//   key: 'permission-manager.permissionsByObjectAndField',
-//   default: null,
-// });
-
-// //KEY = {Id-SObjectName} ex: `${record.ParentId}-${record.Field}`
-// export const objectPermissionsByKey = atom<MapOf<ObjectPermissionRecord>>({
-//   key: 'permission-manager.objectPermissionsByKey',
-//   default: null,
-// });
-
-// //KEY = {Id-FieldName} ex: `${record.ParentId}-${record.Field}`
-// export const fieldPermissionsByKey = atom<MapOf<FieldPermissionRecord>>({
-//   key: 'permission-manager.fieldPermissionsByKey',
-//   default: null,
-// });
-
 export const objectPermissionMap = atom<MapOf<ObjectPermissionDefinitionMap> | null>({
   key: 'permission-manager.objectPermissionMap',
   default: null,
@@ -79,6 +61,8 @@ export const fieldPermissionMap = atom<MapOf<FieldPermissionDefinitionMap> | nul
   key: 'permission-manager.fieldPermissionMap',
   default: null,
 });
+
+// TODO: add stuff for record type permissions
 
 /**
  * Returns true if all selections have been made

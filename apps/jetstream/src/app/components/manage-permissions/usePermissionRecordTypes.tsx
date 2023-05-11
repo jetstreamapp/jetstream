@@ -9,22 +9,12 @@ import {
   pollRetrieveMetadataResultsUntilDone,
   useRollbar,
 } from '@jetstream/shared/ui-utils';
+import { encodeHtmlEntitySalesforceCompatible, getMapOf, orderObjectsBy } from '@jetstream/shared/utils';
 import { PermissionSetProfileRecord, SalesforceOrgUi } from '@jetstream/types';
 import JSZip from 'jszip';
 import isString from 'lodash/isString';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { composeQuery, getField } from 'soql-parser-js';
-
-// TODO: best guess at possible structure - will need to refine
-interface RecordTypeRow {
-  recordTypeName: string;
-  assignedPageLayout: string;
-  assignedRecordType: boolean;
-  defaultRecordType: boolean;
-  availablePageLayouts: string[]; // does not need to be on row - FIXME:
-  // PersonAccount records types are some other thing...
-  // Business Account and Person Account Default Record Types
-}
 
 export type RecordTypeData = Awaited<ReturnType<typeof fetchRecordTypeData>>;
 
@@ -114,7 +104,7 @@ async function fetchRecordTypeData(selectedOrg: SalesforceOrgUi, sobjects: strin
   ).then((results) =>
     results.queryResults.records.map((record) => ({
       ...record,
-      fullName: encodeURIComponent(`${record.EntityDefinition.QualifiedApiName}-${record.Name}`),
+      fullName: encodeHtmlEntitySalesforceCompatible(`${record.EntityDefinition.QualifiedApiName}-${record.Name}`),
     }))
   );
 
@@ -136,7 +126,7 @@ async function fetchRecordTypeData(selectedOrg: SalesforceOrgUi, sobjects: strin
   ).then((results) =>
     results.queryResults.records.map((record) => ({
       ...record,
-      fullName: encodeURIComponent(`${record.SobjectType}.${record.DeveloperName}`),
+      fullName: encodeHtmlEntitySalesforceCompatible(`${record.SobjectType}.${record.DeveloperName}`),
     }))
   );
 
@@ -146,7 +136,15 @@ async function fetchRecordTypeData(selectedOrg: SalesforceOrgUi, sobjects: strin
     RecordType: recordTypes,
   });
 
-  // TODO: let user know the progress?
+  const recordTypeVisibilitiesMap = getMapOf(
+    recordTypes.map((recordType) => ({
+      default: false,
+      recordType: recordType.fullName,
+      visible: false,
+    })),
+    'recordType'
+  );
+
   const results = await pollRetrieveMetadataResultsUntilDone(selectedOrg, id);
 
   if (isString(results.zipFile)) {
@@ -154,26 +152,43 @@ async function fetchRecordTypeData(selectedOrg: SalesforceOrgUi, sobjects: strin
 
     const profilesWithLayoutAndRecordTypeVisibilities = await Promise.all(
       profileNames.map((profile): Promise<{ profile: string; profileFullName: string } & ParsedProfile> => {
-        const file = salesforcePackage.file(`profiles/${encodeURIComponent(PROFILE_LABEL_TO_FULL_NAME_MAP[profile] || profile)}.profile`);
+        const decodedKeyMap = Object.keys(salesforcePackage.files).reduce((acc, item) => {
+          acc[decodeURIComponent(item)] = item;
+          return acc;
+        }, {});
+
+        const file = salesforcePackage.file(decodedKeyMap[`profiles/${PROFILE_LABEL_TO_FULL_NAME_MAP[profile] || profile}.profile`]);
         if (file) {
-          return file.async('string').then((results) => ({
-            profile,
-            profileFullName: PROFILE_LABEL_TO_FULL_NAME_MAP[profile] || profile,
-            ...parseProfile(results),
-          }));
+          return file.async('string').then((results) => {
+            const parsedResults = parseProfile(results);
+            return {
+              profile,
+              profileFullName: PROFILE_LABEL_TO_FULL_NAME_MAP[profile] || profile,
+              layoutAssignments: parsedResults.layoutAssignments,
+              // Fill in missing record types with defaults since they are omitted from the metadata response
+              recordTypeVisibilities: orderObjectsBy(
+                Object.values({ ...recordTypeVisibilitiesMap, ...getMapOf(parsedResults.recordTypeVisibilities, 'recordType') }),
+                'recordType'
+              ),
+            };
+          });
         }
         return Promise.resolve({
           profile,
           profileFullName: PROFILE_LABEL_TO_FULL_NAME_MAP[profile] || profile,
-          recordTypeVisibilities: [],
-          layoutAssignments: [],
+          recordTypeVisibilities: Object.values(recordTypeVisibilitiesMap),
+          layoutAssignments: [], // FIXME: this needs to have the defaults so that we know if it was modified
         });
       })
     );
 
     const sobjectsWithRecordTypes = await Promise.all(
       sobjects.map((sobject): Promise<{ sobject: string; picklists: ParsedRecordTypePicklistValues }> => {
-        const file = salesforcePackage.file(`objects/${encodeURIComponent(sobject)}.object`);
+        const decodedKeyMap = Object.keys(salesforcePackage.files).reduce((acc, item) => {
+          acc[decodeURIComponent(item)] = item;
+          return acc;
+        }, {});
+        const file = salesforcePackage.file(decodedKeyMap[`objects/${decodedKeyMap[sobject]}.object`]);
         if (file) {
           return file.async('string').then((results) => ({
             sobject,

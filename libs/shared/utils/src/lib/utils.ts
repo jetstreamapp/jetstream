@@ -17,7 +17,7 @@ import {
 } from '@jetstream/types';
 import { formatISO as formatISODate, parse as parseDate, parseISO as parseISODate, startOfDay as startOfDayDate } from 'date-fns';
 import fromUnixTime from 'date-fns/fromUnixTime';
-import type { FieldType as jsforceFieldType, QueryResult } from 'jsforce';
+import type { QueryResult, FieldType as jsforceFieldType } from 'jsforce';
 import lodashGet from 'lodash/get';
 import isBoolean from 'lodash/isBoolean';
 import isNil from 'lodash/isNil';
@@ -770,4 +770,58 @@ export function getFlattenedListItems(items: ListItemGroup[] = []): ListItem[] {
     }
     return output;
   }, []);
+}
+
+/**
+ * Salesforce encodes metadata types in a slightly unique way where build-in encodeURIComponent would only work for some characters
+ * and other characters, like space or underscore are not encoded
+ * Example:
+ * Item with name: `~\`!@#$ %ABC^&â*()_+09842-=[];', ./{}:"<>?コンサート`
+ * %7E%60%21%40%23%24%20%25ABC%5E%26C3A2*%28%29_%2B09842-%3D%5B%5D%3B%27%2C%20%2E%2F%7B%7D%3A%22%3C%3E%3FE382B3E383B3E382B5E383BCE38388
+ */
+export function encodeHtmlEntitySalesforceCompatible(value: Maybe<string> = '') {
+  value = value || '';
+  let encodedStr = '';
+  const charEncodingMap = {
+    '~': '%7E',
+    '`': '%60',
+    '!': '%21',
+    '@': '%40',
+    '#': '%23',
+    $: '%24',
+    '%': '%25',
+    '^': '%5E',
+    '&': '%26',
+    '(': '%28',
+    ')': '%29',
+    '+': '%2B',
+    '0': '0',
+    '9': '9',
+    '8': '8',
+    '4': '4',
+    '2': '2',
+    '-': '-',
+    '=': '%3D',
+    '[': '%5B',
+    ']': '%5D',
+    ';': '%3B',
+    "'": '%27',
+    ',': '%2C',
+    '.': '%2E',
+    // ' ': '%20',
+    '/': '%2F',
+    '{': '%7B',
+    '}': '%7D',
+    ':': '%3A',
+    '"': '%22',
+    '<': '%3C',
+    '>': '%3E',
+    '?': '%3F',
+  };
+  for (let i = 0; i < value.length; i++) {
+    const charCode = value.charCodeAt(i);
+    const char = value.charAt(i);
+    encodedStr += charEncodingMap[char] || char;
+  }
+  return encodedStr;
 }

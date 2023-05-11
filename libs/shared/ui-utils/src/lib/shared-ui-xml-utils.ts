@@ -16,7 +16,7 @@ export function parseProfile(xml: string) {
     recordTypeVisibilities: Array.from(xmlDoc.getElementsByTagName('recordTypeVisibilities')).map((node) => {
       return {
         default: ensureBoolean(parseAttribute(node, 'default')),
-        recordType: parseAttribute(node, 'recordType'),
+        recordType: parseAttribute(node, 'recordType') || '',
         visible: ensureBoolean(parseAttribute(node, 'visible')),
       };
     }),
@@ -28,12 +28,12 @@ export function parseRecordTypePicklistValuesFromCustomObject(xml: string) {
   const xmlDoc = parser.parseFromString(xml, 'text/xml');
   return Array.from(xmlDoc.getElementsByTagName('recordTypes')).map((node) => {
     return {
-      fullName: parseAttribute(node, 'fullName'),
+      fullName: parseAttribute(node, 'fullName') || '',
       active: ensureBoolean(parseAttribute(node, 'active')),
-      label: parseAttribute(node, 'label'),
+      label: parseAttribute(node, 'label') || '',
       picklistValues: parseArrayAttribute(node, 'picklistValues').map((values) => {
         return {
-          picklist: parseAttribute(values, 'picklist'),
+          picklist: parseAttribute(values, 'picklist') || '',
           values: parseArrayAttribute(node, 'values').map((value) => {
             return {
               fullName: parseAttribute(value, 'fullName'),
