@@ -1,7 +1,7 @@
 import { css } from '@emotion/react';
 import { useNonInitialEffect } from '@jetstream/shared/ui-utils';
 import { DeployOptions, DeployOptionsTestLevel } from '@jetstream/types';
-import { Checkbox, Icon, Radio, RadioGroup, Textarea, Tooltip } from '@jetstream/ui';
+import { Checkbox, Icon, Input, Radio, RadioGroup, Textarea, Tooltip } from '@jetstream/ui';
 import { Fragment, FunctionComponent, useState } from 'react';
 
 const SPLIT_LINE_COMMA = /(\n|, |,)/g;
@@ -38,6 +38,7 @@ export const DeployMetadataOptions: FunctionComponent<DeployMetadataOptionsProps
   const [singlePackage, setSinglePackage] = useState(deployOptions.singlePackage ?? true);
   const [testLevel, setTestLevel] = useState<DeployOptionsTestLevel | undefined>(deployOptions.testLevel ?? undefined);
   const [runTests, setRunTests] = useState<string[]>(deployOptions.runTests ?? []);
+  const [deploymentHistoryName, setDeploymentHistoryName] = useState(deployOptions.deploymentHistoryName ?? 'Joie Test');
 
   const [runSpecifiedTestsVisible, setRunSpecifiedTestsVisible] = useState(testLevel === 'RunSpecifiedTests');
   const [runTestsStr, setRunTestsStr] = useState<string>(deployOptions.runTests?.join('\n') ?? '');
@@ -83,6 +84,18 @@ export const DeployMetadataOptions: FunctionComponent<DeployMetadataOptionsProps
 
   return (
     <Fragment>
+      <hr className="slds-m-vertical_x-small" />
+      <Tooltip content="This name will show up in the metadata history within Jetstream and will not be sent to Salesforce">
+        <Input label="Deployment History Name" className="slds-grow">
+          <input
+            className="slds-input"
+            value={deploymentHistoryName}
+            placeholder="Choose a deployment name"
+            onChange={(ev) => setDeploymentHistoryName(ev.target.value)}
+            autoComplete="off"
+          />
+        </Input>
+      </Tooltip>
       <fieldset className="slds-form-element slds-m-top_small">
         <legend className="slds-form-element__legend slds-form-element__label">Deployment Options</legend>
         <div className="slds-form-element__icon">

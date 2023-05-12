@@ -20,6 +20,12 @@ const COLUMNS: ColumnWithFilter<SalesforceDeployHistoryItem>[] = [
     width: 200,
   },
   {
+    ...setColumnFromType('name', 'text'),
+    name: 'Deployment History Name',
+    key: 'deploymentHistoryName',
+    width: 165,
+  },
+  {
     ...setColumnFromType('type', 'text'),
     name: 'Type',
     key: 'type',

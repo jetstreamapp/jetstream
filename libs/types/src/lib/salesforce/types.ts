@@ -465,6 +465,7 @@ export interface DeployOptions {
   allowMissingFiles?: boolean;
   autoUpdatePackage?: boolean;
   checkOnly?: boolean;
+  deploymentHistoryName?: string;
   ignoreWarnings?: boolean;
   performRetrieve?: boolean;
   purgeOnDelete?: boolean;
@@ -484,6 +485,7 @@ export interface DeployResult {
   createdBy: string;
   createdByName: string;
   createdDate: string;
+  deploymentHistoryName?: string;
   details?: {
     componentFailures: DeployMessage[];
     componentSuccesses: DeployMessage[];

@@ -4,9 +4,9 @@ import { DeployResult, Maybe, SalesforceOrgUi } from '@jetstream/types';
 import { Grid, GridCol, Icon, Modal, TabsRef } from '@jetstream/ui';
 import formatDate from 'date-fns/format';
 import { Fragment, FunctionComponent, useEffect, useRef, useState } from 'react';
+import { useAmplitude } from '../../core/analytics';
 import ConfirmPageChange from '../../core/ConfirmPageChange';
 import OrgLabelBadge from '../../core/OrgLabelBadge';
-import { useAmplitude } from '../../core/analytics';
 import { DeployMetadataStatus } from '../deploy-metadata.types';
 import DeployMetadataProgressSummary from './DeployMetadataProgressSummary';
 import DeployMetadataResultsTables from './DeployMetadataResultsTables';
@@ -111,6 +111,7 @@ export const DeployMetadataStatusModal: FunctionComponent<DeployMetadataStatusMo
         ? {
             checkOnly: results.checkOnly,
             completedDate: results.completedDate,
+            deploymentHistoryName: results.deploymentHistoryName,
             numberComponentErrors: results.numberComponentErrors,
             numberComponentsDeployed: results.numberComponentsDeployed,
             numberComponentsTotal: results.numberComponentsTotal,
@@ -294,6 +295,8 @@ export const DeployMetadataStatusModal: FunctionComponent<DeployMetadataStatusMo
                 )}
               </Grid>
             )}
+            {results?.deploymentHistoryName && 'Deployment History Name:' + results?.deploymentHistoryName}
+            'Deployment History Name:' + {results?.deploymentHistoryName}
           </GridCol>
           <GridCol grow className="slds-scrollable">
             {results && <DeployMetadataResultsTables results={results} />}

@@ -108,6 +108,7 @@ export async function saveHistory({
         label: destinationOrg.label,
         orgName: destinationOrg.orgName || '',
       },
+      deploymentHistoryName: results?.deploymentHistoryName,
       start,
       finish: new Date(),
       url: results?.id ? getDeploymentStatusUrl(results.id) : null,
