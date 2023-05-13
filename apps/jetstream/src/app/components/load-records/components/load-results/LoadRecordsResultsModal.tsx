@@ -3,13 +3,12 @@ import { useNonInitialEffect } from '@jetstream/shared/ui-utils';
 import {
   AutoFullHeightContainer,
   ColumnWithFilter,
-  CopyToClipboard,
+  CopyToClipboardWithToolTip,
   DataTable,
   Icon,
   Modal,
   setColumnFromType,
   Spinner,
-  Tooltip,
 } from '@jetstream/ui';
 import { FunctionComponent, useCallback, useEffect, useRef, useState } from 'react';
 import { RowHeightArgs } from 'react-data-grid';
@@ -64,13 +63,11 @@ export const LoadRecordsResultsModal: FunctionComponent<LoadRecordsResultsModalP
                     `}
                   >
                     {row._errors && (
-                      <Tooltip content={row._errors}>
-                        <CopyToClipboard
-                          icon={{ type: 'utility', icon: 'error', description: 'load error' }}
-                          content={row._errors}
-                          className="slds-text-color_error slds-p-right_x-small"
-                        />
-                      </Tooltip>
+                      <CopyToClipboardWithToolTip
+                        content={row._errors}
+                        icon={{ type: 'utility', icon: 'error', description: 'Click to copy to clipboard' }}
+                        className="slds-text-color_error slds-p-right_x-small"
+                      />
                     )}
                     {row?._errors}
                   </p>

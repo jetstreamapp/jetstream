@@ -140,6 +140,7 @@ export * from './lib/tree/Tree';
 export * from './lib/utils/ErrorBoundaryWithoutContent';
 export * from './lib/widgets/Breadcrumbs';
 export * from './lib/widgets/CopyToClipboard';
+export * from './lib/widgets/CopyToClipboardWithToolTip';
 export * from './lib/widgets/FeedbackLink';
 export * from './lib/widgets/HelpText';
 export * from './lib/widgets/Icon';
