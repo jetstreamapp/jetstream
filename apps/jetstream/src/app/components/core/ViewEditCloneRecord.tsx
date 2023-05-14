@@ -2,7 +2,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { mockPicklistValuesFromSobjectDescribe, UiRecordForm } from '@jetstream/record-form';
 import { logger } from '@jetstream/shared/client-logger';
-import { ANALYTICS_KEYS } from '@jetstream/shared/constants';
+import { ANALYTICS_KEYS, SOBJECT_NAME_FIELD_MAP } from '@jetstream/shared/constants';
 import { describeGlobal, describeSObject, genericRequest, query, sobjectOperation } from '@jetstream/shared/data';
 import { copyRecordsToClipboard, isErrorResponse, useNonInitialEffect } from '@jetstream/shared/ui-utils';
 import {
@@ -85,7 +85,7 @@ function getTagline(selectedOrg: SalesforceOrgUi, serverUrl: string, sobjectName
         iconPosition="right"
         title="View record in Salesforce"
       >
-        {sobjectName} - {initialRecord.Name} - {recordId}
+        {sobjectName} - {initialRecord[SOBJECT_NAME_FIELD_MAP[sobjectName] || 'Name']} - {recordId}
       </SalesforceLogin>
     );
   } else if (recordId) {

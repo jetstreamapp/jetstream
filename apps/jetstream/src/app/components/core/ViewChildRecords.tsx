@@ -2,7 +2,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { css } from '@emotion/react';
 import { logger } from '@jetstream/shared/client-logger';
-import { ANALYTICS_KEYS } from '@jetstream/shared/constants';
+import { ANALYTICS_KEYS, SOBJECT_NAME_FIELD_MAP } from '@jetstream/shared/constants';
 import { queryAll, queryAllFromList, queryAllWithCache } from '@jetstream/shared/data';
 import { getMapOf, splitArrayToMaxSize } from '@jetstream/shared/utils';
 import { Maybe, Record, SalesforceOrgUi } from '@jetstream/types';
@@ -43,7 +43,7 @@ function getRows(childRelationships: ChildRelationship[], record: Record) {
           _record: record._record,
           _idx: i,
           Id: record.Id,
-          Name: record.Name,
+          Name: record[SOBJECT_NAME_FIELD_MAP[childRelationship.childSObject] || 'Name'],
           CreatedDate: record.CreatedDate,
           CreatedByName: record.CreatedBy?.Name || 'unknown',
           LastModifiedDate: record.LastModifiedDate,
@@ -179,7 +179,10 @@ export const ViewChildRecords: FunctionComponent<ViewChildRecordsProps> = ({
         setExpandedGroupIds(new Set());
         setLoading(true);
         // Some child objects are missing basic fields like Name and CreatedDate, and others are not queryable
-        // This fetched all the fields so the subqueries can be constructed
+        // This fetches all the fields so the subqueries can be constructed with valid fields
+        const fields = ['Id', 'Name', 'CreatedDate', 'CreatedById', 'LastModifiedDate', 'LastModifiedById'].concat(
+          Array.from(new Set(Object.values(SOBJECT_NAME_FIELD_MAP)))
+        );
         const entityParticleQueries = splitArrayToMaxSize(Array.from(new Set(childRelationships.map((item) => item.childSObject))), 50).map(
           (childRelationshipObjects) =>
             composeQuery({
@@ -195,7 +198,7 @@ export const ViewChildRecords: FunctionComponent<ViewChildRecordsProps> = ({
                       left: {
                         field: 'QualifiedApiName',
                         operator: 'IN',
-                        value: ['Id', 'Name', 'CreatedDate', 'CreatedById', 'LastModifiedDate', 'LastModifiedById'],
+                        value: fields,
                         literalType: 'STRING',
                       },
                     },
@@ -254,13 +257,13 @@ export const ViewChildRecords: FunctionComponent<ViewChildRecordsProps> = ({
         // combine all results with subqueries into this one record
         let record = {};
 
-        for (const subquery of splitArrayToMaxSize(subqueries, 12)) {
+        for (const subquery of splitArrayToMaxSize(subqueries, 11)) {
           try {
             const { queryResults } = await (skipCache ? queryAll : queryAllWithCache)(
               selectedOrg,
               composeQuery({
                 sObject: sobjectName,
-                fields: [getField('Id'), getField('Name'), ...subquery],
+                fields: [getField('Id'), getField(SOBJECT_NAME_FIELD_MAP[sobjectName] || 'Name'), ...subquery],
                 where: {
                   left: {
                     field: 'Id',
