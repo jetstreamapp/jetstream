@@ -1,8 +1,8 @@
 import { logger } from '@jetstream/shared/client-logger';
-import { query } from '@jetstream/shared/data';
+import { describeSObject, query } from '@jetstream/shared/data';
 import { CloneEditView, ListItem, Maybe, SalesforceOrgUi } from '@jetstream/types';
 import { ComboboxWithItemsTypeAhead, Grid, Icon, Tooltip } from '@jetstream/ui';
-import { FunctionComponent, useCallback, useState } from 'react';
+import { FunctionComponent, useCallback, useRef, useState } from 'react';
 import { useRecoilState } from 'recoil';
 import { applicationCookieState } from '../../app-state';
 import ViewEditCloneRecord from '../core/ViewEditCloneRecord';
@@ -22,6 +22,7 @@ export const FormulaEvaluatorRecordSearch: FunctionComponent<FormulaEvaluatorRec
   fieldErrorMessage,
   onSelectedRecord,
 }) => {
+  const nameField = useRef<{ selectedSObject: string; nameField: string }>();
   const [{ defaultApiVersion }] = useRecoilState(applicationCookieState);
   const [records, setRecords] = useState<ListItem<string, any>[]>([]);
   const [selectedRecord, setSelectedRecords] = useState<ListItem<string, any> | null>(null);
@@ -37,19 +38,29 @@ export const FormulaEvaluatorRecordSearch: FunctionComponent<FormulaEvaluatorRec
           setRecords([]);
           return;
         }
-        let soql = `SELECT Id, Name FROM ${selectedSObject} ORDER BY Name LIMIT 50`;
+        if (!nameField.current || nameField.current.selectedSObject !== selectedSObject) {
+          nameField.current = {
+            selectedSObject,
+            nameField: await describeSObject(selectedOrg, selectedSObject).then(
+              (result) => result.data.fields.find((field) => field.nameField)?.name || 'Name'
+            ),
+          };
+        }
+        const name = nameField.current.nameField;
+
+        let soql = `SELECT Id, ${name} FROM ${selectedSObject} ORDER BY ${name} LIMIT 50`;
         if (searchTerm) {
           if (searchTerm.length === 15 || searchTerm.length === 18) {
-            soql = `SELECT Id, Name FROM ${selectedSObject} WHERE Id = '${searchTerm}' OR Name LIKE '%${searchTerm}%' ORDER BY Name LIMIT 50`;
+            soql = `SELECT Id, ${name} FROM ${selectedSObject} WHERE Id = '${searchTerm}' OR ${name} LIKE '%${searchTerm}%' ORDER BY ${name} LIMIT 50`;
           } else {
-            soql = `SELECT Id, Name FROM ${selectedSObject} WHERE Name LIKE '%${searchTerm}%' ORDER BY Name LIMIT 50`;
+            soql = `SELECT Id, ${name} FROM ${selectedSObject} WHERE ${name} LIKE '%${searchTerm}%' ORDER BY ${name} LIMIT 50`;
           }
         }
         const { queryResults } = await query(selectedOrg, soql);
         setRecords(
           queryResults.records.map((record) => ({
             id: record.Id,
-            label: record.Name,
+            label: record[name],
             title: record.Id,
             secondaryLabel: record.Id,
             secondaryLabelOnNewLine: true,
