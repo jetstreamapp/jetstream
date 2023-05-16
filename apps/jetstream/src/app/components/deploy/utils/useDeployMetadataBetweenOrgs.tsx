@@ -1,7 +1,7 @@
 import { logger } from '@jetstream/shared/client-logger';
 import { retrieveMetadataFromListMetadata } from '@jetstream/shared/data';
 import { pollAndDeployMetadataResultsWhenReady, pollMetadataResultsUntilDone, useBrowserNotifications } from '@jetstream/shared/ui-utils';
-import { DeployOptions, DeployResult, ListMetadataResult, MapOf, SalesforceOrgUi } from '@jetstream/types';
+import { DeployResult, ListMetadataResult, MapOf, SalesforceOrgUi } from '@jetstream/types';
 import { useCallback, useEffect, useReducer, useRef, useState } from 'react';
 import { useRecoilState } from 'recoil';
 import { applicationCookieState } from '../../../app-state';
@@ -75,7 +75,8 @@ export function useDeployMetadataBetweenOrgs(
   sourceOrg: SalesforceOrgUi,
   destinationOrg: SalesforceOrgUi,
   selectedMetadata: MapOf<ListMetadataResult[]>,
-  deployOptions: DeployOptions
+  deployOptions: DeployOptions,
+  deploymentHistoryName?: string | undefined
 ) {
   const isMounted = useRef(true);
 
@@ -113,13 +114,18 @@ export function useDeployMetadataBetweenOrgs(
 
         if (isMounted.current) {
           dispatch({ type: 'DEPLOY_IN_PROG', payload: { deployId: deployResults.id } });
-          const results = await pollMetadataResultsUntilDone(destinationOrg, deployResults.id, {
-            includeDetails: true,
-            onChecked: (results) => {
-              dispatch({ type: 'DEPLOY_IN_PROG', payload: { deployId: deployResults.id, results } });
-              setLastChecked(new Date());
+          const results = await pollMetadataResultsUntilDone(
+            destinationOrg,
+            deployResults.id,
+            {
+              includeDetails: true,
+              onChecked: (results) => {
+                dispatch({ type: 'DEPLOY_IN_PROG', payload: { deployId: deployResults.id, results } });
+                setLastChecked(new Date());
+              },
             },
-          });
+            deploymentHistoryName
+          );
           dispatch({ type: 'SUCCESS', payload: { results } });
           saveHistory({
             sourceOrg,
@@ -150,7 +156,7 @@ export function useDeployMetadataBetweenOrgs(
         dispatch({ type: 'ERROR', payload: { errorMessage: ex.message } });
       }
     }
-  }, [deployOptions, destinationOrg, selectedMetadata, sourceOrg]);
+  }, [deployOptions, destinationOrg, selectedMetadata, sourceOrg, deploymentHistoryName]);
 
   return { deployMetadata, results, deployId, hasLoaded, loading, status, lastChecked, hasError, errorMessage };
 }

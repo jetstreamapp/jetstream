@@ -19,6 +19,7 @@ export interface DeployMetadataToOrgConfigModalProps {
   onSelection?: (deployOptions: DeployOptions) => void;
   onClose: () => void;
   onDeploy: (destinationOrg: SalesforceOrgUi, deployOptions: DeployOptions) => void;
+  setDeploymentHistoryName?: string | undefined;
 }
 
 export const DeployMetadataToOrgConfigModal: FunctionComponent<DeployMetadataToOrgConfigModalProps> = ({
@@ -29,6 +30,7 @@ export const DeployMetadataToOrgConfigModal: FunctionComponent<DeployMetadataToO
   onSelection,
   onClose,
   onDeploy,
+  setDeploymentHistoryName,
 }) => {
   const modalBodyRef = useRef<HTMLDivElement>(null);
   const [selectedMetadataList, setSelectedMetadataList] = useState<string[]>();
@@ -118,7 +120,12 @@ export const DeployMetadataToOrgConfigModal: FunctionComponent<DeployMetadataToO
               />
               <div>
                 {/* OPTIONS */}
-                <DeployMetadataOptions deployOptions={deployOptions} hiddenOptions={DISABLED_OPTIONS} onChange={setDeployOptions} />
+                <DeployMetadataOptions
+                  deployOptions={deployOptions}
+                  hiddenOptions={DISABLED_OPTIONS}
+                  onChange={setDeployOptions}
+                  setDeploymentHistoryName={setDeploymentHistoryName}
+                />
               </div>
             </div>
           </GridCol>

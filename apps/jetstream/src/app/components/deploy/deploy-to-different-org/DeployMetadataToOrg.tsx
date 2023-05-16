@@ -29,6 +29,7 @@ export const DeployMetadataToOrg: FunctionComponent<DeployMetadataToOrgProps> = 
   const [deployMetadataOptions, setDeployMetadataOptions] = useState<DeployOptions | null>(null);
 
   const [selectedMetadata, setSelectedMetadata] = useState<MapOf<ListMetadataResult[]>>();
+  const [deploymentHistoryName, setDeploymentHistoryName] = useState(undefined);
 
   function handleClick() {
     setConfigModalOpen(true);
@@ -58,6 +59,8 @@ export const DeployMetadataToOrg: FunctionComponent<DeployMetadataToOrgProps> = 
     setDownloadResultsModalOpen(true);
   }
 
+  console.log('deploymentHistoryName Parent:', deploymentHistoryName);
+
   return (
     <Fragment>
       <button
@@ -78,6 +81,7 @@ export const DeployMetadataToOrg: FunctionComponent<DeployMetadataToOrgProps> = 
           selectedMetadata={selectedMetadata}
           onClose={handleCloseConfigModal}
           onDeploy={handleDeployMetadata}
+          setDeploymentHistoryName={setDeploymentHistoryName}
         />
       )}
       {deployStatusModalOpen && destinationOrg && selectedMetadata && (
@@ -90,6 +94,7 @@ export const DeployMetadataToOrg: FunctionComponent<DeployMetadataToOrgProps> = 
           onGoBack={handleGoBackFromDeploy}
           onClose={() => setDeployStatusModalOpen(false)}
           onDownload={handleDeployResultsDownload}
+          deploymentHistoryName={deploymentHistoryName}
         />
       )}
       {downloadResultsModalOpen && deployResultsData && (

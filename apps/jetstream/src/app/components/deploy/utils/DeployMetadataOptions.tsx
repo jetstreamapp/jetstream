@@ -20,6 +20,7 @@ export interface DeployMetadataOptionsProps {
   disabledOptions?: Set<keyof DeployOptions>;
   isSinglePackage?: boolean;
   onChange: (deployOptions: DeployOptions) => void;
+  setDeploymentHistoryName?: (deploymentHistoryName: string | undefined) => void;
 }
 
 export const DeployMetadataOptions: FunctionComponent<DeployMetadataOptionsProps> = ({
@@ -28,6 +29,7 @@ export const DeployMetadataOptions: FunctionComponent<DeployMetadataOptionsProps
   disabledOptions = new Set(),
   isSinglePackage,
   onChange,
+  setDeploymentHistoryName,
 }) => {
   const [allowMissingFiles, setAllowMissingFiles] = useState(deployOptions.allowMissingFiles ?? false);
   const [autoUpdatePackage, setAutoUpdatePackage] = useState(deployOptions.autoUpdatePackage ?? false);
@@ -38,7 +40,6 @@ export const DeployMetadataOptions: FunctionComponent<DeployMetadataOptionsProps
   const [singlePackage, setSinglePackage] = useState(deployOptions.singlePackage ?? true);
   const [testLevel, setTestLevel] = useState<DeployOptionsTestLevel | undefined>(deployOptions.testLevel ?? undefined);
   const [runTests, setRunTests] = useState<string[]>(deployOptions.runTests ?? []);
-  const [deploymentHistoryName, setDeploymentHistoryName] = useState(deployOptions.deploymentHistoryName ?? 'Joie Test');
 
   const [runSpecifiedTestsVisible, setRunSpecifiedTestsVisible] = useState(testLevel === 'RunSpecifiedTests');
   const [runTestsStr, setRunTestsStr] = useState<string>(deployOptions.runTests?.join('\n') ?? '');
@@ -89,9 +90,9 @@ export const DeployMetadataOptions: FunctionComponent<DeployMetadataOptionsProps
         <Input label="Deployment History Name" className="slds-grow">
           <input
             className="slds-input"
-            value={deploymentHistoryName}
+            value={undefined}
             placeholder="Choose a deployment name"
-            onChange={(ev) => setDeploymentHistoryName(ev.target.value)}
+            onChange={(event) => setDeploymentHistoryName(event.target.value)}
             autoComplete="off"
           />
         </Input>

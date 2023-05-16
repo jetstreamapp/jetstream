@@ -18,6 +18,7 @@ export interface DeployMetadataToOrgStatusModalProps {
   onGoBack: () => void;
   onClose: () => void;
   onDownload: (deployResults: DeployResult, deploymentUrl: string) => void;
+  deploymentHistoryName?: string | undefined;
 }
 
 export const DeployMetadataToOrgStatusModal: FunctionComponent<DeployMetadataToOrgStatusModalProps> = ({
@@ -29,6 +30,7 @@ export const DeployMetadataToOrgStatusModal: FunctionComponent<DeployMetadataToO
   onGoBack,
   onClose,
   onDownload,
+  deploymentHistoryName,
 }) => {
   const [{ serverUrl }] = useRecoilState(applicationCookieState);
   const [deployStatusUrl, setDeployStatusUrl] = useState<string | null>(null);
@@ -36,7 +38,8 @@ export const DeployMetadataToOrgStatusModal: FunctionComponent<DeployMetadataToO
     sourceOrg,
     destinationOrg,
     selectedMetadata,
-    deployOptions
+    deployOptions,
+    deploymentHistoryName
   );
 
   useEffect(() => {
@@ -76,6 +79,7 @@ export const DeployMetadataToOrgStatusModal: FunctionComponent<DeployMetadataToO
       onGoBack={onGoBack}
       onClose={onClose}
       onDownload={onDownload}
+      deploymentHistoryName={deploymentHistoryName}
     />
   );
 };

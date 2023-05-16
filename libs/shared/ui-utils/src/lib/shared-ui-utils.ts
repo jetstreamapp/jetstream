@@ -6,7 +6,7 @@ import {
   checkMetadataRetrieveResults,
   checkMetadataRetrieveResultsAndDeployToTarget,
 } from '@jetstream/shared/data';
-import { NOOP, REGEX, delay, ensureBoolean, orderObjectsBy } from '@jetstream/shared/utils';
+import { delay, ensureBoolean, NOOP, orderObjectsBy, REGEX } from '@jetstream/shared/utils';
 import type {
   AndOr,
   BulkJobWithBatches,
@@ -43,7 +43,7 @@ import isNil from 'lodash/isNil';
 import isString from 'lodash/isString';
 import isUndefined from 'lodash/isUndefined';
 import numeral from 'numeral';
-import { UnparseConfig, parse as parseCsv, unparse, unparse as unparseCsv } from 'papaparse';
+import { parse as parseCsv, unparse, unparse as unparseCsv, UnparseConfig } from 'papaparse';
 import {
   HavingClause,
   HavingClauseWithRightCondition,
@@ -965,7 +965,8 @@ export function checkIfBulkApiJobIsDone(jobInfo: BulkJobWithBatches, totalBatche
 export async function pollMetadataResultsUntilDone(
   selectedOrg: SalesforceOrgUi,
   id: string,
-  options?: { includeDetails?: boolean; interval?: number; maxAttempts?: number; onChecked?: (deployResults: DeployResult) => void }
+  options?: { includeDetails?: boolean; interval?: number; maxAttempts?: number; onChecked?: (deployResults: DeployResult) => void },
+  deploymentHistoryName?: string
 ) {
   let { includeDetails, interval, maxAttempts, onChecked } = options || {};
   includeDetails = includeDetails || false;
@@ -979,6 +980,7 @@ export async function pollMetadataResultsUntilDone(
   while (!done && attempts <= maxAttempts) {
     await delay(interval);
     deployResults = await checkMetadataResults(selectedOrg, id, includeDetails);
+    deployResults = { ...deployResults, deploymentHistoryName: deploymentHistoryName };
     logger.log({ deployResults });
     onChecked(deployResults);
     done = deployResults.done;

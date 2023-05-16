@@ -49,6 +49,7 @@ export interface DeployMetadataStatusModalProps {
   onGoBack?: () => void;
   onClose: () => void;
   onDownload?: (deployResults: DeployResult, deploymentUrl: string) => void;
+  deploymentHistoryName?: string | undefined;
 }
 
 export const DeployMetadataStatusModal: FunctionComponent<DeployMetadataStatusModalProps> = ({
@@ -72,6 +73,7 @@ export const DeployMetadataStatusModal: FunctionComponent<DeployMetadataStatusMo
   onGoBack,
   onClose,
   onDownload,
+  deploymentHistoryName,
 }) => {
   const isDone = results?.done;
   const { trackEvent } = useAmplitude();
@@ -296,7 +298,6 @@ export const DeployMetadataStatusModal: FunctionComponent<DeployMetadataStatusMo
               </Grid>
             )}
             {results?.deploymentHistoryName && 'Deployment History Name:' + results?.deploymentHistoryName}
-            'Deployment History Name:' + {results?.deploymentHistoryName}
           </GridCol>
           <GridCol grow className="slds-scrollable">
             {results && <DeployMetadataResultsTables results={results} />}
