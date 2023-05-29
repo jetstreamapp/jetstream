@@ -1,7 +1,7 @@
 import { css } from '@emotion/react';
 import { useDebounce } from '@jetstream/shared/ui-utils';
 import { ListItem } from '@jetstream/types';
-import { ComboboxWithItems, Grid, Textarea, ControlledTextarea } from '@jetstream/ui';
+import { ComboboxWithItems, ControlledTextarea, Grid, Textarea } from '@jetstream/ui';
 import { FunctionComponent, useEffect, useState } from 'react';
 import { isQueryValid } from 'soql-parser-js';
 import { TransformationCriteria, TransformationOptions } from './mass-update-records.types';
@@ -22,7 +22,7 @@ export const MassUpdateRecordsObjectRowCriteria: FunctionComponent<MassUpdateRec
   filterFn = () => true,
   onOptionsChange,
 }) => {
-  const debouncedWhereClause = useDebounce(transformationOptions.whereClause, 300);
+  const debouncedWhereClause = useDebounce(transformationOptions?.whereClause || '', 300);
   const [whereClauseIsValid, setWhereClauseIsValid] = useState(true);
 
   useEffect(() => {
