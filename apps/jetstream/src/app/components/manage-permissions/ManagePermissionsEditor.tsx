@@ -377,7 +377,7 @@ export const ManagePermissionsEditor: FunctionComponent<ManagePermissionsEditorP
       await ConfirmationModalPromise({
         header: 'Confirmation',
         confirm: 'Save Changes',
-        content: getConfirmationModalContent(dirtyObjectCount, dirtyFieldCount),
+        content: getConfirmationModalContent(dirtyObjectCount, dirtyFieldCount, dirtyRecordTypeCount),
       })
     ) {
       setLoading(true);
@@ -463,6 +463,7 @@ export const ManagePermissionsEditor: FunctionComponent<ManagePermissionsEditorP
     setObjectPermissionMap(updatedObjectPermissionMap);
     setFieldPermissionMap(updatedFieldPermissionMap);
     initTableData(false, updatedObjectPermissionMap, updatedFieldPermissionMap);
+    initRecordTypeData(false);
   }
 
   function handleGoBack() {
@@ -501,7 +502,15 @@ export const ManagePermissionsEditor: FunctionComponent<ManagePermissionsEditorP
             className="slds-button slds-button_neutral collapsible-button collapsible-button-xs"
             onClick={resetChanges}
             title="Reset Changes"
-            disabled={loading || (!dirtyObjectCount && !dirtyFieldCount && !objectsHaveErrors && !fieldsHaveErrors)}
+            disabled={
+              loading ||
+              (!dirtyObjectCount &&
+                !dirtyFieldCount &&
+                !dirtyRecordTypeCount &&
+                !objectsHaveErrors &&
+                !fieldsHaveErrors &&
+                !recordTypesHaveErrors)
+            }
           >
             <Icon type="utility" icon="refresh" className="slds-button__icon slds-button__icon_left" />
             <span>Reset Changes</span>
@@ -518,7 +527,7 @@ export const ManagePermissionsEditor: FunctionComponent<ManagePermissionsEditorP
           <button
             className="slds-button slds-button_brand"
             onClick={saveChanges}
-            disabled={loading || (!dirtyObjectCount && !dirtyFieldCount)}
+            disabled={loading || (!dirtyObjectCount && !dirtyFieldCount && !dirtyRecordTypeCount)}
           >
             <Icon type="utility" icon="upload" className="slds-button__icon slds-button__icon_left" />
             Save

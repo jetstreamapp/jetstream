@@ -646,36 +646,30 @@ export function updateFieldRowsAfterSave(
  *
  */
 
-export function getConfirmationModalContent(dirtyObjectCount: number, dirtyFieldCount: number) {
-  let output;
-  const dirtyObj = (
-    <Fragment>
-      <strong>
-        {dirtyObjectCount} Object {pluralizeFromNumber('Permission', dirtyObjectCount)}
-      </strong>
-    </Fragment>
-  );
-  const dirtyField = (
-    <Fragment>
-      <strong>
-        {dirtyFieldCount} Field {pluralizeFromNumber('Permission', dirtyFieldCount)}
-      </strong>
-    </Fragment>
-  );
-  if (dirtyObjectCount && dirtyFieldCount) {
-    output = (
-      <Fragment>
-        {dirtyObj} and {dirtyField}
-      </Fragment>
-    );
-  } else if (dirtyObjectCount) {
-    output = dirtyObj;
-  } else {
-    output = dirtyField;
-  }
+export function getConfirmationModalContent(dirtyObjectCount: number, dirtyFieldCount: number, dirtyRecordTypeCount: number) {
   return (
     <div>
-      <p>You have made changes to {output}.</p>
+      <p>
+        You have made changes to{' '}
+        <strong>
+          {dirtyObjectCount} Object {pluralizeFromNumber('Permission', dirtyObjectCount)}
+        </strong>
+        .
+      </p>
+      <p>
+        You have made changes to{' '}
+        <strong>
+          {dirtyFieldCount} Field {pluralizeFromNumber('Permission', dirtyFieldCount)}
+        </strong>
+        .
+      </p>
+      <p>
+        You have made changes to{' '}
+        <strong>
+          {dirtyRecordTypeCount} Record Type {pluralizeFromNumber('Permission', dirtyRecordTypeCount)}
+        </strong>
+        .
+      </p>
     </div>
   );
 }
@@ -1312,54 +1306,7 @@ function getColumnsForProfile(
         }
         return '';
       },
-      formatter: ({ column, isCellSelected, row, onRowChange }) => {
-        // eslint-disable-next-line react-hooks/rules-of-hooks
-        const [items] = useState<ListItem[]>(() =>
-          orderObjectsBy(layoutsBySobject[row.sobject], 'Name').map((layout) => ({
-            id: `${row.sobject}-${layout.Name}`,
-            label: layout.Name,
-            value: `${row.sobject}-${layout.Name}`,
-            meta: layout,
-          }))
-        );
-        // const errorMessage = row.permissions[id].errorMessage;
-        const value = row.permissions[profile]?.layoutName;
-
-        function handleChange(event: ChangeEvent<HTMLSelectElement>) {
-          // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-          const selectedItem = items.find((item) => item.value === event.target.value)!;
-          const newRow = {
-            ...row,
-            permissions: {
-              ...row.permissions,
-              [profile]: {
-                ...row.permissions[profile],
-                layoutLabel: selectedItem.label,
-                layoutName: selectedItem.value,
-              },
-            },
-          };
-          onRowChange(newRow);
-        }
-        return (
-          <div className="slds-align_absolute-center h-100">
-            <div className="slds-form-element">
-              <label className="slds-form-element__label slds-assistive-text" htmlFor={`${profile}-assigned-record-type`}>
-                Page Layouts
-              </label>
-              <div className="slds-form-element__control">
-                <select className="slds-select" id={`${profile}-assigned-record-type`} value={value} onChange={handleChange}>
-                  {items.map((item) => (
-                    <option key={item.id} value={item.value}>
-                      {item.label}
-                    </option>
-                  ))}
-                </select>
-              </div>
-            </div>
-          </div>
-        );
-      },
+      formatter: getProfileSelectRenderer(profile, layoutsBySobject),
       getValue: ({ column, row }) => row.permissions[profile]?.layoutLabel,
       summaryCellClass: ({ type }) => (type === 'HEADING' ? 'bg-color-gray' : null),
       summaryFormatter: (args) => {
@@ -1403,9 +1350,12 @@ function getColumnsForProfile(
 
         return (
           <div className="slds-align_absolute-center h-100" onClick={() => handleChange(!value)}>
+            <label className="slds-form-element__label slds-assistive-text" htmlFor={`${profile}-${row.key}-assigned-record-type-checkbox`}>
+              Record Type Visible
+            </label>
             <input
               type="checkbox"
-              id={`${profile}-assigned-record-type`}
+              id={`${profile}-${row.key}-assigned-record-type-checkbox`}
               checked={value}
               onChange={(ev) => {
                 ev.stopPropagation();
@@ -1477,9 +1427,12 @@ function getColumnsForProfile(
 
         return (
           <div className="slds-align_absolute-center h-100" onClick={() => handleChange(!value)}>
+            <label className="slds-form-element__label slds-assistive-text" htmlFor={`${profile}-${row.key}-default-record-type`}>
+              Is default Record Type
+            </label>
             <input
               type="checkbox"
-              id={`${profile}-default-record-type`}
+              id={`${profile}-${row.key}-default-record-type`}
               checked={value}
               onChange={(ev) => {
                 ev.stopPropagation();
@@ -1518,4 +1471,62 @@ function getColumnsForProfile(
       },
     },
   ];
+}
+
+// FIXME: this seems to have a complete re-render when item is modified
+function getProfileSelectRenderer(profile: string, layoutsBySobject: MapOf<RecordTypeData['layouts']>) {
+  const ProfileSelectRenderer: FunctionComponent<FormatterProps<PermissionManagerRecordTypeRow, PermissionTableSummaryRow>> = ({
+    column,
+    isCellSelected,
+    row,
+    onRowChange,
+  }) => {
+    // eslint-disable-next-line react-hooks/rules-of-hooks
+    const [items] = useState<ListItem[]>(() =>
+      orderObjectsBy(layoutsBySobject[row.sobject], 'Name').map((layout) => ({
+        id: `${row.sobject}-${layout.Name}`,
+        label: layout.Name,
+        value: `${row.sobject}-${layout.Name}`,
+        meta: layout,
+      }))
+    );
+    // const errorMessage = row.permissions[id].errorMessage;
+    const value = row.permissions[profile]?.layoutName;
+
+    function handleChange(event: ChangeEvent<HTMLSelectElement>) {
+      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+      const selectedItem = items.find((item) => item.value === event.target.value)!;
+      const newRow = {
+        ...row,
+        permissions: {
+          ...row.permissions,
+          [profile]: {
+            ...row.permissions[profile],
+            layoutLabel: selectedItem.label,
+            layoutName: selectedItem.value,
+          },
+        },
+      };
+      onRowChange(newRow);
+    }
+    return (
+      <div className="slds-align_absolute-center h-100">
+        <div className="slds-form-element">
+          <label className="slds-form-element__label slds-assistive-text" htmlFor={`${profile}-${row.key}-layout-assignment-select`}>
+            Page Layouts
+          </label>
+          <div className="slds-form-element__control">
+            <select className="slds-select" id={`${profile}-${row.key}-layout-assignment-select`} value={value} onChange={handleChange}>
+              {items.map((item) => (
+                <option key={item.id} value={item.value}>
+                  {item.label}
+                </option>
+              ))}
+            </select>
+          </div>
+        </div>
+      </div>
+    );
+  };
+  return ProfileSelectRenderer;
 }
