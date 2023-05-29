@@ -2,7 +2,7 @@ import { css } from '@emotion/react';
 import { logger } from '@jetstream/shared/client-logger';
 import { ANALYTICS_KEYS } from '@jetstream/shared/constants';
 import { convertDateToLocale, useBrowserNotifications, useRollbar } from '@jetstream/shared/ui-utils';
-import { flattenRecord, getSuccessOrFailureChar, pluralizeFromNumber } from '@jetstream/shared/utils';
+import { decodeHtmlEntity, flattenRecord, getSuccessOrFailureChar, pluralizeFromNumber } from '@jetstream/shared/utils';
 import { InsertUpdateUpsertDelete, Maybe, RecordResultWithRecord, SalesforceOrgUi, WorkerMessage } from '@jetstream/types';
 import { FileDownloadModal, Grid, ProgressRing, Spinner, Tooltip } from '@jetstream/ui';
 import { FunctionComponent, useEffect, useRef, useState } from 'react';
@@ -274,7 +274,10 @@ export const LoadRecordsBatchApiResults: FunctionComponent<LoadRecordsBatchApiRe
         combinedResults.push({
           _id: record.success ? record.id : record['Id'] || '',
           _success: record.success,
-          _errors: record.success === false ? record.errors.map((error) => `${error.statusCode}: ${error.message}`).join('\n') : '',
+          _errors:
+            record.success === false
+              ? record.errors.map((error) => `${error.statusCode}: ${decodeHtmlEntity(error.message)}`).join('\n')
+              : '',
           ...flattenRecord(record.record, fields),
         });
       }
@@ -300,7 +303,10 @@ export const LoadRecordsBatchApiResults: FunctionComponent<LoadRecordsBatchApiRe
         combinedResults.push({
           _id: record.success ? record.id : record['Id'] || '',
           _success: record.success,
-          _errors: record.success === false ? record.errors.map((error) => `${error.statusCode}: ${error.message}`).join('\n') : '',
+          _errors:
+            record.success === false
+              ? record.errors.map((error) => `${error.statusCode}: ${decodeHtmlEntity(error.message)}`).join('\n')
+              : '',
           ...flattenRecord(record.record, fields),
         });
       }
