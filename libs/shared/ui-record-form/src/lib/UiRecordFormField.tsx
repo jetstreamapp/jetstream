@@ -1,12 +1,13 @@
 import { css } from '@emotion/react';
 import { polyfillFieldDefinition } from '@jetstream/shared/ui-utils';
-import { ListItem, PicklistFieldValueItem } from '@jetstream/types';
+import { ListItem, Maybe, PicklistFieldValueItem, RecordAttributes } from '@jetstream/types';
 import { Checkbox, DatePicker, DateTime, Grid, Icon, Input, Picklist, ReadOnlyFormElement, Textarea, TimePicker } from '@jetstream/ui';
 import classNames from 'classnames';
 import formatISO from 'date-fns/formatISO';
 import parseISO from 'date-fns/parseISO';
 import roundToNearestMinutes from 'date-fns/roundToNearestMinutes';
 import startOfDay from 'date-fns/startOfDay';
+import { Field } from 'jsforce';
 import uniqueId from 'lodash/uniqueId';
 import { Fragment, FunctionComponent, ReactNode, SyntheticEvent, useEffect, useState } from 'react';
 import { EditableFields } from './ui-record-form-types';
@@ -49,10 +50,12 @@ export interface UiRecordFormFieldProps {
   disabled?: boolean;
   initialValue: string | boolean | null;
   modifiedValue: string | boolean | null;
+  relatedRecord?: Maybe<{ attributes: RecordAttributes; Name: string }>;
   showFieldTypes: boolean;
   omitUndoIndicator?: boolean;
   // picklist values are converted to strings prior to emitting
   onChange: (field: EditableFields, value: string | boolean | null, isDirty: boolean) => void;
+  viewRelatedRecord?: (recordId: string, metadata: Field) => void;
 }
 
 function getUndoKey(name: string) {
@@ -64,9 +67,11 @@ export const UiRecordFormField: FunctionComponent<UiRecordFormFieldProps> = ({
   disabled,
   initialValue: _initialValue,
   modifiedValue,
+  relatedRecord,
   showFieldTypes,
   omitUndoIndicator,
   onChange,
+  viewRelatedRecord,
 }) => {
   const { label, name, labelHelpText, readOnly, metadata } = field;
   const required = !readOnly && field.required;
@@ -227,6 +232,7 @@ export const UiRecordFormField: FunctionComponent<UiRecordFormFieldProps> = ({
         {readOnly && (
           <ReadOnlyFormElement
             id={id}
+            metadata={metadata}
             label={label}
             className="slds-m-bottom_x-small"
             errorMessage={saveError}
@@ -237,6 +243,8 @@ export const UiRecordFormField: FunctionComponent<UiRecordFormFieldProps> = ({
             errorMessageId={`${id}-error`}
             value={(value as string) || ''}
             bottomBorder
+            relatedRecord={relatedRecord}
+            viewRelatedRecord={viewRelatedRecord}
           />
         )}
 

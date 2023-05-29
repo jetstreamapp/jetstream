@@ -1,10 +1,8 @@
 import { ANALYTICS_KEYS } from '@jetstream/shared/constants';
-import { transformTabularDataToExcelStr, transformTabularDataToHtml } from '@jetstream/shared/ui-utils';
-import { flattenRecords } from '@jetstream/shared/utils';
+import { copyRecordsToClipboard } from '@jetstream/shared/ui-utils';
 import { Maybe, Record } from '@jetstream/types';
 import { ButtonGroupContainer, DropDown, Icon, Modal, Radio, RadioGroup } from '@jetstream/ui';
 import classNames from 'classnames';
-import copyToClipboard from 'copy-to-clipboard';
 import { Fragment, FunctionComponent, useEffect, useState } from 'react';
 import { useAmplitude } from '../../core/analytics';
 
@@ -62,7 +60,7 @@ export const QueryResultsCopyToClipboard: FunctionComponent<QueryResultsCopyToCl
       return;
     }
 
-    performCopy(records, format);
+    copyRecordsToClipboard(records, format);
     trackEvent(ANALYTICS_KEYS.query_CopyToClipboard, { isTooling, whichRecords, format });
   }
 
@@ -83,27 +81,16 @@ export const QueryResultsCopyToClipboard: FunctionComponent<QueryResultsCopyToCl
       recordsToCopy = selectedRows;
     }
 
-    performCopy(recordsToCopy, format);
+    copyRecordsToClipboard(recordsToCopy, format);
+    trackEvent(ANALYTICS_KEYS.query_CopyToClipboard, { isTooling, whichRecords, format });
 
     setFormat('excel');
     setWhichRecords('all');
   }
 
-  function performCopy(recordsToCopy: any, copyFormat: 'excel' | 'text' | 'json') {
-    if (copyFormat === 'excel' && fields) {
-      const flattenedData = flattenRecords(recordsToCopy, fields);
-      copyToClipboard(transformTabularDataToHtml(flattenedData, fields), { format: 'text/html' });
-    } else if (copyFormat === 'text' && fields) {
-      const flattenedData = flattenRecords(recordsToCopy, fields);
-      copyToClipboard(transformTabularDataToExcelStr(flattenedData, fields), { format: 'text/plain' });
-    } else if (copyFormat === 'json') {
-      copyToClipboard(JSON.stringify(recordsToCopy, null, 2), { format: 'text/plain' });
-    }
-    trackEvent(ANALYTICS_KEYS.query_CopyToClipboard, { isTooling, whichRecords, format: copyFormat });
-  }
-
   return (
     <Fragment>
+      {/* TODO */}
       <ButtonGroupContainer>
         <button
           className={classNames('slds-button slds-button_neutral', className)}

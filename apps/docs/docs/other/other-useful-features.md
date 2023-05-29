@@ -54,6 +54,24 @@ Use the query page to find the record you want to work with. From the query resu
 
 After taking any of the actions above, you will be presented with a modal that will show you the record and allow you to edit the record.
 
-If you started out in view mode, you can switch over to edit mode by clicking the buttons at the bottom of the modal.
+**From here, you can**
+
+- Access related records by clicking the link for a lookup field
+  - you can easily go back to a prior record by clicking the breadcrumb link
+- View all child records by clicking the child tab
+- Edit or clone the record
+- Download the record
+
+#### Viewing your record
 
 <img src={require('./view-record.png').default} alt="View record modal" />
+
+#### Viewing child records
+
+:::tip
+
+Since there can be a lot of data to fetch here to access these records, the data is cached in your browser for a few days. Click the **Reload Records** button if records were recently added or removed.
+
+:::
+
+<img src={require('./view-record-children.png').default} alt="Viewing child records" />
