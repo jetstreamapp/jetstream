@@ -131,6 +131,7 @@ async function fetchRecordTypeData(selectedOrg: SalesforceOrgUi, sobjects: strin
   );
 
   const { id } = await retrieveMetadataFromListMetadata(selectedOrg, {
+    CustomObject: sobjects.map((fullName) => ({ fullName })),
     Layout: layouts,
     Profile: profileNames.map((profile) => ({ fullName: PROFILE_LABEL_TO_FULL_NAME_MAP[profile] || profile })),
     RecordType: recordTypes,
@@ -139,7 +140,7 @@ async function fetchRecordTypeData(selectedOrg: SalesforceOrgUi, sobjects: strin
   const recordTypeVisibilitiesMap = getMapOf(
     recordTypes.map((recordType) => ({
       default: false,
-      recordType: recordType.fullName,
+      recordType: decodeURIComponent(recordType.fullName),
       visible: false,
     })),
     'recordType'

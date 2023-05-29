@@ -1198,11 +1198,12 @@ export function getTableDataForRecordTypes(recordTypeData: RecordTypeData) {
   }, {});
 
   profilesWithLayoutAndRecordTypeVisibilities.forEach((item) => {
+    // TODO: what if there are no layoutAssignments?
     item.layoutAssignments.forEach((layoutAssignment) => {
       if (!layoutAssignment.layout) {
         return;
       }
-      let sobject = 'Account-Account (Sales) Layout'.split('-')[0];
+      let sobject = layoutAssignment.layout.split('-')[0];
       const [_, recordType] = layoutAssignment.recordType?.split('.') || [];
       // TODO: this has special behavior, we should only allow changing assignment - nothing else
       if (!recordType) {
@@ -1213,6 +1214,7 @@ export function getTableDataForRecordTypes(recordTypeData: RecordTypeData) {
         objectsWithRecordTypes[sobject][recordType][item.profile].layoutName = layoutAssignment.layout;
       }
     });
+
     item.recordTypeVisibilities.forEach((recordTypeVisibility) => {
       if (!recordTypeVisibility.recordType) {
         return;
