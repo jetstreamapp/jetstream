@@ -5,9 +5,9 @@ import { Checkbox, EmptyState, Grid, SearchInput, Select } from '@jetstream/ui';
 import classNames from 'classnames';
 import type { Field } from 'jsforce';
 import { Fragment, FunctionComponent, useEffect, useState } from 'react';
+import UiRecordFormField from './UiRecordFormField';
 import { EditableFields } from './ui-record-form-types';
 import { convertMetadataToEditableFields } from './ui-record-form-utils';
-import UiRecordFormField from './UiRecordFormField';
 
 export interface UiRecordFormProps {
   controlClassName?: string;
@@ -19,6 +19,7 @@ export interface UiRecordFormProps {
   saveErrors?: MapOf<string | undefined>;
   disabled?: boolean;
   onChange: (record: Record) => void;
+  viewRelatedRecord?: (recordId: string, metadata: Field) => void;
 }
 
 export const UiRecordForm: FunctionComponent<UiRecordFormProps> = ({
@@ -31,6 +32,7 @@ export const UiRecordForm: FunctionComponent<UiRecordFormProps> = ({
   saveErrors = {},
   disabled = false,
   onChange,
+  viewRelatedRecord,
 }) => {
   const [columnSize, setColumnSize] = useState<1 | 2 | 3 | 4>(2);
   const [showReadOnlyFields, setShowReadOnlyFields] = useState(true);
@@ -156,9 +158,11 @@ export const UiRecordForm: FunctionComponent<UiRecordFormProps> = ({
                     disabled={disabled}
                     initialValue={record[field.name]}
                     modifiedValue={modifiedRecord[field.name]}
+                    relatedRecord={field.metadata.relationshipName ? record[field.metadata.relationshipName] : null}
                     showFieldTypes={showFieldTypes}
                     omitUndoIndicator={action === 'create'}
                     onChange={handleRecordUpdate}
+                    viewRelatedRecord={viewRelatedRecord}
                   />
                 </div>
               ))}

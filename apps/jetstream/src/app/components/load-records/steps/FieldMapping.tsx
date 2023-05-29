@@ -116,7 +116,7 @@ export const LoadRecordsFieldMapping = memo<LoadRecordsFieldMappingProps>(
           setWarningMessage('Custom Metadata Objects must have Label and DeveloperName mapped.');
           return;
         } else if (!isCustomMetadataObject && !externalIdMapped) {
-          setWarningMessage(`Upsert requires the ExternalId filed ${externalId} to be mapped.`);
+          setWarningMessage(`Upsert requires the ExternalId field ${externalId} to be mapped.`);
           return;
         }
       }

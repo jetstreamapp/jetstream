@@ -1,5 +1,5 @@
 import { describeSObject, genericRequest } from '@jetstream/shared/data';
-import { REGEX, getMapOf, splitArrayToMaxSize } from '@jetstream/shared/utils';
+import { REGEX, flattenRecords, getMapOf, splitArrayToMaxSize } from '@jetstream/shared/utils';
 import type {
   CompositeRequestBody,
   CompositeResponse,
@@ -12,11 +12,18 @@ import type {
   SalesforceOrgUi,
   UserTrace,
 } from '@jetstream/types';
+import copyToClipboard from 'copy-to-clipboard';
 import addHours from 'date-fns/addHours';
 import formatISO from 'date-fns/formatISO';
 import type { DescribeSObjectResult, Field } from 'jsforce';
 import { composeQuery, getField } from 'soql-parser-js';
-import { isRelationshipField, polyfillFieldDefinition, sortQueryFields } from './shared-ui-utils';
+import {
+  isRelationshipField,
+  polyfillFieldDefinition,
+  sortQueryFields,
+  transformTabularDataToExcelStr,
+  transformTabularDataToHtml,
+} from './shared-ui-utils';
 
 export function buildQuery(sObject: string, fields: string[]) {
   return composeQuery({ sObject, fields: fields.map((field) => getField(field)) }, { format: true });
@@ -283,4 +290,19 @@ export async function fetchActiveLog(org: SalesforceOrgUi, id: string): Promise<
     options: { responseType: 'text' },
   });
   return fetchResults;
+}
+
+/**
+ * Copy records to clipboard in various formats
+ */
+export function copyRecordsToClipboard(recordsToCopy: any, copyFormat: 'excel' | 'text' | 'json', fields?: string[]) {
+  if (copyFormat === 'excel' && fields) {
+    const flattenedData = flattenRecords(recordsToCopy, fields);
+    copyToClipboard(transformTabularDataToHtml(flattenedData, fields), { format: 'text/html' });
+  } else if (copyFormat === 'text' && fields) {
+    const flattenedData = flattenRecords(recordsToCopy, fields);
+    copyToClipboard(transformTabularDataToExcelStr(flattenedData, fields), { format: 'text/plain' });
+  } else if (copyFormat === 'json') {
+    copyToClipboard(JSON.stringify(recordsToCopy, null, 2), { format: 'text/plain' });
+  }
 }

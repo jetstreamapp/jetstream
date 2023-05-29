@@ -31,6 +31,7 @@ import {
 import parseISO from 'date-fns/parseISO';
 import type {
   AsyncResult,
+  ChildRelationship,
   DeployOptions,
   DescribeGlobalResult,
   DescribeMetadataResult,
@@ -197,7 +198,31 @@ export async function describeSObject(
   return handleRequest(
     { method: 'GET', url: `/api/describe/${SObject}`, params: { isTooling } },
     { org, useCache: true, useQueryParamsInCacheKey: true, mockHeaderKey: SObject.startsWith('@') ? SObject : undefined }
-  );
+  ).then((results: ApiResponse<DescribeSObjectResult>) => {
+    // There are some rare circumstances where objects have duplicate child relationships which breaks things
+    // This is a Salesforce bug, but the best we can do is ignore duplicates
+    // Most notable example is Salesforce CPQ's SBQQ__Quote__c object which has two child relationships named `FinanceBalanceSnapshots`
+    results.data.childRelationships = results.data.childRelationships.reduce(
+      (
+        acc: {
+          childRelationships: ChildRelationship[];
+          previouslySeenRelationships: Set<string>;
+        },
+        item
+      ) => {
+        if (!item.relationshipName || !acc.previouslySeenRelationships.has(item.relationshipName)) {
+          acc.childRelationships.push(item);
+        }
+        item.relationshipName && acc.previouslySeenRelationships.add(item.relationshipName);
+        return acc;
+      },
+      {
+        childRelationships: [],
+        previouslySeenRelationships: new Set<string>(),
+      }
+    ).childRelationships;
+    return results;
+  });
 }
 
 export async function query<T = any>(

@@ -772,6 +772,15 @@ export function getFlattenedListItems(items: ListItemGroup[] = []): ListItem[] {
   }, []);
 }
 
+// https://stackoverflow.com/questions/7394748/whats-the-right-way-to-decode-a-string-that-has-special-html-entities-in-it
+export function decodeHtmlEntity(value: Maybe<string>) {
+  return (value?.replace(/&amp;|&#(\d+);/g, (match, dec) => String.fromCharCode(dec)) || '')
+    .replaceAll('&quot;', '"')
+    .replaceAll('\x00', '&')
+    .replaceAll('&lt;', '<')
+    .replaceAll('&gt;', '>');
+}
+
 /**
  * Salesforce encodes metadata types in a slightly unique way where build-in encodeURIComponent would only work for some characters
  * and other characters, like space or underscore are not encoded

@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { QueryResultsColumn } from '@jetstream/api-interfaces';
-import { enableLogger, logger } from '@jetstream/shared/client-logger';
+import { logger } from '@jetstream/shared/client-logger';
 import { MIME_TYPES } from '@jetstream/shared/constants';
 import { formatNumber, getFilename, isEnterKey, prepareCsvFile, prepareExcelFile, saveFile, useRollbar } from '@jetstream/shared/ui-utils';
 import { flattenRecords, getMapOfBaseAndSubqueryRecords } from '@jetstream/shared/utils';
@@ -66,7 +66,7 @@ export interface RecordDownloadModalProps {
   downloadModalOpen: boolean;
   columns?: QueryResultsColumn[];
   fields: string[];
-  modifiedFields: string[];
+  modifiedFields?: string[];
   subqueryFields?: MapOf<string[]>;
   records: Record[];
   filteredRecords?: Record[];
@@ -102,7 +102,7 @@ export const RecordDownloadModal: FunctionComponent<RecordDownloadModalProps> = 
   children,
 }) => {
   const rollbar = useRollbar();
-  const hasGoogleInputConfigured = !!google_apiKey && !!google_appId && !!google_clientId;
+  const hasGoogleInputConfigured = !!google_apiKey && !!google_appId && !!google_clientId && !!onDownloadFromServer;
   const [hasMoreRecords, setHasMoreRecords] = useState<boolean>(false);
   const [downloadRecordsValue, setDownloadRecordsValue] = useState<string>(hasMoreRecords ? RADIO_ALL_SERVER : RADIO_ALL_BROWSER);
   const [fileFormat, setFileFormat] = useState<FileExtCsvXLSXJsonGSheet>(RADIO_FORMAT_XLSX);
@@ -152,7 +152,7 @@ export const RecordDownloadModal: FunctionComponent<RecordDownloadModalProps> = 
   }, [isBulkApi]);
 
   useEffect(() => {
-    if (fields !== modifiedFields && fields && modifiedFields) {
+    if (fields !== modifiedFields && fields.length && modifiedFields.length) {
       setColumnsAreModified(fields.some((field, i) => field !== modifiedFields[i]));
     }
   }, [fields, modifiedFields]);
@@ -206,7 +206,7 @@ export const RecordDownloadModal: FunctionComponent<RecordDownloadModalProps> = 
     if (errorMessage) {
       setErrorMessage(null);
     }
-    const fieldsToUse = whichFields === 'specified' ? modifiedFields : fields;
+    const fieldsToUse = whichFields === 'specified' && modifiedFields?.length ? modifiedFields : fields;
     if (fieldsToUse.length === 0) {
       return;
     }

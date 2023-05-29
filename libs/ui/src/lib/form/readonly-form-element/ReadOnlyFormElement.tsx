@@ -1,10 +1,13 @@
+import { Maybe, RecordAttributes } from '@jetstream/types';
 import classNames from 'classnames';
+import { Field } from 'jsforce';
 import React, { Fragment, FunctionComponent, ReactNode } from 'react';
 import HelpText from '../../widgets/HelpText';
 
 export interface ReadOnlyFormElementProps {
   id: string;
   className?: string;
+  metadata?: Field;
   label?: string | ReactNode;
   labelHelp?: string | null;
   helpText?: React.ReactNode | string;
@@ -14,6 +17,8 @@ export interface ReadOnlyFormElementProps {
   errorMessage?: React.ReactNode | string;
   value: string;
   bottomBorder?: boolean;
+  relatedRecord?: Maybe<{ attributes: RecordAttributes; Name: string }>;
+  viewRelatedRecord?: (recordId: string, metadata: Field) => void;
 }
 
 /**
@@ -22,6 +27,7 @@ export interface ReadOnlyFormElementProps {
 export const ReadOnlyFormElement: FunctionComponent<ReadOnlyFormElementProps> = ({
   id,
   className,
+  metadata,
   label,
   labelHelp,
   helpText,
@@ -31,7 +37,12 @@ export const ReadOnlyFormElement: FunctionComponent<ReadOnlyFormElementProps> = 
   errorMessage,
   value,
   bottomBorder,
+  relatedRecord,
+  viewRelatedRecord,
 }) => {
+  const showViewLookup =
+    viewRelatedRecord && relatedRecord?.Name && metadata?.type === 'reference' && metadata.referenceTo && metadata.referenceTo?.length > 0;
+
   return (
     <div className={classNames('slds-form-element', className, { 'slds-has-error': hasError })}>
       {label && (
@@ -49,7 +60,16 @@ export const ReadOnlyFormElement: FunctionComponent<ReadOnlyFormElementProps> = 
       )}
       <div id={id} className={classNames('slds-form-element__control', { 'slds-border_bottom': bottomBorder })}>
         <div className="slds-form-element__static">
-          <p>{value}</p>
+          {value && showViewLookup ? (
+            <>
+              <button className="slds-button" onClick={() => viewRelatedRecord(value, metadata)} title="View related record">
+                {relatedRecord.Name}
+              </button>
+              <span className="slds-m-left_xx-small">({value})</span>
+            </>
+          ) : (
+            <p>{relatedRecord?.Name ? `${relatedRecord.Name} (${value})` : value}</p>
+          )}
         </div>
       </div>
       {helpText && <div className="slds-form-element__help">{helpText}</div>}
