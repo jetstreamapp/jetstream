@@ -483,7 +483,7 @@ function getRelatedFieldsQueries(baseObject: string, relatedObject: string, rela
   let tempRelatedValues: string[] = [];
   let currLength = BASE_QUERY_LENGTH;
   relatedValues.forEach((value) => {
-    tempRelatedValues.push(value.replaceAll(`'`, `\\'`).replaceAll(`\\n`, `\\\\n`));
+    tempRelatedValues.push(isString(value) ? value.replaceAll(`'`, `\\'`).replaceAll(`\\n`, `\\\\n`) : value);
     currLength += value.length + QUERY_ITEM_BUFFER_LENGTH;
     if (currLength >= MAX_QUERY_LENGTH) {
       const tempQuery = { ...baseQuery };
