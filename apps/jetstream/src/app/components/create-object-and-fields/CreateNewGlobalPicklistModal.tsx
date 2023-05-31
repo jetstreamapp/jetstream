@@ -30,7 +30,7 @@ const defaultValues: PicklistData = {
 
 function getPayload(data: PicklistData): GlobalValueSetRequest {
   return {
-    FullName: data.name,
+    FullName: `${data.name}__gvs`,
     Metadata: {
       customValue: data.values
         .trim()
