@@ -284,6 +284,12 @@ export const querySoqlState = atom<string>({
   default: '',
 });
 
+// SOQL query with count() function
+export const querySoqlCountState = atom<string>({
+  key: 'query.querySoqlCountState',
+  default: '',
+});
+
 export const queryIncludeDeletedRecordsState = atom<boolean>({
   key: 'query.queryIncludeDeletedRecordsState',
   default: false,
