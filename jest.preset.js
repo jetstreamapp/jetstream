@@ -1,4 +1,4 @@
-const nxPreset = require('@nrwl/jest/preset').default;
+const nxPreset = require('@nx/jest/preset').default;
 
 /** @type {import('jest').Config} */
 const config = {
@@ -8,7 +8,7 @@ const config = {
   transform: {
     '^.+\\.(ts|js|html)$': 'ts-jest',
   },
-  resolver: '@nrwl/jest/plugins/resolver',
+  resolver: '@nx/jest/plugins/resolver',
   moduleFileExtensions: ['ts', 'js', 'html'],
   coverageReporters: ['html'],
 };
