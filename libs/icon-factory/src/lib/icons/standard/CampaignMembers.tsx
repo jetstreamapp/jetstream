@@ -1,8 +1,7 @@
 import * as React from 'react';
-
 function SvgCampaignMembers(props: React.SVGProps<SVGSVGElement>) {
   return (
-    <svg viewBox="0 0 100 100" aria-hidden="true" {...props}>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" aria-hidden="true" {...props}>
       <path
         fill="unset"
         fillOpacity={0.65}
@@ -20,5 +19,4 @@ function SvgCampaignMembers(props: React.SVGProps<SVGSVGElement>) {
     </svg>
   );
 }
-
 export default SvgCampaignMembers;

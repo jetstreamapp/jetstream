@@ -1,8 +1,7 @@
 import * as React from 'react';
-
 function SvgPartnerFundClaim(props: React.SVGProps<SVGSVGElement>) {
   return (
-    <svg viewBox="0 0 100 100" aria-hidden="true" {...props}>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" aria-hidden="true" {...props}>
       <path
         fill="unset"
         d="M56.5 34h9.4c.7 0 1.3-.6 1.3-1.3 0-.3-.1-.6-.3-.9L55.1 20.3c-.3-.2-.6-.3-.9-.3-.7 0-1.3.6-1.3 1.3v9.2c.1 1.9 1.7 3.5 3.6 3.5z"
@@ -18,5 +17,4 @@ function SvgPartnerFundClaim(props: React.SVGProps<SVGSVGElement>) {
     </svg>
   );
 }
-
 export default SvgPartnerFundClaim;

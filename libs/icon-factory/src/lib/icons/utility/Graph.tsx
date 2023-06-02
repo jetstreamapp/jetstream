@@ -1,8 +1,7 @@
 import * as React from 'react';
-
 function SvgGraph(props: React.SVGProps<SVGSVGElement>) {
   return (
-    <svg viewBox="0 0 52 52" aria-hidden="true" {...props}>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 52 52" aria-hidden="true" {...props}>
       <path
         fill="unset"
         d="M2 45.5c0 2.2 1.8 4 4 4h42.4c.9 0 1.6-.7 1.6-1.6v-2.8c0-.9-.7-1.6-1.6-1.6H9.5c-.8 0-1.5-.7-1.5-1.5V4.1c0-.9-.7-1.6-1.6-1.6H3.6c-.9 0-1.6.7-1.6 1.6v41.4z"
@@ -14,5 +13,4 @@ function SvgGraph(props: React.SVGProps<SVGSVGElement>) {
     </svg>
   );
 }
-
 export default SvgGraph;

@@ -1,8 +1,7 @@
 import * as React from 'react';
-
 function SvgEmailOpen(props: React.SVGProps<SVGSVGElement>) {
   return (
-    <svg viewBox="0 0 52 52" aria-hidden="true" {...props}>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 52 52" aria-hidden="true" {...props}>
       <path
         fill="unset"
         d="M45.8 28.1c0-.8-1-1.3-1.7-.7L29.5 40.9c-1 .9-2.2 1.4-3.6 1.4s-2.6-.5-3.6-1.3L7.8 27.4c-.7-.6-1.7-.2-1.7.7-.1-.2-.1 18-.1 18 0 1.8 1.5 3.3 3.3 3.3h33.1c1.8 0 3.3-1.5 3.3-3.3v-18z"
@@ -14,5 +13,4 @@ function SvgEmailOpen(props: React.SVGProps<SVGSVGElement>) {
     </svg>
   );
 }
-
 export default SvgEmailOpen;

@@ -1,8 +1,7 @@
 import * as React from 'react';
-
 function SvgLink(props: React.SVGProps<SVGSVGElement>) {
   return (
-    <svg viewBox="0 0 100 100" aria-hidden="true" {...props}>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" aria-hidden="true" {...props}>
       <path
         fill="unset"
         d="M51.5 69.4c-.9-.1-1.7-.2-2.6-.4-.9-.2-1.8-.4-2.7-.7-.5-.2-1.1-.1-1.5.3l-.6.6c-3.6 3.6-9.4 4-13.3.7-4.2-3.7-4.4-10.1-.5-14l9.5-9.5c1.2-1.2 2.7-2.1 4.3-2.5 2-.5 4.1-.4 6 .4 1.2.5 2.3 1.2 3.2 2.1.5.5.9 1.1 1.2 1.7.5.8 1.6 1 2.3.3l3.5-3.5c.5-.5.6-1.3.1-1.9-.5-.7-1.1-1.4-1.7-2-.9-.9-1.9-1.7-3-2.4-1.8-1.1-3.8-1.9-5.8-2.3-3.9-.8-8.1-.2-11.7 1.8-1.4.8-2.7 1.7-3.9 2.9l-9.2 9.2c-6.6 6.6-7.1 17.3-.8 24.1 6.7 7.2 17.9 7.4 24.8.5l3.1-3.1c1-.7.5-2.2-.7-2.3z"
@@ -14,5 +13,4 @@ function SvgLink(props: React.SVGProps<SVGSVGElement>) {
     </svg>
   );
 }
-
 export default SvgLink;

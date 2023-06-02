@@ -1,8 +1,7 @@
 import * as React from 'react';
-
 function SvgFilterCriteria(props: React.SVGProps<SVGSVGElement>) {
   return (
-    <svg data-name="Layer 1" viewBox="0 0 52 52" aria-hidden="true" {...props}>
+    <svg data-name="Layer 1" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 52 52" aria-hidden="true" {...props}>
       <path
         d="M16.35 10.4h18.89A1.74 1.74 0 0037 8.67V5.2A5.22 5.22 0 0031.77 0h-12a5.22 5.22 0 00-5.2 5.2v3.47a1.87 1.87 0 001.78 1.73z"
         fill="unset"
@@ -14,5 +13,4 @@ function SvgFilterCriteria(props: React.SVGProps<SVGSVGElement>) {
     </svg>
   );
 }
-
 export default SvgFilterCriteria;

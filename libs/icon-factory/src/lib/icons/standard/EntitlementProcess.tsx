@@ -1,8 +1,7 @@
 import * as React from 'react';
-
 function SvgEntitlementProcess(props: React.SVGProps<SVGSVGElement>) {
   return (
-    <svg viewBox="0 0 100 100" aria-hidden="true" {...props}>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" aria-hidden="true" {...props}>
       <path fill="unset" d="M56 79.6V63.1l9.4-10.4h13.3v20c-.1 3.8-3.1 6.8-6.9 6.9H56z" />
       <path
         fill="unset"
@@ -11,5 +10,4 @@ function SvgEntitlementProcess(props: React.SVGProps<SVGSVGElement>) {
     </svg>
   );
 }
-
 export default SvgEntitlementProcess;

@@ -1,8 +1,7 @@
 import * as React from 'react';
-
 function SvgScheduleObjective(props: React.SVGProps<SVGSVGElement>) {
   return (
-    <svg data-name="Layer 1" viewBox="0 0 100 100" aria-hidden="true" {...props}>
+    <svg data-name="Layer 1" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" aria-hidden="true" {...props}>
       <path
         d="M76 42H24a2 2 0 00-2 2v30a6 6 0 006 6h44a6 6 0 006-6V44a2 2 0 00-2-2zM50 76.1A15.1 15.1 0 1165.1 61 15.15 15.15 0 0150 76.1z"
         fill="unset"
@@ -14,5 +13,4 @@ function SvgScheduleObjective(props: React.SVGProps<SVGSVGElement>) {
     </svg>
   );
 }
-
 export default SvgScheduleObjective;

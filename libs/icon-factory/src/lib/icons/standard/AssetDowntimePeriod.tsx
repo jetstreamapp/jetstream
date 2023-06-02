@@ -1,8 +1,7 @@
 import * as React from 'react';
-
 function SvgAssetDowntimePeriod(props: React.SVGProps<SVGSVGElement>) {
   return (
-    <svg data-name="Layer 1" viewBox="0 0 100 100" aria-hidden="true" {...props}>
+    <svg data-name="Layer 1" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" aria-hidden="true" {...props}>
       <path
         d="M50.4 67.8a15.55 15.55 0 012.1-8.8H37.1a.84.84 0 01-.9-.9v-.9a.84.84 0 01.9-.9h17.3a15.37 15.37 0 011.9-1.7.84.84 0 01-.4-.7V41.1a.9.9 0 111.8 0v12.7a11.51 11.51 0 012.5-1.2V41.1a.84.84 0 01.9-.9h1.7a.84.84 0 01.9.9v10.7c.2 0 .5-.1.7-.1a15.88 15.88 0 018.9 2.1v-27a2.43 2.43 0 00-2.4-2.4H29.3a2.43 2.43 0 00-2.4 2.4v41.5a2.43 2.43 0 002.4 2.4h5.3v2.5a2.43 2.43 0 002.4 2.4h2.8a2.43 2.43 0 002.4-2.4v-2.5h8.7a9.29 9.29 0 01-.5-2.9zM46.6 54a.84.84 0 01-.9.9H44a.84.84 0 01-.9-.9V41.1a.84.84 0 01.9-.9h1.7a.84.84 0 01.9.9zm7.7 0a.84.84 0 01-.9.9H50a.84.84 0 01-.9-.9V41.1a.84.84 0 01.9-.9h3.4a.84.84 0 01.9.9zm-18-17.2a.84.84 0 01.9-.9h25.7a.84.84 0 01.9.9v.9a.84.84 0 01-.9.9H37.1a.84.84 0 01-.9-.9v-.9zm0 4.3a.84.84 0 01.9-.9h3.4a.84.84 0 01.9.9V54a.84.84 0 01-.9.9h-3.4a.84.84 0 01-.9-.9z"
         fill="unset"
@@ -14,5 +13,4 @@ function SvgAssetDowntimePeriod(props: React.SVGProps<SVGSVGElement>) {
     </svg>
   );
 }
-
 export default SvgAssetDowntimePeriod;

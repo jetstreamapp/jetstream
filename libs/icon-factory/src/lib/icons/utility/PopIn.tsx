@@ -1,8 +1,7 @@
 import * as React from 'react';
-
 function SvgPopIn(props: React.SVGProps<SVGSVGElement>) {
   return (
-    <svg viewBox="0 0 52 52" aria-hidden="true" {...props}>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 52 52" aria-hidden="true" {...props}>
       <path
         fill="unset"
         d="M22 31.3h19.1c.8 0 1.6-.5 1.6-1.3v-3c0-.8-.7-1.7-1.6-1.7h-7.9c-.9 0-1.4-1-.7-1.6l17-17c.6-.6.6-1.5 0-2.1l-2.1-2.1c-.6-.6-1.5-.6-2.1 0l-17 17c-.6.6-1.6.2-1.6-.7v-7.9c0-.8-.8-1.7-1.6-1.7h-2.9c-.8 0-1.5.9-1.5 1.7v19c.1.9.5 1.3 1.3 1.4z"
@@ -14,5 +13,4 @@ function SvgPopIn(props: React.SVGProps<SVGSVGElement>) {
     </svg>
   );
 }
-
 export default SvgPopIn;

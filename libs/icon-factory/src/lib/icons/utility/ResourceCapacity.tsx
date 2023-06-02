@@ -1,8 +1,7 @@
 import * as React from 'react';
-
 function SvgResourceCapacity(props: React.SVGProps<SVGSVGElement>) {
   return (
-    <svg viewBox="0 0 52 52" aria-hidden="true" {...props}>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 52 52" aria-hidden="true" {...props}>
       <path
         fill="unset"
         d="M37.9 25c-6.7 0-12.1 5.5-12.1 12.2s5.4 12.1 12.1 12.1S50 43.8 50 37.2 44.6 25 37.9 25zm8.5 13.4h-8.8v-9.3s3.3-.2 6.3 2.9 2.5 6.4 2.5 6.4z"
@@ -14,5 +13,4 @@ function SvgResourceCapacity(props: React.SVGProps<SVGSVGElement>) {
     </svg>
   );
 }
-
 export default SvgResourceCapacity;

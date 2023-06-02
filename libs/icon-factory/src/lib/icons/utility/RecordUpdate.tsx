@@ -1,8 +1,7 @@
 import * as React from 'react';
-
 function SvgRecordUpdate(props: React.SVGProps<SVGSVGElement>) {
   return (
-    <svg viewBox="0 0 52 52" aria-hidden="true" {...props}>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 52 52" aria-hidden="true" {...props}>
       <path fill="unset" d="M40.8 7.7" />
       <g fill="unset">
         <path d="M17.2 11.6h17.6c.9 0 1.6-.7 1.6-1.6V6.8c0-2.6-2.2-4.8-4.8-4.8H20.4c-2.6 0-4.8 2.2-4.8 4.8V10c0 .9.7 1.6 1.6 1.6z" />
@@ -11,5 +10,4 @@ function SvgRecordUpdate(props: React.SVGProps<SVGSVGElement>) {
     </svg>
   );
 }
-
 export default SvgRecordUpdate;

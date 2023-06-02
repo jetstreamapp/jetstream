@@ -1,8 +1,7 @@
 import * as React from 'react';
-
 function SvgLeadInsights(props: React.SVGProps<SVGSVGElement>) {
   return (
-    <svg viewBox="0 0 100 100" aria-hidden="true" {...props}>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" aria-hidden="true" {...props}>
       <path
         fill="unset"
         d="M50 22c-15.5 0-28 12.6-28 28s12.6 28 28 28c15.5 0 28-12.6 28-28S65.5 22 50 22zm0 52.7c-13.6 0-24.7-11-24.7-24.7 0-13.6 11-24.7 24.7-24.7 13.6 0 24.7 11 24.7 24.7 0 13.6-11.1 24.7-24.7 24.7z"
@@ -13,5 +12,4 @@ function SvgLeadInsights(props: React.SVGProps<SVGSVGElement>) {
     </svg>
   );
 }
-
 export default SvgLeadInsights;

@@ -1,8 +1,7 @@
 import * as React from 'react';
-
 function SvgPersonAccount(props: React.SVGProps<SVGSVGElement>) {
   return (
-    <svg viewBox="0 0 100 100" aria-hidden="true" {...props}>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" aria-hidden="true" {...props}>
       <path
         fill="unset"
         d="M69.5 59c-3.6-1.5-4.2-2.9-4.2-4.4 0-1.5 1-2.9 2.2-4 2.1-1.9 3.3-4.6 3.3-7.8 0-5.8-3.7-10.9-10.2-10.9s-10.2 5-10.2 10.9c0 3.2 1.2 5.8 3.3 7.8 1.2 1.1 2.2 2.5 2.2 4s-.6 2.9-4.2 4.4c-5.3 2.2-10.4 5-10.5 9.8 0 3.1 2.4 6.2 5.4 6.2h27.8c3.1 0 5.4-3.1 5.4-6.2.1-4.7-5-7.5-10.3-9.8z"
@@ -14,5 +13,4 @@ function SvgPersonAccount(props: React.SVGProps<SVGSVGElement>) {
     </svg>
   );
 }
-
 export default SvgPersonAccount;

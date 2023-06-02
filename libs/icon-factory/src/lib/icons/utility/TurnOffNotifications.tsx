@@ -1,8 +1,7 @@
 import * as React from 'react';
-
 function SvgTurnOffNotifications(props: React.SVGProps<SVGSVGElement>) {
   return (
-    <svg viewBox="0 0 52 52" aria-hidden="true" {...props}>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 52 52" aria-hidden="true" {...props}>
       <path fill="unset" d="M23.4 26.6c.6.6 1.4.6 2 0L46.8 6.9c.4-.7.3-1.9-1.2-1.9H3.4c-1.1 0-2 1.1-1.2 2l21.2 19.6z" />
       <path
         fill="unset"
@@ -15,5 +14,4 @@ function SvgTurnOffNotifications(props: React.SVGProps<SVGSVGElement>) {
     </svg>
   );
 }
-
 export default SvgTurnOffNotifications;

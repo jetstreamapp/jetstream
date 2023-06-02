@@ -1,8 +1,7 @@
 import * as React from 'react';
-
 function SvgHighVelocitySales(props: React.SVGProps<SVGSVGElement>) {
   return (
-    <svg viewBox="0 0 52 52" aria-hidden="true" {...props}>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 52 52" aria-hidden="true" {...props}>
       <g fill="unset">
         <path d="M50 3.2c0-1-.6-1.2-.9-1.2H28.4c-1.5 0-1.5 1.5-1.5 1.5v2.9c0 1.3.8 1.6 1.2 1.6h14.4c.6.1 1.5.5 1.5 2.1v13.6c.1.4.3 1.3 1.5 1.3h3.2s1.3 0 1.3-1.5V3.2z" />
         <path d="M37.5 15.7c.1-1-.6-1.2-.9-1.2H15.9c-1.5 0-1.5 1.5-1.5 1.5v2.9c0 1.3.8 1.6 1.2 1.6H30c.6.1 1.5.5 1.5 2.1v13.6c.1.4.3 1.3 1.5 1.3h3.2s1.3 0 1.3-1.5V15.7z" />
@@ -11,5 +10,4 @@ function SvgHighVelocitySales(props: React.SVGProps<SVGSVGElement>) {
     </svg>
   );
 }
-
 export default SvgHighVelocitySales;

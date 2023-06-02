@@ -1,8 +1,7 @@
 import * as React from 'react';
-
 function SvgRecent(props: React.SVGProps<SVGSVGElement>) {
   return (
-    <svg viewBox="0 0 100 100" aria-hidden="true" {...props}>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" aria-hidden="true" {...props}>
       <path
         fill="unset"
         d="M28.1 48c-.1.7-.1 1.3-.1 2h-6c0-.7 0-1.3.1-2h6zM51.5 36h-3c-.8 0-1.5.7-1.5 1.5v13.1c0 .4.2.8.4 1.1l8.4 8.4c.6.6 1.5.6 2.1 0L60 58c.6-.6.6-1.5 0-2.1l-7-7.1V37.5c0-.8-.7-1.5-1.5-1.5z"
@@ -14,5 +13,4 @@ function SvgRecent(props: React.SVGProps<SVGSVGElement>) {
     </svg>
   );
 }
-
 export default SvgRecent;
