@@ -1,7 +1,7 @@
 import { AutoFullHeightContainer, ColumnWithFilter, DataTable } from '@jetstream/ui';
 import groupBy from 'lodash/groupBy';
 import { forwardRef, useCallback, useState } from 'react';
-import { RowHeightArgs } from 'react-data-grid';
+import { RowHeightArgs, RowsChangeData } from 'react-data-grid';
 import { PermissionManagerRecordTypeRow, PermissionTableSummaryRow } from '../utils/permission-manager-types';
 
 const getRowKey = ({ key }: PermissionManagerRecordTypeRow) => key;
@@ -19,7 +19,10 @@ export interface ManagePermissionRecordTypesProps {
   rows: PermissionManagerRecordTypeRow[];
   loading: boolean; // TODO: do I need this?
   hasError?: boolean;
-  onBulkUpdate: (rows: PermissionManagerRecordTypeRow[], indexes?: number[]) => void;
+  onBulkUpdate: (
+    rows: PermissionManagerRecordTypeRow[],
+    changeData: RowsChangeData<PermissionManagerRecordTypeRow, PermissionTableSummaryRow>
+  ) => void;
 }
 
 export const ManagePermissionRecordTypes = forwardRef<any, ManagePermissionRecordTypesProps>(
@@ -27,8 +30,8 @@ export const ManagePermissionRecordTypes = forwardRef<any, ManagePermissionRecor
     const [expandedGroupIds, setExpandedGroupIds] = useState(() => new Set<unknown>(rows.map((row) => row.sobject)));
 
     const handleRowsChange = useCallback(
-      (rows: PermissionManagerRecordTypeRow[], { indexes }) => {
-        onBulkUpdate(rows, indexes);
+      (rows: PermissionManagerRecordTypeRow[], changeData: RowsChangeData<PermissionManagerRecordTypeRow, PermissionTableSummaryRow>) => {
+        onBulkUpdate(rows, changeData);
       },
       [onBulkUpdate]
     );

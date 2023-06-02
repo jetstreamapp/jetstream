@@ -17,6 +17,7 @@ import {
   Tooltip,
 } from '@jetstream/ui';
 import { Fragment, FunctionComponent, useCallback, useEffect, useRef, useState } from 'react';
+import { RowsChangeData } from 'react-data-grid';
 import { Link } from 'react-router-dom';
 import { useRecoilState, useRecoilValue, useResetRecoilState } from 'recoil';
 import { applicationCookieState, selectedOrgState } from '../../app-state';
@@ -30,6 +31,7 @@ import ManagePermissionRecordTypes from './record-types/ManagePermissionRecordTy
 import { usePermissionRecordTypes } from './usePermissionRecordTypes';
 import { usePermissionRecords } from './usePermissionRecords';
 import { generateExcelWorkbookFromTable } from './utils/permission-manager-export-utils';
+import { REC_TYPE_COLUMN_SUFFIX, getTableDataForRecordTypes } from './utils/permission-manager-table-record-type-utils';
 import {
   getConfirmationModalContent,
   getDirtyFieldPermissions,
@@ -38,7 +40,6 @@ import {
   getFieldRows,
   getObjectColumns,
   getObjectRows,
-  getTableDataForRecordTypes,
   updateFieldRowsAfterSave,
   updateObjectRowsAfterSave,
 } from './utils/permission-manager-table-utils';
@@ -287,37 +288,69 @@ export const ManagePermissionsEditor: FunctionComponent<ManagePermissionsEditorP
     });
   }, []);
 
-  const handleRecordTypeBulkRowUpdate = useCallback((rows: PermissionManagerRecordTypeRow[], indexes?: number[]) => {
-    const rowsByKey = getMapOf(rows, 'key');
-    setRecordTypeRows((prevRows) => (prevRows ? prevRows?.map((row) => rowsByKey[row.key] || row) : rows));
-    indexes = indexes || rows.map((row, index) => index);
-    const keysToCompare: (keyof PermissionManagerObjectWithRecordType)[] = ['default', 'layoutName', 'visible'];
-    setDirtyRecordTypeRows((priorValue) => {
-      const newValues = { ...priorValue };
-      indexes?.forEach((rowIndex) => {
-        const row = rows[rowIndex];
-        const rowKey = row.key;
-        const dirtyCount = Object.keys(row.permissions).reduce((acc, profileName) => {
-          const currValue: PermissionManagerObjectWithRecordType = row.permissions[profileName];
-          const origValue: PermissionManagerObjectWithRecordType = row.permissionsOriginal[profileName];
-          keysToCompare.forEach((key) => {
-            if (currValue[key] !== origValue[key]) {
-              acc += 1;
-            }
-          });
-          return acc;
-        }, 0);
-        newValues[rowKey] = { rowKey, dirtyCount, row };
+  const handleRecordTypeBulkRowUpdate = useCallback(
+    (
+      rows: PermissionManagerRecordTypeRow[],
+      { column, indexes }: RowsChangeData<PermissionManagerRecordTypeRow, PermissionTableSummaryRow>
+    ) => {
+      /**
+       * Apply radio button behavior for default
+       * The default radio button only fires change events when the value is set to true, since it cannot be deselected
+       */
+      if (indexes?.length === 1 && column.key.endsWith(REC_TYPE_COLUMN_SUFFIX.DEFAULT)) {
+        const profile = column.key.replace(REC_TYPE_COLUMN_SUFFIX.DEFAULT, '');
+        const modifiedRow = rows[indexes[0]];
+        // Apply radio button behavior
+        rows = rows.map((row) => {
+          if (modifiedRow.key !== row.key && modifiedRow.sobject === row.sobject) {
+            return {
+              ...row,
+              permissions: {
+                ...row.permissions,
+                [profile]: {
+                  ...row.permissions[profile],
+                  default: false,
+                },
+              },
+            };
+          }
+          return row;
+        });
+      }
+
+      const rowsByKey = getMapOf(rows, 'key');
+      setRecordTypeRows((prevRows) => (prevRows ? prevRows?.map((row) => rowsByKey[row.key] || row) : rows));
+      indexes = indexes || rows.map((row, index) => index);
+      const keysToCompare: (keyof PermissionManagerObjectWithRecordType)[] = ['default', 'layoutName', 'visible'];
+      setDirtyRecordTypeRows((priorValue) => {
+        // TODO: only allow 1 default PER object (radio button behavior) and do not allow deselection of default
+        const newValues = { ...priorValue };
+        indexes?.forEach((rowIndex) => {
+          const row = rows[rowIndex];
+          const rowKey = row.key;
+          const dirtyCount = Object.keys(row.permissions).reduce((acc, profileName) => {
+            const currValue: PermissionManagerObjectWithRecordType = row.permissions[profileName];
+            const origValue: PermissionManagerObjectWithRecordType = row.permissionsOriginal[profileName];
+            keysToCompare.forEach((key) => {
+              if (currValue[key] !== origValue[key]) {
+                acc += 1;
+              }
+            });
+            return acc;
+          }, 0);
+          newValues[rowKey] = { rowKey, dirtyCount, row };
+        });
+        // remove items with a dirtyCount of 0 to reduce future processing required
+        return Object.keys(newValues).reduce((output: MapOf<DirtyRow<PermissionManagerRecordTypeRow>>, key) => {
+          if (newValues[key].dirtyCount) {
+            output[key] = newValues[key];
+          }
+          return output;
+        }, {});
       });
-      // remove items with a dirtyCount of 0 to reduce future processing required
-      return Object.keys(newValues).reduce((output: MapOf<DirtyRow<PermissionManagerRecordTypeRow>>, key) => {
-        if (newValues[key].dirtyCount) {
-          output[key] = newValues[key];
-        }
-        return output;
-      }, {});
-    });
-  }, []);
+    },
+    []
+  );
 
   function initTableData(
     includeColumns = true,
