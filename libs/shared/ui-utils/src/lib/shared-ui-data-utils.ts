@@ -8,6 +8,7 @@ import type {
   FieldWithExtendedType,
   FieldWrapper,
   MapOf,
+  Maybe,
   QueryFields,
   SalesforceOrgUi,
   UserTrace,
@@ -295,7 +296,7 @@ export async function fetchActiveLog(org: SalesforceOrgUi, id: string): Promise<
 /**
  * Copy records to clipboard in various formats
  */
-export function copyRecordsToClipboard(recordsToCopy: any, copyFormat: 'excel' | 'text' | 'json', fields?: string[]) {
+export function copyRecordsToClipboard(recordsToCopy: any, copyFormat: 'excel' | 'text' | 'json', fields?: Maybe<string[]>) {
   if (copyFormat === 'excel' && fields) {
     const flattenedData = flattenRecords(recordsToCopy, fields);
     copyToClipboard(transformTabularDataToHtml(flattenedData, fields), { format: 'text/html' });
