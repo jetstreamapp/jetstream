@@ -1,8 +1,7 @@
 import * as React from 'react';
-
 function SvgActionsAndButtons(props: React.SVGProps<SVGSVGElement>) {
   return (
-    <svg viewBox="0 0 100 100" aria-hidden="true" {...props}>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" aria-hidden="true" {...props}>
       <path
         fill="unset"
         d="M48.3 74.5c1 0 1.8-.8 1.8-1.8l.1-20.8c.1-1-.8-1.8-1.6-1.9H27.4c-1-.1-1.8.8-1.9 1.6v4.1c-.1 1 .8 1.8 1.6 1.9H34c.7 0 1.3.6 1.3 1.3 0 .3-.1.7-.3.9l-14 14c-.8.8-.8 2.1-.1 2.8l2.7 2.7c.8.7 2 .6 2.8-.1l14.1-14.1c.5-.5 1.3-.5 1.8 0 .2.2.4.5.3.9v6.6c-.1 1 .8 1.8 1.6 1.9h4.1z"
@@ -14,5 +13,4 @@ function SvgActionsAndButtons(props: React.SVGProps<SVGSVGElement>) {
     </svg>
   );
 }
-
 export default SvgActionsAndButtons;

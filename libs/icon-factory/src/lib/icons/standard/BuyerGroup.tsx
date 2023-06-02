@@ -1,8 +1,7 @@
 import * as React from 'react';
-
 function SvgBuyerGroup(props: React.SVGProps<SVGSVGElement>) {
   return (
-    <svg viewBox="0 0 100 100" aria-hidden="true" {...props}>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" aria-hidden="true" {...props}>
       <g fill="unset">
         <circle cx={58.7} cy={76.7} r={2.2} />
         <circle cx={69.5} cy={76.7} r={2.2} />
@@ -13,5 +12,4 @@ function SvgBuyerGroup(props: React.SVGProps<SVGSVGElement>) {
     </svg>
   );
 }
-
 export default SvgBuyerGroup;

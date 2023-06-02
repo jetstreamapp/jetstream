@@ -1,8 +1,7 @@
 import * as React from 'react';
-
 function SvgDynamicRecordChoice(props: React.SVGProps<SVGSVGElement>) {
   return (
-    <svg viewBox="0 0 100 100" aria-hidden="true" {...props}>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" aria-hidden="true" {...props}>
       <path
         fill="unset"
         d="M43.5 71.4V71C34.5 68.2 28 59.9 28 50c0-12.1 9.9-22 22-22s22 9.9 22 22c0 2-.3 4-.8 5.9l.9.6c.4 0 .7-.1 1.1-.1 2 0 4 .6 5.6 1.5.7-2.5 1.1-5.2 1.1-8 0-16.5-13.5-30-30-30s-30 13.5-30 30c0 15.9 12.4 28.9 28 29.9-2.6-1.8-4.4-4.9-4.4-8.4z"
@@ -18,5 +17,4 @@ function SvgDynamicRecordChoice(props: React.SVGProps<SVGSVGElement>) {
     </svg>
   );
 }
-
 export default SvgDynamicRecordChoice;

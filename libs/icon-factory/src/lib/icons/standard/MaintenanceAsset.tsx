@@ -1,8 +1,7 @@
 import * as React from 'react';
-
 function SvgMaintenanceAsset(props: React.SVGProps<SVGSVGElement>) {
   return (
-    <svg viewBox="0 0 100 100" aria-hidden="true" {...props}>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" aria-hidden="true" {...props}>
       <path
         fill="unset"
         d="M46.5 30.5c.2.5.6.8 1.1.8h27.5c1.3 0 2.7.3 3.9.8.5.3 1.1-.1 1.1-.8.1-2.8-2.1-5-4.9-5.1H45c-.3 0-.6.2-.6.5 0 .1 0 .3.1.4l2 3.4z"
@@ -14,5 +13,4 @@ function SvgMaintenanceAsset(props: React.SVGProps<SVGSVGElement>) {
     </svg>
   );
 }
-
 export default SvgMaintenanceAsset;

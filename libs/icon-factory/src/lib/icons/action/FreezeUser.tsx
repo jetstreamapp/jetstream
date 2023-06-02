@@ -1,8 +1,7 @@
 import * as React from 'react';
-
 function SvgFreezeUser(props: React.SVGProps<SVGSVGElement>) {
   return (
-    <svg viewBox="0 0 52 52" aria-hidden="true" {...props}>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 52 52" aria-hidden="true" {...props}>
       <path fill="unset" d="M27 3c.6 0 1 .4 1 1v45.9c0 .6-.4 1-1 1h-2c-.6 0-1-.4-1-1V4c0-.6.4-1 1-1h2z" />
       <path
         fill="unset"
@@ -19,5 +18,4 @@ function SvgFreezeUser(props: React.SVGProps<SVGSVGElement>) {
     </svg>
   );
 }
-
 export default SvgFreezeUser;

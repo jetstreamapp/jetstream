@@ -1,8 +1,7 @@
 import * as React from 'react';
-
 function SvgLightningUsage(props: React.SVGProps<SVGSVGElement>) {
   return (
-    <svg viewBox="0 0 100 100" aria-hidden="true" {...props}>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" aria-hidden="true" {...props}>
       <path
         fill="unset"
         d="M19 73.9c0 2.8 2.2 5 5 5h53c1.1 0 2-.9 2-2v-2.1c0-1.1-.9-2-2-2H26.9c-1 0-1.9-.9-1.9-1.9v-50c0-1.1-.9-2-2-2h-2c-1.1 0-2 .9-2 2v53z"
@@ -14,5 +13,4 @@ function SvgLightningUsage(props: React.SVGProps<SVGSVGElement>) {
     </svg>
   );
 }
-
 export default SvgLightningUsage;

@@ -1,8 +1,7 @@
 import * as React from 'react';
-
 function SvgQueue(props: React.SVGProps<SVGSVGElement>) {
   return (
-    <svg viewBox="0 0 100 100" aria-hidden="true" {...props}>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" aria-hidden="true" {...props}>
       <path
         fill="unset"
         d="M67.6 20.1c-2.9 0-5.4 2.1-6.4 5 3.8 1.7 6.7 5.4 7.7 9.9 3.1-.7 5.4-3.7 5.4-7.3 0-4.3-3-7.6-6.7-7.6zM73.8 37.9c-1.3 1.2-2.9 2-4.7 2.3-.3 2.7-1.3 5.2-2.8 7.2h11.1c1.4 0 2.5-1.1 2.5-2.5v-1.2c0-2.7-3-4.4-6.1-5.8zM63.2 50c-2 1.8-4.5 2.9-7.2 2.9-.2 3.1-1.1 5.9-2.5 8.3h14c1.6 0 3-1.3 3-3V57c-.1-3.3-3.7-5.3-7.3-7zM50.3 65.2c-2.8 2.8-6.6 4.4-10.6 4.4-4.1 0-7.9-1.7-10.7-4.6-4.6 2.2-9 5-9 9.1V76c0 2.2 1.8 3.9 3.9 3.9h31.3c2.2 0 3.9-1.8 3.9-3.9v-1.8c0-4.2-4.2-6.9-8.8-9z"
@@ -12,5 +11,4 @@ function SvgQueue(props: React.SVGProps<SVGSVGElement>) {
     </svg>
   );
 }
-
 export default SvgQueue;

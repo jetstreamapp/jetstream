@@ -1,8 +1,7 @@
 import * as React from 'react';
-
 function SvgCurrencyInput(props: React.SVGProps<SVGSVGElement>) {
   return (
-    <svg viewBox="0 0 100 100" aria-hidden="true" {...props}>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" aria-hidden="true" {...props}>
       <path fill="unset" d="M62.7 64.8c3.5-5.7 2.8-13.3-2.2-18.2-5.8-5.8-15.2-5.8-21 0-4.9 4.9-5.7 12.5-2.2 18.2h25.4z" />
       <path
         fill="unset"
@@ -11,5 +10,4 @@ function SvgCurrencyInput(props: React.SVGProps<SVGSVGElement>) {
     </svg>
   );
 }
-
 export default SvgCurrencyInput;

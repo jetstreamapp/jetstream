@@ -1,8 +1,7 @@
 import * as React from 'react';
-
 function SvgInvocableAction(props: React.SVGProps<SVGSVGElement>) {
   return (
-    <svg viewBox="0 0 100 100" aria-hidden="true" {...props}>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" aria-hidden="true" {...props}>
       <path
         fill="unset"
         d="M62.8 71.2V79c0 .6.5 1.1 1.1 1.1.2 0 .5-.1.6-.2l15.1-12.3c.2-.2.3-.5.3-.8 0-.3-.2-.6-.4-.8L64.4 53.1c-.1-.1-.3-.1-.5-.1-.6 0-1.1.5-1.1 1.1v8.3c-9.3 2.5-16.9-5.7-16.9-5.7-.2-.2-.5-.3-.8-.3-.6 0-1.1.5-1.1 1.1v.2c3.8 15.7 18.8 13.5 18.8 13.5z"
@@ -14,5 +13,4 @@ function SvgInvocableAction(props: React.SVGProps<SVGSVGElement>) {
     </svg>
   );
 }
-
 export default SvgInvocableAction;

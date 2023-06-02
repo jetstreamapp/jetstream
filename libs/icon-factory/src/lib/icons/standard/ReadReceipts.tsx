@@ -1,8 +1,7 @@
 import * as React from 'react';
-
 function SvgReadReceipts(props: React.SVGProps<SVGSVGElement>) {
   return (
-    <svg viewBox="0 0 100 100" aria-hidden="true" {...props}>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" aria-hidden="true" {...props}>
       <g fill="unset">
         <path d="M48.9 43.4c.7.6 1.5.6 2.2 0l23-21.3c.4-.8.3-2.1-1.3-2.1l-45.6.1c-1.2 0-2.2 1.1-1.3 2.1l23 21.2z" />
         <path d="M74.3 31.2c0-1.1-1.3-1.6-2-.9L54.4 46.9c-1.2 1.1-2.8 1.7-4.4 1.7-1.6 0-3.2-.6-4.4-1.7l-18-16.6c-.8-.7-2-.2-2 .9v21.2c0 2.7 2.2 4.9 4.9 4.9h23.9v-6.1c.2-3.3 2.8-6 6.2-6.2h.7c3.3.2 6 2.8 6.2 6.2v6.1h2.2c2.7 0 4.9-2.2 4.9-4.9-.3 0-.3-14.7-.3-21.2z" />
@@ -14,5 +13,4 @@ function SvgReadReceipts(props: React.SVGProps<SVGSVGElement>) {
     </svg>
   );
 }
-
 export default SvgReadReceipts;

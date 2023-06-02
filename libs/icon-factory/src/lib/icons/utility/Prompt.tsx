@@ -1,8 +1,7 @@
 import * as React from 'react';
-
 function SvgPrompt(props: React.SVGProps<SVGSVGElement>) {
   return (
-    <svg viewBox="0 0 52 52" aria-hidden="true" {...props}>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 52 52" aria-hidden="true" {...props}>
       <path
         fillRule="evenodd"
         clipRule="evenodd"
@@ -12,5 +11,4 @@ function SvgPrompt(props: React.SVGProps<SVGSVGElement>) {
     </svg>
   );
 }
-
 export default SvgPrompt;

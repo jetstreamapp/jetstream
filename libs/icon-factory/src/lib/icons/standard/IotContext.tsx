@@ -1,8 +1,7 @@
 import * as React from 'react';
-
 function SvgIotContext(props: React.SVGProps<SVGSVGElement>) {
   return (
-    <svg viewBox="0 0 100 100" aria-hidden="true" {...props}>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" aria-hidden="true" {...props}>
       <g fill="unset">
         <path d="M73 43.5c-3.2 0-6 2.2-6.7 5.2h-4.9c-.8-5.6-5.6-10-11.5-10s-10.7 4.3-11.5 10h-4.9c-.8-3-3.5-5.2-6.7-5.2-3.8 0-7 3.1-7 7 0 3.8 3.1 7 7 7 3.2 0 6-2.2 6.7-5.2h4.9c.8 5 4.7 8.8 9.7 9.6v4.9c-3 .8-5.2 3.5-5.2 6.7 0 3.8 3.1 7 7 7s7-3.1 7-7c0-3.2-2.2-6-5.2-6.7v-4.9c5-.7 8.9-4.6 9.7-9.6h4.9c.8 3 3.5 5.2 6.7 5.2 3.8 0 7-3.1 7-7s-3.1-7-7-7zM53.5 73.4c0 1.9-1.6 3.5-3.5 3.5s-3.5-1.6-3.5-3.5 1.6-3.5 3.5-3.5 3.5 1.6 3.5 3.5z" />
         <path d="M33.3 36c-.8.8-.8 2 0 2.8.8.8 2 .8 2.8 0 7.4-7.4 19.4-7.4 26.8 0 .4.4.9.6 1.4.6s1-.2 1.4-.6c.8-.8.8-2 0-2.8-8.9-9-23.5-9-32.4 0z" />
@@ -11,5 +10,4 @@ function SvgIotContext(props: React.SVGProps<SVGSVGElement>) {
     </svg>
   );
 }
-
 export default SvgIotContext;

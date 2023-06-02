@@ -1,8 +1,7 @@
 import * as React from 'react';
-
 function SvgLiveMessage(props: React.SVGProps<SVGSVGElement>) {
   return (
-    <svg viewBox="0 0 52 52" aria-hidden="true" {...props}>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 52 52" aria-hidden="true" {...props}>
       <path
         fill="unset"
         d="M46 2H22c-2.2 0-4 1.8-4 4v.1c3.6.4 6.9 1.7 9.6 3.8h14.8c.8 0 1.6.8 1.6 1.6v27c0 .8-.8 1.4-1.6 1.4h-17c-.8 0-1.4-.6-1.4-1.4v-.1c0-.1-.1-.3-.2-.3-1.7.8-3.6 1.3-5.5 1.5-.2.2-.3.4-.3.9v5.4c0 2.2 1.7 4 3.9 4h24c2.2 0 4.1-1.8 4.1-4V6c0-2.2-1.8-4-4-4zM34 48c-1.7 0-3-1.3-3-3s1.3-3 3-3 3 1.3 3 3-1.3 3-3 3z"
@@ -14,5 +13,4 @@ function SvgLiveMessage(props: React.SVGProps<SVGSVGElement>) {
     </svg>
   );
 }
-
 export default SvgLiveMessage;

@@ -1,8 +1,7 @@
 import * as React from 'react';
-
 function SvgRecordDelete(props: React.SVGProps<SVGSVGElement>) {
   return (
-    <svg viewBox="0 0 52 52" aria-hidden="true" {...props}>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 52 52" aria-hidden="true" {...props}>
       <g fill="unset">
         <path d="M17.2 11.6h17.6c.9 0 1.6-.7 1.6-1.6V6.8c0-2.6-2.2-4.8-4.8-4.8H20.4c-2.6 0-4.8 2.2-4.8 4.8V10c0 .9.7 1.6 1.6 1.6z" />
         <path d="M43.6 6H42c-.5 0-.8.3-.8.8V10c0 3.5-2.9 6.4-6.4 6.4H17.2c-3.5 0-6.4-2.9-6.4-6.4V6.8c0-.5-.3-.8-.8-.8H8.4c-2.6 0-4.8 2.2-4.8 4.8v34.4c0 2.6 2.2 4.8 4.8 4.8h35.2c2.6 0 4.8-2.2 4.8-4.8V10.8c0-2.6-2.2-4.8-4.8-4.8zm-9.3 36.4c0 1.4-1.1 2.4-2.4 2.4H20.1c-1.4 0-2.4-1.1-2.4-2.4V32.1c0-.4.3-.7.7-.7h15.2c.4 0 .7.3.7.7v10.3zm2-14.9c0 .4-.3.7-.7.7H16.5c-.4 0-.7-.3-.7-.7V26c0-.4.3-.7.7-.7h6.1v-2c0-1.1.9-2 2-2h2.9c1.1 0 2 .9 2 2v2h6.1c.4 0 .7.3.7.7v1.5z" />
@@ -11,5 +10,4 @@ function SvgRecordDelete(props: React.SVGProps<SVGSVGElement>) {
     </svg>
   );
 }
-
 export default SvgRecordDelete;

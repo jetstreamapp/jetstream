@@ -1,8 +1,7 @@
 import * as React from 'react';
-
 function SvgSalesforceCms(props: React.SVGProps<SVGSVGElement>) {
   return (
-    <svg viewBox="0 0 100 100" aria-hidden="true" {...props}>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" aria-hidden="true" {...props}>
       <path
         fill="unset"
         d="M66.3 48.4c.3 0 .7-.1.9-.3.8-.5 1-1.6.5-2.4l-6.3-9.6c-.1-.2-.2-.3-.4-.4-.7-.6-1.8-.4-2.4.3l-6.8 8.8-8-11.9c-.1-.2-.3-.3-.5-.5-.8-.5-1.9-.3-2.4.5l-8.6 12.8c-.2.3-.3.6-.3 1 0 .9.8 1.7 1.7 1.7h32.6z"
@@ -18,5 +17,4 @@ function SvgSalesforceCms(props: React.SVGProps<SVGSVGElement>) {
     </svg>
   );
 }
-
 export default SvgSalesforceCms;
